@@ -23,6 +23,7 @@ Requires: ngspice (install: apt install ngspice / brew install ngspice)
 """
 
 import argparse
+import dataclasses
 import inspect
 import json
 import os
@@ -34,7 +35,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _core_path  # noqa: F401
 from kicad_core.cli import add_compact_arg, add_output_arg, add_text_arg, utf8_text_stdout
-from kicad_core.diagnostics import OnceSink
+from kicad_core.diagnostics import OnceSink, record
 
 from spice_templates import TEMPLATE_REGISTRY, TOPLEVEL_REGISTRY, list_supported_types, SpiceTestbench
 from spice_results import (
@@ -92,7 +93,7 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
 
     Args:
         analysis_json: Parsed JSON dict from analyze_schematic.py
-        workdir: Directory for .cir and output files (default: temp dir)
+        workdir: Directory whose new spice_sim_* subfolder receives the .cir and output files (default: temp dir)
         timeout: Seconds per simulation (default: 5)
         types: List of detector types to simulate, or None for all supported
         parasitics: PCB parasitic data from extract_parasitics.py
@@ -119,9 +120,9 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         "detect_decoupling": "decoupling_analysis",
         "detect_integrated_ldos": "power_regulators",
     }
-    # KH-388 belt: analysis JSON may still carry duplicate finding objects
-    # (e.g. output from a pre-fix analyzer, or cached analysis/ output) —
-    # don't collect the same subcircuit for simulation twice. id()-based
+    # Analysis JSON may carry duplicate finding objects (e.g. cached
+    # analysis/ output from an older analyzer) — don't collect the
+    # same subcircuit for simulation twice. id()-based
     # dedup is safe for any detector (a dict appearing twice in the same
     # analysis output is always an aliasing quirk, never intentional). The
     # (detector, components) key belt is scoped to detect_voltage_dividers
@@ -167,18 +168,35 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         workdir = tempfile.mkdtemp(prefix="spice_sim_")
         cleanup_workdir = True
     else:
+        if os.path.islink(workdir):
+            raise ValueError(f"workdir {workdir} is a symlink")
         os.makedirs(workdir, exist_ok=True)
+    # Benches go into a new private folder, so files a project left in a reused
+    # workdir are never written through or sourced by the simulator
+    run_dir = workdir if cleanup_workdir else tempfile.mkdtemp(prefix="spice_sim_", dir=workdir)
 
-    # An analysis that names no source file caches its models under this run's workdir
+    sim_diagnostics: list = []  # Monte Carlo trials add only records the nominal runs lack
+
+    # An analysis that names no source file caches its models under this run's folder,
+    # and so does a project whose spice/ or spice/models/ is a symlink, which would
+    # send cache writes to the link's target.
     from spice_model_cache import project_dir_from_analysis
-    if (project_dir_from_analysis(analysis_json) is None
-            and (model_options is None or model_options.cache_dir is None)):
-        from spice_model_cache import ModelOptions
-        model_options = ModelOptions(cache_dir=workdir,
-                                     offline=(model_options.offline if model_options else False))
+    if model_options is None or model_options.cache_dir is None:
+        project_dir = project_dir_from_analysis(analysis_json)
+        linked = None
+        if project_dir is not None:
+            linked = next((p for p in (project_dir / "spice", project_dir / "spice" / "models")
+                           if p.is_symlink()), None)
+            if linked is not None:
+                record(sim_diagnostics, "simulate_subcircuits.simulate_subcircuits",
+                       OSError(f"{linked} is a symlink"),
+                       "part models cached in the run's folder")
+        if project_dir is None or linked is not None:
+            from spice_model_cache import ModelOptions
+            model_options = dataclasses.replace(model_options or ModelOptions(),
+                                                cache_dir=run_dir)
 
     results = []
-    sim_diagnostics: list = []  # Monte Carlo trials add only records the nominal runs lack
     total_time = 0
 
     # Monte Carlo setup (lazy import only when needed)
@@ -220,7 +238,7 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
                 diagnostics.extend(cir_content.diagnostics)
             cir_content = cir_content.render(simulator_backend, out_file_spice)
 
-        with open(cir_file, "w", encoding="utf-8") as f:
+        with open(cir_file, "w", encoding="utf-8", newline="\n") as f:
             f.write(cir_content)
 
         t0 = time.monotonic()
@@ -235,7 +253,7 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         elapsed = time.monotonic() - t0
         total_time += elapsed
 
-        with open(log_file, "w", encoding="utf-8") as f:
+        with open(log_file, "w", encoding="utf-8", newline="\n") as f:
             f.write(f"=== stdout ===\n{stdout}\n=== stderr ===\n{stderr}\n")
 
         if not success:
@@ -264,9 +282,9 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
         """Simulate a batch of detections — shared by signal_analysis and top-level loops."""
         for i, det in enumerate(detections):
             label = _make_label(det_type, det, i)
-            cir_file = os.path.join(workdir, f"{label}.cir")
-            out_file = os.path.join(workdir, f"{label}.out")
-            log_file = os.path.join(workdir, f"{label}.log")
+            cir_file = os.path.join(run_dir, f"{label}.cir")
+            out_file = os.path.join(run_dir, f"{label}.out")
+            log_file = os.path.join(run_dir, f"{label}.log")
 
             # Nominal simulation
             result, elapsed = _run_single_sim(
@@ -311,9 +329,9 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
                 if components:
                     mc_results_list = []
                     sampled_values_list = []
-                    mc_cir = os.path.join(workdir, f"{label}_mc.cir")
-                    mc_out = os.path.join(workdir, f"{label}_mc.out")
-                    mc_log = os.path.join(workdir, f"{label}_mc.log")
+                    mc_cir = os.path.join(run_dir, f"{label}_mc.cir")
+                    mc_out = os.path.join(run_dir, f"{label}_mc.out")
+                    mc_log = os.path.join(run_dir, f"{label}_mc.log")
 
                     trial_sink = OnceSink(sim_diagnostics)
                     seeded = len(trial_sink)
@@ -381,7 +399,7 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
 
     report = build_report(results)
     report["diagnostics"] = sim_diagnostics + report["diagnostics"]
-    report["workdir"] = workdir
+    report["workdir"] = run_dir
     report["total_elapsed_s"] = round(total_time, 3)
     report["simulator"] = find_ngspice() or None
     report["ngspice"] = report["simulator"]  # backward compat alias
@@ -470,7 +488,7 @@ def _summary_line(report: dict) -> str:
     elapsed = report.get("total_elapsed_s") or 0.0
     return (f"Simulation complete: {s['total']} subcircuits — "
             f"{s['pass']} pass, {s['warn']} warn, {s['fail']} fail, "
-            f"{s['skip']} skip ({elapsed:.1f}s)")
+            f"{s['skip']} skip, {s.get('info', 0)} info ({elapsed:.1f}s)")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -513,8 +531,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--parasitics",
         help="Path to parasitics JSON (from extract_parasitics.py) for "
-             "PCB-aware simulation. When provided, testbenches include trace "
-             "resistance and via inductance.",
+             "PCB-aware simulation. When provided, RC-filter testbenches "
+             "include trace resistance and via inductance.",
     )
     parser.add_argument(
         "--simulator",
@@ -608,7 +626,7 @@ def main(argv: list[str] | None = None) -> int:
         supported = set(list_supported_types())
         unknown = set(types) - supported
         if unknown:
-            print(f"Warning: unknown types ignored: {', '.join(unknown)}",
+            print(f"Warning: unknown types ignored: {', '.join(sorted(unknown))}",
                   file=sys.stderr)
             types = [t for t in types if t in supported]
 
@@ -624,10 +642,20 @@ def main(argv: list[str] | None = None) -> int:
         except (json.JSONDecodeError, OSError) as e:
             print(f"Warning: could not load parasitics: {e}", file=sys.stderr)
 
+    from kicad_core.project import load_user_config
+    spice_config = load_user_config().get("spice")
+    trust_project_models = (isinstance(spice_config, dict)
+                            and spice_config.get("trust_project_models") is True)
     model_options = None
-    if args.model_cache_dir or args.offline:
+    if args.model_cache_dir or args.offline or trust_project_models:
         from spice_model_cache import ModelOptions
-        model_options = ModelOptions(cache_dir=args.model_cache_dir, offline=args.offline)
+        model_options = ModelOptions(cache_dir=args.model_cache_dir, offline=args.offline,
+                                     trust_project_models=trust_project_models)
+
+    if workdir and os.path.islink(workdir):
+        print(f"Error: workdir {workdir} is a symlink; refusing to write SPICE files "
+              f"through it.", file=sys.stderr)
+        return 1
 
     # Run simulations
     report = simulate_subcircuits(
@@ -662,7 +690,7 @@ def main(argv: list[str] | None = None) -> int:
     # Output
     output_json = json.dumps(report, indent=2)
     if args.text:
-        # KH-345: --text parity with the other analyzers. Early-exit
+        # --text matches the other analyzers. Early-exit
         # reports (no simulatable data) omit total_elapsed_s — tolerate it.
         s = report.get("summary", {})
         _elapsed = report.get("total_elapsed_s")
@@ -670,14 +698,15 @@ def main(argv: list[str] | None = None) -> int:
                    if isinstance(_elapsed, (int, float)) else "")
         print(f"SPICE simulation: {s.get('total', 0)} subcircuits — "
               f"{s.get('pass', 0)} pass, {s.get('warn', 0)} warn, "
-              f"{s.get('fail', 0)} fail, {s.get('skip', 0)} skip{_suffix}")
+              f"{s.get('fail', 0)} fail, {s.get('skip', 0)} skip, "
+              f"{s.get('info', 0)} info{_suffix}")
         from output_filters import format_text
         print(format_text(report.get("findings", []), "designer"))
         if args.output:
-            with open(args.output, "w", encoding="utf-8") as f:
+            with open(args.output, "w", encoding="utf-8", newline="\n") as f:
                 f.write(output_json)
     elif args.output:
-        with open(args.output, "w", encoding="utf-8") as f:
+        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
             f.write(output_json)
         # Print summary to stderr
         print(_summary_line(report), file=sys.stderr)
@@ -687,4 +716,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

@@ -28,6 +28,7 @@ DEFAULT_MAX_DATASETS = 128
 
 
 def nonnegative_int(value: str) -> int:
+    """Handle nonnegative int."""
     parsed = int(value)
     if parsed < 0:
         raise argparse.ArgumentTypeError("must be zero or greater")
@@ -35,6 +36,7 @@ def nonnegative_int(value: str) -> int:
 
 
 def positive_int(value: str) -> int:
+    """Handle positive int."""
     parsed = int(value)
     if parsed <= 0:
         raise argparse.ArgumentTypeError("must be greater than zero")
@@ -42,6 +44,7 @@ def positive_int(value: str) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Inspect FCS structure and channels as JSON. Event data is not "
@@ -130,6 +133,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def sha256_file(path: Path) -> str:
+    """Handle sha256 file."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
@@ -188,6 +192,7 @@ def iter_datasets(
 
 
 def channel_kind(flow: FlowData, array_index: int) -> str:
+    """Handle channel kind."""
     if flow.pnn_labels[array_index] in flow.null_channels:
         return "null"
     if array_index == flow.time_index:
@@ -200,6 +205,7 @@ def channel_kind(flow: FlowData, array_index: int) -> str:
 
 
 def channel_records(flow: FlowData) -> list[dict[str, Any]]:
+    """Handle channel records."""
     records = []
     for array_index, pnn in enumerate(flow.pnn_labels):
         parameter_number = array_index + 1
@@ -223,6 +229,7 @@ def finite_statistics(
     events: np.ndarray,
     labels: list[str],
 ) -> list[dict[str, Any]]:
+    """Handle finite statistics."""
     records = []
     for array_index, label in enumerate(labels):
         values = events[:, array_index]
@@ -261,6 +268,7 @@ def dataset_record(
     raw: bool,
     estimated_array_bytes: int,
 ) -> dict[str, Any]:
+    """Handle dataset record."""
     record: dict[str, Any] = {
         "dataset_index": dataset_index,
         "byte_offset": offset,
@@ -303,6 +311,7 @@ def dataset_record(
 
 
 def inspect_file(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle inspect file."""
     path = args.input.expanduser()
     if not path.exists():
         raise FileNotFoundError(path)
@@ -387,6 +396,7 @@ def inspect_file(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def write_report(report: dict[str, Any], output: Optional[Path]) -> None:
+    """Write report."""
     text = json.dumps(
         report,
         indent=2,
@@ -403,6 +413,7 @@ def write_report(report: dict[str, Any], output: Optional[Path]) -> None:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.raw and not args.stats:
@@ -420,7 +431,6 @@ def main(argv: Optional[list[str]] = None) -> int:
         write_report(report, args.output)
     except (
         FlowIOException,
-        FileExistsError,
         IndexError,
         KeyError,
         MemoryError,

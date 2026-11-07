@@ -59,6 +59,7 @@ ROUTES = {
 
 @dataclass
 class Profile:
+    """Profile."""
     subject: str
     time: np.ndarray
     conc: np.ndarray
@@ -92,6 +93,7 @@ def _parse_conc(raw: str, lloq: float | None, rule: str) -> tuple[float | None, 
 
 
 def load_profiles(args: argparse.Namespace) -> list[Profile]:
+    """Load profiles."""
     rows = read_table(args.input)
     require_columns(rows, [args.time_column, args.conc_column], str(args.input))
     has_subject = args.subject_column in rows[0]
@@ -169,6 +171,7 @@ def _segment(t0: float, t1: float, c0: float, c1: float, method: str) -> tuple[f
 
 
 def cumulative_auc(time: np.ndarray, conc: np.ndarray, method: str) -> tuple[np.ndarray, np.ndarray]:
+    """Handle cumulative auc."""
     auc = np.zeros_like(time)
     aumc = np.zeros_like(time)
     for i in range(1, len(time)):
@@ -194,6 +197,7 @@ def interpolate(time: np.ndarray, conc: np.ndarray, target: float, method: str) 
 
 
 def partial_auc(time: np.ndarray, conc: np.ndarray, start: float, end: float, method: str) -> float:
+    """Handle partial auc."""
     inner = [t for t in time if start < t < end]
     knots = [start, *inner, end]
     values = [interpolate(time, conc, t, method) for t in knots]
@@ -208,6 +212,7 @@ def partial_auc(time: np.ndarray, conc: np.ndarray, start: float, end: float, me
 
 @dataclass
 class LambdaZ:
+    """Lambda z."""
     lam: float | None = None
     intercept: float | None = None
     r2: float | None = None
@@ -221,6 +226,7 @@ class LambdaZ:
 
     @property
     def half_life(self) -> float | None:
+        """Handle half life."""
         return math.log(2.0) / self.lam if self.lam and self.lam > 0 else None
 
 
@@ -316,6 +322,7 @@ def estimate_lambda_z(
 
 
 def analyse(profile: Profile, args: argparse.Namespace) -> tuple[dict, LambdaZ, list[str]]:
+    """Handle analyse."""
     findings: list[str] = []
     time, conc, is_blq = profile.time, profile.conc, profile.is_blq
     quantifiable = (~is_blq) & (conc > 0)
@@ -433,6 +440,7 @@ def analyse(profile: Profile, args: argparse.Namespace) -> tuple[dict, LambdaZ, 
 
 
 def summarise(rows: Sequence[dict], keys: Sequence[str]) -> list[dict]:
+    """Handle summarise."""
     out = []
     for key in keys:
         values = [float(r[key]) for r in rows if isinstance(r.get(key), (int, float)) and math.isfinite(float(r[key]))]
@@ -463,6 +471,7 @@ def summarise(rows: Sequence[dict], keys: Sequence[str]) -> list[dict]:
 
 
 def _partial_spec(text: str) -> tuple[float, float]:
+    """Handle partial spec."""
     try:
         start, end = text.split("-", 1)
         lo, hi = float(start), float(end)
@@ -474,10 +483,12 @@ def _partial_spec(text: str) -> tuple[float, float]:
 
 
 def _window_spec(text: str) -> tuple[float, float]:
+    """Handle window spec."""
     return _partial_spec(text)
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Non-compartmental analysis with explicit lambda_z, BLQ, and trapezoidal choices.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -522,6 +533,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(argv: Sequence[str] | None = None) -> int:
+    """Run."""
     args = build_parser().parse_args(argv)
     if args.route == "iv-infusion" and args.tinf is None:
         print("error: --route iv-infusion needs --tinf (or a tinf column)", file=sys.stderr)

@@ -22,17 +22,28 @@ ASSET_ROOT = Path(__file__).resolve().parents[1] / "assets"
 PROFILE_PATH = ASSET_ROOT / "publisher_profiles.json"
 SCHEMA_VERSION = "1.0"
 
+# rcParams keys repeated across the base style and the presets.
+_FONT_SIZE = "font.size"
+_AXES_LINEWIDTH = "axes.linewidth"
+_AXES_LABELSIZE = "axes.labelsize"
+_AXES_TITLESIZE = "axes.titlesize"
+_XTICK_LABELSIZE = "xtick.labelsize"
+_YTICK_LABELSIZE = "ytick.labelsize"
+_LINES_LINEWIDTH = "lines.linewidth"
+_LEGEND_FONTSIZE = "legend.fontsize"
+_SAVEFIG_DPI = "savefig.dpi"
+
 BASE_STYLE: dict[str, Any] = {
     "figure.dpi": 100,
     "figure.facecolor": "white",
     "figure.autolayout": False,
     "figure.constrained_layout.use": False,
-    "font.size": 8,
+    _FONT_SIZE: 8,
     "font.family": "sans-serif",
     "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
-    "axes.linewidth": 0.6,
-    "axes.labelsize": 8,
-    "axes.titlesize": 8,
+    _AXES_LINEWIDTH: 0.6,
+    _AXES_LABELSIZE: 8,
+    _AXES_TITLESIZE: 8,
     "axes.labelweight": "normal",
     "axes.spines.top": False,
     "axes.spines.right": False,
@@ -44,21 +55,21 @@ BASE_STYLE: dict[str, Any] = {
     "xtick.minor.size": 2,
     "xtick.major.width": 0.6,
     "xtick.minor.width": 0.5,
-    "xtick.labelsize": 7,
+    _XTICK_LABELSIZE: 7,
     "xtick.direction": "out",
     "ytick.major.size": 3,
     "ytick.minor.size": 2,
     "ytick.major.width": 0.6,
     "ytick.minor.width": 0.5,
-    "ytick.labelsize": 7,
+    _YTICK_LABELSIZE: 7,
     "ytick.direction": "out",
-    "lines.linewidth": 1.4,
+    _LINES_LINEWIDTH: 1.4,
     "lines.markersize": 4,
     "lines.markeredgewidth": 0.6,
     "patch.linewidth": 0.6,
-    "legend.fontsize": 7,
+    _LEGEND_FONTSIZE: 7,
     "legend.frameon": False,
-    "savefig.dpi": 300,
+    _SAVEFIG_DPI: 300,
     "savefig.format": "pdf",
     # "tight" changes the exported physical page dimensions. Opt in explicitly.
     "savefig.bbox": "standard",
@@ -77,48 +88,48 @@ BASE_STYLE: dict[str, Any] = {
 STYLE_OVERRIDES: dict[str, dict[str, Any]] = {
     "default": {},
     "nature": {
-        "font.size": 7,
-        "axes.labelsize": 7,
-        "axes.titlesize": 7,
-        "xtick.labelsize": 6,
-        "ytick.labelsize": 6,
-        "legend.fontsize": 6,
-        "lines.linewidth": 1.0,
-        "savefig.dpi": 450,
+        _FONT_SIZE: 7,
+        _AXES_LABELSIZE: 7,
+        _AXES_TITLESIZE: 7,
+        _XTICK_LABELSIZE: 6,
+        _YTICK_LABELSIZE: 6,
+        _LEGEND_FONTSIZE: 6,
+        _LINES_LINEWIDTH: 1.0,
+        _SAVEFIG_DPI: 450,
     },
     "science": {
-        "font.size": 7,
-        "axes.labelsize": 7,
-        "axes.titlesize": 7,
-        "xtick.labelsize": 6,
-        "ytick.labelsize": 6,
-        "legend.fontsize": 6,
-        "savefig.dpi": 300,
+        _FONT_SIZE: 7,
+        _AXES_LABELSIZE: 7,
+        _AXES_TITLESIZE: 7,
+        _XTICK_LABELSIZE: 6,
+        _YTICK_LABELSIZE: 6,
+        _LEGEND_FONTSIZE: 6,
+        _SAVEFIG_DPI: 300,
     },
     "cell": {
-        "font.size": 7,
-        "axes.labelsize": 8,
-        "axes.titlesize": 8,
-        "xtick.labelsize": 7,
-        "ytick.labelsize": 7,
-        "legend.fontsize": 7,
-        "savefig.dpi": 300,
+        _FONT_SIZE: 7,
+        _AXES_LABELSIZE: 8,
+        _AXES_TITLESIZE: 8,
+        _XTICK_LABELSIZE: 7,
+        _YTICK_LABELSIZE: 7,
+        _LEGEND_FONTSIZE: 7,
+        _SAVEFIG_DPI: 300,
     },
     "minimal": {
-        "axes.linewidth": 0.8,
+        _AXES_LINEWIDTH: 0.8,
         "xtick.major.width": 0.8,
         "ytick.major.width": 0.8,
-        "lines.linewidth": 1.8,
+        _LINES_LINEWIDTH: 1.8,
     },
     "presentation": {
-        "font.size": 14,
-        "axes.labelsize": 16,
-        "axes.titlesize": 18,
-        "xtick.labelsize": 12,
-        "ytick.labelsize": 12,
-        "legend.fontsize": 12,
-        "axes.linewidth": 1.4,
-        "lines.linewidth": 2.4,
+        _FONT_SIZE: 14,
+        _AXES_LABELSIZE: 16,
+        _AXES_TITLESIZE: 18,
+        _XTICK_LABELSIZE: 12,
+        _YTICK_LABELSIZE: 12,
+        _LEGEND_FONTSIZE: 12,
+        _AXES_LINEWIDTH: 1.4,
+        _LINES_LINEWIDTH: 2.4,
         "lines.markersize": 8,
         "savefig.format": "png",
     },
@@ -141,6 +152,7 @@ STYLE_NOTICES = {
 
 
 def _load_palette_asset() -> ModuleType:
+    """Load palette asset."""
     asset = ASSET_ROOT / "color_palettes.py"
     spec = importlib.util.spec_from_file_location(
         "_scientific_visualization_color_palettes", asset
@@ -153,6 +165,7 @@ def _load_palette_asset() -> ModuleType:
 
 
 def available_palettes() -> dict[str, list[str]]:
+    """Handle available palettes."""
     palettes = getattr(_load_palette_asset(), "PALETTES", None)
     if not isinstance(palettes, dict):
         raise CliError("bundled palette asset does not define PALETTES")
@@ -184,6 +197,7 @@ def get_style(
 
 
 def _matplotlib_style(style: dict[str, Any]) -> dict[str, Any]:
+    """Handle matplotlib style."""
     try:
         import matplotlib as mpl
     except ImportError as exc:
@@ -311,6 +325,7 @@ def figure_size_for_profile(
 
 
 def math_is_finite_positive(value: float) -> bool:
+    """Handle math is finite positive."""
     return value > 0 and value < float("inf")
 
 
@@ -367,6 +382,7 @@ def configure_for_journal(
 
 
 def _mplstyle_value(key: str, value: Any) -> str:
+    """Handle mplstyle value."""
     if isinstance(value, bool):
         return "True" if value else "False"
     if isinstance(value, (list, tuple)):
@@ -413,6 +429,7 @@ def reset_to_default() -> None:
 
 
 def _serializable_style(style_name: str, palette_name: str) -> dict[str, Any]:
+    """Handle serializable style."""
     style = get_style(style_name, palette_name=palette_name)
     colors = style.pop("_palette_colors")
     return {
@@ -429,6 +446,7 @@ def _serializable_style(style_name: str, palette_name: str) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Inspect or write deterministic Matplotlib style presets. "
@@ -454,6 +472,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

@@ -95,6 +95,8 @@ Building with **Lovable, Bolt or v0**? Paste [`templates/affiliate-store/PROMPT.
 
 Running your own app or SaaS? Paste [`templates/merchant-tracking/PROMPT.md`](templates/merchant-tracking/PROMPT.md) into Lovable, Bolt or v0 to add Clickwise sales tracking with Stripe, Lemon Squeezy or the conversions API.
 
+WooCommerce: import the Clickwise product feed with WP All Import → [guides/woocommerce/wp-all-import.md](guides/woocommerce/wp-all-import.md)
+
 ## 6. Clients
 
 Thin, dependency-free clients generated from the OpenAPI, one method per operation:

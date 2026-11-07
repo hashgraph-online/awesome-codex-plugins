@@ -80,7 +80,7 @@ def enrichment_pipeline(
                 print(f"Results saved to: {output_file}")
 
                 # Show top 5 results
-                print(f"\nTop 5 enriched terms:")
+                print("\nTop 5 enriched terms:")
                 for i, row in enrichment.head(5).iterrows():
                     term = row.get("name", row.get("term", "Unknown"))
                     p_val = row.get(
@@ -167,6 +167,7 @@ def enrichment_pipeline(
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Perform comprehensive enrichment analysis using gget"
     )

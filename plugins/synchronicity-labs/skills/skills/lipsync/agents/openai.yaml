@@ -1,0 +1,4 @@
+interface:
+  display_name: "Lipsync a video"
+  short_description: "Match a video's lips to new audio, a song or a script"
+  default_prompt: "Use $lipsync to lipsync my video to this new audio."

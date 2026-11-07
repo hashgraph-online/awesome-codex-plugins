@@ -1,8 +1,7 @@
-"""Detector-side helpers for Phase 4 lookup() integration.
+"""Detector-side helpers for lookup() integration.
 
-Used by 4b upgraded detectors and 4c new detectors to consume v1.4
-datasheet facts via the Phase 2 Consumer API. Soft-fallback semantics
-per Phase 4 spec §5.1: lookup() returning None falls back to heuristic.
+Used by the detectors that consume datasheet facts via the Consumer API.
+Soft-fallback semantics: lookup() returning None falls back to heuristic.
 """
 from __future__ import annotations
 

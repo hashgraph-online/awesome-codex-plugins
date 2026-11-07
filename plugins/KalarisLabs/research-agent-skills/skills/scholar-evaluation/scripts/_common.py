@@ -91,6 +91,7 @@ class ValidationError(ValueError):
     """A deterministic input failure that never includes a supplied value."""
 
     def __init__(self, code: str, path: str = "$") -> None:
+        """Initialise the instance."""
         super().__init__(code)
         self.code = code
         self.path = path
@@ -105,10 +106,12 @@ class Issue:
     level: str = "error"
 
     def as_dict(self) -> dict[str, str]:
+        """Handle as dict."""
         return {"code": self.code, "path": self.path, "level": self.level}
 
 
 def _pairs_no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle pairs no duplicates."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -118,6 +121,7 @@ def _pairs_no_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _check_local_file(path: Path, suffix: str) -> None:
+    """Check local file."""
     if path.suffix.lower() != suffix:
         raise ValidationError("INPUT_SUFFIX_NOT_ALLOWED")
     if not path.exists():
@@ -131,6 +135,7 @@ def _check_local_file(path: Path, suffix: str) -> None:
 
 
 def _scan_structure(value: Any, path: str = "$") -> None:
+    """Handle scan structure."""
     nodes = 0
     stack: list[tuple[Any, str, int]] = [(value, path, 0)]
     while stack:
@@ -217,6 +222,7 @@ def write_json(
 
 
 def failure_report(error: ValidationError) -> dict[str, Any]:
+    """Handle failure report."""
     return {
         "schema_version": SCHEMA_VERSION,
         "status": "error",
@@ -225,18 +231,22 @@ def failure_report(error: ValidationError) -> dict[str, Any]:
 
 
 def is_number(value: Any) -> bool:
+    """Return whether number."""
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def is_identifier(value: Any) -> bool:
+    """Return whether identifier."""
     return isinstance(value, str) and bool(IDENTIFIER_RE.fullmatch(value))
 
 
 def is_nonempty_text(value: Any, maximum: int = MAX_TEXT_CHARS) -> bool:
+    """Return whether nonempty text."""
     return isinstance(value, str) and bool(value.strip()) and len(value) <= maximum
 
 
 def is_reference(value: Any) -> bool:
+    """Return whether reference."""
     if not is_nonempty_text(value, 500):
         return False
     lowered = value.strip().lower()
@@ -248,6 +258,7 @@ def is_reference(value: Any) -> bool:
 
 
 def is_date(value: Any) -> bool:
+    """Return whether date."""
     if not isinstance(value, str):
         return False
     try:
@@ -263,6 +274,7 @@ def exact_keys(
     path: str,
     issues: list[Issue],
 ) -> bool:
+    """Handle exact keys."""
     if not isinstance(value, dict):
         issues.append(Issue("SCHEMA_OBJECT_REQUIRED", path))
         return False
@@ -278,6 +290,7 @@ def exact_keys(
 def validate_identifier(
     value: Any, path: str, issues: list[Issue], code: str = "IDENTIFIER_INVALID"
 ) -> None:
+    """Validate identifier."""
     if not is_identifier(value):
         issues.append(Issue(code, path))
 
@@ -285,6 +298,7 @@ def validate_identifier(
 def validate_reference(
     value: Any, path: str, issues: list[Issue], *, allow_empty: bool = False
 ) -> None:
+    """Validate reference."""
     if allow_empty and value == "":
         return
     if not is_reference(value):
@@ -294,6 +308,7 @@ def validate_reference(
 def validate_text(
     value: Any, path: str, issues: list[Issue], *, allow_empty: bool = False
 ) -> None:
+    """Validate text."""
     if allow_empty and value == "":
         return
     if not is_nonempty_text(value):
@@ -301,6 +316,7 @@ def validate_text(
 
 
 def validate_bool(value: Any, path: str, issues: list[Issue]) -> None:
+    """Validate bool."""
     if not isinstance(value, bool):
         issues.append(Issue("BOOLEAN_REQUIRED", path))
 
@@ -314,6 +330,7 @@ def validate_text_list(
     maximum: int = 100,
     references: bool = False,
 ) -> None:
+    """Validate text list."""
     if not isinstance(value, list):
         issues.append(Issue("LIST_REQUIRED", path))
         return
@@ -327,6 +344,7 @@ def validate_text_list(
 
 
 def _validate_scale(scale: Any, issues: list[Issue]) -> tuple[float, float, float]:
+    """Validate scale."""
     path = "$.scale"
     expected = {"minimum", "maximum", "step", "anchors"}
     if not exact_keys(scale, expected, path, issues):
@@ -369,6 +387,7 @@ def _validate_scale(scale: Any, issues: list[Issue]) -> tuple[float, float, floa
 
 
 def _validate_proxy_absence(value: Any, path: str, issues: list[Issue]) -> None:
+    """Validate proxy absence."""
     strings: list[str] = []
     stack = [value]
     while stack:
@@ -384,96 +403,136 @@ def _validate_proxy_absence(value: Any, path: str, issues: list[Issue]) -> None:
         issues.append(Issue("PROXY_METRIC_CRITERION_PROHIBITED", path))
 
 
-def validate_rubric(rubric: Any) -> list[Issue]:
-    """Validate the strict local rubric schema."""
+_RUBRIC_ID_PATH = "$.rubric_id"
+_VALIDITY_STATUSES = {"not_established", "pilot_evidence", "documented"}
+_RUBRIC_TOP_KEYS = {
+    "schema_version",
+    "rubric_id",
+    "title",
+    "intended_use",
+    "construct",
+    "provenance",
+    "scale",
+    "criteria",
+    "rater_protocol",
+    "governance",
+}
+_CRITERION_KEYS = {
+    "criterion_id",
+    "label",
+    "construct_component",
+    "weight",
+    "required",
+    "anchors",
+    "evidence_requirements",
+    "limitations",
+}
+_RATER_PROTOCOL_KEYS = {
+    "minimum_raters",
+    "training_required",
+    "training_ref",
+    "calibration_required",
+    "calibration_ref",
+    "agreement_method",
+    "inter_rater_reliability_status",
+    "inter_rater_reliability_ref",
+    "drift_monitoring_required",
+    "drift_review_ref",
+}
+_GOVERNANCE_BOOL_FIELDS = (
+    "accountable_committee_required",
+    "conflict_disclosure_required",
+    "recusal_required",
+    "appeal_process_required",
+    "accessibility_accommodations_required",
+    "data_protection_review_required",
+    "subgroup_bias_review_required",
+)
+_GOVERNANCE_REF_FIELDS = (
+    "committee_owner_role",
+    "appeal_process_ref",
+    "accessibility_process_ref",
+    "data_protection_process_ref",
+    "subgroup_review_ref",
+    "review_cycle_ref",
+)
 
-    issues: list[Issue] = []
-    top_keys = {
-        "schema_version",
-        "rubric_id",
-        "title",
-        "intended_use",
-        "construct",
-        "provenance",
-        "scale",
-        "criteria",
-        "rater_protocol",
-        "governance",
-    }
-    if not exact_keys(rubric, top_keys, "$", issues):
-        return issues
-    if rubric.get("schema_version") != SCHEMA_VERSION:
-        issues.append(Issue("SCHEMA_VERSION_UNSUPPORTED", "$.schema_version"))
-    validate_identifier(rubric.get("rubric_id"), "$.rubric_id", issues)
-    validate_text(rubric.get("title"), "$.title", issues)
 
+def _validate_intended_use(rubric: dict[str, Any], issues: list[Issue]) -> None:
+    """Validate the intended_use section and that every prohibited use is listed."""
     intended = rubric.get("intended_use")
-    if exact_keys(
+    if not exact_keys(
         intended,
         {"purpose", "unit_of_assessment", "allowed_contexts", "prohibited_uses"},
         "$.intended_use",
         issues,
     ):
-        if intended.get("purpose") != ALLOWED_PURPOSE:
-            issues.append(Issue("PURPOSE_NOT_ALLOWED", "$.intended_use.purpose"))
-        if intended.get("unit_of_assessment") != ALLOWED_UNIT:
-            issues.append(
-                Issue("UNIT_OF_ASSESSMENT_NOT_ALLOWED", "$.intended_use.unit_of_assessment")
-            )
-        validate_text_list(
-            intended.get("allowed_contexts"),
-            "$.intended_use.allowed_contexts",
-            issues,
-            minimum=1,
-            maximum=20,
+        return
+    if intended.get("purpose") != ALLOWED_PURPOSE:
+        issues.append(Issue("PURPOSE_NOT_ALLOWED", "$.intended_use.purpose"))
+    if intended.get("unit_of_assessment") != ALLOWED_UNIT:
+        issues.append(
+            Issue("UNIT_OF_ASSESSMENT_NOT_ALLOWED", "$.intended_use.unit_of_assessment")
         )
-        prohibited = intended.get("prohibited_uses")
-        validate_text_list(
-            prohibited,
-            "$.intended_use.prohibited_uses",
-            issues,
-            minimum=len(PROHIBITED_USES),
-            maximum=30,
+    validate_text_list(
+        intended.get("allowed_contexts"),
+        "$.intended_use.allowed_contexts",
+        issues,
+        minimum=1,
+        maximum=20,
+    )
+    prohibited = intended.get("prohibited_uses")
+    validate_text_list(
+        prohibited,
+        "$.intended_use.prohibited_uses",
+        issues,
+        minimum=len(PROHIBITED_USES),
+        maximum=30,
+    )
+    prohibited_set = (
+        set(prohibited)
+        if isinstance(prohibited, list)
+        and all(isinstance(item, str) for item in prohibited)
+        else set()
+    )
+    if isinstance(prohibited, list) and not PROHIBITED_USES.issubset(prohibited_set):
+        issues.append(
+            Issue("PROHIBITED_USES_INCOMPLETE", "$.intended_use.prohibited_uses")
         )
-        prohibited_set = (
-            set(prohibited)
-            if isinstance(prohibited, list)
-            and all(isinstance(item, str) for item in prohibited)
-            else set()
-        )
-        if isinstance(prohibited, list) and not PROHIBITED_USES.issubset(
-            prohibited_set
-        ):
-            issues.append(
-                Issue("PROHIBITED_USES_INCOMPLETE", "$.intended_use.prohibited_uses")
-            )
 
+
+def _validate_construct(rubric: dict[str, Any], issues: list[Issue]) -> None:
+    """Validate the construct section (label, definition, boundaries, limitations)."""
     construct = rubric.get("construct")
-    if exact_keys(
+    if not exact_keys(
         construct,
         {"label", "definition", "boundaries", "limitations"},
         "$.construct",
         issues,
     ):
-        validate_text(construct.get("label"), "$.construct.label", issues)
-        validate_text(construct.get("definition"), "$.construct.definition", issues)
-        validate_text_list(
-            construct.get("boundaries"),
-            "$.construct.boundaries",
-            issues,
-            minimum=1,
-            maximum=20,
-        )
-        validate_text_list(
-            construct.get("limitations"),
-            "$.construct.limitations",
-            issues,
-            minimum=1,
-            maximum=20,
-        )
+        return
+    validate_text(construct.get("label"), "$.construct.label", issues)
+    validate_text(construct.get("definition"), "$.construct.definition", issues)
+    validate_text_list(
+        construct.get("boundaries"),
+        "$.construct.boundaries",
+        issues,
+        minimum=1,
+        maximum=20,
+    )
+    validate_text_list(
+        construct.get("limitations"),
+        "$.construct.limitations",
+        issues,
+        minimum=1,
+        maximum=20,
+    )
 
+
+def _validate_provenance(rubric: dict[str, Any], issues: list[Issue]) -> None:
+    """Validate the provenance section, warning when content validity is not documented."""
     provenance = rubric.get("provenance")
-    if exact_keys(
+    if not exact_keys(
         provenance,
         {
             "rubric_version",
@@ -486,54 +545,135 @@ def validate_rubric(rubric: Any) -> list[Issue]:
         "$.provenance",
         issues,
     ):
-        validate_text(provenance.get("rubric_version"), "$.provenance.rubric_version", issues)
-        validate_text(provenance.get("owner_role"), "$.provenance.owner_role", issues)
-        validate_text_list(
-            provenance.get("source_ids"),
-            "$.provenance.source_ids",
-            issues,
-            minimum=1,
-            maximum=50,
-            references=True,
-        )
-        validity_status = provenance.get("content_validity_status")
-        if validity_status not in {"not_established", "pilot_evidence", "documented"}:
-            issues.append(
-                Issue(
-                    "CONTENT_VALIDITY_STATUS_INVALID",
-                    "$.provenance.content_validity_status",
-                )
+        return
+    validate_text(provenance.get("rubric_version"), "$.provenance.rubric_version", issues)
+    validate_text(provenance.get("owner_role"), "$.provenance.owner_role", issues)
+    validate_text_list(
+        provenance.get("source_ids"),
+        "$.provenance.source_ids",
+        issues,
+        minimum=1,
+        maximum=50,
+        references=True,
+    )
+    validity_status = provenance.get("content_validity_status")
+    if validity_status not in _VALIDITY_STATUSES:
+        issues.append(
+            Issue(
+                "CONTENT_VALIDITY_STATUS_INVALID",
+                "$.provenance.content_validity_status",
             )
-        validate_reference(
-            provenance.get("content_validity_evidence_ref"),
-            "$.provenance.content_validity_evidence_ref",
-            issues,
-            allow_empty=validity_status == "not_established",
         )
-        if validity_status != "documented":
-            issues.append(
-                Issue(
-                    "CONTENT_VALIDITY_NOT_DOCUMENTED",
-                    "$.provenance.content_validity_status",
-                    "warning",
-                )
+    validate_reference(
+        provenance.get("content_validity_evidence_ref"),
+        "$.provenance.content_validity_evidence_ref",
+        issues,
+        allow_empty=validity_status == "not_established",
+    )
+    if validity_status != "documented":
+        issues.append(
+            Issue(
+                "CONTENT_VALIDITY_NOT_DOCUMENTED",
+                "$.provenance.content_validity_status",
+                "warning",
             )
-        if not is_date(provenance.get("last_reviewed_date")):
-            issues.append(Issue("DATE_INVALID", "$.provenance.last_reviewed_date"))
+        )
+    if not is_date(provenance.get("last_reviewed_date")):
+        issues.append(Issue("DATE_INVALID", "$.provenance.last_reviewed_date"))
 
-    scale_object = rubric.get("scale")
-    minimum, maximum, step = _validate_scale(scale_object, issues)
+
+def _scale_anchor_score_set(scale_object: Any) -> set[float]:
+    """Collect the numeric anchor scores declared on the rubric scale."""
     raw_scale_anchors = (
         scale_object.get("anchors") if isinstance(scale_object, dict) else []
     )
     if not isinstance(raw_scale_anchors, list):
         raw_scale_anchors = []
-    scale_anchor_scores = {
+    return {
         float(anchor["score"])
         for anchor in raw_scale_anchors
         if isinstance(anchor, dict) and is_number(anchor.get("score"))
     }
 
+
+def _validate_criterion_anchors(
+    criterion: dict[str, Any], path: str, issues: list[Issue]
+) -> set[float]:
+    """Validate a criterion's anchors and return the numeric scores they declare."""
+    anchors = criterion.get("anchors")
+    scores: set[float] = set()
+    if not isinstance(anchors, list) or not 2 <= len(anchors) <= 21:
+        issues.append(Issue("CRITERION_ANCHORS_INVALID", f"{path}.anchors"))
+        return scores
+    for anchor_index, anchor in enumerate(anchors):
+        anchor_path = f"{path}.anchors[{anchor_index}]"
+        if not exact_keys(anchor, {"score", "description"}, anchor_path, issues):
+            continue
+        if not is_number(anchor.get("score")):
+            issues.append(Issue("ANCHOR_SCORE_INVALID", f"{anchor_path}.score"))
+        else:
+            scores.add(float(anchor["score"]))
+        validate_text(
+            anchor.get("description"),
+            f"{anchor_path}.description",
+            issues,
+        )
+    return scores
+
+
+def _validate_criterion(
+    criterion: Any,
+    path: str,
+    issues: list[Issue],
+    criterion_ids: set[str],
+    scale_anchor_scores: set[float],
+) -> float:
+    """Validate one criterion and return the weight it contributes to the total."""
+    if not exact_keys(criterion, _CRITERION_KEYS, path, issues):
+        return 0.0
+    criterion_id = criterion.get("criterion_id")
+    validate_identifier(criterion_id, f"{path}.criterion_id", issues)
+    if isinstance(criterion_id, str):
+        if criterion_id in criterion_ids:
+            issues.append(Issue("CRITERION_ID_DUPLICATE", f"{path}.criterion_id"))
+        criterion_ids.add(criterion_id)
+    validate_text(criterion.get("label"), f"{path}.label", issues)
+    validate_text(
+        criterion.get("construct_component"),
+        f"{path}.construct_component",
+        issues,
+    )
+    validate_bool(criterion.get("required"), f"{path}.required", issues)
+    weight = criterion.get("weight")
+    contributed = 0.0
+    if not is_number(weight) or not 0 < float(weight) <= 1:
+        issues.append(Issue("CRITERION_WEIGHT_INVALID", f"{path}.weight"))
+    else:
+        contributed = float(weight)
+    validate_text_list(
+        criterion.get("evidence_requirements"),
+        f"{path}.evidence_requirements",
+        issues,
+        minimum=1,
+        maximum=20,
+    )
+    validate_text_list(
+        criterion.get("limitations"),
+        f"{path}.limitations",
+        issues,
+        minimum=1,
+        maximum=20,
+    )
+    if _validate_criterion_anchors(criterion, path, issues) != scale_anchor_scores:
+        issues.append(Issue("CRITERION_ANCHORS_INCOMPLETE", f"{path}.anchors"))
+    _validate_proxy_absence(criterion, path, issues)
+    return contributed
+
+
+def _validate_criteria(
+    rubric: dict[str, Any], issues: list[Issue], scale_anchor_scores: set[float]
+) -> None:
+    """Validate every criterion and that the criterion weights sum to one."""
     criteria = rubric.get("criteria")
     criterion_ids: set[str] = set()
     total_weight = 0.0
@@ -541,189 +681,125 @@ def validate_rubric(rubric: Any) -> list[Issue]:
         issues.append(Issue("CRITERIA_INVALID", "$.criteria"))
     else:
         for index, criterion in enumerate(criteria):
-            path = f"$.criteria[{index}]"
-            if not exact_keys(
+            total_weight += _validate_criterion(
                 criterion,
-                {
-                    "criterion_id",
-                    "label",
-                    "construct_component",
-                    "weight",
-                    "required",
-                    "anchors",
-                    "evidence_requirements",
-                    "limitations",
-                },
-                path,
+                f"$.criteria[{index}]",
                 issues,
-            ):
-                continue
-            criterion_id = criterion.get("criterion_id")
-            validate_identifier(criterion_id, f"{path}.criterion_id", issues)
-            if isinstance(criterion_id, str):
-                if criterion_id in criterion_ids:
-                    issues.append(Issue("CRITERION_ID_DUPLICATE", f"{path}.criterion_id"))
-                criterion_ids.add(criterion_id)
-            validate_text(criterion.get("label"), f"{path}.label", issues)
-            validate_text(
-                criterion.get("construct_component"),
-                f"{path}.construct_component",
-                issues,
+                criterion_ids,
+                scale_anchor_scores,
             )
-            validate_bool(criterion.get("required"), f"{path}.required", issues)
-            weight = criterion.get("weight")
-            if not is_number(weight) or not 0 < float(weight) <= 1:
-                issues.append(Issue("CRITERION_WEIGHT_INVALID", f"{path}.weight"))
-            else:
-                total_weight += float(weight)
-            validate_text_list(
-                criterion.get("evidence_requirements"),
-                f"{path}.evidence_requirements",
-                issues,
-                minimum=1,
-                maximum=20,
-            )
-            validate_text_list(
-                criterion.get("limitations"),
-                f"{path}.limitations",
-                issues,
-                minimum=1,
-                maximum=20,
-            )
-            anchors = criterion.get("anchors")
-            criterion_anchor_scores: set[float] = set()
-            if not isinstance(anchors, list) or not 2 <= len(anchors) <= 21:
-                issues.append(Issue("CRITERION_ANCHORS_INVALID", f"{path}.anchors"))
-            else:
-                for anchor_index, anchor in enumerate(anchors):
-                    anchor_path = f"{path}.anchors[{anchor_index}]"
-                    if not exact_keys(
-                        anchor, {"score", "description"}, anchor_path, issues
-                    ):
-                        continue
-                    if not is_number(anchor.get("score")):
-                        issues.append(
-                            Issue("ANCHOR_SCORE_INVALID", f"{anchor_path}.score")
-                        )
-                    else:
-                        criterion_anchor_scores.add(float(anchor["score"]))
-                    validate_text(
-                        anchor.get("description"),
-                        f"{anchor_path}.description",
-                        issues,
-                    )
-            if criterion_anchor_scores != scale_anchor_scores:
-                issues.append(Issue("CRITERION_ANCHORS_INCOMPLETE", f"{path}.anchors"))
-            _validate_proxy_absence(criterion, path, issues)
     if criteria and not math.isclose(total_weight, 1.0, abs_tol=1e-9):
         issues.append(Issue("CRITERION_WEIGHTS_MUST_SUM_TO_ONE", "$.criteria"))
 
-    protocol = rubric.get("rater_protocol")
-    if exact_keys(
-        protocol,
-        {
-            "minimum_raters",
-            "training_required",
-            "training_ref",
-            "calibration_required",
-            "calibration_ref",
-            "agreement_method",
-            "inter_rater_reliability_status",
-            "inter_rater_reliability_ref",
-            "drift_monitoring_required",
-            "drift_review_ref",
-        },
-        "$.rater_protocol",
-        issues,
-    ):
-        minimum_raters = protocol.get("minimum_raters")
-        if (
-            not isinstance(minimum_raters, int)
-            or isinstance(minimum_raters, bool)
-            or not 2 <= minimum_raters <= 50
-        ):
-            issues.append(
-                Issue("MINIMUM_RATERS_INVALID", "$.rater_protocol.minimum_raters")
-            )
-        for field in (
-            "training_required",
-            "calibration_required",
-            "drift_monitoring_required",
-        ):
-            validate_bool(protocol.get(field), f"$.rater_protocol.{field}", issues)
-            if protocol.get(field) is not True:
-                issues.append(
-                    Issue("RATER_CONTROL_MUST_BE_REQUIRED", f"$.rater_protocol.{field}")
-                )
-        for field in ("training_ref", "calibration_ref", "drift_review_ref"):
-            validate_reference(protocol.get(field), f"$.rater_protocol.{field}", issues)
-        if protocol.get("agreement_method") != (
-            "exact_within_step_and_mean_absolute_difference"
-        ):
-            issues.append(
-                Issue(
-                    "AGREEMENT_METHOD_INVALID", "$.rater_protocol.agreement_method"
-                )
-            )
-        reliability_status = protocol.get("inter_rater_reliability_status")
-        if reliability_status not in {
-            "not_established",
-            "pilot_evidence",
-            "documented",
-        }:
-            issues.append(
-                Issue(
-                    "INTER_RATER_RELIABILITY_STATUS_INVALID",
-                    "$.rater_protocol.inter_rater_reliability_status",
-                )
-            )
-        validate_reference(
-            protocol.get("inter_rater_reliability_ref"),
-            "$.rater_protocol.inter_rater_reliability_ref",
-            issues,
-            allow_empty=reliability_status == "not_established",
-        )
-        if reliability_status != "documented":
-            issues.append(
-                Issue(
-                    "INTER_RATER_RELIABILITY_NOT_DOCUMENTED",
-                    "$.rater_protocol.inter_rater_reliability_status",
-                    "warning",
-                )
-            )
 
+def _validate_required_true_fields(
+    section: dict[str, Any],
+    fields: Iterable[str],
+    base_path: str,
+    code: str,
+    issues: list[Issue],
+) -> None:
+    """Require each named field to be a boolean that is exactly True."""
+    for field in fields:
+        validate_bool(section.get(field), f"{base_path}.{field}", issues)
+        if section.get(field) is not True:
+            issues.append(Issue(code, f"{base_path}.{field}"))
+
+
+def _validate_rater_protocol(rubric: dict[str, Any], issues: list[Issue]) -> None:
+    """Validate the rater protocol, requiring training, calibration and drift monitoring."""
+    protocol = rubric.get("rater_protocol")
+    if not exact_keys(protocol, _RATER_PROTOCOL_KEYS, "$.rater_protocol", issues):
+        return
+    minimum_raters = protocol.get("minimum_raters")
+    if (
+        not isinstance(minimum_raters, int)
+        or isinstance(minimum_raters, bool)
+        or not 2 <= minimum_raters <= 50
+    ):
+        issues.append(
+            Issue("MINIMUM_RATERS_INVALID", "$.rater_protocol.minimum_raters")
+        )
+    _validate_required_true_fields(
+        protocol,
+        ("training_required", "calibration_required", "drift_monitoring_required"),
+        "$.rater_protocol",
+        "RATER_CONTROL_MUST_BE_REQUIRED",
+        issues,
+    )
+    for field in ("training_ref", "calibration_ref", "drift_review_ref"):
+        validate_reference(protocol.get(field), f"$.rater_protocol.{field}", issues)
+    if protocol.get("agreement_method") != (
+        "exact_within_step_and_mean_absolute_difference"
+    ):
+        issues.append(
+            Issue("AGREEMENT_METHOD_INVALID", "$.rater_protocol.agreement_method")
+        )
+    reliability_status = protocol.get("inter_rater_reliability_status")
+    if reliability_status not in _VALIDITY_STATUSES:
+        issues.append(
+            Issue(
+                "INTER_RATER_RELIABILITY_STATUS_INVALID",
+                "$.rater_protocol.inter_rater_reliability_status",
+            )
+        )
+    validate_reference(
+        protocol.get("inter_rater_reliability_ref"),
+        "$.rater_protocol.inter_rater_reliability_ref",
+        issues,
+        allow_empty=reliability_status == "not_established",
+    )
+    if reliability_status != "documented":
+        issues.append(
+            Issue(
+                "INTER_RATER_RELIABILITY_NOT_DOCUMENTED",
+                "$.rater_protocol.inter_rater_reliability_status",
+                "warning",
+            )
+        )
+
+
+def _validate_governance(rubric: dict[str, Any], issues: list[Issue]) -> None:
+    """Validate the governance section, requiring every control flag to be true."""
     governance = rubric.get("governance")
-    governance_bool_fields = (
-        "accountable_committee_required",
-        "conflict_disclosure_required",
-        "recusal_required",
-        "appeal_process_required",
-        "accessibility_accommodations_required",
-        "data_protection_review_required",
-        "subgroup_bias_review_required",
-    )
-    governance_ref_fields = (
-        "committee_owner_role",
-        "appeal_process_ref",
-        "accessibility_process_ref",
-        "data_protection_process_ref",
-        "subgroup_review_ref",
-        "review_cycle_ref",
-    )
-    if exact_keys(
+    if not exact_keys(
         governance,
-        set(governance_bool_fields) | set(governance_ref_fields),
+        set(_GOVERNANCE_BOOL_FIELDS) | set(_GOVERNANCE_REF_FIELDS),
         "$.governance",
         issues,
     ):
-        for field in governance_bool_fields:
-            validate_bool(governance.get(field), f"$.governance.{field}", issues)
-            if governance.get(field) is not True:
-                issues.append(
-                    Issue("GOVERNANCE_CONTROL_MUST_BE_REQUIRED", f"$.governance.{field}")
-                )
-        for field in governance_ref_fields:
-            validate_reference(governance.get(field), f"$.governance.{field}", issues)
+        return
+    _validate_required_true_fields(
+        governance,
+        _GOVERNANCE_BOOL_FIELDS,
+        "$.governance",
+        "GOVERNANCE_CONTROL_MUST_BE_REQUIRED",
+        issues,
+    )
+    for field in _GOVERNANCE_REF_FIELDS:
+        validate_reference(governance.get(field), f"$.governance.{field}", issues)
+
+
+def validate_rubric(rubric: Any) -> list[Issue]:
+    """Validate the strict local rubric schema."""
+
+    issues: list[Issue] = []
+    if not exact_keys(rubric, _RUBRIC_TOP_KEYS, "$", issues):
+        return issues
+    if rubric.get("schema_version") != SCHEMA_VERSION:
+        issues.append(Issue("SCHEMA_VERSION_UNSUPPORTED", "$.schema_version"))
+    validate_identifier(rubric.get("rubric_id"), _RUBRIC_ID_PATH, issues)
+    validate_text(rubric.get("title"), "$.title", issues)
+
+    _validate_intended_use(rubric, issues)
+    _validate_construct(rubric, issues)
+    _validate_provenance(rubric, issues)
+
+    scale_object = rubric.get("scale")
+    minimum, maximum, step = _validate_scale(scale_object, issues)
+    _validate_criteria(rubric, issues, _scale_anchor_score_set(scale_object))
+    _validate_rater_protocol(rubric, issues)
+    _validate_governance(rubric, issues)
 
     if maximum <= minimum or step <= 0:
         issues.append(Issue("SCALE_UNUSABLE", "$.scale"))
@@ -731,11 +807,147 @@ def validate_rubric(rubric: Any) -> list[Issue]:
 
 
 def scale_values(rubric: dict[str, Any]) -> set[float]:
+    """Handle scale values."""
     return {
         float(anchor["score"])
         for anchor in rubric["scale"]["anchors"]
         if is_number(anchor["score"])
     }
+
+
+_EVALUATION_KEYS = {
+    "schema_version",
+    "evaluation_id",
+    "rubric_id",
+    "work_id",
+    "data_classification",
+    "purpose",
+    "ratings",
+}
+_RATING_KEYS = {
+    "criterion_id",
+    "status",
+    "score",
+    "uncertainty",
+    "evidence_ids",
+    "rationale_ref",
+}
+
+
+def _validate_evaluation_header(
+    evaluation: dict[str, Any], rubric: dict[str, Any], issues: list[Issue]
+) -> None:
+    """Validate the evaluation's schema version, identifiers, classification and purpose."""
+    if evaluation.get("schema_version") != SCHEMA_VERSION:
+        issues.append(Issue("SCHEMA_VERSION_UNSUPPORTED", "$.schema_version"))
+    validate_identifier(evaluation.get("evaluation_id"), "$.evaluation_id", issues)
+    validate_identifier(evaluation.get("rubric_id"), _RUBRIC_ID_PATH, issues)
+    validate_identifier(evaluation.get("work_id"), "$.work_id", issues)
+    if evaluation.get("rubric_id") != rubric.get("rubric_id"):
+        issues.append(Issue("RUBRIC_ID_MISMATCH", _RUBRIC_ID_PATH))
+    if evaluation.get("data_classification") not in ALLOWED_CLASSIFICATIONS:
+        issues.append(Issue("DATA_CLASSIFICATION_NOT_ALLOWED", "$.data_classification"))
+    if evaluation.get("purpose") != ALLOWED_PURPOSE:
+        issues.append(Issue("PURPOSE_NOT_ALLOWED", "$.purpose"))
+
+
+def _validate_rating_criterion(
+    rating: dict[str, Any],
+    path: str,
+    criteria: dict[str, Any],
+    seen: set[str],
+    issues: list[Issue],
+) -> None:
+    """Validate a rating's criterion id: well-formed, not repeated, and defined by the rubric."""
+    criterion_id = rating.get("criterion_id")
+    validate_identifier(criterion_id, f"{path}.criterion_id", issues)
+    if not isinstance(criterion_id, str):
+        return
+    if criterion_id in seen:
+        issues.append(Issue("RATING_DUPLICATE", f"{path}.criterion_id"))
+    seen.add(criterion_id)
+    if criterion_id not in criteria:
+        issues.append(Issue("CRITERION_UNKNOWN", f"{path}.criterion_id"))
+
+
+def _validate_evidence_ids(
+    rating: dict[str, Any], path: str, issues: list[Issue]
+) -> list[Any]:
+    """Validate a rating's evidence id list and return it (empty when invalid)."""
+    evidence_ids = rating.get("evidence_ids")
+    if not isinstance(evidence_ids, list) or len(evidence_ids) > 100:
+        issues.append(Issue("EVIDENCE_IDS_INVALID", f"{path}.evidence_ids"))
+        return []
+    hashable_evidence_ids = [
+        evidence_id for evidence_id in evidence_ids if isinstance(evidence_id, str)
+    ]
+    if len(hashable_evidence_ids) != len(set(hashable_evidence_ids)):
+        issues.append(Issue("EVIDENCE_ID_DUPLICATE", f"{path}.evidence_ids"))
+    for evidence_index, evidence_id in enumerate(evidence_ids):
+        validate_identifier(
+            evidence_id,
+            f"{path}.evidence_ids[{evidence_index}]",
+            issues,
+            "EVIDENCE_ID_INVALID",
+        )
+    return evidence_ids
+
+
+def _validate_rated_values(
+    rating: dict[str, Any],
+    path: str,
+    evidence_ids: list[Any],
+    accepted_scores: set[float],
+    maximum_uncertainty: float,
+    issues: list[Issue],
+) -> None:
+    """Validate the score, uncertainty and evidence of a rating whose status is 'rated'."""
+    score = rating.get("score")
+    uncertainty = rating.get("uncertainty")
+    if not is_number(score) or float(score) not in accepted_scores:
+        issues.append(Issue("SCORE_NOT_ON_SCALE", f"{path}.score"))
+    if not is_number(uncertainty) or not 0 <= float(uncertainty) <= maximum_uncertainty:
+        issues.append(Issue("UNCERTAINTY_INVALID", f"{path}.uncertainty"))
+    if not evidence_ids:
+        issues.append(Issue("RATED_EVIDENCE_REQUIRED", f"{path}.evidence_ids"))
+
+
+def _validate_unrated_values(
+    rating: dict[str, Any], path: str, evidence_ids: list[Any], issues: list[Issue]
+) -> None:
+    """Require a missing or not-applicable rating to carry no score, uncertainty or evidence."""
+    if rating.get("score") is not None:
+        issues.append(Issue("UNRATED_SCORE_MUST_BE_NULL", f"{path}.score"))
+    if rating.get("uncertainty") is not None:
+        issues.append(Issue("UNRATED_UNCERTAINTY_MUST_BE_NULL", f"{path}.uncertainty"))
+    if evidence_ids:
+        issues.append(Issue("UNRATED_EVIDENCE_MUST_BE_EMPTY", f"{path}.evidence_ids"))
+
+
+def _validate_rating(
+    rating: Any,
+    path: str,
+    criteria: dict[str, Any],
+    seen: set[str],
+    accepted_scores: set[float],
+    maximum_uncertainty: float,
+    issues: list[Issue],
+) -> None:
+    """Validate one rating entry against the rubric."""
+    if not exact_keys(rating, _RATING_KEYS, path, issues):
+        return
+    _validate_rating_criterion(rating, path, criteria, seen, issues)
+    status = rating.get("status")
+    if status not in RATING_STATUSES:
+        issues.append(Issue("RATING_STATUS_INVALID", f"{path}.status"))
+    evidence_ids = _validate_evidence_ids(rating, path, issues)
+    validate_reference(rating.get("rationale_ref"), f"{path}.rationale_ref", issues)
+    if status == "rated":
+        _validate_rated_values(
+            rating, path, evidence_ids, accepted_scores, maximum_uncertainty, issues
+        )
+    elif status in {"missing", "not_applicable"}:
+        _validate_unrated_values(rating, path, evidence_ids, issues)
 
 
 def validate_evaluation(
@@ -744,32 +956,9 @@ def validate_evaluation(
     """Validate one strict scholarly-work evaluation record."""
 
     issues: list[Issue] = []
-    if not exact_keys(
-        evaluation,
-        {
-            "schema_version",
-            "evaluation_id",
-            "rubric_id",
-            "work_id",
-            "data_classification",
-            "purpose",
-            "ratings",
-        },
-        "$",
-        issues,
-    ):
+    if not exact_keys(evaluation, _EVALUATION_KEYS, "$", issues):
         return issues
-    if evaluation.get("schema_version") != SCHEMA_VERSION:
-        issues.append(Issue("SCHEMA_VERSION_UNSUPPORTED", "$.schema_version"))
-    validate_identifier(evaluation.get("evaluation_id"), "$.evaluation_id", issues)
-    validate_identifier(evaluation.get("rubric_id"), "$.rubric_id", issues)
-    validate_identifier(evaluation.get("work_id"), "$.work_id", issues)
-    if evaluation.get("rubric_id") != rubric.get("rubric_id"):
-        issues.append(Issue("RUBRIC_ID_MISMATCH", "$.rubric_id"))
-    if evaluation.get("data_classification") not in ALLOWED_CLASSIFICATIONS:
-        issues.append(Issue("DATA_CLASSIFICATION_NOT_ALLOWED", "$.data_classification"))
-    if evaluation.get("purpose") != ALLOWED_PURPOSE:
-        issues.append(Issue("PURPOSE_NOT_ALLOWED", "$.purpose"))
+    _validate_evaluation_header(evaluation, rubric, issues)
 
     criteria = {criterion["criterion_id"]: criterion for criterion in rubric["criteria"]}
     accepted_scores = scale_values(rubric)
@@ -782,98 +971,41 @@ def validate_evaluation(
         issues.append(Issue("RATINGS_INVALID", "$.ratings"))
         return issues
     for index, rating in enumerate(ratings):
-        path = f"$.ratings[{index}]"
-        if not exact_keys(
+        _validate_rating(
             rating,
-            {
-                "criterion_id",
-                "status",
-                "score",
-                "uncertainty",
-                "evidence_ids",
-                "rationale_ref",
-            },
-            path,
+            f"$.ratings[{index}]",
+            criteria,
+            seen,
+            accepted_scores,
+            maximum_uncertainty,
             issues,
-        ):
-            continue
-        criterion_id = rating.get("criterion_id")
-        validate_identifier(criterion_id, f"{path}.criterion_id", issues)
-        if isinstance(criterion_id, str):
-            if criterion_id in seen:
-                issues.append(Issue("RATING_DUPLICATE", f"{path}.criterion_id"))
-            seen.add(criterion_id)
-            if criterion_id not in criteria:
-                issues.append(Issue("CRITERION_UNKNOWN", f"{path}.criterion_id"))
-        status = rating.get("status")
-        if status not in RATING_STATUSES:
-            issues.append(Issue("RATING_STATUS_INVALID", f"{path}.status"))
-        evidence_ids = rating.get("evidence_ids")
-        if not isinstance(evidence_ids, list) or len(evidence_ids) > 100:
-            issues.append(Issue("EVIDENCE_IDS_INVALID", f"{path}.evidence_ids"))
-            evidence_ids = []
-        else:
-            hashable_evidence_ids = [
-                evidence_id
-                for evidence_id in evidence_ids
-                if isinstance(evidence_id, str)
-            ]
-            if len(hashable_evidence_ids) != len(set(hashable_evidence_ids)):
-                issues.append(Issue("EVIDENCE_ID_DUPLICATE", f"{path}.evidence_ids"))
-            for evidence_index, evidence_id in enumerate(evidence_ids):
-                validate_identifier(
-                    evidence_id,
-                    f"{path}.evidence_ids[{evidence_index}]",
-                    issues,
-                    "EVIDENCE_ID_INVALID",
-                )
-        validate_reference(rating.get("rationale_ref"), f"{path}.rationale_ref", issues)
-        if status == "rated":
-            score = rating.get("score")
-            uncertainty = rating.get("uncertainty")
-            if not is_number(score) or float(score) not in accepted_scores:
-                issues.append(Issue("SCORE_NOT_ON_SCALE", f"{path}.score"))
-            if (
-                not is_number(uncertainty)
-                or not 0 <= float(uncertainty) <= maximum_uncertainty
-            ):
-                issues.append(Issue("UNCERTAINTY_INVALID", f"{path}.uncertainty"))
-            if not evidence_ids:
-                issues.append(Issue("RATED_EVIDENCE_REQUIRED", f"{path}.evidence_ids"))
-        elif status in {"missing", "not_applicable"}:
-            if rating.get("score") is not None:
-                issues.append(Issue("UNRATED_SCORE_MUST_BE_NULL", f"{path}.score"))
-            if rating.get("uncertainty") is not None:
-                issues.append(
-                    Issue("UNRATED_UNCERTAINTY_MUST_BE_NULL", f"{path}.uncertainty")
-                )
-            if evidence_ids:
-                issues.append(
-                    Issue("UNRATED_EVIDENCE_MUST_BE_EMPTY", f"{path}.evidence_ids")
-                )
-    missing_criteria = set(criteria) - seen
-    for criterion_id in sorted(missing_criteria):
+        )
+    for criterion_id in sorted(set(criteria) - seen):
         issues.append(Issue("CRITERION_RATING_REQUIRED", f"$.ratings.{criterion_id}"))
     return issues
 
 
 def error_issues(issues: Iterable[Issue]) -> list[Issue]:
+    """Handle error issues."""
     return [issue for issue in issues if issue.level == "error"]
 
 
 def require_valid(issues: Iterable[Issue]) -> None:
+    """Handle require valid."""
     errors = error_issues(issues)
     if errors:
         raise ValidationError(errors[0].code, errors[0].path)
 
 
 def rounded(value: float | None) -> float | None:
+    """Handle rounded."""
     if value is None:
         return None
     return round(value, 6)
 
 
 def weights_by_criterion(rubric: dict[str, Any]) -> dict[str, float]:
+    """Handle weights by criterion."""
     return {
         criterion["criterion_id"]: float(criterion["weight"])
         for criterion in rubric["criteria"]

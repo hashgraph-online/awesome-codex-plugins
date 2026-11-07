@@ -81,7 +81,8 @@ to bare `python`.
 
 Run the mode with every token the user typed but the mode flag, exactly as typed:
 the range words (the bare words right after the mode flag) first, then the rest in
-the order typed. Run it **in the foreground**:
+the order typed. Without `--exec-subagents` run it **in the foreground**; with it,
+**run detached** (below):
 
 ```bash
 uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-commit-fixes <the tokens the user typed> --host <host-id>
@@ -89,9 +90,14 @@ uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.p
 
 `<host-id>` and the other tokens your dispatcher command carries are added as for any
 mode. This call is apply-code-fixes' orchestrator call (its step 2), so run it as
-that core runs its own: it only prepares the batches, and returns quickly. On a host
-that adds `--exec-subagents` the whole apply runs in this one call, and that core's
-notes on the executor leg apply to it unchanged.
+that core runs its own. Without `--exec-subagents` it only prepares the batches, and
+returns quickly. On a host that adds `--exec-subagents` the whole apply runs in this
+one call, which is why it runs detached there: add `--detach` (which implies
+`--yes`). The call then returns within seconds, its own output holding the commit
+block, `[COMMIT_BRIEF] <path>` and the `status` command the launcher printed; poll
+that command until the run is finished, and read the rest of the run's output, the
+`[COMMIT_FIXES]` block included, from the log it named. That core's other notes on
+the executor leg apply to it unchanged.
 
 **A run that prints no `[COMMIT_BRIEF]` stopped before writing anything:** exit 2
 `[NOTHING_TO_REVIEW]` (no commits yet), or exit 3 for a review it cannot find
@@ -103,7 +109,8 @@ whole, with every way forward it names, and stop: nothing was applied, and there
 no next step.
 
 Everything the call prints after `[COMMIT_BRIEF]` is apply-code-fixes' own output,
-the `[COMMIT_FIXES]` block included, and its exit code is that phase's.
+the `[COMMIT_FIXES]` block included, and its exit code is that phase's (on a detached
+run, the exit code of the `status` poll that finds it finished).
 
 ### 2. Load apply-code-fixes' core
 

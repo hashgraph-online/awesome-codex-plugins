@@ -11,16 +11,18 @@ Usage:
     python3 fab_release_gate.py --schematic sch.json --pcb pcb.json --text
     python3 fab_release_gate.py --schematic sch.json --pcb pcb.json --strict
 
-Zero external dependencies — Python 3.8+ stdlib only.
+Zero external dependencies — Python 3.10+ stdlib only.
 """
 
 import argparse
 import json
 import os
+import re
 import sys
 import time
 from typing import Any, Dict, List, Optional
 
+from kicad_core.cli import envelope_type_error
 from kicad_core.render import normalize_severity
 
 
@@ -58,8 +60,11 @@ def check_routing(pcb: Dict) -> List[Dict]:
         return [_check("routing", "routing_completeness", "pass",
                         f"All nets routed ({total}/{total})")]
 
-    unrouted_list = [u.get("net_name", "?")
-                     for u in conn.get("unrouted", [])[:10]]
+    # The analyzer moves its unrouted entries into findings[] as RT-001.
+    unrouted_list = sorted({n for f in pcb.get("findings", [])
+                            if isinstance(f, dict) and f.get("rule_id") == "RT-001"
+                            for n in (f.get("nets") or [])[:1]}
+                           | {u.get("net_name", "?") for u in conn.get("unrouted", [])})
     return [_check("routing", "routing_completeness", "fail",
                     f"{unrouted} unrouted net(s) out of {total}",
                     {"unrouted_count": unrouted, "unrouted_nets": unrouted_list})]
@@ -107,9 +112,20 @@ def check_dfm(pcb: Dict) -> List[Dict]:
     violations = [f for f in pcb.get("findings", [])
                   if isinstance(f, dict) and f.get("category") == "dfm"]
 
-    if tier == "standard" and not violations:
-        return [_check("dfm", "fab_capability", "pass",
-                        "Design within standard fab capability")]
+    if tier == "standard":
+        active = [v for v in violations
+                  if not v.get("suppressed")
+                  and normalize_severity(v.get("severity")) in ("error", "warning")]
+        if not active:
+            return [_check("dfm", "fab_capability", "pass",
+                            "Design within standard fab capability")]
+        rule_ids = sorted({str(v.get("rule_id", "?")) for v in active})
+        v_summary = [{"rule_id": v.get("rule_id", "?"), "summary": v.get("summary")}
+                     for v in active[:5]]
+        return [_check("dfm", "fab_capability", "warn",
+                        f"Standard fab tier; {len(active)} DFM warning(s): "
+                        f"{', '.join(rule_ids)}",
+                        {"dfm_tier": tier, "violations": v_summary})]
     elif tier == "advanced":
         v_summary = [{"parameter": v.get("parameter", v.get("rule_id", "?")),
                        "actual_mm": v.get("actual_mm"),
@@ -226,7 +242,34 @@ def check_consistency(sch: Dict, pcb: Dict) -> List[Dict]:
     return checks
 
 
-def check_gerbers(gerber_data: Optional[Dict]) -> List[Dict]:
+_CRITICAL_LAYERS = {"F.Cu", "B.Cu", "F.Mask", "B.Mask", "Edge.Cuts"}
+
+
+def _is_critical_layer(layer: str) -> bool:
+    return (layer in _CRITICAL_LAYERS
+            or re.fullmatch(r"In\d+\.Cu", layer) is not None)
+
+
+def _pcb_has_holes(pcb: Optional[Dict]) -> Optional[bool]:
+    """True/False when the PCB analysis says whether the board is drilled,
+    None when it carries no (or only partial) hole facts."""
+    if not isinstance(pcb, dict):
+        return None
+    stats = pcb.get("statistics")
+    stats = stats if isinstance(stats, dict) else {}
+    dfm = pcb.get("dfm_summary")
+    metrics = dfm.get("metrics") if isinstance(dfm, dict) else None
+    vias, tht = stats.get("via_count"), stats.get("tht_count")
+    if ((isinstance(vias, int) and vias > 0) or (isinstance(tht, int) and tht > 0)
+            or (isinstance(metrics, dict) and "min_drill_mm" in metrics)):
+        return True
+    if isinstance(vias, int) and isinstance(tht, int) and isinstance(metrics, dict):
+        return False
+    return None
+
+
+def check_gerbers(gerber_data: Optional[Dict],
+                  pcb: Optional[Dict] = None) -> List[Dict]:
     """Check Gerber layer completeness and alignment."""
     if not gerber_data:
         return [_check("gerbers", "layer_completeness", "skip",
@@ -238,30 +281,64 @@ def check_gerbers(gerber_data: Optional[Dict]) -> List[Dict]:
 
     # Layer completeness
     completeness = gerber_data.get("completeness", {})
-    missing = completeness.get("missing_layers", [])
-    critical_missing = [l for l in missing
-                        if any(k in l.upper() for k in
-                               ("F.CU", "B.CU", "EDGE", "F.MASK", "B.MASK",
-                                "FRONT_COPPER", "BACK_COPPER", "BOARD_OUTLINE",
-                                "FRONT_SOLDERMASK", "BACK_SOLDERMASK"))]
+    if not isinstance(completeness, dict):
+        completeness = {}
+    if "missing" in completeness:
+        missing = list(completeness.get("missing") or [])
+        critical_missing = [l for l in missing if _is_critical_layer(l)]
+    elif "missing_required" in completeness or "missing_recommended" in completeness:
+        critical_missing = list(completeness.get("missing_required") or [])
+        missing = critical_missing + list(completeness.get("missing_recommended") or [])
+    else:
+        missing = list(completeness.get("missing_layers") or [])
+        critical_missing = [l for l in missing
+                            if _is_critical_layer(l) or any(
+                                k in l.upper() for k in
+                                ("FRONT_COPPER", "BACK_COPPER", "BOARD_OUTLINE",
+                                 "FRONT_SOLDERMASK", "BACK_SOLDERMASK"))]
     silk_missing = [l for l in missing
                     if any(k in l.upper() for k in ("SILK", "LEGEND"))]
 
     if not missing:
-        checks.append(_check("gerbers", "layer_completeness", "pass",
-                              "All expected layers present"))
+        status, message = "pass", "All expected layers present"
     elif critical_missing:
-        checks.append(_check("gerbers", "layer_completeness", "fail",
-                              f"Critical layers missing: {', '.join(critical_missing)}",
-                              {"missing_layers": missing}))
+        status = "fail"
+        message = f"Critical layers missing: {', '.join(critical_missing)}"
     elif silk_missing:
-        checks.append(_check("gerbers", "layer_completeness", "warn",
-                              f"Non-critical layers missing: {', '.join(silk_missing)}",
-                              {"missing_layers": missing}))
+        status = "warn"
+        message = f"Non-critical layers missing: {', '.join(silk_missing)}"
     else:
-        checks.append(_check("gerbers", "layer_completeness", "warn",
-                              f"Some layers missing: {', '.join(missing[:5])}",
-                              {"missing_layers": missing}))
+        status = "warn"
+        message = f"Some layers missing: {', '.join(missing[:5])}"
+    details = {"missing_layers": missing} if missing else None
+
+    # The analyzer reports an open outline and a missing or empty drill file
+    # as findings, not as missing layers.
+    g_findings = [f for f in (gerber_data.get("findings") or [])
+                  if isinstance(f, dict)]
+    extra = []
+    if any(f.get("rule_id") == "GR-005" for f in g_findings):
+        extra.append(("fail", "Board outline is not closed"))
+    drill = next((f for f in g_findings if f.get("rule_id") == "GR-003"), None)
+    if drill is not None:
+        problem = str(drill.get("summary") or "Drill file problem")
+        holes = _pcb_has_holes(pcb)
+        if holes is True:
+            stats = (pcb or {}).get("statistics") or {}
+            vias, tht = stats.get("via_count"), stats.get("tht_count")
+            if (isinstance(vias, int) and vias > 0) or (isinstance(tht, int) and tht > 0):
+                facts = f"{vias or 0} via(s) and {tht or 0} through-hole pad(s)"
+            else:
+                smallest = pcb["dfm_summary"]["metrics"]["min_drill_mm"]
+                facts = f"drilled holes (smallest drill {smallest} mm)"
+            extra.append(("fail", f"{problem}; the PCB has {facts}"))
+        elif holes is None:
+            extra.append(("warn", f"{problem}; PCB hole count unknown"))
+    if extra:
+        rank = {"pass": 0, "warn": 1, "fail": 2}
+        status = max([status] + [e[0] for e in extra], key=rank.__getitem__)
+        message = "; ".join(([message] if missing else []) + [e[1] for e in extra])
+    checks.append(_check("gerbers", "layer_completeness", status, message, details))
 
     # Alignment
     alignment = gerber_data.get("alignment", {})
@@ -291,7 +368,7 @@ def check_thermal(thermal_data: Optional[Dict]) -> List[Dict]:
     warnings = [f for f in active if normalize_severity(f.get("severity")) == "warning"]
 
     if errors:
-        refs = [f.get("components", ["?"])[0] for f in errors[:3]]
+        refs = [(f.get("components") or ["?"])[0] for f in errors[:3]]
         return [_check("thermal", "thermal_risk", "fail",
                         f"{len(errors)} error-severity thermal finding(s): {', '.join(refs)}",
                         {"error_count": len(errors), "warning_count": len(warnings)})]
@@ -300,7 +377,12 @@ def check_thermal(thermal_data: Optional[Dict]) -> List[Dict]:
                         f"{len(warnings)} warning-severity thermal finding(s)",
                         {"warning_count": len(warnings)})]
     else:
-        score = thermal_data.get("summary", {}).get("thermal_score", "?")
+        summary = thermal_data.get("summary") or {}
+        score = summary.get("thermal_score")
+        if score is None:
+            reason = summary.get("skipped_reason") or "no components assessed"
+            return [_check("thermal", "thermal_risk", "skip",
+                            f"Thermal not scored: {reason}")]
         return [_check("thermal", "thermal_risk", "pass",
                         f"Thermal score {score}/100 — no critical/high findings")]
 
@@ -311,17 +393,24 @@ def check_emc(emc_data: Optional[Dict]) -> List[Dict]:
         return [_check("emc", "emc_risk", "skip",
                         "EMC analysis not provided")]
 
-    summary = emc_data.get("summary", {})
+    summary = emc_data.get("summary") or {}
     score = summary.get("emc_risk_score", 0)
-    crits = summary.get("critical", 0)
+    findings = emc_data.get("findings")
+    if isinstance(findings, list):
+        errors = sum(1 for f in findings
+                     if isinstance(f, dict) and not f.get("suppressed")
+                     and normalize_severity(f.get("severity")) == "error")
+    else:
+        errors = ((summary.get("by_severity") or {}).get("error")
+                  or summary.get("critical") or 0)
 
-    if crits > 0:
+    if errors > 0:
         return [_check("emc", "emc_risk", "warn",
-                        f"EMC score {score}/100 — {crits} critical finding(s) (advisory)",
-                        {"emc_risk_score": score, "critical": crits})]
+                        f"EMC score {score}/100 — {errors} error finding(s) (advisory)",
+                        {"emc_risk_score": score, "error_count": errors})]
     else:
         return [_check("emc", "emc_risk", "pass",
-                        f"EMC score {score}/100 — no critical findings")]
+                        f"EMC score {score}/100 — no error findings")]
 
 
 def _compute_trust_posture(sch, pcb, thermal_data, emc_data):
@@ -415,7 +504,7 @@ def run_gate(sch: Dict, pcb: Dict,
     all_checks.extend(check_dfm(pcb))
     all_checks.extend(check_documentation(pcb))
     all_checks.extend(check_consistency(sch, pcb))
-    all_checks.extend(check_gerbers(gerber_data))
+    all_checks.extend(check_gerbers(gerber_data, pcb))
     all_checks.extend(check_thermal(thermal_data))
     all_checks.extend(check_emc(emc_data))
 
@@ -540,7 +629,7 @@ def format_text_report(result: Dict) -> str:
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(
         description="Fabrication release gate for KiCad designs")
     parser.add_argument("--schematic", "-s", required=True,
@@ -562,36 +651,50 @@ def main():
     parser.add_argument("--strict", action="store_true",
                         help="Treat warnings as failures")
 
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     if args.text:
         from kicad_core.cli import utf8_text_stdout
         utf8_text_stdout()
 
-    def _load(path):
-        if not path or not os.path.isfile(path):
-            return None
-        with open(path) as f:
-            return json.load(f)
+    def _load(flag, path, writer, expected):
+        if not os.path.isfile(path):
+            what = 'a directory' if os.path.isdir(path) else 'not found'
+            parser.error(f'{flag} {path}: {what}; expected the JSON file '
+                         f'{writer} writes (--output)')
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, UnicodeDecodeError) as e:
+            parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
+                         f'file {writer} writes (--output)')
+        type_error = envelope_type_error(flag, path, data, expected, writer)
+        if type_error:
+            parser.error(type_error)
+        return data
 
-    sch = _load(args.schematic)
-    pcb = _load(args.pcb)
+    sch = _load("--schematic", args.schematic, "analyze_schematic.py", "schematic")
+    pcb = _load("--pcb", args.pcb, "analyze_pcb.py", "pcb")
     if not sch or not pcb:
-        print("Error: schematic and PCB JSON are required", file=sys.stderr)
-        sys.exit(1)
+        parser.error("--schematic and --pcb must be non-empty analyzer JSON")
 
-    result = run_gate(
-        sch, pcb,
-        gerber_data=_load(args.gerbers),
-        thermal_data=_load(args.thermal),
-        emc_data=_load(args.emc),
-        strict=args.strict,
-    )
+    optional = {}
+    for key, flag, writer, expected in (
+            ("gerber_data", "--gerbers", "analyze_gerbers.py", "gerber"),
+            ("thermal_data", "--thermal", "analyze_thermal.py", "thermal"),
+            ("emc_data", "--emc", "analyze_emc.py", "emc")):
+        path = getattr(args, flag[2:])
+        optional[key] = _load(flag, path, writer, expected) if path else None
+        if path and not optional[key]:
+            parser.error(f"{flag} {path}: empty; expected the JSON file "
+                         f"{writer} writes (--output)")
+
+    result = run_gate(sch, pcb, strict=args.strict, **optional)
 
     if args.text:
         print(format_text_report(result))
     elif args.output:
         indent = None if args.compact else 2
-        with open(args.output, "w") as f:
+        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
             json.dump(result, f, indent=indent)
         overall = result["overall_status"]
         total = result["summary"]["total_checks"]
@@ -602,6 +705,10 @@ def main():
         json.dump(result, sys.stdout, indent=indent)
         print(file=sys.stdout)
 
+    return 1 if result["overall_status"] == "FAIL" else 0
+
 
 if __name__ == "__main__":
-    main()
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
+    sys.exit(main())

@@ -423,7 +423,7 @@
           ]
         },
         "detach": {
-          "description": "native -> the host's own background mechanism; python -> --detach available, foreground still legal; required -> --detach on every fan-out mode.",
+          "description": "native -> the host's own background mechanism; python -> --detach on every fan-out mode and executor write mode, foreground still legal for a call that applies no batch; required -> --detach on every fan-out mode and executor write mode.",
           "enum": [
             "native",
             "python",

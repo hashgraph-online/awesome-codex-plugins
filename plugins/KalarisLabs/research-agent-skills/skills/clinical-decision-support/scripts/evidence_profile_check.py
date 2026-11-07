@@ -34,6 +34,7 @@ PLACEHOLDER_MARKERS = ("REPLACE_", "REQUIRES_", "YYYY-MM-DD")
 
 
 def _profile_has_recommendation_key(value: Any) -> bool:
+    """Handle profile has recommendation key."""
     if isinstance(value, dict):
         for key, nested in value.items():
             if str(key).strip().lower() in {
@@ -50,6 +51,7 @@ def _profile_has_recommendation_key(value: Any) -> bool:
 
 
 def _find_placeholders(value: Any, location: str = "$") -> list[str]:
+    """Find placeholders."""
     findings: list[str] = []
     if isinstance(value, dict):
         for key, nested in value.items():
@@ -62,43 +64,184 @@ def _find_placeholders(value: Any, location: str = "$") -> list[str]:
     return findings
 
 
+def _check_header(document: dict[str, Any], log: IssueLog) -> None:
+    """Validate top-level identity fields, governance and question blocks."""
+    require_nonempty_text(document.get("schema_version"), "schema_version")
+    require_nonempty_text(document.get("profile_id"), "profile_id")
+    require_nonempty_text(document.get("title"), "title")
+    if document.get("data_level") not in {"published_aggregate_evidence", "synthetic"}:
+        log.errors.append(
+            "data_level must be published_aggregate_evidence or synthetic"
+        )
+    if document.get("human_judgments_required") is not True:
+        log.errors.append("human_judgments_required must be true")
+    if document.get("auto_grade") is not False:
+        log.errors.append("auto_grade must be false")
+    if _profile_has_recommendation_key(document):
+        log.errors.append(
+            "Recommendation fields are outside the evidence-profile checker"
+        )
+    governance = document.get("governance")
+    if not isinstance(governance, dict):
+        raise InputError("governance must be an object")
+    for field in (
+        "version",
+        "owner",
+        "change_summary",
+        "auditability",
+        "update_plan",
+    ):
+        require_nonempty_text(governance.get(field), f"governance.{field}")
+
+    question = document.get("question")
+    if not isinstance(question, dict):
+        raise InputError("question must be an object")
+    for field in ("population", "intervention_or_exposure", "comparator", "setting"):
+        require_nonempty_text(question.get(field), f"question.{field}")
+
+
+def _check_judgment_items(
+    container: dict[str, Any],
+    item_names: tuple[str, ...],
+    allowed: set[str],
+    prefix: str,
+    known_sources: set[str],
+    log: IssueLog,
+    *,
+    domains: bool,
+) -> None:
+    """Validate each named judgment item of a domains or upgrading block."""
+    for item_name in item_names:
+        item = container.get(item_name)
+        field = f"{prefix}.{item_name}"
+        if not isinstance(item, dict):
+            raise InputError(f"{field} must be an object")
+        judgment = require_nonempty_text(item.get("judgment"), f"{field}.judgment")
+        if judgment not in allowed:
+            log.errors.append(f"{field}.judgment is unsupported")
+        if judgment == "unassessed":
+            log.errors.append(f"{field} requires a human judgment")
+        require_nonempty_text(item.get("rationale"), f"{field}.rationale")
+        if domains:
+            require_nonempty_text(item.get("reviewer_role"), f"{field}.reviewer_role")
+            validate_references(item.get("source_ids"), known_sources, f"{field}.source_ids")
+        elif judgment == "present":
+            validate_references(item.get("source_ids"), known_sources, f"{field}.source_ids")
+
+
+def _check_certainty(
+    outcome: dict[str, Any], prefix: str, known_sources: set[str], log: IssueLog
+) -> str:
+    """Validate the human certainty block of an outcome and return its level."""
+    certainty = outcome.get("certainty")
+    if not isinstance(certainty, dict):
+        raise InputError(f"{prefix}.certainty must be an object")
+    if certainty.get("human_judgment") is not True:
+        log.errors.append(f"{prefix}.certainty.human_judgment must be true")
+    level = require_nonempty_text(
+        certainty.get("level"), f"{prefix}.certainty.level"
+    )
+    if level not in CERTAINTY_LEVELS:
+        log.errors.append(f"{prefix}.certainty.level is unsupported")
+    if level == "unassessed":
+        log.errors.append(f"{prefix}.certainty requires a human judgment")
+    require_nonempty_text(
+        certainty.get("rationale"), f"{prefix}.certainty.rationale"
+    )
+    require_nonempty_text(
+        certainty.get("reviewer_role"), f"{prefix}.certainty.reviewer_role"
+    )
+    require_nonempty_text(
+        certainty.get("judgment_date"), f"{prefix}.certainty.judgment_date"
+    )
+    validate_references(
+        certainty.get("source_ids"),
+        known_sources,
+        f"{prefix}.certainty.source_ids",
+    )
+    return level
+
+
+def _check_outcome(
+    outcome: Any,
+    index: int,
+    names: set[str],
+    known_sources: set[str],
+    log: IssueLog,
+    summaries: list[dict[str, str]],
+) -> None:
+    """Validate one outcome entry and append its summary when it is complete."""
+    prefix = f"outcomes[{index}]"
+    if not isinstance(outcome, dict):
+        raise InputError(f"{prefix} must be an object")
+    name = require_nonempty_text(outcome.get("name"), f"{prefix}.name")
+    if name in names:
+        log.errors.append(f"Duplicate outcome name: {name}")
+    names.add(name)
+    importance = require_nonempty_text(
+        outcome.get("importance"), f"{prefix}.importance"
+    )
+    if importance not in {"critical", "important", "not_important"}:
+        log.errors.append(f"{prefix}.importance has an unsupported value")
+    for field in (
+        "effect_measure",
+        "effect_estimate",
+        "uncertainty_interval",
+        "participants",
+        "studies",
+        "time_horizon",
+    ):
+        require_nonempty_text(outcome.get(field), f"{prefix}.{field}")
+
+    domains = outcome.get("domains")
+    if not isinstance(domains, dict):
+        raise InputError(f"{prefix}.domains must be an object")
+    _check_judgment_items(
+        domains, DOMAINS, DOMAIN_JUDGMENTS, f"{prefix}.domains", known_sources, log,
+        domains=True,
+    )
+
+    upgrading = outcome.get("upgrading")
+    if not isinstance(upgrading, dict):
+        raise InputError(f"{prefix}.upgrading must be an object")
+    _check_judgment_items(
+        upgrading, UPGRADING, UPGRADING_JUDGMENTS, f"{prefix}.upgrading", known_sources, log,
+        domains=False,
+    )
+
+    level = _check_certainty(outcome, prefix, known_sources, log)
+    summaries.append(
+        {
+            "outcome": name,
+            "importance": importance,
+            "human_entered_certainty": level,
+        }
+    )
+
+
+def _check_profile_review(document: dict[str, Any], log: IssueLog) -> None:
+    """Validate the profile review block and flag unresolved template placeholders."""
+    review = document.get("profile_review")
+    if not isinstance(review, dict):
+        raise InputError("profile_review must be an object")
+    for field in ("prepared_by_role", "reviewed_by_role", "review_date"):
+        require_nonempty_text(review.get(field), f"profile_review.{field}")
+    if review.get("completed") is not True:
+        log.errors.append("profile_review.completed must be true")
+    placeholders = _find_placeholders(document)
+    if placeholders:
+        log.errors.append(
+            "Unresolved template placeholders remain: "
+            + ", ".join(placeholders[:10])
+        )
+
+
 def check_profile(document: dict[str, Any]) -> tuple[IssueLog, list[dict[str, str]]]:
+    """Check profile."""
     log = IssueLog()
     summaries: list[dict[str, str]] = []
     try:
-        require_nonempty_text(document.get("schema_version"), "schema_version")
-        require_nonempty_text(document.get("profile_id"), "profile_id")
-        require_nonempty_text(document.get("title"), "title")
-        if document.get("data_level") not in {"published_aggregate_evidence", "synthetic"}:
-            log.errors.append(
-                "data_level must be published_aggregate_evidence or synthetic"
-            )
-        if document.get("human_judgments_required") is not True:
-            log.errors.append("human_judgments_required must be true")
-        if document.get("auto_grade") is not False:
-            log.errors.append("auto_grade must be false")
-        if _profile_has_recommendation_key(document):
-            log.errors.append(
-                "Recommendation fields are outside the evidence-profile checker"
-            )
-        governance = document.get("governance")
-        if not isinstance(governance, dict):
-            raise InputError("governance must be an object")
-        for field in (
-            "version",
-            "owner",
-            "change_summary",
-            "auditability",
-            "update_plan",
-        ):
-            require_nonempty_text(governance.get(field), f"governance.{field}")
-
-        question = document.get("question")
-        if not isinstance(question, dict):
-            raise InputError("question must be an object")
-        for field in ("population", "intervention_or_exposure", "comparator", "setting"):
-            require_nonempty_text(question.get(field), f"question.{field}")
-
+        _check_header(document, log)
         known_sources = source_ids(document)
         outcomes = require_list(document.get("outcomes"), "outcomes", maximum=50)
         if not outcomes:
@@ -106,119 +249,8 @@ def check_profile(document: dict[str, Any]) -> tuple[IssueLog, list[dict[str, st
 
         names: set[str] = set()
         for index, outcome in enumerate(outcomes):
-            prefix = f"outcomes[{index}]"
-            if not isinstance(outcome, dict):
-                raise InputError(f"{prefix} must be an object")
-            name = require_nonempty_text(outcome.get("name"), f"{prefix}.name")
-            if name in names:
-                log.errors.append(f"Duplicate outcome name: {name}")
-            names.add(name)
-            importance = require_nonempty_text(
-                outcome.get("importance"), f"{prefix}.importance"
-            )
-            if importance not in {"critical", "important", "not_important"}:
-                log.errors.append(f"{prefix}.importance has an unsupported value")
-            for field in (
-                "effect_measure",
-                "effect_estimate",
-                "uncertainty_interval",
-                "participants",
-                "studies",
-                "time_horizon",
-            ):
-                require_nonempty_text(outcome.get(field), f"{prefix}.{field}")
-
-            domains = outcome.get("domains")
-            if not isinstance(domains, dict):
-                raise InputError(f"{prefix}.domains must be an object")
-            for domain_name in DOMAINS:
-                domain = domains.get(domain_name)
-                field = f"{prefix}.domains.{domain_name}"
-                if not isinstance(domain, dict):
-                    raise InputError(f"{field} must be an object")
-                judgment = require_nonempty_text(
-                    domain.get("judgment"), f"{field}.judgment"
-                )
-                if judgment not in DOMAIN_JUDGMENTS:
-                    log.errors.append(f"{field}.judgment is unsupported")
-                if judgment == "unassessed":
-                    log.errors.append(f"{field} requires a human judgment")
-                require_nonempty_text(domain.get("rationale"), f"{field}.rationale")
-                require_nonempty_text(
-                    domain.get("reviewer_role"), f"{field}.reviewer_role"
-                )
-                validate_references(
-                    domain.get("source_ids"), known_sources, f"{field}.source_ids"
-                )
-
-            upgrading = outcome.get("upgrading")
-            if not isinstance(upgrading, dict):
-                raise InputError(f"{prefix}.upgrading must be an object")
-            for item_name in UPGRADING:
-                item = upgrading.get(item_name)
-                field = f"{prefix}.upgrading.{item_name}"
-                if not isinstance(item, dict):
-                    raise InputError(f"{field} must be an object")
-                judgment = require_nonempty_text(
-                    item.get("judgment"), f"{field}.judgment"
-                )
-                if judgment not in UPGRADING_JUDGMENTS:
-                    log.errors.append(f"{field}.judgment is unsupported")
-                if judgment == "unassessed":
-                    log.errors.append(f"{field} requires a human judgment")
-                require_nonempty_text(item.get("rationale"), f"{field}.rationale")
-                if judgment == "present":
-                    validate_references(
-                        item.get("source_ids"), known_sources, f"{field}.source_ids"
-                    )
-
-            certainty = outcome.get("certainty")
-            if not isinstance(certainty, dict):
-                raise InputError(f"{prefix}.certainty must be an object")
-            if certainty.get("human_judgment") is not True:
-                log.errors.append(f"{prefix}.certainty.human_judgment must be true")
-            level = require_nonempty_text(
-                certainty.get("level"), f"{prefix}.certainty.level"
-            )
-            if level not in CERTAINTY_LEVELS:
-                log.errors.append(f"{prefix}.certainty.level is unsupported")
-            if level == "unassessed":
-                log.errors.append(f"{prefix}.certainty requires a human judgment")
-            require_nonempty_text(
-                certainty.get("rationale"), f"{prefix}.certainty.rationale"
-            )
-            require_nonempty_text(
-                certainty.get("reviewer_role"), f"{prefix}.certainty.reviewer_role"
-            )
-            require_nonempty_text(
-                certainty.get("judgment_date"), f"{prefix}.certainty.judgment_date"
-            )
-            validate_references(
-                certainty.get("source_ids"),
-                known_sources,
-                f"{prefix}.certainty.source_ids",
-            )
-            summaries.append(
-                {
-                    "outcome": name,
-                    "importance": importance,
-                    "human_entered_certainty": level,
-                }
-            )
-
-        review = document.get("profile_review")
-        if not isinstance(review, dict):
-            raise InputError("profile_review must be an object")
-        for field in ("prepared_by_role", "reviewed_by_role", "review_date"):
-            require_nonempty_text(review.get(field), f"profile_review.{field}")
-        if review.get("completed") is not True:
-            log.errors.append("profile_review.completed must be true")
-        placeholders = _find_placeholders(document)
-        if placeholders:
-            log.errors.append(
-                "Unresolved template placeholders remain: "
-                + ", ".join(placeholders[:10])
-            )
+            _check_outcome(outcome, index, names, known_sources, log, summaries)
+        _check_profile_review(document, log)
     except InputError as exc:
         log.errors.append(str(exc))
 
@@ -230,6 +262,7 @@ def check_profile(document: dict[str, Any]) -> tuple[IssueLog, list[dict[str, st
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description=(
             "Check completeness and citation traceability of a human-authored "

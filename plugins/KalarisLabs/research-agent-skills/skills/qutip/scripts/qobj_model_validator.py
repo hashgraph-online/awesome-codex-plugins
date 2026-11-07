@@ -31,6 +31,7 @@ MAX_ABS_ENTRY = 1.0e12
 
 
 def _name(value: Any, *, context: str) -> str:
+    """Handle name."""
     if not isinstance(value, str) or not NAME_PATTERN.fullmatch(value):
         raise CliError(
             f"{context} must match {NAME_PATTERN.pattern!r} and be at most 64 characters"
@@ -39,6 +40,7 @@ def _name(value: Any, *, context: str) -> str:
 
 
 def _complex_scalar(value: Any, *, name: str) -> complex:
+    """Handle complex scalar."""
     if isinstance(value, Mapping):
         validate_keys(
             value,
@@ -63,6 +65,7 @@ def _numeric_data(
     dimension: int,
     context: str,
 ) -> tuple[list[complex] | list[list[complex]], bool]:
+    """Handle numeric data."""
     if not isinstance(value, list) or not value:
         raise CliError(f"{context}.data must be a non-empty JSON array")
 
@@ -106,6 +109,7 @@ def _numeric_data(
 
 
 def _state_summary(qobj: Any, *, tolerance: float) -> tuple[dict[str, Any], bool]:
+    """Handle state summary."""
     if qobj.isket:
         norm = float(qobj.norm())
         valid = abs(norm - 1.0) <= tolerance
@@ -304,6 +308,7 @@ def validate_model(document: Mapping[str, Any], qutip_module: Any | None = None)
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a bounded strict-JSON QuTiP model containing one "
@@ -316,6 +321,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     document = load_json_object(args.model)
     report = validate_model(document)

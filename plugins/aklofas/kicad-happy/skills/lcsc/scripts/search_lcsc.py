@@ -31,6 +31,8 @@ import urllib.request
 
 # Import from sibling script (same skill)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import _core_path  # noqa: F401
+from distributor_core.download import take_transport_failure
 from provider_lcsc import (
     _get_datasheet_url,
     _get_description,
@@ -125,9 +127,8 @@ def normalize_component(c: dict) -> dict:
         # the next best one-line summary.
         desc = " ".join(str(v) for v in attrs.values() if v not in (None, "", "-"))
 
+    # None = no stock figure; the filter and sort read it as 0 and the output prints 0
     stock = c.get("stock")
-    if stock is None:
-        stock = 0
 
     # Basic part check (category rows may lack it; older shapes used 'basic')
     is_basic = c.get("is_basic")
@@ -151,7 +152,7 @@ def normalize_component(c: dict) -> dict:
         "package": pkg,
         "description": desc.strip(),
         "is_basic": bool(is_basic),
-        "stock": int(stock) if stock is not None else 0,
+        "stock": int(stock) if stock is not None else None,
         "price_usd": float(price) if price else 0.0,
         "datasheet_url": _get_datasheet_url(c),
         "attributes": attrs,
@@ -159,18 +160,38 @@ def normalize_component(c: dict) -> dict:
     }
 
 
+def lookup_direct(code: str) -> dict | None:
+    """The wmsc detail for ``code``, or None when LCSC answered for another part.
+
+    A response without a product code is taken as the answer to the request and
+    carries the requested code.
+    """
+    direct = search_lcsc_direct(code)
+    if not direct:
+        return None
+    answered = _get_lcsc_code(direct).upper()
+    if answered and answered != code.upper():
+        return None
+    if not answered:
+        extra = _parse_extra(direct)
+        extra["number"] = code.upper()
+        direct["extra"] = extra
+        direct["lcsc"] = code[1:]
+    return direct
+
+
 def enrich_from_wmsc(item: dict) -> dict:
     """Fill blanks in a normalized item from LCSC's direct product-detail API.
 
     jlcsearch no longer returns manufacturer, datasheet URL or price breaks,
     so those come from wmsc.lcsc.com via ``search_lcsc_direct``. Stock and
-    unit price stay as jlcsearch reported them (the JLCPCB assembly figures)
-    unless jlcsearch had none.
+    unit price stay as jlcsearch reported them (the JLCPCB assembly figures,
+    a real 0 included) unless jlcsearch had none.
     """
     code = item.get("lcsc_code", "")
     if not _LCSC_CODE_RE.match(code):
         return item
-    direct = search_lcsc_direct(code)
+    direct = lookup_direct(code)
     if not direct:
         return item
     detail = normalize_component(direct)
@@ -183,7 +204,7 @@ def enrich_from_wmsc(item: dict) -> dict:
         item["attributes"] = detail["attributes"]
     if not item.get("prices"):
         item["prices"] = detail["prices"]
-    if not item.get("stock"):
+    if item.get("stock") is None:
         item["stock"] = detail["stock"]
     if not item.get("price_usd"):
         item["price_usd"] = detail["price_usd"]
@@ -273,6 +294,7 @@ def main():
 
     query = args.query.strip()
     is_lcsc_code = bool(_LCSC_CODE_RE.match(query))
+    jlcsearch_error = None
     try:
         raw_components = search_jlcsearch(
             query=query,
@@ -283,6 +305,7 @@ def main():
     except Exception as e:
         # An exact LCSC code can still be served by the direct lookup below
         if is_lcsc_code:
+            jlcsearch_error = e
             raw_components = []
         else:
             print(f"Error connecting to jlcsearch API: {e}", file=sys.stderr)
@@ -290,9 +313,13 @@ def main():
 
     # Fallback to wmsc direct if jlcsearch returned nothing for Cxxxxx code
     if not raw_components and is_lcsc_code:
-        direct = search_lcsc_direct(query)
+        take_transport_failure()
+        direct = lookup_direct(query)
         if direct:
             raw_components = [direct]
+        elif jlcsearch_error is not None and take_transport_failure():
+            print(f"Error connecting to jlcsearch API: {jlcsearch_error}", file=sys.stderr)
+            sys.exit(2)
 
     # Normalize components
     normalized = [normalize_component(c) for c in raw_components]
@@ -302,9 +329,9 @@ def main():
     for item in normalized:
         if args.basic and not item["is_basic"]:
             continue
-        if args.in_stock and item["stock"] <= 0:
+        if args.in_stock and (item["stock"] or 0) <= 0:
             continue
-        if args.min_stock > 0 and item["stock"] < args.min_stock:
+        if args.min_stock > 0 and (item["stock"] or 0) < args.min_stock:
             continue
         if args.package and args.package.lower() not in item["package"].lower():
             continue
@@ -314,7 +341,7 @@ def main():
     if args.sort == "price":
         filtered.sort(key=lambda x: x["price_usd"])
     elif args.sort == "stock":
-        filtered.sort(key=lambda x: x["stock"], reverse=True)
+        filtered.sort(key=lambda x: x["stock"] or 0, reverse=True)
 
     # Limit
     results = filtered[:args.limit]
@@ -327,6 +354,10 @@ def main():
             if idx:
                 time.sleep(_ENRICH_DELAY_S)
             enrich_from_wmsc(item)
+
+    for item in results:
+        if item["stock"] is None:
+            item["stock"] = 0
 
     if args.json:
         print(json.dumps({
@@ -357,4 +388,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     main()

@@ -28,9 +28,12 @@ from _common import (
 
 TOOL = "consensus-peaks-planner"
 _SAFE_PREFIX = re.compile(r"^[A-Za-z0-9_.-]{1,100}$")
+_COVERAGE_DIR_PLACEHOLDER = "<LOCAL_COVERAGE_DIR>"
+_LIKELIHOOD_MODEL_PLACEHOLDER = "<LIKELIHOOD_MODEL_TAR>"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate local consensus inputs and emit argv arrays for Geniml "
@@ -96,6 +99,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _manifest_bed(raw: str, manifest: Path) -> Path:
+    """Resolve a manifest BED entry relative to the manifest directory."""
     candidate = Path(raw)
     if not candidate.is_absolute():
         candidate = manifest.parent / candidate
@@ -103,6 +107,7 @@ def _manifest_bed(raw: str, manifest: Path) -> Path:
 
 
 def _render(path: Path, label: str, mode: str) -> str:
+    """Render a path for an argv array according to the path disclosure mode."""
     if mode == "full":
         return str(path)
     if mode == "basename":
@@ -110,7 +115,8 @@ def _render(path: Path, label: str, mode: str) -> str:
     return f"<{label}>"
 
 
-def plan(args: argparse.Namespace) -> tuple[dict, int]:
+def _validate_options(args: argparse.Namespace) -> None:
+    """Reject option combinations that do not apply to the chosen method."""
     if not args.assembly.strip() or len(args.assembly) > 200:
         raise SafetyError("assembly must be a nonempty value of at most 200 characters")
     if not _SAFE_PREFIX.fullmatch(args.coverage_prefix):
@@ -125,6 +131,218 @@ def plan(args: argparse.Namespace) -> tuple[dict, int]:
         raise SafetyError("normalization and max-coverage flags apply only to method hmm")
     if args.likelihood_model and args.method != "ml":
         raise SafetyError("likelihood-model applies only to method ml")
+
+
+def _scan_manifest_beds(args: argparse.Namespace, rows: list[dict], manifest: Path,
+                        errors: Counter) -> tuple[list[Path], int]:
+    """Resolve each manifest BED path and total the input bytes."""
+    local_beds: list[Path] = []
+    total_input_bytes = 0
+    for row in rows:
+        raw_path = row.get(args.path_column, "")
+        if not raw_path:
+            errors["blank_path"] += 1
+            continue
+        if row.get(args.assembly_column, "") != args.assembly:
+            errors["assembly_mismatch"] += 1
+        try:
+            bed = _manifest_bed(raw_path, manifest)
+        except (OSError, SafetyError):
+            errors["invalid_or_missing_local_bed"] += 1
+            continue
+        local_beds.append(bed)
+        total_input_bytes += bed.lstat().st_size
+        if total_input_bytes > args.max_total_input_bytes:
+            raise SafetyError("BED corpus exceeds max-total-input-bytes")
+    if len(set(local_beds)) != len(local_beds):
+        errors["duplicate_bed_paths"] = len(local_beds) - len(set(local_beds))
+    return local_beds, total_input_bytes
+
+
+def _required_coverage_names(args: argparse.Namespace) -> list[str]:
+    """Return the coverage track names the chosen method needs."""
+    if args.method in {"cc", "ccf"}:
+        return [f"{args.coverage_prefix}_core.bw"]
+    return [
+        f"{args.coverage_prefix}_start.bw",
+        f"{args.coverage_prefix}_core.bw",
+        f"{args.coverage_prefix}_end.bw",
+    ]
+
+
+def _collect_coverage(args: argparse.Namespace, names: list[str], errors: Counter,
+                      warnings: Counter) -> tuple[Path | None, list[dict[str, str | int]]]:
+    """Locate and hash the required coverage tracks, if a coverage directory was given."""
+    coverage_files: list[dict[str, str | int]] = []
+    if not args.coverage_dir:
+        warnings["coverage_generation_required"] += 1
+        return None, coverage_files
+    coverage_dir = local_path(args.coverage_dir, kind="dir")
+    for name in names:
+        try:
+            coverage_file = local_path(str(coverage_dir / name), kind="file")
+        except (OSError, SafetyError):
+            errors[f"missing_coverage:{name}"] += 1
+            continue
+        digest, size = sha256_file(
+            coverage_file,
+            max_bytes=args.max_total_input_bytes,
+        )
+        coverage_files.append(
+            {
+                "name": name,
+                "sha256": digest,
+                "size_bytes": size,
+            }
+        )
+    return coverage_dir, coverage_files
+
+
+def _likelihood_stage(args: argparse.Namespace, output_dir: Path, coverage_dir: Path | None,
+                      local_beds: list[Path], errors: Counter) -> tuple[Path | None, dict | None]:
+    """Resolve the likelihood model path and, when it must be built, its plan stage."""
+    if args.method != "ml":
+        return None, None
+    if args.likelihood_model:
+        return local_path(args.likelihood_model, kind="file"), None
+    likelihood_path = output_dir / "likelihood_model.tar"
+    if likelihood_path.exists() or likelihood_path.is_symlink():
+        errors["planned_likelihood_model_already_exists"] += 1
+    file_no = str(len(set(local_beds)))
+    lh_template = [
+        "geniml",
+        "lh",
+        "--model-file",
+        _LIKELIHOOD_MODEL_PLACEHOLDER,
+        "--coverage-folder",
+        _COVERAGE_DIR_PLACEHOLDER,
+        "--coverage-prefix",
+        args.coverage_prefix,
+        "--file-no",
+        file_no,
+    ]
+    lh_argv = None
+    if args.path_mode == "full" and coverage_dir:
+        lh_argv = [
+            "geniml",
+            "lh",
+            "--model-file",
+            str(likelihood_path),
+            "--coverage-folder",
+            str(coverage_dir),
+            "--coverage-prefix",
+            args.coverage_prefix,
+            "--file-no",
+            file_no,
+        ]
+    stage = {
+        "stage": "build_likelihood_model",
+        "executed": False,
+        "argv_template": lh_template,
+        "argv": lh_argv,
+    }
+    return likelihood_path, stage
+
+
+def _method_arguments(args: argparse.Namespace, local_beds: list[Path],
+                      likelihood_path: Path | None,
+                      warnings: Counter) -> tuple[list[str], list[str]]:
+    """Return the method-specific (template, concrete) argv additions."""
+    if args.method == "cc":
+        extra: list[str] = []
+        if args.cutoff is not None:
+            extra.extend(["--cutoff", str(args.cutoff)])
+            if args.cutoff > len(set(local_beds)):
+                warnings["cutoff_exceeds_file_count"] += 1
+        extra.extend(["--merge", str(args.merge), "--filter-size", str(args.filter_size)])
+        return list(extra), list(extra)
+    if args.method == "ml":
+        return (
+            ["--model-file", _LIKELIHOOD_MODEL_PLACEHOLDER],
+            ["--model-file", _render(likelihood_path, "LIKELIHOOD_MODEL_TAR", args.path_mode)],
+        )
+    if args.method == "hmm":
+        extra = []
+        if args.no_normalize:
+            extra.append("--not-normalize")
+        if args.save_max_coverage:
+            extra.append("--save-max-cove")
+        return list(extra), list(extra)
+    return [], []
+
+
+def _build_universe_stage(args: argparse.Namespace, local_beds: list[Path],
+                          coverage_dir: Path | None, output_file: Path,
+                          likelihood_path: Path | None, warnings: Counter) -> dict:
+    """Build the build_universe plan stage with its argv template and concrete argv."""
+    coverage_arg = (
+        _render(coverage_dir, "LOCAL_COVERAGE_DIR", args.path_mode)
+        if coverage_dir
+        else _COVERAGE_DIR_PLACEHOLDER
+    )
+    output_arg = _render(output_file, "OUTPUT_UNIVERSE_BED", args.path_mode)
+    command_template = [
+        "geniml",
+        "build-universe",
+        args.method,
+        "--coverage-folder",
+        _COVERAGE_DIR_PLACEHOLDER,
+        "--coverage-prefix",
+        args.coverage_prefix,
+        "--output-file",
+        "<OUTPUT_UNIVERSE_BED>",
+    ]
+    command = [
+        "geniml",
+        "build-universe",
+        args.method,
+        "--coverage-folder",
+        coverage_arg,
+        "--coverage-prefix",
+        args.coverage_prefix,
+        "--output-file",
+        output_arg,
+    ]
+    template_extra, command_extra = _method_arguments(
+        args, local_beds, likelihood_path, warnings
+    )
+    command_template.extend(template_extra)
+    command.extend(command_extra)
+    return {
+        "stage": "build_universe",
+        "executed": False,
+        "argv_template": command_template,
+        "argv": command if args.path_mode == "full" and coverage_dir else None,
+    }
+
+
+def _leading_stages(coverage_dir: Path | None, required_names: list[str]) -> list[dict]:
+    """Return the validate_beds and generate_coverage stages."""
+    return [
+        {
+            "stage": "validate_beds",
+            "executed": False,
+            "instruction": (
+                "Run bed_validator.py for every BED using the same chromosome sizes; "
+                "reject any invalid result."
+            ),
+        },
+        {
+            "stage": "generate_coverage",
+            "executed": False,
+            "blocked": coverage_dir is None,
+            "required_outputs": required_names,
+            "instruction": (
+                "Use an explicitly pinned and checksummed coverage executable. "
+                "Capture its installed --help; this planner does not guess a Gtars/uniwig argv."
+            ),
+        },
+    ]
+
+
+def plan(args: argparse.Namespace) -> tuple[dict, int]:
+    """Validate the inputs and return the consensus-universe plan with its exit code."""
+    _validate_options(args)
 
     manifest = local_path(args.manifest, kind="file")
     chrom_sizes = local_path(args.chrom_sizes, kind="file")
@@ -159,192 +377,27 @@ def plan(args: argparse.Namespace) -> tuple[dict, int]:
 
     errors: Counter[str] = Counter()
     warnings: Counter[str] = Counter()
-    local_beds: list[Path] = []
-    total_input_bytes = 0
-    for row in rows:
-        raw_path = row.get(args.path_column, "")
-        if not raw_path:
-            errors["blank_path"] += 1
-            continue
-        if row.get(args.assembly_column, "") != args.assembly:
-            errors["assembly_mismatch"] += 1
-        try:
-            bed = _manifest_bed(raw_path, manifest)
-        except (OSError, SafetyError):
-            errors["invalid_or_missing_local_bed"] += 1
-            continue
-        local_beds.append(bed)
-        total_input_bytes += bed.lstat().st_size
-        if total_input_bytes > args.max_total_input_bytes:
-            raise SafetyError("BED corpus exceeds max-total-input-bytes")
-    if len(set(local_beds)) != len(local_beds):
-        errors["duplicate_bed_paths"] = len(local_beds) - len(set(local_beds))
+    local_beds, total_input_bytes = _scan_manifest_beds(args, rows, manifest, errors)
 
-    coverage_dir: Path | None = None
-    required_coverage_names = (
-        [f"{args.coverage_prefix}_core.bw"]
-        if args.method in {"cc", "ccf"}
-        else [
-            f"{args.coverage_prefix}_start.bw",
-            f"{args.coverage_prefix}_core.bw",
-            f"{args.coverage_prefix}_end.bw",
-        ]
+    required_coverage_names = _required_coverage_names(args)
+    coverage_dir, coverage_files = _collect_coverage(
+        args, required_coverage_names, errors, warnings
     )
-    coverage_files: list[dict[str, str | int]] = []
-    if args.coverage_dir:
-        coverage_dir = local_path(args.coverage_dir, kind="dir")
-        for index, name in enumerate(required_coverage_names, start=1):
-            try:
-                coverage_file = local_path(str(coverage_dir / name), kind="file")
-            except (OSError, SafetyError):
-                errors[f"missing_coverage:{name}"] += 1
-                continue
-            digest, size = sha256_file(
-                coverage_file,
-                max_bytes=args.max_total_input_bytes,
-            )
-            coverage_files.append(
-                {
-                    "name": name,
-                    "sha256": digest,
-                    "size_bytes": size,
-                }
-            )
-    else:
-        warnings["coverage_generation_required"] += 1
 
     output_file = output_dir / f"universe_{args.method}.bed"
     if output_file.exists() or output_file.is_symlink():
         errors["output_file_already_exists"] += 1
 
-    coverage_arg = (
-        _render(coverage_dir, "LOCAL_COVERAGE_DIR", args.path_mode)
-        if coverage_dir
-        else "<LOCAL_COVERAGE_DIR>"
+    stages = _leading_stages(coverage_dir, required_coverage_names)
+    likelihood_path, likelihood_stage = _likelihood_stage(
+        args, output_dir, coverage_dir, local_beds, errors
     )
-    output_arg = _render(output_file, "OUTPUT_UNIVERSE_BED", args.path_mode)
-
-    stages: list[dict] = [
-        {
-            "stage": "validate_beds",
-            "executed": False,
-            "instruction": (
-                "Run bed_validator.py for every BED using the same chromosome sizes; "
-                "reject any invalid result."
-            ),
-        },
-        {
-            "stage": "generate_coverage",
-            "executed": False,
-            "blocked": coverage_dir is None,
-            "required_outputs": required_coverage_names,
-            "instruction": (
-                "Use an explicitly pinned and checksummed coverage executable. "
-                "Capture its installed --help; this planner does not guess a Gtars/uniwig argv."
-            ),
-        },
-    ]
-
-    likelihood_path: Path | None = None
-    if args.method == "ml":
-        if args.likelihood_model:
-            likelihood_path = local_path(args.likelihood_model, kind="file")
-        else:
-            likelihood_path = output_dir / "likelihood_model.tar"
-            if likelihood_path.exists() or likelihood_path.is_symlink():
-                errors["planned_likelihood_model_already_exists"] += 1
-            lh_template = [
-                "geniml",
-                "lh",
-                "--model-file",
-                "<LIKELIHOOD_MODEL_TAR>",
-                "--coverage-folder",
-                "<LOCAL_COVERAGE_DIR>",
-                "--coverage-prefix",
-                args.coverage_prefix,
-                "--file-no",
-                str(len(set(local_beds))),
-            ]
-            lh_argv = None
-            if args.path_mode == "full" and coverage_dir:
-                lh_argv = [
-                    "geniml",
-                    "lh",
-                    "--model-file",
-                    str(likelihood_path),
-                    "--coverage-folder",
-                    str(coverage_dir),
-                    "--coverage-prefix",
-                    args.coverage_prefix,
-                    "--file-no",
-                    str(len(set(local_beds))),
-                ]
-            stages.append(
-                {
-                    "stage": "build_likelihood_model",
-                    "executed": False,
-                    "argv_template": lh_template,
-                    "argv": lh_argv,
-                }
-            )
-
-    command_template = [
-        "geniml",
-        "build-universe",
-        args.method,
-        "--coverage-folder",
-        "<LOCAL_COVERAGE_DIR>",
-        "--coverage-prefix",
-        args.coverage_prefix,
-        "--output-file",
-        "<OUTPUT_UNIVERSE_BED>",
-    ]
-    command = [
-        "geniml",
-        "build-universe",
-        args.method,
-        "--coverage-folder",
-        coverage_arg,
-        "--coverage-prefix",
-        args.coverage_prefix,
-        "--output-file",
-        output_arg,
-    ]
-    if args.method == "cc":
-        if args.cutoff is not None:
-            command_template.extend(["--cutoff", str(args.cutoff)])
-            command.extend(["--cutoff", str(args.cutoff)])
-            if args.cutoff > len(set(local_beds)):
-                warnings["cutoff_exceeds_file_count"] += 1
-        command_template.extend(["--merge", str(args.merge), "--filter-size", str(args.filter_size)])
-        command.extend(["--merge", str(args.merge), "--filter-size", str(args.filter_size)])
-    elif args.method == "ml":
-        command_template.extend(["--model-file", "<LIKELIHOOD_MODEL_TAR>"])
-        command.extend(
-            [
-                "--model-file",
-                _render(
-                    likelihood_path,
-                    "LIKELIHOOD_MODEL_TAR",
-                    args.path_mode,
-                ),
-            ]
-        )
-    elif args.method == "hmm":
-        if args.no_normalize:
-            command_template.append("--not-normalize")
-            command.append("--not-normalize")
-        if args.save_max_coverage:
-            command_template.append("--save-max-cove")
-            command.append("--save-max-cove")
-
+    if likelihood_stage is not None:
+        stages.append(likelihood_stage)
     stages.append(
-        {
-            "stage": "build_universe",
-            "executed": False,
-            "argv_template": command_template,
-            "argv": command if args.path_mode == "full" and coverage_dir else None,
-        }
+        _build_universe_stage(
+            args, local_beds, coverage_dir, output_file, likelihood_path, warnings
+        )
     )
     stages.append(
         {
@@ -403,6 +456,7 @@ def plan(args: argparse.Namespace) -> tuple[dict, int]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report, exit_code = plan(args)

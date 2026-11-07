@@ -19,6 +19,7 @@ class PIVAnalyzer:
     """
 
     def __init__(self, params_file: str):
+        """Initialise the instance."""
         self.params_file = Path(params_file)
 
         data = np.load(self.params_file)
@@ -95,6 +96,7 @@ class PIVAnalyzer:
         return fig
 
     def get_velocity_magnitude(self) -> np.ndarray:
+        """Get velocity magnitude."""
         return np.sqrt(self.u**2 + self.v**2)
 
     def compute_vorticity(

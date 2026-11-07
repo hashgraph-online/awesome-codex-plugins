@@ -493,6 +493,14 @@
             "host-default"
           ],
           "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
+        },
+        "cursorFlags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["--force", "--trust", "--yolo"]
+          },
+          "description": "Cursor CLI permission flags the shift was started with. The first Cursor hook records --force and --trust from this list (--yolo is the alias of --force) and ignores every other token. A revival passes those recorded flags and does not add one the launch did not have."
         }
       }
     },

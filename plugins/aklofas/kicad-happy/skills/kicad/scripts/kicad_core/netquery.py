@@ -1,5 +1,6 @@
-"""Pin/net index primitives (kicad_core). The two net helpers that lived in kicad_utils, the index builders and BridgeFact."""
+"""Pin/net index primitives (kicad_core): the net-id map helper, the pin and reference index builders, and the bridge facts (BridgeFact, BridgeFacts, build_bridge_facts) and the net-tie conductors (tie_conductors, conductor_of)."""
 
+from collections import Counter
 from dataclasses import dataclass
 
 from kicad_core.model import Net, PinNetEntry
@@ -13,24 +14,6 @@ def build_pin_to_net_map(nets: dict[str, Net]) -> dict[tuple[str, str], PinNetEn
         for p in net_info["pins"]:
             pin_net[(p["component"], p["pin_number"])] = (net_name, net_info)
     return pin_net
-
-
-def get_two_pin_nets(pin_net: dict, ref: str) -> tuple[str | None, str | None]:
-    """Get the two nets a 2-pin component connects to.
-
-    Takes pin_net map explicitly instead of closing over it.
-    Falls back to enumerating all pins when "1"/"2" aren't found.
-    """
-    n1, _ = pin_net.get((ref, "1"), (None, None))
-    n2, _ = pin_net.get((ref, "2"), (None, None))
-    if n1 is not None and n2 is not None:
-        return n1, n2
-    # Fallback for non-"1"/"2" pin numbering (Eagle imports, diodes A/K, etc.)
-    ref_entries = {k[1]: v for k, v in pin_net.items() if k[0] == ref}
-    if len(ref_entries) == 2:
-        nets = [net for net, _ in ref_entries.values()]
-        return nets[0], nets[1]
-    return n1, n2
 
 
 def build_net_id_map(pcb):
@@ -78,11 +61,11 @@ def build_ref_pins(nets: dict) -> dict[str, list[tuple[str, str, str]]]:
 
 @dataclass(frozen=True)
 class BridgeFact:
-    """What is known about one DC-bridge-capable component (U3).
+    """What is known about one DC-bridge-capable component.
 
     ref:           component reference
     nets:          endpoint nets in net-map order (jumper detections: the detection's ``nets``)
-    kind:          "jumper" | "resistor" | "inductor" | "ferrite_bead" | "fuse"
+    kind:          "jumper" | "resistor" | "inductor" | "ferrite_bead" | "fuse" | "net_tie"
     default_state: jumpers: the detection's ``default_state`` ("bridged" / "open" / other), else None
     resistance:    resistors: parsed ohms, 0.0 for a bare zero-ohm spelling, None when unparsable; else None
     """
@@ -103,7 +86,7 @@ class BridgeFacts:
     jumpers: list[BridgeFact]
 
 
-_BRIDGE_KINDS = ("inductor", "ferrite_bead", "fuse", "resistor", "jumper")
+_BRIDGE_KINDS = ("inductor", "ferrite_bead", "fuse", "resistor", "jumper", "net_tie")
 _ZERO_OHM_SPELLINGS = ("0", "0r", "0ohm", "0ohms")
 
 
@@ -113,16 +96,23 @@ def build_bridge_facts(components: list[dict],
     """Build the shared DC-bridge facts for the RS and PP audits.
 
     Acceptance stays with each audit: RS accepts two-net jumpers in state
-    bridged/open; PP accepts inductors, ferrite beads, fuses, resistors <= 1 Ω
-    and bridged jumpers. This function only records facts.
+    bridged/open and net ties; PP accepts inductors, ferrite beads, fuses,
+    resistors <= 1 Ω, bridged jumpers and net ties. This function only records facts.
+    A net tie keeps its nets apart in names, as KiCad does, but is one conductor.
     """
     detections = {}
     for sj in (solder_jumpers or []):
         detections.setdefault(sj.get("reference"), sj)
     by_ref: dict[str, BridgeFact] = {}
+    ref_counts = Counter(c.get("reference") for c in components)
     for c in components:
         ref = c.get("reference") or ""
         t = (c.get("type") or c.get("category") or "").lower()
+        # Two net ties sharing a reference (NT?) pool their pins in ref_pins: which nets
+        # each joins is unknown, so neither joins any.
+        if t == "net_tie" and ref_counts[ref] > 1:
+            by_ref.pop(ref, None)
+            continue
         if not ref or t not in _BRIDGE_KINDS:
             if ref:
                 by_ref.pop(ref, None)   # duplicate refs: the last component wins, as the old dict did
@@ -148,3 +138,31 @@ def build_bridge_facts(components: list[dict],
                           sj.get("default_state"), None)
                for sj in (solder_jumpers or [])]
     return BridgeFacts(by_ref, jumpers)
+
+
+def tie_conductors(bridge_facts: BridgeFacts) -> dict[str, frozenset[str]]:
+    """Each net a net tie touches -> every net joined to it through net ties (itself included)."""
+    parent: dict[str, str] = {}
+
+    def root(n: str) -> str:
+        while parent.setdefault(n, n) != n:
+            n = parent[n]
+        return n
+
+    for fact in bridge_facts.by_ref.values():
+        if fact.kind == "net_tie":
+            for other in fact.nets[1:]:
+                a, b = root(fact.nets[0]), root(other)
+                if a != b:
+                    parent[max(a, b)] = min(a, b)
+            if fact.nets:
+                root(fact.nets[0])
+    groups: dict[str, set[str]] = {}
+    for n in parent:
+        groups.setdefault(root(n), set()).add(n)
+    return {n: frozenset(groups[root(n)]) for n in parent}
+
+
+def conductor_of(ties: dict[str, frozenset[str]], net: str) -> tuple[str, ...]:
+    """The nets one conductor with *net* through net ties (``tie_conductors``), sorted."""
+    return tuple(sorted(ties.get(net, (net,))))

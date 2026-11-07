@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make a photo talk"
+  short_description: "Turn a portrait or character into a talking video"
+  default_prompt: "Use $talking-photo to make this picture say a line."

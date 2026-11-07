@@ -182,7 +182,7 @@
 #     hermetic: on
 #     models:
 #       - opencode/big-pickle
-#       - opencode/nemotron-3-ultra-free
+#       - opencode/nemotron-3.5-super-vl-free
 #       - google/gemini-4-argon
 #       - openai/gpt-6.1-sol
 #       - openai/gpt-6-astra

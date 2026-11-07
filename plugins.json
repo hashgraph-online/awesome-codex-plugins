@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-06",
-  "total": 379,
+  "last_updated": "2026-11-07",
+  "total": 384,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -188,6 +188,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/biefan/anchor/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Andon",
+      "url": "https://github.com/PrimeFoldTools/Andon",
+      "owner": "PrimeFoldTools",
+      "repo": "Andon",
+      "description": "Stop hooks that stop a coding agent from claiming \"done\" without proof, using a same-session verification log, warn or block mode, and a public defect ledger.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/PrimeFoldTools/Andon/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Antigravity Workspace Template",
@@ -819,6 +829,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/vinicq/falsegreen-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "fanout",
+      "url": "https://github.com/Breadstick-Crumbs/fanout",
+      "owner": "Breadstick-Crumbs",
+      "repo": "fanout",
+      "description": "Tests parallel Codex and Claude Code sessions’ branches merged together before main, and stops two sessions doing the same task.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Breadstick-Crumbs/fanout/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Figma Maxxing",
@@ -2092,6 +2112,16 @@
       "install_url": "https://raw.githubusercontent.com/TheBestCo/bestprice-mcp/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Bifrost",
+      "url": "https://github.com/gobifrost/bifrost",
+      "owner": "gobifrost",
+      "repo": "bifrost",
+      "description": "Build MSP automation workflows, forms, agents, apps, and Solutions with the Bifrost SDK and CLI through bundled skills for development, setup, migration, and Microsoft 365 Copilot Cowork packaging.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/gobifrost/bifrost/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Bitbucket CLI",
       "url": "https://github.com/avivsinai/bitbucket-cli",
       "owner": "avivsinai",
@@ -2711,6 +2741,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/host0-ai/skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Imagera",
+      "url": "https://github.com/alexadams6ix/imagera-skills",
+      "owner": "alexadams6ix",
+      "repo": "imagera-skills",
+      "description": "Generate and edit images, video, voice and music through the hosted Imagera MCP server (OAuth sign-in) and 37 skills, with the credit cost stated before each run. Website: https://imagera.ai/mcp",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/alexadams6ix/imagera-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Jenkins CLI",
@@ -3531,6 +3571,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Hugo0/swarmmemo/HEAD/plugins/swarmmemo/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "sync. labs",
+      "url": "https://github.com/synchronicity-labs/skills",
+      "owner": "synchronicity-labs",
+      "repo": "skills",
+      "description": "Official sync. labs plugin: lipsync a video to new audio or a script, make a photo talk, dub videos into other languages with matching lips and fix spoken words in the speaker's own voice, through ten skills and the hosted sync. MCP server with OAuth sign-in and no API key. Paid steps are quoted and confirmed first.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/synchronicity-labs/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Synta MCP",

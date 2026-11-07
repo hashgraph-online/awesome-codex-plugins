@@ -51,6 +51,8 @@ python3 skills/emc/scripts/analyze_emc.py --schema
 python3 skills/kicad/scripts/cross_analysis.py --schema
 ```
 
+Schema versions (`schema_version`; the "v1.4" labels below) are separate from the plugin version.
+
 v1.4 schema-break notes:
 - Output of `--schema` is real JSON Schema Draft 2020-12 (prior: descriptive-string dict).
 - `schema_version` bumped 1.3.0 → 1.4.0 on every analyzer.
@@ -101,8 +103,7 @@ Shape is declared by the per-analyzer envelope in `envelopes/*.py` or
 `thermal_score`, gerber `layers` / `drills` / `completeness`, etc.
 
 Several Tier 2 fields are currently typed as loose `dict` or
-`list[dict]` with `TODO(v1.5)` markers. Consumers that need stable
-shapes from these should wait for the v1.5 per-rule_id tightening pass.
+`list[dict]`; the schema does not constrain their item shapes.
 
 ### Tier 3 — Compatibility residue
 
@@ -234,9 +235,11 @@ def main():
         intro="One entry of the Tier 1 `diagnostics` list, shared by every envelope.",
     ))
     out_path = REPO_ROOT / "skills" / "kicad" / "references" / "output-schema.md"
-    out_path.write_text("\n".join(parts))
+    out_path.write_text("\n".join(parts), encoding="utf-8", newline="\n")
     print(f"Wrote {out_path}")
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     main()

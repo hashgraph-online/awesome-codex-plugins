@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.local/datasheets/schemas/extraction.schema.json",
   "title": "DatasheetExtraction",
+  "x-schema-version": "1.0",
   "description": "Top-level per-MPN extraction file. One file per part in datasheets/extracted/<MPN>.json. Composes base + zero-or-more category extensions.",
   "type": "object",
   "required": ["schema_version", "source", "extraction", "base"],
@@ -46,7 +47,7 @@
         "page_count": {"type": ["integer", "null"], "minimum": 1},
         "family_ref": {
           "type": ["string", "null"],
-          "description": "Path to a family file in datasheets/extracted/_families/ when this MPN is a variant. Reserved for v1.5 Tier 2 dedup; always null in v1.4."
+          "description": "Path to a family file in datasheets/extracted/_families/ when this MPN is a variant. Reserved for Tier 2 family dedup; always null today."
         }
       }
     },

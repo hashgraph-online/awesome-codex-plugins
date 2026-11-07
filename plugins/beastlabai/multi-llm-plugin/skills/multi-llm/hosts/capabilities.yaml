@@ -504,7 +504,7 @@ hosts:
     package:
       registry: npm
       name: opencode-multi-llm
-      version: "0.1.4"
+      version: "0.1.5"
       public_version: "0.1.4"
       config_key: plugin
       provides: [command, tool]
@@ -529,8 +529,10 @@ hosts:
     ask: free-text                   # the `question` tool is unreliable headless
     detach: required                 # the ~120 s bash cap is documented, not
                                      # measured, and every fan-out mode runs far
-                                     # longer than it — so no foreground fan-out
-                                     # path is offered at all.
+                                     # longer than it, as does every apply mode
+                                     # and `implement`, whose write batches the
+                                     # executor runs inside the command — so no
+                                     # foreground path is offered for either.
     native_tool:
       subagents: task
     # A CREDENTIAL-FREE FLOOR WITH A KNOWN EXPIRY, NOT A RECOMMENDATION (D3).
@@ -547,30 +549,53 @@ hosts:
     # recapture), and `tests/test_container_host_lane.py`'s catalog diff is
     # what makes a skipped ritual visible.
     #
-    # PROBED 2026-09-11 on opencode 1.18.30 (the installed build), zero
-    # credentials: HOME, XDG_CONFIG_HOME, XDG_DATA_HOME and XDG_STATE_HOME at
-    # empty scratch dirs (`opencode auth list` → `└  0 credentials`), with
-    # OPENAI_API_KEY, GEMINI_API_KEY, ANTHROPIC_API_KEY and OPENROUTER_API_KEY
-    # unset, never wrapped in `timeout` (which wedges `opencode run`).
-    #   $ opencode models | grep '^opencode/'      (same 7 ids from the user's
-    #   opencode/big-pickle                          own HOME and the scratch one:
-    #   opencode/ling-3.0-flash-fin-free             the listing is a catalog,
-    #   opencode/mimo-v2.5-free                      not an entitlement check)
-    #   opencode/muse-spark-1.2-contributor-free
-    #   opencode/muse-spark-1.3-contributor-free
-    #   opencode/nemotron-3-ultra-free
-    #   opencode/nemotron-3.5-lightning-free
-    # No `opencode/sonnet`, `opencode/deepseek-v4-flash-free` or
-    # `opencode/hy3-free` (all three dropped from providers.yaml the same day).
+    # RE-PROBED 2026-11-06 on opencode 1.19.5 (the pinned build), zero
+    # credentials: HOME and all four XDG dirs (XDG_CACHE_HOME too) at empty
+    # scratch dirs (`opencode auth list` → `└  0 credentials`), every
+    # `*_API_KEY` unset, never wrapped in `timeout` (which wedges `opencode
+    # run`). The listing was taken twice with the same answer: from the host's
+    # installed 1.19.5 and inside mllm-e2e:local (its real binary, not the
+    # rig's PATH wrapper).
+    # REFRESH FIRST. With an empty cache, and always under the image's
+    # OPENCODE_DISABLE_MODELS_FETCH=1, `opencode models` answers from the
+    # catalog built into the binary and writes no models.json. That copy still
+    # listed `opencode/nemotron-3-ultra-free` on this day, although models.dev
+    # already marked it `status: deprecated` and a fetched listing hides it.
+    #   $ opencode models --refresh && opencode models | grep '^opencode/'
+    #   opencode/beam-free                 opencode/glm-5.3-flash-free
+    #   opencode/big-pickle                opencode/mimo-v2.6-flash-free
+    #   opencode/crouton-alpha-free        opencode/nemotron-3.5-lightning-free
+    #   opencode/deepseek-v4.1-flash-free  opencode/nemotron-3.5-super-vl-free
+    #   opencode/flint-40b-free            opencode/pulse-alpha-free
+    # The user's own HOME (its models.json fetched 2026-11-05) listed the same
+    # 10 ids: the listing is a catalog, not an entitlement check. Gone since
+    # 2026-09-11: `opencode/nemotron-3-ultra-free`, the one shipped id, which
+    # providers.yaml replaced with `opencode/nemotron-3.5-super-vl-free`, the
+    # listed Nemotron that is not the lightning id measured hanging below. Also
+    # gone: ling-3.0-flash-fin-free, mimo-v2.5-free and both
+    # muse-spark-*-contributor-free ids, none of them shipped.
     #   `opencode run --model <id> --print-logs --log-level ERROR
-    #    "Reply with the single word OK."`
+    #    "Reply with the single word OK."` (host build, same scratch pair)
+    #   opencode/big-pickle                  exit 0, stdout `OK`, 2 s
+    #   opencode/nemotron-3.5-super-vl-free  exit 0, stdout `OK`, 2 s
+    # The floor stands. The validation-batch gate below was not re-run because
+    # the floor did not move.
+    # FIRST PROBED 2026-09-11 on opencode 1.18.30, the same recipe without the
+    # refresh. It listed 7 `opencode/` ids: big-pickle, ling-3.0-flash-fin-free,
+    # mimo-v2.5-free, muse-spark-1.2-contributor-free,
+    # muse-spark-1.3-contributor-free, nemotron-3-ultra-free and
+    # nemotron-3.5-lightning-free. It listed no `opencode/sonnet`,
+    # `opencode/deepseek-v4-flash-free` or `opencode/hy3-free`, and all three
+    # were dropped from providers.yaml the same day. The same `OK` prompt gave:
     #   opencode/big-pickle                 exit 0, stdout `OK`, a few seconds
     #   opencode/nemotron-3.5-lightning-free zero bytes on either stream >7 min,
     #                                        killed (exit 143)
     #   opencode/sonnet                     exit 1, `ProviderModelNotFoundError:
     #                                        Model not found: opencode/sonnet`
-    # The `*-free` siblings are NOT the safer alternative: the one probed
-    # reproduced the zero-byte hang, which costs `default_timeout` per task.
+    # The `*-free` siblings are NOT automatically the safer alternative. The
+    # lightning id reproduced the zero-byte hang, which costs `default_timeout`
+    # per task. One answering `OK` (super-vl, 2026-11-06) has passed only that
+    # check, not the validation-batch gate below.
     # VALIDATION-BATCH GATE (existence is not fitness), MEASURED 2026-09-11
     # from the same zero-credential pair, opencode 1.18.30: a scratch git repo
     # whose `.multi-llm/providers.yaml` set `driver.subagent_runner:
@@ -619,6 +644,8 @@ hosts:
     #   $ opencode run --model opencode/nemotron-3-ultra-free \
     #       "Reply with the single word OK."
     #   OK                                 exit 0, 62 s
+    # (That id has since been deprecated and is unlisted on 2026-11-06; see the
+    # re-probe above. The claim here is about the mechanism, not that id.)
     # So `opencode run --model <the session's own id>` really serves a TUI model
     # id, which is the whole claim this field makes. `opencode/big-pickle` stays
     # the credential-free floor below it, and the fallback is what keeps the

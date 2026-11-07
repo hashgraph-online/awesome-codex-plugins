@@ -1,27 +1,26 @@
-"""End-to-end Phase 4 exercise runner.
+"""End-to-end review exercise runner.
 
-Orchestrates the full Layer 1 + Layer 2 pipeline against the gitignored
-Phase 4 fixture at tests/fixtures/phase4-review/. Verifies HI-3 strip-LLM
-round-trip on real outputs, dual-mode (raw vs merged) consumption via
-summarize_findings.py, all analyzers + review subagents producing valid output.
+Orchestrates the Layer 1 analyzers and the annotation merge against the
+gitignored fixture at tests/fixtures/phase4-review/. Verifies the HI-3
+strip-LLM round-trip on real outputs (as decoded JSON) and that the merged
+envelopes keep the raw finding counts.
 
 This script exercises the architecture; it does NOT produce a calibrated
-quality report (calibration is deferred to v1.5).
+quality report.
 
-Step inventory:
+Step inventory (the numbers are the keys of STEPS):
     1. Run Layer 1 analyzers (schematic / pcb / thermal / emc / cross_analysis).
-       Gerber is skipped — the v1.4 fixture (SparkFun GNSSDO) ships only
-       sources, no fab outputs.
+       Gerber is skipped; the fixture ships only sources, no fab outputs.
     2. Assert HI-7 (capability_mode_ref present on every envelope; canonical
        analysis/capability_mode.json exists with a stable run_id).
-    3. Build review plan (build_review_plan.py).
-    4. Dispatch design_context + reviewer subagents — manual step on this
-       runner; this script prints the dispatch instructions and waits for the
-       output JSONs.
-    5. Merge annotations + assert HI-3 (strip-LLM byte-identical) + summarize
-       _merge_report.json contents.
-    6. Dual-mode summarize_findings (raw vs merged) — proves the renderer
-       contract holds and the --only-deterministic flag picks raw paths.
+    3. Build the review plan (build_review_plan.py). The design_context
+       dispatch that follows is a manual step: the script prints where the
+       output is expected.
+    4. Merge annotations, assert HI-3 (strip-LLM round-trip) and print the
+       _merge_report.json counts.
+    5. Compare each raw and merged envelope: both load and have the same
+       finding count. The JSON is read directly; summarize_findings.py is
+       not run.
 """
 from __future__ import annotations
 
@@ -129,14 +128,14 @@ def step_2_assert_capability_mode(fixture_dir: Path):
     cm_path = analysis_dir / "capability_mode.json"
     if not cm_path.exists():
         raise RuntimeError(f"capability_mode.json not written at {cm_path}")
-    cm = json.loads(cm_path.read_text())
+    cm = json.loads(cm_path.read_text(encoding="utf-8"))
     print(f"  canonical run_id: {cm['run_id']}")
     for name in ANALYZER_NAMES:
         path = analysis_dir / f"{name}.json"
         if not path.exists():
             print(f"  {name}.json: skipped (analyzer didn't run)")
             continue
-        env = json.loads(path.read_text())
+        env = json.loads(path.read_text(encoding="utf-8"))
         ref = env.get("capability_mode_ref") or {}
         if ref.get("run_id") != cm["run_id"]:
             raise AssertionError(
@@ -146,7 +145,7 @@ def step_2_assert_capability_mode(fixture_dir: Path):
 
 
 def step_3_build_review_plan(fixture_dir: Path):
-    """Build the 2-task review plan."""
+    """Build the 1-task review plan."""
     print("\n[step 3] Build review plan")
     analysis_dir = fixture_dir / "analysis"
     plan_path = analysis_dir / "review_plan.json"
@@ -155,13 +154,13 @@ def step_3_build_review_plan(fixture_dir: Path):
           "--output", str(plan_path)])
     print(f"  plan written: {plan_path}")
     print("[step 3] OK — dispatch design_context per "
-          "skills/datasheets/references/dispatch-claude-code.md Phase 4 addendum")
-    print("  Expected output from the dispatch (v2.0: reviewer task retired, spec §5):")
+          "skills/datasheets/references/dispatch-claude-code.md, Dispatching review tasks")
+    print("  Expected output from the dispatch:")
     print(f"    {analysis_dir / 'design_context.json'}")
 
 
 def step_4_merge_and_assert_invariants(fixture_dir: Path):
-    """Run merge + assert HI-3 (v2.0: authority caps retired, spec §5)."""
+    """Run merge + assert HI-3."""
     print("\n[step 4] Merge annotations + invariant checks")
     analysis_dir = fixture_dir / "analysis"
     merged_dir = analysis_dir / "merged"
@@ -177,13 +176,13 @@ def step_4_merge_and_assert_invariants(fixture_dir: Path):
     report_path = merged_dir / "_merge_report.json"
     if not report_path.exists():
         raise RuntimeError(f"_merge_report.json missing at {report_path}")
-    report = json.loads(report_path.read_text())
+    report = json.loads(report_path.read_text(encoding="utf-8"))
     print(f"  applied_count:        {report.get('applied_count', '?')}")
     print(f"  suppressed_count:     {report.get('suppressed_count', '?')}")
     print(f"  invariant_violations: {len(report.get('invariant_violations', []))}")
     print(f"  orphan_annotations:   {len(report.get('orphan_annotations', []))}")
 
-    # HI-3 strip-LLM byte-identical (also asserted internally by merge_annotations).
+    # HI-3 strip-LLM round-trip (also asserted internally by merge_annotations).
     sys.path.insert(0, str(REPO_ROOT / "skills" / "kicad" / "review" / "scripts"))
     from merge_annotations import strip_llm_overlays  # type: ignore[import-not-found]
     for name in ANALYZER_NAMES:
@@ -191,18 +190,17 @@ def step_4_merge_and_assert_invariants(fixture_dir: Path):
         raw_path = analysis_dir / f"{name}.json"
         if not merged_path.exists() or not raw_path.exists():
             continue
-        merged = json.loads(merged_path.read_text())
-        raw = json.loads(raw_path.read_text())
+        merged = json.loads(merged_path.read_text(encoding="utf-8"))
+        raw = json.loads(raw_path.read_text(encoding="utf-8"))
         if strip_llm_overlays(merged) != raw:
             raise AssertionError(f"HI-3 violation on {name}.json")
-    print("[step 4] OK — HI-3 round-trip byte-identical, _merge_report inspected")
+    print("[step 4] OK — HI-3 round-trip equals the raw output, _merge_report inspected")
 
 
 def step_5_dual_mode_consumer_contract(fixture_dir: Path):
-    """Renderer-contract probe: prove raw vs merged paths both load cleanly
-    AND that overlay presence is the only structural difference (per HI-2 +
-    HI-3). Verifies that any consumer doing path resolution on
-    raw/{name}.json vs raw/merged/{name}.json gets self-consistent data.
+    """Probe the raw analysis/{name}.json and merged/{name}.json pair: both
+    load as JSON and carry the same number of findings (HI-2: overlays never
+    add or remove findings). Reads the JSON directly and calls no consumer.
     """
     print("\n[step 5] dual-mode consumer contract (raw vs merged)")
     analysis_dir = fixture_dir / "analysis"
@@ -219,11 +217,11 @@ def step_5_dual_mode_consumer_contract(fixture_dir: Path):
         merged_path = merged_dir / f"{name}.json"
         if not raw_path.exists() or not merged_path.exists():
             continue
-        raw = json.loads(raw_path.read_text())
-        merged = json.loads(merged_path.read_text())
+        raw = json.loads(raw_path.read_text(encoding="utf-8"))
+        merged = json.loads(merged_path.read_text(encoding="utf-8"))
         # HI-2: every diff between merged and raw lives under llm_* keys.
-        # Already enforced by HI-3 strip-byte-identical (step 4); double-check
-        # that merged JSON has at least one llm_* key when annotations applied.
+        # Step 4 enforces that through the HI-3 round-trip; here, record
+        # whether the pair differs at all.
         merged_str = json.dumps(merged, sort_keys=True)
         raw_str = json.dumps(raw, sort_keys=True)
         differs = merged_str != raw_str
@@ -231,10 +229,7 @@ def step_5_dual_mode_consumer_contract(fixture_dir: Path):
         print(f"  {name}.json: differs={differs}, raw_findings="
               f"{len(raw.get('findings', []))}, merged_findings="
               f"{len(merged.get('findings', []))}")
-        # Renderer contract: a consumer prefers merged when present;
-        # falls back to raw under --only-deterministic. Validate both load
-        # without error and produce the same finding count (overlay only,
-        # never adds/removes findings).
+        # Overlays never add or remove findings, so the counts must match.
         if len(merged.get("findings", [])) != len(raw.get("findings", [])):
             raise AssertionError(
                 f"HI-2 violation: merged/{name}.json has different finding "
@@ -257,7 +252,7 @@ STEPS = {
 
 def main():
     p = argparse.ArgumentParser(
-        description="Phase 4 end-to-end exercise runner (4d-active).")
+        description="End-to-end review-layer exercise runner.")
     p.add_argument("--fixture", type=Path, default=DEFAULT_FIXTURE_DIR,
                    help=f"Fixture directory (default: {DEFAULT_FIXTURE_DIR})")
     p.add_argument("--steps", nargs="+", default=list(STEPS.keys()),
@@ -278,4 +273,8 @@ def main():
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     sys.exit(main())

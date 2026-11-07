@@ -39,6 +39,7 @@ from _common import (  # noqa: E402
 
 
 def _build123d_version() -> str:
+    """Handle build123d version."""
     from importlib.metadata import PackageNotFoundError, version  # noqa: PLC0415
 
     try:
@@ -88,6 +89,7 @@ def _export_dxf(part, path: Path, build123d, height: float | None) -> float:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("model", type=Path, help="path to a *_model.py exposing build() -> Part")
     parser.add_argument("--outdir", type=Path, default=Path("out"), help="output directory (default: out)")

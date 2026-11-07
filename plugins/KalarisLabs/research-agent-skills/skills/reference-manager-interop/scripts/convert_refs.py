@@ -46,6 +46,7 @@ RIS2CSL = {r: c for c, _, r in reversed(TYPES)}
 
 # ---------- CSL-JSON is the internal representation ----------
 def parse_name(s: str) -> dict:
+    """Parse name."""
     s = s.strip().strip("{}")
     if "," in s:
         family, given = [p.strip() for p in s.split(",", 1)]
@@ -55,12 +56,14 @@ def parse_name(s: str) -> dict:
 
 
 def name_str(n: dict, bib: bool = True) -> str:
+    """Handle name str."""
     if "literal" in n:
         return "{" + n["literal"] + "}" if bib else n["literal"]
     return f"{n.get('family', '')}, {n.get('given', '')}".strip(", ")
 
 
 def make_key(item: dict, used: set[str]) -> str:
+    """Make key."""
     fam = (item.get("author") or [{}])[0]
     fam = fam.get("family") or fam.get("literal") or "anon"
     word = next((w for w in re.findall(r"[A-Za-z]+", item.get("title", "")) if len(w) > 3), "ref")
@@ -77,6 +80,7 @@ def make_key(item: dict, used: set[str]) -> str:
 
 # ---------- BibTeX ----------
 def _bib_value(text: str, i: int) -> tuple[str, int]:
+    """Handle bib value."""
     parts = []
     while True:
         while text[i].isspace():
@@ -107,6 +111,7 @@ def _bib_value(text: str, i: int) -> tuple[str, int]:
 
 
 def read_bib(text: str) -> list[dict]:
+    """Read bib."""
     items = []
     for m in re.finditer(r"@(\w+)\s*[{(]\s*([^,\s]+)\s*,", text):
         btype = m.group(1).lower()
@@ -149,6 +154,7 @@ def read_bib(text: str) -> list[dict]:
 
 
 def write_bib(items: list[dict]) -> str:
+    """Write bib."""
     used: set[str] = set()
     out = []
     for it in items:
@@ -182,9 +188,10 @@ def write_bib(items: list[dict]) -> str:
 
 # ---------- RIS ----------
 def read_ris(text: str) -> list[dict]:
+    """Read ris."""
     items, cur = [], {}
     for line in text.splitlines():
-        m = re.match(r"^([A-Z][A-Z0-9])  - ?(.*)$", line.rstrip())
+        m = re.match(r"^([A-Z][A-Z0-9]) {2}- ?(.*)$", line.rstrip())
         if not m:
             continue
         tag, val = m.groups()
@@ -217,6 +224,7 @@ def read_ris(text: str) -> list[dict]:
 
 
 def write_ris(items: list[dict]) -> str:
+    """Write ris."""
     out = []
     for it in items:
         lines = [f"TY  - {CSL2RIS.get(it.get('type', ''), 'GEN')}"]
@@ -249,6 +257,7 @@ EXT = {".bib": "bib", ".bibtex": "bib", ".ris": "ris", ".txt": "ris", ".json": "
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("input", type=Path)
     ap.add_argument("output", type=Path)

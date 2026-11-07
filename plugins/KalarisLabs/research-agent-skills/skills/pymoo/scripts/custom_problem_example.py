@@ -31,6 +31,7 @@ class MyBiObjectiveProblem(ElementwiseProblem):
     """
 
     def __init__(self):
+        """Initialise the instance."""
         super().__init__(
             n_var=2,                    # Number of decision variables
             n_obj=2,                    # Number of objectives
@@ -68,6 +69,7 @@ class ConstrainedProblem(ElementwiseProblem):
     """
 
     def __init__(self):
+        """Initialise the instance."""
         super().__init__(
             n_var=2,
             n_obj=2,
@@ -117,7 +119,7 @@ def solve_custom_problem():
     )
 
     print(f"Number of solutions: {len(result.F)}")
-    print(f"Objective space range:")
+    print("Objective space range:")
     print(f"  f1: [{result.F[:, 0].min():.3f}, {result.F[:, 0].max():.3f}]")
     print(f"  f2: [{result.F[:, 1].min():.3f}, {result.F[:, 1].max():.3f}]")
 
@@ -160,7 +162,7 @@ def solve_constrained_problem():
 
     if np.any(feasible):
         F_feasible = result.F[feasible]
-        print(f"\nFeasible objective space range:")
+        print("\nFeasible objective space range:")
         print(f"  f1: [{F_feasible[:, 0].min():.3f}, {F_feasible[:, 0].max():.3f}]")
         print(f"  f2: [{F_feasible[:, 1].min():.3f}, {F_feasible[:, 1].max():.3f}]")
 
@@ -178,8 +180,8 @@ def solve_constrained_problem():
 
 if __name__ == "__main__":
     # Run both examples
-    result1 = solve_custom_problem()
-    result2 = solve_constrained_problem()
+    solve_custom_problem()
+    solve_constrained_problem()
 
     print("\n" + "="*60)
     print("EXAMPLES COMPLETED")

@@ -43,11 +43,26 @@ All v2 fields are nullable. None means 'datasheet didn't specify or
 extraction couldn't verify', distinct from explicit False.
 """
 
-import hashlib
 import json
+import os
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+_TYPES_PARENT = str(Path(__file__).resolve().parent.parent)
+if _TYPES_PARENT not in sys.path:
+    sys.path.insert(0, _TYPES_PARENT)
+
+from datasheet_types.cache_reader import (  # noqa: E402
+    _compute_pdf_sha256, read_json_object, safe_extract_dir)
+from distributor_core.manifest import manifest_file_path, write_json_atomic  # noqa: E402
+
+_KICAD_SCRIPTS = str(Path(__file__).resolve().parents[2] / "kicad" / "scripts")
+if _KICAD_SCRIPTS not in sys.path:
+    sys.path.append(_KICAD_SCRIPTS)
+
+from kicad_core.project import extraction_project_dir  # noqa: E402
 
 # Bump this when the extraction schema changes to trigger re-extraction
 # v2 (2026-04-15): added peripherals.usb, electrical.en_v_ih_max/en_v_il_min,
@@ -73,31 +88,31 @@ MAX_RETRIES = 3
 def resolve_extract_dir(analysis_json=None, project_dir=None, override_dir=None):
     """Determine the datasheets/extracted/ directory for this project.
 
-    Derives the project directory from either an explicit path, the analyzer
-    JSON's "file" field, or falls back to a temp directory.
+    Derives the project directory from either an explicit path or the
+    analyzer JSON (its "file", else its first ``inputs.source_files`` entry;
+    a relative entry only when that file exists from the cwd).
 
     Args:
-        analysis_json: Parsed analyzer JSON dict (uses "file" key)
+        analysis_json: Parsed analyzer JSON dict
         project_dir: Explicit project directory path
         override_dir: If set, use this directory directly
 
     Returns:
-        Path to datasheets/extracted/ directory (may not exist yet)
+        Path to datasheets/extracted/ directory (may not exist yet), or None
+        when no project is named or the project's datasheets/ or extracted/
+        is a symlink. There is no shared fallback directory: a
+        temp-dir cache could hold extractions planted by another user.
     """
     if override_dir:
         return Path(override_dir)
 
     if project_dir:
-        return Path(project_dir) / "datasheets" / "extracted"
+        return safe_extract_dir(Path(project_dir) / "datasheets" / "extracted")
 
-    if analysis_json:
-        source_file = analysis_json.get("file", "")
-        if source_file:
-            return Path(source_file).parent / "datasheets" / "extracted"
-
-    # Fallback: temp directory
-    import tempfile
-    return Path(tempfile.gettempdir()) / "kicad-happy" / "datasheets" / "extracted"
+    found = extraction_project_dir(analysis_json)
+    if found is not None:
+        return safe_extract_dir(found / "datasheets" / "extracted")
+    return None
 
 
 def resolve_datasheets_dir(extract_dir):
@@ -126,16 +141,9 @@ def _pdf_hash(pdf_path):
         pdf_path: Path to the PDF file
 
     Returns:
-        "sha256:<hex>" string, or None if file doesn't exist
+        "sha256:<hex>" string, or None if it is not a readable regular file
     """
-    try:
-        h = hashlib.sha256()
-        with open(pdf_path, "rb") as f:
-            for chunk in iter(lambda: f.read(65536), b""):
-                h.update(chunk)
-        return f"sha256:{h.hexdigest()}"
-    except OSError:
-        return None
+    return _compute_pdf_sha256(Path(pdf_path))
 
 
 # ---------------------------------------------------------------------------
@@ -198,12 +206,23 @@ def _load_index(extract_dir):
         if cached and cached[0] == mtime:
             return cached[1]
 
-        with open(index_path, encoding="utf-8") as f:
-            index = json.load(f)
+        index = read_json_object(index_path)
+        if index is None:
+            raise ValueError("unreadable manifest")
         _index_cache[cache_key] = (mtime, index)
         return index
-    except (json.JSONDecodeError, OSError):
+    except (ValueError, OSError):
         return {"version": EXTRACTION_VERSION, "last_updated": "", "extractions": {}}
+
+
+def _manifest_unreadable(path):
+    """True when a manifest exists but cannot be loaded; it must not be overwritten."""
+    path = Path(path)
+    return (path.exists() or path.is_symlink()) and read_json_object(path) is None
+
+
+def _warn_manifest_kept(path):
+    print(f"Warning: {path} exists but cannot be read; leaving it unchanged", file=sys.stderr)
 
 
 def _save_index(extract_dir, index):
@@ -221,10 +240,7 @@ def _save_index(extract_dir, index):
     index["version"] = EXTRACTION_VERSION
 
     new_path = extract_dir / MANIFEST_FILENAME
-    tmp = new_path.with_suffix(".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(index, f, indent=2)
-    tmp.replace(new_path)
+    write_json_atomic(new_path, index)
 
     old_path = extract_dir / LEGACY_MANIFEST_FILENAME
     if old_path.exists() and old_path != new_path:
@@ -249,30 +265,27 @@ def get_cached_extraction(extract_dir, mpn):
         mpn: Manufacturer part number
 
     Returns:
-        Parsed extraction dict, or None if not cached
+        Parsed extraction dict, or None if not cached (or extract_dir is None)
     """
-    index = _load_index(extract_dir)
+    if extract_dir is None:
+        return None
+    extractions = _load_index(extract_dir).get("extractions")
+    if not isinstance(extractions, dict):
+        return None
     key = _sanitize_mpn(mpn)
 
-    entry = index.get("extractions", {}).get(key)
+    entry = extractions.get(key)
     if not entry:
         # Try case-insensitive match
-        for k, v in index.get("extractions", {}).items():
+        for k, v in extractions.items():
             if k.upper() == key.upper():
                 entry = v
                 break
     if not entry:
         return None
 
-    json_file = Path(extract_dir) / entry.get("file", "")
-    if not json_file.exists():
-        return None
-
-    try:
-        with open(json_file, encoding="utf-8") as f:
-            return json.load(f)
-    except (json.JSONDecodeError, OSError):
-        return None
+    json_file = manifest_file_path(Path(extract_dir), entry.get("file") if isinstance(entry, dict) else None)
+    return read_json_object(json_file) if json_file else None
 
 
 def cache_extraction(extract_dir, mpn, extraction, source_pdf=None):
@@ -307,10 +320,13 @@ def cache_extraction(extract_dir, mpn, extraction, source_pdf=None):
     meta.setdefault("retry_count", 0)
 
     # Write extraction file
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(extraction, f, indent=2)
+    write_json_atomic(json_path, extraction)
 
     # Update index
+    manifest = _manifest_path_for(extract_dir)
+    if _manifest_unreadable(manifest):
+        _warn_manifest_kept(manifest)
+        return
     index = _load_index(extract_dir)
     index.setdefault("extractions", {})[key] = {
         "file": filename,
@@ -348,6 +364,10 @@ def is_extraction_stale(extract_dir, mpn, datasheets_dir=None):
         return True, "not_cached"
 
     meta = extraction.get("extraction_metadata", {})
+    if not isinstance(meta, dict) or any(
+            k in meta and (not isinstance(meta[k], (int, float)) or isinstance(meta[k], bool))
+            for k in ("extraction_version", "extraction_score", "retry_count")):
+        return True, "malformed extraction_metadata"
 
     # Check version
     version = meta.get("extraction_version", 0)
@@ -357,9 +377,14 @@ def is_extraction_stale(extract_dir, mpn, datasheets_dir=None):
     # Check PDF hash
     if datasheets_dir:
         source_pdf_name = meta.get("source_pdf", "")
-        if source_pdf_name:
-            pdf_path = Path(datasheets_dir) / source_pdf_name
-            if pdf_path.exists():
+        if source_pdf_name and isinstance(source_pdf_name, str):
+            root = Path(datasheets_dir)
+            pdf_path = root / source_pdf_name
+            try:
+                inside = pdf_path.resolve().is_relative_to(root.resolve())
+            except (OSError, RuntimeError, ValueError):
+                inside = False
+            if inside:
                 current_hash = _pdf_hash(pdf_path)
                 stored_hash = meta.get("source_pdf_hash", "")
                 if current_hash and stored_hash and current_hash != stored_hash:
@@ -467,10 +492,9 @@ def update_datasheets_index(datasheets_dir, mpn, extraction):
     else:
         return
 
-    try:
-        with open(index_path, encoding="utf-8") as f:
-            index = json.load(f)
-    except (json.JSONDecodeError, OSError):
+    index = read_json_object(index_path)
+    if index is None:
+        _warn_manifest_kept(index_path)
         return
 
     parts = index.get("parts", {})
@@ -492,49 +516,4 @@ def update_datasheets_index(datasheets_dir, mpn, extraction):
         "date": meta.get("extraction_date", ""),
     }
 
-    # Write back atomically
-    tmp = index_path.with_suffix(".tmp")
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(index, f, indent=2)
-    tmp.replace(index_path)
-
-
-# ---------------------------------------------------------------------------
-# v2 schema validation
-# ---------------------------------------------------------------------------
-
-_V2_STRUCTURE = {
-    'topology': ('boost', 'buck', 'ldo', 'mcu', 'sensor', 'adc',
-                 'mosfet', 'bjt', 'other', None),
-    'pin_function': ('VIN', 'VOUT', 'EN', 'PG', 'SW', 'FB', 'GND',
-                     'IO', 'CLK', 'RESET', 'OTHER', None),
-    'usb_speed': ('FS', 'HS', 'SS', None),
-}
-
-
-def validate_v2_extraction(extraction):
-    """Check that a v2 extraction has well-formed optional fields.
-
-    Returns a list of issues (strings). Empty list = valid. Does not
-    complain about missing fields (all are nullable) — only about
-    wrong types or out-of-range values.
-    """
-    issues = []
-    topo = extraction.get('topology')
-    if topo is not None and topo not in _V2_STRUCTURE['topology']:
-        issues.append(f"topology: unexpected value {topo!r}")
-    for pin in extraction.get('pins', []) or []:
-        fn = pin.get('function')
-        if fn is not None and fn not in _V2_STRUCTURE['pin_function']:
-            issues.append(
-                f"pins[{pin.get('number')}].function: unexpected {fn!r}"
-            )
-    peripherals = extraction.get('peripherals') or {}
-    usb = peripherals.get('usb')
-    if isinstance(usb, dict):
-        speed = usb.get('speed')
-        if speed is not None and speed not in _V2_STRUCTURE['usb_speed']:
-            issues.append(
-                f"peripherals.usb.speed: unexpected {speed!r}"
-            )
-    return issues
+    write_json_atomic(index_path, index)

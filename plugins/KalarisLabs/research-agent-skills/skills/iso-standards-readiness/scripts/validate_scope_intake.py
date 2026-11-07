@@ -32,6 +32,7 @@ def _text_list(
     allowed: set[str] | None = None,
     min_items: int = 1,
 ) -> list[str]:
+    """Handle text list."""
     raw = review.list(value, path, min_items=min_items)
     if raw is None:
         return []
@@ -58,6 +59,7 @@ def validate(
     data: dict[str, Any],
     profile: StandardProfile,
 ) -> tuple[Review, dict[str, int]]:
+    """Validate."""
     review = Review()
     activities = set(profile.scope_activities)
 
@@ -187,6 +189,7 @@ def validate(
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = standard_parser(
         "Validate a local scope/applicability intake without deciding applicability.",
         "Path to the local scope-intake JSON file",

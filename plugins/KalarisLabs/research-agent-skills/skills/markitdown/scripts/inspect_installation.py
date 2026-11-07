@@ -88,6 +88,7 @@ def inspect_installation() -> dict[str, Any]:
 
 
 def print_human_readable(report: dict[str, Any]) -> None:
+    """Print human readable."""
     markitdown = report["markitdown"]
     print(f"Python: {report['python']}")
     print(
@@ -121,6 +122,7 @@ def print_human_readable(report: dict[str, Any]) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Inspect MarkItDown versions, extras, plugin entry points, and "
@@ -141,6 +143,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     report = inspect_installation()
 

@@ -80,7 +80,7 @@ def train_solubility_model(data_path=None, smiles_col='smiles', target_col='meas
 
         tasks = [target_col]
 
-    print(f"\nDataset sizes:")
+    print("\nDataset sizes:")
     print(f"  Training:   {len(train)} molecules")
     print(f"  Validation: {len(valid)} molecules")
     print(f"  Test:       {len(test)} molecules")
@@ -160,6 +160,7 @@ def predict_new_molecules(model, smiles_list, transformers=None):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Train a molecular solubility prediction model'
     )

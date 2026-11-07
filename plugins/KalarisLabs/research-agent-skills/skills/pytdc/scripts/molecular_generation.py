@@ -39,6 +39,7 @@ MAX_SMILES_FILE_BYTES = 1 * 1024 * 1024
 
 @contextlib.contextmanager
 def _working_directory(path: Path) -> Iterator[None]:
+    """Handle working directory."""
     original = Path.cwd()
     os.chdir(path)
     try:
@@ -48,6 +49,7 @@ def _working_directory(path: Path) -> Iterator[None]:
 
 
 def classify_oracle(metadata: Any, query: str) -> tuple[str, str]:
+    """Handle classify oracle."""
     name = canonical_name(query, metadata.oracle_names, "oracle")
     if name in LOCAL_SCALAR_ORACLES:
         return name, "local_scalar"
@@ -70,6 +72,7 @@ def load_smiles(
     *,
     max_molecules: int,
 ) -> list[str]:
+    """Load smiles."""
     values = list(direct or [])
     if input_path:
         path = safe_input_file(
@@ -99,6 +102,7 @@ def score_plan(
     package_version: str,
     download_acknowledged: bool,
 ) -> dict[str, Any]:
+    """Handle score plan."""
     return {
         "action": "plan",
         "acknowledgement_required": (
@@ -127,6 +131,7 @@ def execute_scores(
     download_acknowledged: bool,
     package_version: str,
 ) -> dict[str, Any]:
+    """Handle execute scores."""
     if category == "checkpoint_download" and not download_acknowledged:
         raise CliError(
             f"{oracle_name} may download a model checkpoint; pass --download "
@@ -173,6 +178,7 @@ def dataset_plan(
     package_version: str,
     download_acknowledged: bool,
 ) -> dict[str, Any]:
+    """Handle dataset plan."""
     return {
         "action": "plan",
         "acknowledgement_required": "--execute --download",
@@ -203,6 +209,7 @@ def execute_dataset(
     preview: int,
     package_version: str,
 ) -> dict[str, Any]:
+    """Handle execute dataset."""
     from tdc.generation import MolGen  # Lazy optional import.
 
     loader = MolGen(name=dataset, path=str(data_dir))
@@ -241,6 +248,7 @@ def execute_dataset(
 
 
 def _add_output_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add output arguments."""
     parser.add_argument("--output", help="write JSON to a relative workspace path")
     parser.add_argument(
         "--force", action="store_true", help="replace an existing --output file"
@@ -248,6 +256,7 @@ def _add_output_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan or explicitly execute bounded PyTDC molecular workflows. This "
@@ -341,6 +350,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         metadata, package_version = load_pytdc_metadata()

@@ -232,7 +232,7 @@ Tips:
         print(f"\n✓ PDF created: {output_path}")
         sys.exit(0)
     else:
-        print(f"\n✗ Failed to create PDF")
+        print("\n✗ Failed to create PDF")
         sys.exit(1)
 
 

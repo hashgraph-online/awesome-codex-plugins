@@ -64,6 +64,7 @@ ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
 
 
 def _matched_suffix(path: Path) -> str:
+    """Handle matched suffix."""
     lowered = path.name.lower()
     matches = [suffix for suffix in SLIDE_SUFFIXES if lowered.endswith(suffix)]
     if not matches:
@@ -72,6 +73,7 @@ def _matched_suffix(path: Path) -> str:
 
 
 def _validate_identifier(value: str, *, field: str, row_number: int) -> str:
+    """Validate identifier."""
     clean = value.strip()
     if not ID_PATTERN.fullmatch(clean):
         raise CliError(
@@ -82,6 +84,7 @@ def _validate_identifier(value: str, *, field: str, row_number: int) -> str:
 
 
 def validate_manifest(args: argparse.Namespace) -> dict[str, Any]:
+    """Validate manifest."""
     root = checked_root(args.root)
     manifest = checked_input_file(
         args.manifest,
@@ -195,6 +198,7 @@ def validate_manifest(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def _inspect_openslide(path: Path) -> dict[str, Any]:
+    """Handle inspect openslide."""
     try:
         import openslide
     except ModuleNotFoundError as exc:
@@ -235,6 +239,7 @@ def _inspect_openslide(path: Path) -> dict[str, Any]:
 
 
 def _inspect_dicom(path: Path) -> dict[str, Any]:
+    """Handle inspect dicom."""
     try:
         import pydicom
     except ModuleNotFoundError as exc:
@@ -276,6 +281,7 @@ def _inspect_dicom(path: Path) -> dict[str, Any]:
 
 
 def _inspect_raster(path: Path, max_pixels: int) -> dict[str, Any]:
+    """Handle inspect raster."""
     try:
         from PIL import Image
     except ModuleNotFoundError as exc:
@@ -306,6 +312,7 @@ def _inspect_raster(path: Path, max_pixels: int) -> dict[str, Any]:
 
 
 def inspect_slide(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle inspect slide."""
     root = checked_root(args.root)
     max_slide_bytes = int(args.max_slide_gib * 1024**3)
     slide = checked_input_file(
@@ -341,6 +348,7 @@ def inspect_slide(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate local pseudonymous slide manifests or inspect only "
@@ -379,6 +387,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     if args.command == "validate":
         if not 1 <= args.max_rows <= MAX_ROWS:

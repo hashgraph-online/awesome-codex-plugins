@@ -35,11 +35,13 @@ Extracts from `(layers ...)` block: layer numbers, names, types (signal, user, e
 ### 2.2 Setup / Design Rules
 
 Extracts from `(setup ...)` block:
-- Board thickness, copper weight
+- Copper weight
 - Default trace width, via size/drill, clearance
 - Solder mask/paste margins
 - Zone fill settings (thermal relief, spoke width)
 - DRC settings (min track width, min drill, min clearance)
+
+Board thickness comes from `(general (thickness ...))`, which KiCad writes with or without a `(setup)` section, and is reported as `setup.board_thickness_mm`.
 
 ### 2.3 Net Definitions
 
@@ -83,7 +85,7 @@ Each `(footprint ...)` or `(module ...)` block produces:
 
 **SMD vs. through-hole classification**: Determined from `(attr smd)` or `(attr through_hole)`. Falls back to pad type inspection for KiCad 5 files.
 
-**Courtyard extraction**: Bounding box computed from `fp_line`, `fp_rect`, `fp_circle` on `CrtYd` layers, transformed to absolute coordinates.
+**Courtyard extraction**: Bounding box computed from `fp_line`, `fp_rect`, `fp_circle`, `fp_arc` and `fp_poly` on `CrtYd` layers, transformed to absolute coordinates. Circles become 32-sided polygons and arcs (including KiCad 5 centre/angle arcs) are tessellated, so the outline chains into `courtyard_poly` for the PM-001 overlap test. F.CrtYd and B.CrtYd are chained separately and kept apart: PM-001 tests F.CrtYd against F.CrtYd and B.CrtYd against B.CrtYd, as KiCad's DRC does, whichever side each part is mounted on (a front through-hole part's B.CrtYd collides with a back-mounted part's B.CrtYd). The public `courtyard` box and `courtyard_poly` merge both layers, and the same outline on both sides counts once there. A side that draws a segment twice, or whose outline does not close (ends more than 0.02 mm apart), is malformed, as in KiCad (`malformed_courtyard`): the footprint gets no courtyard and one `diagnostics` record.
 
 ### 2.5 Track Extraction
 
@@ -126,29 +128,23 @@ Extracts from `Edge.Cuts` layer: `gr_line`, `gr_arc`, `gr_circle`, `gr_rect` ele
 
 ## 3. Connectivity Analysis
 
-Two levels of connectivity checking are performed:
+Two levels of connectivity checking are performed.
 
-### 3.1 Basic Routing Completeness
+### 3.1 Without `--full`
 
-For each net with ≥2 pads, checks whether ANY routing exists (tracks, vias, or zones on that net). Fast but coarse — doesn't detect partially routed nets.
+A net with at least 2 pads counts as routed when it has any track, arc, via, zone or net-bearing copper graphic. `routing_complete` then means only that: the plain-mode limit is stated in the `routing_complete` description of `--schema`, and only `--full` proves completeness, through the copper graph (3.2).
 
-### 3.2 Full Union-Find Connectivity
+### 3.2 With `--full`
 
-Uses union-find (same algorithm concept as the schematic net builder) on `(x, y, layer)` coordinates snapped to a 1µm grid:
+`routing_complete`, `unrouted_count` and RT-001 ("Incompletely routed net N (k copper islands hold its m pads)") come from the copper connectivity graph (`pcb/connectivity.py`), a union-find over copper objects:
 
-1. **Register pad locations** — each pad gets a point on each of its copper layers
-2. **Union track segments** — each segment's start and end points are unioned on their layer
-3. **Union vias** — a via unions its position across all layers it spans
-4. **Account for zones** — for each net with a zone, union all pads on that net + layer (approximation: assumes zone covers all pads)
+1. **Pads, vias and track ends** join through the same-net tracks they touch (the real pad shape, not just the pad centre), and through arcs.
+2. **Vias** join the copper of every layer they span.
+3. **Zones** join the pads, vias and track ends that lie in their fills (from the `ZoneFills` index), not every pad on the net.
+4. **Copper graphics** — a board graphic on a copper layer with a net (KiCad 8+) joins like a track of its stroke width; a filled one also joins the same-net pads, vias and track ends inside it; a graphic with a vertex inside a same-net zone fill joins that fill.
+5. **Same-number pads** of one footprint join only through copper or the footprint's jumper settings.
 
-Then count connected components per net:
-- **1 component** → fully routed
-- **>1 components** → partially routed (some pads connected, others isolated)
-- **No routing at all** → unrouted
-
-This catches cases where a net is partially routed (e.g., 5 of 8 pads connected, 3 floating).
-
-**Zone approximation**: Zones are assumed to connect all pads on the same net + layer. This is accurate for ground/power planes but may overcount for partial zone fills. A more precise check would use the `ZoneFills` spatial index to verify each pad is within the fill, but thermal relief clearances complicate point-in-fill tests.
+A net whose pads sit on more than one copper island is unrouted. A zone that has no saved fill joins nothing.
 
 ---
 
@@ -166,7 +162,7 @@ Enables differential pair matching, bus length matching, and routing completenes
 
 ## 5. Power Net Analysis
 
-For nets classified as power/ground (by name heuristics — same as schematic analyzer):
+For nets classified as power/ground (by `is_power_net_name()` and `is_ground_name()`, with the explicit `--power-rails` set when given, or else the schematic's `statistics.power_rails` when `--schematic` is given; a VPP or VM net whose pads say signal is excluded unless the rail set names it, and only on boards that carry pad pin types (KiCad 7 and later); rails the schematic knows only by their pins are not included):
 - Track widths used (min, max, all widths)
 - Total track length
 - Track count
@@ -179,9 +175,9 @@ Reports minimum track width per power net — the current bottleneck.
 
 ## 6. Decoupling Placement Analysis
 
-For each IC (U-prefix footprint), finds capacitors (C-prefix) within 10mm:
-- Distance from IC center to cap center
-- Whether cap shares a net with the IC (likely decoupling)
+For each IC (`U` or `IC` reference), finds capacitors (C-prefix) within 10mm:
+- Distance from the nearest IC power or ground pad to the nearest cap pad (footprint centres when pad positions are missing)
+- Whether cap shares a net with the IC other than the IC's signal-pin nets (likely decoupling)
 - Whether cap is on the same PCB side as the IC
 - Reports closest capacitor distance per IC
 
@@ -298,10 +294,10 @@ Power/ground nets are excluded (layer transitions are expected for planes).
 ## 13. Placement Analysis
 
 ### Courtyard Overlap Detection
-Checks all footprint pairs for courtyard bounding box overlap. Uses spatial bucketing (10mm cells) to avoid O(n²) comparisons. Reports overlapping pairs with overlap area.
+Checks all footprint pairs for courtyard overlap. As in KiCad, each courtyard is shrunk by 0.005 mm first, so courtyards that touch or overlap by less than 0.01 mm do not collide. Reports overlapping pairs with overlap area (measured on the unshrunk courtyards).
 
 ### Edge Clearance
-Checks component courtyard proximity to board Edge.Cuts outline. Reports components closer than 0.5mm to board edge.
+Checks component courtyard proximity to board Edge.Cuts outline. Reports components closer than 0.5mm to board edge. The outline is the closed Edge.Cuts loops (slots and cutouts are board edge); a part is off-board only when neither its courtyard nor a pad is on the board. When the loops do not close or a shape is drawn twice, the outline's bounding box is used and one diagnostic is recorded.
 
 ### Density Metrics
 Component density per unit area, front/back distribution.
@@ -420,14 +416,14 @@ Legacy KiCad 5 net class definitions (stored in PCB file): default and named cla
     "findings": [{ "detector", "rule_id", "category", "severity", "confidence",
                     "summary", "description", "components", "nets", "recommendation",
                     "report_context": { "section", "impact", "standard_ref" }, ... }],
-    "file": "path/to/board.kicad_pcb",
     "kicad_version": "9.0.0",
     "statistics": { "footprint_count", "smd_count", "tht_count", "copper_layers_used",
                     "track_segments", "via_count", "zone_count", "total_track_length_mm",
                     "board_width_mm", "board_height_mm", "routing_complete" },
     "layers": [...],
     "setup": { "board_thickness_mm", "design_rules", "defaults", ... },
-    "nets": { "net_name": net_number, ... },
+    "nets": { "net_number": "net_name", ... },
+    "net_name_to_id": { "net_name": net_number, ... },
     "board_outline": { "edges", "bounding_box" },
     "component_groups": { "R": {"count": 45, "references": [...]}, ... },
     "footprints": [{ "reference", "value", "x", "y", "layer", "type", "connected_nets", ... }],
@@ -435,7 +431,7 @@ Legacy KiCad 5 net class definitions (stored in PCB file): default and named cla
     "vias": { "count", "size_distribution", "via_analysis": { "type_breakdown", "annular_ring",
               "via_in_pad", "fanout_patterns", "current_capacity" } },
     "zones": [...],
-    "connectivity": { "fully_routed", "partially_routed", "routing_complete" },
+    "connectivity": { "routing_complete", "unrouted_count", "routed_nets", "unrouted" },
     "net_lengths": [{ "net", "total_length_mm", "layers", "via_count" }],
     "power_net_routing": [...],
     "decoupling_placement": [...],
@@ -462,12 +458,12 @@ Sections previously at top level (`thermal_analysis`, `thermal_pad_vias`, `tombs
 
 3. **Track spacing approximation**: Minimum trace spacing is estimated from endpoint-to-endpoint distances, not full segment-to-segment geometry. The actual minimum spacing could be smaller (e.g., traces running parallel but sampled at endpoints). The DFM report notes this approximation.
 
-4. **Zone connectivity approximation**: In union-find connectivity analysis, zones are assumed to connect all pads on the same net + layer. This is accurate for filled planes but may overcount for partial zones with cutouts.
+4. **Zone connectivity follows the saved fills**: in the `--full` connectivity graph a zone joins only the pads, vias and track ends that lie inside the same saved fill region; a zone with no saved fill joins nothing. Stale or missing fills therefore give stale or missing joins (see 2).
 
-5. **No impedance calculation**: The analyzer doesn't compute controlled impedance from stackup data. It reports trace widths and layer assignments; impedance calculation requires knowing dielectric thickness and Er, which are in the stackup but not processed into impedance values.
+5. **First-order impedance only**: `--full` emits `impedance_ohm` from a microstrip estimate (Hammerstad effective permittivity on outer layers, bulk Er on inner layers). It is not a field solve; use a stackup calculator for controlled-impedance design.
 
 6. **Single-file analysis**: Only processes one `.kicad_pcb` file. Doesn't handle multi-board projects or panelized designs.
 
-7. **Courtyard-only overlap detection**: Component overlap uses courtyard bounding boxes, not actual pad/silk geometry. Components without courtyards aren't checked.
+7. **Courtyard overlap only**: overlap is tested on the courtyard shapes (bounding boxes first, then the courtyard polygons when both parts have them, with KiCad's 0.005 mm shrink); pad and silk geometry are not compared, and parts without a courtyard are not checked.
 
 8. **Tombstoning risk is heuristic**: Thermal mass estimation uses track width × length as a proxy. Actual thermal behavior depends on copper weight, zone connections, and thermal relief geometry that aren't fully modeled.

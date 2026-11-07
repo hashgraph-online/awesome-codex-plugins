@@ -109,6 +109,7 @@ def analyze_grid(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Compare space-group assignments across a bounded tolerance grid. "
@@ -148,6 +149,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         if args.structure_index < 0:

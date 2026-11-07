@@ -15,9 +15,9 @@ The EMC analyzer is a **consumer** of the kicad skill's analysis output. It does
 ## Data Flow
 
 ### From schematic JSON
-- `findings[] (detector: power_regulators)` → switching frequencies, topologies
-- `findings[] (detector: crystal_circuits)` → clock frequencies
-- `findings[] (detector: protection_devices)` → ESD/TVS inventory
+- `findings[] (detector: detect_power_regulators)` → switching frequencies, topologies
+- `findings[] (detector: detect_crystal_circuits)` → clock frequencies
+- `findings[] (detector: detect_protection_devices)` → ESD/TVS inventory
 - `design_analysis.buses` → bus topology (I2C, SPI, UART, CAN)
 
 ### From PCB JSON
@@ -48,7 +48,7 @@ Cross-references connector positions (from `footprints`) against filter/protecti
 Uses schematic `power_regulators` data to identify switching converters, estimates switching frequency from part number lookup, then calculates harmonic overlap with FCC/CISPR test bands using the trapezoidal spectrum model.
 
 ### Category 5: Clock Routing Quality (rules CK-xxx)
-Uses `net_lengths` layer distribution to check if clocks are on outer vs inner layers. Schematic `crystal_circuits` and `buses` data identify which nets are clock signals.
+Uses `net_lengths` layer distribution to check if clocks are on outer vs inner layers. Schematic `crystal_circuits` and `buses` data identify which nets are clock signals. CK-004 checks for a ground pour within 5mm of each crystal.
 
 ### Category 6: Via Stitching (rules VS-xxx)
 Estimates average via spacing from total via count and board area. Compares against λ/20 requirement at the highest detected frequency.
@@ -60,7 +60,7 @@ Analyzes `setup.stackup` for adjacent signal layers, signal-to-reference plane s
 Informational calculations: board cavity resonance frequencies and switching regulator harmonic envelopes. These are order-of-magnitude estimates (±10-20 dB), not pass/fail predictions.
 
 ### Category 9: Differential Pair EMC (rules DP-xxx)
-Checks intra-pair skew against protocol-specific limits (USB HS 25ps, PCIe 5ps, Ethernet 50ps), estimates CM radiation from skew, detects reference plane changes under diff pairs, and flags outer-layer routing when inner layers are available. Uses `net_lengths` layer distribution and schematic differential pair detection.
+Checks intra-pair skew against protocol-specific limits (USB HS 25ps when the part is known to be high-speed, otherwise the full-speed budget; PCIe 5ps; Ethernet 50ps), estimates CM radiation from skew, detects reference plane changes under diff pairs, and flags outer-layer routing when inner layers are available. Uses `net_lengths` layer distribution and schematic differential pair detection.
 
 ### Category 10: Board Edge Analysis (rules BE-xxx)
 Detects signal traces near the board edge (slot antenna effect), checks ground pour ring coverage around the perimeter, and verifies via stitching density near external connectors. Uses board outline, zone data, and connector positions.
@@ -72,13 +72,13 @@ Analyzes power delivery network impedance from regulator to IC. PD-001/PD-002 ch
 Checks that signal layer transitions (vias) have nearby ground stitching vias for return current continuity. Uses `layer_transitions` data from `--full` mode. Higher severity for differential pairs and high-speed nets.
 
 ### Category 13: Crosstalk (rules XT-xxx)
-Identifies parallel trace pairs violating the 3H spacing rule (spacing ≥ 3× dielectric height). Uses `trace_proximity` data from `--proximity` mode. Classifies severity based on aggressor/victim roles (clock near analog = HIGH).
+Identifies parallel trace pairs violating the 3H spacing rule (spacing ≥ 3× dielectric height). Uses `trace_proximity` data from `--proximity` mode. Classifies severity based on aggressor/victim roles (clock or high-speed net near an analog, ADC or sense net = error).
 
 ### Category 14: EMI Filter Verification (rules EF-xxx)
 Validates that input LC filters on switching regulators have cutoff frequencies sufficiently below the switching frequency (ratio ≥5). Uses SPICE insertion loss analysis when available for improved accuracy.
 
 ### Category 15: ESD Protection Path (rules ES-xxx)
-Checks TVS/ESD device proximity to protected connectors and ground via density near TVS ground pads. Based on IEC 61000-4-2 ESD path inductance requirements.
+Checks TVS/ESD device proximity to protected connectors and ground via density near TVS devices. Based on IEC 61000-4-2 ESD path inductance requirements.
 
 ### Category 16: Thermal-EMC Interaction (rules TH-xxx)
 Detects MLCC capacitors with significant DC bias derating (which shifts SRF, affecting PDN coverage) and ferrite beads near heat sources (which lose impedance at elevated temperatures).
@@ -86,13 +86,19 @@ Detects MLCC capacitors with significant DC bias derating (which shifts SRF, aff
 ### Category 17: Shielding Advisories (rules SH-xxx)
 Calculates connector aperture slot resonance frequencies and flags coincidences with on-board emission sources (crystal and switching harmonics).
 
+### Category 18: Inductor Magnetic Leakage (rules ML-xxx)
+Flags switching-regulator inductors (buck, boost, buck-boost, SEPIC and other switching topologies) that are unshielded, or whose shielding is unknown and therefore assumed unshielded, within 15mm of an ADC, op-amp, crystal (and the IC it drives) or RF-chain part. The report includes an estimated H-field at that distance (1 A peak current and a 5mm package assumed); the estimate is informational and does not gate the finding.
+
 ## Risk Scoring
 
 ```
-score = 100 - (CRITICAL × 15) - (HIGH × 8) - (MEDIUM × 3) - (LOW × 1)
+penalty = sum(severity_weight × confidence_weight, worst 3 findings per rule)
+score = max(0, min(100, 100 - penalty))
+severity_weight: error 12, warning 3, info 0
+confidence_weight: deterministic and datasheet-backed 1.0, heuristic 0.5
 ```
 
-Clamped to [0, 100]. Interpretation:
+0 is the worst score and 100 the best; scores can be fractional. The score covers every unsuppressed finding; `--severity` only filters the list printed or written. Interpretation:
 
 | Score | Assessment |
 |-------|-----------|
@@ -103,11 +109,11 @@ Clamped to [0, 100]. Interpretation:
 
 ## Severity Assignment
 
-- **CRITICAL:** Near-certain EMC failure. Signal crossing ground plane gap, no ground plane on multi-layer board.
-- **HIGH:** Very likely to cause issues. Missing decoupling, unfiltered external connector, adjacent signal layers, large switching loop.
-- **MEDIUM:** May cause issues depending on specifics. Decoupling distance, clock on outer layer, via stitching gaps.
-- **LOW:** Minor risk, good practice. Internal header filtering, signal layer spacing, interplane capacitance.
-- **INFO:** Informational. Cavity resonance frequencies, harmonic spectrum data.
+- **error:** Likely to cause an EMC failure. Signal crossing a ground plane gap, no ground plane on a multi-layer board, missing decoupling, unfiltered external connector, adjacent signal layers on a board with more than two copper layers, large switching loop.
+- **warning:** May cause issues depending on specifics. Decoupling distance, clock on outer layer, via stitching gaps.
+- **info:** Informational or minor risk. Internal header filtering, signal layer spacing, interplane capacitance, cavity resonance frequencies, harmonic spectrum data, and the SU-001 note on two-layer boards.
+
+The analyzer output uses only these three names. `--severity` still takes the older five-level names as its threshold: `critical` and `high` keep error findings, `medium` keeps error and warning, `low` and `all` keep everything.
 
 ## Limitations
 
@@ -119,15 +125,15 @@ Clamped to [0, 100]. Interpretation:
 
 4. **No cable radiation prediction.** Cannot determine external cable routing or length. Connector filtering checks assume cables may be attached.
 
-5. **Switching frequency estimation.** Based on part number lookup table. Unknown regulators are skipped. User can extend the lookup in `emc_rules._estimate_switching_freq()`.
+5. **Switching frequency estimation.** Taken from the detector's `switching_frequency_hz`, else the part-number table `lookup_switching_freq()`, else a topology default (`default_switching_freq()`: 500 kHz for buck and boost, 300 kHz for buck-boost, inverting and SEPIC). A regulator is skipped only when none of the three gives a frequency. The table to extend is in `kicad_core/parts.py`.
 
-6. **2-layer board limitations.** The adjacent signal layer check (SU-001) will always fire on 2-layer boards. This is technically correct (2-layer boards inherently have worse EMC than multi-layer) but may generate noise for simple designs where EMC compliance isn't a goal.
+6. **2-layer board limitations.** The adjacent signal layer check (SU-001) needs a stackup in the PCB JSON and tests each pair of adjacent copper layers in the stackup and fires when neither is a reference plane (an inner layer counts as one by ground/power fill area or when KiCad types it power or mixed; an outer layer only by that type); on a 2-copper-layer board it is reported at info severity with a next-revision recommendation. This is technically correct (2-layer boards inherently have worse EMC than multi-layer) but may generate noise for simple designs where EMC compliance isn't a goal.
 
 ## SPICE-Enhanced Mode
 
 When `--spice-enhanced` is passed and a SPICE simulator is detected (via the `spice` skill's `detect_simulator()`), two checks use AC analysis for improved accuracy:
 
-- **PDN impedance (PD-001/PD-002):** Generates an AC sweep testbench with series R-L-C models for each decoupling cap and a 1A current source. Measures V(rail) = Z(f) across 1 kHz to 1 GHz. Captures phase interactions at anti-resonance peaks that the analytical parallel-impedance model underestimates. The SPICE path uses `SpiceTestbench` from `spice_templates.py` for portable rendering across ngspice/LTspice/Xyce.
+- **PDN impedance (PD-001/PD-002):** Generates an AC sweep testbench with series R-L-C models for each decoupling cap and a 1A current source. Measures V(rail) = Z(f) across 1 kHz to 1 GHz. Sweeps the same RLC network the analytical model sums, with the same package-estimated ESR and ESL; PD-001/PD-002 stay `heuristic`. The SPICE path uses `SpiceTestbench` from `spice_templates.py` for portable rendering across ngspice/LTspice/Xyce.
 
 - **EMI filter (EF-001/EF-002):** Simulates actual insertion loss of the input LC filter including cap parasitics (ESR + ESL). Reports attenuation in dB at the switching frequency and 3rd harmonic.
 

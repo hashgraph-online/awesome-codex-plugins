@@ -56,7 +56,7 @@ Comment,Designator,Footprint,LCSC Part #
 ESP32-S3-WROOM-1,U1,ESP32-S3-WROOM-1,C2913202
 ```
 
-Same format for JLCPCB assembly orders — see the `jlcpcb` skill.
+JLCPCB assembly uses the same columns — see the `jlcpcb` skill. The file has no quantity column, so `--boards` and `--spares` do not appear in it; enter purchase quantities on the LCSC order separately.
 
 ### Newark / Farnell / element14
 
@@ -115,6 +115,8 @@ Export from KiCad: Fabrication > Generate Placement Files (CSV format).
 | `Layer` | `Top` or `Bottom` |
 
 Both JLCPCB and PCBWay use the same CPL format.
+
+KiCad's position CSV (`Ref,Val,Package,PosX,PosY,Rot,Side`) has no unit marker, and `kicad-cli pcb export pos` writes inches unless told `--units mm`. To convert it for JLCPCB, name the unit: `translate_bom_pnp.py pnp pos.csv -o jlc_cpl.csv --units in`; without `--units` the translator exits 2.
 
 ### Stencil Ordering
 

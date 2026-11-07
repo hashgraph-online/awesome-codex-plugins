@@ -1,4 +1,4 @@
-"""Mouser adapter: auth, search, response accessors, and the provider's sync_one_part strategy chain — verbatim from fetch_datasheet_mouser.py / sync_datasheets_mouser.py; the driver is distributor_core.sync. Adapter constants are the thirteen measured per-provider differences of the old drivers."""
+"""Mouser adapter: auth, search, response accessors, and the provider's sync_one_part strategy chain; the driver is distributor_core.sync. The adapter constants are the per-provider differences the driver reads."""
 
 import json
 import os
@@ -14,24 +14,23 @@ from pathlib import Path
 import _core_path  # noqa: F401
 from distributor_core.download import (_USER_AGENT, _requests, download_pdf, note_transport_failure,
                                        try_alternative_sources)
-from distributor_core.verify import verify_datasheet
+from distributor_core.inputs import mpn_from_value
+from distributor_core.verify import downloaded_entry, other_part, pick_requested
 from distributor_core.manifest import friendly_filename
 
 NAME = "mouser"
 DEFAULT_DELAY = 1.0
 ID_KEYS = ("mouser", "digikey", "lcsc", "element14")
 KEY_PRIORITY = ("mouser",)
-SKIPPED_COUNTS_IDS = ()
+SEARCH_KEY = "mouser"  # the one distributor-specific number this provider can search with
 RENAME_PRESENT = True
 FAILED_DETAIL_WITH_URL = True
-# Documentary today: the normalize_url/download_pdf wrappers hard-code the flag; a later version may read it.
-NORMALIZE_REDIRECTS = True
 LABELS = {
-    "found": "Found {n} unique parts with MPNs ({k} skipped without MPN)",
+    "found": "Found {n} unique parts with MPNs ({k} skipped without an MPN or Mouser part number)",
     "skipped_key": "skipped_no_mpn",
     "total_key": "total_parts_with_mpn",
-    "dry_skipped": "Skipped (no MPN): {k}",
-    "summary_skipped": "  Skipped (no MPN): {k}",
+    "dry_skipped": "Skipped (no MPN or Mouser part number): {k}",
+    "summary_skipped": "  Skipped (no MPN or Mouser part number): {k}",
 }
 
 
@@ -61,7 +60,7 @@ def _get_api_key() -> str:
     return key
 
 
-def search_mouser(mpn: str, api_key: str) -> dict | None:
+def search_mouser(mpn: str, api_key: str, allow_family: bool = False) -> dict | None:
     """Search Mouser API for a part by MPN. Returns first match."""
     url = f"https://api.mouser.com/api/v1/search/partnumber?apiKey={api_key}"
     body = json.dumps({
@@ -93,10 +92,14 @@ def search_mouser(mpn: str, api_key: str) -> dict | None:
     if not parts:
         return None
 
-    # Prefer exact MPN match
+    # Prefer the requested part (exact or ordering-suffix MPN), then an exact MPN or Mouser number
+    hit = pick_requested(parts, mpn, lambda p: p.get("ManufacturerPartNumber", ""),
+                         allow_family=allow_family)
+    if hit is not None:
+        return hit
     mpn_upper = mpn.upper()
     for p in parts:
-        if p.get("ManufacturerPartNumber", "").upper() == mpn_upper:
+        if mpn_upper in (p.get("ManufacturerPartNumber", "").upper(), (p.get("MouserPartNumber") or "").upper()):
             return p
     return parts[0]
 
@@ -168,7 +171,6 @@ def scrape_product_page(product_url: str) -> str:
 def sync_one_part(
     part: dict,
     output_dir: Path,
-    index: dict,
     delay: float,
     ctx,
 ) -> dict:
@@ -191,39 +193,36 @@ def sync_one_part(
     if schematic_url and schematic_url != "~" and "://" in schematic_url:
         print(f"  Trying schematic URL...", file=sys.stderr)
         if download_pdf(schematic_url, str(output_path)):
-            size = os.path.getsize(str(output_path))
-            vr = verify_datasheet(str(output_path), display_pn, desc, mfg)
-            if vr["confidence"] == "wrong":
-                print(f"  WARNING: PDF may be wrong datasheet — {vr['details']}",
-                      file=sys.stderr)
-            result = {
-                "file": filename,
-                "manufacturer": mfg,
-                "description": desc,
-                "value": part["value"],
-                "datasheet_url": schematic_url,
-                "downloaded_date": now,
-                "source": "schematic",
-                "status": "ok",
-                "references": part["references"],
-                "size_bytes": size,
-                "verification": vr["confidence"],
-            }
-            if vr["confidence"] == "wrong":
-                result["verification_details"] = vr["details"]
-            return result
+            return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                    manufacturer=mfg, description=desc, url=schematic_url,
+                                    source="schematic", now=now)
 
     # Strategy 2: Search Mouser API — try MPN first, then Mouser PN
     time.sleep(delay)  # Rate limit
     search_query = mpn or mouser_pn
     print(f"  Searching Mouser for '{search_query}'...", file=sys.stderr)
-    mouser_part = search_mouser(search_query, mouser_api_key)
+    family = mpn_from_value(part)
+    mouser_part = search_mouser(search_query, mouser_api_key, family and bool(mpn))
+
+    def _other(hit, by_pn):
+        if not hit:
+            return ""
+        return other_part(mouser_pn if by_pn else mpn, hit.get("ManufacturerPartNumber", ""),
+                          [hit.get("MouserPartNumber") or ""], by_pn=by_pn,
+                          allow_family=family, part_mpn=mpn)
+
+    closest = _other(mouser_part, not mpn)
+    if closest:
+        mouser_part = None
 
     # If MPN search failed but we have a Mouser PN, try that
     if not mouser_part and mpn and mouser_pn:
         time.sleep(delay)
         print(f"  MPN not found, trying Mouser PN '{mouser_pn}'...", file=sys.stderr)
         mouser_part = search_mouser(mouser_pn, mouser_api_key)
+        mismatch = _other(mouser_part, True)
+        if mismatch:
+            closest, mouser_part = mismatch, None
 
     mouser_ds_url = ""
     if mouser_part:
@@ -240,27 +239,9 @@ def sync_one_part(
     if mouser_ds_url:
         print(f"  Trying Mouser datasheet URL...", file=sys.stderr)
         if download_pdf(mouser_ds_url, str(output_path)):
-            size = os.path.getsize(str(output_path))
-            vr = verify_datasheet(str(output_path), display_pn, desc, mfg)
-            if vr["confidence"] == "wrong":
-                print(f"  WARNING: PDF may be wrong datasheet — {vr['details']}",
-                      file=sys.stderr)
-            result = {
-                "file": filename,
-                "manufacturer": mfg,
-                "description": desc,
-                "value": part["value"],
-                "datasheet_url": mouser_ds_url,
-                "downloaded_date": now,
-                "source": "mouser",
-                "status": "ok",
-                "references": part["references"],
-                "size_bytes": size,
-                "verification": vr["confidence"],
-            }
-            if vr["confidence"] == "wrong":
-                result["verification_details"] = vr["details"]
-            return result
+            return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                    manufacturer=mfg, description=desc, url=mouser_ds_url,
+                                    source="mouser", now=now)
 
     # Strategy 3: Scrape Mouser product page for datasheet link
     if mouser_part:
@@ -271,50 +252,17 @@ def sync_one_part(
             if scraped_url:
                 print(f"  Found datasheet link on product page", file=sys.stderr)
                 if download_pdf(scraped_url, str(output_path)):
-                    size = os.path.getsize(str(output_path))
-                    vr = verify_datasheet(str(output_path), display_pn, desc, mfg)
-                    if vr["confidence"] == "wrong":
-                        print(f"  WARNING: PDF may be wrong datasheet — {vr['details']}",
-                              file=sys.stderr)
-                    result = {
-                        "file": filename,
-                        "manufacturer": mfg,
-                        "description": desc,
-                        "value": part["value"],
-                        "datasheet_url": scraped_url,
-                        "downloaded_date": now,
-                        "source": "mouser_scrape",
-                        "status": "ok",
-                        "references": part["references"],
-                        "size_bytes": size,
-                        "verification": vr["confidence"],
-                    }
-                    if vr["confidence"] == "wrong":
-                        result["verification_details"] = vr["details"]
-                    return result
+                    return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                            manufacturer=mfg, description=desc, url=scraped_url,
+                                            source="mouser_scrape", now=now)
 
     # Strategy 4: Try alternative manufacturer sources
     if display_pn:
         print(f"  Trying alternative sources...", file=sys.stderr)
     if display_pn and try_alternative_sources(display_pn, str(output_path)):
-        size = os.path.getsize(str(output_path))
-        vr = verify_datasheet(str(output_path), display_pn, desc, mfg)
-        result = {
-            "file": filename,
-            "manufacturer": mfg,
-            "description": desc,
-            "value": part["value"],
-            "datasheet_url": mouser_ds_url,
-            "downloaded_date": now,
-            "source": "alternative",
-            "status": "ok",
-            "references": part["references"],
-            "size_bytes": size,
-            "verification": vr["confidence"],
-        }
-        if vr["confidence"] == "wrong":
-            result["verification_details"] = vr["details"]
-        return result
+        return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                manufacturer=mfg, description=desc, url=mouser_ds_url,
+                                source="alternative", now=now, warn=False)
 
     if not mouser_part:
         return {
@@ -323,7 +271,8 @@ def sync_one_part(
             "value": part["value"],
             "references": part["references"],
             "status": "not_found",
-            "error": f"No Mouser results for '{display_pn}'",
+            "error": (f"No matching Mouser result for '{display_pn}' (closest: '{closest}', a different part)"
+                      if closest else f"No Mouser results for '{display_pn}'"),
             "last_attempt": now,
         }
 

@@ -15,6 +15,7 @@ from typing import Any, Optional
 
 
 DOCUMENTED_BASELINE = "0.410.0"
+EXCEPTIONS_MODULE = "dxpy.exceptions"
 
 SYMBOL_GROUPS: dict[str, list[tuple[str, str]]] = {
     "files": [
@@ -49,12 +50,12 @@ SYMBOL_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("dxpy", "DXProject"),
     ],
     "exceptions": [
-        ("dxpy.exceptions", "DXError"),
-        ("dxpy.exceptions", "DXAPIError"),
-        ("dxpy.exceptions", "DXJobFailureError"),
-        ("dxpy.exceptions", "DXSearchError"),
-        ("dxpy.exceptions", "DXFileError"),
-        ("dxpy.exceptions", "DXChecksumMismatchError"),
+        (EXCEPTIONS_MODULE, "DXError"),
+        (EXCEPTIONS_MODULE, "DXAPIError"),
+        (EXCEPTIONS_MODULE, "DXJobFailureError"),
+        (EXCEPTIONS_MODULE, "DXSearchError"),
+        (EXCEPTIONS_MODULE, "DXFileError"),
+        (EXCEPTIONS_MODULE, "DXChecksumMismatchError"),
     ],
 }
 
@@ -136,6 +137,7 @@ REQUIRED_SYMBOLS = {
 
 
 def safe_signature(obj: Any) -> Optional[str]:
+    """Handle safe signature."""
     try:
         return str(inspect.signature(obj))
     except (TypeError, ValueError):
@@ -143,6 +145,7 @@ def safe_signature(obj: Any) -> Optional[str]:
 
 
 def inspect_symbol(module_name: str, symbol_name: str) -> dict[str, Any]:
+    """Handle inspect symbol."""
     qualified_name = f"{module_name}.{symbol_name}"
     try:
         module = importlib.import_module(module_name)
@@ -174,6 +177,7 @@ def inspect_methods(
     class_name: str,
     method_names: list[str],
 ) -> dict[str, Any]:
+    """Handle inspect methods."""
     try:
         cls = getattr(importlib.import_module(module_name), class_name)
     except Exception as error:
@@ -190,6 +194,7 @@ def inspect_methods(
 
 
 def numeric_version(value: str) -> tuple[int, ...]:
+    """Handle numeric version."""
     match = re.match(r"^(\d+(?:\.\d+)*)", value)
     if match is None:
         return ()
@@ -197,6 +202,7 @@ def numeric_version(value: str) -> tuple[int, ...]:
 
 
 def build_report() -> dict[str, Any]:
+    """Build report."""
     try:
         dxpy_version = version("dxpy")
     except PackageNotFoundError:
@@ -249,6 +255,7 @@ def build_report() -> dict[str, Any]:
 
 
 def missing_required_symbols(report: dict[str, Any]) -> list[str]:
+    """Handle missing required symbols."""
     observed = {
         entry["qualified_name"]: entry["available"]
         for entries in report.get("symbols", {}).values()
@@ -258,6 +265,7 @@ def missing_required_symbols(report: dict[str, Any]) -> list[str]:
 
 
 def missing_required_methods(report: dict[str, Any]) -> list[str]:
+    """Handle missing required methods."""
     required = {
         "DXFile.describe",
         "DXFile.clone",
@@ -278,6 +286,7 @@ def missing_required_methods(report: dict[str, Any]) -> list[str]:
 
 
 def print_text(report: dict[str, Any]) -> None:
+    """Print text."""
     print(f"Python: {report['python']}")
     print(f"Platform: {report['platform']}")
     print(f"dxpy: {report['dxpy_version'] or 'not installed'}")
@@ -323,6 +332,7 @@ def print_text(report: dict[str, Any]) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -341,6 +351,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Optional[list[str]] = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     report = build_report()
 

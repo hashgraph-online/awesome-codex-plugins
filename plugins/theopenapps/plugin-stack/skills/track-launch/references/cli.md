@@ -24,4 +24,4 @@ A wrong field name prints the allowed ones. When stderr says `truncated`, or a s
 
 ## Exit codes
 
-A cut exits 0. Busy is 1 with "temporarily unavailable", not found is 3 with `Closest:` candidates, and budget spent is 4.
+A cut exits 0. Busy is 1 with "temporarily unavailable", not found is 3 with `Closest:` candidates, and budget spent is 4. A shell loop has to check for 4 after each call and `break`, because the shell carries on past a failed command.

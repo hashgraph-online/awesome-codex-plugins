@@ -63,6 +63,76 @@ def validate_file_path(file_path, base_dir=None):
         return False, f"File not found: {full_path}"
 
 
+def _is_blank(value):
+    """Return True when a CSV cell is missing (NaN) or an empty string."""
+    return bool(pd.isna(value)) or value == ""
+
+
+def _check_protein(row, base_dir):
+    """Validate the protein columns of one row; return (messages, ok)."""
+    msgs = []
+    ok = True
+    has_protein_path = not _is_blank(row['protein_path'])
+    has_protein_seq = not _is_blank(row['protein_sequence'])
+
+    if not has_protein_path and not has_protein_seq:
+        msgs.append("Must provide either protein_path or protein_sequence")
+        ok = False
+    elif has_protein_path and has_protein_seq:
+        msgs.append("Warning: Both protein_path and protein_sequence provided, will use protein_path")
+
+    if has_protein_path:
+        file_valid, msg = validate_file_path(row['protein_path'], base_dir)
+        if not file_valid:
+            msgs.append(f"Protein file issue: {msg}")
+            ok = False
+    return msgs, ok
+
+
+def _check_ligand(ligand_desc, base_dir):
+    """Validate a ligand description (file path or SMILES); return (messages, ok)."""
+    if _is_blank(ligand_desc):
+        return ["Missing ligand_description"], False
+    # Check if it's a file path or SMILES
+    if os.path.exists(ligand_desc) or "/" in ligand_desc or "\\" in ligand_desc:
+        # Likely a file path
+        file_valid, msg = validate_file_path(ligand_desc, base_dir)
+        if not file_valid:
+            return [f"Ligand file issue: {msg}"], False
+        return [], True
+    # Likely a SMILES string
+    smiles_valid, msg = validate_smiles(ligand_desc)
+    if not smiles_valid:
+        return [f"SMILES issue: {msg}"], False
+    return [], True
+
+
+def _validate_row(row, base_dir):
+    """Validate one CSV row; return (messages, ok)."""
+    row_msgs = []
+    ok = True
+
+    if _is_blank(row['complex_name']):
+        row_msgs.append("Missing complex_name")
+        ok = False
+
+    protein_msgs, protein_ok = _check_protein(row, base_dir)
+    row_msgs.extend(protein_msgs)
+    ligand_msgs, ligand_ok = _check_ligand(row['ligand_description'], base_dir)
+    row_msgs.extend(ligand_msgs)
+    return row_msgs, ok and protein_ok and ligand_ok
+
+
+def _row_report(idx, row, base_dir):
+    """Validate one row and return its formatted report lines plus its pass/fail flag."""
+    row_msgs, row_ok = _validate_row(row, base_dir)
+    if not row_msgs:
+        return [], row_ok
+    lines = [f"\nRow {idx + 1} ({row.get('complex_name', 'unnamed')}):"]
+    lines.extend(f"  - {msg}" for msg in row_msgs)
+    return lines, row_ok
+
+
 def validate_csv(csv_path, base_dir=None):
     """
     Validate a DiffDock batch input CSV file.
@@ -105,54 +175,9 @@ def validate_csv(csv_path, base_dir=None):
     # otherwise a CSV missing a column raises KeyError instead of reporting it.
     rows = [] if missing_cols else df.iterrows()
     for idx, row in rows:
-        row_msgs = []
-
-        # Check complex name
-        if pd.isna(row['complex_name']) or row['complex_name'] == "":
-            row_msgs.append("Missing complex_name")
-            valid = False
-
-        # Check that either protein_path or protein_sequence is provided
-        has_protein_path = not pd.isna(row['protein_path']) and row['protein_path'] != ""
-        has_protein_seq = not pd.isna(row['protein_sequence']) and row['protein_sequence'] != ""
-
-        if not has_protein_path and not has_protein_seq:
-            row_msgs.append("Must provide either protein_path or protein_sequence")
-            valid = False
-        elif has_protein_path and has_protein_seq:
-            row_msgs.append("Warning: Both protein_path and protein_sequence provided, will use protein_path")
-
-        # Validate protein path if provided
-        if has_protein_path:
-            file_valid, msg = validate_file_path(row['protein_path'], base_dir)
-            if not file_valid:
-                row_msgs.append(f"Protein file issue: {msg}")
-                valid = False
-
-        # Validate ligand description
-        if pd.isna(row['ligand_description']) or row['ligand_description'] == "":
-            row_msgs.append("Missing ligand_description")
-            valid = False
-        else:
-            ligand_desc = row['ligand_description']
-            # Check if it's a file path or SMILES
-            if os.path.exists(ligand_desc) or "/" in ligand_desc or "\\" in ligand_desc:
-                # Likely a file path
-                file_valid, msg = validate_file_path(ligand_desc, base_dir)
-                if not file_valid:
-                    row_msgs.append(f"Ligand file issue: {msg}")
-                    valid = False
-            else:
-                # Likely a SMILES string
-                smiles_valid, msg = validate_smiles(ligand_desc)
-                if not smiles_valid:
-                    row_msgs.append(f"SMILES issue: {msg}")
-                    valid = False
-
-        if row_msgs:
-            messages.append(f"\nRow {idx + 1} ({row.get('complex_name', 'unnamed')}):")
-            for msg in row_msgs:
-                messages.append(f"  - {msg}")
+        row_lines, row_ok = _row_report(idx, row, base_dir)
+        valid = valid and row_ok
+        messages.extend(row_lines)
 
     # Summary
     messages.append(f"\n{'='*60}")
@@ -189,6 +214,7 @@ def create_template_csv(output_path, num_examples=3):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Prepare and validate DiffDock batch CSV files',
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -225,10 +251,10 @@ Examples:
         output_path = args.output or 'diffdock_batch_template.csv'
         df = create_template_csv(output_path, args.num_examples)
         print(f"✓ Created template CSV: {output_path}")
-        print(f"\nTemplate contents:")
+        print("\nTemplate contents:")
         print(df.to_string(index=False))
-        print(f"\nEdit this file with your protein-ligand pairs and run with:")
-        print(f"  python -m inference --config default_inference_args.yaml \\")
+        print("\nEdit this file with your protein-ligand pairs and run with:")
+        print("  python -m inference --config default_inference_args.yaml \\")
         print(f"    --protein_ligand_csv {output_path} --out_dir results/")
         return 0
 

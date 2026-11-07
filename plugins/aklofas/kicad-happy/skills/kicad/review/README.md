@@ -1,14 +1,14 @@
-# `skills/kicad/review/` — Deep Review Sub-component (v2.0)
+# `skills/kicad/review/` — Deep Review Sub-component
 
 This is an internal sub-component of the kicad skill. It is NOT a standalone skill (no nested SKILL.md — confirmed unsupported across Claude Code, Codex, Gemini CLI). Referenced from `skills/kicad/SKILL.md` as a progressive-disclosure link.
 
 ## Purpose
 
-This directory hosts the v2.0 Deep Review infrastructure:
+This directory hosts the Deep Review infrastructure:
 
-- **(a)** The Deep Review evidence gate + `deep_review.schema.json` (spec §3.C/§3.D): per-IC LLM datasheet comparison with durable, evidence-linked findings in `analysis/deep_review.json`.
-- **(b)** The optional `design_context` subagent input (spec §3.B): reads schematic + BOM + design intent, emits `design_context.json`. Used as an optional input to the Deep Review pass.
-- **(c)** The annotation merge machinery (optional detector-finding triage): `merge_annotations.py` validates `review_annotations.json`, applies `llm_review` overlays to raw analyzer findings, and verifies HI-3 strip round-trip. Authority caps removed in v2.0 — a `suppressed` annotation now always applies its overlay. Quarantined findings remain visible in the merge report.
+- **(a)** The Deep Review evidence gate + `deep_review.schema.json`: per-IC LLM datasheet comparison with durable, evidence-linked findings in `analysis/deep_review.json`.
+- **(b)** The optional `design_context` subagent input: reads schematic + BOM + design intent, emits `design_context.json`. Used as an optional input to the Deep Review pass.
+- **(c)** The annotation merge machinery (optional detector-finding triage): `merge_annotations.py` validates `review_annotations.json`, applies `llm_review` overlays to raw analyzer findings, and verifies HI-3 strip round-trip. There are no authority caps — a `suppressed` annotation always applies its overlay. Annotations whose `finding_id` matches no finding are listed in the merge report as orphans, and suppressed annotations are counted there.
 - **(d)** `_mini_jsonschema.py`: stdlib-only JSON Schema Draft 2020-12 validator (keyword subset used by Layer 2 schemas). No third-party `jsonschema` dep at runtime.
 
 ## Structure
@@ -20,27 +20,25 @@ This directory hosts the v2.0 Deep Review infrastructure:
 | `schemas/review_annotations.schema.json` | JSON Schema for review annotations |
 | `schemas/deep_review.schema.json` | JSON Schema for Deep Review evidence-gated findings |
 | `scripts/build_review_plan.py` | Emits 1-task plan JSON for design_context dispatch |
-| `scripts/merge_annotations.py` | Validates + applies overlays to raw analyzer JSONs → `analysis/merged/<analyzer>.json` |
+| `scripts/merge_annotations.py` | Validates + applies overlays to raw analyzer JSONs → `<--merged-dir>/<analyzer>.json` (run-based consumers read `analysis/merged/<run>/<analyzer>.json`) |
 | `scripts/validate_review.py` | Standalone CLI for review_annotations.json validation |
 | `scripts/deep_review_gate.py` | Evidence gate: validates deep_review.json, writes durable findings |
 | `scripts/run_phase4_exercise.py` | Orchestrates the end-to-end fixture exercise |
 | `fixtures/*.example.json` | Round-trip fixtures for schema contract tests |
 
-## Surviving invariants (v2.0)
+## Invariants
 
-- **HI-1:** Layer 1 findings are immutable — detector-owned fields are never mutated by any overlay machinery.
-- **HI-3:** `strip_llm_overlays(merged)` == raw input, byte-identical. The merge is always reversible.
-- **HI-6:** `reviewer_observations[]` lives in `review_annotations.json`, never merged into `findings[]`.
-- **No-LLM run yields identical analyzer output:** stripping `llm_*` fields recovers the deterministic baseline.
-- **Stable finding identity:** `finding_id` is stable across runs; this invariant extends to Deep Review findings (`deep_review:<12-hex>` form).
-- **No hidden suppression:** quarantined/suppressed annotations are visible in the merge report; nothing is silently discarded.
+- **HI-1:** Layer 1 findings are immutable. The merge sets only a `llm_review` key on each matched finding and leaves every detector-owned field alone (`merge_annotations.py`, `merge()`).
+- **HI-3:** `strip_llm_overlays(merged)` equals the raw input as decoded JSON (the merged file is re-serialized, so bytes can differ). The raw files are only read; `merge()` raises `RuntimeError` when the round-trip differs, so the merge is always reversible.
+- **HI-6:** `reviewer_observations[]` lives in `review_annotations.json`. The merge only counts it (`reviewer_observations_count` in `_merge_report.json`) and never copies it into `findings[]`.
+- **No-LLM run yields identical analyzer output:** stripping `llm_*` keys recovers the deterministic baseline (`finding_schema.strip_llm_overlays`).
+- **Stable finding identity:** `finding_id` is stable across runs (`finding_schema.assign_finding_ids`); Deep Review findings use the `deep_review:<12-hex>` form.
+- **No hidden suppression:** a `suppressed` annotation always applies its overlay and is counted in `suppressed_count`; orphan annotations are listed, not dropped silently. Deep Review findings that fail the evidence gate are kept in `quarantined[]` of `analysis/deep_review.json` with a `quarantine_reason`.
 
-## Retired in v2.0 (spec §5)
+## Trust model
 
-The following v1.4 Layer 2 cage constraints are removed. Trust now comes from the Deep Review evidence gate, not permission rules:
+Trust comes from the Deep Review evidence gate, not from permission rules on annotations:
 
-- **Overlay-only constraint (HI-2 label):** the merge still only writes `llm_review` siblings, but this is now a design property, not a cage rule.
-- **Observations-are-not-findings (HI-6 framing):** still true mechanically; but no longer framed as a restriction.
-- **All authority caps and suppression rules (HI-8/HI-9):** `reviewer_observations[]` no longer has a `maxItems` cap; `confidence` is no longer capped at `medium`; `severity` is no longer capped at `warning`; suppressing an `error`-severity or `datasheet-backed` finding now applies normally; the 30% suppression rate cap is removed.
-- **Severity tuning matrix:** `severity_tuning.json` and `severity_tuning.schema.json` deleted; `make_finding` no longer takes a `design_context` parameter.
-- **Layer 2 reviewer prompt:** archived to `old/layer2/reviewer.md` (gitignored on disk).
+- **No caps:** `reviewer_observations[]` has no `maxItems`; annotation `confidence` and `suggested_severity` take any value of their enums (`schemas/review_annotations.schema.json`), and suppressing an `error`-severity or `datasheet-backed` finding is allowed.
+- **No severity tuning:** `make_finding` takes no `design_context` parameter.
+- **Reviewer role:** `build_review_plan.py` emits only the `design_context` task; there is no Layer 2 reviewer prompt in `prompts/`.

@@ -25,14 +25,14 @@ When the skill encounters an active component (opamp, LDO, comparator), it resol
 
 1. **Project cache** — `<project>/spice/models/manifest.json` (legacy name: `index.json`) stores previously resolved models (instant, no network)
 2. **Distributor API parametric data** — queries LCSC (no auth), DigiKey, element14, Mouser for real electrical specs like GBW, slew rate, offset voltage. Structured JSON, no PDF parsing.
-3. **Structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/<MPN>.json`. Cached JSON produced by the `datasheets` skill, scored 0-10 for completeness. See `skills/datasheets/references/extraction-schema.md` and `skills/datasheets/references/quality-scoring.md`.
+3. **Legacy structured extraction** — a `spice_specs` record from `<project>/datasheets/extracted/` (score ≥ 6 of the 0-10 completeness score). It does not read v1.4 extractions, and in practice it finds nothing from the `datasheets` skill's cache. This tier and the PDF tier run only when the analysis names its project. See `skills/datasheets/references/extraction-schema.md` and `skills/datasheets/references/quality-scoring.md`.
 4. **Datasheet PDF regex extraction** — reads downloaded PDFs from `<project>/datasheets/`, extracts specs via text pattern matching. Requires `pdftotext`. Last-resort fallback.
-5. **Built-in lookup table** — `spice_part_library.py` has ~100 common parts with datasheet-verified specs. Offline safety net.
+5. **Built-in lookup table** — `spice_part_library.py` has 103 op-amps, LDOs, comparators and references with datasheet-verified specs. Offline safety net.
 6. **Ideal model fallback** — generic model with fixed parameters (e.g., 10 MHz GBW for opamps)
 
 Real data from APIs and datasheets takes priority over the lookup table. The table serves as an offline fallback when no network or downloaded PDFs are available. Passive components (R, C, L) always use the simulator's exact built-in primitives (standard SPICE R/C/L elements) — no model resolution needed. All three supported simulators (ngspice, LTspice, Xyce) handle these identically.
 
-The lookup table also includes crystal driver specs for ~30 MCU families (STM32, ESP32, nRF52, ATmega, RP2040) with oscillator transconductance values for startup margin analysis.
+The lookup table also includes crystal driver specs for 24 entries (22 MCU families plus two 32 kHz LSE variants: STM32, ESP32, nRF52, ATmega, RP2040) with oscillator transconductance values for startup margin analysis.
 
 ---
 
@@ -73,7 +73,7 @@ Real inductor Q values:
 | Wire-wound chip inductor | 40-100 |
 | Air-core RF inductor | 100-300 |
 
-If the simulated Q factor matters (e.g., for a filter selectivity assessment), note that Q=100 is an assumption and the real value depends on the specific inductor.
+The simulated Q factor reflects Q=100, not the circuit, so it never changes the result's status (the result's `model_note` says so); the real value depends on the specific inductor.
 
 ---
 
@@ -122,7 +122,7 @@ The ideal model's 10 MHz GBW is a rough middle ground. Here's how it compares to
 | OPA1612 | 80 MHz | 8 MHz | 1 MHz (8x too low) |
 | AD8099 | 710 MHz | 71 MHz | 1 MHz (71x too low) |
 
-**Guidance for reporting:** The gain measurement at 1 kHz is always accurate (well within the flat passband of any real opamp). The bandwidth measurement is only accurate if the real part happens to have GBW near 10 MHz. Always qualify bandwidth results with the actual part's GBW.
+**Guidance for reporting:** The gain is measured at GBW / (100 x |gain|), clamped to 1-1000 Hz (the ideal model has a 10 MHz GBW), which is normally well inside the flat passband. A feedback-capacitor pole below that frequency also lowers the measured gain. The bandwidth measurement is only accurate if the real part happens to have GBW near 10 MHz. Always qualify bandwidth results with the actual part's GBW.
 
 ### What the Ideal Opamp Model IS Good For
 
@@ -144,7 +144,7 @@ The ideal model's 10 MHz GBW is a rough middle ground. Here's how it compares to
 
 ## Generic Semiconductor Models
 
-These model cards use ngspice built-in equations with typical (not manufacturer-specific) parameters. They're included for future expansion but are not currently used in Phase 1 testbenches (passive and opamp circuits don't need them).
+These model cards use ngspice built-in equations with generic (not manufacturer-specific) parameters. The op-amp, MOSFET, BJT, protection-device and bridge testbenches include them; qualify those results accordingly.
 
 ### Diode Models
 
@@ -196,22 +196,22 @@ xtal1 ---[===]---||---[===]--- xtal2
 
 ### What the Crystal Simulation Tests
 
-The testbench validates that the **load capacitor values produce a reasonable effective CL**:
+The testbench builds the model twice: driven alone across its terminals (series resonance f_s where the phase of Z rises through 0; Rm = |Z| there), and in the C1 – crystal – C2 loop through ground the oscillator sees (load resonance):
 
 ```
-CL_effective = (C1 * C2) / (C1 + C2) + C_stray
+f_L = f_s * (1 + Cm / (2 * (C0 + CL)))      CL = (C1 * C2) / (C1 + C2)
 ```
 
-Where C_stray ≈ 3 pF (typical PCB stray capacitance). The analyzer calculates this and the simulation confirms the cap values. The primary check is:
-- Are both load caps present?
-- Is the effective CL in a reasonable range (4-30 pF)?
-- If the crystal datasheet specifies CL, does it match?
+C1 and C2 are the load capacitance on each crystal pin (parallel caps on one pin sum). The result reports `f_series_hz`, `f_load_hz`, `pulling_ppm` and the measured `motional_resistance_ohm` as `info`: the model is generic, so these show the effect of the load caps, not a pass/fail. The analyzer's calculated CL (`(C1 * C2) / (C1 + C2) + C_stray`, C_stray ≈ 3 pF) stays in `expected`; the result warns when:
+- the calculated CL is outside a reasonable range (4-30 pF), or
+- the series or load resonance was not found in the sweep, or
+- |Z| at the series resonance is outside ±50 % of the model's Rm (the sweep did not resolve the resonance, e.g. a misread sub-Hz frequency); then no Rm, resonance or pulling is reported.
 
 ### What It Does NOT Test
 
 - Whether the oscillator will actually start (requires the driving amplifier model)
 - Negative resistance margin (requires the IC's crystal driver model)
-- Frequency pulling from CL mismatch (requires precise crystal parameters)
+- Frequency pulling against the crystal's specified CL (requires the crystal's own Cm, C0 and CL)
 - Drive level and crystal aging effects
 
 ---
@@ -226,7 +226,7 @@ The LDO subcircuit models a linear regulator's DC behavior:
 * PMOS pass element with dropout ~0.2V
 ```
 
-This model is **not currently used in Phase 1 testbenches** — regulator simulation requires control loop modeling for stability analysis, which is Phase 2. The model is included in the codebase for future use.
+This model is **not currently used in any testbench** — regulator simulation requires control loop modeling for stability analysis. The model is included in the codebase for future use.
 
 ---
 
@@ -238,7 +238,7 @@ KiCad net names are translated to ngspice-safe names:
 |-----------|-------------|------|
 | `GND`, `gnd`, `earth`, `VSS` | `0` | Ground nets → node 0 |
 | `3V3` | `n3V3` | Leading digit → prefix with `n` |
-| `Net-(U3-pin7)` | `Net__U3_pin7_` | Special chars → underscores |
+| `Net-(U3-pin7)` | `Net-_U3-pin7_` | Parentheses and other special characters (spaces, `/`, `+`, …) → `_`; `-` and `.` kept |
 | `__unnamed_0` | `__unnamed_0` | Internal nets pass through |
 
 The `_sanitize_net()` function in `spice_models.py` handles this translation. When debugging a `.cir` file, KiCad net names in the comment header map to the sanitized names in the netlist.
@@ -333,7 +333,7 @@ Straightforward: VIN → R_top → mid_net → R_bottom → ground. No load resi
 
 ## Per-Part Behavioral Models
 
-When a recognized MPN is detected (e.g., LM358, TL072, MCP6002), the skill generates a parameterized `.subckt` with the part's actual GBW, slew rate, input offset, and output swing from the lookup table in `spice_part_library.py`.
+When a recognized MPN is detected (e.g., LM358, TL072, MCP6002), the skill generates a parameterized `.subckt` with the part's actual GBW, input offset, and output swing from the lookup table in `spice_part_library.py`.
 
 ### Model Parameters Used
 
@@ -365,7 +365,7 @@ When a behavioral model shows a large gain deviation (>2 dB) from expected, the 
 
 ## PCB Parasitic Extraction
 
-Phase 3 adds the ability to inject PCB layout parasitics into SPICE testbenches for pre-layout vs post-layout comparison.
+`--parasitics` inserts PCB layout parasitics into low-pass RC-filter testbenches; see Injection Thresholds.
 
 ### Extraction Pipeline
 
@@ -398,10 +398,11 @@ Typical 0.3mm drill through 1.6mm board: ~0.7 nH
 
 ### Injection Thresholds
 
-Parasitics are only injected when significant relative to the circuit:
-- Trace R injected if >0.1% of the smallest resistor in the subcircuit
-- Via L injected if the circuit operates above ~10 MHz
-- Coupling C injected if >1% of any capacitor in the subcircuit
+Only the low-pass RC-filter testbench reads the parasitics file. It looks up the filter's output net by name (the net must carry the same name in the schematic and PCB analyses) and inserts, between R and C:
+- Trace R, if the net's total is at least 1 mΩ
+- Via L, if the net's total is at least 0.01 nH
+
+The thresholds are absolute, not relative to the circuit or its frequency. Coupling capacitance and via resistance are extracted but not inserted. All other testbenches ignore the file.
 
 ---
 

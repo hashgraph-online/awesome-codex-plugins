@@ -155,6 +155,7 @@ def create_frame(
 
 
 def main() -> None:
+    """Run the command-line interface."""
     print("=" * 60)
     print("  GENERATING ANIMATED GIF")
     print("=" * 60)
@@ -241,7 +242,7 @@ def main() -> None:
     # Get file size
     size_kb = OUTPUT_FILE.stat().st_size / 1024
     print(f"   File size: {size_kb:.1f} KB")
-    print(f"\n✅ Done!")
+    print("\n✅ Done!")
 
 
 if __name__ == "__main__":

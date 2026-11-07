@@ -189,7 +189,7 @@ def check_loo_reliability(models_dict: Dict[str, Any],
         }
 
         if verbose:
-            print(f"Pareto-k diagnostics:")
+            print("Pareto-k diagnostics:")
             print(f"  • Good (k < 0.5):       {(pareto_k < 0.5).sum()} observations")
             print(f"  • OK (0.5 ≤ k < 0.7):    {((pareto_k >= 0.5) & (pareto_k < 0.7)).sum()} observations")
             print(f"  • Bad (0.7 ≤ k < 1.0):   {((pareto_k >= 0.7) & (pareto_k < 1.0)).sum()} observations")
@@ -309,7 +309,7 @@ def model_averaging(models_dict: Dict[str, Any],
     # Weighted average
     averaged = sum(w * p for w, p in zip(weights, predictions))
 
-    print(f"\n✓ Model averaging complete")
+    print("\n✓ Model averaging complete")
     print(f"  Combined predictions using {len(predictions)} models")
 
     return averaged, weights

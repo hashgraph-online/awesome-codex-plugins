@@ -35,6 +35,7 @@ MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Hash explicitly listed local artifacts and create a new JSON "
@@ -79,6 +80,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         if len(args.artifact) > MAX_FILES:

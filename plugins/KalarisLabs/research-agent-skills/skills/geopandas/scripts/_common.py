@@ -108,6 +108,7 @@ def reject_nonlocal(value: str, *, label: str) -> None:
 
 
 def _root_path(value: str | Path) -> Path:
+    """Handle root path."""
     raw = str(value)
     reject_nonlocal(raw, label="root")
     candidate = Path(raw).expanduser()
@@ -123,6 +124,7 @@ def _root_path(value: str | Path) -> Path:
 
 
 def _reject_symlink_components(candidate: Path, root: Path) -> None:
+    """Handle reject symlink components."""
     current = candidate
     while True:
         if current.is_symlink():
@@ -136,6 +138,7 @@ def _reject_symlink_components(candidate: Path, root: Path) -> None:
 
 
 def _candidate_path(value: str | Path, root: Path, *, label: str) -> Path:
+    """Handle candidate path."""
     raw = str(value)
     reject_nonlocal(raw, label=label)
     supplied = Path(raw).expanduser()
@@ -299,6 +302,7 @@ def _json_scalar(value: Any) -> Any:
 
 
 def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle strict object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -308,6 +312,7 @@ def _strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _reject_constant(value: str) -> None:
+    """Handle reject constant."""
     raise CliError(f"non-finite JSON metadata value is not allowed: {value}")
 
 

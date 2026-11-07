@@ -21,6 +21,7 @@ def bounded_int(minimum: int, maximum: int):
     """Return an argparse converter for a bounded integer."""
 
     def convert(value: str) -> int:
+        """Convert."""
         try:
             parsed = int(value)
         except ValueError as exc:
@@ -119,7 +120,7 @@ def load_pytdc_metadata() -> tuple[Any, str]:
     try:
         metadata = importlib.import_module("tdc.metadata")
         package_version = version("PyTDC")
-    except (ImportError, PackageNotFoundError) as exc:
+    except ImportError as exc:
         raise CliError(
             "PyTDC is unavailable; install the pinned snapshot with "
             "`uv pip install \"setuptools==80.9.0\" \"PyTDC==1.1.15\"`"
@@ -162,6 +163,7 @@ def read_json_file(path: Path) -> Any:
     """Read strict JSON, rejecting non-standard constants such as NaN."""
 
     def reject_constant(value: str) -> None:
+        """Handle reject constant."""
         raise CliError(f"non-standard JSON constant is not allowed: {value}")
 
     try:

@@ -1,0 +1,145 @@
+# Dependabot configuration
+# Reference: https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+#
+# Auto-merge policy is enforced by .github/workflows/dependabot-auto-merge.yml
+# (security + patch + minor merge automatically when CI is green; major + Docker
+# stay open for human review).
+
+version: 2
+updates:
+  # Python deps (root pyproject.toml).
+  #
+  # Dependabot edits pyproject.toml only. Builds install from
+  # requirements.lock with --require-hashes (Scorecard Pinned-Dependencies),
+  # so after every Dependabot merge the lock file MUST be regenerated.
+  # The regen command is documented at the top of requirements.lock.
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    groups:
+      python-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - python
+
+  # JS/TS deps (client/)
+  - package-ecosystem: npm
+    directory: "/client"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - javascript
+    ignore:
+      # eslint 10 + react-hooks 7.1+ both enable the expanded react-hooks
+      # recommended set (set-state-in-effect, refs, immutability,
+      # incompatible-library, error-boundaries) which fires on ~50 real
+      # call sites. We need a code-fix sweep before either can land.
+      # Re-enable after that sweep ships (tracked: TODO issue).
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@eslint/js"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "eslint-plugin-react-hooks"
+        # 7.1+ ships the expanded recommended set; pin to 7.0.x until sweep.
+        versions: [">=7.1.0"]
+      - dependency-name: "eslint-plugin-react-refresh"
+        # 0.5+ also tightened — pairs with react-hooks 7.1.
+        versions: [">=0.5.0"]
+      # TypeScript 6: blocked on openapi-typescript widening its peer to TS 6
+      # (tracked upstream at openapi-ts/openapi-typescript#2774). Re-enable
+      # once openapi-typescript ships TS 6 support.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+
+  # Docker base images — api/
+  - package-ecosystem: docker
+    directory: "/api"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - docker
+
+  # App compiler — api/src/services/app_compiler/
+  - package-ecosystem: npm
+    directory: "/api/src/services/app_compiler"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - javascript
+
+  # Docs screenshot pipeline — scripts/docs/
+  - package-ecosystem: npm
+    directory: "/scripts/docs"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - javascript
+
+  # Docker base images — client/
+  - package-ecosystem: docker
+    directory: "/client"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - docker
+
+  # GitHub Actions — repo root
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: "America/Chicago"
+    open-pull-requests-limit: 10
+    groups:
+      actions-minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
+    labels:
+      - dependencies
+      - github-actions

@@ -47,7 +47,11 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from kicad_sexp import escape_kicad_string, find_matching_paren, iter_placed_symbol_blocks
+from kicad_sexp import (atomic_write_text, escape_kicad_string, find_matching_paren,
+                        iter_placed_symbol_blocks, kicad_lock_path, sch_file_version)
+
+# First schematic format whose effects block takes "(hide yes)"; KiCad 6/7 only accept bare "hide".
+_HIDE_YES_MIN_VERSION = 20231120
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +86,7 @@ def find_property_in_block(text: str, sym_start: int, sym_end: int, prop_name: s
     Returns (start, end) positions of the entire (property ...) block, or None.
     """
     block = text[sym_start:sym_end + 1]
-    escaped_name = re.escape(prop_name)
+    escaped_name = re.escape(escape_kicad_string(prop_name))
     pattern = re.compile(rf'\(property\s+"{escaped_name}"\s+"')
 
     match = pattern.search(block)
@@ -124,9 +128,16 @@ def build_new_property(
     prop_name: str,
     prop_value: str,
     indent: str,
+    file_version: int | None = None,
 ) -> str:
-    """Build a new (property ...) block for insertion."""
+    """Build a new (property ...) block for insertion.
+
+    Bare `hide` loads in every KiCad generation, so it is also the form for an unknown version.
+    """
+    hide = ("(hide yes)" if file_version is not None and file_version >= _HIDE_YES_MIN_VERSION
+            else "hide")
     escaped_value = escape_kicad_string(prop_value)
+    prop_name = escape_kicad_string(prop_name)
     inner = indent + "\t"
     return (
         f'\n{indent}(property "{prop_name}" "{escaped_value}" (at 0 0 0)\n'
@@ -134,7 +145,7 @@ def build_new_property(
         f'{inner}\t(font\n'
         f'{inner}\t\t(size 1.27 1.27)\n'
         f'{inner}\t)\n'
-        f'{inner}\t(hide yes)\n'
+        f'{inner}\t{hide}\n'
         f'{inner})\n'
         f'{indent})'
     )
@@ -152,7 +163,7 @@ def update_property_value(
     escaped_value = escape_kicad_string(new_value)
 
     # Replace just the value string after the property name
-    escaped_name = re.escape(prop_name)
+    escaped_name = re.escape(escape_kicad_string(prop_name))
     new_block = re.sub(
         rf'(\(property\s+"{escaped_name}"\s+)"(?:[^"\\]|\\.)*"',
         lambda m: f'{m.group(1)}"{escaped_value}"',
@@ -182,6 +193,7 @@ def apply_updates(
     Returns:
         (modified_text, change_log)
     """
+    file_version = sch_file_version(text)
     change_log = []
 
     # Find all placed symbols
@@ -220,7 +232,7 @@ def apply_updates(
                     # Extract current value
                     old_block = text[prop_start:prop_end + 1]
                     old_match = re.search(
-                        rf'\(property\s+"{re.escape(prop_name)}"\s+"((?:[^"\\]|\\.)*)"',
+                        rf'\(property\s+"{re.escape(escape_kicad_string(prop_name))}"\s+"((?:[^"\\]|\\.)*)"',
                         old_block,
                     )
                     old_value = old_match.group(1) if old_match else ""
@@ -300,6 +312,7 @@ def apply_updates(
                 edit["prop_name"],
                 edit["new_value"],
                 edit["indent"],
+                file_version,
             )
             pos = edit["insert_after"] + 1
             text = text[:pos] + new_prop + text[pos:]
@@ -321,7 +334,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="Edit KiCad schematic symbol properties"
     )
-    parser.add_argument("schematic", type=Path, help="Path to .kicad_sch file")
+    parser.add_argument("schematic", type=Path, help="Path to .kicad_sch file (KiCad 5 .sch is rejected)")
     parser.add_argument(
         "--updates", type=Path,
         help="Path to JSON file with updates (or pipe via stdin)",
@@ -339,9 +352,13 @@ def main():
     if not args.schematic.exists():
         print(f"Error: {args.schematic} not found", file=sys.stderr)
         sys.exit(1)
+    if args.schematic.suffix.lower() == ".sch":
+        print("Error: KiCad 5 .sch files are read only; edit properties in a .kicad_sch file",
+              file=sys.stderr)
+        sys.exit(1)
 
     # Check for KiCad lock file — indicates schematic is open in KiCad
-    lock_path = args.schematic.parent / f"{args.schematic.name}.lck"
+    lock_path = kicad_lock_path(args.schematic)
     if lock_path.exists() and not args.dry_run:
         print(
             f"WARNING: KiCad lock file detected ({lock_path.name}).\n"
@@ -413,7 +430,7 @@ def main():
         print(f"Backup: {backup_path}", file=sys.stderr)
 
     # Write modified file
-    args.schematic.write_text(modified_text, encoding="utf-8")
+    atomic_write_text(args.schematic, modified_text)
     print(
         f"\nDone: {total_changes} properties changed "
         f"({actions.get('updated', 0)} updated, {actions.get('added', 0)} added).",
@@ -422,4 +439,8 @@ def main():
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     main()

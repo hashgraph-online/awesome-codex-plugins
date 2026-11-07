@@ -226,7 +226,7 @@ Prerequisites are met. If `[TASK_SUGGESTIONS_ADVISORY]` was present, handle it a
 
    **IMPORTANT**: Pass `$PLAN_PATH` as given — the orchestrator resolves it to an OS-native absolute path itself. Do NOT wrap it in `$(realpath ...)`: on Git for Windows, `realpath` emits a POSIX `/c/...` path that a native Windows Python process cannot use.
 
-   **IMPORTANT**: Run this command in the foreground — do **not** run it detached. The orchestrator runs quickly — it only generates task JSON, it does not execute tasks — so 10 minutes is far more than enough.
+   **IMPORTANT**: Foreground or detached depends on who runs the tasks. On the native-subagent path (no `--exec-subagents`), run this command in the foreground — do **not** run it detached: there the orchestrator only generates task JSON, it does not execute tasks, so 10 minutes is far more than enough (and `--detach` implies `--exec-subagents`, which would hand the tasks to the executor). With `--exec-subagents` (step 4b) it is the other way round: this one command dispatches, verifies and records every task and finalizes the phase itself, so it **does** execute the tasks and runs as long as all of them together. On that path **run detached**: add `--detach` (which implies `--yes`; see step 4b), poll the `status` command the launcher printed until the run is finished, and read the run's markers and output paths from the log it named.
 
 3. **Check for prerequisite markers in orchestrator output** (see Step 0 above)
 
@@ -339,9 +339,9 @@ findings were accepted, and the findings stay listed for review-code), or `--hum
 `--dry-run-subagents` renders every command, applies every admission and policy
 check, writes `{phase}/subagent_dry_run.json` and starts no child.
 `--detach` self-daemonizes the phase and reports per-task progress in
-`{phase}/.status.json` under `progress.write_subagents`; never combine it with a
-host's own background mechanism, whichever *run detached* resolves to for
-your host.
+`{phase}/.status.json` under `progress.write_subagents`; it is how step 2 runs on
+this path. Never combine it with a host's own background mechanism, whichever
+*run detached* resolves to for your host.
 
 5. **Execute batches sequentially (batches have dependencies):**
 

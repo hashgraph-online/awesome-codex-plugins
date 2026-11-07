@@ -35,6 +35,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Run lifecycle/obsolescence audit (requires network + API keys)")
     parser.add_argument("--analysis-dir", default=None,
                         help="Write output to analysis cache directory (timestamped runs)")
+    parser.add_argument("--variant", default=None, metavar="NAME",
+                        help="KiCad 10 design variant to analyze (default: the default variant)")
     add_text_arg(parser, help="Print human-readable text report to stdout")
     add_stage_audience_args(parser)
     add_only_deterministic_arg(parser)
@@ -61,6 +63,12 @@ def main(argv: list[str] | None = None) -> int:
     _empty_error = empty_input_error(args.schematic, 'kicad_sch')
     if _empty_error:
         parser.error(_empty_error)
+    if args.variant is not None:
+        from kicad_core.project import load_kicad_pro, unknown_variant_error
+        _variant_error = unknown_variant_error(
+            args.variant, load_kicad_pro(args.project_root or args.schematic))
+        if _variant_error:
+            parser.error(_variant_error)
 
     # Load project config (for project settings — suppressions applied to
     # EMC/thermal findings, not schematic warnings which lack rule_ids)
@@ -71,9 +79,9 @@ def main(argv: list[str] | None = None) -> int:
     analysis_cfg = _acfg if isinstance(_acfg, dict) else {}
 
     # Resolve canonical analysis_dir ONCE — used for both AnalysisContext
-    # (Phase 4d-active) and capability_mode_ref (Phase 4 §3.3). This must
+    # (its datasheet cache dir) and capability_mode_ref. This must
     # be the same path so `--analysis-dir X` writes outputs AND capability
-    # mode to the same X, not to ./analysis (audit Highest-Risk #4).
+    # mode to the same X, not to ./analysis.
     if args.analysis_dir:
         _analysis_dir_for_ctx = Path(args.analysis_dir)
     elif args.output:
@@ -82,11 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         _analysis_dir_for_ctx = Path(analysis_cfg.get("output_dir") or "analysis")
 
     # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id ==
-    # capability_mode_ref.run_id (Phase 4 spec §3.3, audit Highest-Risk #5).
+    # capability_mode_ref.run_id.
     # First-writer-wins side effect: creates capability_mode.json if absent.
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir_for_ctx)
 
-    # Build inputs provenance block (Track 1.3).
+    # Build inputs provenance block.
     _sch_path = Path(args.schematic)
     _cfg_path = Path(resolved_cfg.hash_input) if resolved_cfg.hash_input else None
     inputs = build_inputs(
@@ -99,7 +107,9 @@ def main(argv: list[str] | None = None) -> int:
     result = analyze_schematic(args.schematic,
                                project_root=args.project_root,
                                no_hierarchy=args.no_hierarchy,
-                               analysis_dir=_analysis_dir_for_ctx)
+                               analysis_dir=_analysis_dir_for_ctx,
+                               variant=args.variant,
+                               power_rails_config=analysis_cfg.get("power_rails"))
     # Inject provenance and drop the legacy 'file' key (already removed
     # from internal result assembly, but belt-and-suspenders).
     diagnostics = result.pop("diagnostics", [])
@@ -109,14 +119,14 @@ def main(argv: list[str] | None = None) -> int:
     result.pop("file", None)
 
     finalize_for_cli(result, config, schematic_path=args.schematic, lifecycle=args.lifecycle,
-                     stage=args.stage, audience=args.audience, diagnostics=diagnostics)
+                     stage=args.stage, diagnostics=diagnostics)
 
     if args.text:
         from output_filters import format_text
         print(format_text(result.get('findings', []), args.audience or 'designer', args.stage))
         return 0
 
-    # Wire capability_mode_ref (Phase 4 spec §3.3). Already resolved early
+    # Wire capability_mode_ref. Already resolved early
     # so inputs.run_id and capability_mode_ref.run_id match.
     result["capability_mode_ref"] = _capability_mode_ref
 
@@ -131,7 +141,7 @@ def main(argv: list[str] | None = None) -> int:
                           diff_threshold=analysis_cfg.get("diff_threshold", "major"),
                           retention=int(analysis_cfg.get("retention", 0) or 0))
     elif args.output:
-        Path(args.output).write_text(output)
+        Path(args.output).write_text(output, encoding="utf-8", newline="\n")
         print(f"Written to {args.output}", file=sys.stderr)
     else:
         print(output)
@@ -139,4 +149,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

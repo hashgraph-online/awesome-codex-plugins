@@ -18,8 +18,14 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 import sys
 from pathlib import Path
+
+_HERE = str(Path(__file__).resolve().parent)
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+from bom_fields import POPULATE_UNFITTED  # noqa: E402
 
 
 # --- Header field synonyms (loose-match dictionaries) -----------------------
@@ -40,6 +46,21 @@ PNP_ROT_FIELDS = ("rotation", "rot", "angle")
 # --- Markers that indicate a row should be skipped --------------------------
 
 DNP_MARKERS = ("no stuff", "dnp", "do not populate", "dni", "noload", "no load")
+# A marker counts only as a whole token: part numbers such as OPT4003DNPRQ1 contain one.
+_DNP_MARKER_RE = re.compile(
+    r"(?<![a-z0-9])(?:" + "|".join(re.escape(m) for m in DNP_MARKERS) + r")(?![a-z0-9])"
+)
+
+# Columns that mark a row unfitted, matched on the whole header cell. KiCad's BOM
+# export writes "DNP" with the text DNP or nothing; a population column says
+# whether the part is fitted.
+DNP_COL_FIELDS = ("dnp", "${dnp}", "do not populate", "do not place", "dnm", "dni")
+POP_COL_FIELDS = ("populate", "fitted")
+_DNP_COL_CLEAR = ("", "0", "no", "false", "n", "-", "n/a", "na", "none")
+
+# KiCad writes a run of three or more references as R1-R4 (same prefix at both ends).
+_RANGE_RE = re.compile(r"^(.*\D)(\d+)-\1(\d+)$")
+_RANGE_MAX = 10000
 PCB_MARKERS = ("pcb,", "bare pcb", "pcb-")
 
 # Header-row detection: scan first N rows, pick the one with the most matches.
@@ -97,11 +118,36 @@ def _is_dnp(value: str) -> bool:
     True
     >>> _is_dnp("100nF")
     False
+    >>> _is_dnp("OPT4003DNPRQ1")
+    False
     """
     if not value:
         return False
-    v = value.strip().lower()
-    return any(m in v for m in DNP_MARKERS)
+    return _DNP_MARKER_RE.search(value.strip().lower()) is not None
+
+
+def _exact_col(header: list[str], candidates: tuple[str, ...]) -> int | None:
+    """Index of the first header cell equal to a candidate (not a substring match:
+    "Do Not Populate" must not read as a population column)."""
+    for i, cell in enumerate(header):
+        if (cell or "").strip().lower() in candidates:
+            return i
+    return None
+
+
+def _row_is_dnp(raw: list[str], val: str, col_dnp: int | None, col_pop: int | None) -> bool:
+    """DNP from the value text, a DNP column that is set, or a population column
+    that says unfitted."""
+    if _is_dnp(val):
+        return True
+    if col_dnp is not None and col_dnp < len(raw):
+        if (raw[col_dnp] or "").strip().lower() not in _DNP_COL_CLEAR:
+            return True
+    if col_pop is not None and col_pop < len(raw):
+        cell = (raw[col_pop] or "").strip()
+        if cell.lower() in POPULATE_UNFITTED or _is_dnp(cell):
+            return True
+    return False
 
 
 def _is_pcb_marker(value: str) -> bool:
@@ -157,6 +203,10 @@ UNIT_TO_MM = {
 }
 
 
+class UnitsRequired(ValueError):
+    """A coordinate has no unit and none was given."""
+
+
 def _parse_units_from_header(header_cell: str) -> str:
     """Extract a unit hint from a header cell like 'Mid X (mil)' → 'mil'.
 
@@ -207,8 +257,12 @@ def _coord_to_mm(cell: str, default_unit: str) -> float | None:
         value = float(s)
     except ValueError:
         return None
-    factor = UNIT_TO_MM.get(default_unit, 1.0) if default_unit else 1.0
-    return value * factor
+    if default_unit not in UNIT_TO_MM:
+        raise UnitsRequired(
+            "coordinates carry no unit; pass --units mm|in|mil "
+            "(KiCad position CSVs have no unit marker; kicad-cli exports inches by default)"
+        )
+    return value * UNIT_TO_MM[default_unit]
 
 
 def _normalize_layer(cell: str) -> str:
@@ -273,6 +327,13 @@ def main(argv: list[str] | None = None) -> int:
     p_pnp.add_argument("input", help="Input CPL file (.csv).")
     p_pnp.add_argument("-o", "--output", required=True, help="Output CSV path.")
     p_pnp.add_argument(
+        "--units",
+        choices=("mm", "in", "mil"),
+        help="Unit of bare-number coordinates. A unit in the header or in a "
+             "cell wins. Required for a KiCad position CSV (no unit marker; "
+             "kicad-cli exports inches by default).",
+    )
+    p_pnp.add_argument(
         "--bom",
         help="BOM CSV path. If supplied, CPL rows whose designators are not in "
              "the BOM are dropped (avoids JLCPCB upload rejection on orphans).",
@@ -289,7 +350,12 @@ def main(argv: list[str] | None = None) -> int:
             parser.error(f"{args.input}: xlsx input is not supported; save the BOM as CSV and rerun")
         stats = translate_bom(args.input, args.output)
     elif args.cmd == "pnp":
-        stats = translate_pnp(args.input, args.output, bom_filter_path=args.bom)
+        try:
+            stats = translate_pnp(
+                args.input, args.output, bom_filter_path=args.bom, units=args.units
+            )
+        except UnitsRequired as exc:
+            parser.error(str(exc))
     else:
         parser.error(f"Unknown command: {args.cmd}")
 
@@ -338,6 +404,8 @@ def translate_bom(input_path: str, output_path: str) -> dict:
     col_mpn = _find_col(header, BOM_MPN_FIELDS)
     col_mfg = _find_col(header, BOM_MFG_FIELDS)
     col_qty = _find_col(header, BOM_QTY_FIELDS)
+    col_dnp = _exact_col(header, DNP_COL_FIELDS)
+    col_pop = _exact_col(header, POP_COL_FIELDS)
 
     if col_des is None or col_val is None:
         raise ValueError(
@@ -390,11 +458,13 @@ def translate_bom(input_path: str, output_path: str) -> dict:
             stats["skipped_pcb_marker"] += 1
             current = None
             continue
-        if _is_dnp(val):
+        if _row_is_dnp(raw, val, col_dnp, col_pop):
             stats["skipped_dnp"] += 1
             current = None
             continue
 
+        if any(_RANGE_RE.match(tok) for tok in re.split(r"[\s,;]+", des)):
+            des = ",".join(_expand_designators(des))
         current = {
             "designator": des,
             "value": val,
@@ -443,10 +513,17 @@ def translate_bom(input_path: str, output_path: str) -> dict:
 
 
 def _expand_designators(field: str) -> list[str]:
-    """Split a comma/whitespace-separated designator list into individual refs.
+    """Split a comma/whitespace-separated designator list into individual refs,
+    expanding KiCad's ``R1-R4`` ranges (same prefix, ascending).
 
     >>> _expand_designators("C1, C2, C5")
     ['C1', 'C2', 'C5']
+    >>> _expand_designators("R1-R3,R7")
+    ['R1', 'R2', 'R3', 'R7']
+    >>> _expand_designators("R01-R03")
+    ['R01', 'R02', 'R03']
+    >>> _expand_designators("R4-R1")
+    ['R4-R1']
     >>> _expand_designators("R1")
     ['R1']
     >>> _expand_designators("C1; C2")
@@ -458,7 +535,17 @@ def _expand_designators(field: str) -> list[str]:
         return []
     for sep in (",", ";"):
         field = field.replace(sep, " ")
-    return [tok.strip() for tok in field.split() if tok.strip()]
+    out: list[str] = []
+    for tok in field.split():
+        m = _RANGE_RE.match(tok)
+        lo, hi = (m.group(2), m.group(3)) if m else ("", "")
+        padded = any(len(n) > 1 and n.startswith("0") for n in (lo, hi))
+        # R01-R03 keeps its width; ends with different widths and a leading zero are not a range
+        if m and 0 < int(hi) - int(lo) < _RANGE_MAX and (not padded or len(lo) == len(hi)):
+            out.extend(f"{m.group(1)}{n:0{len(lo) if padded else 0}d}" for n in range(int(lo), int(hi) + 1))
+        else:
+            out.append(tok)
+    return out
 
 
 def _read_bom_designators(bom_path: str) -> set[str]:
@@ -479,23 +566,39 @@ def _read_bom_designators(bom_path: str) -> set[str]:
             f"BOM at {bom_path} has no Designator column (header row {header_idx}: {header})"
         )
 
+    col_val = _find_col(header, BOM_VAL_FIELDS)
+    col_dnp = _exact_col(header, DNP_COL_FIELDS)
+    col_pop = _exact_col(header, POP_COL_FIELDS)
     refs: set[str] = set()
     for raw in rows[header_idx + 1 :]:
         if col_des >= len(raw):
+            continue
+        val = (raw[col_val] or "").strip() if col_val is not None and col_val < len(raw) else ""
+        if _row_is_dnp(raw, val, col_dnp, col_pop):
             continue
         refs.update(_expand_designators(raw[col_des]))
     return refs
 
 
 def translate_pnp(
-    input_path: str, output_path: str, *, bom_filter_path: str | None = None
+    input_path: str,
+    output_path: str,
+    *,
+    bom_filter_path: str | None = None,
+    units: str | None = None,
 ) -> dict:
     """Translate a CPL file to JLCPCB Pick-and-Place format.
 
     If ``bom_filter_path`` is supplied, CPL rows whose designators are
     not present in the BOM are dropped (avoids JLCPCB upload rejection
     on orphan designators).
+
+    A unit named in the Mid X / Mid Y header wins over ``units``, which
+    fills in when the header has none. A bare-number coordinate with
+    neither raises ``UnitsRequired``.
     """
+    if units is not None and units not in ("mm", "in", "mil"):
+        raise ValueError(f"units must be mm, in or mil, not {units!r}")
     rows = _read_csv_rows(input_path)
     if not rows:
         raise ValueError(f"CPL is empty: {input_path}")
@@ -518,7 +621,7 @@ def translate_pnp(
 
     default_x_unit = _parse_units_from_header(header[col_x])
     default_y_unit = _parse_units_from_header(header[col_y])
-    default_unit = default_x_unit or default_y_unit  # whichever has a hint
+    default_unit = default_x_unit or default_y_unit or (units or "")
     if default_unit:
         default_x_unit = default_x_unit or default_unit
         default_y_unit = default_y_unit or default_unit
@@ -527,7 +630,7 @@ def translate_pnp(
         "input": input_path,
         "output": output_path,
         "header_row": header_idx,
-        "default_unit": default_unit or "mm",
+        "default_unit": default_unit,
         "rows_in": 0,
         "rows_out": 0,
         "skipped_no_coords": 0,
@@ -546,44 +649,48 @@ def translate_pnp(
             return ""
         return (row[idx] or "").strip()
 
+    out_rows: list[list[str]] = []
+
+    for raw in data_rows:
+        stats["rows_in"] += 1
+        if not any((c or "").strip() for c in raw):
+            continue
+
+        ref = _cell(raw, col_ref)
+        if not ref:
+            continue
+
+        if bom_designators is not None and ref not in bom_designators:
+            stats["filtered_orphans"] += 1
+            if len(stats["filtered_orphan_samples"]) < 15:
+                stats["filtered_orphan_samples"].append(ref)
+            continue
+
+        x_mm = _coord_to_mm(_cell(raw, col_x), default_x_unit)
+        y_mm = _coord_to_mm(_cell(raw, col_y), default_y_unit)
+        if x_mm is None or y_mm is None:
+            stats["skipped_no_coords"] += 1
+            continue
+
+        layer = _normalize_layer(_cell(raw, col_layer))
+        rotation = _cell(raw, col_rot) or "0"
+
+        out_rows.append(
+            [
+                ref,
+                f"{x_mm:.4f}mm",
+                f"{y_mm:.4f}mm",
+                layer,
+                rotation,
+            ]
+        )
+        stats["rows_out"] += 1
+
+    # Written only after every row parsed, so a usage error leaves no file.
     with open(output_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
-
-        for raw in data_rows:
-            stats["rows_in"] += 1
-            if not any((c or "").strip() for c in raw):
-                continue
-
-            ref = _cell(raw, col_ref)
-            if not ref:
-                continue
-
-            if bom_designators is not None and ref not in bom_designators:
-                stats["filtered_orphans"] += 1
-                if len(stats["filtered_orphan_samples"]) < 15:
-                    stats["filtered_orphan_samples"].append(ref)
-                continue
-
-            x_mm = _coord_to_mm(_cell(raw, col_x), default_x_unit)
-            y_mm = _coord_to_mm(_cell(raw, col_y), default_y_unit)
-            if x_mm is None or y_mm is None:
-                stats["skipped_no_coords"] += 1
-                continue
-
-            layer = _normalize_layer(_cell(raw, col_layer))
-            rotation = _cell(raw, col_rot) or "0"
-
-            writer.writerow(
-                [
-                    ref,
-                    f"{x_mm:.4f}mm",
-                    f"{y_mm:.4f}mm",
-                    layer,
-                    rotation,
-                ]
-            )
-            stats["rows_out"] += 1
+        writer.writerows(out_rows)
 
     return stats
 
@@ -610,7 +717,7 @@ def _self_test() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         in_path = Path(tmp) / "bom_in.csv"
         out_path = Path(tmp) / "bom_out.csv"
-        in_path.write_text(bom_csv)
+        in_path.write_text(bom_csv, encoding="utf-8", newline="\n")
 
         stats = translate_bom(str(in_path), str(out_path))
 
@@ -630,13 +737,15 @@ def _self_test() -> int:
                 f"{stats['continuation_rows_merged']}"
             )
 
-        out_text = out_path.read_text()
-        if "alt MPN: GRM155R71C104KA88" not in out_text:
-            failures.append("BOM output missing alt-MPN notes column")
-        if "DO NOT POPULATE" in out_text:
-            failures.append("BOM output unexpectedly contains DNP row")
-        if "Bare PCB" in out_text:
-            failures.append("BOM output unexpectedly contains PCB-marker row")
+        with open(out_path, newline="", encoding="utf-8") as f:
+            out_rows = list(csv.DictReader(f))
+        if [r["Designator"] for r in out_rows] != ["C1", "R1", "U1"]:
+            failures.append(
+                f"BOM designators: expected ['C1', 'R1', 'U1'], got "
+                f"{[r['Designator'] for r in out_rows]}"
+            )
+        elif out_rows[0]["Notes"] != "alt MPN: GRM155R71C104KA88":
+            failures.append(f"BOM C1 notes: got {out_rows[0]['Notes']!r}")
 
     # --- PNP translation: mil-unit CPL with TopLayer/BottomLayer + bare numeric ---
     pnp_csv = (
@@ -651,7 +760,7 @@ def _self_test() -> int:
     with tempfile.TemporaryDirectory() as tmp:
         in_path = Path(tmp) / "cpl_in.csv"
         out_path = Path(tmp) / "cpl_out.csv"
-        in_path.write_text(pnp_csv)
+        in_path.write_text(pnp_csv, encoding="utf-8", newline="\n")
         stats = translate_pnp(str(in_path), str(out_path))
 
         if stats["rows_out"] != 3:
@@ -665,17 +774,15 @@ def _self_test() -> int:
                 f"PNP default_unit: expected 'mil', got {stats['default_unit']!r}"
             )
 
-        out_text = out_path.read_text()
+        with open(out_path, newline="", encoding="utf-8") as f:
+            cpl_rows = {r["Designator"]: r for r in csv.DictReader(f)}
         # 100 mil = 2.54 mm, 200 mil = 5.08 mm
-        if "2.5400mm" not in out_text or "5.0800mm" not in out_text:
-            failures.append(
-                "PNP output missing expected mil→mm conversion (2.5400mm/5.0800mm)"
-            )
-        # Layer normalization
-        if ",T," not in out_text:
-            failures.append("PNP output missing normalized 'T' layer")
-        if ",B," not in out_text:
-            failures.append("PNP output missing normalized 'B' layer")
+        r1 = cpl_rows.get("R1", {})
+        if (r1.get("Mid X"), r1.get("Mid Y")) != ("2.5400mm", "5.0800mm"):
+            failures.append(f"PNP R1 position: got {(r1.get('Mid X'), r1.get('Mid Y'))}")
+        layers = {k: v.get("Layer") for k, v in cpl_rows.items()}
+        if layers != {"R1": "T", "C1": "B", "U1": "T"}:
+            failures.append(f"PNP layers: got {layers}")
 
     # --- PNP with --bom filter: drops CPL rows whose designators aren't in BOM ---
     bom_for_filter = (
@@ -695,8 +802,8 @@ def _self_test() -> int:
         bom_path = Path(tmp) / "bom_for_filter.csv"
         cpl_path = Path(tmp) / "cpl_for_filter.csv"
         out_path = Path(tmp) / "cpl_out_filtered.csv"
-        bom_path.write_text(bom_for_filter)
-        cpl_path.write_text(cpl_for_filter)
+        bom_path.write_text(bom_for_filter, encoding="utf-8", newline="\n")
+        cpl_path.write_text(cpl_for_filter, encoding="utf-8", newline="\n")
 
         stats = translate_pnp(
             str(cpl_path), str(out_path), bom_filter_path=str(bom_path)
@@ -721,9 +828,10 @@ def _self_test() -> int:
                 f"PNP-filter bom_designators: expected 2, got {stats['bom_designators']}"
             )
 
-        out_text = out_path.read_text()
-        if "U1," in out_text or "TP1," in out_text:
-            failures.append("PNP-filter output unexpectedly contains orphan designators")
+        with open(out_path, newline="", encoding="utf-8") as f:
+            kept = sorted(r["Designator"] for r in csv.DictReader(f))
+        if kept != ["C1", "R1"]:
+            failures.append(f"PNP-filter kept designators: expected ['C1', 'R1'], got {kept}")
 
     if failures:
         print("self-test: FAIL")
@@ -736,4 +844,8 @@ def _self_test() -> int:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     sys.exit(main())

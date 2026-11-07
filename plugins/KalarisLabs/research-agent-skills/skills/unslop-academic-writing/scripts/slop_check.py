@@ -101,6 +101,7 @@ COMPILED = [(re.compile(p, re.I | re.M), w, c, h) for p, w, c, h in PATTERNS]
 
 @dataclass
 class Finding:
+    """Finding."""
     line: int
     category: str
     weight: float
@@ -109,12 +110,13 @@ class Finding:
 
 
 def read_input(path: str) -> str:
+    """Read input."""
     if path == "-":
         return sys.stdin.read()
     if path.lower().endswith(".docx"):
         with zipfile.ZipFile(path) as z:
             xml = z.read("word/document.xml").decode("utf-8")
-        xml = re.sub(r"</w:p>", "\n", xml)
+        xml = xml.replace("</w:p>", "\n")
         return re.sub(r"<[^>]+>", "", xml)
     with open(path, encoding="utf-8") as fh:
         return fh.read()
@@ -141,7 +143,7 @@ def prose_lines(text: str) -> list[tuple[int, str]]:
             continue
         line = re.sub(r"(?<!\\)%.*", "", line)                              # LaTeX comments
         line = re.sub(r"\$\$.*?\$\$|\$[^$]*\$|\\\(.*?\\\)|\\\[.*?\\\]", " ", line)  # math
-        line = re.sub(r"\\(?:cite[tp]?|citep|citet|ref|eqref|label|autoref|cref|url|href)\*?(?:\[[^\]]*\])*\{[^}]*\}", " ", line)
+        line = re.sub(r"\\(?:cite[tp]?|ref|eqref|label|autoref|cref|url|href)\*?(?:\[[^\]]*\])*\{[^}]*\}", " ", line)
         line = re.sub(r"\\(?:textbf|textit|emph|underline|section|subsection|subsubsection|paragraph|caption)\*?\{([^}]*)\}",
                       r"\1", line)
         line = re.sub(r"\\[a-zA-Z]+\*?(?:\[[^\]]*\])?", " ", line)          # remaining commands
@@ -156,12 +158,14 @@ def prose_lines(text: str) -> list[tuple[int, str]]:
 
 
 def split_sentences(text: str) -> list[str]:
+    """Split sentences."""
     text = re.sub(r"\b(e\.g|i\.e|et al|cf|vs|Fig|Figs|Eq|Eqs|Tab|approx|resp|ca|Dr|Mr|Ms|No)\.", r"\1<DOT>", text)
     parts = re.split(r"(?<=[.!?])\s+(?=[A-Z0-9\"'(])", text)
     return [p.replace("<DOT>", ".").strip() for p in parts if len(p.split()) >= 3]
 
 
 def analyse(text: str) -> dict:
+    """Handle analyse."""
     lines = prose_lines(text)
     prose = "\n".join(t for _, t in lines)
     words = re.findall(r"[A-Za-z][A-Za-z'-]*", prose)
@@ -230,7 +234,14 @@ def analyse(text: str) -> dict:
                                 "Lists of three are overused. Keep only the items that matter."))
     weighted = sum(f.weight for f in findings)
     index = round(weighted / n_words * 1000 + penalty, 1)
-    band = "clean" if index < 5 else "some slop" if index < 15 else "heavy slop" if index < 30 else "severe slop"
+    if index < 5:
+        band = "clean"
+    elif index < 15:
+        band = "some slop"
+    elif index < 30:
+        band = "heavy slop"
+    else:
+        band = "severe slop"
     by_cat: dict[str, int] = {}
     for f in findings:
         by_cat[f.category] = by_cat.get(f.category, 0) + 1
@@ -239,6 +250,7 @@ def analyse(text: str) -> dict:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("path", help="file (.md .tex .txt .docx) or - for stdin")
     ap.add_argument("--json", action="store_true")

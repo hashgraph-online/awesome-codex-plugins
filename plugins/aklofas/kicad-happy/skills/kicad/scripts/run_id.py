@@ -11,6 +11,10 @@ Example: ``20260418T123456Z-a1b2c3``
 
 Deterministic overrides accepted via the ``now`` and ``rand_hex`` kwargs
 so tests can pin the output without mocking the clock or the RNG.
+
+This is the provenance ID stamped into analyzer output. The folder name of
+an analysis/ run (YYYY-MM-DD_HHMM) comes from
+``analysis_cache.generate_run_folder_name``.
 """
 from __future__ import annotations
 

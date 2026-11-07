@@ -23,7 +23,7 @@ def create_notebook(name, description=""):
     response = requests.post(f"{BASE_URL}/notebooks", json={
         "name": name,
         "description": description,
-    })
+    }, timeout=30)
     response.raise_for_status()
     notebook = response.json()
     print(f"Created notebook: {notebook['id']} - {notebook['name']}")
@@ -34,7 +34,7 @@ def list_notebooks(archived=False):
     """List all notebooks, optionally filtering by archived status."""
     response = requests.get(f"{BASE_URL}/notebooks", params={
         "archived": archived,
-    })
+    }, timeout=30)
     response.raise_for_status()
     notebooks = response.json()
     print(f"Found {len(notebooks)} notebook(s):")
@@ -47,7 +47,7 @@ def list_notebooks(archived=False):
 
 def get_notebook(notebook_id):
     """Retrieve a single notebook by ID."""
-    response = requests.get(f"{BASE_URL}/notebooks/{notebook_id}")
+    response = requests.get(f"{BASE_URL}/notebooks/{notebook_id}", timeout=30)
     response.raise_for_status()
     return response.json()
 
@@ -62,7 +62,8 @@ def update_notebook(notebook_id, name=None, description=None, archived=None):
     if archived is not None:
         payload["archived"] = archived
     response = requests.put(
-        f"{BASE_URL}/notebooks/{notebook_id}", json=payload
+        f"{BASE_URL}/notebooks/{notebook_id}", json=payload,
+        timeout=30,
     )
     response.raise_for_status()
     updated = response.json()
@@ -74,7 +75,8 @@ def delete_notebook(notebook_id, delete_sources=False):
     """Delete a notebook and optionally its exclusive sources."""
     # Preview what will be deleted
     preview = requests.get(
-        f"{BASE_URL}/notebooks/{notebook_id}/delete-preview"
+        f"{BASE_URL}/notebooks/{notebook_id}/delete-preview",
+        timeout=30,
     ).json()
     print(f"Deletion will affect {preview.get('note_count', 0)} notes "
           f"and {preview.get('source_count', 0)} sources")
@@ -82,6 +84,7 @@ def delete_notebook(notebook_id, delete_sources=False):
     response = requests.delete(
         f"{BASE_URL}/notebooks/{notebook_id}",
         params={"delete_sources": delete_sources},
+        timeout=30,
     )
     response.raise_for_status()
     print(f"Deleted notebook: {notebook_id}")
@@ -90,7 +93,8 @@ def delete_notebook(notebook_id, delete_sources=False):
 def link_source_to_notebook(notebook_id, source_id):
     """Associate an existing source with a notebook."""
     response = requests.post(
-        f"{BASE_URL}/notebooks/{notebook_id}/sources/{source_id}"
+        f"{BASE_URL}/notebooks/{notebook_id}/sources/{source_id}",
+        timeout=30,
     )
     response.raise_for_status()
     print(f"Linked source {source_id} to notebook {notebook_id}")
@@ -99,7 +103,8 @@ def link_source_to_notebook(notebook_id, source_id):
 def unlink_source_from_notebook(notebook_id, source_id):
     """Remove the association between a source and a notebook."""
     response = requests.delete(
-        f"{BASE_URL}/notebooks/{notebook_id}/sources/{source_id}"
+        f"{BASE_URL}/notebooks/{notebook_id}/sources/{source_id}",
+        timeout=30,
     )
     response.raise_for_status()
     print(f"Unlinked source {source_id} from notebook {notebook_id}")

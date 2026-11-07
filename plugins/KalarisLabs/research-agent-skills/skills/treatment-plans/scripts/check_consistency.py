@@ -22,9 +22,11 @@ from _common import (
 
 
 def _collect_ids(documents: dict[str, dict]) -> list[tuple[str, str]]:
+    """Collect ids."""
     values: list[tuple[str, str]] = []
 
     def collect(records: list, field: str, path: str) -> None:
+        """Collect."""
         for index, record in enumerate(records):
             if isinstance(record, dict) and isinstance(record.get(field), str):
                 values.append((f"{path}[{index}].{field}", record[field]))
@@ -102,15 +104,17 @@ def _collect_ids(documents: dict[str, dict]) -> list[tuple[str, str]]:
 def _duplicate_reference_issues(
     value: Any, path: str = "$"
 ) -> list[Issue]:
+    """Handle duplicate reference issues."""
     issues: list[Issue] = []
     if isinstance(value, dict):
         for key, nested in value.items():
             nested_path = f"{path}.{key}"
-            if key.endswith("_ids") and isinstance(nested, list):
-                if len(nested) != len(set(nested)):
-                    issues.append(
-                        Issue("DUPLICATE_REFERENCE_IN_LIST", nested_path)
-                    )
+            if (
+                key.endswith("_ids")
+                and isinstance(nested, list)
+                and len(nested) != len(set(nested))
+            ):
+                issues.append(Issue("DUPLICATE_REFERENCE_IN_LIST", nested_path))
             issues.extend(_duplicate_reference_issues(nested, nested_path))
     elif isinstance(value, list):
         for index, nested in enumerate(value):
@@ -120,7 +124,182 @@ def _duplicate_reference_issues(
     return issues
 
 
+_TRANSITION_PREFIX = "transition_reconciliation_record:"
+_HANDOFF_PREFIX = "intended_use_handoff_record:"
+_RECONCILIATION_PATH = f"{_TRANSITION_PREFIX}$.medication_reconciliation"
+
+
+def _flag(issues: list[Issue], condition: object, code: str, path: str) -> None:
+    """Append an issue with ``code`` at ``path`` when ``condition`` is truthy."""
+    if condition:
+        issues.append(Issue(code, path))
+
+
+def _check_document_consistency(
+    documents: dict[str, dict],
+    subject_ref: object,
+    classification: object,
+    issues: list[Issue],
+) -> None:
+    """Check each document's subject, classification and duplicate list references."""
+    for document_type, document in documents.items():
+        _flag(
+            issues,
+            document["subject_ref"] != subject_ref,
+            "SUBJECT_REFERENCE_MISMATCH",
+            f"{document_type}:$.subject_ref",
+        )
+        _flag(
+            issues,
+            document["data_classification"] != classification,
+            "DATA_CLASSIFICATION_MISMATCH",
+            f"{document_type}:$.data_classification",
+        )
+        issues.extend(
+            Issue(issue.code, f"{document_type}:{issue.path}", issue.level)
+            for issue in _duplicate_reference_issues(document)
+        )
+
+
+def _check_intervention_dates(interventions: list[dict], issues: list[Issue]) -> None:
+    """Flag interventions whose explicit start date falls after their end date."""
+    for index, record in enumerate(interventions):
+        start = record["start_date"]
+        end = record["end_date"]
+        _flag(
+            issues,
+            start is not None
+            and end is not None
+            and date.fromisoformat(start) > date.fromisoformat(end),
+            "INTERVENTION_DATE_ORDER_INVALID",
+            f"clinician_authored_intervention_record:$.interventions[{index}]",
+        )
+
+
+def _check_checkpoint_links(
+    planning: dict,
+    goal_ids: set[str],
+    intervention_ids: set[str],
+    issues: list[Issue],
+) -> None:
+    """Flag checkpoints that link to unknown goals or interventions."""
+    for index, checkpoint in enumerate(planning["checkpoints"]):
+        base = f"goals_monitoring_checkpoint_record:$.checkpoints[{index}]"
+        for reference_index, goal_id in enumerate(checkpoint["linked_goal_ids"]):
+            _flag(
+                issues,
+                goal_id not in goal_ids,
+                "CHECKPOINT_UNKNOWN_GOAL",
+                f"{base}.linked_goal_ids[{reference_index}]",
+            )
+        for reference_index, intervention_id in enumerate(
+            checkpoint["linked_intervention_ids"]
+        ):
+            _flag(
+                issues,
+                intervention_id not in intervention_ids,
+                "CHECKPOINT_UNKNOWN_INTERVENTION",
+                f"{base}.linked_intervention_ids[{reference_index}]",
+            )
+
+
+def _check_reconciliation_consistency(
+    reconciliation: dict, issues: list[Issue]
+) -> None:
+    """Check that the medication reconciliation fields agree with its status."""
+    status = reconciliation["status"]
+    if status == "pending_authorized_review":
+        _flag(
+            issues,
+            reconciliation["completed_by_role"]
+            or reconciliation["completed_at"] is not None,
+            "PENDING_RECONCILIATION_HAS_COMPLETION_DATA",
+            _RECONCILIATION_PATH,
+        )
+    elif status == "not_applicable_by_authorized_clinician":
+        _flag(
+            issues,
+            reconciliation["source_list_fact_ids"]
+            or reconciliation["destination_list_fact_ids"],
+            "NOT_APPLICABLE_RECONCILIATION_HAS_LIST_REFERENCES",
+            _RECONCILIATION_PATH,
+        )
+    elif status == "completed_by_authorized_clinician":
+        _flag(
+            issues,
+            not reconciliation["completed_by_role"]
+            or reconciliation["completed_at"] is None,
+            "COMPLETED_RECONCILIATION_MISSING_REVIEW",
+            _RECONCILIATION_PATH,
+        )
+
+
+def _check_release_consistency(
+    handoff_document: dict, classification: object, issues: list[Issue]
+) -> None:
+    """Check privacy classification and the release gate against sign-off and handoff state."""
+    _flag(
+        issues,
+        handoff_document["privacy_process"]["data_classification"] != classification,
+        "PRIVACY_CLASSIFICATION_MISMATCH",
+        f"{_HANDOFF_PREFIX}$.privacy_process.data_classification",
+    )
+    release = handoff_document["release_gate"]
+    if release["status"] != "released_for_authorized_documentation_handoff":
+        return
+    _flag(
+        issues,
+        handoff_document["clinician_signoff"]["status"] != "signed",
+        "RELEASE_WITHOUT_CLINICIAN_SIGNOFF",
+        f"{_HANDOFF_PREFIX}$.release_gate.status",
+    )
+    _flag(
+        issues,
+        release["blocker_codes"],
+        "RELEASE_WITH_BLOCKERS",
+        f"{_HANDOFF_PREFIX}$.release_gate.blocker_codes",
+    )
+    _flag(
+        issues,
+        handoff_document["handoff"]["acknowledgment_status"] != "acknowledged",
+        "RELEASE_WITHOUT_HANDOFF_ACKNOWLEDGMENT",
+        f"{_HANDOFF_PREFIX}$.handoff.acknowledgment_status",
+    )
+
+
+def _optional_datetime(value: str | None):
+    """Parse an ISO datetime, passing None through unchanged."""
+    return parse_iso_datetime(value) if value is not None else None
+
+
+def _check_timestamp_order(handoff_document: dict, issues: list[Issue]) -> None:
+    """Check that sign-off, privacy review, release and handoff timestamps are ordered."""
+    signed_at = _optional_datetime(handoff_document["clinician_signoff"]["signed_at"])
+    released_at = _optional_datetime(handoff_document["release_gate"]["released_at"])
+    sent_at = _optional_datetime(handoff_document["handoff"]["sent_at"])
+    reviewed_at = _optional_datetime(handoff_document["privacy_process"]["reviewed_at"])
+    _flag(
+        issues,
+        signed_at and released_at and signed_at > released_at,
+        "SIGNOFF_AFTER_RELEASE",
+        f"{_HANDOFF_PREFIX}$.release_gate.released_at",
+    )
+    _flag(
+        issues,
+        released_at and sent_at and released_at > sent_at,
+        "RELEASE_AFTER_HANDOFF_SENT",
+        f"{_HANDOFF_PREFIX}$.handoff.sent_at",
+    )
+    _flag(
+        issues,
+        reviewed_at and released_at and reviewed_at > released_at,
+        "PRIVACY_REVIEW_AFTER_RELEASE",
+        f"{_HANDOFF_PREFIX}$.privacy_process.reviewed_at",
+    )
+
+
 def check_consistency(documents: dict[str, dict]) -> dict:
+    """Check identifiers, links, classifications, status coherence and explicit date order."""
     issues = validate_package_structure(documents)
     if issues:
         return report_payload(
@@ -130,51 +309,20 @@ def check_consistency(documents: dict[str, dict]) -> dict:
         )
 
     handoff_document = documents["intended_use_handoff_record"]
-    subject_ref = handoff_document["subject_ref"]
     classification = handoff_document["data_classification"]
-    for document_type, document in documents.items():
-        if document["subject_ref"] != subject_ref:
-            issues.append(
-                Issue(
-                    "SUBJECT_REFERENCE_MISMATCH",
-                    f"{document_type}:$.subject_ref",
-                )
-            )
-        if document["data_classification"] != classification:
-            issues.append(
-                Issue(
-                    "DATA_CLASSIFICATION_MISMATCH",
-                    f"{document_type}:$.data_classification",
-                )
-            )
-        issues.extend(
-            Issue(issue.code, f"{document_type}:{issue.path}", issue.level)
-            for issue in _duplicate_reference_issues(document)
-        )
+    _check_document_consistency(
+        documents, handoff_document["subject_ref"], classification, issues
+    )
 
     seen: set[str] = set()
     for path, identifier in _collect_ids(documents):
-        if identifier in seen:
-            issues.append(Issue("GLOBAL_RECORD_ID_COLLISION", path))
+        _flag(issues, identifier in seen, "GLOBAL_RECORD_ID_COLLISION", path)
         seen.add(identifier)
 
     interventions = documents[
         "clinician_authored_intervention_record"
     ]["interventions"]
-    for index, record in enumerate(interventions):
-        start = record["start_date"]
-        end = record["end_date"]
-        if start is not None and end is not None:
-            if date.fromisoformat(start) > date.fromisoformat(end):
-                issues.append(
-                    Issue(
-                        "INTERVENTION_DATE_ORDER_INVALID",
-                        (
-                            "clinician_authored_intervention_record:"
-                            f"$.interventions[{index}]"
-                        ),
-                    )
-                )
+    _check_intervention_dates(interventions, issues)
 
     planning = documents["goals_monitoring_checkpoint_record"]
     goal_ids = record_ids(planning, "goals", "goal_id")
@@ -183,166 +331,13 @@ def check_consistency(documents: dict[str, dict]) -> dict:
         "interventions",
         "intervention_id",
     )
-    for index, checkpoint in enumerate(planning["checkpoints"]):
-        base = (
-            "goals_monitoring_checkpoint_record:"
-            f"$.checkpoints[{index}]"
-        )
-        for reference_index, goal_id in enumerate(
-            checkpoint["linked_goal_ids"]
-        ):
-            if goal_id not in goal_ids:
-                issues.append(
-                    Issue(
-                        "CHECKPOINT_UNKNOWN_GOAL",
-                        f"{base}.linked_goal_ids[{reference_index}]",
-                    )
-                )
-        for reference_index, intervention_id in enumerate(
-            checkpoint["linked_intervention_ids"]
-        ):
-            if intervention_id not in intervention_ids:
-                issues.append(
-                    Issue(
-                        "CHECKPOINT_UNKNOWN_INTERVENTION",
-                        (
-                            f"{base}.linked_intervention_ids"
-                            f"[{reference_index}]"
-                        ),
-                    )
-                )
-
-    transition = documents["transition_reconciliation_record"]
-    reconciliation = transition["medication_reconciliation"]
-    if reconciliation["status"] == "pending_authorized_review":
-        if reconciliation["completed_by_role"] or reconciliation[
-            "completed_at"
-        ] is not None:
-            issues.append(
-                Issue(
-                    "PENDING_RECONCILIATION_HAS_COMPLETION_DATA",
-                    (
-                        "transition_reconciliation_record:"
-                        "$.medication_reconciliation"
-                    ),
-                )
-            )
-    elif reconciliation["status"] == "not_applicable_by_authorized_clinician":
-        if (
-            reconciliation["source_list_fact_ids"]
-            or reconciliation["destination_list_fact_ids"]
-        ):
-            issues.append(
-                Issue(
-                    "NOT_APPLICABLE_RECONCILIATION_HAS_LIST_REFERENCES",
-                    (
-                        "transition_reconciliation_record:"
-                        "$.medication_reconciliation"
-                    ),
-                )
-            )
-    elif reconciliation["status"] == "completed_by_authorized_clinician":
-        if (
-            not reconciliation["completed_by_role"]
-            or reconciliation["completed_at"] is None
-        ):
-            issues.append(
-                Issue(
-                    "COMPLETED_RECONCILIATION_MISSING_REVIEW",
-                    (
-                        "transition_reconciliation_record:"
-                        "$.medication_reconciliation"
-                    ),
-                )
-            )
-
-    privacy = handoff_document["privacy_process"]
-    signoff = handoff_document["clinician_signoff"]
-    release = handoff_document["release_gate"]
-    handoff = handoff_document["handoff"]
-
-    if privacy["data_classification"] != classification:
-        issues.append(
-            Issue(
-                "PRIVACY_CLASSIFICATION_MISMATCH",
-                (
-                    "intended_use_handoff_record:"
-                    "$.privacy_process.data_classification"
-                ),
-            )
-        )
-
-    if release["status"] == "released_for_authorized_documentation_handoff":
-        if signoff["status"] != "signed":
-            issues.append(
-                Issue(
-                    "RELEASE_WITHOUT_CLINICIAN_SIGNOFF",
-                    "intended_use_handoff_record:$.release_gate.status",
-                )
-            )
-        if release["blocker_codes"]:
-            issues.append(
-                Issue(
-                    "RELEASE_WITH_BLOCKERS",
-                    (
-                        "intended_use_handoff_record:"
-                        "$.release_gate.blocker_codes"
-                    ),
-                )
-            )
-        if handoff["acknowledgment_status"] != "acknowledged":
-            issues.append(
-                Issue(
-                    "RELEASE_WITHOUT_HANDOFF_ACKNOWLEDGMENT",
-                    (
-                        "intended_use_handoff_record:"
-                        "$.handoff.acknowledgment_status"
-                    ),
-                )
-            )
-
-    signed_at = (
-        parse_iso_datetime(signoff["signed_at"])
-        if signoff["signed_at"] is not None
-        else None
+    _check_checkpoint_links(planning, goal_ids, intervention_ids, issues)
+    _check_reconciliation_consistency(
+        documents["transition_reconciliation_record"]["medication_reconciliation"],
+        issues,
     )
-    released_at = (
-        parse_iso_datetime(release["released_at"])
-        if release["released_at"] is not None
-        else None
-    )
-    sent_at = (
-        parse_iso_datetime(handoff["sent_at"])
-        if handoff["sent_at"] is not None
-        else None
-    )
-    reviewed_at = (
-        parse_iso_datetime(privacy["reviewed_at"])
-        if privacy["reviewed_at"] is not None
-        else None
-    )
-
-    if signed_at and released_at and signed_at > released_at:
-        issues.append(
-            Issue(
-                "SIGNOFF_AFTER_RELEASE",
-                "intended_use_handoff_record:$.release_gate.released_at",
-            )
-        )
-    if released_at and sent_at and released_at > sent_at:
-        issues.append(
-            Issue(
-                "RELEASE_AFTER_HANDOFF_SENT",
-                "intended_use_handoff_record:$.handoff.sent_at",
-            )
-        )
-    if reviewed_at and released_at and reviewed_at > released_at:
-        issues.append(
-            Issue(
-                "PRIVACY_REVIEW_AFTER_RELEASE",
-                "intended_use_handoff_record:$.privacy_process.reviewed_at",
-            )
-        )
+    _check_release_consistency(handoff_document, classification, issues)
+    _check_timestamp_order(handoff_document, issues)
 
     issues.sort(key=lambda item: (item.path, item.code))
     return report_payload(
@@ -361,6 +356,7 @@ def check_consistency(documents: dict[str, dict]) -> dict:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check identifiers, links, classifications, status coherence, and "
@@ -372,6 +368,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         documents, _ = load_package(args.package)

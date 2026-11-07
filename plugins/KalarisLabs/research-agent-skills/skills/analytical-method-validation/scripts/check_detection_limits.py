@@ -54,9 +54,11 @@ from _common import (  # noqa: E402
 
 DL_FACTOR = 3.3
 QL_FACTOR = 10.0
+REF_SD_SLOPE = "Q2(R2) 3.2.3.3"
 
 
-def main() -> int:
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the command-line argument parser."""
     parser = argparse.ArgumentParser(
         description="Estimate detection and quantitation limits per ICH Q2(R2) 3.2.3."
     )
@@ -78,8 +80,11 @@ def main() -> int:
                         help="impurity reporting threshold the QL must be at or below")
     parser.add_argument("--weight", choices=("none", "1/x", "1/x2"), default="none")
     add_common_args(parser)
-    args = parser.parse_args()
+    return parser
 
+
+def _fit_calibration(args: argparse.Namespace):
+    """Read the calibration file and fit the (optionally weighted) line."""
     rows = parse_rows(read_input(args.calibration), args.calibration)
     require_columns(rows, ["level", "response"])
     xs = [to_float(r["level"], "level", i) for i, r in enumerate(rows)]
@@ -91,187 +96,202 @@ def main() -> int:
         power = 1 if args.weight == "1/x" else 2
         weights = [1.0 / (abs(x) ** power) for x in xs]
     fit = fit_linear(xs, ys, weights)
-    slope = fit.slope
-    if slope == 0:
+    if fit.slope == 0:
         raise InputError("calibration slope is zero; DL/QL cannot be computed")
+    return fit
 
-    findings: list[str] = []
-    results: list[dict] = []
 
-    # Approach 3.2.3.3, sigma = residual SD of the regression line.
-    results.append(
-        {
-            "approach": "sd-and-slope (sigma = residual SD of regression)",
-            "sigma": fit.residual_sd,
-            "slope": slope,
-            "DL": DL_FACTOR * fit.residual_sd / abs(slope),
-            "QL": QL_FACTOR * fit.residual_sd / abs(slope),
-            "reference": "Q2(R2) 3.2.3.3",
-        }
+def _sd_slope_result(approach: str, sigma: float, slope: float) -> dict:
+    """Build a 3.2.3.3 result row for one choice of sigma."""
+    return {
+        "approach": approach,
+        "sigma": sigma,
+        "slope": slope,
+        "DL": DL_FACTOR * sigma / abs(slope),
+        "QL": QL_FACTOR * sigma / abs(slope),
+        "reference": REF_SD_SLOPE,
+    }
+
+
+def _blank_result(args: argparse.Namespace, slope: float) -> dict:
+    """Build the blank-SD result row, validating the blank measurements."""
+    brows = parse_rows(read_input(args.blanks), args.blanks)
+    require_columns(brows, ["response"])
+    blanks = [to_float(r["response"], "response", i) for i, r in enumerate(brows)]
+    if len(blanks) < 3:
+        raise InputError("blank SD needs at least 3 blank measurements")
+    bsd = sample_sd(blanks)
+    result = _sd_slope_result(f"sd-and-slope (sigma = SD of {len(blanks)} blanks)", bsd, slope)
+    note(f"blank mean response {mean(blanks):.6g}, SD {bsd:.6g}, n={len(blanks)}")
+    return result
+
+
+def _signal_to_noise_result(args: argparse.Namespace, slope: float) -> dict:
+    """Build the signal-to-noise (3.2.3.2) result row."""
+    if args.sn_level is None:
+        raise InputError("--signal-to-noise needs --sn-level")
+    if args.signal_to_noise <= 0 or args.sn_level <= 0:
+        raise InputError("--signal-to-noise and --sn-level must be > 0")
+    per_unit = args.signal_to_noise / args.sn_level
+    result = {
+        "approach": f"signal-to-noise (S/N {args.signal_to_noise:g} at {args.sn_level:g})",
+        "sigma": float("nan"),
+        "slope": slope,
+        "DL": 3.0 / per_unit,
+        "QL": 10.0 / per_unit,
+        "reference": "Q2(R2) 3.2.3.2",
+    }
+    note(
+        "signal-to-noise DL uses the 3:1 ratio and QL the 10:1 ratio from Q2(R2) 3.2.3.2, "
+        "scaled linearly from the measured S/N. Linear scaling of noise is an assumption -- "
+        "confirm at the resulting level"
     )
+    return result
 
-    # Approach 3.2.3.3, sigma = SD of the y-intercept.
-    results.append(
-        {
-            "approach": "sd-and-slope (sigma = SD of y-intercept)",
-            "sigma": fit.se_intercept,
-            "slope": slope,
-            "DL": DL_FACTOR * fit.se_intercept / abs(slope),
-            "QL": QL_FACTOR * fit.se_intercept / abs(slope),
-            "reference": "Q2(R2) 3.2.3.3",
-        }
-    )
 
-    # Approach 3.2.3.3, sigma = SD of blank responses.
+def _estimate_results(args: argparse.Namespace, fit) -> list[dict]:
+    """Compute DL/QL by every applicable approach."""
+    slope = fit.slope
+    results = [
+        _sd_slope_result("sd-and-slope (sigma = residual SD of regression)",
+                         fit.residual_sd, slope),
+        _sd_slope_result("sd-and-slope (sigma = SD of y-intercept)", fit.se_intercept, slope),
+    ]
     if args.blanks:
-        brows = parse_rows(read_input(args.blanks), args.blanks)
-        require_columns(brows, ["response"])
-        blanks = [to_float(r["response"], "response", i) for i, r in enumerate(brows)]
-        if len(blanks) < 3:
-            raise InputError("blank SD needs at least 3 blank measurements")
-        bsd = sample_sd(blanks)
-        results.append(
-            {
-                "approach": f"sd-and-slope (sigma = SD of {len(blanks)} blanks)",
-                "sigma": bsd,
-                "slope": slope,
-                "DL": DL_FACTOR * bsd / abs(slope),
-                "QL": QL_FACTOR * bsd / abs(slope),
-                "reference": "Q2(R2) 3.2.3.3",
-            }
-        )
-        note(f"blank mean response {mean(blanks):.6g}, SD {bsd:.6g}, n={len(blanks)}")
-
-    # Approach 3.2.3.2, signal-to-noise.
+        results.append(_blank_result(args, slope))
     if args.signal_to_noise is not None:
-        if args.sn_level is None:
-            raise InputError("--signal-to-noise needs --sn-level")
-        if args.signal_to_noise <= 0 or args.sn_level <= 0:
-            raise InputError("--signal-to-noise and --sn-level must be > 0")
-        per_unit = args.signal_to_noise / args.sn_level
-        results.append(
-            {
-                "approach": f"signal-to-noise (S/N {args.signal_to_noise:g} at {args.sn_level:g})",
-                "sigma": float("nan"),
-                "slope": slope,
-                "DL": 3.0 / per_unit,
-                "QL": 10.0 / per_unit,
-                "reference": "Q2(R2) 3.2.3.2",
-            }
-        )
-        note(
-            "signal-to-noise DL uses the 3:1 ratio and QL the 10:1 ratio from Q2(R2) 3.2.3.2, "
-            "scaled linearly from the measured S/N. Linear scaling of noise is an assumption -- "
-            "confirm at the resulting level"
-        )
+        results.append(_signal_to_noise_result(args, slope))
+    return results
 
-    # Spread across approaches: the point of computing all of them.
-    qls = [r["QL"] for r in results if math.isfinite(r["QL"])]
-    spread_note = ""
-    if len(qls) >= 2:
-        ratio = max(qls) / min(qls) if min(qls) > 0 else float("inf")
-        spread_note = (
-            f"QL estimates span {min(qls):.6g} to {max(qls):.6g} ({ratio:.2f}x) across "
-            f"{len(qls)} approaches"
-        )
-        if ratio > 2.0:
-            findings.append(
-                spread_note
-                + ": name the approach used in the report, and confirm the claimed limit with "
-                "real data at that level (Q2(R2) 3.2.3.5)"
-            )
 
-    # QL confirmation with real data (Q2(R2) 3.2.3.4 / 3.2.3.5).
-    confirm_rows: list[dict] = []
-    if args.confirm_data:
-        if args.confirm_ql is None:
-            raise InputError("--confirm-data needs --confirm-ql")
-        crows = parse_rows(read_input(args.confirm_data), args.confirm_data)
-        require_columns(crows, ["measured"])
-        measured = [to_float(r["measured"], "measured", i) for i, r in enumerate(crows)]
-        if len(measured) < 3:
-            raise InputError("QL confirmation needs at least 3 determinations")
-        m = mean(measured)
-        bias = 100.0 * (m - args.confirm_ql) / args.confirm_ql
-        rsd = rsd_percent(measured)
-        confirm_rows = [
-            {"metric": "claimed QL", "value": args.confirm_ql},
-            {"metric": "n determinations", "value": len(measured)},
-            {"metric": "mean measured", "value": m},
-            {"metric": "bias vs claimed QL (%)", "value": bias},
-            {"metric": "RSD (%)", "value": rsd},
-            {"metric": "accuracy limit (%)", "value": args.confirm_accuracy_limit},
-            {"metric": "RSD limit (%)", "value": args.confirm_rsd_limit},
-        ]
-        if abs(bias) > args.confirm_accuracy_limit:
-            findings.append(
-                f"QL confirmation: bias {bias:+.2f}% at the claimed QL exceeds "
-                f"+/-{args.confirm_accuracy_limit:g}%"
-            )
-        if math.isfinite(rsd) and rsd > args.confirm_rsd_limit:
-            findings.append(
-                f"QL confirmation: {rsd:.2f}% RSD at the claimed QL exceeds "
-                f"{args.confirm_rsd_limit:g}%"
-            )
-    elif args.confirm_ql is not None:
-        note(
-            "a QL was claimed but no confirmation data supplied. Q2(R2) 3.2.3.5 asks that an "
-            "estimated limit be validated by analysing samples at or near it"
+def _spread_findings(qls: list[float], findings: list[str]) -> str:
+    """Describe the QL spread across approaches; flag it when it exceeds 2x."""
+    if len(qls) < 2:
+        return ""
+    ratio = max(qls) / min(qls) if min(qls) > 0 else float("inf")
+    spread_note = (
+        f"QL estimates span {min(qls):.6g} to {max(qls):.6g} ({ratio:.2f}x) across "
+        f"{len(qls)} approaches"
+    )
+    if ratio > 2.0:
+        findings.append(
+            spread_note
+            + ": name the approach used in the report, and confirm the claimed limit with "
+            "real data at that level (Q2(R2) 3.2.3.5)"
         )
+    return spread_note
 
-    # The requirement that actually gates an impurity method.
-    if args.reporting_threshold is not None:
-        # With no claimed QL, use the LARGEST estimate. Taking the smallest would
-        # let the check pass on the most flattering choice of sigma, which is the
-        # wrong direction to err on a compliance requirement.
-        conservative = max(qls) if qls else float("nan")
-        claimed = args.confirm_ql if args.confirm_ql is not None else conservative
-        if args.confirm_ql is None and qls:
+
+def _confirmation(args: argparse.Namespace, findings: list[str]) -> list[dict]:
+    """Confirm the claimed QL with real data (Q2(R2) 3.2.3.4 / 3.2.3.5)."""
+    if not args.confirm_data:
+        if args.confirm_ql is not None:
             note(
-                f"no --confirm-ql given, so the reporting-threshold check uses the most "
-                f"conservative estimate ({conservative:.6g}), not the most favourable "
-                f"({min(qls):.6g})"
+                "a QL was claimed but no confirmation data supplied. Q2(R2) 3.2.3.5 asks that an "
+                "estimated limit be validated by analysing samples at or near it"
             )
-            if min(qls) <= args.reporting_threshold < conservative:
-                findings.append(
-                    f"the QL estimates straddle the reporting threshold "
-                    f"{args.reporting_threshold:.6g}: {min(qls):.6g} would pass and "
-                    f"{conservative:.6g} would not. Whether this procedure meets Q2(R2) "
-                    "3.2.3.5 depends on which approach is chosen, so choose it, justify it, "
-                    "and confirm the claimed limit with data at that level"
-                )
-        if math.isfinite(claimed) and claimed > args.reporting_threshold:
-            findings.append(
-                f"QL {claimed:.6g} is above the reporting threshold "
-                f"{args.reporting_threshold:.6g}. Q2(R2) 3.2.3.5 requires the QL for an "
-                "impurity procedure to be at or below the reporting threshold"
-            )
-        elif math.isfinite(claimed):
-            ratio = args.reporting_threshold / claimed if claimed > 0 else float("inf")
-            if math.isclose(ratio, 1.0, rel_tol=1e-9):
-                note(
-                    f"QL {claimed:.6g} sits exactly at the reporting threshold "
-                    f"{args.reporting_threshold:.6g}, which satisfies Q2(R2) 3.2.3.5 with no "
-                    "margin -- any drift puts the procedure out of compliance"
-                )
-            else:
-                note(
-                    f"QL {claimed:.6g} is {ratio:.1f}x below the reporting threshold "
-                    f"{args.reporting_threshold:.6g}"
-                )
-            if ratio >= 10:
-                note(
-                    "the QL is roughly 10x or more below the reporting limit, so Q2(R2) 3.2.3.5 "
-                    "allows the confirmatory validation to be omitted with justification"
-                )
+        return []
+    if args.confirm_ql is None:
+        raise InputError("--confirm-data needs --confirm-ql")
+    crows = parse_rows(read_input(args.confirm_data), args.confirm_data)
+    require_columns(crows, ["measured"])
+    measured = [to_float(r["measured"], "measured", i) for i, r in enumerate(crows)]
+    if len(measured) < 3:
+        raise InputError("QL confirmation needs at least 3 determinations")
+    m = mean(measured)
+    bias = 100.0 * (m - args.confirm_ql) / args.confirm_ql
+    rsd = rsd_percent(measured)
+    confirm_rows = [
+        {"metric": "claimed QL", "value": args.confirm_ql},
+        {"metric": "n determinations", "value": len(measured)},
+        {"metric": "mean measured", "value": m},
+        {"metric": "bias vs claimed QL (%)", "value": bias},
+        {"metric": "RSD (%)", "value": rsd},
+        {"metric": "accuracy limit (%)", "value": args.confirm_accuracy_limit},
+        {"metric": "RSD limit (%)", "value": args.confirm_rsd_limit},
+    ]
+    if abs(bias) > args.confirm_accuracy_limit:
+        findings.append(
+            f"QL confirmation: bias {bias:+.2f}% at the claimed QL exceeds "
+            f"+/-{args.confirm_accuracy_limit:g}%"
+        )
+    if math.isfinite(rsd) and rsd > args.confirm_rsd_limit:
+        findings.append(
+            f"QL confirmation: {rsd:.2f}% RSD at the claimed QL exceeds "
+            f"{args.confirm_rsd_limit:g}%"
+        )
+    return confirm_rows
 
+
+def _straddle_check(args: argparse.Namespace, qls: list[float], conservative: float,
+                    findings: list[str]) -> None:
+    """Note the conservative estimate used, and flag QLs that straddle the threshold."""
+    note(
+        f"no --confirm-ql given, so the reporting-threshold check uses the most "
+        f"conservative estimate ({conservative:.6g}), not the most favourable "
+        f"({min(qls):.6g})"
+    )
+    if min(qls) <= args.reporting_threshold < conservative:
+        findings.append(
+            f"the QL estimates straddle the reporting threshold "
+            f"{args.reporting_threshold:.6g}: {min(qls):.6g} would pass and "
+            f"{conservative:.6g} would not. Whether this procedure meets Q2(R2) "
+            "3.2.3.5 depends on which approach is chosen, so choose it, justify it, "
+            "and confirm the claimed limit with data at that level"
+        )
+
+
+def _margin_notes(args: argparse.Namespace, claimed: float) -> None:
+    """Report how far the claimed QL sits below the reporting threshold."""
+    ratio = args.reporting_threshold / claimed if claimed > 0 else float("inf")
+    if math.isclose(ratio, 1.0, rel_tol=1e-9):
+        note(
+            f"QL {claimed:.6g} sits exactly at the reporting threshold "
+            f"{args.reporting_threshold:.6g}, which satisfies Q2(R2) 3.2.3.5 with no "
+            "margin -- any drift puts the procedure out of compliance"
+        )
+    else:
+        note(
+            f"QL {claimed:.6g} is {ratio:.1f}x below the reporting threshold "
+            f"{args.reporting_threshold:.6g}"
+        )
+    if ratio >= 10:
+        note(
+            "the QL is roughly 10x or more below the reporting limit, so Q2(R2) 3.2.3.5 "
+            "allows the confirmatory validation to be omitted with justification"
+        )
+
+
+def _reporting_threshold_check(args: argparse.Namespace, qls: list[float],
+                               findings: list[str]) -> None:
+    """Check the QL against the reporting threshold that gates an impurity method."""
+    # With no claimed QL, use the LARGEST estimate. Taking the smallest would
+    # let the check pass on the most flattering choice of sigma, which is the
+    # wrong direction to err on a compliance requirement.
+    conservative = max(qls) if qls else float("nan")
+    claimed = args.confirm_ql if args.confirm_ql is not None else conservative
+    if args.confirm_ql is None and qls:
+        _straddle_check(args, qls, conservative, findings)
+    if math.isfinite(claimed) and claimed > args.reporting_threshold:
+        findings.append(
+            f"QL {claimed:.6g} is above the reporting threshold "
+            f"{args.reporting_threshold:.6g}. Q2(R2) 3.2.3.5 requires the QL for an "
+            "impurity procedure to be at or below the reporting threshold"
+        )
+    elif math.isfinite(claimed):
+        _margin_notes(args, claimed)
+
+
+def _emit_results(args: argparse.Namespace, fit, results: list[dict],
+                  confirm_rows: list[dict], findings: list[str]) -> None:
+    """Print the estimates (and confirmation) in the requested format."""
     if args.format == "json":
         emit(
             [
                 {
                     "calibration": {
                         "n": fit.n,
-                        "slope": slope,
+                        "slope": fit.slope,
                         "intercept": fit.intercept,
                         "residual_sd": fit.residual_sd,
                         "weighting": args.weight,
@@ -283,11 +303,31 @@ def main() -> int:
             ],
             "json",
         )
-    else:
-        emit(results, args.format)
-        if confirm_rows:
-            print()
-            emit(confirm_rows, args.format)
+        return
+    emit(results, args.format)
+    if confirm_rows:
+        print()
+        emit(confirm_rows, args.format)
+
+
+def main() -> int:
+    """Run the command-line interface."""
+    args = _build_parser().parse_args()
+
+    fit = _fit_calibration(args)
+    findings: list[str] = []
+    results = _estimate_results(args, fit)
+
+    # Spread across approaches: the point of computing all of them.
+    qls = [r["QL"] for r in results if math.isfinite(r["QL"])]
+    spread_note = _spread_findings(qls, findings)
+
+    confirm_rows = _confirmation(args, findings)
+
+    if args.reporting_threshold is not None:
+        _reporting_threshold_check(args, qls, findings)
+
+    _emit_results(args, fit, results, confirm_rows, findings)
 
     if not args.confirm_data:
         note(

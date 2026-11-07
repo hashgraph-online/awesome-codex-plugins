@@ -302,7 +302,7 @@ def citation_key(authors: str, year: str, title: str) -> str:
 
     surname = sanitize_key(surname) or 'unknown'
 
-    digits = re.sub(r'[^0-9]', '', str(year or ''))
+    digits = re.sub(r'\D', '', str(year or ''))
     year_part = digits[:4] if digits else 'XXXX'
 
     words = re.findall(r'[A-Za-z]{4,}', _ascii_fold(title or ''))

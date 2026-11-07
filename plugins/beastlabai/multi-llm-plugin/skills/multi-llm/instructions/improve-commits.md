@@ -252,8 +252,8 @@ While you run it:
 | `apply-code-fixes.md` | steps 1–10: the orchestrator with the flags line, the decision summary, the batch loop, the judge's decisions, step 7's verification, step 8's summary report at `{plan}/apply-fixes/summary.md`, its `**Plan**:` line written `**Commit brief**:`, with its `util metrics report` and `util report regenerate-decisions` calls, step 9's `## Code Fixes Applied` section, appended to the brief below its `<!-- /multi-llm:commit-brief -->` line (never above it: the header above that line is the plugin's), and step 10's `--mark-completed` once the loop reached its end | the *Then report to the user* paragraph after step 10 |
 
 On a host that adds `--exec-subagents` the apply finishes in its one orchestrator
-call, writing `summary.md` and the decision badges itself, exactly as that core says;
-do not run its native loop a second time. A core that stops early under its own rules
+call, run detached as that core's step 2 says, writing `summary.md` and the decision
+badges itself; do not run its native loop a second time. A core that stops early under its own rules
 (a partial application, a protected write, a batch that failed, a failed
 verification, an interrupted run) stops there, and section 3 reports the stop.
 
@@ -266,8 +266,8 @@ whose text after the tag `apply-code-fixes.md` step 7 asks for word for word.
 
 A step is done when the last call of its phase's own mode exits `0` or `2`: the
 review's `--reaggregate` (or, with no validation owed, the run its poll loop ended
-on), and the apply's `--mark-completed` (or its one orchestrator call under
-`--exec-subagents`), never a `util` call after it.
+on), and the apply's `--mark-completed` (or, under `--exec-subagents`, the `status` poll
+that finds its detached orchestrator call finished), never a `util` call after it.
 
 For steps 1 and 2, on exit `1` or `3`, or when the phase core stopped under its own
 rules (row 14), a `[COMMIT_PROTECTED_WRITE]` refusal included:

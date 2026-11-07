@@ -5,7 +5,7 @@ description: >-
   analysis — validates filter frequencies, divider ratios, opamp gains, LC
   resonance, and crystal load capacitance. Supports ngspice, LTspice, and Xyce
   (auto-detected). Generates testbenches, runs batch mode, produces structured
-  pass/warn/fail report. Use when the user asks to simulate, verify, or
+  pass/warn/fail/info report. Use when the user asks to simulate, verify, or
   validate any analog subcircuit — RC filters, LC filters, voltage dividers,
   opamp circuits, crystal oscillators. Also for "simulate my circuit", "run
   spice", "verify with simulation", "check my filter cutoff", "does this
@@ -57,8 +57,8 @@ python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --analy
 
 Pass `--analysis-dir analysis/` — the script auto-resolves `schematic.json`
 from the manifest's current run, writes `spice.json` into the same run
-folder, and parks intermediate `.cir` / `.raw` files at
-`<run>/spice_work/` by default.
+folder, and parks intermediate `.cir` / `.raw` files in a new
+`spice_sim_*` folder under `<run>/spice_work/` by default.
 
 ```bash
 # Recommended: auto-resolve schematic + write spice.json into the current run
@@ -70,7 +70,7 @@ python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --output sim_
 # Simulate specific types only
 python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --types rc_filters,voltage_dividers
 
-# Keep simulation files for debugging (default: <run>/spice_work/ when --analysis-dir is set, else a temp dir)
+# Keep simulation files for debugging in a new spice_sim_* folder inside the directory (default: <run>/spice_work/ when --analysis-dir is set, else a temp dir)
 python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --workdir ./spice_runs
 
 # Increase timeout for complex circuits (default: 5s per subcircuit)
@@ -80,9 +80,10 @@ python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --
 python3 <skill-path>/scripts/simulate_subcircuits.py --analysis-dir analysis/ --compact
 ```
 
+To run a complete user-supplied deck (PSpice is explicit-only; the deck is trusted input), see "External Decks and PSpice" in the repository's `spice-integration.md`.
 ### Step 2b (optional): PCB parasitic-aware simulation
 
-When both schematic and PCB exist, run parasitic-annotated simulation for more accurate results on analog circuits:
+When both schematic and PCB exist, low-pass RC filters can be simulated with the PCB trace resistance and via inductance of their output net:
 
 ```bash
 # Analyze PCB with full trace segment detail
@@ -95,9 +96,9 @@ python3 <skill-path>/scripts/extract_parasitics.py pcb.json --output parasitics.
 python3 <skill-path>/scripts/simulate_subcircuits.py analysis.json --parasitics parasitics.json --output sim_report.json
 ```
 
-With `--parasitics`, testbenches include trace resistance and via inductance between components. The report shows the parasitic impact — e.g., "48mΩ trace resistance shifts RC filter fc down 0.3%."
+With `--parasitics`, low-pass RC-filter testbenches insert the PCB trace resistance and via inductance of the filter's output net (matched by its exact net name) between R and C. Other testbenches ignore the parasitics file, and extracted coupling capacitance and via resistance are not inserted. The report shows the simulated result with those elements in place; it does not compare against the ideal run.
 
-**When to use parasitic simulation:** Consider it when the design has high-impedance feedback networks (>100kΩ), LC filters or RF matching networks, long analog signal traces, or high-frequency circuits where trace inductance matters. For typical digital designs with low-impedance power regulation, the ideal simulation is sufficient.
+**When to use parasitic simulation:** to see whether layout series R/L moves a low-pass RC filter. It does not model LC filters, op-amp feedback networks, RF matching or crosstalk; for typical designs the ideal simulation is sufficient.
 
 ### Step 2c (optional): Monte Carlo tolerance analysis
 
@@ -134,22 +135,22 @@ The script selects subcircuits from the analyzer's `findings[]` array (grouped b
 | Detector | Analysis | What's Measured | Model Fidelity | Trustworthiness |
 |----------|----------|-----------------|----------------|-----------------|
 | `rc_filters` | AC sweep | -3dB frequency, phase at fc | Exact (ideal passives) | High — mathematically exact |
-| `lc_filters` | AC sweep | Resonant frequency, Q factor, bandwidth | Near-exact (ideal L/C + ESR) | High — small Q error from ESR |
+| `lc_filters` | AC sweep | Resonant frequency (status); Q factor, bandwidth of the assumed ESR | Near-exact (ideal L/C + assumed ESR) | High for resonance; Q is the bench's assumption |
 | `voltage_dividers` | DC operating point | Output voltage, error % | Exact (ideal passives) | High — unloaded |
 | `feedback_networks` | DC operating point | FB pin voltage, regulator Vout | Exact (ideal passives) | High — cross-refs power_regulators |
 | `opamp_circuits` | AC sweep | Gain, -3dB bandwidth | Per-part or ideal | High with behavioral model, medium with ideal |
-| `crystal_circuits` | AC impedance | Load capacitance validation | Approximate (generic BVD) | Medium |
-| `transistor_circuits` | DC sweep | Threshold voltage, on-state current | Approximate (generic FET/BJT) | Medium |
-| `current_sense` | DC operating point | Current at 50mV/100mV drop | Exact (ideal resistor) | High |
+| `crystal_circuits` | AC sweep | Series and load resonance, pulling, Rm (`info`); calculated CL range | Approximate (generic BVD) | Medium |
+| `transistor_circuits` | DC sweep | Threshold voltage, on-state current (`info`: generic model's values; a PNP bench `warn`s, not measured) | Approximate (generic FET/BJT) | Low |
+| `current_sense` | DC operating point | Current at 50mV/100mV drop (`info` without an expected current) | Exact (ideal resistor) | High |
 | `protection_devices` | DC sweep | Diode presence, clamping onset | Approximate (generic diode) | Low |
 | `decoupling_analysis` | AC impedance | PDN impedance profile | Exact + ESR estimates | High for passives |
-| `power_regulators` | DC operating point | Feedback divider Vout | Exact (ideal passives) | High |
-| `rf_matching` | AC sweep | Matching network resonance | Exact (ideal L/C) | High |
-| `bridge_circuits` | DC sweep | FET switching verification | Approximate (generic) | Medium |
-| `snubber_circuits` | AC impedance | Snubber damping frequency | Exact (ideal R/C) | High |
-| `rf_chains` | Gain budget | Per-stage gain/loss estimate | Heuristic | Low — role-based |
+| `power_regulators` | DC operating point | FB voltage vs the part's Vref at the rail's named voltage (`info` when Vref is not from the part, its table entry is a family prefix shorter than the part number or comes from a symbol whose value names another part, an arm is a pot/trimmer, the divider top is not on the output rail, or the rail name carries no voltage) | Exact (ideal passives) | High |
+| `rf_matching` | AC sweep | Impedance profile (`info`); L/pi/T networks with shunt elements are skipped | Exact (ideal L/C) | Low — series-chained bench |
+| `bridge_circuits` | DC sweep | Low-side turn-on threshold and on-state current (`info`: generic model's values) | Approximate (generic) | Low |
+| `snubber_circuits` | AC impedance | Snubber damping frequency and the R·C time constant (`info`; `warn` when the time constant is outside 1 ns–100 µs) | Exact (ideal R/C) | High |
+| `rf_chains` | Gain budget | Per-stage gain/loss estimate (`info`; `warn` outside -30..+40 dB) | Heuristic | Low — role-based |
 | `bms_systems` | DC operating point | Cell balance resistor validation | Exact | High |
-| `inrush_analysis` | Transient | Inrush current profile | Approximate | Medium |
+| `inrush_analysis` | Transient | Peak inrush current and the time it is first reached (`info`: on the assumed soft-start, not compared against a limit) | Approximate | Medium |
 
 ### What is NOT simulated
 
@@ -165,7 +166,7 @@ The script selects subcircuits from the analyzer's `findings[]` array (grouped b
 
 ```json
 {
-  "summary": {"total": 5, "pass": 3, "warn": 1, "fail": 0, "skip": 1},
+  "summary": {"total": 5, "pass": 3, "warn": 1, "fail": 0, "skip": 1, "info": 0},
   "simulation_results": [
     {
       "subcircuit_type": "rc_filter",
@@ -173,7 +174,7 @@ The script selects subcircuits from the analyzer's `findings[]` array (grouped b
       "filter_type": "low-pass",
       "status": "pass",
       "expected": {"fc_hz": 15915, "type": "low-pass"},
-      "simulated": {"fc_hz": 15878, "phase_at_fc_deg": -0.78},
+      "simulated": {"fc_hz": 15878, "phase_at_fc_deg": -45},
       "delta": {"fc_error_pct": 0.23},
       "cir_file": "/tmp/spice_sim_xxx/rc-filter_R5_C3.cir",
       "log_file": "/tmp/spice_sim_xxx/rc-filter_R5_C3.log",
@@ -190,7 +191,7 @@ The script selects subcircuits from the analyzer's `findings[]` array (grouped b
 
 | Status | Meaning | Action |
 |--------|---------|--------|
-| **pass** | Simulation confirms the analyzer's detection within tolerance | Report as confirmed. No action needed. |
+| **pass** / **info** | pass: measured and within tolerance of the check's criterion. info: measured, but the bench has no criterion (no expected value, or the part model is generic) | Report pass as confirmed; report info as a measurement, not a verification. |
 | **warn** | Simulation shows something worth noting — small deviation, model limitation, or edge case | Report with context. Often the "warn" reflects a real but minor issue (e.g., slight gain error from ideal opamp model). |
 | **fail** | Simulation contradicts the analyzer — wrong frequency, large gain error, unexpected behavior | Investigate. Could be a real design issue, a topology misdetection by the analyzer, or a testbench generation bug. Check the `.cir` file and log. |
 | **skip** | Could not simulate — missing data, unsupported configuration, simulator error | Note in report. Check the `note` field for the reason. |
@@ -210,7 +211,7 @@ In testing across real projects, passive simulations consistently show <0.3% err
 
 ### Opamp circuits
 
-For recognized parts (~100 common opamps in the lookup table), the skill uses a **per-part behavioral model** with the correct GBW, slew rate, input offset, and output swing. For unrecognized parts, it falls back to the ideal model (Aol=1e6, GBW=10MHz).
+For recognized parts (49 op-amps in the built-in table, more through distributor APIs), the skill uses a **per-part behavioral model** with the correct GBW, input offset, and output swing. For unrecognized parts, it falls back to the ideal model (Aol=1e6, GBW=10MHz).
 
 The `model_note` field in the report indicates which model was used:
 - `"LM358 behavioral (lookup:LM358, GBW=1.0MHz)"` — per-part model, bandwidth results are accurate
@@ -222,7 +223,7 @@ For opamps with behavioral models, gain-bandwidth limitation warnings are inform
 
 ### Crystal circuits
 
-Crystal simulations validate load capacitor selection — they check that the effective load capacitance is in a reasonable range for the crystal's specified CL. They use a generic Butterworth-Van Dyke equivalent circuit model with typical parameters, not the specific crystal's data. The primary value is catching missing or grossly wrong load capacitors, not precise frequency prediction.
+Crystal simulations measure series resonance on the crystal alone and load resonance with the load caps (summed per leg) in the C1 – crystal – C2 loop, and report the pulling as `info`: the generic Butterworth-Van Dyke model is built from the nominal frequency, not the specific crystal's data, so the bench has no pass criterion. They `warn` when the analyzer's calculated CL is outside 4-30 pF (catching missing or grossly wrong load capacitors) or a resonance was not measured (not found in the sweep, or an Rm read far from the model's showing the sweep did not resolve it).
 
 ### When simulations fail or skip
 
@@ -235,7 +236,7 @@ Check the `note` field first. Common causes:
 | "Testbench generation failed: KeyError" | Analyzer detection is missing expected fields | Check analyzer JSON — the detection may be incomplete |
 | "ngspice/ltspice/xyce failed: ..." | Simulator error | Check `.log` file for error messages |
 
-When debugging, use `--workdir` to preserve simulation files. The `.cir` file is a standard SPICE netlist that can be run manually (`ngspice -b file.cir`, or opened in LTspice/Xyce). The `.log` file contains simulator stdout/stderr.
+When debugging, use `--workdir` to preserve simulation files (each run writes them into a new `spice_sim_*` folder inside it). The `.cir` file is a standard SPICE netlist that can be run manually (`ngspice -n -b file.cir`, or opened in LTspice/Xyce). The `.log` file contains simulator stdout/stderr.
 
 ## Presenting Results to Users
 
@@ -298,9 +299,9 @@ For detailed information about the behavioral models used, their accuracy envelo
 | `scripts/simulate_subcircuits.py` | Main orchestrator — CLI entry point, reads JSON, generates testbenches, runs simulator, produces report |
 | `scripts/spice_templates.py` | Testbench generators per detector type — one function per detector name |
 | `scripts/spice_models.py` | Behavioral model definitions (ideal opamp, generic semiconductors), net sanitization, engineering notation formatting |
-| `scripts/spice_results.py` | Simulation output parsing and per-type evaluation with pass/warn/fail/skip logic |
+| `scripts/spice_results.py` | Simulation output parsing and per-type evaluation with pass/warn/fail/info/skip logic |
 | `scripts/spice_simulator.py` | Simulator backends — ngspice, LTspice, Xyce auto-detection and batch execution |
-| `scripts/spice_part_library.py` | Lookup table of electrical specs for ~100 common opamps, LDOs, comparators, voltage references, crystal drivers |
+| `scripts/spice_part_library.py` | Lookup table of electrical specs for 103 op-amps, LDOs, comparators and references, plus 24 crystal-driver and 10 MOSFET entries |
 | `scripts/spice_model_generator.py` | Parameterized behavioral .subckt generation from specs dicts |
 | `scripts/spice_model_cache.py` | Project-local model cache in `spice/models/` beside the schematic the analysis JSON names (`file` or `inputs.source_files[0]`); only an analysis that names no source file caches under the run's workdir (`--model-cache-dir` to share one cache) |
 | `scripts/spice_spec_fetcher.py` | Queries distributor APIs (LCSC, DigiKey, element14, Mouser), structured datasheet extractions, and PDF regex for parametric specs |
@@ -308,16 +309,16 @@ For detailed information about the behavioral models used, their accuracy envelo
 
 ## Per-Part Behavioral Models
 
-When the analyzer detects an opamp with a recognized MPN (e.g., LM358, TL072, MCP6002), the skill uses a **per-part behavioral model** instead of the generic ideal opamp. The model captures the actual GBW, slew rate, input offset, and output swing from the part's datasheet.
+When the analyzer detects an opamp with a recognized MPN (e.g., LM358, TL072, MCP6002), the skill uses a **per-part behavioral model** instead of the generic ideal opamp. The model captures the actual GBW, input offset, and output swing from the part's datasheet.
 
 Model resolution cascade:
 1. **Project cache** (`<project>/spice/models/`, beside the schematic the analysis JSON names) — previously resolved models
-2. **v1.4 typed datasheet facts** — via `lookup(mpn, cache_dir=<project>/datasheets/extracted)` from the `datasheets` skill. Returns `DatasheetFacts` with `opamp.gbw`, `opamp.slew_rate`, etc. as `SpecValue` instances with trust gating. Recommended source when present.
-3. **Distributor API specs** — queries LCSC (no auth), DigiKey, element14, Mouser for real parametric data
-4. **v1.3 structured datasheet extraction** — reads pre-extracted specs from `<project>/datasheets/extracted/` (legacy dict-shaped JSON, scored for quality). Dual-read compat path; still consulted when v1.4 cache misses.
-5. **Datasheet PDF regex extraction** — reads from `<project>/datasheets/`, extracts via text pattern matching (last resort)
-6. **Built-in lookup table** — ~100 common parts as offline fallback
-7. **Ideal model fallback** — if the MPN isn't recognized by any source
+2. **Distributor API specs** — LCSC (no key, needs network), then DigiKey, element14 and Mouser when their keys are set; the first source with usable specs wins
+3. **Legacy structured extraction** — a `spice_specs` record from `<project>/datasheets/extracted/` (score ≥ 6 of 10). It does not read v1.4 extractions, and in practice it finds nothing from the datasheets skill's cache; the typed `lookup()` facts are not used by this resolver.
+   This tier and the PDF tier run only when the analysis names its project.
+4. **Datasheet PDF regex extraction** — reads from `<project>/datasheets/`, extracts via text pattern matching (needs `pdftotext`)
+5. **Built-in lookup table** — 103 op-amps, LDOs, comparators and references as offline fallback
+6. **Ideal model fallback** — if the MPN isn't recognized by any source
 
 `--offline` skips the distributor and datasheet sources: only the project cache, the built-in lookup table and the ideal fallback are used.
 
@@ -328,8 +329,8 @@ Models are cached project-locally in a `spice/` directory beside the schematic t
 ## Known Limitations
 
 - **Voltage dividers are simulated unloaded.** The analyzer's ratio is R_bot/(R_top+R_bot) without loading. Adding a load resistor would make the simulation more "real" but would create false "errors" relative to the analyzer's calculated value. The purpose is to validate the calculation, not model the full circuit.
-- **LC filter Q factor uses estimated inductor ESR.** A default Q=100 is assumed for the inductor. Real inductor Q varies from 10 (power inductors) to 300+ (RF inductors). The resonant frequency is accurate regardless of Q.
-- **Opamp supply rails are inferred from net names.** May default to +/-5V if the power nets aren't labeled with voltage. Single-supply designs are detected when only VCC is found (VEE defaults to 0V).
-- **Per-part models cover ~100 common parts.** Uncommon opamps/LDOs fall back to ideal models. The lookup table can be extended by adding entries to `spice_part_library.py`.
-- **High-gain opamp circuits with realistic GBW** may show lower-than-expected gain at the 1 kHz measurement point when bandwidth is limited. This is physically correct behavior (the model correctly captures the GBW limitation) but may need lower-frequency measurement for accurate gain comparison.
+- **LC filter Q factor uses estimated inductor ESR.** A default Q=100 is assumed for the inductor, so the reported `Q_factor` reflects that assumption (`model_note`) and never sets the status. Real inductor Q varies from 10 (power inductors) to 300+ (RF inductors). The resonant frequency is accurate regardless of Q.
+- **Opamp supply rails are inferred from net names.** May default to +/-5V if the power nets aren't labeled with voltage. Negative rails are read from names like `-12V`, `NEG15V` or `-3V3`; a negative rail named without a voltage (`VEE`, `V-`, `-VCC`) is assumed at -VCC and the result's `model_note` says so. Single-supply designs are detected when only VCC is found (VEE defaults to 0V); their benches are biased at mid-supply, the stage's AC ground. A supply below the part model's minimum is never a pass: `warn` when the rails' voltages are in their net names, `info` when the supply was assumed.
+- **Per-part models cover 103 built-in parts.** Uncommon opamps/LDOs fall back to ideal models. The lookup table can be extended by adding entries to `spice_part_library.py`.
+- **High-gain opamp circuits with realistic GBW** may show lower-than-expected gain at the measurement point (GBW / (100 x gain), clamped to 1-1000 Hz) when bandwidth is limited. This is physically correct behavior (the model correctly captures the GBW limitation) but may need lower-frequency measurement for accurate gain comparison.
 - **Net names from the analyzer may be `__unnamed_N`.** These are KiCad internal net names for unlabeled wires. They work correctly in simulation but make `.cir` files less readable.

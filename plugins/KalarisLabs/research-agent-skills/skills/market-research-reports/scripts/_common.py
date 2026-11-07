@@ -148,6 +148,7 @@ def read_csv_records(
 
 
 def require_object(value: Any, context: str) -> dict[str, Any]:
+    """Handle require object."""
     if not isinstance(value, dict):
         raise ValidationError(f"{context} must be a JSON object")
     return value
@@ -160,6 +161,7 @@ def require_list(
     minimum: int = 0,
     maximum: int = MAX_ROWS,
 ) -> list[Any]:
+    """Handle require list."""
     if not isinstance(value, list):
         raise ValidationError(f"{context} must be a JSON array")
     if not minimum <= len(value) <= maximum:
@@ -176,6 +178,7 @@ def require_text(
     allow_empty: bool = False,
     maximum: int = MAX_CELL_CHARS,
 ) -> str:
+    """Handle require text."""
     if not isinstance(value, str):
         raise ValidationError(f"{context} must be a string")
     text = value.strip()
@@ -189,6 +192,7 @@ def require_text(
 
 
 def require_identifier(value: Any, context: str) -> str:
+    """Handle require identifier."""
     identifier = require_text(
         value, context, maximum=MAX_IDENTIFIER_CHARS, allow_empty=False
     )
@@ -200,6 +204,7 @@ def require_identifier(value: Any, context: str) -> str:
 
 
 def require_unique_identifiers(values: Iterable[str], context: str) -> None:
+    """Handle require unique identifiers."""
     seen: set[str] = set()
     duplicates: set[str] = set()
     for value in values:
@@ -213,6 +218,7 @@ def require_unique_identifiers(values: Iterable[str], context: str) -> None:
 
 
 def parse_iso_date(value: Any, context: str) -> str:
+    """Parse iso date."""
     text = require_text(value, context, maximum=10)
     try:
         date.fromisoformat(text)
@@ -222,6 +228,7 @@ def parse_iso_date(value: Any, context: str) -> str:
 
 
 def parse_year(value: Any, context: str) -> int:
+    """Parse year."""
     if isinstance(value, bool):
         raise ValidationError(f"{context} must be an integer year")
     try:
@@ -240,6 +247,7 @@ def parse_number(
     minimum: float,
     maximum: float,
 ) -> float:
+    """Parse number."""
     if isinstance(value, bool):
         raise ValidationError(f"{context} must be numeric")
     try:
@@ -256,10 +264,12 @@ def parse_number(
 
 
 def parse_fraction(value: Any, context: str) -> float:
+    """Parse fraction."""
     return parse_number(value, context, minimum=0.0, maximum=1.0)
 
 
 def parse_currency(value: Any, context: str, *, allow_empty: bool = False) -> str:
+    """Parse currency."""
     text = require_text(value, context, allow_empty=allow_empty, maximum=3).upper()
     if not text and allow_empty:
         return ""
@@ -269,6 +279,7 @@ def parse_currency(value: Any, context: str, *, allow_empty: bool = False) -> st
 
 
 def split_ids(value: Any, context: str, *, allow_empty: bool = False) -> list[str]:
+    """Split ids."""
     text = require_text(value, context, allow_empty=allow_empty)
     if not text:
         return []
@@ -308,5 +319,6 @@ def write_json_report(
 
 
 def error_exit(exc: ValidationError) -> int:
+    """Handle error exit."""
     print(f"ERROR: {exc}", file=os.sys.stderr)
     return 2

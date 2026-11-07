@@ -69,10 +69,12 @@ def validate_sha256(value: str, *, name: str = "sha256") -> str:
 
 
 def _reject_constant(value: str) -> None:
+    """Handle reject constant."""
     raise UserInputError(f"non-finite JSON number is not allowed: {value}")
 
 
 def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle reject duplicate keys."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -82,6 +84,7 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _assert_finite_json(value: Any, path: str = "$") -> None:
+    """Handle assert finite json."""
     if isinstance(value, float) and not math.isfinite(value):
         raise UserInputError(f"{path} contains a non-finite number")
     if isinstance(value, dict):
@@ -122,6 +125,7 @@ def strict_json_dumps(value: Any, *, pretty: bool = True) -> str:
 
 
 def emit_json(value: Any, *, pretty: bool = True) -> None:
+    """Handle emit json."""
     print(strict_json_dumps(value, pretty=pretty))
 
 

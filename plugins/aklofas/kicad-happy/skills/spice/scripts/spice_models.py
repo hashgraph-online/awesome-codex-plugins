@@ -1,5 +1,5 @@
 """
-Built-in SPICE behavioral models for Phase 1 simulation.
+Built-in SPICE behavioral models.
 
 Provides subcircuit definitions that can be embedded directly in generated
 .cir testbench files. These are ideal/generic models — no manufacturer
@@ -9,6 +9,9 @@ Tier 1 only: passives are native SPICE elements (R, C, L) and need no
 subcircuit. This module covers active components that require behavioral
 modeling.
 """
+
+import re
+import unicodedata
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +51,7 @@ def get_ideal_opamp():
 # ---------------------------------------------------------------------------
 # Ideal LDO regulator — controlled source clamped to Vin - dropout.
 # Models the DC behavior: Vout = Vref * (1 + Rtop/Rbot) with dropout limit.
-# Does NOT model transient response, PSRR, or noise (Phase 2).
+# Does NOT model transient response, PSRR, or noise.
 #
 # This is used only when the analyzer detects a regulator AND we know Vref.
 # The testbench places the feedback divider externally (from analyzer data),
@@ -100,53 +103,63 @@ def get_generic_models():
 
 
 # ---------------------------------------------------------------------------
-# Helpers for mapping analyzer component types to SPICE elements
+# Netlist text and element helpers
 # ---------------------------------------------------------------------------
 
-# Maps analyzer component classification keywords to SPICE element prefixes
-ELEMENT_PREFIX = {
-    "resistor": "R",
-    "capacitor": "C",
-    "inductor": "L",
-    "diode": "D",
-    "led": "D",
-    "zener": "D",
-    "npn": "Q",
-    "pnp": "Q",
-    "nmos": "M",
-    "pmos": "M",
-    "mosfet_n": "M",
-    "mosfet_p": "M",
-}
 
-# Maps component types to default model names from GENERIC_MODELS
-DEFAULT_MODEL = {
-    "diode": "D_GENERIC",
-    "led": "D_GENERIC",
-    "zener": "D_ZENER5V1",
-    "schottky": "D_SCHOTTKY",
-    "npn": "NPN_GENERIC",
-    "pnp": "PNP_GENERIC",
-    "nmos": "NMOS_GENERIC",
-    "pmos": "PMOS_GENERIC",
-    "mosfet_n": "NMOS_GENERIC",
-    "mosfet_p": "PMOS_GENERIC",
-}
+def spice_text(s):
+    """Text for a netlist comment line: control characters become spaces."""
+    return "".join(" " if unicodedata.category(ch).startswith("C") else ch
+                   for ch in str(s))
 
 
-def spice_element_for_passive(ref, value_si, net1, net2):
+def spice_echo(s):
+    """Text for a value inside a quoted control-block echo.
+
+    Control characters become spaces; characters that close the quote, redirect
+    the output, end the command or expand a variable become _.
+    """
+    return "".join("_" if ch in '"<>;$`\\' else ch for ch in spice_text(s))
+
+
+def spice_ident(s):
+    """Text for an element-name suffix.
+
+    Whitespace, control characters and the characters SPICE uses to split or
+    group tokens (= ( ) , ; { }) become _; ordinary references such as R1-A
+    or U1.2 are unchanged.
+    """
+    return "".join("_" if ch.isspace() or ch in "=(),;{}"
+                   or unicodedata.category(ch).startswith("C") else ch
+                   for ch in str(s))
+
+
+def spice_passive_name(ref, kind):
+    """Element name for a passive of *kind* ('R', 'C' or 'L').
+
+    SPICE reads the element type from the name's first letter, so a
+    designator that starts with another letter is prefixed by the kind
+    ('VR1' -> 'R_VR1'); 'R5' stays 'R5'.
+    """
+    name = spice_ident(ref)
+    return name if name[:1].upper() == kind else f"{kind}_{name}"
+
+
+def spice_element_for_passive(ref, value_si, net1, net2, kind):
     """Generate a SPICE line for a passive component (R, C, or L).
 
     Args:
-        ref: Component reference (e.g., 'R5', 'C3', 'L1')
+        ref: Component reference (e.g., 'R5', 'C3', 'L1', 'VR1')
         value_si: Value in SI base units (ohms, farads, henries)
         net1: First net name
         net2: Second net name
+        kind: 'R', 'C' or 'L'
 
     Returns:
         SPICE element string, e.g., 'R5 net_in net_out 10k'
     """
-    return f"{ref} {_sanitize_net(net1)} {_sanitize_net(net2)} {_format_eng(value_si)}"
+    return (f"{spice_passive_name(ref, kind)} {_sanitize_net(net1)} {_sanitize_net(net2)} "
+            f"{_format_eng(value_si)}")
 
 
 def _sanitize_net(name):
@@ -165,6 +178,8 @@ def _sanitize_net(name):
     result = name
     for ch in " (){}[]!@#$%^&*=+|\\;:'\",<>?/":
         result = result.replace(ch, "_")
+    result = "".join("_" if unicodedata.category(ch).startswith("C") else ch
+                     for ch in result)
     # Net names starting with a digit need a prefix
     if result and result[0].isdigit():
         result = "n" + result

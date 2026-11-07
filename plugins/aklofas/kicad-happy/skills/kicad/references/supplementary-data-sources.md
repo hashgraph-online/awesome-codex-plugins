@@ -214,8 +214,8 @@ When schematic analysis is incomplete, the PCB file provides an independent sour
 From `analyze_pcb.py` output, each footprint includes:
 - `reference` — component designator (should match schematic)
 - `value` — component value (should match schematic)
-- `pads[].net_name` — net assigned to each pad
-- `pads[].number` — pad number (physical pin number from datasheet)
+- `pad_nets` — dict keyed by pad number (the physical pin number from the datasheet); each value is `{net}`, plus `pin` (the pad's pin function) when the footprint names one
+- `connected_nets` — deduplicated list of nets touching the footprint
 - `sch_path` — UUID linking back to the schematic symbol
 - `sheetname` / `sheetfile` — source schematic sheet
 

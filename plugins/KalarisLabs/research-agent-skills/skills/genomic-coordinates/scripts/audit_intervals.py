@@ -35,12 +35,14 @@ class Findings:
     """Collected findings, capped per rule so one broken file cannot flood stdout."""
 
     def __init__(self, max_examples: int) -> None:
+        """Initialise the instance."""
         self.rows: list[dict] = []
         self.counts: Counter = Counter()
         self.by_severity: Counter = Counter()
         self.max_examples = max_examples
 
     def add(self, severity: str, rule: str, line: int | str, detail: str) -> None:
+        """Add."""
         self.counts[rule] += 1
         self.by_severity[severity] += 1
         if self.counts[rule] <= self.max_examples:
@@ -64,6 +66,7 @@ class Findings:
 
 
 def detect_format(path: Path) -> str:
+    """Detect format."""
     suffixes = [s.lower() for s in path.suffixes]
     for suffix, fmt in (
         (".bed", "bed"), (".narrowpeak", "bed"), (".broadpeak", "bed"),
@@ -79,6 +82,7 @@ def detect_format(path: Path) -> str:
 
 
 def load_genome(path: Path | None) -> dict[str, int]:
+    """Load genome."""
     if path is None:
         return {}
     sizes = {}
@@ -121,11 +125,13 @@ class SortState:
     ascending positions within each one."""
 
     def __init__(self) -> None:
+        """Initialise the instance."""
         self.seen: set[str] = set()
         self.current: str | None = None
         self.position = -1
 
     def check(self, find: Findings, lineno: int, contig: str, pos: int, why: str) -> None:
+        """Check."""
         if contig != self.current:
             if contig in self.seen:
                 find.add(
@@ -151,6 +157,7 @@ class SortState:
 
 
 def audit_bed(path: Path, find: Findings, genome: dict[str, int]) -> None:
+    """Handle audit bed."""
     contigs: list[str] = []
     widths: Counter = Counter()
     total = zero_length = starts_at_zero = 0
@@ -280,6 +287,7 @@ def audit_bed12(find: Findings, lineno: int, fields: list[str], start: int, end:
 
 
 def audit_gff(path: Path, find: Findings, genome: dict[str, int], flavour: str) -> None:
+    """Handle audit gff."""
     contigs: list[str] = []
     gtf_attrs = gff3_attrs = 0
 
@@ -349,6 +357,7 @@ def audit_gff(path: Path, find: Findings, genome: dict[str, int], flavour: str) 
 
 
 def audit_vcf(path: Path, find: Findings, genome: dict[str, int]) -> None:
+    """Handle audit vcf."""
     contigs: list[str] = []
     header_seen = False
     order = SortState()
@@ -444,6 +453,7 @@ def audit_vcf(path: Path, find: Findings, genome: dict[str, int]) -> None:
 
 
 def audit_naming(find: Findings, contigs: list[str]) -> None:
+    """Handle audit naming."""
     style = naming_style(sorted(set(contigs)))
     if style == "mixed":
         prefixed = sorted({c for c in contigs if c.startswith("chr")})[:3]
@@ -456,6 +466,7 @@ def audit_naming(find: Findings, contigs: list[str]) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Audit a BED/GTF/GFF3/VCF file against its format's conventions."
     )
@@ -471,6 +482,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if not args.file.exists():

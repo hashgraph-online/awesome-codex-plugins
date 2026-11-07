@@ -26,8 +26,8 @@ MAX_RATE_UL_S = 10_000.0
 MAX_CHANNELS = 96
 
 NAME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_-]{0,63}$")
-WELL_RE = re.compile(r"^([A-Z]{1,2})([1-9][0-9]{0,2})$")
-INT_TEXT_RE = re.compile(r"^(0|[1-9][0-9]*)$")
+WELL_RE = re.compile(r"^([A-Z]{1,2})([1-9]\d{0,2})$")
+INT_TEXT_RE = re.compile(r"^(0|[1-9]\d*)$")
 
 RESOURCE_KINDS = frozenset({"plate", "reservoir", "tube_rack", "tip_rack", "waste"})
 LIQUID_KINDS = frozenset({"plate", "reservoir", "tube_rack"})
@@ -52,10 +52,12 @@ class ValidationError(ValueError):
 
 
 def _reject_constant(value: str) -> None:
+  """Handle reject constant."""
   raise ValidationError(f"non-finite JSON number is forbidden: {value}")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+  """Handle unique object."""
   result: dict[str, Any] = {}
   for key, value in pairs:
     if key in result:
@@ -100,6 +102,7 @@ def safe_input_path(raw_path: str, allowed_suffixes: Sequence[str]) -> Path:
 
 
 def load_json(raw_path: str) -> dict[str, Any]:
+  """Load json."""
   path = safe_input_path(raw_path, (".json",))
   try:
     text = path.read_text(encoding="utf-8")
@@ -119,6 +122,7 @@ def load_json(raw_path: str) -> dict[str, Any]:
 
 
 def load_csv(raw_path: str) -> list[dict[str, str]]:
+  """Load csv."""
   path = safe_input_path(raw_path, (".csv",))
   try:
     with path.open("r", encoding="utf-8", newline="") as handle:
@@ -150,6 +154,7 @@ def _exact_keys(
     optional: Iterable[str],
     where: str,
 ) -> dict[str, Any]:
+  """Handle exact keys."""
   if not isinstance(obj, dict):
     raise ValidationError(f"{where} must be an object")
   required_set = set(required)
@@ -164,6 +169,7 @@ def _exact_keys(
 
 
 def _name(value: Any, where: str) -> str:
+  """Handle name."""
   if not isinstance(value, str) or NAME_RE.fullmatch(value) is None:
     raise ValidationError(f"{where} must match {NAME_RE.pattern}")
   return value
@@ -177,6 +183,7 @@ def _number(
     maximum: float,
     minimum_inclusive: bool = True,
 ) -> float:
+  """Handle number."""
   if isinstance(value, bool) or not isinstance(value, (int, float)):
     raise ValidationError(f"{where} must be a number")
   result = float(value)
@@ -190,6 +197,7 @@ def _number(
 
 
 def _integer(value: Any, where: str, minimum: int, maximum: int) -> int:
+  """Handle integer."""
   if isinstance(value, bool) or not isinstance(value, int):
     raise ValidationError(f"{where} must be an integer")
   if value < minimum or value > maximum:
@@ -198,6 +206,7 @@ def _integer(value: Any, where: str, minimum: int, maximum: int) -> int:
 
 
 def _string_list(value: Any, where: str, maximum_items: int = 256) -> list[str]:
+  """Handle string list."""
   if not isinstance(value, list) or not value or len(value) > maximum_items:
     raise ValidationError(f"{where} must be a non-empty list with at most {maximum_items} items")
   result: list[str] = []
@@ -209,6 +218,7 @@ def _string_list(value: Any, where: str, maximum_items: int = 256) -> list[str]:
 
 
 def _xyz(value: Any, where: str, *, positive: bool) -> dict[str, float]:
+  """Handle xyz."""
   obj = _exact_keys(value, ("x", "y", "z"), (), where)
   minimum_inclusive = not positive
   return {
@@ -224,6 +234,7 @@ def _xyz(value: Any, where: str, *, positive: bool) -> dict[str, float]:
 
 
 def row_index(row_letters: str) -> int:
+  """Handle row index."""
   index = 0
   for character in row_letters:
     index = index * 26 + ord(character) - ord("A") + 1
@@ -231,6 +242,7 @@ def row_index(row_letters: str) -> int:
 
 
 def validate_well(well: str, rows: int, columns: int, where: str) -> str:
+  """Validate well."""
   match = WELL_RE.fullmatch(well)
   if match is None:
     raise ValidationError(f"{where} must be an uppercase well such as A1")
@@ -241,6 +253,7 @@ def validate_well(well: str, rows: int, columns: int, where: str) -> str:
 
 
 def _validate_grid(value: Any, kind: str, where: str) -> dict[str, Any]:
+  """Validate grid."""
   if kind == "tip_rack":
     obj = _exact_keys(value, ("rows", "columns", "tip_capacity_uL"), (), where)
     return {
@@ -449,6 +462,7 @@ def _parse_float_text(
     minimum: float = 0.0,
     minimum_inclusive: bool = True,
 ) -> float:
+  """Parse float text."""
   try:
     parsed = float(value)
   except ValueError as exc:
@@ -463,6 +477,7 @@ def _parse_float_text(
 
 
 def _parse_int_text(value: str, where: str, minimum: int, maximum: int) -> int:
+  """Parse int text."""
   if INT_TEXT_RE.fullmatch(value) is None:
     raise ValidationError(f"{where} must be an unsigned base-10 integer")
   parsed = int(value)
@@ -472,6 +487,7 @@ def _parse_int_text(value: str, where: str, minimum: int, maximum: int) -> int:
 
 
 def _endpoint(value: str, where: str) -> tuple[str, str]:
+  """Handle endpoint."""
   if value.count(":") != 1:
     raise ValidationError(f"{where} must use resource:WELL syntax")
   resource, well = value.split(":")
@@ -482,6 +498,7 @@ def _endpoint(value: str, where: str) -> tuple[str, str]:
 
 
 def validate_transfers(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
+  """Validate transfers."""
   normalized: list[dict[str, Any]] = []
   identifiers: set[str] = set()
   for index, row in enumerate(rows):
@@ -537,6 +554,7 @@ def validate_transfers(rows: list[dict[str, str]]) -> list[dict[str, Any]]:
 
 
 def geometry_report(manifest: dict[str, Any]) -> dict[str, Any]:
+  """Handle geometry report."""
   deck_size = manifest["deck"]["size_mm"]
   resources = manifest["resources"]
   out_of_bounds: list[dict[str, Any]] = []
@@ -576,46 +594,100 @@ def geometry_report(manifest: dict[str, Any]) -> dict[str, Any]:
   }
 
 
-def plan_transfers(
-    manifest: dict[str, Any],
-    transfers: list[dict[str, Any]],
-) -> dict[str, Any]:
-  resources = {resource["name"]: resource for resource in manifest["resources"]}
-  constraints = manifest["constraints"]
-  liquid_classes = set(constraints["allowed_liquid_classes"])
-  tip_types = set(constraints["allowed_tip_types"])
-  waste = next(resource["name"] for resource in manifest["resources"] if resource["kind"] == "waste")
+class _TransferPlanner:
+  """Mutable offline planning state: volume ledger and unused-tip queues."""
 
-  available_tips: dict[str, list[tuple[str, str, float]]] = {tip_type: [] for tip_type in tip_types}
-  for resource in manifest["resources"]:
-    if resource["kind"] == "tip_rack":
-      for well in resource["tips_available"]:
-        available_tips[resource["tip_type"]].append(
-            (resource["name"], well, resource["grid"]["tip_capacity_uL"])
-        )
+  def __init__(self, manifest: dict[str, Any]) -> None:
+    """Index resources and build the initial tip queues and volume ledger."""
+    self.manifest = manifest
+    self.resources = {resource["name"]: resource for resource in manifest["resources"]}
+    self.constraints = manifest["constraints"]
+    self.liquid_classes = set(self.constraints["allowed_liquid_classes"])
+    self.tip_types = set(self.constraints["allowed_tip_types"])
+    self.waste = next(
+        resource["name"] for resource in manifest["resources"] if resource["kind"] == "waste"
+    )
+    self.available_tips: dict[str, list[tuple[str, str, float]]] = {
+        tip_type: [] for tip_type in self.tip_types
+    }
+    self.ledger: dict[tuple[str, str], float] = {}
+    self.known_liquid_state: set[tuple[str, str]] = set()
+    self.tip_cursor: dict[str, int] = {tip_type: 0 for tip_type in self.tip_types}
+    self._load_tips()
+    self._load_initial_volumes()
 
-  ledger: dict[tuple[str, str], float] = {}
-  known_liquid_state: set[tuple[str, str]] = set()
-  for resource in manifest["resources"]:
-    if resource["kind"] in LIQUID_KINDS:
-      for well, volume in resource["initial_volumes_uL"].items():
-        ledger[(resource["name"], well)] = volume
-        known_liquid_state.add((resource["name"], well))
+  def _load_tips(self) -> None:
+    """Queue every available tip of each tip rack under its tip type."""
+    for resource in self.manifest["resources"]:
+      if resource["kind"] == "tip_rack":
+        for well in resource["tips_available"]:
+          self.available_tips[resource["tip_type"]].append(
+              (resource["name"], well, resource["grid"]["tip_capacity_uL"])
+          )
 
-  operations: list[dict[str, Any]] = []
-  tip_cursor: dict[str, int] = {tip_type: 0 for tip_type in tip_types}
-  for index, transfer in enumerate(transfers):
+  def _load_initial_volumes(self) -> None:
+    """Seed the ledger with the declared initial well volumes."""
+    for resource in self.manifest["resources"]:
+      if resource["kind"] in LIQUID_KINDS:
+        for well, volume in resource["initial_volumes_uL"].items():
+          self.ledger[(resource["name"], well)] = volume
+          self.known_liquid_state.add((resource["name"], well))
+
+  def _liquid_resource(self, name: str, role: str, where: str) -> dict[str, Any]:
+    """Return a liquid-holding resource, rejecting non-liquid labware."""
+    resource = self.resources[name]
+    if resource["kind"] not in LIQUID_KINDS:
+      raise ValidationError(f"{where}.{role} must reference liquid-holding labware")
+    return resource
+
+  def _check_limits(
+      self,
+      transfer: dict[str, Any],
+      source_resource: dict[str, Any],
+      destination_resource: dict[str, Any],
+      where: str,
+  ) -> None:
+    """Check volume, class, tip type, channel, rate and height constraints."""
+    constraints = self.constraints
+    if transfer["volume_uL"] > constraints["max_transfer_uL"]:
+      raise ValidationError(f"{where}.volume_uL exceeds constraints.max_transfer_uL")
+    if transfer["liquid_class"] not in self.liquid_classes:
+      raise ValidationError(f"{where}.liquid_class is not allowlisted")
+    if transfer["tip_type"] not in self.tip_types:
+      raise ValidationError(f"{where}.tip_type is not allowlisted")
+    if transfer["channel"] >= constraints["channels"]:
+      raise ValidationError(f"{where}.channel exceeds the declared channel count")
+    if (
+        transfer["aspiration_rate_uL_s"] > constraints["max_rate_uL_s"]
+        or transfer["dispense_rate_uL_s"] > constraints["max_rate_uL_s"]
+    ):
+      raise ValidationError(f"{where} rate exceeds constraints.max_rate_uL_s")
+    if transfer["aspiration_height_mm"] > source_resource["grid"]["well_depth_mm"]:
+      raise ValidationError(f"{where}.aspiration_height_mm exceeds source well depth")
+    if transfer["dispense_height_mm"] > destination_resource["grid"]["well_depth_mm"]:
+      raise ValidationError(f"{where}.dispense_height_mm exceeds destination well depth")
+
+  def _pick_tip(self, tip_type: str, volume: float, where: str) -> tuple[str, str]:
+    """Take the next unused compatible tip and return its rack and well."""
+    tips = self.available_tips.get(tip_type, [])
+    cursor = self.tip_cursor[tip_type]
+    if cursor >= len(tips):
+      raise ValidationError(f"{where} has no unused compatible tip")
+    tip_rack, tip_well, tip_capacity = tips[cursor]
+    if volume > tip_capacity:
+      raise ValidationError(f"{where}.volume_uL exceeds selected tip capacity")
+    self.tip_cursor[tip_type] += 1
+    return tip_rack, tip_well
+
+  def plan_one(self, index: int, transfer: dict[str, Any]) -> dict[str, Any]:
+    """Validate one transfer against the planning state, apply it and return its operation."""
     where = f"transfers[{index}]"
     source_name, source_well = transfer["source"]
     destination_name, destination_well = transfer["destination"]
-    if source_name not in resources or destination_name not in resources:
+    if source_name not in self.resources or destination_name not in self.resources:
       raise ValidationError(f"{where} references an unknown resource")
-    source_resource = resources[source_name]
-    destination_resource = resources[destination_name]
-    if source_resource["kind"] not in LIQUID_KINDS:
-      raise ValidationError(f"{where}.source must reference liquid-holding labware")
-    if destination_resource["kind"] not in LIQUID_KINDS:
-      raise ValidationError(f"{where}.destination must reference liquid-holding labware")
+    source_resource = self._liquid_resource(source_name, "source", where)
+    destination_resource = self._liquid_resource(destination_name, "destination", where)
     validate_well(
         source_well,
         source_resource["grid"]["rows"],
@@ -632,61 +704,49 @@ def plan_transfers(
     destination_key = (destination_name, destination_well)
     if source_key == destination_key:
       raise ValidationError(f"{where} source and destination must differ")
-    if source_key not in known_liquid_state:
+    if source_key not in self.known_liquid_state:
       raise ValidationError(f"{where}.source requires declared or previously transferred volume")
 
     volume = transfer["volume_uL"]
-    if volume > constraints["max_transfer_uL"]:
-      raise ValidationError(f"{where}.volume_uL exceeds constraints.max_transfer_uL")
-    if transfer["liquid_class"] not in liquid_classes:
-      raise ValidationError(f"{where}.liquid_class is not allowlisted")
-    if transfer["tip_type"] not in tip_types:
-      raise ValidationError(f"{where}.tip_type is not allowlisted")
-    if transfer["channel"] >= constraints["channels"]:
-      raise ValidationError(f"{where}.channel exceeds the declared channel count")
-    if (
-        transfer["aspiration_rate_uL_s"] > constraints["max_rate_uL_s"]
-        or transfer["dispense_rate_uL_s"] > constraints["max_rate_uL_s"]
-    ):
-      raise ValidationError(f"{where} rate exceeds constraints.max_rate_uL_s")
-    if transfer["aspiration_height_mm"] > source_resource["grid"]["well_depth_mm"]:
-      raise ValidationError(f"{where}.aspiration_height_mm exceeds source well depth")
-    if transfer["dispense_height_mm"] > destination_resource["grid"]["well_depth_mm"]:
-      raise ValidationError(f"{where}.dispense_height_mm exceeds destination well depth")
+    self._check_limits(transfer, source_resource, destination_resource, where)
 
-    remaining = ledger[source_key] - volume
+    remaining = self.ledger[source_key] - volume
     if remaining < source_resource["grid"]["dead_volume_uL"]:
       raise ValidationError(f"{where} would aspirate below source dead volume")
-    destination_volume = ledger.get(destination_key, 0.0) + volume
+    destination_volume = self.ledger.get(destination_key, 0.0) + volume
     if destination_volume > destination_resource["grid"]["well_capacity_uL"]:
       raise ValidationError(f"{where} would exceed destination well capacity")
 
-    tips = available_tips.get(transfer["tip_type"], [])
-    cursor = tip_cursor[transfer["tip_type"]]
-    if cursor >= len(tips):
-      raise ValidationError(f"{where} has no unused compatible tip")
-    tip_rack, tip_well, tip_capacity = tips[cursor]
-    if volume > tip_capacity:
-      raise ValidationError(f"{where}.volume_uL exceeds selected tip capacity")
-    tip_cursor[transfer["tip_type"]] += 1
+    tip_rack, tip_well = self._pick_tip(transfer["tip_type"], volume, where)
 
-    ledger[source_key] = remaining
-    ledger[destination_key] = destination_volume
-    known_liquid_state.add(destination_key)
-    operations.append(
-        {
-            **transfer,
-            "source": f"{source_name}:{source_well}",
-            "destination": f"{destination_name}:{destination_well}",
-            "assigned_tip": f"{tip_rack}:{tip_well}",
-            "drop_tip_at": waste,
-        }
-    )
+    self.ledger[source_key] = remaining
+    self.ledger[destination_key] = destination_volume
+    self.known_liquid_state.add(destination_key)
+    return {
+        **transfer,
+        "source": f"{source_name}:{source_well}",
+        "destination": f"{destination_name}:{destination_well}",
+        "assigned_tip": f"{tip_rack}:{tip_well}",
+        "drop_tip_at": self.waste,
+    }
+
+
+def plan_transfers(
+    manifest: dict[str, Any],
+    transfers: list[dict[str, Any]],
+) -> dict[str, Any]:
+  """Plan every transfer against the declared volumes, tips and constraints."""
+  planner = _TransferPlanner(manifest)
+  operations = [
+      planner.plan_one(index, transfer) for index, transfer in enumerate(transfers)
+  ]
 
   final_ledger = [
       {"location": f"{resource}:{well}", "volume_uL": round(volume, 9)}
-      for (resource, well), volume in sorted(ledger.items())
+      for (resource, well), volume in sorted(planner.ledger.items())
   ]
+  available_tips = planner.available_tips
+  tip_cursor = planner.tip_cursor
   used_tips = sum(tip_cursor.values())
   return {
       "ok": True,
@@ -705,12 +765,14 @@ def plan_transfers(
 
 
 def emit_json(payload: Any, *, stream: Any = None) -> None:
+  """Handle emit json."""
   if stream is None:
     stream = sys.stdout
   print(json.dumps(payload, indent=2, sort_keys=True, allow_nan=False), file=stream)
 
 
 def emit_error(error: Exception) -> int:
+  """Handle emit error."""
   emit_json(
       {"ok": False, "error": type(error).__name__, "message": str(error)},
       stream=sys.stderr,

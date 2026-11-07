@@ -13,6 +13,7 @@ sys.dont_write_bytecode = True
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("check", "simulate", "fit"):
@@ -74,8 +75,14 @@ def main():
         else:
             print(text, end="")
         return 0
-    except (InputError, ValueError, TypeError, KeyError, OSError, np.linalg.LinAlgError,
-            FloatingPointError, ZeroDivisionError) as exc:
+    except (
+        ValueError,
+        TypeError,
+        KeyError,
+        OSError,
+        FloatingPointError,
+        ZeroDivisionError,
+    ) as exc:
         print(f"mfa: {exc}", file=sys.stderr)
         return 2
 

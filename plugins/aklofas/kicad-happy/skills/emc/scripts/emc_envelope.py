@@ -1,4 +1,4 @@
-"""EMC analyzer output envelope (v1.4 SOT).
+"""EMC analyzer output envelope (source of truth for the EMC output schema).
 
 The runtime emits ~13 top-level keys on the simple fixture: tight core
 (analyzer_type, schema_version, summary, trust_summary, target_standard,
@@ -13,8 +13,8 @@ Tightens:
     - test_plan decomposes into typed FrequencyBand / InterfaceRisk /
       ProbePoint sub-records.
     - regulatory_coverage + category_summary + board_info use typed
-      shells with ``list[dict]`` / ``dict`` leaves for v1.4; tightens
-      per rule_id in v1.5.
+      shells with ``list[dict]`` / ``dict`` leaves; the leaves are not
+      typed per rule_id.
 
 Mode gating:
     - ``audience_summary`` is emitted whenever findings are present
@@ -216,8 +216,7 @@ class EMCEnvelope:
     sub-structures for test_plan (FrequencyBand / InterfaceRisk /
     ProbePoint), regulatory_coverage (CoverageMatrixEntry), per_net_scores
     (PerNetScore), category_summary (CategorySummaryEntry), and
-    board_info. audience_summary and stage_filter remain loose dicts for
-    v1.4 — tighten per rule_id / audience slice in v1.5.
+    board_info. audience_summary and stage_filter remain loose dicts (not typed per rule_id or audience slice).
     """
 
     # --- Discriminators ---
@@ -225,7 +224,7 @@ class EMCEnvelope:
         "description": "Always 'emc'.",
         "const": "emc"})
     schema_version: str = field(metadata={
-        "description": "Semver. Value: '1.4.0' at Track 1.1 landing.",
+        "description": "Semver. Value: '1.4.0'.",
         "const": "1.4.0"})
 
     # --- Provenance ---
@@ -270,10 +269,10 @@ class EMCEnvelope:
         "description": "Board-level rollup (dimensions, layer count, "
                        "crystal + switching frequencies, ...)."})
 
-    # --- Phase 4 capability pointer ---
+    # --- Capability pointer ---
     capability_mode_ref: Optional[dict] = field(default=None, metadata={
         "description": "Pointer to canonical analysis/capability_mode.json run-level "
-                       "record. Shape: {source, run_id}. See Phase 4 spec §3.3."})
+                       "record. Shape: {source, run_id}."})
 
     # --- Stage/audience derived blocks ---
     audience_summary: Optional[dict] = field(default=None, metadata={

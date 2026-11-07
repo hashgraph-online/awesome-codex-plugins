@@ -237,9 +237,9 @@ if __name__ == "__main__":
     )
 
     print("\nAnalysis complete!")
-    print(f"Key results:")
-    print(f"  adata.layers['velocity']: velocity per gene per cell")
-    print(f"  adata.obs['latent_time']: pseudotime from dynamics")
-    print(f"  adata.obs['velocity_confidence']: per-cell confidence")
+    print("Key results:")
+    print("  adata.layers['velocity']: velocity per gene per cell")
+    print("  adata.obs['latent_time']: pseudotime from dynamics")
+    print("  adata.obs['velocity_confidence']: per-cell confidence")
     if "rank_velocity_genes" in adata.uns:
-        print(f"  adata.uns['rank_velocity_genes']: driver genes per cluster")
+        print("  adata.uns['rank_velocity_genes']: driver genes per cluster")

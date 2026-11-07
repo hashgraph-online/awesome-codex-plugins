@@ -93,7 +93,7 @@
     "package": {
       "type": ["object", "null"],
       "additionalProperties": false,
-      "description": "Package physical characteristics. body_mm uses nested object shape (Phase 3b option A convention — first schema establishing this precedent).",
+      "description": "Package physical characteristics. body_mm uses nested object shape (nested-object convention — inner keys align with base.schema.json body_mm shape).",
       "required": ["evidence"],
       "properties": {
         "code": {
@@ -111,7 +111,7 @@
         "body_mm": {
           "type": ["object", "null"],
           "additionalProperties": false,
-          "description": "Package body dimensions in millimeters. Nested object per Phase 3b option A convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
+          "description": "Package body dimensions in millimeters. Nested object using the nested-object convention. Inner keys (length/width/height) align with base.schema.json's body_mm shape.",
           "properties": {
             "length": {
               "type": "number",

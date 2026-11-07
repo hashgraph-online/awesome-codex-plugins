@@ -18,9 +18,9 @@ Detailed field-by-field documentation for all KiCad file types. Consult this whe
 
 ## S-Expression Format Basics
 
-All modern KiCad files use Lisp-like S-expressions: `(keyword value1 (child_keyword value2) ...)`.
+Modern KiCad schematic, board, symbol and footprint files use Lisp-like S-expressions (the project file `.kicad_pro` is JSON; see below): `(keyword value1 (child_keyword value2) ...)`.
 
-- **Coordinates**: millimeters, origin top-left, X right, Y **down**
+- **Coordinates**: millimeters, origin top-left, X right, Y **down** in schematic and board files; library symbol definitions (`lib_symbols`, `.kicad_sym`) use a symbol-local origin with Y **up**, which KiCad negates when it places them
 - **Angles**: degrees, counterclockwise positive
 - **UUIDs**: stable object identifiers (KiCad 6+)
 - **Strings**: quoted if containing spaces/special chars
@@ -89,12 +89,12 @@ All modern KiCad files use Lisp-like S-expressions: `(keyword value1 (child_keyw
 1. **Wires** connecting pin endpoints
 2. **Junctions** where wires cross and connect
 3. **Labels** (`label` = local to sheet, `global_label` = all sheets)
-4. **Power symbols** (e.g., `+3V3`, `GND`) create implicit global nets
+4. **Power symbols** (e.g., `+3V3`, `GND`) create implicit nets: global, or sheet-local for a `(power local)` symbol (see Power rails below)
 5. **Hierarchical labels** + sheet pins connect parent/child sheets
 
 For detailed step-by-step net tracing with coordinate math and rotation transforms, read `net-tracing.md`.
 
-**Power rails**: Look for symbols with `lib_id` starting with `power:` (e.g., `power:+3V3`, `power:GND`). These create global nets named after their value.
+**Power rails**: power symbols (library symbols marked `(power)`, usually from the `power:` library, e.g. `power:+3V3`) name their net. From format 20230221 (KiCad 8) the net is the symbol's Value; in older files and KiCad 5 it is the name of the symbol's hidden power-input pin, as KiCad renames them on load. A `(power local)` symbol (KiCad 10) names a net on its own sheet only; the others are global.
 
 ### Hierarchical Sheets
 ```
@@ -124,7 +124,7 @@ Each sheet has its own `.kicad_sch` file. Pins on the sheet symbol connect to `h
   ...
   (footprint ...)           ; Placed footprints with pads
   (segment ...)             ; Copper track segments
-  (arc ...)                 ; Curved tracks (KiCad 7+)
+  (arc ...)                 ; Curved tracks (KiCad 6+)
   (via ...)                 ; Vias
   (zone ...)                ; Copper zones/pours
   (gr_line ...)             ; Graphical lines (board outline on Edge.Cuts)
@@ -137,11 +137,12 @@ Each sheet has its own `.kicad_sch` file. Pins on the sheet symbol connect to `h
 ```
 
 ### Layer Definitions
+KiCad 9-10 numbering:
 ```
 (layers
   (0 "F.Cu" signal)         ; Front copper
-  (2 "B.Cu" signal)         ; Back copper (number varies by version)
-  (1 "In1.Cu" signal)       ; Inner copper layers (if present)
+  (4 "In1.Cu" signal)       ; Inner copper layers (if present)
+  (2 "B.Cu" signal)         ; Back copper
   (5 "F.SilkS" user)        ; Front silkscreen
   (7 "B.SilkS" user)        ; Back silkscreen
   (25 "Edge.Cuts" user)     ; Board outline
@@ -150,7 +151,7 @@ Each sheet has its own `.kicad_sch` file. Pins on the sheet symbol connect to `h
   ...
 )
 ```
-**Note**: Layer numbers differ between versions. In KiCad 5: F.Cu=0, B.Cu=31, inner=1-30. In KiCad 6+: B.Cu number depends on layer count (e.g., B.Cu=2 for 2-layer, B.Cu=4 for 4-layer).
+**Note**: Layer numbers differ between versions, for the copper layers and for the non-copper ones above (KiCad 8, for example, numbers F.SilkS 37 and Edge.Cuts 44). In KiCad 5-8: F.Cu=0, In1.Cu..In30.Cu=1-30, B.Cu=31. In KiCad 9-10: F.Cu=0, B.Cu=2, In*n*.Cu=2*n*+2 (In1.Cu=4, In2.Cu=6). The numbers are fixed per version and do not depend on the layer count.
 
 ### Footprint on PCB
 ```
@@ -308,6 +309,8 @@ Text-based constraint rules applied during DRC. Example:
 ```
 Useful for enforcing manufacturer capabilities (e.g., JLCPCB, PCBWay).
 
+The PCB analyzer applies a rule without a `(condition ...)` as KiCad does. It does not evaluate conditions. A conditional rule is listed in `design_rule_compliance.conditional_rules_skipped`, and an item is reported only when it breaks the rule whichever way the condition goes. A conditional rule therefore never adds a violation, but it can hide one (a relaxed minimum or maximum, or `(severity ignore)`); run KiCad's DRC for those rules.
+
 ---
 
 ## Netlist (`.net`)
@@ -343,7 +346,7 @@ EELAYER 30 0
 EELAYER END
 $Comp                                    ; Component instance
 L Library:Symbol Reference
-U unit timestamp
+U unit convert timestamp                 ; convert = placed body style (2 = De Morgan)
 P x y
 F 0 "R1" H x y size flags C CNN        ; F0 = Reference
 F 1 "10k" H x y size flags C CNN        ; F1 = Value
@@ -362,7 +365,7 @@ NetName
 - Coordinates in mils (1/1000 inch), not mm
 - No UUIDs, uses timestamps for identification
 - Component fields are positional (F0=ref, F1=value, F2=footprint, F3=datasheet)
-- Wire connectivity is purely positional (endpoints must coincide exactly)
+- Wire connectivity is positional: endpoints that coincide connect, and so does a junction lying on a wire's interior; labels connect at their anchor point
 
 ---
 

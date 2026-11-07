@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import re
 from collections import Counter
+from dataclasses import dataclass, field
 from typing import Any
 
 from _common import (
@@ -37,6 +38,7 @@ NEGATIVE_TYPES = {"negative_exposure", "negative_outcome", "procedural_negative"
 
 
 def _parse_falsifier(raw: Any, context: str) -> dict[str, Any]:
+    """Parse falsifier."""
     value = require_object(raw, context)
     require_exact_keys(
         value,
@@ -73,6 +75,7 @@ def _parse_falsifier(raw: Any, context: str) -> dict[str, Any]:
 
 
 def _parse_discriminating_tests(raw: Any, context: str) -> list[dict[str, str]]:
+    """Parse discriminating tests."""
     values = require_list(raw, context, minimum=1, maximum=100)
     parsed: list[dict[str, str]] = []
     identifiers: list[str] = []
@@ -118,6 +121,7 @@ def _parse_discriminating_tests(raw: Any, context: str) -> list[dict[str, str]]:
 
 
 def _parse_nulls(raw: Any, context: str) -> list[dict[str, str]]:
+    """Parse nulls."""
     values = require_list(raw, context, minimum=1, maximum=100)
     parsed: list[dict[str, str]] = []
     identifiers: list[str] = []
@@ -149,6 +153,7 @@ def _parse_nulls(raw: Any, context: str) -> list[dict[str, str]]:
 
 
 def _parse_controls(raw: Any, context: str) -> list[dict[str, str]]:
+    """Parse controls."""
     values = require_list(raw, context, minimum=1, maximum=100)
     parsed: list[dict[str, str]] = []
     identifiers: list[str] = []
@@ -195,6 +200,7 @@ def _parse_controls(raw: Any, context: str) -> list[dict[str, str]]:
 
 
 def _parse_outcome_interpretation(raw: Any, context: str) -> dict[str, str]:
+    """Parse outcome interpretation."""
     value = require_object(raw, context)
     fields = {
         "consistent_with_candidate",
@@ -209,6 +215,7 @@ def _parse_outcome_interpretation(raw: Any, context: str) -> dict[str, str]:
 
 
 def load_checklist(payload: Any) -> dict[str, Any]:
+    """Load checklist."""
     root = require_object(payload, "checklist")
     require_exact_keys(
         root,
@@ -296,121 +303,144 @@ def load_checklist(payload: Any) -> dict[str, Any]:
 
 
 def _normalize(value: str) -> str:
+    """Normalize."""
     return re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
+
+
+@dataclass
+class _AuditState:
+    """Mutable findings shared by the per-hypothesis audit steps."""
+
+    record_ids: dict[str, set[str]] | None
+    errors: list[dict[str, str]] = field(default_factory=list)
+    warnings: list[dict[str, str]] = field(default_factory=list)
+    review_counts: Counter[str] = field(default_factory=Counter)
+    test_ids: list[str] = field(default_factory=list)
+    null_ids: list[str] = field(default_factory=list)
+
+    def check_known(self, group: str, value: str, code: str, subject: str) -> None:
+        """Record an error when a record cross-check is active and value is unknown."""
+        if self.record_ids is not None and value not in self.record_ids[group]:
+            self.errors.append(issue(code, subject))
+
+
+def _record_id_sets(record: dict[str, Any] | None) -> dict[str, set[str]] | None:
+    """Return identifier sets from a validated hypothesis record, if one was given."""
+    if record is None:
+        return None
+    record_report = validate_record(record)
+    if not record_report["valid"]:
+        raise ValidationError(
+            "optional hypothesis record must pass schema validation first"
+        )
+    return {
+        "hypotheses": {item["hypothesis_id"] for item in record["hypotheses"]},
+        "predictions": {item["prediction_id"] for item in record["predictions"]},
+        "analyses": {
+            item["analysis_id"] for item in record["analysis_plan"]["analyses"]
+        },
+        "controls": {item["control_id"] for item in record["negative_controls"]},
+        "nulls": {item["null_id"] for item in record["null_hypotheses"]},
+    }
+
+
+def _audit_tests(state: _AuditState, hypothesis: dict[str, Any]) -> None:
+    """Audit discriminating tests for rival identity, contrast, and record links."""
+    hypothesis_id = hypothesis["hypothesis_id"]
+    for test in hypothesis["discriminating_tests"]:
+        state.test_ids.append(test["test_id"])
+        if test["rival_hypothesis_id"] == hypothesis_id:
+            state.errors.append(issue("FOCAL_HYPOTHESIS_LISTED_AS_RIVAL", test["test_id"]))
+        if _normalize(test["focal_expected"]) == _normalize(test["rival_expected"]):
+            state.errors.append(
+                issue("FOCAL_AND_RIVAL_EXPECTATIONS_IDENTICAL", test["test_id"])
+            )
+        state.check_known(
+            "hypotheses",
+            test["rival_hypothesis_id"],
+            "UNKNOWN_RIVAL_HYPOTHESIS_ID",
+            test["test_id"],
+        )
+
+
+def _audit_nulls(state: _AuditState, hypothesis: dict[str, Any]) -> None:
+    """Audit null hypotheses against the optional record."""
+    for null in hypothesis["nulls"]:
+        state.null_ids.append(null["null_id"])
+        state.check_known("nulls", null["null_id"], "UNKNOWN_NULL_ID", null["null_id"])
+        state.check_known(
+            "analyses", null["analysis_id"], "UNKNOWN_ANALYSIS_ID", null["analysis_id"]
+        )
+
+
+def _audit_controls(state: _AuditState, hypothesis: dict[str, Any]) -> None:
+    """Require a negative control and check negative controls against the record."""
+    negative_controls = [
+        control
+        for control in hypothesis["controls"]
+        if control["control_type"] in NEGATIVE_TYPES
+    ]
+    if not negative_controls:
+        state.errors.append(issue("NEGATIVE_CONTROL_REQUIRED", hypothesis["hypothesis_id"]))
+    for control in negative_controls:
+        state.check_known(
+            "controls",
+            control["control_id"],
+            "UNKNOWN_NEGATIVE_CONTROL_ID",
+            control["control_id"],
+        )
+
+
+def _audit_hypothesis(state: _AuditState, hypothesis: dict[str, Any]) -> None:
+    """Run every audit step for one checklist hypothesis."""
+    hypothesis_id = hypothesis["hypothesis_id"]
+    state.review_counts[hypothesis["human_review_status"]] += 1
+    if hypothesis["human_review_status"] != "complete":
+        state.warnings.append(issue("HUMAN_REVIEW_INCOMPLETE", hypothesis_id))
+
+    if state.record_ids is not None:
+        prediction_id = hypothesis["falsifier"]["prediction_id"]
+        state.check_known("hypotheses", hypothesis_id, "UNKNOWN_HYPOTHESIS_ID", hypothesis_id)
+        state.check_known("predictions", prediction_id, "UNKNOWN_PREDICTION_ID", prediction_id)
+    _audit_tests(state, hypothesis)
+    _audit_nulls(state, hypothesis)
+    _audit_controls(state, hypothesis)
+
+
+def _checklist_status(errors: list[dict[str, str]], hypotheses: list[dict[str, Any]]) -> str:
+    """Summarize validity and human-review declarations as a status string."""
+    if errors:
+        return "INVALID_CHECKLIST"
+    if any(item["human_review_status"] != "complete" for item in hypotheses):
+        return "VALID_PENDING_HUMAN_REVIEW"
+    return "VALID_HUMAN_REVIEW_DECLARED_COMPLETE"
 
 
 def audit(
     checklist: dict[str, Any], record: dict[str, Any] | None = None
 ) -> dict[str, Any]:
-    errors: list[dict[str, str]] = []
-    warnings: list[dict[str, str]] = []
-    review_counts: Counter[str] = Counter()
-    test_ids: list[str] = []
-    null_ids: list[str] = []
-
-    record_ids: dict[str, set[str]] | None = None
-    if record is not None:
-        record_report = validate_record(record)
-        if not record_report["valid"]:
-            raise ValidationError(
-                "optional hypothesis record must pass schema validation first"
-            )
-        record_ids = {
-            "hypotheses": {
-                item["hypothesis_id"] for item in record["hypotheses"]
-            },
-            "predictions": {
-                item["prediction_id"] for item in record["predictions"]
-            },
-            "analyses": {
-                item["analysis_id"] for item in record["analysis_plan"]["analyses"]
-            },
-            "controls": {
-                item["control_id"] for item in record["negative_controls"]
-            },
-            "nulls": {item["null_id"] for item in record["null_hypotheses"]},
-        }
-
+    """Audit a parsed checklist, optionally cross-checking a validated record."""
+    state = _AuditState(record_ids=_record_id_sets(record))
     for hypothesis in checklist["hypotheses"]:
-        hypothesis_id = hypothesis["hypothesis_id"]
-        review_counts[hypothesis["human_review_status"]] += 1
-        if hypothesis["human_review_status"] != "complete":
-            warnings.append(issue("HUMAN_REVIEW_INCOMPLETE", hypothesis_id))
+        _audit_hypothesis(state, hypothesis)
 
-        falsifier = hypothesis["falsifier"]
-        if record_ids is not None:
-            if hypothesis_id not in record_ids["hypotheses"]:
-                errors.append(issue("UNKNOWN_HYPOTHESIS_ID", hypothesis_id))
-            if falsifier["prediction_id"] not in record_ids["predictions"]:
-                errors.append(
-                    issue("UNKNOWN_PREDICTION_ID", falsifier["prediction_id"])
-                )
-
-        for test in hypothesis["discriminating_tests"]:
-            test_ids.append(test["test_id"])
-            if test["rival_hypothesis_id"] == hypothesis_id:
-                errors.append(issue("FOCAL_HYPOTHESIS_LISTED_AS_RIVAL", test["test_id"]))
-            if _normalize(test["focal_expected"]) == _normalize(
-                test["rival_expected"]
-            ):
-                errors.append(
-                    issue("FOCAL_AND_RIVAL_EXPECTATIONS_IDENTICAL", test["test_id"])
-                )
-            if (
-                record_ids is not None
-                and test["rival_hypothesis_id"] not in record_ids["hypotheses"]
-            ):
-                errors.append(
-                    issue("UNKNOWN_RIVAL_HYPOTHESIS_ID", test["test_id"])
-                )
-
-        for null in hypothesis["nulls"]:
-            null_ids.append(null["null_id"])
-            if record_ids is not None:
-                if null["null_id"] not in record_ids["nulls"]:
-                    errors.append(issue("UNKNOWN_NULL_ID", null["null_id"]))
-                if null["analysis_id"] not in record_ids["analyses"]:
-                    errors.append(
-                        issue("UNKNOWN_ANALYSIS_ID", null["analysis_id"])
-                    )
-
-        negative_controls = [
-            control
-            for control in hypothesis["controls"]
-            if control["control_type"] in NEGATIVE_TYPES
-        ]
-        if not negative_controls:
-            errors.append(issue("NEGATIVE_CONTROL_REQUIRED", hypothesis_id))
-        if record_ids is not None:
-            for control in negative_controls:
-                if control["control_id"] not in record_ids["controls"]:
-                    errors.append(
-                        issue("UNKNOWN_NEGATIVE_CONTROL_ID", control["control_id"])
-                    )
-
-    require_unique(test_ids, "checklist.discriminating_tests")
-    require_unique(null_ids, "checklist.nulls")
+    require_unique(state.test_ids, "checklist.discriminating_tests")
+    require_unique(state.null_ids, "checklist.nulls")
 
     return {
         "schema_version": "2.0",
         "checklist_id": checklist["checklist_id"],
         "record_id": checklist["record_id"],
-        "valid": not errors,
-        "status": (
-            "INVALID_CHECKLIST"
-            if errors
-            else "VALID_PENDING_HUMAN_REVIEW"
-            if any(item["human_review_status"] != "complete" for item in checklist["hypotheses"])
-            else "VALID_HUMAN_REVIEW_DECLARED_COMPLETE"
-        ),
-        "errors": errors,
-        "warnings": warnings,
+        "valid": not state.errors,
+        "status": _checklist_status(state.errors, checklist["hypotheses"]),
+        "errors": state.errors,
+        "warnings": state.warnings,
         "hypothesis_ids": sorted(
             item["hypothesis_id"] for item in checklist["hypotheses"]
         ),
-        "discriminating_test_ids": sorted(test_ids),
-        "null_ids": sorted(null_ids),
-        "human_review_status_counts": dict(sorted(review_counts.items())),
+        "discriminating_test_ids": sorted(state.test_ids),
+        "null_ids": sorted(state.null_ids),
+        "human_review_status_counts": dict(sorted(state.review_counts.items())),
         "record_cross_check_performed": record is not None,
         "notice": (
             "This audit checks declared falsifiers, rival contrasts, nulls, "
@@ -421,6 +451,7 @@ def audit(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit a bounded local falsification/control JSON checklist without "
@@ -439,6 +470,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         record = (

@@ -36,8 +36,11 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 sys.path.insert(0, str(Path(__file__).parent))
+from bom_fields import _canonical_for, _pick_mpn_from_props, _symbol_slots
+from distributor_core.manifest import load_index
 from edit_properties import apply_updates
-from kicad_sexp import collect_schematic_files, iter_placed_symbol_blocks
+from kicad_sexp import (atomic_write_text, collect_schematic_files,
+                        iter_placed_symbol_blocks, kicad_lock_path)
 
 
 # ---------------------------------------------------------------------------
@@ -76,57 +79,81 @@ def urls_match(a: str, b: str) -> bool:
 # Schematic parsing (lightweight — only extracts Reference + Datasheet)
 # ---------------------------------------------------------------------------
 
+_PROP_RE = re.compile(r'\(property\s+"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"')
+
+
+def _unescape(s: str) -> str:
+    return re.sub(r'\\(.)', lambda m: {"n": "\n"}.get(m.group(1), m.group(1)), s)
+
+
 def extract_ref_datasheets(text: str) -> dict[str, str]:
     """Extract {reference: datasheet_url} from placed symbols in a schematic."""
+    return {ref: sym["datasheet"] for ref, sym in extract_symbols(text).items()}
+
+
+def extract_symbols(text: str) -> dict[str, dict]:
+    """Extract {reference: {"datasheet": url, "keys": [manifest keys]}} from placed symbols.
+
+    Keys are the symbol's own part identities in match order: MPN values, then
+    distributor and supplier-slot part numbers, then Value only when the symbol
+    carries neither.
+    """
     result = {}
 
     for _sym_start, _sym_end, block in iter_placed_symbol_blocks(text):
-        ref_match = re.search(
-            r'\(property\s+"Reference"\s+"((?:[^"\\]|\\.)*)"', block
-        )
-        if not ref_match:
-            continue
-        ref = ref_match.group(1)
-        if ref.startswith("#"):
+        props = {_unescape(k): _unescape(v) for k, v in _PROP_RE.findall(block)}
+        ref = props.get("Reference")
+        if ref is None or ref.startswith("#"):
             continue
 
-        ds_match = re.search(
-            r'\(property\s+"Datasheet"\s+"((?:[^"\\]|\\.)*)"', block
-        )
-        ds = ds_match.group(1) if ds_match else ""
-        result[ref] = ds
+        keys: list[str] = []
+
+        def add(v):
+            v = str(v).strip()
+            if v and v != "~" and v not in keys:
+                keys.append(v)
+
+        add(_pick_mpn_from_props(props))
+        for name, value in props.items():
+            if _canonical_for(name) in ("digikey", "mouser", "lcsc", "element14"):
+                add(value)
+        for value in _symbol_slots(props).values():
+            add(value)
+        if not keys:
+            add(props.get("Value", ""))
+        result[ref] = {"datasheet": props.get("Datasheet", ""), "keys": keys}
 
     return result
 
 
 # ---------------------------------------------------------------------------
-# Index loading
+# Manifest loading
 # ---------------------------------------------------------------------------
 
-def build_ref_url_map(index: dict) -> dict[str, dict]:
-    """Build {reference: {url, mpn, source, verification}} from index.json.
+def build_key_url_map(index: dict) -> dict[str, dict]:
+    """Build {manifest key: {url, source, verification}} from the manifest.
 
     Only includes parts with status=ok and a valid datasheet_url.
     Skips parts flagged as wrong datasheets by the verification step.
     """
-    ref_map = {}
+    key_map = {}
     for part_key, entry in index.get("parts", {}).items():
         if entry.get("status") != "ok":
             continue
-        url = entry.get("datasheet_url", "").strip()
+        raw = entry.get("datasheet_url")
+        url = raw.strip() if isinstance(raw, str) else ""
         if not url:
             continue
         # Don't propagate URLs that verification flagged as wrong
         if entry.get("verification") == "wrong":
             continue
-        for ref in entry.get("references", []):
-            ref_map[ref] = {
-                "url": url,
-                "mpn": part_key,
-                "source": entry.get("source", ""),
-                "verification": entry.get("verification", ""),
-            }
-    return ref_map
+        key_map[part_key] = {
+            "url": url,
+            "mpn": part_key,
+            "source": entry.get("source", ""),
+            "verification": entry.get("verification", ""),
+        }
+    return key_map
 
 
 # ---------------------------------------------------------------------------
@@ -141,7 +168,7 @@ def sync_datasheet_urls(
     dry_run: bool = False,
     backup: bool = False,
 ) -> dict:
-    """Sync datasheet URLs from index.json into schematic Datasheet properties.
+    """Sync datasheet URLs from manifest.json (legacy index.json) into schematic Datasheet properties.
 
     Returns summary dict with counts and mismatch details.
     """
@@ -168,12 +195,14 @@ def sync_datasheet_urls(
         print("  Run a datasheet sync first to generate the manifest.", file=sys.stderr)
         return {"error": "no manifest"}
 
-    with open(index_path, "r") as f:
-        index = json.load(f)
+    try:
+        index = load_index(index_path)
+    except ValueError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return {"error": "unreadable manifest"}
 
-    # Build ref→url mapping from manifest
-    ref_url_map = build_ref_url_map(index)
-    if not ref_url_map:
+    key_url_map = build_key_url_map(index)
+    if not key_url_map:
         print("No datasheet URLs available in manifest (no parts with status=ok).",
               file=sys.stderr)
         return {"error": "no urls in manifest"}
@@ -192,17 +221,20 @@ def sync_datasheet_urls(
     fills = []
     files_modified = 0
 
+    write_root = schematic_path.parent
     for sch_file in sch_files:
         text = sch_file.read_text(encoding="utf-8")
-        current = extract_ref_datasheets(text)
+        current = extract_symbols(text)
+        ref_url_map = {}
 
         updates = {}
-        for ref, current_ds in current.items():
-            if ref not in ref_url_map:
+        for ref, sym in current.items():
+            current_ds = sym["datasheet"]
+            info = next((key_url_map[k] for k in sym["keys"] if k in key_url_map), None)
+            if info is None:
                 total_skipped += 1
                 continue
-
-            info = ref_url_map[ref]
+            ref_url_map[ref] = info
             new_url = info["url"]
 
             if is_empty_datasheet(current_ds):
@@ -218,7 +250,7 @@ def sync_datasheet_urls(
             elif urls_match(current_ds, new_url):
                 total_already_correct += 1
             else:
-                # Mismatch — current URL differs from index URL
+                # Mismatch — current URL differs from manifest URL
                 mismatches.append({
                     "reference": ref,
                     "mpn": info["mpn"],
@@ -242,6 +274,10 @@ def sync_datasheet_urls(
                 print(f"  [{sch_file.name}] {ref} ({info['mpn']}): "
                       f"would {action} Datasheet", file=sys.stderr)
         else:
+            if write_root != sch_file.parent and write_root not in sch_file.parents:
+                print(f"Warning: {sch_file} is outside {write_root}; not written",
+                      file=sys.stderr)
+                continue
             modified_text, change_log = apply_updates(text, updates)
 
             # Backup if requested
@@ -253,7 +289,7 @@ def sync_datasheet_urls(
                 shutil.copy2(sch_file, backup_path)
                 print(f"  Backup: {backup_path}", file=sys.stderr)
 
-            sch_file.write_text(modified_text, encoding="utf-8")
+            atomic_write_text(sch_file, modified_text)
             files_modified += 1
 
     # Report fills
@@ -305,8 +341,7 @@ def sync_datasheet_urls(
     # Lock file warning (same as edit_properties.py)
     if not dry_run and files_modified:
         for sch_file in sch_files:
-            lock_path = sch_file.parent / f"{sch_file.name}.lck"
-            if lock_path.exists():
+            if kicad_lock_path(sch_file).exists():
                 print(
                     f"\nWARNING: KiCad lock file detected for {sch_file.name}.\n"
                     f"Close and reopen the schematic (File > Open Recent) to see changes.\n"
@@ -324,11 +359,11 @@ def sync_datasheet_urls(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Sync datasheet URLs from index.json into KiCad schematic Datasheet properties",
+        description="Sync datasheet URLs from manifest.json (legacy index.json) into KiCad schematic Datasheet properties",
     )
     parser.add_argument(
         "schematic",
-        help="Path to root .kicad_sch file",
+        help="Path to root .kicad_sch file (KiCad 5 .sch is rejected)",
     )
     parser.add_argument(
         "--datasheets", "-d",
@@ -356,6 +391,11 @@ def main():
     )
     args = parser.parse_args()
 
+    if args.schematic.lower().endswith(".sch"):
+        print("Error: KiCad 5 .sch files are read only; sync Datasheet URLs in a .kicad_sch file",
+              file=sys.stderr)
+        sys.exit(1)
+
     result = sync_datasheet_urls(
         schematic_path=args.schematic,
         datasheets_dir=args.datasheets,
@@ -377,4 +417,8 @@ def main():
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     main()

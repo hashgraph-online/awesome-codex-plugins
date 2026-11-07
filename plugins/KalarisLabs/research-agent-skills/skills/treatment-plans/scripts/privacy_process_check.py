@@ -19,6 +19,7 @@ from _common import (
 
 
 def check_privacy_process(documents: dict[str, dict]) -> dict:
+    """Check privacy process."""
     issues = validate_package_structure(documents)
     if issues:
         return report_payload(
@@ -187,6 +188,7 @@ def check_privacy_process(documents: dict[str, dict]) -> dict:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check local authorization, minimization, no-external-tool, "
@@ -199,6 +201,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         documents, _ = load_package(args.package)

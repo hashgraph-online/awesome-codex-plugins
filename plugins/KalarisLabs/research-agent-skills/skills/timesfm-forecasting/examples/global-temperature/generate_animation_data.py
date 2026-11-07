@@ -28,6 +28,7 @@ OUTPUT_FILE = Path(__file__).parent / "output" / "animation_data.json"
 
 
 def main() -> None:
+    """Run the command-line interface."""
     print("=" * 60)
     print("  TIMESFM ANIMATION DATA GENERATOR")
     print("  Dynamic horizon - forecasts always reach 2025-12")
@@ -135,12 +136,12 @@ def main() -> None:
     with open(OUTPUT_FILE, "w") as f:
         json.dump(output, f, indent=2)
 
-    print(f"\n" + "=" * 60)
+    print("\n" + "=" * 60)
     print("  ✅ ANIMATION DATA COMPLETE")
     print("=" * 60)
     print(f"\n📁 Output: {OUTPUT_FILE}")
     print(f"   Total steps: {len(animation_steps)}")
-    print(f"   Each forecast extends to 2025-12")
+    print("   Each forecast extends to 2025-12")
 
 
 if __name__ == "__main__":

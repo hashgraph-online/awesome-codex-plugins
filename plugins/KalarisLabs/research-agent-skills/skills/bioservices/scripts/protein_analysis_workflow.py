@@ -71,7 +71,7 @@ def search_protein(query):
                 uniprot_id = query
                 print(f"✓ Found UniProt entry: {uniprot_id}")
                 return u, uniprot_id
-        except:
+        except Exception:
             pass
 
     # Otherwise search
@@ -100,7 +100,7 @@ def search_protein(query):
     length = first_entry[3] if len(first_entry) > 3 else "N/A"
     protein_name = first_entry[4] if len(first_entry) > 4 else "N/A"
 
-    print(f"\nUsing first result:")
+    print("\nUsing first result:")
     print(f"  UniProt ID: {uniprot_id}")
     print(f"  Gene names: {gene_names}")
     print(f"  Organism: {organism}")
@@ -125,7 +125,7 @@ def retrieve_sequence(uniprot, uniprot_id):
             header = lines[0]
             seq_only = "".join(lines[1:])
 
-            print(f"✓ Retrieved sequence:")
+            print("✓ Retrieved sequence:")
             print(f"  Header: {header}")
             print(f"  Length: {len(seq_only)} residues")
             print(f"  First 60 residues: {seq_only[:60]}...")
@@ -155,8 +155,8 @@ def run_blast(sequence, email, skip=False):
         return None
 
     try:
-        print(f"Submitting BLASTP job...")
-        print(f"  Database: uniprotkb")
+        print("Submitting BLASTP job...")
+        print("  Database: uniprotkb")
         print(f"  Sequence length: {len(sequence)} aa")
 
         s = NCBIblast(verbose=False)
@@ -170,7 +170,7 @@ def run_blast(sequence, email, skip=False):
         )
 
         print(f"✓ Job submitted: {jobid}")
-        print(f"  Waiting for completion...")
+        print("  Waiting for completion...")
 
         # Poll for completion
         max_wait = 300  # 5 minutes
@@ -189,7 +189,7 @@ def run_blast(sequence, email, skip=False):
 
                 # Parse and display summary
                 lines = results.split("\n")
-                print(f"\n  Results preview:")
+                print("\n  Results preview:")
                 for line in lines[:20]:
                     if line.strip():
                         print(f"    {line}")
@@ -197,7 +197,7 @@ def run_blast(sequence, email, skip=False):
                 return results
 
             elif status == "ERROR":
-                print(f"\n✗ BLAST job failed")
+                print("\n✗ BLAST job failed")
                 return None
 
             time.sleep(5)
@@ -282,7 +282,7 @@ def find_interactions(protein_query):
 
         # Try querying MINT database
         query = f"{protein_query} AND species:9606"
-        print(f"Querying MINT database...")
+        print("Querying MINT database...")
         print(f"  Query: {query}")
 
         results = p.query("mint", query)

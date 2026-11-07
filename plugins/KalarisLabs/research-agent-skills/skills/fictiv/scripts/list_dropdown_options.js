@@ -30,19 +30,34 @@ await (async () => {
     });
   });
 
+  const sleep = (ms) => new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
   const hold = holders[holders.length - 1];
   if (hold) {
-    for (let y = 0; y <= hold.scrollHeight + 200; y += 80) {
-      hold.scrollTop = y;
-      await new Promise((r) => setTimeout(r, 100));
-      grab(hold);
-    }
+    // Scroll steps must run strictly one after another, so chain them.
+    const offsets = [];
+    for (let y = 0; y <= hold.scrollHeight + 200; y += 80) offsets.push(y);
+    await offsets.reduce(
+      (chain, y) => chain.then(async () => {
+        hold.scrollTop = y;
+        await sleep(100);
+        grab(hold);
+      }),
+      Promise.resolve(),
+    );
     hold.scrollTop = 0;
   } else {
     grab(dropdowns[dropdowns.length - 1]);
   }
 
-  return [...seen.values()]
-    .map((o) => (o.group ? `## ${o.label}` : `${o.label}${o.selected ? '  [selected]' : ''}${o.disabled ? '  [disabled]' : ''}`))
-    .join('\n');
+  const describe = (o) => {
+    if (o.group) return `## ${o.label}`;
+    const selectedTag = o.selected ? '  [selected]' : '';
+    const disabledTag = o.disabled ? '  [disabled]' : '';
+    return `${o.label}${selectedTag}${disabledTag}`;
+  };
+
+  return [...seen.values()].map(describe).join('\n');
 })();

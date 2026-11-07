@@ -229,12 +229,21 @@ v2 success value is `authStatus: "oAuth"`. Installers that separately inspect
 (`auth_status: "o_auth"`) instead of reusing the app-server literal.
 
 The command needs no Gateway key. It exits zero only when the checkout is
-valid, Codex is ChatGPT-authenticated, current app-server RPC works, and a
+valid, a fresh account-only app-server check verifies managed ChatGPT authentication
+through the live usage endpoint, ordinary usage is allowed, and a
 read-only, shell-disabled app-server thread proves the authenticated OrgX server
 exposes exactly the bounded, read-only `orgx_get_workspace_context` MCP tool
 (the hosted `v2` catalog no longer registers `orgx_bootstrap`). This is an MCP inventory
 proof, not a claim that Codex has no other non-shell native tools. Real runs
 still compare every MCP tool schema to the signed per-run manifest.
+
+`login status` is cached inventory. Heartbeats expose that inventory separately
+from `provider_auth_verified` and `quota_status`; unavailable or blocked quota
+never reports dispatch readiness. The auth check starts no thread, model turn or
+tool and does not prove a model completed successfully. API-key, externally
+managed token and custom-provider authentication are outside this driver's scope.
+Both probes and execution use a process-scoped `model_provider="openai"` override;
+host configuration stays unchanged, and explicit conflicting task/provider contracts fail.
 
 Dry-run reconciliation does not require OrgX credentials:
 

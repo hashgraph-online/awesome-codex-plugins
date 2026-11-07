@@ -1,6 +1,6 @@
 """Distributor sync inputs: BOM projection, MPN-list reading, analyzer output.
-Verbatim from sync_datasheets_digikey.py; id_keys parameterises the per-provider identifier set
-(order = the dict-key order each provider wrote)."""
+Reads the analyzer BOM or an MPN list; id_keys sets the per-provider identifier keys
+(their order is the dict-key order of each part)."""
 
 import json
 import re
@@ -51,8 +51,20 @@ def is_real_mpn(mpn: str) -> bool:
 def get_analyzer_output(input_path: Path) -> dict | None:
     """Get analyzer output, either by running the analyzer or loading JSON."""
     if input_path.suffix == ".json":
-        with open(input_path, "r") as f:
-            return json.load(f)
+        try:
+            with open(input_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError) as e:
+            print(f"Error: cannot read {input_path}: {e}", file=sys.stderr)
+            return None
+        if not isinstance(data, dict):
+            print(f"Error: {input_path} is not analyzer output (a JSON object)", file=sys.stderr)
+            return None
+        bom = data.get("bom", [])
+        if not isinstance(bom, list) or not all(isinstance(e, dict) for e in bom):
+            print(f"Error: {input_path}: 'bom' is not a list of objects", file=sys.stderr)
+            return None
+        return data
 
     if input_path.suffix in (".kicad_sch", ".sch"):
         # Try importing the analyzer directly
@@ -96,12 +108,24 @@ def get_analyzer_output(input_path: Path) -> dict | None:
 # MPN extraction from BOM
 # ---------------------------------------------------------------------------
 
-def extract_parts(analyzer_output: dict, id_keys=("digikey", "mouser", "lcsc")) -> list[dict]:
+def _str(v) -> str:
+    return v if isinstance(v, str) else ""
+
+
+def _text(v) -> str:
+    return v.strip() if isinstance(v, str) else ""
+
+
+def extract_parts(analyzer_output: dict, id_keys=("digikey", "mouser", "lcsc"), search_key=None) -> list[dict]:
     """Extract unique parts with real MPNs or distributor PNs from analyzer BOM output.
 
     A part is included if it has at least one of: a real MPN, a DigiKey PN,
     a Mouser PN, or an LCSC PN. Users set up their KiCad projects differently —
     some only have MPNs, some only have distributor PNs, some have both.
+
+    ``search_key`` names the distributor doing the searching: the Value fallback applies when
+    the part has no real MPN and no number for that distributor (any ``id_keys`` number when
+    None), since another distributor's number is no query for it.
     """
     bom = analyzer_output.get("bom", [])
     parts = []
@@ -109,46 +133,56 @@ def extract_parts(analyzer_output: dict, id_keys=("digikey", "mouser", "lcsc")) 
     for entry in bom:
         if entry.get("dnp"):
             continue
-        if entry.get("type", "") in _SKIP_TYPES:
+        if _str(entry.get("type")) in _SKIP_TYPES:
             continue
 
-        mpn = entry.get("mpn", "").strip()
-        ids = {k: entry.get(k, "").strip() for k in id_keys}
+        mpn = _text(entry.get("mpn"))
+        ids = {k: _text(entry.get(k)) for k in id_keys}
 
         # Need at least one identifier to search for a datasheet
         has_mpn = is_real_mpn(mpn)
         has_distributor_pn = any(ids.values())
-        # F2: fall back to Value field when MPN is empty but the Value
+        # Fall back to Value field when MPN is empty but the Value
         # looks MPN-shaped (and the symbol isn't a generic Device:R/C/L
         # passive). Common pattern — many KiCad library symbols put the
         # MPN string in the Value field and leave the MPN property empty.
-        mpn_from_value = ""
-        if not has_mpn and not has_distributor_pn:
-            value = entry.get("value", "").strip()
-            lib_id = entry.get("lib_id", "")
+        from_value = False
+        searchable_pn = bool(ids.get(search_key)) if search_key else has_distributor_pn
+        if not has_mpn and not searchable_pn:
+            value = _text(entry.get("value"))
+            lib_id = _str(entry.get("lib_id"))
             if is_real_mpn(value) and not lib_id.startswith("Device:"):
-                mpn_from_value = value
+                from_value = True
                 mpn = value
                 has_mpn = True
         if not has_mpn and not has_distributor_pn:
             continue
 
+        refs = entry.get("references")
+        refs = refs if isinstance(refs, list) else []
         parts.append({
             "mpn": mpn if has_mpn else "",
-            "manufacturer": entry.get("manufacturer", ""),
-            "value": entry.get("value", ""),
-            "description": entry.get("description", ""),
-            "datasheet": entry.get("datasheet", ""),
-            "references": entry.get("references", []),
-            "type": entry.get("type", ""),
+            "manufacturer": _str(entry.get("manufacturer")),
+            "value": _str(entry.get("value")),
+            "description": _str(entry.get("description")),
+            "datasheet": _str(entry.get("datasheet")),
+            "references": [r for r in refs if isinstance(r, str)],
+            "type": _str(entry.get("type")),
+            "mpn_source": "value" if from_value else "",
             **{k: ids[k] for k in id_keys},
         })
 
     return parts
 
 
+def mpn_from_value(part: dict) -> bool:
+    """True when the part's MPN was read from the symbol's Value field (a name that may cover a
+    whole family, such as ``LM358``) rather than from an MPN property or an MPN list."""
+    return part.get("mpn_source") == "value"
+
+
 def load_mpn_list(path: Path, id_keys=("digikey", "mouser", "lcsc")) -> list[dict]:
-    """Read MPNs from a text file, one per line (KH-312).
+    """Read MPNs from a text file, one per line.
 
     Skips blank lines, full-line comments (``# ...``), and inline
     ``# ...`` comments. Filters non-MPN strings via ``is_real_mpn()``

@@ -56,6 +56,7 @@ def fit_emax(exposure: np.ndarray, response: np.ndarray, sigmoid: bool) -> dict:
     ec50_init = float(np.median(exposure[exposure > 0])) if np.any(exposure > 0) else 1.0
 
     def unpack(theta: np.ndarray) -> tuple[float, float, float, float]:
+        """Handle unpack."""
         e0 = theta[0]
         emax_value = theta[1]
         ec50 = math.exp(theta[2])
@@ -63,6 +64,7 @@ def fit_emax(exposure: np.ndarray, response: np.ndarray, sigmoid: bool) -> dict:
         return e0, emax_value, ec50, hill
 
     def predict(theta: np.ndarray, x: np.ndarray) -> np.ndarray:
+        """Predict."""
         e0, emax_value, ec50, hill = unpack(theta)
         powered = np.power(np.maximum(x, 0.0), hill)
         return e0 + emax_value * powered / (ec50**hill + powered)
@@ -114,6 +116,7 @@ def fit_logistic(exposure: np.ndarray, response: np.ndarray) -> dict:
         raise InputError("logistic exposure-response needs a 0/1 response column")
 
     def neg_loglik(theta: np.ndarray) -> float:
+        """Handle neg loglik."""
         eta = theta[0] + theta[1] * exposure
         # log(1+exp(eta)) computed stably
         return float(np.sum(np.logaddexp(0.0, eta) - response * eta))
@@ -191,6 +194,7 @@ def fit_cqtc(conc: np.ndarray, delta_qtc: np.ndarray, cmax: float | None) -> dic
 
 
 def quartile_summary(exposure: np.ndarray, response: np.ndarray, n_bins: int) -> list[dict]:
+    """Handle quartile summary."""
     edges = np.quantile(exposure, np.linspace(0, 1, n_bins + 1))
     edges[-1] = np.nextafter(edges[-1], np.inf)
     rows = []
@@ -217,6 +221,7 @@ def quartile_summary(exposure: np.ndarray, response: np.ndarray, n_bins: int) ->
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Exposure-response modelling: Emax, logistic, concentration-QTc, quartiles.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -237,6 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def run(argv: Sequence[str] | None = None) -> int:
+    """Run."""
     args = build_parser().parse_args(argv)
     modes = [m for m in ("emax", "logistic", "cqtc", "quartiles") if getattr(args, m)]
     if len(modes) != 1:

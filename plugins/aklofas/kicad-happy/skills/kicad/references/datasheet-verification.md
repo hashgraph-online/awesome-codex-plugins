@@ -27,6 +27,8 @@ It runs as part of the schematic analysis pipeline. When the `datasheets/extract
 - Missing capacitors, resistors, inductors, or diodes that the datasheet requires on specific pins
 - Decoupling capacitor count or value falling short of application circuit recommendations
 
+Coverage depends on the extraction format. Legacy extractions with top-level `pins[].required_external` and `application_circuit` support the external-component and decoupling checks below. Current v2 extractions use `base.pinout` and the domain voltage specifications; the verifier adapts their voltage limits but cannot derive those two legacy fields, and reports `extraction_not_verifiable` (info) instead. Treat that as a review gap: check required externals and decoupling against the PDF by hand. A populated cache does not mean every check ran.
+
 ---
 
 ## Prerequisites
@@ -38,10 +40,10 @@ The verification pipeline has four stages. All must complete before verification
 Use `sync_datasheets_digikey.py` (or `fetch_datasheet_digikey.py` for individual parts) to download PDF datasheets for all ICs in the design. The script uses `analyze_schematic.py` to extract MPNs automatically.
 
 ```bash
-python3 <skill-path>/scripts/sync_datasheets_digikey.py <project_dir>
+python3 <digikey-skill-path>/scripts/sync_datasheets_digikey.py <project>.kicad_sch
 ```
 
-PDFs are saved to `datasheets/` in the project directory.
+`<digikey-skill-path>` is the installed digikey skill directory. Pass the root schematic; PDFs are saved to `datasheets/` beside it.
 
 ### Stage 2: LLM extraction
 
@@ -51,11 +53,11 @@ This step is interactive — it requires the agent to read PDF pages and produce
 
 ### Stage 3: Cache extractions
 
-Extraction JSON files are stored in `datasheets/extracted/` with filenames derived from the MPN (non-alphanumeric characters replaced with underscores). An optional `manifest.json` (legacy name `index.json`) provides case-insensitive MPN-to-file mapping.
+Extraction JSON files are stored in `datasheets/extracted/`, named from the MPN (the cache manager appends a short hash; the planner and merger keep dots and hyphens). `manifest.json` (legacy name `index.json`) maps each MPN, matched case-insensitively, to its file, which must sit directly in that folder.
 
 ```
 datasheets/extracted/
-  TPS61023DRLR.json
+  TPS61023DRLR_a1b2c3.json   # cache manager name; the planner writes TPS61023DRLR.json
   STM32F405RGT6.json
   USBLC6_2SC6.json
   manifest.json       # optional (legacy name: index.json)
@@ -63,12 +65,7 @@ datasheets/extracted/
 
 ### Stage 4: Verification
 
-The verifier runs automatically when `run_datasheet_verification()` is called with the schematic analysis JSON. It resolves the extraction directory by checking:
-
-1. `<project_dir>/datasheets/extracted/`
-2. `<project_dir>/../datasheets/extracted/`
-
-If neither exists, verification is skipped.
+The verifier runs automatically when `run_datasheet_verification()` is called with the schematic analysis JSON. It reads the schematic folder's own `datasheets/extracted/` (`project_dir` is the schematic's directory); the parent folder is not searched. If that folder does not exist, verification is skipped.
 
 ---
 
@@ -157,8 +154,8 @@ Checks the `application_circuit` section of the extraction for these fields:
 For each recommendation, the verifier:
 
 1. Parses the recommendation text to extract minimum capacitance, required count, dielectric preferences, and placement distance
-2. Identifies all power pins on the IC (pins with type `power` and direction `input`, `output`, or `bidirectional`)
-3. Finds all capacitors connected to those power pin nets
+2. Identifies the IC's supply pins (type `power`, not on a ground net) by role: an input-cap recommendation is checked on input supply pins, an output-cap recommendation on output pins, `decoupling_cap` on both. A power pin whose direction is `passive` or absent takes its role from its function (VIN/VOUT), else from its name.
+3. Finds the capacitors on those nets whose other terminal is on ground (a ground-named net or a net on one of the IC's own ground pins)
 4. Counts capacitors whose parsed value meets at least 80% of the recommended minimum
 
 Severity depends on how many matching caps were found:
@@ -258,7 +255,7 @@ Array of finding objects. Each finding has:
 
 ## Extraction Fields Used
 
-Mapping of which extraction JSON fields drive which verification checks.
+Mapping of which extraction JSON fields drive which verification checks. This table describes the legacy verifier view, not the current extraction-file schema. For v2 files, each number of a `base.pinout[]` record becomes one pin; its voltage limits come from the pin's own `absolute_max` / `recommended`, else from its `power_domain` entries in `base.absolute_max` / `base.recommended_operating`. A pin marked `is_5v_tolerant` takes only its own limits and is not checked without them.
 
 | Extraction Field | Location | Used By |
 |-----------------|----------|---------|

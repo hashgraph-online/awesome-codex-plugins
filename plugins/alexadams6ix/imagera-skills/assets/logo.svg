@@ -1,0 +1,41 @@
+<svg width="32" height="32" viewBox="3.5 -21.5 93 93" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Imagera AI">
+  <!--
+    Imagera tab icon — the brand infinity mark, nothing else.
+
+    Replaces an amber four-pointed star that predated the current identity, so
+    every browser tab was showing a logo the product no longer uses anywhere.
+
+    No background tile. The viewBox is cropped to the mark's MEASURED visual
+    bounds — x 3.5, width 93, height 41.41 including the round caps, obtained
+    from getBBox() rather than estimated — so the logo spans the full width of
+    the icon instead of floating inside a padded square. The viewBox is then
+    squared to 93x93 and the y origin offset by (93 - 41.41) / 2 = 25.8 above
+    the art, which centres a 2.25:1 mark on a 1:1 canvas without a wrapper.
+
+    The stroke is 13 where the React component (src/components/shared/
+    ImageraLogo.tsx) uses 6. At 16px — the size a tab actually renders — a
+    6-unit stroke resolves to well under a pixel and the loops break into
+    dashes. 13 stays solid all the way down, and with no tile behind it the
+    mark needs the extra weight to hold against a busy tab strip.
+
+    Gradient stops match the component exactly (violet -> fuchsia -> pink ->
+    orange -> amber) so tab, header and installed-app icon are one logo.
+  -->
+  <defs>
+    <linearGradient id="imagera-mark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="25%" stop-color="#d946ef"/>
+      <stop offset="50%" stop-color="#ec4899"/>
+      <stop offset="75%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#eab308"/>
+    </linearGradient>
+  </defs>
+
+  <path
+    d="M50 25 C50 10, 30 5, 18 15 C6 25, 6 25, 18 35 C30 45, 50 40, 50 25 C50 10, 70 5, 82 15 C94 25, 94 25, 82 35 C70 45, 50 40, 50 25"
+    stroke="url(#imagera-mark)"
+    stroke-width="13"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"/>
+</svg>

@@ -1,6 +1,6 @@
 # .kicad-happy.json Config Reference
 
-Configuration file for kicad-happy. Placed in the project directory (or any parent directory). All analyzers, the EMC skill, and the BOM skill read this file automatically.
+Configuration file for kicad-happy. Placed in the project directory (or any parent directory). The schematic, PCB, thermal and EMC analyzers and the BOM skill read this file automatically; the Gerber and cross-analysis tools do not.
 
 ## File Format
 
@@ -32,6 +32,8 @@ The loader walks upward from the project directory, collecting every `.kicad-hap
 - All other lists: closer layer wins entirely (replaces the farther layer's list).
 
 **Error handling:** Parse errors print a warning to stderr and skip that layer. The loader never crashes. Invalid field values are warned and skipped individually.
+
+**Explicit config:** These rules apply only when no `--config` is given. `analyze_schematic.py`, `analyze_pcb.py`, `analyze_thermal.py` and `analyze_emc.py` accept `--config PATH`: that file replaces discovery, so parent-directory files and `~/.kicad-happy.json` do not contribute. A missing explicit file is not an error: the run uses the built-in defaults and prints a warning on stderr.
 
 ## Schema
 
@@ -70,30 +72,30 @@ Each entry:
 |-------|------|----------|-------------|
 | `rule_id` | string | **Yes** | Exact rule ID to suppress (e.g., `"DC-001"`, `"SW-002"`) |
 | `components` | array of strings | No | fnmatch glob patterns for component refs. At least one finding component must match at least one pattern. |
-| `nets` | array of strings | No | fnmatch glob patterns for net names. At least one finding net must match at least one pattern. |
+| `nets` | array of strings | No | fnmatch glob patterns for net names. At least one finding net must match at least one pattern. A pattern also matches the name after the sheet path (`/NAME` on the root sheet, `/<sheet>/NAME` below it) and the shown form of an escaped name (`D1/TX` for `D1{slash}TX`). |
 | `reason` | string | No | Human-readable explanation; shown in reports |
 
 **Matching:** `rule_id` must match exactly. If `components` is present, the finding must reference at least one matching component. If `nets` is present, the finding must reference at least one matching net. All present filters must match (AND logic). Patterns use Python `fnmatch` syntax (`*`, `?`, `[seq]`).
 
-**Entries missing `rule_id` are silently skipped** with a stderr warning.
+**Entries missing `rule_id`, that are not objects, or whose `components`/`nets` is not a list of strings are skipped** with a `Warning:` line on stderr.
 
 ```jsonc
 "suppressions": [
   // Suppress for all instances of this rule
   {
     "rule_id": "DC-001",
-    "reason": "Intentional — test pad left floating"
+    "reason": "Bulk cap sits away from the IC by design; local 100 nF caps cover high frequencies"
   },
   // Suppress only for specific components
   {
     "rule_id": "SW-002",
-    "components": ["Q1", "Q2"],
-    "reason": "Bootstrap topology confirmed with vendor"
+    "components": ["U3"],
+    "reason": "Larger switch-node copper accepted for heat spreading; layout follows the vendor reference design"
   },
-  // Suppress only for specific nets
+  // Suppress only for a specific connector
   {
-    "rule_id": "EMC-005",
-    "nets": ["VBUS_RAW", "USB_*"],
+    "rule_id": "IO-001",
+    "components": ["J1"],
     "reason": "USB VBUS handled by upstream filter board"
   },
 ]
@@ -145,7 +147,7 @@ Controls analysis script behavior and output.
 | `retention` | integer | `0` | 0 = keep every run (default); N keeps the N newest unpinned runs |
 | `auto_diff` | boolean | `true` | Automatically diff against the previous run |
 | `track_in_git` | boolean | `false` | Include analysis output in git tracking |
-| `diff_threshold` | string | `"major"` | Change level at which a new timestamped run folder is created instead of overwriting the current one: `"major"` (default), `"minor"`, or `"all"` (any detected change) |
+| `diff_threshold` | string | `"major"` | Change level at which a new timestamped run folder is created instead of overwriting the current one: `"all"` or `"minor"` (any detected change), `"major"` (default), or `"breaking"` |
 | `power_rails` | object | `{}` | Power rail filtering and annotation (see below) |
 
 #### `analysis.power_rails` (object) — v1.2
@@ -154,9 +156,9 @@ Filter and annotate power rails in analysis output. All patterns use fnmatch glo
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `ignore` | array of strings | Net name patterns to exclude from analysis. Ignored rails are removed from `rail_voltages`, `power_rails`, sleep current audit, and power tree figures. |
+| `ignore` | array of strings | Net name patterns to exclude from analysis. A pattern matches the full net name or the name after its sheet path. Ignored rails get no voltage in any check and are removed from `rail_voltages`, `power_rails`, the sleep current audit and the power budget. |
 | `flag` | array of strings | Net name patterns to highlight for extra scrutiny. Flagged rails appear in top-level `flagged_rails`. |
-| `voltage_overrides` | object | Manual voltage assignments: `{net_name: voltage_float}`. Overrides auto-detected voltages from regulator outputs and power symbol name inference. |
+| `voltage_overrides` | object | Manual voltage assignments: `{net_name: voltage_float}`, matched by full net name or the name after its sheet path (`+3V3` also sets `/<sheet>/+3V3`). Overrides auto-detected voltages from regulator outputs and power symbol name inference in every check (a regulator's own `estimated_vout` is kept). Findings that used an override carry `rail_voltage_source: "config"`; `power_rails` entries carry `source: "config"`. |
 
 `ignore` and `flag` must be arrays; `voltage_overrides` values must be numeric. Invalid entries are warned and skipped.
 
@@ -229,6 +231,51 @@ Explicit design intent overrides. When absent, each field is **auto-detected** f
 
 ---
 
+### `datasheets` (object) — user-level only
+
+Read only from `~/.kicad-happy.json`. A project or workspace `.kicad-happy.json` cannot set it; the value there is ignored.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `allow_private_hosts` | bool | `false` | Let the datasheet sync and fetch scripts download from loopback, private, link-local and other non-public addresses. Only the JSON value `true` turns it on. |
+
+Without it, a datasheet download accepts only `http` and `https` URLs whose host resolves to public addresses, and every redirect is checked the same way. The browser fallback (playwright) runs only for URLs that pass this check.
+
+```jsonc
+// ~/.kicad-happy.json
+{
+  "datasheets": { "allow_private_hosts": true }  // e.g. an internal datasheet mirror
+}
+```
+
+The eight `sync_datasheets_<distributor>.py` and `fetch_datasheet_<distributor>.py` scripts also take two command-line limits per download:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--max-download-mb MB` | 50 | Stop a download larger than this. |
+| `--download-timeout SECONDS` | 120 | Stop a download that takes longer than this, redirects included. |
+
+---
+
+### `spice` (object) — user-level only
+
+Read only from `~/.kicad-happy.json`. A project or workspace `.kicad-happy.json` cannot set it; the value there is ignored.
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `trust_project_models` | bool | `false` | Paste a project's cached part models (`spice/models/*.sub`) into the netlist verbatim. Only the JSON value `true` turns it on. |
+
+Without it, `simulate_subcircuits.py` skips a cached model with a line that starts a simulator control block (`.control`, `.endc`), runs `shell` or `source`, or includes any file (`.include`, `.inc`, `.lib`). The part falls back to the next model source (distributor data, the built-in table, or the ideal model) and the report's `diagnostics` gets one `project model skipped` record. The skipped file and its manifest entry are left as they are; the fallback model is not cached over them.
+
+```jsonc
+// ~/.kicad-happy.json
+{
+  "spice": { "trust_project_models": true }  // e.g. vendor models you reviewed
+}
+```
+
+---
+
 ## Complete Example
 
 Production consumer electronics board targeting the EU market. LCSC primary supplier, IPC Class 2, with suppressions, power rail filtering, BOM config, and branding.
@@ -263,16 +310,16 @@ Production consumer electronics board targeting the EU market. LCSC primary supp
   "suppressions": [
     {
       "rule_id": "DC-003",
-      "components": ["TP*"],
-      "reason": "Test points intentionally unpopulated in production build"
+      "components": ["C12"],
+      "reason": "C12 sits beside the board-edge connector where no via fits within 3 mm"
     },
     {
-      "rule_id": "EMC-011",
-      "nets": ["VBUS_RAW"],
+      "rule_id": "IO-001",
+      "components": ["J1"],
       "reason": "VBUS filtered upstream on power input board; this board sees clean rail"
     },
     {
-      "rule_id": "THM-002",
+      "rule_id": "TS-002",
       "components": ["U4"],
       "reason": "U4 (WiFi module) has internal thermal management; Rth_JA from module datasheet used directly"
     }
@@ -354,3 +401,5 @@ Production consumer electronics board targeting the EU market. LCSC primary supp
 | `design_intent.preferred_passive_size` | string | — | `"0603"` | Yes |
 | `design_intent.test_coverage_target` | number | — | market-adj. | Yes |
 | `design_intent.approved_manufacturers` | array | — | [] | — |
+| `datasheets.allow_private_hosts` (user file only) | bool | — | false | — |
+| `spice.trust_project_models` (user file only) | bool | — | false | — |

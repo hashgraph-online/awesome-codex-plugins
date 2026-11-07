@@ -26,7 +26,7 @@ def create_chat_session(notebook_id, title, model_override=None):
     }
     if model_override:
         payload["model_override"] = model_override
-    response = requests.post(f"{BASE_URL}/chat/sessions", json=payload)
+    response = requests.post(f"{BASE_URL}/chat/sessions", json=payload, timeout=30)
     response.raise_for_status()
     session = response.json()
     print(f"Created chat session: {session['id']} - {title}")
@@ -38,6 +38,7 @@ def list_chat_sessions(notebook_id):
     response = requests.get(
         f"{BASE_URL}/chat/sessions",
         params={"notebook_id": notebook_id},
+        timeout=30,
     )
     response.raise_for_status()
     sessions = response.json()
@@ -61,7 +62,7 @@ def send_chat_message(session_id, message, include_sources=True,
     }
     if model_override:
         payload["model_override"] = model_override
-    response = requests.post(f"{BASE_URL}/chat/execute", json=payload)
+    response = requests.post(f"{BASE_URL}/chat/execute", json=payload, timeout=30)
     response.raise_for_status()
     result = response.json()
     print(f"\nUser: {message}")
@@ -71,7 +72,7 @@ def send_chat_message(session_id, message, include_sources=True,
 
 def get_session_history(session_id):
     """Retrieve full message history for a chat session."""
-    response = requests.get(f"{BASE_URL}/chat/sessions/{session_id}")
+    response = requests.get(f"{BASE_URL}/chat/sessions/{session_id}", timeout=30)
     response.raise_for_status()
     session = response.json()
     messages = session.get("messages", [])
@@ -90,7 +91,7 @@ def build_context(notebook_id, source_ids=None, note_ids=None):
         payload["source_ids"] = source_ids
     if note_ids:
         payload["note_ids"] = note_ids
-    response = requests.post(f"{BASE_URL}/chat/context", json=payload)
+    response = requests.post(f"{BASE_URL}/chat/context", json=payload, timeout=30)
     response.raise_for_status()
     context = response.json()
     print(f"Context built: {context.get('token_count', '?')} tokens, "
@@ -104,7 +105,7 @@ def search_knowledge_base(query, search_type="vector", limit=5):
         "query": query,
         "search_type": search_type,
         "limit": limit,
-    })
+    }, timeout=30)
     response.raise_for_status()
     results = response.json()
     print(f"\nSearch results for '{query}' ({results.get('total', 0)} hits):")
@@ -119,7 +120,7 @@ def ask_question(query):
     """Ask a question and get an AI-generated answer from the knowledge base."""
     response = requests.post(f"{BASE_URL}/search/ask/simple", json={
         "query": query,
-    })
+    }, timeout=30)
     response.raise_for_status()
     result = response.json()
     print(f"\nQ: {query}")
@@ -129,7 +130,7 @@ def ask_question(query):
 
 def delete_chat_session(session_id):
     """Delete a chat session."""
-    response = requests.delete(f"{BASE_URL}/chat/sessions/{session_id}")
+    response = requests.delete(f"{BASE_URL}/chat/sessions/{session_id}", timeout=30)
     response.raise_for_status()
     print(f"Deleted chat session: {session_id}")
 
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     notebook = requests.post(f"{BASE_URL}/notebooks", json={
         "name": "Chat Demo",
         "description": "Demonstrating chat interactions",
-    }).json()
+    }, timeout=30).json()
     notebook_id = notebook["id"]
 
     # Add a text source for context
@@ -157,7 +158,7 @@ if __name__ == "__main__":
         ),
         "notebook_id": notebook_id,
         "process_async": "false",
-    })
+    }, timeout=30)
 
     # Create a chat session
     session = create_chat_session(notebook_id, "Immunotherapy Discussion")
@@ -186,5 +187,5 @@ if __name__ == "__main__":
     # Clean up
     print()
     delete_chat_session(session["id"])
-    requests.delete(f"{BASE_URL}/notebooks/{notebook_id}")
+    requests.delete(f"{BASE_URL}/notebooks/{notebook_id}", timeout=30)
     print("Cleanup complete")

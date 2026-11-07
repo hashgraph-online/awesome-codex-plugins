@@ -144,7 +144,7 @@ def check_diagnostics(idata, var_names=None, ess_threshold=400, rhat_threshold=1
         print("   → Increase max_treedepth (if necessary)")
         results['issues'].append('max_treedepth')
     else:
-        print(f"✓ No maximum tree depth issues")
+        print("✓ No maximum tree depth issues")
         print(f"  Maximum tree depth reached: {max_tree_depth}")
 
     # 5. Check Energy (if available)
@@ -207,6 +207,7 @@ def create_diagnostic_report(idata, var_names=None, output_dir='diagnostics/', s
     # current figure, so the figure must be saved through the collection --
     # plt.savefig() would write a blank image.
     def _save(plot_collection, filename, label):
+        """Save."""
         plot_collection.savefig(
             output_path / filename, dpi=300, bbox_inches='tight'
         )
@@ -251,7 +252,7 @@ def create_diagnostic_report(idata, var_names=None, output_dir='diagnostics/', s
 
     # Save summary to CSV
     results['summary'].to_csv(output_path / 'summary_statistics.csv')
-    print(f"  ✓ Saved summary statistics")
+    print("  ✓ Saved summary statistics")
 
     print(f"\nDiagnostic report complete! Files saved in '{output_dir}'")
 

@@ -45,8 +45,8 @@ exist.
 | `additivity` | `additive`; `semi_additive` (does not add across time: a balance, a running or season-to-date total); `non_additive` (a ratio, a share, a distinct count) |
 | `unit` | `currency:<ISO code>`, `fraction` (0 to 1), `percent` (0 to 100), `count`, or a plain unit such as `days` |
 | `null_rule` | `never`, or a sentence saying what NULL means in this column |
-| `references` | `<model>.<column>`, a model, seed or snapshot the project has |
-| `population.parent` | `{"model": <model, seed or snapshot>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
+| `references` | `<model>.<column>`, a model, seed or snapshot the project has, or one an installed package has (a package's staging model, say) where the project defines none of that name |
+| `population.parent` | `{"model": <model, seed or snapshot, the project's or an installed package's>, "key": {<output column>: <parent column>, ...}}`: the entity the model holds one row per. Use it when every parent should be in the model (a parent with no children included), so verification counts the parents missing from it, and the plan warns when the SQL is driven from a relation unrelated to it (`check: population_parent`). A population that only has a `rule` is `prose` under `population_contract`: nothing can run it |
 | `evidence` | `request` (what the request settles), `contract` (what the project's declared columns, tests or metric filters settle), `precedent` (how sibling models decide the same thing), `data` (what profiling showed about the data, never the intended population or NULL policy), `default` (the conventional analytics-engineering choice, including a reasonable choice where wording leaves the question open). Name `request` or `contract` only when that source settles the choice: "per account" alone does not say whether accounts without events belong, so that choice is a `default` |
 
 | `assumptions[].column` | optional: the output or source column the decision governs. `data.identifier_conversions` reads it: a conversion that drops, merges or respells identifiers of a column an assumption names is `declared` rather than `undeclared` (#861). Use it when a repair excludes identifiers of a second scheme or merges `7` and `007` on purpose, with the evidence that settles it |
@@ -114,6 +114,33 @@ A `references` to `dim_teams.v2.team_id` renders `to: ref('dim_teams', v=2)`.
 Every reader below reads a version as dbt builds it, under its label. The
 workflow is in `model-versions.md`.
 
+## A parent from an installed package
+
+Most marts read a package's staging models (Fivetran's, the dbt-labs
+packages'), and the entity a mart holds one row per is usually one of them.
+`population.parent` and `references` name it by its model name, as `ref()` does,
+and the declaration lives on the project's own model: nothing under the packages
+directory is written.
+
+- **The project wins.** The project's models, seeds and snapshots are looked up
+  first, so a project override of a package model is the parent, as it is for
+  `ref()` and for `transform references`.
+- **Columns.** The parent column is checked against the package model's SQL,
+  then against the compiled SQL in the project's manifest. A staging model that
+  lists its columns through a macro, with no compiled manifest yet, cannot be
+  read: the column is a warning naming the package, not a refusal, and
+  `transform build --verify` reads the built relation. A column the package
+  model provably lacks is refused, naming the package and its file.
+- **The plan-time driver check** (`check: population_parent`) walks the
+  package's own `ref()` lineage, so a mart driven from the package's parts table
+  under a declared package conversations parent is `contradicted`. Column-only
+  macros (`fill_staging_columns`, `dbt_utils.star`, the cross-database type and
+  date macros) do not hide a relation; any other macro in the lineage, such as a
+  `union_data` that reads relations itself, makes the check `unchecked`.
+- **At build time** the parent population is measured on the package model's
+  relation. A package that sets `+schema` builds into `<dev schema>_<name>`, and
+  `--verify` reads those namespaces too, since the dev target wrote them.
+
 ## What is checked
 
 Refused, with the fix named:
@@ -125,9 +152,13 @@ Refused, with the fix named:
   a column the target does not produce;
 - an unknown `role`, `additivity` or `evidence`, or an unknown field;
 - a population filter listing values on a column that looks like personal data;
-- a `population.parent` naming no model, seed or snapshot, naming the model
-  itself, mapping an output column the model does not produce, or a parent
-  column the parent does not produce;
+- a `population.parent` naming no model, seed or snapshot of the project or an
+  installed package, naming the model itself, mapping an output column the
+  model does not produce, or a parent column the parent does not produce. A
+  source is not a parent: name the staging model that selects from it (the
+  refusal says so where the name is a source table);
+- a `population.parent` or `references` naming a package model the project's
+  `dbt_project.yml` disables with no project model of that name;
 - a declaration on a project override of a package model the package documents,
   naming both files. A hand-written `schema_yml` entry for that model is refused
   the same way, before dbt parses.
@@ -262,7 +293,7 @@ reports something; an empty list means nothing was contradicted.
 | `check` | Fires when |
 |---|---|
 | `population` | the predicate implementing a declared `population.filters` entry is removed or changes the values it keeps. `excludes` is met by `<>`/`NOT IN` on exactly those values, or by an `IN` list that leaves them out; `includes` by `=`/`IN` on exactly those values |
-| `population_parent` | the model declares `population.parent` and the relation driving it has no `ref()` lineage to that parent, in either direction. Fires on a new model too. A RIGHT, FULL or CROSS join that keeps the parent's rows is silent. `authored` names the driver and `parent` the parent. A driver or lineage dex cannot read (a macro, `{% if %}`, a set operation, a literal name, a package model) is `unchecked` |
+| `population_parent` | the model declares `population.parent` and the relation driving it has no `ref()` lineage to that parent, in either direction. Fires on a new model too. A RIGHT, FULL or CROSS join that keeps the parent's rows is silent. `authored` names the driver and `parent` the parent. A package parent or driver is read through the package's own `ref()` lineage. A driver or lineage dex cannot read (a macro that may read a relation, `{% if %}`, a set operation, a literal name, packages not installed) is `unchecked` |
 | `grain` | the drafted grain (the `GROUP BY` keys, or a carried key) differs from the declared grain, or a declared grain column leaves the SELECT list |
 | `columns` | a column whose declaration states a role, unit, additivity or another `config.meta.dex` field leaves the SELECT list. It names what the column was declared as, beside the plain `schema.yml` divergence warning |
 | `additivity` | the model takes `SUM` of an upstream column its own model declares `semi_additive` or `non_additive`, or `AVG` of one declared `non_additive` with a `fraction` or `percent` unit. `declared_on` names that upstream model. A running total the cumulative check found and nothing declares fires too, without `declared_on`; a column declared `additive` never does |
@@ -342,7 +373,7 @@ repository, so nothing is compiled. A versioned model is selected by version:
 | `grain` | `config.meta.dex.grain`, plus `unique` and `not_null` on a single column | no grain is declared |
 | `role: key` | the column's `role` | the column has no role |
 | `role: foreign_key` | the column's `role` | the column has no role |
-| `references` | `references` and a `relationships` test | the column's role is absent or `foreign_key`, and the parent is a model, seed or snapshot of this project (a join verified to a raw table stays in `drafted`) |
+| `references` | `references` and a `relationships` test | the column's role is absent or `foreign_key`, and the parent is a model, seed or snapshot of this project or of an installed package (a join verified to a raw table stays in `drafted`) |
 | `additivity: semi_additive` | the column's `additivity` | no additivity is declared |
 
 The unit shape, NULL facts, PII flags and value domains are evidence, not

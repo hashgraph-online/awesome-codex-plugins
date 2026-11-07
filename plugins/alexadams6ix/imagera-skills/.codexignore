@@ -1,0 +1,5 @@
+# Nothing local belongs in a Codex install of this plugin.
+.git/
+.DS_Store
+*.log
+.env*

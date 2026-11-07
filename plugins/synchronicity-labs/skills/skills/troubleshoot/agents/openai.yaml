@@ -1,0 +1,4 @@
+interface:
+  display_name: "Troubleshoot sync."
+  short_description: "Find why a sync. job failed and resume it safely"
+  default_prompt: "Use $troubleshoot to find out why my sync. job failed."

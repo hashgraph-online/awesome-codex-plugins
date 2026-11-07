@@ -25,6 +25,7 @@ WHITESPACE = b" \t\r\n\f\v"
 
 
 def _next_token(payload: bytes, offset: int) -> tuple[bytes, int]:
+    """Handle next token."""
     length = len(payload)
     while offset < length:
         if payload[offset] in WHITESPACE:
@@ -48,6 +49,7 @@ def _next_token(payload: bytes, offset: int) -> tuple[bytes, int]:
 
 
 def _read_pnm(path: Path, max_pixels: int) -> tuple[int, int, bytes]:
+    """Read pnm."""
     payload = path.read_bytes()
     magic, offset = _next_token(payload, 0)
     width_token, offset = _next_token(payload, offset)
@@ -90,6 +92,7 @@ def _read_pnm(path: Path, max_pixels: int) -> tuple[int, int, bytes]:
 
 
 def _read_with_pillow(path: Path, max_pixels: int) -> tuple[int, int, bytes]:
+    """Read with pillow."""
     try:
         from PIL import Image
     except ModuleNotFoundError as exc:
@@ -226,6 +229,7 @@ def _write_mask(
     root: str,
     force: bool,
 ) -> None:
+    """Write mask."""
     header = f"P5\n{width} {height}\n255\n".encode("ascii")
     atomic_write_bytes(
         Path(destination),
@@ -237,6 +241,7 @@ def _write_mask(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Compute bounded synthetic/local RGB QC and a coarse tissue-like "
@@ -274,6 +279,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     root = checked_root(args.root)
     if args.command == "synthetic":

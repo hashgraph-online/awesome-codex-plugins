@@ -23,7 +23,7 @@ Interactive parameter sweep for KiCad designs. Patches component values in analy
 The what-if pipeline operates in three stages:
 
 1. **Patch** -- Locate all subcircuit detections in `findings[]` (grouped by detector) that reference the changed component(s) and replace their stored values.
-2. **Recalculate** -- Re-derive dependent fields (cutoff frequency, divider ratio, opamp gain, etc.) using the formulas in `_recalc_derived()`.
+2. **Recalculate** -- Re-derive dependent fields (cutoff frequency, divider ratio, opamp gain, etc.) using the formulas in `detection_schema.recalc_derived(det, det_type)`.
 3. **Compare** -- Diff the original and patched detections, report before/after values with percentage deltas.
 
 The tool operates on analyzer JSON produced by `analyze_schematic.py`. It never re-parses the schematic file -- it works entirely on the pre-analyzed data.
@@ -54,8 +54,9 @@ python3 what_if.py <input> [changes...] [options]
 
 | Flag | Description |
 |------|-------------|
-| `--spice` | Re-run SPICE simulations on affected subcircuits (requires ngspice/LTspice/Xyce) |
-| `--output FILE`, `-o FILE` | Write patched analysis JSON to file (for downstream EMC, thermal, or diff analysis) |
+| `--spice` | Re-run SPICE simulations on each affected subcircuit, original and patched (requires ngspice/LTspice/Xyce; not with a sweep) |
+| `--offline` | With `--spice`: part models from the project cache and the built-in table only, no distributor or datasheet lookup |
+| `--output FILE`, `-o FILE` | Write the patched analysis JSON to FILE (single changes only; for downstream EMC, thermal, or diff analysis) |
 | `--text` | Human-readable text output instead of JSON |
 | `--emc` | Show EMC impact preview (runs `analyze_emc.py` on original and patched JSON) |
 | `--pcb FILE` | PCB analysis JSON for parasitic awareness (auto-discovered if omitted) |
@@ -68,6 +69,7 @@ python3 what_if.py <input> [changes...] [options]
 |------|---------|
 | 0 | Success |
 | 1 | Invalid input, parse error, or missing data |
+| 2 | Usage error (argparse, `--spice` with a sweep, or a log sweep with a bound at or below zero) |
 
 ---
 
@@ -97,7 +99,7 @@ Evaluates the circuit at each listed value. Results are formatted as a markdown 
 R5=1k..100k:10
 ```
 
-Generates `N` logarithmically spaced values between start and stop (inclusive). The step count is capped at 50.
+Generates `N` logarithmically spaced values between start and stop (inclusive). The step count is capped at 50. Both bounds must be above zero (exit 2 otherwise).
 
 **Syntax:** `START..STOP:N`
 
@@ -110,7 +112,7 @@ R5=4.7k+-5%
 R5=4.7k±5%
 ```
 
-Both `+-` and the Unicode `±` character are accepted. The tolerance triggers worst-case corner analysis: all 2^N combinations of each toleranced component at its +tol and -tol extremes. Capped at 6 components (64 corners).
+Both `+-` and the Unicode `±` character are accepted. The tolerance triggers worst-case corner analysis: all 2^N combinations of each toleranced component at its +tol and -tol extremes. Capped at 6 components (64 corners). Every recalculable field of an affected subcircuit gets its corner bounds, including one whose nominal value did not change (`R5=4.7k+-5%` on a part that is already 4.7k).
 
 Default tolerances when the suffix is omitted but tolerance mode is active:
 
@@ -122,13 +124,13 @@ Default tolerances when the suffix is omitted but tolerance mode is active:
 
 ### Combined Formats
 
-Sweep and tolerance can be combined on a single component:
+A tolerance suffix, on the sweep component or on any fixed change beside the sweep, is a usage error (exit 2): `tolerance corners are not supported with a sweep; run each value as a single change`.
 
 ```
-R5=1k,2.2k,4.7k+-5%
+R5=1k,2.2k,4.7k+-5%    # usage error
 ```
 
-This sweeps through the listed values and also computes tolerance corners at each step.
+For corners at a given value, run that value as a single change (`R5=2.2k+-5%`).
 
 Multiple non-sweep changes can be specified alongside a single sweep:
 
@@ -224,7 +226,7 @@ All fix suggestions are snapped to standard E-series values using `snap_to_e_ser
 **Algorithm:**
 1. Extract the decade: `decade = 10^floor(log10(value))`
 2. Normalize: `normalized = value / decade`
-3. Find the closest value in the series decade list.
+3. Find the nearest value in the series decade list by log distance, with 10 (the next decade's first value) included, so in E12 9.9 snaps to 10 rather than 8.2.
 4. Reconstruct: `snapped = best * decade`
 5. Compute error: `error_pct = (snapped - value) / value * 100`
 
@@ -256,12 +258,17 @@ The `--emc` flag runs the full EMC analyzer (`analyze_emc.py`) on both the origi
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `before_risk` | string | Overall risk level before change |
-| `after_risk` | string | Overall risk level after change |
-| `resolved` | array | Findings that disappeared after the change |
-| `improved` | array | Findings whose risk level decreased |
-| `new_findings` | array | Findings that appeared after the change |
+| `before_risk` | number | `summary.emc_risk_score` before the change (0 = worst, 100 = lowest risk) |
+| `after_risk` | number | `summary.emc_risk_score` after the change |
+| `resolved` | array | Findings that disappeared after the change (`rule`, `detail`) |
+| `improved` | array | Findings whose severity went down (`rule`, `before`, `after`, `detail`) |
+| `worsened` | array | Findings whose severity went up (`rule`, `before`, `after`, `detail`) |
+| `new_findings` | array | Findings that appeared after the change (`rule`, `detail`) |
 | `unchanged` | integer | Count of findings with no change |
+
+Findings are matched as `diff_analysis.py` matches them: by `finding_id`, or by content when
+the id is positional, so two findings of one rule are told apart. The patched JSON carries the
+new values in `components[].value`/`parsed_value` as well as in the patched detections.
 
 Text mode renders this as a summary with per-finding detail.
 
@@ -312,7 +319,7 @@ A warning is emitted when a suggested E-series value exceeds the package limit.
 
 ## Recalculable Fields
 
-The recalculation engine (`_recalc_derived` in `spice_tolerance.py`) updates these fields after patching component values:
+The recalculation engine (`detection_schema.recalc_derived(det, det_type)`) updates these fields after patching component values:
 
 | Detection Type | Field | Formula | Equation ID |
 |---------------|-------|---------|-------------|
@@ -329,6 +336,16 @@ The recalculation engine (`_recalc_derived` in `spice_tolerance.py`) updates the
 | `power_regulators` (feedback divider) | `ratio` | `R_bot / (R_top + R_bot)` | EQ-VD-001 |
 
 The comparison engine also checks for any additional fields present in the detection that were not explicitly registered (e.g., `estimated_vout`).
+
+Numeric fields that restate a recalculated value are recomputed with it, so a patched detection (and the `--output` export) stays consistent:
+
+| Detection Type | Field | Recomputed as |
+|---------------|-------|---------------|
+| `rc_filters` | `time_constant_s` | `R * C` |
+| `crystal_circuits` | `load_cap_error_pct`, `load_cap_status` | error of the new `effective_load_pF` against `target_load_pF`, with the analyzer's thresholds |
+| `power_regulators` | `power_dissipation.vout_V`, `estimated_pdiss_W` (LDO also `dropout_V`) | from the block's Vin, load current and efficiency at the new `estimated_vout`; an LDO whose Vout reaches Vin loses the block, as the analyzer emits none |
+
+Text fields (`summary`, `description`, `cutoff_formatted`, `note`) and `severity` stay as analysed, and so do a switching regulator's `efficiency_assumed` and `sub_topology` when its patched Vout crosses Vin.
 
 ---
 
@@ -359,19 +376,18 @@ The comparison engine also checks for any additional fields present in the detec
       "after": {"ratio": 0.6808},
       "parasitics": {},
       "tolerance": [],
-      "spice_delta": {}
+      "spice_delta": {"vout_V": {"before": 1.65, "after": 2.2466, "delta_pct": 36.2}}
     }
   ],
   "summary": {
     "components_changed": 1,
     "subcircuits_affected": 1,
-    "spice_verified": false
-  },
-  "emc_delta": null
+    "spice_verified": true
+  }
 }
 ```
 
-The `parasitics`, `tolerance`, `spice_delta`, and `emc_delta` fields are only present when the corresponding options are active.
+The `parasitics` and `tolerance` fields are present only when the corresponding options are active; `spice_delta` only when `--spice` simulated a difference for that subcircuit; `emc_delta` only when `--emc` ran both EMC analyses.
 
 ### Sweep Mode
 
@@ -464,10 +480,10 @@ Natural-language queries and their corresponding command invocations.
 | "Export the patched design for EMC analysis" | `what_if.py analysis.json R5=4.7k --output patched.json` |
 | "Verify with SPICE" | `what_if.py analysis.json R5=4.7k --spice --text` |
 | "What's the best R value for 1kHz cutoff" | `what_if.py analysis.json --fix 'rc_filters[0]' --target 1000 --text` |
-| "Set the opamp gain to 20 dB" | `what_if.py analysis.json --fix 'opamp_circuits[0]' --target 20 --text` (target field = `gain_dB`) |
+| "Set the opamp gain to 20 dB" | `what_if.py analysis.json --fix 'opamp_circuits[0]' --target 10 --text` (20 dB = 10x; the target is linear gain) |
 | "What shunt resistor for 5A max" | `what_if.py analysis.json --fix 'current_sense[0]' --target 5 --text` |
 
-For fix mode, the `--target` value is in the natural unit of the first derived field for that detection type (ratio for dividers, Hz for filters, linear gain or dB for opamps, pF for crystals, amps for current sense).
+For fix mode, the `--target` value is in the natural unit of the first derived field for that detection type (ratio for dividers, Hz for filters, linear gain for opamps (dB is not accepted), pF for crystals, amps for current sense).
 
 ---
 
@@ -478,17 +494,18 @@ Which flags and modes work together:
 | Combination | Supported | Notes |
 |-------------|-----------|-------|
 | Single change + `--text` | Yes | Primary use case |
-| Single change + `--spice` | Yes | Runs SPICE on original and patched |
+| Single change + `--spice` | Yes | Runs SPICE on the original and the patched detection |
 | Single change + `--emc` | Yes | Full EMC diff |
 | Single change + `--pcb` | Yes | Adds parasitic annotations |
 | Single change + `--output` | Yes | Exports patched JSON |
+| No affected subcircuit + `--output` | Yes | Writes the unchanged analysis and says so on stderr |
 | Single change + tolerance | Yes | Corner analysis on toleranced components |
 | Sweep + `--text` | Yes | Markdown table output |
-| Sweep + tolerance | Yes | Tolerance corners at each sweep point |
+| Sweep + tolerance | No | Usage error (exit 2); run each value as a single change for corners |
 | Sweep + fixed changes | Yes | Other components held at specified values |
-| Sweep + `--spice` | No | Sweep mode does not run SPICE |
+| Sweep + `--spice` | No | Usage error (exit 2) |
 | Sweep + `--emc` | No | Sweep mode exits before EMC |
-| Sweep + `--output` | No | Sweep mode exits before export |
+| Sweep + `--output` | No | Usage error (exit 2); `--output` exports one patched design |
 | `--fix` + `--target` | Yes | Primary fix use case |
 | `--fix` (no `--target`) | Partial | Only works for detection types with inferrable targets |
 | `--fix` + `--pcb` | Yes | Adds footprint compatibility warnings for capacitors |

@@ -1,12 +1,51 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
-name = "research-agent-skills-tools"
-version = "1.0.0"
-description = "Tooling for the Research Agent Skills repository (validation, import, catalog, security lint)."
+name = "research-agent-skills"
+version = "1.1.1"
+description = "Install 280+ AI agent skills for academic writing, literature reviews, citation checking and scientific research across biology, chemistry, medicine, physics and ML."
 readme = "README.md"
 license = "MIT"
 authors = [{ name = "Sayan Chowdhury" }, { name = "Kalaris Labs" }]
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6.0.2"]
+dependencies = [
+    "pyyaml>=6.0.2",
+]
+keywords = [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "research",
+    "academic-writing",
+    "scientific-research",
+    "literature-review",
+    "citation-verification",
+    "bioinformatics",
+    "cheminformatics",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+]
+
+[project.urls]
+Homepage = "https://skills.kalarislabs.com"
+Documentation = "https://docs.kalarislabs.com"
+Repository = "https://github.com/KalarisLabs/research-agent-skills"
+
+[project.scripts]
+research-agent-skills = "research_agent_skills.cli:main"
+research-skills = "research_agent_skills.cli:main"
 
 [dependency-groups]
 dev = [
@@ -16,15 +55,26 @@ dev = [
     "ruff>=0.17",
 ]
 
-[tool.uv]
-package = false
+[tool.hatch.build.targets.wheel]
+packages = ["src/research_agent_skills"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/README.md",
+    "/LICENSE",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["tools"]
+pythonpath = ["tools", "src"]
 
 [tool.coverage.run]
 source = ["tools"]
+omit = [
+    "tools/generate_benchmark_graphics.py",
+    "tools/skill_scorecard.py",
+]
 
 [tool.coverage.report]
 # Statement-coverage gate for the project's own tooling (OpenSSF Best Practices, silver: >= 80%).
@@ -36,11 +86,12 @@ skip_covered = true
 [tool.ruff]
 line-length = 120
 target-version = "py311"
-extend-exclude = ["skills", ".cache", "cli", "node_modules", "site"]
+extend-exclude = ["skills", ".cache", "cli", "node_modules", "site", "web"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "S"]
-ignore = ["S603", "S607", "S101"]
+ignore = ["S603", "S607", "S101", "S310"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S"]
+"tools/generate_benchmark_graphics.py" = ["E501"]

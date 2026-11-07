@@ -193,7 +193,7 @@ python3 <skill-path>/scripts/sync_datasheets_mouser.py <file.kicad_sch>
 # Preview what would be downloaded
 python3 <skill-path>/scripts/sync_datasheets_mouser.py <file.kicad_sch> --dry-run
 
-# Retry previously failed downloads
+# Retry parts a previous run failed at Mouser
 python3 <skill-path>/scripts/sync_datasheets_mouser.py <file.kicad_sch> --force
 
 # Custom output directory
@@ -206,17 +206,17 @@ python3 <skill-path>/scripts/sync_datasheets_mouser.py <file.kicad_sch> --parall
 python3 <skill-path>/scripts/sync_datasheets_mouser.py --mpn-list mpns.txt --output ./datasheets
 ```
 
-**MPN-list batch mode** (KH-312) — when you have a list of MPNs but no
+**MPN-list batch mode** — when you have a list of MPNs but no
 KiCad project to point at (harness datasheet seeding, bulk part-library
 seeding). One MPN per line; blank lines and `#` comments (full-line and
 inline) are skipped; generic values (`100nF`, `DNP`) are filtered via
 `is_real_mpn()` and de-duplicated. Output defaults to `./datasheets/` in
 the current working directory when `--output` is omitted.
 
-**Rate limiting** — the script paces API calls with a 1.0s delay between
-requests by default (Mouser's Search API allows 30 calls/min on the free
-tier; 1.0s stays comfortably under). Override with `--delay <seconds>` if
-you have a higher-tier key or want to slow things down further.
+**Rate limiting** — the script waits `--delay` seconds (default 1.0) before
+each API call. One serial worker therefore makes up to about 60 calls a minute,
+and `--parallel N` multiplies that. Check your key's allowance and set
+`--delay` / `--parallel` to stay under it.
 
 ### Single Datasheet Download
 
@@ -232,6 +232,8 @@ python3 <skill-path>/scripts/fetch_datasheet_mouser.py "https://example.com/data
 # JSON output
 python3 <skill-path>/scripts/fetch_datasheet_mouser.py --search "ADP1706" --json
 ```
+
+A `--search` hit that is a different part is refused (exit 2) rather than downloaded; a family match is accepted.
 
 ### Download Strategy
 

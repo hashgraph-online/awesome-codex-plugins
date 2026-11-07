@@ -29,6 +29,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _inputs import collect_inputs  # noqa: E402
 from id_client import (  # noqa: E402
     IdError,
     NotFoundError,
@@ -62,29 +63,7 @@ FAIL_STATUSES = {"unknown_prefix", "invalid_local", "malformed"}
 
 def read_inputs(args: argparse.Namespace) -> list[str]:
     """Collect prefix/CURIE strings from positional args, a file, or stdin."""
-    values: list[str] = list(args.value)
-    if args.input:
-        raw = (
-            sys.stdin.read()
-            if args.input == "-"
-            else Path(args.input).read_text(encoding="utf-8")
-        )
-        for line in raw.splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                values.append(line)
-    if not values and not sys.stdin.isatty():
-        for line in sys.stdin.read().splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                values.append(line)
-    seen: set[str] = set()
-    unique = []
-    for value in values:
-        if value not in seen:
-            seen.add(value)
-            unique.append(value)
-    return unique
+    return collect_inputs(list(args.value), args.input)
 
 
 def lookup_one(value: str) -> dict:
@@ -151,6 +130,7 @@ def lookup_one(value: str) -> dict:
 
 
 def write_output(results: list[dict], fmt: str, output: str | None) -> None:
+    """Write output."""
     stream = open(output, "w", encoding="utf-8", newline="") if output else sys.stdout
     try:
         if fmt == "json":
@@ -168,6 +148,7 @@ def write_output(results: list[dict], fmt: str, output: str | None) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Look up ontology prefixes and check CURIEs against Bioregistry. "
@@ -188,6 +169,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     values = read_inputs(args)
     if not values:

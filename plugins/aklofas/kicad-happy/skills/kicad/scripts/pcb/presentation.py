@@ -1,7 +1,5 @@
 """PCB result assembly: turns the board read by pcb.pipeline.read_board and the
 intermediates computed by pcb.pipeline.run_analyses into the analyzer output dict.
-Bodies are verbatim from analyze_pcb.py; only the signatures and the input
-unpacking are new.
 """
 
 import math
@@ -10,12 +8,12 @@ import re
 from kicad_core.diagnostics import record
 from kicad_core.netnames import is_ground_name, is_power_net_name
 from pcb.connectivity import build_connectivity_graph
-from pcb.routing import analyze_trace_proximity
+from pcb.routing import analyze_trace_proximity, board_pin_signals
 from pcb.dfm import analyze_design_rule_compliance
 from pcb.assembly import (
     _compute_switching_loop_areas,
 )
-from finding_schema import compute_trust_summary, sort_findings
+from finding_schema import compute_trust_summary, show_decoded_names, sort_findings
 
 
 def group_components(footprints: list[dict]) -> dict:
@@ -98,18 +96,69 @@ def compute_statistics(footprints: list[dict], tracks: dict, vias: dict,
     }
 
 
+def _routing_from_graph(connectivity: dict, graph: dict, *,
+                        net_ids: dict[str, int] | None = None) -> dict:
+    """A copy of *connectivity* whose unrouted nets are those with pads on more than one
+    copper island of *graph*. A net without copper keeps its entry; pads the graph joins
+    (overlapping copper, KiCad jumper pads) do not make a net unrouted. `routed_nets`
+    counts the multi-pad nets that are not unrouted."""
+    kept = {u["net_name"]: u for u in connectivity.get("unrouted", [])}
+    unrouted = [u for name, u in kept.items() if name not in graph]
+    multi_pad = len(unrouted)
+    for net in sorted(graph):
+        comps = graph[net].get("components", {})
+        pads = sorted(k for k in comps if not k.startswith("via_"))
+        if len(pads) > 1:
+            multi_pad += 1
+        islands = len({comps[k] for k in pads})
+        if islands < 2:
+            continue
+        if net in kept:
+            unrouted.append(kept[net])
+            continue
+        # graph keys are REF:NUMBER, later pads with the same pair add #n
+        names = [re.sub(r"#\d+$", "", k).replace(":", ".", 1) for k in pads]
+        unrouted.append({
+            "net_number": (net_ids or {}).get(net, 0),
+            "net_name": net,
+            "pad_count": len(pads),
+            "pads": names,
+            "detector": "analyze_connectivity",
+            "rule_id": "RT-001",
+            "category": "connectivity",
+            "severity": "error",
+            "confidence": "deterministic",
+            "evidence_source": "topology",
+            "summary": f"Incompletely routed net {net} ({islands} copper islands hold its {len(pads)} pads)",
+            "description": f"Net {net} has {len(pads)} pads on {islands} separate copper islands.",
+            "components": sorted({n.split(".", 1)[0] for n in names}),
+            "nets": [net],
+            "pins": [],
+            "recommendation": f"Connect the {islands} copper islands of net {net}",
+            "report_context": {"section": "Connectivity", "impact": "functionality", "standard_ref": ""},
+        })
+    out = dict(connectivity)
+    out["routed_nets"] = multi_pad - len(unrouted)
+    out["unrouted_count"] = len(unrouted)
+    out["routing_complete"] = not unrouted
+    out["unrouted"] = sorted(unrouted, key=lambda u: u["net_name"])
+    return out
+
+
 def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: bool,
                     include_trace_segments: bool, schematic_data: dict | None,
                     resolved_power_rails: set[str] | None,
                     power_rails_source: str) -> dict:
-    """Phase 4: build the PCB analyzer result dict (historical key order).
+    """Phase 4: build the PCB analyzer result dict (stable output key order).
 
-    Mutates nothing caller-owned except `connectivity` (pops `unrouted`) and the
-    sections it pops back out of `result`; the late checks ran in pcb.pipeline.run_checks
-    and only their result writes stay here. *board* is a pcb.pipeline.BoardData and
+    Mutates nothing caller-owned except two late writes to the facts (it pops `unrouted`
+    out of `connectivity` and `_ignored_drc_checks` out of `project_settings`) and the
+    sections it pops back out of `result`; the late checks run in pcb.pipeline.run_checks
+    and only their result writes happen here. *board* is a pcb.pipeline.BoardData and
     *analyses* a pcb.pipeline.PcbAnalyses.
     """
-    diagnostics: list = []
+    facts, checks = analyses.facts, analyses.checks
+    diagnostics: list = list(board.diagnostics)
     layers = board.layers
     setup = board.setup
     net_names = board.net_names
@@ -119,41 +168,42 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
     zones = board.zones
     zone_fills = board.zone_fills
     outline = board.outline
-    connectivity = analyses.connectivity
-    stats = analyses.stats
-    version = analyses.version
-    generator_version = analyses.generator_version
-    format_newer_note = analyses.format_newer_note
-    component_groups = analyses.component_groups
-    net_lengths = analyses.net_lengths
-    power_routing = analyses.power_routing
-    pad_distances = analyses.pad_distances
-    decoupling = analyses.decoupling
-    ground_domains = analyses.ground_domains
-    current_capacity = analyses.current_capacity
-    via_analysis = analyses.via_analysis
-    thermal = analyses.thermal
-    layer_transitions = analyses.layer_transitions
-    placement = analyses.placement
-    silkscreen = analyses.silkscreen
-    metadata = analyses.metadata
-    dimensions = analyses.dimensions
-    groups = analyses.groups
-    net_classes = analyses.net_classes
-    project_settings = analyses.project_settings
-    dfm = analyses.dfm
-    tombstoning = analyses.tombstoning
-    thermal_pad_vias = analyses.thermal_pad_vias
-    copper_presence = analyses.copper_presence
-    return_path = analyses.return_path
-    gp001_samples = analyses.gp001_samples
+    connectivity = facts.connectivity
+    stats = facts.stats
+    version = facts.version
+    generator_version = facts.generator_version
+    format_newer_note = facts.format_newer_note
+    component_groups = facts.component_groups
+    net_lengths = facts.net_lengths
+    power_routing = facts.power_routing
+    pad_distances = facts.pad_distances
+    decoupling = checks.decoupling
+    ground_domains = facts.ground_domains
+    current_capacity = facts.current_capacity
+    via_analysis = checks.via_analysis
+    thermal = checks.thermal
+    layer_transitions = facts.layer_transitions
+    placement = checks.placement
+    silkscreen = facts.silkscreen
+    metadata = facts.metadata
+    dimensions = facts.dimensions
+    groups = facts.groups
+    net_classes = facts.net_classes
+    project_settings = facts.project_settings
+    dfm = checks.dfm
+    tombstoning = checks.tombstoning
+    thermal_pad_vias = checks.thermal_pad_vias
+    copper_presence = checks.copper_presence
+    return_path = facts.return_path
+    gp001_samples = facts.gp001_samples
     _resolved_power_rails = resolved_power_rails
+    pin_signals = board_pin_signals(board.footprints, _resolved_power_rails)
     _power_rails_source = power_rails_source
 
     # Compact footprint output — include pad-to-net mapping but omit pad geometry
     footprint_summary = []
     for fp in footprints:
-        fp_summary = {k: v for k, v in fp.items() if k != "pads"}
+        fp_summary = {k: v for k, v in fp.items() if k not in ("pads", "_courtyard_poly", "_courtyard_sides", "_duplicate_pad_jumpers", "_jumper_pad_groups")}
         # Alias: 'footprint' mirrors 'library' for cross-analyzer consistency
         # (schematic analyzer uses 'footprint', PCB uses 'library' for same data)
         if "library" in fp_summary and "footprint" not in fp_summary:
@@ -200,21 +250,22 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
             **({"via_analysis": via_analysis} if via_analysis else {}),
         },
         "zones": zones,
-        "keepout_zones": analyses.keepout_zones,
+        "keepout_zones": facts.keepout_zones,
         "connectivity": connectivity,
         "net_lengths": net_lengths,
     }
 
     if pad_distances:
         result["pad_to_pad_distances"] = pad_distances
-    # TH-043-residual: always emit (schema-required); empty list when no power routing.
+    # Always emit (schema-required); empty list when no power routing.
     result["power_net_routing"] = power_routing if power_routing else []
 
-    # KH-393: record which nets classified as power/ground under the
+    # Record which nets classified as power/ground under the
     # resolution actually used, and where that resolution came from.
     result["power_net_resolution"] = {
         "power": sorted({n for n in net_names.values()
-                         if n and is_power_net_name(n, _resolved_power_rails)}),
+                         if n and n not in pin_signals
+                         and is_power_net_name(n, _resolved_power_rails)}),
         "ground": sorted({n for n in net_names.values()
                           if n and is_ground_name(n)}),
         "source": _power_rails_source,
@@ -241,7 +292,7 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
         if loop_areas:
             result["switching_loop_areas"] = loop_areas
 
-    # TH-043-residual: always emit (schema-required); domain_count=0 is meaningful info.
+    # Always emit (schema-required); domain_count=0 is meaningful info.
     result["ground_domains"] = ground_domains
     if current_capacity["power_ground_nets"] or current_capacity["narrow_signal_nets"]:
         result["current_capacity"] = current_capacity
@@ -256,11 +307,11 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
     result["silkscreen"] = silkscreen
     if proximity:
         result["trace_proximity"] = analyze_trace_proximity(
-            tracks, net_names, power_rails=_resolved_power_rails)
+            tracks, net_names, power_rails=_resolved_power_rails, pin_signals=pin_signals)
 
     # board_metadata + design_rule_compliance are required envelope keys
     # (schema declares them dict not Optional[dict]). Always emit, even
-    # when empty, so schema-vs-emit drift can't surface (TH-043).
+    # when empty, so schema-vs-emit drift can't surface.
     result["board_metadata"] = metadata or {}
     if dimensions:
         result["dimensions"] = dimensions
@@ -268,17 +319,17 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
         result["groups"] = groups
     if net_classes:
         result["net_classes"] = net_classes
+    ignored_checks = (project_settings or {}).pop('_ignored_drc_checks', frozenset())
     if project_settings:
         result["project_settings"] = project_settings
 
-    # Design rule compliance (project rules vs actual layout) — always emit
-    # at least an empty dict so the schema-required key is present.
-    if project_settings:
-        design_compliance = analyze_design_rule_compliance(
-            tracks, vias, project_settings, footprints=footprints)
-        result["design_rule_compliance"] = design_compliance or {}
-    else:
-        result["design_rule_compliance"] = {}
+    # Design rule compliance (board minima and project rules vs actual layout); every board
+    # has minima, so the schema-required key always carries a result.
+    design_compliance = analyze_design_rule_compliance(
+        tracks, vias, project_settings or {}, footprints=footprints,
+        minima=facts.board_minima, board_layers=[l["name"] for l in layers or []],
+        ignored_checks=ignored_checks, microvia_minima=facts.microvia_minima)
+    result["design_rule_compliance"] = design_compliance or {}
 
     # Manufacturing and assembly analysis
     if dfm:
@@ -289,37 +340,39 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
         result["thermal_pad_vias"] = thermal_pad_vias
     if copper_presence:
         result["copper_presence"] = copper_presence
-    if return_path:
+    if return_path is not None:  # [] = checked, no gaps; absent = not run
         result["return_path_continuity"] = return_path
+        result["reference_plane_changes"] = facts.reference_changes
     if gp001_samples is not None:
         result["_gp001_debug_samples"] = gp001_samples
 
     # New assembly/DFM checks
-    fiducial_check = analyses.fiducial_check
+    fiducial_check = checks.fiducial_check
     if fiducial_check.get("findings"):
         result["fiducial_check"] = fiducial_check
 
-    test_point_cov = analyses.test_point_coverage
+    test_point_cov = checks.test_point_coverage
     result["test_point_coverage"] = test_point_cov
 
-    orientation = analyses.orientation
+    orientation = checks.orientation
     if orientation:
         result["orientation_consistency"] = orientation
 
-    silkscreen_overlaps = analyses.silkscreen_overlaps
+    silkscreen_overlaps = checks.silkscreen_overlaps
     if silkscreen_overlaps:
         result["silkscreen_pad_overlaps"] = silkscreen_overlaps
 
-    keepout_violations = analyses.keepout_violations
+    keepout_violations = checks.keepout_violations
     if keepout_violations:
         result["keepout_violations"] = keepout_violations
 
+    conn_graph = None
     if include_trace_segments:
-        via_in_pad = analyses.via_in_pad
+        via_in_pad = checks.via_in_pad
         if via_in_pad:
             result["via_in_pad_issues"] = via_in_pad
 
-        edge_via = analyses.edge_via
+        edge_via = checks.edge_via
         if edge_via:
             result["board_edge_via_clearance"] = edge_via
 
@@ -330,19 +383,27 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
         # Build copper connectivity graph (requires full track/via data)
         try:
             conn_graph = build_connectivity_graph(
-                footprints, tracks, vias, zone_fills, zones, net_names)
+                footprints, tracks, vias, zone_fills, zones, net_names,
+                board_layers=layers, graphics=board.graphics)
             if conn_graph:
                 result["connectivity_graph"] = conn_graph
         except Exception as e:
+            conn_graph = None
             err_str = str(e)[:200]
             result["connectivity_graph_error"] = (
                 f"connectivity graph unavailable: {type(e).__name__}: {err_str}")
             record(diagnostics, "pcb.presentation.assemble_result", e, "connectivity_graph omitted")
+        if conn_graph is not None:
+            routing = _routing_from_graph(connectivity, conn_graph,
+                                          net_ids=result["net_name_to_id"])
+            result["connectivity"] = routing
+            result["statistics"] = {**stats, "routing_complete": routing["routing_complete"],
+                                    "unrouted_net_count": routing["unrouted_count"]}
 
     # --- Harmonization: collect all findings into top-level list ---
     findings = []
 
-    # Simple list sections (entries have rule_id from Batch 7 migration)
+    # Simple list sections (entries have a rule_id)
     _FINDING_LIST_KEYS = [
         'tombstoning_risk', 'thermal_pad_vias', 'orientation_consistency',
         'silkscreen_pad_overlaps', 'via_in_pad_issues',
@@ -384,7 +445,7 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
     if placement:
         findings.extend(placement.get('courtyard_overlaps', []))
         findings.extend(placement.get('edge_clearance_warnings', []))
-    # TH-043-residual: always emit (schema-required); empty dict when placement/density missing.
+    # Always emit (schema-required); empty dict when placement/density missing.
     result['placement_density'] = (placement or {}).get('density') or {}
 
     thermal_sec = result.pop('thermal_analysis', None)
@@ -405,11 +466,11 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
         if 'board_thickness_mm' in current_cap:
             result['board_thickness_mm'] = current_cap['board_thickness_mm']
 
-    connectivity_dict = result.get('connectivity', {})
-    if isinstance(connectivity_dict, dict):
-        unrouted = connectivity_dict.pop('unrouted', None)
-        if unrouted:
-            findings.extend(unrouted)
+    unrouted = connectivity.pop('unrouted', None)
+    if result['connectivity'] is not connectivity:
+        unrouted = result['connectivity'].pop('unrouted', None)
+    if unrouted and 'unconnected_items' not in ignored_checks:
+        findings.extend(unrouted)
 
     copper = result.pop('copper_presence', None)
     if copper:
@@ -436,7 +497,8 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
             "report_context": {"section": "File Format", "impact": "", "standard_ref": ""},
         })
 
-    # Deterministic order for byte-identical repeated runs (KH-316).
+    show_decoded_names(findings)
+    # Deterministic order for byte-identical repeated runs.
     sort_findings(findings)
 
     result['findings'] = findings

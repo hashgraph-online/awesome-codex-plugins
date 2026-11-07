@@ -160,8 +160,8 @@ While you run it:
 | `apply-suggestions.md` | steps 1–8: the orchestrator with the flags line, the decision summary, the batch loop, the judge's decisions, step 7's summary report at `{plan}/apply-suggestions/summary.md` with its `util metrics report` and `util report regenerate-decisions` calls, and step 8's `--mark-completed` once the loop reached its end | the *Then report to the user* paragraph after step 8 |
 
 On a host that adds `--exec-subagents` the apply finishes in its one orchestrator
-call, writing `summary.md` and the decision badges itself, exactly as that core says;
-do not run its native loop a second time. A core that stops early under its own rules
+call, run detached as that core's step 2 says, writing `summary.md` and the decision
+badges itself; do not run its native loop a second time. A core that stops early under its own rules
 (a partial application, a batch that failed, an interrupted run) stops there, and
 section 3 reports the stop.
 
@@ -210,8 +210,8 @@ the consolidated report a human reads afterwards.
 
 A step is done when the last call of its phase's own mode exits `0` or `2`: the
 review's `--reaggregate` (or, with no validation owed, the run its poll loop ended
-on), and the apply's `--mark-completed` (or its one orchestrator call under
-`--exec-subagents`), never a `util` call after it. Step 1b never stops the run.
+on), and the apply's `--mark-completed` (or, under `--exec-subagents`, the `status` poll
+that finds its detached orchestrator call finished), never a `util` call after it. Step 1b never stops the run.
 
 For steps 1 and 2, on exit `1` or `3`, or when the phase core stopped under its own
 rules (row 14):

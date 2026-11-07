@@ -28,6 +28,7 @@ OUTPUT_FILE = EXAMPLE_DIR / "output" / "forecast_visualization.png"
 
 
 def main() -> None:
+    """Run the command-line interface."""
     # Load historical data
     df = pd.read_csv(INPUT_FILE, parse_dates=["date"])
 

@@ -14,6 +14,11 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any
 
 
+_TASKS_MODULE = "latch.resources.tasks"
+_TYPES_MODULE = "latch.types"
+_LAUNCH_MODULE = "latch_cli.services.launch.launch_v2"
+_VERIFIED_MODULE = "latch.verified"
+
 SYMBOL_GROUPS: dict[str, list[tuple[str, str]]] = {
     "core": [
         ("latch", "workflow"),
@@ -22,32 +27,32 @@ SYMBOL_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("latch", "workflow_reference"),
     ],
     "tasks": [
-        ("latch.resources.tasks", "small_task"),
-        ("latch.resources.tasks", "medium_task"),
-        ("latch.resources.tasks", "large_task"),
-        ("latch.resources.tasks", "small_gpu_task"),
-        ("latch.resources.tasks", "large_gpu_task"),
-        ("latch.resources.tasks", "custom_task"),
-        ("latch.resources.tasks", "custom_memory_optimized_task"),
-        ("latch.resources.tasks", "v100_x1_task"),
-        ("latch.resources.tasks", "v100_x4_task"),
-        ("latch.resources.tasks", "v100_x8_task"),
-        ("latch.resources.tasks", "g6e_xlarge_task"),
-        ("latch.resources.tasks", "g6e_2xlarge_task"),
-        ("latch.resources.tasks", "g6e_4xlarge_task"),
-        ("latch.resources.tasks", "g6e_8xlarge_task"),
-        ("latch.resources.tasks", "g6e_12xlarge_task"),
-        ("latch.resources.tasks", "g6e_16xlarge_task"),
-        ("latch.resources.tasks", "g6e_24xlarge_task"),
-        ("latch.resources.tasks", "g6e_48xlarge_task"),
+        (_TASKS_MODULE, "small_task"),
+        (_TASKS_MODULE, "medium_task"),
+        (_TASKS_MODULE, "large_task"),
+        (_TASKS_MODULE, "small_gpu_task"),
+        (_TASKS_MODULE, "large_gpu_task"),
+        (_TASKS_MODULE, "custom_task"),
+        (_TASKS_MODULE, "custom_memory_optimized_task"),
+        (_TASKS_MODULE, "v100_x1_task"),
+        (_TASKS_MODULE, "v100_x4_task"),
+        (_TASKS_MODULE, "v100_x8_task"),
+        (_TASKS_MODULE, "g6e_xlarge_task"),
+        (_TASKS_MODULE, "g6e_2xlarge_task"),
+        (_TASKS_MODULE, "g6e_4xlarge_task"),
+        (_TASKS_MODULE, "g6e_8xlarge_task"),
+        (_TASKS_MODULE, "g6e_12xlarge_task"),
+        (_TASKS_MODULE, "g6e_16xlarge_task"),
+        (_TASKS_MODULE, "g6e_24xlarge_task"),
+        (_TASKS_MODULE, "g6e_48xlarge_task"),
     ],
     "data": [
         ("latch.ldata.path", "LPath"),
-        ("latch.types", "LatchFile"),
-        ("latch.types", "LatchDir"),
-        ("latch.types", "LatchOutputFile"),
-        ("latch.types", "LatchOutputDir"),
-        ("latch.types", "file_glob"),
+        (_TYPES_MODULE, "LatchFile"),
+        (_TYPES_MODULE, "LatchDir"),
+        (_TYPES_MODULE, "LatchOutputFile"),
+        (_TYPES_MODULE, "LatchOutputDir"),
+        (_TYPES_MODULE, "file_glob"),
     ],
     "metadata": [
         ("latch.types.metadata", "LatchMetadata"),
@@ -62,17 +67,17 @@ SYMBOL_GROUPS: dict[str, list[tuple[str, str]]] = {
         ("latch.registry.record", "Record"),
     ],
     "execution": [
-        ("latch_cli.services.launch.launch_v2", "launch"),
-        ("latch_cli.services.launch.launch_v2", "launch_from_launch_plan"),
-        ("latch_cli.services.launch.launch_v2", "Execution"),
-        ("latch_cli.services.launch.launch_v2", "CompletedExecution"),
+        (_LAUNCH_MODULE, "launch"),
+        (_LAUNCH_MODULE, "launch_from_launch_plan"),
+        (_LAUNCH_MODULE, "Execution"),
+        (_LAUNCH_MODULE, "CompletedExecution"),
     ],
     "verified": [
-        ("latch.verified", "rnaseq"),
-        ("latch.verified", "deseq2_wf"),
-        ("latch.verified", "gene_ontology_pathway_analysis"),
-        ("latch.verified", "mafft"),
-        ("latch.verified", "trim_galore"),
+        (_VERIFIED_MODULE, "rnaseq"),
+        (_VERIFIED_MODULE, "deseq2_wf"),
+        (_VERIFIED_MODULE, "gene_ontology_pathway_analysis"),
+        (_VERIFIED_MODULE, "mafft"),
+        (_VERIFIED_MODULE, "trim_galore"),
     ],
 }
 
@@ -98,7 +103,7 @@ METHODS: dict[str, tuple[str, str, list[str]]] = {
         ["load", "list_records", "get_dataframe", "update"],
     ),
     "Execution": (
-        "latch_cli.services.launch.launch_v2",
+        _LAUNCH_MODULE,
         "Execution",
         ["poll", "wait", "abort"],
     ),
@@ -115,6 +120,7 @@ def normalize_repr(value: str) -> str:
 
 
 def safe_signature(obj: Any) -> str | None:
+    """Handle safe signature."""
     try:
         return normalize_repr(str(inspect.signature(obj)))
     except (TypeError, ValueError):
@@ -122,6 +128,7 @@ def safe_signature(obj: Any) -> str | None:
 
 
 def inspect_symbol(module_name: str, symbol_name: str) -> dict[str, Any]:
+    """Handle inspect symbol."""
     qualified_name = f"{module_name}.{symbol_name}"
     try:
         module = importlib.import_module(module_name)
@@ -168,6 +175,7 @@ def inspect_methods(
     class_name: str,
     method_names: list[str],
 ) -> dict[str, Any]:
+    """Handle inspect methods."""
     try:
         cls = getattr(importlib.import_module(module_name), class_name)
     except Exception as exc:
@@ -184,6 +192,7 @@ def inspect_methods(
 
 
 def build_report() -> dict[str, Any]:
+    """Build report."""
     try:
         latch_version = version("latch")
     except PackageNotFoundError:
@@ -212,6 +221,7 @@ def build_report() -> dict[str, Any]:
 
 
 def print_text(report: dict[str, Any]) -> None:
+    """Print text."""
     print(f"Python: {report['python']}")
     print(f"Platform: {report['platform']}")
     print(f"Latch SDK: {report['latch_version'] or 'not installed'}")
@@ -243,6 +253,7 @@ def print_text(report: dict[str, Any]) -> None:
 
 
 def has_required_failures(report: dict[str, Any]) -> bool:
+    """Return whether required failures."""
     required = {
         "latch.workflow",
         "latch.resources.tasks.small_task",
@@ -260,6 +271,7 @@ def has_required_failures(report: dict[str, Any]) -> bool:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--json",

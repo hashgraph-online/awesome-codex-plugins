@@ -1,8 +1,8 @@
 # Extraction Schema Reference
 
-Canonical schema for structured datasheet extraction JSON files stored in `datasheets/extracted/`. The extraction itself is performed by the LLM reading selected PDF pages; this document defines what fields the LLM must produce and how the cache manager and verifier interpret them.
+Schema for the legacy v1.3 datasheet extraction JSON files stored in `datasheets/extracted/`. The extraction itself is performed by the LLM reading selected PDF pages; this document defines the fields a legacy extraction carries and how the cache manager and verifier interpret them.
 
-Current `EXTRACTION_VERSION`: **2** (in `datasheet_extract_cache.py`). Bump this constant when the schema changes to trigger re-extraction of all cached files.
+This guide defines the **legacy v1.3 cache format** (`EXTRACTION_VERSION = 2`). New v1.4 extractions use `../schemas/extraction.schema.json`, the base and category schemas, and `../prompts/`; they do not use the legacy envelope below. A legacy cache with an older `extraction_version` is reported stale by `is_extraction_stale()` and returned by the helpers with `quality.trusted: false`; nothing re-extracts it automatically.
 
 ---
 
@@ -298,7 +298,7 @@ No universally required fields (MCU characteristics vary too widely). Optional f
 | `vout_formula` | string | yes | `"Vout = 0.595 * (1 + R1/R2)"` | Output voltage formula |
 | `notes` | array | yes | `["Place input cap close to IC", ...]` | Layout and application notes |
 
-The scoring check counts fields matching `_recommended` or in the set `{inductor_recommended, input_cap_recommended, output_cap_recommended, feedback_resistor_top_ohm, feedback_resistor_bottom_ohm, compensation_cap, bootstrap_cap, decoupling_cap}`. Two or more populated fields scores full marks; zero scores 0.
+The scoring check counts fields matching `_recommended` or in the set `{inductor_recommended, input_cap_recommended, output_cap_recommended, feedback_resistor_top_ohm, feedback_resistor_bottom_ohm, compensation_cap, bootstrap_cap, decoupling_cap}`. The score is a deduction: no populated field takes 3 points off, one takes 1.5 off, and two or more take nothing off.
 
 Additional `_recommended`-suffixed keys are also counted. Add device-specific keys freely.
 
@@ -371,13 +371,13 @@ The extractor populates `source_pdf` and `extracted_from_pages`. The cache manag
 }
 ```
 
-Index keys are MPN strings sanitized by `_sanitize_mpn()`: non-alphanumeric characters replaced with underscores, with a 6-character MD5 suffix appended to avoid collisions (e.g., `TPS61023DRLR_a1b2c3`). The suffix is derived from the raw MPN.
+Index keys are MPN strings sanitized by `_sanitize_mpn()`: characters other than `[A-Za-z0-9_]` replaced with underscores, with a 6-character MD5 suffix appended to avoid collisions (e.g., `TPS61023DRLR_a1b2c3`). The suffix is the MD5 of the whitespace-stripped MPN.
 
 ---
 
 ## Schema Versioning
 
-`EXTRACTION_VERSION` is an integer in `datasheet_extract_cache.py`. When the schema changes in a backward-incompatible way, bump this constant. Helper functions in `datasheet_features.py` check the stored `extraction_version` against the current constant; any extraction with an older version is treated as unavailable.
+`EXTRACTION_VERSION` is an integer in `datasheet_extract_cache.py`. When the schema changes in a backward-incompatible way, bump this constant. Helper functions in `datasheet_features.py` check the stored `extraction_version` against the current constant. A legacy extraction with an older version is returned by `get_regulator_features()` and `get_mcu_features()` with `quality.trusted: false` and `stale_version` in `quality.reasons`; `get_pin_function()` returns None and `is_extraction_available()` returns False for it.
 
 ### Version History
 

@@ -8,6 +8,7 @@ import sys
 import unicodedata
 from collections import defaultdict
 from collections.abc import Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 from _common import (
@@ -57,9 +58,16 @@ ASSUMPTION_STATUSES = {
     "refuted",
     "not-applicable",
 }
+_AI_ORIGINS = {"ai-assisted", "mixed"}
+_MSG_LIST = "must be a list"
+_MSG_OBJECT = "must be an object"
+_PATH_PARTICIPANTS = "$.session.participant_ids"
+_PATH_ASSUMPTIONS = "$.assumptions"
+_PATH_IDEAS = "$.ideas"
 
 
 def _issue(path: str, message: str) -> dict[str, str]:
+    """Build an issue record with a JSON path and message."""
     return {"path": path, "message": message}
 
 
@@ -78,11 +86,12 @@ def _list_field(
     *,
     required: bool = True,
 ) -> list[Any]:
+    """Return a list-valued field, recording an error and truncating when invalid."""
     value = record.get(field)
     if value is None and not required:
         return []
     if not isinstance(value, list):
-        errors.append(_issue(f"{path}.{field}", "must be a list"))
+        errors.append(_issue(f"{path}.{field}", _MSG_LIST))
         return []
     if len(value) > MAX_ITEMS:
         errors.append(
@@ -103,6 +112,7 @@ def _check_text(
     maximum: int = 10_000,
     allow_empty: bool = False,
 ) -> str | None:
+    """Validate a text value, recording an error and returning None when invalid."""
     try:
         return require_text(
             value,
@@ -120,6 +130,7 @@ def _check_id(
     path: str,
     errors: list[dict[str, str]],
 ) -> str | None:
+    """Validate an identifier, recording an error and returning None when invalid."""
     try:
         return require_identifier(value, path)
     except CliError as exc:
@@ -134,6 +145,7 @@ def _check_string_list(
     *,
     identifiers: bool = False,
 ) -> list[str]:
+    """Validate each list item as an identifier or short text and keep the valid ones."""
     result: list[str] = []
     for index, value in enumerate(values):
         item_path = f"{path}[{index}]"
@@ -145,6 +157,407 @@ def _check_string_list(
         if checked is not None:
             result.append(checked)
     return result
+
+
+def _check_choice(
+    value: Any, allowed: set[str], path: str, errors: list[dict[str, str]]
+) -> None:
+    """Record an error when a value is not one of the allowed choices."""
+    if value not in allowed:
+        errors.append(_issue(path, f"must be one of {sorted(allowed)}"))
+
+
+def _check_optional_date(
+    record: dict[str, Any], path: str, errors: list[dict[str, str]]
+) -> None:
+    """Validate the optional ``date`` field of a record as an ISO date."""
+    if record.get("date") is None:
+        return
+    try:
+        require_iso_date(record["date"], f"{path}.date")
+    except CliError as exc:
+        errors.append(_issue(f"{path}.date", str(exc)))
+
+
+def _check_unique_id(
+    identifier: str | None,
+    path: str,
+    seen: set[str],
+    label: str,
+    errors: list[dict[str, str]],
+) -> None:
+    """Record a duplicate-ID error and remember the identifier."""
+    if identifier is None:
+        return
+    if identifier in seen:
+        errors.append(_issue(path, f"duplicate {label} ID"))
+    seen.add(identifier)
+
+
+def _check_references(
+    members: list[str],
+    known: set[str],
+    path: str,
+    errors: list[dict[str, str]],
+) -> None:
+    """Record an error for every member that is not a known idea ID."""
+    for member in members:
+        if member not in known:
+            errors.append(_issue(path, f"references missing idea ID {member!r}"))
+
+
+def _bounded_required_list(
+    document: dict[str, Any], key: str, path: str, errors: list[dict[str, str]]
+) -> list[Any]:
+    """Return a required top-level list, recording type/limit errors and truncating."""
+    value = document.get(key)
+    if not isinstance(value, list):
+        errors.append(_issue(path, _MSG_LIST))
+        return []
+    if len(value) > MAX_ITEMS:
+        errors.append(
+            _issue(path, f"has {len(value)} items; limit is {MAX_ITEMS}")
+        )
+        return value[:MAX_ITEMS]
+    return value
+
+
+def _optional_list(
+    document: dict[str, Any], key: str, errors: list[dict[str, str]]
+) -> list[Any] | None:
+    """Return an optional top-level list, or None after recording a type/limit error."""
+    value = document.get(key, [])
+    path = f"$.{key}"
+    if not isinstance(value, list):
+        errors.append(_issue(path, "must be a list when present"))
+        return None
+    if len(value) > MAX_ITEMS:
+        errors.append(_issue(path, f"limit is {MAX_ITEMS}"))
+        return None
+    return value
+
+
+def _validate_session(session: Any, errors: list[dict[str, str]]) -> set[str]:
+    """Validate the session block and return its participant IDs."""
+    if not isinstance(session, dict):
+        errors.append(_issue("$.session", _MSG_OBJECT))
+        return set()
+    _check_id(session.get("id"), "$.session.id", errors)
+    _check_text(session.get("title"), "$.session.title", errors, maximum=200)
+    _check_text(
+        session.get("question"),
+        "$.session.question",
+        errors,
+        maximum=2_000,
+    )
+    raw_participants = _list_field(session, "participant_ids", "$.session", errors)
+    participant_list = _check_string_list(
+        raw_participants,
+        _PATH_PARTICIPANTS,
+        errors,
+        identifiers=True,
+    )
+    if not participant_list:
+        errors.append(
+            _issue(_PATH_PARTICIPANTS, "must contain at least one participant ID")
+        )
+    if len(set(participant_list)) != len(participant_list):
+        errors.append(_issue(_PATH_PARTICIPANTS, "participant IDs must be unique"))
+    _check_optional_date(session, "$.session", errors)
+    return set(participant_list)
+
+
+def _validate_assumption(
+    assumption: Any,
+    path: str,
+    participant_ids: set[str],
+    assumption_ids: set[str],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Validate one assumption record."""
+    if not isinstance(assumption, dict):
+        errors.append(_issue(path, _MSG_OBJECT))
+        return
+    assumption_id = _check_id(assumption.get("id"), f"{path}.id", errors)
+    _check_unique_id(assumption_id, f"{path}.id", assumption_ids, "assumption", errors)
+    _check_text(assumption.get("statement"), f"{path}.statement", errors)
+    _check_choice(
+        assumption.get("category"),
+        ASSUMPTION_CATEGORIES,
+        f"{path}.category",
+        errors,
+    )
+    status = assumption.get("status")
+    _check_choice(status, ASSUMPTION_STATUSES, f"{path}.status", errors)
+    _check_text(
+        assumption.get("test_or_check"),
+        f"{path}.test_or_check",
+        errors,
+        maximum=2_000,
+    )
+    owner = _check_id(assumption.get("owner_id"), f"{path}.owner_id", errors)
+    if owner is not None and participant_ids and owner not in participant_ids:
+        errors.append(_issue(f"{path}.owner_id", "is not listed as a participant"))
+    evidence_refs = _list_field(assumption, "evidence_refs", path, errors)
+    clean_evidence_refs = _check_string_list(
+        evidence_refs,
+        f"{path}.evidence_refs",
+        errors,
+    )
+    if status not in {None, "untested", "not-applicable"} and not clean_evidence_refs:
+        warnings.append(
+            _issue(
+                f"{path}.evidence_refs",
+                "non-untested status has no recorded evidence reference",
+            )
+        )
+
+
+def _check_contributors(
+    provenance: dict[str, Any],
+    path: str,
+    participant_ids: set[str],
+    errors: list[dict[str, str]],
+) -> None:
+    """Validate contributor IDs: at least one, and each a known participant."""
+    contributors = _check_string_list(
+        _list_field(provenance, "contributor_ids", f"{path}.provenance", errors),
+        f"{path}.provenance.contributor_ids",
+        errors,
+        identifiers=True,
+    )
+    if not contributors:
+        errors.append(
+            _issue(
+                f"{path}.provenance.contributor_ids",
+                "must contain at least one contributor ID",
+            )
+        )
+    for contributor in contributors:
+        if participant_ids and contributor not in participant_ids:
+            errors.append(
+                _issue(
+                    f"{path}.provenance.contributor_ids",
+                    f"{contributor!r} is not listed as a participant",
+                )
+            )
+
+
+def _check_ai_tool_and_sources(
+    provenance: dict[str, Any],
+    path: str,
+    origin: Any,
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Validate source references and the AI-tool field against the recorded origin."""
+    source_refs = _check_string_list(
+        _list_field(provenance, "source_refs", f"{path}.provenance", errors),
+        f"{path}.provenance.source_refs",
+        errors,
+    )
+    ai_tool = provenance.get("ai_tool")
+    if origin in _AI_ORIGINS:
+        _check_text(ai_tool, f"{path}.provenance.ai_tool", errors, maximum=500)
+    elif ai_tool is not None and ai_tool != "":
+        warnings.append(
+            _issue(
+                f"{path}.provenance.ai_tool",
+                "AI tool is recorded but origin is not AI-assisted or mixed",
+            )
+        )
+    if origin == "literature-inspired" and not source_refs:
+        errors.append(
+            _issue(
+                f"{path}.provenance.source_refs",
+                "literature-inspired ideas require at least one source reference",
+            )
+        )
+
+
+def _validate_provenance(
+    idea: dict[str, Any],
+    path: str,
+    participant_ids: set[str],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> bool:
+    """Validate an idea's provenance block; return whether its origin involves AI."""
+    provenance = idea.get("provenance")
+    if not isinstance(provenance, dict):
+        errors.append(_issue(f"{path}.provenance", _MSG_OBJECT))
+        provenance = {}
+    origin = provenance.get("origin")
+    _check_choice(origin, ORIGINS, f"{path}.provenance.origin", errors)
+    _check_choice(
+        provenance.get("recorded_stage"),
+        RECORDED_STAGES,
+        f"{path}.provenance.recorded_stage",
+        errors,
+    )
+    _check_contributors(provenance, path, participant_ids, errors)
+    _check_ai_tool_and_sources(provenance, path, origin, errors, warnings)
+    return origin in _AI_ORIGINS
+
+
+@dataclass
+class _IdeaTracker:
+    """Cross-idea state gathered while validating the idea list."""
+
+    idea_ids: set[str] = field(default_factory=set)
+    statements: defaultdict[str, list[str]] = field(
+        default_factory=lambda: defaultdict(list)
+    )
+    assumption_references: set[str] = field(default_factory=set)
+    ai_assisted_count: int = 0
+
+
+def _validate_idea_links(
+    idea: dict[str, Any],
+    path: str,
+    tracker: _IdeaTracker,
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Validate an idea's assumption links, predictions, uncertainties and statuses."""
+    linked_assumptions = _check_string_list(
+        _list_field(idea, "assumption_ids", path, errors),
+        f"{path}.assumption_ids",
+        errors,
+        identifiers=True,
+    )
+    tracker.assumption_references.update(linked_assumptions)
+    if not linked_assumptions:
+        warnings.append(
+            _issue(f"{path}.assumption_ids", "idea has no explicit linked assumptions")
+        )
+
+    _check_string_list(
+        _list_field(idea, "predicted_observations", path, errors),
+        f"{path}.predicted_observations",
+        errors,
+    )
+    uncertainties = _check_string_list(
+        _list_field(idea, "uncertainties", path, errors),
+        f"{path}.uncertainties",
+        errors,
+    )
+    if not uncertainties:
+        warnings.append(
+            _issue(f"{path}.uncertainties", "idea has no recorded uncertainty")
+        )
+    _check_choice(
+        idea.get("evidence_status"), EVIDENCE_STATUSES, f"{path}.evidence_status", errors
+    )
+    _check_choice(idea.get("status"), IDEA_STATUSES, f"{path}.status", errors)
+
+
+def _validate_idea(
+    idea: Any,
+    path: str,
+    participant_ids: set[str],
+    tracker: _IdeaTracker,
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Validate one idea record and update the cross-idea tracker."""
+    if not isinstance(idea, dict):
+        errors.append(_issue(path, _MSG_OBJECT))
+        return
+    idea_id = _check_id(idea.get("id"), f"{path}.id", errors)
+    _check_unique_id(idea_id, f"{path}.id", tracker.idea_ids, "idea", errors)
+    statement = _check_text(idea.get("statement"), f"{path}.statement", errors)
+    if statement is not None and idea_id is not None:
+        tracker.statements[_normalized_statement(statement)].append(idea_id)
+
+    if _validate_provenance(idea, path, participant_ids, errors, warnings):
+        tracker.ai_assisted_count += 1
+    _validate_idea_links(idea, path, tracker, errors, warnings)
+
+
+def _check_cross_references(
+    tracker: _IdeaTracker,
+    assumption_ids: set[str],
+    errors: list[dict[str, str]],
+    warnings: list[dict[str, str]],
+) -> None:
+    """Warn on duplicate statements and cross-check idea/assumption links."""
+    for normalized, duplicate_ids in sorted(tracker.statements.items()):
+        if normalized and len(duplicate_ids) > 1:
+            warnings.append(
+                _issue(
+                    _PATH_IDEAS,
+                    "exact-after-case/whitespace/Unicode normalization duplicate "
+                    f"text for IDs {sorted(duplicate_ids)}; this is not a claim "
+                    "of semantic equivalence",
+                )
+            )
+
+    for missing_id in sorted(tracker.assumption_references - assumption_ids):
+        errors.append(
+            _issue(
+                "$.ideas[*].assumption_ids",
+                f"references missing assumption ID {missing_id!r}",
+            )
+        )
+    for unlinked_id in sorted(assumption_ids - tracker.assumption_references):
+        warnings.append(
+            _issue(
+                _PATH_ASSUMPTIONS,
+                f"assumption {unlinked_id!r} is not linked from any idea",
+            )
+        )
+
+
+def _validate_clusters(
+    clusters: list[Any], idea_ids: set[str], errors: list[dict[str, str]]
+) -> None:
+    """Validate the optional idea clusters."""
+    cluster_ids: set[str] = set()
+    for index, cluster in enumerate(clusters):
+        path = f"$.clusters[{index}]"
+        if not isinstance(cluster, dict):
+            errors.append(_issue(path, _MSG_OBJECT))
+            continue
+        cluster_id = _check_id(cluster.get("id"), f"{path}.id", errors)
+        _check_unique_id(cluster_id, f"{path}.id", cluster_ids, "cluster", errors)
+        _check_text(cluster.get("relation"), f"{path}.relation", errors)
+        members = _check_string_list(
+            _list_field(cluster, "idea_ids", path, errors),
+            f"{path}.idea_ids",
+            errors,
+            identifiers=True,
+        )
+        _check_references(members, idea_ids, f"{path}.idea_ids", errors)
+
+
+def _validate_decisions(
+    decisions: list[Any], idea_ids: set[str], errors: list[dict[str, str]]
+) -> None:
+    """Validate the optional decision log."""
+    decision_ids: set[str] = set()
+    for index, decision in enumerate(decisions):
+        path = f"$.decision_log[{index}]"
+        if not isinstance(decision, dict):
+            errors.append(_issue(path, _MSG_OBJECT))
+            continue
+        decision_id = _check_id(
+            decision.get("decision_id"), f"{path}.decision_id", errors
+        )
+        _check_unique_id(
+            decision_id, f"{path}.decision_id", decision_ids, "decision", errors
+        )
+        _check_optional_date(decision, path, errors)
+        candidates = _check_string_list(
+            _list_field(decision, "candidate_ids", path, errors),
+            f"{path}.candidate_ids",
+            errors,
+            identifiers=True,
+        )
+        _check_references(candidates, idea_ids, f"{path}.candidate_ids", errors)
+        _check_text(decision.get("decision"), f"{path}.decision", errors)
+        _check_text(decision.get("rationale"), f"{path}.rationale", errors)
 
 
 def validate_register(document: Any) -> dict[str, Any]:
@@ -167,8 +580,7 @@ def validate_register(document: Any) -> dict[str, Any]:
             ],
         }
 
-    schema_version = document.get("schema_version")
-    if schema_version != "1.1":
+    if document.get("schema_version") != "1.1":
         warnings.append(
             _issue(
                 "$.schema_version",
@@ -176,407 +588,37 @@ def validate_register(document: Any) -> dict[str, Any]:
             )
         )
 
-    session = document.get("session")
-    participant_ids: set[str] = set()
-    if not isinstance(session, dict):
-        errors.append(_issue("$.session", "must be an object"))
-    else:
-        _check_id(session.get("id"), "$.session.id", errors)
-        _check_text(session.get("title"), "$.session.title", errors, maximum=200)
-        _check_text(
-            session.get("question"),
-            "$.session.question",
-            errors,
-            maximum=2_000,
-        )
-        raw_participants = _list_field(
-            session,
-            "participant_ids",
-            "$.session",
-            errors,
-        )
-        participant_list = _check_string_list(
-            raw_participants,
-            "$.session.participant_ids",
-            errors,
-            identifiers=True,
-        )
-        if not participant_list:
-            errors.append(
-                _issue(
-                    "$.session.participant_ids",
-                    "must contain at least one participant ID",
-                )
-            )
-        if len(set(participant_list)) != len(participant_list):
-            errors.append(
-                _issue("$.session.participant_ids", "participant IDs must be unique")
-            )
-        participant_ids = set(participant_list)
-        if session.get("date") is not None:
-            try:
-                require_iso_date(session["date"], "$.session.date")
-            except CliError as exc:
-                errors.append(_issue("$.session.date", str(exc)))
+    participant_ids = _validate_session(document.get("session"), errors)
 
-    assumptions_raw = document.get("assumptions")
-    if not isinstance(assumptions_raw, list):
-        errors.append(_issue("$.assumptions", "must be a list"))
-        assumptions_raw = []
-    elif len(assumptions_raw) > MAX_ITEMS:
-        errors.append(
-            _issue(
-                "$.assumptions",
-                f"has {len(assumptions_raw)} items; limit is {MAX_ITEMS}",
-            )
-        )
-        assumptions_raw = assumptions_raw[:MAX_ITEMS]
-
+    assumptions_raw = _bounded_required_list(
+        document, "assumptions", _PATH_ASSUMPTIONS, errors
+    )
     assumption_ids: set[str] = set()
-    assumption_references: set[str] = set()
     for index, assumption in enumerate(assumptions_raw):
-        path = f"$.assumptions[{index}]"
-        if not isinstance(assumption, dict):
-            errors.append(_issue(path, "must be an object"))
-            continue
-        assumption_id = _check_id(assumption.get("id"), f"{path}.id", errors)
-        if assumption_id is not None:
-            if assumption_id in assumption_ids:
-                errors.append(_issue(f"{path}.id", "duplicate assumption ID"))
-            assumption_ids.add(assumption_id)
-        _check_text(assumption.get("statement"), f"{path}.statement", errors)
-        category = assumption.get("category")
-        if category not in ASSUMPTION_CATEGORIES:
-            errors.append(
-                _issue(
-                    f"{path}.category",
-                    f"must be one of {sorted(ASSUMPTION_CATEGORIES)}",
-                )
-            )
-        status = assumption.get("status")
-        if status not in ASSUMPTION_STATUSES:
-            errors.append(
-                _issue(
-                    f"{path}.status",
-                    f"must be one of {sorted(ASSUMPTION_STATUSES)}",
-                )
-            )
-        _check_text(
-            assumption.get("test_or_check"),
-            f"{path}.test_or_check",
-            errors,
-            maximum=2_000,
-        )
-        owner = _check_id(assumption.get("owner_id"), f"{path}.owner_id", errors)
-        if owner is not None and participant_ids and owner not in participant_ids:
-            errors.append(_issue(f"{path}.owner_id", "is not listed as a participant"))
-        evidence_refs = _list_field(
+        _validate_assumption(
             assumption,
-            "evidence_refs",
-            path,
+            f"$.assumptions[{index}]",
+            participant_ids,
+            assumption_ids,
             errors,
+            warnings,
         )
-        clean_evidence_refs = _check_string_list(
-            evidence_refs,
-            f"{path}.evidence_refs",
-            errors,
-        )
-        if (
-            status not in {None, "untested", "not-applicable"}
-            and not clean_evidence_refs
-        ):
-            warnings.append(
-                _issue(
-                    f"{path}.evidence_refs",
-                    "non-untested status has no recorded evidence reference",
-                )
-            )
 
-    ideas_raw = document.get("ideas")
-    if not isinstance(ideas_raw, list):
-        errors.append(_issue("$.ideas", "must be a list"))
-        ideas_raw = []
-    elif len(ideas_raw) > MAX_ITEMS:
-        errors.append(
-            _issue(
-                "$.ideas",
-                f"has {len(ideas_raw)} items; limit is {MAX_ITEMS}",
-            )
-        )
-        ideas_raw = ideas_raw[:MAX_ITEMS]
-
-    idea_ids: set[str] = set()
-    statements: defaultdict[str, list[str]] = defaultdict(list)
-    ai_assisted_count = 0
+    ideas_raw = _bounded_required_list(document, "ideas", _PATH_IDEAS, errors)
+    tracker = _IdeaTracker()
     for index, idea in enumerate(ideas_raw):
-        path = f"$.ideas[{index}]"
-        if not isinstance(idea, dict):
-            errors.append(_issue(path, "must be an object"))
-            continue
-        idea_id = _check_id(idea.get("id"), f"{path}.id", errors)
-        if idea_id is not None:
-            if idea_id in idea_ids:
-                errors.append(_issue(f"{path}.id", "duplicate idea ID"))
-            idea_ids.add(idea_id)
-        statement = _check_text(idea.get("statement"), f"{path}.statement", errors)
-        if statement is not None and idea_id is not None:
-            statements[_normalized_statement(statement)].append(idea_id)
+        _validate_idea(
+            idea, f"$.ideas[{index}]", participant_ids, tracker, errors, warnings
+        )
+    _check_cross_references(tracker, assumption_ids, errors, warnings)
 
-        provenance = idea.get("provenance")
-        if not isinstance(provenance, dict):
-            errors.append(_issue(f"{path}.provenance", "must be an object"))
-            provenance = {}
-        origin = provenance.get("origin")
-        if origin not in ORIGINS:
-            errors.append(
-                _issue(
-                    f"{path}.provenance.origin",
-                    f"must be one of {sorted(ORIGINS)}",
-                )
-            )
-        if origin in {"ai-assisted", "mixed"}:
-            ai_assisted_count += 1
-        stage = provenance.get("recorded_stage")
-        if stage not in RECORDED_STAGES:
-            errors.append(
-                _issue(
-                    f"{path}.provenance.recorded_stage",
-                    f"must be one of {sorted(RECORDED_STAGES)}",
-                )
-            )
-        contributors_raw = _list_field(
-            provenance,
-            "contributor_ids",
-            f"{path}.provenance",
-            errors,
-        )
-        contributors = _check_string_list(
-            contributors_raw,
-            f"{path}.provenance.contributor_ids",
-            errors,
-            identifiers=True,
-        )
-        if not contributors:
-            errors.append(
-                _issue(
-                    f"{path}.provenance.contributor_ids",
-                    "must contain at least one contributor ID",
-                )
-            )
-        for contributor in contributors:
-            if participant_ids and contributor not in participant_ids:
-                errors.append(
-                    _issue(
-                        f"{path}.provenance.contributor_ids",
-                        f"{contributor!r} is not listed as a participant",
-                    )
-                )
-        source_refs_raw = _list_field(
-            provenance,
-            "source_refs",
-            f"{path}.provenance",
-            errors,
-        )
-        source_refs = _check_string_list(
-            source_refs_raw,
-            f"{path}.provenance.source_refs",
-            errors,
-        )
-        ai_tool = provenance.get("ai_tool")
-        if origin in {"ai-assisted", "mixed"}:
-            _check_text(
-                ai_tool,
-                f"{path}.provenance.ai_tool",
-                errors,
-                maximum=500,
-            )
-        elif ai_tool is not None and ai_tool != "":
-            warnings.append(
-                _issue(
-                    f"{path}.provenance.ai_tool",
-                    "AI tool is recorded but origin is not AI-assisted or mixed",
-                )
-            )
-        if origin == "literature-inspired" and not source_refs:
-            errors.append(
-                _issue(
-                    f"{path}.provenance.source_refs",
-                    "literature-inspired ideas require at least one source reference",
-                )
-            )
+    clusters = _optional_list(document, "clusters", errors)
+    if clusters is not None:
+        _validate_clusters(clusters, tracker.idea_ids, errors)
 
-        linked_assumptions_raw = _list_field(
-            idea,
-            "assumption_ids",
-            path,
-            errors,
-        )
-        linked_assumptions = _check_string_list(
-            linked_assumptions_raw,
-            f"{path}.assumption_ids",
-            errors,
-            identifiers=True,
-        )
-        assumption_references.update(linked_assumptions)
-        if not linked_assumptions:
-            warnings.append(
-                _issue(
-                    f"{path}.assumption_ids",
-                    "idea has no explicit linked assumptions",
-                )
-            )
-
-        predictions_raw = _list_field(
-            idea,
-            "predicted_observations",
-            path,
-            errors,
-        )
-        _check_string_list(
-            predictions_raw,
-            f"{path}.predicted_observations",
-            errors,
-        )
-        uncertainties_raw = _list_field(
-            idea,
-            "uncertainties",
-            path,
-            errors,
-        )
-        uncertainties = _check_string_list(
-            uncertainties_raw,
-            f"{path}.uncertainties",
-            errors,
-        )
-        if not uncertainties:
-            warnings.append(
-                _issue(
-                    f"{path}.uncertainties",
-                    "idea has no recorded uncertainty",
-                )
-            )
-        evidence_status = idea.get("evidence_status")
-        if evidence_status not in EVIDENCE_STATUSES:
-            errors.append(
-                _issue(
-                    f"{path}.evidence_status",
-                    f"must be one of {sorted(EVIDENCE_STATUSES)}",
-                )
-            )
-        status = idea.get("status")
-        if status not in IDEA_STATUSES:
-            errors.append(
-                _issue(
-                    f"{path}.status",
-                    f"must be one of {sorted(IDEA_STATUSES)}",
-                )
-            )
-
-    for normalized, duplicate_ids in sorted(statements.items()):
-        if normalized and len(duplicate_ids) > 1:
-            warnings.append(
-                _issue(
-                    "$.ideas",
-                    "exact-after-case/whitespace/Unicode normalization duplicate "
-                    f"text for IDs {sorted(duplicate_ids)}; this is not a claim "
-                    "of semantic equivalence",
-                )
-            )
-
-    for missing_id in sorted(assumption_references - assumption_ids):
-        errors.append(
-            _issue(
-                "$.ideas[*].assumption_ids",
-                f"references missing assumption ID {missing_id!r}",
-            )
-        )
-    for unlinked_id in sorted(assumption_ids - assumption_references):
-        warnings.append(
-            _issue(
-                "$.assumptions",
-                f"assumption {unlinked_id!r} is not linked from any idea",
-            )
-        )
-
-    clusters = document.get("clusters", [])
-    if not isinstance(clusters, list):
-        errors.append(_issue("$.clusters", "must be a list when present"))
-    elif len(clusters) > MAX_ITEMS:
-        errors.append(_issue("$.clusters", f"limit is {MAX_ITEMS}"))
-    else:
-        cluster_ids: set[str] = set()
-        for index, cluster in enumerate(clusters):
-            path = f"$.clusters[{index}]"
-            if not isinstance(cluster, dict):
-                errors.append(_issue(path, "must be an object"))
-                continue
-            cluster_id = _check_id(cluster.get("id"), f"{path}.id", errors)
-            if cluster_id is not None:
-                if cluster_id in cluster_ids:
-                    errors.append(_issue(f"{path}.id", "duplicate cluster ID"))
-                cluster_ids.add(cluster_id)
-            _check_text(cluster.get("relation"), f"{path}.relation", errors)
-            members = _check_string_list(
-                _list_field(cluster, "idea_ids", path, errors),
-                f"{path}.idea_ids",
-                errors,
-                identifiers=True,
-            )
-            for member in members:
-                if member not in idea_ids:
-                    errors.append(
-                        _issue(
-                            f"{path}.idea_ids",
-                            f"references missing idea ID {member!r}",
-                        )
-                    )
-
-    decisions = document.get("decision_log", [])
-    if not isinstance(decisions, list):
-        errors.append(_issue("$.decision_log", "must be a list when present"))
-    elif len(decisions) > MAX_ITEMS:
-        errors.append(_issue("$.decision_log", f"limit is {MAX_ITEMS}"))
-    else:
-        decision_ids: set[str] = set()
-        for index, decision in enumerate(decisions):
-            path = f"$.decision_log[{index}]"
-            if not isinstance(decision, dict):
-                errors.append(_issue(path, "must be an object"))
-                continue
-            decision_id = _check_id(
-                decision.get("decision_id"), f"{path}.decision_id", errors
-            )
-            if decision_id is not None:
-                if decision_id in decision_ids:
-                    errors.append(
-                        _issue(f"{path}.decision_id", "duplicate decision ID")
-                    )
-                decision_ids.add(decision_id)
-            if decision.get("date") is not None:
-                try:
-                    require_iso_date(decision["date"], f"{path}.date")
-                except CliError as exc:
-                    errors.append(_issue(f"{path}.date", str(exc)))
-            candidates = _check_string_list(
-                _list_field(decision, "candidate_ids", path, errors),
-                f"{path}.candidate_ids",
-                errors,
-                identifiers=True,
-            )
-            for candidate in candidates:
-                if candidate not in idea_ids:
-                    errors.append(
-                        _issue(
-                            f"{path}.candidate_ids",
-                            f"references missing idea ID {candidate!r}",
-                        )
-                    )
-            _check_text(decision.get("decision"), f"{path}.decision", errors)
-            _check_text(
-                decision.get("rationale"),
-                f"{path}.rationale",
-                errors,
-            )
+    decisions = _optional_list(document, "decision_log", errors)
+    if decisions is not None:
+        _validate_decisions(decisions, tracker.idea_ids, errors)
 
     return {
         "valid": not errors,
@@ -586,7 +628,7 @@ def validate_register(document: Any) -> dict[str, Any]:
             "participants": len(participant_ids),
             "ideas": len(ideas_raw),
             "assumptions": len(assumptions_raw),
-            "ai_assisted_or_mixed_ideas": ai_assisted_count,
+            "ai_assisted_or_mixed_ideas": tracker.ai_assisted_count,
             "errors": len(errors),
             "warnings": len(warnings),
         },

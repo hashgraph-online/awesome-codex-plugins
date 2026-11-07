@@ -98,7 +98,7 @@ Adjust what you emphasize based on `target_market`:
 
 ## Severity Adjustment Table
 
-Adjust finding severity based on `product_class` and `target_market`:
+Adjust report severity (info → SUGGESTION, medium → WARNING, high or critical → CRITICAL) based on `product_class` and `target_market`:
 
 | Finding | prototype/hobby | production/consumer | production/industrial+ |
 |---------|----------------|--------------------|-----------------------|

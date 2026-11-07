@@ -20,8 +20,8 @@ Rules:
       emitted schema fragment — useful for discriminator fields like
       analyzer_type or schema_version that must carry a fixed value.
     - field(metadata={"json_name": "<key>"}) renames the emitted JSON
-      property to <key> (used for underscore-prefixed keys like
-      "_redirected_from" that don't fit Python identifier rules).
+      property to <key> (an explicit wire name; the schematic envelope
+      maps "_redirected_from" and "_stale_file_warning" this way).
 """
 from __future__ import annotations
 

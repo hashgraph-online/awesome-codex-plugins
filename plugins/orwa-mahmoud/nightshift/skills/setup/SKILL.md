@@ -140,17 +140,6 @@ scaffolding as if the site were current.
  **Never add a remote to it, never push it.**
  On native Windows, after a clear yes, rerun the bundled scaffold with the same
  `--work-target` plus `--receipts`; the idempotent pass creates only this local receipts repo.
-- **Cursor CLI file hooks — ask, default no.** The installed Cursor plugin already holds the
- IDE Agent tab. The Cursor CLI (`agent`) currently ignores marketplace and local plugin hooks
- and only runs project file hooks — a Cursor limitation, not a Nightshift skip. Ask —
- *"write a project `.cursor/hooks.json` so the Cursor CLI is held by the same Nightshift
- hooks?"* — and on anything but a clear yes, skip it. Present the question neutrally; the
- default is no. The IDE plugin keeps working either way. On yes: if
- `$NIGHTSHIFT_WORKSPACE/.cursor/hooks.json` does not exist, create `.cursor/` if needed and
- copy `$NIGHTSHIFT_PLUGIN_ROOT/hooks/cursor/hooks.json` there. That file execs the same
- plugin scripts via `${CURSOR_PLUGIN_ROOT}`. If a `.cursor/hooks.json` already exists, show
- the diff against the shipped file and write only on an explicit yes to replace; never merge
- unknown owner hooks silently. Never create a second `.nightshift/`.
 - **Shift worktree — ask, default no, repository mode only.** Ask — *"run each shift in its own
  git worktree and branch, so your checkout and uncommitted edits stay untouched and ignored files
  such as `.env` stay out?"* On a clear yes set `shift.isolation` to `worktree` in `$NS/rules.json`.

@@ -59,6 +59,7 @@ STATUS_FIELDS = (
 
 
 def load_checklist(payload: Any) -> dict[str, Any]:
+    """Load checklist."""
     root = require_object(payload, "checklist")
     require_exact_keys(
         root,
@@ -140,6 +141,7 @@ def load_checklist(payload: Any) -> dict[str, Any]:
 
 
 def audit(checklist: dict[str, Any]) -> dict[str, Any]:
+    """Handle audit."""
     errors: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     gaps_by_measurement: dict[str, list[str]] = {}
@@ -182,18 +184,19 @@ def audit(checklist: dict[str, Any]) -> dict[str, Any]:
     if not (role_counts["intervention"] or role_counts["exposure"]):
         warnings.append(issue("NO_INTERVENTION_OR_EXPOSURE_DECLARED", "items"))
 
+    if errors:
+        status = "INVALID_CHECKLIST"
+    elif gaps_by_measurement:
+        status = "VALID_WITH_MEASUREMENT_GAPS"
+    else:
+        status = "VALID_HUMAN_REVIEW_COMPLETE"
+
     return {
         "schema_version": "2.0",
         "checklist_id": checklist["checklist_id"],
         "record_id": checklist["record_id"],
         "valid": not errors,
-        "status": (
-            "INVALID_CHECKLIST"
-            if errors
-            else "VALID_WITH_MEASUREMENT_GAPS"
-            if gaps_by_measurement
-            else "VALID_HUMAN_REVIEW_COMPLETE"
-        ),
+        "status": status,
         "errors": errors,
         "warnings": warnings,
         "measurement_count": len(checklist["items"]),
@@ -209,6 +212,7 @@ def audit(checklist: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit a bounded local JSON operationalization checklist and report "
@@ -224,6 +228,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = audit(load_checklist(read_json(args.checklist)))

@@ -80,14 +80,16 @@ def get_emission_limit(freq_hz: float, standard: str = 'fcc-class-b') -> Optiona
     """Get the emission limit for a frequency under a given standard.
 
     Returns (limit_dBuV_m, measurement_distance_m) or None if frequency
-    is outside the standard's range.
+    is outside the standard's range. On the edge between two bands, the
+    tighter (lower) limit applies, following the band-edge convention of
+    47 CFR 15.209(b) (the tighter limit applies at a band edge) and the
+    CISPR transition frequencies; the top edge of a table is inside it.
     """
     freq_mhz = freq_hz / 1e6
     table = STANDARDS.get(standard, FCC_CLASS_B_RADIATED)
-    for f_min, f_max, limit, dist in table:
-        if f_min <= freq_mhz < f_max:
-            return (limit, dist)
-    return None
+    limits = [(limit, dist) for f_min, f_max, limit, dist in table
+              if f_min <= freq_mhz <= f_max]
+    return min(limits) if limits else None
 
 
 # ---------------------------------------------------------------------------
@@ -461,10 +463,9 @@ def trace_inductance_nh_per_mm(width_mm: float, height_mm: float) -> float:
         z0 = (120 * math.pi) / (w_h + 1.393 + 0.667 * math.log(w_h + 1.444))
     else:
         z0 = (60 * math.log(8 * height_mm / width_mm + width_mm / (4 * height_mm)))
-    # L per unit length = Z0 / v_phase
-    # For FR4 effective epsilon ~3.3 for typical microstrip
-    v_phase = C_0 / math.sqrt(3.3)
-    l_per_m = z0 / v_phase  # H/m
+    # The formula above gives the air-filled Z0; L does not depend on the
+    # dielectric, so L = Z0,air / c0.
+    l_per_m = z0 / C_0  # H/m
     return l_per_m * 1e6  # nH/mm
 
 
@@ -575,28 +576,13 @@ def round_to_e12(value: float) -> float:
     return snapped
 
 
-def cap_impedance_at_freq(freq_hz: float, capacitance_f: float,
-                          esr_ohm: float, esl_h: float) -> float:
-    """Impedance magnitude of a capacitor (series RLC model) at frequency.
-
-    |Z| = √(ESR² + (2πfL - 1/(2πfC))²)
-    """
-    if freq_hz <= 0:
-        return float('inf')
-    omega = 2 * math.pi * freq_hz
-    x_l = omega * esl_h
-    x_c = 1.0 / (omega * capacitance_f) if capacitance_f > 0 else float('inf')
-    x_net = x_l - x_c
-    # EQ-013: |Z| = √(ESR² + (ωL - 1/ωC)²) (series RLC impedance)
-    return math.sqrt(esr_ohm**2 + x_net**2)
-
-
 # ---------------------------------------------------------------------------
 # ESR/ESL lookup by package size (typical MLCC values)
 # ---------------------------------------------------------------------------
 
 # Typical MLCC ESL (Henries) and ESR (Ohms) by package — imported from shared kicad_core
 from kicad_core.parts import MLCC_ESL, MLCC_ESR
+from kicad_core.pdn import cap_branch_z, parallel_impedance
 
 
 def pdn_target_impedance(v_rail: float, ripple_pct: float = 5.0,
@@ -609,7 +595,7 @@ def pdn_target_impedance(v_rail: float, ripple_pct: float = 5.0,
     Ref: Smith, "Decoupling Capacitor Calculations for ASICs."
 
     Args:
-        v_rail: Rail voltage in Volts.
+        v_rail: Rail voltage in Volts (a negative rail uses its magnitude).
         ripple_pct: Allowable voltage ripple as percentage (default 5%).
         i_transient_a: Transient current demand in Amps.
 
@@ -618,7 +604,7 @@ def pdn_target_impedance(v_rail: float, ripple_pct: float = 5.0,
     """
     if i_transient_a <= 0:
         return float('inf')
-    return v_rail * (ripple_pct / 100) / i_transient_a
+    return abs(v_rail) * (ripple_pct / 100) / i_transient_a
 
 
 def parallel_cap_impedance(freq_hz: float,
@@ -628,26 +614,20 @@ def parallel_cap_impedance(freq_hz: float,
     Each cap dict should have: farads (float), esr_ohm (float), esl_h (float).
     Missing fields use defaults from package lookup.
 
-    The parallel impedance: 1/Z_total = sum(1/Z_i)
+    The parallel impedance: 1/Z_total = sum(1/Z_i), complex branches.
     """
     # EQ-029: 1/Z_total = Σ(1/Z_i) (parallel impedance combination)
+    z = parallel_cap_impedance_complex(freq_hz, caps)
+    return abs(z) if z is not None else float('inf')
+
+
+def parallel_cap_impedance_complex(freq_hz: float, caps: List[Dict]):
+    """Complex impedance of capacitors in parallel; None when there is none."""
     if freq_hz <= 0 or not caps:
-        return float('inf')
-
-    sum_admittance = 0.0
-    for cap in caps:
-        c = cap.get('farads', 0)
-        if c <= 0:
-            continue
-        esr = cap.get('esr_ohm', 0.1)
-        esl = cap.get('esl_h', 1e-9)
-        z = cap_impedance_at_freq(freq_hz, c, esr, esl)
-        if z > 0:
-            sum_admittance += 1.0 / z
-
-    if sum_admittance <= 0:
-        return float('inf')
-    return 1.0 / sum_admittance
+        return None
+    return parallel_impedance([
+        cap_branch_z(freq_hz, cap['farads'], cap.get('esr_ohm') or 0.1, cap.get('esl_h', 1e-9))
+        for cap in caps if cap.get('farads', 0) > 0])
 
 
 def pdn_impedance_sweep(caps: List[Dict],
@@ -975,7 +955,7 @@ def build_power_tree(regulators: list, power_budget: dict,
         for entry in decoupling_analysis:
             if not isinstance(entry, dict):
                 continue
-            rail_net = entry.get('rail_net', '')
+            rail_net = entry.get('rail_net') or entry.get('rail', '')
             caps = entry.get('capacitors', [])
             if rail_net and isinstance(caps, list):
                 decoup_by_rail.setdefault(rail_net, []).extend(caps)
@@ -1018,8 +998,8 @@ def build_power_tree(regulators: list, power_budget: dict,
             output_caps.append({
                 'ref': cap.get('ref', ''),
                 'farads': c,
-                'esr_ohm': cap.get('esr_ohm', estimate_esr(pkg)),
-                'esl_h': cap.get('esl_h', estimate_esl(pkg)),
+                'esr_ohm': cap.get('esr_ohm') or estimate_esr(pkg),
+                'esl_h': cap.get('esl_h') or estimate_esl(pkg),
                 'package': pkg,
                 'location': 'regulator_output',
             })
@@ -1039,8 +1019,8 @@ def build_power_tree(regulators: list, power_budget: dict,
             output_caps.append({
                 'ref': dc_ref,
                 'farads': c,
-                'esr_ohm': dc.get('esr_ohm', estimate_esr(pkg)),
-                'esl_h': dc.get('esl_h', estimate_esl(pkg)),
+                'esr_ohm': dc.get('esr_ohm') or estimate_esr(pkg),
+                'esl_h': dc.get('esl_h') or estimate_esl(pkg),
                 'package': pkg,
                 'location': 'ic_decoupling',
             })
@@ -1220,31 +1200,18 @@ def distributed_pdn_impedance_sweep(
         all_reg = list(reg_only_caps)
         if plane_cap_f > 0:
             all_reg.append({'farads': plane_cap_f, 'esr_ohm': 0.001, 'esl_h': 0.05e-9})
-        z_reg = parallel_cap_impedance(f, all_reg) if all_reg else float('inf')
+        z_reg = parallel_cap_impedance_complex(f, all_reg)
 
-        # Trace impedance (series R + jωL)
-        z_trace_complex = complex(r_trace, omega * l_trace)
-
-        # Remote impedance: Z_reg (cap network magnitude, modeled as real) + Z_trace (complex)
-        z_remote = abs(z_reg + z_trace_complex)
+        # Remote impedance: Z_reg in series with the trace (R + jωL)
+        z_remote = None if z_reg is None else z_reg + complex(r_trace, omega * l_trace)
 
         # Local IC decoupling impedance
-        if ic_caps:
-            z_local = parallel_cap_impedance(f, ic_caps)
-        else:
-            z_local = float('inf')
+        z_local = parallel_cap_impedance_complex(f, ic_caps)
 
         # Parallel combination: Z_at_IC = Z_local || Z_remote
-        if z_local == float('inf') and z_remote == float('inf'):
-            z_ic = float('inf')
-        elif z_local == float('inf'):
-            z_ic = z_remote
-        elif z_remote == float('inf'):
-            z_ic = z_local
-        else:
-            z_ic = (z_local * z_remote) / (z_local + z_remote)
+        z_ic = parallel_impedance([z for z in (z_local, z_remote) if z is not None])
 
-        ic_sweep.append({'freq_hz': f, 'impedance_ohm': z_ic})
+        ic_sweep.append({'freq_hz': f, 'impedance_ohm': abs(z_ic) if z_ic is not None else float('inf')})
 
     # Identify worst IC (highest current draw)
     worst_ic = ''

@@ -2,12 +2,18 @@
 
 The Deep Review pass is a per-IC comparison of actual usage against
 datasheet requirements, with findings recorded durably in
-`analysis/deep_review.json` and machine-verified by the evidence
-gate. This guide holds the depth the SKILL.md loop points to:
+`analysis/deep_review.json` and checked by the evidence gate: cited
+components, nets and pins must exist in the run's analyzer JSON, and each
+datasheet quote must appear on its page. A finding the gate could not check in
+full is kept with `evidence_checked: partial`; treat that part of its evidence
+as unverified. This guide holds the depth the SKILL.md loop points to:
 comparison heuristics per part class, interacting-pair patterns,
 helper-script conventions, evidence quality, and fan-out for big
 BOMs. Checks are DERIVED from each part's datasheet — the lists
 below are starting points, not ceilings.
+
+`<skill-path>` is the installed kicad skill directory. Run the
+commands below from the hardware project directory.
 
 ## Comparison heuristics by part class
 
@@ -92,32 +98,56 @@ Write disposable, design-specific scripts under `analysis/helpers/`:
 ## Recording and evidence quality
 
 Record findings in `analysis/deep_review.json` per
-`skills/kicad/review/schemas/deep_review.schema.json`:
+`<skill-path>/review/schemas/deep_review.schema.json`:
 - `category` is free-form but reuse a small stable vocabulary within
   a project (e.g. `power_input`, `power_sequencing`, `bus_levels`,
   `thermal`, `protection`, `required_externals`) — the diff and the
   summary group by it.
 - Datasheet quotes must be verbatim text from the cited page — the
-  gate greps the page via pdftotext; paraphrases quarantine. Mid-quote
+  gate greps the page via pdftotext; paraphrases quarantine. If the PDF is not
+  found, `pdftotext` is not installed, cannot run, or exits with an error
+  other than a missing page, the quote is not checked and the finding is
+  `partial`. A cited page below 1, or past the
+  last page of the PDF, quarantines the finding. Mid-quote
   elision (`...` or `…`) is fine for trimming a long quote down to the
   relevant clauses — each segment on either side must still appear on
   the page, in order.
 - Page numbers are PDF page indexes (what pdftotext counts), not the
   printed page footer.
-- Computations cite the helper script path and paste its result line.
+- Computations cite the helper script path and paste its result line. The
+  gate checks that the script exists but does not run it, so a finding with a
+  computation is recorded as `evidence_checked: partial`. `full` means every
+  cited datasheet quote was found on its page and nothing else was cited
+  unchecked.
+- A cited net passes the gate if it exists anywhere in the run's analyzer
+  JSON under any of its identities: schematic name, `display_name`, or
+  PCB net name (case-insensitive).
+- A cited pin is `REF.PIN` by pin number or pin name (`U3.7`, `U3.VIN`,
+  case-insensitive). It passes if that component has that pin in the run's
+  analyzer JSON; a floating pin counts. Names match exactly: when an
+  alternate pin function is selected the analyzer lists the alternate's name,
+  so cite such pins by number.
+  A pin of a component whose pins the analyzer JSON does not list (a part
+  listed without pins, a PCB-only footprint with a pad on no net), or a pin
+  name on a part listed by number only, is not checked and makes the
+  finding `partial`.
+- The gate finds the run folder from `analysis/manifest.json` and the
+  run id inside `--analysis-dir` (`--run` picks another), so a moved or
+  copied analysis folder still gates; no absolute path is stored.
 - Severity and confidence are yours to assign — the trust story is
   the evidence, not a cap.
 
 Gate, then deal with the fallout:
 
-    python3 skills/kicad/review/scripts/deep_review_gate.py \
+    python3 <skill-path>/review/scripts/deep_review_gate.py \
         analysis/deep_review.json --analysis-dir analysis/
 
 `--project-dir` (for resolving `evidence.computation.script` paths)
-defaults to `--analysis-dir`'s parent — pass it explicitly only when
+defaults to `--analysis-dir`'s parent, and `--datasheets-dir` defaults to
+`<project-dir>/datasheets` — pass `--project-dir` explicitly only when
 the gate runs from outside the normal `<project>/analysis/` layout:
 
-    python3 skills/kicad/review/scripts/deep_review_gate.py \
+    python3 <skill-path>/review/scripts/deep_review_gate.py \
         /path/to/project/analysis/deep_review.json \
         --analysis-dir /path/to/project/analysis/ \
         --project-dir /path/to/project/
@@ -131,7 +161,7 @@ quarantined renders in the report as an unverified claim.
 
 1. `cp analysis/deep_review.json analysis/deep_review.prev.json`
 2. Run the pass fresh; gate it.
-3. `python3 skills/kicad/scripts/diff_analysis.py analysis/deep_review.prev.json analysis/deep_review.json --text`
+3. `python3 <skill-path>/scripts/diff_analysis.py analysis/deep_review.prev.json analysis/deep_review.json --text`
 4. Report fixed / still-open / new. Treat `reworded_candidates` as
    advisory — confirm by reading, then report as still-open.
 
@@ -156,7 +186,7 @@ threshold: >20 review-worthy ICs, or context pressure mid-pass):
 |---|---|
 | No datasheets at all | Topology-only pass; per-IC "not verified against datasheet" gap lines in the report |
 | Cache miss, PDF on disk | Read the PDF directly |
-| No PDF, no API | Record info finding "X unverified — no datasheet available" |
+| No PDF, no API | Write "X unverified — no datasheet available" in the review text; it is not a `deep_review.json` finding |
 | Extraction exists, low quality | It comes back with `quality.trusted: false` — decide: trust, or re-read the PDF |
 | Gate failure | Finding sits in `quarantined[]` with a reason; report as unverified claim |
 | Prior deep_review.json missing/old schema | Fresh review; say why in the delta section |

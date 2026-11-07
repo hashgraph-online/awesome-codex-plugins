@@ -1,4 +1,4 @@
-"""PCB analyzer output envelope (v1.4 SOT).
+"""PCB analyzer output envelope.
 
 The runtime emits ~35 top-level keys on the simple fixture: tight core
 (analyzer_type, schema_version, summary, trust_summary, file, statistics)
@@ -12,7 +12,7 @@ Tightens:
     - summary, trust_summary, statistics, setup, board_outline, tracks,
       vias are typed dataclasses mirroring the runtime shape.
     - Nested footprint/layer/zone/net-length/etc. lists are typed as
-      ``list[dict]`` for v1.4 — shapes tighten per rule_id in v1.5.
+      ``list[dict]`` for v1.4.
 
 Mode gating:
     - ``--full`` adds ``connectivity_graph`` + ``pad_to_pad_distances``
@@ -81,7 +81,7 @@ class PCBStatistics:
     net_count: int = field(metadata={
         "description": "Distinct net count."})
     routing_complete: bool = field(metadata={
-        "description": "True when no pads remain unrouted."})
+        "description": "True when no pads remain unrouted. Without --full it means every multi-pad net has copper; pads are not checked for a copper path between them, so completeness is proven only with --full."})
     unrouted_net_count: int = field(metadata={
         "description": "Count of nets with unrouted pads."})
     board_width_mm: Optional[float] = field(default=None, metadata={
@@ -104,7 +104,7 @@ class PCBSetup:
     # Optional fields (must come after non-defaulted fields per dataclass rules):
     board_thickness_mm: Optional[float] = field(default=None, metadata={
         "description": "Stackup thickness in mm; null when the source file "
-                       "has no (general (thickness ...)) entry. TH-043."})
+                       "has no (general (thickness ...)) entry."})
 
 
 @dataclass
@@ -123,7 +123,7 @@ class BoardOutline:
     """Board outline geometry."""
     edge_count: int = field(metadata={
         "description": "Number of Edge.Cuts segments/arcs."})
-    # TODO(v1.5): tighten edge items to typed EdgeSegment with discriminator.
+    # Edge items are free-form dicts (no typed EdgeSegment).
     edges: list[dict] = field(metadata={
         "description": "Edge.Cuts segments. Each item has `type` and "
                        "geometric params (start/end for lines, center/radius "
@@ -159,7 +159,7 @@ class Tracks:
         "description": "Histogram: width_mm_str -> segment count."})
     layer_distribution: dict[str, int] = field(metadata={
         "description": "Histogram: layer_name -> segment count."})
-    # TODO(v1.5): tighten segments/arcs to typed records.
+    # Segments and arcs are free-form dicts.
     segments: Optional[list[dict]] = field(default=None, metadata={
         "description": "Detailed segment array (--full only): "
                        "[{x1, y1, x2, y2, width, layer, net}]."})
@@ -174,11 +174,12 @@ class Vias:
     count: int = field(metadata={"description": "Total via count."})
     size_distribution: dict[str, int] = field(metadata={
         "description": "Histogram: '<diameter>/<drill>' -> via count."})
-    # TODO(v1.5): tighten via_analysis sub-structure (type_breakdown,
-    # annular_ring, current_capacity) once stable.
+    # The via_analysis sub-structure (type_breakdown, annular_ring,
+    # current_capacity) is not typed.
     via_analysis: dict = field(metadata={
-        "description": "Nested analysis: type_breakdown, annular_ring, "
-                       "current_capacity, degenerate_drills (KH-412)."})
+        "description": "Nested analysis: type_breakdown, plus annular_ring, "
+                       "via_in_pad, fanout_patterns, current_capacity and "
+                       "degenerate_drills when present."})
     vias: Optional[list[dict]] = field(default=None, metadata={
         "description": "Detailed per-via array (--full only): "
                        "[{x, y, layers, size, drill, net, type}]."})
@@ -194,7 +195,7 @@ class Connectivity:
     unrouted_count: int = field(metadata={
         "description": "Count of unrouted pads."})
     routing_complete: bool = field(metadata={
-        "description": "True when unrouted_count == 0."})
+        "description": "True when unrouted_count == 0. Without --full it means every multi-pad net has copper; pads are not checked for a copper path between them, so completeness is proven only with --full."})
 
 
 @dataclass
@@ -205,7 +206,7 @@ class PCBEnvelope:
     summary, trust_summary, statistics, setup, tracks, vias,
     connectivity, board_outline). Loose ``dict`` / ``list[dict]`` typing
     on detector-specific blocks (footprints, layers, zones, findings
-    extras) for v1.4 — each tightens per rule_id in v1.5.
+    extras) for v1.4.
     """
 
     # --- Discriminators ---
@@ -213,7 +214,7 @@ class PCBEnvelope:
         "description": "Always 'pcb'.",
         "const": "pcb"})
     schema_version: str = field(metadata={
-        "description": "Semver. Value: '1.4.0' at Track 1.1 landing.",
+        "description": "Semver. Value: '1.4.0'.",
         "const": "1.4.0"})
 
     # --- Provenance ---
@@ -262,8 +263,8 @@ class PCBEnvelope:
         "description": "Net name -> integer net ID. Reverse of nets."})
 
     # --- Layer / footprint / zone / etc. lists ---
-    # TODO(v1.5): tighten items to typed Layer, Footprint, Zone, NetClass,
-    # NetLength, PowerNetRouting records.
+    # Items are free-form dicts: Layer, Footprint, Zone, NetClass, NetLength
+    # and PowerNetRouting records are not typed.
     layers: list[dict] = field(metadata={
         "description": "Layer stackup entries: "
                        "[{number, name, type, alias}]."})
@@ -272,8 +273,7 @@ class PCBEnvelope:
                        "value, library, footprint, layer, x, y, angle, "
                        "type, mpn, manufacturer, description, pad_count, "
                        "courtyard, courtyard_poly, pad_nets, connected_nets, "
-                       "sch_path, sheetname, sheetfile. Tightens to typed "
-                       "Footprint in v1.5."})
+                       "sch_path, sheetname, sheetfile."})
     zones: list[dict] = field(metadata={
         "description": "Copper zones: [{net, net_name, layers, clearance, "
                        "min_thickness, thermal_gap, thermal_bridge_width, "
@@ -304,49 +304,53 @@ class PCBEnvelope:
         "description": "DFM rollup: dfm_tier, metrics, violation_count."})
     project_settings: dict = field(metadata={
         "description": "Selected settings extracted from .kicad_pro: "
-                       "source, net_classes, design_rules."})
+                       "source, net_classes, design_rules; custom_rules from "
+                       ".kicad_dru, with custom_rules_error (KiCad's parse "
+                       "message) when KiCad would refuse the file and so "
+                       "applies none of its rules."})
 
     # --- Defaulted-fields tail (must come after all non-default fields per
-    # dataclass rules). TH-043: schema-required keys that the emitter
+    # dataclass rules). Schema-required keys that the emitter
     # sometimes drops, now defaulted to empty so they're always present. ---
     design_rule_compliance: dict = field(default_factory=dict, metadata={
         "description": "Design rule compliance: compliant, rules_checked, "
                        "rules_source; empty dict when project_settings "
-                       "missing or compliance not computed. TH-043."})
+                       "missing or compliance not computed."})
     board_thickness_mm: Optional[float] = field(default=None, metadata={
-        "description": "Stackup thickness (mm); duplicated from setup for "
-                       "downstream consumers. Null when the source file "
-                       "has no (general (thickness ...)) entry. TH-043."})
+        "description": "Board thickness (mm) used by the current-capacity "
+                       "check: the setup thickness, or 1.6 when the file "
+                       "gives none. Present only when current-capacity "
+                       "findings exist."})
     board_metadata: dict = field(default_factory=dict, metadata={
         "description": "Board metadata bag (paper size, title block "
                        "fragments, etc.); empty dict when no metadata "
-                       "extracted. TH-043."})
+                       "extracted."})
     power_net_routing: list[dict] = field(default_factory=list, metadata={
         "description": "Power net routing rollup: [{net, track_count, "
                        "total_length_mm, min_width_mm, max_width_mm, "
                        "widths_used}]; empty list when no power routing "
-                       "detected. TH-043-residual."})
+                       "detected."})
     power_net_resolution: dict = field(default_factory=dict, metadata={
         "description": "Power/ground net classification actually used: "
                        "{power: [net names], ground: [net names], "
                        "source: 'cli'|'schematic'|'heuristic'}. source "
                        "reflects how power rail overrides were resolved — "
                        "explicit --power-rails, rails auto-read from "
-                       "--schematic, or name heuristics alone (KH-393)."})
+                       "--schematic, or name heuristics alone."})
     ground_domains: dict = field(default_factory=dict, metadata={
         "description": "Ground topology: domain_count, domains[], "
                        "multi_domain_components. Always emitted; "
                        "domain_count=0 is meaningful (no ground domain "
-                       "found). TH-043-residual."})
+                       "found)."})
     placement_density: dict = field(default_factory=dict, metadata={
         "description": "Placement density: board_area_cm2, "
                        "front_density_per_cm2, optional back_density_per_cm2; "
-                       "empty dict when density not computed. TH-043-residual."})
+                       "empty dict when density not computed."})
 
-    # --- Phase 4 capability pointer ---
+    # --- Capability pointer ---
     capability_mode_ref: Optional[dict] = field(default=None, metadata={
         "description": "Pointer to canonical analysis/capability_mode.json run-level "
-                       "record. Shape: {source, run_id}. See Phase 4 spec §3.3."})
+                       "record. Shape: {source, run_id}."})
 
     # --- Stage/audience derived blocks ---
     audience_summary: Optional[dict] = field(default=None, metadata={
@@ -375,24 +379,100 @@ class PCBEnvelope:
     pad_to_pad_distances: Optional[dict] = field(default=None, metadata={
         "description": "Pad-to-pad routing distances keyed by 'R1.2-D1.1' "
                        "style endpoints. Emitted only in --full mode."})
+    reference_plane_changes: Optional[list[dict]] = field(default=None, metadata={
+        "description": "Places where a signal trace's reference plane changes from "
+                       "one ground or power plane net to another (a split between "
+                       "plane nets); [] when none. Emitted in --full mode on boards "
+                       "with zone fills, with return_path_continuity. A plane net "
+                       "counts only where it holds over about 2 mm of trace (across "
+                       "segment ends), so a pad-sized island is not a change. Items: "
+                       "net, layer, reference_layer, net_a and net_b (the two plane "
+                       "nets, an unordered pair: net_a sorts first), x, y (mm, the "
+                       "midpoint between the two bounding samples or the segment "
+                       "junction), sample_points ([[x, y] over net_a, [x, y] over "
+                       "net_b], the nearest samples on either side)."})
+    return_path_continuity: Optional[list[dict]] = field(default=None, metadata={
+        "description": "Nets whose traces lose their reference plane for part "
+                       "of their length; [] when checked and no net is under "
+                       "95 % coverage. Emitted in --full mode on boards with "
+                       "zone fills. Items: net, total_trace_mm, "
+                       "samples_checked, samples_with_reference_plane, "
+                       "reference_plane_coverage_pct, gap_note; worst first."})
 
     # --- Optional analysis bags (gated on content) ---
     thermal_analysis: Optional[dict] = field(default=None, metadata={
-        "description": "Thermal management analysis (when triggered)."})
+        "description": "Not in CLI output: its zone-stitching "
+                       "entries move to findings[] and its pad scan to "
+                       "thermal_pad_scan."})
     thermal_pad_vias: Optional[dict] = field(default=None, metadata={
-        "description": "Thermal pad via audit (when triggered)."})
+        "description": "Not in CLI output: its entries move to "
+                       "findings[] (detector analyze_thermal_pad_vias)."})
     trace_proximity: Optional[dict] = field(default=None, metadata={
         "description": "Trace proximity / crosstalk analysis (--proximity)."})
     copper_presence: Optional[dict] = field(default=None, metadata={
-        "description": "Copper presence sampling rollup (when triggered)."})
+        "description": "Not in CLI output: its entries move to "
+                       "findings[] (detector analyze_copper_presence) and its "
+                       "opposite-layer summary to copper_presence_summary."})
     tombstoning_risk: Optional[dict] = field(default=None, metadata={
-        "description": "Tombstoning risk analysis (when triggered)."})
-    decoupling_placement: Optional[dict] = field(default=None, metadata={
-        "description": "Decoupling capacitor placement audit "
-                       "(when triggered)."})
+        "description": "Not in CLI output: its entries move to "
+                       "findings[] (detector analyze_tombstoning_risk)."})
+    decoupling_placement: Optional[list[dict]] = field(default=None, metadata={
+        "description": "Decoupling capacitor placement audit, one entry per IC "
+                       "with capacitors nearby; emitted only when non-empty. "
+                       "Items: ic, value, layer, nearby_caps, closest_cap_mm, "
+                       "gnd_only_caps (optional), category ('esd_bypass' for "
+                       "ESD/TVS ICs). nearby_caps items: cap, value, "
+                       "distance_mm, shared_nets, same_side; nearest first, "
+                       "within 10 mm, sharing a non-ground net."})
+    decoupling_proximity: Optional[list[dict]] = field(default=None, metadata={
+        "description": "Capacitor-to-IC proximity pairs; emitted only when "
+                       "non-empty. Items: ic_ref, cap_ref, distance_mm, "
+                       "cap_value, same_side, shared_nets."})
+    switching_loop_areas: Optional[list[dict]] = field(default=None, metadata={
+        "description": "Switching-regulator hot-loop areas; emitted with "
+                       "--schematic, for switching topologies only, and only "
+                       "when non-empty. Items: regulator_ref, regulator_value, "
+                       "inductor_ref, cap_ref, method ('pad'), area_mm2 (null "
+                       "when not estimated), loop_pads and vertices_mm (the "
+                       "input-cap supply, regulator supply, SW, inductor SW, "
+                       "regulator ground and input-cap ground pads, in loop "
+                       "order; absent when the pads are not resolved), "
+                       "estimate ('pads_unresolved', or 'degenerate': area "
+                       "under 1 mm2 across a reach of 2 mm or more, the pads "
+                       "in a line or the loop crossing itself so its lobes "
+                       "cancel; optional)."})
     current_capacity: Optional[dict] = field(default=None, metadata={
-        "description": "Current capacity analysis (when triggered)."})
+        "description": "Not in CLI output: its entries move to "
+                       "findings[] (detector analyze_current_capacity)."})
     placement_analysis: Optional[dict] = field(default=None, metadata={
-        "description": "Placement analysis details (when triggered)."})
+        "description": "Not in CLI output: courtyard overlaps and "
+                       "edge-clearance entries move to findings[], density to "
+                       "placement_density."})
     dfm: Optional[dict] = field(default=None, metadata={
-        "description": "Extended DFM analysis (when triggered)."})
+        "description": "Not in CLI output: violations move to "
+                       "findings[] (detector analyze_dfm), the rest to "
+                       "dfm_summary."})
+    layer_transitions: Optional[list] = field(default=None, metadata={
+        "description": "Signal nets routed on more than one copper layer, when "
+                       "any are (power and ground nets are not listed). Items: "
+                       "net, net_number, copper_layers, layer_count, via_count, "
+                       "and via_positions (only when the net has vias)."})
+    dimensions: Optional[list] = field(default=None, metadata={
+        "description": "Dimension annotations, when the board has any. Items "
+                       "carry only the keys the file provides, among: value_mm, "
+                       "layer, type (KiCad 8+), text, endpoints."})
+    groups: Optional[list] = field(default=None, metadata={
+        "description": "Board groups, when the board has any. Items: name, "
+                       "member_count."})
+    thermal_pad_scan: Optional[list] = field(default=None, metadata={
+        "description": "Thermal-pad via scan, one finding-shaped record per pad "
+                       "(the standard finding fields: severity, confidence, "
+                       "evidence_source, summary, description, components, nets, "
+                       "pins, recommendation, report_context) plus: component, "
+                       "pad, pad_size_mm, pad_area_mm2, net, nearby_thermal_vias, "
+                       "standalone_vias, footprint_via_pads, layer, detector, "
+                       "rule_id, category."})
+    copper_presence_summary: Optional[list] = field(default=None, metadata={
+        "description": "Components grouped by the opposite-layer nets they sit "
+                       "over. Items: opposite_layer_nets (comma-joined names), "
+                       "component_count, components."})

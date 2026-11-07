@@ -833,19 +833,35 @@ _DETACH = {
     # was accurate and is kept, but it is no longer the clause the reader ends
     # on: `--detach` is now stated as the default for every fan-out mode, and
     # the foreground exception is narrowed to the calls it was always meant for.
+    #
+    # 2026-11-06: R4 recurred on codex-apply-executor, and this time the sentence
+    # was not the cause — the apply cores themselves said "run this command in
+    # the foreground — it only generates batch JSON", which is true only of the
+    # native path. Under `--exec-subagents` an apply mode or `implement` is one
+    # command that dispatches every write batch itself, so it outlives a shell
+    # call exactly as a fan-out does (`modes.supports_detach`). The cores now
+    # scope their foreground rule to the native path, and these two sentences
+    # name the write modes beside the fan-outs, so "non-fan-out" can no longer
+    # be read as covering them. The foreground exception keeps covering a
+    # single-model call that applies no batch — `generate-tasks` under the
+    # executor, which `codex-next-command`/`opencode-next-command` grade as
+    # foreground (`expect.run: none`).
     "python": (
         "**Run detached** — pass `--detach` (which implies `--yes`) on every "
-        "fan-out mode, then poll `status <plan> --view run`. Do this even when "
-        "you expect the run to be quick: a fan-out started in the foreground "
-        "cannot be handed back to once your turn ends. Only a single-model, "
-        "non-fan-out call may stay in the foreground. Never combine `--detach` "
-        "with a host background mechanism — pick one."
+        "fan-out mode, and on every apply mode and `implement`, whose write "
+        "batches the executor runs inside that one command, then poll "
+        "`status <plan> --view run`. Do this even when "
+        "you expect the run to be quick: a run started in the foreground "
+        "cannot be handed back to once your turn ends. Only a single-model "
+        "call that applies no batch may stay in the foreground. Never combine "
+        "`--detach` with a host background mechanism — pick one."
     ),
     "required": (
         "**Run detached** — pass `--detach` (which implies `--yes`) on every "
-        "fan-out mode and poll `status <plan> --view run`. This host caps a single "
-        "shell command below a fan-out's runtime, so no foreground fan-out path is "
-        "offered."
+        "fan-out mode, and on every apply mode and `implement`, whose write "
+        "batches the executor runs inside that one command, and poll "
+        "`status <plan> --view run`. This host caps a single shell command below "
+        "the runtime of either, so no foreground path is offered for them."
     ),
 }
 

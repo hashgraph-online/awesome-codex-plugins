@@ -137,6 +137,7 @@ def run_openpiv(
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="OpenPIV - Particle Image Velocimetry processing"
     )

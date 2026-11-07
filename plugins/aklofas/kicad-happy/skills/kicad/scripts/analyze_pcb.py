@@ -13,6 +13,7 @@ from envelopes.pcb import PCBEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_compat
 from capability_mode import get_capability_mode_ref
+from kicad_core.fileio import atomic_write_text
 from kicad_core.cli import (add_compact_arg, add_config_arg, add_only_deterministic_arg,
                             add_output_arg, add_schema_arg, add_stage_audience_args, add_text_arg,
                             utf8_text_stdout)
@@ -77,9 +78,9 @@ def main(argv: list[str] | None = None) -> int:
     _acfg = config.get("analysis")
     analysis_cfg = _acfg if isinstance(_acfg, dict) else {}
 
-    # Build inputs provenance block (Track 1.3).
-    # Resolve canonical analysis_dir ONCE (used for capability_mode_ref).
-    # Includes --analysis-dir, fixing audit Highest-Risk #4 (split with output).
+    # Build inputs provenance block.
+    # Resolve canonical analysis_dir ONCE (used for capability_mode_ref);
+    # --analysis-dir takes precedence over the output file's directory.
     if args.analysis_dir:
         _analysis_dir = Path(args.analysis_dir)
     elif args.output:
@@ -88,7 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         _analysis_dir = Path(analysis_cfg.get("output_dir") or "analysis")
 
     # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id ==
-    # capability_mode_ref.run_id (audit Highest-Risk #5).
+    # capability_mode_ref.run_id.
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
 
     _pcb_path = Path(args.pcb)
@@ -103,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
     schematic_data = None
     if args.schematic:
         try:
-            with open(args.schematic) as f:
+            with open(args.schematic, encoding="utf-8") as f:
                 schematic_data = json.load(f)
         except (json.JSONDecodeError, OSError) as e:
             print(f"Warning: cannot load schematic analysis: {e}", file=sys.stderr)
@@ -124,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
                          schematic_data=schematic_data,
                          return_path_radius_mm=args.return_path_radius_mm,
                          gp001_debug=args.gp001_debug,
-                         power_rails=power_rails)
+                         power_rails=power_rails, config=config)
     # Inject provenance and drop legacy 'file' key (already removed from
     # internal result assembly, but belt-and-suspenders).
     diagnostics = result.pop("diagnostics", [])
@@ -135,14 +136,14 @@ def main(argv: list[str] | None = None) -> int:
 
     finalize_for_cli(result, config, pcb_path=args.pcb, analysis_dir_arg=args.analysis_dir,
                      return_path_radius_mm=args.return_path_radius_mm,
-                     stage=args.stage, audience=args.audience)
+                     stage=args.stage, output_arg=args.output)
 
     if args.text:
         from output_filters import format_text
         print(format_text(result.get('findings', []), args.audience or 'designer', args.stage))
         return 0
 
-    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    # Wire capability_mode_ref.
     # capability_mode_ref already resolved early — reuse to keep run_id stable.
     result["capability_mode_ref"] = _capability_mode_ref
 
@@ -157,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
                           retention=int(analysis_cfg.get("retention", 0) or 0))
 
     elif args.output:
-        Path(args.output).write_text(output)
+        atomic_write_text(args.output, output, follow_symlinks=False)
         print(f"Written to {args.output}", file=sys.stderr)
     else:
         print(output)
@@ -165,4 +166,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

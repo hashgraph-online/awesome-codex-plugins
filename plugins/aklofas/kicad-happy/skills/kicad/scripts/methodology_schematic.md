@@ -130,10 +130,12 @@ Library symbols define pin positions relative to the symbol origin. The analyzer
 
 1. Look up the component's `lib_id` in the library symbol table.
 2. For multi-unit symbols, merge unit-specific pins with unit 0 (shared pins — typically power/ground).
-3. Apply mirror transforms (KiCad's `(mirror x)` or `(mirror y)`).
-4. Apply rotation (symbol placement angle).
+3. Apply rotation (symbol placement angle, counter-clockwise).
+4. Apply the mirror to the rotated offset: `(mirror x)` flips the Y term, `(mirror y)` the X term.
 5. Apply Y-axis inversion (symbol coordinates use math-up convention; schematic coordinates use screen-down).
 6. Add the component's placement offset `(at x y)`.
+
+Worked examples, with the formulas for each angle: `references/net-tracing.md`.
 
 This gives each pin an absolute `(x, y)` in schematic space, which is how pins connect to wires in the net-building step.
 
@@ -142,13 +144,14 @@ This gives each pin an absolute `(x, y)` in schematic space, which is how pins c
 KiCad 4/5 `.sch` files use a line-based format with `$Comp`/`$EndComp` blocks, `Wire Wire Line` entries, and `Text Label`/`Text GLabel` markers. The analyzer has a separate parser for this format that:
 
 - Converts coordinates from mils (1/1000 inch) to mm
-- Parses the 2x2 orientation matrix to extract rotation angle and mirror flags
+- Applies the component's 2x2 orientation matrix to each library pin once, as KiCad does, and reports the placement as rotation angle and mirror flags
 - Extracts labels, wires, junctions, and no-connects with their own syntax
 - Parses `.lib` files (cache libraries and project libs) to populate pin positions and types
-- Computes absolute pin positions using `compute_pin_positions()` (same transform as KiCad 6+)
+- Reads `$Sheet` blocks: each sheet pin (`F<n>` line) becomes a hierarchical connection point on the parent sheet and joins the child's hierarchical label of the same name; a sheet used more than once contributes each instance's components, with the reference from the symbol's `AR` record for that instance (the `L` reference when there is none)
+- Skips a sheet that includes itself or one of its ancestors, with one `diagnostics` record
 - Performs subcircuit detection via `identify_subcircuits()`
 
-The `.lib` resolution strategy: (1) prefer `*-cache.lib` alongside the root `.sch` (self-contained), (2) fall back to individual `LIBS:` directives searching the project directory tree, (3) use built-in defaults for common standard library symbols (R, C, L, D, LED, transistors). Coverage is typically 92–100% depending on which `.lib` files are available in the repo.
+The `.lib` resolution strategy: (1) prefer `*-cache.lib` alongside the root `.sch` (self-contained), and also read the project's `sym-lib-table` libraries, so a component named `nick:Name` takes its pins from the project library ahead of the cache's `nick_Name` copy; (2) without a cache, read the `sym-lib-table` libraries, or the `LIBS:` directives searching the project directory tree; (3) use built-in defaults for common standard library symbols (R, C, L, D, LED, transistors). Only pins from the built-in defaults may be snapped to a nearby free wire end (their offsets vary between KiCad versions); pins from a parsed library stay where KiCad puts them. Coverage is typically 92–100% depending on which `.lib` files are available in the repo.
 
 ---
 
@@ -158,13 +161,13 @@ The net-building algorithm is the core of the analyzer. It determines which pins
 
 ### Algorithm: Union-Find on Sheet-Aware Coordinates
 
-Every electrical point in the schematic is assigned a coordinate key:
+Every electrical point in the schematic is assigned a coordinate key in KiCad's internal units (100 nm):
 
 ```python
-key = (sheet_index, round(x / EPSILON) * EPSILON, round(y / EPSILON) * EPSILON)
+key = (sheet_index, to_iu(x), to_iu(y))   # to_iu(mm) = round(mm * 10000), half away from zero
 ```
 
-where `EPSILON = 0.01 mm`. The sheet index prevents cross-sheet merges; the rounding absorbs floating-point noise in coordinates.
+The sheet index prevents cross-sheet merges. Two points join only when their keys are equal, as in KiCad; the 100 nm rounding absorbs floating-point noise in coordinates.
 
 A standard union-find (disjoint set) data structure with path compression groups connected points into equivalence classes:
 
@@ -179,32 +182,32 @@ union(a, b):  merge two sets
 
 2. **Wire endpoints** — Each wire's `(x1, y1)` and `(x2, y2)` are added as points and unioned together. Wires are also indexed in a spatial grid (5mm cells) for fast mid-wire point lookup.
 
-3. **Labels** — Added at their placement position. If a label sits mid-wire (not at an endpoint), the `point_on_segment()` function detects this and unions the label with the wire.
+3. **Labels** — Added at their placement position. A label joins every wire it lies on, at an end or mid-wire, within 1 IU (100 nm).
    - **Local labels**: Only connect within the same sheet. Keyed by `(name, sheet)`.
    - **Global labels**: Connect across all sheets. Keyed by `(name,)`.
    - **Hierarchical labels**: Connect across sheets (parent ↔ child). Keyed by `(name,)`.
 
-4. **Power symbols** — Always cross-sheet. The symbol's pin position (not its center) is used as the connection point. PWR_FLAG symbols are excluded.
+4. **Power symbols** — A global power symbol crosses sheets by name; a local one (lib symbol `(power local)`) joins only within its own sheet. The symbol's pin position (not its center) is used as the connection point. Like a component pin, it joins a wire only at a wire end. PWR_FLAG symbols are excluded.
 
-5. **Junctions** — Added and unioned with overlapping wires.
+5. **Junctions** — Added and unioned with every wire they lie exactly on (0 IU).
 
-6. **Mid-wire pin placement** — A second pass checks if any component pin lands on a wire segment between its endpoints (rare but legal in KiCad).
+A component pin or power symbol that lies inside a wire, between its ends, does not join it, as in KiCad.
 
-### Mid-Wire Detection
+### Mid-Wire Detection and Near Misses
 
-Points can be placed anywhere on a wire, not just at endpoints. The analyzer detects this with:
+Labels and junctions can sit anywhere on a wire. The analyzer tests them against the wire segments with KiCad's integer distance test (`segment_hit_iu`): within 1 IU for a label, exactly on the segment for a junction. A spatial grid index (5mm cells) makes this efficient — only wire segments in the same grid cell are tested, avoiding O(W×P) full scans.
 
-1. **Bounding box check**: Quick rejection if the point is outside the wire's bounding box (± 0.05mm tolerance).
-2. **Cross product collinearity**: The perpendicular distance from point to wire line must be < 0.05mm.
-
-A spatial grid index (5mm cells) makes this efficient — only wire segments in the same grid cell are tested, avoiding O(W×P) full scans.
+A point that is left unjoined within 0.01 mm of another point, or within 0.05 mm of a wire, is almost certainly a drawing slip. It is not joined; it is listed in `diagnostics` as a `CoordinateNearMiss` record (at most 20 per run, then one summary record).
 
 ### Net Naming Priority
 
 After union-find, connected groups are named by priority:
-1. **Power symbol name** (e.g., `+3V3`, `GND`) — highest priority
-2. **Label name** (global, hierarchical, or local)
-3. **`__unnamed_N`** — auto-generated for nets with pins but no labels
+1. **Global label name** — highest priority
+2. **Power symbol name** (e.g., `+3V3`, `GND`)
+3. **Local label**, then **hierarchical label**, then **sheet pin** name
+4. **`__unnamed_N`** — auto-generated for nets with pins but no labels
+
+Names of equal rank resolve to the shallower sheet, then the lower full name, as KiCad does.
 
 When multiple disconnected wire groups share the same name (e.g., two separate `GND` networks), their pins are merged into a single net entry. This matches KiCad's behavior where same-named labels create global connectivity.
 
@@ -298,33 +301,7 @@ flag, other
 
 ### Supported Formats
 
-| Input | Output | Rule |
-|-------|--------|------|
-| `10k` | 10000.0 | SI suffix: k = ×10³ |
-| `4K7` | 4700.0 | Embedded multiplier (K as decimal point): 4.7 × 10³ |
-| `0R1` | 0.1 | R as decimal point: 0.1 Ω |
-| `100n` | 1e-7 | SI suffix: n = ×10⁻⁹ |
-| `4.7u` | 4.7e-6 | SI suffix: u/µ = ×10⁻⁶ |
-| `2.2pF` | 2.2e-12 | SI suffix: p = ×10⁻¹² (unit stripped) |
-| `100` | 100.0 | Plain number |
-| `1M` | 1e6 | SI suffix: M = ×10⁶ |
-| `22G` | 2.2e10 | SI suffix: G = ×10⁹ |
-
-### Pre-Processing
-
-Before parsing, the function:
-- Strips leading/trailing whitespace
-- Removes unit suffixes: `Ω`, `ohm`, `F`, `H`, `Hz` (case-insensitive)
-- Removes tolerance specs: `1%`, `5%`
-- Removes package descriptors: `/R0402`, `/0603`
-- Removes voltage ratings embedded after separators
-
-### SI Prefix Map
-
-```
-p = 1e-12    n = 1e-9     u/µ = 1e-6    m = 1e-3
-k/K = 1e3    M = 1e6      G = 1e9
-```
+The accepted formats, unit handling and capacitor rules are in the Value Parser table in `README.md` (this directory).
 
 ### Unparseable Values
 
@@ -342,17 +319,21 @@ Returns `None` for:
 
 ### Power Rail Identification
 
-A net is classified as a power rail by two complementary methods:
+A net is classified as a power rail by three methods:
 
-**Method 1 — Power symbol registration**: Any net that has a pin from a `#PWR` or `#FLG` component is added to the `known_power_rails` set. This is authoritative — it captures whatever the designer connected via power symbols.
+**Method 1 — Power symbol registration**: Any net that has a pin from a `#PWR` or `#FLG` component is added to the `known_power_rails` set. This is authoritative — it captures whatever the designer connected via power symbols. Membership is by the net's full name: a sheet-local net `/Sheet/X` is its own net, not the rail `X`.
 
 **Method 2 — Name heuristics** (`is_power_net_name()`): Checks the net name against common power naming conventions:
 
 - **Exact matches**: `VCC`, `VDD`, `AVCC`, `AVDD`, `DVCC`, `DVDD`, `VBUS`, `VIO`, `VMAIN`, `VPWR`, `VSYS`, `VBAT`, `VCORE`, `VIN`, `VOUT`, `VREG`
 - **Patterns**: Names starting with `+` (e.g., `+3V3`, `+5V`, `+12V`), `V` followed by digits (e.g., `V3V3`, `V1V8`)
 - **Prefixes**: `VDD_*`, `VCC_*`, `VBAT_*`, `VSYS_*`, `VBUS_*`, etc.
+- **Negative, decimal and prefixed rails**: `-12V`, `-5V_F`, `-BATT`, `-VIN`, `3.3V`, `1.25V_REF`, `VEE`, `VPP`, `VM`, `VNEG`, `MCU3V3`, `D+5V`. A leading `-` before anything but a voltage or a supply name (`-RESET`) is an active-low signal; a control prefix (`PWM3V3`, `PG3V3`) or a signal word after a decimal level (`3.3V_SDA`) keeps the name a signal. `VPP` and `VM` also follow the pins: an IC pin on the net and no power pin (a PIC's ~MCLR/VPP, an op-amp node `Vm`) make it a signal unless a power symbol names it.
+- **Control suffixes win**: a name whose last `_` part is a control or status word (`VCC_EN`, `3V3_PG`, `VBUS_SENSE`, `PWR_ON`) is a signal about the rail, not the rail, unless the net is in the power-symbol or project power-rail set.
 
-A net is considered a power net if **either** method matches.
+**Method 3 — Rails recognised by their pins** (`topology_rail_nets()`): a named net that no name rule or power symbol makes a rail is still a power net to most schematic detectors when its pins make it a supply. Every IC pin on it is a supply input (`power_in` named like a supply), a supply-named passive pin, or a power output, and a capacitor on it goes to ground. Other passive pins are allowed only beside a pin KiCad types as power (a load-switch FET drawn as an IC). A resistor to ground (a divider midpoint), `REF` in the name, or a motor-driver output keeps the net a signal, as does a bridge-named `power_out` (`OUT1` beside an `OUT2` on another net) of a part that is not a power-management IC: it is not a supply by itself. This is how `CAN_VCC_PROTECTED` or `4.5V-28V IN` become rails. These rails are not listed in `statistics.power_rails`, and `rail_voltages` reads no voltage from their names (one comes only from a regulator that drives the net or from the project config), so a PCB run given `--schematic` does not see them.
+
+A net is considered a power net if **any** of the three methods matches, except where a check reads rails by name only (methods 1 and 2), for example current-sense detection (which sides of a shunt are supply or ground), solder-jumper detection, RS-001 (a net counts by name or by a `power_in` pin), LB-001 label aliases, the rail voltages read from net names (`rail_voltages`), the IC logic level VM-001 takes from the IC's rails, and the PP-001 rule that a name-recognised rail is always a DC rail, where a rail known only by its pins is a DC rail only if it has a source or is not AC-coupled.
 
 ### Ground Net Identification
 
@@ -364,7 +345,7 @@ A net is considered a power net if **either** method matches.
 
 ## 8. AnalysisContext
 
-`AnalysisContext` (in `kicad_types.py`) is a dataclass that holds shared state built once and passed to all analysis functions:
+`AnalysisContext` (in `kicad_types.py`) is a dataclass that holds shared state built once and passed to all analysis functions. Production code builds it with `build_analysis_context(components, nets, lib_symbols, ...)`, which constructs `pin_net` and every index, so detectors never complete it themselves:
 
 ```python
 @dataclass
@@ -373,19 +354,22 @@ class AnalysisContext:
     nets: dict[str, dict]           # Net connectivity map
     lib_symbols: dict               # Library symbol definitions
     pin_net: dict                   # (ref, pin_num) → (net_name, pin_name) map
-    comp_lookup: dict[str, dict]    # {reference: component} — built in __post_init__
-    parsed_values: dict[str, float] # {reference: numeric_value} — built in __post_init__
-    known_power_rails: set[str]     # Power rail names — built in __post_init__
-    generator_version: str          # KiCad generator version string
+    comp_lookup: dict[str, dict]    # {reference: component}, built by build_analysis_context
+    parsed_values: dict[str, float] # {reference: numeric_value}, built by build_analysis_context
+    known_power_rails: set[str]     # Power rail names, built by build_analysis_context
+    ref_pins: dict[str, dict]       # {reference: {pin_num: (net_name, net_record)}}
+    no_connects: list[dict]         # No-connect markers
+    nq: NetlistQueries              # Net-query layer installed by build_analysis_context
+    rail_by_net / rail_overrides / rail_ignore  # Rail voltages and the project's power-rail config
 ```
 
-The three auto-built fields (`comp_lookup`, `parsed_values`, `known_power_rails`) replace what was previously ~10 duplicate rebuild operations scattered across analysis functions.
+The indexes (`comp_lookup`, `parsed_values`, `known_power_rails`, `ref_pins`) are built once, so detectors don't rebuild them.
 
 ---
 
 ## 9. Signal Path Detection
 
-The `analyze_signal_paths()` function orchestrates 21 detector functions that identify common analog and mixed-signal circuit patterns from the connectivity graph. Each detector is a pure function that takes `AnalysisContext` (and optionally prior detector results) and returns structured detection results.
+The `analyze_signal_paths()` function (in `schematic/pipeline.py`) runs the 12 topology detectors of `detect_topologies`, then `reconcile_detections`, then the domain detectors and audits of `run_domain_detectors`; together they identify common analog and mixed-signal circuit patterns from the connectivity graph. Each detector is a pure function that takes `AnalysisContext` (and optionally prior detector results) and returns structured detection results.
 
 ### Execution Order and Dependencies
 
@@ -417,9 +401,9 @@ Detectors run in a specific order because some consume results from earlier dete
 
 ### Shared Helpers
 
-Two helper functions are used by multiple detectors:
+Detectors share one netlist query method and one helper function:
 
-- `_get_net_components(ctx, net_name, exclude_ref)` — Returns all components connected to a net, optionally excluding one reference. Used to find what else connects to a node.
+- `ctx.nq.components_on_net(net_name, exclude_refs={ref})` — Returns all components connected to a net, optionally excluding some references. Used to find what else connects to a node.
 - `_classify_load(ctx, net_name, exclude_ref)` — Classifies the load on a net by examining connected component types and net name keywords. Returns labels like `"motor"`, `"relay"`, `"led"`, `"speaker"`, `"resistive"`, `"capacitive"`, etc.
 
 ### Detector Details
@@ -855,11 +839,11 @@ Power symbols (`#PWR`, `#FLG`) and DNP components are excluded from the BOM coun
 
 ## 13. Known Limitations
 
-1. **Legacy `.sch` format**: No pin-level net connectivity. Would require parsing the companion `.lib` file for pin geometry, which is not implemented. Legacy schematics get component lists and label-based net names only.
+1. **Legacy `.sch` format**: Pin-level connectivity depends on the `.lib` files in the repo. Symbols found in no library fall back to a built-in table of common parts, whose pin offsets are snapped to nearby free wire ends; a symbol missing from both has no pins and joins no net.
 
 2. **Value parsing generosity**: `parse_value()` extracts the first numeric-looking substring. A transistor's `"2N3904"` could be parsed as `2.0` if the caller doesn't check component type first. All signal detectors guard against this by checking type before using parsed values.
 
-3. **Coordinate tolerance**: `EPSILON = 0.01mm`. Points closer than this are treated as the same location. Extremely dense layouts could theoretically have false coordinate merges, though this hasn't been observed in practice across 1,053 tested schematics.
+3. **Coordinate identity**: Points join only at identical 100 nm coordinates, as in KiCad. A point that misses another by a few micrometres is not joined; it is reported as a `CoordinateNearMiss` diagnostic (at most 20 per run) rather than silently merged.
 
 4. **High-fanout filter rejection**: RC/LC filters on nets with >6 connections are rejected as likely buses. This may miss legitimate filters on high-fanout nets (e.g., a filter feeding multiple ICs).
 
@@ -867,7 +851,7 @@ Power symbols (`#PWR`, `#FLG`) and DNP components are excluded from the BOM coun
 
 6. **Set iteration order**: Some analyses iterate over Python sets, which have non-deterministic ordering. This can cause output field order to vary between runs for certain sections (e.g., `protection_devices`, `pwr_flag_warnings`). The data is identical when sorted.
 
-7. **No `.lib` parsing**: The analyzer reads only `.kicad_sch` files and their embedded `(lib_symbols)` sections. External library files (`.kicad_sym`, `.lib`) are not parsed. This means all symbol information must be embedded in the schematic — which KiCad does by default when saving.
+7. **External libraries only for KiCad 5**: a `.kicad_sch` is read with its embedded `(lib_symbols)`; external `.kicad_sym` libraries are not read (KiCad embeds every used symbol when it saves). A KiCad 5 `.sch` project takes its pins from the `<project>-cache.lib`, the `sym-lib-table` or `.pro` libraries (`.lib` files), and a built-in table for common symbols.
 
 8. **Solder jumper gates**: Voltage dividers gated by solder jumpers (where opening/closing a jumper changes the divider ratio) are not detected as conditional configurations.
 

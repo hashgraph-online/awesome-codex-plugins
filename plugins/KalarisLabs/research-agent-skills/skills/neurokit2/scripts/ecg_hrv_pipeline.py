@@ -9,20 +9,17 @@ from typing import Any
 from _common import (
     MAX_CSV_BYTES,
     MAX_ROWS,
-    NEUROKIT2_VERSION,
-    PINNED_INSTALL,
     CliError,
+    add_pipeline_arguments,
     checked_input_file,
-    dataframe_rows,
-    emit_json,
+    emit_pipeline_report,
     finite_float,
     json_number,
     parse_name_list,
     read_numeric_columns,
     require_deidentified,
+    require_pinned_neurokit2,
     run_cli,
-    sha256_bytes,
-    write_csv,
 )
 
 ECG_METHODS = (
@@ -33,15 +30,23 @@ ECG_METHODS = (
     "engzeemod2012",
 )
 HRV_DOMAINS = {"time", "frequency", "nonlinear"}
+HRV_ERRORS = (TypeError, ValueError, RuntimeError, ZeroDivisionError)
+HRV_LABELS = {
+    "time": "time-domain HRV",
+    "frequency": "frequency-domain HRV",
+    "nonlinear": "nonlinear HRV",
+}
 
 
 def _row_to_json(frame: Any) -> dict[str, float | int | None]:
+    """Handle row to json."""
     if len(frame) != 1:
         raise CliError("expected one-row HRV output")
     return {str(column): json_number(frame.iloc[0][column]) for column in frame.columns}
 
 
 def _summary(values: Any) -> dict[str, float | int | None]:
+    """Handle summary."""
     finite = values[values.notna()] if hasattr(values, "notna") else values
     if len(finite) == 0:
         return {"count": 0, "maximum": None, "mean": None, "minimum": None}
@@ -54,6 +59,7 @@ def _summary(values: Any) -> dict[str, float | int | None]:
 
 
 def _artifact_counts(info: dict[str, Any]) -> dict[str, int]:
+    """Handle artifact counts."""
     result: dict[str, int] = {}
     for name in ("ectopic", "missed", "extra", "longshort"):
         value = info.get(f"ECG_fixpeaks_{name}", [])
@@ -65,6 +71,7 @@ def _artifact_counts(info: dict[str, Any]) -> dict[str, int]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Process a bounded deidentified ECG CSV or a reproducible synthetic "
@@ -87,22 +94,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--duration", type=float, default=60.0, help="synthetic seconds"
     )
     parser.add_argument("--heart-rate", type=float, default=70.0, help="synthetic BPM")
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--root", default=".")
-    parser.add_argument("--max-rows", type=int, default=MAX_ROWS)
-    parser.add_argument(
-        "--deidentified",
-        action="store_true",
-        help="required with --input",
-    )
-    parser.add_argument("--signals-output", help="optional processed local .csv")
-    parser.add_argument("--output", help="optional local .json report")
-    parser.add_argument("--force", action="store_true")
+    add_pipeline_arguments(parser)
     return parser
 
 
-def main() -> None:
-    args = build_parser().parse_args()
+def _check_options(args: argparse.Namespace) -> tuple[float, set[str]]:
+    """Validate the numeric and domain options; return the sampling rate and domains."""
     sampling_rate = finite_float(
         args.sampling_rate,
         name="--sampling-rate",
@@ -119,17 +116,45 @@ def main() -> None:
         raise CliError(f"--max-rows must be between 1 and {MAX_ROWS}")
     if not -(2**31) <= args.seed < 2**31:
         raise CliError("--seed must be a signed 32-bit integer")
+    return sampling_rate, domains
 
-    import neurokit2 as nk
-    import numpy as np
 
-    installed = str(nk.__version__)
-    if installed != NEUROKIT2_VERSION:
+def _synthetic_ecg(args: argparse.Namespace, nk: Any, sampling_rate: float) -> Any:
+    """Generate the reproducible synthetic ECG requested on the command line."""
+    duration = finite_float(
+        args.duration,
+        name="--duration",
+        minimum=5.0,
+        maximum=3600.0,
+    )
+    heart_rate = finite_float(
+        args.heart_rate,
+        name="--heart-rate",
+        minimum=20.0,
+        maximum=240.0,
+    )
+    if not sampling_rate.is_integer():
         raise CliError(
-            f"this reproducible workflow requires NeuroKit2 {NEUROKIT2_VERSION}; "
-            f"found {installed}. Install with: {PINNED_INSTALL}"
+            "--sampling-rate must be an integer for NeuroKit2 synthetic ECG"
         )
+    row_count = round(duration * sampling_rate)
+    if not 1 <= row_count <= args.max_rows:
+        raise CliError(f"synthetic row count must be between 1 and {args.max_rows}")
+    try:
+        return nk.ecg_simulate(
+            duration=duration,
+            sampling_rate=int(sampling_rate),
+            heart_rate=heart_rate,
+            random_state=args.seed,
+        )
+    except (TypeError, ValueError, RuntimeError) as exc:
+        raise CliError(f"synthetic ECG generation failed: {exc}") from exc
 
+
+def _load_ecg(
+    args: argparse.Namespace, nk: Any, np: Any, sampling_rate: float
+) -> tuple[Any, int, str]:
+    """Load the ECG from a CSV or simulate it; return samples, row count and source."""
     if args.input:
         require_deidentified(args.deidentified)
         path = checked_input_file(
@@ -143,39 +168,106 @@ def main() -> None:
             [args.column],
             max_rows=args.max_rows,
         )
-        ecg = np.asarray(selected[args.column], dtype=float)
-        source = "deidentified_local_csv"
+        return np.asarray(selected[args.column], dtype=float), row_count, "deidentified_local_csv"
+    ecg = _synthetic_ecg(args, nk, sampling_rate)
+    return ecg, len(ecg), "neurokit2_synthetic"
+
+
+def _hrv_domain(
+    nk: Any,
+    name: str,
+    info: dict[str, Any],
+    sampling_rate: float,
+    hrv: dict[str, dict[str, float | int | None]],
+    warnings: list[str],
+) -> None:
+    """Compute one HRV domain, recording the result or a failure warning."""
+    function = getattr(nk, f"hrv_{name}")
+    try:
+        hrv[name] = _row_to_json(function(info, sampling_rate=sampling_rate))
+    except HRV_ERRORS as exc:
+        warnings.append(f"{HRV_LABELS[name]} failed: {exc}")
+
+
+def _time_domain(
+    nk: Any, info: dict[str, Any], sampling_rate: float, duration_s: float,
+    beat_count: int, hrv: dict[str, dict[str, float | int | None]], warnings: list[str],
+) -> None:
+    """Run time-domain HRV when enough beats were detected and note short recordings."""
+    if beat_count < 20:
+        warnings.append("time-domain HRV skipped: fewer than 20 detected beats")
     else:
-        duration = finite_float(
-            args.duration,
-            name="--duration",
-            minimum=5.0,
-            maximum=3600.0,
+        _hrv_domain(nk, "time", info, sampling_rate, hrv, warnings)
+    if duration_s < 300:
+        warnings.append(
+            "time-domain HRV is shorter than the conventional 5-minute "
+            "short-term recording; metric-specific validation is required"
         )
-        heart_rate = finite_float(
-            args.heart_rate,
-            name="--heart-rate",
-            minimum=20.0,
-            maximum=240.0,
+
+
+def _frequency_domain(
+    nk: Any, info: dict[str, Any], sampling_rate: float, duration_s: float,
+    beat_count: int, hrv: dict[str, dict[str, float | int | None]], warnings: list[str],
+) -> None:
+    """Run frequency-domain HRV when duration and beats allow it, noting short windows."""
+    if duration_s < 120 or beat_count < 50:
+        warnings.append(
+            "frequency-domain HRV skipped: require at least 120 seconds and "
+            "50 detected beats in this conservative CLI"
         )
-        if not sampling_rate.is_integer():
-            raise CliError(
-                "--sampling-rate must be an integer for NeuroKit2 synthetic ECG"
-            )
-        row_count = round(duration * sampling_rate)
-        if not 1 <= row_count <= args.max_rows:
-            raise CliError(f"synthetic row count must be between 1 and {args.max_rows}")
-        try:
-            ecg = nk.ecg_simulate(
-                duration=duration,
-                sampling_rate=int(sampling_rate),
-                heart_rate=heart_rate,
-                random_state=args.seed,
-            )
-        except (TypeError, ValueError, RuntimeError) as exc:
-            raise CliError(f"synthetic ECG generation failed: {exc}") from exc
-        row_count = len(ecg)
-        source = "neurokit2_synthetic"
+        return
+    _hrv_domain(nk, "frequency", info, sampling_rate, hrv, warnings)
+    if duration_s < 300:
+        warnings.append(
+            "frequency-domain HRV is below the conventional 5-minute "
+            "short-term window; do not interpret VLF/ULF and justify bands"
+        )
+
+
+def _nonlinear_domain(
+    nk: Any, info: dict[str, Any], sampling_rate: float, beat_count: int,
+    hrv: dict[str, dict[str, float | int | None]], warnings: list[str],
+) -> None:
+    """Run nonlinear HRV only when enough beats were detected."""
+    if beat_count < 100:
+        warnings.append(
+            "nonlinear HRV skipped: fewer than 100 detected beats; many "
+            "entropy/fractal metrics need substantially more"
+        )
+    else:
+        _hrv_domain(nk, "nonlinear", info, sampling_rate, hrv, warnings)
+
+
+def _compute_hrv(
+    nk: Any,
+    domains: set[str],
+    info: dict[str, Any],
+    sampling_rate: float,
+    duration_s: float,
+    beat_count: int,
+    warnings: list[str],
+) -> dict[str, dict[str, float | int | None]]:
+    """Run the requested HRV domains subject to duration and beat-count gates."""
+    hrv: dict[str, dict[str, float | int | None]] = {}
+    if "time" in domains:
+        _time_domain(nk, info, sampling_rate, duration_s, beat_count, hrv, warnings)
+    if "frequency" in domains:
+        _frequency_domain(nk, info, sampling_rate, duration_s, beat_count, hrv, warnings)
+    if "nonlinear" in domains:
+        _nonlinear_domain(nk, info, sampling_rate, beat_count, hrv, warnings)
+    return hrv
+
+
+def main() -> None:
+    """Run the command-line interface."""
+    args = build_parser().parse_args()
+    sampling_rate, domains = _check_options(args)
+
+    import neurokit2 as nk
+    import numpy as np
+
+    installed = require_pinned_neurokit2(nk)
+    ecg, row_count, source = _load_ecg(args, nk, np, sampling_rate)
 
     duration_s = len(ecg) / sampling_rate
     if duration_s < 5:
@@ -194,53 +286,7 @@ def main() -> None:
     beat_count = len(peaks)
 
     warnings: list[str] = []
-    hrv: dict[str, dict[str, float | int | None]] = {}
-    if "time" in domains:
-        if beat_count < 20:
-            warnings.append("time-domain HRV skipped: fewer than 20 detected beats")
-        else:
-            try:
-                hrv["time"] = _row_to_json(
-                    nk.hrv_time(info, sampling_rate=sampling_rate)
-                )
-            except (TypeError, ValueError, RuntimeError, ZeroDivisionError) as exc:
-                warnings.append(f"time-domain HRV failed: {exc}")
-        if duration_s < 300:
-            warnings.append(
-                "time-domain HRV is shorter than the conventional 5-minute "
-                "short-term recording; metric-specific validation is required"
-            )
-    if "frequency" in domains:
-        if duration_s < 120 or beat_count < 50:
-            warnings.append(
-                "frequency-domain HRV skipped: require at least 120 seconds and "
-                "50 detected beats in this conservative CLI"
-            )
-        else:
-            try:
-                hrv["frequency"] = _row_to_json(
-                    nk.hrv_frequency(info, sampling_rate=sampling_rate)
-                )
-            except (TypeError, ValueError, RuntimeError, ZeroDivisionError) as exc:
-                warnings.append(f"frequency-domain HRV failed: {exc}")
-            if duration_s < 300:
-                warnings.append(
-                    "frequency-domain HRV is below the conventional 5-minute "
-                    "short-term window; do not interpret VLF/ULF and justify bands"
-                )
-    if "nonlinear" in domains:
-        if beat_count < 100:
-            warnings.append(
-                "nonlinear HRV skipped: fewer than 100 detected beats; many "
-                "entropy/fractal metrics need substantially more"
-            )
-        else:
-            try:
-                hrv["nonlinear"] = _row_to_json(
-                    nk.hrv_nonlinear(info, sampling_rate=sampling_rate)
-                )
-            except (TypeError, ValueError, RuntimeError, ZeroDivisionError) as exc:
-                warnings.append(f"nonlinear HRV failed: {exc}")
+    hrv = _compute_hrv(nk, domains, info, sampling_rate, duration_s, beat_count, warnings)
 
     artifact_counts = _artifact_counts(info)
     corrected_total = sum(artifact_counts.values())
@@ -284,19 +330,7 @@ def main() -> None:
         ),
         "warnings": warnings,
     }
-    if args.signals_output:
-        payload = write_csv(
-            args.signals_output,
-            [str(column) for column in signals.columns],
-            dataframe_rows(signals),
-            root=args.root,
-            force=args.force,
-        )
-        report["signals_csv"] = {
-            "path_redacted": True,
-            "sha256": sha256_bytes(payload),
-        }
-    emit_json(report, output=args.output, root=args.root, force=args.force)
+    emit_pipeline_report(report, signals, args)
 
 
 if __name__ == "__main__":

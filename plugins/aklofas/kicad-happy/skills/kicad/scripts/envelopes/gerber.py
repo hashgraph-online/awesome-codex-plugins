@@ -1,4 +1,4 @@
-"""Gerber analyzer output envelope (v1.4 SOT).
+"""Gerber analyzer output envelope.
 
 The runtime of ``analyze_gerbers.py`` emits a tight core (analyzer_type,
 schema_version, summary, trust_summary, directory, generator,
@@ -15,7 +15,7 @@ Tightens:
       net_analysis, board_dimensions are typed dataclasses mirroring
       runtime shape.
     - gerbers[]/drills[]/job_file/zip_archives/connectivity are typed as
-      ``list[dict]`` / ``dict`` for v1.4 — tightens per entry in v1.5.
+      ``list[dict]`` / ``dict`` for v1.4.
 
 Mode gating:
     - ``--full`` adds ``connectivity`` at the top level (flat pin list).
@@ -236,7 +236,7 @@ class GerberEnvelope:
 
     Tight typing on universal fields; loose ``dict`` / ``list[dict]``
     typing on gerbers[]/drills[]/job_file/zip_archives/connectivity for
-    v1.4 (tightens in v1.5).
+    v1.4.
     """
 
     # --- Discriminators ---
@@ -244,7 +244,7 @@ class GerberEnvelope:
         "description": "Always 'gerber'.",
         "const": "gerber"})
     schema_version: str = field(metadata={
-        "description": "Semver. Value: '1.4.0' at Track 1.1 landing.",
+        "description": "Semver. Value: '1.4.0'.",
         "const": "1.4.0"})
 
     # --- Provenance ---
@@ -288,8 +288,8 @@ class GerberEnvelope:
                        "no GenerationSoftware tag and no gbrjob info."})
 
     # --- Structural arrays/maps (always emitted even if empty) ---
-    # TODO(v1.5): tighten items to typed GerberFile / DrillFile with
-    # per-aperture structure and X2 attribute shape.
+    # Items are free-form dicts: per-aperture structure and X2 attribute
+    # shape are not typed.
     gerbers: list[dict] = field(default_factory=list, metadata={
         "description": "Per-gerber-file summary. Each item: "
                        "{filename, layer_type, units, aperture_count, "
@@ -316,31 +316,34 @@ class GerberEnvelope:
     net_analysis: Optional[NetAnalysis] = field(default=None, metadata={
         "description": "X2 net attribute rollup; omitted when no X2 net "
                        "data in the gerber stream."})
-    # TODO(v1.5): tighten to typed JobFile with stackup/design_rules shape.
+    # Free-form dict: the stackup/design_rules shape is not typed.
     job_file: Optional[dict] = field(default=None, metadata={
         "description": "Parsed .gbrjob contents: project_name, vendor, "
                        "generator, layer_count, board_width_mm, "
                        "board_height_mm, board_thickness_mm, creation_date, "
                        "finish, stackup, design_rules, expected_files. "
                        "Omitted when no .gbrjob present."})
-    # TODO(v1.5): tighten to typed ZipArchive entries.
+    # Entries are free-form dicts.
     zip_archives: Optional[list[dict]] = field(default=None, metadata={
         "description": "Zip archive sweep; each entry: {filename, "
-                       "size_bytes, modified, total_files, gerber_files, "
-                       "drill_files, other_files, newest_member_date, "
-                       "staleness_warning}. Omitted when no .zip files "
-                       "in the directory."})
+                       "size_bytes, modified (when the file stat succeeds), "
+                       "total_files, gerber_files, drill_files, other_files, "
+                       "newest_member_date (when any member date parses), "
+                       "vs_loose_files (loose_files_newer | archive_newer | "
+                       "same_age), age_delta_hours (unless same_age), error "
+                       "(when the archive cannot be read)}. Omitted when no "
+                       ".zip files in the directory."})
 
     # --- --full mode additions ---
-    # TODO(v1.5): tighten to typed ConnectivityPin.
+    # Entries are free-form dicts.
     connectivity: Optional[list[dict]] = field(default=None, metadata={
         "description": "Flat pin-to-net list from X2 attributes (--full "
                        "only). Each item: {ref, pin, pin_name, net}."})
 
-    # --- Phase 4 capability pointer ---
+    # --- Capability pointer ---
     capability_mode_ref: Optional[dict] = field(default=None, metadata={
         "description": "Pointer to canonical analysis/capability_mode.json run-level "
-                       "record. Shape: {source, run_id}. See Phase 4 spec §3.3."})
+                       "record. Shape: {source, run_id}."})
 
     # --- Stage/audience derived blocks ---
     audience_summary: Optional[dict] = field(default=None, metadata={

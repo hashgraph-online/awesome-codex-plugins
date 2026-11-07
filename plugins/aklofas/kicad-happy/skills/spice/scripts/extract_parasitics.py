@@ -278,7 +278,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        with open(args.input) as f:
+        with open(args.input, encoding="utf-8") as f:
             pcb_json = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading {args.input}: {e}", file=sys.stderr)
@@ -309,7 +309,7 @@ def main(argv: list[str] | None = None) -> int:
 
     output = json.dumps(result, indent=2)
     if args.output:
-        with open(args.output, "w") as f:
+        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
             f.write(output)
     else:
         print(output)
@@ -317,4 +317,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

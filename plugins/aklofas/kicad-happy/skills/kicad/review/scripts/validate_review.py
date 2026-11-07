@@ -26,7 +26,7 @@ def main():
     args = p.parse_args()
 
     try:
-        review = json.loads(args.review.read_text())
+        review = json.loads(args.review.read_text(encoding="utf-8"))
     except FileNotFoundError:
         msg = f"review file not found: {args.review}"
         if args.emit_json:
@@ -44,11 +44,11 @@ def main():
             print(msg, file=sys.stderr)
         return 2
 
-    # Stdlib-only mini-validator (audit C2). Matches jsonschema's
+    # Stdlib-only mini-validator. Matches jsonschema's
     # iter_errors() surface for backward-compat with the prior consumer.
     from _mini_jsonschema import iter_errors
 
-    schema = json.loads(SCHEMA_PATH.read_text())
+    schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
     errors = sorted(iter_errors(review, schema),
                      key=lambda e: list(e.path))
     error_msgs = [f"{'/'.join(str(p) for p in e.path)}: {e.message}" for e in errors]
@@ -69,4 +69,8 @@ def main():
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     sys.exit(main())

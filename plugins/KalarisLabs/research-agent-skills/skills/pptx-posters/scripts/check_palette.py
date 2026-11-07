@@ -15,6 +15,7 @@ THRESHOLDS = {"normal_text": 4.5, "large_text": 3.0, "non_text": 3.0}
 
 
 def _lstar(color: str) -> float:
+    """Handle lstar."""
     luminance = relative_luminance(color)
     delta = 6.0 / 29.0
     transformed = (
@@ -26,6 +27,7 @@ def _lstar(color: str) -> float:
 
 
 def audit_palette(document: dict[str, Any]) -> dict[str, Any]:
+    """Handle audit palette."""
     palette = document["palette"]
     colors = {
         color_id: parse_hex_color(value, context=f"palette.colors.{color_id}")
@@ -105,6 +107,7 @@ def audit_palette(document: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit an approved poster manifest's declared sRGB foreground/background "
@@ -118,6 +121,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

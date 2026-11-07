@@ -65,6 +65,7 @@ def update_beps():
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument(
         "--schema-url",

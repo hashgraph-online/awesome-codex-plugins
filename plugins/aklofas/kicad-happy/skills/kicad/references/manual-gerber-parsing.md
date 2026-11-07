@@ -118,6 +118,7 @@ for line in lines:
     # Coordinate + operation
     m = re.match(r'(?:X(-?\d+))?(?:Y(-?\d+))?D0([123])\*', s)
     if m:
+        prev_x, prev_y = current_x, current_y
         if m.group(1):
             current_x = int(m.group(1)) / x_div
         if m.group(2):
@@ -130,12 +131,20 @@ for line in lines:
             draw_count += 1
         # op == 2 is move (pen up)
 
-        # Track extents
-        x_min = min(x_min, current_x)
-        x_max = max(x_max, current_x)
-        y_min = min(y_min, current_y)
-        y_max = max(y_max, current_y)
+        # Track extents: a move puts down no copper, so skip it. A draw
+        # covers its start and end point; a flash covers its point.
+        if op != 2:
+            pts = [(current_x, current_y)]
+            if op == 1:
+                pts.append((prev_x, prev_y))
+            for px, py in pts:
+                x_min = min(x_min, px)
+                x_max = max(x_max, px)
+                y_min = min(y_min, py)
+                y_max = max(y_max, py)
 ```
+
+This snippet handles straight draws and flashes only: its regex does not match arc lines (`X...Y...I...J...D01*`) or lines with a `G01` prefix, so arcs need the swept extremes computed as `analyze_gerbers.py` does.
 
 **Key operation codes:**
 
@@ -168,7 +177,7 @@ X160000000Y100000000I5000000J0D01*  ; Arc to (160,100) with center offset (5,0)
 - Arc radius = sqrt(I^2 + J^2)
 - Arc appears in Edge.Cuts for rounded board corners and occasionally in copper for curved traces
 
-For board outline analysis, you mainly need arc endpoints for bounding box calculation. For precise geometry (closed polygon verification), compute the arc center and trace the path.
+An arc can bulge past its endpoints, so a bounding box also needs the axis extremes the arc sweeps: the points at center ± radius on X and Y that lie inside the sweep from start to end angle (a full circle when start equals end). For precise geometry (closed polygon verification), compute the arc center and trace the path.
 
 ---
 
@@ -178,19 +187,19 @@ X2 attributes are the most valuable data in modern gerber files. They come in th
 
 ### File Attributes (TF) — All KiCad Versions
 
-File attributes identify the layer and provide metadata. **KiCad 5 and 6+ both emit them**, but in different syntax:
+File attributes identify the layer and provide metadata. **KiCad 5.1+ writes them** natively with X2 output on and as `G04 #@!` comments with X2 output off (and in older KiCad 5):
 
 ```python
 x2_attrs = {}
 
-# Modern format (KiCad 6+): %TF.Key,Value*%
+# Native form (X2 output on, KiCad 5.1+): %TF.Key,Value*%
 for m in re.finditer(r'%TF\.(\w+),([^*]*)\*%', content):
     x2_attrs[m.group(1)] = m.group(2)
 
-# KiCad 5 comment format: G04 #@! TF.Key,Value*
+# Comment form (X2 output off): G04 #@! TF.Key,Value*
 for m in re.finditer(r'G04 #@! TF\.(\w+),([^*]*)\*', content):
     key = m.group(1)
-    if key not in x2_attrs:  # Don't override modern format
+    if key not in x2_attrs:  # Don't override native form
         x2_attrs[key] = m.group(2)
 ```
 
@@ -204,7 +213,7 @@ for m in re.finditer(r'G04 #@! TF\.(\w+),([^*]*)\*', content):
 | `CreationDate` | `2026-02-24T01:31:01-08:00` | File generation timestamp |
 | `SameCoordinates` | `Original` | Alignment verification |
 
-### Aperture Attributes (TA) — KiCad 6+ Only
+### Aperture Attributes (TA) — KiCad 5.1+
 
 Aperture attributes classify aperture function. They appear **before** the `%AD` definition they apply to:
 
@@ -243,9 +252,9 @@ for line in lines:
 | `Conductor` | Traces | Circle diameter = trace width |
 | `NonConductor` | Non-electrical | Fiducials, logos |
 
-**KiCad 5 has no TA attributes.** Classify heuristically: small circle apertures used with D01 = traces; apertures used with D03 only = pads.
+**Gerbers without TA attributes** (KiCad 5.0 and older, some other tools): classify heuristically: small circle apertures used with D01 = traces; apertures used with D03 only = pads.
 
-### Object Attributes (TO) — KiCad 6+ Only
+### Object Attributes (TO) — KiCad 5.1+
 
 Object attributes map copper features to schematic components and nets. This is the most powerful X2 feature — it enables reverse-engineering the netlist from gerber files alone.
 
@@ -254,63 +263,75 @@ Object attributes map copper features to schematic components and nets. This is 
 ```python
 current_component = None
 current_net = None
+pending_pin = None    # (ref, pin, pin_name) waiting for the next D01/D03
+pad_ref = None        # reference from the last TO.P
 components = {}       # ref -> {pads, nets}
 pin_mappings = []     # [{ref, pin, pin_name, net}]
 
 for line in lines:
     s = line.strip()
 
-    # TO.C sets current component reference
+    # X2 output off: the same commands arrive as "G04 #@! TO.N,GND*" comments
+    if s.startswith("G04 #@! T") and not s.startswith("G04 #@! TF."):
+        s = "%" + s[8:] + ("%" if s.endswith("*") else "*%")
+
+    # TO.C sets the component of a non-pad object
     m = re.match(r'%TO\.C,([^*]*)\*%', s)
     if m:
         current_component = m.group(1)
-        if current_component not in components:
-            components[current_component] = {'pads': 0, 'nets': set()}
+        components.setdefault(current_component, {'pads': 0, 'nets': set()})
         continue
 
-    # TO.N sets current net name
+    # TO.P (ref, pin number, optional pin name) precedes each pad
+    m = re.match(r'%TO\.P,([^,]*),([^,*]*)(?:,([^*]*))?\*%', s)
+    if m:
+        pending_pin = (m.group(1), m.group(2), m.group(3) or '')
+        pad_ref = m.group(1)
+        components.setdefault(pad_ref, {'pads': 0, 'nets': set()})
+        continue
+
+    # TO.N sets the current net; an empty net is a pad that connects to nothing
     m = re.match(r'%TO\.N,([^*]*)\*%', s)
     if m:
         current_net = m.group(1)
-        if current_component and current_component in components:
-            components[current_component]['nets'].add(current_net)
+        owner = current_component or pad_ref
+        if current_net and owner:
+            components[owner]['nets'].add(current_net)
         continue
 
-    # TO.P records pin mapping (ref, pin_number, pin_name)
-    m = re.match(r'%TO\.P,([^,]*),([^,*]*)(?:,([^*]*))?\*%', s)
-    if m:
-        pin_mappings.append({
-            'ref': m.group(1),
-            'pin': m.group(2),
-            'pin_name': m.group(3) or '',
-            'net': current_net or '',
-        })
-        continue
-
-    # TD clears all object attributes
+    # TD clears all object attributes, TD.P only the pin
     if s == '%TD*%':
-        current_component = None
-        current_net = None
+        current_component = current_net = pending_pin = pad_ref = None
+        continue
+    if s == '%TD.P*%':
+        pending_pin = pad_ref = None
         continue
 
-    # On flash (D03), count pad for current component
-    if 'D03' in s and current_component and current_component in components:
-        components[current_component]['pads'] += 1
+    # The pin is recorded at the flash or draw it is attached to, with the current net
+    if pending_pin and ('D03' in s or 'D01' in s):
+        pin_mappings.append({'ref': pending_pin[0], 'pin': pending_pin[1],
+                             'pin_name': pending_pin[2], 'net': current_net or ''})
+        pending_pin = None
+
+    # On flash (D03), count a pad for the owner
+    owner = current_component or pad_ref
+    if 'D03' in s and owner:
+        components[owner]['pads'] += 1
 ```
 
 **Important state management rules:**
-- `%TO.C,R1*%` sets component context — all subsequent features belong to R1
-- `%TO.N,GND*%` sets net context — often changes within the same component
-- `%TO.P,R1,1,PAD*%` records a pin mapping — pin 1 of R1 is named "PAD"
-- `%TD*%` clears ALL TO attributes — resets component, net, and pin
-- The same component may appear multiple times (e.g., different pads on different draw passes)
-- TO attributes appear on **copper layers only** — mask/paste/silk layers don't have them
+- `TO.P` then `TO.N` precede each flashed pad (KiCad writes no `TO.C` for pads): the pad belongs to the `TO.P` reference, and its net is the `TO.N` that follows.
+- `TO.C` names the component of a non-pad object.
+- Record a pin's net at the flash or draw it is attached to, not when `TO.P` is read.
+- `%TD*%` clears all object attributes.
+- An empty `TO.N` is a pad that connects to nothing.
+- TO attributes are on copper layers only.
 
-**KiCad 5 has no TO attributes.** Component and net mapping requires the `.kicad_pcb` source file.
+**Gerbers without TO attributes** (KiCad 5.0 and older, some other tools): component and net mapping requires the `.kicad_pcb` source file.
 
 ### Component Side Detection
 
-Components that appear only on B.Cu (back copper) TO.C attributes but not F.Cu are back-side components. Those appearing on F.Cu are front-side. Through-hole components appear on both layers (front pad + back pad).
+Components whose TO.P pad references appear only on B.Cu (back copper) and not F.Cu are back-side components. Those appearing on F.Cu are front-side. Through-hole components appear on both layers (front pad + back pad).
 
 ```python
 front_components = set()
@@ -331,19 +352,28 @@ back_only = back_components - front_components  # True back-side SMD
 
 ## Excellon Drill Parsing
 
-Drill files have a header (tool definitions) and body (drill hits). The coordinate format differs significantly between KiCad versions.
+Drill files have a header (tool definitions) and body (drill hits). How to read a coordinate is declared in the header, not by the KiCad version.
 
-### Step 1: Detect Units
+### Step 1: Read Units, Zero Suppression and Precision
 
 ```python
-units_mm = True  # default assumption
+units_mm = True              # METRIC unless the header says INCH
+zeros = None                 # 'TZ', 'LZ', or None (decimal or keep zeros)
+int_digits = dec_digits = None
 
 for line in lines:
     s = line.strip()
-    if 'METRIC' in s:
-        units_mm = True
-    elif 'INCH' in s:
-        units_mm = False
+    m = re.match(r'(METRIC|INCH)(?:,(LZ|TZ))?', s)
+    if m:
+        units_mm = m.group(1) == 'METRIC'
+        zeros = m.group(2)
+    m = re.match(r';\s*FORMAT=\{(\d+):(\d+)/', s)
+    if m:
+        int_digits, dec_digits = int(m.group(1)), int(m.group(2))
+    if s == '%':
+        break                # end of header
+if int_digits is None:       # minimal header: KiCad's precision
+    int_digits, dec_digits = (3, 3) if units_mm else (2, 4)
 ```
 
 ### Step 2: Parse Tool Definitions
@@ -357,7 +387,7 @@ pending_aper_function = None
 for line in lines:
     s = line.strip()
 
-    # Per-tool TA function (KiCad 6+ only)
+    # Per-tool TA function in the drill file (KiCad 6+ only; gerber TA attributes are 5.1+)
     ta_match = re.match(r';\s*#@!\s*TA\.AperFunction,(.*)', s)
     if ta_match:
         pending_aper_function = ta_match.group(1).strip()
@@ -381,6 +411,17 @@ for line in lines:
 ### Step 3: Parse Drill Hits
 
 ```python
+def to_mm(text):
+    if '.' in text:
+        value = float(text)
+    else:
+        sign = -1 if text.startswith('-') else 1
+        digits = text.lstrip('+-')
+        if zeros == 'LZ':    # trailing zeros omitted: digits are left-aligned
+            digits = digits.ljust(int_digits + dec_digits, '0')
+        value = sign * int(digits) / 10 ** dec_digits
+    return value if units_mm else value * 25.4
+
 current_tool = None
 
 for line in lines:
@@ -395,30 +436,16 @@ for line in lines:
     # Drill hit coordinate
     m = re.match(r'X(-?[\d.]+)Y(-?[\d.]+)', s)
     if m and current_tool:
-        x, y = float(m.group(1)), float(m.group(2))
-        if not units_mm:
-            x, y = x * 25.4, y * 25.4
-        elif x > 1000:  # METRIC integer microns (no decimal point)
-            x, y = x / 1000, y / 1000
-        tools[current_tool]['hits'].append((x, y))
+        tools[current_tool]['hits'].append((to_mm(m.group(1)), to_mm(m.group(2))))
 ```
 
-### KiCad 5 vs 6+ Coordinate Differences
+### Units and Precision Come from the Header
 
-| Aspect | KiCad 5 | KiCad 6+ |
-|--------|---------|----------|
-| Units header | `INCH` | `METRIC` or `METRIC,TZ` |
-| Format hint | `; FORMAT={-:-/ absolute / inch / decimal}` | `; FORMAT={-:-/ absolute / metric / decimal}` |
-| Coordinate format | Decimal inches: `X1.3875Y-2.77` | Integer microns: `X150000Y100000` |
-| Decimal point | Present | Absent |
-| Negative Y values | Common (inverted Y-axis) | Rare |
-| Tool size | Inches: `T1C0.0157` (=0.399mm) | mm: `T1C0.300` |
-
-**Reliable detection:** If coordinates contain a decimal point (`.`), they're decimal inches/mm. If they're large integers without decimals, divide by 1000 for mm.
+Every KiCad version can write mm or inch in any zeros format, so neither the KiCad version nor the size of the numbers tells you how to read a coordinate. Read the units line (`METRIC`/`INCH`, with `,TZ` or `,LZ`) and the `; FORMAT={integer:decimal/...}` comment as in Step 1. A decimal point means the value is already in the file's units. KiCad negates Y (relative to the drill/place origin when that option is used) unless the file was exported with mirror-Y. `gerber-parsing.md` "Coordinate Format" shows one hole in every format.
 
 ### Drill Classification
 
-**With TA.AperFunction (KiCad 6+):**
+**With the drill-file TA.AperFunction tool comment (KiCad 6+):**
 - `Plated,PTH,ViaDrill` — via
 - `Plated,PTH,ComponentDrill` — through-hole component pad
 - `NonPlated,NPTH,BoardEdge` — board cutout or slot
@@ -510,7 +537,7 @@ Some fabs prefer Protel-style extensions:
 
 ## Gerber Job File (.gbrjob)
 
-**KiCad 6+ only.** JSON format with board metadata. Parse before individual gerbers — it's the most reliable source for board dimensions, layer count, and design rules.
+**KiCad 5.1+.** JSON format with board metadata. Parse before individual gerbers — it's the most reliable source for board dimensions, layer count, and design rules.
 
 ```python
 import json
@@ -543,7 +570,7 @@ for layer in job.get('MaterialStackup', []):
     material = layer.get('Material', '')    # "FR4", etc.
 ```
 
-**When .gbrjob is absent (KiCad 5):**
+**When .gbrjob is absent (KiCad 5.0 and older, other tools):**
 - Board dimensions: compute from Edge.Cuts gerber coordinate bounding box
 - Layer count: count inner copper gerber files + 2 (F.Cu + B.Cu), or check drill `TF.FileFunction` layer span
 - Design rules: not available from gerber files; check `.kicad_pro` source
@@ -554,14 +581,14 @@ for layer in job.get('MaterialStackup', []):
 
 ### What Can Be Verified from Gerbers Alone
 
-| Check | KiCad 5 | KiCad 6+ |
+| Check | Without X2 / job file | With X2 and job file (KiCad 5.1+) |
 |-------|---------|----------|
 | Board dimensions | Edge.Cuts extents | .gbrjob or Edge.Cuts |
 | Layer count | Inner copper file count + drill span | .gbrjob or same |
 | Layer completeness | Filename matching | .gbrjob expected list |
 | Drill sizes | Tool definitions | Same + TA classification |
 | Trace widths | Aperture dimensions (heuristic) | TA.AperFunction Conductor |
-| Component list | Not available | TO.C attributes |
+| Component list | Not available | TO.P references on pads (TO.C on non-pad objects) |
 | Net list | Not available | TO.N attributes |
 | Pin-to-net map | Not available | TO.P + TO.N attributes |
 | Pad count | Flash count (heuristic) | TA.AperFunction classification |
@@ -579,7 +606,7 @@ When both gerber and PCB analysis outputs are available:
 
 ### Cross-Reference Against Schematic Analyzer
 
-1. **Component list**: Gerber component refs (from TO.C) should be a subset of schematic BOM. Missing = DNP components or power symbols (expected). Extra = fabrication-only components
+1. **Component list**: Gerber component refs (from TO.P, and TO.C on non-pad objects) should be a subset of schematic BOM. Missing = DNP components or power symbols (expected). Extra = fabrication-only components
 2. **Net names**: Named nets from gerber TO.N should match schematic net names. Unnamed gerber nets (`Net-(...)`) are auto-generated and may differ
 3. **Pin count per component**: Gerber pad count should match schematic pin count for each reference designator
 
@@ -614,7 +641,7 @@ When both gerber and PCB analysis outputs are available:
 
 - **KiCad 5 mask/paste uses regions**: D03 flash count may be 0 on mask/paste layers — count G36/G37 region pairs instead
 - **Large B.Mask file size**: Normal when back has ground plane — mask must define tenting pattern over entire zone fill
-- **Negative Y in KiCad 5 drills**: KiCad 5 used inverted Y-axis for drill coordinates
+- **Negative Y in drills**: KiCad writes drill Y negated (board Y 100 mm is `Y-100`, measured from the drill/place origin when that option is used) unless the file was exported with mirror-Y
 - **Non-KiCad gerbers**: May lack X2 attributes entirely; rely on filename patterns for layer identification
 - **Merged drill files**: Some workflows produce a single drill file with both PTH and NPTH — check `TF.FileFunction` for `MixedPlating`
 - **Protel extensions**: Some fabs require `.GTL`/`.GBL` extensions instead of KiCad's `-F_Cu.gbr` naming

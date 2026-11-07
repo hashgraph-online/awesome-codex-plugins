@@ -17,6 +17,7 @@ TOOL = "fluidsim-solver-config-validator"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate strict local JSON against the static FluidSim 0.9 CFD "
@@ -39,6 +40,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         if args.example:

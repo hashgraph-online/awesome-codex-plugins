@@ -91,6 +91,7 @@ def parse_float(text: Any, field_name: str = "value", allow_missing: bool = Fals
 
 
 def parse_positive(text: Any, field_name: str) -> float:
+    """Parse positive."""
     x = parse_float(text, field_name)
     if x is None or x <= 0:
         raise InputError(f"{field_name}: must be greater than zero, got {text!r}")
@@ -101,6 +102,7 @@ def parse_positive(text: Any, field_name: str) -> float:
 
 
 def _sniff_delimiter(sample: str, path: Path) -> str:
+    """Handle sniff delimiter."""
     if path.suffix.lower() in {".tsv", ".tab"}:
         return "\t"
     if path.suffix.lower() == ".csv":
@@ -152,6 +154,7 @@ def read_table(source: str | Path) -> list[dict[str, str]]:
 
 
 def require_columns(rows: Sequence[Mapping[str, Any]], required: Iterable[str], where: str) -> None:
+    """Handle require columns."""
     present = set(rows[0].keys())
     missing = [c for c in required if c not in present]
     if missing:
@@ -162,6 +165,7 @@ def require_columns(rows: Sequence[Mapping[str, Any]], required: Iterable[str], 
 
 
 def column(rows: Sequence[Mapping[str, Any]], name: str, allow_missing: bool = False) -> list:
+    """Handle column."""
     return [parse_float(r.get(name), f"{name} (row {i + 1})", allow_missing) for i, r in enumerate(rows)]
 
 
@@ -178,11 +182,13 @@ def group_by(rows: Sequence[Mapping[str, Any]], key: str) -> dict[str, list[Mapp
 
 @dataclass
 class Table:
+    """Table."""
     title: str
     rows: list[dict[str, Any]]
     columns: list[str] | None = None
 
     def headers(self) -> list[str]:
+        """Handle headers."""
         if self.columns:
             return list(self.columns)
         seen: list[str] = []
@@ -208,20 +214,25 @@ class Report:
     scalars: dict[str, Any] = field(default_factory=dict)
 
     def table(self, title: str, rows: Sequence[Mapping[str, Any]], columns: Sequence[str] | None = None) -> None:
+        """Handle table."""
         self.tables.append(Table(title, [dict(r) for r in rows], list(columns) if columns else None))
 
     def scalar(self, name: str, value: Any) -> None:
+        """Handle scalar."""
         self.scalars[name] = value
 
     def note(self, text: str) -> None:
+        """Handle note."""
         self.notes.append(text)
 
     def finding(self, text: str) -> None:
+        """Handle finding."""
         self.findings.append(text)
 
     # -- rendering
 
     def _render_table(self, table: Table) -> str:
+        """Render table."""
         headers = table.headers()
         cells = [[fmt(row.get(h)) for h in headers] for row in table.rows]
         widths = [len(h) for h in headers]
@@ -237,6 +248,7 @@ class Report:
         return "\n".join(out)
 
     def emit(self, fmt_name: str, stream=None, err=None) -> int:
+        """Handle emit."""
         stream = stream or sys.stdout
         err = err or sys.stderr
 
@@ -276,6 +288,7 @@ class Report:
 
 
 def _json_default(obj: Any) -> Any:
+    """Handle json default."""
     if hasattr(obj, "item"):  # numpy scalar
         return obj.item()
     if hasattr(obj, "tolist"):  # numpy array
@@ -289,6 +302,7 @@ def _json_default(obj: Any) -> Any:
 
 
 def add_format_argument(parser: argparse.ArgumentParser) -> None:
+    """Add format argument."""
     parser.add_argument(
         "--format",
         choices=("table", "tsv", "json"),

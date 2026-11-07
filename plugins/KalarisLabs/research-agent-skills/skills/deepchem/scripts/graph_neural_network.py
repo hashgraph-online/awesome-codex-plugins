@@ -121,7 +121,7 @@ def train_on_molnet(dataset_name, model_type, n_epochs=50):
     print("=" * 70)
 
     # Get dataset info
-    task_type, n_tasks_default = MOLNET_DATASETS[dataset_name]
+    task_type, _ = MOLNET_DATASETS[dataset_name]
 
     # Load dataset with graph featurization
     print(f"\nLoading {dataset_name} dataset with GraphConv featurizer...")
@@ -133,7 +133,7 @@ def train_on_molnet(dataset_name, model_type, n_epochs=50):
     train, valid, test = datasets
 
     n_tasks = len(tasks)
-    print(f"\nDataset Information:")
+    print("\nDataset Information:")
     print(f"  Task type: {task_type}")
     print(f"  Number of tasks: {n_tasks}")
     print(f"  Training samples: {len(train)}")
@@ -259,6 +259,7 @@ def train_on_custom_data(data_path, model_type, task_type, target_cols, smiles_c
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Train graph neural networks for molecular property prediction'
     )

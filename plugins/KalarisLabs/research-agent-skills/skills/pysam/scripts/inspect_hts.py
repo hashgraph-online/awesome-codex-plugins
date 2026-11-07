@@ -9,35 +9,30 @@ CRAM requires an explicit local --reference to avoid hidden reference lookup.
 from __future__ import annotations
 
 import argparse
-import json
-import sys
 from pathlib import Path
 from typing import Any, Optional
 
 import pysam
+from _common import (
+    alignment_format,
+    nonnegative_int,
+    optional_local_file,
+    positive_int,
+    reject_output_overwriting_input,
+    require_local_file,
+    run_report_cli,
+)
 
 
+CRAM_SUFFIX = ".cram"
 KINDS = ("alignment", "variant", "fasta", "fastx", "tabix")
 
 
-def positive_int(value: str) -> int:
-    parsed = int(value)
-    if parsed <= 0:
-        raise argparse.ArgumentTypeError("must be greater than zero")
-    return parsed
-
-
-def nonnegative_int(value: str) -> int:
-    parsed = int(value)
-    if parsed < 0:
-        raise argparse.ArgumentTypeError("must be zero or greater")
-    return parsed
-
-
 def detect_kind(path: Path) -> str:
+    """Detect kind."""
     name = path.name.lower()
 
-    if name.endswith((".bam", ".sam", ".cram")):
+    if name.endswith((".bam", ".sam", CRAM_SUFFIX)):
         return "alignment"
     if name.endswith((".vcf", ".vcf.gz", ".vcf.bgz", ".bcf")):
         return "variant"
@@ -85,6 +80,7 @@ def detect_kind(path: Path) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -131,16 +127,8 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def require_local_file(path: Path, label: str) -> Path:
-    resolved = path.expanduser()
-    if not resolved.exists():
-        raise FileNotFoundError(f"{label} does not exist: {resolved}")
-    if not resolved.is_file():
-        raise ValueError(f"{label} is not a regular file: {resolved}")
-    return resolved
-
-
 def limited(values: list[Any], maximum: int) -> tuple[list[Any], bool]:
+    """Handle limited."""
     if maximum == 0 or len(values) <= maximum:
         return values, False
     return values[:maximum], True
@@ -151,6 +139,7 @@ def contig_records(
     lengths: tuple[int, ...] | list[int],
     maximum: int,
 ) -> tuple[list[dict[str, Any]], bool]:
+    """Handle contig records."""
     records = [
         {"name": name, "length": int(length)}
         for name, length in zip(names, lengths)
@@ -159,10 +148,11 @@ def contig_records(
 
 
 def alignment_mode(path: Path) -> str:
+    """Handle alignment mode."""
     name = path.name.lower()
     if name.endswith(".sam"):
         return "r"
-    if name.endswith(".cram"):
+    if name.endswith(CRAM_SUFFIX):
         return "rc"
     return "rb"
 
@@ -176,7 +166,8 @@ def inspect_alignment(
     max_items: int,
     include_identifiers: bool,
 ) -> dict[str, Any]:
-    if path.name.lower().endswith(".cram") and reference is None:
+    """Handle inspect alignment."""
+    if path.name.lower().endswith(CRAM_SUFFIX) and reference is None:
         raise ValueError("CRAM inspection requires --reference")
 
     kwargs: dict[str, Any] = {"threads": threads}
@@ -205,13 +196,7 @@ def inspect_alignment(
             has_index = False
 
         report: dict[str, Any] = {
-            "format": (
-                "CRAM"
-                if alignments.is_cram
-                else "BAM"
-                if alignments.is_bam
-                else "SAM"
-            ),
+            "format": alignment_format(alignments),
             "is_remote": bool(alignments.is_remote),
             "has_index": has_index,
             "sort_order": header.get("HD", {}).get("SO"),
@@ -250,6 +235,7 @@ def inspect_alignment(
 
 
 def variant_index_loaded(variants: pysam.VariantFile) -> bool:
+    """Handle variant index loaded."""
     try:
         return variants.index is not None
     except (AttributeError, OSError, ValueError):
@@ -264,6 +250,7 @@ def inspect_variant(
     max_items: int,
     include_identifiers: bool,
 ) -> dict[str, Any]:
+    """Handle inspect variant."""
     kwargs: dict[str, Any] = {"threads": threads}
     if index is not None:
         kwargs["index_filename"] = str(index)
@@ -317,6 +304,7 @@ def inspect_fasta(
     index: Optional[Path],
     max_items: int,
 ) -> dict[str, Any]:
+    """Handle inspect fasta."""
     kwargs: dict[str, Any] = {}
     if index is not None:
         kwargs["filepath_index"] = str(index)
@@ -338,6 +326,7 @@ def inspect_fasta(
 
 
 def inspect_fastx(path: Path) -> dict[str, Any]:
+    """Handle inspect fastx."""
     with pysam.FastxFile(str(path), persist=False):
         return {
             "format": "FASTA/FASTQ",
@@ -357,6 +346,7 @@ def inspect_tabix(
     threads: int,
     max_items: int,
 ) -> dict[str, Any]:
+    """Handle inspect tabix."""
     kwargs: dict[str, Any] = {"threads": threads}
     if index is not None:
         kwargs["index"] = str(index)
@@ -377,17 +367,10 @@ def inspect_tabix(
 
 
 def inspect_file(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle inspect file."""
     path = require_local_file(args.input, "input")
-    reference = (
-        require_local_file(args.reference, "reference")
-        if args.reference is not None
-        else None
-    )
-    index = (
-        require_local_file(args.index, "index")
-        if args.index is not None
-        else None
-    )
+    reference = optional_local_file(args.reference, "reference")
+    index = optional_local_file(args.index, "index")
     kind = detect_kind(path) if args.kind == "auto" else args.kind
 
     if kind == "alignment":
@@ -437,48 +420,12 @@ def inspect_file(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def write_report(report: dict[str, Any], output: Optional[Path]) -> None:
-    text = json.dumps(
-        report,
-        indent=2,
-        ensure_ascii=False,
-        allow_nan=False,
-    )
-    if output is None:
-        sys.stdout.write(text + "\n")
-        return
-
-    destination = output.expanduser()
-    with destination.open("x", encoding="utf-8") as handle:
-        handle.write(text + "\n")
-
-
 def main(argv: Optional[list[str]] = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
-
-    if args.output is not None:
-        try:
-            if args.output.expanduser().resolve() == args.input.expanduser().resolve():
-                parser.error("--output must not overwrite the input file")
-        except OSError:
-            pass
-
-    try:
-        report = inspect_file(args)
-        write_report(report, args.output)
-    except (
-        FileExistsError,
-        FileNotFoundError,
-        IndexError,
-        KeyError,
-        OSError,
-        TypeError,
-        ValueError,
-    ) as error:
-        print(f"inspect_hts: {error}", file=sys.stderr)
-        return 2
-    return 0
+    reject_output_overwriting_input(parser, args)
+    return run_report_cli("inspect_hts", args, inspect_file, args.output)
 
 
 if __name__ == "__main__":

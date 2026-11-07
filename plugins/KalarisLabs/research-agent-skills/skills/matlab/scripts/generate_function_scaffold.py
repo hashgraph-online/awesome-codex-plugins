@@ -25,6 +25,7 @@ SAFE_DIRECTORY = re.compile(r"^[A-Za-z][A-Za-z0-9_.-]{0,63}$")
 
 
 def _directory(root: Path, name: str, *, write: bool) -> Path:
+    """Handle directory."""
     if not SAFE_DIRECTORY.fullmatch(name):
         raise CliError("source/test directory must be one simple local directory name")
     path = root / name
@@ -42,10 +43,12 @@ def _directory(root: Path, name: str, *, write: bool) -> Path:
 
 
 def _title_name(name: str) -> str:
+    """Handle title name."""
     return name[0].upper() + name[1:]
 
 
 def function_source(name: str) -> str:
+    """Handle function source."""
     upper = name.upper()
     return f"""function result = {name}(data, options)
 %{upper} Scale a finite numeric matrix.
@@ -62,6 +65,7 @@ end
 
 
 def test_source(name: str, class_name: str) -> str:
+    """Test source."""
     return f"""classdef {class_name} < matlab.unittest.TestCase
     methods (Test)
         function scalesFiniteMatrix(testCase)
@@ -80,6 +84,7 @@ end
 
 
 def generate(args: argparse.Namespace) -> dict[str, Any]:
+    """Generate."""
     root = checked_root(args.root)
     name = validate_identifier(args.name, name="function name")
     class_name = validate_identifier(
@@ -137,6 +142,7 @@ def generate(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def parser() -> argparse.ArgumentParser:
+    """Handle parser."""
     result = argparse.ArgumentParser(
         description=(
             "Generate a MATLAB R2026a function and matlab.unittest class. "
@@ -154,6 +160,7 @@ def parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     try:
         emit_json(generate(parser().parse_args()))
         return 0

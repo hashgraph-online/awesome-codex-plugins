@@ -36,12 +36,8 @@ SYNC_METHODS = {
 }
 
 
-def _stream_profile(
-    stream: dict[str, Any],
-    *,
-    root: Path,
-    max_rows: int,
-) -> tuple[dict[str, Any], list[str], list[str]]:
+def _check_stream_spec(stream: dict[str, Any]) -> tuple[str, str | None]:
+    """Validate a stream's keys and text fields; return its name and time column."""
     validate_keys(
         stream,
         allowed={
@@ -73,6 +69,69 @@ def _stream_profile(
         raise CliError(
             f"stream {name!r} must not combine time_column with start_time_s"
         )
+    return name, time_column
+
+
+def _rate_and_jitter(positive: list[float]) -> tuple[float | None, float | None]:
+    """Return the observed rate and maximum relative jitter of positive timestamp steps."""
+    if not positive:
+        return None, None
+    median_delta = statistics.median(positive)
+    jitter = max(abs(delta - median_delta) / median_delta for delta in positive)
+    return 1.0 / median_delta, jitter
+
+
+def _timestamp_timing(
+    raw_times: list[Any], start_time: float, errors: list[str]
+) -> tuple[float, float, float | None, float | None]:
+    """Summarise a timestamp column as start, end, observed rate and interval jitter."""
+    if any(value is None for value in raw_times):
+        errors.append("time column contains missing values")
+        times = [float(value) for value in raw_times if value is not None]
+    else:
+        times = [float(value) for value in raw_times]
+    if len(times) < 2:
+        errors.append("fewer than two valid timestamps")
+        return start_time, start_time, None, None
+    deltas = [current - previous for previous, current in pairwise(times)]
+    if any(delta <= 0 for delta in deltas):
+        errors.append("timestamps are not strictly increasing")
+    observed_rate, interval_jitter = _rate_and_jitter([d for d in deltas if d > 0])
+    return times[0], times[-1], observed_rate, interval_jitter
+
+
+def _quality_messages(
+    observed_rate: float | None,
+    declared_rate: float,
+    interval_jitter: float | None,
+    missing_count: int,
+    flat_fraction: float | None,
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    """Append rate, jitter, missing-value and flat-signal messages for one stream."""
+    if observed_rate is not None:
+        relative_rate_error = abs(observed_rate - declared_rate) / declared_rate
+        if relative_rate_error > 0.01:
+            errors.append(
+                "observed timestamp rate differs from declared rate by more than 1%"
+            )
+    if interval_jitter is not None and interval_jitter > 0.01:
+        warnings.append("timestamp interval jitter exceeds 1% of the median")
+    if missing_count:
+        warnings.append(f"{missing_count} signal values are missing")
+    if flat_fraction is not None and flat_fraction > 0.20:
+        warnings.append("more than 20% of adjacent finite signal values are identical")
+
+
+def _stream_profile(
+    stream: dict[str, Any],
+    *,
+    root: Path,
+    max_rows: int,
+) -> tuple[dict[str, Any], list[str], list[str]]:
+    """Handle stream profile."""
+    name, time_column = _check_stream_spec(stream)
     declared_rate = finite_float(
         stream["sampling_rate_hz"],
         name=f"{name}.sampling_rate_hz",
@@ -114,43 +173,16 @@ def _stream_profile(
     interval_jitter: float | None = None
 
     if time_column is not None:
-        raw_times = values[time_column]
-        if any(value is None for value in raw_times):
-            errors.append("time column contains missing values")
-            times = [float(value) for value in raw_times if value is not None]
-        else:
-            times = [float(value) for value in raw_times]
-        if len(times) >= 2:
-            deltas = [current - previous for previous, current in pairwise(times)]
-            if any(delta <= 0 for delta in deltas):
-                errors.append("timestamps are not strictly increasing")
-            positive = [delta for delta in deltas if delta > 0]
-            if positive:
-                median_delta = statistics.median(positive)
-                observed_rate = 1.0 / median_delta
-                interval_jitter = max(
-                    abs(delta - median_delta) / median_delta for delta in positive
-                )
-            start_time = times[0]
-            end_time = times[-1]
-        else:
-            errors.append("fewer than two valid timestamps")
-            end_time = start_time
+        start_time, end_time, observed_rate, interval_jitter = _timestamp_timing(
+            values[time_column], start_time, errors
+        )
     else:
         end_time = start_time + (row_count - 1) / declared_rate
 
-    if observed_rate is not None:
-        relative_rate_error = abs(observed_rate - declared_rate) / declared_rate
-        if relative_rate_error > 0.01:
-            errors.append(
-                "observed timestamp rate differs from declared rate by more than 1%"
-            )
-    if interval_jitter is not None and interval_jitter > 0.01:
-        warnings.append("timestamp interval jitter exceeds 1% of the median")
-    if missing_count:
-        warnings.append(f"{missing_count} signal values are missing")
-    if flat_fraction is not None and flat_fraction > 0.20:
-        warnings.append("more than 20% of adjacent finite signal values are identical")
+    _quality_messages(
+        observed_rate, declared_rate, interval_jitter, missing_count, flat_fraction,
+        errors, warnings,
+    )
 
     profile = {
         "declared_sampling_rate_hz": declared_rate,
@@ -175,6 +207,7 @@ def validate_manifest(
     root: Path,
     max_rows: int,
 ) -> dict[str, Any]:
+    """Validate manifest."""
     validate_keys(
         document,
         allowed={"schema_version", "streams", "alignment"},
@@ -312,6 +345,7 @@ def validate_manifest(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a strict JSON manifest of bounded local biosignal CSV "
@@ -332,6 +366,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     require_deidentified(args.deidentified)
     if not 1 <= args.max_rows <= MAX_ROWS:

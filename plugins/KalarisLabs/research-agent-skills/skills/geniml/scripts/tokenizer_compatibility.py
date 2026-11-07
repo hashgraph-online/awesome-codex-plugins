@@ -31,6 +31,7 @@ TOOL = "tokenizer-universe-compatibility"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Compare a local model bundle and universe using checksums and bounded "
@@ -74,6 +75,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _safe_child(directory: Path, name: str) -> Path:
+    """Handle safe child."""
     if not name or Path(name).name != name or name in {".", ".."}:
         raise SafetyError("artifact names must be plain filenames")
     return local_path(str(directory / name), kind="file")
@@ -85,6 +87,7 @@ def _count_universe(
     max_bytes: int,
     max_records: int,
 ) -> tuple[int, int, Counter[str]]:
+    """Handle count universe."""
     records = 0
     duplicates = 0
     issues: Counter[str] = Counter()
@@ -126,6 +129,7 @@ def _count_universe(
 
 
 def _parquet_magic(path: Path) -> bool:
+    """Handle parquet magic."""
     flags = os.O_RDONLY
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -144,6 +148,7 @@ def _parquet_magic(path: Path) -> bool:
 
 
 def inspect(args: argparse.Namespace) -> tuple[dict, int]:
+    """Handle inspect."""
     if not args.assembly.strip() or len(args.assembly) > 200:
         raise SafetyError("assembly must be a nonempty value of at most 200 characters")
     model_dir = local_path(args.model_dir, kind="dir")
@@ -308,6 +313,7 @@ def inspect(args: argparse.Namespace) -> tuple[dict, int]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report, exit_code = inspect(args)

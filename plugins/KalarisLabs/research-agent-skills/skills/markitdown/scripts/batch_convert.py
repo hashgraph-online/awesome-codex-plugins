@@ -207,6 +207,7 @@ def write_manifest(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Batch-convert trusted local files to Markdown. Output names retain "
@@ -271,6 +272,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args()
 

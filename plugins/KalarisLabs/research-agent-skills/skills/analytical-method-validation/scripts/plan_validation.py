@@ -39,6 +39,8 @@ from _common import (  # noqa: E402
     run_cli,
 )
 
+_MD_TABLE_RULE = "| --- | --- | --- | --- |"
+
 STATUS_TEXT = {
     "required": "conduct",
     "required-QL": "conduct (QL; DL too in some complex cases)",
@@ -51,6 +53,7 @@ STATUS_TEXT = {
 
 
 def plan_q2r2(attribute: str, technique: str | None, range_use: str | None) -> list[dict]:
+    """Handle plan q2r2."""
     tests = Q2R2_TESTS_BY_ATTRIBUTE[attribute]
     rows = []
     for characteristic, status in tests.items():
@@ -102,6 +105,7 @@ def plan_q2r2(attribute: str, technique: str | None, range_use: str | None) -> l
 
 
 def plan_m10(modality: str) -> list[dict]:
+    """Handle plan m10."""
     crit = M10_CRITERIA[modality]
     rows = [
         {
@@ -185,6 +189,7 @@ def plan_m10(modality: str) -> list[dict]:
 
 def render_protocol(framework: str, attribute: str | None, modality: str | None,
                     technique: str | None, range_use: str | None) -> str:
+    """Render protocol."""
     fw = FRAMEWORKS[framework]
     lines = [
         "# Analytical Procedure Validation Protocol",
@@ -216,7 +221,7 @@ def render_protocol(framework: str, attribute: str | None, modality: str | None,
         "## 3. Pre-stated acceptance criteria",
         "",
         "| Characteristic | Criterion | Justification | Source |",
-        "| --- | --- | --- | --- |",
+        _MD_TABLE_RULE,
     ]
     if framework == "ich-m10" and modality:
         for row in plan_m10(modality):
@@ -238,7 +243,7 @@ def render_protocol(framework: str, attribute: str | None, modality: str | None,
         "## 4. Study design",
         "",
         "| Characteristic | Levels | Replicates | Runs / days / analysts / instruments |",
-        "| --- | --- | --- | --- |",
+        _MD_TABLE_RULE,
         "| [ ] | [ ] | [ ] | [ ] |",
         "",
         "- Reference materials and their documented identity/purity: [ ]",
@@ -265,7 +270,7 @@ def render_protocol(framework: str, attribute: str | None, modality: str | None,
         "## 8. Approvals",
         "",
         "| Role | Name | Signature | Date |",
-        "| --- | --- | --- | --- |",
+        _MD_TABLE_RULE,
         "| Author | | | |",
         "| Technical reviewer | | | |",
         "| Quality unit | | | |",
@@ -277,6 +282,7 @@ def render_protocol(framework: str, attribute: str | None, modality: str | None,
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Plan an analytical procedure validation study.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

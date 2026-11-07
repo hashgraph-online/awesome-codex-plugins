@@ -11,7 +11,7 @@ Usage:
     python3 analyze_emc.py --schematic schematic.json --pcb pcb.json --severity high
     python3 analyze_emc.py --schematic schematic.json --pcb pcb.json --standard cispr-class-b
 
-Zero external dependencies beyond Python 3.8+ stdlib.
+Zero external dependencies beyond Python 3.10+ stdlib.
 """
 
 import argparse
@@ -24,9 +24,10 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _core_path  # noqa: F401
 
-from emc_rules import run_all_checks, generate_test_plan, analyze_regulatory_coverage
+from emc_rules import (run_all_checks, filter_by_severity, generate_test_plan,
+                       analyze_regulatory_coverage)
 from emc_formulas import STANDARDS, MARKET_STANDARDS
-from finding_schema import compute_trust_summary
+from finding_schema import compute_trust_summary, show_decoded_names
 from kicad_core.render import summary_or_title
 from emc_envelope import EMCEnvelope
 from schema_codec import emit_schema
@@ -41,7 +42,7 @@ ANALYZER_SOURCE = "emc"
 # Shared severity weights — used by both risk score and per-net scoring.
 # Keyed on the v1.3 envelope vocabulary (error/warning/info); legacy
 # EMC rule severities are normalized before reaching this map via
-# _make_finding's _normalize_severity().
+# _make_finding's normalize_severity().
 SEVERITY_WEIGHTS = {'error': 12, 'warning': 3, 'info': 0}
 
 # Confidence discount — heuristic findings carry less weight because the
@@ -448,7 +449,7 @@ def main(argv: list[str] | None = None) -> int:
         except (TypeError, ValueError):
             pass
 
-    # Build inputs provenance block (Track 1.3).
+    # Build inputs provenance block.
     from pathlib import Path as _Path
     _upstream_artifacts = {}
     _source_files = []
@@ -464,7 +465,7 @@ def main(argv: list[str] | None = None) -> int:
     if _cfg_path and not _cfg_path.is_file():
         _cfg_path = None
 
-    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4).
+    # Resolve the canonical analysis_dir once.
     if args.analysis_dir:
         _analysis_dir = _Path(args.analysis_dir)
     elif args.output:
@@ -472,7 +473,7 @@ def main(argv: list[str] | None = None) -> int:
     else:
         _analysis_dir = _Path(analysis_cfg.get('output_dir') or 'analysis')
 
-    # Resolve capability_mode_ref BEFORE build_inputs (audit Highest-Risk #5).
+    # Resolve capability_mode_ref before build_inputs.
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
 
     inputs = build_inputs(
@@ -488,21 +489,39 @@ def main(argv: list[str] | None = None) -> int:
     diagnostics: list = []
     findings = run_all_checks(schematic, pcb,
                               standard=args.standard,
-                              severity_threshold=severity,
+                              severity_threshold='all',
                               spice_backend=spice_backend,
                               pdn_transient_a=pdn_transient_a,
                               diagnostics=diagnostics)
     elapsed = time.time() - t0
+    show_decoded_names(findings)
 
     # Apply suppressions
     apply_suppressions(findings, config.get('suppressions', []))
+
+    # The score, per-net scores, test plan and regulatory coverage cover every
+    # unsuppressed finding; --severity only filters the emitted list.
+    active_findings = [f for f in findings if not f.get('suppressed')]
+
+    risk_score = compute_risk_score(active_findings)
+    test_plan = generate_test_plan(schematic, pcb, active_findings,
+                                   standard=args.standard)
+    per_net = compute_per_net_scores(active_findings)
+    regulatory = analyze_regulatory_coverage(args.standard, args.market,
+                                            active_findings)
+
+    findings = filter_by_severity(findings, severity)
+    # --compact is presentation-only: strip info findings before the summary
+    # and category counts are built, so they describe the emitted list
+    if args.compact:
+        findings = [f for f in findings
+                    if str(f.get('severity', 'info')).lower() != 'info']
 
     # Build summary over the standard v1.3 severity vocabulary.  EMC
     # findings go through _make_finding which normalizes legacy
     # CRITICAL/HIGH/MEDIUM/LOW/INFO to error/warning/info — we count the
     # normalized buckets directly.
     counts = {'error': 0, 'warning': 0, 'info': 0}
-    active_counts = {'error': 0, 'warning': 0, 'info': 0}
     suppressed_count = 0
     for f in findings:
         sev = str(f.get('severity', 'info')).lower()
@@ -511,20 +530,6 @@ def main(argv: list[str] | None = None) -> int:
         counts[sev] += 1
         if f.get('suppressed'):
             suppressed_count += 1
-        else:
-            active_counts[sev] += 1
-
-    # Use only active (non-suppressed) findings for derived metrics
-    active_findings = [f for f in findings if not f.get('suppressed')]
-
-    risk_score = compute_risk_score(active_findings)
-
-    # Generate test plan, per-net scores, and regulatory coverage
-    test_plan = generate_test_plan(schematic, pcb, active_findings,
-                                   standard=args.standard)
-    per_net = compute_per_net_scores(active_findings)
-    regulatory = analyze_regulatory_coverage(args.standard, args.market,
-                                            active_findings)
 
     # Pre-rollup by category for downstream consumers
     _sev_order = {"error": 3, "warning": 2, "info": 1}
@@ -575,19 +580,13 @@ def main(argv: list[str] | None = None) -> int:
         'elapsed_s': round(elapsed, 3),
     }
 
-    # --compact is presentation-only: strip info findings from output
-    if args.compact:
-        result['findings'] = [f for f in result['findings']
-                              if str(f.get('severity', 'info')).lower() != 'info']
-
     from output_filters import apply_output_filters
-    apply_output_filters(result, args.stage, args.audience)
+    apply_output_filters(result, args.stage)
 
     # Rebuild summary + trust_summary post-filter so the envelope matches
-    # the final findings[] emitted to consumers. --compact and
-    # apply_output_filters can both mutate findings after the initial
-    # summary was built (KH-311 for trust_summary; same idea here for
-    # total_findings + by_severity).
+    # the final findings[] emitted to consumers. apply_output_filters can
+    # mutate findings after the summary was built, so trust_summary,
+    # total_findings and by_severity are recomputed from the final list.
     _final = result.get('findings', []) if isinstance(result.get('findings'), list) else []
     _final_counts = {'error': 0, 'warning': 0, 'info': 0}
     for _f in _final:
@@ -602,7 +601,7 @@ def main(argv: list[str] | None = None) -> int:
         result['summary']['by_severity'] = _final_counts
     result['trust_summary'] = compute_trust_summary(_final)
 
-    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    # Wire capability_mode_ref.
     from pathlib import Path as _Path
     # capability_mode_ref already resolved early — reuse to keep run_id stable.
     result['capability_mode_ref'] = _capability_mode_ref
@@ -627,7 +626,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Output
     if args.output:
-        with open(args.output, 'w') as f:
+        with open(args.output, 'w', encoding="utf-8", newline="\n") as f:
             json.dump(result, f, indent=2)
         print(f'EMC analysis complete: {len(findings)} findings '
               f'(score {risk_score}/100) → {args.output}', file=sys.stderr)
@@ -650,4 +649,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == '__main__':
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

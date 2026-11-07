@@ -37,6 +37,9 @@ class DetectionSchema:
     value_fields: list              # fields to compare in diffs (e.g., ["ratio"])
     derived: list = field(default_factory=list)  # DerivedField instances
     primary_metric: str = None      # for Monte Carlo sensitivity analysis
+    # identity field -> default value left out of the hash, so ids from before the
+    # field joined the identity stay the same for detections carrying the default
+    default_omitted: dict = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -52,6 +55,8 @@ def _recalc_rc_cutoff(det: dict) -> None:
     c = det.get("capacitor", {}).get("farads")
     if r and c and r > 0 and c > 0:
         det["cutoff_hz"] = round(1.0 / (_PI2 * r * c), 2)
+        if "time_constant_s" in det:
+            det["time_constant_s"] = r * c
 
 
 def _recalc_divider_ratio(det: dict) -> None:
@@ -73,20 +78,48 @@ def _recalc_lc_filter(det: dict) -> None:
 
 
 def _recalc_crystal_load(det: dict) -> None:
-    """Crystal: effective_load_pF = (C1*C2)/(C1+C2) + stray."""
+    """Crystal: effective_load_pF = (C1*C2)/(C1+C2) + stray, C1 and C2 the total
+    load capacitance on each leg (net), legs in first-seen order."""
     caps = det.get("load_caps")
-    if isinstance(caps, list) and len(caps) >= 2:
-        c1 = caps[0].get("farads", 0)
-        c2 = caps[1].get("farads", 0)
+    if not isinstance(caps, list):
+        return
+    legs: dict = {}
+    seen: set = set()
+    for i, cap in enumerate(caps):
+        if cap.get("ref") is not None:
+            if cap["ref"] in seen:
+                continue  # the IC-pin path can list one cap under two pins on one net
+            seen.add(cap["ref"])
+        leg = cap.get("net") or i  # a cap with no net is a leg of its own
+        legs[leg] = legs.get(leg, 0) + cap.get("farads", 0)
+    if len(legs) >= 2:
+        c1, c2 = list(legs.values())[:2]
         if c1 > 0 and c2 > 0:
             c_series = (c1 * c2) / (c1 + c2)
             stray_pf = det.get("stray_capacitance_pF", 3.0)
             det["effective_load_pF"] = round(c_series * 1e12 + stray_pf, 2)
+            target = det.get("target_load_pF")
+            if target and "load_cap_error_pct" in det:
+                error_pct = (det["effective_load_pF"] - target) / target * 100
+                det["load_cap_error_pct"] = round(error_pct, 1)
+                det["load_cap_status"] = _crystal_load_status(error_pct, det.get("target_load_source"))
+
+
+def _crystal_load_status(error_pct: float, target_source) -> str:
+    """load_cap_status with detect_crystal_circuits' thresholds. A target from the
+    frequency default table is only a guess, so a miss there is "unverified"."""
+    if abs(error_pct) <= 10:
+        return "ok"
+    if target_source == "frequency_default":
+        return "unverified"
+    return "marginal" if abs(error_pct) <= 25 else "out_of_spec"
 
 
 def _recalc_regulator_feedback(det: dict) -> None:
     """Regulator feedback divider: nested ratio, then estimated_vout = Vref / ratio
-    (negative for an inverting regulator, as the detector reports it)."""
+    (Vref / (1 - ratio) on a three-terminal adjustable, whose Vref sits across the top
+    resistor; negative for an inverting regulator, as the detector reports it)."""
+    old_vout = det.get("estimated_vout")
     fd = det.get("feedback_divider")
     if isinstance(fd, dict) and "r_top" in fd and "r_bottom" in fd:
         r_top = fd["r_top"].get("ohms")
@@ -97,8 +130,37 @@ def _recalc_regulator_feedback(det: dict) -> None:
             vout = det.get("estimated_vout")
             if (isinstance(vref, (int, float)) and vref > 0
                     and isinstance(vout, (int, float)) and fd["ratio"] > 0):
-                new_vout = round(vref / fd["ratio"], 3)
+                vref_ratio = 1 - fd["ratio"] if fd.get("reference") == "out_adj" else fd["ratio"]
+                new_vout = round(vref / vref_ratio, 3)
                 det["estimated_vout"] = -new_vout if vout < 0 else new_vout
+    if det.get("estimated_vout") != old_vout:
+        _recalc_regulator_dissipation(det)
+
+
+def _recalc_regulator_dissipation(det: dict) -> None:
+    """power_dissipation at the regulator's new estimated_vout, from the block's own Vin,
+    load current and efficiency. An LDO whose Vout reaches its Vin gets no block, as the
+    detector emits none."""
+    pd = det.get("power_dissipation")
+    vout = det.get("estimated_vout")
+    if not isinstance(pd, dict) or not isinstance(vout, (int, float)):
+        return
+    vin = pd.get("vin_estimated_V")
+    iout = pd.get("estimated_iout_A")
+    if not isinstance(vin, (int, float)) or not isinstance(iout, (int, float)):
+        return
+    if pd.get("topology") == "switching":
+        eff = pd.get("efficiency_assumed")
+        if not isinstance(eff, (int, float)) or eff <= 0:
+            return
+        pd["vout_V"] = round(vout, 3)
+        pd["estimated_pdiss_W"] = round(abs(vout) * iout / eff - abs(vout) * iout, 3)
+    elif vin * vout > 0 and abs(vout) < abs(vin):
+        pd["vout_V"] = vout
+        pd["dropout_V"] = round(abs(vin) - abs(vout), 3)
+        pd["estimated_pdiss_W"] = round((abs(vin) - abs(vout)) * iout, 3)
+    else:
+        del det["power_dissipation"]
 
 
 def _recalc_opamp_gain(det: dict) -> None:
@@ -299,7 +361,8 @@ SCHEMAS = {
         primary_metric="fb_voltage_V",
     ),
     "opamp_circuits": DetectionSchema(
-        identity_fields=["reference"],
+        identity_fields=["reference", "unit"],
+        default_omitted={"unit": 1},
         value_fields=["gain", "gain_dB", "configuration"],
         derived=[
             DerivedField("gain", _recalc_opamp_gain, _inverse_opamp_gain),
@@ -311,7 +374,7 @@ SCHEMAS = {
         identity_fields=["reference"],
         value_fields=["frequency", "effective_load_pF"],
         derived=[DerivedField("effective_load_pF", _recalc_crystal_load, _inverse_crystal_load)],
-        primary_metric="load_capacitance_pF",
+        primary_metric="pulling_ppm",
     ),
     "current_sense": DetectionSchema(
         identity_fields=["shunt.ref"],
@@ -380,7 +443,7 @@ SCHEMAS = {
         value_fields=[],
         primary_metric="z_min_ohms",
     ),
-    # --- Detections added for KH-233 (identity-only, no derived fields) ---
+    # --- Identity-only detections (no derived fields) ---
     "rail_voltages": DetectionSchema(
         identity_fields=[],
         value_fields=[],
@@ -546,7 +609,7 @@ SCHEMAS = {
         identity_fields=["via_x", "via_y"],
         value_fields=["edge_clearance_mm"],
     ),
-    # Batch 8: Remaining analyzer rich format
+    # Remaining analyzer rich-format detections
     "thermal_assessments": DetectionSchema(
         identity_fields=["ref"],
         value_fields=["tj_estimated_c", "margin_c"],
@@ -612,18 +675,6 @@ def get_inverse_solver(det_type: str, field_name: str):
     return None
 
 
-def get_identity_and_value_fields(det_type: str) -> tuple:
-    """Return (identity_fields, value_fields) for a detection type.
-
-    Returns (["reference"], []) for unknown types (backward compat with
-    diff_analysis.py fallback).
-    """
-    schema = SCHEMAS.get(det_type)
-    if not schema:
-        return (["reference"], [])
-    return (schema.identity_fields, schema.value_fields)
-
-
 def get_primary_metric(det_type: str) -> str:
     """Return the primary metric name for Monte Carlo, or None."""
     schema = SCHEMAS.get(det_type)
@@ -635,7 +686,8 @@ def compute_detection_id(det, det_type):
 
     Deterministic: same detection -> same ID across runs.  List-valued
     identity fields are sorted before hashing so upstream set/dict
-    iteration order doesn't affect the ID (KH-316).
+    iteration order doesn't affect the ID.  An identity field holding its
+    schema's ``default_omitted`` value is left out of the hash.
 
     Format: det_type:xxxxxxxxxxxx (12-char SHA-256 prefix).
     """
@@ -652,6 +704,8 @@ def compute_detection_id(det, det_type):
             else:
                 val = None
                 break
+        if field in schema.default_omitted and val in (None, schema.default_omitted[field]):
+            continue
         if isinstance(val, list):
             val = sorted(val, key=str)
         parts.append(str(val) if val is not None else "")

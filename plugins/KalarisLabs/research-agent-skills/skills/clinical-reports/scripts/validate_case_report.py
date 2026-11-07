@@ -64,6 +64,7 @@ EXPECTED_DRAFT_STATUS = (
 
 
 def _fact_ids(item: dict[str, Any], field: str) -> list[str]:
+    """Handle fact ids."""
     value = item.get("source_fact_ids")
     if not isinstance(value, list):
         raise ValidationError(f"{field}.source_fact_ids must be an array")
@@ -243,6 +244,7 @@ def validate_case_manifest(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check a bounded JSON CARE coverage manifest. "
@@ -260,6 +262,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         _, data = load_json_object(args.input_file)

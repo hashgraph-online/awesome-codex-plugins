@@ -1,12 +1,172 @@
 """PCB DFM: fab-capability scoring, drill measurement, project design-rule compliance.
 Fab tables at module level; analyze_dfm composes the _measure_* scans and the _emit_* builders."""
 
+import fnmatch
 import math
+import re
+
+from kicad_core.project import extract_pro_default_netclass, extract_pro_design_rules
+from kicad_core.sexp import find_all, find_first, get_value, raw_text
+
+# KiCad 10.0.7 BOARD_DESIGN_SETTINGS constructor (include/board_design_settings.h)
+_KICAD_DEFAULT_MINIMA = {
+    'min_track_width': 0.2,
+    'min_via_diameter': 0.5,
+    'min_via_drill': 0.3,
+    'min_microvia_diameter': 0.2,
+    'min_microvia_drill': 0.1,
+}
+# KiCad 10.0.7 netclass.cpp DEFAULT_UVIA_DIAMETER
+_KICAD_DEFAULT_UVIA_DIAMETER = 0.3
+# .kicad_pro design_settings.rules key per minimum
+_PRO_MINIMA = {
+    'min_track_width': 'min_track_width',
+    'min_via_diameter': 'min_via_diameter',
+    'min_via_drill': 'min_through_hole_diameter',
+    'min_microvia_diameter': 'min_microvia_diameter',
+    'min_microvia_drill': 'min_microvia_drill',
+}
+# KiCad 5 (setup ...) token per minimum (pcb_io_kicad_sexpr_parser.cpp parseSetup)
+_LEGACY_SETUP_MINIMA = {
+    'trace_min': 'min_track_width',
+    'via_min_size': 'min_via_diameter',
+    'through_hole_min': 'min_via_drill',
+    'via_min_drill': 'min_via_drill',
+    'uvia_min_size': 'min_microvia_diameter',
+    'uvia_min_drill': 'min_microvia_drill',
+}
+# Any of these in (setup ...) sets m_LegacyDesignSettingsLoaded, and board.cpp then does not
+# load the project's board settings at all. parseSetup reads last_trace_width without setting it.
+_LEGACY_SETUP_TOKENS = frozenset((
+    'user_trace_width', 'trace_clearance', 'zone_clearance', 'zone_45_only',
+    'clearance_min', 'trace_min', 'via_size', 'via_drill', 'via_min_annulus', 'via_min_size',
+    'through_hole_min', 'via_min_drill', 'hole_to_hole_min', 'user_via', 'uvia_size', 'uvia_drill',
+    'uvias_allowed', 'blind_buried_vias_allowed', 'uvia_min_size', 'uvia_min_drill',
+    'user_diff_pair', 'segment_width', 'edge_width', 'mod_edge_width', 'pcb_text_width',
+    'mod_text_width', 'pcb_text_size', 'mod_text_size', 'defaults', 'pad_size', 'pad_drill',
+    'max_error',
+))
+_MINIMUM_LABEL = {'project': 'project', 'board_setup': 'board setup',
+                  'kicad_default': 'KiCad default'}
 
 
-# KH-412: drills below this are file artefacts (e.g. `(drill 0.00001)` pads
-# in HamedMasafi/MeloCar remote_3.kicad_pcb), not holes a fab will drill.
-# They are excluded from every minimum and listed in
+def _as_mm(text) -> float | None:
+    try:
+        return float(text)
+    except (TypeError, ValueError):
+        return None
+
+
+def has_legacy_design_settings(root: list) -> bool:
+    """True when the board's (setup ...) carries KiCad 5 design-rule tokens: KiCad then keeps
+    the board's design settings and does not load the project's (board.cpp SetProject)."""
+    setup = find_first(root, 'setup') or []
+    return any(isinstance(item, list) and item and item[0] in _LEGACY_SETUP_TOKENS
+               for item in setup[1:])
+
+
+def effective_board_minima(root: list, pro: dict | None) -> dict[str, tuple[float, str]]:
+    """{rule: (value_mm, source)} for the board minima KiCad 10 enforces, source one of
+    ``kicad_default`` / ``board_setup`` / ``project``.
+
+    ``min_microvia_diameter`` is the Default net class micro-via diameter when that class has
+    one: KiCad's net class micro-via rule replaces the board micro-via minimum with it
+    (drc_engine.cpp). A class read from .kicad_pro without the key has none."""
+    out = {k: (v, 'kicad_default') for k, v in _KICAD_DEFAULT_MINIMA.items()}
+    setup = find_first(root, 'setup') or []
+    legacy = has_legacy_design_settings(root)
+    for item in setup[1:]:
+        if not (isinstance(item, list) and item):
+            continue
+        key = _LEGACY_SETUP_MINIMA.get(item[0])
+        value = _as_mm(item[1]) if key and len(item) > 1 else None
+        if value is not None:
+            out[key] = (value, 'board_setup')
+    if pro and not legacy:
+        rules = extract_pro_design_rules(pro)
+        for key, pro_key in _PRO_MINIMA.items():
+            value = rules.get(pro_key)
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                out[key] = (float(value), 'project')
+
+    uvia = (_KICAD_DEFAULT_UVIA_DIAMETER, 'kicad_default')
+    board_classes = find_all(root, 'net_class')
+    pro_default = extract_pro_default_netclass(pro) if pro else None
+    if board_classes:
+        # A KiCad 5 board's own net classes replace the project's (board.cpp SetProject); its
+        # Default class starts from KiCad's defaults, else the (setup ...) default class stays.
+        default = next((nc for nc in board_classes if len(nc) > 1 and nc[1] == 'Default'), None)
+        value = (_as_mm(get_value(default, 'uvia_dia')) if default
+                 else _as_mm(get_value(setup, 'uvia_size')))
+        if value is not None:
+            uvia = (value, 'board_setup')
+    elif pro_default is not None:
+        value = pro_default.get('microvia_diameter')
+        uvia = ((float(value), 'project')
+                if isinstance(value, (int, float)) and not isinstance(value, bool) else None)
+    if uvia is not None:
+        out['min_microvia_diameter'] = uvia
+    return out
+
+
+def _net_pattern_regex(pattern: str) -> re.Pattern:
+    """A net class pattern as KiCad matches it: ``*`` and ``?`` wildcards, everything else
+    literal."""
+    return re.compile(''.join('.*' if c == '*' else '.' if c == '?' else re.escape(c)
+                              for c in pattern), re.DOTALL)
+
+
+def microvia_class_minima(root: list, pro: dict | None, vias: dict,
+                          net_names: dict) -> dict[int, tuple[float, str]]:
+    """{net id: (micro-via diameter minimum mm, source)} for the micro-via nets whose net class
+    sets one. KiCad judges each micro via by its net's class (drc_engine.cpp); a net in several
+    classes (an assignment or a pattern each) takes the value of the first class by priority
+    that has one, and a class without one leaves the Default class's, which
+    `effective_board_minima` already holds as the board minimum."""
+    nets = {v.get('net'): net_names.get(v.get('net'), '')
+            for v in vias.get('vias', []) if v.get('type') == 'micro' and v.get('net')}
+    nets = {i: name for i, name in nets.items() if name}
+    out: dict[int, tuple[float, str]] = {}
+    if not nets:
+        return out
+    board_classes = find_all(root, 'net_class')
+    if board_classes:
+        # A KiCad 5 board's own classes replace the project's: one class per net, first wins.
+        by_net: dict[str, float | None] = {}
+        for nc in board_classes:
+            if len(nc) < 2 or nc[1] == 'Default':
+                continue
+            for item in find_all(nc, 'add_net'):
+                if len(item) > 1:
+                    by_net.setdefault(raw_text(item[1]), _as_mm(get_value(nc, 'uvia_dia')))
+        for i, name in nets.items():
+            if by_net.get(name) is not None:
+                out[i] = (by_net[name], 'board_setup')
+        return out
+    settings = (pro or {}).get('net_settings') or {}
+    classes = {c['name']: c for c in settings.get('classes') or []
+               if isinstance(c, dict) and isinstance(c.get('name'), str)}
+    patterns = [(_net_pattern_regex(p['pattern']), p['netclass'])
+                for p in settings.get('netclass_patterns') or []
+                if isinstance(p, dict) and isinstance(p.get('pattern'), str)
+                and isinstance(p.get('netclass'), str)]
+    assigned = settings.get('netclass_assignments') or {}
+    for i, name in nets.items():
+        given = assigned.get(name) or []
+        members = {n for n in (given if isinstance(given, list) else [given])}
+        members |= {cls for rx, cls in patterns if rx.fullmatch(name)}
+        ranked = sorted((classes[n] for n in members if n in classes and n != 'Default'),
+                        key=lambda c: c.get('priority') if _is_length(c.get('priority'))
+                        else float('inf'))
+        for c in ranked:
+            if _is_length(c.get('microvia_diameter')):
+                out[i] = (float(c['microvia_diameter']), 'project')
+                break
+    return out
+
+
+# Drills below this are file artefacts (e.g. a `(drill 0.00001)` pad), not
+# holes a fab will drill. They are excluded from every minimum and listed in
 # via_analysis.degenerate_drills so nothing is silently dropped.
 MIN_REAL_DRILL_MM = 0.05
 
@@ -354,7 +514,7 @@ def _emit_track_spacing_violations(m: dict, limits_std: dict, limits_adv: dict) 
 
 
 def _measure_drills(vias: dict, footprints: list[dict]) -> dict:
-    # --- Drill analysis (via drills + footprint pad drills, KH-383) ---
+    # --- Drill analysis (via drills + footprint pad drills) ---
     all_vias = vias.get("vias", [])
     via_drills = [v["drill"] for v in all_vias if _is_real_drill(v.get("drill", 0))]
     min_drill, drill_source = _min_drill_with_source(via_drills, footprints)
@@ -365,7 +525,7 @@ def _measure_drills(vias: dict, footprints: list[dict]) -> dict:
         # A pad-sourced minimum is reported generically ("Drill") rather than
         # "Via drill" — the smallest drilled hole isn't necessarily a via.
         label = "Via drill" if drill_source == "via" else "Drill"
-        # KH-412: attribute pad-sourced violations to their pad (parameter +
+        # Attribute pad-sourced violations to their pad (parameter +
         # the ref in the message) instead of mislabeling them "via_drill".
         pad_ref = drill_source[4:] if drill_source.startswith("pad ") else ""
         ref_suffix = f" on {pad_ref}" if pad_ref else ""
@@ -760,85 +920,247 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
     return result
 
 
+# Board minimum per (constraint type, item kind): KiCad's implicit board-setup rules, the
+# micro-via one conditioned on A.Via_Type == 'Micro' (drc_engine.cpp loadImplicitRules).
+_BOARD_MINIMUM_ITEMS = (
+    ('min_track_width', (('track_width', 'track'),)),
+    ('min_via_diameter', (('via_diameter', 'via'),)),
+    ('min_via_drill', (('hole_size', 'via'), ('hole_size', 'pad'))),
+    ('min_microvia_diameter', (('via_diameter', 'micro'),)),
+    ('min_microvia_drill', (('hole_size', 'micro'),)),
+)
+_BOARD_MINIMUM_FOR = {kind: name for name, kinds in _BOARD_MINIMUM_ITEMS for kind in kinds}
+_CUSTOM_CHECKED_TYPES = ('track_width', 'via_diameter', 'hole_size', 'annular_width')
+_ANNULUS_DIRECT_SHAPES = ('circle', 'oval', 'rect', 'roundrect')
+
+
+def _drc_check_key(ctype: str, kind: str) -> str:
+    """KiCad's DRC check key (rule_severities) for one item of a size rule."""
+    if ctype == 'hole_size':
+        return 'microvia_drill_out_of_range' if kind == 'micro' else 'drill_out_of_range'
+    return ctype
+
+
+def _is_length(value) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _dru_layer_match(pattern: str, layer: str) -> bool:
+    """A rule ``(layer ...)``: ``outer``, ``inner`` or a layer name with wildcards."""
+    if pattern == 'outer':
+        return layer in ('F.Cu', 'B.Cu')
+    if pattern == 'inner':
+        return re.fullmatch(r'In\d+\.Cu', layer) is not None
+    return fnmatch.fnmatchcase(layer, pattern)
+
+
+def _rule_items(tracks: dict, all_vias: list[dict], footprints: list[dict] | None) -> list[tuple]:
+    """(constraint type, item kind, layer, low, high, source, net id) for every item a size rule judges.
+    *low* meets a minimum, *high* a maximum (a pad hole's minor and major axis). Vias and pads
+    are judged on F.Cu (a normal padstack's one layer), holes on no layer."""
+    items = []
+    for t in tracks.get('segments', []) + tracks.get('arcs', []):
+        items.append(('track_width', 'track', t.get('layer', ''), t['width'], t['width'], None, None))
+    for v in all_vias:
+        kind = 'micro' if v.get('type') == 'micro' else 'via'
+        size, drill = v.get('size', 0), v.get('drill', 0)
+        if size > 0:
+            items.append(('via_diameter', kind, 'F.Cu', size, size, 'via', v.get('net')))
+        if _is_real_drill(drill):
+            items.append(('hole_size', kind, None, drill, drill, 'via', None))
+        if size > 0 and drill > 0:
+            ring = (size - drill) / 2.0
+            items.append(('annular_width', kind, 'F.Cu', ring, ring, 'via', None))
+    for fp in footprints or []:
+        src = f"pad {fp.get('reference', '')}"
+        numbers = [pad.get('number') for pad in fp.get('pads', [])]
+        for pad in fp.get('pads', []):
+            if pad.get('type') not in ('thru_hole', 'np_thru_hole'):
+                continue
+            d = pad.get('drill', 0) or 0
+            h = pad.get('drill_h') or d
+            minor = _pad_effective_drill(pad)
+            if _is_real_drill(minor):
+                items.append(('hole_size', 'pad', None, minor, max(d, h), src, None))
+            w, ph = pad.get('width', 0), pad.get('height', 0)
+            # drc_test_provider_annular_width.cpp takes (size - drill) / 2 only for a plated pad
+            # of these shapes, chamfer ratio <= 0.30, no drill offset; any other pad, or one
+            # merged with a same-number pad, is measured on its outline, which is not done here.
+            if (pad['type'] == 'thru_hole' and d > 0 and w > 0 and ph > 0
+                    and pad.get('shape') in _ANNULUS_DIRECT_SHAPES
+                    and pad.get('_chamfer_ratio', 0) <= 0.30 and not pad.get('_drill_offset')
+                    and numbers.count(pad.get('number')) == 1):
+                ring = min(w - d, ph - h) / 2.0
+                items.append(('annular_width', 'pad', 'F.Cu', ring, ring, src, None))
+    return items
+
+
+def _resolve_bounds(ctype: str, kind: str, layer: str | None,
+                    minima: dict[str, tuple[float, str]], rules, board_layers: list[str] | None,
+                    custom_applies: set[tuple]):
+    """The bounds KiCad's EvalRules gives one item: the board minimum, then every applicable
+    rule of the type in file order, each replacing the earlier value of a bound it sets. A
+    conditional rule may or may not apply, so each bound is a candidate list: the definite
+    (value, origin) first, then conditional ones; a None value (unset, or not a length) means
+    the bound cannot be judged. Returns (mins, maxs, possible ignore severities)."""
+    board = _BOARD_MINIMUM_FOR.get((ctype, kind))
+    required = minima.get(board) if board else None
+    mins = [(required[0], board)] if required else [(None, None)]
+    maxs = [(None, None)]
+    severities = {False}
+    for ri, ci, rule, constraint in rules:
+        pattern = rule.get('layer')
+        if pattern is not None:
+            if layer is not None and not _dru_layer_match(pattern, layer):
+                continue
+            # A hole has no layer: the rule applies when the board has a layer it names.
+            if layer is None and board_layers is not None and not any(
+                    _dru_layer_match(pattern, name) for name in board_layers):
+                continue
+        conditional = bool(rule.get('condition'))
+        if not conditional:
+            custom_applies.add((ri, ci))
+        for bound, candidates in (('min', mins), ('max', maxs)):
+            if bound not in constraint:
+                continue
+            value = constraint[bound]
+            candidate = (value if _is_length(value) else None, (ri, ci))
+            if conditional:
+                candidates.append(candidate)
+            else:
+                candidates[:] = [candidate]
+        ignored = rule.get('severity') == 'ignore'
+        severities = severities | {ignored} if conditional else {ignored}
+    return mins, maxs, severities
+
+
 def analyze_design_rule_compliance(
     tracks: dict, vias: dict,
     project_settings: dict,
     footprints: list[dict] | None = None,
+    minima: dict[str, tuple[float, str]] | None = None,
+    board_layers: list[str] | None = None,
+    ignored_checks: frozenset[str] = frozenset(),
+    microvia_minima: dict[int, tuple[float, str]] | None = None,
 ) -> dict | None:
     """Check layout against project-defined design rules.
 
     Compares actual track widths, via sizes, and drill diameters against
     the designer's own rules from ``.kicad_pro`` (global minimums) and
-    ``.kicad_dru`` (per-context constraints).  Returns None if no
-    project rules are available.
+    ``.kicad_dru`` (per-context constraints).  Returns None when neither
+    board minima nor project rules are given.
 
     This is separate from DFM analysis — DFM checks fab capabilities
     (can this be manufactured?), while this checks design intent
     (did I follow my own rules?).
 
-    ``footprints`` (KH-383) lets the min-drill check also see
+    ``footprints`` lets the min-drill check also see
     thru_hole/np_thru_hole pad drills, not just board vias — optional so
     existing callers keep working unchanged.
+
+    ``minima`` is `effective_board_minima` (every board has one); without it the
+    ``.kicad_pro`` minima present in ``project_settings`` are checked.
+
+    Custom rules apply as KiCad's DRC applies them (drc_engine.cpp EvalRules): for each item and
+    bound the last applicable rule wins, any custom rule outranks the board minimum, a rule
+    applies to the items on its ``layer`` (holes: when the board has that layer, its names in
+    ``board_layers``), and ``(severity ignore)`` silences the type for the items it covers.
+
+    ``microvia_minima`` is `microvia_class_minima`: a micro via on one of its nets is held to
+    that net class's diameter instead of the board minimum.
     """
     design_rules = project_settings.get('design_rules', {})
     custom_rules = project_settings.get('custom_rules', [])
     net_classes = project_settings.get('net_classes', [])
 
-    if not design_rules and not custom_rules and not net_classes:
+    if not design_rules and not custom_rules and not net_classes and not minima:
         return None
+    if minima is None:
+        minima = {key: (design_rules[pro_key], 'project')
+                  for key, pro_key in _PRO_MINIMA.items() if design_rules.get(pro_key) is not None}
+        if 'min_via_drill' not in minima and design_rules.get('min_via_drill'):
+            minima['min_via_drill'] = (design_rules['min_via_drill'], 'project')
 
     violations = []
     rules_checked = 0
 
-    # --- Compute actual layout metrics ---
-    all_widths = []
-    for seg in tracks.get("segments", []):
-        all_widths.append(seg["width"])
-    for arc in tracks.get("arcs", []):
-        all_widths.append(arc["width"])
-    min_track_width = min(all_widths) if all_widths else None
-
     all_vias = vias.get("vias", [])
-    via_diameters = [v["size"] for v in all_vias if v.get("size", 0) > 0]
-    via_drills = [v["drill"] for v in all_vias if _is_real_drill(v.get("drill", 0))]
-    min_via_diameter = min(via_diameters) if via_diameters else None
-    # KH-383: the smallest drilled hole may be a footprint pad, not a via.
-    min_drill, drill_source = _min_drill_with_source(via_drills, footprints)
+    # A file KiCad refuses applies none of its rules; it keeps only the board's implicit rules.
+    rules_load = not project_settings.get('custom_rules_error')
+    rules_by_type: dict[str, list] = {}
+    for ri, rule in enumerate(custom_rules if rules_load else []):
+        for ci, constraint in enumerate(rule.get('constraints', [])):
+            if constraint.get('type') in _CUSTOM_CHECKED_TYPES:
+                rules_by_type.setdefault(constraint['type'], []).append((ri, ci, rule, constraint))
 
-    # --- Check .kicad_pro global minimums ---
-    checks = [
-        ('min_track_width', min_track_width, design_rules.get('min_track_width')),
-        ('min_via_diameter', min_via_diameter, design_rules.get('min_via_diameter')),
-        ('min_via_drill', min_drill,
-         design_rules.get('min_through_hole_diameter')
-         or design_rules.get('min_via_drill')),
-    ]
-    for rule_name, actual, required in checks:
-        if actual is None or required is None:
+    # Each item is judged by the bounds KiCad resolves for it; per (rule, bound) the worst item
+    # is kept: worst[(origin, bound)] = (actual, source, definite bound value, that value's
+    # minimum source); the worst is the largest shortfall, which is the lowest actual unless
+    # the bound differs per item (a micro via's net class).
+    worst: dict[tuple, tuple] = {}
+    present: set[tuple] = set()
+    custom_applies: set[tuple] = set()
+    for ctype, kind, layer, low, high, src, net in _rule_items(tracks, all_vias, footprints):
+        if _drc_check_key(ctype, kind) in ignored_checks:
+            continue
+        present.add((ctype, kind))
+        item_minima = minima
+        if ctype == 'via_diameter' and kind == 'micro' and net in (microvia_minima or {}):
+            item_minima = {**minima, 'min_microvia_diameter': microvia_minima[net]}
+        mins, maxs, severities = _resolve_bounds(ctype, kind, layer, item_minima,
+                                                 rules_by_type.get(ctype, ()), board_layers,
+                                                 custom_applies)
+        if severities != {False}:
+            continue
+        for bound, candidates, actual in (('min', mins, low), ('max', maxs, high)):
+            values = [value for value, _ in candidates]
+            if any(value is None for value in values):
+                continue
+            if bound == 'min' and not actual < min(values) - 0.001:  # 1µm float tolerance
+                continue
+            if bound == 'max' and not actual > max(values) + 0.001:
+                continue
+            key = (candidates[0][1], bound)
+            prev = worst.get(key)
+            definite = candidates[0][0]
+            if prev is None or (definite - actual > prev[2] - prev[0] if bound == 'min'
+                                else actual - definite > prev[0] - prev[2]):
+                bound_source = (item_minima.get(key[0], (None, None))[1]
+                                if isinstance(key[0], str) else None)
+                worst[key] = (actual, src, definite, bound_source)
+
+    # --- Check the board minima ---
+    for rule_name, kinds in _BOARD_MINIMUM_ITEMS:
+        required, source = minima.get(rule_name, (None, None))
+        hit = worst.get((rule_name, 'min'))
+        if hit is not None:
+            required, source = hit[2], hit[3] or source
+        if (required is None and hit is None) or not any(k in present for k in kinds):
             continue
         rules_checked += 1
-        if actual < required - 0.001:  # 1µm tolerance for float comparison
-            message = (f"{rule_name.replace('_', ' ').title()} "
-                       f"{actual:.3f}mm violates project minimum "
-                       f"({required:.3f}mm)")
-            if rule_name == 'min_via_drill' and drill_source.startswith('pad '):
-                message += (f" (smallest: pad drill {actual:.3f}mm on "
-                            f"{drill_source[4:]})")
-            v = {
-                'rule': rule_name,
-                'source': 'project',
-                'required_mm': round(required, 4),
-                'actual_mm': round(actual, 4),
-                'message': message,
-                # KH-412: attribute a pad-sourced min_via_drill minimum to its pad.
-                'drill_source': ('pad' if rule_name == 'min_via_drill' and drill_source.startswith('pad ')
-                                 else 'via') if rule_name == 'min_via_drill' else None,
-            }
-            if v['drill_source'] is None:
-                del v['drill_source']
-            elif v['drill_source'] == 'pad':
-                v['source_ref'] = drill_source[4:]
-            violations.append(v)
+        if hit is None:
+            continue
+        source = source or 'project'
+        actual, src = hit[:2]
+        from_pad = rule_name == 'min_via_drill' and src.startswith('pad ')
+        message = (f"{rule_name.replace('_', ' ').title()} "
+                   f"{actual:.3f}mm violates {_MINIMUM_LABEL[source]} minimum "
+                   f"({required:.3f}mm)")
+        if from_pad:
+            message += f" (smallest: pad drill {actual:.3f}mm on {src[4:]})"
+        v = {
+            'rule': rule_name,
+            'source': source,
+            'required_mm': round(required, 4),
+            'actual_mm': round(actual, 4),
+            'message': message,
+        }
+        if rule_name == 'min_via_drill':
+            # Attribute a pad-sourced min_via_drill minimum to its pad.
+            v['drill_source'] = 'pad' if from_pad else 'via'
+            if from_pad:
+                v['source_ref'] = src[4:]
+        violations.append(v)
 
     # --- Net class summary (informational) ---
     net_class_summary = []
@@ -935,61 +1257,46 @@ def analyze_design_rule_compliance(
                 'message': v['message'],
             })
 
-    # --- Custom rules summary (advisory) ---
-    # We don't evaluate condition expressions, so conditional rules are
-    # skipped entirely rather than applied as board-wide minimums
-    # (KH-361) — only unconditional global constraints from .kicad_dru
-    # are checked.
+    # --- Custom rules (.kicad_dru) ---
+    # A conditional rule is not evaluated: it is listed as skipped, and an item is reported only
+    # when it breaks every bound the rule might set (a conditional rule may relax a minimum or a
+    # maximum, or switch the check off with severity ignore), so it can hide a violation, never add one.
     conditional_rules_skipped = []
-    if custom_rules:
-        for rule in custom_rules:
-            if rule.get('condition'):
-                conditional_rules_skipped.append(rule.get('name', ''))
+    for ri, rule in enumerate(custom_rules if rules_load else []):
+        if rule.get('condition'):
+            conditional_rules_skipped.append(rule.get('name', ''))
+            continue
+        if rule.get('severity') == 'ignore':
+            continue
+        for ci, constraint in enumerate(rule.get('constraints', [])):
+            ctype = constraint.get('type', '')
+            bounds = [b for b in ('min', 'max') if _is_length(constraint.get(b))]
+            if not bounds or (ri, ci) not in custom_applies:
                 continue
-            for constraint in rule.get('constraints', []):
-                ctype = constraint.get('type', '')
-                cmin = constraint.get('min')
-                if cmin is None:
+            rules_checked += 1
+            for bound in bounds:
+                hit = worst.get(((ri, ci), bound))
+                if hit is None:
                     continue
-                if not isinstance(cmin, (int, float)):
-                    continue
-
-                # Only check constraints we can verify globally
-                actual = None
-                if ctype == 'track_width' and min_track_width is not None:
-                    actual = min_track_width
-                elif ctype == 'hole_size' and min_drill is not None:
-                    actual = min_drill
-                elif ctype == 'annular_width':
-                    # Compute from via data
-                    if all_vias:
-                        rings = [(v.get("size", 0) - v.get("drill", 0)) / 2.0
-                                 for v in all_vias
-                                 if v.get("size", 0) > 0 and v.get("drill", 0) > 0]
-                        if rings:
-                            actual = min(rings)
-
-                if actual is not None:
-                    rules_checked += 1
-                    if actual < cmin - 0.001:
-                        v = {
-                            'rule': f"custom:{rule.get('name', ctype)}",
-                            'source': 'kicad_dru',
-                            'required_mm': round(cmin, 4),
-                            'actual_mm': round(actual, 4),
-                            'constraint_type': ctype,
-                            'message': (f"Custom rule \"{rule.get('name', '')}\" "
-                                        f"requires {ctype} >= {cmin:.3f}mm, "
-                                        f"actual {actual:.3f}mm"),
-                            # KH-412: attribute a pad-sourced hole_size minimum to its pad.
-                            'drill_source': ('pad' if ctype == 'hole_size' and drill_source.startswith('pad ')
-                                             else 'via') if ctype == 'hole_size' else None,
-                        }
-                        if v['drill_source'] is None:
-                            del v['drill_source']
-                        elif v['drill_source'] == 'pad':
-                            v['source_ref'] = drill_source[4:]
-                        violations.append(v)
+                actual, src = hit[:2]
+                required = constraint[bound]
+                v = {
+                    'rule': f"custom:{rule.get('name', ctype)}",
+                    'source': 'kicad_dru',
+                    'required_mm': round(required, 4),
+                    'actual_mm': round(actual, 4),
+                    'constraint_type': ctype,
+                    'bound': bound,
+                    'message': (f"Custom rule \"{rule.get('name', '')}\" "
+                                f"requires {ctype} {'>=' if bound == 'min' else '<='} "
+                                f"{required:.3f}mm, actual {actual:.3f}mm"),
+                }
+                if ctype == 'hole_size':
+                    # Attribute a pad-sourced hole_size bound to its pad.
+                    v['drill_source'] = 'pad' if src.startswith('pad ') else 'via'
+                    if src.startswith('pad '):
+                        v['source_ref'] = src[4:]
+                violations.append(v)
 
     result: dict = {
         'compliant': len(violations) == 0,

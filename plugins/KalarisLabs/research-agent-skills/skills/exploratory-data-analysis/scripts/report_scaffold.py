@@ -18,10 +18,12 @@ from _common import (
 from capability_manifest import inspect_manifest
 
 
+NOT_SUPPLIED = "not supplied"
 TEMPLATE = Path(__file__).resolve().parents[1] / "assets" / "report_template.md"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Create a local Markdown EDA scaffold that records design, missingness, "
@@ -45,7 +47,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--analysis-date",
-        default="not supplied",
+        default=NOT_SUPPLIED,
         help="Explicit date label (for example 2026-07-23); not generated implicitly",
     )
     parser.add_argument(
@@ -80,12 +82,12 @@ def render_scaffold(
     if manifest is None:
         replacements = {
             "{ANALYSIS_DATE}": markdown_scalar(analysis_date),
-            "{FILE_ID}": "not supplied",
-            "{BASENAME}": "not supplied",
-            "{FORMAT}": "not supplied",
-            "{CAPABILITY_TIER}": "not supplied",
-            "{FILE_SIZE_BYTES}": "not supplied",
-            "{SIGNATURE_CHECKED}": "not supplied",
+            "{FILE_ID}": NOT_SUPPLIED,
+            "{BASENAME}": NOT_SUPPLIED,
+            "{FORMAT}": NOT_SUPPLIED,
+            "{CAPABILITY_TIER}": NOT_SUPPLIED,
+            "{FILE_SIZE_BYTES}": NOT_SUPPLIED,
+            "{SIGNATURE_CHECKED}": NOT_SUPPLIED,
         }
     else:
         file_info = manifest["file"]
@@ -108,6 +110,7 @@ def render_scaffold(
 
 
 def _main() -> None:
+    """Handle main."""
     args = build_parser().parse_args()
     max_bytes = bounded_file_limit(args.max_bytes)
     manifest = None
@@ -136,6 +139,7 @@ def _main() -> None:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     return run_cli(_main)
 
 

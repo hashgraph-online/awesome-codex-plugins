@@ -16,9 +16,9 @@ from _common import (
     argparse_nonnegative_int,
     argparse_positive_int,
     bounded_number,
-    cli_error,
-    emit_json,
+    add_output_arguments,
     read_json_file,
+    run_json_cli,
 )
 from snapshot_tools import validate_snapshot
 
@@ -26,6 +26,7 @@ MIB = 1024**2
 
 
 def _optional_number(value: Any) -> float | None:
+    """Handle optional number."""
     return bounded_number(value, maximum=float(MAX_BYTES))
 
 
@@ -33,6 +34,7 @@ def _accelerator_decision(
     snapshot: Mapping[str, Any],
     requested: str,
 ) -> dict[str, Any]:
+    """Handle accelerator decision."""
     if requested == "none":
         return {
             "candidate_count_upper_bound": 0,
@@ -237,6 +239,7 @@ def build_plan(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Plan bounded workers and memory from a resource snapshot"
     )
@@ -273,26 +276,16 @@ def build_parser() -> argparse.ArgumentParser:
         default="none",
         help="request a candidate backend without assuming runtime usability",
     )
-    parser.add_argument(
-        "--output",
-        metavar="FILE.json",
-        help="write a private local JSON file instead of stdout",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="replace an existing explicit output file",
-    )
+    add_output_arguments(parser)
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-    if args.force and not args.output:
-        parser.error("--force requires --output")
-    try:
-        plan = build_plan(
+    """Run the command-line interface."""
+    return run_json_cli(
+        build_parser(),
+        argv,
+        lambda args: build_plan(
             read_json_file(args.snapshot),
             workload=args.workload,
             task_count=args.tasks,
@@ -300,11 +293,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             memory_per_worker_mib=args.memory_per_worker_mib,
             reserve_memory_mib=args.reserve_memory_mib,
             accelerator=args.accelerator,
-        )
-        emit_json(plan, args.output, force=args.force)
-    except ResourceToolError as exc:
-        return cli_error(parser, exc)
-    return 0
+        ),
+    )
 
 
 if __name__ == "__main__":

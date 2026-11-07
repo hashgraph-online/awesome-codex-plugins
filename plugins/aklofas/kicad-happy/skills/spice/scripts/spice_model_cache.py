@@ -15,13 +15,14 @@ Directory structure:
           LM358.sub       # .subckt OPAMP_LM358 ...
           AMS1117_3_3.sub # .subckt LDO_AMS1117_3_3 ...
 
-The model resolution cascade:
-    1. Project cache (spice/models/) — instant, previously resolved
-    2. Lookup table (spice_part_library.py) — instant, offline
-    3. API parametric data (spice_spec_fetcher.py) — ~1s, needs creds
-    4. Structured datasheet extraction (datasheets/extracted/) — cached JSON
-    5. Heuristic PDF regex extraction — pdftotext + regex patterns
-    6. Ideal/generic model fallback — instant, always available
+The model resolution cascade (get_model_for_part):
+    1. Project cache (spice/models/) — previously resolved
+    2. Distributor API parametric data (spice_spec_fetcher.py)
+    3. Structured datasheet extraction (datasheets/extracted/)
+    4. Heuristic PDF regex extraction — pdftotext + regex patterns
+    5. Built-in lookup table (spice_part_library.py) — offline
+    6. Ideal/generic model fallback — always available
+Offline mode skips tiers 2-4.
 """
 
 import json
@@ -31,8 +32,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import _core_path  # noqa: F401
+from datasheet_types.cache_reader import read_json_object, read_regular_bytes
+from distributor_core.manifest import DEFAULT_FILE_MODE, manifest_file_path
 from kicad_core.diagnostics import record
+from kicad_core.project import extraction_project_dir, project_dir_from_analysis  # noqa: F401  (re-exported)
 from spice_part_library import lookup_part_specs
+from spice_spec_fetcher import _read_spice_specs
 from spice_model_generator import (
     generate_opamp_model,
     generate_ldo_model,
@@ -43,21 +48,6 @@ from spice_model_generator import (
 
 
 _PROCESS_CACHE_DIR = None  # per-process fallback root, created lazily
-
-
-def project_dir_from_analysis(analysis_json):
-    """Return the directory of the first source file the analysis JSON names
-    ("file", else inputs.source_files[0]), or None when it names none."""
-    if not isinstance(analysis_json, dict):
-        return None
-    source_file = analysis_json.get("file")
-    if not (isinstance(source_file, str) and source_file):
-        inputs = analysis_json.get("inputs")
-        sources = inputs.get("source_files") if isinstance(inputs, dict) else None
-        source_file = sources[0] if isinstance(sources, list) and sources else None
-    if isinstance(source_file, str) and source_file:
-        return Path(source_file).parent
-    return None
 
 
 def resolve_cache_dir(analysis_json, override_dir=None):
@@ -112,7 +102,7 @@ def _cache_manifest_path(cache_dir):
     return new  # does not exist — return target path for write
 
 
-def get_cached_model(cache_dir, mpn):
+def get_cached_model(cache_dir, mpn, diagnostics=None):
     """Retrieve a cached model by MPN.
 
     Args:
@@ -122,9 +112,15 @@ def get_cached_model(cache_dir, mpn):
     Returns:
         (subckt_string, specs_dict) or (None, None) if not cached
     """
+    return _lookup_cached_model(cache_dir, mpn, diagnostics)[:2]
+
+
+def _lookup_cached_model(cache_dir, mpn, diagnostics=None):
+    """(subckt, specs, refused): ``refused`` is True when the manifest names a model file
+    that was not used (link, oversize, undecodable), so the caller must not overwrite it."""
     index_path = _cache_manifest_path(cache_dir)
     if not index_path.exists():
-        return None, None
+        return None, None, False
 
     # Use in-memory cache keyed on file mtime to avoid re-parsing
     cache_key = str(cache_dir)
@@ -134,26 +130,76 @@ def get_cached_model(cache_dir, mpn):
         if cached and cached[0] == mtime:
             index = cached[1]
         else:
-            with open(index_path) as f:
-                index = json.load(f)
+            index = read_json_object(index_path)
+            if index is None:
+                return None, None, False
             _index_cache[cache_key] = (mtime, index)
-    except (json.JSONDecodeError, OSError):
-        return None, None
+    except OSError:
+        return None, None, False
 
     key = sanitize_mpn(mpn)
-    entry = index.get(key)
-    if not entry:
-        return None, None
+    entry = index.get(key) if isinstance(index, dict) else None
+    if not isinstance(entry, dict):
+        return None, None, False
 
-    model_file = Path(cache_dir) / entry.get("file", "")
-    if not model_file.exists():
-        return None, None
+    name = entry.get("file")
+    model_file = manifest_file_path(Path(cache_dir), name)
+    if model_file is None or not name.endswith(".sub") or not model_file.is_file():
+        if model_file is None and isinstance(name, str) and (Path(cache_dir) / name).is_symlink():
+            record(diagnostics, "spice_model_cache.get_cached_model",
+                   ValueError(f"{name} is a symlink"), "project model skipped")
+            return None, None, True
+        if model_file is not None and name.endswith(".sub") and os.path.lexists(model_file):
+            record(diagnostics, "spice_model_cache.get_cached_model",
+                   ValueError(f"{name} is not a regular file"), "project model skipped")
+            return None, None, True
+        return None, None, False
 
+    raw = read_regular_bytes(model_file)
     try:
-        subckt = model_file.read_text()
-        return subckt, entry.get("specs", {})
-    except OSError:
-        return None, None
+        subckt = None if raw is None else raw.decode("utf-8")
+    except UnicodeDecodeError:
+        subckt = None
+    if subckt is None:
+        record(diagnostics, "spice_model_cache.get_cached_model",
+               ValueError(f"{name} is oversized or unreadable"), "project model skipped")
+        return None, None, True
+    return subckt, _read_spice_specs(entry.get("specs")), False
+
+
+# ngspice recognises dot-cards by prefix, so ".controlx" opens a control block and
+# ".incx" includes a file; shell/source only matter as whole words (inside a control
+# block), which keeps element names like SOURCE1 usable.
+_CONTROL_CARD_PREFIXES = (".control", ".endc")
+_INCLUDE_CARD_PREFIXES = (".inc", ".lib")
+_CONTROL_WORDS = ("shell", "source")
+
+
+def _logical_lines(text):
+    lines = []
+    for raw in text.splitlines():
+        line = raw.strip()
+        if line.startswith("+") and lines:
+            lines[-1] += " " + line[1:].strip()
+        else:
+            lines.append(line)
+    return lines
+
+
+def model_text_problem(text):
+    """Why a cached model is unsafe to paste into a netlist, or None.
+
+    Unsafe: a line that opens or closes a simulator control block, runs ``shell`` or
+    ``source``, or includes any file (``.inc``/``.include``/``.lib``). Included files
+    resolve from the simulation directory and are never scanned, so none is allowed.
+    """
+    for line in _logical_lines(text):
+        card = line.lower().split(None, 1)[0] if line else ""
+        if card.startswith(_INCLUDE_CARD_PREFIXES):
+            return f"model includes a file: {line[:60]}"
+        if card.startswith(_CONTROL_CARD_PREFIXES) or card in _CONTROL_WORDS:
+            return f"model contains a simulator control command: {line[:60]}"
+    return None
 
 
 def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
@@ -174,18 +220,24 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
     filename = f"{key}.sub"
     model_path = cache_dir / filename
 
-    # Write .sub file
-    model_path.write_text(subckt)
+    # A temp file swapped in replaces a planted symlink instead of writing through it
+    tmp = tempfile.NamedTemporaryFile(dir=cache_dir, prefix=f"{key}.", suffix=".tmp",
+                                      delete=False, mode="w", encoding="utf-8", newline="\n")
+    try:
+        with tmp:
+            tmp.write(subckt)
+        os.chmod(tmp.name, DEFAULT_FILE_MODE)
+        os.replace(tmp.name, model_path)
+    except BaseException:
+        try:
+            os.unlink(tmp.name)
+        except OSError:
+            pass
+        raise
 
     # Update manifest (prefer existing file; always write to manifest.json)
     read_path = _cache_manifest_path(cache_dir)
-    index = {}
-    if read_path.exists():
-        try:
-            with open(read_path) as f:
-                index = json.load(f)
-        except (json.JSONDecodeError, OSError):
-            index = {}
+    index = read_json_object(read_path) or {}
 
     import datetime
     index[key] = {
@@ -200,10 +252,11 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
     # Write beside the target and swap it in, so a reader never sees a half-written manifest
     write_path = cache_dir / MANIFEST_FILENAME
     tmp = tempfile.NamedTemporaryFile(dir=cache_dir, prefix="manifest.", suffix=".tmp",
-                                      delete=False, mode="w", encoding="utf-8")
+                                      delete=False, mode="w", encoding="utf-8", newline="\n")
     try:
         with tmp:
             json.dump(index, tmp, indent=2)
+        os.chmod(tmp.name, DEFAULT_FILE_MODE)
         os.replace(tmp.name, write_path)
     except BaseException:
         try:
@@ -257,9 +310,12 @@ class ModelOptions:
                (default: beside the first source file the analysis JSON names,
                "file" or "inputs.source_files[0]")
     offline:   never query distributor APIs or datasheets; cache + lookup table only
+    trust_project_models: paste cached models verbatim, even ones with simulator
+               control commands or includes outside the models folder
     """
     cache_dir: str | None = None
     offline: bool = False
+    trust_project_models: bool = False
 
 
 def get_model_for_part(mpn, component_type=None, context=None, options=None, *, diagnostics=None):
@@ -271,7 +327,8 @@ def get_model_for_part(mpn, component_type=None, context=None, options=None, *, 
            (skipped when options.offline)
         3. Structured datasheet extraction — from datasheets/extracted/ cache
         4. Heuristic PDF regex extraction — from datasheets/ PDFs
-        5. Built-in lookup table — ~100 common parts with verified specs
+        5. Built-in lookup table — common op-amps, LDOs, comparators and
+           references with verified specs
         6. Ideal/generic model fallback
 
     Real data (APIs, datasheets) takes priority over the lookup table.
@@ -300,16 +357,26 @@ def get_model_for_part(mpn, component_type=None, context=None, options=None, *, 
     # --- Tier 0: Project cache ---
     if use_cache:
         cache_dir = resolve_cache_dir(context or {}, override_dir=opts.cache_dir)
-        cached_subckt, cached_specs = get_cached_model(cache_dir, mpn)
-        if cached_subckt:
+        cached_subckt, cached_specs, refused = _lookup_cached_model(cache_dir, mpn, diagnostics)
+        if refused:
+            use_cache = False
+        problem = None
+        if cached_subckt and not opts.trust_project_models:
+            problem = model_text_problem(cached_subckt)
+            if problem:
+                record(diagnostics, "spice_model_cache.get_cached_model", ValueError(problem),
+                       "project model skipped")
+                # The fallback model is used but never replaces the user's file
+                use_cache = False
+        if cached_subckt and not problem:
             return cached_subckt, f"cache:{mpn}", cached_specs
 
     # --- Tier 1: Distributor API parametric specs ---
     if not opts.offline:
         try:
             from spice_spec_fetcher import fetch_specs
-            # Derive project dir from context for datasheet fallback
-            project_dir = project_dir_from_analysis(context)
+            # Datasheet fallback: only a project the analysis really names, never the cwd
+            project_dir = extraction_project_dir(context)
             if project_dir is not None:
                 project_dir = str(project_dir)
 

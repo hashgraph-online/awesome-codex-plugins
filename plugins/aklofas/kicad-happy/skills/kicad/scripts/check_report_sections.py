@@ -106,9 +106,16 @@ def _load_envelopes(run_dir: str) -> dict:
         path = os.path.join(run_dir, f"{stem}.json")
         if os.path.isfile(path):
             try:
-                envs[stem] = json.loads(open(path, encoding="utf-8").read())
-            except (json.JSONDecodeError, OSError):
-                pass
+                with open(path, encoding="utf-8") as f:
+                    env = json.load(f)
+                if not isinstance(env, dict):
+                    raise ValueError(f"top level is {type(env).__name__}, not an object")
+            except (ValueError, OSError) as exc:
+                # The analyzer ran, so its sections stay required.
+                record(None, f"check_report_sections: {path}", exc,
+                       f"{stem} sections still required; its data was not read")
+                env = {}
+            envs[stem] = env
     return envs
 
 
@@ -131,7 +138,7 @@ def required_sections(envs: dict, analysis_dir: str | None = None) -> list[tuple
         if val:  # present and non-empty
             out.append((label, aliases, f"schematic.{key} present"))
 
-    # Deep Review slot (v2.0 spec §3.E): required when the durable
+    # Deep Review slot: required when the durable
     # findings file exists (flat, sibling of manifest.json).
     if analysis_dir and os.path.isfile(os.path.join(analysis_dir, "deep_review.json")):
         out.append(("Deep Review",
@@ -201,4 +208,6 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

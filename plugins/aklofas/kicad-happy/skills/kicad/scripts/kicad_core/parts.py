@@ -1,5 +1,20 @@
-"""Known-part knowledge tables: regulator Vref and switching frequencies (kicad_core). Moved verbatim from kicad_utils.py; sources and verification dates are in the table comments. Typical MLCC ESL/ESR by package moved verbatim from emc_formulas.py."""
+"""Known-part knowledge tables: regulator Vref and switching frequencies (kicad_core). Sources and verification dates are in the table comments. Also holds typical MLCC ESL/ESR by package."""
 import re
+
+
+# Load-switch and power-distribution-switch part families (lowercase substrings of lib_id + value).
+# Shared by the power-path detector and the regulator screen, which must not record them as LDOs.
+LOAD_SWITCH_KEYWORDS = (
+    "tps229", "tps2291", "tps2293", "tps2295",
+    "tps2281", "tps2283", "tps2285",
+    "tps2211", "tps2219", "tps2221",
+    "tps22918", "tps22919", "tps22810",
+    "tps206", "ap217", "mt9700",
+    "sy628",
+    "rt9742", "rt9701", "ap2281", "ap2191",
+    "stmps2", "ncp380", "ncp381",
+    "mic205", "mic209",
+)
 
 
 # Regulator Vref lookup table — maps part number prefixes to their internal
@@ -7,7 +22,7 @@ import re
 # guessing from a list.  Lookup uses longest-prefix-match so that specific
 # entries (e.g. LMR51420=0.6V) beat broader ones (e.g. LMR514=0.8V).
 # When a part isn't found here the analyzer falls back to the heuristic sweep.
-# Sources: DigiKey parametric data + manufacturer datasheets (verified 2026-04-12) (KH-236 collision audit)
+# Sources: DigiKey parametric data + manufacturer datasheets (verified 2026-04-12)
 _REGULATOR_VREF: dict[str, float] = {
     # TI switching regulators — verified against TI datasheets + DigiKey 2026-04-12
     "TPS6100": 0.5,                                               # TPS61000/01 FB = 0.5V
@@ -15,7 +30,7 @@ _REGULATOR_VREF: dict[str, float] = {
     "TPS5430": 1.221,  "TPS5450": 1.221,  "TPS5410": 1.221,     # TPS5430/50/10 Vref = 1.221V
     "TPS54160": 0.8,   "TPS54260": 0.8,   "TPS54360": 0.8,      # TPS541x0/542x0/543x0 FB = 0.8V
     "TPS54040": 0.8,   "TPS54060": 0.8,                          # TPS54040/60 Vref = 0.8V
-    "TPS54302": 0.596, "TPS54308": 0.596,                        # TPS54302/08 FB = 0.596V (KH-237 verified)
+    "TPS54302": 0.596, "TPS54308": 0.596,                        # TPS54302/08 FB = 0.596V (verified)
     # TPS56 family — split per DigiKey verification (was single 'TPS56': 0.6)
     "TPS56339": 0.8,   "TPS56637": 0.6,                          # TPS56339 = 0.8V, TPS56637 = 0.6V
     "TPS560200": 0.8,                                             # TPS560200 VSENSE = 0.8V
@@ -30,6 +45,9 @@ _REGULATOR_VREF: dict[str, float] = {
     # TPS63 buck-boost
     "TPS6300": 0.5,    "TPS6301": 0.5,                           # TPS63000/01 VFB = 0.5V
     "TPS6310": 0.5,                                               # TPS631000 VFB = 0.5V
+    "TPS63020": 0.5,                                              # TPS63020 VFB = 500 mV (SLVS916I §6.5); TPS63021 is fixed 3.3 V
+    # TI power modules
+    "TPS82084": 0.8,   "TPS82085": 0.8,                          # TPS82084/85 VFB = 800 mV (SLVSCN4D §6.5)
     # TI LMR family
     "LMR51410": 0.6,   "LMR51420": 0.6,   "LMR51430": 0.6,       # LMR51410/20/30 Vref = 0.6V
     "LMR51440": 0.8,   "LMR51460": 0.8,                          # LMR51440/60 Vref = 0.8V
@@ -60,7 +78,8 @@ _REGULATOR_VREF: dict[str, float] = {
     "LT871": 1.213,                                               # LT8710 FBX = 1.213V
     "LTM46": 0.6,                                                 # LTM4600 VFB = 0.6V
     # Richtek
-    "RT5": 0.6,         "RT6": 0.6,                              # RT5785/RT6150 VFB = 0.6V
+    "RT5": 0.6,         "RT6": 0.6,                              # family default (RT5785 VFB = 0.6V)
+    "RT6150": 0.5,                                                # RT6150A/B VFB = 0.5V (DS6150A/B-06)
     "RT2875": 0.6,                                                # RT2875 VFB = 0.6V
     # MPS — split per DigiKey verification (was single 'MP2': 0.8)
     "MP1": 0.8,                                                    # MP1584 VFB = 0.8V
@@ -108,12 +127,12 @@ _REGULATOR_VREF: dict[str, float] = {
     "LM317": 1.25,     "LM337": 1.25,
     "AMS1117": 1.25,   "AMS1085": 1.25,
     "LM1117": 1.25,
-    # REMOVED (KH-236): LM78, LM79 — fixed-output only, suffix parser handles them
-    # REMOVED (KH-236): AP73 broad prefix — split into AP7335/AP7362/AP7363/AP7365/AP7366
-    # REMOVED (KH-236): AP736 broad prefix — split into AP7365/AP7366
-    # REMOVED (KH-236): MP2 broad prefix — split into per-MPN entries
-    # REMOVED (KH-236): TPS7A broad prefix — split into per-sub-family entries
-    # REMOVED (KH-236): TPS56 broad prefix — split into per-sub-family entries
+    # REMOVED: LM78, LM79 — fixed-output only, suffix parser handles them
+    # REMOVED: AP73 broad prefix — split into AP7335/AP7362/AP7363/AP7365/AP7366
+    # REMOVED: AP736 broad prefix — split into AP7365/AP7366
+    # REMOVED: MP2 broad prefix — split into per-MPN entries
+    # REMOVED: TPS7A broad prefix — split into per-sub-family entries
+    # REMOVED: TPS56 broad prefix — split into per-sub-family entries
 }
 
 # Keywords for classifying MOSFET/BJT load type from net names.
@@ -144,16 +163,52 @@ _OUTPUT_DRIVE_KEYWORDS: tuple[str, ...] = (
 )
 
 
-def lookup_regulator_vref(value: str, lib_id: str) -> tuple[float | None, str]:
-    """Look up a regulator's internal Vref from its value or lib_id.
+def _regulator_candidates(value: str, lib_id: str, mpn: str) -> tuple[list[str], tuple[float | None, str]]:
+    """The candidate names the Vref was taken from, and the lookup result.
 
-    Returns (vref, source) where source is "lookup" if found, or (None, "")
-    if not.  Tries the value field first (usually the part number), then the
-    lib_id part name after the colon.
+    Value and lib_id part name come first; the MPN is consulted only when they
+    give nothing, or when it names a longer table key (RT6150 over RT6).
     """
     candidates = [value.upper()]
     if ":" in lib_id:
         candidates.append(lib_id.split(":")[-1].upper())
+    result = _lookup_vref(candidates)
+    if mpn:
+        mpn_candidates = [mpn.upper()]
+        mpn_result = _lookup_vref(mpn_candidates)
+        if result[0] is None:
+            return mpn_candidates, mpn_result
+        if result[1] == "lookup" and mpn_result[1] == "lookup":
+            keys = [_longest_vref_key(c) or "" for c in (candidates + mpn_candidates)]
+            if len(keys[-1]) > max(len(k) for k in keys[:-1]):
+                return mpn_candidates, mpn_result
+    return candidates, result
+
+
+def lookup_regulator_vref(value: str, lib_id: str, mpn: str = "") -> tuple[float | None, str]:
+    """Look up a regulator's internal Vref from its value, lib_id or MPN.
+
+    Returns (vref, source) where source is "fixed_suffix" for a fixed-output
+    part number, "lookup" for a table hit, or (None, "") if not found.  Tries
+    the value field first (usually the part number), then the lib_id part name
+    after the colon; the MPN is consulted when neither gives an answer or when
+    it names a longer table key.
+    """
+    return _regulator_candidates(value, lib_id, mpn)[1]
+
+
+# A package name in a part or symbol name (_SOT-23, SOT-89-10, _TO220) is not a voltage.
+_PACKAGE_TOKEN = re.compile(
+    r'[-_]?(?:SOT|SOD|SC|TO|DFN|QFN|SON|SOIC|SOP|MSOP|SSOP|TSSOP|HTSSOP|VSSOP|TSOT|'
+    r'WSON|VSON|USON|UDFN|WDFN|XDFN|TDFN|VQFN|WQFN|LGA|BGA|DIP|PDIP|SIP|LQFP|TQFP|QFP|'
+    r'DPAK|D2PAK)[-_]?\d+(?:[-_]\d+)?')
+# A two-digit suffix that is also a common supply voltage is read both ways in
+# KiCad's library (AP7361C-12E is 1.2 V, LM1085-12 is 12 V; AP1117-15 is 1.5 V,
+# LM3480-15 is 15 V; LM341T-05 is 5 V; NID30S48-24 is 24 V), so it gives no value.
+_AMBIGUOUS_SUFFIXES = frozenset({"05", "09", "10", "12", "15", "24", "48"})
+
+
+def _lookup_vref(candidates: list[str]) -> tuple[float | None, str]:
     # LM78xx/LM79xx fixed-output convention: voltage digits embedded without
     # separator. LM7805=5V, LM78L12=12V, LM78M05CT=5V, LM7805_TO220=5V.
     # These families ONLY exist as fixed-output — no adjustable variant.
@@ -163,9 +218,10 @@ def lookup_regulator_vref(value: str, lib_id: str) -> tuple[float | None, str]:
             v = int(m.group(1))
             if v in (5, 6, 8, 9, 10, 12, 15, 18, 24):
                 return float(v), "fixed_suffix"
-    # Check for fixed-output voltage suffix (e.g., LM2596S-12, AMS1117-3.3,
-    # TLV1117LV-33, RT9013-18GV — patterns: -3.3, -33, -3V3, -1V8, -12)
+    # Check for fixed-output voltage suffix (e.g., AMS1117-3.3, TLV1117LV-33,
+    # RT9013-18GV — patterns: -3.3, -33, -3V3, -1V8)
     for candidate in candidates:
+        candidate = _PACKAGE_TOKEN.sub("", candidate)
         m = re.search(r'[-_](\d+)V(\d+)', candidate)
         if m:
             return float(f"{m.group(1)}.{m.group(2)}"), "fixed_suffix"
@@ -175,33 +231,58 @@ def lookup_regulator_vref(value: str, lib_id: str) -> tuple[float | None, str]:
             if 0.5 <= fixed_v <= 60:
                 return fixed_v, "fixed_suffix"
         m = re.search(r'[-_](\d{2})(?=[^0-9.]|$)', candidate)
-        if m:
-            # Two-digit suffix: could be implicit decimal (33→3.3V) or
-            # integer voltage (12→12V, 15→15V). Check integer first for
-            # common high-voltage rails.
-            digits = m.group(1)
-            int_v = int(digits)
-            if int_v in (10, 12, 15, 24, 48):
-                return float(int_v), "fixed_suffix"
-            fixed_v = float(digits[0] + "." + digits[1])
-            if 0.5 <= fixed_v <= 9.9:
+        if m and m.group(1) not in _AMBIGUOUS_SUFFIXES:
+            # A two-digit suffix is an implied decimal, as in KiCad's library:
+            # AP1117-33 is 3.3 V, LDK130-08 is 0.8 V. No fixed part is below
+            # 0.5 V, so LC78_03-05 (a 3.3 V module) gives no value.
+            fixed_v = float(m.group(1)[0] + "." + m.group(1)[1])
+            if fixed_v >= 0.5:
                 return fixed_v, "fixed_suffix"
-    # Longest-prefix-match: collect all matching prefixes, pick the longest
     for candidate in candidates:
-        best_prefix = ""
-        best_vref = None
-        for prefix, vref in _REGULATOR_VREF.items():
-            if candidate.startswith(prefix.upper()) and len(prefix) > len(best_prefix):
-                best_prefix = prefix
-                best_vref = vref
-        if best_vref is not None:
-            return best_vref, "lookup"
+        key = _longest_vref_key(candidate)
+        if key is not None:
+            return _REGULATOR_VREF[key], "lookup"
     return None, ""
+
+
+def _longest_vref_key(candidate: str) -> str | None:
+    """The longest _REGULATOR_VREF prefix of *candidate*, or None."""
+    best = None
+    for prefix in _REGULATOR_VREF:
+        if candidate.startswith(prefix.upper()) and len(prefix) > len(best or ""):
+            best = prefix
+    return best
+
+
+def part_number_core(part: str) -> str:
+    """The part number without suffix letters, package or option codes:
+    'TPS61023DRLR' -> 'TPS61023', 'LM2596S-ADJ' -> 'LM2596',
+    'TPS7A4901DGNR' -> 'TPS7A4901'; '' when it does not start with one."""
+    m = re.match(r"[A-Z]+\d+(?:[A-Z]\d+)*", part.upper())
+    return m.group(0) if m else ""
+
+
+def vref_key_covers_part(key: str, part: str) -> bool:
+    """True when a _REGULATOR_VREF key names the whole part number of *part*
+    (its value for that part), not a shorter family prefix: 'TPS61023' covers
+    TPS61023DRLR, 'TPS6102' does not cover TPS61025."""
+    core = part_number_core(part)
+    return bool(core) and part.upper().startswith(key.upper()) and len(key) >= len(core)
+
+
+def regulator_vref_key(value: str, lib_id: str, mpn: str = "") -> tuple[str, str] | None:
+    """(key, part): the _REGULATOR_VREF key that lookup_regulator_vref takes a
+    "lookup" Vref from and the value, lib_id part name or MPN it matched (same
+    candidate order), or None when the Vref is not a table hit."""
+    candidates, (vref, source) = _regulator_candidates(value, lib_id, mpn)
+    if source != "lookup":
+        return None
+    return next((k, c) for c in candidates if (k := _longest_vref_key(c)) is not None)
 
 
 # ---------------------------------------------------------------------------
 # Switching frequency lookup table — single source of truth for both
-# signal_detectors.py and emc_rules.py.  See KH-237 for collision audit.
+# signal_detectors.py and emc_rules.py.
 # Sources: DigiKey parametric data + manufacturer datasheets (verified 2026-04-12).
 # ~100 entries: 8 broad collision prefixes replaced with per-sub-family entries.
 # ---------------------------------------------------------------------------
@@ -328,7 +409,7 @@ def lookup_switching_freq(part_value: str) -> float | None:
     """Look up switching frequency from known regulator part numbers.
 
     Uses longest-prefix-first matching via startswith to avoid substring
-    false positives (KH-237). Returns frequency in Hz or None if unknown.
+    false positives. Returns frequency in Hz or None if unknown.
     """
     if not part_value:
         return None
@@ -368,7 +449,7 @@ def match_known_switching(value: str, lib_id: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# ESR/ESL lookup by package size (typical MLCC values) — moved verbatim from emc_formulas.py
+# ESR/ESL lookup by package size (typical MLCC values)
 # ---------------------------------------------------------------------------
 
 # Typical ESL values for MLCC by package (Henries)

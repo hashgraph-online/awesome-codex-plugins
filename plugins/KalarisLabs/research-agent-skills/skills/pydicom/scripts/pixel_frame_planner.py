@@ -63,6 +63,7 @@ PIXEL_TAGS = [
 def parse_frame_selection(
     specification: str, *, total_frames: int, max_selected: int
 ) -> list[int]:
+    """Parse frame selection."""
     if specification.strip().casefold() == "all":
         if total_frames > max_selected:
             raise ToolError("'all' exceeds the selected-frame limit")
@@ -92,6 +93,7 @@ def parse_frame_selection(
 
 
 def plan(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle plan."""
     max_input_bytes = parse_size(
         args.max_input_bytes,
         name="max_input_bytes",
@@ -220,6 +222,7 @@ def plan(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan bounded DICOM pixel frame access, shapes, byte limits, and "
@@ -273,6 +276,7 @@ and semantics plan, not diagnostic or pixel-correctness validation.
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = plan(args)

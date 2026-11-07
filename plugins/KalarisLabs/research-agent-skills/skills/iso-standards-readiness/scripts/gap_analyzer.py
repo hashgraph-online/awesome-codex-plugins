@@ -26,6 +26,7 @@ from validate_evidence_manifest import validate as validate_manifest
 
 
 def _entry_ready(entry: dict[str, Any]) -> bool:
+    """Handle entry ready."""
     status = entry.get("status")
     approval = entry.get("approval")
     evidence = entry.get("evidence")
@@ -48,6 +49,7 @@ def analyze(
     verify_files: bool,
     profile: StandardProfile,
 ) -> tuple[dict[str, Any], int]:
+    """Handle analyze."""
     review, manifest_metrics = validate_manifest(
         data,
         base_dir=base_dir,
@@ -130,6 +132,7 @@ def analyze(
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = standard_parser(
         "Create a fail-closed evidence gap report from a local readiness manifest.",
         "Path to the local evidence-manifest JSON file",

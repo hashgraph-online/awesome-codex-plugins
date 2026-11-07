@@ -40,6 +40,10 @@ except ImportError:
     print("Error: requests library not found. Install with: uv pip install requests")
     sys.exit(1)
 
+_JSON_CONTENT_TYPE = "application/json"
+_HTTP_REFERER = "https://github.com/scientific-writer"
+_DATA_IMAGE_PREFIX = "data:image"
+
 
 class ReviewResult(NamedTuple):
     """The outcome of one quality review.
@@ -509,8 +513,8 @@ Include citation hints where possible."""
             
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://github.com/scientific-writer",
+                "Content-Type": _JSON_CONTENT_TYPE,
+                "HTTP-Referer": _HTTP_REFERER,
                 "X-Title": "Infographic Research"
             }
             
@@ -593,8 +597,8 @@ Be concise and factual. Focus on information useful for an infographic."""
             
             headers = {
                 "Authorization": f"Bearer {self.api_key}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://github.com/scientific-writer",
+                "Content-Type": _JSON_CONTENT_TYPE,
+                "HTTP-Referer": _HTTP_REFERER,
                 "X-Title": "Infographic Web Search"
             }
             
@@ -662,8 +666,8 @@ Incorporate specific numbers, percentages, and dates from the research."""
         """Make a request to OpenRouter API."""
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/scientific-writer",
+            "Content-Type": _JSON_CONTENT_TYPE,
+            "HTTP-Referer": _HTTP_REFERER,
             "X-Title": "Infographic Generator"
         }
         
@@ -723,7 +727,7 @@ Incorporate specific numbers, percentages, and dates from the research."""
                         if isinstance(url, dict):
                             url = url.get("url", "")
                         
-                        if url and url.startswith("data:image"):
+                        if url and url.startswith(_DATA_IMAGE_PREFIX):
                             if "," in url:
                                 base64_str = url.split(",", 1)[1]
                                 base64_str = base64_str.replace('\n', '').replace('\r', '').replace(' ', '')
@@ -733,7 +737,7 @@ Incorporate specific numbers, percentages, and dates from the research."""
             # Fallback: check content field
             content = message.get("content", "")
             
-            if isinstance(content, str) and "data:image" in content:
+            if isinstance(content, str) and _DATA_IMAGE_PREFIX in content:
                 import re
                 match = re.search(r'data:image/[^;]+;base64,([A-Za-z0-9+/=\n\r]+)', content, re.DOTALL)
                 if match:
@@ -747,7 +751,7 @@ Incorporate specific numbers, percentages, and dates from the research."""
                         url = block.get("image_url", {})
                         if isinstance(url, dict):
                             url = url.get("url", "")
-                        if url and url.startswith("data:image") and "," in url:
+                        if url and url.startswith(_DATA_IMAGE_PREFIX) and "," in url:
                             base64_str = url.split(",", 1)[1].replace('\n', '').replace('\r', '').replace(' ', '')
                             self._log(f"Found image in content block {i}")
                             return base64.b64decode(base64_str)
@@ -1170,7 +1174,7 @@ Generate an improved version that:
         }
         
         print(f"\n{'='*60}")
-        print(f"Generating Infographic with Nano Banana Pro")
+        print("Generating Infographic with Nano Banana Pro")
         print(f"{'='*60}")
         print(f"Content: {user_prompt}")
         print(f"Type: {type_name}")
@@ -1185,14 +1189,14 @@ Generate an improved version that:
         # ===== RESEARCH PHASE =====
         enhanced_prompt = user_prompt
         if research:
-            print(f"\n[Research Phase]")
+            print("\n[Research Phase]")
             print("-" * 40)
-            print(f"Researching topic for accurate data...")
+            print("Researching topic for accurate data...")
             
             research_result = self.research_topic(user_prompt, infographic_type)
             
             if research_result.get("success"):
-                print(f"✓ Research complete - gathered facts and statistics")
+                print("✓ Research complete - gathered facts and statistics")
                 results["research_data"] = research_result
                 
                 # Enhance the prompt with researched data
@@ -1205,7 +1209,7 @@ Generate an improved version that:
                 print(f"✓ Research saved: {research_path}")
             else:
                 print(f"⚠ Research failed: {research_result.get('error', 'Unknown error')}")
-                print(f"  Proceeding with original prompt...")
+                print("  Proceeding with original prompt...")
         
         # Build initial prompt (using enhanced prompt if research was done)
         current_prompt = self._build_generation_prompt(
@@ -1217,7 +1221,7 @@ Generate an improved version that:
             print("-" * 40)
             
             # Generate image
-            print(f"Generating infographic with Nano Banana Pro...")
+            print("Generating infographic with Nano Banana Pro...")
             image_data = self.generate_image(current_prompt, context_images)
             
             if not image_data:
@@ -1244,7 +1248,7 @@ Generate an improved version that:
             if review.score is not None:
                 print(f"✓ Score: {review.score}/10 (threshold: {threshold}/10)")
             else:
-                print(f"⚠ Review unavailable — image kept, quality not verified")
+                print("⚠ Review unavailable — image kept, quality not verified")
                 print(f"  Reason: {review.error}")
 
             # Save iteration results
@@ -1265,11 +1269,11 @@ Generate an improved version that:
             if not review.needs_improvement:
                 if review.score is not None:
                     print(f"\n✓ Quality meets threshold ({review.score} >= {threshold})")
-                    print(f"  No further iterations needed!")
+                    print("  No further iterations needed!")
                     reason = f"Quality score {review.score} meets threshold {threshold}"
                 else:
                     # Regenerating cannot fix a reviewer that did not answer.
-                    print(f"\n⚠ Stopping without a verified score — review the image yourself")
+                    print("\n⚠ Stopping without a verified score — review the image yourself")
                     reason = f"Review did not produce a score: {review.error}"
                 results["final_image"] = str(iter_path)
                 results["final_score"] = review.score
@@ -1281,7 +1285,7 @@ Generate an improved version that:
 
             # If this is the last iteration, we're done
             if i == iterations:
-                print(f"\n⚠ Maximum iterations reached")
+                print("\n⚠ Maximum iterations reached")
                 results["final_image"] = str(iter_path)
                 results["final_score"] = review.score
                 results["final_reviewed"] = review.reviewed and review.score is not None
@@ -1290,7 +1294,7 @@ Generate an improved version that:
 
             # Quality below threshold - improve prompt
             print(f"\n⚠ Quality below threshold ({review.score} < {threshold})")
-            print(f"Improving prompt based on feedback...")
+            print("Improving prompt based on feedback...")
             current_prompt = self.improve_prompt(
                 user_prompt, review.critique, infographic_type, style, palette, background, i + 1,
                 len(context_images)
@@ -1311,11 +1315,11 @@ Generate an improved version that:
         print(f"✓ Review log: {log_path}")
         
         print(f"\n{'='*60}")
-        print(f"Generation Complete!")
+        print("Generation Complete!")
         if results["final_score"] is not None:
             print(f"Final Score: {results['final_score']}/10")
         else:
-            print(f"Final Score: unavailable (the review did not produce one)")
+            print("Final Score: unavailable (the review did not produce one)")
         if results["early_stop"]:
             iterations_used = len([r for r in results['iterations'] if r.get('success')])
             print(f"Iterations Used: {iterations_used}/{iterations} (early stop)")
@@ -1440,7 +1444,7 @@ Environment:
                 print(f"  (Completed in {iterations_used} iteration(s) - quality threshold met)")
             sys.exit(0)
         else:
-            print(f"\n✗ Generation failed. Check review log for details.")
+            print("\n✗ Generation failed. Check review log for details.")
             sys.exit(1)
     except Exception as e:
         print(f"\n✗ Error: {str(e)}")

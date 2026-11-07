@@ -36,6 +36,7 @@ TOOL = "extract_metadata"
 
 
 def _uid_description(value: Any) -> dict[str, str] | None:
+    """Handle uid description."""
     if not value:
         return None
     pydicom = require_pydicom()
@@ -44,6 +45,7 @@ def _uid_description(value: Any) -> dict[str, str] | None:
 
 
 def _status(value: Any) -> str:
+    """Handle status."""
     text = str(value or "").strip().upper()
     if not text:
         return "ABSENT"
@@ -111,6 +113,7 @@ def allowlisted_record(dataset: Any, *, file_id: str) -> dict[str, Any]:
 def aggregate_records(
     records: list[dict[str, Any]], *, read_failures: int
 ) -> dict[str, Any]:
+    """Handle aggregate records."""
     modalities: Counter[str] = Counter()
     sop_classes: Counter[str] = Counter()
     transfer_syntaxes: Counter[str] = Counter()
@@ -149,6 +152,7 @@ def aggregate_records(
 
 
 def build_report(args: argparse.Namespace) -> dict[str, Any]:
+    """Build report."""
     max_bytes = parse_size(
         args.max_input_bytes,
         name="max_input_bytes",
@@ -210,6 +214,7 @@ def build_report(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def render_text(report: dict[str, Any]) -> str:
+    """Render text."""
     aggregate = report["aggregate"]
     lines = [
         "Redacted DICOM technical inventory",
@@ -236,6 +241,7 @@ def render_text(report: dict[str, Any]) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Create a redacted allowlisted technical DICOM inventory; never "
@@ -289,6 +295,7 @@ Examples:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = build_report(args)

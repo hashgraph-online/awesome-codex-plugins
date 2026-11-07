@@ -2,8 +2,12 @@
 atomic replace, legacy sibling removed after a successful write), sanitize/friendly filenames."""
 
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
+
+from datasheet_types.cache_reader import read_json_object
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +60,15 @@ def friendly_filename(mpn: str, description: str = "", manufacturer: str = "") -
 # Manifest management (manifest.json; legacy index.json read for backward compat)
 # ---------------------------------------------------------------------------
 
+def _read_umask() -> int:
+    mask = os.umask(0)
+    os.umask(mask)
+    return mask
+
+
+# Read once at import: reading it later would briefly change the umask of every thread.
+DEFAULT_FILE_MODE = 0o666 & ~_read_umask()
+
 MANIFEST_FILENAME = "manifest.json"
 
 
@@ -72,15 +85,38 @@ def _manifest_path(out_dir: Path) -> Path:
 
 
 def load_index(path: Path) -> dict:
-    """Load existing manifest.json (or legacy index.json) or return empty."""
+    """Load existing manifest.json (or legacy index.json) or return empty. A manifest that is
+    there but unreadable (a link, oversized, not a JSON object, wrong ``parts`` shape) raises
+    ValueError so the caller does not replace it."""
     path = _manifest_path(path.parent) if path.name in (MANIFEST_FILENAME, LEGACY_MANIFEST_FILENAME) else path
-    if path.exists():
+    if not os.path.lexists(path):
+        return {"schematic": "", "last_sync": "", "parts": {}}
+    data = read_json_object(path)
+    parts = data.get("parts", {}) if data is not None else None
+    if (data is None or not isinstance(parts, dict)
+            or not all(isinstance(v, dict) for v in parts.values())):
+        raise ValueError(f"{path} is not a readable manifest; fix or move it aside")
+    return data
+
+
+def write_json_atomic(path: Path, data, sort_keys: bool = False) -> None:
+    """Write JSON to ``path`` through a uniquely named temp file beside it. An existing
+    file keeps its mode; a new one gets the umask mode."""
+    path = Path(path)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(data, f, indent=2, sort_keys=sort_keys)
         try:
-            with open(path, "r") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, OSError):
-            pass
-    return {"schematic": "", "last_sync": "", "parts": {}}
+            mode = os.stat(path).st_mode & 0o7777
+        except OSError:
+            mode = DEFAULT_FILE_MODE
+        os.chmod(tmp, mode)
+        os.replace(tmp, path)
+    except BaseException:
+        if os.path.exists(tmp):
+            os.remove(tmp)
+        raise
 
 
 def save_index(path: Path, index: dict):
@@ -89,16 +125,24 @@ def save_index(path: Path, index: dict):
     parent = path.parent
     parent.mkdir(parents=True, exist_ok=True)
     new_path = parent / MANIFEST_FILENAME
-    tmp = new_path.with_suffix(".tmp")
-    with open(tmp, "w") as f:
-        json.dump(index, f, indent=2)
-    tmp.replace(new_path)
+    write_json_atomic(new_path, index)
     old_path = parent / LEGACY_MANIFEST_FILENAME
     if old_path.exists() and old_path != new_path:
         try:
             old_path.unlink()
         except OSError:
             pass
+
+
+def manifest_file_path(out_dir: Path, name: object) -> Path | None:
+    """``out_dir / name`` for a manifest ``file`` value that is a plain leaf name and not a
+    symlink; None for anything that could point outside ``out_dir``."""
+    if not isinstance(name, str) or not name or name in (".", ".."):
+        return None
+    if name != os.path.basename(name) or "/" in name or "\\" in name:
+        return None
+    path = out_dir / name
+    return None if path.is_symlink() else path
 
 
 def _friendly_filename(mpn: str, description: str = "") -> str:

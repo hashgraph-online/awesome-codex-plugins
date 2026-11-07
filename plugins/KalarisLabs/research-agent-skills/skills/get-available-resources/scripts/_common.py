@@ -10,7 +10,7 @@ import os
 import stat
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, Sequence
 
 SCHEMA_VERSION = "1.1"
 MAX_SNAPSHOT_BYTES = 1_048_576
@@ -188,3 +188,33 @@ def cli_error(parser: argparse.ArgumentParser, exc: Exception) -> int:
     """Print one safe CLI error without a traceback."""
     parser.exit(2, f"{parser.prog}: error: {exc}\n")
     return 2
+
+
+def add_output_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add the shared ``--output`` and ``--force`` arguments to a parser."""
+    parser.add_argument(
+        "--output",
+        metavar="FILE.json",
+        help="write a private local JSON file instead of stdout",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="replace an existing explicit output file",
+    )
+
+
+def run_json_cli(
+    parser: argparse.ArgumentParser,
+    argv: Sequence[str] | None,
+    build_report: Callable[[argparse.Namespace], Any],
+) -> int:
+    """Parse arguments, build a report and emit it as JSON, mapping tool errors to exit 2."""
+    args = parser.parse_args(argv)
+    if args.force and not args.output:
+        parser.error("--force requires --output")
+    try:
+        emit_json(build_report(args), args.output, force=args.force)
+    except ResourceToolError as exc:
+        return cli_error(parser, exc)
+    return 0

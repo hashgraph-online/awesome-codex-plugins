@@ -126,20 +126,20 @@ Where:
 ```
 A (sq. mils) = width_mils × thickness_mils
 ```
-For 1 oz copper: thickness = 1.37 mils (0.035 mm = 35 µm)
-For 2 oz copper: thickness = 2.74 mils (0.070 mm = 70 µm)
+For 1 oz copper: thickness = 1.378 mils (0.035 mm = 35 µm)
+For 2 oz copper: thickness = 2.756 mils (0.070 mm = 70 µm)
 
-### Quick Reference Table (1 oz copper, 10°C rise, external layer)
+### Quick Reference Table (IPC-2221 external layer, 1 oz = 35 µm, 10°C rise)
 
 | Trace Width (mm) | Trace Width (mils) | Area (sq. mils) | Current (A) |
 |---|---|---|---|
-| 0.15 | 5.9 | 8.1 | 0.3 |
-| 0.25 | 9.8 | 13.5 | 0.5 |
-| 0.5 | 19.7 | 27.0 | 0.8 |
-| 1.0 | 39.4 | 54.0 | 1.4 |
-| 2.0 | 78.7 | 107.8 | 2.3 |
-| 3.0 | 118.1 | 161.8 | 3.1 |
-| 5.0 | 196.9 | 269.7 | 4.5 |
+| 0.15 | 5.9 | 8.1 | 0.60 |
+| 0.25 | 9.8 | 13.6 | 0.88 |
+| 0.5 | 19.7 | 27.1 | 1.45 |
+| 1.0 | 39.4 | 54.3 | 2.39 |
+| 2.0 | 78.7 | 108.5 | 3.95 |
+| 3.0 | 118.1 | 162.8 | 5.30 |
+| 5.0 | 196.9 | 271.3 | 7.68 |
 
 Note: Internal layer capacity is approximately half of external (k=0.024 vs k=0.048).
 
@@ -255,7 +255,7 @@ Z₀ = (60 / √εᵣ) × ln(4b / (0.67π(0.8w + t)))
 
 Where `b` = distance between the two reference planes.
 
-**Usage in design review:** For USB (90Ω differential), DDR, LVDS, and other controlled-impedance signals, verify the trace width against the board stackup using these formulas. The PCB analyzer doesn't calculate impedance directly — use the track widths from the analyzer and the stackup from the `.kicad_pro` or fab stackup notes.
+**Usage in design review:** For USB (90Ω differential), DDR, LVDS, and other controlled-impedance signals, verify the trace width against the board stackup using these formulas. With `--full`, the PCB analyzer adds a first-order microstrip estimate (`impedance_ohm` on `net_lengths[].trace_segments[]`) from the board or inferred stackup; check it with a field solver or the fab's calculator before relying on it.
 
 ---
 

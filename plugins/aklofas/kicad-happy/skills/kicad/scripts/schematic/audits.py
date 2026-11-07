@@ -1,4 +1,4 @@
-"""Schematic audits (annotation, labels, PWR_FLAG, footprint filters, sourcing, datasheet coverage, generic transistor symbols, grounds, bus topology, wire geometry, pin coverage, instance and hierarchical-label consistency): verbatim move from analyze_schematic.py; no behaviour change."""
+"""Schematic audits (annotation, labels, PWR_FLAG, footprint filters, sourcing, datasheet coverage, generic transistor symbols, grounds, bus topology, wire geometry, pin coverage, instance and hierarchical-label consistency)."""
 from __future__ import annotations
 
 import json
@@ -8,9 +8,11 @@ from pathlib import (
     Path,
 )
 from kicad_core.classify import NON_COMPONENT_TYPES
+from kicad_core.sexp import unescape_string
 from kicad_core.netnames import (
     is_ground_name as _is_ground_name,
 )
+from schematic.reader import _expand_stacked
 from schematic.connectivity import (
     expand_bus_name,
 )
@@ -95,7 +97,7 @@ def validate_label_shapes(labels: list[dict], nets: dict) -> list[dict]:
                 "type": "inconsistent_shape",
                 "net": net_name,
                 "shapes": sorted(shapes),
-                "message": f"Net '{net_name}' has labels with different shapes: {sorted(shapes)}",
+                "message": f"Net '{unescape_string(net_name)}' has labels with different shapes: {sorted(shapes)}",
             })
 
     # Check for input-shaped labels on nets driven only by other inputs (no source)
@@ -110,7 +112,7 @@ def validate_label_shapes(labels: list[dict], nets: dict) -> list[dict]:
                 warnings.append({
                     "type": "undriven_input_label",
                     "net": net_name,
-                    "message": f"Net '{net_name}' has input-shaped label(s) but no driver pins on the net",
+                    "message": f"Net '{unescape_string(net_name)}' has input-shaped label(s) but no driver pins on the net",
                 })
 
     return warnings
@@ -131,7 +133,7 @@ def audit_pwr_flags(components: list[dict], nets: dict, known_power_rails: set) 
         if net_name not in nets:
             continue
         net_info = nets[net_name]
-        # KH-354: PWR_FLAG pins never appear in pins[] (build_net_map
+        # PWR_FLAG pins never appear in pins[] (build_net_map
         # registers them as source points) — credit the net-level flag.
         if net_info.get("has_pwr_flag"):
             continue
@@ -167,7 +169,8 @@ def validate_footprint_filters(components: list[dict], lib_symbols: dict) -> lis
         if not c["footprint"]:
             continue
 
-        sym_def = lib_symbols.get(c["lib_id"], {})
+        sym_def = ((lib_symbols.get(c.get("lib_name")) if c.get("lib_name") else None)
+                   or lib_symbols.get(c["lib_id"], {}))
         fp_filters_str = sym_def.get("ki_fp_filters", "")
         if not fp_filters_str:
             continue
@@ -181,10 +184,12 @@ def validate_footprint_filters(components: list[dict], lib_symbols: dict) -> lis
         fp_name = c["footprint"].split(":")[-1] if ":" in c["footprint"] else c["footprint"]
         fp_full = c["footprint"]
 
-        # Check if any pattern matches
+        # KiCad matches lower-case, a filter with ':' against lib:name, else the name only;
+        # its wildcards are * and ? alone, so '[' is literal.
         matched = False
         for pat in patterns:
-            if fnmatch.fnmatch(fp_name, pat) or fnmatch.fnmatch(fp_full, pat):
+            pat = pat.lower().replace("[", "[[]")
+            if fnmatch.fnmatchcase((fp_full if ":" in pat else fp_name).lower(), pat):
                 matched = True
                 break
 
@@ -210,7 +215,9 @@ def validate_footprint_filters(components: list[dict], lib_symbols: dict) -> lis
                 or fp_lib not in _STANDARD_FP_LIBS
             ))
 
+            # KiCad 10 ignores this check by default.
             warnings.append({
+                "severity": "info",
                 "component": c["reference"],
                 "footprint": c["footprint"],
                 "filters": patterns,
@@ -227,8 +234,7 @@ def _bom_real_components(components: list[dict]) -> list[dict]:
     Excludes power symbols/flags, test points, mounting holes, fiducials,
     graphics, DNP parts, and anything not marked in_bom. Shared by
     audit_datasheet_coverage (DS-001/002/003) and audit_sourcing_gate
-    (SS-001/002/003) — both need the same "real BOM part" definition
-    (KH-390).
+    (SS-001/002/003) — both need the same "real BOM part" definition.
     """
     return [c for c in components
             if c.get("type") not in NON_COMPONENT_TYPES
@@ -273,7 +279,7 @@ def audit_datasheet_coverage(components: list[dict],
     # datasheet_extract_cache; its presence implies datasheets exist.
     import os as _os
     pd = project_dir or "."
-    # rc.2 4.2: widened search — walk up 1–2 parent dirs and match the case-
+    # Widened search — walk up 1–2 parent dirs and match the case-
     # insensitive [Dd]atasheets?/ pattern (singular or plural). Eliminates
     # DS-001 FPs on repos where the datasheets directory lives one level up
     # (multi-project monorepos, board variant subfolders, etc.).
@@ -309,7 +315,7 @@ def audit_datasheet_coverage(components: list[dict],
         # is partial so the reviewer knows which lines are ungrounded.
         # DS-003 counts by unique BOM line (value + footprint), the same
         # basis SS-002 uses — a line has coverage if ANY instance carries
-        # an MPN (KH-390: the two denominators used to disagree).
+        # an MPN (so the two denominators agree).
         line_groups: dict[tuple, dict] = {}
         for c in real:
             key = (c.get("value", ""), c.get("footprint", ""))
@@ -688,7 +694,7 @@ def check_generic_transistor_symbols(components: list[dict],
         if idx_path.is_file():
             try:
                 ds_index = json.loads(idx_path.read_text(encoding="utf-8"))
-            except (json.JSONDecodeError, OSError):
+            except (ValueError, OSError):
                 pass
 
     # Deduplicate by reference (multi-unit symbols)
@@ -733,9 +739,15 @@ def check_generic_transistor_symbols(components: list[dict],
         # Check datasheet availability by MPN
         has_datasheet = False
         if mpn and ds_index:
-            # index.json keys may be MPN strings or nested under "components"
+            # Sync manifests keep entries under "parts" (only status "ok" means a
+            # downloaded datasheet); legacy index.json keys may be MPN strings or
+            # nested under "components"
             if isinstance(ds_index, dict):
-                if mpn in ds_index:
+                parts = ds_index.get("parts")
+                entry = parts.get(mpn) if isinstance(parts, dict) else None
+                if isinstance(entry, dict) and entry.get("status") == "ok":
+                    has_datasheet = True
+                elif mpn in ds_index:
                     has_datasheet = True
                 elif "components" in ds_index:
                     comps = ds_index["components"]
@@ -875,7 +887,7 @@ def analyze_bus_topology(bus_elements: dict, labels: list[dict], nets: dict) -> 
     result = {
         "bus_wire_count": len(bus_elements.get("bus_wires", [])),
         "bus_entry_count": len(bus_elements.get("bus_entries", [])),
-        # GH #25 honesty invariant (spec §4): bus constructs the resolver
+        # GH #25 honesty invariant: bus constructs the resolver
         # could not confidently resolve are surfaced, never silently dropped.
         "unresolved": sorted(
             ({"reason": u.get("reason", ""), "name": u.get("name")}
@@ -888,7 +900,7 @@ def analyze_bus_topology(bus_elements: dict, labels: list[dict], nets: dict) -> 
     if aliases:
         alias_info = []
         all_label_names = set(l["name"] for l in labels)
-        # KH-359: net keys may be sheet-qualified (/<sheet>/<name>) with the
+        # net keys may be sheet-qualified (/<sheet>/<name>) with the
         # bare name on display_name. Bus alias members are always bare
         # label names, so match against keys ∪ display_names.
         display_index = set(nets)
@@ -1208,7 +1220,7 @@ def verify_pin_coverage(components: list[dict], lib_symbols: dict) -> list[dict]
         expected_pins = set()
         for p in lib_pins:
             if p["type"] != "no_connect":
-                expected_pins.add(p["number"])
+                expected_pins.update(_expand_stacked(p["number"]))
 
         missing = expected_pins - placed_pin_nums
         if missing and len(missing) > len(expected_pins) * 0.3:
@@ -1225,42 +1237,72 @@ def verify_pin_coverage(components: list[dict], lib_symbols: dict) -> list[dict]
     return warnings
 
 
-def check_instance_consistency(components: list[dict]) -> list[dict]:
+_MISSING_PIN_RECORDS = (
+    ("missing_power_pin", "power_in", "error", "input power"),
+    ("missing_input_pin", "input", "warning", "input"),
+    ("missing_bidi_pin", "bidirectional", "warning", "bidirectional"),
+)
+
+
+def _unit_pin_types(sym_def: dict, unit: int) -> set[str]:
+    """Pin types of one unit in every body style, common unit-0 pins included."""
+    maps = [sym_def.get("unit_pins"), sym_def.get("alt_unit_pins")]
+    maps += list((sym_def.get("_body_unit_pins") or {}).values())
+    return {p.get("type") for m in maps if m for u in (0, unit) for p in m.get(u) or []}
+
+
+def check_instance_consistency(components: list[dict], lib_symbols: dict | None = None) -> list[dict]:
     """Check multi-unit and multi-instance symbol consistency.
 
-    For multi-unit symbols (e.g., quad op-amp), verify all expected units are placed.
+    Missing units follow KiCad's ERC: every unit of the library symbol up to its unit count,
+    checked when fewer instances are placed than the symbol has units, with separate records
+    for missing units that carry power-input, input or bidirectional pins.
     For multi-instance sheets, verify reference numbering doesn't collide.
     """
     warnings = []
+    lib_symbols = lib_symbols or {}
 
-    # Group by lib_id to find multi-unit symbols
-    lib_groups: dict[str, list[dict]] = {}
+    by_ref: dict[str, list[dict]] = {}
     for c in components:
         if c["type"] in ("power_symbol", "power_flag", "flag"):
             continue
-        lib_groups.setdefault(c["lib_id"], []).append(c)
+        # KiCad never groups unannotated references.
+        if c["reference"].endswith("?"):
+            continue
+        by_ref.setdefault(c["reference"], []).append(c)
 
-    # Check for partial unit placement
-    for lib_id, comp_list in lib_groups.items():
-        # Group by reference
-        ref_units: dict[str, set[int]] = {}
-        for c in comp_list:
-            if c["unit"] is not None:
-                ref_units.setdefault(c["reference"], set()).add(c["unit"])
-
-        for ref, units in ref_units.items():
-            if not units:
-                continue
-            max_unit = max(units)
-            expected = set(range(1, max_unit + 1))
-            missing = expected - units
-            if missing:
+    for ref, comps in by_ref.items():
+        first = comps[0]
+        sym_def = ((lib_symbols.get(first.get("lib_name")) if first.get("lib_name") else None)
+                   or lib_symbols.get(first["lib_id"]) or {})
+        unit_count = sym_def.get("unit_count") or 1
+        if unit_count <= 1 or len(comps) == unit_count:
+            continue
+        placed = {c["unit"] or 1 for c in comps}
+        missing = [u for u in range(1, unit_count + 1) if u not in placed]
+        if not missing:
+            continue
+        lib_id = first["lib_id"]
+        warnings.append({
+            "type": "missing_unit",
+            "severity": "warning",
+            "component": ref,
+            "lib_id": lib_id,
+            "placed_units": sorted(placed),
+            "missing_units": missing,
+            "message": f"{ref}: units {missing} not placed (of {unit_count} total)",
+        })
+        unit_types = {u: _unit_pin_types(sym_def, u) for u in missing}
+        for kind, pin_type, severity, label in _MISSING_PIN_RECORDS:
+            units = [u for u in missing if pin_type in unit_types[u]]
+            if units:
                 warnings.append({
+                    "type": kind,
+                    "severity": severity,
                     "component": ref,
                     "lib_id": lib_id,
-                    "placed_units": sorted(units),
-                    "missing_units": sorted(missing),
-                    "message": f"{ref}: units {sorted(missing)} not placed (of {max_unit} total)",
+                    "missing_units": units,
+                    "message": f"{ref}: {label} pins in units {units} are not placed",
                 })
 
     # Check for reference collisions across sheets
@@ -1294,8 +1336,8 @@ def validate_hierarchical_labels(labels: list[dict], nets: dict,
                                  bus_elements: dict | None = None) -> dict:
     """Validate hierarchical label usage for cross-sheet connectivity.
 
-    Checks for orphaned hierarchical labels (no matching sheet pin), hierarchical
-    labels that don't connect to any net, and naming consistency.
+    Checks for hierarchical labels that don't connect to any net and naming
+    consistency.
     """
     hier_labels = [l for l in labels if l["type"] == "hierarchical_label"]
     global_labels = [l for l in labels if l["type"] == "global_label"]
@@ -1316,14 +1358,15 @@ def validate_hierarchical_labels(labels: list[dict], nets: dict,
         bare = l.get("_bare_name", l["name"])
         return expand_bus_name(bare, aliases) is not None
 
-    # Check for hierarchical labels that don't appear in any net (bus labels
-    # excluded — they resolve to member nets, not a net under their bus name).
+    # Check for hierarchical labels that no net carries (bus labels excluded —
+    # they resolve to member nets). A carried label is connected whatever
+    # driver names its net.
     scalar_hier_names = set(l["name"] for l in hier_labels if not _is_bus_label(l))
     hier_names = set(l["name"] for l in hier_labels)
     global_names = set(l["name"] for l in global_labels)
-    net_names = set(nets.keys())
+    carried = {l.get("name") for n in nets.values() for l in (n.get("labels") or [])}
 
-    unconnected_hier = sorted(scalar_hier_names - net_names)
+    unconnected_hier = sorted(scalar_hier_names - carried)
     if unconnected_hier:
         result["unconnected_hierarchical"] = unconnected_hier
 

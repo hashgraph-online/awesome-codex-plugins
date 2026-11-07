@@ -1,0 +1,44 @@
+{
+  "name": "andon",
+  "version": "0.1.1",
+  "description": "Pull the cord on a false \"done\": a claim-check Stop hook, an auto-orient memory hook, wrap/orient commands and a log-mistake skill.",
+  "author": {
+    "name": "PrimeFoldTools",
+    "url": "https://github.com/PrimeFoldTools"
+  },
+  "homepage": "https://github.com/PrimeFoldTools/andon",
+  "repository": "https://github.com/PrimeFoldTools/andon",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "verification",
+    "claim-check",
+    "memory",
+    "stop-hook"
+  ],
+  "skills": "./codex/skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "Andon",
+    "shortDescription": "Catch a false \"done\" before it reaches you",
+    "longDescription": "A Stop hook that warns when the agent's final message claims work is done without a fresh verification record, a UserPromptSubmit hook that loads memory/MEMORY.md once per session, the wrap and orient commands (Codex turns commands/*.md into skills), and a log-mistake skill.",
+    "developerName": "PrimeFoldTools",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Orient: read memory/MEMORY.md and tell me where things stand"
+    ],
+    "websiteURL": "https://github.com/PrimeFoldTools/Andon",
+    "privacyPolicyURL": "https://github.com/PrimeFoldTools/Andon/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/PrimeFoldTools/Andon/blob/main/TERMS.md",
+    "brandColor": "#EB1A1B",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": [
+      "./assets/screenshot1.png"
+    ]
+  }
+}

@@ -31,6 +31,7 @@ _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Compare a local JSON tokenizer manifest with a local universe BED. "
@@ -64,12 +65,14 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _mapping(value, label: str) -> dict:
+    """Handle mapping."""
     if not isinstance(value, dict):
         raise SafetyError(f"{label} must be a JSON object")
     return value
 
 
 def check(args: argparse.Namespace) -> tuple[dict, int]:
+    """Check."""
     assembly = args.assembly.strip()
     if not assembly or len(assembly) > 200:
         raise SafetyError("assembly must contain 1-200 characters")
@@ -225,6 +228,7 @@ def check(args: argparse.Namespace) -> tuple[dict, int]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report, status = check(args)

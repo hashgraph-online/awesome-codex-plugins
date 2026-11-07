@@ -16,7 +16,7 @@ Examples:
 
 import argparse
 
-from _common import add_io_args, configure_scanpy, info, load_anndata, save_anndata
+from _common import add_io_args, configure_scanpy, die, info, load_anndata, save_anndata
 
 
 def annotate_gene_classes(adata):
@@ -29,6 +29,7 @@ def annotate_gene_classes(adata):
 
 
 def make_qc_plots(sc, adata, prefix):
+    """Make qc plots."""
     qc_keys = ["n_genes_by_counts", "total_counts", "pct_counts_mt"]
     qc_keys = [k for k in qc_keys if k in adata.obs.columns]
     sc.pl.violin(adata, qc_keys, jitter=0.4, multi_panel=True,
@@ -41,6 +42,7 @@ def make_qc_plots(sc, adata, prefix):
 
 
 def main():
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     add_io_args(p, default_output="qc_filtered.h5ad")

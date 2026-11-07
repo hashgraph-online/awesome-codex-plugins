@@ -43,10 +43,12 @@ def parse_hex_color(value: str) -> tuple[int, int, int]:
 
 
 def canonical_hex(rgb: tuple[int, int, int]) -> str:
+    """Handle canonical hex."""
     return "#" + "".join(f"{channel:02X}" for channel in rgb)
 
 
 def _linear_channel(channel: int) -> float:
+    """Handle linear channel."""
     encoded = channel / 255.0
     return encoded / 12.92 if encoded <= 0.04045 else ((encoded + 0.055) / 1.055) ** 2.4
 
@@ -80,6 +82,7 @@ def cie_lstar(rgb: tuple[int, int, int]) -> float:
 
 
 def _load_palette_asset() -> ModuleType:
+    """Load palette asset."""
     asset = Path(__file__).resolve().parents[1] / "assets" / "color_palettes.py"
     spec = importlib.util.spec_from_file_location(
         "_scientific_visualization_color_palettes", asset
@@ -216,6 +219,7 @@ def audit_palette(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit sRGB palette contrast against a background and screen "
@@ -272,6 +276,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

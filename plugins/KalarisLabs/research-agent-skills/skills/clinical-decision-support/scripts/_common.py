@@ -53,9 +53,11 @@ class IssueLog:
 
     @property
     def ok(self) -> bool:
+        """Handle ok."""
         return not self.errors
 
     def as_dict(self) -> dict[str, Any]:
+        """Handle as dict."""
         return {
             "status": "pass" if self.ok else "fail",
             "errors": self.errors,
@@ -69,6 +71,7 @@ class IssueLog:
 
 
 def _reject_nonlocal_path(raw: str) -> None:
+    """Handle reject nonlocal path."""
     lowered = raw.strip().lower()
     if not lowered:
         raise InputError("Path must not be empty")
@@ -140,12 +143,14 @@ def ensure_no_person_level_keys(value: Any, location: str = "$") -> None:
 
 
 def write_json(raw_path: str, payload: dict[str, Any]) -> None:
+    """Write json."""
     path = local_output_path(raw_path, {".json"})
     text = json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     path.write_text(text, encoding="utf-8")
 
 
 def write_text(raw_path: str, text: str, suffixes: Iterable[str]) -> None:
+    """Write text."""
     path = local_output_path(raw_path, suffixes)
     path.write_text(text, encoding="utf-8")
 
@@ -153,6 +158,7 @@ def write_text(raw_path: str, text: str, suffixes: Iterable[str]) -> None:
 def require_nonempty_text(
     value: Any, field_name: str, *, max_length: int = MAX_TEXT_LENGTH
 ) -> str:
+    """Handle require nonempty text."""
     if not isinstance(value, str) or not value.strip():
         raise InputError(f"{field_name} must be non-empty text")
     text = value.strip()
@@ -162,6 +168,7 @@ def require_nonempty_text(
 
 
 def require_list(value: Any, field_name: str, *, maximum: int) -> list[Any]:
+    """Handle require list."""
     if not isinstance(value, list):
         raise InputError(f"{field_name} must be a list")
     if len(value) > maximum:
@@ -170,6 +177,7 @@ def require_list(value: Any, field_name: str, *, maximum: int) -> list[Any]:
 
 
 def finite_number(value: Any, field_name: str) -> float:
+    """Handle finite number."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise InputError(f"{field_name} must be numeric")
     result = float(value)
@@ -179,12 +187,14 @@ def finite_number(value: Any, field_name: str) -> float:
 
 
 def nonnegative_int(value: Any, field_name: str) -> int:
+    """Handle nonnegative int."""
     if isinstance(value, bool) or not isinstance(value, int) or value < 0:
         raise InputError(f"{field_name} must be a non-negative integer")
     return value
 
 
 def source_ids(document: dict[str, Any]) -> set[str]:
+    """Handle source ids."""
     sources = require_list(document.get("sources"), "sources", maximum=MAX_SOURCES)
     identifiers: set[str] = set()
     for index, source in enumerate(sources):
@@ -205,6 +215,7 @@ def source_ids(document: dict[str, Any]) -> set[str]:
 def validate_references(
     references: Any, known_sources: set[str], field_name: str
 ) -> list[str]:
+    """Validate references."""
     values = require_list(references, field_name, maximum=50)
     normalized: list[str] = []
     for index, value in enumerate(values):
@@ -220,4 +231,5 @@ def validate_references(
 
 
 def print_report(report: dict[str, Any]) -> None:
+    """Print report."""
     print(json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False))

@@ -43,6 +43,7 @@ SHA256_PATTERN = re.compile(r"^[0-9a-fA-F]{64}$")
 
 
 def _load_card(path: str | None, root: str) -> dict[str, Any]:
+    """Load card."""
     if path is None:
         return {}
     if Path(path).suffix.lower() in MODEL_SUFFIXES:
@@ -87,10 +88,12 @@ def _load_card(path: str | None, root: str) -> dict[str, Any]:
 
 
 def _select(cli_value: Any, card: dict[str, Any], card_key: str, default: Any) -> Any:
+    """Select."""
     return cli_value if cli_value is not None else card.get(card_key, default)
 
 
 def make_plan(args: argparse.Namespace) -> dict[str, Any]:
+    """Make plan."""
     card = _load_card(args.model_card, args.root)
     shape = card.get("input_shape", [3, 256, 256])
     channels = _select(args.channels, card, "channels", shape[0])
@@ -248,6 +251,7 @@ def make_plan(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan bounded inference batches from dimensions or a strict JSON "
@@ -273,6 +277,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     report = make_plan(args)
     emit_json(report, output=args.output, root=args.root, force=args.force)

@@ -72,10 +72,12 @@ class ThresholdResult:
     zone_counts: dict[str, int] = field(default_factory=dict)
 
     def zone_edges(self) -> list[tuple[float, float]]:
+        """Handle zone edges."""
         edges = [0.0, *self.thresholds, float("inf")]
         return list(zip(edges[:-1], edges[1:]))
 
     def zone_names(self) -> list[str]:
+        """Handle zone names."""
         n_zones = len(self.thresholds) + 1
         if n_zones == 1:
             return ["all"]
@@ -98,6 +100,7 @@ class ThresholdResult:
         return out
 
     def describe(self) -> str:
+        """Handle describe."""
         lines = [
             f"KDE on {self.n} RELSA scores  (bandwidth = {self.bandwidth:.4f})",
             "  candidate thresholds (density minima): "
@@ -112,6 +115,7 @@ class ThresholdResult:
         return "\n".join(lines)
 
     def as_dict(self) -> dict:
+        """Handle as dict."""
         return {
             "thresholds": [round(float(t), 4) for t in self.thresholds],
             "modes": [round(float(m), 4) for m in self.modes],
@@ -151,6 +155,7 @@ def density_curve(
 
 
 def _zone_counts(data: np.ndarray, thresholds: Sequence[float]) -> list[int]:
+    """Handle zone counts."""
     edges = [-np.inf, *thresholds, np.inf]
     return [
         int(np.sum((data >= low) & (data < high)))
@@ -290,6 +295,7 @@ def plot_thresholds(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Find candidate RELSA severity thresholds by kernel density estimation.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -325,6 +331,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     frame = pd.read_csv(args.scores)
     if args.column not in frame.columns:

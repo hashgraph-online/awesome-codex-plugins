@@ -227,16 +227,16 @@ Trace nets outward from each IC. The IC plus everything directly connected to it
 
 ## Using Pre-Extracted Datasheet Specs
 
-When `datasheets/extracted/<MPN>.json` files are available (produced by the `datasheets` skill — see its `references/extraction-schema.md` for the canonical field layout), use them to accelerate pin-by-pin verification:
+When `datasheets/extracted/<sanitized_mpn>.json` exists for an IC (written by the `datasheets` skill; the file name is the MPN with every character outside `[A-Za-z0-9_.-]` replaced by `_`, so `LM317/NOPB` is `LM317_NOPB.json`), use it to speed up pin-by-pin verification. Current extractions follow `skills/datasheets/schemas/` (`base.schema.json`, `pinout.schema.json`); the legacy v1.3 flat-`pins[]` layout is described in the datasheets skill's `references/extraction-schema.md`.
 
 1. **Load the extraction** for each IC alongside the analyzer's `ic_pin_analysis` output
-2. **Join on pin number** — the extraction's `pins[].number` matches the analyzer's `pins[].pin_number`
+2. **Join on pin number**: each `base.pinout[]` record lists its pin numbers in `numbers` (a list, e.g. `["3", "4"]` for stacked pins); match each against the analyzer's `pins[].pin_number`
 3. **For each pin, check:**
-   - **Voltage compatibility:** Is the net voltage within the pin's `voltage_operating_min`/`voltage_operating_max`?
-   - **Required externals:** Does the extraction's `required_external` field match what's actually connected?
+   - **Voltage compatibility:** the pin's own `absolute_max` / `recommended` values, else the rows for its `power_domain` in `base.absolute_max` / `base.recommended_operating` (a pin with `is_5v_tolerant: true` has only its own limits).
+   - **Required externals:** current extractions have no per-pin required-externals field; check them against the datasheet's application section.
    - **Power pins:** Does every VDD pin have a decoupling cap?
-   - **Digital thresholds:** For digital inputs, are `threshold_high_v`/`threshold_low_v` met?
-   - **NC pins:** Are pins marked as no-connect actually unconnected?
+   - **Digital thresholds:** current extractions carry no logic thresholds; read V_IH / V_IL from the datasheet.
+   - **NC pins:** pins with `type: not_connected` should be unconnected.
 4. **Cite extraction data** in findings
 
 Pre-extracted data is especially valuable for large designs (10+ ICs). For small designs, direct PDF reading is equally effective.
@@ -336,7 +336,7 @@ For each component type, here is what to extract from the datasheet and what to 
 - Reverse voltage rating exceeds maximum reverse voltage with margin
 - For TVS: clamping voltage at peak pulse current is within protected IC's absolute max
 - For Schottky (power supply): reverse leakage at temperature is acceptable
-- For Zener: power dissipation = (VIN - VZ) * IZ is within rated power
+- For Zener: power dissipation VZ * IZ is within the derated power rating, with IZ at maximum input and minimum load (shunt regulator: IZ = (VIN_max - VZ) / R_series - I_load_min); the series resistor dissipates (VIN - VZ) * (IZ + I_load)
 - For flyback diodes: reverse voltage rating > supply voltage, forward current rating > load current
 
 ### Connectors
@@ -600,7 +600,7 @@ Where `tol` is the resistor tolerance (0.01 for 1%). This matters because:
 
 Example: VREF = 595mV ±2.5%, R_upper = 820K ±1%, R_lower = 110K ±1%:
 - Vout_nom = 0.595 × (1 + 820/110) = 5.03V
-- Vout_max = 0.610 × (1 + 828.2/108.9) = 5.26V
+- Vout_max = 0.610 × (1 + 828.2/108.9) = 5.25V
 - Vout_min = 0.580 × (1 + 811.8/111.1) = 4.82V
 
 Use Vout_max when checking downstream current limits. Use Vout_min when checking regulator headroom.
@@ -814,7 +814,7 @@ Example: 10k (5%) + 100nF (10%) low-pass filter:
 - f_max = 1/(2π × 9.5k × 90n) = 186 Hz (+17%)
 - f_min = 1/(2π × 10.5k × 110n) = 138 Hz (-13%)
 
-For anti-alias filters before ADCs, ensure f_min is still above the Nyquist frequency. For EMI filters, ensure f_max still attenuates the target frequency.
+For anti-alias filters before ADCs, check both ends: f_min must still pass the signal band, and f_max must still give the required attenuation where aliasing starts (half the sample rate, or the sample rate minus the highest signal frequency when only part of the band is used). A first-order RC gives 20 dB only about ten times above its cutoff. For EMI filters, ensure f_max still attenuates the target frequency.
 
 ### Crystal Load Capacitor Tolerance Effects
 
@@ -1017,7 +1017,7 @@ For battery-powered designs, estimate operational lifetime to validate the desig
    - MCU at operating frequency (e.g., ESP32-S3 at 240MHz: ~40-80mA)
    - Radio (WiFi TX: 180-380mA peak for ESP32; BLE TX: 20-30mA)
    - Sensors, ADCs, displays, LEDs
-   - Regulator efficiency losses: `I_battery = I_load / η_regulator`
+   - Regulator efficiency losses: convert each rail's load to battery current — switching regulator `I_battery = V_load × I_load / (V_battery × η_regulator)`, LDO `I_battery ≈ I_load + I_q` — then sum the battery-side currents
 
 2. **Enumerate sleep mode current**: Use the sleep current audit from the analyzer output, plus datasheet sleep/shutdown currents for each IC. Don't forget:
    - Voltage divider quiescent current (always-on resistive paths)

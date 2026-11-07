@@ -247,12 +247,14 @@ class ResearchLookup:
         raise ValueError("No backend available.")
 
     def _is_academic_query(self, query: str) -> bool:
+        """Return whether academic query."""
         if self.academic is not None:
             return self.academic
         lowered = query.lower()
         return any(keyword in lowered for keyword in ACADEMIC_KEYWORDS)
 
     def _query_with_context(self, query: str) -> str:
+        """Query with context."""
         if not self.manuscript_context:
             return query
         context_lines = [
@@ -298,6 +300,7 @@ class ResearchLookup:
 
     @staticmethod
     def _usage_counts(payloads: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Handle usage counts."""
         counts: dict[str, int] = {}
         for payload in payloads:
             for item in payload.get("usage") or []:
@@ -316,6 +319,7 @@ class ResearchLookup:
         session_id: str | None = None,
         apply_after_date: bool = True,
     ) -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]]]:
+        """Search once."""
         args = [
             "search",
             objective,
@@ -370,6 +374,7 @@ class ResearchLookup:
     def _rank_sources_for_extraction(
         self, sources: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
+        """Handle rank sources for extraction."""
         ranked: list[tuple[tuple[int, int, int, int], dict[str, Any]]] = []
         for index, source in enumerate(sources, start=1):
             reference = normalize_reference(source, index)
@@ -380,6 +385,7 @@ class ResearchLookup:
     def _extract_sources(
         self, sources: list[dict[str, Any]], search_ledger: list[dict[str, Any]]
     ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+        """Extract sources."""
         if self.extract_limit == 0:
             return sources, []
         candidates = [
@@ -447,6 +453,7 @@ class ResearchLookup:
         return deduplicate_sources([*sources, *extracted_sources]), extraction_payloads
 
     def _parallel_search(self, query: str) -> dict[str, Any]:
+        """Handle parallel search."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         academic = self._is_academic_query(query)
         contextual_query = self._query_with_context(query)
@@ -601,6 +608,7 @@ class ResearchLookup:
 
     @staticmethod
     def _find_report_text(payload: Any) -> str:
+        """Find report text."""
         if isinstance(payload, str):
             return payload if len(payload) > 100 else ""
         if isinstance(payload, list):
@@ -623,9 +631,11 @@ class ResearchLookup:
 
     @staticmethod
     def _sources_from_payload(payload: Any) -> list[dict[str, str]]:
+        """Handle sources from payload."""
         sources: list[dict[str, str]] = []
 
         def walk(value: Any) -> None:
+            """Handle walk."""
             if isinstance(value, dict):
                 url = value.get("url")
                 if isinstance(url, str) and url.startswith(("http://", "https://")):
@@ -649,6 +659,7 @@ class ResearchLookup:
         return list(unique.values())
 
     def _parallel_research(self, query: str) -> dict[str, Any]:
+        """Handle parallel research."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         research_query = (
             f"{self.PARALLEL_SYSTEM_PROMPT}\n\nResearch topic:\n"
@@ -832,6 +843,7 @@ class ResearchLookup:
     def _extract_api_citations(
         response: dict[str, Any], choice: dict[str, Any]
     ) -> list[dict[str, str]]:
+        """Extract api citations."""
         citations: list[dict[str, str]] = []
         search_results = (
             response.get("search_results")
@@ -882,6 +894,7 @@ class ResearchLookup:
 
     @staticmethod
     def _extract_citations_from_text(text: str) -> list[dict[str, str]]:
+        """Extract citations from text."""
         citations: list[dict[str, str]] = []
         seen: set[str] = set()
         doi_pattern = re.compile(
@@ -909,6 +922,7 @@ class ResearchLookup:
 
     @staticmethod
     def _failure_result(query: str, backend: str, exc: Exception) -> dict[str, Any]:
+        """Handle failure result."""
         return {
             "success": False,
             "query": query,
@@ -977,6 +991,7 @@ class ResearchLookup:
 
 
 def _load_context(path: str | None) -> dict[str, Any]:
+    """Load context."""
     if not path:
         return {}
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -986,6 +1001,7 @@ def _load_context(path: str | None) -> dict[str, Any]:
 
 
 def _split_domains(values: list[str] | None) -> list[str]:
+    """Split domains."""
     domains: list[str] = []
     for value in values or []:
         domains.extend(part.strip() for part in value.split(",") if part.strip())
@@ -993,10 +1009,12 @@ def _split_domains(values: list[str] | None) -> list[str]:
 
 
 def _slug(text: str) -> str:
+    """Handle slug."""
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")[:60] or "research"
 
 
 def _render_human_result(result: dict[str, Any], index: int) -> str:
+    """Render human result."""
     if not result.get("success"):
         return f"\nError in query {index}: {result.get('error', 'Unknown error')}"
     lines = [
@@ -1026,6 +1044,7 @@ def _render_human_result(result: dict[str, Any], index: int) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Parallel-first research lookup and manuscript evidence compiler"
@@ -1142,6 +1161,7 @@ Examples:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args()
     if not args.query and not args.batch:

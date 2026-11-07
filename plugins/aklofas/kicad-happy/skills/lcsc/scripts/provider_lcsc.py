@@ -1,7 +1,6 @@
-"""LCSC adapter: auth, search, response accessors, and the provider's sync_one_part strategy chain — verbatim from fetch_datasheet_lcsc.py / sync_datasheets_lcsc.py; the driver is distributor_core.sync. Adapter constants are the thirteen measured per-provider differences of the old drivers."""
+"""LCSC adapter: auth, search, response accessors, and the provider's sync_one_part strategy chain; the driver is distributor_core.sync. The adapter constants are the per-provider differences the driver reads."""
 
 import json
-import os
 import re
 import sys
 import time
@@ -18,24 +17,23 @@ from distributor_core.download import (
     note_transport_failure,
     try_alternative_sources,
 )
-from distributor_core.verify import verify_datasheet
+from distributor_core.inputs import mpn_from_value
+from distributor_core.verify import downloaded_entry, other_part, pick_requested
 from distributor_core.manifest import friendly_filename
 
 NAME = "lcsc"
 DEFAULT_DELAY = 0.5
 ID_KEYS = ("lcsc", "digikey", "mouser")
 KEY_PRIORITY = ("lcsc", "digikey", "mouser")
-SKIPPED_COUNTS_IDS = ID_KEYS
+SEARCH_KEY = "lcsc"  # the one distributor-specific number this provider can search with
 RENAME_PRESENT = False
 FAILED_DETAIL_WITH_URL = False
-# Documentary today: the normalize_url/download_pdf wrappers hard-code the flag; a later version may read it.
-NORMALIZE_REDIRECTS = False
 LABELS = {
-    "found": "Found {n} unique parts with identifiers ({k} skipped without any identifier)",
+    "found": "Found {n} unique parts with identifiers ({k} skipped without an MPN or LCSC part number)",
     "skipped_key": "skipped_no_identifier",
     "total_key": "total_identified_parts",
-    "dry_skipped": "Skipped (no identifier): {k}",
-    "summary_skipped": "  Skipped (no identifier): {k}",
+    "dry_skipped": "Skipped (no MPN or LCSC part number): {k}",
+    "summary_skipped": "  Skipped (no MPN or LCSC part number): {k}",
 }
 
 
@@ -69,13 +67,17 @@ def _parse_extra(component: dict) -> dict:
         try:
             parsed = json.loads(extra)
             component["extra"] = parsed
-            return parsed
+            return parsed if isinstance(parsed, dict) else {}
         except (json.JSONDecodeError, TypeError):
             return {}
     return extra if isinstance(extra, dict) else {}
 
 
-def search_lcsc(query: str) -> dict | None:
+def _text(v) -> str:
+    return v if isinstance(v, str) else ""
+
+
+def search_lcsc(query: str, allow_family: bool = False) -> dict | None:
     """Search jlcsearch API for a part. Returns first match with datasheet URL.
 
     Accepts MPN, LCSC code (Cxxxxx), or keyword search terms.
@@ -90,7 +92,10 @@ def search_lcsc(query: str) -> dict | None:
         print(f"[LCSC] Search failed: {e}", file=sys.stderr)
         return None
 
-    components = data.get("components", [])
+    components = data.get("components") if isinstance(data, dict) else None
+    if not isinstance(components, list):
+        return None
+    components = [c for c in components if isinstance(c, dict)]
     if not components:
         return None
 
@@ -100,11 +105,14 @@ def search_lcsc(query: str) -> dict | None:
     for c in components:
         _parse_extra(c)
 
-    # Prefer exact MPN or LCSC code match
+    # Prefer the requested part (exact or ordering-suffix MPN), then an exact MPN or LCSC code
+    hit = pick_requested(components, query, _get_mpn)
+    if hit is not None:
+        return hit
     for c in components:
-        mpn = c.get("mfr", "")
+        mpn = _get_mpn(c)
         extra = c.get("extra") or {}
-        lcsc_num = extra.get("number", "") if isinstance(extra, dict) else ""
+        lcsc_num = _text(extra.get("number")) if isinstance(extra, dict) else ""
         if not lcsc_num:
             lcsc_num = f"C{c.get('lcsc', '')}"
         if mpn.upper() == query_upper or lcsc_num.upper() == query_upper:
@@ -115,6 +123,10 @@ def search_lcsc(query: str) -> dict | None:
     # Only return fuzzy matches for longer, more specific queries.
     if len(query.strip()) < 6:
         return None
+
+    hit = pick_requested(components, query, _get_mpn, allow_family=allow_family)
+    if hit is not None:
+        return hit
 
     # Return first result as fuzzy match
     return components[0]
@@ -138,11 +150,13 @@ def search_lcsc_direct(lcsc_code: str) -> dict | None:
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read())
     except Exception as e:
+        note_transport_failure(e)
         print(f"[LCSC] Direct lookup failed for {lcsc_code}: {e}", file=sys.stderr)
         return None
 
-    result = data.get("result") or data
-    if not result or isinstance(result, str):
+    # {"result": null} is "no such product", not an empty one
+    result = data.get("result") if isinstance(data, dict) and "result" in data else data
+    if not isinstance(result, dict) or not result:
         return None
 
     # Normalize to jlcsearch-compatible dict format
@@ -153,19 +167,23 @@ def search_lcsc_direct(lcsc_code: str) -> dict | None:
     elif isinstance(pdf_list, list) and pdf_list:
         pdf_url = pdf_list[0] if isinstance(pdf_list[0], str) else ""
 
+    # The code is the one LCSC answers with, so the identity guard can compare it with the request
+    code = _text(result.get("productCode")).strip().upper()
+    model = _text(result.get("productModel")) or _text(result.get("modelName"))
+    desc = _text(result.get("productDescEn")) or _text(result.get("description"))
     component = {
-        "mfr": result.get("productModel") or result.get("modelName") or "",
-        "description": result.get("productDescEn") or result.get("description") or "",
+        "mfr": model,
+        "description": desc,
         "datasheet": pdf_url,
         "stock": result.get("stockNumber") or result.get("stockCount") or 0,
         "price": result.get("productPriceList"),
-        "lcsc": lcsc_code.lstrip("Cc"),
+        "lcsc": code.lstrip("C"),
         "extra": {
-            "number": lcsc_code.upper(),
-            "mpn": result.get("productModel") or result.get("modelName") or "",
-            "description": result.get("productDescEn") or result.get("description") or "",
+            "number": code,
+            "mpn": model,
+            "description": desc,
             "manufacturer": {
-                "name": result.get("brandNameEn") or result.get("manufacturer") or "",
+                "name": _text(result.get("brandNameEn")) or _text(result.get("manufacturer")),
             },
             "datasheet": {
                 "pdf": pdf_url,
@@ -179,7 +197,7 @@ def search_lcsc_direct(lcsc_code: str) -> dict | None:
 def enrich_with_wmsc(component: dict) -> dict:
     """Fill datasheet URL / MPN / manufacturer from LCSC's product-detail
     endpoint when a jlcsearch hit lacks them (jlcsearch dropped its `extra`
-    block in 2026-09 — KH-405). Keeps jlcsearch's stock/price."""
+    block). Keeps jlcsearch's stock/price."""
     if not component or _get_datasheet_url(component):
         return component
     code = _get_lcsc_code(component)
@@ -193,8 +211,8 @@ def enrich_with_wmsc(component: dict) -> dict:
     component_extra = _parse_extra(component) or {}
     merged_extra = {**direct_extra, **component_extra}
     # The shallow merge above lets component_extra['datasheet'] clobber
-    # wmsc's — including an empty {} block a stale jlcsearch hit carries
-    # (KH-405). Fall through to wmsc's datasheet block when the
+    # wmsc's — including an empty {} block a stale jlcsearch hit carries.
+    # Fall through to wmsc's datasheet block when the
     # component's own has no pdf URL.
     component_ds = component_extra.get("datasheet")
     if not (isinstance(component_ds, dict) and component_ds.get("pdf")):
@@ -213,51 +231,52 @@ def _get_datasheet_url(component: dict) -> str:
     Prefers the direct PDF URL from extra.datasheet.pdf (wmsc.lcsc.com CDN),
     falls back to the top-level datasheet URL (lcsc.com redirect).
     """
-    extra = component.get("extra") or {}
+    extra = _parse_extra(component)
     ds = extra.get("datasheet") or {}
     if isinstance(ds, dict):
-        pdf_url = ds.get("pdf", "")
+        pdf_url = _text(ds.get("pdf"))
         if pdf_url:
             return pdf_url
     # Fallback to top-level
-    return component.get("datasheet", "")
+    return _text(component.get("datasheet"))
 
 
 def _get_mpn(component: dict) -> str:
     """Extract MPN from component."""
-    extra = component.get("extra") or {}
-    return extra.get("mpn", "") or component.get("mfr", "")
+    extra = _parse_extra(component)
+    return _text(extra.get("mpn")) or _text(component.get("mfr"))
 
 
 def _get_lcsc_code(component: dict) -> str:
     """Extract LCSC code (Cxxxxx) from component."""
-    extra = component.get("extra") or {}
-    num = extra.get("number", "")
+    extra = _parse_extra(component)
+    num = _text(extra.get("number"))
     if num:
         return num
     lcsc_id = component.get("lcsc", "")
+    if not isinstance(lcsc_id, (int, str)) or isinstance(lcsc_id, bool):
+        return ""
     return f"C{lcsc_id}" if lcsc_id else ""
 
 
 def _get_manufacturer(component: dict) -> str:
     """Extract manufacturer name from component."""
-    extra = component.get("extra") or {}
+    extra = _parse_extra(component)
     mfg = extra.get("manufacturer") or {}
     if isinstance(mfg, dict):
-        return mfg.get("name", "")
+        return _text(mfg.get("name"))
     return ""
 
 
 def _get_description(component: dict) -> str:
     """Extract description from component."""
-    extra = component.get("extra") or {}
-    return extra.get("description", "") or component.get("description", "")
+    extra = _parse_extra(component)
+    return _text(extra.get("description")) or _text(component.get("description"))
 
 
 def sync_one_part(
     part: dict,
     output_dir: Path,
-    index: dict,
     delay: float,
     ctx,
 ) -> dict:
@@ -279,42 +298,48 @@ def sync_one_part(
     if schematic_url and schematic_url != "~" and "://" in schematic_url:
         print(f"  Trying schematic URL...", file=sys.stderr)
         if download_pdf(schematic_url, str(output_path)):
-            size = os.path.getsize(str(output_path))
-            vr = verify_datasheet(str(output_path), display_pn, desc, mfg)
-            if vr["confidence"] == "wrong":
-                print(f"  WARNING: PDF may be wrong datasheet — {vr['details']}",
-                      file=sys.stderr)
-            result = {
-                "file": filename,
-                "manufacturer": mfg,
-                "description": desc,
-                "value": part["value"],
-                "datasheet_url": schematic_url,
-                "downloaded_date": now,
-                "source": "schematic",
-                "status": "ok",
-                "references": part["references"],
-                "size_bytes": size,
-                "verification": vr["confidence"],
-            }
-            if vr["confidence"] == "wrong":
-                result["verification_details"] = vr["details"]
-            return result
+            return downloaded_entry(part, output_path, filename, verify_pn=display_pn,
+                                    manufacturer=mfg, description=desc, url=schematic_url,
+                                    source="schematic", now=now)
 
     # Strategy 2: Search jlcsearch API
     # Prefer LCSC code (exact match) over MPN keyword search
     search_term = lcsc_pn or mpn
     time.sleep(delay)
     print(f"  Searching LCSC for '{search_term}'...", file=sys.stderr)
-    component = search_lcsc(search_term)
+    family = mpn_from_value(part)
+    component = search_lcsc(search_term, family and not lcsc_pn)
     component = enrich_with_wmsc(component)
+
+    def _other(hit, by_pn):
+        if hit is None:
+            return ""
+        return other_part(lcsc_pn if by_pn else mpn, _get_mpn(hit), [_get_lcsc_code(hit)],
+                          by_pn=by_pn, allow_family=family, part_mpn=mpn)
+
+    closest = _other(component, bool(lcsc_pn))
+    if closest:
+        component = None
+
+    # jlcsearch does not list every LCSC code; LCSC's own product page does
+    if component is None and lcsc_pn:
+        time.sleep(delay)
+        direct = search_lcsc_direct(lcsc_pn)
+        mismatch = _other(direct, True)
+        if mismatch:
+            closest = closest or mismatch
+        else:
+            component = direct
 
     # If LCSC code search failed but we have an MPN, try that
     if component is None and lcsc_pn and mpn:
         time.sleep(delay)
         print(f"  LCSC code not found, trying MPN '{mpn}'...", file=sys.stderr)
-        component = search_lcsc(mpn)
+        component = search_lcsc(mpn, family)
         component = enrich_with_wmsc(component)
+        mismatch = _other(component, False)
+        if mismatch:
+            closest, component = mismatch, None
 
     if component is not None:
         ds_url = _get_datasheet_url(component)
@@ -332,51 +357,17 @@ def sync_one_part(
         if ds_url:
             print(f"  Downloading from LCSC CDN...", file=sys.stderr)
             if download_pdf(ds_url, str(output_path)):
-                size = os.path.getsize(str(output_path))
-                vr = verify_datasheet(str(output_path), effective_pn, lcsc_desc, lcsc_mfg)
-                if vr["confidence"] == "wrong":
-                    print(f"  WARNING: PDF may be wrong datasheet — {vr['details']}",
-                          file=sys.stderr)
-                result = {
-                    "file": filename,
-                    "manufacturer": lcsc_mfg,
-                    "description": lcsc_desc,
-                    "value": part["value"],
-                    "datasheet_url": ds_url,
-                    "downloaded_date": now,
-                    "source": "lcsc",
-                    "lcsc": lcsc_code,
-                    "status": "ok",
-                    "references": part["references"],
-                    "size_bytes": size,
-                    "verification": vr["confidence"],
-                }
-                if vr["confidence"] == "wrong":
-                    result["verification_details"] = vr["details"]
-                return result
+                return downloaded_entry(part, output_path, filename, verify_pn=mpn or effective_pn,
+                                        manufacturer=lcsc_mfg, description=lcsc_desc, url=ds_url,
+                                        source="lcsc", now=now, vendor_id=("lcsc", lcsc_code))
 
     # Strategy 3: Try alternative manufacturer sources
     if mpn:
         print(f"  Trying alternative sources...", file=sys.stderr)
         if try_alternative_sources(mpn, str(output_path)):
-            size = os.path.getsize(str(output_path))
-            vr = verify_datasheet(str(output_path), mpn, desc, mfg)
-            result = {
-                "file": filename,
-                "manufacturer": mfg,
-                "description": desc,
-                "value": part["value"],
-                "datasheet_url": "",
-                "downloaded_date": now,
-                "source": "alternative",
-                "status": "ok",
-                "references": part["references"],
-                "size_bytes": size,
-                "verification": vr["confidence"],
-            }
-            if vr["confidence"] == "wrong":
-                result["verification_details"] = vr["details"]
-            return result
+            return downloaded_entry(part, output_path, filename, verify_pn=mpn, manufacturer=mfg,
+                                    description=desc, url="", source="alternative", now=now,
+                                    warn=False)
 
     if component is None:
         return {
@@ -385,7 +376,10 @@ def sync_one_part(
             "value": part["value"],
             "references": part["references"],
             "status": "not_found",
-            "error": f"No LCSC results for '{search_term}'" + (f" or '{mpn}'" if lcsc_pn and mpn else ""),
+            "error": (f"No matching LCSC result for '{search_term}'" if closest
+                      else f"No LCSC results for '{search_term}'")
+                     + (f" or '{mpn}'" if lcsc_pn and mpn else "")
+                     + (f" (closest: '{closest}', a different part)" if closest else ""),
             "last_attempt": now,
         }
 

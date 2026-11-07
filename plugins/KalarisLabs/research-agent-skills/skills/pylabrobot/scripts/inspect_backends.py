@@ -14,10 +14,11 @@ if __package__:
 else:
   from _common import PYLABROBOT_VERSION, ValidationError, emit_error, emit_json
 
-VERSION_RE = re.compile(r"^[0-9]+(?:\.[0-9]+){2}$")
+VERSION_RE = re.compile(r"^\d+(?:\.\d+){2}$")
 
 
 def build_parser() -> argparse.ArgumentParser:
+  """Build parser."""
   parser = argparse.ArgumentParser(
       description=(
           "Inspect installed PyLabRobot version, known backend symbols, frontend "
@@ -45,6 +46,7 @@ def _class_record(
     transport: str,
     methods: Sequence[str],
 ) -> dict[str, Any]:
+  """Handle class record."""
   return {
       "class": class_object.__name__,
       "import_path": f"{class_object.__module__}.{class_object.__name__}",
@@ -59,6 +61,7 @@ def _class_record(
 
 
 def inspect_installation(expected_version: str) -> dict[str, Any]:
+  """Handle inspect installation."""
   if VERSION_RE.fullmatch(expected_version) is None:
     raise ValidationError("--expected-version must use X.Y.Z numeric form")
   try:
@@ -201,6 +204,7 @@ def inspect_installation(expected_version: str) -> dict[str, Any]:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+  """Run the command-line interface."""
   args = build_parser().parse_args(argv)
   try:
     report = inspect_installation(args.expected_version)

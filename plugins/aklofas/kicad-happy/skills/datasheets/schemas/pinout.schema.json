@@ -2,9 +2,10 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.local/datasheets/schemas/pinout.schema.json",
   "title": "Pinout",
+  "x-schema-version": "1.0",
   "description": "Array of Pin objects describing every pin on a package. Referenced from base.schema.json under base.pinout.",
   "x-still-calibrating": true,
-  "x-stability-note": "Pin schema is additive-only-calibrating through v1.4. Real-corpus extractions may prompt shape refinements before v1.5 commits to strict additive-only discipline.",
+  "x-stability-note": "Pin schema is additive-only-calibrating. Real-corpus extractions may prompt shape refinements before the schema commits to strict additive-only discipline.",
   "type": "array",
   "items": {"$ref": "#/$defs/Pin"},
   "$defs": {

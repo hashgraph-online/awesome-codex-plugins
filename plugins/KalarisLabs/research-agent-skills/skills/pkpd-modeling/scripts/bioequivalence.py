@@ -54,10 +54,12 @@ CV_SCALING_THRESHOLD = 0.30
 
 
 def cv_from_s2(s2: float) -> float:
+    """Handle cv from s2."""
     return math.sqrt(math.exp(s2) - 1.0)
 
 
 def s2_from_cv(cv: float) -> float:
+    """Handle s2 from cv."""
     return math.log(1.0 + cv**2)
 
 
@@ -66,6 +68,7 @@ def s2_from_cv(cv: float) -> float:
 
 @dataclass
 class AverageBE:
+    """Average be."""
     gmr: float
     ci_low: float
     ci_high: float
@@ -148,6 +151,7 @@ def crossover_2x2(records: list[dict], design: str = "2x2") -> AverageBE:
 
 
 def parallel_design(records: list[dict]) -> AverageBE:
+    """Handle parallel design."""
     test = np.asarray([r["logvalue"] for r in records if r["treatment"] == "T"])
     ref = np.asarray([r["logvalue"] for r in records if r["treatment"] == "R"])
     if len(test) < 2 or len(ref) < 2:
@@ -175,16 +179,19 @@ def parallel_design(records: list[dict]) -> AverageBE:
 
 @dataclass
 class ReferenceVariability:
+    """Reference variability."""
     s2wr: float
     df: int
     n_subjects: int
 
     @property
     def swr(self) -> float:
+        """Handle swr."""
         return math.sqrt(self.s2wr)
 
     @property
     def cvwr(self) -> float:
+        """Handle cvwr."""
         return cv_from_s2(self.s2wr)
 
 
@@ -278,7 +285,8 @@ def tost_power(n_total: int, cv: float, gmr: float, design: str = "2x2", limits:
 
 
 def sample_size(cv: float, gmr: float, target: float, design: str = "2x2", limits: tuple[float, float] = (0.80, 1.25)) -> tuple[int, float]:
-    step = 2 if design != "parallel" else 2
+    """Handle sample size."""
+    step = 2
     for n in range(4, 5002, step):
         power = tost_power(n, cv, gmr, design, limits)
         if power >= target:
@@ -290,6 +298,7 @@ def sample_size(cv: float, gmr: float, target: float, design: str = "2x2", limit
 
 
 def load_records(args: argparse.Namespace) -> list[dict]:
+    """Load records."""
     rows = read_table(args.input)
     require_columns(rows, [args.subject_column, args.treatment_column, args.value_column], str(args.input))
     records = []
@@ -318,6 +327,7 @@ def load_records(args: argparse.Namespace) -> list[dict]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Average, reference-scaled, and prospective bioequivalence calculations.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -346,48 +356,45 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def run(argv: Sequence[str] | None = None) -> int:
-    args = build_parser().parse_args(argv)
-    report = Report()
-
+def _parse_limits(args: argparse.Namespace) -> tuple[float, ...]:
+    """Acceptance limits from --nti / --limits, validated as low < high."""
     limits = (0.90, 1.1111) if args.nti else tuple(float(x) for x in args.limits.split(","))
     if len(limits) != 2 or limits[0] >= limits[1]:
         raise InputError(f"--limits must be low,high with low < high; got {args.limits!r}")
+    return limits
 
-    if args.power:
-        if args.cv is None:
-            raise InputError("--power needs --cv")
-        if args.n:
-            power = tost_power(args.n, args.cv, args.gmr, args.design, limits)
-            report.scalar("n_total", args.n)
-            report.scalar("power", power)
-        else:
-            n, power = sample_size(args.cv, args.gmr, args.target_power, args.design, limits)
-            report.scalar("n_total_required", n)
-            report.scalar("achieved_power", power)
-        report.scalar("assumed_cv_within", args.cv)
-        report.scalar("assumed_gmr", args.gmr)
-        report.scalar("acceptance_limits", f"{limits[0]:.4f}-{limits[1]:.4f}")
-        report.note(
-            "Power is computed exactly by integrating over the sampling distribution of the estimated "
-            "standard deviation; the normal approximation overstates it at these sample sizes."
-        )
-        report.note(
-            "Sample size is driven far more by the assumed GMR than by CV. Assuming GMR = 1.00 rather "
-            "than 0.95 typically halves the calculated N and is the most common way a BE study ends up "
-            "underpowered."
-        )
-        return report.emit(args.format)
 
-    if not args.input:
-        raise InputError("give -i INPUT for an analysis, or --power for a sample-size calculation")
+def _run_power(args: argparse.Namespace, report: Report, limits: tuple[float, ...]) -> int:
+    """Prospective power or sample-size calculation for ``--power``."""
+    if args.cv is None:
+        raise InputError("--power needs --cv")
+    if args.n:
+        power = tost_power(args.n, args.cv, args.gmr, args.design, limits)
+        report.scalar("n_total", args.n)
+        report.scalar("power", power)
+    else:
+        n, power = sample_size(args.cv, args.gmr, args.target_power, args.design, limits)
+        report.scalar("n_total_required", n)
+        report.scalar("achieved_power", power)
+    report.scalar("assumed_cv_within", args.cv)
+    report.scalar("assumed_gmr", args.gmr)
+    report.scalar("acceptance_limits", f"{limits[0]:.4f}-{limits[1]:.4f}")
+    report.note(
+        "Power is computed exactly by integrating over the sampling distribution of the estimated "
+        "standard deviation; the normal approximation overstates it at these sample sizes."
+    )
+    report.note(
+        "Sample size is driven far more by the assumed GMR than by CV. Assuming GMR = 1.00 rather "
+        "than 0.95 typically halves the calculated N and is the most common way a BE study ends up "
+        "underpowered."
+    )
+    return report.emit(args.format)
 
-    records = load_records(args)
-    label = args.metric or args.value_column
 
-    result = parallel_design(records) if args.design == "parallel" else crossover_2x2(records, args.design)
-    passes = limits[0] <= result.ci_low and result.ci_high <= limits[1]
-
+def _report_average_be(
+    args: argparse.Namespace, report: Report, result: AverageBE, limits: tuple[float, ...], passes: bool, label: str
+) -> None:
+    """Scalars and findings for the unscaled average-bioequivalence result."""
     report.scalar("metric", label)
     report.scalar("design", args.design)
     report.scalar("analysis", result.method)
@@ -412,65 +419,117 @@ def run(argv: Sequence[str] | None = None) -> int:
     if args.nti:
         report.note("narrow therapeutic index limits applied (90.00-111.11%)")
 
-    if args.scaling != "none":
-        if args.design != "replicate":
-            raise InputError(
-                "reference-scaling requires --design replicate. High observed variability in a 2x2 study "
-                "does not license widening: without replicated reference administrations there is no "
-                "estimate of within-subject reference variability to scale to."
-            )
-        rv = reference_variability(records)
-        report.scalar("cvwr_pct", 100.0 * rv.cvwr)
-        report.scalar("swr", rv.swr)
-        report.scalar("cvwr_degrees_of_freedom", rv.df)
-        report.scalar("subjects_with_replicated_reference", rv.n_subjects)
 
-        rows = []
-        if args.scaling in {"abel", "both"}:
-            low, high, widened = abel_limits(rv)
-            abel_pass = low <= result.ci_low and result.ci_high <= high and limits[0] <= result.gmr <= limits[1]
-            rows.append(
-                {
-                    "criterion": "EMA ABEL",
-                    "applicable": "yes" if rv.cvwr > CV_SCALING_THRESHOLD else "no (CVwR <= 30%)",
-                    "limits_pct": f"{100 * low:.2f}-{100 * high:.2f}",
-                    "widened": widened,
-                    "point_estimate_constraint": "80.00-125.00%",
-                    "met": abel_pass,
-                }
-            )
-            if widened and rv.cvwr > CV_ABEL_CAP:
-                report.note(
-                    f"CVwR is {100 * rv.cvwr:.1f}%, above the 50% cap; ABEL limits are frozen at "
-                    "69.84-143.19% rather than widening further."
-                )
-            if not abel_pass:
-                report.finding(f"{label}: EMA ABEL criterion not met")
-        if args.scaling in {"rsabe", "both"}:
-            estimate = math.log(result.gmr)
-            scaled = rsabe_bound(estimate, result.se, result.df, rv)
-            point_ok = limits[0] <= result.gmr <= limits[1]
-            applicable = rv.cvwr >= CV_SCALING_THRESHOLD
-            met = bool(scaled["passes_scaled_criterion"]) and point_ok
-            rows.append(
-                {
-                    "criterion": "FDA RSABE",
-                    "applicable": "yes" if applicable else "no (CVwR < 30%: use unscaled ABE)",
-                    "limits_pct": "linearised scaled bound",
-                    "widened": applicable,
-                    "point_estimate_constraint": "80.00-125.00%",
-                    "met": met if applicable else passes,
-                }
-            )
-            report.scalar("rsabe_criterion_point", scaled["criterion_point_estimate"])
-            report.scalar("rsabe_criterion_95_upper_bound", scaled["criterion_95_upper_bound"])
-            if applicable and not met:
-                report.finding(f"{label}: FDA RSABE criterion not met")
-        report.table("reference-scaled criteria", rows)
+def _abel_row(
+    report: Report, rv: ReferenceVariability, result: AverageBE, limits: tuple[float, ...], label: str
+) -> dict[str, object]:
+    """EMA ABEL assessment: table row plus any note/finding on the report."""
+    low, high, widened = abel_limits(rv)
+    abel_pass = low <= result.ci_low and result.ci_high <= high and limits[0] <= result.gmr <= limits[1]
+    row = {
+        "criterion": "EMA ABEL",
+        "applicable": "yes" if rv.cvwr > CV_SCALING_THRESHOLD else "no (CVwR <= 30%)",
+        "limits_pct": f"{100 * low:.2f}-{100 * high:.2f}",
+        "widened": widened,
+        "point_estimate_constraint": "80.00-125.00%",
+        "met": abel_pass,
+    }
+    if widened and rv.cvwr > CV_ABEL_CAP:
         report.note(
-            "ABEL and RSABE are different criteria and can disagree on the same dataset. Which one "
-            "applies is decided by the regulator the application goes to, and must be pre-specified."
+            f"CVwR is {100 * rv.cvwr:.1f}%, above the 50% cap; ABEL limits are frozen at "
+            "69.84-143.19% rather than widening further."
         )
+    if not abel_pass:
+        report.finding(f"{label}: EMA ABEL criterion not met")
+    return row
+
+
+def _rsabe_row(
+    report: Report,
+    rv: ReferenceVariability,
+    result: AverageBE,
+    limits: tuple[float, ...],
+    passes: bool,
+    label: str,
+) -> dict[str, object]:
+    """FDA RSABE assessment: table row plus scalars/finding on the report."""
+    estimate = math.log(result.gmr)
+    scaled = rsabe_bound(estimate, result.se, result.df, rv)
+    point_ok = limits[0] <= result.gmr <= limits[1]
+    applicable = rv.cvwr >= CV_SCALING_THRESHOLD
+    met = bool(scaled["passes_scaled_criterion"]) and point_ok
+    row = {
+        "criterion": "FDA RSABE",
+        "applicable": "yes" if applicable else "no (CVwR < 30%: use unscaled ABE)",
+        "limits_pct": "linearised scaled bound",
+        "widened": applicable,
+        "point_estimate_constraint": "80.00-125.00%",
+        "met": met if applicable else passes,
+    }
+    report.scalar("rsabe_criterion_point", scaled["criterion_point_estimate"])
+    report.scalar("rsabe_criterion_95_upper_bound", scaled["criterion_95_upper_bound"])
+    if applicable and not met:
+        report.finding(f"{label}: FDA RSABE criterion not met")
+    return row
+
+
+def _run_scaling(
+    args: argparse.Namespace,
+    report: Report,
+    records: list[dict],
+    result: AverageBE,
+    limits: tuple[float, ...],
+    passes: bool,
+    label: str,
+) -> None:
+    """Reference-scaled (ABEL / RSABE) assessment for replicate designs."""
+    if args.design != "replicate":
+        raise InputError(
+            "reference-scaling requires --design replicate. High observed variability in a 2x2 study "
+            "does not license widening: without replicated reference administrations there is no "
+            "estimate of within-subject reference variability to scale to."
+        )
+    rv = reference_variability(records)
+    report.scalar("cvwr_pct", 100.0 * rv.cvwr)
+    report.scalar("swr", rv.swr)
+    report.scalar("cvwr_degrees_of_freedom", rv.df)
+    report.scalar("subjects_with_replicated_reference", rv.n_subjects)
+
+    rows = []
+    if args.scaling in {"abel", "both"}:
+        rows.append(_abel_row(report, rv, result, limits, label))
+    if args.scaling in {"rsabe", "both"}:
+        rows.append(_rsabe_row(report, rv, result, limits, passes, label))
+    report.table("reference-scaled criteria", rows)
+    report.note(
+        "ABEL and RSABE are different criteria and can disagree on the same dataset. Which one "
+        "applies is decided by the regulator the application goes to, and must be pre-specified."
+    )
+
+
+def run(argv: Sequence[str] | None = None) -> int:
+    """Run the bioequivalence CLI (analysis or power/sample size) and emit the report."""
+    args = build_parser().parse_args(argv)
+    report = Report()
+
+    limits = _parse_limits(args)
+
+    if args.power:
+        return _run_power(args, report, limits)
+
+    if not args.input:
+        raise InputError("give -i INPUT for an analysis, or --power for a sample-size calculation")
+
+    records = load_records(args)
+    label = args.metric or args.value_column
+
+    result = parallel_design(records) if args.design == "parallel" else crossover_2x2(records, args.design)
+    passes = limits[0] <= result.ci_low and result.ci_high <= limits[1]
+
+    _report_average_be(args, report, result, limits, passes, label)
+
+    if args.scaling != "none":
+        _run_scaling(args, report, records, result, limits, passes, label)
 
     report.note("all statistics computed on the natural-log scale; ratios are geometric means")
     return report.emit(args.format)

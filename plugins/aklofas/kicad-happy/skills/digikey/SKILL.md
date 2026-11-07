@@ -228,7 +228,7 @@ python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch>
 # Preview what would be downloaded
 python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch> --dry-run
 
-# Retry previously failed downloads
+# Retry parts a previous run failed at DigiKey
 python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch> --force
 
 # Custom output directory
@@ -244,7 +244,7 @@ python3 <skill-path>/scripts/sync_datasheets_digikey.py <file.kicad_sch> --paral
 python3 <skill-path>/scripts/sync_datasheets_digikey.py --mpn-list mpns.txt --output ./datasheets
 ```
 
-**MPN-list batch mode** (KH-312) — when you have a list of MPNs but no KiCad
+**MPN-list batch mode** — when you have a list of MPNs but no KiCad
 project to point at (harness datasheet seeding, bulk seeding a new part
 library). The file format is one MPN per line. Blank lines and `#`
 comments (full-line and inline) are skipped. Non-MPN strings (generic
@@ -257,7 +257,7 @@ The script:
 - **Filters generic passives** — skips entries without real MPNs (e.g., "100nF", "10K")
 - **Tries schematic URLs first** — uses the datasheet URL embedded in the KiCad symbol before hitting the DigiKey API, saving API calls
 - **Writes `manifest.json` manifest** — maps each MPN to its PDF file, manufacturer, description, download status, and URL. The kicad skill reads this during design review to cross-reference datasheets with the schematic.
-- **Tracks failures** — failed downloads are recorded with error details and not retried on subsequent runs unless `--force` is used
+- **Tracks failures** — a part not found, without a datasheet or failed at DigiKey is recorded with the error (`failed_providers`) and skipped by DigiKey on later runs unless `--force`; other distributors still try it, and a network failure (`error`) is retried on the next run
 - **Rate-limited** — 1 second between DigiKey API calls (configurable with `--delay`)
 - **Saves progress incrementally** — if interrupted, already-downloaded files are preserved
 
@@ -297,6 +297,7 @@ python3 <skill-path>/scripts/fetch_datasheet_digikey.py --search "ADP1706" --jso
 
 The script:
 - **OS-agnostic** — uses Python `requests` library (no wget/curl dependency). Falls back to `urllib` if `requests` isn't installed.
+- **Refuses another part** — a `--search` hit that is a different part is not downloaded (exit 2); a family match is accepted
 - **Normalizes redirect URLs** — DigiKey's `DatasheetUrl` for TI parts points to a JS redirect page; the script extracts the direct PDF link. Also fixes protocol-relative `//mm.digikey.com/...` URLs.
 - **Sets proper User-Agent** — many manufacturer sites (Nexperia, Lite-On, STMicro, Molex) block bare `urllib` or `curl` requests but serve PDFs fine with a browser User-Agent
 - **Validates PDF headers** — rejects HTML error pages or Cloudflare challenge pages that masquerade as downloads
@@ -341,7 +342,7 @@ Example message to the user:
 >
 > You can open it in your browser and save it locally, then I can read and analyze it.
 
-The `--json` output always includes the `datasheet_url` field even on failure, so you can extract the URL programmatically.
+With `--search --json`, the output includes `datasheet_url` whenever the part was found, including a failed download (exit 1); a part that is not found (exit 2) gives only `success` and `error`. Direct-URL mode reports `url` instead.
 
 ### Manual Download Workflow
 

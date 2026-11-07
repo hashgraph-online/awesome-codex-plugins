@@ -62,7 +62,7 @@ def run_grn_inference(expression_file, output_file, tf_file=None, seed=777, limi
     network.to_csv(output_file, sep='\t', index=False, header=False)
 
     print(f"Done! Network contains {len(network)} regulatory links.")
-    print(f"\nTop 10 regulatory links:")
+    print("\nTop 10 regulatory links:")
     print(network.head(10).to_string(index=False))
 
 

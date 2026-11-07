@@ -192,10 +192,12 @@ def parameter_grid(model_name: str) -> dict[str, list[Any]]:
 
 
 def _event_field(y: Any) -> str:
+    """Handle event field."""
     return str(y.dtype.names[0])
 
 
 def _time_field(y: Any) -> str:
+    """Handle time field."""
     return str(y.dtype.names[1])
 
 
@@ -430,18 +432,14 @@ def train_and_report(
     transformed_features = int(
         estimator.named_steps["preprocess"].get_feature_names_out().shape[0]
     )
-    nested_harrell = (
-        None
-        if not nested_results
-        else {
-            "mean": float(np.mean([item["harrell_c"] for item in nested_results])),
-            "standard_deviation": float(
-                np.std([item["harrell_c"] for item in nested_results], ddof=1)
-            )
-            if len(nested_results) > 1
-            else 0.0,
+    nested_harrell = None
+    if nested_results:
+        nested_scores = [item["harrell_c"] for item in nested_results]
+        nested_sd = float(np.std(nested_scores, ddof=1)) if len(nested_scores) > 1 else 0.0
+        nested_harrell = {
+            "mean": float(np.mean(nested_scores)),
+            "standard_deviation": nested_sd,
         }
-    )
     report = {
         "data": {
             "censored_test": int((~y_test[event_column]).sum()),
@@ -491,6 +489,7 @@ def train_and_report(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Train a leakage-safe Cox or ensemble example. Local CSV use requires "
@@ -529,6 +528,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

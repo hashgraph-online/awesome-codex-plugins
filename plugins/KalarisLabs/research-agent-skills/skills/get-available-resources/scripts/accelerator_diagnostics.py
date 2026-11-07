@@ -9,9 +9,9 @@ from typing import Any, Mapping, Sequence
 from _common import (
     SCHEMA_VERSION,
     ResourceToolError,
-    cli_error,
-    emit_json,
+    add_output_arguments,
     read_json_file,
+    run_json_cli,
 )
 from snapshot_tools import validate_snapshot
 
@@ -108,6 +108,7 @@ def build_diagnostic_plan(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Produce a read-only accelerator diagnostic plan; run nothing"
     )
@@ -118,33 +119,20 @@ def build_parser() -> argparse.ArgumentParser:
         default="auto",
         help="backend to plan; default: auto from snapshot candidates",
     )
-    parser.add_argument(
-        "--output",
-        metavar="FILE.json",
-        help="write a private local JSON file instead of stdout",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="replace an existing explicit output file",
-    )
+    add_output_arguments(parser)
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
-    if args.force and not args.output:
-        parser.error("--force requires --output")
-    try:
-        report = build_diagnostic_plan(
+    """Run the command-line interface."""
+    return run_json_cli(
+        build_parser(),
+        argv,
+        lambda args: build_diagnostic_plan(
             read_json_file(args.snapshot),
             backend=args.backend,
-        )
-        emit_json(report, args.output, force=args.force)
-    except ResourceToolError as exc:
-        return cli_error(parser, exc)
-    return 0
+        ),
+    )
 
 
 if __name__ == "__main__":

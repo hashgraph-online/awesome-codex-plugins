@@ -556,6 +556,10 @@ test over the smaller result.
   `data.verification.temporal_contracts`), and a declared grain no `unique` test
   in the build covers (`grain_broken`, `source: declaration`). See
   declarations.md, "Checked against the built relation".
+- It reads the dev namespace, and the namespaces dbt derived from it for this
+  build's manifest (`<dev schema>_<name>`, where a package or a folder sets
+  `+schema`), so a package parent or a joined package model built there is
+  judged rather than reported unbuilt (#1155). `notes` names each one read.
 - It measures the coverage of every equality join the built models write, as
   `maintain verify` does: `data.verification.join_coverage` holds one record
   per join, and `join_no_match`, `join_orphans`, `join_zero_overlap`,

@@ -1,3 +1,5 @@
+"""Doctor helpers."""
+
 import argparse
 import os
 import sys
@@ -10,6 +12,7 @@ _VALID_BACKENDS = {"local", "claude", "foundry"}
 
 
 def default_screenpipe_probe(config):
+    """Handle default screenpipe probe."""
     sp = config.get("screenpipe", {})
     try:
         url = check_remote_endpoint(sp.get("url", "http://localhost:3030"), "screenpipe")
@@ -27,6 +30,7 @@ def default_screenpipe_probe(config):
 
 
 def default_llm_probe(config):
+    """Handle default llm probe."""
     kind = config.get("backend")
     if kind == "local":
         endpoint = config.get("local", {}).get("endpoint", "http://localhost:1234/v1")
@@ -49,6 +53,7 @@ def default_llm_probe(config):
 
 
 def check(config, *, skills_dir, screenpipe_probe, llm_probe):
+    """Check."""
     result = {}
 
     kind = config.get("backend")
@@ -69,6 +74,7 @@ def check(config, *, skills_dir, screenpipe_probe, llm_probe):
 
 
 def _format_report(result: dict) -> str:
+    """Format report."""
     lines = ["autoskill doctor", "================"]
     for key in ("config", "skills_dir", "screenpipe", "llm"):
         status, detail = result[key]
@@ -77,6 +83,7 @@ def _format_report(result: dict) -> str:
 
 
 def main(argv=None):
+    """Run the command-line interface."""
     import yaml
 
     parser = argparse.ArgumentParser(

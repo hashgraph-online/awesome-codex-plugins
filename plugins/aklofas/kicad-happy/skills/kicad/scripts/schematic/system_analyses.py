@@ -1,9 +1,9 @@
-"""System-level analyses (PDN impedance, sleep current, voltage derating, protocol compliance, power budget and sequencing, BOM optimization, test coverage, assembly complexity, USB compliance, inrush): verbatim move from analyze_schematic.py; no behaviour change."""
+"""System-level analyses (PDN impedance, sleep current, voltage derating, protocol compliance, power budget and sequencing, BOM optimization, test coverage, assembly complexity, USB compliance, inrush)."""
 from __future__ import annotations
 
-import json
 import math
 import re
+from kicad_core.classify import is_active_low_enable, is_touch_pad
 from kicad_types import (
     AnalysisContext,
 )
@@ -12,9 +12,11 @@ from pathlib import (
 )
 from kicad_core.netnames import (
     _clean_hierarchical_name,
+    is_vss_name,
 )
 from schematic.net_analysis import (
     _estimate_rail_voltage,
+    can_bus_pairs,
 )
 from kicad_core.values import (
     format_frequency as _format_frequency,
@@ -26,6 +28,10 @@ from finding_schema import (
 from kicad_core.parts import (
     MLCC_ESL,
     MLCC_ESR,
+)
+from kicad_core.pdn import (
+    cap_branch_z,
+    parallel_impedance,
 )
 
 
@@ -75,12 +81,6 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
             return True
         return False
 
-    def _cap_impedance(f: float, c_farads: float, esr: float, esl: float) -> float:
-        # EQ-061: |Z| = √(ESR²+(2πfL-1/(2πfC))²) at given frequency
-        x_c = 1.0 / (2.0 * math.pi * f * c_farads) if c_farads > 0 else 1e12
-        x_l = 2.0 * math.pi * f * esl
-        return math.sqrt(esr ** 2 + (x_l - x_c) ** 2)
-
     # Build power rail -> caps mapping
     rail_caps: dict[str, list[dict]] = {}
     for net_name, net_info in nets.items():
@@ -95,7 +95,7 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
             comp = comp_lookup.get(p["component"])
             if not comp or comp["type"] != "capacitor":
                 continue
-            # KH-196: Use pre-computed parsed_values (has component_type context)
+            # Use pre-computed parsed_values (has component_type context)
             cap_val = ctx.parsed_values.get(comp["reference"])
             if not cap_val or cap_val <= 0:
                 continue
@@ -172,16 +172,14 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
         # Compute combined impedance at each frequency point
         impedance_profile = []
         for f in freq_points:
-            z_parallel_inv = 0.0
-            for cap in caps:
-                z_i = _cap_impedance(f, cap["farads"], cap["esr_ohm"], cap["esl_nH"] * 1e-9)
-                if z_i > 0:
-                    z_parallel_inv += 1.0 / z_i
-            z_total = 1.0 / z_parallel_inv if z_parallel_inv > 0 else 1e12
+            # EQ-061: Z = ESR + j(2πfL - 1/(2πfC)) per cap, branches in parallel
+            branches = [cap_branch_z(f, cap["farads"], cap["esr_ohm"], cap["esl_nH"] * 1e-9)
+                        for cap in caps]
             if vrm_r_out is not None:
-                # VRM output impedance: flat R_out below BW, rising at +20dB/decade above
-                z_vrm = vrm_r_out * max(1.0, f / vrm_bw)
-                z_total = 1.0 / (1.0 / z_total + 1.0 / z_vrm) if z_total < 1e12 else z_vrm
+                # VRM output impedance: R_out, inductive above its bandwidth (+20 dB/decade)
+                branches.append(complex(vrm_r_out, vrm_r_out * f / vrm_bw))
+            z = parallel_impedance(branches)
+            z_total = abs(z) if z is not None else 1e12
             impedance_profile.append({
                 "freq_hz": round(f),
                 "freq_formatted": _format_frequency(f),
@@ -240,7 +238,7 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
     return result
 
 
-# KH-374: below this, a resistor bridging a rail to ground/a signal net is a
+# below this, a resistor bridging a rail to ground/a signal net is a
 # current-shunt/sense element, not a pull or bleeder -- a 5 mOhm shunt on
 # VBAT computed a nonsensical 740 A "worst-case" pull-up current pre-floor.
 SLEEP_PULL_MIN_OHM = 100.0
@@ -265,7 +263,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
     rail_currents: dict[str, list[dict]] = {}
     _get_two_pin_nets = ctx.get_two_pin_nets
 
-    # KH-374: rail voltage resolution that also knows about battery rails
+    # rail voltage resolution that also knows about battery rails
     # (VBAT/+BATT) and regulator estimated_vout, not just names
     # _estimate_rail_voltage() can parse a number out of.
     _battery_rail_re = re.compile(r'^\+?(BATT?|VBATT?|BATTERY|BAT\+)$', re.IGNORECASE)
@@ -277,20 +275,23 @@ def analyze_sleep_current(ctx: AnalysisContext,
             if _out_rail and _vout:
                 _reg_vout_by_rail.setdefault(_out_rail, _vout)
 
-    def _rail_voltage(name: str) -> float | None:
+    def _estimated_rail_voltage(name: str) -> float | None:
         v = _estimate_rail_voltage(name)
-        if v is not None:
-            return v
-        if signal_analysis:
+        if v is None:
+            v = ctx.rail_voltage(name)
+        if v is None and signal_analysis:
             v = signal_analysis.get("rail_voltages", {}).get(_clean_hierarchical_name(name))
-            if v is not None:
-                return v
-        v = _reg_vout_by_rail.get(name)
-        if v is not None:
-            return v
-        if name and _battery_rail_re.match(name):
-            return 3.7
-        return None
+        if v is None:
+            v = _reg_vout_by_rail.get(name)
+        if v is None and name and _battery_rail_re.match(name):
+            v = 3.7
+        return v
+
+    def _rail_voltage(name: str) -> float | None:
+        v = ctx.rail_voltage_or(name, _estimated_rail_voltage)
+        # Sleep draw scales with the rail's magnitude, so a negative rail
+        # contributes |V|/R like a positive one.
+        return abs(v) if v is not None else None
 
     # --- Resistors between power and ground ---
     _seen_refs = set()
@@ -317,7 +318,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
 
         if pwr_net and gnd_net:
             if r_val < SLEEP_PULL_MIN_OHM:
-                # KH-374: a sub-100 Ohm resistor bridging a rail straight
+                # a sub-100 Ohm resistor bridging a rail straight
                 # to ground is a shunt/sense element, not a bleeder --
                 # don't guess a current for it.
                 continue
@@ -356,7 +357,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
         if not v_rail or v_rail <= 0:
             continue
 
-        # KH-342: classify the signal side before assuming worst-case V/R.
+        # classify the signal side before assuming worst-case V/R.
         # A second resistor to ground makes this a divider (DC = V/(R1+R2));
         # a shunt cap with no other DC sink makes it an RC filter (DC ~ 0).
         divider_r2_ref = None
@@ -413,7 +414,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 "note": "series-R + shunt-C, no DC load — steady-state ~ 0",
             })
         elif r_val < SLEEP_PULL_MIN_OHM:
-            # KH-374: a sub-100 Ohm resistor here is a shunt/sense
+            # a sub-100 Ohm resistor here is a shunt/sense
             # element, not a pull -- don't guess a current for it.
             pass
         else:
@@ -475,7 +476,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
                                     "note": "assuming ~2V forward drop, always-on if no switch",
                                 })
 
-    # KH-239: Drop pull_up entries that are actually LED current-limit
+    # Drop pull_up entries that are actually LED current-limit
     # resistors. The LED loop above already emitted led_indicator entries
     # with series_resistor pointing at these refs, and the LED arithmetic
     # (V_rail - V_f)/R is the correct one. The pull_up branch's V_rail/R
@@ -558,10 +559,12 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 "note": f"estimated Iq ({'can be disabled via EN' if has_en else 'always-on, no EN pin detected'})",
             })
 
+    for _rail_name in [r for r in rail_currents if ctx.rail_ignored(r)]:
+        del rail_currents[_rail_name]
     if not rail_currents:
         return {}
 
-    # Build set of disableable rails. KH-374: when power_sequencing (real EN
+    # Build set of disableable rails. When power_sequencing (real EN
     # connectivity from analyze_power_sequencing) is available, a rail is
     # only disableable if its regulator's EN pin is actually driven by
     # something (en_source == "controlled") — not merely because the part
@@ -606,7 +609,7 @@ def analyze_sleep_current(ctx: AnalysisContext,
                 e["likely_state"] = "GPIO off during sleep"
                 e["realistic_uA"] = 0.0
             elif etype == "regulator_iq":
-                # KH-374: with real EN connectivity available, only a
+                # with real EN connectivity available, only a
                 # regulator whose EN is actually driven (en_source ==
                 # "controlled") counts as disableable — having an
                 # EN-named pin isn't enough on its own.
@@ -737,13 +740,17 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
             return "ceramic"
         return "unknown"
 
-    def _get_rail_voltage(net_name):
+    def _estimated_rail_voltage(net_name):
         for reg in signal_analysis.get("power_regulators", []):
             if reg.get("output_rail") == net_name:
                 v = reg.get("estimated_vout")
                 if v:
                     return v
-        return _estimate_rail_voltage(net_name)
+        v = ctx.rail_by_net.get(net_name)
+        return v if v is not None else _estimate_rail_voltage(net_name)
+
+    def _get_rail_voltage(net_name):
+        return ctx.rail_voltage_or(net_name, _estimated_rail_voltage)
 
     def _find_power_net(ref):
         n1, _ = pin_net.get((ref, "1"), (None, None))
@@ -762,31 +769,34 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
     def _read_ic_abs_max(mpn: str) -> dict | None:
         if not project_dir or not mpn:
             return None
+        try:
+            from datasheet_types.cache_reader import read_json_object, safe_extract_dir
+            from distributor_core.manifest import manifest_file_path
+        except ImportError:     # no datasheet_types, no extraction cache
+            return None
+        extracted_dir = safe_extract_dir(Path(project_dir) / "datasheets" / "extracted")
+        if extracted_dir is None:
+            return None
         sanitized = re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip())
-        extract_path = Path(project_dir) / "datasheets" / "extracted" / f"{sanitized}.json"
+        extract_path = extracted_dir / f"{sanitized}.json"
         if not extract_path.exists():
             # Prefer manifest.json, fall back to legacy index.json
-            extracted_dir = Path(project_dir) / "datasheets" / "extracted"
             idx_path = extracted_dir / "manifest.json"
             if not idx_path.exists():
                 idx_path = extracted_dir / "index.json"
             if idx_path.exists():
-                try:
-                    with open(idx_path, encoding="utf-8") as f:
-                        idx = json.load(f)
-                    for k, v in idx.get("extractions", {}).items():
-                        if k.upper() == sanitized.upper():
-                            extract_path = extracted_dir / v.get("file", "")
-                            break
-                except (json.JSONDecodeError, OSError):
-                    pass
-            if not extract_path.exists():
+                idx = read_json_object(idx_path) or {}
+                exts = idx.get("extractions")
+                for k, v in (exts.items() if isinstance(exts, dict) else ()):
+                    if k.upper() == sanitized.upper():
+                        extract_path = manifest_file_path(
+                            extracted_dir, v.get("file") if isinstance(v, dict) else None)
+                        break
+            if extract_path is None or not extract_path.exists():
                 return None
-        try:
-            with open(extract_path, encoding="utf-8") as f:
-                return json.load(f).get("absolute_maximum_ratings")
-        except (json.JSONDecodeError, OSError):
-            return None
+        data = read_json_object(extract_path)
+        abs_max = data.get("absolute_maximum_ratings") if data is not None else None
+        return abs_max if isinstance(abs_max, dict) else None
 
     profile = _DERATING_PROFILES.get(derating_profile, _DERATING_PROFILES["commercial"])
     _CAP_DERATING = {"ceramic": profile["ceramic_cap"], "electrolytic": profile["electrolytic_cap"],
@@ -808,6 +818,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         if not pwr_net:
             continue
         v_rail = _get_rail_voltage(pwr_net)
+        v_rail = abs(v_rail) if v_rail is not None else None  # stress is the magnitude
         if v_rail is None or v_rail <= 0:
             continue
         dielectric = _classify_cap_dielectric(comp)
@@ -836,6 +847,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 derating_rule=derating_rule, rail=pwr_net, rail_voltage=v_rail,
                 rated_voltage=rated_v, margin_pct=round(margin_pct, 1), dielectric=dielectric,
             schema_era="v3.0",
+                **ctx.rail_source_fields(pwr_net),
             ))
         elif margin_pct > profile["over_designed_cap_margin"] * 100:
             suggested_v = v_rail * 2.5
@@ -855,6 +867,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 derating_rule="over_designed", rail=pwr_net, rail_voltage=v_rail,
                 rated_voltage=rated_v, margin_pct=round(margin_pct, 1),
             schema_era="v3.0",
+                **ctx.rail_source_fields(pwr_net),
             ))
 
     # ---- IC absolute max voltage check ----
@@ -873,7 +886,8 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
             if abs_max.get(key) is not None:
                 vin_max = abs_max[key]
                 break
-        if vin_max is None:
+        if (not isinstance(vin_max, (int, float)) or isinstance(vin_max, bool)
+                or not math.isfinite(vin_max)):
             continue
         max_rail_v = 0
         max_rail_name = ""
@@ -883,6 +897,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 continue
             if is_power_net(net_name):
                 v = _get_rail_voltage(net_name)
+                v = abs(v) if v is not None else None
                 if v is not None and v > max_rail_v:
                     max_rail_v, max_rail_name = v, net_name
         if max_rail_v <= 0:
@@ -902,6 +917,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 derating_rule="exceeds_abs_max", rail=max_rail_name, rail_voltage=max_rail_v,
                 abs_max_vin=vin_max, margin_pct=round(margin_pct, 1),
             schema_era="v3.0",
+                **ctx.rail_source_fields(max_rail_name),
             ))
         elif margin_pct < 10:
             findings.append(make_finding(
@@ -916,6 +932,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 derating_rule="ic_10pct_abs_max", rail=max_rail_name, rail_voltage=max_rail_v,
                 abs_max_vin=vin_max, margin_pct=round(margin_pct, 1),
             schema_era="v3.0",
+                **ctx.rail_source_fields(max_rail_name),
             ))
 
     # ---- Resistor power dissipation check ----
@@ -934,10 +951,12 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 v_across = abs(v1 - v2)
             elif pwr_net and gnd_net:
                 v_across = _get_rail_voltage(pwr_net)
+                v_across = abs(v_across) if v_across is not None else None
             else:
                 continue
         else:
             v_across = _get_rail_voltage(pwr_net)
+            v_across = abs(v_across) if v_across is not None else None
         if v_across is None or v_across <= 0:
             continue
         power_w = (v_across ** 2) / pv
@@ -975,6 +994,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 estimated_power_w=round(power_w, 4), rated_power_w=rated_power, package=pkg,
                 margin_pct=round(margin_pct, 1),
                 schema_era="v3.0",
+                **ctx.rail_source_fields(pwr_net, n1, n2),
             ))
         elif margin_pct > profile["over_designed_res_margin"] * 100:
             pkg_sizes = ["0201", "0402", "0603", "0805", "1206", "1210", "2010", "2512"]
@@ -999,16 +1019,31 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 derating_rule="over_designed", estimated_power_w=round(power_w, 4),
                 rated_power_w=rated_power, package=pkg, margin_pct=round(margin_pct, 1),
             schema_era="v3.0",
+                **ctx.rail_source_fields(pwr_net, n1, n2),
             ))
 
     # ---- Return findings ----
     return findings
 
 
+def _pull_up_rail_voltage(ctx: AnalysisContext, rail: str | None) -> float | None:
+    """The rail map's voltage for a pull-up rail; a supply rail the map has no voltage
+    for falls back to its name, as the pull-up voltage compatibility check does. A net that is not a
+    supply (a USB data line, say) gets no voltage from its name."""
+    v = ctx.rail_voltage(rail)
+    if v is None and ctx.is_power_net(rail):
+        v = ctx.rail_voltage_or(rail, _estimate_rail_voltage)
+    return v
+
+
 def analyze_protocol_compliance(components: list[dict], nets: dict,
                                 design_analysis: dict, signal_analysis: dict,
-                                pin_net: dict) -> dict:
-    """Validate electrical characteristics of detected communication buses."""
+                                pin_net: dict, *, ctx: AnalysisContext | None = None) -> dict:
+    """Validate electrical characteristics of detected communication buses.
+
+    The I2C VOL check reads pull-up rail voltages from ``ctx``'s rail map (a supply
+    rail missing from it falls back to its name) and is skipped without a context.
+    """
     # EQ-063: t_rise = 0.8473 × R × C (I2C rise time estimation)
     buses = design_analysis.get("bus_analysis", {})
     cross_domain = design_analysis.get("cross_domain_signals", [])
@@ -1081,7 +1116,7 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
                     dev_ref = dev["ref"] if isinstance(dev, dict) else dev
                     for rail_info in power_domains.get(dev_ref, {}).get("power_rails", []):
                         v = _estimate_rail_voltage(rail_info) if isinstance(rail_info, str) else None
-                        if v:
+                        if v and v > 0:  # a negative supply is not the bus logic level
                             device_voltages.add(v)
                 if pu_voltage and device_voltages:
                     mismatched = [v for v in device_voltages if abs(v - pu_voltage) > 0.5]
@@ -1091,36 +1126,33 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
                     if mismatched:
                         issues.append(f"Pull-up rail {pu_rail} ({pu_voltage}V) but device(s) on "
                                       f"{', '.join(f'{v}V' for v in mismatched)} — voltage mismatch")
-            # KH: I2C open-drain VOL compatibility
-            # I2C spec: VOL_max = 0.4V for standard/fast mode
-            # With pull-up R and sink current I_OL: VOL = I_OL × R_on
-            # If pull-up too strong (low R) relative to device sink current,
-            # VOL may exceed 0.4V threshold
-            if sda_pullups:
-                min_pu_ohms = min(pu.get("ohms", 10000) for pu in sda_pullups)
-                # I2C spec sink current: 3mA standard, 6mA fast, 20mA fast+
-                # Derive speed mode from rise time checks
-                speed = "standard"
-                if "rise_time" in checks:
-                    rt = checks["rise_time"]
-                    sda_rt = rt.get("sda", {})
-                    if sda_rt.get("valid_400khz"):
-                        speed = "fast"
-                iol_ma = {"standard": 3, "fast": 6, "fast_plus": 20,
-                          "high_speed": 20}.get(speed, 3)
-                # Max pull-up for VOL < 0.4V: R_max = 0.4V / I_OL
-                r_max_for_vol = 0.4 / (iol_ma * 1e-3) if iol_ma > 0 else 10000
-                if min_pu_ohms > r_max_for_vol:
-                    issues.append(
-                        f"Pull-up {min_pu_ohms:.0f}\u03a9 may not meet VOL<0.4V spec "
-                        f"at {speed} mode ({iol_ma}mA sink): max {r_max_for_vol:.0f}\u03a9")
-                    checks["vol_compatibility"] = {
-                        "status": "warning",
-                        "pull_up_ohms": min_pu_ohms,
-                        "max_for_vol": round(r_max_for_vol),
-                        "iol_ma": iol_ma,
-                        "speed_mode": speed,
-                    }
+            # UM10204 eq. 1 and Table 10: Rp(min) = (VDD - 0.4 V) / 3 mA in Standard and
+            # Fast mode. The fitted pull-ups on the line sink together, so they combine
+            # as one Thevenin source.
+            vol_pullups = [pu for pu in sda_pullups if ctx and pu.get("ohms", 0) > 0
+                           and not ctx.comp_lookup.get(pu.get("ref"), {}).get("dnp")]
+            vol_rails = [_pull_up_rail_voltage(ctx, pu.get("to_rail")) for pu in vol_pullups]
+            if vol_pullups and all(v is not None for v in vol_rails):
+                g_total = sum(1 / pu["ohms"] for pu in vol_pullups)
+                r_pu = 1 / g_total
+                v_pu = r_pu * sum(v / pu["ohms"] for v, pu in zip(vol_rails, vol_pullups))
+                iol_ma = 3
+                speed = "fast" if checks.get("rise_time", {}).get("sda", {}).get("valid_400khz") else "standard"
+                # UM10204 specifies buses up to 5.5 V; a higher pull-up voltage is a bad rail estimate.
+                if 0.4 < v_pu <= 5.5:
+                    r_min = (v_pu - 0.4) / (iol_ma * 1e-3)
+                    if r_pu < r_min:
+                        issues.append(
+                            f"SDA pull-up {r_pu:.0f}\u03a9 to {v_pu:g}V is below the "
+                            f"{r_min:.0f}\u03a9 minimum for VOL \u2264 0.4V at {iol_ma}mA sink")
+                        checks["vol_compatibility"] = {
+                            "status": "warning",
+                            "pull_up_ohms": round(r_pu),
+                            "min_for_vol": round(r_min),
+                            "pull_up_voltage": round(v_pu, 3),
+                            "iol_ma": iol_ma,
+                            "speed_mode": speed,
+                        }
 
             # I2C bus current budget
             # Each device on the bus contributes leakage current (typically 1-10µA)
@@ -1282,27 +1314,77 @@ def analyze_protocol_compliance(components: list[dict], nets: dict,
                 uart_finding["issues"] = uart_issues
             findings.append(uart_finding)
 
-    # ---- CAN validation ----
+    # ---- CAN validation: one result per bus ----
     diff_pairs = design_analysis.get("differential_pairs", [])
-    for can in buses.get("can", []):
+    can_entries = buses.get("can", [])
+    can_names = [c.get("net", "") for c in can_entries]
+    canh = [n for n in can_names if "CANH" in n.upper() or "CAN_H" in n.upper()]
+    canl = [n for n in can_names if "CANL" in n.upper() or "CAN_L" in n.upper()]
+    pairs = can_bus_pairs(canh, canl)
+    can_dps = [dp for dp in diff_pairs if dp.get("type") == "CAN"]
+    judged: set = set()
+    findings_before_can = len(findings)
+
+    values_by_ref = {c.get("reference"): c.get("value") or "" for c in components}
+
+    def _judge(nets_of_bus, has_term, term_value, dnp_ref=None):
         issues, obs = [], []
-        has_term = can.get("has_termination", False)
-        term_value = can.get("termination_ohms")
-        if not has_term:
-            for dp in diff_pairs:
-                if dp.get("type") == "CAN" or "CAN" in dp.get("name", "").upper():
-                    if dp.get("has_termination"):
-                        has_term, term_value = True, dp.get("termination_ohms")
-        if not has_term:
+        if not has_term and dnp_ref:
+            # A placed-but-unfitted terminator is the per-node option, not an omission
+            value = values_by_ref.get(dnp_ref, "")
+            named = f"{dnp_ref} ({value})" if value else dnp_ref
+            obs.append(f"CAN termination {named} is DNP (fit it on the bus-end nodes)")
+        elif not has_term:
             issues.append("CAN bus missing 120Ω termination resistor")
         elif term_value and abs(term_value - 120) > 12:
             issues.append(f"CAN termination is {term_value}Ω (expected 120Ω ±10%)")
-        elif term_value:
+        else:
             obs.append("CAN 120Ω termination present (verify remote end has matching termination)")
-        if issues or obs:
-            findings.append({"protocol": "can", "nets": [can.get("canh_net", ""), can.get("canl_net", "")],
-                             "has_termination": has_term, "termination_ohms": term_value,
-                             "issues": issues or None, "observations": obs or None})
+        findings.append({"protocol": "can", "nets": nets_of_bus,
+                         "has_termination": has_term, "termination_ohms": term_value,
+                         "issues": issues or None, "observations": obs or None})
+
+    def _judge_dp(dp):
+        key = (dp.get("positive"), dp.get("negative"))
+        if key in judged:
+            return
+        judged.add(key)
+        terms = [t for t in dp.get("termination") or [] if not t.get("dnp")]
+        dnp = next((t.get("ref") for t in dp.get("termination") or [] if t.get("dnp")), None)
+        _judge(list(key), bool(terms), terms[0].get("ohms") if terms else None, dnp)
+
+    def _judge_unnamed_bus(can):
+        # One result, credited by a terminated CAN pair (fitted first, else a DNP option; a choke
+        # or connector can split one bus into two pairs); else "missing", naming the first pair
+        dp = (next((d for d in can_dps if d.get("has_termination")), None)
+              or next((d for d in can_dps if d.get("termination")), None))
+        if dp:
+            _judge_dp(dp)
+        else:
+            _judge([can_dps[0].get("positive"), can_dps[0].get("negative")] if can_dps else [],
+                   bool(can.get("termination")), None, can.get("termination_dnp"))
+
+    for can in can_entries:
+        net = can.get("net", "")
+        dp = next((d for d in can_dps if net in (d.get("positive"), d.get("negative"))), None)
+        pair = next((p for p in pairs if net in p), None)
+        if dp:
+            _judge_dp(dp)
+        elif pair:
+            if pair not in judged:
+                judged.add(pair)
+                _judge(list(pair), bool(can.get("termination")), None, can.get("termination_dnp"))
+        elif can.get("transceiver"):
+            _judge_unnamed_bus(can)
+        elif net in canh or net in canl:
+            # An unpaired bus line is judged alone only when its bus is unambiguous (at most one CANL net)
+            if len(canl) <= 1 and (net,) not in judged:
+                judged.add((net,))
+                _judge([net], bool(can.get("termination")), None, can.get("termination_dnp"))
+        # TX/RX nets are the transceiver's logic side: no termination of their own
+    if can_entries and len(findings) == findings_before_can:
+        # CAN on the board but no bus net named CANH/CANL (TX/RX only, or a CAN_P/CAN_N pair)
+        _judge_unnamed_bus(can_entries[0])
 
     if not findings:
         return {}
@@ -1345,7 +1427,7 @@ def analyze_power_budget(ctx: AnalysisContext,
 
     # Map regulators to output rails (built first: candidate_rails below
     # needs it so a regulator's output rail counts even when its name
-    # doesn't look power-y and carries no #PWR symbol -- KH-375).
+    # doesn't look power-y and carries no #PWR symbol).
     reg_by_rail: dict[str, dict] = {}
     for reg in signal_analysis.get("power_regulators", []):
         out_rail = reg.get("output_rail")
@@ -1363,7 +1445,7 @@ def analyze_power_budget(ctx: AnalysisContext,
         ref = comp["reference"]
         for pnum, (net_name, _) in ref_pins.get(ref, {}).items():
             if net_name and net_name in candidate_rails:
-                # Look up THE ITERATED PIN specifically -- KH-375: this used
+                # Look up THE ITERATED PIN specifically: this used
                 # to check the first pin `nets[net_name]["pins"]` listed for
                 # this component and `break`, which could be a non-power pin
                 # that happened to sort first (e.g. ~{SRCLR} before VCC).
@@ -1419,7 +1501,7 @@ def analyze_power_budget(ctx: AnalysisContext,
             if n:
                 net_to_resistors.setdefault(n, []).append(rref)
 
-    # Non-IC loads (KH-375): LEDs draw real current; 5 mA nominal each.
+    # Non-IC loads: LEDs draw real current; 5 mA nominal each.
     rail_other: dict[str, list[dict]] = {}
     for comp in components:
         if comp["type"] != "led":
@@ -1465,6 +1547,8 @@ def analyze_power_budget(ctx: AnalysisContext,
     observations = []
 
     for rail in sorted(all_rails):
+        if ctx.rail_ignored(rail):
+            continue
         ics = rail_ics.get(rail, [])
         total_ic_mA = sum(ic["estimated_mA"] for ic in ics)
         other = rail_other.get(rail, [])
@@ -1489,10 +1573,12 @@ def analyze_power_budget(ctx: AnalysisContext,
             if v_out:
                 rail_info["regulator"]["output_voltage"] = v_out
 
-            # LDO thermal dissipation: uses the rail's total load (ICs +
-            # other loads like LEDs) -- KH-375/KH-386 need the same number.
+            # LDO thermal dissipation: uses the rail's total estimated load
+            # (ICs plus LEDs and other non-IC loads), so the dissipation
+            # covers every load on the rail.
             if reg.get("topology") == "LDO" and v_in_rail and v_out:
-                v_in = _estimate_rail_voltage(v_in_rail)
+                v_in = abs(ctx.rail_voltage_or(v_in_rail, _estimate_rail_voltage) or 0)
+                v_out = abs(v_out)  # a negative LDO drops |Vin| - |Vout|
                 if v_in and v_in > v_out:
                     total_load_mA = rail_info["estimated_load_mA"]
                     v_drop = v_in - v_out
@@ -1576,10 +1662,15 @@ def analyze_power_sequencing(ctx: AnalysisContext,
             }
 
             # Determine what drives EN
-            if is_power_net(en_net):
+            if is_ground(en_net) and not is_vss_name(en_net):
+                dep_entry["en_source"] = ("always_on" if is_active_low_enable(en_pin_name)
+                                          else "tied_to_ground")
+                dep_entry["en_driven_by"] = en_net
+            elif is_power_net(en_net):
                 dep_entry["en_source"] = "always_on"
                 dep_entry["en_driven_by"] = en_net
             elif is_ground(en_net):
+                # VSS-named: may be a negative supply, so not read as tied to ground
                 dep_entry["en_source"] = "disabled"
                 dep_entry["en_driven_by"] = en_net
             elif en_net in nets:
@@ -1825,11 +1916,12 @@ def analyze_test_coverage(ctx: AnalysisContext) -> dict:
     for comp in components:
         ref = comp["reference"]
         fp = comp.get("footprint", "").lower()
-        is_tp = (ref.startswith("TP") or
-                 "testpoint" in fp or "test_point" in fp or
-                 "testpad" in fp or "test_pad" in fp or
-                 comp.get("value", "").lower() in ("testpoint", "test_point", "tp",
-                                                    "testpad", "test_pad"))
+        is_tp = ((ref.startswith("TP") or
+                  "testpoint" in fp or "test_point" in fp or
+                  "testpad" in fp or "test_pad" in fp or
+                  comp.get("value", "").lower() in ("testpoint", "test_point", "tp",
+                                                     "testpad", "test_pad"))
+                 and not is_touch_pad(ref, comp.get("value", ""), fp))
         if is_tp:
             # Find what net it's on
             for pnum, (net_name, _) in ref_pins.get(ref, {}).items():
@@ -2102,6 +2194,64 @@ def analyze_assembly_complexity(components: list[dict]) -> dict:
     return result
 
 
+# USB Type-C Rp (nominal, tolerance) by pull-up rail, per the Type-C spec; Rd is 5.1k.
+_TYPE_C_RP_BY_RAIL = {
+    5.0: ((56000, 0.20), (22000, 0.05), (10000, 0.05)),
+    3.3: ((36000, 0.20), (12000, 0.05), (4700, 0.05)),
+}
+_RD_BAND = (4800, 5600)
+
+
+def _is_type_c_rp(ohms: float, rail_v: float | None) -> bool:
+    """Rp to a rail of *rail_v* volts; an unknown rail accepts either table."""
+    if _RD_BAND[0] <= ohms <= _RD_BAND[1]:
+        return False
+    if rail_v is None:
+        table = _TYPE_C_RP_BY_RAIL[5.0] + _TYPE_C_RP_BY_RAIL[3.3]
+    elif 4.5 <= rail_v <= 5.5:
+        table = _TYPE_C_RP_BY_RAIL[5.0]
+    elif 3.0 <= rail_v <= 3.6:
+        table = _TYPE_C_RP_BY_RAIL[3.3]
+    else:
+        return False
+    return any(n * (1 - tol) <= ohms <= n * (1 + tol) for n, tol in table)
+
+
+_TYPE_C_NAME = re.compile(r"(?<![A-Z0-9])(?:USB[_-]?C|TYPE[-_]?C)(?![A-Z0-9])")
+
+
+def _connector_pin_names(ctx: AnalysisContext, ref: str) -> set[str]:
+    """Pin names on the symbol (every unit) plus those seen on nets."""
+    names = set()
+    for comp in ctx.components:
+        if comp.get("reference") == ref:
+            names.update(p.get("name") or "" for p in comp.get("pins") or [])
+    for net_name, _ in ctx.ref_pins.get(ref, {}).values():
+        for p in ctx.nets.get(net_name, {}).get("pins", []):
+            if p.get("component") == ref:
+                names.add(p.get("pin_name") or "")
+    return names
+
+
+def _cc_side(pin_name: str) -> str | None:
+    """"CC1", "CC2", "CC" (a plug's single CC) or None for a pin name.
+
+    Names often prefix the contact (A5/CC1) or subscript the index (CC_{1}).
+    """
+    toks = [t for t in re.split(r"[^A-Z0-9]+", pin_name.upper()) if t]
+    for i, tok in enumerate(toks):
+        if tok in ("CC1", "CC2"):
+            return tok
+        if tok == "CC":
+            nxt = toks[i + 1] if i + 1 < len(toks) else ""
+            return "CC" + nxt if nxt in ("1", "2") else "CC"
+    return None
+
+
+def _cc_sides(pin_names: set[str]) -> set[str]:
+    return {side for side in map(_cc_side, pin_names) if side}
+
+
 def analyze_usb_compliance(ctx: AnalysisContext,
                            signal_analysis: dict) -> dict:
     """USB spec compliance checks.
@@ -2131,11 +2281,14 @@ def analyze_usb_compliance(ctx: AnalysisContext,
         lib = comp.get("lib_id", "").upper()
         combined = val + " " + fp + " " + lib
         if "USB" in combined:
-            is_type_c = any(k in combined for k in ("USB_C", "USBC", "TYPE-C", "TYPE_C", "TYPEC"))
+            cc_sides = _cc_sides(_connector_pin_names(ctx, ref))
             usb_connectors.append({
                 "ref": ref,
                 "value": comp.get("value", ""),
-                "is_type_c": is_type_c,
+                "is_type_c": bool(cc_sides) or bool(_TYPE_C_NAME.search(combined)),
+                "has_cc_pins": bool(cc_sides),
+                # A plug carries one CC pin; the check then covers that one side.
+                "single_cc": not (cc_sides & {"CC1", "CC2"}) and bool(cc_sides),
             })
 
     if not usb_connectors:
@@ -2166,7 +2319,13 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                             break
 
         # --- CC1/CC2 pull-down check (Type-C only) ---
-        if conn["is_type_c"]:
+        if conn["is_type_c"] and not conn["has_cc_pins"]:
+            conn_checks["checks"]["cc_pins"] = "info"
+            conn_checks["usb_c_cc_status"] = {
+                "status": "skipped",
+                "note": "no pin named CC/CC1/CC2 on this symbol; CC checks skipped",
+            }
+        elif conn["is_type_c"]:
             _PD_CONTROLLER_KEYWORDS = (
                 "fusb302", "stusb4500", "cypd3177", "husb238",
                 "tps65987", "tps65988", "ccg3", "ccg6",
@@ -2175,14 +2334,19 @@ def analyze_usb_compliance(ctx: AnalysisContext,
 
             cc1_net = None
             cc2_net = None
-            cc1_resistor = None  # {ref, ohms, to_ground, to_power}
+            cc1_resistor = None  # {ref, ohms, to_ground, to_power, rail_v}
             cc2_resistor = None
+            cc_unread: dict[str, list[dict]] = {"CC1": [], "CC2": []}
+            conn_vbus = next((n for pn, n in conn_pin_nets.items()
+                              if pn in ("VBUS", "V+", "VCC", "VUSB")), None)
             pd_controller = None
 
+            single_cc = conn["single_cc"]
             for pname, net_name in conn_pin_nets.items():
-                if "CC1" not in pname and "CC2" not in pname:
+                side = _cc_side(pname)
+                if side is None or (side == "CC") != single_cc:
                     continue
-                is_cc1 = "CC1" in pname
+                is_cc1 = side != "CC2"
                 if is_cc1:
                     cc1_net = net_name
                 else:
@@ -2207,22 +2371,40 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                     rc = comp_lookup.get(p["component"])
                     if not rc or rc["type"] != "resistor":
                         continue
+                    if rc.get("dnp") or rc.get("value", "").strip().upper() in ("DNI", "DNP"):
+                        continue
                     r_val = parse_value(rc.get("value", ""))
+                    if r_val is None:
+                        cc_unread["CC1" if is_cc1 else "CC2"].append(
+                            {"ref": rc["reference"], "value": rc.get("value", "")})
+                        continue
                     if not r_val:
                         continue
                     rn1, _ = pin_net.get((rc["reference"], "1"), (None, None))
                     rn2, _ = pin_net.get((rc["reference"], "2"), (None, None))
                     other = rn2 if rn1 == net_name else rn1
+                    # The connector's own VBUS pin net is a 5 V pull-up rail even unnamed.
+                    to_vbus = other is not None and other == conn_vbus
                     r_info = {
                         "ref": rc["reference"],
                         "ohms": r_val,
                         "to_ground": is_ground(other),
-                        "to_power": ctx.is_power_net(other) if not is_ground(other) else False,
+                        "to_power": ((to_vbus or ctx.is_power_net(other))
+                                     if not is_ground(other) else False),
+                        "rail_v": 5.0 if to_vbus else ctx.rail_voltage(other),
                     }
                     if is_cc1:
                         cc1_resistor = r_info
                     else:
                         cc2_resistor = r_info
+
+            # A resistor whose value cannot be read is reported, not failed.
+            cc1_unread = cc_unread["CC1"] if cc1_resistor is None and not pd_controller else []
+            cc2_unread = cc_unread["CC2"] if cc2_resistor is None and not pd_controller else []
+            for r_info in (cc1_resistor, cc2_resistor):
+                if r_info:
+                    rail_v = r_info.pop("rail_v")
+                    r_info["_rp"] = r_info["to_power"] and _is_type_c_rp(r_info["ohms"], rail_v)
 
             # Determine role and status
             issues: list[str] = []
@@ -2234,10 +2416,8 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                             and cc1_resistor["to_ground"])
                 cc2_sink = (cc2_resistor and 4800 <= cc2_resistor["ohms"] <= 5600
                             and cc2_resistor["to_ground"])
-                cc1_source = (cc1_resistor and 50000 <= cc1_resistor["ohms"] <= 62000
-                              and cc1_resistor["to_power"])
-                cc2_source = (cc2_resistor and 50000 <= cc2_resistor["ohms"] <= 62000
-                              and cc2_resistor["to_power"])
+                cc1_source = cc1_resistor and cc1_resistor["_rp"]
+                cc2_source = cc2_resistor and cc2_resistor["_rp"]
 
                 if cc1_source or cc2_source:
                     role = "source"
@@ -2248,17 +2428,17 @@ def analyze_usb_compliance(ctx: AnalysisContext,
 
                 # Validate
                 if role == "sink":
-                    if not cc1_sink:
+                    if not cc1_sink and not cc1_unread:
                         issues.append("missing_cc1_resistor")
-                    if not cc2_sink:
+                    if not cc2_sink and not cc2_unread:
                         issues.append("missing_cc2_resistor")
                     if cc1_sink and cc2_sink:
                         if abs(cc1_resistor["ohms"] - cc2_resistor["ohms"]) > 200:
                             issues.append("asymmetric_cc")
                 elif role == "source":
-                    if not cc1_source:
+                    if not cc1_source and not cc1_unread:
                         issues.append("missing_cc1_resistor")
-                    if not cc2_source:
+                    if not cc2_source and not cc2_unread:
                         issues.append("missing_cc2_resistor")
                     if cc1_source and cc2_source:
                         if abs(cc1_resistor["ohms"] - cc2_resistor["ohms"]) > 5000:
@@ -2266,36 +2446,62 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                 elif role == "unknown":
                     # Check for partial/wrong values
                     if cc1_resistor and not cc2_resistor:
-                        issues.append("missing_cc2_resistor")
-                        issues.append("asymmetric_cc")
+                        if not cc2_unread:
+                            issues.append("missing_cc2_resistor")
+                            issues.append("asymmetric_cc")
                     elif cc2_resistor and not cc1_resistor:
-                        issues.append("missing_cc1_resistor")
-                        issues.append("asymmetric_cc")
+                        if not cc1_unread:
+                            issues.append("missing_cc1_resistor")
+                            issues.append("asymmetric_cc")
                     elif not cc1_resistor and not cc2_resistor:
-                        issues.append("missing_cc1_resistor")
-                        issues.append("missing_cc2_resistor")
+                        if not cc1_unread:
+                            issues.append("missing_cc1_resistor")
+                        if not cc2_unread:
+                            issues.append("missing_cc2_resistor")
                     if cc1_resistor and not (4800 <= cc1_resistor["ohms"] <= 5600 or
-                                             50000 <= cc1_resistor["ohms"] <= 62000):
+                                             cc1_resistor["_rp"]):
                         issues.append("wrong_cc_value")
                     if cc2_resistor and not (4800 <= cc2_resistor["ohms"] <= 5600 or
-                                             50000 <= cc2_resistor["ohms"] <= 62000):
+                                             cc2_resistor["_rp"]):
                         issues.append("wrong_cc_value")
+            for r_info in (cc1_resistor, cc2_resistor):
+                if r_info:
+                    del r_info["_rp"]
 
+            if single_cc:
+                issues = [{"missing_cc1_resistor": "missing_cc_resistor"}.get(i, i)
+                          for i in issues if i not in ("missing_cc2_resistor", "asymmetric_cc")]
             cc_status = "pass" if not issues else "fail"
-            cc_detail: dict = {
+            cc_detail: dict = ({"cc_net": cc1_net, "cc_resistor": cc1_resistor} if single_cc else {
                 "cc1_net": cc1_net,
                 "cc2_net": cc2_net,
                 "cc1_resistor": cc1_resistor,
                 "cc2_resistor": cc2_resistor,
+            })
+            cc_detail.update({
                 "role": role,
                 "pd_controller": pd_controller,
                 "status": cc_status,
                 "issues": issues,
-            }
+            })
+            unread = [
+                {"pin": pin, "ref": r["ref"], "value": r["value"],
+                 "note": (f"{ref} {pin}: value {r['value']!r} of {r['ref']} not read; "
+                          f"{pin} check skipped")}
+                for pin, rs in (("CC" if single_cc else "CC1", cc1_unread), ("CC2", cc2_unread))
+                for r in rs]
+            if unread:
+                cc_detail["unread_resistors"] = unread
             conn_checks["usb_c_cc_status"] = cc_detail
 
             # Legacy check keys for summary compatibility
-            if pd_controller:
+            if single_cc:
+                cc_ok = (cc1_resistor and 4800 <= cc1_resistor["ohms"] <= 5600
+                         and cc1_resistor["to_ground"])
+                conn_checks["checks"]["cc_pulldown_5k1"] = (
+                    "pass" if pd_controller or cc_ok else "info"
+                    if role == "source" or cc1_unread else "fail")
+            elif pd_controller:
                 conn_checks["checks"]["cc1_pulldown_5k1"] = "pass"
                 conn_checks["checks"]["cc2_pulldown_5k1"] = "pass"
             elif role == "source":
@@ -2307,8 +2513,10 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                           and cc1_resistor["to_ground"])
                 cc2_ok = (cc2_resistor and 4800 <= cc2_resistor["ohms"] <= 5600
                           and cc2_resistor["to_ground"])
-                conn_checks["checks"]["cc1_pulldown_5k1"] = "pass" if cc1_ok else "fail"
-                conn_checks["checks"]["cc2_pulldown_5k1"] = "pass" if cc2_ok else "fail"
+                conn_checks["checks"]["cc1_pulldown_5k1"] = (
+                    "pass" if cc1_ok else "info" if cc1_unread else "fail")
+                conn_checks["checks"]["cc2_pulldown_5k1"] = (
+                    "pass" if cc2_ok else "info" if cc2_unread else "fail")
 
         # --- D+/D- series resistors ---
         dp_net = None
@@ -2346,7 +2554,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                 vbus_net = net_name
                 break
 
-        # Shared ESD-part keyword list: vbus_esd_protection credit (KH-338)
+        # Shared ESD-part keyword list: vbus_esd_protection credit
         # + the usb_esd_ic check below.
         esd_keywords = ("usblc", "prtr5v", "ip4", "sp0", "tpd", "esd", "pesd",
                         "rclamp", "nup", "lesd")
@@ -2367,7 +2575,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                            for k in ("tvs", "esd", "smaj", "smbj", "p6ke")):
                         has_esd = True
                 elif pc["type"] == "ic":
-                    # KH-338: ESD arrays (USBLC6 etc.) protect VBUS through
+                    # ESD arrays (USBLC6 etc.) protect VBUS through
                     # their own VBUS pin — credit them even when the net is
                     # unnamed (resolution is by connector pin, not net name).
                     _combined = (pc.get("value", "") + " "
@@ -2424,7 +2632,7 @@ def analyze_usb_compliance(ctx: AnalysisContext,
 
         conn_checks["checks"]["usb_esd_ic"] = "pass" if esd_ic_found else "info"
 
-        # KH-338: promote failed checks to rich findings so they reach
+        # promote failed checks to rich findings so they reach
         # findings[] / summaries instead of living only in this aux section.
         _uc_specs = {
             "vbus_decoupling": (
@@ -2449,6 +2657,14 @@ def analyze_usb_compliance(ctx: AnalysisContext,
                 f"USB-C sink {ref}: CC1 has no 5.1k pull-down to GND and no "
                 f"PD controller was found. A source will not present VBUS.",
                 f"Add a 5.1k pull-down on CC1 (or a PD controller) at {ref}.",
+                [],
+            ),
+            "cc_pulldown_5k1": (
+                "UC-003",
+                f"CC missing 5.1k pull-down at {ref}",
+                f"USB-C sink {ref}: the plug's CC pin has no 5.1k pull-down to GND and "
+                f"no PD controller was found. A source will not present VBUS.",
+                f"Add a 5.1k pull-down on CC (or a PD controller) at {ref}.",
                 [],
             ),
             "cc2_pulldown_5k1": (
@@ -2553,7 +2769,7 @@ def analyze_inrush_current(ctx: AnalysisContext,
 
     for reg in regulators:
         out_rail = reg.get("output_rail")
-        if not out_rail or out_rail not in nets:
+        if not out_rail or out_rail not in nets or ctx.rail_ignored(out_rail):
             continue
 
         # Find total output capacitance on this rail
@@ -2563,7 +2779,7 @@ def analyze_inrush_current(ctx: AnalysisContext,
             comp = comp_lookup.get(p["component"])
             if not comp or comp["type"] != "capacitor":
                 continue
-            # KH-196: Use pre-computed parsed_values (has component_type context)
+            # Use pre-computed parsed_values (has component_type context)
             cap_val = ctx.parsed_values.get(comp["reference"])
             if not cap_val or cap_val <= 0:
                 continue
@@ -2582,7 +2798,10 @@ def analyze_inrush_current(ctx: AnalysisContext,
         if not output_caps:
             continue
 
-        v_out = reg.get("estimated_vout") or _estimate_rail_voltage(out_rail)
+        v_cfg = ctx.config_rail_voltage(out_rail)
+        v_out = (abs(v_cfg) if v_cfg is not None
+                 else reg.get("estimated_vout")
+                 or abs(ctx.rail_by_net.get(out_rail) or _estimate_rail_voltage(out_rail) or 0))
         if not v_out or v_out <= 0:
             continue
 

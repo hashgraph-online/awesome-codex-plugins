@@ -8,10 +8,11 @@ Split out of diff_analysis.py in the v3 refactor to remove the
 analysis_cache <-> diff_analysis import cycle.
 """
 import json
+import re
 
 from detection_schema import SCHEMAS as _SCHEMAS
 from finding_schema import group_findings_by_detection_type
-from kicad_core.render import normalize_severity, summary_or_title
+from kicad_core.render import normalize_severity, severity_bucket, summary_or_title
 
 
 # ---------------------------------------------------------------------------
@@ -23,7 +24,7 @@ from kicad_core.render import normalize_severity, summary_or_title
 
 
 # SIGNAL_REGISTRY is derived from the unified detection schema.
-# Kept as a module-level name for backward compat (validate_signal_registry, _diff_items).
+# Kept as a module-level name; validate_signal_registry reads it.
 SIGNAL_REGISTRY = {dt: (s.identity_fields, s.value_fields) for dt, s in _SCHEMAS.items()}
 
 
@@ -104,6 +105,143 @@ def _generic_identity(item):
     return None
 
 
+# A `#N` suffix is the producer's collision counter: it follows list order, not the finding.
+_POSITIONAL_SUFFIX = re.compile(r"#\d+$")
+# Unnamed nets are numbered per run; the number moves when unrelated wiring changes.
+_UNNAMED_NET = re.compile(r"__unnamed_\d+", re.IGNORECASE)
+
+
+def _fid_stem(fid):
+    return _POSITIONAL_SUFFIX.sub("", fid)
+
+
+def _content_key(f):
+    def _join(values):
+        return ",".join(sorted(_UNNAMED_NET.sub("__unnamed", str(v))
+                               for v in (values or []) if not isinstance(v, (dict, list))))
+    summary = _UNNAMED_NET.sub("__unnamed", str(f.get("summary") or ""))
+    return f"{f.get('rule_id', '')}::{_join(f.get('nets'))}::{_join(f.get('components'))}::{summary}"
+
+
+def finding_key(f, positional=None):
+    """The identity of one finding across two runs.
+
+    Its `finding_id`, unless that id is positional (a `#N` collision suffix, or
+    an unnamed-net locator); then a content key from rule_id, sorted nets
+    (unnamed-net numbers dropped), sorted components and summary. Pass
+    `positional=True` for an id whose stem collides in either run, which makes
+    even the unsuffixed first member of the group positional.
+    """
+    fid = f.get("finding_id")
+    if isinstance(fid, str) and fid:
+        if positional is None:
+            positional = bool(_POSITIONAL_SUFFIX.search(fid))
+        if not positional and not _UNNAMED_NET.search(fid):
+            return fid
+    return _content_key(f)
+
+
+def _canonical(f):
+    rest = {k: v for k, v in f.items() if k != "finding_id"}
+    return _UNNAMED_NET.sub("__unnamed", json.dumps(rest, sort_keys=True, default=str))
+
+
+def match_findings(base_items, head_items, legacy_key=None, prefer_legacy=False):
+    """Key two finding lists for matching; returns (base_map, head_map), key -> finding.
+
+    `legacy_key(f)` is the section's older identity: it keys findings without a
+    `finding_id` (older JSON), and with `prefer_legacy` it is kept for any
+    finding whose legacy key is unique in both runs. Everything else is keyed
+    by `finding_key`, an id stem being positional when it collides in either
+    run. Findings that still share a key are numbered after sorting them by
+    content, so input order never pairs two different findings.
+    """
+    sides = [[f for f in (items if isinstance(items, list) else []) if isinstance(f, dict)]
+             for items in (base_items, head_items)]
+    legacy = [[(legacy_key(f) if legacy_key else None) for f in side] for side in sides]
+    legacy_counts = [{} for _ in sides]
+    for counts, keys in zip(legacy_counts, legacy):
+        for k in keys:
+            if k:
+                counts[k] = counts.get(k, 0) + 1
+    positional = set()
+    for side in sides:
+        stems = {}
+        for f in side:
+            fid = f.get("finding_id")
+            if isinstance(fid, str) and fid:
+                stem = _fid_stem(fid)
+                stems[stem] = stems.get(stem, 0) + 1
+                if stem != fid:
+                    positional.add(stem)
+        positional.update(s for s, n in stems.items() if n > 1)
+
+    def _unique_legacy(k):
+        return (k and not _UNNAMED_NET.search(k)
+                and all(counts.get(k, 0) <= 1 for counts in legacy_counts))
+
+    keyed = []
+    for side, lkeys in zip(sides, legacy):
+        keys = []
+        for f, lk in zip(side, lkeys):
+            fid = f.get("finding_id")
+            has_fid = isinstance(fid, str) and bool(fid)
+            if _unique_legacy(lk) and (prefer_legacy or not has_fid):
+                keys.append(lk)
+            elif has_fid:
+                keys.append(finding_key(f, positional=_fid_stem(fid) in positional))
+            else:
+                keys.append(_content_key(f))
+        keyed.append(keys)
+
+    shared = set()
+    for keys in keyed:
+        seen = set()
+        for k in keys:
+            if k in seen:
+                shared.add(k)
+            seen.add(k)
+    groups = []
+    for side, keys in zip(sides, keyed):
+        g = {}
+        for f, k in zip(side, keys):
+            g.setdefault(k, []).append(f)
+        groups.append(g)
+    numbered = [{}, {}]
+    for k in sorted(shared):
+        # Identical findings pair first, so a removed member of the group is
+        # reported as removed rather than shifting its neighbours' numbers.
+        pools = [sorted(g.get(k, []), key=_canonical) for g in groups]
+        canon = [[_canonical(f) for f in pool] for pool in pools]
+        n = 0
+        head_used = [False] * len(pools[1])
+        base_left = []
+        for bf, bc in zip(pools[0], canon[0]):
+            for j, hc in enumerate(canon[1]):
+                if not head_used[j] and hc == bc:
+                    head_used[j] = True
+                    n += 1
+                    numbered[0].setdefault(k, []).append((f"{k}#{n}", bf))
+                    numbered[1].setdefault(k, []).append((f"{k}#{n}", pools[1][j]))
+                    break
+            else:
+                base_left.append(bf)
+        head_left = [f for f, used in zip(pools[1], head_used) if not used]
+        for side, left in ((0, base_left), (1, head_left)):
+            for m, f in enumerate(left, n + 1):
+                numbered[side].setdefault(k, []).append((f"{k}#{m}", f))
+    maps = []
+    for side in (0, 1):
+        out = {}
+        for k, group in groups[side].items():
+            if k in shared:
+                out.update(numbered[side][k])
+            else:
+                out[k] = group[0]
+        maps.append(out)
+    return maps[0], maps[1]
+
+
 def _diff_lists(base_items, head_items, id_fields, value_fields, threshold):
     """Match items by identity, return added/removed/modified/unchanged.
 
@@ -112,13 +250,8 @@ def _diff_lists(base_items, head_items, id_fields, value_fields, threshold):
     """
     result = {"added": [], "removed": [], "modified": [], "unchanged_count": 0}
 
-    if not isinstance(base_items, list):
-        base_items = []
-    if not isinstance(head_items, list):
-        head_items = []
-
     def _get_key(item):
-        did = item.get("detection_id") if isinstance(item, dict) else None
+        did = item.get("detection_id")
         if did:
             return did
         if id_fields:
@@ -127,25 +260,17 @@ def _diff_lists(base_items, head_items, id_fields, value_fields, threshold):
                 return key
         return _generic_identity(item)
 
-    # Build identity maps
-    base_map = {}
-    for item in base_items:
-        key = _get_key(item)
-        if key:
-            base_map[key] = item
+    base_map, head_map = match_findings(base_items, head_items, _get_key, prefer_legacy=True)
 
-    head_map = {}
-    for item in head_items:
-        key = _get_key(item)
-        if key:
-            head_map[key] = item
+    fields = [f for f in value_fields if f != "severity"] + ([] if value_fields else ["summary"])
 
     # Find added, removed, modified
     for key, item in head_map.items():
         if key not in base_map:
             result["added"].append(_summarize_detection(item, id_fields))
         else:
-            changes = _compare_fields(base_map[key], item, value_fields, threshold)
+            changes = _compare_fields(base_map[key], item, fields, threshold)
+            changes += _severity_change(base_map[key], item)
             if changes:
                 result["modified"].append({
                     "identity": key.replace("::", "/"),
@@ -163,6 +288,15 @@ def _diff_lists(base_items, head_items, id_fields, value_fields, threshold):
     return result
 
 
+def _severity_change(base_item, head_item):
+    """[change] when the two severities differ in meaning (legacy `WARN` and
+    `warning` are the same), else []."""
+    bv, hv = base_item.get("severity"), head_item.get("severity")
+    if severity_bucket(bv) == severity_bucket(hv):
+        return []
+    return [{"field": "severity", "base": bv, "head": hv}]
+
+
 def _compare_fields(base_item, head_item, fields, threshold):
     """Compare specific fields between two matched items. Returns list of changes."""
     changes = []
@@ -170,6 +304,9 @@ def _compare_fields(base_item, head_item, fields, threshold):
         bv = _resolve(base_item, field)
         hv = _resolve(head_item, field)
         if bv == hv:
+            continue
+        if isinstance(bv, str) and isinstance(hv, str) and \
+                _UNNAMED_NET.sub("__unnamed", bv) == _UNNAMED_NET.sub("__unnamed", hv):
             continue
         if bv is None or hv is None:
             changes.append({"field": field, "base": bv, "head": hv})
@@ -206,6 +343,10 @@ def _summarize_detection(item, id_fields):
     for key, val in item.items():
         if isinstance(val, dict) and "ref" in val and key not in summary:
             summary[key + "_ref"] = val["ref"]
+    if not summary:
+        for key in ("rule_id", "severity", "components", "summary"):
+            if item.get(key):
+                summary[key] = item[key]
     return summary
 
 
@@ -389,20 +530,21 @@ def diff_schematic(base, head, threshold):
                 for mod in det_diff.get("modified", []):
                     # Find changed components referenced in this detection
                     attributed = []
-                    # Check identity string for component refs
-                    identity = mod.get("identity", "")
-                    for ref in comp_changes:
-                        if ref in identity:
-                            attributed.append(ref)
-                    # Also check the items themselves if available
+                    # finding_ids carry refs lowercased; match whole tokens
+                    # without case so C1 never claims C11.
+                    named = {t.lower() for t in re.split(r"[^A-Za-z0-9_]+", mod.get("identity", ""))}
                     for item_key in ("base_item", "head_item"):
                         item = mod.get(item_key, {})
                         if isinstance(item, dict):
                             for key, val in item.items():
-                                if isinstance(val, dict) and "ref" in val:
-                                    r = val["ref"]
-                                    if r in comp_changes and r not in attributed:
-                                        attributed.append(r)
+                                if isinstance(val, dict) and isinstance(val.get("ref"), str):
+                                    named.add(val["ref"].lower())
+                            comps = item.get("components")
+                            if isinstance(comps, list):
+                                named.update(c.lower() for c in comps if isinstance(c, str))
+                    for ref in comp_changes:
+                        if ref.lower() in named:
+                            attributed.append(ref)
                     if attributed:
                         mod["attributed_to"] = [
                             {"ref": ref, **comp_changes[ref]} for ref in sorted(attributed)
@@ -446,8 +588,8 @@ def diff_schematic(base, head, threshold):
     # Connectivity issues (items may be strings or dicts)
     def _conn_key(item):
         if isinstance(item, dict):
-            return json.dumps(item, sort_keys=True)
-        return str(item)
+            return _UNNAMED_NET.sub("__unnamed", json.dumps(item, sort_keys=True))
+        return _UNNAMED_NET.sub("__unnamed", str(item))
 
     conn_diff = {}
     for section in ("single_pin_nets", "floating_nets", "multi_driver_nets"):
@@ -468,9 +610,32 @@ def diff_schematic(base, head, threshold):
         result["connectivity"] = conn_diff
 
     # ERC warnings (list of dicts — key on type/net/message for stable identity)
+    def _pair_in_pin_order(x):
+        # A pair lists its pins in net order, which moves with the net; keep
+        # each pin_type with its pin.
+        if not isinstance(x, dict) or not isinstance(x.get("pins"), list):
+            return x
+        pins, types = x["pins"], x.get("pin_types")
+        out = dict(x)
+        if isinstance(types, list) and len(types) == len(pins):
+            pairs = sorted(zip(pins, types), key=lambda pt: json.dumps(pt, sort_keys=True))
+            out["pins"] = [p for p, _ in pairs]
+            out["pin_types"] = [t for _, t in pairs]
+        else:
+            out["pins"] = sorted(pins, key=lambda p: json.dumps(p, sort_keys=True))
+        return out
+
     def _erc_key(w):
         if isinstance(w, dict):
-            return (w.get("type", ""), w.get("net", ""), w.get("message", ""))
+            net = w.get("net", "")
+            if isinstance(net, str) and _UNNAMED_NET.search(net):
+                # the pins name an unnamed net; its number does not
+                pins = sorted(json.dumps(_pair_in_pin_order(x), sort_keys=True)
+                              for x in (w.get("pins") or []) + (w.get("pairs") or []))
+                return (w.get("type", ""), "__unnamed",
+                        _UNNAMED_NET.sub("__unnamed", str(w.get("message", ""))),
+                        _UNNAMED_NET.sub("__unnamed", "|".join(pins)))
+            return (w.get("type", ""), net, w.get("message", ""))
         return (str(w),)
 
     base_erc_list = base.get("design_analysis", {}).get("erc_warnings", [])
@@ -528,19 +693,22 @@ def diff_pcb(base, head, threshold):
     head_fps = {f["reference"]: f for f in head.get("footprints", [])
                 if isinstance(f, dict) and "reference" in f}
 
+    def _fpid(fp):
+        return fp.get("footprint") or fp.get("library") or fp.get("lib_id") or ""
+
     fp_diff = {"added": [], "removed": [], "modified": []}
     for ref, fp in head_fps.items():
         if ref not in base_fps:
             fp_diff["added"].append({
                 "reference": ref, "value": fp.get("value", ""),
-                "lib_id": fp.get("lib_id", ""), "layer": fp.get("layer", ""),
+                "footprint": _fpid(fp), "layer": fp.get("layer", ""),
             })
         else:
             bfp = base_fps[ref]
             changes = []
-            for field in ("value", "lib_id", "layer"):
-                bv = bfp.get(field, "")
-                hv = fp.get(field, "")
+            for field, bv, hv in (("value", bfp.get("value", ""), fp.get("value", "")),
+                                  ("footprint", _fpid(bfp), _fpid(fp)),
+                                  ("layer", bfp.get("layer", ""), fp.get("layer", ""))):
                 if bv != hv:
                     changes.append({"field": field, "base": bv, "head": hv})
             if changes:
@@ -557,9 +725,55 @@ def diff_pcb(base, head, threshold):
     if fp_diff["added"] or fp_diff["removed"] or fp_diff["modified"]:
         result["footprints"] = fp_diff
 
+    findings_diff = _diff_findings(base, head, _rule_components_key, "summary")
+    if findings_diff:
+        result["findings"] = findings_diff
+
     _attach_assessments_diff(result, base, head)
 
     return result
+
+
+def _rule_components_key(f):
+    return f"{f.get('rule_id', '')}::{'|'.join(sorted(map(str, f.get('components') or [])))}"
+
+
+def _diff_findings(base, head, legacy_key, text_key):
+    """new / resolved / changed_severity between two envelopes' findings[], or {}.
+
+    Findings match by `match_findings`. `text_key` is the row field carrying the
+    finding's text: "title" (EMC, read through summary_or_title) or "summary".
+    """
+    base_map, head_map = match_findings(base.get("findings", []), head.get("findings", []), legacy_key)
+
+    def _text(f):
+        return summary_or_title(f) if text_key == "title" else f.get("summary", "")
+
+    def _row(f, located):
+        row = {"rule_id": f.get("rule_id", ""), "severity": f.get("severity", ""), text_key: _text(f)}
+        if text_key == "title":
+            row["category"] = f.get("category", "")
+            if located:
+                row["nets"] = f.get("nets", [])
+        if located:
+            row["components"] = f.get("components", [])
+        return row
+
+    out = {"new": [], "resolved": [], "changed_severity": []}
+    for key, f in head_map.items():
+        if key not in base_map:
+            out["new"].append(_row(f, True))
+        elif _severity_change(base_map[key], f):
+            out["changed_severity"].append({
+                "rule_id": f.get("rule_id", ""),
+                "base_severity": base_map[key].get("severity", ""),
+                "head_severity": f.get("severity", ""),
+                text_key: _text(f),
+            })
+    for key, f in base_map.items():
+        if key not in head_map:
+            out["resolved"].append(_row(f, False))
+    return out if (out["new"] or out["resolved"] or out["changed_severity"]) else {}
 
 
 # ---------------------------------------------------------------------------
@@ -580,56 +794,23 @@ def diff_emc(base, head, threshold):
         }
 
     # Severity distribution
-    sev_paths = ["summary.critical", "summary.high", "summary.medium",
+    sev_paths = ["summary.by_severity.error", "summary.by_severity.warning",
+                 "summary.by_severity.info",
+                 # flat counts of pre-v1.4 output
+                 "summary.critical", "summary.high", "summary.medium",
                  "summary.low", "summary.info"]
     sev_delta = _diff_counts(base, head, sev_paths)
     if sev_delta:
         result["by_severity"] = sev_delta
 
-    # Findings: match by (rule_id, sorted nets, sorted components)
-    def _finding_key(f):
+    def _legacy_key(f):
         rule = f.get("rule_id", "")
         nets = "|".join(sorted(f.get("nets", [])))
         comps = "|".join(sorted(f.get("components", [])))
         return f"{rule}::{nets}::{comps}"
 
-    base_findings = {_finding_key(f): f for f in base.get("findings", [])
-                     if isinstance(f, dict)}
-    head_findings = {_finding_key(f): f for f in head.get("findings", [])
-                     if isinstance(f, dict)}
-
-    findings_diff = {"new": [], "resolved": [], "changed_severity": []}
-
-    for key, f in head_findings.items():
-        if key not in base_findings:
-            findings_diff["new"].append({
-                "rule_id": f.get("rule_id", ""),
-                "severity": f.get("severity", ""),
-                "title": summary_or_title(f),
-                "category": f.get("category", ""),
-                "nets": f.get("nets", []),
-                "components": f.get("components", []),
-            })
-        else:
-            bf = base_findings[key]
-            if bf.get("severity") != f.get("severity"):
-                findings_diff["changed_severity"].append({
-                    "rule_id": f.get("rule_id", ""),
-                    "base_severity": bf.get("severity", ""),
-                    "head_severity": f.get("severity", ""),
-                    "title": summary_or_title(f),
-                })
-
-    for key, f in base_findings.items():
-        if key not in head_findings:
-            findings_diff["resolved"].append({
-                "rule_id": f.get("rule_id", ""),
-                "severity": f.get("severity", ""),
-                "title": summary_or_title(f),
-                "category": f.get("category", ""),
-            })
-
-    if findings_diff["new"] or findings_diff["resolved"] or findings_diff["changed_severity"]:
+    findings_diff = _diff_findings(base, head, _legacy_key, "title")
+    if findings_diff:
         result["findings"] = findings_diff
 
     # Per-net score changes
@@ -667,7 +848,7 @@ def diff_spice(base, head, threshold):
 
     # Summary deltas
     sum_paths = ["summary.pass", "summary.warn", "summary.fail", "summary.skip",
-                 "summary.total"]
+                 "summary.info", "summary.total"]
     sum_delta = _diff_counts(base, head, sum_paths)
     if sum_delta:
         result["summary"] = sum_delta
@@ -773,44 +954,8 @@ def diff_thermal(base, head, threshold):
     if stats:
         result["statistics"] = stats
 
-    # Findings: match by (rule_id, sorted components)
-    def _finding_key(f):
-        rule = f.get("rule_id", "")
-        comps = "|".join(sorted(f.get("components", [])))
-        return f"{rule}::{comps}"
-
-    base_findings = {_finding_key(f): f for f in base.get("findings", [])
-                     if isinstance(f, dict)}
-    head_findings = {_finding_key(f): f for f in head.get("findings", [])
-                     if isinstance(f, dict)}
-
-    findings_diff = {"new": [], "resolved": [], "changed_severity": []}
-    for key, f in head_findings.items():
-        if key not in base_findings:
-            findings_diff["new"].append({
-                "rule_id": f.get("rule_id", ""),
-                "severity": f.get("severity", ""),
-                "summary": f.get("summary", ""),
-                "components": f.get("components", []),
-            })
-        else:
-            bf = base_findings[key]
-            if bf.get("severity") != f.get("severity"):
-                findings_diff["changed_severity"].append({
-                    "rule_id": f.get("rule_id", ""),
-                    "base_severity": bf.get("severity", ""),
-                    "head_severity": f.get("severity", ""),
-                    "summary": f.get("summary", ""),
-                })
-    for key, f in base_findings.items():
-        if key not in head_findings:
-            findings_diff["resolved"].append({
-                "rule_id": f.get("rule_id", ""),
-                "severity": f.get("severity", ""),
-                "summary": f.get("summary", ""),
-            })
-
-    if findings_diff["new"] or findings_diff["resolved"] or findings_diff["changed_severity"]:
+    findings_diff = _diff_findings(base, head, _rule_components_key, "summary")
+    if findings_diff:
         result["findings"] = findings_diff
 
     _attach_assessments_diff(result, base, head)
@@ -823,7 +968,7 @@ def diff_thermal(base, head, threshold):
 # ---------------------------------------------------------------------------
 
 def diff_deep_review(base, head, threshold=None):
-    """Diff two deep_review.json files (v2.0 spec §3.C).
+    """Diff two deep_review.json files.
 
     Exact finding_id match is primary. Fuzzy pass is advisory only:
     LLM rewording changes the summary hash, so a persisting issue can
@@ -902,9 +1047,11 @@ def classify_severity(analyzer_type, diff_result):
         fp = diff_result["footprints"]
         if fp.get("added") or fp.get("removed") or fp.get("modified"):
             return "major"
+    if "routing_complete" in diff_result or "unrouted" in diff_result:
+        return "major"
 
-    # Minor: only statistics changes
-    if "statistics" in diff_result:
+    # Minor: anything else that moved (counts, scores, BOM, ERC fixes, ...)
+    if has_changes(diff_result):
         return "minor"
 
     return "none"
@@ -957,13 +1104,13 @@ def classify_regressions(analyzer_type, diff_result):
                     "severity": "breaking",
                     "detail": f"New EMC finding: {f.get('rule_id', '?')} ({raw_sev})",
                 })
-        # Risk score increase
+        # The risk score runs 0 (worst) to 100 (lowest risk): a fall is the regression.
         risk = diff_result.get("risk_score", {})
-        if isinstance(risk, dict) and risk.get("delta", 0) > 0:
+        if isinstance(risk, dict) and risk.get("delta", 0) < 0:
             regressions.append({
                 "category": "emc_risk",
                 "severity": "major",
-                "detail": f"EMC risk score increased: {risk.get('base', '?')} \u2192 {risk.get('head', '?')}",
+                "detail": f"EMC risk score fell (100 = lowest risk): {risk.get('base', '?')} \u2192 {risk.get('head', '?')}",
             })
 
     elif analyzer_type == "spice":
@@ -1003,57 +1150,70 @@ def classify_regressions(analyzer_type, diff_result):
 # Summary builder
 # ---------------------------------------------------------------------------
 
+# Sections keyed by the analyzer-output path of a scalar ({path: {base, head,
+# delta}}), and single-scalar sections with the path they read.
+_METRIC_SECTIONS = ("statistics", "unrouted", "by_severity", "summary")
+_METRIC_SCALARS = {"routing_complete": "connectivity.routing_complete",
+                   "risk_score": "summary.emc_risk_score"}
+
+
+def has_changes(diff_result):
+    """True when any diff section records a change.
+
+    An assessments block holding only `unchanged_count` is not a change.
+    """
+    for key, value in diff_result.items():
+        if key == "assessments":
+            if value.get("added") or value.get("removed"):
+                return True
+        elif value:
+            return True
+    return False
+
+
 def build_summary(analyzer_type, diff_result):
-    """Build a top-level summary of all changes."""
-    added = 0
-    removed = 0
-    modified = 0
+    """Build a top-level summary of all changes.
 
-    if analyzer_type == "schematic":
-        comp = diff_result.get("components", {})
-        added += len(comp.get("added", []))
-        removed += len(comp.get("removed", []))
-        modified += len(comp.get("modified", []))
-        for det_type, det_diff in diff_result.get("signal_analysis", {}).items():
-            added += len(det_diff.get("added", []))
-            removed += len(det_diff.get("removed", []))
-            modified += len(det_diff.get("modified", []))
+    `total_changes` counts listed items (components, detections, footprints,
+    findings, simulation results, assessments, BOM lines, connectivity issues,
+    ERC warnings, per-net scores, Monte Carlo concerns). Scalar paths
+    (statistics, routing, unrouted, risk score, severity counts, SPICE summary
+    counts) are listed by path in `metric_changes`, so one added part is not
+    counted again through every rollup it moves.
+    """
+    added = removed = modified = 0
 
-    elif analyzer_type == "pcb":
-        fp = diff_result.get("footprints", {})
-        added += len(fp.get("added", []))
-        removed += len(fp.get("removed", []))
-        modified += len(fp.get("modified", []))
+    def _count(section, add_key, remove_key, modify_key=None):
+        nonlocal added, removed, modified
+        added += len(section.get(add_key) or [])
+        removed += len(section.get(remove_key) or [])
+        if modify_key:
+            modified += len(section.get(modify_key) or [])
 
-    elif analyzer_type == "emc":
-        findings = diff_result.get("findings", {})
-        added += len(findings.get("new", []))
-        removed += len(findings.get("resolved", []))
-        modified += len(findings.get("changed_severity", []))
+    for key in ("components", "footprints"):
+        _count(diff_result.get(key, {}), "added", "removed", "modified")
+    for det_diff in diff_result.get("signal_analysis", {}).values():
+        _count(det_diff, "added", "removed", "modified")
+    _count(diff_result.get("findings", {}), "new", "resolved", "changed_severity")
+    _count(diff_result.get("bom", {}), "added", "removed", "quantity_changes")
+    for conn in diff_result.get("connectivity", {}).values():
+        _count(conn, "new", "resolved")
+    _count(diff_result.get("erc", {}), "new_warnings", "resolved_warnings")
+    _count(diff_result.get("monte_carlo", {}), "new", "resolved")
+    _count(diff_result.get("assessments", {}), "added", "removed")
+    added += len(diff_result.get("new_results", []))
+    removed += len(diff_result.get("removed_results", []))
+    modified += len(diff_result.get("status_changes", []))
+    modified += len(diff_result.get("per_net_scores", []))
 
-    elif analyzer_type == "spice":
-        added += len(diff_result.get("new_results", []))
-        removed += len(diff_result.get("removed_results", []))
-        modified += len(diff_result.get("status_changes", []))
-
-    elif analyzer_type == "thermal":
-        findings = diff_result.get("findings", {})
-        added += len(findings.get("new", []))
-        removed += len(findings.get("resolved", []))
-        modified += len(findings.get("changed_severity", []))
-
-    # Assessments (all analyzer types carry assessments[])
-    assessments = diff_result.get("assessments", {})
-    added += len(assessments.get("added", []))
-    removed += len(assessments.get("removed", []))
-
-    total = added + removed + modified
-    severity = classify_severity(analyzer_type, diff_result)
+    metric_changes = [path for k in _METRIC_SECTIONS for path in (diff_result.get(k) or {})]
+    metric_changes += [path for k, path in _METRIC_SCALARS.items() if k in diff_result]
 
     return {
-        "total_changes": total,
+        "total_changes": added + removed + modified,
         "added": added,
         "removed": removed,
         "modified": modified,
-        "severity": severity,
+        "metric_changes": sorted(metric_changes),
+        "severity": classify_severity(analyzer_type, diff_result),
     }

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Make an AI video talk"
+  short_description: "Give dialogue to clips from Veo, Kling, Sora and others"
+  default_prompt: "Use $ai-video-to-talking to make the character in my generated clip say this line."

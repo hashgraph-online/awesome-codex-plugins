@@ -23,6 +23,7 @@ MAX_EVENTS = 100_000
 
 
 def _parse_events(value: str) -> list[float]:
+    """Parse events."""
     pieces = [piece.strip() for piece in value.split(",")]
     if not pieces or any(not piece for piece in pieces):
         raise CliError("--events must be a comma-separated numeric list")
@@ -41,6 +42,7 @@ def _parse_events(value: str) -> list[float]:
 
 
 def _sample_offset(seconds: float, sampling_rate: float, *, name: str) -> int:
+    """Handle sample offset."""
     exact = seconds * sampling_rate
     rounded = round(exact)
     if not math.isclose(exact, rounded, rel_tol=0.0, abs_tol=1e-8):
@@ -57,6 +59,7 @@ def _event_samples(
     unit: str,
     sampling_rate: float,
 ) -> list[int]:
+    """Handle event samples."""
     samples: list[int] = []
     for index, value in enumerate(values, start=1):
         if unit == "samples":
@@ -81,6 +84,7 @@ def plan(
     baseline_end_s: float | None,
     boundary_policy: str,
 ) -> dict[str, Any]:
+    """Handle plan."""
     start_offset = _sample_offset(epoch_start_s, sampling_rate, name="--epoch-start")
     end_offset = _sample_offset(epoch_end_s, sampling_rate, name="--epoch-end")
     if end_offset <= start_offset:
@@ -177,6 +181,7 @@ def plan(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Plan zero-based, sample-exact event epochs and boundary handling. "
@@ -214,6 +219,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     sampling_rate = finite_float(
         args.sampling_rate,

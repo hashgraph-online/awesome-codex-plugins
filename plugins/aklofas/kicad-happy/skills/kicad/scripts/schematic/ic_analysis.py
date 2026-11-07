@@ -1,12 +1,10 @@
-"""IC pinout and subcircuit analyses: verbatim move from analyze_schematic.py; no behaviour change."""
+"""IC pinout and subcircuit analyses."""
 from __future__ import annotations
 
 from kicad_types import (
     AnalysisContext,
 )
-from kicad_core.values import (
-    COORD_EPSILON,
-)
+from kicad_core.coords import to_iu
 from schematic.connectivity import (
     get_net_neighbors,
 )
@@ -244,7 +242,6 @@ def analyze_ic_pinouts(ctx: AnalysisContext,
     - Whether input pins have pull-up/pull-down resistors
     - Pins that are unconnected (and whether they should be)
     """
-    EPSILON = COORD_EPSILON
     components = ctx.components
     nets = ctx.nets
     pin_net = ctx.pin_net
@@ -255,14 +252,14 @@ def analyze_ic_pinouts(ctx: AnalysisContext,
     nc_positions = set()
     for nc in no_connects:
         nc_positions.add((nc.get("_sheet", 0),
-                          round(nc["x"] / EPSILON) * EPSILON,
-                          round(nc["y"] / EPSILON) * EPSILON))
+                          to_iu(nc["x"]),
+                          to_iu(nc["y"])))
 
     results = []
 
     # Analyze ICs and other complex components (connectors, crystals, oscillators, etc.).
     # target_types is parameterised so the same code path can build a parallel
-    # transistor_pin_analysis[] (F4) — verifying gate/source/drain wiring on
+    # transistor_pin_analysis[] — verifying gate/source/drain wiring on
     # half-bridges is one of the highest-value review tasks and previously
     # required reconstructing the pin map from nets[].pins[] by hand.
     if target_types is None:
@@ -293,8 +290,8 @@ def analyze_ic_pinouts(ctx: AnalysisContext,
             # Check if pin has a no-connect marker (by position, net flag, or
             # library-defined NC pin type).
             pin_pos = (ic.get("_sheet", 0),
-                       round(pin["x"] / EPSILON) * EPSILON,
-                       round(pin["y"] / EPSILON) * EPSILON)
+                       to_iu(pin["x"]),
+                       to_iu(pin["y"]))
             # The net-level no_connect flag is set when *any* point in a net's
             # union-find group is an NC marker (extract_nets line ~1490). On a
             # genuinely-connected multi-pin net it must NOT mark every pin as

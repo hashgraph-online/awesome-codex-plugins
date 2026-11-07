@@ -51,6 +51,7 @@ _PHYSICS_KEYS = ("N", "beta", "c2", "f", "nu_2", "nu_4", "nu_8", "nu_m4")
 
 
 def _safe_scalar(value: Any) -> Any:
+    """Handle safe scalar."""
     if hasattr(value, "item"):
         try:
             value = value.item()
@@ -64,6 +65,7 @@ def _safe_scalar(value: Any) -> Any:
 
 
 def _attrs(group: Any, names: tuple[str, ...]) -> dict[str, Any]:
+    """Handle attrs."""
     result: dict[str, Any] = {}
     for name in names:
         if name not in group.attrs:
@@ -78,6 +80,7 @@ def _attrs(group: Any, names: tuple[str, ...]) -> dict[str, Any]:
 
 
 def _find_state_file(path: Path) -> Path:
+    """Find state file."""
     if path.is_file():
         return path
     candidates = [
@@ -173,6 +176,7 @@ def load_hdf5_state(path: Path, *, digest_limit: int) -> dict[str, Any]:
 
 
 def load_manifest(path: Path) -> dict[str, Any]:
+    """Load manifest."""
     document = load_json(path)
     if not isinstance(document, Mapping):
         raise ToolError("restart manifest must be a JSON object")
@@ -219,6 +223,7 @@ def load_manifest(path: Path) -> dict[str, Any]:
 
 
 def _same(left: Any, right: Any) -> bool:
+    """Handle same."""
     if isinstance(left, (int, float)) and isinstance(right, (int, float)):
         scale = max(1.0, abs(float(left)), abs(float(right)))
         return abs(float(left) - float(right)) <= 1e-12 * scale
@@ -226,10 +231,12 @@ def _same(left: Any, right: Any) -> bool:
 
 
 def compare(source: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
+    """Handle compare."""
     blockers: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
 
     def add(target_list: list[dict[str, str]], code: str, message: str) -> None:
+        """Add."""
         target_list.append({"code": code, "message": message})
 
     if source.get("solver") is None:
@@ -363,6 +370,7 @@ def compare(source: dict[str, Any], target: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Compare local restart metadata with validated target JSON. Field arrays "
@@ -382,6 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         hash_gib = bounded_int(

@@ -20,6 +20,7 @@ from _common import configure_scanpy, info, load_anndata
 
 
 def _is_integer_matrix(X, n=10000):
+    """Return whether integer matrix."""
     sub = X[:50] if X.shape[0] > 50 else X
     arr = sub.toarray() if hasattr(sub, "toarray") else np.asarray(sub)
     arr = arr.ravel()[:n]
@@ -29,6 +30,7 @@ def _is_integer_matrix(X, n=10000):
 
 
 def main():
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("input", help="Input file (.h5ad, .h5, .csv, .loom, or 10x mtx dir)")
@@ -44,7 +46,7 @@ def main():
 
     X = adata.X
     looks_int = _is_integer_matrix(X)
-    xmax = X.max() if not hasattr(X, "toarray") else X.max()
+    xmax = X.max()
     print(f"\nX dtype={X.dtype}  max={float(xmax):.2f}  "
           f"=> {'raw counts (likely)' if looks_int else 'normalized/log (likely)'}")
 

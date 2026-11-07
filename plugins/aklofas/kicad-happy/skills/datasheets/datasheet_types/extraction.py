@@ -1,12 +1,11 @@
 """Top-level DatasheetFacts + Source + ExtractionMeta + SchemaVersion.
 
-Mirrors extraction.schema.json. DatasheetFacts is the facade Track 2.3
-will return from lookup(mpn). Composes base + zero-or-more category
-extensions.
+Mirrors extraction.schema.json. DatasheetFacts is the facade
+lookup(mpn) returns. Composes base + zero-or-more category extensions.
 
-lookup() itself is NOT in this module — Track 2.3 lands that alongside
-cache-path resolution + staleness detection. Track 2.2 delivers only
-the typed shape.
+lookup() itself is NOT in this module; it lives in cache_reader.py
+alongside cache-path resolution + staleness detection. This module
+defines only the typed shape.
 
 Field-ordering note (same rationale as BaseBlock in base_block.py):
 Python dataclass syntax requires every required field (no default) to
@@ -21,8 +20,7 @@ property order but matches schema values — consumers should not rely
 on JSON key order (dict equality is value-based, the round-trip tests
 pass via value equality).
 
-Category-sibling fields (DatasheetFacts.regulator today; v1.5 adds
-mcu/opamp/diode/transistor/crystal) carry metadata={"omit_if_none":
+Category-sibling fields (DatasheetFacts.regulator) carry metadata={"omit_if_none":
 True}. The codec skips these when None rather than emitting explicit
 null — so "absent key" is canonical for "no category," and the JSON
 cache doesn't carry null placeholders for inactive categories.
@@ -54,7 +52,7 @@ class Source:
     mpn: str = field(metadata={
         "description": "Manufacturer part number."})
     sha256: str = field(metadata={
-        "description": "PDF SHA-256 with 'sha256:' prefix. Staleness pivot — Track 2.3 "
+        "description": "PDF SHA-256 with 'sha256:' prefix. Staleness pivot — lookup() "
                        "compares this against the PDF on disk to flag cache staleness."})
     datasheet_revision: Optional[str] = field(default=None, metadata={
         "description": "Datasheet revision label (e.g. 'Rev M')."})
@@ -67,8 +65,8 @@ class Source:
     page_count: Optional[int] = field(default=None, metadata={
         "description": "PDF page count."})
     family_ref: Optional[str] = field(default=None, metadata={
-        "description": "Path to a _families/ file when this MPN is a variant. Reserved for "
-                       "v1.5 Tier 2 dedup; always None in v1.4."})
+        "description": "Path to a _families/ file when this MPN is a variant. Reserved; "
+                       "always None (merge_results.py writes None and nothing reads it)."})
 
 
 @dataclass
@@ -95,17 +93,16 @@ class DatasheetFacts:
     """Top-level per-MPN fact envelope.
 
     Composes SchemaVersion + Source + ExtractionMeta + BaseBlock + zero
-    or more category extensions (currently just Regulator; v1.5 adds
-    MCU, opamp, diode, transistor, crystal).
+    or more category extensions (currently just Regulator).
 
-    Consumers obtain instances via Track 2.3's lookup(mpn) facade.
+    Consumers obtain instances via cache_reader.lookup(mpn).
 
-    v1.5 expansion note: adding a new category (e.g. `mcu: Optional[Mcu]
-    = field(default=None, metadata={"omit_if_none": True, ...})`) works
-    mechanically without any codec changes — the omit_if_none policy
-    documented in codec.to_dict generalizes to any category sibling.
-    A v1.4 consumer loading a v1.5 cache file will silently drop
-    unknown category sibling keys; this is scoped behavior, not a bug.
+    A new category is a new `Optional[...] = field(default=None,
+    metadata={"omit_if_none": True, ...})` sibling; the omit_if_none policy
+    documented in codec.to_dict covers any category sibling without codec
+    changes. codec.from_dict reads only the fields this class declares, so
+    a reader without a category's field silently drops that category's key
+    from a cache file that carries it; this is intended, not a bug.
     """
     schema_version: SchemaVersion = field(metadata={
         "description": "Per-section schema versions."})
@@ -126,7 +123,7 @@ class DatasheetFacts:
     # ---- Computed attributes (NOT dataclass fields) ----
     # These properties read an optional _cache_context instance attribute
     # that lookup() attaches to DatasheetFacts instances it returns.
-    # For instances constructed outside lookup() (e.g. Track 2.2 round-trip
+    # For instances constructed outside lookup() (e.g. round-trip
     # tests), _cache_context is absent and properties fall back to defaults.
 
     @property
@@ -138,7 +135,7 @@ class DatasheetFacts:
         This property works identically regardless of whether _cache_context
         is populated — it does not read cache context at all.
 
-        Spec §11 usage: `if ds.quality is not None and ds.quality < 60: ...`
+        Usage: `if ds.quality is not None and ds.quality < 60: ...`
         """
         return self.extraction.quality_score
 
@@ -152,7 +149,7 @@ class DatasheetFacts:
         (no cache context available) — consumers that want staleness
         checking must go through lookup().
 
-        Spec §11 usage: `if ds.stale: ...`
+        Usage: `if ds.stale: ...`
         """
         ctx = getattr(self, "_cache_context", None)
         if ctx is None:

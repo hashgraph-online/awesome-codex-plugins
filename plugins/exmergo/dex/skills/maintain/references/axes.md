@@ -297,6 +297,10 @@ Needs no baseline. The classes of finding:
     named in `filters_unapplied` and drops the missing finding to medium.
     Unexpected keys are never the population. Each declared parent has a
     record under `data.parent_population` with the same statuses as a join.
+    The parent may be an installed package's model (#1155), measured on the
+    relation the manifest names for it; with `--target dev` (and on a build's
+    `--verify`) a package that sets `+schema` is read in the
+    `<dev schema>_<name>` namespace dbt built it into.
   - `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`
     and `temporal_first_attainment_mismatch` (high), `temporal_population_missing`
     and `temporal_population_unexpected` (high), and

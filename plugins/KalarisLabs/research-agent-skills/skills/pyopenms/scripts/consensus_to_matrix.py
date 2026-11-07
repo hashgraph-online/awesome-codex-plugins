@@ -25,6 +25,7 @@ except ImportError:
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Export a consensusXML to a quant matrix CSV.")
     parser.add_argument("input", help="Input consensusXML")
     parser.add_argument("--out", required=True, help="Output wide-matrix CSV")

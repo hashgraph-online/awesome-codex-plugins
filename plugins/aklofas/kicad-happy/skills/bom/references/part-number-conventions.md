@@ -235,7 +235,7 @@ When encountering a new project, check in this order:
 
 ## Field Name Variants
 
-Comprehensive list of every field name variant observed across 56 open-source KiCad projects, grouped by canonical name. The `bom_manager.py` script recognizes all of these.
+Comprehensive list of every field name variant observed across 56 open-source KiCad projects, grouped by canonical name. `bom_manager.py` reads every name below except those marked *not read*.
 
 ### MPN (Manufacturer Part Number)
 
@@ -252,7 +252,7 @@ Comprehensive list of every field name variant observed across 56 open-source Ki
 | `MFN` | Rare abbreviation |
 | `MFPN` | Rare abbreviation |
 | `Partno` | Rare variant |
-| `PN` | Ambiguous — see note below |
+| `PN` | *Not read* (ambiguous; see note below) |
 | `MP` | SnapEDA imports |
 | `Mfg Part` / `MfgPart` | Various |
 
@@ -280,7 +280,7 @@ Comprehensive list of every field name variant observed across 56 open-source Ki
 | `DigiKey_Part_Number` | Underscore verbose |
 | `Digikey Part Number` | No hyphen variant |
 | `DK` | Short abbreviation |
-| `Vendor Part Number` | When `Vendor` = "Digi-Key" (slot pattern) |
+| `Vendor Part Number` | *Not read*; only `Supplier N` slots are read (next row) |
 | `Supplier 1 Part #` | When `Supplier 1` = "Digikey" (slot pattern) |
 
 ### Mouser
@@ -317,6 +317,8 @@ Comprehensive list of every field name variant observed across 56 open-source Ki
 
 ### Other Distributors
 
+Listed for reference; `bom_manager.py` does not read these fields.
+
 | Field Name | Notes |
 |---|---|
 | `TME` | Transfer Multisort Elektronik (European) |
@@ -327,11 +329,11 @@ Comprehensive list of every field name variant observed across 56 open-source Ki
 
 | Field Name | Meaning |
 |---|---|
-| `DNP` | KiCad 9 built-in attribute |
-| `(dnp yes)` | KiCad 9 S-expression flag |
+| `DNP` | KiCad 7+ built-in attribute |
+| `(dnp yes)` | KiCad 7+ S-expression flag |
 | `DONOTPLACE` | Boolean "TRUE" |
 | `DNM` | Do Not Mount |
-| `POPULATE` | "0" = DNP, "1" = populate |
+| `POPULATE` | "0" / "no" / "false" / "DNP" = DNP, "1" / "yes" / "true" / empty = populate |
 | `Do Not Populate` | Verbose variant |
 
 ---
@@ -387,11 +389,11 @@ A dual op-amp (e.g., LM358) has one reference (U1) but two units (U1A, U1B). In 
 
 ### Hierarchical Schematics
 
-Properties are on the symbol instances in each sheet, not on the sheet reference. When a project uses hierarchical design (root + sub-sheets), `bom_manager.py --recursive` finds all symbols across all sheets. The `edit_properties.py` script needs to be pointed at the specific `.kicad_sch` file containing the symbol to edit.
+Properties are on the symbol instances in each sheet, not on the sheet reference. When a project uses hierarchical design (root + sub-sheets), `bom_manager.py --recursive` finds all symbols across all sheets, with each sheet instance's own reference (a sheet used twice lists both sets). The `edit_properties.py` script needs to be pointed at the specific `.kicad_sch` file containing the symbol to edit, and finds a symbol by the `Reference` property stored in that file, which for a repeated sheet is the reference of only one of its instances.
 
 ### KiCad 5 vs KiCad 6+ Format
 
-KiCad 5 used `.sch` files (different text format). KiCad 6+ uses `.kicad_sch` (S-expression format). The `bom_manager.py` and `edit_properties.py` scripts only support KiCad 6+ format. If a project has `.sch` files, it needs to be opened and saved in KiCad 6+ first (KiCad auto-converts on open). The KiCad analyzer (`kicad` skill) can read both formats for analysis purposes.
+KiCad 5 used `.sch` files (different text format). KiCad 6+ uses `.kicad_sch` (S-expression format). `bom_manager.py analyze` and `export` read KiCad 5 `.sch` projects (read only, through the schematic analyzer's legacy reader). `edit_properties.py` and `sync_datasheet_urls.py` write symbol properties and need `.kicad_sch`: open and save a KiCad 5 project in KiCad 6+ first (KiCad converts on open). The KiCad analyzer (`kicad` skill) reads both formats.
 
 ---
 

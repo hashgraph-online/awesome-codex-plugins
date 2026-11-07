@@ -87,6 +87,7 @@ def _length_to_inches(value: str | None) -> tuple[float | None, str | None]:
 
 
 def _base_metadata(path: Path) -> dict[str, Any]:
+    """Handle base metadata."""
     info = path.stat()
     return {
         "path": str(path),
@@ -253,6 +254,7 @@ def _pdf_font_report(page: Any) -> dict[str, Any]:
         }
 
     def embedded_status(font: Any) -> bool | None:
+        """Handle embedded status."""
         try:
             subtype = str(font.get("/Subtype", ""))
             if subtype == "/Type3":
@@ -438,6 +440,7 @@ def inspect_file(
 
 
 def _normalize_formats(values: Iterable[str]) -> list[str]:
+    """Normalize formats."""
     normalized: list[str] = []
     for value in values:
         for item in value.split(","):
@@ -456,6 +459,7 @@ def _check(
     expected: Any,
     detail: str,
 ) -> dict[str, Any]:
+    """Check."""
     return {
         "name": name,
         "status": status,
@@ -463,6 +467,143 @@ def _check(
         "expected": expected,
         "detail": detail,
     }
+
+
+def _format_check(metadata: dict[str, Any], formats: list[str]) -> dict[str, Any]:
+    """Compare the file format with the explicit allow-list."""
+    actual = str(metadata.get("format", "")).upper()
+    return _check(
+        "format",
+        "pass" if actual in formats else "fail",
+        actual=actual,
+        expected=formats,
+        detail="File format is compared with the explicit allow-list.",
+    )
+
+
+def _mode_check(metadata: dict[str, Any], modes: list[str]) -> dict[str, Any]:
+    """Compare the raster mode with the explicit allow-list."""
+    actual_mode = metadata.get("mode")
+    if actual_mode is None:
+        status = "unknown"
+    elif str(actual_mode).upper() in modes:
+        status = "pass"
+    else:
+        status = "fail"
+    return _check(
+        "mode",
+        status,
+        actual=actual_mode,
+        expected=modes,
+        detail="Vector containers generally do not expose one image mode.",
+    )
+
+
+def _pixel_check(
+    name: str,
+    actual: int | None,
+    minimum: int | None,
+    maximum: int | None,
+) -> dict[str, Any]:
+    """Compare one pixel dimension with its optional minimum and maximum."""
+    if actual is None:
+        status = "unknown"
+    elif minimum is not None and actual < minimum:
+        status = "fail"
+    elif maximum is not None and actual > maximum:
+        status = "fail"
+    else:
+        status = "pass"
+    return _check(
+        name,
+        status,
+        actual=actual,
+        expected={"min": minimum, "max": maximum},
+        detail="Pixel dimensions are available for raster inputs.",
+    )
+
+
+def _dpi_check(
+    metadata: dict[str, Any],
+    *,
+    min_dpi: float | None,
+    max_dpi: float | None,
+    target_width_mm: float | None,
+) -> dict[str, Any]:
+    """Compare effective or embedded DPI with the optional DPI bounds."""
+    width_px = metadata.get("width_px")
+    dpi_x = metadata.get("dpi_x")
+    dpi_y = metadata.get("dpi_y")
+    actual_dpi = None
+    if target_width_mm is not None and width_px is not None:
+        actual_dpi = width_px / (target_width_mm / 25.4)
+    dpi_basis = "effective at target width"
+    if actual_dpi is None and dpi_x and dpi_y:
+        actual_dpi = min(float(dpi_x), float(dpi_y))
+        dpi_basis = "embedded metadata"
+    if actual_dpi is None:
+        status = "unknown"
+    elif (
+        min_dpi is not None
+        and actual_dpi < min_dpi
+        and not math.isclose(actual_dpi, min_dpi, rel_tol=1e-12, abs_tol=1e-9)
+    ):
+        status = "fail"
+    elif (
+        max_dpi is not None
+        and actual_dpi > max_dpi
+        and not math.isclose(actual_dpi, max_dpi, rel_tol=1e-12, abs_tol=1e-9)
+    ):
+        status = "fail"
+    else:
+        status = "pass"
+    return _check(
+        "dpi",
+        status,
+        actual=actual_dpi,
+        expected={"min": min_dpi, "max": max_dpi},
+        detail=(
+            f"DPI basis: {dpi_basis}. Metadata DPI is not a quality "
+            "measure; effective DPI depends on final physical size."
+        ),
+    )
+
+
+def _alpha_check(metadata: dict[str, Any], alpha_policy: str) -> dict[str, Any]:
+    """Compare detected alpha/transparency with the caller's alpha policy."""
+    if alpha_policy not in {"allow", "forbid", "require"}:
+        raise CliError("alpha_policy must be allow, forbid, or require")
+    has_alpha = metadata.get("has_alpha")
+    if has_alpha is None:
+        alpha_status = "unknown"
+    elif alpha_policy == "allow":
+        alpha_status = "pass"
+    elif alpha_policy == "forbid":
+        alpha_status = "pass" if not has_alpha else "fail"
+    else:
+        alpha_status = "pass" if has_alpha else "fail"
+    return _check(
+        "alpha",
+        alpha_status,
+        actual=has_alpha,
+        expected=alpha_policy,
+        detail=(
+            "Alpha is detected for raster modes/transparency metadata. "
+            "Vector transparency requires rendered-content inspection."
+        ),
+    )
+
+
+def _normalize_modes(expected_modes: Iterable[str]) -> list[str]:
+    """Return sorted, upper-cased unique modes from comma-separated values."""
+    return sorted(
+        {
+            item.strip().upper()
+            for value in expected_modes
+            for item in value.split(",")
+            if item.strip()
+        }
+    )
 
 
 def screen_metadata(
@@ -486,105 +627,26 @@ def screen_metadata(
 
     formats = _normalize_formats(expected_formats)
     if formats:
-        actual = str(metadata.get("format", "")).upper()
-        checks.append(
-            _check(
-                "format",
-                "pass" if actual in formats else "fail",
-                actual=actual,
-                expected=formats,
-                detail="File format is compared with the explicit allow-list.",
-            )
-        )
+        checks.append(_format_check(metadata, formats))
 
-    modes = sorted(
-        {
-            item.strip().upper()
-            for value in expected_modes
-            for item in value.split(",")
-            if item.strip()
-        }
-    )
+    modes = _normalize_modes(expected_modes)
     if modes:
-        actual_mode = metadata.get("mode")
-        status = (
-            "unknown"
-            if actual_mode is None
-            else ("pass" if str(actual_mode).upper() in modes else "fail")
-        )
-        checks.append(
-            _check(
-                "mode",
-                status,
-                actual=actual_mode,
-                expected=modes,
-                detail="Vector containers generally do not expose one image mode.",
-            )
-        )
+        checks.append(_mode_check(metadata, modes))
 
-    width_px = metadata.get("width_px")
-    height_px = metadata.get("height_px")
     for name, actual, minimum, maximum in (
-        ("width_px", width_px, min_width_px, max_width_px),
-        ("height_px", height_px, min_height_px, max_height_px),
+        ("width_px", metadata.get("width_px"), min_width_px, max_width_px),
+        ("height_px", metadata.get("height_px"), min_height_px, max_height_px),
     ):
-        if minimum is None and maximum is None:
-            continue
-        if actual is None:
-            status = "unknown"
-        elif minimum is not None and actual < minimum:
-            status = "fail"
-        elif maximum is not None and actual > maximum:
-            status = "fail"
-        else:
-            status = "pass"
-        checks.append(
-            _check(
-                name,
-                status,
-                actual=actual,
-                expected={"min": minimum, "max": maximum},
-                detail="Pixel dimensions are available for raster inputs.",
-            )
-        )
+        if minimum is not None or maximum is not None:
+            checks.append(_pixel_check(name, actual, minimum, maximum))
 
-    dpi_x = metadata.get("dpi_x")
-    dpi_y = metadata.get("dpi_y")
-    effective_dpi = None
-    if target_width_mm is not None and width_px is not None:
-        effective_dpi = width_px / (target_width_mm / 25.4)
-    actual_dpi = effective_dpi
-    dpi_basis = "effective at target width"
-    if actual_dpi is None and dpi_x and dpi_y:
-        actual_dpi = min(float(dpi_x), float(dpi_y))
-        dpi_basis = "embedded metadata"
     if min_dpi is not None or max_dpi is not None:
-        if actual_dpi is None:
-            status = "unknown"
-        elif (
-            min_dpi is not None
-            and actual_dpi < min_dpi
-            and not math.isclose(actual_dpi, min_dpi, rel_tol=1e-12, abs_tol=1e-9)
-        ):
-            status = "fail"
-        elif (
-            max_dpi is not None
-            and actual_dpi > max_dpi
-            and not math.isclose(actual_dpi, max_dpi, rel_tol=1e-12, abs_tol=1e-9)
-        ):
-            status = "fail"
-        else:
-            status = "pass"
         checks.append(
-            _check(
-                "dpi",
-                status,
-                actual=actual_dpi,
-                expected={"min": min_dpi, "max": max_dpi},
-                detail=(
-                    f"DPI basis: {dpi_basis}. Metadata DPI is not a quality "
-                    "measure; effective DPI depends on final physical size."
-                ),
+            _dpi_check(
+                metadata,
+                min_dpi=min_dpi,
+                max_dpi=max_dpi,
+                target_width_mm=target_width_mm,
             )
         )
 
@@ -601,29 +663,7 @@ def screen_metadata(
         )
 
     if alpha_policy is not None:
-        if alpha_policy not in {"allow", "forbid", "require"}:
-            raise CliError("alpha_policy must be allow, forbid, or require")
-        has_alpha = metadata.get("has_alpha")
-        if has_alpha is None:
-            alpha_status = "unknown"
-        elif alpha_policy == "allow":
-            alpha_status = "pass"
-        elif alpha_policy == "forbid":
-            alpha_status = "pass" if not has_alpha else "fail"
-        else:
-            alpha_status = "pass" if has_alpha else "fail"
-        checks.append(
-            _check(
-                "alpha",
-                alpha_status,
-                actual=has_alpha,
-                expected=alpha_policy,
-                detail=(
-                    "Alpha is detected for raster modes/transparency metadata. "
-                    "Vector transparency requires rendered-content inspection."
-                ),
-            )
-        )
+        checks.append(_alpha_check(metadata, alpha_policy))
 
     counts = {
         status: sum(item["status"] == status for item in checks)
@@ -641,6 +681,7 @@ def screen_metadata(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Inspect local raster, SVG, PDF, EPS, or PS metadata and optionally "
@@ -699,6 +740,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

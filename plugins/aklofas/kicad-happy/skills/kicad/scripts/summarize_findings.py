@@ -12,7 +12,7 @@ Usage:
     summarize_findings.py <analysis-dir> --run 2026-04-14_1939
 
 Works cross-platform: no symlinks, paths are resolved via the manifest
-and os.path.join. Python 3.8+ stdlib only.
+and os.path.join. Python 3.10+ stdlib only.
 """
 
 from __future__ import annotations
@@ -24,7 +24,8 @@ import sys
 from collections import defaultdict
 
 from kicad_core.cli import add_only_deterministic_arg
-from analysis_cache import get_run
+from analysis_cache import get_run, reviewed_overlay
+from finding_schema import VALID_CONFIDENCES, VALID_EVIDENCE_SOURCES
 
 _SEV_RANK = {"error": 0, "high": 0, "critical": 0,
              "warning": 1, "medium": 1,
@@ -40,8 +41,13 @@ def _resolve_run_dir(
         raise SystemExit(
             f"error: no manifest.json in {analysis_dir!r} — "
             "run an analyzer with --analysis-dir first")
-    with open(manifest_path, "r", encoding="utf-8") as f:
-        manifest = json.load(f)
+    try:
+        with open(manifest_path, "r", encoding="utf-8") as f:
+            manifest = json.load(f)
+    except (OSError, ValueError) as e:
+        raise SystemExit(f"error: cannot read {manifest_path!r}: {e}")
+    if not isinstance(manifest, dict):
+        raise SystemExit(f"error: {manifest_path!r} is not a JSON object")
     run_id = run_override or manifest.get("current")
     run = get_run(analysis_dir, run_id, manifest)
     if run is None:
@@ -51,7 +57,10 @@ def _resolve_run_dir(
     if not os.path.isdir(path):
         raise SystemExit(
             f"error: run directory missing on disk: {path!r}")
-    manifest_version = int(manifest.get("version", 1))
+    try:
+        manifest_version = int(manifest.get("version", 1))
+    except (TypeError, ValueError):
+        raise SystemExit(f"error: {manifest_path!r}: version is not an integer")
     return path, run_id, manifest_version
 
 
@@ -61,39 +70,22 @@ def _resolve_analyzer_json(run_dir: str, name: str, only_deterministic: bool) ->
     When only_deterministic is False, check for a merged/ sibling directory
     and prefer it if present. Falls back to the raw run_dir path.
     """
+    raw = os.path.join(run_dir, name)
     if not only_deterministic:
-        merged_candidate = os.path.join(
-            os.path.dirname(run_dir), "merged", os.path.basename(run_dir), name)
-        if os.path.isfile(merged_candidate):
-            return merged_candidate
-    return os.path.join(run_dir, name)
+        overlay = reviewed_overlay(raw)
+        if overlay:
+            return overlay
+    return raw
 
 
-def _collect_findings(run_dir: str, only_deterministic: bool = True) -> list[dict]:
-    out: list[dict] = []
-    for name in sorted(os.listdir(run_dir)):
-        if not name.endswith(".json"):
-            continue
-        full = _resolve_analyzer_json(run_dir, name, only_deterministic)
-        try:
-            with open(full, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            continue
-        for finding in data.get("findings", []) or []:
-            if isinstance(finding, dict):
-                finding.setdefault("_source_file", name)
-                out.append(finding)
-    return out
+def _collect(run_dir: str, only_deterministic: bool = True) -> tuple[list[dict], dict[str, int]]:
+    """Walk analyzer JSONs once; return (findings, {rule_id: assessment count}).
 
-
-def _collect_assessments(run_dir: str, only_deterministic: bool = True) -> dict[str, int]:
-    """Walk analyzer JSONs, group assessments by rule_id.
-
-    Returns: dict {rule_id: count}. Assessments have no severity — they
-    are informational context emitted by detectors (e.g. thermal TH-DET).
+    Assessments have no severity: they are informational context emitted by
+    detectors (e.g. thermal TH-DET).
     """
     from collections import Counter
+    findings: list[dict] = []
     counter: Counter = Counter()
     for name in sorted(os.listdir(run_dir)):
         if not name.endswith(".json"):
@@ -102,13 +94,22 @@ def _collect_assessments(run_dir: str, only_deterministic: bool = True) -> dict[
         try:
             with open(full, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        except (OSError, json.JSONDecodeError):
+        except (OSError, ValueError, RecursionError) as e:
+            print(f"Warning: skipping {full}: {e}", file=sys.stderr)
             continue
-        for a in data.get("assessments", []) or []:
+        if not isinstance(data, dict):
+            print(f"Warning: skipping {full}: not a JSON object", file=sys.stderr)
+            continue
+        raw_findings, raw_assessments = data.get("findings"), data.get("assessments")
+        for finding in raw_findings if isinstance(raw_findings, list) else []:
+            if isinstance(finding, dict):
+                finding.setdefault("_source_file", name)
+                findings.append(finding)
+        for a in raw_assessments if isinstance(raw_assessments, list) else []:
             if isinstance(a, dict):
                 rid = a.get("rule_id") or "(unknown)"
                 counter[rid] += 1
-    return dict(counter)
+    return findings, dict(counter)
 
 
 def _print_assessments_table(by_rule: dict[str, int]) -> None:
@@ -150,14 +151,10 @@ def _filter_severity(findings: list[dict], severity: str | None) -> list[dict]:
     return [f for f in findings if _norm(f.get("severity", "info")) == want]
 
 
-# F16: per-finding trust filters. Vocabulary comes from finding_schema's
-# VALID_CONFIDENCES / VALID_EVIDENCE_SOURCES — kept inline to avoid an
-# import (summarize_findings is intentionally dependency-light).
-_KNOWN_CONFIDENCES = frozenset(
-    ("deterministic", "heuristic", "datasheet_backed"))
-_KNOWN_EVIDENCE_SOURCES = frozenset(
-    ("topology", "datasheet", "heuristic_rule", "simulation",
-     "user_config", "geometry", "lookup", "bom"))
+# Per-finding trust filters. The vocabularies are finding_schema's; `datasheet_backed`
+# is accepted as the spelling used by the trust_summary keys.
+_KNOWN_CONFIDENCES = frozenset(VALID_CONFIDENCES) | {"datasheet_backed"}
+_KNOWN_EVIDENCE_SOURCES = frozenset(VALID_EVIDENCE_SOURCES)
 
 
 def _filter_confidence(findings: list[dict], confidence: str | None) -> list[dict]:
@@ -167,7 +164,8 @@ def _filter_confidence(findings: list[dict], confidence: str | None) -> list[dic
         raise SystemExit(
             f"error: unknown --confidence {confidence!r} — "
             f"accepted: {', '.join(sorted(_KNOWN_CONFIDENCES))}")
-    return [f for f in findings if f.get("confidence") == confidence]
+    want = confidence.replace("_", "-")
+    return [f for f in findings if f.get("confidence") == want]
 
 
 def _filter_evidence_source(findings: list[dict], src: str | None) -> list[dict]:
@@ -203,8 +201,11 @@ def _aggregate(findings: list[dict]) -> list[dict]:
         g["detectors"].add(f.get("detector") or "")
         g["source_files"].add(f.get("_source_file") or "")
         conf = f.get("confidence", "")
-        if conf in g["by_confidence"]:
-            g["by_confidence"][conf] += 1
+        if not isinstance(conf, str):
+            conf = ""
+        conf_key = conf.replace("-", "_")
+        if conf_key in g["by_confidence"]:
+            g["by_confidence"][conf_key] += 1
         elif conf in g["deep_review_confidence"]:
             g["deep_review_confidence"][conf] += 1
 
@@ -304,14 +305,15 @@ def main(argv: list[str] | None = None) -> int:
                           "warning/medium/warn (→ warning), info. "
                           "Raises if the value is unrecognised."))
     ap.add_argument("--confidence",
-                    help=("Filter to a single confidence level (F16). "
+                    help=("Filter to a single confidence level. "
                           "Accepts: deterministic, heuristic, "
-                          "datasheet_backed. Combines with --severity / "
+                          "datasheet-backed (or datasheet_backed). "
+                          "Combines with --severity / "
                           "--evidence-source via AND."))
     ap.add_argument("--evidence-source",
-                    help=("Filter to a single evidence_source (F16). "
-                          "Accepts: topology, datasheet, heuristic_rule, "
-                          "simulation, user_config, geometry, lookup, bom. "
+                    help=("Filter to a single evidence_source. "
+                          "Accepts: datasheet, topology, heuristic_rule, "
+                          "symbol_footprint, bom, geometry, api_lookup. "
                           "Combines with --severity / --confidence via AND."))
     ap.add_argument("--run",
                     help="Run ID override (defaults to manifest.current).")
@@ -325,21 +327,29 @@ def main(argv: list[str] | None = None) -> int:
     args = ap.parse_args(argv)
 
     run_dir, run_id, manifest_version = _resolve_run_dir(args.analysis_dir, args.run)
-    findings = _collect_findings(run_dir, only_deterministic=args.only_deterministic)
+    findings, assessments_by_rule = _collect(run_dir, only_deterministic=args.only_deterministic)
 
     deep_review_counts = None
     if not args.no_deep_review:
         dr_path = os.path.join(args.analysis_dir, "deep_review.json")
         if os.path.isfile(dr_path):
-            with open(dr_path, "r", encoding="utf-8") as f:
-                dr = json.load(f)
+            try:
+                with open(dr_path, "r", encoding="utf-8") as f:
+                    dr = json.load(f)
+            except (OSError, ValueError, RecursionError) as e:
+                print(f"Warning: skipping unreadable {dr_path}: {e}", file=sys.stderr)
+                dr = {}
+            if not isinstance(dr, dict):
+                print(f"Warning: skipping {dr_path}: not a JSON object", file=sys.stderr)
+                dr = {}
             included = 0
-            for finding in dr.get("findings") or []:
+            dr_findings = dr.get("findings")
+            for finding in dr_findings if isinstance(dr_findings, list) else []:
                 if not isinstance(finding, dict):
                     continue
                 row = dict(finding)
                 # deep_review findings group by category where detector
-                # findings group by rule_id (v2.0 spec §3.C)
+                # findings group by rule_id
                 row["rule_id"] = row.get("category") or "(uncategorized)"
                 row["_source_file"] = "deep_review.json"
                 findings.append(row)
@@ -352,7 +362,6 @@ def main(argv: list[str] | None = None) -> int:
     findings = _filter_severity(findings, args.severity)
     findings = _filter_confidence(findings, args.confidence)
     findings = _filter_evidence_source(findings, args.evidence_source)
-    assessments_by_rule = _collect_assessments(run_dir, only_deterministic=args.only_deterministic)
     assessment_total = sum(assessments_by_rule.values())
     if args.by_confidence:
         conf_rows = _aggregate_by_confidence(findings)
@@ -419,4 +428,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

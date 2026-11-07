@@ -182,6 +182,7 @@ def plot_results(
     quant_fc: np.ndarray,
     fc_records: list[dict],
 ) -> None:
+    """Plot results."""
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(15, 10), gridspec_kw={"hspace": 0.42})
@@ -389,6 +390,7 @@ def plot_results(
 
 
 def main() -> None:
+    """Run the command-line interface."""
     print("=" * 68)
     print("  TIMESFM ANOMALY DETECTION — TWO-PHASE METHOD")
     print("=" * 68)

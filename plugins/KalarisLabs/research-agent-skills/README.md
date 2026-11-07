@@ -14,6 +14,7 @@
 [![README views](https://hits.sh/github.com/KalarisLabs/research-agent-skills.svg?label=views&color=165d74)](https://hits.sh/github.com/KalarisLabs/research-agent-skills/)
 [![Last commit](https://img.shields.io/github/last-commit/KalarisLabs/research-agent-skills?color=165d74)](https://github.com/KalarisLabs/research-agent-skills/commits/main)
 [![License: MIT](https://img.shields.io/badge/license-MIT-165d74)](LICENSE)
+[![Ask Devin: CodeWiki](https://img.shields.io/badge/Ask_Devin-CodeWiki-165d74?logo=devin&logoColor=white)](https://app.devin.ai/org/kalarislabs/wiki/KalarisLabs/research-agent-skills?branch=main)
 
 [![Validate](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/validate.yml/badge.svg)](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/validate.yml)
 [![Skill security](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/skill-security.yml/badge.svg)](https://github.com/KalarisLabs/research-agent-skills/actions/workflows/skill-security.yml)
@@ -38,7 +39,15 @@ npx skills add KalarisLabs/research-agent-skills
 
 <sub>One command via <a href="https://skills.sh/kalarislabs/research-agent-skills">skills.sh</a> · no account · pick all skills or only the ones you need · not on npm</sub>
 
-[Install](#install) · [Proof](#proof-a-whole-brain-study-run-end-to-end-with-these-skills) · [Who it's for](#built-for-researchers) · [Benchmarks](#measured-not-claimed) · [Skills](#skill-catalog) · [skills.sh](https://skills.sh/kalarislabs/research-agent-skills) · [Docs](https://docs.kalarislabs.com/research-agent-skills) · [FAQ](#faq)
+**Or paste this into your agent and let it do the install:**
+
+```text
+Use the skills in "https://github.com/kalarislabs/research-agent-skills" that are relevant to the current task. Run `npx skills add "https://github.com/kalarislabs/research-agent-skills"` and select the relevant skills, then follow their instructions.
+```
+
+<sub>Documentation sponsored by <a href="https://mintlify.com">Mintlify</a> · code explained by <a href="https://app.devin.ai/org/kalarislabs/wiki/KalarisLabs/research-agent-skills?branch=main">Devin CodeWiki</a></sub>
+
+[Interactive Catalog](https://skills.kalarislabs.com) · [Install](#install) · [Problems solved](#research-problems-this-actually-solves) · [Proof](#proof-a-whole-brain-study-run-end-to-end-with-these-skills) · [Who it's for](#built-for-researchers) · [Benchmarks](#measured-not-claimed) · [Skills](#skill-catalog) · [skills.sh](https://skills.sh/kalarislabs/research-agent-skills) · [Docs](https://docs.kalarislabs.com/research-agent-skills) · [FAQ](#faq)
 
 </div>
 
@@ -48,6 +57,24 @@ npx skills add KalarisLabs/research-agent-skills
 [agent skills](https://agentskills.io) that gives your AI agent the methods of a careful scientist. Each skill is a folder
 with a `SKILL.md` playbook, reference material and tested scripts. Your agent loads one only when the task needs it, so
 the same agent can search the literature in the morning, design an experiment at noon and answer reviewers at night.
+
+Browse and search the entire collection visually at **[skills.kalarislabs.com](https://skills.kalarislabs.com)**.
+
+## Research problems this actually solves
+
+These are the failures researchers hit when they use a general-purpose agent for science, and what the skills do about
+each. Numbers come from the committed [benchmark results](#measured-not-claimed); model-based ones are pilots.
+
+| The problem | What the skills do | Evidence |
+|---|---|---|
+| **Fabricated or wrong citations** | `citation-verification` checks every reference against Crossref, arXiv and DOI-less preprints before it reaches your draft | Flagged 4/4 fabricated and 4/4 corrupted references, passed 10/10 real ones |
+| **Text that reads as AI-generated** | `unslop-academic-writing` removes the patterns reviewers recognise | Slop index 83% lower than the same model without it (pilot) |
+| **Your agent picks the wrong method** | Each skill states when it applies, so the agent loads the right protocol for the task | Right skill in the top 3 for 96% of 100 held-out prompts, with no false triggers |
+| **Journal formatting and submission rules** | Venue skills for Nature, Cell, Science, IEEE, ACM, Springer, Elsevier, APA, PLOS and arXiv | 11 journal-format skills, each with a checklist |
+| **Analyses you cannot reproduce** | Skills carry tested scripts, reproducibility statements and explicit verification steps | Every skill passes the static quality gate (mean 95.2/100) |
+| **Unsafe third-party skills** | Every skill is scanned for prompt injection, payloads and unreviewed network calls | Cisco skill-scanner, CodeQL and an injection linter run on every pull request |
+
+What it does not do: it will not run your experiments or replace your judgement, and the model-based results are pilots on small samples.
 
 ### From assistant to co-scientist
 
@@ -122,6 +149,7 @@ see also its <a href="https://github.com/KalarisLabs/fly-brain-resuscitation/blo
 One command with the open [skills.sh](https://skills.sh/kalarislabs/research-agent-skills) CLI. It needs Node.js 18+
 and no account, and works with the agents above plus about 70 others (Cline, Goose, Roo, Zed, Warp and more).
 
+**Via skills.sh (Node.js):**
 ```bash
 npx skills add KalarisLabs/research-agent-skills
 ```
@@ -137,6 +165,18 @@ That opens a picker for skills and agents. To skip the picker:
 | Install for all my projects | add `--global` (default is the current project) |
 | Skip confirmation prompts | add `--yes` |
 | Update installed skills later | `npx skills update` |
+
+**Via Python (uv / pip):**
+```bash
+# Instant one-liner via uv (no install required)
+uvx research-agent-skills install citation-verification
+
+# Or install globally into your Python environment
+pip install research-agent-skills
+research-agent-skills install --bundle research-essentials
+```
+
+To inspect all available skills visually first, search the **[Interactive Catalog](https://skills.kalarislabs.com)**.
 
 Then ask your agent in plain language, for example *"Verify every reference in refs.bib"* or
 *"Unslop this introduction without changing any claims"*. The agent loads the right skill on its own.
@@ -264,6 +304,8 @@ drifts from its data. Methodology and caveats: [benchmarks/README.md](benchmarks
 <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/quality-dark.svg" /><img src="PUBLIC/benchmarks/quality-light.svg" alt="Histogram of static quality scores: all 281 skills score 80 or more, mean 95.2." width="100%" /></picture></td>
 </tr>
 </table>
+
+<p align="center"><img src="PUBLIC/benchmark_leaderboard_verification.png" alt="Verification and guardrail results: Crossref DOI verification, fabricated and corrupted citation detection all 100 percent, Claude Haiku router hit@3 96 percent, unslop clean rate 89 percent." width="100%" /></p>
 
 <details>
 <summary><b>The same numbers as a table</b></summary>
@@ -728,6 +770,14 @@ Grouped by category and generated from [`catalog/skills.json`](catalog/skills.js
 </details>
 
 <!-- catalog:end -->
+
+## Sponsor and community
+
+Documentation hosting is sponsored by **[Mintlify](https://mintlify.com)**.
+
+<a href="https://mintlify.com"><img src="docs/assets/mintlify-logo.svg" alt="Mintlify, documentation sponsor of Research Agent Skills" width="140"></a>
+
+[![Star History Chart: Research Agent Skills](https://api.star-history.com/svg?repos=kalarislabs%2Fresearch-agent-skills&type=Date)](https://star-history.com/#KalarisLabs/research-agent-skills&Date)
 
 ## Documentation
 

@@ -1,19 +1,22 @@
-"""Connectivity, power-domain, cross-domain, bus-protocol and differential-pair analyses: verbatim move from analyze_schematic.py; no behaviour change."""
+"""Connectivity, power-domain, cross-domain, bus-protocol and differential-pair analyses."""
 from __future__ import annotations
 
 import re
 from kicad_types import (
     AnalysisContext,
 )
-from kicad_core.values import (
-    COORD_EPSILON,
-)
+from kicad_core.classify import classify_ic_function
+from kicad_core.coords import to_iu
+from detector_helpers import is_protection_part
+from kicad_core.sexp import unescape_string
+from schematic import erc_pins
 from kicad_core.parts import (
     _OUTPUT_DRIVE_KEYWORDS,
 )
 from kicad_core.netnames import (
     parse_voltage_from_net_name as _parse_voltage_from_net_name,
     is_usb_data_net_name,
+    net_leaf,
 )
 
 
@@ -23,17 +26,16 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
     Returns a dict with:
     - unconnected_pins: pins not on any net (and not marked no-connect)
     - single_pin_nets: nets with only one pin (likely unfinished connections)
-    - multi_driver_nets: nets with multiple output/bidirectional drivers
+    - multi_driver_nets: nets where two driving pins conflict at KiCad's error level
     - power_net_summary: per power rail, which components connect
     """
-    EPSILON = COORD_EPSILON
 
     # Build set of no-connect positions for quick lookup
     nc_positions = set()
     for nc in no_connects:
         nc_positions.add((nc.get("_sheet", 0),
-                          round(nc["x"] / EPSILON) * EPSILON,
-                          round(nc["y"] / EPSILON) * EPSILON))
+                          to_iu(nc["x"]),
+                          to_iu(nc["y"])))
 
     # Build set of all pins that appear in any net
     connected_pins = set()
@@ -51,8 +53,8 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
             if pin_key not in connected_pins:
                 # Check if there's a no-connect marker at this pin
                 pin_pos = (comp.get("_sheet", 0),
-                           round(pin["x"] / EPSILON) * EPSILON,
-                           round(pin["y"] / EPSILON) * EPSILON)
+                           to_iu(pin["x"]),
+                           to_iu(pin["y"]))
                 if pin_pos not in nc_positions:
                     unconnected_pins.append({
                         "component": comp["reference"],
@@ -83,7 +85,7 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
         # Retain the legacy summary shape for downstream consumers —
         # keep the pre-existing __unnamed_* guard on the legacy list so
         # format-report / diff_analysis don't surface mid-edit passive
-        # stubs that the old code filtered out. The rich NT-001 finding
+        # stubs. The rich NT-001 finding
         # below still covers those cases for reviewers who want them.
         if not net_name.startswith("__unnamed_"):
             single_pin_nets.append({"net": net_name, "pin": pin})
@@ -138,18 +140,23 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
             },
         })
 
-    # Find multi-driver nets (multiple outputs driving the same net)
-    # Exclude power flags (#FLG, #PWR) — they're virtual, not real drivers
+    # Driving pins whose pair is an error in KiCad's pin map. Power symbols and
+    # flags (#PWR, #FLG) are virtual, not real drivers.
     multi_driver_nets = []
-    output_types = {"output", "tri_state", "power_out"}
+    positions = erc_pins.pin_positions(components)
     for net_name, net_info in nets.items():
         drivers = [p for p in net_info["pins"]
-                   if p["pin_type"] in output_types
-                   and not p["component"].startswith("#")]
-        if len(drivers) > 1:
+                   if not p["component"].startswith("#")
+                   and erc_pins.pin_kind(p.get("pin_type")) in erc_pins.DRIVERS]
+        hit = set()
+        for i, j, level in erc_pins.net_pin_conflicts(drivers, positions):
+            if level == erc_pins.ERROR:
+                hit.update((i, j))
+        if hit:
             multi_driver_nets.append({
                 "net": net_name,
-                "drivers": drivers,
+                "drivers": [drivers[k] for k in sorted(hit)],
+                "severity": "error",
             })
 
     # Power net summary — for each named power rail, which real components connect
@@ -177,6 +184,208 @@ def analyze_connectivity(components: list[dict], nets: dict, no_connects: list[d
     }
 
 
+# Net-class keywords, checked in order; the first class with a hit wins.
+_NET_CLASS_KEYWORDS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("clock", ("SCL", "SCK", "CLK", "MCLK", "SCLK", "XTAL", "OSC")),
+    ("data", ("SDA", "MOSI", "MISO", "SDI", "SDO", "UART", "TXD", "RXD",
+              "TXP", "TXN", "TXM", "RXP", "RXN", "RXM", "TX", "RX")),
+    ("high_speed", ("USB", "CAN", "LVDS", "ETH")),
+    ("analog", ("ADC", "AIN", "VREF", "VSENSE", "ISENSE")),
+    ("control", ("RESET", "NRST", "RST", "EN", "ENABLE")),
+    ("chip_select", ("CS", "SS", "NSS", "CE", "SEL")),
+    ("interrupt", ("INT", "IRQ", "ALERT", "DRDY")),
+    ("output_drive", _OUTPUT_DRIVE_KEYWORDS),
+    ("debug", ("SWD", "SWCLK", "SWDIO", "SWO", "JTAG", "TCK", "TMS", "TDI", "TDO")),
+    ("config", ("BOOT", "TEST")),
+)
+# video sync signals are not chip selects
+_SYNC_KEYWORDS = ("CSYNC", "HSYNC", "VSYNC", "SYNC")
+# A token starting with a supply stem (VCCINT, VDDIO, AVDD_ADC) names a rail, never a keyword
+_SUPPLY_STEMS = ("VCC", "VDD", "AVCC", "AVDD", "DVCC", "DVDD", "PVDD", "IOVDD")
+# Supply-input pin names besides the stems above (V+, VIN, PVIN, IN, VBAT, BAT, VS, VM, ...)
+_SUPPLY_PIN_NAMES = frozenset({
+    "V", "VIN", "PVIN", "AVIN", "IN", "VBAT", "BAT", "VS", "VM", "VBUS", "VSUP", "VSYS",
+    "VPWR", "PWR"})
+# Pins typed power_in that are not supply inputs: grounds, switch nodes, regulator caps, references
+_NOT_SUPPLY_PIN_NAMES = frozenset({"GND", "VSS", "L", "LX", "SW", "AREF"})
+_NOT_SUPPLY_PIN_PREFIXES = ("GND", "VSS", "VLX", "VCAP", "VREF")
+# The return of an isolated module's input (VIN-, -VIN, VIN_N)
+_SUPPLY_RETURN_PIN = re.compile(r'-VIN\d*|VIN\d*-|VIN\d*_N')
+
+
+def _name_tokens(name: str) -> list[str]:
+    """Upper-case tokens of *name*: split on non-alphanumerics and letter/digit boundaries,
+    with active-low markers (``nINT``, ``INTn``, ``_N``) removed."""
+    tokens = []
+    for part in re.split(r'[^0-9A-Za-z]+', unescape_string(name)):
+        for t in re.findall(r'[A-Za-z]+|[0-9]+', part):
+            if len(t) > 2 and t[0] == "n" and t[1].isupper():
+                t = t[1:]
+            elif len(t) > 2 and t[-1] == "n" and t[-2].isupper():
+                t = t[:-1]
+            t = t.upper()
+            if t != "N":
+                tokens.append(t)
+    return tokens
+
+
+def _keyword_hit(tokens: list[str], keywords: tuple[str, ...]) -> bool:
+    """A keyword of three or more letters hits anywhere in a token; a two-letter one (TX, EN,
+    CS) only as the whole token, its start or its end, also before an active-low B/N (ROMCSB).
+    A supply-stem token hits only as that rail's enable (VCCOEN)."""
+    for t in tokens:
+        if t.startswith(_SUPPLY_STEMS):
+            if any(k in ("EN", "ENABLE") and t.endswith(k) for k in keywords):
+                return True
+            continue
+        forms = (t, t[:-1]) if len(t) > 2 and t[-1] in "BN" else (t,)
+        for k in keywords:
+            if len(k) > 2:
+                if k in t:
+                    return True
+            elif any(f == k or f.startswith(k) or f.endswith(k) for f in forms):
+                return True
+    return False
+
+
+def _keyword_class(net_name: str) -> str:
+    tokens = _name_tokens(net_name)
+    for cls, keywords in _NET_CLASS_KEYWORDS:
+        if _keyword_hit(tokens, keywords):
+            if cls == "chip_select" and _keyword_hit(tokens, _SYNC_KEYWORDS):
+                return "signal"
+            return cls
+    return "signal"
+
+
+def _is_supply_pin_name(pin_name: str) -> bool:
+    tokens = _name_tokens(pin_name or "")
+    compact = "".join(tokens)
+    # "0V" is a ground reference
+    if not tokens or compact == "0V" or compact.startswith(_NOT_SUPPLY_PIN_PREFIXES) or any(
+            t in _NOT_SUPPLY_PIN_NAMES or t.startswith(_NOT_SUPPLY_PIN_PREFIXES) for t in tokens):
+        return False
+    if _SUPPLY_RETURN_PIN.fullmatch(re.sub(r'\s+', '', unescape_string(pin_name).upper())):
+        return False
+    # "3V3" and "V+" tokenise to a bare "V"
+    return any("VCC" in t or "VDD" in t or t in _SUPPLY_PIN_NAMES for t in tokens)
+
+
+def _has_bootstrap_pin(ref: str, ref_pins: dict) -> bool:
+    """True when IC *ref* has a VB pin: its VS is a high-side driver's switch node."""
+    for num, (_net, info) in ref_pins.get(ref, {}).items():
+        for p in info.get("pins", []):
+            if (p.get("component") == ref and p.get("pin_number") == num
+                    and "".join(_name_tokens(p.get("pin_name") or "")) == "VB"):
+                return True
+    return False
+
+
+def _is_ic_supply_input_net(net_info: dict, comp_lookup: dict, ref_pins: dict) -> bool:
+    """True when the net has IC pins and every non-passive one is a power_in supply input."""
+    ic_pins = [p for p in net_info.get("pins", [])
+               if (comp_lookup.get(p.get("component")) or {}).get("type") == "ic"
+               and str(p.get("pin_type") or "").split("+")[0] != "passive"]
+    return bool(ic_pins) and all(
+        str(p.get("pin_type") or "").split("+")[0] == "power_in"
+        and _is_supply_pin_name(p.get("pin_name", ""))
+        and not ("".join(_name_tokens(p.get("pin_name") or "")) == "VS"
+                 and _has_bootstrap_pin(p.get("component"), ref_pins))
+        for p in ic_pins)
+
+
+# A passive-typed IC pin is a supply by its whole name only (VCC, AVDD_PLL, VIN2, V+);
+# a token match would take OSC_IN or V1.
+_SUPPLY_PIN_FULL_NAME = re.compile(
+    r'(?:[ADP]|IO)?V(?:CC|DD)[A-Z0-9]*|[AP]?VIN\d*|V(?:BAT|BATT|BUS|SUP|SYS|PWR|S|M)\d*|V\+')
+
+# Bridge outputs KiCad types power_out (DRV8833 AOUT1, A4950 OUT1, STSPIN OUTA1/OUTU,
+# DRV8800 OUT+): two of them on one IC drive a load between them, not a rail.
+_BRIDGE_OUTPUT_PIN = re.compile(r'[A-D]?OUT(?:[A-D]?\d+[A-D]?|[A-D]|[UVW])?[+-]?')
+
+
+def _bridge_output_name(pin_name: str) -> bool:
+    compact = re.sub(r'[^0-9A-Z+-]', '', unescape_string(pin_name).upper())
+    return compact != "OUT" and bool(_BRIDGE_OUTPUT_PIN.fullmatch(compact))
+
+
+def _has_sibling_bridge_output(ref: str, net: str, ref_pins: dict) -> bool:
+    """True when IC *ref* has a bridge-named power_out pin on a net other than *net*."""
+    for num, (other_net, info) in ref_pins.get(ref, {}).items():
+        if other_net == net:
+            continue
+        for p in info.get("pins", []):
+            if (p.get("component") == ref and p.get("pin_number") == num
+                    and str(p.get("pin_type") or "").split("+")[0] == "power_out"
+                    and _bridge_output_name(p.get("pin_name") or "")):
+                return True
+    return False
+
+
+def topology_rail_nets(nets: dict[str, dict], comp_lookup: dict[str, dict], ref_pins: dict,
+                       is_rail, is_ground) -> frozenset[str]:
+    """Named nets that are supply rails by their pins, whatever their name.
+
+    Every IC pin on the net is a supply input or a power output, and a capacitor goes to
+    ground. A pin typed passive counts as a supply by its name (VCC, VDD, VIN); other
+    passive pins are allowed only beside a pin KiCad types as power (a load-switch FET
+    drawn as an IC). A reference node (REF in the name), a net with a resistor to
+    ground (a divider midpoint) and a motor-driver output stay signals. A bridge-named
+    output (OUT1 beside an OUT2 on another net) of a part not classed as power
+    management makes a rail only beside a supply input it feeds (a PMIC's OUT1), not
+    alone (an H-bridge's motor lead)."""
+    def far_net(ref: str, net: str) -> str | None:
+        others = {n for n, _ in ref_pins.get(ref, {}).values() if n != net}
+        return next(iter(others)) if len(others) == 1 else None
+
+    found = set()
+    for name, info in nets.items():
+        if (name.startswith("__unnamed_") or is_rail(name) or is_ground(name)
+                or any("REF" in t for t in _name_tokens(name.rsplit("/", 1)[-1]))):
+            continue
+        typed_supply = named_supply = untyped_other = 0
+        cap_to_ground = False
+        for p in info.get("pins", []):
+            ref = p.get("component") or ""
+            kind = (comp_lookup.get(ref) or {}).get("type")
+            if kind == "ic":
+                ptype = str(p.get("pin_type") or "").split("+")[0]
+                pname = p.get("pin_name") or ""
+                tokens = _name_tokens(pname)
+                excluded = ("".join(tokens).startswith(_NOT_SUPPLY_PIN_PREFIXES)
+                            or any(t in _NOT_SUPPLY_PIN_NAMES for t in tokens))
+                if ptype == "power_out" and not excluded:
+                    function = _ic_function(comp_lookup.get(ref) or {})
+                    if function == "motor_driver":
+                        break
+                    if (function != "power_management" and _bridge_output_name(pname)
+                            and _has_sibling_bridge_output(ref, name, ref_pins)):
+                        continue   # not a supply by itself: needs a supply input beside it
+                    typed_supply += 1
+                elif "".join(tokens) == "VS" and _has_bootstrap_pin(ref, ref_pins):
+                    break
+                elif ptype == "power_in" and _is_supply_pin_name(pname):
+                    typed_supply += 1
+                elif (ptype in ("passive", "unspecified", "") and _SUPPLY_PIN_FULL_NAME.fullmatch(
+                        re.sub(r'[^0-9A-Z+]', '', unescape_string(pname).upper()))):
+                    named_supply += 1
+                elif ptype in ("passive", "unspecified", "") and not excluded:
+                    untyped_other += 1
+                else:
+                    break
+            elif kind in ("capacitor", "resistor"):
+                far = far_net(ref, name)
+                if kind == "capacitor" and far and is_ground(far):
+                    cap_to_ground = True
+                elif kind == "resistor" and far and is_ground(far):
+                    break
+        else:
+            if (cap_to_ground and (typed_supply or named_supply)
+                    and (typed_supply or not untyped_other)):
+                found.add(name)
+    return frozenset(found)
+
+
 def _classify_nets(ctx: AnalysisContext) -> dict:
     """Classify all nets by type (ground, power, clock, data, etc.)."""
     nets = ctx.nets
@@ -195,37 +404,15 @@ def _classify_nets(ctx: AnalysisContext) -> dict:
                 net_classes[net_name] = "signal"
             continue
 
-        nu = net_name.upper()
         if is_ground(net_name):
             net_classes[net_name] = "ground"
         elif is_power_net(net_name):
             net_classes[net_name] = "power"
-        elif any(kw in nu for kw in ("SCL", "SCK", "CLK", "MCLK", "SCLK", "XTAL", "OSC")):
-            net_classes[net_name] = "clock"
-        elif any(kw in nu for kw in ("SDA", "MOSI", "MISO", "SDI", "SDO", "UART", "TX", "RX")):
-            net_classes[net_name] = "data"
-        elif any(kw in nu for kw in ("USB", "CAN", "LVDS", "ETH")):
-            net_classes[net_name] = "high_speed"
-        elif any(kw in nu for kw in ("ADC", "AIN", "VREF", "VSENSE", "ISENSE")):
-            net_classes[net_name] = "analog"
-        elif any(kw in nu for kw in ("RESET", "NRST", "RST", "EN", "ENABLE")):
-            net_classes[net_name] = "control"
-        elif any(kw in nu for kw in ("CS", "SS", "NSS", "CE", "SEL")):
-            # KH-097: Exclude video sync signals (CSYNC, HSYNC, VSYNC)
-            if any(sync in nu for sync in ("CSYNC", "HSYNC", "VSYNC", "SYNC")):
-                net_classes[net_name] = "signal"
-            else:
-                net_classes[net_name] = "chip_select"
-        elif any(kw in nu for kw in ("INT", "IRQ", "ALERT", "DRDY")):
-            net_classes[net_name] = "interrupt"
-        elif any(kw in nu for kw in _OUTPUT_DRIVE_KEYWORDS):
-            net_classes[net_name] = "output_drive"
-        elif any(kw in nu for kw in ("SWD", "SWCLK", "SWDIO", "SWO", "JTAG", "TCK", "TMS", "TDI", "TDO")):
-            net_classes[net_name] = "debug"
-        elif any(kw in nu for kw in ("BOOT", "TEST")):
-            net_classes[net_name] = "config"
         else:
-            net_classes[net_name] = "signal"
+            cls = _keyword_class(net_name)
+            if cls == "signal" and _is_ic_supply_input_net(net_info, ctx.comp_lookup, ctx.ref_pins):
+                cls = "power"
+            net_classes[net_name] = cls
 
     return net_classes
 
@@ -249,7 +436,7 @@ def _map_power_domains(ctx: AnalysisContext) -> dict:
                         "CSP", "CSN", "CS+", "CS-", "ISENSE", "IMON", "IOUT",
                         "SEN", "VS+", "VS-"}
     power_domains = {}
-    # KH-224: Accumulate rails/io_rails across all units of multi-unit ICs
+    # Accumulate rails/io_rails across all units of multi-unit ICs
     _ref_rails: dict[str, set] = {}      # ref -> set of power rail nets
     _ref_io_rails: dict[str, set] = {}   # ref -> set of IO rail nets
     _ref_value: dict[str, str] = {}      # ref -> value (from first unit seen)
@@ -504,7 +691,7 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
         if "SDA" in nu or "SCL" in nu or "I2C" in nu:
             # Skip SPI signals (MISO contains no I2C keywords, but SCLK/SCK match SCL)
             # Skip I2S signals (I2S0_RX_SDA etc. contain SDA as substring)
-            # KH-086: Also exclude MOSI/MISO nets (SPI data lines on dual-function ICs)
+            # Also exclude MOSI/MISO nets (SPI data lines on dual-function ICs)
             if "SCLK" in nu or nu.endswith("SCK") or "SPI" in nu or "MOSI" in nu or "MISO" in nu:
                 continue
             if "I2S" in nu:
@@ -561,7 +748,7 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                 # Voltage level from pull-up rail
                 voltage_level = None
                 for pu in pullups:
-                    v = _estimate_rail_voltage(pu.get("to_rail", ""))
+                    v = ctx.rail_voltage_or(pu.get("to_rail", ""), _estimate_rail_voltage)
                     if v is not None:
                         voltage_level = v
                         break
@@ -590,7 +777,7 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
     for net_name, net_info in nets.items():
         if net_name in i2c_seen_nets:
             continue  # Already found by net name
-        # KH-086: Exclude SPI nets -- sensors with dual-function SDA/SCL pin names
+        # Exclude SPI nets -- sensors with dual-function SDA/SCL pin names
         nn_upper = net_name.upper()
         if "SPI" in nn_upper or "MOSI" in nn_upper or "MISO" in nn_upper:
             continue
@@ -646,7 +833,7 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                     speed_mode = None
                 voltage_level = None
                 for pu in pullups:
-                    v = _estimate_rail_voltage(pu.get("to_rail", ""))
+                    v = ctx.rail_voltage_or(pu.get("to_rail", ""), _estimate_rail_voltage)
                     if v is not None:
                         voltage_level = v
                         break
@@ -695,13 +882,17 @@ def _detect_i2c_buses(ctx: AnalysisContext) -> list[dict]:
                             ("Fast-mode",  300),
                             ("Standard",  1000),
                         ]
-                        max_mode = "Standard"
+                        max_mode = None
                         for mode_name, limit_ns in _I2C_MODES:
                             if rise_time_ns <= limit_ns:
                                 max_mode = mode_name
                                 break
 
                         entry["max_speed_mode"] = max_mode
+                        if max_mode is None:
+                            entry["rise_time_warning"] = (
+                                f"Rise time {rise_time_ns:.0f}ns exceeds the "
+                                f"Standard-mode limit (1000ns)")
 
                         # Warning if rise time is marginal (within 20% of limit)
                         for mode_name, limit_ns in _I2C_MODES:
@@ -969,32 +1160,68 @@ def _detect_can_buses(ctx: AnalysisContext) -> list[dict]:
                     "devices": [_enrich_device_ref(comp["reference"], comp_lookup)],
                 }
 
-    # CAN termination detection: look for 100-150 ohm resistors between CANH and CANL
+    # CAN termination per bus (ISO 11898-2): a 100-150 ohm resistor between that bus's CANH and CANL
     canh_nets = [n for n in can_nets_found if "CANH" in n.upper() or "CAN_H" in n.upper()]
     canl_nets = [n for n in can_nets_found if "CANL" in n.upper() or "CAN_L" in n.upper()]
-    termination = None
-    for canh_net in canh_nets:
-        if canh_net not in nets:
-            continue
-        for p in nets[canh_net]["pins"]:
+    pairs = can_bus_pairs(canh_nets, canl_nets)
+    term_by_net: dict = {}
+    dnp_by_net: dict = {}
+    for canh_net, canl_net in pairs:
+        termination = dnp_ref = None
+        for p in (nets[canh_net]["pins"] if canh_net in nets else []):
             comp = comp_lookup.get(p["component"])
             if not comp or comp["type"] != "resistor":
                 continue
             r_val = parsed_values.get(p["component"])
             if r_val and 100 <= r_val <= 150:
-                # Check if other end goes to a CANL net
                 other_pin = "1" if p["pin_number"] == "2" else "2"
                 other_net, _ = pin_net.get((p["component"], other_pin), (None, None))
-                if other_net and any(other_net == cl for cl in canl_nets):
-                    termination = f"{int(r_val)}\u03A9 ({p['component']})"
-                    break
-        if termination:
-            break
-    # Attach termination to all CAN bus entries
-    for entry in can_nets_found.values():
-        entry["termination"] = termination
+                if other_net != canl_net:
+                    continue
+                if comp.get("dnp"):
+                    # An unfitted terminator is the per-node option: only bus-end nodes fit it
+                    dnp_ref = dnp_ref or p["component"]
+                    continue
+                termination = f"{int(r_val)}\u03A9 ({p['component']})"
+                break
+        term_by_net[canh_net] = termination
+        dnp_by_net[canh_net] = dnp_ref
+        if term_by_net.get(canl_net) is None:
+            term_by_net[canl_net] = termination
+            dnp_by_net[canl_net] = dnp_ref
+    # Logic-side entries (TX/RX, the transceiver placeholder) belong to a bus only on a one-bus design
+    single = term_by_net[pairs[0][0]] if len(pairs) == 1 else None
+    single_dnp = dnp_by_net.get(pairs[0][0]) if len(pairs) == 1 else None
+    for key, entry in can_nets_found.items():
+        entry["termination"] = term_by_net.get(key, single)
+        dnp_ref = dnp_by_net.get(key, single_dnp) if entry["termination"] is None else None
+        if dnp_ref:
+            entry["termination_dnp"] = dnp_ref
 
     return list(can_nets_found.values())
+
+
+def can_pair_key(net_name: str) -> str | None:
+    """A CANH or CANL net's bus key: the name with its last CANH/CANL (CAN_H/CAN_L) marker blanked."""
+    u = net_name.upper()
+    best = None
+    for marker, blank in (("CANH", "CAN#"), ("CANL", "CAN#"), ("CAN_H", "CAN_#"), ("CAN_L", "CAN_#")):
+        i = u.rfind(marker)
+        if i >= 0 and (best is None or i > best[0]):
+            best = (i, u[:i] + blank + u[i + len(marker):])
+    return best[1] if best else None
+
+
+def can_bus_pairs(canh_nets: list, canl_nets: list) -> list[tuple[str, str]]:
+    """(CANH, CANL) per bus: the same name with H for L; a CANH with no such partner takes the
+    design's only CANL net, if there is exactly one."""
+    pairs = []
+    for h in canh_nets:
+        cands = [lo for lo in canl_nets if can_pair_key(lo) == can_pair_key(h)]
+        if not cands and len(canl_nets) == 1:
+            cands = list(canl_nets)
+        pairs += [(h, lo) for lo in cands]
+    return pairs
 
 
 def _detect_rs485_buses(ctx: AnalysisContext) -> list[dict]:
@@ -1059,6 +1286,22 @@ def _detect_rs485_buses(ctx: AnalysisContext) -> list[dict]:
     return results
 
 
+_CS_TOKEN = re.compile(r"^N?(CS|SS|NSS|CSN|CSB|SSEL|CSEL)\d*N?$")
+
+
+def _is_chip_select_net(net_name: str) -> bool:
+    """A word of the net's own name is a chip select (``FLASH_CS``, ``~{CS0}``), not a
+    substring of another word (``DAC_VSS``, ``SSP1_SCK``)."""
+    leaf = net_leaf(net_name).upper().replace("~{", "").replace("}", "")
+    return any(_CS_TOKEN.match(t) for t in re.split(r"[^A-Z0-9]+", leaf) if t)
+
+
+def _ic_function(comp: dict) -> str:
+    """The IC's functional class; legacy components carry none and are classified here."""
+    return comp.get("functional_class") or classify_ic_function(
+        comp.get("lib_id", ""), comp.get("value", ""), comp.get("description", ""))
+
+
 def _analyze_bus_protocols(ctx: AnalysisContext) -> dict:
     """Detect I2C, SPI, UART, CAN, SDIO, RS-485 buses and check configuration."""
     nets = ctx.nets
@@ -1087,23 +1330,23 @@ def _analyze_bus_protocols(ctx: AnalysisContext) -> dict:
         bus_id = spi_entry.get("bus_id", "")
         for net_name in nets:
             nu = net_name.upper()
-            if any(kw in nu for kw in ("CS", "SS", "NSS", "SPI_CS", "SPI_SS",
-                                       "CSN", "NCS", "SSEL", "CSEL")):
+            if _is_chip_select_net(net_name):
                 if bus_id in ("0", "") or bus_id in nu.replace("_", ""):
                     cs_nets.append(net_name)
         spi_entry["chip_select_count"] = len(cs_nets)
-        # SPI CS conflict: find cases where multiple ICs share the same CS net
+        # SPI CS conflict: two or more slave CS inputs on one net (the controller drives it)
         cs_device_map = {}  # net_name -> [device_refs]
         for net_name in cs_nets:
             if net_name not in nets:
                 continue
-            devices_on_cs = []
+            slaves = set()
             for p in nets[net_name]["pins"]:
                 comp = comp_lookup.get(p["component"])
-                if comp and comp["type"] == "ic":
-                    devices_on_cs.append(p["component"])
-            if len(devices_on_cs) > 1:
-                cs_device_map[net_name] = devices_on_cs
+                if (comp and comp["type"] == "ic" and (p.get("pin_type") or "") == "input"
+                        and _ic_function(comp) not in ("mcu", "fpga")):
+                    slaves.add(p["component"])
+            if len(slaves) > 1:
+                cs_device_map[net_name] = sorted(slaves)
 
         if cs_device_map:
             spi_entry["cs_conflicts"] = [
@@ -1194,19 +1437,26 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
     ]
 
     # Net-name-based detection: find matching suffix pairs. Key by
-    # (sheet_prefix, display_name.upper()) so a KH-359 sheet-qualified net
+    # (sheet_prefix, display_name.upper()) so a sheet-qualified net
     # (e.g. /s1/USB_P, display_name "USB_P") still pairs by name, but two
     # same-named nets on *different* sheets never cross-pair. Plain
-    # assignment (not setdefault) preserves the pre-KH-359 comprehension's
+    # assignment (not setdefault) preserves the earlier comprehension's
     # last-wins semantics on a case-insensitive collision: unqualified
     # boards must resolve a collision identically to the old
     # `{n.upper(): n for n in nets}` one-liner.
     net_names_upper: dict[tuple[str, str], str] = {}
     for k, v in nets.items():
         disp = v.get("display_name", k)
-        prefix = k[: -len(disp)] if k.endswith(disp) else ""
+        if k.endswith(disp):
+            prefix = k[: -len(disp)]
+        elif k.startswith("/") and "display_name" in v:
+            # A decoded display_name is not the key's tail; an escaped name has no '/'.
+            prefix = k.rsplit("/", 1)[0] + "/"
+        else:
+            prefix = ""
         net_names_upper[(prefix, disp.upper())] = k
     found_pairs: set[tuple[str, str]] = set()  # track to avoid duplicates
+    pair_suffixes = tuple(sfx.upper() for pair in _diff_suffix_pairs for sfx in pair)
 
     for pos_sfx, neg_sfx in _diff_suffix_pairs:
         for (prefix, nu), real_name in net_names_upper.items():
@@ -1243,12 +1493,14 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
                     if shared:
                         entry["shared_ics"] = sorted(shared)
 
-                    # Check for ESD protection
-                    esd_chips = [c for c in sorted(shared)
-                                 if comp_lookup.get(c, {}).get("type") == "ic"]
-                    entry["has_esd"] = len(esd_chips) > 0
-                    if esd_chips:
-                        entry["esd_protection"] = esd_chips
+                    # ESD protection: a clamp on each leg; a device on both lines is what it protects
+                    pos_esd = {c for c in pos_comps
+                               if is_protection_part(comp_lookup.get(c, {}), ctx, pair_suffixes)}
+                    neg_esd = {c for c in neg_comps
+                               if is_protection_part(comp_lookup.get(c, {}), ctx, pair_suffixes)}
+                    entry["has_esd"] = bool(pos_esd and neg_esd)
+                    if entry["has_esd"]:
+                        entry["esd_protection"] = sorted(pos_esd | neg_esd)
 
                     # CAN-specific: check for termination resistor
                     if protocol == "CAN":
@@ -1259,13 +1511,16 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
                                 r_n2 = pin_net.get((c["reference"], "2"), (None, None))[0]
                                 if r_n1 and r_n2:
                                     if ({r_n1, r_n2} == {pos_real, neg_real}):
-                                        term_resistors.append({
+                                        term = {
                                             "ref": c["reference"],
                                             "value": c["value"],
                                             "ohms": parsed_values.get(c["reference"]),
-                                        })
+                                        }
+                                        if c.get("dnp"):
+                                            term["dnp"] = True
+                                        term_resistors.append(term)
                         entry["termination"] = term_resistors
-                        entry["has_termination"] = len(term_resistors) > 0
+                        entry["has_termination"] = any(not t.get("dnp") for t in term_resistors)
 
                     # Series resistors on either net
                     series_res = []
@@ -1282,52 +1537,94 @@ def _detect_differential_pairs(ctx: AnalysisContext) -> list:
     return diff_pairs
 
 
-def _check_erc_warnings(ctx: AnalysisContext) -> list:
-    """Check for ERC-style warnings (no driver, output conflicts)."""
-    nets = ctx.nets
-    is_ground = ctx.is_ground
-    is_power_net = ctx.is_power_net
+# PWR_FLAG symbols are not net pins here; KiCad counts their one power output pin.
+_PWR_FLAG_PIN = {"component": "#FLG", "pin_number": "1", "pin_name": "pwr", "pin_type": "power_out"}
 
+
+def _check_erc_warnings(ctx: AnalysisContext) -> list:
+    """ERC records as KiCad 10 reports them with its default pin map and severities.
+
+    Every net is checked (power, ground, unnamed and single-pin nets too), power-symbol
+    pins included: pin_to_pin (pin map), no_driver / power_pin_not_driven (drive test,
+    silenced by a no-connect marker) and no_connect_connected. NC-type pins only feed
+    no_connect_connected: KiCad never joins them to a net (SCH_PIN::ConnectionPropagatesTo).
+    """
+    positions = erc_pins.pin_positions(getattr(ctx, "components", None) or [])
     erc_warnings = []
 
-    for net_name, net_info in nets.items():
-        if is_power_net(net_name) or is_ground(net_name):
-            continue
-        if net_name.startswith("__unnamed_"):
-            continue
+    for net_name, net_info in ctx.nets.items():
+        pins = net_info["pins"]
+        if net_info.get("has_pwr_flag"):
+            pins = pins + [_PWR_FLAG_PIN]
+        shown = unescape_string(net_name)
+        all_pins = pins
+        pins = [p for p in pins if erc_pins.pin_kind(p.get("pin_type")) != "no_connect"]
+        real = [p for p in pins if not p["component"].startswith("#")]
 
-        pin_types = [p["pin_type"] for p in net_info["pins"] if not p["component"].startswith("#")]
-        type_set = set(pin_types)
+        markers = erc_pins.pin_to_pin_markers(pins, positions)
+        if markers:
+            erc_warnings.append({
+                "type": "pin_to_pin",
+                "net": net_name,
+                "severity": erc_pins.SEVERITY[max(m[2] for m in markers)],
+                "message": f"Net '{shown}' connects conflicting pin types ({len(markers)} pin(s))",
+                "pairs": [{
+                    "pins": [f"{pins[i]['component']}.{pins[i]['pin_number']}",
+                             f"{pins[j]['component']}.{pins[j]['pin_number']}"],
+                    "pin_types": [erc_pins.pin_kind(pins[i].get("pin_type")),
+                                  erc_pins.pin_kind(pins[j].get("pin_type"))],
+                    "severity": erc_pins.SEVERITY[level],
+                } for i, j, level in markers],
+            })
 
-        # Input-only net: all pins are inputs, no driver
-        outputs = {"output", "tri_state", "power_out", "open_collector", "open_emitter"}
-        drivers = {"output", "tri_state", "power_out", "open_collector", "open_emitter", "bidirectional"}
-        has_driver = bool(type_set & drivers)
-        has_input = bool(type_set & {"input", "power_in"})
-
-        if has_input and not has_driver and len(pin_types) > 1:
+        # A no-connect marker on the net silences the drive test (erc.cpp has_noconnect).
+        undriven = None if net_info.get("_nc_marker") else erc_pins.undriven_kind(pins)
+        if undriven == "pin_not_driven":
             erc_warnings.append({
                 "type": "no_driver",
                 "net": net_name,
-                "message": f"Net '{net_name}' has input pins but no output driver",
-                "pins": [p for p in net_info["pins"] if not p["component"].startswith("#")],
+                "severity": "error",
+                "message": f"Net '{shown}' has input pins but no output driver",
+                "pins": real,
+            })
+        elif undriven == "power_pin_not_driven":
+            erc_warnings.append({
+                "type": "power_pin_not_driven",
+                "net": net_name,
+                "severity": "error",
+                "message": f"Net '{shown}' has power input pins but no power output driver",
+                "pins": real,
             })
 
-        # Multiple outputs on same net (non-tristate)
-        hard_outputs = [p for p in net_info["pins"]
-                        if p["pin_type"] == "output" and not p["component"].startswith("#")]
-        if len(hard_outputs) > 1:
-            # Suppress when all drivers are from the same component (paralleled pins)
-            driver_components = {p["component"] for p in hard_outputs}
-            if len(driver_components) > 1:
-                erc_warnings.append({
-                    "type": "output_conflict",
-                    "net": net_name,
-                    "message": f"Net '{net_name}' has {len(hard_outputs)} output drivers (potential conflict)",
-                    "drivers": hard_outputs,
-                })
+        if net_info.get("no_connect") and _no_connect_connected(all_pins, net_info, positions):
+            erc_warnings.append({
+                "type": "no_connect_connected",
+                "net": net_name,
+                "severity": "warning",
+                "message": f"Net '{shown}' has a no-connect and other connections",
+                "pins": [p for p in all_pins if not p["component"].startswith("#")],
+            })
 
     return erc_warnings
+
+
+def _no_connect_connected(pins: list[dict], net_info: dict, positions: dict) -> bool:
+    """KiCad's no_connect_connected test for one net that carries a no-connect.
+
+    An NC-type pin is a net of its own. It is connected when anything but a no-connect marker
+    sits on its point (TestNoConnectPins): another pin, a wire end, a label; one record per
+    point. A no-connect marker is connected when the net has more than one other pin, stacked
+    pins counted once (ercCheckNoConnects).
+    """
+    if any(erc_pins.pin_kind(p.get("pin_type")) == "no_connect" for p in pins):
+        return bool(net_info.get("_nc_touched"))
+    if not net_info.get("_nc_marker"):
+        return False
+    unique: list[dict] = []
+    for p in pins:
+        if not any(erc_pins.is_stacked(p, q, positions) for q in unique):
+            unique.append(p)
+    return len(unique) > 1
 
 
 def _check_passive_ratings(ctx: AnalysisContext) -> list:
@@ -1350,7 +1647,7 @@ def _check_passive_ratings(ctx: AnalysisContext) -> list:
                 # Rough rail voltage estimation from name
                 for net in [c_n1, c_n2]:
                     if net:
-                        v_est = _estimate_rail_voltage(net)
+                        v_est = abs(ctx.rail_voltage_or(net, _estimate_rail_voltage) or 0)
                         if v_est and rated_v < v_est * 1.5:
                             passive_warnings.append({
                                 "component": c["reference"],
@@ -1388,7 +1685,7 @@ def _estimate_rail_voltage(net_name: str) -> float | None:
     """Estimate voltage of a power rail from its name."""
     if not net_name:
         return None
-    nu = net_name.upper()
+    nu = net_leaf(net_name).upper()
     if nu in ("GND", "VSS", "AGND", "DGND"):
         return 0
     v = _parse_voltage_from_net_name(net_name)
@@ -1397,7 +1694,7 @@ def _estimate_rail_voltage(net_name: str) -> float | None:
     # Hardcoded fallbacks for common names without voltage numbers
     if "VBUS" in nu:
         return 5.0
-    # KH-343: only non-data USB nets (VBUS-ish) default to 5V
+    # only non-data USB nets (VBUS-ish) default to 5V
     if "USB" in nu and not is_usb_data_net_name(nu):
         return 5.0
     return None

@@ -2,7 +2,7 @@
 
 write_primary_run: the analysis-cache write path for the primary analyzers (schematic, pcb, EMC
 and SPICE CLIs); write_derived_output: the current-run overwrite path for the derived analyzers (gerber,
-thermal and cross-analysis CLIs). Each CLI keeps its own --output / --analysis-dir precedence
+thermal, cross-analysis and lifecycle CLIs). Each CLI keeps its own --output / --analysis-dir precedence
 and calls these only on the --analysis-dir branch. Lives beside analysis_cache (which depends on
 diff_engine), so it is not part of the stdlib-only kicad_core package.
 """
@@ -13,9 +13,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from analysis_cache import (GITIGNORE_CONTENT, MANIFEST_FILENAME, CANONICAL_OUTPUTS, _empty_manifest,
+from analysis_cache import (ensure_gitignore, MANIFEST_FILENAME, CANONICAL_OUTPUTS, _empty_manifest,
                             create_run, get_current_run, hash_source_file, overwrite_current, prune_runs,
-                            resolve_analysis_dir, save_manifest, should_create_new_run)
+                            outputs_landed, resolve_analysis_dir, save_manifest, should_create_new_run)
 
 
 def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str, source_path: str,
@@ -51,10 +51,8 @@ def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str,
         manifest['project'] = pro_file
         save_manifest(analysis_dir, manifest)
     # Respect track_in_git config — skip .gitignore if user wants git tracking
-    gitignore_path = os.path.join(analysis_dir, '.gitignore')
-    if not track_in_git and not os.path.isfile(gitignore_path):
-        with open(gitignore_path, 'w', encoding='utf-8') as f:
-            f.write(GITIGNORE_CONTENT)
+    if not track_in_git:
+        ensure_gitignore(analysis_dir)
 
     source_hashes = {}
     for path in (source_path, *extra_source_paths):
@@ -64,7 +62,7 @@ def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str,
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         out_file = os.path.join(tmp_dir, CANONICAL_OUTPUTS.get(analyzer, f"{analyzer}.json"))
-        Path(out_file).write_text(output_text, encoding='utf-8')
+        Path(out_file).write_text(output_text, encoding='utf-8', newline="\n")
 
         if should_create_new_run(analysis_dir, tmp_dir, diff_threshold):
             if script_entry is None:
@@ -77,24 +75,27 @@ def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str,
             )
             if retention > 0:
                 prune_runs(analysis_dir, retention)
-            print(f"Analysis cached: {os.path.join(analysis_dir, run_id, os.path.basename(out_file))}", file=sys.stderr)
+            if outputs_landed(os.path.join(analysis_dir, run_id), tmp_dir):
+                print(f"Analysis cached: {os.path.join(analysis_dir, run_id, os.path.basename(out_file))}", file=sys.stderr)
         else:
-            overwrite_current(analysis_dir, tmp_dir, source_hashes=source_hashes)
-            print(f"Analysis cache updated (current run)", file=sys.stderr)
+            if overwrite_current(analysis_dir, tmp_dir, source_hashes=source_hashes):
+                print(f"Analysis cache updated (current run)", file=sys.stderr)
 
 
-def write_derived_output(analysis_dir_arg: str, output_text: str, *, analyzer: str) -> str:
-    """Overwrite one derived analyzer's canonical JSON in the CURRENT run; return the path written.
+def write_derived_output(analysis_dir_arg: str, output_text: str, *, analyzer: str) -> str | None:
+    """Overwrite one derived analyzer's canonical JSON in the CURRENT run; return the path written,
+    or None when the copy was refused (overwrite_current has already warned).
 
-    Derived analyzers (gerber, thermal, cross_analysis) carry no source hashes. When nothing is
+    Derived analyzers (gerber, thermal, cross_analysis, lifecycle) carry no source hashes. When nothing is
     tracked yet, analysis_cache.overwrite_current creates a run (it calls create_run) and the
     run-folder path is returned; the trailing analysis-dir-root return is a defensive fallback only.
     """
     analysis_dir = resolve_analysis_dir(analysis_dir_arg)
     filename = CANONICAL_OUTPUTS.get(analyzer, f"{analyzer}.json")
     with tempfile.TemporaryDirectory() as tmp_dir:
-        Path(os.path.join(tmp_dir, filename)).write_text(output_text, encoding='utf-8')
-        overwrite_current(analysis_dir, tmp_dir, source_hashes=None)
+        Path(os.path.join(tmp_dir, filename)).write_text(output_text, encoding='utf-8', newline="\n")
+        if not overwrite_current(analysis_dir, tmp_dir, source_hashes=None):
+            return None
     current = get_current_run(analysis_dir)
     if current:
         return os.path.join(current[0], filename)

@@ -1,6 +1,6 @@
 """Trust-gating helpers — per-field tri-state filtering of SpecValue lists.
 
-Track 2.4 of the v1.4 datasheet extraction work. Provides module-level
+Provides module-level
 functions that let detectors filter list[SpecValue] data by the evidence
 confidence level declared at extraction time.
 
@@ -20,7 +20,7 @@ Three functions:
         All SpecValues whose evidence.confidence meets min_confidence,
         in input order. Returns [] for missing and below-gate.
 
-Consumer pattern (spec §11 + §12):
+Consumer pattern:
 
     from datasheet_types import best, trusted, has_data
 
@@ -34,7 +34,7 @@ Consumer pattern (spec §11 + §12):
     use(passing[0])                          # Gate passed.
 
 min_confidence is keyword-only and REQUIRED — detectors must declare
-their trust level per spec §12. Pass 'low' explicitly to accept any value.
+their trust level. Pass 'low' explicitly to accept any value.
 
 No module-level state. Functions are pure. Thread-safe.
 """

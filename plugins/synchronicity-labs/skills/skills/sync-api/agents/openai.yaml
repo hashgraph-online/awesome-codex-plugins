@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build with the sync. API"
+  short_description: "Integrate sync. lipsync and dubbing into your own code"
+  default_prompt: "Use $sync-api to add sync. lipsync to my app."

@@ -62,7 +62,7 @@ Extracted via regex from the file content:
 | State Machine | Tracked By | Purpose |
 |---|---|---|
 | Aperture attributes | `pending_aper_function` | TA.AperFunction preceding AD definition |
-| Current component | `current_component` | TO.C object attribute |
+| Current component | `current_component` | TO.C object attribute (non-pad objects; pads carry their ref in TO.P) |
 | Current net | `current_net` | TO.N object attribute |
 | Component pad counts | `component_pads{}` | Flash count per component ref |
 | Component net sets | `component_nets{}` | Which nets each component connects to |
@@ -72,8 +72,8 @@ Extracted via regex from the file content:
 
 Two formats are supported:
 
-- **Modern** (KiCad 6+): `%TF.Key,Value*%` — standard X2 extended attributes
-- **KiCad 5 comment format**: `G04 #@! TF.Key,Value*` — same data embedded in G-code comments
+- **Native X2** (KiCad 5.1+ with X2 output on): `%TF.Key,Value*%` — standard X2 extended attributes
+- **Comment format** (X2 output off, and older KiCad 5): `G04 #@! TF.Key,Value*` — same data embedded in G-code comments
 
 The comment format is checked second, so modern attributes take precedence if both exist.
 
@@ -123,7 +123,7 @@ Three operation types are counted:
 
 ### 2.8 Coordinate Range
 
-Every `X...Y...` coordinate in the file updates a running min/max bounding box. This is used later for layer alignment checking and board dimension estimation. Coordinates are divided by the format's decimal precision to get real-world values.
+Only points where copper is put update a running min/max bounding box: a D01 draw's start and end, a D03 flash, and the axis extremes an arc sweeps. D02 moves are skipped. Coordinates are modal X/Y, with or without a leading `G01`/`G02`/`G03`, and the box is kept in millimetres: coordinates are divided by the format's decimal precision and inch files (`%MOIN*%`) are multiplied by 25.4. An arc under `G75` is swept from start to end, and an arc whose start equals its end is a full circle. The box is used later for layer alignment checking and board dimension estimation.
 
 ### 2.9 Aperture Analysis Summary
 
@@ -262,14 +262,14 @@ A board is `"complete": true` only when all required layers are present and a PT
 
 ### 6.3 Layer Alignment
 
-`check_alignment()` checks that copper and edge layers have consistent coordinate ranges.
+`check_alignment()` checks that every copper layer lies inside the board outline.
 
 **Method:**
-1. Compute width and height from the coordinate bounding box of each identified layer
-2. Compare copper layers (F.Cu, B.Cu, inner copper) and Edge.Cuts
-3. Flag as misaligned if width or height varies by more than **2.0 mm** across these layers
+1. Record the width and height (mm) of the coordinate bounding box of each identified layer and drill file in `layer_extents`
+2. Take the Edge.Cuts bounding box (the union when there are several outline files); with no Edge.Cuts there is nothing to check
+3. Flag each copper layer (F.Cu, B.Cu, inner copper) whose box extends past the outline box by more than **max(2 mm, 5 % of that side)**: `"<layer> extends <d>mm outside the board outline"` (GR-002)
 
-The 2mm threshold is generous — any real misalignment would produce offsets much larger than normal coordinate range variation. Drill file extents are recorded but not included in the alignment check (drill coordinate ranges are often slightly different due to pad-center vs edge-of-trace differences).
+Layers of one export are registered by construction and need not have the same size: copper rarely reaches the board edge. Copper outside the board profile is what a fab rejects (KiCad DRC `copper_edge_clearance`). A pure shift smaller than the tolerance is not reported. Drill file extents are recorded but not compared: drill files from other tools often use another origin or unit.
 
 ### 6.4 Board Dimensions
 
@@ -285,11 +285,11 @@ The source is tagged in the output so the consumer knows which method was used. 
 
 `build_component_analysis()` merges X2 object attribute data across all Gerber layers to build a board-level view of components.
 
-**Only produces output when X2 TO attributes are present** (KiCad 6+ exports). Without X2 data, no component analysis is possible from Gerbers alone.
+**Only produces output when X2 TO attributes are present** (KiCad 5.1+ exports). Without X2 data, no component analysis is possible from Gerbers alone.
 
 **Merging logic:**
-- Component references are collected from all layers that have `TO.C` attributes
-- Front/back side assignment: if a component's `TO.C` appears on F.Cu, it's front-side; if on B.Cu, it's back-side. Components appearing only on B.Cu are counted as back-only.
+- Component references are collected from all layers: `TO.C` refs plus the `TO.P` refs that KiCad writes on pads
+- Front/back side assignment: refs (`TO.C`) on F.Cu/F.Mask/F.SilkS/F.Paste are front-side and on the B.* layers back-side. A copper pad's `TO.P` ref names a side only when the part has copper on one side alone (through-hole pads appear on both). Components appearing only on the back are counted as back-only.
 - Pad counts: maximum pad count per component across all layers (same pad appears on copper, mask, and paste layers)
 - Nets per component: union of all nets associated with each component across layers
 
@@ -424,12 +424,11 @@ Each entry in the `drills` array contains:
 
 ### X2 Attribute Dependency
 
-- Component analysis, net analysis, and pin connectivity **require X2 object attributes** (TO.C, TO.N, TO.P). These are only present in KiCad 6+ and other modern CAD exports that support the X2 extension.
-- KiCad 5 exports include X2 file attributes (TF, via G04 comments) but not object attributes. For KiCad 5 Gerbers, the analyzer provides layer identification and statistics but no component or net data.
+- Component analysis, net analysis and pin connectivity require X2 object attributes (`TO.C`, `TO.N`, `TO.P`), either native (`%TO…*%`) or as `G04 #@! TO…` comments (X2 output off). KiCad 5.1 and later write them; for pads KiCad writes `TO.P` and `TO.N` and no `TO.C`. Gerbers without object attributes (older KiCad, some other tools) get layer identification and statistics but no component or net data.
 
 ### Drill Interpretation
 
-- **Routing commands**: G85 (routed slot), M15/M16 (routed drilling) are not interpreted. Routed slots are not counted as holes.
+- **Routing commands**: a routed slot (`G00` move, `M15` plunge, cut, `M16` retract) counts as one hole of its tool at the plunge point; its length is not measured. A `G85` slot is not interpreted: it counts as one hole at its first point.
 - **Multiple drill files**: Some exports split PTH and NPTH into separate files, others combine them. The analyzer handles both — it parses all `.drl` files and merges results. But if a combined file has no X2 attributes and no filename hint, it defaults to `"unknown"` type.
 
 ### Cross-Layer Analysis

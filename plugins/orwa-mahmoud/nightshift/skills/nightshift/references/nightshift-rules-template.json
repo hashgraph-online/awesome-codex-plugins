@@ -86,7 +86,8 @@
     }
   },
   "recovery": {
-    "launchScope": "inherit-recorded-scope"
+    "launchScope": "inherit-recorded-scope",
+    "cursorFlags": []
   },
   "retention": {
     "runtimeLogDays": 0,

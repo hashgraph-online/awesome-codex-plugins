@@ -45,7 +45,7 @@ _PROTOCOL_ID_RE = re.compile(
     r"(?:/(?:v[1-9][0-9]*|latest))?$"
 )
 _GUID_RE = re.compile(r"^[A-Fa-f0-9]{32}$")
-_INTEGER_RE = re.compile(r"^(?:0|[1-9][0-9]*)$")
+_INTEGER_RE = re.compile(r"^(?:0|[1-9]\d*)$")
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
 _SENSITIVE_KEY_PARTS = (
     "authorization",
@@ -74,6 +74,7 @@ class ApiError(RuntimeError):
         http_status: int | None = None,
         api_status: int | str | None = None,
     ) -> None:
+        """Initialise the instance."""
         super().__init__(message)
         self.http_status = http_status
         self.api_status = api_status
@@ -102,15 +103,18 @@ class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
         headers: Mapping[str, str],
         newurl: str,
     ) -> None:
+        """Handle redirect request."""
         del req, fp, code, msg, headers, newurl
         return None
 
 
 def _reject_constant(value: str) -> None:
+    """Handle reject constant."""
     raise SafetyError(f"non-finite JSON number is forbidden: {value}")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle unique object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -139,6 +143,7 @@ def parse_json_bytes(raw: bytes, *, source: str = "response") -> Any:
 
 
 def _path_inside_cwd(raw_path: str, *, must_exist: bool) -> Path:
+    """Handle path inside cwd."""
     base = Path.cwd().resolve()
     candidate = Path(raw_path)
     unresolved = candidate if candidate.is_absolute() else base / candidate
@@ -190,6 +195,7 @@ def load_local_json(
     *,
     max_bytes: int = MAX_LOCAL_JSON_BYTES,
 ) -> Any:
+    """Load local json."""
     path = safe_input_path(raw_path, suffixes=(".json",), max_bytes=max_bytes)
     return parse_json_bytes(path.read_bytes(), source=str(path))
 
@@ -237,6 +243,7 @@ def clean_text(value: str, *, max_chars: int = MAX_REMOTE_STRING_CHARS) -> str:
 
 
 def _sensitive_key(key: str) -> bool:
+    """Handle sensitive key."""
     normalized = key.lower().replace("-", "_")
     return any(part in normalized for part in _SENSITIVE_KEY_PARTS)
 
@@ -292,6 +299,7 @@ def sanitize_untrusted(
 
 
 def emit_json(payload: Any, *, stream: Any = None) -> None:
+    """Handle emit json."""
     if stream is None:
         import sys
 
@@ -303,6 +311,7 @@ def emit_json(payload: Any, *, stream: Any = None) -> None:
 
 
 def emit_error(error: Exception) -> int:
+    """Handle emit error."""
     import sys
 
     payload: dict[str, Any] = {
@@ -318,6 +327,7 @@ def emit_error(error: Exception) -> int:
 
 
 def validate_timeout(value: float) -> float:
+    """Validate timeout."""
     if (
         not math.isfinite(value)
         or not MIN_TIMEOUT_SECONDS <= value <= MAX_TIMEOUT_SECONDS
@@ -330,12 +340,14 @@ def validate_timeout(value: float) -> float:
 
 
 def validate_retries(value: int) -> int:
+    """Validate retries."""
     if isinstance(value, bool) or not 0 <= value <= MAX_RETRIES:
         raise SafetyError(f"retries must be between 0 and {MAX_RETRIES}")
     return value
 
 
 def is_official_host(host: str, *, allow_tenant: bool = False) -> bool:
+    """Return whether official host."""
     normalized = host.rstrip(".").lower()
     if normalized in _CORE_HOSTS:
         return True
@@ -343,6 +355,7 @@ def is_official_host(host: str, *, allow_tenant: bool = False) -> bool:
 
 
 def validate_origin(raw_origin: str, *, allow_tenant: bool = False) -> str:
+    """Validate origin."""
     parsed = urllib.parse.urlsplit(raw_origin)
     try:
         port = parsed.port
@@ -373,6 +386,7 @@ def validate_remote_url(
     allow_tenant: bool = False,
     allowed_paths: Sequence[str] = ("/api/", "/view/"),
 ) -> str:
+    """Validate remote url."""
     parsed = urllib.parse.urlsplit(raw_url)
     try:
         port = parsed.port
@@ -401,6 +415,7 @@ def build_url(
     path: str,
     params: Mapping[str, Any] | None = None,
 ) -> str:
+    """Build url."""
     normalized_origin = validate_origin(origin, allow_tenant=True)
     if not path.startswith("/") or "\\" in path or "\x00" in path:
         raise SafetyError("request path must be an absolute URL path")
@@ -411,6 +426,7 @@ def build_url(
 
 
 def validate_protocol_identifier(value: str) -> str:
+    """Validate protocol identifier."""
     if _PROTOCOL_ID_RE.fullmatch(value) is None:
         raise SafetyError(
             "protocol identifier must be an integer, URI, or DOI with an optional "
@@ -420,6 +436,7 @@ def validate_protocol_identifier(value: str) -> str:
 
 
 def encode_protocol_identifier(value: str) -> str:
+    """Handle encode protocol identifier."""
     validated = validate_protocol_identifier(value)
     return "/".join(
         urllib.parse.quote(part, safe="._-") for part in validated.split("/")
@@ -427,12 +444,14 @@ def encode_protocol_identifier(value: str) -> str:
 
 
 def validate_guid(value: str) -> str:
+    """Validate guid."""
     if _GUID_RE.fullmatch(value) is None:
         raise SafetyError("GUID must contain exactly 32 hexadecimal characters")
     return value.upper()
 
 
 def validate_nonnegative_integer(value: str, *, name: str, maximum: int) -> int:
+    """Validate nonnegative integer."""
     if _INTEGER_RE.fullmatch(value) is None:
         raise SafetyError(f"{name} must be an unsigned base-10 integer")
     parsed = int(value)
@@ -460,6 +479,7 @@ def credential_status(
 
 
 def _bounded_read(response: Any, max_bytes: int) -> bytes:
+    """Handle bounded read."""
     content_length = response.headers.get("Content-Length")
     if content_length:
         try:
@@ -485,6 +505,7 @@ def _bounded_read(response: Any, max_bytes: int) -> bytes:
 
 
 def _retry_delay(headers: Mapping[str, str], attempt: int) -> float:
+    """Handle retry delay."""
     raw = headers.get("Retry-After")
     if raw is not None:
         try:
@@ -497,6 +518,7 @@ def _retry_delay(headers: Mapping[str, str], attempt: int) -> float:
 
 
 def _api_error_from_body(status: int, body: bytes) -> ApiError:
+    """Handle api error from body."""
     api_status: int | str | None = None
     if body:
         try:
@@ -602,6 +624,7 @@ def request_bytes(
 
 
 def require_api_success(payload: Any) -> Mapping[str, Any]:
+    """Handle require api success."""
     if not isinstance(payload, Mapping):
         raise ApiError("protocols.io returned a non-object JSON response")
     status = payload.get("status_code", 0)

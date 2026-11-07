@@ -1,7 +1,10 @@
+"""Cluster helpers."""
+
 from collections import defaultdict
 
 
 def segment_sessions(events, idle_gap_seconds, min_session_seconds):
+    """Handle segment sessions."""
     if not events:
         return []
     events = sorted(events, key=lambda e: e["ts"])
@@ -33,6 +36,7 @@ def segment_sessions(events, idle_gap_seconds, min_session_seconds):
 
 
 def cluster_sessions(sessions, min_cluster_size):
+    """Handle cluster sessions."""
     buckets = defaultdict(list)
     for s in sessions:
         buckets[tuple(s["apps"])].append(s)

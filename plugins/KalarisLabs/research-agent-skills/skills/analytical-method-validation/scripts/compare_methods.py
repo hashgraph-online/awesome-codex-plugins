@@ -56,6 +56,7 @@ from _common import (  # noqa: E402
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Compare two procedures with the statistics method comparison requires."
     )

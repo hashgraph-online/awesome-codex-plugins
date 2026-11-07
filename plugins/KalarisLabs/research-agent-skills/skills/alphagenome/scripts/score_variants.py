@@ -45,6 +45,7 @@ MAX_SCORERS_PER_REQUEST = 20
 
 
 def parse_sequence_length(text: str) -> int:
+    """Parse sequence length."""
     key = text.strip().upper().replace(" ", "")
     if key in SEQUENCE_LENGTHS:
         return SEQUENCE_LENGTHS[key]
@@ -85,6 +86,7 @@ def select_scorers(names: Sequence[str] | None, organism: str, include_active: b
 
 
 def make_model(args: argparse.Namespace):
+    """Make model."""
     api_key = common.load_api_key(args.api_key_env)
     common.require_alphagenome()
     import grpc  # noqa: PLC0415
@@ -100,12 +102,14 @@ def make_model(args: argparse.Namespace):
 
 
 def organism_enum(name: str):
+    """Handle organism enum."""
     from alphagenome.models import dna_client  # noqa: PLC0415
 
     return dna_client.Organism.HOMO_SAPIENS if name == "human" else dna_client.Organism.MUS_MUSCULUS
 
 
 def list_tracks(model, args: argparse.Namespace) -> int:
+    """List tracks."""
     metadata = model.output_metadata(organism_enum(args.organism)).concatenate()
     frame = metadata
     if args.output_type:
@@ -125,6 +129,7 @@ def list_tracks(model, args: argparse.Namespace) -> int:
 
 
 def list_scorers() -> int:
+    """List scorers."""
     from alphagenome.models import variant_scorers  # noqa: PLC0415
 
     rows = []
@@ -140,6 +145,7 @@ def list_scorers() -> int:
 
 
 def score(model, args: argparse.Namespace) -> int:
+    """Handle score."""
     from alphagenome.models import variant_scorers  # noqa: PLC0415
 
     specs, warnings = common.collect_variants(args.variant, args.input)
@@ -189,6 +195,7 @@ def score(model, args: argparse.Namespace) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         prog="score_variants.py",
         description="Score variants on demand with the AlphaGenome model (recommended scorers, tidy output).",
@@ -219,6 +226,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     if args.list_scorers:
         common.require_alphagenome()

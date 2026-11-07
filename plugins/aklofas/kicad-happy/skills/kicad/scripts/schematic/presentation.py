@@ -1,22 +1,59 @@
 """Schematic result assembly: turns the parsed sheets, net map, BOM and
-analyses into the analyzer output dict. Bodies are verbatim from analyze_schematic.py;
-only the signatures and the input unpacking are new.
+analyses into the analyzer output dict.
 """
 
 from kicad_core.classify import NON_COMPONENT_TYPES
+from kicad_core.render import normalize_severity
 from kicad_core.values import parse_value
 from kicad_core.project import (
     extract_pro_text_variables,
     load_lib_tables,
     load_kicad_pro,
 )
-from schematic.connectivity import _labels_for_output
+from schematic.connectivity import _labels_for_output, strip_net_label_internals
 from schematic.bom_stats import compute_statistics
 from finding_schema import (
     compute_trust_summary,
+    show_decoded_names,
     sort_findings,
     make_finding,
 )
+
+
+def _nets_for_output(nets):
+    strip_net_label_internals(nets)
+    for info in nets.values():
+        info.pop("_nc_marker", None)
+        info.pop("_nc_touched", None)
+    return nets
+
+
+def _annotate_pin_nets(all_components, nets):
+    """Set each component's pin_nets from the net map and drop its parse-time scratch keys.
+
+    Includes __unnamed_* nets so that connections through unlabelled wires
+    (common in hierarchical sub-sheets) appear in pin_nets.
+    """
+    _pin_nets: dict[str, dict[str, str]] = {}
+    for _net_name, _net_info in nets.items():
+        if isinstance(_net_info, dict):
+            for _p in _net_info.get('pins', []):
+                _comp_ref = _p.get('component', '')
+                _pin_num = _p.get('pin_number', '')
+                if _comp_ref and _pin_num:
+                    _pin_nets.setdefault(_comp_ref, {})[_pin_num] = _net_name
+    for _comp in all_components:
+        _all_pn = _pin_nets.get(_comp.get('reference', ''), {})
+        _valid = _comp.get("_unit_pins")
+        if _valid is not None and (len(_all_pn) > len(_valid) or not _valid):
+            _comp['pin_nets'] = {k: v for k, v in _all_pn.items() if k in _valid}
+        else:
+            _comp['pin_nets'] = _all_pn
+        _comp.pop("_unit_pins", None)
+        _comp.pop("_body_style", None)
+        _comp.pop("_pin_alternates", None)
+        _comp.pop("_unit_count", None)
+        _comp.pop("_jumper_groups", None)
 
 
 def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
@@ -24,7 +61,7 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
                     file_version) -> dict:
     """Build the schematic analyzer result dict (historical key order).
 
-    MUTATES its inputs as the pre-v3 code did: components gain category /
+    MUTATES its inputs: components gain category /
     parsed_value / pin_nets (and lose _unit_pins), __unnamed_ nets may gain a
     display_name, the root title block may be filled from .kicad_pro text
     variables, usb_compliance loses its "findings" key, and every signal
@@ -138,31 +175,15 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
     if lib_tables.get('symbol_libs'):
         project_settings['symbol_libs'] = lib_tables['symbol_libs']
 
-    # Enrich components with pin-to-net mapping for downstream consumers
-    # KH-211: Include __unnamed_* nets so that connections through unlabelled
-    # wires (common in hierarchical sub-sheets) appear in pin_nets.
-    _pin_nets: dict[str, dict[str, str]] = {}
-    for _net_name, _net_info in nets.items():
-        if isinstance(_net_info, dict):
-            for _p in _net_info.get('pins', []):
-                _comp_ref = _p.get('component', '')
-                _pin_num = _p.get('pin_number', '')
-                if _comp_ref and _pin_num:
-                    _pin_nets.setdefault(_comp_ref, {})[_pin_num] = _net_name
-    for _comp in all_components:
-        _all_pn = _pin_nets.get(_comp.get('reference', ''), {})
-        _valid = _comp.get("_unit_pins")
-        if _valid and len(_all_pn) > len(_valid):
-            _comp['pin_nets'] = {k: v for k, v in _all_pn.items() if k in _valid}
-        else:
-            _comp['pin_nets'] = _all_pn
-        _comp.pop("_unit_pins", None)
+    _annotate_pin_nets(all_components, nets)
+    for _ps in power_symbols:
+        _ps.pop("_drives", None)
 
     # Flatten signal_analysis: all list values become findings, dict values promote to top level
-    # KH-388: detect_voltage_dividers' feedback-network path deliberately
+    # detect_voltage_dividers' feedback-network path deliberately
     # appends the SAME finding dict to both the `voltage_dividers` and
-    # `feedback_networks` signal_analysis lists — see the 8c36212 cascade
-    # warning in signal_detectors.py:324-346; that double-emission must
+    # `feedback_networks` signal_analysis lists — see the comment at that
+    # double emission in detect_voltage_dividers; it must
     # stay, it feeds detect_rc_filters' exclusion set. Dedup here instead
     # so the shared object doesn't also duplicate in the flattened
     # findings[] output. id()-based dedup is safe for ANY detector (a
@@ -207,7 +228,7 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
     if dnp_rate_findings:
         findings.extend(dnp_rate_findings)
 
-    # NT-001 — single-pin nets weighted by pin type (Task 3)
+    # NT-001 — single-pin nets weighted by pin type
     nt_findings = connectivity_issues.get("single_pin_net_findings", [])
     if nt_findings:
         findings.extend(nt_findings)
@@ -216,7 +237,7 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
     if voltage_derating:
         findings.extend(voltage_derating)
 
-    # UC-001..004 — USB compliance check failures (KH-338)
+    # UC-001..004 — USB compliance check failures
     if usb_compliance:
         findings.extend(usb_compliance.pop("findings", []))
 
@@ -234,16 +255,11 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
     # Build severity summary
     sev_counts = {"error": 0, "warning": 0, "info": 0}
     for _f in findings:
-        _sev = _f.get("severity", "info").lower() if isinstance(_f, dict) else "info"
-        if _sev in ("critical", "high"):
-            sev_counts["error"] += 1
-        elif _sev in ("medium", "warning"):
-            sev_counts["warning"] += 1
-        else:
-            sev_counts["info"] += 1
+        sev_counts[normalize_severity(_f.get("severity") if isinstance(_f, dict) else None)] += 1
 
-    # Deterministic order so repeated runs produce byte-identical output
-    # (KH-316).  Sort key: (rule_id, detector, first_component, first_net, summary).
+    show_decoded_names(findings)
+    # Deterministic order so repeated runs produce byte-identical output.
+    # Sort key: (rule_id, detector, first_component, first_net, summary).
     sort_findings(findings)
 
     result = {
@@ -263,7 +279,7 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
             for c in all_components
             if c["type"] not in ("power_symbol", "power_flag", "flag")
         ],
-        "nets": nets,
+        "nets": _nets_for_output(nets),
         "subcircuits": subcircuits,
         "ic_pin_analysis": ic_analysis,
         "transistor_pin_analysis": transistor_analysis,
@@ -403,27 +419,13 @@ def assemble_legacy_result(*, nets, all_components, signal_analysis, real_compon
     """Build the legacy (.sch) result dict; its key set stays distinct from the modern one.
 
     MUTATES components (pin_nets, _unit_pins) and signal detections
-    (detection_id, detector) as the pre-v3 code did.
+    (detection_id, detector).
     """
-    # Enrich components with pin-to-net mapping (legacy path)
-    # KH-211: Include __unnamed_* nets so that connections through unlabelled
-    # wires (common in hierarchical sub-sheets) appear in pin_nets.
-    _pin_nets_l: dict[str, dict[str, str]] = {}
-    for _net_name, _net_info in nets.items():
-        if isinstance(_net_info, dict):
-            for _p in _net_info.get('pins', []):
-                _comp_ref = _p.get('component', '')
-                _pin_num = _p.get('pin_number', '')
-                if _comp_ref and _pin_num:
-                    _pin_nets_l.setdefault(_comp_ref, {})[_pin_num] = _net_name
+    _annotate_pin_nets(all_components, nets)
     for _comp in all_components:
-        _all_pn = _pin_nets_l.get(_comp.get('reference', ''), {})
-        _valid = _comp.get("_unit_pins")
-        if _valid and len(_all_pn) > len(_valid):
-            _comp['pin_nets'] = {k: v for k, v in _all_pn.items() if k in _valid}
-        else:
-            _comp['pin_nets'] = _all_pn
-        _comp.pop("_unit_pins", None)
+        _comp.pop("_global_power_part", None)
+    for _ps in power_symbols:
+        _ps.pop("_drives", None)
 
     # Add stable detection IDs for diff matching (legacy path)
     from detection_schema import compute_detection_id as _compute_det_id
@@ -449,24 +451,21 @@ def assemble_legacy_result(*, nets, all_components, signal_analysis, real_compon
 
     sev_counts = {"error": 0, "warning": 0, "info": 0}
     for f in findings:
-        sev = f.get("severity", "info").lower() if isinstance(f, dict) else "info"
-        if sev in ("critical", "high"):
-            sev_counts["error"] += 1
-        elif sev in ("medium", "warning"):
-            sev_counts["warning"] += 1
-        else:
-            sev_counts["info"] += 1
+        sev_counts[normalize_severity(f.get("severity") if isinstance(f, dict) else None)] += 1
 
-    # Legacy analysis quality summary (KH-271)
-    _pin_source_counts = {"parsed_lib": 0, "suffix_match": 0, "snapped_to_wire": 0, "unresolved": 0}
+    # Legacy analysis quality summary
+    _pin_source_counts = {"parsed_lib": 0, "suffix_match": 0, "snapped_to_wire": 0, "unresolved": 0,
+                          "builtin_fallback": 0}
     for c in real_components:
         src = c.get("_pin_source", "unresolved")
+        if src == "builtin":
+            src = "builtin_fallback"
         if src in _pin_source_counts:
             _pin_source_counts[src] += 1
         else:
             _pin_source_counts[src] = 1
 
-    # Deterministic order for byte-identical repeated runs (KH-316).
+    # Deterministic order for byte-identical repeated runs.
     sort_findings(findings)
 
     result = {
@@ -476,13 +475,13 @@ def assemble_legacy_result(*, nets, all_components, signal_analysis, real_compon
         "trust_summary": compute_trust_summary(findings),
         "kicad_version": "5 (legacy)",
         "file_version": "4",
-        "title_block": {},  # legacy .sch has no (title_block ...) node (TH-043)
+        "title_block": {},  # legacy .sch has no (title_block ...) node
         "sheets_parsed": len(sheets_parsed),
         "sheet_files": sheets_parsed,
         "statistics": stats,
         "bom": bom,
         "components": real_components,
-        "nets": nets,
+        "nets": _nets_for_output(nets),
         "subcircuits": subcircuits,
         "findings": findings,
         "assessments": [],

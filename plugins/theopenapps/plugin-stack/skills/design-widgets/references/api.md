@@ -24,4 +24,4 @@ A ref fills `{store}/{id}`: `chatgpt:kiwi-com` is `/listings/chatgpt/kiwi-com`. 
 
 Answers are always the whole JSON, about ten times the size of the rows a list needs, so keep `limit` small.
 
-A cut returns 200. Not found is 404, budget spent is 429 and busy is 503. The `x-openapps-budget` header says what's left: `calls-hour=264, calls-day=894, rows-day=4470`.
+A cut returns 200. Not found is 404, budget spent is 429 and busy is 503. A shell loop has to check for 429 after each call and `break`, because `curl` exits 0 on it. The `x-openapps-budget` header says what's left: `calls-hour=264, calls-day=894, rows-day=4470`.

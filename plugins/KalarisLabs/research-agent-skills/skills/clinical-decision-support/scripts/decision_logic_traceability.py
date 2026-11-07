@@ -60,6 +60,7 @@ PROHIBITED_LOGIC = (
 
 
 def _safe_csv(value: Any) -> str:
+    """Handle safe csv."""
     text = str(value).replace("\r", " ").replace("\n", " ")
     if text.startswith(("=", "+", "-", "@")):
         return "'" + text
@@ -67,10 +68,12 @@ def _safe_csv(value: Any) -> str:
 
 
 def _has_cycle(edges: dict[str, list[str]]) -> bool:
+    """Return whether cycle."""
     visiting: set[str] = set()
     visited: set[str] = set()
 
     def visit(node: str) -> bool:
+        """Handle visit."""
         if node in visiting:
             return True
         if node in visited:
@@ -86,164 +89,204 @@ def _has_cycle(edges: dict[str, list[str]]) -> bool:
     return any(visit(node) for node in edges)
 
 
+def _check_metadata(document: dict[str, Any], log: IssueLog) -> dict[str, Any]:
+    """Validate the metadata block and return it."""
+    metadata = document.get("metadata")
+    if not isinstance(metadata, dict):
+        raise InputError("metadata must be an object")
+    for field in (
+        "logic_id",
+        "title",
+        "version",
+        "status",
+        "owner",
+        "purpose",
+        "change_summary",
+        "monitoring_plan",
+        "retirement_criteria",
+    ):
+        require_nonempty_text(metadata.get(field), f"metadata.{field}")
+    if metadata.get("decision_role") != "research_governance_only":
+        log.errors.append(
+            "metadata.decision_role must be research_governance_only"
+        )
+    if metadata.get("data_level") not in {"aggregate", "synthetic", "metadata_only"}:
+        log.errors.append(
+            "metadata.data_level must be aggregate, synthetic, or metadata_only"
+        )
+    if metadata.get("patient_care_use") is not False:
+        log.errors.append("metadata.patient_care_use must be false")
+    if metadata.get("executable_logic") is not False:
+        log.errors.append("metadata.executable_logic must be false")
+    return metadata
+
+
+def _collect_node_ids(nodes: list[Any]) -> set[str]:
+    """Check every node id for shape and uniqueness and return the set of ids."""
+    node_ids: set[str] = set()
+    for index, node in enumerate(nodes):
+        field = f"nodes[{index}]"
+        if not isinstance(node, dict):
+            raise InputError(f"{field} must be an object")
+        node_id = require_nonempty_text(
+            node.get("id"), f"{field}.id", max_length=64
+        )
+        if not NODE_ID.fullmatch(node_id):
+            raise InputError(f"{field}.id has an unsafe or invalid format")
+        if node_id in node_ids:
+            raise InputError(f"Duplicate node id: {node_id}")
+        node_ids.add(node_id)
+    return node_ids
+
+
+def _node_dependencies(
+    node: dict[str, Any], node_id: str, node_ids: set[str], field: str, log: IssueLog
+) -> list[str]:
+    """Validate a node's dependency ids and return the usable ones."""
+    dependencies = require_list(
+        node.get("dependency_ids", []),
+        f"{field}.dependency_ids",
+        maximum=30,
+    )
+    normalized_dependencies: list[str] = []
+    for dep_index, dependency in enumerate(dependencies):
+        dep = require_nonempty_text(
+            dependency,
+            f"{field}.dependency_ids[{dep_index}]",
+            max_length=64,
+        )
+        if dep not in node_ids:
+            log.errors.append(f"{field} references unknown dependency: {dep}")
+        if dep == node_id:
+            log.errors.append(f"{field} cannot depend on itself")
+        if dep in node_ids and dep != node_id:
+            normalized_dependencies.append(dep)
+    return normalized_dependencies
+
+
+def _normalize_node(
+    node: dict[str, Any],
+    index: int,
+    node_ids: set[str],
+    known_sources: set[str],
+    log: IssueLog,
+    edges: dict[str, list[str]],
+) -> dict[str, str]:
+    """Validate one node, record its dependency edges, and return its normalized row."""
+    field = f"nodes[{index}]"
+    node_id = str(node["id"])
+    node_type = require_nonempty_text(node.get("type"), f"{field}.type")
+    if node_type not in ALLOWED_NODE_TYPES:
+        log.errors.append(f"{field}.type is unsupported")
+    precondition = require_nonempty_text(
+        node.get("precondition"), f"{field}.precondition"
+    )
+    statement = require_nonempty_text(
+        node.get("logic_statement"), f"{field}.logic_statement"
+    )
+    output_kind = require_nonempty_text(
+        node.get("output_kind"), f"{field}.output_kind"
+    )
+    if output_kind not in ALLOWED_OUTPUT_KINDS:
+        log.errors.append(f"{field}.output_kind is unsupported")
+    output_value = require_nonempty_text(
+        node.get("output_value"), f"{field}.output_value"
+    )
+    rationale = require_nonempty_text(
+        node.get("rationale"), f"{field}.rationale"
+    )
+    owner = require_nonempty_text(node.get("owner"), f"{field}.owner")
+    reviewer = require_nonempty_text(
+        node.get("reviewer_role"), f"{field}.reviewer_role"
+    )
+    status = require_nonempty_text(node.get("status"), f"{field}.status")
+    if status not in {"draft", "validated", "retired"}:
+        log.errors.append(f"{field}.status is unsupported")
+    combined = f"{precondition} {statement} {output_value}".lower()
+    found = [phrase for phrase in PROHIBITED_LOGIC if phrase in combined]
+    if found:
+        log.errors.append(
+            f"{field} contains prohibited clinical logic: {', '.join(found)}"
+        )
+
+    normalized_dependencies = _node_dependencies(node, node_id, node_ids, field, log)
+    edges[node_id] = normalized_dependencies
+
+    source_refs = validate_references(
+        node.get("source_ids"), known_sources, f"{field}.source_ids"
+    )
+    tests = require_list(
+        node.get("validation_tests"), f"{field}.validation_tests", maximum=30
+    )
+    if not tests:
+        log.errors.append(f"{field} requires at least one validation test")
+    normalized_tests = [
+        require_nonempty_text(test, f"{field}.validation_tests[{test_index}]")
+        for test_index, test in enumerate(tests)
+    ]
+    return {
+        "node_id": node_id,
+        "type": node_type,
+        "dependencies": "; ".join(normalized_dependencies),
+        "precondition": precondition,
+        "logic_statement": statement,
+        "output_kind": output_kind,
+        "output_value": output_value,
+        "source_ids": "; ".join(source_refs),
+        "rationale": rationale,
+        "validation_tests": "; ".join(normalized_tests),
+        "owner": owner,
+        "reviewer_role": reviewer,
+        "status": status,
+    }
+
+
+def _check_human_review(
+    document: dict[str, Any], metadata: dict[str, Any], log: IssueLog
+) -> None:
+    """Validate the human_review block against the matrix status."""
+    review = document.get("human_review")
+    if not isinstance(review, dict):
+        raise InputError("human_review must be an object")
+    if review.get("required") is not True:
+        log.errors.append("human_review.required must be true")
+    require_nonempty_text(
+        review.get("approval_boundary"), "human_review.approval_boundary"
+    )
+    if metadata.get("status") == "validated" and review.get("completed") is not True:
+        log.errors.append(
+            "Validated matrix status requires completed human review"
+        )
+    elif review.get("completed") is not True:
+        log.warnings.append("Human review is not recorded as complete")
+
+
 def validate_matrix(
     document: dict[str, Any]
 ) -> tuple[IssueLog, list[dict[str, str]]]:
+    """Validate matrix."""
     log = IssueLog()
     normalized: list[dict[str, str]] = []
     try:
         require_nonempty_text(document.get("schema_version"), "schema_version")
         known_sources = source_ids(document)
-        metadata = document.get("metadata")
-        if not isinstance(metadata, dict):
-            raise InputError("metadata must be an object")
-        for field in (
-            "logic_id",
-            "title",
-            "version",
-            "status",
-            "owner",
-            "purpose",
-            "change_summary",
-            "monitoring_plan",
-            "retirement_criteria",
-        ):
-            require_nonempty_text(metadata.get(field), f"metadata.{field}")
-        if metadata.get("decision_role") != "research_governance_only":
-            log.errors.append(
-                "metadata.decision_role must be research_governance_only"
-            )
-        if metadata.get("data_level") not in {"aggregate", "synthetic", "metadata_only"}:
-            log.errors.append(
-                "metadata.data_level must be aggregate, synthetic, or metadata_only"
-            )
-        if metadata.get("patient_care_use") is not False:
-            log.errors.append("metadata.patient_care_use must be false")
-        if metadata.get("executable_logic") is not False:
-            log.errors.append("metadata.executable_logic must be false")
+        metadata = _check_metadata(document, log)
 
         nodes = require_list(document.get("nodes"), "nodes", maximum=MAX_NODES)
         if not nodes:
             raise InputError("At least one traceability node is required")
-        node_ids: set[str] = set()
-        for index, node in enumerate(nodes):
-            field = f"nodes[{index}]"
-            if not isinstance(node, dict):
-                raise InputError(f"{field} must be an object")
-            node_id = require_nonempty_text(
-                node.get("id"), f"{field}.id", max_length=64
-            )
-            if not NODE_ID.fullmatch(node_id):
-                raise InputError(f"{field}.id has an unsafe or invalid format")
-            if node_id in node_ids:
-                raise InputError(f"Duplicate node id: {node_id}")
-            node_ids.add(node_id)
+        node_ids = _collect_node_ids(nodes)
 
         edges: dict[str, list[str]] = {}
         for index, node in enumerate(nodes):
-            field = f"nodes[{index}]"
-            node_id = str(node["id"])
-            node_type = require_nonempty_text(node.get("type"), f"{field}.type")
-            if node_type not in ALLOWED_NODE_TYPES:
-                log.errors.append(f"{field}.type is unsupported")
-            precondition = require_nonempty_text(
-                node.get("precondition"), f"{field}.precondition"
-            )
-            statement = require_nonempty_text(
-                node.get("logic_statement"), f"{field}.logic_statement"
-            )
-            output_kind = require_nonempty_text(
-                node.get("output_kind"), f"{field}.output_kind"
-            )
-            if output_kind not in ALLOWED_OUTPUT_KINDS:
-                log.errors.append(f"{field}.output_kind is unsupported")
-            output_value = require_nonempty_text(
-                node.get("output_value"), f"{field}.output_value"
-            )
-            rationale = require_nonempty_text(
-                node.get("rationale"), f"{field}.rationale"
-            )
-            owner = require_nonempty_text(node.get("owner"), f"{field}.owner")
-            reviewer = require_nonempty_text(
-                node.get("reviewer_role"), f"{field}.reviewer_role"
-            )
-            status = require_nonempty_text(node.get("status"), f"{field}.status")
-            if status not in {"draft", "validated", "retired"}:
-                log.errors.append(f"{field}.status is unsupported")
-            combined = f"{precondition} {statement} {output_value}".lower()
-            found = [phrase for phrase in PROHIBITED_LOGIC if phrase in combined]
-            if found:
-                log.errors.append(
-                    f"{field} contains prohibited clinical logic: {', '.join(found)}"
-                )
-
-            dependencies = require_list(
-                node.get("dependency_ids", []),
-                f"{field}.dependency_ids",
-                maximum=30,
-            )
-            normalized_dependencies: list[str] = []
-            for dep_index, dependency in enumerate(dependencies):
-                dep = require_nonempty_text(
-                    dependency,
-                    f"{field}.dependency_ids[{dep_index}]",
-                    max_length=64,
-                )
-                if dep not in node_ids:
-                    log.errors.append(f"{field} references unknown dependency: {dep}")
-                if dep == node_id:
-                    log.errors.append(f"{field} cannot depend on itself")
-                if dep in node_ids and dep != node_id:
-                    normalized_dependencies.append(dep)
-            edges[node_id] = normalized_dependencies
-
-            source_refs = validate_references(
-                node.get("source_ids"), known_sources, f"{field}.source_ids"
-            )
-            tests = require_list(
-                node.get("validation_tests"), f"{field}.validation_tests", maximum=30
-            )
-            if not tests:
-                log.errors.append(f"{field} requires at least one validation test")
-            normalized_tests = [
-                require_nonempty_text(test, f"{field}.validation_tests[{test_index}]")
-                for test_index, test in enumerate(tests)
-            ]
             normalized.append(
-                {
-                    "node_id": node_id,
-                    "type": node_type,
-                    "dependencies": "; ".join(normalized_dependencies),
-                    "precondition": precondition,
-                    "logic_statement": statement,
-                    "output_kind": output_kind,
-                    "output_value": output_value,
-                    "source_ids": "; ".join(source_refs),
-                    "rationale": rationale,
-                    "validation_tests": "; ".join(normalized_tests),
-                    "owner": owner,
-                    "reviewer_role": reviewer,
-                    "status": status,
-                }
+                _normalize_node(node, index, node_ids, known_sources, log, edges)
             )
 
         if _has_cycle(edges):
             log.errors.append("Dependency graph contains a cycle")
 
-        review = document.get("human_review")
-        if not isinstance(review, dict):
-            raise InputError("human_review must be an object")
-        if review.get("required") is not True:
-            log.errors.append("human_review.required must be true")
-        require_nonempty_text(
-            review.get("approval_boundary"), "human_review.approval_boundary"
-        )
-        if metadata.get("status") == "validated" and review.get("completed") is not True:
-            log.errors.append(
-                "Validated matrix status requires completed human review"
-            )
-        elif review.get("completed") is not True:
-            log.warnings.append("Human review is not recorded as complete")
+        _check_human_review(document, metadata, log)
     except InputError as exc:
         log.errors.append(str(exc))
 
@@ -253,6 +296,7 @@ def validate_matrix(
 
 
 def _csv_text(rows: list[dict[str, str]]) -> str:
+    """Handle csv text."""
     fieldnames = [
         "node_id",
         "type",
@@ -277,6 +321,7 @@ def _csv_text(rows: list[dict[str, str]]) -> str:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate research/governance decision logic and emit a CSV traceability "

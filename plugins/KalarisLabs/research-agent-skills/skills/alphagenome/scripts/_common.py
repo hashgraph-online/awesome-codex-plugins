@@ -46,6 +46,8 @@ AVI_SCORER = "AVI_SCORE"
 AVI_FEATURES_SCORER = "AVI_SCORE_FEATURE_IMPORTANCE"
 AVI_SCORERS: tuple[str, str] = (AVI_SCORER, AVI_FEATURES_SCORER)
 
+_CODING_CONSEQUENCE = "Coding consequence"
+
 #: The 18 AVI input features, keyed by the ``var['name']`` values returned by
 #: the ``AVI_SCORE_FEATURE_IMPORTANCE`` scorer. Value: (display name, category,
 #: Atlas track scorers that feed the feature; empty for annotation features).
@@ -67,9 +69,9 @@ AVI_FEATURES: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "ALPHAMISSENSE": ("AlphaMissense", "Protein impact", ()),
     "CACTUS_241_WAY": ("Zoonomia Cactus 241-way", "Evolutionary conservation", ()),
     "PHASTCONS_470_WAY": ("PhastCons 470-way", "Evolutionary conservation", ()),
-    "PROTEIN_TERMINATION": ("Protein termination", "Coding consequence", ()),
-    "START_LOST": ("Start lost", "Coding consequence", ()),
-    "STOP_LOST": ("Stop lost", "Coding consequence", ()),
+    "PROTEIN_TERMINATION": ("Protein termination", _CODING_CONSEQUENCE, ()),
+    "START_LOST": ("Start lost", _CODING_CONSEQUENCE, ()),
+    "STOP_LOST": ("Stop lost", _CODING_CONSEQUENCE, ()),
     "IS_INSERTION": ("Insertion", "Indel type", ()),
     "IS_DELETION": ("Deletion", "Indel type", ()),
 }
@@ -117,13 +119,16 @@ class VariantSpec:
     name: str = field(default="", compare=False)
 
     def __str__(self) -> str:
+        """Return a readable string form."""
         return f"{self.chromosome}:{self.position}:{self.ref}>{self.alt}"
 
     @property
     def is_snv(self) -> bool:
+        """Return whether snv."""
         return len(self.ref) == 1 and len(self.alt) == 1
 
     def to_row(self) -> dict[str, object]:
+        """Handle to row."""
         return {
             "variant": str(self),
             "chromosome": self.chromosome,
@@ -206,10 +211,12 @@ def parse_interval_string(text: str) -> tuple[str, int, int]:
 
 
 def interval_width(start0: int, end: int) -> int:
+    """Handle interval width."""
     return end - start0
 
 
 def _split_delimited(path: Path) -> tuple[list[str], list[list[str]]]:
+    """Split delimited."""
     text = path.read_text(encoding="utf-8")
     sample = text[:4096]
     if path.suffix.lower() == ".csv":
@@ -290,6 +297,7 @@ def read_variant_table(path: str | Path) -> tuple[list[VariantSpec], list[str]]:
     lookup = {name.lower(): index for index, name in enumerate(header)}
 
     def column(*names: str) -> int | None:
+        """Handle column."""
         for name in names:
             if name in lookup:
                 return lookup[name]
@@ -412,6 +420,7 @@ def phred_to_top_percent(phred: float) -> float:
 
 
 def feature_display_name(key: str) -> str:
+    """Handle feature display name."""
     entry = AVI_FEATURES.get(key)
     return entry[0] if entry else key
 
@@ -435,6 +444,7 @@ _FORMATS = ("tsv", "csv", "json", "parquet")
 
 
 def _stringify(value: object) -> object:
+    """Handle stringify."""
     if value is None:
         return ""
     if isinstance(value, float):
@@ -490,6 +500,7 @@ def write_rows(
 
 
 def warn(message: str) -> None:
+    """Handle warn."""
     print(f"warning: {message}", file=sys.stderr)
 
 
@@ -507,5 +518,6 @@ def format_from_output(output: str | None, explicit: str | None) -> str:
 
 
 def chunked(items: Sequence, size: int) -> Iterable[Sequence]:
+    """Handle chunked."""
     for start in range(0, len(items), size):
         yield items[start : start + size]

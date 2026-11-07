@@ -41,11 +41,15 @@ except ImportError:  # Direct script execution.
         validate_slug,
     )
 
-PROFILES = ("pypi-3.0.0", "source-4.0")
+PYPI_PROFILE = "pypi-3.0.0"
+SOURCE_PROFILE = "source-4.0"
+PROFILES = (PYPI_PROFILE, SOURCE_PROFILE)
+PACKAGE_PATH = "$.package"
+VECTORIZATION_PATH = "$.vectorization"
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
 
 
-def default_plan(profile: str = "pypi-3.0.0") -> dict[str, Any]:
+def default_plan(profile: str = PYPI_PROFILE) -> dict[str, Any]:
     """Return a bounded local plan that never starts training."""
     if profile not in PROFILES:
         raise UserInputError(f"profile must be one of {PROFILES}")
@@ -81,7 +85,7 @@ def default_plan(profile: str = "pypi-3.0.0") -> dict[str, Any]:
             "trusted_only": True,
         },
     }
-    if profile == "pypi-3.0.0":
+    if profile == PYPI_PROFILE:
         common["package"] = {
             "name": "pufferlib",
             "sha256": STABLE_SDIST_SHA256,
@@ -112,6 +116,7 @@ def default_plan(profile: str = "pypi-3.0.0") -> dict[str, Any]:
 
 
 def _mapping(value: Any, path: str, errors: list[str]) -> dict[str, Any]:
+    """Handle mapping."""
     if not isinstance(value, dict):
         errors.append(f"{path} must be an object")
         return {}
@@ -126,6 +131,7 @@ def _integer(
     maximum: int,
     errors: list[str],
 ) -> int | None:
+    """Handle integer."""
     if isinstance(value, bool) or not isinstance(value, int):
         errors.append(f"{path} must be an integer")
         return None
@@ -136,6 +142,7 @@ def _integer(
 
 
 def _boolean(value: Any, *, path: str, errors: list[str]) -> bool | None:
+    """Handle boolean."""
     if type(value) is not bool:
         errors.append(f"{path} must be boolean")
         return None
@@ -145,26 +152,27 @@ def _boolean(value: Any, *, path: str, errors: list[str]) -> bool | None:
 def _validate_package(
     package: dict[str, Any], profile: str, errors: list[str]
 ) -> None:
-    if profile == "pypi-3.0.0":
+    """Validate package."""
+    if profile == PYPI_PROFILE:
         errors.extend(
             require_keys(
                 package,
                 allowed={"name", "version", "sha256"},
                 required={"name", "version", "sha256"},
-                path="$.package",
+                path=PACKAGE_PATH,
             )
         )
         if package.get("version") != "3.0.0":
             errors.append("$.package.version must equal 3.0.0")
         if package.get("sha256") != STABLE_SDIST_SHA256:
             errors.append("$.package.sha256 must match the published 3.0.0 sdist")
-    elif profile == "source-4.0":
+    elif profile == SOURCE_PROFILE:
         errors.extend(
             require_keys(
                 package,
                 allowed={"name", "version", "commit"},
                 required={"name", "version", "commit"},
-                path="$.package",
+                path=PACKAGE_PATH,
             )
         )
         commit = package.get("commit")
@@ -177,6 +185,7 @@ def _validate_package(
 
 
 def _validate_environment(environment: dict[str, Any], errors: list[str]) -> None:
+    """Validate environment."""
     errors.extend(
         require_keys(
             environment,
@@ -205,6 +214,7 @@ def _validate_environment(environment: dict[str, Any], errors: list[str]) -> Non
 
 
 def _validate_training(training: dict[str, Any], errors: list[str]) -> None:
+    """Validate training."""
     errors.extend(
         require_keys(
             training,
@@ -253,7 +263,8 @@ def _validate_vectorization(
     training: dict[str, Any],
     errors: list[str],
 ) -> None:
-    if profile == "pypi-3.0.0":
+    """Validate vectorization."""
+    if profile == PYPI_PROFILE:
         allowed = {
             "backend",
             "batch_size",
@@ -267,7 +278,7 @@ def _validate_vectorization(
                 vectorization,
                 allowed=allowed,
                 required=allowed,
-                path="$.vectorization",
+                path=VECTORIZATION_PATH,
             )
         )
         backend = vectorization.get("backend")
@@ -337,7 +348,7 @@ def _validate_vectorization(
                 vectorization,
                 allowed=allowed,
                 required=allowed,
-                path="$.vectorization",
+                path=VECTORIZATION_PATH,
             )
         )
         if vectorization.get("backend") not in {"native", "torch"}:
@@ -383,6 +394,7 @@ def _validate_vectorization(
 def _validate_evaluation(
     evaluation: dict[str, Any], training: dict[str, Any], errors: list[str]
 ) -> None:
+    """Validate evaluation."""
     allowed = {"deterministic", "episodes", "seed", "separate"}
     errors.extend(
         require_keys(
@@ -417,6 +429,7 @@ def _validate_evaluation(
 def _validate_logging(
     logging: dict[str, Any], profile: str, errors: list[str]
 ) -> None:
+    """Validate logging."""
     allowed = {
         "backend",
         "disclosure_ack",
@@ -430,7 +443,7 @@ def _validate_logging(
     if backend not in LOGGER_CREDENTIAL_ENV:
         errors.append("$.logging.backend must be none, wandb, or neptune")
         return
-    if profile == "source-4.0" and backend == "neptune":
+    if profile == SOURCE_PROFILE and backend == "neptune":
         errors.append("Neptune is not a current source-4.0 integration")
     opt_in = _boolean(
         logging.get("external_opt_in"),
@@ -456,6 +469,7 @@ def _validate_logging(
 
 
 def _validate_checkpoint(checkpoint: dict[str, Any], errors: list[str]) -> None:
+    """Validate checkpoint."""
     allowed = {"format", "trusted_only"}
     errors.extend(
         require_keys(
@@ -507,10 +521,10 @@ def validate_plan(plan: Any) -> list[str]:
         errors.append(f"$.profile must be one of {PROFILES}")
         return errors
 
-    package = _mapping(plan.get("package"), "$.package", errors)
+    package = _mapping(plan.get("package"), PACKAGE_PATH, errors)
     environment = _mapping(plan.get("environment"), "$.environment", errors)
     training = _mapping(plan.get("training"), "$.training", errors)
-    vectorization = _mapping(plan.get("vectorization"), "$.vectorization", errors)
+    vectorization = _mapping(plan.get("vectorization"), VECTORIZATION_PATH, errors)
     evaluation = _mapping(plan.get("evaluation"), "$.evaluation", errors)
     logging = _mapping(plan.get("logging"), "$.logging", errors)
     checkpoint = _mapping(plan.get("checkpoint"), "$.checkpoint", errors)
@@ -526,6 +540,7 @@ def validate_plan(plan: Any) -> list[str]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a strict local JSON plan. With no --config, validate the "
@@ -534,12 +549,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--config", help="Explicit JSON file beneath --root")
     parser.add_argument("--root", default=".", help="Allowed local path root")
-    parser.add_argument("--profile", choices=PROFILES, default="pypi-3.0.0")
+    parser.add_argument("--profile", choices=PROFILES, default=PYPI_PROFILE)
     parser.add_argument("--compact", action="store_true")
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

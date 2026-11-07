@@ -12,6 +12,7 @@ import _common
 
 
 def _normalized(weights: dict[str, float]) -> dict[str, float]:
+    """Handle normalized."""
     total = sum(weights.values())
     return {criterion_id: weight / total for criterion_id, weight in weights.items()}
 
@@ -19,6 +20,7 @@ def _normalized(weights: dict[str, float]) -> dict[str, float]:
 def _scenarios(
     base_weights: dict[str, float], delta: float
 ) -> list[tuple[str, str | None, float, dict[str, float]]]:
+    """Handle scenarios."""
     scenarios = [("base", None, 1.0, dict(base_weights))]
     for criterion_id in sorted(base_weights):
         for label, multiplier in (("decrease", 1.0 - delta), ("increase", 1.0 + delta)):
@@ -36,6 +38,7 @@ def _scenarios(
 
 
 def _direction(first: float | None, second: float | None) -> int | None:
+    """Handle direction."""
     if first is None or second is None:
         return None
     difference = first - second
@@ -49,6 +52,7 @@ def analyze(
     evaluations: list[dict[str, Any]],
     delta: float,
 ) -> dict[str, Any]:
+    """Handle analyze."""
     rubric_issues = _common.validate_rubric(rubric)
     _common.require_valid(rubric_issues)
     if not 2 <= len(evaluations) <= _common.MAX_EVALUATIONS:
@@ -205,6 +209,7 @@ def analyze(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Perturb rubric weights and report score ranges and ordinal-order "
@@ -233,6 +238,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = analyze(

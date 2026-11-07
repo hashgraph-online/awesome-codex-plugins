@@ -38,6 +38,7 @@ RESOURCE_FIELDS = {
 
 
 def _csv_number(value: str | None, *, name: str) -> float:
+    """Handle csv number."""
     if value is None:
         raise CliError(f"{name} is missing")
     try:
@@ -234,6 +235,7 @@ def summarize_resource_csv(path: Path, *, max_records: int) -> dict[str, Any]:
 
 
 def summarize(path: Path, *, max_records: int) -> dict[str, Any]:
+    """Summarize."""
     if path.suffix.lower() == ".jsonl":
         kind = "event_trace"
         summary = summarize_event_trace(path, max_records=max_records)
@@ -251,6 +253,7 @@ def summarize(path: Path, *, max_records: int) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Summarize a local event-trace .jsonl or ResourceMonitor .csv file. "
@@ -270,6 +273,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

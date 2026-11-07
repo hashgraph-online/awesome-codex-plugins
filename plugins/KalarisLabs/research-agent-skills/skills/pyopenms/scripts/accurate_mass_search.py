@@ -24,6 +24,7 @@ except ImportError:
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description="Accurate-mass metabolite annotation.")
     parser.add_argument("input", help="Input featureXML (or consensusXML)")
     parser.add_argument("--out-mztab", help="Output mzTab file")
@@ -74,10 +75,7 @@ def main():
     engine.init()
 
     mztab = ms.MzTab()
-    if is_consensus:
-        engine.run(fmap, mztab)
-    else:
-        engine.run(fmap, mztab)
+    engine.run(fmap, mztab)
 
     out_mztab = args.out_mztab or os.path.splitext(args.input)[0] + ".mzTab"
     ms.MzTabFile().store(out_mztab, mztab)

@@ -10,6 +10,7 @@ import _common
 
 
 def validate_file(path: Path) -> dict:
+    """Validate file."""
     rubric = _common.read_json(path)
     issues = _common.validate_rubric(rubric)
     errors = _common.error_issues(issues)
@@ -25,6 +26,7 @@ def validate_file(path: Path) -> dict:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a strict local rubric schema; no document content, "
@@ -40,6 +42,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = validate_file(args.rubric)

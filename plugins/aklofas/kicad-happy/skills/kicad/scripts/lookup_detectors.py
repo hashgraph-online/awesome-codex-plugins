@@ -1,12 +1,12 @@
-"""Phase 4 4c: 6 new detectors consuming v1.4 datasheet facts via lookup().
+"""Six detectors consuming datasheet facts via lookup().
 
 Each detector probes facts.base.<field> or facts.regulator.<field> via the
 typed Consumer API (datasheet_types) and emits findings with
 confidence='datasheet-backed' + evidence_source='datasheet' when data is
 present. Soft-skip when the cache is missing or below trust gate — no
-analyzer ever blocks on lookup() per Phase 4 spec §5.1.
+analyzer ever blocks on lookup().
 
-API surface (Phase 4b alignment, 2026-05-03):
+API surface:
     facts = get_facts(mpn, cache_dir=cache_dir, diagnostics=diagnostics)  # may be None
     if facts is None: return []                        # silent skip
     specs = facts.base.absolute_max.get(key)           # list[SpecValue]
@@ -15,7 +15,7 @@ API surface (Phase 4b alignment, 2026-05-03):
         if sv is not None and sv.max is not None:
             ...
 
-Synonym resolution (Phase 4c addendum §A2): base.absolute_max,
+Synonym resolution: base.absolute_max,
 base.recommended_operating, and base.thermal use additionalProperties:
 SpecValue[] — extractors emit mixed key spellings (VDD/VCC/VDDA, TJ/TJ_max).
 _resolve_key() walks a synonym tuple and returns the first match.
@@ -81,7 +81,7 @@ def _connected_net(ctx, ref: str, pin_numbers) -> Optional[str]:
 
 
 def _component_mpn(component: dict) -> Optional[str]:
-    """Resolve an IC's MPN with the same fallback chain as Phase 4b."""
+    """Resolve an IC's MPN: the mpn field, else the value."""
     return component.get("mpn") or component.get("value") or None
 
 
@@ -124,11 +124,11 @@ def detect_absolute_max_violations(ctx, rail_voltages: dict) -> list[dict]:
             if net is None:
                 continue
             rail_v = rail_voltages.get(net)
-            if rail_v is None:
-                continue
+            if rail_v is None or rail_v < 0:
+                continue  # datasheet limits are positive-supply ratings
 
             # The base schema keys abs-max ratings "<domain>_max" (VIN_max), as
-            # datasheet_verify._v2_domain_voltage_max reads them.
+            # datasheet_verify._domain_absolute_voltage_max reads them.
             synonyms = (f"{domain}_max",) + _candidate_synonyms(domain, VDD_SYNONYMS)
             specs = _resolve_key(am_block, synonyms)
             if not has_data(specs):
@@ -177,6 +177,7 @@ def detect_absolute_max_violations(ctx, rail_voltages: dict) -> list[dict]:
                 rail_voltage=rail_v,
                 absolute_max_v=absolute_max_v,
                 domain=domain,
+                **ctx.rail_source_fields(net),
             ))
     return findings
 
@@ -185,12 +186,18 @@ def detect_absolute_max_violations(ctx, rail_voltages: dict) -> list[dict]:
 # OV-001 — VCC outside recommended operating range
 # ---------------------------------------------------------------------------
 
+# Pin types that take a supply rail. Recommended operating ranges are supply
+# ratings, so OV-001 reads only these pins: an EN or ON/OFF input listed in the
+# VIN domain may sit at 0 V by design.
+_SUPPLY_PIN_TYPES = frozenset({"power_in", "power"})
+
+
 def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
-    """OV-001: For each IC pin with a power_domain, verify the connected
+    """OV-001: For each IC supply pin with a power_domain, verify the connected
     rail voltage is within base.recommended_operating[domain] range
     (with synonym resolution).
 
-    Severity: warning (base severity; tuning matrix retired in v2.0, spec §5).
+    Severity: warning (a single base severity; no tuning matrix).
     """
     findings: list[dict] = []
     cache_dir = getattr(ctx, "cache_dir", None)
@@ -213,14 +220,14 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
 
         for pin in pinout:
             domain = getattr(pin, "power_domain", None)
-            if not domain:
+            if not domain or str(getattr(pin, "type", "")).lower() not in _SUPPLY_PIN_TYPES:
                 continue
             net = _connected_net(ctx, ref, getattr(pin, "numbers", []))
             if net is None:
                 continue
             rail_v = rail_voltages.get(net)
-            if rail_v is None:
-                continue
+            if rail_v is None or rail_v < 0:
+                continue  # datasheet limits are positive-supply ratings
 
             synonyms = _candidate_synonyms(domain, VDD_SYNONYMS)
             specs = _resolve_key(rec_block, synonyms)
@@ -261,6 +268,7 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
                     rail_voltage=rail_v,
                     recommended_min=v_min,
                     domain=domain,
+                    **ctx.rail_source_fields(net),
                 ))
             elif v_max is not None and rail_v > v_max:
                 findings.append(make_finding(
@@ -289,6 +297,7 @@ def detect_vcc_outside_recommended(ctx, rail_voltages: dict) -> list[dict]:
                     rail_voltage=rail_v,
                     recommended_max=v_max,
                     domain=domain,
+                    **ctx.rail_source_fields(net),
                 ))
     return findings
 
@@ -452,6 +461,7 @@ def detect_5v_on_non_tolerant_pin(ctx, rail_voltages: dict) -> list[dict]:
                 schema_era="v1.4",
                 signal_voltage=sig_v,
                 is_5v_tolerant=False,
+                **ctx.rail_source_fields(net),
             ))
     return findings
 

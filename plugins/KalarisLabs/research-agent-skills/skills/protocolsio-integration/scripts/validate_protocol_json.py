@@ -37,6 +37,7 @@ _GUID_RE = re.compile(r"^[A-Fa-f0-9]{32}$")
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a bounded saved protocol JSON response and emit an offline "
@@ -59,6 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _protocol_object(payload: Any) -> Mapping[str, Any]:
+    """Handle protocol object."""
     if not isinstance(payload, Mapping):
         raise SafetyError("JSON root must be an object")
     status = payload.get("status_code", 0)
@@ -83,6 +85,7 @@ def _bounded_string(
     maximum: int = 2_048,
     nullable: bool = True,
 ) -> str | None:
+    """Handle bounded string."""
     if value is None and nullable:
         return None
     if not isinstance(value, str):
@@ -100,6 +103,7 @@ def _bounded_int(
     maximum: int = 2_147_483_647,
     nullable: bool = True,
 ) -> int | None:
+    """Handle bounded int."""
     if value is None and nullable:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
@@ -114,6 +118,7 @@ def _bounded_list(
     name: str,
     maximum: int,
 ) -> list[Any]:
+    """Handle bounded list."""
     value = protocol.get(name, [])
     if value is None:
         return []
@@ -125,6 +130,7 @@ def _bounded_list(
 
 
 def _validate_public(value: Any) -> bool | None:
+    """Validate public."""
     if value is None:
         return None
     if isinstance(value, bool):
@@ -135,6 +141,7 @@ def _validate_public(value: Any) -> bool | None:
 
 
 def _validate_authors(authors: list[Any]) -> list[str]:
+    """Validate authors."""
     names: list[str] = []
     for index, author in enumerate(authors):
         if not isinstance(author, Mapping):
@@ -151,6 +158,7 @@ def _validate_authors(authors: list[Any]) -> list[str]:
 
 
 def _validate_steps(steps: list[Any]) -> dict[str, Any]:
+    """Validate steps."""
     guids: set[str] = set()
     previous_by_guid: dict[str, str | None] = {}
     steps_without_guid = 0
@@ -222,9 +230,10 @@ def _validate_steps(steps: list[Any]) -> dict[str, Any]:
 
 
 def _version_specific(protocol: Mapping[str, Any]) -> bool:
+    """Handle version specific."""
     for name in ("version_uri", "doi", "uri"):
         value = protocol.get(name)
-        if isinstance(value, str) and re.search(r"/v[1-9][0-9]*$", value):
+        if isinstance(value, str) and re.search(r"/v[1-9]\d*$", value):
             return True
     return False
 
@@ -235,6 +244,7 @@ def validate_and_summarize(
     require_version: bool,
     max_steps: int,
 ) -> dict[str, Any]:
+    """Validate and summarize."""
     if not 1 <= max_steps <= MAX_STEPS:
         raise SafetyError(f"max_steps must be between 1 and {MAX_STEPS}")
     protocol = _protocol_object(payload)
@@ -341,6 +351,7 @@ def validate_and_summarize(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = validate_and_summarize(

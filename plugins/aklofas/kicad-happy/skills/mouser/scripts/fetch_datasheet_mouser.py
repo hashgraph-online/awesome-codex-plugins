@@ -36,8 +36,9 @@ import argparse
 import json
 import sys
 import _core_path  # noqa: F401
-from distributor_core.download import download_pdf, try_alternative_sources
-from distributor_core.verify import verify_datasheet
+from distributor_core.download import (download_pdf, try_alternative_sources,
+                                       add_download_args, apply_download_args)
+from distributor_core.verify import fetch_mismatch, refuse_fetch_hit, same_part, verify_datasheet
 from distributor_core.manifest import _friendly_filename
 from provider_mouser import _get_api_key, search_mouser, scrape_product_page
 
@@ -55,7 +56,9 @@ def main():
     group.add_argument("--search", metavar="MPN", help="Search Mouser by MPN")
     parser.add_argument("--output", "-o", help="Output file path")
     parser.add_argument("--json", action="store_true", help="JSON output")
+    add_download_args(parser)
     args = parser.parse_args()
+    apply_download_args(args)
 
     if args.url:
         # Direct URL mode
@@ -92,6 +95,12 @@ def main():
             json.dump(result, sys.stdout)
         sys.exit(2)
 
+    hit_mpn = mouser_part.get("ManufacturerPartNumber", "")
+    other = fetch_mismatch(mpn, hit_mpn, [mouser_part.get("MouserPartNumber") or ""])
+    if other:
+        refuse_fetch_hit("Mouser", mpn, other, args.json)
+    verify_pn = mpn if same_part(mpn, hit_mpn) else (hit_mpn or mpn)
+
     ds_url = mouser_part.get("DataSheetUrl", "")
     desc = mouser_part.get("Description", "")
     mfg = mouser_part.get("Manufacturer", "")
@@ -105,7 +114,7 @@ def main():
 
     def _finish_success(output_path: str, source: str):
         """Verify the downloaded PDF and output results."""
-        vr = verify_datasheet(output_path, mpn, desc, mfg)
+        vr = verify_datasheet(output_path, verify_pn, desc, mfg)
         if vr["confidence"] == "wrong":
             print(f"[Mouser] WARNING: Downloaded PDF may be wrong datasheet for {mpn}",
                   file=sys.stderr)
@@ -159,4 +168,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     main()

@@ -20,21 +20,17 @@ from _common import (
     SCHEMA_VERSION,
     TECHNICAL_KEYWORDS,
     ToolError,
-    atomic_write,
     bounded_int,
     checked_input,
-    checked_output,
     collect_local_files,
     counter_dict,
-    emit_json,
     fail_json,
-    json_bytes,
     parse_size,
-    paths_overlap,
     pixel_plan,
     require_pydicom,
     safe_dcmread,
     valid_uid,
+    write_or_emit_report,
 )
 
 TOOL = "dicom_inventory"
@@ -45,6 +41,7 @@ INVENTORY_TAGS = list(TECHNICAL_KEYWORDS) + [
 
 
 def _issue(code: str, message: str, severity: str = "error") -> dict[str, str]:
+    """Handle issue."""
     return {"code": code, "message": message, "severity": severity}
 
 
@@ -57,6 +54,7 @@ def inspect_dataset(
     max_decompressed_bytes: int,
     forced_read: bool,
 ) -> dict[str, Any]:
+    """Handle inspect dataset."""
     pydicom = require_pydicom()
     issues: list[dict[str, str]] = []
     file_meta = dataset.file_meta
@@ -208,6 +206,7 @@ def inspect_dataset(
 
 
 def inventory(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle inventory."""
     max_input_bytes = parse_size(
         args.max_input_bytes,
         name="max_input_bytes",
@@ -310,6 +309,7 @@ def inventory(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Perform bounded metadata-only DICOM File Format and image-pixel "
@@ -366,33 +366,11 @@ Examples:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = inventory(args)
-        if args.output:
-            destination = checked_output(args.output, root=args.root, force=args.force)
-            source = checked_input(
-                args.input,
-                root=args.root,
-                kind="any",
-                max_bytes=parse_size(
-                    args.max_input_bytes,
-                    name="max_input_bytes",
-                    maximum=HARD_MAX_INPUT_BYTES,
-                ),
-            )
-            if source.is_file() and paths_overlap(source, destination):
-                raise ToolError("report must not overwrite its input")
-            atomic_write(destination, json_bytes(report), force=args.force)
-            emit_json(
-                {
-                    "ok": report["ok"],
-                    "report_written": True,
-                    "tool": TOOL,
-                }
-            )
-        else:
-            emit_json(report)
+        write_or_emit_report(report, args, TOOL)
         return 0 if report["ok"] else 1
     except Exception as exc:  # noqa: BLE001 - sanitize unexpected library errors
         return fail_json(TOOL, exc)

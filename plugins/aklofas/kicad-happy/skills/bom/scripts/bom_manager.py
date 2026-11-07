@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """BOM Manager — analyze KiCad schematic BOM properties and manage BOM files.
 
-Reads KiCad 6+ .kicad_sch files, detects the project's part number convention,
-classifies existing part numbers by distributor, identifies gaps, and outputs a
+Reads KiCad 6+ .kicad_sch files and KiCad 5 .sch files (read only), detects the
+project's part number convention, classifies existing part numbers by distributor, identifies gaps, and outputs a
 structured report. Can also export/merge BOM tracking CSV files.
 
 Usage:
@@ -23,11 +23,15 @@ Usage:
 
     # Export with recursive sub-sheets
     python3 bom_manager.py export path/to/schematic.kicad_sch -o bom/bom.csv --recursive
+
+    # A KiCad 10 design variant (default: the default variant)
+    python3 bom_manager.py analyze path/to/schematic.kicad_sch --recursive --variant "ETD 39"
 """
 
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import re
 import sys
@@ -35,72 +39,18 @@ from collections import Counter
 from pathlib import Path
 
 import _core_path  # noqa: F401
+from bom_fields import (FIELD_ALIASES, POPULATE_UNFITTED, _ALIAS_LOOKUP, _SLOT_NAME_RE, _SLOT_PN_RE, _SUPPLIER_NAME_MAP,
+                        _canonical_for, _first_nonblank_stripped, _pick_mpn_from_props, _slot_pn_number,
+                        _symbol_slots)
 from kicad_core.diagnostics import record
-from kicad_sexp import find_sub_sheets, iter_placed_symbol_blocks
-
-from kicad_core.fields import (MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
+from kicad_core.fields import (merge_unit_fields, MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
                                MPN_FIELD_ALIASES_GENERIC, DIGIKEY_FIELD_ALIASES,
                                normalize_field_name)
+from kicad_core.instances import tilde_is_empty, variant_overrides
+from kicad_core.sexp import get_value, parse
+from kicad_sexp import (atomic_write_text, find_matching_paren, direct_child, direct_value, find_sub_sheet_entries,
+                        iter_placed_symbol_blocks, resolved_instance, sheet_variant, symbol_instances_of)
 
-
-# ---------------------------------------------------------------------------
-# Field name aliases — maps every known variant to a canonical name
-# ---------------------------------------------------------------------------
-
-FIELD_ALIASES: dict[str, list[str]] = {
-    # KH-414: shared with analyze_schematic / analyze_pcb (kicad_core.fields), plus
-    # the bom-local ambiguous extras the analyzers deliberately exclude.
-    "mpn": sorted(MPN_FIELD_ALIASES | {"mp", "mfn"}),
-    "manufacturer": [
-        "Manufacturer", "Manufacturer_Name", "Manufacturer Name",
-        "Mfr", "MFR", "MF", "Mfg", "MANUFACTURER",
-    ],
-    "digikey": sorted(DIGIKEY_FIELD_ALIASES),
-    "mouser": [
-        "Mouser", "Mouser Part Number", "Mouser Part", "Mouser_PN",
-        "Mouser PN",
-    ],
-    "lcsc": [
-        "LCSC", "LCSC Part #", "LCSC Part Number", "LCSC Part",
-        "LCSCStockCode", "LCSC_PN", "LCSC PN", "JLCPCB", "JLCPCB Part",
-        "JLC",
-    ],
-    "element14": [
-        "Newark", "Newark Part Number", "Newark_PN", "Newark PN",
-        "Farnell", "Farnell Part Number", "Farnell_PN", "Farnell PN",
-        "element14", "element14 Part Number", "element14_PN",
-    ],
-}
-
-# Build reverse lookup: NORMALIZED field name -> canonical name (KH-414:
-# case- and whitespace-insensitive, so "Manufacturer  P/N" == "manufacturer p/n").
-_ALIAS_LOOKUP: dict[str, str] = {}
-for canonical, aliases in FIELD_ALIASES.items():
-    for alias in aliases:
-        _ALIAS_LOOKUP[normalize_field_name(alias)] = canonical
-
-
-def _canonical_for(name: str):
-    """Canonical BOM field for an actual KiCad property name, or None."""
-    return _ALIAS_LOOKUP.get(normalize_field_name(name))
-
-
-def _first_nonblank_stripped(props: dict, aliases: frozenset) -> str:
-    """First value whose normalized key is in *aliases* and whose .strip() is
-    non-empty, returned STRIPPED (final wave fix)."""
-    for key, value in props.items():
-        v = str(value).strip()
-        if v and normalize_field_name(key) in aliases:
-            return v
-    return ""
-
-
-def _pick_mpn_from_props(props: dict) -> str:
-    """Alias-scan fallback for the mpn canonical (KH-418 tiers; bom-local
-    `mp`/`mfn` count as generic). Whitespace-only values are skipped
-    (final wave fix)."""
-    return (_first_nonblank_stripped(props, MPN_FIELD_ALIASES_PRIMARY)
-            or _first_nonblank_stripped(props, MPN_FIELD_ALIASES_GENERIC | frozenset({"mp", "mfn"})))
 
 # Canonical field names to use when creating new properties
 CANONICAL_NAMES = {
@@ -179,17 +129,19 @@ def is_in_bom(symbol_block: str) -> bool:
 
 def is_dnp(symbol_block: str, props: dict[str, str]) -> bool:
     """Check if a symbol is marked DNP."""
-    # KiCad 9 built-in DNP flag
+    # KiCad 7+ built-in DNP flag
     match = re.search(r'\(dnp\s+(yes|no)\)', symbol_block)
     if match and match.group(1) == "yes":
         return True
     # Custom DNP fields
     for field in DNP_FIELDS:
         val = props.get(field, "").strip().upper()
+        # POPULATE is a population flag, so "1" / "yes" / "true" mean fitted
+        if field == "POPULATE":
+            if val.lower() in POPULATE_UNFITTED:
+                return True
+            continue
         if val in ("YES", "TRUE", "1", "DNP"):
-            return True
-        # POPULATE field: "0" means DNP
-        if field == "POPULATE" and val == "0":
             return True
     return False
 
@@ -248,13 +200,6 @@ def detect_convention(
 
     # Also detect "Supplier N" / "Supplier N Part #" pattern (KiCad field names)
     # Maps the value inside the Supplier field to canonical distributor names
-    _SUPPLIER_NAME_MAP = {
-        "digikey": "digikey", "digi-key": "digikey",
-        "mouser": "mouser",
-        "lcsc": "lcsc", "jlcpcb": "lcsc",
-        "newark": "element14", "farnell": "element14", "element14": "element14",
-        "arrow": "arrow",
-    }
     # Track KiCad "Supplier N" slot mappings: slot_number -> (name_field, pn_field, canonical)
     supplier_slots: dict[int, dict] = {}  # "supplier" here refers to KiCad field names
 
@@ -268,7 +213,7 @@ def detect_convention(
                 populated_counts[canonical] = populated_counts.get(canonical, 0) + 1
 
             # Detect KiCad "Supplier N" field pattern
-            sup_match = re.match(r'^Supplier\s+(\d+)$', name, re.IGNORECASE)
+            sup_match = _SLOT_NAME_RE.match(name.strip())
             if sup_match and value.strip():
                 slot = int(sup_match.group(1))
                 dist_name = value.strip().lower()
@@ -280,11 +225,9 @@ def detect_convention(
                     }
 
             # Detect KiCad "Supplier N Part #" or "Supplier N Part Number" field
-            sup_pn_match = re.match(
-                r'^Supplier\s+(\d+)\s+Part\s*(?:#|Number|No\.?)$', name, re.IGNORECASE
-            )
-            if sup_pn_match:
-                slot = int(sup_pn_match.group(1))
+            pn_slot = _slot_pn_number(name)
+            if pn_slot is not None:
+                slot = pn_slot
                 if slot in supplier_slots:
                     supplier_slots[slot]["pn_field"] = name
                     # Count this as a populated distributor field
@@ -354,6 +297,12 @@ def generate_bom(symbols: list[dict], convention: dict,
 
     field_map = convention["field_mapping"]
 
+    # KiCad takes a multi-unit part's fields from its lowest unit that sets them; the library
+    # unit count gates the merge, a placed unit above 1 standing in when the library is unknown
+    units_by_ref: dict[str, list[dict]] = {}
+    for sym in symbols:
+        units_by_ref.setdefault(sym["reference"], []).append(sym)
+
     for sym in symbols:
         ref = sym["reference"]
         comp_type = sym["type"]
@@ -366,11 +315,17 @@ def generate_bom(symbols: list[dict], convention: dict,
         seen_refs.add(ref)
 
         props = sym["raw_properties"]
+        units = units_by_ref[ref]
+        if "?" not in ref and any((u.get("unit_count") or (2 if u.get("unit", 1) > 1 else 1)) > 1
+                                  for u in units):
+            props = merge_unit_fields((u.get("unit", 1), u["raw_properties"]) for u in units)
+
+        slots = _symbol_slots(props)
 
         # Extract canonical field values using the project's actual field names
         def get_canonical(canonical_name: str) -> str:
             if canonical_name == "mpn":
-                # KH-418: the project's declared MPN field is
+                # The project's declared MPN field is
                 # authoritative among manufacturer-specific names when it is
                 # itself primary-tier and populated on this symbol — file
                 # order only breaks ties between OTHER primaries.
@@ -378,27 +333,29 @@ def generate_bom(symbols: list[dict], convention: dict,
                 if (mpn_field and normalize_field_name(mpn_field) in MPN_FIELD_ALIASES_PRIMARY
                         and props.get(mpn_field, "").strip()):
                     return props.get(mpn_field, "").strip()
-                # KH-418: a manufacturer-specific field on THIS symbol always
+                # A manufacturer-specific field on THIS symbol always
                 # outranks the project's convention-majority field when that
-                # majority field is generic (El-Luhb: majority field is
+                # majority field is generic (e.g. the majority field is
                 # `Part#`, but this symbol also carries `MPN`).
                 primary = _first_nonblank_stripped(props, MPN_FIELD_ALIASES_PRIMARY)
                 if primary:
                     return primary
             actual_name = field_map.get(canonical_name)
+            if actual_name and _slot_pn_number(actual_name) is not None:
+                actual_name = None  # slot fields are read per symbol below
             if actual_name:
                 val = props.get(actual_name, "").strip()
                 if val:
                     return val
-            # Try all known aliases as fallback (normalized match, KH-414).
+            # Try all known aliases as fallback (normalized match).
             # Also reached when the convention-majority field is empty on
-            # this symbol (final wave fix).
+            # this symbol.
             if canonical_name == "mpn":
                 return _pick_mpn_from_props(props)
             for actual, val in props.items():
                 if _canonical_for(actual) == canonical_name and val.strip():
                     return val.strip()
-            return ""
+            return slots.get(canonical_name, "")
 
         mpn = get_canonical("mpn")
         manufacturer = get_canonical("manufacturer")
@@ -419,12 +376,14 @@ def generate_bom(symbols: list[dict], convention: dict,
                 bom_comment = val
                 break
 
+        # A line never mixes DNP and fitted parts
+        dnp = bool(sym["dnp"])
         if group_by == 'mpn':
-            group_key = (mpn,) if mpn else (value, footprint, mpn)
+            group_key = (dnp, mpn) if mpn else (dnp, value, footprint, mpn)
         elif group_by == 'value':
-            group_key = (value,)
+            group_key = (dnp, value)
         else:  # 'value+footprint' — current default
-            group_key = (value, footprint, mpn)
+            group_key = (dnp, value, footprint, mpn)
 
         if group_key not in groups:
             groups[group_key] = {
@@ -508,59 +467,244 @@ def _find_gaps(entry: dict, convention: dict) -> list[str]:
 # Full analysis
 # ---------------------------------------------------------------------------
 
-def parse_schematic_file(filepath: Path) -> tuple[list[dict], str]:
-    """Parse a single .kicad_sch file and return (symbols, text)."""
-    text = filepath.read_text(encoding="utf-8")
-    raw_symbols = extract_placed_symbols(text)
+_VERSION = re.compile(r'\(version\s+(\d+)\)')
+# KiCad applies a root's (symbol_instances) only when the root predates this file version.
+_SYMBOL_INSTANCES_BEFORE = 20221002
 
-    symbols = []
-    for start, end, block in raw_symbols:
+
+def _file_version(text: str) -> int | None:
+    match = _VERSION.search(text)
+    return int(match.group(1)) if match else None
+
+
+def _library_unit_counts(text: str) -> dict[str, int]:
+    """Library symbol name -> number of units (sub-symbols `NAME_<unit>_<style>`, unit 0 = shared)."""
+    match = re.search(r'\(lib_symbols\b', text)
+    if not match:
+        return {}
+    node = parse(text[match.start():find_matching_paren(text, match.start()) + 1])
+    counts = {}
+    for sym in node[1:]:
+        if isinstance(sym, list) and len(sym) > 1 and sym[0] == "symbol":
+            units = set()
+            for sub in sym[2:]:
+                if isinstance(sub, list) and len(sub) > 1 and sub[0] == "symbol":
+                    parts = str(sub[1]).rsplit("_", 2)
+                    if len(parts) == 3 and parts[1].isdigit() and int(parts[1]) > 0:
+                        units.add(int(parts[1]))
+            counts[str(sym[1])] = len(units)
+    return counts
+
+
+def _placed_symbols(text: str) -> list[tuple[dict, str]]:
+    """(symbol, block) for each placed symbol of one .kicad_sch text, in file order."""
+    tilde_empty = tilde_is_empty(_file_version(text))
+    unit_counts = _library_unit_counts(text)
+    out = []
+    for start, end, block in extract_placed_symbols(text):
         props = extract_properties(block)
+        if tilde_empty:
+            # Files older than 20250318 write "~" for an empty field
+            props = {name: "" if value == "~" else value for name, value in props.items()}
         ref = props.get("Reference", "")
-        comp_type = classify_reference(ref)
-
-        symbols.append({
+        unit = direct_value(block, "unit")
+        out.append(({
             "reference": ref,
-            "type": comp_type,
+            "type": classify_reference(ref),
             "in_bom": is_in_bom(block),
             "dnp": is_dnp(block, props),
+            "unit": int(unit) if unit and unit.isdigit() else 1,
+            "unit_count": unit_counts.get(direct_value(block, "lib_name")
+                                          or direct_value(block, "lib_id") or "", 0),
+            "uuid": direct_value(block, "uuid") or "",
             "raw_properties": props,
-            "source_file": str(filepath),
-        })
+        }, block))
+    return out
 
-    return symbols, text
+
+def _kicad6_symbol_instances(root_text: str) -> dict[str, dict]:
+    """A KiCad 6 root's (symbol_instances): lowercase path below the root -> reference,
+    unit, value, footprint ("~" read as empty)."""
+    node = direct_child(root_text, "symbol_instances")
+    if node is None:
+        return {}
+    out = {}
+    for path_node in parse(node)[1:]:
+        if not isinstance(path_node, list) or len(path_node) < 2 or path_node[0] != "path":
+            continue
+        unit = get_value(path_node, "unit")
+        entry = {"reference": get_value(path_node, "reference") or "",
+                 "unit": int(unit) if unit and unit.isdigit() else None}
+        for key in ("value", "footprint"):
+            text = get_value(path_node, key) or ""
+            entry[key] = "" if text == "~" else text
+        out[str(path_node[1]).lower()] = entry
+    return out
+
+
+def _sheet_instances(input_path: Path, recursive: bool, read, variant: str | None = None,
+                     root_kiid: str = "") -> list[dict]:
+    """Every sheet instance below *input_path* (the root first, then breadth first in file
+    order): file, path below the root (sheet uuids), the in_bom / dnp the sheets on that path
+    impose (each sheet as design variant *variant* sets it), the parent instance and the
+    sibling sort key.  A sheet that includes one of its own ancestors is skipped."""
+    root = input_path.resolve()
+    sheets = [{"file": input_path, "path": "", "in_bom": True, "dnp": False,
+               "parent": None, "key": (), "chain": (root,)}]
+    seen = {(root, "")}
+    i = 0
+    while recursive and i < len(sheets):
+        parent = sheets[i]
+        text = read(parent["file"])
+        for sub in find_sub_sheet_entries(text, parent["file"].parent):
+            resolved = sub.path.resolve()
+            path = parent["path"] + "/" + sub.uuid if sub.uuid else parent["path"]
+            if resolved in parent["chain"] or (resolved, path.lower()) in seen:
+                continue
+            seen.add((resolved, path.lower()))
+            var = sheet_variant(sub.block, root_kiid + parent["path"], variant, _file_version(text))
+            sheets.append({"file": sub.path, "path": path,
+                           # KiCad 9+: a sheet's attributes reach every symbol below it,
+                           # OR-ed over the path; a nested sheet cannot re-include
+                           "in_bom": parent["in_bom"] and var.get("in_bom", sub.in_bom),
+                           "dnp": parent["dnp"] or var.get("dnp", sub.dnp),
+                           "parent": i, "key": (sub.at[0], sub.at[1], sub.uuid.lower()),
+                           "chain": parent["chain"] + (resolved,)})
+        i += 1
+    return sheets
+
+
+def _sheet_list_order(sheets: list[dict]) -> list[int]:
+    """Indices of *sheets* in KiCad's sheet list order: depth first, siblings by x, then y,
+    then uuid (SCH_SCREEN::GetSheets)."""
+    children: dict[int, list[int]] = {}
+    for i, sheet in enumerate(sheets):
+        if sheet["parent"] is not None:
+            children.setdefault(sheet["parent"], []).append(i)
+    order, stack = [], [0]
+    while stack:
+        i = stack.pop()
+        order.append(i)
+        stack.extend(sorted(children.get(i, ()), key=lambda c: sheets[c]["key"], reverse=True))
+    return order
+
+
+def _legacy_symbols(input_path: Path, recursive: bool) -> list[dict]:
+    """Symbols of a KiCad 5 .sch project in the shape _placed_symbols returns. KiCad 5 has no
+    in_bom or dnp flag, and its loader keeps a field's text as written (a "~" stays "~")."""
+    import schematic.legacy_reader as legacy
+    out = []
+    for rec in legacy.read_legacy_symbols(str(input_path), recursive=recursive):
+        props = dict(rec["fields"])
+        ref = rec["reference"]
+        out.append({"reference": ref, "type": classify_reference(ref), "in_bom": True,
+                    "dnp": is_dnp("", props), "unit": rec["unit"], "uuid": rec["uuid"],
+                    "raw_properties": props, "source_file": rec["source_file"]})
+    return out
 
 
 def analyze(
     input_path: Path,
     recursive: bool = False,
     group_by: str = 'value+footprint',
+    variant: str | None = None,
 ) -> dict:
-    """Analyze a KiCad schematic and return full BOM report."""
-    files_to_parse = [input_path]
+    """Analyze a KiCad schematic and return full BOM report.  *variant* names a KiCad 10 design
+    variant; None is the default variant (the symbols' own attributes and fields)."""
+    if input_path.suffix.lower() == ".sch":
+        all_symbols = _legacy_symbols(input_path, recursive)
+        return _report(input_path, all_symbols, sorted({s["source_file"] for s in all_symbols}), group_by)
+    texts: dict[Path, str] = {}
 
-    if recursive:
-        # Discover all sub-sheets recursively
-        visited = set()
-        queue = [input_path]
-        while queue:
-            current = queue.pop(0)
-            if current in visited:
-                continue
-            visited.add(current)
-            text = current.read_text(encoding="utf-8")
-            sub_sheets = find_sub_sheets(text, current.parent)
-            for ss in sub_sheets:
-                if ss not in visited:
-                    queue.append(ss)
-                    files_to_parse.append(ss)
+    def read(path: Path) -> str:
+        key = path.resolve()
+        if key not in texts:
+            texts[key] = path.read_text(encoding="utf-8")
+        return texts[key]
 
-    # Parse all files
+    root_text = read(input_path)
+    root_text = root_text[root_text.find("("):]
+    root_uuid = direct_value(root_text, "uuid") or ""
+    root_kiid = "/" + root_uuid if root_uuid else ""
+    sheets = _sheet_instances(input_path, recursive, read, variant, root_kiid)
+    files = {}
+    for sheet in sheets:
+        files.setdefault(sheet["file"].resolve(), sheet["file"])
+    files_to_parse = list(files.values())
+    parsed = {key: _placed_symbols(read(f)) for key, f in files.items()}
+
+    # References and units per sheet instance (SCH_SYMBOL::GetRef): the instance whose path
+    # is the sheet's full path, starting with the root sheet's uuid
+    version = _file_version(root_text)
+    k6 = {}
+    if version is None or version < _SYMBOL_INSTANCES_BEFORE:
+        k6 = _kicad6_symbol_instances(root_text)
+    k6_by_uuid: dict[str, list[dict]] = {}
+    for si_path, entry in k6.items():
+        k6_by_uuid.setdefault(si_path.rpartition("/")[2], []).append(
+            dict(entry, path=root_kiid + si_path.rpartition("/")[0], project=""))
+
+    # A KiCad 6 entry's non-empty value / footprint overwrites the one symbol it names, sheet
+    # by sheet in sheet-list order, so a symbol on a repeated sheet shows the last one
+    # (SCH_SHEET_LIST::UpdateSymbolInstanceData)
+    k6_fields: dict[tuple, dict] = {}
+    if k6:
+        for i in _sheet_list_order(sheets):
+            sheet = sheets[i]
+            resolved = sheet["file"].resolve()
+            for sym, _block in parsed[resolved]:
+                entry = k6.get((sheet["path"] + "/" + sym["uuid"]).lower())
+                if entry is None:
+                    continue
+                fields = k6_fields.setdefault((resolved, sym["uuid"].lower()), {})
+                for key, name in (("value", "Value"), ("footprint", "Footprint")):
+                    if entry[key]:
+                        fields[name] = entry[key]
+
     all_symbols = []
-    for fp in files_to_parse:
-        syms, _ = parse_schematic_file(fp)
-        all_symbols.extend(syms)
+    for sheet in sheets:
+        resolved = sheet["file"].resolve()
+        file_version = _file_version(read(sheet["file"]))
+        tilde_empty = tilde_is_empty(file_version)
+        for parsed_sym, block in parsed[resolved]:
+            sym = dict(parsed_sym, raw_properties=dict(parsed_sym["raw_properties"]),
+                       source_file=str(sheet["file"]))
+            props = sym["raw_properties"]
+            props.update(k6_fields.get((resolved, sym["uuid"].lower()), {}))
+            # Inline instance value / footprint (files of late 2022) set the symbol's field
+            for inst in symbol_instances_of(block, tilde_empty):
+                for key, name in (("value", "Value"), ("footprint", "Footprint")):
+                    if key in inst:
+                        props[name] = inst[key]
+            hit = resolved_instance(block, root_kiid + sheet["path"], project_name=input_path.stem,
+                                    candidates=k6_by_uuid.get(sym["uuid"].lower(), []))
+            if hit is not None:
+                if hit["reference"]:
+                    sym["reference"] = hit["reference"]
+                    sym["type"] = classify_reference(hit["reference"])
+                    props["Reference"] = hit["reference"]
+                if hit["unit"]:
+                    sym["unit"] = hit["unit"]
+                var = variant_overrides(hit.get("variants"), variant, file_version)
+                if var:
+                    # A variant overrides the fields the symbol has; the reference stays
+                    props.update((k, v) for k, v in var.get("fields", {}).items()
+                                 if k in props and k != "Reference")
+                    if "in_bom" in var:
+                        sym["in_bom"] = var["in_bom"]
+                    if "dnp" in var or "fields" in var:
+                        dnp_flag = var.get("dnp", direct_value(block, "dnp") == "yes")
+                        sym["dnp"] = dnp_flag or is_dnp("", props)
+            if not sheet["in_bom"]:
+                sym["in_bom"] = False
+            if sheet["dnp"]:
+                sym["dnp"] = True
+            all_symbols.append(sym)
 
+    return _report(input_path, all_symbols, [str(f) for f in files_to_parse], group_by)
+
+
+def _report(input_path: Path, all_symbols: list[dict], schematic_files: list[str], group_by: str) -> dict:
     # Detect convention
     convention = detect_convention(all_symbols)
 
@@ -573,7 +717,7 @@ def analyze(
     active_parts = [e for e in real_parts if not e["dnp"]]
 
     stats = {
-        "schematic_files": [str(f) for f in files_to_parse],
+        "schematic_files": schematic_files,
         "total_bom_lines": len(real_parts),
         "total_components": sum(e["quantity"] for e in real_parts),
         "dnp_lines": len(dnp_parts),
@@ -765,25 +909,45 @@ def _short_footprint(fp: str) -> str:
     return fp
 
 
-def load_existing_csv(csv_path: Path) -> dict[str, dict]:
-    """Load an existing BOM CSV and index by MPN (or Reference as fallback).
-
-    Returns {key: row_dict} where key is MPN if available, else Reference.
-    """
+def load_existing_rows(csv_path: Path) -> list[dict]:
+    """Every row of an existing BOM CSV, in file order."""
     if not csv_path.exists():
-        return {}
-
-    rows = {}
+        return []
     with open(csv_path, newline="", encoding="utf-8-sig") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            # Use MPN as key if available, else first reference
-            key = row.get("MPN", "").strip()
-            if not key:
-                key = row.get("Reference", "").strip().split(",")[0]
-            if key:
-                rows[key] = dict(row)
-    return rows
+        return [dict(row) for row in csv.DictReader(f)]
+
+
+def _refs_of(row: dict) -> set:
+    return {r.strip() for r in (row.get("Reference") or "").split(",") if r.strip()}
+
+
+def _is_dnp_text(text: str) -> bool:
+    return text.strip().lower() in ("yes", "true", "1", "dnp")
+
+
+def _is_manual_row(row: dict) -> bool:
+    return (row.get("Reference") or "").strip().startswith("--")
+
+
+def _match_existing(rows: list[dict], mpn: str, value: str, fp_short: str, dnp: str,
+                    refs: set) -> tuple[dict | None, bool]:
+    """(existing row, same part) for one new BOM line. Rows with the line's MPN (or, without an
+    MPN, its value and footprint) are the same part; a row found only by a shared reference holds
+    a different part now."""
+    def field(r, k):
+        return (r.get(k) or "").strip()
+    if mpn:
+        same = [r for r in rows if field(r, "MPN") == mpn and not _is_manual_row(r)]
+    else:
+        same = [r for r in rows if not field(r, "MPN") and not _is_manual_row(r)
+                and field(r, "Value") == value and field(r, "Footprint") == fp_short]
+    if same:
+        same.sort(key=lambda r: (-len(_refs_of(r) & refs), _is_dnp_text(field(r, "DNP")) != _is_dnp_text(dnp)))
+        return same[0], True
+    for r in rows:
+        if not _is_manual_row(r) and refs & _refs_of(r):
+            return r, False
+    return None, False
 
 
 def export_csv(report: dict, output_path: Path, extra_distributors: list[str] | None = None) -> dict:
@@ -806,18 +970,26 @@ def export_csv(report: dict, output_path: Path, extra_distributors: list[str] | 
     csv_columns = _build_csv_columns(active_distributors)
 
     # Load existing CSV data to preserve user edits
-    existing = load_existing_csv(output_path)
+    existing = load_existing_rows(output_path)
 
     # If an existing CSV has extra distributor columns (user added one manually),
     # include those too so we don't drop data
     if existing:
-        sample = next(iter(existing.values()), {})
         for dist in _DIST_ORDER:
             if dist not in active_distributors:
                 pn_col, stock_col = _DIST_CSV_MAP[dist]
-                if sample.get(pn_col) or sample.get(stock_col):
+                if any(r.get(pn_col) or r.get(stock_col) for r in existing):
                     active_distributors.append(dist)
         csv_columns = _build_csv_columns(active_distributors)
+
+    # Columns the user added to the CSV travel with their rows
+    known_columns = set(_build_csv_columns(list(_DIST_ORDER)))
+    extra_columns = []
+    for erow in existing:
+        for col in erow:
+            if col and col not in known_columns and col not in extra_columns:
+                extra_columns.append(col)
+    csv_columns = csv_columns + extra_columns
 
     # User-managed columns (preserved from existing CSV)
     user_columns = {"Chosen_Distributor", "Validated", "Notes"}
@@ -855,16 +1027,20 @@ def export_csv(report: dict, output_path: Path, extra_distributors: list[str] | 
             row[pn_col] = entry.get(dist, "")
 
         # Merge with existing data — preserve user-managed columns
-        existing_row = existing.get(mpn) if mpn else None
-        if not existing_row:
-            # Try matching by first reference
-            first_ref = entry["references"][0] if entry["references"] else ""
-            for erow in existing.values():
-                if first_ref and first_ref in erow.get("Reference", "").split(","):
-                    existing_row = erow
-                    break
+        existing_row, same_part = _match_existing(
+            existing, mpn, entry["value"], fp_short, row["DNP"], set(entry["references"]))
+        if existing_row and not same_part:
+            # A different part now holds these references: only the notes and the
+            # distributor choice carry over
+            for col in ("Notes", "Chosen_Distributor"):
+                if existing_row.get(col):
+                    row[col] = existing_row[col]
+            existing_row = None
 
         if existing_row:
+            for col in extra_columns:
+                if existing_row.get(col):
+                    row[col] = existing_row[col]
             for col in user_columns:
                 if col in existing_row and existing_row[col]:
                     row[col] = existing_row[col]
@@ -880,12 +1056,17 @@ def export_csv(report: dict, output_path: Path, extra_distributors: list[str] | 
 
         rows.append(row)
 
-    # Write CSV
+    # Manual rows ("--") are hand-kept lines the schematic does not know about
+    for erow in existing:
+        if _is_manual_row(erow):
+            rows.append({col: erow.get(col) or "" for col in csv_columns})
+
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=csv_columns, extrasaction="ignore")
-        writer.writeheader()
-        writer.writerows(rows)
+    buf = io.StringIO(newline="")
+    writer = csv.DictWriter(buf, fieldnames=csv_columns, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    atomic_write_text(output_path, buf.getvalue(), newline="")
 
     active_rows = [r for r in rows if r.get("DNP") != "yes"]
     return {
@@ -893,7 +1074,7 @@ def export_csv(report: dict, output_path: Path, extra_distributors: list[str] | 
         "total_lines": len(rows),
         "active_lines": len(active_rows),
         "active_distributors": active_distributors,
-        "merged_from_existing": sum(1 for _ in existing) if existing else 0,
+        "merged_from_existing": len(existing),
     }
 
 
@@ -1161,16 +1342,20 @@ def main():
 
     # analyze subcommand
     p_analyze = subparsers.add_parser("analyze", help="Analyze schematic BOM properties")
-    p_analyze.add_argument("schematic", type=Path, help="Path to .kicad_sch file")
+    p_analyze.add_argument("schematic", type=Path, help="Path to .kicad_sch (or KiCad 5 .sch, read only) file")
     p_analyze.add_argument("--json", action="store_true", help="Output as JSON")
     p_analyze.add_argument("--gaps-only", action="store_true", help="Show only parts with missing fields")
     p_analyze.add_argument("--recursive", action="store_true", help="Include hierarchical sub-sheets")
+    p_analyze.add_argument("--variant", default=None, metavar="NAME",
+                           help="KiCad 10 design variant (default: the default variant)")
 
     # export subcommand
     p_export = subparsers.add_parser("export", help="Export BOM tracking CSV")
-    p_export.add_argument("schematic", type=Path, help="Path to .kicad_sch file")
+    p_export.add_argument("schematic", type=Path, help="Path to .kicad_sch (or KiCad 5 .sch, read only) file")
     p_export.add_argument("-o", "--output", type=Path, required=True, help="Output CSV path")
     p_export.add_argument("--recursive", action="store_true", help="Include hierarchical sub-sheets")
+    p_export.add_argument("--variant", default=None, metavar="NAME",
+                          help="KiCad 10 design variant (default: the default variant)")
     p_export.add_argument("--add-distributor", action="append", default=[],
                          help="Add distributor columns even if not detected (e.g., --add-distributor mouser)")
 
@@ -1188,7 +1373,7 @@ def main():
     p_order.add_argument("--json", action="store_true", help="Output result as JSON")
 
     # Backwards compat: if first arg is a .kicad_sch file with no subcommand, assume "analyze"
-    if len(sys.argv) > 1 and sys.argv[1].endswith(".kicad_sch"):
+    if len(sys.argv) > 1 and sys.argv[1].lower().endswith((".kicad_sch", ".sch")):
         sys.argv.insert(1, "analyze")
 
     args = parser.parse_args()
@@ -1233,14 +1418,20 @@ def main():
         if not args.schematic.exists():
             print(f"Error: {args.schematic} not found", file=sys.stderr)
             sys.exit(1)
-        if args.schematic.suffix != ".kicad_sch":
-            print(f"Error: expected a .kicad_sch file, got {args.schematic.suffix}", file=sys.stderr)
+        if args.schematic.suffix.lower() not in (".kicad_sch", ".sch"):
+            print(f"Error: expected a .kicad_sch or .sch file, got {args.schematic.suffix}", file=sys.stderr)
             sys.exit(1)
+        if args.variant is not None:
+            from kicad_core.project import load_kicad_pro, unknown_variant_error
+            variant_error = unknown_variant_error(args.variant, load_kicad_pro(str(args.schematic)))
+            if variant_error:
+                print(f"Error: {variant_error}", file=sys.stderr)
+                sys.exit(2)
 
         if args.command == "analyze":
             group_by = bom_config.get('group_by', 'value+footprint')
             report = analyze(args.schematic, recursive=args.recursive,
-                             group_by=group_by)
+                             group_by=group_by, variant=args.variant)
             # Config override: preferred_suppliers takes precedence
             if preferred_suppliers_cfg:
                 report['convention']['preferred_distributor'] = (
@@ -1256,7 +1447,7 @@ def main():
         elif args.command == "export":
             group_by = bom_config.get('group_by', 'value+footprint')
             report = analyze(args.schematic, recursive=args.recursive,
-                             group_by=group_by)
+                             group_by=group_by, variant=args.variant)
             extra_distributors = [_normalize_distributor(s)
                                   for s in args.add_distributor]
             # Config-preferred suppliers always get CSV columns
@@ -1275,4 +1466,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     main()

@@ -61,7 +61,7 @@ sentence when it is installed.
 - Verb sentences a rendered shim carries:
   - **Spawn subagents** — run the dispatcher with `--exec-subagents`: it dispatches every materialized task itself and continues past each marker in the same process. Never spawn a subagent by hand on this host.
   - **Ask the user** — print the numbered option block exactly as the dispatcher rendered it and copy the selected option's command verbatim, and only under `--interactive`. Otherwise the documented `--yes` default applies and nothing is asked.
-  - **Run detached** — pass `--detach` (which implies `--yes`) on every fan-out mode, then poll `status <plan> --view run`. Do this even when you expect the run to be quick: a fan-out started in the foreground cannot be handed back to once your turn ends. Only a single-model, non-fan-out call may stay in the foreground. Never combine `--detach` with a host background mechanism — pick one.
+  - **Run detached** — pass `--detach` (which implies `--yes`) on every fan-out mode, and on every apply mode and `implement`, whose write batches the executor runs inside that one command, then poll `status <plan> --view run`. Do this even when you expect the run to be quick: a run started in the foreground cannot be handed back to once your turn ends. Only a single-model call that applies no batch may stay in the foreground. Never combine `--detach` with a host background mechanism — pick one.
 - Install paths (project): `.codex/skills/multi-llm`
 - Install paths (global): `$HOME/.codex/skills/multi-llm`
 - Install paths (legacy): `$HOME/.codex/prompts/multi-llm.md`
@@ -82,7 +82,7 @@ sentence when it is installed.
 - Verb sentences a rendered shim carries:
   - **Spawn subagents** — run the dispatcher with `--exec-subagents`: it dispatches every materialized task itself and continues past each marker in the same process. Never spawn a subagent by hand on this host.
   - **Ask the user** — print the numbered option block exactly as the dispatcher rendered it and copy the selected option's command verbatim, and only under `--interactive`. Otherwise the documented `--yes` default applies and nothing is asked.
-  - **Run detached** — pass `--detach` (which implies `--yes`) on every fan-out mode and poll `status <plan> --view run`. This host caps a single shell command below a fan-out's runtime, so no foreground fan-out path is offered.
+  - **Run detached** — pass `--detach` (which implies `--yes`) on every fan-out mode, and on every apply mode and `implement`, whose write batches the executor runs inside that one command, and poll `status <plan> --view run`. This host caps a single shell command below the runtime of either, so no foreground path is offered for them.
 - Install paths (project): `.opencode/commands`
 - Install paths (global): `$XDG_CONFIG_HOME/opencode/commands`, `$HOME/.config/opencode/commands`
 - Install paths (legacy): *none*

@@ -1,7 +1,7 @@
 """Pin + AltFunction dataclasses + Pinout wrapper class.
 
 Mirrors pinout.schema.json. Pin shape is flagged x-still-calibrating
-through v1.4 — shape may shift with real-corpus feedback before v1.5.
+in the schema — the shape may shift with real-corpus feedback.
 
 Pinout is NOT a dataclass because its JSON root is a bare array. It
 wraps list[Pin] and exposes .find / .in_domain / __iter__ / __len__

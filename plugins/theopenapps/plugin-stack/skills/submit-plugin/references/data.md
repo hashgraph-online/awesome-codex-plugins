@@ -28,7 +28,7 @@ Budgets are per IP when signed out, and shared with the website, which holds bac
 | Countries | US | All | All |
 | Combining tags in `listings_list` | Refused | Within one group: capability tags, or job, brand and audience tags | Any |
 | Several apps at once | Refused | Refused | `apps`: 10 on `listings_ranks_history`, 5 on `listings_get` |
-| Calls per hour, 24 hours | 300, 1,000 | 1,000, 5,000 | 5,000, 25,000 |
+| Calls per hour, 24 hours | 1,000, 5,000 | 3,000, 15,000 | 5,000, 25,000 |
 | Rows per 24 hours | 5,000 | 25,000 | 250,000 |
 
 Each answer's `meta.tier` is the plan it was read at: `out`, `free` or `plus`, which is Pro. Keep `limit` small: a run that spends the rows locks the user out of the site too. Make the reads a step names, one at a time or in a short loop that stops at the first refusal. Don't write your own client with retries: it hides refusals and keeps spending.

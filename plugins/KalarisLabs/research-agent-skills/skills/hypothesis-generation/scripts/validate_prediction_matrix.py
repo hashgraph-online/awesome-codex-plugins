@@ -41,6 +41,7 @@ FIELDS = (
 
 
 def load_matrix(raw_path: str) -> list[dict[str, Any]]:
+    """Load matrix."""
     rows = read_csv_records(raw_path, fields=FIELDS)
     parsed: list[dict[str, Any]] = []
     prediction_ids: list[str] = []
@@ -109,12 +110,14 @@ def load_matrix(raw_path: str) -> list[dict[str, Any]]:
 
 
 def _normalized_expectation(value: str) -> str:
+    """Handle normalized expectation."""
     return re.sub(r"[^a-z0-9]+", " ", value.casefold()).strip()
 
 
 def _unknown(
     values: list[str], allowed: set[str], code: str, field: str
 ) -> list[dict[str, str]]:
+    """Handle unknown."""
     return [
         issue(code, f"{field}:{value}")
         for value in sorted(set(values) - allowed)
@@ -124,6 +127,7 @@ def _unknown(
 def validate_matrix(
     rows: list[dict[str, Any]], record: dict[str, Any] | None = None
 ) -> dict[str, Any]:
+    """Validate matrix."""
     errors: list[dict[str, str]] = []
     warnings: list[dict[str, str]] = []
     hypothesis_counts: Counter[str] = Counter()
@@ -252,6 +256,7 @@ def validate_matrix(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a bounded local prediction/rival CSV and emit identifiers "
@@ -270,6 +275,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         record = (

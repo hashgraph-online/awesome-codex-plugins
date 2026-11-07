@@ -33,6 +33,7 @@ TOOL = "geometry_validity_report"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit null/empty/invalid geometry and simulate make_valid locally. "
@@ -88,6 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _type_transition_count(before: Any, after: Any) -> int:
+    """Handle type transition count."""
     before_types = [
         "missing" if value is None else str(value) for value in before.geom_type
     ]
@@ -98,6 +100,7 @@ def _type_transition_count(before: Any, after: Any) -> int:
 
 
 def report(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle report."""
     if args.drop_collapsed and args.method != "structure":
         raise CliError("--drop-collapsed is valid only with --method structure")
     path = checked_input_file(
@@ -215,6 +218,7 @@ def report(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         emit_json(report(args))

@@ -33,10 +33,9 @@ def normalize_severity(sev):
     lowercase (error/warning/info). Returns one of {"error", "warning",
     "info"}. Returns "info" for None, non-string, or unknown input.
 
-    Use this anywhere a consumer reads `finding["severity"]` — analyzer
-    outputs may carry either taxonomy depending on the producer code
-    path (EMC + voltage_derating still emit legacy uppercase via
-    _normalize_severity, schematic+pcb+thermal emit v1.4 lowercase).
+    Use this anywhere a consumer reads `finding["severity"]`: current
+    analyzers all emit the lowercase vocabulary, but saved outputs from
+    older versions and hand-written inputs may carry the uppercase one.
     """
     if not isinstance(sev, str):
         return "info"
@@ -45,7 +44,7 @@ def normalize_severity(sev):
 
 
 def severity_bucket(severity: str) -> str:
-    """Text-report bucket. Differs from `normalize_severity` on `WARN` (→ warning here) and accepts `ERROR`; kept as a named adapter (U5)."""
+    """Text-report bucket. Differs from `normalize_severity` on `WARN` (→ warning here) and accepts `ERROR`; kept as a named adapter."""
     s = (severity or '').upper()
     if s in ('CRITICAL', 'HIGH', 'ERROR'):
         return 'error'

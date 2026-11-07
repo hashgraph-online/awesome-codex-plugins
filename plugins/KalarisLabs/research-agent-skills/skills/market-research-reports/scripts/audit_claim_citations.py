@@ -85,6 +85,7 @@ MEASURE_TYPES = {
 
 
 def _load_sources(path: str | Path) -> list[dict[str, Any]]:
+    """Load sources."""
     suffix = Path(path).suffix.lower()
     if suffix == ".csv":
         return read_csv_records(
@@ -108,6 +109,7 @@ def _load_sources(path: str | Path) -> list[dict[str, Any]]:
 
 
 def _source_index(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Handle source index."""
     index: dict[str, dict[str, Any]] = {}
     for position, record in enumerate(records):
         context = f"sources[{position}]"
@@ -130,6 +132,7 @@ def _source_index(records: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
 def audit(
     claims: list[dict[str, str]], sources: list[dict[str, Any]]
 ) -> dict[str, Any]:
+    """Handle audit."""
     source_index = _source_index(sources)
     errors: list[str] = []
     warnings: list[str] = []
@@ -296,6 +299,7 @@ def audit(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit a strict local claims CSV against a local source ledger. "
@@ -312,6 +316,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         claims = read_csv_records(args.claims, required_fields=CLAIM_FIELDS)

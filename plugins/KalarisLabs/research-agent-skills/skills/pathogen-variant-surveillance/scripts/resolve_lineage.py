@@ -65,6 +65,7 @@ def normalise(name: str) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Check lineage names against the live nomenclature.",
     )
@@ -80,7 +81,127 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _load_definition(base_url: str, lineage_field: str, has_index: bool) -> dict:
+    """Fetch the lineage definition, warning (not failing) when it is unavailable."""
+    if not has_index:
+        return {}
+    try:
+        return lineage_definition(base_url, lineage_field)
+    except LapisError as exc:
+        print(f"warning: no lineage definition for {lineage_field}: {exc}", file=sys.stderr)
+        return {}
+
+
+def _load_nomenclature(lineage_field: str) -> tuple[dict, dict]:
+    """Fetch pango aliases and lineage notes, warning when pango-designation is unreachable."""
+    aliases: dict = {}
+    notes: dict = {}
+    if lineage_field in PANGO_FIELDS:
+        try:
+            aliases = fetch_pango_aliases()
+            notes = fetch_lineage_notes()
+        except LapisError as exc:
+            print(f"warning: pango-designation unreachable: {exc}", file=sys.stderr)
+    return aliases, notes
+
+
+def _classify(note: dict, in_definition: bool, notes: dict, definition: dict) -> str:
+    """Classify a name as withdrawn, current, unknown or unverified."""
+    if note.get("status") == "withdrawn":
+        return "withdrawn"
+    if note.get("status") == "designated" or in_definition:
+        return "current"
+    if notes or definition:
+        return "unknown"
+    return "unverified"
+
+
+def _detail_text(note: dict, status: str) -> str:
+    """Build the detail column, naming a redesignation successor when present."""
+    detail = note.get("note", "")
+    successor = REDESIGNATED.search(detail)
+    if successor:
+        return f"now {successor.group(1)}; {detail}"
+    if status == "unknown":
+        return "no such name in the live nomenclature for this instance"
+    return detail
+
+
+def _sequence_count(base_url: str, lineage_field: str, name: str, has_index: bool) -> object:
+    """Count sequences for a lineage, returning ``n/a`` or ``error`` on failure."""
+    try:
+        query = f"{name}*" if has_index else name
+        return count(base_url, {lineage_field: query})
+    except LapisError as exc:
+        # An indexed column rejects an unknown lineage outright rather
+        # than answering 0 -- which is the one place a typo is caught
+        # for you. An unindexed column would have returned 0 instead.
+        return "n/a" if "not a valid lineage" in str(exc) else "error"
+
+
+def _resolve_row(
+    raw: str,
+    args: argparse.Namespace,
+    ctx: dict,
+) -> tuple[dict, str]:
+    """Resolve one lineage name into an output row and its status."""
+    definition, aliases, notes = ctx["definition"], ctx["aliases"], ctx["notes"]
+    name = normalise(raw)
+    note = notes.get(name, {})
+    status = _classify(note, name in definition, notes, definition)
+    detail = _detail_text(note, status)
+
+    chain = parent_chain(name, definition) if definition else []
+    kids = descendants(name, definition, ctx["children"]) if definition else []
+
+    sequences: object = ""
+    if not args.no_counts:
+        sequences = _sequence_count(
+            ctx["base_url"], ctx["lineage_field"], name, ctx["has_index"]
+        )
+
+    row = {
+        "query": raw,
+        "status": status,
+        "unaliased": unalias_full(name, aliases) if aliases else "",
+        "parent": chain[0] if chain else "",
+        "recombinant_of": "+".join(recombinant_parents(name, aliases)) if aliases else "",
+        "descendants": ", ".join(kids) if args.descendants else len(kids),
+        "sequences": sequences,
+        "detail": detail,
+    }
+    return row, status
+
+
+def _print_provenance(schema: dict, ctx: dict, version: str) -> None:
+    """Print the stderr provenance footer for non-JSON output."""
+    base_url, lineage_field = ctx["base_url"], ctx["lineage_field"]
+    has_index, notes = ctx["has_index"], ctx["notes"]
+    print(
+        f"\n# {schema['name']} via {base_url} | data version {version}"
+        f"\n# lineage column {lineage_field}"
+        f"{' with a lineage index' if has_index else ' with no lineage index'}"
+        + (
+            f"\n# nomenclature from pango-designation ({len(notes)} names, "
+            f"{sum(1 for v in notes.values() if v['status'] == 'withdrawn')} withdrawn)"
+            f"\n# source blobs {pango_provenance()}"
+            if notes
+            else ""
+        )
+        + ("\n# 'sequences' counts the lineage and its descendants" if has_index else ""),
+        file=sys.stderr,
+    )
+    others = [n for n, _ in lineage_field_candidates(schema) if n != lineage_field]
+    if others:
+        print(
+            f"# other lineage-like columns here: {', '.join(others)} "
+            f"(select one with --lineage-field)",
+            file=sys.stderr,
+        )
+
+
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
 
     try:
@@ -94,103 +215,34 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
 
-    definition: dict = {}
-    if has_index:
-        try:
-            definition = lineage_definition(base_url, lineage_field)
-        except LapisError as exc:
-            print(f"warning: no lineage definition for {lineage_field}: {exc}", file=sys.stderr)
+    definition = _load_definition(base_url, lineage_field, has_index)
+    aliases, notes = _load_nomenclature(lineage_field)
 
-    aliases: dict = {}
-    notes: dict = {}
-    if lineage_field in PANGO_FIELDS:
-        try:
-            aliases = fetch_pango_aliases()
-            notes = fetch_lineage_notes()
-        except LapisError as exc:
-            print(f"warning: pango-designation unreachable: {exc}", file=sys.stderr)
-
-    # Inverted once: the SARS-CoV-2 definition holds ~5,500 entries, so
-    # rebuilding it per name makes a list of lineages quadratic.
-    children = children_map(definition)
+    ctx = {
+        "base_url": base_url,
+        "lineage_field": lineage_field,
+        "has_index": has_index,
+        "definition": definition,
+        "aliases": aliases,
+        "notes": notes,
+        # Inverted once: the SARS-CoV-2 definition holds ~5,500 entries, so
+        # rebuilding it per name makes a list of lineages quadratic.
+        "children": children_map(definition),
+    }
 
     rows: list[dict] = []
     failures = 0
     for raw in args.names:
-        name = normalise(raw)
-        note = notes.get(name, {})
-        in_definition = name in definition
-
-        if note.get("status") == "withdrawn":
-            status = "withdrawn"
-        elif note.get("status") == "designated" or in_definition:
-            status = "current"
-        elif notes or definition:
-            status = "unknown"
-        else:
-            status = "unverified"
+        row, status = _resolve_row(raw, args, ctx)
         if status in {"withdrawn", "unknown"}:
             failures += 1
-
-        detail = note.get("note", "")
-        successor = REDESIGNATED.search(detail)
-        if successor:
-            detail = f"now {successor.group(1)}; {detail}"
-        elif status == "unknown":
-            detail = "no such name in the live nomenclature for this instance"
-
-        chain = parent_chain(name, definition) if definition else []
-        kids = descendants(name, definition, children) if definition else []
-
-        sequences: object = ""
-        if not args.no_counts:
-            try:
-                query = f"{name}*" if has_index else name
-                sequences = count(base_url, {lineage_field: query})
-            except LapisError as exc:
-                # An indexed column rejects an unknown lineage outright rather
-                # than answering 0 -- which is the one place a typo is caught
-                # for you. An unindexed column would have returned 0 instead.
-                sequences = "n/a" if "not a valid lineage" in str(exc) else "error"
-
-        rows.append(
-            {
-                "query": raw,
-                "status": status,
-                "unaliased": unalias_full(name, aliases) if aliases else "",
-                "parent": chain[0] if chain else "",
-                "recombinant_of": "+".join(recombinant_parents(name, aliases)) if aliases else "",
-                "descendants": ", ".join(kids) if args.descendants else len(kids),
-                "sequences": sequences,
-                "detail": detail,
-            }
-        )
+        rows.append(row)
 
     print(emit(rows, COLUMNS, args.format))
     sys.stdout.flush()
 
     if args.format != "json":
-        print(
-            f"\n# {schema['name']} via {base_url} | data version {version}"
-            f"\n# lineage column {lineage_field}"
-            f"{' with a lineage index' if has_index else ' with no lineage index'}"
-            + (
-                f"\n# nomenclature from pango-designation ({len(notes)} names, "
-                f"{sum(1 for v in notes.values() if v['status'] == 'withdrawn')} withdrawn)"
-                f"\n# source blobs {pango_provenance()}"
-                if notes
-                else ""
-            )
-            + ("\n# 'sequences' counts the lineage and its descendants" if has_index else ""),
-            file=sys.stderr,
-        )
-        others = [n for n, _ in lineage_field_candidates(schema) if n != lineage_field]
-        if others:
-            print(
-                f"# other lineage-like columns here: {', '.join(others)} "
-                f"(select one with --lineage-field)",
-                file=sys.stderr,
-            )
+        _print_provenance(schema, ctx, version)
     return 1 if failures else 0
 
 

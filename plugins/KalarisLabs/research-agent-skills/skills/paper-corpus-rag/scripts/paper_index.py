@@ -30,6 +30,8 @@ for _stream in (sys.stdout, sys.stderr):
     if hasattr(_stream, "reconfigure"):
         _stream.reconfigure(encoding="utf-8", errors="replace")
 
+DEFAULT_DB = "corpus.sqlite"
+
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS docs (path TEXT PRIMARY KEY, sha256 TEXT, title TEXT, n_chunks INTEGER);
 CREATE VIRTUAL TABLE IF NOT EXISTS chunks USING fts5(
@@ -39,6 +41,7 @@ HEADING_RE = re.compile(r"^(#{1,6})\s+(.+)$|^(\d+(?:\.\d+)*)\s+([A-Z][^\n]{2,80}
 
 
 def read_doc(path: Path) -> str:
+    """Read doc."""
     if path.suffix.lower() == ".pdf":
         try:
             from pypdf import PdfReader  # optional
@@ -70,6 +73,7 @@ def chunk_text(text: str, size: int = 1200, overlap: int = 200) -> list[tuple[st
 
 
 def cmd_index(args: argparse.Namespace) -> int:
+    """Run the index subcommand."""
     root = Path(args.folder)
     con = sqlite3.connect(args.db)
     con.executescript(SCHEMA)
@@ -114,6 +118,7 @@ def fts_query(q: str) -> str:
 
 
 def cmd_query(args: argparse.Namespace) -> int:
+    """Run the query subcommand."""
     con = sqlite3.connect(args.db)
     rows = con.execute(
         "SELECT path, chunk, section, snippet(chunks, 0, '[', ']', ' ... ', 24), bm25(chunks), text "
@@ -131,6 +136,7 @@ def cmd_query(args: argparse.Namespace) -> int:
 
 
 def cmd_stats(args: argparse.Namespace) -> int:
+    """Run the stats subcommand."""
     con = sqlite3.connect(args.db)
     docs, chunks = con.execute("SELECT COUNT(*), COALESCE(SUM(n_chunks), 0) FROM docs").fetchone()
     print(f"{docs} documents, {chunks} chunks in {args.db}")
@@ -138,21 +144,22 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
     i = sub.add_parser("index")
     i.add_argument("folder")
-    i.add_argument("--db", default="corpus.sqlite")
+    i.add_argument("--db", default=DEFAULT_DB)
     i.add_argument("--chunk-size", type=int, default=1200)
     i.add_argument("--overlap", type=int, default=200)
     q = sub.add_parser("query")
     q.add_argument("query")
-    q.add_argument("--db", default="corpus.sqlite")
+    q.add_argument("--db", default=DEFAULT_DB)
     q.add_argument("-k", type=int, default=8)
     q.add_argument("--json", action="store_true")
     q.add_argument("--full", action="store_true", help="include full chunk text")
     s = sub.add_parser("stats")
-    s.add_argument("--db", default="corpus.sqlite")
+    s.add_argument("--db", default=DEFAULT_DB)
     args = ap.parse_args()
     return {"index": cmd_index, "query": cmd_query, "stats": cmd_stats}[args.cmd](args)
 

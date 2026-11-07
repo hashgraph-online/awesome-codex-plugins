@@ -42,7 +42,7 @@ def search_kegg_compound(compound_name):
         results = k.find("compound", compound_name)
 
         if not results or not results.strip():
-            print(f"✗ No results found in KEGG")
+            print("✗ No results found in KEGG")
             return k, None
 
         # Parse results
@@ -136,7 +136,7 @@ def get_kegg_info(kegg, kegg_id):
                 current_section = None
 
         # Display information
-        print(f"\n✓ KEGG Compound Information:")
+        print("\n✓ KEGG Compound Information:")
         print(f"  ID: {compound_info['kegg_id']}")
         print(f"  Name: {compound_info['name']}")
         print(f"  Formula: {compound_info['formula']}")
@@ -203,7 +203,7 @@ def get_chebi_info(chebi_id):
         entity = c.getCompleteEntity(chebi_id)
 
         if entity:
-            print(f"\n✓ ChEBI Information:")
+            print("\n✓ ChEBI Information:")
             print(f"  ID: {entity.chebiId}")
             print(f"  Name: {entity.chebiAsciiName}")
 
@@ -251,7 +251,7 @@ def get_chembl_info(chembl_id):
         compound = c.get_molecule(chembl_id)
 
         if compound:
-            print(f"\n✓ ChEMBL Information:")
+            print("\n✓ ChEMBL Information:")
             print(f"  ID: {chembl_id}")
 
             if 'pref_name' in compound and compound['pref_name']:
@@ -323,7 +323,7 @@ def save_results(compound_name, kegg_info, chembl_id, output_file):
             f.write(f"ChEMBL: {chembl_id}\n")
         f.write("\n")
 
-    print(f"✓ Results saved")
+    print("✓ Results saved")
 
 
 def main():

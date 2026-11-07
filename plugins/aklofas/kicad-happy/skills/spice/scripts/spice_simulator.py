@@ -8,13 +8,24 @@ layer and output parsing differ between simulators.
 
 Auto-detection tries ngspice → LTspice → Xyce. Override with --simulator
 flag or SPICE_SIMULATOR environment variable.
+
+PspiceBackend is not part of BACKENDS or auto-detection: it only runs
+complete user-supplied decks and is reachable solely through
+run_external_deck.py --simulator pspice.
 """
 
+import codecs
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
+from pathlib import Path
+
+import _core_path  # noqa: F401
+from kicad_core.executables import find_executable
+from spice_models import spice_echo
 
 
 # ---------------------------------------------------------------------------
@@ -90,9 +101,9 @@ class NgspiceBackend(SimulatorBackend):
         if env_path and os.path.isfile(env_path):
             return os.path.abspath(env_path)
         # Standard PATH lookup
-        found = shutil.which("ngspice")
+        found = find_executable("ngspice")
         if found:
-            return os.path.abspath(found)
+            return found
         # Windows default
         for candidate in [
             os.path.join(os.environ.get("PROGRAMFILES", ""), "Spice64", "bin", "ngspice.exe"),
@@ -108,7 +119,7 @@ class NgspiceBackend(SimulatorBackend):
             return False, "", "ngspice not found"
         try:
             result = subprocess.run(
-                [binary, "-b", cir_file],
+                [binary, "-n", "-b", cir_file],
                 capture_output=True, text=True, encoding="utf-8", errors="replace",
                 timeout=timeout, cwd=cwd,
             )
@@ -167,10 +178,12 @@ class NgspiceBackend(SimulatorBackend):
                 if len(meas) > 3 and meas[3]:
                     echo_vars.append(f"{name}=$&{name}")
 
-        # Add extra variables
+        # Each value is one word: the parser splits on whitespace, so a later word with
+        # "=" would read as a measurement
         if extra_vars:
             for key, val in extra_vars.items():
-                echo_vars.append(f"{key}={val}")
+                words = spice_echo(val).split()
+                echo_vars.append(f"{spice_echo(key)}={words[0] if words else ''}")
 
         # Echo all results to output file
         echo_str = " ".join(echo_vars)
@@ -203,9 +216,9 @@ class LtspiceBackend(SimulatorBackend):
 
         # Standard PATH
         for name in ("ltspice", "LTspice", "XVIIx64"):
-            found = shutil.which(name)
+            found = find_executable(name)
             if found:
-                return os.path.abspath(found)
+                return found
 
         # Platform-specific defaults
         if sys.platform == "win32":
@@ -222,7 +235,7 @@ class LtspiceBackend(SimulatorBackend):
                 return candidate
 
         # Linux: check for wine + LTspice
-        wine = shutil.which("wine")
+        wine = find_executable("wine")
         if wine:
             home = os.path.expanduser("~")
             for candidate in [
@@ -350,9 +363,9 @@ class XyceBackend(SimulatorBackend):
         if env_path and os.path.isfile(env_path):
             return os.path.abspath(env_path)
         for name in ("Xyce", "xyce"):
-            found = shutil.which(name)
+            found = find_executable(name)
             if found:
-                return os.path.abspath(found)
+                return found
         return None
 
     def run(self, cir_file, timeout=5, cwd=None):
@@ -430,6 +443,289 @@ class XyceBackend(SimulatorBackend):
                 results[m.group(1)] = float(m.group(2))
 
         return results
+
+
+# ---------------------------------------------------------------------------
+# PSpice external-deck backend
+# ---------------------------------------------------------------------------
+
+def _on_windows():
+    return os.name == "nt"
+
+
+def _is_native_windows_exe(path):
+    return os.path.isabs(path) and path.lower().endswith(".exe")
+
+
+def _file_signature(path):
+    """Return (mtime_ns, size) for a file, or None when it does not exist."""
+    try:
+        info = path.stat()
+    except FileNotFoundError:
+        return None
+    return info.st_mtime_ns, info.st_size
+
+
+_NATIVE_LINE_LIMIT = 1_000_000
+
+
+class _NativeLineTooLong(Exception):
+    """A native log line exceeds _NATIVE_LINE_LIMIT characters."""
+
+
+def _open_native_output(path):
+    """Open a native log as text, honoring a UTF-16 or UTF-8 byte-order mark."""
+    with path.open("rb") as raw:
+        head = raw.read(3)
+    if head.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
+        return path.open(encoding="utf-16")
+    if head.startswith(codecs.BOM_UTF8):
+        return path.open(encoding="utf-8-sig")
+    return path.open(encoding="utf-8", errors="replace")
+
+
+def _bounded_lines(text):
+    """Yield stripped lines, as str.splitlines would split them, reading the
+    stream in bounded chunks.
+
+    Raises _NativeLineTooLong rather than classify part of an oversized line.
+    """
+    limit = _NATIVE_LINE_LIMIT
+    pending = ""
+    while chunk := text.read(limit):
+        lines = (pending + chunk).splitlines(keepends=True)
+        last = lines[-1]
+        pending = lines.pop() if last.splitlines()[0] == last else ""
+        if len(pending) > limit or any(
+            len(line.splitlines()[0]) > limit for line in lines
+        ):
+            raise _NativeLineTooLong(
+                f"line longer than {limit} characters"
+            )
+        for line in lines:
+            yield line.strip()
+    if pending:
+        yield pending.strip()
+
+
+def _kill_process_tree(pid):
+    if _on_windows():
+        system_root = os.environ.get("SystemRoot", r"C:\Windows")
+        subprocess.run(
+            [
+                os.path.join(system_root, "System32", "taskkill.exe"),
+                "/F", "/T", "/PID", str(pid),
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
+        )
+    else:
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+
+
+def _run_process_tree(command, cwd, timeout):
+    """Run a command and return its exit code, killing its tree on any error.
+
+    Output goes to the null device rather than pipes, so a child process
+    that inherits the handles cannot keep the call blocked past the timeout.
+    """
+    if _on_windows():
+        isolation = {"creationflags": subprocess.CREATE_NEW_PROCESS_GROUP}
+    else:
+        isolation = {"start_new_session": True}
+    with subprocess.Popen(
+        command,
+        cwd=cwd,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        **isolation,
+    ) as process:
+        try:
+            return process.wait(timeout=timeout)
+        except BaseException:
+            # Covers Ctrl-C too: the child is in its own session/group and
+            # would otherwise outlive the runner.
+            _kill_process_tree(process.pid)
+            process.kill()
+            process.wait()
+            raise
+
+class PspiceBackend(SimulatorBackend):
+    """PSpice backend reserved for complete, user-supplied decks."""
+    name = "pspice"
+
+    _FATAL_RE = re.compile(r"ERROR\s+--|ERROR\(ORPSIM-", re.IGNORECASE)
+    _NOTE_LINE_LIMIT = 200
+
+    @staticmethod
+    def native_output_path(deck):
+        """Return the .out file PSpice writes next to the deck."""
+        return Path(deck).resolve().with_suffix(".out")
+
+    def find(self):
+        env_path = os.environ.get("PSPICE_PATH")
+        if env_path and os.path.isfile(env_path):
+            return os.path.abspath(env_path)
+        if _on_windows():
+            return self._find_windows_exe()
+        for name in ("pspice", "pspice.exe"):
+            found = shutil.which(name)
+            if found:
+                return os.path.abspath(found)
+        return None
+
+    @staticmethod
+    def _find_windows_exe():
+        return find_executable("pspice")
+
+    def _command(self, binary, deck_name, output_name):
+        return [binary, "-r", "-e", deck_name, "-o", output_name]
+
+    def run(self, cir_file, timeout=5):
+        """Run PSpice on the deck and classify its native output.
+
+        Returns (success, stdout, stderr). The simulator's own stdout and
+        stderr are discarded; the native .out file is the record.
+        """
+        binary = self.find()
+        if not binary:
+            return (
+                False,
+                "",
+                "PSpice executable not found; set PSPICE_PATH or add "
+                "pspice to PATH",
+            )
+        if _on_windows() and not _is_native_windows_exe(binary):
+            return (
+                False,
+                "",
+                "PSpice executable must be an absolute path to a native "
+                f".exe program: {binary}",
+            )
+
+        deck = Path(cir_file).resolve()
+        native_output = self.native_output_path(deck)
+        try:
+            before = _file_signature(native_output)
+        except OSError as exc:
+            return (
+                False,
+                "",
+                f"Could not inspect PSpice native output {native_output}: {exc}",
+            )
+        # "./name" keeps a deck named "-x.cir" from being read as an option.
+        command = self._command(
+            binary,
+            os.path.join(os.curdir, deck.name),
+            os.path.join(os.curdir, native_output.name),
+        )
+
+        try:
+            returncode = _run_process_tree(command, str(deck.parent), timeout)
+        except subprocess.TimeoutExpired:
+            return False, "", f"Simulation timed out after {timeout}s"
+        except OSError as exc:
+            return False, "", f"Could not launch PSpice: {exc}"
+
+        if returncode != 0:
+            return (
+                False,
+                "",
+                f"PSpice exited with exit code {returncode}",
+            )
+
+        try:
+            after = _file_signature(native_output)
+        except OSError as exc:
+            return (
+                False,
+                "",
+                f"Could not inspect PSpice native output {native_output}: {exc}",
+            )
+        if after is None:
+            return (
+                False,
+                "",
+                f"PSpice did not write native output {native_output}",
+            )
+        if after == before:
+            return (
+                False,
+                "",
+                f"PSpice did not update native output {native_output}",
+            )
+        if after[1] == 0:
+            return (
+                False,
+                "",
+                f"PSpice native output is empty: {native_output}",
+            )
+
+        try:
+            with _open_native_output(native_output) as text:
+                note = self._failure_note(_bounded_lines(text))
+        except OSError as exc:
+            return (
+                False,
+                "",
+                f"Could not read PSpice native output {native_output}: {exc}",
+            )
+        except UnicodeDecodeError as exc:
+            return (
+                False,
+                "",
+                f"Could not decode PSpice native output {native_output}: {exc}",
+            )
+        except _NativeLineTooLong as exc:
+            return (
+                False,
+                "",
+                f"Could not classify PSpice native output {native_output}: "
+                f"{exc}",
+            )
+
+        if note:
+            return False, "", note
+        return True, "", ""
+
+    def _failure_note(self, lines):
+        # Consume every line, even after a fatal one, so a decode error
+        # anywhere in the log is still reported.
+        fatal = None
+        aborted = concluded = False
+        for line in lines:
+            if fatal is None and self._FATAL_RE.match(line):
+                fatal = line
+            aborted = aborted or line == "JOB ABORTED"
+            concluded = concluded or line == "JOB CONCLUDED"
+        if fatal is not None:
+            return (
+                "PSpice native fatal error line found: "
+                f"{fatal[:self._NOTE_LINE_LIMIT]}"
+            )
+        if aborted:
+            return "PSpice native abort marker found: JOB ABORTED"
+        if not concluded:
+            return "PSpice completion marker missing: JOB CONCLUDED"
+        return None
+
+    def format_measurement_block(self, analyses, measurements, output_file,
+                                 extra_vars=None):
+        raise NotImplementedError(
+            "PSpice generated-testbench measurements are not supported; "
+            "use run_external_deck.py with a complete external deck"
+        )
+
+    def parse_results(self, output_file, stdout, stderr):
+        raise NotImplementedError(
+            "PSpice generated-testbench result parsing is not supported; "
+            "use run_external_deck.py with a complete external deck"
+        )
 
 
 # ---------------------------------------------------------------------------

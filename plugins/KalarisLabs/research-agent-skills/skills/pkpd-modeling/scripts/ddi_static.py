@@ -99,6 +99,7 @@ def mechanistic_static(
     really 0.7 changes an unbounded prediction into a 3.3-fold ceiling.
     """
     def terms(i_conc: float, kdeg: float) -> tuple[float, float, float]:
+        """Handle terms."""
         a = 1.0 / (1.0 + i_conc / ki) if ki else 1.0
         if ki_inact and kinact:
             b = kdeg / (kdeg + kinact * i_conc / (ki_inact + i_conc))
@@ -146,6 +147,7 @@ def classify(auc_ratio: float) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="ICH M12 basic DDI models and the mechanistic static model.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -179,7 +181,170 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _basic_row(model: str, value: float, cutoff: str, triggers: bool, basis: str) -> dict[str, object]:
+    """One row of the ICH M12 basic-model table."""
+    return {"model": model, "value": value, "cutoff": cutoff, "triggers_study": triggers, "basis": basis}
+
+
+def _reversible_rows(args: argparse.Namespace, unbound: float, gut: float | None) -> list[dict[str, object]]:
+    """Hepatic (and, with --dose, intestinal) reversible-inhibition rows."""
+    if not args.ki:
+        return []
+    r1 = r1_reversible(unbound, args.ki)
+    rows = [
+        _basic_row(
+            "reversible inhibition, hepatic", r1, f">= {CUTOFF_R1_HEPATIC}", r1 >= CUTOFF_R1_HEPATIC, "1 + Imax,u/Ki"
+        )
+    ]
+    if gut is not None:
+        r1g = r1_reversible(gut, args.ki)
+        rows.append(
+            _basic_row(
+                "reversible inhibition, intestinal (CYP3A4)",
+                r1g,
+                f">= {CUTOFF_R1_GUT}",
+                r1g >= CUTOFF_R1_GUT,
+                "1 + Igut/Ki, Igut = dose/250 mL",
+            )
+        )
+    return rows
+
+
+def _tdi_rows(args: argparse.Namespace, unbound: float) -> list[dict[str, object]]:
+    """Time-dependent-inhibition row for ``--tdi``."""
+    if not args.tdi:
+        return []
+    if not (args.ki_inact and args.kinact):
+        raise InputError("--tdi needs --ki-inact and --kinact")
+    r2 = r2_time_dependent(unbound * 50.0, args.ki_inact, args.kinact, args.kdeg)
+    return [
+        _basic_row(
+            "time-dependent inhibition, hepatic",
+            r2,
+            f">= {CUTOFF_R2_TDI}",
+            r2 >= CUTOFF_R2_TDI,
+            "(kobs + kdeg)/kdeg at 50 x Imax,u",
+        )
+    ]
+
+
+def _induction_rows(args: argparse.Namespace, unbound: float) -> list[dict[str, object]]:
+    """Induction row when both --ind-ec50 and --ind-emax are given."""
+    if not (args.ind_ec50 and args.ind_emax):
+        return []
+    r3 = r3_induction(unbound * 10.0, args.ind_emax, args.ind_ec50, args.ind_scaling)
+    return [
+        _basic_row(
+            "induction",
+            r3,
+            f"<= {CUTOFF_R3_INDUCTION}",
+            r3 <= CUTOFF_R3_INDUCTION,
+            "1/(1 + d*Emax*I/(EC50+I)) at 10 x Imax,u",
+        )
+    ]
+
+
+def _transporter_rows(args: argparse.Namespace, unbound: float, gut: float | None) -> list[dict[str, object]]:
+    """Transporter basic-model row for ``--transporter``."""
+    if not args.transporter:
+        return []
+    if not args.transporter_ki:
+        raise InputError("--transporter needs --transporter-ki")
+    if args.transporter == "hepatic-uptake":
+        if args.dose is None:
+            raise InputError("hepatic uptake needs --dose for the inlet concentration")
+        conc = inlet_concentration(args.imax, args.fu, args.dose, args.fa, args.fg_perpetrator, args.ka, args.blood_ratio)
+        value = 1.0 + conc / args.transporter_ki
+        cutoff = CUTOFF_TRANSPORTER_HEPATIC_UPTAKE
+        basis = "1 + Iu,inlet,max/Ki,u (OATP1B1/1B3)"
+    elif args.transporter == "intestinal":
+        if gut is None:
+            raise InputError("intestinal transporter assessment needs --dose")
+        value = gut / args.transporter_ki
+        cutoff = CUTOFF_TRANSPORTER_INTESTINAL
+        basis = "Igut/IC50 (P-gp, BCRP)"
+    else:
+        value = unbound / args.transporter_ki
+        cutoff = CUTOFF_TRANSPORTER_RENAL
+        basis = "Imax,u/Ki (OAT, OCT, MATE)"
+    return [_basic_row(f"transporter inhibition, {args.transporter}", value, f">= {cutoff}", value >= cutoff, basis)]
+
+
+def _run_basic(args: argparse.Namespace, report: Report, unbound: float, gut: float | None) -> None:
+    """Evaluate the ICH M12 basic models and report against their cut-offs."""
+    rows = (
+        _reversible_rows(args, unbound, gut)
+        + _tdi_rows(args, unbound)
+        + _induction_rows(args, unbound)
+        + _transporter_rows(args, unbound, gut)
+    )
+    if not rows:
+        raise InputError("--basic needs at least one of --ki, --tdi, or --ind-ec50 with --ind-emax")
+    report.table("ICH M12 basic models", rows)
+    for row in rows:
+        if row["triggers_study"]:
+            report.finding(
+                f"{row['model']}: {row['value']:.4g} meets the cut-off {row['cutoff']} - a clinical "
+                "DDI study or a refined mechanistic/PBPK assessment is indicated"
+            )
+    report.note(
+        "Basic models are intentionally conservative. A result below the cut-off supports not "
+        "studying the interaction; a result above it is a trigger for further evaluation, not a "
+        "prediction of clinical magnitude."
+    )
+
+
+def _run_msm(args: argparse.Namespace, report: Report, unbound: float, gut: float | None) -> None:
+    """Evaluate the mechanistic static model and report its classification."""
+    if args.fm is None:
+        raise InputError("--msm needs --fm")
+    if not 0 < args.fm <= 1:
+        raise InputError("--fm must be in (0, 1]")
+    if not 0 < args.fg <= 1:
+        raise InputError("--fg must be in (0, 1]")
+    result = mechanistic_static(
+        ih=unbound,
+        ig=gut if gut is not None else 0.0,
+        fm=args.fm,
+        fg=args.fg,
+        ki=args.ki,
+        ki_inact=args.ki_inact if args.tdi else None,
+        kinact=args.kinact if args.tdi else None,
+        kdeg_h=args.kdeg,
+        ind_emax=args.ind_emax,
+        ind_ec50=args.ind_ec50,
+        ind_scaling=args.ind_scaling,
+    )
+    report.table("mechanistic static model", [{"term": k, "value": v} for k, v in result.items()])
+    report.scalar("predicted_auc_ratio", result["auc_ratio"])
+    report.scalar("classification", classify(result["auc_ratio"]))
+    report.note(
+        f"With fm = {args.fm}, no inhibitor of this pathway can raise the victim AUC above "
+        f"{result['maximum_possible_auc_ratio']:.2f}-fold. If the prediction approaches that "
+        "ceiling, fm is doing more work than the inhibition constants."
+    )
+    if gut is None:
+        report.note("no --dose given, so the intestinal component was evaluated at zero inhibitor concentration")
+    if args.fm > 0.95:
+        report.finding(
+            f"fm = {args.fm} implies almost all clearance goes through one enzyme. This is rarely "
+            "established and it drives the prediction; state the evidence for it or run a sensitivity "
+            "analysis across a plausible range."
+        )
+    if result["auc_ratio"] >= 2.0:
+        report.finding(
+            f"predicted AUC ratio {result['auc_ratio']:.2f} - {classify(result['auc_ratio'])}; "
+            "a clinical evaluation and labelling implications follow"
+        )
+    report.note(
+        "The mechanistic static model assumes a single constant perpetrator concentration and no "
+        "time course. It is a screening refinement; where the interaction is decision-relevant, "
+        "ICH M12 points to PBPK with a verified perpetrator model."
+    )
+
+
 def run(argv: Sequence[str] | None = None) -> int:
+    """Run the DDI CLI (basic or mechanistic static models) and emit the report."""
     args = build_parser().parse_args(argv)
     if args.basic == args.msm:
         raise InputError("choose exactly one of --basic or --msm")
@@ -201,143 +366,9 @@ def run(argv: Sequence[str] | None = None) -> int:
     )
 
     if args.basic:
-        rows = []
-        if args.ki:
-            r1 = r1_reversible(unbound, args.ki)
-            rows.append(
-                {
-                    "model": "reversible inhibition, hepatic",
-                    "value": r1,
-                    "cutoff": f">= {CUTOFF_R1_HEPATIC}",
-                    "triggers_study": r1 >= CUTOFF_R1_HEPATIC,
-                    "basis": "1 + Imax,u/Ki",
-                }
-            )
-            if gut is not None:
-                r1g = r1_reversible(gut, args.ki)
-                rows.append(
-                    {
-                        "model": "reversible inhibition, intestinal (CYP3A4)",
-                        "value": r1g,
-                        "cutoff": f">= {CUTOFF_R1_GUT}",
-                        "triggers_study": r1g >= CUTOFF_R1_GUT,
-                        "basis": "1 + Igut/Ki, Igut = dose/250 mL",
-                    }
-                )
-        if args.tdi:
-            if not (args.ki_inact and args.kinact):
-                raise InputError("--tdi needs --ki-inact and --kinact")
-            r2 = r2_time_dependent(unbound * 50.0, args.ki_inact, args.kinact, args.kdeg)
-            rows.append(
-                {
-                    "model": "time-dependent inhibition, hepatic",
-                    "value": r2,
-                    "cutoff": f">= {CUTOFF_R2_TDI}",
-                    "triggers_study": r2 >= CUTOFF_R2_TDI,
-                    "basis": "(kobs + kdeg)/kdeg at 50 x Imax,u",
-                }
-            )
-        if args.ind_ec50 and args.ind_emax:
-            r3 = r3_induction(unbound * 10.0, args.ind_emax, args.ind_ec50, args.ind_scaling)
-            rows.append(
-                {
-                    "model": "induction",
-                    "value": r3,
-                    "cutoff": f"<= {CUTOFF_R3_INDUCTION}",
-                    "triggers_study": r3 <= CUTOFF_R3_INDUCTION,
-                    "basis": "1/(1 + d*Emax*I/(EC50+I)) at 10 x Imax,u",
-                }
-            )
-        if args.transporter:
-            if not args.transporter_ki:
-                raise InputError("--transporter needs --transporter-ki")
-            if args.transporter == "hepatic-uptake":
-                if args.dose is None:
-                    raise InputError("hepatic uptake needs --dose for the inlet concentration")
-                conc = inlet_concentration(args.imax, args.fu, args.dose, args.fa, args.fg_perpetrator, args.ka, args.blood_ratio)
-                value = 1.0 + conc / args.transporter_ki
-                cutoff, triggers = CUTOFF_TRANSPORTER_HEPATIC_UPTAKE, value >= CUTOFF_TRANSPORTER_HEPATIC_UPTAKE
-                basis = "1 + Iu,inlet,max/Ki,u (OATP1B1/1B3)"
-            elif args.transporter == "intestinal":
-                if gut is None:
-                    raise InputError("intestinal transporter assessment needs --dose")
-                value = gut / args.transporter_ki
-                cutoff, triggers = CUTOFF_TRANSPORTER_INTESTINAL, value >= CUTOFF_TRANSPORTER_INTESTINAL
-                basis = "Igut/IC50 (P-gp, BCRP)"
-            else:
-                value = unbound / args.transporter_ki
-                cutoff, triggers = CUTOFF_TRANSPORTER_RENAL, value >= CUTOFF_TRANSPORTER_RENAL
-                basis = "Imax,u/Ki (OAT, OCT, MATE)"
-            rows.append(
-                {
-                    "model": f"transporter inhibition, {args.transporter}",
-                    "value": value,
-                    "cutoff": f">= {cutoff}",
-                    "triggers_study": triggers,
-                    "basis": basis,
-                }
-            )
-        if not rows:
-            raise InputError("--basic needs at least one of --ki, --tdi, or --ind-ec50 with --ind-emax")
-        report.table("ICH M12 basic models", rows)
-        for row in rows:
-            if row["triggers_study"]:
-                report.finding(
-                    f"{row['model']}: {row['value']:.4g} meets the cut-off {row['cutoff']} - a clinical "
-                    "DDI study or a refined mechanistic/PBPK assessment is indicated"
-                )
-        report.note(
-            "Basic models are intentionally conservative. A result below the cut-off supports not "
-            "studying the interaction; a result above it is a trigger for further evaluation, not a "
-            "prediction of clinical magnitude."
-        )
-
+        _run_basic(args, report, unbound, gut)
     else:
-        if args.fm is None:
-            raise InputError("--msm needs --fm")
-        if not 0 < args.fm <= 1:
-            raise InputError("--fm must be in (0, 1]")
-        if not 0 < args.fg <= 1:
-            raise InputError("--fg must be in (0, 1]")
-        result = mechanistic_static(
-            ih=unbound,
-            ig=gut if gut is not None else 0.0,
-            fm=args.fm,
-            fg=args.fg,
-            ki=args.ki,
-            ki_inact=args.ki_inact if args.tdi else None,
-            kinact=args.kinact if args.tdi else None,
-            kdeg_h=args.kdeg,
-            ind_emax=args.ind_emax,
-            ind_ec50=args.ind_ec50,
-            ind_scaling=args.ind_scaling,
-        )
-        report.table("mechanistic static model", [{"term": k, "value": v} for k, v in result.items()])
-        report.scalar("predicted_auc_ratio", result["auc_ratio"])
-        report.scalar("classification", classify(result["auc_ratio"]))
-        report.note(
-            f"With fm = {args.fm}, no inhibitor of this pathway can raise the victim AUC above "
-            f"{result['maximum_possible_auc_ratio']:.2f}-fold. If the prediction approaches that "
-            "ceiling, fm is doing more work than the inhibition constants."
-        )
-        if gut is None:
-            report.note("no --dose given, so the intestinal component was evaluated at zero inhibitor concentration")
-        if args.fm > 0.95:
-            report.finding(
-                f"fm = {args.fm} implies almost all clearance goes through one enzyme. This is rarely "
-                "established and it drives the prediction; state the evidence for it or run a sensitivity "
-                "analysis across a plausible range."
-            )
-        if result["auc_ratio"] >= 2.0:
-            report.finding(
-                f"predicted AUC ratio {result['auc_ratio']:.2f} - {classify(result['auc_ratio'])}; "
-                "a clinical evaluation and labelling implications follow"
-            )
-        report.note(
-            "The mechanistic static model assumes a single constant perpetrator concentration and no "
-            "time course. It is a screening refinement; where the interaction is decision-relevant, "
-            "ICH M12 points to PBPK with a verified perpetrator model."
-        )
+        _run_msm(args, report, unbound, gut)
 
     return report.emit(args.format)
 

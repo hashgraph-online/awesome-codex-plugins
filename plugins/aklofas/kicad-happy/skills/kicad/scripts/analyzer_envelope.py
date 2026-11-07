@@ -19,11 +19,10 @@ breakdown — severity lives on the per-analyzer Summary, trust posture
 lives on TrustSummary.
 
 Serialization convention: dataclass field names use snake_case Python
-identifiers; the emitted JSON uses the same names verbatim. No alias
-layer. When a key in the emitted JSON contains a hyphen (like
-'datasheet-backed' in trust_summary.by_confidence), we rename to
-snake_case ('datasheet_backed') as part of the v1.4 schema break.
-Consumers must update. This is documented in the v1.4 release notes.
+identifiers, and the emitted JSON uses the same names unless a field
+declares a ``json_name`` (the schematic envelope does, for its two
+underscore-prefixed keys). Hyphenated values are spelled with an
+underscore as keys ('datasheet-backed' is ``by_confidence.datasheet_backed``).
 """
 from __future__ import annotations
 
@@ -111,7 +110,7 @@ class Finding:
 
     This is the rich-finding envelope locked in v1.3. Detector-
     specific fields live in `extra` as a free-form dict (JSON object with
-    no schema constraint for v1.4; tightened per-rule_id in v1.5).
+    no schema constraint).
     """
     detector: str = field(metadata={
         "description": "Detector name (e.g. 'voltage_divider', 'ld_1117')."})
@@ -131,35 +130,38 @@ class Finding:
         "description": "Component references involved (e.g. ['R1', 'U3'])."})
     nets: Optional[list[str]] = field(default=None, metadata={
         "description": "Net names involved."})
-    # TODO(v1.5): tighten to list[PinRef] once detectors emit consistent shape.
+    # Left untyped: detectors do not yet emit a consistent shape.
     pins: Optional[list] = field(default=None, metadata={
         "description": "Pins involved. Items may be dicts "
                        "({component, pin_number, pin_name}) or shorthand "
-                       "strings ('R1.2'). Pin shape tightens to typed "
-                       "PinRef in v1.5."})
+                       "strings ('R1.2')."})
     recommendation: Optional[str] = field(default=None, metadata={
         "description": "Actionable fix or next step for the designer."})
     description: Optional[str] = field(default=None, metadata={
         "description": "Longer-form description (optional, rendered in reports)."})
     report_context: Optional[dict] = field(default=None, metadata={
         "description": "Free-form context block for report rendering "
-                       "(e.g. measured values, thresholds, schematic snippet references). "
-                       "Tightens to typed shape per rule_id in v1.5."})
+                       "(e.g. measured values, thresholds, schematic snippet references)."})
     provenance: Optional[dict] = field(default=None, metadata={
-        "description": "Evidence provenance (source_file, sha256, extraction_id, ...). "
-                       "Tightens to typed Provenance in v1.5."})
+        "description": "Evidence provenance (source_file, sha256, extraction_id, ...)."})
     detection_id: Optional[str] = field(default=None, metadata={
         "description": "Stable per-finding ID for cross-run tracking."})
     finding_id: Optional[str] = field(default=None, metadata={
         "description": "Stable cross-run identifier derived in make_finding(). "
-                       "Format: {source}:{detection_id} or {source}:{rule_id}:{locator}. "
-                       "See Phase 4 spec §3.2."})
+                       "Format: {source}:{detection_id} or {source}:{rule_id}:{locator}."})
     stages: Optional[list[str]] = field(default=None, metadata={
         "description": "Review stages this finding applies to: "
                        "'schematic', 'layout', 'pre_fab', 'bring_up'."})
     extra: Optional[dict] = field(default=None, metadata={
-        "description": "Detector-specific extension fields (unconstrained for v1.4). "
-                       "Tightens to per-rule_id typed schema in v1.5."})
+        "description": "Detector-specific extension fields (unconstrained for v1.4)."})
+    fix_params: Optional[dict] = field(default=None, metadata={
+        "description": "Machine-readable fix, present on findings that carry one. "
+                       "Always has type ('add_component', 'resistor_value_change', "
+                       "'add_protection', 'swap_connection', ...); the other keys "
+                       "depend on the type and may include change, basis, "
+                       "components, component, current_value, suggested_value, "
+                       "target_range, target_metric, target_value, actual_value, "
+                       "formula."})
 
 
 @dataclass
@@ -193,10 +195,9 @@ class Assessment:
         "description": "Component references the assessment applies to."})
     nets: Optional[list[str]] = field(default=None, metadata={
         "description": "Net names the assessment applies to."})
-    # TODO(v1.5): tighten to list[PinRef] once detectors emit consistent shape.
+    # Left untyped: detectors do not yet emit a consistent shape.
     pins: Optional[list] = field(default=None, metadata={
-        "description": "Pins involved. Items may be dicts or shorthand strings ('R1.2'). "
-                       "Pin shape tightens to typed PinRef in v1.5."})
+        "description": "Pins involved. Items may be dicts or shorthand strings ('R1.2')."})
     description: Optional[str] = field(default=None, metadata={
         "description": "Longer-form description (optional, rendered in reports)."})
     report_context: Optional[dict] = field(default=None, metadata={
@@ -208,12 +209,11 @@ class Assessment:
         "description": "Stable per-assessment ID for cross-run tracking."})
     finding_id: Optional[str] = field(default=None, metadata={
         "description": "Stable cross-run identifier. When populated, format is "
-                       "{source}:{detection_id} or {source}:{rule_id}:{locator} per Phase 4 spec §3.2. "
-                       "Populated by make_finding() for findings; thermal assessments carry None until Task 4."})
+                       "{source}:{detection_id} or {source}:{rule_id}:{locator}. "
+                       "Populated by make_finding() for findings; thermal assessments carry none."})
     extra: Optional[dict] = field(default=None, metadata={
         "description": "Assessment-specific measurement fields (e.g. tj_estimated_c, "
-                       "margin_c, pdiss_w for thermal). Free-form for v1.4; tightens "
-                       "to per-rule_id typed schema in v1.5."})
+                       "margin_c, pdiss_w for thermal). Free-form for v1.4."})
 
 
 @dataclass
@@ -276,9 +276,8 @@ class CompatBlock:
     Surfaces which consumer version is required to safely read this
     envelope, plus structured deprecation state. For v1.4 all envelopes
     emit ``minimum_consumer_version="1.4.0"`` with empty deprecation and
-    experimental lists — the v1.4 clean break removed prior residue. As
-    fields are scheduled for removal in v1.5+ or introduced as
-    experimental, they accumulate here.
+    experimental lists. As fields are scheduled for removal or introduced
+    as experimental, they accumulate here.
 
     Dotted-path strings identify envelope keys (e.g.
     ``"trust_summary.by_confidence.datasheet-backed"``).

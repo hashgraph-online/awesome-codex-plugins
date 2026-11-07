@@ -9,11 +9,11 @@ AUDIENCES = ['designer', 'reviewer', 'manager']
 
 _ONLY_DETERMINISTIC_ANALYZER_HELP = (
     'Accepted for consistency; analyzers never write llm_* fields. '
-    'Honored by downstream consumers (Phase 4 spec §3.4).')
+    'Honored by downstream consumers.')
 _ONLY_DETERMINISTIC_CONSUMER_HELP = (
     "Read raw analysis/<run>/<analyzer>.json instead of "
     "analysis/merged/<run>/<analyzer>.json. "
-    "Strips Layer 2 overlays for CI/offline use (Phase 4 spec §3.4).")
+    "Strips Layer 2 overlays for CI/offline use.")
 
 
 def add_stage_audience_args(parser) -> None:
@@ -48,6 +48,18 @@ def add_text_arg(parser, help: str) -> None:
 def add_config_arg(parser) -> None:
     parser.add_argument("--config", default=None,
                         help="Path to .kicad-happy.json project config file")
+
+
+def utf8_stdio() -> None:
+    """Re-encode stdout and stderr as UTF-8 when they are not, so a script piped under a
+    legacy code page (Windows cp1252) neither fails on a help text's arrow or a report's
+    Ω nor hands a UTF-8 reader cp1252 bytes. Called first in each script's __main__
+    block; scripts that import nothing from the core do the same inline."""
+    import sys
+    for stream in (sys.stdout, sys.stderr):
+        enc = (getattr(stream, "encoding", None) or "").lower().replace("-", "").replace("_", "")
+        if enc != "utf8" and hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
 def utf8_text_stdout() -> None:

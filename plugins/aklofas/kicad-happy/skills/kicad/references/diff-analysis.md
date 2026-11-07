@@ -1,6 +1,6 @@
 # Diff Analysis Reference
 
-Compare two KiCad analysis JSON files (base vs head) and report changes. Supports schematic, PCB, EMC, and SPICE analyzer outputs with auto-detection. Zero dependencies — Python 3.8+ stdlib only.
+Compare two KiCad analysis JSON files (base vs head) and report changes. Supports schematic, PCB, EMC, and SPICE analyzer outputs with auto-detection. Zero dependencies — Python 3.10+ stdlib only.
 
 ## Table of Contents
 
@@ -84,12 +84,12 @@ Compared sections:
 |---------|-------------|-----------------|-------------|
 | Statistics | n/a (scalar paths) | `total_components`, `total_nets`, `unique_parts`, `total_wires`, `total_no_connects` | `statistics.*` |
 | Components | `reference` | `value`, `footprint`, `mpn` | `components[]` |
-| Signal analysis | Per-type via SIGNAL_REGISTRY | Per-type via SIGNAL_REGISTRY | `findings[]` grouped by detector via `group_findings_by_detection_type()` |
+| Signal analysis | Per-type via SIGNAL_REGISTRY, else finding identity (below) | Per-type via SIGNAL_REGISTRY, plus `severity`; `summary` for types with no value fields | `findings[]` grouped by detector via `group_findings_by_detection_type()` |
 | BOM | `(value, footprint)` tuple | `quantity` | `bom[]` |
-| Connectivity | JSON-serialized item | new/resolved (set diff) | `connectivity_issues.{single_pin_nets,floating_nets,multi_driver_nets}` |
-| ERC warnings | `(type, net, message)` tuple | new/resolved (set diff) | `design_analysis.erc_warnings[]` |
+| Connectivity | JSON-serialized item, unnamed-net numbers ignored | new/resolved (set diff) | `connectivity_issues.{single_pin_nets,floating_nets,multi_driver_nets}` |
+| ERC warnings | `(type, net, message)` tuple; on an unnamed net, its pins instead of its number | new/resolved (set diff) | `design_analysis.erc_warnings[]` |
 
-Signal analysis is reconstructed from `findings[]` via `group_findings_by_detection_type()`, then iterates all detector types present in either base or head. For each detection type, identity and value fields come from `SIGNAL_REGISTRY` (derived from `detection_schema.SCHEMAS`). Unknown detection types fall back to `["reference"]` identity with no value fields. The diff output still uses `signal_analysis` as a key for backward compatibility with diff consumers.
+Signal analysis is reconstructed from `findings[]` via `group_findings_by_detection_type()`, then iterates all detector types present in either base or head. For each detection type, identity and value fields come from `SIGNAL_REGISTRY` (derived from `detection_schema.SCHEMAS`). Unknown detection types fall back to `["reference"]` identity with no value fields. A detection keeps that registry key (its `detection_id` first) only when no other finding of its type shares it in either run; every other finding is matched by its identity (`diff_engine.finding_key`): its `finding_id`, unless the id is positional — a `#N` collision suffix, or a locator naming an `__unnamed_N` net — in which case a content key of `rule_id`, sorted nets (unnamed-net numbers dropped), sorted components and `summary`. Findings that still share a key are numbered after sorting by content, so list order never pairs two different findings, and a renumbered unnamed net never reads as a change. Severities compare by meaning (legacy `WARN` = `warning`). The diff output still uses `signal_analysis` as a key for backward compatibility with diff consumers.
 
 ### PCB
 
@@ -99,7 +99,8 @@ Diff function: `diff_pcb(base, head, threshold)`
 |---------|-------------|-----------------|-------------|
 | Statistics | n/a (scalar paths) | `footprint_count`, `track_segments`, `via_count`, `zone_count`, `net_count`, `copper_layers_used`, `board_width_mm`, `board_height_mm`, `total_track_length_mm` | `statistics.*` |
 | Routing completeness | n/a (scalar) | `routing_complete`, `unrouted_count` | `connectivity.*` |
-| Footprints | `reference` | `value`, `lib_id`, `layer` | `footprints[]` |
+| Footprints | `reference` | `value`, `footprint` (the `Lib:Name` FPID; `library` or `lib_id` in older JSON), `layer` | `footprints[]` |
+| Findings | finding identity (as schematic) | `severity` (new/resolved/changed) | `findings[]` |
 
 ### EMC
 
@@ -107,9 +108,9 @@ Diff function: `diff_emc(base, head, threshold)`
 
 | Section | Identity Key | Compared Fields | Source Path |
 |---------|-------------|-----------------|-------------|
-| Risk score | n/a (scalar) | `emc_risk_score` | `summary.emc_risk_score` |
-| Severity distribution | n/a (scalar paths) | `critical`, `high`, `medium`, `low`, `info` | `summary.*` |
-| Findings | `rule_id::sorted(nets)::sorted(components)` | `severity` (new/resolved/changed) | `findings[]` |
+| Risk score | n/a (scalar) | `emc_risk_score` (0 = worst, 100 = lowest risk; a fall is a regression) | `summary.emc_risk_score` |
+| Severity distribution | n/a (scalar paths) | `error`, `warning`, `info` (`critical`, `high`, `medium`, `low`, `info` in pre-v1.4 output) | `summary.by_severity.*` (`summary.*`) |
+| Findings | finding identity (as schematic); `rule_id::sorted(nets)::sorted(components)` for findings without a `finding_id` | `severity` (new/resolved/changed) | `findings[]` |
 | Per-net scores | `net` | `score` (filtered by threshold) | `per_net_scores[]` |
 
 Per-net score changes are sorted by absolute delta (largest first).
@@ -120,7 +121,7 @@ Diff function: `diff_spice(base, head, threshold)`
 
 | Section | Identity Key | Compared Fields | Source Path |
 |---------|-------------|-----------------|-------------|
-| Summary counts | n/a (scalar paths) | `pass`, `warn`, `fail`, `skip`, `total` | `summary.*` |
+| Summary counts | n/a (scalar paths) | `pass`, `warn`, `fail`, `skip`, `info`, `total` | `summary.*` |
 | Simulation results | `subcircuit_type::sorted(components)` | `status` (transitions annotated) | `simulation_results[]` |
 | Monte Carlo concerns | `subcircuit_type::metric` | new/resolved (set diff) | `monte_carlo_summary.concerns[]` |
 
@@ -139,7 +140,7 @@ Evaluation order (first match wins):
 | Analyzer | Condition |
 |----------|-----------|
 | SPICE | Any `status_changes` entry where `base_status == "pass"` and `head_status == "fail"` |
-| EMC | Any new finding with `severity == "CRITICAL"` |
+| EMC | Any new finding whose normalized severity is `error` (legacy `CRITICAL` or `HIGH`) |
 | Schematic | Any new ERC warning (`erc.new_warnings` non-empty) |
 
 ### Major
@@ -151,16 +152,21 @@ Evaluation order (first match wins):
 | `findings` key present in diff (EMC) |
 | `status_changes` key present in diff (SPICE) |
 | `footprints` with any added, removed, or modified entries (PCB) |
+| `routing_complete` or `unrouted` present (PCB) |
 
 ### Minor
 
 | Condition |
 |-----------|
-| Only `statistics` key present in diff |
+| Any other non-empty section: `statistics`, EMC `risk_score`, `by_severity` or `per_net_scores`, `bom`, `connectivity`, resolved-only `erc`, SPICE `summary`, `new_results`, `removed_results` or `monte_carlo`, assessments added or removed |
 
 ### None
 
-No changes detected, or diff result is empty.
+No section changed (an `assessments` block holding only `unchanged_count` is not a change).
+
+### Regressions
+
+`classify_regressions(analyzer_type, diff_result)` lists changes that made the design worse: new ERC warnings, new connectivity issues and removed protection devices (schematic), new error-severity findings and a fall in the EMC risk score (EMC; the score is 0 = worst, 100 = lowest risk), pass-to-fail transitions (SPICE), and an increase in unrouted nets (PCB).
 
 ---
 
@@ -217,7 +223,7 @@ When a detection type is not in `SIGNAL_REGISTRY`, `_generic_identity()` is used
 1. Top-level `reference` or `ref` field.
 2. Any nested dict with a `ref` sub-key.
 
-Returns `None` if nothing is found (item is excluded from matching).
+Returns `None` if nothing is found. The diff then matches the item by its `finding_id`, or, without one, by a content key (rule id, nets, components and summary); only the multi-run trend extraction skips it.
 
 ### Validation
 
@@ -241,6 +247,7 @@ Returns `None` if nothing is found (item is excluded from matching).
     "added": 2,
     "removed": 1,
     "modified": 2,
+    "metric_changes": ["statistics.total_components"],
     "severity": "major"
   },
   "diff": { ... }
@@ -250,14 +257,20 @@ Returns `None` if nothing is found (item is excluded from matching).
 
 ### Summary Counts
 
-`summary.total_changes` = `added + removed + modified`. What counts as added/removed/modified depends on analyzer type:
+`summary.total_changes` = `added + removed + modified`, each counting listed items:
 
 | Analyzer | Added | Removed | Modified |
 |----------|-------|---------|----------|
-| Schematic | New components + new detections | Removed components + removed detections | Changed components + changed detections |
-| PCB | New footprints | Removed footprints | Changed footprints |
-| EMC | New findings | Resolved findings | Severity-changed findings |
-| SPICE | New simulation results | Removed simulation results | Status-changed results |
+| Schematic | New components, detections, BOM lines, connectivity issues, ERC warnings | Removed components, detections, BOM lines; resolved connectivity issues and ERC warnings | Changed components and detections; BOM quantity changes |
+| PCB | New footprints + new findings | Removed footprints + resolved findings | Changed footprints + severity-changed findings |
+| EMC, thermal | New findings | Resolved findings | Severity-changed findings; changed per-net scores (EMC) |
+| SPICE | New simulation results + new Monte Carlo concerns | Removed simulation results + resolved Monte Carlo concerns | Status-changed results |
+
+Assessments added or removed count on every analyzer type.
+
+`summary.metric_changes` lists, sorted, the analyzer-output paths of the scalars that moved: `statistics.*`, `connectivity.routing_complete`, `connectivity.unrouted_count`, `summary.emc_risk_score`, `summary.by_severity.*` and the SPICE `summary.*` counts. They are not in `total_changes`, so one added part is not counted again through every rollup it moves.
+
+`has_changes` is true when any diff section changed, including a metric-only change (`total_changes` 0).
 
 ### Diff Section (by analyzer type)
 
@@ -265,7 +278,7 @@ The `diff` object contains only sections with actual changes. Empty sections are
 
 **Schematic diff keys:** `statistics`, `components`, `signal_analysis`, `bom`, `connectivity`, `erc`
 
-**PCB diff keys:** `statistics`, `routing_complete`, `unrouted`, `footprints`
+**PCB diff keys:** `statistics`, `routing_complete`, `unrouted`, `footprints`, `findings`
 
 **EMC diff keys:** `risk_score`, `by_severity`, `findings`, `per_net_scores`
 
@@ -296,7 +309,7 @@ The `delta_pct` field is only present for numeric comparisons where the base val
 
 ### Text Output
 
-The `--text` flag renders a summary header followed by per-section detail. Items are capped at `MAX_TEXT_ITEMS` (20) with a "... and N more changes" footer. Per-section caps: 5 items for components/footprints/findings, 3 items for signal analysis detections per type.
+The `--text` flag renders a summary header followed by per-section detail. Items are capped at `MAX_TEXT_ITEMS` (20) with a "... and N more changes" footer counting the listed items not printed. Per-section caps: 5 items for components/footprints/findings, 3 items for signal analysis detections per type. Routing, unrouted and statistics changes print as `base → head` lines; the findings block is labelled by source (`EMC Findings:`, `PCB Findings:`, `Thermal Findings:`). `--output` files are written as UTF-8.
 
 Format:
 
@@ -322,11 +335,11 @@ Signal Analysis:
 
 **Protocol:**
 
-1. Import `diff_analysis` (adding the scripts directory to `sys.path` if needed).
+1. Import `diff_engine` (adding the scripts directory to `sys.path` if needed).
 2. For each output type present in both the current run and the new outputs, load both JSONs.
 3. Read `analyzer_type` from the base JSON and dispatch to the matching diff function (`diff_schematic`, `diff_pcb`, `diff_emc`, `diff_spice`).
 4. Call `classify_severity()` on the diff result.
-5. If any severity meets or exceeds the configured threshold (default: `major`), return `True` (create new run).
+5. If any severity meets or exceeds the configured threshold (default: `major`), return `True` (create new run). At the default a finding- or routing-only change starts a new run; a statistics- or score-only change (`minor`) overwrites the current one.
 6. If no current run exists, return `True` (first run).
 7. If all diffs are below threshold, return `False` (overwrite current run).
 

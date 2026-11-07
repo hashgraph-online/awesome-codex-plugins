@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.dev/schemas/review_annotations.schema.json",
   "title": "Layer 2 Review Annotations",
-  "description": "Output of reviewer subagent. Phase 4 spec §4.2.",
+  "description": "Output of reviewer subagent.",
   "type": "object",
   "required": ["schema_version", "produced_for_run_id", "produced_at",
                 "annotations", "reviewer_observations"],

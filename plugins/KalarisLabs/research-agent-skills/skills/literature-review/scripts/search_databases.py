@@ -29,7 +29,7 @@ def format_search_results(results: List[Dict], output_format: str = 'json') -> s
         return json.dumps(results, indent=2)
 
     elif output_format == 'markdown':
-        md = f"# Literature Search Results\n\n"
+        md = "# Literature Search Results\n\n"
         md += f"**Search Date**: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n"
         md += f"**Total Results**: {len(results)}\n\n"
 

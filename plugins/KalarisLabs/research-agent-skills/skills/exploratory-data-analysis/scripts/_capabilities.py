@@ -16,139 +16,155 @@ from _common import (
 )
 
 
+_REF_GENERAL = "references/general_scientific_formats.md"
+_REF_BIO = "references/bioinformatics_genomics_formats.md"
+_REF_CHEM = "references/chemistry_molecular_formats.md"
+_REF_IMAGING = "references/microscopy_imaging_formats.md"
+_REF_SPECTRO = "references/spectroscopy_analytical_formats.md"
+_REF_PROTEOMICS = "references/proteomics_metabolomics_formats.md"
+_DEP_STDLIB = "Python standard library"
+_DEP_BIOPYTHON = "biopython==1.87"
+_DEP_PILLOW = "pillow==12.3.0"
+_DEP_TIFFFILE = "tifffile==2026.7.14"
+_DEPTH_SEQUENCE = "bounded record sample with length, alphabet, and GC aggregates"
+_DEPTH_PIXELS_NOT_DECODED = "container metadata only; pixels are not decoded"
+_NOTE_VENDOR_READER = "vendor-aware reader required; no bundled parser"
+_NOTE_TRAJECTORY = "topology-dependent trajectory tooling required"
+
+
 AUTOMATED_FORMATS: dict[str, dict[str, Any]] = {
     ".csv": {
         "format": "CSV",
         "tier": "automated_core",
         "depth": "bounded schema, aggregate profile, missingness, and sensitivity audit",
-        "dependency": "Python standard library",
-        "reference": "references/general_scientific_formats.md",
+        "dependency": _DEP_STDLIB,
+        "reference": _REF_GENERAL,
     },
     ".tsv": {
         "format": "TSV",
         "tier": "automated_core",
         "depth": "bounded schema, aggregate profile, missingness, and sensitivity audit",
-        "dependency": "Python standard library",
-        "reference": "references/general_scientific_formats.md",
+        "dependency": _DEP_STDLIB,
+        "reference": _REF_GENERAL,
     },
     ".json": {
         "format": "JSON",
         "tier": "automated_core",
         "depth": "bounded strict parse and structural aggregate profile",
-        "dependency": "Python standard library",
-        "reference": "references/general_scientific_formats.md",
+        "dependency": _DEP_STDLIB,
+        "reference": _REF_GENERAL,
     },
     ".npy": {
         "format": "NumPy NPY",
         "tier": "automated_optional",
         "depth": "header, shape, dtype, and bounded numeric sample",
         "dependency": "numpy==2.5.1",
-        "reference": "references/general_scientific_formats.md",
+        "reference": _REF_GENERAL,
     },
     ".npz": {
         "format": "NumPy NPZ",
         "tier": "automated_optional",
         "depth": "ZIP bomb preflight plus per-array bounded inspection",
         "dependency": "numpy==2.5.1",
-        "reference": "references/general_scientific_formats.md",
+        "reference": _REF_GENERAL,
     },
     ".h5": {
         "format": "HDF5",
         "tier": "automated_optional",
         "depth": "bounded hierarchy and dataset metadata; no dataset values or external links",
         "dependency": "h5py==3.16.0",
-        "reference": "references/general_scientific_formats.md",
+        "reference": _REF_GENERAL,
     },
     ".hdf5": {
         "format": "HDF5",
         "tier": "automated_optional",
         "depth": "bounded hierarchy and dataset metadata; no dataset values or external links",
         "dependency": "h5py==3.16.0",
-        "reference": "references/general_scientific_formats.md",
+        "reference": _REF_GENERAL,
     },
     ".fasta": {
         "format": "FASTA",
         "tier": "automated_optional",
-        "depth": "bounded record sample with length, alphabet, and GC aggregates",
-        "dependency": "biopython==1.87",
-        "reference": "references/bioinformatics_genomics_formats.md",
+        "depth": _DEPTH_SEQUENCE,
+        "dependency": _DEP_BIOPYTHON,
+        "reference": _REF_BIO,
     },
     ".fa": {
         "format": "FASTA",
         "tier": "automated_optional",
-        "depth": "bounded record sample with length, alphabet, and GC aggregates",
-        "dependency": "biopython==1.87",
-        "reference": "references/bioinformatics_genomics_formats.md",
+        "depth": _DEPTH_SEQUENCE,
+        "dependency": _DEP_BIOPYTHON,
+        "reference": _REF_BIO,
     },
     ".fna": {
         "format": "FASTA",
         "tier": "automated_optional",
-        "depth": "bounded record sample with length, alphabet, and GC aggregates",
-        "dependency": "biopython==1.87",
-        "reference": "references/bioinformatics_genomics_formats.md",
+        "depth": _DEPTH_SEQUENCE,
+        "dependency": _DEP_BIOPYTHON,
+        "reference": _REF_BIO,
     },
     ".fastq": {
         "format": "FASTQ",
         "tier": "automated_optional",
         "depth": "bounded record sample with length, GC, and Phred+33 aggregates",
-        "dependency": "biopython==1.87",
-        "reference": "references/bioinformatics_genomics_formats.md",
+        "dependency": _DEP_BIOPYTHON,
+        "reference": _REF_BIO,
     },
     ".fq": {
         "format": "FASTQ",
         "tier": "automated_optional",
         "depth": "bounded record sample with length, GC, and Phred+33 aggregates",
-        "dependency": "biopython==1.87",
-        "reference": "references/bioinformatics_genomics_formats.md",
+        "dependency": _DEP_BIOPYTHON,
+        "reference": _REF_BIO,
     },
     ".png": {
         "format": "PNG",
         "tier": "automated_optional",
-        "depth": "container metadata only; pixels are not decoded",
-        "dependency": "pillow==12.3.0",
-        "reference": "references/microscopy_imaging_formats.md",
+        "depth": _DEPTH_PIXELS_NOT_DECODED,
+        "dependency": _DEP_PILLOW,
+        "reference": _REF_IMAGING,
     },
     ".jpg": {
         "format": "JPEG",
         "tier": "automated_optional",
-        "depth": "container metadata only; pixels are not decoded",
-        "dependency": "pillow==12.3.0",
-        "reference": "references/microscopy_imaging_formats.md",
+        "depth": _DEPTH_PIXELS_NOT_DECODED,
+        "dependency": _DEP_PILLOW,
+        "reference": _REF_IMAGING,
     },
     ".jpeg": {
         "format": "JPEG",
         "tier": "automated_optional",
-        "depth": "container metadata only; pixels are not decoded",
-        "dependency": "pillow==12.3.0",
-        "reference": "references/microscopy_imaging_formats.md",
+        "depth": _DEPTH_PIXELS_NOT_DECODED,
+        "dependency": _DEP_PILLOW,
+        "reference": _REF_IMAGING,
     },
     ".tif": {
         "format": "TIFF",
         "tier": "automated_optional",
         "depth": "bounded TIFF series/page metadata only; pixels are not decoded",
-        "dependency": "tifffile==2026.7.14",
-        "reference": "references/microscopy_imaging_formats.md",
+        "dependency": _DEP_TIFFFILE,
+        "reference": _REF_IMAGING,
     },
     ".tiff": {
         "format": "TIFF",
         "tier": "automated_optional",
         "depth": "bounded TIFF series/page metadata only; pixels are not decoded",
-        "dependency": "tifffile==2026.7.14",
-        "reference": "references/microscopy_imaging_formats.md",
+        "dependency": _DEP_TIFFFILE,
+        "reference": _REF_IMAGING,
     },
     ".ome.tif": {
         "format": "OME-TIFF",
         "tier": "automated_optional",
         "depth": "bounded TIFF/OME structural metadata only; OME-XML and pixels are not emitted",
-        "dependency": "tifffile==2026.7.14",
-        "reference": "references/microscopy_imaging_formats.md",
+        "dependency": _DEP_TIFFFILE,
+        "reference": _REF_IMAGING,
     },
     ".ome.tiff": {
         "format": "OME-TIFF",
         "tier": "automated_optional",
         "depth": "bounded TIFF/OME structural metadata only; OME-XML and pixels are not emitted",
-        "dependency": "tifffile==2026.7.14",
-        "reference": "references/microscopy_imaging_formats.md",
+        "dependency": _DEP_TIFFFILE,
+        "reference": _REF_IMAGING,
     },
 }
 
@@ -158,6 +174,7 @@ def _reference(
     reference: str,
     note: str,
 ) -> dict[str, str]:
+    """Handle reference."""
     return {
         "format": format_name,
         "tier": "reference_only",
@@ -171,266 +188,266 @@ REFERENCE_ONLY_FORMATS: dict[str, dict[str, str]] = {
     # General tabular/array containers
     ".parquet": _reference(
         "Apache Parquet",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "documented pandas/Polars/Arrow workflow; no bundled parser",
     ),
     ".feather": _reference(
         "Apache Feather",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "documented columnar workflow; no bundled parser",
     ),
     ".xlsx": _reference(
         "Excel OOXML",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "manual workbook review required, including formulas and hidden content",
     ),
     ".xls": _reference(
         "Legacy Excel",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "manual workbook review required; macros are never executed",
     ),
     ".zarr": _reference(
         "Zarr",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "directory/store format is not accepted by bundled file inspectors",
     ),
     ".nc": _reference(
         "NetCDF",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "documented xarray/netCDF workflow; no bundled parser",
     ),
     ".mat": _reference(
         "MATLAB MAT",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "manual version-aware workflow; no bundled parser",
     ),
     ".fits": _reference(
         "FITS",
-        "references/general_scientific_formats.md",
+        _REF_GENERAL,
         "documented Astropy workflow; no bundled parser",
     ),
     # Bioinformatics/genomics
     ".sam": _reference(
         "SAM",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "use a pinned SAM/BAM validator; no bundled parser",
     ),
     ".bam": _reference(
         "BAM",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "use a pinned SAM/BAM validator; no bundled parser",
     ),
     ".cram": _reference(
         "CRAM",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "reference-aware validation required; no bundled parser",
     ),
     ".vcf": _reference(
         "VCF",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "use a pinned VCF validator; no bundled parser",
     ),
     ".bcf": _reference(
         "BCF",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "use a pinned VCF/BCF validator; no bundled parser",
     ),
     ".bed": _reference(
         "BED",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "assembly-aware interval validation required; no bundled parser",
     ),
     ".gff": _reference(
         "GFF",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "version-aware annotation validation required; no bundled parser",
     ),
     ".gff3": _reference(
         "GFF3",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "version-aware annotation validation required; no bundled parser",
     ),
     ".gtf": _reference(
         "GTF",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "annotation-specific validation required; no bundled parser",
     ),
     ".h5ad": _reference(
         "AnnData H5AD",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "generic HDF5 metadata is not AnnData semantic validation",
     ),
     ".loom": _reference(
         "Loom",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "generic HDF5 metadata is not Loom semantic validation",
     ),
     ".mtx": _reference(
         "Matrix Market",
-        "references/bioinformatics_genomics_formats.md",
+        _REF_BIO,
         "matrix and sidecar alignment require domain tooling",
     ),
     # Chemistry/molecular
     ".pdb": _reference(
         "Legacy PDB",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "wwPDB-aware structural validation required; no bundled parser",
     ),
     ".cif": _reference(
         "CIF or PDBx/mmCIF",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "extension is ambiguous; dictionary-aware validation required",
     ),
     ".mmcif": _reference(
         "PDBx/mmCIF",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "wwPDB dictionary-aware validation required; no bundled parser",
     ),
     ".mol": _reference(
         "MDL Molfile",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "chemistry-aware validation required; no bundled parser",
     ),
     ".sdf": _reference(
         "Structure Data File",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "chemistry-aware validation required; no bundled parser",
     ),
     ".smi": _reference(
         "SMILES table",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "line notation requires chemistry-aware parsing; no bundled parser",
     ),
     ".xyz": _reference(
         "XYZ coordinates",
-        "references/chemistry_molecular_formats.md",
+        _REF_CHEM,
         "units and record boundaries require explicit confirmation",
     ),
     ".dcd": _reference(
         "DCD trajectory",
-        "references/chemistry_molecular_formats.md",
-        "topology-dependent trajectory tooling required",
+        _REF_CHEM,
+        _NOTE_TRAJECTORY,
     ),
     ".xtc": _reference(
         "XTC trajectory",
-        "references/chemistry_molecular_formats.md",
-        "topology-dependent trajectory tooling required",
+        _REF_CHEM,
+        _NOTE_TRAJECTORY,
     ),
     ".trr": _reference(
         "TRR trajectory",
-        "references/chemistry_molecular_formats.md",
-        "topology-dependent trajectory tooling required",
+        _REF_CHEM,
+        _NOTE_TRAJECTORY,
     ),
     # Imaging beyond the bounded metadata inspectors
     ".nd2": _reference(
         "Nikon ND2",
-        "references/microscopy_imaging_formats.md",
-        "vendor-aware reader required; no bundled parser",
+        _REF_IMAGING,
+        _NOTE_VENDOR_READER,
     ),
     ".czi": _reference(
         "Zeiss CZI",
-        "references/microscopy_imaging_formats.md",
-        "vendor-aware reader required; no bundled parser",
+        _REF_IMAGING,
+        _NOTE_VENDOR_READER,
     ),
     ".lif": _reference(
         "Leica LIF",
-        "references/microscopy_imaging_formats.md",
-        "vendor-aware reader required; no bundled parser",
+        _REF_IMAGING,
+        _NOTE_VENDOR_READER,
     ),
     ".dcm": _reference(
         "DICOM",
-        "references/microscopy_imaging_formats.md",
+        _REF_IMAGING,
         "PHI-aware DICOM tooling and policy required",
     ),
     ".nii": _reference(
         "NIfTI",
-        "references/microscopy_imaging_formats.md",
+        _REF_IMAGING,
         "orientation-aware neuroimaging tooling required",
     ),
     ".nii.gz": _reference(
         "Compressed NIfTI",
-        "references/microscopy_imaging_formats.md",
+        _REF_IMAGING,
         "compressed content is not decompressed by bundled tools",
     ),
     ".mrc": _reference(
         "MRC",
-        "references/microscopy_imaging_formats.md",
+        _REF_IMAGING,
         "electron-microscopy-aware tooling required",
     ),
     ".svs": _reference(
         "Aperio SVS",
-        "references/microscopy_imaging_formats.md",
+        _REF_IMAGING,
         "whole-slide reader and privacy review required",
     ),
     ".ndpi": _reference(
         "Hamamatsu NDPI",
-        "references/microscopy_imaging_formats.md",
+        _REF_IMAGING,
         "whole-slide reader and privacy review required",
     ),
     # Spectroscopy/proteomics/metabolomics
     ".mzml": _reference(
         "HUPO-PSI mzML",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "schema/CV-aware mass-spectrometry tooling required",
     ),
     ".mzxml": _reference(
         "mzXML",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "legacy MS tooling required; no bundled parser",
     ),
     ".jdx": _reference(
         "JCAMP-DX",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "technique/version-aware JCAMP parser required",
     ),
     ".dx": _reference(
         "JCAMP-DX",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "technique/version-aware JCAMP parser required",
     ),
     ".spc": _reference(
         "SPC",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "vendor/variant-aware reader required",
     ),
     ".mgf": _reference(
         "Mascot Generic Format",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "MS-specific parser required; no bundled parser",
     ),
     ".raw": _reference(
         "Ambiguous vendor RAW",
-        "references/spectroscopy_analytical_formats.md",
+        _REF_SPECTRO,
         "extension alone cannot identify the vendor format",
     ),
     ".mzid": _reference(
         "mzIdentML",
-        "references/proteomics_metabolomics_formats.md",
+        _REF_PROTEOMICS,
         "schema/CV-aware identification tooling required",
     ),
     ".mzidentml": _reference(
         "mzIdentML",
-        "references/proteomics_metabolomics_formats.md",
+        _REF_PROTEOMICS,
         "schema/CV-aware identification tooling required",
     ),
     ".pepxml": _reference(
         "pepXML",
-        "references/proteomics_metabolomics_formats.md",
+        _REF_PROTEOMICS,
         "search-engine-aware parser required",
     ),
     ".protxml": _reference(
         "protXML",
-        "references/proteomics_metabolomics_formats.md",
+        _REF_PROTEOMICS,
         "protein-inference-aware parser required",
     ),
     ".mztab": _reference(
         "mzTab or mzTab-M",
-        "references/proteomics_metabolomics_formats.md",
+        _REF_PROTEOMICS,
         "version-aware PSI validation required; generic TSV parsing is insufficient",
     ),
     ".featurexml": _reference(
         "OpenMS featureXML",
-        "references/proteomics_metabolomics_formats.md",
+        _REF_PROTEOMICS,
         "OpenMS-aware parser required",
     ),
 }
@@ -460,6 +477,7 @@ def capability_for_path(path: Path) -> dict[str, Any]:
 
 
 def _first_nonempty_text_byte(path: Path, *, limit: int = 8192) -> bytes | None:
+    """Handle first nonempty text byte."""
     with path.open("rb") as handle:
         chunk = handle.read(limit)
     for line in chunk.splitlines():
@@ -496,25 +514,19 @@ def validate_magic(path: Path, suffix: str) -> None:
                     break
         if not found:
             raise CliError("the HDF5 signature does not match the declared suffix")
-    if suffix in {".fasta", ".fa", ".fna"}:
-        if _first_nonempty_text_byte(path) != b">":
-            raise CliError("the FASTA record marker does not match the declared suffix")
-    if suffix in {".fastq", ".fq"}:
-        if _first_nonempty_text_byte(path) != b"@":
-            raise CliError("the FASTQ record marker does not match the declared suffix")
+    if suffix in {".fasta", ".fa", ".fna"} and _first_nonempty_text_byte(path) != b">":
+        raise CliError("the FASTA record marker does not match the declared suffix")
+    if suffix in {".fastq", ".fq"} and _first_nonempty_text_byte(path) != b"@":
+        raise CliError("the FASTQ record marker does not match the declared suffix")
     if suffix == ".png" and not prefix.startswith(b"\x89PNG\r\n\x1a\n"):
         raise CliError("the PNG signature does not match the declared suffix")
     if suffix in {".jpg", ".jpeg"} and not prefix.startswith(b"\xff\xd8\xff"):
         raise CliError("the JPEG signature does not match the declared suffix")
-    if suffix in {".tif", ".tiff", ".ome.tif", ".ome.tiff"}:
-        valid = (
-            prefix.startswith(b"II*\x00")
-            or prefix.startswith(b"MM\x00*")
-            or prefix.startswith(b"II+\x00")
-            or prefix.startswith(b"MM\x00+")
-        )
-        if not valid:
-            raise CliError("the TIFF signature does not match the declared suffix")
+    tiff_signatures = (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+")
+    if suffix in {".tif", ".tiff", ".ome.tif", ".ome.tiff"} and not prefix.startswith(
+        tiff_signatures
+    ):
+        raise CliError("the TIFF signature does not match the declared suffix")
 
 
 def preflight_npz(path: Path) -> dict[str, Any]:

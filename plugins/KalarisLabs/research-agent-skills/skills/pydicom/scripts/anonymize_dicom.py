@@ -16,6 +16,7 @@ import stat
 import sys
 from collections import Counter
 from collections.abc import Sequence as SequenceValue
+from dataclasses import dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
@@ -61,6 +62,7 @@ PIXEL_KEYWORDS = {"DoubleFloatPixelData", "FloatPixelData", "PixelData"}
 
 
 def _load_key(path: Path) -> bytes:
+    """Load key."""
     info = path.stat()
     if os.name != "nt":
         if stat.S_IMODE(info.st_mode) & 0o077:
@@ -71,7 +73,7 @@ def _load_key(path: Path) -> bytes:
     if len(payload) == 64:
         try:
             payload = bytes.fromhex(payload.decode("ascii"))
-        except (UnicodeError, ValueError):
+        except ValueError:
             pass
     if len(payload) < 32:
         raise ToolError("UID key must contain at least 32 bytes of secret material")
@@ -81,6 +83,7 @@ def _load_key(path: Path) -> bytes:
 def _map_scalar_uid(
     value: Any, *, key: bytes, scope: str, mapping: dict[str, str]
 ) -> str:
+    """Handle map scalar uid."""
     original = str(value)
     replacement = mapping.get(original)
     if replacement is None:
@@ -92,6 +95,7 @@ def _map_scalar_uid(
 def _map_uid_value(
     value: Any, *, key: bytes, scope: str, mapping: dict[str, str]
 ) -> Any:
+    """Handle map uid value."""
     if isinstance(value, SequenceValue) and not isinstance(value, (str, bytes)):
         return [
             _map_scalar_uid(item, key=key, scope=scope, mapping=mapping)
@@ -101,6 +105,7 @@ def _map_uid_value(
 
 
 def _pseudonym_value(value: Any, *, keyword: str, key: bytes, scope: str) -> str:
+    """Handle pseudonym value."""
     token = derive_token(str(value), key=key, scope=scope)
     if keyword == "PatientName":
         return f"PSEUDONYM^{token}"
@@ -108,6 +113,7 @@ def _pseudonym_value(value: Any, *, keyword: str, key: bytes, scope: str) -> str
 
 
 def _shift_date_text(value: Any, days: int) -> tuple[str, bool]:
+    """Handle shift date text."""
     text = str(value)
     if len(text) != 8 or not text.isdigit():
         return "", False
@@ -121,6 +127,7 @@ def _shift_date_text(value: Any, days: int) -> tuple[str, bool]:
 
 
 def _shift_datetime_text(value: Any, days: int) -> tuple[str, bool]:
+    """Handle shift datetime text."""
     text = str(value)
     if len(text) < 8 or not text[:8].isdigit():
         return "", False
@@ -136,6 +143,7 @@ def _date_action(
     retain_times: bool,
     counters: Counter[str],
 ) -> None:
+    """Handle date action."""
     vr = str(element.VR)
     if date_policy == "keep":
         counters["dates_kept"] += 1
@@ -171,9 +179,181 @@ def _date_action(
 
 
 def _looks_instance_uid(keyword: str) -> bool:
+    """Handle looks instance uid."""
     return keyword in UID_REMAP_KEYWORDS or keyword.endswith(
         ("InstanceUID", "FrameOfReferenceUID")
     )
+
+
+@dataclass
+class _TransformState:
+    """Mutable bookkeeping shared by the per-element transformation helpers."""
+
+    actions: dict[str, str]
+    private_policy: str
+    date_policy: str
+    key: bytes
+    scope: str
+    date_shift_days: int | None
+    retain_times: bool
+    counters: Counter[str] = field(default_factory=Counter)
+    unresolved_text: Counter[str] = field(default_factory=Counter)
+    unresolved_uids: Counter[str] = field(default_factory=Counter)
+    uid_mapping: dict[str, str] = field(default_factory=dict)
+    pixel_present: bool = False
+
+
+def _check_transform_options(
+    profile: dict[str, Any],
+    *,
+    date_shift_days: int | None,
+    retain_times: bool,
+    allow_private_retention: bool,
+    allow_date_retention: bool,
+) -> None:
+    """Reject inconsistent private/date retention and date-shift option combinations."""
+    private_policy = profile["private_policy"]
+    date_policy = profile["date_policy"]
+    if private_policy == "keep" and not allow_private_retention:
+        raise ToolError(
+            "private retention requires --allow-private-retention and expert review"
+        )
+    if date_policy == "keep" and not allow_date_retention:
+        raise ToolError("date retention requires --allow-date-retention")
+    if date_policy == "shift" and date_shift_days is None:
+        raise ToolError("date shift policy requires --date-shift-days")
+    if date_policy != "shift" and date_shift_days is not None:
+        raise ToolError("--date-shift-days is only valid with date policy shift")
+    if retain_times and date_policy != "shift":
+        raise ToolError("--retain-times is only valid with date policy shift")
+
+
+def _drop_pixel_private_overlay(
+    current: Any, element: Any, keyword: str, state: _TransformState
+) -> bool:
+    """Handle pixel, private and overlay/curve elements; True when fully handled."""
+    counters = state.counters
+    if keyword in PIXEL_KEYWORDS:
+        state.pixel_present = True
+        counters["pixel_elements_preserved"] += 1
+        return True
+    if element.tag.is_private:
+        counters["private_elements_seen"] += 1
+        if state.private_policy == "reject":
+            raise ToolError("private elements present under reject policy")
+        if state.private_policy == "remove":
+            del current[element.tag]
+            counters["private_elements_removed"] += 1
+            return True
+        counters["private_elements_retained"] += 1
+    group = int(element.tag.group)
+    if 0x5000 <= group <= 0x50FF or 0x6000 <= group <= 0x60FF:
+        del current[element.tag]
+        counters["overlay_or_curve_elements_removed"] += 1
+        return True
+    return False
+
+
+def _apply_profile_action(
+    action: str | None,
+    current: Any,
+    element: Any,
+    keyword: str,
+    state: _TransformState,
+) -> bool:
+    """Apply an explicit profile action to an element; True when one matched."""
+    counters = state.counters
+    if action == "remove":
+        del current[element.tag]
+        counters["elements_removed"] += 1
+    elif action == "empty":
+        element.value = [] if str(element.VR) == "SQ" else ""
+        counters["elements_emptied"] += 1
+    elif action == "pseudonym":
+        if str(element.VR) not in TEXT_VRS or str(element.VR) == "UI":
+            raise ToolError("pseudonym action is only valid for non-UID text elements")
+        element.value = _pseudonym_value(
+            element.value,
+            keyword=keyword,
+            key=state.key,
+            scope=state.scope,
+        )
+        counters["elements_pseudonymized"] += 1
+    elif action == "uid":
+        if str(element.VR) != "UI":
+            raise ToolError("uid action is only valid for UI elements")
+        element.value = _map_uid_value(
+            element.value,
+            key=state.key,
+            scope=state.scope,
+            mapping=state.uid_mapping,
+        )
+        counters["uid_elements_remapped"] += 1
+    elif action == "keep":
+        counters["profile_keep_actions"] += 1
+    else:
+        return False
+    return True
+
+
+def _classify_ui_element(element: Any, keyword: str, state: _TransformState) -> None:
+    """Preserve structural UIDs, remap instance UIDs, and tally unclassified ones."""
+    if keyword in STRUCTURAL_UID_KEYWORDS:
+        state.counters["structural_uid_elements_preserved"] += 1
+    elif _looks_instance_uid(keyword):
+        element.value = _map_uid_value(
+            element.value,
+            key=state.key,
+            scope=state.scope,
+            mapping=state.uid_mapping,
+        )
+        state.counters["uid_elements_remapped"] += 1
+    else:
+        state.unresolved_uids[keyword] += 1
+
+
+def _apply_vr_rules(
+    element: Any,
+    keyword: str,
+    action: str | None,
+    state: _TransformState,
+    stack: list[tuple[Any, int]],
+    depth: int,
+) -> None:
+    """Apply value-representation based handling to an element with no explicit action."""
+    vr = str(element.VR)
+    if vr == "SQ":
+        for item in reversed(list(element.value)):
+            stack.append((item, depth + 1))
+    elif vr in {"DA", "DT", "TM"}:
+        _date_action(
+            element,
+            date_policy=state.date_policy,
+            date_shift_days=state.date_shift_days,
+            retain_times=state.retain_times,
+            counters=state.counters,
+        )
+    elif vr == "UI":
+        _classify_ui_element(element, keyword, state)
+    elif vr in TEXT_VRS and action != "keep":
+        state.unresolved_text[keyword] += 1
+
+
+def _process_element(
+    current: Any,
+    element: Any,
+    depth: int,
+    stack: list[tuple[Any, int]],
+    state: _TransformState,
+) -> None:
+    """Transform one data element according to the profile and policies."""
+    keyword = element.keyword or element_tag(element)
+    if _drop_pixel_private_overlay(current, element, keyword, state):
+        return
+    action = state.actions.get(keyword, state.actions.get(element_tag(element)))
+    if _apply_profile_action(action, current, element, keyword, state):
+        return
+    _apply_vr_rules(element, keyword, action, state, stack, depth)
 
 
 def transform_dataset(
@@ -190,29 +370,24 @@ def transform_dataset(
 ) -> tuple[dict[str, Any], dict[str, str]]:
     """Apply the bounded starter/profile actions in place."""
 
-    actions = profile["actions"]
-    private_policy = profile["private_policy"]
-    date_policy = profile["date_policy"]
-    if private_policy == "keep" and not allow_private_retention:
-        raise ToolError(
-            "private retention requires --allow-private-retention and expert review"
-        )
-    if date_policy == "keep" and not allow_date_retention:
-        raise ToolError("date retention requires --allow-date-retention")
-    if date_policy == "shift" and date_shift_days is None:
-        raise ToolError("date shift policy requires --date-shift-days")
-    if date_policy != "shift" and date_shift_days is not None:
-        raise ToolError("--date-shift-days is only valid with date policy shift")
-    if retain_times and date_policy != "shift":
-        raise ToolError("--retain-times is only valid with date policy shift")
-
-    counters: Counter[str] = Counter()
-    unresolved_text: Counter[str] = Counter()
-    unresolved_uids: Counter[str] = Counter()
-    uid_mapping: dict[str, str] = {}
+    _check_transform_options(
+        profile,
+        date_shift_days=date_shift_days,
+        retain_times=retain_times,
+        allow_private_retention=allow_private_retention,
+        allow_date_retention=allow_date_retention,
+    )
+    state = _TransformState(
+        actions=profile["actions"],
+        private_policy=profile["private_policy"],
+        date_policy=profile["date_policy"],
+        key=key,
+        scope=scope,
+        date_shift_days=date_shift_days,
+        retain_times=retain_times,
+    )
     stack: list[tuple[Any, int]] = [(dataset, 0)]
     seen_elements = 0
-    pixel_present = False
     burned_in_status = str(dataset.get("BurnedInAnnotation", "")).upper()
     recognizable_status = str(dataset.get("RecognizableVisualFeatures", "")).upper()
 
@@ -224,98 +399,7 @@ def transform_dataset(
             seen_elements += 1
             if seen_elements > max_elements:
                 raise ToolError("data-element limit exceeded")
-            keyword = element.keyword or element_tag(element)
-            group = int(element.tag.group)
-
-            if keyword in PIXEL_KEYWORDS:
-                pixel_present = True
-                counters["pixel_elements_preserved"] += 1
-                continue
-
-            if element.tag.is_private:
-                counters["private_elements_seen"] += 1
-                if private_policy == "reject":
-                    raise ToolError("private elements present under reject policy")
-                if private_policy == "remove":
-                    del current[element.tag]
-                    counters["private_elements_removed"] += 1
-                    continue
-                counters["private_elements_retained"] += 1
-
-            if 0x5000 <= group <= 0x50FF or 0x6000 <= group <= 0x60FF:
-                del current[element.tag]
-                counters["overlay_or_curve_elements_removed"] += 1
-                continue
-
-            action = actions.get(keyword, actions.get(element_tag(element)))
-            if action == "remove":
-                del current[element.tag]
-                counters["elements_removed"] += 1
-                continue
-            if action == "empty":
-                element.value = [] if str(element.VR) == "SQ" else ""
-                counters["elements_emptied"] += 1
-                continue
-            if action == "pseudonym":
-                if str(element.VR) not in TEXT_VRS or str(element.VR) == "UI":
-                    raise ToolError(
-                        "pseudonym action is only valid for non-UID text elements"
-                    )
-                element.value = _pseudonym_value(
-                    element.value,
-                    keyword=keyword,
-                    key=key,
-                    scope=scope,
-                )
-                counters["elements_pseudonymized"] += 1
-                continue
-            if action == "uid":
-                if str(element.VR) != "UI":
-                    raise ToolError("uid action is only valid for UI elements")
-                element.value = _map_uid_value(
-                    element.value,
-                    key=key,
-                    scope=scope,
-                    mapping=uid_mapping,
-                )
-                counters["uid_elements_remapped"] += 1
-                continue
-            if action == "keep":
-                counters["profile_keep_actions"] += 1
-                continue
-
-            if str(element.VR) == "SQ":
-                for item in reversed(list(element.value)):
-                    stack.append((item, depth + 1))
-                continue
-
-            if str(element.VR) in {"DA", "DT", "TM"}:
-                _date_action(
-                    element,
-                    date_policy=date_policy,
-                    date_shift_days=date_shift_days,
-                    retain_times=retain_times,
-                    counters=counters,
-                )
-                continue
-
-            if str(element.VR) == "UI":
-                if keyword in STRUCTURAL_UID_KEYWORDS:
-                    counters["structural_uid_elements_preserved"] += 1
-                elif _looks_instance_uid(keyword):
-                    element.value = _map_uid_value(
-                        element.value,
-                        key=key,
-                        scope=scope,
-                        mapping=uid_mapping,
-                    )
-                    counters["uid_elements_remapped"] += 1
-                else:
-                    unresolved_uids[keyword] += 1
-                continue
-
-            if str(element.VR) in TEXT_VRS and action != "keep":
-                unresolved_text[keyword] += 1
+            _process_element(current, element, depth, stack, state)
 
     # Never assert successful de-identification. These attributes are removed by
     # the starter profile and then set conservatively after processing.
@@ -326,24 +410,25 @@ def transform_dataset(
         del dataset.DeidentificationMethodCodeSequence
 
     report = {
-        "actions": counter_dict(counters),
+        "actions": counter_dict(state.counters),
         "burned_in_annotation": burned_in_status or "ABSENT",
-        "date_policy": date_policy,
+        "date_policy": state.date_policy,
         "elements_examined": seen_elements,
         "expert_verification_required": True,
         "not_a_compliance_claim": True,
         "patient_identity_removed": "NO",
-        "pixel_data_preserved": pixel_present,
-        "private_policy": private_policy,
+        "pixel_data_preserved": state.pixel_present,
+        "private_policy": state.private_policy,
         "recognizable_visual_features": recognizable_status or "ABSENT",
-        "residual_text_elements_by_keyword": counter_dict(unresolved_text),
-        "unclassified_uid_elements_by_keyword": counter_dict(unresolved_uids),
-        "uid_mappings": len(uid_mapping),
+        "residual_text_elements_by_keyword": counter_dict(state.unresolved_text),
+        "unclassified_uid_elements_by_keyword": counter_dict(state.unresolved_uids),
+        "uid_mappings": len(state.uid_mapping),
     }
-    return report, uid_mapping
+    return report, state.uid_mapping
 
 
 def _rebuild_file_meta(dataset: Any, *, original_transfer_syntax: Any) -> None:
+    """Handle rebuild file meta."""
     require_pydicom()
     from pydicom.dataset import FileMetaDataset
     from pydicom.uid import PYDICOM_IMPLEMENTATION_UID
@@ -361,6 +446,7 @@ def _rebuild_file_meta(dataset: Any, *, original_transfer_syntax: Any) -> None:
 
 
 def process_file(args: argparse.Namespace) -> dict[str, Any]:
+    """Process file."""
     max_input_bytes = parse_size(
         args.max_input_bytes,
         name="max_input_bytes",
@@ -472,6 +558,7 @@ def process_file(args: argparse.Namespace) -> dict[str, Any]:
     _rebuild_file_meta(dataset, original_transfer_syntax=original_transfer_syntax)
 
     def writer(path: Path) -> None:
+        """Handle writer."""
         pydicom.dcmwrite(
             path,
             dataset,
@@ -480,6 +567,7 @@ def process_file(args: argparse.Namespace) -> dict[str, Any]:
         )
 
     def validator(path: Path) -> None:
+        """Handle validator."""
         check = safe_dcmread(path, stop_before_pixels=True, force=False)
         if str(check.get("PatientIdentityRemoved", "")) != "NO":
             raise ToolError("output verification failed")
@@ -553,6 +641,7 @@ def process_file(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Create a bounded pseudonymized DICOM derivative. This is not a "
@@ -672,6 +761,7 @@ Examples:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

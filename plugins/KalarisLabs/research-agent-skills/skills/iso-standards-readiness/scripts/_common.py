@@ -75,6 +75,7 @@ class Finding:
     severity: str = "gap"
 
     def as_dict(self) -> dict[str, str]:
+        """Handle as dict."""
         return {
             "code": self.code,
             "message": self.message,
@@ -84,10 +85,12 @@ class Finding:
 
 
 def _reject_constant(value: str) -> None:
+    """Handle reject constant."""
     raise InputError(f"non-finite JSON number is not permitted: {value}")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle unique object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -97,6 +100,7 @@ def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _check_depth_and_size(value: Any) -> None:
+    """Check depth and size."""
     stack: list[tuple[Any, int]] = [(value, 1)]
     items = 0
     while stack:
@@ -118,6 +122,7 @@ def _check_depth_and_size(value: Any) -> None:
 
 
 def _safe_input_file(path_text: str, suffixes: set[str]) -> Path:
+    """Handle safe input file."""
     path = Path(path_text)
     if path.is_symlink():
         raise InputError(f"symbolic-link input is refused: {path}")
@@ -173,12 +178,14 @@ def load_markdown(path_text: str) -> str:
 
 
 def require_root_object(value: Any) -> dict[str, Any]:
+    """Handle require root object."""
     if not isinstance(value, dict):
         raise InputError("JSON root must be an object")
     return value
 
 
 def is_placeholder(value: Any) -> bool:
+    """Return whether placeholder."""
     return (
         not isinstance(value, str)
         or not value.strip()
@@ -187,6 +194,7 @@ def is_placeholder(value: Any) -> bool:
 
 
 def valid_iso_date(value: Any) -> bool:
+    """Handle valid iso date."""
     if not isinstance(value, str):
         return False
     try:
@@ -200,6 +208,7 @@ class Review:
     """Accumulates fail-closed findings while preserving deterministic order."""
 
     def __init__(self) -> None:
+        """Initialise the instance."""
         self.findings: list[Finding] = []
 
     def add(
@@ -209,9 +218,11 @@ class Review:
         message: str,
         severity: str = "gap",
     ) -> None:
+        """Add."""
         self.findings.append(Finding(code, path, message, severity))
 
     def object(self, value: Any, path: str) -> dict[str, Any] | None:
+        """Handle object."""
         if not isinstance(value, dict):
             self.add("TYPE_OBJECT", path, "must be an object")
             return None
@@ -225,6 +236,7 @@ class Review:
         min_items: int = 1,
         max_items: int = MAX_ITEMS,
     ) -> list[Any] | None:
+        """List."""
         if not isinstance(value, list):
             self.add("TYPE_LIST", path, "must be an array")
             return None
@@ -243,6 +255,7 @@ class Review:
         *,
         max_chars: int = 500,
     ) -> str | None:
+        """Handle text."""
         value = obj.get(key)
         field_path = f"{path}.{key}"
         if is_placeholder(value):
@@ -264,6 +277,7 @@ class Review:
         allowed: set[str],
         path: str,
     ) -> str | None:
+        """Handle choice."""
         value = obj.get(key)
         field_path = f"{path}.{key}"
         if not isinstance(value, str) or value not in allowed:
@@ -283,6 +297,7 @@ class Review:
         *,
         required: bool = True,
     ) -> str | None:
+        """Handle date."""
         value = obj.get(key)
         field_path = f"{path}.{key}"
         if value in (None, "") and not required:
@@ -299,6 +314,7 @@ class Review:
         *,
         key: str = "id",
     ) -> None:
+        """Handle unique ids."""
         seen: set[str] = set()
         for index, row in enumerate(rows):
             if not isinstance(row, dict):
@@ -321,6 +337,7 @@ class Review:
         *,
         min_items: int = 1,
     ) -> list[dict[str, Any]]:
+        """Handle evidence."""
         raw = self.list(obj.get("evidence"), f"{path}.evidence", min_items=min_items)
         if raw is None:
             return []
@@ -345,6 +362,7 @@ class Review:
         *,
         require_approved: bool,
     ) -> dict[str, Any] | None:
+        """Handle approval."""
         approval_path = f"{path}.approval"
         approval = self.object(obj.get("approval"), approval_path)
         if approval is None:
@@ -373,6 +391,7 @@ class Review:
         *,
         min_items: int = 1,
     ) -> list[dict[str, Any]]:
+        """Handle source refs."""
         raw = self.list(
             obj.get("source_refs"),
             f"{path}.source_refs",
@@ -409,6 +428,7 @@ class Review:
         require_approved: bool = True,
         require_sources: bool = True,
     ) -> None:
+        """Handle controlled item."""
         self.text(obj, "owner", path, max_chars=200)
         self.choice(obj, "status", ALLOWED_STATUSES, path)
         self.evidence(obj, path)
@@ -423,6 +443,7 @@ def standard_parser(
     *,
     with_standard: bool = False,
 ) -> argparse.ArgumentParser:
+    """Handle standard parser."""
     parser = argparse.ArgumentParser(
         description=description,
         epilog=DISCLAIMER,
@@ -474,6 +495,7 @@ def build_report(
     basis: str = "2026-07-26",
     standard: str | None = None,
 ) -> dict[str, Any]:
+    """Build report."""
     ordered = sorted(
         findings,
         key=lambda item: (item.path, item.code, item.message, item.severity),
@@ -498,6 +520,7 @@ def emit_report(
     force: bool,
     compact: bool,
 ) -> None:
+    """Handle emit report."""
     text = json.dumps(
         report,
         ensure_ascii=False,
@@ -534,6 +557,7 @@ def finish(
     metrics: dict[str, Any] | None = None,
     standard: str | None = None,
 ) -> int:
+    """Handle finish."""
     report = build_report(
         tool,
         review.findings,
@@ -550,6 +574,7 @@ def finish(
 
 
 def guarded_main(main_function: Any) -> None:
+    """Handle guarded main."""
     try:
         code = int(main_function())
     except InputError as exc:

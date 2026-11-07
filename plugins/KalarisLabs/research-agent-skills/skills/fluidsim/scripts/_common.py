@@ -106,6 +106,7 @@ def validate_keys(
 
 
 def require_mapping(value: Any, *, context: str) -> Mapping[str, Any]:
+    """Handle require mapping."""
     if not isinstance(value, Mapping):
         raise ToolError(f"{context} must be a JSON object")
     return value
@@ -114,6 +115,7 @@ def require_mapping(value: Any, *, context: str) -> Mapping[str, Any]:
 def require_text(
     value: Any, *, name: str, minimum: int = 1, maximum: int = 2_000
 ) -> str:
+    """Handle require text."""
     if not isinstance(value, str):
         raise ToolError(f"{name} must be a string")
     if not minimum <= len(value) <= maximum:
@@ -126,6 +128,7 @@ def require_text(
 def require_text_list(
     value: Any, *, name: str, minimum: int = 1, maximum: int = 100
 ) -> list[str]:
+    """Handle require text list."""
     if not isinstance(value, list) or not minimum <= len(value) <= maximum:
         raise ToolError(f"{name} must contain {minimum}..{maximum} strings")
     return [
@@ -177,6 +180,7 @@ def safe_relative_path(
 
 
 def _reject_unsafe_path_text(value: str) -> None:
+    """Handle reject unsafe path text."""
     stripped = value.strip()
     lowered = stripped.casefold()
     if not stripped or "\x00" in value:
@@ -192,10 +196,12 @@ def _reject_unsafe_path_text(value: str) -> None:
 
 
 def _absolute_lexical(path: Path) -> Path:
+    """Handle absolute lexical."""
     return Path(os.path.abspath(os.fspath(path)))
 
 
 def _reject_symlink_components(path: Path) -> None:
+    """Handle reject symlink components."""
     absolute = _absolute_lexical(path)
     current = Path(absolute.anchor)
     for part in absolute.parts[1:]:
@@ -228,6 +234,7 @@ def checked_root(value: str | os.PathLike[str]) -> Path:
 
 
 def _within_root(path: Path, root: Path) -> None:
+    """Handle within root."""
     try:
         path.relative_to(root)
     except ValueError as exc:
@@ -337,10 +344,12 @@ def atomic_write(
 
 
 def _reject_json_constant(value: str) -> None:
+    """Handle reject json constant."""
     raise ToolError(f"non-finite JSON number is not accepted: {value}")
 
 
 def _unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle unique object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -368,6 +377,7 @@ def load_json(path: Path, *, max_bytes: int = MAX_JSON_BYTES) -> Any:
 
 
 def strict_json_loads(text: str) -> Any:
+    """Handle strict json loads."""
     try:
         return json.loads(
             text,
@@ -381,6 +391,7 @@ def strict_json_loads(text: str) -> Any:
 
 
 def json_bytes(document: Any) -> bytes:
+    """Handle json bytes."""
     try:
         payload = (
             json.dumps(
@@ -400,10 +411,12 @@ def json_bytes(document: Any) -> bytes:
 
 
 def emit_json(document: Any) -> None:
+    """Handle emit json."""
     sys.stdout.buffer.write(json_bytes(document))
 
 
 def fail_json(tool: str, exc: Exception) -> int:
+    """Handle fail json."""
     emit_json(
         {
             "error": type(exc).__name__,

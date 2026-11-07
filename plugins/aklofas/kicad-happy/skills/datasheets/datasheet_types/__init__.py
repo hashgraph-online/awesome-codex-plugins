@@ -1,6 +1,6 @@
 """Typed Python access layer for datasheet v2 extraction.
 
-Mirrors the Track 2.1 JSON schemas under skills/datasheets/schemas/.
+Mirrors the JSON schemas under skills/datasheets/schemas/.
 Dataclasses are ergonomic access; the JSON Schema remains source of truth.
 
 Public API:
@@ -10,14 +10,14 @@ Public API:
     BaseBlock, Package, ComplianceMark, PinRelationship — base block types
     Regulator, StabilityConditions, Sequencing — regulator category
     lookup — resolve MPN to DatasheetFacts (cache_reader)
-    best, trusted, has_data — trust-gating helpers (Track 2.4)
+    best, trusted, has_data — trust-gating helpers
 
 Consumers import:
     from datasheet_types.extraction import DatasheetFacts
     from datasheet_types.codec import from_dict, to_dict
     facts = from_dict(DatasheetFacts, json.load(open('cache/LM2596-ADJ.json')))
 
-    # Trust-gating pattern (spec §11/§12):
+    # Trust-gating pattern:
     from datasheet_types import best, trusted, has_data, lookup
     ds = lookup("LM2596-ADJ", cache_dir=...)
     if has_data(ds.regulator.vin_range):

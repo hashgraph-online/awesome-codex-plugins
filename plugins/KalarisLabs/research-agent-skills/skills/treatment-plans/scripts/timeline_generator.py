@@ -24,6 +24,7 @@ from _common import (
 
 
 def _date_bound(value: str | None, code: str) -> date | None:
+    """Handle date bound."""
     if value is None:
         return None
     try:
@@ -38,6 +39,7 @@ def build_schedule(
     from_date: str | None = None,
     through_date: str | None = None,
 ) -> tuple[dict, dict]:
+    """Build schedule."""
     issues = validate_package_structure(documents)
     if issues:
         return (
@@ -64,6 +66,7 @@ def build_schedule(
         record_index: int | None,
         date_field: str,
     ) -> None:
+        """Add event."""
         if value is None:
             return
         event_date = value[:10]
@@ -214,6 +217,7 @@ def build_schedule(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Write a local JSON schedule containing only dates explicitly "
@@ -238,6 +242,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         documents, _ = load_package(args.package)

@@ -1,3 +1,5 @@
+"""Synthesize helpers."""
+
 import json
 import re
 
@@ -5,10 +7,12 @@ VALID_VERDICTS = {"reuse", "compose", "novel"}
 
 
 class SynthesisError(Exception):
+    """Raised when synthesis fails."""
     pass
 
 
 def _build_prompt(cluster, top_k_skills):
+    """Build prompt."""
     apps = ", ".join(cluster["apps"])
     titles = "; ".join(cluster.get("example_titles", []))
     candidates = "\n".join(
@@ -39,6 +43,7 @@ Respond with a single JSON object:
 
 
 def _extract_json(text: str) -> dict:
+    """Extract json."""
     fence = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if fence:
         candidate = fence.group(1)
@@ -55,6 +60,7 @@ def _extract_json(text: str) -> dict:
 
 
 def synthesize(cluster, top_k_skills, backend):
+    """Handle synthesize."""
     prompt = _build_prompt(cluster, top_k_skills)
     response = backend(prompt)
     payload = _extract_json(response)

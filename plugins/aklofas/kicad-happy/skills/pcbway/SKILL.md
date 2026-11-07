@@ -99,6 +99,8 @@ For gerber export settings and CPL format, see the `bom` skill — both JLCPCB a
 | Min board size | 3x3mm |
 | Max board size | 600x1200mm (1-2 layer) |
 
+These minima are not one via recipe: a 0.3 mm via on a 0.15 mm drill leaves a (0.3 − 0.15) / 2 = 0.075 mm ring, below the 0.15 mm ring above. The numbers were not re-checked against PCBWay's current page; check its capability page for the via pad, drill and ring that apply together.
+
 ### Multi-layer (4+ layers)
 
 | Parameter | Minimum |

@@ -27,6 +27,7 @@ class ValidationError(ValueError):
 
 
 def _reject_nonlocal(raw: str) -> None:
+    """Handle reject nonlocal."""
     if not raw or "\x00" in raw:
         raise ValidationError("path must be a non-empty local filesystem path")
     if "://" in raw or raw.startswith(("file:", "\\\\")):
@@ -91,6 +92,7 @@ def local_output_path(
 
 
 def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle object without duplicates."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -100,6 +102,7 @@ def _object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _check_tree(value: Any, *, depth: int = 0, counter: list[int] | None = None) -> None:
+    """Check tree."""
     if counter is None:
         counter = [0]
     counter[0] += 1

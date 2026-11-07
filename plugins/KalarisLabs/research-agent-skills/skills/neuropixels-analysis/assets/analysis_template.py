@@ -241,7 +241,7 @@ def main():
     mua_count = sum(1 for v in labels.values() if v == 'mua')
     noise_count = sum(1 for v in labels.values() if v == 'noise')
 
-    print(f"\nCuration results:")
+    print("\nCuration results:")
     print(f"  Good: {good_count}")
     print(f"  MUA: {mua_count}")
     print(f"  Noise: {noise_count}")
@@ -261,9 +261,9 @@ def main():
         copy_binary=True,
     )
 
-    print(f"\nAnalysis complete!")
+    print("\nAnalysis complete!")
     print(f"Results saved to: {output_path}")
-    print(f"\nTo open in Phy:")
+    print("\nTo open in Phy:")
     print(f"  phy template-gui {output_path / 'phy_export' / 'params.py'}")
 
 

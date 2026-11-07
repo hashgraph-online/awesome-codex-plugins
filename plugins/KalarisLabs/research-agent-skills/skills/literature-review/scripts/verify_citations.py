@@ -12,7 +12,9 @@ from urllib.parse import urlparse
 import time
 
 class CitationVerifier:
+    """Citation verifier."""
     def __init__(self):
+        """Initialise the instance."""
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'CitationVerifier/1.0 (Literature Review Tool)'

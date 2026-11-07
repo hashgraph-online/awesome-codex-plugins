@@ -1,12 +1,39 @@
 """PCB copper checks: via analysis, thermal vias and thermal-pad vias, copper presence,
-via-in-pad, board-edge via clearance. Verbatim moves from analyze_pcb.py."""
+via-in-pad, board-edge via clearance."""
 
 import math
 import re
 
+from kicad_core.classify import is_touch_pad
 from kicad_core.netnames import is_ground_name
 from pcb.dfm import _degenerate_drills, _is_real_drill, _pad_drills
-from pcb.geometry import ZoneFills, _pad_sample_points, _point_in_pad, copper_connected
+from pcb.geometry import (ZoneFills, _pad_on_layer, _pad_sample_points, _point_in_pad,
+                          copper_connected, outline_edge_distance)
+
+
+def _via_exposed_by_pad(via: dict, pad_layers: list | None) -> bool:
+    """True when a pad's own mask opening uncovers a via inside it. KiCad plots the pad's
+    aperture on every mask layer in the pad's layer set whatever the via's tenting; the
+    via shows wherever it reaches that side."""
+    return bool(_via_open_sides(via, pad_layers))
+
+
+def _via_open_sides(via: dict, pad_layers: list | None) -> list[str]:
+    """Outer sides ("F", "B") where the pad opens the mask and the via reaches the copper."""
+    layers = set(pad_layers or ())
+    reaches = via.get("layers") or ["F.Cu", "B.Cu"]
+    return [side for side in ("F", "B")
+            if f"{side}.Cu" in reaches and layers & {f"{side}.Mask", "*.Mask", "F&B.Mask"}]
+
+
+def _mask_opening_size(pad: dict, w: float, h: float) -> tuple[float, float] | None:
+    """Size of the pad's mask opening: a negative solder_mask_margin shrinks it on every
+    side (KiCad's PAD::GetSolderMaskExpansion), and None when nothing is left open."""
+    margin = pad.get("solder_mask_margin") or 0
+    if margin >= 0:
+        return w, h
+    ow, oh = w + 2 * margin, h + 2 * margin
+    return (ow, oh) if ow > 0 and oh > 0 else None
 
 
 def _find_thermal_pads(fp: dict) -> list[dict]:
@@ -286,9 +313,9 @@ def analyze_vias(vias: dict, footprints: list[dict],
     # EQ-058: area = π(d/2)² (via annular ring)
     all_vias = vias.get("vias", [])
     if not all_vias:
-        # KH-412: a via-less board can still have footprint pad drills
-        # (including degenerate ones, e.g. HamedMasafi/MeloCar remote_3's
-        # `(drill 0.00001)` pads) worth surfacing — don't drop them just
+        # A via-less board can still have footprint pad drills
+        # (including degenerate ones, e.g. a
+        # `(drill 0.00001)` pad) worth surfacing — don't drop them just
         # because there are no vias to analyze.
         novia_result: dict = {}
         pad_drills = _pad_drills(footprints)
@@ -305,7 +332,7 @@ def analyze_vias(vias: dict, footprints: list[dict],
         "through": {}, "blind": {}, "buried": {}, "micro": {},
     }
     for v in all_vias:
-        # extract_vias always emits `type` as one of through/blind/buried/micro (KH-318).
+        # extract_vias always emits `type` as one of through/blind/buried/micro.
         vtype = v["type"]
         if vtype not in type_counts:
             vtype = "through"
@@ -466,7 +493,7 @@ def analyze_vias(vias: dict, footprints: list[dict],
     drill_sizes: dict[float, int] = {}
     for v in all_vias:
         d = v.get("drill", 0)
-        # KH-412: degenerate drills (file artefacts) are excluded from
+        # Degenerate drills (file artefacts) are excluded from
         # every minimum/rating, not just the DFM and design-rule checks —
         # they're reported separately via `degenerate_drills` instead.
         if _is_real_drill(d):
@@ -500,14 +527,14 @@ def analyze_vias(vias: dict, footprints: list[dict],
             })
         current_facts["ratings"] = ratings
 
-    # KH-383: footprint-embedded thru_hole/np_thru_hole pad drills (e.g. a
+    # Footprint-embedded thru_hole/np_thru_hole pad drills (e.g. a
     # thermal via pattern baked into a QFN footprint) aren't board vias, but
     # can be smaller than any of them — surface separately as a fact.
     pad_drills = _pad_drills(footprints)
     if pad_drills:
         current_facts["min_pad_drill_mm"] = min(pad_drills)
 
-    # KH-412: sub-0.05mm pad/via drills are file artefacts, not real holes —
+    # Sub-0.05mm pad/via drills are file artefacts, not real holes —
     # list them separately instead of silently dropping them.
     degenerate = _degenerate_drills(footprints, all_vias)
 
@@ -533,7 +560,8 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
     """Thermal pad via adequacy assessment for QFN/BGA/DFN packages.
 
     For packages with exposed/thermal pads (large center pads), checks:
-    - Tier 1: vias inside the rotated 1.5x pad bounding box (any net)
+    - Tier 1: vias on the pad's net (any net when the pad has none) inside the
+      rotated 1.5x pad bounding box
     - Tier 1b: footprint-embedded thru_hole pads on the pad's net
     - Tier 2: same-net vias outside the pad bbox but within an expanded
       search radius (max(w,h)*2.0 + 2.0 mm) whose copper continuity to
@@ -625,13 +653,13 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
             # for the rectangular containment check. KiCad writes a pad's
             # (at x y angle) orientation as the ABSOLUTE board orientation
             # -- it already includes the footprint's own rotation, so the
-            # footprint angle must NOT be added again (KH-408; same fix as
-            # CP-003's _pad_sample_points in v2.3.0). This check must undo
+            # footprint angle must NOT be added again (as in
+            # CP-003's _pad_sample_points). This check must undo
             # (not repeat) the local->board placement rotation that pad
             # corners/vias are given elsewhere (board placement uses -angle,
             # e.g. _pad_sample_points), so total_rad is NOT negated here --
             # see _point_in_pad's transposed-matrix form of the same inverse
-            # (VP-001, KH-340) for the equivalent established precedent.
+            # (VP-001) for the equivalent established precedent.
             total_angle = pad.get("angle", 0) or 0
             total_rad = math.radians(total_angle) if total_angle != 0 else 0.0
             cos_a = math.cos(total_rad) if total_angle != 0 else 1.0
@@ -644,8 +672,14 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
             drill_sum = 0.0
             vias_tented = 0
             vias_untented = 0
+            vias_exposed = 0
 
+            pad_shape = pad.get("shape", "rect")
+            opening = _mask_opening_size(pad, w, h)
             for via in all_vias:
+                # A via of another net inside the pad is a short, not thermal copper.
+                if net_num > 0 and via.get("net", -1) != net_num:
+                    continue
                 vx, vy = via["x"], via["y"]
                 # Transform via position into pad-local coordinates
                 dx, dy = vx - ax, vy - ay
@@ -661,12 +695,24 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
                     drill = via.get("drill", 0.3)
                     drill_sum += drill
                     effective_vias_in_pad += (drill / 0.3) ** 2
-                    # Check tenting
+                    # Solder reaches the via on the side the pad opens; tenting elsewhere
+                    # does not cover it.
+                    open_sides = _via_open_sides(via, pad.get("layers"))
                     tenting = via.get("tenting", [])
-                    if len(tenting) > 0:
+                    if open_sides:
+                        tented = all(("front" if side == "F" else "back") in tenting
+                                     for side in open_sides)
+                    else:
+                        tented = len(tenting) > 0
+                    if tented:
                         vias_tented += 1
                     else:
                         vias_untented += 1
+                    # Inside the pad's mask opening the opening decides, not tenting.
+                    in_opening = bool(open_sides) and opening is not None and _point_in_pad(
+                        vx, vy, ax, ay, opening[0], opening[1], pad_shape, total_angle)
+                    if not tented or in_opening:
+                        vias_exposed += 1
 
             # Count thru_hole pads in the same footprint on the same net
             # — these are footprint-embedded thermal vias (common in
@@ -833,10 +879,11 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
                 "raw_adequacy": raw_adequacy,
             }
 
-            if vias_untented > 0:
+            if vias_exposed > 0:
                 entry["tenting_note"] = (
-                    f"{vias_untented} via(s) are not tented — solder may wick "
-                    f"through during reflow, creating voids under the thermal pad"
+                    f"{vias_exposed} via(s) are open to solder (untented, or inside the "
+                    f"pad's mask opening) — solder may wick through during reflow, "
+                    f"creating voids under the thermal pad"
                 )
 
             if drill_penalized and strict_via_count > 0:
@@ -886,7 +933,7 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
 
 
 # Generic-passive reference designators (C, R, L, FB + digits, optionally
-# with a hierarchical sheet prefix like "U1/C5"). F10: CP-002 skips these
+# with a hierarchical sheet prefix like "U1/C5"). CP-002 skips these
 # because on a 2-layer board with a GND pour every decoupling cap's VCC
 # pad is "uncovered" — that's expected, not a finding. Components on real
 # touch / antenna pads use TP-prefixed refs or non-passive libraries and
@@ -899,13 +946,13 @@ def _nearest_zone_copper_distance(fp: dict, fp_layer: str, gnd_zones: list,
     """Distance from a footprint's pad outline to the nearest same-layer GND
     copper.
 
-    KH-373: prefers the filled polygon edge (actual copper shape, holes
-    included) over the zone bbox — the bbox was always 0.0 mm for any GND
-    pour enclosing the footprint, mislabelled 'deterministic'. Falls back
-    to KH-339's filled_bbox / outline_bbox approximation when polygon
+    Prefers the filled polygon edge (actual copper shape, holes
+    included) over the zone bbox, which would measure 0.0 mm for any footprint
+    inside a GND pour. Falls back
+    to a filled_bbox / outline_bbox approximation when polygon
     data is unavailable. Returns (distance, basis) where basis is
-    'filled_polygon', 'filled_bbox', or 'outline_bbox' (None if no
-    candidate zone).
+    'filled_polygon', 'filled_bbox', or 'outline_bbox'; (inf, None) when
+    no candidate zone covers the footprint's layer.
     """
     if zone_fills is not None and getattr(zone_fills, "has_data", False):
         gnd_idxs = {i for i, z in enumerate(zones)
@@ -1001,11 +1048,17 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
                     if nn:
                         opp_nets.add(nn)
 
-            # Same-layer foreign zone check
+            # Same-layer foreign zone check, on the copper side the pad is on (an SMD pad
+            # can sit on the other side of its footprint, e.g. a hot-swap socket)
+            if _pad_on_layer(pad, fp_layer, fp_layer):
+                pad_side = fp_layer
+            else:
+                flip = "B.Cu" if fp_layer == "F.Cu" else "F.Cu"
+                pad_side = flip if _pad_on_layer(pad, flip, fp_layer) else None
             same_other = [
-                z for z in zone_fills.zones_at_point(px, py, fp_layer, zones)
+                z for z in zone_fills.zones_at_point(px, py, pad_side, zones)
                 if z.get("net", 0) != pad_net and pad_net > 0
-            ]
+            ] if pad_side else []
             if same_other:
                 foreign_pads.append({
                     "pad": str(pad.get("number", "")),
@@ -1019,10 +1072,10 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
             opp_uncovered.append(ref)
 
         if foreign_pads:
-            fz_nets = list(set(
+            fz_nets = sorted({
                 n for fp_pad in foreign_pads
                 for n in fp_pad["foreign_zones"]
-            ))
+            })
             # Classify: is every foreign zone a ground rail AND does this
             # component have a pin on that ground? That's the "desired"
             # case (decoupling cap sitting over GND pour) and should
@@ -1099,7 +1152,7 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
     }
 
     # The interesting signal: components WITHOUT opposite-layer copper.
-    # F10: emit CP-002 findings only for non-passive references — on a
+    # Emit CP-002 findings only for non-passive references — on a
     # 2-layer board with a GND pour on the opposite side, every decoupling
     # cap's VCC pad would otherwise fire CP-002, drowning the info tier.
     # Actual touch-sensitive / RF components are still surfaced via CP-003.
@@ -1147,20 +1200,9 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
         ref = fp.get("reference", "")
         if ref not in opp_uncovered:
             continue
-        lib = fp.get("library", "").lower()
-        val = (fp.get("value") or "").lower()
-        # KH-373: a bare "TP" ref prefix is not evidence of a touch pad --
-        # 466/488 of the corpus's CP-003 "touch pad" refs were actually
-        # TestPoint:* library parts. Require positive evidence instead
-        # (a touch/capacitive-sensing library or value, or a TOUCH/TCH ref);
-        # a testpoint library is never touch even if it also matches those.
-        if "testpoint" in lib or "test_point" in lib:
-            is_touch = False
-        else:
-            is_touch = (any(k in lib for k in ("touch", "capacitive", "captouch", "cap_touch"))
-                        or any(k in val for k in ("touch", "capacitive", "captouch", "cap_touch"))
-                        or ref.upper().startswith(("TOUCH", "TCH")))
-        if not is_touch:
+        # A bare "TP" ref prefix is not evidence of a touch pad (it also matches TestPoint:*
+        # library parts).
+        if not is_touch_pad(ref, fp.get("value"), fp.get("library", "")):
             continue
         fp_layer = fp.get("layer", "F.Cu")
         min_dist, _basis = _nearest_zone_copper_distance(fp, fp_layer,
@@ -1205,8 +1247,12 @@ def analyze_copper_presence(footprints: list[dict], zones: list[dict],
     return result
 
 
-def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set) -> list[dict]:
-    """VP-001: Detect vias inside SMD pads that aren't tented."""
+def analyze_via_in_pad(footprints: list[dict], vias: dict,
+                       thermal_pads: set[tuple[str, str]]) -> list[dict]:
+    """VP-001: Detect vias inside SMD pads; warn when solder can reach them.
+
+    ``thermal_pads`` holds the (reference, pad number) pairs TV-001 already reports; they and
+    pads with the heatsink fabrication property are skipped."""
     findings: list[dict] = []
     via_list = vias.get("vias", [])
     if not via_list:
@@ -1216,12 +1262,14 @@ def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set
     smd_pads: list[tuple[str, str, str, float, float, float, float]] = []
     for fp in footprints:
         ref = fp.get("reference", "")
-        if ref in thermal_pad_refs:
-            continue
         for pad in fp.get("pads", []):
             if pad.get("type") != "smd":
                 continue
-            # KH-349: pads "disabled" by clearing all copper layers
+            # A pad KiCad marks as a heatsink carries its vias on purpose.
+            if ((ref, str(pad.get("number", ""))) in thermal_pads
+                    or pad.get("_property") == "pad_prop_heatsink"):
+                continue
+            # Pads "disabled" by clearing all copper layers
             # (e.g. (layers "Dwgs.User")) can't have via-in-pad issues.
             _pad_layers = pad.get("layers") or []
             if _pad_layers and not any(l.endswith(".Cu") for l in _pad_layers):
@@ -1237,19 +1285,27 @@ def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set
             pad_num = pad.get("number", "?")
             smd_pads.append((ref, pad_num, pad.get("net_name", ""),
                              px, py, pw, ph,
-                             pad.get("shape", "rect"), pad.get("angle", 0)))
+                             pad.get("shape", "rect"), pad.get("angle", 0), _pad_layers))
 
     for via in via_list:
         vx = via.get("x")
         vy = via.get("y")
         if vx is None or vy is None:
             continue
-        for ref, pad_num, net, ppx, ppy, pw, ph, pshape, pangle in smd_pads:
+        for ref, pad_num, net, ppx, ppy, pw, ph, pshape, pangle, players in smd_pads:
             if _point_in_pad(vx, vy, ppx, ppy, pw, ph, pshape, pangle):
-                # Check tenting
-                tenting = via.get("tenting", [])
-                tented = len(tenting) > 0
-                severity = "info" if tented else "warning"
+                tented = len(via.get("tenting", [])) > 0
+                by_pad = _via_exposed_by_pad(via, players)
+                if by_pad:
+                    state, detail = "exposed by the pad's mask opening", (
+                        "The pad's mask opening exposes it whatever its tenting — "
+                        "solder may wick through.")
+                elif tented:
+                    state, detail = "tented", "Tented."
+                else:
+                    state, detail = "untented", "Not tented — solder may wick through."
+                exposed = by_pad or not tented
+                severity = "warning" if exposed else "info"
                 findings.append({
                     "component": ref,
                     "pad": pad_num,
@@ -1262,13 +1318,15 @@ def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set
                     "severity": severity,
                     "confidence": "heuristic",
                     "evidence_source": "topology",
-                    "summary": f"Via in pad: {ref}:{pad_num} ({'tented' if tented else 'untented'})",
-                    "description": f"Via at ({round(vx, 2)}, {round(vy, 2)}) inside SMD pad {ref}:{pad_num}. {'Tented.' if tented else 'Not tented — solder may wick through.'}",
+                    "summary": f"Via in pad: {ref}:{pad_num} ({state})",
+                    "description": f"Via at ({round(vx, 2)}, {round(vy, 2)}) inside SMD pad {ref}:{pad_num}. {detail}",
                     "components": [ref],
                     "nets": [net] if net else [],
                     "pins": [],
-                    "recommendation": "" if tented else f"Fill and cap via in {ref}:{pad_num} or tent with solder mask.",
-                    "report_context": {"section": "DFM", "impact": "Solder wicking risk" if not tented else "", "standard_ref": ""},
+                    "recommendation": (f"Fill and cap via in {ref}:{pad_num}." if by_pad
+                                       else "" if tented
+                                       else f"Fill and cap via in {ref}:{pad_num} or tent with solder mask."),
+                    "report_context": {"section": "DFM", "impact": "Solder wicking risk" if exposed else "", "standard_ref": ""},
                 })
                 break  # One finding per via
 
@@ -1277,42 +1335,13 @@ def analyze_via_in_pad(footprints: list[dict], vias: dict, thermal_pad_refs: set
 
 def analyze_board_edge_via_clearance(vias: dict, board_outline: dict) -> list[dict]:
     """BV-001: Check vias close to board edges."""
-    # EQ-103: d = min distance from via center to any Edge.Cuts line segment.
-    # Source: Self-evident — 2D point-to-segment distance (see EQ-098).
+    # EQ-103: d = min distance from the via centre to any Edge.Cuts edge (lines, rects,
+    # arcs, circles, polygons, curves) -- see outline_edge_distance.
     findings: list[dict] = []
     via_list = vias.get("vias", [])
     edges = board_outline.get("edges", [])
 
     if not via_list or not edges:
-        return findings
-
-    def _pt_seg_dist(px, py, x1, y1, x2, y2):
-        # EQ-104: Helper — same 2D point-to-segment distance as EQ-098.
-        # Source: Self-evident — kept as a local helper to avoid import cycles.
-        dx, dy = x2 - x1, y2 - y1
-        length_sq = dx * dx + dy * dy
-        if length_sq == 0:
-            return math.sqrt((px - x1) ** 2 + (py - y1) ** 2)
-        t = max(0, min(1, ((px - x1) * dx + (py - y1) * dy) / length_sq))
-        return math.sqrt((px - x1 - t * dx) ** 2 + (py - y1 - t * dy) ** 2)
-
-    # Extract edge line segments
-    edge_segs: list[tuple[float, float, float, float]] = []
-    for edge in edges:
-        etype = edge.get("type", "")
-        if etype == "line":
-            s = edge.get("start", [0, 0])
-            e = edge.get("end", [0, 0])
-            edge_segs.append((s[0], s[1], e[0], e[1]))
-        elif etype == "rect":
-            s = edge.get("start", [0, 0])
-            e = edge.get("end", [0, 0])
-            edge_segs.append((s[0], s[1], e[0], s[1]))
-            edge_segs.append((e[0], s[1], e[0], e[1]))
-            edge_segs.append((e[0], e[1], s[0], e[1]))
-            edge_segs.append((s[0], e[1], s[0], s[1]))
-
-    if not edge_segs:
         return findings
 
     threshold_mm = 0.5
@@ -1321,11 +1350,9 @@ def analyze_board_edge_via_clearance(vias: dict, board_outline: dict) -> list[di
         vy = via.get("y")
         if vx is None or vy is None:
             continue
-        min_dist = float("inf")
-        for x1, y1, x2, y2 in edge_segs:
-            d = _pt_seg_dist(vx, vy, x1, y1, x2, y2)
-            if d < min_dist:
-                min_dist = d
+        min_dist = outline_edge_distance(vx, vy, edges)
+        if min_dist is None:
+            return findings
         if min_dist < threshold_mm:
             findings.append({
                 "via_x": round(vx, 2),

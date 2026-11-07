@@ -17,6 +17,7 @@ from _common import add_io_args, configure_scanpy, die, info, load_anndata, save
 
 
 def main():
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     add_io_args(p, default_output="subset.h5ad")

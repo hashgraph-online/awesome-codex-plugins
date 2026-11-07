@@ -46,7 +46,7 @@ This is not optional. Literature reviews without visual elements are incomplete.
 **How to generate figures:**
 - Use the **scientific-schematics** skill to generate AI-powered publication-quality diagrams
 - Simply describe your desired diagram in natural language
-- Nano Banana Pro will automatically generate, review, and refine the schematic
+- The schematics skill generates, reviews, and refines the diagram automatically
 
 **How to generate schematics:**
 ```bash

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Phase 3a — Validate a single per-task extraction result against its schema.
+"""Validate a single per-task extraction result against its schema.
 
 Wraps the inline per-task validator that `merge_results.py` runs at extract
 time, exposed as a standalone CLI for the harness 4-check acceptance gate
@@ -16,7 +16,7 @@ Exit codes:
     2  CLI / I/O error (missing schema, missing file, bad JSON in result wrapper)
 
 Designed for `--task-type` to be any task name backed by a sibling
-`<name>.schema.json` — Phase 3b's mcu/opamp/transistor/diode/crystal will work
+`<name>.schema.json` — the mcu/opamp/transistor/diode/crystal tasks work
 without code changes.
 """
 
@@ -116,4 +116,8 @@ def main(argv: "list[str] | None" = None) -> int:
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     sys.exit(main())

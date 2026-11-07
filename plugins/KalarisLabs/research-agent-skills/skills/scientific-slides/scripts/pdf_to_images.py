@@ -39,6 +39,7 @@ class PDFToImagesConverter:
         first_page: Optional[int] = None,
         last_page: Optional[int] = None
     ):
+        """Initialise the instance."""
         self.pdf_path = Path(pdf_path)
         self.output_prefix = output_prefix
         self.dpi = dpi
@@ -111,6 +112,7 @@ class PDFToImagesConverter:
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Convert presentation PDFs to images',
         formatter_class=argparse.RawDescriptionHelpFormatter,

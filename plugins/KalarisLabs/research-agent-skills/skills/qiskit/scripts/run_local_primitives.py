@@ -14,6 +14,7 @@ MAX_SHOTS = 1_000_000
 
 
 def positive_bounded_shots(value: str) -> int:
+    """Handle positive bounded shots."""
     shots = int(value)
     if shots < 1:
         raise argparse.ArgumentTypeError("shots must be positive")
@@ -23,6 +24,7 @@ def positive_bounded_shots(value: str) -> int:
 
 
 def finite_float(value: str) -> float:
+    """Handle finite float."""
     parsed = float(value)
     if not math.isfinite(parsed):
         raise argparse.ArgumentTypeError("theta must be finite")
@@ -30,6 +32,7 @@ def finite_float(value: str) -> float:
 
 
 def qiskit_version() -> str:
+    """Handle qiskit version."""
     try:
         return version("qiskit")
     except PackageNotFoundError:
@@ -41,6 +44,7 @@ def run_workflow(
     seed: int,
     theta_value: float,
 ) -> dict[str, Any]:
+    """Run workflow."""
     import numpy as np
     from qiskit import QuantumCircuit
     from qiskit.circuit import Parameter
@@ -113,6 +117,7 @@ def run_workflow(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Run a two-qubit parameterized circuit with "
@@ -146,6 +151,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def print_human(result: dict[str, Any]) -> None:
+    """Print human."""
     print("Qiskit:", result["qiskit_version"])
     print(
         "Inputs:",
@@ -176,6 +182,7 @@ def print_human(result: dict[str, Any]) -> None:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         result = run_workflow(

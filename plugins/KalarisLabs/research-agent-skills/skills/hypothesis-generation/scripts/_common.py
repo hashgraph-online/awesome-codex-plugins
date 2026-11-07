@@ -30,6 +30,7 @@ class ValidationError(ValueError):
 
 
 def _duplicate_safe_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Handle duplicate safe object."""
     result: dict[str, Any] = {}
     for key, value in pairs:
         if key in result:
@@ -39,6 +40,7 @@ def _duplicate_safe_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _reject_url_like_path(raw_path: str | Path, context: str) -> None:
+    """Handle reject url like path."""
     if URL_SCHEME_RE.match(str(raw_path).strip()):
         raise ValidationError(f"{context} must be a local file path")
 
@@ -185,6 +187,7 @@ def read_csv_records(
 
 
 def require_object(value: Any, context: str) -> dict[str, Any]:
+    """Handle require object."""
     if not isinstance(value, dict):
         raise ValidationError(f"{context} must be a JSON object")
     return value
@@ -197,6 +200,7 @@ def require_exact_keys(
     optional: Iterable[str] = (),
     context: str,
 ) -> None:
+    """Handle require exact keys."""
     required_set = set(required)
     allowed = required_set | set(optional)
     missing = sorted(required_set - set(value))
@@ -214,6 +218,7 @@ def require_list(
     minimum: int = 0,
     maximum: int = MAX_LIST_ITEMS,
 ) -> list[Any]:
+    """Handle require list."""
     if not isinstance(value, list):
         raise ValidationError(f"{context} must be a JSON array")
     if not minimum <= len(value) <= maximum:
@@ -231,6 +236,7 @@ def require_text(
     minimum: int = 1,
     maximum: int = MAX_TEXT_CHARS,
 ) -> str:
+    """Handle require text."""
     if not isinstance(value, str):
         raise ValidationError(f"{context} must be a string")
     text = value.strip()
@@ -246,12 +252,14 @@ def require_text(
 
 
 def require_bool(value: Any, context: str) -> bool:
+    """Handle require bool."""
     if type(value) is not bool:
         raise ValidationError(f"{context} must be true or false")
     return value
 
 
 def require_enum(value: Any, choices: Iterable[str], context: str) -> str:
+    """Handle require enum."""
     text = require_text(value, context, maximum=96)
     allowed = set(choices)
     if text not in allowed:
@@ -262,6 +270,7 @@ def require_enum(value: Any, choices: Iterable[str], context: str) -> str:
 
 
 def require_identifier(value: Any, context: str) -> str:
+    """Handle require identifier."""
     identifier = require_text(value, context, maximum=96)
     if not IDENTIFIER_RE.fullmatch(identifier):
         raise ValidationError(f"{context} has an invalid identifier format")
@@ -269,6 +278,7 @@ def require_identifier(value: Any, context: str) -> str:
 
 
 def require_unique(values: Iterable[str], context: str) -> None:
+    """Handle require unique."""
     seen: set[str] = set()
     duplicates: set[str] = set()
     for value in values:
@@ -289,6 +299,7 @@ def require_text_list(
     maximum: int = 100,
     item_maximum: int = 1_000,
 ) -> list[str]:
+    """Handle require text list."""
     items = require_list(value, context, minimum=minimum, maximum=maximum)
     return [
         require_text(item, f"{context}[{index}]", maximum=item_maximum)
@@ -303,6 +314,7 @@ def require_identifier_list(
     minimum: int = 0,
     maximum: int = 100,
 ) -> list[str]:
+    """Handle require identifier list."""
     items = require_list(value, context, minimum=minimum, maximum=maximum)
     parsed = [
         require_identifier(item, f"{context}[{index}]")
@@ -315,6 +327,7 @@ def require_identifier_list(
 def split_identifiers(
     value: Any, context: str, *, allow_empty: bool = False
 ) -> list[str]:
+    """Split identifiers."""
     text = require_text(value, context, allow_empty=allow_empty, maximum=MAX_CELL_CHARS)
     if not text:
         return []
@@ -327,6 +340,7 @@ def split_identifiers(
 
 
 def require_iso_date(value: Any, context: str) -> str:
+    """Handle require iso date."""
     text = require_text(value, context, maximum=10)
     try:
         date.fromisoformat(text)
@@ -336,6 +350,7 @@ def require_iso_date(value: Any, context: str) -> str:
 
 
 def require_partial_date(value: Any, context: str) -> str:
+    """Handle require partial date."""
     text = require_text(value, context, maximum=10)
     if not PARTIAL_DATE_RE.fullmatch(text):
         raise ValidationError(f"{context} must be YYYY, YYYY-MM, or YYYY-MM-DD")
@@ -352,6 +367,7 @@ def require_partial_date(value: Any, context: str) -> str:
 
 
 def require_https_url(value: Any, context: str) -> str:
+    """Handle require https url."""
     text = require_text(value, context, maximum=2_000)
     if not HTTPS_URL_RE.fullmatch(text):
         raise ValidationError(f"{context} must be an https URL")
@@ -398,6 +414,7 @@ def write_json_report(
 def write_markdown(
     text: str, output: str | Path, *, force: bool = False
 ) -> Path:
+    """Write markdown."""
     destination = safe_output_path(output, ".md", force=force)
     return atomic_write_text(destination, text)
 
@@ -408,5 +425,6 @@ def issue(code: str, field: str) -> dict[str, str]:
 
 
 def error_exit(exc: ValidationError) -> int:
+    """Handle error exit."""
     print(f"ERROR: {exc}", file=sys.stderr)
     return 2

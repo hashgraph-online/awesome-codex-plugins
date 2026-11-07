@@ -37,6 +37,7 @@ TITLE_OK, TITLE_WEAK = 0.90, 0.75
 
 
 def http_json(url: str, retries: int = 3) -> dict | None:
+    """Handle http json."""
     mailto = os.environ.get("CROSSREF_MAILTO")
     headers = {"User-Agent": UA + (f" mailto:{mailto}" if mailto else ""), "Accept": "application/json"}
     for attempt in range(retries):
@@ -60,6 +61,7 @@ def http_json(url: str, retries: int = 3) -> dict | None:
 
 # --- minimal BibTeX reader (same grammar as bibtex-hygiene/scripts/bib_lint.py) ---
 def _value(text: str, i: int) -> tuple[str, int]:
+    """Handle value."""
     parts = []
     while True:
         while i < len(text) and text[i].isspace():
@@ -93,6 +95,7 @@ def _value(text: str, i: int) -> tuple[str, int]:
 
 
 def parse_bib(text: str) -> list[dict]:
+    """Parse bib."""
     out = []
     for m in re.finditer(r"@(\w+)\s*[{(]\s*([^,\s]+)\s*,", text):
         if m.group(1).lower() in ("comment", "preamble", "string"):
@@ -113,27 +116,37 @@ def parse_bib(text: str) -> list[dict]:
 
 
 def norm(s: str) -> str:
+    """Handle norm."""
     s = re.sub(r"\\[a-zA-Z]+\s*|[{}$\\]", "", s or "")
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
     return re.sub(r"[^a-z0-9]+", " ", s).strip()
 
 
 def similarity(a: str, b: str) -> float:
+    """Handle similarity."""
     return difflib.SequenceMatcher(None, norm(a), norm(b)).ratio()
 
 
 def first_surname(authors: str) -> str:
+    """Handle first surname."""
     first = (authors or "").split(" and ")[0].strip()
-    surname = first.split(",")[0] if "," in first else (first.split()[-1] if first.split() else "")
+    if "," in first:
+        surname = first.split(",")[0]
+    elif first.split():
+        surname = first.split()[-1]
+    else:
+        surname = ""
     return norm(surname)
 
 
 def crossref_record(doi: str) -> dict | None:
+    """Handle crossref record."""
     data = http_json(f"https://api.crossref.org/works/{urllib.parse.quote(doi, safe='/')}")
     return data.get("message") if data else None
 
 
 def crossref_search(title: str, author: str) -> list[dict]:
+    """Handle crossref search."""
     q = urllib.parse.urlencode({"query.bibliographic": f"{title} {author}".strip(), "rows": 3,
                                 "select": "DOI,title,author,issued,container-title,type"})
     data = http_json(f"https://api.crossref.org/works?{q}")
@@ -141,6 +154,7 @@ def crossref_search(title: str, author: str) -> list[dict]:
 
 
 def openalex_search(title: str) -> list[dict]:
+    """Handle openalex search."""
     q = urllib.parse.urlencode({"search": title, "per-page": 3, "select": "id,doi,title,publication_year,authorships"})
     data = http_json(f"https://api.openalex.org/works?{q}")
     return (data or {}).get("results", [])
@@ -168,6 +182,7 @@ def arxiv_search(title: str, author: str) -> list[dict]:
 
 
 def cr_fields(rec: dict) -> dict:
+    """Handle cr fields."""
     authors = rec.get("author") or []
     year = None
     for k in ("published-print", "published-online", "issued", "created"):
@@ -180,86 +195,136 @@ def cr_fields(rec: dict) -> dict:
             "venue": (rec.get("container-title") or [""])[0]}
 
 
-def check_entry(e: dict) -> dict:
-    title, doi = e.get("title", ""), re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", e.get("doi", ""), flags=re.I)
-    year = re.sub(r"\D", "", e.get("year", ""))[:4]
-    author = first_surname(e.get("author", ""))
-    res = {"key": e.get("_key", doi), "doi": doi, "title": title, "status": "", "problems": [], "suggestion": None}
-    if doi:
-        rec = crossref_record(doi)
-        if rec is None:
-            oa = http_json(f"https://api.openalex.org/works/doi:{urllib.parse.quote(doi, safe='/')}")
-            if oa is None:
-                res["status"] = "doi-not-found"
-                res["problems"].append(f"DOI {doi} does not resolve in Crossref or OpenAlex")
-                return res
-            got = {"doi": doi, "title": oa.get("title") or "", "year": oa.get("publication_year"),
-                   "first_author": norm(((oa.get("authorships") or [{}])[0].get("author") or {}).get("display_name", "").split(" ")[-1])}
-        else:
-            got = cr_fields(rec)
-        if title:
-            sim = similarity(title, got["title"])
-            if sim < TITLE_WEAK:
-                res["problems"].append(f"DOI points to a different work: '{got['title']}' (similarity {sim:.2f})")
-            elif sim < TITLE_OK:
-                res["problems"].append(f"title differs from record: '{got['title']}' (similarity {sim:.2f})")
-        if year and got.get("year") and abs(int(year) - int(got["year"])) > 1:
-            res["problems"].append(f"year {year} but record says {got['year']}")
-        if author and got.get("first_author") and author != got["first_author"]:
-            res["problems"].append(f"first author '{author}' but record says '{got['first_author']}'")
-        res["status"] = "verified" if not res["problems"] else "mismatch"
+def _oa_first_author(item: dict) -> str:
+    """Return the normalised surname of the first author in an OpenAlex work record."""
+    first = ((item.get("authorships") or [{}])[0].get("author") or {}).get("display_name", "")
+    return norm(first.split(" ")[-1]) if first else ""
+
+
+def _lookup_doi(doi: str) -> dict | None:
+    """Resolve a DOI via Crossref then OpenAlex and return normalised fields, or None if unresolved."""
+    rec = crossref_record(doi)
+    if rec is not None:
+        return cr_fields(rec)
+    oa = http_json(f"https://api.openalex.org/works/doi:{urllib.parse.quote(doi, safe='/')}")
+    if oa is None:
+        return None
+    return {"doi": doi, "title": oa.get("title") or "", "year": oa.get("publication_year"),
+            "first_author": _oa_first_author(oa)}
+
+
+def _doi_problems(title: str, year: str, author: str, got: dict) -> list[str]:
+    """Compare a bib entry with the record its DOI resolves to and list every disagreement."""
+    problems = []
+    if title:
+        sim = similarity(title, got["title"])
+        if sim < TITLE_WEAK:
+            problems.append(f"DOI points to a different work: '{got['title']}' (similarity {sim:.2f})")
+        elif sim < TITLE_OK:
+            problems.append(f"title differs from record: '{got['title']}' (similarity {sim:.2f})")
+    if year and got.get("year") and abs(int(year) - int(got["year"])) > 1:
+        problems.append(f"year {year} but record says {got['year']}")
+    if author and got.get("first_author") and author != got["first_author"]:
+        problems.append(f"first author '{author}' but record says '{got['first_author']}'")
+    return problems
+
+
+def _check_by_doi(res: dict, title: str, doi: str, year: str, author: str) -> dict:
+    """Fill the result for an entry that carries a DOI."""
+    got = _lookup_doi(doi)
+    if got is None:
+        res["status"] = "doi-not-found"
+        res["problems"].append(f"DOI {doi} does not resolve in Crossref or OpenAlex")
         return res
-    if not title:
-        res["status"] = "unverifiable"
-        res["problems"].append("no DOI and no title")
-        return res
-    # Popular titles are reused (reprints, talks, homonymous papers), so rank candidates by
-    # title similarity plus agreement on year and first author, not by title alone.
+    res["problems"].extend(_doi_problems(title, year, author, got))
+    res["status"] = "verified" if not res["problems"] else "mismatch"
+    return res
+
+
+def _title_candidates(title: str, author: str) -> list[dict]:
+    """Collect candidate records for a DOI-less entry from Crossref and OpenAlex title searches."""
     candidates = [cr_fields(item) for item in crossref_search(title, author)]
     for item in openalex_search(title):
-        first = ((item.get("authorships") or [{}])[0].get("author") or {}).get("display_name", "")
         candidates.append({"doi": (item.get("doi") or "").replace("https://doi.org/", ""), "title": item.get("title") or "",
-                           "year": item.get("publication_year"), "first_author": norm(first.split(" ")[-1]) if first else ""})
+                           "year": item.get("publication_year"), "first_author": _oa_first_author(item)})
+    return candidates
 
-    def agrees(c: dict) -> tuple[bool, bool]:
-        year_ok = not year or not c.get("year") or abs(int(year) - int(c["year"])) <= 1
-        author_ok = not author or not c.get("first_author") or author == c["first_author"]
-        return year_ok, author_ok
+
+def _agrees(year: str, author: str, c: dict) -> tuple[bool, bool]:
+    """Return whether a candidate agrees with the entry on year (within one) and first author."""
+    year_ok = not year or not c.get("year") or abs(int(year) - int(c["year"])) <= 1
+    author_ok = not author or not c.get("first_author") or author == c["first_author"]
+    return year_ok, author_ok
+
+
+def _find_best(title: str, year: str, author: str) -> dict | None:
+    """Pick the best candidate by title similarity plus year and first-author agreement."""
+    # Popular titles are reused (reprints, talks, homonymous papers), so rank candidates by
+    # title similarity plus agreement on year and first author, not by title alone.
+    candidates = _title_candidates(title, author)
 
     def score(c: dict) -> float:
-        year_ok, author_ok = agrees(c)
+        """Score a candidate by title similarity plus bonuses for year and author agreement."""
+        year_ok, author_ok = _agrees(year, author, c)
         return similarity(title, c["title"]) + 0.2 * year_ok + 0.2 * author_ok
 
     best = max(candidates, key=score, default=None)
-    if not best or similarity(title, best["title"]) < TITLE_OK or not all(agrees(best)):
+    if not best or similarity(title, best["title"]) < TITLE_OK or not all(_agrees(year, author, best)):
         try:
             candidates += arxiv_search(title, author)
         except (urllib.error.URLError, TimeoutError, ValueError):
             pass
         best = max(candidates, key=score, default=None)
-    best_sim = similarity(title, best["title"]) if best else 0.0
-    if best and best_sim >= TITLE_OK and all(agrees(best)):
+    return best
+
+
+def _classify_title_match(res: dict, best: dict, title: str, year: str, author: str) -> dict:
+    """Classify a candidate whose title is at least as similar as TITLE_OK."""
+    year_ok, author_ok = _agrees(year, author, best)
+    res["suggestion"] = best
+    if year_ok and author_ok:
         res["status"] = "found-add-doi" if best.get("doi") else "verified"
-        res["suggestion"] = best
-    elif best and best_sim >= TITLE_OK:
-        year_ok, author_ok = agrees(best)
-        res["status"] = "uncertain"
-        res["suggestion"] = best
-        if not year_ok:
-            res["problems"].append(f"title matches but year {year} vs record {best['year']}")
-        if not author_ok:
-            res["problems"].append(f"title matches but first author '{author}' vs record '{best['first_author']}'")
-    elif best and best_sim >= TITLE_WEAK:
-        res["status"] = "uncertain"
-        res["suggestion"] = best
-        res["problems"].append(f"closest match '{best['title']}' (similarity {best_sim:.2f}); confirm manually")
-    else:
-        res["status"] = "not-found"
-        res["problems"].append("no matching record in Crossref or OpenAlex (possible fabricated or grey-literature reference)")
+        return res
+    res["status"] = "uncertain"
+    if not year_ok:
+        res["problems"].append(f"title matches but year {year} vs record {best['year']}")
+    if not author_ok:
+        res["problems"].append(f"title matches but first author '{author}' vs record '{best['first_author']}'")
     return res
 
 
+def _classify_match(res: dict, best: dict | None, title: str, year: str, author: str) -> dict:
+    """Set status, suggestion and problems on the result from the best candidate found."""
+    best_sim = similarity(title, best["title"]) if best else 0.0
+    if best and best_sim >= TITLE_OK:
+        return _classify_title_match(res, best, title, year, author)
+    if best and best_sim >= TITLE_WEAK:
+        res["status"] = "uncertain"
+        res["suggestion"] = best
+        res["problems"].append(f"closest match '{best['title']}' (similarity {best_sim:.2f}); confirm manually")
+        return res
+    res["status"] = "not-found"
+    res["problems"].append("no matching record in Crossref or OpenAlex (possible fabricated or grey-literature reference)")
+    return res
+
+
+def check_entry(e: dict) -> dict:
+    """Check one bib entry against Crossref, OpenAlex and arXiv and return a status report."""
+    title, doi = e.get("title", ""), re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", e.get("doi", ""), flags=re.I)
+    year = re.sub(r"\D", "", e.get("year", ""))[:4]
+    author = first_surname(e.get("author", ""))
+    res = {"key": e.get("_key", doi), "doi": doi, "title": title, "status": "", "problems": [], "suggestion": None}
+    if doi:
+        return _check_by_doi(res, title, doi, year, author)
+    if not title:
+        res["status"] = "unverifiable"
+        res["problems"].append("no DOI and no title")
+        return res
+    return _classify_match(res, _find_best(title, year, author), title, year, author)
+
+
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("bib", nargs="?")
     ap.add_argument("--doi", nargs="+", default=[])
@@ -274,7 +339,7 @@ def main() -> int:
         try:
             with open(args.bib, encoding="utf-8") as fh:
                 entries += parse_bib(fh.read())
-        except (OSError, UnicodeDecodeError, ValueError, IndexError) as exc:
+        except (OSError, ValueError, IndexError) as exc:
             print(f"error: cannot read {args.bib}: {exc}", file=sys.stderr)
             return 2
     if args.keys:

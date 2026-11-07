@@ -1,10 +1,50 @@
-"""Component, IC-function, connector and jumper classification policies (kicad_core). Moved verbatim from kicad_utils.py."""
+"""Component, IC-function, connector and jumper classification policies (kicad_core)."""
 import re
 
 
 # Component types that are not physical BOM parts (symbols, markers, mechanicals).
 NON_COMPONENT_TYPES = frozenset({"power_symbol", "power_flag", "flag", "test_point",
                                  "mounting_hole", "fiducial", "graphic"})
+
+_TOUCH_MARKERS = ("touch", "capacitive", "captouch", "cap_touch")
+
+
+def is_active_low_enable(pin_name: str) -> bool:
+    """True when an enable pin's overbar marks it active-low, so ground enables it.
+
+    An overbar shutdown (``~{SHDN}``, ``~{SHUTDOWN}``) is asserted by ground instead.
+    Any other enable pin's polarity is not known from its name. The caller passes
+    *pin_name* upper-cased.
+    """
+    return pin_name.startswith("~") and "SHDN" not in pin_name and "SHUTDOWN" not in pin_name
+
+
+def is_touch_pad(reference: str, value: str, footprint: str) -> bool:
+    """A capacitive touch electrode: a touch marker in the footprint or value, or a TOUCH/TCH
+    reference. A test-point footprint is never one, whatever its value says."""
+    fp = (footprint or "").lower()
+    if "testpoint" in fp or "test_point" in fp:
+        return False
+    val = (value or "").lower()
+    return (any(k in fp for k in _TOUCH_MARKERS) or any(k in val for k in _TOUCH_MARKERS)
+            or (reference or "").upper().startswith(("TOUCH", "TCH")))
+
+
+_LED_WORD = re.compile(r'(?<![a-z])led(?![a-z])')
+_NON_LED_DIODE_SYMBOL = re.compile(r'(?<![a-z])(zener|schottky|tvs|1n4\d{3}|bat\d{2}|bav\d{2}|d_small|d_bridge)'
+                                   r'|^d(_[a-z]+)?$|^diode')
+
+
+def _led_lib_evidence(lib_low: str, val_low: str) -> bool:
+    """A D-prefixed part is an LED when its symbol name or value says LED, or its library
+    nickname does, unless the nickname is a rescue library (KiCad names it after the
+    project) or the symbol name names another diode kind."""
+    nick, _, sym = lib_low.rpartition(":")
+    if _LED_WORD.search(sym + " " + val_low):
+        return True
+    if not nick or nick.endswith(("-rescue", "_rescue")) or _NON_LED_DIODE_SYMBOL.search(sym):
+        return False
+    return bool(_LED_WORD.search(nick))
 
 
 def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False,
@@ -13,13 +53,13 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
     """Classify component type from reference designator and library.
 
     pins: optional list of pin dicts (as produced by extract_lib_symbols,
-    each with a "name" key) for the KH-370 oscillator corroboration check.
+    each with a "name" key) for the oscillator corroboration check.
     None means pin data wasn't available to the caller (e.g. legacy .sch
     parsing) — corroboration is skipped and prior (permissive) behavior
     is preserved.
     """
     # Power symbols: trust the lib_symbol (power) flag unconditionally.
-    # KH-080: Components in the power: library WITHOUT the (power) flag
+    # Components in the power: library WITHOUT the (power) flag
     # (e.g., DD4012SA buck converter) are real parts, not power symbols —
     # only treat them as power symbols if they're not in BOM.
     if is_power:
@@ -91,7 +131,7 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
         if any(x in val_low or x in lib_low or x in fp_low
                for x in ("testpad", "test_pad", "testpoint", "test_point")):
             return "test_point"
-        # KH-208: Unambiguous lib_id patterns override ref prefix.
+        # Unambiguous lib_id patterns override ref prefix.
         _lib_prefix = lib_low.split(":")[0] if ":" in lib_low else ""
         _lib_type_overrides = {
             "connector": "connector", "connector_audio": "connector",
@@ -113,13 +153,13 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
                 return "crystal"
             if has_osc:
                 return "oscillator"
-        # KH-220: Description-based oscillator detection for custom lib symbols
+        # Description-based oscillator detection for custom lib symbols
         if result not in ("crystal", "oscillator"):
             _desc_low = description.lower() if description else ""
             if any(x in _desc_low for x in ("oscillator", "clock oscillator",
                                               "mems oscillator", "tcxo", "vcxo", "ocxo")):
                 if "crystal" not in _desc_low:
-                    # KH-370: bare "oscillator" substring over-fires on bus
+                    # bare "oscillator" substring over-fires on bus
                     # peripherals (ADC/MCU/sensor ICs) whose datasheet
                     # description merely mentions a built-in reference/timing
                     # oscillator. Exclude that phrasing, then require pin
@@ -142,7 +182,7 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
                                                    "ld1117", "lm1117", "ap1117"))):
                 return "ic"
         if result == "transformer":
-            # KH-111: Common-mode chokes — classify as inductor, not transformer
+            # Common-mode chokes — classify as inductor, not transformer
             if any(x in val_low for x in ("cmc", "common mode", "common_mode",
                                            "rfcmf", "acm", "dlw")):
                 return "inductor"
@@ -162,9 +202,9 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
         if result == "thermistor" and any(x in lib_low or x in val_low
                                           for x in ("mov", "varistor")):
             return "varistor"
-        if result == "diode" and re.search(r'(?<![a-z])led(?![a-z])', lib_low + " " + val_low):
+        if result == "diode" and _led_lib_evidence(lib_low, val_low):
             return "led"
-        # KH-122: Addressable LEDs (SK6812, WS2812) with D prefix
+        # Addressable LEDs (SK6812, WS2812) with D prefix
         if result == "diode" and any(k in val_low or k in lib_low
                                      for k in ("ws2812", "ws2813", "ws2815",
                                                "sk6812", "apa102", "apa104",
@@ -173,10 +213,10 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
         if result == "inductor":
             if any(x in lib_low or x in val_low for x in ("ferrite", "bead")):
                 return "ferrite_bead"
-            # KH-112: Ferrite bead impedance notation (600R/200mA, 120R@100MHz)
+            # Ferrite bead impedance notation (600R/200mA, 120R@100MHz)
             if re.search(r'\d+[Rr]\s*[/@]\s*\d', value):
                 return "ferrite_bead"
-        # KH-106: MX/Cherry/Kailh keyboard switches (K prefix maps to relay)
+        # MX/Cherry/Kailh keyboard switches (K prefix maps to relay)
         if result == "relay":
             if any(x in lib_low for x in ("mx", "cherry", "kailh", "gateron",
                                            "alps_hybrid", "key_switch")):
@@ -217,7 +257,7 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
         # Active oscillator ICs (MEMS, TCXO, VCXO) — have VCC/GND/OUT, no load caps
         if any(x in lib_lower for x in ["oscillator"]) and not any(x in lib_lower for x in ["crystal", "xtal"]):
             return "oscillator"
-        # KH-220: Custom lib symbols with oscillator in description
+        # Custom lib symbols with oscillator in description
         if any(x in desc_lower for x in ("oscillator", "xo ", "xtal osc",
                                           "clock osc", "mems osc")):
             if "crystal" not in desc_lower:
@@ -265,7 +305,7 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
     # Connector detection: lib names and common connector part number patterns
     if "connector" in lib_lower or "conn_" in val_lower:
         return "connector"
-    # KH-110: Audio jack connectors
+    # Audio jack connectors
     if "connector_audio" in lib_lower or "audio_jack" in lib_lower:
         return "connector"
     if any(value.startswith(p) for p in ("PJ-3", "SJ-3", "MJ-3")):
@@ -285,7 +325,7 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
                    "HDMI", "EXT", "GPIO", "CAN", "SWD", "JTAG",
                    "ANT", "RJ", "SUPPLY"):
         return "connector"
-    # KH-106: Catch MX/Cherry/Kailh keyboard switches before relay detection
+    # Catch MX/Cherry/Kailh keyboard switches before relay detection
     if "switch" in lib_lower or "button" in lib_lower:
         return "switch"
     if any(x in lib_lower for x in ("cherry_mx", "mx_switch", "kailh", "gateron")):
@@ -326,7 +366,7 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
     # --- Last resort: single-char prefix fallback ---
     # Only reached when lib_id/value didn't resolve the type.
     # Deliberately placed last so lib_id always takes priority.
-    # KH-079: After single-char match, check lib_id/footprint/value for
+    # After single-char match, check lib_id/footprint/value for
     # contradicting evidence that overrides the single-char classification.
     if len(prefix) > 1:
         result = type_map.get(prefix[0])

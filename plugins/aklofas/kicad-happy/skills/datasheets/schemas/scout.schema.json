@@ -8,6 +8,10 @@
   "required": ["mpn", "metadata", "categories", "extraction_pages", "quality_verdict"],
   "additionalProperties": false,
   "properties": {
+    "pdf_sha256": {
+      "type": "string",
+      "description": "SHA-256 of the PDF the scout read ('sha256:<hex>'), added by the dispatcher when it writes the scout. plan_extraction.py --use-cached-scout refuses a scout whose value differs from the PDF's and warns when it is absent."
+    },
     "mpn": {
       "type": "string",
       "minLength": 1,
@@ -36,7 +40,7 @@
         "type": "string",
         "enum": ["regulator", "mcu", "opamp", "transistor", "diode", "crystal", "supervisor"]
       },
-      "description": "List of category extensions applicable to this MPN. Phase 3a supports regulator only; other values reserved for 3b."
+      "description": "List of category extensions applicable to this MPN. `regulator`, `mcu`, `opamp`, `transistor`, `diode` and `crystal` each have an extraction task; `supervisor` is reserved and is skipped by `plan_extraction.py`."
     },
     "extraction_pages": {
       "type": "object",

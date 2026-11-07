@@ -97,6 +97,7 @@ class ArimaFit:
     results: object = field(repr=False, default=None)
 
     def label(self) -> str:
+        """Handle label."""
         p, d, q = self.order
         return f"ARIMA({p},{d},{q})" + (" with drift" if self.drift else "")
 
@@ -124,6 +125,7 @@ def _select_d(y: np.ndarray, max_d: int) -> int:
 def _fit_one(
     y: np.ndarray, order: tuple[int, int, int], drift: bool
 ) -> ArimaFit | None:
+    """Fit one."""
     from statsmodels.tsa.statespace.sarimax import SARIMAX
 
     k = sum(order[::2]) + (1 if drift else 0) + 1
@@ -149,6 +151,76 @@ def _fit_one(
     penalty = 2 * k * (k + 1) / (n - k - 1) if n - k - 1 > 0 else np.inf
     return ArimaFit(order=order, drift=drift, aicc=aic + penalty, aic=aic,
                     n_obs=n, results=res)
+
+
+class _ArimaSearch:
+    """Memoised candidate-model fitting for one series and (p, q) bound."""
+
+    def __init__(self, series: np.ndarray, max_p: int, max_q: int) -> None:
+        """Remember the series, the order bounds and an empty fit cache."""
+        self.series = series
+        self.max_p = max_p
+        self.max_q = max_q
+        self.tried: dict[tuple[tuple[int, int, int], bool], ArimaFit | None] = {}
+
+    def attempt(self, order: tuple[int, int, int], drift: bool) -> ArimaFit | None:
+        """Fit ``order`` once if it is within the bounds, returning the cached result."""
+        if order[0] > self.max_p or order[2] > self.max_q or min(order[0], order[2]) < 0:
+            return None
+        key = (order, drift)
+        if key not in self.tried:
+            self.tried[key] = _fit_one(self.series, order, drift)
+        return self.tried[key]
+
+    def full_grid(self, order_d: int, drifts: tuple[bool, ...]) -> list[ArimaFit]:
+        """Fit every (p, q, drift) combination in the bounded grid."""
+        candidates: list[ArimaFit] = []
+        for p in range(self.max_p + 1):
+            for q in range(self.max_q + 1):
+                for drift in drifts:
+                    fit = self.attempt((p, order_d, q), drift)
+                    if fit:
+                        candidates.append(fit)
+        return candidates
+
+    def stepwise(self, order_d: int, drifts: tuple[bool, ...],
+                 allow_drift: bool) -> list[ArimaFit]:
+        """Fit the four seed models, then hill-climb from the best of them."""
+        candidates: list[ArimaFit] = []
+        seeds = [(2, order_d, 2), (0, order_d, 0), (1, order_d, 0), (0, order_d, 1)]
+        for seed in seeds:
+            for drift in drifts:
+                fit = self.attempt(seed, drift)
+                if fit:
+                    candidates.append(fit)
+        if candidates:
+            best = min(candidates, key=lambda f: f.aicc)
+            candidates.append(self._hill_climb(best, allow_drift))
+        return candidates
+
+    def _hill_climb(self, best: ArimaFit, allow_drift: bool) -> ArimaFit:
+        """Move to a better neighbouring model until none improves the AICc."""
+        improved = True
+        while improved:
+            improved = False
+            p, dd, q = best.order
+            neighbours = [
+                ((p + 1, dd, q), best.drift),
+                ((p - 1, dd, q), best.drift),
+                ((p, dd, q + 1), best.drift),
+                ((p, dd, q - 1), best.drift),
+                ((p + 1, dd, q + 1), best.drift),
+                ((p - 1, dd, q - 1), best.drift),
+                ((p, dd, q), not best.drift),
+            ]
+            for order, drift in neighbours:
+                if drift and not allow_drift:
+                    continue
+                fit = self.attempt(order, drift)
+                if fit and fit.aicc < best.aicc - 1e-8:
+                    best, improved = fit, True
+                    break
+        return best
 
 
 def auto_arima(
@@ -181,54 +253,11 @@ def auto_arima(
     order_d = _select_d(series, max_d) if d is None else int(d)
     drifts = (True, False) if allow_drift else (False,)
 
-    tried: dict[tuple[tuple[int, int, int], bool], ArimaFit | None] = {}
-
-    def attempt(order: tuple[int, int, int], drift: bool) -> ArimaFit | None:
-        if order[0] > max_p or order[2] > max_q or min(order[0], order[2]) < 0:
-            return None
-        key = (order, drift)
-        if key not in tried:
-            tried[key] = _fit_one(series, order, drift)
-        return tried[key]
-
-    candidates: list[ArimaFit] = []
-    if not stepwise:
-        for p in range(max_p + 1):
-            for q in range(max_q + 1):
-                for drift in drifts:
-                    fit = attempt((p, order_d, q), drift)
-                    if fit:
-                        candidates.append(fit)
+    search = _ArimaSearch(series, max_p, max_q)
+    if stepwise:
+        candidates = search.stepwise(order_d, drifts, allow_drift)
     else:
-        seeds = [(2, order_d, 2), (0, order_d, 0), (1, order_d, 0), (0, order_d, 1)]
-        for seed in seeds:
-            for drift in drifts:
-                fit = attempt(seed, drift)
-                if fit:
-                    candidates.append(fit)
-        if candidates:
-            best = min(candidates, key=lambda f: f.aicc)
-            improved = True
-            while improved:
-                improved = False
-                p, dd, q = best.order
-                neighbours = [
-                    ((p + 1, dd, q), best.drift),
-                    ((p - 1, dd, q), best.drift),
-                    ((p, dd, q + 1), best.drift),
-                    ((p, dd, q - 1), best.drift),
-                    ((p + 1, dd, q + 1), best.drift),
-                    ((p - 1, dd, q - 1), best.drift),
-                    ((p, dd, q), not best.drift),
-                ]
-                for order, drift in neighbours:
-                    if drift and not allow_drift:
-                        continue
-                    fit = attempt(order, drift)
-                    if fit and fit.aicc < best.aicc - 1e-8:
-                        best, improved = fit, True
-                        break
-            candidates.append(best)
+        candidates = search.full_grid(order_d, drifts)
 
     if not candidates:
         # Nothing converged (usually a near-constant or very short series):
@@ -261,11 +290,13 @@ class Forecast:
     warnings: list[str] = field(default_factory=list)
 
     def metrics(self) -> ForecastMetrics:
+        """Handle metrics."""
         if self.actual is None:
             raise ValueError("no actual values to score this forecast against")
         return forecast_metrics(self.actual, self.predicted, self.lower, self.upper)
 
     def to_frame(self) -> pd.DataFrame:
+        """Handle to frame."""
         data = {
             ID_COL: self.animal,
             TIME_COL: self.times,
@@ -619,6 +650,7 @@ def plot_forecast(
 # CLI
 # --------------------------------------------------------------------------- #
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Forecast RELSA trajectories with ARIMA (the foRcast tool).",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
@@ -657,6 +689,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     frame = pd.read_csv(args.scores)
     for col in (ID_COL, TIME_COL):

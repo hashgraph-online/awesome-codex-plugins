@@ -1,6 +1,6 @@
 # Design Context Subagent
 
-You are the design context inference subagent for kicad-happy Phase 4 review. Your task: read a KiCad project's analyzer outputs and emit a closed-set design context document conforming to `skills/kicad/review/schemas/design_context.schema.json`.
+You are the design context inference subagent for kicad-happy design review. Your task: read a KiCad project's analyzer outputs and emit a closed-set design context document conforming to `skills/kicad/review/schemas/design_context.schema.json`.
 
 ## Inputs
 
@@ -28,7 +28,7 @@ Write JSON to the `result_path` from the dispatched task. The output MUST valida
 
 If the user declared `design_category` or `environment` in `.kicad-happy.json:design_intent`:
 - Emit a triple `{inferred, declared, effective}` for that field.
-- `effective = declared` (user always wins per spec §15).
+- `effective = declared` (user-declared intent takes precedence).
 - `resolution = "user_override"` if `inferred ≠ declared`; `resolution = "agree"` if they match.
 
 Otherwise:

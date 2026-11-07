@@ -30,6 +30,7 @@ TOOL = "embedding-run-planner"
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate local inputs and emit a redacted Region2Vec, scEmbed, or "
@@ -102,6 +103,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _parquet_magic(path: Path) -> bool:
+    """Handle parquet magic."""
     flags = os.O_RDONLY
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -119,6 +121,7 @@ def _parquet_magic(path: Path) -> bool:
 
 
 def _render(path: Path, label: str, mode: str) -> str:
+    """Render a path for the plan according to the path disclosure mode."""
     if mode == "full":
         return str(path)
     if mode == "basename":
@@ -126,7 +129,8 @@ def _render(path: Path, label: str, mode: str) -> str:
     return f"<{label}>"
 
 
-def plan(args: argparse.Namespace) -> tuple[dict, int]:
+def _validate_options(args: argparse.Namespace) -> None:
+    """Reject option combinations that do not apply to the chosen mode."""
     if not args.assembly.strip() or len(args.assembly) > 200:
         raise SafetyError("assembly must be a nonempty value of at most 200 characters")
     if args.mode != "bedspace" and (args.metadata or args.starspace_dir):
@@ -135,6 +139,267 @@ def plan(args: argparse.Namespace) -> tuple[dict, int]:
         raise SafetyError("bedspace requires --metadata")
     if args.mode == "bedspace" and args.model_dir:
         raise SafetyError("model-dir applies only to Region2Vec or scEmbed bundles")
+
+
+def _parquet_summary(args: argparse.Namespace, data: Path, errors: Counter) -> dict:
+    """Hash the token Parquet file and check its magic bytes."""
+    data_digest, data_size = sha256_file(data, max_bytes=args.max_file_bytes)
+    parquet_ok = _parquet_magic(data)
+    if not parquet_ok:
+        errors["data_not_parquet"] += 1
+    return {
+        "data_sha256": data_digest,
+        "data_size_bytes": data_size,
+        "parquet_magic_valid": parquet_ok,
+        "parquet_schema_inspected": False,
+    }
+
+
+def _bed_directory_bytes(args: argparse.Namespace, bed_entries: list[Path]) -> tuple[int, int]:
+    """Return (total bytes, oversized file count) over the regular files in the directory."""
+    total_bed_bytes = 0
+    oversized_beds = 0
+    for entry in bed_entries:
+        if entry.is_symlink() or not entry.is_file():
+            continue
+        size = entry.lstat().st_size
+        total_bed_bytes += size
+        if size > args.max_file_bytes:
+            oversized_beds += 1
+        if total_bed_bytes > args.max_total_bytes:
+            raise SafetyError("BEDspace input directory exceeds max-total-bytes")
+    return total_bed_bytes, oversized_beds
+
+
+def _bedspace_summary(args: argparse.Namespace, data: Path, metadata: Path,
+                      errors: Counter) -> dict:
+    """Bound-check the BED directory and hash the BEDspace metadata file."""
+    bed_entries = list(data.iterdir())
+    if len(bed_entries) > 100_000:
+        raise SafetyError("BEDspace input directory exceeds 100,000 entries")
+    symlinks = sum(1 for entry in bed_entries if entry.is_symlink())
+    special = sum(
+        1
+        for entry in bed_entries
+        if not entry.is_symlink() and not entry.is_file()
+    )
+    if symlinks:
+        errors["bedspace_data_symlinks"] = symlinks
+    if special:
+        errors["bedspace_non_file_entries"] = special
+    total_bed_bytes, oversized_beds = _bed_directory_bytes(args, bed_entries)
+    if oversized_beds:
+        errors["bedspace_files_exceed_byte_limit"] = oversized_beds
+    metadata_digest, metadata_size = sha256_file(
+        metadata,
+        max_bytes=args.max_file_bytes,
+    )
+    return {
+        "bed_directory_entries": len(bed_entries),
+        "bed_directory_bytes": total_bed_bytes,
+        "metadata": display_path(metadata, 4, args.path_mode),
+        "metadata_sha256": metadata_digest,
+        "metadata_size_bytes": metadata_size,
+        "metadata_values_emitted": False,
+    }
+
+
+def _existing_model_summary(args: argparse.Namespace, model_dir: Path, universe_digest: str,
+                            errors: Counter, warnings: Counter) -> dict:
+    """Hash an existing model bundle and compare it with the planned run."""
+    config = local_path(str(model_dir / "config.yaml"), kind="file")
+    checkpoint = local_path(str(model_dir / "checkpoint.pt"), kind="file")
+    bundle_universe = local_path(str(model_dir / "universe.bed"), kind="file")
+    config_metadata = simple_yaml_mapping(
+        config,
+        max_bytes=min(args.max_file_bytes, 16 * 1024**2),
+    )
+    config_digest, config_size = sha256_file(
+        config,
+        max_bytes=min(args.max_file_bytes, 16 * 1024**2),
+    )
+    checkpoint_digest, checkpoint_size = sha256_file(
+        checkpoint,
+        max_bytes=args.max_file_bytes,
+    )
+    bundle_digest, bundle_size = sha256_file(
+        bundle_universe,
+        max_bytes=args.max_file_bytes,
+    )
+    if bundle_digest != universe_digest:
+        errors["model_universe_checksum_mismatch"] += 1
+    if config_metadata.get("embedding_dim", config_metadata.get("embedding_size")) != (
+        args.embedding_dim
+    ):
+        warnings["planned_embedding_dim_differs_from_model"] += 1
+    return {
+        "path": display_path(model_dir, 5, args.path_mode),
+        "config_sha256": config_digest,
+        "config_size_bytes": config_size,
+        "checkpoint_sha256": checkpoint_digest,
+        "checkpoint_size_bytes": checkpoint_size,
+        "bundle_universe_sha256": bundle_digest,
+        "bundle_universe_size_bytes": bundle_size,
+        "metadata": {
+            "vocab_size": config_metadata.get("vocab_size"),
+            "embedding_dim": config_metadata.get(
+                "embedding_dim",
+                config_metadata.get("embedding_size"),
+            ),
+            "pooling_method": config_metadata.get("pooling_method"),
+        },
+        "deserialized": False,
+    }
+
+
+def _train_stage(args: argparse.Namespace) -> dict:
+    """Return the Region2Vec/scEmbed training stage with its parameters."""
+    return {
+        "stage": "train",
+        "executed": False,
+        "parameters": {
+            "embedding_dim": args.embedding_dim,
+            "epochs": args.epochs,
+            "window_size": args.window_size,
+            "min_count": args.min_count,
+            "num_cpus": args.workers,
+            "seed": args.seed,
+            "pooling_method": args.pooling,
+        },
+    }
+
+
+def _embedding_stages(args: argparse.Namespace) -> list[dict]:
+    """Return the api_smoke and train stages for Region2Vec or scEmbed."""
+    if args.mode == "region2vec":
+        smoke = {
+            "stage": "api_smoke",
+            "executed": False,
+            "imports": [
+                "geniml.region2vec.main.Region2VecExModel",
+                "geniml.region2vec.utils.Region2VecDataset",
+                "gtars.tokenizers.Tokenizer",
+            ],
+            "note": "do not use the broken 0.8.4 top-level region2vec export",
+        }
+    else:
+        smoke = {
+            "stage": "api_smoke",
+            "executed": False,
+            "imports": [
+                "geniml.scembed.main.ScEmbed",
+                "geniml.region2vec.utils.Region2VecDataset",
+                "gtars.tokenizers.Tokenizer",
+            ],
+            "note": (
+                "synthetically test ScEmbed.encode token shape with the pinned "
+                "Gtars version before real data"
+            ),
+        }
+    return [smoke, _train_stage(args)]
+
+
+def _starspace_summary(args: argparse.Namespace, starspace_dir: Path | None,
+                       warnings: Counter) -> dict | None:
+    """Hash the StarSpace binary when a directory was given, else warn."""
+    if not starspace_dir:
+        warnings["starspace_binary_required"] += 1
+        return None
+    binary = local_path(str(starspace_dir / "starspace"), kind="file")
+    binary_digest, binary_size = sha256_file(
+        binary,
+        max_bytes=args.max_file_bytes,
+    )
+    return {
+        "directory": display_path(starspace_dir, 6, args.path_mode),
+        "binary_sha256": binary_digest,
+        "binary_size_bytes": binary_size,
+        "executed": False,
+    }
+
+
+def _bedspace_stages(args: argparse.Namespace, starspace_dir: Path | None,
+                     warnings: Counter) -> list[dict]:
+    """Return the legacy-dependency, preprocess and train stages for BEDspace."""
+    starspace_summary = _starspace_summary(args, starspace_dir, warnings)
+    preprocess_template = [
+        "geniml",
+        "bedspace",
+        "preprocess",
+        "--input",
+        "<LOCAL_BED_DIRECTORY>",
+        "--metadata",
+        "<LOCAL_METADATA_CSV>",
+        "--universe",
+        "<LOCAL_UNIVERSE_BED>",
+        "--output",
+        "<LOCAL_OUTPUT_DIRECTORY_WITH_TRAILING_SEPARATOR>",
+    ]
+    train_template = [
+        "geniml",
+        "bedspace",
+        "train",
+        "-s",
+        "<LOCAL_STARSPACE_DIRECTORY>",
+        "--input",
+        "<LOCAL_OUTPUT_DIRECTORY>/train_input.txt",
+        "--output",
+        "<LOCAL_OUTPUT_DIRECTORY>",
+        "--dim",
+        str(args.embedding_dim),
+        "--epochs",
+        str(args.epochs),
+    ]
+    return [
+        {
+            "stage": "legacy_dependency_review",
+            "executed": False,
+            "starspace": starspace_summary,
+            "note": (
+                "StarSpace is archived; Geniml has no compatibility pin and "
+                "hard-codes 20 training threads"
+            ),
+        },
+        {
+            "stage": "preprocess",
+            "executed": False,
+            "argv_template": preprocess_template,
+        },
+        {
+            "stage": "train",
+            "executed": False,
+            "argv_template": train_template,
+            "note": "the 0.8.4 bedspace search dispatcher is not usable",
+        },
+    ]
+
+
+def _leading_stages(args: argparse.Namespace) -> list[dict]:
+    """Return the environment and data_contract stages shared by every mode."""
+    return [
+        {
+            "stage": "environment",
+            "executed": False,
+            "requirements": [
+                f"geniml[ml]=={args.geniml_version}",
+                f"gtars=={args.gtars_version}",
+            ],
+            "instruction": "resolve with uv and retain the generated lockfile",
+        },
+        {
+            "stage": "data_contract",
+            "executed": False,
+            "instruction": (
+                "verify 0-based half-open coordinates, one assembly/chromosome-sizes "
+                "digest, bounded token counts, and patient/donor-grouped splits"
+            ),
+        },
+    ]
+
+
+def plan(args: argparse.Namespace) -> tuple[dict, int]:
+    """Validate the inputs and return the embedding run plan with its exit code."""
+    _validate_options(args)
 
     data = local_path(args.data, kind="dir" if args.mode == "bedspace" else "file")
     universe = local_path(args.universe, kind="file")
@@ -165,255 +430,22 @@ def plan(args: argparse.Namespace) -> tuple[dict, int]:
         "universe_size_bytes": universe_size,
         "output_dir": display_path(output_dir, 3, args.path_mode),
     }
-
     if args.mode in {"region2vec", "scembed"}:
-        data_digest, data_size = sha256_file(data, max_bytes=args.max_file_bytes)
-        parquet_ok = _parquet_magic(data)
-        if not parquet_ok:
-            errors["data_not_parquet"] += 1
-        input_summary.update(
-            {
-                "data_sha256": data_digest,
-                "data_size_bytes": data_size,
-                "parquet_magic_valid": parquet_ok,
-                "parquet_schema_inspected": False,
-            }
-        )
+        input_summary.update(_parquet_summary(args, data, errors))
     else:
-        bed_entries = list(data.iterdir())
-        if len(bed_entries) > 100_000:
-            raise SafetyError("BEDspace input directory exceeds 100,000 entries")
-        symlinks = sum(1 for entry in bed_entries if entry.is_symlink())
-        special = sum(
-            1
-            for entry in bed_entries
-            if not entry.is_symlink() and not entry.is_file()
-        )
-        if symlinks:
-            errors["bedspace_data_symlinks"] = symlinks
-        if special:
-            errors["bedspace_non_file_entries"] = special
-        total_bed_bytes = 0
-        oversized_beds = 0
-        for entry in bed_entries:
-            if entry.is_symlink() or not entry.is_file():
-                continue
-            size = entry.lstat().st_size
-            total_bed_bytes += size
-            if size > args.max_file_bytes:
-                oversized_beds += 1
-            if total_bed_bytes > args.max_total_bytes:
-                raise SafetyError("BEDspace input directory exceeds max-total-bytes")
-        if oversized_beds:
-            errors["bedspace_files_exceed_byte_limit"] = oversized_beds
-        metadata_digest, metadata_size = sha256_file(
-            metadata,
-            max_bytes=args.max_file_bytes,
-        )
-        input_summary.update(
-            {
-                "bed_directory_entries": len(bed_entries),
-                "bed_directory_bytes": total_bed_bytes,
-                "metadata": display_path(metadata, 4, args.path_mode),
-                "metadata_sha256": metadata_digest,
-                "metadata_size_bytes": metadata_size,
-                "metadata_values_emitted": False,
-            }
-        )
+        input_summary.update(_bedspace_summary(args, data, metadata, errors))
 
     model_summary = None
     if model_dir:
-        config = local_path(str(model_dir / "config.yaml"), kind="file")
-        checkpoint = local_path(str(model_dir / "checkpoint.pt"), kind="file")
-        bundle_universe = local_path(str(model_dir / "universe.bed"), kind="file")
-        config_metadata = simple_yaml_mapping(
-            config,
-            max_bytes=min(args.max_file_bytes, 16 * 1024**2),
+        model_summary = _existing_model_summary(
+            args, model_dir, universe_digest, errors, warnings
         )
-        config_digest, config_size = sha256_file(
-            config,
-            max_bytes=min(args.max_file_bytes, 16 * 1024**2),
-        )
-        checkpoint_digest, checkpoint_size = sha256_file(
-            checkpoint,
-            max_bytes=args.max_file_bytes,
-        )
-        bundle_digest, bundle_size = sha256_file(
-            bundle_universe,
-            max_bytes=args.max_file_bytes,
-        )
-        if bundle_digest != universe_digest:
-            errors["model_universe_checksum_mismatch"] += 1
-        if config_metadata.get("embedding_dim", config_metadata.get("embedding_size")) != (
-            args.embedding_dim
-        ):
-            warnings["planned_embedding_dim_differs_from_model"] += 1
-        model_summary = {
-            "path": display_path(model_dir, 5, args.path_mode),
-            "config_sha256": config_digest,
-            "config_size_bytes": config_size,
-            "checkpoint_sha256": checkpoint_digest,
-            "checkpoint_size_bytes": checkpoint_size,
-            "bundle_universe_sha256": bundle_digest,
-            "bundle_universe_size_bytes": bundle_size,
-            "metadata": {
-                "vocab_size": config_metadata.get("vocab_size"),
-                "embedding_dim": config_metadata.get(
-                    "embedding_dim",
-                    config_metadata.get("embedding_size"),
-                ),
-                "pooling_method": config_metadata.get("pooling_method"),
-            },
-            "deserialized": False,
-        }
 
-    stages: list[dict] = [
-        {
-            "stage": "environment",
-            "executed": False,
-            "requirements": [
-                f"geniml[ml]=={args.geniml_version}",
-                f"gtars=={args.gtars_version}",
-            ],
-            "instruction": "resolve with uv and retain the generated lockfile",
-        },
-        {
-            "stage": "data_contract",
-            "executed": False,
-            "instruction": (
-                "verify 0-based half-open coordinates, one assembly/chromosome-sizes "
-                "digest, bounded token counts, and patient/donor-grouped splits"
-            ),
-        },
-    ]
-
-    if args.mode == "region2vec":
-        stages.extend(
-            [
-                {
-                    "stage": "api_smoke",
-                    "executed": False,
-                    "imports": [
-                        "geniml.region2vec.main.Region2VecExModel",
-                        "geniml.region2vec.utils.Region2VecDataset",
-                        "gtars.tokenizers.Tokenizer",
-                    ],
-                    "note": "do not use the broken 0.8.4 top-level region2vec export",
-                },
-                {
-                    "stage": "train",
-                    "executed": False,
-                    "parameters": {
-                        "embedding_dim": args.embedding_dim,
-                        "epochs": args.epochs,
-                        "window_size": args.window_size,
-                        "min_count": args.min_count,
-                        "num_cpus": args.workers,
-                        "seed": args.seed,
-                        "pooling_method": args.pooling,
-                    },
-                },
-            ]
-        )
-    elif args.mode == "scembed":
-        stages.extend(
-            [
-                {
-                    "stage": "api_smoke",
-                    "executed": False,
-                    "imports": [
-                        "geniml.scembed.main.ScEmbed",
-                        "geniml.region2vec.utils.Region2VecDataset",
-                        "gtars.tokenizers.Tokenizer",
-                    ],
-                    "note": (
-                        "synthetically test ScEmbed.encode token shape with the pinned "
-                        "Gtars version before real data"
-                    ),
-                },
-                {
-                    "stage": "train",
-                    "executed": False,
-                    "parameters": {
-                        "embedding_dim": args.embedding_dim,
-                        "epochs": args.epochs,
-                        "window_size": args.window_size,
-                        "min_count": args.min_count,
-                        "num_cpus": args.workers,
-                        "seed": args.seed,
-                        "pooling_method": args.pooling,
-                    },
-                },
-            ]
-        )
+    stages = _leading_stages(args)
+    if args.mode == "bedspace":
+        stages.extend(_bedspace_stages(args, starspace_dir, warnings))
     else:
-        starspace_summary = None
-        if starspace_dir:
-            binary = local_path(str(starspace_dir / "starspace"), kind="file")
-            binary_digest, binary_size = sha256_file(
-                binary,
-                max_bytes=args.max_file_bytes,
-            )
-            starspace_summary = {
-                "directory": display_path(starspace_dir, 6, args.path_mode),
-                "binary_sha256": binary_digest,
-                "binary_size_bytes": binary_size,
-                "executed": False,
-            }
-        else:
-            warnings["starspace_binary_required"] += 1
-        preprocess_template = [
-            "geniml",
-            "bedspace",
-            "preprocess",
-            "--input",
-            "<LOCAL_BED_DIRECTORY>",
-            "--metadata",
-            "<LOCAL_METADATA_CSV>",
-            "--universe",
-            "<LOCAL_UNIVERSE_BED>",
-            "--output",
-            "<LOCAL_OUTPUT_DIRECTORY_WITH_TRAILING_SEPARATOR>",
-        ]
-        train_template = [
-            "geniml",
-            "bedspace",
-            "train",
-            "-s",
-            "<LOCAL_STARSPACE_DIRECTORY>",
-            "--input",
-            "<LOCAL_OUTPUT_DIRECTORY>/train_input.txt",
-            "--output",
-            "<LOCAL_OUTPUT_DIRECTORY>",
-            "--dim",
-            str(args.embedding_dim),
-            "--epochs",
-            str(args.epochs),
-        ]
-        stages.extend(
-            [
-                {
-                    "stage": "legacy_dependency_review",
-                    "executed": False,
-                    "starspace": starspace_summary,
-                    "note": (
-                        "StarSpace is archived; Geniml has no compatibility pin and "
-                        "hard-codes 20 training threads"
-                    ),
-                },
-                {
-                    "stage": "preprocess",
-                    "executed": False,
-                    "argv_template": preprocess_template,
-                },
-                {
-                    "stage": "train",
-                    "executed": False,
-                    "argv_template": train_template,
-                    "note": "the 0.8.4 bedspace search dispatcher is not usable",
-                },
-            ]
-        )
+        stages.extend(_embedding_stages(args))
 
     stages.append(
         {
@@ -463,6 +495,7 @@ def plan(args: argparse.Namespace) -> tuple[dict, int]:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report, exit_code = plan(args)

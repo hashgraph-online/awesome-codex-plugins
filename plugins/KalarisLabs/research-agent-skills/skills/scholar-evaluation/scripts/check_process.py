@@ -87,6 +87,7 @@ SECTION_FIELDS: dict[str, dict[str, tuple[str, ...]]] = {
 
 
 def validate_process(record: Any) -> list[_common.Issue]:
+    """Validate process."""
     issues: list[_common.Issue] = []
     top_fields = {
         "schema_version",
@@ -137,6 +138,7 @@ def validate_process(record: Any) -> list[_common.Issue]:
 
 
 def check_process(record: dict[str, Any]) -> dict[str, Any]:
+    """Check process."""
     schema_issues = validate_process(record)
     if _common.error_issues(schema_issues):
         return {
@@ -164,13 +166,12 @@ def check_process(record: dict[str, Any]) -> dict[str, Any]:
         for field in field_groups["references"]:
             if not record[section_name][field]:
                 missing_controls.append(f"{section_name}.{field}")
-    status = (
-        "blocked"
-        if blockers
-        else "incomplete"
-        if missing_controls
-        else "complete_for_low_stakes_process"
-    )
+    if blockers:
+        status = "blocked"
+    elif missing_controls:
+        status = "incomplete"
+    else:
+        status = "complete_for_low_stakes_process"
     confirmed_count = sum(
         record[section_name][field] is True
         for section_name, groups in SECTION_FIELDS.items()
@@ -199,6 +200,7 @@ def check_process(record: dict[str, Any]) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Check committee, conflict, appeal, accessibility, data-protection, "
@@ -217,6 +219,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     try:
         report = check_process(_common.read_json(args.process))

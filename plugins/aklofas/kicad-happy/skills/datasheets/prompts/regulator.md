@@ -20,7 +20,7 @@ Produce a single JSON object matching this schema: `{{SCHEMA_PATH}}`.
 - `switching_freq`: SpecValue list (`typ`, `unit: "Hz"`) for switchers; null for LDOs/charge pumps that aren't fixed-frequency.
 - `dropout`: SpecValue list (`typ`, `max`, `unit: "V"`) for LDOs only; null for switchers.
 - `psrr`, `line_regulation`, `load_regulation`: SpecValue lists; populate when called out.
-- `stability_conditions`: object with `cap_types_allowed` (array of strings: `ceramic`, `tantalum`, `polymer`, `electrolytic`), `esr_range` (SpecValue list, `unit: "Ω"`), `notes`, `evidence`. Null when datasheet does not specify.
+- `stability_conditions`: object with `cap_types_allowed` (array of strings from `ceramic` (the datasheet says ceramic without a dielectric), `ceramic_c0g`, `ceramic_x5r`, `ceramic_x7r`, `ceramic_x7s`, `tantalum`, `polymer`, `electrolytic`, `film`), `esr_range` (SpecValue list, `unit: "Ω"`), `notes`, `evidence`. Null when datasheet does not specify.
 - `sequencing`: pre-defined sequencing requirements (multi-rail PMICs); null for single-output regulators.
 
 ## Hard rules

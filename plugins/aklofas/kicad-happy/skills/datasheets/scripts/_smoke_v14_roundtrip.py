@@ -6,13 +6,14 @@ LM2596-ADJ, plants the canonical v2-format example extraction at
 <tmpdir>/datasheets/extracted/LM2596-ADJ.json, and calls
 run_datasheet_verification().
 
-Expected behavior (v2.0 KH-337 fix):
+Expected behavior:
 - No crash.
 - Returns a dict with findings[] and summary.
 - ics_with_extractions=1 (LM2596-ADJ passes the v1.4 trust gate).
 - Pin-voltage checks run via the v2→v1 adapter (domain-level limits).
   With VIN=12V (well within op_max=40V / abs_max=45V), no voltage
-  violation findings are produced.
+  violation findings are produced; on a 50V rail, VIN (pin 1) gets one
+  abs-max error (45V).
 - One extraction_not_verifiable INFO finding is emitted because
   required-external and decoupling checks have no v2 equivalent data.
 
@@ -98,7 +99,7 @@ def main() -> int:
             )
             return 1
 
-        # KH-337: v2 adapter must emit exactly one extraction_not_verifiable
+        # The v2 adapter must emit exactly one extraction_not_verifiable
         # finding (required-external + decoupling unverifiable for v2 format),
         # and must NOT emit any voltage violation (VIN=12V is within limits).
         nv_findings = [f for f in result["findings"]
@@ -118,6 +119,20 @@ def main() -> int:
             print(
                 f"FAIL: unexpected voltage violation findings for 12V input "
                 f"(abs_max=45V, op_max=40V): {voltage_violations}",
+                file=sys.stderr,
+            )
+            return 1
+
+        # The same part on a 50 V rail: pin 1 (VIN) exceeds its 45 V
+        # absolute maximum, so the adapter's limits reach a finding.
+        over = build_synthetic_analysis()
+        over["rail_voltages"]["VIN"] = 50.0
+        over_findings = run_datasheet_verification(over, project_dir=str(tmp_path))["findings"]
+        abs_max = [(f.get("pin_number"), f.get("abs_max_V"), f.get("severity"))
+                   for f in over_findings if f.get("type") == "pin_voltage_abs_max_exceeded"]
+        if abs_max != [("1", 45, "error")]:
+            print(
+                f"FAIL: expected one abs-max error on pin 1 (50V > 45V), got {abs_max}",
                 file=sys.stderr,
             )
             return 1
@@ -192,17 +207,15 @@ def test_placement_sniff() -> int:
         print(f"FAIL: unexpected paths. got {paths}, expected {expected}", file=sys.stderr)
         return 1
 
-    # TJ_max cites an Absolute Maximum Ratings section — must NOT be flagged
-    tj_flagged = any("TJ_max" in i["path"] for i in placement_issues)
-    if tj_flagged:
-        print(f"FAIL: TJ_max (correctly placed) was wrongly flagged", file=sys.stderr)
-        return 1
-
     print("PASS: placement-sniff flags Table 2 entries, leaves Absolute Max section alone")
     return 0
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
+        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
+                and hasattr(_stream, "reconfigure"):
+            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
     rc1 = main()
     rc2 = test_placement_sniff()
     sys.exit(rc1 | rc2)

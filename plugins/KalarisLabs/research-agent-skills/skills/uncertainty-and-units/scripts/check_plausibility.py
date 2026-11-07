@@ -32,6 +32,19 @@ from convert_units import build_registry, checked_unit
 
 MAX_ENTRIES = 64
 
+# Repeated dimension, source and unit strings used by the tables below.
+_DIM_VISCOSITY = "[mass] / ([length] * [time])"
+_DIM_DENSITY = "[mass] / [length] ** 3"
+_DIM_MASS_PER_TIME_SQ = "[mass] / [time] ** 2"
+_DIM_DIFFUSIVITY = "[length] ** 2 / [time]"
+_DIM_VELOCITY = "[length] / [time]"
+_DIM_TEMPERATURE = "[temperature]"
+_DIM_LENGTH = "[length]"
+_DIM_TIME = "[time]"
+_SRC_INCROPERA_CH5 = "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 5"
+_SRC_MILO_CH1 = "Milo and Phillips, Cell Biology by the Numbers, ch. 1"
+_UNIT_KJ_PER_MOL = "kJ/mol"
+
 # Available to every expression below without being supplied on the command
 # line. The unit strings state what scipy.constants documents each value in.
 CONSTANT_UNITS: tuple[tuple[str, str, str], ...] = (
@@ -54,10 +67,10 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "Re",
         "expression": "density * velocity * length / viscosity",
         "inputs": {
-            "density": "[mass] / [length] ** 3",
-            "velocity": "[length] / [time]",
-            "length": "[length]",
-            "viscosity": "[mass] / ([length] * [time])",
+            "density": _DIM_DENSITY,
+            "velocity": _DIM_VELOCITY,
+            "length": _DIM_LENGTH,
+            "viscosity": _DIM_VISCOSITY,
         },
         "regimes": [
             [None, 2300.0, "laminar (circular pipe, length = diameter)"],
@@ -73,9 +86,9 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "Pe",
         "expression": "velocity * length / diffusivity",
         "inputs": {
-            "velocity": "[length] / [time]",
-            "length": "[length]",
-            "diffusivity": "[length] ** 2 / [time]",
+            "velocity": _DIM_VELOCITY,
+            "length": _DIM_LENGTH,
+            "diffusivity": _DIM_DIFFUSIVITY,
         },
         "regimes": [
             [None, 1.0, "diffusion dominates transport"],
@@ -91,8 +104,8 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "expression": "rate_constant * length / velocity",
         "inputs": {
             "rate_constant": "1 / [time]",
-            "length": "[length]",
-            "velocity": "[length] / [time]",
+            "length": _DIM_LENGTH,
+            "velocity": _DIM_VELOCITY,
         },
         "regimes": [
             [None, 0.1, "transport-limited; reaction barely proceeds in transit"],
@@ -106,7 +119,7 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "name": "knudsen",
         "symbol": "Kn",
         "expression": "mean_free_path / length",
-        "inputs": {"mean_free_path": "[length]", "length": "[length]"},
+        "inputs": {"mean_free_path": _DIM_LENGTH, "length": _DIM_LENGTH},
         "regimes": [
             [None, 0.01, "continuum; Navier-Stokes with no-slip applies"],
             [0.01, 0.1, "slip flow; no-slip boundary condition fails"],
@@ -121,8 +134,8 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "Ma",
         "expression": "velocity / sound_speed",
         "inputs": {
-            "velocity": "[length] / [time]",
-            "sound_speed": "[length] / [time]",
+            "velocity": _DIM_VELOCITY,
+            "sound_speed": _DIM_VELOCITY,
         },
         "regimes": [
             [None, 0.3, "incompressible treatment valid to about 5% in density"],
@@ -138,10 +151,10 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "Wo",
         "expression": "radius * sqrt(angular_frequency * density / viscosity)",
         "inputs": {
-            "radius": "[length]",
+            "radius": _DIM_LENGTH,
             "angular_frequency": "1 / [time]",
-            "density": "[mass] / [length] ** 3",
-            "viscosity": "[mass] / ([length] * [time])",
+            "density": _DIM_DENSITY,
+            "viscosity": _DIM_VISCOSITY,
         },
         "regimes": [
             [None, 1.0, "quasi-steady; velocity profile stays parabolic"],
@@ -156,9 +169,9 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "Ca",
         "expression": "viscosity * velocity / surface_tension",
         "inputs": {
-            "viscosity": "[mass] / ([length] * [time])",
-            "velocity": "[length] / [time]",
-            "surface_tension": "[mass] / [time] ** 2",
+            "viscosity": _DIM_VISCOSITY,
+            "velocity": _DIM_VELOCITY,
+            "surface_tension": _DIM_MASS_PER_TIME_SQ,
         },
         "regimes": [
             [None, 0.001, "interface shape set by surface tension alone"],
@@ -172,10 +185,10 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "We",
         "expression": "density * velocity ** 2 * length / surface_tension",
         "inputs": {
-            "density": "[mass] / [length] ** 3",
-            "velocity": "[length] / [time]",
-            "length": "[length]",
-            "surface_tension": "[mass] / [time] ** 2",
+            "density": _DIM_DENSITY,
+            "velocity": _DIM_VELOCITY,
+            "length": _DIM_LENGTH,
+            "surface_tension": _DIM_MASS_PER_TIME_SQ,
         },
         "regimes": [
             [None, 1.0, "surface tension holds the drop together"],
@@ -190,9 +203,9 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "symbol": "Bo",
         "expression": "density_difference * g_earth * length ** 2 / surface_tension",
         "inputs": {
-            "density_difference": "[mass] / [length] ** 3",
-            "length": "[length]",
-            "surface_tension": "[mass] / [time] ** 2",
+            "density_difference": _DIM_DENSITY,
+            "length": _DIM_LENGTH,
+            "surface_tension": _DIM_MASS_PER_TIME_SQ,
         },
         "regimes": [
             [None, 1.0, "surface tension dominates gravity"],
@@ -209,11 +222,11 @@ GROUPS: tuple[dict[str, Any], ...] = (
             "/ (18 * viscosity * length)"
         ),
         "inputs": {
-            "particle_density": "[mass] / [length] ** 3",
-            "particle_diameter": "[length]",
-            "velocity": "[length] / [time]",
-            "viscosity": "[mass] / ([length] * [time])",
-            "length": "[length]",
+            "particle_density": _DIM_DENSITY,
+            "particle_diameter": _DIM_LENGTH,
+            "velocity": _DIM_VELOCITY,
+            "viscosity": _DIM_VISCOSITY,
+            "length": _DIM_LENGTH,
         },
         "regimes": [
             [None, 0.1, "particles follow streamlines; tracer assumption holds"],
@@ -230,7 +243,7 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "expression": "heat_transfer_coefficient * length / conductivity",
         "inputs": {
             "heat_transfer_coefficient": "[mass] / ([time] ** 3 * [temperature])",
-            "length": "[length]",
+            "length": _DIM_LENGTH,
             "conductivity": "[length] * [mass] / ([time] ** 3 * [temperature])",
         },
         "regimes": [
@@ -238,16 +251,16 @@ GROUPS: tuple[dict[str, Any], ...] = (
             [0.1, None, "internal gradients matter; solve the conduction equation"],
         ],
         "note": "length is volume divided by surface area for an irregular body",
-        "source": "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 5",
+        "source": _SRC_INCROPERA_CH5,
     },
     {
         "name": "fourier",
         "symbol": "Fo",
         "expression": "thermal_diffusivity * time / length ** 2",
         "inputs": {
-            "thermal_diffusivity": "[length] ** 2 / [time]",
-            "time": "[time]",
-            "length": "[length]",
+            "thermal_diffusivity": _DIM_DIFFUSIVITY,
+            "time": _DIM_TIME,
+            "length": _DIM_LENGTH,
         },
         "regimes": [
             [None, 0.05, "early transient; semi-infinite solution applies"],
@@ -256,16 +269,16 @@ GROUPS: tuple[dict[str, Any], ...] = (
         ],
         "note": "dimensionless time for conduction; the same form with a mass "
         "diffusivity governs diffusion",
-        "source": "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 5",
+        "source": _SRC_INCROPERA_CH5,
     },
     {
         "name": "schmidt",
         "symbol": "Sc",
         "expression": "viscosity / (density * diffusivity)",
         "inputs": {
-            "viscosity": "[mass] / ([length] * [time])",
-            "density": "[mass] / [length] ** 3",
-            "diffusivity": "[length] ** 2 / [time]",
+            "viscosity": _DIM_VISCOSITY,
+            "density": _DIM_DENSITY,
+            "diffusivity": _DIM_DIFFUSIVITY,
         },
         "regimes": [
             [None, 10.0, "gases; momentum and mass diffuse comparably"],
@@ -278,7 +291,7 @@ GROUPS: tuple[dict[str, Any], ...] = (
         "name": "deborah",
         "symbol": "De",
         "expression": "relaxation_time / observation_time",
-        "inputs": {"relaxation_time": "[time]", "observation_time": "[time]"},
+        "inputs": {"relaxation_time": _DIM_TIME, "observation_time": _DIM_TIME},
         "regimes": [
             [None, 1.0, "material responds as a viscous liquid"],
             [1.0, None, "material responds elastically on this timescale"],
@@ -293,7 +306,7 @@ SCALES: tuple[dict[str, Any], ...] = (
     {
         "name": "diffusion_time",
         "expression": "length ** 2 / diffusivity",
-        "inputs": {"length": "[length]", "diffusivity": "[length] ** 2 / [time]"},
+        "inputs": {"length": _DIM_LENGTH, "diffusivity": _DIM_DIFFUSIVITY},
         "unit": "s",
         "note": "the L-squared scaling is why diffusion crosses a membrane in "
         "microseconds and a millimetre of tissue in minutes",
@@ -303,17 +316,17 @@ SCALES: tuple[dict[str, Any], ...] = (
         "name": "thermal_diffusion_time",
         "expression": "length ** 2 / thermal_diffusivity",
         "inputs": {
-            "length": "[length]",
-            "thermal_diffusivity": "[length] ** 2 / [time]",
+            "length": _DIM_LENGTH,
+            "thermal_diffusivity": _DIM_DIFFUSIVITY,
         },
         "unit": "s",
         "note": "same scaling with the thermal diffusivity k/(rho*c_p)",
-        "source": "Incropera et al., Fundamentals of Heat and Mass Transfer, ch. 5",
+        "source": _SRC_INCROPERA_CH5,
     },
     {
         "name": "thermal_energy",
         "expression": "k_B * temperature",
-        "inputs": {"temperature": "[temperature]"},
+        "inputs": {"temperature": _DIM_TEMPERATURE},
         "unit": "J",
         "note": "the energy scale every biological interaction is measured "
         "against; 4.14e-21 J at 300 K, or 2.5 kJ/mol",
@@ -322,8 +335,8 @@ SCALES: tuple[dict[str, Any], ...] = (
     {
         "name": "molar_thermal_energy",
         "expression": "R_gas * temperature",
-        "inputs": {"temperature": "[temperature]"},
-        "unit": "kJ/mol",
+        "inputs": {"temperature": _DIM_TEMPERATURE},
+        "unit": _UNIT_KJ_PER_MOL,
         "note": "a binding free energy below this is indistinguishable from "
         "thermal noise",
         "source": "Phillips et al., Physical Biology of the Cell, 2nd ed., ch. 6",
@@ -335,9 +348,9 @@ SCALES: tuple[dict[str, Any], ...] = (
             "/ (18 * viscosity)"
         ),
         "inputs": {
-            "density_difference": "[mass] / [length] ** 3",
-            "particle_diameter": "[length]",
-            "viscosity": "[mass] / ([length] * [time])",
+            "density_difference": _DIM_DENSITY,
+            "particle_diameter": _DIM_LENGTH,
+            "viscosity": _DIM_VISCOSITY,
         },
         "unit": "m/s",
         "note": "valid only while the particle Reynolds number stays below about "
@@ -350,8 +363,8 @@ SCALES: tuple[dict[str, Any], ...] = (
             "k_B * temperature / (sqrt(2) * pi * molecular_diameter ** 2 * pressure)"
         ),
         "inputs": {
-            "temperature": "[temperature]",
-            "molecular_diameter": "[length]",
+            "temperature": _DIM_TEMPERATURE,
+            "molecular_diameter": _DIM_LENGTH,
             "pressure": "[mass] / ([length] * [time] ** 2)",
         },
         "unit": "m",
@@ -366,7 +379,7 @@ SCALES: tuple[dict[str, Any], ...] = (
         ),
         "inputs": {
             "relative_permittivity": "",
-            "temperature": "[temperature]",
+            "temperature": _DIM_TEMPERATURE,
             "ionic_strength": "[substance] / [length] ** 3",
         },
         "unit": "nm",
@@ -378,8 +391,8 @@ SCALES: tuple[dict[str, Any], ...] = (
         "name": "capillary_length",
         "expression": "sqrt(surface_tension / (density * g_earth))",
         "inputs": {
-            "surface_tension": "[mass] / [time] ** 2",
-            "density": "[mass] / [length] ** 3",
+            "surface_tension": _DIM_MASS_PER_TIME_SQ,
+            "density": _DIM_DENSITY,
         },
         "unit": "mm",
         "note": "below this size a drop is held by surface tension and does not "
@@ -392,17 +405,17 @@ SCALES: tuple[dict[str, Any], ...] = (
 # a second look, not automatically wrong.
 BANDS: tuple[dict[str, Any], ...] = (
     {"name": "bacterial_cell_diameter", "low": 0.2, "high": 10.0, "unit": "um",
-     "source": "Milo and Phillips, Cell Biology by the Numbers, ch. 1"},
+     "source": _SRC_MILO_CH1},
     {"name": "eukaryotic_cell_diameter", "low": 5.0, "high": 100.0, "unit": "um",
-     "source": "Milo and Phillips, Cell Biology by the Numbers, ch. 1"},
+     "source": _SRC_MILO_CH1},
     {"name": "cell_membrane_thickness", "low": 3.0, "high": 5.0, "unit": "nm",
      "source": "Alberts et al., Molecular Biology of the Cell, 7th ed., ch. 10"},
     {"name": "dna_base_pair_rise", "low": 0.32, "high": 0.36, "unit": "nm",
      "source": "Bloomfield et al., Nucleic Acids: Structures and Properties"},
     {"name": "ribosome_diameter", "low": 20.0, "high": 30.0, "unit": "nm",
-     "source": "Milo and Phillips, Cell Biology by the Numbers, ch. 1"},
+     "source": _SRC_MILO_CH1},
     {"name": "protein_molar_mass", "low": 5.0, "high": 1000.0, "unit": "kDa",
-     "source": "Milo and Phillips, Cell Biology by the Numbers, ch. 1"},
+     "source": _SRC_MILO_CH1},
     {"name": "human_capillary_diameter", "low": 5.0, "high": 10.0, "unit": "um",
      "source": "Guyton and Hall, Textbook of Medical Physiology, 14th ed., ch. 16"},
     {"name": "mammalian_body_temperature", "low": 306.0, "high": 315.0, "unit": "K",
@@ -429,11 +442,11 @@ BANDS: tuple[dict[str, Any], ...] = (
      "source": "WGS 84 normal gravity at the ellipsoid"},
     {"name": "visible_wavelength", "low": 380.0, "high": 750.0, "unit": "nm",
      "source": "CIE S 017:2020, International Lighting Vocabulary"},
-    {"name": "noncovalent_bond_energy", "low": 1.0, "high": 40.0, "unit": "kJ/mol",
+    {"name": "noncovalent_bond_energy", "low": 1.0, "high": 40.0, "unit": _UNIT_KJ_PER_MOL,
      "source": "Israelachvili, Intermolecular and Surface Forces, 3rd ed., ch. 2"},
-    {"name": "covalent_bond_energy", "low": 150.0, "high": 1000.0, "unit": "kJ/mol",
+    {"name": "covalent_bond_energy", "low": 150.0, "high": 1000.0, "unit": _UNIT_KJ_PER_MOL,
      "source": "Atkins and de Paula, Physical Chemistry, 12th ed., data section"},
-    {"name": "atp_hydrolysis_energy", "low": 40.0, "high": 60.0, "unit": "kJ/mol",
+    {"name": "atp_hydrolysis_energy", "low": 40.0, "high": 60.0, "unit": _UNIT_KJ_PER_MOL,
      "source": "Milo and Phillips, Cell Biology by the Numbers, ch. 4"},
 )
 
@@ -648,6 +661,7 @@ def exit_code(document: dict[str, Any], threshold: str) -> int:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Evaluate dimensionless groups and characteristic scales from "
@@ -871,6 +885,7 @@ def render_markdown(document: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     arguments = build_parser().parse_args(argv)
     try:
         document = run(arguments)

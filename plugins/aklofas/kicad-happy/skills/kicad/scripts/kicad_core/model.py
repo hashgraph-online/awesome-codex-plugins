@@ -1,7 +1,7 @@
 """Typed records over the reader dict shapes (kicad_core.model).
 
 TypedDicts describe what the readers already emit, so serialisation does not
-change (spec §4.1). Open boundaries stay plain dicts (D3): finding ``extra``
+change. Open boundaries stay plain dicts: finding ``extra``
 fields, manufacturer payloads, datasheet category extensions.
 """
 from __future__ import annotations
@@ -47,7 +47,7 @@ class _NetRequired(TypedDict):
 
 class Net(_NetRequired, total=False):
     """A net record (``nets[key]``). ``display_name`` appears on ``/<sheet>/<name>`` collision
-    keys (KH-359) and on ``__unnamed_N`` nets with exactly one named IC pin."""
+    keys and on ``__unnamed_N`` nets with exactly one named IC pin."""
     display_name: str
 
 
@@ -81,8 +81,10 @@ class _ComponentRequired(TypedDict):
 class Component(_ComponentRequired, total=False):
     """A placed component. Required keys are those BOTH readers (``extract_components`` and the
     legacy ``.sch`` reader) always set; everything else is optional. ``pins`` is stripped and
-    ``category``/``parsed_value``/``pin_nets`` are added by result assembly; ``_sheet`` is set
-    by multi-sheet assembly; ``_unit_pins`` is a set popped before output."""
+    ``category``/``parsed_value``/``pin_nets`` are added by result assembly; ``_sheet`` and
+    ``instance_path`` (the board footprint path of the placed unit) are set by multi-sheet
+    assembly; ``_unit_pins`` (a set) and ``_body_style`` (the placed De Morgan body,
+    default 1) are popped before output."""
     lib_name: str
     pins: list[Pin]
     keywords: str
@@ -93,7 +95,9 @@ class Component(_ComponentRequired, total=False):
     category: str
     parsed_value: float
     pin_nets: dict[str, str]
+    instance_path: str
     _unit_pins: set
+    _body_style: int
     _sheet: int
     _power_scope: str
     _pin_source: str
@@ -105,7 +109,7 @@ PinNetEntry = tuple[str, Net]
 
 @dataclass
 class SheetData:
-    """What ``parse_single_sheet`` returns for one ``.kicad_sch`` file (field order = the pre-v3 tuple)."""
+    """What ``parse_single_sheet`` returns for one ``.kicad_sch`` file (fields in the order the parser produces them)."""
     root: list
     components: list[Component]
     wires: list[dict]
@@ -117,26 +121,27 @@ class SheetData:
     text_annotations: list[dict]
     bus_elements: dict
     title_block: dict
+    # sheet uuid -> {"fields": [(name, text)], "in_bom", "on_board", "dnp", "exclude_from_sim"}
+    # for each (sheet ...) block; the sheet name and file fields are named SHEETNAME / SHEETFILE
+    sheet_fields: dict = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
 class ResolvedConfig:
-    """The one resolved project configuration (S6). Built by ``project_config.resolve_config``.
+    """The one resolved project configuration. Built by ``project_config.resolve_config``.
 
-    effective:  the merged mapping consumers read (today's ``config``)
-    mode:       "explicit" (``--config PATH``) or "discovered" (cascade from the project dir)
+    effective:  the merged mapping consumers read (the ``config`` consumers read)
     paths:      files that contributed, in merge order (lowest precedence first); () when none
     hash_input: the single file ``inputs.config_hash`` is computed from, or None
     """
     effective: dict
-    mode: str
     paths: tuple[str, ...]
     hash_input: str | None
 
 
 @dataclass
 class PcbReaderState:
-    """Per-run PCB reader state (B1): the KiCad-10 net-name → synthetic-ID map.
+    """Per-run PCB reader state: the KiCad-10 net-name → synthetic-ID map.
 
     Built by ``_build_net_mapping`` after extraction (sorted names, IDs from 1); consulted only by
     the backfill in ``read_board``. One instance per ``analyze_pcb()`` call — nothing module-level.

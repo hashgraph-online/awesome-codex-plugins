@@ -13,7 +13,7 @@ Usage:
     python3 analyze_thermal.py -s analysis.json -p pcb.json --ambient 40
 
 Requires both schematic and PCB JSON (schematic for power data, PCB for copper
-and thermal via data). Zero dependencies — Python 3.8+ stdlib only.
+and thermal via data). Zero dependencies — Python 3.10+ stdlib only.
 """
 
 import argparse
@@ -27,12 +27,14 @@ import time
 from envelopes.thermal import ThermalEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_upstream_artifact, build_compat
-from kicad_core.render import wrap_lines
+from kicad_core.render import summary_or_title, wrap_lines
 from capability_mode import get_capability_mode_ref
 from kicad_core.cli import (add_config_arg, add_only_deterministic_arg, add_output_arg, add_schema_arg,
                             add_stage_audience_args, add_text_arg, envelope_type_error,
                             utf8_text_stdout)
 from lookup_detectors import detect_tj_exceeds_max
+from kicad_core.project import extraction_project_dir
+from datasheet_types.cache_reader import read_json_object, safe_extract_dir
 
 ANALYZER_SOURCE = "thermal"
 
@@ -91,15 +93,16 @@ PACKAGE_THERMAL_RESISTANCE = [
     (r"[TL]QFP.*48", 50.0),
     (r"[TL]QFP.*32", 60.0),
     (r"[TL]QFP", 50.0),
-    # SOIC/SOP
-    (r"SOIC.*16|SOP.*16", 80.0),
-    (r"SOIC.*8|SOP.*8", 120.0),
+    # MSOP/TSSOP/SOIC/SOP — families before the generic SOP row; VSSOP is the
+    # MSOP body. Exposed-pad variants fall through to the generic value.
+    (r"(?:MSOP|VSSOP)(?!.*-\d*EP)", 200.0),
+    (r"TSSOP[-_]?(?:20|24|28)(?![\d.x])(?!.*-\d*EP)", 80.0),
+    (r"TSSOP[-_]?(?:14|16)(?![\d.x])(?!.*-\d*EP)", 100.0),
+    (r"TSSOP[-_]?8(?![\d.x])(?!.*-\d*EP)", 150.0),
+    (r"TSSOP(?!.*-\d*EP)", 100.0),
+    (r"(?:SOIC|(?<![A-Z])SOP)[-_]?16(?![\d.x])", 80.0),
+    (r"(?:SOIC|(?<![A-Z])SOP)[-_]?8(?![\d.x])", 120.0),
     (r"SOIC|SOP", 100.0),
-    # TSSOP/MSOP
-    (r"TSSOP.*(?:20|24|28)", 80.0),
-    (r"TSSOP.*(?:14|16)", 100.0),
-    (r"TSSOP.*8", 150.0),
-    (r"MSOP", 200.0),
     # BGA
     (r"BGA.*(?:256|324|400)", 20.0),
     (r"BGA", 25.0),
@@ -163,20 +166,15 @@ def _get_datasheet_thermal(mpn: str, extract_dir: str) -> dict:
         return {}
 
     safe = _sanitize_mpn(mpn)
-    path = os.path.join(extract_dir, f"{safe}.json")
-    if not os.path.isfile(path):
-        return {}
-
-    try:
-        with open(path) as f:
-            data = json.load(f)
-    except (json.JSONDecodeError, OSError):
+    data = read_json_object(os.path.join(extract_dir, f"{safe}.json"))
+    if data is None:
         return {}
 
     # Trust gate: reject low-quality extractions (matches
     # datasheet_verify.py and spice_spec_fetcher.py threshold)
     meta = data.get("meta", {})
-    if meta.get("extraction_score", 0) < 6.0:
+    score = meta.get("extraction_score", 0) if isinstance(meta, dict) else None
+    if not isinstance(score, (int, float)) or isinstance(score, bool) or score < 6.0:
         return {}
 
     result = {}
@@ -205,10 +203,12 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
     Returns (results, skipped): results is a list of dicts with ref, value,
     type, pdiss_w, pdiss_source, etc. (only components with P > MIN_PDISS_W);
     skipped is a list of {"ref", "value", "reason"} dicts for power
-    components (regulators) that could not be assessed, with reason drawn
-    from a fixed vocabulary: "no_load_estimate", "no_vout",
-    "below_min_pdiss" (KH-386 — a dropped component previously vanished
-    from the report with no trace), or "no_pdiss_estimate" (KH-411 — LDO with no upstream power_dissipation estimate at all).
+    components (regulators and current-sense shunts) that could not be
+    assessed, with reason drawn from a fixed vocabulary: "no_load_estimate",
+    "no_vout", "below_min_pdiss" (so a dropped component is never absent
+    from the report without a trace), "no_pdiss_estimate" (LDO with no
+    upstream power_dissipation estimate at all), or "no_operating_current"
+    (current-sense shunt: only the sense range is known, not the load).
     """
     results = []
     skipped = []
@@ -226,7 +226,7 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
         if topology in ("ldo", "linear"):
             p_w = pdiss.get("estimated_pdiss_W") if isinstance(pdiss, dict) else None
             if p_w is None:
-                # KH-411: the upstream regulator detector never produced an
+                # The upstream regulator detector never produced an
                 # estimate (no power_dissipation block, or no estimated_pdiss_W
                 # in it) — distinct from a real sub-threshold estimate.
                 skipped.append({"ref": ref, "value": reg.get("value", ""),
@@ -280,7 +280,7 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
             continue
 
         eta = SWITCHING_EFFICIENCY.get(topology, 0.85)
-        p_out = vout * iout_a
+        p_out = abs(vout) * iout_a  # a negative (inverting) output delivers |Vout| x Iout
         p_in = p_out / eta
         p_loss = p_in - p_out
 
@@ -300,7 +300,9 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
             skipped.append({"ref": ref, "value": reg.get("value", ""),
                              "reason": "below_min_pdiss"})
 
-    # 3. Current sense shunt resistors — P = I²R
+    # 3. Current sense shunt resistors: the detector only knows the sense
+    # range's full-scale current, not the load, so there is no operating
+    # current to cost.
     current_sense = [f for f in schematic.get("findings", [])
                      if f.get("detector") == "detect_current_sense"]
     for cs in current_sense:
@@ -310,22 +312,9 @@ def _estimate_all_power_dissipation(schematic: dict) -> tuple:
         ref = shunt.get("ref", "")
         if ref in seen_refs:
             continue
-        r_ohms = shunt.get("ohms", 0)
-        i_max = cs.get("max_current_100mV_A", 0)
-        if not r_ohms or not i_max:
-            continue
-
-        p_w = i_max * i_max * r_ohms
-        if p_w > MIN_PDISS_W:
-            results.append({
-                "ref": ref,
-                "value": shunt.get("value", ""),
-                "type": "shunt_resistor",
-                "pdiss_w": round(p_w, 4),
-                "pdiss_source": f"{i_max:.3f}A² × {r_ohms}Ω",
-                "pdiss_confidence": "deterministic",
-            })
-            seen_refs.add(ref)
+        skipped.append({"ref": ref, "value": shunt.get("value", ""),
+                        "reason": "no_operating_current"})
+        seen_refs.add(ref)
 
     return results, skipped
 
@@ -474,7 +463,6 @@ def _compute_junction_temps(power_comps: list, pcb: dict,
             # rtheta_source is only ever "package_table" (footprint regex matched the
             # generic PACKAGE_THERMAL_RESISTANCE average) or "default" — neither is
             # per-MPN datasheet data, so neither may claim datasheet provenance.
-            # (KH-398: assessment-level twin of KH-387)
             "evidence_source": "heuristic_rule",
             "summary": f"Thermal: {ref} Tj={round(tj, 1)}C (margin {round(margin, 1)}C)",
             "description": f"Component {ref} in {pkg_name} package: Tj={round(tj, 1)}C, margin {round(margin, 1)}C to Tj_max ({tj_max}C).",
@@ -497,9 +485,9 @@ def _compute_junction_temps(power_comps: list, pcb: dict,
 def _thermal_confidence(assessment: dict) -> str:
     """Determine confidence level from assessment data sources."""
     # Both rtheta_ja_source values ("package_table", "default") are generic
-    # package averages, not per-MPN datasheet data — same reasoning PR #37
-    # applied to evidence_source (see :445-447). Neither may claim
-    # datasheet-backed confidence.
+    # package averages, not per-MPN datasheet data — same reasoning as the
+    # evidence_source of the assessment built in _compute_junction_temps.
+    # Neither may claim datasheet-backed confidence.
     if assessment.get("rtheta_ja_source") in ("default", "package_table"):
         return "heuristic"
     if assessment.get("tj_max_source") == "default_125":
@@ -521,7 +509,7 @@ def _generate_findings(assessments: list) -> list:
         pkg = a["package"]
         confidence = _thermal_confidence(a)
         # Both rtheta_ja_source values ("package_table", "default") are generic
-        # package averages, not per-MPN datasheet data. See analyze_thermal:394.
+        # package averages, not per-MPN datasheet data (see _thermal_confidence).
         ev_source = "heuristic_rule"
 
         label = f"{ref} ({val})" if val else ref
@@ -664,7 +652,6 @@ def _generate_findings(assessments: list) -> list:
 def _check_thermal_proximity(assessments: list, pcb: dict) -> list:
     """Check for temperature-sensitive components near hot spots."""
     findings = []
-    fp_map = _get_footprint_map(pcb)
 
     # Find hot components (Tj > 70°C) with known positions
     hot_comps = [a for a in assessments
@@ -790,7 +777,7 @@ _NO_COMPONENTS_REASON = (
 def _resolve_score(findings: list, assessments: list):
     """Return (score, skipped_reason). Score is None when no components were
     assessable — a 100/100 default in that case would falsely suggest a clean
-    thermal pass when the analyzer had no data to evaluate (F3)."""
+    thermal pass when the analyzer had no data to evaluate."""
     if not assessments:
         return None, _NO_COMPONENTS_REASON
     return compute_thermal_score(
@@ -839,7 +826,8 @@ def format_text_report(result: dict) -> str:
     lines = []
     summary = result.get("summary", {})
     findings = result.get("findings", [])
-    assessments = result.get("thermal_assessments", [])
+    assessments = result.get("assessments") or result.get("thermal_assessments", [])
+    by_sev = summary.get("by_severity") or {}
 
     lines.append("=" * 60)
     lines.append("THERMAL HOTSPOT ANALYSIS")
@@ -859,11 +847,16 @@ def format_text_report(result: dict) -> str:
 
     lines.append(f"Total findings:      {summary.get('total_findings', 0)}")
     lines.append(f"Components assessed: {summary.get('components_assessed', 0)}")
-    lines.append(f"  CRITICAL:    {summary.get('critical', 0)}")
-    lines.append(f"  HIGH:        {summary.get('high', 0)}")
-    lines.append(f"  MEDIUM:      {summary.get('medium', 0)}")
-    lines.append(f"  LOW:         {summary.get('low', 0)}")
-    lines.append(f"  INFO:        {summary.get('info', 0)}")
+    if by_sev:
+        lines.append(f"  ERROR:       {by_sev.get('error', 0)}")
+        lines.append(f"  WARNING:     {by_sev.get('warning', 0)}")
+        lines.append(f"  INFO:        {by_sev.get('info', 0)}")
+    else:
+        lines.append(f"  CRITICAL:    {summary.get('critical', 0)}")
+        lines.append(f"  HIGH:        {summary.get('high', 0)}")
+        lines.append(f"  MEDIUM:      {summary.get('medium', 0)}")
+        lines.append(f"  LOW:         {summary.get('low', 0)}")
+        lines.append(f"  INFO:        {summary.get('info', 0)}")
     lines.append("")
 
     # Component thermal table
@@ -890,8 +883,8 @@ def format_text_report(result: dict) -> str:
         lines.append("-" * 60)
 
         for f in findings:
-            sev = f["severity"]
-            lines.append(f"  [{sev}] {f['rule_id']}: {f['title']}")
+            sev = f.get("severity", "")
+            lines.append(f"  [{sev}] {f.get('rule_id', '')}: {summary_or_title(f)}")
             desc = f.get("description", "")
             lines.extend(wrap_lines(desc))
             if f.get("recommendation"):
@@ -925,7 +918,7 @@ def main(argv: list[str] | None = None) -> int:
                         help="Path to datasheets/extracted/ directory")
     add_config_arg(parser)
     parser.add_argument("--analysis-dir",
-                        help="Write thermal.json to this directory (analysis folder convention)")
+                        help="Write thermal.json into the current run of this analysis directory (analysis folder convention)")
     add_schema_arg(parser)
     add_stage_audience_args(parser)
     add_only_deterministic_arg(parser)
@@ -957,7 +950,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Load inputs
     try:
-        with open(args.schematic) as f:
+        with open(args.schematic, encoding="utf-8") as f:
             schematic = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading schematic: {e}", file=sys.stderr)
@@ -975,7 +968,7 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     try:
-        with open(args.pcb) as f:
+        with open(args.pcb, encoding="utf-8") as f:
             pcb = json.load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading PCB: {e}", file=sys.stderr)
@@ -987,15 +980,12 @@ def main(argv: list[str] | None = None) -> int:
     # Resolve datasheets directory
     extract_dir = args.datasheets
     if not extract_dir:
-        # Prefer directory of actual input file over path stored inside JSON
-        input_path = args.schematic if hasattr(args, 'schematic') and args.schematic else None
-        search_base = os.path.dirname(os.path.abspath(input_path)) if input_path else None
-        if not search_base:
-            sch_file = schematic.get("file", "")
-            search_base = os.path.dirname(sch_file) if sch_file else None
-        if search_base:
-            candidate = os.path.join(search_base, "datasheets", "extracted")
-            if os.path.isdir(candidate):
+        # Only the project the schematic analysis names: the JSON's own folder
+        # may be a shared directory such as /tmp.
+        project_dir = extraction_project_dir(schematic)
+        if project_dir is not None:
+            candidate = os.path.join(project_dir, "datasheets", "extracted")
+            if os.path.isdir(candidate) and safe_extract_dir(candidate) is not None:
                 extract_dir = candidate
 
     # Load project config
@@ -1019,7 +1009,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.ambient == DEFAULT_AMBIENT_C and project.get("ambient_temperature_c"):
         args.ambient = project["ambient_temperature_c"]
 
-    # Build inputs provenance block (Track 1.3).
+    # Build inputs provenance block.
     from pathlib import Path as _Path
     _sch_path = _Path(args.schematic)
     _pcb_path = _Path(args.pcb)
@@ -1031,8 +1021,8 @@ def main(argv: list[str] | None = None) -> int:
     if _cfg_path and not _cfg_path.is_file():
         _cfg_path = None
 
-    # Resolve canonical analysis_dir ONCE (audit Highest-Risk #4) — include
-    # --analysis-dir branch so capability mode lands with outputs, not in
+    # Resolve the canonical analysis_dir once, including the --analysis-dir
+    # branch, so capability mode lands with the outputs, not in the
     # ./analysis fallback.
     if hasattr(args, "analysis_dir") and args.analysis_dir:
         _analysis_dir = _Path(args.analysis_dir)
@@ -1042,7 +1032,7 @@ def main(argv: list[str] | None = None) -> int:
         _analysis_dir = _Path("analysis")
 
     # Resolve capability_mode_ref BEFORE build_inputs so inputs.run_id ==
-    # capability_mode_ref.run_id (audit Highest-Risk #5).
+    # capability_mode_ref.run_id.
     _capability_mode_ref = get_capability_mode_ref(_analysis_dir)
 
     inputs = build_inputs(
@@ -1066,8 +1056,8 @@ def main(argv: list[str] | None = None) -> int:
     findings = _generate_findings(assessments)
     findings.extend(_check_thermal_proximity(assessments, pcb))
 
-    # TJ-001 (Phase 4c): recompute TJ via v1.4 facts.base.thermal[theta_ja]
-    # and compare to facts.base.absolute_max[TJ_SYNONYMS]. Soft-skip when
+    # TJ-001: recompute TJ via facts.base.thermal[theta_ja] and compare to
+    # facts.base.absolute_max[TJ_SYNONYMS]. Soft-skip when
     # cache miss or below trust gate.
     diagnostics: list = []
     findings.extend(detect_tj_exceeds_max(
@@ -1085,13 +1075,11 @@ def main(argv: list[str] | None = None) -> int:
 
     # Score (only active findings). Returns (None, reason) when no components
     # were assessable, so a missing-data run reports "skipped" rather than a
-    # misleading 100/100 (F3).
+    # misleading 100/100.
     score, skipped_reason = _resolve_score(findings, assessments)
 
-    # Severity counts over the rule findings (thermal_assessments are
-    # merged into findings[] further down and contribute info-level
-    # entries — a final recompute below keeps summary in sync with the
-    # merged list).
+    # Severity counts over the rule findings only; assessments stay in their
+    # own list and are not counted here.
     counts = {"error": 0, "warning": 0, "info": 0}
     suppressed_count = 0
     for f in findings:
@@ -1111,7 +1099,7 @@ def main(argv: list[str] | None = None) -> int:
     # Missing information — components with default thermal parameters.
     # Always include both keys (with [] when nothing missing) so the
     # ThermalMissingInfo schema is satisfied whenever the block is
-    # emitted (TH-043). The outer `if missing_info:` guard below still
+    # emitted. The outer `if missing_info:` guard below still
     # gates whether to emit the block at all.
     default_rtheta = [a["ref"] for a in assessments
                       if a.get("rtheta_ja_source") == "default"]
@@ -1134,8 +1122,8 @@ def main(argv: list[str] | None = None) -> int:
             "components_skipped": len(skipped_components),
             "active": len(findings) - suppressed_count,
             "suppressed": suppressed_count,
-            # Standardized severity rollup (single source — raw
-            # per-severity aliases were removed in v1.3 Batch 20).
+            # Standardized severity rollup (single source; there are no raw
+            # per-severity alias keys).
             "by_severity": dict(counts),
             "thermal_score": score,
             **({"skipped_reason": skipped_reason} if skipped_reason else {}),
@@ -1154,14 +1142,14 @@ def main(argv: list[str] | None = None) -> int:
     result["trust_summary"] = compute_trust_summary(result["findings"])
 
     from output_filters import apply_output_filters
-    apply_output_filters(result, args.stage, args.audience)
+    apply_output_filters(result, args.stage)
 
     # Guarantee every finding carries a stable finding_id (Layer 2 merge keys
     # on it). Runs after filtering; before any output branch.
     from finding_schema import assign_finding_ids
     assign_finding_ids(result.get("findings", []), "thermal")
 
-    # Wire capability_mode_ref (Phase 4 spec §3.3).
+    # Wire capability_mode_ref.
     from pathlib import Path as _Path
     # capability_mode_ref already resolved early — reuse to keep run_id stable.
     result["capability_mode_ref"] = _capability_mode_ref
@@ -1176,11 +1164,12 @@ def main(argv: list[str] | None = None) -> int:
     if analysis_dir_mode:
         from output_io import write_derived_output
         out_path = write_derived_output(args.analysis_dir, json.dumps(result, indent=2), analyzer="thermal")
-        score_str = "SKIPPED" if score is None else f"{score}/100"
-        print(f"Thermal analysis complete: {len(findings)} findings "
-              f"(score {score_str}) -> {out_path}", file=sys.stderr)
+        if out_path:
+            score_str = "SKIPPED" if score is None else f"{score}/100"
+            print(f"Thermal analysis complete: {len(findings)} findings "
+                  f"(score {score_str}) -> {out_path}", file=sys.stderr)
     elif output_path:
-        with open(output_path, "w") as f:
+        with open(output_path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(result, f, indent=2)
         score_str = "SKIPPED" if score is None else f"{score}/100"
         print(f"Thermal analysis complete: {len(findings)} findings "
@@ -1198,4 +1187,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

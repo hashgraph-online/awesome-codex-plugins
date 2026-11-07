@@ -29,10 +29,11 @@ import argparse
 import json
 import sys
 import _core_path  # noqa: F401
-from distributor_core.download import download_pdf, try_alternative_sources
-from distributor_core.verify import verify_datasheet
+from distributor_core.download import (download_pdf, try_alternative_sources,
+                                       add_download_args, apply_download_args)
+from distributor_core.verify import fetch_mismatch, refuse_fetch_hit, same_part, verify_datasheet
 from distributor_core.manifest import _friendly_filename
-from provider_digikey import search_digikey
+from provider_digikey import _digikey_pns, search_digikey
 
 
 def main():
@@ -42,7 +43,9 @@ def main():
     group.add_argument("--search", metavar="MPN", help="Search DigiKey by MPN and download the datasheet")
     parser.add_argument("--output", "-o", help="Output file path (default: <MPN>.pdf in current directory)")
     parser.add_argument("--json", action="store_true", help="Output result as JSON (for script integration)")
+    add_download_args(parser)
     args = parser.parse_args()
+    apply_download_args(args)
 
     if args.search:
         product = search_digikey(args.search)
@@ -52,6 +55,10 @@ def main():
             sys.exit(2)
 
         mpn = product.get("ManufacturerProductNumber", args.search)
+        other = fetch_mismatch(args.search, mpn, _digikey_pns(product))
+        if other:
+            refuse_fetch_hit("DigiKey", args.search, other, args.json)
+        verify_pn = args.search if same_part(args.search, mpn) else mpn
         desc = product.get("Description", {}).get("ProductDescription", "")
         ds_url = product.get("DatasheetUrl", "")
         output_path = args.output or (_friendly_filename(mpn, desc) + ".pdf")
@@ -73,7 +80,7 @@ def main():
             sys.exit(2)
 
         if download_pdf(ds_url, output_path):
-            vr = verify_datasheet(output_path, mpn, desc,
+            vr = verify_datasheet(output_path, verify_pn, desc,
                                   product.get("Manufacturer", {}).get("Name", ""))
             if vr["confidence"] == "wrong":
                 print(f"WARNING: Downloaded PDF may be wrong datasheet for {mpn}",
@@ -92,7 +99,7 @@ def main():
         # Try alternative sources
         print(f"Primary URL failed, trying alternatives for {mpn}...", file=sys.stderr)
         if try_alternative_sources(mpn, output_path):
-            vr = verify_datasheet(output_path, mpn, desc,
+            vr = verify_datasheet(output_path, verify_pn, desc,
                                   product.get("Manufacturer", {}).get("Name", ""))
             if vr["confidence"] == "wrong":
                 print(f"WARNING: Downloaded PDF may be wrong datasheet for {mpn}",
@@ -130,4 +137,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     main()

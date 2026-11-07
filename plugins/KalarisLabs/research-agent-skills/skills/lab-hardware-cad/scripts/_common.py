@@ -50,6 +50,7 @@ def load_standards() -> dict:
 
 
 def get_standard(standard_id: str) -> dict:
+    """Get standard."""
     data = load_standards()
     standards = data.get("standards", {})
     if standard_id not in standards:
@@ -72,6 +73,7 @@ def require_build123d():
 
 
 def sha256_of(path: Path) -> str:
+    """Handle sha256 of."""
     digest = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(65536), b""):
@@ -418,7 +420,7 @@ def _region_solids(build123d, region: dict, part_bbox) -> list:
             solid = build123d.Pos(a, b, mid) * cyl
         elif axis == "x":
             solid = build123d.Pos(mid, a, b) * build123d.Rot(0, 90, 0) * cyl
-        else:  # y; 'at' is (x, z)
+        else:  # axis y; 'at' holds the x and z coordinates
             solid = build123d.Pos(a, mid, b) * build123d.Rot(90, 0, 0) * cyl
         solids.append(solid)
     return solids

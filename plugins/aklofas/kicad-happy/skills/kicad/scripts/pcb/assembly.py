@@ -1,13 +1,20 @@
 """PCB placement and assembly checks: decoupling placement, placement/courtyards,
-tombstoning, switching loops, fiducials, test points, orientation, silkscreen overlaps, keepouts.
-Verbatim moves from analyze_pcb.py."""
+tombstoning, switching loops, fiducials, test points, orientation, silkscreen overlaps, keepouts."""
 
 import math
 import re
 
-from kicad_core.netnames import is_ground_name
-from pcb.geometry import _refined_overlap_mm2
+from kicad_core.classify import is_touch_pad
+from kicad_core.hotloop import polygon_loop_area
+from kicad_core.netnames import IC_SIGNAL_PIN_TYPES, is_ground_name, is_power_net_name
+from pcb.geometry import (_outline_shape_points, _refined_overlap_mm2, courtyards_collide,
+                          outline_edge_distance, outline_loops, overlap_area_mm2,
+                          point_in_outline)
 
+
+# Whole-name match: VIN+/VINA/VBAT_OK/VREF/VCOUT and op-amp "+" pins are signals.
+_SUPPLY_PIN_NAME = re.compile(
+    r"(?:VCC|VDD|VIN|AVDD|DVDD|PVDD|VDDA|VDDIO|VDDQ|VBAT)(?:_?\d+)?|V\+", re.I)
 
 _ESD_TVS_PREFIXES = ("esd", "prtr", "usblc", "tpd", "pesd", "sp05",
                      "rclamp", "nup", "lesd", "ip4", "dt104")
@@ -64,8 +71,31 @@ def _min_power_pad_distance(ic_fp: dict, cap_fp: dict) -> float:
     return min_dist
 
 
-def _nearby_decoupling_caps(ic: dict, caps: list[dict]) -> tuple[list[dict], list[str]]:
-    """Caps within 10 mm that share a non-ground net with the IC (KH-379).
+def _ic_signal_nets(ic: dict, power_rails: set[str] | None,
+                    pin_signals: frozenset[str]) -> set[str]:
+    """The IC's nets that its own pad marks as a signal pin (KiCad 6+ pad pin types), less the
+    power rails: the rail set, a rail name (bar the VPP/VM nets in *pin_signals*), or the IC's
+    supply pin on the net (by pin type or a supply pin name). A cap on such a net is a load,
+    filter or timing cap."""
+    rails, signals = set(), set()
+    for pad in ic.get("pads", []):
+        n = pad.get("net_name")
+        if not n:
+            continue
+        pin_type = str(pad.get("pintype", "")).split("+")[0]
+        if ((n not in pin_signals and is_power_net_name(n, power_rails))
+                or pin_type in ("power_in", "power_out")
+                or _SUPPLY_PIN_NAME.fullmatch(str(pad.get("pinfunction", "")))):
+            rails.add(n)
+        elif pin_type in IC_SIGNAL_PIN_TYPES:
+            signals.add(n)
+    return signals - rails
+
+
+def _nearby_decoupling_caps(ic: dict, caps: list[dict],
+                            signals: set[str] | frozenset[str] = frozenset()
+                            ) -> tuple[list[dict], list[str]]:
+    """Caps within 10 mm that share a non-ground net with the IC, other than its *signals*.
     Returns (nearby sorted by distance, refs of <=10 mm caps rejected as
     ground-only)."""
     ic_nets = {p.get("net_name") for p in ic.get("pads", []) if p.get("net_name")}
@@ -79,6 +109,9 @@ def _nearby_decoupling_caps(ic: dict, caps: list[dict]) -> tuple[list[dict], lis
         if not shared:
             rejected.append(cap["reference"])
             continue
+        shared -= signals
+        if not shared:
+            continue
         nearby.append({"cap": cap["reference"], "value": cap.get("value", ""),
                        "distance_mm": round(dist, 2), "shared_nets": sorted(shared),
                        "same_side": cap["layer"] == ic["layer"]})
@@ -86,10 +119,13 @@ def _nearby_decoupling_caps(ic: dict, caps: list[dict]) -> tuple[list[dict], lis
     return nearby, sorted(rejected)
 
 
-def analyze_decoupling_placement(footprints: list[dict]) -> list[dict]:
+def analyze_decoupling_placement(footprints: list[dict], power_rails: set[str] | None = None,
+                                 pin_signals: frozenset[str] = frozenset()) -> list[dict]:
     """For each IC, find nearby capacitors and report distances.
 
-    Helps verify decoupling caps are placed close to IC power pins.
+    Helps verify decoupling caps are placed close to IC power pins. A cap that shares only
+    the IC's signal-pin nets (`_ic_signal_nets`) is not its decoupling; an ESD part's bypass
+    cap counts on any shared non-ground net.
     """
     # EQ-048: d = √(Δx²+Δy²) (cap-to-IC distance)
     ics = [fp for fp in footprints
@@ -103,7 +139,8 @@ def analyze_decoupling_placement(footprints: list[dict]) -> list[dict]:
 
     results = []
     for ic in ics:
-        nearby, rejected = _nearby_decoupling_caps(ic, caps)
+        nearby, rejected = _nearby_decoupling_caps(
+            ic, caps, _ic_signal_nets(ic, power_rails, pin_signals))
         if nearby:
             entry = {
                 "ic": ic["reference"],
@@ -163,8 +200,7 @@ def _is_rf_module(fp: dict) -> bool:
 
 
 # Edge-mount footprint categories: by-design at the board edge — PM-002 edge
-# clearance should demote to info (not warning/error) for these. rc.2 4.1
-# expansion (SparkFun review).
+# clearance should demote to info (not warning/error) for these.
 _EDGE_MOUNT_LIBRARY_KEYWORDS = (
     'SMA_Edge',                           # edge-launch SMA antenna connectors
     'USB_C_Receptacle',                   # vertical/board-edge USB-C
@@ -175,7 +211,7 @@ _EDGE_MOUNT_LIBRARY_KEYWORDS = (
     'BarrelJack',                         # DC barrel jack at edge
     'Standoff', 'Mounting',               # mounting features near edge are intentional
     'TerminalBlock',                      # screw terminals at board edge
-    'Phoenix_MSTB',                       # Phoenix MSTB/MSTBA/MSTBVA terminal-block family (F8)
+    'Phoenix_MSTB',                       # Phoenix MSTB/MSTBA/MSTBVA terminal-block family
     'JST_', 'Molex_PicoBlade',            # edge-launched JST/Molex wire-to-board
 )
 
@@ -201,39 +237,145 @@ def _is_edge_mount_footprint(fp: dict) -> bool:
     return False
 
 
-def analyze_placement(footprints: list[dict], outline: dict) -> dict:
+def _clearance_points(fp: dict) -> list[tuple[float, float]]:
+    """Courtyard polygon vertices, else courtyard bbox corners, else the anchor."""
+    pts = [(p[0], p[1]) for poly in (fp.get("_courtyard_poly") or fp.get("courtyard_poly") or [])
+           for p in poly]
+    if not pts and fp.get("courtyard"):
+        c = fp["courtyard"]
+        pts = [(c["min_x"], c["min_y"]), (c["max_x"], c["min_y"]),
+               (c["max_x"], c["max_y"]), (c["min_x"], c["max_y"])]
+    return pts or [(fp["x"], fp["y"])]
+
+
+def _edge_boxes(edges: list[dict]) -> list[tuple[tuple[float, float, float, float], dict]]:
+    """(min_x, min_y, max_x, max_y) of each outline edge, 0.01 mm loose for tessellation."""
+    out = []
+    for e in edges:
+        shape = _outline_shape_points(e)
+        if shape is None:
+            continue
+        xs = [p[0] for p in shape[0]]
+        ys = [p[1] for p in shape[0]]
+        out.append(((min(xs) - 0.01, min(ys) - 0.01, max(xs) + 0.01, max(ys) + 0.01), e))
+    return out
+
+
+def _outline_clearance(fp: dict, loops: list, edges: list[dict],
+                       edge_boxes: list) -> tuple[float, bool]:
+    """(clearance, off_board) against the closed outline: the nearest edge distance when every
+    point is on the board, else minus the farthest outside distance; off-board when no point and
+    no pad is on it. Slots and cutouts are board edge (even-odd)."""
+    pts = _clearance_points(fp)
+    # an edge more than 1 mm from the points' box cannot decide a clearance under 1 mm
+    x0 = min(p[0] for p in pts) - 1.0
+    y0 = min(p[1] for p in pts) - 1.0
+    x1 = max(p[0] for p in pts) + 1.0
+    y1 = max(p[1] for p in pts) + 1.0
+    near = [e for (ex0, ey0, ex1, ey1), e in edge_boxes
+            if ex0 <= x1 and ex1 >= x0 and ey0 <= y1 and ey1 >= y0]
+    inside_d: list[float] = []
+    outside_d: list[float] = []
+    for x, y in pts:
+        d = outline_edge_distance(x, y, near)
+        d = math.inf if d is None else d
+        # a point on the edge (closer than the reported 0.01 mm) is on the board
+        if d < 0.005 or point_in_outline(x, y, loops):
+            inside_d.append(d)
+        else:
+            outside_d.append(outline_edge_distance(x, y, edges) or 0.0)
+    if not outside_d:
+        return min(inside_d), False
+    # a part whose pads reach the board (a mid-mount part in a cutout) overhangs, it is not off it
+    on_board = bool(inside_d) or any(
+        point_in_outline(p["abs_x"], p["abs_y"], loops)
+        or (outline_edge_distance(p["abs_x"], p["abs_y"], edges) or 0.0) < 0.005
+        for p in fp.get("pads", []) if "abs_x" in p and "abs_y" in p)
+    return -max(outside_d), not on_board
+
+
+def _bbox_clearance(fp: dict, bx_min: float, by_min: float,
+                    bx_max: float, by_max: float) -> tuple[float, bool]:
+    """(clearance, off_board) against the outline's bounding box."""
+    cx, cy = fp["x"], fp["y"]
+    min_edge = min(cx - bx_min, bx_max - cx, cy - by_min, by_max - cy)
+    fp_min_x = fp_max_x = cx
+    fp_min_y = fp_max_y = cy
+    if fp.get("courtyard"):
+        cy_box = fp["courtyard"]
+        fp_min_x, fp_max_x = cy_box["min_x"], cy_box["max_x"]
+        fp_min_y, fp_max_y = cy_box["min_y"], cy_box["max_y"]
+        min_edge = min(
+            cy_box["min_x"] - bx_min,
+            bx_max - cy_box["max_x"],
+            cy_box["min_y"] - by_min,
+            by_max - cy_box["max_y"],
+        )
+    # A bbox entirely outside the outline bbox isn't "near the edge" — it's off the board
+    is_off_board = (fp_max_x < bx_min or fp_min_x > bx_max or
+                    fp_max_y < by_min or fp_min_y > by_max)
+    return min_edge, is_off_board
+
+
+def _courtyard_sides(fp: dict) -> dict:
+    """Courtyard layer -> {"box", "polys", "rounded"} of a footprint. A footprint without
+    per-layer data has its merged courtyard on the side it is mounted on."""
+    sides = fp.get("_courtyard_sides")
+    if sides is not None:
+        return sides
+    box = fp.get("courtyard")
+    if not box:
+        return {}
+    side = "B.CrtYd" if str(fp.get("layer", "")).startswith("B.") else "F.CrtYd"
+    return {side: {"box": box, "polys": fp.get("_courtyard_poly") or fp.get("courtyard_poly"),
+                   "rounded": fp.get("courtyard_poly")}}
+
+
+def analyze_placement(footprints: list[dict], outline: dict, *,
+                      check_overlaps: bool = True) -> dict:
     """Component placement analysis — courtyard overlaps and edge clearance.
 
     Reports:
-    - Courtyard overlaps: pairs of components on the same side whose courtyard
-      bounding boxes overlap (potential physical collision or assembly issue)
+    - Courtyard overlaps: pairs of components whose courtyards on the same courtyard
+      layer overlap (potential physical collision or assembly issue)
     - Edge clearance: components closest to board edges (flagged if <0.5mm)
     - Placement density per board side
+
+    ``check_overlaps`` False skips the overlaps (the project ignores KiCad's
+    ``courtyards_overlap`` check).
     """
-    # Courtyard overlap detection (AABB intersection, same side only)
+    # Courtyard overlap detection. One entry per footprint and courtyard layer: KiCad tests
+    # F.CrtYd against F.CrtYd and B.CrtYd against B.CrtYd, whichever side each part is
+    # mounted on. A pair colliding on both layers is reported once.
     overlaps = []
-    fp_with_cy = [(fp, fp["courtyard"]) for fp in footprints if fp.get("courtyard")]
+    fp_with_cy = [(fp, sd["box"], sd["polys"], sd["rounded"], side) for fp in footprints
+                  if check_overlaps
+                  for side, sd in _courtyard_sides(fp).items()]
+    reported: set = set()
 
     for i in range(len(fp_with_cy)):
-        fp_a, cy_a = fp_with_cy[i]
+        fp_a, cy_a, _raw_a, _polys_a, side_a = fp_with_cy[i]
         for j in range(i + 1, len(fp_with_cy)):
-            fp_b, cy_b = fp_with_cy[j]
-            # Only check components on the same side
-            if fp_a["layer"] != fp_b["layer"]:
+            fp_b, cy_b, _raw_b, _polys_b, side_b = fp_with_cy[j]
+            if side_a != side_b or fp_a is fp_b or (id(fp_a), id(fp_b)) in reported:
                 continue
-            # AABB overlap check
-            if (cy_a["min_x"] < cy_b["max_x"] and cy_a["max_x"] > cy_b["min_x"] and
-                    cy_a["min_y"] < cy_b["max_y"] and cy_a["max_y"] > cy_b["min_y"]):
-                # Compute overlap area
-                ox = min(cy_a["max_x"], cy_b["max_x"]) - max(cy_a["min_x"], cy_b["min_x"])
-                oy = min(cy_a["max_y"], cy_b["max_y"]) - max(cy_a["min_y"], cy_b["min_y"])
+            # AABB overlap check; KiCad shrinks each courtyard by 0.005 mm, so
+            # courtyards that touch or overlap by less than 0.01 mm do not collide
+            # (the 0.001 mm slack covers the bbox's rounding)
+            ox = min(cy_a["max_x"], cy_b["max_x"]) - max(cy_a["min_x"], cy_b["min_x"])
+            oy = min(cy_a["max_y"], cy_b["max_y"]) - max(cy_a["min_y"], cy_b["min_y"])
+            if ox >= 0.009 and oy >= 0.009:
                 overlap_mm2 = round(ox * oy, 3)
-                # KH-350: AABB is only a pre-filter — notched courtyards
+                # AABB is only a pre-filter — notched courtyards
                 # (QFP cross shapes) fill their corners in bbox space. With
-                # chained polygons on both parts, measure the true overlap.
-                _polys_a = fp_a.get("courtyard_poly")
-                _polys_b = fp_b.get("courtyard_poly")
-                if _polys_a and _polys_b:
+                # chained polygons on both parts, test the real shapes; the
+                # area is measured on the unshrunk shapes.
+                if not (_polys_a and _polys_b):
+                    if ox < 0.01 - 1e-7 or oy < 0.01 - 1e-7:
+                        continue
+                else:
+                    if not courtyards_collide(_raw_a or _polys_a, _raw_b or _polys_b):
+                        continue
                     _refined = _refined_overlap_mm2(
                         _polys_a, _polys_b,
                         max(cy_a["min_x"], cy_b["min_x"]),
@@ -241,8 +383,16 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                         min(cy_a["max_x"], cy_b["max_x"]),
                         min(cy_a["max_y"], cy_b["max_y"]))
                     if _refined <= 0.0:
-                        continue
+                        # a thin crossing fell between the samples
+                        _refined = overlap_area_mm2(
+                            _polys_a, _polys_b,
+                            max(cy_a["min_x"], cy_b["min_x"]),
+                            max(cy_a["min_y"], cy_b["min_y"]),
+                            min(cy_a["max_x"], cy_b["max_x"]),
+                            min(cy_a["max_y"], cy_b["max_y"]))
                     overlap_mm2 = round(_refined, 3)
+                reported.add((id(fp_a), id(fp_b)))
+                layer = "B.Cu" if side_a == "B.CrtYd" else "F.Cu"
                 is_rf_overlap = _is_rf_module(fp_a) or _is_rf_module(fp_b)
                 # RF module courtyards deliberately encode the antenna RF
                 # keepout (e.g., ESP32-S3-WROOM-1 extends ~7mm past the body
@@ -261,7 +411,7 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                 overlaps.append({
                     "component_a": fp_a["reference"],
                     "component_b": fp_b["reference"],
-                    "layer": fp_a["layer"],
+                    "layer": layer,
                     "overlap_mm2": overlap_mm2,
                     "detector": "analyze_placement",
                     "rule_id": "PM-001",
@@ -270,7 +420,7 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                     "confidence": "deterministic",
                     "evidence_source": "topology",
                     "summary": f"Courtyard overlap between {fp_a['reference']} and {fp_b['reference']} ({overlap_mm2}mm\u00b2){rf_note}",
-                    "description": f"Components {fp_a['reference']} and {fp_b['reference']} have overlapping courtyards on {fp_a['layer']} ({overlap_mm2}mm\u00b2 overlap area). Threshold: \u22651.0mm\u00b2 = error, else warning; RF-module overlaps demote to info (courtyard encodes RF keepout).",
+                    "description": f"Components {fp_a['reference']} and {fp_b['reference']} have overlapping courtyards on {layer} ({overlap_mm2}mm\u00b2 overlap area). Threshold: \u22651.0mm\u00b2 = error, else warning; RF-module overlaps demote to info (courtyard encodes RF keepout).",
                     "components": [fp_a["reference"], fp_b["reference"]],
                     "nets": [],
                     "pins": [],
@@ -280,45 +430,28 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
 
     overlaps.sort(key=lambda o: o["overlap_mm2"], reverse=True)
 
-    # Edge clearance — distance from component center to nearest board edge
+    # Edge clearance — distance from the courtyard to the nearest board edge
     edge_close: list[dict] = []
     bbox = outline.get("bounding_box")
+    edges = outline.get("edges") or []
+    # an outline that does not close is measured as its bounding box, as KiCad does
+    loops = outline_loops(edges)
+    edge_boxes = _edge_boxes(edges) if loops else []
     if bbox:
         bx_min, by_min = bbox["min_x"], bbox["min_y"]
         bx_max, by_max = bbox["max_x"], bbox["max_y"]
         for fp in footprints:
             if not fp.get("reference"):
                 continue
-            cx, cy = fp["x"], fp["y"]
-            # Distance to nearest edge (simplified — board outline as rectangle)
-            d_left = cx - bx_min
-            d_right = bx_max - cx
-            d_top = cy - by_min
-            d_bottom = by_max - cy
-            min_edge = min(d_left, d_right, d_top, d_bottom)
-            fp_min_x = fp_max_x = cx
-            fp_min_y = fp_max_y = cy
-
-            # Use courtyard if available for tighter estimate
-            if fp.get("courtyard"):
-                cy_box = fp["courtyard"]
-                fp_min_x, fp_max_x = cy_box["min_x"], cy_box["max_x"]
-                fp_min_y, fp_max_y = cy_box["min_y"], cy_box["max_y"]
-                min_edge = min(
-                    cy_box["min_x"] - bx_min,
-                    bx_max - cy_box["max_x"],
-                    cy_box["min_y"] - by_min,
-                    by_max - cy_box["max_y"],
-                )
+            if loops:
+                min_edge, is_off_board = _outline_clearance(fp, loops, edges, edge_boxes)
+            else:
+                min_edge, is_off_board = _bbox_clearance(fp, bx_min, by_min, bx_max, by_max)
 
             if min_edge < 1.0:  # Flag components within 1mm of edge
                 clearance = round(min_edge, 2)
-                # KH-389: a bbox entirely outside the outline bbox isn't "near
-                # the edge" — it's off the board. Distinct classification,
-                # checked ahead of the RF/edge-mount exemptions below (those
-                # are for by-design partial overhang, not fully-off-board).
-                is_off_board = (fp_max_x < bx_min or fp_min_x > bx_max or
-                                 fp_max_y < by_min or fp_min_y > by_max)
+                # Off-board is checked ahead of the RF/edge-mount
+                # exemptions below (those are for by-design partial overhang).
                 # RF module footprints deliberately put the courtyard past the
                 # board edge to expose the antenna to free space (WROOM-1 etc.).
                 # Edge-mount footprints (SMA_Edge, USB_C vertical, MagJack,
@@ -350,7 +483,7 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                 _recommendation = (f"Move {fp['reference']} further from board edge "
                                    f"(currently {clearance}mm, recommend >= 1.0mm)")
                 if is_off_board:
-                    # KH-389: fully outside the outline — distinct from an
+                    # Fully outside the outline — distinct from an
                     # overhang, never rendered as a negative distance.
                     _summary = (f"{fp['reference']} placed off-board "
                                 f"({abs(clearance):.1f} mm outside outline)")
@@ -362,7 +495,7 @@ def analyze_placement(footprints: list[dict], outline: dict) -> dict:
                                        f"footprint currently lies completely outside "
                                        f"the outline.")
                 elif clearance < 0:
-                    # KH-344/KH-389: negative clearance means the courtyard
+                    # Negative clearance means the courtyard
                     # overhangs the outline — "move further from edge" is
                     # nonsense there. Applies regardless of the RF/edge-mount
                     # exemption (those only demote severity, not the message).
@@ -621,23 +754,86 @@ def analyze_tombstoning_risk(footprints: list[dict], tracks: dict,
     return at_risk
 
 
-def _compute_switching_loop_areas(footprints: list, schematic_data: dict) -> list:
-    """Compute hot loop triangle areas for switching regulators.
+def _nearest_pad(pads: list, to: tuple):
+    return min(pads, key=lambda p: (p["abs_x"] - to[0]) ** 2 + (p["abs_y"] - to[1]) ** 2)
 
-    Uses regulator refs from schematic + footprint positions from PCB.
-    Returns list of {regulator_ref, regulator_value, inductor_ref, cap_ref,
-    area_mm2, vertices_mm}.
+
+def _pad_loop(reg_fp: dict, ind_fp: dict, cap_fp: dict, ind_sw_pins: set):
+    """The hot-loop pads in loop order, or None when they cannot be resolved.
+
+    Input-cap supply pad -> regulator supply pad, regulator SW pad -> inductor
+    SW pad, regulator ground pad -> input-cap ground pad. Pads are matched by
+    net: the cap's ground-named net and its other net, both also on the
+    regulator; the SW net is shared by the regulator and the inductor and is
+    neither of those (when the inductor's other side also reaches the
+    regulator, ``ind_sw_pins``, the inductor pins on the schematic SW net,
+    decide). The cap's first pad on each net is used; where the regulator or
+    the inductor has several pads on a net, the one nearest a loop neighbour
+    is used (regulator supply nearest the cap supply pad, SW nearest the
+    regulator supply pad, inductor SW nearest the regulator SW pad,
+    regulator ground nearest the cap ground pad).
+    """
+    def placed(fp):
+        return [p for p in fp.get("pads") or []
+                if p.get("net_name") and "abs_x" in p and "abs_y" in p]
+
+    reg_pads, ind_pads, cap_pads = placed(reg_fp), placed(ind_fp), placed(cap_fp)
+    cap_nets = {p["net_name"] for p in cap_pads}
+    gnd = [n for n in cap_nets if is_ground_name(n)]
+    vin = [n for n in cap_nets if not is_ground_name(n)]
+    if len(gnd) != 1 or len(vin) != 1:
+        return None
+    gnd, vin = gnd[0], vin[0]
+    reg_nets = {p["net_name"] for p in reg_pads}
+    if gnd not in reg_nets or vin not in reg_nets:
+        return None
+    sw = sorted(({p["net_name"] for p in ind_pads} & reg_nets) - {gnd, vin})
+    if len(sw) > 1 and ind_sw_pins:
+        sw = [n for n in sw if any(p["net_name"] == n and p.get("number") in ind_sw_pins
+                                   for p in ind_pads)]
+    if len(sw) != 1:
+        return None
+    sw = sw[0]
+
+    def on(pads, net):
+        return [p for p in pads if p["net_name"] == net]
+
+    cap_vin = on(cap_pads, vin)[0]
+    reg_vin = _nearest_pad(on(reg_pads, vin), (cap_vin["abs_x"], cap_vin["abs_y"]))
+    reg_sw = _nearest_pad(on(reg_pads, sw), (reg_vin["abs_x"], reg_vin["abs_y"]))
+    ind_sw = _nearest_pad(on(ind_pads, sw), (reg_sw["abs_x"], reg_sw["abs_y"]))
+    cap_gnd = on(cap_pads, gnd)[0]
+    reg_gnd = _nearest_pad(on(reg_pads, gnd), (cap_gnd["abs_x"], cap_gnd["abs_y"]))
+    return [(cap_fp, cap_vin), (reg_fp, reg_vin), (reg_fp, reg_sw),
+            (ind_fp, ind_sw), (reg_fp, reg_gnd), (cap_fp, cap_gnd)]
+
+
+def _compute_switching_loop_areas(footprints: list, schematic_data: dict) -> list:
+    """Hot-loop areas for switching regulators, from pad positions.
+
+    The loop runs input-cap supply pad -> regulator supply pad, regulator SW
+    pad -> inductor SW pad, regulator ground pad -> input-cap ground pad
+    (method "pad"), through the input cap whose pads are nearest the
+    regulator's supply and ground pads. The polygon can cross itself (see
+    kicad_core.hotloop).
+    Returns list of {regulator_ref, regulator_value,
+    inductor_ref, cap_ref, method, area_mm2, loop_pads, vertices_mm};
+    area_mm2 is None with estimate "pads_unresolved" when the pads cannot be
+    matched by net, or "degenerate" when the area is under 1 mm² across a
+    reach of 2 mm or more (the pads lie in a line, or the loop crosses itself
+    and its lobes cancel).
     """
     regulators = [f for f in schematic_data.get('findings', [])
                   if f.get('detector') == 'detect_power_regulators']
     if not regulators:
         return []
 
-    fp_pos = {}
+    sch_nets = schematic_data.get('nets') or {}
+    fp_by_ref = {}
     for fp in footprints:
         ref = fp.get('reference', '')
         if ref:
-            fp_pos[ref] = (fp.get('x') or 0, fp.get('y') or 0)
+            fp_by_ref.setdefault(ref, fp)
 
     results = []
     for reg in regulators:
@@ -653,34 +849,47 @@ def _compute_switching_loop_areas(footprints: list, schematic_data: dict) -> lis
         if not inductor_ref or not input_caps:
             continue
 
-        ic_pos = fp_pos.get(ref)
-        ind_pos = fp_pos.get(inductor_ref)
-        cap_ref = input_caps[0].get('ref', '') if isinstance(input_caps[0], dict) else str(input_caps[0])
-        cap_pos = fp_pos.get(cap_ref)
-
-        if not ic_pos or not ind_pos or not cap_pos:
+        reg_fp, ind_fp = fp_by_ref.get(ref), fp_by_ref.get(inductor_ref)
+        cap_refs = [c.get('ref', '') if isinstance(c, dict) else str(c) for c in input_caps]
+        cap_fps = [fp_by_ref[c] for c in cap_refs if c in fp_by_ref]
+        if not reg_fp or not ind_fp or not cap_fps:
             continue
-        if ic_pos == (0, 0) or ind_pos == (0, 0) or cap_pos == (0, 0):
+        if any((fp.get('x') or 0, fp.get('y') or 0) == (0, 0) for fp in (reg_fp, ind_fp, cap_fps[0])):
             continue
 
-        # Shoelace formula for triangle area
-        vertices = [cap_pos, ic_pos, ind_pos]
-        area = 0.0
-        n = len(vertices)
-        for i in range(n):
-            j = (i + 1) % n
-            area += vertices[i][0] * vertices[j][1]
-            area -= vertices[j][0] * vertices[i][1]
-        area_mm2 = abs(area) / 2.0
+        sw_pins = {p.get('pin_number') for p in sch_nets.get(reg.get('sw_net') or '', {}).get('pins', [])
+                   if p.get('component') == inductor_ref}
+        # The input cap nearest the regulator's supply and ground pads closes the loop.
+        best = None
+        for cap_fp in cap_fps:
+            pads = _pad_loop(reg_fp, ind_fp, cap_fp, sw_pins)
+            if pads is None:
+                continue
+            vertices = [(p["abs_x"], p["abs_y"]) for _, p in pads]
+            reach = math.dist(vertices[0], vertices[1]) + math.dist(vertices[4], vertices[5])
+            if best is None or reach < best[0]:
+                best = (reach, cap_fp, pads, vertices)
 
-        results.append({
+        loop = {
             "regulator_ref": ref,
             "regulator_value": reg.get('value', ''),
             "inductor_ref": inductor_ref,
-            "cap_ref": cap_ref,
-            "area_mm2": round(area_mm2, 1),
-            "vertices_mm": [list(v) for v in vertices],
-        })
+            "cap_ref": best[1]['reference'] if best else cap_fps[0]['reference'],
+            "method": "pad",
+        }
+        if best is None:
+            loop["area_mm2"] = None
+            loop["estimate"] = "pads_unresolved"
+            results.append(loop)
+            continue
+        _, _, pads, vertices = best
+        area_mm2 = polygon_loop_area(vertices)
+        loop["area_mm2"] = round(area_mm2, 1) if area_mm2 is not None else None
+        loop["loop_pads"] = [f"{fp['reference']}.{p.get('number', '')}" for fp, p in pads]
+        loop["vertices_mm"] = [list(v) for v in vertices]
+        if area_mm2 is None:
+            loop["estimate"] = "degenerate"
+        results.append(loop)
 
     return results
 
@@ -728,6 +937,21 @@ def _fiducial_severity_from_pitch(min_pad_dim: float | None) -> tuple[str, str]:
     return "info", f" (finest pad dim {min_pad_dim:.2f}mm — coarse pitch only)"
 
 
+def _has_pad_property(fp: dict, prop: str) -> bool:
+    return any(p.get("_property") == prop for p in fp.get("pads", []))
+
+
+def _is_tp_reference(fp: dict) -> bool:
+    """A TP reference that is not a capacitive touch pad."""
+    ref = fp.get("reference", "")
+    return ref.upper().startswith("TP") and not is_touch_pad(
+        ref, fp.get("value"), fp.get("library", ""))
+
+
+def _is_test_point(fp: dict) -> bool:
+    return _is_tp_reference(fp) or _has_pad_property(fp, "pad_prop_testpoint")
+
+
 def analyze_fiducials(footprints: list[dict]) -> dict:
     """FD-001: Check for assembly fiducial markers."""
     fiducials_by_side: dict[str, list[str]] = {"F.Cu": [], "B.Cu": []}
@@ -742,7 +966,9 @@ def analyze_fiducials(footprints: list[dict]) -> dict:
         layer = fp.get("layer", "F.Cu")
         side = layer if layer in fiducials_by_side else "F.Cu"
 
-        if any(k in lib for k in ("fiducial", "fid_", "fiducial_")):
+        # Local fiducials (pad_prop_fiducial_loc) serve one part, not board alignment
+        if (any(k in lib for k in ("fiducial", "fid_", "fiducial_"))
+                or _has_pad_property(fp, "pad_prop_fiducial_glob")):
             fiducials_by_side[side].append(ref)
 
         # Count SMD components per side
@@ -796,10 +1022,13 @@ def analyze_test_point_coverage(footprints: list[dict], net_names: dict) -> dict
     """TE-001: Check test point coverage across nets."""
     tp_nets: set[str] = set()
     for fp in footprints:
-        ref = fp.get("reference", "")
-        if not ref.upper().startswith("TP"):
+        if not _is_test_point(fp):
             continue
+        # A TP footprint tests every pad; elsewhere only the pads marked as test points
+        tp_ref = _is_tp_reference(fp)
         for pad in fp.get("pads", []):
+            if not tp_ref and pad.get("_property") != "pad_prop_testpoint":
+                continue
             net = pad.get("net_name", "")
             if net:
                 tp_nets.add(net)
@@ -829,7 +1058,7 @@ def analyze_test_point_coverage(footprints: list[dict], net_names: dict) -> dict
         "total_signal_nets": total,
         "nets_with_test_points": covered,
         "coverage_pct": round(pct, 1),
-        "test_point_count": len([fp for fp in footprints if fp.get("reference", "").upper().startswith("TP")]),
+        "test_point_count": len([fp for fp in footprints if _is_test_point(fp)]),
         "detector": "analyze_test_point_coverage",
         "rule_id": "TE-001",
         "category": "testability",
@@ -866,7 +1095,7 @@ def analyze_orientation_consistency(footprints: list[dict]) -> list[dict]:
         layer = fp.get("layer", "F.Cu")
         angle = fp.get("angle", 0) or 0
         # Normalize angle to 0-179 range (0 and 180 are same orientation)
-        norm_angle = round(angle % 180)
+        norm_angle = round(angle) % 180
         passives_by_side.setdefault(layer, []).append((ref, norm_angle))
 
     for side, components in passives_by_side.items():
@@ -974,9 +1203,23 @@ def analyze_silkscreen_pad_overlaps(footprints: list[dict], board_texts: list[di
     return findings
 
 
+def _prohibits(restrictions: dict, key: str) -> bool:
+    # KiCad rule areas carry "allowed" or "not_allowed" per item type.
+    return restrictions.get(key) == "not_allowed"
+
+
+def _area_copper_layers(layers: list[str]) -> bool:
+    """True when a rule area covers a copper layer (*.Cu, F&B.Cu or a named copper layer)."""
+    return any(layer.endswith(".Cu") for layer in layers)
+
+
 def analyze_keepout_violations(footprints: list[dict], vias: dict,
                                 keepout_zones: list[dict]) -> list[dict]:
-    """KO-001: Check for components or vias inside keepout zones (bbox check)."""
+    """KO-001: Check for components or through vias inside keepout zones (bbox check).
+
+    A rule area's "vias" restriction prohibits through vias only (KiCad's DRC_DISALLOW_VIAS);
+    a through via spans every copper layer, so it meets any area on a copper layer.
+    """
     findings: list[dict] = []
     if not keepout_zones:
         return findings
@@ -991,15 +1234,9 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
         restrictions = kz.get("restrictions", {})
         kz_name = kz.get("name", "unnamed")
         kz_layers = kz.get("layers", [])
-        # KiCad rule-area "allowed net" — items on this net are ALLOWED
-        # inside the keepout (e.g., an antenna keepout that excludes copper
-        # except the antenna's own net). 0 / "" / None means "no exemption,
-        # restrict all items". rc.2 4.1 expansion (SparkFun review).
-        kz_allowed_net_id = kz.get("net") or 0
-        kz_allowed_net_name = kz.get("net_name") or ""
 
         # Check footprints
-        if restrictions.get("footprints", False):
+        if _prohibits(restrictions, "footprints"):
             for fp in footprints:
                 ref = fp.get("reference", "")
                 fx = fp.get("x", 0)
@@ -1008,25 +1245,10 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                 if not any(l in kz_layers or l == "*" or "*.Cu" in kz_layers for l in [fp_layer]):
                     continue
                 if kx1 <= fx <= kx2 and ky1 <= fy <= ky2:
-                    # Net exclusion: if any pad of this footprint is on the
-                    # keepout's allowed net, the footprint is permitted here.
-                    if kz_allowed_net_name:
-                        fp_nets = fp.get("connected_nets", []) or list(
-                            (fp.get("pad_nets") or {}).values())
-                        # pad_nets values are dicts with 'net' key; connected_nets is strings
-                        fp_net_names = set()
-                        for n in fp_nets:
-                            if isinstance(n, str):
-                                fp_net_names.add(n)
-                            elif isinstance(n, dict) and n.get("net"):
-                                fp_net_names.add(n["net"])
-                        if kz_allowed_net_name in fp_net_names:
-                            continue
                     findings.append({
                         "component": ref,
                         "keepout_name": kz_name,
                         "keepout_layers": kz_layers,
-                        "keepout_allowed_net": kz_allowed_net_name,
                         "detector": "analyze_keepout_violations",
                         "rule_id": "KO-001",
                         "category": "placement",
@@ -1043,25 +1265,19 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                     })
 
         # Check vias
-        if restrictions.get("vias", False):
+        if _prohibits(restrictions, "vias") and _area_copper_layers(kz_layers):
             for via in via_list:
+                if via.get("type", "through") != "through":
+                    continue
                 vx = via.get("x")
                 vy = via.get("y")
                 if vx is None or vy is None:
                     continue
                 if kx1 <= vx <= kx2 and ky1 <= vy <= ky2:
-                    # Net exclusion: a via on the keepout's allowed net is
-                    # permitted (e.g., an antenna trace's tuning via inside
-                    # the antenna keepout).
-                    if kz_allowed_net_id:
-                        via_net_id = via.get("net")
-                        if via_net_id == kz_allowed_net_id:
-                            continue
                     findings.append({
                         "via_x": round(vx, 2),
                         "via_y": round(vy, 2),
                         "keepout_name": kz_name,
-                        "keepout_allowed_net": kz_allowed_net_name,
                         "detector": "analyze_keepout_violations",
                         "rule_id": "KO-001",
                         "category": "placement",

@@ -156,6 +156,7 @@ def build_preview(style_name: str, palette_name: str) -> tuple[Any, dict[str, An
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Render a deterministic accessible-style preview with line, bar, "
@@ -179,6 +180,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     try:
         args = parser.parse_args(argv)

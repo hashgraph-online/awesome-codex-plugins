@@ -1,4 +1,4 @@
-"""Put the core skills' script directories on sys.path (v3 arc, ARCHITECTURE.md).
+"""Put the core skills' script directories on sys.path (see ARCHITECTURE.md).
 
 Optional skills may import the core (kicad + datasheets) and nothing else.
 Import this module first in any script that needs core code:

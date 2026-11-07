@@ -37,10 +37,12 @@ TEMPLATE = {
 
 
 def total(d: dict | int) -> int:
+    """Handle total."""
     return d if isinstance(d, int) else sum(total(v) for v in d.values())
 
 
 def compute(c: dict) -> dict:
+    """Compute."""
     ident = c["identification"]
     db_n, reg_n = total(ident.get("databases", {})), total(ident.get("registers", {}))
     other_n = total(ident.get("other_sources", {}))
@@ -58,6 +60,7 @@ def compute(c: dict) -> dict:
 
 
 def check(c: dict, n: dict) -> list[str]:
+    """Check."""
     problems = []
     for k in ("screened", "sought", "assessed", "other_assessed"):
         if n[k] < 0:
@@ -70,10 +73,12 @@ def check(c: dict, n: dict) -> list[str]:
 
 
 def breakdown(d: dict) -> str:
+    """Handle breakdown."""
     return "".join(f"<br/>{k}: n = {v}" for k, v in d.items() if v)
 
 
 def mermaid(c: dict, n: dict) -> str:
+    """Handle mermaid."""
     ident = c["identification"]
     L = ["flowchart TD", "  classDef box fill:#fff,stroke:#333,stroke-width:1px,color:#000;"]
     L.append(f'  A["Records identified from:<br/>Databases (n = {n["db"]}){breakdown(ident.get("databases", {}))}'
@@ -100,7 +105,9 @@ def mermaid(c: dict, n: dict) -> str:
 
 
 def dot(c: dict, n: dict) -> str:
+    """Handle dot."""
     def lab(s: str) -> str:
+        """Handle lab."""
         return s.replace("<br/>", "\\n").replace('"', '\\"')
     m = mermaid(c, n)
     nodes = [ln.strip() for ln in m.splitlines() if '["' in ln]
@@ -116,6 +123,7 @@ def dot(c: dict, n: dict) -> str:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("counts", nargs="?")
     ap.add_argument("--format", choices=["mermaid", "dot"], default="mermaid")

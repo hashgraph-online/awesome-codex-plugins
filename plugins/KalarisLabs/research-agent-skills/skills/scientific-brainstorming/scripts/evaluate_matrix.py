@@ -125,6 +125,7 @@ def _parse_bounded_score(
     label: str,
     criterion: Criterion,
 ) -> float:
+    """Parse bounded score."""
     if raw is None or not raw.strip():
         raise CliError(f"{label} must contain a score")
     score = finite_number(raw, label)
@@ -260,6 +261,7 @@ def _normalized_weights(
     *,
     override: Mapping[str, float] | None = None,
 ) -> dict[str, float]:
+    """Handle normalized weights."""
     raw = {
         criterion.name: (
             override[criterion.name] if override is not None else criterion.weight
@@ -277,6 +279,7 @@ def _score(
     criteria: Sequence[Criterion],
     weights: Mapping[str, float],
 ) -> float:
+    """Handle score."""
     return 100.0 * sum(
         weights[criterion.name] * criterion.normalize(row.ratings[criterion.name].score)
         for criterion in criteria

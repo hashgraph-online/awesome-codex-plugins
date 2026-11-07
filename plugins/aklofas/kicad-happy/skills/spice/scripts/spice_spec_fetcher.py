@@ -12,15 +12,18 @@ table.
 """
 
 import json
+import math
 import os
 import re
-import time
 import urllib.request
 import urllib.error
 import urllib.parse
 
 import _core_path  # noqa: F401
+from kicad_core import token_cache
 from kicad_core.diagnostics import record
+from kicad_core.executables import find_executable
+from distributor_core.verify import same_part
 
 
 # ---------------------------------------------------------------------------
@@ -191,6 +194,11 @@ def _extract_specs_from_params(params, param_map):
 # LCSC / jlcsearch (no auth required)
 # ---------------------------------------------------------------------------
 
+def _is_requested(mpn, hit):
+    """True when a distributor's part number is the requested one (an exact match)."""
+    return isinstance(hit, str) and same_part(mpn, hit, ordering_suffixes=False)
+
+
 def fetch_specs_lcsc(mpn):
     """Query LCSC (jlcsearch) for parametric specs. No auth needed.
 
@@ -206,8 +214,7 @@ def fetch_specs_lcsc(mpn):
         for comp in data.get("components", []):
             extra = comp.get("extra", {})
             comp_mpn = extra.get("mpn", "")
-            # Match MPN (case-insensitive prefix)
-            if not comp_mpn or not comp_mpn.upper().startswith(mpn.upper()[:6]):
+            if not _is_requested(mpn, comp_mpn):
                 continue
 
             attrs = extra.get("attributes", {})
@@ -248,15 +255,9 @@ def _get_digikey_token():
     if not client_id or not client_secret:
         return None
 
-    # Check token cache
-    cache_path = "/tmp/digikey_token_cache.json"
-    try:
-        with open(cache_path) as f:
-            cache = json.load(f)
-        if cache.get("expires_at", 0) > time.time():
-            return cache["access_token"]
-    except (OSError, json.JSONDecodeError, KeyError):
-        pass
+    cached = token_cache.load_token("digikey_token", client_id)
+    if cached:
+        return cached
 
     try:
         data = urllib.parse.urlencode({
@@ -274,11 +275,7 @@ def _get_digikey_token():
 
         access_token = token_data["access_token"]
         # Cache with 9-minute TTL (token valid for 10 min)
-        with open(cache_path, "w") as f:
-            json.dump({
-                "access_token": access_token,
-                "expires_at": time.time() + 540,
-            }, f)
+        token_cache.store_token("digikey_token", client_id, access_token, 540)
         return access_token
     except (urllib.error.URLError, OSError, json.JSONDecodeError, KeyError):
         return None
@@ -312,7 +309,7 @@ def fetch_specs_digikey(mpn):
 
         for product in data.get("Products", []):
             prod_mpn = product.get("ManufacturerProductNumber", "")
-            if not prod_mpn.upper().startswith(mpn.upper()[:6]):
+            if not _is_requested(mpn, prod_mpn):
                 continue
 
             parameters = product.get("Parameters", [])
@@ -366,6 +363,8 @@ def fetch_specs_element14(mpn):
 
         products = data.get("manufacturerPartNumberSearchReturn", {}).get("products", [])
         for product in products:
+            if not _is_requested(mpn, product.get("translatedManufacturerPartNumber")):
+                continue
             attrs = product.get("attributes", [])
             if not attrs:
                 continue
@@ -411,6 +410,8 @@ def fetch_specs_mouser(mpn):
             data = json.loads(resp.read())
 
         for part in data.get("SearchResults", {}).get("Parts", []):
+            if not _is_requested(mpn, part.get("ManufacturerPartNumber")):
+                continue
             attrs = part.get("ProductAttributes", [])
             if not attrs:
                 continue
@@ -452,21 +453,22 @@ def fetch_specs_from_datasheet(mpn, project_dir):
         return None
 
     from pathlib import Path
+    from datasheet_types.cache_reader import read_json_object
+    from distributor_core.manifest import manifest_file_path
     ds_dir = Path(project_dir) / "datasheets"
+    if ds_dir.is_symlink():
+        return None
     index_path = ds_dir / "manifest.json"
     if not index_path.exists():
         index_path = ds_dir / "index.json"
-    if not index_path.exists():
-        return None
-
-    try:
-        with open(index_path) as f:
-            index = json.load(f)
-    except (json.JSONDecodeError, OSError):
+    index = read_json_object(index_path)
+    if index is None:
         return None
 
     # Look up MPN in index
-    parts = index.get("parts", {})
+    parts = index.get("parts")
+    if not isinstance(parts, dict):
+        return None
     entry = parts.get(mpn)
     if not entry:
         # Try case-insensitive match
@@ -474,24 +476,24 @@ def fetch_specs_from_datasheet(mpn, project_dir):
             if key.upper() == mpn.upper():
                 entry = val
                 break
-    if not entry or entry.get("status") != "ok":
+    if not isinstance(entry, dict) or entry.get("status") != "ok":
         return None
 
-    pdf_path = ds_dir / entry.get("file", "")
-    if not pdf_path.exists():
+    pdf_path = manifest_file_path(ds_dir, entry.get("file"))
+    if pdf_path is None or not pdf_path.is_file():
         return None
 
     # Try to extract text from PDF using pdftotext (optional dependency)
-    import shutil
-    if not shutil.which("pdftotext"):
+    tool = find_executable("pdftotext")
+    if not tool:
         return None  # Can't extract without pdftotext
 
     import subprocess
     try:
         # Extract first 5 pages (electrical specs are usually in pages 2-5)
         result = subprocess.run(
-            ["pdftotext", "-l", "5", str(pdf_path), "-"],
-            capture_output=True, text=True, timeout=10,
+            [tool, "-l", "5", str(pdf_path), "-"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         if result.returncode != 0:
             return None
@@ -548,48 +550,77 @@ def fetch_specs_from_datasheet(mpn, project_dir):
 # Unified fetch interface
 # ---------------------------------------------------------------------------
 
+_NUMERIC_SPECS = frozenset((
+    "gbw_hz", "slew_vus", "vos_mv", "aol_db", "rin_ohms", "supply_min", "supply_max",
+    "swing_v", "dropout_mv", "iq_ua", "iout_max_ma", "vref", "zout_ohms", "prop_delay_ns",
+))
+_BOOLEAN_SPECS = frozenset(("rro", "rri", "fixed"))
+_OUTPUT_TYPES = frozenset(("push_pull", "open_collector", "open_drain"))
+
+
+def _read_spice_specs(raw):
+    """Keep only the spec values the model generators can use safely.
+
+    Numbers must be finite JSON numbers, flags real JSON booleans, and the
+    comparator output type one of its known names; anything else is dropped.
+    """
+    specs = {}
+    for key, val in (raw.items() if isinstance(raw, dict) else ()):
+        if key in _NUMERIC_SPECS:
+            if isinstance(val, (int, float)) and not isinstance(val, bool) \
+                    and math.isfinite(val):
+                specs[key] = val
+        elif key in _BOOLEAN_SPECS:
+            if isinstance(val, bool):
+                specs[key] = val
+        elif key == "output_type" and val in _OUTPUT_TYPES:
+            specs[key] = val
+    return specs
+
+
 def fetch_specs_from_extraction(mpn, project_dir):
     """Extract SPICE-relevant specs from a cached datasheet extraction."""
     if not project_dir:
         return None
     from pathlib import Path
-    extract_dir = Path(project_dir) / "datasheets" / "extracted"
+    from datasheet_types.cache_reader import read_json_object, safe_extract_dir
+    from distributor_core.manifest import manifest_file_path
+    extract_dir = safe_extract_dir(Path(project_dir) / "datasheets" / "extracted")
+    if extract_dir is None:
+        return None
     index_path = extract_dir / "manifest.json"
     if not index_path.exists():
         index_path = extract_dir / "index.json"
     if not index_path.exists():
         return None
-    try:
-        with open(index_path) as f:
-            index = json.load(f)
-    except (json.JSONDecodeError, OSError):
+    index = read_json_object(index_path)
+    if index is None:
         return None
     import re as _re
     key = _re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip())
-    entry = index.get("extractions", {}).get(key)
+    exts = index.get("extractions")
+    if not isinstance(exts, dict):
+        return None
+    entry = exts.get(key)
     if not entry:
-        for k, v in index.get("extractions", {}).items():
+        for k, v in exts.items():
             if k.upper() == key.upper():
                 entry = v
                 break
     if not entry:
         return None
-    json_file = extract_dir / entry.get("file", "")
-    if not json_file.exists():
+    json_file = manifest_file_path(extract_dir, entry.get("file") if isinstance(entry, dict) else None)
+    if json_file is None or not json_file.exists():
         return None
-    try:
-        with open(json_file) as f:
-            extraction = json.load(f)
-    except (json.JSONDecodeError, OSError):
+    extraction = read_json_object(json_file)
+    if extraction is None:
         return None
     # Trust gate: skip low-quality extractions
     meta = extraction.get("meta", {})
-    if meta.get("extraction_score", 0) < 6.0:
+    score = meta.get("extraction_score", 0) if isinstance(meta, dict) else None
+    if not isinstance(score, (int, float)) or isinstance(score, bool) or score < 6.0:
         return None
-    spice = extraction.get("spice_specs", {})
-    if not spice:
-        return None
-    specs = {k: v for k, v in spice.items() if v is not None}
+    specs = _read_spice_specs(extraction.get("spice_specs"))
     if not specs:
         return None
     if specs.get("gbw_hz") or specs.get("vref") or specs.get("dropout_mv"):

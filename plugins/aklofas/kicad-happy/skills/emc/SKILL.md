@@ -30,13 +30,13 @@ Automated EMC risk analysis for KiCad PCB designs. Identifies the most common ca
 | `kicad` (thermal) | Thermal hotspot analysis — MLCC derating and ferrite/inductor overheating findings can amplify EMC decoupling and filter issues (an over-stressed MLCC degrades; a hot ferrite drifts impedance). Worth cross-checking when EMC flags DC-001/DC-002 or EF-001/EF-002. |
 | `spice` | SPICE simulation — provides simulator backend for SPICE-enhanced PDN/filter checks |
 
-**Handoff guidance:** Run the `kicad` skill's `analyze_schematic.py` and `analyze_pcb.py` first — this skill consumes their JSON output. Use `--full` on the PCB analyzer for best results (enables per-track coordinates for ground plane crossing, edge proximity, and return path checks). During a design review, run EMC analysis after the schematic/PCB analyzers, SPICE simulation, and thermal analysis, then incorporate EMC findings into the report.
+**Handoff guidance:** Run the `kicad` skill's `analyze_schematic.py` and `analyze_pcb.py --schematic` first — this skill consumes their JSON output. Use `--full` on the PCB analyzer for best results (enables per-track coordinates for ground plane crossing, edge proximity, and return path checks). During a design review, run EMC analysis after the schematic/PCB analyzers, SPICE simulation, and thermal analysis, then incorporate EMC findings into the report.
 
 ## Requirements
 
 - **Python 3.10+** — stdlib only, no pip dependencies
 - **Schematic analyzer JSON** — from `analyze_schematic.py --output`
-- **PCB analyzer JSON** — from `analyze_pcb.py --full --output` (recommended with `--full`)
+- **PCB analyzer JSON** — from `analyze_pcb.py --full --schematic <sch> --output` (recommended with `--full`)
 - **SPICE simulator** *(optional)* — ngspice, LTspice, or Xyce for SPICE-enhanced PDN/filter checks. Auto-detected. Without one, analytical models run unchanged.
 
 ## Workflow
@@ -45,7 +45,7 @@ Automated EMC risk analysis for KiCad PCB designs. Identifies the most common ca
 
 ```bash
 python3 <kicad-skill-path>/scripts/analyze_schematic.py design.kicad_sch --analysis-dir analysis/
-python3 <kicad-skill-path>/scripts/analyze_pcb.py design.kicad_pcb --full --analysis-dir analysis/
+python3 <kicad-skill-path>/scripts/analyze_pcb.py design.kicad_pcb --full --schematic analysis/<run_id>/schematic.json --analysis-dir analysis/
 ```
 
 ### Step 2: Run EMC analysis
@@ -84,6 +84,22 @@ python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --severity 
 python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --text
 ```
 
+### Optional: Screen supplied harmonic lines against supplied limits
+
+For spectral lines that are already expressed as RMS dBµV, dBµV/m, or dBµA, use the standalone screen. Levels must be RMS: subtract 3.01 dB from peak-amplitude spectra first. This skill's `harmonic_spectrum()` gives switch-node source amplitudes, not emission levels, so it is not a valid input without a coupling/path model.
+
+**Limit values must come from the user.** Build a limit profile only from limit values the user provides, together with their source (for example a standard's edition and table or clause, where applicable), and record that source in `source.citation`. Never write limit tables from memory or fill in missing bands, detectors, or units; if the user has not supplied limits, ask for them instead of running the screen.
+
+```bash
+python3 <skill-path>/scripts/analyze_harmonic_limits.py \
+  --spectrum harmonic-lines.json \
+  --limits limit-profile.json \
+  --limit-column peak \
+  --output harmonic-limit-screen.json
+```
+
+This command is separate from `analyze_emc.py`. It does not calculate a spectrum, add an EMC finding, change the risk score, write `emc.json`, or determine compliance. See [Harmonic-Limit Screening](references/harmonic-limit-screen.md) for the input schemas and interpretation boundary.
+
 ### Step 3: Interpret results
 
 Read the JSON report and incorporate findings into the design review. Each finding has a severity, rule ID, description, and actionable recommendation. See "Interpreting Results" below.
@@ -94,11 +110,11 @@ Read the JSON report and incorporate findings into the design review. Each findi
 
 | Category | Rules | What it detects |
 |----------|-------|-----------------|
-| **Ground plane** | GP-001 to GP-005 | Signal crossing voids, zone fragmentation, missing ground planes, low fill ratio, multiple ground domains |
+| **Ground plane** | GP-001 to GP-005 | Signal crossing voids or plane splits, zone fragmentation, missing ground planes, low fill ratio, multiple ground domains |
 | **Decoupling** | DC-001 to DC-003 | Cap too far from IC, IC with no decoupling cap, cap too far from via |
 | **I/O filtering** | IO-001, IO-002 | Connector without filtering, insufficient ground pins |
 | **Switching EMC** | SW-001 to SW-003 | Harmonic overlap, switching node copper area, input cap loop area |
-| **Clock routing** | CK-001 to CK-003 | Clock on outer layer, long trace, clock near connector |
+| **Clock routing** | CK-001 to CK-004 | Clock on outer layer, long trace, clock near connector, no ground pour near a crystal |
 | **Via stitching** | VS-001 | Ground via spacing exceeds λ/20 at highest frequency |
 | **Stackup** | SU-001 to SU-003 | Adjacent signal layers, signal far from reference plane, thin interplane capacitance |
 | **Diff pair** | DP-001 to DP-004 | Intra-pair skew vs protocol limits, CM radiation, reference plane change, outer layer routing |
@@ -111,6 +127,7 @@ Read the JSON report and incorporate findings into the design review. Each findi
 | **Thermal-EMC** | TH-001, TH-002 | MLCC DC bias derating (SRF shift), ferrite near heat source |
 | **Shielding** | SH-001 | Connector aperture slot resonance near emission source |
 | **Emission estimates** | EE-001, EE-002 | Board cavity resonance, switching harmonic envelope |
+| **Inductor leakage** | ML-001 | Unshielded or unknown-shielding switching inductor within 15 mm of an ADC, op-amp, crystal or RF part |
 
 **Advisory outputs** (not findings):
 - **Pre-compliance test plan** — frequency band prioritization, interface risk ranking, near-field probe points
@@ -140,7 +157,7 @@ Read the JSON report and incorporate findings into the design review. Each findi
     }
   ],
   "per_net_scores": [
-    {"net": "SPI_CLK", "score": 67, "finding_count": 3, "rules": ["GP-001", "CK-001", "BE-001"]}
+    {"net": "SPI_CLK", "score": 79, "finding_count": 3, "rules": ["GP-001", "CK-001", "BE-001"]}
   ],
   "test_plan": {
     "frequency_bands": [{"band": "30-88 MHz", "risk_level": "high", "source_count": 12}],
@@ -169,7 +186,7 @@ Read the JSON report and incorporate findings into the design review. Each findi
 
 Each rule ID contributes at most 3 findings to the score (worst severity first). This prevents per-net rules like GP-001 from saturating the score on 2-layer boards. All findings are still reported — only the score is capped.
 
-`penalty = sum(worst 3 per rule × severity weight)`, `score = max(0, 100 - penalty)`. Scores below 50 indicate significant EMC risk.
+`penalty = sum(severity weight × confidence weight, worst 3 per rule)`, `score = max(0, min(100, 100 - penalty))`; weights error 12, warning 3, info 0; heuristic findings count half. 0 is worst and 100 best, and the score can be fractional. It covers every unsuppressed finding; `--severity` only filters the emitted list. Scores below 50 indicate significant EMC risk.
 
 ## Interpreting Results
 
@@ -179,7 +196,7 @@ Each rule ID contributes at most 3 findings to the score (worst severity first).
 
 **I/O filtering** — Highly relevant for cable-connected products. For board-to-board connections inside an enclosure, the risk is lower.
 
-**Diff pair findings** — Protocol-specific skew limits are well-defined. USB HS (25ps), PCIe (5ps), Ethernet (50ps). Findings exceeding these limits are real issues.
+**Diff pair findings** — Protocol-specific skew limits are well-defined. USB HS (25ps, when the part is known to be high-speed; other USB pairs get the full-speed budget), PCIe (5ps), Ethernet (50ps). Findings exceeding these limits are real issues.
 
 **PDN findings** — Anti-resonance peaks are real and cause voltage droop. SPICE-verified findings are more accurate than analytical. If a peak is flagged, add a capacitor with SRF near the peak frequency.
 

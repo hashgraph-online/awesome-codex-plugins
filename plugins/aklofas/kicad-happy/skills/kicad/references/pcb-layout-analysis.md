@@ -26,7 +26,7 @@ For the PCB file format details (S-expression structure, fields, layer definitio
 
 ## Setup and Stackup
 
-The `(setup ...)` section contains board-level configuration. The analyzer extracts layer count, thickness, copper finish, and paste ratios automatically. Use this section for **impedance calculations** which require the full stackup detail.
+The `(setup ...)` section contains board-level configuration. The analyzer reads layer count, copper finish and paste ratios from it, and the board thickness from the `(general (thickness ...))` entry (`setup.board_thickness_mm`). Use this section for **impedance calculations** which require the full stackup detail.
 
 ### Stackup Structure
 ```
@@ -151,17 +151,17 @@ For motor controllers, power supplies, and other high-current designs, check the
 
 #### Trace Width vs Current Capacity
 
-The analyzer provides `current_capacity` data with min/max track widths per net. Cross-reference against net function:
+The analyzer reports each power and ground net's narrowest and widest track in a `CC-DET` finding (`min_track_width_mm`, `max_track_width_mm`); `power_net_routing` lists the same widths. Cross-reference against net function:
 
-| Net Function | Minimum Width (1oz Cu, 10°C rise) | Notes |
+| Net Function | Minimum Width (IPC-2221 external, 1oz = 35 µm, 10°C rise) | Notes |
 |---|---|---|
 | Signal (< 100mA) | 0.15-0.2mm | Default netclass is fine |
 | Low power (100mA-1A) | 0.3-0.5mm | LED drives, logic power |
-| Medium power (1-5A) | 0.5-1.0mm | Motor phases (small motors) |
-| High power (5-20A) | 1.0-3.0mm or copper pour | Motor phases, battery, VM |
+| Medium power (1-5A) | 0.3-2.8mm (1.0mm carries about 2.4A) | Motor phases (small motors) |
+| High power (5-20A) | 2.8mm at 5A, 7.2mm at 10A, 18.7mm at 20A; usually a copper pour | Motor phases, battery, VM |
 | Very high power (>20A) | Copper pour + via stitching | Power MOSFETs, motor outputs |
 
-Internal layers carry ~50% of external layer current. These are rough estimates — use an IPC-2221 calculator for precise values.
+Widths are from the IPC-2221 formula in standards-compliance.md for an isolated trace in still air. Internal layers carry ~50% of external layer current. The TW-001 check uses its own width table (`_IPC2152_1OZ_10C` in `cross_analysis.py`) with no cited source. Up to 10A it is wider than these values (3.5mm at 5A, 9.0mm at 10A), but it stops at 9.0mm, so above about 12A its recommended width is narrower than the IPC-2221 width.
 
 #### Voltage Derating
 
@@ -388,13 +388,13 @@ def point_in_bbox(x, y, cx, cy, half_w, half_h, angle_deg=0):
 1. **Confusing pad-relative and absolute coordinates** — pad `(at ...)` inside a footprint is relative; segment/via `(start/at ...)` is absolute. Always transform pads before comparing.
 2. **Ignoring footprint rotation** — a pad at `(at 3 0)` in a footprint rotated 90° is actually at a different absolute position. The transform is not optional.
 3. **Net name vs net ID** — in KiCad ≤9, segments reference nets by numeric ID; build the ID→name map from `(net N "name")` declarations. In KiCad 10, nets are referenced by name string directly (no declarations section). The analyzer handles both formats transparently.
-4. **Zone polygon vs filled polygon** — `(polygon ...)` is the user-drawn boundary; `(filled_polygon ...)` is the actual copper after DRC clearance carving. Always use filled polygons for containment tests. The PCB analyzer extracts both: `outline_bbox`/`outline_area_mm2` for the boundary, `filled_bbox`/`filled_area_mm2`/`fill_ratio` for actual copper. The `copper_presence` section reports which components have zone copper on the opposite layer — use this instead of inferring from zone outlines. Zone fills can go stale if the board was edited after the last Fill All Zones (shortcut `B`).
+4. **Zone polygon vs filled polygon** — `(polygon ...)` is the user-drawn boundary; `(filled_polygon ...)` is the actual copper after DRC clearance carving. Always use filled polygons for containment tests. The PCB analyzer extracts both: `outline_bbox`/`outline_area_mm2` for the boundary, `filled_bbox`/`filled_area_mm2`/`fill_ratio` for actual copper. The `analyze_copper_presence` findings (CP-002) and `copper_presence_summary` report which components have zone copper on the opposite layer — use this instead of inferring from zone outlines. Zone fills can go stale if the board was edited after the last Fill All Zones (shortcut `B`).
 5. **Assuming net function from name** — net names like VPH*, VSENSE*, etc. can look like power nets but may be sense lines. Always verify by checking connected component types.
 6. **Measuring decoupling distance to IC center** — large modules (ESP32, etc.) can be 18+ mm long with power pins at one edge. Always measure to the IC's actual power pin positions.
 
 ### Copper-Sensitive Components
 
-Some components require careful copper management on both layers. Use the analyzer's `copper_presence` data to verify these — don't infer from zone outlines.
+Some components require careful copper management on both layers. Use the analyzer's `analyze_copper_presence` findings and `copper_presence_summary` to verify these — don't infer from zone outlines.
 
 **Capacitive touch pads** (TP prefix, or pad-only footprints on touch nets):
 - Need NO copper on the opposite layer — ground planes under touch pads drastically reduce sensitivity by adding parasitic capacitance. But confirming copper absence isn't enough: check that **keepout zones** (rule areas) enforce this on the opposite layer. Without a keepout zone, the copper absence is accidental and one zone refill after a routing change could break touch sensitivity. If no keepout zones exist, flag as WARNING.
@@ -412,7 +412,7 @@ Some components require careful copper management on both layers. Use the analyz
 - Controlled impedance traces need consistent ground reference
 - Ground plane voids under matching components can detune the network
 
-In all cases, the `copper_presence.no_opposite_layer_copper` list in the analyzer output identifies components without opposite-layer zone copper — these are the isolation points to verify against the design intent.
+In all cases, CP-002 findings (detector `analyze_copper_presence`) name the components without opposite-layer zone copper (resistors, capacitors, inductors and ferrites are left out), and `copper_presence_summary` lists the covered ones by net. Verify each isolation point against the design intent.
 
 ---
 
@@ -423,7 +423,7 @@ The schematic analysis methodology already prompts for datasheet cross-referenci
 ### Thermal Management
 
 - **Thermal vias**: Compare the number, size, and pattern of thermal vias under QFN/DFN/PowerPAD packages against the IC datasheet's recommended layout. Many datasheets specify exact via count, diameter, and grid pattern (e.g., TI's PowerPAD guidelines: 4×4 array of 0.3mm vias on 1.2mm pitch).
-- **Thermal via effective count methodology**: The `thermal_pad_vias` analyzer output includes an `effective_via_count` that weights each via by its plated barrel cross-section area relative to a 0.3mm reference drill: `(drill_diameter / 0.3)² per via`. Examples: 0.3mm via = 1.0 effective, 0.2mm = 0.44, 0.5mm = 2.78, 1.0mm = 11.1. The `recommended_min_vias` and `recommended_ideal_vias` thresholds are calibrated for 0.3mm reference vias and scale by pad area (pad <10mm²: min 5/ideal 9; 10-25mm²: min 9/ideal 16; >25mm²: 0.5×area/0.8×area). When interpreting the adequacy rating, note that designs intentionally using smaller vias (e.g., 0.2mm to prevent solder wicking through vias during reflow, common in module footprints like ESP32) may appear "insufficient" despite adequate thermal performance. Always cross-reference the via count and drill size against the component datasheet's specific recommendations before flagging as a concern.
+- **Thermal via effective count methodology**: TV-001 findings (detector `analyze_thermal_pad_vias`) carry an `effective_via_count` that weights each via by its plated barrel cross-section area relative to a 0.3mm reference drill: `(drill_diameter / 0.3)² per via`. Examples: 0.3mm via = 1.0 effective, 0.2mm = 0.44, 0.5mm = 2.78, 1.0mm = 11.1. The `recommended_min_vias` and `recommended_ideal_vias` thresholds are calibrated for 0.3mm reference vias and scale by pad area (pad <10mm²: min 5/ideal 9; 10-25mm²: min 9/ideal 16; >25mm²: 0.5×area/0.8×area). When interpreting the adequacy rating, note that designs intentionally using smaller vias (e.g., 0.2mm to prevent solder wicking through vias during reflow, common in module footprints like ESP32) may appear "insufficient" despite adequate thermal performance. Always cross-reference the via count and drill size against the component datasheet's specific recommendations before flagging as a concern.
 - **θJA validation**: The datasheet's θJA is measured on a specific test board (usually JEDEC 2s2p for 4-layer). If the actual design has fewer layers or smaller copper area, θJA will be worse — note this when assessing thermal adequacy.
 - **Power dissipation check**: Calculate actual power dissipation from the circuit operating conditions (Vin, Vout, Iload for regulators; RDS(on) × I² for MOSFETs) and verify the thermal design can handle it. Flag when junction temperature exceeds the datasheet's maximum rating with margin.
 
@@ -442,6 +442,6 @@ The schematic analysis methodology already prompts for datasheet cross-referenci
 ### Component-Specific Layout Rules
 
 - **Crystal oscillator**: Datasheet specifies load capacitance; the PCB layout affects stray capacitance (typically 1-5pF). Route crystal traces short and direct, with ground guard if specified. Some crystals require no traces routed under the crystal body.
-- **Switching regulator power loop**: The hot loop (input cap → high-side switch → inductor → output cap → input cap return) must be minimized. Measure the loop area from the PCB layout and flag if the input capacitor is placed far from the IC or the inductor return path is indirect.
+- **Switching regulator power loop**: The hot loop (for a buck: input cap → high-side switch → low-side switch or catch diode → input cap return) must be minimized. With `--schematic`, `analyze_pcb.py` reports `switching_loop_areas`: a pad-to-pad polygon (input-cap supply pad → regulator supply pad, regulator SW pad → inductor SW pad, regulator ground pad → input-cap ground pad) through the input cap nearest the regulator. The area is a placement proxy; the polygon can cross itself. Flag an input capacitor placed far from the IC or an indirect ground return.
 - **USB impedance**: USB 2.0 requires 90Ω differential impedance; USB 3.x requires 85Ω. Verify trace width and spacing against the board stackup using the impedance parameters from the setup section. Check that D+/D- traces are length-matched per the USB spec tolerance.
 - **Exposed pad connection**: ICs with exposed thermal/ground pads (QFN, DFN, QFP-EP) require the pad to be soldered to the PCB. Verify the footprint has the pad connected to the correct net (usually GND) and has adequate thermal vias. A floating or poorly-connected exposed pad is both a thermal and electrical failure.

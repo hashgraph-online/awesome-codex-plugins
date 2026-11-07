@@ -32,6 +32,7 @@ _CURSOR_RE = re.compile(r"^[A-Za-z0-9._~+/=-]{1,2048}$")
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Inspect a saved pagination object. The helper validates but never "
@@ -72,6 +73,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _pagination_object(payload: Any) -> Mapping[str, Any]:
+    """Handle pagination object."""
     if not isinstance(payload, Mapping):
         raise SafetyError("response root must be an object")
     direct = payload.get("pagination")
@@ -90,6 +92,7 @@ def _bounded_int(
     minimum: int,
     maximum: int,
 ) -> int | None:
+    """Handle bounded int."""
     if value is None:
         return None
     if isinstance(value, bool) or not isinstance(value, int):
@@ -100,6 +103,7 @@ def _bounded_int(
 
 
 def _validated_next_url(next_page: Any, current_url: str) -> str | None:
+    """Handle validated next url."""
     if next_page is None:
         return None
     if not isinstance(next_page, str) or len(next_page) > 4_096:
@@ -141,6 +145,7 @@ def _validated_next_url(next_page: Any, current_url: str) -> str | None:
 
 
 def _opaque_cursor(pagination: Mapping[str, Any]) -> str | None:
+    """Handle opaque cursor."""
     value = pagination.get("next_cursor")
     if value is None:
         return None
@@ -158,6 +163,7 @@ def inspect_pagination(
     max_pages: int,
     max_items: int,
 ) -> dict[str, Any]:
+    """Handle inspect pagination."""
     if not 1 <= max_pages <= MAX_PAGES:
         raise SafetyError(f"max_pages must be between 1 and {MAX_PAGES}")
     if not 1 <= max_items <= MAX_ITEMS:
@@ -195,6 +201,12 @@ def inspect_pagination(
     next_url = _validated_next_url(pagination.get("next_page"), current_url)
     next_cursor = _opaque_cursor(pagination)
     local_cap_reached = pages_seen >= max_pages or items_seen >= max_items
+    if next_url is not None:
+        pointer_kind = "url"
+    elif next_cursor is not None:
+        pointer_kind = "cursor"
+    else:
+        pointer_kind = None
 
     return {
         "ok": True,
@@ -205,13 +217,7 @@ def inspect_pagination(
         "page_size": page_size,
         "next_page_url": next_url,
         "next_cursor": next_cursor,
-        "pointer_kind": (
-            "url"
-            if next_url is not None
-            else "cursor"
-            if next_cursor is not None
-            else None
-        ),
+        "pointer_kind": pointer_kind,
         "can_continue": bool((next_url or next_cursor) and not local_cap_reached),
         "local_caps": {
             "pages_seen": pages_seen,
@@ -228,6 +234,7 @@ def inspect_pagination(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         report = inspect_pagination(

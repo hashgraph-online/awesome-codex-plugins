@@ -35,137 +35,22 @@ for _ras_stream in (_ras_sys.stdout, _ras_sys.stderr):
         _ras_stream.reconfigure(encoding="utf-8", errors="replace")
 
 import argparse
-import base64
-import json
 import os
-import re
 import sys
-import time
 from pathlib import Path
-from typing import Optional, Dict, Any, List, NamedTuple
+from typing import Optional, Dict, Any, List
 
-
-try:
-    import requests
-except ImportError:
-    print("Error: requests library not found. Install with: uv pip install requests")
-    sys.exit(1)
-
-
-class ReviewResult(NamedTuple):
-    """The outcome of one quality review.
-
-    A named tuple rather than a bare tuple because the review has several
-    failure modes -- the model returns no choices, the request raises, the
-    answer arrives in an unexpected shape -- and each of them used to be a
-    chance to return the wrong number of values to the caller.
-
-    `score` is None whenever no usable number was parsed, and `reviewed` is
-    False whenever the review never produced an answer at all. Neither case
-    invents a score: a slide whose quality was not measured is reported as
-    unmeasured, not as passing.
-    """
-
-    critique: str
-    score: Optional[float]
-    needs_improvement: bool
-    reviewed: bool
-    error: Optional[str] = None
-
-
-# Markdown decoration the reviewer routinely wraps its answer in. Gemini writes
-# "**SCORE:** 8.5" far more often than the bare "SCORE: 8.5" the rubric asks
-# for, and a pattern that does not allow for it silently scores every image
-# at whatever the default happens to be.
-_MARKUP = re.compile(r"[*_`#]")
-
-_SCORE_PATTERN = re.compile(r"\bSCORE\s*:?\s*(\d+(?:\.\d+)?)", re.IGNORECASE)
-_LOOSE_SCORE_PATTERN = re.compile(
-    r"(?:score|rating|quality)\s*[:\s]\s*(\d+(?:\.\d+)?)\s*(?:/\s*10)?", re.IGNORECASE
-)
-# The underscore is optional because normalization strips it out of
-# NEEDS_IMPROVEMENT along with the surrounding markdown.
-_VERDICT_PATTERN = re.compile(
-    r"^\s*VERDICT\s*:?\s*(ACCEPTABLE|NEEDS[_ ]?IMPROVEMENT)", re.IGNORECASE | re.MULTILINE
+from _nano_banana_common import (
+    OpenRouterImageClient,
+    ReviewResult,
+    require_requests,
+    resolve_api_key,
 )
 
-
-def _normalize_review_text(text: str) -> str:
-    """Strip markdown decoration so the rubric's fields can be found."""
-    return _MARKUP.sub("", text or "")
+require_requests()
 
 
-def _parse_score(text: str) -> Optional[float]:
-    """Return the reviewer's 0-10 score, or None when there isn't a usable one.
-
-    None rather than a default: a fabricated score is indistinguishable from a
-    real one once it reaches the review log, and a default near the middle of
-    the range quietly passes lenient thresholds while failing strict ones.
-    """
-    normalized = _normalize_review_text(text)
-    match = _SCORE_PATTERN.search(normalized) or _LOOSE_SCORE_PATTERN.search(normalized)
-    if not match:
-        return None
-    score = float(match.group(1))
-    # A number outside the rubric's range means something other than the score
-    # was matched -- a slide number, a percentage, an iteration number.
-    return score if 0.0 <= score <= 10.0 else None
-
-
-def _parse_verdict(text: str) -> Optional[str]:
-    """Return ACCEPTABLE / NEEDS_IMPROVEMENT from the verdict line, or None.
-
-    Anchored to the start of a line. The rubric prompt spells out both tokens
-    when it explains the response format, so a reviewer that echoes those
-    instructions back would fail a perfectly good image under a plain
-    substring search.
-    """
-    match = _VERDICT_PATTERN.search(_normalize_review_text(text))
-    if not match:
-        return None
-    verdict = match.group(1).upper().replace(" ", "").replace("_", "")
-    return "NEEDS_IMPROVEMENT" if verdict == "NEEDSIMPROVEMENT" else "ACCEPTABLE"
-
-
-def _resolve_api_key(explicit: Optional[str] = None) -> Optional[str]:
-    """Resolve the OpenRouter key from --api-key, the environment, then any .env file.
-
-    The .env scan walks up from the working directory and finally checks the
-    script's own directory, so running from anywhere inside a project picks up
-    the key at its root. Only the standard library is used: python-dotenv is a
-    common omission, and a missing optional dependency should not read as a
-    missing credential.
-    """
-    if explicit:
-        return explicit
-
-    from_env = os.environ.get("OPENROUTER_API_KEY", "").strip()
-    if from_env:
-        return from_env
-
-    cwd = Path.cwd()
-    for directory in [cwd, *cwd.parents, Path(__file__).resolve().parent]:
-        env_file = directory / ".env"
-        if not env_file.is_file():
-            continue
-        try:
-            content = env_file.read_text(encoding="utf-8", errors="replace")
-        except OSError:
-            continue
-        for raw in content.splitlines():
-            line = raw.strip()
-            if line.startswith("#") or "=" not in line:
-                continue
-            name, _, value = line.partition("=")
-            if name.strip() == "OPENROUTER_API_KEY":
-                value = value.strip().strip('"').strip("'")
-                if value:
-                    return value
-
-    return None
-
-
-class SlideImageGenerator:
+class SlideImageGenerator(OpenRouterImageClient):
     """Generate presentation slides or visuals using AI with iterative refinement.
     
     Two modes:
@@ -248,160 +133,8 @@ STYLE:
 - Corporate/academic level of polish
 """
     
-    def __init__(self, api_key: Optional[str] = None, verbose: bool = False):
-        """
-        Initialize the generator.
-        
-        Args:
-            api_key: OpenRouter API key (or use OPENROUTER_API_KEY env var)
-            verbose: Print detailed progress information
-        """
-        self.api_key = _resolve_api_key(api_key)
+    X_TITLE = "Scientific Slide Generator"
 
-        if not self.api_key:
-            raise ValueError(
-                "OPENROUTER_API_KEY not found. Please either:\n"
-                "  1. Set the OPENROUTER_API_KEY environment variable\n"
-                "  2. Add OPENROUTER_API_KEY to your .env file\n"
-                "  3. Pass api_key parameter to the constructor\n"
-                "Get your API key from: https://openrouter.ai/keys"
-            )
-        
-        self.verbose = verbose
-        self._last_error = None
-        self.base_url = "https://openrouter.ai/api/v1"
-        # Nano Banana Pro for image generation. The slug must be an image-output
-        # model; a text-only chat model is rejected with "No endpoints found that
-        # support the requested output modalities".
-        # https://openrouter.ai/google/gemini-3.1-flash-image
-        self.image_model = "google/gemini-3.1-flash-image"
-        # Gemini 3.6 Flash for quality review - reads the image, answers in text
-        self.review_model = "google/gemini-3.7-flash"
-        
-    def _log(self, message: str):
-        """Log message if verbose mode is enabled."""
-        if self.verbose:
-            print(f"[{time.strftime('%H:%M:%S')}] {message}")
-    
-    def _make_request(self, model: str, messages: List[Dict[str, Any]], 
-                     modalities: Optional[List[str]] = None) -> Dict[str, Any]:
-        """Make a request to OpenRouter API."""
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/scientific-writer",
-            "X-Title": "Scientific Slide Generator"
-        }
-        
-        payload = {
-            "model": model,
-            "messages": messages
-        }
-        
-        if modalities:
-            payload["modalities"] = modalities
-        
-        self._log(f"Making request to {model}...")
-        
-        try:
-            response = requests.post(
-                f"{self.base_url}/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=120
-            )
-            
-            try:
-                response_json = response.json()
-            except json.JSONDecodeError:
-                response_json = {"raw_text": response.text[:500]}
-            
-            if response.status_code != 200:
-                error_detail = response_json.get("error", response_json)
-                self._log(f"HTTP {response.status_code}: {error_detail}")
-                raise RuntimeError(f"API request failed (HTTP {response.status_code}): {error_detail}")
-            
-            return response_json
-        except requests.exceptions.Timeout:
-            raise RuntimeError("API request timed out after 120 seconds")
-        except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"API request failed: {str(e)}")
-    
-    def _extract_image_from_response(self, response: Dict[str, Any]) -> Optional[bytes]:
-        """Extract base64-encoded image from API response."""
-        try:
-            choices = response.get("choices", [])
-            if not choices:
-                self._log("No choices in response")
-                return None
-            
-            message = choices[0].get("message", {})
-            
-            # Nano Banana Pro returns images in the 'images' field
-            images = message.get("images", [])
-            if images and len(images) > 0:
-                self._log(f"Found {len(images)} image(s) in 'images' field")
-                
-                first_image = images[0]
-                if isinstance(first_image, dict):
-                    if first_image.get("type") == "image_url":
-                        url = first_image.get("image_url", {})
-                        if isinstance(url, dict):
-                            url = url.get("url", "")
-                        
-                        if url and url.startswith("data:image"):
-                            if "," in url:
-                                base64_str = url.split(",", 1)[1]
-                                base64_str = base64_str.replace('\n', '').replace('\r', '').replace(' ', '')
-                                self._log(f"Extracted base64 data (length: {len(base64_str)})")
-                                return base64.b64decode(base64_str)
-            
-            # Fallback: check content field
-            content = message.get("content", "")
-            
-            if isinstance(content, str) and "data:image" in content:
-                import re
-                match = re.search(r'data:image/[^;]+;base64,([A-Za-z0-9+/=\n\r]+)', content, re.DOTALL)
-                if match:
-                    base64_str = match.group(1).replace('\n', '').replace('\r', '').replace(' ', '')
-                    self._log(f"Found image in content field (length: {len(base64_str)})")
-                    return base64.b64decode(base64_str)
-            
-            if isinstance(content, list):
-                for i, block in enumerate(content):
-                    if isinstance(block, dict) and block.get("type") == "image_url":
-                        url = block.get("image_url", {})
-                        if isinstance(url, dict):
-                            url = url.get("url", "")
-                        if url and url.startswith("data:image") and "," in url:
-                            base64_str = url.split(",", 1)[1].replace('\n', '').replace('\r', '').replace(' ', '')
-                            self._log(f"Found image in content block {i}")
-                            return base64.b64decode(base64_str)
-            
-            self._log("No image data found in response")
-            return None
-            
-        except Exception as e:
-            self._log(f"Error extracting image: {str(e)}")
-            return None
-    
-    def _image_to_base64(self, image_path: str) -> str:
-        """Convert image file to base64 data URL."""
-        with open(image_path, "rb") as f:
-            image_data = f.read()
-        
-        ext = Path(image_path).suffix.lower()
-        mime_type = {
-            ".png": "image/png",
-            ".jpg": "image/jpeg",
-            ".jpeg": "image/jpeg",
-            ".gif": "image/gif",
-            ".webp": "image/webp"
-        }.get(ext, "image/png")
-        
-        base64_data = base64.b64encode(image_data).decode("utf-8")
-        return f"data:{mime_type};base64,{base64_data}"
-    
     def generate_image(self, prompt: str, attachments: Optional[List[str]] = None) -> Optional[bytes]:
         """
         Generate an image using Nano Banana Pro.
@@ -550,68 +283,7 @@ If score < {threshold}, mark as NEEDS_IMPROVEMENT with specific suggestions."""
             }
         ]
         
-        try:
-            response = self._make_request(model=self.review_model, messages=messages)
-            
-            choices = response.get("choices", [])
-            if not choices:
-                # A normal enough outcome -- a rate limit, a content filter, a
-                # provider hiccup. The image itself is fine; only its review is
-                # missing, and saying so beats inventing a score.
-                reason = "the review model returned no choices"
-                self._log(f"⚠ Review unavailable: {reason}")
-                return ReviewResult(
-                    f"Review unavailable: {reason}.",
-                    None, False, reviewed=False, error=reason,
-                )
-
-            message = choices[0].get("message", {})
-            content = message.get("content", "")
-
-            reasoning = message.get("reasoning", "")
-            if reasoning and not content:
-                content = reasoning
-
-            if isinstance(content, list):
-                text_parts = []
-                for block in content:
-                    if isinstance(block, dict) and block.get("type") == "text":
-                        text_parts.append(block.get("text", ""))
-                content = "\n".join(text_parts)
-
-            score = _parse_score(content)
-            verdict = _parse_verdict(content)
-
-            if score is None and verdict is None:
-                reason = "no score or verdict found in the review"
-                self._log(f"⚠ Review unusable: {reason}")
-                return ReviewResult(
-                    content if content else f"Review unusable: {reason}.",
-                    None, False, reviewed=True, error=reason,
-                )
-
-            needs_improvement = verdict == "NEEDS_IMPROVEMENT" or (
-                score is not None and score < threshold
-            )
-
-            shown = f"{score}/10" if score is not None else "not stated"
-            self._log(f"✓ Review complete (Score: {shown}, Threshold: {threshold}/10)")
-
-            return ReviewResult(
-                content if content else "Review returned no text",
-                score,
-                needs_improvement,
-                reviewed=True,
-                error=None if score is not None else "no score found in the review",
-            )
-        except Exception as e:
-            # A failed review must not fail the run -- the image is already
-            # generated -- but it must not read as a pass either.
-            self._log(f"⚠ Review failed: {str(e)}")
-            return ReviewResult(
-                f"Review failed: {str(e)}",
-                None, False, reviewed=False, error=str(e),
-            )
+        return self._request_review(messages, threshold, log_verdict=False)
     
     def improve_prompt(self, original_prompt: str, critique: str, 
                       iteration: int, visual_only: bool = False) -> str:
@@ -697,7 +369,7 @@ Generate a high-quality {'visual/figure' if visual_only else 'presentation slide
             print(f"\n[Iteration {i}/{iterations}]")
             print("-" * 40)
             
-            print(f"Generating image with Nano Banana Pro...")
+            print("Generating image with Nano Banana Pro...")
             image_data = self.generate_image(current_prompt, attachments=attachments)
             
             if not image_data:
@@ -728,7 +400,7 @@ Generate a high-quality {'visual/figure' if visual_only else 'presentation slide
             if review.score is not None:
                 print(f"✓ Score: {review.score}/10 (threshold: {self.QUALITY_THRESHOLD}/10)")
             else:
-                print(f"⚠ Review unavailable — image kept, quality not verified")
+                print("⚠ Review unavailable — image kept, quality not verified")
                 print(f"  Reason: {review.error}")
 
             results["iterations"].append({
@@ -746,7 +418,7 @@ Generate a high-quality {'visual/figure' if visual_only else 'presentation slide
                     print(f"\n✓ Quality meets threshold ({review.score} >= {self.QUALITY_THRESHOLD})")
                 else:
                     # Regenerating cannot fix a reviewer that did not answer.
-                    print(f"\n⚠ Stopping without a verified score — review the image yourself")
+                    print("\n⚠ Stopping without a verified score — review the image yourself")
                 final_image_data = image_data
                 results["final_score"] = review.score
                 results["final_reviewed"] = review.reviewed and review.score is not None
@@ -755,7 +427,7 @@ Generate a high-quality {'visual/figure' if visual_only else 'presentation slide
                 break
 
             if i == iterations:
-                print(f"\n⚠ Maximum iterations reached")
+                print("\n⚠ Maximum iterations reached")
                 final_image_data = image_data
                 results["final_score"] = review.score
                 results["final_reviewed"] = review.reviewed and review.score is not None
@@ -763,7 +435,7 @@ Generate a high-quality {'visual/figure' if visual_only else 'presentation slide
                 break
 
             print(f"\n⚠ Quality below threshold ({review.score} < {self.QUALITY_THRESHOLD})")
-            print(f"Improving prompt...")
+            print("Improving prompt...")
             current_prompt = self.improve_prompt(user_prompt, review.critique, i + 1, visual_only)
         
         # Clean up temporary files
@@ -782,11 +454,11 @@ Generate a high-quality {'visual/figure' if visual_only else 'presentation slide
             print(f"\n✓ Final image: {output_path}")
         
         print(f"\n{'='*60}")
-        print(f"Generation Complete!")
+        print("Generation Complete!")
         if results["final_score"] is not None:
             print(f"Final Score: {results['final_score']}/10")
         else:
-            print(f"Final Score: unavailable (the review did not produce one)")
+            print("Final Score: unavailable (the review did not produce one)")
         if results["early_stop"]:
             success_count = len([r for r in results['iterations'] if r.get('success')])
             print(f"Iterations Used: {success_count}/{iterations} (early stop)")
@@ -837,7 +509,7 @@ Environment:
     args = parser.parse_args()
     
     # Resolves --api-key, the environment, then any .env file
-    api_key = _resolve_api_key(args.api_key)
+    api_key = resolve_api_key(args.api_key)
     if not api_key:
         print("Error: OPENROUTER_API_KEY not found")
         print("\nSet it with:")
@@ -871,7 +543,7 @@ Environment:
             print(f"\n✓ Success! Image saved to: {args.output}")
             sys.exit(0)
         else:
-            print(f"\n✗ Generation failed. Check review log for details.")
+            print("\n✗ Generation failed. Check review log for details.")
             sys.exit(1)
     except Exception as e:
         print(f"\n✗ Error: {str(e)}")

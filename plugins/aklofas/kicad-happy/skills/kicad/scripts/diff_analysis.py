@@ -13,7 +13,7 @@ Usage:
     python3 diff_analysis.py base.json head.json --threshold 2.0
 
 Supports: schematic, PCB, EMC, and SPICE analyzer outputs (auto-detected).
-Zero dependencies — Python 3.8+ stdlib only.
+Zero dependencies — Python 3.10+ stdlib only.
 """
 
 import argparse
@@ -21,13 +21,15 @@ import json
 import os
 import sys
 
+from analysis_cache import reviewed_overlay
 from finding_schema import group_findings_by_detection_type
+from kicad_core.fileio import atomic_write_text
 from kicad_core.render import fmt_g4, fmt_signed, summary_or_title
 from kicad_core.cli import add_only_deterministic_arg, add_output_arg, add_text_arg, utf8_text_stdout
 from diff_engine import (
     SIGNAL_REGISTRY, _resolve, _identity_key, _generic_identity, detect_type, diff_schematic,
     diff_pcb, diff_emc, diff_spice, diff_thermal, diff_deep_review, classify_regressions,
-    build_summary,
+    build_summary, has_changes,
 )
 
 
@@ -50,7 +52,9 @@ def format_text(output):
 
     regressions = output.get("regressions", [])
 
-    if total == 0 and not regressions:
+    # Dicts built without has_changes (older callers) fall back to the count.
+    changed = output["has_changes"] if "has_changes" in output else total > 0
+    if not changed and not regressions:
         lines.append("  No changes detected.")
         return "\n".join(lines)
 
@@ -122,24 +126,42 @@ def format_text(output):
         lines.append("Footprints:")
         for f in fp.get("added", [])[:5]:
             lines.append(f"  + {f.get('reference', '?')} {f.get('value', '')} ({f.get('layer', '')})")
+            shown += 1
         for f in fp.get("removed", [])[:5]:
             lines.append(f"  - {f.get('reference', '?')} {f.get('value', '')} ({f.get('layer', '')})")
+            shown += 1
         for f in fp.get("modified", [])[:5]:
             ref = f.get("reference", "?")
             for ch in f.get("changes", []):
                 lines.append(f"  ~ {ref}: {ch['field']} {ch.get('base', '?')} → {ch.get('head', '?')}")
+            shown += 1
         lines.append("")
 
-    # EMC findings
+    # Routing and statistics (PCB, thermal, schematic counts)
+    rc = diff.get("routing_complete")
+    if rc:
+        lines.append(f"Routing complete: {rc.get('base')} → {rc.get('head')}")
+    for info in diff.get("unrouted", {}).values():
+        lines.append(f"Unrouted nets: {info.get('base')} → {info.get('head')}")
+    for path, info in sorted(diff.get("statistics", {}).items()):
+        lines.append(f"  {path.split('.')[-1]}: {fmt_g4(info.get('base'))} → {fmt_g4(info.get('head'))}")
+    if rc or diff.get("unrouted") or diff.get("statistics"):
+        lines.append("")
+
+    # Findings (EMC, PCB, thermal)
     findings = diff.get("findings", {})
     if findings:
-        lines.append("EMC Findings:")
+        source = {"emc": "EMC", "pcb": "PCB", "thermal": "Thermal"}.get(atype, atype)
+        lines.append(f"{source} Findings:")
         for f in findings.get("new", [])[:5]:
             lines.append(f"  NEW: {f.get('rule_id', '?')} ({f.get('severity', '?')}) {summary_or_title(f)}")
+            shown += 1
         for f in findings.get("resolved", [])[:5]:
             lines.append(f"  RESOLVED: {f.get('rule_id', '?')} ({f.get('severity', '?')}) {summary_or_title(f)}")
+            shown += 1
         for f in findings.get("changed_severity", [])[:3]:
             lines.append(f"  CHANGED: {f.get('rule_id', '?')} {f.get('base_severity', '?')} → {f.get('head_severity', '?')}")
+            shown += 1
         lines.append("")
 
     # SPICE status changes
@@ -151,6 +173,7 @@ def format_text(output):
             comps = ", ".join(sc.get("components", []))
             lines.append(f"  {direction}: {sc.get('subcircuit_type', '?')} {comps}: "
                          f"{sc.get('base_status', '?')} → {sc.get('head_status', '?')}")
+            shown += 1
         lines.append("")
 
     # Assessments (informational measurements — present on all analyzer types)
@@ -167,16 +190,20 @@ def format_text(output):
                 refs = a.get("components") or []
                 refs_str = "[" + ", ".join(refs) + "]" if refs else "[]"
                 lines.append(f"    - {a.get('rule_id', '?')} on {refs_str}")
+                shown += 1
             if len(added) > 5:
                 lines.append(f"    ... and {len(added) - 5} more")
+                shown += len(added) - 5
         if removed:
             lines.append(f"  - Removed ({len(removed)}):")
             for a in removed[:5]:
                 refs = a.get("components") or []
                 refs_str = "[" + ", ".join(refs) + "]" if refs else "[]"
                 lines.append(f"    - {a.get('rule_id', '?')} on {refs_str}")
+                shown += 1
             if len(removed) > 5:
                 lines.append(f"    ... and {len(removed) - 5} more")
+                shown += len(removed) - 5
         unchanged = assessments.get("unchanged_count", 0)
         lines.append(f"  Unchanged: {unchanged}")
         lines.append("")
@@ -259,9 +286,9 @@ def _extract_trends(analysis_dir, output_type, n_runs):
         if not os.path.isfile(path):
             continue
         try:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 data = json.load(f)
-        except (json.JSONDecodeError, OSError):
+        except (ValueError, OSError):
             continue
 
         sa = group_findings_by_detection_type(data)
@@ -433,11 +460,11 @@ def main(argv: list[str] | None = None) -> int:
         from pathlib import Path
         p = Path(path)
         if not args.only_deterministic:
-            candidate = p.parent.parent / "merged" / p.parent.name / p.name
-            if candidate.exists():
-                p = candidate
+            overlay = reviewed_overlay(str(p))
+            if overlay:
+                p = Path(overlay)
         try:
-            with open(p) as f:
+            with open(p, encoding="utf-8") as f:
                 return json.load(f)
         except (json.JSONDecodeError, OSError) as e:
             print(f"Error reading {label} file {path}: {e}", file=sys.stderr)
@@ -499,15 +526,13 @@ def main(argv: list[str] | None = None) -> int:
         if args.text:
             text = _format_deep_review_text(output)
             if args.output:
-                with open(args.output, "w") as f:
-                    f.write(text)
+                atomic_write_text(args.output, text, follow_symlinks=False)
             else:
                 print(text)
         else:
             output_json = json.dumps(output, indent=2)
             if args.output:
-                with open(args.output, "w") as f:
-                    f.write(output_json)
+                atomic_write_text(args.output, output_json, follow_symlinks=False)
             else:
                 print(output_json)
         return 0
@@ -520,7 +545,7 @@ def main(argv: list[str] | None = None) -> int:
         "analyzer_type": base_type,
         "base_file": args.base,
         "head_file": args.head,
-        "has_changes": summary["total_changes"] > 0,
+        "has_changes": has_changes(diff_result),
         "summary": summary,
         "diff": diff_result,
     }
@@ -533,19 +558,19 @@ def main(argv: list[str] | None = None) -> int:
     if args.text:
         text = format_text(output)
         if args.output:
-            with open(args.output, "w") as f:
-                f.write(text)
+            atomic_write_text(args.output, text, follow_symlinks=False)
         else:
             print(text)
     else:
         output_json = json.dumps(output, indent=2)
         if args.output:
-            with open(args.output, "w") as f:
-                f.write(output_json)
+            atomic_write_text(args.output, output_json, follow_symlinks=False)
         else:
             print(output_json)
     return 0
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     sys.exit(main())

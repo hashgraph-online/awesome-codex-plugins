@@ -6,7 +6,8 @@ Reflects over type hints. Handles:
     - list[T] (recursive on T)
     - dict[str, T] (recursive on T)
     - The Pinout wrapper class (special-cased — not a dataclass)
-    - Primitive types (str, int, float, bool) — passthrough
+    - Primitive types (str, int, float, bool) — passthrough; a float or int
+      field must hold a number (a bool or a string raises TypeError)
 
 Rules:
     - Required fields (no default) raise KeyError on from_dict if absent.
@@ -35,8 +36,8 @@ def from_dict(cls, data):
         return _pinout_from_list(cls, data)
 
     if not is_dataclass(cls):
-        # Primitives pass through unchanged. The caller decides what to do
-        # with mismatched types (e.g. int where float was expected).
+        # Primitives pass through unchanged; numeric fields are checked in
+        # _from_value.
         return data
 
     if data is None:
@@ -47,6 +48,11 @@ def from_dict(cls, data):
     for f in fields(cls):
         hint = hints[f.name]
         if f.name in data:
+            if (data[f.name] is None and f.default is MISSING
+                    and f.default_factory is MISSING):
+                raise TypeError(
+                    f"{cls.__name__}: required field {f.name!r} is null"
+                )
             kwargs[f.name] = _from_value(hint, data[f.name])
         elif f.default is MISSING and f.default_factory is MISSING:
             raise KeyError(
@@ -106,6 +112,8 @@ def _from_value(hint, value):
             raise TypeError(
                 f"Expected list for {hint!r}, got {type(value).__name__}: {value!r}"
             )
+        if any(item is None for item in value):
+            raise TypeError(f"null element in {hint!r}")
         return [_from_value(item_type, item) for item in value]
 
     # dict[str, T]
@@ -121,7 +129,12 @@ def _from_value(hint, value):
     if is_dataclass(hint) or _is_pinout(hint):
         return from_dict(hint, value)
 
-    # Primitive.
+    # Primitive. int is accepted for float; a bool is not a number here.
+    if hint in (float, int) and (
+            isinstance(value, bool) or not isinstance(value, (int, float))):
+        raise TypeError(
+            f"expected a number, got {type(value).__name__}: {value!r}"
+        )
     return value
 
 
@@ -170,5 +183,7 @@ def _pinout_from_list(cls, data):
         raise TypeError(
             f"Pinout expects a list of Pin dicts at the JSON root; got {type(data).__name__}"
         )
+    if any(p is None for p in data):
+        raise TypeError("Pinout: null pin")
     pins = [from_dict(Pin, p) for p in data]
     return cls(pins=pins)

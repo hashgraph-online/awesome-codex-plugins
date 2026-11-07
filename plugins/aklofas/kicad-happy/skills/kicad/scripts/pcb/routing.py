@@ -1,21 +1,35 @@
 """PCB routing analyses: connectivity, power-net routing, routed distances, return
-path, net lengths/impedance, ground domains, trace proximity, current capacity, layer transitions.
-Verbatim moves from analyze_pcb.py."""
+path, net lengths/impedance, ground domains, trace proximity, current capacity, layer transitions."""
 
 import heapq
 import math
 
-from kicad_core.netnames import is_ground_name, is_power_net_name
+from kicad_core.netnames import is_ground_name, is_pin_guarded_signal, is_power_net_name, net_leaf
 from pcb.geometry import CopperPresence, _arc_length_3pt
+
+
+def board_pin_signals(footprints: list[dict], power_rails: set[str] | None = None) -> frozenset[str]:
+    """Board nets named VPP/VM whose pads say signal (is_pin_guarded_signal), unless the
+    rail set names them. A board without pad pin types (before KiCad 7) keeps the name rule."""
+    pin_types: dict[str, list[str]] = {}
+    for fp in footprints:
+        for pad in fp.get("pads", []):
+            if pad.get("net_name"):
+                pin_types.setdefault(pad["net_name"], []).append(pad.get("pintype", ""))
+    return frozenset(
+        n for n, types in pin_types.items()
+        if n not in (power_rails or ()) and is_pin_guarded_signal(n, [(t, None) for t in types]))
 
 
 def analyze_connectivity(footprints: list[dict], tracks: dict, vias: dict,
                          net_names: dict[int, str],
-                         zones: list[dict] | None = None) -> dict:
+                         zones: list[dict] | None = None,
+                         graphics: list[dict] | None = None) -> dict:
     """Analyze routing completeness — find unrouted nets.
 
-    A net is considered routed if it has tracks, vias, or a copper zone
-    covering it. Nets with only a single pad are skipped.
+    A net is considered routed if it has tracks, vias, a copper zone or a copper
+    graphic (KiCad 8+ shapes with a net) covering it. Nets with only a single pad
+    are skipped.
     """
     # Build set of nets that have pads
     pad_nets: dict[int, list[str]] = {}  # net_number -> list of "REF.pad"
@@ -36,6 +50,9 @@ def analyze_connectivity(footprints: list[dict], tracks: dict, vias: dict,
     for via in vias.get("vias", []):
         if via["net"] > 0:
             routed_nets.add(via["net"])
+    for g in graphics or []:
+        if g.get("net", 0) > 0:
+            routed_nets.add(g["net"])
     # Zones also route nets — a GND zone connects all GND pads
     if zones:
         for z in zones:
@@ -81,13 +98,14 @@ def analyze_connectivity(footprints: list[dict], tracks: dict, vias: dict,
 
 def analyze_power_nets(footprints: list[dict], tracks: dict,
                        net_names: dict[int, str],
-                       power_rails: set[str] | None = None) -> list[dict]:
+                       power_rails: set[str] | None = None,
+                       pin_signals: frozenset = frozenset()) -> list[dict]:
     """Analyze routing of power/ground nets — track widths, via counts."""
     # EQ-052: d = √(Δx²+Δy²) (Euclidean distance)
     # Identify power/ground nets
     power_nets = {}
     for net_num, name in net_names.items():
-        if is_power_net_name(name, power_rails) or is_ground_name(name):
+        if (name not in pin_signals and is_power_net_name(name, power_rails)) or is_ground_name(name):
             power_nets[net_num] = {"name": name, "widths": set(), "track_count": 0,
                                    "total_length_mm": 0.0}
 
@@ -102,6 +120,18 @@ def analyze_power_nets(footprints: list[dict], tracks: dict,
             dx = seg["x2"] - seg["x1"]
             dy = seg["y2"] - seg["y1"]
             power_nets[net]["total_length_mm"] += math.sqrt(dx * dx + dy * dy)
+
+    for arc in tracks.get("arcs", []):
+        net = arc["net"]
+        if net in power_nets:
+            s, e, m = arc["start"], arc["end"], arc.get("mid")
+            if m:
+                length = _arc_length_3pt(s[0], s[1], m[0], m[1], e[0], e[1])
+            else:
+                length = math.hypot(e[0] - s[0], e[1] - s[1])
+            power_nets[net]["widths"].add(arc["width"])
+            power_nets[net]["track_count"] += 1
+            power_nets[net]["total_length_mm"] += length
 
     result = []
     for net_num, info in sorted(power_nets.items(), key=lambda x: x[1]["name"]):
@@ -327,17 +357,21 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
                                     signal_nets=None, ref_layer_map=None,
                                     footprints=None, radius_mm=0.5,
                                     debug_samples=None, vias=None,
-                                    power_rails=None, copper_order=None):
+                                    power_rails=None, copper_order=None, pin_signals=frozenset(),
+                                    stackup=None, reference_changes=None):
     """Check ground/power plane continuity under signal traces.
 
     For each signal net's trace segments, samples points along the trace
-    and checks if the opposite layer has a ground or power zone fill.
+    and checks if the reference layer has a ground or power zone fill.
     Flags gaps in the reference plane that could cause return path
     discontinuities and EMI issues.
 
-    Uses :class:`CopperPresence` for radius-based copper detection that
-    credits zone fills, tracks, and pads — avoids false negatives from
-    KiCad zone-fill clearance channels ("swiss cheese" polygons).
+    Only ground or power-rail zone fills count as the reference: the return
+    current of a microstrip flows in the nearest plane, and a power plane
+    serves when it is decoupled to ground (Ott, EMC Engineering ch. 16).
+    Other nets' fills, tracks and pads are not a reference plane. A fill
+    within radius_mm of the sample counts, so KiCad's clearance channels
+    ("swiss cheese" fill polygons) are not gaps.
 
     Args:
         tracks: Track data dict with segments
@@ -345,8 +379,9 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
         zones: Zone list (for zone metadata)
         zone_fills: ZoneFills spatial index
         signal_nets: Optional set of net names to check (default: all non-power)
-        ref_layer_map: Layer → opposite reference layer mapping
-        footprints: Footprint list (for pad copper credit)
+        ref_layer_map: Layer → opposite reference layer mapping (used when
+            no stackup is given)
+        footprints: Accepted for callers; pads are not a reference plane.
         radius_mm: Radius (mm) for copper-presence search (default 0.5)
         debug_samples: If a list is passed, per-sample dicts are appended
             with keys {net, x, y, layer, hit} for GP-001 diagnostics.
@@ -354,16 +389,21 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
             that misses copper on the opposite layer is still credited as
             a hit if it falls inside a via's own antipad — that void is
             expected (KiCad clears copper around a via for isolation), not
-            a reference-plane gap (KH-392). The credit only applies when
+            a reference-plane gap. The credit only applies when
             the via's physical layer span actually reaches the probed
             layer — a blind/buried via doesn't get credit for an antipad
-            on a layer it never touches (KH-397).
+            on a layer it never touches.
         power_rails: Optional set of net names to treat as power/ground
-            regardless of naming heuristics (KH-393).
+            regardless of naming heuristics.
         copper_order: Ordered list of copper layer names (from
-            `_copper_order_from_stackup`) used to test via layer span
-            (KH-397). Missing data falls back to the through-via
-            assumption (never reduces credit).
+            `_copper_order_from_stackup`) used to test via layer span.
+            Missing data falls back to the through-via assumption (never reduces credit).
+        stackup: Board stackup (the file's or the inferred one). When given,
+            each layer's reference is the nearest layer carrying ground or
+            power zone copper (`_build_reference_layer_map`).
+        reference_changes: If a list is passed, one dict is appended per place
+            where a signal trace's reference plane changes from one plane net
+            to another (`_plane_net_changes`).
 
     Returns:
         List of gap findings: [{net, layer, gap_start_mm, gap_length_mm, ...}]
@@ -372,9 +412,15 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
     if not zone_fills.has_data:
         return []
 
-    cp = CopperPresence(zone_fills, tracks.get('segments', []), footprints)
-
     from kicad_core.netnames import is_power_net_name, is_ground_name
+
+    cp = CopperPresence(zone_fills, None, None)
+    ref_idxs = {i for i, z in enumerate(zones)
+                if (name := z.get("net_name") or "")
+                and (is_ground_name(name)
+                     or (name not in pin_signals and is_power_net_name(name, power_rails)))}
+    if stackup is not None:
+        ref_layer_map = _build_reference_layer_map(stackup, zone_fills.fill_layers(ref_idxs))
 
     findings = []
     # Only check signal nets (not power/ground — they ARE the reference)
@@ -387,7 +433,7 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
         if net <= 0:
             continue
         net_name = net_names.get(net, "")
-        if is_power_net_name(net_name, power_rails) or is_ground_name(net_name):
+        if (net_name not in pin_signals and is_power_net_name(net_name, power_rails)) or is_ground_name(net_name):
             continue
         if signal_nets and net_name not in signal_nets:
             continue
@@ -397,7 +443,7 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
 
     # Pre-index vias into a coarse grid, once, before the net loop: a via's
     # own antipad on the opposite copper layer is an expected void, not a
-    # reference-plane gap (KH-392). Grid pattern mirrors the proximity grid
+    # reference-plane gap. Grid pattern mirrors the proximity grid
     # in analyze_trace_proximity() to keep the per-sample check O(1) instead
     # of O(via_count).
     ANTIPAD_CLEARANCE = 0.2  # mm — conservative upper bound for default zone clearance
@@ -422,10 +468,17 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
                         return True
         return False
 
+    def _ref_net_at(px: float, py: float, layer: str):
+        nets = {zones[zi].get("net_name") for _fid, zi in
+                zone_fills.fill_regions_at_point(px, py, layer, zones) if zi in ref_idxs}
+        return next(iter(nets)) if len(nets) == 1 else None
+
+    track_refs = reference_changes is not None
     for net_id, segs in net_segments.items():
         net_name = net_names.get(net_id, f"net_{net_id}")
         total_samples = 0
         gap_samples = 0
+        seg_samples = []
 
         for seg in segs:
             layer = seg.get("layer", "F.Cu")
@@ -443,21 +496,24 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
 
             # Sample along the trace
             n_samples = max(2, int(length / SAMPLE_INTERVAL) + 1)
+            seg_refs = []
             for k in range(n_samples):
                 t = k / max(n_samples - 1, 1)
                 px = x1 + t * dx
                 py = y1 + t * dy
                 total_samples += 1
 
-                # Check for ANY copper (zone, track, pad) on opposite layer
-                hit = cp.has_coverage_near(px, py, opp_layer,
-                                           radius_mm=radius_mm)
+                hit = cp.has_coverage_near(px, py, opp_layer, radius_mm=radius_mm,
+                                           zone_idxs=ref_idxs, fills_only=True)
                 antipad_credit = False
                 if not hit and _in_via_antipad(px, py, opp_layer):
-                    hit = True  # expected void — via's own antipad (KH-392)
+                    hit = True  # expected void — via's own antipad
                     antipad_credit = True
                 if not hit:
                     gap_samples += 1
+                if track_refs:
+                    ref_net = _ref_net_at(px, py, opp_layer) if hit and not antipad_credit else None
+                    seg_refs.append((ref_net, px, py, t * length))
                 if debug_samples is not None:
                     sample = {
                         'net': net_name, 'x': round(px, 2),
@@ -467,6 +523,19 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
                     if antipad_credit:
                         sample['antipad_credit'] = True
                     debug_samples.append(sample)
+            if track_refs:
+                seg_samples.append((layer, opp_layer, (layer, round(x1, 3), round(y1, 3)),
+                                    (layer, round(x2, 3), round(y2, 3)), seg_refs))
+
+        if track_refs:
+            for lyr, rl, sa, sb, cx, cy in _plane_net_changes(seg_samples, SAMPLE_INTERVAL):
+                if sa[0] > sb[0]:
+                    sa, sb = sb, sa
+                reference_changes.append({
+                    "net": net_name, "layer": lyr, "reference_layer": rl,
+                    "net_a": sa[0], "net_b": sb[0], "x": round(cx, 2), "y": round(cy, 2),
+                    "sample_points": [[round(sa[1], 2), round(sa[2], 2)],
+                                      [round(sb[1], 2), round(sb[2], 2)]]})
 
         if total_samples > 0 and gap_samples > 0:
             coverage_pct = round((1 - gap_samples / total_samples) * 100, 1)
@@ -488,6 +557,74 @@ def analyze_return_path_continuity(tracks, net_names, zones, zone_fills,
     return findings
 
 
+def _plane_net_changes(segs, min_run_mm):
+    """Where the plane net under one signal net's trace changes.
+
+    segs: one (layer, reference_layer, start_key, end_key, samples) per segment, the keys
+    naming the segment ends (segments of the net meet where keys are equal) and samples
+    [(plane net or None, x, y, mm along the segment)] in order. A plane net counts only
+    where it holds over at least min_run_mm of trace, counted across segment ends that
+    meet, so a pad-sized island is not a change. Returns (layer, reference_layer,
+    sample_a, sample_b, x, y): consecutive counted samples of different nets on a
+    segment (the change at their midpoint), or the nearest counted samples of two nets
+    on segments that meet (the change at the junction).
+    """
+    runs = []  # (segment index, first sample, last sample, net)
+    parent: list[int] = []
+    at_end: dict = {}  # (segment end, net) -> runs touching it
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for si, (_l, _r, k_start, k_end, smp) in enumerate(segs):
+        k = 0
+        while k < len(smp):
+            j = k
+            while j + 1 < len(smp) and smp[j + 1][0] == smp[k][0]:
+                j += 1
+            if smp[k][0] is not None:
+                parent.append(len(runs))
+                if k == 0:
+                    at_end.setdefault((k_start, smp[k][0]), []).append(len(runs))
+                if j == len(smp) - 1:
+                    at_end.setdefault((k_end, smp[k][0]), []).append(len(runs))
+                runs.append((si, k, j, smp[k][0]))
+            k = j + 1
+    for members in at_end.values():
+        for ri in members[1:]:
+            parent[find(ri)] = find(members[0])
+    held: dict = {}
+    for ri, (si, k0, k1, _net) in enumerate(runs):
+        smp = segs[si][4]
+        held[find(ri)] = held.get(find(ri), 0.0) + smp[k1][3] - smp[k0][3]
+    known: dict = {}
+    for ri, (si, k0, k1, _net) in enumerate(runs):
+        if held[find(ri)] >= min_run_mm - 1e-6:
+            known.setdefault(si, []).extend(segs[si][4][k0:k1 + 1])
+
+    changes = []
+    ends: dict = {}
+    for si, ks in known.items():
+        layer, ref_layer, k_start, k_end, _smp = segs[si]
+        for a, b in zip(ks, ks[1:]):
+            if a[0] != b[0]:
+                changes.append((layer, ref_layer, a, b, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2))
+        ends.setdefault(k_start, []).append((layer, ref_layer, ks[0]))
+        ends.setdefault(k_end, []).append((layer, ref_layer, ks[-1]))
+    for key, items in ends.items():
+        by_net: dict = {}
+        for layer, ref_layer, smp in items:
+            by_net.setdefault(smp[0], (layer, ref_layer, smp))
+        if len(by_net) > 1:
+            a, b = sorted(by_net)[:2]
+            layer, ref_layer, sa = by_net[a]
+            changes.append((layer, ref_layer, sa, by_net[b][2], key[1], key[2]))
+    return changes
+
+
 def _safe_num(val, default=0):
     """Safely convert a value to float (handles None, str, etc.)."""
     if val is None:
@@ -498,12 +635,18 @@ def _safe_num(val, default=0):
         return default
 
 
-def _build_reference_layer_map(stackup: list[dict]) -> dict[str, str]:
+def _build_reference_layer_map(stackup: list[dict],
+                               ref_layers: set[str] | None = None) -> dict[str, str]:
     """Map each copper layer to its adjacent reference plane copper layer.
 
     Walks the stackup in order and for each copper layer, finds the nearest
     other copper layer (above or below, preferring the one separated by
     thinner dielectric). Returns a mapping like {"F.Cu": "In1.Cu", "In1.Cu": "F.Cu", ...}.
+
+    With ref_layers (the layers carrying ground or power zone copper), the
+    reference is the nearest other layer in that set, at any distance; a
+    layer with none of it is never a reference plane. A layer with no such
+    layer elsewhere keeps its adjacent layer.
 
     Falls back to simple F.Cu<->B.Cu when no stackup is available.
     """
@@ -519,40 +662,37 @@ def _build_reference_layer_map(stackup: list[dict]) -> dict[str, str]:
     if len(copper_layers) < 2:
         return {"F.Cu": "B.Cu", "B.Cu": "F.Cu"}
 
+    def dielectric_between(a: int, b: int) -> float:
+        thickness = 0.0
+        for k in range(min(a, b) + 1, max(a, b)):
+            if stackup[k].get("type") in ("core", "prepreg"):
+                t = stackup[k].get("thickness")
+                if t is not None:
+                    try:
+                        thickness += float(t)
+                    except (ValueError, TypeError):
+                        thickness += 0.2
+        return thickness
+
     ref_map: dict[str, str] = {}
     for ci, (idx, name) in enumerate(copper_layers):
-        # Find dielectric thickness to adjacent copper layers above and below
-        best_neighbor = None
-        best_thickness = float("inf")
-
-        for direction, neighbor_ci in [(-1, ci - 1), (1, ci + 1)]:
-            if neighbor_ci < 0 or neighbor_ci >= len(copper_layers):
-                continue
-            n_idx, n_name = copper_layers[neighbor_ci]
-            # Sum dielectric thickness between this layer and the neighbor
-            lo = min(idx, n_idx)
-            hi = max(idx, n_idx)
-            thickness = 0.0
-            for k in range(lo + 1, hi):
-                if stackup[k].get("type") in ("core", "prepreg"):
-                    t = stackup[k].get("thickness")
-                    if t is not None:
-                        try:
-                            thickness += float(t)
-                        except (ValueError, TypeError):
-                            thickness += 0.2
-            if thickness < best_thickness:
-                best_thickness = thickness
-                best_neighbor = n_name
-
-        if best_neighbor:
-            ref_map[name] = best_neighbor
+        adjacent = [n for n in (ci - 1, ci + 1) if 0 <= n < len(copper_layers)]
+        candidates = adjacent
+        if ref_layers is not None:
+            candidates = [n for n in range(len(copper_layers))
+                          if copper_layers[n][1] != name and copper_layers[n][1] in ref_layers] \
+                or adjacent
+        # Thinnest dielectric, then fewest layers away, then the layer above.
+        best = min(candidates, key=lambda n: (dielectric_between(idx, copper_layers[n][0]),
+                                              abs(n - ci), n > ci))
+        if copper_layers[best][1]:
+            ref_map[name] = copper_layers[best][1]
 
     return ref_map
 
 
 def _copper_order_from_stackup(stackup: list[dict]) -> list[str]:
-    """Ordered copper layer names from the stackup (KH-397).
+    """Ordered copper layer names from the stackup.
 
     Falls back to simple F.Cu/B.Cu when no usable stackup is available.
     """
@@ -561,7 +701,7 @@ def _copper_order_from_stackup(stackup: list[dict]) -> list[str]:
 
 
 def _via_spans_layer(via_layers: list[str], layer: str, copper_order: list[str]) -> bool:
-    """True when `layer` is within the via's physical span (KH-397). Missing
+    """True when `layer` is within the via's physical span. Missing
     data -> True (through-via assumption)."""
     if not via_layers or len(via_layers) < 2 or not copper_order:
         return True
@@ -573,17 +713,20 @@ def _via_spans_layer(via_layers: list[str], layer: str, copper_order: list[str])
     return min(a, b) <= l <= max(a, b)
 
 
-def _microstrip_impedance(width_mm, height_mm, thickness_mm, epsilon_r):
+def _microstrip_impedance(width_mm, height_mm, thickness_mm, epsilon_r, outer=True):
     """Calculate single-ended microstrip characteristic impedance.
 
-    Uses Wheeler's equations (IPC-2141) with effective width correction
-    for finite copper thickness.
+    Hammerstad's closed form with effective width correction for finite copper
+    thickness. On an outer layer the field is partly in air, so Z0 uses the
+    effective permittivity; an inner layer (outer=False) keeps the bulk
+    epsilon_r, a rough estimate since a buried trace is stripline.
 
     Args:
         width_mm: Trace width in mm
         height_mm: Dielectric height to reference plane in mm
         thickness_mm: Copper thickness in mm
         epsilon_r: Relative permittivity of dielectric
+        outer: True for a top or bottom copper layer
 
     Returns:
         Characteristic impedance in ohms, or None if inputs invalid
@@ -603,15 +746,21 @@ def _microstrip_impedance(width_mm, height_mm, thickness_mm, epsilon_r):
         w_eff = w + (t / math.pi) * (1 + math.log(2 * h / t))
     else:
         w_eff = w + (t / math.pi) * (1 + math.log(4 * math.pi * w / t))
-    # Wheeler's equations
-    # Source: IPC-2141 Design Guide
-    # Verified: https://f4inx.github.io/posts/microstrip-formulas-comparison.html
+    # Source: E. Hammerstad, "Equations for Microstrip Circuit Design", Proc. 5th European
+    # Microwave Conf., 1975; Pozar, Microwave Engineering, 4th ed., §3.8 (eqs. 3.195-3.196)
+    u = w_eff / h
+    e_eff = er
+    if outer:
+        # EQ-109: εeff = (εr+1)/2 + (εr−1)/2·[(1+12h/w)^−½ + 0.04(1−w/h)² for w/h<1] (Hammerstad)
+        e_eff = (er + 1) / 2 + (er - 1) / 2 * (1 + 12 / u) ** -0.5
+        if u < 1:
+            e_eff += (er - 1) / 2 * 0.04 * (1 - u) ** 2
     if w_eff / h < 1:
-        # EQ-023: Z₀ = (60/√εr)ln(8h/w+w/4h) (Wheeler narrow microstrip)
-        z0 = (60 / math.sqrt(er)) * math.log(8 * h / w_eff + w_eff / (4 * h))
+        # EQ-023: Z₀ = (60/√εeff)ln(8h/w+w/4h) (Hammerstad narrow microstrip)
+        z0 = (60 / math.sqrt(e_eff)) * math.log(8 * h / w_eff + w_eff / (4 * h))
     else:
-        # EQ-024: Z₀ = 120π/(√εr(w/h+1.393+0.667ln(w/h+1.444))) (Wheeler wide)
-        z0 = (120 * math.pi) / (math.sqrt(er) * (w_eff / h + 1.393 + 0.667 * math.log(w_eff / h + 1.444)))
+        # EQ-024: Z₀ = 120π/(√εeff(w/h+1.393+0.667ln(w/h+1.444))) (Hammerstad wide)
+        z0 = (120 * math.pi) / (math.sqrt(e_eff) * (w_eff / h + 1.393 + 0.667 * math.log(w_eff / h + 1.444)))
     return z0
 
 
@@ -671,11 +820,13 @@ def analyze_net_lengths(tracks: dict, vias: dict,
     per-via drill size, for parasitic extraction by the SPICE simulation skill.
 
     When stackup is provided, each trace segment also gets a characteristic
-    impedance estimate (microstrip formula from IPC-2141).
+    impedance estimate (microstrip formula; see _microstrip_impedance).
     """
     # EQ-050: L = √(Δx²+Δy²) (track segment length)
     # Pre-compute layer-to-dielectric-height mapping for impedance calculation
     layer_heights = _build_layer_heights(stackup) if stackup else {}
+    copper = [l.get("name") for l in (stackup or []) if l.get("type") == "copper"]
+    outer_layers = {copper[0], copper[-1]} if copper else set()
 
     net_data: dict[int, dict] = {}
 
@@ -705,7 +856,8 @@ def analyze_net_lengths(tracks: dict, vias: dict,
             # Add impedance if stackup is available
             if stackup and layer_heights and layer in layer_heights:
                 h, er, cu_t = layer_heights[layer]
-                z0 = _microstrip_impedance(seg.get("width", 0), h, cu_t, er)
+                z0 = _microstrip_impedance(seg.get("width", 0), h, cu_t, er,
+                                            outer=layer in outer_layers)
                 if z0:
                     seg_entry["impedance_ohm"] = round(z0, 1)
             d.setdefault("trace_segments", []).append(seg_entry)
@@ -739,7 +891,8 @@ def analyze_net_lengths(tracks: dict, vias: dict,
             }
             if stackup and layer_heights and layer in layer_heights:
                 h, er, cu_t = layer_heights[layer]
-                z0 = _microstrip_impedance(arc.get("width", 0), h, cu_t, er)
+                z0 = _microstrip_impedance(arc.get("width", 0), h, cu_t, er,
+                                            outer=layer in outer_layers)
                 if z0:
                     seg_entry["impedance_ohm"] = round(z0, 1)
             d.setdefault("trace_segments", []).append(seg_entry)
@@ -803,18 +956,27 @@ def analyze_net_lengths(tracks: dict, vias: dict,
 
 
 def analyze_ground_domains(footprints: list[dict], net_names: dict[int, str],
-                           zones: list[dict]) -> dict:
+                           zones: list[dict], power_rails: set[str] | None = None) -> dict:
     """Identify ground domain splits and component membership.
 
     Detects separate ground nets (GND, AGND, DGND, PGND, etc.) and reports
     which components connect to each. Components on multiple ground domains
     are flagged — these may be intentional (star ground) or errors.
     """
-    ground_nets: dict[int, str] = {}
-    for net_num, name in net_names.items():
-        nu = name.upper()
-        if any(g in nu for g in ("GND", "VSS", "GROUND")):
-            ground_nets[net_num] = name
+    # COM also names an analog-switch or motor common: a ground domain only when the rail
+    # set names it. AGND_CODEC, PGND2 or ESP_GND2 are grounds too, but a net KiCad names
+    # after a pin (Net-(U1-GND), unconnected-(U1-GND-Pad3), a panel's Board_0-Net-(U1-GND))
+    # is not.
+    def _is_ground(name: str) -> bool:
+        leaf = net_leaf(name).upper()
+        if leaf == "COM":
+            return name in (power_rails or ())
+        return is_ground_name(name, power_rails) or (
+            any(g in leaf for g in ("GND", "VSS", "GROUND"))
+            and "NET-(" not in leaf and "UNCONNECTED-(" not in leaf)
+
+    ground_nets: dict[int, str] = {
+        net_num: name for net_num, name in net_names.items() if _is_ground(name)}
 
     if not ground_nets:
         return {"domain_count": 0, "domains": [], "multi_domain_components": []}
@@ -865,7 +1027,8 @@ def analyze_ground_domains(footprints: list[dict], net_names: dict[int, str],
 
 def analyze_trace_proximity(tracks: dict, net_names: dict[int, str],
                             grid_size: float = 0.5,
-                            power_rails: set[str] | None = None) -> dict:
+                            power_rails: set[str] | None = None,
+                            pin_signals: frozenset = frozenset()) -> dict:
     """Identify signal nets with traces running close together on the same layer.
 
     Uses a spatial grid to find net pairs sharing grid cells, indicating
@@ -908,7 +1071,8 @@ def analyze_trace_proximity(tracks: dict, net_names: dict[int, str],
     pair_counts: dict[tuple[str, int, int], int] = {}
     for (_layer, _gx, _gy), nets in grid.items():
         signal = sorted(n for n in nets
-                        if not (is_power_net_name(net_names.get(n, ""), power_rails) or is_ground_name(net_names.get(n, ""))))
+                        if not ((net_names.get(n, "") not in pin_signals and is_power_net_name(net_names.get(n, ""), power_rails))
+                                or is_ground_name(net_names.get(n, ""))))
         if len(signal) < 2:
             continue
         for i in range(len(signal)):
@@ -940,7 +1104,8 @@ def analyze_trace_proximity(tracks: dict, net_names: dict[int, str],
 def analyze_current_capacity(tracks: dict, vias: dict, zones: list[dict],
                              net_names: dict[int, str],
                              setup: dict,
-                             power_rails: set[str] | None = None) -> dict:
+                             power_rails: set[str] | None = None,
+                             pin_signals: frozenset = frozenset()) -> dict:
     """Provide facts for current capacity assessment (IPC-2221).
 
     For each net, reports the minimum track width and total copper cross-section
@@ -1024,7 +1189,7 @@ def analyze_current_capacity(tracks: dict, vias: dict, zones: list[dict],
         if data["min_width"] == float("inf"):
             continue
         name = net_names.get(net_num, f"net_{net_num}")
-        is_power = is_power_net_name(name, power_rails) or is_ground_name(name)
+        is_power = (name not in pin_signals and is_power_net_name(name, power_rails)) or is_ground_name(name)
 
         entry = {
             "net": name,
@@ -1100,7 +1265,8 @@ def analyze_current_capacity(tracks: dict, vias: dict, zones: list[dict],
 
 def analyze_layer_transitions(tracks: dict, vias: dict,
                                net_names: dict[int, str],
-                               power_rails: set[str] | None = None) -> list[dict]:
+                               power_rails: set[str] | None = None,
+                               pin_signals: frozenset = frozenset()) -> list[dict]:
     """Identify signal net layer transitions (via usage patterns).
 
     For ground return path analysis, higher-level logic needs to know which
@@ -1143,7 +1309,7 @@ def analyze_layer_transitions(tracks: dict, vias: dict,
         if len(data["layers"]) < 2:
             continue
         name = net_names.get(net_num, f"net_{net_num}")
-        if is_power_net_name(name, power_rails) or is_ground_name(name):
+        if (name not in pin_signals and is_power_net_name(name, power_rails)) or is_ground_name(name):
             continue  # Power/ground layer transitions are expected
 
         entry = {

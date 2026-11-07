@@ -169,7 +169,7 @@ uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.p
 
 **IMPORTANT**: Pass `$PLAN_PATH` as given — the orchestrator resolves it to an OS-native absolute path itself. Do NOT wrap it in `$(realpath ...)`: on Git for Windows, `realpath` emits a POSIX `/c/...` path that a native Windows Python process cannot use.
 
-**IMPORTANT**: Run this command in the foreground — do **not** run it detached. The orchestrator runs quickly — it only generates batch JSON, it does not apply changes — so 10 minutes is far more than enough.
+**IMPORTANT**: Foreground or detached depends on who runs the batches. On the native-subagent path (no `--exec-subagents`), run this command in the foreground — do **not** run it detached: there the orchestrator only generates batch JSON, it does not apply changes, so 10 minutes is far more than enough (and `--detach` implies `--exec-subagents`, which would hand the batches to the executor). With `--exec-subagents` (the Python write executor, below) it is the other way round: this one command dispatches, verifies and records every batch itself, so it **does** apply the changes and runs as long as all the batches together. On that path **run detached**: add `--detach` (which implies `--yes`; see that flag below), poll the `status` command the launcher printed until the run is finished, and read the run's markers and output paths from the log it named.
 
 The orchestrator will:
 1. Load validation results and grouped suggestions
@@ -270,11 +270,11 @@ Three flags belong to that path and are worth knowing even on this one:
   `{phase}/subagent_dry_run.json` and exits 0 having started no child and changed
   nothing else. The recommended first unattended run on a new host.
 - `--detach` — the phase self-daemonizes and returns a log path plus a `status`
-  command to poll. Per-batch progress lands in `{phase}/.status.json` under
-  `progress.write_subagents`, so an unattended write run is observable with no chat
-  context at all. Never combine it with a host's own background primitive: on Claude
-  host resolves *run detached* to its own background mechanism uses that
-  mechanism and never passes `--detach`.
+  command to poll; it is how step 2 runs on this path. Per-batch progress lands in
+  `{phase}/.status.json` under `progress.write_subagents`, so an unattended write
+  run is observable with no chat context at all. Never combine it with a host's own
+  background primitive: a host that resolves *run detached* to its own background
+  mechanism uses that mechanism and never passes `--detach`.
 - Rollback, when a batch half-applies —
   `multi_llm.py util restore-batch --phase-dir <dir> --task-id <id>` (also
   `--all-failed`), invoked through the dispatcher the same way every other mode is.

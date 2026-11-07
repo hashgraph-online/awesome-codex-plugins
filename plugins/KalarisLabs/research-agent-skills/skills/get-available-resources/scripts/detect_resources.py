@@ -41,6 +41,10 @@ MAX_DEVICES = 256
 MIB = 1024**2
 GIB = 1024**3
 _AUTO = object()
+_NON_ALNUM_RE = r"[^a-z0-9]+"
+_PROV_CPU_PHYSICAL = "cpu.host.physical"
+_PROV_PSUTIL = "inventory.psutil"
+_PROV_APPLE_SYSCTL = "platform.apple_sysctl"
 
 NVIDIA_QUERY = (
     "nvidia-smi",
@@ -103,6 +107,7 @@ def _warning(
     *,
     severity: str = "warning",
 ) -> None:
+    """Handle warning."""
     warnings.append(
         {
             "code": code,
@@ -119,12 +124,14 @@ def _provenance(
     source: str,
     status: str,
 ) -> None:
+    """Handle provenance."""
     records.append(
         {"component": component, "source": source, "status": status}
     )
 
 
 def _safe_text(value: Any, maximum: int = 128) -> str | None:
+    """Handle safe text."""
     if not isinstance(value, (str, int, float)):
         return None
     rendered = " ".join(str(value).split())
@@ -133,6 +140,7 @@ def _safe_text(value: Any, maximum: int = 128) -> str | None:
 
 
 def _read_bounded_text(path: Path, maximum: int = MAX_KERNEL_TEXT) -> str:
+    """Read bounded text."""
     with path.open("rb") as stream:
         payload = stream.read(maximum + 1)
     if len(payload) > maximum:
@@ -144,13 +152,15 @@ def _try_read(
     read_text: Callable[[Path], str],
     path: Path,
 ) -> str | None:
+    """Handle try read."""
     try:
         return read_text(path)
-    except (OSError, ValueError, UnicodeError):
+    except (OSError, ValueError):
         return None
 
 
 def _bounded_nonnegative(value: str | int | None) -> int | None:
+    """Handle bounded nonnegative."""
     if isinstance(value, bool) or value is None:
         return None
     try:
@@ -189,6 +199,7 @@ def parse_cpu_list(value: str) -> int | None:
 
 
 def _parse_cpu_max(value: str) -> float | None:
+    """Parse cpu max."""
     fields = value.strip().split()
     if len(fields) != 2 or fields[0] == "max":
         return None
@@ -230,6 +241,7 @@ def _run_bounded_command(
     truncated = threading.Event()
 
     def drain(name: str, stream: Any) -> None:
+        """Handle drain."""
         try:
             while True:
                 chunk = stream.read(4096)
@@ -295,6 +307,7 @@ def _load_psutil(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> Any | None:
+    """Load psutil."""
     try:
         module = importlib.import_module("psutil")
     except (ImportError, OSError):
@@ -305,15 +318,16 @@ def _load_psutil(
             "Optional psutil is unavailable; standard-library fallbacks were used.",
             severity="info",
         )
-        _provenance(provenance, "inventory.psutil", "optional_import", "unavailable")
+        _provenance(provenance, _PROV_PSUTIL, "optional_import", "unavailable")
         return None
-    _provenance(provenance, "inventory.psutil", "optional_import", "ok")
+    _provenance(provenance, _PROV_PSUTIL, "optional_import", "ok")
     return module
 
 
 def _linux_physical_cores(
     read_text: Callable[[Path], str],
 ) -> int | None:
+    """Handle linux physical cores."""
     payload = _try_read(read_text, Path("/proc/cpuinfo"))
     if not payload:
         return None
@@ -335,6 +349,7 @@ def _mac_sysctl_values(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> dict[str, Any]:
+    """Handle mac sysctl values."""
     result = run_command(APPLE_SYSCTL_QUERY, timeout=2.0)
     if result["status"] != "ok":
         _warning(
@@ -344,7 +359,7 @@ def _mac_sysctl_values(
             "Apple sysctl inventory was unavailable; other sources were retained.",
             severity="info",
         )
-        _provenance(provenance, "platform.apple_sysctl", "sysctl", result["status"])
+        _provenance(provenance, _PROV_APPLE_SYSCTL, "sysctl", result["status"])
         return {}
     lines = result["stdout"].splitlines()
     if len(lines) < 4:
@@ -354,9 +369,9 @@ def _mac_sysctl_values(
             "platform",
             "Apple sysctl returned an unexpected bounded response.",
         )
-        _provenance(provenance, "platform.apple_sysctl", "sysctl", "parse_error")
+        _provenance(provenance, _PROV_APPLE_SYSCTL, "sysctl", "parse_error")
         return {}
-    _provenance(provenance, "platform.apple_sysctl", "sysctl", "ok")
+    _provenance(provenance, _PROV_APPLE_SYSCTL, "sysctl", "ok")
     return {
         "logical": _bounded_nonnegative(lines[0]),
         "physical": _bounded_nonnegative(lines[1]),
@@ -374,6 +389,7 @@ def _detect_cpu_inventory(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> dict[str, int | None]:
+    """Detect cpu inventory."""
     host_logical = os.cpu_count()
     if (
         not isinstance(host_logical, int)
@@ -402,7 +418,7 @@ def _detect_cpu_inventory(
             ):
                 host_physical = candidate
                 _provenance(
-                    provenance, "cpu.host.physical", "psutil.cpu_count", "ok"
+                    provenance, _PROV_CPU_PHYSICAL, "psutil.cpu_count", "ok"
                 )
         except (AttributeError, OSError, RuntimeError, ValueError):
             pass
@@ -410,11 +426,11 @@ def _detect_cpu_inventory(
         candidate = mac_sysctl.get("physical")
         if isinstance(candidate, int) and 0 < candidate <= MAX_CPU_ID + 1:
             host_physical = candidate
-            _provenance(provenance, "cpu.host.physical", "sysctl", "ok")
+            _provenance(provenance, _PROV_CPU_PHYSICAL, "sysctl", "ok")
     if host_physical is None and system == "Linux":
         host_physical = _linux_physical_cores(read_text)
         if host_physical is not None:
-            _provenance(provenance, "cpu.host.physical", "proc_cpuinfo", "ok")
+            _provenance(provenance, _PROV_CPU_PHYSICAL, "proc_cpuinfo", "ok")
     if host_physical is None:
         _warning(
             warnings,
@@ -423,7 +439,7 @@ def _detect_cpu_inventory(
             "Physical core count is unknown and was not inferred from logical CPUs.",
             severity="info",
         )
-        _provenance(provenance, "cpu.host.physical", "platform_fallbacks", "unavailable")
+        _provenance(provenance, _PROV_CPU_PHYSICAL, "platform_fallbacks", "unavailable")
     return {"logical": host_logical, "physical": host_physical}
 
 
@@ -433,6 +449,7 @@ def _detect_process_cpu_count(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> dict[str, int | None]:
+    """Detect process cpu count."""
     affinity_count: int | None = None
     affinity_source: str | None = None
     get_affinity = getattr(os, "sched_getaffinity", None)
@@ -493,6 +510,7 @@ def _detect_process_cpu_count(
 
 
 def _cgroup_relative_path(payload: str) -> tuple[str, ...] | None:
+    """Handle cgroup relative path."""
     for line in payload.splitlines():
         fields = line.split(":", 2)
         if len(fields) == 3 and fields[0] == "0" and fields[1] == "":
@@ -627,6 +645,7 @@ def detect_cgroup_v2(
 
 
 def _parse_slurm_count(value: str | None) -> int | None:
+    """Parse slurm count."""
     if value is None or not 0 < len(value) <= 128:
         return None
     stripped = value.strip()
@@ -641,6 +660,7 @@ def _parse_slurm_count(value: str | None) -> int | None:
 
 
 def _parse_slurm_memory(value: str | None) -> int | None:
+    """Parse slurm memory."""
     if value is None or not 0 < len(value) <= 128:
         return None
     match = re.fullmatch(r"\s*(\d+)\s*([KkMmGgTt]?)\s*", value)
@@ -656,6 +676,7 @@ def _parse_slurm_memory(value: str | None) -> int | None:
 
 
 def _parse_first_repeated_count(value: str | None) -> int | None:
+    """Parse first repeated count."""
     if value is None or len(value) > 4096:
         return None
     match = re.match(r"\s*(\d+)(?:\(x\d+\))?", value)
@@ -778,6 +799,7 @@ def _effective_cpu(
     cgroup: Mapping[str, Any],
     scheduler: Mapping[str, Any],
 ) -> dict[str, Any]:
+    """Handle effective cpu."""
     candidates: list[tuple[str, float]] = []
     for source, value in (
         ("host_logical", host.get("logical")),
@@ -810,6 +832,7 @@ def _effective_cpu(
 
 
 def _parse_linux_meminfo(payload: str) -> dict[str, int | None]:
+    """Parse linux meminfo."""
     values: dict[str, int] = {}
     for line in payload.splitlines():
         match = re.fullmatch(r"([A-Za-z_()]+):\s+(\d+)\s+kB", line.strip())
@@ -823,67 +846,95 @@ def _parse_linux_meminfo(payload: str) -> dict[str, int | None]:
     }
 
 
-def _detect_memory(
-    *,
-    system: str,
-    machine: str,
+def _read_psutil_memory(
     psutil_module: Any | None,
-    mac_sysctl: Mapping[str, Any],
-    cgroup: Mapping[str, Any],
-    scheduler: Mapping[str, Any],
-    read_text: Callable[[Path], str],
-    warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
-) -> dict[str, Any]:
-    host_total: int | None = None
-    host_available: int | None = None
-    swap_total: int | None = None
-    swap_free: int | None = None
-    if psutil_module is not None:
-        try:
-            memory = psutil_module.virtual_memory()
-            host_total = _bounded_nonnegative(memory.total)
-            host_available = _bounded_nonnegative(memory.available)
-            _provenance(provenance, "memory.host", "psutil.virtual_memory", "ok")
-        except (AttributeError, OSError, RuntimeError, ValueError):
-            pass
-        try:
-            swap = psutil_module.swap_memory()
-            swap_total = _bounded_nonnegative(swap.total)
-            swap_free = _bounded_nonnegative(swap.free)
-            _provenance(provenance, "memory.swap", "psutil.swap_memory", "ok")
-        except (AttributeError, OSError, RuntimeError, ValueError):
-            pass
+) -> dict[str, int | None]:
+    """Read host memory and swap figures from psutil, tolerating partial failure."""
+    vals: dict[str, int | None] = {
+        "total": None,
+        "available": None,
+        "swap_total": None,
+        "swap_free": None,
+    }
+    if psutil_module is None:
+        return vals
+    try:
+        memory = psutil_module.virtual_memory()
+        vals["total"] = _bounded_nonnegative(memory.total)
+        vals["available"] = _bounded_nonnegative(memory.available)
+        _provenance(provenance, "memory.host", "psutil.virtual_memory", "ok")
+    except (AttributeError, OSError, RuntimeError, ValueError):
+        pass
+    try:
+        swap = psutil_module.swap_memory()
+        vals["swap_total"] = _bounded_nonnegative(swap.total)
+        vals["swap_free"] = _bounded_nonnegative(swap.free)
+        _provenance(provenance, "memory.swap", "psutil.swap_memory", "ok")
+    except (AttributeError, OSError, RuntimeError, ValueError):
+        pass
+    return vals
 
-    if system == "Linux" and (host_total is None or host_available is None):
-        payload = _try_read(read_text, Path("/proc/meminfo"))
-        if payload:
-            parsed = _parse_linux_meminfo(payload)
-            host_total = host_total or parsed["total"]
-            host_available = (
-                host_available
-                if host_available is not None
-                else parsed["available"]
-            )
-            swap_total = swap_total if swap_total is not None else parsed["swap_total"]
-            swap_free = swap_free if swap_free is not None else parsed["swap_free"]
-            _provenance(provenance, "memory.host", "proc_meminfo", "ok")
-    if system == "Darwin" and host_total is None:
+
+def _fill_from_proc_meminfo(
+    vals: dict[str, int | None],
+    read_text: Callable[[Path], str],
+    provenance: list[dict[str, str]],
+) -> None:
+    """Fill missing memory figures in ``vals`` from /proc/meminfo when it is readable."""
+    payload = _try_read(read_text, Path("/proc/meminfo"))
+    if not payload:
+        return
+    parsed = _parse_linux_meminfo(payload)
+    vals["total"] = vals["total"] or parsed["total"]
+    for key, parsed_key in (
+        ("available", "available"),
+        ("swap_total", "swap_total"),
+        ("swap_free", "swap_free"),
+    ):
+        if vals[key] is None:
+            vals[key] = parsed[parsed_key]
+    _provenance(provenance, "memory.host", "proc_meminfo", "ok")
+
+
+def _sysconf_memory_total() -> int | None:
+    """Return physical memory from os.sysconf when it is a plausible bounded value."""
+    try:
+        pages = os.sysconf("SC_PHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        candidate = pages * page_size
+    except (AttributeError, OSError, TypeError, ValueError):
+        return None
+    if 0 < candidate <= MAX_BYTES:
+        return candidate
+    return None
+
+
+def _fill_host_memory_total(
+    vals: dict[str, int | None],
+    system: str,
+    mac_sysctl: Mapping[str, Any],
+    provenance: list[dict[str, str]],
+) -> None:
+    """Fill the host memory total from sysctl (Darwin) or os.sysconf when still unknown."""
+    if system == "Darwin" and vals["total"] is None:
         candidate = mac_sysctl.get("memory")
         if isinstance(candidate, int) and candidate > 0:
-            host_total = candidate
+            vals["total"] = candidate
             _provenance(provenance, "memory.host.total", "sysctl", "ok")
-    if host_total is None:
-        try:
-            pages = os.sysconf("SC_PHYS_PAGES")
-            page_size = os.sysconf("SC_PAGE_SIZE")
-            candidate = pages * page_size
-            if 0 < candidate <= MAX_BYTES:
-                host_total = candidate
-                _provenance(provenance, "memory.host.total", "os.sysconf", "ok")
-        except (AttributeError, OSError, TypeError, ValueError):
-            pass
+    if vals["total"] is None:
+        total = _sysconf_memory_total()
+        if total is not None:
+            vals["total"] = total
+            _provenance(provenance, "memory.host.total", "os.sysconf", "ok")
 
+
+def _warn_unknown_memory(
+    host_total: int | None,
+    host_available: int | None,
+    warnings: list[dict[str, str]],
+) -> None:
+    """Emit warnings for host memory figures that could not be determined."""
     if host_total is None:
         _warning(
             warnings,
@@ -900,61 +951,73 @@ def _detect_memory(
             severity="info",
         )
 
-    limit_candidates: list[tuple[str, int]] = []
-    available_candidates: list[tuple[str, int]] = []
-    for source, value in (
-        ("host_total", host_total),
-        ("cgroup_memory_max", cgroup.get("memory_max_bytes")),
-        (
-            "scheduler_memory",
-            scheduler.get("allocation", {}).get("memory_effective_bytes"),
-        ),
-    ):
-        if isinstance(value, int) and value >= 0:
-            limit_candidates.append((source, value))
-    for source, value in (
-        ("host_available", host_available),
-        ("cgroup_memory_remaining", cgroup.get("memory_available_bytes")),
-        (
-            "scheduler_memory_upper_bound",
-            scheduler.get("allocation", {}).get("memory_effective_bytes"),
-        ),
-    ):
-        if isinstance(value, int) and value >= 0:
-            available_candidates.append((source, value))
 
-    effective_limit = (
-        min(value for _, value in limit_candidates) if limit_candidates else None
+def _int_candidates(pairs: Sequence[tuple[str, Any]]) -> list[tuple[str, int]]:
+    """Keep the (source, value) pairs whose value is a non-negative int."""
+    return [(s, v) for s, v in pairs if isinstance(v, int) and v >= 0]
+
+
+def _min_candidate(candidates: Sequence[tuple[str, int]]) -> int | None:
+    """Return the smallest candidate value, or None when there are no candidates."""
+    if not candidates:
+        return None
+    return min(value for _, value in candidates)
+
+
+def _sources_at_value(candidates: Sequence[tuple[str, int]], value: int | None) -> list[str]:
+    """Return the sorted source names whose candidate equals ``value``."""
+    if value is None:
+        return []
+    return sorted(source for source, v in candidates if v == value)
+
+
+def _detect_memory(
+    *,
+    system: str,
+    machine: str,
+    psutil_module: Any | None,
+    mac_sysctl: Mapping[str, Any],
+    cgroup: Mapping[str, Any],
+    scheduler: Mapping[str, Any],
+    read_text: Callable[[Path], str],
+    warnings: list[dict[str, str]],
+    provenance: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Detect host and effective memory limits from psutil, /proc, sysctl, cgroups and scheduler."""
+    vals = _read_psutil_memory(psutil_module, provenance)
+    if system == "Linux" and (vals["total"] is None or vals["available"] is None):
+        _fill_from_proc_meminfo(vals, read_text, provenance)
+    _fill_host_memory_total(vals, system, mac_sysctl, provenance)
+    host_total = vals["total"]
+    host_available = vals["available"]
+    _warn_unknown_memory(host_total, host_available, warnings)
+
+    scheduler_memory = scheduler.get("allocation", {}).get("memory_effective_bytes")
+    limit_candidates = _int_candidates(
+        (
+            ("host_total", host_total),
+            ("cgroup_memory_max", cgroup.get("memory_max_bytes")),
+            ("scheduler_memory", scheduler_memory),
+        )
     )
-    effective_available = (
-        min(value for _, value in available_candidates)
-        if available_candidates
-        else None
+    available_candidates = _int_candidates(
+        (
+            ("host_available", host_available),
+            ("cgroup_memory_remaining", cgroup.get("memory_available_bytes")),
+            ("scheduler_memory_upper_bound", scheduler_memory),
+        )
     )
+
+    effective_limit = _min_candidate(limit_candidates)
+    effective_available = _min_candidate(available_candidates)
     if (
         effective_limit is not None
         and effective_available is not None
         and effective_available > effective_limit
     ):
         effective_available = effective_limit
-    limiting_sources = (
-        sorted(
-            source
-            for source, value in limit_candidates
-            if value == effective_limit
-        )
-        if effective_limit is not None
-        else []
-    )
-    available_sources = (
-        sorted(
-            source
-            for source, value in available_candidates
-            if value == effective_available
-        )
-        if effective_available is not None
-        else []
-    )
+    limiting_sources = _sources_at_value(limit_candidates, effective_limit)
+    available_sources = _sources_at_value(available_candidates, effective_available)
     unified = system == "Darwin" and machine.lower() in {"arm64", "aarch64"}
     return {
         "cgroup_v2": {
@@ -975,7 +1038,7 @@ def _detect_memory(
             "total_bytes": host_total,
         },
         "model": "unified_cpu_gpu" if unified else "system_ram",
-        "swap": {"free_bytes": swap_free, "total_bytes": swap_total},
+        "swap": {"free_bytes": vals["swap_free"], "total_bytes": vals["swap_total"]},
     }
 
 
@@ -983,6 +1046,7 @@ def _detect_disk(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> dict[str, Any]:
+    """Detect disk."""
     try:
         usage = shutil.disk_usage(Path.cwd())
         total = _bounded_nonnegative(usage.total)
@@ -1040,6 +1104,7 @@ def _detect_disk(
 
 
 def _mib_to_bytes(value: str) -> int | None:
+    """Handle mib to bytes."""
     try:
         amount = float(value)
     except ValueError:
@@ -1051,6 +1116,7 @@ def _mib_to_bytes(value: str) -> int | None:
 
 
 def parse_nvidia_csv(payload: str) -> list[dict[str, Any]]:
+    """Parse nvidia csv."""
     devices: list[dict[str, Any]] = []
     try:
         rows = csv.reader(io.StringIO(payload))
@@ -1090,9 +1156,10 @@ def _recursive_scalar(
     value: Any,
     accepted_keys: set[str],
 ) -> tuple[str, Any] | None:
+    """Handle recursive scalar."""
     if isinstance(value, dict):
         for key, child in value.items():
-            normalized = re.sub(r"[^a-z0-9]+", "_", str(key).lower()).strip("_")
+            normalized = re.sub(_NON_ALNUM_RE, "_", str(key).lower()).strip("_")
             if normalized in accepted_keys and isinstance(child, (str, int, float)):
                 return normalized, child
         for child in value.values():
@@ -1108,6 +1175,7 @@ def _recursive_scalar(
 
 
 def _amd_entries(data: Any) -> list[tuple[int, dict[str, Any]]]:
+    """Handle amd entries."""
     entries: list[tuple[int, dict[str, Any]]] = []
     if isinstance(data, list):
         for index, item in enumerate(data):
@@ -1128,7 +1196,7 @@ def _amd_entries(data: Any) -> list[tuple[int, dict[str, Any]]]:
     elif isinstance(data, dict):
         for key, item in data.items():
             normalized = re.sub(
-                r"[^a-z0-9]+", "_", str(key).lower()
+                _NON_ALNUM_RE, "_", str(key).lower()
             ).strip("_")
             if normalized in {"gpu_data", "gpu_devices", "gpus"}:
                 entries.extend(_amd_entries(item))
@@ -1150,8 +1218,9 @@ def _amd_entries(data: Any) -> list[tuple[int, dict[str, Any]]]:
 
 
 def _amd_memory_bytes(entry: Mapping[str, Any]) -> int | None:
+    """Handle amd memory bytes."""
     for key, value in entry.items():
-        normalized = re.sub(r"[^a-z0-9]+", "_", str(key).lower()).strip("_")
+        normalized = re.sub(_NON_ALNUM_RE, "_", str(key).lower()).strip("_")
         if (
             "vram" in normalized
             and ("total" in normalized or "size" in normalized)
@@ -1179,6 +1248,7 @@ def _amd_memory_bytes(entry: Mapping[str, Any]) -> int | None:
 
 
 def parse_amd_json(payload: str) -> list[dict[str, Any]]:
+    """Parse amd json."""
     try:
         data = json.loads(payload)
         entries = _amd_entries(data)
@@ -1226,6 +1296,7 @@ def parse_apple_profiler_json(
     *,
     machine: str,
 ) -> list[dict[str, Any]]:
+    """Parse apple profiler json."""
     try:
         data = json.loads(payload)
     except (json.JSONDecodeError, RecursionError):
@@ -1268,6 +1339,7 @@ def parse_apple_profiler_json(
 
 
 def _visibility_summary(environ: Mapping[str, str]) -> dict[str, Any]:
+    """Handle visibility summary."""
     summary: dict[str, Any] = {}
     for key in ACCELERATOR_ENV_KEYS:
         if key not in environ:
@@ -1313,6 +1385,7 @@ def _accelerator_upper_bounds(
     visibility: Mapping[str, Mapping[str, Any]],
     scheduler: Mapping[str, Any],
 ) -> dict[str, int | None]:
+    """Handle accelerator upper bounds."""
     result: dict[str, int | None] = {}
     scheduler_count = scheduler.get("allocation", {}).get("gpus_per_process")
     if scheduler_count is None:
@@ -1354,6 +1427,7 @@ def _record_probe_failure(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> None:
+    """Handle record probe failure."""
     status = str(result.get("status", "error"))
     _provenance(provenance, component, tool, status)
     if status != "not_found":
@@ -1376,6 +1450,7 @@ def _detect_accelerators(
     warnings: list[dict[str, str]],
     provenance: list[dict[str, str]],
 ) -> dict[str, Any]:
+    """Detect accelerators."""
     devices: list[dict[str, Any]] = []
 
     nvidia = run_command(NVIDIA_QUERY, timeout=4.0)
@@ -1524,6 +1599,7 @@ def _container_context(
     cgroup: Mapping[str, Any],
     exists: Callable[[Path], bool] = Path.exists,
 ) -> dict[str, Any]:
+    """Handle container context."""
     evidence: list[str] = []
     for marker, label in (
         (Path("/.dockerenv"), "docker_marker"),
@@ -1539,22 +1615,22 @@ def _container_context(
         for key in ("cpu_quota_cores", "cpuset_logical", "memory_max_bytes")
     ):
         evidence.append("cgroup_limit")
+    runtime: str | None = None
+    if "docker_marker" in evidence:
+        runtime = "docker_or_compatible"
+    elif "containerenv_marker" in evidence:
+        runtime = "oci_compatible"
     return {
         "detected": bool(
             {"docker_marker", "containerenv_marker"}.intersection(evidence)
         ),
         "evidence": sorted(evidence),
-        "runtime": (
-            "docker_or_compatible"
-            if "docker_marker" in evidence
-            else "oci_compatible"
-            if "containerenv_marker" in evidence
-            else None
-        ),
+        "runtime": runtime,
     }
 
 
 def _observed_at() -> str:
+    """Handle observed at."""
     return (
         dt.datetime.now(dt.timezone.utc)
         .replace(microsecond=0)
@@ -1582,7 +1658,7 @@ def collect_snapshot(
     if psutil_module is _AUTO:
         psutil_module = _load_psutil(warnings, provenance)
     elif psutil_module is None:
-        _provenance(provenance, "inventory.psutil", "injected", "unavailable")
+        _provenance(provenance, _PROV_PSUTIL, "injected", "unavailable")
 
     mac_sysctl: dict[str, Any] = {}
     if system == "Darwin":
@@ -1678,13 +1754,12 @@ def collect_snapshot(
     provenance.sort(
         key=lambda item: (item["component"], item["source"], item["status"])
     )
-    completeness = (
-        "partial"
-        if any(item["severity"] == "warning" for item in warnings)
-        else "complete_with_informational_notes"
-        if warnings
-        else "complete"
-    )
+    if any(item["severity"] == "warning" for item in warnings):
+        completeness = "partial"
+    elif warnings:
+        completeness = "complete_with_informational_notes"
+    else:
+        completeness = "complete"
     return {
         "accelerators": accelerators,
         "cgroup_v2": {
@@ -1725,6 +1800,7 @@ def detect_all_resources(output_path: str | None = None) -> dict[str, Any]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Report host inventory and effective process limits as deterministic JSON"
@@ -1751,6 +1827,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     if args.force and not args.output:

@@ -12,6 +12,7 @@ if __package__:
         HYPOGENIC_COMMIT,
         HYPOGENIC_VERSION,
         HYPOGENIC_WHEEL_SHA256,
+        JSON_SUFFIX,
         MAX_CONFIG_BYTES,
         CliError,
         checked_input_file,
@@ -27,6 +28,7 @@ else:
         HYPOGENIC_COMMIT,
         HYPOGENIC_VERSION,
         HYPOGENIC_WHEEL_SHA256,
+        JSON_SUFFIX,
         MAX_CONFIG_BYTES,
         CliError,
         checked_input_file,
@@ -40,6 +42,7 @@ else:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Generate a plan-only HypoGeniC token/cost upper bound. No package, "
@@ -62,6 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _money(value: Decimal) -> float:
+    """Handle money."""
     return float(value.quantize(Decimal("0.000001"), rounding=ROUND_HALF_UP))
 
 
@@ -72,6 +76,7 @@ def make_plan(
     check_env: bool,
     inputs_checked: bool,
 ) -> dict:
+    """Make plan."""
     limits = config["limits"]
     pricing = config["pricing"]
     max_requests = limits["max_requests"]
@@ -203,12 +208,13 @@ def make_plan(
 
 
 def main(argv: Sequence[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         config_path = checked_input_file(
             args.config,
             root=args.root,
-            suffixes={".json", ".yaml", ".yml"},
+            suffixes={JSON_SUFFIX, ".yaml", ".yml"},
             max_bytes=MAX_CONFIG_BYTES,
         )
         config = validate_run_config(
@@ -222,13 +228,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             checked_input_file(
                 config["data"]["task_config"],
                 root=args.root,
-                suffixes={".json", ".yaml", ".yml"},
+                suffixes={JSON_SUFFIX, ".yaml", ".yml"},
                 max_bytes=MAX_CONFIG_BYTES,
             )
             checked_input_file(
                 config["data"]["dataset_manifest"],
                 root=args.root,
-                suffixes={".json"},
+                suffixes={JSON_SUFFIX},
                 max_bytes=MAX_CONFIG_BYTES,
             )
         plan = make_plan(

@@ -28,8 +28,8 @@ import json
 import os
 import sys
 import _core_path  # noqa: F401
-from distributor_core.download import try_alternative_sources
-from distributor_core.verify import verify_datasheet
+from distributor_core.download import try_alternative_sources, add_download_args, apply_download_args
+from distributor_core.verify import fetch_mismatch, refuse_fetch_hit, same_part, verify_datasheet
 from distributor_core.manifest import _friendly_filename
 from provider_element14 import (
     download_pdf,
@@ -58,7 +58,9 @@ def main():
     parser.add_argument("--store", default=_DEFAULT_STORE,
                         help=f"element14 store ID (default: {_DEFAULT_STORE})")
     parser.add_argument("--json", action="store_true", help="Output result as JSON")
+    add_download_args(parser)
     args = parser.parse_args()
+    apply_download_args(args)
 
     if args.search:
         api_key = os.environ.get("ELEMENT14_API_KEY", "")
@@ -71,7 +73,9 @@ def main():
                       file=sys.stderr)
             sys.exit(2)
 
-        product = search_element14(args.search, api_key, args.store)
+        product = search_element14(
+            args.search, api_key, args.store,
+            accept=lambda h: not fetch_mismatch(args.search, _get_mpn(h), [_get_sku(h)]))
         if not product:
             if args.json:
                 json.dump({"success": False, "error": "Part not found on element14"},
@@ -82,6 +86,10 @@ def main():
 
         mpn = _get_mpn(product)
         sku = _get_sku(product)
+        other = fetch_mismatch(args.search, mpn, [sku])
+        if other:
+            refuse_fetch_hit("element14", args.search, other, args.json)
+        verify_pn = args.search if same_part(args.search, mpn) else (mpn or args.search)
         desc = _get_description(product)
         mfg = _get_manufacturer(product)
         ds_url = _get_datasheet_url(product)
@@ -108,7 +116,7 @@ def main():
 
         print(f"Downloading datasheet for {display_pn} ({sku})...", file=sys.stderr)
         if download_pdf(ds_url, output_path):
-            vr = verify_datasheet(output_path, mpn or sku, desc, mfg)
+            vr = verify_datasheet(output_path, verify_pn, desc, mfg)
             if vr["confidence"] == "wrong":
                 print(f"WARNING: Downloaded PDF may be wrong datasheet for {display_pn}",
                       file=sys.stderr)
@@ -125,7 +133,7 @@ def main():
             print(f"element14 URL failed, trying alternatives for {mpn}...",
                   file=sys.stderr)
             if try_alternative_sources(mpn, output_path):
-                vr = verify_datasheet(output_path, mpn, desc, mfg)
+                vr = verify_datasheet(output_path, verify_pn, desc, mfg)
                 if args.json:
                     result["success"] = True
                     result["output"] = output_path
@@ -159,4 +167,6 @@ def main():
 
 
 if __name__ == "__main__":
+    from kicad_core.cli import utf8_stdio
+    utf8_stdio()
     main()

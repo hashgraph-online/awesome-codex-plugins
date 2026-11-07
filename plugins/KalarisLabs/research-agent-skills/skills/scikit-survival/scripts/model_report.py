@@ -14,6 +14,7 @@ COMPETING_RISK_CHOICES = ("not-assessed", "absent", "present")
 
 
 def _mapping(value: Any, label: str) -> dict[str, Any]:
+    """Handle mapping."""
     if not isinstance(value, dict):
         raise CliError(f"{label} must be a JSON object")
     return value
@@ -115,6 +116,7 @@ def synthetic_metric_summary() -> dict[str, Any]:
 
 
 def _feature_list(schema: dict[str, Any], key: str) -> str:
+    """Handle feature list."""
     value = schema.get(key, [])
     if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
         raise CliError(f"schema.{key} must be a list of strings")
@@ -243,6 +245,7 @@ def render_report(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Render a Markdown model report from aggregate local JSON summaries. "
@@ -263,6 +266,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:

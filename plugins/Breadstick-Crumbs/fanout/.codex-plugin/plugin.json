@@ -1,0 +1,32 @@
+{
+  "name": "fanout",
+  "version": "0.31.2",
+  "description": "Run many coding agents in parallel without merge chaos: each owns its own files, shared interfaces are frozen, and every branch is tested together before it merges.",
+  "author": {
+    "name": "Breadstick-Crumbs"
+  },
+  "license": "MIT",
+  "repository": "https://github.com/Breadstick-Crumbs/fanout",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "fanout",
+    "shortDescription": "Tests parallel sessions' branches merged together before main, and stops two sessions doing the same task.",
+    "longDescription": "Each branch passes on its own, then the merge breaks main. fanout merges every session's branch, runs your tests, and sends any failure back to the session that caused it. It also tells a session when another one's commit changes code it uses, and refuses a task another session already has. Works with Claude Code and Codex on git worktrees.",
+    "developerName": "Breadstick-Crumbs",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": [
+      "Split this into parallel sessions.",
+      "Test my branch merged with the other sessions' work.",
+      "Show what every session in this repo is doing."
+    ],
+    "brandColor": "#2F81F7",
+    "websiteURL": "https://github.com/Breadstick-Crumbs/fanout",
+    "privacyPolicyURL": "https://github.com/Breadstick-Crumbs/fanout/blob/main/PRIVACY.md",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  }
+}

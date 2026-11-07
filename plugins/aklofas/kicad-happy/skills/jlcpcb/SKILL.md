@@ -169,19 +169,23 @@ To fix rotation issues:
 
 For boards exported from Altium (or other tools) whose BOM/CPL formats
 don't match JLCPCB's expected columns, the `bom` skill ships
-`translate_bom_pnp.py` to convert them. Two subcommands:
+`translate_bom_pnp.py` to convert them. `<bom-skill-path>` is the installed bom skill directory. Two subcommands:
 
 ```bash
 # BOM: KiCad/Altium CSV → JLCPCB BOM CSV (Comment, Designator, Footprint,
 #                                         LCSC Part #, MPN, Manufacturer,
-#                                         Quantity, Notes)
-python3 skills/bom/scripts/translate_bom_pnp.py bom input_bom.csv -o jlc_bom.csv
+#                                         Quantity, Notes), DNP rows left out, R1-R4 expanded.
+#                                         LCSC Part # is written empty even if the input has one:
+#                                         fill it before upload.
+python3 <bom-skill-path>/scripts/translate_bom_pnp.py bom input_bom.csv -o jlc_bom.csv
 
 # CPL: input CPL → JLCPCB Pick-and-Place CSV (Designator, Mid X, Mid Y,
 #                                              Layer, Rotation), with mil→mm
 #                                              and TopLayer/BottomLayer
 #                                              normalization
-python3 skills/bom/scripts/translate_bom_pnp.py pnp input_cpl.csv -o jlc_cpl.csv
+python3 <bom-skill-path>/scripts/translate_bom_pnp.py pnp input_cpl.csv -o jlc_cpl.csv --units <in|mm>
+# (--units must name the unit the file was exported in: a KiCad position CSV
+#  has no unit marker and kicad-cli exports inches unless told --units mm)
 ```
 
 #### The 3-step PCBA upload workflow (avoids rejection)
@@ -194,13 +198,13 @@ translator's `--bom` filter mode solves this:
 1. **Translate the BOM first** — produces the JLCPCB-format BOM and
    establishes the authoritative designator set:
    ```bash
-   python3 skills/bom/scripts/translate_bom_pnp.py bom input_bom.csv -o jlc_bom.csv
+   python3 <bom-skill-path>/scripts/translate_bom_pnp.py bom input_bom.csv -o jlc_bom.csv
    ```
 
 2. **Translate the CPL with `--bom` filter** — intersects CPL designators
    with BOM designators, dropping orphans:
    ```bash
-   python3 skills/bom/scripts/translate_bom_pnp.py pnp input_cpl.csv -o jlc_cpl.csv --bom jlc_bom.csv
+   python3 <bom-skill-path>/scripts/translate_bom_pnp.py pnp input_cpl.csv -o jlc_cpl.csv --units <in|mm> --bom jlc_bom.csv
    ```
    The returned `filtered_orphans` count plus `filtered_orphan_samples`
    list lets the operator confirm which CPL rows were dropped — sanity-

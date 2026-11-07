@@ -216,7 +216,7 @@ def print_summary(results, top_n=None, min_confidence=None):
         moderate = sum(1 for c in confidences if -1.5 < c <= 0)
         low = sum(1 for c in confidences if c <= -1.5)
 
-        print(f"\n  Confidence distribution:")
+        print("\n  Confidence distribution:")
         print(f"    High (> 0):          {high:4d} ({100*high/len(confidences):5.1f}%)")
         print(f"    Moderate (-1.5 to 0): {moderate:4d} ({100*moderate/len(confidences):5.1f}%)")
         print(f"    Low (< -1.5):        {low:4d} ({100*low/len(confidences):5.1f}%)")
@@ -286,6 +286,7 @@ def print_top_predictions(results, n=10):
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description='Analyze DiffDock prediction results',
         formatter_class=argparse.RawDescriptionHelpFormatter,

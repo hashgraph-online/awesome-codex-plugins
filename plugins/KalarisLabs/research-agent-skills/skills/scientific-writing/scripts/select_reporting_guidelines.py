@@ -30,6 +30,7 @@ DISCLAIMER = (
 
 
 def load_registry() -> dict[str, dict[str, Any]]:
+    """Load registry."""
     root = require_object(read_json(REGISTRY_PATH), "registry")
     if root.get("schema_version") != "1.0":
         raise InputError("unsupported reporting-guideline registry version")
@@ -45,6 +46,7 @@ def load_registry() -> dict[str, dict[str, Any]]:
 
 
 def _condition_matches(item: dict[str, Any], args: argparse.Namespace) -> bool:
+    """Handle condition matches."""
     conditions = require_object(item.get("conditions", {}), "conditions")
     for flag in ("ai", "llm", "routinely_collected", "qualitative_component"):
         required = conditions.get(flag)
@@ -57,6 +59,7 @@ def select_guidelines(
     registry: dict[str, dict[str, Any]],
     args: argparse.Namespace,
 ) -> tuple[list[str], list[str], list[Issue]]:
+    """Select guidelines."""
     primary: list[str] = []
     extensions: list[str] = []
     issues: list[Issue] = []
@@ -88,6 +91,7 @@ def check_coverage(
     registry: dict[str, dict[str, Any]],
     coverage_path: str,
 ) -> tuple[list[Issue], dict[str, Any]]:
+    """Check coverage."""
     data = require_object(read_json(coverage_path), "coverage")
     if data.get("schema_version") != "1.0":
         raise InputError("unsupported reporting-coverage schema version")
@@ -167,6 +171,7 @@ def check_coverage(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Use the bundled offline registry to select candidate reporting guidance "
@@ -195,6 +200,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def cli() -> int:
+    """Handle cli."""
     args = build_parser().parse_args()
     registry = load_registry()
     if args.command == "select":

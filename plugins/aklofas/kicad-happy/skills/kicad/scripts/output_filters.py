@@ -8,7 +8,7 @@ Provides:
     format_text()       — render human-readable text output
     apply_output_filters()   — one-call integration helper
 
-Python 3.8+ stdlib only.
+Python 3.10+ stdlib only.
 """
 
 from __future__ import annotations
@@ -56,6 +56,8 @@ _STAGE_RULES: Dict[str, List[str]] = {
         'NR-', 'RP-', 'TW-', 'PS-002',
         'VS-', 'DP-', 'GP-', 'DC-', 'SW-', 'CK-', 'BE-', 'XT-',
         'ML-', 'SH-', 'TH-',
+        # EMC stackup, PDN impedance and emission estimates
+        'SU-', 'PD-0', 'EE-',
         'DFM-001', 'DFM-002',
         'PM-001', 'PM-002',
         'TB-001',
@@ -139,8 +141,9 @@ def build_audience_summary(findings: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Compute designer / reviewer / manager summaries from findings list.
 
     All three views are always computed and returned together under their
-    respective keys.
+    respective keys. Suppressed findings are not counted.
     """
+    findings = [f for f in findings if not f.get('suppressed')]
     # ------------------------------------------------------------------
     # Pre-compute buckets
     # ------------------------------------------------------------------
@@ -341,6 +344,8 @@ def format_text(
     if audience == 'manager':
         summary = build_audience_summary(active_findings)
         mgr = summary['manager']
+        # A blocker outside the active stage still leaves that stage unready.
+        readiness = build_audience_summary(findings)['manager']['stage_readiness']
         lines = [
             '=== Manager Summary ===',
             '',
@@ -352,13 +357,14 @@ def format_text(
             '',
             'Stage Readiness:',
         ]
-        readiness = mgr['stage_readiness']
         for s in STAGES:
             status = readiness.get(s, 'pass')
             lines.append(f'  {s:<12} {_readiness_char(status)}')
 
         # Blocker list
-        blockers = [f for f in active_findings if severity_bucket(f.get('severity', '')) == 'error']
+        blockers = [f for f in active_findings
+                    if not f.get('suppressed')
+                    and severity_bucket(f.get('severity', '')) == 'error']
         if blockers:
             lines += ['', 'Blockers:']
             for f in blockers:
@@ -437,12 +443,11 @@ def format_text(
 def apply_output_filters(
     result: Dict[str, Any],
     stage: Optional[str] = None,
-    audience: Optional[str] = None,
 ) -> None:
     """Apply stage/audience filtering to a result dict.  Mutates in place.
 
-    Accesses result["findings"] directly (harmonized format from Batch 9).
-    Safe to call when findings list is empty or missing.
+    Reads the top-level ``findings`` list; safe to call when it is empty
+    or missing.
     """
     findings = result.get('findings', [])
     if not findings:

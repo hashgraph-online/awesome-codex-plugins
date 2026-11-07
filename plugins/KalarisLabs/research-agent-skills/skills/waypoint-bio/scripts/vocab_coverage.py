@@ -32,6 +32,9 @@ from pathlib import Path
 
 import pandas as pd
 
+ABUNDANCES_COLUMN = "Relative Abundances"
+LIST_COLUMNS = ("Taxa", ABUNDANCES_COLUMN)
+
 
 def _parse_list_cell(value):
     """Parse one CSV cell back into a list.
@@ -63,13 +66,13 @@ def load_dataframe(path: Path) -> pd.DataFrame:
         # Lists round-trip through CSV as their repr. Check each value rather
         # than the column dtype: pandas 3 uses a dedicated string dtype, so a
         # ``dtype == object`` guard silently skips the parse.
-        for column in ("Taxa", "Relative Abundances"):
+        for column in LIST_COLUMNS:
             if column in frame.columns:
                 frame[column] = frame[column].map(_parse_list_cell)
     else:
         raise ValueError(f"unsupported format {suffix!r}; use .parquet, .csv, or .tsv")
 
-    for column in ("Taxa", "Relative Abundances"):
+    for column in LIST_COLUMNS:
         if column not in frame.columns:
             raise ValueError(f"{path} is not waypoint format: missing {column!r} column")
     return frame
@@ -107,7 +110,7 @@ def coverage_report(
 
     for sample_id, row in frame.iterrows():
         taxa = row["Taxa"]
-        abundances = row["Relative Abundances"]
+        abundances = row[ABUNDANCES_COLUMN]
         if not hasattr(taxa, "__iter__") or isinstance(taxa, str):
             taxa, abundances = [], []
 
@@ -141,6 +144,7 @@ def coverage_report(
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Report Waypoint tokenizer vocabulary coverage for a dataset.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,

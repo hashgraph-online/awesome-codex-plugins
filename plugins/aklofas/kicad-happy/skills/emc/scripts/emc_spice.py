@@ -21,6 +21,8 @@ _SPICE_SCRIPTS = os.path.join(os.path.dirname(__file__), '..', '..', 'spice', 's
 if os.path.isdir(_SPICE_SCRIPTS):
     sys.path.insert(0, os.path.abspath(_SPICE_SCRIPTS))
 
+from spice_models import spice_text  # noqa: E402
+
 
 def detect_spice_simulator():
     """Try to detect a SPICE simulator.
@@ -85,7 +87,7 @@ def generate_pdn_netlist(caps, plane_cap_f=0):
 
         n1 = f'n_esr_{i}'
         n2 = f'n_esl_{i}'
-        lines.append(f'* {ref}: {_format_eng(farads)}F, ESR={_format_eng(esr)}, ESL={_format_eng(esl)}H')
+        lines.append(f'* {spice_text(ref)}: {_format_eng(farads)}F, ESR={_format_eng(esr)}, ESL={_format_eng(esl)}H')
         lines.append(f'R_esr_{i} rail {n1} {_format_eng(esr)}')
         lines.append(f'L_esl_{i} {n1} {n2} {_format_eng(esl)}')
         lines.append(f'C_cap_{i} {n2} 0 {_format_eng(farads)}')
@@ -170,7 +172,7 @@ def run_pdn_spice(caps, plane_cap_f=0, backend=None,
 
     try:
         cir_content = tb.render(backend, os.path.basename(out_file))
-        with open(cir_file, 'w') as f:
+        with open(cir_file, 'w', encoding="utf-8", newline="\n") as f:
             f.write(cir_content)
 
         success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
@@ -291,7 +293,7 @@ def run_filter_spice(inductor_h, cap_f, switching_freq_hz,
 
     try:
         cir_content = tb.render(backend, os.path.basename(out_file))
-        with open(cir_file, 'w') as f:
+        with open(cir_file, 'w', encoding="utf-8", newline="\n") as f:
             f.write(cir_content)
 
         success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
@@ -420,7 +422,7 @@ def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
             f'.end\n'
         )
 
-        with open(cir_file, 'w') as f:
+        with open(cir_file, 'w', encoding="utf-8", newline="\n") as f:
             f.write(cir_content)
 
         success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)
@@ -436,7 +438,7 @@ def run_switching_fft(v_peak, duty_cycle, rise_time_s, switching_freq_hz,
 
         times = []
         values = []
-        with open(raw_file, 'r') as f:
+        with open(raw_file, 'r', encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if not line or line.startswith('#') or line.startswith('*'):
@@ -595,7 +597,7 @@ def generate_distributed_pdn_netlist(node, plane_cap_f=0):
         ref = cap.get('ref', f'C_reg_{i}')
         n1 = f'n_reg_esr_{i}'
         n2 = f'n_reg_esl_{i}'
-        lines.append(f'* Regulator cap {ref}: {_format_eng(farads)}F')
+        lines.append(f'* Regulator cap {spice_text(ref)}: {_format_eng(farads)}F')
         lines.append(f'R_reg_esr_{i} rail {n1} {_format_eng(esr)}')
         lines.append(f'L_reg_esl_{i} {n1} {n2} {_format_eng(esl)}')
         lines.append(f'C_reg_cap_{i} {n2} 0 {_format_eng(farads)}')
@@ -635,7 +637,7 @@ def generate_distributed_pdn_netlist(node, plane_cap_f=0):
         ref = cap.get('ref', f'C_ic_{i}')
         n1 = f'n_ic_esr_{i}'
         n2 = f'n_ic_esl_{i}'
-        lines.append(f'* IC decoupling {ref}: {_format_eng(farads)}F')
+        lines.append(f'* IC decoupling {spice_text(ref)}: {_format_eng(farads)}F')
         lines.append(f'R_ic_esr_{i} ic_load {n1} {_format_eng(esr)}')
         lines.append(f'L_ic_esl_{i} {n1} {n2} {_format_eng(esl)}')
         lines.append(f'C_ic_cap_{i} {n2} 0 {_format_eng(farads)}')
@@ -693,7 +695,7 @@ def run_distributed_pdn_spice(node, plane_cap_f=0, backend=None,
 
     try:
         cir_content = tb.render(backend, os.path.basename(out_file))
-        with open(cir_file, 'w') as f:
+        with open(cir_file, 'w', encoding="utf-8", newline="\n") as f:
             f.write(cir_content)
 
         success, stdout, stderr = backend.run(os.path.basename(cir_file), timeout=timeout, cwd=workdir)

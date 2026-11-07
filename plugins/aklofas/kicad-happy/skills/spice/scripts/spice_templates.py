@@ -1,17 +1,17 @@
 """
-Testbench generation templates for Phase 1 SPICE simulation.
+Testbench generation templates for SPICE simulation.
 
 Each function takes a detector output dict (from signal_detectors.py) and
 returns a complete ngspice .cir file as a string. Testbenches use .control
 blocks for measurement, writing ASCII results to an output file — no binary
 .raw parsing needed.
 
-Supported detector types (Phase 1):
+Supported detector types:
   - RC filters (AC analysis → cutoff frequency, rolloff)
   - LC filters (AC analysis → resonant frequency, Q factor)
   - Voltage dividers (DC operating point → output voltage)
   - Opamp circuits (AC analysis → gain, bandwidth)
-  - Crystal circuits (AC analysis → negative resistance margin)
+  - Crystal circuits (AC analysis → series and load resonance, pulling)
 """
 
 import math
@@ -19,12 +19,17 @@ import re
 
 import _core_path  # noqa: F401
 from kicad_core.diagnostics import record
+from kicad_core.netnames import is_ground_name
+from spice_results import crystal_load_legs
 from spice_models import (
     get_generic_models,
     get_ideal_opamp,
     spice_element_for_passive,
+    spice_passive_name,
     _sanitize_net,
     _format_eng,
+    spice_ident,
+    spice_text,
 )
 
 
@@ -119,7 +124,7 @@ def _get_parasitic_lines(parasitics_data, net_name, node_before, node_after):
     length = net_data.get("total_length_mm", 0)
     vias = net_data.get("via_count", 0)
 
-    # Only inject if parasitic is significant relative to node_after
+    # Inject only above fixed floors: 1 mOhm of trace or 0.01 nH of via inductance
     if r_total < 0.001 and via_l < 0.01:
         return "", ""
 
@@ -194,32 +199,32 @@ def generate_rc_filter(det, output_file, context=None, parasitics=None):
         if has_parasitics:
             # R → trace_R → C (parasitic between R output and C input)
             mid = f"{out_net}_trace"
-            r_line = spice_element_for_passive(r_ref, r_ohms, in_net, mid)
+            r_line = spice_element_for_passive(r_ref, r_ohms, in_net, mid, "R")
             trace_r, trace_note = _get_parasitic_lines(parasitics, det.get("output_net", ""), mid, out_net)
             if trace_r:
                 parasitic_lines = trace_r
                 parasitic_note = trace_note
             else:
                 # No parasitic for this net — connect directly
-                r_line = spice_element_for_passive(r_ref, r_ohms, in_net, out_net)
-            c_line = spice_element_for_passive(c_ref, c_farads, out_net, "0")
+                r_line = spice_element_for_passive(r_ref, r_ohms, in_net, out_net, "R")
+            c_line = spice_element_for_passive(c_ref, c_farads, out_net, "0", "C")
         else:
-            r_line = spice_element_for_passive(r_ref, r_ohms, in_net, out_net)
-            c_line = spice_element_for_passive(c_ref, c_farads, out_net, "0")
+            r_line = spice_element_for_passive(r_ref, r_ohms, in_net, out_net, "R")
+            c_line = spice_element_for_passive(c_ref, c_farads, out_net, "0", "C")
     elif ftype == "high-pass":
-        c_line = spice_element_for_passive(c_ref, c_farads, in_net, out_net)
-        r_line = spice_element_for_passive(r_ref, r_ohms, out_net, "0")
+        c_line = spice_element_for_passive(c_ref, c_farads, in_net, out_net, "C")
+        r_line = spice_element_for_passive(r_ref, r_ohms, out_net, "0", "R")
     else:
-        r_line = spice_element_for_passive(r_ref, r_ohms, in_net, out_net)
-        c_line = spice_element_for_passive(c_ref, c_farads, out_net, "0")
+        r_line = spice_element_for_passive(r_ref, r_ohms, in_net, out_net, "R")
+        c_line = spice_element_for_passive(c_ref, c_farads, out_net, "0", "C")
 
     model_note = "* Model: ideal passives (exact for RC)"
     if parasitic_lines:
         model_note = "* Model: ideal passives + PCB trace parasitics"
 
     circuit = f"""\
-* Auto-generated testbench for RC filter: {r_ref}/{c_ref}
-* Type: {ftype}, expected fc = {fc:.1f} Hz
+* Auto-generated testbench for RC filter: {spice_text(r_ref)}/{spice_text(c_ref)}
+* Type: {spice_text(ftype)}, expected fc = {fc:.1f} Hz
 {model_note}
 {parasitic_note}
 
@@ -266,19 +271,19 @@ def generate_lc_filter(det, output_file, context=None, parasitics=None):
     f_stop = f_res * 100
 
     # LC tank: L from input to shared_net, C from shared_net to ground
-    # Add small series resistance to inductor for realism (Q=100 default)
-    r_series = 2 * math.pi * f_res * l_henries / 100  # Q=100
+    # Assumed inductor ESR (Q=100 at f_res): the bench's Q reflects this, not the part
+    r_series = 2 * math.pi * f_res * l_henries / 100
     in_net = "ac_in"
 
     circuit = f"""\
-* Auto-generated testbench for LC filter: {l_ref}/{c_ref}
+* Auto-generated testbench for LC filter: {spice_text(l_ref)}/{spice_text(c_ref)}
 * Expected resonant frequency = {f_res:.1f} Hz, Z0 = {z0:.1f} ohms
 * Model: ideal passives + small inductor ESR (Q=100)
 
 * Topology: source → R_esr → L → shared_net, C from shared_net → gnd
-R_{l_ref}_esr {in_net} {in_net}_mid {_format_eng(r_series)}
-{spice_element_for_passive(l_ref, l_henries, in_net + "_mid", shared)}
-{spice_element_for_passive(c_ref, c_farads, shared, "0")}
+R_{spice_ident(l_ref)}_esr {in_net} {in_net}_mid {_format_eng(r_series)}
+{spice_element_for_passive(l_ref, l_henries, in_net + "_mid", shared, "L")}
+{spice_element_for_passive(c_ref, c_farads, shared, "0", "C")}
 
 * AC stimulus
 VAC {in_net} 0 DC 0 AC 1
@@ -339,13 +344,13 @@ def generate_voltage_divider(det, output_file, vin=3.3, context=None, parasitics
     expected_vout = vin * ratio
 
     circuit = f"""\
-* Auto-generated testbench for voltage divider: {rt_ref}/{rb_ref}
+* Auto-generated testbench for voltage divider: {spice_text(rt_ref)}/{spice_text(rb_ref)}
 * Expected Vout = {vin} * {ratio:.6f} = {expected_vout:.4f} V
 * Model: ideal passives (exact, unloaded)
 
 VIN {top_net} 0 DC {vin}
-{spice_element_for_passive(rt_ref, rt_ohms, top_net, mid_net)}
-{spice_element_for_passive(rb_ref, rb_ohms, mid_net, "0")}
+{spice_element_for_passive(rt_ref, rt_ohms, top_net, mid_net, "R")}
+{spice_element_for_passive(rb_ref, rb_ohms, mid_net, "0", "R")}
 """
 
     analyses = [("op", "")]
@@ -394,6 +399,33 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None,
     if out_net == "0":
         return None  # Output is ground — can't measure
 
+    # Power supply rails — infer from context or default to +/-5V
+    vcc_net = "VCC"
+    vee_net = "VEE"
+    vcc_v = 5
+    vee_v = -5
+    rail_info = {"vee_assumed": False, "rails_named": False}
+
+    # Try to infer from analyzer context
+    if context:
+        vcc_v, vee_v = _infer_opamp_rails(det, context, rail_info)
+        if vee_v == 0:
+            vee_net = "GND_VEE"  # Avoid conflict with node 0
+
+    # A single-supply stage is biased at mid-supply (its AC ground); at 0 V DC
+    # the output sits on the negative clamp and the small-signal gain collapses.
+    vmid = round((vcc_v + vee_v) / 2, 6)
+    ref_node = "vmid_ref" if vmid else "0"
+    stim_dc = vmid if vmid else 0
+    pos_pin = pos_net or neg_net
+    if pos_pin == "0":
+        pos_pin = ref_node
+    vmid_line = f"\nV_MID vmid_ref 0 DC {vmid}" if vmid else ""
+    # A design ground other than the bench's node 0 (GNDA, GND1) goes to mid-supply too
+    ref_on_ground = (bool(vmid) and pos_net != "0"
+                     and config in ("inverting", "integrator", "compensator", "transimpedance_or_buffer")
+                     and is_ground_name(det.get("non_inverting_input_net")))
+
     # Build feedback network from analyzer data
     netlist_lines = []
 
@@ -401,14 +433,14 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None,
     rf = det.get("feedback_resistor")
     if rf:
         netlist_lines.append(
-            spice_element_for_passive(rf["ref"], rf["ohms"], out_net, neg_net)
+            spice_element_for_passive(rf["ref"], rf["ohms"], out_net, neg_net, "R")
         )
 
     # Feedback capacitor (integrator/compensator) — skip absurd values
     fc = det.get("feedback_capacitor")
     if fc and fc["farads"] < 1.0:  # >1F is not a real capacitor
         netlist_lines.append(
-            spice_element_for_passive(fc["ref"], fc["farads"], out_net, neg_net)
+            spice_element_for_passive(fc["ref"], fc["farads"], out_net, neg_net, "C")
         )
 
     # Input resistor: from signal input to inverting input
@@ -416,7 +448,7 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None,
     if ri:
         in_net = "sig_in"
         netlist_lines.append(
-            spice_element_for_passive(ri["ref"], ri["ohms"], in_net, neg_net)
+            spice_element_for_passive(ri["ref"], ri["ohms"], in_net, neg_net, "R")
         )
     else:
         in_net = "sig_in"
@@ -435,42 +467,30 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None,
             # Input resistor is actually the ground-leg resistor
             # Already placed above from sig_in to neg_net — need to fix:
             # it should be from neg_net to ground
-            netlist_lines = [l for l in netlist_lines if not l.startswith(ri["ref"])]
+            netlist_lines = [l for l in netlist_lines if not l.startswith(spice_passive_name(ri["ref"], "R"))]
             netlist_lines.append(
-                spice_element_for_passive(ri["ref"], ri["ohms"], neg_net, "0")
+                spice_element_for_passive(ri["ref"], ri["ohms"], neg_net, ref_node, "R")
             )
     elif config == "inverting":
         stim_net = in_net
         # Inverting amp: non-inverting input goes to ground (reference)
         if pos_net and pos_net != "0":
-            netlist_lines.append(f"Rpos_bias {pos_net} 0 0.001")
+            netlist_lines.append(f"Rpos_bias {pos_net} {ref_node} 0.001")
     elif config in ("integrator", "compensator"):
         stim_net = in_net
         # Same as inverting — pos input to ground
         if pos_net and pos_net != "0":
-            netlist_lines.append(f"Rpos_bias {pos_net} 0 0.001")
+            netlist_lines.append(f"Rpos_bias {pos_net} {ref_node} 0.001")
     elif config == "transimpedance_or_buffer":
         use_current_source = True
         stim_net = neg_net  # Drive current into summing junction
         # Pos input to ground
         if pos_net and pos_net != "0":
-            netlist_lines.append(f"Rpos_bias {pos_net} 0 0.001")
+            netlist_lines.append(f"Rpos_bias {pos_net} {ref_node} 0.001")
     else:
         stim_net = in_net
 
-    # Power supply rails — infer from context or default to +/-5V
-    vcc_net = "VCC"
-    vee_net = "VEE"
-    vcc_v = 5
-    vee_v = -5
-
-    # Try to infer from analyzer context
-    if context:
-        vcc_v, vee_v = _infer_opamp_rails(det, context)
-        if vee_v == 0:
-            vee_net = "GND_VEE"  # Avoid conflict with node 0
-
-    # --- Model resolution (Phase 2) ---
+    # --- Model resolution ---
     # Try to get a per-part behavioral model; fall back to ideal
     model_str = get_ideal_opamp()
     model_name = "IDEAL_OPAMP"
@@ -495,7 +515,7 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None,
         model_note = "* Model: IDEAL opamp (Aol=1e6, GBW~10MHz) — real part may have lower GBW"
     else:
         gbw = model_specs.get("gbw_hz", 0) if model_specs else 0
-        model_note = f"* Model: {value} behavioral ({model_source}, GBW={gbw/1e6:.1f}MHz)"
+        model_note = f"* Model: {spice_text(value)} behavioral ({spice_text(model_source)}, GBW={gbw/1e6:.1f}MHz)"
 
     gain_comment = ""
     if expected_gain is not None:
@@ -526,14 +546,25 @@ def generate_opamp_circuit(det, output_file, context=None, parasitics=None,
         "model_source": model_source,
         "model_gbw": str(model_specs.get("gbw_hz", 0) if model_specs else 0),
     }
+    if rail_info["vee_assumed"]:
+        model_extra["vee_assumed"] = "1"
+    if rail_info.get("vee_repaired"):
+        model_extra["vee_repaired"] = "1"
+    if ref_on_ground:
+        model_extra["ref_on_ground"] = "1"
+    supply_min = (model_specs or {}).get("supply_min")
+    if supply_min and vcc_v - vee_v < supply_min:
+        model_extra["supply_v"] = str(round(vcc_v - vee_v, 6))
+        model_extra["supply_min"] = str(supply_min)
+        model_extra["rails_named"] = "1" if rail_info["rails_named"] else "0"
 
     # Transimpedance uses current source stimulus
     if use_current_source:
         rf_ohms = rf["ohms"] if rf else 1e6
         expected_tz = rf_ohms
         circuit = f"""\
-* Auto-generated testbench for opamp: {ref} ({value})
-* Configuration: {config} (transimpedance = Rf = {_format_eng(rf_ohms)} ohm)
+* Auto-generated testbench for opamp: {spice_text(ref)} ({spice_text(value)})
+* Configuration: {spice_text(config)} (transimpedance = Rf = {_format_eng(rf_ohms)} ohm)
 {gain_comment}
 {model_note}
 
@@ -545,10 +576,10 @@ V_VCC {vcc_net} 0 DC {vcc_v}
 V_VEE {vee_net} 0 DC {vee_v}
 
 * Opamp instance
-X{ref} {pos_net or neg_net} {neg_net} {out_net} {vcc_net} {vee_net} {model_name}
+X{spice_ident(ref)} {pos_pin} {neg_net} {out_net} {vcc_net} {vee_net} {model_name}
 
 * Feedback network
-{chr(10).join(feedback_components)}
+{chr(10).join(feedback_components)}{vmid_line}
 
 * Current source stimulus into summing junction (inverting input)
 IAC 0 {stim_net} DC 0 AC 1u
@@ -562,14 +593,14 @@ IAC 0 {stim_net} DC 0 AC 1u
             ("tz_ohms", "let", "tz_mag / 1e-6", True),
             ("target", "let", "gain_1k - 3"),
             ("bw_3db", "when", f"vdb({out_net})", "target", "fall=1"),
-            ("phase_at_bw", "find", f"vp({out_net})", "bw_3db"),
+            ("phase_at_bw", "find", f"vp({out_net})", "at=bw_3db"),
         ]
         model_extra["expected_tz"] = str(expected_tz)
         return SpiceTestbench(circuit, analyses, measurements, model_extra, tb_diagnostics)
 
     circuit = f"""\
-* Auto-generated testbench for opamp: {ref} ({value})
-* Configuration: {config}
+* Auto-generated testbench for opamp: {spice_text(ref)} ({spice_text(value)})
+* Configuration: {spice_text(config)}
 {gain_comment}
 {model_note}
 
@@ -581,13 +612,13 @@ V_VCC {vcc_net} 0 DC {vcc_v}
 V_VEE {vee_net} 0 DC {vee_v}
 
 * Opamp instance
-X{ref} {pos_net or neg_net} {neg_net} {out_net} {vcc_net} {vee_net} {model_name}
+X{spice_ident(ref)} {pos_pin} {neg_net} {out_net} {vcc_net} {vee_net} {model_name}
 
 * Feedback network
-{chr(10).join(feedback_components)}
+{chr(10).join(feedback_components)}{vmid_line}
 
 * AC stimulus
-VAC {stim_net} 0 DC 0 AC 1
+VAC {stim_net} 0 DC {stim_dc} AC 1
 """
     analyses = [("ac", "dec 100 1 100Meg")]
     measurements = [
@@ -596,7 +627,7 @@ VAC {stim_net} 0 DC 0 AC 1
         ("gain_high", "find", f"vdb({out_net})", f"at={f_high_str}"),
         ("target", "let", "gain_1k - 3"),
         ("bw_3db", "when", f"vdb({out_net})", "target", "fall=1"),
-        ("phase_at_bw", "find", f"vp({out_net})", "bw_3db"),
+        ("phase_at_bw", "find", f"vp({out_net})", "at=bw_3db"),
     ]
     return SpiceTestbench(circuit, analyses, measurements, model_extra, tb_diagnostics)
 
@@ -604,9 +635,9 @@ VAC {stim_net} 0 DC 0 AC 1
 def generate_crystal_circuit(det, output_file, context=None, parasitics=None):
     """Generate testbench for a crystal circuit detection.
 
-    Tests the oscillation condition: negative resistance seen by the crystal
-    must exceed the crystal's motional resistance (ESR). Uses a simplified
-    Colpitts/Pierce analysis.
+    Measures series resonance and motional resistance of a generic crystal
+    model and its load resonance with the load caps (summed per leg) in the
+    Pierce loop.
 
     Args:
         det: Finding dict from findings[] — detector:crystal_circuits[] with keys:
@@ -629,14 +660,13 @@ def generate_crystal_circuit(det, output_file, context=None, parasitics=None):
 
     ref = det["reference"]
     value = det.get("value", "crystal")
-    load_caps = det.get("load_caps", [])
+    legs = crystal_load_legs(det.get("load_caps", []))
     cl_eff = det.get("effective_load_pF")
 
-    if len(load_caps) < 2:
-        return None  # Need both load caps for meaningful analysis
+    if len(legs) < 2:
+        return None  # Need a load cap on each crystal pin for the oscillator loop
 
-    c1 = load_caps[0]
-    c2 = load_caps[1]
+    leg1, leg2 = legs[0], legs[1]
 
     # Crystal equivalent circuit parameters (typical AT-cut values)
     # These are generic — real crystals vary significantly
@@ -652,43 +682,56 @@ def generate_crystal_circuit(det, output_file, context=None, parasitics=None):
         lm = 1 / ((2 * math.pi * freq) ** 2 * cm)
         c0 = 5e-12
 
+    def _leg_text(leg):
+        return f"{'||'.join(spice_text(r) for r in leg['refs'])}={_format_eng(leg['farads'])}F"
+
+    cl_line = f"* Effective CL: {cl_eff:.1f} pF (calculated by analyzer)\n" if cl_eff is not None else ""
     circuit = f"""\
-* Auto-generated testbench for crystal circuit: {ref} ({value})
+* Auto-generated testbench for crystal circuit: {spice_text(ref)} ({spice_text(value)})
 * Frequency: {freq:.0f} Hz
-* Load caps: {c1['ref']}={_format_eng(c1['farads'])}F, {c2['ref']}={_format_eng(c2['farads'])}F
-* Effective CL: {cl_eff:.1f} pF (calculated by analyzer)
-* Model: generic crystal equivalent circuit (Rm={rm} ohms)
+* Load caps per leg: {_leg_text(leg1)}, {_leg_text(leg2)}
+{cl_line}* Model: generic crystal equivalent circuit (Rm={rm} ohms)
 *
-* This testbench measures the impedance seen by the crystal to verify
-* that load capacitance is in a reasonable range. It does NOT simulate
-* the full oscillator loop (that requires the driving IC model).
+* Measures series resonance of the crystal alone and load resonance with the
+* load caps in the loop the oscillator sees. It does NOT simulate the
+* oscillator's gain (that requires the driving IC model).
 
-* Crystal equivalent circuit (Butterworth-Van Dyke model)
-Lm xtal1_int xtal2 {_format_eng(lm)}
-Cm xtal1_int xtal2 {_format_eng(cm)}
-Rm xtal1_int xtal2 {rm}
-C0 xtal1 xtal2 {_format_eng(c0)}
-Rxtal xtal1 xtal1_int 0.001
+* Butterworth-Van Dyke model: series Lm-Cm-Rm, C0 across the terminals
+* (a) crystal alone, driven across its terminals: series resonance where the
+*     phase of Z rises through 0
+Lma a1 am1 {_format_eng(lm)}
+Cma am1 am2 {_format_eng(cm)}
+Rma am2 a2 {rm}
+C0a a1 a2 {_format_eng(c0)}
+VA a1 0 DC 0 AC 1
+VSA a2 0 DC 0
 
-* Load capacitors
-{spice_element_for_passive(c1['ref'], c1['farads'], 'xtal1', '0')}
-{spice_element_for_passive(c2['ref'], c2['farads'], 'xtal2', '0')}
-
-* AC stimulus across crystal to measure impedance
-VAC xtal1 xtal1_drv DC 0 AC 1
-IAC 0 xtal1_drv DC 0 AC 0
+* (b) C1 - crystal - C2 through ground: load resonance
+*     f_L = f_s * (1 + Cm / (2 * (C0 + CL)))
+Lmb b1 bm1 {_format_eng(lm)}
+Cmb bm1 bm2 {_format_eng(cm)}
+Rmb bm2 b2 {rm}
+C0b b1 b2 {_format_eng(c0)}
+VB b0 0 DC 0 AC 1
+{spice_element_for_passive(leg1['refs'][0], leg1['farads'], 'b0', 'b1', "C")}
+{spice_element_for_passive(leg2['refs'][0], leg2['farads'], 'b2', 'bret', "C")}
+VSB bret 0 DC 0
+Rdcb1 b1 0 1G
+Rdcb2 b2 0 1G
 """
 
-    analyses = [("ac", f"dec 1000 {_format_eng(freq * 0.99)} {_format_eng(freq * 1.01)}")]
+    # +/-0.5 % in 40,000 steps: 0.25 ppm resolution, finer than any pulling of interest
+    analyses = [("ac", f"lin 40001 {_format_eng(freq * 0.995)} {_format_eng(freq * 1.005)}")]
     measurements = [
-        ("z_mag", "let", "v(xtal1) / i(VAC)"),
-        ("z_real", "let", "real(z_mag)"),
-        ("f_series", "when", "abs(z_real)", "minimum(abs(z_real))"),
-        ("cl_series", "let", f"1/(1/{c1['farads']} + 1/{c2['farads']})"),
+        ("za_ph", "let", "cph(1/i(VSA))"),
+        ("f_series", "when", "za_ph", "0", "rise=1"),
+        ("zb_ph", "let", "cph(1/i(VSB))"),
+        ("f_load", "when", "zb_ph", "0", "rise=1"),
+        ("za_mag", "let", "mag(1/i(VSA))"),
+        ("rm", "find", "za_mag", "at=f_series"),
     ]
-    extra = {"cl_pF": str(cl_eff), "rm": str(rm)}
 
-    return SpiceTestbench(circuit, analyses, measurements, extra)
+    return SpiceTestbench(circuit, analyses, measurements, {"rm_model": str(rm)})
 
 
 # ---------------------------------------------------------------------------
@@ -703,7 +746,7 @@ def _sanitize_mpn_for_spice(mpn):
     return re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip()) if mpn else "UNKNOWN"
 
 
-def _infer_opamp_rails(det, context):
+def _infer_opamp_rails(det, context, info=None):
     """Infer opamp VCC/VEE voltages from analyzer context.
 
     Looks up the opamp's power pins in the component/net data to find
@@ -712,6 +755,11 @@ def _infer_opamp_rails(det, context):
     Args:
         det: Opamp detection dict (has 'reference')
         context: Full analysis JSON dict
+        info: Optional dict; receives ``vee_assumed`` (a negative rail named
+            without a voltage, assumed to mirror VCC), ``vee_repaired`` (the
+            negative pin read at or above the positive one, so the bench is
+            single-supply) and ``rails_named`` (both rails read from voltages
+            in their net names)
 
     Returns:
         (vcc_voltage, vee_voltage) tuple of floats
@@ -725,40 +773,130 @@ def _infer_opamp_rails(det, context):
     vee_v = -5
     found_vcc = False
     found_vee = False
+    vcc_named = False
+    vee_named = False
 
     for net_name, net_data in nets.items():
         pins = net_data.get("pins", [])
+        # A voltage written in the rail's own leaf (VCC_1V8, /Analog/+1V8, A+2V5,
+        # A-2V5, a shared +-12V) is read before the start-anchored guesses; a
+        # name without one keeps the guess from the full net name
+        # a shared '+/-15V' reaches the net map as '+/-15V' (legacy .sch) or '+{slash}-15V'
+        # (KiCad 6+): read it as one +-15V rail before '/' is taken for a sheet separator
+        leaf = _PLUS_MINUS_SLASH.sub("\u00b1", net_name).rsplit("/", 1)[-1].replace("+-", "\u00b1")
+        named_pos = _leaf_voltage(leaf.replace("\u00b1", "+"))
+        named_neg = _leaf_voltage(leaf.replace("\u00b1", "-"))
         for pin in pins:
             if pin.get("component") != ref:
                 continue
             pname = (pin.get("pin_name") or "").upper()
             ptype = (pin.get("pin_type") or "").lower()
+            on_vee = pname in _VEE_PIN_NAMES
+            named_v = named_neg if on_vee else named_pos
+            v = named_v if named_v is not None else _infer_voltage(net_name, default=None)
             # VCC/VDD/V+ pins
             if pname in ("VCC", "VDD", "V+", "VS+", "V_P", "VP", "AVDD", "DVDD") or \
-               (ptype == "power_in" and not found_vcc and _infer_voltage(net_name, default=None) is not None):
-                v = _infer_voltage(net_name, default=None)
+               (ptype == "power_in" and not found_vcc and v is not None and v > 0):
                 if v is not None and v > 0:
                     vcc_v = v
                     found_vcc = True
+                    vcc_named = named_v is not None or _voltage_in_name(leaf)
             # VEE/VSS/V- pins
-            elif pname in ("VEE", "VSS", "V-", "VS-", "V_N", "VN", "GND", "AVSS", "DVSS"):
-                v = _infer_voltage(net_name, default=None)
+            elif on_vee:
+                named = v is not None and (named_v is not None or _voltage_in_name(leaf))
+                if v is None:
+                    v = _infer_negative_rail(leaf)
+                    named = v is not None and v != _MIRROR_VCC
                 if v is not None:
                     vee_v = v
                     found_vee = True
-                elif net_name.upper() in ("GND", "EARTH", "VSS"):
+                    vee_named = named
+                elif net_name.upper() == "EARTH" or is_ground_name(net_name):
                     vee_v = 0
                     found_vee = True
+                    vee_named = True
 
     # If we only found VCC and not VEE, assume single-supply (VEE=0)
     if found_vcc and not found_vee:
         vee_v = 0
+    vee_assumed = vee_v == _MIRROR_VCC
+    if vee_assumed:
+        vee_v = -vcc_v
 
     # Sanity check: VEE must be less than VCC
-    if vee_v >= vcc_v:
+    vee_repaired = vee_v >= vcc_v
+    if vee_repaired:
         vee_v = 0  # Fall back to single-supply
+        vee_named = False
 
+    if info is not None:
+        info["vee_assumed"] = vee_assumed
+        if vee_repaired:
+            info["vee_repaired"] = True
+        info["rails_named"] = vcc_named and vee_named
     return vcc_v, vee_v
+
+
+_PLUS_MINUS_SLASH = re.compile(r"\+(?:/|\{slash\})-")
+_VEE_PIN_NAMES = ("VEE", "VSS", "V-", "VS-", "V_N", "VN", "GND", "AVSS", "DVSS")
+
+
+def _leaf_voltage(leaf):
+    """Voltage written in a rail's leaf name, skipping a letter prefix glued
+    to the sign ('A+2V5', 'A-2V5'); negative for '-' rails; None if none."""
+    neg_v = _infer_negative_rail(re.sub(r'^[A-Za-z]+_?(?=-\d)', '', leaf.upper()))
+    if isinstance(neg_v, float):
+        return neg_v
+    return _rail_name_voltage(re.sub(r'^[A-Za-z]+_?(?=\+\d)', '', leaf))
+
+
+def _voltage_in_name(net_name):
+    """True when the net name itself carries the voltage ('+5V', '3V3', '-12V'),
+    not a guess from a bare name such as 'VCC' or 'VBUS'."""
+    return bool(re.match(r'[+-]?\d', (net_name or "").strip()))
+
+
+_MIRROR_VCC = "mirror"
+_NAMED_NEGATIVE_RAILS = ("VEE", "V-", "-V", "-VCC", "-VDD", "-VS", "VS-", "VSS-", "VNEG", "V_NEG", "NEG")
+
+
+def _infer_negative_rail(net_name):
+    """Negative supply from a net name: '-12V' -> -12.0, 'NEG15V' -> -15.0,
+    '-3V3' -> -3.3; a negative rail named without a voltage ('VEE', 'V-',
+    '-VCC', 'VNEG') -> _MIRROR_VCC; anything else -> None."""
+    if not net_name:
+        return None
+    name = net_name.upper().strip().replace("\u2212", "-")
+    m = re.match(r'^(?:-|NEG|VNEG|V-)_?(\d+)V(\d+)', name)
+    if m:
+        return -float(f"{m.group(1)}.{m.group(2)}")
+    m = re.match(r'^(?:-|NEG|VNEG|V-)_?(\d+\.?\d*)V', name)
+    if m:
+        return -float(m.group(1))
+    if name in _NAMED_NEGATIVE_RAILS:
+        return _MIRROR_VCC
+    return None
+
+
+def _rail_name_voltage(net_name):
+    """Positive voltage written in a rail's name: '+3V3', '5V0', '+3.3V',
+    '+5VA', 'VCC_1V8', 'VCC-5V', '/PWR/12V' -> the number; 'VCC', 'VBUS',
+    '-5V', 'USB2VBUS' -> None. Only the leaf's '_'/'-'-separated tokens that
+    begin with the number count, so a number that is not a voltage is not
+    read as one; a '-' right before the voltage at the start of the name or
+    after '_', '-' or a space ('-5V', 'ATX_-5V') is a negative rail -> None."""
+    leaf = (net_name or "").rsplit("/", 1)[-1].upper().strip()
+    for tok_m in re.finditer(r"[^_\s-]+", leaf):
+        tok, at = tok_m.group(0), tok_m.start()
+        signed = at > 0 and leaf[at - 1] == "-" and (at == 1 or leaf[at - 2] in "_- \t")
+        m = re.fullmatch(r"\+?(\d+)V(\d*)[A-Z]*", tok)
+        v = float(f"{m.group(1)}.{m.group(2) or 0}") if m else None
+        m = re.fullmatch(r"\+?(\d+\.\d+)V[A-Z]*", tok)
+        if m:
+            v = float(m.group(1))
+        if v:
+            return None if signed else v
+    return None
 
 
 def _infer_voltage(net_name, default=3.3):
@@ -826,14 +964,14 @@ def generate_feedback_network(det, output_file, vin=3.3, context=None, parasitic
     fb_note = f"Connected to {fb_ic} FB pin" if fb_ic else "Feedback network"
 
     circuit = f"""\
-* Auto-generated testbench for feedback network: {rt_ref}/{rb_ref}
-* {fb_note}
+* Auto-generated testbench for feedback network: {spice_text(rt_ref)}/{spice_text(rb_ref)}
+* {spice_text(fb_note)}
 * Expected FB voltage = {vin} * {ratio:.6f} = {expected_vout:.4f} V
 * Model: ideal passives (exact, unloaded)
 
 VIN {top_net} 0 DC {vin}
-{spice_element_for_passive(rt_ref, rt_ohms, top_net, mid_net)}
-{spice_element_for_passive(rb_ref, rb_ohms, mid_net, "0")}
+{spice_element_for_passive(rt_ref, rt_ohms, top_net, mid_net, "R")}
+{spice_element_for_passive(rb_ref, rb_ohms, mid_net, "0", "R")}
 """
 
     analyses = [("op", "")]
@@ -906,6 +1044,11 @@ def _generate_mosfet_testbench(det, output_file, context=None, parasitics=None):
         vdd = _infer_voltage(det.get("drain_net"), default=3.3)
         if drain_is_pwr:
             vdd = _infer_voltage(det.get("drain_net"), default=3.3)
+    # a 0 V supply makes the gate sweep zero-span, which ngspice never completes
+    if vdd <= 0:
+        supply = "source" if is_p else "drain"
+        net = det.get("source_net") if is_p else det.get("drain_net")
+        raise ValueError(f"{supply} supply {vdd} V from net '{net}' leaves no gate sweep")
 
     # Build a simple switching testbench
     # N-channel: VDD → R_load → drain, source → GND, gate swept 0→VDD
@@ -923,14 +1066,14 @@ def _generate_mosfet_testbench(det, output_file, context=None, parasitics=None):
 
     protection_note = ""
     if has_flyback:
-        protection_note += f"\n* Flyback diode: {det.get('flyback_diode', 'yes')}"
+        protection_note += f"\n* Flyback diode: {spice_text(det.get('flyback_diode', 'yes'))}"
     if has_snubber:
         protection_note += "\n* Drain snubber RC detected"
 
     if is_p:
         circuit = f"""\
-* Auto-generated testbench for {ch_type} MOSFET: {ref} ({value})
-* Load type: {load_type}{protection_note}
+* Auto-generated testbench for {ch_type} MOSFET: {spice_text(ref)} ({spice_text(value)})
+* Load type: {spice_text(load_type)}{protection_note}
 * Model: generic PMOS (Vth=-1.5V) — real threshold depends on part
 
 {get_generic_models()}
@@ -938,7 +1081,7 @@ def _generate_mosfet_testbench(det, output_file, context=None, parasitics=None):
 VDD vdd 0 DC {vdd}
 
 * P-channel MOSFET: source to VDD, drain to load
-M{ref} {drain} {gate} vdd vdd {model} L=1u W=100u
+M{spice_ident(ref)} {drain} {gate} vdd vdd {model} L=1u W=100u
 RLOAD {drain} 0 1k
 
 * Gate drive: sweep from VDD (off) to 0V (on)
@@ -950,15 +1093,16 @@ Vgate {gate} 0 DC {vdd}
             ("id", "let", "i(VDD)"),
             ("vg", "let", f"v({gate})"),
             ("vth", "when", "abs(id)", "1m"),
-            ("i_on", "let", "abs(vecmax(id))", True),
+            # i(VDD) is negative while sourcing, so take the largest magnitude
+            ("i_on", "let", "vecmax(abs(id))", True),
         ]
         extra = {"vdd": str(vdd)}
 
         return SpiceTestbench(circuit, analyses, measurements, extra)
     else:
         circuit = f"""\
-* Auto-generated testbench for {ch_type} MOSFET: {ref} ({value})
-* Load type: {load_type}{protection_note}
+* Auto-generated testbench for {ch_type} MOSFET: {spice_text(ref)} ({spice_text(value)})
+* Load type: {spice_text(load_type)}{protection_note}
 * Model: generic NMOS (Vth=1.5V) — real threshold depends on part
 
 {get_generic_models()}
@@ -967,7 +1111,7 @@ VDD vdd 0 DC {vdd}
 
 * N-channel MOSFET: drain to load, source to GND
 RLOAD vdd {drain} 1k
-M{ref} {drain} {gate} 0 0 {model} L=1u W=100u
+M{spice_ident(ref)} {drain} {gate} 0 0 {model} L=1u W=100u
 
 * Gate drive: sweep from 0V (off) to VDD (on)
 Vgate {gate} 0 DC 0
@@ -1002,13 +1146,16 @@ def _generate_bjt_testbench(det, output_file, context=None, parasitics=None):
     polarity = "PNP" if is_pnp else "NPN"
 
     vcc = _infer_voltage(det.get("collector_net") if not is_pnp else det.get("emitter_net"), default=3.3)
+    # the PNP base sweep spans vcc/2..vcc; a 0 V supply makes it zero-span
+    if is_pnp and vcc <= 0:
+        raise ValueError(f"emitter supply {vcc} V from net '{det.get('emitter_net')}' leaves no base sweep")
 
     # Emitter resistor for degeneration
     emitter_r = det.get("emitter_resistor")
     emitter_r_line = ""
     if emitter_r:
         # Parse value — the detector gives ref and value but not always ohms
-        emitter_r_line = f"* Emitter resistor: {emitter_r.get('reference', 'RE')} = {emitter_r.get('value', '?')}"
+        emitter_r_line = f"* Emitter resistor: {spice_text(emitter_r.get('reference', 'RE'))} = {spice_text(emitter_r.get('value', '?'))}"
 
     # Base resistors
     base_res = det.get("base_resistors", [])
@@ -1016,8 +1163,8 @@ def _generate_bjt_testbench(det, output_file, context=None, parasitics=None):
 
     if is_pnp:
         circuit = f"""\
-* Auto-generated testbench for {polarity} BJT: {ref} ({value})
-* Load type: {load_type}, {base_note}
+* Auto-generated testbench for {polarity} BJT: {spice_text(ref)} ({spice_text(value)})
+* Load type: {spice_text(load_type)}, {base_note}
 * Model: generic PNP (hFE=200)
 {emitter_r_line}
 
@@ -1026,7 +1173,7 @@ def _generate_bjt_testbench(det, output_file, context=None, parasitics=None):
 VCC vcc 0 DC {vcc}
 
 * PNP: emitter to VCC, collector to load
-Q{ref} {collector} {base} vcc {model}
+Q{spice_ident(ref)} {collector} {base} vcc {model}
 RLOAD {collector} 0 1k
 
 * Base drive: sweep from VCC (off) to VCC-0.8V (on)
@@ -1044,8 +1191,8 @@ Vbase {base} 0 DC {vcc}
         return SpiceTestbench(circuit, analyses, measurements, extra)
     else:
         circuit = f"""\
-* Auto-generated testbench for {polarity} BJT: {ref} ({value})
-* Load type: {load_type}, {base_note}
+* Auto-generated testbench for {polarity} BJT: {spice_text(ref)} ({spice_text(value)})
+* Load type: {spice_text(load_type)}, {base_note}
 * Model: generic NPN (hFE=200)
 {emitter_r_line}
 
@@ -1055,7 +1202,7 @@ VCC vcc 0 DC {vcc}
 
 * NPN: collector to load, emitter to GND
 RLOAD vcc {collector} 1k
-Q{ref} {collector} {base} 0 {model}
+Q{spice_ident(ref)} {collector} {base} 0 {model}
 
 * Base drive: sweep from 0V (off) to 1V (on)
 Vbase {base} 0 DC 0
@@ -1106,13 +1253,13 @@ def generate_current_sense(det, output_file, context=None, parasitics=None):
     i_at_100mv = 0.1 / r_ohms
 
     circuit = f"""\
-* Auto-generated testbench for current sense: {r_ref} ({r_ohms} ohm)
-* Sense IC: {ic_ref} ({ic_value})
-* Expected max current at 50mV: {max_50} A
-* Expected max current at 100mV: {max_100} A
+* Auto-generated testbench for current sense: {spice_text(r_ref)} ({r_ohms} ohm)
+* Sense IC: {spice_text(ic_ref)} ({spice_text(ic_value)})
+* Expected max current at 50mV: {spice_text(max_50)} A
+* Expected max current at 100mV: {spice_text(max_100)} A
 * Model: ideal resistor (exact)
 
-{spice_element_for_passive(r_ref, r_ohms, "sense_hi", "0")}
+{spice_element_for_passive(r_ref, r_ohms, "sense_hi", "0", "R")}
 
 * Apply known current and measure voltage drop
 I1 sense_hi 0 DC {_format_eng(i_at_50mv)}
@@ -1159,14 +1306,14 @@ def generate_protection_device(det, output_file, context=None, parasitics=None):
     sweep_max = rail_v * 3  # Sweep to 3x nominal to see clamping
 
     circuit = f"""\
-* Auto-generated testbench for protection device: {ref} ({value})
-* Type: {ptype}, protecting {det.get('protected_net', '?')}
+* Auto-generated testbench for protection device: {spice_text(ref)} ({spice_text(value)})
+* Type: {spice_text(ptype)}, protecting {spice_text(det.get('protected_net', '?'))}
 * Model: generic Zener diode — real TVS clamping may differ
 
 {get_generic_models()}
 
 * TVS/ESD diode: cathode to protected net, anode to clamp (GND)
-D{ref} {clamp_net or '0'} {protected_net} D_GENERIC
+D{spice_ident(ref)} {clamp_net or '0'} {protected_net} D_GENERIC
 
 * Voltage ramp on protected net to find clamping voltage
 Vramp {protected_net} 0 DC 0
@@ -1244,16 +1391,16 @@ def generate_decoupling(det, output_file, context=None, parasitics=None):
         # Series R-L-C from rail node to ground
         n1 = f"n_esr_{i}"
         n2 = f"n_lpar_{i}"
-        cap_lines.append(f"R_esr_{ref} rail {n1} {_format_eng(esr)}")
-        cap_lines.append(f"L_par_{ref} {n1} {n2} {_format_eng(l_par)}")
-        cap_lines.append(f"{ref} {n2} 0 {_format_eng(farads)}")
+        cap_lines.append(f"R_esr_{spice_ident(ref)} rail {n1} {_format_eng(esr)}")
+        cap_lines.append(f"L_par_{spice_ident(ref)} {n1} {n2} {_format_eng(l_par)}")
+        cap_lines.append(f"{spice_passive_name(ref, 'C')} {n2} 0 {_format_eng(farads)}")
 
     cap_netlist = "\n".join(cap_lines)
     n_caps = len(valid_caps)
     model_note = "ESR/ESL from pdn_impedance (package-based)" if using_pdn else "estimated ESR + parasitic L from SRF"
 
     circuit = f"""\
-* Auto-generated testbench for decoupling analysis: {rail} rail
+* Auto-generated testbench for decoupling analysis: {spice_text(rail)} rail
 * {n_caps} capacitor(s) in parallel, series R-L-C model
 * Model: {model_note}
 
@@ -1314,35 +1461,41 @@ def generate_regulator_feedback(det, output_file, context=None, parasitics=None)
     reg_ref = det.get("ref", "?")
     topology = fd.get("topology", "standard")
 
-    # Infer Vout from output rail name, or use estimated_vout
-    vin = _infer_voltage(output_rail, default=None)
+    # Vout from a voltage written in the rail's name; else a guess from the
+    # name, the analyzer's estimate or 3.3 V, which the evaluator does not compare
+    vin = _rail_name_voltage(output_rail)
+    vin_from = "rail_name"
+    if vin is None:
+        vin = _infer_voltage(output_rail, default=None)
+        vin_from = "rail_default"
     if vin is None and estimated_vout:
         vin = estimated_vout
+        vin_from = "estimated"
     if vin is None:
         vin = 3.3  # fallback
+        vin_from = "fallback"
 
     expected_vfb = vin * ratio
     mid_net = "fb_net"
 
     circuit = f"""\
-* Auto-generated testbench for regulator feedback: {reg_ref}
-* Divider: {rt_ref}/{rb_ref}, ratio={ratio:.4f}
-* Expected Vout={vin}V, Vfb={expected_vfb:.4f}V (Vref={vref or '?'}V)
-* Topology: {topology}
+* Auto-generated testbench for regulator feedback: {spice_text(reg_ref)}
+* Divider: {spice_text(rt_ref)}/{spice_text(rb_ref)}, ratio={ratio:.4f}
+* Expected Vout={vin}V, Vfb={expected_vfb:.4f}V (Vref={spice_text(vref or '?')}V)
+* Topology: {spice_text(topology)}
 * Model: ideal passives (exact for DC divider)
 
 VIN out_rail 0 DC {vin}
-{spice_element_for_passive(rt_ref, rt_ohms, "out_rail", mid_net)}
-{spice_element_for_passive(rb_ref, rb_ohms, mid_net, "0")}
+{spice_element_for_passive(rt_ref, rt_ohms, "out_rail", mid_net, "R")}
+{spice_element_for_passive(rb_ref, rb_ohms, mid_net, "0", "R")}
 """
 
     analyses = [("op", "")]
     measurements = [
         ("vfb_sim", "let", f"v({mid_net})", True),
-        ("expected", "let", str(expected_vfb)),
-        ("error_pct", "let", "abs(vfb_sim - expected) / expected * 100", True),
     ]
-    extra = {"expected": str(expected_vfb), "vin": str(vin), "vref": str(vref or 0)}
+    extra = {"expected": str(expected_vfb), "vin": str(vin), "vref": str(vref or 0),
+             "vin_from": vin_from}
 
     return SpiceTestbench(circuit, analyses, measurements, extra)
 
@@ -1373,6 +1526,8 @@ def generate_rf_matching(det, output_file, context=None, parasitics=None):
 
     if len(valid) < 2:
         return None
+    if topology in ("L_match", "pi_match", "T_match"):
+        raise ValueError(f"{topology} has shunt elements; the series-chained bench does not model it")
 
     # Build series L/C network: antenna_port → components → ic_port
     # For impedance measurement, connect all components in series from
@@ -1382,8 +1537,9 @@ def generate_rf_matching(det, output_file, context=None, parasitics=None):
     for i, c in enumerate(valid):
         ref = c["ref"]
         next_net = f"n{i+1}" if i < len(valid) - 1 else "0"
-        val = c.get("farads") or c.get("henries") or c.get("ohms")
-        netlist_lines.append(spice_element_for_passive(ref, val, prev_net, next_net))
+        kind, val = next((k, c[key]) for k, key in (("C", "farads"), ("L", "henries"), ("R", "ohms"))
+                         if c.get(key))
+        netlist_lines.append(spice_element_for_passive(ref, val, prev_net, next_net, kind))
         prev_net = next_net
 
     comp_netlist = "\n".join(netlist_lines)
@@ -1391,7 +1547,7 @@ def generate_rf_matching(det, output_file, context=None, parasitics=None):
 
     circuit = f"""\
 * Auto-generated testbench for RF matching network
-* Topology: {topology}, {len(valid)} components: {', '.join(comp_refs)}
+* Topology: {spice_text(topology)}, {len(valid)} components: {spice_text(', '.join(comp_refs))}
 * Model: ideal passives — no parasitic ESR/ESL
 
 {comp_netlist}
@@ -1451,20 +1607,21 @@ def generate_inrush(det, output_file, context=None, parasitics=None):
     # Build parallel caps
     cap_lines = []
     for i, c in enumerate(valid_caps):
-        cap_lines.append(f"{c['ref']} out 0 {_format_eng(c['farads'])}")
+        cap_lines.append(f"{spice_passive_name(c['ref'], 'C')} out 0 {_format_eng(c['farads'])}")
     cap_netlist = "\n".join(cap_lines)
     cap_refs = [c["ref"] for c in valid_caps[:5]]
     total_uf = sum(c["farads"] for c in valid_caps) * 1e6
 
     circuit = f"""\
-* Auto-generated testbench for inrush analysis: {reg_ref} ({topology})
+* Auto-generated testbench for inrush analysis: {spice_text(reg_ref)} ({spice_text(topology)})
 * Output: {v_out}V, {total_uf:.1f}µF total capacitance
 * Soft-start: {soft_start_ms}ms ramp
 
 * Voltage source with linear ramp (soft-start) — 10us delay before ramp
 Vreg ramp 0 PWL(0 0 10u 0 {_format_eng(ramp_time + 10e-6)} {v_out})
-* Regulator output impedance
-Rout ramp out {_format_eng(r_out)}
+* Regulator output impedance; 0 V source in series measures the current
+Rout ramp sense {_format_eng(r_out)}
+Vsense sense out DC 0
 
 * Output capacitors
 {cap_netlist}
@@ -1472,9 +1629,11 @@ Rout ramp out {_format_eng(r_out)}
 
     analyses = [("tran", f"{_format_eng(ramp_time / 500)} {_format_eng(sim_time)}")]
     measurements = [
-        ("i_out", "let", "abs(i(Rout))"),
+        ("i_out", "let", "abs(i(Vsense))"),
         ("i_peak", "let", "vecmax(i_out)", True),
-        ("t_peak", "let", "i_out[vecmin(abs(i_out - i_peak))]", True),
+        # first time the current reaches the peak (within 0.1 %): a soft-start ramp holds a plateau
+        ("i_tgt", "let", "i_peak * 0.999"),
+        ("t_peak", "when", "i_out", "i_tgt", "rise=1"),
         ("v_settled", "find", "v(out)", f"at={_format_eng(sim_time * 0.9)}"),
     ]
     extra = {"v_target": str(v_out), "r_out": str(r_out)}
@@ -1485,9 +1644,9 @@ Rout ramp out {_format_eng(r_out)}
 def generate_bridge_circuit(det, output_file, context=None, parasitics=None):
     """Generate testbench for a half-bridge circuit.
 
-    For each half-bridge, verifies that the high-side and low-side FETs
-    can be turned on independently by sweeping gate voltage and checking
-    drain current.
+    Sweeps the low-side FET's gate with the high side held off and a load
+    from the supply to the switch node, measuring the low side's turn-on
+    threshold and on-state current.
 
     Args:
         det: Finding dict from findings[] — detector:bridge_circuits[] with keys:
@@ -1509,6 +1668,8 @@ def generate_bridge_circuit(det, output_file, context=None, parasitics=None):
     lo_ref = hb["low_side"]
     hi_type = hb.get("high_side_type", "NMOS")
     lo_type = hb.get("low_side_type", "NMOS")
+    if lo_type == "PMOS":
+        raise ValueError("P-channel low side: not a half bridge the bench can drive (a power mux)")
 
     hi_model = "PMOS_GENERIC" if hi_type == "PMOS" else "NMOS_GENERIC"
     lo_model = "PMOS_GENERIC" if lo_type == "PMOS" else "NMOS_GENERIC"
@@ -1522,9 +1683,16 @@ def generate_bridge_circuit(det, output_file, context=None, parasitics=None):
         if v and v > 0:
             v_supply = v
 
+    if hi_type == "PMOS":
+        hi_line = (f"M{spice_ident(hi_ref)} mid hi_gate vdd vdd {hi_model} L=1u W=100u\n"
+                   "Rhi_gnd hi_gate vdd 100k")
+    else:
+        hi_line = (f"M{spice_ident(hi_ref)} vdd hi_gate mid mid {hi_model} L=1u W=100u\n"
+                   "Rhi_gnd hi_gate 0 100k")
+
     circuit = f"""\
-* Auto-generated testbench for bridge circuit: {topology}
-* Half-bridge: {hi_ref} (high, {hi_type}) / {lo_ref} (low, {lo_type})
+* Auto-generated testbench for bridge circuit: {spice_text(topology)}
+* Half-bridge: {spice_text(hi_ref)} (high, {spice_text(hi_type)}) / {spice_text(lo_ref)} (low, {spice_text(lo_type)})
 * Model: generic FET models — real Vth/Rds depends on specific part
 
 {get_generic_models()}
@@ -1533,13 +1701,12 @@ def generate_bridge_circuit(det, output_file, context=None, parasitics=None):
 VDD vdd 0 DC {v_supply}
 
 * Low-side FET: gate swept, drain to mid, source to ground
-M{lo_ref} mid lo_gate 0 0 {lo_model} L=1u W=100u
-* High-side kept off (gate tied to source/ground)
-M{hi_ref} vdd hi_gate mid mid {hi_model} L=1u W=100u
-Rhi_gnd hi_gate {"mid" if hi_type == "PMOS" else "0"} 100k
+M{spice_ident(lo_ref)} mid lo_gate 0 0 {lo_model} L=1u W=100u
+* High-side kept off: a P-channel's source and bulk sit at the supply, gate tied to it
+{hi_line}
 
-* Load resistor at output
-Rload mid 0 100
+* Load from the supply to the switch node: the low side conducts through it
+Rload vdd mid 100
 
 * Gate sweep source
 Vgate lo_gate 0 DC 0
@@ -1549,7 +1716,8 @@ Vgate lo_gate 0 DC 0
     measurements = [
         ("id_lo", "let", "abs(i(VDD))"),
         ("vth_lo", "when", "id_lo", "100u"),
-        ("id_on", "find", "id_lo", f"at={v_supply}"),
+        # inside the sweep: its endpoint is out of the measurement's interval
+        ("id_on", "find", "id_lo", f"at={v_supply * 0.99}"),
     ]
     extra = {"v_supply": str(v_supply), "topology": topology}
 
@@ -1598,12 +1766,12 @@ def generate_bms_balance(det, output_file, context=None, parasitics=None):
     bms_val = det.get("bms_value", "?")
 
     circuit = f"""\
-* Auto-generated testbench for BMS balance resistor: {bms_ref} ({bms_val})
-* {cell_count} cells, balance R = {r_ref} ({_format_eng(r_ohms)} ohm)
+* Auto-generated testbench for BMS balance resistor: {spice_text(bms_ref)} ({spice_text(bms_val)})
+* {cell_count} cells, balance R = {spice_text(r_ref)} ({_format_eng(r_ohms)} ohm)
 * Worst-case: 4.2V fully-charged Li-ion cell
 
 Vcell cell 0 DC 4.2
-{r_ref} cell 0 {_format_eng(r_ohms)}
+{spice_passive_name(r_ref, "R")} cell 0 {_format_eng(r_ohms)}
 """
 
     analyses = [("op", "")]
@@ -1653,12 +1821,12 @@ def generate_snubber(det, output_file, context=None, parasitics=None):
     f_stop = f_analytical * 100
 
     circuit = f"""\
-* Auto-generated testbench for snubber on {fet_ref}: {r_ref}/{c_ref}
+* Auto-generated testbench for snubber on {spice_text(fet_ref)}: {spice_text(r_ref)}/{spice_text(c_ref)}
 * R={_format_eng(r_ohms)} ohm, C={_format_eng(c_farads)} F
 * Analytical: tau={_format_eng(tau)}s, f_snub={f_analytical:.1f} Hz
 
-{r_ref} drain mid {_format_eng(r_ohms)}
-{c_ref} mid 0 {_format_eng(c_farads)}
+{spice_passive_name(r_ref, "R")} drain mid {_format_eng(r_ohms)}
+{spice_passive_name(c_ref, "C")} mid 0 {_format_eng(c_farads)}
 
 * AC current source — V(drain) = Z(f)
 IAC 0 drain DC 0 AC 1
@@ -1701,8 +1869,8 @@ def generate_rf_chain(det, output_file, context=None, parasitics=None):
 
     circuit = f"""\
 * Auto-generated testbench for RF chain link budget
-* Operating frequency: {freq/1e6:.0f} MHz ({band})
-* Analytical gain budget: {gain_budget:.1f} dB ({n_stages} stages)
+* Operating frequency: {freq/1e6:.0f} MHz ({spice_text(band)})
+* Analytical gain budget: {gain_budget:.1f} dB ({spice_text(n_stages)} stages)
 * Model: 50-ohm reference impedance check + heuristic gain budget
 
 R_source port 0 50

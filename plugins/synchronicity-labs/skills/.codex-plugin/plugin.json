@@ -1,0 +1,46 @@
+{
+  "name": "sync",
+  "version": "1.0.0",
+  "description": "Lipsync videos, make photos and AI characters talk, translate and dub videos, fix spoken words, localize campaigns, run batch lipsync, and build sync. into apps. Uses the hosted sync. MCP server.",
+  "author": {
+    "name": "sync. labs",
+    "url": "https://sync.so"
+  },
+  "homepage": "https://sync.so",
+  "repository": "https://github.com/synchronicity-labs/skills",
+  "license": "MIT",
+  "keywords": [
+    "lipsync",
+    "lip sync",
+    "lip-sync",
+    "dubbing",
+    "video translation",
+    "video localization",
+    "talking photo",
+    "talking avatar",
+    "ai video",
+    "voice",
+    "batch",
+    "sync labs",
+    "sync.so"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "sync. labs",
+    "shortDescription": "Lipsync, dub & talking video",
+    "developerName": "sync. labs",
+    "category": "Creativity",
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png",
+    "websiteURL": "https://sync.so",
+    "privacyPolicyURL": "https://sync.so/privacy",
+    "termsOfServiceURL": "https://sync.so/terms",
+    "supportURL": "https://support.sync.so",
+    "defaultPrompt": [
+      "Lipsync ./talk.mp4 to ./new-take.wav",
+      "Dub this YouTube video into Spanish",
+      "Make my AI-generated clip say this line"
+    ]
+  }
+}

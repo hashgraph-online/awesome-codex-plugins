@@ -1,0 +1,4 @@
+interface:
+  display_name: "Localize a campaign"
+  short_description: "Dub a set of videos for several markets, with a review sheet"
+  default_prompt: "Use $localize-campaign to localize these videos for new markets."

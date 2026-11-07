@@ -27,6 +27,7 @@ def audit_cache(root: Path, *, max_files: int, largest_limit: int) -> dict[str, 
     scan_complete = True
 
     def on_error(error: OSError) -> None:
+        """Handle on error."""
         nonlocal scan_complete
         scan_complete = False
         if len(errors) < 20:
@@ -96,6 +97,7 @@ def audit_cache(root: Path, *, max_files: int, largest_limit: int) -> dict[str, 
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Audit an existing PyTDC data/oracle directory without network access. "
@@ -127,6 +129,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         root = safe_directory(

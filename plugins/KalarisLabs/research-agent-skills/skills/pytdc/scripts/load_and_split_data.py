@@ -23,42 +23,46 @@ from _common import (
 
 
 # Public imports verified against the PyTDC 1.1.15 source distribution.
+SINGLE_PRED_MODULE = "tdc.single_pred"
+MULTI_PRED_MODULE = "tdc.multi_pred"
+GENERATION_MODULE = "tdc.generation"
 TASKS: dict[str, tuple[str, str, str]] = {
-    "ADME": ("tdc.single_pred", "ADME", "ADME"),
-    "CRISPROutcome": ("tdc.single_pred", "CRISPROutcome", "CRISPROutcome"),
-    "Develop": ("tdc.single_pred", "Develop", "Develop"),
-    "Epitope": ("tdc.single_pred", "Epitope", "Epitope"),
-    "HTS": ("tdc.single_pred", "HTS", "HTS"),
-    "Paratope": ("tdc.single_pred", "Paratope", "Paratope"),
-    "QM": ("tdc.single_pred", "QM", "QM"),
-    "Tox": ("tdc.single_pred", "Tox", "Tox"),
-    "Yields": ("tdc.single_pred", "Yields", "Yields"),
-    "AntibodyAff": ("tdc.multi_pred", "AntibodyAff", "AntibodyAff"),
-    "Catalyst": ("tdc.multi_pred", "Catalyst", "Catalyst"),
-    "DDI": ("tdc.multi_pred", "DDI", "DDI"),
-    "DrugRes": ("tdc.multi_pred", "DrugRes", "DrugRes"),
-    "DrugSyn": ("tdc.multi_pred", "DrugSyn", "DrugSyn"),
-    "DTI": ("tdc.multi_pred", "DTI", "DTI"),
-    "GDA": ("tdc.multi_pred", "GDA", "GDA"),
-    "MTI": ("tdc.multi_pred", "MTI", "MTI"),
-    "PeptideMHC": ("tdc.multi_pred", "PeptideMHC", "PeptideMHC"),
-    "PPI": ("tdc.multi_pred", "PPI", "PPI"),
-    "ProteinPeptide": ("tdc.multi_pred", "ProteinPeptide", "ProteinPeptide"),
+    "ADME": (SINGLE_PRED_MODULE, "ADME", "ADME"),
+    "CRISPROutcome": (SINGLE_PRED_MODULE, "CRISPROutcome", "CRISPROutcome"),
+    "Develop": (SINGLE_PRED_MODULE, "Develop", "Develop"),
+    "Epitope": (SINGLE_PRED_MODULE, "Epitope", "Epitope"),
+    "HTS": (SINGLE_PRED_MODULE, "HTS", "HTS"),
+    "Paratope": (SINGLE_PRED_MODULE, "Paratope", "Paratope"),
+    "QM": (SINGLE_PRED_MODULE, "QM", "QM"),
+    "Tox": (SINGLE_PRED_MODULE, "Tox", "Tox"),
+    "Yields": (SINGLE_PRED_MODULE, "Yields", "Yields"),
+    "AntibodyAff": (MULTI_PRED_MODULE, "AntibodyAff", "AntibodyAff"),
+    "Catalyst": (MULTI_PRED_MODULE, "Catalyst", "Catalyst"),
+    "DDI": (MULTI_PRED_MODULE, "DDI", "DDI"),
+    "DrugRes": (MULTI_PRED_MODULE, "DrugRes", "DrugRes"),
+    "DrugSyn": (MULTI_PRED_MODULE, "DrugSyn", "DrugSyn"),
+    "DTI": (MULTI_PRED_MODULE, "DTI", "DTI"),
+    "GDA": (MULTI_PRED_MODULE, "GDA", "GDA"),
+    "MTI": (MULTI_PRED_MODULE, "MTI", "MTI"),
+    "PeptideMHC": (MULTI_PRED_MODULE, "PeptideMHC", "PeptideMHC"),
+    "PPI": (MULTI_PRED_MODULE, "PPI", "PPI"),
+    "ProteinPeptide": (MULTI_PRED_MODULE, "ProteinPeptide", "ProteinPeptide"),
     "TCREpitopeBinding": (
-        "tdc.multi_pred",
+        MULTI_PRED_MODULE,
         "TCREpitopeBinding",
         "TCREpitopeBinding",
     ),
-    "TrialOutcome": ("tdc.multi_pred", "TrialOutcome", "TrialOutcome"),
-    "MolGen": ("tdc.generation", "MolGen", "MolGen"),
-    "Reaction": ("tdc.generation", "Reaction", "Reaction"),
-    "RetroSyn": ("tdc.generation", "RetroSyn", "RetroSyn"),
+    "TrialOutcome": (MULTI_PRED_MODULE, "TrialOutcome", "TrialOutcome"),
+    "MolGen": (GENERATION_MODULE, "MolGen", "MolGen"),
+    "Reaction": (GENERATION_MODULE, "Reaction", "Reaction"),
+    "RetroSyn": (GENERATION_MODULE, "RetroSyn", "RetroSyn"),
 }
 
 SPLIT_METHODS = ("random", "scaffold", "cold_split", "combination", "time")
 
 
 def normalize_columns(values: list[str] | None) -> list[str]:
+    """Normalize columns."""
     columns: list[str] = []
     for value in values or []:
         columns.extend(part.strip() for part in value.split(",") if part.strip())
@@ -92,7 +96,7 @@ def validate_request(
             "to the molecule-based ADME, Tox, and HTS single-instance tasks"
         )
     if method == "cold_split":
-        if module_name != "tdc.multi_pred":
+        if module_name != MULTI_PRED_MODULE:
             raise CliError("cold_split is only exposed by multi-instance loaders")
         if not columns:
             raise CliError("cold_split requires one or more --column values")
@@ -117,7 +121,7 @@ def validate_request(
     elif time_column:
         raise CliError("--time-column is only valid with --method time")
 
-    if module_name == "tdc.generation" and method != "random":
+    if module_name == GENERATION_MODULE and method != "random":
         raise CliError("the verified MolGen/Reaction/RetroSyn loaders expose random split")
     return task, dataset
 
@@ -134,6 +138,7 @@ def build_plan(
     data_dir: Path,
     package_version: str,
 ) -> dict[str, Any]:
+    """Build plan."""
     return {
         "action": "plan",
         "acknowledgement_required": "--execute",
@@ -158,6 +163,7 @@ def build_plan(
 
 
 def _summarize_frame(frame: Any, preview: int) -> dict[str, Any]:
+    """Summarize frame."""
     summary: dict[str, Any] = {"rows": len(frame)}
     if hasattr(frame, "columns"):
         summary["columns"] = [str(column) for column in list(frame.columns)[:100]]
@@ -261,6 +267,7 @@ def execute_split(
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate and plan a PyTDC dataset split. The default is download-free; "
@@ -320,6 +327,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         fractions = validate_fractions(args.frac)

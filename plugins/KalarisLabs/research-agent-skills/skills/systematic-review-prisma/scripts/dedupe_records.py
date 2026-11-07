@@ -31,24 +31,34 @@ RIS_MAP = {"TI": "title", "T1": "title", "DO": "doi", "PY": "year", "Y1": "year"
 
 
 def norm_doi(d: str) -> str:
+    """Handle norm doi."""
     return re.sub(r"^(https?://(dx\.)?doi\.org/|doi:\s*)", "", (d or "").strip(), flags=re.I).lower()
 
 
 def norm_title(t: str) -> str:
+    """Handle norm title."""
     t = unicodedata.normalize("NFKD", re.sub(r"[{}\\]", "", t or "")).encode("ascii", "ignore").decode().lower()
     return re.sub(r"[^a-z0-9]+", " ", t).strip()
 
 
 def surname(authors: str) -> str:
+    """Handle surname."""
     first = re.split(r";| and |\|", authors or "")[0].strip()
-    s = first.split(",")[0] if "," in first else (first.split()[-1] if first.split() else "")
+    words = first.split()
+    if "," in first:
+        s = first.split(",")[0]
+    elif words:
+        s = words[-1]
+    else:
+        s = ""
     return norm_title(s)
 
 
 def read_ris(path: Path) -> list[dict]:
+    """Read ris."""
     recs, cur = [], {}
     for line in path.read_text(encoding="utf-8-sig", errors="replace").splitlines():
-        m = re.match(r"^([A-Z][A-Z0-9])  - ?(.*)$", line)
+        m = re.match(r"^([A-Z][A-Z0-9]) {2}- ?(.*)$", line)
         if not m:
             continue
         tag, val = m.group(1), m.group(2).strip()
@@ -69,6 +79,7 @@ def read_ris(path: Path) -> list[dict]:
 
 
 def read_csv(path: Path) -> list[dict]:
+    """Read csv."""
     with path.open(encoding="utf-8-sig", errors="replace", newline="") as fh:
         rows = list(csv.DictReader(fh))
     out = []
@@ -84,6 +95,7 @@ def read_csv(path: Path) -> list[dict]:
 
 
 def _bib_value(text: str, i: int) -> tuple[str, int]:
+    """Handle bib value."""
     parts = []
     while True:
         while text[i].isspace():
@@ -114,6 +126,7 @@ def _bib_value(text: str, i: int) -> tuple[str, int]:
 
 
 def read_bib(path: Path) -> list[dict]:
+    """Read bib."""
     text = path.read_text(encoding="utf-8", errors="replace")
     out = []
     for m in re.finditer(r"@(\w+)\s*[{(]\s*([^,\s]+)\s*,", text):
@@ -140,6 +153,7 @@ READERS = {".ris": read_ris, ".txt": read_ris, ".csv": read_csv, ".bib": read_bi
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("inputs", nargs="+", type=Path)
     ap.add_argument("-o", "--output", type=Path, default=Path("deduplicated.csv"))

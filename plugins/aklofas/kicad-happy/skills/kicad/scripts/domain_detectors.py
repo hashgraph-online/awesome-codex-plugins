@@ -15,11 +15,12 @@ import re
 from collections import Counter
 
 from kicad_types import AnalysisContext
-from kicad_core.parts import lookup_regulator_vref
-from kicad_core.values import parse_value
-from kicad_core.netnames import parse_voltage_from_net_name
-from signal_detectors import _get_net_components
-from detector_helpers import match_ic_keywords, get_unique_ics
+from kicad_core.classify import is_active_low_enable
+from kicad_core.parts import LOAD_SWITCH_KEYWORDS, lookup_regulator_vref
+from kicad_core.values import format_frequency, parse_value
+from kicad_core.netnames import is_vss_name, parse_voltage_from_net_name
+from detector_helpers import (is_led_rail, led_forward_voltage, led_string, match_family,
+                              match_ic_keywords, get_unique_ics, get_pin_net)
 from finding_schema import make_finding, make_provenance
 
 
@@ -47,7 +48,7 @@ def detect_buzzer_speakers(ctx: AnalysisContext, transistor_circuits: list[dict]
                 break
         if not signal_net:
             continue
-        net_comps = _get_net_components(ctx, signal_net, ref)
+        net_comps = ctx.nq.components_on_net(signal_net, exclude_refs={ref})
         driver_ic_ref = None
         series_resistor = None
         has_transistor_driver = False
@@ -60,7 +61,7 @@ def detect_buzzer_speakers(ctx: AnalysisContext, transistor_circuits: list[dict]
                 r_n1, r_n2 = ctx.get_two_pin_nets(nc["reference"])
                 r_other = r_n2 if r_n1 == signal_net else r_n1
                 if r_other:
-                    for rc in _get_net_components(ctx, r_other, nc["reference"]):
+                    for rc in ctx.nq.components_on_net(r_other, exclude_refs={nc["reference"]}):
                         if rc["type"] == "ic":
                             driver_ic_ref = rc["reference"]
             elif nc["type"] == "transistor":
@@ -170,13 +171,13 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
     # Topology-based detection: find switch-diode pairs and group by shared nets
     # to identify rows/columns regardless of net naming.
     if not key_matrices:
-        # KH-152: Exclude solar cells and similar power-generation components
+        # Exclude solar cells and similar power-generation components
         switches = [c for c in ctx.components if c["type"] == "switch"
                     and "solar" not in c.get("lib_id", "").lower()
                     and "solar_cell" not in c.get("value", "").lower()]
         if len(switches) >= 4:
             # For each switch, find if either net has a diode (switch-diode pair)
-            # KH-197b: Track paired switches to avoid double-counting
+            # Track paired switches to avoid double-counting
             switch_diode_pairs = []
             paired_switches: set[str] = set()
             for sw in switches:
@@ -215,12 +216,12 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
                 for pair in switch_diode_pairs:
                     topo_row_nets.add(pair["row_net"])
                     topo_col_nets.add(pair["col_net"])
-                # KH-152: Reject if row/col nets are power rails
+                # Reject if row/col nets are power rails
                 topo_row_nets = {n for n in topo_row_nets
                                  if not ctx.is_power_net(n) and not ctx.is_ground(n)}
                 topo_col_nets = {n for n in topo_col_nets
                                  if not ctx.is_power_net(n) and not ctx.is_ground(n)}
-                # KH-197c: Resolve ambiguous nets that appear in both sets
+                # Resolve ambiguous nets that appear in both sets
                 ambiguous = topo_row_nets & topo_col_nets
                 if ambiguous:
                     row_votes = Counter(p["row_net"] for p in switch_diode_pairs)
@@ -261,6 +262,15 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
                     })
 
     return key_matrices
+
+
+# ISO anywhere, or a whole _B / _SEC token (3.3V_B, VCC_B2, 5V_SEC_OUT); V_BAT,
+# MIC_BIAS and VCCA_BR are not secondary-side rails.
+_ISOLATED_RAIL = re.compile(r'ISO|_(?:B|SEC)\d*(?=[_/]|$)')
+
+
+def _is_isolated_rail_name(net: str) -> bool:
+    return _ISOLATED_RAIL.search(net.upper()) is not None
 
 
 def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
@@ -310,9 +320,7 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
 
             isolated_power_rails = [
                 n for n in ctx.nets
-                if ctx.is_power_net(n) and any(
-                    k in n.upper() for k in ("ISO", "ISOL", "_B", "_SEC")
-                )
+                if ctx.is_power_net(n) and _is_isolated_rail_name(n)
             ]
 
             has_iso_evidence = (
@@ -400,6 +408,15 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
                 entry["provenance"] = make_provenance(_iso_evidence, "deterministic", claimed_components=iso_refs)
                 isolation_barriers.append(entry)
     return isolation_barriers
+
+
+# Jacks with the 1:1 Ethernet transformers built in (HanRun HR911/HY911, Bel MagJack/SI-60/08B0,
+# Pulse J0011D/J1011F/JXD, Amphenol ARJP/ARJM, Wurth RJLBC, ... per the vendor datasheets).
+_INTEGRATED_MAG_KEYWORDS = (
+    "magjack", "mag_jack", "hr911", "hr961", "hy911", "hfj11", "lpj0", "lpj1", "lpj4",
+    "arjp", "arjm", "rjlbc", "j0011d", "j1011f", "jxd0", "jxd1", "08b0", "rb1-1", "si-60",
+    "with_magnetics", "integrated_magnetics", "rj45_magnetic",
+)
 
 
 def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
@@ -592,8 +609,15 @@ def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
 
             # Impedance advisory: magnetics provide both isolation and 100Ω
             # differential impedance matching for Ethernet
-            has_magnetics = bool(found_magnetics)
-            if not has_magnetics:
+            integrated = [c for c in found_connectors
+                          if any(k in (c.get("value", "") + " " + c.get("lib_id", "")).lower()
+                                 for k in _INTEGRATED_MAG_KEYWORDS)]
+            if not found_magnetics and integrated:
+                impedance_advisory = {
+                    "status": "pass",
+                    "detail": f"Magnetics integrated in connector {integrated[0]['reference']}",
+                }
+            elif not found_magnetics:
                 impedance_advisory = {
                     "status": "warning",
                     "detail": ("No magnetics/transformer detected between PHY and connector. "
@@ -843,8 +867,8 @@ def detect_lvds_interfaces(ctx: AnalysisContext) -> list[dict]:
         "sn65lvds", "thc63", "max9217", "max9247",
         "ub924", "ub925",
     )
-    _serializer_hints = ("ser", "driver", "transmit", "tx", "encoder", "ub925")
-    _deserializer_hints = ("des", "receiver", "rx", "decoder", "ub924")
+    _serializer_hints = ("ser", "serializer", "driver", "transmit", "tx", "encoder", "ub925")
+    _deserializer_hints = ("des", "deserializer", "receiver", "rx", "decoder", "ub924")
 
     for comp in ctx.components:
         if comp["type"] != "ic":
@@ -853,17 +877,10 @@ def detect_lvds_interfaces(ctx: AnalysisContext) -> list[dict]:
         if not any(k in val_lib for k in _lvds_keywords):
             continue
 
-        # Classify role
-        role = "unknown"
-        if any(h in val_lib for h in _serializer_hints):
-            role = "serializer"
-        elif any(h in val_lib for h in _deserializer_hints):
-            role = "deserializer"
-        else:
-            # Heuristic: DS90Cx8xx — even last digit = serializer, odd = deserializer
-            # e.g., DS90C124 (ser), DS90C125 (des), DS90CR286 (ser), DS90CF386 (des)
-            # Not perfectly reliable, so leave as "unknown" if no strong hint
-            pass
+        # DS90Cx8xx part numbers hint the role by their last digit, but not
+        # reliably, so no hint leaves the role "unknown".
+        role = match_family(comp, {"serializer": _serializer_hints,
+                                   "deserializer": _deserializer_hints}) or "unknown"
 
         lvds_interfaces.append({
             "reference": comp["reference"],
@@ -1015,14 +1032,14 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
     )
     rf_amp_keywords = (
         "mga-", "bga-", "maal", "pga-", "gali-", "maa-", "bfp7", "bfr5",
-        "hmc58", "hmc31", "lna", "mmic",
+        "hmc31", "lna", "mmic",
         "bgb7", "trf37", "sga-", "tqp3", "sky67",
         "maam", "admv",
     )
     rf_transceiver_keywords = (
         "max283", "at86rf", "cc1101", "cc2500", "sx127", "sx126",
         "rfm9", "rfm6", "nrf24", "si446",
-        # KH-120: Less common RF transceiver/front-end ICs
+        # Less common RF transceiver/front-end ICs
         "bk4819", "cmx994", "cmx99", "si4463", "si4432", "a7105",
         "nrf52", "nrf53", "esp32",
     )
@@ -1030,9 +1047,9 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
         "saw", "baw", "fbar", "highpass", "lowpass", "bandpass",
         "fil-", "sf2", "ta0", "b39",
     )
-    # KH-085: New RF component categories
+    # New RF component categories
     rf_attenuator_keywords = (
-        "hmc47", "hmc54", "pe43", "pe44", "dat-", "rfsa",
+        "hmc47", "hmc540", "hmc542", "pe43", "pe44", "dat-", "rfsa",
     )
     rf_coupler_keywords = (
         "fpc0", "tcd-", "adc-", "bd-", "mdc-",
@@ -1044,58 +1061,47 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
         "xx1000", "hmc57", "hmc20",
     )
 
-    rf_switches = []
-    rf_mixers = []
-    rf_amplifiers = []
-    rf_transceivers = []
-    rf_filters = []
-    rf_baluns = []
-    rf_attenuators = []
-    rf_couplers = []
-    rf_power_detectors = []
-    rf_freq_multipliers = []
-    seen_rf_refs = set()
+    rf_families = {
+        "switch": rf_switch_keywords,
+        "mixer": rf_mixer_keywords,
+        "amplifier": rf_amp_keywords,
+        "transceiver": rf_transceiver_keywords,
+        "filter": rf_filter_keywords,
+        "attenuator": rf_attenuator_keywords,
+        "coupler": rf_coupler_keywords,
+        "power_detector": rf_power_detector_keywords,
+        "freq_multiplier": rf_freq_multiplier_keywords,
+    }
+    by_role: dict[str, list[dict]] = {role: [] for role in (*rf_families, "balun")}
+    rf_roles: dict[str, str] = {}
 
     for c in ctx.components:
-        if c["reference"] in seen_rf_refs:
+        if c["reference"] in rf_roles:
             continue
-        val_lib = (c.get("value", "") + " " + c.get("lib_id", "")).lower()
-
-        # KH-120: Also check "other" type — some RF ICs use non-standard
+        role = None
+        # Also check "other" type — some RF ICs use non-standard
         # reference designators and get classified as "other"
         if c["type"] in ("ic", "other"):
-            if any(k in val_lib for k in rf_switch_keywords):
-                rf_switches.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_mixer_keywords):
-                rf_mixers.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_amp_keywords):
-                rf_amplifiers.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_transceiver_keywords):
-                rf_transceivers.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_filter_keywords):
-                rf_filters.append(c)
-                seen_rf_refs.add(c["reference"])
-            # KH-085: New RF categories
-            elif any(k in val_lib for k in rf_attenuator_keywords):
-                rf_attenuators.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_coupler_keywords):
-                rf_couplers.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_power_detector_keywords):
-                rf_power_detectors.append(c)
-                seen_rf_refs.add(c["reference"])
-            elif any(k in val_lib for k in rf_freq_multiplier_keywords):
-                rf_freq_multipliers.append(c)
-                seen_rf_refs.add(c["reference"])
+            role = match_family(c, rf_families)
         elif c["type"] == "transformer":
+            val_lib = (c.get("value", "") + " " + c.get("lib_id", "")).lower()
             if any(k in val_lib for k in ("balun", "bal-", "b0310", "bl14")):
-                rf_baluns.append(c)
-                seen_rf_refs.add(c["reference"])
+                role = "balun"
+        if role:
+            by_role[role].append(c)
+            rf_roles[c["reference"]] = role
+
+    rf_switches = by_role["switch"]
+    rf_mixers = by_role["mixer"]
+    rf_amplifiers = by_role["amplifier"]
+    rf_transceivers = by_role["transceiver"]
+    rf_filters = by_role["filter"]
+    rf_baluns = by_role["balun"]
+    rf_attenuators = by_role["attenuator"]
+    rf_couplers = by_role["coupler"]
+    rf_power_detectors = by_role["power_detector"]
+    rf_freq_multipliers = by_role["freq_multiplier"]
+    seen_rf_refs = set(rf_roles)
 
     rf_component_count = (
         len(rf_switches) + len(rf_mixers) + len(rf_amplifiers)
@@ -1127,32 +1133,7 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
                     })
 
         def _rf_role(ref):
-            comp = ctx.comp_lookup.get(ref)
-            if not comp:
-                return "unknown"
-            val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
-            if any(k in val_lib for k in rf_switch_keywords):
-                return "switch"
-            if any(k in val_lib for k in rf_mixer_keywords):
-                return "mixer"
-            if any(k in val_lib for k in rf_amp_keywords):
-                return "amplifier"
-            if any(k in val_lib for k in rf_transceiver_keywords):
-                return "transceiver"
-            if any(k in val_lib for k in rf_filter_keywords):
-                return "filter"
-            # KH-085: New RF roles
-            if any(k in val_lib for k in rf_attenuator_keywords):
-                return "attenuator"
-            if any(k in val_lib for k in rf_coupler_keywords):
-                return "coupler"
-            if any(k in val_lib for k in rf_power_detector_keywords):
-                return "power_detector"
-            if any(k in val_lib for k in rf_freq_multiplier_keywords):
-                return "freq_multiplier"
-            if comp["type"] == "transformer":
-                return "balun"
-            return "unknown"
+            return rf_roles.get(ref, "unknown")
 
         all_rf_chain_refs = [c["reference"] for c in (
             rf_switches + rf_mixers + rf_amplifiers + rf_transceivers +
@@ -1190,7 +1171,7 @@ def detect_rf_chains(ctx: AnalysisContext) -> list[dict]:
                  "lib_id": c.get("lib_id", "")}
                 for c in rf_baluns
             ],
-            # KH-085: New RF component categories
+            # New RF component categories
             "attenuators": [
                 {"reference": c["reference"], "value": c["value"],
                  "lib_id": c.get("lib_id", "")}
@@ -1401,7 +1382,7 @@ def detect_rf_matching(ctx: AnalysisContext) -> list[dict]:
                     if not comp:
                         continue
                     if comp["type"] in ("capacitor", "inductor", "ferrite_bead"):
-                        # KH-150: Skip ferrite beads (EMI filtering, not RF matching)
+                        # Skip ferrite beads (EMI filtering, not RF matching)
                         _comp_desc = (comp.get("description", "") + " " +
                                       comp.get("keywords", "") + " " +
                                       comp.get("value", "")).lower()
@@ -1437,7 +1418,7 @@ def detect_rf_matching(ctx: AnalysisContext) -> list[dict]:
         if not matching_components:
             continue
 
-        # KH-150: Require target IC to be RF-related
+        # Require target IC to be RF-related
         if target_ic:
             _target_comp = ctx.comp_lookup.get(target_ic, {})
             _target_check = (_target_comp.get("value", "") + " " +
@@ -1549,7 +1530,7 @@ def detect_bms_systems(ctx: AnalysisContext) -> list[dict]:
     """Detect Battery Management System ICs with cell monitoring."""
     bms_systems: list[dict] = []
 
-    # KH-123: Only include multi-cell BMS/AFE ICs, not single-cell chargers.
+    # Only include multi-cell BMS/AFE ICs, not single-cell chargers.
     # Single-cell chargers (TP4056, MCP73871, etc.) handle charging only,
     # not cell balancing or multi-cell monitoring.
     bms_ic_keywords = (
@@ -2145,6 +2126,8 @@ def detect_motor_drivers(ctx: AnalysisContext) -> list[dict]:
         for vb_name, vb_net in vb_nets.items():
             # Find matching VS pin (VB1↔VS1, VB↔VS)
             suffix = vb_name[2:]  # "" or "1" or "2"
+            if suffix and not suffix.isdigit():
+                continue  # VBOOT is not a VB/VS pair
             vs_net = vs_nets.get("VS" + suffix)
             if not vs_net or vb_net not in ctx.nets:
                 continue
@@ -2248,7 +2231,7 @@ def detect_addressable_leds(ctx: AnalysisContext) -> list[dict]:
                      "neopixel", "dotstar")
 
     # Find addressable LED components
-    # KH-122: Also search "diode" type — D-prefix addressable LEDs may be
+    # Also search "diode" type — D-prefix addressable LEDs may be
     # misclassified when using custom library symbols
     addr_leds = {}
     for c in ctx.components:
@@ -2773,17 +2756,6 @@ def detect_debug_interfaces(ctx: AnalysisContext) -> list[dict]:
 # Power Path / Load Switch Detection
 # ---------------------------------------------------------------------------
 
-_LOAD_SWITCH_KEYWORDS = (
-    "tps229", "tps2291", "tps2293", "tps2295",
-    "tps2281", "tps2283", "tps2285",
-    "tps2211", "tps2219", "tps2221",
-    "tps22918", "tps22919", "tps22810",
-    "sy6280", "sy6282", "sy6288",
-    "rt9742", "rt9701", "ap2281", "ap2191",
-    "stmps2", "ncp380", "ncp381",
-    "mic205", "mic209",
-)
-
 _IDEAL_DIODE_KEYWORDS = (
     "ltc4412", "ltc4413", "ltc4414",
     "tps2113", "tps2115", "tps2121",
@@ -2805,6 +2777,25 @@ _VBUS_PINS = {"VBUS", "V_BUS"}
 _CC_PINS = {"CC1", "CC2", "CC"}
 _SBU_PINS = {"SBU1", "SBU2", "SBU"}
 
+# USB Type-C source Rp (nominal ohms) by pull-up rail: default USB / 1.5 A / 3 A.
+_CC_RP_5V = ((56000, "source_default", "default USB current"),
+             (22000, "source_1_5A", "1.5A advertisement"),
+             (10000, "source_3A", "3A advertisement"))
+_CC_RP_3V3 = ((36000, "source_default", "default USB current"),
+              (12000, "source_1_5A", "1.5A advertisement"),
+              (4700, "source_3A", "3A advertisement"))
+
+
+def _cc_rp_table(rail_v: float | None):
+    """The Rp table for a pull-up rail at *rail_v* (5 V or 3.3 V), else None."""
+    if rail_v is None:
+        return None
+    if 4.75 <= rail_v <= 5.5:
+        return _CC_RP_5V
+    if 3.0 <= rail_v <= 3.6:
+        return _CC_RP_3V3
+    return None
+
 
 def detect_power_path(ctx: AnalysisContext) -> list[dict]:
     """Detect load switches, ideal diodes, power MUXes, and USB PD controllers."""
@@ -2824,7 +2815,7 @@ def detect_power_path(ctx: AnalysisContext) -> list[dict]:
 
         # Classify device type
         device_type = None
-        if any(kw in combined for kw in _LOAD_SWITCH_KEYWORDS):
+        if any(kw in combined for kw in LOAD_SWITCH_KEYWORDS):
             device_type = "load_switch"
         elif any(kw in combined for kw in _IDEAL_DIODE_KEYWORDS):
             # Distinguish ideal diode from power MUX by pin count/keywords
@@ -2936,85 +2927,63 @@ def detect_power_path(ctx: AnalysisContext) -> list[dict]:
             entry["cc_nets"] = cc_nets
             entry["sbu_nets"] = sbu_nets
 
-            # USB-C CC resistor validation
-            # UFP (sink) requires 5.1kΩ ±10% pull-down on each CC pin to GND
-            # DFP (source) uses 56kΩ (default USB), 22kΩ (1.5A), or 10kΩ (3A)
-            # PD controller IC on CC nets means discrete resistors not required
+            # USB-C CC resistor validation. Every listed controller presents Rd/Rp
+            # itself, so a CC net without resistors is fine; discrete ones are checked:
+            # a pull-down is a sink Rd, a pull-up to a 5 V or 3.3 V rail a source Rp.
             cc_resistor_findings = []
-            has_pd_controller = bool(entry.get("pd_controller"))
-
-            if cc_nets and not has_pd_controller:
-                for cc_net in cc_nets:
-                    if cc_net not in ctx.nets:
+            for cc_net in cc_nets:
+                if cc_net not in ctx.nets:
+                    continue
+                for pin in ctx.nets[cc_net].get("pins", []):
+                    comp = ctx.comp_lookup.get(pin["component"])
+                    if not comp or comp["type"] != "resistor":
                         continue
-                    cc_resistors = []
-                    for pin in ctx.nets[cc_net].get("pins", []):
-                        comp = ctx.comp_lookup.get(pin["component"])
-                        if not comp or comp["type"] != "resistor":
-                            continue
-                        r_val = ctx.parsed_values.get(pin["component"])
-                        if r_val is None:
-                            continue
-                        # Check which net the other pin connects to
-                        n1, n2 = ctx.get_two_pin_nets(pin["component"])
-                        other_net = n2 if n1 == cc_net else n1
-                        if other_net and ctx.is_ground(other_net):
-                            cc_resistors.append({
-                                "ref": pin["component"],
-                                "ohms": r_val,
-                                "value": comp.get("value", ""),
-                                "to_net": other_net,
+                    r = ctx.parsed_values.get(pin["component"])
+                    if r is None:
+                        continue
+                    n1, n2 = ctx.get_two_pin_nets(pin["component"])
+                    other_net = n2 if n1 == cc_net else n1
+                    if not other_net:
+                        continue
+                    r_ref = pin["component"]
+                    label = f"{r_ref} ({comp.get('value', '')})"
+                    if ctx.is_ground(other_net):
+                        if 4590 <= r <= 5610:  # 5.1kΩ ±10%
+                            cc_resistor_findings.append({
+                                "net": cc_net,
+                                "ref": r_ref,
+                                "ohms": r,
+                                "status": "correct_sink",
+                                "message": f"{label} on {cc_net} — "
+                                           f"correct for UFP/sink role",
                             })
-
-                    if not cc_resistors:
+                        else:
+                            cc_resistor_findings.append({
+                                "net": cc_net, "ref": r_ref, "ohms": r,
+                                "status": "unexpected_value",
+                                "message": f"{label} = {r:.0f}Ω pull-down on {cc_net} — "
+                                           f"a USB-C sink Rd is 5.1kΩ",
+                            })
+                        continue
+                    if not ctx.is_power_net(other_net):
+                        continue
+                    table = _cc_rp_table(ctx.rail_voltage(other_net))
+                    if table is None:
+                        continue
+                    hit = next((t for t in table if t[0] * 0.9 <= r <= t[0] * 1.1), None)
+                    if hit:
                         cc_resistor_findings.append({
-                            "net": cc_net,
-                            "status": "missing",
-                            "message": f"No pull-down resistor on {cc_net} — "
-                                       f"required for USB-C sink (UFP) role",
+                            "net": cc_net, "ref": r_ref, "ohms": r,
+                            "status": hit[1],
+                            "message": f"{label} — DFP source, {hit[2]}",
                         })
                     else:
-                        for cr in cc_resistors:
-                            r = cr["ohms"]
-                            # 5.1kΩ ±10% for sink (UFP)
-                            if 4590 <= r <= 5610:
-                                cc_resistor_findings.append({
-                                    "net": cc_net,
-                                    "ref": cr["ref"],
-                                    "ohms": r,
-                                    "status": "correct_sink",
-                                    "message": f"{cr['ref']} ({cr['value']}) on {cc_net} — "
-                                               f"correct for UFP/sink role",
-                                })
-                            elif 50400 <= r <= 61600:  # 56kΩ ±10% = default USB
-                                cc_resistor_findings.append({
-                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
-                                    "status": "source_default",
-                                    "message": f"{cr['ref']} ({cr['value']}) — "
-                                               f"DFP source, default USB current",
-                                })
-                            elif 19800 <= r <= 24200:  # 22kΩ ±10% = 1.5A
-                                cc_resistor_findings.append({
-                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
-                                    "status": "source_1_5A",
-                                    "message": f"{cr['ref']} ({cr['value']}) — "
-                                               f"DFP source, 1.5A advertisement",
-                                })
-                            elif 9000 <= r <= 11000:  # 10kΩ ±10% = 3A
-                                cc_resistor_findings.append({
-                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
-                                    "status": "source_3A",
-                                    "message": f"{cr['ref']} ({cr['value']}) — "
-                                               f"DFP source, 3A advertisement",
-                                })
-                            else:
-                                cc_resistor_findings.append({
-                                    "net": cc_net, "ref": cr["ref"], "ohms": r,
-                                    "status": "unexpected_value",
-                                    "message": f"{cr['ref']} ({cr['value']}) = {r:.0f}Ω on {cc_net} — "
-                                               f"not a standard USB-C CC value "
-                                               f"(expected 5.1kΩ sink or 56k/22k/10k source)",
-                                })
+                        cc_resistor_findings.append({
+                            "net": cc_net, "ref": r_ref, "ohms": r,
+                            "status": "unexpected_value",
+                            "message": f"{label} = {r:.0f}Ω pull-up on {cc_net} — "
+                                       f"not a standard USB-C Rp value",
+                        })
 
             if cc_resistor_findings:
                 entry["cc_resistor_check"] = cc_resistor_findings
@@ -3108,16 +3077,16 @@ def detect_adc_circuits(ctx: AnalysisContext,
     results: list[dict] = []
     matched_refs: set[str] = set()
 
-    # Build net → RC filter index for anti-aliasing cross-reference
+    # Anti-aliasing: a series R into the ADC input with C from that node to ground or
+    # across the differential pair, so the channel net is the R-C junction.
     rc_by_net: dict[str, list[dict]] = {}
     for rcf in rc_filters:
-        for key in ("resistor", "capacitor"):
-            comp = rcf.get(key, {})
-            ref = comp.get("reference")
-            if ref:
-                for pin_num, (net, _) in ctx.ref_pins.get(ref, {}).items():
-                    if net:
-                        rc_by_net.setdefault(net, []).append(rcf)
+        if rcf.get("type") not in ("low-pass", "RC-network"):
+            continue
+        r_nets = {n for n, _ in ctx.ref_pins.get(rcf.get("resistor", {}).get("ref", ""), {}).values() if n}
+        c_nets = {n for n, _ in ctx.ref_pins.get(rcf.get("capacitor", {}).get("ref", ""), {}).values() if n}
+        for junction in sorted(r_nets & c_nets):
+            rc_by_net.setdefault(junction, []).append(rcf)
 
     # Build net → protection device index
     prot_by_net: dict[str, list[dict]] = {}
@@ -3273,10 +3242,10 @@ def detect_adc_circuits(ctx: AnalysisContext,
                 aa_entry = {"channel": ch_name}
                 r_comp = rcf.get("resistor", {})
                 c_comp = rcf.get("capacitor", {})
-                if r_comp.get("reference"):
-                    aa_entry["rc_ref_r"] = r_comp["reference"]
-                if c_comp.get("reference"):
-                    aa_entry["rc_ref_c"] = c_comp["reference"]
+                if r_comp.get("ref"):
+                    aa_entry["rc_ref_r"] = r_comp["ref"]
+                if c_comp.get("ref"):
+                    aa_entry["rc_ref_c"] = c_comp["ref"]
                 if rcf.get("cutoff_hz"):
                     aa_entry["cutoff_hz"] = rcf["cutoff_hz"]
                 anti_aliasing.append(aa_entry)
@@ -3344,6 +3313,10 @@ _WATCHDOG_IC_KEYWORDS = (
     "adm6316", "adm6320", "stwd100",
 )
 
+# NXP LPC LQFP48 part numbers (LPC1114FBD48, LPC845M301JBD48) contain ROHM's
+# "bd48"; the longer match keeps them out of both families.
+_NOT_RESET_IC_KEYWORDS = ("fbd48", "jbd48")
+
 _RESET_OUTPUT_PINS = {"RST", "RESET", "NRST", "NRESET", "~{RST}", "~{RESET}",
                       "~{NRST}", "~{NRESET}", "RSTN", "RESETN", "MR", "RESETOUT",
                       "RESET_OUT", "RST_OUT", "RSTOUT"}
@@ -3386,13 +3359,12 @@ def detect_reset_supervisors(ctx: AnalysisContext) -> list[dict]:
         ref = comp["reference"]
         if ref in matched_refs:
             continue
-        val = comp.get("value", "").lower()
-        lib = comp.get("lib_id", "").lower()
-        combined = val + " " + lib
-
         # Classify
-        is_supervisor = any(kw in combined for kw in _SUPERVISOR_IC_KEYWORDS)
-        is_watchdog = any(kw in combined for kw in _WATCHDOG_IC_KEYWORDS)
+        family = match_family(comp, {"supervisor": _SUPERVISOR_IC_KEYWORDS,
+                                     "watchdog": _WATCHDOG_IC_KEYWORDS,
+                                     "other": _NOT_RESET_IC_KEYWORDS})
+        is_supervisor = family == "supervisor"
+        is_watchdog = family == "watchdog"
         if not is_supervisor and not is_watchdog:
             continue
         matched_refs.add(ref)
@@ -3745,7 +3717,7 @@ def detect_clock_distribution(ctx: AnalysisContext,
             "ref": osc_ref,
             "value": xc.get("value", ""),
             "type": "oscillator_output",
-            "frequency_hz": xc.get("frequency_hz"),
+            "frequency_hz": xc.get("frequency"),
             "output_net": output_net,
             "consumers": consumers,
             "series_termination": term,
@@ -3755,7 +3727,7 @@ def detect_clock_distribution(ctx: AnalysisContext,
             "severity": "info",
             "confidence": "deterministic",
             "evidence_source": "topology",
-            "summary": f"Oscillator output {osc_ref} ({xc.get('value', '')})" + (f" {xc.get('frequency_hz', '')/1e6:.3g} MHz" if xc.get("frequency_hz") else ""),
+            "summary": f"Oscillator output {osc_ref} ({xc.get('value', '')})" + (f" {format_frequency(xc['frequency'])}" if xc.get("frequency") else ""),
             "description": f"Detected active oscillator {osc_ref} driving clock output.",
             "components": [osc_ref] + consumers,
             "nets": [output_net] if output_net else [],
@@ -4007,18 +3979,10 @@ def detect_sensor_interfaces(ctx: AnalysisContext) -> list[dict]:
         ref = comp["reference"]
         if ref in matched_refs:
             continue
-        val = comp.get("value", "").lower()
-        lib = comp.get("lib_id", "").lower()
-        combined = val + " " + lib
-
         # Classify sensor type
-        sensor_type = None
-        if any(kw in combined for kw in _IMU_KEYWORDS):
-            sensor_type = "motion"
-        elif any(kw in combined for kw in _ENV_SENSOR_KEYWORDS):
-            sensor_type = "environmental"
-        elif any(kw in combined for kw in _MAG_KEYWORDS):
-            sensor_type = "magnetic"
+        sensor_type = match_family(comp, {"motion": _IMU_KEYWORDS,
+                                          "environmental": _ENV_SENSOR_KEYWORDS,
+                                          "magnetic": _MAG_KEYWORDS})
 
         if not sensor_type:
             continue
@@ -4115,7 +4079,6 @@ _LEVEL_SHIFTER_KEYWORDS = (
     "txb0", "txs0", "tca9", "lsf0", "sn74lvc", "sn74avc",
     "sn74cb3", "sn74cbt", "nlsx", "nts0", "fxl", "adg320",
     "max395", "gtl2", "pca960", "tca641", "fxma", "txu0",
-    # 4.1 expansion (rc.2): SparkFun + Manas reviews
     "lvc1t45", "lvc2t45", "lvc8t45",  # 74LVC*T45 / SN74LVC*T45 translator family
     "nvt20",                          # NXP NVT200x autobus translator
     "pca9306", "pca9517",             # NXP/TI I2C bus repeaters with level translation
@@ -4135,7 +4098,9 @@ def _infer_voltage(ctx: AnalysisContext, net_name: str | None) -> float | None:
     if not net_name:
         return None
     from kicad_core.netnames import parse_voltage_from_net_name
-    return parse_voltage_from_net_name(net_name)
+    v = (parse_voltage_from_net_name(net_name) if ctx is None
+         else ctx.rail_voltage_or(net_name, parse_voltage_from_net_name))
+    return abs(v) if v is not None else None
 
 
 def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
@@ -4157,7 +4122,7 @@ def detect_level_shifters(ctx: AnalysisContext) -> list[dict]:
         if not any(kw in combined for kw in _LEVEL_SHIFTER_KEYWORDS):
             continue
 
-        # KH-227: Exclude pure logic gates (not level shifters)
+        # Exclude pure logic gates (not level shifters)
         _val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
         _logic_gate_patterns = ("1g00", "1g02", "1g04", "1g08", "1g14", "1g32",
                                 "1g86", "2g00", "2g02", "2g04", "2g08", "2g14",
@@ -4819,20 +4784,11 @@ _LED_VF = {
 
 # Per-color Vf floor — the MINIMUM forward voltage below which an LED of
 # this color will not light at all. Used by LA-004 to flag LEDs on rails
-# that are below their color's floor. rc.2 4.1 expansion (Manas review).
+# that are below their color's floor.
 _LED_VF_FLOOR = {
     "red": 1.85, "orange": 2.0, "yellow": 2.0, "amber": 2.0,
     "green": 2.1, "blue": 3.0, "white": 3.0, "uv": 3.2,
 }
-
-
-def _estimate_led_vf(comp: dict) -> float:
-    """Estimate LED forward voltage from value/lib_id color hints."""
-    combined = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
-    for color, vf in _LED_VF.items():
-        if color in combined:
-            return vf
-    return 2.0  # default to red/generic
 
 
 def _detect_led_color(comp: dict) -> str | None:
@@ -4894,10 +4850,15 @@ def audit_led_circuits(ctx: AnalysisContext,
         if not n1 or not n2:
             continue
 
-        # Classify each net: power, ground, signal
+        # The series string this LED belongs to; its resistor sits at one of the ends.
+        string, e1, e2 = led_string(ctx, ref)
+        if not e1 or not e2:
+            continue
+
+        # Classify each end net: power, ground, signal
         supply_net = None
         signal_net = None
-        for net in (n1, n2):
+        for net in (e1, e2):
             if ctx.is_ground(net):
                 continue
             if ctx.is_power_net(net):
@@ -4913,7 +4874,12 @@ def audit_led_circuits(ctx: AnalysisContext,
         series_resistor = None
         has_unparsed_resistor = False
         driver_source = None
-        check_nets = [n for n in (n1, n2) if n and not ctx.is_ground(n)]
+        # Only the LED's own node(s) carry its series resistor; a rail holds pull-ups
+        # and every other part on that supply.  Fewest pins first.
+        check_nets = sorted((n for n in (e1, e2) if not ctx.is_ground(n) and not is_led_rail(ctx, n)),
+                            key=lambda n: (len(ctx.nets.get(n, {}).get("pins", [])), n))
+        led_nets = {e1, e2}
+        string_leds = [ctx.comp_lookup[r] for r in string]
 
         def _scan_net_for_resistor(net, exclude_ref):
             """Scan a net for a current-limiting resistor. Returns (resistor_dict, unparsed_flag)."""
@@ -4927,6 +4893,12 @@ def audit_led_circuits(ctx: AnalysisContext,
                 rc = ctx.comp_lookup.get(p["component"])
                 if not rc:
                     continue
+                if rc["type"] == "resistor_network":
+                    r_val = parse_value(rc.get("value", ""))
+                    if r_val is None:
+                        found_unparsed = True
+                        continue
+                    return {"ref": rc["reference"], "ohms": r_val}, False
                 if rc["type"] == "resistor":
                     r_val = parse_value(rc.get("value", ""))
                     if r_val is None:
@@ -4938,9 +4910,13 @@ def audit_led_circuits(ctx: AnalysisContext,
                     # Check what's on the resistor's other side
                     rn1, rn2 = ctx.get_two_pin_nets(rc["reference"])
                     r_other = rn2 if rn1 == net else rn1
-                    if r_other and not supply_net and ctx.is_power_net(r_other):
+                    if not r_other or r_other in led_nets:
+                        continue  # a bleeder across the LED, or an unconnected part
+                    if not supply_net and ctx.is_power_net(r_other) and not ctx.is_ground(r_other):
                         supply_net = r_other
-                    if r_other and r_other in ctx.nets:
+                    # An IC on the resistor's far node drives the LED; one on a rail only
+                    # draws from it.
+                    if r_other in ctx.nets and not ctx.is_ground(r_other) and not is_led_rail(ctx, r_other):
                         for rp in ctx.nets[r_other]["pins"]:
                             if rp["component"] == rc["reference"]:
                                 continue
@@ -4949,7 +4925,7 @@ def audit_led_circuits(ctx: AnalysisContext,
                                 driver_source = rp["component"]
                                 break
                     return res, False
-                elif rc["type"] == "ic" and not driver_source:
+                elif rc["type"] in ("ic", "transistor") and not driver_source:
                     driver_source = rc["reference"]
             return None, found_unparsed
 
@@ -4959,11 +4935,21 @@ def audit_led_circuits(ctx: AnalysisContext,
                 has_unparsed_resistor = True
             if series_resistor:
                 break
+        # A driver on the LED's other node (GPIO -> LED -> R -> GND) is past the
+        # node where the resistor scan stopped.
+        if not driver_source:
+            driver_source = next((p["component"] for net in check_nets
+                                  for p in ctx.nets.get(net, {}).get("pins", [])
+                                  if p["component"] != ref
+                                  and ctx.comp_lookup.get(p["component"], {}).get("type") in ("ic", "transistor")),
+                                 None)
 
         # If no resistor found, trace through LED chains (LED→LED→...→resistor)
         if not series_resistor:
-            visited_leds: set[str] = {ref}
+            visited_leds: set[str] = set(string)
             frontier_nets = list(check_nets)
+            # LEDs from this one to each reached net, for the string's forward voltage
+            path: dict[str, list[dict]] = {n: list(string_leds) for n in frontier_nets}
             for _ in range(5):  # max 5 hops through LED chain
                 next_nets: list[str] = []
                 for net in frontier_nets:
@@ -4980,16 +4966,19 @@ def audit_led_circuits(ctx: AnalysisContext,
                             visited_leds.add(p["component"])
                             ln1, ln2 = ctx.get_two_pin_nets(p["component"])
                             for ln in (ln1, ln2):
-                                if ln and ln != net and not ctx.is_ground(ln):
+                                if ln and ln != net and not ctx.is_ground(ln) and not is_led_rail(ctx, ln):
                                     next_nets.append(ln)
+                                    path.setdefault(ln, path.get(net, string_leds) + [pc])
                 if not next_nets:
                     break
                 # Check the next set of nets for a resistor
                 for net in next_nets:
+                    led_nets = set(ctx.get_two_pin_nets(path[net][-1]["reference"]))
                     series_resistor, unparsed = _scan_net_for_resistor(net, "")
                     if unparsed:
                         has_unparsed_resistor = True
                     if series_resistor:
+                        string_leds = path[net]
                         break
                 if series_resistor:
                     break
@@ -4998,10 +4987,10 @@ def audit_led_circuits(ctx: AnalysisContext,
         # Determine drive method
         if series_resistor:
             drive_method = "resistor_limited"
-        elif driver_source:
-            drive_method = "ic_direct"
         elif has_unparsed_resistor:
             drive_method = "resistor_unparsed"
+        elif driver_source:
+            drive_method = "ic_direct"
         else:
             drive_method = "direct_drive"
 
@@ -5035,9 +5024,10 @@ def audit_led_circuits(ctx: AnalysisContext,
 
         # Estimate current for resistor-limited LEDs
         if series_resistor and supply_net:
-            v_supply = parse_voltage_from_net_name(supply_net)
+            v_supply = ctx.rail_voltage_or(supply_net, parse_voltage_from_net_name)
             if v_supply:
-                vf = _estimate_led_vf(comp)
+                v_supply = abs(v_supply)
+                vf = sum(led_forward_voltage(c, _LED_VF) for c in string_leds)
                 if v_supply > vf:
                     i_ma = (v_supply - vf) / series_resistor["ohms"] * 1000
                     entry["estimated_current_mA"] = round(i_ma, 1)
@@ -5052,13 +5042,12 @@ def audit_led_circuits(ctx: AnalysisContext,
         results.append(entry)
 
         # LA-004 — rail-Vf floor check: if v_supply is below the LED's
-        # color floor, the LED can't forward-bias at all. rc.2 4.1
-        # expansion (Manas review).
+        # color floor, the LED can't forward-bias at all.
         if supply_net:
-            v_supply = parse_voltage_from_net_name(supply_net)
+            v_supply = ctx.rail_voltage_or(supply_net, parse_voltage_from_net_name)
             color = _detect_led_color(comp)
             floor = _LED_VF_FLOOR.get(color) if color else None
-            if v_supply is not None and floor is not None and v_supply < floor:
+            if v_supply is not None and v_supply >= 0 and floor is not None and v_supply < floor:
                 results.append({
                     "ref": ref,
                     "type": "indicator_led",
@@ -5306,10 +5295,12 @@ def build_power_sequencing_graph(ctx: AnalysisContext,
 
     # For each source, find EN and PG pins by scanning IC pins
     source_en_nets: dict[str, str | None] = {}  # ref -> en_net
+    source_en_pins: dict[str, str | None] = {}  # ref -> matched EN pin name
     source_pg_nets: dict[str, str | None] = {}  # ref -> pg_net
 
-    def _match_pin(pin_nets: dict[str, str], names: set[str]) -> str | None:
-        """Match a pin name from *pin_nets* against a set of canonical names.
+    def _match_pin(pin_nets: dict[str, str], names: set[str]) -> tuple[str, str] | None:
+        """Match a pin name from *pin_nets* against a set of canonical names and
+        return the matched pin's own name and its net.
 
         KiCad 6+ overbar markup (``~{EN}``) is stripped before comparison so
         that both ``EN`` and ``~{EN}`` match the canonical ``"EN"`` entry.
@@ -5321,17 +5312,17 @@ def build_power_sequencing_graph(ctx: AnalysisContext,
         # same pin on every run instead of following set hash order.
         for pname in sorted(names):
             if pname in pin_nets:
-                return pin_nets[pname]
+                return pname, pin_nets[pname]
         # Second pass: normalize raw pin names and match against base names
-        # KH-223: strip ~{ } overbar wrappers and retry
+        # strip ~{ } overbar wrappers and retry
         for raw_pname, net in pin_nets.items():
             norm = raw_pname.replace("~{", "").replace("}", "")
             if norm in names:
-                return net
+                return raw_pname, net
             # Also try with trailing digits stripped (EN1 → EN)
             base = norm.rstrip("0123456789")
             if base and base in names:
-                return net
+                return raw_pname, net
         return None
 
     for src in all_sources:
@@ -5340,13 +5331,17 @@ def build_power_sequencing_graph(ctx: AnalysisContext,
 
         # EN pin
         en_net = src.get("enable_net")  # load switches already have this
+        en_pin = None
         if not en_net:
-            en_net = _match_pin(pin_nets, _EN_PIN_NAMES)
+            matched = _match_pin(pin_nets, _EN_PIN_NAMES)
+            if matched:
+                en_pin, en_net = matched
         source_en_nets[ref] = en_net
+        source_en_pins[ref] = en_pin
 
         # PG pin
-        pg_net = _match_pin(pin_nets, _PG_PIN_NAMES)
-        source_pg_nets[ref] = pg_net
+        matched = _match_pin(pin_nets, _PG_PIN_NAMES)
+        source_pg_nets[ref] = matched[1] if matched else None
 
     # Build PG→EN cross-reference: which PG net drives which EN net
     pg_to_ref: dict[str, str] = {}  # pg_net -> source ref that outputs it
@@ -5367,7 +5362,12 @@ def build_power_sequencing_graph(ctx: AnalysisContext,
         en_type = "always_on"
 
         if en_net:
-            if ctx.is_power_net(en_net):
+            if ctx.is_ground(en_net) and not is_vss_name(en_net):
+                en_pin = source_en_pins.get(ref)
+                en_type = ("always_on" if en_pin and is_active_low_enable(en_pin)
+                           else "tied_to_ground")
+                en_source = en_net
+            elif ctx.is_power_net(en_net):
                 en_type = "tied_to_rail"
                 en_source = en_net
             elif en_net in pg_to_ref:
@@ -5426,7 +5426,10 @@ def build_power_sequencing_graph(ctx: AnalysisContext,
         if rail and threshold:
             # Find nominal voltage of monitored rail
             src = output_rails.get(rail)
-            nominal = src.get("voltage") if src else parse_voltage_from_net_name(rail)
+            nominal = ctx.rail_voltage_or(
+                rail, lambda n: src.get("voltage") if src else parse_voltage_from_net_name(n))
+            if nominal:
+                nominal = abs(nominal)
             if nominal and threshold > nominal:
                 issues.append({
                     "type": "supervisor_threshold_above_nominal",
@@ -5649,7 +5652,7 @@ def suggest_certifications(ctx: AnalysisContext, signal_analysis: dict) -> list[
 
     # High voltage detection (>60V)
     rail_voltages = signal_analysis.get("rail_voltages", {})
-    max_voltage = max((v for v in rail_voltages.values()
+    max_voltage = max((abs(v) for v in rail_voltages.values()
                        if isinstance(v, (int, float))), default=0)
     if max_voltage > 60:
         suggestions.append({
@@ -5694,25 +5697,6 @@ def suggest_certifications(ctx: AnalysisContext, signal_analysis: dict) -> list[
     return suggestions
 
 
-def _get_pin_net_domain(ctx: AnalysisContext, ref: str, pin_names: tuple) -> str | None:
-    """Find net connected to a pin matching names (domain_detectors version)."""
-    pins = ctx.ref_pins.get(ref, {})
-    for pnum, (net, _) in pins.items():
-        comp = ctx.comp_lookup.get(ref)
-        if not comp:
-            continue
-        for p in comp.get('pins', []):
-            if p.get('number') == pnum and p.get('name', '').upper() in pin_names:
-                return net
-    for pnum, (net, _) in pins.items():
-        if not net or net not in ctx.nets:
-            continue
-        for np in ctx.nets[net]['pins']:
-            if np['component'] == ref and np.get('pin_name', '').upper() in pin_names:
-                return net
-    return None
-
-
 # ---------------------------------------------------------------------------
 # WL-001: Wireless module validation
 # ---------------------------------------------------------------------------
@@ -5723,7 +5707,7 @@ _WIFI_BLE_KEYWORDS = (
     'cc2640', 'cc2652', 'cc1352', 'cc3220',
     'cyw43', 'cyw20',
     'da1469', 'da1458',
-    'stm32wb', 'stm32wl', 'stm32wba',
+    'stm32wb', 'stm32wba',
     'rp2040w', 'pico_w',
     'atecc', 'atwinc', 'atwilc',
     'bg22', 'bg24', 'mg24',
@@ -5764,19 +5748,12 @@ def detect_wireless_modules(ctx: AnalysisContext) -> list[dict]:
     for ic in get_unique_ics(ctx):
         ref = ic['reference']
         val = ic.get('value', '')
-        wl_type = None
-        if match_ic_keywords(ic, _WIFI_BLE_KEYWORDS):
-            wl_type = 'wifi_ble'
-        elif match_ic_keywords(ic, _LORA_KEYWORDS):
-            wl_type = 'lora'
-        elif match_ic_keywords(ic, _CELLULAR_KEYWORDS):
-            wl_type = 'cellular'
-        elif match_ic_keywords(ic, _GPS_KEYWORDS):
-            wl_type = 'gps'
+        wl_type = match_family(ic, {'wifi_ble': _WIFI_BLE_KEYWORDS, 'lora': _LORA_KEYWORDS,
+                                    'cellular': _CELLULAR_KEYWORDS, 'gps': _GPS_KEYWORDS})
         if not wl_type:
             continue
 
-        ant_net = _get_pin_net_domain(ctx, ref, _ANTENNA_PIN_NAMES)
+        ant_net = get_pin_net(ctx, ref, _ANTENNA_PIN_NAMES)
         entry = {
             'detector': 'detect_wireless_modules', 'rule_id': 'WL-001',
             'category': 'wireless', 'reference': ref, 'value': val,
@@ -5792,7 +5769,7 @@ def detect_wireless_modules(ctx: AnalysisContext) -> list[dict]:
         if wl_type == 'cellular':
             sim_nets = {}
             for sn in _SIM_PIN_NAMES:
-                net = _get_pin_net_domain(ctx, ref, (sn,))
+                net = get_pin_net(ctx, ref, (sn,))
                 if net:
                     sim_nets[sn] = net
             entry['sim_pins'] = sim_nets
@@ -5853,7 +5830,7 @@ def detect_transformer_feedback(ctx: AnalysisContext) -> list[dict]:
             'components': [ref], 'nets': [], 'pins': [], 'recommendation': '',
             'report_context': {'section': 'Isolated Power', 'impact': '', 'standard_ref': ''},
         }
-        fb_net = _get_pin_net_domain(ctx, ref, ('FB', 'COMP', 'VFB', 'OPTO'))
+        fb_net = get_pin_net(ctx, ref, ('FB', 'COMP', 'VFB', 'OPTO'))
         if fb_net:
             for opto in optocouplers:
                 opto_ref = opto['reference']
@@ -5888,90 +5865,123 @@ def detect_transformer_feedback(ctx: AnalysisContext) -> list[dict]:
 # IA-001: I2C address conflict detection
 # ---------------------------------------------------------------------------
 
+# Per part: (base 7-bit address, ((strap pin, weight, states), ...)); address = base +
+# sum(code * weight) with code GND/VDD/SDA/SCL = 0/1/2/3. A 2-state pin takes GND or VDD only.
 _I2C_DEVICE_ADDRESSES = {
-    'ina219': {'base': 0x40, 'pins': ('A0', 'A1')},
-    'ina226': {'base': 0x40, 'pins': ('A0', 'A1')},
-    'ina228': {'base': 0x40, 'pins': ('A0', 'A1')},
-    'pca9685': {'base': 0x40, 'pins': ('A0', 'A1', 'A2', 'A3', 'A4', 'A5')},
-    'ads1115': {'base': 0x48, 'pins': ('ADDR',)},
-    'ads1015': {'base': 0x48, 'pins': ('ADDR',)},
-    'bme280': {'base': 0x76, 'pins': ('SDO',)},
-    'bmp280': {'base': 0x76, 'pins': ('SDO',)},
-    'sht3': {'base': 0x44, 'pins': ('ADDR',)},
-    'mcp4725': {'base': 0x60, 'pins': ('A0', 'A1', 'A2')},
-    'at24c': {'base': 0x50, 'pins': ('A0', 'A1', 'A2')},
-    'pcf8574': {'base': 0x20, 'pins': ('A0', 'A1', 'A2')},
-    'pcf8575': {'base': 0x20, 'pins': ('A0', 'A1', 'A2')},
-    'mcp23017': {'base': 0x20, 'pins': ('A0', 'A1', 'A2')},
-    'ds1307': {'base': 0x68, 'pins': ()},
-    'ds3231': {'base': 0x68, 'pins': ()},
+    # INA219 Table 2, INA226 Table 2, INA228 Table 7-2: 0x40 + 4*A1 + A0, four states each.
+    'ina219': (0x40, (('A1', 4, 4), ('A0', 1, 4))),
+    'ina226': (0x40, (('A1', 4, 4), ('A0', 1, 4))),
+    'ina228': (0x40, (('A1', 4, 4), ('A0', 1, 4))),
+    # PCA9685 section 7.1.1: 1 A5 A4 A3 A2 A1 A0.
+    'pca9685': (0x40, tuple((f'A{i}', 1 << i, 2) for i in range(6))),
+    # ADS1115 Table 4, ADS1015 Table 2: ADDR to GND/VDD/SDA/SCL = 0x48..0x4B.
+    'ads1115': (0x48, (('ADDR', 1, 4),)),
+    'ads1015': (0x48, (('ADDR', 1, 4),)),
+    # BME280 section 6.2, BMP280 section 5.2: 111011x, x = SDO.
+    'bme280': (0x76, (('SDO', 1, 2),)),
+    'bmp280': (0x76, (('SDO', 1, 2),)),
+    # SHT3x-DIS Table 8: ADDR low 0x44, high 0x45.
+    'sht3': (0x44, (('ADDR', 1, 2),)),
+    # MCP4725 section 7.2: 1100 A2 A1 A0; A2:A1 from the ordering code (A0..A3 = 00..11),
+    # only A0 is a pin.
+    'mcp4725': (0x60, (('A0', 1, 2),)),
+    'mcp4725a1': (0x62, (('A0', 1, 2),)),
+    'mcp4725a2': (0x64, (('A0', 1, 2),)),
+    'mcp4725a3': (0x66, (('A0', 1, 2),)),
+    # AT24CS32 section 8: 1010 A2 A1 A0.
+    'at24c': (0x50, (('A0', 1, 2), ('A1', 2, 2), ('A2', 4, 2))),
+    # NXP PCF8574/74A Table 4 / Table 5: 0100 A2 A1 A0 / 0111 A2 A1 A0.
+    'pcf8574': (0x20, (('A0', 1, 2), ('A1', 2, 2), ('A2', 4, 2))),
+    'pcf8574a': (0x38, (('A0', 1, 2), ('A1', 2, 2), ('A2', 4, 2))),
+    # PCF8575 section 8.3.3, MCP23017 Figure 3-5: 0100 A2 A1 A0.
+    'pcf8575': (0x20, (('A0', 1, 2), ('A1', 2, 2), ('A2', 4, 2))),
+    'mcp23017': (0x20, (('A0', 1, 2), ('A1', 2, 2), ('A2', 4, 2))),
+    # DS3231 Figures 3-5: 1101000. DS1307: no datasheet at hand, entry kept as it was.
+    'ds1307': (0x68, ()),
+    'ds3231': (0x68, ()),
 }
+_I2C_ADDR_FAMILIES = {k: (k,) for k in _I2C_DEVICE_ADDRESSES}
+_I2C_STRAP_CODES = {'gnd': 0, 'vcc': 1, 'sda': 2, 'scl': 3}
 
 
-def _resolve_addr_pin(ctx: AnalysisContext, ref: str, pin_name: str) -> str:
-    net = _get_pin_net_domain(ctx, ref, (pin_name,))
+def _resolve_addr_pin(ctx: AnalysisContext, ref: str, pin_name: str, sda_net: str, scl_net: str) -> str:
+    net = get_pin_net(ctx, ref, (pin_name,))
     if not net:
         return 'unknown'
     if ctx.is_ground(net):
         return 'gnd'
     if ctx.is_power_net(net):
         return 'vcc'
-    net_lower = net.lower()
-    if 'sda' in net_lower:
+    if net == sda_net:
         return 'sda'
-    if 'scl' in net_lower:
+    if net == scl_net:
         return 'scl'
     return 'unknown'
 
 
+def _resolve_i2c_address(ctx: AnalysisContext, ref: str, device_type: str,
+                         sda_net: str, scl_net: str) -> int | None:
+    """7-bit address from the strap pins, or None when any strap is not a table state."""
+    base, straps = _I2C_DEVICE_ADDRESSES[device_type]
+    addr = base
+    for pin, weight, states in straps:
+        code = _I2C_STRAP_CODES.get(_resolve_addr_pin(ctx, ref, pin, sda_net, scl_net))
+        if code is None or code >= states:
+            return None
+        addr += code * weight
+    return addr
+
+
 def detect_i2c_address_conflicts(ctx: AnalysisContext) -> list[dict]:
-    """IA-001: Detect I2C devices with potentially conflicting addresses."""
+    """IA-001: Detect I2C devices that resolve to the same 7-bit address on one bus."""
     results: list[dict] = []
     buses: dict = {}
 
     for ic in get_unique_ics(ctx):
         ref = ic['reference']
-        combined = (ic.get('value', '') + ' ' + ic.get('lib_id', '')).lower()
-        device_type = None
-        for keyword in _I2C_DEVICE_ADDRESSES:
-            if keyword in combined:
-                device_type = keyword
-                break
+        device_type = match_family(ic, _I2C_ADDR_FAMILIES)
         if not device_type:
             continue
-        sda_net = _get_pin_net_domain(ctx, ref, ('SDA', 'I2C_SDA'))
-        scl_net = _get_pin_net_domain(ctx, ref, ('SCL', 'I2C_SCL'))
+        sda_net = get_pin_net(ctx, ref, ('SDA', 'I2C_SDA'))
+        scl_net = get_pin_net(ctx, ref, ('SCL', 'I2C_SCL'))
         if not sda_net or not scl_net:
             continue
-        dev_info = _I2C_DEVICE_ADDRESSES[device_type]
-        addr_config = {pin: _resolve_addr_pin(ctx, ref, pin) for pin in dev_info['pins']}
         buses.setdefault((sda_net, scl_net), []).append({
-            'ref': ref, 'value': ic.get('value', ''), 'device_type': device_type,
-            'addr_config': addr_config, 'base_addr': dev_info['base'],
+            'ref': ref, 'device_type': device_type,
+            'addr': _resolve_i2c_address(ctx, ref, device_type, sda_net, scl_net),
         })
 
     for (sda_net, scl_net), devices in buses.items():
-        addr_groups: dict = {}
+        by_addr: dict = {}
         for dev in devices:
-            config_str = f"{dev['device_type']}:{','.join(f'{k}={v}' for k, v in sorted(dev['addr_config'].items()))}"
-            addr_groups.setdefault(config_str, []).append(dev)
-        for config_str, group in addr_groups.items():
+            if dev['addr'] is not None:
+                by_addr.setdefault(dev['addr'], []).append(dev)
+        for addr, group in sorted(by_addr.items()):
             if len(group) < 2:
                 continue
             refs = [d['ref'] for d in group]
-            dev_type = group[0]['device_type']
-            base = group[0]['base_addr']
+            types = sorted({d['device_type'] for d in group})
             results.append(make_finding(
                 detector='detect_i2c_address_conflicts', rule_id='IA-001', category='protocol_integrity',
-                summary=f'I2C address conflict: {len(refs)}x {dev_type} at same address on {sda_net}/{scl_net}',
-                description=f'{len(refs)} instances of {dev_type} ({", ".join(refs)}) have identical address configs ({config_str.split(":", 1)[1]}).',
+                summary=f'I2C address conflict: {len(refs)} devices at 0x{addr:02X} on {sda_net}/{scl_net}',
+                description=f'{", ".join(refs)} ({", ".join(types)}) all resolve to 7-bit address 0x{addr:02X}.',
                 severity='error', confidence='deterministic', evidence_source='topology',
                 components=refs, nets=[sda_net, scl_net],
                 recommendation='Reconfigure address pins (A0/A1/A2) to assign unique addresses.',
-                fix_params={'type': 'swap_connection', 'components': refs[1:], 'change': 'Rewire address pins', 'basis': f'{dev_type} base 0x{base:02X}'},
+                fix_params={'type': 'swap_connection', 'components': refs[1:], 'change': 'Rewire address pins', 'basis': f'0x{addr:02X}'},
                 impact='Bus corruption — multiple devices respond to same address',
                 provenance=make_provenance('i2c_addr_conflict', 'deterministic', claimed_components=refs),
-            
+                source=ctx.source, schema_era="v3.0",))
+        unresolved = [d['ref'] for d in devices if d['addr'] is None]
+        if unresolved and len(devices) >= 2:
+            results.append(make_finding(
+                detector='detect_i2c_address_conflicts', rule_id='IA-001', category='protocol_integrity',
+                summary=f'I2C address could not be resolved for {", ".join(unresolved)} on {sda_net}/{scl_net}',
+                description='Address pins are not tied to ground, the supply or the bus SDA/SCL, so a conflict cannot be ruled out.',
+                severity='info', confidence='heuristic', evidence_source='topology',
+                components=unresolved, nets=[sda_net, scl_net],
+                recommendation='Check the address strapping of these devices against their datasheets.',
+                provenance=make_provenance('i2c_addr_unresolved', 'heuristic', claimed_components=unresolved),
                 source=ctx.source, schema_era="v3.0",))
     return results
 
@@ -6121,7 +6131,7 @@ def detect_headphone_jack(ctx: AnalysisContext) -> list[dict]:
 
     for jack in hp_jacks:
         ref = jack['reference']
-        det_net = _get_pin_net_domain(ctx, ref, _HP_DET_PIN_NAMES)
+        det_net = get_pin_net(ctx, ref, _HP_DET_PIN_NAMES)
         entry = {
             'detector': 'detect_headphone_jack', 'rule_id': 'AH-001',
             'category': 'audio', 'reference': ref, 'value': jack.get('value', ''),

@@ -1,5 +1,5 @@
 """Schematic analysis pipeline: the phases analyze_schematic.py ran implicitly,
-as named functions with their real prerequisites passed explicitly (spec §4.3, D4).
+as named functions with their real prerequisites passed explicitly.
 
 Phase 1 detect_topologies      — in-order detectors (dependency order; series dividers merged, integrated LDOs appended;
                                   opamps before RC filters; exclusion sets passed as arguments)
@@ -10,14 +10,14 @@ Phase 3 run_domain_detectors   — domain, validation and lookup detectors; RS/P
                                   one BridgeFacts
 Phase 4 assemble_signal_results — crystal/RC exclusion (after ADC detection consumed rc_filters),
                                   the signal_analysis dict in its historical key order,
-                                  certifications/observations, capacitor enrichment + derating
-                                  (both walk the dict recursively and MUTATE entries that carry
-                                  'farads' and 'ref')
+                                  certifications/observations, capacitor enrichment (walks the
+                                  dict recursively) + derating (regulator output, decoupling and
+                                  LC-filter capacitors); both MUTATE the entries they touch
 Project level: analyze_schematic → run_analyses → presentation.assemble_result.
-Every body is verbatim from analyze_schematic.py; only the seams are new.
 """
 
 import os
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -26,7 +26,7 @@ from typing import Any
 from kicad_core.diagnostics import merge, record
 from kicad_core.sexp import parse_file
 from kicad_core.values import snap_to_mil_grid as _snap_mil
-from kicad_core.netnames import _clean_hierarchical_name
+from kicad_core.netnames import _clean_hierarchical_name, parse_voltage_from_net_name
 from kicad_core.netquery import (
     build_bridge_facts,
     build_ref_pins,
@@ -34,11 +34,15 @@ from kicad_core.netquery import (
 from schematic.reader import (
     compute_pin_positions,
     detect_sub_sheet,
+    power_symbol_drives,
+    rename_legacy_power_symbols,
 )
 from schematic.legacy_reader import (
+    _cache_conflicts,
     _resolve_legacy_libs,
     _snap_pins_to_wires,
-    _parse_legacy_single_sheet,
+    apply_instance_reference,
+    walk_legacy_sheets,
 )
 from kicad_types import (
     AnalysisContext,
@@ -46,6 +50,8 @@ from kicad_types import (
 )
 from schematic.connectivity import build_net_map
 from schematic.hierarchy import (
+    namespace_hierarchical_labels,
+    set_instance_paths,
     parse_all_sheets,
     merge_top_level_sheets,
 )
@@ -180,20 +186,20 @@ from schematic.presentation import assemble_legacy_result, assemble_result
 from finding_schema import assign_finding_ids
 
 
-def _resolve_lookup_paths(sch_path: str | Path,
-                           analysis_dir: str | Path | None) -> Path | None:
-    """Resolve the datasheets/extracted/ cache dir adjacent to the schematic.
+def _resolve_lookup_paths(sch_path: str | Path) -> Path | None:
+    """Resolve the schematic folder's own datasheets/extracted/ cache dir.
 
-    Returns None when the directory doesn't exist — `lookup()` already handles
-    None gracefully. (The design_context severity channel this used to
-    resolve was retired in v2.0; v3 removed the plumbing.)
+    Never a parent folder's (a planted extraction there would reach
+    deterministic findings), and not through a symlinked datasheets/ or
+    extracted/. Returns None when the directory doesn't exist —
+    `lookup()` already handles None gracefully.
     """
-    sch_dir = Path(sch_path).resolve().parent
-    candidates = [
-        sch_dir / "datasheets" / "extracted",
-        sch_dir.parent / "datasheets" / "extracted",
-    ]
-    return next((c for c in candidates if c.is_dir()), None)
+    try:
+        from datasheet_types.cache_reader import safe_extract_dir
+    except ImportError:         # the lookups are off without datasheet_types
+        return None
+    cache = Path(sch_path).resolve().parent / "datasheets" / "extracted"
+    return cache if cache.is_dir() and safe_extract_dir(cache) is not None else None
 
 ANALYZER_SOURCE = "sch"
 
@@ -294,6 +300,87 @@ def _build_net_classifications(results: dict) -> dict[str, dict]:
     return classifications
 
 
+# The two voltage spellings parse_voltage_from_net_name reads: 3V3, and 3.3V / 5V.
+_VOLTAGE_TOKEN = re.compile(r"\d+V\d+|\d+(?:\.\d+)?V", re.IGNORECASE)
+
+
+def _sheet_stem_voltage(net: str) -> float | None:
+    """The voltage in the name of the sheet holding *net* (``/5V_regulator/VOUT_SEN`` → 5.0).
+
+    None when the net's own name carries a voltage (that wins), the net is not on a sheet, or
+    the sheet names more than one voltage (``12V_to_5V``: which one is the output is unknown).
+    """
+    parts = net.split("/")
+    if not net.startswith("/") or len(parts) < 3 or parse_voltage_from_net_name(net) is not None:
+        return None
+    if len(_VOLTAGE_TOKEN.findall(parts[-2])) > 1:
+        return None
+    return parse_voltage_from_net_name(parts[-2])
+
+
+def build_rail_map(ctx: AnalysisContext, power_regulators: list[dict]) -> dict[str, float]:
+    """Rail voltages keyed by full net name, one source per pass in priority order.
+
+    A pass fills only nets no earlier pass set: a regulator's estimated output on
+    its output net (the last regulator on a net wins), then, for a regulator with
+    no estimate, the voltage in the name of the sheet holding its output net (the
+    regulator records it as ``_output_rail_voltage_provenance``), then
+    the voltage in the name of a power or ground net (a net that is a supply only by
+    its pins gets none from its name). The project config has the
+    last word: an ignored rail is dropped and an override is set on every net it names.
+    """
+    by_net: dict[str, float] = {}
+    for reg in power_regulators:
+        out_rail = reg.get("output_rail")
+        v_out = reg.get("estimated_vout")
+        if out_rail and v_out is not None:
+            by_net[out_rail] = v_out
+    # A switch node or an input is never an output, and an IC's internal regulator
+    # output (a core-voltage pin) has nothing to do with its sheet's name.
+    not_outputs = {n for reg in power_regulators for n in (reg.get("sw_net"), reg.get("input_rail")) if n}
+    for reg in power_regulators:
+        out_rail = reg.get("output_rail")
+        if (out_rail and reg.get("estimated_vout") is None and out_rail not in not_outputs
+                and reg.get("topology") != "ic_with_internal_regulator"):
+            v = _sheet_stem_voltage(out_rail)
+            if v is not None and out_rail not in by_net:
+                by_net[out_rail] = v
+                reg["_output_rail_voltage_provenance"] = {"source": "sheet name", "voltage": v}
+    for net_name in sorted(ctx.nets):
+        if net_name not in by_net and (ctx.is_power_net(net_name, by_pins=False) or ctx.is_ground(net_name)):
+            v = _estimate_rail_voltage(net_name)
+            if v is not None:
+                by_net[net_name] = v
+    if ctx.rail_overrides or ctx.rail_ignore:
+        for net_name in sorted(ctx.nets):
+            if ctx.rail_ignored(net_name):
+                by_net.pop(net_name, None)
+                continue
+            v = ctx.config_rail_voltage(net_name)
+            if v is not None:
+                by_net[net_name] = v
+    return by_net
+
+
+def public_rail_voltages(ctx: AnalysisContext, power_regulators: list[dict],
+                         by_net: dict[str, float]) -> dict[str, float]:
+    """The output's ``rail_voltages``: *by_net* keyed by UUID-stripped name.
+
+    Instances that strip to one key share it: regulator outputs first (the last
+    regulator wins), then the first named net in netlist order.
+    """
+    rail_voltages: dict[str, float] = {}
+    for reg in power_regulators:
+        out_rail = reg.get("output_rail")
+        if out_rail in by_net and reg.get("estimated_vout") is not None:
+            rail_voltages[_clean_hierarchical_name(out_rail)] = by_net[out_rail]
+    for net_name in ctx.nets:
+        clean = _clean_hierarchical_name(net_name)
+        if clean not in rail_voltages and net_name in by_net:
+            rail_voltages[clean] = by_net[net_name]
+    return rail_voltages
+
+
 def detect_topologies(ctx: AnalysisContext) -> dict:
     """Phase 1: topology detectors in dependency order.
 
@@ -304,16 +391,16 @@ def detect_topologies(ctx: AnalysisContext) -> dict:
     # Run detectors in dependency order
     vd_result = detect_voltage_dividers(ctx)
     voltage_dividers = vd_result["voltage_dividers"]
-    # KH-105/KH-115: Merge series resistors in divider chains
+    # Merge series resistors in divider chains
     voltage_dividers = _merge_series_dividers(voltage_dividers, ctx)
-    feedback_networks = vd_result["feedback_networks"]
+    feedback_networks = [fn for fn in vd_result["feedback_networks"] if not fn.get("_closed_chain")]
 
     lc_filters = detect_lc_filters(ctx)
     crystal_circuits = detect_crystal_circuits(ctx)
-    # KH-145: Detect opamps BEFORE RC filters so feedback components can be excluded
+    # Detect opamps BEFORE RC filters so feedback components can be excluded
     opamp_circuits = detect_opamp_circuits(ctx)
-    # KH-107: Pass crystal_circuits to exclude crystal R/C from RC filter detection
-    # KH-145: Pass opamp_circuits to exclude feedback R+C from RC filter detection
+    # Pass crystal_circuits to exclude crystal R/C from RC filter detection
+    # Pass opamp_circuits to exclude feedback R+C from RC filter detection
     rc_filters = detect_rc_filters(ctx, voltage_dividers, crystal_circuits, opamp_circuits)
     decoupling_analysis = detect_decoupling(ctx)
     current_sense = detect_current_sense(ctx)
@@ -321,20 +408,8 @@ def detect_topologies(ctx: AnalysisContext) -> dict:
     integrated_ldos = detect_integrated_ldos(ctx, power_regulators)
     power_regulators.extend(integrated_ldos)
 
-    # Build rail_voltages: net name → voltage from regulator outputs + power symbol names
-    rail_voltages: dict[str, float] = {}
-    for reg in power_regulators:
-        out_rail = reg.get("output_rail")
-        v_out = reg.get("estimated_vout")
-        if out_rail and v_out is not None:
-            rail_voltages[_clean_hierarchical_name(out_rail)] = v_out
-    # Augment with voltages inferred from power symbol / net names
-    for net_name in ctx.nets:
-        clean = _clean_hierarchical_name(net_name)
-        if clean not in rail_voltages:
-            v = _estimate_rail_voltage(clean)
-            if v is not None:
-                rail_voltages[clean] = v
+    ctx.rail_by_net = build_rail_map(ctx, power_regulators)
+    rail_voltages = public_rail_voltages(ctx, power_regulators, ctx.rail_by_net)
 
     protection_devices = detect_protection_devices(ctx)
     bridge_circuits, matched_fets, fet_pins = detect_bridge_circuits(ctx)
@@ -384,7 +459,6 @@ def run_domain_detectors(ctx: AnalysisContext, topo: dict) -> dict:
 
     Returns the phase-3 records keyed by their historical local names.
     """
-    rail_voltages = topo["rail_voltages"]
     crystal_circuits = topo["crystal_circuits"]
     rc_filters = topo["rc_filters"]
     power_regulators = topo["power_regulators"]
@@ -434,12 +508,12 @@ def run_domain_detectors(ctx: AnalysisContext, topo: dict) -> dict:
     feedback_stability_findings = validate_feedback_stability(ctx, power_regulators)
     crystal_load_findings = validate_crystal_load_caps(ctx, crystal_circuits)
 
-    # Lookup detectors (Phase 4c) — consume v1.4 datasheet facts via lookup().
-    # Soft-skip when get_facts() returns None (no MPN cache). Synonym-resolved
-    # rail keys per addendum §A2; per-pin Pin.absolute_max overrides rail-level.
-    am_001_findings = detect_absolute_max_violations(ctx, rail_voltages)
-    ov_001_findings = detect_vcc_outside_recommended(ctx, rail_voltages)
-    ft_001_findings = detect_5v_on_non_tolerant_pin(ctx, rail_voltages)
+    # Lookup detectors — consume datasheet facts via lookup().
+    # Soft-skip when get_facts() returns None (no MPN cache). Rail keys are
+    # synonym-resolved; per-pin Pin.absolute_max overrides rail-level.
+    am_001_findings = detect_absolute_max_violations(ctx, ctx.rail_by_net)
+    ov_001_findings = detect_vcc_outside_recommended(ctx, ctx.rail_by_net)
+    ft_001_findings = detect_5v_on_non_tolerant_pin(ctx, ctx.rail_by_net)
     pm_001_findings = detect_wrong_signal_type(ctx)
     ex_001_findings = detect_missing_required_components(ctx, power_regulators)
 
@@ -459,7 +533,8 @@ def run_domain_detectors(ctx: AnalysisContext, topo: dict) -> dict:
         bridge_facts=bridge_facts)
     label_aliases = detect_label_aliases(ctx)
     power_pin_dc_paths = audit_power_pin_dc_paths(
-        ctx, solder_jumpers=solder_jumpers, bridge_facts=bridge_facts)
+        ctx, solder_jumpers=solder_jumpers, bridge_facts=bridge_facts,
+        power_regulators=power_regulators)
 
     return {
         "buzzer_speaker_circuits": buzzer_speaker_circuits,
@@ -579,8 +654,9 @@ def apply_capacitor_derating(results_dict):
     rail_voltage = {}
     for reg in results_dict.get("power_regulators", []):
         vout = reg.get("vout_estimated") or reg.get("estimated_vout")
+        vout = abs(vout) if isinstance(vout, (int, float)) else None  # DC bias is |V|
         rail = reg.get("output_rail", "")
-        if vout and vout > 0 and rail:
+        if vout and rail:
             # Use the highest voltage seen for a rail (conservative)
             if rail not in rail_voltage or vout > rail_voltage[rail]:
                 rail_voltage[rail] = vout
@@ -618,8 +694,9 @@ def apply_capacitor_derating(results_dict):
     # Derate output and input capacitors on power regulators
     for reg in results_dict.get("power_regulators", []):
         vout = reg.get("vout_estimated") or reg.get("estimated_vout")
-        if not vout or vout <= 0:
+        if not isinstance(vout, (int, float)) or not vout:
             continue
+        vout = abs(vout)
         for cap in reg.get("output_capacitors", []):
             _derate_cap(cap, vout)
 
@@ -656,74 +733,8 @@ def assemble_signal_results(ctx: AnalysisContext, topo: dict, domain: dict) -> d
     """Phase 4: crystal/RC exclusion, the signal_analysis dict (historical key order),
     net classifications, certifications, observations, capacitor enrichment + derating.
     """
-    rail_voltages = topo["rail_voltages"]
-    voltage_dividers = topo["voltage_dividers"]
-    feedback_networks = topo["feedback_networks"]
-    lc_filters = topo["lc_filters"]
     crystal_circuits = topo["crystal_circuits"]
-    opamp_circuits = topo["opamp_circuits"]
     rc_filters = topo["rc_filters"]
-    decoupling_analysis = topo["decoupling_analysis"]
-    current_sense = topo["current_sense"]
-    power_regulators = topo["power_regulators"]
-    protection_devices = topo["protection_devices"]
-    bridge_circuits = topo["bridge_circuits"]
-    transistor_circuits = topo["transistor_circuits"]
-    buzzer_speaker_circuits = domain["buzzer_speaker_circuits"]
-    key_matrices = domain["key_matrices"]
-    isolation_barriers = domain["isolation_barriers"]
-    ethernet_interfaces = domain["ethernet_interfaces"]
-    hdmi_dvi_interfaces = domain["hdmi_dvi_interfaces"]
-    lvds_interfaces = domain["lvds_interfaces"]
-    memory_interfaces = domain["memory_interfaces"]
-    rf_chains = domain["rf_chains"]
-    rf_matching = domain["rf_matching"]
-    bms_systems = domain["bms_systems"]
-    battery_chargers = domain["battery_chargers"]
-    motor_drivers = domain["motor_drivers"]
-    addressable_led_chains = domain["addressable_led_chains"]
-    debug_interfaces = domain["debug_interfaces"]
-    power_path = domain["power_path"]
-    esd_coverage_audit = domain["esd_coverage_audit"]
-    adc_circuits = domain["adc_circuits"]
-    reset_supervisors = domain["reset_supervisors"]
-    clock_distribution = domain["clock_distribution"]
-    display_interfaces = domain["display_interfaces"]
-    sensor_interfaces = domain["sensor_interfaces"]
-    level_shifters = domain["level_shifters"]
-    audio_circuits = domain["audio_circuits"]
-    led_driver_ics = domain["led_driver_ics"]
-    rtc_circuits = domain["rtc_circuits"]
-    led_audit = domain["led_audit"]
-    thermocouple_rtd = domain["thermocouple_rtd"]
-    power_sequencing_validation = domain["power_sequencing_validation"]
-    connector_ground_audit = domain["connector_ground_audit"]
-    pullup_findings = domain["pullup_findings"]
-    voltage_level_findings = domain["voltage_level_findings"]
-    i2c_findings = domain["i2c_findings"]
-    spi_findings = domain["spi_findings"]
-    can_findings = domain["can_findings"]
-    usb_findings = domain["usb_findings"]
-    power_seq_dep_findings = domain["power_seq_dep_findings"]
-    led_resistor_findings = domain["led_resistor_findings"]
-    feedback_stability_findings = domain["feedback_stability_findings"]
-    crystal_load_findings = domain["crystal_load_findings"]
-    am_001_findings = domain["am_001_findings"]
-    ov_001_findings = domain["ov_001_findings"]
-    ft_001_findings = domain["ft_001_findings"]
-    pm_001_findings = domain["pm_001_findings"]
-    ex_001_findings = domain["ex_001_findings"]
-    wireless_modules = domain["wireless_modules"]
-    transformer_feedback = domain["transformer_feedback"]
-    i2c_address_conflicts = domain["i2c_address_conflicts"]
-    energy_harvesting = domain["energy_harvesting"]
-    pwm_led_dimming = domain["pwm_led_dimming"]
-    headphone_jacks = domain["headphone_jacks"]
-    solder_jumpers = domain["solder_jumpers"]
-    shorted_two_pin_components = domain["shorted_two_pin_components"]
-    rail_source_audit = domain["rail_source_audit"]
-    label_aliases = domain["label_aliases"]
-    power_pin_dc_paths = domain["power_pin_dc_paths"]
 
     # Remove R/C components that appear in crystal circuits from RC filter
     # results — prevents misclassifying crystal feedback resistors + load caps
@@ -743,78 +754,78 @@ def assemble_signal_results(ctx: AnalysisContext, topo: dict, domain: dict) -> d
             ]
 
     results = {
-        "rail_voltages": rail_voltages,
-        "voltage_dividers": voltage_dividers,
+        "rail_voltages": topo["rail_voltages"],
+        "voltage_dividers": topo["voltage_dividers"],
         "rc_filters": rc_filters,
-        "lc_filters": lc_filters,
-        "feedback_networks": feedback_networks,
+        "lc_filters": topo["lc_filters"],
+        "feedback_networks": topo["feedback_networks"],
         "crystal_circuits": crystal_circuits,
         "snubbers": [],
-        "decoupling_analysis": decoupling_analysis,
-        "current_sense": current_sense,
-        "power_regulators": power_regulators,
-        "protection_devices": protection_devices,
-        "opamp_circuits": opamp_circuits,
-        "bridge_circuits": bridge_circuits,
-        "transistor_circuits": transistor_circuits,
-        "buzzer_speaker_circuits": buzzer_speaker_circuits,
-        "key_matrices": key_matrices,
-        "isolation_barriers": isolation_barriers,
-        "ethernet_interfaces": ethernet_interfaces,
-        "hdmi_dvi_interfaces": hdmi_dvi_interfaces,
-        "lvds_interfaces": lvds_interfaces,
-        "memory_interfaces": memory_interfaces,
-        "rf_chains": rf_chains,
-        "rf_matching": rf_matching,
-        "bms_systems": bms_systems,
-        "battery_chargers": battery_chargers,
-        "motor_drivers": motor_drivers,
-        "addressable_led_chains": addressable_led_chains,
-        "debug_interfaces": debug_interfaces,
-        "power_path": power_path,
-        "esd_coverage_audit": esd_coverage_audit,
-        "adc_circuits": adc_circuits,
-        "reset_supervisors": reset_supervisors,
-        "clock_distribution": clock_distribution,
-        "display_interfaces": display_interfaces,
-        "sensor_interfaces": sensor_interfaces,
-        "level_shifters": level_shifters,
-        "audio_circuits": audio_circuits,
-        "led_driver_ics": led_driver_ics,
-        "rtc_circuits": rtc_circuits,
-        "led_audit": led_audit,
-        "thermocouple_rtd": thermocouple_rtd,
-        "power_sequencing_validation": power_sequencing_validation,
-        "connector_ground_audit": connector_ground_audit,
-        "wireless_modules": wireless_modules,
-        "transformer_feedback": transformer_feedback,
-        "i2c_address_conflicts": i2c_address_conflicts,
-        "energy_harvesting": energy_harvesting,
-        "pwm_led_dimming": pwm_led_dimming,
-        "headphone_jacks": headphone_jacks,
-        "solder_jumpers": solder_jumpers,
-        "shorted_two_pin_components": shorted_two_pin_components,
-        "rail_source_audit": rail_source_audit,
-        "label_aliases": label_aliases,
-        "power_pin_dc_paths": power_pin_dc_paths,
+        "decoupling_analysis": topo["decoupling_analysis"],
+        "current_sense": topo["current_sense"],
+        "power_regulators": topo["power_regulators"],
+        "protection_devices": topo["protection_devices"],
+        "opamp_circuits": topo["opamp_circuits"],
+        "bridge_circuits": topo["bridge_circuits"],
+        "transistor_circuits": topo["transistor_circuits"],
+        "buzzer_speaker_circuits": domain["buzzer_speaker_circuits"],
+        "key_matrices": domain["key_matrices"],
+        "isolation_barriers": domain["isolation_barriers"],
+        "ethernet_interfaces": domain["ethernet_interfaces"],
+        "hdmi_dvi_interfaces": domain["hdmi_dvi_interfaces"],
+        "lvds_interfaces": domain["lvds_interfaces"],
+        "memory_interfaces": domain["memory_interfaces"],
+        "rf_chains": domain["rf_chains"],
+        "rf_matching": domain["rf_matching"],
+        "bms_systems": domain["bms_systems"],
+        "battery_chargers": domain["battery_chargers"],
+        "motor_drivers": domain["motor_drivers"],
+        "addressable_led_chains": domain["addressable_led_chains"],
+        "debug_interfaces": domain["debug_interfaces"],
+        "power_path": domain["power_path"],
+        "esd_coverage_audit": domain["esd_coverage_audit"],
+        "adc_circuits": domain["adc_circuits"],
+        "reset_supervisors": domain["reset_supervisors"],
+        "clock_distribution": domain["clock_distribution"],
+        "display_interfaces": domain["display_interfaces"],
+        "sensor_interfaces": domain["sensor_interfaces"],
+        "level_shifters": domain["level_shifters"],
+        "audio_circuits": domain["audio_circuits"],
+        "led_driver_ics": domain["led_driver_ics"],
+        "rtc_circuits": domain["rtc_circuits"],
+        "led_audit": domain["led_audit"],
+        "thermocouple_rtd": domain["thermocouple_rtd"],
+        "power_sequencing_validation": domain["power_sequencing_validation"],
+        "connector_ground_audit": domain["connector_ground_audit"],
+        "wireless_modules": domain["wireless_modules"],
+        "transformer_feedback": domain["transformer_feedback"],
+        "i2c_address_conflicts": domain["i2c_address_conflicts"],
+        "energy_harvesting": domain["energy_harvesting"],
+        "pwm_led_dimming": domain["pwm_led_dimming"],
+        "headphone_jacks": domain["headphone_jacks"],
+        "solder_jumpers": domain["solder_jumpers"],
+        "shorted_two_pin_components": domain["shorted_two_pin_components"],
+        "rail_source_audit": domain["rail_source_audit"],
+        "label_aliases": domain["label_aliases"],
+        "power_pin_dc_paths": domain["power_pin_dc_paths"],
         "validation_findings": (
-            pullup_findings +
-            voltage_level_findings +
-            i2c_findings +
-            spi_findings +
-            can_findings +
-            usb_findings +
-            power_seq_dep_findings +
-            led_resistor_findings +
-            feedback_stability_findings +
-            crystal_load_findings
+            domain["pullup_findings"] +
+            domain["voltage_level_findings"] +
+            domain["i2c_findings"] +
+            domain["spi_findings"] +
+            domain["can_findings"] +
+            domain["usb_findings"] +
+            domain["power_seq_dep_findings"] +
+            domain["led_resistor_findings"] +
+            domain["feedback_stability_findings"] +
+            domain["crystal_load_findings"]
         ),
         "lookup_findings": (
-            am_001_findings +
-            ov_001_findings +
-            ft_001_findings +
-            pm_001_findings +
-            ex_001_findings
+            domain["am_001_findings"] +
+            domain["ov_001_findings"] +
+            domain["ft_001_findings"] +
+            domain["pm_001_findings"] +
+            domain["ex_001_findings"]
         ),
     }
 
@@ -848,17 +859,75 @@ def analyze_signal_paths(ctx: AnalysisContext) -> dict:
     return assemble_signal_results(ctx, topo, domain)
 
 
-def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) -> dict:
+_LEGACY_SOURCE = "schematic.pipeline.analyze_legacy_schematic"
+_LIBRARY_RECORD_CAP = 20
+
+
+def _record_library_gaps(components: list[dict], missing: list, root_path: str,
+                         diagnostics: list) -> None:
+    """One diagnostics record per library whose placed symbols got no library pins, and one
+    when cache copies differ from the project's `.pro` libraries."""
+    by_lib: dict[str, list[dict]] = {}
+    for comp in components:
+        if comp.get("type") in ("power_symbol", "power_flag", "flag"):
+            continue
+        if comp.get("_pin_source") in (None, "builtin"):
+            lib_id = comp.get("lib_id", "")
+            nick = lib_id.split(":", 1)[0] if ":" in lib_id else ""
+            by_lib.setdefault(nick, []).append(comp)
+    reasons: dict[str, list[str]] = {}
+    for nick, reason in missing:
+        reasons.setdefault(nick, []).append(reason)
+    libs = sorted(by_lib)
+    for nick in libs[:_LIBRARY_RECORD_CAP]:
+        comps = by_lib[nick]
+        refs = list(dict.fromkeys(c.get("reference", "?") for c in comps))
+        shown = ", ".join(refs[:5]) + (", …" if len(refs) > 5 else "")
+        why = "; ".join(reasons.get(nick, [])[:2])
+        builtin = sum(1 for c in comps if c.get("_pin_source") == "builtin")
+        if builtin == len(comps):
+            effect = "built-in pin table used"
+        elif builtin == 0:
+            effect = "no pins; the part is left unconnected"
+        else:
+            effect = (f"built-in pin table used for {builtin}; "
+                      f"{len(comps) - builtin} left unconnected")
+        record(diagnostics, _LEGACY_SOURCE,
+               FileNotFoundError(f"library '{nick or '(unqualified)'}': {len(refs)} placed "
+                                 f"symbol(s) not available to the analyzer ({shown})"
+                                 + (f"; {why}" if why else "")),
+               effect)
+    if len(libs) > _LIBRARY_RECORD_CAP:
+        record(diagnostics, _LEGACY_SOURCE,
+               FileNotFoundError(f"{len(libs) - _LIBRARY_RECORD_CAP} more libraries with "
+                                 "placed symbols not available to the analyzer"),
+               "built-in pin table used or the parts left unconnected")
+
+    conflict_libs, conflict_names = _cache_conflicts(
+        root_path, {c.get("lib_id", "") for c in components})
+    if conflict_names:
+        placed = sum(1 for c in components if c.get("lib_id") in conflict_names)
+        shown = ", ".join(conflict_names[:5]) + (", …" if len(conflict_names) > 5 else "")
+        record(diagnostics, _LEGACY_SOURCE,
+               ValueError(f"{placed} placed symbol(s) differ between the cache and project "
+                          f"library {', '.join(conflict_libs)} ({shown})"),
+               "cache copy used, as KiCad 10's rescue default keeps it")
+
+
+def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None,
+                             power_rails_config: dict | None = None) -> dict:
     """Parse a KiCad 5 legacy .sch file and return the same structure as analyze_schematic.
 
     Legacy format uses line-oriented text with $Comp/$EndComp blocks, coordinates
     in mils (1/1000 inch), and positional field numbering (F0=ref, F1=value, etc.).
 
-    For hierarchical designs, recursively parses all subsheets referenced by
-    $Sheet blocks and merges connectivity across sheets.
+    For hierarchical designs, parses every instance of every subsheet referenced by
+    $Sheet blocks and merges connectivity across sheets.  A sheet used more than once
+    contributes each instance's components, referenced from their per-instance
+    ``AR`` records (else the ``L``/``F0`` reference).
 
     Parses .lib files to populate component pin data for pin-to-net mapping
-    and signal analysis.
+    and signal analysis. *power_rails_config* is as for ``analyze_schematic``.
     """
     all_components = []
     all_wires = []
@@ -867,18 +936,11 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
     all_no_connects = []
     sheets_parsed = []
     all_sch_lines = {}  # path -> LIBS: lines for lib resolution
+    parse_diagnostics: list = []
 
-    to_parse = [str(Path(path).resolve())]
-    parsed = set()
-
-    while to_parse:
-        sheet_path = to_parse.pop(0)
-        if sheet_path in parsed:
-            continue
-        parsed.add(sheet_path)
-
-        components, wires, labels, junctions, no_connects, sub_sheets, lib_lines = \
-            _parse_legacy_single_sheet(sheet_path)
+    for sheet_path, inst_path, parsed_sheet in walk_legacy_sheets(
+            path, parse_diagnostics, "schematic.pipeline.analyze_legacy_schematic"):
+        components, wires, labels, junctions, no_connects, sub_sheets, lib_lines = parsed_sheet
 
         all_sch_lines[sheet_path] = lib_lines
 
@@ -886,6 +948,7 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
         sheet_idx = len(sheets_parsed)
         for c in components:
             c["_sheet"] = sheet_idx
+            c.pop("_fields", None)
         for w in wires:
             w["_sheet"] = sheet_idx
         for lbl in labels:
@@ -895,6 +958,10 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
         for nc in no_connects:
             nc["_sheet"] = sheet_idx
 
+        apply_instance_reference(components, inst_path)
+        set_instance_paths(components, inst_path)
+        namespace_hierarchical_labels(labels, inst_path)
+
         all_components.extend(components)
         all_wires.extend(wires)
         all_labels.extend(labels)
@@ -902,19 +969,18 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
         all_no_connects.extend(no_connects)
         sheets_parsed.append(sheet_path)
 
-        for sub_path in sub_sheets:
-            if sub_path not in parsed:
-                to_parse.append(sub_path)
-
     # Resolve .lib files and parse pin data
     root_path = str(Path(path).resolve())
-    lib_symbols, legacy_resolution = _resolve_legacy_libs(root_path, all_sch_lines)
+    missing_libs: list = []
+    lib_symbols, legacy_resolution = _resolve_legacy_libs(root_path, all_sch_lines, missing_libs)
 
     # Build a reverse lookup for cache lib names: bare_symbol -> full cache name.
     # Cache libs store "Library_Symbol" while schematics reference bare "Symbol"
     # or "Library:Symbol".  This handles both forms.
     _cache_suffix_map: dict[str, str] = {}
     for sym_name in lib_symbols:
+        if ":" in sym_name:
+            continue  # nick:name entries are exact lookups, not cache names
         if "_" in sym_name:
             bare = sym_name.rsplit("_", 1)[-1]
             # Only map if the bare name is unique (avoid ambiguity)
@@ -952,9 +1018,12 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
                 sym_def = lib_symbols.get(cache_key)
                 _pin_src = "suffix_match"
         if sym_def:
+            if sym_def.get("is_power") and comp.get("type") != "power_symbol":
+                comp["_global_power_part"] = True
             comp["pins"] = compute_pin_positions(comp, {lib_id: sym_def})
-            comp["_pin_source"] = _pin_src
-            # KH-216: Store unit-valid pin numbers for pin_nets filtering
+            comp["_unit_count"] = sym_def.get("unit_count", 1)
+            comp["_pin_source"] = "builtin" if sym_def.get("_builtin") else _pin_src
+            # Store unit-valid pin numbers for pin_nets filtering
             comp["_unit_pins"] = {p["number"] for p in comp["pins"]}
             # Snap pin positions to mil grid — eliminates floating-point drift
             # from trig-based rotation so pins align with wire endpoints.
@@ -962,16 +1031,18 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
                 pin["x"] = _snap_mil(pin["x"])
                 pin["y"] = _snap_mil(pin["y"])
 
-    # KH-016 fix: Snap component pins to nearby wire endpoints when the
-    # computed pin positions don't match any wire (caused by KiCad version
-    # differences in standard library pin offsets).  For each pin, if no wire
-    # endpoint is within COORD_EPSILON, find the closest wire endpoint on the
-    # same sheet within a generous radius and snap to it.
-    _snap_pins_to_wires(all_components, all_wires)
+    _record_library_gaps(all_components, missing_libs, root_path, parse_diagnostics)
+
+    # built-in fallback pin offsets differ between KiCad library
+    # versions, so a built-in pin that misses every wire end moves to the
+    # nearest free one on its sheet.  Pins from parsed libraries never move.
+    _snap_pins_to_wires(all_components, all_wires, all_labels + all_no_connects)
 
     # Extract power symbols (preserve _sheet so build_net_map keeps coordinate
     # spaces separate — without it, power symbols from sub-sheets all land in
     # sheet 0's coordinate space and fail to connect to their actual wires).
+    # KiCad 10 renames power symbols on every KiCad 5 import.
+    rename_legacy_power_symbols(all_components)
     power_symbols = []
     for comp in all_components:
         if comp["type"] == "power_symbol":
@@ -984,6 +1055,7 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
             if "_sheet" in comp:
                 ps["_sheet"] = comp["_sheet"]
             ps["_power_scope"] = comp.get("_power_scope", "global")
+            ps["_drives"] = power_symbol_drives(comp)
             power_symbols.append(ps)
 
     # Generate BOM
@@ -992,17 +1064,19 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
     # Build nets from wires + labels + power symbols + component pins
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
                          all_no_connects,
-                         sheet_names=[Path(p).stem for p in sheets_parsed])
+                         sheet_names=[Path(p).stem for p in sheets_parsed],
+                         diagnostics=parse_diagnostics)
 
     stats = compute_statistics(all_components, nets, bom, all_wires, all_no_connects)
 
     # Subcircuit detection (IC + 1-hop neighbors)
     # Build shared analysis context for legacy path
-    _cache_dir = _resolve_lookup_paths(path, analysis_dir)
+    _cache_dir = _resolve_lookup_paths(path)
     ctx = build_analysis_context(
         all_components, nets, lib_symbols,
         no_connects=all_no_connects, source=ANALYZER_SOURCE,
-        cache_dir=_cache_dir, project_dir=str(Path(path).parent))
+        cache_dir=_cache_dir, project_dir=str(Path(path).parent),
+        power_rails_config=power_rails_config)
 
     subcircuits = identify_subcircuits(ctx)
 
@@ -1035,7 +1109,7 @@ def analyze_legacy_schematic(path: str, analysis_dir: str | Path | None = None) 
         annotation_issues=annotation_issues,
         legacy_resolution=legacy_resolution,
     )
-    result["diagnostics"] = merge(ctx.diagnostics)
+    result["diagnostics"] = merge(parse_diagnostics, ctx.diagnostics)
     return result
 
 
@@ -1080,7 +1154,7 @@ class SchematicAnalyses:
     protocol_compliance: Any
 
 
-def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict, bom: list) -> SchematicAnalyses:
+def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict) -> SchematicAnalyses:
     """Project-level analyses, in their historical call order."""
     all_components = parsed["components"]
     all_wires = parsed["wires"]
@@ -1096,7 +1170,7 @@ def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict, bom:
 
     # Detailed IC pinout analysis for datasheet cross-referencing
     ic_analysis = analyze_ic_pinouts(ctx)
-    # Parallel transistor pinout analysis (F4) — same code path, different
+    # Parallel transistor pinout analysis — same code path, different
     # filter. ic_pin_analysis stays IC/connector/crystal/oscillator-only for
     # consumer compatibility; transistors go in their own array.
     transistor_analysis = analyze_ic_pinouts(ctx, target_types={"transistor"})
@@ -1132,13 +1206,13 @@ def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict, bom:
     property_issues = audit_property_patterns(all_components)
     placement = spatial_clustering(all_components)
     pin_coverage = verify_pin_coverage(all_components, all_lib_symbols)
-    instance_issues = check_instance_consistency(all_components)
+    instance_issues = check_instance_consistency(all_components, all_lib_symbols)
     hier_label_analysis = validate_hierarchical_labels(all_labels, nets, merged_bus)
     generic_sym_warnings = check_generic_transistor_symbols(all_components, str(path))
 
     # ---- Tier 3: High-level design analyses ----
     pdn_analysis = analyze_pdn_impedance(ctx, signal_analysis)
-    # KH-374: power_sequencing must run before sleep_current so the sleep
+    # power_sequencing must run before sleep_current so the sleep
     # audit can consult real EN connectivity (en_source) instead of just
     # EN-pin-name presence.
     power_sequencing = analyze_power_sequencing(ctx, signal_analysis)
@@ -1151,7 +1225,8 @@ def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict, bom:
     assembly_complexity = analyze_assembly_complexity(all_components)
     usb_compliance = analyze_usb_compliance(ctx, signal_analysis)
     inrush_analysis = analyze_inrush_current(ctx, signal_analysis)
-    protocol_compliance = analyze_protocol_compliance(all_components, nets, design_analysis, signal_analysis, pin_net)
+    protocol_compliance = analyze_protocol_compliance(all_components, nets, design_analysis, signal_analysis, pin_net,
+                                                      ctx=ctx)
 
     return SchematicAnalyses(
         subcircuits=subcircuits,
@@ -1201,7 +1276,9 @@ def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict, bom:
 
 def analyze_schematic(path: str, project_root: str | None = None,
                       no_hierarchy: bool = False,
-                      analysis_dir: str | Path | None = None) -> dict:
+                      analysis_dir: str | Path | None = None,
+                      variant: str | None = None,
+                      power_rails_config: dict | None = None) -> dict:
     """Main analysis function. Returns complete structured data.
 
     For hierarchical designs (multi-sheet), recursively parses all sub-sheets
@@ -1219,13 +1296,18 @@ def analyze_schematic(path: str, project_root: str | None = None,
             Auto-discovered from .kicad_pro if not provided.
         no_hierarchy: If True, skip hierarchy auto-discovery entirely.
             Useful when analysing a sub-sheet in isolation.
+        variant: A KiCad 10 design variant name; None is the default variant.  The selected
+            name is reported as ``project_settings.variant``.
+        power_rails_config: The project config's ``analysis.power_rails``; its
+            ``voltage_overrides`` and ``ignore`` apply before detection.
     """
     # Detect legacy format
     with open(path, "r", encoding="utf-8", errors="replace") as f:
         first_line = f.readline().strip()
 
     if first_line.startswith("EESchema"):
-        return analyze_legacy_schematic(path, analysis_dir=analysis_dir)
+        return analyze_legacy_schematic(path, analysis_dir=analysis_dir,
+                                        power_rails_config=power_rails_config)
 
     # Parse root sheet and all sub-sheets recursively via parse_all_sheets().
     root_tree = parse_file(path)
@@ -1245,7 +1327,8 @@ def analyze_schematic(path: str, project_root: str | None = None,
             print(f"Note: {original_basename} is a sub-sheet — analyzing "
                   f"full project from root {root_basename}",
                   file=sys.stderr)
-            result = analyze_schematic(root_path, no_hierarchy=True)
+            result = analyze_schematic(root_path, no_hierarchy=True, variant=variant,
+                                       power_rails_config=power_rails_config)
             result["_redirected_from"] = original_basename
 
             # Stale file check: is the original file in the project tree?
@@ -1276,9 +1359,10 @@ def analyze_schematic(path: str, project_root: str | None = None,
         )
 
     pipeline_diagnostics: list = []
-    parsed = parse_all_sheets(path, root_tree=root_tree, diagnostics=pipeline_diagnostics)
+    parsed = parse_all_sheets(path, root_tree=root_tree, diagnostics=pipeline_diagnostics,
+                              variant=variant)
 
-    merge_top_level_sheets(parsed, path, root_tree, diagnostics=pipeline_diagnostics)
+    merge_top_level_sheets(parsed, path, diagnostics=pipeline_diagnostics, variant=variant)
 
     all_components = parsed["components"]
     all_wires = parsed["wires"]
@@ -1309,19 +1393,21 @@ def analyze_schematic(path: str, project_root: str | None = None,
     nets = build_net_map(all_components, all_wires, all_labels, power_symbols, all_junctions,
                          all_no_connects,
                          sheet_names=[Path(p).stem for p in sheets_parsed],
-                         bus_elements=merged_bus)
+                         bus_elements=merged_bus, diagnostics=pipeline_diagnostics,
+                         sheet_paths=parsed.get("sheet_paths"))
 
     # Generate BOM
     bom = generate_bom(all_components)
 
     # Build shared analysis context (pin_net and every index are built once, here)
-    _cache_dir = _resolve_lookup_paths(path, analysis_dir)
+    _cache_dir = _resolve_lookup_paths(path)
     ctx = build_analysis_context(
         all_components, nets, all_lib_symbols,
-        no_connects=all_no_connects, generator_version=generator_version,
-        source=ANALYZER_SOURCE, cache_dir=_cache_dir, project_dir=str(Path(path).parent))
+        no_connects=all_no_connects,
+        source=ANALYZER_SOURCE, cache_dir=_cache_dir, project_dir=str(Path(path).parent),
+        power_rails_config=power_rails_config)
 
-    analyses = run_analyses(ctx, parsed, path, nets, bom)
+    analyses = run_analyses(ctx, parsed, path, nets)
     result = assemble_result(ctx, parsed, nets, bom, analyses, path=path,
                              sheets_parsed=sheets_parsed,
                              hierarchy_warning=hierarchy_warning,
@@ -1329,19 +1415,20 @@ def analyze_schematic(path: str, project_root: str | None = None,
                              generator_version=generator_version,
                              file_version=file_version)
     result["diagnostics"] = merge(pipeline_diagnostics, ctx.diagnostics)
+    if variant is not None:
+        result.setdefault("project_settings", {})["variant"] = variant
     return result
 
 
 def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecycle: bool,
-                     stage: str | None, audience: str | None,
+                     stage: str | None,
                      diagnostics: list | None = None) -> None:
     """Phase 5: command-specific annotation; mutates *result*.
 
     Project config summary, design intent + CERT-001 gating, power_rails config, lifecycle
     audit / LC-007, datasheet verification, stage/audience filters, summary + trust_summary
-    recompute, finding_id assignment. Body verbatim from analyze_schematic.py::main; the only
-    seams are args.* -> parameters and one extra '..' on the datasheets path (this file is one
-    directory deeper).
+    recompute, finding_id assignment. The CLI's args.* arrive as parameters, and the
+    datasheets path takes one extra '..' (this file is one directory below the scripts dir).
     """
     # Attach project config summary to output for downstream consumers
     project = config.get("project", {})
@@ -1350,7 +1437,7 @@ def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecyc
 
     # Resolve design intent for downstream consumers
     try:
-        from project_config import resolve_design_intent
+        from design_intent import resolve_design_intent
         sch_data_for_intent = {
             'components': result.get('components', []),
             'title_block': result.get('title_block', {}),
@@ -1399,7 +1486,7 @@ def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecyc
         record(diagnostics, "schematic.pipeline.finalize_for_cli", exc,
                "power_rails config not applied")
 
-    # rc.2 4.3 — LC-007 lifecycle-skipped INFO finding. Emit explicitly so
+    # LC-007 lifecycle-skipped INFO finding. Emit explicitly so
     # reviewers see "lifecycle audit not run" in the findings list rather
     # than silently missing it. Fires in three cases:
     #   1. --lifecycle flag was not passed (most common — high frequency)
@@ -1414,7 +1501,7 @@ def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecyc
         )
     else:
         try:
-            from lifecycle_audit import audit_bom
+            from lifecycle_engine import audit_bom
             project_dir = str(Path(schematic_path).parent)
             lifecycle = audit_bom(result, project_dir=project_dir)
             if lifecycle and lifecycle.get("components_checked", 0) > 0:
@@ -1426,10 +1513,10 @@ def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecyc
                     "fields on BOM parts and re-run with --lifecycle"
                 )
                 print("Lifecycle: no components with MPNs to check", file=sys.stderr)
-        except ImportError:
-            _lifecycle_skip_reason = "lifecycle_audit.py not found"
-            print("Warning: lifecycle_audit.py not found", file=sys.stderr)
-        except (OSError, ValueError, TypeError, KeyError) as e:
+        except ImportError as e:
+            _lifecycle_skip_reason = f"lifecycle_engine could not be imported: {e}"
+            print(f"Warning: lifecycle_engine could not be imported: {e}", file=sys.stderr)
+        except (OSError, ValueError, TypeError, KeyError, AttributeError) as e:
             _lifecycle_skip_reason = f"audit raised {type(e).__name__}: {e}"
             print(f"Warning: lifecycle audit failed: {e}", file=sys.stderr)
 
@@ -1485,7 +1572,7 @@ def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecyc
     except ImportError:
         pass
     except (OSError, ValueError, TypeError, KeyError, AttributeError) as e:
-        # AttributeError added for rc.3 — defense against future None-leaks
+        # AttributeError is caught as defense against future None-leaks
         # in datasheet_verify.py (see _load_extraction normalization).
         result["datasheet_verification"] = {
             "findings": [],
@@ -1493,7 +1580,7 @@ def finalize_for_cli(result: dict, config: dict, *, schematic_path: str, lifecyc
         }
 
     from output_filters import apply_output_filters
-    apply_output_filters(result, stage, audience)
+    apply_output_filters(result, stage)
 
     # Recompute summary + trust_summary from the final findings list — post-
     # filters (CERT-001 hobby gating, power_rails config, lifecycle audit,

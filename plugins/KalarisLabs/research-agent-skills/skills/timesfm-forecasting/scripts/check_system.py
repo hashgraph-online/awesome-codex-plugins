@@ -78,6 +78,7 @@ MODEL_PROFILES: dict[str, dict[str, Any]] = {
 
 @dataclass
 class CheckResult:
+    """Check result."""
     name: str
     status: str  # "pass", "warn", "fail"
     detail: str
@@ -85,14 +86,17 @@ class CheckResult:
 
     @property
     def icon(self) -> str:
+        """Handle icon."""
         return {"pass": "✅", "warn": "⚠️", "fail": "🛑"}.get(self.status, "❓")
 
     def __str__(self) -> str:
+        """Return a readable string form."""
         return f"[{self.name:<10}] {self.value:<40} {self.icon} {self.status.upper()}"
 
 
 @dataclass
 class SystemReport:
+    """System report."""
     model: str
     checks: list[CheckResult] = field(default_factory=list)
     verdict: str = ""
@@ -102,9 +106,11 @@ class SystemReport:
 
     @property
     def passed(self) -> bool:
+        """Handle passed."""
         return all(c.status != "fail" for c in self.checks)
 
     def to_dict(self) -> dict[str, Any]:
+        """Handle to dict."""
         return {
             "model": self.model,
             "passed": self.passed,
@@ -129,6 +135,33 @@ class SystemReport:
 # ---------------------------------------------------------------------------
 
 
+def _windows_memory_status() -> Any:
+    """Return the MEMORYSTATUSEX structure filled in by GlobalMemoryStatusEx."""
+    import ctypes
+
+    kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
+
+    class MEMORYSTATUSEX(ctypes.Structure):
+        """Win32 MEMORYSTATUSEX layout used by GlobalMemoryStatusEx."""
+
+        _fields_ = [
+            ("dwLength", ctypes.c_ulong),
+            ("dwMemoryLoad", ctypes.c_ulong),
+            ("ullTotalPhys", ctypes.c_ulonglong),
+            ("ullAvailPhys", ctypes.c_ulonglong),
+            ("ullTotalPageFile", ctypes.c_ulonglong),
+            ("ullAvailPageFile", ctypes.c_ulonglong),
+            ("ullTotalVirtual", ctypes.c_ulonglong),
+            ("ullAvailVirtual", ctypes.c_ulonglong),
+            ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
+        ]
+
+    stat = MEMORYSTATUSEX()
+    stat.dwLength = ctypes.sizeof(stat)
+    kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+    return stat
+
+
 def _get_total_ram_gb() -> float:
     """Return total physical RAM in GB, cross-platform."""
     try:
@@ -148,27 +181,7 @@ def _get_total_ram_gb() -> float:
             )
             return int(result.stdout.strip()) / (1024**3)
         elif sys.platform == "win32":
-            import ctypes
-
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
-
-            class MEMORYSTATUSEX(ctypes.Structure):
-                _fields_ = [
-                    ("dwLength", ctypes.c_ulong),
-                    ("dwMemoryLoad", ctypes.c_ulong),
-                    ("ullTotalPhys", ctypes.c_ulonglong),
-                    ("ullAvailPhys", ctypes.c_ulonglong),
-                    ("ullTotalPageFile", ctypes.c_ulonglong),
-                    ("ullAvailPageFile", ctypes.c_ulonglong),
-                    ("ullTotalVirtual", ctypes.c_ulonglong),
-                    ("ullAvailVirtual", ctypes.c_ulonglong),
-                    ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
-                ]
-
-            stat = MEMORYSTATUSEX()
-            stat.dwLength = ctypes.sizeof(stat)
-            kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
-            return stat.ullTotalPhys / (1024**3)
+            return _windows_memory_status().ullTotalPhys / (1024**3)
     except Exception:
         pass
 
@@ -199,27 +212,7 @@ def _get_available_ram_gb() -> float:
                     free += int(val) * page_size
             return free / (1024**3)
         elif sys.platform == "win32":
-            import ctypes
-
-            kernel32 = ctypes.windll.kernel32  # type: ignore[attr-defined]
-
-            class MEMORYSTATUSEX(ctypes.Structure):
-                _fields_ = [
-                    ("dwLength", ctypes.c_ulong),
-                    ("dwMemoryLoad", ctypes.c_ulong),
-                    ("ullTotalPhys", ctypes.c_ulonglong),
-                    ("ullAvailPhys", ctypes.c_ulonglong),
-                    ("ullTotalPageFile", ctypes.c_ulonglong),
-                    ("ullAvailPageFile", ctypes.c_ulonglong),
-                    ("ullTotalVirtual", ctypes.c_ulonglong),
-                    ("ullAvailVirtual", ctypes.c_ulonglong),
-                    ("sullAvailExtendedVirtual", ctypes.c_ulonglong),
-                ]
-
-            stat = MEMORYSTATUSEX()
-            stat.dwLength = ctypes.sizeof(stat)
-            kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
-            return stat.ullAvailPhys / (1024**3)
+            return _windows_memory_status().ullAvailPhys / (1024**3)
     except Exception:
         pass
     return 0.0
@@ -480,7 +473,7 @@ def run_checks(model_version: str = "v2.5") -> SystemReport:
 def print_report(report: SystemReport) -> None:
     """Print a human-readable report to stdout."""
     print(f"\n{'=' * 50}")
-    print(f"  TimesFM System Requirements Check")
+    print("  TimesFM System Requirements Check")
     print(f"  Model: {report.model}")
     print(f"{'=' * 50}\n")
 
@@ -495,6 +488,7 @@ def print_report(report: SystemReport) -> None:
 
 
 def main() -> None:
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(
         description="Check system requirements for TimesFM."
     )

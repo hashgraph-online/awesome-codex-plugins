@@ -17,6 +17,11 @@ from pathlib import Path
 
 CHECKED_DATE = "2026-07-20"
 
+_ELSEVIER_EXAMPLE_STATUS = "Bundled example; the journal's Guide for Authors controls."
+_ELSEVIER_LATEX_SOURCE = (
+    "https://www.elsevier.com/researcher/author/policies-and-guidelines/latex-instructions"
+)
+
 TEMPLATES = {
     "journals": {
         "nature": {
@@ -46,22 +51,22 @@ TEMPLATES = {
         "elsevier-numeric": {
             "file": "elsarticle-template-num.tex",
             "full_name": "Elsevier elsarticle numeric example",
-            "status": "Bundled example; the journal's Guide for Authors controls.",
-            "source": "https://www.elsevier.com/researcher/author/policies-and-guidelines/latex-instructions",
+            "status": _ELSEVIER_EXAMPLE_STATUS,
+            "source": _ELSEVIER_LATEX_SOURCE,
             "requirements": "Numeric citations using the bundled elsarticle-num.bst.",
         },
         "elsevier-numeric-names": {
             "file": "elsarticle-template-num-names.tex",
             "full_name": "Elsevier elsarticle sorted numeric example",
-            "status": "Bundled example; the journal's Guide for Authors controls.",
-            "source": "https://www.elsevier.com/researcher/author/policies-and-guidelines/latex-instructions",
+            "status": _ELSEVIER_EXAMPLE_STATUS,
+            "source": _ELSEVIER_LATEX_SOURCE,
             "requirements": "Sorted/compressed numeric citations using elsarticle-num-names.bst.",
         },
         "elsevier-author-year": {
             "file": "elsarticle-template-harv.tex",
             "full_name": "Elsevier elsarticle author-year example",
-            "status": "Bundled example; the journal's Guide for Authors controls.",
-            "source": "https://www.elsevier.com/researcher/author/policies-and-guidelines/latex-instructions",
+            "status": _ELSEVIER_EXAMPLE_STATUS,
+            "source": _ELSEVIER_LATEX_SOURCE,
             "requirements": "Author-year citations using the bundled elsarticle-harv.bst.",
         },
     },
@@ -100,10 +105,12 @@ TEMPLATES = {
 
 
 def skill_path() -> Path:
+    """Handle skill path."""
     return Path(__file__).resolve().parent.parent
 
 
 def template_path(category: str, filename: str) -> Path:
+    """Handle template path."""
     return skill_path() / "assets" / category / filename
 
 
@@ -112,6 +119,7 @@ def search_templates(
     template_type: str | None = None,
     keyword: str | None = None,
 ) -> list[dict]:
+    """Search templates."""
     results = []
     for category_name, category in TEMPLATES.items():
         if template_type and template_type != "all" and category_name != template_type:
@@ -137,6 +145,7 @@ def search_templates(
 
 
 def print_template(template: dict, detailed: bool = True) -> None:
+    """Print template."""
     path = template_path(template["category"], template["file"])
     print(f"\n{template['full_name']}")
     print(f"  ID: {template['id']}")
@@ -156,6 +165,7 @@ def print_template(template: dict, detailed: bool = True) -> None:
 
 
 def parse_args() -> argparse.Namespace:
+    """Parse args."""
     parser = argparse.ArgumentParser(
         description="Query templates actually bundled with venue-templates"
     )
@@ -177,6 +187,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     args = parse_args()
     if not any([args.list_all, args.venue, args.template_type, args.keyword]):
         print("Specify --list-all, --venue, --type, or --keyword.")

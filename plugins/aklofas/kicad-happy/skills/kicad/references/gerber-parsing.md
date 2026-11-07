@@ -10,7 +10,7 @@ This reference covers parsing Gerber (RS-274X) and Excellon drill files for anal
 4. [Layer Identification](#layer-identification)
 5. [Gerber Attributes (X2)](#gerber-attributes-x2)
 6. [Excellon Drill Format](#excellon-drill-format)
-7. [Gerber Job File](#gerber-job-file-gbrjob--kicad-6-only)
+7. [Gerber Job File](#gerber-job-file-gbrjob--kicad-51)
 8. [Analysis Techniques](#analysis-techniques)
 
 ---
@@ -217,9 +217,9 @@ With Protel extensions enabled:
 
 ### Gerber X2 File Attributes
 
-KiCad writes X2 attributes that identify the layer, but the **format differs by version**:
+KiCad 5.1+ writes X2 attributes that identify the layer, but the **syntax depends on the X2 output setting**:
 
-**KiCad 6+ (X2 directives):**
+**Native directives (X2 output on, KiCad 5.1+):**
 ```gerber
 %TF.GenerationSoftware,KiCad,Pcbnew,9.0.0*%
 %TF.CreationDate,2025-01-15T10:30:00-06:00*%
@@ -229,7 +229,7 @@ KiCad writes X2 attributes that identify the layer, but the **format differs by 
 %TF.FilePolarity,Positive*%
 ```
 
-**KiCad 5 (X2 in G04 comments):**
+**Comment form (X2 output off, and older KiCad 5):**
 ```gerber
 G04 #@! TF.GenerationSoftware,KiCad,Pcbnew,5.1.5-52549c5~84~ubuntu18.04.1*
 G04 #@! TF.CreationDate,2020-03-09T10:29:23-07:00*
@@ -239,9 +239,9 @@ G04 #@! TF.FileFunction,Copper,L1,Top*
 G04 #@! TF.FilePolarity,Positive*
 ```
 
-KiCad 5 embeds X2 attributes as structured comments (`G04 #@!`) rather than native `%TF.*%` directives. The attribute names and values are identical — only the container syntax differs. When parsing, check for both patterns:
-- `%TF.FileFunction,(.*)\\*%` (KiCad 6+)
-- `G04 #@! TF.FileFunction,(.*)\\*` (KiCad 5)
+With X2 output off KiCad embeds the attributes as structured comments (`G04 #@!`) rather than native `%TF.*%` directives. The attribute names and values are identical — only the container syntax differs. When parsing, check for both patterns:
+- `%TF.FileFunction,(.*)\\*%` (X2 output on)
+- `G04 #@! TF.FileFunction,(.*)\\*` (X2 output off, older KiCad 5)
 
 ### FileFunction Values
 
@@ -263,17 +263,17 @@ KiCad 5 embeds X2 attributes as structured comments (`G04 #@!`) rather than nati
 
 ## Gerber Attributes (X2)
 
-Gerber X2 attributes provide machine-readable metadata. KiCad writes file-level attributes (`%TF`) in all versions (5+), but aperture attributes (`%TA`) and object attributes (`%TO`) are only available in KiCad 6+.
+Gerber X2 attributes provide machine-readable metadata. KiCad 5.1+ writes file (`TF`), aperture (`TA`) and object (`TO`) attributes. With X2 output on they are native `%T…*%` commands; with X2 off (`kicad-cli … --no-x2`) KiCad writes the same commands as `G04 #@! T…*` structured comments. Both forms carry the same data, and the analyzer reads both. Object attribute fields escape `\ % * ,` and (in non-UTF-8 output) non-ASCII characters as `\uXXXX`; the analyzer decodes these as KiCad does (the older `\XXXX` form is left as written). KiCad writes `%TO.P` with the reference on outer-copper pads and no `%TO.C`; a pad that connects to nothing gets an empty net (`%TO.N,*%`), which is not counted as a net.
 
 ### Version Compatibility Matrix
 
-| Attribute Type | KiCad 5 | KiCad 6+ | Format (KiCad 5) | Format (KiCad 6+) |
+| Attribute Type | KiCad 5.1 | KiCad 6+ | Format (X2 off) | Format (X2 on) |
 |---------------|---------|----------|-------------------|-------------------|
 | File attributes (`TF`) | Yes | Yes | `G04 #@! TF.*` | `%TF.*%` |
-| Aperture attributes (`TA`) | No | Yes | — | `%TA.*%` |
-| Object attributes (`TO`) | No | Yes | — | `%TO.*%` |
+| Aperture attributes (`TA`) | Yes | Yes | `G04 #@! TA.*` | `%TA.*%` |
+| Object attributes (`TO`) | Yes | Yes | `G04 #@! TO.*` | `%TO.*%` |
 
-This is a critical distinction: with KiCad 5 gerbers, you cannot map copper features back to components or nets from the gerber files alone — you need the KiCad source files for that information.
+Gerbers without these attributes (older KiCad versions, other tools) cannot be mapped back to components or nets from the gerber files alone — you need the source files for that information.
 
 ### File Attributes (%TF)
 
@@ -285,7 +285,7 @@ This is a critical distinction: with KiCad 5 gerbers, you cannot map copper feat
 %TF.FilePolarity,Positive*%
 ```
 
-### Aperture Attributes (%TA) — KiCad 6+ Only
+### Aperture Attributes (%TA) — KiCad 5.1+
 
 ```gerber
 %TA.AperFunction,SMDPad,CuDef*%     ; This aperture is an SMD pad
@@ -298,12 +298,12 @@ This is a critical distinction: with KiCad 5 gerbers, you cannot map copper feat
 %TA.AperFunction,NonConductor*%       ; Non-copper feature
 ```
 
-Without aperture attributes (KiCad 5), you can still classify apertures heuristically:
+Without aperture attributes (older KiCad, other tools), you can still classify apertures heuristically:
 - Small circular apertures used with D01 (draw) commands → traces (diameter = trace width)
 - Apertures used only with D03 (flash) commands → pads or vias
 - Distinguish via vs component pads by cross-referencing drill file positions
 
-### Object Attributes (%TO) — KiCad 6+ Only
+### Object Attributes (%TO) — KiCad 5.1+
 
 ```gerber
 %TO.C,R1*%                           ; This object belongs to component R1
@@ -311,7 +311,7 @@ Without aperture attributes (KiCad 5), you can still classify apertures heuristi
 %TO.P,R1,1*%                         ; This is pin 1 of R1
 ```
 
-These are extremely useful for analysis — they let you map gerber features back to schematic components and nets without needing the KiCad source files. When these attributes are absent (KiCad 5), component/net analysis requires parsing the `.kicad_pcb` source file instead.
+These are extremely useful for analysis — they let you map gerber features back to schematic components and nets without needing the KiCad source files. When these attributes are absent (older KiCad, other tools), component/net analysis requires parsing the `.kicad_pcb` source file instead.
 
 ---
 
@@ -324,7 +324,7 @@ Drill files define hole positions and sizes. KiCad exports Excellon format.
 ```excellon
 M48                                  ; Header start
 ; DRILL file {project.kicad_pcb} date 2025-01-15
-; FORMAT={-:-:metric}
+; FORMAT={3:3/ absolute / metric / suppress leading zeros}
 ; #@! TF.GenerationSoftware,KiCad,Pcbnew,9.0.0
 ; #@! TF.CreationDate,2025-01-15
 ; #@! TF.FileFunction,Plated,1,2,PTH    ; Plated through holes, layer 1 to 2
@@ -338,38 +338,43 @@ T3C1.000                            ; Tool 3: 1.0mm drill
 %                                    ; End of header
 
 T1                                   ; Select tool 1 (0.3mm via drill)
-X150000Y100000                       ; Drill at (150, 100)mm
-X155000Y100000                       ; Drill at (155, 100)mm
-X160000Y105000
+X150000Y-100000                      ; Drill at (150, 100)mm on the board
+X155000Y-100000                      ; Drill at (155, 100)mm on the board
+X160000Y-105000
 
 T2                                   ; Select tool 2 (0.8mm component drill)
-X120000Y90000
-X125000Y90000
+X120000Y-90000
+X125000Y-90000
 
 T3                                   ; Select tool 3 (1.0mm)
-X110000Y110000
+X110000Y-110000
 
 M30                                  ; End of file
 ```
 
 ### Coordinate Format
 
-Two distinct formats depending on KiCad version:
+The units line, the zeros option and the `; FORMAT={integer:decimal/...}` comment declare how to read a coordinate. KiCad writes the same hole, (105.08 mm, 100.0 mm) on the board, as:
 
-**KiCad 6+ (metric, integer coordinates):**
-- Header: `METRIC,TZ` or `METRIC,LZ`
-- Format hint: `; FORMAT={-:-:metric}`
-- Coordinates in microns (divide by 1000 for mm)
-- Example: `X150000Y100000` = (150.0mm, 100.0mm)
+| Export option | Units line | Format comment | Hole as written |
+|---------------|------------|----------------|-----------------|
+| decimal, mm (kicad-cli default) | `METRIC` | `{-:-/ absolute / metric / decimal}` | `X105.08Y-100.0` |
+| decimal, inch | `INCH` | `{-:-/ absolute / inch / decimal}` | `X4.137Y-3.937` |
+| suppress leading zeros, mm | `METRIC,TZ` | `{3:3/ absolute / metric / suppress leading zeros}` | `X105080Y-100000` |
+| suppress leading zeros, inch | `INCH,TZ` | `{2:4/ absolute / inch / suppress leading zeros}` | `X41370Y-39370` |
+| suppress trailing zeros, mm | `METRIC,LZ` | `{3:3/ absolute / metric / suppress trailing zeros}` | `X10508Y-1` |
+| suppress trailing zeros, inch | `INCH,LZ` | `{2:4/ absolute / inch / suppress trailing zeros}` | `X04137Y-03937` |
+| keep zeros, mm | `METRIC` | `{3:3/ absolute / metric / keep zeros}` | `X105080Y-100000` |
+| keep zeros, inch | `INCH` | `{2:4/ absolute / inch / keep zeros}` | `X041370Y-039370` |
 
-**KiCad 5 (imperial, decimal coordinates):**
-- Header: `INCH` (no TZ/LZ suffix)
-- Format hint: `; FORMAT={-:-/ absolute / inch / decimal}`
-- Coordinates are decimal inches — parse as float, multiply by 25.4 for mm
-- Example: `X1.3875Y-2.77` = (1.3875in, -2.77in) = (35.2425mm, -70.358mm)
-- Tool sizes also in inches: `T1C0.0157` = 0.0157in = 0.399mm
+The minimal-header export option omits the format comment; KiCad's precision is then 3:3 for mm and 2:4 for inch.
 
-**Important:** KiCad 5 drill coordinates may have negative Y values (KiCad 5 used inverted Y-axis). KiCad 6+ always uses positive coordinates.
+- A decimal point means the value is already in the file's units (mm or inch). Multiply inch by 25.4.
+- Without a decimal point, divide by 10^d, where `{i:d}` comes from the format comment. `TZ` (leading zeros suppressed) and keep-zeros files divide as written.
+- `LZ` (trailing zeros suppressed) digits are left-aligned: pad on the right to i+d digits first, then divide. `10508` becomes `105080`, which is 105.080 mm; `-1` becomes `-100000`, which is -100.0 mm.
+- Tool sizes (`T1C...`) are in the units of the units line.
+- Y is the board Y negated: a hole at board Y 100 mm is written `Y-100`. With the drill/place origin option, Y is measured from that origin, so holes above it are positive. Mirror-Y export does not negate.
+- The analyzer's drill reader misreads integer coordinates in `LZ` files (hole positions come out wrongly scaled); hand-decode those files. Hole counts and tool sizes are unaffected.
 
 ### Tool Definitions
 
@@ -415,22 +420,25 @@ Oval or non-round holes use routing commands:
 
 ```
 T2C1.000
-G85X120000Y90000X125000Y90000       ; Route (slot) from (120,90) to (125,90)
+G85X120000Y-90000X125000Y-90000     ; Route (slot) from (120,90) to (125,90) on the board
 ```
 
-Or with M15/M16:
+Or in route mode (KiCad's default oval format in the GUI drill dialog):
 ```
-M15                                  ; Router mode on
-G01X120000Y90000                     ; Start of slot
-X125000Y90000                        ; End of slot
-M16                                  ; Router mode off
+G00X120.0Y90.0                       ; Move to the start of the slot
+M15                                  ; Plunge (router down)
+G01X125.0Y90.0                       ; Cut to the end of the slot
+M16                                  ; Retract
+G05                                  ; Back to drill mode
 ```
+
+Either form is one hole of its tool, as in KiCad's drill report. KiCad's Gerber-format drill files (`-PTH-drl.gbr`, `-NPTH-drl.gbr`, `%TF.FileFunction,Plated|NonPlated,…`) flash round holes and draw a slot as one segment; they are drill files, not layers.
 
 ---
 
-## Gerber Job File (`.gbrjob`) — KiCad 6+ Only
+## Gerber Job File (`.gbrjob`) — KiCad 5.1+
 
-KiCad 6+ exports a JSON job file alongside gerbers with board-level metadata. KiCad 5 does not generate this file — board dimensions and stackup must be extracted from the gerber/drill files directly or from the `.kicad_pcb` source.
+KiCad 5.1+ exports a JSON job file alongside gerbers with board-level metadata. Without a job file, board dimensions and stackup must be extracted from the gerber/drill files directly or from the `.kicad_pcb` source.
 
 ```json
 {
@@ -472,12 +480,12 @@ Check that all required files are present and consistent:
 - **Coordinate alignment**: All files should have `TF.SameCoordinates,Original` (check both `%TF.*%` and `G04 #@! TF.*` formats)
 - **Date consistency**: All `TF.CreationDate` values should match — different dates mean files were regenerated at different times, risking misalignment
 - **Software version**: All `TF.GenerationSoftware` should match
-- **Job file**: `.gbrjob` present for complete metadata (KiCad 6+ only)
+- **Job file**: `.gbrjob` present for complete metadata (KiCad 5.1+)
 - **Filename prefix**: Auto-detect from the gerber files (project name varies — don't hardcode)
 
-#### 2. X2 Attribute Analysis (Component/Net/Pin Mapping) — KiCad 6+ Only
+#### 2. X2 Attribute Analysis (Component/Net/Pin Mapping) — KiCad 5.1+
 
-KiCad 6+ gerbers contain X2 object attributes that map every copper feature back to schematic. KiCad 5 gerbers lack these entirely — skip this section for KiCad 5 and rely on the `.kicad_pcb` source file for component/net mapping.
+KiCad 5.1+ gerbers contain X2 object attributes (native or as `G04 #@!` comments) that map every copper feature back to schematic. Gerbers without them — skip this section and rely on the `.kicad_pcb` source file for component/net mapping.
 
 ```gerber
 %TO.P,U2,1,FB*%      ; Pin: component U2, pin 1, name "FB"
@@ -496,7 +504,7 @@ This produces the same information as the PCB netlist without needing the KiCad 
 
 #### 3. Aperture Function Classification
 
-**KiCad 6+:** Aperture attributes categorize copper features:
+**KiCad 5.1+:** Aperture attributes categorize copper features:
 
 | AperFunction | Description | What to count |
 |-------------|-------------|---------------|
@@ -575,7 +583,7 @@ From the Edge_Cuts gerber:
 
 ### Cross-Referencing Gerber with KiCad Source
 
-**KiCad 6+ (full X2 attributes available):**
+**KiCad 5.1+ (X2 attributes available):**
 1. **Component count**: Gerber X2 component count vs PCB footprint count. Difference = non-electrical footprints (logos, mounting holes, test points without copper pads)
 2. **Net count**: Gerber X2 unique `%TO.N,...*%` values should match PCB `(net N "name")` count
 3. **Pad count**: F_Cu D03 flash count vs total pad count in PCB footprints
@@ -603,25 +611,29 @@ Pre-submission check before sending to manufacturer:
 7. **Empty B_Paste**: Correct if single-side assembly
 8. **Coordinate alignment**: All files use `SameCoordinates: Original`
 9. **Date consistency**: All files generated on the same date
-10. **Drill minimums**: PTH ≥ 0.2mm, NPTH ≥ 0.5mm (JLCPCB). Convert from inches if KiCad 5 INCH format.
+10. **Drill minimums**: PTH ≥ 0.2mm, NPTH ≥ 0.5mm (JLCPCB). Convert from inches when the units line is `INCH`.
 11. **Drill units**: Verify METRIC vs INCH — coordinate parsing differs completely
 12. **Board size**: Note if exceeds 100x100mm (JLCPCB pricing threshold)
-13. **Job file**: `.gbrjob` present with correct stackup and design rules (KiCad 6+ only)
+13. **Job file**: `.gbrjob` present with correct stackup and design rules (KiCad 5.1+)
 
 ### KiCad Version Detection
 
-Quickly determine the KiCad version from gerber files:
+The generating KiCad version is in the software string (`TF.GenerationSoftware,KiCad,Pcbnew,<version>`, or `Created by KiCad (PCBNEW ...` in older files); the analyzer reads its major number. These version facts hold whatever the X2 setting:
 
 | Indicator | KiCad 5 | KiCad 6+ |
 |-----------|---------|----------|
-| X2 attribute format | `G04 #@! TF.*` | `%TF.*%` |
-| Aperture attributes | Absent | `%TA.AperFunction,...*%` |
-| Object attributes | Absent | `%TO.P,...*%`, `%TO.N,...*%`, `%TO.C,...*%` |
-| Silkscreen suffix | `_SilkS` | `_Silkscreen` |
-| Drill units | `INCH` (decimal) | `METRIC` (integer microns) |
-| Job file | Absent | `.gbrjob` present |
-| Mask/paste pad openings | Regions (G36/G37) | Flashes (D03) |
 | Software string | `Pcbnew,5.x.x` | `Pcbnew,6.x.x` / `7.x.x` / `8.x.x` / `9.x.x` |
+| Silkscreen suffix | `_SilkS` | `_Silkscreen` |
+| Job file | `.gbrjob` from 5.1 | `.gbrjob` present |
+| Mask/paste pad openings | Regions (G36/G37) | Flashes (D03) |
+
+The attribute syntax depends on the X2 output setting (KiCad 5.1+), not the version:
+
+| Attribute | X2 output off | X2 output on |
+|-----------|---------|----------|
+| File attributes | `G04 #@! TF.*` | `%TF.*%` |
+| Aperture attributes | `G04 #@! TA.*` | `%TA.AperFunction,...*%` |
+| Object attributes | `G04 #@! TO.*` | `%TO.P,...*%`, `%TO.N,...*%`, `%TO.C,...*%` |
 
 ---
 
@@ -689,41 +701,61 @@ for line in gerber_lines:
 Excellon drill files have a header section (tool definitions) and a body (drill hits):
 
 ```python
-tools = {}       # T-code → diameter
-current_tool = None
-drill_hits = []  # (x, y, tool, diameter)
-units_mm = True  # False for INCH
+import re
 
-for line in drill_lines:
-    # Tool definition: T1C0.300 or T01C0.300000
-    m = re.match(r'T(\d+)C([\d.]+)', line)
-    if m:
-        tools[int(m.group(1))] = float(m.group(2))
-        continue
+def parse_drill_hits(lines):
+    units_mm = True       # METRIC unless the header says INCH
+    zeros = None          # 'LZ' (trailing zeros omitted), 'TZ' (leading omitted) or None
+    int_digits, dec_digits = None, None
+    tools, hits, current_tool = {}, [], None  # hits: (x, y, tool, diameter), all mm
+    for line in lines:
+        s = line.strip()
+        m = re.match(r';\s*FORMAT=\{(\d+):(\d+)/', s)
+        if m:
+            int_digits, dec_digits = int(m.group(1)), int(m.group(2))
+            continue
+        m = re.match(r'(METRIC|INCH)(?:,(LZ|TZ))?', s)
+        if m:
+            units_mm = m.group(1) == 'METRIC'
+            zeros = m.group(2)
+            continue
+        # Tool definition: T1C0.300 or T01C0.300000
+        m = re.match(r'T(\d+)C([\d.]+)', s)
+        if m:
+            tools[int(m.group(1))] = float(m.group(2)) * (1.0 if units_mm else 25.4)
+            continue
+        # Tool select: T1 or T01
+        m = re.match(r'T(\d+)$', s)
+        if m:
+            current_tool = int(m.group(1))
+            continue
+        # Drill hit: X105080Y-100000, X10508Y-1 (LZ) or X105.08Y-100.0 (decimal)
+        m = re.match(r'X(-?[\d.]+)Y(-?[\d.]+)', s)
+        if m and current_tool is not None:
+            if int_digits is None:  # no FORMAT comment: KiCad's precision
+                int_digits, dec_digits = (3, 3) if units_mm else (2, 4)
+            scale = 1.0 if units_mm else 25.4
+            x, y = (_coord(v, zeros, int_digits, dec_digits) * scale
+                    for v in m.groups())
+            hits.append((x, y, current_tool, tools.get(current_tool, 0)))
+    return hits
 
-    # Tool select: T1 or T01
-    m = re.match(r'T(\d+)$', line)
-    if m:
-        current_tool = int(m.group(1))
-        continue
-
-    # Drill hit: X156100Y148800 (METRIC) or X5.4075Y3.0591 (INCH)
-    m = re.match(r'X(-?[\d.]+)Y(-?[\d.]+)', line)
-    if m:
-        x, y = float(m.group(1)), float(m.group(2))
-        if not units_mm:
-            x, y = x * 25.4, y * 25.4  # Convert inches to mm
-        elif x > 1000:
-            x, y = x / 1000, y / 1000  # METRIC integer microns
-        drill_hits.append((x, y, current_tool, tools.get(current_tool, 0)))
+def _coord(text, zeros, int_digits, dec_digits):
+    if '.' in text:
+        return float(text)
+    sign = -1 if text.startswith('-') else 1
+    digits = text.lstrip('+-')
+    if zeros == 'LZ':  # trailing zeros omitted: digits are left-aligned
+        digits = digits.ljust(int_digits + dec_digits, '0')
+    return sign * int(digits) / 10 ** dec_digits
 ```
 
-**METRIC vs INCH:** KiCad 5 uses `INCH` with decimal coordinates (e.g., `X5.4075`). KiCad 6+ uses `METRIC` with integer micron coordinates (e.g., `X156100` = 156.100 mm). Check for `METRIC` or `INCH` in the header. If coordinates have decimal points, they're inches; if integer-only, divide by 1000 for mm.
+**Units and precision:** take units from the `METRIC`/`INCH` line and precision from `; FORMAT={i:d/...}` (3:3 mm, 2:4 inch when absent). Explicit decimals need only the unit conversion. Integer coordinates are divided by 10^d, after right-padding to i+d digits when the header says `LZ`. A decimal point does not mean inches, and a coordinate's sign or size does not tell you its precision.
 
 ### Script Output
 
 Format analysis results as structured data for clear reporting:
 - Print summary statistics first (counts, min/max/avg)
-- Group findings by severity (critical → warning → info)
+- Group findings by severity (error → warning → info)
 - Include specific coordinates and net names so findings can be located in KiCad
 - When cross-referencing gerber vs PCB, print both values side-by-side for easy comparison

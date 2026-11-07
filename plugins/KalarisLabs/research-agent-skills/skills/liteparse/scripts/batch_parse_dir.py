@@ -50,6 +50,7 @@ DEFAULT_EXTENSIONS = {
 
 
 def _text_item_dict(item) -> dict:
+    """Handle text item dict."""
     return {
         "text": item.text,
         "x": item.x,
@@ -63,6 +64,7 @@ def _text_item_dict(item) -> dict:
 
 
 def _result_to_dict(result: ParseResult) -> dict:
+    """Handle result to dict."""
     return {
         "text": result.text,
         "pages": [
@@ -84,6 +86,7 @@ def iter_files(
     recursive: bool,
     extension: Optional[str],
 ) -> Iterable[Path]:
+    """Handle iter files."""
     ext_filter = {extension.lower()} if extension else DEFAULT_EXTENSIONS
     pattern = "**/*" if recursive else "*"
     for path in sorted(input_dir.glob(pattern)):
@@ -97,6 +100,7 @@ def parse_one(
     output_dir: Path,
     fmt: str,
 ) -> tuple[bool, str, str]:
+    """Parse one."""
     try:
         result = parser.parse(file_path)
         out_name = f"{file_path.stem}.{'json' if fmt == 'json' else 'txt'}"
@@ -114,6 +118,7 @@ def parse_one(
 
 
 def main(argv: Optional[List[str]] = None) -> int:
+    """Run the command-line interface."""
     p = argparse.ArgumentParser(description="Batch-parse documents with LiteParse")
     p.add_argument("input_dir", type=Path, help="Directory of input files")
     p.add_argument("output_dir", type=Path, help="Directory for parsed output")

@@ -1,0 +1,39 @@
+{
+  "name": "imagera",
+  "version": "1.0.0",
+  "description": "Generate and edit images, video, voice and music, and upscale media on Imagera credits.",
+  "author": {
+    "name": "Imagera"
+  },
+  "homepage": "https://imagera.ai/mcp",
+  "repository": "https://github.com/alexadams6ix/imagera-skills",
+  "license": "MIT",
+  "keywords": [
+    "image",
+    "video",
+    "audio",
+    "mcp",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Imagera",
+    "shortDescription": "Generate and edit images, video, voice and music, and upscale media on Imagera credits.",
+    "longDescription": "Generate and edit images, video, voice and music, and upscale media on Imagera credits. Multi-step skills run product photo sets, ads, storyboards and consistent characters; every run states its credit cost first, and estimate_cost quotes it for free.",
+    "developerName": "Imagera",
+    "category": "Productivity",
+    "capabilities": [
+      "Generate images",
+      "Edit images",
+      "Generate video",
+      "Generate voice and music",
+      "Estimate cost"
+    ],
+    "websiteURL": "https://imagera.ai/mcp",
+    "privacyPolicyURL": "https://imagera.ai/privacy",
+    "termsOfServiceURL": "https://imagera.ai/terms",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  }
+}

@@ -50,11 +50,12 @@ def export_phy(
     )
 
     print("\nExport complete!")
-    print(f"To open in Phy, run:")
+    print("To open in Phy, run:")
     print(f"  phy template-gui {output_path / 'params.py'}")
 
 
 def main():
+    """Run the command-line interface."""
     parser = argparse.ArgumentParser(description='Export to Phy')
     parser.add_argument('analyzer', help='Path to sorting analyzer')
     parser.add_argument('--output', '-o', default='phy_export/', help='Output directory')

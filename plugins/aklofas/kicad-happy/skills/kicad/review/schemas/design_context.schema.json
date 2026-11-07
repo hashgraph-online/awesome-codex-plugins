@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://kicad-happy.dev/schemas/design_context.schema.json",
   "title": "Layer 2 Design Context",
-  "description": "Closed-set design context inferred by design_context subagent. Phase 4 spec §4.2.",
+  "description": "Closed-set design context inferred by design_context subagent.",
   "type": "object",
   "required": ["design_category", "environment", "compliance_targets",
                 "user_declared_intent", "confidence", "evidence", "resolution"],

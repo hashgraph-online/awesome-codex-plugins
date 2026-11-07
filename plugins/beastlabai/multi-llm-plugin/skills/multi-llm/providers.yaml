@@ -333,8 +333,14 @@ providers:
     # Variant names are provider-specific (OpenAI: none/minimal/low/medium/high/xhigh;
     # Anthropic: high/max); unknown variants are resolved/ignored server-side.
     models:
+      # `opencode/*` ids are Zen's server-side catalog: models.dev marks one
+      # `deprecated` and `opencode models` stops listing it, with no opencode
+      # release involved. `opencode/nemotron-3-ultra-free` went that way by
+      # 2026-11-06 and its listed Nemotron successor replaced it here; the dated
+      # probe is in hosts/capabilities.yaml, and the container host lane's
+      # catalog diff flags the next one.
       - opencode/big-pickle
-      - opencode/nemotron-3-ultra-free
+      - opencode/nemotron-3.5-super-vl-free
       - google/gemini-4-argon
       - openai/gpt-6.1-sol
       - openai/gpt-6-astra

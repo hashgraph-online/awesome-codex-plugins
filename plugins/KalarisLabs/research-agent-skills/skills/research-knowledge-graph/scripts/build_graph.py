@@ -41,16 +41,19 @@ UA = "research-agent-skills-knowledge-graph/1.0 (https://github.com/KalarisLabs/
 
 
 def slug(s: str, n: int = 60) -> str:
+    """Handle slug."""
     s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode().lower()
     return re.sub(r"[^a-z0-9]+", "-", s).strip("-")[:n] or "item"
 
 
 def norm_doi(d: str) -> str:
+    """Handle norm doi."""
     return re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", (d or "").strip(), flags=re.I).lower()
 
 
 # ---------- library readers ----------
 def _bib_value(text: str, i: int) -> tuple[str, int]:
+    """Handle bib value."""
     parts = []
     while True:
         while text[i].isspace():
@@ -81,6 +84,7 @@ def _bib_value(text: str, i: int) -> tuple[str, int]:
 
 
 def read_library(path: Path) -> list[dict]:
+    """Read library."""
     text = path.read_text(encoding="utf-8-sig")
     papers = []
     if path.suffix.lower() == ".json":
@@ -120,6 +124,7 @@ def read_library(path: Path) -> list[dict]:
 
 # ---------- OpenAlex enrichment ----------
 def openalex(doi: str, mailto: str | None) -> dict | None:
+    """Handle openalex."""
     params = {"select": "id,doi,title,publication_year,authorships,primary_location,topics,referenced_works,cited_by_count"}
     if mailto:
         params["mailto"] = mailto
@@ -134,12 +139,14 @@ def openalex(doi: str, mailto: str | None) -> dict | None:
 
 
 def build(papers: list[dict], enrich: bool, mailto: str | None, max_topics: int) -> tuple[dict, dict]:
+    """Build."""
     nodes: dict[str, dict] = {}
     edges: set[tuple[str, str, str]] = set()
     oa_to_paper: dict[str, str] = {}
     refs: dict[str, list[str]] = {}
 
     def node(nid: str, ntype: str, label: str, **attrs) -> str:
+        """Handle node."""
         if nid not in nodes:
             nodes[nid] = {"id": nid, "type": ntype, "label": label, **{k: v for k, v in attrs.items() if v not in (None, "")}}
         return nid
@@ -188,6 +195,7 @@ def build(papers: list[dict], enrich: bool, mailto: str | None, max_topics: int)
 
 
 def write_graphml(graph: dict, path: Path) -> None:
+    """Write graphml."""
     keys = sorted({k for n in graph["nodes"] for k in n if k != "id"})
     out = ['<?xml version="1.0" encoding="UTF-8"?>', '<graphml xmlns="http://graphml.graphdrawing.org/xmlns">']
     out += [f'  <key id="n_{k}" for="node" attr.name="{k}" attr.type="string"/>' for k in keys]
@@ -204,6 +212,7 @@ def write_graphml(graph: dict, path: Path) -> None:
 
 
 def write_csv(graph: dict, out: Path) -> None:
+    """Write csv."""
     with (out / "nodes.csv").open("w", encoding="utf-8", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(["id:ID", "label", ":LABEL", "year", "doi"])
@@ -217,6 +226,7 @@ def write_csv(graph: dict, out: Path) -> None:
 
 
 def write_vault(graph: dict, nodes: dict, out: Path) -> None:
+    """Write vault."""
     vault = out / "vault"
     names = {}
     for n in graph["nodes"]:
@@ -244,6 +254,7 @@ def write_vault(graph: dict, nodes: dict, out: Path) -> None:
 
 
 def main() -> int:
+    """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("library", type=Path)
     ap.add_argument("--out", type=Path, default=Path("knowledge-graph"))

@@ -1,8 +1,15 @@
-"""Vercel fx's terminal JSON envelope, measured against 0.0.14.
+"""Vercel fx's terminal JSON envelope, measured against 0.0.14 and 0.0.16.
 
-Only ``final_output`` is an answer. ``output`` contains narration and provider
-diagnostics; stderr also carries shell stdout. Neither is a safe fallback answer
-or an unqualified source of provider failure markers.
+``final_output`` decides WHICH text is the answer: the completed final message,
+``""`` for a failed, interrupted or compacted turn. It is not that message's
+bytes. fx renders it for a terminal: it deletes every ``*`` and backtick and trims
+the ends, unless the message has a fenced code line, which passes verbatim.
+``output`` holds the model's own bytes but joins every message of the run,
+narration included, and in JSON mode also gets fx's HTTP error lines. So the answer is
+the tail of ``output`` that fx's rendering turns into ``final_output``
+(:func:`_final_source`), or ``final_output`` itself when no tail renders to it.
+Neither field alone is a safe answer. stderr carries shell stdout, so it is not an
+unqualified source of provider failure markers.
 """
 import atexit
 import contextlib
@@ -216,6 +223,51 @@ def _terminal_failure(envelope: Optional[dict]) -> Optional[str]:
     return None
 
 
+#: What fx's terminal rendering of the final message deletes wherever it occurs,
+#: and what it trims from the end (`normalizeAssistantTextForDisplay` and
+#: `textForCompletedPresentation` in fx's assistant_stream.zig). Measured
+#: unchanged on 0.0.16: tests/fixtures/fx/manifest.yaml `markdown-markers`.
+_RENDER_DELETES = frozenset("*`")
+_RENDER_TRIMS = frozenset(" \t\r\n")
+
+
+def _final_source(output: str, final: str) -> str:
+    """The final message as the model wrote it, else ``final`` unchanged.
+
+    A ``final`` that still holds a ``*`` or backtick was not rendered (a fenced
+    message passes verbatim), so it already is the model's text. Otherwise the
+    final message ends ``output``. The function walks both strings from the end,
+    matching every character of ``final`` and skipping only what the rendering
+    deletes, plus the trailing whitespace it trimmed. ``final`` holds no deleted
+    character, so a skip never competes with a match and the alignment has one
+    outcome. Any other mismatch means ``output`` does not end with this message
+    (an HTTP error line after it, say), so ``final`` stands. Leading ``*`` and
+    backticks next to the matched span belong to the message too
+    (``**Answer**``). fx puts a blank line between messages, so that extension
+    stops before the narration. Leading whitespace and fx's dropped
+    self-introduction line stay out, as they do in the rendering.
+    """
+    if not final or not _RENDER_DELETES.isdisjoint(final):
+        return final
+    i, j = len(output), len(final)
+    while j:
+        if not i:
+            return final
+        char = output[i - 1]
+        if char == final[j - 1]:
+            j -= 1
+        elif char not in _RENDER_DELETES and not (j == len(final) and char in _RENDER_TRIMS):
+            return final
+        i -= 1
+    while i and output[i - 1] in _RENDER_DELETES:
+        i -= 1
+    return output[i:]
+
+
+def _answer(envelope: dict) -> str:
+    return _final_source(envelope["output"], envelope["final_output"])
+
+
 class FxProvider(LLMProvider):
     """OpenRouter custom connection, managed HOME, automatic tool review."""
 
@@ -374,11 +426,11 @@ class FxProvider(LLMProvider):
                 "error": self.describe_failure(stdout, stderr) or failure,
                 "error_code": "SUBPROCESS_FAILED",
             }
-        return parse_answer_text(envelope["final_output"])
+        return parse_answer_text(_answer(envelope))
 
     def salvage_text(self, stdout: str) -> Optional[str]:
         envelope = _object(stdout)
-        return "" if _terminal_failure(envelope) else envelope["final_output"].strip()
+        return "" if _terminal_failure(envelope) else _answer(envelope).strip()
 
     def parse_usage(self, stdout: str, stderr: str) -> Optional[Dict[str, Any]]:
         """Main-agent tokens only: fx excludes shell-reviewer usage and cost."""

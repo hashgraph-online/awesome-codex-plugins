@@ -1,26 +1,25 @@
 # Datasheet Cache Layout (v1.4)
 
-Reference doc describing the on-disk convention for datasheet extractions.
-Consolidates details scattered across Tracks 2.1–2.6 so Phase 3 extraction
-implementers and future category-schema authors have a single place to
-check.
+Reference doc describing the on-disk convention for datasheet extractions:
+where the files live, how they are named, and when `lookup()` reports a
+cache entry stale.
 
 ## Directory Structure
 
 ```
 <project>/
   datasheets/
-    manifest.json                       # Tier 1 PDF SHA dedup (Track 2.1 schema).
-    LM2596-ADJ.pdf                      # Source PDFs — one per unique SHA.
+    manifest.json                       # Distributor download manifest (parts).
+    LM2596-ADJ.pdf                      # Source PDFs, as downloaded.
     yageo-rc0603.pdf
     extracted/                          # Per-MPN extraction cache.
-      LM2596-ADJ.json                   # Per-MPN fact envelope (Track 2.1).
-      LM2596-ADJ.plan.json              # Orchestration plan audit (Phase 3).
-      LM2596-ADJ.scout.json             # Scout subagent output (Phase 3).
-      RC0603FR-071KL.variant.json       # Per-MPN variant overrides (v1.5).
+      LM2596-ADJ.json                   # Per-MPN fact envelope.
+      LM2596-ADJ.plan.json              # Orchestration plan audit.
+      LM2596-ADJ.scout.json             # Scout subagent output.
+      RC0603FR-071KL.variant.json       # Reserved: per-MPN variant overrides.
       RC0603FR-0750KL.variant.json
-      _families/                        # Reserved for v1.5 Tier 2 dedup (spec §14).
-        yageo-rc0603.family.json        # Canonical family extraction (v1.5).
+      _families/                        # Reserved for Tier 2 family dedup.
+        yageo-rc0603.family.json        # Reserved: canonical family extraction.
 ```
 
 ## File Naming
@@ -31,62 +30,60 @@ check.
 Sanitization rules (`skills/datasheets/datasheet_types/cache_reader.py`):
 
 - Strip leading/trailing whitespace.
-- Replace any character NOT in `[A-Za-z0-9_-]` with `_`.
+- Replace any character NOT in `[A-Za-z0-9_.-]` with `_`.
 - No hash suffix. Two MPNs that sanitize to the same string collide; this
   is acceptably rare in practice given real MPN character sets.
+- A hand-dropped extraction file must use this sanitized name. The dict helpers in
+  `datasheet_features.py` look the MPN up in the legacy manifest index first and
+  fall back to this sanitized file name.
 
 Examples:
 - `LM2596-ADJ` → `LM2596-ADJ.json`
 - `STM32F103C8T6` → `STM32F103C8T6.json`
 - `STM32/F103` → `STM32_F103.json`
 - `LM 2596` → `LM_2596.json`
+- `ABM8G-106-12.000MHZ-T` → `ABM8G-106-12.000MHZ-T.json` (dots and hyphens are kept)
 
 ### Source PDFs: `<part_or_family>.pdf`
 
 Lives at `datasheets/<filename>.pdf`. The per-MPN cache file's
-`source.local_path` stores the filename relative to `datasheets/`. A
-`datasheets/` prefix in `local_path` is tolerated for v1.3 legacy caches
-(see Track 2.3's `_resolve_pdf_path`) — new extractions write without
-the prefix.
+`source.local_path` stores the filename relative to `datasheets/`.
+`merge_results.py` records the `pdf_path` given to the planner; a leading
+`datasheets/` is tolerated when the PDF is resolved.
 
 ### Manifest (`datasheets/manifest.json`)
 
-Single file at the `datasheets/` level. Two sections:
+The distributor download manifest, written by the sync scripts: `{schematic, last_sync, parts}`, one entry per MPN downloaded. The extraction cache does not read it.
 
-1. **`pdfs`** — keyed by `sha256:<hex>`, values are `{path, mpns[], source_url, is_family}`. Tier 1 SHA dedup: when a PDF is downloaded, the downloader checks if its SHA is already a key; if so, the new MPN is appended to the existing entry's `mpns[]` instead of duplicating the PDF.
-2. **`extractions`** — legacy v1.3 cache index, retained for `datasheet_features.py` dual-cache-read fallback (Track 2.5). New v1.4 extractions don't write to this section — they write directly to `<MPN>.json` under `extracted/` and reference the PDF via the `pdfs` section.
+`schemas/manifest.schema.json` also defines a `pdfs` section (keyed by `sha256:<hex>`, values `{path, mpns[], source_url, is_family}`) for PDF SHA dedup. It is defined but not populated by the current scripts. The legacy v1.3 cache keeps its own index at `datasheets/extracted/manifest.json` (`{version, last_updated, extractions}`), written by `datasheet_extract_cache.py`; v1.4 extractions don't write to it.
 
-Full schema: `skills/datasheets/schemas/manifest.schema.json`. Required `pdfs` entry fields: `path`, `mpns`. Optional: `source_url`, `is_family`.
+### Orchestration audit files
 
-### Orchestration audit files (Phase 3)
+`<sanitized_mpn>.plan.json` (written by `plan_extraction.py`) and `<sanitized_mpn>.scout.json`
+(the scout subagent's output, saved by the dispatcher per `dispatch-claude-code.md`) sit alongside the
+main `<sanitized_mpn>.json`. They persist the scout output and the per-task
+orchestration plan for audit and replay.
 
-`<MPN>.plan.json` and `<MPN>.scout.json` are written by the Phase 3
-`datasheets sync` extraction pipeline alongside the main `<MPN>.json`.
-They persist the scout subagent output and the per-task orchestration
-plan for audit and replay.
-
-`<MPN>.json` references these side-files via `extraction.plan_ref`
+`<sanitized_mpn>.json` references these side-files via `extraction.plan_ref`
 (relative filename). A missing plan or scout file does not invalidate
 the cache — those files are audit metadata, not required for
 consumption by `lookup()`.
 
-### `_families/` subdirectory (reserved for v1.5)
+### `_families/` subdirectory (reserved)
 
-Reserved for v1.5 Tier 2 family extraction (spec §14). In v1.4 this
-directory is **not written to by any code path**. Its presence — if a
-v1.5 corpus is mixed with v1.4 readers — does not interfere with
-`lookup()` or any other v1.4 tooling.
+Reserved for Tier 2 family extraction. No code reads or writes this
+directory, and its presence does not interfere with `lookup()` or any
+other tooling.
 
 **Why the leading underscore:** distinguishes the reserved directory
 from per-MPN files that could theoretically sanitize to the same name.
-`_families` is NOT a valid sanitized MPN output (sanitizer preserves
-underscore, so `_families` could in principle be produced by an MPN
-literally named `_families`; the underscore prefix is a soft-social
-reservation, not a structural guarantee). The Track 2.6 regression
-test `test_lookup_ignores_families_subdirectory_coexisting_with_cache_files`
+The sanitizer keeps underscores, so an MPN literally named `_families`
+sanitizes to `_families`; the leading underscore is a naming convention,
+not a guarantee. A regression test in the
+test harness (`test_lookup_ignores_families_subdirectory_coexisting_with_cache_files`)
 locks the invariant that this edge case does not break `lookup()`.
 
-**v1.5 layout preview:**
+**Reserved layout:**
 
 ```
 extracted/
@@ -96,20 +93,21 @@ extracted/
   RC0603FR-0750KL.variant.json
 ```
 
-A v1.5 `lookup()` call for `RC0603FR-071KL` will:
+A family-aware `lookup()` call for `RC0603FR-071KL` would:
 1. Read `RC0603FR-071KL.variant.json`.
-2. Follow `source.family_ref` (currently always null in v1.4) to locate the family file in `_families/`.
+2. Follow `source.family_ref` to locate the family file in `_families/`.
 3. Merge the family facts with the variant overrides.
 4. Return a single merged `DatasheetFacts`.
 
-v1.4 has no merging logic — `source.family_ref` is always `None` in
-every v1.4 extraction. Future extraction pipelines must preserve this
-until v1.5 ships the Tier 2 reader.
+No such reader exists: `lookup()` has no merging logic, and
+`source.family_ref` is always `None` in every extraction `merge_results.py`
+writes. Extraction pipelines must preserve this until a family reader
+exists.
 
 ## Cache Invalidation
 
-A per-MPN cache entry is considered **stale** when any of these hold
-(paraphrased from spec §8 + Track 2.3 `lookup()` staleness logic):
+`lookup()` reports a per-MPN cache entry as **stale** when either of
+these holds:
 
 1. **PDF sha256 mismatch** — `source.sha256` in the cache JSON does not
    match the sha256 of the PDF at `datasheets/<local_path>`. Detected by
@@ -117,19 +115,11 @@ A per-MPN cache entry is considered **stale** when any of these hold
 2. **PDF missing** — `source.local_path` is null, OR the referenced PDF
    doesn't exist on disk. Detected by `lookup()`'s
    `CacheContext.stale_reason = "pdf_missing"`.
-3. **Schema version major-bumped** — when `base.schema.json` or a
-   category extension's major version changes, cached extractions of
-   that section become stale. v1.4 does not enforce this at read time
-   (consumers opt in via `min_schema` per spec §13); Phase 3 extraction
-   will re-run when it detects a mismatch.
-4. **Quality score below threshold** — extraction-act-time check
-   (`extraction.quality_score` < project-configured threshold).
-   v1.4 does not enforce at read time.
-5. **Manual `--force`** — Phase 3 `datasheets sync --force` re-extracts
-   ignoring staleness.
 
-`lookup()` in v1.4 only surfaces PDF-related staleness (#1, #2). The
-other triggers are extraction-lifecycle concerns for Phase 3.
+The rest of the lifecycle is the caller's job:
+
+3. **Schema and quality checks.** `lookup()` enforces no schema minimum or quality floor, and the planner treats a cache as current when its `source.sha256` matches the PDF.
+4. **Manual refresh.** Re-run the scout on the current PDF (its output carries the PDF's `pdf_sha256`), then `plan_extraction.py <mpn> <pdf_path> --use-cached-scout --cache-dir <cache_dir>`, dispatch the tasks and run `merge_results.py <mpn> --cache-dir <cache_dir>`. When the PDF changed, the planner deletes the previous plan's task results. When it did not (for example after a schema bump), pass the planner `--force` and re-run the completed tasks with the dispatcher's `--force`.
 
 ## Stale Cache Handling
 
@@ -137,47 +127,46 @@ other triggers are extraction-lifecycle concerns for Phase 3.
 Staleness is an advisory signal exposed via `DatasheetFacts.stale`;
 consumers decide what to do:
 
-- Phase 4 detectors: consult `ds.stale` and downgrade finding confidence
-  accordingly.
-- Phase 3 `datasheets sync`: treat staleness as a trigger for
-  re-extraction.
-- v1.3 compat wrappers (`datasheet_features.py`, Track 2.5): ignore
-  staleness — v1.3 API returns the dict either way; consumers got this
-  from v1.3 too.
+- Detectors: the regulator detector skips stale or low-score facts; the
+  lookup detectors do not read `stale` yet.
+- Extraction: nothing re-extracts a stale entry automatically; refresh it
+  by hand (Manual refresh, above).
+- Dict helpers (`datasheet_features.py`): return the dict either way, with
+  `quality.trusted: false` and `stale_pdf` in `quality.reasons`.
 
 ## Static Examples vs Runtime Cache
 
 Two distinct directories that look similar but serve different purposes:
 
 - **`skills/datasheets/examples/<mpn>.json`** (in this repo) — static
-  schema documentation, one canonical merged extraction per Phase 3b
+  schema documentation, one canonical merged extraction per
   category (regulator, crystal, transistor, opamp, mcu, diode). These
   files are **not read by `lookup()`** at runtime — they exist solely
   to make the v1.4 schemas self-documenting via concrete instances.
   Six MPNs: `lm2596-adj`, `abm8g-106-12.000mhz-t`, `irlml6344`,
   `lm358`, `stm32f103c8t6`, `mbrs540t3g`.
-- **`<user-project>/datasheets/extracted/<MPN>.json`** — runtime cache,
-  populated by users running `datasheets sync` against their own
-  schematics. `lookup(mpn, cache_dir=<user-project>/datasheets/extracted)`
+- **`<user-project>/datasheets/extracted/<sanitized_mpn>.json`** — runtime cache,
+  populated by running the extraction pipeline on the parts of their
+  own schematics. `lookup(mpn, cache_dir=<user-project>/datasheets/extracted)`
   reads from here.
 
-The Phase 3a/3b extraction audit trail (per-stage `.scout.*`,
+The extraction audit trail (per-stage `.scout.*`,
 `.base.*`, `.<category>.*`, `.pinout.*`, `.plan.*` files for the six
 canonical MPNs) lives in the harness repo
 (`kicad-happy-testharness`) as test fixtures, not in this product
 repo. This product repo only ships the final merged JSONs as static
 examples.
 
-## Related Tracks
+## Related code
 
-- **Track 2.1** — JSON Schema contracts for per-MPN files, pinout,
-  spec_value, base, regulator, extraction envelope, manifest.
-- **Track 2.2** — Typed Python dataclasses matching Track 2.1 schemas.
-- **Track 2.3** — `lookup(mpn, cache_dir=...)` facade + MPN sanitization
-  + staleness detection.
-- **Track 2.5** — Dual-cache-read layer in `datasheet_features.py`
-  preserving v1.3 API compatibility.
-- **Phase 3 (planned)** — Extraction pipeline writes new entries; reads
-  `manifest.json` for dedup; populates `<MPN>.plan.json` /
-  `<MPN>.scout.json` audit trail.
-- **v1.5 (planned)** — Tier 2 family extraction consumes `_families/`.
+- `skills/datasheets/schemas/` — JSON Schema contracts for per-MPN files,
+  pinout, spec_value, base, regulator, extraction envelope, manifest.
+- `skills/datasheets/datasheet_types/` — typed Python dataclasses, the
+  `lookup(mpn, cache_dir=...)` facade, MPN sanitization and staleness
+  detection.
+- `skills/datasheets/scripts/datasheet_features.py` — the dict helpers,
+  which read v1.4 caches first and fall back to v1.3 caches.
+- `skills/datasheets/scripts/plan_extraction.py` and `merge_results.py` —
+  the extraction pipeline; they write new entries and `<sanitized_mpn>.plan.json`.
+  The scout's output, `<sanitized_mpn>.scout.json`, is saved by the dispatcher (the
+  agent following `dispatch-claude-code.md`).

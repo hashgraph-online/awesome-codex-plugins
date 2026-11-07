@@ -32,6 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _inputs import collect_inputs  # noqa: E402
 from zooma_client import (  # noqa: E402
     ZoomaError,
     annotate,
@@ -54,29 +55,7 @@ TSV_COLUMNS = (
 
 def read_inputs(args: argparse.Namespace) -> list[str]:
     """Collect query strings from positional args, a file, or stdin."""
-    values: list[str] = list(args.text)
-    if args.input:
-        raw = (
-            sys.stdin.read()
-            if args.input == "-"
-            else Path(args.input).read_text(encoding="utf-8")
-        )
-        for line in raw.splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                values.append(line)
-    if not values and not sys.stdin.isatty():
-        for line in sys.stdin.read().splitlines():
-            line = line.strip()
-            if line and not line.startswith("#"):
-                values.append(line)
-    seen: set[str] = set()
-    unique = []
-    for value in values:
-        if value not in seen:
-            seen.add(value)
-            unique.append(value)
-    return unique
+    return collect_inputs(list(args.text), args.input)
 
 
 def map_one(
@@ -101,6 +80,7 @@ def map_one(
 
 
 def to_rows(results: list[dict]) -> list[dict]:
+    """Handle to rows."""
     rows: list[dict] = []
     for result in results:
         if not result["candidates"]:
@@ -138,6 +118,7 @@ def to_rows(results: list[dict]) -> list[dict]:
 
 
 def write_output(results: list[dict], fmt: str, output: str | None) -> None:
+    """Write output."""
     stream = open(output, "w", encoding="utf-8", newline="") if output else sys.stdout
     try:
         if fmt == "json":
@@ -155,6 +136,7 @@ def write_output(results: list[dict], fmt: str, output: str | None) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Map lab shorthand to ontology terms via EBI ZOOMA. "
@@ -193,6 +175,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     queries = read_inputs(args)
     if not queries:

@@ -97,7 +97,7 @@ def generate_pdf(
         print(f"✓ PDF generated successfully: {output_pdf}")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"Error generating PDF:")
+        print("Error generating PDF:")
         print(f"STDOUT: {e.stdout}")
         print(f"STDERR: {e.stderr}")
         return False

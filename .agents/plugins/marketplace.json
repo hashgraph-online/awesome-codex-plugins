@@ -273,6 +273,21 @@
       "icon": "./plugins/biefan/anchor/assets/icon.svg"
     },
     {
+      "name": "andon",
+      "displayName": "Andon",
+      "source": {
+        "source": "local",
+        "path": "./plugins/PrimeFoldTools/Andon"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Stop hooks that stop a coding agent from claiming \"done\" without proof, using a same-session verification log, warn or block mode, and a public defect ledger.",
+      "icon": "./plugins/PrimeFoldTools/Andon/assets/icon.png"
+    },
+    {
       "name": "repobrain",
       "displayName": "Antigravity Workspace Template",
       "source": {
@@ -1205,6 +1220,21 @@
       "category": "Development & Workflow",
       "description": "Finds tests that stay green when the code they cover is broken, applying six ordered judgments over Python, TypeScript, JavaScript, and Robot Framework suites in Codex CLI and Claude Code.",
       "icon": "./plugins/vinicq/falsegreen-skill/assets/icon.svg"
+    },
+    {
+      "name": "fanout",
+      "displayName": "fanout",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Breadstick-Crumbs/fanout"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Tests parallel Codex and Claude Code sessions’ branches merged together before main, and stops two sessions doing the same task.",
+      "icon": "./plugins/Breadstick-Crumbs/fanout/assets/icon.svg"
     },
     {
       "name": "figma-maxxing",
@@ -3087,6 +3117,21 @@
       "icon": "./plugins/TheBestCo/bestprice-mcp/assets/bestprice-mcp-logo-1024.png"
     },
     {
+      "name": "bifrost",
+      "displayName": "Bifrost",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gobifrost/bifrost"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Build MSP automation workflows, forms, agents, apps, and Solutions with the Bifrost SDK and CLI through bundled skills for development, setup, migration, and Microsoft 365 Copilot Cowork packaging.",
+      "icon": "./plugins/gobifrost/bifrost/assets/icon.png"
+    },
+    {
       "name": "bkt",
       "displayName": "Bitbucket CLI",
       "source": {
@@ -4007,6 +4052,21 @@
       "category": "Tools & Integrations",
       "description": "Publishes files, sites and apps with a shared database to a link you can share, and manages them through a remote MCP server.",
       "icon": "./plugins/host0-ai/skills/assets/icon.png"
+    },
+    {
+      "name": "imagera",
+      "displayName": "Imagera",
+      "source": {
+        "source": "local",
+        "path": "./plugins/alexadams6ix/imagera-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Generate and edit images, video, voice and music through the hosted Imagera MCP server (OAuth sign-in) and 37 skills, with the credit cost stated before each run. Website: https://imagera.ai/mcp",
+      "icon": "./plugins/alexadams6ix/imagera-skills/assets/logo.svg"
     },
     {
       "name": "jk",
@@ -5221,6 +5281,21 @@
       "category": "Tools & Integrations",
       "description": "Hosted MCP server and five skills for SwarmMemo, where agents meet, work, and keep their word: read and post on a public board, find paid tasks other agents posted, ask agents from any vendor a question and collect the answers, hold private conversations, and screen text for prompt injection before acting on it, with no key needed to start.",
       "icon": "./plugins/Hugo0/swarmmemo/assets/logo.png"
+    },
+    {
+      "name": "sync",
+      "displayName": "sync. labs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/synchronicity-labs/skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Official sync. labs plugin: lipsync a video to new audio or a script, make a photo talk, dub videos into other languages with matching lips and fix spoken words in the speaker's own voice, through ten skills and the hosted sync. MCP server with OAuth sign-in and no API key. Paid steps are quoted and confirmed first.",
+      "icon": "./plugins/synchronicity-labs/skills/assets/logo.png"
     },
     {
       "name": "n8n-mcp-synta-codex",

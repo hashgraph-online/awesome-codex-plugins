@@ -33,7 +33,7 @@ _SCHEMES = (
     "hf:",
     "ssh:",
 )
-_INTEGER = re.compile(r"^(?:0|[1-9][0-9]*)$")
+_INTEGER = re.compile(r"^(?:0|[1-9]\d*)$")
 _VALID_STRANDS = {"+", "-", "."}
 
 
@@ -64,6 +64,7 @@ def int_type(*, minimum: int = 0, maximum: int, label: str):
     """Return an argparse-compatible bounded integer parser."""
 
     def parse(value: str) -> int:
+        """Parse."""
         return bounded_int(
             value,
             minimum=minimum,
@@ -75,6 +76,7 @@ def int_type(*, minimum: int = 0, maximum: int, label: str):
 
 
 def _reject_unsafe_text_path(raw: str) -> None:
+    """Handle reject unsafe text path."""
     if not raw or "\x00" in raw:
         raise SafetyError("path must be nonempty and contain no NUL byte")
     lowered = raw.strip().lower()
@@ -87,6 +89,7 @@ def _reject_unsafe_text_path(raw: str) -> None:
 
 
 def _reject_symlink_components(path: Path) -> None:
+    """Handle reject symlink components."""
     current = Path(path.anchor)
     for part in path.parts[1:]:
         current = current / part
@@ -96,6 +99,30 @@ def _reject_symlink_components(path: Path) -> None:
             continue
         if stat.S_ISLNK(mode):
             raise SafetyError("symlink path component is not allowed")
+
+
+def _check_missing_path(candidate: Path, *, must_exist: bool) -> None:
+    """Require that a nonexistent path is allowed and sits in an existing directory."""
+    if must_exist:
+        raise SafetyError("required local path does not exist")
+    try:
+        parent_mode = candidate.parent.lstat().st_mode
+    except FileNotFoundError as exc:
+        raise SafetyError("output parent does not exist") from exc
+    if not stat.S_ISDIR(parent_mode):
+        raise SafetyError("output parent is not a directory")
+
+
+def _check_existing_path(mode: int, kind: str) -> None:
+    """Reject symlinks and entries that do not match the requested kind."""
+    if stat.S_ISLNK(mode):
+        raise SafetyError("symlinks are not allowed")
+    if kind == "file" and not stat.S_ISREG(mode):
+        raise SafetyError("expected a regular file")
+    if kind == "dir" and not stat.S_ISDIR(mode):
+        raise SafetyError("expected a directory")
+    if kind == "any" and not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
+        raise SafetyError("only regular files and directories are allowed")
 
 
 def local_path(
@@ -115,29 +142,14 @@ def local_path(
     try:
         mode = candidate.lstat().st_mode
     except FileNotFoundError:
-        if must_exist:
-            raise SafetyError("required local path does not exist")
-        parent = candidate.parent
-        try:
-            parent_mode = parent.lstat().st_mode
-        except FileNotFoundError as exc:
-            raise SafetyError("output parent does not exist") from exc
-        if not stat.S_ISDIR(parent_mode):
-            raise SafetyError("output parent is not a directory")
-        return candidate
-
-    if stat.S_ISLNK(mode):
-        raise SafetyError("symlinks are not allowed")
-    if kind == "file" and not stat.S_ISREG(mode):
-        raise SafetyError("expected a regular file")
-    if kind == "dir" and not stat.S_ISDIR(mode):
-        raise SafetyError("expected a directory")
-    if kind == "any" and not (stat.S_ISREG(mode) or stat.S_ISDIR(mode)):
-        raise SafetyError("only regular files and directories are allowed")
+        _check_missing_path(candidate, must_exist=must_exist)
+    else:
+        _check_existing_path(mode, kind)
     return candidate
 
 
 def _open_binary_nofollow(path: Path):
+    """Open binary nofollow."""
     flags = os.O_RDONLY
     if hasattr(os, "O_NOFOLLOW"):
         flags |= os.O_NOFOLLOW
@@ -226,6 +238,7 @@ def load_json(path: Path, *, max_bytes: int) -> Any:
     )
 
     def object_pairs(pairs):
+        """Handle object pairs."""
         result = {}
         for key, value in pairs:
             if key in result:
@@ -234,6 +247,7 @@ def load_json(path: Path, *, max_bytes: int) -> Any:
         return result
 
     def invalid_constant(value: str):
+        """Handle invalid constant."""
         raise SafetyError(f"non-finite JSON number is not allowed: {value}")
 
     try:
@@ -286,6 +300,154 @@ def load_chrom_sizes(
     return sizes, order
 
 
+def _valid_contig_name(chrom: str) -> bool:
+    """Return True for a nonempty contig name without whitespace or control characters."""
+    return bool(chrom) and not any(
+        character.isspace() or ord(character) < 32 for character in chrom
+    )
+
+
+class _BedScan:
+    """Accumulator for BED-like record statistics and bounded issue examples."""
+
+    def __init__(
+        self,
+        *,
+        chrom_sizes: dict[str, int] | None,
+        chrom_order: list[str] | None,
+        max_examples: int,
+    ) -> None:
+        """Create empty counters for one BED scan."""
+        self.chrom_sizes = chrom_sizes
+        self.max_examples = max_examples
+        self.errors: Counter[str] = Counter()
+        self.warnings: Counter[str] = Counter()
+        self.examples: list[dict[str, int | str]] = []
+        self.seen: set[tuple[str, int, int]] = set()
+        self.max_end: dict[str, int] = {}
+        self.records = 0
+        self.skipped = 0
+        self.contigs: set[str] = set()
+        self.min_columns: int | None = None
+        self.max_columns = 0
+        self.unsorted = 0
+        self.duplicates = 0
+        self.overlap_observations = 0
+        self.bed6_rows = 0
+        self.previous_key: tuple[int | str, int, int] | None = None
+        self.order_map = (
+            {chrom: index for index, chrom in enumerate(chrom_order)}
+            if chrom_order is not None
+            else None
+        )
+
+    def issue(self, kind: str, code: str, line_number: int) -> None:
+        """Count an error or warning and keep a bounded number of examples."""
+        target = self.errors if kind == "error" else self.warnings
+        target[code] += 1
+        if len(self.examples) < self.max_examples:
+            self.examples.append({"severity": kind, "code": code, "line": line_number})
+
+    def _parse_interval(
+        self, fields: list[str], line_number: int
+    ) -> tuple[str, int, int] | None:
+        """Return (chrom, start, end) for a well-formed interval, else record an issue."""
+        chrom = fields[0]
+        if not _valid_contig_name(chrom):
+            self.issue("error", "invalid_contig", line_number)
+            return None
+        if not _INTEGER.fullmatch(fields[1]) or not _INTEGER.fullmatch(fields[2]):
+            self.issue("error", "non_unsigned_decimal_coordinate", line_number)
+            return None
+        start, end = int(fields[1]), int(fields[2])
+        if start > MAX_COORDINATE or end > MAX_COORDINATE:
+            self.issue("error", "coordinate_exceeds_gtars_u32", line_number)
+            return None
+        if end <= start:
+            self.issue(
+                "error",
+                "zero_length_interval" if end == start else "end_before_start",
+                line_number,
+            )
+            return None
+        return chrom, start, end
+
+    def _within_contig(self, chrom: str, end: int, line_number: int) -> bool:
+        """Check the interval against the supplied chromosome sizes, if any."""
+        if self.chrom_sizes is None:
+            return True
+        if chrom not in self.chrom_sizes:
+            self.issue("error", "unknown_contig", line_number)
+            return False
+        if end > self.chrom_sizes[chrom]:
+            self.issue("error", "end_beyond_contig", line_number)
+            return False
+        return True
+
+    def _track_interval(self, chrom: str, start: int, end: int) -> None:
+        """Update duplicate, overlap and sort-order counters for a valid interval."""
+        self.contigs.add(chrom)
+        key = (chrom, start, end)
+        if key in self.seen:
+            self.duplicates += 1
+        else:
+            self.seen.add(key)
+        prior_end = self.max_end.get(chrom)
+        if prior_end is not None and start < prior_end:
+            self.overlap_observations += 1
+        self.max_end[chrom] = max(end, prior_end or end)
+
+        sort_key: tuple[int | str, int, int]
+        if self.order_map is None:
+            sort_key = (chrom, start, end)
+        else:
+            sort_key = (self.order_map[chrom], start, end)
+        if self.previous_key is not None and sort_key < self.previous_key:
+            self.unsorted += 1
+        self.previous_key = sort_key
+
+    def process_line(self, line_number: int, line: str) -> None:
+        """Fold one input line into the scan statistics."""
+        if not line:
+            self.skipped += 1
+            self.warnings["blank_line"] += 1
+            return
+        if line.startswith(("#", "track", "browser")):
+            self.skipped += 1
+            return
+        fields = line.split("\t")
+        if len(fields) < 3:
+            self.issue("error", "fewer_than_three_columns", line_number)
+            return
+        self.records += 1
+        self.min_columns = (
+            len(fields) if self.min_columns is None else min(self.min_columns, len(fields))
+        )
+        self.max_columns = max(self.max_columns, len(fields))
+        interval = self._parse_interval(fields, line_number)
+        if interval is None:
+            return
+        chrom, start, end = interval
+        if not self._within_contig(chrom, end, line_number):
+            return
+        if len(fields) >= 6:
+            self.bed6_rows += 1
+            if fields[5] not in _VALID_STRANDS:
+                self.issue("error", "invalid_bed6_strand", line_number)
+        self._track_interval(chrom, start, end)
+
+    def finalize_warnings(self) -> None:
+        """Add the aggregate duplicate, overlap, order and bounds warnings."""
+        if self.duplicates:
+            self.warnings["duplicate_intervals"] = self.duplicates
+        if self.overlap_observations:
+            self.warnings["overlapping_intervals"] = self.overlap_observations
+        if self.unsorted:
+            self.warnings["out_of_order_records"] = self.unsorted
+        if self.chrom_sizes is None:
+            self.warnings["bounds_not_checked_without_chrom_sizes"] += 1
+
+
 def inspect_bed(
     path: Path,
     *,
@@ -296,133 +458,40 @@ def inspect_bed(
     max_examples: int = 10,
 ) -> dict[str, Any]:
     """Inspect BED-like records without returning genomic coordinates."""
-    errors: Counter[str] = Counter()
-    warnings: Counter[str] = Counter()
-    examples: list[dict[str, int | str]] = []
-    seen: set[tuple[str, int, int]] = set()
-    max_end: dict[str, int] = {}
-    records = 0
-    skipped = 0
-    contigs: set[str] = set()
-    min_columns: int | None = None
-    max_columns = 0
-    unsorted = 0
-    duplicates = 0
-    overlap_observations = 0
-    bed6_rows = 0
-    previous_key: tuple[int | str, int, int] | None = None
-    order_map = (
-        {chrom: index for index, chrom in enumerate(chrom_order)}
-        if chrom_order is not None
-        else None
+    scan = _BedScan(
+        chrom_sizes=chrom_sizes,
+        chrom_order=chrom_order,
+        max_examples=max_examples,
     )
-
-    def issue(kind: str, code: str, line_number: int) -> None:
-        target = errors if kind == "error" else warnings
-        target[code] += 1
-        if len(examples) < max_examples:
-            examples.append({"severity": kind, "code": code, "line": line_number})
-
     for line_number, line in iter_text_lines(
         path,
         max_bytes=max_bytes,
         max_records=max_records,
     ):
-        if not line:
-            skipped += 1
-            warnings["blank_line"] += 1
-            continue
-        if line.startswith(("#", "track", "browser")):
-            skipped += 1
-            continue
-        fields = line.split("\t")
-        if len(fields) < 3:
-            issue("error", "fewer_than_three_columns", line_number)
-            continue
-        records += 1
-        min_columns = len(fields) if min_columns is None else min(min_columns, len(fields))
-        max_columns = max(max_columns, len(fields))
-        chrom = fields[0]
-        if not chrom or any(
-            character.isspace() or ord(character) < 32 for character in chrom
-        ):
-            issue("error", "invalid_contig", line_number)
-            continue
-        if not _INTEGER.fullmatch(fields[1]) or not _INTEGER.fullmatch(fields[2]):
-            issue("error", "non_unsigned_decimal_coordinate", line_number)
-            continue
-        start, end = int(fields[1]), int(fields[2])
-        if start > MAX_COORDINATE or end > MAX_COORDINATE:
-            issue("error", "coordinate_exceeds_gtars_u32", line_number)
-            continue
-        if end <= start:
-            issue(
-                "error",
-                "zero_length_interval" if end == start else "end_before_start",
-                line_number,
-            )
-            continue
-        if chrom_sizes is not None:
-            if chrom not in chrom_sizes:
-                issue("error", "unknown_contig", line_number)
-                continue
-            if end > chrom_sizes[chrom]:
-                issue("error", "end_beyond_contig", line_number)
-                continue
-        if len(fields) >= 6:
-            bed6_rows += 1
-            if fields[5] not in _VALID_STRANDS:
-                issue("error", "invalid_bed6_strand", line_number)
-
-        contigs.add(chrom)
-        key = (chrom, start, end)
-        if key in seen:
-            duplicates += 1
-        else:
-            seen.add(key)
-        prior_end = max_end.get(chrom)
-        if prior_end is not None and start < prior_end:
-            overlap_observations += 1
-        max_end[chrom] = max(end, prior_end or end)
-
-        sort_key: tuple[int | str, int, int]
-        if order_map is None:
-            sort_key = (chrom, start, end)
-        else:
-            sort_key = (order_map[chrom], start, end)
-        if previous_key is not None and sort_key < previous_key:
-            unsorted += 1
-        previous_key = sort_key
-
-    if duplicates:
-        warnings["duplicate_intervals"] = duplicates
-    if overlap_observations:
-        warnings["overlapping_intervals"] = overlap_observations
-    if unsorted:
-        warnings["out_of_order_records"] = unsorted
-    if chrom_sizes is None:
-        warnings["bounds_not_checked_without_chrom_sizes"] += 1
+        scan.process_line(line_number, line)
+    scan.finalize_warnings()
 
     digest, size = sha256_file(path, max_bytes=max_bytes)
     return {
         "sha256": digest,
         "size_bytes": size,
-        "records": records,
-        "skipped_records": skipped,
-        "contig_count": len(contigs),
-        "minimum_columns": min_columns,
-        "maximum_columns": max_columns if records else None,
-        "bed6_or_wider_rows": bed6_rows,
-        "duplicate_intervals": duplicates,
-        "overlap_observations": overlap_observations,
-        "out_of_order_records": unsorted,
-        "errors": dict(sorted(errors.items())),
-        "warnings": dict(sorted(warnings.items())),
-        "issue_examples": examples,
+        "records": scan.records,
+        "skipped_records": scan.skipped,
+        "contig_count": len(scan.contigs),
+        "minimum_columns": scan.min_columns,
+        "maximum_columns": scan.max_columns if scan.records else None,
+        "bed6_or_wider_rows": scan.bed6_rows,
+        "duplicate_intervals": scan.duplicates,
+        "overlap_observations": scan.overlap_observations,
+        "out_of_order_records": scan.unsorted,
+        "errors": dict(sorted(scan.errors.items())),
+        "warnings": dict(sorted(scan.warnings.items())),
+        "issue_examples": scan.examples,
     }
 
 
 def add_path_mode_argument(parser: argparse.ArgumentParser) -> None:
+    """Add path mode argument."""
     parser.add_argument(
         "--path-mode",
         choices=("redacted", "basename", "full"),

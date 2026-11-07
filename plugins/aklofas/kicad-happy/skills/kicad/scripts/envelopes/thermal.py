@@ -1,4 +1,4 @@
-"""Thermal analyzer output envelope (v1.4 SOT)."""
+"""Thermal analyzer output envelope."""
 from __future__ import annotations
 
 import os
@@ -41,7 +41,7 @@ class ThermalSummary:
         "description": "Composite thermal risk score, 0-100. None when no "
                        "components were assessable (see skipped_reason) — a "
                        "100/100 default in that case would falsely suggest a "
-                       "clean thermal pass (F3)."})
+                       "clean thermal pass."})
     total_board_dissipation_w: float = field(metadata={
         "description": "Sum of estimated dissipation (W) across all analyzed components."})
     components_analyzed: int = field(metadata={
@@ -66,8 +66,7 @@ class ThermalSummary:
                        "not be assessed and were dropped from power-"
                        "dissipation estimation — e.g. a switching regulator "
                        "whose rail has no load estimate. See top-level "
-                       "skipped_components for the per-component detail "
-                       "(KH-386)."})
+                       "skipped_components for the per-component detail."})
 
 
 @dataclass
@@ -83,8 +82,10 @@ class ThermalSkipped:
                        "estimated_load_mA on its output rail), 'no_vout' "
                        "(no estimated output voltage), 'below_min_pdiss' "
                        "(a real estimate at or below the reporting threshold), "
-                       "or 'no_pdiss_estimate' (LDO whose upstream "
-                       "power_dissipation was never computed — KH-411). KH-386."})
+                       "'no_pdiss_estimate' (LDO whose upstream "
+                       "power_dissipation was never computed), or "
+                       "'no_operating_current' (current-sense shunt: only "
+                       "the sense range is known, not the load)."})
 
 
 @dataclass
@@ -93,12 +94,11 @@ class ThermalMissingInfo:
         "description": "Component references that used a package-default Rθ_JA "
                        "because no datasheet value was available. Empty when "
                        "every assessed component had a datasheet-sourced "
-                       "Rθ_JA. TH-043."})
+                       "Rθ_JA."})
     default_tj_max: list[str] = field(default_factory=list, metadata={
         "description": "Component references that used a default max junction "
                        "temperature (typically 125 °C). Empty when every "
-                       "assessed component had a datasheet-sourced Tj_max. "
-                       "TH-043."})
+                       "assessed component had a datasheet-sourced Tj_max."})
 
 
 @dataclass
@@ -108,7 +108,7 @@ class ThermalEnvelope:
         "description": "Always 'thermal'.",
         "const": "thermal"})
     schema_version: str = field(metadata={
-        "description": "Schema semver. Value: '1.4.0' at Track 1.1 landing.",
+        "description": "Schema semver. Value: '1.4.0'.",
         "const": "1.4.0"})
 
     # --- Provenance ---
@@ -139,9 +139,9 @@ class ThermalEnvelope:
         "description": "Power components (regulators) that could not be "
                        "assessed for power dissipation. Present only when "
                        "non-empty; see summary.components_skipped for the "
-                       "count. KH-386."})
+                       "count."})
 
-    # --- Phase 4 capability pointer ---
+    # --- Capability pointer ---
     capability_mode_ref: Optional[dict] = field(default=None, metadata={
         "description": "Pointer to canonical analysis/capability_mode.json run-level "
-                       "record. Shape: {source, run_id}. See Phase 4 spec §3.3."})
+                       "record. Shape: {source, run_id}."})

@@ -3,17 +3,27 @@ Parse ngspice .control block ASCII output and generate structured results.
 
 ngspice .control blocks write measurement results via `echo` to text files.
 This module parses those files and produces a structured report with
-pass/warn/fail/skip status for each simulation.
+pass/warn/fail/skip/info status for each simulation.
 """
+
+import math
+
+import _core_path  # noqa: F401
+from kicad_core.parts import part_number_core, regulator_vref_key, vref_key_covers_part
+
+# Measurements taken with ngspice vp(), which returns radians. The other
+# backends' parsers pass their values through unconverted.
+_RADIAN_KEYS = ("phase_fc", "phase_at_bw")
 
 
 def parse_output_file(filepath):
     """Parse an ngspice echo output file into a dict of key=value pairs.
 
     Expected format (one line):
-        fc_sim=1.592e+04 gain_dc=-0.015 phase_fc=-45.1
+        fc_sim=1.592e+04 gain_dc=-0.015 phase_fc=-7.842e-01
 
-    Also handles ngspice "failed" measurement markers.
+    Also handles ngspice "failed" measurement markers. Phase measurements
+    (_RADIAN_KEYS) are converted from radians to degrees.
 
     Args:
         filepath: Path to the ASCII output file written by .control block
@@ -47,6 +57,9 @@ def parse_output_file(filepath):
                 results[key] = float(val)
             except ValueError:
                 results[key] = val  # Keep as string if not numeric
+    for key in _RADIAN_KEYS:
+        if isinstance(results.get(key), float):
+            results[key] = math.degrees(results[key])
     return results
 
 
@@ -61,6 +74,12 @@ def evaluate_rc_filter(det, sim_results):
         Result dict with status, expected, simulated, delta fields
     """
     expected_fc = det["cutoff_hz"]
+    # The bench simulates the record's R and C, so 1/(2*pi*R*C) is the exact expectation;
+    # cutoff_hz is rounded to 0.01 Hz, a few percent of a sub-Hz cutoff.
+    r_ohms = det["resistor"].get("ohms")
+    c_farads = det["capacitor"].get("farads")
+    exact_fc = (1.0 / (2 * math.pi * r_ohms * c_farads)
+                if r_ohms and c_farads and r_ohms > 0 and c_farads > 0 else expected_fc)
     sim_fc = sim_results.get("fc_sim")
     phase_fc = sim_results.get("phase_fc")
 
@@ -81,16 +100,16 @@ def evaluate_rc_filter(det, sim_results):
         result["note"] = "ngspice could not measure -3dB frequency"
         return result
 
-    if expected_fc == 0:
+    if exact_fc == 0:
         result["status"] = "skip"
         result["note"] = "expected cutoff frequency is 0 Hz — detection may be invalid"
         return result
 
     result["simulated"]["cutoff_hz"] = sim_fc
     if phase_fc is not None:
-        result["simulated"]["phase_at_fc_deg"] = phase_fc
+        result["simulated"]["phase_at_fc_deg"] = round(phase_fc, 2)
 
-    fc_error = abs(sim_fc - expected_fc) / expected_fc * 100
+    fc_error = abs(sim_fc - exact_fc) / exact_fc * 100
     result["delta"]["fc_error_pct"] = round(fc_error, 2)
 
     # For ideal passives, error should be <1%. Any significant error
@@ -146,6 +165,7 @@ def evaluate_lc_filter(det, sim_results):
         q_sim = f_peak / bw
         result["simulated"]["Q_factor"] = round(q_sim, 1)
         result["simulated"]["bandwidth_hz"] = round(bw, 1)
+        result["model_note"] = "inductor ESR assumed (Q=100) — Q_factor reflects the assumption, not the circuit"
 
     f_error = abs(f_peak - expected_f) / expected_f * 100
     result["delta"]["f_error_pct"] = round(f_error, 2)
@@ -158,21 +178,6 @@ def evaluate_lc_filter(det, sim_results):
     else:
         result["status"] = "fail"
         result["note"] = f"{f_error:.1f}% deviation from expected resonance"
-
-    # Q factor evaluation for power supply LC filters
-    if bw_lo is not None and bw_hi is not None and bw_hi > bw_lo:
-        q_sim = result["simulated"]["Q_factor"]
-        if q_sim > 20:
-            if result.get("status") != "fail":
-                result["status"] = "warn"
-            warnings = result.get("warnings", [])
-            warnings.append(f"High Q factor ({q_sim:.1f}) — underdamped, risk of oscillation or ringing in power path")
-            result["warnings"] = warnings
-        elif q_sim > 10 and result.get("status") == "pass":
-            result["status"] = "warn"
-            warnings = result.get("warnings", [])
-            warnings.append(f"Q={q_sim:.1f} — moderately underdamped, consider adding series resistance for damping")
-            result["warnings"] = warnings
 
     return result
 
@@ -222,7 +227,8 @@ def evaluate_voltage_divider(det, sim_results):
             result["delta"]["vout_error_pct"] = round(err, 3)
             result["status"] = "pass" if err < 0.1 else "warn" if err < 1 else "fail"
         else:
-            result["status"] = "pass"
+            result["status"] = "info"
+            result["note"] = "No expected output voltage to compare — reporting the simulated value"
 
     return result
 
@@ -248,6 +254,21 @@ def evaluate_opamp_circuit(det, sim_results):
         model_note = f"{part_name} behavioral ({model_source}, GBW={model_gbw/1e6:.1f}MHz)"
     else:
         model_note = "ideal opamp (Aol=1e6, GBW~10MHz) — real part may limit bandwidth"
+    if sim_results.get("vee_assumed"):
+        model_note += "; negative rail assumed at -VCC (its net name gives no voltage)"
+    if sim_results.get("vee_repaired"):
+        model_note += "; the negative supply pin reads at or above the positive one, so the bench runs single-supply"
+    if sim_results.get("ref_on_ground"):
+        model_note += "; reference input on a ground net re-biased to mid-supply"
+    try:
+        supply_v = float(sim_results["supply_v"])
+        supply_min = float(sim_results["supply_min"])
+    except (KeyError, TypeError, ValueError):
+        supply_v = supply_min = None
+    below_min = supply_v is not None and supply_v < supply_min
+    if below_min:
+        supply_note = f"supply {supply_v:g} V below the part's minimum {supply_min:g} V"
+        model_note += f"; {supply_note}"
 
     result = {
         "subcircuit_type": "opamp_circuit",
@@ -301,7 +322,7 @@ def evaluate_opamp_circuit(det, sim_results):
             result["status"] = "fail"
             result["note"] = f"Gain differs by {gain_error:.1f} dB — check feedback network"
     else:
-        result["status"] = "pass"
+        result["status"] = "info"
         result["note"] = "No expected gain to compare — reporting measured values"
 
     # Multi-frequency gain flatness (Q6)
@@ -321,17 +342,55 @@ def evaluate_opamp_circuit(det, sim_results):
     # Phase at bandwidth (M6 — stability indicator)
     phase_at_bw = sim_results.get("phase_at_bw")
     if phase_at_bw is not None:
-        result["simulated"]["phase_at_bw_deg"] = round(phase_at_bw, 1)
+        result["simulated"]["phase_at_bw_deg"] = round(phase_at_bw, 2)
+
+    # A bench run below the part's minimum supply is not a pass: the design runs the
+    # part out of spec (rails read from net names), or the assumed supply leaves no
+    # criterion, so neither its pass nor its warn means anything
+    if below_min:
+        rails_named = str(sim_results.get("rails_named")) in ("1", "1.0")
+        new_status = None
+        if rails_named and result["status"] == "pass":
+            new_status = "warn"
+        elif not rails_named and result["status"] in ("pass", "warn"):
+            new_status = "info"
+        if new_status:
+            result["status"] = new_status
+            result["note"] = f"{result.get('note') or ''} {supply_note}".strip()
 
     return result
 
 
+def crystal_load_legs(load_caps):
+    """Load caps grouped per crystal pin (net), legs in first-seen order:
+    ``[{"net", "refs", "farads"}]``; parallel caps on one leg sum."""
+    legs = {}
+    seen = set()
+    for lc in load_caps:
+        if lc["ref"] in seen:
+            continue
+        seen.add(lc["ref"])
+        leg = legs.setdefault(lc["net"], {"net": lc["net"], "refs": [], "farads": 0.0})
+        leg["refs"].append(lc["ref"])
+        leg["farads"] += lc["farads"]
+    return list(legs.values())
+
+
 def evaluate_crystal_circuit(det, sim_results):
-    """Evaluate crystal circuit simulation results."""
+    """Evaluate crystal circuit simulation results.
+
+    The generic model is built from the nominal frequency, so the bench has no
+    acceptance criterion of its own: the measured series and load resonance are
+    reported as `info`. `warn` when either resonance was not measured, the read
+    Rm shows the sweep did not resolve the resonance, or the analyzer's
+    calculated CL is outside 4-30 pF (typical crystal CL specs).
+    """
     freq = det.get("frequency")
     cl_eff = det.get("effective_load_pF")
-    rm = sim_results.get("rm")
     f_series = sim_results.get("f_series")
+    f_load = sim_results.get("f_load")
+    rm = sim_results.get("rm")
+    rm_model = sim_results.get("rm_model")
 
     result = {
         "subcircuit_type": "crystal_circuit",
@@ -346,46 +405,40 @@ def evaluate_crystal_circuit(det, sim_results):
         result["expected"]["frequency_hz"] = freq
     if cl_eff:
         result["expected"]["load_capacitance_pF"] = cl_eff
-        cl_sim = sim_results.get("cl_pF")
-        if cl_sim is not None:
-            result["simulated"]["load_capacitance_pF"] = cl_sim
 
-    # For crystals, we primarily check that load caps are present and reasonable
-    load_caps = det.get("load_caps", [])
-    if len(load_caps) >= 2:
-        result["status"] = "pass"
-        result["note"] = f"Load caps present: {load_caps[0]['ref']}, {load_caps[1]['ref']}"
-        if cl_eff:
-            # Typical crystal CL spec: 6-20 pF. Flag if outside range.
-            if cl_eff < 4 or cl_eff > 30:
-                result["status"] = "warn"
-                result["note"] = f"Effective CL={cl_eff:.1f}pF — unusual range, verify crystal datasheet"
-    else:
+    if f_series is None or not freq:
         result["status"] = "warn"
-        result["note"] = "Missing or insufficient load capacitors"
+        result["note"] = "not measured: series resonance not found in the sweep"
+        return result
 
-    # Evaluate series resonance accuracy
-    if f_series is not None and det.get("frequency"):
-        nominal_freq = det["frequency"]
-        if nominal_freq > 0:
-            f_error_pct = abs(f_series - nominal_freq) / nominal_freq * 100
-            result["simulated"]["f_series_hz"] = f_series
-            result["simulated"]["f_error_pct"] = round(f_error_pct, 2)
-            if f_error_pct > 1:
-                result["status"] = "warn"
-                result["note"] = (result.get("note", "") +
-                    f" Series resonance {f_series/1e6:.3f} MHz deviates {f_error_pct:.1f}% from nominal.").strip()
+    # |Z| at the 0.25 ppm phase-zero step is within 1 % of Rm for any Q below 5e5 (real crystals:
+    # 1e4-1e5); outside +/-50 % of the model's Rm the sweep did not resolve the resonance
+    if rm is not None and rm_model and not 0.5 * float(rm_model) <= rm <= 1.5 * float(rm_model):
+        result["status"] = "warn"
+        result["note"] = (f"not measured: the sweep does not resolve the series resonance "
+                          f"(|Z| {rm:.4g} ohm vs model Rm {float(rm_model):.4g} ohm)")
+        return result
+    result["simulated"]["f_series_hz"] = f_series
+    result["simulated"]["f_error_pct"] = round(abs(f_series - freq) / freq * 100, 3)
+    if f_load is None:
+        result["status"] = "warn"
+        result["note"] = "not measured: load resonance not found in the sweep"
+        return result
 
+    result["simulated"]["f_load_hz"] = f_load
+    result["simulated"]["pulling_ppm"] = round((f_load - f_series) / f_series * 1e6, 1)
     if rm is not None:
         result["simulated"]["motional_resistance_ohm"] = round(rm, 1)
-        freq_val = det.get("frequency", 0) or 0
-        rm_limit = 50000 if freq_val < 100e3 else 100  # 32kHz crystals have high Rm
-        if rm > rm_limit:
-            if result["status"] == "pass":
-                result["status"] = "warn"
-            result["note"] = (result.get("note", "") +
-                f" High motional resistance ({rm:.0f}\u03a9) \u2014 verify oscillator IC can drive this crystal.").strip()
 
+    legs = crystal_load_legs(det.get("load_caps", []))
+    caps = ", ".join("||".join(leg["refs"]) for leg in legs[:2])
+    if cl_eff and (cl_eff < 4 or cl_eff > 30):
+        result["status"] = "warn"
+        result["note"] = f"Effective CL={cl_eff:.1f}pF (calculated) — unusual range, verify crystal datasheet"
+    else:
+        result["status"] = "info"
+        result["note"] = (f"Series resonance measured; load resonance {f_load:.0f} Hz "
+                          f"({result['simulated']['pulling_ppm']:+.1f} ppm) with load caps {caps}")
     return result
 
 
@@ -461,7 +514,8 @@ def evaluate_feedback_network(det, sim_results):
             result["delta"]["vout_error_pct"] = round(err, 3)
             result["status"] = "pass" if err < 0.1 else "warn" if err < 1 else "fail"
         else:
-            result["status"] = "pass"
+            result["status"] = "info"
+            result["note"] = "No expected output voltage to compare — reporting the simulated value"
 
     return result
 
@@ -477,6 +531,8 @@ def evaluate_transistor_circuit(det, sim_results):
     ttype = det.get("type", "unknown")
     value = det.get("value", "")
     is_p = det.get("is_pchannel", False) if ttype == "mosfet" else False
+    # the bench picks the BJT polarity from lib_id the same way
+    is_pnp = ttype not in ("mosfet", "jfet") and "PNP" in (det.get("lib_id") or "").upper()
 
     vth = sim_results.get("vth")
     i_on = sim_results.get("ic_on") or sim_results.get("i_on")
@@ -491,7 +547,7 @@ def evaluate_transistor_circuit(det, sim_results):
         "expected": {},
         "simulated": {},
         "delta": {},
-        "model_note": f"generic {'PMOS' if is_p else 'NMOS' if ttype == 'mosfet' else 'PNP' if is_p else 'NPN'} model — real threshold depends on part",
+        "model_note": f"generic {'PMOS' if is_p else 'NMOS' if ttype == 'mosfet' else 'PNP' if is_pnp else 'NPN'} model — real threshold depends on part",
     }
 
     if ttype in ("mosfet", "jfet"):
@@ -505,13 +561,21 @@ def evaluate_transistor_circuit(det, sim_results):
             result["note"] = "ngspice DC sweep measurement failed"
             return result
 
-        # Generic NMOS Vth=1.5V, PMOS Vth=-1.5V — just verify the FET turns on
-        result["status"] = "pass"
+        # the bench runs the generic model (NMOS Vth 1.5 V, PMOS -1.5 V) with a fixed load
+        # and a full gate sweep, so its threshold and on-current describe the model
         if i_on is not None and i_on < 1e-6:
             result["status"] = "warn"
             result["note"] = "Very low on-state current — FET may not be switching properly"
+        else:
+            result["status"] = "info"
+            result["note"] = "FET turns on in the generic model; not compared against the part"
     else:
         # BJT
+        if is_pnp and (vbe_on is not None or i_on is not None):
+            # the PNP bench's sweep never biases the part on, so its numbers are not a measurement
+            result["status"] = "warn"
+            result["note"] = "not measured: the PNP bench does not reach a valid on-state"
+            return result
         if vbe_on is not None:
             result["simulated"]["vbe_on_V"] = round(vbe_on, 3)
         if i_on is not None:
@@ -522,7 +586,8 @@ def evaluate_transistor_circuit(det, sim_results):
             result["note"] = "ngspice DC sweep measurement failed"
             return result
 
-        result["status"] = "pass"
+        result["status"] = "info"
+        result["note"] = "BJT turns on in the generic model; not compared against the part"
         # VBE should be ~0.6-0.7V for silicon BJT
         if vbe_on is not None:
             if vbe_on < 0.4 or vbe_on > 0.9:
@@ -593,8 +658,8 @@ def evaluate_current_sense(det, sim_results):
             result["status"] = "fail"
             result["note"] = f"{max_err:.1f}% deviation — check sense resistor value"
     else:
-        result["status"] = "pass"
-        result["note"] = "Simulation ran but no expected values to compare"
+        result["status"] = "info"
+        result["note"] = "No expected current to compare — reporting measured values"
 
     return result
 
@@ -707,8 +772,10 @@ def evaluate_decoupling(det, sim_results):
 def evaluate_regulator_feedback(det, sim_results):
     """Evaluate regulator feedback divider simulation results.
 
-    Checks that the simulated FB voltage matches the expected Vref,
-    confirming the regulator's output voltage setpoint.
+    With the rail at the voltage its name carries, the divider must put the
+    part's reference voltage on FB (across OUT-ADJ for an LM317-family
+    regulator). Compared only when Vref comes from the part (lookup table or
+    datasheet) and the rail's name carries its voltage; otherwise `info`.
     """
     fd = det.get("feedback_divider", {})
     r_top = fd.get("r_top", {}) if isinstance(fd.get("r_top"), dict) else {}
@@ -717,7 +784,6 @@ def evaluate_regulator_feedback(det, sim_results):
     vref = det.get("assumed_vref")
 
     vfb_sim = sim_results.get("vfb_sim")
-    error_pct = sim_results.get("error_pct")
     expected = sim_results.get("expected")
     vin = sim_results.get("vin")
 
@@ -745,28 +811,89 @@ def evaluate_regulator_feedback(det, sim_results):
 
     result["simulated"]["vfb_V"] = round(vfb_sim, 4)
 
-    if error_pct is not None:
-        result["delta"]["vfb_error_pct"] = round(error_pct, 3)
-        if error_pct < 0.1:
-            result["status"] = "pass"
-        elif error_pct < 1:
-            result["status"] = "warn"
-            result["note"] = f"{error_pct:.2f}% error in feedback voltage"
-        else:
-            result["status"] = "fail"
-            result["note"] = f"{error_pct:.1f}% error — regulator output voltage may be wrong"
+    components = {c.get("reference"): c for c in (det.get("_context") or {}).get("components", [])
+                  if isinstance(c, dict)}
+    vref_source = det.get("vref_source")
+    vref_match = None
+    if vref_source == "lookup":
+        part = components.get(reg_ref) or {}
+        vref_match = regulator_vref_key(det.get("value") or "", det.get("lib_id") or "",
+                                        part.get("mpn") or "")
+    adjustable = [ref for arm in (r_top, r_bot) for ref in arm.get("parallel_refs") or [arm.get("ref")]
+                  if ref and _is_adjustable(ref, components)]
+    value = (det.get("value") or "").upper()
+    lib_part = (det.get("lib_id") or "").split(":")[-1].upper()
+    # the key came from the symbol name while the value names a part of its own
+    symbol_only = bool(vref_match and lib_part and vref_match[1] == lib_part and vref_match[1] != value
+                       and part_number_core(value)
+                       and part_number_core(value) != part_number_core(lib_part))
+    if vref_source not in ("lookup", "datasheet") or not vref:
+        why = "Vref is not from the part"
+    elif vref_source == "lookup" and not (vref_match and vref_key_covers_part(*vref_match)):
+        # a shorter table prefix is a family default: members of one family differ
+        why = (f"Vref {vref} V is a family default ({vref_match[0] if vref_match else 'unmatched'}), "
+               "not this part's own value")
+    elif symbol_only:
+        why = "Vref from the symbol; the value names another part"
+    elif adjustable:
+        why = f"divider arm {', '.join(adjustable)} is adjustable"
+    elif _top_off_output_rail(det, r_top):
+        why = "divider top is not on the output rail; reconstruction unverified"
+    elif sim_results.get("vin_from") != "rail_name" or not vin:
+        why = "the rail's name carries no voltage"
     else:
-        result["status"] = "pass"
-        result["note"] = "Feedback divider simulated"
+        why = None
+    if why:
+        result["status"] = "info"
+        result["note"] = f"Divider simulated; not compared against Vref ({why})"
+        return result
 
+    out_adj = fd.get("reference") == "out_adj"
+    # LM317 family: Vref sits across OUT-ADJ, so the reference is Vout - V(ADJ)
+    v_ref_sim = float(vin) - vfb_sim if out_adj else vfb_sim
+    err = abs(v_ref_sim - vref) / vref * 100
+    result["delta"]["vfb_vs_vref_pct"] = round(err, 2)
+    # E96 rounding plus 1 % resistors stay within 2 %
+    if err <= 2:
+        result["status"] = "pass"
+    elif err <= 5:
+        result["status"] = "warn"
+        result["note"] = f"FB voltage at the rail's named voltage is {err:.1f}% from Vref {vref} V"
+    else:
+        result["status"] = "fail"
+        result["note"] = (f"FB voltage at the rail's named voltage is {err:.1f}% from Vref {vref} V"
+                          " — the divider sets a different output")
     return result
+
+
+def _top_off_output_rail(det, r_top):
+    """True when the analysis's nets show no resistor of the top arm on the output rail, so
+    the bench's rail-to-FB divider is not the one the board has. False when unknown."""
+    nets = (det.get("_context") or {}).get("nets")
+    rail = det.get("output_rail")
+    if not isinstance(nets, dict) or not rail or rail not in nets:
+        return False
+    refs = {ref for link in r_top.get("chain_resistors") or [r_top]
+            for ref in link.get("parallel_refs") or [link.get("ref")] if ref}
+    on_any_net = {p.get("component") for net in nets.values() if isinstance(net, dict)
+                  for p in net.get("pins", []) if isinstance(p, dict)}
+    if not refs or not refs <= on_any_net:
+        return False
+    return not any(isinstance(p, dict) and p.get("component") in refs
+                   for p in nets[rail].get("pins", []))
+
+
+def _is_adjustable(ref, components):
+    """A potentiometer, trimmer or rheostat: RV/VR designator or a pot/trim symbol."""
+    lib_id = ((components.get(ref) or {}).get("lib_id") or "").lower()
+    return str(ref).upper().startswith(("RV", "VR")) or "pot" in lib_id or "trim" in lib_id
 
 
 def evaluate_rf_matching(det, sim_results):
     """Evaluate RF matching network simulation results.
 
     Reports impedance profile — minimum impedance and key frequency points.
-    Without a target frequency, evaluation is informational (pass/warn only).
+    Without a target frequency there is no acceptance criterion: `info`.
     """
     comps = det.get("components", [])
     topology = det.get("topology", "?")
@@ -805,7 +932,7 @@ def evaluate_rf_matching(det, sim_results):
         return result
 
     # Informational — without a target frequency we can only report the profile
-    result["status"] = "pass"
+    result["status"] = "info"
     if f_at_zmin is not None and z_min is not None:
         result["note"] = f"Z_min={z_min:.3f}Ω at {f_at_zmin/1e6:.1f}MHz"
     else:
@@ -853,12 +980,17 @@ def evaluate_bridge_circuit(det, sim_results):
         result["note"] = "ngspice DC sweep measurement failed"
         return result
 
-    result["status"] = "pass"
-    if id_on is not None and id_on < 1e-6:
+    if vth_lo is None:
+        result["status"] = "warn"
+        result["note"] = "not measured: low-side turn-on threshold not found in the sweep"
+    elif id_on is not None and id_on < 1e-6:
         result["status"] = "warn"
         result["note"] = "Very low on-state current — FET may not be switching"
     else:
-        result["note"] = f"Low-side FET turns on, Vth≈{vth_lo:.2f}V" if vth_lo else "FET conducting"
+        # the bench runs the generic FET model, so Vth and on-current describe the model
+        result["status"] = "info"
+        result["note"] = (f"Low-side FET turns on, Vth≈{vth_lo:.2f}V on the generic model; "
+                          "not compared against the part")
 
     return result
 
@@ -908,11 +1040,15 @@ def evaluate_inrush(det, sim_results):
         v_err = abs(v_settled - float(v_target)) / float(v_target) * 100
         result["delta"]["v_settle_error_pct"] = round(v_err, 2)
 
-    result["status"] = "pass"
-    if i_peak is not None:
-        result["note"] = f"Peak inrush {i_peak*1000:.1f}mA at {t_peak*1e6:.0f}µs" if t_peak else f"Peak inrush {i_peak*1000:.1f}mA"
-    else:
-        result["note"] = "Transient simulated"
+    if i_peak is None:
+        result["status"] = "warn"
+        result["note"] = "not measured: inrush current not available from the simulation"
+        return result
+    # the bench ramps the analyzer's assumed soft-start into the output caps, so the peak
+    # restates that assumption; nothing in the design is a limit to compare it with
+    result["status"] = "info"
+    peak = f"Peak inrush {i_peak*1000:.1f}mA at {t_peak*1e6:.0f}µs" if t_peak else f"Peak inrush {i_peak*1000:.1f}mA"
+    result["note"] = f"{peak} on the assumed soft-start; not compared against a limit"
 
     return result
 
@@ -1016,14 +1152,16 @@ def evaluate_snubber(det, sim_results):
     if tau:
         tau_f = float(tau)
         if 1e-9 <= tau_f <= 1e-4:
-            result["status"] = "pass"
-            result["note"] = f"Snubber τ={tau_f*1e6:.2f}µs, f={float(f_analytical or 0)/1e3:.1f}kHz"
+            # tau is R*C from the detection, not a measurement, so the window is no verdict
+            result["status"] = "info"
+            result["note"] = (f"Snubber τ={tau_f*1e6:.2f}µs, f={float(f_analytical or 0)/1e3:.1f}kHz "
+                              "(from the R and C values; not compared against the switching node)")
         else:
             result["status"] = "warn"
             result["note"] = f"Snubber τ={tau_f*1e6:.2f}µs — outside typical 1ns-100µs range"
     else:
-        result["status"] = "pass"
-        result["note"] = "Snubber impedance measured"
+        result["status"] = "info"
+        result["note"] = "Snubber impedance measured; no time constant to judge"
 
     return result
 
@@ -1074,8 +1212,10 @@ def evaluate_rf_chain(det, sim_results):
         return result
 
     if -30 <= gain_budget <= 40:
-        result["status"] = "pass"
-        result["note"] = f"Link budget: {gain_budget:+.1f}dB across {n_stages} stages at {freq/1e6:.0f}MHz"
+        # the budget adds per-role guesses, not the parts' gains, so it judges nothing
+        result["status"] = "info"
+        result["note"] = (f"Link budget: {gain_budget:+.1f}dB across {n_stages} stages at "
+                          f"{freq/1e6:.0f}MHz from heuristic per-role gains")
     else:
         result["status"] = "warn"
         result["note"] = f"Unusual link budget: {gain_budget:+.1f}dB — verify chain detection"
@@ -1104,6 +1244,17 @@ EVALUATOR_REGISTRY = {
 }
 
 
+def _format_delta(metric, value):
+    """A delta value in the unit its key names: ``*_dB`` in dB, ``*_pct`` as a signed percent."""
+    if not isinstance(value, (int, float)):
+        return str(value)
+    if metric.endswith("_dB"):
+        return f"{value:.2f} dB"
+    if metric.endswith("_pct"):
+        return f"{value:+.2f}%"
+    return f"{value:g}"
+
+
 def build_report(simulation_runs):
     """Build the final simulation report from a list of individual results.
 
@@ -1118,14 +1269,14 @@ def build_report(simulation_runs):
         if "reference" not in run and "components" in run:
             run["reference"] = "/".join(run["components"])
 
-    counts = {"pass": 0, "warn": 0, "fail": 0, "skip": 0}
+    counts = {"pass": 0, "warn": 0, "fail": 0, "skip": 0, "info": 0}
     for run in simulation_runs:
         status = run.get("status", "skip")
         counts[status] = counts.get(status, 0) + 1
 
     # Synthesize finding-shaped entries for simulations that didn't pass —
     # keeps the v1.3 envelope contract (findings[] + trust_summary)
-    # consistent across all analyzers. Pass/skip results stay
+    # consistent across all analyzers. Pass/skip/info results stay
     # informational and are reflected only in simulation_results and the
     # status counts, not in findings[].
     findings = []
@@ -1143,15 +1294,15 @@ def build_report(simulation_runs):
         _exp = run.get("expected") or {}
         _sim = run.get("simulated") or {}
         _detail_parts = []
-        for metric, pct in _delta.items():
-            if pct is not None:
-                _detail_parts.append(f"{metric}: {pct:+.2f}%")
+        for metric, value in _delta.items():
+            if value is not None:
+                _detail_parts.append(f"{metric}: {_format_delta(metric, value)}")
         _delta_summary = "; ".join(_detail_parts) if _detail_parts else "no numeric delta"
         _expected_keys = ", ".join(f"{k}={v}" for k, v in _exp.items()) if _exp else "—"
         _simulated_keys = ", ".join(f"{k}={v}" for k, v in _sim.items()) if _sim else "—"
         _description = (
             f"SPICE simulation of {subtype} ({ref}) "
-            f"{'failed to converge' if status == 'fail' else 'converged with warnings'}. "
+            f"{'measured values failed the check' if status == 'fail' else 'measured values need review'}. "
             f"Expected: {_expected_keys}. "
             f"Simulated: {_simulated_keys}. "
             f"Delta: {_delta_summary}."
@@ -1165,7 +1316,7 @@ def build_report(simulation_runs):
             "evidence_source": "heuristic_rule",
             "category": "simulation",
             "summary": (
-                f"{subtype} {ref} — SPICE {'did not converge to expected values' if status == 'fail' else 'converged with warnings'}".strip()
+                f"{subtype} {ref} — SPICE {'check failed on the measured values' if status == 'fail' else 'measured values need review'}".strip()
             ),
             "description": _description,
             "components": run.get("components", []) or [],
@@ -1200,7 +1351,7 @@ def build_report(simulation_runs):
             "by_severity": {
                 "error": counts["fail"],
                 "warning": counts["warn"],
-                "info": counts["pass"] + counts["skip"],
+                "info": counts["pass"] + counts["skip"] + counts["info"],
             },
         },
         "findings": findings,

@@ -19,11 +19,12 @@ from omero_common import (
 )
 
 
-TARGET_PATTERN = re.compile(r"^(Dataset|Screen):id:([1-9][0-9]*)$")
-IMAGE_PATTERN = re.compile(r"^Image:([1-9][0-9]*)$")
+TARGET_PATTERN = re.compile(r"^(Dataset|Screen):id:([1-9]\d*)$")
+IMAGE_PATTERN = re.compile(r"^Image:([1-9]\d*)$")
 
 
 def positive_argument(value: str) -> int:
+    """Handle positive argument."""
     try:
         parsed = int(value, 10)
     except ValueError as exc:
@@ -34,6 +35,7 @@ def positive_argument(value: str) -> int:
 
 
 def import_target(value: str) -> str:
+    """Import target."""
     if not TARGET_PATTERN.fullmatch(value):
         raise argparse.ArgumentTypeError(
             "target must be Dataset:id:<positive-id> or "
@@ -43,6 +45,7 @@ def import_target(value: str) -> str:
 
 
 def image_selector(value: str) -> str:
+    """Handle image selector."""
     if not IMAGE_PATTERN.fullmatch(value):
         raise argparse.ArgumentTypeError(
             "selector must be Image:<positive-id>"
@@ -51,6 +54,7 @@ def image_selector(value: str) -> str:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Create a bounded local OMERO import/export plan. This command "
@@ -133,6 +137,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def path_depth(root: Path, current: Path) -> int:
+    """Handle path depth."""
     relative = current.relative_to(root)
     return 0 if relative == Path(".") else len(relative.parts)
 
@@ -212,6 +217,7 @@ def scan_import_path(
 
 
 def plan_import(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle plan import."""
     bounded_int(
         args.max_paths,
         name="max-paths",
@@ -281,6 +287,7 @@ def plan_import(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def validated_output_directory(raw_path: str) -> Path:
+    """Handle validated output directory."""
     requested = Path(raw_path).expanduser()
     if requested.is_symlink():
         raise ValueError("output directory must not be a symlink")
@@ -294,6 +301,7 @@ def validated_output_directory(raw_path: str) -> Path:
 
 
 def plan_export(args: argparse.Namespace) -> dict[str, Any]:
+    """Handle plan export."""
     bounded_int(
         args.max_images,
         name="max-images",
@@ -365,6 +373,7 @@ def plan_export(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     parser = build_parser()
     args = parser.parse_args(argv)
     try:
@@ -380,8 +389,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
     except (
-        OutputPathError,
-        FileExistsError,
         ValueError,
         OSError,
     ) as error:

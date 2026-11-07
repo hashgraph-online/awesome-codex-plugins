@@ -219,11 +219,13 @@ def validate_requested_names(tree: Tree, requested: list[str]) -> None:
 
 
 def command_stats(args: argparse.Namespace) -> None:
+    """Handle command stats."""
     tree = load_tree(args.input, args.parser)
     print_stats(tree_stats(tree, args.input), args.json)
 
 
 def command_ascii(args: argparse.Namespace) -> None:
+    """Handle command ascii."""
     tree = load_tree(args.input, args.parser)
     print(
         tree.to_str(
@@ -235,18 +237,21 @@ def command_ascii(args: argparse.Namespace) -> None:
 
 
 def command_leaves(args: argparse.Namespace) -> None:
+    """Handle command leaves."""
     tree = load_tree(args.input, args.parser)
     for name in tree.leaf_names():
         print("" if name is None else name)
 
 
 def command_convert(args: argparse.Namespace) -> None:
+    """Handle command convert."""
     tree = load_tree(args.input, args.input_parser)
     save_tree(tree, args.output, args.output_parser, args.props)
     print(f"Wrote {args.output}")
 
 
 def command_reroot(args: argparse.Namespace) -> None:
+    """Handle command reroot."""
     tree = load_tree(args.input, args.parser)
     if args.midpoint:
         tree.set_midpoint_outgroup(topological=args.topological)
@@ -265,6 +270,7 @@ def command_reroot(args: argparse.Namespace) -> None:
 
 
 def command_prune(args: argparse.Namespace) -> None:
+    """Handle command prune."""
     tree = load_tree(args.input, args.parser)
     names = read_keep_names(args.keep, args.keep_file)
     validate_requested_names(tree, names)
@@ -274,6 +280,7 @@ def command_prune(args: argparse.Namespace) -> None:
 
 
 def command_compare(args: argparse.Namespace) -> None:
+    """Handle command compare."""
     tree_a = load_tree(args.tree_a, args.parser_a)
     tree_b = load_tree(args.tree_b, args.parser_b)
 
@@ -320,6 +327,7 @@ def command_compare(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description="Validated ETE 4 tree operations",
     )
@@ -430,6 +438,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Run the command-line interface."""
     args = build_parser().parse_args(argv)
     try:
         args.handler(args)

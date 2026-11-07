@@ -10,19 +10,16 @@ from typing import Any
 from _common import (
     MAX_CSV_BYTES,
     MAX_ROWS,
-    NEUROKIT2_VERSION,
-    PINNED_INSTALL,
     CliError,
+    add_pipeline_arguments,
     checked_input_file,
-    dataframe_rows,
-    emit_json,
+    emit_pipeline_report,
     finite_float,
     json_number,
     read_numeric_columns,
     require_deidentified,
+    require_pinned_neurokit2,
     run_cli,
-    sha256_bytes,
-    write_csv,
 )
 
 CLEAN_METHODS = ("neurokit", "biosppy", "none")
@@ -31,6 +28,7 @@ PEAK_METHODS = ("neurokit", "gamboa2008", "kim2004", "vanhalem2020", "nabian2018
 
 
 def _finite_values(values: Any) -> list[float]:
+    """Handle finite values."""
     result: list[float] = []
     for value in values:
         number = json_number(value)
@@ -40,6 +38,7 @@ def _finite_values(values: Any) -> list[float]:
 
 
 def _stats(values: Any) -> dict[str, float | int | None]:
+    """Handle stats."""
     finite = _finite_values(values)
     return {
         "count": len(finite),
@@ -51,6 +50,7 @@ def _stats(values: Any) -> dict[str, float | int | None]:
 
 
 def build_parser() -> argparse.ArgumentParser:
+    """Build parser."""
     parser = argparse.ArgumentParser(
         description=(
             "Clean, explicitly decompose, and detect SCRs in bounded "
@@ -82,21 +82,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--duration", type=float, default=60.0, help="synthetic seconds"
     )
     parser.add_argument("--scr-number", type=int, default=6)
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--root", default=".")
-    parser.add_argument("--max-rows", type=int, default=MAX_ROWS)
-    parser.add_argument(
-        "--deidentified",
-        action="store_true",
-        help="required with --input",
-    )
-    parser.add_argument("--signals-output", help="optional processed local .csv")
-    parser.add_argument("--output", help="optional local .json report")
-    parser.add_argument("--force", action="store_true")
+    add_pipeline_arguments(parser)
     return parser
 
 
 def main() -> None:
+    """Run the command-line interface."""
     args = build_parser().parse_args()
     sampling_rate = finite_float(
         args.sampling_rate,
@@ -123,12 +114,7 @@ def main() -> None:
     import numpy as np
     import pandas as pd
 
-    installed = str(nk.__version__)
-    if installed != NEUROKIT2_VERSION:
-        raise CliError(
-            f"this reproducible workflow requires NeuroKit2 {NEUROKIT2_VERSION}; "
-            f"found {installed}. Install with: {PINNED_INSTALL}"
-        )
+    installed = require_pinned_neurokit2(nk)
 
     if args.input:
         require_deidentified(args.deidentified)
@@ -269,19 +255,7 @@ def main() -> None:
         ),
         "warnings": warnings,
     }
-    if args.signals_output:
-        payload = write_csv(
-            args.signals_output,
-            [str(column) for column in signals.columns],
-            dataframe_rows(signals),
-            root=args.root,
-            force=args.force,
-        )
-        report["signals_csv"] = {
-            "path_redacted": True,
-            "sha256": sha256_bytes(payload),
-        }
-    emit_json(report, output=args.output, root=args.root, force=args.force)
+    emit_pipeline_report(report, signals, args)
 
 
 if __name__ == "__main__":
