@@ -1431,6 +1431,21 @@
       "icon": "./plugins/yimwoo/hotl-plugin/docs/assets/codex/hotl-icon.png"
     },
     {
+      "name": "hypercore",
+      "displayName": "Hypercore",
+      "source": {
+        "source": "local",
+        "path": "./plugins/alpoxdev/hypercore"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Korean-first agent skills for planning, architecture, design, docs, research, issues, and Git delivery, each with declared triggers, workflows, and validation gates.",
+      "icon": "./plugins/alpoxdev/hypercore/assets/icon.svg"
+    },
+    {
       "name": "sirv-media-skills",
       "displayName": "Image & Media Skills",
       "source": {

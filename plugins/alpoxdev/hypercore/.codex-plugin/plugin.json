@@ -1,0 +1,40 @@
+{
+  "name": "hypercore",
+  "version": "1.1.0",
+  "description": "Korean-first agent skills for Codex, Claude Code, Cursor, and Antigravity, from codebase analysis to release.",
+  "author": {
+    "name": "alpoxdev",
+    "url": "https://github.com/alpoxdev"
+  },
+  "homepage": "https://github.com/alpoxdev/hypercore",
+  "repository": "https://github.com/alpoxdev/hypercore",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "skills",
+    "korean",
+    "planning",
+    "architecture",
+    "design",
+    "git",
+    "research"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Hypercore",
+    "shortDescription": "Korean-first agent skills from analysis to release",
+    "longDescription": "Hypercore bundles Korean-first agent skills for planning, architecture, design, documentation, research, issues, and Git delivery. Each skill declares its triggers, workflow, and validation gates so it behaves the same in every supported runtime.",
+    "developerName": "alpoxdev",
+    "category": "Coding",
+    "websiteURL": "https://github.com/alpoxdev/hypercore",
+    "brandColor": "#111827",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "defaultPrompt": "Plan this change before writing code."
+  }
+}

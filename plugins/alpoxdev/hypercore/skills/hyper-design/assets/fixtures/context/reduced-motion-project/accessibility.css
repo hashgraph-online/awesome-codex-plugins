@@ -1,0 +1,3 @@
+@media (prefers-reduced-motion: reduce) {
+  .notice { animation: none; }
+}

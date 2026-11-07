@@ -174,7 +174,8 @@ When assigning tasks, `team-manager.py --action check-capacity` recommends the b
 5. **Historical performance** — Have they completed similar tasks successfully before?
 
 ```bash
-python "${CLAUDE_PLUGIN_ROOT}/scripts/team-manager.py" --brand {slug} --action check-capacity --data '{"task_type":"email-campaign","region":"europe","weight":4}'
+# write with the Write tool first: {data_file} holds {"task_type":"email-campaign","region":"europe","weight":4}
+python "${CLAUDE_PLUGIN_ROOT}/scripts/team-manager.py" --brand {slug} --action check-capacity --data "@{data_file}"
 ```
 
 Output: Ranked list of available team members with utilization percentages and fit scores.

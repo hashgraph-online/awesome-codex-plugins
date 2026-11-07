@@ -1,0 +1,11 @@
+{
+  "review_verdict": "review",
+  "verdicts": {
+    "billing": { "action": "route_to_billing_queue", "human_review": false },
+    "technical": { "action": "route_to_technical_queue", "human_review": false },
+    "account": { "action": "route_to_account_queue", "human_review": false },
+    "other": { "action": "open_triage_task", "human_review": true },
+    "review": { "action": "open_human_review_task", "human_review": true }
+  },
+  "notes": "The decision thresholds are assumed before tuning, so evaluate on your own data; they live in constants.template.ts, which is the single place holding them. A verdict of review is what a below-threshold noul, choice, or score answer turns into, and it is the path a person has to complete."
+}

@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.131.0 # x-release-please-version
+version: 0.132.0 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -14,8 +14,12 @@ agent per machine, "AMQ Remote @ <machine>", imported once, makes the
 channel, adds the owner and mentions them. The owner writes in that channel
 from the Buzz phone app or Buzz Desktop. Several sessions can be connected
 at once; each has its own channel. The same session connecting again gets
-its own channel back. A different session never gets another session's
-channel. A session that already has its own Buzz agent keeps its DM.
+its own channel back. A resumed session gets its channel back by itself
+unless the owner turned it off: a pi session within about 35 s; on macOS, a
+Claude mailbox seat started directly by `amq coop exec claude` within about
+35 s; any other Claude session at its first approval dialog. A Codex session
+needs `$amq-remote` again. A different session never gets another
+session's channel. A session that already has its own Buzz agent keeps its DM.
 
 In Codex the skill is invoked as `$amq-remote` (Codex does not register `/`
 commands for skills); the commands below are the same. Codex runs sandboxed:

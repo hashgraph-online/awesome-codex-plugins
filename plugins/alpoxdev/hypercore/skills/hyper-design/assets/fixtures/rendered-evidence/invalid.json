@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "surface": "",
+  "captures": [
+    {
+      "viewport": { "width": 0, "height": 800 },
+      "state": "invented",
+      "capturedAt": "not-a-date",
+      "observations": [{ "locator": "", "computed": { "fontSize": 16 } }]
+    }
+  ]
+}

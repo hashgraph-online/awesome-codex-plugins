@@ -1,14 +1,15 @@
 ---
 name: liendeadline
-description: Discover jurisdiction-specific supplier notice and mechanics lien deadline baselines using the LienDeadline MCP server or API. Use authenticated supplier-events-v3 discovery for the exact project scope, including supported jurisdictions beyond Florida and Kansas. Missing facts and unsupported scopes require review. Includes public statute-cited guides for all 50 states and DC.
+description: Use when a US construction material supplier needs a preliminary notice or mechanics lien deadline, wants to check whether a project scope is covered, or needs a public state lien guide with statute citations.
 license: MIT
 compatibility: Supplier discovery and calculations need a dedicated customer API key, outbound HTTPS to secure-api-v1.liendeadline.com or LienDeadline MCP 0.5.5 or later. State guides remain public.
 ---
 
 # LienDeadline supplier deadlines
 
-**Calculation coverage:** use `supplier-events-v3` to discover current support for the exact state, project type and hiring relationship before collecting its event facts. Supported scopes extend beyond Florida and Kansas; do not infer full coverage for a jurisdiction from one supported scope. The older `supplier-events-v2` interface remains limited to Florida and Kansas private-project baselines. Only the API decides eligibility and date availability. Report dates only when the API returns them for the submitted facts; a state guide or other reference is not a calculated result.
+**Calculation coverage:** `supplier-events-v3` has 306 reviewed private-project scope policies across all 50 states and DC. Use authenticated live discovery for the exact state, project type and hiring relationship before collecting event facts. Only the API decides eligibility and date availability for the submitted facts. Public projects and unsupported scopes require qualified review; missing or unknown facts can leave the affected deadline under review.
 
+The older `supplier-events-v2` interface remains limited to Florida and Kansas private-project baselines. Report a statutory deadline only when the API returns it as calculated for the submitted facts. State guides are public for all 50 states and DC and serve as references.
 
 ## Connect and check the tools
 

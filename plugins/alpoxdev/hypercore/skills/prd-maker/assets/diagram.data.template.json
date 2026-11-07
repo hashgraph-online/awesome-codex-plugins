@@ -1,0 +1,31 @@
+{
+  "title": "[Initiative Name]",
+  "subtitle": "Planning package map",
+  "branches": [
+    {
+      "label": "PRD",
+      "summary": "Problem, goals, scope, metrics",
+      "children": ["Problem", "Goals", "Scope", "Metrics"]
+    },
+    {
+      "label": "Feature Spec",
+      "summary": "Requirements, states, acceptance criteria",
+      "children": ["Requirements", "States", "Acceptance Criteria"]
+    },
+    {
+      "label": "User Flow",
+      "summary": "Entry points, happy path, edge cases",
+      "children": ["Entry Points", "Happy Path", "Edge Cases"]
+    },
+    {
+      "label": "Wireframe",
+      "summary": "Screens, components, empty/error states",
+      "children": ["Screens", "Components", "Empty/Error States"]
+    },
+    {
+      "label": "Open Questions",
+      "summary": "Product, design, technical gaps",
+      "children": ["Product", "Design", "Technical"]
+    }
+  ]
+}

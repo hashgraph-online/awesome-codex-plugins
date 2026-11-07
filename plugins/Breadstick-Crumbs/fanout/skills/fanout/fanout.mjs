@@ -896,31 +896,63 @@ function inboxCmd(cwd) {
   return 0;
 }
 
+// fanout done --json: one JSON object for orchestrators and agents, and an exit code per outcome, so the caller
+// can tell "your branch broke it" from "another branch did" or "main already fails" without parsing text.
+export const DONE_EXIT = { ok: 0, broke: 1, conflict: 1, not_ready: 2, broke_other: 3, conflict_other: 3, base_fails: 4, duplicate: 5, flaky: 6 };
+
+// The outcome of a rehearse log for this branch: { result, culprit, yours, failing }.
+export function doneOutcome(ok, log, branch) {
+  if (ok) return { result: "ok", culprit: null, yours: false, failing: null };
+  const at = log.findIndex((l) => /^(BROKE after|CONFLICT merging|REGEN FAILED after|CHECK FAILED|FLAKY|BASE FAILS)/.test(l));
+  const head = at < 0 ? "" : log[at], next = log[at + 1] ?? null;
+  if (/^FLAKY/.test(head)) return { result: "flaky", culprit: null, yours: false, failing: next };
+  if (/^BASE FAILS/.test(head)) return { result: "base_fails", culprit: null, yours: false, failing: next };
+  const culprit = head.match(/^(?:BROKE after|CONFLICT merging|REGEN FAILED after|CHECK FAILED) (\S+?):/)?.[1] ?? null;
+  const yours = culprit === branch, kind = /^CONFLICT/.test(head) ? "conflict" : "broke";
+  return { result: yours || !culprit ? kind : `${kind}_other`, culprit, yours, failing: /^CONFLICT/.test(head) ? head.replace(/^[^:]*:\s*/, "") : next };
+}
+
 // fanout done: this branch's commits merged with every other session's that has a live claim, on a scratch
 // copy, and the test run once (rehearse, bisecting only on failure). Says whose merge broke it.
 function doneCmd(cwd, argv) {
+  if (argv.includes("--json")) {
+    // Everything the text form prints goes into the object instead, so stdout is only the JSON.
+    const said = [], { log, error } = console;
+    console.log = (...a) => said.push(a.join(" ")); console.error = console.log;
+    let res;
+    try { res = doneRun(cwd, argv); } finally { console.log = log; console.error = error; }
+    const { code, ...rest } = res, logged = new Set(res.log ?? []);
+    log(JSON.stringify({ ...rest, exitCode: DONE_EXIT[res.result] ?? 1, messages: said.filter((m) => m && !logged.has(m)) }, null, 2));
+    return DONE_EXIT[res.result] ?? 1;
+  }
+  return doneRun(cwd, argv).code;
+}
+
+function doneRun(cwd, argv) {
   const root = mainRoot(cwd), branch = branchOf(cwd), base = arg(argv, "--base") ?? defaultBase(cwd);
+  const res = (result, code, more = {}) => ({ result, code, branch, base, ...more });
   const news = inboxText(cwd);
   if (news) console.log(news + "\n");
-  if (!branch || branch === base) { console.error(`fanout done: run it in a session's own branch (not ${base}), after committing.`); return 2; }
+  if (!branch || branch === base) { console.error(`fanout done: run it in a session's own branch (not ${base}), after committing.`); return res("not_ready", 2); }
   let test = arg(argv, "--test") ?? (spawnSync("git", ["config", "--get", "fanout.test"], { cwd, encoding: "utf8" }).stdout ?? "").trim();
   try { if (!test) test = planSetting(readFileSync(defaultPlan(cwd), "utf8"), "test"); } catch { /* no plan */ }
   try { if (!test && JSON.parse(readFileSync(join(root, "package.json"), "utf8")).scripts?.test) test = "npm test"; } catch { /* no package.json */ }
   // First: is this the same work as an older claim it hasn't been compared with (they started at once)?
   const live = liveClaims(root, base), mine = live.filter((c) => c.branch === branch).sort((a, b) => Date.parse(b.updated ?? b.at) - Date.parse(a.updated ?? a.at))[0], script = norm(fileURLToPath(import.meta.url));
   if (mine && !mine.refusedAs) { const rc = recheckClaim(root, mine, live, "done"); if (rc.unchecked.length) console.log(selfCheckText(rc.unchecked, mine.name, script).trim()); }
-  if (mine?.refusedAs) { console.error(`fanout done: ${refusalText(mine, live, script)}`); return 1; }
+  if (mine?.refusedAs) { console.error(`fanout done: ${refusalText(mine, live, script)}`); return res("duplicate", 1, { sameAs: mine.refusedAs }); }
   const ahead = (b) => Number(spawnSync("git", ["rev-list", "--count", `${base}..${b}`], { cwd: root, encoding: "utf8" }).stdout) || 0;
   const others = [...new Set(liveClaims(root, base).filter((c) => c.branch !== branch && c.branch !== base && ahead(c.branch)).sort((a, b) => Date.parse(a.at) - Date.parse(b.at)).map((c) => c.branch))];
-  if (git(["status", "--porcelain", "--untracked-files=no"], cwd).trim()) console.log("fanout done: you have uncommitted changes; only commits are tested. Commit first for a full check.");
-  if (!ahead(branch)) { console.error(`fanout done: ${branch} has no commits on top of ${base} yet.`); return 2; }
+  const uncommitted = !!git(["status", "--porcelain", "--untracked-files=no"], cwd).trim();
+  if (uncommitted) console.log("fanout done: you have uncommitted changes; only commits are tested. Commit first for a full check.");
+  if (!ahead(branch)) { console.error(`fanout done: ${branch} has no commits on top of ${base} yet.`); return res("not_ready", 2); }
   const { ok, log } = rehearse([...others, branch], { cwd: root, base, test, prefix: "" });
   log.forEach((l) => console.log(l));
-  const head = log.find((l) => /^(BROKE after|CONFLICT merging|REGEN FAILED after) /.test(l)) ?? "", who = head.match(/(?:after|merging) (\S+?):?(?:\s|$)/)?.[1];
+  const outcome = doneOutcome(ok, log, branch), who = outcome.culprit;
   if (ok) console.log(`fanout done: ${branch} works with ${others.length ? others.join(", ") : "nothing else yet (no other session has commits)"} on ${base}${test ? ` (\`${test}\` passes)` : " (no test command: merges only; set one with git config fanout.test \"<cmd>\")"}.`);
   else if (who === branch) console.log(`fanout done: merging ${branch} after ${others.join(", ") || base} breaks (above). Fix it on your branch.`);
   else if (who) console.log(`fanout done: it already breaks at ${who}, before your branch is merged (above): that session's work, not yours.`);
-  return ok ? 0 : 1;
+  return res(outcome.result, ok ? 0 : 1, { mergedWith: others, test: test || null, uncommitted, ...outcome, log });
 }
 
 // git pre-commit hook: the same rules on staged files, so agents outside Claude Code are held to the plan

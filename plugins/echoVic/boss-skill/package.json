@@ -54,7 +54,9 @@
     "provenance:verify": "node scripts/provenance.js verify",
     "release": "node scripts/release.js",
     "dsh:build": "node scripts/build-dsh.js",
-    "dsh:check": "node scripts/build-dsh.js --check"
+    "dsh:check": "node scripts/build-dsh.js --check",
+    "dsh:publish": "node scripts/publish-dsh.js",
+    "dsh:publish:dry": "node scripts/publish-dsh.js --dry-run"
   },
   "engines": {
     "node": ">=22.18"

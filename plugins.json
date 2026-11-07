@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-07",
-  "total": 384,
+  "total": 385,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -969,6 +969,17 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/yimwoo/hotl-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Hypercore",
+      "url": "https://github.com/alpoxdev/hypercore/tree/dev",
+      "owner": "alpoxdev",
+      "repo": "hypercore",
+      "description": "Korean-first agent skills for planning, architecture, design, docs, research, issues, and Git delivery, each with declared triggers, workflows, and validation gates.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/alpoxdev/hypercore/dev/.codex-plugin/plugin.json",
+      "source_ref": "dev"
     },
     {
       "name": "Image & Media Skills",

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "surface": "http://localhost:3000/settings",
+  "captures": [
+    {
+      "viewport": { "width": 375, "height": 800 },
+      "state": "focus",
+      "capturedAt": "2026-08-29T12:00:00Z",
+      "observations": [
+        {
+          "locator": "button[type=submit]",
+          "rect": { "x": 16, "y": 600, "width": 343, "height": 44 },
+          "overflowX": false,
+          "focusVisible": true,
+          "computed": { "fontSize": "16px", "color": "rgb(0, 0, 0)" }
+        }
+      ]
+    }
+  ]
+}

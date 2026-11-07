@@ -258,7 +258,10 @@ Needs no baseline. The classes of finding:
     warehouse table), `filtered_cte` (a filtering scope of any other shape: a
     `GROUP BY`, `DISTINCT`, `LIMIT`, `HAVING`, `QUALIFY`, a join beside the
     filter, a subquery or clock function in it, or a filter on a computed or
-    window column such as `rn = 1`; the reason names the scope and the shape),
+    window column such as `rn = 1`, or a join that can drop rows of the
+    relation the key is read from: an inner, bare, comma or CROSS join, a
+    RIGHT join with the key on its left, or a LEFT join with the key on its
+    joined side; the reason names the scope and the shape),
     `unparseable_sql`, `relation_not_found`,
     `probe_refused` or `scan_offered`.
 
@@ -270,7 +273,14 @@ Needs no baseline. The classes of finding:
     row (`threshold_source: contract`, high). Otherwise the stated defaults,
     0.2 and 0.9 of eligible rows (`threshold_source: default`). On a LEFT join
     with no requirement, unmatched rows are the optional relationship the join
-    writes: no `join_orphans`, and `join_zero_overlap` at medium.
+    writes: no `join_orphans`, and `join_zero_overlap` at medium. On an INNER
+    join with no requirement whose unmatched rows the declaration accounts for
+    (an `assumptions` entry whose `column` names the driving key column, or a
+    `population.filters` entry on it), the join is the model's filter: the
+    record is `satisfied`, keeps its measured counts, and names the entry
+    under `unmatched_accounted_for` (`by`: `assumption` or
+    `population_filter`, the `column`, and the `withheld_finding` the default
+    would have raised). `join_no_match` still stands (#1162).
   - `join_field_all_null` (high): a column the join supplies, declared
     `null_rule: never`, NULL on every row. `join_field_newly_null` (medium):
     one with no rule, NULL on every row, where the exploration cache profiled

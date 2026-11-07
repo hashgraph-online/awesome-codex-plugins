@@ -105,7 +105,9 @@ the project edits, migrations and dev builds described below.
    an empty input, which is not full coverage) or `unchecked` (its `reason_code`
    says why, and it is not clean).
    Output keys the parent lacks are never the population: drive the model from
-   the parent instead.
+   the parent instead. Check the rows the request is about with an aggregate
+   over the built model, `dex explore query --target dev "<SELECT ...>"`, which
+   reads the dev namespace for that one command.
 6. **Maintain.** `dex maintain verify` checks the project as it stands;
    `dex maintain check` compares it with the last `dex maintain snapshot`;
    `dex maintain reconcile` proposes the fix as a plan for `transform apply`.

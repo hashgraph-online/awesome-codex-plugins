@@ -1,0 +1,50 @@
+{
+  "model": "jev-latest",
+  "state": {
+    "ticket": {
+      "channel": "email",
+      "subject": "Payouts have been failing since Monday",
+      "message": "My payouts have been failing since Monday. I already re-entered my bank details twice. I have supplier invoices due this week.",
+      "opened_at": "2026-09-29T08:12:00Z"
+    },
+    "customer": {
+      "plan": "growth",
+      "open_orders": [
+        { "id": "ord_8121", "status": "pending" },
+        { "id": "ord_8144", "status": "delivered" }
+      ]
+    },
+    "policy": {
+      "sensitive_credentials": ["password", "security code", "API key"]
+    }
+  },
+  "questions": {
+    "needs_human": {
+      "type": "noul",
+      "instructions": "Does this ticket need a human agent, rather than an automated reply?",
+      "criteria": {
+        "true": "The customer asks for something only a person can decide, such as a manual payout retry or a refund.",
+        "false": "The linked help article or the account data in state answers the question."
+      }
+    },
+    "queue": {
+      "type": "choice",
+      "instructions": "Which queue should own this ticket?",
+      "criteria": {
+        "billing": "Charges, payouts, invoices, refunds.",
+        "technical": "Bugs, outages, integrations, API errors.",
+        "account": "Login, plan changes, team membership.",
+        "other": null
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this ticket for the customer right now?",
+      "criteria": [
+        "Can wait: no money or access is blocked this week.",
+        "Time-boxed: money or access is blocked within the next few days.",
+        "Blocking: the customer cannot operate and is losing money today."
+      ]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+# lefthook.yml — copy to the repository root as lefthook.yml
+# Install once per clone: `lefthook install` (npm/pnpm/bun dev dependency or brew).
+# `stage_fixed: true` is pre-commit only.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: format
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css,md,yml,yaml}"
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+    - name: lint-js
+      glob: "*.{ts,tsx,js,jsx,mjs,cjs}"
+      run: npx oxlint {staged_files}
+      stage_fixed: true
+    - name: format-rust
+      glob: "*.rs"
+      run: cargo fmt --all
+      stage_fixed: true
+    - name: lint-rust
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features
+
+pre-push:
+  parallel: false
+  jobs:
+    - name: typecheck
+      glob: "*.{ts,tsx}"
+      run: npm run typecheck
+    - name: test
+      run: npm test

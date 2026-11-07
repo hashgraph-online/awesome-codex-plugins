@@ -6,16 +6,16 @@ Run `/digital-marketing-pro:engagement` against each brand. Same 12-Part Strateg
 
 Open-source AI marketing plugin — **164 skills, 24 specialist agents, EU AI Act Article 50 ready, Cowork team-persistent**. Built for marketing agencies, in-house teams running 50–200 brands, and consultancies. Installs on **Claude Code** (CLI + IDE), **Anthropic Cowork**, **OpenAI Codex**, **Cursor 2.5+**, **GitHub Copilot CLI**, **Google Antigravity 2.0**, **Hermes Agent**, **OpenClaw**, and **Grok** + 35+ Agent Skills platforms. Created by [Indranil Banerjee](https://indranil.in) · [LinkedIn](https://www.linkedin.com/in/askneelnow/) · [X](https://x.com/askneelnow).
 
-[![Version](https://img.shields.io/badge/version-3.41.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-3.42.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Stars](https://img.shields.io/github/stars/indranilbanerjee/digital-marketing-pro?style=flat&logo=github&color=yellow)](https://github.com/indranilbanerjee/digital-marketing-pro/stargazers)
-[![Tests](https://img.shields.io/badge/tests-1063%2F1063%20passing-brightgreen.svg)](tests/)
+[![Tests](https://img.shields.io/badge/tests-1099%2F1099%20passing-brightgreen.svg)](tests/)
 [![Platforms](https://img.shields.io/badge/platforms-9%20native%20%2B%2035%20Agent%20Skills-success.svg)](#works-on-40-agent-harnesses-via-the-agent-skills-open-standard)
 [![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Article%2050%20ready-darkred.svg)](skills/context-engine/compliance-rules.md)
 
 [![Built by Indranil "Neel" Banerjee — Neelverse Marketing Suite — Sponsor this project](docs/assets/author-banner.svg)](https://github.com/sponsors/indranilbanerjee)
 
-> 🆕 **Just shipped — v3.41.0 (October 29, 2026):** a client deliverable can get a zero-context review before the client reads it; a report shows what AI crawlers actually did on your site, checked against the addresses each vendor publishes; new ad products wait on a dated watch list until their page is read; and TikTok's own reference settles its caption limit. [What's new](#whats-new) · [Changelog](CHANGELOG.md)
+> 🆕 **Just shipped — v3.42.0 (November 7, 2026):** security fixes: Claude Code asks before every step of a live write (post, email, CRM, ads), the send, publish and launch skills start only when you run them, and text from web pages or client files is treated as data and never pasted into a shell command. [What's new](#whats-new) · [Changelog](CHANGELOG.md)
 
 ```bash
 # Install — one command (Claude Code 2.1.292 or newer)
@@ -63,7 +63,7 @@ Install, then ask in plain words. Each of these kinds of request reached the rig
 - **Install a package on its own.** A missing one prints the exact pinned install command.
 - **Send, publish or spend without your typed `yes`** (or a standing rule you approved). Writes it sends itself also need the single-use approval record above.
 - **Ask for an API key in the chat.** Connectors read keys from environment variables.
-- **Connect a service you did not set up.** No MCP server ships enabled and no hooks run.
+- **Connect a service you did not set up.** No MCP server ships enabled. The one hook only makes your host ask before a live write.
 - **Send your access logs anywhere.** The crawler-log report reads them on your machine, prints no full IP address, and downloads only the vendors' public crawler address lists, when you ask.
 - **Remove or hide AI watermarks.** AI involvement is disclosed, with C2PA provenance where the format supports it.
 
@@ -205,7 +205,7 @@ Other marketing plugins exist, including Anthropic's own marketing plugin and co
 | AEO / GEO | **A 6-platform audit, including Google AI Mode** |
 | Where it runs | **9 native hosts**: Claude Code, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes, OpenClaw, Grok |
 | Live-write safety | **Single-use approval record for writes it sends itself; MCP writes: typed yes + host prompt** |
-| Tests | **1063 stdlib unittest** tests |
+| Tests | **1099 stdlib unittest** tests |
 | License | **MIT: no telemetry, no seats** |
 
 ---
@@ -302,7 +302,7 @@ Output: HTTP calls for the 8 executable connectors (Slack, HubSpot, Klaviyo, Sen
 
 ---
 
-## Supported surfaces (v3.41.0)
+## Supported surfaces (v3.42.0)
 
 | Platform | Install command | Manifest path | Status |
 |---|---|---|---|
@@ -413,6 +413,10 @@ If you run into a platform-specific install snag, file a [GitHub issue](https://
 ---
 
 ## What's new
+
+### v3.42.0 — the host asks before every live write, outside text stays data (November 7, 2026)
+
+A security review of the plugin found that a live write (a Slack post, an email send, a CRM or ads change) could run without your host ever asking: 14 skills and commands pre-approved every shell command, and the approve step is a command the model runs itself. Now no skill pre-approves the shell beyond named local scripts, and on Claude Code the plugin's one hook makes the host ask before each prepare, approve and fire step, even when you saved "don't ask again". The send, publish, launch and sync skills start only when you run them as commands. Every agent, skill and command now says that fetched, uploaded or pasted text is data, never instructions, and JSON that may hold outside text goes through a file (`--data "@{data_file}"`), not a single-quoted shell argument. See [CHANGELOG.md](CHANGELOG.md) and [UPGRADE-GUIDE.md](UPGRADE-GUIDE.md).
 
 ### v3.41.0 — a zero-context review, what AI crawlers actually did, and a watch list for ad products (October 29, 2026)
 
@@ -728,7 +732,7 @@ Yes. Each brand has its own `~/.claude-marketing/brands/<brand-slug>/` directory
 Skip to `/digital-marketing-pro:campaign-plan`. Every individual surface (campaign / SEO / content / competitor / email / report) is independently runnable. The full engagement is the canonical path, not the only path.
 
 **Q: Will this work on Codex / Cursor / Copilot CLI / Antigravity?**
-Yes — verified-real native manifests ship for all 9 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok). See [Supported surfaces](#supported-surfaces-v3410) above for per-platform install commands.
+Yes — verified-real native manifests ship for all 9 surfaces (CC, Cowork, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok). See [Supported surfaces](#supported-surfaces-v3420) above for per-platform install commands.
 
 **Q: I run my team on Anthropic Cowork. Does brand state persist between sessions?**
 Yes — but you need to run `/digital-marketing-pro:cowork-setup` once per team first (v3.12.0). Cowork's per-session filesystem is ephemeral, and `${CLAUDE_PLUGIN_DATA}` is too ([open issue #51398](https://github.com/anthropics/claude-code/issues/51398)). The setup wizard routes brand profiles + plans + reports through a Google Drive MCP so everything survives across sessions and is shared across the team. Multi-team isolation via per-team folder names.
@@ -801,7 +805,7 @@ Use the direct repo form: `grok plugin install indranilbanerjee/digital-marketin
 ### General (any platform)
 
 **"Tests in `tests/` fail when I `git clone` locally"**
-Run `python tests/run_all.py` from the repo root. All 1063 tests are stdlib-only — no `pip install` needed. If they fail, the most likely cause is a Python version mismatch (DMP supports Python 3.10+; `scripts/setup.py` recommends 3.11 or newer, and the floor moves to 3.11 once Claude's Cowork environment does) or a clone that omitted some `skills/` subdirectories. Try `git clone --depth=1` again.
+Run `python tests/run_all.py` from the repo root. All 1099 tests are stdlib-only — no `pip install` needed. If they fail, the most likely cause is a Python version mismatch (DMP supports Python 3.10+; `scripts/setup.py` recommends 3.11 or newer, and the floor moves to 3.11 once Claude's Cowork environment does) or a clone that omitted some `skills/` subdirectories. Try `git clone --depth=1` again.
 
 **"`/digital-marketing-pro:doctor` shows my action as stub_unconfigured"**
 That action needs an MCP connector configured. Run `python scripts/connector-status.py --action setup-guide --name <connector-name>` for the exact setup snippet. Add it to your `.mcp.json` under `mcpServers`, restart your agent, and the action becomes `manifest_ready`. See [Connector-aware action resolver](#connector-aware-action-resolver) for the full readiness model.

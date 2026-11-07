@@ -1,0 +1,6 @@
+{"id":"valid-v2-report","command":"report","input":"skills/hyper-design/assets/fixtures/reports/valid-v2.ko.md","expectedExit":0}
+{"id":"static-only-visual-claim-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/invalid-static-claim.ko.md","expectedExit":1,"expectedError":"RENDER_CLAIM_CONFLICT"}
+{"id":"valid-brand-waiver","command":"waiver","input":"skills/hyper-design/assets/waiver.example.json","expectedExit":0}
+{"id":"global-waiver-rejected","command":"waiver","input":"skills/hyper-design/assets/fixtures/waivers/invalid-global.json","expectedExit":1,"expectedError":"narrow file path"}
+{"id":"valid-rendered-handoff","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/valid.json","expectedExit":0}
+{"id":"invalid-rendered-handoff-rejected","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/invalid.json","expectedExit":1,"expectedError":"surface must be a non-empty string"}

@@ -211,7 +211,7 @@ fanout                    # every session: what it's doing, what it changed, ove
 fanout start "<task>"     # claim this session's task (agents without hooks)
 fanout inbox              # changes other sessions committed since you last looked (agents without hooks)
 fanout demo               # claims and notices with real sessions in a throwaway repo (~2 min, ~$0.10)
-fanout done               # test this branch merged with the others' work
+fanout done               # test this branch merged with the others' work (--json for scripts and orchestrators)
 fanout claims             # every claim; fanout release <name> ends one early
 fanout log                # the last 7 days: each refusal and notice, to check by hand (--days 30)
 ```

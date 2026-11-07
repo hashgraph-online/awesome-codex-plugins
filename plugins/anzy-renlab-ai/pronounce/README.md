@@ -35,6 +35,13 @@
 ## 🚀 Try it in 30 seconds
 
 ```bash
+curl -fsSL https://pronounce.renlab.ai/install.sh | bash   # one-liner, no clone
+say-it kubectl
+```
+
+or the explicit way:
+
+```bash
 git clone https://github.com/anzy-renlab-ai/pronounce.git
 cd pronounce && ./install.sh
 say-it kubectl
@@ -42,7 +49,7 @@ say-it kubectl
 
 ![say-it CLI demo — kubectl, YAML, TOML, Ghostty](pitch/say-it-cli-demo.gif)
 
-That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --why JSON`, or `say-it quiz` for a 10-question challenge. **Linux** users: install `espeak-ng` (`sudo apt install espeak-ng`) and the CLI just works. **Windows**: same CLI under WSL or git-bash + PowerShell. Or skip install and use the browser at **[pronounce.renlab.ai](https://pronounce.renlab.ai)**.
+That's it. Now try `say-it GIF`, `say-it nginx`, `say-it Pydantic`, `say-it --why JSON`, or `say-it quiz` for a 10-question challenge. **Linux** users: install `espeak-ng` (`sudo apt install espeak-ng`) and the CLI just works. **Windows**: same CLI under WSL or git-bash + PowerShell. Or skip install and use the browser at **[pronounce.renlab.ai](https://pronounce.renlab.ai)** — where 49 word pages now link the **🎬 moment the creator says the name** (Knuth on TeX, Lamport on LaTeX, Evan You on Vite, Stallman on GNU — [example: Tcl](https://pronounce.renlab.ai/word/tcl)).
 
 > ⭐ If `say-it kubectl` saves you one cringey standup moment — **[star the repo](https://github.com/anzy-renlab-ai/pronounce)**. It nudges more devs to contribute their favorite mispronounced project name.
 
@@ -202,7 +209,7 @@ Add a pronunciation glossary to every documentation pull request:
   with:
     fetch-depth: 0
 - id: pronounce
-  uses: anzy-renlab-ai/pronounce@v2.29.0
+  uses: anzy-renlab-ai/pronounce@v2.30.0
 ```
 
 `Pronounce Docs` scans changed Markdown/MDX and writes a table containing each
@@ -264,7 +271,7 @@ Local override: drop a `~/.config/say-it/pronunciations.local.tsv` and it takes 
 - ✅ Windows — PowerShell `System.Speech` from the same Bash CLI under Git Bash/MSYS2/Cygwin.
 - ✅ 1,920 entries; 1,300 carry a citable source — the rest are confidence-tagged, no fabricated citations.
 - ✅ **Audible multi-reading awareness** — contested words audibly chain alternates with "or:".
-- ✅ `--alt [N]`, `--all`, `--solo`, `--why`, `--json`, `--md`, `--no-dict`, `list`, `search`, `quiz`, `repl`, `stream`, `doctor`, `export`, `benchmark`, `badge`, `cheatsheet`.
+- ✅ `--alt [N]`, `--all`, `--solo`, `--why`, `--json`, `--md`, `--no-dict`, `list`, `search`, `quiz`, `repl`, `stream`, `doctor`, `export`, `benchmark`, `badge`, `cheatsheet`, `propose` (draft a new dictionary row + prefilled contribution issue).
 - ✅ Claude Code skill + MCP server for AI-side pronunciation questions.
 - ✅ GitHub Action — sourced pronunciation glossaries for Markdown pull requests.
 - ✅ Browser PWA — installable, offline-capable, instant search, voice-mic search, interactive quiz.

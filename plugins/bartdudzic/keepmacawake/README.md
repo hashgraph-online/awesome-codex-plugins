@@ -4,7 +4,7 @@ This plugin teaches an AI agent to use Keep Mac Awake, a macOS app that keeps a 
 
 It has two parts:
 
-- **A skill** (`skills/keepmacawake/SKILL.md`, in the Agent Skills format): when to start and stop a session, what to ask you first, and what to do when the command refuses.
+- **A skill** (`skills/keep-mac-awake/SKILL.md`, in the Agent Skills format): when to start and stop a session, what to ask you first, and what to do when the command refuses.
 - **A session-start hook** (`hooks/session-start.sh`): when an agent session begins, it runs `keepmacawake status --json` once and adds a few sentences of its own to the agent's context, built from a few fields of the reply (whether a session runs, its time left, the trial, a newer version), so the agent knows the app is there without being reminded. It never passes on the app's text or the Mac ID. It is read only: it makes no network connection and never starts, stops or changes anything.
 
 The agent starts timed sessions on its own and tells you in one line. It always asks before a session without a time limit, battery use, installing the app and buying.

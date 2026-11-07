@@ -16,15 +16,26 @@
 
 **Boss is an expert-squad workflow for coding agents.** It turns one coding agent into a structured engineering team: PM, Architect, UI Designer, Tech Lead, Scrum Master, Frontend, Backend, QA, and DevOps. Unlike prompt-only agent teams, Boss enforces hard quality contracts per role, produces replayable artifacts, and chains stages automatically — start anywhere, it runs the rest until you say stop.
 
-Boss works with Claude Code, Codex, OpenClaw, Antigravity, and Hermes.
+Boss works with Claude Code, Codex, OpenClaw, Antigravity, Hermes, and DeepSeek Harness.
 
 ## DeepSeek Harness
 
-Boss also ships a DeepSeek Harness bundle. It adds a selectable **Boss Expert Squad**
-preset and a right sidebar that reads live Agent Teams members and tasks. Install
-`integrations/deepseek-harness` from the [GitHub Release](https://github.com/echoVic/boss-skill/releases/tag/dsh-boss-mode-v0.1.3) or the
-[raw DSH market index](https://raw.githubusercontent.com/echoVic/boss-skill/main/integrations/deepseek-harness/marketplace.json), then restart DSH and select `Boss Expert Squad`. Enable DSH's experimental Agent Teams profile
-when you want `spawn_teammate`, the native roster, and the task board.
+Boss also ships a DeepSeek Harness bundle, published to npm as
+[`dsh-boss-mode`](https://www.npmjs.com/package/dsh-boss-mode). It adds a selectable
+**Boss Expert Squad** preset and a right sidebar that reads live Agent Teams members and
+tasks.
+
+```bash
+dsh plugin --profile desktop add dsh-boss-mode
+```
+
+You can also install the tarball from the
+[GitHub Release](https://github.com/echoVic/boss-skill/releases/tag/dsh-boss-mode-v0.1.5)
+or add the
+[raw DSH market index](https://raw.githubusercontent.com/echoVic/boss-skill/main/integrations/deepseek-harness/marketplace.json).
+Then restart DeepSeek Harness, create a new session, and pick **Boss Expert Squad**. Enable
+DSH's experimental Agent Teams profile when you want `spawn_teammate`, the native roster,
+and the task board.
 
 ## Why Boss
 
@@ -65,7 +76,7 @@ Stop the chain by saying "stop", "only do this step", or passing `--stop-after <
 
 ### 1. Install
 
-Boss is a skill you install into your coding agent. Distribution is marketplace-only: no npm package, no global binary.
+Boss is a skill you install into your coding agent. The skill itself is distributed through marketplaces (no global binary); the DeepSeek Harness bundle ships separately as the npm package [`dsh-boss-mode`](https://www.npmjs.com/package/dsh-boss-mode).
 
 **Claude Code — plugin marketplace (recommended):**
 
@@ -87,6 +98,14 @@ Then open the plugin browser (`/plugins`) and install **boss**.
 ```bash
 npx skills add echoVic/boss-skill
 ```
+
+**DeepSeek Harness — npm plugin:**
+
+```bash
+dsh plugin --profile desktop add dsh-boss-mode
+```
+
+Then restart DeepSeek Harness, create a new session, and pick **Boss Expert Squad** in the mode picker (see [DeepSeek Harness](#deepseek-harness)).
 
 ### 2. Try It On A Project You Already Have
 
@@ -281,7 +300,7 @@ npm run release -- 4.1.0
 npm run release -- 4.1.0 --dry-run
 ```
 
-The release script checks for a clean worktree, runs the full verification chain (typecheck, lint, test), syncs versions across all manifests, verifies consistency, creates a commit and tag, and pushes. Release is the git tag: marketplaces read the repository — there is no npm publish step and no build step.
+The release script checks for a clean worktree, runs the full verification chain (typecheck, lint, test), syncs versions across all manifests, verifies consistency, creates a commit and tag, and pushes. Release is the git tag: marketplaces read the repository — there is no npm publish step and no build step. The DeepSeek Harness bundle is versioned separately and published to npm by a tag-triggered workflow (`.github/workflows/dsh-publish.yml`). See [docs/dsh-release.md](./docs/dsh-release.md) for the full checklist.
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md).
 

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "waivers": [
+    {
+      "ruleId": "surface.gradient-text",
+      "value": "purple-to-blue hero gradient",
+      "reason": "DESIGN.md explicitly requires this brand treatment.",
+      "source": "documented-brand",
+      "reviewAfter": "2027-01-01"
+    }
+  ]
+}

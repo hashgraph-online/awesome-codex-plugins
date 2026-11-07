@@ -424,8 +424,9 @@ The prompt-ab-tester tracks variant performance over time. Use it when you want 
 ### Setting Up a Test
 
 ```
+# write with the Write tool first: {data_file} holds {"description":"Testing email subject line styles for Q1 campaign"}
 python prompt-ab-tester.py --action create-test --test-name email-subject-q1 \
-    --data '{"description":"Testing email subject line styles for Q1 campaign"}'
+    --data "@{data_file}"
 ```
 
 ### Logging Variants
@@ -433,11 +434,13 @@ python prompt-ab-tester.py --action create-test --test-name email-subject-q1 \
 Run each variant through `eval-runner.py`, then log the scores:
 
 ```
+# write with the Write tool first: {data_file} holds {"description":"Direct benefit","scores":{"content_quality":85,"brand_voice":78,"composite":82}}
 python prompt-ab-tester.py --action log-variant --test-name email-subject-q1 \
-    --variant A --data '{"description":"Direct benefit","scores":{"content_quality":85,"brand_voice":78,"composite":82}}'
+    --variant A --data "@{data_file}"
 
+# write with the Write tool first: {data_file} holds {"description":"Question-based","scores":{"content_quality":78,"brand_voice":82,"composite":80}}
 python prompt-ab-tester.py --action log-variant --test-name email-subject-q1 \
-    --variant B --data '{"description":"Question-based","scores":{"content_quality":78,"brand_voice":82,"composite":80}}'
+    --variant B --data "@{data_file}"
 ```
 
 ### Minimum Sample Sizes
@@ -504,7 +507,8 @@ python eval-config-manager.py --action get-config
 python eval-config-manager.py --action set-threshold --dimension hallucination --threshold 80 --content-type ad_copy
 
 # Create an A/B test
-python prompt-ab-tester.py --action create-test --test-name headline-test --data '{"description":"Testing headline styles"}'
+# write with the Write tool first: {data_file} holds {"description":"Testing headline styles"}
+python prompt-ab-tester.py --action create-test --test-name headline-test --data "@{data_file}"
 
 # Get A/B test results
 python prompt-ab-tester.py --action get-results --test-name headline-test

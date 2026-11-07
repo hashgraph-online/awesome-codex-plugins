@@ -1,6 +1,6 @@
 // Claims: which session is doing what, kept in git so every session of a repo sees them at once.
 //   fanout start "<task>" [files...]              claim this session's task (agents without hooks: AGENTS.md says so)
-//   fanout done                                   test this branch merged with the other sessions' work (fanout.mjs)
+//   fanout done [--json]                          test this branch merged with the other sessions' work (fanout.mjs)
 //   fanout inbox                                  changes other sessions committed since this one last looked (notices)
 //   fanout claim <name> "<task>" [files...] [--exposes a,b] [--distinct "how it differs"]   files named here are locked
 //   fanout claims [--all]                         live claims (--all: expired ones too)
