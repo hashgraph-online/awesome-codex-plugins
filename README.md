@@ -146,6 +146,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 <!-- pinned -->
 
 - [A Team](https://github.com/RBraga01/a-team) - A complete engineering team in one folder with 26 specialist agents, 20 workflow skills, an orchestrator, and quality gates; integration and hook support vary by coding platform.
+- [Actera](https://github.com/Actera-AI/actera-codex) - Checks each Codex tool call against Actera workspace policies before it runs, holds calls that need a reviewer's approval, and records every decision and outcome.
 - [Aegis](https://github.com/GanyuanRan/Aegis) - An agentic skills framework & software development methodology that works: planning, TDD, debugging, and collaboration workflows.
 - [Agency Continuity Audit](https://github.com/revertcreations/agency-continuity-audit) - Read-only audit that distinguishes durable agent goals, state, corrections, restart evidence, authority boundaries, scheduler claims, and commercial proof from self-reported health.
 - [Agent Deck](https://github.com/not-so-fat/agent-deck) - One MCP for context management: bind self-improving playbooks, MCP tools, and API keys to the session.
