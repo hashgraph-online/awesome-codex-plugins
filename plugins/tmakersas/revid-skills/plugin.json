@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "revid",
+  "version": "1.0.1",
+  "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X with the hosted Revid MCP server and 12 skills.",
+  "author": {
+    "name": "Revid",
+    "email": "hello@revid.ai",
+    "url": "https://www.revid.ai"
+  },
+  "homepage": "https://www.revid.ai/mcp",
+  "repository": "https://github.com/tmakersas/revid-skills",
+  "license": "MIT",
+  "keywords": ["video", "ai-video", "short-form-video", "tiktok", "youtube-shorts", "instagram-reels", "social-media", "content-creation", "mcp"]
+}

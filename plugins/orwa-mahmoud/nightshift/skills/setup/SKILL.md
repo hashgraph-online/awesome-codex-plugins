@@ -152,9 +152,12 @@ scaffolding as if the site were current.
 
 ## 3. Gates — ask, never impose
 
-Detect the stack in the persisted work target from the table in
+Detect the stack in the persisted work target from
+`ns catalog-index --catalog gates` and
 `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/compose/gates-catalog.md`
-(monorepo-aware). A plugin or marketplace manifest may sit at the work-target
+(monorepo-aware). Read only the stacks whose Detect matches, in the order the index prints them.
+An owner's stack of the same key replaces the shipped one; say where each proposal came from.
+A plugin or marketplace manifest may sit at the work-target
 root or one directory down at `plugins/<name>/.claude-plugin/` /
 `plugins/<name>/.codex-plugin/`; that nested layout is a match when no
 language-stack row already won. Then ask the

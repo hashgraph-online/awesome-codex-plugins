@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "resume-tailor",
+  "version": "1.1.0",
+  "description": "Evidence-based resume tailoring and candidate profile onboarding. Review job fit, factual reliability and document quality separately; optionally export PDF or DOCX.",
+  "author": {
+    "name": "Oleg Gaidukov",
+    "url": "https://www.linkedin.com/in/ahaidukof/"
+  },
+  "homepage": "https://github.com/olegvg/resume-tailor-plugin",
+  "repository": "https://github.com/olegvg/resume-tailor-plugin",
+  "license": "MIT",
+  "keywords": [
+    "resume",
+    "cv",
+    "ats",
+    "job-application",
+    "career",
+    "cover-letter",
+    "job-search",
+    "hiring"
+  ]
+}

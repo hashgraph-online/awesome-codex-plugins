@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "mnemoverse",
+  "version": "1.0.3",
+  "description": "Persistent memory for AI agents, shared across tools. Connects the hosted Mnemoverse memory server over remote MCP with a one-time browser sign-in: recall relevant memories before acting, save durable decisions and corrections, keep shared rooms (beta) across accounts. Bundles the CC0 agent-memory-discipline skill so the agent actually uses the memory it has.",
+  "author": {
+    "name": "Mnemoverse",
+    "email": "hello@mnemoverse.com",
+    "url": "https://mnemoverse.com"
+  },
+  "homepage": "https://mnemoverse.com/docs/api/remote-mcp-server",
+  "repository": "https://github.com/mnemoverse/claude-plugin",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "agent-memory",
+    "persistent-memory",
+    "mcp",
+    "context"
+  ]
+}

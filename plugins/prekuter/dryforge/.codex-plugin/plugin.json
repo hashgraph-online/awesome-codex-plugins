@@ -26,21 +26,5 @@
     "verification",
     "autonomy"
   ],
-  "skills": "./skills/",
-  "interface": {
-    "displayName": "Dryforge",
-    "shortDescription": "ready, then go.",
-    "longDescription": "Bounded-autonomy plugin harness for agents. Intent to implementation: ready, then go.",
-    "developerName": "prekuter",
-    "category": "Productivity",
-    "capabilities": [
-      "Interactive",
-      "Write"
-    ],
-    "defaultPrompt": [
-      "Use Dryforge ready to turn this goal, doc, or notes into an intent to approve.",
-      "Use Dryforge go to carry out the approved intent."
-    ],
-    "brandColor": "#F59E0B"
-  }
+  "skills": "./skills/"
 }

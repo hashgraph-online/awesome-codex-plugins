@@ -1,6 +1,6 @@
 {
   "name": "arcmira",
-  "version": "0.10.9",
+  "version": "0.10.11",
   "description": "YouTube transcript search and monitoring for your AI: exact quotes, full transcripts and speakers.",
   "author": {
     "name": "Arcmira",
@@ -20,8 +20,6 @@
     "podcast",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Arcmira: YouTube Transcript Search",
     "shortDescription": "YouTube transcript search",
@@ -43,5 +41,7 @@
     "termsOfServiceURL": "https://arcmira.com/terms",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

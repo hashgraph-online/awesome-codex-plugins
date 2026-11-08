@@ -1,7 +1,7 @@
 {
   "name": "dropthehassle",
   "version": "1.0.5",
-  "description": "Your AI publishes a site to a free HTTPS link or your own .com. It never pays.",
+  "description": "Your AI can deploy a website to a free HTTPS link, buy a domain for it (.com €19 / $19 a year) and set up email on my domain. You pay; it never does.",
   "author": {
     "name": "DropTheHassle",
     "email": "info@dropthehassle.com",
@@ -19,13 +19,6 @@
     "cursor",
     "codex"
   ],
-  "skills": "./skills/",
-  "mcpServers": {
-    "dropthehassle": {
-      "type": "http",
-      "url": "https://dropthehassle.com/mcp"
-    }
-  },
   "interface": {
     "displayName": "DropTheHassle",
     "shortDescription": "Your AI publishes a site to a free HTTPS link or your own .com. It never pays.",
@@ -43,5 +36,7 @@
     ],
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

@@ -83,8 +83,21 @@
     "evidence": {
       "fileMap": "off",
       "architecture": "off",
-      "default": ""
+      "default": "",
+      "kindTemplatePath": "",
+      "kindsPaths": [],
+      "check": "off",
+      "review": "off",
+      "unavailable": ""
     }
+  },
+  "gates": {
+    "stackTemplatePath": "",
+    "stacksPaths": []
+  },
+  "edgeCases": {
+    "packTemplatePath": "",
+    "packsPaths": []
   },
   "recovery": {
     "launchScope": "inherit-recorded-scope",

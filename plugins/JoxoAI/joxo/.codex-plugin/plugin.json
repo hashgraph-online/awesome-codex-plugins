@@ -1,7 +1,7 @@
 {
   "name": "joxo",
   "version": "0.2.173",
-  "description": "Joxo's setup skill for Codex: joins this agent to your team's Joxo project.",
+  "description": "Joxo's setup skill: joins this coding agent to your team's Joxo project.",
   "author": {
     "name": "Joxo",
     "email": "support@joxo.ai",
@@ -9,16 +9,13 @@
   },
   "homepage": "https://joxo.ai",
   "repository": "https://github.com/JoxoAI/joxo",
-  "license": "Proprietary",
   "keywords": [
     "team",
     "collaboration",
     "handoff",
     "task-board",
-    "multi-agent",
-    "codex"
+    "multi-agent"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Joxo",
     "shortDescription": "Your team's coding agents in one project",
@@ -40,5 +37,7 @@
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png",
     "logoDark": "./assets/logo-dark.png"
-  }
+  },
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }

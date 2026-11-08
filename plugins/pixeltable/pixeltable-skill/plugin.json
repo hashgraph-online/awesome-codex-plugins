@@ -1,0 +1,57 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "pixeltable",
+  "version": "2.14.0",
+  "description": "Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data. Declarative tables, computed columns, retrieval, agents, and HTTP.",
+  "author": {
+    "name": "Pixeltable",
+    "url": "https://github.com/pixeltable"
+  },
+  "homepage": "https://docs.pixeltable.com/",
+  "repository": "https://github.com/pixeltable/pixeltable-skill",
+  "license": "Apache-2.0",
+  "keywords": [
+    "pixeltable",
+    "multimodal",
+    "rag",
+    "multimodal-rag",
+    "video-search",
+    "image-similarity-search",
+    "agent-memory",
+    "embeddings",
+    "vector-search",
+    "audio-transcription",
+    "dataset-versioning",
+    "agents",
+    "computed-columns"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png",
+        "screenshots": [
+          "./assets/icon.png"
+        ],
+        "displayName": "Pixeltable",
+        "shortDescription": "Multimodal RAG, video/image/audio search, and agent memory in one file",
+        "longDescription": "Multimodal RAG over PDFs, images, and video; video search; image similarity search; embeddings stored with your data; audio transcription search; agent memory; incremental pipelines; dataset versioning. Tables, computed columns, embedding indexes, tool-calling agents, and the pxt CLI (schema, service, inspect).",
+        "developerName": "Pixeltable",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Read",
+          "Write"
+        ],
+        "websiteURL": "https://docs.pixeltable.com/",
+        "privacyPolicyURL": "https://github.com/pixeltable/pixeltable-skill/blob/main/SECURITY.md",
+        "termsOfServiceURL": "https://github.com/pixeltable/pixeltable-skill/blob/main/LICENSE",
+        "brandColor": "#2563EB",
+        "defaultPrompt": [
+          "Index my video library and make it searchable",
+          "Add RAG over my PDFs and images",
+          "Give my AI agent long-term memory across sessions"
+        ]
+      }
+    }
+  }
+}

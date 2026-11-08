@@ -21,8 +21,6 @@
     "seedance",
     "x402"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./mcp.json",
   "interface": {
     "displayName": "Treza",
     "shortDescription": "Make AI videos from your agent",
@@ -41,5 +39,7 @@
     "termsOfServiceURL": "https://docs.trezalabs.com/terms-and-privacy/terms-of-service",
     "composerIcon": "./assets/treza-logo-400.png",
     "logo": "./assets/treza-logo-400.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

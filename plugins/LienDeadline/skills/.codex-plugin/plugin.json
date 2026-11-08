@@ -17,8 +17,6 @@
     "lien-deadlines",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./mcp.json",
   "interface": {
     "displayName": "LienDeadline",
     "shortDescription": "Lien and notice deadlines",
@@ -37,5 +35,7 @@
     "brandColor": "#205E4E",
     "composerIcon": "./.claude-plugin/icon.svg",
     "logo": "./.claude-plugin/icon.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

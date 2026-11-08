@@ -30,7 +30,6 @@
     "clickhouse",
     "trino"
   ],
-  "skills": "./skills/",
   "requires_local_executor": true,
   "interface": {
     "displayName": "Exmergo Dex",
@@ -54,5 +53,6 @@
       "Help me build dbt models from my source tables.",
       "Check my project for schema and semantic drift."
     ]
-  }
+  },
+  "skills": "./skills/"
 }

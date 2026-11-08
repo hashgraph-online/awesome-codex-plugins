@@ -17,17 +17,33 @@ day loses nothing and the menu is not offered twice for the same plan:
 
 ## Evidence lines and shift-wide evidence
 
-Read `evidence/catalog.md` and suggest one `Evidence:` line per item, beside its `Verify:`. Then
+Read `evidence/catalog.md` and suggest one `Evidence:` line per item, beside its `Verify:`.
+List the kinds with `ns catalog-index --catalog evidence` and read in full only the kinds that
+fit the drafted items. Each line names its source. Where an owner's kind and a shipped kind both
+fit, suggest the owner's. When no kind fits an item, offer once to draft one from
+`receipts.evidence.kindTemplatePath` when that is set, otherwise from the shipped template. Show
+the draft, and write it only after the owner says yes, into the project folder or the user folder,
+whichever the owner names. Then
 ask once, for the whole plan rather than per item, which shift-wide settings to include: evidence
 every item should carry (`receipts.evidence.default`), a file map on every receipt
 (`receipts.evidence.fileMap`), an architecture diagram kept current
-(`receipts.evidence.architecture`). Each stays off unless the owner says yes. The plan room cannot
+(`receipts.evidence.architecture`). Each stays off unless the owner says yes. When evidence lines
+were picked, also ask once for the whole plan, with the defaults shown: `receipts.evidence.check`
+(off), `receipts.evidence.review` (off), and `receipts.evidence.unavailable` (hold when check is
+block, otherwise note). The owner may set any of them on an item's `Evidence:` line, as
+`check:`, `review:`, or `unavailable:`, and the item wins. A file the line names is one backtick
+name in that item's evidence folder. Nothing about these three is asked when evidence lines were
+not picked. Record each choice as a `Decided:` line. The plan room cannot
 write the rules file or a shift policy, so it records the yes and names the setting for the owner;
-Hunt writes it into tonight's policy. Evidence shows the work; it never gates a tick.
+Hunt writes it into tonight's policy. Evidence shows the work. check off leaves the tick alone,
+report names a missing file, and block keeps the stop open.
 
 ## Edge-case pass
 
 Read `plan/edge-cases.md` and propose WHEN/THEN lines for the cases each item can meet.
+List the packs with `ns catalog-index --catalog edge-cases`, with their source, and read only the
+packs that fit. Suggest from the owner's packs where they fit, and offer once to draft a new pack
+from the template when none fits, written only after the owner says yes.
 
 ## Pre-mortem
 

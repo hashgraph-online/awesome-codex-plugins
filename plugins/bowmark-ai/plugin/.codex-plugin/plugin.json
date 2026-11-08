@@ -16,8 +16,6 @@
     "automation",
     "ai-agents"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "userConfig": [
     {
       "key": "api_key",
@@ -36,5 +34,7 @@
     "websiteURL": "https://bowmark.ai",
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

@@ -1,23 +1,29 @@
 {
   "name": "notfair",
   "version": "0.27.18",
-  "description": "The official ads, analytics, SEO, and GEO plugin from NotFair.",
+  "description": "Operate Google, Meta, X, LinkedIn, Reddit, and TikTok Ads plus GA4, Search Console, GoHighLevel, and WordPress through one OAuth MCP, and run open-source SEO, GEO, and content workflows.",
   "author": {
     "name": "NotFair",
-    "url": "https://www.notfair.co"
+    "url": "https://notfair.co"
   },
-  "homepage": "https://www.notfair.co",
-  "repository": "https://github.com/nowork-studio/notfair-plugin",
-  "license": "MIT",
   "keywords": [
     "advertising",
     "analytics",
     "google-ads",
+    "meta-ads",
+    "x-ads",
+    "linkedin-ads",
+    "reddit-ads",
+    "tiktok-ads",
+    "wordpress",
+    "gohighlevel",
     "marketing",
-    "seo"
+    "seo",
+    "geo"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "license": "MIT",
+  "homepage": "https://notfair.co",
+  "repository": "https://github.com/nowork-studio/notfair-plugin",
   "interface": {
     "displayName": "NotFair",
     "shortDescription": "Ads, analytics, SEO, and GEO",
@@ -40,5 +46,7 @@
     "logo": "./assets/notfair-icon.png",
     "composerIcon": "./assets/notfair-icon.png",
     "supportURL": "https://notfair.co/contact"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

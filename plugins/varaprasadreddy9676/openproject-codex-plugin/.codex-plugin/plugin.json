@@ -1,6 +1,6 @@
 {
   "name": "openproject-codex",
-  "version": "0.1.1+codex.20260629040058",
+  "version": "0.1.1+codex.20260626220500",
   "description": "Codex plugin for managing OpenProject work, teams, content, and bulk workflows through the OpenProject API.",
   "author": {
     "name": "OpenProject Codex Contributors"

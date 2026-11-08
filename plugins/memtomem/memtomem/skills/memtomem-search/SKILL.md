@@ -1,6 +1,6 @@
 ---
 name: memtomem-search
-description: Search indexed memtomem memories by topic. Use for past decisions, notes, findings, or project context that may exist in the memory index.
+description: Search indexed memtomem memories by topic. Use for past decisions, notes, findings, or context saved by this or another agent that shares the same memtomem store.
 ---
 
 # Search memories

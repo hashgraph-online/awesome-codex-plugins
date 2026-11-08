@@ -1,7 +1,7 @@
 {
   "name": "a-team",
   "version": "1.4.1",
-  "description": "A complete engineering team in one folder. 26 pre-configured specialists, 20 enforced workflow skills, a lead orchestrator, and a Pipeline Auditor — for Claude Code, Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI.",
+  "description": "A complete engineering team in one folder: 26 specialist agents, 20 skills, orchestrated workflows and quality gates.",
   "author": {
     "name": "RBraga01",
     "url": "https://github.com/RBraga01"
@@ -9,20 +9,18 @@
   "homepage": "https://rbraga01.github.io/a-team/",
   "repository": "https://github.com/RBraga01/a-team",
   "license": "MIT",
+  "keywords": [
+    "agent-orchestration",
+    "claude-code",
+    "codex",
+    "cursor",
+    "opencode",
+    "tdd",
+    "code-review"
+  ],
   "websiteURL": "https://rbraga01.github.io/a-team/",
   "privacyPolicyURL": "https://github.com/RBraga01/a-team/blob/main/SECURITY.md",
   "termsOfServiceURL": "https://github.com/RBraga01/a-team/blob/main/LICENSE",
-  "keywords": [
-    "multi-agent",
-    "ai-agents",
-    "workflow",
-    "tdd",
-    "code-review",
-    "orchestration",
-    "claude-code",
-    "codex"
-  ],
-  "skills": "./skills/",
   "hooks": "./hooks/hooks.json",
   "interface": {
     "composerIcon": "./assets/icon.svg",
@@ -46,5 +44,6 @@
     "termsOfServiceURL": "https://github.com/RBraga01/a-team/blob/main/LICENSE",
     "brandColor": "#3b82f6",
     "screenshots": []
-  }
+  },
+  "skills": "./skills/"
 }

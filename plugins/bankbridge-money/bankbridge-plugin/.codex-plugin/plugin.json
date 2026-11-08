@@ -1,7 +1,7 @@
 {
   "name": "bankbridge",
   "version": "0.5.3",
-  "description": "Ask Codex about your own money: read-only access to your US bank, credit card and investment accounts through the BankBridge remote MCP server, fetched live on every question.",
+  "description": "Works in any MCP agent, including local models. Read-only access to your own US bank, credit card and investment accounts through the BankBridge hosted MCP server, $5/mo per connected bank. Includes a skill that maps money questions to the right tool.",
   "author": {
     "name": "Great Work LLC",
     "email": "hello@greatwork.company",
@@ -11,17 +11,18 @@
   "repository": "https://github.com/bankbridge-money/bankbridge-plugin",
   "license": "MIT",
   "keywords": [
+    "bankbridge",
     "finance",
     "banking",
-    "budget",
     "spending",
     "subscriptions",
     "investments",
     "mcp",
-    "read-only"
+    "oauth",
+    "read-only",
+    "local-models",
+    "self-hosted-agents"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "BankBridge",
     "shortDescription": "Ask about your real bank accounts, cards and investments",
@@ -46,5 +47,7 @@
       "./assets/screenshot-transactions.png",
       "./assets/screenshot-subscriptions.png"
     ]
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sendsets",
+  "version": "1.0.0",
+  "description": "Cold email for AI agents: the Sendsets MCP server plus skills for sending cold email sequences and running outbound campaigns.",
+  "author": { "name": "Sendsets", "email": "team@sendsets.com", "url": "https://sendsetsapi.com" },
+  "homepage": "https://sendsetsapi.com",
+  "repository": "https://github.com/AddisonHoff/sendsets",
+  "license": "Apache-2.0",
+  "keywords": ["cold-email", "outbound", "email", "sales", "campaigns", "warmup", "mcp"]
+}

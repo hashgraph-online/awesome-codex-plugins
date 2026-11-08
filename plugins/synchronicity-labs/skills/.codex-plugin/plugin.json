@@ -4,6 +4,7 @@
   "description": "Lipsync videos, make photos and AI characters talk, translate and dub videos, fix spoken words, localize campaigns, run batch lipsync, and build sync. into apps. Uses the hosted sync. MCP server.",
   "author": {
     "name": "sync. labs",
+    "email": "hello@sync.so",
     "url": "https://sync.so"
   },
   "homepage": "https://sync.so",
@@ -24,8 +25,6 @@
     "sync labs",
     "sync.so"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "sync. labs",
     "shortDescription": "Lipsync, dub & talking video",
@@ -42,5 +41,7 @@
       "Dub this YouTube video into Spanish",
       "Make my AI-generated clip say this line"
     ]
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

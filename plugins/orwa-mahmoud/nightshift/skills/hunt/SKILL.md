@@ -191,7 +191,7 @@ these, want any of: evidence lines, an edge-case pass, a pre-mortem, an ordering
 research? The default is none." Ask once per compose, never in run directly, and take one answer.
 For the options picked, read `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/plan/menu.md`
 and run only those; the order holds only the lines the owner keeps. A yes to shift-wide evidence
-goes into tonight's policy under `receipts.evidence`. Evidence never gates a tick.
+goes into tonight's policy under `receipts.evidence`. Evidence shows the work. check off leaves the tick alone, report names a missing file, and block keeps the stop open.
 
 In **run directly**, do not ask again: write the order and immediately cut it into the active
 shift. Record significant discovery and selection decisions in `$NS/inbox/parking-lot.md`.

@@ -1,0 +1,28 @@
+{
+  "description": "frugal - reminds the agent to look for the cheaper honest option when a prompt or an opened page involves spending",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/hooks/frugal-nudge.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "mcp__.*(navigate|new_page|open_url|preview_start|browser_batch|tabs_create).*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node --no-warnings \"${CLAUDE_PLUGIN_ROOT}/hooks/frugal-nudge.mjs\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

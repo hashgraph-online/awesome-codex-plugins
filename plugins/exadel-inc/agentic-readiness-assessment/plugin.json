@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentic-readiness-assessment",
+  "version": "4.5.1",
+  "description": "Evaluates a software repository for readiness to be developed and maintained by AI coding agents, and reports an evidence-based readiness scorecard. A second skill audits how much of your agents' run time goes to slow tool calls.",
+  "author": {
+    "name": "Exadel",
+    "url": "https://exadel.com"
+  },
+  "repository": "https://github.com/exadel-inc/agentic-readiness-assessment",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agentic-readiness",
+    "codebase-analysis",
+    "ai-agents",
+    "assessment",
+    "agent-latency"
+  ]
+}

@@ -36,8 +36,6 @@
     "competitive-analysis",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./mcp.json",
   "interface": {
     "displayName": "Mobbin",
     "shortDescription": "Real-world UI references",
@@ -60,5 +58,7 @@
     ],
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

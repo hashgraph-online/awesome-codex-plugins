@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "launch-film",
+  "version": "0.2.0",
+  "description": "A launch film from a website or an App Store page: its real logo, colors, fonts and screens, rendered locally with Chrome and ffmpeg.",
+  "author": {
+    "name": "Emin Budak",
+    "url": "https://eminbudak.com"
+  },
+  "repository": "https://github.com/EminBudak/launch-film",
+  "license": "MIT",
+  "keywords": ["video", "launch", "brand", "ffmpeg", "marketing"]
+}

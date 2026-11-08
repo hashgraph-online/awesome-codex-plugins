@@ -1371,7 +1371,7 @@
       "icon": "./plugins/arvkonstantin/herdr-codex-subagents/assets/icon.svg"
     },
     {
-      "name": "hol-guard-plugin",
+      "name": "hol-guard",
       "displayName": "HOL Guard Plugin",
       "source": {
         "source": "local",
@@ -1680,8 +1680,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Markdown-first long-term memory for Codex that searches, recalls, saves and indexes project notes, and resumes work from a handoff another session or agent wrote.",
-      "icon": "./plugins/memtomem/memtomem/assets/icon.png"
+      "description": "Markdown-first long-term memory for Codex that searches, recalls, saves and indexes project notes, and resumes work from a handoff another session or agent wrote."
     },
     {
       "name": "minicut",
@@ -1724,8 +1723,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Gives the model randomness from outside it before a creative task, so one prompt gives different answers that still do what was asked.",
-      "icon": "./plugins/modelsalt/model-salt/assets/icon.png"
+      "description": "Gives the model randomness from outside it before a creative task, so one prompt gives different answers that still do what was asked."
     },
     {
       "name": "multi-llm",
@@ -2586,7 +2584,7 @@
       "icon": "./plugins/TerminallyLazy/tree-ring-memory-codex-plugin/assets/tree-ring-memory-logo.png"
     },
     {
-      "name": "uizze",
+      "name": "uizze-ui-slop",
       "displayName": "UIZZE",
       "source": {
         "source": "local",
@@ -2952,7 +2950,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Hosted webhook inbox, memory locker, wake-up calls, uptime and heartbeat watch and ask-my-human utilities for agents over remote MCP with OAuth sign-in, paid from a prepaid balance the human tops up.",
-      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/icon.svg"
+      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/logo.svg"
     },
     {
       "name": "ahel",
@@ -3529,8 +3527,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Offers agent-native backend services for Codex and other coding agents, covering hosting, Postgres, email, storage, containers, LLMs, voice, and third-party APIs, with no-signup setup through MCP or API, free tiers, $5/month in AI and Search credits, and x402 top-ups.",
-      "icon": "./plugins/cohesivity-org/cohesivity-plugin/assets/icon.svg"
+      "description": "Offers agent-native backend services for Codex and other coding agents, covering hosting, Postgres, email, storage, containers, LLMs, voice, and third-party APIs, with no-signup setup through MCP or API, free tiers, $5/month in AI and Search credits, and x402 top-ups."
     },
     {
       "name": "cometchat-skills",
@@ -3708,8 +3705,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Search the coding sessions already on your disk — Codex, Claude Code, Cursor, opencode and thirty-nine more — including work from before it was installed, indexed locally with no model in the loop.",
-      "icon": "./plugins/vshulcz/deja-vu/assets/icon.svg"
+      "description": "Search the coding sessions already on your disk — Codex, Claude Code, Cursor, opencode and thirty-nine more — including work from before it was installed, indexed locally with no model in the loop."
     },
     {
       "name": "design-os-3d-blender",
@@ -3784,7 +3780,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Open-source AI marketing plugin for agencies — 154 skills, 25 specialist agents, 12-Part Strategy Flow, AEO/GEO, GSC AI Performance Report, Google Ads API v24, EU AI Act Article 50 / C2PA compliance.",
-      "icon": "./plugins/indranilbanerjee/digital-marketing-pro/assets/icon.svg"
+      "icon": "./plugins/indranilbanerjee/digital-marketing-pro/assets/icon.png"
     },
     {
       "name": "dodopayments",
@@ -4544,7 +4540,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Checks the citations in an answer at the registries that issue them and files a signed report anyone can recheck; hosted MCP with OAuth sign-in, free for 5 checks a month.",
-      "icon": "./plugins/MetisFoundry/metis-plugins/assets/icon-codex.png"
+      "icon": "./plugins/MetisFoundry/metis-plugins/assets/icon.png"
     },
     {
       "name": "mnemoverse",

@@ -6,7 +6,6 @@
     "name": "Exadel",
     "url": "https://exadel.com"
   },
-  "homepage": "https://github.com/exadel-inc/agentic-readiness-assessment",
   "repository": "https://github.com/exadel-inc/agentic-readiness-assessment",
   "license": "Apache-2.0",
   "keywords": [
@@ -16,7 +15,6 @@
     "assessment",
     "agent-latency"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Agentic Readiness Assessment",
     "shortDescription": "Score a repository's readiness for AI coding agents.",
@@ -38,5 +36,6 @@
     "brandColor": "#202020",
     "logo": "./logo.png",
     "composerIcon": "./logo.png"
-  }
+  },
+  "skills": "./skills/"
 }

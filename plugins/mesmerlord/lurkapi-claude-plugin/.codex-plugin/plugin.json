@@ -1,7 +1,7 @@
 {
   "name": "lurkapi",
   "version": "1.4.0",
-  "description": "Social media research skills and the LurkAPI MCP server: public profiles, posts, comments, transcripts and ads from TikTok, Instagram, YouTube, Reddit, X (Twitter), the Facebook Ad Library, LinkedIn and more as clean JSON, and whole jobs like a brand lurk, an ad library teardown, Reddit research or creator vetting. Paid per call, with 100 free credits at signup.",
+  "description": "Social media research skills and the LurkAPI MCP server: public profiles, posts, comments, transcripts and ads from TikTok, Instagram, YouTube, Reddit, X, LinkedIn and more, as JSON. Paid per call, with 100 free credits at signup.",
   "author": {
     "name": "Mesmer s.r.o.",
     "email": "support@lurkapi.com",
@@ -11,20 +11,17 @@
   "repository": "https://github.com/mesmerlord/lurkapi-claude-plugin",
   "license": "MIT",
   "keywords": [
-    "social-media-scraper",
-    "tiktok-scraper",
-    "instagram-scraper",
-    "youtube-transcript",
-    "reddit-scraper",
-    "facebook-ad-library",
+    "social-media",
+    "scraper",
+    "tiktok",
+    "instagram",
+    "youtube",
+    "reddit",
     "ad-library",
-    "competitor-research",
-    "influencer-vetting",
-    "mcp",
-    "agent-skills"
+    "transcripts",
+    "research",
+    "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "LurkAPI",
     "shortDescription": "Social media research on live public data",
@@ -46,5 +43,7 @@
     "brandColor": "#0D8456",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

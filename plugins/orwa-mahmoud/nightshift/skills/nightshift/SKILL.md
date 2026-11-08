@@ -170,8 +170,8 @@ Outputs · Parked decisions and snags. Read that shape once when the first item 
 An item with an `Evidence:` line also gets an `## Evidence` section after Verification. Short
 evidence goes inline; screenshots, recordings and data go in a folder named after the receipt,
 beside it, linked relatively (`./<receipt-base>/before.png`). Evidence the item asked for and that
-could not be produced is written as `unavailable — <reason>`, never left out. Evidence never holds
-a tick. Archive files the folder with its receipt, and a renamed receipt takes its folder along.
+could not be produced is written as `unavailable — <reason>`, never left out. check off leaves the tick alone, report names a missing file, and block keeps the stop open. When it cannot be produced at all, `ns evidence-unavailable --item "<label>" --reason "<why>"` applies the item's `unavailable` setting: hold closes it as stopped, park records the decision and keeps working, and note ticks it with the reason.
+Archive files the folder with its receipt, and a renamed receipt takes its folder along.
 
 **One file per punch-list item**, named `<NN>-<slug>-<id>.md`: the item's number, its title, and
 the permanent id on the item's line (`<!-- id: k7q2 -->`). The pulse names the file, the runtime
