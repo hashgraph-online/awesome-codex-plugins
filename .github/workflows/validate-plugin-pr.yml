@@ -8,9 +8,11 @@ on:
       - "plugins.json"
       - "README.md"
       - "scripts/validate-plugin-pr.py"
+      - "scripts/plugin_package.py"
       - "scripts/test_validate_plugin_pr.py"
       - "tests/test_remote_icon_validation.py"
       - "tests/test_validate_plugin_pr_branch.py"
+      - "tests/test_portable_plugin_packages.py"
 
 permissions:
   contents: read
@@ -32,5 +34,6 @@ jobs:
           python3 scripts/test_validate_plugin_pr.py
           python3 -m unittest discover -s tests -p 'test_remote_icon_validation.py' -v
           python3 -m unittest discover -s tests -p 'test_validate_plugin_pr_branch.py' -v
+          python3 -m unittest discover -s tests -p 'test_portable_plugin_packages.py' -v
       - name: Validate changed plugin bundles
         run: python3 scripts/validate-plugin-pr.py --base-ref origin/${{ github.base_ref }}
