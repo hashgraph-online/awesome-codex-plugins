@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action*"
+  # The Dockerfile's two base images are the only dependency here that nothing
+  # else watches: no workflow builds the image, and govulncheck reads Go
+  # modules rather than an alpine tag. Left alone it ages quietly.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly

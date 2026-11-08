@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "deed-page",
+  "version": "1.8.0",
+  "description": "Publish files to a public deed.page URL only when the user asks to publish, deploy, host, or share a link. Create-only stays local. No account.",
+  "author": {
+    "name": "Avatar 8 LLC",
+    "email": "ops@avatar33.com",
+    "url": "https://deed.page"
+  },
+  "homepage": "https://deed.page",
+  "repository": "https://github.com/f-o-x11/deed-page-skill",
+  "license": "MIT",
+  "keywords": [
+    "deed.page",
+    "deed-page",
+    "deed page"
+  ]
+}

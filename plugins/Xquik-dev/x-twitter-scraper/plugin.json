@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "x-twitter-scraper",
+  "version": "2.8.0",
+  "description": "Skill for Xquik, the world's fastest and cheapest X Twitter scraper service with the most complete X data. Covers REST, MCP, webhooks, exports, and connected X account actions. Not affiliated with X Corp.",
+  "author": {
+    "name": "Xquik",
+    "url": "https://github.com/Xquik-dev"
+  },
+  "homepage": "https://docs.xquik.com",
+  "repository": "https://github.com/Xquik-dev/x-twitter-scraper",
+  "license": "MIT",
+  "keywords": [
+    "twitter",
+    "x-api",
+    "twitter-api-alternative",
+    "twitter-scraper-api",
+    "mcp-server",
+    "social-listening",
+    "ai-agent"
+  ]
+}

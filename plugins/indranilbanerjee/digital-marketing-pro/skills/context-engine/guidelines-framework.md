@@ -257,7 +257,7 @@ Additional guideline files that don't fit the standard categories. Examples:
 
 ## How Guidelines Are Applied
 
-### At Session Start (skill-driven — the plugin ships zero hooks by design)
+### At Session Start (skill-driven — the plugin ships no session hook by design)
 1. Skills that load brand context run `guidelines-manager.py --brand {slug} --action summary` alongside `setup.py --summary`
 2. If guidelines exist, summary output includes: category count, total rules, restriction count, template count
 3. This primes the session with awareness that guidelines exist

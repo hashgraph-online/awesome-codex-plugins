@@ -16,7 +16,6 @@
     "skills",
     "developer-tools"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Codex Quota Optimizer",
     "shortDescription": "Spend less Codex allowance without sacrificing engineering quality.",
@@ -32,5 +31,6 @@
       "Use the smallest reliable context, model, and verification scope for this task."
     ],
     "composerIcon": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/"
 }

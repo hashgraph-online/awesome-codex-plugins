@@ -54,16 +54,18 @@
     "provenance:verify": "node scripts/provenance.js verify",
     "release": "node scripts/release.js",
     "dsh:build": "node scripts/build-dsh.js",
-    "dsh:check": "node scripts/build-dsh.js --check"
+    "dsh:check": "node scripts/build-dsh.js --check",
+    "dsh:publish": "node scripts/publish-dsh.js",
+    "dsh:publish:dry": "node scripts/publish-dsh.js --dry-run"
   },
   "engines": {
     "node": ">=22.18"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.6.2",
-    "@playwright/test": "^1.64.0",
-    "@types/node": "^26.6.5",
-    "@vitest/coverage-v8": "^5.0.3",
+    "@biomejs/biome": "^2.6.4",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.6",
+    "@vitest/coverage-v8": "^5.1.0",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"

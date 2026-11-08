@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "waivers": [
+    {
+      "ruleId": "surface.gradient-text",
+      "file": "**/*",
+      "reason": "Turn the rule off everywhere",
+      "source": "documented-brand"
+    }
+  ]
+}

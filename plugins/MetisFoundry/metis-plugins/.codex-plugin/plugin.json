@@ -7,9 +7,8 @@
     "email": "paul@metisfoundry.com",
     "url": "https://metisfoundry.com"
   },
-  "homepage": "https://mcp.metisfoundry.com/docs",
-  "repository": "https://github.com/MetisFoundry/metis-plugins",
-  "license": "LicenseRef-Proprietary",
+  "homepage": "https://metisfoundry.com",
+  "license": "Proprietary",
   "keywords": [
     "citations",
     "citation checker",
@@ -30,8 +29,6 @@
     "research integrity",
     "fact check at the source"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Metis Check",
     "shortDescription": "Checks citations at the source",
@@ -48,6 +45,7 @@
       "Files a report with a unique id, PDF, signed receipts and a recheck button"
     ],
     "websiteURL": "https://mcp.metisfoundry.com/docs",
+    "supportURL": "https://mcp.metisfoundry.com/docs",
     "privacyPolicyURL": "https://mcp.metisfoundry.com/privacy",
     "termsOfServiceURL": "https://mcp.metisfoundry.com/terms",
     "defaultPrompt": [
@@ -56,8 +54,72 @@
       "Check the LEI HWUPKR0MPOU8FGXBT394 for Apple Inc."
     ],
     "brandColor": "#835AFF",
-    "composerIcon": "./assets/icon-codex.png",
+    "brandColorDark": "#835AFF",
+    "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png",
     "screenshots": []
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup/SKILL.md",
+      "review": {
+        "commerce": false,
+        "commerce_description": "No sales in the plugin. Works with a Metis account; plans are managed on metisfoundry pages outside ChatGPT. No ChatGPT-specific pricing.",
+        "test_cases": {
+          "positive": [
+            {
+              "description": "One DOI, checked at Crossref.",
+              "prompt": "Is 10.1038/s41586-020-2649-2 a real DOI?",
+              "tools_triggered": "check_identifier",
+              "expected_behavior": "The assistant calls check_identifier with the DOI. The reply leads with the report headline, gives the state (settled true) and the registry (Crossref), and includes the report link and PDF link. It reports the state and the registry, nothing stronger."
+            },
+            {
+              "description": "A pasted reference list with several identifier types.",
+              "prompt": "Check the citations in this paragraph: Recent work (doi:10.1038/s41586-020-2649-2; PMID 32939066; arXiv:2005.14165) extended the approach. See also 10.1000/not-a-real-doi-9999.",
+              "tools_triggered": "check_text",
+              "expected_behavior": "The assistant calls check_text with the pasted paragraph only. The reply lists each identifier with its state (the first three settled true, the last settled false) and registry, states how many were not checked and why, and gives the report and PDF links. It does not grade the paragraph as a whole."
+            },
+            {
+              "description": "Open an earlier report by its id.",
+              "prompt": "Open my Metis Check report MC-WX5Q-XV4W-NAT1 and tell me whether its signature still verifies.",
+              "tools_triggered": "get_report",
+              "expected_behavior": "The assistant calls get_report with the id. The reply gives the report's items and states (two settled true, one settled false: the invented DOI 10.1000/xyz.2024.0001), any rechecks filed since, whether the signature verified, and the report link. No new check is run. For an id the account does not hold, the reply relays the tool's sentence."
+            },
+            {
+              "description": "Ask a person to verify an earlier report.",
+              "prompt": "Have a person verify the identifiers in my Metis Check report MC-WX5Q-XV4W-NAT1.",
+              "tools_triggered": "request_human_verification",
+              "expected_behavior": "The assistant calls request_human_verification with the report id. The reply relays the tool's sentence: the order is filed with the Metis desk and when a researcher will work it (in real time while the desk is open, 06:00 to 22:00 Pacific; otherwise from the next opening), and the result is filed on the same report as a signed addendum. Asking again for the same report while the order is open does not file a second order; the reply says it is already with the desk. No payment is taken in ChatGPT."
+            },
+            {
+              "description": "Turn live verification by a person on, then off.",
+              "prompt": "Turn on live verification by a person for my Metis Check account, then turn it off again.",
+              "tools_triggered": "set_live_verification",
+              "expected_behavior": "The assistant calls set_live_verification with on true and relays that live verification is on for eight hours (a Metis researcher verifies every report the account files), then calls it with on false and relays that it is off and that orders already with the desk will still be filed."
+            }
+          ],
+          "negative": [
+            {
+              "description": "A request to grade a whole conversation. The plugin does not grade a text true or false; the assistant asks which passage or identifiers to check and offers check_text on that passage only.",
+              "prompt": "Is everything in this conversation true? Check all of it."
+            },
+            {
+              "description": "A bare number with no type. The identifier's shape does not say what it is; the assistant asks which kind of identifier it is before calling check_identifier with a type.",
+              "prompt": "Check 1234567890."
+            },
+            {
+              "description": "A request to judge whether a paper proves its claim. The plugin establishes that the DOI is registered and what Crossref holds; the assistant says so and does not grade the argument or give advice from the result.",
+              "prompt": "Check 10.1038/s41586-020-2649-2 and tell me whether that paper proves my hypothesis."
+            }
+          ]
+        }
+      },
+      "publication": {
+        "release_notes": "1.0.3: tool results carry only the fields the privacy policy lists, and the privacy policy (https://mcp.metisfoundry.com/privacy) names every field each tool returns, including nested fields; internal ids and bookkeeping are no longer returned.",
+        "countries": []
+      }
+    }
   }
 }

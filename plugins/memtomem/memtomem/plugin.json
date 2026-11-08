@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "memtomem",
+  "version": "0.1.18",
+  "description": "Markdown-first long-term memory shared across your coding agents: one local memtomem store, searchable from Hermes, Claude Code, Codex CLI and Kimi Code.",
+  "author": {
+    "name": "memtomem"
+  },
+  "homepage": "https://github.com/memtomem/memtomem",
+  "repository": "https://github.com/memtomem/memtomem",
+  "license": "Apache-2.0",
+  "keywords": [
+    "memory",
+    "mcp",
+    "long-term-memory",
+    "local-first"
+  ]
+}

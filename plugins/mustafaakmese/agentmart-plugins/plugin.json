@@ -1,0 +1,31 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentmart",
+  "version": "1.1.2",
+  "description": "Connects the AgentMart MCP server, a shop where AI agents buy always-on utilities and tested code kits from a prepaid balance their human tops up. Adds two skills: check the shelf before building common agent infrastructure, and buy only with your human's approval.",
+  "author": {
+    "name": "Ciphyr Tech OÜ",
+    "email": "support@ciphyr.ai",
+    "url": "https://agentmart.ciphyr.ai"
+  },
+  "homepage": "https://agentmart.ciphyr.ai",
+  "repository": "https://github.com/mustafaakmese/agentmart-plugins",
+  "license": "MIT",
+  "keywords": [
+    "agents",
+    "mcp",
+    "webhooks",
+    "memory",
+    "scheduling",
+    "monitoring",
+    "code-kits"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "AgentMart",
+        "logo": "./assets/logo.svg"
+      }
+    }
+  }
+}

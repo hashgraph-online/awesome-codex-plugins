@@ -35,6 +35,7 @@
   "stallWarnEvery": 3,
   "longUnitWarnMinutes": 0,
   "watchMinutes": 10,
+  "idleWindowMinutes": 30,
   "watchRetrySeconds": "30 120",
   "watchAgent": "",
   "watchAfterUsageLimit": true,
@@ -82,8 +83,21 @@
     "evidence": {
       "fileMap": "off",
       "architecture": "off",
-      "default": ""
+      "default": "",
+      "kindTemplatePath": "",
+      "kindsPaths": [],
+      "check": "off",
+      "review": "off",
+      "unavailable": ""
     }
+  },
+  "gates": {
+    "stackTemplatePath": "",
+    "stacksPaths": []
+  },
+  "edgeCases": {
+    "packTemplatePath": "",
+    "packsPaths": []
   },
   "recovery": {
     "launchScope": "inherit-recorded-scope",

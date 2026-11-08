@@ -107,6 +107,7 @@ your client's secret settings without pasting it into a conversation.
   payment, no termination. When are our notice and lien deadlines?"
 - "Same job, but I don't know whether the owner made final payment. What changes?"
 - "Can I still file a lien for my last delivery on a Kansas job?"
+- "What facts do you need to check notice and lien deadlines for a private Maryland job?"
 - "Which states have lien guides? Show me Ohio's rules for material suppliers."
 
 If your agent needs a fact you haven't given, it asks. If you don't know the answer, say so: the
@@ -116,8 +117,8 @@ deadline that depends on it comes back as "needs review", with the reason.
 
 | | Today |
 | --- | --- |
-| **Supplier deadlines (`supplier-events-v3`)** | Jurisdiction-specific discovery checks current support for the exact state, project type and hiring relationship before collecting event facts. Coverage extends beyond Florida and Kansas; only the live response establishes eligibility for your scope. |
-| **Legacy workflow (`supplier-events-v2`)** | Florida and Kansas private-project baselines. This contract does not describe the full v3 coverage. |
+| **Supplier deadlines (`supplier-events-v3`)** | 306 reviewed private-project scope policies across all 50 states and DC. Authenticated live discovery checks support for the exact state, project type and hiring relationship before collecting event facts. |
+| **Legacy workflow (`supplier-events-v2`)** | Florida and Kansas private-project baselines only. |
 | **Conditional outcomes** | Independently required notices, qualified planning targets and recurring notice records when returned for the scope. Planning targets and advisory checkpoints remain distinct from calculated statutory deadlines. |
 | **Everything else** | "Needs review" with the reason: unsupported scopes, public projects, and any deadline that depends on a fact you don't know |
 | **Lien guides** | All 50 states and DC, with statute citations |
@@ -168,10 +169,11 @@ each date. Statutes change and every project is different, so check critical dea
 qualified counsel before you rely on them. LienDeadline is not a law firm and files nothing for you.
 
 **Which states can it calculate?**
-The `supplier-events-v3` workflow supports jurisdiction-specific scopes beyond Florida and
-Kansas. Authenticated live discovery checks the exact state, project type and hiring relationship
-before facts are collected. The older `supplier-events-v2` contract remains limited to Florida and
-Kansas private projects. Lien guides cover all 50 states and DC.
+The `supplier-events-v3` workflow has reviewed private project scopes in all 50 states and DC.
+Authenticated live discovery checks the exact state, project type and hiring relationship. The
+API uses the confirmed facts to determine which dates it can return. Public projects and unsupported
+scopes require qualified review. The older `supplier-events-v2` contract remains limited to Florida
+and Kansas private projects. Lien guides remain public across all 50 states and DC.
 
 **Do I need an account or API key?**
 Supplier discovery and calculations through MCP or direct API require a dedicated LienDeadline customer key; completed calculations consume API plan allowance. Configure it through your client's approved secret settings. Guides remain public. The Website separately offers its ordinary anonymous calculation allowance.

@@ -5,6 +5,7 @@ description: >
   Comes back to you if the work would change what you approved, keeps the project docs in step,
   and never merges on its own. Use when the user invokes the `go` skill after `ready`. Requires
   git.
+disable-model-invocation: true
 ---
 
 # go

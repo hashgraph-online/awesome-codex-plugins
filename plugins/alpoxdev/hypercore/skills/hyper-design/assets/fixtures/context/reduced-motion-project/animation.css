@@ -1,0 +1,2 @@
+.notice { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }

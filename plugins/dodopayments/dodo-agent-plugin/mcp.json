@@ -1,0 +1,13 @@
+{
+    "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+    "mcpServers": {
+        "dodopayments-api": {
+            "type": "streamable-http",
+            "url": "https://mcp.dodopayments.com/mcp"
+        },
+        "dodo-knowledge": {
+            "type": "streamable-http",
+            "url": "https://knowledge.dodopayments.com/mcp"
+        }
+    }
+}

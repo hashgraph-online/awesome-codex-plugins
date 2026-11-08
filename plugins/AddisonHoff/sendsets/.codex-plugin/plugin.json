@@ -1,9 +1,10 @@
 {
   "name": "sendsets",
   "version": "1.0.0",
-  "description": "Cold email for AI agents: connect and warm up sending mailboxes, turn a lead list into an outbound sequence, send a test, launch, and read and answer replies.",
+  "description": "Cold email for AI agents: the Sendsets MCP server plus skills for sending cold email sequences and running outbound campaigns.",
   "author": {
     "name": "Sendsets",
+    "email": "team@sendsets.com",
     "url": "https://sendsetsapi.com"
   },
   "homepage": "https://sendsetsapi.com",
@@ -18,8 +19,6 @@
     "warmup",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Sendsets",
     "shortDescription": "Cold email for AI agents",
@@ -36,5 +35,7 @@
     "privacyPolicyURL": "https://sendsetsapi.com/privacy",
     "termsOfServiceURL": "https://sendsetsapi.com/terms",
     "supportURL": "https://sendsetsapi.com/contact"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

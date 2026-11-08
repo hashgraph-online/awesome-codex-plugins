@@ -15,7 +15,7 @@ description: |
   target; open-ended web search with no destination ("what's the news"); reading
   local files; plain JSON APIs you can already call; or facts already in training
   data.
-allowed-tools: mcp__bowmark__get_library, mcp__bowmark__run, mcp__bowmark__report, mcp__bowmark__support, mcp__bowmark__get_usage, mcp__bowmark__llm_poll, mcp__bowmark__llm_answer, mcp__bowmark__llm_detach, mcp__bowmark__list_secrets, mcp__bowmark__request_secret, mcp__bowmark__get_secret_link, mcp__bowmark__list_connections, mcp__bowmark__add_connection, mcp__bowmark__delete_connection, mcp__bowmark__logout_connection, mcp__bowmark__lease_ip, mcp__bowmark__wait_for_sign_in, mcp__bowmark__session_call, mcp__bowmark__session_close, mcp__bowmark__jig_open, mcp__bowmark__jig_list, mcp__bowmark__jig_update, mcp__bowmark__jig_look, mcp__bowmark__jig_search, mcp__bowmark__jig_get, mcp__bowmark__jig_publish, mcp__bowmark__jig_set_handle, mcp__bowmark__jig_pull_update, WebFetch
+allowed-tools: mcp__bowmark__get_library, mcp__bowmark__run, mcp__bowmark__report, mcp__bowmark__support, mcp__bowmark__get_usage, mcp__bowmark__llm_poll, mcp__bowmark__llm_answer, mcp__bowmark__llm_detach, mcp__bowmark__list_secrets, mcp__bowmark__request_secret, mcp__bowmark__get_secret_link, mcp__bowmark__list_connections, mcp__bowmark__add_connection, mcp__bowmark__delete_connection, mcp__bowmark__logout_connection, mcp__bowmark__lease_ip, mcp__bowmark__wait_for_sign_in, mcp__bowmark__session_call, mcp__bowmark__session_close, mcp__bowmark__jig_open, mcp__bowmark__jig_list, mcp__bowmark__jig_update, mcp__bowmark__jig_look, mcp__bowmark__jig_search, mcp__bowmark__jig_get, mcp__bowmark__jig_publish, mcp__bowmark__jig_set_handle, mcp__bowmark__jig_pull_update, WebFetch(domain:bowmark.ai)
 ---
 
 # bowmark
@@ -170,19 +170,23 @@ that calls the library itself.
   they just did on it. Call `jig_look` before you curate ("clear the slop", "why is this here").
 - **`/jig <site>`** is the same thing as a slash command: a jig of any site, made to look
   like it, with the Bowmark logo where the site's logo goes and your curation in its state.
+- **A jig of one site can use data from many.** It takes the site's layout, not only its
+  data: where a feature needs something the site's own functions lack (a company's funding
+  on a LinkedIn-style page, other stores' prices on a product page), fill it from any site the
+  library covers, name the source, and join across sites on a hard key, never a name alone.
 - **`jig_list({})`** lists the jigs this user has made. When they mention one ("my YouTube
   feed"), reopen it with `jig_open({ jigId })` — page and state as they left them — rather
   than building a new one — so call `jig_list` first.
 - **`jig_search({ q? })`** finds jigs other people published. Call `jig_search` before building
   one from scratch. **`jig_get({ listing, another? })`** copies one into THIS user's account
-  (`listing` is its id, `@handle/slug` or the store URL): the copy runs as the user, with their
+  (`listing` is its id, `@handle/slug` or the jig URL): the copy runs as the user, with their
   own logins, never the author's. It answers `alreadyHave: true` with their existing copy rather
   than making a second, and `sitesNeedingLogin` lists sites still to sign in to, each with a
   `signInUrl` to give the user and a `ref` for `wait_for_sign_in`. Then open the copy with
   `jig_open({ jigId })`; `jig_get` never touches the author's own jig.
-- **`jig_publish({ jigId, visibility, dryRun? })`** puts the user's own jig on the store as a
+- **`jig_publish({ jigId, visibility, dryRun? })`** publishes the user's own jig as a
   snapshot. Call `jig_publish` with `dryRun: true` first and show the user what would ship.
-- **`jig_set_handle({ handle? })`** claims the user's public handle, the `@name` in their store
+- **`jig_set_handle({ handle? })`** claims the user's public handle, the `@name` in their jig
   links. It is public and permanent. `jig_open` tells you when a new jig's owner has none: ask them
   once, suggest one from their name, never choose it for them, then call `jig_set_handle`. With no
   `handle` it only looks.

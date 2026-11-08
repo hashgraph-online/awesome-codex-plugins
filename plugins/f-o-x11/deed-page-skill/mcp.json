@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "deed-page": {
+      "type": "streamable-http",
+      "url": "https://deed.page/mcp"
+    }
+  }
+}

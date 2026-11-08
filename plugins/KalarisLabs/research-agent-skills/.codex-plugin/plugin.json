@@ -29,7 +29,6 @@
     "llm",
     "ai-agents"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Research Agent Skills",
     "shortDescription": "Skills for the full academic research lifecycle",
@@ -44,5 +43,6 @@
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg",
     "brandColor": "#165D74"
-  }
+  },
+  "skills": "./skills/"
 }

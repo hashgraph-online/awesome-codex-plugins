@@ -29,6 +29,12 @@ data already differs, so an assertion over that data would catch it today.
 `equivalent` means no assertion over today's data can tell it apart, so only a
 fixture that reaches the case can.
 
+On an incremental model, read `data.incremental` too. It measures the
+`{% if is_incremental() %}` branch, which a full build never runs, against the
+unit tests that override `is_incremental` to true, and it has its own score. A
+branch survivor needs such a test, with a `this` fixture and an input row on the
+watermark; `transform test --scaffold` plans one.
+
 The score covers only the defects Dex plants, on one model. It is evidence about
 the suite, not proof that the model is right. Do not quote it as a quality
 metric, and do not compare it across models.

@@ -1,0 +1,35 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(*approval-manager*)",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\" 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "Bash(*connector_executor*)",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\" 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(*approval-manager*)",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\" 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "if": "PowerShell(*connector_executor*)",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\" 2>/dev/null || python \"${CLAUDE_PLUGIN_ROOT}/hooks/gate_live_writes.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

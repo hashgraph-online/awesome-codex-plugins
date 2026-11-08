@@ -122,10 +122,12 @@ column named `window`, which DuckDB reserves and dbt must quote).
   `maintain verify --target dev` does. Use it when a model's only build is the
   dev one and the source allowlist does not reach the namespace dbt writes into:
   `transform declare` and `transform plan` name exactly this command for such an
-  input (`explore profile <dev namespace>.<model> --target dev`). `--scope` still
-  only narrows, nothing is written to `.dex/config.yml`, and the scan is priced
-  as usual. On DuckDB the dev target is the file already read, so the flag
-  widens nothing and a note says so.
+  input (`explore profile <dev namespace>.<model> --target dev`). It also reads
+  the namespaces dbt derives from the dev one for the project's models (a
+  package's `+schema`), named in `notes`. `--scope` still only narrows, nothing
+  is written to `.dex/config.yml`, and the scan is priced as usual. On DuckDB
+  the dev target is the file already read, so the flag widens nothing and a note
+  says so. `explore query --target dev` reads the same namespaces.
 - A requested object whose cached profile is still fresh (same connector, schema
   unchanged, within `profile_freshness_hours`, default 24) is served from the
   cache (`cache_hit_count`) instead of re-scanned. `--refresh` forces a re-scan
@@ -218,6 +220,21 @@ failure quotes the value it could not handle, and that value is masked
 your SQL or the warehouse made implicitly, such as comparing a text key to an
 integer key. Profile the column (`explore profile`) to learn its shapes rather
 than retrying to see the value.
+
+`--target dev` reads a model `transform build` just wrote, for this one command,
+as `explore profile --target dev` does: the dev namespace, and the namespaces
+dbt derives from it for the project's models (a package's `+schema` builds into
+`<dev schema>_<name>`), named in `notes`. Check a built model with an aggregate
+there, such as a duplicate count over `dbt_dev.fct_orders`. The firewall, the PII gate, values-free mode and the
+cost handshake are unchanged, `--scope` still only narrows, nothing is written
+to `.dex/config.yml`, and a prod-looking target is refused. Without the flag, a
+statement naming a relation in the dev namespace outside the source scope is
+refused naming that namespace and `--target dev`, and a later command without
+it cannot read the namespace. On DuckDB the dev target is the file already read,
+so the flag widens nothing and a note says so. Where the connection cannot be
+opened (a DuckDB file another process holds locked), a refusal for a relation
+the cache cannot speak for says why, rather than naming `explore map`, which
+needs the same connection.
 
 Example envelopes (columnar; never `rows`):
 

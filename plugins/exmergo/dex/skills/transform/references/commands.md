@@ -29,6 +29,16 @@ refuses, naming `adapter.get_columns_in_relation`. Direct database handles and
 other unsupported adapter introspection refuse. A truncated
 macro result refuses rather than producing an incomplete model.
 
+Packages: dbt parses or compiles nothing whose declared packages are not
+installed, so a plan that needs dbt's parse (a `schema_yml`, `project_yml`,
+snapshot, seed or semantic edit, a declaration, a delete) or a control-flow
+compile is refused first, in Dex's words, naming each missing package and
+`transform deps`. The check reads the tree as the plan leaves it (#1166): a
+package the plan's own `packages_yml` edit declares is checked too, and one it
+stops declaring is not. A plan never installs anything, so declaring a package
+and using it is two plans: the `packages_yml` edit on its own (it needs no parse,
+so it is stored), applied, then `transform deps`, then the plan that uses it.
+
 Compilation that reads no warehouse data needs no spend confirmation. For
 compile-time queries on billed connectors, the first discovered work is quoted
 through the existing `--confirm --budget` handshake. Its estimate is partial:
@@ -66,7 +76,8 @@ See the cost-controls reference for the shared budget mechanism.
   report nothing. On DuckDB the deltas are measured automatically; on a billed
   connector the changes are named for free and measuring needs `--attribute-rows`
   plus `--confirm --budget`. `attributed: false` carries the reason (macro SQL, a
-  jinja conditional, a renamed CTE, an unprofiled parent). Advisory: nothing here
+  jinja conditional, a renamed CTE, a changed `UNION`, `INTERSECT` or `EXCEPT`
+  whose branches are not compared, an unprofiled parent). Advisory: nothing here
   refuses a plan.
 - `data.change_scope` (#1115): on each model that already exists, what the edit
   changes beside its request, read statically from both versions with no query.
@@ -410,7 +421,7 @@ failed-build envelope carries it too, and Python callers get the same typed
 | `change` | the `plan_id` and `source` (`for_plan`, `for_plan_file`) the build was asked to validate, and the `selector` (cut at 200 characters; the whole one is in `data.evidence.selection`) |
 | `deliverables` | `coverage`: `known`, `unknown` (no plan named, so nothing says what the build was for) or `undetermined` (the plan's edits name no buildable node). Then `required`, and `built`, `failed`, `skipped`, `missing` and `stale` as `{count, names, elided}`. `blocked` names each required deliverable that did not build and the node that `cause`d it, walked back through skipped parents, a failing data test on a parent included. A skipped or failed deliverable is never counted as built: whatever relation it has in dev predates this run, and `note` says so |
 | `blockers` | the failed nodes, with the ones that stopped a deliverable first, and dbt's message cut to 160 characters (the whole message is in `data.evidence.nodes`) |
-| `assurance` | over the required deliverables, or over every built model with no plan: `asserted` (a passing data test reads it, or a verification record judged it `satisfied`), `failed_checks` (a data test on it failed or warned, or a record was `contradicted`) and `build_only` (it built and nothing checked its rows; a unit test reads fixtures, so it does not count) |
+| `assurance` | over the required deliverables, or over every built model with no plan: `asserted` (a passing data test reads it, or a verification record judged it `satisfied`), `failed_checks` (a data test on it failed or warned, or a record was `contradicted`; `checks` lists each failure with its `kind`, `data_test` with the test's `name` or the record list such as `join_coverage` with its `finding` and `join`, so a join measured against a default threshold is not read as a failed test, #1162) and `build_only` (it built and nothing checked its rows; a unit test reads fixtures, so it does not count) |
 | `verification` | `ran` (and `reason` when it did not), `finding_count` including the ones past the 50-finding cap (`findings_dropped`), `by_severity`, the `top` five as `{code, identifier, severity}`, the `suppressed` class names, and `offered` when the sweep's scan was offered rather than run |
 | `obligations` | the declared contracts the sweep held the build to (`join_coverage`, `parent_population`, `temporal_contracts`, and the column contract's unchecked models), counted `by_status`, with the `contradicted` ones named with their `finding` and the `unchecked` ones with their `reason_code`, and the models that declare no columns under `no_declared_columns`. `checked: false` when the sweep did not run. An empty `by_status` from a sweep that ran means nothing declared a contract it could hold the build to, which is not the same as every contract holding |
 | `refactor_comparison` | with `--for-plan`, each model the plan rewrote and any model compared on it (a downstream mart included), with its recorded `transform compare` verdict, or `not_compared` |
@@ -777,6 +788,12 @@ the model's own tests against each, and reports which defects nothing caught.
   the mutant cannot reach) and why, and a `reason` when it was off.
 - `baseline.excluded` names tests already failing against the unmutated model;
   every verdict is relative to the tests that passed.
+- An incremental model's `{% if is_incremental() %}` branch is compiled a second
+  time with the branch taken, and its own comparisons and filters are planted
+  there (#1132). Only unit tests overriding `is_incremental` to true run against
+  them. `data.incremental` holds the branch's `mutants`, `counts`, `score`,
+  `baseline`, `tests` and `cap` share, apart from the full build's; with no such
+  test every branch mutant survives and `suggested_test` names one.
 - Capped at 20 mutants (`--max-mutants` narrows, never widens), sampled across
   defect classes; `cap.elided` reports the cut.
 - Mutants build as ephemeral models in a throwaway copy, so nothing is written
@@ -795,3 +812,5 @@ already declares in `packages.yml`, at the versions `package-lock.yml` pins wher
 the lockfile matches it (dbt resolves them again where it does not): that is
 not installing or upgrading a tool, and a request not to update tools does not rule
 it out.
+It is the step between a plan that declares a package and a plan that uses it,
+since `transform plan` installs nothing.

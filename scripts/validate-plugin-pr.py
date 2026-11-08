@@ -35,6 +35,9 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from plugin_package import archive_package_manifest, load_package_manifest, package_roots
+
 REPO_ROOT = Path(__file__).parent.parent
 PLUGINS_DIR = REPO_ROOT / "plugins"
 README_PATH = REPO_ROOT / "README.md"
@@ -120,12 +123,8 @@ def fetch_repo_archive(owner: str, repo: str, source_ref: str | None = None) -> 
 
 def find_plugin_root(archive: zipfile.ZipFile) -> PurePosixPath | None:
     """Find the directory containing .codex-plugin/plugin.json in the archive."""
-    names = [n for n in archive.namelist() if n.endswith("/.codex-plugin/plugin.json")]
-    if not names:
-        return None
-    # If multiple, prefer root-level (shortest path)
-    names.sort(key=len)
-    return PurePosixPath(names[0]).parent.parent
+    roots = package_roots(archive)
+    return roots[0] if roots else None
 
 
 _UNREADABLE_MANIFEST = object()
@@ -135,10 +134,9 @@ def load_manifest_from_archive(
     archive: zipfile.ZipFile, plugin_root: PurePosixPath
 ) -> object:
     """Return decoded JSON, or a distinct sentinel for missing/invalid JSON."""
-    manifest_name = plugin_root.joinpath(".codex-plugin", "plugin.json").as_posix()
     try:
-        return json.loads(archive.read(manifest_name).decode("utf-8"))
-    except (KeyError, UnicodeDecodeError, json.JSONDecodeError, zipfile.BadZipFile, EOFError):
+        return archive_package_manifest(archive, plugin_root)[0]
+    except (KeyError, UnicodeDecodeError, ValueError, RecursionError, zipfile.BadZipFile, EOFError):
         return _UNREADABLE_MANIFEST
 
 
@@ -264,22 +262,23 @@ def validate_local_bundle(plugin_dir: Path) -> tuple[list[str], list[str]]:
         return errors, warnings
 
     manifest_path = plugin_dir / ".codex-plugin" / "plugin.json"
-    if not manifest_path.exists():
+    if not manifest_path.exists() and not (plugin_dir / "plugin.json").exists():
         errors.append(f"Missing .codex-plugin/plugin.json in {rel_path}")
         return errors, warnings
     # Treat directory-shaped and escaping symlink manifests as contributor
     # errors instead of reading outside the bundle or raising a traceback.
-    if (
-        not manifest_path.is_file()
-        or not manifest_path.resolve().is_relative_to(plugin_dir.resolve())
-    ):
-        errors.append(f"plugin.json must be a regular file within {rel_path}")
-        return errors, warnings
-
+    def read_manifest(relative):
+        path = plugin_dir / relative
+        if not path.is_file() or not path.resolve().is_relative_to(plugin_dir.resolve()):
+            raise ValueError(f"plugin.json must be a regular file within {rel_path}")
+        return path.read_bytes()
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        manifest, _ = load_package_manifest(read_manifest, lambda relative: (plugin_dir / relative).exists())
+    except (UnicodeDecodeError, json.JSONDecodeError, RecursionError) as e:
         errors.append(f"plugin.json is not valid JSON: {e}")
+        return errors, warnings
+    except (OSError, ValueError) as e:
+        errors.append(str(e))
         return errors, warnings
 
     errors.extend(validate_manifest_fields(manifest))
@@ -351,7 +350,7 @@ def validate_remote_repo(
     if plugin_root is None:
         errors.append(
             f"Source repo https://github.com/{owner}/{repo} does not contain "
-            f".codex-plugin/plugin.json"
+            f"a supported portable plugin.json or .codex-plugin/plugin.json"
         )
         return errors, warnings
 

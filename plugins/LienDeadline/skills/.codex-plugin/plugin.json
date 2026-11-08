@@ -1,7 +1,7 @@
 {
   "name": "liendeadline",
-  "version": "1.4.5",
-  "description": "Jurisdiction-specific supplier notice and mechanics lien baselines with live discovery for the exact project scope. Calculations require a customer API key and use plan allowance; statute-cited guides for all 50 states and DC remain public.",
+  "version": "1.4.6",
+  "description": "Supplier notice and mechanics lien baselines for reviewed private scopes across all 50 states and DC. Live discovery checks the exact project scope. A customer API key is required; completed calculations use plan allowance. State guides are public.",
   "author": {
     "name": "LienDeadline",
     "url": "https://liendeadline.com"
@@ -17,12 +17,10 @@
     "lien-deadlines",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./mcp.json",
   "interface": {
     "displayName": "LienDeadline",
     "shortDescription": "Lien and notice deadlines",
-    "longDescription": "A lien deadline playbook for US construction material suppliers. The agent discovers current support for the exact project scope, asks the jurisdiction-specific questions, and reports verified dates with statutes, warnings and review flags. Supplier discovery and calculations require a dedicated customer API key; completed calculations consume API plan allowance. Lien guides for all 50 states and DC remain public. It sends no notices and files no liens. Not legal advice.",
+    "longDescription": "A lien deadline playbook for US construction material suppliers, with reviewed private project scopes across all 50 states and DC. The agent checks the exact project scope, asks the applicable questions, and reports verified dates with statutes, warnings and review flags. Public projects require qualified review. Supplier discovery and calculations require a dedicated customer API key; completed calculations consume API plan allowance. State lien guides are public. It sends no notices and files no liens. Not legal advice.",
     "developerName": "LienDeadline",
     "category": "Productivity",
     "websiteURL": "https://liendeadline.com",
@@ -31,10 +29,13 @@
     "termsOfServiceURL": "https://liendeadline.com/terms",
     "defaultPrompt": [
       "When is my Notice to Owner due on a Florida job?",
-      "Can I still file a lien for my last delivery in Kansas?"
+      "Can I still file a lien for my last delivery in Kansas?",
+      "What facts do you need to check notice and lien deadlines for a private Maryland job?"
     ],
     "brandColor": "#205E4E",
     "composerIcon": "./.claude-plugin/icon.svg",
     "logo": "./.claude-plugin/icon.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

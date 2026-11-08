@@ -21,7 +21,6 @@
     "backup",
     "channel"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Multi-Platform Account Video Extractor",
     "developerName": "Redfox Data",
@@ -42,5 +41,6 @@
     "websiteURL": "https://redfox.hk/",
     "termsOfServiceURL": "https://redfox.hk/enterprise",
     "screenshots": []
-  }
+  },
+  "skills": "./skills/"
 }

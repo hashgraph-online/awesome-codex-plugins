@@ -1,7 +1,7 @@
 {
   "name": "pixeltable",
   "version": "2.14.0",
-  "description": "Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data.",
+  "description": "Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data. Declarative tables, computed columns, retrieval, agents, and HTTP.",
   "author": {
     "name": "Pixeltable",
     "url": "https://github.com/pixeltable"
@@ -19,10 +19,11 @@
     "agent-memory",
     "embeddings",
     "vector-search",
+    "audio-transcription",
+    "dataset-versioning",
     "agents",
     "computed-columns"
   ],
-  "skills": "./skills/",
   "interface": {
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
@@ -47,5 +48,7 @@
       "Add RAG over my PDFs and images",
       "Give my AI agent long-term memory across sessions"
     ]
-  }
+  },
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }

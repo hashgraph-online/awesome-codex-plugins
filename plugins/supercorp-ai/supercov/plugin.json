@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "supercov",
+  "version": "4.24.6",
+  "description": "Coverage, security and code quality for coding agents.",
+  "author": {
+    "name": "Supercorp",
+    "url": "https://supercorp.ai"
+  },
+  "homepage": "https://supercov.com",
+  "repository": "https://github.com/supercorp-ai/supercov",
+  "license": "MIT",
+  "keywords": [
+    "coverage",
+    "testing",
+    "code-quality",
+    "security"
+  ]
+}

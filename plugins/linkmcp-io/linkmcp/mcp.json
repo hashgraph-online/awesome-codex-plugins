@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "linkmcp": { "type": "streamable-http", "url": "https://app.linkmcp.io/api/mcp?ref=github-plugin" }
+  }
+}

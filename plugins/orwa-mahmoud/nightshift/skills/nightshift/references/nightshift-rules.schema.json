@@ -192,6 +192,11 @@
       "minimum": 0,
       "description": "Minutes between watchman wakes. 0 disarms the watchman."
     },
+    "idleWindowMinutes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "How long a live worker must stay quiet before the watchman stops it and revives the shift. Quiet means a stale pulse, an unchanged transcript or rollout, under a second of CPU across the process tree, and no build, test, or browser child. Missing is 30, one wake longer than two default watch intervals, and well under a multi-hour stall. Any busy signal resets the window."
+    },
     "longUnitWarnMinutes": {
       "type": "integer",
       "minimum": 0,
@@ -442,7 +447,7 @@
         "evidence": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Shift-wide evidence for item receipts. Everything is off by default: with every field off or empty, receipts are written exactly as they are without this block. Evidence shows the work to a reviewer; it never gates a tick.",
+          "description": "Shift-wide evidence for item receipts. Everything is off by default: with every field off or empty, receipts are written exactly as they are without this block. Evidence shows the work to a reviewer. check decides whether a missing file affects the tick: off leaves it, report names the file, and block keeps the stop open.",
           "properties": {
             "fileMap": {
               "type": "string",
@@ -463,6 +468,32 @@
             "default": {
               "type": "string",
               "description": "The evidence every item should carry when its own Evidence line says nothing. Empty asks for none."
+            },
+            "kindTemplatePath": {
+              "type": "string",
+              "description": "The owner's template for a new evidence kind. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. An owner template may add sections; a drafted kind still needs the five required sections."
+            },
+            "kindsPaths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "More folders of evidence kinds. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+            },
+            "check": {
+              "type": "string",
+              "enum": ["off", "report", "block"],
+              "description": "What a missing named evidence file does to the tick. off leaves the tick alone. report lists each missing file on the receipt and the morning receipt, and the tick stands. block counts a ticked item with a missing file as open, so the clock-out gate names the item and each missing file."
+            },
+            "review": {
+              "type": "string",
+              "enum": ["off", "on"],
+              "description": "Whether the agent opens the evidence it produced, compares it with the item and the kind, fixes it, and writes a Reviewed section. With check at block, a missing Reviewed section counts as missing evidence."
+            },
+            "unavailable": {
+              "type": "string",
+              "enum": ["", "hold", "park", "note"],
+              "description": "What happens when the evidence cannot be produced. hold closes the item as stopped and the shift moves on. park records the decision and keeps working. note ticks the item and the receipt says why. Empty means hold when check is block, and note otherwise."
             }
           }
         },
@@ -477,6 +508,42 @@
         "templatePath": {
           "type": "string",
           "description": "A Markdown template for each item receipt, relative to the workspace and inside it. Wording and layout only, on the same terms as the handoff template: never executed, never a source of policy, and never able to describe an unavailable check as a passed one."
+        }
+      }
+    },
+    "edgeCases": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Edge-case packs the owner adds. Empty uses the shipped packs only.",
+      "properties": {
+        "packTemplatePath": {
+          "type": "string",
+          "description": "The owner's template for a new edge-case pack. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. A drafted pack still needs When it applies, Cases, and Example lines."
+        },
+        "packsPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "More folders of edge-case packs. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Quality-gate stacks the owner adds. Empty uses the shipped stacks only.",
+      "properties": {
+        "stackTemplatePath": {
+          "type": "string",
+          "description": "The owner's template for a new quality-gate stack. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. A drafted stack still needs Detect, Item gate, Site inspection, Notes, and one Match line."
+        },
+        "stacksPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "More folders of quality-gate stacks. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
         }
       }
     },
@@ -500,7 +567,7 @@
             "type": "string",
             "enum": ["--force", "--trust", "--yolo"]
           },
-          "description": "Cursor CLI permission flags the shift was started with. The first Cursor hook records --force and --trust from this list (--yolo is the alias of --force) and ignores every other token. A revival passes those recorded flags and does not add one the launch did not have."
+          "description": "Overrides the Cursor permission flags recorded from the CLI process (--force, --trust; --yolo is the alias of --force). A non-empty list replaces those two flags. An empty list leaves the process's own. The model comes from that process's --model, not from the hook payload."
         }
       }
     },

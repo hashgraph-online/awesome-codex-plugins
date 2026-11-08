@@ -28,7 +28,7 @@ You run several agents, each in its own worktree and branch. Every branch passes
 - **Works with what you already use.** Worktrees, orchestrators and Claude's session messaging keep working; fanout adds the checks they don't do. Nothing to set up: install the plugin and it switches on when two sessions share a repo. Using Conductor, claude-squad or Paradev? [Here's how](docs/orchestrators.md).
 - **Claude Code, Codex, or both,** plus any agent that reads `AGENTS.md`.
 - **One big job split across agents,** when you want it: `fanout run` gives each agent its own files, freezes shared interfaces, and tests every branch merged together before anything reaches `main`.
-- **No dependencies.** Node 18+ and git.
+- **No dependencies.** Node 18+ and git 2.38+ (older git works, but skips the conflict checks that preview a merge).
 
 ## Try it
 
@@ -211,7 +211,7 @@ fanout                    # every session: what it's doing, what it changed, ove
 fanout start "<task>"     # claim this session's task (agents without hooks)
 fanout inbox              # changes other sessions committed since you last looked (agents without hooks)
 fanout demo               # claims and notices with real sessions in a throwaway repo (~2 min, ~$0.10)
-fanout done               # test this branch merged with the others' work
+fanout done               # test this branch merged with the others' work (--json for scripts and orchestrators)
 fanout claims             # every claim; fanout release <name> ends one early
 fanout log                # the last 7 days: each refusal and notice, to check by hand (--days 30)
 ```

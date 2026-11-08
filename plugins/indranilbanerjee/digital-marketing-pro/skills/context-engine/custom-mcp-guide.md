@@ -42,7 +42,7 @@ Your `.mcp.json` (project or user scope) defines the MCP server configurations y
 1. **Session start:** Claude reads `.mcp.json` and starts configured MCP servers
 2. **Tool discovery:** Claude calls `tools/list` on each server to learn available tools
 3. **Tool invocation:** During conversation, Claude calls MCP tools by name with JSON parameters
-4. **Safety gate:** Claude Code's own permission system prompts before tool calls per your settings. This plugin ships **zero hooks** (`hooks/hooks.json` is `{"hooks":{}}` by design — plugin hooks fire globally); follow the read/write tool-naming convention below so write operations are recognizable, and rely on the built-in permission prompts for approval
+4. **Safety gate:** Claude Code's own permission system prompts before tool calls per your settings. This plugin ships no hook for MCP tools (its one hook gates only its own live-write scripts; plugin hooks fire globally); follow the read/write tool-naming convention below so write operations are recognizable, and rely on the built-in permission prompts for approval
 5. **Response:** MCP server executes the operation and returns results to Claude
 
 ---
@@ -152,7 +152,7 @@ const server = new McpServer({
   description: "MCP server for YourService — describe what it provides",
 });
 
-// --- Read Tool (auto-approved by hooks.json) ---
+// --- Read Tool (your host's permission settings decide whether it prompts) ---
 server.tool(
   "list_items",
   "List all items from YourService",
@@ -166,7 +166,7 @@ server.tool(
   }
 );
 
-// --- Write Tool (requires approval via hooks.json) ---
+// --- Write Tool (the host prompts for it unless you allow it; keep writes out of your allowlist) ---
 server.tool(
   "create_item",
   "Create a new item in YourService",
@@ -230,7 +230,7 @@ Name tools so their side effects are obvious from the prefix — Claude Code's p
 | `list_`, `get_`, `query_`, `search_`, `fetch_`, `count_` | **Read** | Safe to allow |
 | `create_`, `update_`, `delete_`, `send_`, `publish_`, `schedule_`, `import_`, `sync_` | **Write** | Require explicit approval |
 
-**Always name your tools using these prefixes** so read/write intent is machine-recognizable. If a tool has side effects, use a write prefix even if it also reads data. (This plugin ships zero hooks by design — approval gating comes from Claude Code's own permission system.)
+**Always name your tools using these prefixes** so read/write intent is machine-recognizable. If a tool has side effects, use a write prefix even if it also reads data. (This plugin ships no hook for MCP tools — approval gating for them comes from Claude Code's own permission system.)
 
 ---
 
@@ -356,7 +356,7 @@ Stored at `~/.claude-marketing/credentials/{profile-name}.json`:
 
 ### Access Control
 
-- Claude Code's permission system is the primary safety gate — configure allow/deny rules for MCP tools in your settings (this plugin ships zero hooks by design; add user-scope hooks yourself if you want automated gating)
+- Claude Code's permission system is the primary safety gate — configure allow/deny rules for MCP tools in your settings (this plugin's one hook covers only its own live-write scripts; add user-scope hooks yourself if you want automated gating of MCP tools)
 - Treat read tools (list, get, query, search, fetch) as safe to allow
 - Require explicit user approval for write tools (create, update, delete, send, publish, schedule)
 - Custom MCPs **must** follow the naming convention so read/write intent is recognizable

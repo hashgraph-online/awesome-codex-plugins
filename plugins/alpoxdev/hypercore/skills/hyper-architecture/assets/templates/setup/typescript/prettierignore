@@ -1,0 +1,26 @@
+# Build output
+dist
+build
+out
+.next
+.astro
+coverage
+
+# Dependencies and caches
+node_modules
+.cache
+.turbo
+.expo
+
+# Generated files: regenerate, never hand-format
+routeTree.gen.ts
+*.gen.ts
+*.generated.*
+next-env.d.ts
+
+# Lockfiles and tool-owned manifests
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+bun.lock
+bun.lockb

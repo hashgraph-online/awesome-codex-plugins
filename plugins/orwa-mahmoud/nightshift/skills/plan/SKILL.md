@@ -178,8 +178,8 @@ Estimate: <the shift-estimate figures for these items, or "no history yet">
   `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/plan/menu.md` and run only those; the
   owner keeps, edits or drops every line they propose. Record each choice and its outcome in the
   plan record (`Decided: planning menu — none`, or one `Decided:` line per option with what was
-  kept) and do not offer the menu again for that plan. Evidence shows the work; it never gates a
-  tick.
+  kept) and do not offer the menu again for that plan. Evidence shows the work. check off leaves
+  the tick alone, report names a missing file, and block keeps the stop open.
 - **Size it from the owner's history.** Before asking for the yes, run
   `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" shift-estimate --items <N>` for the N items drafted. It reads
   the Time and Tokens totals of past ticked receipts and prints per-item figures, a total, a suggested

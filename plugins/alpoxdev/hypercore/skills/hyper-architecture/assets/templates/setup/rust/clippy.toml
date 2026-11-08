@@ -1,0 +1,3 @@
+# Must equal rust-version in Cargo.toml (or the workspace's [workspace.package].rust-version).
+
+msrv = "1.99"

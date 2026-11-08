@@ -19,11 +19,10 @@
     "monitoring",
     "code-kits"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "AgentMart",
-    "shortDescription": "Hosted utilities for AI agents",
-    "composerIcon": "./assets/icon.svg"
-  }
+    "logo": "./assets/logo.svg"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

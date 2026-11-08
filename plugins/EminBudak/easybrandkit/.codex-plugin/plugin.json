@@ -15,7 +15,6 @@
     "fonts",
     "design"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "easybrandkit",
     "shortDescription": "Brand kit from a website",
@@ -32,5 +31,6 @@
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/"
 }

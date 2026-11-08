@@ -1,7 +1,7 @@
 {
   "name": "digital-marketing-pro",
-  "version": "3.41.0",
-  "description": "Open-source AI marketing plugin for agencies & in-house teams — 164 skills, 24 agents, 12-Part Strategy Flow, Cowork team-persistent, EU AI Act Article 50 ready. Runs on Claude Code, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok + 35+ more Agent Skills platforms.",
+  "version": "3.42.0",
+  "description": "Complete digital marketing operating system — 164 skills and 24 agents covering strategy, content, SEO/AEO, paid media, analytics, and compliance.",
   "author": {
     "name": "Indranil Banerjee",
     "url": "https://github.com/indranilbanerjee"
@@ -10,20 +10,15 @@
   "repository": "https://github.com/indranilbanerjee/digital-marketing-pro",
   "license": "MIT",
   "keywords": [
-    "digital-marketing",
-    "marketing-strategy",
-    "marketing-automation",
-    "ai-marketing",
+    "marketing",
     "seo",
     "aeo",
-    "geo",
-    "compliance",
-    "eu-ai-act",
-    "c2pa",
-    "agency-operations",
-    "agent-skills"
+    "paid-media",
+    "analytics",
+    "email",
+    "social-media",
+    "compliance"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Digital Marketing Pro",
     "shortDescription": "Open-source AI marketing plugin for agencies & in-house teams — 164 skills, 24 agents, 12-Part Strategy Flow, Cowork team-persistent, EU AI Act Article 50 ready. Runs on Claude Code, Codex, Cursor, Copilot CLI, Antigravity, Hermes Agent, OpenClaw, Grok + 35+ more Agent Skills platforms.",
@@ -35,6 +30,8 @@
       "Write"
     ],
     "websiteURL": "https://indranil.in",
+    "privacyPolicyURL": "https://github.com/indranilbanerjee/digital-marketing-pro/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/indranilbanerjee/digital-marketing-pro/blob/main/LICENSE",
     "defaultPrompt": [
       "Set up a new brand for digital marketing engagement.",
       "Run a full 12-Part Strategy Flow for the brand.",
@@ -42,6 +39,10 @@
       "Build a campaign plan with budget, timeline, and KPIs.",
       "Generate an executive dashboard for the current client."
     ],
-    "composerIcon": "./assets/icon.svg"
-  }
+    "brandColor": "#4F46E5",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
 }

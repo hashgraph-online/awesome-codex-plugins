@@ -15,7 +15,6 @@
     "ffmpeg",
     "marketing"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "launch-film",
     "shortDescription": "Launch film from a website",
@@ -32,5 +31,6 @@
     ],
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/"
 }

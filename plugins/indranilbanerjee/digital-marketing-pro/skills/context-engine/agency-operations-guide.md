@@ -126,7 +126,7 @@ Escalation: [When to escalate and to whom]
 
 | Report Type | Frequency | Delivery Day/Time | Auto-Generated? | Delivery Channel | Approver | Content |
 |---|---|---|---|---|---|---|
-| **Weekly Pulse** | Every Monday | Monday 9:00 AM client timezone | Yes (`performance-check` + `report-generator`) | Slack + Email | None (auto-send) | Top-line KPIs, spend pacing, wins/flags, action items for the week |
+| **Weekly Pulse** | Every Monday | Monday 9:00 AM client timezone | Yes (`performance-check` + `report-generator`) | Slack + Email | Account Manager (typed `yes` per send via `/digital-marketing-pro:send-report`, or a standing approval) | Top-line KPIs, spend pacing, wins/flags, action items for the week |
 | **Monthly Review** | 1st business day of month | By EOD | Semi-auto (analyst reviews, adds commentary) | Google Slides + Email | Account Manager | Full KPI report, channel breakdowns, content performance, budget reconciliation, next month plan |
 | **QBR (Quarterly Business Review)** | Every 90 days | Scheduled meeting | Manual (strategist prepares) | Presentation + PDF export | Account Director | Strategic review, market trends, competitive analysis, quarterly results vs. goals, next quarter strategy, budget recommendations |
 | **Annual Planning** | January (or client fiscal year start) | Scheduled workshop | Manual (team collaborates) | Strategy document + Google Slides | Agency Admin | Year-in-review, annual goal setting, budget allocation, channel strategy, content calendar framework, growth opportunities |

@@ -1,0 +1,67 @@
+{
+  "name": "dsh-deja",
+  "version": "0.24.0",
+  "private": true,
+  "description": "Repository-root manifest for the DeepSeek Harness plugin that lives in extensions/dsh — the same package published to npm as dsh-deja. It re-exports the subdirectory so the plugin installs from a bare git URL or from github:vshulcz/deja-vu#path:extensions/dsh; the npm package is the shorter path. The repository itself is the Go project behind the deja binary.",
+  "type": "module",
+  "main": "./extensions/dsh/index.js",
+  "exports": {
+    ".": "./extensions/dsh/index.js",
+    "./client": "./extensions/dsh/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "extensions/dsh",
+    "README.md",
+    "LICENSE"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vshulcz/deja-vu.git",
+    "directory": "extensions/dsh"
+  },
+  "homepage": "https://vshulcz.github.io/deja-vu/guide/memory-for-dsh.html",
+  "bugs": {
+    "url": "https://github.com/vshulcz/deja-vu/issues"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "memory",
+    "recall",
+    "session-history",
+    "migration",
+    "agent-memory",
+    "ai-memory",
+    "coding-agent",
+    "claude-code",
+    "claude-code-memory",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "mcp",
+    "mcp-server",
+    "session-search",
+    "local-first"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./extensions/dsh/cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web"
+    }
+  },
+  "dependencies": {
+    "@vshulcz/deja-vu": "^0.24.0"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/vshulcz/deja-vu"
+  }
+}

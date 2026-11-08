@@ -1,6 +1,6 @@
 // Claims: which session is doing what, kept in git so every session of a repo sees them at once.
 //   fanout start "<task>" [files...]              claim this session's task (agents without hooks: AGENTS.md says so)
-//   fanout done                                   test this branch merged with the other sessions' work (fanout.mjs)
+//   fanout done [--json]                          test this branch merged with the other sessions' work (fanout.mjs)
 //   fanout inbox                                  changes other sessions committed since this one last looked (notices)
 //   fanout claim <name> "<task>" [files...] [--exposes a,b] [--distinct "how it differs"]   files named here are locked
 //   fanout claims [--all]                         live claims (--all: expired ones too)
@@ -30,7 +30,7 @@ export const REF = "refs/fanout/state";
 const IDLE_HOURS = 24;
 
 const git = (cwd, args, input) => {
-  const r = spawnSync("git", args, { cwd, encoding: "utf8", input, maxBuffer: 64 << 20 });
+  const r = spawnSync("git", args, { cwd, encoding: "utf8", input, maxBuffer: 64 << 20, windowsHide: true });
   return { ok: r.status === 0, out: r.stdout ?? "", err: r.stderr ?? "" };
 };
 const IDENT = ["-c", "user.name=fanout", "-c", "user.email=fanout@local"];
@@ -184,7 +184,7 @@ export function writeState(cwd, mutate, msg = "fanout: claims") {
 // The tree merging b into a would make, written as objects only (no checkout or ref changes), and whether it
 // merged without a conflict; null if git can't (older than 2.38).
 export function mergedTree(cwd, a, b) {
-  const r = spawnSync("git", ["merge-tree", "--write-tree", "--no-messages", a, b], { cwd, encoding: "utf8" });
+  const r = spawnSync("git", ["merge-tree", "--write-tree", "--no-messages", a, b], { cwd, encoding: "utf8", windowsHide: true });
   const tree = (r.stdout ?? "").split("\n")[0].trim();
   return (r.status === 0 || r.status === 1) && /^[0-9a-f]{40,64}$/.test(tree) ? { tree, clean: r.status === 0 } : null;
 }
@@ -284,10 +284,10 @@ const bin = (name) => process.env[`FANOUT_${name.toUpperCase()}_BIN`] || name;
 export function judgeAgent(cwd) {
   const want = process.env.FANOUT_CLAIM_JUDGE_AGENT;
   if (want === "claude" || want === "codex") return want;
-  const claude = spawnSync(`${bin("claude")} auth status`, { cwd, shell: true, encoding: "utf8", timeout: 30000 });
+  const claude = spawnSync(`${bin("claude")} auth status`, { cwd, shell: true, encoding: "utf8", timeout: 30000, windowsHide: true });
   try { if (JSON.parse((claude.stdout ?? "").slice(claude.stdout.indexOf("{"))).loggedIn === true) return "claude"; } catch { /* not there */ }
   if (process.env.ANTHROPIC_API_KEY) return "claude";
-  if (spawnSync(`${bin("codex")} login status`, { cwd, shell: true, encoding: "utf8", timeout: 30000 }).status === 0) return "codex";
+  if (spawnSync(`${bin("codex")} login status`, { cwd, shell: true, encoding: "utf8", timeout: 30000, windowsHide: true }).status === 0) return "codex";
   return null;
 }
 
@@ -298,7 +298,7 @@ function askModel(agent, prompt, cwd) {
   const model = process.env.FANOUT_CLAIM_JUDGE_MODEL;
   if (agent === "claude") {
     const r = spawnSync(`${bin("claude")} -p --model ${model || "sonnet"} --tools "" --setting-sources project,local --strict-mcp-config --output-format json`,
-      { cwd, shell: true, encoding: "utf8", input: prompt, timeout: 120000 });
+      { cwd, shell: true, encoding: "utf8", input: prompt, timeout: 120000, windowsHide: true });
     const out = r.stdout ?? "", j = JSON.parse(out.slice(out.indexOf("{")));
     return j.is_error ? null : { text: String(j.result ?? ""), costUsd: j.total_cost_usd ?? null };
   }
@@ -309,7 +309,7 @@ function askModel(agent, prompt, cwd) {
   // the benchmark after a day of heavy use: calls ran into the timeout), so the first such event ends the call.
   // Answers took 12-22s; rate-limited, Codex often goes quiet without printing the 429 at all. So one 45s try,
   // and silence past that counts as unavailable too: the agent then compares the tasks itself.
-  const r = spawnSync(process.execPath, ["-e", CODEX_WATCH, cmd], { cwd, encoding: "utf8", input: prompt, timeout: 45000 });
+  const r = spawnSync(process.execPath, ["-e", CODEX_WATCH, cmd], { cwd, encoding: "utf8", input: prompt, timeout: 45000, windowsHide: true });
   if (r.status === 3 || r.error?.code === "ETIMEDOUT" || r.signal) return { rateLimited: true };
   try { return { text: readFileSync(file, "utf8"), costUsd: null }; } catch { return null; } finally { try { rmSync(file); } catch { /* none */ } }
 }
@@ -560,10 +560,16 @@ export function precheck(cwd, branch, task, base) {
   // Two messages sent in a row start two of these: the same task is checked once.
   let was; try { was = JSON.parse(readFileSync(join(gitDir, PRECHECK), "utf8")); } catch { was = null; }
   if (was?.task === task && (was.pending ? Date.now() - was.at < 120000 : others.every((c) => was.others?.includes(sig(c))))) return;
-  const put = (x) => { try { writeFileSync(join(gitDir, PRECHECK), JSON.stringify({ task, at: Date.now(), ...x })); } catch { /* read-only */ } };
-  put({ pending: true });
+  // A late start (a slow machine) can find the session already claimed by its first edit, which has used or
+  // skipped the early answer: checking now would cost a model call for nothing. (A claim made after this point
+  // waits for this check's answer, so it isn't asked again here.)
+  if (Object.values(readState(cwd).claims).some((c) => c.branch === branch)) return;
+  const file = join(gitDir, PRECHECK), put = (x, flag = "w") => writeFileSync(file, JSON.stringify({ task, at: Date.now(), ...x }), { flag });
+  // Created exclusively: of two started at the same moment, both can read no file above, and only one goes on.
+  if (was) try { rmSync(file); } catch { /* gone */ }
+  try { put({ pending: true }, "wx"); } catch { return; } // the other has it, or the git dir is read-only
   const o = taskOverlap(task, others, cwd);
-  put({ others: others.map(sig), same: o.same.map((c) => c.name), why: o.why, by: o.by, costUsd: o.costUsd ?? null });
+  try { put({ others: others.map(sig), same: o.same.map((c) => c.name), why: o.why, by: o.by, costUsd: o.costUsd ?? null }); } catch { /* read-only */ }
 }
 // Sessions that claimed since the early check are checked now, on their own.
 function prechecked(cwd, task, others) {

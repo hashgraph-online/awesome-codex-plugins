@@ -1,0 +1,32 @@
+# Normalize line endings on commit, keep LF in the working tree.
+* text=auto eol=lf
+
+# Shell scripts and CI entry points must stay LF.
+*.sh text eol=lf
+*.bash text eol=lf
+
+# Windows-only launchers keep CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binary assets: never diff, never convert.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.wasm binary
+*.pdf binary
+
+# Lockfiles: mark generated so review tools fold them.
+package-lock.json linguist-generated=true
+pnpm-lock.yaml linguist-generated=true
+yarn.lock linguist-generated=true
+bun.lock linguist-generated=true
+Cargo.lock linguist-generated=true

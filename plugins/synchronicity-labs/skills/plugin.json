@@ -1,0 +1,29 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sync",
+  "version": "1.0.0",
+  "description": "Lipsync videos, make photos and AI characters talk, translate and dub videos, fix spoken words, localize campaigns, run batch lipsync, and build sync. into apps. Uses the hosted sync. MCP server.",
+  "author": {
+    "name": "sync. labs",
+    "email": "hello@sync.so",
+    "url": "https://sync.so"
+  },
+  "homepage": "https://sync.so",
+  "repository": "https://github.com/synchronicity-labs/skills",
+  "license": "MIT",
+  "keywords": [
+    "lipsync",
+    "lip sync",
+    "lip-sync",
+    "dubbing",
+    "video translation",
+    "video localization",
+    "talking photo",
+    "talking avatar",
+    "ai video",
+    "voice",
+    "batch",
+    "sync labs",
+    "sync.so"
+  ]
+}
