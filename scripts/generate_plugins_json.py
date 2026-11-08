@@ -25,6 +25,9 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from plugin_package import archive_package_manifest, package_roots
+
 README = Path(__file__).parent.parent / "README.md"
 OUTPUT = Path(__file__).parent.parent / "plugins.json"
 MARKETPLACE_OUTPUT = Path(__file__).parent.parent / ".agents" / "plugins" / "marketplace.json"
@@ -240,9 +243,9 @@ def find_plugin_roots(names: set[str]) -> list[PurePosixPath]:
 
 
 def resolve_plugin_root(archive: zipfile.ZipFile, names: set[str], plugin: dict[str, str]) -> PurePosixPath:
-    roots = find_plugin_roots(names)
+    roots = sorted(package_roots(archive), key=lambda root: root.as_posix())
     if not roots:
-        raise ValueError("Archive does not contain .codex-plugin/plugin.json")
+        raise ValueError("Archive does not contain a supported plugin manifest")
     if len(roots) == 1:
         return roots[0]
 
@@ -264,8 +267,7 @@ def resolve_plugin_root(archive: zipfile.ZipFile, names: set[str], plugin: dict[
 
 
 def load_manifest(archive: zipfile.ZipFile, plugin_root: PurePosixPath) -> dict[str, object]:
-    manifest_name = plugin_root.joinpath(".codex-plugin", "plugin.json").as_posix()
-    return json.loads(archive.read(manifest_name).decode("utf-8"))
+    return archive_package_manifest(archive, plugin_root)[0]
 
 
 def plugin_root_relative_path(plugin_root: PurePosixPath) -> str:
@@ -273,8 +275,7 @@ def plugin_root_relative_path(plugin_root: PurePosixPath) -> str:
     return PurePosixPath(*repo_relative_parts).as_posix() if repo_relative_parts else ""
 
 
-def build_raw_manifest_url(plugin: dict[str, str], plugin_root_relative: str) -> str:
-    manifest_path = ".codex-plugin/plugin.json"
+def build_raw_manifest_url(plugin: dict[str, str], plugin_root_relative: str, manifest_path: str = ".codex-plugin/plugin.json") -> str:
     if plugin_root_relative:
         manifest_path = f"{plugin_root_relative}/{manifest_path}"
     source_ref = plugin.get("source_ref")
@@ -433,14 +434,20 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         plugin_root = resolve_plugin_root(archive, names, plugin)
     except ValueError:
         raise ValueError(f"Archive for {owner_repo} does not contain a matching .codex-plugin/plugin.json") from None
-    manifest = load_manifest(archive, plugin_root)
+    manifest, portable = archive_package_manifest(archive, plugin_root)
     metadata_only = is_metadata_only_mirror(plugin)
+    if portable and metadata_only:
+        raise ValueError("Portable packages require a complete bundle mirror")
     selected_paths = (
         collect_metadata_only_paths(manifest, names, plugin_root)
         if metadata_only
         else collect_selected_paths(manifest, names, plugin_root, plugin)
     )
     mirrored_manifest = sanitize_metadata_only_manifest(manifest, plugin) if metadata_only else manifest
+    if portable:
+        selected_paths.add("plugin.json")
+        if manifest.get("hooks") == "./hooks/hooks.json":
+            add_recursive_selection(selected_paths, names, plugin_root, "hooks/")
 
     plugin_root_relative = plugin_root_relative_path(plugin_root)
     use_subpath = plugin.get("_mirror_subpath") == "true"
@@ -457,7 +464,7 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         archive_name = plugin_root.joinpath(PurePosixPath(relative_path)).as_posix()
         destination_path = destination_root / PurePosixPath(relative_path)
         destination_path.parent.mkdir(parents=True, exist_ok=True)
-        if relative_path == ".codex-plugin/plugin.json" and not complete_bundle:
+        if relative_path == ".codex-plugin/plugin.json" and (not complete_bundle or portable):
             destination_path.write_text(
                 json.dumps(mirrored_manifest, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
@@ -465,7 +472,7 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         else:
             destination_path.write_bytes(archive.read(archive_name))
         # Direct hook commands need the executable bits from the source ZIP.
-        source_mode = archive.getinfo(archive_name).external_attr >> 16
+        source_mode = (archive.getinfo(archive_name).external_attr >> 16) if archive_name in names else 0
         executable_bits = source_mode & 0o111 if stat.S_ISREG(source_mode) else 0
         destination_path.chmod(0o644 | executable_bits)
 
@@ -596,7 +603,11 @@ def main() -> None:
             print(f"WARNING: Skipping {owner_repo} — {e}", file=sys.stderr)
             skipped.append(owner_repo)
             continue
-        plugin["install_url"] = build_raw_manifest_url(plugin, plugin_root_relative)
+        portable_path = PLUGINS_ROOT / marketplace_path.removeprefix("./plugins/") / "plugin.json"
+        plugin["install_url"] = build_raw_manifest_url(
+            plugin, plugin_root_relative,
+            "plugin.json" if portable_path.is_file() else ".codex-plugin/plugin.json",
+        )
 
         # Determine icon path if available and actually mirrored
         icon_path: str | None = None
