@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-08",
-  "total": 386,
+  "total": 387,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -3312,6 +3312,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/qrstuff/codex-plugins/HEAD/plugins/qrstuff-mcp-server/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "QuestionPunk",
+      "url": "https://github.com/questionpunk/codex-plugin",
+      "owner": "questionpunk",
+      "repo": "codex-plugin",
+      "description": "Create and review survey drafts, publish studies on request, and analyze responses through the QuestionPunk MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/questionpunk/codex-plugin/HEAD/plugins/questionpunk/plugin.json"
     },
     {
       "name": "Read Image",

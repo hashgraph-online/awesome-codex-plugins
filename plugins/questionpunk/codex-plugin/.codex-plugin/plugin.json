@@ -1,0 +1,42 @@
+{
+  "name": "questionpunk",
+  "version": "1.1.0",
+  "description": "Create and review survey drafts, publish requested studies, and analyze authorized QuestionPunk results.",
+  "author": {
+    "name": "QuestionPunk",
+    "email": "jake@questionpunk.com",
+    "url": "https://questionpunk.com"
+  },
+  "homepage": "https://mcp.questionpunk.com/docs",
+  "repository": "https://github.com/questionpunk/codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "research",
+    "surveys",
+    "customer-feedback"
+  ],
+  "interface": {
+    "displayName": "QuestionPunk",
+    "shortDescription": "Create and review studies",
+    "longDescription": "Connect your QuestionPunk account to create saved survey drafts, refine questions, review studies, and analyze results you can access. Publication requires your explicit request.",
+    "developerName": "QuestionPunk",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://questionpunk.com",
+    "privacyPolicyURL": "https://www.questionpunk.com/legal",
+    "termsOfServiceURL": "https://www.questionpunk.com/legal",
+    "defaultPrompt": [
+      "Create a short customer feedback survey and keep it unpublished.",
+      "Review my onboarding study for unclear or leading questions.",
+      "Summarize my study results with sample sizes and supporting evidence."
+    ],
+    "brandColor": "#8A2BAE",
+    "composerIcon": "./assets/questionpunk.svg",
+    "logo": "./assets/questionpunk.svg"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}
