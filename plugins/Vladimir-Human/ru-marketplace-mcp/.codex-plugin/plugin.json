@@ -1,0 +1,46 @@
+{
+  "name": "ru-marketplace-mcp",
+  "version": "2.9.1",
+  "description": "Двенадцать площадок РФ и Китая (Wildberries, Ozon, Яндекс Маркет, Авито, Циан, AliExpress, Taobao, Детский мир, Мегамаркет, Lamoda, DNS, Ситилинк) как MCP-серверы и 15 навыков. Сравнение цен без ключей API.",
+  "author": {
+    "name": "Vladimir-Human",
+    "url": "https://github.com/Vladimir-Human"
+  },
+  "homepage": "https://github.com/Vladimir-Human/ru-marketplace-mcp",
+  "repository": "https://github.com/Vladimir-Human/ru-marketplace-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "wildberries",
+    "ozon",
+    "yandex-market",
+    "avito",
+    "cian",
+    "aliexpress",
+    "taobao",
+    "price-comparison",
+    "russia"
+  ],
+  "skills": "./skills",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ru-marketplace-mcp",
+    "shortDescription": "12 маркетплейсов РФ/Китая и Циан без ключей API",
+    "longDescription": "Поиск товаров, карточек, отзывов и недвижимости на Wildberries, Ozon, Яндекс Маркете, Авито, Циане, AliExpress, Taobao, Детском мире, Мегамаркете, Lamoda, DNS и Ситилинке, плюс сравнение цен одним вызовом.",
+    "developerName": "Vladimir-Human",
+    "category": "Productivity",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://github.com/Vladimir-Human/ru-marketplace-mcp",
+    "privacyPolicyURL": "https://github.com/Vladimir-Human/ru-marketplace-mcp/blob/main/SECURITY.md",
+    "termsOfServiceURL": "https://github.com/Vladimir-Human/ru-marketplace-mcp/blob/main/LICENSE",
+    "composerIcon": "./.claude-plugin/icon.svg",
+    "logo": "./.claude-plugin/icon.png",
+    "brandColor": "#2D2A7A",
+    "screenshots": [],
+    "defaultPrompt": [
+      "Сравни цены на AirPods Pro 2 по всем маркетплейсам"
+    ]
+  }
+}

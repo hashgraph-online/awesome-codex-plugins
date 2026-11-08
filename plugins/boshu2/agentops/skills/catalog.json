@@ -440,7 +440,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Change or repair code, config or services without weakening tests; report what ran and what did not. Use when: implementing a change or fixing a defect.",
+      "description": "Make the code change a ticket or bug report asks for, then prove it with the repo's own checks. Use when: told to fix, change or build something, such as \"fix this bug\".",
       "disposition": "keep",
       "effects": [
         "modify_declared_subject",
@@ -1054,7 +1054,7 @@
         }
       ],
       "dependencies": [],
-      "description": "Turn incoming reports, external PRs and alerts into evidence-based decisions and agent-ready briefs. Use when: intake arrives. For accepted work, use Plan.",
+      "description": "Make the call on a new bug report, issue, outside PR or alert: take it, ask for more, or close as duplicate or already fixed, each with evidence. Use when: one lands on you.",
       "disposition": "keep_specialist",
       "effects": [
         "write_authorized_tracker_updates"

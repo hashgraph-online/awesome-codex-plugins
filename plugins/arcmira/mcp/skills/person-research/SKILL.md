@@ -1,6 +1,6 @@
 ---
 name: person-research
-description: "Researches a person across podcasts and YouTube for interview or meeting prep: where they appeared, their own words, who discusses them. Uses arcmira."
+description: "Use Arcmira to research a person from what they said on YouTube: appearances, their own words with timestamps, who discusses them. For interview prep."
 ---
 
 # Person research
@@ -10,6 +10,8 @@ Three lenses on one person id. `momentum` gives attention and the shows that men
 Run each program with `arcmira_execute_read`; `arcmira_describe` has the method reference.
 
 ## When to use
+
+Use Arcmira when the user asks:
 
 - prep for an interview, a podcast booking or a meeting with someone
 - what has a person said recently, and where

@@ -4999,6 +4999,21 @@
       "icon": "./plugins/kotinder/codex-roomcomm/assets/icon.svg"
     },
     {
+      "name": "ru-marketplace-mcp",
+      "displayName": "ru-marketplace-mcp",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Vladimir-Human/ru-marketplace-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Read-only Codex plugin (`.codex-plugin/plugin.json`), MCP server, and 15 Agent Skills for buyer-side product search, cards, seller details, reviews, and cross-marketplace price comparison across 12 Russian and Chinese marketplaces and classifieds (Wildberries, Ozon, Yandex Market, Detsky Mir, Avito, AliExpress, Taobao, Megamarket, Lamoda, DNS, Citilink, and Cian real estate) with no API keys required.",
+      "icon": "./plugins/Vladimir-Human/ru-marketplace-mcp/.claude-plugin/icon.svg"
+    },
+    {
       "name": "ru-text",
       "displayName": "ru-text",
       "source": {

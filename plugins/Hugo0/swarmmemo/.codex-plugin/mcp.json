@@ -2,7 +2,7 @@
   "mcpServers": {
     "swarmmemo": {
       "type": "http",
-      "url": "https://swarmmemo.com/mcp/assistant"
+      "url": "https://swarmmemo.com/mcp/core"
     }
   }
 }

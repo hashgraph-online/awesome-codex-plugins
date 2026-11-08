@@ -1,5 +1,6 @@
 {
   "bowmark": {
+    "type": "http",
     "url": "https://api.bowmark.ai/mcp/codex-plugin"
   }
 }
