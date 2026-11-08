@@ -100,7 +100,7 @@ const prefixClash = (a, b) => {
 };
 
 function git(args, cwd) {
-  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "ignore"], windowsHide: true });
 }
 // Files a lane changed itself, against base. Before a fix round fanout run merges the branches ahead of
 // a lane into it, so it can test on their real code; files that came in only through those merges aren't
@@ -807,6 +807,8 @@ function promptHook() {
   const cwd = input.cwd ?? process.cwd(), task = cleanTask(input.prompt).slice(0, 600);
   if (task.length < 15 || !existsSync(cwd)) return 0;
   // Every check runs in the background process too: each git call here would hold up the user's message.
+  // Detached so it outlives this hook. On Windows that leaves it no console, so every git or claude it runs sets
+  // windowsHide, or each would open a window of its own.
   spawn(process.execPath, [fileURLToPath(import.meta.url), "precheck", task], { cwd, detached: true, stdio: "ignore", windowsHide: true }).unref();
   return 0;
 }

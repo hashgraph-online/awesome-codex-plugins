@@ -1,0 +1,76 @@
+# Dependabot keeps the toolchain and the locked Python deps current.
+#
+# Four ecosystems:
+#   - github-actions: the pinned action versions in .github/workflows/*
+#   - uv: the workspace dependencies tracked in uv.lock. Dependabot's native uv
+#     support (uv.lock-aware) reached general availability on 2025-03-13, so we
+#     use `package-ecosystem: "uv"` directly rather than the older `pip` shim.
+#   - docker: the base images in Dockerfile and Dockerfile.stdio. They are pinned
+#     to digests, so without this nothing would ever pick up a rebuilt image
+#     (security fixes in the same tag). The Python image stays on 3.12: moving
+#     the runtime to a newer Python is a deliberate change, not a routine bump.
+#   - npm: the dev-only package-lock.json (jsdom for the offline DOM-extractor
+#     tests). Nothing watched it before, and it had drifted into two high
+#     advisories by the time #132 refreshed it by hand.
+#
+# Minor and patch bumps are grouped per ecosystem so routine upgrades land as a
+# single PR instead of one-per-dependency; majors stay separate for deliberate
+# review. Weekly cadence and modest open-PR caps keep the noise down.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      uv-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      actions-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    ignore:
+      - dependency-name: "python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+    groups:
+      docker-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"

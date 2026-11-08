@@ -1,6 +1,6 @@
 ---
 name: implement
-description: 'Change or repair code, config or services without weakening tests; report what ran and what did not. Use when: implementing a change or fixing a defect.'
+description: 'Make the code change a ticket or bug report asks for, then prove it with the repo''s own checks. Use when: told to fix, change or build something, such as "fix this bug".'
 practices:
 - tdd
 - refactoring

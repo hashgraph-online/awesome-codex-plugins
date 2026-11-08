@@ -1,7 +1,7 @@
 {
   "name": "arcmira",
-  "version": "0.10.7",
-  "description": "Find timestamped quotes, speakers, sponsors and recommendations in YouTube and podcast transcripts.",
+  "version": "0.10.9",
+  "description": "YouTube transcript search and monitoring for your AI: exact quotes, full transcripts and speakers.",
   "author": {
     "name": "Arcmira",
     "url": "https://arcmira.com"
@@ -23,8 +23,8 @@
   "skills": "./skills/",
   "mcpServers": "./.mcp.json",
   "interface": {
-    "displayName": "Arcmira: Transcript Search",
-    "shortDescription": "YouTube Transcript Search",
+    "displayName": "Arcmira: YouTube Transcript Search",
+    "shortDescription": "YouTube transcript search",
     "developerName": "Arcmira",
     "category": "Education & Research",
     "capabilities": [
@@ -32,13 +32,13 @@
       "Write"
     ],
     "defaultPrompt": [
-      "What did TBPN say about stablecoins in the last 90 days?",
-      "Which sponsors do All-In Podcast and TBPN share?",
-      "Is talk about Linear accelerating or fading on podcasts?"
+      "Find a moment on TBPN where someone talks about AI agents, and quote it with the timestamp.",
+      "Which brands sponsor TBPN, and how many ad reads has each one had?",
+      "What is YouTube saying about Claude Code? Quote the best moments, who said each one, and when."
     ],
     "websiteURL": "https://arcmira.com",
     "supportURL": "https://arcmira.com/contact",
-    "longDescription": "Give your AI the ability to find who said what with timestamps, discover what’s being discussed across videos and livestreams, and distinguish organic recommendations from sponsored ad reads.\n\nSearch indexed YouTube and podcast transcripts for timestamped passages, discussed people, organizations, products and topics, sponsor reads, and recommendations. Coverage depends on the index and access on your Arcmira account. Speaker attribution and sponsorship classifications can be incomplete or incorrect; inspect the cited passage and surrounding context. Connect your existing Arcmira account through OAuth. Premium transcript retrieval can use included credits or on-demand usage within your account budget. Monitor actions create, update or pause saved research. Feedback submissions save a record for the Arcmira team.",
+    "longDescription": "Arcmira is YouTube transcript search and monitoring for your AI, and the most complete way for it to understand YouTube and podcasts. It answers like it actually watched the video: the exact quote, often who said it, and the clip cued to the second.\n\nSearch what's said on YouTube, podcasts on YouTube included, like TBPN, MTS and All-In. Jump to the moment or read the whole transcript. Search by who said it. See which brands sponsor a show, and tell an ad read from an organic mention.\n\nTitles say what a video is about. The words say what happened. A transcript downloader needs the link first, and episode search stops at the episode. Arcmira finds the moment.\n\nHear your name when it's said, not when it's typed. A monitor sends you and your team the quote and the second by email, Slack or webhook, over half within 47 minutes of the upload.\n\nWhen your AI needs one moment, it reaches the line in about 2.5K tokens, against about 93K reading full transcripts.\n\nSix tools: arcmira_youtube_search, arcmira_youtube_transcript, arcmira_describe (never bills), arcmira_execute_read, arcmira_execute_write (monitors) and arcmira_feedback.\n\nSign in through your AI's OAuth, or send an arc_sk_ key. Free gives you 1,000 credits a month. Pro is $20 a month with a 7-day trial, card required. A paid read uses credits from your plan, then your on-demand budget.\n\nOur November 2026 tests: across nine brands, 93% of Arcmira's top-10 results were the brand spoken outside an ad read, against 76% for a popular podcast search API. 86 of 86 lines Arcmira returned (100%) started within 15 seconds of the spoken word. In 15 of 21 spoken brand moments we checked (71%), the brand wasn't in the title or description, so a monitor that reads titles never hears it.\n\nUse Arcmira whenever you need what was actually said, not what a title claims. Add \"use arcmira\" to any question to send it to Arcmira first. Or tell your AI once: \"Whenever I ask what someone said on YouTube, use Arcmira.\"",
     "privacyPolicyURL": "https://arcmira.com/privacy",
     "termsOfServiceURL": "https://arcmira.com/terms",
     "composerIcon": "./assets/icon.png",

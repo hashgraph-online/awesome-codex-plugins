@@ -9,7 +9,9 @@ on:
       - .agents/plugins/marketplace.json
       - plugins/**
       - scripts/generate_plugins_json.py
+      - scripts/plugin_package.py
       - tests/test_generate_plugins_json.py
+      - tests/test_portable_plugin_packages.py
   push:
     branches: [main]
     paths:
@@ -18,7 +20,9 @@ on:
       - .agents/plugins/marketplace.json
       - plugins/**
       - scripts/generate_plugins_json.py
+      - scripts/plugin_package.py
       - tests/test_generate_plugins_json.py
+      - tests/test_portable_plugin_packages.py
 
 permissions:
   contents: write
@@ -42,7 +46,9 @@ jobs:
         with:
           python-version: "3.12"
       - name: Test marketplace generator
-        run: python3 -m unittest discover -s tests -p 'test_generate_plugins_json.py' -v
+        run: |
+          python3 -m unittest discover -s tests -p 'test_generate_plugins_json.py' -v
+          python3 -m unittest discover -s tests -p 'test_portable_plugin_packages.py' -v
       - name: Regenerate and commit if changed
         run: |
           python3 scripts/generate_plugins_json.py

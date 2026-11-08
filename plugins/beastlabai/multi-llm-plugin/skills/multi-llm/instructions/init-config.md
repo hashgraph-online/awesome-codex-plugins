@@ -112,4 +112,4 @@ manager is a fail-closed gate, not a question.
 - One override per repository (discovery anchors at the git root). For per-run or
   out-of-tree overrides use `MULTI_LLM_PROVIDERS_CONFIG=/path.yaml`.
 
-See `docs/configuration.md` in the repository for the full semantics.
+See [the configuration documentation](https://github.com/beastlabai/multi-llm-plugin/blob/master/docs/configuration.md) for the full semantics.
