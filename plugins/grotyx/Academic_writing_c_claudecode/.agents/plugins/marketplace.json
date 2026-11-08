@@ -1,0 +1,12 @@
+{
+  "name": "manuwright",
+  "interface": { "displayName": "ManuWright" },
+  "plugins": [
+    {
+      "name": "manuwright",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Productivity"
+    }
+  ]
+}

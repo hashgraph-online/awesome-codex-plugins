@@ -1,6 +1,6 @@
 ---
 name: start
-description: Begin the shift from the punch list without asking, so scheduled and headless runs behave like interactive ones.
+description: Begin the shift from the punch list without asking, so scheduled runs behave like interactive ones.
 license: MIT
 metadata:
   internal: true

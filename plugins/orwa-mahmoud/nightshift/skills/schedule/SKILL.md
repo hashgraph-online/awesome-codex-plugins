@@ -1,6 +1,6 @@
 ---
 name: schedule
-description: Print the launchd, cron or Task Scheduler config that starts a shift at a fixed time; registers nothing.
+description: Print the launchd, cron or Task Scheduler config that starts a shift at a fixed time.
 license: MIT
 metadata:
   internal: true

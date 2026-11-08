@@ -4483,6 +4483,21 @@
       "icon": "./plugins/magichourhq/skills/assets/logo.svg"
     },
     {
+      "name": "manuwright",
+      "displayName": "ManuWright",
+      "source": {
+        "source": "local",
+        "path": "./plugins/grotyx/Academic_writing_c_claudecode"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Medical manuscript workflow that blocks drafting without approved plans, checks citations against an evidence ledger and checks reported numbers against results CSV files.",
+      "icon": "./plugins/grotyx/Academic_writing_c_claudecode/assets/icon.png"
+    },
+    {
       "name": "maqami-travel",
       "displayName": "MAQAMI Travel",
       "source": {

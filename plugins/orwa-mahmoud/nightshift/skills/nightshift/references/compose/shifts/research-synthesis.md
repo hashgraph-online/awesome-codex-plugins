@@ -1,5 +1,7 @@
 # Research synthesis — finite — decision-ready comparison of named sources
 
+## When to use
+
 Use when the owner hands an explicit URL list or local files and needs one synthesis they can
 act on: agreement, contradiction, confidence, and limits — not a stack of isolated summaries.
 
@@ -26,6 +28,8 @@ Write a `mode: analytics-investigation` receipt from `receipts/cycle-specialist-
 semantics and cohorts, validate data quality, expose confounders, and produce a decision with
 limits. Never build
 a generic dashboard, invent a metric, broaden access, or make a causal claim from correlation.
+
+## Item
 
 ```text
 - [ ] **Research synthesis — compare named sources into one cited decision brief.**

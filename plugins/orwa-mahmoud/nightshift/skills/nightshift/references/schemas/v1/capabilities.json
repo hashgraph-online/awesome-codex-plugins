@@ -34,5 +34,5 @@
     "shell-plugin",
     "make"
   ],
-  "provisioningDefault": "existing-tools"
+  "provisioningDefault": "auto-add"
 }

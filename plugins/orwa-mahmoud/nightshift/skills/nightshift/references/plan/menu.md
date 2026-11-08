@@ -21,9 +21,9 @@ Read `evidence/catalog.md` and suggest one `Evidence:` line per item, beside its
 List the kinds with `ns catalog-index --catalog evidence` and read in full only the kinds that
 fit the drafted items. Each line names its source. Where an owner's kind and a shipped kind both
 fit, suggest the owner's. When no kind fits an item, offer once to draft one from
-`receipts.evidence.kindTemplatePath` when that is set, otherwise from the shipped template. Show
-the draft, and write it only after the owner says yes, into the project folder or the user folder,
-whichever the owner names. Then
+the template in force (`ns catalog-index --catalog evidence --template`). Show the draft, and write
+it only after the owner says yes, with `ns catalog-new --catalog evidence --key <key>` (`--user`
+for every project), whichever folder the owner names. Then
 ask once, for the whole plan rather than per item, which shift-wide settings to include: evidence
 every item should carry (`receipts.evidence.default`), a file map on every receipt
 (`receipts.evidence.fileMap`), an architecture diagram kept current

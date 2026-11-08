@@ -100,7 +100,7 @@ uvx ru-marketplace-mcp setup
 git clone https://github.com/Vladimir-Human/ru-marketplace-mcp.git
 cd ru-marketplace-mcp
 uv sync --all-packages
-uv run pytest -q -m "not live and not cdp"   # 3439 офлайн-тестов, сеть не нужна
+uv run pytest -q -m "not live and not cdp"   # 3442 офлайн-тестов, сеть не нужна
 ```
 
 Проверка живого эндпоинта:
@@ -707,7 +707,7 @@ TTL.
 
 ```bash
 uv sync --all-packages
-uv run pytest -q -m "not live and not cdp"    # 3439 офлайн-тестов
+uv run pytest -q -m "not live and not cdp"    # 3442 офлайн-тестов
 uv run pytest -q -m "not live"                # то, что гоняет CI
 uv run pytest -q -m "not live" --cov          # покрытие, порог 70% в CI
 uv run ruff check . && uv run ruff format --check .
@@ -773,7 +773,7 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 ## Как это сделано
 
 Код и документацию я писал вместе с ИИ-ассистентами. Они работают быстро и
-ошибаются уверенно, поэтому проект устроен вокруг проверки: 3439 офлайн-тестов,
+ошибаются уверенно, поэтому проект устроен вокруг проверки: 3442 офлайн-тестов,
 аудит перед выпуском, тесты, которые прогоняют настоящий экстрактор по снятой с
 сайта разметке. В заметках к релизу перечислено, какие источники сверены с живыми
 страницами вручную и какие остались непроверенными.
@@ -789,6 +789,7 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 - [@fosteev](https://github.com/fosteev) — macOS CDP stealth и коннектор Циана, [PR #42](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/42), [PR #47](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/47).
 - [@ilodezis](https://github.com/ilodezis) — выбор источников unified-сервера через `MARKETPLACE_SOURCES`, [PR #48](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/48).
 - [@HeckfyCU](https://github.com/HeckfyCU) — замеры навигации AliExpress на российском IP, [issue #190](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/190): по его замерам найден и исправлен предел ожидания страницы.
+- [@XaruStar](https://github.com/XaruStar) — разбор живого ответа Ozon `webListReviews` со строковым `itemId`, [issue #214](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/214): по нему исправлен учёт `own_reviews` и проверка `item_id` в `ozon_selfcheck`.
 
 ## Лицензия
 
@@ -877,7 +878,7 @@ From source, for development:
 git clone https://github.com/Vladimir-Human/ru-marketplace-mcp.git
 cd ru-marketplace-mcp
 uv sync --all-packages
-uv run pytest -q -m "not live and not cdp"    # 3439 offline tests, no network needed
+uv run pytest -q -m "not live and not cdp"    # 3442 offline tests, no network needed
 ```
 
 Client configuration mirrors the Russian section above. The shortest path is the
@@ -1351,7 +1352,7 @@ import, and `compare_prices` queries the same subset.
 
 ```bash
 uv sync --all-packages
-uv run pytest -q -m "not live and not cdp"    # 3439 offline tests
+uv run pytest -q -m "not live and not cdp"    # 3442 offline tests
 uv run pytest -q -m "not live"                # what CI runs
 uv run pytest -q -m "not live" --cov          # coverage, CI enforces a 70% floor
 uv run ruff check . && uv run ruff format --check .
@@ -1413,7 +1414,7 @@ harvesting.
 ## How this was built
 
 I wrote the code and the documentation with AI assistants. They are fast and they
-are confidently wrong, so the project is arranged around verification: 3439 offline
+are confidently wrong, so the project is arranged around verification: 3442 offline
 tests, an audit before the release, tests that run the real extractor against
 markup captured from the live site. The release notes say which sources were
 compared against live pages by hand and which were left unverified.
@@ -1430,6 +1431,7 @@ credit too: the full contributor and PR index is in
 - [@fosteev](https://github.com/fosteev) — macOS CDP stealth and the Cian connector, [PR #42](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/42), [PR #47](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/47).
 - [@ilodezis](https://github.com/ilodezis) — unified-server source selection, [PR #48](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/48).
 - [@HeckfyCU](https://github.com/HeckfyCU) — AliExpress navigation timing measured on a Russian residential IP, [issue #190](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/190): those measurements located the page-readiness deadline that has been fixed.
+- [@XaruStar](https://github.com/XaruStar) — live Ozon `webListReviews` report on decimal-string `itemId`, [issue #214](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/214): fixed review SKU attribution (`own_reviews`) and `ozon_selfcheck` `item_id` drift detection.
 
 ## License
 

@@ -1,5 +1,7 @@
 # SEO audit — finite — prioritized, cited findings from an explicit site or tree
 
+## When to use
+
 Use when the owner names a site, a URL list, or a local documentation/marketing tree and wants a
 reviewable audit rather than a guessed ranking. The list of sources is whatever they supplied;
 the shift ends when every supplied source is recorded and the report is checked.
@@ -66,6 +68,8 @@ The shift receipt (commit message body or artifact receipt in the item receipt) 
 after honest not-measured rows are applied. Rank blockers first: crawl/indexing, canonical/redirect,
 rendered/schema, evidence-backed opportunity, internal discovery/intent, measured
 performance/accessibility, then editorial experiments.
+
+## Item
 
 ```text
 - [ ] **SEO audit — produce a prioritized, cited audit of the named site or tree.**

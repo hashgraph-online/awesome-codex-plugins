@@ -1,5 +1,7 @@
 # Migration compatibility — finite — guarded framework, config, and data migrations
 
+## When to use
+
 Use when the owner names a framework, dependency, API, configuration, or data migration and
 supplies authoritative guidance. Nightshift inventories consumers, compatibility surfaces,
 persisted state, ordering, rollback, and representative data — then performs only bounded,
@@ -37,6 +39,8 @@ and destructive operations remain outside normal direct-mode authority unless th
 approved that exact environment in the punch-list scope. Production-refusal holds even when the
 plan asks for it. On a mid-migration failure, roll back when a rollback path exists and otherwise
 stop and park the recovery for the owner — never guess forward through half-applied state.
+
+## Item
 
 ```text
 - [ ] **Migration compatibility — plan and execute a guarded migration with rollback.**

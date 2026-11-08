@@ -1,5 +1,7 @@
 # Accessibility repair — finite — objective violations from checks the project already runs
 
+## When to use
+
 Accessibility violations reported by the repository's configured linter, test suite, or scanner.
 The shift repairs concrete findings without redesigning the interface or claiming compliance.
 
@@ -11,6 +13,8 @@ Supported on projects that already configure accessibility lint rules or automat
 tests. Detect those commands from package scripts, test configuration, or the item gate. If the
 project has no established accessibility check, this shift is unsupported and must not start.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **Accessibility repair — fix objective violations reported by existing project checks.**

@@ -1,0 +1,4 @@
+{"type":"tree","title":"모노레포 구조","subtitle":"범위: 최상위 두 단계","description":"저장소 루트 아래에 apps와 packages가 있습니다. apps에는 웹과 관리자 앱이, packages에는 UI 컴포넌트, API 클라이언트, 공용 설정이 들어 있습니다.",
+"root":{"id":"root","label":"shop-monorepo","kind":"neutral","children":[
+ {"id":"apps","label":"apps","sub":"배포 단위","kind":"client","children":[{"id":"web","label":"web","sub":"Next.js","kind":"client"},{"id":"admin","label":"admin","sub":"Vite","kind":"client"}]},
+ {"id":"pk","label":"packages","sub":"공유 코드","kind":"service","children":[{"id":"ui","label":"ui","sub":"컴포넌트","kind":"service"},{"id":"cl","label":"api-client","sub":"생성 코드","kind":"service"},{"id":"cfg","label":"config","sub":"eslint · tsconfig","kind":"service"}]}]}}

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "joxo",
-  "version": "0.2.173",
+  "version": "0.2.177",
   "description": "Joxo's setup skill: joins this coding agent to your team's Joxo project.",
   "author": {
     "name": "Joxo",

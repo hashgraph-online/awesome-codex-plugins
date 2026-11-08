@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "arcmira",
-  "version": "0.10.11",
+  "version": "0.10.14",
   "description": "YouTube transcript search and monitoring for your AI: exact quotes, full transcripts and speakers.",
   "author": {
     "name": "Arcmira",

@@ -14,7 +14,7 @@ Languages per stack for the setup track:
 
 | Stack | Setup files |
 |---|---|
-| nextjs, tanstack-start, vite, expo, lynx, astro, hono | `rules/setup/typescript.md` |
+| nextjs, tanstack-start, vite, electron, expo, lynx, astro, hono | `rules/setup/typescript.md` |
 | tauri | `rules/setup/typescript.md` and `rules/setup/rust.md` (the `src-tauri` crate) |
 | axum, rust | `rules/setup/rust.md` |
 

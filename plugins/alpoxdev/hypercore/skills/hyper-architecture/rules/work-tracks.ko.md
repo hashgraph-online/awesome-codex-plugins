@@ -14,7 +14,7 @@ setup 트랙에서 스택별로 읽는 언어 파일입니다.
 
 | Stack | Setup files |
 |---|---|
-| nextjs, tanstack-start, vite, expo, lynx, astro, hono | `rules/setup/typescript.md` |
+| nextjs, tanstack-start, vite, electron, expo, lynx, astro, hono | `rules/setup/typescript.md` |
 | tauri | `rules/setup/typescript.md`와 `rules/setup/rust.md`(`src-tauri` crate) |
 | axum, rust | `rules/setup/rust.md` |
 

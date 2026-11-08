@@ -1,13 +1,14 @@
 ---
 name: setup
-description: Scaffold .nightshift/ and propose quality gates for this stack; asks, never imposes.
+description: Scaffold .nightshift/ in at most four questions, with every default on one screen.
 license: MIT
 metadata:
   internal: true
 ---
 
-Set up Nightshift in this project. Do the scaffolding first, then the gates conversation, then
-print a summary.
+Set up Nightshift in this project in at most four questions. Scaffold first, then ask the
+questions in section 3, apply every answer in the same turn, then print a summary that ends with
+the one sentence that starts a shift.
 
 The four state files and what each holds are in
 `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/shift/state-map.md`. Ordinary plans belong in the drafting table, never in Hunt or the parking lot.
@@ -59,7 +60,9 @@ product, so give them the shortest OpenAI-native route. Do not infer “temporar
 project is not a git repository — local non-git projects and the recommended parent-workspace
 layout remain valid. The explicit disposable scratch path is the stop signal.
 
-Detect the work mode, explain it, and ask before persisting it. Use
+Detect the work mode and the work target. When the choice is ambiguous (several child repositories,
+or a folder that could be either mode), explain it and ask before persisting it; that is section
+3's first question. An obvious single repository is not asked: it is stated in the summary. Use
 `ns_propose_work_mode` (POSIX) or `Get-NSProposedWorkMode` after importing
 `Nightshift.psm1` (native Windows):
 
@@ -74,7 +77,7 @@ Detect the work mode, explain it, and ask before persisting it. Use
 - scratch (`ns_propose_work_mode` status 2, or `Get-NSProposedWorkMode` throwing) — stop; create
   nothing.
 
-Never persist a mode until the owner confirms. Never `git init` a notes folder to change an artifact proposal into repository mode. Then write `$NS/run/work-mode` as `repository` or
+Never persist an ambiguous mode until the owner confirms. Never `git init` a notes folder to change an artifact proposal into repository mode. Then write `$NS/run/work-mode` as `repository` or
 `artifact` (one word, one newline) and `$NS/run/work-target` as the absolute canonical path of the
 chosen folder. On POSIX: `ns_record_work_target "$NIGHTSHIFT_WORKSPACE" "$WORK_TARGET" "$WORK_MODE"`.
 On later setup runs, validate and retain that mode and target unless the owner explicitly changes
@@ -101,7 +104,7 @@ bare `.nightshift/` mentions at injection time.
 **State version.** `$NS/state-version` is the schema marker, and it names the layout: this plugin
 writes version `2`, which groups `$NS/` by purpose. The scaffold writes it into a `$NS/` it creates.
 A site at version `1`, or with no marker (legacy `0`), keeps every state file at the top of `$NS/`
-and goes on working there; offer the move with
+and goes on working there; offer the move as a line on section 3's defaults screen, with
 
 ```bash
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" migrate-state
@@ -116,18 +119,91 @@ scaffolding as if the site were current.
 
 ## 2. Private by default
 
-- Keep run state out of git. If `$NIGHTSHIFT_WORKSPACE` is itself a git repo, append a line
- `.nightshift/` to `$NIGHTSHIFT_WORKSPACE/.gitignore` (create the file if needed; do not
- duplicate the line). If it is not one — the recommended layout, where the code repo sits a
- level below — `.nightshift/` is already outside every repo, so write no `.gitignore` there.
- Run history is the owner's; it never enters the project repo.
-- **Receipts repo — ask, default no.** The run state can be versioned in its own local-only git
- repo inside `$NS/`, so every punch-list change and owner file has history. Most people
- don't want a git repo living inside their project, so ask — *"version the run state in a local
- receipts repo? (never pushed, never touches your project's history)"* — and on anything but a
- clear yes, skip it: the receipts still exist as plain files. Present the question neutrally —
- never describe the repo as recommended; the default is no. On yes: if `$NS/.git` does
- not exist, run `git -C "$NS" init` rather than `cd`-ing there.
+Keep run state out of git. If `$NIGHTSHIFT_WORKSPACE` is itself a git repo, append a line
+`.nightshift/` to `$NIGHTSHIFT_WORKSPACE/.gitignore` (create the file if needed; do not duplicate
+the line). If it is not one — the recommended layout, where the code repo sits a level below —
+`.nightshift/` is already outside every repo, so write no `.gitignore` there. Run history is the
+owner's; it never enters the project repo.
+
+Copy `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/nightshift-rules-template.json` to
+`$NS/rules.json` as-is if it does not already exist, so section 3 shows real values (section 5
+covers the file).
+
+## 3. The questions — at most four
+
+Ask these in this order and nothing else. Skip any whose answer is already clear. Never split one
+into several turns.
+
+1. **Work target** — only when it is ambiguous, as above.
+2. **Gates** — the detected proposal, answered with accept, edit or none (below).
+3. **Defaults** — every remaining choice on one screen (below), answered once.
+4. **Copy-in files** — only when the owner chose a shift worktree: which ignored files the tests
+   need, such as `.env.test`. List only those in `shift.copyIn`; never propose `.env` itself.
+
+A rerun asks the same questions with the owner's current values in place of the defaults, and
+changes only what the owner names.
+
+### Gates
+
+Detect the stack in the persisted work target from
+`ns catalog-index --catalog gates` and
+`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/compose/gates-catalog.md`
+(monorepo-aware). Read only the stacks whose Detect matches, in the order the index prints them.
+An owner's stack of the same key replaces the shipped one; say where each proposal came from.
+A plugin or marketplace manifest may sit at the work-target
+root or one directory down at `plugins/<name>/.claude-plugin/` /
+`plugins/<name>/.codex-plugin/`; that nested layout is a match when no
+language-stack row already won. Show the detected proposal with three first-class answers:
+
+- **accept** the proposal as-is,
+- **edit** it — add, remove, or replace with THEIR own commands (any shell command is a valid gate),
+- **none** — fully respected: the shift runs without automated checks.
+
+Artifact mode has no stack to detect: skip this question.
+
+### Defaults
+
+One list, each line with its value and one line of meaning. The owner answers **accept all**, or
+names what to change in the same reply ("worktree yes, 6 hours, deny sudo"). Apply the changes in
+that turn; do not ask a second round.
+
+| Line | Shipped value | Meaning |
+| --- | --- | --- |
+| Receipts repo | no | a local-only git repo inside `$NS/`, so every punch-list change has history; never pushed, never touches the project's history |
+| Shift worktree | no | each shift works in its own git worktree and branch, so the owner's checkout and uncommitted edits stay untouched; show the proposed `shift.prepare` command beside it |
+| Site inspection | hourly | the heavier batch (coverage, dead code, Sonar) every N items or H hours; only when gates were accepted or edited |
+| Verification profile | `fast` | `fast`, `balanced`, `strict`, or `custom`: when the `## Gates` commands run |
+| Typical hours | none | the hours a composed shift gets when the owner names none |
+| Execution | `run-direct` | a composed shift starts at once; `review-first` shows it for approval first |
+| Tooling policy | `auto-add` | `auto-add` adds standard development tools the project selects; `review-missing` or `existing-tools` hold back |
+| Recovery | `host-default` | a stalled or finished worker is revived and clocked out under the host's own permissions; `inherit-recorded-scope` restores a recorded Codex sandbox only |
+| Elevation | all allowed | `sudo`, containers, global packages, daemons, external logins; name any to deny |
+| Evidence | check `off`, review `off` | whether a missing evidence file blocks a tick, what happens when it cannot be produced, and whether the agent reviews its own evidence |
+
+The proposed `shift.prepare` command comes from the work target's lockfile and installs its
+dependencies without changing it (`pnpm-lock.yaml` → `pnpm install --frozen-lockfile`,
+`package-lock.json` → `npm ci`, `yarn.lock` → `yarn install --immutable`, `uv.lock` → `uv sync`,
+`poetry.lock` → `poetry install`, `Gemfile.lock` → `bundle install`, `Cargo.lock` → nothing).
+
+Present the receipts repo neutrally: never describe the repo as recommended; the default is no.
+
+**Artifact mode** shows only the lines valid there: receipts repo, typical hours, execution,
+recovery and evidence. It persists `fast` and existing-tools without showing them: a notes folder
+has no repository toolchain to add, and repository-tool policies (`auto-add` and
+`review-missing`) are invalid there.
+
+**What this version also offers goes on the same screen**, one line each, never a separate question:
+
+- a state move, when `$NS/state-version` is older than `2` (section 1): the
+  `ns migrate-state` preview, applied only after an explicit yes;
+- keys this version added to the rules template that the owner's file lacks (section 5);
+- a contract restore, when the owner's punch-list contract differs from the shipped one (section 5);
+- the shipped rule profiles, any one of which may replace the screen's values (section 5).
+
+## 4. Applying the answers
+
+- **Receipts repo** — on yes: if `$NS/.git` does not exist, run `git -C "$NS" init` rather than
+ `cd`-ing there. The run state is then versioned in its own local-only git repo.
  Ensure `$NS/.gitignore` contains `STOP` and `/run/`, the runtime's own folder, anchored so each
  archive folder's `run/` records stay versioned; rewrite a bare `run/` line as `/run/` and
  preserve the other lines. A site still at version `1` keeps the runtime's files at the top of `$NS/`, so there it
@@ -138,83 +214,49 @@ scaffolding as if the site were current.
  Creating the repo does **not** turn on headless auto-commit — that is `receiptsAutoCommit`
  in `rules.json`, shipped `false`; the owner commits the receipts tree when they want.
  **Never add a remote to it, never push it.**
- On native Windows, after a clear yes, rerun the bundled scaffold with the same
+ On native Windows, rerun the bundled scaffold with the same
  `--work-target` plus `--receipts`; the idempotent pass creates only this local receipts repo.
-- **Shift worktree — ask, default no, repository mode only.** Ask — *"run each shift in its own
- git worktree and branch, so your checkout and uncommitted edits stay untouched and ignored files
- such as `.env` stay out?"* On a clear yes set `shift.isolation` to `worktree` in `$NS/rules.json`.
- Then read the work target's lockfile and propose one `shift.prepare` command that installs its
- dependencies without changing the lockfile (`pnpm-lock.yaml` → `pnpm install --frozen-lockfile`,
- `package-lock.json` → `npm ci`, `yarn.lock` → `yarn install --immutable`, `uv.lock` → `uv sync`,
- `poetry.lock` → `poetry install`, `Gemfile.lock` → `bundle install`, `Cargo.lock` → nothing);
- write it only on the owner's yes. Ask which ignored files the tests need, such as `.env.test`, and
- list only those in `shift.copyIn`; never propose `.env` itself. Artifact mode skips this question.
+- **Shift worktree** — on yes set `shift.isolation` to `worktree`, `shift.prepare` to the proposed
+ command (or the owner's), and `shift.copyIn` to question 4's answer, in `$NS/rules.json`.
+- **Gates** — write the accepted or edited commands and the site-inspection interval into the
+ `## Gates` block of `$NS/punch-list.md`, replacing the placeholder. On none, leave the placeholder
+ as-is. The block is plain markdown the owner may edit anytime; run Setup again
+ (`/nightshift:setup` on Claude Code, or ask Nightshift to set up on Codex) to re-detect after a
+ stack change. The contract's immutability binds the agent, not the owner.
+- **Verification profile, hours, execution, tooling** — persist with
+ `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" shift-policy defaults-set --verificationProfile <name> --hours <n|null> --toolingPolicy <name> --execution review-first|run-direct`.
+ The helper writes the `shift` block of `$NS/rules.json` — the one file the owner edits — and
+ reports what it stored; never put the answer in the punch list. It only prefills what Hunt and
+ Quality compose with; either skill may change it for a single shift.
+- **Recovery, elevation, evidence** — write only the keys the owner changed
+ (`recovery.launchScope`, `elevation.<category>.policy`, `receipts.evidence.check`,
+ `receipts.evidence.unavailable`, `receipts.evidence.review`) into `$NS/rules.json`, keeping every
+ other value byte for byte.
+- **State move, template keys, contract, profile** — apply each only on the owner's explicit yes,
+ as section 1 and section 5 describe.
 
-## 3. Gates — ask, never impose
+## 5. Permissions — configured by the owner
 
-Detect the stack in the persisted work target from
-`ns catalog-index --catalog gates` and
-`$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/compose/gates-catalog.md`
-(monorepo-aware). Read only the stacks whose Detect matches, in the order the index prints them.
-An owner's stack of the same key replaces the shipped one; say where each proposal came from.
-A plugin or marketplace manifest may sit at the work-target
-root or one directory down at `plugins/<name>/.claude-plugin/` /
-`plugins/<name>/.codex-plugin/`; that nested layout is a match when no
-language-stack row already won. Then ask the
-user, showing the detected proposal, with three first-class answers:
-
-- **accept** the proposal as-is,
-- **edit** it — add, remove, or replace with THEIR own commands (any shell command is a valid gate),
-- **none** — fully respected: the shift runs without automated checks.
-
-If gates were accepted or edited, also ask the **site-inspection interval** (every N items or every
-H hours). Write the result into the `## Gates` block of
-`$NS/punch-list.md`, replacing the placeholder. If the answer was none,
-leave the placeholder as-is.
-
-The `## Gates` block is plain markdown the owner may edit anytime — run Setup again
-(`/nightshift:setup` on Claude Code, or ask Nightshift to set up on Codex) to re-detect after a
-stack change. The contract's immutability binds the agent, not the owner.
-
-**Project defaults — ask once.** Independent from gates. Ask one question covering the verification
-profile (`fast`, `balanced`, `strict`, or `custom`), typical hours, and tooling policy (existing
-tools only, review missing tools first, or automatically add standard development tools). Persist
-the answer with
-`"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" shift-policy defaults-set --verificationProfile <name> --hours <n|null> --toolingPolicy <name> --execution review-first|run-direct`.
-The helper writes the `shift` block of `$NS/rules.json` — the one file the owner edits — and reports what it stored; never put the answer in
-the punch list. It only prefills the one question Hunt and Quality ask before composing — it
-decides nothing on its own, and either skill may change it for a single shift.
-
-- **Artifact** — do not ask. Persist `fast` and existing-tools only, without prompting. A notes
- folder has no repository toolchain to add; repository-tool policies (`auto-add` and
- `review-missing`) are invalid there.
-- **Repository** — ask the full question above (including review-first vs run-direct), then
- persist the answer.
-
-## 4. Permissions — configured by the owner
-
-An unattended shift cannot answer permission prompts. Explain that the owner must configure
-permissions directly in the host before starting unattended work. Never write permission modes,
+An unattended shift cannot answer permission prompts. Say once that the owner configures
+permissions directly in the host before starting unattended work; this is a statement, not a
+question. Never write permission modes,
 allowlists, or approval settings, and never enable permission bypass on the owner's behalf.
-Nightshift's guards remain active within the permissions the host provides.
+Nightshift adds no restriction of its own beyond what the host permits unless the owner sets one.
 
-Recovery uses `recovery.launchScope` in `$NS/rules.json`. The shipped
-`inherit-recorded-scope` choice restores a recorded restricted Codex sandbox when supported;
-missing or unsupported scopes refuse recovery. `host-default` adds no permission arguments and
-uses the owner's independently configured host permissions; it does not promise the same scope
-as the original session. The legacy `host-grant` value is refused. Ask whether to keep the shipped
-choice or use `host-default`, then persist only that recovery preference after creating or validating
-`rules.json` in step 5. Never change the active
-session's permissions. If the owner keeps interactive approvals, explain that a prompt or denial
-can leave unattended work needing their attention.
+Recovery uses `recovery.launchScope` in `$NS/rules.json`. The shipped `host-default` adds no
+permission arguments and uses the owner's independently configured host permissions; it does not
+promise the same scope as the original session. `inherit-recorded-scope` restores a recorded
+restricted Codex sandbox when supported; missing or unsupported scopes refuse recovery. The legacy
+`host-grant` value is refused. Never change the active session's permissions. If the owner keeps
+interactive approvals, say that a prompt or denial can leave unattended work needing their
+attention.
 
-## 5. The rules file — every knob in one place
+## 6. The rules file — every knob in one place
 
-Copy `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/nightshift-rules-template.json` to
-`$NS/rules.json` as-is, if it does not already exist — the owner's one config file, defaults
-inline. It lives in nightshift's own folder on purpose: everything nightshift is in one place,
-kept out of repo history by the same `.nightshift/` gitignore, versioned by the receipts repo when
-one exists — and deleting `$NS/` removes all of nightshift, rules included. Validate the file with
+`$NS/rules.json` is the owner's one config file, defaults inline. It lives in nightshift's own
+folder on purpose: everything nightshift is in one place, kept out of repo history by the same
+`.nightshift/` gitignore, versioned by the receipts repo when one exists — and deleting `$NS/`
+removes all of nightshift, rules included. Validate the file with
 `jq -e 'type == "object"'` and report a broken one plainly — never half-apply it. On native
 Windows, validate with `Get-Content -Raw -LiteralPath "$NS\rules.json" | ConvertFrom-Json`;
 PowerShell's JSON parser is built in, so native setup has no `jq` or Python prerequisite.
@@ -236,11 +278,11 @@ action. Nothing is synced anywhere, nothing needs a restart, and there is no sec
 of the matching names (`NIGHTSHIFT_FORBIDDEN_COMMANDS`, `NIGHTSHIFT_TOOL_RULES`, …) remain
 session-start overrides for tests and one-off exceptions — say so only if asked. If Claude Code's
 `$TASK_ROOT/.claude/settings.local.json` still carries `NIGHTSHIFT_*` env keys an earlier version
-synced from this file, offer to remove them: the file is the one copy.
+synced from this file, offer to remove them on the defaults screen: the file is the one copy.
 
-**Local rule profiles — offer, never impose.** Setup may list the shipped examples in
+**Local rule profiles.** The defaults screen may list the shipped examples in
 `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/profiles/` (every version-1 or version-2 JSON
-file there) and preview one with
+file there). Preview the one the owner names with
 `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" apply-profile --profile <name> --mode fill|replace`.
 The helper prints the preview and the complete next file; read it out rather than describing it.
 Applying requires an explicit yes and `--apply`. Refuse `--apply` while armed. Profiles are a one-time local copy — no network, no
@@ -255,24 +297,27 @@ presets never capture hidden policy.
 the shipped template's top-level keys and its nested `toolDeny` keys to the owner's file (read the
 JSON in the skill; do not ask the owner to install `jq` or Python; on native Windows,
 `(Get-Content -Raw -LiteralPath "$NS\rules.json" | ConvertFrom-Json).PSObject.Properties.Name`
-and the same for `.toolDeny`): offer any missing key with its default — "this version added
-`request_user_input`; add it?" — and never touch a value the owner already has. A missing native
-question key is a configuration error, not permission to invent a fallback.
+and the same for `.toolDeny`). List each missing key with its default on the defaults screen —
+"this version added `request_user_input`; add it?" — and never
+touch a value the owner already has. A missing native question key is a configuration error, not
+permission to invent a fallback.
 
 Same posture for the contract: if the shipped punch-list template's contract (the text above
-`## Items`) has changed since the owner's copy was scaffolded, show the diff and offer a merge —
-the owner's wording wins every conflict, and a punch list with open boxes is never touched at all.
-The same offer applies when the owner's contract is leftover campaign text (a finished branch,
-release, or issue-close list) even if the shipped template has not changed: show the diff and offer
-to restore the template contract, or keep theirs. Never rewrite without an explicit yes.
+`## Items`) has changed since the owner's copy was scaffolded, or the owner's contract is
+leftover campaign text (a finished branch, release, or issue-close list), put one line on the defaults
+screen that shows the diff and offers to restore the template contract. The owner's
+wording wins every conflict, and a punch list with open boxes is never touched at all.
+Never rewrite without an explicit yes.
 
-## 6. Summarize
+## 7. Summarize
 
 Print the workspace-state path and resolved work target, what was scaffolded, whether a receipts
-repo was created, the gates that were written (or that none were), and the project defaults stored
-in the `shift` block of `$NS/rules.json`. Tell the user to draft items in `$NS/staging/drafting-table.md`, promote them into
-the punch list, then start the shift (`/nightshift:start` on Claude Code, or ask Nightshift to start
-on Codex). Mention that the open-ended product-evolution shift keeps its evidence and ranked work in
-`$NS/product/product-research.md` and `$NS/product/opportunity-map.md`, written the first time such
-an item is cut, while the quality skill can
-turn existing lint/type debt into proposed items whenever they want it.
+repo was created, the gates that were written (or that none were), and the defaults now in
+`$NS/rules.json`. End with the one sentence that starts a shift, for example: say *"improve this
+project for 5 hours"*. Hunt composes it from the catalog and starts. Hand-written work goes in
+`$NS/staging/drafting-table.md`, is promoted into the punch list, and starts with
+`/nightshift:start` on Claude Code, or by asking Nightshift to start on Codex. Name
+`/nightshift:customize` for every other setting; editing `$NS/rules.json` by hand or asking in
+plain words works the same. The open-ended product-evolution shift keeps its evidence and ranked
+work in `$NS/product/product-research.md` and `$NS/product/opportunity-map.md`, written the first
+time such an item is cut.

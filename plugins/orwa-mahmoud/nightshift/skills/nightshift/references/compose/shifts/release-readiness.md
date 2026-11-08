@@ -1,5 +1,7 @@
 # Release readiness — finite — baseline vs candidate without publishing
 
+## When to use
+
 Use when the owner names a release baseline (tag, branch, or supplied manifest) and a candidate
 change set and wants a reviewable Ready / Not ready / Conditionally ready verdict — not a publish,
 deploy, or marketplace submission. Compare tests, public APIs, package contents and digests,
@@ -21,6 +23,8 @@ When the primary risk is what the product *claims* publicly, run documentation-d
 examples, install commands, version strings, privacy/security statements, released package
 contents, and observed behavior. Use a `mode: public-claims-matrix` receipt for cross-surface
 claims and the in-repo claim matrix for local docs only. Fix mechanical drift; park positioning and legal decisions in parking-lot.md.
+
+## Item
 
 ```text
 - [ ] **Release readiness — compare baseline and candidate; never publish.**

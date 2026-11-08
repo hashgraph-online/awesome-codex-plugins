@@ -20,7 +20,7 @@
   <img src="https://github.com/WhiteBite/dejavu-gates/actions/workflows/ci.yml/badge.svg" alt="CI">
 </p>
 
-![dejavu-gates demo: an agent stops repeating a failing call after the gate fires](assets/dejavu-gates.png)
+![dejavu-gates demo: the same failing deploy call is counted across sessions, promoted to a blocking gate, teaches the agent with CORRECTION and EVIDENCE, blocks a same-session repeat, then heals after three successes](assets/dejavu-gates.gif)
 
 Agents repeat the same mistakes because they forget between sessions — and markdown rules don't fix that. dejavu is a cross-session **memory prosthesis with teeth**: it mechanically detects recurring tool-call failures (bash, read, edit, write, glob, grep), promotes them into enforced gates, teaches the agent with a reminder, blocks a same-session repeat offense — and retires the gate when the command starts succeeding again. One engine, many hosts: OpenCode (plugin), Claude Code, Codex CLI, Gemini CLI, Cursor, Copilot CLI, Crush, Devin CLI, Kiro (hook-handler CLI), Cline (in-package plugin). TypeScript + Bun, ships as source, no build step.
 
@@ -200,7 +200,7 @@ bun scripts/install-hooks.ts --harness codex --dry-run   # preview without writi
 
 Two passes for provider-side degeneration, both OFF by default (`1`/`true`/`yes` to enable). No gates, no persistence, no promotion — full mechanics in [reference](docs/reference.md#recovery-channels-opencode-opt-in).
 
-- **Leaked tool-call recovery** (`DEJAVU_LEAK_RECOVERY=1`) — an OpenAI-compatible gateway can intermittently leak tool-call serialization into the assistant message as plain text instead of a structured tool call: the full `<|DSL|calls>…</|DSL|calls>` block, a stream cut inside it, or malformed tool-call tags (`<dc@bash>…</dc@bash>`, `<dc@bash/>`) a confused model keeps re-emitting. The repeat channel detects every dialect (tail-anchored for the DSL block; fenced examples, quoted spans and inline mentions are left alone), neutralizes the guard-passing blocks in the outgoing payload so the model never sees its own broken emissions, and appends a synthetic user turn telling the model to re-issue the intended call as a proper tool call.
+- **Leaked tool-call recovery** (`DEJAVU_LEAK_RECOVERY=1`) — an OpenAI-compatible gateway can intermittently leak tool-call serialization into the assistant message as plain text instead of a structured tool call: the full `<|DSL|calls>…</|DSL|calls>` block, a stream cut inside it, or tool-call tags serialized as text — any `<junk@tool …>…</junk@tool>` / `<junk/tool …>` shape carrying a known tool word, attributes included, so an unknown prefix needs no release. The repeat channel detects every dialect (DSL block tail-anchored; fenced examples, quoted spans and inline mentions are left alone), neutralizes the guard-passing blocks in the outgoing payload so the model never sees its own broken emissions, and appends a synthetic user turn telling the model to re-issue the intended call as a proper tool call.
 - **Loop recovery** (`DEJAVU_LOOP_RECOVERY=1`) — a reasoning model stuck in lexical spam or a hedge-heavy deliberation loop never emits a tool call. The host runs the pure `detectStuckReasoning` detector (Unicode-aware, digits excluded so numeric data never fires) over the streaming reasoning, aborts the session and injects a corrective user turn — capped at 2 landed injections per session with a 30s cooldown and a two-checks confirmation before any abort.
 
 ## Detection coverage

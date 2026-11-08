@@ -1,0 +1,23 @@
+{
+  "name": "manuwright",
+  "version": "1.10.8",
+  "description": "Evidence-bound medical manuscript workflow. Requires the manuwright CLI of the same version.",
+  "author": {
+    "name": "Sang-Min Park"
+  },
+  "homepage": "https://github.com/grotyx/Academic_writing_c_claudecode",
+  "repository": "https://github.com/grotyx/Academic_writing_c_claudecode",
+  "license": "CC-BY-4.0",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "interface": {
+    "displayName": "ManuWright",
+    "shortDescription": "Medical manuscript workflow gates",
+    "category": "Productivity",
+    "capabilities": [
+      "Instructions",
+      "Lifecycle hooks"
+    ],
+    "composerIcon": "./assets/icon.png"
+  }
+}

@@ -67,6 +67,8 @@ npx skills add theopenapps/plugin-stack -a claude-code
 
 From a shell, use `claude plugin marketplace add theopenapps/plugin-stack`, then `claude plugin install plugin-stack@theopenapps`. To update, run `claude plugin marketplace update theopenapps`, then `claude plugin update plugin-stack@theopenapps`.
 
+The plugin also adds the [OpenApps MCP server](https://theopenapps.com/docs/mcp?ref=plugin-stack), so agents can read the data without a shell. It connects signed out. If you added `openapps` yourself before, remove that copy with `claude mcp remove openapps`.
+
 ### Codex plugin
 
 ```bash
@@ -78,6 +80,8 @@ codex plugin add plugin-stack@theopenapps
 ```
 
 To update, run `codex plugin marketplace upgrade theopenapps`.
+
+The plugin also adds the OpenApps MCP server, signed out. If you added `openapps` yourself before, remove that copy with `codex mcp remove openapps`.
 
 ### Copy a folder
 

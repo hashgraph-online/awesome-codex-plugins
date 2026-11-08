@@ -1,0 +1,2 @@
+{"type":"timeline","title":"결제 장애 회고 타임라인","subtitle":"2026-10-21 · KST","description":"14시 02분에 결제 실패율 경보가 울렸고, 14시 10분에 PG 타임아웃이 원인으로 좁혀졌습니다. 14시 25분 우회 경로로 전환해 14시 40분 정상화했고, 다음 날 재발 방지책을 배포했습니다.",
+"events":[{"id":"a","date":"14:02","label":"실패율 경보","sub":"결제 실패 12%","kind":"security"},{"id":"b","date":"14:10","label":"원인 범위 확인","sub":"PG 응답 타임아웃","kind":"process"},{"id":"c","date":"14:25","label":"우회 PG로 전환","kind":"service"},{"id":"d","date":"14:40","label":"정상화","sub":"실패율 0.3%","kind":"start"},{"id":"e","date":"10-22","label":"재발 방지 배포","sub":"서킷 브레이커","kind":"ai"}]}

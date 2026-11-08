@@ -409,7 +409,10 @@ is not described here.
   with its SQL unchanged. Relay the field named in `data.field` and the metrics
   under `impacted_metrics`; the change is a person's decision, so ask whether it
   was intended rather than proposing to revert it. `data.declaration_drift`
-  with `checked: false` is unchecked, not clean.
+  with `checked: false` is unchecked, not clean. On an Ossie, SLayer or Cube
+  layer the finding names the definition, with `data.layer: semantic`: the
+  change is in its `ai_context.dex` or `meta.dex`, or in its primary key, which
+  is its `grain`.
 - `join_cardinality_exceeded` means a join's declared arity does not hold, so
   measures across it are inflated. A join declaring no cardinality is in
   `warnings` as unchecked, not passed: relay it as undetermined, and suggest

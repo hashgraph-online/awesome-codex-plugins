@@ -31,31 +31,11 @@ Copy `skills/nightshift/references/templates/edge-case-pack.md`. The file name i
 `# <Pack> — <which items it fits>`. The body is When it applies, Cases, and Example lines, in that
 order. Cases are named cases. Example lines has at least one WHEN/THEN line.
 
-An owner adds a pack without a pull request. One file in the project is used only there. One file
-in the user folder is used in every project on the machine. Further folders are named with
-`edgeCases.packsPaths`. The project folder is the path `ns path edge-case-packs` prints
-(`edge-cases/packs` inside `.nightshift` on the current layout).
-
-POSIX:
-
-```bash
-project_packs="$(ns path edge-case-packs)"
-mkdir -p "$project_packs"
-cp plugins/nightshift/skills/nightshift/references/templates/edge-case-pack.md "$project_packs/<key>.md"
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/nightshift/edge-cases/packs"
-cp plugins/nightshift/skills/nightshift/references/templates/edge-case-pack.md "${XDG_CONFIG_HOME:-$HOME/.config}/nightshift/edge-cases/packs/<key>.md"
-```
-
-PowerShell:
-
-```powershell
-$projectPacks = ns path edge-case-packs
-New-Item -ItemType Directory -Force $projectPacks
-Copy-Item plugins/nightshift/skills/nightshift/references/templates/edge-case-pack.md (Join-Path $projectPacks '<key>.md')
-New-Item -ItemType Directory -Force "$env:APPDATA\nightshift\edge-cases\packs"
-Copy-Item plugins/nightshift/skills/nightshift/references/templates/edge-case-pack.md (Join-Path $env:APPDATA "nightshift\edge-cases\packs\<key>.md")
-```
-
-`edgeCases.packTemplatePath` names the owner's own template. Empty uses the shipped one.
-`ns catalog-index --catalog edge-cases --template` prints the path in force, and
-`--check-draft FILE` names each required section a draft lacks.
+An owner adds a pack without a pull request: in this project's `.nightshift/catalogs/edge-cases/`,
+in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/edge-cases` on POSIX,
+`%APPDATA%\nightshift\catalogs\edge-cases` on Windows), or in a folder named by
+`catalogs.edge-cases.paths`. `ns catalog-new --catalog edge-cases --key <key>` starts one from the
+template in force, `catalogs.edge-cases.template` names the owner's own template, and
+`ns catalog-index --catalog edge-cases --check-draft FILE` names each section a draft lacks.
+[Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
+Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).

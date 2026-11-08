@@ -1,5 +1,7 @@
 # API contract drift — finite — checked-in server, schema, and client contracts brought back into agreement
 
+## When to use
+
 Objective mismatches between routes, schemas, generated clients, fixtures, or checked-in contracts,
 found using API tooling the repository already configures. Breaking choices remain with the owner.
 
@@ -13,6 +15,8 @@ Supported on projects with an established contract source and comparison command
 GraphQL generation/checks, protobuf or schema compilation, consumer-contract tests, generated SDK
 checks, or an equivalent repository-owned gate. Without both, this shift must not start.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **API contract drift — align existing API artifacts without silently changing the public API.**

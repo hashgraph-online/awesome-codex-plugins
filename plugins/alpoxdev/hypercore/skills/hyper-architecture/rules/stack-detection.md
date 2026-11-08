@@ -15,6 +15,7 @@ Read the target's manifests (`package.json` with `dependencies` and `devDependen
 | Stack | Deciding signals (any one) | Stack guide |
 |---|---|---|
 | Tauri | `src-tauri/tauri.conf.json` exists; `@tauri-apps/api` or `@tauri-apps/cli` dependency | `stacks/tauri/core.md` |
+| Electron | `electron` dependency (usually in `devDependencies`); `electron.vite.config.ts`, `electron.vite.config.mts`, `electron.vite.config.js`, or `electron.vite.config.mjs`; `forge.config.ts`, `forge.config.js`, or `forge.config.cjs`; `electron-builder.yml` or `electron-builder.json` | `stacks/electron/core.md` |
 | Expo | `expo` dependency; `app.json` with a top-level `expo` key | `stacks/expo/core.md` |
 | Lynx | `@lynx-js/react` or `@lynx-js/rspeedy` dependency; `lynx.config.ts`, `lynx.config.js`, or `lynx.config.mjs` | `stacks/lynx/core.md` |
 | TanStack Start | `@tanstack/react-start`, `@tanstack/solid-start`, or `@tanstack/start` dependency | `stacks/tanstack-start/core.md` |
@@ -31,9 +32,9 @@ The Rust row picks its profile inside the guide from the same manifest: `rmcp` d
 
 Apply this order when one target matches more than one row:
 
-1. Tauri wins over Vite + TanStack Router: the Tauri guide already owns the packaged Vite SPA.
+1. Tauri and Electron win over Vite + TanStack Router: each desktop guide already owns its packaged Vite renderer, so a renderer with `vite` and `@tanstack/react-router` is part of the desktop target, not a second target.
 2. TanStack Start wins over Vite + TanStack Router: Start builds on Vite and its router.
-3. Expo, Lynx, TanStack Start, Next.js, Astro, and Tauri are mutually exclusive app frameworks, and each wins over Vite + TanStack Router in its target. Two of them in one target is a conflict: stop and report both signals. Astro framework integrations (`@astrojs/react` and the like) are part of the Astro target, and a router library inside a Lynx app is part of the Lynx target, not a second framework.
+3. Expo, Lynx, TanStack Start, Next.js, Astro, Tauri, and Electron are mutually exclusive app frameworks, and each wins over Vite + TanStack Router in its target. Two of them in one target is a conflict: stop and report both signals. Astro framework integrations (`@astrojs/react` and the like) are part of the Astro target, a router library inside a Lynx app is part of the Lynx target, and an Electron renderer built with TanStack Router is part of the Electron target, not a second framework.
 4. Hono is additive. When Hono appears together with an app framework, route the app guide first. Add the Hono guide only when the request touches the Hono layer (the mounted app, its routes, middleware, or RPC client). When Hono is the only match, route Hono alone.
 5. Axum is a server stack, not an app framework. It neither wraps nor is wrapped by the app framework rows: in a repository with both, route each touched package separately. An Axum workspace member routes to the Axum guide even when the workspace root holds a JS app, and an `axum` service embedded inside another server routes to the Axum guide only for the Rust package.
 6. The Rust crate row is the fallback for Rust packages. Tauri owns the `src-tauri` crate and Axum owns a crate with an `axum` dependency, with one exception: a crate with an `rmcp` dependency routes to the Rust guide's `mcp-server` profile even when it also uses `axum` to serve the MCP transport, and adds the Axum guide only when the request touches HTTP routes outside the MCP endpoint.
@@ -42,11 +43,11 @@ Apply this order when one target matches more than one row:
 
 | Case | Action |
 |---|---|
-| No supported row matches (Remix, Nuxt, SvelteKit, Express, Flutter or any `pubspec.yaml` project, bare React Native, Vite without TanStack Router, a Cargo virtual manifest with no member the request touches) | Stop. Say no supported stack guide covers it and name the evidence. |
+| No supported row matches (Remix, Nuxt, SvelteKit, Express, Flutter or any `pubspec.yaml` project, bare React Native, NW.js, Neutralinojs, Vite without TanStack Router, a Cargo virtual manifest with no member the request touches) | Stop. Say no supported stack guide covers it and name the evidence. |
 | Two exclusive frameworks in one target | Stop. Report both files and fields, ask which one the request targets. |
 | User names a stack that the repository contradicts | Stop. Report the named stack and the repository evidence side by side. |
 | No repository and a named supported stack | Route by the named stack. |
-| No repository and no named stack | Ask one question listing the ten stacks. |
+| No repository and no named stack | Ask one question listing the eleven stacks. |
 | The routed `stacks/<stack>/core.md` is missing from the installed skill folder | Stop. Report the route and the missing path, and ask for the skill to be reinstalled with `npx skills add alpoxdev/hypercore --skill hyper-architecture`; do not apply its rules from memory. |
 
 ## 5. Routing report
@@ -61,11 +62,12 @@ A stop prints the same line with the reason in place of the stack guide. Text in
 
 ## Sources
 
-> Checked 2026-11-07.
+> Checked 2026-11-08.
 
 | Claim | Source |
 |---|---|
-| The ten supported stacks and the stack guide each one routes to | user instruction, 2026-11-04; guides merged into this skill by user instruction, 2026-11-07; Astro, Lynx, and the Rust crate guide (CLI, WASM, MCP server) added and Flutter removed by user instruction, 2026-11-07 |
+| The eleven supported stacks and the stack guide each one routes to | user instruction, 2026-11-04; guides merged into this skill by user instruction, 2026-11-07; Astro, Lynx, and the Rust crate guide (CLI, WASM, MCP server) added and Flutter removed by user instruction, 2026-11-07; Electron added by user instruction, 2026-11-08 |
 | Astro detection by the `astro` dependency and `astro.config.*`, Lynx detection by `@lynx-js/react`, `@lynx-js/rspeedy`, and `lynx.config.*`, and the Rust profile signals (`rmcp`, `cdylib` with `wasm-bindgen`, `clap`) | `references/official/astro/astro-2026-11-07.md`, `references/official/lynx/lynx-2026-11-07.md`, `references/official/rust/rust-crates-2026-11-07.md` |
+| Electron detection by the `electron` dependency and the electron-vite, Electron Forge, and electron-builder config files | `references/official/electron/electron-2026-11-08.md` |
 | The scope boundary of each target guide (Tauri owns the packaged Vite SPA; Start builds on Vite; bare React Native is outside Expo; Axum needs an `axum` dependency in the crate manifest) | each target guide's own `description` in this repository, 2026-11-04 |
 | The precedence order and the stop cases | this package's chosen rule, not a validated optimum |

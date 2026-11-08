@@ -90,6 +90,7 @@ template은 평범한 TypeScript package에서 그대로 동작합니다. 아래
 | tanstack-start | `oxlint` | Prettier | `tsc --noEmit` | 생성 file `routeTree.gen.ts`를 lint와 format에서 제외 |
 | vite | `oxlint` | Prettier | `tsc --noEmit` | TanStack Router를 쓰면 여기서도 `routeTree.gen.ts`가 생성됨 |
 | tauri(frontend) | `oxlint` | Prettier | `tsc --noEmit` | `src-tauri` crate는 `rules/setup/rust.md`를 따름 |
+| electron | `oxlint` | Prettier + `prettier-plugin-tailwindcss` | 프로세스별 tsconfig마다 `tsc --noEmit -p` | `tsconfig.node.json`(main, preload)과 `tsconfig.web.json`(renderer)을 나눔. `out/**`, `dist/**`, `release/**`, `routeTree.gen.ts` 제외 |
 | expo | `oxlint && eslint` | Prettier | `tsc --noEmit` | `exception`: `eslint-config-expo`는 대체 불가 |
 | lynx | `oxlint` | Prettier | `tsc --noEmit`(`@rsbuild/plugin-type-check` 경유) | DOM 전용 `react/*` rule을 끔. `<view>`/`<text>`는 DOM element가 아님 |
 | astro | `oxlint`(`<script>` block만) | Prettier + `prettier-plugin-astro` | `astro check` | `exception`: TypeScript 6.x 고정, `astro check`가 7.0을 거부 |
@@ -110,6 +111,14 @@ template은 평범한 TypeScript package에서 그대로 동작합니다. 아래
 ### tauri
 
 `hypercore-default` — webview frontend는 Vite app입니다. `oxlintrc.react.json`을 `.oxlintrc.json`으로, `prettierrc.json`을 `.prettierrc.json`으로 복사합니다. Rust 쪽은 `src-tauri` crate이며 `rules/setup/rust.md`를 따릅니다. frontend의 `lint` script는 `cargo` 명령을 실행하지 않고 Rust 검사는 별도 script에 둡니다.
+
+### electron
+
+`hypercore-default` — `oxlintrc.react.json`을 `.oxlintrc.json`으로, `prettierrc.json`을 `.prettierrc.json`으로 복사합니다. main과 preload 프로세스는 Node에서, renderer는 Chromium에서 돌기 때문에 tsconfig를 둘로 나눕니다. `tsconfig.node.json`은 `src/main/**`, `src/preload/**`, `src/shared/**`를 `types: ["node"]`로, `tsconfig.web.json`은 `src/renderer/**`와 `src/shared/**`를 DOM lib으로 Node type 없이 검사합니다. `"typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"`을 둡니다. electron-vite도 Vite처럼 변환만 하고 타입 검사는 하지 않습니다.
+
+`official` — Tailwind CSS v4에서 `prettier-plugin-tailwindcss`는 Prettier plugin 목록의 마지막이어야 하고, `tailwindStylesheet`가 renderer의 CSS 진입 파일을 가리켜야 합니다. 예를 들어 `"tailwindStylesheet": "./src/renderer/src/main.css"`입니다(https://github.com/tailwindlabs/prettier-plugin-tailwindcss).
+
+`hypercore-default` — 빌드 출력 `out/**`, `dist/**`, `release/**`와 생성 파일 `src/renderer/src/routeTree.gen.ts`를 `ignorePatterns`와 `.prettierignore`에 넣습니다.
 
 ### expo (exception)
 
@@ -173,6 +182,7 @@ template은 평범한 TypeScript package에서 그대로 동작합니다. 아래
 | Stack | `lint` | `typecheck` |
 |---|---|---|
 | nextjs | `oxlint` | `tsc --noEmit` |
+| electron | `oxlint` | `tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json` |
 | expo | `oxlint && eslint` | `tsc --noEmit` |
 | lynx | `oxlint` | `tsc --noEmit` |
 | astro | `oxlint` | `astro check` |

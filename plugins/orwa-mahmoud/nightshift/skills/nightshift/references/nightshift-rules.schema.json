@@ -68,7 +68,7 @@
     "elevation": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Permanent per-category elevation policy for the five default-denied categories: sudo, containers, global-packages, daemons, and external-services. Elevation gates creating system state, never using what already exists: connecting to a running database, calling a local API, and running migrations or tests against the owner's dev stack are never gated. Containers cover the Docker socket and create-state verbs (run, create, compose up, start, build); read-only forms such as docker ps, docker logs, and brew list are not elevation. Hardhat is hardening, not a sandbox — patterns match command text and are not unbypassable isolation. A missing object, or a missing category inside it, denies that category and keeps the shipped pattern. policy is the visible switch; pattern is the grep -E the guard and the permission preflight both match against, so they can never disagree. An allowance authorizes its category within all other boundaries — protected paths, never-commit patterns, and the expected commit identity are never lifted. forbiddenCommands stays the owner's separate free-form list; it is not how the five categories are denied.",
+      "description": "Permanent per-category elevation policy for the five categories, each allowed by default: sudo, containers, global-packages, daemons, and external-services. Elevation gates creating system state, never using what already exists: connecting to a running database, calling a local API, and running migrations or tests against the owner's dev stack are never gated. Containers cover the Docker socket and create-state verbs (run, create, compose up, start, build); read-only forms such as docker ps, docker logs, and brew list are not elevation. Hardhat is hardening, not a sandbox — patterns match command text and are not unbypassable isolation. A missing object, or a missing category inside it, denies that category and keeps the shipped pattern. policy is the visible switch; pattern is the grep -E the guard and the permission preflight both match against, so they can never disagree. An allowance authorizes its category within all other boundaries — protected paths, never-commit patterns, and the expected commit identity are never lifted. forbiddenCommands stays the owner's separate free-form list; it is not how the five categories are denied.",
       "properties": {
         "sudo": {
           "$comment": "Root escalation.",
@@ -278,7 +278,10 @@
         },
         "isolation": {
           "type": "string",
-          "enum": ["none", "worktree"],
+          "enum": [
+            "none",
+            "worktree"
+          ],
           "description": "Where a shift works. none: in the work target itself. worktree: in its own git worktree and shift branch, so the owner's checkout, index and uncommitted edits are never touched and ignored files such as .env are absent unless listed in copyIn. Artifact mode ignores it."
         },
         "prepare": {
@@ -287,7 +290,9 @@
         },
         "copyIn": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Ignored files, relative to the work target, copied into a new shift worktree, for example \".env.test\". Nothing else ignored is copied."
         },
         "worktreeRoot": {
@@ -304,7 +309,7 @@
             "review-first",
             "run-direct"
           ],
-          "description": "Whether a composed shift is shown for review before it runs, or started directly. It never widens what the shift may do: the host permission boundary and every rule in this file still apply."
+          "description": "Whether a composed shift is shown for review before it runs, or started directly. It never widens what the shift may do: the host permission boundary and every rule in this file still apply. The default is run-direct."
         },
         "toolingPolicy": {
           "type": "string",
@@ -313,7 +318,7 @@
             "review-missing",
             "auto-add"
           ],
-          "description": "What a shift does about development tooling the project does not have. existing-tools uses only what is installed, review-missing reports the gap, auto-add may add a tool the project itself selects. Artifact mode is always existing-tools."
+          "description": "What a shift does about development tooling the project does not have. existing-tools uses only what is installed, review-missing reports the gap, auto-add may add a tool the project itself selects. The default is auto-add; artifact mode is always existing-tools."
         }
       }
     },
@@ -471,28 +476,40 @@
             },
             "kindTemplatePath": {
               "type": "string",
-              "description": "The owner's template for a new evidence kind. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. An owner template may add sections; a drafted kind still needs the five required sections."
+              "description": "Read as catalogs.evidence.template when that is empty."
             },
             "kindsPaths": {
               "type": "array",
               "items": {
                 "type": "string"
               },
-              "description": "More folders of evidence kinds. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+              "description": "Read as catalogs.evidence.paths when that is empty."
             },
             "check": {
               "type": "string",
-              "enum": ["off", "report", "block"],
+              "enum": [
+                "off",
+                "report",
+                "block"
+              ],
               "description": "What a missing named evidence file does to the tick. off leaves the tick alone. report lists each missing file on the receipt and the morning receipt, and the tick stands. block counts a ticked item with a missing file as open, so the clock-out gate names the item and each missing file."
             },
             "review": {
               "type": "string",
-              "enum": ["off", "on"],
+              "enum": [
+                "off",
+                "on"
+              ],
               "description": "Whether the agent opens the evidence it produced, compares it with the item and the kind, fixes it, and writes a Reviewed section. With check at block, a missing Reviewed section counts as missing evidence."
             },
             "unavailable": {
               "type": "string",
-              "enum": ["", "hold", "park", "note"],
+              "enum": [
+                "",
+                "hold",
+                "park",
+                "note"
+              ],
               "description": "What happens when the evidence cannot be produced. hold closes the item as stopped and the shift moves on. park records the decision and keeps working. note ticks the item and the receipt says why. Empty means hold when check is block, and note otherwise."
             }
           }
@@ -514,36 +531,36 @@
     "edgeCases": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Edge-case packs the owner adds. Empty uses the shipped packs only.",
+      "description": "Read as catalogs.edge-cases when that is empty.",
       "properties": {
         "packTemplatePath": {
           "type": "string",
-          "description": "The owner's template for a new edge-case pack. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. A drafted pack still needs When it applies, Cases, and Example lines."
+          "description": "Read as catalogs.edge-cases.template when that is empty."
         },
         "packsPaths": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "More folders of edge-case packs. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+          "description": "Read as catalogs.edge-cases.paths when that is empty."
         }
       }
     },
     "gates": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Quality-gate stacks the owner adds. Empty uses the shipped stacks only.",
+      "description": "Read as catalogs.gates when that is empty.",
       "properties": {
         "stackTemplatePath": {
           "type": "string",
-          "description": "The owner's template for a new quality-gate stack. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. A drafted stack still needs Detect, Item gate, Site inspection, Notes, and one Match line."
+          "description": "Read as catalogs.gates.template when that is empty."
         },
         "stacksPaths": {
           "type": "array",
           "items": {
             "type": "string"
           },
-          "description": "More folders of quality-gate stacks. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+          "description": "Read as catalogs.gates.paths when that is empty."
         }
       }
     },
@@ -559,13 +576,17 @@
             "host-grant",
             "host-default"
           ],
-          "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
+          "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default, the default, adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
         },
         "cursorFlags": {
           "type": "array",
           "items": {
             "type": "string",
-            "enum": ["--force", "--trust", "--yolo"]
+            "enum": [
+              "--force",
+              "--trust",
+              "--yolo"
+            ]
           },
           "description": "Overrides the Cursor permission flags recorded from the CLI process (--force, --trust; --yolo is the alias of --force). A non-empty list replaces those two flags. An empty list leaves the process's own. The model comes from that process's --model, not from the hook payload."
         }
@@ -595,12 +616,93 @@
       "properties": {
         "blockedTools": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Tool names blocked while the plan room is open, `*` matching any run of characters, for example `mcp__slack__*`. Empty blocks no tool."
         },
         "blockedCommands": {
           "type": "string",
           "description": "grep -E pattern matched against shell command text while the plan room is open. Absent means `git (commit|push|tag)`; empty blocks no command."
+        }
+      }
+    },
+    "catalogs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner's own catalog entries and templates, one block per catalog. Empty uses the shipped entries only.",
+      "properties": {
+        "shifts": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Where the owner keeps shift entries, beside the project folder .nightshift/catalogs/<name>/ and the user folder <user config>/nightshift/catalogs/<name>/.",
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "More folders of entries. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+            },
+            "template": {
+              "type": "string",
+              "description": "The owner's template for a new entry. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. Its H2 headings are the sections every entry needs."
+            }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Where the owner keeps evidence kinds, beside the project folder .nightshift/catalogs/<name>/ and the user folder <user config>/nightshift/catalogs/<name>/.",
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "More folders of entries. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+            },
+            "template": {
+              "type": "string",
+              "description": "The owner's template for a new entry. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. Its H2 headings are the sections every entry needs."
+            }
+          }
+        },
+        "gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Where the owner keeps quality-gate stacks, beside the project folder .nightshift/catalogs/<name>/ and the user folder <user config>/nightshift/catalogs/<name>/.",
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "More folders of entries. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+            },
+            "template": {
+              "type": "string",
+              "description": "The owner's template for a new entry. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. Its H2 headings are the sections every entry needs."
+            }
+          }
+        },
+        "edge-cases": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Where the owner keeps edge-case packs, beside the project folder .nightshift/catalogs/<name>/ and the user folder <user config>/nightshift/catalogs/<name>/.",
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "More folders of entries. Each entry is a path relative to the workspace, an absolute path, or a path starting with ~. Empty means none. The first folder wins when two of them hold the same key."
+            },
+            "template": {
+              "type": "string",
+              "description": "The owner's template for a new entry. A path relative to the workspace, an absolute path, or a path starting with ~. Empty uses the shipped template. Its H2 headings are the sections every entry needs."
+            }
+          }
         }
       }
     }

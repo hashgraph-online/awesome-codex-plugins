@@ -1,10 +1,14 @@
 # Documentation media accuracy — finite — verify named screenshots and GIFs against a local UI
 
+## When to use
+
 Use when the owner names documentation screenshots or GIFs that may no longer match the product. The app must be reproducible from this checkout with an identifiable build and existing dependencies. The owner wakes to a checked list of verified, corrected, or parked media, with the evidence for each result.
 
 Typical hours: 1–3. Supported stacks: repositories with in-tree UI source, documentation media, and an existing local build, run, and capture path for the selected flow. Never select this entry in artifact mode.
 
 Write the work receipt from `receipts/cycle-specialist-evidence.md` using `mode: doc-media-accuracy`. Record the commands, flows and assets actually checked, findings or `unavailable`, and skipped assets. Output that cannot be parsed is `unavailable`, never an empty result or "no findings".
+
+## Item
 
 ```text
 - [ ] **Verify the named documentation screenshots and GIFs against the current local UI.**

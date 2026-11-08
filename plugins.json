@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-08",
-  "total": 387,
+  "total": 388,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -3032,6 +3032,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/magichourhq/skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ManuWright",
+      "url": "https://github.com/grotyx/Academic_writing_c_claudecode",
+      "owner": "grotyx",
+      "repo": "Academic_writing_c_claudecode",
+      "description": "Medical manuscript workflow that blocks drafting without approved plans, checks citations against an evidence ledger and checks reported numbers against results CSV files.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/grotyx/Academic_writing_c_claudecode/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "MAQAMI Travel",

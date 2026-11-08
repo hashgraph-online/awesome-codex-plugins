@@ -1,0 +1,48 @@
+{
+  "name": "dsh-babeldoc-pdf-translate",
+  "version": "1.5.0-rc.29",
+  "description": "BabelDOC PDF translation skill for DeepSeek Harness, with bilingual output and configurable providers.",
+  "type": "module",
+  "main": "dsh-plugin.mjs",
+  "exports": {
+    ".": "./dsh-plugin.mjs",
+    "./cordis.patch.yml": "./cordis.patch.yml",
+    "./package.json": "./package.json"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/reliable-ly0411/babeldoc-pdf-translate.git"
+  },
+  "homepage": "https://github.com/reliable-ly0411/babeldoc-pdf-translate",
+  "bugs": {
+    "url": "https://github.com/reliable-ly0411/babeldoc-pdf-translate/issues"
+  },
+  "author": "reliable-ly0411",
+  "license": "MIT AND AGPL-3.0-only",
+  "keywords": ["dsh-plugin", "deepseek-harness", "babeldoc", "pdf", "translation", "skills"],
+  "engines": {
+    "node": ">=24.9.0",
+    "dsh": ">=0.2.2-rc.1 <0.3.0-0"
+  },
+  "dsh": {
+    "bundle": { "patch": "./cordis.patch.yml" }
+  },
+  "scripts": {
+    "test": "node --test tests/dsh-plugin.test.mjs",
+    "check": "node --check dsh-plugin.mjs && node --check scripts/dsh_chat.mjs && npm test"
+  },
+  "files": [
+    "dsh-plugin.mjs",
+    "cordis.patch.yml",
+    "SKILL.md",
+    "DSH.md",
+    "VALIDATION.md",
+    "requirements.txt",
+    "scripts/*.py",
+    "scripts/dsh_chat.mjs",
+    "references/",
+    "assets/",
+    "agents/",
+    "patches/"
+  ]
+}

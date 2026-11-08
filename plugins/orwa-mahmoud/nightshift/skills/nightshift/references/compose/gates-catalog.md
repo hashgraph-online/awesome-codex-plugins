@@ -55,31 +55,11 @@ Copy `skills/nightshift/references/templates/gates-stack.md`. The file name is t
 `# <Stack> — <the signal that detects it>`. The body is Detect, Item gate, Site inspection, and
 Notes, in that order. Detect carries one `Match:` line: `stack`, `plugin`, or `fallback`.
 
-An owner adds a stack without a pull request. One file in the project is used only there. One
-file in the user folder is used in every project on the machine. Further folders are named with
-`gates.stacksPaths`. The project folder is the path `ns path gates-stacks` prints (`gates/stacks`
-inside `.nightshift` on the current layout).
-
-POSIX:
-
-```bash
-project_stacks="$(ns path gates-stacks)"
-mkdir -p "$project_stacks"
-cp plugins/nightshift/skills/nightshift/references/templates/gates-stack.md "$project_stacks/<key>.md"
-mkdir -p "${XDG_CONFIG_HOME:-$HOME/.config}/nightshift/gates/stacks"
-cp plugins/nightshift/skills/nightshift/references/templates/gates-stack.md "${XDG_CONFIG_HOME:-$HOME/.config}/nightshift/gates/stacks/<key>.md"
-```
-
-PowerShell:
-
-```powershell
-$projectStacks = ns path gates-stacks
-New-Item -ItemType Directory -Force $projectStacks
-Copy-Item plugins/nightshift/skills/nightshift/references/templates/gates-stack.md (Join-Path $projectStacks '<key>.md')
-New-Item -ItemType Directory -Force "$env:APPDATA\nightshift\gates\stacks"
-Copy-Item plugins/nightshift/skills/nightshift/references/templates/gates-stack.md (Join-Path $env:APPDATA "nightshift\gates\stacks\<key>.md")
-```
-
-`gates.stackTemplatePath` names the owner's own template. Empty uses the shipped one.
-`ns catalog-index --catalog gates --template` prints the path in force, and `--check-draft FILE`
-names each required section a draft lacks.
+An owner adds a stack without a pull request: in this project's `.nightshift/catalogs/gates/`,
+in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/gates` on POSIX,
+`%APPDATA%\nightshift\catalogs\gates` on Windows), or in a folder named by
+`catalogs.gates.paths`. `ns catalog-new --catalog gates --key <key>` starts one from the
+template in force, `catalogs.gates.template` names the owner's own template, and
+`ns catalog-index --catalog gates --check-draft FILE` names each section a draft lacks.
+[Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
+Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).

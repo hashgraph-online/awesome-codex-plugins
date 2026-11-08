@@ -1,5 +1,7 @@
 # Documentation drift — finite — local docs that no longer match this repository
 
+## When to use
+
 Links, commands, filenames, examples, and version pins in *this* repo's documentation, checked
 against files that already exist here. The list is whatever a local pass reports, so it ends.
 
@@ -30,6 +32,8 @@ The model writes the receipt. Unparsed tool output is `unavailable`, never "no f
 Supported on any repository that keeps documentation in-tree (markdown, man pages, `--help`
 examples checked into the repo). Skip generated sites whose source of truth is elsewhere.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make docs commitable.
+
+## Item
 
 ```text
 - [ ] **Documentation drift — make in-repo docs match the current tree.**

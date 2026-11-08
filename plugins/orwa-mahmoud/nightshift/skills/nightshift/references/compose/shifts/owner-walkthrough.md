@@ -1,5 +1,7 @@
 # Owner walkthrough — open-ended — pursue one owner-supplied objective until quitting time
 
+## When to use
+
 A custom hours-cycle for a goal the owner names. Nightshift keeps the objective verbatim, derives
 the next concrete unit from the work target, and implements, verifies, and reassesses until the
 objective is verifiably satisfied or the clock ends the shift.
@@ -18,6 +20,8 @@ If it is empty, do not compose, cut, or arm the shift.
 Supported in a persistent project workspace whose objective can be advanced through local, reviewable
 engineering work. Publishing, deployment, spending, production-data mutation, secrets, and legal or
 licensing decisions remain outside the coding-work authorization.
+
+## Item
 
 ```text
 - [ ] **Owner walkthrough — pursue the owner's objective until quitting time.**

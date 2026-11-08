@@ -1,10 +1,14 @@
 # Environment example drift — finite — reconcile a root `.env.example` with literal config reads
 
+## When to use
+
 Use when a project keeps a root `.env.example` and the owner wants its variable names compared with the configuration the code actually reads. The owner wakes to a small, evidence-backed template diff and a list of anything that needs their judgment. Typical time: 1–2 hours.
 
 Supported on repositories with a tracked root `.env.example` and environment-variable names that can be found literally in the project's source or configuration. Use repository mode and the project's existing checks. If the template is absent, variable names are assembled dynamically, or the source of truth is unclear, record the limitation and stop that part of the review. Never select this entry in artifact mode; do not `git init` a notes folder.
 
 Write the work receipt from `receipts/cycle-specialist-evidence.md` using `mode: env-example-drift`. Record commands and source paths actually read, findings or `unavailable`, and skipped surfaces. Unparsed projection or search output is `unavailable`, never an empty result or "no findings".
+
+## Item
 
 ```text
 - [ ] **Environment example drift — reconcile the root template with literal configuration reads.**

@@ -1,0 +1,6 @@
+{"type":"mindmap","title":"신규 서비스 출시 준비","subtitle":"범위: 출시 전 4주","description":"출시 준비를 제품, 기술, 마케팅, 운영 네 갈래로 나눴습니다. 각 갈래 아래에 출시 전에 끝내야 할 일을 적었습니다.",
+"root":{"id":"r","label":"서비스 출시","children":[
+ {"id":"p","label":"제품","children":[{"id":"p1","label":"가격 정책 확정"},{"id":"p2","label":"온보딩 화면"}]},
+ {"id":"t","label":"기술","children":[{"id":"t1","label":"부하 테스트"},{"id":"t2","label":"모니터링 경보"},{"id":"t3","label":"백업 복구 연습"}]},
+ {"id":"m","label":"마케팅","children":[{"id":"m1","label":"랜딩 페이지"},{"id":"m2","label":"보도자료"}]},
+ {"id":"o","label":"운영","children":[{"id":"o1","label":"고객 문의 채널"},{"id":"o2","label":"환불 정책"}]}]}}

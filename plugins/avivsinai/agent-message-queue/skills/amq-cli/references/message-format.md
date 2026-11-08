@@ -73,3 +73,29 @@ Notes:
 Messages emitted by `amq integration ...` commands carry orchestrator metadata
 under `context.orchestrator`; the shape and labels are in
 [integrations](integrations.md#message-shape).
+
+## Verified Buzz event
+
+A prompt that `amq-acp` delivers from a Buzz DM can carry
+`context.buzz.event`: the event's signed fields (`id`, `pubkey`,
+`created_at`, `kind`, `tags`, `content`, `sig`), re-encoded; verification
+uses the values. `amq-acp` writes the key only when it fetched the event by
+the id of the DM's triggering event, the id and signature verify, the id
+matches, the kind is 9 (a plaintext channel message), and the event has
+exactly one `h` tag, equal to the channel the prompt arrived on. Otherwise it
+writes no key and the message is unverified; there is no partial form.
+
+The key's presence is not provenance: any local sender can write header
+context (`amq send --context`, `amq reply --context`). A gate that acts on the
+event re-runs every check itself:
+
+- the id (NIP-01 `CheckID`) and the signature (`VerifySignature`);
+- kind 9;
+- exactly one `h` tag, equal to the channel the gate expects;
+- `pubkey` equal to the owner key the gate pins itself.
+
+The event proves that `pubkey` signed `content` in that channel at
+`created_at`; it does not say who owns the agent. The gate also acts on
+`content` (never on the body), records consumed event ids, bounds both the
+age and the future skew of `created_at`, and binds the answer to its request
+(a reply tag that names the request event, or a nonce in `content`).

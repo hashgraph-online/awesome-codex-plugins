@@ -13,6 +13,7 @@ import { readFileSync, writeFileSync, appendFileSync, mkdirSync, chmodSync, exis
 import { execFileSync, spawnSync, spawn } from "node:child_process";
 import { resolve, relative, isAbsolute, join, dirname, basename } from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 import { claimsActive, claimsOn, branchOf, liveClaims, claimedByOther, editedByOthers, writeState, autoClaim, refusalText, taskFromTranscript, hookTranscript, recheckClaim, selfCheckText,
   notices, repoInfo, logEvent, readEvents, waitChecked, claimCmd, startCmd, showClaims, releaseCmd, initCmd, cleanTask, precheck, readState } from "./claims.mjs";
 
@@ -250,7 +251,17 @@ export function planShell() {
   }
   return planShellFound;
 }
-export const runPlanCmd = (cmd, cwd) => spawnSync(cmd, { cwd, shell: planShell(), encoding: "utf8" });
+// FANOUT_COPY names the folder a plan command runs in, so a test can make its own database
+// (`createdb app_$FANOUT_COPY`) instead of sharing one with the other lanes and rehearse. Lowercase
+// letters, digits and _, so it's a valid database name as is; the path's hash tells apart two
+// folders with the same name.
+const copyName = (cwd) => {
+  const path = resolve(cwd);
+  const slug = basename(path).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "copy";
+  return `${slug}_${createHash("sha1").update(path).digest("hex").slice(0, 6)}`;
+};
+export const runPlanCmd = (cmd, cwd) =>
+  spawnSync(cmd, { cwd, shell: planShell(), encoding: "utf8", env: { ...process.env, FANOUT_COPY: copyName(cwd) } });
 
 // A fresh worktree has only tracked files, so a project whose tests read a gitignored .env or local database
 // fails there though it passes in the checkout. Claude Code copies the gitignored files listed in

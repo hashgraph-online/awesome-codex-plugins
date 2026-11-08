@@ -1,0 +1,31 @@
+{
+  "type": "architecture",
+  "title": "결제 웹 서비스 아키텍처",
+  "subtitle": "범위: 사용자 요청부터 정산 작업까지 · 기준 2026-11-08",
+  "description": "사용자는 CDN과 로드 밸런서를 거쳐 결제 API에 HTTPS로 요청합니다. 결제 API는 인증 서버에서 토큰을 검증하고, Redis 캐시를 먼저 읽은 뒤 PostgreSQL에 결제를 기록합니다. 결제가 끝나면 정산 이벤트를 큐에 넣고, 정산 워커가 비동기로 처리합니다.",
+  "groups": [
+    { "id": "aws", "label": "AWS · 서울 리전", "kind": "cloud" },
+    { "id": "app", "label": "애플리케이션 서브넷", "kind": "service", "parent": "aws", "dashed": true }
+  ],
+  "nodes": [
+    { "id": "user", "label": "사용자", "sub": "브라우저 · 모바일", "kind": "user" },
+    { "id": "auth", "label": "인증 서버", "sub": "OAuth 2.0", "kind": "security" },
+    { "id": "cdn", "label": "CloudFront", "sub": "CDN", "kind": "edge", "group": "aws" },
+    { "id": "lb", "label": "로드 밸런서", "sub": "HTTPS :443", "kind": "edge", "group": "aws" },
+    { "id": "api", "label": "결제 API", "sub": "Hono · :8080", "kind": "service", "group": "app" },
+    { "id": "cache", "label": "Redis", "sub": "캐시 :6379", "kind": "cache", "group": "app" },
+    { "id": "db", "label": "PostgreSQL", "sub": "primary :5432", "kind": "data", "group": "aws" },
+    { "id": "queue", "label": "정산 큐", "sub": "SQS", "kind": "queue", "group": "aws" },
+    { "id": "worker", "label": "정산 워커", "sub": "비동기 작업", "kind": "service", "group": "aws" }
+  ],
+  "edges": [
+    { "from": "user", "to": "cdn", "label": "HTTPS", "kind": "primary" },
+    { "from": "cdn", "to": "lb", "kind": "primary" },
+    { "from": "lb", "to": "api", "kind": "primary" },
+    { "from": "api", "to": "auth", "label": "토큰 검증", "kind": "auth" },
+    { "from": "api", "to": "cache", "label": "read-through" },
+    { "from": "api", "to": "db", "label": "SQL", "kind": "data" },
+    { "from": "api", "to": "queue", "label": "정산 이벤트", "kind": "async" },
+    { "from": "queue", "to": "worker", "kind": "async" }
+  ]
+}
