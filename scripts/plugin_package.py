@@ -10,10 +10,23 @@ CANONICAL_FIELDS = {
     "$schema", "name", "version", "description", "author", "homepage",
     "repository", "license", "keywords", "extensions", "skills", "mcpServers",
 }
+OPENAI_FIELDS = {
+    "interface", "hooks", "apps", "app", "appConfig", "onboardingSkill",
+    "review", "publication", "requires_local_executor",
+}
 
 
 def is_portable_manifest(value):
     return isinstance(value, dict) and value.get("$schema") == PORTABLE_SCHEMA
+
+
+def compatibility_manifest(effective):
+    """Keep directory metadata in its Codex overlay namespace."""
+    result = dict(effective)
+    extra = {key: result.pop(key) for key in ("onboardingSkill", "review", "publication") if key in result}
+    if extra:
+        result["extensions"] = {"com.openai": extra}
+    return result
 
 
 def load_package_manifest(read_file, exists):
@@ -42,8 +55,20 @@ def load_package_manifest(read_file, exists):
         overlay = json.loads(read_file(LEGACY_MANIFEST)) if exists(LEGACY_MANIFEST) else {}
     if not isinstance(overlay, dict):
         raise ValueError("OpenAI extension must contain a JSON object")
+    if "com.openai" not in extensions:
+        legacy_extensions = overlay.get("extensions", {})
+        if not isinstance(legacy_extensions, dict):
+            raise ValueError("Legacy extensions must contain a JSON object")
+        legacy_openai = legacy_extensions.get("com.openai", {})
+        if not isinstance(legacy_openai, dict):
+            raise ValueError("Legacy OpenAI extension must contain a JSON object")
+        overlay = dict(overlay)
+        for key in ("onboardingSkill", "review", "publication"):
+            if key in legacy_openai:
+                overlay[key] = legacy_openai[key]
 
-    effective = {key: value for key, value in root.items() if key not in {"$schema", "extensions", "skills", "mcpServers"}}
+    excluded = {"$schema", "extensions", "skills", "mcpServers"} | OPENAI_FIELDS
+    effective = {key: value for key, value in root.items() if key not in excluded}
     effective.update({key: value for key, value in overlay.items() if key not in CANONICAL_FIELDS})
     if exists("skills/"):
         effective["skills"] = "./skills/"

@@ -97,6 +97,25 @@ class PortablePluginPackagesTests(unittest.TestCase):
             errors, _ = self.remote(source)
         self.assertTrue(any("interface" in error for error in errors), errors)
 
+    def test_overlay_directory_settings_survive_portable_fallback(self):
+        root = manifest()
+        overlay = root.pop("extensions")["com.openai"]
+        overlay["extensions"] = {"com.openai": {"review": {"instructions": "Review changes"}}}
+        with archive(root, overlay) as source:
+            effective = validator.load_manifest_from_archive(source, validator.find_plugin_root(source))
+        self.assertEqual(effective["review"], {"instructions": "Review changes"})
+
+    def test_portable_root_does_not_supply_legacy_openai_settings(self):
+        root = manifest()
+        root["interface"] = root["extensions"]["com.openai"]["interface"]
+        root["hooks"] = "./unselected-hooks.json"
+        root["extensions"]["com.openai"] = {}
+        with archive(root) as source:
+            effective = validator.load_manifest_from_archive(source, validator.find_plugin_root(source))
+            errors, _ = self.remote(source)
+        self.assertNotIn("hooks", effective)
+        self.assertTrue(any("interface" in error for error in errors), errors)
+
     def test_portable_components_ignore_overlay_replacements(self):
         root = manifest()
         root["extensions"]["com.openai"].update(skills="./missing", mcpServers="./missing.json")
@@ -127,6 +146,19 @@ class PortablePluginPackagesTests(unittest.TestCase):
             with self.subTest(expected=expected), archive(manifest(), extra=files) as source:
                 errors, _ = self.remote(source)
                 self.assertTrue(any(expected in error for error in errors), errors)
+
+    def test_compatibility_manifest_keeps_directory_settings_namespaced(self):
+        root = manifest()
+        extra = {"onboardingSkill": "./skills/setup/SKILL.md", "review": {"instructions": "Review supplied changes"}, "publication": {"requires_local_executor": True}}
+        root["extensions"]["com.openai"].update(extra)
+        with tempfile.TemporaryDirectory() as scratch, archive(root, extra={"skills/setup/SKILL.md": b"# Setup\n"}) as source:
+            with patch.object(generator, "fetch_repo_archive", return_value=source), patch.object(generator, "PLUGINS_ROOT", Path(scratch) / "plugins"):
+                _, location, _ = generator.mirror_plugin_bundle({"owner": "maker", "repo": "demo", "name": "Demo"})
+            package = Path(scratch) / location.removeprefix("./")
+            compatible = json.loads((package / ".codex-plugin/plugin.json").read_text())
+            self.assertEqual(compatible["extensions"]["com.openai"], extra)
+            self.assertTrue(all(key not in compatible for key in extra))
+            self.assertEqual(json.loads((package / "plugin.json").read_text()), root)
 
     def test_unrecognized_root_manifest_keeps_legacy_behavior(self):
         legacy = manifest()

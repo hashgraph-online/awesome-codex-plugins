@@ -26,7 +26,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import quote, unquote
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from plugin_package import archive_package_manifest, package_roots
+from plugin_package import archive_package_manifest, compatibility_manifest, package_roots
 
 README = Path(__file__).parent.parent / "README.md"
 OUTPUT = Path(__file__).parent.parent / "plugins.json"
@@ -465,8 +465,9 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
         destination_path = destination_root / PurePosixPath(relative_path)
         destination_path.parent.mkdir(parents=True, exist_ok=True)
         if relative_path == ".codex-plugin/plugin.json" and (not complete_bundle or portable):
+            compatibility = compatibility_manifest(mirrored_manifest) if portable else mirrored_manifest
             destination_path.write_text(
-                json.dumps(mirrored_manifest, indent=2, ensure_ascii=False) + "\n",
+                json.dumps(compatibility, indent=2, ensure_ascii=False) + "\n",
                 encoding="utf-8",
             )
         else:
