@@ -1,6 +1,6 @@
 # Claim Verification
 
-고위험이거나 수치이거나 코드 동작에 관한 claim이 리포트에 들어가기 전에 이 규칙 파일을 사용합니다. 이 파일은 claim 테이블, claim gate, 실행 검증, 수치 계보, 충돌 처리를 맡습니다.
+고위험이거나 수치이거나 코드 동작에 관한 claim이 리포트에 들어가기 전에 이 규칙 파일을 사용합니다. 이 파일은 claim 테이블, claim gate, 실행 검증, 수치 계보, 충돌 처리, debate 기록을 맡습니다.
 
 ## 1. Claim 테이블
 
@@ -27,10 +27,13 @@ claim이 다음 중 하나에 해당하면 `high` 위험입니다. 숫자, 법�
 - 1차 출처가 뒷받침합니다. 표준, 공시, 데이터셋, 공식 문서, 1자 저장소를 직접 열어 확인하며, 인용을 거쳐 받은 내용으로는 안 됩니다.
 - 반박 검색을 실제로 한 번 수행했고 그보다 강한 반박을 찾지 못했습니다. 그 쿼리는 query log에 남깁니다.
 - 날짜가 명시됩니다. 각 출처의 발행일 또는 수정일, 접근일, claim이 유효한 기준일 또는 버전입니다.
+- debate 기록(`debate.md`)에 관점이 다른 공격이 최소 두 개 들어 있습니다(§7 참조).
 
-1차 출처만 있는 예외: 권위 있는 1차 출처가 하나만 존재할 수 있을 때(규격 자체의 본문, 벤더가 자기 제품을 설명한 문서, 기업 자신의 공시)는 행에 그 이유를 적으면 도메인 하나로 충분합니다. 이 예외는 두 번째 도메인 요건만 면제합니다. 반박 검색과 날짜 요건은 면제하지 않습니다. 검색 채널이 없으면 같은 발행처의 다른 페이지(changelog, release note, 같은 페이지의 최신판)를 직접 읽는 것으로 반박 검색을 대신하고, 무엇을 읽었는지 query log에 남깁니다.
+1차 출처만 있는 예외: 권위 있는 1차 출처가 하나만 존재할 수 있을 때(규격 자체의 본문, 벤더가 자기 제품을 설명한 문서, 기업 자신의 공시)는 행에 그 이유를 적으면 도메인 하나로 충분합니다. 이 예외는 두 번째 도메인 요건만 면제합니다. 반박 검색과 날짜 요건, debate는 면제하지 않습니다. 검색 채널이 없으면 같은 발행처의 다른 페이지(changelog, release note, 같은 페이지의 최신판)를 직접 읽는 것으로 반박 검색을 대신하고, 무엇을 읽었는지 query log에 남깁니다.
 
 반박 검색을 전혀 할 수 없었던 claim은 `partial`입니다. 리포트는 이 claim을 출처에 귀속한 형태("S14에 따르면 ...")로만 쓰고 확정된 사실처럼 쓰지 않으며, caveat에 반박 검색이 빠졌다고 적습니다.
+
+debate 공격이 두 개 미만인 고위험 claim은 `unverified`입니다. 게이트를 통과하지 못한 다른 claim과 마찬가지로 `## Unresolved`에 남고, debate 행이 그 부족함을 보여줍니다.
 
 게이트를 통과하지 못한 claim은 `Unresolved` 부록(근거 부족)이나 `Refuted` 부록(반박 검색이 이김)으로 갑니다. 리포트는 부록 항목을 단언하지 않으며 미해결로 나열할 수는 있습니다. 판단을 보류하는 것은 메워야 할 구멍이 아니라 올바른 결과입니다.
 
@@ -74,9 +77,24 @@ shell을 쓸 수 없으면 claim은 `unverified by execution`으로 남고 리�
 
 충돌을 평균으로 덮지 않습니다. 해결되지 않은 충돌은 모두 리포트의 모순(contradictions) 섹션에 나타납니다.
 
+## 7. Debate 기록
+
+고위험 claim을 반박 한 번만으로 통과시키면 약한 이의 하나로 끝날 수 있고, 읽는 사람은 그 교류를 감사할 방법이 없습니다. 반박 검색이 claim gate를 통과시키는 역할을 하며, claim은 보고되기 전에 기록이 남은 적대 debate를 견뎌야 합니다.
+
+저널은 `claims.md` 옆의 조사 journal 디렉터리에 행을 모아 `debate.md`에 둡니다. 공격마다 한 행씩 적습니다.
+
+| claim id | attack | attacker perspective | defense | verdict (holds, weakened, withdrawn) | change to the claim |
+|---|---|---|---|---|---|
+
+attacker perspective는 공격이 어느 관점에서 주장하는지를 적습니다 - 증거의 질, 출처 독립성, 방법, 범위, 다른 설명 중 하나입니다. 관점이 다를 때만 두 공격으로 셉니다. 리더나 skeptic lane이 공격을 쓸 수는 있지만, 개수를 채우려고 같은 관점을 반복하지는 않습니다. verdict는 `holds`(claim이 바뀌지 않고 살아남음), `weakened`(claim이 좁혀지거나, 출처에 귀속하거나, `## Unresolved`으로 이동), `withdrawn`(claim이 리포트에서 빠짐) 중 하나입니다.
+
+`debate.md` 행에 관점이 다른 공격이 최소 두 개 나타날 때만 claim을 supported로 보고할 수 있습니다. 공격이 더 적은 claim은 `unverified`이며 `## Verified Claims`에 들어가지 않습니다. 행은 각 판정 뒤에 audit trail로 남고, 리포트의 `## Debate record` 부록이 고위험 claim마다 판정을 나열합니다.
+
+일반 위험 claim은 지금 skeptic-lane 동작을 그대로 씁니다. skeptic이 이끄는 결론을 한 번 공격하고, debate 행을 요구하지 않으며, 게이트는 열린 출처 하나로 유지합니다.
+
 ## Sources
 
-> 확인 2026-11-03.
+> 확인 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -84,7 +102,8 @@ shell을 쓸 수 없으면 claim은 `unverified by execution`으로 남고 리�
 | 날짜, 권위, 범위, 방법론에 따른 충돌 해결과 충돌을 평균으로 덮지 않는 원칙 | `instructions/sourcing/reliable-search.md` |
 | 1차 출처는 직접 열어 확인하며 인용을 거쳐 받지 않음. agent가 모은 행은 상위 agent가 아티팩트를 열기 전까지 미검증으로 둠 | `instructions/sourcing/references/source-ledger.md` |
 | 가져온 코드는 절대 그대로 실행하지 않음. 실행은 최소 권한으로 하고 자격 증명을 쓰지 않음 | `instructions/sourcing/references/retrieval-safety.md` |
+| 고위험 claim용 두 공격 debate, `debate.md` 저널 행, `unverified`로 두는 부족 규칙 | `dbc-hbin/omp-ulw`의 커밋 `74df40f` (2026-11-09). 소스 저장소에 license가 없어 메커니즘을 이 패키지의 문장으로 다시 썼고 텍스트나 코드를 복사하지 않았다 |
 
 ### 근거 등급
 
-`LOCAL` - 이 파일은 이 패키지 자체의 게이트를 진술합니다. 위험 등급 목록과 1차 출처 전용 예외 문구는 이 패키지가 선택한 것입니다.
+`LOCAL` - 이 파일은 이 패키지 자체의 게이트를 진술합니다. 위험 등급 목록, 1차 출처 전용 예외 문구, 일반 위험 claim의 skeptic-lane 동작은 이 패키지가 선택한 것입니다. debate 행 형태, 두 공격 최소 요건, `debate.md`는 출처 아이디어를 이 패키지의 문장으로 풀어 쓴 것입니다.

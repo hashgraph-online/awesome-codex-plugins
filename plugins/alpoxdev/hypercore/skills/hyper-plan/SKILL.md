@@ -99,6 +99,7 @@ Boundary requests:
 | "승인은 내가 할게", "내가 승인할게", "I'll approve", "wait for my approval" | `approval: user`; deliver and stop with `Auto-execute: no (approval requested)` |
 | "ship", "merge it", "머지까지", "배포까지", `--ship` | `Delivery: ship`, passed through |
 | "make a PR", "PR만", "PR까지만", "PR로", `--make-pr` | `Delivery: make-pr`, passed through |
+| "linear history", "cherry-pick으로 반영", `--land cherry-pick` | `Landing: cherry-pick` in `## Commit strategy`, passed to the execution handoff with the delivery flag; it is not a delivery mode |
 | PRD package, direct edit, research report | Not this skill |
 
 </trigger_conditions>
@@ -106,7 +107,7 @@ Boundary requests:
 <skill_architecture>
 
 - Core (`SKILL.md`): trigger, contract, phase order, review and handoff rules, stop conditions.
-- Rules: `planning-workflow.md` (classify, ground, intent routing, questions, draft, approval, plan writing), `plan-review.md` (gap analysis, high-accuracy review, convergence, self-check), `handoff.md` (summary shape, auto-continue, opt-out, stop reporting).
+- Rules: `planning-workflow.md` (classify, ground, intent routing, questions, draft, approval, plan writing), `stance-calibration.md` (question forms, reply states, delegation scope, question-form preference), `plan-review.md` (gap analysis, high-accuracy review, convergence, self-check), `handoff.md` (summary shape, auto-continue, opt-out, stop reporting).
 - References: `plan-format.md` (the plan grammar and a worked example).
 - Assets: `plan-template.md` (copy-ready skeleton), `assets/evals/hyper-plan-cases.jsonl` (trigger and behavior cases).
 - No bundled script: every check is a deterministic checklist the planner runs against the draft and the plan file.
@@ -132,6 +133,7 @@ Write plan prose in Korean by default and keep the contract tokens in English: t
 <reference_routing>
 
 - Read [rules/planning-workflow.md](rules/planning-workflow.md) when a planning request starts.
+- Read [rules/stance-calibration.md](rules/stance-calibration.md) when a question is about to be asked or a reply has arrived.
 - Read [references/plan-format.md](references/plan-format.md) before writing or validating the plan file.
 - Copy [assets/plan-template.md](assets/plan-template.md) when starting a plan; keep its headers exactly as written.
 - Read [rules/plan-review.md](rules/plan-review.md) after the plan is complete, before any handoff.
@@ -143,10 +145,11 @@ Write plan prose in Korean by default and keep the contract tokens in English: t
 
 1. This core, to confirm the job is planning and to pick the class.
 2. `rules/planning-workflow.md` for the phases from classification to plan writing.
-3. `references/plan-format.md` when the plan's structure or grammar is in question.
-4. `assets/plan-template.md` at the moment the plan file is created.
-5. `rules/plan-review.md` once the plan is complete.
-6. `rules/handoff.md` immediately before the final message.
+3. `rules/stance-calibration.md` at the first question of the run and whenever a reply has to be classified.
+4. `references/plan-format.md` when the plan's structure or grammar is in question.
+5. `assets/plan-template.md` at the moment the plan file is created.
+6. `rules/plan-review.md` once the plan is complete.
+7. `rules/handoff.md` immediately before the final message.
 
 </support_file_read_order>
 

@@ -61,7 +61,7 @@ mkdir -p "$(dirname "$exclude_file")"
 grep -qxF ".hyper/worktree/" "$exclude_file" 2>/dev/null || printf '\n.hyper/worktree/\n' >> "$exclude_file"
 ```
 
-사용자가 convention을 commit하라고 요청하지 않는 한 `.gitignore` 편집보다 local exclude를 선호한다.
+사용자가 convention을 commit하라고 요청하지 않는 한 `.gitignore` 편집보다 local exclude를 선호한다. 저장소의 추적되는 `.gitignore`에 이미 `.hyper/`나 `.hyper/worktree/`가 적혀 있으면 그 항목이 무시 검사를 이미 충족하므로, 같은 경로에 exclude 줄을 하나 더 추가하지 않는다.
 
 ## 3. Worktree 생성
 

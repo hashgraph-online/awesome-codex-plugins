@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "admakeai": {
+      "type": "http",
+      "url": "https://admakeai.com/api/mcp"
+    }
+  }
+}

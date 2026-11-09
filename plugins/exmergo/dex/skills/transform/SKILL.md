@@ -85,7 +85,16 @@ the project edits, migrations and dev builds described below.
    refactor's plan: its comparison would have nothing built to read
    (`mixed_with_repair`). Equivalence is about
    the results the request keeps, not an intermediate's layout. A change meant
-   to alter results needs no comparison.
+   to alter results (a backfill, an exclusion, late arrivals) is compared too,
+   against what it is meant to change:
+   `dex transform compare <plan-id> --key <grain> --expect '<json>'`, stating
+   which rows may be `added` and `removed` (`"none"`, `"any"`, or
+   `{"where": "<predicate over output columns>"}`, which may test a column
+   with `IN (SELECT <column> FROM ref('<model>') WHERE ...)`), the
+   `changed_columns` a kept key may change, and that the key holds.
+   `as_expected` is the verdict to relay; `unexpected` is a defect, as
+   `different` is: its `findings` and `unexpected_keys` name the rows the
+   change reached beyond its statement.
 4. **Apply.** `dex transform apply <plan-id>` writes the plan as a reviewable
    diff. A `needs_confirmation` here means a file changed since planning:
    plan again against it. A commit carrying files Dex wrote ends with the
@@ -104,7 +113,12 @@ the project edits, migrations and dev builds described below.
    `join_coverage`, `parent_population` and `temporal_contracts` is `satisfied`,
    `contradicted` (a finding to fix), `not_applicable` (nothing to judge, such as
    an empty input, which is not full coverage) or `unchecked` (its `reason_code`
-   says why, and it is not clean).
+   says why, and it is not clean). The same holds for
+   `data.completion.obligations`: a `comparison` entry that is not `satisfied`
+   (a rewrite applied uncompared, or compared without an `as_expected` or
+   `equivalent` verdict) and an `incremental_replay` entry that is not
+   `satisfied` (no passing unit test ran the `is_incremental()` branch) are
+   unfinished work, not a passing build.
    Output keys the parent lacks are never the population: drive the model from
    the parent instead. Check the rows the request is about with an aggregate
    over the built model, `dex explore query --target dev "<SELECT ...>"`, which
@@ -138,6 +152,30 @@ reasonable population, record it as `default`, say why in one line of `detail`,
 and continue without asking for approval. "Include every account" and "only
 accounts with events" are each `request`, and a population the project already
 declares is `contract`.
+
+**Diagnose the value the request names.** A report that data is missing or a
+number is wrong is answered from the output the person reads. Finding the entity
+is one branch, not the verdict: when the row is there, the defect can be an
+attribute, a category membership or a derived measure. Bound what to check with
+the symptom, the model's definitions and its declared contract, rather than every
+column. For each field, follow the expression the model returns under that column
+name through the final select, its aliases and aggregations, to the filters,
+category mappings and joins it reads (the model SQL, and
+`dex transform references <model.column> --usage`). A correct intermediate
+formula proves nothing until the delivered column is shown to use it. Check the
+rows in question with an aggregate (`dex explore query`), and set the categories a
+predicate keeps beside the column's actual values (`dex explore profile`): a
+spelling outside the predicate is evidence to investigate. Only a mapping,
+contract or precedent that covers that value settles that it belongs; a
+resemblance of names is a `default` at most, and never outranks a mapping that
+leaves the value out or a contract that keeps unlisted values as sent, so such a
+value stays where it is and is reported as open. Report the
+field checked, its derivation, and the evidence of the defect or of what explains
+the symptom. Where the evidence does not settle it, say the question is
+unresolved and name what was not verified, rather than "nothing is wrong" or a
+question asked before investigating. A green build, or a model that selects the
+expected answer as a constant, is not that evidence. A defect found is repaired
+through transform.
 
 **Settle the scope before the repair.** Before changing a model that already
 exists, name what the request asks for: the outputs (each column and its visible
@@ -216,7 +254,8 @@ the checkable form where the model carries the column, and read
   safe. Prove the incremental branch with a unit test that overrides
   `is_incremental` (`dex transform test --scaffold <model>` writes one), build
   again without `--full-refresh`, and state the late-arrival horizon the repair
-  supports. Never insert probe rows into a loader's source.
+  supports. `obligations.incremental_replay` reads `full_refresh_only` or
+  `no_incremental_test` until that test passes in the build. Never insert probe rows into a loader's source.
   Recipe: `skills/transform/references/incremental-repairs.md`.
 - Change only what the request asks; keep the output columns, their types and
   the population the request and the existing model define, and own every other

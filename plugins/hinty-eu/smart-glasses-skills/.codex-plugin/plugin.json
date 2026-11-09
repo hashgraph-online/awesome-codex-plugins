@@ -1,0 +1,38 @@
+{
+  "name": "smart-glasses-skills",
+  "description": "Agent skills for building apps on smart glasses from every major brand: Even Realities G2, Meta Ray-Ban Display, Rokid, Vuzix Z100, audio-only glasses like Ray-Ban Meta, and USB-C display glasses. Pick a target, get text onto the display, handle input and audio, test without hardware, and check what you can publish today.",
+  "version": "1.0.1",
+  "author": {
+    "name": "Hinty"
+  },
+  "homepage": "https://github.com/hinty-eu/smart-glasses-skills",
+  "repository": "https://github.com/hinty-eu/smart-glasses-skills",
+  "license": "Apache-2.0",
+  "keywords": [
+    "smart-glasses",
+    "ar-glasses",
+    "ai-glasses",
+    "hud",
+    "even-realities",
+    "even-g2",
+    "meta-ray-ban-display",
+    "meta-wearables",
+    "rokid",
+    "vuzix",
+    "android-xr",
+    "mentraos",
+    "live-captions",
+    "wearables"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Smart Glasses Skills",
+    "shortDescription": "Build apps for smart glasses from any brand.",
+    "developerName": "Hinty",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Skills"
+    ],
+    "composerIcon": "./.claude-plugin/icon.png"
+  }
+}

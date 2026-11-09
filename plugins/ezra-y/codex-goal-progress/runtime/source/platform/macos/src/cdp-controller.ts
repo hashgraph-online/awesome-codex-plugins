@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { stat, unlink } from "node:fs/promises";
+import { unlink } from "node:fs/promises";
 import { isAbsolute, resolve } from "node:path";
 import { isSea } from "node:sea";
 import {
@@ -31,10 +31,11 @@ import {
 import { GOAL_PROGRESS_LAUNCH_AGENT_LABEL } from "./install-layout.js";
 import { restartLoadedLaunchAgent } from "./launch-agent-controller.js";
 import { isNotFound, stableErrorCode } from "./macos-errors.js";
+import type { CodexInstallIdentity } from "./verified-release.js";
 
 export interface CdpController {
   ensure(restartCodex: boolean): Promise<boolean>;
-  verify(): Promise<boolean>;
+  verify(knownApp?: CodexInstallIdentity): Promise<boolean>;
   rollback?(): Promise<void>;
 }
 
@@ -307,7 +308,7 @@ export function createCdpController(
 ): CdpController {
   const paths = cdpPaths(homeDirectory, configuredRoot);
 
-  const verify = async (): Promise<boolean> => {
+  const verify = async (knownApp?: CodexInstallIdentity): Promise<boolean> => {
     let state: Awaited<ReturnType<typeof readCodexCdpRuntimeState>>;
     try {
       state = await readCodexCdpRuntimeState(paths.cdpRuntimePath);
@@ -320,7 +321,14 @@ export function createCdpController(
       }
       throw error;
     }
-    const app = await inspectCodexMacosApp(state.appPath);
+    const app =
+      knownApp?.realExecutablePath && knownApp.realAppPath === state.appPath
+        ? {
+            realExecutablePath: knownApp.realExecutablePath,
+            bundleId: knownApp.bundleId,
+            teamId: knownApp.teamId,
+          }
+        : await inspectCodexMacosApp(state.appPath);
     if (
       app.realExecutablePath !== state.executablePath ||
       app.bundleId !== state.bundleId ||
@@ -366,7 +374,6 @@ export function createCdpController(
       const original = await stopRunningCodex(app);
       return runCdpRestartWithFallback(
         async () => {
-          const appMetadataBefore = await stat(app.realAppPath);
           const port = await allocateRandomLoopbackPort();
           let launched: Awaited<ReturnType<typeof launchCodexWithCdp>> | undefined;
           try {
@@ -374,13 +381,6 @@ export function createCdpController(
             const ownership = await waitForCodexCdpListenerOwnership(app, launched.pid, port);
             const state = createCodexCdpRuntimeState(app, launched, ownership, port);
             await writeCodexCdpRuntimeState(paths.cdpRuntimePath, state);
-            const appMetadataAfter = await stat(app.realAppPath);
-            if (
-              appMetadataAfter.mtimeMs !== appMetadataBefore.mtimeMs ||
-              appMetadataAfter.size !== appMetadataBefore.size
-            ) {
-              throw new Error("GOAL_PROGRESS_CODEX_APP_MODIFIED");
-            }
             launched.child.unref();
             restartLoadedLaunchAgent(GOAL_PROGRESS_LAUNCH_AGENT_LABEL);
             return true;

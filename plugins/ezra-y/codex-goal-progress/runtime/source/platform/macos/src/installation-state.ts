@@ -17,7 +17,7 @@ import {
   type InstalledManifest,
   type ParsedReleaseManifest,
   readInstalledManifest,
-  readVerifiedRelease,
+  readReleaseManifest,
   validateCodexIdentity,
 } from "./verified-release.js";
 
@@ -71,7 +71,7 @@ export class InstallationState {
   }
 
   release(): Promise<ParsedReleaseManifest> {
-    this.#release ??= readVerifiedRelease(this.#options.releaseRoot);
+    this.#release ??= readReleaseManifest(this.#options.releaseRoot);
     return this.#release;
   }
 
@@ -139,8 +139,8 @@ export class InstallationState {
     return inspectInstalledHook(this.#options.homeDirectory, installed);
   }
 
-  cdpReady(): Promise<boolean> {
-    this.#cdpReady ??= this.#options.cdp.verify();
+  cdpReady(codex?: CodexInstallIdentity): Promise<boolean> {
+    this.#cdpReady ??= this.#options.cdp.verify(codex);
     return this.#cdpReady;
   }
 
@@ -149,7 +149,7 @@ export class InstallationState {
   }
 
   installedRelease(installed: InstalledManifest): Promise<ParsedReleaseManifest> {
-    return readVerifiedRelease(installed.programReleaseRoot);
+    return readReleaseManifest(installed.programReleaseRoot);
   }
 
   async currentReleaseTarget(layout: MacosInstallationLayout): Promise<string | null> {

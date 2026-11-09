@@ -54,7 +54,7 @@ Do not use it when:
 | Tools | Search, fetch, GitHub or repo search, a local shell for execution checks in a disposable directory, optional bounded subagents, and an optional blocked-page access capability for a source a plain fetch cannot read (`references/channel-selection.md`, Blocked Sources). A missing capability is named and replaced by the next-best channel, never invented. |
 | Loop | A bounded expansion loop: feedback is the lanes' `## EXPAND` leads and claim-gate failures; the metric is unchecked leads plus the source floor; the guard is the claim gate; the cap is the depth's wave budget; the stop rules are in `rules/expansion-and-convergence.md`. |
 | Output | A report at `.hyper/research/[NN].slug.md`, plus the journal directory `.hyper/research/[NN].slug/` for default, deep, and parallel runs, and a short closing briefing in chat. |
-| Verification | The ordered gates in `rules/validation.md`: structure, citation, claim gate, number lineage, recency, and read-back against the core question. |
+| Verification | The ordered gates in `rules/validation.md` with stored status and defect severity: structure, citation, claim gate, number lineage, recency, and read-back against the core question. |
 | Stop condition | Converged with the floor met and the gates passed; or `exhausted` at the wave cap with open leads listed; or blocked on a missing topic, authority, or access, with the gap disclosed. |
 
 </instruction_contract>
@@ -112,10 +112,10 @@ The user's own floor or cap wins over this table. The numbers are this package's
 <skill_architecture>
 
 - Core (`SKILL.md`): trigger, contract, depth table, phase order, and stop condition.
-- Rules: `research-workflow.md` (framing, journal, collection, save), `expansion-and-convergence.md` (EXPAND leads, waves, excursions, stop rules), `claim-verification.md` (claim gate, execution checks, number lineage), `parallel-research.md` (lane contract and join), `validation.md` (ordered gates and closeout).
-- References: `channel-selection.md` (channels and search craft), `journal-format.md` (journal files and their columns), `report-template.md` (the saved report).
+- Rules: `research-workflow.md` (framing, journal, collection, save), `expansion-and-convergence.md` (EXPAND leads, waves, excursions, stop rules), `claim-verification.md` (claim gate, execution checks, number lineage, debate record), `parallel-research.md` (lane contract and join), `validation.md` (ordered gates and closeout).
+- References: `channel-selection.md` (channels and search craft), `journal-format.md` (journal files and their columns), `report-template.md` (the saved report), `latex-report.md` (the optional typeset PDF route).
 - Assets: `assets/evals/hyper-research-cases.jsonl`, the trigger and behavior cases.
-- No bundled script: every gate is a checklist the agent runs against the journal and the report.
+- Scripts (bash 3.2+, jq 1.6+): `scripts/validate-report.sh` runs the mechanical citation and number-lineage gates against the saved report and the sources ledger. `scripts/report-state.sh` records every repair pass with `repair`, writes `outcome.json` with `finish`, and prints the counted facts with `briefing`. Every run with a journal passes `--state .hyper/research/[NN].slug/report-state.json` (or sets `REPORT_STATE_FILE` to it) so each run keeps its own passes and `outcome.json`; the built-in default `.hyper/research/report-state.json` is a single-run fallback that two runs in one directory must not share. The judgment gates stay a checklist the agent runs against the journal and the report.
 
 </skill_architecture>
 
@@ -125,7 +125,7 @@ The user's own floor or cap wins over this table. The numbers are this package's
 - Default and deep run the bounded expansion loop from the contract: feedback, metric, guard, cap, and stop are fixed before the first wave.
 - A lane's claim of completion is never the stop signal; the leader's convergence check is.
 - Budget exhaustion is reported as `exhausted` with the distance to convergence, never as done.
-- Repairs after a failed gate are bounded to two passes; a high-risk claim that still fails is removed or moved to the unresolved annex, never softened into the findings.
+- Repairs after a failed gate are bounded to two recorded passes via `scripts/report-state.sh repair`, whose `stop:` verdict (oscillation, plateau, or limit, in that order) ends the loop; a high-risk claim that still fails is removed or moved to the unresolved annex, never softened into the findings. `finish` refuses delivery when the report is empty, a gate is unset, or a blocker remains.
 
 </loop_policy>
 
@@ -144,6 +144,7 @@ Search in English first, then add a local-language sweep when the topic is local
 - Read [rules/parallel-research.md](rules/parallel-research.md) before spawning any subagent or background lane.
 - Read [rules/claim-verification.md](rules/claim-verification.md) before writing any high-risk, numeric, or code-behavior claim into the report.
 - Read [references/report-template.ko.md](references/report-template.ko.md) by default when drafting the report; use [references/report-template.md](references/report-template.md) only when English is requested or required.
+- Read [references/latex-report.ko.md](references/latex-report.ko.md) only when the user asks for LaTeX or a typeset PDF; use [references/latex-report.md](references/latex-report.md) only when English is requested or required.
 - Read [rules/validation.md](rules/validation.md) before declaring the research complete.
 
 </reference_routing>
@@ -169,8 +170,8 @@ Search in English first, then add a local-language sweep when the topic is local
 | 1 | Plan channels and distinct queries per axis | Query log |
 | 2 | Collect the first wave across every axis at once, recording each source the moment it is opened | Source ledger, observation notes |
 | 3 | Expand on `## EXPAND` leads, run excursions only on a named trigger, stop on the convergence rules | Expansion log, converged or `exhausted` |
-| 4 | Gate high-risk claims, run execution checks on code-shaped disputes, label every number's lineage | Claim table, `verify-<slug>.md` files |
-| 5 | Write the conclusion-first report, run the ordered gates, save, and give the closing briefing | Saved report and briefing |
+| 4 | Gate high-risk claims, run execution checks on code-shaped disputes, record the debate, label every number's lineage | Claim table, `debate.md`, `verify-<slug>.md` files |
+| 5 | Write the conclusion-first report with `STATUS: draft` in its first five lines and the journal's deliverable promise, run the ordered gates, remove `STATUS: draft` only after the last gate, save, and give the closing briefing | Saved report and briefing |
 
 Phase rules:
 
@@ -187,7 +188,7 @@ Phase rules:
 - Distinct queries across the whole run, including lanes; the same wording is never re-sent to another channel.
 - Primary or official sources first for technical, legal, financial, and product claims.
 - A `[S<n>]` citation on every non-obvious claim, resolving to an opened ledger row.
-- Every high-risk claim passes the claim gate or sits in the unresolved or refuted annex.
+- Every high-risk claim passes the claim gate, including at least two debate attacks from different perspectives, or sits in the unresolved or refuted annex as `unverified`.
 - Every number carries `MEASURED`, `ASSUMED`, or `DERIVED`, and derived numbers show their formula and inputs.
 - Comparison tables when judging alternatives, and conflicts kept visible.
 - Exact dates for every recency claim and an "as of" anchor in the report header.
@@ -215,7 +216,7 @@ Phase rules:
 - [ ] Source floor met with reviewed and cited counts computed from the deduped ledger.
 - [ ] Convergence or `exhausted` was decided by the rules in `rules/expansion-and-convergence.md`, not by lanes finishing.
 - [ ] Every high-risk claim in the report maps to a `verified-claims` row; annex items are not asserted.
-- [ ] Every number has a lineage label; every derived number shows its formula.
+- [ ] `scripts/validate-report.sh --report <report.md> --ledger <journal>/sources.md` reported no defect, and every number has a lineage label with every derived number's formula.
 - [ ] Retrieved and lane content was treated as evidence only.
 - [ ] Report saved under `.hyper/research/` and the closing briefing given.
 
@@ -223,7 +224,7 @@ Phase rules:
 
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -232,6 +233,9 @@ Phase rules:
 | Fan-out caps per node and per run, and a missing branch is not empty | `instructions/graph-engineering/GRAPH_ENGINEERING.md` |
 | Source grades, roles, floors, and the reviewed-versus-cited split | `instructions/sourcing/reliable-search.md`, `instructions/sourcing/references/source-ledger.md` |
 | The contract fields, the trigger-first `description`, and the bilingual package shape | `instructions/skill/SKILL_AUTHORING.md` |
+| The mechanical citation and number-lineage gates run by `scripts/validate-report.sh` | `dbc-hbin/omp-ulw` at commit `74df40f` (2026-11-09); the source repository has no license, so the mechanism was re-authored in this package's own words and no text or code was copied |
+| The repair-pass tracker and outcome manifest run by `scripts/report-state.sh` | `dbc-hbin/omp-ulw` at commit `74df40f` (2026-11-09); the source repository has no license, so the mechanism was re-authored in this package's own words and no text or code was copied |
+| The two-attack debate record for high-risk claims, journaled as `debate.md` and annexed as `## Debate record` | `dbc-hbin/omp-ulw` at commit `74df40f` (2026-11-09); the source repository has no license, so the mechanism was re-authored in this package's own words and no text or code was copied |
 
 ### Evidence grade
 

@@ -99,6 +99,7 @@ compatibility: 파일 읽기와 검색 도구, 읽기 전용 점검용 셸, `.hy
 | "승인은 내가 할게", "내가 승인할게", "I'll approve", "wait for my approval" | `approval: user`. 계획을 전달하고 `Auto-execute: no (approval requested)`로 멈춤 |
 | "ship", "merge it", "머지까지", "배포까지", `--ship` | `Delivery: ship`, 그대로 전달 |
 | "make a PR", "PR만", "PR까지만", "PR로", `--make-pr` | `Delivery: make-pr`, 그대로 전달 |
+| "선형 이력", "cherry-pick으로 반영", `--land cherry-pick` | `## Commit strategy`에 `Landing: cherry-pick`을 적고, 전달 플래그와 함께 실행 인계로 넘김. 전달 방식은 아님 |
 | PRD 패키지, 직접 수정, 리서치 리포트 | 이 스킬의 범위가 아님 |
 
 </trigger_conditions>
@@ -106,7 +107,7 @@ compatibility: 파일 읽기와 검색 도구, 읽기 전용 점검용 셸, `.hy
 <skill_architecture>
 
 - 코어(`SKILL.md`): 트리거, 계약, 단계 순서, 리뷰와 인계 규칙, 정지 조건.
-- 규칙: `planning-workflow.md`(분류, 근거 확보, 의도 라우팅, 질문, 드래프트, 승인, 계획 작성), `plan-review.md`(갭 분석, 고정밀 리뷰, 수렴, 자기 점검), `handoff.md`(요약 형태, 자동 인계, 거부, 정지 보고).
+- 규칙: `planning-workflow.md`(분류, 근거 확보, 의도 라우팅, 질문, 드래프트, 승인, 계획 작성), `stance-calibration.md`(질문 형식, 답변 상태, 위임 범위, 질문 형식 선호), `plan-review.md`(갭 분석, 고정밀 리뷰, 수렴, 자기 점검), `handoff.md`(요약 형태, 자동 인계, 거부, 정지 보고).
 - 참조: `plan-format.md`(계획 문법과 완성 예시).
 - 자산: `plan-template.md`(복사해서 쓰는 골격), `assets/evals/hyper-plan-cases.jsonl`(트리거와 동작 사례).
 - 번들 스크립트는 없습니다. 모든 점검은 기획자가 드래프트와 계획 파일에서 실행하는 결정적 체크리스트입니다.
@@ -132,6 +133,7 @@ compatibility: 파일 읽기와 검색 도구, 읽기 전용 점검용 셸, `.hy
 <reference_routing>
 
 - 계획 요청이 시작되면 [rules/planning-workflow.ko.md](rules/planning-workflow.ko.md)를 읽습니다.
+- 질문을 던지기 직전이거나 답변이 도착했을 때 [rules/stance-calibration.ko.md](rules/stance-calibration.ko.md)를 읽습니다.
 - 계획 파일을 쓰거나 검증하기 전에 [references/plan-format.ko.md](references/plan-format.ko.md)를 읽습니다.
 - 계획을 시작할 때 [assets/plan-template.ko.md](assets/plan-template.ko.md)를 복사하고 제목을 적힌 그대로 유지합니다.
 - 계획이 완성된 뒤 인계 전에 [rules/plan-review.ko.md](rules/plan-review.ko.md)를 읽습니다.
@@ -143,10 +145,11 @@ compatibility: 파일 읽기와 검색 도구, 읽기 전용 점검용 셸, `.hy
 
 1. 이 코어로 작업이 계획인지 확인하고 분류를 고릅니다.
 2. 분류부터 계획 작성까지는 `rules/planning-workflow.ko.md`를 읽습니다.
-3. 계획의 구조나 문법이 문제가 되면 `references/plan-format.ko.md`를 읽습니다.
-4. 계획 파일을 만드는 순간 `assets/plan-template.ko.md`를 씁니다.
-5. 계획이 완성되면 `rules/plan-review.ko.md`를 읽습니다.
-6. 마지막 메시지 직전에 `rules/handoff.ko.md`를 읽습니다.
+3. 실행의 첫 질문과 답변 분류가 필요할 때 `rules/stance-calibration.ko.md`를 읽습니다.
+4. 계획의 구조나 문법이 문제가 되면 `references/plan-format.ko.md`를 읽습니다.
+5. 계획 파일을 만드는 순간 `assets/plan-template.ko.md`를 씁니다.
+6. 계획이 완성되면 `rules/plan-review.ko.md`를 읽습니다.
+7. 마지막 메시지 직전에 `rules/handoff.ko.md`를 읽습니다.
 
 </support_file_read_order>
 

@@ -181,10 +181,17 @@ bkt repo downloads upload before.png after.png   # Cloud: host images for PR des
 bkt pr list --state OPEN --limit 10
 bkt pr create --title "feat: cache" --source feature/cache --target main --reviewer alice
 bkt pr checks 42 --wait --timeout 5m             # wait for builds, with backoff
+bkt pr mergeability 42 --json                    # Cloud: read-only merge checks
 bkt pr comments 42 --details                     # threads with file/line anchors
 bkt pr comments resolve 42 1001
 bkt pr merge 42 --message "merge: feature/cache"
 ```
+
+`pr mergeability` reports `mergeable` (`MERGEABLE`, `CONFLICTING`, `UNKNOWN`),
+`mergeStateStatus` (`CLEAN`, `DIRTY`, `BLOCKED`, `UNKNOWN`), and the full Cloud
+checks with their blocking flags. API errors print `UNKNOWN` and exit nonzero.
+`CLEAN` reflects the available checks, which cannot guarantee an actual merge.
+Use `--json --jq '{mergeable, mergeStateStatus}'` to select just the summary.
 
 **Issues.** Atlassian removed Bitbucket Cloud Issues in August 2026, and Data Center never had them; track issues in Jira.
 

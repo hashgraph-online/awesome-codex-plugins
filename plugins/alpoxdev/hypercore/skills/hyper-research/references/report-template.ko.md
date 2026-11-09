@@ -57,6 +57,14 @@
 ## Contradictions
 - [출처 A와 출처 B: 해소 방식과 근거, 또는 열린 채로 두는 이유]
 
+## Debate record
+| 주장 | 판정 | claim에 대한 변경 |
+|---|---|---|
+| C1 | holds | |
+| C5 | unverified (debate 공격 한 번) | Unresolved으로 이동 |
+
+- 전체 debate 행은 journal 파일 `debate.md`에 있고, 이 부록은 고위험 claim마다 판정을 나열합니다.
+
 ## Unresolved And Refuted
 - 미해결: [주장 - 빠진 내용]
 - 반박됨: [주장 - 반대 근거]
@@ -85,6 +93,16 @@
 - Source floor: [충족 또는 미달, 검토 수 대비 인용 수]
 - Dedupe: [질의와 중복 소스 처리]
 
+## Report gates
+| 게이트 | 상태 (pass / fail / not_run) | 열려 있는 결함 심각도 (blocker / major / minor) | 이유 |
+|---|---|---|---|
+| structure | | | |
+| citation | | | |
+| claim gate | | | |
+| number lineage | | | |
+| recency | | | |
+| read-back | | | |
+
 ## References
 - [S1] [제목](https://example.com/source), 접근 YYYY-MM-DD
 ```
@@ -98,6 +116,7 @@
 - 배경보다 답을 먼저 둡니다.
 - 비자명한 주장에는 모두 ledger의 `[S<n>]` id로 인용을 붙입니다.
 - 위험도가 높은 주장은 `verified-claims`에서만 단정합니다. 부속 항목은 Unresolved And Refuted 아래에만 둡니다.
+- `## Debate record` 부록은 고위험 claim마다 판정을 나열하고, 전체 debate 행은 journal 파일 `debate.md`에 둡니다.
 - 모든 수치에 `MEASURED`, `ASSUMED`, `DERIVED` 중 하나를 표시합니다.
 - 최신성이 중요하면 정확한 날짜를 쓰고, 머리말에 as of 기준점을 밝힙니다.
 - 여러 lane이 찾았더라도 중복 소스는 한 번만 셉니다.
@@ -105,12 +124,13 @@
 
 ## Sources
 
-> 확인 2026-11-03.
+> 확인 2026-11-09.
 
 | Claim | Source |
 |---|---|
 | 노력 머리말, verified-claims와 contradiction 절, 미해결·반박 부속 절, 확장 추적, 짧은 출처 표기 인용은 `ulw-research` 스킬의 종합 구성을 각색한 것 | <https://github.com/code-yeongyu/oh-my-openagent/tree/0d80470e4201925727e88afbafcdf24d7801a588> |
 | source ledger 열과 검토 수 대비 인용 수 구분 | `instructions/sourcing/references/source-ledger.md` |
+| 고위험 claim마다 판정을 나열하는 `## Debate record` 부록 | `dbc-hbin/omp-ulw`의 커밋 `74df40f` (2026-11-09). 소스 저장소에 license가 없어 메커니즘을 이 패키지의 문장으로 다시 썼고 텍스트나 코드를 복사하지 않았다 |
 
 ### 근거 등급
 

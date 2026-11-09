@@ -3614,9 +3614,9 @@ Usage: workflows register [OPTIONS]
   ``@workflow`` / ``@tool`` / ``@data_provider`` function so it becomes
   executable via the API.
 
-  Org targeting follows the unified ``--org`` standard: HOME (omit) scopes the
-  workflow to the caller's org, ``--global`` makes it global, ``--org
-  <id|name>`` scopes it to that org.
+  Omit the target to preserve an inactive workflow's organization. New
+  registrations default to the caller's runtime or home organization.
+  ``--global`` makes it global; ``--org <id|name>`` scopes it to that org.
 
   ``--access-level`` and ``--role-ids`` set the workflow's access controls at
   registration time, mirroring the create-time surface for forms and apps.

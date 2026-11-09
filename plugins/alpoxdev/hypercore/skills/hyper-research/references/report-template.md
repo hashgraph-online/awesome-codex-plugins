@@ -57,6 +57,14 @@ Example: `.hyper/research/03.websocket-vs-sse.md` and `.hyper/research/03.websoc
 ## Contradictions
 - [Source A vs source B: resolution and evidence, or why it stays open]
 
+## Debate record
+| Claim | Verdict | Change to the claim |
+|---|---|---|
+| C1 | holds | |
+| C5 | unverified (one debate attack) | moved to Unresolved |
+
+- The full debate rows live in the journal file `debate.md`; this annex lists each high-risk claim with its verdict.
+
 ## Unresolved And Refuted
 - Unresolved: [claim - what is missing]
 - Refuted: [claim - the counter-evidence]
@@ -85,6 +93,16 @@ Example: `.hyper/research/03.websocket-vs-sse.md` and `.hyper/research/03.websoc
 - Source floor: [met or shortfall, reviewed vs cited]
 - Dedupe: [queries and duplicate sources handled]
 
+## Report gates
+| Gate | Status (pass / fail / not_run) | Open-defect severity (blocker / major / minor) | Reason |
+|---|---|---|---|
+| structure | | | |
+| citation | | | |
+| claim gate | | | |
+| number lineage | | | |
+| recency | | | |
+| read-back | | | |
+
 ## References
 - [S1] [Title](https://example.com/source), accessed YYYY-MM-DD
 ```
@@ -98,6 +116,7 @@ A `--quick` report keeps the header, Executive Summary, Scope And Fidelity, Key 
 - Put the answer before the backstory.
 - Cite every non-obvious claim with `[S<n>]` ids that resolve to the ledger.
 - Assert high-risk statements only from `verified-claims`; annex items appear only under Unresolved And Refuted.
+- The `## Debate record` annex lists each high-risk claim with its verdict; the full debate rows live in the journal file `debate.md`.
 - Label every number `MEASURED`, `ASSUMED`, or `DERIVED`.
 - Use exact dates when recency matters, and state the as-of anchor in the header.
 - Count a duplicate source once, even when several lanes found it.
@@ -105,12 +124,13 @@ A `--quick` report keeps the header, Executive Summary, Scope And Fidelity, Key 
 
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
 | The effort header, verified-claims and contradictions sections, the unresolved and refuted annex, the expansion trace, and short attributed quotes, adapted from the `ulw-research` synthesis layout | <https://github.com/code-yeongyu/oh-my-openagent/tree/0d80470e4201925727e88afbafcdf24d7801a588> |
 | The source ledger columns and the reviewed-versus-cited split | `instructions/sourcing/references/source-ledger.md` |
+| The `## Debate record` annex that lists high-risk claims with their verdicts | `dbc-hbin/omp-ulw` at commit `74df40f` (2026-11-09); the source repository has no license, so the mechanism was re-authored in this package's own words and no text or code was copied |
 
 ### Evidence grade
 

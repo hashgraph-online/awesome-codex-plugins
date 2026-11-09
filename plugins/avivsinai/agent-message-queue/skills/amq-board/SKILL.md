@@ -1,6 +1,6 @@
 ---
 name: amq-board
-version: 0.137.0 # x-release-please-version
+version: 0.137.9 # x-release-please-version
 description: Show the AMQ fleet board and, when asked, classify recent request messages with the current harness model. Use when someone opens or reviews the board, or asks which recent requests may need attention. Not for sending messages (use amq-cli).
 metadata:
   short-description: Fleet board and on-demand request labels
@@ -21,16 +21,21 @@ amq-board --json                   # complete model, every message body
 amq-board --html --out board.html  # one static page
 ```
 
-Run `amq-board sync` only when a fresh source read is requested and no
-`amq-board sync --watch` already runs for the project. Use
-`amq-board sync --init` only for first initialization.
+A view reads only the last published snapshot; the `sources:` line says
+how old each source read is. Someone who asks to see the board wants the
+current board: when the sources were read more than 10 minutes ago and no
+`amq-board sync --watch` runs for the project (`pgrep -f 'amq-board sync
+--watch'`), run `amq-board sync` before you show it. Also run it when a
+fresh read is asked for. Use `amq-board sync --init` only for first
+initialization.
 
 The Requests section lists questions, review requests, and todos. Each
 recipient has an observation: a direct reply (a message whose last ref is
 the request), then later messages in the same thread as secondary context,
 or "not assessed" when the recipient's session is unknown. The headline
-counts recent requests with no direct reply observed. It is never a count of
-unfinished work; preserve its coverage notes when you report it.
+counts only recent requests to the owner with no direct reply observed. The
+Requests section counts requests to agents with no direct reply as the
+agents' bookkeeping, with its coverage notes.
 
 ## Classify recent requests
 
@@ -93,5 +98,6 @@ Do not schedule retries or loops unless the caller asks for them.
 ## Report
 
 Describe labels as one model's opinions, with the classifier name and its
-quote. Keep observations and opinions apart, keep the coverage notes, and
-never present the headline as unfinished work.
+quote. Keep observations and opinions apart. Lead with the requests to the
+owner; report the agents' count as their bookkeeping, with its coverage
+notes. Never present either count as unfinished work.

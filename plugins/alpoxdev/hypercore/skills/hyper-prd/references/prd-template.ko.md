@@ -38,8 +38,8 @@
 ## Meta
 
 - Status: draft | ready | revised
-- Platforms: web | ios | android | desktop (하나 이상)
-- Size: S | M | L
+- Platforms: web | ios | android | desktop (하나 이상) - <판정 이유 한 줄>
+- Size: S | M | L - <판정 이유 한 줄>
 - Questions: <물은 수>/<예산>
 - Sources read: <첫 질문 전에 읽은 저장소 경로, 문서, 붙여 준 맥락>
 - Updated: YYYY-MM-DD
@@ -191,8 +191,8 @@ Play Data safety 관점: <어느 행이 Data safety의 어느 데이터 유형�
 ## Meta
 
 - Status: draft
-- Platforms: ios, android
-- Size: S
+- Platforms: ios, android - 지원 스레드가 휴대폰 타이머를 말하고, 요청이 두 스토어를 지정했다
+- Size: S - 단일 목적 신규 앱의 화면 하나와 동작 하나 변경이다
 - Questions: 1/1
 - Sources read: 문제와 근거에 인용한 지원 스레드. 저장소 문서는 없음(신규 제품)
 - Updated: 2026-11-07
@@ -410,6 +410,7 @@ Play Data safety 관점: 같은 두 유형을 수집, 공유 안 함, 선택 사
 ## Rules
 
 - 골격의 절 이름을 그대로 복사한다. 검토자가 확인하는 이름이다.
+- 메타 블록에는 플랫폼 판정과 규모 판정을 각각 이유 한 줄과 같은 줄에 적는다. 예: `Platforms: web, ios - 요청이 브라우저 제품과 App Store 출시를 지정했다`.
 - 사실, 가정, 표시로 채울 수 없는 자리표시자는 지운다. 빈 절은 템플릿 흔적이 아니라 결함이다.
 - 범위를 바꾸는 `[가정: …]`은 `A-###` 항목으로 다시 나타난다. 범위를 막는 `[확인 필요: …]`은 `Blocking: yes`인 `Q-###`이 된다.
 - 스토리마다 정상 경로 하나와 실패·경계 하나를 인수 시나리오에 쓴다. 스토리 둘이면 시나리오 네 개다.

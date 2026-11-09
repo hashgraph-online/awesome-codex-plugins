@@ -29,6 +29,7 @@ Replace `node build/index.js` with the target's own start command. Confirm flag 
 | 4 | Unreachable: the server did not start or listens elsewhere |
 | 5 | Tool error or tool not found |
 | 6 | `--strict` found a tool-schema portability error |
+| 11 | HTTP 429 from the server: rate limited; wait and retry once inside the mode's repair budget, and record `not run` with the reason when it persists |
 | other non-zero | Read the one-line JSON error on `stderr` and record it |
 
 When the Inspector cannot run (no Node.js 22.19+, no network for `npx`, or a server that needs a credential), record `not run` with the reason and fall back to the project's own tests and a static review against `rules/mcp-rules.md`. A static review never upgrades a check to `passed`.

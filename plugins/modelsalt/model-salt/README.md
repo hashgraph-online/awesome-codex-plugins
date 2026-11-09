@@ -96,7 +96,7 @@ Every run, plain and salted, is in [`examples/`](https://github.com/modelsalt/mo
 - **Short name:** `npx -y model-salt <args>` runs the same package as `npx -y @modelsalt/model-salt <args>`.
 - **As a plugin:** `plugin/` holds a Codex plugin, a Claude Code plugin and a Gemini CLI extension, and this repo is a plugin marketplace. From a clone:
   - Codex: `codex plugin marketplace add /path/to/model-salt`, then `codex plugin add model-salt@model-salt`
-  - Claude Code: `claude plugin marketplace add /path/to/model-salt`, then `claude plugin install model-salt@model-salt`
+  - Claude Code: `claude plugin marketplace add /path/to/model-salt`, then `claude plugin install model-salt@model-salt`. Since plugin 1.0.3 it connects to the hosted server at https://modelsalt.com/mcp/listed instead of running the package on your machine
   - Gemini CLI: `gemini extensions install /path/to/model-salt/plugin`
 - **By hand:** add a stdio MCP server that runs `npx -y @modelsalt/model-salt anthropic` (Claude, Gemini and Kimi models) or `npx -y @modelsalt/model-salt openai` (GPT models).
 - **From a clone:** `node src/stdio.mjs anthropic` in place of the `npx` command.
@@ -111,7 +111,7 @@ Found a prompt that still gives the same answer every time with Model Salt? [Ope
 
 ## Privacy
 
-Model Salt runs on your machine and never sends your prompts anywhere. It only asks public random sources for random bytes. Details: [Privacy policy](https://github.com/modelsalt/model-salt/blob/main/PRIVACY.md).
+Run with `npx` (or the Codex and Gemini plugins, or the MCPB bundle), Model Salt runs on your machine and never sends your prompts anywhere: it only asks public random sources for random bytes. The Claude Code plugin and the hosted endpoint run the same server at modelsalt.com instead, so your request and your model's reply to the exploring step go to modelsalt.com, where they are not stored or logged. Details: [Privacy policy](https://github.com/modelsalt/model-salt/blob/main/PRIVACY.md) and the [hosted privacy page](https://modelsalt.com/privacy).
 
 ## Licence
 

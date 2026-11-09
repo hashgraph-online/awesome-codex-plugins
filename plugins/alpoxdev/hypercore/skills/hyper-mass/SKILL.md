@@ -113,8 +113,9 @@ Boundary requests:
 | Retries per node | 2 |
 | Amends per run | 3 |
 | `high` tier nodes | 1 |
+| Digest size bound | 5,000 tokens default |
 
-The user's own cap wins over this table. Exceeding the node or concurrency bound splits the work into another run under a new key, with its own goal and verification; it never widens this run.
+The user's own cap wins over this table. Exceeding the node or concurrency bound splits the work into another run under a new key, with its own goal and verification; it never widens this run. A reducer over more than one batch emits a digest inside this bound with handoff citations; the final reducer reads only digests.
 
 </bounds>
 
@@ -197,7 +198,9 @@ Phase rules:
 - One terminal verification or review node that depends on every producer; for code it runs the real check.
 - At most one `high` tier node per graph, with a one-line reason for every non-`low` tier.
 - Journal events for `run.created`, `run.resumed`, `node.started`, `node.completed`, `node.failed`, `node.retried`, `node.sent`, `node.cancelled`, `run.amended`, and `run.settled`, with timestamps.
-- A completion report with the run key, node outcomes, handoff paths, verification output, recovery actions, and residual risk.
+- One terminal reduction: any reducer over more than one batch emits a digest with a stated size bound and a handoff citation on every claim, and the final reducer reads only digests, so no synthesis node consumes unbounded raw node output.
+- When a node declares `solutionSpace`, its prompt lists the allowed approaches, the approach it reports using is checked against the list, and `resolvedModel` is written only from the observed result.
+- A completion report with the run key, node outcomes, handoff paths, verification output, the landed commits or the reason none were made, recovery actions, and residual risk.
 
 </required>
 
@@ -207,6 +210,7 @@ Phase rules:
 - One run covering a whole multi-phase job
 - Exceeding a cap in `<bounds>` instead of splitting the work into another run
 - Two parallel nodes writing the same path
+- A synthesis node consuming unbounded raw node output; every reducer over more than one batch **MUST** digest first and the final reducer reads only digests
 - Treating a missing handoff file as an empty result, or continuing downstream without it
 - Trusting a node's "completed" or "confirmed" claim without opening its artifact
 - Cancelling a run because time passed, without a goal-level reason
@@ -231,12 +235,14 @@ Phase rules:
 - [ ] Caps were respected, or the run was split under a new key.
 - [ ] Every transition is in `run.jsonl`, and a resumed run did not re-run a completed node.
 - [ ] The run settled on the success criteria with captured evidence, not on the last node's report.
+- [ ] The verified changes were landed before settlement, or the settlement names why nothing was committed.
+- [ ] Every reducer over more than one batch emitted a digest with a stated size bound and handoff citations, the final reducer read only digests, and every declared `solutionSpace` approach was checked against its list.
 
 </validation>
 
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -246,6 +252,7 @@ Phase rules:
 | Evidence file or it did not happen, `SKIP` is not a pass, and the judge receives the artifact and criteria rather than the worker's summary | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | Delegation prompt fields, and the parent that integrates and verifies | `instructions/context-engineering/references/parallel-workflows.md` |
 | The contract fields, the trigger-first description, and the bilingual package shape | `instructions/skill/SKILL_AUTHORING.md` |
+| Node `solutionSpace` bounds and approach-outside-list self-check failure, digest reduction with a token bound and handoff citations, the final reducer reading digests only, and `resolvedModel` from observed results | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored; the source repository has no license file and nothing was copied |
 
 ### Evidence grade
 

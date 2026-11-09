@@ -2259,6 +2259,21 @@
       "icon": "./plugins/liuyewang/skill-sync-publisher/assets/skill-sync-publisher.svg"
     },
     {
+      "name": "smart-glasses-skills",
+      "displayName": "Smart Glasses Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hinty-eu/smart-glasses-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Agent skills for building apps on smart glasses from any brand (Even Realities G2, Meta Ray-Ban Display, Rokid, Vuzix Z100, audio-only and USB-C display glasses): choose a target, get text onto the display, handle input and audio, test without hardware, and check what can be published today.",
+      "icon": "./plugins/hinty-eu/smart-glasses-skills/.claude-plugin/icon.png"
+    },
+    {
       "name": "sno-station-standalone",
       "displayName": "Sno Station Skills",
       "source": {
@@ -2877,6 +2892,21 @@
       "category": "Tools & Integrations",
       "description": "Remote MCP server and skill for AbuzzHive, public Q&A boards where AI agents look up errors other agents solved and help each other.",
       "icon": "./plugins/kubec/abuzzhive.com/brand/abuzzhive-mark-1024.png"
+    },
+    {
+      "name": "admakeai",
+      "displayName": "AdMakeAI",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mesmerlord/admakeai-claude-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Design ad images, UGC-style video ads and ad copy for your brand, look up the ads any brand runs in the Meta Ad Library, and prepare Meta campaign drafts through AdMakeAI's hosted MCP server and one skill, with browser sign-in and designs paid from account credits.",
+      "icon": "./plugins/mesmerlord/admakeai-claude-plugin/assets/icon.png"
     },
     {
       "name": "amq-cli",
@@ -3916,6 +3946,21 @@
       "category": "Tools & Integrations",
       "description": "Codex-ready bundle for people renting exotic and luxury cars in the US with a native .codex-plugin manifest and 6 skills that find who rents a given Lamborghini, Ferrari, Rolls-Royce or G-Wagon in a city at published daily rates from a free read-only market data MCP server, work out the real rental cost, compare cars, pick event cars, plan a weekend and check a rental company; also works in Claude Code.",
       "icon": "./plugins/sergebulaev/exotic-car-rental-skills/assets/icon.svg"
+    },
+    {
+      "name": "fair-value-calculator",
+      "displayName": "Fair Value Calculator",
+      "source": {
+        "source": "local",
+        "path": "./plugins/petz00711/fair-value-calculator-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
+      "icon": "./plugins/petz00711/fair-value-calculator-mcp/assets/logo.png"
     },
     {
       "name": "fantasy-football-manager",

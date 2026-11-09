@@ -28,7 +28,7 @@ Run each item over the saved text, not over the intention behind it.
 | 8 | `[확인 필요: …]` appears at most 3 times outside the release gate tables | A fourth inline marker exists in the prose sections |
 | 9 | No empty or `N/A` section remains | A heading has no content, or says `N/A`/`TBD` |
 | 10 | The handoff block is complete | It lacks platforms, size, P1 scope, remaining blocking questions, or next-stage inputs |
-| 11 | The meta block carries status, platforms, size, and the updated date | One field is missing |
+| 11 | The meta block carries status, platforms, size, and the updated date | One field is missing, or the platform or size decision has no one-line reason |
 | 12 | The must-not-change behavior is stated or explicitly declared absent | The change touches an existing flow and the section is missing |
 | 13 | Every `[M]` and `[M-조건]` item of each decided platform appears in that platform's release gate table with a conclusion | A decided platform's checklist has an `[M]` or `[M-조건]` item with no row, or a row with no conclusion |
 | 14 | No breakpoint is named after a device | A breakpoint reads `iPhone 375px`, `iPad`, `desktop 1440`, or any other device class instead of a content width in CSS pixels |

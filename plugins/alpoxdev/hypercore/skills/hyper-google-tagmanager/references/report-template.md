@@ -65,6 +65,7 @@ Never save credentials, tokens, `api_secret` values, full `gtm_auth` values, or 
 
 - Lead with the result; every finding names its evidence.
 - Use the `verified`, `failed`, `not verified` words from `rules/validation.md` §2 exactly.
+- The `결과:` line names exactly one value from `rules/validation.md` §5, chosen by what this run's evidence supports.
 - Absolute dates only.
 - A proposed publish or deletion lists its exact action, not a summary.
 

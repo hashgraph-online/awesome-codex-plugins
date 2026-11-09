@@ -110,7 +110,9 @@ boundary rows in the incremental test are what pin that comparison.
 ## 3. Rebuild the history, then run the incremental program
 
 1. `dex transform build --target dev --select <model> --full-refresh --verify`
-   rewrites what the old logic loaded. It is evidence about the full program only.
+   rewrites what the old logic loaded. It is evidence about the full program only,
+   and `obligations.incremental_replay` reads `full_refresh_only` unless the
+   incremental unit test passed in the same build.
    Read `data.full_refresh.not_refreshed` first: a model listed there has
    `full_refresh: false`, so dbt ran it incrementally and kept what the old logic
    wrote. Its history is not repaired; report that part incomplete, or change the
@@ -134,6 +136,16 @@ boundary rows in the incremental test are what pin that comparison.
 | A second batch through a project-owned input | The whole incremental path on real data | Late rows outside the stated horizon |
 
 Report which of these you have. A repair backed only by the first row is incomplete.
+
+A `--for-plan` build says which you have for each incremental model the plan
+edited, under `data.completion.obligations.incremental_replay` (#1130):
+`satisfied` when a unit test overriding `is_incremental` to true passed in that
+build, `contradicted` (`incremental_test_failed`) when it failed, and otherwise
+`unchecked` with `full_refresh_only` (the build only full-refreshed the model) or
+`no_incremental_test`. The outcome stays `validated` either way, since an
+obligation is listed, never a status; an `unchecked` entry is the repair still
+owing its proof. A unit test runs in a build that selects its model, so build
+with the test in the selection (a plain `--select <model>` includes it).
 
 ## 5. A source the project does not own
 

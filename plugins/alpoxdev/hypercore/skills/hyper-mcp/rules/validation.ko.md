@@ -29,6 +29,7 @@ npx @modelcontextprotocol/inspector --cli <server> --protocol-era modern --metho
 | 4 | 연결 불가: 서버가 시작하지 않았거나 다른 곳에서 듣고 있습니다 |
 | 5 | 도구 오류 또는 도구를 찾지 못함 |
 | 6 | `--strict`가 도구 스키마 이식성 오류를 찾음 |
+| 11 | 서버가 HTTP 429를 돌려줌: 속도 제한이므로 모드의 수리 예산 안에서 한 번 다시 시도하고, 계속되면 사유와 함께 `not run`으로 기록합니다 |
 | 그 밖의 0이 아닌 값 | `stderr`의 한 줄 JSON 오류를 읽고 기록합니다 |
 
 Inspector를 실행할 수 없으면(Node.js 22.19+ 없음, `npx`용 네트워크 없음, 자격 증명이 필요한 서버) 사유와 함께 `not run`을 기록하고 프로젝트 자체 테스트와 `rules/mcp-rules.md`에 대한 정적 리뷰로 대체합니다. 정적 리뷰는 검사를 `passed`로 올리지 않습니다.

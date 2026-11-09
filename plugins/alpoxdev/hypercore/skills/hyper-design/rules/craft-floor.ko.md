@@ -33,6 +33,17 @@ WCAG 3는 Working Draft이고 APCA는 어디에서도 규범이 아니다. 대�
 | 확대 | viewport meta가 `user-scalable=no`나 `maximum-scale=1`을 설정하지 않는다 | MUST |
 | 터치 간격 | 인접한 터치 타깃 사이에 분명한 간격을 두어 엄지로 눌렀을 때 둘 다 눌리지 않는다 | DEFAULT |
 
+브라우저가 그리는 표면(해당 표면이 있을 때 토큰으로 정하고, 플랫폼 기본값을 그대로 두지 않는다):
+
+| 규칙 | 값 | 수준 |
+|---|---|---|
+| 선택 | `::selection`의 전경과 배경을 토큰으로 정하고 기본 파랑을 쓰지 않는다 | DEFAULT |
+| 캐럿 | 편집 표면에서 `caret-color`를 본문 색이나 토큰 색으로 맞춘다 | DEFAULT |
+| 스크롤바 | 스크롤이 있는 곳, 오버플로 패널을 포함해 `scrollbar-color`를 준다 | DEFAULT |
+| 포커스 링 | 컨트롤 가장자리에서 떨어진, 최소 2px의 보이는 링 | DEFAULT |
+| 밑줄 간격 | `text-underline-offset`으로 밑줄이 아래 꼬리 글자를 가로지르지 않게 한다 | DEFAULT |
+| 숫자 형태 | 표, 가격, 카운터에 `tabular-nums`(3절의 같은 규칙)를 쓴다 | DEFAULT |
+
 ## 3. 타이포그래피
 
 | 규칙 | 값 | 수준 |
@@ -41,6 +52,9 @@ WCAG 3는 Working Draft이고 APCA는 어디에서도 규범이 아니다. 대�
 | 가장 작은 UI 텍스트 | 12px; iOS 11pt, macOS 10pt는 플랫폼 최소값이며 기본값이 아니다 | DEFAULT |
 | 행 길이 | 이어지는 텍스트 기준 45-75자; 넓은 화면에서 전체 폭 단락을 쓰지 않는다 | DEFAULT |
 | 행간, 라틴 본문 | 1.4-1.6; 제목 1.1-1.3 | DEFAULT |
+| 타이핑 단계 | 인접한 크기가 최소 1.25x 차이 난다 | DEFAULT |
+| 디스플레이 크기 | 디스플레이 텍스트는 최대 6rem | DEFAULT |
+| 디스플레이 자간 | 디스플레이 자간은 -0.04em 아래로 내려가지 않는다 | DEFAULT |
 | 텍스트 간격 내성 | 행간 1.5, 문단 간격 2em, 자간 0.12em, 단어 간격 0.16em의 사용자 재정의에서도 레이아웃이 버틴다 | MUST |
 | 크기 조정 | 텍스트가 내용 손실 없이 200%까지 커진다 | MUST |
 | 글꼴 패밀리 | 하나, 또는 역할이 고정된 둘(디스플레이, 텍스트); 셋은 쓰지 않는다 | DEFAULT |
@@ -56,6 +70,9 @@ WCAG 3는 Working Draft이고 APCA는 어디에서도 규범이 아니다. 대�
 |---|---|---|
 | 간격 스케일 | 4px 기반 스케일 하나(4, 8, 12, 16, 24, 32, 48, 64, 96) 또는 프로젝트 자체 스케일; 일회성 값을 쓰지 않는다 | DEFAULT |
 | 묶음 | 그룹 안 간격이 그룹 사이 간격보다 작다; 제목 위 간격이 아래 간격보다 크다 | DEFAULT |
+| 제목 간격 | 제목 위 간격이 제목 아래 간격의 최소 1.5x다 | DEFAULT |
+| 그룹 간격 | 그룹 사이 간격이 그룹 안 간격의 최소 2x다 | DEFAULT |
+| 본문 폭 | 본문 65-75ch; 디스플레이 텍스트는 최대 6rem | DEFAULT |
 | 리플로 | 320 CSS px 폭에서 2차원 스크롤이 없다(표, 지도, 편집기 제외) | MUST |
 | 확인 폭 | 프로젝트 중단점, 없으면 375, 768, 1280(한국 공공 부문: 360, 768, 1024, 1280) | DEFAULT |
 | 내용 폭 | 최대 내용 폭(약 1200-1280px)과 일관된 거터 하나 | DEFAULT |
@@ -129,12 +146,15 @@ WCAG 3는 Working Draft이고 APCA는 어디에서도 규범이 아니다. 대�
 9. 제품 언어가 한국어일 때 한국어 규칙을 적용한다.
 10. 조작 단서: 네이티브 요소, 접근 가능한 이름, 포인터 커서, hover·active·disabled 상태, 확대 차단 없음.
 11. §8의 성능 메커니즘.
+12. 비율 하한과 브라우저 표면이 위 기준값 안에서 렌더링되는지 확인한다.
 
-정적 실행은 5, 6, 10, 11번 항목과 7번의 소스 절반을 통과할 수 있다. 렌더링이 필요한 항목은 렌더 캡처 없이는 `static_only`다.
+정적 실행은 5, 6, 10, 11번 항목과 7번의 소스 절반을 통과할 수 있다. 12번은 렌더 계산값이 필요하므로 렌더 캡처 없이는 `static_only`다.
+
+비율 하한은 렌더링된 `computed` 값(글자 크기, 간격, 행 길이) 또는 소스 선언에서 확인할 수 있으며, 이 패키지가 비율을 자동 측정하지는 않는다(렌더 측정은 별도 관심사다).
 
 ## Sources
 
-> 확인 2026-11-07.
+> 확인 2026-11-09.
 
 | 주장 | 출처 |
 |---|---|
@@ -144,6 +164,7 @@ WCAG 3는 Working Draft이고 APCA는 어디에서도 규범이 아니다. 대�
 | Android 터치 타깃 48×48 dp | <https://developer.android.com/guide/topics/ui/accessibility/apps> |
 | Material 토큰 값(타입 스케일, 형태 0/4/8/12/16/28/full, 고도 단계, `cubic-bezier(0.2, 0, 0, 1)`) | <https://github.com/material-components/material-web/tree/main/tokens/versions/v0_192> (Apache-2.0) |
 | 행 길이 45-90자, 행간 120-145%, 제목 수준 최대 세 단계 | <https://practicaltypography.com/line-length.html> |
+| 비율 하한(타입 단계 1.25x, 제목 간격 1.5x, 그룹 간격 2x, 본문 65-75ch, 디스플레이 6rem, 자간 -0.04em)과 브라우저 표면 목록(`::selection`, 캐럿, 스크롤바, 포커스 링, 밑줄 간격, 숫자 형태) | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09)에서 이 패키지의 자체 말로 재작성했다. 원본 저장소에는 라이선스가 없으며 텍스트나 코드를 복사하지 않았다. 임계값은 그 프로젝트의 프런트엔드 표기 문서에 나온 Apache-2.0 상류(<https://github.com/pbakaus/impeccable>, Apache-2.0)에서 가져왔고, 여기서 하한 기본값으로 다시 정했다: 최소 타입 단계 1.25x, 디스플레이 최대 6rem, 자간 하한 -0.04em |
 | 히트 타깃, `transition: all`, 중첩 반경, 자동 재생 일시 정지 | <https://github.com/vercel-labs/web-interface-guidelines/blob/434b7f91364665f2f733b310ec54809bf8f37937/AGENTS.md> (MIT) |
 | UI 모션 300 ms 미만, ease-in 없음, `scale(0)` 없음, 30-80 ms 시차, 빈도 규칙 | <https://github.com/emilkowalski/skills> (commit `c8a7962`) (MIT) |
 | 응답 시간 한계, 로딩 표시, 빈 상태, 오류 메시지, 폼 규칙 | <https://www.nngroup.com/articles/response-times-3-important-limits/>, <https://www.nngroup.com/articles/skeleton-screens/>, <https://www.nngroup.com/articles/empty-state-interface-design/>, <https://www.nngroup.com/articles/error-message-guidelines/>, <https://www.nngroup.com/articles/web-form-design/> |

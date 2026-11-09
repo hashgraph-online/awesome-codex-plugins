@@ -115,6 +115,7 @@ Boundary requests:
 - 핵심(`SKILL.md`): 트리거, 결과물 형태 라우팅, 모드, 계약, 워크플로, 정지 조건입니다.
 - 규칙: [rules/ga-workflow.md](rules/ga-workflow.md)는 모드 선택과 모드별 단계를, [rules/safety-gates.md](rules/safety-gates.md)는 승인 등급과 속성 식별과 PII와 자격 증명을, [rules/validation.md](rules/validation.md)는 완료 근거와 수리 한도를 소유합니다.
 - 참조: 저장할 보고서용 [references/report-template.md](references/report-template.md), [references/install-methods.md](references/install-methods.md), [references/consent-and-privacy.md](references/consent-and-privacy.md), [references/site-config.md](references/site-config.md), [references/events-and-limits.md](references/events-and-limits.md), [references/verification.md](references/verification.md), [references/data-api-reporting.md](references/data-api-reporting.md), [references/admin-api-audit.md](references/admin-api-audit.md), [references/mcp-and-auth.md](references/mcp-and-auth.md), [references/bigquery-export.md](references/bigquery-export.md)입니다.
+- 스크립트: `scripts/ga-detect.sh <repo-root>`는 저장소를 훑어 태그, `gtag`, dataLayer, 동의, CSP, Measurement Protocol, 의심되는 `api_secret` 신호마다 파일과 줄을 붙인 JSON 한 줄을 내고 `summary` 줄로 끝냅니다. 소스와 설정 파일만 읽고 아무것도 쓰지 않으며, 신호 종류와 종료 코드는 스크립트 머리말에 적혀 있습니다.
 - 자산: 트리거와 동작 사례인 `assets/evals/hyper-google-analytics-cases.jsonl`입니다.
 
 </skill_architecture>
@@ -189,6 +190,7 @@ Phase rules:
 
 - 이번 실행의 명시적 승인 없이 데이터 필터 활성화, 데이터 보존 기간 축소, 커스텀 정의 보관 처리, 핵심 이벤트나 `api_secret` 삭제, 라이브 사이트의 Google signals나 동의 기본값 변경을 실행하는 일.
 - 요청이 이름을 대지 않은 속성, 스트림, 커스텀 디멘션, 핵심 이벤트를 만드는 일.
+- GTM 컨테이너 안의 태그, 트리거, 변수, 동의 설정을 추가하거나 고치는 일. 컨테이너 변경은 자체 승인이 붙는 별도 기록이므로, 속성에 필요한 태그를 이름으로 적고 편집은 페이지 코드에 그칩니다.
 - 이벤트 이름, 매개변수 값, URL, `user_id`에 개인정보를 넣는 일.
 - `api_secret`을 클라이언트 코드, 보고서, 커밋에 쓰거나 자격 증명 값을 출력하는 일.
 - 표준 보고서, 성공한 `collect` 업로드, Measurement Protocol의 HTTP `2xx`를 수집 증명이라고 부르는 일.

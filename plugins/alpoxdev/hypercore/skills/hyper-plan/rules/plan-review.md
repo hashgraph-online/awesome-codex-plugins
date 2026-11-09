@@ -30,9 +30,11 @@ Run the dual review when `review_required: true`: the user asked for extra accur
 - One round is one pass from each reviewer.
 - Both must approve before handoff. A reviewer that cannot finish returns `inconclusive`, which is not approval.
 
-Verdict format for every reviewer:
+Verdict format for every reviewer. Every verdict also carries the two binding fields from §9:
 
 ```text
+round_id: <id of the current review round>
+plan_sha256: <shasum -a 256 of the plan file at review time>
 verdict: approve | changes_requested | inconclusive
 blockers:
   - category: <one of the six in §3> | evidence: <path:line or missing row> | change: <smallest fix>
@@ -102,9 +104,21 @@ A failed check is repaired before the handoff. A check that cannot be repaired w
 
 ## 8. Review Records and Invalidation
 
-Record in the draft: round count, reviewer identity or the self-review caveat, each verdict, accepted blockers, open notes, and the plan path reviewed. When the plan changes after an approving review, the approval is void; re-run the required review against the new version before any handoff.
+Record in the draft: round count, reviewer identity or the self-review caveat, each verdict, accepted blockers, open notes, and the plan path reviewed. Every record also carries the round's `round_id` and `plan_sha256` from §2 and §9. When the plan changes after an approving review, the approval is void; re-run the required review against the new version before any handoff. The plan edit changes `plan_sha256`, so an approval recorded before the edit is never accepted after it.
 
 The three `## Handoff` lines (`Auto-execute`, `Delivery`, `Plan-only requested`) are the exception. They record the handoff decision, not plan content, and they are written after the review verdict. Editing them never voids an approval and never starts another review round; only a change above `## Handoff` does.
+
+## 9. Digest Binding
+
+Every review round binds its verdicts to the exact plan bytes they describe:
+
+- Compute `plan_sha256` with `shasum -a 256` over the plan file at review time and record it in the draft next to the round's `round_id`.
+- Accept a verdict only when its `plan_sha256` and `round_id` match the current round. A verdict whose `plan_sha256` or `round_id` does not match the current round is recorded as `stale` and ignored; it never counts as approval.
+- A duplicate result for an already-closed round is also `stale`. A late result for a round that a newer round has superseded is `stale` and must not overwrite the newer result.
+- Any edit to the plan changes the digest and returns an approved round to `pending`. The approval is void until the required review reruns against the new digest. The `## Handoff` exception in §8 still applies.
+- A round left in `launching` or `in_flight` when a run resumes becomes `inconclusive` and starts a new round; it never counts as approval. `launching` and `in_flight` are the two in-progress states recorded between dispatch and collection of results; record the round's state in the draft's `## Review` section as `launching`, `in_flight`, `collected`, or `stale`, next to its `round_id`.
+
+The existing caps are unchanged: two reviewers, three rounds.
 
 ## Sources
 

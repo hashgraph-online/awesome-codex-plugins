@@ -10,6 +10,7 @@ Use this reference before opening the journal directory for a default, deep, or 
 - `queries.md`
 - `expansion.md`
 - `claims.md`
+- `debate.md`
 - `verify-<slug>.md`
 - Writing rules
 
@@ -24,6 +25,9 @@ Use this reference before opening the journal directory for a default, deep, or 
     ├── queries.md
     ├── expansion.md
     ├── claims.md
+    ├── debate.md         # high-risk claim attacks, when any
+    ├── report-state.json # repair passes and the outcome manifest
+    ├── outcome.json      # written by report-state.sh finish
     └── verify-<slug>.md  # one per execution check, when any
 ```
 
@@ -53,7 +57,13 @@ asked: <fields asked, or none>
 
 ## Steering
 - <exact user wording> - <wave it took effect>
+
+## Deliverable
+format: md (answered_by: default | user | request)
+path: .hyper/research/[NN].slug.md
 ```
+
+The `Deliverable` promise names what the run promises to deliver: the format (`md` by default), its path, and the `answered_by` value that chose the format. When the user asked for a different format, that answer is folded into the `Fidelity` block like the other fields; otherwise `answered_by: default` stands.
 
 ## `sources.md`
 
@@ -117,6 +127,23 @@ converged | exhausted (cap, open leads, last result, extension plan) | blocked (
 ```
 
 Status is `supported`, `partial`, `refuted`, or `unresolved`. Only `## verified-claims` rows may be asserted as high-risk statements in the report.
+
+## `debate.md`
+
+One row per attack on a high-risk claim, in the slot order `rules/claim-verification.md` §7 fixes:
+
+```markdown
+| claim id | attack | attacker perspective | defense | verdict (holds, weakened, withdrawn) | change to the claim |
+|---|---|---|---|---|---|
+| C1 | <the objection> | evidence quality | <the rebuttal> | holds | |
+| C1 | <the objection> | source independence | <the rebuttal> | weakened | narrowed to the surveyed segment |
+```
+
+Two attacks count only when their `attacker perspective` values differ. A high-risk claim with fewer than two rows here stays `unverified` and out of `## verified-claims`, and the report's `## Debate record` annex lists each claim's verdict.
+
+## `report-state.json` and `outcome.json`
+
+`scripts/report-state.sh` owns these two files; never hand-edit them. `repair` appends each pass and its defect codes to `report-state.json`. `finish` refuses delivery while a gate is unset, a blocker remains, or the report or ledger is empty, and writes `outcome.json` beside the state file only when it accepts the run. `briefing` prints the counted facts from `outcome.json` for the closing effort line.
 
 ## `verify-<slug>.md`
 

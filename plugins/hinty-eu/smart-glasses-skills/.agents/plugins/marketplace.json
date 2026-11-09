@@ -1,0 +1,12 @@
+{
+  "name": "hinty-eu",
+  "interface": { "displayName": "Smart Glasses Skills" },
+  "plugins": [
+    {
+      "name": "smart-glasses-skills",
+      "source": { "source": "local", "path": "./" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Developer Tools"
+    }
+  ]
+}

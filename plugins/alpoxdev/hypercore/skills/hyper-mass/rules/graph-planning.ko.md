@@ -111,6 +111,16 @@ Tier는 중요도가 아니라 난이도입니다.
 - join은 출력 형태를 선언합니다. 쓰는 파일, 반환하는 표, 기록하는 판정 가운데 하나입니다. "전부 합치기"는 형태가 아닙니다.
 - 대량 수확은 항목을 보고서 계약에 맞춘 배치 노드로 나눕니다. 각 노드는 정해진 배치를 모아 정해진 크기의 파일 보고서 하나를 씁니다. 노드 수는 `ceil(전체 항목 / 배치 항목)`이고, 종합은 배치 보고서를 읽으며 노드의 날 출력을 읽지 않습니다. 한 실행의 상한을 넘으면 각자 aggregator를 가진 동시 실행으로 나눕니다.
 
+## 9.1 배치 노드 위의 Digest 축약
+
+배치 하나를 넘는 노드를 합치는 reducer는 digest 파일을 내고, 최종 reducer는 digest만 읽으며 노드의 날 출력은 읽지 않습니다.
+
+- digest 파일은 크기 상한을 밝힙니다. 패키지 기본값은 5,000 토큰이며, 실행이 `graph.json` justification에 다른 상한을 적으면 그 상한을 따릅니다.
+- digest의 모든 주장은 가져온 handoff 경로를 지목합니다. handoff 인용이 없는 digest 주장은 self-check를 통과하지 못합니다.
+- 클러스터 reducer는 클러스터마다 digest 하나를 씁니다. 최종 reducer는 그 digest들만 소비합니다. digest를 거치지 않고 날 노드 출력을 직접 읽는 종합 노드는 self-check를 통과하지 못합니다.
+
+작업에 노드가 고를 수 있는 접근 목록이 있지만 목록 안에 머물러야 하며(**MUST**) 노드에 `solutionSpace`를 둡니다. node prompt에 목록을 적고, 목록 밖 접근은 조용히 통과하지 않고 self-check에서 실패합니다. `resolvedModel`은 계획이 아니라 관찰입니다. 관찰한 결과에서만 쓰고, tier에서 예측해 쓰지 않습니다.
+
 ## 10. 쓰기 범위와 handoff 채널
 
 `dependsOn`은 순서를 정하고, 파일이 데이터를 나릅니다.
@@ -169,12 +179,14 @@ prompt가 지켜지게 만드는 규칙:
 - [ ] 종단 검증 또는 검토 노드가 모든 생산자에 의존.
 - [ ] `high` 노드가 최대 하나이고, `low`가 아닌 모든 tier에 이유가 있음.
 - [ ] 상한을 지켰거나, 작업을 새 key로 나눴음.
+- [ ] 종합 노드가 제한 없는 날 노드 출력을 소비하지 않음. 배치 하나를 넘는 모든 reducer는 밝힌 크기 상한과 handoff 인용이 붙은 digest를 내고, 최종 reducer는 digest만 읽음.
+- [ ] `solutionSpace`를 선언한 모든 노드는 prompt에 목록을 적고, 보고한 접근을 목록과 대조하며, 모든 `resolvedModel` 값이 관찰한 결과에서 나왔는지 봅니다.
 
 같은 key와 같은 정의는 resume입니다. 예전 key 아래 바뀐 정의는 충돌이며 `amend`를 거칩니다. 다른 key는 다른 실행이지 retry가 아닙니다.
 
 ## Sources
 
-> 확인 2026-11-03.
+> 확인 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -183,6 +195,7 @@ prompt가 지켜지게 만드는 규칙:
 | 위임 prompt 항목과 상위가 통합하고 검증한다는 원칙 | `instructions/context-engineering/references/parallel-workflows.md` |
 | 근거 파일이 없으면 일어나지 않은 일, 판정자는 작업자 요약이 아니라 아티팩트와 기준을 받음 | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | tier 사다리와 32개 노드, 동시 8개, retry 2회, amend 3회 상한 | 패밀리 계약, 2026-11-03, `instructions/loop-engineering/LOOP_ENGINEERING.md` |
+| 배치 fan-out 뒤의 digest 축약: 배치 하나를 넘는 reducer마다 digest 파일 하나, 밝힌 토큰 상한(기본 5,000), 모든 주장에 붙는 handoff 인용, digest만 읽는 최종 reducer; 노드 `solutionSpace` 경계와 목록 밖 접근의 self-check 실패; 관찰한 결과만으로 기록하는 `resolvedModel` | `dbc-hbin/omp-ulw @ 74df40f`(2026-11-09), 다시 쓴 것. 원본 저장소에는 license 파일이 없어 본문·코드를 복사하지 않았습니다 |
 
 ### 근거 등급
 

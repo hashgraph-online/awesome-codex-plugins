@@ -132,6 +132,49 @@ BEGIN {
     emit("AUTHORSHIP_CLAIM", "", "Reports must not claim AI authorship.")
   if (waiver_conflict(lower) && lower !~ /reason|사유/)
     emit("WAIVER_REASON_MISSING", "", "A reported waiver needs a reason.")
+  wcag_heading = line_has(lower, "^## .*wcag")
+  wcag_required = ((status == "pass") && (rendered == "complete")) || (wcag_heading == 1)
+  if (wcag_required) {
+    n = split("1.4.3 1.4.11 2.4.7 2.4.11 2.5.8 2.1.1 2.1.2 1.4.10 1.4.12 2.5.7 3.3.8 3.2.6 3.3.7", ids, " ")
+    nlines = split(lower, wlines, "\n")
+    for (k = 1; k <= n; k++) {
+      state = 0
+      esc = ids[k]
+      gsub(/\./, "\\.", esc)
+      idre = "(^|[^0-9])" esc "([^0-9]|$)"
+      for (j = 1; j <= nlines && state != 2; j++) {
+        ln = wlines[j]
+        if (index(ln, ids[k]) == 0) continue
+        if (index(ln, "|") == 0) continue
+        # criterion cell: the pipe-delimited cell holding the id as a token.
+        # the cell must start with the id with a token boundary (rejects "1.4.30" for "1.4.3")
+        ncells = split(ln, cells, "|")
+        ci = 0
+        for (c = 1; c <= ncells; c++) {
+          if (cells[c] ~ idre) { ci = c; break }
+        }
+        if (ci == 0) continue
+        # one row, one criterion: count distinct SC ids in the whole row
+        idcount = 0
+        for (m = 1; m <= n; m++) {
+          esc2 = ids[m]
+          gsub(/\./, "\\.", esc2)
+          if (ln ~ ("(^|[^0-9])" esc2 "([^0-9]|$)")) idcount++
+        }
+        vcell = (ci + 1 <= ncells) ? trim(cells[ci + 1]) : ""
+        sub(/^`+/, "", vcell); sub(/`+$/, "", vcell)
+        vcell = trim(vcell)
+        rcell = (ci + 2 <= ncells) ? trim(cells[ci + 2]) : ""
+        ecell = (ci + 3 <= ncells) ? trim(cells[ci + 3]) : ""
+        if (state == 0) state = 1
+        if (idcount == 1 && (vcell == "pass" || vcell == "fail" || vcell == "n/a") && rcell != "" && ecell != "") { state = 2; break }
+      }
+      if (state == 0)
+        emit("WCAG_TABLE_MISSING", "", "WCAG 2.2 table must list criterion " ids[k] " on its own table row with PASS, FAIL, or N/A, a reason, and evidence.")
+      else if (state == 1)
+        emit("WCAG_ROW_INCOMPLETE", "", "WCAG row for criterion " ids[k] " must have exactly one SC id, a verdict cell that is exactly PASS, FAIL, or N/A, and non-empty reason and evidence cells.")
+    }
+  }
 }
 VR_AWK
 }

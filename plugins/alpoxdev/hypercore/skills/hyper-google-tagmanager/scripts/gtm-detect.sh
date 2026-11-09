@@ -18,6 +18,13 @@
 # next-gtm-component, next-ga-component, nuxt-scripts-gtm, datalayer-init,
 # datalayer-reset, consent-default, consent-update, csp, partytown.
 #
+# Finding codes: MULTIPLE_CONTAINER_IDS, MULTIPLE_GTM_LOADERS, LOADER_IN_SEVERAL_FILES,
+# GTMJS_NON_GTM_ID, GTAG_CONFIG_WITH_GTM, GTM_AND_GTAG, DATALAYER_RESET,
+# NO_CONSENT_DEFAULT_IN_CODE, NO_INSTALL.
+# MULTIPLE_GTM_LOADERS is reported per file, because a multi-page site carrying one
+# loader in a shared layout is the expected shape and LOADER_IN_SEVERAL_FILES is
+# only an info note.
+#
 # It reads source and template files only, skips dependency, build, and VCS
 # folders, and never reads .env files. Exit codes: 0 scanned (even with no
 # install), 2 bad arguments, 3 missing dependency (jq).
@@ -138,6 +145,7 @@ jq -n --arg root "$ROOT_LABEL" --rawfile hits "$HITS" --rawfile fw "$FW" '
   | ([$s[] | select(.kind == "gtm-id") | .value] | unique) as $gtm
   | ([$s[] | select(.kind == "google-tag-id") | .value] | unique) as $gt
   | ([$s[] | select(.kind == "gtm-loader")] | length) as $loader
+  | ([$s[] | select(.kind == "gtm-loader")] | group_by(.file) | map(select(length > 1))) as $loaderPerFile
   | ([$s[] | select(.kind == "next-gtm-component" or .kind == "nuxt-scripts-gtm")] | length) as $component
   | ([$s[] | select(.kind == "gtag-config")] | length) as $gtagConfig
   | ([$s[] | select(.kind == "gtag-loader" or .kind == "next-ga-component")] | length) as $gtag
@@ -149,8 +157,11 @@ jq -n --arg root "$ROOT_LABEL" --rawfile hits "$HITS" --rawfile fw "$FW" '
      findings: ([
        (if ($gtm | length) > 1 then {severity: "warn", code: "MULTIPLE_CONTAINER_IDS",
           detail: "more than one GTM container ID is referenced: \($gtm | join(", "))"} else empty end),
-       (if $loader > 1 then {severity: "warn", code: "MULTIPLE_GTM_LOADERS",
-          detail: "the gtm.js loader appears \($loader) times; check that only one runs per page"} else empty end),
+       ($loaderPerFile[]
+        | {severity: "warn", code: "MULTIPLE_GTM_LOADERS",
+           detail: "\(.[0].file) loads the gtm.js loader \(length) times; one loader per container per page is the rule, so a second loader in the same file is a duplicate"}),
+       (if $loader > 1 and ($loaderPerFile | length) == 0 then {severity: "info", code: "LOADER_IN_SEVERAL_FILES",
+          detail: "the gtm.js loader appears in \($loader) files; that is expected for a multi-page site with a shared layout, so confirm each page carries one loader rather than treating the count as a finding"} else empty end),
        ($s[] | select(.kind == "gtmjs-non-gtm-id")
         | {severity: "error", code: "GTMJS_NON_GTM_ID",
            detail: "\(.file):\(.line) loads \(.value) through the gtm.js path; Google calls a non-GTM ID on gtm.js unsupported, use gtag/js for a G-/AW-/DC- ID or a GTM- container ID on gtm.js"}),

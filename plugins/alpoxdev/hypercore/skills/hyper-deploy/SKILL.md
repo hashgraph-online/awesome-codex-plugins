@@ -123,7 +123,7 @@ Boundary requests:
 
 - Core (`SKILL.md`): trigger, target routing table, modes, contract, workflow, stop conditions.
 - Rules: [rules/target-detection.md](rules/target-detection.md) owns target signals and conflicts; [rules/deploy-workflow.md](rules/deploy-workflow.md) owns modes, phases, and the diagnosis order; [rules/preflight.md](rules/preflight.md) owns the readiness scripts, triage, tracked state, and lanes; [rules/safety-gates.md](rules/safety-gates.md) owns approval tiers, target identification, and credentials; [rules/validation.md](rules/validation.md) owns completion evidence.
-- Target guides: `references/targets/<target>.md`, each with the canonical configuration, authentication, deploy commands, the success test, status and log commands, rollback and what it does not restore, a failure table, approval-required actions, and a checked date.
+- Target guides: `references/targets/<target>.md`, each with the canonical configuration, authentication, deploy commands, the success test, status and log commands, rollback and what it does not restore (or, for a publish-only target, the immutable artifact a rollback would point at), a failure table, approval-required actions, and a checked date.
 - References: [references/report-template.md](references/report-template.md) for the saved report.
 - Scripts: `scripts/stack-detect.sh`, `scripts/pm-detect.sh`, `scripts/lint-check.sh`, `scripts/build-run.sh`, and `scripts/deploy-check.sh`, the readiness proof described in `rules/preflight.md`.
 - Assets: `assets/evals/hyper-deploy-cases.jsonl`, the trigger and behavior cases.

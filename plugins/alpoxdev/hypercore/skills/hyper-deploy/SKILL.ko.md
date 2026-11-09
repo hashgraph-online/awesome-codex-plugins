@@ -123,7 +123,7 @@ Boundary requests:
 
 - 핵심(`SKILL.md`): 트리거, 대상 라우팅 표, 모드, 계약, 워크플로, 정지 조건입니다.
 - 규칙: [rules/target-detection.md](rules/target-detection.md)는 대상 신호와 충돌을, [rules/deploy-workflow.md](rules/deploy-workflow.md)는 모드와 단계와 진단 순서를, [rules/preflight.md](rules/preflight.md)는 준비 스크립트와 트리아지와 추적 상태와 레인을, [rules/safety-gates.md](rules/safety-gates.md)는 승인 등급과 대상 식별과 자격 증명을, [rules/validation.md](rules/validation.md)는 완료 근거를 소유합니다.
-- 대상 가이드: `references/targets/<target>.md`. 정본 설정, 인증, 배포 명령, 성공 판정, 상태와 로그 명령, 롤백과 롤백이 되돌리지 않는 것, 실패 표, 승인이 필요한 행동, 확인 날짜를 담습니다.
+- 대상 가이드: `references/targets/<target>.md`. 정본 설정, 인증, 배포 명령, 성공 판정, 상태와 로그 명령, 롤백과 롤백이 되돌리지 않는 것(게시 전용 대상이면 롤백이 가리킬 변경 불가 산출물), 실패 표, 승인이 필요한 행동, 확인 날짜를 담습니다.
 - 참조: 저장할 보고서용 [references/report-template.md](references/report-template.md)입니다.
 - 스크립트: `scripts/stack-detect.sh`, `scripts/pm-detect.sh`, `scripts/lint-check.sh`, `scripts/build-run.sh`, `scripts/deploy-check.sh`로, `rules/preflight.md`가 설명하는 준비 증명입니다.
 - 자산: 트리거와 동작 사례인 `assets/evals/hyper-deploy-cases.jsonl`입니다.

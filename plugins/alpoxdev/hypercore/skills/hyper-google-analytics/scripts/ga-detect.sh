@@ -13,10 +13,13 @@
 # consent_default, consent_update, send_page_view, debug_mode, csp_header,
 # mp_endpoint, possible_api_secret.
 #
-# It reads files only. It skips node_modules, .git, .next, dist, and build, and it
-# never reads a real .env file (only .env.example, .env.sample, .env.template).
+# It reads source and configuration files only: markup, script, style-free template,
+# and config extensions plus .env.example, .env.sample, and .env.template. Markdown,
+# prose, and other files are skipped so a README sentence cannot become a finding.
+# It skips node_modules, .git, and the framework build and cache folders, and it
+# never reads a real .env file (only the three example names above).
 # A value that looks like an API secret prints at most its first four characters.
-# files_scanned counts every candidate file after the skip and env filters.
+# files_scanned counts every candidate file after the extension, skip, and env filters.
 # Exit codes: 0 scan completed (even with no finding), 3 missing dependency (jq),
 # 64 bad usage (no argument, extra arguments, or a non-directory).
 # Requires bash 3.2+, POSIX find/grep/sed/sort, and jq 1.6+.
@@ -104,8 +107,16 @@ $out
 EOF
 }
 
-find "$ROOT" \( -name node_modules -o -name .git -o -name .next -o -name dist -o -name build \) -prune \
-  -o -type f -print 2>/dev/null | LC_ALL=C sort >"$CANDIDATES"
+find "$ROOT" \( -name node_modules -o -name .git -o -name .next -o -name .nuxt -o -name .output \
+  -o -name .svelte-kit -o -name .astro -o -name dist -o -name build -o -name out -o -name coverage \
+  -o -name vendor -o -name .turbo -o -name .vercel -o -name .wrangler \) -prune -o -type f \
+  \( -name '*.html' -o -name '*.htm' -o -name '*.js' -o -name '*.mjs' -o -name '*.cjs' \
+  -o -name '*.jsx' -o -name '*.ts' -o -name '*.mts' -o -name '*.tsx' -o -name '*.vue' \
+  -o -name '*.svelte' -o -name '*.astro' -o -name '*.php' -o -name '*.liquid' \
+  -o -name '*.erb' -o -name '*.hbs' -o -name '*.njk' -o -name '*.ejs' -o -name '*.twig' \
+  -o -name '*.json' -o -name '*.toml' -o -name '*.yaml' -o -name '*.yml' -o -name '_headers' \
+  -o -name '*.conf' -o -name '.env.example' -o -name '.env.sample' -o -name '.env.template' \) \
+  -print 2>/dev/null | LC_ALL=C sort >"$CANDIDATES"
 
 FILES_SCANNED=0
 while IFS= read -r abs; do

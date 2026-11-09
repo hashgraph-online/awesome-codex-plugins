@@ -29,7 +29,7 @@ client asks for a skill id. It is not a second product.
 ```
 Install CentricMem from the GitHub package zeyu-j/centricmem-skill (the skill folder is centricmem-agent).
 Then send me https://centricmem.com/login?signup=1 and try a /connect?device= link. Tell me to set a PIN
-on Keys and remember it, and never paste the key in chat. If minting that link fails, run
+on Connections and remember it, and never paste the key in chat. If minting that link fails, run
 centricmem doctor connect and ask me to email zeyu@poppyg.com with the output - you never send that mail and
 never see the key.
 ```
@@ -89,7 +89,7 @@ still files cards through the Skill. Direct HTTP callers that are not MCP client
 
 1. Keep working where you already work. The agent keeps its own memory on, says **once** which key this chat
    is using, and files real work as it happens - you never have to say "wrap up". Extra grants are per-shelf
-   ticks on **Keys**; the default opens every shelf.
+   ticks on **Connections**. A full-access key (`*`) opens every shelf.
 2. If the library looks empty it offers **once** to file notes you already have as cards. That is optional
    and it is not a dump of every chat.
 3. Later, ask the agent - or log in to search and download originals. There is no Inbox: work lands on a

@@ -100,6 +100,7 @@ hyper-issue [#<n>[~<m>] ...] [--batch "<selection condition>"] [--draft-only] [-
 | 선택 조건이 있음("label:x is:open", "이 라벨 붙은 것들") | 항목마다 author 후 batch | 작업 단어가 있을 때만("돌려줘", "처리해줘", "작업해줘", "run the batch") |
 | 이슈 번호를 목록이나 범위로 적음(`#1~3`, `#1, #4`) | numbers 후 batch | 기본으로 넘김 |
 | `--draft-only`, "초안만", "이슈 쓰지는 말고" | author, 정확한 본문만 반환하고 트래커 쓰기 없음 | 넘기지 않음 |
+| `--no-write`: 읽기·계획만, 트래커 쓰기 없음 | numbers나 batch로, 트래커에서 읽은 내용으로 명세만 씀. `hyper:` 블록이 빠진 이슈는 보완 갱신 대신 `block: missing` 행으로 적음 | 감싸는 모드와 같음 |
 | `--no-run`, "레인만", "명세만", "작업은 하지 마" | 어느 모드든 명세에서 끝남 | 넘기지 않음 |
 | `--from-hyper`: `hyper` 단계에서 온 요청 | 어느 모드든 | 넘기지 않음. 이슈 번호와 명세 경로를 `hyper`에 돌려준다 |
 | 쓰기 가능한 트래커가 인증되지 않음 | author, 본문을 `.hyper/issues/<slug>/drafts/`에 저장하고 공백 기록 | 넘기지 않음. 초안에는 돌릴 이슈 번호가 없다 |

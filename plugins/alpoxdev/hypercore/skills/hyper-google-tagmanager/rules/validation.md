@@ -40,6 +40,23 @@ A tag is `verified` only when its request or debug event was observed in this ru
 - Every number in the report has its source (script output, request, or report) and its date.
 - Approval-tier actions appear either with the approval quote and their result, or in the proposed actions list.
 - The residual-risk section lists every `not verified` row and every finding left open.
+- The `결과:` line names exactly one of the five values in §5 and agrees with what ran.
+
+## 5. Terminal Result
+
+The report's `결과:` line is the value the next stage reads, so it names one outcome, not a summary. Pick it in this order:
+
+| Value | When |
+|---|---|
+| `blocked` | The run cannot continue without something only the user can supply and an approval would not unblock it: a missing container ID, no site or repository access, a container export that was never provided, a credential the API step needs |
+| `exhausted` | A `diagnose` root cause spent its three attempts without a passing proof, or a repair would have to be reclassified under a new name to continue |
+| `proposed` | The work stopped at the approval gate with at least one approval-tier action listed: a publish, a republish, an overwrite import, a deletion, a permission change, or a live consent change |
+| `partial` | The mode's required evidence is incomplete for a reason that is not approval and not the diagnosis budget: a `not verified` row left by a missing browser or debug capability, a page that could not be reached, a check the run could not run |
+| `verified` | Every check the mode requires ran and each claimed tag has its request or debug event: a proven `install`, a proven `verify`, an `audit` or `analyze` whose findings all carry evidence and whose mode made no edits |
+
+- `verified` is never the default. A run that published after approval and re-verified on the live page is `verified`; the same run that published and could not re-verify is `partial`.
+- An `audit` or `analyze` whose requested scope all ran and whose findings all carry evidence is `verified`; one with a check that could not run is `partial`, and the report's residual-risk section names that check.
+- The value describes this run's evidence, not the container's health. A container full of `error` findings still ends `verified` when the audit ran and every finding is evidenced.
 
 ## Sources
 

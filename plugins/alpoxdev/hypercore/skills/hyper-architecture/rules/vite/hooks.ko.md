@@ -159,6 +159,32 @@ export const useBadHook = () => {
 
 ---
 
+## React Query 패턴 (표준)
+
+```typescript
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { usersQueryOptions } from '@/services/user/queries'
+import { createUser } from '@/services/user/mutations'
+
+export const useUsers = (): UseUsersReturn => {
+  const queryClient = useQueryClient()
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  // React Query
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  const { data: users, isLoading } = useQuery(usersQueryOptions())
+
+  const createMutation = useMutation({
+    mutationFn: (data: { email: string; name: string }) => createUser(data),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['users'] }),
+  })
+
+  return { users, isLoading, createMutation }
+}
+```
+
+---
+
 ## 요구사항
 
 | 원칙 | 설명 |

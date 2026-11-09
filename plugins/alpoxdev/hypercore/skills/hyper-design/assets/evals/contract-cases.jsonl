@@ -4,3 +4,19 @@
 {"id":"global-waiver-rejected","command":"waiver","input":"skills/hyper-design/assets/fixtures/waivers/invalid-global.json","expectedExit":1,"expectedError":"narrow file path"}
 {"id":"valid-rendered-handoff","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/valid.json","expectedExit":0}
 {"id":"invalid-rendered-handoff-rejected","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/invalid.json","expectedExit":1,"expectedError":"surface must be a non-empty string"}
+{"id":"contrast-fails-body-text","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/measurements.json","expectedExit":1,"expectedError":"contrast","expectedMeasurements":"measured"}
+{"id":"not-run-when-no-measurements","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/no-measurements.json","expectedExit":0,"expectedMeasurements":"not_run"}
+{"id":"stale-capture-rejected","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/stale.json","expectedExit":1,"expectedError":"is stale: capturedAt"}
+{"id":"signature-mismatch-rejected","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/signature-mismatch.json","expectedExit":1,"expectedError":"does not match file extension"}
+{"id":"window-frame-rejected","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/window-frame.json","expectedExit":1,"expectedError":"must be a page frame"}
+{"id":"dimension-mismatch-rejected","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/dimension-mismatch.json","expectedExit":1,"expectedError":"do not match viewport"}
+{"id":"fresh-capture-accepted","command":"rendered","input":"skills/hyper-design/assets/fixtures/rendered-evidence/fresh.json","expectedExit":0}
+{"id":"missing-wcag-table-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/missing-wcag-table.ko.md","expectedExit":1,"expectedError":"WCAG_TABLE_MISSING"}
+{"id":"passing-complete-missing-wcag-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/passing-no-wcag-table.ko.md","expectedExit":1,"expectedError":"WCAG_TABLE_MISSING"}
+{"id":"wcag-list-without-table-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/wcag-list-no-table.ko.md","expectedExit":1,"expectedError":"WCAG_TABLE_MISSING"}
+{"id":"valid-wcag-table-accepted","command":"report","input":"skills/hyper-design/assets/fixtures/reports/valid-wcag-table.ko.md","expectedExit":0}
+{"id":"empty-reason-evidence-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/empty-reason-evidence.ko.md","expectedExit":1,"expectedError":"WCAG_ROW_INCOMPLETE"}
+{"id":"all-ids-one-row-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/all-ids-one-row.ko.md","expectedExit":1,"expectedError":"WCAG_ROW_INCOMPLETE"}
+{"id":"wrong-criterion-id-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/wrong-criterion-id.ko.md","expectedExit":1,"expectedError":"WCAG_TABLE_MISSING"}
+{"id":"authorship-claim-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/authorship-claim.ko.md","expectedExit":1,"expectedError":"AUTHORSHIP_CLAIM"}
+{"id":"empty-section-rejected","command":"report","input":"skills/hyper-design/assets/fixtures/reports/empty-section.ko.md","expectedExit":1,"expectedError":"SECTION_EMPTY"}

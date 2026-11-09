@@ -2,6 +2,8 @@
 # Canonical machine-readable slop-rule registry shared by the detector and the waiver validator.
 # Fields (tab separated): id, defaultSeverity, class, engines, evidence, action, fix, evidenceLimit,
 # exceptionChecks, dispositionPolicy, clusterKey, immediateTier, matcher source, matcher flags.
+# An engines value of `motion-context` marks a project-wide rule the detector evaluates over the
+# whole scan instead of the per-file matcher table, so no engine selects it for a source scan.
 set -euo pipefail
 
 # rule_registry_rows prints every registry row as tab-separated fields in declaration order.
@@ -12,6 +14,11 @@ surface.purple-gradient	P2	default-risk	css	Purple-to-blue/pink gradient-like to
 motion.transition-all	P2	universal	css	Broad transition declaration	replace	Replace all with only the properties that actually change.	Static source signatures require context before remediation.		autofix-safe	motion-broad-transition	0	(?:transition\s*:\s*all\b|\btransition-all\b)	gi
 motion.layout-property	P1	universal	css	Layout property animation signature	review	Prefer transform/opacity only when behavior remains equivalent.	Static source signatures require context before remediation.		review	motion.layout-property	0	(?:transition(?:-property)?\s*:[^;]*(?:top|left|width|height|margin|padding)|(?:animate|transition)[\w:-]*\([^)]*(?:top|left|width|height|margin|padding))	gi
 surface.thick-side-stripe	P2	default-risk	css	Thick colored side-border signature	review	Confirm the stripe carries state or brand meaning before replacing.	Static source signatures require context before remediation.		review	surface.thick-side-stripe	0	border-(?:left|inline-start)(?:-width)?\s*:\s*(?:[5-9]|\d{2,})px|\bborder-l-(?:4|8)\b	gi
+surface.thin-side-stripe	P2	default-risk	css	Thin one-sided border signature	review	Confirm the stripe carries state or brand meaning before replacing.	Static source signatures require context before remediation.		review	surface.thin-side-stripe	0	border-(?:left|right|inline-start|inline-end)(?:-width)?\s*:\s*(?:1|2|3|4)px|\bborder-[lr]-(?:1|2|3)\b	gi
+surface.pseudo-stripe	P2	default-risk	css	Pseudo-element accent bar signature	review	Confirm the stripe carries state or brand meaning before replacing.	Static source signatures require context before remediation.		review	surface.pseudo-stripe	0	::(?:before|after)[^{]{0,80}\{[^}]{0,500}((?:width|height)\s*:\s*[1-6]px[^}]{0,400}background(?:-color)?\s*:\s*(?:#[0-9a-f]{3,8}|rgba?\()|background(?:-color)?\s*:\s*(?:#[0-9a-f]{3,8}|rgba?\()[^}]{0,400}(?:width|height)\s*:\s*[1-6]px)	gi
+surface.inset-stripe	P2	default-risk	css	Inset edge-shadow stripe signature	review	Confirm the stripe carries state or brand meaning before replacing.	Static source signatures require context before remediation.		review	surface.inset-stripe	0	box-shadow\s*:\s*inset\s+(?:0\s+[-]?[1-9]px|[-]?[1-9]px\s+0)(?:\s+(?:0|\d+px))?\s+(?:#[0-9a-f]{3,8}|rgba?\([^)]*\)|[a-z]{3,})	gi
+surface.gradient-border-image	P2	default-risk	css	Gradient border-image signature	review	Confirm the stripe carries state or brand meaning before replacing.	Static source signatures require context before remediation.		review	surface.gradient-border-image	0	border-image(?:-source)?\s*:\s*[^;{}]{0,200}linear-gradient\(	gi
+surface.hard-stop-band	P2	default-risk	css	Hard-stop gradient band signature	review	Confirm the stripe carries state or brand meaning before replacing.	Static source signatures require context before remediation.		review	surface.hard-stop-band	0	linear-gradient\([^;{}]*\b(?:2|3|4|5|6|7|8)px\b[^;{}]*\b(?:2|3|4|5|6|7|8)px\b	gi
 structure.card-in-card	P2	default-risk	markup	Nearby nested/repeated card class signature	review	Inspect DOM nesting and preserve semantic groups.	Static source signatures require context before remediation.		review	structure.card-in-card	0	class(?:Name)?\s*=\s*["'`][^"'`]*\bcard\b[^"'`]*["'`][\s\S]{0,500}class(?:Name)?\s*=\s*["'`][^"'`]*\bcard\b	gi
 quality.fake-chrome	P2	default-risk	text	Fake device/application chrome naming signature	review	Preserve chrome that frames a real product asset or communicates context.	Static source signatures require context before remediation.		review	quality.fake-chrome	0	(?:fake|mock)[-_ ]?(?:browser|phone|terminal|ide)|(?:browser|phone|terminal|ide)[-_ ]?chrome	gi
 copy.placeholder-person	P1	default-risk	text	Obvious placeholder person or copy	remove	Remove only when it is not a documented fixture or functional test value.	Static source signatures require context before remediation.		autofix-safe	copy.placeholder-person	0	\b(?:John Doe|Jane Doe|Lorem Ipsum)\b	gi
@@ -33,6 +40,7 @@ surface.grid-background	P3	review-only	css	Repeated linear-gradient grid-backgro
 surface.border-plus-wide-shadow	P3	context-dependent	css	Border plus wide soft-shadow declaration cluster	review	Keep a documented elevation system; otherwise choose the boundary that carries grouping.	Static source signatures require context before remediation.		review	surface.border-plus-wide-shadow	0	border\s*:[^;}]+;[\s\S]{0,200}box-shadow\s*:\s*0\s+(?:1[6-9]|[2-9]\d)px	gi
 type.decorative-monospace	P3	default-risk	text	Monospace used with decorative technical-kicker language	review	Reserve monospace for code, IDs, logs, measurements, or real system state.	Static source signatures require context before remediation.		review	type.decorative-monospace	0	(?:font-mono|font-family\s*:\s*[^;}]*monospace)[\s\S]{0,160}(?:kicker|future|platform|work)	gi
 motion.pulse-without-state	P2	default-risk	css	Pulse animation signature	review	Preserve real recording, sync, notification, or live state; otherwise use static hierarchy.	Static source signatures require context before remediation.	real state label	review	motion.pulse-without-state	0	animation\s*:\s*[^;}]*pulse|@keyframes\s+pulse	gi
+motion.missing-reduced-motion	P1	universal	motion-context	Motion without a project reduced-motion path	review	Check project-wide reduced-motion handling before adding a scoped fallback.	Static source signatures require context before remediation.		review	motion-reduced-preference	0
 quality.heading-skip	P2	universal	markup	Heading level skips from h1 to h3	review	Use a semantic heading hierarchy; confirm component composition before changing levels.	Static source signatures require context before remediation.		review	quality.heading-skip	0	<h1\b[\s\S]{0,500}<h3\b	gi
 quality.zoom-blocked	P1	universal	markup	Viewport meta that blocks zoom	replace	Remove user-scalable=no and maximum-scale=1 so people can zoom to at least 200%.	Static source signatures require context before remediation.		review	quality.zoom-blocked	0	<meta\b[^>]*(?:user-scalable\s*=\s*(?:no|0)\b|maximum-scale\s*=\s*1(?:\.0+)?\b)[^>]*>	gi
 quality.clickable-div	P1	universal	markup	Div or span used as a click target	review	Use a button for an action or an anchor with a real href for navigation; keep keyboard support.	Static source signatures require context before remediation.		review	quality.clickable-div	0	<(?:div|span)\b[^>]*\bon(?:click|Click)\s*=	g
@@ -48,13 +56,14 @@ RULES_TABLE
 rule_by_id_exists() {
   case "$1" in
     surface.gradient-text|surface.purple-gradient|motion.transition-all|motion.layout-property|\
-    surface.thick-side-stripe|structure.card-in-card|quality.fake-chrome|copy.placeholder-person|\
+    surface.thick-side-stripe|surface.thin-side-stripe|surface.pseudo-stripe|surface.inset-stripe|\
+    surface.gradient-border-image|surface.hard-stop-band|structure.card-in-card|quality.fake-chrome|copy.placeholder-person|\
     copy.placeholder-brand|copy.cliche|copy.unsupported-metric|motion.scale-everywhere|\
     structure.three-equal-cards|surface.decorative-orb|surface.status-dot|surface.version-label|\
     quality.missing-alt|quality.focus-suppressed|structure.repeated-eyebrow|\
     structure.numbered-section-label|structure.identical-icon-card-cluster|surface.radial-glow|\
     surface.grid-background|surface.border-plus-wide-shadow|type.decorative-monospace|\
-    motion.pulse-without-state|quality.heading-skip|quality.zoom-blocked|quality.clickable-div|\
+    motion.pulse-without-state|motion.missing-reduced-motion|quality.heading-skip|quality.zoom-blocked|quality.clickable-div|\
     quality.dead-anchor|quality.media-unsized|copy.em-dash|copy.generic-cta|structure.viewport-height) return 0 ;;
   esac
   return 1

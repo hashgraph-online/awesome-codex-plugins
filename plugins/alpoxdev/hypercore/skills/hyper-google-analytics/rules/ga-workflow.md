@@ -30,7 +30,7 @@ Read `accountSummaries.list` and then `dataStreams.list` to get them; never infe
 
 ### `audit`
 
-1. Scan the repository for the tag, the measurement ID, the tag manager, a framework integration, and a server-side call. Record the file and line for each.
+1. Run `scripts/ga-detect.sh <repo-root>`, which lists the tag, the measurement ID, the tag manager, a framework integration, the consent defaults, the CSP header, a server-side send, and a possible `api_secret` with the file and line of each. Read the files it names, and add what a static scan cannot see, such as a tag injected at run time or one set by a Tag Manager container.
 2. Load the live page and capture its `/g/collect` requests. Record the query's `tid` and `en`, and the response status.
 3. Read the property read-only: streams and their measurement IDs, enhanced measurement toggles, key events, custom dimensions and metrics, data retention, data filters, unwanted referrals, cross-domain settings.
 4. Compare all three: code that never fires, a tag whose measurement ID differs from the property's stream, a page view sent twice, a consent default that blocks collection, an event over a published limit, a filter that hides real traffic.
@@ -38,7 +38,7 @@ Read `accountSummaries.list` and then `dataStreams.list` to get them; never infe
 
 ### `install`
 
-1. Choose the method from the framework and the site's constraints: a tag manager container, the `gtag.js` snippet, a framework package, or a server-side call. State why the chosen method fits and what the rejected one would have cost.
+1. Choose the method from the framework and the site's constraints: the framework's official integration, the `gtag.js` snippet, or a server-side call. State why the chosen method fits and what the rejected one would have cost. When the page already loads a `GTM-` container, do not add a second tag and do not edit the container in this run: its tags, triggers, and variables are a separate change with its own approval, so name the exact tag the property needs and keep this run to the page code - consent default order, one page-view source, CSP entries, and any `dataLayer` push the container will read.
 2. Write the consent default before any tag call, on every page, ahead of every measurement command. Without a consent platform the default blocks storage until the user acts; state that explicitly.
 3. Pick exactly one page-view source. With a tag manager, do not also enable automatic history tracking. Without one, either keep `send_page_view` on and let history events drive it, or turn both off and send `page_view` yourself on route change. Never leave both on.
 4. Add the CSP entries the tag needs: `script-src-elem https://www.googletagmanager.com`, `connect-src` and `img-src` for `https://*.google-analytics.com`, and a nonce for inline container code.

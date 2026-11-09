@@ -1,6 +1,6 @@
 # Verification
 
-Read this reference when a run must prove collection or explain a gap. It owns the transport checks, the debug surfaces, the Measurement Protocol validation path, the diagnosis order, and the boundary of what a report can prove.
+Read this reference when a run must prove collection or explain a gap. It owns the transport checks, the debug surfaces, the Measurement Protocol validation path, and the boundary of what a report can prove, and it restates the diagnosis order that [rules/ga-workflow.md](../rules/ga-workflow.md) owns so the order is at hand inside a `verify` or `diagnose` step. If the two ever disagree, the rule file wins.
 
 > Korean version: [`verification.ko.md`](verification.ko.md)
 

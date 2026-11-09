@@ -40,6 +40,10 @@ The summary also records the mode, the `brief.md` path or `해당 없음`, detec
 
 `audit` may state that no changes were applied. `verify` must identify the change or finding set it checked. `design`, `restyle`, and `mockup` list the tokens and files they created or changed. Empty sections are invalid; use an explicit `없음` or `미검증` with a reason.
 
+### WCAG table
+
+A passing report whose render verification is `complete`, and any report carrying a WCAG heading, also carries the WCAG 2.2 table in `assets/report-template.md` (`## Processing summary` copy). The table has one row per listed success criterion (1.4.3, 1.4.11, 2.4.7, 2.4.11, 2.5.8, 2.1.1, 2.1.2, 1.4.10, 1.4.12, 2.5.7, 3.3.8, 3.2.6, 3.3.7); each row is `PASS`, `FAIL`, or `N/A` with a reason and the browser evidence used. A `PASS` without browser evidence is not a pass. The report validator enforces the table structurally. A report with final status `pass` whose render verification is `complete` must carry the full 13-row table, and so must any report carrying a WCAG heading. Each criterion must appear as a pipe-delimited table row with a verdict (`PASS`, `FAIL`, or `N/A`), a reason, and evidence. The row is parsed into cells: the criterion cell holds exactly one SC id (a token match, so `1.4.30` is not `1.4.3`), the verdict cell is exactly `PASS`, `FAIL`, or `N/A` (backticks allowed, case-insensitive), and the reason and evidence cells are both non-empty. A row holding more than one SC id is incomplete, never valid for either; a structurally broken row is rejected with `WCAG_ROW_INCOMPLETE` and a missing row with `WCAG_TABLE_MISSING`; a criterion that appears only in a list, without a table row, is rejected with `WCAG_TABLE_MISSING`. Reports that do neither (a passing `static_only` report with no WCAG heading) are unconstrained by the table, so the legacy valid fixture stays valid.
+
 ## Completion decision
 
 - `pass`: all applicable critical guards passed and no user decision remains.
@@ -50,6 +54,15 @@ A caveated result is valid only when limitations are explicit and no hidden crit
 
 ## Sources
 
-> Checked 2026-11-07. No external source was used in this file.
+> Checked 2026-11-09.
 
 The verification order, claim rules, and report sections are this package's own. The required Korean headings match the package's report template and its report validator.
+
+| Claim | Source |
+|---|---|
+| The WCAG 2.2 per-criterion table shape and the need for browser evidence per criterion | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored in this package's own words; the source repository has no license and no text or code was copied |
+| The 13 success criteria and their pass conditions | <https://www.w3.org/TR/2024/REC-WCAG22-20241212/> |
+
+### Evidence grade
+
+The per-criterion table is this package's contract; each criterion's pass/fail rule is WCAG 2.2 as cited. A `PASS` is only as strong as the browser evidence recorded for that row.

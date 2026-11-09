@@ -42,6 +42,7 @@ For every proposed instruction, record the supporting path and status:
 | Generated or forbidden files | Generator header, ignore file, docs | confirmed / ambiguous | Add a prohibition only when evidenced |
 | Architecture boundary | Imports, configs, local docs | confirmed / contested | Preserve conflict or omit unsupported claim |
 | Nested scope need | Different subtree commands/conventions | justified / unjustified | Create nested file only when justified |
+| Placement score | Repository-measured signals for the subtree | justified / unjustified / unmeasured | Judge the child file by the score in `rules/agents-md/nested-placement.md`; an unmeasured signal never counts as zero |
 | Same-scope rule-file split | Long or conditionally relevant detail after the admission test | justified / unjustified | Use adjacent `rules/*.md` only when direct conditional links preserve the core contract |
 | Target runtimes | Existing `AGENTS.md` surfaces, CI agent jobs, editor/tool config, user statement | confirmed / assumed | Claude Code reads `AGENTS.md` directly from v2.1.277 on; an existing `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md` is reported, never produced or adjusted |
 
@@ -92,6 +93,7 @@ Preserve restrictive safety and scope rules until their replacement is proven at
 - [ ] Representative source/test structure was inspected.
 - [ ] Each candidate rule has evidence, uncertainty, or an explicit omission.
 - [ ] Nested files have a demonstrated placement reason; any existing `CLAUDE.md`, `.claude/CLAUDE.md`, or `CLAUDE.local.md` that suppresses `AGENTS.md` is recorded for reporting and left unchanged.
+- [ ] Each nested placement decision carries its placement score, its `unmeasured` items, and its depth against the budget in `rules/agents-md/nested-placement.md`.
 - [ ] Any adjacent `rules/*.md` output has a demonstrated same-scope placement reason, a non-conflicting directory, and a direct read condition from the governing `AGENTS.md`.
 - [ ] Target runtimes are recorded as confirmed or assumed, and a Claude Code target is handled through native `AGENTS.md` reading rather than a produced Claude-specific file.
 

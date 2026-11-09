@@ -111,6 +111,16 @@ The default shape is N producers in parallel, then one node that depends on all 
 - The join declares its output shape: the file it writes, the table it returns, or the verdict it records. "Merge everything" is not a shape.
 - Mass harvests shard items into batch nodes sized by the report contract; each node collects a bounded batch and writes ONE bounded file report. The node count is `ceil(total_items / items_per_batch)`, and synthesis reads the per-batch reports, never raw node outputs. Past one run's cap, split into concurrent runs each with its own aggregator.
 
+## 9.1 Digest Reduction Over Batch Nodes
+
+Any reducer that joins more than one batch emits a digest file, and the final reducer reads digests only, never raw node output.
+
+- The digest file states its size bound: the package default is 5,000 tokens; a run MAY state a different bound in its `graph.json` justification, and the digest then obeys that stated bound.
+- Every claim in the digest cites the handoff path it came from. A digest claim without a handoff citation fails the self-check.
+- Cluster reducers write one digest per cluster; the final reducer consumes only those digests. A synthesis node that reads raw node output directly (or a batch node's full handoff) instead of the digests fails the self-check.
+
+Prefer `solutionSpace` on a node when the work has a list of approaches the worker may pick from but **MUST** stay inside: the node prompt lists it and an approach outside the list fails the self-check rather than passing silently. `resolvedModel` is an observation, not a plan: write it only from the observed result, never predicted from the tier.
+
 ## 10. Write Scopes and the Handoff Channel
 
 `dependsOn` orders; files carry the data.
@@ -169,12 +179,14 @@ Refuse to write `run.created` until every line passes:
 - [ ] A terminal verification or review node depends on every producer.
 - [ ] At most one `high` node, and every non-`low` tier has a reason.
 - [ ] Caps respected; otherwise the work is split under a new key.
+- [ ] No synthesis node consumes unbounded raw node output: every reducer over more than one batch emits a digest with a stated size bound and handoff citations, and the final reducer reads only digests.
+- [ ] Every node that declares `solutionSpace` lists it in the prompt, and the approach it reports using is checked against the list; every `resolvedModel` value came from an observed result.
 
 The same key with the same definition is a resume. A changed definition under an old key is a conflict and goes through `amend`. A different key is a different run, never a retry.
 
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -183,6 +195,7 @@ The same key with the same definition is a resume. A changed definition under an
 | The delegation prompt fields and the parent that integrates and verifies | `instructions/context-engineering/references/parallel-workflows.md` |
 | Evidence file or it did not happen, and the judge receiving the artifact and criteria rather than the worker's summary | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | The tier ladder and the 32-node, 8-concurrent, 2-retry, 3-amend bounds | family contract, 2026-11-03, and `instructions/loop-engineering/LOOP_ENGINEERING.md` |
+| Digest reduction after batch fan-out: one digest file per reducer over more than one batch, a stated token bound (default 5,000), handoff citations on every claim, and the final reducer reading digests only; node `solutionSpace` bounds and approach-outside-list self-check failure; `resolvedModel` recorded from observed results only | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored; the source repository has no license file and nothing was copied |
 
 ### Evidence grade
 

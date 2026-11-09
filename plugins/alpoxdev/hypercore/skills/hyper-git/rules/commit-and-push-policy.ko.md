@@ -80,6 +80,7 @@ Refs: #142
 | Explicit repos | 중복 discovery를 피하려면 `scripts/git-fast.sh inspect`의 repo list를 `scripts/git-fast.sh push`에 전달하는 것을 선호한다. |
 | Worktrees | named branch에 있으면 linked worktree는 유효한 push target이다. `.git/worktrees/...` 또는 common git dir가 아니라 checkout root path를 전달한다. |
 | Upstream | upstream이 없으면 `-u origin <branch>`로 push한다. |
+| Verify | Push마다 올린 sha를 remote에서 다시 읽어(`git fetch origin <target>` 뒤 `git branch -r --contains <sha>`) 브랜치와 sha를 보고한다. |
 | Safety | `main` 또는 `master`에는 절대 force push하지 않는다. detached HEAD에서는 절대 push하지 않는다. |
 | Failure | push가 실패하면 실패한 repo를 보고한다. Commit은 local에 남아 있으며 작업이 완료된 것처럼 말하지 않는다. |
 
@@ -90,8 +91,9 @@ Refs: #142
 3. Target마다 clean existing linked worktree를 사용하거나 임시 linked worktree를 만든다. Dirty source checkout을 switch하거나 무관한 worktree state를 건드리지 않는다.
 4. Commit 적용 전 target을 fetch하고 configured remote에서 fast-forward한다. Source branch 전체를 merge하거나 target history를 rewrite하지 않는다.
 5. 캡처한 commit을 순서대로 cherry-pick한다. 적용 mechanism은 cherry-pick이며, conflict resolution 결과 file에서는 source와 target의 의도적인 동작을 merge할 수 있다.
-6. Cherry-pick sequence와 관련 validation이 성공한 뒤에만 target을 push하고 다음 target으로 진행한다.
-7. 이번 run이 만든 temporary worktree만 clean 상태에서 제거한다. 사용자의 기존 worktree는 절대 제거하지 않는다.
+6. Cherry-pick sequence와 관련 validation이 성공한 뒤에만 target을 push한다.
+7. 다음 target으로 넘어가기 전에 캡처한 commit이 target의 remote에 닿았는지 확인한다. `git fetch origin <target>` 뒤 캡처한 sha마다 `git branch -r --contains <sha>`를 보거나, `git cherry origin/<target> <branch>`에 `+` 줄이 없는지 본다. remote에 없는 commit은 그 target이 이번 실행의 작업을 받지 못했다는 뜻이므로 그 target을 실패로 보고하고 이후 target을 멈추며 local commit은 그대로 둔다.
+8. 이번 run이 만든 temporary worktree만 clean 상태에서 제거한다. 사용자의 기존 worktree는 절대 제거하지 않는다.
 
 ## Conflict 해결과 escalation
 

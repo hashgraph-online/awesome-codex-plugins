@@ -47,6 +47,8 @@
 - 켜진 모든 컨트롤이 `cursor: pointer`를 보이고 네이티브 요소이며 접근 가능한 이름이 있고 서로 다른 hover, active, disabled 상태를 가진다(`references/accessible-interaction.md`).
 - 가로 넘침이 없고 잘린 것이 없으며 가장 좁은 폭에서 타깃이 최소 24×24 CSS px(터치 표면은 44 px)이고 서로 간격이 있다(`references/responsive-reflow.md`).
 - 모든 미디어 요소에 크기가 있고 히어로 이미지가 지연 로드가 아니며 렌더링을 막는 서드파티 스크립트가 없다.
+- 차트 기하(`rules/rendered-evidence.md`의 chart geometry checks)를 측정했거나, 렌더링 측정값이 없으면 `unverified`로 보고한다(`references/chart-artifact.md`).
+- `assets/report-template.md`(`## Processing summary`)의 WCAG 2.2 표: 나열된 모든 기준이 이유와 브라우저 증거를 갖춘 `PASS`, `FAIL`, `N/A` 중 하나다. 누락된 기준이나 증거 없는 `PASS`는 실패다
 
 ## 5. 블록 3: 목적과 사용량 (기법은 허용, 이유는 필수)
 
@@ -90,12 +92,13 @@
 
 ## Sources
 
-> 확인 2026-11-07.
+> 확인 2026-11-09.
 
 | 주장 | 출처 |
 |---|---|
 | 목적 시험, 생동감 기준, 완료의 세 부분 정의, 하드 게이트 / 목적 게이트 / 생동감 / 품질 블록, 사용량 상한, 모든 PASS의 증거, 클릭 확인 기록, 충돌 프로토콜, "게이트는 다른 워크플로로 대체되지 않는다" | <https://github.com/miqdadbadjuber/anti-slop> (commit `9504989`, `antislop/SKILL.md` Parts 1-3 and Delivery Gate; MIT, Copyright 2026 Miqdad Badjuber). 이 패키지용으로 다시 쓰고 자체 rule ID로 대응시켰다. 원본의 R-01부터 R-40 번호는 쓰지 않는다. |
 | 자기 산출물을 채점하는 만든 쪽은 중간값을 선호하므로 게이트는 판정 대신 증거를 요구한다 | `rules/independent-review.md` |
+| 블록 2의 기준별 WCAG 2.2 요구 | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09)에서 이 패키지의 자체 말로 재작성했다. 표 자체는 `assets/report-template.md`에 있다 |
 
 ### Evidence grade
 

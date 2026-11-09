@@ -60,6 +60,6 @@ in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/gate
 `%APPDATA%\nightshift\catalogs\gates` on Windows), or in a folder named by
 `catalogs.gates.paths`. `ns catalog-new --catalog gates --key <key>` starts one from the
 template in force, `catalogs.gates.template` names the owner's own template, and
-`ns catalog-index --catalog gates --check-draft FILE` names each section a draft lacks.
+`ns catalog-index --catalog gates --check-draft FILE` checks what Nightshift reads from a draft.
 [Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
 Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).

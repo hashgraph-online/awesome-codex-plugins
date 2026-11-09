@@ -1,5 +1,5 @@
 {
-  "name": "codex-context-guard-v016",
+  "name": "codex-context-guard",
   "interface": {
     "displayName": "Context Guard"
   },

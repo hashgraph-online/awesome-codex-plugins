@@ -115,6 +115,7 @@ Boundary requests:
 - Core (`SKILL.md`): trigger, output-shape routing, modes, contract, workflow, stop conditions.
 - Rules: [rules/ga-workflow.md](rules/ga-workflow.md) owns mode selection and per-mode phases; [rules/safety-gates.md](rules/safety-gates.md) owns approval tiers, property identification, PII, and credentials; [rules/validation.md](rules/validation.md) owns completion evidence and the repair bound.
 - References: [references/report-template.md](references/report-template.md) for the saved report, [references/install-methods.md](references/install-methods.md), [references/consent-and-privacy.md](references/consent-and-privacy.md), [references/site-config.md](references/site-config.md), [references/events-and-limits.md](references/events-and-limits.md), [references/verification.md](references/verification.md), [references/data-api-reporting.md](references/data-api-reporting.md), [references/admin-api-audit.md](references/admin-api-audit.md), [references/mcp-and-auth.md](references/mcp-and-auth.md), and [references/bigquery-export.md](references/bigquery-export.md).
+- Script: `scripts/ga-detect.sh <repo-root>` scans a repository and prints one JSON line per tag, `gtag`, dataLayer, consent, CSP, Measurement Protocol, and possible `api_secret` signal with its file and line, then a `summary` line; it reads source and config files only, writes nothing, and documents its kinds and exit codes in its header.
 - Assets: `assets/evals/hyper-google-analytics-cases.jsonl`, the trigger and behavior cases.
 
 </skill_architecture>
@@ -189,6 +190,7 @@ Phase rules:
 
 - Activating a data filter, lowering data retention, archiving a custom definition, deleting a key event or an `api_secret`, or changing Google signals or consent defaults on a live site without explicit approval in this run.
 - Creating a property, a stream, a custom dimension, or a key event the request did not name.
+- Adding or editing tags, triggers, variables, or consent settings inside a GTM container: a container change is its own record with its own approval, so name the tag the property needs and keep the edit to page code.
 - Putting personal data into event names, parameter values, URLs, or `user_id`.
 - Writing an `api_secret` into client code, a report, or a commit, or printing a credential value.
 - Calling a standard report, a successful `collect` upload, or an HTTP `2xx` from the Measurement Protocol a collection proof.

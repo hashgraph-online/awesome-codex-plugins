@@ -1,6 +1,6 @@
 # Claim Verification
 
-Use this rule file before any high-risk, numeric, or code-behavior claim enters the report. It owns the claim table, the claim gate, execution checks, number lineage, and conflict handling.
+Use this rule file before any high-risk, numeric, or code-behavior claim enters the report. It owns the claim table, the claim gate, execution checks, number lineage, conflict handling, and the debate record.
 
 ## 1. The Claim Table
 
@@ -27,10 +27,13 @@ A `high` claim clears the gate into the `## verified-claims` list only when all 
 - a primary source backs it: the standard, filing, dataset, official doc, or first-party repository, opened rather than quoted secondhand
 - one counter-search actively looked for a refutation and did not find a stronger one; the query is in the query log
 - the dates are explicit: when each source was published or updated, when it was accessed, and the date or version the claim is valid as of
+- the debate shows at least two attacks from different perspectives in `debate.md` (see §7)
 
-Primary-only exception: when only one authoritative primary source can exist (a specification's own text, a vendor's documentation of its own product, a company's own filing), one domain is enough if the row records why. The exception waives only the second domain. The counter-search and the dates are never waived; with no search channel, the counter-search is a direct read of a second page from the same publisher (a changelog, a release note, a newer version of the page), and the query log records which.
+Primary-only exception: when only one authoritative primary source can exist (a specification's own text, a vendor's documentation of its own product, a company's own filing), one domain is enough if the row records why. The exception waives only the second domain. The counter-search, the dates, and the debate are never waived; with no search channel, the counter-search is a direct read of a second page from the same publisher (a changelog, a release note, a newer version of the page), and the query log records which.
 
 A claim whose counter-search could not run at all is `partial`: the report may state it only as attributed ("S14 states that ..."), never as established fact, and the caveat names the missing counter-search.
+
+A high-risk claim with fewer than two debate attacks is `unverified`. It stays in `## Unresolved` like any other gated-out claim, and the debate rows show the shortfall.
 
 A claim that fails goes to the `Unresolved` annex (not enough evidence) or the `Refuted` annex (the counter-search won). The report never asserts an annex item; it may list it as unresolved. Abstaining is a correct outcome, not a gap to paper over.
 
@@ -74,9 +77,24 @@ Every number in the report carries one label:
 
 Never average a conflict away. Every unresolved conflict appears in the report's contradictions section.
 
+## 7. Debate Record
+
+Every high-risk claim attacked only once can pass after one weak objection, and a reader cannot audit the exchange. The counter-search passes the claim gate, but the claim also survives a recorded adversarial debate before it is reported as supported.
+
+The journal keeps the rows in `debate.md`, next to `claims.md` in the run journal directory. One row per attack:
+
+| claim id | attack | attacker perspective | defense | verdict (holds, weakened, withdrawn) | change to the claim |
+|---|---|---|---|---|---|
+
+The attacker perspective names the angle the attack argues from - evidence quality, source independence, method, scope, or an alternative explanation. Two attacks count only when their perspectives differ. The leader or the skeptic lane may author an attack, but a perspective is never repeated to pad the count. The verdict is `holds` (the claim survives unchanged), `weakened` (the claim narrows, is re-attributed, or moves to `## Unresolved`), or `withdrawn` (the claim leaves the report).
+
+A claim can be reported as supported only when its `debate.md` rows show at least two attacks from different perspectives. A claim with fewer attacks is `unverified` and stays out of `## Verified Claims`. The rows stay as the audit trail behind each verdict, and the report's `## Debate record` annex lists each high-risk claim with its verdict.
+
+Normal-risk claims keep the current skeptic-lane behavior: the skeptic attacks the leading conclusion once, no debate row is required, and the gate stays at one opened source.
+
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -84,7 +102,8 @@ Never average a conflict away. Every unresolved conflict appears in the report's
 | Conflict resolution by date, authority, scope, and methodology, and never averaging a conflict | `instructions/sourcing/reliable-search.md` |
 | A primary source is opened, not quoted secondhand; agent-gathered rows stay unverified until the parent opens the artifact | `instructions/sourcing/references/source-ledger.md` |
 | Retrieved code is never copy-run; execution happens with least privilege and no credentials | `instructions/sourcing/references/retrieval-safety.md` |
+| The two-attack debate for high-risk claims, the `debate.md` journal rows, and the `unverified` shortfall rule | `dbc-hbin/omp-ulw` at commit `74df40f` (2026-11-09); the source repository has no license, so the mechanism was re-authored in this package's own words and no text or code was copied |
 
 ### Evidence grade
 
-`LOCAL` - this file states this package's own gate. The risk-tier list and the primary-only exception wording are this package's choices.
+`LOCAL` - this file states this package's own gate. The risk-tier list, the primary-only exception wording, and the skeptic-lane behavior for normal-risk claims are this package's choices. The debate row shape, the two-attack minimum, and `debate.md` follow the source idea in this package's own words.

@@ -88,12 +88,15 @@ subagent를 쓸 수 있으면 아래 lane을 한 턴에 함께 돌리고, 도는
 - 외부 게시나 전송
 - 사용자가 계속 감당하는 교차 제품 선택: 공개 설정 표면, 패키징이나 배포, 고정한 외부 의존성, 데이터 형태, 대상 사용자나 규정 한도
 
-질문 형태:
+질문 형태, 답변 처리, 위임 범위는 `rules/stance-calibration.md`를 따릅니다.
 
 - 턴당 1~3개
 - 무엇을 탐색했고 왜 갈림길이 정리되지 않았으며 어떤 계획 결정이 답에 달렸는지 밝힘
 - 선택지 2~4개, 권장안을 맨 앞에
-- 건너뛴 질문은 권장안으로 정해지고 그 결정을 기록
+- 건너뛴 질문은 권장안으로 정해지고, 그 결정은 uninformed로 기록
+- 모든 답변은 다음 턴 전에 resolved, resolved이지만 uninformed, 진행이 있는 unresolved, 막힌 unresolved 중 하나로 분류
+- 위임 표현은 그 낱말이 가리키는 가장 좁은 범위만 정하고, 계획 범위 위임 뒤에는 되돌릴 수 없는 손실이나 사용자만 할 수 있는 단계에 대한 질문만 남김
+- 사용 중인 질문 형식은 출처와 함께 드래프트에 기록
 
 테스트 전략은 TDD, 테스트 후작성, 없음 중 하나로 항상 확인합니다. 어느 쪽이든 에이전트가 실행하는 QA는 포함합니다.
 
@@ -120,9 +123,13 @@ subagent를 쓸 수 있으면 아래 lane을 한 턴에 함께 돌리고, 도는
 slug: <slug>
 intent: clear | unclear
 review_required: true | false
+question_form: batch | one_by_one | examples_first
+question_form_source: declared | observed
 approval: auto | user | pending
 status: exploring | planning | reviewing | delivered | stopped
 plan_path: .hyper/plans/<slug>.md
+round_id: <id of the current review round>
+plan_sha256: <shasum -a 256 of the plan file at review time>
 ---
 ## Request
 ## Affected user and ideal state
@@ -143,7 +150,9 @@ plan_path: .hyper/plans/<slug>.md
 
 - open-assumptions 원장은 묻지 않고 채택한 모든 기본값을 담습니다. 무엇을 가정했고, 어떤 기본값을 골랐고, 왜 그런지, 되돌릴 수 있는지를 적습니다.
 - components 원장은 토폴로지 고정 결과를 컴포넌트별 한 행으로 담습니다.
+- `question_form`과 `question_form_source`는 이번 실행이 쓰는 질문 형식과, 사용자가 직접 말했는지(`declared`) 답변에서 읽었는지(`observed`)를 담습니다. 두 값은 `rules/stance-calibration.md` §4가 정합니다.
 - `review`는 라운드 수, 판정, 받아들인 블로커, 열린 노트를 담습니다.
+- `round_id`와 `plan_sha256`은 현재 라운드의 digest 바인딩을 담습니다. 계획 편집 뒤마다 `plan_sha256`을 갱신합니다. 편집은 승인된 라운드를 `pending`으로 되돌립니다.
 - 이후 턴에서는 드래프트를 먼저 읽고 그 필드에서 재개합니다. 기억으로 라우팅을 다시 하지 않습니다. 범위가 바뀌었으면 드래프트를 갱신하고 영향받는 단계만 다시 실행합니다.
 - slug는 소문자 ASCII 케밥 표기로 `^[a-z0-9]+(-[a-z0-9]+)*$`에 맞고 48자 이하여야 합니다. `..`, `/`, 절대 경로는 거부합니다.
 

@@ -38,8 +38,8 @@ Delete a section that does not apply. Never keep a heading without content, and 
 ## Meta
 
 - Status: draft | ready | revised
-- Platforms: web | ios | android | desktop (one or more)
-- Size: S | M | L
+- Platforms: web | ios | android | desktop (one or more) - <one-line reason for the decision>
+- Size: S | M | L - <one-line reason for the decision>
 - Questions: <asked>/<budget>
 - Sources read: <repository paths, documents, and pasted context read before the first question>
 - Updated: YYYY-MM-DD
@@ -191,8 +191,8 @@ Play Data safety view: <which rows map to which Data safety data types, and what
 ## Meta
 
 - Status: draft
-- Platforms: ios, android
-- Size: S
+- Platforms: ios, android - the support thread reports a phone timer, and the request names both stores
+- Size: S - one screen and one behavior change on a new single-purpose app
 - Questions: 1/1
 - Sources read: the support thread quoted in Problem and evidence; no repository documents (new product)
 - Updated: 2026-11-07
@@ -410,6 +410,7 @@ One matrix for the document, written only when the decided platforms include bot
 ## Rules
 
 - Copy the skeleton's section names exactly; they are the names a reviewer checks.
+- The meta block carries the platform decision and the size decision, each with its one-line reason on the same line, for example `Platforms: web, ios - the request names a browser product and an App Store release`.
 - Delete every placeholder you cannot fill with a fact, an assumption, or a marker. An empty section is a defect, not a template artifact.
 - A `[가정: …]` that changes scope appears again as an `A-###` entry; a `[확인 필요: …]` that blocks scope becomes a `Q-###` with `Blocking: yes`.
 - Every story gets one happy-path and one failure-or-edge scenario, so two stories produce four scenarios.

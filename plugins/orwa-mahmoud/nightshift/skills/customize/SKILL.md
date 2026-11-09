@@ -1,6 +1,6 @@
 ---
 name: customize
-description: Show every setting, template and catalog entry on one screen, and change what the owner names.
+description: Show every setting, template and catalog entry on one screen, and change only what the owner names.
 license: MIT
 metadata:
   internal: true
@@ -81,10 +81,10 @@ Write through the existing helpers, and nothing else:
   template is a file the owner keeps anywhere in the workspace; set its path in
   `catalogs.<catalog>.template`, `receipts.templatePath`, `handoff.templatePath` or
   `archive.templatePath`.
-- **Any other setting** — edit `$NS/rules.json` in the skill, changing only the keys the owner
-  named and keeping every other value byte for byte. Validate the result against
-  `nightshift-rules.schema.json` (`jq -e 'type == "object"'` on POSIX,
-  `ConvertFrom-Json` on native Windows) and report a broken file plainly; never half-apply it.
+- **Any other setting** — keep a copy of `$NS/rules.json`, then edit it in the skill, changing
+  only the keys the owner named and keeping every other value byte for byte.
 
-Show each change as it stands afterwards, from `ns shift-policy resolve --table`. Ask nothing
+Show each change as it stands afterwards, from `ns shift-policy resolve --table`. That command is
+also the check: exit 5 means the runtime cannot load the edited file, and its message says why.
+Put the copy back, tell the owner what failed, and never leave a half-applied file. Ask nothing
 twice: one round of changes, then the result.

@@ -65,6 +65,7 @@ Use this reference when writing `.hyper/google-analytics/<slug>/report.md`. Keep
 - Every call in `## Actions` ran in this session.
 - Redact tokens, `api_secret` values, and credentials, and say what was redacted. An `api_secret` shows at most its first 4 characters.
 - `## Collection Proof` states the standard report was not used as proof, or the result line says `delayed` when delay is the only finding.
+- Save each script or capture the report cites next to it: the `ga-detect.sh` output as `detect.jsonl`, and a captured request's URL, status, and timestamp. A finding whose evidence file is missing cannot be re-checked.
 
 ## Sources
 

@@ -52,18 +52,8 @@ When packing more than one entry:
 3. run finite entries first;
 4. if useful time remains, choose at most one open-ended entry to use it.
 
-One deadline governs the whole automatic shift, and automatic mode always requires hours.
-
-**auto.** When the owner says *auto* instead of hours, the deadline is, in this order:
-
-1. the suggested deadline from `ns shift-estimate --items <n>` for the composed items, when the
-   owner's receipts give an estimate;
-2. otherwise the sum of the selected entries' typical-hours hints, taking the upper end of each
-   range;
-3. otherwise, for finite work, no clock: it ends when its list is clear;
-4. otherwise, for open-ended work, 4 hours.
-
-State the chosen deadline and where it came from in one line, then start.
+One deadline governs the whole automatic shift, and automatic mode always requires hours from the
+owner.
 
 ## Launch
 

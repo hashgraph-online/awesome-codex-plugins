@@ -72,6 +72,17 @@ git worktree add -b hyper/<slug>/w<N> <repo-root>/.hyper/worktree/<slug>-w<N> <w
 | `--make-pr` | 웨이브 브랜치를 푸시하고, 그 웨이브의 기준을 대상으로 계획과 행, 근거 경로를 적은 PR을 열고, URL을 인계하고, 병합하지 않습니다 |
 | `--ship` | `--make-pr`의 모든 동작 뒤 CI와 리뷰를 감시하고, 워크트리 안에서 새 QA 근거와 함께 고치고, 다시 푸시하고, 초록이 되면 저장소 정책대로 병합합니다. 웨이브 `N`이 병합된 뒤에만 웨이브 `N+1`을 엽니다 |
 
+### 반영 정책
+
+`--land <merge|cherry-pick>`은 웨이브의 커밋이 `integration_base`에 닿는 방식을 고릅니다. 기본은 `merge`입니다.
+
+| 정책 | 쓰는 때 | 기록하는 것 |
+|---|---|---|
+| `merge`(기본) | 통합 기준이 유일한 대상이고 그 이력에 웨이브가 병합 하나로 보여야 함 | 병합 커밋 sha를 반영된 sha로 기록 |
+| `cherry-pick` | 같은 커밋이 다른 브랜치에도 가야 하거나 기준 이력을 선형으로 유지해야 함 | cherry-pick한 sha를 순서대로 반영된 sha들로 기록 |
+
+`cherry-pick`에서는 웨이브 브랜치 끝으로 조상 관계를 판정하지 않습니다. 적용된 커밋은 새 객체이므로 대신 반영된 sha마다 확인합니다.
+
 - 푸시와 PR 생성은 `--make-pr` 또는 `--ship`에서만 일어납니다. 플래그가 없으면 아무것도 기기 밖으로 나가지 않습니다.
 - `--make-pr`에서는 웨이브를 쌓습니다. 웨이브 `N+1`은 `hyper/<slug>/w<N>`에서 갈라지고 그 PR은 그 브랜치를 대상으로 열리며, 첫 PR만 통합 기준을 대상으로 합니다. 웨이브 `N`이 들어 있지 않은 통합 기준에서 웨이브 `N+1`을 갈라지게 하지 않고, 웨이브별 기준을 `wave_bases`에 기록합니다.
 - `--ship`에서는 웨이브 `N`의 PR이 병합되기 전에 웨이브 `N+1`을 열지 않으므로, 그 기준은 갱신된 통합 기준입니다. 아래 CI 상한이 기다리는 시간을 제한합니다.
@@ -88,7 +99,7 @@ git worktree add -b hyper/<slug>/w<N> <repo-root>/.hyper/worktree/<slug>-w<N> <w
 1. 웨이브의 근거를 `<main_root>/.hyper/execute/<slug>/evidence/`로 복사하고 복사본이 있는지 확인합니다.
 2. `git worktree remove <path>`를 `--force` 없이 실행합니다.
 3. 더러운 상태, 미추적 파일, 잠금 때문에 제거가 거부되면 멈추고 경로를 보고합니다. 워크트리는 그대로 둡니다. `--force`로 올리지 않습니다.
-4. 브랜치는 반영된 커밋이 그 웨이브의 기준에 있는 것을 확인한 뒤에만 삭제합니다. 로컬 웨이브면 통합 기준, 쌓은 웨이브면 부모 웨이브 브랜치입니다. `git merge-base --is-ancestor <landed-sha> <wave_base>`로 확인합니다. squash 병합이면 브랜치 끝이 조상이 아니므로, 대신 기준의 반영 커밋이나 PR의 병합 상태로 확인합니다. `git branch --merged`를 판정 기준으로 쓰지 않습니다.
+4. 브랜치는 반영된 커밋이 그 웨이브의 기준에 있는 것을 확인한 뒤에만 삭제합니다. 로컬 웨이브면 통합 기준, 쌓은 웨이브면 부모 웨이브 브랜치입니다. `merge` 정책에서는 `git merge-base --is-ancestor <landed-sha> <wave_base>`로 확인하고, `cherry-pick` 정책에서는 반영된 sha마다 `git merge-base --is-ancestor <landed-sha> <base>`로 확인합니다. cherry-pick 뒤에는 웨이브 브랜치 끝이 조상이 아니므로 그것으로 판정하지 않습니다. squash 병합이면 브랜치 끝이 조상이 아니므로, 대신 기준의 반영 커밋이나 PR의 병합 상태로 확인합니다. `git branch --merged`를 판정 기준으로 쓰지 않습니다.
 5. 원격 브랜치는 푸시되었고 그 PR이 병합된 경우에만 삭제합니다.
 6. `<repo-root>/.hyper/worktree/`가 비면 그 디렉터리만 제거하고 `.hyper/`의 나머지는 남깁니다.
 7. `cleanup` 원장 행에 제거한 경로와 브랜치, 남긴 항목과 그 사유를 적습니다.
@@ -107,6 +118,7 @@ git worktree add -b hyper/<slug>/w<N> <repo-root>/.hyper/worktree/<slug>-w<N> <w
 | 세 번의 CI 수리 라운드 뒤에도 CI 실패 | PR URL과 함께 멈추고, `ci: failing`을 기록하고, 완료 블록에 보고합니다 |
 | `git worktree remove` 거부 | 워크트리를 유지하고 멈춥니다. `--force`를 쓰지 않습니다 |
 | 반영된 커밋을 기준에서 찾을 수 없음 | 반영 미확인으로 보고, 워크트리를 유지하고 보고합니다 |
+| 레인 cherry-pick 충돌 | 그 레인을 멈추고, 웨이브 워크트리에서 풀고, 그 레인의 영향 게이트를 다시 돌리고, 추가 검증을 기록합니다 |
 
 ## Sources
 

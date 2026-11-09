@@ -80,6 +80,7 @@ If the natural draft is past tense, descriptive ("this commit ..."), or vague, r
 | Explicit repos | Prefer passing the repo list from `scripts/git-fast.sh inspect` into `scripts/git-fast.sh push` to avoid duplicate discovery. |
 | Worktrees | Linked worktrees are valid push targets when on a named branch; pass their checkout root paths, not `.git/worktrees/...` or the common git dir. |
 | Upstream | If no upstream exists, push with `-u origin <branch>`. |
+| Verify | After each push, read the pushed sha back from the remote (`git fetch origin <target>`, then `git branch -r --contains <sha>`) and report the branch with its shas. |
 | Safety | Never force push to `main` or `master`. Never push from detached HEAD. |
 | Failure | If push fails, report failed repos. Commits remain local; do not pretend the operation completed. |
 
@@ -90,8 +91,9 @@ If the natural draft is past tense, descriptive ("this commit ..."), or vague, r
 3. Use a clean existing linked worktree or create a temporary linked worktree per target. Do not switch a dirty source checkout or disturb unrelated worktree state.
 4. Fetch and fast-forward the target from its configured remote before applying commits. Do not merge the whole source branch or rewrite target history.
 5. Cherry-pick the captured commits in order. This is the application mechanism; conflict resolution may merge the intentional source and target behaviors in the resulting files.
-6. Push a target only after its cherry-pick sequence and relevant validation succeed. Then continue to the next target.
-7. Remove only temporary worktrees created by this run and only after they are clean. Never remove a user's pre-existing worktree.
+6. Push a target only after its cherry-pick sequence and relevant validation succeed.
+7. Confirm each captured commit reached the target's remote before moving on: `git fetch origin <target>`, then `git branch -r --contains <sha>` for every captured sha, or `git cherry origin/<target> <branch>` with no `+` lines. A commit the remote does not contain means that target did not receive the run's work; report that target as failed, stop the later targets, and keep the local commits.
+8. Remove only temporary worktrees created by this run and only after they are clean. Never remove a user's pre-existing worktree.
 
 ## Conflict Resolution And Escalation
 

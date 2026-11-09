@@ -54,7 +54,7 @@ Use `hyper-seo` when the main outcome is an SEO/AEO/GEO/LLMO audit, optimization
 
 Route neighboring work elsewhere:
 
-- Page or product UI design: use `designer` or the relevant frontend design skill.
+- Page or product UI design: a design deliverable, not a search-visibility audit.
 - Competitor or market research without site audit: route to the source-backed research workflow.
 - Release-gate checks whose only output is a go/no-go deployment verdict rather than a search-visibility audit: not this skill's output.
 - Pure performance engineering without search context: use the relevant performance or optimization workflow.
@@ -77,7 +77,7 @@ Positive examples:
 
 Negative examples:
 
-- "Design this landing page." -> use `designer`.
+- "Design this landing page." -> a page or product design deliverable, not this skill's output.
 - "Research competitor market positioning." -> route to the source-backed research workflow.
 - "Check the release checklist before deploying." -> a deployment gate verdict, not a search-visibility audit.
 
@@ -131,8 +131,7 @@ A request with no target site, page, or content set is not this trigger.
 
 <language_and_translation_default>
 
-- Canonical package files are English; every `*.ko.md` is a structurally aligned Korean translation of the same rules.
-- Deliverables follow `<output_language>`: Korean by default, with identifiers, commands, URLs, and quoted source text in their original form. `assets/report.template.ko.md` is the default report template.
+- Canonical package files are English and every `*.ko.md` is a structurally aligned Korean translation; deliverables follow `<output_language>`, with `assets/report.template.ko.md` as the default report template.
 
 </language_and_translation_default>
 
@@ -175,7 +174,6 @@ A request with no target site, page, or content set is not this trigger.
 | 8 | Summarize score, wins, confidence limits, risks, and next actions | Final report |
 
 </workflow>
-
 
 <complexity_routing>
 
@@ -295,3 +293,7 @@ Apply [rules/validation.md](rules/validation.md) before declaring an audit compl
 The artifacts that must remain are listed in `<artifact_contract>`.
 
 </validation>
+
+## Sources
+
+> Checked 2026-11-09. The mode set, the 100-point weights, and the optimize guards are this package's design (user instruction, 2026-08-20) and are restated in [rules/seo-workflow.md](rules/seo-workflow.md); every external fact the audit applies carries its own date in the reference that states it, and the package shape follows `instructions/skill/SKILL_AUTHORING.md`.

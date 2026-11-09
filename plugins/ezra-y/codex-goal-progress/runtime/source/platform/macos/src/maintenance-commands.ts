@@ -12,7 +12,7 @@ import type { PluginController } from "./plugin-controller.js";
 import {
   type CodexInstallIdentity,
   readInstalledManifest,
-  readVerifiedRelease,
+  readReleaseManifest,
   validateCodexIdentity,
 } from "./verified-release.js";
 
@@ -88,7 +88,7 @@ export function createMaintenanceCommands(dependencies: MaintenanceCommandDepend
     let releaseVersion = installed?.releaseVersion;
     if (!releaseVersion) {
       try {
-        releaseVersion = (await readVerifiedRelease(dependencies.releaseRoot)).releaseVersion;
+        releaseVersion = (await readReleaseManifest(dependencies.releaseRoot)).releaseVersion;
       } catch {
         releaseVersion = "uninstalled";
       }

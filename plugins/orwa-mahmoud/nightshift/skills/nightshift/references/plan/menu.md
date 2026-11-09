@@ -38,6 +38,13 @@ write the rules file or a shift policy, so it records the yes and names the sett
 Hunt writes it into tonight's policy. Evidence shows the work. check off leaves the tick alone,
 report names a missing file, and block keeps the stop open.
 
+When check is block, say which picked kinds carry an `evidence-check` block and which do not. The
+gate counts the files a block names; a kind without one holds only the files an item names in
+backticks, and `ns catalog-index --catalog evidence --check-draft <file>` says so for any kind.
+For each kind without one, offer once to add a block (files, min, type) to the owner's copy, and
+write it only after the owner says yes. The check proves the evidence is present, never that it is
+right.
+
 ## Edge-case pass
 
 Read `plan/edge-cases.md` and propose WHEN/THEN lines for the cases each item can meet.

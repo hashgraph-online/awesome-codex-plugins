@@ -61,7 +61,7 @@ mkdir -p "$(dirname "$exclude_file")"
 grep -qxF ".hyper/worktree/" "$exclude_file" 2>/dev/null || printf '\n.hyper/worktree/\n' >> "$exclude_file"
 ```
 
-Prefer local excludes over editing `.gitignore` unless the user asks to commit the convention.
+Prefer local excludes over editing `.gitignore` unless the user asks to commit the convention. When the repository's tracked `.gitignore` already lists `.hyper/` or `.hyper/worktree/`, that entry already satisfies the ignore check: do not add a second exclude line for the same path.
 
 ## 3. Create worktree
 

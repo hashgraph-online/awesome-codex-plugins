@@ -1,6 +1,6 @@
 # 검증
 
-실행이 수집을 증명해야 하거나 데이터가 빠진 이유를 설명해야 할 때 이 참조를 읽습니다. 전송 계층 점검, 디버그 화면, Measurement Protocol 검증 경로, 진단 순서, 리포트가 증명할 수 있는 것의 경계를 소유합니다.
+실행이 수집을 증명해야 하거나 데이터가 빠진 이유를 설명해야 할 때 이 참조를 읽습니다. 전송 계층 점검, 디버그 화면, Measurement Protocol 검증 경로, 리포트가 증명할 수 있는 것의 경계를 소유하고, [rules/ga-workflow.md](../rules/ga-workflow.md)가 소유한 진단 순서를 `verify`나 `diagnose` 단계에서 바로 볼 수 있게 다시 적습니다. 둘이 어긋나면 규칙 파일을 따릅니다.
 
 > 영어판: [`verification.md`](verification.md)
 

@@ -112,7 +112,7 @@ Boundary requests:
 - 코어 스킬: 스킬이 무엇을 하고, 언제 쓰며, 어떻게 실행하고, 언제 멈추는지에 대한 지속 지침.
 - Rules: 반복되는 정책, 판단 기준, 검증 체크리스트, 안티패턴.
 - References: 필요할 때만 읽는 상세 지식. 공식 문서나 공급자에 민감한 지침을 포함한다.
-- Scripts: `bash scripts/validate-hyper-skill.sh --root <skill-dir> --evals <cases.jsonl> --require-self-containment --json`가 메타데이터, 필수 섹션, 직접 링크, 한영 일치, 출처, 평가 행을 검사한다. bash 3.2+와 jq가 필요하고, JSON 결과를 출력하며, 오류가 남아 있으면 0이 아닌 코드로 끝난다.
+- Scripts: `bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root <skill-dir> --evals <cases.jsonl> --require-self-containment --json`가 메타데이터, 필수 섹션, 직접 링크, 한영 일치, 출처, 평가 행을 검사한다. bash 3.2+와 jq가 필요하고, JSON 결과를 출력하며, 오류가 남아 있으면 0이 아닌 코드로 끝난다.
 - Assets: 출력 자원과 평가 픽스처. 각각 사용법과 실패 경로를 밝힌다.
 
 rules, references, scripts, assets에 둘 내용을 코어 `SKILL.md`에 몰아넣지 않는다.
@@ -268,7 +268,7 @@ rules, references, scripts, assets에 둘 내용을 코어 `SKILL.md`에 몰아�
 - [ ] 평가 범위가 정상, 맥락 누락·도구 실패, 경계, 적대적 검색·위험한 동작, 알려진 회귀를 포함하고, 권장 분량은 위험도에 비례한다.
 - [ ] 영어·한국어 일치를 파일 존재만이 아니라 구조와 동등한 동작 케이스로 확인했다.
 - [ ] 외부 출처 메타데이터가 미래가 아닌 절대 날짜를 쓰고, 확인한 주장, 인용한 주장, 근거 없는 주장, 오래된 주장, 상충하는 주장을 구분한다.
-- [ ] `bash scripts/validate-hyper-skill.sh --root skills/<skill-name> --evals skills/<skill-name>/assets/evals/<skill-name>-cases.jsonl --require-self-containment --json`를 실행해 오류가 0건인지 확인했다. 읽는 평가 파일은 언제나 패키지 자신의 것이고 검증기 기본값이 아니다.
+- [ ] `bash skills/hyper-skill/scripts/validate-hyper-skill.sh --root skills/<skill-name> --evals skills/<skill-name>/assets/evals/<skill-name>-cases.jsonl --require-self-containment --json`를 저장소 루트에서 실행해 오류가 0건인지 확인했다. 읽는 평가 파일은 언제나 패키지 자신의 것이고 검증기 기본값이 아니다.
 - [ ] 그 실행의 자기완결 검사에서 다른 스킬 참조가 0건이었다. 사용자 지시 예외는 `--allow <형제 이름>`으로 넘기고 기록했다.
 - [ ] 패키지가 자기 폴더만으로 동작한다. 필요한 내용이 모두 자기 `rules/`, `references/`, `scripts/`, `assets/`에 있고, 저장소 지침 문서는 있을 때만 읽는다.
 - [ ] 정상 경로 검증과 함께 잘못된 입력 거부, 공급자 날짜, 불필요한 문서 없음 회귀 검사를 했다.

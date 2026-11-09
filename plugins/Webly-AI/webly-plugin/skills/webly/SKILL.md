@@ -500,8 +500,8 @@ Details are in llms.txt.
 narrower than the task, so tell them which access level covers it. `401` /
 `invalid_token`: call a Webly tool again to re-trigger sign-in; don't start a
 second attempt while one is waiting. Other people and agents may edit the
-same site at once, and people may edit text (on static sites too), styles,
-sections, new elements and images, and component props in the dashboard (History shows them as Editor). Prefer `str_replace` for small edits. Send `baseVersion`
+same site at once, and people may edit text, styles, layout,
+sections, new elements and images, pages and brand colours, and component props in the dashboard, on static sites too (History shows them as Editor), so re-read a file before editing it. On a static site the editor's classes compile into `/webly.css`, linked from each page that uses them: keep that file and its `<link>`. Prefer `str_replace` for small edits. Send `baseVersion`
 (the `version` your read returned) with `put_source_file` /
 `delete_source_file`: their edits to other lines are merged with yours;
 `409 merge_conflict` means you both changed the same lines — read the file
@@ -521,6 +521,13 @@ history (one commit per version). Its token lasts one minute, so run its
 `clone` (or `pull` inside the clone) straight away as
 `WEBLY_GIT_TOKEN=<token> <clone>`, never with the token in the URL. Check `headVersion` with `get_website`
 before asking again. Never `git push`; write through the tools.
+
+### Turn a static site into a React site (or back)
+
+Create a new site of the other kind and port the pages yourself: components,
+and React state for what scripts did (or plain HTML and small scripts the
+other way). Leave the original untouched until your person is happy with the
+new one.
 
 ### Duplicate or move a site
 

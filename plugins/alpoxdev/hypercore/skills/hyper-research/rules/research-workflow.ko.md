@@ -60,6 +60,10 @@ Expected truths는 이번 조사가 현실과 대조하는 기준입니다. 각 
 
 리포트를 `.hyper/research/[NN].slug.md`에 저장합니다. `NN`은 `.hyper/research/`의 다음 0을 채운 순번이고, `slug`는 주제를 짧게 요약한 ASCII 문자열입니다. 일지 디렉터리도 같은 `[NN].slug` 줄기를 씁니다. 브리프가 생기면 바로 절 제목을 넣어 리포트 파일을 만듭니다. 그래서 중단된 실행도 아무것도 없는 대신 부분 리포트를 디스크에 남깁니다.
 
+리포트 파일을 만들면 처음 다섯 줄 안에 `STATUS: draft`가 들어갑니다. 게이트가 하나라도 열려 있는 동안 이 줄은 남아 있고, 마지막 게이트가 돈 뒤에야 제거합니다. 이미 있는 리포트에서 `STATUS: draft`를 발견한 실행은 새 리포트 파일을 시작하지 않고 일지에서 이어갑니다.
+
+저널 브리프는 충실도 항목 옆에 납품 약속을 적습니다. 형식(`md`가 기본), 경로, 그리고 형식을 고른 주체(`answered_by`: `user`, `default`, `request`)입니다. 약속한 형식과 경로는 `rules/validation.ko.md`에서 저장한 리포트를 대조하는 기준이 됩니다.
+
 ## 8. 마감 브리핑
 
 최종 채팅 메시지는 다음 순서를 담습니다.
@@ -67,6 +71,7 @@ Expected truths는 이번 조사가 현실과 대조하는 기준입니다. 각 
 - 핵심 결론 한두세 문장
 - 저장한 리포트 경로, 일지가 있으면 일지 경로
 - 노력 한 줄: 검토한 출처와 인용한 출처, 서로 다른 도메인, 파동, 예외 조사, 실행 확인. 기억이 아니라 일지에서 읽어 씁니다.
+- 게이트를 돌린 뒤 `bash scripts/report-state.sh finish --state <journal>/report-state.json --report <report.md> --ledger <journal>/sources.md`가 저널 안에 `outcome.json`을 쓰고, `report-state.sh briefing --state <journal>/report-state.json`은 그 파일에서 센 출처·도메인·수리 횟수·게이트 결과와 남은 결함을 출력합니다. 노력 한 줄에는 기억한 숫자가 아니라 그 출력 숫자를 넣습니다.
 - 실행 상태(`converged` 또는 `exhausted`), 신뢰도가 제한적일 때는 주요 주의점이나 남은 공백
 
 ## Sources

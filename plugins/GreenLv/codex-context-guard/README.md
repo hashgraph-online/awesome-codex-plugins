@@ -12,27 +12,37 @@ Context Guard keeps important requirements from disappearing during a long Codex
 
 It works beside Codex Plan, Goal, memories, subagents, worktrees and the transcript. Ordinary edits, commits and pushes use Codex’s existing permissions.
 
+> **0.17.1 — 2026-11-09.** Upgrade to the stable marketplace entry and
+> optionally copy private task state from a different identity on the same
+> machine. The migration tool previews changes by default and preserves the
+> existing state when two sessions have the same ID but different contents.
+> Finish work that still needs the old runtime before changing your daily
+> installation. Read the [release notes](docs/releases/v0.17.1.md) and the
+> [upgrade guide](docs/UPGRADE_0_17_1.md).
+
+> **0.17.0 — 2026-11-06.** Planning-only requests no longer inherit a file-modification duty from history, advice or negation; the Desktop `aggregated_output` terminal result is accepted with identity and exit-code bindings intact; an unrelated oversized transcript row no longer disables later terminal evidence; and session retention cleanup returns under a new versioned contract — preview by default, policy-gated quarantine with restore, purge only after a grace period. Read the [release notes](docs/releases/v0.17.0.md), [upgrade boundaries](docs/SESSION_STORAGE.md) and [acceptance record](docs/LOCAL_ACCEPTANCE.md) before changing an installation. The marketplace identity switches from the experimental `codex-context-guard-v016` to the stable `codex-context-guard` in this line; see the [stable identity contract](tools/validation/STABLE_MARKETPLACE_IDENTITY.md).
+
 > **0.16.1 — 2026-11-03.** File names and paths containing acceptance words no longer create extra duties. This version also adds an explicit historical-coverage release gate, completes plugin listing metadata and keeps session retention cleanup disabled. Read the [release notes](docs/releases/v0.16.1.md), [upgrade boundaries](docs/SESSION_STORAGE.md) and [acceptance record](docs/LOCAL_ACCEPTANCE.md) before changing an installation.
 
 > **0.16.0 — 2026-11-01.** The previous version strengthened credential redaction and private-state permissions and moved installation to the official Codex marketplace. Its [release notes](docs/releases/v0.16.0.md) describe that upgrade.
 
 ## Install with Codex
 
-**0.16.1 — 2026-11-03.** Its experimental marketplace name
-is `codex-context-guard-v016`; it is separate from published 0.15.1. Coexistence
-with real old tasks, independent enable/disable and GUI startup require their separate native evidence.
+**0.17.1 — 2026-11-09.** Follow the commands below for a fresh install.
+If Context Guard is already installed, first identify the entry it uses and
+follow the matching upgrade route. The stable entry is
+`context-guard@codex-context-guard`. [Release ZIP](https://github.com/GreenLv/codex-context-guard/releases/tag/v0.17.1) ·
+[Upgrade guide](docs/UPGRADE_0_17_1.md)
 
-Download the named release artifact [context-guard-0.16.1.zip](https://github.com/GreenLv/codex-context-guard/releases/download/v0.16.1/context-guard-0.16.1.zip). For source validation, use the build below. Do not register
-a Git checkout or GitHub's automatic source ZIP as the marketplace: they carry
-repository-only files. Extract the release artifact into a stable directory you
-control and keep it there; that directory remains the official marketplace
-source for future reads and refreshes. Do not delete it after installation.
-
-Maintainers can build a source artifact at a new path outside the checkout (Python 3.10+). The installation steps below use the release ZIP linked above:
+Download the named ZIP from the GitHub Release assets into a new directory:
 
 ```shell
-python3 scripts/build_release_artifact.py --output ../context-guard-0.16.1.zip
+gh release download v0.17.1 --repo GreenLv/codex-context-guard --pattern context-guard-0.17.1.zip
 ```
+
+Extract the release ZIP into a stable directory you control and keep that
+directory: official marketplace refreshes still use it. Do not register a Git
+checkout or GitHub's automatically generated source ZIP as the marketplace.
 
 On Windows use `py -3` in place of `python3` in the Python commands below.
 Codex CLI with plugin support and a host that loads lifecycle Hooks are also
@@ -47,20 +57,26 @@ tasks depend on it, stop here until those tasks finish. If you cannot switch now
 keep the current setup, or arrange a separately configured HOME; this version
 does not establish automatic old-task continuation.
 
-If 0.16.0 is already installed under the same marketplace identity, this first-install procedure does not switch it. Finish work that depends on the existing runtime or use a separately configured HOME for new work. Preserve its versioned cache and review the new HOME's Hooks normally.
+If 0.16.x is already installed under the experimental marketplace identity,
+this procedure is an identity switch, not an in-place upgrade.
+Registering the stable `codex-context-guard` marketplace and installing from it
+are official operations on the new identity; they do not migrate private state
+and they may remove the old experimental cache. Finish work that depends on the
+existing runtime or use a separately configured HOME for new work. Preserve any
+versioned cache and review the new HOME's Hooks normally.
 
-Only when `context-guard@codex-context-guard-v016` is absent, register and install:
+Only when `context-guard@codex-context-guard` is absent, register and install:
 
 ```shell
 codex plugin marketplace add .
-codex plugin add context-guard@codex-context-guard-v016 --json
+codex plugin add context-guard@codex-context-guard --json
 codex plugin list --json
 ```
 
 Keep the first add response: its `installedPath` identifies the cache to inspect.
 `plugin list` reports identity, version, enabled/installed flags and marketplace
 source, but does not provide that path. Require exactly one matching record,
-version `0.16.1`, both flags true, and this stable extracted directory as source.
+version `0.17.1`, both flags true, and this stable extracted directory as source.
 Compare every release file by replacing the quoted example with the complete
 `installedPath` value, keeping the quotes for paths containing spaces:
 
@@ -78,14 +94,14 @@ all HOME paths, modes and file bytes at the end, not the absence of intermediate
 writes; synthetic old-cache objects additionally retain their identities.
 
 The project installer, transaction rollback, archive repair and automatic
-interpreter binding are removed. Codex owns installation. Preserve existing
-0.15.1 objects and daily configuration until the relevant native gates are
-complete. A new marketplace name alone does not prove preservation or old-task
-continuation. Before trusting the new Hooks, inspect the original
-`context-guard@codex-context-guard` entry again. If it remains enabled, first
+interpreter binding are removed. Codex owns installation. Preserve existing versioned caches and daily configuration throughout the
+upgrade. A new marketplace name alone does not prove preservation or old-task
+continuation. Before trusting the new Hooks, inspect the experimental
+`context-guard@codex-context-guard-v016` entry again. If it remains enabled, first
 finish every task that depends on it, then use the official Plugins UI to disable
-only that original identity while keeping `context-guard@codex-context-guard-v016`
-enabled. Do not remove the old plugin or delete its cache. Do not trust both
+only that experimental identity while keeping
+`context-guard@codex-context-guard` enabled. Do not remove the old plugin or
+delete its cache. Do not trust both
 Hook sets as an upgrade procedure. Desktop loading may require a client restart;
 then start a new Codex CLI task with the same `CODEX_HOME` and project and open
 `/hooks`. For each of the nine Context Guard events, compare its displayed
@@ -94,8 +110,8 @@ then review and trust it through the normal interface. Stop if an entry is
 missing, its source differs, or the interface does not show the source.
 The [Hook browser](https://learn.chatgpt.com/docs/hooks) lists definitions and
 trust; it does not prove that a Hook executed or that Desktop loaded it.
-Real macOS/Windows switching and old-task continuity still need independent
-native acceptance.
+Host-specific switching and old-task observations are recorded separately in
+[local acceptance](docs/LOCAL_ACCEPTANCE.md).
 
 ### Python and upgrades
 
@@ -112,7 +128,7 @@ actual GUI restart behavior on either platform.
 
 Finish old work under its original runtime before changing its selected plugin.
 An old cache alone does not pin old task Hooks. No session or trust data is
-migrated; separate-HOME and old-task continuity remain native acceptance gaps.
+migrated; separate-HOME and old-task results bind their exact host and artifact.
 See [upgrade boundaries](docs/SESSION_STORAGE.md) and [installation changes](docs/INSTALLER_REMOVAL.md).
 
 ## Try it
@@ -253,7 +269,7 @@ Read [Successor Pack Input](skills/context-guard/references/successor-pack.md) b
 
 Runtime data is stored under Codex-managed `PLUGIN_DATA`. Prompt bodies, task state, evidence summaries, and recovery files remain local runtime data and are not part of this repository.
 
-SessionEnd saves current state and, when active, recovery content. Session retention deletion is disabled: automatic sweeps do not run, and the `cleanup` command reports that it is unavailable with exit code 2 without deleting data. Existing v2 and legacy sessions remain on disk, so storage can grow; there is no automatic 30-day deletion or storage cap. This version provides no supported manual reclamation tool. Keep active tasks, session data, lifecycle locks and existing plugin caches intact. The remaining work and restoration conditions for cleanup are tracked in [Retention cleanup follow-up](docs/RETENTION_CLEANUP_FOLLOWUP.md).
+SessionEnd saves current state and, when active, recovery content. In 0.17.0, session retention maintenance returns under a new versioned contract while SessionEnd itself still runs no sweep: `cleanup --data-dir <root>` previews by default and never touches session data without an explicitly enabled retention policy plus an apply bound to an exact manifest. Eligible ended sessions (30 days by default) move to recoverable quarantine with a restore command; a restore moves an object back only after proving it complete, and permanent purge runs only after a further 7-day grace period and leaves expiring tombstones. Scheduled maintenance is opt-in and never touches a scheduler entry it does not own. Active, resumable, unfinished, busy-locked, partial, legacy, linked and out-of-scope objects are protected with a named reason. Cleanup also preserves objects whose creation identity cannot be verified; creation-time support is required for automatic cleanup. Keep active tasks, session data, lifecycle locks and existing plugin caches intact. The disabled-cleanup era and the restoration conditions are tracked in [Retention cleanup follow-up](docs/RETENTION_CLEANUP_FOLLOWUP.md).
 
  Redacted exports are created only when requested, never overwrite an existing file, and omit raw prompts, transcripts, credentials, authorization headers, URL query values, URL userinfo, and plugin-private paths; the documented redaction domain is listed in [Privacy](docs/PRIVACY.md). Direct CLI fallback state lives under the active `CODEX_HOME` when no plugin data directory is provided.
 
@@ -266,13 +282,17 @@ or refresh an old marketplace as part of installing this version.
 
 Removal deletes the selected plugin's cache. Do not remove it while any active
 task may depend on it. After those tasks finish, the commands below target only
-the new 0.16.0 identity. Preservation of real 0.15.1 cache objects remains
+the stable identity. Preservation of real 0.15.1 cache objects remains
 unverified:
 
 ```shell
-codex plugin remove context-guard@codex-context-guard-v016
-codex plugin marketplace remove codex-context-guard-v016
+codex plugin remove context-guard@codex-context-guard
+codex plugin marketplace remove codex-context-guard
 ```
+
+The experimental `codex-context-guard-v016` entry left by 0.16.x keeps its own
+cache and its own removal commands; do not remove it while any task or cache
+still depends on it.
 
 Private runtime data is separate; this procedure does not migrate or delete it.
 

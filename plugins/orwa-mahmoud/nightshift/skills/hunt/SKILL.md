@@ -1,6 +1,6 @@
 ---
 name: hunt
-description: Turn a request like "improve this project for 5 hours" into a shift from the ready catalog and start it, guided or automatic.
+description: Turn a request like "improve this project for 5 hours" into a shift from the ready catalog and start it, asking only for the hours when they are missing.
 license: MIT
 metadata:
   internal: true
@@ -29,22 +29,19 @@ Never send the owner away to run Setup.
 
 The owner's sentence is binding intent. There is no keyword list.
 
-An actionable objective with a time budget — hours, or the word *auto* — regardless of wording, is
-a complete prompt: compose it and run it. Examples of a complete prompt:
+An actionable objective with a number of hours, regardless of wording, is a complete prompt:
+compose it and run it. Examples of a complete prompt:
 *"enhance my project for 5 hours"*;
 *"use the next 20 hours adding features and enhancing existing ones"*;
-*"8 hours clear lint and test debt"*; *"make checkout less ugly, auto"*.
+*"8 hours clear lint and test debt"*.
 
 - Complete → Automatic. Do not offer catalog cards. Do not ask who selects, when to start, or "same
   as last time." It runs directly under the resolved `shift.execution` (`run-direct` unless the
   owner chose otherwise, or the sentence asks to see it first). Write the shift policy from the
   resolved tooling policy, no new elevation, and remembered verification, unless the sentence
   already granted a policy or allowance.
-- An objective with no time budget → ask exactly one question, *"How long? Give hours, or say
-  auto."*, then continue as a complete prompt.
-- **auto** → the deadline comes from `ns shift-estimate --items <n>` when the owner's receipts give
-  an estimate; otherwise from the selected entries' typical-hours hints; otherwise from the rule in
-  `execution-modes.md`. State the chosen deadline in one line and start; never ask again.
+- An objective with no hours → ask exactly one question, *"How many hours?"*, and offer nothing
+  else in it. The hours are the owner's; never choose them. Then continue as a complete prompt.
 - Any other incomplete prompt → Ask only a field that is still missing, then continue.
 - The owner asked to pick from the menu, or named Guided → section 1.
 

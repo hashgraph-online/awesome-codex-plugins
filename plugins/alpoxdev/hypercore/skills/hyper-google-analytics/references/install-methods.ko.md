@@ -16,7 +16,7 @@
 
 사이트에 맞는 첫 번째 방식을 고르고, 뒤 방식을 왜 버렸는지 밝힙니다.
 
-1. **이미 있는 GTM 컨테이너.** 페이지가 이미 `gtm.js`를 불러오면 측정을 그 컨테이너 안에서 처리하고 태그를 하나 더 붙이지 않습니다. Google 안내서는 이렇게 씁니다. "If you are installing a Google tag for the first time, we recommend using Google Tag Manager."
+1. **이미 있는 GTM 컨테이너.** 페이지가 이미 `gtm.js`를 불러오면 측정을 그 컨테이너 안에서 처리하고 태그를 하나 더 붙이지 않습니다. Google 안내서는 이렇게 씁니다. "If you are installing a Google tag for the first time, we recommend using Google Tag Manager." 그 태그를 이름으로 적는 데서 이 스킬의 컨테이너 작업은 끝납니다. 컨테이너 항목 생성과 수정은 자체 승인이 붙는 별도 변경이므로, 이번 실행은 컨테이너에 데이터를 넣는 페이지 코드를 맡고 컨테이너 태그는 넘길 항목으로 적습니다. 동의 기본값 순서, 페이지뷰 출처 하나, CSP 항목, `dataLayer` 푸시입니다.
 2. **프레임워크 공식 통합.** 프레임워크가 지원 컴포넌트나 모듈을 내면 손으로 쓴 스니펫 대신 그것을 씁니다. `@next/third-parties/google`, `@nuxt/scripts`, WordPress의 Site Kit, Shopify의 Google & YouTube 채널이 해당합니다.
 3. **평범한 Google 태그 스니펫.** 위 어느 것도 없으면 `gtag.js`로 내려갑니다. 스니펫은 "여는 `<head>` 태그 바로 뒤"에 두고, 이벤트 호출은 스니펫 아래에 둡니다. Google은 스니펫 위에 놓인 이벤트의 데이터를 처리하지 않습니다.
 

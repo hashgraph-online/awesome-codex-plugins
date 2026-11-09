@@ -62,6 +62,7 @@ Use this reference before writing `.hyper/issues/<slug>/batch.md`. It owns the m
 - `## 그래프` records edges with their origin: declared, overlap-derived, or ordering-only.
 - `## 공백과 차단` is never empty unless every issue had a parseable block, no split was needed, and no named number was excluded; write `none` explicitly.
 - The handoff line's counts are read off the tables, never estimated.
+- `대상 브랜치` records only the branch the user named for delivery. With no named branch it reads `미정 (사용자 지정 없음)`; the batch never invents a base branch, because the plan stage picks its own integration base and the user's delivery words decide the push.
 
 ## Worked Example Lane Split
 

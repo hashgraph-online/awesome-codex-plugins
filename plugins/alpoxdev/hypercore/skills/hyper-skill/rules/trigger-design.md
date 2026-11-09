@@ -199,7 +199,7 @@ Examples:
 | The Claude Code 1% listing budget, the 1,536-character per-entry cut, least-invoked-first dropping, and `disable-model-invocation` | <https://code.claude.com/docs/en/skills> |
 | Coexistence as an evaluation dimension, the trigger-stealing failure, and the 20-skills-per-request API limit | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise> |
 | The `stochastic-model` measurement contract for a measured rate | `instructions/autoresearch/references/config-and-metrics.md` §2 |
-| Repository measurement, 2026-11-03: 40 skills whose `description` fields total 15,869 characters (over the 8,000-character fallback); `refactor` appears in 7 descriptions and `create` in 14 | this repository |
+| Repository measurement, 2026-11-09: 26 skills whose `description` fields total 15,932 characters (over the 8,000-character fallback); `refactor` appears in 4 descriptions and `create` in 3 | this repository |
 
 ### Evidence grade
 

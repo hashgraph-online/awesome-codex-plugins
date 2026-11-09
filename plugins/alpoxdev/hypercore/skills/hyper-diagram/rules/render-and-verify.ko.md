@@ -6,11 +6,11 @@
 
 ```bash
 bash <skill-dir>/scripts/render-diagram.sh --spec <out-dir>/<slug>.diagram.json --out-dir <out-dir> \
-  [--formats html,jpg[,pdf]] [--theme light|dark] [--scale 1-4] [--name <slug>]
+  [--formats html,jpg[,pdf]] [--theme light|dark] [--scale 1-4] [--name <slug>] [--budget-ms <ms>]
 ```
 
 - `<skill-dir>`는 이 스킬 폴더이며, 절대 경로나 작업 디렉터리 기준 경로로 씁니다.
-- 기본값: `--formats html,jpg`, `--scale 2`, 테마는 spec을 따릅니다(없으면 `light`).
+- 기본값: `--formats html,jpg`, `--scale 2`, 테마는 spec을 따릅니다(없으면 `light`), 굽기 단계의 `--budget-ms`는 `30000`입니다.
 - `--browser <path>`나 `HYPER_DIAGRAM_BROWSER`로 브라우저를 고르고, `--list-browsers`로 찾은 목록을 봅니다.
 - 그래프 타입(`architecture`, `flowchart`, `dataflow`, `state`, `class`, `erd`)은 elkjs가 필요합니다. 스크립트가 한 번 내려받아 SHA-256을 확인하고, 오프라인 기기에서는 `HYPER_DIAGRAM_ELK`로 이미 확인한 사본을 가리킵니다.
 
@@ -20,8 +20,8 @@ bash <skill-dir>/scripts/render-diagram.sh --spec <out-dir>/<slug>.diagram.json 
 |---|---|---|
 | 0 | `status: pass`, 산출물 생성 | JPG 확인(§4) |
 | 1 | `status: fail`, 파일은 확인용일 뿐 | 수정(§3) |
-| 2 | 사용법·spec 오류(`SPEC_INVALID`, `BAD_FORMAT` 등) | 명령이나 JSON 수정 |
-| 3 | 막힘(`BROWSER_MISSING`, `ELK_UNAVAILABLE`, `RUNTIME_NO_RESULT`) | 막힌 이유와 해결 방법 보고, spec 보존 |
+| 2 | 사용법·spec 오류(`SPEC_INVALID`, `BAD_FORMAT`, `SPEC_MISSING`, `BAD_SCALE`, `BAD_THEME`, `BAD_BUDGET`, `BAD_NAME` 등) | 명령이나 JSON 수정 |
+| 3 | 막힘(`BROWSER_MISSING`, `ELK_UNAVAILABLE`, `BAKE_FAILED`, `RUNTIME_NO_RESULT`, `CANVAS_EMPTY`) | 막힌 이유와 해결 방법 보고, spec 보존 |
 
 표준 출력의 보고에는 `status`, `type`, `canvas`, `counts`, `outputs`, `pdfPages`, `errors`, `warnings`가 들어 있습니다.
 
@@ -37,6 +37,7 @@ bash <skill-dir>/scripts/render-diagram.sh --spec <out-dir>/<slug>.diagram.json 
 | `EDGE_CROSSES_NODE` | 경로가 상자를 지남 | 노드 순서, `direction`, 그룹을 바꿉니다 |
 | `PDF_MULTIPAGE`, `JPG_FAILED`, `PDF_FAILED`, `SCRIPT_LEFT` | 내보내기 오류 | 다시 실행하고, 반복되면 보고합니다 |
 | 경고 `EDGE_CROSSINGS` | 간선이 교차함 | spec의 노드 순서를 바꿉니다. ELK는 입력 순서를 지킵니다 |
+| 경고 `SMALL_TEXT` | 글자가 9.5px보다 작게 렌더됨 | 라벨을 줄이거나 `spacing`을 키우거나 다이어그램을 나눕니다 |
 | 경고 `DENSE_DIAGRAM`, `WIDE_DIAGRAM` | 너무 큼 | 나누거나(`rules/diagram-selection.md` §2) `direction`을 정합니다 |
 
 - 첫 렌더링 뒤 수정은 최대 3회입니다. 오류를 늘린 수정은 되돌립니다.

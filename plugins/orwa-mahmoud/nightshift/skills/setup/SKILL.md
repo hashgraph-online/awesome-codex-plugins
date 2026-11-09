@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Scaffold .nightshift/ in at most four questions, with every default on one screen.
+description: Scaffold .nightshift/ and propose quality gates for this stack in at most four questions, with every default on one screen; asks, never imposes.
 license: MIT
 metadata:
   internal: true

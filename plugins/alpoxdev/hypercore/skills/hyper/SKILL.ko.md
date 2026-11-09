@@ -1,6 +1,6 @@
 ---
 name: hyper
-description: "[Hyper] 사용자가 기능 추가, 버그 수정, 리팩토링, 마이그레이션, 기술 선택, 검색 노출 개선, 데이터베이스 작업, MCP 작업, decision API 작업, 화면 디자인이나 리디자인, 사용자·고객사·기획자의 변경 요청, 이미지 생성이나 편집, 배포나 배포 실패 수정, 스킬 폴더, 문서, 재사용 프롬프트 같은 개발 작업을 hyper 단계 스킬 하나를 지정하지 않고 처음부터 끝까지 맡기거나 hyper를 이름으로 부를 때 사용합니다. 리서치, 이슈 기록, SEO, GA4 분석, 아키텍처, 데이터베이스, MCP, decision API, UI/UX, 변경 요청 반영, 이미지 생성, 계획, 실행, 의존 그래프 병렬 실행, 스킬, 문서, 배포, Git 전달 단계 스킬 중 가장 짧은 체인을 골라 순서대로 실행하고 각 단계가 저장한 산출물을 다음 단계에 넘깁니다. 사용자가 hyper 스킬 하나를 직접 지정했거나, 계획이 필요 없는 한 곳 수정, 커밋만 하는 요청, PRD 패키지, 일반 질문에는 쓰지 않습니다."
+description: "[Hyper] 사용자가 기능 추가, 버그 수정, 리팩토링, 마이그레이션, 기술 선택, 검색 노출 개선, GA4나 GTM 추적 작업, 데이터베이스 작업, MCP 작업, decision API 작업, 화면 디자인이나 리디자인, 프런트엔드 구현·수정·브라우저 확인, 사용자·고객사·기획자의 변경 요청, 런타임 실패 원인 찾기, 데이터셋 질문, 여러 목표 루프, 이미지 생성이나 편집, 배포나 배포 실패 수정, 스킬 폴더, 문서, 재사용 프롬프트 같은 개발 작업을 hyper 단계 스킬 하나를 지정하지 않고 처음부터 끝까지 맡기거나 hyper를 이름으로 부를 때 사용합니다. 리서치, 이슈 기록, SEO, GA4, GTM, 아키텍처, 데이터베이스, MCP, decision API, UI/UX, 프런트엔드, 변경 요청 반영, 디버그, 데이터 분석, 이미지 생성, 계획, 실행, 의존 그래프 병렬 실행, 다중 목표 루프, 스킬, 문서, 배포, Git 전달 단계 스킬 중 가장 짧은 체인을 골라 순서대로 실행하고 각 단계가 저장한 산출물을 다음 단계에 넘깁니다. 사용자가 hyper 스킬 하나를 직접 지정했거나, 계획이 필요 없는 한 곳 수정, 커밋만 하는 요청, PRD 패키지, 다이어그램, 일반 질문에는 쓰지 않습니다."
 compatibility: 설치된 다른 스킬을 이름으로 불러오는 기능, 대상 저장소의 파일 읽기와 검색, `.hyper/workflows/` 쓰기 권한이 필요합니다. 불러온 각 단계는 자기 요구 사항(git worktree, 하위 에이전트, 실시간 웹)을 따로 가집니다. 스킬을 불러올 수 없으면 단계를 실행하지 않고 고른 체인과 설치 명령을 보고합니다.
 ---
 
@@ -34,7 +34,7 @@ compatibility: 설치된 다른 스킬을 이름으로 불러오는 기능, 대�
 
 요청한 결과물이 아래 단계 스킬 하나 이상을 차례로 거쳐야 끝나는 개발 결과이거나, 사용자가 `hyper`를 이름으로 부르면 이 스킬을 씁니다.
 
-사용자 지시에 따라 이 패키지는 오케스트레이터입니다. 아래 단계 표, `rules/workflow-routing.md`, `rules/stage-handoff.md`, Sources 행, 평가 라우트에서만 열여덟 단계 스킬과 동반 스킬 하나의 이름을 씁니다. 이 패키지가 가진 스킬 간 연결은 이것뿐입니다.
+사용자 지시에 따라 이 패키지는 오케스트레이터입니다. 아래 단계 표, `rules/workflow-routing.md`, `rules/stage-handoff.md`, Sources 행, 평가 라우트에서만 스물세 단계 스킬과 동반 스킬 하나의 이름을 씁니다. 이 패키지가 가진 스킬 간 연결은 이것뿐입니다.
 
 | Stage skill | What the stage produces |
 |---|---|
@@ -42,16 +42,21 @@ compatibility: 설치된 다른 스킬을 이름으로 불러오는 기능, 대�
 | `hyper-issue` | `hyper:` 블록을 담아 트래커에 영어로 등록한 이슈, 그리고 계획 단계가 병렬 레인으로 돌리는 `.hyper/issues/<slug>/` 아래 레인 묶음 배치 명세 |
 | `hyper-seo` | `.hyper/seo/<slug>/` 아래의 검색 노출 감사, 보고서, 횟수 제한이 있는 최적화 루프 |
 | `hyper-google-analytics` | GA4 감사, 설치, 속성 변경, 분석 보고서, 진단한 수정. `.hyper/google-analytics/<slug>/report.md`에 보고서를 남깁니다 |
+| `hyper-google-tagmanager` | Google Tag Manager 감사, 설치, 작업공간 초안이나 승인 뒤 게시한 컨테이너 변경, 태그 발화 검증, 진단한 수정, 컨테이너 분석. `.hyper/gtm/<slug>/report.md`에 보고서를 남깁니다 |
 | `hyper-architecture` | 스택에 맞춘 아키텍처, 셋업(린트·포맷·타입 도구), 성능 점검 결과, 마지막 단계일 때는 그 수정 |
 | `hyper-database` | `.hyper/database/<slug>/`에 저장한 데이터베이스 점검 결과(스키마·마이그레이션 리뷰, 설계 브리프, 엔진 선택). 마지막 단계일 때는 근거 게이트로 검증한 스키마 설계, 무중단 마이그레이션, 쿼리·인덱스 튜닝, 운영 변경 |
 | `hyper-mcp` | `.hyper/mcp/<slug>/`에 저장한 MCP 점검 결과. 마지막 단계일 때는 MCP Inspector로 검증한 MCP 서버, 클라이언트, 호스트 설정의 구축, 수정, 이전, 연결 |
 | `hyper-decision` | `.hyper/decision/<topic>/`에 오프라인 요청 검사기 결과와 함께 저장한 decision API 산출물(적합성 판정과 결정 계약, 타입 질문, 호출 코드, 요청 템플릿, 평가 계획, 라벨만 돌려주는 LLM 호출의 읽기 전용 감사, 경로 설정). 계획 앞에서는 계획이 읽을 결정 계약이나 감사 표 |
 | `hyper-design` | 정석 수치 기준과 독립 검토로 확인한 화면 디자인, 리디자인, 연출 화면. 계획 앞에서는 `.hyper/design/<slug>/`에 저장한 디자인 브리프나 화면 점검 결과 |
+| `hyper-frontend` | 코드로 만들거나 고치거나 레퍼런스에 맞추거나 실제 브라우저에서 점검한 프런트엔드. 보고서는 `.hyper/frontend/<slug>/report.md`에 남깁니다. 계획 앞에서는 무엇이 깨지는지 담은 `verify` 모드 보고서 |
 | `hyper-feedback` | 사용자, 고객사, 기획자가 제품 언어로 보낸 변경 요청을 항목으로 나누고 영향 위치를 모두 찾아 바로 반영·검증한 결과. 보고서는 `.hyper/feedback/<slug>/`에 저장하고, 직접 수정 예산을 넘는 항목은 `brief.md`로 남깁니다 |
+| `hyper-debug` | 실행 실패(스택 트레이스, 실패하거나 가끔 실패하는 테스트, 크래시, 잘못된 출력)를 재현하고 토글로 증명한 원인을 `.hyper/debug/<slug>.md`에 남긴 결과. 사용자가 수정을 요청하면 빨강에서 초록으로 바뀌는 최소 수정까지, 수정이 여러 파일에 걸치면 계획 단계에 넘길 수정 브리프를 남깁니다 |
+| `hyper-data` | 데이터셋(CSV, Parquet, JSON, 내보내기 파일)을 계산해 얻은 답. `.hyper/data/<slug>/report.md`에 답을 먼저 쓰고 쿼리, 집계 단위, 필터, null·중복 처리, 행 수, 소요 시간, 입력 digest를 남깁니다 |
 | `hyper-imagegen` | 새로 만들거나 편집한 이미지 한 장, 또는 바로 쓸 수 있는 이미지 프롬프트 하나. 런타임이 돌려준 이미지로 전달하거나 `.hyper/imagegen/<topic>/`에 저장하며 종료 상태와 검사 기록을 함께 남깁니다 |
 | `hyper-plan` | `.hyper/plans/<slug>.md`의 결정이 끝난 계획. 스스로 실행 단계로 이어집니다 |
 | `hyper-execute` | 기존 계획을 웨이브별로 실행하고 로컬, PR, ship 중 하나로 전달 |
 | `hyper-mass` | 의존 순서가 있는 작업 한 단계를 `.hyper/mass/<run-key>/` 그래프로 실행 |
+| `hyper-loop` | 서로 의존하는 여러 목표를 `.hyper/loop/<slug>/`에서 끝까지 실행한 결과. 기준마다 작업 트리 지문에 묶인 증거로 증명하고, 모든 기준이 오래되지 않은 증거로 덮인 `final-gate.json`으로만 끝냅니다 |
 | `hyper-skill` | `skills/<name>/` 아래에 새로 만들거나 리팩터링한 스킬 폴더와 그 검증기 실행 결과 |
 | `hyper-documentation` | 요청한 경로에 새로 만들거나 리팩터링한 README, `AGENTS.md`, AI가 읽기 좋은 문서, 지침 베이스, 런북, 규칙 묶음, 재사용 프롬프트, 프롬프트 템플릿, 프롬프트 팩, 프롬프트 평가 픽스처와 고른 모드의 검증 handoff |
 | `hyper-git` | 전달하지 않는 꼬리 단계 뒤의 전달 단계로서, 이번 실행의 커밋을 지정 브랜치에 푸시해 옮겨 싣거나 작업 브랜치를 그 브랜치들에 병합해 푸시하며, 각각을 원격에서 확인한 상태 |
@@ -64,7 +69,7 @@ compatibility: 설치된 다른 스킬을 이름으로 불러오는 기능, 대�
 - 사용자가 단계 스킬 하나를 직접 지정한 경우. 그 스킬이 혼자 처리합니다
 - 오타, 문구 변경, 설정 값 하나처럼 계획이 필요 없는 한 곳 수정
 - 이미 있는 변경의 커밋, 푸시, 병합, PR만 원하는 경우
-- PRD, 스펙, 와이어프레임 패키지, 질문에 대한 답
+- PRD, 스펙, 와이어프레임 패키지, 구조를 그린 다이어그램, 질문에 대한 답
 
 </routing_rule>
 
@@ -95,6 +100,9 @@ Positive requests:
 - "hyper로 우리 사이트 SEO 점검하고 고칠 거 다 고쳐줘." -> `hyper-seo` -> `hyper-plan` -> `hyper-execute`
 - "사이트에 GA4 달아줘" -> `hyper-google-analytics`
 - "SEO 점검하고 GA4 측정까지 세팅해줘" -> `hyper-seo` -> `hyper-google-analytics`
+- "이 Next.js 사이트에 GTM 달고 구매 이벤트까지 태그로 보내줘. 컨테이너는 GTM-ABC1234." -> `hyper-google-tagmanager`
+- "이 CSV에서 지역별 월 매출 집계해줘." -> `hyper-data`
+- "이 목표 세 개 다 끝날 때까지 돌리고 dev에 머지·푸시해줘. 목표마다 테스트 통과가 기준이야." -> `hyper-loop` -> `hyper-git` (`&& dev`)
 - "상태관리 라이브러리 뭐 쓸지 비교해보고 골라서 적용까지 해줘." -> `hyper-research` -> `hyper-plan` -> `hyper-execute`
 - "2026년 국내 SaaS 가격 동향 인터넷 검색으로 조사해서 리포트로 줘." -> `hyper-research`, 막힌 출처에는 동반 스킬 `hyper-browsing`
 - "사내 배포 체크리스트를 스킬로 만들어줘. 최신 Agent Skills 규격 확인해서." -> `hyper-research` -> `hyper-skill`
@@ -110,6 +118,8 @@ Positive requests:
 - "Find every LLM call that only returns a label, move them to a decision API, and open a PR." -> `hyper-decision`(감사) -> `hyper-plan` -> `hyper-execute`와 `--make-pr`
 - "새 요금제 페이지 디자인해서 만들어줘. AI가 만든 티 안 나게." -> `hyper-design`
 - "Redesign the dashboard so it stops looking generic, and open a PR." -> `hyper-design`(점검) -> `hyper-plan` -> `hyper-execute`와 `--make-pr`
+- "설정 화면 테이블이 길어지면 푸터가 밀려나. 본문만 스크롤되게 고쳐줘." -> `hyper-frontend`
+- "Build the checkout form from this screenshot exactly and check it in a browser, then open a PR." -> `hyper-frontend`(verify) -> `hyper-plan` -> `hyper-execute`와 `--make-pr`
 - "hyper로 블로그 히어로 이미지 하나 만들어줘. 최신 이미지 프롬프트 가이드 참고해서." -> `hyper-research` -> `hyper-imagegen`
 - "hyper: replace only the background of my product photo with a dawn market." -> `hyper-imagegen`
 - "주문 서비스 DB 스키마 설계하고 마이그레이션까지 만들어줘. Postgres야." -> `hyper-database`
@@ -119,6 +129,7 @@ Positive requests:
 - "이 저장소 Railway에 처음 배포 세팅하고 staging에 올려줘." -> `hyper-deploy`(구성한 뒤 배포)
 - "고객사 피드백 메일이야. 뭘 고쳐야 하는지 다 찾아서 반영하고 dev, main에 머지·푸시해줘." -> `hyper-feedback` -> `hyper-git` (`&& dev && main`)
 - "기획자 수정 요청: 정산 내역에 환불 건도 보이게, 화면 제목은 '정산 내역'으로. 끝까지 해줘." -> `hyper-feedback` -> `hyper-plan` -> `hyper-execute`. 계획 단계는 변경 요청 단계가 `handoff`로 끝났을 때만 실행합니다
+- "이 테스트 가끔 실패하는데 왜 그런지 찾아서 고쳐줘. (`pnpm test src/orders` 10번 중 3번 실패)" -> `hyper-debug`. 계획 단계는 디버그 단계가 `handoff`로 끝났을 때만 덧붙입니다
 
 Negative requests:
 
@@ -127,6 +138,7 @@ Negative requests:
 - "방금 바꾼 거 커밋하고 푸시해줘." (앞 단계 없이 Git 전달만 함)
 - "신규 서비스 PRD랑 와이어프레임 만들어줘."
 - "이 사진 구도 분석해줘." (만들 이미지가 아니라 이미지 분석)
+- "이 결제 흐름 시퀀스 다이어그램으로 그려줘." (개발 작업이 아니라 구조를 그린 다이어그램)
 
 Boundary requests:
 
@@ -138,6 +150,8 @@ Boundary requests:
 - "랜딩 페이지 디자인하고 히어로 이미지도 넣어줘." 결과물이 인터페이스이므로 `hyper-design`이 맡습니다. `hyper-imagegen`은 이미지 한 장이나 이미지 프롬프트 하나가 결과물 전부일 때만 실행합니다.
 - "배포 런북 정리해줘." 배포에 관한 문서이므로 `hyper-documentation`이 맡습니다. `hyper-deploy`는 실제로 실행하는 배포를 다루며, 배포를 설명하는 글은 다루지 않습니다.
 - "고객이 대시보드가 촌스럽대. 리디자인해줘." 생김새 자체가 결과물이므로 `hyper-design`이 맡습니다. `hyper-feedback`은 기존 동작과 문구에 대한 변경 요청을 맡습니다.
+- "새 요금제 페이지 만들어줘. 디자인은 알아서." 모습이 열린 질문이므로 `hyper-design` 하나가 맡습니다. 요청이 브라우저에서 증명할 레이아웃, 상태, 모션 동작까지 구체적으로 짚을 때만 `hyper-design`(`brief-only` 모드) 뒤에 `hyper-frontend`가 붙습니다.
+- "GA4에 맞춤 측정기준 만들고 GTM 컨테이너에서 그 값 보내게 태그도 고쳐줘." `hyper-google-analytics` -> `hyper-google-tagmanager`입니다. 속성 설정이 먼저이고 컨테이너가 그 속성으로 값을 보냅니다. GTM 설치나 태그 변경만 있으면 `hyper-google-tagmanager` 하나가 맡습니다.
 - "Claude만 쓰는 저장소인데 분류에 확률이 필요해." `hyper-decision` 하나가 맡습니다. 그 단계가 Claude 경로는 분포를 돌려주지 않는다고 밝히고 검토 경로나 네이티브 결정 경로를 제시하며, 계획 단계는 붙이지 않습니다.
 
 </activation_examples>
@@ -154,16 +168,21 @@ Boundary requests:
 | 프레임워크나 메이저 버전 마이그레이션 | `hyper-research` -> `hyper-architecture` -> `hyper-plan` -> `hyper-execute` |
 | SEO, AEO, GEO 감사 뒤 수정을 계획된 변경으로 구현 | `hyper-seo` -> `hyper-plan` -> `hyper-execute` |
 | GA4 작업. GA4나 Google 태그의 설치·수정, 속성이나 태그 감사, 속성 설정 변경, 보고서 데이터 분석, 빠지거나 틀린 데이터 진단 | `hyper-google-analytics`. 같은 요청이 검색 노출 감사까지 원하면 앞에 `hyper-seo`, 사용자가 커밋·푸시 전달을 요청하면 뒤에 `hyper-git` |
+| Google Tag Manager 작업. GTM 설치, GTM 설치나 컨테이너 내보내기 감사, 컨테이너의 태그·트리거·변수·동의·dataLayer 변경, 태그 발화 검증, GTM을 거친 추적의 누락이나 중복 진단 | `hyper-google-tagmanager`. 같은 요청이 GA4 속성 설정까지 바꾸면 앞에 `hyper-google-analytics`, 사용자가 커밋·푸시 전달을 요청하면 뒤에 `hyper-git` |
 | 계획 파일 없이 의존 순서가 있는 다중 에이전트 작업 | `hyper-mass` |
+| 모두 끝내야 하는 여러 의존 목표(목표마다 새 증거가 필요한 기준이 있음), 또는 멈춘 루프 재개 | `hyper-loop`. 사용자가 커밋·푸시 전달을 요청하면 뒤에 `hyper-git` |
 | 재사용 스킬 폴더를 새로 만들거나 리팩터링. 필요하면 공식 문서 리서치 뒤에 | `hyper-skill`. 요청이 최신 외부 문서에 기대면 앞에 `hyper-research` |
-| README, `AGENTS.md`, AI가 읽기 좋은 문서, 지침 베이스, 런북, 규칙 묶음, 재사용 프롬프트, 프롬프트 템플릿, 프롬프트 팩, 프롬프트 평가 픽스처를 새로 만들거나 리팩터링 | `hyper-documentation`. 내용이 최신 외부 출처나 공급자 지침에 기대면 앞에 `hyper-research` |
+| README, `AGENTS.md`, AI가 읽기 좋은 문서, 지침 베이스, 런북, 규칙 묶음, 재사용 프롬프트, 프롬프트 템플릿, 프롬프트 팩, 프롬프트 평가 픽스처, 에이전트 메모리 파일(`MEMORY.md`, 메모리 뱅크, 교훈 파일)을 새로 만들거나 리팩터링 | `hyper-documentation`. 내용이 최신 외부 출처나 공급자 지침에 기대면 앞에 `hyper-research` |
 | MCP 서버, 클라이언트, 이전, 보안 수정, 호스트 MCP 설정 | `hyper-mcp`. 서버가 낯선 외부 API를 감싸면 앞에 `hyper-research`, 사용자가 PR이나 배포 전달을 요청했거나 MCP 밖 모듈까지 바뀌면 `hyper-mcp`를 점검 모드로 두고 뒤에 `hyper-plan` |
 | decision API 작업. 글 대신 타입 판단(예/아니오 확률, 선택, 점수, 상자)을 돌려주는 모델 호출을 TypeSafe Jev, OpenAI Decisions, 다른 결정 공급자, AI SDK나 게이트웨이, 범용 LLM 위 에뮬레이션으로 다루는 적합성 판정, 질문, 호출 코드, 템플릿, 평가 계획, 라벨 전용 호출 감사, 경로 설정 | `hyper-decision`. 그 참조가 다루지 않는 공급자나 경로에 기대면 앞에 `hyper-research`, 사용자가 PR이나 배포 전달을 요청했거나 애플리케이션 전반의 호출을 다시 연결하면 `hyper-decision`을 `design`이나 `audit` 모드로 두고 뒤에 `hyper-plan` |
 | 데이터 모델, 스키마, 마이그레이션, 느린 쿼리나 인덱스, 엔진 선택, 데이터베이스 운영 변경(백업, 복제, 커넥션 풀, 업그레이드, 보안) | `hyper-database`. 저장소가 아직 쓰지 않는 엔진이나 서비스에 기대면 앞에 `hyper-research`, 사용자가 PR이나 배포 전달을 요청했거나 애플리케이션 코드까지 바뀌면 `hyper-database`를 리뷰 모드로 두고 뒤에 `hyper-plan` |
 | 화면·페이지·컴포넌트 디자인이나 리디자인, 연출 화면, generic한 "AI 티" 제거 | `hyper-design`. 최신 외부 지침에 기대면 앞에 `hyper-research`, 사용자가 PR이나 배포 전달을 요청했거나 UI 밖 작업까지 필요하면 `hyper-design`를 brief-only나 점검 모드로 두고 뒤에 `hyper-plan` |
+| 코드로 만들거나 고친 프런트엔드, 스크린샷이나 라이브 페이지에 맞춘 구현, 실제 브라우저 점검. 레이아웃, 넘침, 반응형, 상태, 애니메이션 동작 | `hyper-frontend`. 요청이 새 모습도 요구하면 앞에 `brief-only` 모드의 `hyper-design`, 사용자가 PR이나 배포 전달을 요청하거나 API·데이터·라우트 작업까지 필요하면 `hyper-plan` 앞에 `verify` 모드의 `hyper-frontend` |
 | 사용자, 고객사, 기획자가 기존 동작에 대해 제품 언어로 보낸 변경 요청(피드백, 불만, 티켓, 회의 메모, 기획 수정, 새 문구) | `hyper-feedback`. `handoff`로 끝나면 그 `brief.md`를 들고 `hyper-plan`이 뒤따릅니다 |
+| 배포가 아닌 곳에서 난 실행 실패의 원인 설명이나 수정(스택 트레이스, 실패하거나 가끔 실패하는 테스트, 크래시, 잘못된 출력) | `hyper-debug`. `handoff`로 끝나면 그 기록을 들고 `hyper-plan`이 뒤따릅니다 |
+| 데이터셋(CSV, Parquet, JSON 파일, 스프레드시트나 데이터베이스 내보내기)을 계산해 답하는 질문 | `hyper-data` 단독. 뒤에 `hyper-git`을 붙이지 않습니다 |
 | 새 이미지 한 장, 제공한 이미지 한 장의 편집, 바로 쓸 수 있는 이미지 프롬프트 하나 | `hyper-imagegen`. 최신 외부 지침이나 참고 자료에 기대면 앞에 `hyper-research`. 뒤에 `hyper-git`을 붙이지 않습니다 |
-| 스킬, 문서, MCP, decision API, 인터페이스, 데이터베이스, GA4 분석, 변경 요청 꼬리 뒤에 커밋·푸시나 병합·푸시 단어가 붙거나, 스킬, 문서, 변경 요청 꼬리 뒤에 PR 단어가 붙음 | 위 체인 그대로 두고 뒤에 `hyper-git`을 전달 단계로 붙입니다 |
+| 스킬, 문서, MCP, decision API, 인터페이스, 프런트엔드, 데이터베이스, GA4 분석, 태그 관리자, 변경 요청, 디버그, 루프 꼬리 뒤에 커밋·푸시나 병합·푸시 단어가 붙거나, 전달하지 않는 꼬리 뒤에 PR 단어가 붙음 | 위 체인 그대로 두고 뒤에 `hyper-git`을 전달 단계로 붙입니다 |
 | 배포 준비 판정, 첫 배포 구성, 배포, 배포 설정 변경, 실패한 배포의 원인 진단과 수정 | `hyper-deploy`. 같은 요청이 코드까지 바꾸면 코드 체인 뒤에 두고, 뒤에 `hyper-git`을 붙이지 않습니다 |
 | 이미 있는 계획 파일을 실행 | `hyper-execute` |
 | 보고서만 원하는 리서치, 감사, 아키텍처 점검, 데이터베이스 리뷰 | 맞는 단계 하나 |
@@ -268,11 +287,11 @@ Phase 규칙:
 
 ## Sources
 
-> Checked 2026-11-08.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
-| 오케스트레이터 역할, 처음부터 끝까지 실행, 이 패키지가 열여덟 단계 스킬과 동반 스킬의 이름을 쓰도록 허용한 사용자 지시 예외 | user instruction, 2026-11-06(오케스트레이터 역할); `hyper-deploy`를 더해 열다섯 단계로 늘린 사용자 지시, 2026-11-07; `hyper-feedback`을 더해 열여섯 단계로 늘린 사용자 지시, 2026-11-07; `hyper-decision`을 더해 열일곱 단계로 늘린 사용자 지시, 2026-11-08; `hyper-google-analytics`를 더해 현재의 열여덟 단계로 늘린 사용자 지시, 2026-11-08; 웹 조사형 리서치에 `hyper-browsing`을 붙인 사용자 지시, 2026-11-07 |
+| 오케스트레이터 역할, 처음부터 끝까지 실행, 이 패키지가 스물세 단계 스킬과 동반 스킬의 이름을 쓰도록 허용한 사용자 지시 예외 | user instruction, 2026-11-06(오케스트레이터 역할); `hyper-deploy`를 더해 열다섯 단계로 늘린 사용자 지시, 2026-11-07; `hyper-feedback`을 더해 열여섯 단계로 늘린 사용자 지시, 2026-11-07; `hyper-decision`을 더해 열일곱 단계로 늘린 사용자 지시, 2026-11-08; `hyper-google-analytics`를 더해 열여덟 단계로 늘린 사용자 지시, 2026-11-08; `hyper-debug`를 더해 열아홉 단계로 늘린 사용자 지시, 2026-11-09(이슈 #22); `hyper-loop`를 더해 스무 단계로 늘린 사용자 지시, 2026-11-09(이슈 #21); `hyper-data`를 더해 스물한 단계로 늘린 사용자 지시, 2026-11-09(이슈 #25); `hyper-google-tagmanager`를 더해 스물두 단계로 늘린 사용자 지시, 2026-11-09(hyper 라우팅 갱신); `hyper-frontend`를 더해 현재의 스물세 단계로 늘린 사용자 지시, 2026-11-09(이슈 #46); 웹 조사형 리서치에 `hyper-browsing`을 붙인 사용자 지시, 2026-11-07 |
 | 각 단계 스킬의 결과물, 산출물 경로, 경계 | 이 저장소의 각 단계 스킬 `SKILL.md`, 2026-11-06 |
 | 계획 단계가 스스로 실행으로 이어지고 전달 플래그를 넘김 | 이 저장소의 계획 스킬 handoff 규칙, 2026-11-06 |
 | 순차 체인은 저장된 산출물로 상태를 넘기고 라우터는 코드 같은 규칙으로 갈래를 고름 | `instructions/graph-engineering/references/graph-patterns.md` |

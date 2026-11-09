@@ -13,7 +13,7 @@ An API key grants its documented access until revoked.
 | Protocol | Streamable HTTP |
 | Endpoint | `https://xquik.com/mcp` |
 | Authentication | OAuth 2.1 discovery, with API key fallback |
-| Skill bundle version | `2.8.0` |
+| Skill bundle version | `2.8.1` |
 
 Current clients negotiate MCP `2026-07-28` through `server/discover`.
 Use a current MCP SDK. It adds request `_meta` and protocol headers.

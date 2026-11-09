@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "CLAIM_CHECK_ENFORCE_MODE=warn python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/claim_check_hook.py\""
+            "command": "[ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/claim_check_hook.py\" ] && CLAIM_CHECK_ENFORCE_MODE=warn python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/claim_check_hook.py\" || true"
           }
         ]
       }
@@ -15,7 +15,18 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/auto_orient.py\""
+            "command": "[ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/auto_orient.py\" ] && python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/auto_orient.py\" || true"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f \"${CLAUDE_PLUGIN_ROOT}/hooks/pipe_guard_hook.py\" ] && python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/pipe_guard_hook.py\" || true"
           }
         ]
       }

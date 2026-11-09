@@ -1,8 +1,8 @@
 {
     "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
     "name": "dodopayments",
-    "version": "0.7.0",
-    "description": "Dodo Payments tools for AI coding agents, including integration agent skills and the Dodo Payments API and docs MCP servers.",
+    "version": "0.8.0",
+    "description": "Dodo Payments tools for AI coding agents: the dodo-payments integration skill and the Dodo Payments MCP server.",
     "author": {
         "name": "Dodo Payments",
         "email": "support@dodopayments.com"
@@ -51,13 +51,13 @@
                 "commerce_description": "The plugin does not sell products or take payments inside ChatGPT or Codex. It helps developers integrate and manage their own Dodo Payments merchant account."
             },
             "publication": {
-                "release_notes": "Sign-in to the Dodo Payments API MCP server now uses a Dodo Payments consent page: pick the business, mode and permissions. No API key is needed. Review or revoke access in the dashboard under Settings > Connected Apps."
+                "release_notes": "One MCP server and one skill. The plugin now registers a single Dodo Payments MCP server (dodopayments) with docs search, SDK search and code execution, and a single dodo-payments skill that loads its reference topics only when a task needs them, so the plugin takes far less of the agent's context."
             }
         },
         "dev.kiro": {
             "displayName": "Dodo Payments",
             "category": "Developer Tools",
-            "description": "Dodo Payments integration skills plus the API and documentation MCP servers."
+            "description": "The Dodo Payments integration skill plus the Dodo Payments MCP server."
         }
     }
 }

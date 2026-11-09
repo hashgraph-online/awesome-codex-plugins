@@ -10,7 +10,7 @@
 |---|---|---|
 | 플랫폼 | `official-endpoint`, `media`, `generic` | `references/public-endpoints.md`에 그 호스트가 있으면 `official-endpoint`, 대상이 영상·음성·팟캐스트 항목이면 `media`, 나머지는 `generic` |
 | 모양 | `single`, `bulk` | 여러 항목, 페이지네이션, "전부", "모두", "크롤링", "N개 이상", 사이트 한 구역 전체를 요청하면 `bulk` |
-| 신선도 | `live-required`, `copy-acceptable` | 페이지가 사라졌거나 지워졌거나, 사용자가 과거 날짜를 묻거나, 아카이브 사본을 받아들일 때 `copy-acceptable`, 나머지는 `live-required` |
+| 신선도 | `live-required`, `copy-acceptable` | 페이지가 사라졌거나 지워졌거나, 사용자가 과거 날짜를 묻거나, 아카이브 사본을 받아들일 때 `copy-acceptable`이고, 나머지는 `live-required`입니다. 호출자가 신선도 답을 넘기면 이 추론보다 우선합니다. 그 내용이 뒷받침할 주장은 호출자가 소유하기 때문입니다 |
 | 권한 | `public`, `own-account`, `outside` | `rules/access-policy.md` §1과 §2 |
 
 `outside`로 분류한 대상은 여기서 멈추고 종료 상태 `needs_user`나 `blocked`로 끝냅니다(`rules/access-policy.md` §2). `bulk` 대상은 tier 1 전에 대량 게이트(`rules/access-policy.md` §3)를 통과합니다.
@@ -24,7 +24,7 @@ tier는 이 순서로 실행합니다. 해당 행의 사유가 있을 때만 건
 | Tier | 방법 | 쓰는 때 | 건너뛰는 때 |
 |---|---|---|---|
 | 0 | 같은 플랫폼의 공식 공개 엔드포인트(JSON, Atom, oEmbed, syndication, 레지스트리 API) | 플랫폼이 `official-endpoint` | 요청한 내용을 다루는 엔드포인트가 없음 |
-| 1 | 헤드리스 요청 격자: 브라우저 같은 헤더의 평범한 curl, 그다음 URL 변형, referer 전략, 기기 종류, 클라이언트 지문 위장(curl_cffi가 있을 때), 리더, 구조화 메타데이터 추출, 피드 발견, `media`면 미디어 추출기 | `generic`과 `media`에서 항상, tier 0이 실패한 뒤 | 앞 tier가 받아들여짐 |
+| 1 | 헤드리스 요청 격자: 브라우저 같은 헤더의 평범한 curl, 그다음 URL 변형, referer 전략, 기기 종류, 클라이언트 지문 위장(curl_cffi가 있을 때), 리더, 구조화 메타데이터 추출, 피드 발견, `media`면 미디어 추출기 | `generic`과 `media`에서 항상, tier 0이 실패한 뒤 | 앞 tier가 받아들여짐. 또는 신선도가 `copy-acceptable`이고 페이지가 이미 죽었거나 삭제·변경된 것으로 확인되어 tier 2에서 시작함 |
 | 2 | 아카이브 사본: Wayback availability 조회, 그다음 다른 아카이브 | 신선도가 `copy-acceptable` | 신선도가 `live-required`. tier 3·4가 실패하거나 건너뛰어지면 사본을 한 번 제안하고, 사용자가 받아들일 때만 tier 2를 실행 |
 | 3 | 자체 브라우저: 실행이 새 작업 전용 프로필로 직접 띄우는 브라우저. 헤드리스 우선, 런타임 자체의 브라우저 기능으로 실행 | tier 1과 tier 2가 실패했거나 건너뛰어졌거나, 내용에 JavaScript, 클릭, 스크롤, 미디어 재생, 스크린샷이 필요함 | 브라우저 자동화 기능이 없음: `skipped`로 표시하고 `blocked`나 `fetched_partial`로 끝냄 |
 | 4 | 연결 브라우저: 사용자가 이미 로그인한 본인 브라우저를 런타임의 연결 기능으로 조작 | 권한이 `own-account`이거나, 모든 자체 브라우저가 막혀 사용자가 본인 브라우저에서 열기로 동의함 | 연결 기능이 없거나, 로그인·챌린지 단계에 사용자가 함께 있지 않음 |

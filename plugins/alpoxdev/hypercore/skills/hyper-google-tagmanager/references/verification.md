@@ -124,7 +124,7 @@ Other signatures:
 | DebugView and `debug_mode` | <https://support.google.com/analytics/answer/7201382> |
 | Report latency and network checks | <https://developers.google.com/analytics/devguides/collection/ga4/troubleshoot> |
 | Request capture API shape | <https://playwright.dev/docs/network> |
-| `gtm.js` status and body signatures, `gtm_debug=x` 403, `/g/collect` 204, `google_tag_manager` keys | execution checks against the live endpoints, 2026-11-08 |
+| `gtm.js` status and body signatures, `gtm_debug=x` 403, `/g/collect` 204, `google_tag_manager` keys | execution checks against the live endpoints, 2026-11-08; the unknown-ID 200 with `"version":"1"` and empty `tags`, the `gtm_debug=x` 403, `ns.html` 200, and the `/g/collect` 204 re-checked 2026-11-09 |
 
 ### Evidence grade
 

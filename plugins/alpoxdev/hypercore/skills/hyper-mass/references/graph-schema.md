@@ -56,8 +56,12 @@ Unknown fields are ignored; the six above are validated by the self-check.
 | `handoff` | string | yes | `.hyper/mass/<run-key>/nodes/<id>.md`. Must be inside the run directory. |
 | `prompt` | string | yes | The complete node prompt with the five markers. |
 | `reason` | string | when `tier` is not `low` | One line explaining the escalation. |
+| `solutionSpace` | array of strings | no | Short approach names this node may choose between. When present, the node prompt lists it and the node **MUST** pick only from the list; a node that uses an approach outside the list fails the self-check. |
+| `resolvedModel` | string | no | The model that actually ran. It is written only from the observed result, never predicted before dispatch. |
 
 `dependsOn` and `reads` serve different purposes: an edge orders two nodes, a read path names what a node consumes. A path in `reads` that no edge produces is either leader-supplied context or a mistake; decide which before starting.
+
+When `solutionSpace` is present, the node prompt lists it under a `SOLUTION SPACE:` line (or inside `TASK`/`SCOPE`) so the worker sees the allowed approaches. The node names the approach it used in its handoff; the leader checks that the named approach belongs to the list before the node counts as complete. Without `solutionSpace` the node is free to choose; with it the choice is bounded and checked.
 
 ## Justification Object
 
@@ -108,6 +112,7 @@ Run before `run.created`:
 11. Every `prompt` carries TASK, DELIVERABLE, SCOPE, VERIFY, and STOP WHEN.
 12. At least one terminal verification or review node depends on every producer.
 13. The graph changes code: the terminal node's VERIFY names the real test or build command.
+14. Every `solutionSpace` entry is a non-empty string, every approach a node reports using belongs to its own list, and every `resolvedModel` value came from an observed result rather than a prediction.
 
 ## `run.jsonl`
 
@@ -118,13 +123,13 @@ One JSON object per line, append-only. Common fields: `ts` (ISO 8601 UTC), `even
 | `run.created` | `mode`, `nodes`, `definition_digest`, `justification` |
 | `run.resumed` | `from_event`, `reused_nodes` |
 | `node.started` | `node`, `attempt` |
-| `node.completed` | `node`, `handoff`, `evidence`; `verifier` on verification nodes (`self (no subagent capability)` in sequential mode) |
+| `node.completed` | `node`, `handoff`, `evidence`, `resolvedModel` (the model observed in the result, run journal only); `verifier` on verification nodes (`self (no subagent capability)` in sequential mode) |
 | `node.failed` | `node`, `attempt`, `error` |
 | `node.retried` | `node`, `attempt`, `reason` |
 | `node.sent` | `node`, `boundary` |
 | `node.cancelled` | `node`, `reason` |
 | `run.amended` | `changed`, `reason` |
-| `run.settled` | `status`, `reason`, `criteria` |
+| `run.settled` | `status`, `reason`, `criteria`, `landed` |
 
 Example:
 
@@ -135,12 +140,13 @@ Example:
 {"ts":"2026-11-03T09:04:11Z","event":"node.started","run":"checkout-refactor-2026-11-03","node":"api","attempt":1}
 {"ts":"2026-11-03T09:30:00Z","event":"node.failed","run":"checkout-refactor-2026-11-03","node":"api","attempt":1,"error":"handoff missing; node exited before writing"}
 {"ts":"2026-11-03T09:31:00Z","event":"node.retried","run":"checkout-refactor-2026-11-03","node":"api","attempt":2,"reason":"missing handoff, rerun with write-first instruction"}
-{"ts":"2026-11-03T10:20:00Z","event":"run.settled","run":"checkout-refactor-2026-11-03","status":"completed","reason":"all criteria pass","criteria":["checkout tests exit 0","e2e log attached"]}
+{"ts":"2026-11-03T10:20:00Z","event":"run.settled","run":"checkout-refactor-2026-11-03","status":"completed","reason":"all criteria pass","criteria":["checkout tests exit 0","e2e log attached"],"landed":["9f2c1ab","41d7e02"]}
 ```
 
 Rules:
 
-- `node.completed` is written after the leader opens the handoff, not when the node replies.
+- `node.completed` is written after the leader opens the handoff, not when the node replies. The leader sets `resolvedModel` from the observed result (the runtime's report of which model ran) at that moment; it is never written before dispatch and never predicted from the `tier`.
+- A node whose `solutionSpace` is present names the approach it used in its handoff. The leader checks it against the list before `node.completed`; a match outside the list is a failed self-check, not a completion.
 - `run.settled` is written once per run; a resumed run appends a new settlement only after a new dispatch wave.
 - Timestamps are UTC; the report may render local time, but the journal does not.
 
@@ -203,6 +209,7 @@ A five-component refactor, one phase:
       "tier": "medium",
       "kind": "visual",
       "reason": "copy and state changes across four checkout screens",
+      "solutionSpace": ["copy-update", "state-map", "a11y-pass"],
       "dependsOn": ["audit"],
       "reads": ["src/checkout/ui/**", ".hyper/mass/checkout-refactor-2026-11-03/nodes/audit.md"],
       "writes": ["src/checkout/ui/**", ".hyper/mass/checkout-refactor-2026-11-03/nodes/ui.md"],
@@ -254,7 +261,7 @@ The audit fans out to three disjoint surfaces, `e2e` joins the two code producer
 
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -263,6 +270,7 @@ The audit fans out to three disjoint surfaces, `e2e` joins the two code producer
 | Checkpoint resume tested rather than assumed, and the transition record for a dynamic path | `instructions/graph-engineering/GRAPH_ENGINEERING.md` |
 | Evidence file or it did not happen, and `SKIP` is not a pass | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | The family contract's `.hyper/mass/<run-key>/` paths and the six justification fields | family contract, 2026-11-03 |
+| Node `solutionSpace` bounds, approach-outside-list failure, `resolvedModel` from observed results, cluster digest with a token bound and handoff citations, and the final reducer reading digests only | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored; the source repository has no license file and nothing was copied |
 
 ### Evidence grade
 

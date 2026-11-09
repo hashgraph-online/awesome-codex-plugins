@@ -42,6 +42,7 @@
 - 저장소 근거로 루트 `AGENTS.md`를 만들거나 고친다.
 - 길어진 `AGENTS.md`를 직접 링크한 인접 `rules/*.md`로 분리한다.
 - 실제 하위 트리 차이가 있을 때, 그리고 사용자가 요청했거나 저장소 근거가 대상 계약의 일부로 만들 때만 중첩 `AGENTS.md`를 추가한다.
+- `re-derive` 계층 파생: 현재 근거로 배치를 다시 만들고 사용자가 쓴 모든 줄은 보존한다. 삭제는 명시적 요청 시에만 한다.
 - `AGENTS.ko.md`와, 루트 세부 내용을 분리했다면 그에 맞는 `rules/*.ko.md`를 정렬하거나 고친다.
 
 `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md` 요청에는 이 skill의 산출 경계를 밝히기 위해서만 활성화한다. 이 skill은 `AGENTS.md`와 `AGENTS.ko.md`만 만들고 그 세 파일은 건드리지 않는다. 이미 있는 파일은 산출물이 아니라 근거다. Claude Code는 v2.1.277부터 `AGENTS.md`를 직접 읽고, 작업 디렉터리나 그 위에 그 세 파일 중 하나가 있으면 기본 설정에서 그 읽기를 억제한다. 따라서 경로와 그 한 줄짜리 결과를 보고하고 파일은 그대로 둔다.
@@ -51,6 +52,28 @@
 ## 5. 루프 정책
 
 `rules/agents-md/validation.md`의 검사를 실행하고, 실패한 지침만 고치고, 수정 회차를 최대 두 번 가진 뒤 멈추는 loop 하나를 쓴다. 피드백은 검증 체크리스트와 그것이 실행하는 저장소 명령이고, guard는 scope·evidence·safety gate이며 회차 사이에 나빠지면 안 된다. 유지 규칙은 모든 critical gate를 통과한 개정만 남기는 것이다. 세 번째 회차, 끝없는 개선 반복, 자체 검토만으로 끝내는 것은 금지한다.
+
+### Re-derive
+
+`re-derive`는 현재 근거로 배치를 다시 만든다. 사용자가 쓴 모든 줄을 제자리에 두고, 점수와 깊이 예산이 정당화하는 곳에서만 파일을 만들거나 이동하거나 분리한다. 기존 파일 삭제는 사용자가 명시적으로 요청했을 때만 한다. 사용자 글을 떨어뜨린 `re-derive` run은 실패한 run이며, 빠진 줄을 채우는 것은 같은 loop 한도 안의 수정이다.
+
+### Run snapshot
+
+모든 `agents-md` run은 `.hyper/documentation/agents-md-<date>.json`에 run snapshot을 쓴다.
+
+| Field | 의미 |
+|---|---|
+| commit SHA | run이 측정한 저장소 commit |
+| file count | 만들었거나 유지한 instruction file 수 |
+| line count | 쓴 전체 line 수 |
+| mode | 실행한 부분 모드. `re-derive` 포함 |
+| unmeasured | 측정하지 못한 신호. 이름 그대로 나열 |
+
+snapshot은 provenance이며 검사 통과를 증명하지 않는다. 기록하는 일만으로 실패한 gate가 통과하지 않는다.
+
+### Independent verification phase
+
+수정 loop 뒤에 독립 검증 단계가 각 생성 파일을 계약과 대조한다. 런타임이 새 reviewer를 제공하면 그 reviewer를 쓰고, 그렇지 않으면 snapshot과 인수인계에 `review: self`를 기록한다. 각 파일은 근거와 함께 PASS 또는 FAIL을 돌리고, FAIL은 같은 한도 안의 수정 loop로 되돌아간다. 새 reviewer가 있는데 self-review만으로 끝내지 않는다.
 
 ## 6. 한국어 미러
 
@@ -68,7 +91,10 @@
 | 3 | 명령과 주장이 저장소 근거에 매핑되는 가장 작은 항상 로드되는 계약과 직접 링크된 조건부 규칙 파일 작성 | Candidate files |
 | 4 | structural/project-specific check를 실행하고 validation rubric으로 실패 검사 | Validation result |
 | 5 | guard를 보존하며 최대 2회의 focused repair pass를 적용하고 같은 검사 재실행 | Accepted or blocked result |
+| 5a | 독립 검증 단계를 실행한다. 런타임이 새 reviewer를 제공하면 그 reviewer를 쓰고, 그렇지 않으면 `review: self`로 파일별 PASS·FAIL과 근거를 남긴다 | Verification verdict |
 | 6 | 요청 범위를 재검색하고 파일, 근거, 검사, caveat, 변경하지 않은 `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`, `ship`, `caveated ship`, `block` 보고 | Korean handoff |
+
+모든 `agents-md` run은 commit SHA, file count, line count, mode, `unmeasured` 항목을 담은 run snapshot을 `.hyper/documentation/agents-md-<date>.json`에 쓴다. snapshot은 provenance이며 검사 통과를 증명하지 않는다.
 
 ## 8. 필수
 
@@ -76,7 +102,7 @@
 - 모든 줄에 admission test를 적용한다 — 비자명, 하중 있음, 지속적, 권고 산문에 적합. 기본 결론은 삭제다.
 - 매번 반드시 일어나야 하는 것은 산문으로 요청하지 말고 hook, CI 검사, lint 규칙, schema로 보낸다.
 - 비대한 root가 nested file을 절단하지 않도록 32 KiB 합산 예산에서 여유를 남긴다.
-- admission test 뒤에도 `AGENTS.md`가 길면 항상 필요한 계약은 그대로 두고, 같은 범위의 조건부 세부 내용은 `rules/rule-file-splitting.ko.md`에 따라 인접한 `rules/*.md`로 분리한다.
+- admission test 뒤에도 `AGENTS.md`가 길면 항상 필요한 계약은 그대로 두고, 같은 범위의 조건부 세부 내용은 `rules/agents-md/rule-file-splitting.ko.md`에 따라 인접한 `rules/*.md`로 분리한다.
 - project fact와 generic agent advice를 분리하고 이 저장소에서 동작을 바꾸는 규칙만 포함한다.
 - 모든 command, path, package-manager choice, architecture claim을 조사한 파일에 매핑한다.
 - 적용 scope와 precedence를 명시하고 nested file은 root contract 복사본이 아니라 delta를 담는다.
@@ -117,6 +143,10 @@ Must-pass gates:
 - [ ] 32 KiB 합산 예산에서 root file이 nested file 몫을 남긴다.
 - [ ] 긴 `AGENTS.md`에서 먼저 삭제를 적용했고, 남은 같은 범위의 조건부 세부 내용은 명시적 읽기 조건이 있는 직접 링크된 인접 `rules/*.md`에 있다.
 - [ ] 생성한 각 규칙 파일은 하나의 정본 책임만 가지며, 중복이 없고 링크가 유효하며 필요한 한국어 미러가 있다.
+- [ ] 각 배치 판정은 `rules/agents-md/nested-placement.md`의 배치 점수 게이트를 깊이 예산 안에서 통과했고, 예산보다 깊은 기존 파일을 지우지 않았다.
+- [ ] 배치를 다시 만드는 run은 사용자가 쓴 모든 줄을 보존했다. 삭제는 명시적 요청 시에만 했다.
+- [ ] `.hyper/documentation/agents-md-<date>.json`의 run snapshot에 commit SHA, file count, line count, mode, `unmeasured` 항목이 들어 있고, 검사 통과 증명이 아니라 provenance로 취급했다.
+- [ ] 독립 검증 단계가 런타임 제공 시 새 reviewer로, 그렇지 않으면 snapshot과 인수인계에 기록한 `review: self`로 실행됐다.
 - [ ] 생성한 `AGENTS.md`가 영어이고, 사용자 질문·설명·보고가 한국어다.
 - [ ] `AGENTS.ko.md`가 존재하고, 언어가 섞이지 않은 완전한 한국어이며, `AGENTS.md`와 같은 계약을 담는다.
 - [ ] 새 파일은 standard depth로 normal, missing-context/tool-failure, boundary, adversarial retrieval, unsafe-action, regression behavior를 다룬다.
@@ -132,5 +162,6 @@ Must-pass gates:
 | Claim | Source |
 |---|---|
 | 이 파일의 AGENTS.md 계약, 세부 모드, 루프, 워크플로, 게이트 | 이 패키지의 절차 문서. 2026-11-07에 AGENTS.md 워크플로를 이 스킬의 모드로 옮기면서 내용은 그대로 가져왔다 |
+| `re-derive` 보존, run snapshot field, `review: self` fallback이 있는 독립 검증 단계 | `dbc-hbin/omp-ulw`의 커밋 `74df40f` (2026-11-09). 소스 저장소에 license가 없어 메커니즘을 다시 썼고 복사하지 않았다 |
 | Claude Code의 v2.1.277 이후 `AGENTS.md` 직접 읽기, 기존 `CLAUDE.md`에 의한 차단, 합계 32 KiB 예산, `@path` import 네 단계 제한 | 저장소 루트의 `instructions/agents-md/AGENTS_MD.ko.md`와 `instructions/agents-md/references/discovery-and-precedence.ko.md`. 벤더 확인 날짜는 그 문서가 갖고 있고, 이 파일은 그 내용을 다시 서술한다 |
 | 모든 줄에 적용하는 편입 기준 | `instructions/agents-md/references/content-contract.ko.md` |

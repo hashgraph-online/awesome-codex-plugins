@@ -15,8 +15,10 @@ source "$DS_DIR/engine-markup.sh"
 # shellcheck source=/dev/null
 source "$DS_DIR/resolve-context.sh"
 
-DS_USAGE='Usage: bash detect-slop.sh --target <file-or-directory> [--json] [--rules a,b] [--baseline result.json --only-new]'
+DS_USAGE='Usage: bash detect-slop.sh --target <file-or-directory> [--json] [--rules a,b] [--config <detector-config.json>] [--baseline result.json --only-new]'
 DS_LIMITATIONS='["Static source signatures do not prove design intent, rendered appearance, contrast, usability, or accessibility conformance.","Candidate exceptions preserve findings for review; they do not suppress a rule or authorize automatic removal.","Rendered, keyboard, and accessibility claims require capability-provided evidence."]'
+# Detector configuration values. All are empty unless --config names a valid file.
+DS_CFG_RULES_OFF='' DS_CFG_RULES_SEVERITY='' DS_CFG_ALLOW_TOKENS='' DS_CFG_APPLIED=0
 
 # ds_error <message> <json-requested> prints a detector error and exits with code 2.
 ds_error() {
@@ -82,14 +84,26 @@ ds_candidate() {
 }
 
 # ds_emit_rows <file> <relative> <engine> <upstream-json> converts scan matches on stdin to findings.
+# A sixth global, DS_SKIP_FILE, holds the source-local exemption map for ignored regions.
 ds_emit_rows() {
   local file=$1 rel=$2 engine=$3 meta=$4 brand=$5 comparison=$6 live=$7 rows=$8
   local id line excerpt metadata severity class evidence action fix cluster_key policy
-  local exc confidence rem rcr
+  local exc confidence rem rcr skip
   while IFS=$'\t' read -r id _engine line excerpt; do
     [ -n "$id" ] || continue
+    if [ -n "${DS_SKIP_FILE:-}" ] && [ -s "$DS_SKIP_FILE" ]; then
+      skip=$(LC_ALL=C awk -F '\t' -v id="$id" -v line="$line" '$1 <= line && line <= $2 && (index("," $3 ",", "," id ",") || index("," $3 ",", ",*,")) { print "yes"; exit }' "$DS_SKIP_FILE")
+      if [ "$skip" = yes ]; then
+        printf '%s\t%s\t%s\t\x01\n' "$rel" "$line" "$id" >> "$rows"
+        continue
+      fi
+    fi
+    if [ "$DS_CFG_APPLIED" = 1 ] && [ -n "$DS_CFG_ALLOW_TOKENS" ] && ds_tok_allowed "$excerpt"; then
+      printf '%s\t%s\t%s\t\x01\n' "$rel" "$line" "$id" >> "$rows"
+      continue
+    fi
     metadata=$(LC_ALL=C awk -F '\t' -v id="$id" '$1 == id { print $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" $7 "\t" $8; exit }' "$meta")
-    severity=$(printf '%s' "$metadata" | cut -f1)
+    severity=$(ds_rule_severity "$id" "$(printf '%s' "$metadata" | cut -f1)")
     class=$(printf '%s' "$metadata" | cut -f2)
     evidence=$(printf '%s' "$metadata" | cut -f3)
     action=$(printf '%s' "$metadata" | cut -f4)
@@ -123,8 +137,111 @@ ds_emit_rows() {
   done
 }
 
+# ds_load_config <file> <json-requested> validates one detector config document and fills the
+# DS_CFG_* values. It exits through ds_error on any schema violation and never scans anything.
+ds_load_config() {
+  local file=$1 json=$2 abs detail
+  abs=$(rs_resolve "$file")
+  if [ ! -f "$abs" ] || [ ! -r "$abs" ]; then
+    ds_error "Invalid config: ENOENT: no such file or directory, open '$abs'" "$json"
+  fi
+  if ! jq . "$abs" > /dev/null 2>&1; then
+    ds_error 'Invalid config: malformed JSON document' "$json"
+  fi
+  detail=$(ds_config_error_detail "$abs")
+  if [ -n "$detail" ]; then
+    ds_error "Invalid config: schema error: $detail" "$json"
+  fi
+  DS_CFG_APPLIED=1
+  while IFS= read -r rid; do
+    [ -n "$rid" ] || continue
+    if ! rule_by_id_exists "$rid"; then
+      ds_error "Invalid config: schema error: unknown rule id '$rid'" "$json"
+    fi
+  done < <(jq -r 'if has("rules") and ((.rules | type) == "object") then (.rules | keys[]) else empty end' "$abs")
+  while IFS=$'\t' read -r id action; do
+    [ -n "$id" ] || continue
+    if [ "$action" = off ]; then
+      DS_CFG_RULES_OFF="$DS_CFG_RULES_OFF $id"
+    else
+      DS_CFG_RULES_SEVERITY="$DS_CFG_RULES_SEVERITY $id:$action"
+    fi
+  done < <(jq -r '
+    if has("rules") and ((.rules | type) == "object") then
+      (.rules | to_entries[] |
+        if (.value | test("^(off|P1|P2|P3)$")) then .key + "\t" + .value else empty end)
+    else empty end' "$abs")
+  DS_CFG_ALLOW_TOKENS=$(
+    {
+      jq -r 'if has("allowFonts") and ((.allowFonts | type) == "array") then .allowFonts[] else empty end' "$abs"
+      jq -r 'if has("allowEasings") and ((.allowEasings | type) == "array") then .allowEasings[] else empty end' "$abs"
+      jq -r 'if has("designTokens") and ((.designTokens | type) == "object") then .designTokens[] else empty end' "$abs"
+    } | LC_ALL=C awk 'NF { print }'
+  )
+}
+
+# ds_config_error_detail <file> prints the first schema violation found in one config document.
+ds_config_error_detail() {
+  local file=$1
+  jq -r '
+    def knownid: test("^(surface|motion|structure|quality|copy|type)\\.[a-z0-9-]+$");
+    def textlist: if type == "array" then all(.[]; type == "string" and ((gsub("^[\\s]+|[\\s]+$"; "") | length) > 0)) else false end;
+    def rulevalue: (type == "string") and (test("^(off|P1|P2|P3)$"));
+    if type != "object" then "root must be an object"
+    elif has("version") | not then "version is required and must equal 1"
+    elif .version != 1 then "version must equal 1"
+    elif ([keys_unsorted[] | select(. != "version" and . != "rules" and . != "allowFonts" and . != "allowEasings" and . != "designTokens")] | length) != 0 then "unknown top-level key"
+    elif has("rules") and ((.rules | type) != "object") then "rules must be an object"
+    elif has("allowFonts") and ((.allowFonts | textlist) | not) then "allowFonts must be an array of non-empty strings"
+    elif has("allowEasings") and ((.allowEasings | textlist) | not) then "allowEasings must be an array of non-empty strings"
+    elif has("designTokens") and ((.designTokens | type) != "object") then "designTokens must be an object"
+    elif has("designTokens") and (.designTokens | to_entries | map(select((.value | type) != "string")) | length) > 0 then "designTokens values must be strings"
+    elif has("rules") and ((.rules | to_entries | map(select((.key | type) != "string" or (.key | knownid | not) or (.value | rulevalue | not))) | length) > 0) then "rules keys must name a known rule and values must be off, P1, P2, or P3"
+    else empty end' "$file" 2>/dev/null | head -n 1
+}
+
+# ds_rule_disabled <rule-id> succeeds when the config turns the rule off.
+ds_rule_disabled() {
+  [ "$DS_CFG_APPLIED" = 1 ] || return 1
+  case " $DS_CFG_RULES_OFF " in
+    *" $1 "*) return 0 ;;
+  esac
+  return 1
+}
+
+# ds_rule_severity <rule-id> prints the configured severity override, or the registry default.
+ds_rule_severity() {
+  local pair
+  if [ "$DS_CFG_APPLIED" = 1 ]; then
+    for pair in $DS_CFG_RULES_SEVERITY; do
+      case "$pair" in
+        "$1:"*) printf '%s' "${pair#*:}"; return 0 ;;
+      esac
+    done
+  fi
+  printf '%s' "$2"
+}
+
+# ds_tok_allowed <text> succeeds when the config allowlists a font, easing, or token value that
+# appears in the matched excerpt. Matching is case-insensitive substring comparison, so a project
+# that allowlists "BrandMono" exempts a declaration that names it.
+ds_tok_allowed() {
+  local value=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]') item needle
+  [ -n "$DS_CFG_ALLOW_TOKENS" ] || return 1
+  while IFS= read -r item; do
+    [ -n "$item" ] || continue
+    needle=$(printf '%s' "$item" | tr '[:upper:]' '[:lower:]')
+    case "$value" in
+      *"$needle"*) return 0 ;;
+    esac
+  done <<EOF
+$DS_CFG_ALLOW_TOKENS
+EOF
+  return 1
+}
+
 ds_main() {
-  local target='' baseline='' rules_arg='' only_new=0 json=0 help=0 rules_given=0 json_requested=0
+  local target='' baseline='' rules_arg='' config='' only_new=0 json=0 help=0 rules_given=0 json_requested=0
   local arg abs_target root scanned=0 text_ids css_ids markup_ids engines='context'
   local context brand pricing state reduced token selected='' file rel ext
   local files_file meta rows findings final_file filtered_file baseline_fps
@@ -141,6 +258,7 @@ ds_main() {
       --target) shift; target=${1-}; if [ $# -gt 0 ]; then shift; fi ;;
       --baseline) shift; baseline=${1-}; if [ $# -gt 0 ]; then shift; fi ;;
       --rules) shift; rules_arg=${1-}; rules_given=1; if [ $# -gt 0 ]; then shift; fi ;;
+      --config) shift; config=${1-}; if [ $# -gt 0 ]; then shift; fi ;;
       --only-new) only_new=1; shift ;;
       --json) json=1; shift ;;
       --help|-h) help=1; shift ;;
@@ -152,6 +270,9 @@ ds_main() {
     return 0
   fi
   [ -n "$target" ] || ds_error '--target is required' "$json_requested"
+  if [ -n "$config" ]; then
+    ds_load_config "$config" "$json_requested"
+  fi
   if [ "$only_new" = 1 ] && [ -z "$baseline" ]; then
     ds_error '--only-new requires --baseline <result.json>' "$json_requested"
   fi
@@ -184,11 +305,17 @@ ds_main() {
   meta=$(mktemp "${TMPDIR:-/tmp}/slop-meta.XXXXXX")
   rows=$(mktemp "${TMPDIR:-/tmp}/slop-rows.XXXXXX")
   findings=$(mktemp "${TMPDIR:-/tmp}/slop-findings.XXXXXX")
+  skipped_file=$(mktemp "${TMPDIR:-/tmp}/slop-skipped.XXXXXX")
+  region_file=$(mktemp "${TMPDIR:-/tmp}/slop-regions.XXXXXX")
+  filter_json_file=$(mktemp "${TMPDIR:-/tmp}/slop-filter.XXXXXX")
   alltext=$(mktemp "${TMPDIR:-/tmp}/slop-all.XXXXXX")
   final_file=$findings
   filtered_file=$findings
   baseline_fps=$findings
   : > "$rows"
+  : > "$skipped_file"
+  : > "$region_file"
+  : > "$filter_json_file"
   ds_collect_files "$abs_target" "$json_requested" > "$files_file"
   scanned=$(wc -l < "$files_file" | tr -d ' ')
 
@@ -201,6 +328,26 @@ ds_main() {
   text_ids=$(ds_ids_for text "$selected" | tr '\n' ',')
   css_ids=$(ds_ids_for css "$selected" | tr '\n' ',')
   markup_ids=$(ds_ids_for markup "$selected" | tr '\n' ',')
+  if [ "$DS_CFG_APPLIED" = 1 ] && [ -n "$DS_CFG_RULES_OFF" ]; then
+    filter_disabled_ids() {
+      local input=$1 id token
+      id=$input
+      if [ -z "$id" ]; then printf ''; return 0; fi
+      id=${id%,}
+      while IFS= read -r token; do
+        [ -n "$token" ] || continue
+        case " $DS_CFG_RULES_OFF " in
+          *" $token "*) ;;
+          *) printf '%s,' "$token" ;;
+        esac
+      done <<EOF
+$(printf '%s' "$id" | tr ',' '\n')
+EOF
+    }
+    text_ids=$(filter_disabled_ids "$text_ids")
+    css_ids=$(filter_disabled_ids "$css_ids")
+    markup_ids=$(filter_disabled_ids "$markup_ids")
+  fi
 
   rule_registry_rows | LC_ALL=C awk -F '\t' \
     '{ print $1 "\t" $2 "\t" $3 "\t" $5 "\t" $6 "\t" $7 "\t" $11 "\t" $10 }' > "$meta"
@@ -210,6 +357,11 @@ ds_main() {
     [ -n "$file" ] || continue
     rel=${file#"$root"/}
     [ -n "$rel" ] || rel=$file
+    DS_SKIP_FILE=''
+    if [ "$DS_CFG_APPLIED" = 1 ] && rs_is_markup_ext "$(rs_extname "$file")"; then
+      markup_ignore_regions "$file" > "$region_file"
+      if [ -s "$region_file" ]; then DS_SKIP_FILE=$region_file; fi
+    fi
     if [ -n "$text_ids" ]; then
       scan_text "$file" "$file" "$root" "$text_ids" | ds_emit_rows "$file" "$rel" text "$meta" "$brand" "$pricing" "$state" "$rows"
       engines="$engines
@@ -231,22 +383,40 @@ markup"
   done < "$files_file"
 
   if [ "$reduced" != 1 ] && LC_ALL=C grep -E -i -q 'animation[[:space:]]*:|@keyframes|(^|[^A-Za-z0-9_])animate-[A-Za-z0-9_-]+' "$alltext"; then
-    first_file=$(head -n 1 "$files_file")
-    rel=${first_file#"$root"/}
-    [ -n "$rel" ] || rel=$first_file
-    printf '%s\t1\tmotion.missing-reduced-motion\t%s\n' "$rel" "$(jq -cn --arg file "$rel" \
-      '{id: "motion.missing-reduced-motion", severity: "P1", confidence: "high", scope: "universal",
-        location: {file: $file, line: 1},
-        evidence: "Motion signature exists without a project reduced-motion signature.: animation signature",
-        action: "review", fix: "Check project-wide reduced-motion handling before adding a scoped fallback.",
-        engine: "css", evidenceKind: "static-source", detectionConfidence: "high",
-        remediationConfidence: "low", ruleClass: "universal", clusterKey: "motion-reduced-preference",
-        renderConfirmationRequired: false, exceptionStatus: "not-checked"}')" >> "$rows"
+    if { [ "$rules_given" != 1 ] || case ",$selected," in *,motion.missing-reduced-motion,*) true ;; *) false ;; esac; } \
+      && ! ds_rule_disabled motion.missing-reduced-motion; then
+      first_file=$(head -n 1 "$files_file")
+      rel=${first_file#"$root"/}
+      [ -n "$rel" ] || rel=$first_file
+      printf '%s\t1\tmotion.missing-reduced-motion\t%s\n' "$rel" "$(jq -cn --arg file "$rel" \
+        --arg severity "$(ds_rule_severity motion.missing-reduced-motion P1)" \
+        --arg evidence "$(rule_registry_field motion.missing-reduced-motion 5): animation signature" \
+        --arg fix "$(rule_registry_field motion.missing-reduced-motion 7)" \
+        --arg clusterKey "$(rule_registry_field motion.missing-reduced-motion 11)" \
+        '{id: "motion.missing-reduced-motion", severity: $severity, confidence: "high", scope: "universal",
+          location: {file: $file, line: 1},
+          evidence: $evidence,
+          action: "review", fix: $fix,
+          engine: "css", evidenceKind: "static-source", detectionConfidence: "high",
+          remediationConfidence: "low", ruleClass: "universal", clusterKey: $clusterKey,
+          renderConfirmationRequired: false, exceptionStatus: "not-checked"}')" >> "$rows"
+    fi
   fi
 
-  LC_ALL=C sort -s -t "$(printf '\t')" -k1,1 -k2,2n -k3,3 "$rows" | cut -f4- > "$findings"
+  if [ -s "$rows" ]; then
+    LC_ALL=C sort -s -t "$(printf '\t')" -k1,1 -k2,2n -k3,3 "$rows" > "$filter_json_file"
+    while IFS=$'\t' read -r rel line id shown_json; do
+      [ -n "$rel" ] || continue
+      if [ "$shown_json" = "$(printf '')" ]; then
+        printf '%s\t%s\t%s\n' "$rel" "$line" "$id" >> "$skipped_file"
+      else
+        printf '%s\n' "$shown_json" >> "$findings"
+      fi
+    done < "$filter_json_file"
+  fi
 
   total=$(wc -l < "$findings" | tr -d ' ')
+  skipped_count=$(wc -l < "$skipped_file" | tr -d ' ')
   known=0
   if [ -n "$baseline" ]; then
     baseline_used=true
@@ -294,15 +464,17 @@ markup"
     jq -n --arg target "$target" --argjson scannedFiles "$scanned" --argjson engines "$engines_json" \
       --argjson findings "$findings_json" --argjson summary "$summary" --arg risk "$risk" \
       --argjson baselineUsed "$baseline_used" --argjson onlyNew "$only_new_json" --argjson known "$known" \
+      --argjson skippedCount "$skipped_count" --argjson configApplied "$DS_CFG_APPLIED" \
       --argjson limitations "$DS_LIMITATIONS" \
       '{target: $target, version: 2, detectorVersion: 2, scannedFiles: $scannedFiles,
         enginesRun: $engines, findings: $findings, summary: $summary, genericOutputRisk: $risk,
         baseline: {used: $baselineUsed, onlyNew: $onlyNew, knownFindingsFiltered: $known},
-        limitations: $limitations}'
+        limitations: $limitations}
+       + (if $configApplied == 1 then {skipped: $skippedCount} else {} end)'
   else
     printf 'Scanned %s files; found %s findings (generic-output risk: %s).\n' "$scanned" "$final_count" "$risk"
   fi
-  rm -f -- "$files_file" "$meta" "$rows" "$findings" "$alltext" "$filtered_file" "$baseline_fps"
+  rm -f -- "$files_file" "$meta" "$rows" "$findings" "$alltext" "$filtered_file" "$baseline_fps" "$skipped_file" "$region_file" "$filter_json_file"
 }
 
 ds_main "$@"

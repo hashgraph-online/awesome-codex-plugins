@@ -13,7 +13,7 @@ rd_fail() {
 
 rd_main() {
   local cases=$RD_DEFAULT_CASES json=0 help=0 line index=0 total=0 failures='' results='' output ok
-  local id target expect_error case_json case_status code out err work
+  local id target expect_error extra_args case_json case_status code out err work
   while [ $# -gt 0 ]; do
     case "$1" in
       --cases)
@@ -53,10 +53,25 @@ rd_main() {
     id=$(printf '%s' "$case_json" | jq -r '.id')
     target=$(printf '%s' "$case_json" | jq -r '.target')
     expect_error=$(printf '%s' "$case_json" | jq -r 'if has("expectError") and .expectError == true then "1" else "0" end')
-    set +e
-    bash "$RD_DETECTOR" --target "$target" --json > "$work.out" 2> "$work.err"
-    code=$?
-    set -e
+    extra_args=$(printf '%s' "$case_json" | jq -r 'if (.args | type) == "array" then .args[] else empty end')
+    if [ -n "$extra_args" ]; then
+      while IFS= read -r _extra; do
+        [ -n "$_extra" ] || continue
+        set -- "$@" "$_extra"
+      done <<EOF
+$extra_args
+EOF
+      set +e
+      bash "$RD_DETECTOR" --target "$target" --json "$@" > "$work.out" 2> "$work.err"
+      code=$?
+      set -e
+      set --
+    else
+      set +e
+      bash "$RD_DETECTOR" --target "$target" --json > "$work.out" 2> "$work.err"
+      code=$?
+      set -e
+    fi
     out=$(cat -- "$work.out")
     err=$(cat -- "$work.err")
     failures=''
@@ -82,6 +97,9 @@ rd_main() {
               | (if (($o.summary | type) == "object") and ($o.summary | has($sev))
                    then ($o.summary[$sev] | tostring) else "undefined" end) as $actual
               | if $actual != ($entry.value | tostring) then "Expected \($sev)=\($entry.value), received \($actual)" else empty end),
+            (if ($case | has("expectedSkipped")) and (((($o | if has("skipped") then .skipped else "undefined" end)) | tostring) != ($case.expectedSkipped | tostring))
+               then "Expected skipped=\($case.expectedSkipped), received \(if $o | has("skipped") then ($o.skipped | tostring) else "undefined" end)"
+               else empty end),
             ((($case.expectedExceptions // {}) | to_entries[]) as $entry
               | (($o.findings // []) | map(select(.id == $entry.key)) | first) as $finding
               | if $finding == null then "Missing exception finding: \($entry.key)"

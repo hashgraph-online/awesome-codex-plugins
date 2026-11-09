@@ -5,15 +5,14 @@
 [![npm](https://img.shields.io/npm/v/@dodopayments/opencode-plugin.svg?style=flat-square)](https://www.npmjs.com/package/@dodopayments/opencode-plugin)
 [![Discord](https://img.shields.io/discord/1305511580854779984?label=discord&style=flat-square)](https://discord.gg/bYqAp4ayYh)
 
-The official Dodo Payments plugin for AI coding agents. Installs the Dodo Payments integration skills and two MCP servers across **Claude Code**, **Codex CLI**, **Cursor**, **VS Code / GitHub Copilot**, **Grok Build**, **Meta Muse Code**, **Gemini CLI**, **Antigravity**, **Junie**, **OpenCode**, and more, from a single source of truth.
+The official Dodo Payments plugin for AI coding agents. Installs the Dodo Payments integration skill and MCP server across **Claude Code**, **Codex CLI**, **Cursor**, **VS Code / GitHub Copilot**, **Grok Build**, **Meta Muse Code**, **Gemini CLI**, **Antigravity**, **Junie**, **OpenCode**, and more, from a single source of truth.
 
 This plugin conforms to the [Agent Plugins 1.0.0](https://agent-plugins.org/specification) specification: a root [`plugin.json`](./plugin.json), skills as immediate children of [`skills/`](./skills), and MCP servers in [`mcp.json`](./mcp.json). Clients with native Agent Plugins support load it directly; the provider-specific manifests in this repo are generated compatibility shims for clients that do not.
 
 ## What you get
 
-- **Dodo Payments API MCP server** - Live API access (payments, subscriptions, customers, products, refunds, licenses, usage). Authenticates via browser OAuth, no local credentials required.
-- **Dodo Knowledge MCP server** - No credentials. Semantic search over the current Dodo Payments documentation.
-- **Agent skills** - Integration guides (listed [below](#included-skills)), written as `SKILL.md` files with YAML frontmatter. Your agent loads the relevant skill on its own when a task calls for it.
+- **Dodo Payments MCP server** (`dodopayments`) - Documentation search plus live API access (payments, subscriptions, customers, products, refunds, licenses, usage). Authenticates via browser OAuth, no local credentials required.
+- **Agent skill** - One `dodo-payments` skill (listed [below](#included-skill)), written as a `SKILL.md` index with reference files your agent loads on demand when a task calls for them.
 
 ## Install
 
@@ -42,7 +41,7 @@ claude plugins marketplace add dodopayments/dodo-agent-plugin
 claude plugins install dodopayments@dodopayments
 ```
 
-The API MCP server signs in with OAuth, so there is no API key to paste. The first time your agent calls a Dodo tool, a Dodo Payments consent page opens in your browser: pick the business, mode and permissions. See [Sign-in and access](#sign-in-and-access).
+The MCP server signs in with OAuth, so there is no API key to paste. Your client starts the sign-in when the server is added or connected (run `/mcp` if it doesn't), and a Dodo Payments consent page opens in your browser: pick the business, mode and permissions. See [Sign-in and access](#sign-in-and-access).
 
 ### Codex CLI
 
@@ -57,8 +56,8 @@ Verify:
 
 ```bash
 codex plugin list     # dodopayments  installed, enabled
-codex mcp list        # dodo-knowledge, dodopayments-api
-codex mcp login dodopayments-api    # browser OAuth, only needed for the API server
+codex mcp list        # dodopayments
+codex mcp login dodopayments    # browser OAuth
 ```
 
 You can also install from inside the TUI: run `codex`, type `/plugins`, select the **Dodo Payments** marketplace and the **dodopayments** plugin, then choose **Install plugin**.
@@ -99,7 +98,7 @@ Point Kiro at the cloned folder. Skills load from `skills/`, MCP servers from `m
 gemini extensions install https://github.com/dodopayments/dodo-agent-plugin
 ```
 
-`gemini-extension.json` at the repo root is the manifest, and Gemini auto-discovers the `skills/` directory next to it. Verified on Gemini CLI 0.63.0: `gemini skills list` shows every skill and `gemini mcp list` shows both servers.
+`gemini-extension.json` at the repo root is the manifest, and Gemini auto-discovers the `skills/` directory next to it. Verified on Gemini CLI 0.63.0: `gemini skills list` shows the skill and `gemini mcp list` shows the server.
 
 ### VS Code / GitHub Copilot
 
@@ -107,9 +106,9 @@ gemini extensions install https://github.com/dodopayments/dodo-agent-plugin
 git clone https://github.com/dodopayments/dodo-agent-plugin.git
 ```
 
-Then open the Chat view, go to **Plugins**, and add the cloned folder. Skills load from `skills/`, and both MCP servers load from `.mcp.json`.
+Then open the Chat view, go to **Plugins**, and add the cloned folder. Skills load from `skills/`, and the MCP server loads from `.mcp.json`.
 
-> VS Code 1.125.1 does not key off the Agent Plugins `$schema` - the string appears nowhere in its bundle. Its loader picks a manifest by probing, in order, `.plugin/plugin.json`, then `.claude-plugin/plugin.json`, then a root `plugin.json`, and defaults MCP to `.mcp.json` rather than `mcp.json`. Because this repo ships a generated `.claude-plugin/plugin.json`, VS Code loads it through that branch. Everything works - all skills and both MCP servers - via the compatibility manifests rather than the spec ones.
+> VS Code 1.125.1 does not key off the Agent Plugins `$schema` - the string appears nowhere in its bundle. Its loader picks a manifest by probing, in order, `.plugin/plugin.json`, then `.claude-plugin/plugin.json`, then a root `plugin.json`, and defaults MCP to `.mcp.json` rather than `mcp.json`. Because this repo ships a generated `.claude-plugin/plugin.json`, VS Code loads it through that branch. Everything works, the skill and the MCP server, via the compatibility manifests rather than the spec ones.
 
 ### OpenCode
 
@@ -122,9 +121,9 @@ OpenCode distributes via npm. Add the plugin to your `opencode.json`:
 }
 ```
 
-Restart OpenCode. Both MCP servers (`dodopayments-api`, `dodo-knowledge`) are registered automatically via the plugin's `config` hook as native remote servers. No manual `mcp` block required. Run `opencode mcp auth dodopayments-api` to open the Dodo Payments consent page for the API server.
+Restart OpenCode. The MCP server (`dodopayments`) is registered automatically via the plugin's `config` hook as a native remote server. No manual `mcp` block required. Run `opencode mcp auth dodopayments` to open the Dodo Payments consent page.
 
-**Skills need the package installed locally plus one extra line.** OpenCode does not scan installed packages for skills, so point it at the package's `skills/` directory yourself. `skills.paths` entries resolve against the project directory, so the package must be present in the project's `node_modules` - OpenCode's own plugin cache is not the same location:
+**The skill needs the package installed locally plus one extra line.** OpenCode does not scan installed packages for skills, so point it at the package's `skills/` directory yourself. `skills.paths` entries resolve against the project directory, so the package must be present in the project's `node_modules` - OpenCode's own plugin cache is not the same location:
 
 ```bash
 npm install --save-dev @dodopayments/opencode-plugin
@@ -142,82 +141,65 @@ npm install --save-dev @dodopayments/opencode-plugin
 
 An absolute path works too, and avoids the local-install requirement.
 
-Verify with `opencode run "List every skill available to you by name."` - you should see every skill listed under [Included Skills](#included-skills). A skills path that does not exist is ignored silently, so check rather than assume.
+Verify with `opencode run "List every skill available to you by name."` - you should see `dodo-payments` (see [Included Skill](#included-skill)). A skills path that does not exist is ignored silently, so check rather than assume.
 
-> Versions before 0.5.0 documented these skills as auto-discovered. They were not: nothing in OpenCode scans an installed package, so OpenCode users had MCP servers but no skills. Setting `config.skills` from the plugin's `config` hook does not fix this either - the skill index is built before `config` hooks run, so it never registers anything.
+> Versions before 0.5.0 documented the skills as auto-discovered. They were not: nothing in OpenCode scans an installed package, so OpenCode users had the MCP servers but no skills. Setting `config.skills` from the plugin's `config` hook does not fix this either - the skill index is built before `config` hooks run, so it never registers anything.
 
-## Included Skills
+## Included Skill
 
-**Getting started**
+One skill, `dodo-payments`. Its `SKILL.md` is a short index; the details live in reference files that your agent loads only when the task needs them.
 
-| Skill | Description |
-|-------|-------------|
-| `dodo-best-practices` | SDK setup, environments, API keys, and the canonical checkout-to-webhook architecture |
-| `framework-adapters` | Official `@dodopayments/*` handlers for Next.js, Express, Hono, Astro, Remix, SvelteKit, Nuxt, Fastify, TanStack, Bun, Convex |
-| `testing-and-go-live` | Test mode, test payment methods, webhook testing, production launch checklist |
-| `dodo-mcp-usage` | When to use the documentation vs API MCP servers, test-mode safety rules, auth, troubleshooting |
-
-**Accepting payments**
-
-| Skill | Description |
-|-------|-------------|
-| `checkout-integration` | Checkout Sessions, payment links, and overlay checkout |
-| `subscription-integration` | Subscription lifecycle, trials, plan changes, proration, on-demand charges |
+| Reference | Covers |
+|-----------|--------|
+| `checkout` | Checkout Sessions, payment links, and overlay checkout |
 | `mobile-checkout` | In-app checkout for React Native, Flutter, iOS, and Android |
-| `webhook-integration` | Receiving and verifying webhooks via the Standard Webhooks spec |
-
-**Billing models**
-
-| Skill | Description |
-|-------|-------------|
-| `credit-based-billing` | Credit entitlements, balances, ledger, rollover, overage, meter-based deduction |
-| `usage-based-billing` | Meters, event ingestion, aggregation, and per-unit pricing |
+| `subscriptions` | Subscription lifecycle, trials, plan changes, proration, on-demand charges |
+| `webhooks` | Receiving and verifying webhooks via the Standard Webhooks spec |
+| `usage-billing` | Meters, event ingestion, aggregation, and per-unit pricing |
+| `credits` | Credit entitlements, balances, ledger, rollover, overage, meter-based deduction |
 | `license-keys` | License key activation, validation, and instance management |
-
-**Catalog and pricing**
-
-| Skill | Description |
-|-------|-------------|
-| `product-catalog-management` | Products, pricing, add-ons, collections, images, digital delivery |
-| `discounts-and-promotions` | Discount codes, eligibility, stacking, subscription-cycle limits |
+| `products` | Products, pricing, add-ons, collections, images, digital delivery |
+| `discounts` | Discount codes, eligibility, stacking, subscription-cycle limits |
 | `localized-pricing` | Localized pricing, adaptive currency, and purchasing power parity |
-
-**Customers and operations**
-
-| Skill | Description |
-|-------|-------------|
-| `customer-management` | Customers, self-service portal, payment methods, wallets |
-| `refunds-and-disputes` | Refunds, disputes and chargebacks, access reconciliation |
-
-**UI and integrations**
-
-| Skill | Description |
-|-------|-------------|
+| `customers` | Customers, self-service portal, payment methods, wallets |
+| `refunds-disputes` | Refunds, disputes and chargebacks, access reconciliation |
+| `framework-adapters` | Official `@dodopayments/*` handlers for Next.js, Express, Hono, Astro, Remix, SvelteKit, Nuxt, Fastify, TanStack, Bun, Convex |
+| `better-auth` | The `@dodopayments/better-auth` plugin for customer sync, checkout, portal |
 | `billing-sdk` | BillingSDK React components for pricing tables and billing UI |
-| `better-auth-integration` | The `@dodopayments/better-auth` plugin for customer sync, checkout, portal |
+| `testing-go-live` | Test mode, test payment methods, webhook testing, production launch checklist |
+| `mcp` | Using the MCP server, test-mode safety rules, auth, troubleshooting |
 
-Skills source: [`dodopayments/skills`](https://github.com/dodopayments/skills), vendored into `skills/` as real files. Provenance (upstream commit and applied transforms) is recorded in [`.skills-source.json`](./.skills-source.json).
+Skill source: [`dodopayments/skills`](https://github.com/dodopayments/skills) (`dodo-payments/dodo-payments`), vendored into `skills/` as real files. Provenance (upstream commit and applied transforms) is recorded in [`.skills-source.json`](./.skills-source.json).
 
-## Included MCP Servers
+## Included MCP Server
 
 | Server | Purpose | Auth |
 |--------|---------|------|
-| `dodopayments-api` | Live API access (payments, subscriptions, customers, products, refunds, licenses, usage) | OAuth (browser) |
-| `dodo-knowledge` | Semantic search over the Dodo Payments documentation | None |
+| `dodopayments` | Documentation search and live API access | OAuth (browser) |
 
-Both servers speak Streamable HTTP over HTTPS, and every manifest dials them natively - no `npx mcp-remote` bridge and no Node dependency. The canonical `mcp.json` uses the spec's `type: "streamable-http"`; the generated `.mcp.json` (Claude Code, Cursor, VS Code, Grok Build, Devin, Goose, Droid) uses the same endpoints spelled `type: "http"`, the name that dialect uses; Muse, Antigravity, Junie and Gemini get their own spellings from the generator.
+Tools:
+
+| Tool | What it does |
+|------|--------------|
+| `search_docs` | Searches the guides |
+| `read_docs_page` | Returns a docs page as markdown |
+| `search` | Finds SDK and API methods |
+| `execute` | Runs TypeScript SDK code against the signed-in account, in a sandbox |
+| `feedback` | Sends a note to the Dodo team, who triage each one; emails, IDs and keys are removed first |
+
+The server speaks Streamable HTTP over HTTPS, and every manifest dials it natively - no `npx mcp-remote` bridge and no Node dependency. The canonical `mcp.json` uses the spec's `type: "streamable-http"`; the generated `.mcp.json` (Claude Code, Cursor, VS Code, Grok Build, Devin, Goose, Droid) uses the same endpoint spelled `type: "http"`, the name that dialect uses; Muse, Antigravity, Junie and Gemini get their own spellings from the generator.
 
 ## Sign-in and access
 
-The API MCP server signs in with OAuth. No config in this plugin holds an API key, and no step asks you to paste one.
+The MCP server signs in with OAuth. No config in this plugin holds an API key, and no step asks you to paste one.
 
-1. The first tool call on `dodopayments-api` opens a Dodo Payments consent page in your browser. Some clients start the sign-in from a command instead: `codex mcp login dodopayments-api`, `opencode mcp auth dodopayments-api`, `muse mcp login dodopayments-api`, or `/mcp` in Claude Code.
+1. The server returns 401 until the client signs in, so the client starts OAuth when the server is added or connected and opens a Dodo Payments consent page in your browser. Some clients start it from a command: `/mcp` in Claude Code, `codex mcp login dodopayments`, `opencode mcp auth dodopayments`, `muse mcp login dodopayments`, or `devin mcp login dodopayments`.
 2. Sign in, then pick the business, the mode (test or live) and the permissions to grant.
 3. The client stores the token. To switch to another business or mode, sign out of the server in your client and sign in again.
 
 To review or revoke access, open the Dodo Payments dashboard at **Settings > Connected Apps**.
 
-Every client config in this repo dials `https://mcp.dodopayments.com/mcp` directly, sets no headers, and lets the client run OAuth discovery itself. A host that cannot run MCP OAuth gets `dodo-knowledge` only - today that is the xAI API (see [Grok](./docs/clients/grok.md)).
+Every client config in this repo dials `https://mcp.dodopayments.com/mcp` directly, sets no headers, and lets the client run OAuth discovery itself. A host that cannot run MCP OAuth can use `https://mcp.dodopayments.com/mcp?auth=optional`: `search_docs`, `read_docs_page` and `search` work without an account, and `execute` and `feedback` return 401. Today that is the xAI API (see [Grok](./docs/clients/grok.md)).
 
 ### Dodo CLI
 
@@ -231,18 +213,19 @@ dodo whoami                 # show the stored sign-in
 
 Over SSH or with no browser, run `dodo login --device` in place of `dodo login`, and enter the code on another device. To sign out when you finish, run `dodo logout all`.
 
-## Enable / disable individual MCP servers
+## Enable / disable the MCP server
 
-Both MCPs ship enabled by default. You can turn either one off independently.
+The MCP server ships enabled by default. You can turn it off.
 
 ### OpenCode
 
-The npm plugin reads two environment variables before registering MCPs:
+The npm plugin reads an environment variable before registering the MCP server:
 
 | Env var | Effect |
 |---|---|
-| `DODO_DISABLE_API_MCP=1` | Skips registering `dodopayments-api` |
-| `DODO_DISABLE_KNOWLEDGE_MCP=1` | Skips registering `dodo-knowledge` |
+| `DODO_DISABLE_API_MCP=1` | Skips registering `dodopayments` |
+
+`DODO_DISABLE_KNOWLEDGE_MCP` is still accepted and does nothing.
 
 Truthy values: `1`, `true`, `yes`, `on` (case-insensitive). Export the var in your shell profile or set it inline:
 
@@ -252,14 +235,14 @@ DODO_DISABLE_API_MCP=1 opencode
 
 ### Claude Code, Codex CLI, Cursor
 
-These clients load MCPs from the static `.mcp.json` shipped with the plugin. To disable a server, override its entry in your own project-level config and set `"enabled": false`.
+These clients load MCPs from the static `.mcp.json` shipped with the plugin. To disable the server, override its entry in your own project-level config and set `"enabled": false`.
 
-**Claude Code** - edit `.mcp.json` at your project root (or run `claude mcp disable dodopayments-api`):
+**Claude Code** - edit `.mcp.json` at your project root (or run `claude mcp disable dodopayments`):
 
 ```json
 {
     "mcpServers": {
-        "dodopayments-api": {
+        "dodopayments": {
             "type": "http",
             "url": "https://mcp.dodopayments.com/mcp",
             "enabled": false
@@ -272,7 +255,7 @@ Run `/reload-plugins` to apply.
 
 **Codex CLI / Cursor** - the same `enabled: false` pattern works in any project-level `.mcp.json` that overrides the plugin's bundled file. Restart the client after editing.
 
-> Per-MCP toggles inside the Claude Code `/plugin` UI are tracked upstream in [anthropics/claude-code#27105](https://github.com/anthropics/claude-code/issues/27105) and [#46373](https://github.com/anthropics/claude-code/issues/46373). Until those land, the `enabled: false` override above is the supported path.
+> Per-server toggles inside the Claude Code `/plugin` UI are tracked upstream in [anthropics/claude-code#27105](https://github.com/anthropics/claude-code/issues/27105) and [#46373](https://github.com/anthropics/claude-code/issues/46373). Until those land, the `enabled: false` override above is the supported path.
 
 ## A prompt to try first
 
@@ -282,7 +265,7 @@ Once the plugin is active, try:
 Set up Dodo Payments webhook handlers in my Next.js app for payment.succeeded and subscription.active events.
 ```
 
-Your agent will load the `webhook-integration` skill, use the `dodo-knowledge` MCP to pull the latest payload shapes, and write a handler with signature verification following the Standard Webhooks spec.
+Your agent will load the `dodo-payments` skill's webhooks reference, use the server's `search_docs` tool to pull the latest payload shapes, and write a handler with signature verification following the Standard Webhooks spec.
 
 ## Local development
 

@@ -33,8 +33,39 @@ Waivers never:
 
 Prefer a value waiver for an explicit brand font/gradient and a file waiver only for generated, exported, or deliberate demonstration files. A source-local `ai-slop-disable-next-line <rule> -- <reason>` marker is documentation-only guidance for portable generated output; this skill does not write markers automatically.
 
+## Project configuration
+
+`--config <file.json>` points the detector at one project configuration document, validated against `assets/detector-config.schema.json`. The file is optional; without it the detector behaves exactly as before.
+
+```json
+{
+  "version": 1,
+  "rules": { "surface.radial-glow": "off", "copy.cliche": "P1" },
+  "allowFonts": ["BrandMono"],
+  "allowEasings": ["cubic-bezier(0.2, 0.6, 0.2, 1)"],
+  "designTokens": { "--brand-mono": "BrandMono" }
+}
+```
+
+- `rules` maps a rule id to `off`, `P1`, `P2`, or `P3`. `off` removes the rule from the scan; a severity value replaces the registry default in the report.
+- `--rules <id,id>` narrows one run to the named rule ids and exits 2 on an unknown id; it selects, it never re-enables a rule the config turned `off`. The catalogue's Static column decides which ids exist: only `yes` and `partial` rows are registered (`references/anti-pattern-catalog.md`).
+- `motion.missing-reduced-motion` is a project-wide rule the detector evaluates across the whole scan rather than per file; it is selected, disabled, and severity-overridden like any other id.
+- `allowFonts`, `allowEasings`, and `designTokens` are allowlists. A finding whose matched excerpt contains an allowlisted value moves to the skipped count instead of the findings list.
+- `data-detect-ignore="<rule-id>"` (or `*`) on a markup element exempts that element's span for the named rule. Its hits move to the skipped count, so exemptions stay visible.
+- The JSON report carries a top-level `skipped` count only when `--config` was used.
+- An invalid configuration exits 2 with a schema error and runs no rule. A missing or malformed file exits 2 the same way.
+
+Config is not a waiver: it changes what the project asked for, while a waiver documents one sanctioned exception with a source and a reason. A configuration file never suppresses P0, hides a protected-contract failure, or replaces a user decision.
+
 ## Sources
 
-> Claims checked 2026-09-21. No external source was used in this file.
+> Checked 2026-11-09.
 
-The baseline and waiver rules are this package's own contract for its bundled detector and waiver validator. The `ai-slop-disable-next-line` marker shape is documented package guidance, not an external standard.
+| Claim | Source |
+|---|---|
+| Per-rule severity overrides, font and easing allowlists, design-token allowlists, and a per-element ignore attribute for a slop detector | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored in this package's own words; the source repository has no license and no text or code was copied |
+| The baseline and waiver rules, the `off\|P1\|P2\|P3` value set, and the `skipped` report field | this package's own contract for its bundled detector and waiver validator |
+
+### Evidence grade
+
+The mechanism idea is drawn from an unlicensed reference and was re-implemented here; no text or code was reused. The schema, the value set, and the `skipped` field are this package's own contract and are exercised by `assets/evals/detector-cases.jsonl`.

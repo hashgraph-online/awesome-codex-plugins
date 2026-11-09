@@ -36,6 +36,6 @@ in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/edge
 `%APPDATA%\nightshift\catalogs\edge-cases` on Windows), or in a folder named by
 `catalogs.edge-cases.paths`. `ns catalog-new --catalog edge-cases --key <key>` starts one from the
 template in force, `catalogs.edge-cases.template` names the owner's own template, and
-`ns catalog-index --catalog edge-cases --check-draft FILE` names each section a draft lacks.
+`ns catalog-index --catalog edge-cases --check-draft FILE` checks what Nightshift reads from a draft.
 [Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
 Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).

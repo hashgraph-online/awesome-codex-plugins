@@ -32,6 +32,7 @@ finding을 분류하기 전에 읽는다. 이 파일은 finding class, rule ID, 
 - `remediation confidence`는 finding을 brief 또는 protected contract 위반 없이 바꿀 수 있는 확실성이다.
 - `candidate` exception은 명시 local brand, data, real-state evidence가 preserve를 뒷받침한다는 뜻이다. review를 위해 계속 보이며 rule을 suppress하거나 auto-fix 권한을 주지 않는다.
 - `generic-output risk`는 context-confirmed cluster를 바탕으로 한 `low`, `medium`, `high` 우선순위다. AI가 인터페이스를 작성했다는 증거가 아니다.
+
 ## 필수 예외 확인
 
 - 명시적으로 요구한 브랜드 색, gradient, font, reference는 기본적으로 slop이 아니다.

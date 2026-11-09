@@ -16,7 +16,7 @@ Read this reference in `install`. It owns the method order, the per-framework re
 
 Take the first method that fits the site, and state why the later ones were rejected.
 
-1. **An existing GTM container.** If the page already loads `gtm.js`, keep the measurement inside that container and do not add a second tag. Google's install page says: "If you are installing a Google tag for the first time, we recommend using Google Tag Manager."
+1. **An existing GTM container.** If the page already loads `gtm.js`, keep the measurement inside that container and do not add a second tag. Google's install page says: "If you are installing a Google tag for the first time, we recommend using Google Tag Manager." Naming that tag is the end of this skill's container work: creating or editing container items is a separate change with its own approval, so this run owns the page code that feeds the container - the consent default order, one page-view source, the CSP entries, and the `dataLayer` pushes - and lists the container tag as a hand-off.
 2. **The framework's official integration.** When the framework ships a supported component or module, use it instead of a hand-written snippet: `@next/third-parties/google`, `@nuxt/scripts`, Site Kit for WordPress, and the Google & YouTube channel for Shopify.
 3. **The plain Google tag snippet.** Fall back to `gtag.js` when nothing above exists. Place it "immediately after the opening `<head>` HTML tag", and keep event calls below the snippet, because Google does not process data from events placed above it.
 

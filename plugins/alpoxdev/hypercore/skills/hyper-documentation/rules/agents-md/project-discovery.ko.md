@@ -42,6 +42,7 @@
 | Generated 또는 forbidden file | Generator header, ignore file, docs | confirmed / ambiguous | 근거가 있을 때만 금지 추가 |
 | Architecture boundary | Imports, configs, local docs | confirmed / contested | conflict를 보존하거나 unsupported claim 생략 |
 | Nested scope 필요성 | Subtree별 command/convention 차이 | justified / unjustified | 정당할 때만 nested file 생성 |
+| 배치 점수 | 하위 트리에 대해 저장소에서 측정한 신호 | justified / unjustified / unmeasured | `rules/agents-md/nested-placement.md`의 점수로 자식 파일을 판정한다. unmeasured 신호는 절대로 0으로 취급하지 않는다 |
 | 같은 범위의 규칙 파일 분리 | admission test 뒤에도 남은 길거나 조건부로 관련된 세부 내용 | justified / unjustified | 직접적인 조건부 링크가 core 계약을 보존할 때만 인접 `rules/*.md` 사용 |
 | 대상 런타임 | 기존 `AGENTS.md` 표면, CI agent job, 에디터/도구 설정, 사용자 진술 | confirmed / assumed | Claude Code는 v2.1.277부터 `AGENTS.md`를 직접 읽는다. 기존 `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`는 보고만 하고 만들거나 조정하지 않는다 |
 
@@ -92,6 +93,7 @@ Package manager의 일반적인 default만으로 command를 추론하지 않는�
 - [ ] 대표 source/test structure를 조사했다.
 - [ ] 각 candidate rule에 evidence, uncertainty, explicit omission 중 하나가 있다.
 - [ ] nested file에 입증된 placement reason이 있고, `AGENTS.md`를 억제하는 기존 `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`가 있으면 보고용으로 경로를 기록하고 변경하지 않았다.
+- [ ] 각 nested 배치 판정은 `rules/agents-md/nested-placement.md`의 배치 점수와 `unmeasured` 항목, 예산과 비교한 깊이를 함께 담는다.
 - [ ] 인접한 `rules/*.md` 산출물에 같은 범위라는 배치 근거, 충돌하지 않는 디렉터리, 관할 `AGENTS.md`의 직접 읽기 조건이 있다.
 - [ ] 대상 런타임이 confirmed 또는 assumed로 기록되었고, Claude Code가 대상이면 Claude 전용 파일을 만들지 않고 `AGENTS.md` 직접 읽기로 처리했다.
 

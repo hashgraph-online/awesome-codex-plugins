@@ -47,6 +47,8 @@ Every item of `rules/craft-floor.md` §9 is `pass`, `n/a`, or `static_only` with
 - every enabled control shows `cursor: pointer`, is a native element, has an accessible name, and has distinct hover, active, and disabled states (`references/accessible-interaction.md`)
 - no horizontal overflow, nothing clipped, and targets at least 24×24 CSS px (44 px on touch surfaces) with space between them at the narrowest width (`references/responsive-reflow.md`)
 - every media element sized, the hero image not lazy, no render-blocking third-party script
+- chart geometry (`rules/rendered-evidence.md`, chart geometry checks) measured, or reported `unverified` when rendered measurements are unavailable (`references/chart-artifact.md`)
+- the WCAG 2.2 table in `assets/report-template.md` (`## Processing summary`): every listed criterion is `PASS`, `FAIL`, or `N/A` with a reason and browser evidence; a missing criterion or an evidence-free `PASS` fails
 
 ## 5. Block 3: Purpose and Dose (technique allowed, reason required)
 
@@ -90,12 +92,13 @@ When `DESIGN.md`, a brand guide, or the user's own sample asks for something a B
 
 ## Sources
 
-> Checked 2026-11-07.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
 | The purpose test, the liveliness bar, the three-part definition of done, the Hard Gate / Purpose-Gate / Liveliness / Quality blocks, the dose caps, evidence for every PASS, the recorded click-through, the conflict protocol, and "the gate cannot be replaced by another workflow" | <https://github.com/miqdadbadjuber/anti-slop> (commit `9504989`, `antislop/SKILL.md` Parts 1-3 and Delivery Gate; MIT, Copyright 2026 Miqdad Badjuber). Rewritten for this package and mapped to its own rule IDs; the source's R-01 to R-40 numbering is not reused. |
 | A builder grading its own output favors the median, so the gate asks for evidence rather than a verdict | `rules/independent-review.md` |
+| The WCAG 2.2 per-criterion requirement for Block 2 | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored in this package's own words; the table itself lives in `assets/report-template.md` |
 
 ### Evidence grade
 

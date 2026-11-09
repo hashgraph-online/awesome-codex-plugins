@@ -15,36 +15,40 @@ Load this catalog only when mapping detector output or a rendered observation to
 |---|---|---|---|---:|---:|---|
 | `surface.gradient-text` | surface | default-risk | P2 | yes | no | Gradient-clipped headline; preserve explicit brand/reference typography |
 | `surface.purple-gradient` | surface | default-risk | P2 | yes | no | Purple→blue/pink gradient; preserve documented brand tokens |
-| `surface.random-glow` | surface | review-only | P3 | partial | no | Glow without hierarchy/brand role |
+| `surface.random-glow` | surface | review-only | P3 | no | no | Glow without hierarchy/brand role |
 | `surface.decorative-orb` | surface | default-risk | P2 | partial | yes | Orb/blob without content, interaction, semantic, or brand role |
 | `surface.thick-side-stripe` | surface | default-risk | P2 | yes | no | Thick colored card edge without meaning |
-| `surface.uniform-radius` | surface | context-dependent | P3 | partial | no | One radius on every hierarchy level; design-system token may justify it |
-| `surface.uniform-shadow` | surface | context-dependent | P3 | partial | no | Same elevation everywhere; explicit elevation system may justify it |
+| `surface.thin-side-stripe` | surface | default-risk | P2 | yes | no | Thin one-sided border on a rounded or card-like box; confirm it carries state or brand meaning |
+| `surface.pseudo-stripe` | surface | default-risk | P2 | yes | no | `::before`/`::after` bar of 1–6px with a solid background; confirm it carries state or brand meaning |
+| `surface.inset-stripe` | surface | default-risk | P2 | yes | no | `inset` box-shadow that paints a single edge; confirm it carries state or brand meaning |
+| `surface.gradient-border-image` | surface | default-risk | P2 | yes | no | Gradient `border-image`; confirm it carries state or brand meaning |
+| `surface.hard-stop-band` | surface | default-risk | P2 | yes | no | Hard-stop linear gradient band; confirm it carries state or brand meaning |
+| `surface.uniform-radius` | surface | context-dependent | P3 | no | no | One radius on every hierarchy level; design-system token may justify it |
+| `surface.uniform-shadow` | surface | context-dependent | P3 | no | no | Same elevation everywhere; explicit elevation system may justify it |
 | `surface.status-dot` | surface | default-risk | P3 | partial | yes | Dot without state or legend |
 | `surface.version-label` | surface | default-risk | P3 | partial | yes | Decorative “v2.0/new” label without product meaning |
-| `surface.decorative-pill` | surface | default-risk | P3 | partial | yes | Image/heading pill with no category, state, or action role |
-| `surface.token-drift` | surface | default-risk | P2 | partial | no | Literal color/font outside confirmed tokens; local exception may exist |
+| `surface.decorative-pill` | surface | default-risk | P3 | no | yes | Image/heading pill with no category, state, or action role |
+| `surface.token-drift` | surface | default-risk | P2 | no | no | Literal color/font outside confirmed tokens; local exception may exist |
 | `structure.three-equal-cards` | structure | context-dependent | P1 | partial | no | Three identical icon-heading-copy cards; preserve real three-peer comparisons |
 | `structure.card-in-card` | structure | default-risk | P2 | yes | no | Nested presentation cards without semantic grouping |
-| `structure.centered-hero` | structure | review-only | P3 | partial | no | Repeated centered hero; page purpose may require it |
+| `structure.centered-hero` | structure | review-only | P3 | no | no | Repeated centered hero; page purpose may require it |
 | `structure.template-sequence` | structure | review-only | P2 | no | no | Hero→3 features→CTA→footer without product-specific information architecture |
-| `structure.ai-nav` | structure | review-only | P3 | partial | no | Wordmark-left, links-middle, CTA-right fingerprint |
-| `structure.ai-footer` | structure | review-only | P3 | partial | no | Generic Product/Company/Resources/Legal four-column footer |
-| `structure.bento-without-ia` | structure | context-dependent | P2 | partial | no | Bento placement unrelated to priority or data |
+| `structure.ai-nav` | structure | review-only | P3 | no | no | Wordmark-left, links-middle, CTA-right fingerprint |
+| `structure.ai-footer` | structure | review-only | P3 | no | no | Generic Product/Company/Resources/Legal four-column footer |
+| `structure.bento-without-ia` | structure | context-dependent | P2 | no | no | Bento placement unrelated to priority or data |
 | `copy.placeholder-person` | typography-copy | default-risk | P1 | yes | yes | John/Jane Doe or obvious fake testimonial identity |
 | `copy.placeholder-brand` | typography-copy | default-risk | P1 | yes | yes | Acme/Nexus/SmartFlow-like placeholder presented as real brand |
 | `copy.cliche` | typography-copy | context-dependent | P3 | yes | no | Elevate, seamless, next-gen, unleash, game-changer; quote/domain use may be valid |
 | `copy.unsupported-metric` | typography-copy | default-risk | P1 | partial | yes | Percentage/metric claim with no local source |
-| `copy.unsupported-proof` | typography-copy | default-risk | P1 | partial | yes | Testimonial, trust badge, proof bar, or claim without source |
-| `copy.repeated-eyebrow` | typography-copy | review-only | P3 | partial | no | Uppercase eyebrow on every section |
+| `copy.unsupported-proof` | typography-copy | default-risk | P1 | no | yes | Testimonial, trust badge, proof bar, or claim without source |
 | `motion.transition-all` | motion-interaction | universal | P2 | yes | yes | Broad transition; replace with the properties that actually change |
 | `motion.layout-property` | motion-interaction | universal | P1 | yes | no | Animates top/left/width/height/margin/padding |
 | `motion.missing-reduced-motion` | motion-interaction | universal | P1 | partial | no | Significant motion with no reduced-motion path |
 | `motion.scale-everywhere` | motion-interaction | default-risk | P2 | yes | no | Same hover scale on unrelated controls/cards |
-| `motion.hover-only` | motion-interaction | universal | P1 | partial | no | Essential affordance or content available only on hover |
-| `quality.missing-focus-visible` | quality | universal | P1 | partial | no | Visible controls have focus suppression and no clear replacement |
+| `motion.hover-only` | motion-interaction | universal | P1 | no | no | Essential affordance or content available only on hover |
+| `quality.missing-focus-visible` | quality | universal | P1 | no | no | Visible controls have focus suppression and no clear replacement |
 | `quality.missing-alt` | quality | universal | P1 | partial | no | Informative image lacks alt; decorative image may need empty alt |
-| `quality.mobile-overflow-risk` | quality | universal | P1 | partial | no | Fixed/min-width likely to overflow; rendering must confirm |
+| `quality.mobile-overflow-risk` | quality | universal | P1 | no | no | Fixed/min-width likely to overflow; rendering must confirm |
 | `quality.fake-chrome` | quality | default-risk | P2 | yes | no | Browser/phone/IDE/terminal chrome used as unsupported decoration |
 | `structure.repeated-eyebrow` | structure | review-only | P3 | yes | no | Repeated eyebrow/kicker signature; preserve labels that carry real hierarchy or sequence |
 | `structure.numbered-section-label` | structure | context-dependent | P3 | yes | no | 01/02/03 markers; preserve a sequence users must follow |
@@ -56,7 +60,7 @@ Load this catalog only when mapping detector output or a rendered observation to
 | `motion.pulse-without-state` | motion-interaction | default-risk | P2 | yes | no | Pulse signature; preserve recording, sync, unread, notification, or live state |
 | `quality.heading-skip` | quality | universal | P2 | yes | no | Static h1→h3 heading skip; component composition may require review |
 | `type.unchosen-default-font` | typography-copy | default-risk | P3 | no | no | Inter, Roboto, a system stack, or a fashionable display face used everywhere with no reason in the brief or system; preserve a documented brand face |
-| `type.font-not-shipped` | quality | universal | P2 | partial | no | A declared face the build never loads, so the screen falls back silently; preserve system stacks declared on purpose |
+| `type.font-not-shipped` | quality | universal | P2 | no | no | A declared face the build never loads, so the screen falls back silently; preserve system stacks declared on purpose |
 | `surface.second-wave-default` | surface | review-only | P3 | no | no | Cream background with an italic serif display, emerald "safe" accent, or neobrutalist hard offset shadow used as the escape from the first-wave look; preserve when the brief or reference calls for it |
 | `structure.bento-escape` | structure | context-dependent | P2 | no | no | Bento grid whose tile sizes do not follow priority or data; preserve a bento that encodes real priority |
 | `copy.ai-sparkle` | typography-copy | default-risk | P3 | no | no | Sparkle, wand, or star icon and purple as the "AI color"; preserve when the brand already uses that mark |
@@ -97,13 +101,15 @@ Load this catalog only when mapping detector output or a rendered observation to
 
 ## Registry interpretation
 
-Static `yes` means the bundled detector can find a source signature, not that the UI is defective. `partial` means source heuristics need context or rendering. Browser-only and subjective patterns remain reportable only with an explicit warrant and caveat. For remediation steps, load `fix-playbook.md`.
+Static `yes` means the bundled detector emits a source signature for the rule, not that the UI is defective. `partial` means the detector emits it from a heuristic signature that needs context or rendering before it becomes a defect. `no` means the bundled detector never emits the rule: it is reported only from source reading, and only with an explicit warrant and caveat. For remediation steps, load `fix-playbook.md`.
+
+The registry in `scripts/rule-registry.sh` holds exactly the `yes` and `partial` rows, so a `ruleId` the detector cannot emit is rejected by `--rules`, by `--config`, and by the waiver validator.
 
 Detector v2 reports `engine`, `evidenceKind`, detection/remediation confidence, cluster, and exception status. A `candidate` exception remains a visible review item; it does not suppress a finding or authorize automatic removal.
 
 ## Second wave and review date
 
-The rows from `type.unchosen-default-font` to `structure.mockup-boxed`, and every row after `structure.viewport-height` whose Static column is `no`, are review rules: the bundled detector does not emit them, and they are reported from source reading, the delivery gate, the craft-floor checklist, or the independent review. Defaults change each year; re-read the sources below and this table at least every six months. `references/screen-patterns.md` gives the instead-of for the landing, dashboard, and decoration rows.
+Every row whose Static column is `no` is a review rule: the bundled detector does not emit it, so it is reported from source reading, the delivery gate, the craft-floor checklist, or the independent review. Defaults change each year; re-read the sources below and this table at least every six months. `references/screen-patterns.md` gives the instead-of for the landing, dashboard, and decoration rows.
 
 ## Sources
 

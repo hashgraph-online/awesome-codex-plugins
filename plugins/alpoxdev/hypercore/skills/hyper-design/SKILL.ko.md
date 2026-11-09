@@ -10,7 +10,7 @@ compatibility: 대상 프로젝트에 대한 파일 읽기·검색·편집과 `.
 @rules/delivery-gate.md
 @rules/validation-and-reporting.md
 
-# Hyper UI/UX
+# Hyper Design
 
 > 그리기 전에 디자인을 정하고, 모든 화면을 측정 가능한 정석 수치 기준에 맞추고, 만든 쪽이 혼자 채점하지 않은 증거로 결과를 판정한다.
 
@@ -109,7 +109,7 @@ compatibility: 대상 프로젝트에 대한 파일 읽기·검색·편집과 `.
 
 - 코어(`SKILL.md`): 발동 조건, 모드, 계약, 워크플로, 정지 조건.
 - 규칙: [rules/workflow.md](rules/workflow.md)(모드, 단계, 예산, 산출물, 부수 효과 게이트), [rules/design-direction.md](rules/design-direction.md)(브리프, 방문 모드, 참조, 토큰, 디자인 읽기와 다이얼, 결정 이유, 버린 대안), [rules/craft-floor.md](rules/craft-floor.md)(수치 정석 수치 기준), [rules/slop-taxonomy.md](rules/slop-taxonomy.md)(발견 사항 분류, 동시 출현, 처리), [rules/evidence-and-severity.md](rules/evidence-and-severity.md)(발견 사항 기록과 심각도), [rules/safe-editing.md](rules/safe-editing.md)(쓰기 모드가 바꿀 수 있는 것), [rules/waivers-and-baselines.md](rules/waivers-and-baselines.md), [rules/rendered-evidence.md](rules/rendered-evidence.md), [rules/independent-review.md](rules/independent-review.md), [rules/delivery-gate.md](rules/delivery-gate.md)(정직성, 정석 수치, 목적과 사용량, 생동감), [rules/validation-and-reporting.md](rules/validation-and-reporting.md).
-- 참조: [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md), [references/context-signals.md](references/context-signals.md), [references/fix-playbook.md](references/fix-playbook.md), [references/replacement-patterns.md](references/replacement-patterns.md), [references/mockup-craft.md](references/mockup-craft.md), [references/screen-patterns.md](references/screen-patterns.md), [references/responsive-reflow.md](references/responsive-reflow.md), [references/accessible-interaction.md](references/accessible-interaction.md), [references/ui-copy.md](references/ui-copy.md), [references/contrast-check.md](references/contrast-check.md), [references/performance-baseline.md](references/performance-baseline.md), [references/browser-evidence-schema.md](references/browser-evidence-schema.md), [references/eval-rubric.md](references/eval-rubric.md).
+- 참조: [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md), [references/context-signals.md](references/context-signals.md), [references/fix-playbook.md](references/fix-playbook.md), [references/replacement-patterns.md](references/replacement-patterns.md), [references/mockup-craft.md](references/mockup-craft.md), [references/screen-patterns.md](references/screen-patterns.md), [references/responsive-reflow.md](references/responsive-reflow.md), [references/accessible-interaction.md](references/accessible-interaction.md), [references/ui-copy.md](references/ui-copy.md), [references/contrast-check.md](references/contrast-check.md), [references/performance-baseline.md](references/performance-baseline.md), [references/browser-evidence-schema.md](references/browser-evidence-schema.md), [references/eval-rubric.md](references/eval-rubric.md), [references/native-platforms.md](references/native-platforms.md), [references/print-paged.md](references/print-paged.md), [references/korean-break-quality.md](references/korean-break-quality.md), [references/rendered-measurements.md](references/rendered-measurements.md).
 - 스크립트(bash 3.2+, jq 1.6+): 정적 검출에는 `scripts/detect-slop.sh`와 `scripts/analyze-structure.sh`를 쓴다. 검증에는 `scripts/validate-report.sh`, `scripts/validate-waivers.sh`, `scripts/collect-rendered-evidence.sh`를 쓴다. 패키지 자체 회귀 모음에는 `scripts/run-detector-evals.sh`와 `scripts/run-contract-evals.sh`를 쓴다. 이들이 source하는 엔진, 맥락, registry helper도 포함한다.
 - 자산: `assets/design-brief-template.ko.md`와 `assets/report-template.ko.md`(옆에 영어 sibling이 있다), `assets/waiver.schema.json`, 검출기 fixture, `assets/evals/hyper-design-cases.jsonl`.
 
@@ -142,15 +142,20 @@ compatibility: 대상 프로젝트에 대한 파일 읽기·검색·편집과 `.
 - 브라우저 기능이나 렌더 handoff가 있을 때만 [rules/rendered-evidence.md](rules/rendered-evidence.md)와 [references/browser-evidence-schema.md](references/browser-evidence-schema.md)를 읽는다.
 - 모든 쓰기 모드와 audit의 검토 단계 전에 [rules/independent-review.md](rules/independent-review.md)를 읽는다.
 - 브리프, 정체성, 데이터 모양이 불확실할 때 [references/context-signals.md](references/context-signals.md)를 읽는다.
+- 검증된 handoff가 측정 field를 담고 있거나 브라우저가 그린 결과에 주장이 기대는 경우 [references/rendered-measurements.md](references/rendered-measurements.md)를 읽는다.
 - 검출기 결과나 관찰을 규칙에 연결할 때 [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md)를 읽고, 그 수정은 [references/fix-playbook.md](references/fix-playbook.md)에서 찾는다. 수정에 다른 구조가 필요할 때만 [references/replacement-patterns.md](references/replacement-patterns.md)를 읽는다.
 - mockup 모드에서는 [references/mockup-craft.md](references/mockup-craft.md)를 읽는다.
 - 랜딩 페이지, 마케팅 섹션, 대시보드, 로그인 후 화면 작업이면 [references/screen-patterns.md](references/screen-patterns.md)를 읽는다.
 - 레이아웃이 폰부터 데스크톱까지 버텨야 하면 [references/responsive-reflow.md](references/responsive-reflow.md)를 읽는다.
 - 컨트롤, 폼, 대화상자, 탭, 동적 콘텐츠를 만들거나 검토할 때 [references/accessible-interaction.md](references/accessible-interaction.md)를 읽는다.
 - 제목, 버튼, 라벨, 상태 메시지를 쓰거나 검토할 때 [references/ui-copy.md](references/ui-copy.md)를 읽는다.
+- 제품 언어가 한국어이고 제목, 라벨, 액션, 상태 메시지를 쓰거나 검토할 때 [references/korean-break-quality.md](references/korean-break-quality.md)를 읽는다.
 - 색 조합을 판단하기 전에 [references/contrast-check.md](references/contrast-check.md)를 읽는다.
 - 프로덕션 페이지, 레이아웃 이동이나 첫 페인트에 관한 발견 사항, 웹 품질 검토에는 [references/performance-baseline.md](references/performance-baseline.md)를 읽는다.
 - 검출기 규칙, fixture, eval case를 바꿀 때만 [references/eval-rubric.md](references/eval-rubric.md)를 읽는다.
+- iOS나 Android 화면 작업이면 [references/native-platforms.md](references/native-platforms.md)를 읽는다.
+- 출력이 페이지를 나눠 타면(인쇄, PDF, 청구서, 보고서) [references/print-paged.md](references/print-paged.md)를 읽는다.
+- 산출물이 단독 파일로 내보내지는 숫자 차트(하나의 HTML 파일에 묶인 막대·꺾은선·점 값)이면 [references/chart-artifact.md](references/chart-artifact.md)를 읽는다.
 - 결과를 넘기기 전과 감사 발견 사항을 쓰기 전에 [rules/delivery-gate.md](rules/delivery-gate.md)를 읽는다.
 - 보고서를 쓰기 전에 [rules/validation-and-reporting.md](rules/validation-and-reporting.md)를 읽는다.
 

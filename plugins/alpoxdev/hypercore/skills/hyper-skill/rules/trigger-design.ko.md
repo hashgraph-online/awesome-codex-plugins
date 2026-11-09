@@ -194,7 +194,7 @@ you…", "You can use this to…")은 발견에 문제를 만듭니다. 위 예�
 | Claude Code의 1% 목록 예산, 항목당 1,536자 한도, 적게 호출한 순서로 떨어짐, `disable-model-invocation` | <https://code.claude.com/docs/en/skills> |
 | 평가 차원으로서의 공존, 트리거 가로채기 실패, 요청당 20개 스킬이라는 API 한도 | <https://platform.claude.com/docs/en/agents-and-tools/agent-skills/enterprise> |
 | 측정된 비율에 대한 `stochastic-model` 측정 계약 | `instructions/autoresearch/references/config-and-metrics.md` §2 |
-| 저장소 측정, 2026-11-03: `description` 필드 합계가 15,869자인 스킬 40개(8,000자 대체 한도 초과). `refactor`가 설명 7개에, `create`가 14개에 나타남 | 이 저장소 |
+| 저장소 측정, 2026-11-09: `description` 필드 합계가 15,932자인 스킬 26개(8,000자 대체 한도 초과). `refactor`가 설명 4개에, `create`가 3개에 나타남 | 이 저장소 |
 
 ### 증거 등급
 

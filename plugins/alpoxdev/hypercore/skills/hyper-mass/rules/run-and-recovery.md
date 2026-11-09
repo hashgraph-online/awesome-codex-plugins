@@ -50,7 +50,7 @@ Rules:
 | `node.sent` | When a steering message is delivered | `node`, `boundary` |
 | `node.cancelled` | After a node's child is stopped during a run cancel | `node`, `reason` |
 | `run.amended` | When a definition change is accepted | `changed` (node ids), `reason` |
-| `run.settled` | When the run ends | `status`, `reason`, `criteria` |
+| `run.settled` | When the run ends | `status`, `reason`, `criteria`, `landed` (the shas this run committed, or an empty array with the reason) |
 
 Rules:
 
@@ -122,16 +122,24 @@ On drift, `send` the exact boundary it crossed. A node that stays off course get
 | A node reports "confirmed" about its own work | An unverified claim | The verification node re-runs the real check |
 | An irreversible action is about to dispatch | Approval is a node, not a sentence | Stop before the dispatch and ask the one user-only question |
 
-## 8. Settle and Report
+## 8. Land, Settle, and Report
+
+A run that changed files lands them before it settles. This stage owns its own delivery, so nothing after it commits the result: an unlanded run loses its work as soon as the checkout moves on.
+
+- Stage only the paths the settled nodes' `writes` entries name, commit them with the repository's message convention, one commit per wave in wave order, and record each sha as `landed` in the settlement payload.
+- Commit on the branch the checkout is already on and name that branch in the settlement. Never switch branches, rebase, or land a merge of your own.
+- Push, open a pull request, or merge only when the user asked for that delivery in this conversation; otherwise the commits stay local and the settlement says so.
+- Never merge into `main`, `master`, the default branch, or a deploy branch the user did not name, and never force-push.
+- When the directory is not a git checkout, or a checkout the run did not touch is already dirty, commit nothing, settle with `landed: []` and the reason, and leave the changes in the working tree for the user.
 
 Settle only when one of these holds:
 
-- every success criterion passes with captured evidence, and the verification node confirms it (`completed`)
+- every success criterion passes with captured evidence, the verification node confirms it (`completed`), and the landed commits are recorded
 - the caps or twice-repeated failure end the run (`exhausted` or `failed`)
 - the user cancels the goal (`cancelled`)
 - a user-only decision blocks the next node (`blocked`, waiting on one question)
 
-The closing report carries: run key and directory, node outcomes, handoff paths, the verification command and its captured result, every retry and amend, the bounds reached, and residual risk. In `sequential` mode it also states `maker-checker not available`. Never report a run as complete because the last node returned.
+The closing report carries: run key and directory, node outcomes, handoff paths, the verification command and its captured result, the landed commits or the reason none were made, every retry and amend, the bounds reached, and residual risk. In `sequential` mode it also states `maker-checker not available`. Never report a run as complete because the last node returned.
 
 ## Sources
 

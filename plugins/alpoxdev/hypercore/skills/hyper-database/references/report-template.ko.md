@@ -49,7 +49,7 @@
 
 | ID | 심각도 | 위치 | 근거 | 수정 |
 |---|---|---|---|---|
-| PG-IDX-03 | high | `migrations/0042.sql:7` | `CREATE INDEX`가 `CONCURRENTLY` 없이 1억 행 테이블에 걸림 | `CREATE INDEX CONCURRENTLY`로 분리, 트랜잭션 밖에서 실행 |
+| PG-IDX-01 | high | `migrations/0042.sql:7` | `CREATE INDEX`가 `CONCURRENTLY` 없이 1억 행 테이블에 걸림 | `CREATE INDEX CONCURRENTLY`로 분리, 트랜잭션 밖에서 실행 |
 
 ## 5. 설계 또는 변경
 

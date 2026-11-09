@@ -88,12 +88,15 @@ Owner-decisions survive both filters and are always asked, even when a default e
 - external publication or sending
 - a cross-cutting product choice the user lives with: public configuration surface, packaging or distribution, a pinned external dependency, the data shape, the audience or compliance limit
 
-Question shape:
+Question shape, reply handling, and delegation scope follow `rules/stance-calibration.md`:
 
 - one to three per turn
 - each names what was explored, why it did not settle the fork, and which plan decision depends on the answer
 - two to four options, the recommended one first
-- a skipped question resolves to the recommendation, and the resolution is recorded
+- a skipped question resolves to the recommendation, and the resolution is recorded as uninformed
+- every reply is classified as resolved, resolved but uninformed, unresolved with progress, or unresolved and blocked before the next turn
+- a delegation phrase settles only the narrowest scope its words name, and after a plan-scoped delegation only a question about irreversible loss or a user-only step is still asked
+- the question form in use is recorded in the draft, with its provenance
 
 Always confirm the test strategy as TDD, tests-after, or none. Agent-executed QA is included either way.
 
@@ -120,9 +123,13 @@ The draft survives compaction and session gaps. Write it before the plan file an
 slug: <slug>
 intent: clear | unclear
 review_required: true | false
+question_form: batch | one_by_one | examples_first
+question_form_source: declared | observed
 approval: auto | user | pending
 status: exploring | planning | reviewing | delivered | stopped
 plan_path: .hyper/plans/<slug>.md
+round_id: <id of the current review round>
+plan_sha256: <shasum -a 256 of the plan file at review time>
 ---
 ## Request
 ## Affected user and ideal state
@@ -143,7 +150,9 @@ plan_path: .hyper/plans/<slug>.md
 
 - The open-assumptions ledger holds every default adopted instead of asked: what was assumed, which default was chosen, why, and whether it can be reversed.
 - The components ledger holds the topology lock with one row per component.
+- `question_form` and `question_form_source` hold the form the run uses and whether the user declared it (`declared`) or it was read from replies (`observed`); `rules/stance-calibration.md` §4 sets both.
 - `review` holds the round count, each verdict, accepted blockers, and open notes.
+- `round_id` and `plan_sha256` hold the current round's digest binding. Update `plan_sha256` after every plan edit; the edit returns an approved round to `pending`.
 - On any later turn, read the draft first and resume from its fields. Never reroute from memory. When the scope changed, update the draft and re-run only the affected phases.
 - A slug is lowercase ASCII kebab-case matching `^[a-z0-9]+(-[a-z0-9]+)*$`, at most 48 characters. Reject `..`, `/`, and absolute paths.
 

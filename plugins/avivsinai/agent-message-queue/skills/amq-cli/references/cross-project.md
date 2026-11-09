@@ -22,6 +22,12 @@ Each project's `.amqrc` maps peer names to their base root paths:
 **Critical naming rule**: Peer keys must match the remote project's declared `project` name (or its directory basename if `project` is absent). Reply routing uses `reply_project` which is set to the sender's project identity — the receiver must have a peer entry with that exact name. If project A calls its peer `backend` but that project identifies as `api-server`, replies from `api-server` will fail because A has no peer named `api-server`.
 
 Both projects must register each other as peers for round-trip messaging.
+Run `amq route peers` to check this: each peer shows `reply_back: no` when its
+`.amqrc` lacks your exact project name. `amq route explain --json` shows which
+`.amqrc` and peer key decided a route (`source_config`, `peer_key`).
+`amq trace <id> --follow --from <you>` shows which project and session holds each
+recipient's copy and receipt, and for a request whether the reply came back and was
+drained; `amq thread open --follow --json` does this for every open request.
 
 Route with `--project` or `--session`, not a raw `--root`. A direct `--root`
 selects which tree to operate on and carries no sender-origin metadata, so the

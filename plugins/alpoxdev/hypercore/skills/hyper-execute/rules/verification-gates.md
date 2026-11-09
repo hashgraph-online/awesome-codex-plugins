@@ -89,11 +89,22 @@ Rules:
 - Attempts are counted per row, across all its sub-tasks and re-splits, and timed from `checkpoint_opened_at`, which is set at the row's first dispatch.
 - A failure signature is the failing check plus its first error line, with volatile values stripped: temp paths, timestamps, process ids, run ids, and durations.
 - Stop the row when any of these holds: the same signature repeats on consecutive attempts; the third attempt fails; four hours pass from the first dispatch; or a lane ends or the session resumes with no verdict and the four-hour bound has already passed.
-- A harness failure - the runner, fixture, CI job, or environment failed before the product behavior was exercised - gets one repair dispatch inside the checkpoint, and that dispatch does not count as an attempt. If it recurs after the repair, stop as above and name the harness gap.
+- A harness failure - the runner, fixture, CI job, or environment failed before the product behavior was exercised - gets one repair dispatch inside the checkpoint, and that dispatch does not count as an attempt. If it recurs after the repair, stop as above, name the harness gap, and append the one harness-repair follow-up row described below.
 - On a stop: revert that row's unverified changes in the wave worktree, flip the row to `- [~]`, append `Unmet: <the gap, the last signature, the attempt count>`, cancel its lane, and continue with the remaining rows.
 - `- [~]` counts as closed for run completion and never as a met dependency. The moment a row closes `[~]`, every open row that depends on it, directly or transitively, closes `[~]` immediately with `Unmet: dependency <n> blocked`, where `<n>` is the nearest blocked ancestor. Write one `row.blocked` ledger event per affected row, count no attempts for them, cancel their lanes, and continue with the independent rows.
 - Final verification rows are never dependents of a `[~]` row. They verify the landed work and report each `[~]` row as a known gap; that gap alone does not fail a final row.
-- A `[~]` row is never re-queued as a new row in this run, by the blast-radius rule or by a final-wave verdict. The single harness-repair follow-up above is the only exception.
+- A `[~]` row is never re-queued as a new row in this run, by the blast-radius rule or by a final-wave verdict. The harness-repair follow-up below is the only exception.
+
+### Harness-Repair Follow-up
+
+A harness failure that recurs after its one repair dispatch closes the row `- [~]` as above, and the executor appends exactly one follow-up row through the append path in `rules/execution-loop.md` section 3.4. This is the only case where a `[~]` row produces a new row.
+
+- **Row text.** The checkbox line reads `Repair harness: <failing check> - <first error line>`, using the stripped failure signature from above and no volatile values. The original row's `Acceptance` line is the follow-up's own acceptance; the follow-up does not relax or widen it.
+- **Nine nested lines.** The follow-up carries all nine: `Wave`, `Depends on`, `Write scope`, `References`, `Acceptance`, `QA happy`, `QA failure`, `Commit`, and `Tier`. It depends on nothing that the original row's `[~]` state would block, and its `Write scope` covers the failing harness surface only.
+- **Cap.** The follow-up counts toward the ten-row follow-up cap in section 3.4 like any other appended row. When the cap is already reached, do not append it; report the harness gap instead.
+- **Ledger.** Write one `row.followup` ledger event that names the original row, the new row number, the failure signature, and `kind: harness-repair`. The todo list mirrors the new row like any other.
+- **No second append.** If the follow-up itself closes `- [~]`, report it in the completion block with its signature and append no further follow-up for that harness signature. Repeated recurrence of one signature never chains a second repair row.
+- **Original row stays closed.** The original row keeps its `[~]`, its `Unmet:` line, and is never re-queued; the follow-up is a new row with its own number and attempt budget.
 
 ## 6. Final Verification Wave
 
@@ -117,11 +128,12 @@ Under `--make-pr` the last wave branch holds every earlier wave through stacking
 
 ## Sources
 
-> Checked 2026-11-03.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
 | The five gates, the adversarial class list and its trigger-map logic, the `DoneClaim` and `AdversarialVerify` shapes, the attempt and stop rules, and the `[~]` semantics, adapted from the `ulw-execute` skill | <https://github.com/code-yeongyu/oh-my-openagent/tree/0d80470e4201925727e88afbafcdf24d7801a588> |
+| The harness-repair follow-up row text, its `row.followup` ledger event, and the no-second-append rule, re-authored from the `ulw-execute` harness-repair step | `dbc-hbin/omp-ulw` @ `74df40f` (2026-11-09). The source repository has no license, so the mechanism is restated in this package's own words and no text or code is copied from it |
 | An evidence file or the work did not happen; `SKIP` is not a pass | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | Numeric caps on every stop condition, and maker distinct from checker | `instructions/loop-engineering/LOOP_ENGINEERING.md` |
 | A final verification node depends on all producers, and a missing branch is not empty | `instructions/graph-engineering/GRAPH_ENGINEERING.md` |
@@ -129,4 +141,4 @@ Under `--make-pr` the last wave branch holds every earlier wave through stacking
 
 ### Evidence grade
 
-`LOCAL` - this file states this package's own procedure, adapted from the upstream skill named above. The nine adversarial classes are the upstream set, kept because each maps to a failure this workflow can actually cause. The three-attempt and four-hour bounds are this package's choices.
+`LOCAL` - this file states this package's own procedure, adapted from the upstream skill named above and from the `ulw-execute` harness-repair step in `dbc-hbin/omp-ulw` @ `74df40f`. The nine adversarial classes are the upstream set, kept because each maps to a failure this workflow can actually cause. The three-attempt and four-hour bounds and the harness-repair follow-up wording are this package's choices.

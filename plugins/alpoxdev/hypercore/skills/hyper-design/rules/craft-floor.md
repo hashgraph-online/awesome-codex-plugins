@@ -33,6 +33,17 @@ WCAG 3 is a Working Draft and APCA is not normative anywhere; keep WCAG 2.2 AA a
 | Zoom | the viewport meta never sets `user-scalable=no` or `maximum-scale=1` | MUST |
 | Touch spacing | adjacent touch targets keep a clear gap so a thumb press cannot hit both | DEFAULT |
 
+Browser-drawn surfaces (set each from tokens where the surface exists; never leave the platform default unexamined):
+
+| Rule | Value | Level |
+|---|---|---|
+| Selection | `::selection` foreground and background from tokens, never the default blue | DEFAULT |
+| Caret | `caret-color` matching text color or a token color on editable surfaces | DEFAULT |
+| Scrollbars | `scrollbar-color` where scrolling exists, including overflow panels | DEFAULT |
+| Focus ring | at least 2px with a visible offset from the control edge | DEFAULT |
+| Underline offset | `text-underline-offset` so the underline clears descenders | DEFAULT |
+| Figures | `tabular-nums` in tables, prices, and counters (the same rule as section 3) | DEFAULT |
+
 ## 3. Type
 
 | Rule | Value | Level |
@@ -41,6 +52,9 @@ WCAG 3 is a Working Draft and APCA is not normative anywhere; keep WCAG 2.2 AA a
 | Smallest UI text | 12px; 11pt on iOS, 10pt on macOS are platform minimums, not defaults | DEFAULT |
 | Line length | 45-75 characters for running text; never full-width paragraphs on wide screens | DEFAULT |
 | Line height, Latin body | 1.4-1.6; headings 1.1-1.3 | DEFAULT |
+| Type steps | adjacent sizes differ by at least 1.25x | DEFAULT |
+| Display size | display text at most 6rem | DEFAULT |
+| Display tracking | display tracking not below -0.04em | DEFAULT |
 | Text-spacing tolerance | layout survives user overrides of line height 1.5, paragraph spacing 2em, letter spacing 0.12em, word spacing 0.16em | MUST |
 | Resize | text resizes to 200% without loss of content | MUST |
 | Families | one family, or two with fixed jobs (display, text); never three | DEFAULT |
@@ -56,6 +70,9 @@ WCAG 3 is a Working Draft and APCA is not normative anywhere; keep WCAG 2.2 AA a
 |---|---|---|
 | Space scale | one 4px-based scale (4, 8, 12, 16, 24, 32, 48, 64, 96) or the project's own; no one-off values | DEFAULT |
 | Grouping | space inside a group is smaller than space between groups; more space above a heading than below it | DEFAULT |
+| Heading space | space above a heading at least 1.5x the space below it | DEFAULT |
+| Group space | the gap between groups at least 2x the gap inside a group | DEFAULT |
+| Body measure | body text 65-75ch; display text at most 6rem | DEFAULT |
 | Reflow | no two-dimensional scrolling at 320 CSS px width, except tables, maps, and editors | MUST |
 | Check widths | the project's breakpoints, otherwise 375, 768, and 1280 (Korean public-sector: 360, 768, 1024, 1280) | DEFAULT |
 | Content width | a maximum content width (about 1200-1280px) with one consistent gutter | DEFAULT |
@@ -129,12 +146,15 @@ Run per changed screen and record each item `pass`, `fail`, `n/a`, or `not run` 
 9. Korean rules when the product language is Korean.
 10. Affordance: native elements, accessible names, pointer cursor, hover, active, and disabled states; no zoom block.
 11. Performance mechanisms in §8.
+12. Ratio floors and browser surfaces rendered within the floor values above.
 
-A static run can pass items 5, 6, 10, and 11 and the source half of 7. Items that need rendering are `static_only` without a rendered capture.
+A static run can pass items 5, 6, 10, and 11 and the source half of 7. Item 12 needs rendered computed values and is `static_only` without a rendered capture.
+
+Ratio floors are checkable from rendered `computed` values (font sizes, spacing, line-length) or from source declarations; they are not automatically measured by this package (rendered measurement is a separate concern).
 
 ## Sources
 
-> Checked 2026-11-07.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -144,6 +164,7 @@ A static run can pass items 5, 6, 10, and 11 and the source half of 7. Items tha
 | Android touch target 48×48 dp | <https://developer.android.com/guide/topics/ui/accessibility/apps> |
 | Material token values (type scale, shape 0/4/8/12/16/28/full, elevation steps, `cubic-bezier(0.2, 0, 0, 1)`) | <https://github.com/material-components/material-web/tree/main/tokens/versions/v0_192> (Apache-2.0) |
 | Line length 45-90 characters, line spacing 120-145%, at most three heading levels | <https://practicaltypography.com/line-length.html> |
+| Ratio floors (type steps 1.25x, heading space 1.5x, group space 2x, body 65-75ch, display 6rem, tracking -0.04em) and the browser-surface list (`::selection`, caret, scrollbar, focus ring, underline offset, figures) | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored in this package's own words; the source repository has no license and no text or code was copied. The thresholds come from the Apache-2.0 upstream named in that project's frontend attribution (<https://github.com/pbakaus/impeccable>, Apache-2.0) and were re-chosen here as floor defaults: the smallest type step is 1.25x, display text caps at 6rem, and tracking stops at -0.04em |
 | Hit targets, `transition: all`, nested radii, autoplay pause | <https://github.com/vercel-labs/web-interface-guidelines/blob/434b7f91364665f2f733b310ec54809bf8f37937/AGENTS.md> (MIT) |
 | UI motion under 300 ms, no ease-in, no `scale(0)`, stagger 30-80 ms, frequency rule | <https://github.com/emilkowalski/skills> (commit `c8a7962`) (MIT) |
 | Response-time limits, loading indicators, empty states, error messages, form rules | <https://www.nngroup.com/articles/response-times-3-important-limits/>, <https://www.nngroup.com/articles/skeleton-screens/>, <https://www.nngroup.com/articles/empty-state-interface-design/>, <https://www.nngroup.com/articles/error-message-guidelines/>, <https://www.nngroup.com/articles/web-form-design/> |
@@ -156,4 +177,4 @@ A static run can pass items 5, 6, 10, and 11 and the source half of 7. Items tha
 
 ### Evidence grade
 
-`MUST` rows restate WCAG 2.2 AA and Level A requirements and are as strong as the standard. `DEFAULT` rows pick one value from ranges the sources give; where sources disagree (Apple 28 pt versus 44 pt, Butterick 120-145% versus KRDS 150% for Korean), the table states which applies. The Korean 160-170% range is this package's choice for long reading, not a sourced number.
+`MUST` rows restate WCAG 2.2 AA and Level A requirements and are as strong as the standard. `DEFAULT` rows pick one value from ranges the sources give; where sources disagree (Apple 28 pt versus 44 pt, Butterick 120-145% versus KRDS 150% for Korean), the table states which applies. The Korean 160-170% range is this package's choice for long reading, not a sourced number. Ratio-floor rows are `DEFAULT`: the numbers above are starting values re-authored from an Apache-2.0 upstream, not WCAG requirements, and a documented project system replaces them.

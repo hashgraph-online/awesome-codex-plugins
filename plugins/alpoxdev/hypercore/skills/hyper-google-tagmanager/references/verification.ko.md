@@ -124,7 +124,7 @@ const dl = await page.evaluate(() => JSON.stringify(window.dataLayer || []));
 | DebugView와 `debug_mode` | <https://support.google.com/analytics/answer/7201382> |
 | 보고서 지연과 네트워크 확인 | <https://developers.google.com/analytics/devguides/collection/ga4/troubleshoot> |
 | 요청 캡처 API 형태 | <https://playwright.dev/docs/network> |
-| `gtm.js` 상태와 본문 서명, `gtm_debug=x` 403, `/g/collect` 204, `google_tag_manager` 키 | execution checks against the live endpoints, 2026-11-08 |
+| `gtm.js` 상태와 본문 서명, `gtm_debug=x` 403, `/g/collect` 204, `google_tag_manager` 키 | execution checks against the live endpoints, 2026-11-08. 알 수 없는 ID의 `"version":"1"` 빈 `tags` 200, `gtm_debug=x` 403, `ns.html` 200, `/g/collect` 204는 2026-11-09에 다시 확인함 |
 
 ### Evidence grade
 

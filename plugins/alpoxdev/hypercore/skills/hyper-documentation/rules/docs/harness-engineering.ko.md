@@ -211,6 +211,7 @@ provider 민감한 가이드는 다음 필드를 가진 참조 항목으로 유�
 - `applies_to`
 - `summary`
 - `implication_for_hyper_docs`
+- `refresh_when`
 
 ## 10. 참조 갱신 워크플로우
 

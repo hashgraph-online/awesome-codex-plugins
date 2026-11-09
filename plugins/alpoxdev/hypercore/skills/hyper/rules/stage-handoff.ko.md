@@ -12,16 +12,21 @@
 | `hyper-issue` | `--from-hyper`, 등록할 항목·이슈 번호·선택 조건, 그리고 트래커, 저장소, 초안만 같은 사용자 제한. "이슈마다 `hyper:` 블록을 담아 영어로 등록하고, 레인 명세를 쓰고, `hyper` 실행을 또 시작하지 말 것"도 넘깁니다 | 트래커에서 다시 읽은 등록 이슈와 `.hyper/issues/<slug>/batch.md` | 이슈 번호와 URL, 명세 경로. `hyper-plan`에는 "명세의 Lane 표에서 레인 최대 네 개 묶음마다 웨이브 하나를 계획할 것. 레인 하나는 병렬 레인 하나이고 그 안의 이슈는 순서대로. 이슈마다 `verify`가 그 행의 게이트. 목록은 고정"을 넘깁니다 |
 | `hyper-seo` | 대상, 그리고 Build 작업이면 허용 동작 `recommend`, Report 작업이면 사용자가 말한 모드 | `.hyper/seo/<slug>/` 아래 보고서 | 보고서 경로와 critical·warning 결과 |
 | `hyper-google-analytics` | 사용자 요청 그대로, 요청에 있는 사이트 URL이나 속성 ID, 모드 단어, 모든 앞 단계 산출물 경로 | `.hyper/google-analytics/<slug>/report.md`. 마지막 상태 줄에 그 모드의 종료 결과(`audited`, `installed`, `changed`, `reported`, `fixed`, `exhausted`, `stopped-for-approval`, `delayed`, `blocked`, `handoff`)를 적습니다 | `hyper-git`이 뒤따를 때 바뀐 경로, 그리고 보고서 경로와 심각도별 발견 |
+| `hyper-google-tagmanager` | 사용자 요청 그대로, 요청에 있는 컨테이너 ID와 사이트 URL, 모드 단어, 모든 앞 단계 산출물 경로 | `.hyper/gtm/<slug>/report.md`. `결과:` 줄에 `verified`, `partial`, `proposed`, `exhausted`, `blocked` 중 하나를 적습니다 | `hyper-git`이 뒤따를 때 바뀐 경로, 그리고 보고서 경로와 승인이 필요해 제안으로 남긴 동작 |
 | `hyper-architecture` | Build 작업에서는 "아키텍처 감사만, 파일 경로와 함께 결과 보고, 수정 금지"와 대상 경로. 마지막 단계일 때는 사용자 요청 그대로 | 라우팅 줄과 결과를 워크플로 기록의 단계 메모에 옮긴 것. 감사 모드에서는 이 단계가 자기 파일을 저장하지 않기 때문입니다 | 단계 메모 위치와 결과 |
 | `hyper-database` | 계획이나 mass 단계 앞에서는 "리뷰만, 파일 경로와 함께 결과·설계 브리프·엔진 선택 보고, 수정 금지"와 대상 경로, 모든 앞 단계 산출물 경로. 마지막 단계일 때는 사용자 요청 그대로와 모든 앞 단계 산출물 경로 | `.hyper/database/<slug>/report.md`. 마지막 단계일 때는 검증 절이 각 확인을 실행 결과와 함께, 또는 사유를 붙인 `not run`으로 적습니다 | 보고서 경로와 critical, high 발견 |
 | `hyper-mcp` | 계획이나 mass 단계 앞에서는 "점검만, 파일 경로와 함께 결과 보고, 수정 금지"와 대상 경로, 모든 앞 단계 산출물 경로. 마지막 단계일 때는 사용자 요청 그대로와 모든 앞 단계 산출물 경로 | `.hyper/mcp/<slug>/report.md`. 마지막 단계일 때는 검증 표에 대상이 주장하는 era로 실행한 MCP Inspector 결과도 들어 있어야 합니다 | 보고서 경로와 critical, high 발견 |
 | `hyper-decision` | 계획이나 mass 단계 앞에서는 "`design`이나 `audit` 모드만, 파일 경로와 호출별 경로 층, 각 경로가 확률을 돌려주는지와 함께 결정 계약이나 읽기 전용 감사 표 작성, 감사 대상 코드 수정 금지"와 대상 경로, 모든 앞 단계 산출물 경로. 마지막 단계일 때는 사용자 요청 그대로와 모든 앞 단계 산출물 경로 | `.hyper/decision/<topic>/`(또는 사용자가 준 경로) 아래 산출물과, 쓴 경로 전부, 모드, 적합성 판정, 경로와 층, 요청 파일마다 그 경로의 `check-decision-request.sh` 종료 코드나 수동 점검표를 적용했다는 메모를 담은 단계 보고 | `hyper-plan`이 뒤따르면 계약이나 감사 경로와 그 결정 행, `hyper-git`이 뒤따르면 바뀐 경로 |
 | `hyper-design` | 계획이나 mass 단계 앞에서는 "보고서만: 새 화면이면 디자인 브리프를 쓰고 기존 화면이면 점검, 수정 금지"와 대상 경로, 모든 앞 단계 산출물 경로. 마지막 단계일 때는 사용자 요청 그대로와 모든 앞 단계 산출물 경로 | `.hyper/design/<slug>/brief.md`(brief-only) 또는 `.hyper/design/<slug>/report.md`. 마지막 단계일 때는 보고서가 그 단계의 보고서 검증기를 통과하고 정석 수치 점검 결과와 검토 방식을 기록해야 합니다 | 브리프나 보고서 경로와 P0, P1 발견 |
+| `hyper-frontend` | 계획이나 mass 단계 앞에서는 "`verify` 모드만: 실제 브라우저에서 무엇이 깨지는지 파일 경로와 캡처 매트릭스와 함께 보고, 수정 금지"와 대상 경로, 모든 앞 단계 산출물 경로. `brief-only` 모드의 `hyper-design` 뒤에서는 사용자 요청 그대로와 그 안에서 만들 모습인 브리프 경로. 마지막 단계일 때는 사용자 요청 그대로와 모든 앞 단계 산출물 경로 | `.hyper/frontend/<slug>/report.md`. `Result:` 줄 하나(`delivered`, `delivered_unverified`, `awaiting_input`, `blocked`)로 끝나고 스크롤 소유권, 상태 매트릭스, `static`·`rendered`·`not verified` 라벨이 붙은 주장별 증거를 담음 | `hyper-git`이 뒤따르면 바뀐 경로, `hyper-plan`이 뒤따르면 보고서 경로와 발견 사항 |
 | `hyper-feedback` | 사용자 요청 그대로와 인용한 피드백 원문, 작성자나 전달 경로, 사용자의 제약, 모든 앞 단계 산출물 경로 | 항목별 상태와 검증 절(명령과 출력, 잔여 검색 결과)을 담은 `.hyper/feedback/<slug>/report.md`. 실행이 `handoff`로 끝났으면 `.hyper/feedback/<slug>/brief.md`도 | `hyper-git`이 뒤따르면 바뀐 경로, `hyper-plan`을 덧붙이면 브리프 경로와 전달 플래그 |
+| `hyper-debug` | 사용자 요청 그대로와 실패 근거(트레이스 발췌, 실패한 명령이나 테스트 이름, 관찰한 출력과 기대한 출력), 수정을 요청했는지, 사용자의 제약, 모든 앞 단계 산출물 경로 | `Result:` 줄 하나(`confirmed`, `fixed`, `handoff`, `unconfirmed`, `awaiting_input`, `blocked`)로 끝나는 `.hyper/debug/<slug>.md`. 재현 방법, 확인한 원인의 토글 증명, `fixed`면 빨강에서 초록으로 바뀐 명령 출력을 담습니다 | `hyper-git`이 뒤따르면 바뀐 경로, `hyper-plan`을 덧붙이면 기록 경로와 전달 플래그 |
+| `hyper-data` | 사용자 요청 그대로와 질문, 데이터셋 경로, 요청에 있으면 읽는 사람의 시간대, 앞 단계 산출물 경로 전부 | `Result:` 줄 하나(`answered`, `prerequisite_missing`, `awaiting_input`, `blocked`)로 끝나는 `.hyper/data/<slug>/report.md`. 답을 먼저 쓰고, `answered`면 쿼리, 행 수, 소요 시간, 입력 digest를 담습니다 | - |
 | `hyper-imagegen` | 사용자 요청 그대로, 있으면 제공한 편집 원본이나 참고 자료 경로, 모든 앞 단계 산출물 경로 | 종료 상태 한 줄(`generated_verified`, `generated_caveated`, `prompt_saved`, `awaiting_input`, `blocked` 중 하나)과 그 근거. 런타임이 돌려준 이미지 기록이나 `.hyper/imagegen/<topic>/` 아래 파일의 상대 경로와 digest | - |
 | `hyper-plan` | 사용자의 원래 요청, 꼭 읽어야 할 앞 단계 산출물 경로 전부, 전달 플래그, 사용자가 말했다면 `--plan-only`나 승인 보류 | `## Handoff` 섹션이 있는 `.hyper/plans/<slug>.md` | 없음. 이 단계가 스스로 `hyper-execute`로 이어집니다 |
 | `hyper-execute` | 계획 slug와 전달 플래그 | `status`가 `complete`인 `.hyper/execute/<slug>/state.json`과 출력된 완료 블록 | - |
 | `hyper-mass` | 목표, 성공 기준, 앞 단계 산출물 경로 전부 | `status`가 `completed`인 `run.settled` 이벤트로 끝나는 `.hyper/mass/<run-key>/run.jsonl` | - |
+| `hyper-loop` | 사용자 요청 그대로와 그 목표·기준, 재개라면 루프 slug, 사용자의 제약, 앞 단계 산출물 경로 전부 | `status`가 `complete`, `blocked`, `paused` 중 하나인 `.hyper/loop/<slug>/final-gate.json`. `complete`면 종료 코드 0으로 끝난 `verify-loop-state.sh --final` 실행 결과 | `hyper-git`이 뒤따를 때는 바뀐 경로 |
 | `hyper-skill` | 사용자의 원래 요청, 있으면 대상 `skills/<name>/` 경로, 꼭 읽어야 할 앞 단계 산출물 경로 전부 | `skills/<name>/SKILL.md`와 `SKILL.ko.md`, 그리고 그 단계의 검증 handoff에 오류 0개로 기록된 검증기 실행 결과 | `hyper-git`이 뒤따를 때는 바뀐 경로 |
 | `hyper-documentation` | 사용자의 원래 요청, 있으면 대상 경로, 꼭 읽어야 할 앞 단계 산출물 경로 전부 | 요청한 경로에 만들거나 고친 산출물, 고른 모드의 검증 handoff, 기계가 읽는 프롬프트 산출물이면 파싱 결과 | `hyper-git`이 뒤따를 때는 바뀐 경로 |
 | `hyper-git` | 모드(커밋, PR이나 작업 브랜치 전체 병합이면 워크플로), 커밋 범위로 삼을 앞 단계의 바뀐 경로, 사용자 순서대로의 대상 브랜치, 사용자의 제한("커밋만", "main 빼고") 그대로 | 보고한 각 커밋 SHA가 모든 원격 대상에서 발견된 것(`git fetch origin <target>` 뒤 `git branch -r --contains <sha>`, 또는 `+` 줄이 없는 `git cherry origin/<target> <branch>`), 또는 `gh pr view`로 읽은 상태를 붙인 PR URL | - |
@@ -93,6 +98,15 @@
 | `hyper-feedback`이 `handoff`로 끝남 | `done`으로 표시하고, `brief.md`를 필수 입력으로, 사용자의 전달 플래그를 함께 넘기는 `hyper-plan`을 다음 단계로 붙이며, 계획에 있던 `hyper-git` 단계는 뺍니다 |
 | `hyper-feedback`이 `awaiting_input`으로 끝남 | 그 단계의 질문 하나를 그대로 전하고 `stopped`로 표시합니다. 답을 받으면 같은 단계부터 재개합니다 |
 | `hyper-feedback`이 `exhausted`로 끝남 | 실패한 명령과 출력을 적어 `stopped`로 표시합니다. `hyper-git` 단계는 시작하지 않습니다 |
+| `hyper-debug`가 `handoff`로 끝남 | `done`으로 표시하고, `.hyper/debug/<slug>.md`를 필수 입력으로, 사용자의 전달 플래그를 함께 넘기는 `hyper-plan`을 다음 단계로 붙이며, 계획에 있던 `hyper-git` 단계는 뺍니다 |
+| `hyper-debug`가 `unconfirmed`로 끝남 | `Assumption:` 줄과 그것을 확인할 점검을 적어 `done`으로 표시합니다. 고칠 대상이 증명되지 않았으므로 `hyper-git`이나 `hyper-plan` 단계는 시작하지 않습니다 |
+| `hyper-debug`가 `awaiting_input`으로 끝남 | 그 단계의 질문 하나를 그대로 전하고 `stopped`로 표시합니다. 답을 받으면 같은 단계부터 재개합니다 |
+| `hyper-data`가 `awaiting_input`이나 `prerequisite_missing`으로 끝남 | 그 단계의 질문 하나, 또는 없는 엔진과 설치 명령을 그대로 전하고 `stopped`로 표시합니다. 답을 받거나 설치한 뒤 같은 단계부터 재개합니다 |
+| `hyper-loop`가 `blocked`나 `paused`로 끝남 | `final-gate.json`의 목표와 실패 서명이나 멈춘 이유를 적어 `stopped`로 표시합니다. `hyper-git` 단계는 시작하지 않고, "이어서"를 받으면 `.hyper/loop/<slug>/`에서 루프를 재개합니다 |
+| `hyper-frontend`가 `delivered_unverified`로 끝남 | `done`으로 표시하고 보고서의 없었던 브라우저 기능을 마무리 보고에 주의 사항으로 옮깁니다. `hyper-git` 단계는 사용자의 전달 단어가 있을 때만 이어집니다 |
+| `hyper-frontend`가 `awaiting_input`으로 끝남 | 그 단계의 질문 하나를 그대로 전하고 `stopped`로 표시합니다. 답을 받으면 같은 단계부터 재개합니다 |
+| `hyper-frontend`가 `blocked`로 끝남 | 보고서의 실패한 캡처와 증거를 적어 `stopped`로 표시합니다. `hyper-git`이나 `hyper-plan` 단계는 시작하지 않습니다 |
+| `hyper-google-analytics`가 `exhausted`, `stopped-for-approval`, `delayed`, `blocked`, `handoff`로 끝나거나 `hyper-google-tagmanager`가 `proposed`, `exhausted`, `blocked`로 끝남 | 보고서의 승인이 필요한 제안 동작, 실패한 확인, 막힌 이유를 적고 `stopped`로 표시합니다. `hyper-git`이나 `hyper-deploy` 단계는 시작하지 않고, 승인이나 수정 뒤 "이어서"로 같은 단계에서 재개합니다 |
 | 단계가 사용자 결정, 자격 증명, 충돌, 실패한 게이트로 멈춤 | `stopped`로 표시하고 체인을 끝냅니다(§5) |
 | 단계 스킬이 설치되지 않았거나 불러올 수 없음 | `stopped`로 표시하고 체인과 `npx skills add alpoxdev/hypercore --skill <stage>`를 보고합니다 |
 
@@ -113,15 +127,15 @@
 
 ## 7. 마무리 보고
 
-한국어로 보고합니다. 상태를 붙인 최종 체인, 각 산출물 경로, 마지막 단계의 완료 근거(실행 완료 블록, mass 실행의 검증 결과, 스킬 검증기 결과, 이슈 기록의 번호와 URL 및 명세 경로, 문서 모드의 검증 handoff, 데이터베이스 보고서의 검증 절, MCP 보고서의 검증 표, 쓴 경로 전부와 오프라인 요청 검사기 종료 코드를 담은 결정 단계 보고, 수집 증명을 담은 GA 보고서의 `Result` 줄, UI 보고서의 검증기 결과와 정석 수치 점검 줄, 변경 요청 보고서의 항목 표와 잔여 검색 결과, 이미지 단계의 종료 상태와 경로·digest·검사 기록, 원격 대상마다 확인한 Git 전달의 커밋 SHA, 배포 보고서의 `Result` 줄과 배포 ID·종료 상태, 보고서 경로), 전달 결과(로컬 커밋, PR URL, 병합), 동반 스킬의 접근 보고서와 그 종료 상태, 건너뛰거나 멈춘 단계와 그 사유를 담습니다.
+한국어로 보고합니다. 상태를 붙인 최종 체인, 각 산출물 경로, 마지막 단계의 완료 근거(실행 완료 블록, mass 실행의 검증 결과, `--final` 종료 코드를 담은 루프의 `final-gate.json`, 스킬 검증기 결과, 이슈 기록의 번호와 URL 및 명세 경로, 문서 모드의 검증 handoff, 데이터베이스 보고서의 검증 절, MCP 보고서의 검증 표, 쓴 경로 전부와 오프라인 요청 검사기 종료 코드를 담은 결정 단계 보고, 수집 증명을 담은 GA 보고서의 `Result` 줄, 태그 발화 증명을 담은 GTM 보고서의 `결과:` 줄, UI 보고서의 검증기 결과와 정석 수치 점검 줄, 변경 요청 보고서의 항목 표와 잔여 검색 결과, 토글 증명을 담은 디버그 기록의 `Result` 줄, 행 수와 입력 digest를 담은 데이터 보고서의 `Result` 줄, 이미지 단계의 종료 상태와 경로·digest·검사 기록, 원격 대상마다 확인한 Git 전달의 커밋 SHA, 배포 보고서의 `Result` 줄과 배포 ID·종료 상태, 보고서 경로), 전달 결과(로컬 커밋, PR URL, 병합), 동반 스킬의 접근 보고서와 그 종료 상태, 건너뛰거나 멈춘 단계와 그 사유를 담습니다.
 
 ## Sources
 
-> Checked 2026-11-08.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
-| 단계 산출물 경로와 상태 값(`.hyper/research/`, `.hyper/seo/<slug>/`, `.hyper/google-analytics/<slug>/report.md`와 그 열 가지 종료 상태, `.hyper/database/<slug>/report.md`, `.hyper/mcp/<slug>/report.md`, `.hyper/decision/<topic>/`와 그 검사기 경로, `.hyper/design/<slug>/brief.md`와 `report.md`, `.hyper/feedback/<slug>/report.md`와 `brief.md` 및 변경 요청 단계의 실행 종료 상태, `.hyper/imagegen/<topic>/`와 이미지 단계의 다섯 종료 상태, `.hyper/deploy/<slug>/report.md`와 그 아홉 가지 결과 값, `.hyper/plans/<slug>.md`, `state.json` `status`, `run.settled`, `skills/<name>/SKILL.md`, 문서 산출물 경로, Git 전달의 원격 브랜치 확인) | 이 저장소의 각 단계 스킬 `SKILL.md`와 references, 2026-11-08 |
+| 단계 산출물 경로와 상태 값(`.hyper/research/`, `.hyper/seo/<slug>/`, `.hyper/google-analytics/<slug>/report.md`와 그 열 가지 종료 상태, `.hyper/gtm/<slug>/report.md`와 그 다섯 가지 결과, `.hyper/database/<slug>/report.md`, `.hyper/mcp/<slug>/report.md`, `.hyper/decision/<topic>/`와 그 검사기 경로, `.hyper/design/<slug>/brief.md`와 `report.md`, `.hyper/frontend/<slug>/report.md`와 프런트엔드 단계의 네 종료 상태, `.hyper/feedback/<slug>/report.md`와 `brief.md` 및 변경 요청 단계의 실행 종료 상태, `.hyper/debug/<slug>.md`와 디버그 단계의 여섯 종료 상태, `.hyper/loop/<slug>/final-gate.json`과 그 세 가지 상태, `.hyper/data/<slug>/report.md`와 데이터 단계의 네 종료 상태, `.hyper/imagegen/<topic>/`와 이미지 단계의 다섯 종료 상태, `.hyper/deploy/<slug>/report.md`와 그 아홉 가지 결과 값, `.hyper/plans/<slug>.md`, `state.json` `status`, `run.settled`, `skills/<name>/SKILL.md`, 문서 산출물 경로, Git 전달의 원격 브랜치 확인) | 이 저장소의 각 단계 스킬 `SKILL.md`와 references, 2026-11-09 |
 | 계획 단계의 `## Handoff` 줄과 실행으로 자동 연결 | 이 저장소의 계획 스킬 handoff 규칙, 2026-11-06 |
 | 아키텍처 단계가 지원하지 않는 스택에서 멈추고 없는 스킬의 설치 명령을 보고함 | 이 저장소의 아키텍처 스킬 stack-detection 규칙, 2026-11-06 |
 | 채팅이 아니라 저장된 산출물과 지속 상태로 전달 | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |

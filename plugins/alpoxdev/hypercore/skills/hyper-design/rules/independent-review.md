@@ -22,17 +22,31 @@ Never give the reviewer the builder's rationale, the `brief.md` reasoning sectio
 - rendered captures at the checked widths and states, or, without rendering, the changed source paths
 - `rules/craft-floor.md` §9 and the "You see / You do" table in §5 below
 - for mockups, the failure modes in `references/mockup-craft.md` §2
+- for a Korean product, `references/korean-break-quality.md`
 
-## 4. Questions, in Order
+When no comparison tool exists, a reference comparison is reported `unavailable`, never passed. A reviewer who could not compare reports that line as `unavailable` with the reason, and the pass does not count it as a pass.
 
-1. Could this be any product in its category? Name what is specific to this product, or report that nothing is.
-2. Where does the eye land first, second, third, and is that the order the task needs?
-3. Which element has no job: a decoration, a container, a label, a motion?
-4. Which values break the system: a one-off color, size, space, radius, or duration?
-5. Which states are missing or look unfinished?
-6. Which floor items fail, with the measured value?
-7. Does the result match its declared dials (ENERGY, RHYTHM, MOTION), and is there one focal point, one accent, and one identity motif?
-8. If the logo and product name were swapped out, would anything here still belong to this product?
+## 4. Two Passes
+
+The review runs twice over the same inputs, and each pass owns fixed sections so no question is asked twice or skipped. Pass A runs first.
+
+| Pass | Owns | Does not own |
+|---|---|---|
+| A. design system and function | questions 1-5, 7, 8 below; `rules/craft-floor.md` §1-5 and §7; the §5 rows about structure, hierarchy, states, and placeholder proof | rendered fidelity, measured values, Korean line breaks |
+| B. visual fidelity and Korean breaks | question 6 below; `rules/craft-floor.md` §6 and the rendered items of §9; `references/korean-break-quality.md`; the coverage list and freshness checks of `rules/rendered-evidence.md` | product direction, copy voice, structure |
+
+Section ownership is fixed: a pass may report a finding outside its sections only as a `[product]` note for the other pass, and the other pass decides it.
+
+### 4.1 Questions, in order
+
+1. Could this be any product in its category? Name what is specific to this product, or report that nothing is. (A)
+2. Where does the eye land first, second, third, and is that the order the task needs? (A)
+3. Which element has no job: a decoration, a container, a label, a motion? (A)
+4. Which values break the system: a one-off color, size, space, radius, or duration? (A)
+5. Which states are missing or look unfinished? (A)
+6. Which floor items fail, with the measured value? (B)
+7. Does the result match its declared dials (ENERGY, RHYTHM, MOTION), and is there one focal point, one accent, and one identity motif? (A)
+8. If the logo and product name were swapped out, would anything here still belong to this product? (A)
 
 Fix the largest visible failure first, then re-check from the top.
 
@@ -58,19 +72,28 @@ Each review finding cites:
 - the rule ID from `references/anti-pattern-catalog.md` or the floor item from `rules/craft-floor.md`
 - the measured or observed value
 - a severity from `rules/evidence-and-severity.md`
+- a tag, `[product]` or `[evidence]`
 
 A finding without a region and a rule is a comment, not a finding; record it but do not act on it. Present critique findings as a `| Before | After | Why |` table in the report.
+
+### 6.1 What the tags mean
+
+- `[product]` — the interface itself is wrong. The finding names a product decision and is answered by changing the design or by a documented reason, within the correction budget.
+- `[evidence]` — the capture cannot support any claim: a stale capture, a signature or frame-kind failure, a viewport mismatch, a missing surface from the coverage list, or a reference comparison reported `unavailable`. An `[evidence]` finding requires a new capture, not a code change. Fixing the interface first would grade the wrong artifact, so the new capture comes first and the finding is re-raised if it survives.
+
+A finding that mixes both is split in two: the capture defect keeps `[evidence]`, and the interface defect it hid becomes a separate `[product]` finding once a valid capture exists.
 
 ## 7. Answering Findings
 
 - `high` (P0/P1) findings are fixed within the correction budget, or answered with a reason the user can check.
+- An `[evidence]` finding is closed only by a new capture that passes the freshness and hygiene checks; a code change closes nothing.
 - A finding that conflicts with the brief or a documented brand decision is answered with that evidence, not obeyed.
 - A reviewer reply is evidence. "Looks great, ship it" is not a pass; only the checklist and the cited findings decide.
 - A rule satisfied by deleting function (removing all motion, all states, a real badge) is a degenerate fix; restore what carried meaning.
 
 ## Sources
 
-> Checked 2026-11-07.
+> Checked 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -82,7 +105,8 @@ A finding without a region and a rule is a comment, not a finding; record it but
 | A detector score rose while hand ratings fell; a motion rule produced motion collapse | <https://solodesign.cc/blog/ai-design-slop-the-tells/> (2026-06-06) |
 | A `Before / After / Why` table as the review format | <https://github.com/emilkowalski/skills> (commit `c8a7962`) (MIT) |
 | The dial-consistency question and the swap-the-logo test | <https://github.com/miqdadbadjuber/anti-slop> (commit `9504989`, `antislop/SKILL.md` Core Principle and Delivery Gate Block 3; MIT) |
+| Two passes with fixed section ownership and every finding tagged `[product]` or `[evidence]`; an `[evidence]` finding needs a new capture | `dbc-hbin/omp-ulw @ 74df40f` (2026-11-09), re-authored in this package's own words; the source repository has no license and no text or code was copied |
 
 ### Evidence grade
 
-The bias results are measured on text, not on interfaces; applying them to UI review is an inference. The reviewer protocol is this package's design.
+The bias results are measured on text, not on interfaces; applying them to UI review is an inference. The reviewer protocol, the pass split, and the tag rule are this package's design, re-authored from an unlicensed source.

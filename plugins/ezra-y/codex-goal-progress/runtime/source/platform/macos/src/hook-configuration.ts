@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 
 export const GOAL_PROGRESS_PLUGIN_ID = "codex-goal-progress@codex-goal-progress-local";
 const HOOK_CONFIGURATION_TIMEOUT_MS = 10_000;
+const CODEX_HOOK_HASH_PATTERN = /^sha256:[0-9a-f]{64}(?:\/sha256:[0-9a-f]{64})?$/u;
 const GOAL_PROGRESS_HOOK_KEYS = [
   `${GOAL_PROGRESS_PLUGIN_ID}:hooks/hooks.json:pre_tool_use:0:0`,
   `${GOAL_PROGRESS_PLUGIN_ID}:hooks/hooks.json:post_tool_use:0:0`,
@@ -141,7 +142,7 @@ async function configureInstalledGoalProgressHooks(
             .filter((hook) => hook.pluginId === GOAL_PROGRESS_PLUGIN_ID);
           if (
             hooks.length === 0 ||
-            hooks.some((hook) => !/^sha256:[0-9a-f]{64}$/u.test(hook.currentHash))
+            hooks.some((hook) => !CODEX_HOOK_HASH_PATTERN.test(hook.currentHash))
           ) {
             finish(new Error("GOAL_PROGRESS_HOOK_ENABLE_LIST_INVALID"));
             return;

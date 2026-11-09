@@ -1,6 +1,6 @@
 ---
 name: doctor
-description: Read-only diagnosis of the workspace, rules, lease, watchman and deadline, with next actions.
+description: Read-only diagnosis of the workspace, rules, markers, lease, watchman and deadline, with classified next actions; never repairs anything.
 license: MIT
 metadata:
   internal: true

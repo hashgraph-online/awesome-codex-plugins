@@ -20,6 +20,10 @@
 #    "findings": [{"severity": "warn", "code": "...", "detail": "..."}]}
 # Order values are byte offsets of the first match in the HTML, or null.
 #
+# Finding codes: NO_CONTAINER_IN_HTML, MULTIPLE_CONTAINERS, DUPLICATE_LOADER,
+# LOADER_NOT_IN_HEAD, GTMJS_NON_GTM_ID, ID_WITHOUT_LOADER, LOADER_NOT_SERVED,
+# LOADER_EMPTY_CONTAINER, GTM_AND_GTAG, CONSENT_AFTER_LOADER.
+#
 # Served HTML shows only what the server sends: a framework that injects the
 # loader after hydration, or a tag GTM itself adds, is absent here and needs a
 # rendered-browser check. Exit codes: 0 checked (even with findings), 2 bad

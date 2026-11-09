@@ -2,7 +2,7 @@
 
 > 요청한 산출물로 모드를 정확히 하나 고르고, 그 모드의 파일만 읽습니다.
 
-**목적**: 네 모드 중 어느 모드가 요청을 맡을지 정하거나, 요청을 이 스킬 밖으로 보냅니다. **읽는 조건**: 매 실행마다, 고른 모드의 첫 단계 전에 읽습니다.
+**목적**: 다섯 모드 중 어느 모드가 요청을 맡을지 정하거나, 요청을 이 스킬 밖으로 보냅니다. **읽는 조건**: 매 실행마다, 고른 모드의 첫 단계 전에 읽습니다.
 
 ## 1. Modes
 
@@ -12,6 +12,7 @@
 | `agents-md` | 루트·중첩 `AGENTS.md`, 인접 `rules/*.md` 분리, `AGENTS.ko.md` 미러 | AGENTS.md, "에이전트 지침 파일", 중첩 AGENTS.md | `rules/agents-md/mode-contract.md` |
 | `prompt` | 재사용 역할·system·developer·agent·task 프롬프트, 프롬프트 템플릿이나 팩, 프롬프트 eval 픽스처·judge 계약·회귀 세트 | prompt, 프롬프트, system prompt, template, prompt pack, eval fixture | `rules/prompt/mode-contract.md` |
 | `docs` | 그 밖의 AI가 읽는 문서: instruction base, 에이전트 가이드, 런북, 운영 절차, 명세, 정책·규칙 팩, 하네스 문서 | 런북, 가이드, 운영 절차, 명세, 규칙 팩, runbook, rule pack | `rules/docs/mode-contract.md` |
+| `memory` | 에이전트가 세션을 넘어 기억하려고 읽는 파일: `MEMORY.md` 색인과 주제 파일, 메모리 뱅크, 교훈·learned 파일, 사용자 프로필 파일과 그 기록·정리·삭제 규칙 | 메모리 파일, MEMORY.md, memory bank, 교훈 파일, 기억 규칙, agent memory | `rules/memory/mode-contract.md` |
 
 ## 2. Selection Order
 
@@ -20,8 +21,9 @@
 1. 요청이 `README.md`를 산출물로 지목하면 `readme`입니다.
 2. 요청이 `AGENTS.md`, `AGENTS.ko.md`, 중첩 `AGENTS.md`, 또는 그 `rules/*.md` 분리를 지목하면 `agents-md`입니다.
 3. 요청이 `CLAUDE.md`, `.claude/CLAUDE.md`, `CLAUDE.local.md`를 산출물로 지목하면 경계 안내만 하는 `agents-md`입니다. 이 스킬은 `AGENTS.md`와 `AGENTS.ko.md`만 만든다고 밝히고 그 산출물을 제안하며, 요청한 파일은 만들거나 고치거나 심링크하거나 이름을 바꾸거나 지우지 않습니다.
-4. 산출물을 지시 계약이나 eval 대상으로 다시 쓸 예정이면 `prompt`입니다.
-5. 그 밖에 에이전트나 관리자가 읽고 따르는 구조화된 문서이면 `docs`입니다.
+4. 산출물이 메모리 파일 묶음이나 그 규칙(`MEMORY.md`, 메모리 뱅크, 교훈 파일, 사용자 프로필, 메모리 디렉터리)이면 `memory`입니다.
+5. 산출물을 지시 계약이나 eval 대상으로 다시 쓸 예정이면 `prompt`입니다.
+6. 그 밖에 에이전트나 관리자가 읽고 따르는 구조화된 문서이면 `docs`입니다.
 
 ## 3. Tie-Breaks
 
@@ -30,6 +32,7 @@
 - **프롬프트인가 문서인가**: 산출물을 지시 계약이나 eval 대상으로 다시 쓸 때만 `prompt`를 고릅니다. 프롬프트 엔지니어링*에 관한* 가이드는 `docs`입니다.
 - **스킬 폴더 안의 프롬프트**: `prompt`는 요청이 지목한 프롬프트 파일만 맡습니다. 스킬 폴더 자체는 범위 밖입니다(§4).
 - **런타임 규칙 팩**: `AGENTS.md`에 기반하면 `agents-md`, 그 밖의 런타임 규칙 팩은 `docs`입니다.
+- **메모리 파일인가 지시 파일인가**: 매번 지켜야 하는 규칙은 `AGENTS.md`(`agents-md`)에, 코드로는 알 수 없는 오래가는 사실은 메모리(`memory`)에 둡니다. 둘 다 요청하면 사용자가 말한 순서대로 `agents-md`, `memory`를 실행합니다. `memory` 모드는 `AGENTS.md`를 쓰지 않습니다.
 - **지금 보낼 답장의 한 문장 수정**: 바로 답합니다. 재사용 프롬프트가 아닙니다.
 
 ## 4. Out of Scope
@@ -49,7 +52,7 @@
 고른 모드의 첫 단계 전에 한국어 한 줄을 출력합니다.
 
 ```text
-모드: <readme|agents-md|prompt|docs> / 근거: <그 모드를 고른 요청 구절이나 파일>
+모드: <readme|agents-md|prompt|docs|memory> / 근거: <그 모드를 고른 요청 구절이나 파일>
 ```
 
 §2.3 경계 요청이면 `모드: agents-md (경계 안내만)`을 출력합니다. §4 요청이면 산출물 모양을 출력하고 모드를 불러오지 않은 채 멈춥니다.
@@ -60,6 +63,7 @@
 
 | 주장 | 출처 |
 |---|---|
-| 네 모드, 선택 순서, 동점 처리 | 2026-11-07 사용자 지시로 산출물이 하나씩인 문서 워크플로 네 개를 이 스킬로 합칠 때 정한 이 패키지의 설계 |
+| 처음 네 모드, 선택 순서, 동점 처리 | 2026-11-07 사용자 지시로 산출물이 하나씩인 문서 워크플로 네 개를 이 스킬로 합칠 때 정한 이 패키지의 설계 |
+| `memory` 모드, `prompt`보다 앞선 선택 위치, 메모리 파일과 지시 파일의 동점 처리 | 2026-11-09 사용자 지시(이슈 47). 모드의 근거는 `references/memory/evidence-ledger.md`에 있습니다 |
 | 프롬프트와 문서를 나누는 규칙, 스킬 폴더 안 프롬프트 규칙 | 이 패키지의 이전 프롬프트 라우팅 규칙. 내용은 그대로 가져왔습니다 |
 | `CLAUDE.md` 경계 | `rules/agents-md/mode-contract.md` (이 패키지) |

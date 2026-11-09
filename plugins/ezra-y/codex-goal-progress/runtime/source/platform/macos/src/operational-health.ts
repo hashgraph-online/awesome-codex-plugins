@@ -124,7 +124,7 @@ export async function inspectOperationalHealth(
     return failure("hook-config-unsafe", facts);
   }
 
-  const cdpReady = await state.cdpReady();
+  const cdpReady = await state.cdpReady(codex);
   facts = { ...facts, cdpReady };
   if (!cdpReady) {
     return failure("cdp-not-ready", facts);

@@ -43,9 +43,11 @@ Both passed a live check on 3 November 2026. `check_deal` accepts exactly one
 product URL, visible model/barcode text or selected product ID; image bytes are
 not ingested. `optimize_basket` calculates read-only plans for exact products,
 quantities and a supplied postcode. Neither places an order. The client manifests
-now advertise the six research tools. OpenAI's acceptance of the new server
-definitions and the 1.3.0 package are tracked in the
-[release matrix](submission/current-release-matrix.md).
+now advertise the six research tools. The published ChatGPT app (1.2.0) still
+shows the four legacy research tools the hosted 1.9.0 server had before this
+change; the six-tool 1.3.0 package in `submission/openai-next/` is an uploaded
+but unsubmitted draft. OpenAI's acceptance of the new server definitions is
+tracked in the [release matrix](submission/current-release-matrix.md).
 
 | Tool | What it does | Key arguments |
 | --- | --- | --- |
@@ -154,7 +156,7 @@ gemini extensions install https://github.com/TheBestCo/bestprice-mcp
 qwen extensions install https://github.com/TheBestCo/bestprice-mcp --consent
 ```
 
-Both extensions restrict the imported tools to the four listed above.
+Both extensions restrict the imported tools to the six listed above.
 
 ### Codex, Claude plugins, and Agent Skill hosts
 

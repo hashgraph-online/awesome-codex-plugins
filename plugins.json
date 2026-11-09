@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-08",
-  "total": 388,
+  "last_updated": "2026-11-09",
+  "total": 391,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1532,6 +1532,16 @@
       "install_url": "https://raw.githubusercontent.com/liuyewang/skill-sync-publisher/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Smart Glasses Skills",
+      "url": "https://github.com/hinty-eu/smart-glasses-skills",
+      "owner": "hinty-eu",
+      "repo": "smart-glasses-skills",
+      "description": "Agent skills for building apps on smart glasses from any brand (Even Realities G2, Meta Ray-Ban Display, Rokid, Vuzix Z100, audio-only and USB-C display glasses): choose a target, get text onto the display, handle input and audio, test without hardware, and check what can be published today.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hinty-eu/smart-glasses-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Sno Station Skills",
       "url": "https://github.com/sno-ai/sno-station-skills",
       "owner": "sno-ai",
@@ -1951,6 +1961,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/kubec/abuzzhive.com/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AdMakeAI",
+      "url": "https://github.com/mesmerlord/admakeai-claude-plugin",
+      "owner": "mesmerlord",
+      "repo": "admakeai-claude-plugin",
+      "description": "Design ad images, UGC-style video ads and ad copy for your brand, look up the ads any brand runs in the Meta Ad Library, and prepare Meta campaign drafts through AdMakeAI's hosted MCP server and one skill, with browser sign-in and designs paid from account credits.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mesmerlord/admakeai-claude-plugin/HEAD/plugin.json"
     },
     {
       "name": "Agent Message Queue",
@@ -2652,6 +2672,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/sergebulaev/exotic-car-rental-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Fair Value Calculator",
+      "url": "https://github.com/petz00711/fair-value-calculator-mcp",
+      "owner": "petz00711",
+      "repo": "fair-value-calculator-mcp",
+      "description": "Fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, plus your watchlist and alerts, through the hosted Fair Value Calculator MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/petz00711/fair-value-calculator-mcp/HEAD/plugins/fair-value-calculator/.codex-plugin/plugin.json"
     },
     {
       "name": "Fantasy Football Manager",

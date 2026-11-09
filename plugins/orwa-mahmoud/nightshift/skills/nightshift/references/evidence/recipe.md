@@ -30,8 +30,10 @@ The H1 is `# <Title> — <which items this kind fits>`. The body is five section
 
 ## The evidence-check block
 
-Add one fenced `evidence-check` block in **How to verify** only when a file can be counted.
-A kind with nothing mechanical to check, such as a refactor note, has no block, and that is valid.
+Add one fenced `evidence-check` block, anywhere in the kind, when a file can be counted. With
+`check: block`, the gate then holds the tick until those files exist. A kind with nothing mechanical
+to check, such as a refactor note, has no block, and that is valid: the gate holds only the files an
+item names, and `--check-draft` says so.
 
 Both runtimes read the same three lines and no others:
 
@@ -54,13 +56,13 @@ in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/evid
 `%APPDATA%\nightshift\catalogs\evidence` on Windows), or in a folder named by
 `catalogs.evidence.paths`. `ns catalog-new --catalog evidence --key <key>` starts one from the
 template in force, `catalogs.evidence.template` names the owner's own template, and
-`ns catalog-index --catalog evidence --check-draft FILE` names each section a draft lacks.
+`ns catalog-index --catalog evidence --check-draft FILE` checks what Nightshift reads from a draft.
 [Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
 A project kind wins over a configured folder, which wins over a user kind, which wins over the
 shipped kind of the same key. Owner kinds stay on the machine. Purge removes the project folder
 with the rest of `.nightshift/` and does not touch the user folder. Reset and Archive leave both.
 Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).
 
-## Review
+## Concrete lines
 
-Every kind is read by a human before merge. The shape is necessary and not sufficient: a kind that names no concrete file, command, or figure will be followed literally, and a tired model will produce exactly the vague line it was given.
+A kind that names no concrete file, command, or figure is followed literally, and a model produces exactly the vague line it was given.

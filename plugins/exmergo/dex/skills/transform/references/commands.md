@@ -131,6 +131,16 @@ See the cost-controls reference for the shared budget mechanism.
     join `matched_entities` against the other side's distinct keys that pass
     its own `WHERE` and `ON` conjuncts (`partner_filters`, #1073).
     `denominator` states the population in words.
+  - `own_filters` (#1171): on a join, the converted side's own filters applied
+    to the rows counted: its `WHERE` conjuncts and, where the join drops its
+    rows (an inner join, or the side a `LEFT` or `RIGHT` join does not keep),
+    its `ON` conjuncts. On the kept side of an outer join an `ON` conjunct
+    removes none of its rows and is not applied. A conjunct converting the key
+    itself is the conversion's effect and stays counted.
+    `scope_filters_not_applied` names, as `{filter, reason}`, each `WHERE` or
+    `ON` conjunct that narrows neither side's rows in the counts because it
+    reads both sides, another relation, or a column whose relation is not
+    stated.
   - `later_filters_applied` (#1073): a row-by-row `WHERE` conjunct in a later
     CTE, on the one chain of scopes that read the conversion's scope as their
     `FROM`, carried back onto the rows counted, as `scope: predicate`. A
@@ -298,6 +308,18 @@ macros, semantic YAML, seed headers, and installed packages. Repo-only and free.
 - A bare column name is matched project-wide (`scope: name_matched`); a qualified
   `model.column` is resolved through the `ref()` graph, and same-named columns
   outside that lineage are marked `same_name_elsewhere`.
+- A versioned model is named by its base name, which selects every version
+  (`dim_teams.team_label`), or by a version's label, which selects one
+  (`dim_teams.v2.team_label`). The target lists the selected `versions`, and
+  each occurrence names the versions it belongs to: a version's file and its
+  own `versions:` entry that version, a top-level column entry every version
+  that inherits it through `include`, and a consumer the version its
+  `ref('dim_teams')` or `ref('dim_teams', v=N)` resolves to. Names in an
+  `include` or `exclude` list are reported as `yaml_version_include` and
+  `yaml_version_exclude`. A label alone (`dim_teams.v2`) is answered as that
+  version: its file and the `ref()` calls that resolve to it. A `ref()` that
+  pins its version with an expression (`v=var('x')`) is a limit, and `rename`
+  and `remove` refuse while it stands.
 - Capped at 200 occurrences across 50 files; `--full` lifts both.
 - `--usage` also reports how other models use each qualified `model.column`
   (or `source_table.column`): each target gains `usage`, the same `readers`,
@@ -315,6 +337,13 @@ a seed header) and stores them as one plan. Kinds: `column`, `var`, `model`,
 
 - A bare column name is refused, and the refusal lists the models defining a
   column of that name. A report may be imprecise; a rewrite may not.
+- On a versioned model, `dim_teams.<column>` renames every version that has the
+  column (its file selects it or its YAML declares it) and that version's
+  consumers; `dim_teams.v2.<column>` renames v2 and its consumers only. A
+  top-level column entry other versions still inherit is kept for them: the
+  renamed version excludes it and declares its own entry under the new name,
+  and `notes` says so. A model-level test shared with a version the rename does
+  not reach is refused. `transform remove column` takes the same names.
 - It refuses on a reference it could not resolve statically, a name an installed
   package also defines, a column handed to a macro as a literal string, and a
   SELECT list it cannot read.
@@ -439,6 +468,9 @@ failed-build envelope carries it too, and Python callers get the same typed
 | `assurance` | over the required deliverables, or over every built model with no plan: `asserted` (a passing data test reads it, or a verification record judged it `satisfied`), `failed_checks` (a data test on it failed or warned, or a record was `contradicted`; `checks` lists each failure with its `kind`, `data_test` with the test's `name` or the record list such as `join_coverage` with its `finding` and `join`, so a join measured against a default threshold is not read as a failed test, #1162) and `build_only` (it built and nothing checked its rows; a unit test reads fixtures, so it does not count) |
 | `verification` | `ran` (and `reason` when it did not), `finding_count` including the ones past the 50-finding cap (`findings_dropped`), `by_severity`, the `top` five as `{code, identifier, severity}`, the `suppressed` class names, and `offered` when the sweep's scan was offered rather than run |
 | `obligations` | the declared contracts the sweep held the build to (`join_coverage`, `parent_population`, `temporal_contracts`, and the column contract's unchecked models), counted `by_status`, with the `contradicted` ones named with their `finding` and the `unchecked` ones with their `reason_code`, and the models that declare no columns under `no_declared_columns`. `checked: false` when the sweep did not run. An empty `by_status` from a sweep that ran means nothing declared a contract it could hold the build to, which is not the same as every contract holding |
+| `obligations.identifier_conversions`, `obligations.change_scope` | the plan's identifier conversions and change-scope entries that are not settled, on the required models (#861, #1115) |
+| `obligations.incremental_replay` | each required incremental model the plan edited: `satisfied` when a unit test overriding `is_incremental` to true passed in this build, `contradicted` (`incremental_test_failed`) when one failed, otherwise `unchecked` with `full_refresh_only` (the build only full-refreshed it, which never runs the next incremental run) or `no_incremental_test`. Absent when the plan edits no incremental model (#1130) |
+| `obligations.comparison` | with `--for-plan`, each required model the plan rewrote, held to its recorded `transform compare` verdict: `equivalent` or `as_expected` is `satisfied`, `different` or `unexpected` is `contradicted`, and no verdict is `unchecked` with `not_compared` (or `compared_elsewhere` where another rewrite in the plan was compared), as is a `not_checked` verdict with its own code. A `--for-plan-file` build carries none, since verdicts are recorded on the stored plan (#1157) |
 | `refactor_comparison` | with `--for-plan`, each model the plan rewrote and any model compared on it (a downstream mart included), with its recorded `transform compare` verdict, or `not_compared` |
 | `details` | where the full evidence is, in reading order |
 | `elided` | every cut the budget forced, counted. Counts are never cut, and each unfinished list keeps at least one name |
@@ -636,9 +668,10 @@ test over the smaller result.
   A cold dev target that cannot be priced upfront is priced again after the
   build, against the reservation it already holds.
 
-## `transform compare [plan-id] [--model <m>] [--map old=new] [--key <column>] [--accept-type <column>] [--target dev]`
+## `transform compare [plan-id] [--model <m>] [--map old=new] [--key <column>] [--accept-type <column>] [--expect <json> | --expect-file <f>] [--target dev]`
 
-Whether a stored plan keeps one model's results. Use it on a refactor, after
+Whether a stored plan keeps one model's results, or, with `--expect`, whether it
+changes them only as stated (see [below](#an-intended-change---expect)). Use it on a refactor, after
 `transform plan` and before `transform apply`: `data.refactor_comparison_offer` on
 the plan names the command. A green build and a matching row count do not establish
 this, since a join rewrite can keep both and still change a measure.
@@ -728,6 +761,71 @@ feature on, the proposal returns today's results". The off value is
 A plan that changes a macro or project configuration compiles both sides through
 their ancestors, and is compared when no untouched parent's SQL moved. Refused in
 values-free mode.
+
+### An intended change: `--expect`
+
+Most repairs are meant to change rows: backfill missing days, drop archived
+entities, pick up late arrivals. Compared without an expectation they read
+`different`, which says nothing about whether only the intended rows moved.
+`--expect '<json>'` (or `--expect-file <f>`, `-` for stdin) states the change,
+and the verdict becomes `as_expected` (`matches_expected_change`) or `unexpected`
+(`unexpected_change`) (#1157):
+
+```json
+{"added":   "none" | "any" | {"where": "<predicate>"},
+ "removed": "none" | "any" | {"where": "<predicate>"},
+ "changed_columns": ["<column>", "..."],
+ "key": "unchanged"}
+```
+
+- Every field is optional: `added` and `removed` default to `"none"`,
+  `changed_columns` to none, and `key` to `"unchanged"` (`"any"` lets the key
+  stop being unique). `{"expected_change": {...}}` is accepted too.
+- `added.where` is read on each added row of the proposal, `removed.where` on
+  each removed row of the baseline. A predicate names output columns (either
+  side's spelling of a `--map` rename) and must be a deterministic row-by-row
+  condition: comparisons, `IN` over literals, `BETWEEN`, `LIKE`, `IS`, boolean
+  logic, `coalesce`, casts, `lower`/`upper`/`trim`. No arithmetic, function or
+  aggregate. A predicate that is NULL on a row does not match it.
+- An exclusion is usually stated by a column the model does not output, so one
+  subquery shape is allowed: `<column> IN (SELECT <column> FROM <relation>
+  [WHERE <row predicate>])`, one relation, no join, grouping or limit.
+  `ref('<model>')` names a relation either side reads. The relation is read once
+  as a distinct list (profiled on demand like an input) and does not join the
+  compared `input_scope`.
+- With a key (`--key`, else the declared grain) unique on the baseline, the
+  counts are keys: added, removed, and changed (a key on both sides whose row
+  moved), each `{total, matching, unexpected}`; `columns` names each column that
+  changed on how many keys and whether `changed_columns` allows it; `grain` says
+  whether the key `holds` on the proposal and how many keys repeat. With no key,
+  or one that repeats on the baseline, the counts are rows (excess
+  multiplicity), a changed row reads as one removed and one added, and
+  `changed_columns` is refused without a key.
+- `findings` names each failed clause: `unexpected_added`, `unexpected_removed`,
+  `unexpected_changed_column`, `grain_not_held` (a backfill that crosses days
+  with another dimension repeats the day), or `schema_changed` (state a rename
+  with `--map`, a type change with `--accept-type`).
+- `unexpected_keys` names up to five keys per failed class (`added`, `removed`,
+  `changed`): key columns only, read through the query firewall, so a key whose
+  column is flagged as PII is withheld (`samples_withheld: firewall_refused`) and
+  the counts stand. It is the one place `transform compare` returns values, and
+  the command stays refused in values-free mode.
+- An expectation that does not fit (a column that is not an output, a
+  `changed_columns` naming a key column, a predicate outside the whitelist) is
+  `not_checked` with `invalid_expectation` and `detail` naming the field, and is
+  not recorded. Malformed JSON is refused before anything compiles.
+- On a metered connector the expectation's statements (rows, keys and the key
+  sample) are priced into the same single ask, as `(expected change rows)`,
+  `(expected change keys)` and `(expected change key sample)`; the sample runs
+  only when a class failed.
+- The verdict is recorded on the plan with a digest of the expectation, and a
+  `--for-plan` build reads it into `obligations.comparison`: `as_expected` is
+  `satisfied` and `unexpected` is `contradicted` (`unexpected_change`).
+- With no key compared, the report says `key: "unchanged"` was not judged (a
+  note, and `grain.holds: null`); pass `--key` to have it checked. A key column
+  whose name reads like a credential's (`token_count`) withholds the sample
+  (`samples_withheld: key_name_withheld`), since the envelope refuses such a
+  name.
 
 ## `transform test --scaffold <model>`
 

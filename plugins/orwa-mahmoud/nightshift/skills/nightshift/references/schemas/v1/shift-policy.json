@@ -473,7 +473,7 @@
             "review": {
               "type": "string",
               "enum": ["off", "on"],
-              "description": "Whether the agent opens the evidence it produced, compares it with the item and the kind, fixes it, and writes a Reviewed section. With check at block, a missing Reviewed section counts as missing evidence."
+              "description": "Whether the agent opens the evidence it produced, compares it with the item and the kind, fixes it, and says in the receipt what it saw. It never affects the tick."
             },
             "unavailable": {
               "type": "string",

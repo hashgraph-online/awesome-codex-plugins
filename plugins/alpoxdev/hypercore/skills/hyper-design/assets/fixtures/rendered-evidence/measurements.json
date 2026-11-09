@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "surface": "http://localhost:3000/pricing",
+  "captures": [
+    {
+      "viewport": {
+        "width": 320,
+        "height": 800
+      },
+      "state": "default",
+      "capturedAt": "2026-08-29T12:00:00Z",
+      "stressString": "supercalifragilisticexpialidocious-supercalifragilisticexpialidocious",
+      "observations": [
+        {
+          "locator": "#body-text",
+          "rect": {
+            "x": 16,
+            "y": 100,
+            "width": 288,
+            "height": 60
+          },
+          "role": "body",
+          "overflowX": 330,
+          "computed": {
+            "fontSize": "16px",
+            "color": "#999999",
+            "backgroundColor": "#ffffff"
+          },
+          "textRect": {
+            "x": 16,
+            "y": 100,
+            "width": 288,
+            "height": 48
+          }
+        },
+        {
+          "locator": "#body-text-ok",
+          "rect": {
+            "x": 16,
+            "y": 200,
+            "width": 288,
+            "height": 60
+          },
+          "role": "body",
+          "computed": {
+            "fontSize": "16px",
+            "color": "#000000",
+            "backgroundColor": "#ffffff"
+          },
+          "textRect": {
+            "x": 16,
+            "y": 140,
+            "width": 288,
+            "height": 48
+          }
+        }
+      ]
+    }
+  ]
+}

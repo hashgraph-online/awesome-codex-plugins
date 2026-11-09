@@ -56,8 +56,12 @@
 | `handoff` | string | 예 | `.hyper/mass/<run-key>/nodes/<id>.md`. 실행 디렉터리 안이어야 합니다. |
 | `prompt` | string | 예 | 다섯 표지를 갖춘 완전한 node prompt. |
 | `reason` | string | `tier`가 `low`가 아닐 때 | 승격 이유 한 줄. |
+| `solutionSpace` | 문자열 배열 | 아니요 | 이 노드가 고를 수 있는 짧은 접근 이름 목록. 있으면 node prompt에 적고, 노드는 목록 안의 접근만 골라야 하며(**MUST**), 목록 밖 접근을 쓴 노드는 self-check에서 실패합니다. |
+| `resolvedModel` | string | 아니요 | 실제로 실행된 모델. 관찰한 결과에서만 쓰고, dispatch 전에 예측해 쓰지 않습니다. |
 
 `dependsOn`과 `reads`는 목적이 다릅니다. 엣지는 두 노드의 순서를 정하고, read 경로는 노드가 소비하는 것을 지목합니다. 어떤 엣지도 만들지 않는 `reads` 경로는 리더가 제공한 문맥이거나 실수입니다. 시작 전에 어느 쪽인지 정합니다.
+
+`solutionSpace`가 있으면 node prompt가 `SOLUTION SPACE:` 줄(또는 `TASK`/`SCOPE` 안)에 목록을 적어 작업자에게 허용된 접근을 보이게 합니다. 노드는 자기 handoff에 쓴 접근을 밝히고, 리더는 노드가 완료로 세기 전에 그 접근이 목록에 속하는지 확인합니다. `solutionSpace`가 없으면 노드가 자유롭게 고르고, 있으면 선택이 제한되고 검사됩니다.
 
 ## Justification 객체
 
@@ -108,6 +112,7 @@ STOP WHEN: <관찰 가능한 조건 하나>
 11. 모든 `prompt`에 TASK, DELIVERABLE, SCOPE, VERIFY, STOP WHEN이 있습니다.
 12. 모든 생산자에 의존하는 종단 검증 또는 검토 노드가 하나 이상 있습니다.
 13. 코드를 바꾸는 그래프라면 종단 노드의 VERIFY가 실제 테스트나 빌드 명령을 지목합니다.
+14. 모든 `solutionSpace` 항목이 비어 있지 않은 문자열이고, 노드가 사용했다고 보고한 접근이 자기 목록에 속하며, 모든 `resolvedModel` 값이 예측이 아니라 관찰한 결과에서 나왔는지 봅니다.
 
 ## `run.jsonl`
 
@@ -118,13 +123,13 @@ STOP WHEN: <관찰 가능한 조건 하나>
 | `run.created` | `mode`, `nodes`, `definition_digest`, `justification` |
 | `run.resumed` | `from_event`, `reused_nodes` |
 | `node.started` | `node`, `attempt` |
-| `node.completed` | `node`, `handoff`, `evidence`; 검증 노드는 `verifier` (`sequential` 모드에서는 `self (no subagent capability)`) |
+| `node.completed` | `node`, `handoff`, `evidence`, `resolvedModel`(결과에서 관찰한 모델, run journal에만); 검증 노드는 `verifier`(`sequential` 모드에서는 `self (no subagent capability)`) |
 | `node.failed` | `node`, `attempt`, `error` |
 | `node.retried` | `node`, `attempt`, `reason` |
 | `node.sent` | `node`, `boundary` |
 | `node.cancelled` | `node`, `reason` |
 | `run.amended` | `changed`, `reason` |
-| `run.settled` | `status`, `reason`, `criteria` |
+| `run.settled` | `status`, `reason`, `criteria`, `landed` |
 
 예:
 
@@ -135,12 +140,13 @@ STOP WHEN: <관찰 가능한 조건 하나>
 {"ts":"2026-11-03T09:04:11Z","event":"node.started","run":"checkout-refactor-2026-11-03","node":"api","attempt":1}
 {"ts":"2026-11-03T09:30:00Z","event":"node.failed","run":"checkout-refactor-2026-11-03","node":"api","attempt":1,"error":"handoff missing; node exited before writing"}
 {"ts":"2026-11-03T09:31:00Z","event":"node.retried","run":"checkout-refactor-2026-11-03","node":"api","attempt":2,"reason":"missing handoff, rerun with write-first instruction"}
-{"ts":"2026-11-03T10:20:00Z","event":"run.settled","run":"checkout-refactor-2026-11-03","status":"completed","reason":"all criteria pass","criteria":["checkout tests exit 0","e2e log attached"]}
+{"ts":"2026-11-03T10:20:00Z","event":"run.settled","run":"checkout-refactor-2026-11-03","status":"completed","reason":"all criteria pass","criteria":["checkout tests exit 0","e2e log attached"],"landed":["9f2c1ab","41d7e02"]}
 ```
 
 규칙:
 
-- `node.completed`는 노드가 답했을 때가 아니라 리더가 handoff를 연 뒤에 씁니다.
+- `node.completed`는 노드가 답했을 때가 아니라 리더가 handoff를 연 뒤에 씁니다. 리더는 바로 그때 관찰한 결과(런타임이 실제로 돌아간 모델을 알린 값)에서 `resolvedModel`을 적습니다. dispatch 전에는 쓰지 않으며 `tier`에서 예측하지 않습니다.
+- `solutionSpace`가 있는 노드는 자기 handoff에 쓴 접근을 밝힙니다. 리더는 `node.completed` 전에 목록과 대조하고, 목록 밖 접근은 완료가 아니라 실패한 self-check로 다룹니다.
 - `run.settled`는 실행마다 한 번 씁니다. 재개한 실행은 새 dispatch wave 뒤에 새 정산을 덧붙입니다.
 - 타임스탬프는 UTC입니다. 보고는 현지 시간으로 보여 줄 수 있지만 journal은 그렇게 하지 않습니다.
 
@@ -203,6 +209,7 @@ STOP WHEN: <관찰 가능한 조건 하나>
       "tier": "medium",
       "kind": "visual",
       "reason": "copy and state changes across four checkout screens",
+      "solutionSpace": ["copy-update", "state-map", "a11y-pass"],
       "dependsOn": ["audit"],
       "reads": ["src/checkout/ui/**", ".hyper/mass/checkout-refactor-2026-11-03/nodes/audit.md"],
       "writes": ["src/checkout/ui/**", ".hyper/mass/checkout-refactor-2026-11-03/nodes/ui.md"],
@@ -254,7 +261,7 @@ audit가 겹치지 않는 세 표면으로 fan-out하고, `e2e`가 두 코드 �
 
 ## Sources
 
-> 확인 2026-11-03.
+> 확인 2026-11-09.
 
 | Claim | Source |
 |---|---|
@@ -263,6 +270,7 @@ audit가 겹치지 않는 세 표면으로 fan-out하고, `e2e`가 두 코드 �
 | 체크포인트 resume을 가정하지 않고 시험하기, 동적 경로의 전이 기록 | `instructions/graph-engineering/GRAPH_ENGINEERING.md` |
 | 근거 파일이 없으면 일어나지 않은 일, `SKIP`은 통과가 아님 | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | 패밀리 계약의 `.hyper/mass/<run-key>/` 경로와 여섯 justification 필드 | 패밀리 계약, 2026-11-03 |
+| 노드 `solutionSpace` 경계, 목록 밖 접근 실패, 관찰한 결과에서 가져오는 `resolvedModel`, 토큰 상한과 handoff 인용이 붙은 클러스터 digest, digest만 읽는 최종 reducer | `dbc-hbin/omp-ulw @ 74df40f`(2026-11-09), 다시 쓴 것. 원본 저장소에는 license 파일이 없어 본문·코드를 복사하지 않았습니다 |
 
 ### 근거 등급
 

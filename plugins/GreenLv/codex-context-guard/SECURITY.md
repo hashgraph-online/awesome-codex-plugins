@@ -3,7 +3,7 @@
 ## Supported version
 
 Security and correctness fixes are applied to the current supported
-release, `0.16.1`. Public availability is determined independently by
+release source, `0.17.0`. Public availability is determined independently by
 [GitHub Release readback](https://github.com/GreenLv/codex-context-guard/releases).
 Reports against published builds are triaged first; source and artifact checks
 follow the [versioning policy](docs/VERSIONING.md) before publication.
@@ -35,12 +35,12 @@ cannot force another turn; only a hash-verified explicit-persistence
 instruction or an uncheckpointed whole-task completion claim can activate a
 correction turn.
 
-Historical cache repair trusts only the archive SHA-256 index. A missing,
-unindexed, symlinked, or hash-mismatched archive fails closed; `--apply` never
-uses a corrupt archive as repair input and archives are not automatically
-deleted. `context-guard diagnose` exposes bounded hashes, protocol/control
-sources, declared dispositions, reason codes, and observed diagnostic outcomes,
-not raw prompts or replies.
+Consumed versioned caches are immutable. This product provides no archive
+repair or automatic deletion of old caches; installation uses official Codex
+marketplace operations. A cache's continued presence does not prove which
+runtime an existing task loads. `context-guard diagnose` exposes bounded
+hashes, protocol/control sources, declared dispositions, reason codes and
+observed diagnostic outcomes, not raw prompts or replies.
 
 Redaction in derived evidence, diagnostics, and exports covers the documented
 supported domain (see [privacy](docs/PRIVACY.md)): common structured

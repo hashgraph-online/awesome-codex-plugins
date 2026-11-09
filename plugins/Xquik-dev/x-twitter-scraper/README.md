@@ -182,13 +182,15 @@ or [open the complete documentation](https://docs.xquik.com).
 [![X (Twitter) tweet scraper rating on Apify](https://img.shields.io/endpoint?url=https%3A%2F%2Fxquik.com%2Fbadges%2Fapify-rating.json)](https://apify.com/xquik/x-tweet-scraper/reviews)
 
 - 1,500+ installs of this repo's Skills on skills.sh ([source](https://skills.sh/xquik-dev/x-twitter-scraper)) <!-- trust:skills-x-twitter-scraper 1544 -->
-- 11,000+ users of Xquik's X (Twitter) scraper Actors on Apify ([source](https://apify.com/xquik)) <!-- trust:apify-users 11846 -->
-- 8,400,000+ runs of Xquik's X (Twitter) scraper Actors on Apify ([source](https://apify.com/xquik)) <!-- trust:apify-runs 8467303 -->
+- 11,000+ users of Xquik's X (Twitter) scraper Actors on Apify ([source](https://apify.com/xquik)) <!-- trust:apify-users 11962 -->
+- 8,500,000+ runs of Xquik's X (Twitter) scraper Actors on Apify ([source](https://apify.com/xquik)) <!-- trust:apify-runs 8597435 -->
 - 4.66 of 5 for the X Tweet Scraper from 16 Apify reviews ([source](https://apify.com/xquik/x-tweet-scraper/reviews)) <!-- trust:apify-rating 4.66 16 -->
 
-Checked on 2026-11-08. See each number with its date & source on [xquik.com/benchmarks](https://xquik.com/benchmarks) or as [JSON](https://xquik.com/trust.json).
+Checked on 2026-11-09. See each number with its date & source on [xquik.com/benchmarks](https://xquik.com/benchmarks) or as [JSON](https://xquik.com/trust.json).
 
 <!-- trust:end -->
+
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/13731/badge)](https://www.bestpractices.dev/projects/13731)
 
 ## What you pay for
 
@@ -227,7 +229,7 @@ Xquik omits unavailable optional fields. It never invents missing content.
 
 ## Package and MCP details
 
-`x-developer` v2.8.0 bundles Skills and plugin metadata. The hosted MCP server
+`x-developer` v2.8.1 bundles Skills and plugin metadata. The hosted MCP server
 exposes `docs`, `search`, `execute`, and `whoami`. `whoami` returns the connected
 Xquik account's `id`, which never changes. Current clients negotiate MCP
 protocol version `2026-07-28` through `server/discover`.

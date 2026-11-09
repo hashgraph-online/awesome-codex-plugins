@@ -1,6 +1,6 @@
 ---
 name: hyper-google-tagmanager
-description: "Use this skill when the user asks to install Google Tag Manager on a website, audit an existing GTM or Google tag install, design or change a GTM container (dataLayer, tags, triggers, variables, consent, ecommerce), verify that tags fire, diagnose broken or duplicate tracking, or analyze what a container and its data show. It reads the repository, the served page, and a container export with bundled scripts, writes framework-specific install code, gates container publishing and live consent changes behind explicit approval, and saves a report under `.hyper/gtm/`. Do not use for GA4 property administration or reporting alone, ad campaign setup, or a tracking plan written as a document."
+description: "Use this skill when the user asks to install Google Tag Manager on a website, audit an existing GTM install or a Google tag that runs beside a container, design or change a GTM container (dataLayer, tags, triggers, variables, consent, ecommerce), verify that tags fire, diagnose broken or duplicate tracking, or analyze what a container and its data show. It reads the repository, the served page, and a container export with bundled scripts, writes framework-specific install code, gates container publishing and live consent changes behind explicit approval, and saves a report under `.hyper/gtm/`. Do not use for GA4 property administration or reporting alone, ad campaign setup, or a tracking plan written as a document."
 compatibility: Needs file read, search, edit, and a shell. The bundled scripts need bash 3.2+, jq 1.6+, and curl for live-page checks. Rendered-page verification needs a browser-automation capability; container reads and writes through the Tag Manager API need a credential the user already provided. Without them the run stops at the step that needs them and says so.
 ---
 
@@ -46,7 +46,8 @@ Use this skill when the requested output is a Google Tag Manager result on a web
 
 Do not use it when:
 
-- the output is only GA4 property administration, a GA4 report, or a data export with no GTM or site-tag work
+- the output is only GA4 property administration, a GA4 report, or a data export with no container work
+- the page has no container and the work is only a direct Google tag (a `gtag/js` loader with a `G-` ID) with no container decision open; that tag has its own destination, consent, and page-view rules
 - the output is an ad campaign, an audience, or a bid setting
 - the output is a measurement or tracking plan written as a document with no install, container, or verification work
 - the output is a generic analytics library (Segment, PostHog, Amplitude) installed without GTM
@@ -175,6 +176,7 @@ Phase rules:
 - Copy the container snippet from the container's Install dialog or the Tag Manager API `snippet` method when one is reachable; otherwise use the current form in `references/install-recipes.md` and say which form was used.
 - Never add a second container, a second loader, or a direct Google tag for an ID the container already configures.
 - Never print a credential, an OAuth token, a Measurement Protocol `api_secret`, or a full `gtm_auth` value into the chat, the report, or a commit.
+- When phase 0 finds no container ID in the request, the repository, or the served page, ask one question before writing code: the ID and its account if the user has a container, or whether to create one. Never invent an ID, and treat a `G-` ID the site already loads as a reason to keep the Google tag rather than add a container for the same destination.
 
 </workflow>
 

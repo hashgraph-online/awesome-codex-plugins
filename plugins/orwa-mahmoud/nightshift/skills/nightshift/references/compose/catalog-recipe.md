@@ -8,10 +8,8 @@ existing ones.** [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/b
 walks through the steps for every catalog. Nothing shared changes, so two contributors can add a
 shift the same week and never meet in a diff, and Hunt offers a new file the moment it lands.
 
-Every entry is checked against the template: its title must declare the ending, and it must carry
-a **When to use** section and an **Item** section with a pasteable box and a Verify line. An
-optional `tests/shifts/<your-shift>.bats` is for what is specific to yours — above all its
-refusals, which are the lines a tired model reaches past at 4am.
+Nightshift checks only what it reads from an entry: the title declares the ending, and a text
+block carries a pasteable box with a Verify line. Everything else is yours to write, in any shape.
 
 Before writing, understand what you are writing: **a shift is a contract handed to an agent that
 will work unattended, on a stranger's workspace, while they sleep.** It is not documentation and
@@ -23,8 +21,6 @@ or comment on [#21](https://github.com/orwa-mahmoud/nightshift/issues/21). The f
 this recipe or the contract test — a merged entry is still the file described here.
 
 ## The six things an entry must declare
-
-An entry that leaves any of these unanswered cannot be reviewed and will not be merged.
 
 **1. Ending — finite or open-ended.** Finite work is a known list and stops when the list is clear;
 hours are an optional cap. Open-ended work has no natural end but the clock and must not start
@@ -68,14 +64,9 @@ title ending in a full stop, then one bullet each for how the work is discovered
 what it will never do, the ending condition stated as a test, and the Verify line: the commands
 that must pass before each commit or artifact receipt.
 
-## Review
+## Narrow entries
 
-Every catalog PR is read by a human before merge. Schema conformance is necessary and not
-sufficient: a plausible entry can still be a bad night on someone's repository, and no automated
-check catches that. Expect questions about the refusals and the ending condition — those are where
-unattended work goes wrong.
-
-Entries are also welcome to be narrow. "Clear ruff findings in a Django project" is more useful
+Entries are welcome to be narrow. "Clear ruff findings in a Django project" is more useful
 than "improve Python code", because a narrow entry can state a specific definition of done.
 
 ## Cited research

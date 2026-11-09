@@ -10,7 +10,7 @@ compatibility: Needs file read, search, and edit over the target project and wri
 @rules/delivery-gate.md
 @rules/validation-and-reporting.md
 
-# Hyper UI/UX
+# Hyper Design
 
 > Decide the design before drawing it, hold every screen to a measured craft floor, and judge the result with evidence that the builder did not grade alone.
 
@@ -109,7 +109,7 @@ Boundary requests:
 
 - Core (`SKILL.md`): trigger, modes, contract, workflow, stop conditions.
 - Rules: [rules/workflow.md](rules/workflow.md) (modes, phases, budgets, artifacts, side-effect gates); [rules/design-direction.md](rules/design-direction.md) (brief, visitor mode, reference, tokens, Design Read and dials, decision reasons, rejected alternative); [rules/craft-floor.md](rules/craft-floor.md) (numeric floor); [rules/slop-taxonomy.md](rules/slop-taxonomy.md) (finding classes, co-occurrence, dispositions); [rules/evidence-and-severity.md](rules/evidence-and-severity.md) (finding record and severity); [rules/safe-editing.md](rules/safe-editing.md) (what write modes may change); [rules/waivers-and-baselines.md](rules/waivers-and-baselines.md); [rules/rendered-evidence.md](rules/rendered-evidence.md); [rules/independent-review.md](rules/independent-review.md); [rules/delivery-gate.md](rules/delivery-gate.md) (honesty, craft floor, purpose and dose, liveliness); [rules/validation-and-reporting.md](rules/validation-and-reporting.md).
-- References: [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md), [references/context-signals.md](references/context-signals.md), [references/fix-playbook.md](references/fix-playbook.md), [references/replacement-patterns.md](references/replacement-patterns.md), [references/mockup-craft.md](references/mockup-craft.md), [references/screen-patterns.md](references/screen-patterns.md), [references/responsive-reflow.md](references/responsive-reflow.md), [references/accessible-interaction.md](references/accessible-interaction.md), [references/ui-copy.md](references/ui-copy.md), [references/contrast-check.md](references/contrast-check.md), [references/performance-baseline.md](references/performance-baseline.md), [references/browser-evidence-schema.md](references/browser-evidence-schema.md), [references/eval-rubric.md](references/eval-rubric.md).
+- References: [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md), [references/context-signals.md](references/context-signals.md), [references/fix-playbook.md](references/fix-playbook.md), [references/replacement-patterns.md](references/replacement-patterns.md), [references/mockup-craft.md](references/mockup-craft.md), [references/screen-patterns.md](references/screen-patterns.md), [references/responsive-reflow.md](references/responsive-reflow.md), [references/accessible-interaction.md](references/accessible-interaction.md), [references/ui-copy.md](references/ui-copy.md), [references/contrast-check.md](references/contrast-check.md), [references/performance-baseline.md](references/performance-baseline.md), [references/browser-evidence-schema.md](references/browser-evidence-schema.md), [references/eval-rubric.md](references/eval-rubric.md), [references/native-platforms.md](references/native-platforms.md), [references/print-paged.md](references/print-paged.md), [references/korean-break-quality.md](references/korean-break-quality.md), [references/rendered-measurements.md](references/rendered-measurements.md).
 - Scripts (bash 3.2+, jq 1.6+): `scripts/detect-slop.sh` and `scripts/analyze-structure.sh` for static detection; `scripts/validate-report.sh`, `scripts/validate-waivers.sh`, and `scripts/collect-rendered-evidence.sh` for validation; `scripts/run-detector-evals.sh` and `scripts/run-contract-evals.sh` for the package's own regression suites; the engine, context, and registry helpers they source.
 - Assets: `assets/design-brief-template.ko.md` and `assets/report-template.ko.md` (English siblings beside them), `assets/waiver.schema.json`, detector fixtures, and `assets/evals/hyper-design-cases.jsonl`.
 
@@ -142,15 +142,20 @@ Write briefs, reports, status lines, and questions in Korean. Keep code, token n
 - Read [rules/rendered-evidence.md](rules/rendered-evidence.md) and [references/browser-evidence-schema.md](references/browser-evidence-schema.md) only when a browser capability or a rendered handoff exists.
 - Read [rules/independent-review.md](rules/independent-review.md) before the review phase of every write mode and of audit.
 - Read [references/context-signals.md](references/context-signals.md) when the brief, identity, or data shape is uncertain.
+- Read [references/rendered-measurements.md](references/rendered-measurements.md) when a validated handoff carries measurement fields or a claim depends on what the browser drew.
 - Read [references/anti-pattern-catalog.md](references/anti-pattern-catalog.md) when mapping a detector result or an observation to a rule, then [references/fix-playbook.md](references/fix-playbook.md) for its fix and [references/replacement-patterns.md](references/replacement-patterns.md) only when the fix needs a different structure.
 - Read [references/mockup-craft.md](references/mockup-craft.md) in mockup mode.
 - Read [references/screen-patterns.md](references/screen-patterns.md) when the work is a landing page, marketing section, dashboard, or signed-in screen.
 - Read [references/responsive-reflow.md](references/responsive-reflow.md) when a layout must hold from phone to desktop.
 - Read [references/accessible-interaction.md](references/accessible-interaction.md) when building or reviewing controls, forms, dialogs, tabs, or dynamic content.
 - Read [references/ui-copy.md](references/ui-copy.md) when writing or reviewing headlines, buttons, labels, and state messages.
+- Read [references/korean-break-quality.md](references/korean-break-quality.md) when the product language is Korean and a headline, label, action, or state message is written or reviewed.
 - Read [references/contrast-check.md](references/contrast-check.md) before judging any color pair.
 - Read [references/performance-baseline.md](references/performance-baseline.md) for a production page, a layout-shift or first-paint finding, or a web-quality review.
 - Read [references/eval-rubric.md](references/eval-rubric.md) only when changing detector rules, fixtures, or eval cases.
+- Read [references/native-platforms.md](references/native-platforms.md) when the work is an iOS or Android screen.
+- Read [references/print-paged.md](references/print-paged.md) when the output paginates (print, PDF, invoice, report).
+- Read [references/chart-artifact.md](references/chart-artifact.md) when the output is a numeric chart shipped as a standalone file (bar, line, or point values in one HTML file).
 - Read [rules/delivery-gate.md](rules/delivery-gate.md) before handing over any result and before writing audit findings.
 - Read [rules/validation-and-reporting.md](rules/validation-and-reporting.md) before writing the report.
 

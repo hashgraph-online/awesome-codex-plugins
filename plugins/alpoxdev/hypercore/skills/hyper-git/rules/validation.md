@@ -21,6 +21,7 @@ Run these checks before declaring a change to `hyper-git` complete or before rep
 - Commits use targeted staging and one logical change each, and messages are English Conventional Commits: imperative subject, lowercase after the colon, no trailing period, at most 72 characters, a blank line before any body, and no sign-off or attribution trailer the user or repository did not request.
 - Push runs automatically only after every commit group succeeds; force push stays blocked on `main` and `master`.
 - Only commits created by the run reach each `&&` target, in left-to-right order; one mechanical conflict is resolved and validated without asking, while an ambiguous behavior conflict asks one focused question before later targets.
+- Every push was followed by a remote readback: `git branch -r --contains <sha>` or `git cherry origin/<target> <branch>` with no `+` lines, for the pushed branch and for each `&&` target.
 - If subagents were used, their work was read-only and the main integrator alone staged, committed, and pushed.
 
 ## Runtime Checks: Worktree Mode

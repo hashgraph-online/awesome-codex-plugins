@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "admakeai",
+  "version": "1.1.0",
+  "description": "AI ad generator: design ad creatives and copy, make UGC video ads, research competitors' Meta Ad Library ads, and draft and report on Meta campaigns with the AdMakeAI MCP server.",
+  "author": {
+    "name": "Mesmer s.r.o.",
+    "email": "support@admakeai.com",
+    "url": "https://admakeai.com"
+  },
+  "homepage": "https://admakeai.com/agents",
+  "repository": "https://github.com/mesmerlord/admakeai-claude-plugin",
+  "license": "MIT",
+  "keywords": ["ad-generator", "ai-ads", "ad-creative", "ad-copy", "ugc", "facebook-ads", "meta-ads", "competitor-research", "marketing", "mcp"]
+}

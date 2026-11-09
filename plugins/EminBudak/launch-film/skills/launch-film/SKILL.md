@@ -10,7 +10,7 @@ A launch film made from the product itself: its logo cut from its own page, its 
 The tool is the `launch-film` npm package. It needs Node 22 or newer, Chrome or Chromium, and ffmpeg. Check them first:
 
 ```bash
-npx -y launch-film@0.2.0 doctor
+npx -y launch-film@0.2.1 doctor
 ```
 
 If ffmpeg is missing, tell the user how to install it (`brew install ffmpeg` on a Mac, `sudo apt install ffmpeg` on Debian or Ubuntu) and stop.
@@ -18,7 +18,7 @@ If ffmpeg is missing, tell the user how to install it (`brew install ffmpeg` on 
 ## 1. Get the brand and a first plan
 
 ```bash
-npx -y launch-film@0.2.0 plan <url> --out film/<name>
+npx -y launch-film@0.2.1 plan <url> --out film/<name>
 ```
 
 Give the product's website, or its App Store or Google Play listing (then the listing's icon, screenshots and rating are used, with the colors, fonts and logo of the site it names). Not a social profile: easybrandkit refuses those.
@@ -38,7 +38,7 @@ If launch-film says easybrandkit could not be fetched, npx could not download it
 ## 2. Pick a look
 
 ```bash
-npx -y launch-film@0.2.0 looks
+npx -y launch-film@0.2.1 looks
 ```
 
 The plan already picked one from the brand: `launch` (dark stage, depth, one bright accent) for dark sites and developer tools, `aurora` (frosted glass over soft color) for vivid consumer and AI products, `gridline` (Swiss grid on paper) for light B2B sites, `pop` (full color fields, stickers) for consumer apps, `journal` (serif headlines on warm paper) for editorial brands. Change `"look"` in film.json if the user asked for a style or another one fits better.
@@ -56,7 +56,7 @@ film.json holds `look`, `aspect` (`16:9` or `9:16`) and `clips`, played in order
 | `scroll` | a tall page scrolling in a window | `image` |
 | `logo` | the logo close with the site's address | `logo` (an easybrandkit logo file) or `icon` (an app icon), `site` |
 
-A scene object has a `type` and its words. List every type and its fields with `npx -y launch-film@0.2.0 types`; icon names come from `npx -y launch-film@0.2.0 icons <word>`. The ones a launch film uses most:
+A scene object has a `type` and its words. List every type and its fields with `npx -y launch-film@0.2.1 types`; icon names come from `npx -y launch-film@0.2.1 icons <word>`. The ones a launch film uses most:
 
 ```json
 { "type": "opener", "title": "Acme Notes", "text": "Notes that think with you" }
@@ -79,7 +79,7 @@ Words between asterisks are set in the accent color. Rules for the words:
 ## 4. Render
 
 ```bash
-npx -y launch-film@0.2.0 render film/<name>/film.json
+npx -y launch-film@0.2.1 render film/<name>/film.json
 ```
 
 Clips render two at a time; a 30 second film takes one to three minutes. The film is `film/<name>/film.mp4`. If a clip fails, the message names it: fix film.json and render again.
@@ -89,14 +89,14 @@ Clips render two at a time; a 30 second film takes one to three minutes. The fil
 You can't watch the film or hear it, so measure it:
 
 ```bash
-npx -y launch-film@0.2.0 check film/<name>/film.mp4 --expect 1920x1080@25 --seconds 20-40 --lufs -14
+npx -y launch-film@0.2.1 check film/<name>/film.mp4 --expect 1920x1080@25 --seconds 20-40 --lufs -14
 ```
 
 launch-film renders at 25 fps, 1920x1080 (1080x1920 for 9:16). `--seconds 20-40` is the range a launch film keeps to; when the user asked for a length, give that instead (`--seconds 30` allows half a second either way). Clips last whole bars, so a film planned for 30 seconds can come out two seconds short: to hit a length exactly, give the last clip `seconds` in place of `bars` and render again. `--lufs -14` is the loudness YouTube, X and most social apps play at. If the user has music cues from another tool, add `--cues cues.json` to see whether the cuts land on the beat.
 
 Read `film/<name>/check/CHECK.md` first. It says PASS or FAIL and why, for each check: size, frame rate, length, black, still and silent stretches, loudness, true peak, clipping and cuts on the beat. A warning is something to look at, not always a fault: a title that rests or an end card is a hold, and you can pass the stretches you meant with `--allow 27-30`.
 
-Then look, because a measurement can't read words. Open `check/sheet.png` (a frame from each shot) and `check/wave.png` (the sound over time, with the cuts). For two stills a clip, run `npx -y launch-film@0.2.0 frames film/<name>/film.mp4` and open `frames/sheet.jpg`. Check:
+Then look, because a measurement can't read words. Open `check/sheet.png` (a frame from each shot) and `check/wave.png` (the sound over time, with the cuts). For two stills a clip, run `npx -y launch-film@0.2.1 frames film/<name>/film.mp4` and open `frames/sheet.jpg`. Check:
 
 - every word is whole, inside the frame and spelled as written;
 - no text lies on other text or runs out of its card;
@@ -109,7 +109,7 @@ Fix what you find in film.json and render again. If the loudness or the peaks fa
 ## 6. Launch pictures, when the user wants them
 
 ```bash
-npx -y launch-film@0.2.0 stills film/<name>/film.json --for ph,og,x,play,chrome
+npx -y launch-film@0.2.1 stills film/<name>/film.json --for ph,og,x,play,chrome
 ```
 
 This makes the pictures a launch needs from the same plan, at the exact size each place asks for, in `film/<name>/stills/`: the Product Hunt gallery (`ph-1.png` to `ph-6.png`, 1270x760) and thumbnail (240x240), `og.png` (1200x630) for link previews, `x.png` (1600x900) for a post on X, `play-feature.png` (1024x500) for Google Play, and the Chrome Web Store tiles (`chrome-small.png` 440x280 and `chrome-marquee.png` 1400x560). Ask for only the ones the user needs with `--for`; a site's address in place of film.json plans the film first.
@@ -118,7 +118,7 @@ Read `stills/STILLS.md` and look at every picture with the same list as the fram
 
 ## Without a plan step
 
-`npx -y launch-film@0.2.0 <url>` does steps 1 to 4 in one go with the first plan, and saves the frames. Use it when the user wants a film quickly and has no wishes about the words, and check the MP4 as in step 5 before you hand it over.
+`npx -y launch-film@0.2.1 <url>` does steps 1 to 4 in one go with the first plan, and saves the frames. Use it when the user wants a film quickly and has no wishes about the words, and check the MP4 as in step 5 before you hand it over.
 
 ## Options
 

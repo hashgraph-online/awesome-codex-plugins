@@ -10,7 +10,7 @@ Answer four questions before the first request and print them as the classificat
 |---|---|---|
 | Platform | `official-endpoint`, `media`, `generic` | `official-endpoint` when `references/public-endpoints.md` lists the host; `media` when the target is a video, audio, or podcast item; otherwise `generic` |
 | Shape | `single`, `bulk` | `bulk` when the request asks for many items, pagination, "전부", "모두", "크롤링", "N개 이상", or a whole site section |
-| Freshness | `live-required`, `copy-acceptable` | `copy-acceptable` when the page is dead or removed, the user asks about a past date, or the user accepts an archive copy; otherwise `live-required` |
+| Freshness | `live-required`, `copy-acceptable` | `copy-acceptable` when the page is dead or removed, the user asks about a past date, or the user accepts an archive copy; otherwise `live-required`. A caller that passes a freshness answer overrides this inference, because that caller owns the claim the content supports |
 | Authorization | `public`, `own-account`, `outside` | `rules/access-policy.md` §1 and §2 |
 
 A target placed `outside` stops here with terminal `needs_user` or `blocked` (`rules/access-policy.md` §2). A `bulk` target passes the bulk gate (`rules/access-policy.md` §3) before tier 1.
@@ -24,7 +24,7 @@ Tiers run in this order. Skip a tier only for the reason in its row, and record 
 | Tier | Method | Use when | Skip when |
 |---|---|---|---|
 | 0 | Official public endpoint of the same platform (JSON, Atom, oEmbed, syndication, registry API) | Platform is `official-endpoint` | No endpoint covers the requested content |
-| 1 | Headless request grid: plain curl with browser-like headers, then URL variants, referer strategies, device classes, client fingerprint impersonation (curl_cffi when installed), readers, structured-metadata extraction, feed discovery, and the media extractor for `media` | Always for `generic` and `media`, and after tier 0 fails | The previous tier was accepted |
+| 1 | Headless request grid: plain curl with browser-like headers, then URL variants, referer strategies, device classes, client fingerprint impersonation (curl_cffi when installed), readers, structured-metadata extraction, feed discovery, and the media extractor for `media` | Always for `generic` and `media`, and after tier 0 fails | The previous tier was accepted; or freshness is `copy-acceptable` and the page is already known dead, removed, or changed, so the run starts at tier 2 |
 | 2 | Archive copy: Wayback availability lookup, then other archives | Freshness is `copy-acceptable` | Freshness is `live-required`; when tiers 3 and 4 then fail or are skipped, offer the copy once and run tier 2 only if the user accepts it |
 | 3 | Owned browser: a browser the run launches with a fresh task-owned profile, headless first, through the runtime's own browser capability | Tier 1 and tier 2 failed or were skipped, or the content needs JavaScript, clicks, scrolling, media playback, or a screenshot | No browser-automation capability: mark `skipped`, terminal `blocked` or `fetched_partial` |
 | 4 | Attached browser: the user's own signed-in browser, driven through the runtime's attach capability | Authorization is `own-account`, or the host blocks every owned browser and the user agrees to open it in their own browser | No attach capability, or the user is not present for a login or challenge step |

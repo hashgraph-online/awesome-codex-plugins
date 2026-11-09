@@ -1,6 +1,6 @@
 {
   "name": "oh-my-openspec",
-  "version": "1.16.0",
+  "version": "1.16.1",
   "description": "OpenSpec multi-agent flow for Codex CLI: $omos-init / $omos-plan / $omos-apply / $omos-retro with seven role subagents and a mechanical openspec_validate MCP gate",
   "author": {
     "name": "Alexeyco",

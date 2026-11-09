@@ -1,6 +1,6 @@
 {
   "name": "bowmark",
-  "version": "4.34.0",
+  "version": "4.35.0",
   "description": "The web as callable functions: search flights across several aggregators, price a part across retailers, and other tasks that only exist behind a live site. The agent reads a typed function library, writes a short script, and Bowmark runs it on the real sites. Bundles the bowmark skill and auto-wires the hosted MCP server.",
   "author": {
     "name": "Bowmark AI",

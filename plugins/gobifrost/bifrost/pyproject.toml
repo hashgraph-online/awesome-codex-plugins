@@ -125,16 +125,16 @@ dependencies = [
     # =========================================================================
     # Object Storage (S3-compatible)
     # =========================================================================
-    "awscrt==0.38.0",  # Official SigV4 signer/checksums for the narrow HTTPX S3 transport
+    "awscrt==0.38.1",  # Official SigV4 signer/checksums for the narrow HTTPX S3 transport
 
     # =========================================================================
     # LLM Providers (AI Agent System)
     # =========================================================================
     # Exact pins are intentional: the Harness API is still pre-1.0 and is the
     # execution boundary for every Bifrost agent surface.
-    "pydantic-ai-slim[openai,anthropic,google,retries]==2.63.0",
-    "pydantic-ai-harness==0.63.0",
-    "pydantic-monty==1.4.0",  # Local language sandbox for Automatic CodeMode
+    "pydantic-ai-slim[openai,anthropic,google,retries]==2.66.0",
+    "pydantic-ai-harness==0.66.0",
+    "pydantic-monty==1.5.0",  # Local language sandbox for Automatic CodeMode
 
     # =========================================================================
     # MCP (Model Context Protocol)

@@ -1,6 +1,6 @@
 ---
 name: reset
-description: Drop the runtime markers and deadline without deleting the owner's work or evidence.
+description: Drop the runtime markers and deadline after damaged or confusing runtime state, without deleting the owner's work or evidence.
 license: MIT
 metadata:
   internal: true

@@ -192,7 +192,8 @@ Archive files it with the shift. The record sits beside the drafting table in ev
 `Record:` link's target is `plan-record.md`.
 
 Before offering promotion, run `"$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" check-items`. It reads the
-drafting table and names, per item, a missing or empty `Verify:`, a missing `Commit:`, an
+drafting table and names, per item, a missing or empty `Verify:`, a `Verify:` that names nothing
+checkable (a question, since a plain sentence can be checkable), a missing `Commit:`, an
 `Evidence:` that names nothing, a `Budget:` that does not parse, a nested checkbox, and any
 checkbox no item owns. Show the owner every finding.
 Correct one in the plan you just wrote only with their yes. The check refuses nothing: whether to

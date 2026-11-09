@@ -137,6 +137,11 @@ jk log team/app/pipeline 128 --grep '(?i)error|fail' --tail 20 --json # last 20 
 jk artifact download team/app/pipeline 128 -p "**/*.xml" -o out/
 ```
 
+Mutating commands do not automatically retry transport failures: Jenkins may
+have accepted the action before its reply was lost. Check the server state
+before submitting again. Read retries and one authentication/crumb refresh after
+a 401/403 response remain enabled.
+
 ### Source revisions in run output
 
 `run ls`, `run view`, and `search` prefer the job's `SCMRevisionAction`

@@ -100,6 +100,7 @@ hyper-issue [#<n>[~<m>] ...] [--batch "<selection condition>"] [--draft-only] [-
 |A selection condition ("label:x is:open", "이 라벨 붙은 것들")|author for each item, then batch|only with work words ("돌려줘", "처리해줘", "작업해줘", "run the batch")|
 |Issue numbers as a list or range (`#1~3`, `#1, #4`)|numbers, then batch|yes, by default|
 |`--draft-only`, "초안만", "이슈 쓰지는 말고"|author, return the exact body, no tracker write|no|
+||`--no-write`: read and plan only, no tracker write|numbers or batch, writing the manifest from the tracker reads; an issue missing its `hyper:` block gets a `block: missing` row instead of a completing update|yes, the same as the mode it wraps|
 |`--no-run`, "레인만", "명세만", "작업은 하지 마"|any mode, ending at the manifest|no|
 |`--from-hyper`: the request came from a `hyper` stage|any mode|no; return the issue numbers and the manifest path to `hyper`|
 |No write-capable tracker authenticated|author, save the body under `.hyper/issues/<slug>/drafts/`, record the gap|no; drafts have no issue numbers to run|

@@ -48,7 +48,7 @@ Crawl, render, and index are separate states; record which one was observed:
 - Sitemap inclusion is a discovery hint, not an index guarantee: check scope, absolute URLs, and `lastmod` accuracy.
 - Filter, faceted, and paginated URL explosion, empty-result responses (soft 404), and client-side-only navigation are findings, not acceptable defaults.
 
-Tools: `Glob`, `Grep`, `Read` for file scanning. `WebFetch` for live URL analysis if available.
+Tools: file listing, content search, and file reading for the local scan; a page-fetch or browser-inspection capability for live URL analysis when one is available.
 
 ## 4. Platform Policy Phase
 
@@ -98,7 +98,7 @@ Scan for:
 - URL slug — descriptive and stable when the URL is under project control; query parameters are assessed by purpose
 - Rendering basis — record whether title, description, headings, and links were read from the raw HTML response or from the rendered DOM; client-rendered values are reported with that basis.
 
-Tools: `Grep` for pattern matching (`<title>`, `<meta`, `<h1>`, `alt=`), `Read` for page content.
+Tools: content search for pattern matching (`<title>`, `<meta`, `<h1>`, `alt=`), and file or page reading for page content.
 
 ## 6. Content SEO Phase
 
@@ -115,7 +115,7 @@ Evaluate for:
 - AI content — when relevant, evidence of review and value-add rather than a blanket AI-content rule
 - Rendering basis — when content exists only after client-side rendering, state that the evaluation used the rendered DOM and record the capability limit.
 
-Tools: `Read` for content analysis, `WebSearch` for competitor/SERP context if needed.
+Tools: file and page reading for content analysis, and a web-search capability for competitor or SERP context when needed.
 
 ## 7. AEO Phase (Answer Engine Optimization)
 
@@ -129,7 +129,7 @@ Evaluate readiness for AI direct answers and Featured Snippets:
 - **Platform observations** — Do not prescribe fixed content preferences for ChatGPT, Perplexity, or Google AI Overviews. Record any platform-specific probe as dated, volatile live or synthetic evidence.
 - **Entry condition** — run this phase when the target's intent is answer- or citation-relevant; otherwise record AEO readiness as `not-applicable` instead of scoring it.
 
-Tools: `Grep` for Q&A patterns, heading structures. `Read` for content analysis. See `references/aeo-geo-guide.md` for strategy details.
+Tools: content search for Q&A patterns and heading structures, file or page reading for content analysis. See `references/aeo-geo-guide.md` for strategy details.
 
 ## 8. GEO Phase (Generative Engine Optimization)
 
@@ -145,7 +145,7 @@ Evaluate readiness for possible citation in generative responses; never promise 
 - **llms.txt** — An optional proposed LLM-facing content map; its absence is not a standard, ranking, or citation failure.
 - **Schema markup** — Whether JSON-LD matches visible entity information. This does not guarantee AI citation.
 
-Tools: `Grep` for citation patterns and statistics, `Read` for content freshness, and `Glob` for `llms.txt`. If named tools or live probes are unavailable, record the capability fallback and resulting unknowns rather than simulating a result.
+Tools: content search for citation patterns and statistics, file or page reading for content freshness, and file listing for `llms.txt`. If a named check or live probe is unavailable, record the capability fallback and the resulting unknowns rather than simulating a result.
 
 Optional high-confidence extensions — enter each extension only when the runtime and access allow it; otherwise record it as `unknown` and continue:
 - **Query fan-out simulator** — generate a bounded, documented subquery set and map missing coverage before recommending content expansion.

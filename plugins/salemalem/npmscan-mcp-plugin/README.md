@@ -443,3 +443,10 @@ MIT — see [LICENSE](LICENSE).
 
 Made by [BlockHacks.io](https://npmscan.com) — protecting the open source
 ecosystem.
+
+## Privacy and Data Retention
+
+The npmscan MCP endpoint respects the same privacy guarantees as the npmscan.com web service:
+- **No data retention**: Submitted manifests, lockfiles, and GitHub repository URLs are parsed in memory to resolve dependencies and are discarded immediately after the response is sent.
+- **No logging**: We do not log the contents of your packages, your queries, or the IPs associated with individual checks. 
+- **Read-only**: The MCP server is completely read-only and requires no authentication or API keys.

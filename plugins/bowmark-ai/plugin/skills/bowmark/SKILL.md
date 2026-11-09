@@ -15,7 +15,7 @@ description: |
   target; open-ended web search with no destination ("what's the news"); reading
   local files; plain JSON APIs you can already call; or facts already in training
   data.
-allowed-tools: mcp__bowmark__get_library, mcp__bowmark__run, mcp__bowmark__report, mcp__bowmark__support, mcp__bowmark__get_usage, mcp__bowmark__llm_poll, mcp__bowmark__llm_answer, mcp__bowmark__llm_detach, mcp__bowmark__list_secrets, mcp__bowmark__request_secret, mcp__bowmark__get_secret_link, mcp__bowmark__list_connections, mcp__bowmark__add_connection, mcp__bowmark__delete_connection, mcp__bowmark__logout_connection, mcp__bowmark__lease_ip, mcp__bowmark__wait_for_sign_in, mcp__bowmark__session_call, mcp__bowmark__session_close, mcp__bowmark__jig_open, mcp__bowmark__jig_list, mcp__bowmark__jig_update, mcp__bowmark__jig_look, mcp__bowmark__jig_search, mcp__bowmark__jig_get, mcp__bowmark__jig_publish, mcp__bowmark__jig_set_handle, mcp__bowmark__jig_pull_update, WebFetch(domain:bowmark.ai)
+allowed-tools: mcp__bowmark__get_library, mcp__bowmark__run, mcp__bowmark__report, mcp__bowmark__support, mcp__bowmark__get_usage, mcp__bowmark__llm_poll, mcp__bowmark__llm_answer, mcp__bowmark__llm_detach, mcp__bowmark__list_secrets, mcp__bowmark__request_secret, mcp__bowmark__get_secret_link, mcp__bowmark__list_connections, mcp__bowmark__add_connection, mcp__bowmark__delete_connection, mcp__bowmark__logout_connection, mcp__bowmark__lease_ip, mcp__bowmark__wait_for_sign_in, mcp__bowmark__session_call, mcp__bowmark__session_close, mcp__bowmark__jig_open, mcp__bowmark__jig_list, mcp__bowmark__jig_update, mcp__bowmark__jig_look, mcp__bowmark__jig_read, mcp__bowmark__jig_search, mcp__bowmark__jig_get, mcp__bowmark__jig_publish, mcp__bowmark__jig_set_handle, mcp__bowmark__jig_pull_update, WebFetch(domain:bowmark.ai)
 ---
 
 # bowmark
@@ -168,6 +168,10 @@ that calls the library itself.
   seconds; never open a second one for the same thing — call `jig_update` again.
 - **`jig_look({ jigId })`** shows you what the page is showing the user right now and what
   they just did on it. Call `jig_look` before you curate ("clear the slop", "why is this here").
+- **A page can be a project of files.** `jig_open({ files })` takes `index.html` plus files like
+  `main.tsx`; `jig_update({ jigId, files?, edits? })` changes one path (`null` deletes it) or
+  edits one with `edits: [{ path, find, replace }]`. **`jig_read({ jigId, path? })`** lists the
+  paths with sizes, or returns one file's text: call `jig_read` before you edit.
 - **`/jig <site>`** is the same thing as a slash command: a jig of any site, made to look
   like it, with the Bowmark logo where the site's logo goes and your curation in its state.
 - **A jig of one site can use data from many.** It takes the site's layout, not only its

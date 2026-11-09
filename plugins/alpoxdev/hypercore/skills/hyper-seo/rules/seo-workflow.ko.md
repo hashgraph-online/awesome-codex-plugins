@@ -48,7 +48,7 @@ field-data, live, lab, tool, synthetic, local-only 결과를 동등한 것처럼
 - sitemap 포함은 discovery hint이며 index guarantee가 아니다. scope, absolute URL, `lastmod` 정확성을 확인한다.
 - filter, faceted, paginated URL 폭증, empty-result 응답(soft 404), client-side-only navigation은 기본 허용이 아니라 발견사항이다.
 
-Tools: 파일 스캔에는 `Glob`, `Grep`, `Read`. 가능한 경우 live URL 분석에는 `WebFetch`.
+Tools: 로컬 스캔에는 파일 목록, 내용 검색, 파일 읽기를 씁니다. live URL 분석에는 쓸 수 있을 때 페이지 가져오기나 브라우저 확인 기능을 씁니다.
 
 ## 4. Platform Policy Phase
 
@@ -98,7 +98,7 @@ Applicable official source 또는 직접 관찰한 files/headers가 뒷받침할
 - URL slug — 프로젝트가 URL을 제어할 때 descriptive하고 stable한지 점검하며 query parameter는 목적에 따라 평가한다.
 - Rendering basis — title, description, heading, link를 raw HTML 응답에서 읽었는지 rendered DOM에서 읽었는지 기록하고, client-rendered 값은 그 basis와 함께 보고한다.
 
-Tools: Pattern matching에는 `Grep`(`<title>`, `<meta`, `<h1>`, `alt=`), page content에는 `Read`.
+Tools: 패턴 매칭에는 내용 검색을, 페이지 내용에는 파일이나 페이지 읽기를 씁니다(`<title>`, `<meta`, `<h1>`, `alt=`).
 
 ## 6. Content SEO Phase
 
@@ -115,7 +115,7 @@ Tools: Pattern matching에는 `Grep`(`<title>`, `<meta`, `<h1>`, `alt=`), page c
 - AI content — blanket AI-content rule이 아니라 관련 있을 때 review와 value-add evidence
 - Rendering basis — client-side rendering 이후에만 content가 존재하면 rendered DOM으로 평가했음을 밝히고 capability limit을 기록한다.
 
-Tools: Content analysis에는 `Read`, 필요한 경우 competitor/SERP context에는 `WebSearch`.
+Tools: 내용 분석에는 파일과 페이지 읽기를, 필요한 경우 competitor/SERP 맥락에는 웹 검색 기능을 씁니다.
 
 ## 7. AEO Phase(Answer Engine Optimization)
 
@@ -129,7 +129,7 @@ AI direct answers와 Featured Snippets 준비도를 평가한다:
 - **Platform observations** — ChatGPT, Perplexity, Google AI Overviews에 고정된 content preference를 처방하지 않는다. platform-specific probe는 dated, volatile live 또는 synthetic evidence로 기록한다.
 - **Entry condition** — target의 intent가 answer/citation과 관련 있을 때 이 phase를 실행하고, 그렇지 않으면 AEO readiness를 scoring하지 않고 `not-applicable`로 기록한다.
 
-Tools: Q&A patterns와 heading structures에는 `Grep`, content analysis에는 `Read`. Strategy details는 `references/aeo-geo-guide.md`를 참고한다.
+Tools: Q&A 패턴과 제목 구조에는 내용 검색을, 내용 분석에는 파일이나 페이지 읽기를 씁니다. 세부 전략은 `references/aeo-geo-guide.md`를 참고합니다.
 
 ## 8. GEO Phase(Generative Engine Optimization)
 
@@ -145,7 +145,7 @@ Generative responses에서 가능한 AI citation 준비도를 평가하되 citat
 - **llms.txt** — Optional proposed LLM-facing content map이며, 부재는 standard, ranking, citation failure가 아니다.
 - **Schema markup** — JSON-LD가 visible entity information과 일치하는지 여부. 이는 AI citation을 보장하지 않는다.
 
-Tools: Citation patterns와 statistics에는 `Grep`, content freshness에는 `Read`, `llms.txt`에는 `Glob`. named tool 또는 live probe를 쓸 수 없으면 결과를 꾸며내지 말고 capability fallback과 resulting unknown을 기록한다.
+Tools: 인용 패턴과 통계에는 내용 검색을, 콘텐츠 최신성에는 파일이나 페이지 읽기를, `llms.txt`에는 파일 목록을 씁니다. 이름이 있는 점검이나 live probe를 쓸 수 없으면 결과를 꾸며내지 말고 capability fallback과 그에 따른 unknown을 기록합니다.
 
 접근이 허용될 때의 선택적 high-confidence extensions — runtime과 접근이 허용할 때만 각 extension에 진입하고, 그렇지 않으면 `unknown`으로 기록하고 계속 진행한다:
 - **Query fan-out simulator** — 유한하고 문서화한 subquery set을 생성하고 content expansion 권장 전에 missing coverage를 매핑한다.

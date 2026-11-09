@@ -16,6 +16,24 @@
 - Delivery gate: `pass | fail (lines) | not run (reason)`
 - Final status: `pass | review_required | blocked`
 
+## WCAG 2.2
+
+| Criterion | Result | Reason | Evidence |
+|---|---|---|---|
+| 1.4.3 Contrast (Minimum) | `PASS / FAIL / N/A` | reason | evidence |
+| 1.4.11 Non-text Contrast | `PASS / FAIL / N/A` | reason | evidence |
+| 2.4.7 Focus Visible | `PASS / FAIL / N/A` | reason | evidence |
+| 2.4.11 Focus Not Obscured (Minimum) | `PASS / FAIL / N/A` | reason | evidence |
+| 2.5.8 Target Size (Minimum) | `PASS / FAIL / N/A` | reason | evidence |
+| 2.1.1 Keyboard | `PASS / FAIL / N/A` | reason | evidence |
+| 2.1.2 No Keyboard Trap | `PASS / FAIL / N/A` | reason | evidence |
+| 1.4.10 Reflow | `PASS / FAIL / N/A` | reason | evidence |
+| 1.4.12 Text Spacing | `PASS / FAIL / N/A` | reason | evidence |
+| 2.5.7 Dragging Movements | `PASS / FAIL / N/A` | reason | evidence |
+| 3.3.8 Accessible Authentication (Minimum) | `PASS / FAIL / N/A` | reason | evidence |
+| 3.2.6 Consistent Help | `PASS / FAIL / N/A` | reason | evidence |
+| 3.3.7 Redundant Entry | `PASS / FAIL / N/A` | reason | evidence |
+
 ## Brief inference
 
 - Page type:

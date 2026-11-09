@@ -16,11 +16,10 @@
 
 ## 🆕 Latest update
 
-### v0.3.10 — Reliable progress after Codex updates
+### v0.3.11 — Compatible with the latest Codex update
 
-- Restore the right progress when reopening chats or switching between windows.
-- Keep progress working when your system timezone changes.
-- Report missing progress correctly and finish local installation checks without waiting on unrelated plugin catalogs.
+- Stay compatible with the latest Codex Desktop update.
+- Complete local status checks much faster.
 
 Existing goals, checklists, progress and display preferences are preserved.
 

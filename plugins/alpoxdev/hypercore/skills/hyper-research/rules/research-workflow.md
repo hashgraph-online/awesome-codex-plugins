@@ -60,6 +60,10 @@ Then hand over to `rules/expansion-and-convergence.md`.
 
 Save the report to `.hyper/research/[NN].slug.md`, where `NN` is the next zero-padded sequence number in `.hyper/research/` and `slug` is a short ASCII summary of the topic. The journal directory uses the same `[NN].slug` stem. Create the report file with its section headings as soon as the brief exists, so an interrupted run leaves a partial report on disk instead of nothing.
 
+When the report file is created, its first five lines carry `STATUS: draft`. That line stays while any gate is open and is removed only after the last gate runs. A run that finds `STATUS: draft` on the existing report resumes from the journal instead of starting a new report file.
+
+The journal brief records the deliverable promise next to the fidelity fields: the format (`md` by default), the path, and the `answered_by` value that chose the format (`user`, `default`, or `request`). The promised format and path are what the saved report is measured against in `rules/validation.md`.
+
 ## 8. Closing Briefing
 
 The final chat message carries, in this order:
@@ -67,6 +71,7 @@ The final chat message carries, in this order:
 - the headline conclusion in one to three sentences
 - the saved report path, and the journal path when one exists
 - an effort line: sources reviewed and cited, distinct domains, waves, excursions, and execution checks, read off the journal rather than recalled
+- after the gates run, `bash scripts/report-state.sh finish --state <journal>/report-state.json --report <report.md> --ledger <journal>/sources.md` writes `outcome.json` into the journal; `report-state.sh briefing --state <journal>/report-state.json` prints the sources, domains, repairs, gate results, and residual defects counted from that file. Use those printed numbers in the effort line, not recalled ones.
 - the run state (`converged` or `exhausted`) and the main caveat or open gap when confidence is limited
 
 ## Sources
