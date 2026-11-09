@@ -113,6 +113,16 @@ EXTRA_MIRROR_PATHS = {
 }
 
 
+# Actera's source marketplace installs its local hook bridge. The sibling
+# openai-directory package has the same name but only reviews remote policies.
+SOURCE_PACKAGE_OVERRIDES = {
+    "actera-ai/actera-codex": {
+        "root": "plugins/actera",
+        "runtime_paths": ("bin", "vendor", "NOTICE"),
+    },
+}
+
+
 def normalize_relative_path(value: str) -> str:
     # Normalize backslashes to forward slashes
     value = value.replace("\\", "/")
@@ -246,6 +256,14 @@ def resolve_plugin_root(archive: zipfile.ZipFile, names: set[str], plugin: dict[
     roots = sorted(package_roots(archive), key=lambda root: root.as_posix())
     if not roots:
         raise ValueError("Archive does not contain a supported plugin manifest")
+    override = SOURCE_PACKAGE_OVERRIDES.get(
+        f"{plugin.get('owner', '')}/{plugin.get('repo', '')}".lower()
+    )
+    if override:
+        for root in roots:
+            if plugin_root_relative_path(root) == override["root"]:
+                return root
+        raise ValueError("Declared native Codex package is missing")
     if len(roots) == 1:
         return roots[0]
 
@@ -355,6 +373,11 @@ def collect_selected_paths(
 
     for extra_path in EXTRA_MIRROR_PATHS.get(f"{plugin['owner']}/{plugin['repo']}", ()):
         add_recursive_selection(selected, all_names, plugin_root, extra_path)
+
+    override = SOURCE_PACKAGE_OVERRIDES.get(f"{plugin['owner']}/{plugin['repo']}".lower())
+    if override:
+        for extra_path in override["runtime_paths"]:
+            add_recursive_selection(selected, all_names, plugin_root, extra_path)
 
     return selected
 
