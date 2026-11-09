@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "memtomem": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--python",
+        "3.12",
+        "--from",
+        "memtomem[onnx]==0.7.7",
+        "memtomem-server"
+      ],
+      "env": {
+        "MEMTOMEM_TOOL_MODE": "core",
+        "MEMTOMEM_EXTRA_TOOLS": "mem_update_coverage",
+        "ORT_DISABLE_TELEMETRY": "1",
+        "PYTHON_DOTENV_DISABLED": "1"
+      }
+    }
+  }
+}

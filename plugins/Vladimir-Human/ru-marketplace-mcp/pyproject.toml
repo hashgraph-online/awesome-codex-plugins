@@ -1,0 +1,189 @@
+[project]
+name = "ru-marketplace-mcp"
+version = "2.9.1"
+description = "MCP servers for Russian marketplaces — Wildberries, Ozon and more"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Vladimir-Human", email = "39053957+Vladimir-Human@users.noreply.github.com" }]
+keywords = ["mcp", "model-context-protocol", "wildberries", "ozon", "marketplace", "russia", "ecommerce"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Indexing/Search",
+    "Typing :: Typed",
+]
+dependencies = [
+    "mcp-core",
+    "wb-connector",
+    "ozon-connector",
+    "detmir-connector",
+    "yandex-connector",
+    "compare-connector",
+    "avito-connector",
+    "taobao-connector",
+    "megamarket-connector",
+    "lamoda-connector",
+    "dns-connector",
+    "citilink-connector",
+    "mpstats-connector",
+    "aliexpress-connector",
+    "cian-connector",
+    "marketplace-connector",
+]
+
+[project.urls]
+Homepage = "https://github.com/Vladimir-Human/ru-marketplace-mcp"
+Repository = "https://github.com/Vladimir-Human/ru-marketplace-mcp"
+Issues = "https://github.com/Vladimir-Human/ru-marketplace-mcp/issues"
+Changelog = "https://github.com/Vladimir-Human/ru-marketplace-mcp/blob/main/CHANGELOG.md"
+
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources]
+mcp-core = { workspace = true }
+wb-connector = { workspace = true }
+ozon-connector = { workspace = true }
+detmir-connector = { workspace = true }
+yandex-connector = { workspace = true }
+compare-connector = { workspace = true }
+avito-connector = { workspace = true }
+taobao-connector = { workspace = true }
+megamarket-connector = { workspace = true }
+lamoda-connector = { workspace = true }
+dns-connector = { workspace = true }
+citilink-connector = { workspace = true }
+mpstats-connector = { workspace = true }
+aliexpress-connector = { workspace = true }
+cian-connector = { workspace = true }
+marketplace-connector = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    # Bundle artifact tests build offline without touching a user's uv cache.
+    "hatchling>=1.33.0",
+    "ruff>=0.16.1",
+    "mypy>=1.13",
+    "truststore>=0.10.4",
+    "pytest-cov>=7.1.0",
+    # Property tests for the coercion helpers: the "never 0, None on ambiguity"
+    # contract is a promise about EVERY input, which example tests can only
+    # sample. hypothesis exercises the whole space.
+    "hypothesis>=6.100",
+    # The hooks are documented as `uv run pre-commit run --all-files`, and that
+    # command only works if pre-commit is in the environment the docs tell people
+    # to create. Leaving it out made the documented command fail on a clean
+    # checkout while passing for whoever happened to have it installed globally.
+    "pre-commit>=4.0",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = [".venv", "**/.venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "RUF"]
+ignore = [
+    "E501",    # line length is handled by the formatter
+    "B008",    # FastMCP tool signatures use Field() defaults by design
+    "RUF001",  # Cyrillic look-alikes are intentional in RU-facing strings
+    "RUF002",
+    "RUF003",
+    "SIM105",  # explicit try/except pass is clearer in cleanup paths
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["B011", "SIM117"]
+
+[tool.mypy]
+# Listed here rather than passed on the command line: PowerShell does not expand
+# globs for native commands, so `mypy packages/*/src` fails on the maintainer's
+# machine while passing in CI. With this, plain `mypy` checks the same tree
+# everywhere.
+files = ["packages/*/src"]
+python_version = "3.12"
+warn_unused_configs = true
+ignore_missing_imports = true
+no_implicit_optional = true
+check_untyped_defs = false
+disable_error_code = ["import-untyped"]
+exclude = ['\.venv']
+
+# mcp-core is the shared runtime every connector builds on, so it carries the
+# strictest bar: type-check the bodies of untyped defs here even though the
+# global default leaves that off for the connector packages (for now).
+[[tool.mypy.overrides]]
+module = "mcp_core.*"
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "packages/mcp-core/tests",
+    "packages/wb-connector/tests",
+    "packages/ozon-connector/tests",
+    "packages/detmir-connector/tests",
+    "packages/yandex-connector/tests",
+    "packages/compare-connector/tests",
+    "packages/avito-connector/tests",
+    "packages/taobao-connector/tests",
+    "packages/megamarket-connector/tests",
+    "packages/lamoda-connector/tests",
+    "packages/dns-connector/tests",
+    "packages/citilink-connector/tests",
+    "packages/mpstats-connector/tests",
+    "packages/aliexpress-connector/tests",
+    "packages/cian-connector/tests",
+    "packages/marketplace-connector/tests",
+]
+asyncio_mode = "auto"
+addopts = "--import-mode=importlib"
+markers = [
+    "live: hits real marketplace endpoints — requires network and a Russian-friendly IP (deselect with '-m \"not live\"')",
+    "cdp: requires a running Chrome with remote debugging on port 9222",
+]
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+# Measure the sixteen workspace packages' source, not their tests. This is what the
+# `--cov` invocation in the CI coverage job reports against; the enforcing
+# --cov-fail-under floor is passed on that job's command line, not baked in here,
+# so the rest of the test matrix runs exactly as before.
+branch = true
+source = [
+    "packages/mcp-core/src/mcp_core",
+    "packages/wb-connector/src/wb_connector",
+    "packages/ozon-connector/src/ozon_connector",
+    "packages/detmir-connector/src/detmir_connector",
+    "packages/yandex-connector/src/yandex_connector",
+    "packages/compare-connector/src/compare_connector",
+    "packages/avito-connector/src/avito_connector",
+    "packages/taobao-connector/src/taobao_connector",
+    "packages/megamarket-connector/src/megamarket_connector",
+    "packages/lamoda-connector/src/lamoda_connector",
+    "packages/dns-connector/src/dns_connector",
+    "packages/citilink-connector/src/citilink_connector",
+    "packages/mpstats-connector/src/mpstats_connector",
+    "packages/aliexpress-connector/src/aliexpress_connector",
+    "packages/cian-connector/src/cian_connector",
+    "packages/marketplace-connector/src/marketplace_connector",
+]
+omit = [
+    "*/tests/*",
+    "*/__main__.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+# Measured branch-coverage total on the offline suite (-m "not live and not
+# cdp") was 83.2% at v2.5.1. The CI floor (--cov-fail-under=80) sits a few points
+# below so unrelated churn does not break the build; it ratchets up as coverage
+# improves. The threshold is passed on the CI command line rather than fixed
+# here, keeping the number visible in the workflow.
+precision = 2

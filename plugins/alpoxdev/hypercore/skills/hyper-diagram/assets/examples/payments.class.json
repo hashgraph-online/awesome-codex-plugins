@@ -1,0 +1,8 @@
+{"type":"class","title":"결제 처리 클래스 구조","subtitle":"범위: 결제 수단 추상화","description":"PaymentService는 PaymentGateway 인터페이스에 의존합니다. TossGateway와 StripeGateway가 이 인터페이스를 구현합니다. Payment는 여러 Refund를 소유하고, PaymentService는 Payment를 만듭니다.",
+"nodes":[{"id":"svc","label":"PaymentService","kind":"service","attributes":["- gateway: PaymentGateway"],"methods":["+ pay(order): Payment","+ refund(id, amount)"]},
+{"id":"gw","label":"PaymentGateway","stereotype":"interface","kind":"external","attributes":[],"methods":["+ approve(req): Result","+ cancel(key): Result"]},
+{"id":"toss","label":"TossGateway","kind":"external","attributes":["- secretKey: string"],"methods":["+ approve(req): Result"]},
+{"id":"stripe","label":"StripeGateway","kind":"external","attributes":["- apiKey: string"],"methods":["+ approve(req): Result"]},
+{"id":"pay","label":"Payment","kind":"data","attributes":["+ id: string","+ amount: number","+ status: Status"],"methods":["+ refundable(): number"]},
+{"id":"refund","label":"Refund","kind":"data","attributes":["+ amount: number","+ reason: string"],"methods":[]}],
+"edges":[{"from":"svc","to":"gw","label":"사용","kind":"depend"},{"from":"toss","to":"gw","kind":"implement"},{"from":"stripe","to":"gw","kind":"implement"},{"from":"svc","to":"pay","label":"생성","kind":"assoc"},{"from":"pay","to":"refund","label":"0..*","kind":"compose"}]}

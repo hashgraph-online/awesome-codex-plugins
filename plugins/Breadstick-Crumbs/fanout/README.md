@@ -28,7 +28,7 @@ You run several agents, each in its own worktree and branch. Every branch passes
 - **Works with what you already use.** Worktrees, orchestrators and Claude's session messaging keep working; fanout adds the checks they don't do. Nothing to set up: install the plugin and it switches on when two sessions share a repo. Using Conductor, claude-squad or Paradev? [Here's how](docs/orchestrators.md).
 - **Claude Code, Codex, or both,** plus any agent that reads `AGENTS.md`.
 - **One big job split across agents,** when you want it: `fanout run` gives each agent its own files, freezes shared interfaces, and tests every branch merged together before anything reaches `main`.
-- **No dependencies.** Node 18+ and git.
+- **No dependencies.** Node 18+ and git 2.38+ (older git works, but skips the conflict checks that preview a merge).
 
 ## Try it
 
@@ -352,7 +352,16 @@ Yes, with one file. fanout tests in fresh git checkouts, which have only tracked
 config/secrets.json
 ```
 
-They're copied from your checkout into `rehearse`'s scratch copy (fresh on every run) and into each `fanout run` session's folder. Only files that match and are gitignored are copied, never tracked ones. Claude Code reads the same file for its own worktrees, including the desktop app's parallel sessions, so you set it up once. Without it, a run that fails only because a file is missing says so and names the file. A database server on localhost is shared by every session, as it is today; fanout doesn't isolate it.
+They're copied from your checkout into `rehearse`'s scratch copy (fresh on every run) and into each `fanout run` session's folder. Only files that match and are gitignored are copied, never tracked ones. Claude Code reads the same file for its own worktrees, including the desktop app's parallel sessions, so you set it up once. Without it, a run that fails only because a file is missing says so and names the file.
+
+**My tests use a database server. Will parallel sessions break each other's data?**
+They can: every session's `.env` points at the same database, so one session's migration or test data can fail another's tests. fanout runs each `test:` command with `FANOUT_COPY` set to a name for the folder it runs in (lowercase letters, digits and `_`), so the test can make its own database and drop it after:
+
+```
+test: createdb -T app_dev app_$FANOUT_COPY && DATABASE_URL=postgres://localhost/app_$FANOUT_COPY npm test; s=$?; dropdb app_$FANOUT_COPY; exit $s
+```
+
+`createdb -T` copies a template database, so keep one with your schema and seed data. Any tool that makes a database by name works the same way: `neonctl branches create --name $FANOUT_COPY` for Neon, `cp dev.db $FANOUT_COPY.db` for SQLite.
 
 **What if two tasks need the same file?**
 Give it to one session. If others depend on it, make it a contract (`exposes` / `uses`). If it's generated, list it under `regen`.

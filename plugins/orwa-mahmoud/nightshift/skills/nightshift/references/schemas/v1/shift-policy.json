@@ -245,7 +245,7 @@
             "review-first",
             "run-direct"
           ],
-          "description": "Whether a composed shift is shown for review before it runs, or started directly. It never widens what the shift may do: the host permission boundary and every rule in this file still apply."
+          "description": "Whether a composed shift is shown for review before it runs, or started directly. It never widens what the shift may do: the host permission boundary and every rule in this file still apply. The default is run-direct."
         },
         "toolingPolicy": {
           "type": "string",
@@ -254,7 +254,7 @@
             "review-missing",
             "auto-add"
           ],
-          "description": "What a shift does about development tooling the project does not have. existing-tools uses only what is installed, review-missing reports the gap, auto-add may add a tool the project itself selects. Artifact mode is always existing-tools."
+          "description": "What a shift does about development tooling the project does not have. existing-tools uses only what is installed, review-missing reports the gap, auto-add may add a tool the project itself selects. The default is auto-add; artifact mode is always existing-tools."
         }
       }
     },
@@ -270,7 +270,7 @@
             "host-grant",
             "host-default"
           ],
-          "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
+          "description": "inherit-recorded-scope restores a recorded restricted Codex sandbox (read-only or workspace-write). Missing or unsupported scopes refuse recovery. host-default, the default, adds no permission arguments and uses independently configured host permissions, without promising the original session scope. Legacy host-grant is retained for compatibility but refuses recovery. Nightshift never writes host permission settings or adds bypass flags. Each revival logs its scope and retries at the same scope."
         }
       }
     },
@@ -364,6 +364,45 @@
         }
       }
     },
+    "catalogs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "The owner's catalog folders and templates this shift was composed with, frozen so a later edit to rules.json applies to the next shift. Every supported field is present: the owner's value where their file states one, the shipped default where it does not.",
+      "properties": {
+        "shifts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string" } },
+            "template": { "type": "string" }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string" } },
+            "template": { "type": "string" }
+          }
+        },
+        "gates": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string" } },
+            "template": { "type": "string" }
+          }
+        },
+        "edge-cases": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "paths": { "type": "array", "items": { "type": "string" } },
+            "template": { "type": "string" }
+          }
+        }
+      }
+    },
     "receipts": {
       "type": "object",
       "additionalProperties": false,
@@ -404,7 +443,7 @@
         "evidence": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Shift-wide evidence for item receipts. Everything is off by default: with every field off or empty, receipts are written exactly as they are without this block. Evidence shows the work to a reviewer; it never gates a tick.",
+          "description": "Shift-wide evidence for item receipts. Everything is off by default: with every field off or empty, receipts are written exactly as they are without this block. Evidence shows the work to a reviewer. check decides whether a missing file affects the tick: off leaves it, report names the file, and block keeps the stop open.",
           "properties": {
             "fileMap": {
               "type": "string",
@@ -425,6 +464,21 @@
             "default": {
               "type": "string",
               "description": "The evidence every item should carry when its own Evidence line says nothing. Empty asks for none."
+            },
+            "check": {
+              "type": "string",
+              "enum": ["off", "report", "block"],
+              "description": "What a missing named evidence file does to the tick. off leaves the tick alone. report lists each missing file on the receipt and the morning receipt, and the tick stands. block counts a ticked item with a missing file as open, so the clock-out gate names the item and each missing file."
+            },
+            "review": {
+              "type": "string",
+              "enum": ["off", "on"],
+              "description": "Whether the agent opens the evidence it produced, compares it with the item and the kind, fixes it, and writes a Reviewed section. With check at block, a missing Reviewed section counts as missing evidence."
+            },
+            "unavailable": {
+              "type": "string",
+              "enum": ["", "hold", "park", "note"],
+              "description": "What happens when the evidence cannot be produced. hold closes the item as stopped and the shift moves on. park records the decision and keeps working. note ticks the item and the receipt says why. Empty means hold when check is block, and note otherwise."
             }
           }
         },

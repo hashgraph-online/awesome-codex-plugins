@@ -1,9 +1,13 @@
 # Edge-case catalog
 
-Read this only after the owner says yes to an edge-case pass. For each drafted item, pick the cases
-below that the item can actually meet, never every case for every item, and turn each into one
-WHEN/THEN line a test could fail on. The owner keeps, edits or drops each line; only the kept ones
-reach the drafting table.
+Read this only after the owner says yes to an edge-case pass. List the packs with
+`ns catalog-index --catalog edge-cases` and read only the packs that fit the drafted items.
+An owner's pack of the same key replaces the shipped one, and the index names the source.
+For each drafted item, pick the cases that the item can actually meet, never every case for every
+item, and turn each into one WHEN/THEN line a test could fail on. The owner keeps, edits or drops
+each line; only the kept ones reach the drafting table. Suggest from the owner's packs where they
+fit, and offer once to draft a new pack from the template when none fits, written only after the
+owner says yes.
 
 A case becomes a line by naming the concrete situation and the observable result:
 
@@ -15,41 +19,23 @@ A case becomes a line by naming the concrete situation and the observable result
 "Handles errors" or "works on Windows" is not a line. Name the input, the state or the platform,
 and what someone would see.
 
-## Input
+## Adding a pack
 
-- **Empty** — no bytes, no rows, an empty string, an empty list.
-- **Huge** — far past the size the item was written for: a long line, a large file, many rows.
-- **Malformed** — truncated, wrong type, wrong encoding, a missing required field, trailing junk.
-- **Unicode** — non-ASCII text, combining characters, right-to-left text, emoji, a byte-order mark.
-- **Paths with spaces** — and other characters a shell or a URL treats specially: quotes, `#`, `%`.
+A pack is markdown, not code. One new file, and the index lists it.
 
-## State
+```text
+skills/nightshift/references/plan/edge-cases/<key>.md
+```
 
-- **First run** — nothing created yet: no config, no cache, no database row, no prior output.
-- **Upgrade from the previous version** — data or files written by the release before this one.
-- **Interrupted halfway** — killed between two writes; what the next run finds and does.
-- **Run twice** — the same command again on its own output; the result is the same or refused.
+Copy `skills/nightshift/references/templates/edge-case-pack.md`. The file name is the key. The H1 is
+`# <Pack> — <which items it fits>`. The body is When it applies, Cases, and Example lines, in that
+order. Cases are named cases. Example lines has at least one WHEN/THEN line.
 
-## Concurrency
-
-- **Two sessions** — two processes or two users acting on the same thing at once.
-- **A file changed underneath** — edited, moved or deleted between being read and being written.
-
-## Environment
-
-- **Windows paths** — backslashes, drive letters, case-insensitive names, reserved names, CRLF.
-- **No network** — offline, a timeout, a proxy, a DNS failure.
-- **Missing tool** — a command, runtime or library the item calls is not installed.
-- **Read-only folder** — no write permission where the item writes.
-
-## Failure
-
-- **Partial failure** — some of a batch succeeds and some does not; what is kept and what is said.
-- **Rollback** — undoing the change leaves the system as it was before, and how to run it.
-- **The error the user sees** — the message names the cause and the next step, not a stack trace.
-
-## Security
-
-- **Untrusted input** — input from a user, a file or the network that could reach a shell, a query,
-  a path or a template.
-- **Secrets in logs** — tokens, passwords or personal data that could reach output, logs or errors.
+An owner adds a pack without a pull request: in this project's `.nightshift/catalogs/edge-cases/`,
+in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/edge-cases` on POSIX,
+`%APPDATA%\nightshift\catalogs\edge-cases` on Windows), or in a folder named by
+`catalogs.edge-cases.paths`. `ns catalog-new --catalog edge-cases --key <key>` starts one from the
+template in force, `catalogs.edge-cases.template` names the owner's own template, and
+`ns catalog-index --catalog edge-cases --check-draft FILE` names each section a draft lacks.
+[Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
+Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).

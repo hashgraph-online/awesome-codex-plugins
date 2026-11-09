@@ -1,6 +1,6 @@
 {
   "name": "centricmem-skill",
-  "version": "1.0.37",
+  "version": "1.0.40",
   "description": "Hosted CentricMem librarian: organise and retrieve Markdown memory via host MCP.",
   "author": {
     "name": "Dr. Z",
@@ -11,15 +11,27 @@
   "repository": "https://github.com/zeyu-j/centricmem-skill",
   "license": "MIT",
   "keywords": [
+    "skill",
     "centricmem",
     "mcp",
     "memory",
-    "skill",
     "agent-plugins",
-    "agent-skills"
+    "agent-skills",
+    "cursor",
+    "codex",
+    "copilot",
+    "kiro",
+    "kilo",
+    "codebuddy",
+    "workbuddy",
+    "kimi",
+    "hermes",
+    "pi",
+    "openclaw",
+    "dsh-plugin",
+    "goose",
+    "open-plugins"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./mcp.json",
   "interface": {
     "displayName": "CentricMem",
     "shortDescription": "Hosted librarian for agent memory",
@@ -43,5 +55,8 @@
       "Search my CentricMem shelves for that decision.",
       "Connect this agent to the CentricMem librarian. If cm_* are missing, send signup and a /connect?device= URL this turn."
     ]
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "hooks": "./hooks/hooks.json"
 }

@@ -227,10 +227,18 @@ See the cost-controls reference for the shared budget mechanism.
   plan at `on_value`. No check probes a table's rows; compiling can still query
   the warehouse where a macro does (`run_query`). Returned fields:
   - `verdict`: `satisfied`, `contradicted` or `unchecked`.
-  - `completeness` and `limits`, for example a `var()` read whose name is not a
-    literal.
+  - `completeness` and `limits`, for example a disabled model that reads the
+    flag. The reference scan's "could not parse the SQL for columns" is not one:
+    the compiled SQL is the judge (#1156).
   - `models`: each producer and each model with a problem, with its `branches`
-    and `checks`.
+    and `checks`. A model that does not compile at either value is `unchecked`
+    (`compile_failed`) on its own record; the rest are still judged.
+  - `macro_reads`: each read of the flag in a project macro, with the `models`
+    whose compiled SQL calls it. `dynamic_reads`: each `var()` whose name is not
+    a literal, with its model or callers; listed, not a limit, since the compile
+    gives the flag its value wherever it is read.
+  - `not_compiled`: each disabled model that reads the flag (`model`, `path`),
+    which no compile reached; the verdict is incomplete for those alone.
   - `models_clean`, `contract.producers` and `package_scope`.
 
   The checks are `governed_column_present_when_off`,
@@ -327,10 +335,17 @@ directly above it at its own indent; a comment set apart by a blank line stays.
 
 On `var`, a `retirement` key in the payload states which behavior survives the
 flag, and the plan, `transform compare` and `build --verify --for-plan` hold the
-change to it: [feature-retirement.md](feature-retirement.md). Where the reference
-scan cannot finish, `"scope": "authored"` in that contract keeps the output and
-metric checks and reports discovery as `unchecked` under
-`data.retirement.discovery`.
+change to it: [feature-retirement.md](feature-retirement.md). Stars over untouched
+models, seeds and profiled sources are resolved with the toggle check's catalog
+(#1170). A reference scan whose only limits are column parses runs the full
+contract (#1172): `data.retirement.column_reads` reports how far
+`removed_column_still_read` reached (`complete`, `partial` with the `unchecked`
+files, or `not_applicable`), reading unparsed files from compiled SQL where it
+can. Where the scan cannot finish for another reason (unread YAML, an unreadable
+package, a dynamic `var()` read), `"scope": "authored"` in that contract keeps
+the output and metric checks and reports discovery as `unchecked` under
+`data.retirement.discovery`. `transform rename` and every other `remove` kind
+still refuse on any limit.
 
 ## `transform place <column> --targets <a,b> --expr "<sql>" [--explain]`
 

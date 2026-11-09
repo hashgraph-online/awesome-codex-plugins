@@ -1,5 +1,7 @@
 # CI warning cleanup — finite — repository-owned warnings the pipeline already prints
 
+## When to use
+
 The warnings your CI or local gate already emits, clustered and fixed at the cause. The list is
 whatever a clean run of those commands prints today, so it ends.
 
@@ -15,6 +17,8 @@ Supported wherever the project's own CI or item-gate commands print warnings or 
 (compiler, test runner, bundler, linter in report mode). Skip warnings that exist only on a
 host this repository does not run.
 Never select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **CI warning cleanup — fix repository-owned warnings and deprecations at the cause.**

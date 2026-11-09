@@ -1,6 +1,6 @@
 {
   "name": "bowmark",
-  "version": "4.33.0",
+  "version": "4.34.0",
   "description": "The web as callable functions: search flights across several aggregators, price a part across retailers, and other tasks that only exist behind a live site. The agent reads a typed function library, writes a short script, and Bowmark runs it on the real sites. Bundles the bowmark skill and auto-wires the hosted MCP server.",
   "author": {
     "name": "Bowmark AI",
@@ -11,13 +11,20 @@
   "license": "MIT",
   "keywords": [
     "mcp",
-    "web-agent",
-    "browser",
+    "web-data",
+    "web-scraping",
     "automation",
-    "playwright"
+    "ai-agents"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "userConfig": [
+    {
+      "key": "api_key",
+      "type": "secret",
+      "label": "Bowmark API Key",
+      "description": "Your Bowmark API key from https://bowmark.ai/dashboard/keys",
+      "sensitive": true
+    }
+  ],
   "interface": {
     "displayName": "Bowmark",
     "shortDescription": "The web as callable functions: write a script, Bowmark runs it on the real sites.",
@@ -27,5 +34,7 @@
     "websiteURL": "https://bowmark.ai",
     "composerIcon": "./assets/icon.svg",
     "logo": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

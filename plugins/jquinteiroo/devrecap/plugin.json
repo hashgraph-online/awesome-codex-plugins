@@ -1,0 +1,42 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "devrecap",
+  "version": "0.3.0",
+  "description": "Reconstruct evidence-backed developer work from authorized local coding history and let Codex turn it into polished recaps.",
+  "author": {
+    "name": "João Quinteiro",
+    "url": "https://github.com/jquinteiroo"
+  },
+  "homepage": "https://github.com/jquinteiroo/devrecap",
+  "repository": "https://github.com/jquinteiroo/devrecap",
+  "license": "MIT",
+  "keywords": [
+    "developer-productivity",
+    "daily-standup",
+    "work-recap",
+    "codex",
+    "git"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "DevRecap",
+        "shortDescription": "Turn coding history into polished, evidence-backed work recaps.",
+        "longDescription": "DevRecap reconstructs what you actually worked on from explicitly authorized local Codex/Claude history and read-only Git evidence. The host AI then synthesizes those structured facts into polished daily standups, weekly reviews, sprint recaps, and memory reports while DevRecap keeps completion claims evidence-backed.",
+        "developerName": "João Quinteiro",
+        "category": "Productivity",
+        "websiteURL": "https://github.com/jquinteiroo/devrecap",
+        "privacyPolicyURL": "https://github.com/jquinteiroo/devrecap/blob/main/PRIVACY.md",
+        "termsOfServiceURL": "https://github.com/jquinteiroo/devrecap/blob/main/TERMS.md",
+        "defaultPrompt": [
+          "Help me remember what I worked on this week and generate a detailed recap.",
+          "Prepare my daily standup from yesterday's coding work.",
+          "Create a detailed review of the last 14 days in Portuguese, grouped by workstream."
+        ],
+        "brandColor": "#19372f",
+        "composerIcon": "./assets/devrecap-icon.webp",
+        "logo": "./assets/devrecap-logo-symbol.webp"
+      }
+    }
+  }
+}

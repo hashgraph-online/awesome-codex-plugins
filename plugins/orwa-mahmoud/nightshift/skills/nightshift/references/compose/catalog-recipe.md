@@ -3,21 +3,15 @@
 A shift is markdown, not code. It touches no hooks and changes no enforcement, which is why the
 catalog can grow without the product growing.
 
-**Adding one is two new files and no edits to existing ones:**
+**Adding one is one new file in `shifts/`, copied from `templates/shift-entry.md`, and no edits to
+existing ones.** [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md)
+walks through the steps for every catalog. Nothing shared changes, so two contributors can add a
+shift the same week and never meet in a diff, and Hunt offers a new file the moment it lands.
 
-```
-skills/nightshift/references/compose/shifts/<your-shift>.md   the entry
-tests/shifts/<your-shift>.bats                        what your entry promises
-```
-
-Nothing shared changes — not the index, not a test file someone else is also editing — so two
-contributors can add a shift the same week and never meet in a diff. Hunt lists the directory, so a
-new file is offered the moment it lands.
-
-The structural rules in `tests/catalog.bats` glob the directory and already cover your entry:
-its title must declare the ending, and it must carry a pasteable item, a Verify line, and a stated
-ending condition. Your own `tests/shifts/<your-shift>.bats` is for what is specific to yours —
-above all its refusals, which are the lines a tired model reaches past at 4am.
+Every entry is checked against the template: its title must declare the ending, and it must carry
+a **When to use** section and an **Item** section with a pasteable box and a Verify line. An
+optional `tests/shifts/<your-shift>.bats` is for what is specific to yours — above all its
+refusals, which are the lines a tired model reaches past at 4am.
 
 Before writing, understand what you are writing: **a shift is a contract handed to an agent that
 will work unattended, on a stranger's workspace, while they sleep.** It is not documentation and
@@ -26,7 +20,7 @@ not a suggestion. Every line is an instruction that will be followed literally.
 To discuss an idea before writing files, open a
 [catalog shift proposal](https://github.com/orwa-mahmoud/nightshift/issues/new?template=catalog_shift.yml)
 or comment on [#21](https://github.com/orwa-mahmoud/nightshift/issues/21). The form does not replace
-this recipe or the contract test — a merged entry is still the two new files below.
+this recipe or the contract test — a merged entry is still the file described here.
 
 ## The six things an entry must declare
 
@@ -66,23 +60,13 @@ rejected is never raised twice.
 
 ## Shape
 
-Follow the entries already in `shifts/`. The file's title line carries the name and the ending, then
-a sentence on when to use it, then the item in a fenced block ready to paste under `## Items`:
-
-```text
-# <Name> — <finite|open-ended> — <one line on what it is for>
-
-<A short paragraph: when an owner would choose this, and what they wake up to.>
-
-```text
-- [ ] **<imperative title, ending in a full stop.>**
-  - <how the work is discovered, one bullet>
-  - <the working loop or the order of operations>
-  - <what it will never do — be explicit>
-  - <the ending condition, stated as a test>
-  - Verify: <the commands that must pass before each commit or artifact receipt>
-```
-```
+`templates/shift-entry.md` shows it. The title line carries the name, the ending, and one line on
+what the shift is for: `# <Name> — <finite|open-ended> — <one line>`. **When to use** says when an
+owner would choose it, what they wake up to, which projects it supports, and the receipt it
+writes. **Item** holds the box ready to paste under `## Items`, in a `text` fence: an imperative
+title ending in a full stop, then one bullet each for how the work is discovered, the working loop,
+what it will never do, the ending condition stated as a test, and the Verify line: the commands
+that must pass before each commit or artifact receipt.
 
 ## Review
 

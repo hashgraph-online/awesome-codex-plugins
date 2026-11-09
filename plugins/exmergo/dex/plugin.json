@@ -1,0 +1,34 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "dex",
+  "version": "1.17.4",
+  "description": "Analytics engineering for Claude Code and any agent: data warehouse exploration, dbt transformation and semantic modeling, and schema-drift maintenance on dbt.",
+  "author": {
+    "name": "Exmergo, Inc.",
+    "email": "support@exmergo.com",
+    "url": "https://www.exmergo.com"
+  },
+  "homepage": "https://docs.exmergo.com/dex",
+  "repository": "https://github.com/exmergo/dex",
+  "license": "Apache-2.0",
+  "keywords": [
+    "analytics-engineering",
+    "dbt",
+    "claude-code",
+    "text-to-sql",
+    "semantic-layer",
+    "duckdb",
+    "snowflake",
+    "bigquery",
+    "databricks",
+    "data-engineering",
+    "agent",
+    "metricflow",
+    "schema-drift",
+    "data-contracts",
+    "redshift",
+    "postgres",
+    "clickhouse",
+    "trino"
+  ]
+}

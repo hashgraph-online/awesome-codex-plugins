@@ -1,40 +1,21 @@
 {
   "name": "deja-vu",
   "version": "0.24.0",
-  "description": "deja-vu memory for Codex: your own past sessions, from every coding agent on the machine, recalled before you ask.",
+  "description": "deja-vu: memory for coding agents from the sessions already on your disk — Claude Code, Codex, Cursor, opencode and thirty-nine more — including work from before it was installed.",
   "author": {
     "name": "vshulcz",
     "url": "https://github.com/vshulcz"
   },
-  "homepage": "https://vshulcz.github.io/deja-vu/guide/memory-for-codex.html",
+  "homepage": "https://vshulcz.github.io/deja-vu/",
   "repository": "https://github.com/vshulcz/deja-vu",
   "license": "MIT",
   "keywords": [
     "memory",
     "recall",
     "sessions",
-    "search"
+    "search",
+    "history"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
-  "hooks": "./hooks/hooks.json",
-  "interface": {
-    "displayName": "deja-vu",
-    "shortDescription": "Search and recall your own past AI coding sessions.",
-    "longDescription": "deja indexes the sessions you already have on this machine — Claude Code, Codex, Cursor, opencode and thirty-nine more agents — and gives Codex tools to search them. Ask what you fixed before instead of debugging it twice.",
-    "developerName": "vshulcz",
-    "category": "Productivity",
-    "capabilities": [],
-    "websiteURL": "https://github.com/vshulcz/deja-vu",
-    "defaultPrompt": [
-      "What did we decide about this last time?",
-      "Have I hit this error before?"
-    ],
-    "privacyPolicyURL": "https://vshulcz.github.io/deja-vu/guide/privacy.html",
-    "termsOfServiceURL": "https://github.com/vshulcz/deja-vu/blob/main/LICENSE",
-    "composerIcon": "./assets/icon.svg",
-    "logo": "./assets/logo.svg",
-    "logoDark": "./assets/logo-dark.svg",
-    "brandColor": "#1f6feb"
-  }
+  "mcpServers": "./mcp.json"
 }

@@ -90,6 +90,7 @@ The template works unchanged for a plain TypeScript package. Each stack below ch
 | tanstack-start | `oxlint` | Prettier | `tsc --noEmit` | Exclude the generated `routeTree.gen.ts` from lint and format |
 | vite | `oxlint` | Prettier | `tsc --noEmit` | `routeTree.gen.ts` is generated here too when TanStack Router is used |
 | tauri (frontend) | `oxlint` | Prettier | `tsc --noEmit` | The `src-tauri` crate follows `rules/setup/rust.md` |
+| electron | `oxlint` | Prettier + `prettier-plugin-tailwindcss` | `tsc --noEmit -p` per process tsconfig | Separate `tsconfig.node.json` (main, preload) and `tsconfig.web.json` (renderer); exclude `out/**`, `dist/**`, `release/**`, and `routeTree.gen.ts` |
 | expo | `oxlint && eslint` | Prettier | `tsc --noEmit` | `exception`: `eslint-config-expo` cannot be replaced |
 | lynx | `oxlint` | Prettier | `tsc --noEmit` (via `@rsbuild/plugin-type-check`) | Turn off DOM-only `react/*` rules; `<view>`/`<text>` are not DOM elements |
 | astro | `oxlint` (`<script>` blocks only) | Prettier + `prettier-plugin-astro` | `astro check` | `exception`: pin TypeScript 6.x, `astro check` refuses 7.0 |
@@ -110,6 +111,14 @@ The template works unchanged for a plain TypeScript package. Each stack below ch
 ### tauri
 
 `hypercore-default` — The webview frontend is a Vite app: copy `oxlintrc.react.json` to `.oxlintrc.json` and `prettierrc.json` to `.prettierrc.json`. The Rust side is the `src-tauri` crate and follows `rules/setup/rust.md`; the `lint` script of the frontend must not run `cargo` commands, and the Rust checks live in their own script.
+
+### electron
+
+`hypercore-default` — Copy `oxlintrc.react.json` to `.oxlintrc.json` and `prettierrc.json` to `.prettierrc.json`. The main and preload processes run in Node and the renderer runs in Chromium, so keep two tsconfig files: `tsconfig.node.json` for `src/main/**`, `src/preload/**`, and `src/shared/**` with `types: ["node"]`, and `tsconfig.web.json` for `src/renderer/**` and `src/shared/**` with the DOM lib and no Node types. Set `"typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"`; electron-vite, like Vite, only transpiles and never type checks.
+
+`official` — With Tailwind CSS v4, `prettier-plugin-tailwindcss` must be the last Prettier plugin and needs `tailwindStylesheet` pointing at the renderer's CSS entry, for example `"tailwindStylesheet": "./src/renderer/src/main.css"` (https://github.com/tailwindlabs/prettier-plugin-tailwindcss).
+
+`hypercore-default` — Add the build outputs `out/**`, `dist/**`, and `release/**` and the generated `src/renderer/src/routeTree.gen.ts` to `ignorePatterns` and `.prettierignore`.
 
 ### expo (exception)
 
@@ -173,6 +182,7 @@ The template works unchanged for a plain TypeScript package. Each stack below ch
 | Stack | `lint` | `typecheck` |
 |---|---|---|
 | nextjs | `oxlint` | `tsc --noEmit` |
+| electron | `oxlint` | `tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json` |
 | expo | `oxlint && eslint` | `tsc --noEmit` |
 | lynx | `oxlint` | `tsc --noEmit` |
 | astro | `oxlint` | `astro check` |

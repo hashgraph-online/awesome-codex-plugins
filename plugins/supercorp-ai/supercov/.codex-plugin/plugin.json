@@ -1,6 +1,6 @@
 {
   "name": "supercov",
-  "version": "4.24.5",
+  "version": "4.24.8",
   "description": "Coverage, security and code quality for coding agents.",
   "author": {
     "name": "Supercorp",
@@ -15,7 +15,6 @@
     "code-quality",
     "security"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Supercov",
     "shortDescription": "Coverage, security and code quality for coding agents",
@@ -41,5 +40,6 @@
     "screenshots": [
       "./assets/screenshot.png"
     ]
-  }
+  },
+  "skills": "./skills/"
 }

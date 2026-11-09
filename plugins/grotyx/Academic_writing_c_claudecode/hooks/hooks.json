@@ -1,0 +1,67 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v manuwright >/dev/null 2>&1; then manuwright hook session --plugin-root \"${CLAUDE_PLUGIN_ROOT}\"; else echo \"manuwright CLI not found: install it (see README) - workflow hooks are OFF\" >&2; fi",
+            "commandWindows": "if (Get-Command manuwright -ErrorAction SilentlyContinue) { manuwright hook session --plugin-root \"$env:CLAUDE_PLUGIN_ROOT\" } else { Write-Error \"manuwright CLI not found - workflow hooks are OFF\" }",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v manuwright >/dev/null 2>&1; then manuwright hook gate; else echo \"manuwright CLI not found: install it (see README) - workflow hooks are OFF\" >&2; fi",
+            "commandWindows": "if (Get-Command manuwright -ErrorAction SilentlyContinue) { manuwright hook gate } else { Write-Error \"manuwright CLI not found - workflow hooks are OFF\" }",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v manuwright >/dev/null 2>&1; then manuwright hook lint; else echo \"manuwright CLI not found: install it (see README) - workflow hooks are OFF\" >&2; fi",
+            "commandWindows": "if (Get-Command manuwright -ErrorAction SilentlyContinue) { manuwright hook lint } else { Write-Error \"manuwright CLI not found - workflow hooks are OFF\" }",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v manuwright >/dev/null 2>&1; then manuwright hook style; else echo \"manuwright CLI not found: install it (see README) - workflow hooks are OFF\" >&2; fi",
+            "commandWindows": "if (Get-Command manuwright -ErrorAction SilentlyContinue) { manuwright hook style } else { Write-Error \"manuwright CLI not found - workflow hooks are OFF\" }",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if command -v manuwright >/dev/null 2>&1; then manuwright hook subagent; fi",
+            "commandWindows": "if (Get-Command manuwright -ErrorAction SilentlyContinue) { manuwright hook subagent }",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}

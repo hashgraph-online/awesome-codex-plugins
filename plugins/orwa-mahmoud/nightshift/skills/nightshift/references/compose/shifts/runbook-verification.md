@@ -1,5 +1,7 @@
 # Runbook verification — finite — safe procedure replay with existing observability
 
+## When to use
+
 Use when the owner names a runbook or operational procedure and supplies logs, metrics, traces,
 or failure-surface evidence to verify it in a declared safe environment — not vendor shopping,
 not assumed production telemetry, and not destructive emergency steps.
@@ -16,6 +18,8 @@ select this entry in artifact mode. Typical hours: 1–3.
 When the primary gap is missing logs, metrics, traces, or failure-surface visibility, inventory
 the signals that exist into a `mode: observability-surface` receipt from `receipts/cycle-specialist-evidence.md`
 first. Record absent signals honestly; never assume emitted telemetry reached production.
+
+## Item
 
 ```text
 - [ ] **Runbook verification — replay a named safe procedure with supplied evidence.**

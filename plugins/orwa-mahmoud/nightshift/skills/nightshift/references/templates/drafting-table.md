@@ -12,12 +12,13 @@
 (never a nested checkbox — only the top line is a box, so the gate counts one open item per task).
 Every item carries its own **Verify** line, plus a **Commit** line in repository mode or an
 artifact receipt in artifact mode. An **Evidence** line is optional: what shows the work to a
-reviewer at a glance. It never gates a tick, and an item without one is complete as it is.
+reviewer at a glance. A file it names is a backtick name in the item's evidence folder. check off leaves the tick alone, report names a missing file, and block keeps the stop open. An item without an Evidence line is complete as it is.
 
 ```text
 - [ ] **1. <title>.**
   - <what to build, plainly>
   - Verify: <the commands that must pass before ticking>
+  - Evidence: <what shows the work> `file.png` kind: <key>
   - Commit: `<type: message>`
 ```
 

@@ -1,0 +1,15 @@
+[project]
+name = "openproject-codex-plugin"
+version = "0.1.0"
+description = "Codex plugin runtime for OpenProject project, team, and bulk-workflow automation."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "httpx>=0.28.0",
+  "matplotlib>=3.9.0",
+  "mcp>=1.13.0"
+]
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"

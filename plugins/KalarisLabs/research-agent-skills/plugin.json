@@ -1,0 +1,33 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "research-agent-skills",
+  "version": "1.1.1",
+  "description": "281 Agent Skills for researchers: scientific and research paper writing, journal formats, literature review, citations, data science, ML research and domain science.",
+  "author": {
+    "name": "Kalaris Labs",
+    "url": "https://github.com/KalarisLabs/research-agent-skills"
+  },
+  "homepage": "https://docs.kalarislabs.com/research-agent-skills",
+  "repository": "https://github.com/KalarisLabs/research-agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "agent-skills",
+    "claude-code",
+    "codex",
+    "cursor",
+    "gemini-cli",
+    "research",
+    "scientific-writing",
+    "research-paper",
+    "literature-review",
+    "citations",
+    "latex",
+    "academic-writing",
+    "peer-review",
+    "bioinformatics",
+    "cheminformatics",
+    "machine-learning",
+    "llm",
+    "ai-agents"
+  ]
+}

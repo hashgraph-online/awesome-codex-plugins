@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "imagera",
+  "version": "1.0.0",
+  "description": "Generate and edit images, video, voice and music, and upscale media on Imagera credits.",
+  "author": {
+    "name": "Imagera"
+  },
+  "homepage": "https://imagera.ai/mcp",
+  "repository": "https://github.com/alexadams6ix/imagera-skills",
+  "license": "MIT",
+  "keywords": [
+    "image",
+    "video",
+    "audio",
+    "mcp",
+    "skills"
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "name": "metamask-agent-wallet",
   "version": "1.0.0",
-  "description": "MetaMask Agent Wallet skills and session-start readiness for the mm CLI — auth, wallets, swaps, bridges, perps, prediction markets, and earn.",
+  "description": "MetaMask Agent Wallet skills for the mm CLI — auth, wallets, swaps, bridges, perps, prediction markets, and earn.",
   "author": {
     "name": "MetaMask",
     "url": "https://metamask.io"
@@ -20,7 +20,6 @@
     "prediction-markets",
     "agent-wallet"
   ],
-  "skills": "./skills/",
   "hooks": "./hooks/codex-hooks.json",
   "interface": {
     "displayName": "MetaMask Agent Wallet",
@@ -43,5 +42,6 @@
     "brandColor": "#F6851B",
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg"
-  }
+  },
+  "skills": "./skills/"
 }

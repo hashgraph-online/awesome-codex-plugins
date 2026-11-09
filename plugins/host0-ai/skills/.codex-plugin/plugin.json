@@ -18,8 +18,6 @@
     "database",
     "mcp"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "host0",
     "shortDescription": "Publish what your agent made at a link you can share",
@@ -39,5 +37,7 @@
     ],
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

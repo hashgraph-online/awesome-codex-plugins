@@ -1,6 +1,6 @@
 ---
 name: quality
-description: Compose a shift that works the project's quality debt across tests, code, accessibility, contracts, docs, dependencies and security.
+description: Compose a shift that works the project's quality debt across tests, code, accessibility, docs, dependencies and security.
 license: MIT
 metadata:
   internal: true
@@ -91,7 +91,9 @@ Do not scan until the tooling policy is answered. Never install a tool merely to
 findings — including after auto-add authorization. Under existing-tools, skip contracts whose
 required capabilities are unavailable and do not pause to provision.
 
-In repository mode detect the stack from the gates catalog (monorepo-aware), including a plugin or
+In repository mode detect the stack from `ns catalog-index --catalog gates` (monorepo-aware) and
+read only the stacks that matched. An owner's stack of the same key replaces the shipped one;
+say where the proposal came from. Include a plugin or
 marketplace manifest at the work-target root or under `plugins/<name>/`, and inspect
 repository-owned tooling and evidence. In artifact mode inspect the persistent folder's files and
 any existing manifests or reports; do not require git history or stack detection that needs a

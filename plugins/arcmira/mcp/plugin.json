@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "arcmira",
+  "version": "0.10.14",
+  "description": "YouTube transcript search and monitoring for your AI: exact quotes, full transcripts and speakers.",
+  "author": {
+    "name": "Arcmira",
+    "url": "https://arcmira.com"
+  },
+  "homepage": "https://arcmira.com",
+  "repository": "https://github.com/arcmira/mcp",
+  "license": "Apache-2.0",
+  "keywords": [
+    "youtube",
+    "youtube-transcript-search",
+    "transcript-search",
+    "timestamps",
+    "speaker-attribution",
+    "sponsors",
+    "recommendations",
+    "podcast",
+    "mcp"
+  ]
+}

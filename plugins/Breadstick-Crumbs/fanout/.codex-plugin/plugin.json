@@ -1,6 +1,6 @@
 {
   "name": "fanout",
-  "version": "0.32.0",
+  "version": "0.32.2",
   "description": "Run many coding agents in parallel without merge chaos: each owns its own files, shared interfaces are frozen, and every branch is tested together before it merges.",
   "author": {
     "name": "Breadstick-Crumbs"

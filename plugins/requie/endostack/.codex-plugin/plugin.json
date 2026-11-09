@@ -4,7 +4,7 @@
   "description": "Security-first agent workflows for coding agents: route work through tested playbooks, review with multiple subagents, and verify before you ship.",
   "author": {
     "name": "Tarique Smith",
-    "url": "https://github.com/requie"
+    "url": "https://github.com/requie/endostack"
   },
   "homepage": "https://github.com/requie/endostack",
   "repository": "https://github.com/requie/endostack",
@@ -17,7 +17,6 @@
     "workflow",
     "verification"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "EndoStack",
     "shortDescription": "Security-first agent workflows",
@@ -40,5 +39,11 @@
     "brandColor": "#0F172A",
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png"
+  },
+  "skills": "./skills/",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/setup-endostack/SKILL.md"
+    }
   }
 }

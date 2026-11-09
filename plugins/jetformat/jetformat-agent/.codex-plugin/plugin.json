@@ -17,7 +17,6 @@
     "word-to-pdf",
     "office"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Jetformat",
     "shortDescription": "Office to PDF and PDF tools on your machine",
@@ -29,5 +28,6 @@
     "defaultPrompt": "Convert this Office file to PDF with Jetformat.",
     "composerIcon": "./assets/logo.png",
     "logo": "./assets/logo.png"
-  }
+  },
+  "skills": "./skills/"
 }

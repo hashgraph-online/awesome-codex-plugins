@@ -1,0 +1,16 @@
+{
+  "description": "At the start of a session, one line when the since-cutoff notes in AGENTS.md / CLAUDE.md are out of date for the lockfile; nothing otherwise. Offline; the first run downloads since-cutoff with uvx.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uvx since-cutoff==0.5.0 status --hook",
+            "timeout": 60
+          }
+        ]
+      }
+    ]
+  }
+}

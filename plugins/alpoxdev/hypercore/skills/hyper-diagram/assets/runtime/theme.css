@@ -1,0 +1,124 @@
+/* hyper-diagram theme. Every color is a variable so the light/dark switch and
+   the PDF/JPG exports share one source. Kind classes (k-*) set --c on nodes,
+   groups, and legend swatches; edge classes (e-*) set --c on edges. */
+:root {
+  --font: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, "Apple SD Gothic Neo", monospace;
+  --page: #f4f7fb; --card: #ffffff; --card-line: #e2e8f0; --dot: #d3dbe6;
+  --ink: #0f172a; --muted: #5b6b80; --line: #64748b; --accent: #0891b2; --tint: 11%;
+  --k-user: #475569; --k-client: #0e7490; --k-edge: #0891b2; --k-service: #059669;
+  --k-data: #7c3aed; --k-cache: #c026d3; --k-queue: #ea580c; --k-storage: #0284c7;
+  --k-cloud: #b45309; --k-security: #e11d48; --k-external: #6b7280; --k-ai: #4f46e5;
+  --k-process: #2563eb; --k-decision: #b45309; --k-start: #059669; --k-end: #be123c;
+  --k-event: #0d9488; --k-doc: #78716c; --k-team: #db2777; --k-note: #a16207; --k-neutral: #64748b;
+  --e-primary: #059669; --e-async: #7c3aed; --e-auth: #e11d48; --e-data: #0284c7;
+  --e-deploy: #64748b; --e-error: #dc2626; --e-return: #64748b;
+}
+[data-theme="dark"] {
+  --page: #0a0f1c; --card: #101828; --card-line: #1e293b; --dot: #243147;
+  --ink: #e6edf7; --muted: #94a3b8; --line: #8b9bb2; --accent: #22d3ee; --tint: 18%;
+  --k-user: #94a3b8; --k-client: #22d3ee; --k-edge: #38bdf8; --k-service: #34d399;
+  --k-data: #a78bfa; --k-cache: #e879f9; --k-queue: #fb923c; --k-storage: #38bdf8;
+  --k-cloud: #fbbf24; --k-security: #fb7185; --k-external: #9ca3af; --k-ai: #818cf8;
+  --k-process: #60a5fa; --k-decision: #fbbf24; --k-start: #34d399; --k-end: #fb7185;
+  --k-event: #2dd4bf; --k-doc: #a8a29e; --k-team: #f472b6; --k-note: #facc15; --k-neutral: #94a3b8;
+  --e-primary: #34d399; --e-async: #a78bfa; --e-auth: #fb7185; --e-data: #38bdf8;
+  --e-deploy: #94a3b8; --e-error: #f87171; --e-return: #94a3b8;
+}
+.k-user{--c:var(--k-user)} .k-client{--c:var(--k-client)} .k-edge{--c:var(--k-edge)}
+.k-service{--c:var(--k-service)} .k-data{--c:var(--k-data)} .k-cache{--c:var(--k-cache)}
+.k-queue{--c:var(--k-queue)} .k-storage{--c:var(--k-storage)} .k-cloud{--c:var(--k-cloud)}
+.k-security{--c:var(--k-security)} .k-external{--c:var(--k-external)} .k-ai{--c:var(--k-ai)}
+.k-process{--c:var(--k-process)} .k-decision{--c:var(--k-decision)} .k-start{--c:var(--k-start)}
+.k-end{--c:var(--k-end)} .k-event{--c:var(--k-event)} .k-doc{--c:var(--k-doc)}
+.k-team{--c:var(--k-team)} .k-note{--c:var(--k-note)} .k-neutral{--c:var(--k-neutral)}
+.e-default{--c:var(--line)} .e-primary{--c:var(--e-primary)} .e-async{--c:var(--e-async)}
+.e-auth{--c:var(--e-auth)} .e-data{--c:var(--e-data)} .e-deploy{--c:var(--e-deploy)}
+.e-error{--c:var(--e-error)} .e-return{--c:var(--e-return)}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+#hd-canvas {
+  display: inline-flex; flex-direction: column; gap: 14px; margin: 0; padding: 28px 32px 30px;
+  min-width: 560px; background: var(--page); color: var(--ink); font-family: var(--font);
+  word-break: keep-all; overflow-wrap: anywhere;
+}
+.hd-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.hd-dot { width: 11px; height: 11px; border-radius: 50%; background: var(--accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent); flex: none; }
+#hd-title { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+.hd-badge { font: 500 10.5px var(--mono); letter-spacing: .08em; color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 999px; padding: 3px 10px; }
+#hd-subtitle { margin: -6px 0 0 21px; font-size: 13px; color: var(--muted); }
+#hd-subtitle:empty { display: none; }
+.hd-board {
+  display: flex; flex-direction: column; gap: 18px; padding: 28px; border-radius: 16px;
+  background-color: var(--card); border: 1px solid var(--card-line);
+  background-image: radial-gradient(var(--dot) 1px, transparent 1.3px); background-size: 16px 16px;
+  box-shadow: 0 1px 2px rgb(15 23 42 / .04), 0 10px 28px -14px rgb(15 23 42 / .18);
+}
+#hd-svg { display: block; overflow: visible; }
+.hd-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 18px; margin: 0; padding: 0;
+  list-style: none; font-size: 12px; color: var(--muted); }
+.hd-legend .hd-legend-title { color: var(--ink); font-weight: 700; font-size: 12.5px; margin-right: 4px; }
+.hd-legend li { display: inline-flex; align-items: center; gap: 7px; }
+.hd-sw { width: 18px; height: 11px; border-radius: 3px; border: 1.5px solid var(--c);
+  background: color-mix(in srgb, var(--c) var(--tint), var(--card)); }
+.hd-sw.line { height: 0; border: 0; border-top: 2px solid var(--c); border-radius: 0; background: none; width: 24px; }
+.hd-sw.line.dash { border-top-style: dashed; } .hd-sw.line.dot { border-top-style: dotted; }
+.hd-count { font: 500 10px var(--mono); color: var(--muted); border: 1px solid var(--card-line);
+  border-radius: 999px; padding: 0 6px; line-height: 16px; }
+#hd-desc { max-width: 84ch; margin: 0; font-size: 13px; line-height: 1.65; color: var(--muted); }
+
+/* svg vocabulary */
+.hd-node .hd-shape { fill: color-mix(in srgb, var(--c) var(--tint), var(--card)); stroke: var(--c); stroke-width: 1.6; }
+.hd-node.solid .hd-shape { fill: var(--c); }
+.hd-node.plain .hd-shape { fill: var(--card); }
+.hd-node .hd-head-fill { fill: color-mix(in srgb, var(--c) calc(var(--tint) + 8%), var(--card)); }
+.hd-node .hd-rule { stroke: color-mix(in srgb, var(--c) 45%, transparent); stroke-width: 1; }
+.hd-node .hd-t { font: 600 13px var(--font); fill: var(--ink); }
+.hd-node .hd-s { font: 400 10.5px var(--mono); fill: var(--muted); }
+.hd-node .hd-s.ko, .hd-elabel text.ko, .hd-group .hd-gl text.ko { font-family: var(--font); }
+.hd-elabel text.ko { font-weight: 600; }
+.hd-node .hd-m { font: 400 11px var(--mono); fill: var(--ink); }
+.hd-node .hd-key { font: 600 9.5px var(--mono); fill: var(--c); }
+.hd-node .hd-stereo { font: 400 10px var(--mono); fill: var(--muted); }
+.hd-node .hd-icon { fill: none; stroke: var(--c); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.hd-node.root .hd-t { font-size: 15px; font-weight: 700; }
+.hd-group .hd-frame { fill: color-mix(in srgb, var(--c) 5%, transparent);
+  stroke: color-mix(in srgb, var(--c) 55%, transparent); stroke-width: 1.2; }
+.hd-group.dashed .hd-frame { stroke-dasharray: 5 4; }
+.hd-group .hd-gl rect { fill: var(--card); stroke: color-mix(in srgb, var(--c) 60%, transparent); }
+.hd-group .hd-gl text, .hd-group .hd-band-t { font: 500 10.5px var(--mono); fill: var(--c); }
+.hd-group .hd-band-t { font: 700 13px var(--font); }
+.hd-group .hd-band-s { font: 400 10.5px var(--mono); fill: var(--muted); }
+.hd-edge .hd-path { fill: none; stroke: var(--c); stroke-width: 1.6; stroke-linejoin: round; }
+.hd-edge.dash .hd-path { stroke-dasharray: 6 5; }
+.hd-edge.dot .hd-path { stroke-dasharray: 1.5 4; stroke-linecap: round; }
+.hd-edge.thin .hd-path { stroke-width: 1.2; }
+.hd-elabel rect { fill: var(--card); stroke: color-mix(in srgb, var(--c) 55%, transparent); stroke-width: 1; }
+.hd-elabel text { font: 500 10.5px var(--mono); fill: var(--c); }
+.hd-elabel.plain text { font: 500 12px var(--font); fill: var(--ink); paint-order: stroke;
+  stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.hd-edge .hd-card { font: 600 10.5px var(--mono); fill: var(--c); paint-order: stroke; stroke: var(--card); stroke-width: 3px; }
+.hd-num circle { fill: var(--c); } .hd-num text { font: 700 9.5px var(--mono); fill: var(--card); }
+.hd-marker { fill: var(--c); stroke: var(--c); stroke-width: 1; }
+.hd-marker.hollow { fill: var(--card); }
+.hd-axis { stroke: var(--line); stroke-width: 1.5; }
+.hd-grid { stroke: var(--card-line); stroke-width: 1; }
+.hd-tick { font: 500 10px var(--mono); fill: var(--muted); }
+.hd-rowlabel { font: 500 12px var(--font); fill: var(--ink); }
+.hd-rowlabel.group { font-weight: 700; fill: var(--muted); font-size: 11px; letter-spacing: .04em; }
+.hd-lifeline { stroke: color-mix(in srgb, var(--line) 70%, transparent); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.hd-today { stroke: var(--e-error); stroke-width: 1.5; stroke-dasharray: 3 3; }
+.hd-edge, .hd-node { transition: opacity .15s ease; }
+
+/* viewer toolbar (added by the viewer script in the delivered HTML only) */
+.hd-toolbar { position: fixed; top: 16px; right: 16px; display: flex; gap: 4px; padding: 4px;
+  background: var(--card); border: 1px solid var(--card-line); border-radius: 12px;
+  box-shadow: 0 6px 20px -10px rgb(15 23 42 / .35); font: 500 12px var(--font); z-index: 10; }
+.hd-toolbar button { border: 0; background: none; color: var(--ink); font: inherit; padding: 6px 10px;
+  border-radius: 8px; cursor: pointer; }
+.hd-toolbar button:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+@media print { .hd-toolbar { display: none; } .hd-board { box-shadow: none; } }

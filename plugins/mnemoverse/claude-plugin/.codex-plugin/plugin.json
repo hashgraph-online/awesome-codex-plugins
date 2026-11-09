@@ -1,7 +1,7 @@
 {
   "name": "mnemoverse",
   "version": "1.0.3",
-  "description": "Persistent memory for AI agents, shared across tools. Connects the hosted Mnemoverse memory server over MCP with a one-time OAuth sign-in: recall relevant memories before acting, save durable decisions and corrections, keep shared rooms (beta) across accounts. Bundles the CC0 agent-memory-discipline skill so the agent actually uses the memory it has.",
+  "description": "Persistent memory for AI agents, shared across tools. Connects the hosted Mnemoverse memory server over remote MCP with a one-time browser sign-in: recall relevant memories before acting, save durable decisions and corrections, keep shared rooms (beta) across accounts. Bundles the CC0 agent-memory-discipline skill so the agent actually uses the memory it has.",
   "author": {
     "name": "Mnemoverse",
     "email": "hello@mnemoverse.com",
@@ -17,8 +17,6 @@
     "mcp",
     "context"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Mnemoverse Memory",
     "shortDescription": "Persistent memory shared across AI coding tools",
@@ -39,5 +37,7 @@
     ],
     "composerIcon": "./assets/logo-400.png",
     "logo": "./assets/logo-512.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

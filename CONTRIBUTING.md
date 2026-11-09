@@ -86,18 +86,20 @@ python3 -m pip download --only-binary=:all: --no-deps --dest .hol-plugin-scanner
 python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 ```
 
-You need a score of **80/130** or higher with **no critical or high severity findings**. Save the output to include in your PR description.
+Listing eligibility requires a normalized centralized score of **75/100** or higher. Finding severities are advisory; required catalog checks and substantive review issues must also be clear. Save the output to include in your PR description.
 
 ### Step 3: Verify your plugin repo has the required files
 
 Your plugin repo must contain:
-- `.codex-plugin/plugin.json` (valid manifest)
+- A portable Agent Plugins 1.0.0 `plugin.json`, or a legacy `.codex-plugin/plugin.json`
 - `SECURITY.md` (vulnerability disclosure policy)
 - `LICENSE` (MIT or Apache-2.0 recommended)
 - `README.md` (clear description)
 - No hardcoded secrets, no dangerous MCP commands
 - SHA-pinned GitHub Actions (if using Actions)
 - Dependency lockfiles (`package-lock.json` or equivalent)
+
+Portable packages keep identity fields in the root `plugin.json` and OpenAI presentation settings in `extensions.com.openai.interface`. Their `skills/` and `mcp.json` are discovered at the plugin root. An inline `extensions.com.openai` object replaces the legacy overlay; the two are not merged. The catalog preserves the portable files and generates a Codex compatibility manifest when mirroring. Referenced icons must still meet the catalog's path and size requirements. See [OpenAI's package format](https://developers.openai.com/plugins/build/plugins).
 
 ### Step 4: Add your entry to README.md and open a PR
 

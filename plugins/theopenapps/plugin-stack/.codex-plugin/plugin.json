@@ -10,6 +10,7 @@
   "repository": "https://github.com/theopenapps/plugin-stack",
   "license": "MIT",
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Plugin Stack",
     "shortDescription": "Find openings, submit to stores, track launches, optimize listings, audit discoverability, design widgets and watch competitors",

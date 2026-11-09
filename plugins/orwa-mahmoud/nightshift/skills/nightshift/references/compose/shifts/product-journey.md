@@ -1,5 +1,7 @@
 # Product journey — finite — reproducible user-route gaps from explicit journey evidence
 
+## When to use
+
 Use when the owner names a persona, goal, starting state, and route to exercise. Fix reproducible
 gaps the journey surfaces and retest. Error experience, responsive/cross-browser behavior, and
 accessibility observations are modes on this entry — not separate catalog items.
@@ -41,6 +43,8 @@ Keyboard, focus, and journey observations supplement — never replace — autom
 `mode: accessibility-journey`. Route objective scanner violations to accessibility-repair; keep
 judgment-dependent surfaces in the gap report for human review. Never certify WCAG compliance from
 automation or one journey alone.
+
+## Item
 
 ```text
 - [ ] **Product journey — exercise a named route and fix reproducible gaps.**

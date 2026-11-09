@@ -1,0 +1,58 @@
+{
+  "model": "gpt-6-luna",
+  "input": "Channel: email\nSubject: Payouts have been failing since Monday\nOpened: 2026-09-29T08:12:00Z\n\nMessage: My payouts have been failing since Monday. I already re-entered my bank details twice. I have supplier invoices due this week.\n\nCustomer plan: growth\nOpen orders: ord_8121 (pending), ord_8144 (delivered)\nSensitive credentials never to request: password, security code, API key.",
+  "questions": [
+    {
+      "type": "predicate",
+      "name": "needs_human",
+      "instructions": "Does this ticket need a human agent, rather than an automated reply? A manual payout retry, a refund, or anything only a person can decide counts as yes; a help article or the account data in the input answering it counts as no."
+    },
+    {
+      "type": "predicate",
+      "name": "any_queue_fits",
+      "instructions": "Does this ticket belong to one of the queues listed in the companion routing question: billing, technical, account, or other? Answer no when no listed queue describes the work this ticket needs, so a person has to decide where it goes."
+    },
+    {
+      "type": "choice",
+      "name": "queue",
+      "instructions": "Which queue should own this ticket? Pick the closest queue; the companion predicate decides whether any queue actually fits.",
+      "choices": [
+        {
+          "value": "billing",
+          "description": "Charges, payouts, invoices, refunds."
+        },
+        {
+          "value": "technical",
+          "description": "Bugs, outages, integrations, API errors."
+        },
+        {
+          "value": "account",
+          "description": "Login, plan changes, team membership."
+        },
+        {
+          "value": "other",
+          "description": "A last resort: the ticket is real work but no listed queue describes it."
+        }
+      ]
+    },
+    {
+      "type": "score",
+      "name": "urgency",
+      "instructions": "How urgent is this ticket for the customer right now? Use the level that describes the customer's situation today, not the tone of the message.",
+      "levels": [
+        {
+          "label": "can_wait",
+          "description": "Can wait: no money or access is blocked this week."
+        },
+        {
+          "label": "time_boxed",
+          "description": "Time-boxed: money or access is blocked within the next few days."
+        },
+        {
+          "label": "blocking",
+          "description": "Blocking: the customer cannot operate and is losing money today."
+        }
+      ]
+    }
+  ]
+}

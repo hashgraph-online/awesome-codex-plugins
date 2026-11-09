@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "metamask-agent-wallet",
+  "version": "1.0.0",
+  "description": "MetaMask Agent Wallet skills for the mm CLI — auth, wallets, swaps, bridges, perps, prediction markets, and earn.",
+  "author": {
+    "name": "MetaMask",
+    "url": "https://metamask.io"
+  },
+  "homepage": "https://github.com/MetaMask/agent-skills",
+  "repository": "https://github.com/MetaMask/agent-skills",
+  "license": "MIT",
+  "keywords": [
+    "metamask",
+    "wallet",
+    "crypto",
+    "ethereum",
+    "swap",
+    "bridge",
+    "perps",
+    "prediction-markets",
+    "agent-wallet"
+  ]
+}

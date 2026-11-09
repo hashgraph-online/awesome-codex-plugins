@@ -11,23 +11,23 @@
   "protectedDirs": "",
   "elevation": {
     "sudo": {
-      "policy": "deny",
+      "policy": "allow",
       "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(/[A-Za-z0-9._-]+)*/*(sudo|d[o]as)([[:space:]]|[;&|)'\"`]|$)"
     },
     "containers": {
-      "policy": "deny",
+      "policy": "allow",
       "pattern": "(/var/run/docker\\.sock|unix://[^ \\t]*docker\\.sock|DOCKER_HOST=)|(^|[;&|(`]|[[:space:]]|'|\")(docker-compose)[[:space:]]+(up|run|exec|start|build|down|create)|(^|[;&|(`]|[[:space:]]|'|\")(docker|podman|nerdctl|colima)[[:space:]]+(run|exec|create|start|build|compose[[:space:]]+(up|run|exec|start|build|down|create))"
     },
     "global-packages": {
-      "policy": "deny",
+      "policy": "allow",
       "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(brew|apt|apt-get|dnf|yum|pacman|choco|winget|scoop)[[:space:]]+(install|upgrade|uninstall|remove|reinstall)|npm[[:space:]]+(i|install)[[:space:]]+(-g|--global)|pnpm[[:space:]]+add[[:space:]]+-g|yarn[[:space:]]+global|(^|[;&|(`]|[[:space:]]|'|\")([A-Za-z0-9._/-]+/)?(pip3?|cargo|go)[[:space:]]+install|(^|[;&|(`]|[[:space:]]|'|\")([A-Za-z0-9._/-]+/)?python[0-9.]*[[:space:]]+-m[[:space:]]+pip3?[[:space:]]+install"
     },
     "daemons": {
-      "policy": "deny",
+      "policy": "allow",
       "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(systemctl[[:space:]]+(start|stop|restart|reload|enable|disable)|service[[:space:]]+(start|stop|restart|reload|enable|disable)|launchctl[[:space:]]+(load|bootstrap|bootout|unload)|brew[[:space:]]+services[[:space:]]+(start|stop|restart)|pg_ctl[[:space:]]+(start|stop|restart)|redis-server|mongod|mysqld)([[:space:]]|$)"
     },
     "external-services": {
-      "policy": "deny",
+      "policy": "allow",
       "pattern": "(^|[;&|(`]|[[:space:]]|'|\")(gh[[:space:]]+auth[[:space:]]+login|npm[[:space:]]+login|docker[[:space:]]+login|az[[:space:]]+login|gcloud[[:space:]]+auth[[:space:]]+login)([[:space:]]|$)|(^|[;&|(`]|[[:space:]]|'|\")aws[[:space:]]+configure([[:space:]]*([;&|)]|$)|[[:space:]]+(set|get|add)([^A-Za-z0-9]|$))"
     }
   },
@@ -35,6 +35,7 @@
   "stallWarnEvery": 3,
   "longUnitWarnMinutes": 0,
   "watchMinutes": 10,
+  "idleWindowMinutes": 30,
   "watchRetrySeconds": "30 120",
   "watchAgent": "",
   "watchAfterUsageLimit": true,
@@ -50,8 +51,8 @@
     "verificationProfile": "fast",
     "hours": null,
     "itemBudget": "",
-    "execution": "review-first",
-    "toolingPolicy": "existing-tools",
+    "execution": "run-direct",
+    "toolingPolicy": "auto-add",
     "isolation": "none",
     "prepare": "",
     "copyIn": [],
@@ -82,11 +83,32 @@
     "evidence": {
       "fileMap": "off",
       "architecture": "off",
-      "default": ""
+      "default": "",
+      "check": "off",
+      "review": "off",
+      "unavailable": ""
+    }
+  },
+  "catalogs": {
+    "shifts": {
+      "paths": [],
+      "template": ""
+    },
+    "evidence": {
+      "paths": [],
+      "template": ""
+    },
+    "gates": {
+      "paths": [],
+      "template": ""
+    },
+    "edge-cases": {
+      "paths": [],
+      "template": ""
     }
   },
   "recovery": {
-    "launchScope": "inherit-recorded-scope",
+    "launchScope": "host-default",
     "cursorFlags": []
   },
   "retention": {

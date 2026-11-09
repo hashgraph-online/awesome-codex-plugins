@@ -1,0 +1,10 @@
+{
+  "name": "ru-marketplace-mcp",
+  "version": "1.6.0",
+  "description": "Dev-only manifest: installs jsdom for the offline DOM-extractor tests. Not a Node project.",
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "jsdom": "^30.0.1"
+  }
+}

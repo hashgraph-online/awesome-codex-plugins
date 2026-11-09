@@ -175,6 +175,21 @@ change is accepted. `maintain reconcile` answers these findings with advisories
 only: a declaration is a human's decision, so Dex never rewrites one to match the
 baseline.
 
+A native semantic layer (Ossie, SLayer, Cube) is compared the same way, from
+each definition's own declaration: every key of the `dex` block in its
+`ai_context` (Ossie) or `meta` (SLayer, Cube) and in each member's, a member's
+fields keyed by the column it reads, and its primary key as the `grain`, so a
+changed primary key is a `high` grain change and a `grain` written in the `dex`
+block is not read. The finding names the definition (`commerce.orders`, a SLayer
+model, a cube) and carries `data.layer: semantic` and `data.vendor`. With no
+transformation project, `data.declaration_drift` is the layer's own status, with
+its `vendor`; beside a dbt project the layer's status rides under
+`data.declaration_drift.semantic_layer`, and `checked` is true only when both
+were compared. A baseline pinned before native declarations were fingerprinted,
+a layer whose declarations could not be read, and a change of vendor are
+`checked: false` with a `reason`, never clean; `maintain snapshot
+--project-only` baselines them.
+
 The baseline records which vendor read the layer, and for SLayer the release and
 model format version. A change in any of them is reported first
 (`semantic_vendor_changed`, `semantic_format_changed`), and definitions are not

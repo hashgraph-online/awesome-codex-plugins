@@ -1,7 +1,7 @@
 {
   "name": "dodopayments",
   "version": "0.7.0",
-  "description": "Dodo Payments tools for Codex: integration skills + API/docs MCP servers.",
+  "description": "Dodo Payments tools for AI coding agents, including integration agent skills and the Dodo Payments API and docs MCP servers.",
   "author": {
     "name": "Dodo Payments",
     "email": "support@dodopayments.com"
@@ -14,12 +14,9 @@
     "payments",
     "billing",
     "subscriptions",
-    "codex",
     "mcp",
     "skills"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Dodo Payments",
     "shortDescription": "Payments and billing for apps",
@@ -44,5 +41,19 @@
     "brandColorDark": "#C6FE1E",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "extensions": {
+    "com.openai": {
+      "review": {
+        "demo_recording_url": "https://github.com/dodopayments/dodo-agent-plugin/releases/download/v0.6.3/dodopayments-openai-plugin-demo.mp4",
+        "commerce": false,
+        "commerce_description": "The plugin does not sell products or take payments inside ChatGPT or Codex. It helps developers integrate and manage their own Dodo Payments merchant account."
+      },
+      "publication": {
+        "release_notes": "Sign-in to the Dodo Payments API MCP server now uses a Dodo Payments consent page: pick the business, mode and permissions. No API key is needed. Review or revoke access in the dashboard under Settings > Connected Apps."
+      }
+    }
   }
 }

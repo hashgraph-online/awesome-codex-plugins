@@ -14,12 +14,12 @@
     "e-commerce",
     "shopping-decisions",
     "product-recommendations",
+    "product-search",
     "price-comparison",
     "delivered-price",
     "greece",
-    "bestprice"
+    "mcp"
   ],
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "BestPrice",
     "shortDescription": "Read-only shopping decisions, product search, offers, and price history for Greece.",
@@ -40,5 +40,6 @@
       "Compare current offers for this exact product, including delivery."
     ]
   },
-  "skills": "./skills/"
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

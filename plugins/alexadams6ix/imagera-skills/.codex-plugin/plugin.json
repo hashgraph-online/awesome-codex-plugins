@@ -15,8 +15,6 @@
     "mcp",
     "skills"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Imagera",
     "shortDescription": "Generate and edit images, video, voice and music, and upscale media on Imagera credits.",
@@ -35,5 +33,7 @@
     "termsOfServiceURL": "https://imagera.ai/terms",
     "composerIcon": "./assets/logo.svg",
     "logo": "./assets/logo.svg"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

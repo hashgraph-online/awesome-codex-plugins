@@ -1,0 +1,7 @@
+{"type":"erd","title":"주문 도메인 ERD","subtitle":"범위: 회원 · 주문 · 상품","description":"회원 한 명은 주문을 여러 건 할 수 있습니다. 주문 한 건은 주문 항목을 하나 이상 포함하고, 주문 항목은 상품 하나를 가리킵니다. 결제는 주문마다 한 건입니다.",
+"nodes":[{"id":"users","label":"users","kind":"data","columns":[{"name":"id","type":"bigint","key":"PK"},{"name":"email","type":"varchar","key":"UK"},{"name":"name","type":"varchar"},{"name":"created_at","type":"timestamptz"}]},
+{"id":"orders","label":"orders","kind":"data","columns":[{"name":"id","type":"bigint","key":"PK"},{"name":"user_id","type":"bigint","key":"FK"},{"name":"status","type":"order_status"},{"name":"total","type":"numeric(12,2)"}]},
+{"id":"items","label":"order_items","kind":"data","columns":[{"name":"id","type":"bigint","key":"PK"},{"name":"order_id","type":"bigint","key":"FK"},{"name":"product_id","type":"bigint","key":"FK"},{"name":"qty","type":"int"}]},
+{"id":"products","label":"products","kind":"data","columns":[{"name":"id","type":"bigint","key":"PK"},{"name":"sku","type":"varchar","key":"UK"},{"name":"price","type":"numeric(12,2)"}]},
+{"id":"payments","label":"payments","kind":"data","columns":[{"name":"id","type":"bigint","key":"PK"},{"name":"order_id","type":"bigint","key":"FK"},{"name":"amount","type":"numeric(12,2)"}]}],
+"edges":[{"from":"users","to":"orders","label":"주문한다","card":"1:N"},{"from":"orders","to":"items","label":"포함한다","card":"1:N"},{"from":"products","to":"items","label":"담긴다","card":"1:N"},{"from":"orders","to":"payments","label":"결제된다","card":"1:1"}]}

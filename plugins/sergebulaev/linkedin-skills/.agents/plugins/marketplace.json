@@ -1,0 +1,20 @@
+{
+  "name": "linkedin-skills",
+  "interface": {
+    "displayName": "LinkedIn Skills"
+  },
+  "plugins": [
+    {
+      "name": "linkedin-skills",
+      "source": {
+        "source": "local",
+        "path": "./.codex-marketplace/linkedin-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

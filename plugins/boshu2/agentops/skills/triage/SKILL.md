@@ -1,6 +1,6 @@
 ---
 name: triage
-description: "Turn incoming reports, external PRs and alerts into evidence-based decisions and agent-ready briefs. Use when: intake arrives. For accepted work, use Plan."
+description: "Make the call on a new bug report, issue, outside PR or alert: take it, ask for more, or close as duplicate or already fixed, each with evidence. Use when: one lands on you."
 practices:
 - pragmatic-programmer
 - bdd-gherkin

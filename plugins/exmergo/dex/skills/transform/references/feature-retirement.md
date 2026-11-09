@@ -68,7 +68,12 @@ dex transform remove var <flag> --edits-file payload.json
 
 Compiled SQL only, in a throwaway copy, so it reads no rows and judges an empty
 table. Each entry in `models[]` has `status` and `branches`: the columns at
-`retained_value`, at the other value of a boolean flag, and in the proposal.
+`retained_value`, at the other value of a boolean flag, and in the proposal. The
+judged models are compiled with their ancestors, and the proposal with their
+descendants too, so a `*` over an untouched model, a seed or a profiled source is
+read from that relation, the same way the toggle check reads it. A model that
+does not compile is set aside and recorded as `compile_failed`; it does not stop
+the rest from being judged.
 
 | `checks[].check` | What it means |
 |---|---|
@@ -76,13 +81,22 @@ table. Each entry in `models[]` has `status` and `branches`: the columns at
 | `removed_output_present`, `expected_output_missing`, `unexpected_output` | The proposal against `outputs` |
 | `reads_outside_retained_branch`, `dropped_retained_read` | The model's direct inputs differ from the branch's. A join kept with no output column still moves rows |
 | `unused_cte` | A CTE the proposal never reads and the branch does not have |
-| `removed_column_still_read` | A removed column still read in SQL, schema YAML or a semantic definition |
+| `removed_column_still_read` | A removed column still read in SQL, schema YAML or a semantic definition. A file whose source the reference scan cannot parse is read from its compiled SQL instead, and named by path |
 | `output_model_missing` | A model with declared outputs that the proposal does not define |
 
 `status: unchecked` is not clean, and `reason_code` says why: `compile_unavailable`
-(no dbt or no working dev profile), `unreadable_select` (a star over a relation
-hides the columns) or `no_declared_outputs` (a model the plan rewrites with no
-`outputs` entry). A flag that is not boolean has no other branch to compile, so
+(no dbt or no working dev profile), `compile_failed` (this model does not compile),
+`unreadable_select` (a star over a source with no cached profile hides the columns:
+the reason names the `dex explore profile` that supplies them) or
+`no_declared_outputs` (a model the plan rewrites with no `outputs` entry).
+
+`column_reads` says how far `removed_column_still_read` reached:
+
+- `coverage: not_applicable` means the contract removes no column.
+- `coverage: complete` means every file was read: from source text, or, for each file under `read_from_compiled`, from the SQL dbt compiled for it. A macro whose source does not parse is read through the compiled SQL of each model that calls it.
+- `coverage: partial` means the files under `unchecked` were read neither way (a disabled model, one that does not compile, or a test or analysis whose source does not parse). The verdict is then `unchecked`, a warning names the files, and the build carries a `check: removed_column_reads` record (`reason_code: column_reads_partial`) to `data.completion.obligations`. Read each named file yourself. `unchecked` names the first 10 files and `unchecked_elided` counts the rest. When it is not zero, find the others among the files the reference scan could not parse (`dex transform references <model.column>` names them under `limits`) and read those too.
+
+A flag that is not boolean has no other branch to compile, so
 `other_branch: non_boolean_flag`.
 
 `orphaned_models` names models nothing reads any more, which you decide about:
@@ -122,12 +136,18 @@ the relation in dev predates this run and proves nothing.
 
 ## When discovery cannot finish: `scope: authored`
 
-The full retirement refuses while the reference scan has a limit, because a
-reader it could not see would survive the change unchecked. A project with
-Jinja-heavy macros, or installed packages such as `dbt_utils`, can hold SQL the
-column scan cannot parse, and a macro such as
-`var('using_' ~ name, true)` names its variable at run time. The refusal names
-each file.
+The full retirement refuses while the reference scan has a limit that could hide
+a read of the flag: YAML it could not parse, a package it could not read, or a
+`var()` that names its variable at run time (`var('using_' ~ name, true)`). The
+refusal names each file.
+
+SQL the column scan cannot parse is not one of those. Jinja-heavy models and
+macros, and installed packages such as `dbt_utils`, often leave text that does
+not parse once their Jinja is blanked. A `var()` read is found by the Jinja scan,
+which reads those files fine, so they do not refuse the full contract. They
+bound only `removed_column_still_read`, which reads them from compiled SQL where
+it can and reports the rest under `column_reads` (step 3). Use the full contract
+there. `scope: authored` is for the refusals above.
 
 Do not fall back to a plain `transform plan` there: it refuses a `retirement` key,
 so nothing would check the outputs. Add `"scope": "authored"` to the same contract
@@ -144,7 +164,7 @@ What changes, and what does not:
 
 | | Full (`scope` omitted) | `scope: authored` |
 |---|---|---|
-| Admitted when | the scan finishes | the scan cannot finish; a scoped contract on a project whose scan finishes is refused, so drop `scope` there |
+| Admitted when | the scan finishes, or its only limits are column parses | the scan cannot finish; a scoped contract on a project whose scan finishes is refused, so drop `scope` there |
 | Outputs and metrics | checked at plan, compare and build | the same checks |
 | Literal reads the scan found, reads in YAML | refused until edited | refused until edited |
 | Dynamic var reads in this project | refused until rewritten | listed under `data.retirement.discovery.dynamic_reads`, not refused |
@@ -155,7 +175,8 @@ What changes, and what does not:
 
 `data.retirement.discovery` says what was not read: `limits` (project files, the
 first 10, with `limits_elided`), `package_limits` (a count per package), `unread`,
-and `dynamic_reads`. The first warning names the outputs the checks cover and says
+and `dynamic_reads`. `column_only: true` means every limit is a column parse, so
+the full contract would run: drop `scope` for the stronger check. The first warning names the outputs the checks cover and says
 the plan does not show the feature retired everywhere. `removed_column_still_read`
 covers only the files the scan read.
 

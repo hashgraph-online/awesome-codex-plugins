@@ -1,0 +1,49 @@
+{
+  "_readme": "REFERENCE ONLY — these hooks are NOT active. They were active in Digital Marketing Pro v2.x–v3.0 and removed in v3.1.0 because Claude Code plugin hooks fire globally on every session/operation regardless of working directory. The PreToolUse mcp_.* matcher was particularly invasive: it gated EVERY MCP tool call from ANY installed plugin through DMP's brand-compliance prompt, even when the user was working on something unrelated to marketing. The work each hook did is preserved at the right architectural layer: per-agent compliance/approval instructions live in agents/*.md, dependency setup runs on demand via `python3 scripts/setup.py`, MCP-write decisions already require explicit user approval at the agent level. To re-enable a hook for your own usage, copy the relevant entry into hooks.json — but understand it will fire across all your Claude Code sessions, not just DMP work, and the mcp_.* matcher will affect every MCP server you have configured.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "_note": "Fires on every Claude Code launch in any project. Dependency check is useful inside DMP work but unnecessary noise everywhere else. Run `python3 scripts/setup.py --check-deps --summary` on demand.",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "timeout 30 python3 ${CLAUDE_PLUGIN_ROOT}/scripts/setup.py --check-deps --summary"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "_note": "Fires on EVERY Write|Edit in EVERY project. Brand compliance and hallucination checks live inside the agent files responsible for generating the content. Hook approach is duplicate execution.",
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "First, check the file path being written/edited. If the file is NOT inside a marketing plugin directory (skills/, agents/, scripts/, hooks/, .claude-plugin/) AND is NOT marketing deliverable content (ad copy, email content, social posts, blog articles, landing pages, press releases, or branded marketing content being created for the user), respond 'SKIP' immediately. Do NOT check files in the user's own project directories, config files, source code, or non-marketing outputs — those are always SKIP. Only proceed with the check if this IS marketing content being generated as part of a plugin workflow. In that case, and only if a brand profile exists, briefly verify: (1) content aligns with brand voice guidelines, (2) no industry compliance violations, (3) FTC disclosure included if this is influencer/sponsored content, (4) if brand guidelines exist at ~/.claude-marketing/brands/{slug}/guidelines/ — check restrictions.md for banned words and restricted claims in the content, flag violations with the specific rule and a suggested alternative. Keep the check concise — flag only real issues, not stylistic preferences. Additionally, if this IS marketing content, scan for hallucination indicators: (1) statistics or percentages without source attribution, (2) URLs with placeholder patterns (example.com, your-site.com), (3) superlative claims ('best', '#1', 'leading') without substantiation, (4) specific citations to studies or named sources that could be fabricated. Flag any found with severity CRITICAL (for fabricated stats in headlines/CTAs) or WARNING (for unattributed claims in body text). Include the specific text and a fix suggestion. $ARGUMENTS"
+          }
+        ]
+      },
+      {
+        "_note": "WORST OFFENDER: matcher 'mcp_.*' intercepts EVERY MCP tool call from ANY installed plugin (Slack, Notion, Stripe, GitHub MCP, anything). Forces a brand-compliance LLM evaluation on every MCP write — Slack messages, Notion pages, GitHub PRs, etc. — regardless of whether they are marketing-related at all. Per-agent decision flows already require explicit user approval for marketing-write operations.",
+        "matcher": "mcp_.*",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Check if this MCP tool call involves a WRITE operation (creating, publishing, sending, updating, scheduling, or deleting content on an external platform — including CRM record creation, email sending, social posting, ad campaign creation, SMS sending, database writes, or file uploads). If this is a READ-ONLY operation (fetching data, querying analytics, listing items, searching), respond 'SKIP' immediately. For WRITE operations: (1) Verify the user has explicitly approved this specific action in the current conversation — look for clear approval language, (2) Check that content has passed brand compliance review if applicable, (3) Confirm the target platform matches the user's stated intent, (4) For ad campaigns: verify budget is within the brand's stated budget_range from profile.json, (5) For email/SMS: verify list size and consent compliance, (6) For CRM writes: verify data doesn't overwrite existing records without confirmation. If ANY check fails, BLOCK the operation and explain why. If all checks pass, respond 'ALLOW'. $ARGUMENTS"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "_note": "Fires on EVERY Session End event in every project. Insight-saving for marketing work happens in-flow via the engagement orchestrator. Per-session reflection should be opt-in, not automatic.",
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "If marketing work was done this session (campaign plans created, content produced, performance analyses run, strategic decisions made, or brand positioning discussed): 1. Summarize 1-3 key marketing insights or decisions from this session. 2. If an active brand exists (check the session start context for the brand slug), save each insight by running: python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py\" --brand {slug} --action save-insight --data \"@{data_file}\" (first write {\"type\":\"session_learning\",\"insight\":\"[the insight]\",\"source\":\"session\",\"context\":\"[what work produced this insight]\"} to {data_file} with the Write tool; never type outside text inline in the command) — replace {slug} with the active brand slug, and fill in the insight and context fields with actual session data. 3. If any guideline violations were flagged during this session, save them by running: python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/campaign-tracker.py\" --brand {slug} --action save-violation --data \"@{data_file}\" (first write {\"rule\":\"[violated rule]\",\"category\":\"[guideline category]\",\"severity\":\"[low/medium/high]\",\"content\":\"[violating text snippet]\",\"suggestion\":\"[compliant alternative]\"} to {data_file} with the Write tool; never type outside text inline in the command) for each violation. 4. Tell the user: 'Session insights saved. Key takeaways: [list them]. To update brand settings, just ask.' If no brand profile exists or no meaningful marketing work was done, skip silently. $ARGUMENTS"
+          }
+        ]
+      }
+    ]
+  }
+}

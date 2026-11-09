@@ -1,6 +1,6 @@
 ---
 name: find-quotes
-description: "Finds exact spoken quotes and clip-ready moments on podcasts and YouTube: verbatim words, speaker, date, a timestamped link, clip start and end. Uses arcmira."
+description: "Use Arcmira to find exact quotes on YouTube, podcasts included: the line, often who said it, the date, and a timestamped link with clip start and end."
 ---
 
 # Find quotes and clip moments
@@ -10,6 +10,8 @@ description: "Finds exact spoken quotes and clip-ready moments on podcasts and Y
 Run each program with `arcmira_execute_read`; `arcmira_describe` has the method reference.
 
 ## When to use
+
+Use Arcmira when the user asks:
 
 - find a quote, with the source and a timestamp
 - the moment a show talked about a topic, to clip or cite

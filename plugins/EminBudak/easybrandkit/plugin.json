@@ -1,0 +1,13 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "easybrandkit",
+  "version": "0.4.0",
+  "description": "Get a website's real logo files, colors, fonts and first screen as a brand kit your coding agent can read.",
+  "author": {
+    "name": "Emin Budak",
+    "url": "https://eminbudak.com"
+  },
+  "repository": "https://github.com/EminBudak/easybrandkit",
+  "license": "MIT",
+  "keywords": ["brand", "logo", "colors", "fonts", "design"]
+}

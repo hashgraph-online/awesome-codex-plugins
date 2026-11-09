@@ -1,5 +1,7 @@
 # Architecture health — finite — concrete dependency and boundary cost from repository evidence
 
+## When to use
+
 Use when the owner wants a reviewable picture of dependency, boundary, ownership, and cycle cost
 in the repository — not architectural taste. Review-first is the default; direct edits are small
 and reversible only.
@@ -9,6 +11,8 @@ The model writes the receipt. Unparsed tool output is `unavailable`, never "no f
 
 Supported on repositories with inspectable structure (packages, modules, manifests, CI). Never
 select this entry in artifact mode. Do not `git init` a notes folder to make findings commitable.
+
+## Item
 
 ```text
 - [ ] **Architecture health — report concrete dependency and boundary cost.**

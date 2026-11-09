@@ -1,0 +1,22 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "a-team",
+  "version": "1.4.1",
+  "description": "A complete engineering team in one folder: 26 specialist agents, 20 skills, orchestrated workflows and quality gates.",
+  "author": {
+    "name": "RBraga01",
+    "url": "https://github.com/RBraga01"
+  },
+  "homepage": "https://rbraga01.github.io/a-team/",
+  "repository": "https://github.com/RBraga01/a-team",
+  "license": "MIT",
+  "keywords": [
+    "agent-orchestration",
+    "claude-code",
+    "codex",
+    "cursor",
+    "opencode",
+    "tdd",
+    "code-review"
+  ]
+}

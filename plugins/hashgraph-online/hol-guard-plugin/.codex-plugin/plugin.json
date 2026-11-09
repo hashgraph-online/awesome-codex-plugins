@@ -1,24 +1,22 @@
 {
-  "name": "hol-guard-plugin",
+  "name": "hol-guard",
   "version": "0.1.1",
-  "description": "Codex plugin for HOL Guard local AI harness protection across Codex, Claude Code, and other agent/plugin systems.",
+  "description": "Local-first AI agent security with Guard status, security receipts, approvals, MCP visibility, and pre-trust scanning for skills, plugins, and MCP servers.",
   "author": {
     "name": "Hashgraph Online",
-    "email": "dev@hol.org",
     "url": "https://github.com/hashgraph-online"
   },
-  "homepage": "https://github.com/hashgraph-online/hol-guard-plugin",
+  "homepage": "https://hol.org/guard",
   "repository": "https://github.com/hashgraph-online/hol-guard-plugin",
   "license": "Apache-2.0",
   "keywords": [
     "hol-guard",
     "ai-security",
-    "plugin-scanner",
-    "mcp",
-    "codex",
-    "skills"
+    "agent-security",
+    "mcp-security",
+    "agent-skills",
+    "supply-chain-security"
   ],
-  "skills": "./skills/",
   "interface": {
     "type": "cli",
     "displayName": "HOL Guard Plugin",
@@ -46,5 +44,7 @@
     "screenshots": [
       "./assets/screenshot.svg"
     ]
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

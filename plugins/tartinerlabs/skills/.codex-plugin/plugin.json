@@ -6,6 +6,7 @@
     "name": "Tartiner Labs",
     "url": "https://github.com/tartinerlabs"
   },
+  "homepage": "https://github.com/tartinerlabs/skills",
   "repository": "https://github.com/tartinerlabs/skills",
   "license": "MIT",
   "keywords": [
@@ -15,7 +16,6 @@
     "psychology",
     "design"
   ],
-  "skills": "./skills/",
   "interface": {
     "displayName": "Design",
     "shortDescription": "UX and visual design for web and mobile apps.",
@@ -23,5 +23,6 @@
     "category": "Design",
     "websiteURL": "https://github.com/tartinerlabs/skills",
     "composerIcon": "./assets/icon.svg"
-  }
+  },
+  "skills": "./skills/"
 }

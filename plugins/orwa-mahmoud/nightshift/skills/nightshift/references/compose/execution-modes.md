@@ -54,6 +54,17 @@ When packing more than one entry:
 
 One deadline governs the whole automatic shift, and automatic mode always requires hours.
 
+**auto.** When the owner says *auto* instead of hours, the deadline is, in this order:
+
+1. the suggested deadline from `ns shift-estimate --items <n>` for the composed items, when the
+   owner's receipts give an estimate;
+2. otherwise the sum of the selected entries' typical-hours hints, taking the upper end of each
+   range;
+3. otherwise, for finite work, no clock: it ends when its list is clear;
+4. otherwise, for open-ended work, 4 hours.
+
+State the chosen deadline and where it came from in one line, then start.
+
 ## Launch
 
 - **Review first** — discovery is read-only. Show the evidence, selected entries, order, scope,
@@ -63,9 +74,10 @@ One deadline governs the whole automatic shift, and automatic mode always requir
   verify within the stated scope and time. Start the clock immediately, assemble and cut one work
   order, arm one shift, and continue selecting work that serves the stated objective until quitting time.
 
-When the prompt already carries clear direct-execution intent, infer Run directly. Do not ask
-**review first, or run directly?** Guided and incomplete Automatic still ask; that choice is
-independent from Guided or Automatic.
+Run directly is the shipped `shift.execution`. A complete prompt runs directly unless the owner's
+`shift.execution` is `review-first` or the sentence asks to see the shift first. Do not ask
+**review first, or run directly?** on a complete prompt; Guided and incomplete Automatic ask it,
+prefilled from `shift.execution`, and that choice is independent from Guided or Automatic.
 
 Guided + run directly still performs the selected entry's discovery, but it does not pause after
 showing the findings. Guided + review first does pause. Choosing a category is not by itself approval
@@ -74,17 +86,19 @@ to implement; the launch choice decides that.
 ## Tooling policy, and tonight's one question
 
 A third independent choice, and the only question composition asks. On a complete Automatic prompt,
-do not ask it: use existing-tools, no new elevation, and remembered verification from
+do not ask it: use the resolved tooling policy (`auto-add` unless the owner chose otherwise;
+existing-tools in artifact mode), no new elevation, and remembered verification from
 `shift-defaults.json` when present. The owner may still name a policy or allowance in the same
 sentence.
 
 - **Existing tools only** — skip contracts whose required capabilities are unavailable and spend
-  the time elsewhere. The default, including when `$NS/shift-defaults.json` is missing.
+  the time elsewhere. The only policy in artifact mode.
 - **Review missing tools first** — one read-only consolidated plan (capability, selected tool,
   exact writes, commands, enabled shifts, risks, permissions, rollback), then wait. It writes
   nothing and the work clock has not begun.
-- **Automatically add standard development tools** — authorization for eligible local development
-  tooling; do not pause again to re-ask. The model inspects the package manager, chooses a
+- **Automatically add standard development tools** — the default in repository mode, including
+  when `$NS/shift-defaults.json` is missing. Authorization for eligible local development tooling;
+  do not pause again to re-ask. The model inspects the package manager, chooses a
   compatible tool, installs, smokes, and records, behind the thin `provision.sh` / `provision.ps1`
   seatbelt: baseline → write-surface diff → rollback. A symlink or reparse escape is refused,
   rollback must actually run, inventory and Git stay consistent on a failed tooling commit, and
@@ -97,8 +111,8 @@ new shift or branch. Recovery runs before Start, so a shift never opens on an un
 Unsupported permission modes must be reported before arming.
 
 Three files hold every setting, and no others exist. `rules.json` is the owner's permanent project
-boundary — default denies, protected paths, forbidden commands, and any elevation they chose to
-remember. `shift-defaults.json` remembers convenience choices (verification profile, typical hours,
+boundary — the elevation categories they deny, protected paths, forbidden commands, and any
+allowance they chose to remember. `shift-defaults.json` remembers convenience choices (verification profile, typical hours,
 tooling policy, review-first vs run-direct); it only prefills the next question, decides nothing on
 its own, and never carries elevation. `shift-policy.json` is tonight's authoritative snapshot —
 deadline, verification level, tooling policy, and every allowance tagged `rules` or `one-shift` —

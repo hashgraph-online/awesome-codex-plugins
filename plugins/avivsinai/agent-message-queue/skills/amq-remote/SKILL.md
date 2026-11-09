@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.132.0 # x-release-please-version
+version: 0.137.0 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -188,6 +188,22 @@ and each connected session as `live` or `unknown` with its own agent
 (`running`, `idle`, `offline` or `missing`) and its channel, prunes the
 sessions proven ended, and names, once, old per-session agents the owner
 should delete in Buzz Desktop.
+
+## Status line
+
+`amq-remote statusline` prints `📡 buzz` while this session is connected,
+`📡 buzz (mirror off)` while its mirror is off, and nothing otherwise. It
+always exits 0, reads only the binding files, and `--plain` drops the emoji.
+AMQ never edits the user's `statusLine` setting; if the user asks for it,
+show them the line to add to their own Claude Code status-line script, where
+`$input` holds the JSON the script read from stdin:
+
+```bash
+seg=$(amq-remote statusline <<<"$input" 2>/dev/null); [ -n "$seg" ] && out+=" | $seg"
+```
+
+Any other harness that runs a command in its status line passes the session
+id: `amq-remote statusline --session <id>`.
 
 ## Trust limits
 

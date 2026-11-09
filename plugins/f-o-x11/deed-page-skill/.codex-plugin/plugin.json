@@ -15,8 +15,6 @@
     "deed-page",
     "deed page"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "deed.page",
     "shortDescription": "Permanent links for your sites",
@@ -37,5 +35,7 @@
     "brandColor": "#9C2A1C",
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }

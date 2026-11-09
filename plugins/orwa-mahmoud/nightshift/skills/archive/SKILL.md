@@ -1,6 +1,6 @@
 ---
 name: archive
-description: File a finished shift into its own archive folder, laid out like the live site, so the live files keep only open work.
+description: File a finished shift into its own archive folder so the live files keep only open work.
 license: MIT
 metadata:
   internal: true
