@@ -639,8 +639,8 @@ The score is best used as a quick trust signal and triage summary (not the only 
 
 - [AIGrowthRank](https://aigrowthrank.com/en/skills/) - Catalog of agent skills, Codex and Claude plugins and MCP servers for marketing and sales, with dated passive code reviews where public source is available.
 - [Astra Flash Orchestrator](https://github.com/ethanplusai/astra-flash-orchestrator) - Codex skill that keeps Astra on planning and review while DeepSeek V4.1 Flash handles implementation.
-- [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins) - Umbrella list covering Codex, Claude Code, Gemini CLI, and MCP servers.
 - [awesome-ai-coding-tools](https://github.com/mahmoudsajjadi/awesome-ai-coding-tools) - Curated 3-tier taxonomy of coding agents, Codex CLI and MCP server integrations, `AGENTS.md` templates, and local GPU VRAM sizing guides.
+- [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins) - Umbrella list covering Codex, Claude Code, Gemini CLI, and MCP servers.
 - [codex-patch-overlay](https://github.com/salty-flower/codex-patch-overlay) - Patched Codex CLI builds carrying community-requested features upstream has not merged yet (live TUI reasoning streaming, completion sound, WebP image input, timed CLI queueing). Ready-to-run macOS/Linux binaries plus a Nix overlay, refreshed each upstream release.
 - [Cross-LLM Delivery](https://github.com/jhesham/cross-llm-delivery) - On-demand skills that let Codex or Claude Code plan and review builds while delegating implementation to executor CLIs in isolated Git worktrees, with committed acceptance tests and verified integration.
 - [Email Marketing Bible](https://github.com/CosmoBlk/email-marketing-bible) - Codex skill (SKILL.md) for email marketing: automation flows, deliverability triage, copy de-slopping, AI email design, ESP control via MCP with send-safety gates, compliance and 19 industry playbooks.
