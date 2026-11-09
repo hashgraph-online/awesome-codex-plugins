@@ -13,6 +13,79 @@ MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
 
 
+class ActeraNativeBundleTests(unittest.TestCase):
+    def archive(self, include_native=True):
+        files = {
+            "archive/openai-directory/plugin.json": json.dumps({
+                "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+                "name": "actera", "version": "1.0.0",
+            }),
+            "archive/openai-directory/skills/agent-policies/SKILL.md": "Remote policies only",
+        }
+        if include_native:
+            prefix = "archive/plugins/actera/"
+            native = {
+                ".codex-plugin/plugin.json": json.dumps({
+                    "name": "actera", "version": "0.2.0", "skills": "./skills/",
+                    "hooks": "./hooks/hooks.json", "mcpServers": "./.mcp.json",
+                }),
+                ".mcp.json": '{"mcpServers":{"actera":{"command":"node","args":["bin/actera-mcp.mjs"]}}}',
+                "hooks/hooks.json": '{"hooks":{}}',
+                "skills/actera-connect/SKILL.md": "Native agent connection",
+                "bin/actera-mcp.mjs": "import '../vendor/agent-hooks/server.mjs';",
+                "bin/actera-hook.mjs": "import '../vendor/agent-hooks/server.mjs';",
+                "vendor/agent-hooks/server.mjs": "export const bridge = true;",
+                "vendor/agent-hooks/LICENSE": "Bridge attribution",
+                "vendor/agent-hooks/vendor/gitleaks/linux.gz": "Packaged scanner bytes",
+                "LICENSE": "Native package license",
+                "NOTICE": "Native package notices",
+            }
+            files.update({prefix + name: value for name, value in native.items()})
+        raw = io.BytesIO()
+        with MODULE.zipfile.ZipFile(raw, "w") as archive:
+            for name, value in files.items():
+                archive.writestr(name, value)
+        return MODULE.zipfile.ZipFile(io.BytesIO(raw.getvalue()))
+
+    def test_native_package_wins_over_directory_sibling(self):
+        for owner in ("Actera-AI", "actera-ai"):
+            with self.subTest(owner=owner), self.archive() as archive:
+                root = MODULE.resolve_plugin_root(archive, set(archive.namelist()), {
+                    "owner": owner, "repo": "actera-codex", "name": "Actera",
+                })
+                self.assertEqual(root.as_posix(), "archive/plugins/actera")
+
+    def test_missing_native_package_fails_closed(self):
+        with self.archive(include_native=False) as archive:
+            with self.assertRaises(ValueError):
+                MODULE.resolve_plugin_root(archive, set(archive.namelist()), {
+                    "owner": "Actera-AI", "repo": "actera-codex", "name": "Actera",
+                })
+
+    def test_complete_native_runtime_and_notices_are_mirrored(self):
+        with self.archive() as archive, tempfile.TemporaryDirectory() as scratch, patch.object(
+            MODULE, "fetch_repo_archive", return_value=archive
+        ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+            manifest, _, source_root = MODULE.mirror_plugin_bundle({
+                "owner": "Actera-AI", "repo": "actera-codex", "name": "Actera",
+            })
+            dest = Path(scratch) / "Actera-AI/actera-codex"
+            self.assertEqual(manifest["version"], "0.2.0")
+            self.assertEqual(source_root, "plugins/actera")
+            for name in ("bin/actera-mcp.mjs", "bin/actera-hook.mjs",
+                         "vendor/agent-hooks/server.mjs", "vendor/agent-hooks/LICENSE",
+                         "vendor/agent-hooks/vendor/gitleaks/linux.gz", "NOTICE"):
+                self.assertTrue((dest / name).is_file(), name)
+            self.assertFalse((dest / "skills/agent-policies").exists())
+
+    def test_unrelated_packages_keep_existing_selection(self):
+        with self.archive() as archive:
+            root = MODULE.resolve_plugin_root(archive, set(archive.namelist()), {
+                "owner": "another-owner", "repo": "other-plugin", "name": "Actera",
+            })
+            self.assertEqual(root.as_posix(), "archive/openai-directory")
+
+
 class GeneratedBundleCleanupTests(unittest.TestCase):
     def test_brewpage_root_relative_mcp_config_is_materialized(self):
         for reference in ("/.mcp.json", "/./.mcp.json"):
