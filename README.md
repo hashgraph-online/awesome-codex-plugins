@@ -637,6 +637,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 
 ## Related Projects
 
+- [AgentPlugins](https://agentplugins-2v1.pages.dev/) - Cross-ecosystem directory of DeepSeek Harness and Codex plugins, aggregated from GitHub topics and ranked by stars and freshness.
 - [AIGrowthRank](https://aigrowthrank.com/en/skills/) - Catalog of agent skills, Codex and Claude plugins and MCP servers for marketing and sales, with dated passive code reviews where public source is available.
 - [Astra Flash Orchestrator](https://github.com/ethanplusai/astra-flash-orchestrator) - Codex skill that keeps Astra on planning and review while DeepSeek V4.1 Flash handles implementation.
 - [awesome-ai-plugins](https://github.com/hashgraph-online/awesome-ai-plugins) - Umbrella list covering Codex, Claude Code, Gemini CLI, and MCP servers.
