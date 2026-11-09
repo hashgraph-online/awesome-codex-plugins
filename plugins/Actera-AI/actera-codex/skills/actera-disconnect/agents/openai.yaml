@@ -1,0 +1,5 @@
+interface:
+  display_name: "Disconnect Codex from Actera"
+  default_prompt: "Use $actera-disconnect to remove this machine's Actera connection."
+policy:
+  allow_implicit_invocation: false

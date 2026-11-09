@@ -1,0 +1,5 @@
+interface:
+  display_name: "Switch Actera between Monitoring and Enforcing"
+  default_prompt: "Use $actera-mode to switch Actera to Enforcing."
+policy:
+  allow_implicit_invocation: false

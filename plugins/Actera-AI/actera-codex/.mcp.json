@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "actera": {
+      "command": "node",
+      "args": ["bin/actera-mcp.mjs"],
+      "cwd": ".",
+      "env_vars": ["ACTERA_CODEX_BRIDGE_HOME", "ACTERA_API_ORIGIN", "ACTERA_MODE", "ACTERA_EVALUATION_FAILURE", "ACTERA_HOLD_SECONDS", "ACTERA_HOLD_POLL_MS"],
+      "tool_timeout_sec": 600,
+      "omit_tools_from": ["code_mode", "deferred", "direct"]
+    }
+  }
+}

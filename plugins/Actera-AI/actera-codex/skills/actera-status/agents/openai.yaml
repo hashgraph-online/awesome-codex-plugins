@@ -1,0 +1,5 @@
+interface:
+  display_name: "Show the Actera connection"
+  default_prompt: "Use $actera-status to check the Actera connection."
+policy:
+  allow_implicit_invocation: true

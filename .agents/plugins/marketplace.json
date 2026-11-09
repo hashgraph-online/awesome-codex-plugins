@@ -20,6 +20,21 @@
       "icon": "./plugins/RBraga01/a-team/assets/icon.svg"
     },
     {
+      "name": "actera",
+      "displayName": "Actera",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Actera-AI/actera-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Checks each Codex tool call against Actera workspace policies before it runs, holds calls that need a reviewer's approval, and records every decision and outcome.",
+      "icon": "./plugins/Actera-AI/actera-codex/assets/icon.png"
+    },
+    {
       "name": "aegis",
       "displayName": "Aegis",
       "source": {

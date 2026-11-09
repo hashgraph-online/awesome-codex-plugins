@@ -1,0 +1,5 @@
+interface:
+  display_name: "Connect Codex to Actera"
+  default_prompt: "Use $actera-connect to connect this Codex to Actera."
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,9 @@
+Actera for Codex
+Copyright 2026 Actera
+
+This product includes software developed by Actera.
+The hook bridge and bundled scanner come from the vendored agent-hooks package;
+see vendor/agent-hooks/NOTICE. The scanner uses Gitleaks and other third-party
+software. See vendor/agent-hooks/vendor/gitleaks/THIRD_PARTY_NOTICES.txt for their
+license texts and vendor/agent-hooks/vendor/gitleaks/manifest.json for binary
+versions and checksums.
