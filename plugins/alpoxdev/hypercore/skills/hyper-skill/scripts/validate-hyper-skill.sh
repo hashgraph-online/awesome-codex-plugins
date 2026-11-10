@@ -331,10 +331,7 @@ emit_result() {
     "$toc" "$stray" "$warnings"; do
     [ -f "$f" ] || printf 'null' > "$f"
   done
-  local errors_array='[]'
-  if [ -s "$ERRORS" ]; then
-    errors_array=$(jq -s -c '.' "$ERRORS")
-  fi
+  # The error list goes in as a file: one argv string is capped at 128 KiB on Linux.
   jq -n \
     --argjson ok "$ok" \
     --argjson contract "$contract" \
@@ -355,7 +352,7 @@ emit_result() {
     --slurpfile toc "$toc" \
     --slurpfile stray "$stray" \
     --slurpfile warnings "$warnings" \
-    --argjson errors "$errors_array" \
+    --slurpfile errors "$ERRORS" \
     '{
       ok: ($ok == 1),
       contractPackage: ($contract == 1),
@@ -1344,11 +1341,14 @@ SELF_CONTAINMENT_TEXTS=".md .jsonl .json .mjs .js .sh .py .html .css .yml .yaml 
       exit
     }
   ' > "$HIT_FILE"
-  findings_json='[]'
-  waivers_json='[]'
+  # Findings stay in files: one argv string is capped at 128 KiB on Linux.
+  findings_file=$WORK/selffindings.json
+  waivers_file=$WORK/selfwaivers.json
+  printf '[]\n' > "$findings_file"
+  printf '[]\n' > "$waivers_file"
   if [ -s "$HIT_FILE" ]; then
-    findings_json=$(jq -Rn -c '[inputs | split("\t") | select(.[4] != "1") | {path: .[0], line: (.[1] | tonumber), name: .[2], form: .[3]}]' "$HIT_FILE")
-    waivers_json=$(jq -Rn -c '[inputs | split("\t") | select(.[4] == "1") | {path: .[0], line: (.[1] | tonumber), name: .[2], form: .[3]}]' "$HIT_FILE")
+    jq -Rn -c '[inputs | split("\t") | select(.[4] != "1") | {path: .[0], line: (.[1] | tonumber), name: .[2], form: .[3]}]' "$HIT_FILE" > "$findings_file"
+    jq -Rn -c '[inputs | split("\t") | select(.[4] == "1") | {path: .[0], line: (.[1] | tonumber), name: .[2], form: .[3]}]' "$HIT_FILE" > "$waivers_file"
     if [ "$REQUIRE_SELF_CONTAINMENT" -eq 1 ] || [ "$CONTRACT_SINK" = "$ERRORS" ]; then
       jq -Rnc '[inputs | split("\t") | select(.[4] != "1") |
         {code: "CROSS_SKILL_REFERENCE", message: ("Cross-skill reference to " + .[2] + " (" + .[3] + "): " + .[0] + ":" + .[1]), path: .[0], name: .[2], form: .[3], line: (.[1] | tonumber)}] | .[]' \
@@ -1369,10 +1369,10 @@ SELF_CONTAINMENT_TEXTS=".md .jsonl .json .mjs .js .sh .py .html .css .yml .yaml 
   checked_files=$(wc -l < "$TEXT_LIST" | tr -d ' ')
   siblings_json=$(json_line_array "$SIBLINGS")
   ok=1
-  if [ "$(jq 'length' <<< "$findings_json")" -ne 0 ]; then ok=0; fi
+  if [ "$(jq 'length' "$findings_file")" -ne 0 ]; then ok=0; fi
   jq -cn --argjson ok "$ok" --argjson strict "$REQUIRE_SELF_CONTAINMENT" --argjson siblings "$siblings_json" \
-    --argjson checkedFiles "$checked_files" --argjson findings "$findings_json" --argjson waivers "$waivers_json" \
-    '{ok: ($ok == 1), strict: ($strict == 1), siblings: $siblings, checkedFiles: $checkedFiles, findings: $findings, waivers: $waivers}' \
+    --argjson checkedFiles "$checked_files" --slurpfile findings "$findings_file" --slurpfile waivers "$waivers_file" \
+    '{ok: ($ok == 1), strict: ($strict == 1), siblings: $siblings, checkedFiles: $checkedFiles, findings: $findings[0], waivers: $waivers[0]}' \
     > "$WORK/selfcontain.json"
 }
 

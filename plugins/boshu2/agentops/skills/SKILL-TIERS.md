@@ -8,7 +8,7 @@
 
 ## execution
 
-`idea-genie`, `implement`, `interview`, `memory`, `navigate`, `orchestrate`, `plan`, `refactor`, `research`, `reverse-engineer`, `test`, `triage`, `using-gc`
+`idea-genie`, `implement`, `interview`, `memory`, `navigate`, `orchestrate`, `plan`, `refactor`, `research`, `test`, `triage`
 
 ## judgment
 
@@ -20,7 +20,7 @@
 
 ## meta
 
-`agent-native`, `rpi`, `skill-builder`, `skill-eval`
+`rpi`, `skill-builder`, `skill-eval`
 
 ## orchestration
 
@@ -34,7 +34,6 @@
 
 | Skill | Tier | Disposition | Hard dependencies | Capabilities | Effects |
 |---|---|---|---|---|---|
-| `agent-native` | meta | `keep_optional_adapter` | - | `role_dispatch`, `observe_workers`, `handoff`, `dispatch_once` | `manage_runtime_sessions`, `invoke_selected_executor` |
 | `agy-native` | cross-vendor | `keep_optional_adapter` | - | `dispatch_explicit_packet`, `provide_fresh_context` | `start_agy_session` |
 | `architecture` | judgment | `keep_specialist` | - | `locate_change_friction`, `compare_interface_designs`, `propose_module_boundaries` | - |
 | `claude-exec` | orchestration | `keep_optional_adapter` | - | `claude_exec` | `run_claude_process`, `permission_tiered_workspace_effects` |
@@ -49,13 +48,12 @@
 | `interview` | execution | `keep_strategy` | - | `interview_caller`, `settle_caller_choices`, `write_acceptance_examples`, `settle_domain_terms` | `update_intent_source` |
 | `memory` | execution | `keep_off_path` | - | `recall_applicable_context`, `mine_supported_observations`, `curate_topic_pages`, `toil_mining` | `write_protected_drafts`, `update_authorized_topic_pages`, `write_requested_toil_report` |
 | `navigate` | execution | `keep_strategy` | - | `observe_work_graph`, `select_next_wave`, `ratchet_work_graph`, `report_graph_hygiene` | `update_native_graph` |
-| `orchestrate` | execution | `keep` | - | `coordinate_native_work`, `recover_assignments`, `reconcile_feedback` | `dispatch_authorized_workers`, `update_native_handoffs` |
+| `orchestrate` | execution | `keep` | - | `coordinate_native_work`, `recover_assignments`, `reconcile_feedback`, `role_dispatch`, `observe_workers`, `dispatch_once` | `dispatch_authorized_workers`, `update_native_handoffs`, `manage_runtime_sessions`, `invoke_selected_executor` |
 | `plan` | execution | `keep` | - | `shape_intent`, `define_acceptance`, `bound_write_scope`, `resume_discovery` | `update_intent_source` |
 | `postmortem` | judgment | `keep_strategy` | - | `postmortem` | `write_requested_postmortem_report` |
 | `premortem` | judgment | `keep_strategy` | - | `challenge_plan` | `write_advisory_plan_review` |
 | `refactor` | execution | `keep_specialist` | - | `refactor` | `modify_source_files` |
 | `research` | execution | `keep_specialist` | - | `research`, `codebase_recon`, `pattern_mining`, `compare_claim_to_evidence`, `measure_declared_goals`, `report_native_status` | `write_research_report`, `write_recon_pack`, `write_pattern_evidence`, `write_advisory_gap_report`, `write_goal_snapshot`, `write_requested_rendered_spec` |
-| `reverse-engineer` | execution | `keep_specialist` | - | `reverse_engineer` | `clone_upstream_repo`, `authorized_binary_execution`, `write_teardown_artifacts` |
 | `review` | judgment | `keep` | - | `review_advisory`, `identify_supported_findings`, `report_review_gaps` | - |
 | `rpi` | meta | `keep_strategy` | `plan`, `implement`, `validate` | `own_authorized_outcome`, `report` | `modify_authorized_subject`, `dispatch_conditional_validator` |
 | `security` | product | `keep_specialist` | - | `security` | `write_scan_artifacts` |
@@ -63,5 +61,4 @@
 | `skill-eval` | meta | `keep_specialist` | - | `evaluate_skill_decision`, `select_skill_measurement`, `read_skill_ab_results`, `author_seeded_probe` | `write_probe_package`, `dispatch_authorized_trials` |
 | `test` | execution | `keep_specialist` | - | `test` | `write_test_files`, `write_test_evidence`, `modify_source_files` |
 | `triage` | execution | `keep_specialist` | - | `observe_reported_behavior`, `find_duplicates_and_prior_decisions`, `classify_with_evidence`, `write_agent_ready_brief`, `reconcile_batch_by_id` | `write_authorized_tracker_updates` |
-| `using-gc` | execution | `keep_optional_adapter` | - | `observe_gc_runtime`, `inspect_pack_registries`, `drive_mayor_door` | `operate_gas_city`, `configure_codex_trust` |
 | `validate` | judgment | `keep` | - | `compute_subject_identity`, `judge_acceptance`, `return_validation_result`, `persist_verdict` | `write_verdict_artifact` |

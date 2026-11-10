@@ -26,7 +26,11 @@ output_contract: 'bounded applicable evidence or no-match; reviewed topic-page u
 
 # Memory
 
-Use maintained experience only when it changes an action. Memory is optional:
+Memory keeps short notes a person checked: each one sized to its evidence,
+stating when it applies, what to do, its support, its limits and what retires
+it, and saved only after review. Use a note only when it changes an action.
+A run that worked returns a narrow, reviewed entry or says why nothing was
+saved. Memory is optional:
 no mandatory recall at RPI entry, lesson at completion, worksheet, page quota or
 background mining. A trivial edit can proceed directly to implementation.
 
@@ -62,13 +66,18 @@ request to turn an incident into a rule for an instruction file:
    line that only restates what agents already do by default earns no place.
 4. **Review before admission.** Give the draft inline in your reply unless the
    caller named storage outside Git; never write it into the repository before
-   review. A fresh reviewer who is not the author checks factual support and
-   disclosure of the exact text, paths and destination before it enters
+   review. A saved note is one a person checked: the person who asked reads the
+   exact text, paths and destination and approves it before it enters
    `.context/`, an instruction file such as `AGENTS.md`, or any Git object.
+   When they ask you to save it without reading it, get one fresh read from a
+   context that did not write the draft, checking factual support and
+   disclosure; one round, and a repair does not start a second review. When
+   neither can check it, write nothing: keep the draft inline, report it as not
+   saved and name the missing check.
    Promoting an entry into an instruction file is a separate policy change
    owned by that file. On an explicit request to remember something, the
    runtime's own memory store (such as Claude Code auto-memory or Codex memory)
-   is a valid destination; rules 1-3 still apply, and fresh review is owed only
+   is a valid destination; rules 1-3 still apply, and this review is owed only
    when that store is shared or checked in.
 5. **Saving proves nothing.** Saved pages, retrieval counts and structural
    checks prove no benefit. Only later work can show that reuse changed an
@@ -79,7 +88,7 @@ request to turn an incident into a rule for an instruction file:
 ### <one-line claim>
 - Applies when: <the conditions the evidence covered>
 - Action: <the check or step to take>
-- Support: <cited sources; number of independent occurrences>
+- Support: <cited sources, each with the commit or date observed; number of independent occurrences>
 - Limits: <where it is untested or may not hold>
 - Invalidate when: <the change or contrary evidence that retires it, and how to check it>
 ```
@@ -92,16 +101,16 @@ them. Learning may also simplify or remove rules.
 | Need | Read on demand |
 |---|---|
 | An earlier constraint or source map may change the next action | [Find / recall](references/recall.md) |
-| Capture useful evidence from selected sources, episodes or corrections | [Capture / mine / learn](references/mine-learn.md) |
+| Draft a note from an incident, correction or source the person names | [Capture a note](references/mine-learn.md) |
 | Update, qualify, consolidate or retire a supported claim | [Curate / qualify / retire](references/curate.md) |
 | Rank repeated operational friction in supplied history | [Toil evidence](references/toil.md) |
 | Trace a corrected claim or audit the loaded instruction set | [Instruction sources](references/instruction-sources.md) |
 
 Memory owns these operations. Whether recurring evidence warrants a general
 rule is decided by [Research's pattern mode](../research/SKILL.md#pattern-evidence)
-(independent exemplars and a holdout). Capture includes bounded source maps,
-verdicts, corrections and failed or harmful reuse; it is never a required
-completion step. Load only the selected operation's reference. The optional
+(independent exemplars and a holdout). Capture drafts notes for a person to
+check; it does not extract lessons from history in bulk, and it is never a
+required completion step. Load only the selected operation's reference. The optional
 [OKF page profile](references/learn/okf-page-profile.md) checks structure only.
 
 ## One authority per fact
@@ -128,5 +137,5 @@ requested legacy `.agents/` proof and unique evidence under owner policy.
 No blind TTL or delete operation is part of Memory. Labels and structural
 parsers do not prove isolation.
 [ADR-0016](https://github.com/boshu2/agentops/blob/main/docs/adr/ADR-0016-state-tiers.md)
-(AgentOps source checkout only) owns these boundaries. Mining is budgeted
-separately and cannot delay an authorized change or alter its verdict.
+(AgentOps source checkout only) owns these boundaries. Drafting a note cannot
+delay an authorized change or alter its verdict.

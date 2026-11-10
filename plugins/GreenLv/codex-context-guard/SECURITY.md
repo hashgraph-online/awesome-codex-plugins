@@ -2,11 +2,7 @@
 
 ## Supported version
 
-Security and correctness fixes are applied to the current supported
-release source, `0.17.0`. Public availability is determined independently by
-[GitHub Release readback](https://github.com/GreenLv/codex-context-guard/releases).
-Reports against published builds are triaged first; source and artifact checks
-follow the [versioning policy](docs/VERSIONING.md) before publication.
+Security and correctness fixes target the latest published version, currently `0.17.1`. Check the [GitHub Release](https://github.com/GreenLv/codex-context-guard/releases/latest) for the published package. The [versioning policy](docs/VERSIONING.md) explains how source and package changes are verified.
 
 ## Reporting a vulnerability
 

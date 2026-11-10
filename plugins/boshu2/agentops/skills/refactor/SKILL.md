@@ -26,7 +26,9 @@ output_contract: code changes with regression evidence
 
 Refactor changes structure while preserving observable behavior. It performs one
 caller-selected transformation and reports the result. "Behavior-preserving" is
-a claim to prove with before/after checks, never to assert.
+a claim to prove with before/after checks, never to assert. A user sees it
+worked when the report shows the same checks run before and after with
+identical results, and any suspected bug listed unfixed.
 
 ## What counts as behavior
 
@@ -106,10 +108,19 @@ the gates did not cover under `not checked`.
 
 ## Boundaries and tests
 
-Choosing where to restructure, or a new module boundary, is
-[Architecture](../architecture/SKILL.md#procedure)'s job; this skill executes
-one transformation in the area the caller selected. Reject a wrapper that only
-adds another name or pushes the same coordination into its callers. Keep
+Refactoring after a check goes green is the step of test-driven development
+that held for agents
+([practice ledger](https://github.com/boshu2/agentops/blob/main/docs/practice-ledger.md#holds-in-a-different-shape)).
+
+- Use [Implement](../implement/SKILL.md) to change behavior; it tidies its own
+  fresh change under its acceptance checks.
+- Use Refactor when restructuring is the request, or reaches code the behavior
+  change did not touch; that green result is the baseline.
+- Use [Architecture](../architecture/SKILL.md#procedure) to choose where to
+  restructure or a new module boundary; this skill executes one transformation
+  in the area the caller selected.
+
+Reject a wrapper that only adds another name or pushes the same coordination into its callers. Keep
 internal test seams private when callers need no substitution. Exercise the
 preserved behavior through the caller-facing boundary; retain existing tests
 until equivalent coverage of their distinct cases is demonstrated. Moving a

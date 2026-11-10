@@ -7,6 +7,8 @@ compatibility: Uses the hosted sync. MCP server (https://mcp.sync.so/mcp) or a S
 
 # Set up sync. labs
 
+[sync. labs](https://sync.so) | [Setup guide](https://sync.so/docs/plugins-and-extensions/agent-skills/setup)
+
 Gets a new user from install to a first result in a couple of minutes. Setup itself never starts paid work.
 
 ## Steps

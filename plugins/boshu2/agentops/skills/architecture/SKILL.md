@@ -30,11 +30,15 @@ output_contract: 'located friction and ranked structural proposals, each with ca
 Architecture finds where a codebase's structure makes change expensive and
 proposes a better shape: a deeper module, a seam where behavior has to vary, or
 a boundary moved to where the domain language changes. It analyses and
-proposes; it edits nothing. Neighbours: [Refactor](../refactor/SKILL.md)
-executes one behavior-preserving transformation, [Implement](../implement/SKILL.md)
-changes behavior, [Plan](../plan/SKILL.md) slices a chosen change,
-[Domain](../domain/SKILL.md) settles what terms mean per context, and
-[Review](../review/SKILL.md) advises on an existing plan or diff.
+proposes; it edits nothing. A user sees it worked when each proposal cites the
+located friction at file:line, compares call sites against "leave it", and
+names the step after which reversal stops being cheap.
+
+- Use [Refactor](../refactor/SKILL.md) to execute one behavior-preserving transformation.
+- Use [Implement](../implement/SKILL.md) to change behavior.
+- Use [Plan](../plan/SKILL.md) to slice a chosen change.
+- Use [Domain](../domain/SKILL.md) to settle what terms mean per context.
+- Use [Review](../review/SKILL.md) for advice on an existing plan or diff.
 
 ## Vocabulary
 
@@ -90,11 +94,13 @@ Use these meanings in every proposal so the caller can compare them.
    words name one thing, a context boundary is likely; confirm the terms with
    Domain. Domain rules should not import adapters such as storage, HTTP, CLI
    parsing or file formats; adapters depend on ports the domain defines.
-5. **Design it twice.** For each friction worth a proposal, sketch at least two
-   interface alternatives plus "leave it". Judge them by the call sites they
-   produce and the change they make cheaper, not by internal elegance. When the
-   caller brings a candidate shape, it is one of the alternatives. Vary one
-   [design axis](references/module-depth.md#designing-alternatives) at a time.
+5. **Design it twice.** For each friction worth a proposal, sketch two
+   interface alternatives plus "leave it". When the caller brings a candidate
+   shape, it is one of the two. Add a third only when the decision turns on a
+   [design axis](references/module-depth.md#designing-alternatives) the first
+   two share; never add an option to reach a count. Judge them by the call
+   sites they produce and the change they make cheaper, not by internal
+   elegance. Vary one design axis at a time.
 6. **Name how tests move.** A deep module is tested through its interface. Say
    which tests that mock internals or pin call order would be replaced by tests
    at the new interface, and which stay; what sits behind the seam decides the

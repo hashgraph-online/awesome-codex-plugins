@@ -49,7 +49,7 @@ dependencies = [
     # =========================================================================
     "pyjwt[crypto]",  # JWT tokens
     "pwdlib[bcrypt]",  # Modern password hashing
-    "cryptography>=47.0.0",  # Encryption utilities
+    "cryptography>=50.0.2",  # Encryption utilities
     "pyotp",  # TOTP/HOTP for MFA
     "webauthn>=2.7.1",  # WebAuthn/Passkeys support
     "authlib>=1.9.5",  # OIDC relying party: JWKS + id_token claim validation
@@ -89,7 +89,7 @@ dependencies = [
     # =========================================================================
     # Code Transformation
     # =========================================================================
-    "libcst",  # Concrete Syntax Tree for Python - preserves formatting when modifying code
+    "libcst>=1.9.0",  # Concrete Syntax Tree for Python - preserves formatting when modifying code
 
     # =========================================================================
     # Templating
@@ -100,7 +100,7 @@ dependencies = [
     # Git Integration
     # =========================================================================
     "PyGithub",
-    "GitPython>=3.1.47",  # Closes 5 CVEs incl. CVSS 9.8 RCE
+    "GitPython>=3.1.62",  # Patched repository metadata discovery
 
     # =========================================================================
     # Background Jobs
@@ -126,6 +126,8 @@ dependencies = [
     # Object Storage (S3-compatible)
     # =========================================================================
     "awscrt==0.38.1",  # Official SigV4 signer/checksums for the narrow HTTPX S3 transport
+    "azure-storage-blob>=12.27,<13",  # Opt-in native Azure Blob transport
+    "azure-identity>=1.25,<2",  # Explicit managed identity (no developer credential fallback)
 
     # =========================================================================
     # LLM Providers (AI Agent System)

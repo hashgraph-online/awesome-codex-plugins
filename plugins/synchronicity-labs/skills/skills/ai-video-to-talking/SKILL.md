@@ -7,6 +7,8 @@ compatibility: Needs the sync. MCP server or a SYNC_API_KEY. See references/conn
 
 # Make an AI video talk
 
+[sync. labs](https://sync.so) | [AI video guide](https://sync.so/docs/plugins-and-extensions/agent-skills/ai-video-to-talking)
+
 Delivers an MP4 of the generated character speaking the agreed line, in a voice that fits them, with matching lips. sync. doesn't make the clip itself. It comes from the user, or from a video-generation tool you can use in this session.
 
 If no sync. tools are available, follow [references/connect.md](references/connect.md) first. Without the MCP tools, use the REST requests in [references/api.md](references/api.md).

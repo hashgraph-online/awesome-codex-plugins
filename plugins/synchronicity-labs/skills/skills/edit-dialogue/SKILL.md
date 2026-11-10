@@ -7,6 +7,8 @@ compatibility: Needs the sync. MCP server. See references/connect.md.
 
 # Fix spoken words
 
+[sync. labs](https://sync.so) | [Dialogue editing guide](https://sync.so/docs/plugins-and-extensions/agent-skills/edit-dialogue)
+
 Delivers one MP4 where only the agreed words change. Everything else keeps the original picture and voice.
 
 If no sync. tools are available, follow [references/connect.md](references/connect.md) first. The REST version of this workflow is in early access and needs features enabled per organization; see https://sync.so/docs/developer-guides/dialogue-editing.
@@ -55,8 +57,6 @@ To make many versions of one recording, such as one per recipient's name, transc
 3. **Quote once.** Call `dialogue-videos_estimate` for each completed preview, show the count and the total, and wait for one approval of the whole set.
 4. **Renders.** Write one `idempotencyKey` per variant into your variant table, plus a new UUID for the set, before calling. Then call `jobs_create-many` with `tool: "dialogue-videos_create"`, that UUID as `idempotencyKey`, and one item per approved preview: `projectId` with `projectIntent: "explicit"`, `videoAssetId`, the preview's ID as `dialogueEditId`, `model: "sync-3"` and the variant's `idempotencyKey`. Send at most 50 per call. Follow them with `jobs_get-many` and `wait: true`. When the response has `remaining`, send it again exactly as returned once running jobs finish; if the tool refuses a single remaining item, send that variant with `dialogue-videos_create` and the same key. Without `jobs_create-many`, call `dialogue-videos_create` once per preview with its own key, keeping at most the plan's `generationLimits.concurrency` from `account_get-context` in flight.
 5. **Deliver** a table of variant, status and exact `outputMediaUrl`.
-
-On Scale plans, a large run that can wait hours can render as Batch API rows with `dialogueEdit` instead (early access, through the batch-lipsync skill). It's a queued pipeline, not a faster start.
 
 ## Limits
 

@@ -8,8 +8,7 @@ consumes:
 - plan
 - implement
 - validate
-produces:
-- rpi-report.v1
+produces: []
 context_rel:
 - kind: customer-of
   with: plan
@@ -27,7 +26,7 @@ metadata:
   effects: [modify_authorized_subject, dispatch_conditional_validator]
   canonical_status: canonical
   disposition: keep_strategy
-output_contract: 'concise human-readable result; optional rpi-report.v1 when a caller or declared consumer requests machine-readable evidence'
+output_contract: 'concise human-readable closeout; no machine artifact'
 ---
 
 # RPI
@@ -44,7 +43,8 @@ mistake is costly, not a scheduler.
    needs no Plan, Recall or Learn worksheet. Resolve uncertainty only when it
    could change the implementation or acceptance decision.
 2. Take the smallest acceptance-advancing action. [Plan](../plan/SKILL.md)
-   shapes missing intent or revises a disproved approach. Once an implementer
+   runs only when intent is missing, an uncertainty is consequential or
+   evidence disproves the approach. Once an implementer
    can act and a validator can judge, implement; do not keep improving the plan.
    Approach revisions preserve acceptance and authorized scope.
    Acceptance changes need caller authority.
@@ -94,8 +94,9 @@ a smaller inherited context. Supply accepted intent and scope, the exact
 subject, relevant evidence, remaining bounds, the result's consumer and check
 ownership; resume an author for direct repair when useful. At completion,
 verify the expected subject and required results; a quiet or partial status is
-not success. Integrate as [Implement](../implement/SKILL.md) describes for
-delegated work, disclosing missing or truncated evidence in the existing handoff.
+not success. Integrate as Implement's
+[delegated work](../implement/references/delegated-work.md) describes, carrying each worker's `not_as_briefed` and `gaps` lines into
+the closeout below.
 
 ## Causal stall and bounds
 
@@ -131,12 +132,9 @@ When a validator is used, bind accepted intent, complete changed paths, the
 exact subject and its check results using
 [Validate's Subject rules](../validate/SKILL.md#subject), including its status
 listing and file hashes for uncommitted work.
-Where the repository records AgentOps evidence bindings (under
-`docs/evals/scorecards/` or `evals/skill-probes/`), run
-`ao provenance evidence-orphans --root <repo>` with one `--changed <path>` per
-changed path and disclose the acceptance evidence it reports orphaned, as
-[Implement](../implement/SKILL.md#workflow) step 6 details; without `ao`, list
-the scan under Not checked. Requested proof goes to protected storage outside
+Where the repository records AgentOps evidence bindings, run the orphaned-evidence
+scan [Implement](../implement/SKILL.md#workflow) step 6 details; without `ao`,
+list the scan under Not checked. Requested proof goes to protected storage outside
 Git that the caller selects; preserve legacy `.agents/` evidence. [Validate](../validate/SKILL.md#rules-that-decide-the-verdict)'s
 decision order sets a requested binding verdict, which the author cannot issue.
 
@@ -149,18 +147,19 @@ runtime, hidden machine artifact or workflow to finish an ordinary change.
 
 Report in this shape. Plans, activity, reviews and saved pages earn no
 capability credit, and an unchecked item is reported, not a reason to keep
-validating. Machine evidence such as `rpi-report.v1` or `verdict.v2` is
-optional unless a caller or declared consumer requires it. When no machine
-artifact is requested or required, return the result without creating one.
+validating. The report is the result; create no machine artifact for it. A
+persisted verdict, when a caller or declared consumer requires one, is
+Validate's `verdict.v2`.
 
 ```text
-Result:      done | stopped: <cancelled | refused | needs decision: <choice> | bound spent | stalled: <unknown cause | recurrence | no progress | wrong objective> - <observed fact>> | NOT_PLANNED | NOT_BUILT
-Subject:     <commit, branch or diff identity>
-Acceptance:  <criterion> -> <evidence: check, receipt or ref>, one line each
-Checked:     <checks run on the final subject, with results>
-Not checked: <what was not run or not covered, and why> | none
-Judgment:    none (checks and CI gate an ordinary change) | <validator context id>: PASS | FAIL | NOT_PROVEN
-Limits:      <material gaps; each open decision in full; departures from the literal ask, one line with its reason each; adjacent work noticed but not done> | none
+Result:         done | stopped: <cancelled | refused | needs decision: <choice> | bound spent | stalled: <unknown cause | recurrence | no progress | wrong objective> - <observed fact>> | NOT_PLANNED | NOT_BUILT
+Subject:        <commit, branch or diff identity>
+Acceptance:     <criterion> -> <evidence: check, receipt or ref>, one line each
+Checked:        <checks run on the final subject, with results>
+Not checked:    <what was not run or not covered, and why> | none
+Judgment:       none (checks and CI gate an ordinary change) | <validator context id>: PASS | FAIL | NOT_PROVEN
+Not as briefed: <steps refused, held, worked around or unverified, and departures from the literal ask, one line with its reason each> | none
+Limits:         <gaps: material missing evidence and known failures; each open decision in full; adjacent work noticed but not done> | none
 ```
 
 A departure is a call made within authority that the caller would want to
@@ -170,10 +169,3 @@ following a mid-run steer. Routine fixes stay out; with no such call, add none.
 `NOT_PLANNED` (stopped before an actionable slice existed) and `NOT_BUILT`
 (stopped before a candidate change existed) describe progress, not semantic
 verdicts.
-
-When `rpi-report.v1` is requested, its `status` is the validator's verdict when
-Judgment ran on the final subject. Otherwise it is `NOT_PLANNED` or `NOT_BUILT`
-as reported, `FAIL` when a check on the final subject proves a criterion
-failed, and `NOT_PROVEN` for every other Result, `done` included; never `PASS`.
-Fill `checked` and `not_checked`; fields the runtime did not derive, and both
-verdict fields when no validator ran, are `null`.

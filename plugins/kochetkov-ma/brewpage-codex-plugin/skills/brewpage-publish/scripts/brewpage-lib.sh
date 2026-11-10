@@ -8,7 +8,7 @@ HISTORY_FILE="$BP_ROOT/brewpage-history.md"
 BP_TMPDIR="${TMPDIR:-/tmp}"
 BP_TMPDIR="${BP_TMPDIR%/}"
 # User-Agent on every brewpage.app request: <client>/<shipped version> (+https://brewpage.app).
-BP_UA="brewpage-codex/0.1.0 (+https://brewpage.app)"
+BP_UA="brewpage-codex/0.1.1 (+https://brewpage.app)"
 
 # Creates the history file if absent, keeps it mode 600, and makes sure git
 # never picks it up — the skill used to only *ask* the user to keep it private.
@@ -17,8 +17,8 @@ bp_history_init() {
   python3 "$(dirname "${BASH_SOURCE[0]}")/history.py" init "$BP_ROOT" "${HISTORY_FILE#"$BP_ROOT/"}" <<'HEADER'
 # brewpage.app — Published Pages
 
-> Owner tokens allow delete and in-place PUT (html/json/kv/files/sites). Old publications are read-only: 409 OLD_PUBLICATION_READ_ONLY; publish anew and report only the new URL. Keep tokens in this private file; never display them in chat.
-> Delete: `curl -s -A "brewpage-codex/0.1.0 (+https://brewpage.app)" -X DELETE "<Owner API>" -H "X-Owner-Token: TOKEN"`; rows without one: `https://brewpage.app/api/<type>/<ns>/<id>`, type = html|json|files|kv|sites.
+> Owner tokens allow delete and in-place PUT (html/json/kv/files/sites). Old publications are read-only: 409 OLD_PUBLICATION_READ_ONLY; publish anew and give the user the new link and management link. This file is private: show a token to the user when they ask, never post one publicly (public page, repo, shared channel).
+> Delete: `curl -s -A "brewpage-codex/0.1.1 (+https://brewpage.app)" -X DELETE "<Owner API>" -H "X-Owner-Token: TOKEN"`; rows without one: `https://brewpage.app/api/<type>/<ns>/<id>`, type = html|json|files|kv|sites.
 > Update a site (same URL; old publications answer 409, see above): `PUT /api/sites/<ns>/<id>` with the same `-A`, `X-Owner-Token: TOKEN` + the new bundle.
 
 | Date | URL | Owner Token | TTL | Type | Owner API | Identity |
@@ -173,10 +173,18 @@ bp_error_reason() {
     | "HTTP \(.status): \((.message // .error // "") | tostring | explode | map(if . < 32 then 32 else . end) | implode | .[0:400])"' 2>/dev/null || true
 }
 
-# The tail every block shares: URL out, owner token to history, one OK/FAILED line, then any server NOTICE lines.
+# History write failed after a live publish: link, management link and token go to the user, not lost.
+bp_unsaved() {
+  echo 'FAILED: published but owner token could not be saved securely'
+  echo "URL: $1"
+  [ -z "$2" ] || echo "MANAGE: $2"
+  echo "OWNER TOKEN: $3"
+}
+
+# The tail every block shares: owner token to history, OK/FAILED line, MANAGE line (management link), NOTICE lines.
 # `site` is the only type whose response carries .fileCount.
 bp_finish() {
-  local response="$1" days="$2" type="$3" url token fcount owner_api identity reason nonowned_merge=0
+  local response="$1" days="$2" type="$3" url token manage fcount owner_api identity reason nonowned_merge=0
   url=$(printf '%s' "$response" | jq -r '.link // empty')
   if [ -z "$url" ]; then
     reason=$(bp_error_reason "$response")
@@ -184,20 +192,22 @@ bp_finish() {
     return 1
   fi
   if printf '%s' "$response" | jq -e '.result.action == "merged" and .result.extras.isOwner == false' >/dev/null 2>&1; then
-    token=""; nonowned_merge=1
+    token=""; manage=""; nonowned_merge=1
   else
     token=$(printf '%s' "$response" | jq -r '.ownerToken // empty')
+    manage=$(printf '%s' "$response" | jq -r '.manageUrl | strings | explode | map(select(. > 32 and . != 127)) | implode' 2>/dev/null) || manage=""
   fi
   owner_api=$(printf '%s' "$response" | jq -r '.ownerLink // empty')
   identity=$(printf '%s' "$response" | jq -c '{id, namespace, type, routingCohort, deliveryMode, modeLocked, hostingVersion, managementLink, createdAt, expiresAt}')
   if [ "$type" = site ]; then
     fcount=$(printf '%s' "$response" | jq -r '.fileCount // "?"')
-    if [ -n "$token" ]; then bp_history_append "$url" "$token" "$days" "site ($fcount files)" "$owner_api" "$identity" || { echo 'FAILED: published but owner token could not be saved securely'; return 1; }; fi
+    if [ -n "$token" ]; then bp_history_append "$url" "$token" "$days" "site ($fcount files)" "$owner_api" "$identity" || { bp_unsaved "$url" "$manage" "$token"; return 1; }; fi
     echo "OK $url | Files: $fcount"
   else
-    if [ -n "$token" ]; then bp_history_append "$url" "$token" "$days" "$type" "$owner_api" "$identity" || { echo 'FAILED: published but owner token could not be saved securely'; return 1; }; fi
+    if [ -n "$token" ]; then bp_history_append "$url" "$token" "$days" "$type" "$owner_api" "$identity" || { bp_unsaved "$url" "$manage" "$token"; return 1; }; fi
     echo "OK $url"
   fi
+  [ -z "$manage" ] || echo "MANAGE: $manage"
   if [ "$nonowned_merge" -eq 1 ]; then echo 'NOTICE: existing publication returned without ownership; no owner capability saved'; fi
   printf '%s' "$response" | jq -r '.notices[]?.message // empty | "NOTICE: " + (tostring | explode | map(if . < 32 then 32 else . end) | implode)' 2>/dev/null || true
 }

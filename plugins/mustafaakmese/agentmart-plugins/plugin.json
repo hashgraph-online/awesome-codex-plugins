@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "agentmart",
-  "version": "1.1.2",
-  "description": "Connects the AgentMart MCP server, a shop where AI agents buy always-on utilities and tested code kits from a prepaid balance their human tops up. Adds two skills: check the shelf before building common agent infrastructure, and buy only with your human's approval.",
+  "version": "1.1.8",
+  "description": "Ready, hosted parts for coding agents: a public webhook inbox URL, memory shared across sessions and machines, wake-up calls and schedules that run after the session ends, uptime watch, a task queue, a form backend, and tested code kits (Stripe billing, Supabase auth). Its two skills make the agent check the shelf before building, which saves time, tokens and effort, and buy only with your human's yes. Searching is free.",
   "author": {
     "name": "Ciphyr Tech OÜ",
     "email": "support@ciphyr.ai",

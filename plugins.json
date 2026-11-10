@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-09",
-  "total": 392,
+  "last_updated": "2026-11-10",
+  "total": 396,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -779,6 +779,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/prekuter/dryforge/HEAD/agent-plugin/plugin.json"
+    },
+    {
+      "name": "e2e",
+      "url": "https://github.com/tester-army/e2e",
+      "owner": "tester-army",
+      "repo": "e2e",
+      "description": "Write, run, and debug end-to-end tests for web and mobile apps with agent skills and an MCP server.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/tester-army/e2e/HEAD/plugins/e2e/.codex-plugin/plugin.json"
     },
     {
       "name": "ejentum-mcp",
@@ -2448,7 +2458,7 @@
       "url": "https://github.com/liuyewang/computer-usage-summary-skill",
       "owner": "liuyewang",
       "repo": "computer-usage-summary-skill",
-      "description": "Privacy-first, local ActivityWatch reports for app time, AFK time, projects, billable work, and redacted timelines across macOS, Windows, and Linux.",
+      "description": "Privacy-first local ActivityWatch reports with deterministic categories, multi-day totals, and foreground browser-page summaries.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/liuyewang/computer-usage-summary-skill/HEAD/.codex-plugin/plugin.json"
@@ -3234,6 +3244,16 @@
       "install_url": "https://raw.githubusercontent.com/ophis-fi/skills/HEAD/plugins/ophis/.codex-plugin/plugin.json"
     },
     {
+      "name": "Option Desk",
+      "url": "https://github.com/Iman/agent-driven-options-desk-and-skills",
+      "owner": "Iman",
+      "repo": "agent-driven-options-desk-and-skills",
+      "description": "Skills and a local MCP server for option research on a supplied chain, with Greeks, dealer positioning, strategy payoffs, simulation and backtests.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Iman/agent-driven-options-desk-and-skills/HEAD/plugins/option-desk/.codex-plugin/plugin.json"
+    },
+    {
       "name": "OrgX",
       "url": "https://github.com/useorgx/orgx-codex-plugin",
       "owner": "useorgx",
@@ -3432,6 +3452,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/tmakersas/revid-skills/HEAD/plugin.json"
+    },
+    {
+      "name": "Risk Desk",
+      "url": "https://github.com/Iman/agent-driven-risk-desk-and-skills",
+      "owner": "Iman",
+      "repo": "agent-driven-risk-desk-and-skills",
+      "description": "Skills and a local MCP server for portfolio risk on supplied data, with VaR, Expected Shortfall, backtests, stress tests and counterparty, credit and FRTB figures.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Iman/agent-driven-risk-desk-and-skills/HEAD/plugins/risk-desk/.codex-plugin/plugin.json"
     },
     {
       "name": "Roomcomm",
@@ -3848,7 +3878,7 @@
       "url": "https://github.com/prateeks367/voicemoat-skills",
       "owner": "prateeks367",
       "repo": "voicemoat-skills",
-      "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter/X posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
+      "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/prateeks367/voicemoat-skills/HEAD/.codex-plugin/plugin.json"
@@ -3922,6 +3952,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ZeroPointRepo/youtube-skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Zenifra",
+      "url": "https://github.com/zenifra/zenifra-codex-plugin",
+      "owner": "zenifra",
+      "repo": "zenifra-codex-plugin",
+      "description": "Deploy and manage apps, scheduled Jobs, managed databases and AI API keys on Zenifra, a Brazilian cloud with servers in Brazil, through the Zenifra CLI.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/zenifra/zenifra-codex-plugin/HEAD/plugins/zenifra/.codex-plugin/plugin.json"
     },
     {
       "name": "Zotero Research Tools",

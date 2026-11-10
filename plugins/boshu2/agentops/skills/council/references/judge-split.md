@@ -3,12 +3,14 @@
 Loaded by [Council](../SKILL.md) when a caller selects council on a split
 between validation judges.
 
-When the fresh judge and the cross-family judge disagree and the disagreement
-survives repair, the split is the orchestrator's decision, made in the open and
-recorded in the report. A caller who wants more reads before deciding may
-select council on that split alone. Council is that caller's choice, never a
-step the traversal takes on its own. Cancellation or exhausted bounds skip it;
-an unhelpful consultation authorizes no second one.
+When the legs of one validation read disagree, such as the fresh judge and a
+caller-selected cross-family judge, the split is the orchestrator's decision,
+made in the open and recorded in the report. A caller who wants more reads
+before deciding may select council on that split alone. Council is that
+caller's choice, never a step the traversal takes on its own. Cancellation or
+exhausted bounds skip it; an unhelpful consultation authorizes no second one.
+A repair made after the split does not reopen it: the checks that cover the
+repair confirm it.
 
 Ask which findings are real, never which verdict stands. Give the leg the
 acceptance, the write scope, the changed paths, the criteria, and both judges'
@@ -18,7 +20,7 @@ ruling per finding, saying for each whether it is real, not real, or not
 proven, and citing the evidence that ruling rests on.
 
 Those rulings close nothing. The verdict and the open finding set stay exactly
-as repair left them, and the rulings are there for the caller's next intent to
-read. No validator reads them as a verdict. This skill's
+as the validation read left them, and the rulings are there for the caller's
+next intent to read. No validator reads them as a verdict. This skill's
 `scripts/validate-output.sh` rejects verdict fields; `council-report.v1`
 carries no verdict.

@@ -1,6 +1,6 @@
 {
   "name": "graymatter",
-  "version": "0.3.3+codex.20260909171430",
+  "version": "0.3.6+codex.20261109",
   "description": "Persistent, secure memory and shared context for AI agents.",
   "author": {
     "name": "Valkyr Labs Inc.",
@@ -31,7 +31,7 @@
   "interface": {
     "displayName": "GrayMatter",
     "shortDescription": "Persistent, secure memory and shared context for AI agents",
-    "longDescription": "GrayMatter gives ChatGPT, Codex, ValorIDE, OpenClaw, and other MCP-compatible agents secure durable memory, bounded task-specific context, reusable procedures, retrieval receipts, a bundled mcp-server, and optional GrayMatter Light local mode while preserving api-0 authentication, RBAC, ACL, and tenant isolation.",
+    "longDescription": "GrayMatter remembers your preferences, decisions and project context so you can pick up where you left off. Start with one useful memory and see it recalled. Choose primary-memory mode to retrieve relevant context before tasks and save lasting preferences, rules and decisions as you work, or save only when asked. You can pause saving, correct memories or confirm an exact memory to forget. Memories stay scoped to your signed-in account. Automatic behavior applies when the plugin is available and invoked by the host; installation does not add a global ChatGPT task hook. Includes retrieval receipts, a bundled mcp-server for local clients, and optional GrayMatter Light local mode.",
     "developerName": "Valkyr Labs Inc.",
     "category": "Productivity",
     "capabilities": [
@@ -45,9 +45,9 @@
     "composerIcon": "./assets/graymatter-logo.png",
     "logo": "./assets/graymatter-logo.png",
     "defaultPrompt": [
-      "Search GrayMatter before asking me to repeat context.",
-      "Compile task-specific context from GrayMatter.",
-      "Save this durable decision in GrayMatter."
+      "Help me get started with GrayMatter and save my first useful memory.",
+      "Use GrayMatter as my primary memory: recall context before tasks and save useful preferences and decisions as we work.",
+      "What do you remember about my current project?"
     ],
     "brandColor": "#245B4A"
   }

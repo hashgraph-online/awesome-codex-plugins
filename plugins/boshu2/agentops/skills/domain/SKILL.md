@@ -22,10 +22,15 @@ output_contract: cited domain definitions, concrete behavioral distinctions, and
 ---
 # Domain
 
+This skill makes a run cite where the project defines a term or convention
+before using, renaming or applying it, and keep one meaning per bounded
+context. A user sees it worked when each contested term comes back with its
+source path, its context and a concrete example that tells the meanings apart.
+
 Two independent uses: [vocabulary work](#vocabulary-work) makes a term, name or
 rule boundary precise enough for acceptance examples, code and conversation; a
-[standards lookup](#standards-lookup) finds the language, data-format, risk or
-test-design standard for a change. Neither needs the other. [Plan](../plan/SKILL.md)
+[conventions lookup](#conventions-lookup) finds the standard the repository
+itself sets for a change. Neither needs the other. [Plan](../plan/SKILL.md)
 owns unified discovery and resumption; Domain resolves only the needed
 vocabulary or rule boundary and returns it to the existing intent.
 
@@ -71,8 +76,8 @@ vocabulary or rule boundary and returns it to the existing intent.
    title and one to three sentences of context, choice and reason. Keep
    implementation detail out of the vocabulary owner.
 
-Return vocabulary work in this shape, then stop once the next change can be
-named and judged consistently:
+Return vocabulary work in this shape. Stop when every contested term has a row
+with a source and a distinguishing example, or an open question for the caller:
 
 | Term | Context | Meaning | Source | Distinguishing example | Open question |
 |---|---|---|---|---|---|
@@ -93,16 +98,18 @@ Only when AgentOps itself is the subject, load its owners from
 [AgentOps terms](references/agentops-terms.md). Do not apply AgentOps
 vocabulary to an unrelated caller domain.
 
-## Standards lookup
+## Conventions lookup
 
-Load only the language or risk guidance needed for the current change, starting
-from the [common standards](references/standards/common-standards.md).
-Repository contracts and the actual toolchain take precedence. These references
-do not create a second approval or validation lane.
-
-- Languages: [Go](references/standards/go.md), [Python](references/standards/python.md), [Rust](references/standards/rust.md), [JavaScript](references/standards/javascript.md), [TypeScript](references/standards/typescript.md), [shell](references/standards/shell.md).
-- Data and prose: [JSON](references/standards/json.md), [YAML](references/standards/yaml.md), [Markdown](references/standards/markdown.md).
-- Relevant risk: [concurrency](references/standards/race-condition-checklist.md), [SQL](references/standards/sql-safety-checklist.md), [LLM trust](references/standards/llm-trust-boundary-checklist.md).
-- Test design: [test pyramid](references/standards/test-pyramid.md); package form: [skill structure](references/standards/skill-structure.md).
+The standard for a change is the one the repository sets. Find its owners for
+the touched paths: instruction files (`AGENTS.md`, `CLAUDE.md`, path-scoped
+rules), formatter, linter and type-checker configuration, the CI workflow that
+gates the change, and the existing code and tests in the same package. Cite
+each convention by path. Configuration and CI that run outrank prose; where
+two owners disagree, report the conflict rather than pick one. When the
+repository states nothing for a question, say so and follow the surrounding
+code; do not present a general language guide as the project's rule. A lookup
+is read-only and creates no second approval or validation lane. It is done
+when each convention question for the touched paths has a cited owner or the
+answer "not stated".
 
 Idea provenance: [Matt Pocock's engineering skills](https://github.com/mattpocock/skills) (domain modeling), adapted for AgentOps.

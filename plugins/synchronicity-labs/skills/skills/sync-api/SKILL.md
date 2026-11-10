@@ -1,11 +1,13 @@
 ---
 name: sync-api
-description: Build sync. labs (sync.so) lipsync, dubbing and talking-image generation into an app, backend, script or pipeline with the sync. REST API or the official Python (syncsdk) and TypeScript (@sync.so/sdk) SDKs. Covers API keys, uploads, creating generations with idempotency keys, webhooks with signature checks, polling, models, cost estimates, error handling, concurrency limits and the Batch API. Use whenever code calls or should call the sync. API, for example "add lipsync to my Next.js app", "write a Python script that dubs videos with sync.", "handle sync. webhooks", "why does my sync. request return 429", or reviewing an existing sync. integration. Not for making one video in this chat (lipsync, talking-photo, translate-and-dub).
+description: Build sync. labs (sync.so) lipsync, dubbing and talking-image generation into an app, backend, script or pipeline with the sync. REST API or the official Python (syncsdk) and TypeScript (@sync.so/sdk) SDKs. Covers API keys, uploads, creating generations with idempotency keys, webhooks with signature checks, polling, models, cost estimates, error handling and concurrency limits. Use whenever code calls or should call the sync. API, for example "add lipsync to my Next.js app", "write a Python script that dubs videos with sync.", "handle sync. webhooks", "why does my sync. request return 429", or reviewing an existing sync. integration. Not for making one video in this chat (lipsync, talking-photo, translate-and-dub).
 license: MIT
 compatibility: Needs network access and a sync. API key in SYNC_API_KEY. Python 3.8+ or Node 18+ for the SDKs.
 ---
 
 # Build with the sync. API
+
+[sync. labs](https://sync.so) | [API integration guide](https://sync.so/docs/plugins-and-extensions/agent-skills/sync-api)
 
 Builds a server-side integration that uploads media, saves each request before submitting it, tracks jobs to completion, and retries without starting duplicate paid work.
 
@@ -13,7 +15,7 @@ Builds a server-side integration that uploads media, saves each request before s
 
 - **Server-side only.** The API key goes in `SYNC_API_KEY` on the server, never in browser or mobile code. Browsers talk to your backend, and your backend talks to sync. Keys come from https://sync.so/settings/api-keys.
 - **Base URL** `https://api.sync.so/v2`, header `x-api-key`.
-- **SDKs:** Python `pip install syncsdk` (`from sync import Sync`), TypeScript `npm i @sync.so/sdk` (`new SyncClient()`). Both read `SYNC_API_KEY`. The SDKs cover generations (`create`, `get`, `list`) and batches. Some newer request fields can lag behind the API: image inputs, `dubParams`, `dialogueEdit`, `projectId`, uploads and cost estimates. When the installed SDK's types don't include one, call the endpoint over HTTP as the references show, instead of forcing the types.
+- **SDKs:** Python `pip install syncsdk` (`from sync import Sync`), TypeScript `npm i @sync.so/sdk` (`new SyncClient()`). Both read `SYNC_API_KEY`. The SDKs cover generations (`create`, `get`, `list`). Some newer request fields can lag behind the API: image inputs, `dubParams`, `dialogueEdit`, `projectId`, uploads and cost estimates. When the installed SDK's types don't include one, call the endpoint over HTTP as the references show, instead of forcing the types.
 - **Docs for anything not covered here:** https://sync.so/docs/llms-full.txt, plus the error catalog at `GET https://api.sync.so/v2/errors`, which needs no key.
 
 ## The flow to implement
@@ -36,7 +38,6 @@ Full examples: [references/python.md](references/python.md) and [references/type
 ## Scale
 
 - Each plan caps how many generations run at once. The 429 response carries `concurrencyLimit` and `retryAfterSeconds`, plus `X-Sync-Concurrency-Limit` and `Retry-After` headers. Queue jobs on your side and keep at most that many in flight. Creating generations is also rate-limited, at about 100 a minute.
-- On Scale plans and above, hundreds of short jobs that can take hours can go through the Batch API, which queues them outside the plan's concurrency: [references/batch-api.md](references/batch-api.md). It's a queued pipeline for large runs, not a faster way to send a few jobs. Below Scale, and for any run that should start now, send normal requests side by side within the concurrency limit.
 
 ## Before you hand the code back
 

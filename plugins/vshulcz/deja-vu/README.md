@@ -5,10 +5,10 @@
   </picture>
 </p>
 
-<p align="center"><b>Your coding agents stop re-debugging what you already fixed.</b></p>
+<p align="center"><b>Shared local memory, cross-agent handoff, and code recovery across 43 coding agents.</b></p>
 
 <p align="center">Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 36 more agents already save every session to disk.<br>
-deja indexes all of it locally and hands the relevant history back over MCP and hooks — no LLM, one Go binary.</p>
+deja indexes all of it locally so your agents keep context across <code>/compact</code>, hand off mid-task via <code>deja handoff</code>, and recover overwritten code via <code>deja restore</code> — no LLM, one Go binary.</p>
 
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
 
@@ -63,9 +63,10 @@ Prefer a browser? `deja view` exports the store — sessions, the recall audit t
 ## Highlights
 
 - **Starts full on day one.** Months of existing transcripts across all [forty-three agents](#supported-harnesses) are searchable immediately — fix a bug in Codex and Claude Code, Cursor or OpenCode recalls it.
+- **Survives `/compact` and context resets.** Over 43 measured compactions, summaries kept 77% of decisions and 0.2% of commands; deja hands back the exact commands, errors, and decisions ([how](docs/compaction.md)).
+- **Cross-agent handoff (`deja handoff`).** Hit a rate limit or get stuck in Claude Code? Hand the active session's goal, decisions, touched files, and open work straight into Codex, Cursor, or OpenCode.
+- **Undo overwritten code (`deja restore` & `deja blame`).** Indexes opened files, commands with exit codes, and exact `Edit` spans so `deja restore <path>` recovers code an agent clobbered even before `git commit` (`deja blame <file>:<line>`).
 - **Automatic recall via hooks & MCP.** Surfaces prior sessions at session start, before a file edit or command runs, and when a command fails.
-- **Survives compaction.** Over 43 measured compactions, summaries kept 77% of decisions and 0.2% of commands; deja hands back the rest ([how](docs/compaction.md)).
-- **Indexes code changes, not just chat.** Tracks opened files, commands with exit codes, and exact `Edit` spans (`deja blame <file>:<line>`, `deja restore <path>`).
 - **Tracks decision lifecycle & staleness.** `deja promote <id> --state rejected` marks a reverted approach so later hits warn why it was dropped (`--state accepted` takes the mark back), and hits report when files touched by a session have changed since.
 - **Travels with the repository.** `deja repo add` commits the decisions and dead ends you pick into `.deja/memory.jsonl`; a teammate's agent recalls them after a clone ([repo memory](#memory-in-the-repository)).
 - **Local and private by default.** Zero LLM calls, no cloud account, and automatic credential redaction at index time ([privacy](#privacy)).
@@ -101,7 +102,7 @@ marketplace bundle too, though it takes only the skill there — use
 
 ```sh
 codex plugin marketplace add https://github.com/vshulcz/deja-vu && codex plugin add deja-vu@deja-vu
-opencode plugin opencode-deja
+opencode plugin add opencode-deja
 claude plugin marketplace add vshulcz/deja-vu && claude plugin install deja-vu@deja-vu
 ```
 
@@ -359,7 +360,7 @@ for people who install extensions there rather than from a CLI:
 
 | Harness | Package | Install |
 | --- | --- | --- |
-| opencode | npm `opencode-deja` | `opencode plugin opencode-deja` |
+| opencode | npm `opencode-deja` | `opencode plugin add opencode-deja` |
 | DeepSeek Harness | npm `dsh-deja` | `dsh plugin --profile web add dsh-deja` |
 | Zed | `deja-context-server` | Zed → Extensions → deja |
 | Kimi Code | plugin `deja` | `/plugins install https://github.com/vshulcz/deja-vu` |

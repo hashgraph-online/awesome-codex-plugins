@@ -49,15 +49,6 @@ framed as that experiment, not as a supported change. Rejecting a claim needs
 discriminating evidence too, or a prediction of the claim that the evidence
 contradicts. Anything less stays a correlation or an unknown.
 
-## Prompt
-
-```text
-Postmortem last Thursday's release: the deploy needed four attempts and two
-rollbacks before it stuck. Using the deploy log, the CI runs and the incident
-channel notes, which failures were avoidable and what caused each one?
-Answer inline.
-```
-
 ## Critical Constraints
 
 - Postmortem is retrospective causal analysis, not the general learning umbrella
@@ -142,6 +133,3 @@ Answer inline.
 - Save `YYYY-MM-DD-postmortem-<topic>.md` only when asked, where the caller
   names, in a private directory outside any Git repository. With no location
   named, answer inline and write no file. Never overwrite an earlier report.
-- Curation, support and destination-disclosure review of any lesson are
-  separately authorized [Memory](../memory/SKILL.md) work; retrospective
-  evidence cannot promote itself.

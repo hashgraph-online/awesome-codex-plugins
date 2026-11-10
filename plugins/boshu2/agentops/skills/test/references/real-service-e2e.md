@@ -24,14 +24,6 @@ If any safety check is unknown, stop and ask for an explicit test environment.
 5. Verify cleanup and retain enough evidence to debug failures without rerunning
    blindly; a failed teardown is an unresolved result.
 
-## What To Avoid
-
-- Mocking the component whose integration is under test.
-- Sharing mutable fixtures across tests.
-- Sleeping for fixed durations when polling with timeouts would work.
-- Running against production by default.
-- Skipping cleanup on failure.
-
 ## Output
 
 Return the environment and isolation checks, command/results, cleanup outcome

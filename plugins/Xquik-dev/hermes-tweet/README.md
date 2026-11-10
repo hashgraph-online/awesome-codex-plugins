@@ -1,5 +1,9 @@
 # Hermes Tweet, the Hermes X (Twitter) Agent Plugin for Search & Actions
 
+[![Framer builds a tweet ticker with Xquik](https://img.youtube.com/vi/4UOSpoOoC3Y/maxresdefault.jpg)](https://youtu.be/4UOSpoOoC3Y?t=367)\
+[Watch Framer build a tweet ticker with Xquik, from 6:07](https://youtu.be/4UOSpoOoC3Y?t=367).
+Hermes Tweet brings the Xquik API to Hermes agents.
+
 Use this Hermes Twitter plugin by Xquik to search tweets & monitor accounts.
 Explore 102 OpenAPI-generated endpoints, including 33 prepaid reads and 7 direct MPP routes.
 

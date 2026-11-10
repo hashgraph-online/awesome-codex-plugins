@@ -51,7 +51,7 @@ Premortem, council, research, factories and runtime adapters are optional. Risk 
 A selected factory remains behind its own coordinator, doctor and supervisor
 doors; its reconciler creates and repairs sessions. Concurrent writers need
 authorized, disjoint source and regeneration scopes in separate isolation
-([Agent Native](../../agent-native/SKILL.md#before-launch-and-while-running)).
+([Orchestrate](../../orchestrate/SKILL.md#check-the-packets)).
 Pass bounded task evidence, not the author's desired verdict. Do not start
 another runtime merely because it exists.
 

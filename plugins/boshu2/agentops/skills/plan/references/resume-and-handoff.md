@@ -10,7 +10,8 @@ snapshot.
 Recover the current outcome, accepted examples and source identity from the
 existing plan or native handoff. Reuse settled domain terms and caller choices
 with their source pointers; do not repeat an interview or load the full
-transcript. Read details on demand only if a missing fact or new contradiction
+transcript. A choice the handoff does not attribute to the caller is its
+writer's reading: confirm it before an action that is hard to undo. Read details on demand only if a missing fact or new contradiction
 can change the next decision. Before reusing inherited prototype evidence,
 follow [reuse after source drift](ground-truth-routing.md#reuse-after-source-drift).
 

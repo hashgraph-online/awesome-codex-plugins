@@ -21,7 +21,7 @@ from `packages/memtomem-plugin-assets/`; edit the sources there, not the files h
   extra to Hermes's environment to fix it.
 - Git on `PATH`, for the commit lookup under [Install](#install).
 - `uv` on `PATH`. The server is started with
-  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.7' memtomem-server`.
+  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.8' memtomem-server`.
   Without `uv` the plugin still installs and enables, and the server fails at start with
   `missing executable 'uvx'`.
 - Python 3.12. uv uses a 3.12 it can find; if there is none, it downloads one (about 70 MiB)
@@ -130,7 +130,7 @@ your own server entry to `config.yaml`:
 mcp_servers:
   memtomem:
     command: uvx
-    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.7", "memtomem-server"]
+    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.8", "memtomem-server"]
     env:
       MEMTOMEM_TOOL_MODE: core
       MEMTOMEM_EXTRA_TOOLS: mem_update_coverage

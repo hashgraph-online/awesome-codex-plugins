@@ -26,10 +26,11 @@ output_contract: process exit status and captured Claude output artifact
 
 Run one caller-supplied prompt through Claude Code print mode and capture the
 result, only when the caller selects Claude: the native agent stays the
-default and batches belong to `agent-native`. Flags match `claude --help` for
-2.1.309; recheck it on other versions. Re-checked on 2026-10-25 against Claude
-Code 2.1.309, codex-cli 0.163.0, AGY 1.4.7, gc edge 97503b2 (with Gas City
-v1.5.1 docs and source), bd 1.3.1 and ao 3.11.0.
+default and batches belong to `orchestrate`. Flags match `claude --help` for
+Claude Code 2.1.309, re-checked on 2026-10-25; recheck it on other versions.
+It worked when the run drops inherited settings, names its tools and permission
+mode, stays inside one deadline, and the result is judged by exit status and
+`is_error` with `permission_denials` reported.
 
 ## Failure modes of a quick `claude -p`
 
@@ -102,7 +103,7 @@ notice; a run the host killed was the one attempt. A quiet run is working.
 JSON carries `result`, `is_error`, `terminal_reason`, `api_error_status`,
 `session_id`, `permission_denials`, and `modelUsage` keyed by the models
 billed; identity evidence needs `stream-json --verbose` per the
-[model-dispatch recipe](../agent-native/references/model-dispatch.md). Judge
+[model-dispatch recipe](../validate/references/model-dispatch.md). Judge
 by exit status and `is_error`: an unknown model exited 1 with
 `subtype: "success"`, `terminal_reason: "api_error"` and `api_error_status:
 404`. Exit 1 also covers a spent budget or missing input (not re-run since

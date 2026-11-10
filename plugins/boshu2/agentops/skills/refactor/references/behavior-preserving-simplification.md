@@ -6,15 +6,10 @@ Use this reference when `/refactor` is asked to simplify code, remove AI-writing
 
 The external behavior must remain the same. The refactor `SKILL.md` owns what counts as behavior, the procedure and the report shape. A bug found on the way is reported separately for the caller, not fixed inside the refactor.
 
-## Good Targets
+## What is not prose to tidy
 
-- Redundant branches that return the same result.
-- Over-abstracted helpers with one call site.
-- Names that hide domain meaning.
-- Deep nesting that can become guard clauses.
-- Duplicated logic that has the same inputs and outputs, including local code that redoes an existing helper or a standard-library facility (see Substitute Existing Code).
-- Comments that narrate obvious code instead of explaining constraints. A comment that a tool reads is code, not prose: build constraints, compiler directives, lint or type suppressions, doctests and generated-file markers stay.
-- AI-style verbose prose in docs or comments that can be made precise. User-visible messages are behavior, not prose to tidy.
+- A comment that a tool reads is code: build constraints, compiler directives, lint or type suppressions, doctests and generated-file markers stay.
+- User-visible messages are behavior (SKILL.md, What counts as behavior).
 
 ## Red Flags
 
@@ -33,11 +28,6 @@ Use these patterns only after the procedure has recorded a baseline, named the o
 ### Extract Method
 
 Use when a function contains a cohesive block with clear inputs and outputs that reads as one named step.
-
-```text
-Before: longFunction() { blockA; blockB; blockC }
-After:  longFunction() { doA(); doB(); doC() }
-```
 
 Safety checks:
 
@@ -81,12 +71,6 @@ Safety checks:
 ### Simplify Conditional
 
 Use guard clauses, early returns, or table-driven logic when nesting obscures mutually exclusive behavior.
-
-```text
-if err == nil: succeed and return
-if not retryable or attempts exhausted: fail and return
-retry
-```
 
 Safety checks:
 

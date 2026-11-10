@@ -59,6 +59,6 @@ def sync_webhook():
 ## Make the handler robust
 
 - **Answer `2xx` fast**, within a few seconds, and do downloads and notifications in a background job.
-- **Expect duplicates.** Treat the generation `id` as the key: a job that's already final ignores the event. Every delivery attempt also carries a `Sync-Delivery-Id` header that stays the same across retries. Batch completion webhooks are retried until delivered, and carry the batch `id`.
+- **Expect duplicates.** Treat the generation `id` as the key: a job that's already final ignores the event. Every delivery attempt also carries a `Sync-Delivery-Id` header that stays the same across retries.
 - **Don't rely on webhooks alone.** If your endpoint was down, a delivery can be missed. Run a periodic job that polls `GET /v2/generate/{id}` for jobs that have been pending too long.
 - **Local testing:** expose your dev server with a tunnel such as ngrok, and pass that URL as `webhookUrl`.

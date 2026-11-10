@@ -8,7 +8,11 @@ loop; they add no phase or obligation to an ordinary known repair.
 
 ## Diagnosis loop
 
-First match the reported symptom and reduce the reproduction. Confirm the
+First get one command that fails on the reported symptom: an existing failing
+test, a request or CLI call compared with its expected output, a replayed
+input or a throwaway harness. Build it before theorising about a cause; if it
+cannot be built, say so and leave the cause unproven. Then reduce the
+reproduction. Confirm the
 failing run executes the code you think: revision and local edits, a fresh build
 rather than a stale artifact or installed binary, the resolved runtime and
 dependency versions, and required environment values. Ground the leading cause
@@ -24,6 +28,8 @@ loop is informed by [Matt Pocock's engineering skills](https://github.com/mattpo
 
 Keep the observed trigger, wrong result and relevant conditions available.
 Reduce inputs or setup safely, retaining the same symptom and accepted behavior.
+Reduction is finished when removing any remaining element makes the failure
+disappear.
 A smaller case that fails for a different reason does not reproduce the report.
 Use isolated test data; reproduction does not authorize destructive operations
 or instrumentation in a live service.
@@ -107,6 +113,8 @@ suspected dependency and asserts the original promised result.
 When repetition is useful, state the conditions, sample count and observed
 failures for each comparison. Choose the observation effort for the uncertainty
 and actual remaining bounds, without imposing a universal repetition count.
+When a failure is too rare to test a prediction against, first change
+conditions until it fails more often.
 Preserve adverse observations rather than discarding them until a run passes.
 
 Example: a reservation sometimes remains active after its deadline. Control the

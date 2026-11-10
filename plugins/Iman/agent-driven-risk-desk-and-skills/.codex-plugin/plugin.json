@@ -1,0 +1,47 @@
+{
+  "name": "risk-desk",
+  "version": "0.2.0",
+  "description": "Portfolio risk an agent can drive, from supplied data only: historical and model VaR and Expected Shortfall with backtests, signed linear exposure, Greeks and full revaluation of European options, VaR and ES attribution, limits and pre-trade what-if, liquidity-adjusted VaR, explicit, historical and reverse stress scenarios that carry no probability, SA-CCR and exposure profiles, portfolio credit VaR, FRTB capital pieces, and XVA through a local Open Source Risk Engine project. Research software, not investment advice.",
+  "author": {
+    "name": "Iman Samizadeh"
+  },
+  "homepage": "https://github.com/Iman/agent-driven-risk-desk-and-skills",
+  "repository": "https://github.com/Iman/agent-driven-risk-desk-and-skills",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "keywords": [
+    "risk",
+    "value-at-risk",
+    "expected-shortfall",
+    "stress-testing",
+    "portfolio-risk",
+    "xva",
+    "cva",
+    "counterparty-risk",
+    "quantitative-finance",
+    "mcp",
+    "skills",
+    "claude-skills",
+    "agent-skills"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Risk Desk",
+    "shortDescription": "Portfolio risk and XVA",
+    "longDescription": "Calculate risk from explicit local inputs with skfolio, SciPy, the Option Desk engine and ORE. Preserve loss signs, currencies, horizons, model assumptions and upstream credit.",
+    "developerName": "Iman Samizadeh",
+    "category": "Finance",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Iman/agent-driven-risk-desk-and-skills",
+    "defaultPrompt": [
+      "Calculate historical VaR and Expected Shortfall.",
+      "Stress my linear portfolio.",
+      "Run my local ORE exposure and XVA project."
+    ],
+    "logo": "./assets/openai-directory-icon.png",
+    "composerIcon": "./assets/openai-composer-icon.png"
+  }
+}

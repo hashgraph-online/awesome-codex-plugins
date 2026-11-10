@@ -34,10 +34,13 @@ output_contract: 'located findings with literal reproduction, agent consequence 
 Judge a tool surface from the position of its most literal consumer, an AI
 agent: a CLI, HTTP API, MCP or agent tool, SDK or library, or a proposed design
 for one. A human developer is the second consumer and is usually served by the
-same fixes. Neighbours: threats are [Security](../security/SKILL.md); help text
-and READMEs are [Doc](../doc/SKILL.md); lasting proof is [Test](../test/SKILL.md);
-applying fixes is [Implement](../implement/SKILL.md); acceptance is
-[Validate](../validate/SKILL.md).
+same fixes. Neighbours:
+
+- threats and abuse: [Security](../security/SKILL.md);
+- writing help text and READMEs: [Doc](../doc/SKILL.md);
+- lasting proof of a fix: [Test](../test/SKILL.md);
+- applying the fixes: [Implement](../implement/SKILL.md);
+- acceptance of a change: [Validate](../validate/SKILL.md).
 
 ## The literal reader
 

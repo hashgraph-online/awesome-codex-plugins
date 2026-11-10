@@ -4,12 +4,6 @@
 Usage:
   sync_batch.py estimate MANIFEST.csv [--model sync-3]
   sync_batch.py run MANIFEST.csv [--out DIR] [--concurrency N] [--model sync-3] [--only ID,ID] [--retry-failed]
-  sync_batch.py submit-batch MANIFEST.csv [--dry-run] [--webhook-url URL] [--model sync-3]
-  sync_batch.py batch-status MANIFEST.csv [--wait] [--out DIR]
-
-submit-batch uses the Batch API, which is for Scale plans and above: a queued pipeline for
-large runs of short rows whose results can take up to about 24 hours. On every other plan,
-and for any run that should start now, use run.
 
 Manifest columns: id, video or image, audio or (script + voice_id), optional sync_mode and model.
 Values can be local paths, https URLs or sync. asset IDs. Needs SYNC_API_KEY.
@@ -110,16 +104,13 @@ def api(method: str, path: str, body=None, headers=None, timeout=70):
     return json.loads(raw) if raw else {}
 
 
-def fetch(url: str, dest: Path | None = None):
+def fetch(url: str, dest: Path):
     """GET a signed or public URL, without the API key."""
     with urllib.request.urlopen(url, timeout=300) as resp:
-        if dest is None:
-            return resp.read()
         tmp = dest.with_name(f"{dest.name}.{os.getpid()}.part")
         with open(tmp, "wb") as fh:
             shutil.copyfileobj(resp, fh)
         tmp.replace(dest)
-    return None
 
 
 def sha256_file(path: Path) -> str:
@@ -164,7 +155,7 @@ class State:
     def __init__(self, manifest: Path):
         self.path = manifest.with_name(manifest.name + ".state.json")
         self.lock = threading.RLock()
-        self.data = {"run": uuid.uuid4().hex[:12], "assets": {}, "rows": {}, "batch": None}
+        self.data = {"run": uuid.uuid4().hex[:12], "assets": {}, "rows": {}}
         if self.path.exists():
             self.data.update(json.loads(self.path.read_text()))
 
@@ -182,10 +173,6 @@ class State:
             tmp = self.path.with_name(f"{self.path.name}.{os.getpid()}.tmp")
             tmp.write_text(json.dumps(self.data, indent=2))
             tmp.replace(self.path)
-
-    def batch_unresolved(self) -> bool:
-        batch = self.data.get("batch") or {}
-        return bool(batch.get("submitting") or (batch.get("id") and batch.get("status") not in ("COMPLETED", "FAILED")))
 
 
 def read_manifest(path: Path) -> list[dict]:
@@ -448,7 +435,7 @@ def process_row(row, args, state: State, slots: Slots, manifest_dir: Path, fp: s
                 return
             body = payload_for(row, args, state, manifest_dir)
             # Save the key, request identity and time before the request, so a crash can't lose them.
-            state.update(rid, key=key, fingerprint=fp, mode="single", submittedAt=submitted_at or time.time())
+            state.update(rid, key=key, fingerprint=fp, submittedAt=submitted_at or time.time())
             slots.acquire()
             try:
                 # After a confirmed failure the same key starts a fresh attempt, per the API's idempotency rules.
@@ -492,11 +479,19 @@ def cmd_run(args):
         if missing:
             sys.exit(f"Unknown row ids: {', '.join(sorted(missing))}")
     state = State(manifest)
-    if state.batch_unresolved():
-        in_batch = [r["id"] for r in rows if state.row(r["id"]).get("mode") == "batch"]
-        if (state.data["batch"] or {}).get("submitting") or in_batch:
-            sys.exit("A batch for this manifest is still running or its submission is unconfirmed. "
-                     "Run batch-status first, so its rows aren't submitted twice.")
+    # Older versions could save a final submission status before importing each row's result.
+    legacy = state.data.get("batch") or {}
+    unresolved = legacy.get("submitting") or any(
+        saved.get("mode") == "batch" and (
+            (legacy.get("id") and legacy.get("status") not in ("COMPLETED", "FAILED"))
+            or not (saved.get("generationId") or saved.get("status") in {"FAILED", "REJECTED"}
+                    or (saved.get("status") == "COMPLETED" and saved.get("outputUrl")))
+        )
+        for saved in (state.row(r["id"]) for r in rows)
+    )
+    if unresolved:
+        sys.exit("This manifest contains unfinished work from an older script version. "
+                 "Confirm its results before using run, so rows aren't submitted twice.")
     prints = check_unchanged(rows, args, state, manifest.parent)
     state.save()
     slots = Slots(args.concurrency)
@@ -506,114 +501,21 @@ def cmd_run(args):
     write_results(manifest, all_rows, state)
 
 
-NO_BATCH_ACCESS = ("The Batch API is for Scale plans and above, and this plan doesn't include it ({error}). "
-                   "Nothing was submitted. Use run instead: it starts every row now, within the plan's concurrency.")
-
-
-def cmd_submit_batch(args):
-    manifest = Path(args.manifest)
-    rows = read_manifest(manifest)
-    state = State(manifest)
-    batch = state.data.get("batch") or {}
-    if batch.get("submitting") and not args.dry_run:
-        sys.exit("A previous submit may have reached sync. without a reply. List your batches with GET /v2/batch "
-                 "and check for it before submitting again; then remove the 'batch' entry from the state file.")
-    if state.batch_unresolved() and not args.dry_run:
-        sys.exit(f"Batch {batch['id']} is still running. Use batch-status.")
-    prints = check_unchanged(rows, args, state, manifest.parent)
-    # Rows already submitted on their own (a pilot, or an earlier run) stay out of the batch.
-    pending = [r for r in rows if not state.row(r["id"]).get("generationId") and state.row(r["id"]).get("status") != "COMPLETED"]
-    skipped = len(rows) - len(pending)
-    if not pending:
-        sys.exit("Every row was already submitted. Use run to follow them up.")
-    body = {"rows": [{"request_id": r["id"], "endpoint": "/v2/generate",
-                      "payload": payload_for(r, args, state, manifest.parent)} for r in pending]}
-    if args.webhook_url:
-        body["webhook_url"] = args.webhook_url
-    if args.dry_run:
-        body["dry_run"] = True
-        try:
-            validated = api("POST", "/v2/batch", body)
-        except ApiError as err:
-            if err.status == 402:
-                sys.exit(NO_BATCH_ACCESS.format(error=err))
-            raise
-        print(json.dumps(validated) + (f" ({skipped} rows already submitted were left out)" if skipped else ""))
-        return
-    state.data["batch"] = {"submitting": True, "rows": [r["id"] for r in pending], "submittedAt": time.time()}
-    for r in pending:
-        state.data["rows"].setdefault(r["id"], {}).update(mode="batch", fingerprint=prints[r["id"]])
-    state.save()
-    try:
-        created = api("POST", "/v2/batch", body)
-    except ApiError as err:
-        if err.status != 402:
-            raise
-        # A 402 is a refusal before anything is created, so the rows are free for run again.
-        state.data["batch"] = batch or None
-        for r in pending:
-            state.data["rows"][r["id"]].pop("mode", None)
-        state.save()
-        sys.exit(NO_BATCH_ACCESS.format(error=err))
-    state.data["batch"] = {"id": created["id"], "status": created.get("status"), "rows": [r["id"] for r in pending]}
-    state.save()
-    print(f"Batch {created['id']} submitted with {len(pending)} rows"
-          + (f" ({skipped} already submitted rows left out)" if skipped else "") + ". Check on it with batch-status.")
-
-
-def cmd_batch_status(args):
-    manifest = Path(args.manifest)
-    rows = read_manifest(manifest)
-    state = State(manifest)
-    batch_id = (state.data.get("batch") or {}).get("id")
-    if not batch_id:
-        sys.exit("No confirmed batch in the state file. Run submit-batch first, or reconcile with GET /v2/batch.")
-    while True:
-        batch = api("GET", f"/v2/batch/{batch_id}")
-        print(f"{batch_id}: {batch.get('status')} {json.dumps(batch.get('metrics') or {})}", flush=True)
-        if batch.get("status") in {"COMPLETED", "FAILED"} or not args.wait:
-            break
-        time.sleep(args.interval)
-    state.data["batch"]["status"] = batch.get("status")
-    state.save()
-    if batch.get("status") != "COMPLETED" or not batch.get("outputUrl"):
-        return
-    # The results URL answers with a redirect to a signed file; fetch that without the API key.
-    status, headers, raw = api_raw("GET", batch["outputUrl"])
-    text = fetch(headers.get("Location") or headers.get("location")).decode() if 300 <= status < 400 else raw.decode()
-    for line in filter(None, (ln.strip() for ln in text.splitlines())):
-        rec = json.loads(line)
-        rid, resp, error = rec["request_id"], rec.get("response") or {}, rec.get("error")
-        state.update(rid, status=rec.get("status"), generationId=resp.get("id"),
-                     outputUrl=resp.get("output_url") or resp.get("outputUrl"),
-                     error=error.get("message") if isinstance(error, dict) else error)
-        if rec.get("status") == "COMPLETED":
-            download(rid, state.row(rid).get("outputUrl"), args.out, state)
-    write_results(manifest, rows, state)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("estimate", "run", "submit-batch", "batch-status"):
+    for name in ("estimate", "run"):
         p = sub.add_parser(name)
         p.add_argument("manifest")
         p.add_argument("--model", default="sync-3")
-        if name in ("run", "batch-status"):
-            p.add_argument("--out", help="download finished videos into this directory")
         if name == "run":
+            p.add_argument("--out", help="download finished videos into this directory")
             p.add_argument("--concurrency", type=int, default=1,
                            help="generations in flight; set it to the plan's generationLimits.concurrency")
             p.add_argument("--only", help="comma-separated row ids, for a pilot run")
             p.add_argument("--retry-failed", action="store_true", help="start new attempts for FAILED or REJECTED rows")
-        if name == "submit-batch":
-            p.add_argument("--dry-run", action="store_true", help="validate only; creates nothing")
-            p.add_argument("--webhook-url")
-        if name == "batch-status":
-            p.add_argument("--wait", action="store_true", help="keep checking until the batch finishes")
-            p.add_argument("--interval", type=float, default=60, help="seconds between checks with --wait")
     args = parser.parse_args()
-    commands = {"estimate": cmd_estimate, "run": cmd_run, "submit-batch": cmd_submit_batch, "batch-status": cmd_batch_status}
+    commands = {"estimate": cmd_estimate, "run": cmd_run}
     if args.command == "estimate":
         commands[args.command](args)
         return

@@ -110,4 +110,3 @@ if __name__ == "__main__":
 - **Script instead of audio:** `from sync.common import Tts, ElevenLabs`, then `Tts(provider=ElevenLabs(voice_id="<voiceId>", script="Hello!"))` in place of `Audio(...)`. List voices with `GET /v2/voices`.
 - **Image input, `dubParams`, `projectId`:** if your installed `syncsdk` doesn't type them yet, send the same JSON body with `httpx.post(f"{API}/generate", headers={**HEADERS, "Idempotency-Key": key}, json=body)`.
 - **Async code:** `from sync import AsyncSync` has the same methods, awaited.
-- **Batch:** `client.batch.create(input=open("rows.jsonl", "rb"), dry_run=True)`, then without `dry_run`. Batch creation isn't idempotent, so leave retries off (the Python SDK's default is 0), record that you're submitting before the call, and after a timeout check `GET /v2/batch` before sending it again. See `batch-api.md`.

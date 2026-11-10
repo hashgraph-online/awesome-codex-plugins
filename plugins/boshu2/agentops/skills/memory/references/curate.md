@@ -60,16 +60,18 @@ keep it only as useful to the selected pages.
    propose the repoint or narrowing and edit only with the caller's consent.
    Name a neighbour that needs new investigation as the narrowest follow-up,
    the page and then its topic; it never delays the new claim.
-6. Have a fresh authorized author-distinct context review exact factual support
-   and exact destination disclosure before any Git object, index, stash or
-   import. Include intended paths and metadata in the reviewed payload. A
-   changed claim or destination requires matching review; the author cannot
-   approve their own knowledge. Public input does not waive factual review.
+6. Get the review of [Memory rule 4](../SKILL.md#rules-for-any-saved-lesson-or-rule)
+   (the person's check, else one fresh read) of exact factual support and
+   destination disclosure before any Git object, index, stash or import.
+   Include intended paths and metadata in the reviewed payload. A changed claim
+   or destination needs a matching check; the author cannot approve their own
+   knowledge. Public input does not waive factual review.
 7. Apply only the approved content to the caller-selected destination under
    existing Git authority. Read back exact bytes and confirm that citations
    and withdrawal facts remain available. Do not commit/push unless authorized.
-   If review, routing or permission is missing, return the supported gap with
-   the draft inline; do not invent an alternate memory destination. Project
+   If review, routing or permission is missing, return the draft inline,
+   report it as not saved and name what is missing; do not invent an alternate
+   memory destination. Project
    placement does not move drafts or review proof into the checkout. A resolved
    `ao config context` route ([Find / recall](recall.md)) does not approve page
    admission.

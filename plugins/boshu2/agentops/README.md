@@ -4,7 +4,7 @@
 
 # AgentOps
 
-**DevOps discipline for AI coding agents.**
+**Software engineering practice, re-tested for AI agents.**
 
 [![Validate](https://github.com/boshu2/agentops/actions/workflows/validate.yml/badge.svg?branch=main)](https://github.com/boshu2/agentops/actions/workflows/validate.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
@@ -18,34 +18,35 @@
 
 </div>
 
-DevOps makes software delivery repeatable through shared practices, automated
-checks and feedback. AgentOps brings that discipline to agentic coding sessions:
-paved paths your agents can follow from intent to checked results, with memory
-to carry useful context into the next task.
+Fifty years of software engineering produced practices that work for human
+teams: state the behavior first, work in small slices, keep the checker separate
+from the author, isolate concurrent work. AgentOps runs those practices against
+AI coding agents and keeps the ones that hold up.
 
-Those paths combine [skills](docs/SKILL-ROUTER.md) with the [`ao` CLI](#optional-ao-cli)
-and your existing engineering tools. [Plan](skills/plan/SKILL.md) clarifies the
-expected behavior; [Test](skills/test/SKILL.md) helps check it;
-[Validate](skills/validate/SKILL.md) adds independent judgment where needed.
-Skills guide the agent's decisions; executable gates check specific contracts.
-[Beads](https://github.com/gastownhall/beads) preserves the work graph, decisions,
-results and project memories. [Memory](skills/memory/SKILL.md) curates supported
-findings into linked project knowledge, connecting lessons to the work and
-sources behind them. The next session can use that record instead of starting over.
+You get three things:
 
-The skills are a kit, and you are expected to change it. Each skill is one
-Markdown file of instructions. Keep the ones that fit how you work, rewrite the
-ones that almost fit, delete the rest, and add skills you write yourself or find
-in other libraries. What you end up with is your own operating model for agents,
-which is the reason this project exists. [Make it yours](#make-it-yours) shows
-how.
+- **[Skills](docs/SKILL-ROUTER.md).** Each one is a Markdown file that carries
+  one engineering practice into an agent session: [Plan](skills/plan/SKILL.md)
+  to state the expected behavior, [Implement](skills/implement/SKILL.md) to
+  change code without weakening its tests, [Validate](skills/validate/SKILL.md)
+  for an independent judgment where a mistake would be costly.
+- **[The practice ledger](docs/practice-ledger.md).** It says which practices
+  held, which changed shape, which did not survive, and which are still being
+  tested, with the evidence for each.
+- **[Eval cases](evals/plugin-eval/README.md).** Run them on your own model
+  before you trust a skill. Results change with the model and the harness.
 
-Use these paths with Claude Code, Codex, Cursor, OpenCode, Gemini CLI, Pi and
-other coding agents, or personal assistants such as OpenClaw and Grok Bot.
-Start with [one useful task](#try-it); follow the [operational loop](#the-operational-loop)
-for a change or the [goal workflow](#goals) for work across sessions. When you
-need a larger software factory, [extend the same practices](#beyond-agentops)
-with Gas City or tools from the Agentic Coding Flywheel.
+The skills are a kit, and you are expected to change it. Keep the ones that fit
+how you work, rewrite the ones that almost fit, delete the rest, and add skills
+you write yourself or find in other libraries. [Make it yours](#make-it-yours)
+shows how.
+
+Every measurement here was taken with Claude Code. The skills are plain
+Markdown and also install in Codex, Cursor, OpenCode, Gemini CLI and Pi, where
+they are untested. Start with [one useful task](#try-it); follow the
+[operational loop](#the-operational-loop) for a change or the
+[goal workflow](#goals) for work across sessions. The [`ao` CLI](#optional-ao-cli)
+and [Beads](https://github.com/gastownhall/beads) are optional.
 
 <a id="why-these-skills-exist"></a>
 
@@ -344,11 +345,11 @@ catalog: **[docs/SKILL-ROUTER.md](docs/SKILL-ROUTER.md)**.
 | Operational loop | [`plan`](skills/plan/SKILL.md) [`implement`](skills/implement/SKILL.md) [`validate`](skills/validate/SKILL.md) | Shape and build a change; judge it where a mistake is costly |
 | Autonomous | [`rpi`](skills/rpi/SKILL.md) | One outcome, end to end |
 | Goals | [`interview`](skills/interview/SKILL.md) [`craft-goal`](skills/craft-goal/SKILL.md) [`navigate`](skills/navigate/SKILL.md) | Shape, write and walk a goal over the bead graph |
-| Coordination | [`orchestrate`](skills/orchestrate/SKILL.md) [`agent-native`](skills/agent-native/SKILL.md) | Fresh workers per bead, disjoint scopes, integration |
-| On demand | [`research`](skills/research/SKILL.md) [`domain`](skills/domain/SKILL.md) [`test`](skills/test/SKILL.md) [`refactor`](skills/refactor/SKILL.md) [`review`](skills/review/SKILL.md) [`security`](skills/security/SKILL.md) [`doc`](skills/doc/SKILL.md) [`reverse-engineer`](skills/reverse-engineer/SKILL.md) [`triage`](skills/triage/SKILL.md) [`architecture`](skills/architecture/SKILL.md) [`ergonomics`](skills/ergonomics/SKILL.md) | Reached for when a specific question comes up |
+| Coordination | [`orchestrate`](skills/orchestrate/SKILL.md) | Fresh workers per bead, disjoint scopes, integration |
+| On demand | [`research`](skills/research/SKILL.md) [`domain`](skills/domain/SKILL.md) [`test`](skills/test/SKILL.md) [`refactor`](skills/refactor/SKILL.md) [`review`](skills/review/SKILL.md) [`security`](skills/security/SKILL.md) [`doc`](skills/doc/SKILL.md) [`triage`](skills/triage/SKILL.md) [`architecture`](skills/architecture/SKILL.md) [`ergonomics`](skills/ergonomics/SKILL.md) | Reached for when a specific question comes up |
 | Learning | [`memory`](skills/memory/SKILL.md) | Curated `.context/` pages safe to commit |
 | Judgment strategies | [`council`](skills/council/SKILL.md) [`premortem`](skills/premortem/SKILL.md) [`postmortem`](skills/postmortem/SKILL.md) [`idea-genie`](skills/idea-genie/SKILL.md) | Multi-model councils (debates, idea duels, interview panels), idea brainstorms, plan challenges and postmortems |
-| Runtimes and factories | [`codex-exec`](skills/codex-exec/SKILL.md) [`claude-exec`](skills/claude-exec/SKILL.md) [`agy-native`](skills/agy-native/SKILL.md) [`using-gc`](skills/using-gc/SKILL.md) | Selected executors and Gas City integration |
+| Runtimes and factories | [`codex-exec`](skills/codex-exec/SKILL.md) [`claude-exec`](skills/claude-exec/SKILL.md) [`agy-native`](skills/agy-native/SKILL.md) | Selected executors |
 | Skill craft | [`skill-builder`](skills/skill-builder/SKILL.md) [`skill-eval`](skills/skill-eval/SKILL.md) | Author skills and measure whether they help |
 
 ## Make it yours
@@ -356,7 +357,7 @@ catalog: **[docs/SKILL-ROUTER.md](docs/SKILL-ROUTER.md)**.
 Every skill here is a folder with one `SKILL.md`: plain instructions an agent
 loads when a task calls for them. No skill depends on the full set, and coding
 with none of them still works. That makes the library easy to take apart, and
-you should. The 31 skills are a starting point for an operating model that fits
+you should. The 28 skills are a starting point for an operating model that fits
 your work.
 
 - **Start small.** Install two or three skills that match work you already do.
@@ -413,8 +414,10 @@ Read the limits before you quote these numbers:
   [coding pilot](PRODUCT.md#evidence-and-claim-limits) found no end-to-end
   difference.
 - Loading is the weak point. 3.11 loads its skills less often than 3.10 did,
-  and Implement and Research never load on their own. Four tested causes do not
-  explain it. Name the skill when you want its rules applied: RPI, Postmortem,
+  and in that run Implement and Research never loaded on their own. Four tested
+  causes do not explain it. A [later trial](docs/evals/2026-10-31-description-trial-opus-5-5.md)
+  rewrote two descriptions, after which Triage loaded on 13 of 13 runs and
+  Implement on 7 of 13. Name the skill when you want its rules applied: RPI, Postmortem,
   Interview and Craft Goal loaded on 22 of 24 requests that named them.
 
 The [full report](docs/evals/2026-10-22-plugin-eval-opus-5-5.md) has every case,
@@ -436,7 +439,7 @@ lineage; [how it works](docs/how-it-works.md) covers responsibilities.
 | [Compound Engineering](https://github.com/EveryInc/compound-engineering-plugin) | A connected development workflow and reusable solution records |
 | [Matt Pocock's skills](https://github.com/mattpocock/skills) | Composable practices for intent, domain modeling, TDD and review |
 | [Beads](https://github.com/gastownhall/beads) or your existing tracker | Owns work status, dependencies and handoffs |
-| Factories such as [Gas City](skills/using-gc/SKILL.md) | Own agent coordination and execution through their native control plane |
+| Factories such as [Gas City](https://github.com/gastownhall/gascity) | Own agent coordination and execution through their native control plane |
 
 Choose which workflow leads the task. Carry accepted behavior and evidence
 into checks, and into [independent judgment](skills/validate/SKILL.md) where a
@@ -496,7 +499,7 @@ changed the Codex plugin to read `skills/` directly. Read the
 
 **Upgrading from 3.6 or earlier:** read the [migration guide](docs/MIGRATION.md).
 Version 3.7 removed commands and skill names, including `learn`, `codebase-recon`
-and `swarm`; their current owners are `memory`, `research` and `agent-native`.
+and `swarm`; their current owners are `memory`, `research` and `orchestrate`.
 See the [3.7 release notes](https://github.com/boshu2/agentops/releases/tag/v3.7.0).
 
 </details>
@@ -516,9 +519,7 @@ Skill installation does not install tool dependencies:
 | `validate` | `ao`, optional | with `ao`, derives exact subject identity from a content manifest and uses `ao provenance store-verdict` when persistence is requested; without it, names the commit and changed paths |
 | `council` | `ao`, optional | with `ao`, `subject_digest` is the `canonical_manifest_digest` from `ao provenance manifest`; without it, a sha256 over the subject's repo-relative files or its text |
 | `research` | `ao`, conditional | inspect selected goal measurements with `ao goals` or evidence-store facts with `ao status` |
-| `using-gc` | `ao` | rig prep runs `ao gc prepare` and `ao gc check` |
 | `doc` | `ao`, optional | a requested continuity handoff may use `ao session handoff`/`rehydrate` |
-| `reverse-engineer` | `python3` | Phase 1's mechanical teardown runs `scripts/reverse_engineer.py` |
 | `skill-builder` | `ao` 3.9 or later outside a source checkout, Go inside one; `python3`, conditional | build, check, heal and audit run through `ao skills`; build (any mode) and heal's fix mode refuse with exit 2 outside an AgentOps source checkout (no `scripts/generate-skill-mesh.py`, as in a plugin install); build without `--init-only` and heal's fix mode run that script, and `audit.sh --legacy` needs PyYAML |
 | `memory` | `python3`, conditional | a selected toil investigation can use the repository helper `scripts/toil-mining/recent_human.py` on cleared Codex sources |
 | `security` | `python3`, conditional | the composable suite and offline redteam surfaces run `security_suite.py` when that scan type is selected |
@@ -566,7 +567,7 @@ connects evidence while Git owns content, the tracker owns work and the coding
 runtime or selected factory owns execution. Your repository owns delivery.
 
 Native execution requires zero AgentOps skills. [RPI](skills/rpi/SKILL.md),
-[Gas City](skills/using-gc/SKILL.md) and [Agentic Coding Flywheel](https://agent-flywheel.com)
+[Gas City](https://github.com/gastownhall/gascity) and [Agentic Coding Flywheel](https://agent-flywheel.com)
 are optional; their completion reports do not replace required checks or judgment.
 
 On request, Validate can save `verdict.v2` with exact content, checked scope and
@@ -613,8 +614,8 @@ automatic knowledge compounding. See [product evidence and limits](PRODUCT.md).
 
 No. Start with one coding agent and a skill such as Research, Test or Refactor.
 Use checks and CI for ordinary changes. Obtain one fresh, author-distinct
-judgment when requested, hard to undo, or uncovered by a deterministic check. The Validate skill
-requires `ao`; native independent review does not.
+judgment when requested, hard to undo, or uncovered by a deterministic check. Validate works
+without `ao`; with it, the verdict is bound to a content manifest of the change.
 
 **Must the reviewer use another model provider?**
 
@@ -641,11 +642,10 @@ required independent judgment establish what the result proves.
 [Gas City](https://github.com/gastownhall/gascity), from the organization behind
 [Beads](https://github.com/gastownhall/beads), provides configurable building
 blocks for multi-agent software factories: runtime providers, work routing,
-workflow formulas, packs and supervision. AgentOps ships a
-[Gas City adapter](skills/using-gc/SKILL.md) and an
-[executor integration pack](packs/agentops-executor/pack.toml). Use the adapter
-to work through Gas City's native coordinator and observe its runs; workers can
-use AgentOps skills for implementation, tests and validation.
+workflow formulas, packs and supervision. AgentOps 3.12 no longer ships a Gas
+City adapter skill: operate a factory through its own coordinator and operator
+documentation. Workers inside it can still use AgentOps skills for
+implementation, tests and validation.
 
 ### Agentic Coding Flywheel
 
@@ -669,9 +669,8 @@ project context. If the method belongs in a repeatable path,
 [Skill Eval](skills/skill-eval/SKILL.md) can measure whether it helps later work.
 This connects session history to guidance you can inspect and improve.
 
-Gas City, the Flywheel and these tools are independent projects. AgentOps ships
-its own Gas City adapter and pack; install external tools and their skills from
-their authors. Follow their native workflows, integrations and distribution terms.
+Gas City, the Flywheel and these tools are independent projects. Install them
+and their skills from their authors. Follow their native workflows, integrations and distribution terms.
 
 ## Contributing
 

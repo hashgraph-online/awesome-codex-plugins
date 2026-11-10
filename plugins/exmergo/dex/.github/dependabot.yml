@@ -15,6 +15,10 @@ updates:
       - "dependencies"
       - "github_actions"
       - "no-changelog"
+    # A release is not taken on its first days: a broken one is usually yanked
+    # or patched inside that window.
+    cooldown:
+      default-days: 3
     groups:
       github-actions:
         patterns:
@@ -31,23 +35,38 @@ updates:
   # alone resolves to nothing or to an untested combination. Developer tools
   # are separate so a formatter bump never rides in with a runtime change.
   # Bounds dex holds deliberately (sqlglot <31, duckdb <3, the Snowflake
-  # connector <5, MetricFlow's single minor, the exact motley-slayer pin) still
-  # bind: Dependabot proposes lock updates inside them and a range change only
-  # when a ceiling is widened by hand.
+  # connector <5, MetricFlow's single minor) still bind: Dependabot proposes lock
+  # updates inside them and a range change only when a ceiling is widened by hand.
+  #
+  # Every PR here is `no-changelog`: exmergo-dex-core is a library, so users
+  # resolve from pyproject.toml's ranges, never from uv.lock, and a lock-only
+  # bump changes what CI runs and nothing a user installs. A bump that moves a
+  # user-facing pin (motley-slayer, below) gets its fragment when it is migrated.
+  # Without the label every PR here failed the changelog check until a
+  # maintainer added it by hand.
   - package-ecosystem: "uv"
     directory: "/packages/dex-core"
     schedule:
       interval: "weekly"
     labels:
       - "dependencies"
-      - "python"
+      - "no-changelog"
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      # One exact release, held equal to SLAYER_VERSION by a test; moving it
-      # is a format migration, never a routine bump.
-      - dependency-name: "motley-slayer"
     groups:
+      # motley-slayer is one exact release, held equal to SLAYER_VERSION by a
+      # test, so its PR fails CI on purpose: it is the weekly notice that a
+      # migration is due (format version, goldens, schema_drift entry points),
+      # never a routine merge. It used to be ignored outright, and the pin fell
+      # six minors behind in a month (1.2.0 to 1.8.2) before anyone noticed.
+      # First, because a dependency joins the first group that matches it.
+      slayer:
+        patterns:
+          - "motley-slayer"
       dev-tools:
         patterns:
           - "ruff"

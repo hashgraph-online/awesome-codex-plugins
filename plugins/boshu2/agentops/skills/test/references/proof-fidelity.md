@@ -30,6 +30,17 @@ before/after check, list the missing regression test under `not_checked`, and
 report the missing seam as a structural finding for
 [Architecture](../../architecture/SKILL.md).
 
+## Several record kinds and actions
+
+Derive the meaningful kind/action pairs from accepted domain rules and check
+each pair's promised end state. Do not invent impossible combinations or infer
+a kind's result from a sibling's passing test. A table test may cover many
+pairs; no separate artifact or test per cell is required. Report relevant
+uncovered pairs under `not_checked`. Shared removal code is valid when those
+kinds should both disappear; it is a defect when an observed end state
+contradicts the accepted meaning, such as deleting a record that withdrawal
+must retain as inactive.
+
 ## A check that stands in for a real run
 
 A CI step, gate, smoke test, harness or test double protects something it does

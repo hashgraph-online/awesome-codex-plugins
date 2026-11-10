@@ -563,6 +563,13 @@ it as `execution` (`dex` or `vendor`).
     refused;
  - `--group-by` takes that model's own columns (`orders.status`); a column
     reached through a join is not groupable;
+ - a list column (`type: ARRAY`) groups by its elements, `posts.tags.value`,
+    listed with a type from its `element_type`; each row counts the parents
+    holding that element (SLayer's `associate`), so rows overlap and a note
+    says so. The whole list (`posts.tags`) is listed with `groupable: false`,
+    and grouping by it or reading its values is refused, naming the `.value`
+    token. `contains`, `contains_any`, `contains_all` and `tags.value = ...`
+    filters are screened as the list column. Redshift refuses a list column;
  - `--grain` buckets the model's `default_time_dimension` at a built-in SLayer
     grain (`day`, `week`, `month`, ...), and a model with none refuses it;
  - `--where` is SLayer's filter syntax, not Jinja: `status = 'paid'`, read

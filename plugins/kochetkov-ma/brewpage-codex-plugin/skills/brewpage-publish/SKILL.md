@@ -20,7 +20,7 @@ Every shell step is ONE command of the exact shape in the fences below, run with
 - Never prefix or chain the command (`cd`, `VAR=…`, `;`, `&&`, `|`, `$(…)`) and never inline the text in
   any other form: single-quoted argv is what keeps the content inert.
 - Text longer than 6,000 characters goes through `stage` (Step 6).
-- The script prints one decisive line: `OK {url}` or `OK {url} | Files: N` (then any `NOTICE: …` lines:
+- The script prints one decisive line: `OK {url}` or `OK {url} | Files: N` (then `MANAGE: …`, the private management link, and any `NOTICE: …` lines:
   what the server skipped or adjusted), `CONFIRM: …` (exit 2, nothing uploaded) or `FAILED: …` (server reason `HTTP <status>: <message>`).
   It removes its private run directory on every exit.
 
@@ -146,7 +146,7 @@ Send the mode only as `X-Delivery-Mode` (the `--delivery-mode` slot), never in a
 Deduplication may return an OLD or NEW winner: retain its identity, cohort, mode and exact server `link`, even when the requested mode differs.
 Missing/null OLD routing metadata means Existing link; never infer mode from its URL.
 
-> **SECURITY:** The ownerToken MUST NEVER appear in conversation output: the script does curl, token parsing and history save in one run and prints only the URL; failures print only the server's status and message.
+> **Owner token and management link:** the script does curl, token parsing and history save in one run. It prints the URL and the management link (`MANAGE:`); the ownerToken goes to the private history file and is printed only when that save fails. A rejected upload prints only the server's status and message.
 
 Every slot is re-validated by the script before anything is written or uploaded:
 
@@ -188,17 +188,19 @@ bash {baseDir}/scripts/brewpage-run.sh cleanup --run '{run_id}'
 
 ### Step 7: Output Result
 
-**Success** (the script printed `OK {url}`):
+**Success** (the script printed `OK {url}`, then `MANAGE: {manage_url}`):
 ```
 Published: {url from bash output}
+Management link (private): {manage_url from bash output}
 Owner token saved to ./brewpage-history.md (mode 600, git-ignored)
 Optional: sign in free (Google or any email) at https://account.brewpage.app to manage publications and token history, and extend publication retention up to 90 days. Publications still expire. Not needed to publish.
 ```
 
-**Success for SITE** (the script printed `OK {url} | Files: {count}`):
+**Success for SITE** (the script printed `OK {url} | Files: {count}`, then `MANAGE: {manage_url}`):
 ```
 Published site: {url from bash output}
 Entry: {entry_file} | Files: {count}
+Management link (private): {manage_url from bash output}
 Owner token saved to ./brewpage-history.md (mode 600, git-ignored)
 Optional: sign in free (Google or any email) at https://account.brewpage.app to manage publications and token history, and extend publication retention up to 90 days. Publications still expire. Not needed to publish.
 
@@ -207,10 +209,10 @@ Share the server URL exactly as printed, including any trailing slash.
 
 For a private (non-`public`) namespace, append one short line after the link (skip if the reply must stay brief): *Unlisted link — anyone who has it can open it, but it's not in the gallery or search. Want it discoverable? Publish to `public`.*
 
-Mention the sign-in line only as optional; never ask the user to sign in.
-If a NOTICE says no owner capability was saved, omit the token-saved line and report only the reader URL plus that notice; existing history stays unchanged.
+Give the user the page link and the management link, and say once that the management link is private: anyone who has it can edit or delete the page. No `MANAGE:` line → omit that line. The owner token stays in the history file for later updates; show it (read the history file) when the user asks. Never post the management link or the token publicly (public page, repo, shared channel).
 
-**NEVER print the ownerToken in conversation.** The token lives only in the history file.
+Mention the sign-in line only as optional; never ask the user to sign in.
+If a NOTICE says no owner capability was saved, this publication has no management link or token to give: omit both lines and report the URL plus that notice; existing history stays unchanged.
 
 **Needs confirmation** (the script printed `CONFIRM: ...`, exit 2; nothing uploaded): show the manifest
 lines, name the flagged entries, ask the user once (publish anyway / cancel). Publish anyway -> re-run the
@@ -224,6 +226,8 @@ its own run directory and never touches other runs, user source files or the sha
 ```
 Publish failed: {the FAILED line, verbatim}
 ```
+
+**Published but not saved** (`FAILED: published but owner token could not be saved securely`, then `URL:`, `MANAGE:` and `OWNER TOKEN:` lines): the page is live and nothing was written to history. Give the user all three values and say that the management link and the token are private.
 
 | Status | Meaning | Do |
 |--------|---------|----|
@@ -245,7 +249,7 @@ a value that still cannot be stored is a 400, not a 409.
 - Run dirs: private `brewpage.XXXXXX` under `$TMPDIR` (else `/tmp`); only `scripts/brewpage-run.sh` creates, fills and removes them.
 - TTL default is `15` days. Namespace must match `^[a-z0-9-]{1,32}$` and be explicitly chosen; unanswered choices stop before upload.
 - Use returned `ownerLink` and stored identity metadata for owner API operations; never parse NEW root hosts for namespace/ID. OLD history without metadata retains its existing API identifiers.
-- To **update a published site**, `PUT` the replacement bundle to its apex owner API with `X-Owner-Token` and `-A "brewpage-codex/0.1.0 (+https://brewpage.app)"` (every brewpage.app request sends this User-Agent); retain the host and omit `X-Delivery-Mode` on ordinary PUT/update. Old publications (made before 5 October 2026) are read-only: 409 OLD_PUBLICATION_READ_ONLY; publish anew; report only the new URL; the owner token stays in private history, never chat.
+- To **update a published site**, `PUT` the replacement bundle to its apex owner API with `X-Owner-Token` and `-A "brewpage-codex/0.1.1 (+https://brewpage.app)"` (every brewpage.app request sends this User-Agent); retain the host and omit `X-Delivery-Mode` on ordinary PUT/update. Old publications (made before 5 October 2026) are read-only: 409 OLD_PUBLICATION_READ_ONLY; publish anew and give the user the new link and management link; the new owner token is saved to history.
 - Owner-only `GET`/`PATCH /api/{type}/{ns}/{id}/hosting` supports `html|files|json|kv|sites` with `X-Owner-Token`. Read current `hostingVersion`, then PATCH `deliveryMode: path|subdomain` with that `expectedVersion`. NEW publications without a required subdomain may switch, including non-public non-HTML content; OLD returns 200 unchanged with a notice. Sites and non-public HTML (format `html`) retain their forced subdomain policy; mismatches return a notice. A missing version applies against the stored version; a stale version also applies, with a notice, rather than 409. Use the returned link/version afterward.
 - NEW password-protected links stay clean: never generate or append `?p=`. API requests still use `X-Password`; OLD password behavior remains unchanged.
 - **SITE bundles are allowlisted**: the directory build drops dot-entries (`.env`, `.git/`, `.DS_Store`; the root `.well-known/` stays, extension-less files included), `node_modules/`, `__MACOSX/`, symlinks and unknown types (`*.map`, `*.log`, `Thumbs.db`), flags kept names that look sensitive (`secret`, `token`, `password`, `credential`) for confirmation, and verifies the archive (bounded central-directory budgets, `unzip -t` with a 10-second timeout, name set) before upload. A supplied ZIP is never rewritten; anything unexpected, hidden or sensitive inside it needs confirmation (system files the server drops are left alone).

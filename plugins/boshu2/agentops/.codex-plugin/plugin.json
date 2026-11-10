@@ -5,7 +5,7 @@
   "skills": "./skills",
   "interface": {
     "displayName": "AgentOps",
-    "shortDescription": "Agent work you can verify and build on.",
+    "shortDescription": "Software engineering practice, re-tested for AI agents.",
     "longDescription": "AgentOps helps Codex define observable behavior, implement it using your domain's language, and have a fresh reviewer validate the exact change against the original request. Apply established engineering practices through optional skills and CLI tools. Keep reusable code, tests, decisions, and requested evidence in your existing engineering system.",
     "developerName": "AgentOps",
     "category": "Productivity",

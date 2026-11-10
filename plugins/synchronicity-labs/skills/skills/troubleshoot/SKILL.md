@@ -7,14 +7,16 @@ compatibility: Works best with the sync. MCP server connected. See references/co
 
 # Troubleshoot sync. work
 
+[sync. labs](https://sync.so) | [Troubleshooting guide](https://sync.so/docs/plugins-and-extensions/agent-skills/troubleshoot)
+
 Finds out what actually happened, says it plainly, and resumes the work without starting a second paid job.
 
 ## 1. Gather the facts
 
-Collect what's known before guessing: the tool or request that failed, the exact error text and code, and any generation, batch, project, asset or job ID. Then read the current state:
+Collect what's known before guessing: the tool or request that failed, the exact error text and code, and any generation, project, asset or job ID. Then read the current state:
 
 - A generation: `generations_get` with its `id`. Note `status`, `error` and `errorCode`.
-- No ID: `generations_list` with a small `limit`, or `batches_list` for batches, to find it.
+- No ID: `generations_list` with a small `limit`, to find it.
 - The account: `account_get-context` for plan limits and concurrency, `account_get-usage` for credits.
 
 Never ask for the user's API key or password, and don't paste signed media links into anything public.
@@ -24,8 +26,8 @@ Never ask for the user's API key or password, and don't paste signed media links
 | What you see | What it means | What to do |
 | --- | --- | --- |
 | Sign-in error, or the sync. tools are missing | The MCP connection is signed out, or the client hasn't loaded it | Reconnect with [references/connect.md](references/connect.md). Signing in in a browser tab doesn't sign in the agent's connection. A tool that's missing here may only exist in another client, such as Studio tools in ChatGPT. |
-| `PENDING` or `PROCESSING` for a while | Normal for long or busy jobs. Dubbing and batches take longer than plain lipsync. | Keep polling the same ID. Pending isn't failed, and a second create won't make it faster. |
-| A timeout or lost response after a create | The job may or may not have started | Look for it with `generations_list` (or `batches_list`), or retry the identical request with the same idempotency key, which returns the original if it exists. For a `jobs_create-many` set, send the identical call again with the same set `idempotencyKey` and items. Never switch to a new key to "recover". |
+| `PENDING` or `PROCESSING` for a while | Normal for long or busy jobs. Dubbing can take longer than plain lipsync. | Keep polling the same ID. Pending isn't failed, and a second create won't make it faster. |
+| A timeout or lost response after a create | The job may or may not have started | Look for it with `generations_list`, or retry the identical request with the same idempotency key, which returns the original if it exists. For a `jobs_create-many` set, send the identical call again with the same set `idempotencyKey` and items. Never switch to a new key to "recover". |
 | `concurrency_limit_reached` | The plan's limit on simultaneous jobs is reached | Wait `error.retryAfterMs` (or for a running job to finish), then retry the same request. More creates won't clear it. |
 | `insufficient_credits`, `free_tier_generations_exhausted`, `generation_plan_duration_exceeded`, `plan_feature_unavailable` | A plan or balance limit | Quote the message and point to https://sync.so/billing/subscription. Don't retry, and don't switch accounts to get around it. |
 | A 4xx about the input (format, resolution, face, length, speaker) | sync. refused the media or settings | Explain which input and why, and fix only that. Don't quietly change the model, speaker, language or trim. [references/media-input.md](references/media-input.md) has the input checklist. |

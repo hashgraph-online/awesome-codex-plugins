@@ -211,45 +211,17 @@ readiness call, even when every item is confirmed. Its durable form is under
 
 ### Health, goals and status
 
-For "is this repository healthy" or "do the checks pass", run the project's
-own read-only checks (declared in its instructions or CI configuration, or
-found in its build files), preferring a `--check`, dry-run or verify variant,
-and record where each came from. List any step that writes tracked files,
-publishes, deploys or needs credentials as not run, with the reason. Run each
-separately and keep going after a failure. Report each as passed, failed, not
-run (tool unavailable) or not determined (output not captured), from its exit
-status rather than parsed output, and name declared checks you did not run.
-Fix nothing, and fold no results into one score that hides a failure.
+For "is this repository healthy" or "do the checks pass", read
+[status](references/status.md) first: it owns how to run the project's own
+read-only checks and read the evidence store. Measuring declared goals with
+`ao goals` is in [goals](references/goals.md). Do not add, remove, prioritize,
+migrate or repair goals, or turn a measurement gap into assigned work.
 
-Running `ao goals` against the declared goals source is in
-[goals](references/goals.md); reading the evidence store with `ao status`, and
-what a snapshot cannot show, is in [status](references/status.md). A recent
-artifact timestamp proves evidence recency, not an active worker. Do not add,
-remove, prioritize, migrate or repair goals, or turn a measurement gap into
-assigned work.
+## Adoption and decision lineage
 
-## Adoption questions
-
-For "should we adopt, replace or keep X" or "does advisory Y reach us", the
-answer needs both sides. Ours: the current tool and a cited place it is used,
-or a searched absence plus where X would plug in, and any earlier decision on
-the same question. Theirs: a current primary source for each external fact the
-answer rests on. A strong side never covers a missing one; then answer "not yet
-answerable" and list what to inspect. Keeping the current tool or doing nothing
-is a real option. Sourcing, ranking and the fit, license, cost-of-staying and
-maintenance facts are in [adoption evidence](references/adoption-evidence.md).
-
-## Decision lineage
-
-For "why is it like this" or "how did this idea change", trace one decision or
-idea through commits, ADRs, issues, reviews and prior reports into dated, cited
-buckets: first appearance, clearest statement, current form, reversals,
-contradictions (two claims that cannot both hold) and abandoned variants. An
-empty bucket says what was searched; a supersession is not a contradiction; do
-not smooth messy history into a tidy story. Before presenting a past reason as
-binding, check that its cause still holds in the current tree or record; if
-not, report that as evidence for reopening, leaving the call to its owner or
-the caller.
+For "should we adopt, replace or keep X", a comparison of another tool's
+features with ours, or "why is it like this", read
+[adoption and lineage](references/adoption-and-lineage.md) before answering.
 
 ## Repository tracing
 

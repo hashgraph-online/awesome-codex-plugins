@@ -47,20 +47,6 @@ Equal performance is no improvement. Without a baseline, report absolute values
 and comparison unavailable; a missing or zero baseline permits no percentage
 improvement claim. Keep absolute differences and metric direction explicit.
 
-## Explain a bottleneck only when needed
-
-For a requested diagnosis, use profiling supported by the language, host and
-permissions on the selected workload. Choose the measurement for the suspected
-cost, such as CPU, allocation, waiting or I/O; verify that the profile covers the
-work in question. Locate the expensive path in the measured evidence rather
-than assuming a visually complicated function is the bottleneck.
-
-Profiling overhead and a changed instrumentation build can distort timing.
-Keep profiling evidence distinct from comparable performance samples, and
-disclose unavailable symbols, sampling limits or missing facilities. No profile
-means the hotspot explanation remains unproven; it does not authorize inventing
-platform support or modifying system settings to obtain it.
-
 ## When improving product performance is authorized
 
 When the caller authorizes optimization and the useful change is uncertain,

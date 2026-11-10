@@ -73,14 +73,26 @@ python3 skills/computer-usage-summary/scripts/activitywatch_summary.py --date to
 # Show foreground browser pages with at least two minutes of active time
 python3 skills/computer-usage-summary/scripts/activitywatch_summary.py --date today --table browser --min-tab-seconds 120
 
+# Show the deterministic "What You Did" category table
+python3 skills/computer-usage-summary/scripts/activitywatch_summary.py --date today --format tsv --table categories
+
 # Save a UTF-8 CSV application table
 python3 skills/computer-usage-summary/scripts/activitywatch_summary.py --date today --format csv --table apps --output daily-apps.csv
 ```
 
-Tables are available as `summary`, `daily`, `apps`, `browser`, and `timeline`.
-The default `report` combines the daily, app, browser, and timeline tables.
+Tables are available as `summary`, `daily`, `categories`, `apps`, `browser`,
+and `timeline`. The default `report` combines the daily, category, app,
+browser, and timeline tables. Browser rows default to two minutes of accumulated
+foreground time; short visits remain summarized in the report and JSON, and
+`--min-tab-seconds 0` includes every grouped foreground page.
 User-facing times use the Mac system timezone unless an explicit
 `--timezone Area/City` override is supplied.
+
+The executable is a compatibility wrapper around the standard-library-only
+modules under `skills/computer-usage-summary/scripts/summary_core/`:
+interval math, ActivityWatch access, deterministic classification, report
+shaping, rendering, and CLI orchestration are kept separate so each boundary
+can be tested without a live ActivityWatch service.
 
 See the [local-first landing page](https://liuyewang.github.io/computer-usage-summary-skill/)
 for a synthetic report preview and the [design-partner guide](docs/DESIGN_PARTNERS.md)

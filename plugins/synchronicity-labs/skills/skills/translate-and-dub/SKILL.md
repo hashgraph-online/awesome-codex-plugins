@@ -7,6 +7,8 @@ compatibility: Needs the sync. MCP server or a SYNC_API_KEY. See references/conn
 
 # Translate and dub a video
 
+[sync. labs](https://sync.so) | [Translation and dubbing guide](https://sync.so/docs/plugins-and-extensions/agent-skills/translate-and-dub)
+
 Delivers one dubbed MP4 per target language, with lips matched to the new audio. The dubbed voice follows the original speaker's.
 
 If no sync. tools are available, follow [references/connect.md](references/connect.md) first. Without the MCP tools, use `dubParams` on `POST /v2/generate` as shown in [references/api.md](references/api.md).

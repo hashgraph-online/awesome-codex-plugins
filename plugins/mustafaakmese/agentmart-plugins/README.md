@@ -14,27 +14,28 @@ MIT covers the files in this repository. The AgentMart service itself is proprie
 This repository is one plugin for many coding agents. It connects the AgentMart MCP server and adds
 two skills:
 
-- **check-the-shelf**: when a task needs one of the always-on parts above and nothing the user already
-  has covers it, compare a ready part with building it and with free options, then let the human
-  choose.
+- **check-the-shelf**: before building one of the always-on parts above, or a common feature a code kit
+  covers (Stripe subscriptions, Supabase auth, HTTP signatures, email campaigns), find the ready part
+  with its price and ask the human.
 - **agentmart-buying-rules**: sign in safely, get funds only through the human, and buy only with the
   human's clear yes.
 
 ## When not to use it
 
-- For the user's own product code, or when they asked you to build the part yourself.
+- When the user said no outside services or paid dependencies.
 - When the project already has a service for it (a queue, a scheduler, an inbox).
-- When a free local option is enough for the task.
 
 ## Install
 
-Tested by us: Claude Code. The other lines follow each app's own documentation; if one fails, please open
-an issue.
+Tested by us: Claude Code and Codex (10 November 2026). The other lines follow each app's own documentation; if one
+fails, please open an issue.
 
 | App | How |
 |---|---|
 | Claude Code | `claude plugin marketplace add mustafaakmese/agentmart-plugins`, then `claude plugin install agentmart@agentmart-plugins` |
-| Codex | `codex plugin marketplace add mustafaakmese/agentmart-plugins`, then `/plugins` |
+| Codex | `codex plugin marketplace add mustafaakmese/agentmart-plugins`, then `codex plugin add agentmart@agentmart-plugins` |
+| Grok Build | `grok plugin install mustafaakmese/agentmart-plugins --trust` |
+| Muse Code (1.4.11 or later) | `muse plugins marketplace add agentmart-plugins mustafaakmese/agentmart-plugins`, then `muse plugins install agentmart@agentmart-plugins` and `muse plugins approve agentmart` |
 | Cursor | the button below adds the MCP server; for the skills too, copy this repository to `~/.cursor/plugins/local/agentmart` (a Cursor Marketplace listing is not there yet) |
 | VS Code (agent plugins) | "Chat: Install Plugin From Source" with this repository's address |
 | Google Antigravity | `agy plugin install https://github.com/mustafaakmese/agentmart-plugins` |
@@ -54,7 +55,7 @@ an issue.
 
 Your app signs in with OAuth on AgentMart's approval page (one click, no password), so no token
 appears in the chat. In Claude Code: type `/mcp`, pick `plugin:agentmart:agentmart`, choose
-**Authenticate**. In Gemini CLI: `/mcp auth agentmart`. An approval alone gives the app an empty
+**Authenticate**. In Codex: if `codex mcp list` says "Not logged in" for agentmart, run `codex mcp login agentmart`. In Gemini CLI: `/mcp auth agentmart`. An approval alone gives the app an empty
 passport; to use an account's balance, the owner gets a one-time code on the Add an AI app page of
 agentmart.ciphyr.ai and pastes it on the approval page. Searching and reading the catalog need no
 sign-in.
@@ -73,9 +74,10 @@ sign-in.
 
 | Path | Read by |
 |---|---|
-| `plugin.json`, `mcp.json` | Agent Plugins 1.0: Codex, Cursor, VS Code, Copilot (and Antigravity reads `plugin.json`) |
+| `plugin.json`, `mcp.json` | Agent Plugins 1.0: Cursor, VS Code, Copilot (and Antigravity reads `plugin.json`); Codex installs `codex/` instead |
 | `.claude-plugin/plugin.json`, `.mcp.json`, `.claude-plugin/marketplace.json` | Claude Code (and skills.sh) |
-| `.agents/plugins/marketplace.json`, `.codex-plugin/plugin.json` | Codex, and plugin scanners |
+| `.agents/plugins/marketplace.json`, `codex/` | Codex: the marketplace points at `codex/`, a copy with the Codex manifest and without `plugin.json`, so Codex offers every tool of the server |
+| `.codex-plugin/plugin.json` | Codex's manifest, copied into `codex/`, and plugin scanners |
 | `.cursor-plugin/plugin.json` | Cursor and cursor.directory |
 | `.devin-plugin/plugin.json` | Devin (with the server inline) |
 | `mcp_config.json` | Google Antigravity, next to `plugin.json` |

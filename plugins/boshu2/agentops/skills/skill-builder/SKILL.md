@@ -27,7 +27,10 @@ output_contract: build-report.json for creation, audit-report.json for audit, ta
 # Skill Builder
 
 Create, repair, audit or export one canonical skill package, or turn supported
-expertise into a small authoring proposal.
+expertise into a small authoring proposal. Before writing anything new, decide
+from evidence whether anything new is warranted: a request for a new skill,
+gate or tracking file usually ends as a short addition to an existing owner,
+or as no change.
 
 ## Decide whether to create anything
 
@@ -56,6 +59,10 @@ the new skill or file it wants:
    [Skill Eval](../skill-eval/SKILL.md) and acceptance judgment to
    [Validate](../validate/SKILL.md).
 
+The result shows it worked when it names the existing owner it searched, the
+number of independent occurrences found, and either no new file or exactly the
+package the caller authorized.
+
 ## Choose the requested operation
 
 `<skill-dir>` is the directory that contains this SKILL.md. Claude Code shows it
@@ -68,26 +75,31 @@ guess a path or run a same-named script from the current repository; say the
 bundled script is unavailable and apply the rules and doctrine here to the
 package by hand and use its repository's own checks.
 
-| Need | Entry point |
-|---|---|
-| Create a source package | `bash "<skill-dir>/scripts/build.sh" from-scratch <slug>`, `from-template <slug> --like <existing-slug>` or `absorb-external <slug> --from <path>` |
-| Check package structure | `bash "<skill-dir>/scripts/heal.sh" --check [--strict] skills/<slug>` |
-| Repair the skill mesh | `bash "<skill-dir>/scripts/heal.sh" --fix skills/<slug>` |
-| Inspect audit evidence | `bash "<skill-dir>/scripts/audit.sh" [--profile canonical\|portable\|external-observation] [--json <path>] skills/<slug>` |
-| Merge overlapping skills | [Consolidate](#consolidate) |
-| Export to another platform | [Conversion](#conversion) |
-| Make repeated expertise reusable | [Distill expertise](#distill-expertise) |
+| Need | Entry point | Runs only with |
+|---|---|---|
+| Create a source package | `bash "<skill-dir>/scripts/build.sh" from-scratch <slug>`, `from-template <slug> --like <existing-slug>` or `absorb-external <slug> --from <path>` | an AgentOps source checkout with Go |
+| Check package structure | `bash "<skill-dir>/scripts/heal.sh" --check [--strict] skills/<slug>` | Go in a source checkout, or `ao` 3.9 or later elsewhere |
+| Repair the skill mesh | `bash "<skill-dir>/scripts/heal.sh" --fix skills/<slug>` | an AgentOps source checkout with Go |
+| Inspect audit evidence | `bash "<skill-dir>/scripts/audit.sh" [--profile canonical\|portable\|external-observation] [--json <path>] skills/<slug>` | Go in a source checkout, or `ao` 3.9 or later elsewhere |
+| Merge overlapping skills | [Consolidate](#consolidate) | nothing bundled |
+| Export to another platform | [Conversion](#conversion) | Bash 4.3 or later |
+| Make repeated expertise reusable | [Distill expertise](#distill-expertise) | nothing bundled |
 
-Run only the selected operation. `build.sh` and `heal.sh --fix` work on
+Run only the selected operation. A plugin install ships these scripts but no
+`ao` binary or Go source: without `ao` on PATH, `audit.sh` exits 127 with
+`ao: not found` and `heal.sh` exits 2. Then apply the
+[source template](references/skill-template.md) and
+[authoring doctrine](references/authoring-doctrine.md) by hand and use the
+target repository's own checks. `build.sh` and `heal.sh --fix` work on
 `skills/` of an AgentOps source checkout and refuse with exit 2 elsewhere, such
 as from a plugin install, instead of writing into its cache; `heal.sh --fix`
 checks the source first, so a target with findings exits 1 before that refusal.
 `heal.sh` in either mode checks only its own root's `skills/` and resolves a
 relative target there, not in the current directory. For a skill in another
 repository or a user's skills directory, apply the rules and doctrine here to
-that directory and use its own checks; `audit.sh` resolves targets from the
-current directory and has `portable` and `external-observation` profiles, so it
-is the bundled check there.
+that directory and use its own checks; with `ao` installed, `audit.sh` resolves
+targets from the current directory and has `portable` and
+`external-observation` profiles, so it is the bundled check there.
 Roots, inputs, report destinations, exit codes and recovery from partial
 creation are in [build and check mechanics](references/build-mechanics.md).
 

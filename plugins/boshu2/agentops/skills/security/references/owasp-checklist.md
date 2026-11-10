@@ -19,7 +19,7 @@
 
 **Detection:**
 ```bash
-grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"\|token\s*=\s*"[^"]\+' --include='*.go' --include='*.py' --include='*.ts' --include='*.js' . | grep -v _test | grep -v test_ | grep -v vendor/
+grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"\|token\s*=\s*"[^"]\+' --include='*.go' --include='*.py' --include='*.ts' --include='*.js' . | grep -v _test | grep -v test_ | grep -v vendor/ | cut -d: -f1-2  # file:line only; never print the matched value
 ```
 
 ### 2. Input Validation
@@ -30,54 +30,18 @@ grep -rn 'password\s*=\s*"[^"]\+"\|api_key\s*=\s*"[^"]\+"\|secret\s*=\s*"[^"]\+"
 - [ ] Path traversal prevention: resolve a user-supplied path (following symlinks, or open it through a root-bound API such as Go's `os.Root`), then confirm by path components that it stays inside the allowed directory. A string-prefix compare or a ban on a `..` substring is not that check: `/srv/base-evil` starts with `/srv/base`, and `foo/../bar` and `a..b` stay inside
 - [ ] Secret files and scratch in a shared temp directory are owner-only from the moment they exist (restrictive umask before creation, not chmod after the write); scratch takes a fresh `mktemp` path, and code that reuses a fixed, guessable name refuses it when it is a symlink or another user's entry at the open itself (exclusive no-follow create: `O_EXCL|O_NOFOLLOW`, or `set -C` in shell), not by a test before the write, since any local user can create or redirect that name first
 
-### 3. SQL Injection
-- [ ] All database queries use parameterized statements
-- [ ] No string concatenation in SQL
-- [ ] ORM usage follows safe query patterns
-- [ ] Raw queries (if any) are reviewed and justified
+### 3 to 10. Standard web classes
 
-### 4. XSS (Cross-Site Scripting)
-- [ ] User-generated HTML sanitized before rendering
-- [ ] CSP (Content-Security-Policy) headers configured
-- [ ] Template engines auto-escape by default
-- [ ] No `innerHTML` or `dangerouslySetInnerHTML` with user input
+Give each its own ledger result.
 
-### 5. CSRF (Cross-Site Request Forgery)
-- [ ] Anti-CSRF tokens on state-changing requests
-- [ ] `SameSite=Strict` or `SameSite=Lax` on cookies
-- [ ] Origin/Referer header validation
-
-### 6. Authentication
-- [ ] Tokens in httpOnly cookies (not localStorage)
-- [ ] Session expiry configured
-- [ ] Password hashing uses bcrypt/argon2 (not MD5/SHA1)
-- [ ] Rate limiting on auth endpoints
-- [ ] Account lockout after failed attempts
-
-### 7. Authorization
-- [ ] Role-based access control (RBAC) enforced
-- [ ] Authorization checks on every endpoint (not just frontend)
-- [ ] No direct object reference without ownership check
-- [ ] Admin endpoints require elevated permissions
-
-### 8. Rate Limiting
-- [ ] Rate limits on all public endpoints
-- [ ] Stricter limits on auth/payment endpoints
-- [ ] Rate limit headers returned (X-RateLimit-*)
-- [ ] Distributed rate limiting if multi-instance
-
-### 9. Sensitive Data Exposure
-- [ ] No passwords, tokens, or PII in log output
-- [ ] Error messages are generic (no stack traces in production)
-- [ ] HTTPS enforced (no mixed content)
-- [ ] Sensitive fields excluded from API responses
-- [ ] Database encryption at rest for PII
-
-### 10. Dependencies
-- [ ] No known vulnerable dependencies (`npm audit`, `pip audit`, `govulncheck`)
-- [ ] Dependencies pinned to specific versions
-- [ ] Lock files committed
-- [ ] Regular dependency update process (Renovate/Dependabot)
+- 3. SQL injection (any query text built from input, raw queries included)
+- 4. XSS (output encoding, `innerHTML`-style sinks, CSP)
+- 5. CSRF (state-changing requests, cookie `SameSite`, origin checks)
+- 6. Authentication (token storage, session expiry, password hashing, auth rate limits)
+- 7. Authorization (server-side check on every endpoint and object, admin paths)
+- 8. Rate limiting (public, auth and payment endpoints)
+- 9. Sensitive data exposure (logs, error bodies, API fields, transport, at rest)
+- 10. Dependencies (known-vulnerable versions, pinning, committed lock files)
 
 ### 11. CI and Automation Definitions
 - [ ] Triggers that run contributor-controlled code (forked pull requests, comment commands) get no write token or secrets
@@ -128,6 +92,6 @@ The offline redteam scan (`prompt_redteam.py scan`) checks repo-owned prompt and
 ### With CI
 ```bash
 # Minimum: secrets + dependencies
-grep -rn 'password\|secret\|api_key' --include='*.go' --include='*.py' . | grep -v test
+grep -rn 'password\|secret\|api_key' --include='*.go' --include='*.py' . | grep -v test | cut -d: -f1-2  # file:line only
 govulncheck ./...  # or npm audit / pip audit
 ```

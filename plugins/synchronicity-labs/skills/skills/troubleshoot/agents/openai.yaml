@@ -1,4 +1,4 @@
 interface:
   display_name: "Troubleshoot sync."
-  short_description: "Find why a sync. job failed and resume it safely"
+  short_description: "Find why a generation failed and resume without paying twice"
   default_prompt: "Use $troubleshoot to find out why my sync. job failed."

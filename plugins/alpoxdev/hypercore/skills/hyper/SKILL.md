@@ -1,6 +1,6 @@
 ---
 name: hyper
-description: "[Hyper] Use this skill when the user wants a development job carried from start to finish - a feature, fix, refactor, migration, technology choice, search-visibility improvement, GA4 or GTM tracking job, database job, MCP job, decision-API job, UI design, restyle, or frontend work, a user, client, or planner change request, a runtime failure, a dataset question, a multi-goal run, image generation, deployment, skill folder, document, or reusable prompt - without naming one hyper stage skill, or invokes hyper by name. It picks the shortest chain of hyper stage skills (research, issue, SEO, GA4, GTM, architecture, database, MCP, decision API, UI/UX, feedback, debug, data, image generation, plan, execute, mass, loop, skill, documentation, deploy, and Git delivery), runs the stages in order, and passes each stage's saved artifact to the next. Do not use it when the user names one hyper skill directly, or for a one-place edit with no plan, commit-only requests, PRD packages, diagrams, or general questions."
+description: "[Hyper] Use this skill when the user wants a development job carried from start to finish - a feature, fix, refactor, migration, technology choice, search-visibility improvement, GA4 or GTM job, database, MCP, decision-API, UI design, restyle, or frontend work, a user, client, or planner change request, a runtime failure, a cleanup that keeps behavior, a dataset question, a multi-goal run, an image, deployment, a skill folder, a document, or a prompt - without naming one hyper stage skill, or invokes hyper by name. It picks the shortest chain of hyper stage skills from research through cleanup, data, handoff, plan, execute, mass, loop, skill, documentation, deploy, and Git delivery, runs them in order, and passes each stage's saved artifact to the next. Do not use it when the user names one hyper skill directly, or for a one-place edit with no plan, commit-only requests, PRD packages, diagrams, or general questions."
 compatibility: Needs the ability to load another installed skill by name, file read and search over the target repository, and write access for `.hyper/workflows/`. Each loaded stage brings its own requirements (git worktrees, subagents, live web). Without skill loading, it reports the chosen chain and the install commands instead of running stages.
 ---
 
@@ -34,7 +34,7 @@ Use a different language only when the user explicitly requests it or a machine-
 
 Use this skill when the requested output is a finished development result that needs one or more of the stage skills below in sequence, or when the user calls `hyper` by name.
 
-By user instruction, this package is an orchestrator: it names its twenty-three stage skills and its one companion skill in the stage map below, in `rules/workflow-routing.md`, in `rules/stage-handoff.md`, in its Sources rows, and in its eval routes. That is the only cross-skill coupling it carries.
+By user instruction, this package is an orchestrator: it names its twenty-seven stage skills and its one companion skill in the stage map below, in `rules/workflow-routing.md`, in `rules/stage-handoff.md`, in its Sources rows, and in its eval routes. That is the only cross-skill coupling it carries.
 
 | Stage skill | What the stage produces |
 |---|---|
@@ -51,9 +51,13 @@ By user instruction, this package is an orchestrator: it names its twenty-three 
 | `hyper-frontend` | Frontend code built, fixed, matched to a reference, or checked in a real browser, with its report under `.hyper/frontend/<slug>/report.md`, or, before a plan, a `verify`-mode report of what breaks |
 | `hyper-feedback` | A product-language change request from the user, a client, or a planner, itemized, mapped to every affected surface, and applied and verified directly, with its report under `.hyper/feedback/<slug>/` and a `brief.md` for the items over its direct-edit budget |
 | `hyper-debug` | A runtime failure (stack trace, failing or intermittent test, crash, wrong output) reproduced and explained by a toggle-proven cause in `.hyper/debug/<slug>.md`, plus a minimal red-to-green fix when the user asked for one, or a fix brief for the plan stage when the fix spans several files |
+| `hyper-review` | A verdict on a change that already exists (a named diff, commit range, branch, pull request, or the working tree) saved under `.hyper/review/<slug>.md`: the leader's real-surface QA matrix, one independent read-only reviewer's eight-item rubric, test-quality and smell findings, the content identity the verdict is bound to, and `passed`, `failed`, or `inconclusive`; `review-and-fix` only when the user explicitly asked for repairs |
+| `hyper-cleanup` | Code, tests, or comments removed or consolidated without changing behavior, classified by category and placed on a delete-reuse-platform-simplify ladder, each test deletion proven by a restored source mutation, with a report under `.hyper/cleanup/<slug>.md` that ends in one `Result:` line |
 | `hyper-data` | An answer computed from a dataset (CSV, Parquet, JSON, or an export) saved as `.hyper/data/<slug>/report.md` with the answer first, then the query, grain, filters, null and duplicate handling, row counts, timing, and an input digest |
+| `hyper-handoff` | A state memo under `.hyper/handoff/<slug>/memo.md` (the original request verbatim, what is done and next, the done-when conditions, and where everything is) with its stand-alone check line, so a session with no conversation can continue from it; writing or checking one is a tail with nothing after it, and resuming from one is a re-entry step that runs first, takes no chain position, and leaves the remaining work to the run the memo points to |
 | `hyper-imagegen` | One generated or edited image, or one ready-to-use image prompt, delivered as the runtime's returned image or saved under `.hyper/imagegen/<topic>/`, with its terminal state and inspection record |
 | `hyper-plan` | A decision-complete plan under `.hyper/plans/<slug>.md`, which continues into execution by itself |
+| `hyper-debate` | An opt-in adversarial plan: five fixed perspectives argue through three rounds over saved receipts under `.hyper/debate/<slug>/`, one approval point settles the insight bundle, and only the surviving findings become the decision-complete plan under `.hyper/plans/<slug>.md`; it replaces `hyper-plan` for a request that asks for the debate, and never runs alongside it |
 | `hyper-execute` | An existing plan executed wave by wave and delivered locally, as a PR, or shipped |
 | `hyper-mass` | One phase of dependency-ordered work run as a graph under `.hyper/mass/<run-key>/` |
 | `hyper-loop` | Several dependent goals run to completion under `.hyper/loop/<slug>/`, each criterion proven by evidence bound to a worktree fingerprint, finished only by a `final-gate.json` with every criterion covered by non-stale evidence |
@@ -102,6 +106,8 @@ Positive requests:
 - "SEO 점검하고 GA4 측정까지 세팅해줘" -> `hyper-seo` -> `hyper-google-analytics`
 - "이 Next.js 사이트에 GTM 달고 구매 이벤트까지 태그로 보내줘. 컨테이너는 GTM-ABC1234." -> `hyper-google-tagmanager`
 - "이 CSV에서 지역별 월 매출 집계해줘." -> `hyper-data`
+- "컨텍스트 거의 찼어. 새 세션에서 이어서 할 수 있게 핸드오프 메모 써줘." -> `hyper-handoff`
+- "`.hyper/handoff/billing/memo.md` 읽고 이어서 작업해줘." -> `hyper-handoff` (resume) first, then the open run at its first unfinished stage
 - "이 목표 세 개 다 끝날 때까지 돌리고 dev에 머지·푸시해줘. 목표마다 테스트 통과가 기준이야." -> `hyper-loop` -> `hyper-git` (`&& dev`)
 - "상태관리 라이브러리 뭐 쓸지 비교해보고 골라서 적용까지 해줘." -> `hyper-research` -> `hyper-plan` -> `hyper-execute`
 - "2026년 국내 SaaS 가격 동향 인터넷 검색으로 조사해서 리포트로 줘." -> `hyper-research` with `hyper-browsing` as its companion for blocked sources
@@ -130,6 +136,10 @@ Positive requests:
 - "고객사 피드백 메일이야. 뭘 고쳐야 하는지 다 찾아서 반영하고 dev, main에 머지·푸시해줘." -> `hyper-feedback` -> `hyper-git` (`&& dev && main`)
 - "기획자 수정 요청: 정산 내역에 환불 건도 보이게, 화면 제목은 '정산 내역'으로. 끝까지 해줘." -> `hyper-feedback` -> `hyper-plan` -> `hyper-execute`, the plan stage running only because the feedback stage ended `handoff`
 - "이 테스트 가끔 실패하는데 왜 그런지 찾아서 고쳐줘. (`pnpm test src/orders` 10번 중 3번 실패)" -> `hyper-debug`, with `hyper-plan` added only when the debug stage ends `handoff`
+- "이 브랜치 변경만 리뷰해줘. 고치지는 말고 판정만. base는 `dev`야." -> `hyper-review` (review-only)
+- "Review PR #412 against `dev` and tell me whether it can merge." -> `hyper-review` (review-only)
+- "작업 트리 리뷰하고 확인된 블로커만 고쳐줘." -> `hyper-review` (review-and-fix)
+- "src/pricing/에 아무도 안 부르는 도우미들 정리해줘. 동작은 그대로." -> `hyper-cleanup`, with `hyper-git` only when the request also carries delivery words
 
 Negative requests:
 
@@ -145,10 +155,11 @@ Boundary requests:
 - "아키텍처 점검만 해줘." One stage, `hyper-architecture`, with no plan tail.
 - "리팩토링 계획만 세워줘." `hyper-architecture` -> `hyper-plan` with `--plan-only`; execution does not start.
 - "이 작업들 의존성 그래프로 단계별 병렬 실행해줘." `hyper-mass` replaces the plan and execute stages.
-- "어제 하던 거 이어서 해줘." An open workflow record resumes at its first unfinished stage; with none, an open execution state routes to `hyper-execute` alone.
+- "어제 하던 거 이어서 해줘." An open memo under `.hyper/handoff/` matching the branch is read first, then the open workflow record resumes at its first unfinished stage; with no record, an open execution state routes to `hyper-execute` alone. With none of those, this is not a handoff trigger.
 - "이 런북 정리하고 PR까지." `hyper-documentation` -> `hyper-git` in workflow mode; delivery words on a plan chain still go to `hyper-plan` instead.
 - "랜딩 페이지 디자인하고 히어로 이미지도 넣어줘." The interface is the deliverable, so `hyper-design` owns it; `hyper-imagegen` runs only when one image or one image prompt is the whole output.
 - "배포 런북 정리해줘." A document about deploying, so `hyper-documentation` owns it; `hyper-deploy` is for a deployment that runs, not for writing about one.
+- "이 프로젝트 MEMORY.md 정리해줘." A durable memory file is a document, so `hyper-documentation` owns it; `hyper-handoff` carries the state of work in progress and is rewritten, not kept.
 - "고객이 대시보드가 촌스럽대. 리디자인해줘." The look itself is the deliverable, so `hyper-design` owns it; `hyper-feedback` takes change requests against existing behavior and wording.
 - "새 요금제 페이지 만들어줘. 디자인은 알아서." The look is the open question, so `hyper-design` owns it alone; `hyper-frontend` joins (after `hyper-design` in `brief-only` mode) only when the request also names layout, state, or motion behavior to build and prove in a browser.
 - "GA4에 맞춤 측정기준 만들고 GTM 컨테이너에서 그 값 보내게 태그도 고쳐줘." `hyper-google-analytics` -> `hyper-google-tagmanager`: the property setting comes first and the container sends to it; a GTM-only install or tag change runs `hyper-google-tagmanager` alone.
@@ -162,6 +173,7 @@ Boundary requests:
 |---|---|
 | Refactor or restructure in a supported stack | `hyper-architecture` -> `hyper-plan` -> `hyper-execute` |
 | New feature, fix, or multi-step build | `hyper-plan` -> `hyper-execute`, with `hyper-architecture` first when the change crosses an architecture boundary |
+| Explicit adversarial or devil's-advocate planning opt-in ("찬반으로 붙여서 계획", "여러 관점으로 따져보고 계획", "red team this plan", "debate it then plan") | `hyper-debate` -> `hyper-execute`, in place of `hyper-plan`; the two never run in one chain, and a hard problem without those words stays on `hyper-plan` |
 | Library or technology choice, or unfamiliar external API, followed by implementation | `hyper-research` -> `hyper-plan` -> `hyper-execute` |
 | Issues to register ("이슈 등록해줘", "이슈로 남겨줘", "register these as issues"), issue numbers (`#1~3`, `#4, #7`), or a condition over open issues | `hyper-issue` -> `hyper-plan` -> `hyper-execute` by default, so registration runs through the lanes to the end; `hyper-issue` alone only with record-only words ("등록만", "이슈만", "작업은 하지 마") |
 | A request handed over by `hyper-issue` that names `.hyper/issues/<slug>/batch.md` and says the issue stage is done | `hyper-plan` -> `hyper-execute`, with `hyper-issue` recorded as `done` |
@@ -180,7 +192,10 @@ Boundary requests:
 | Frontend code built, fixed, matched to a screenshot or live page, or checked in a real browser: layout, overflow, responsive, state, or animation behavior | `hyper-frontend`, with `hyper-design` first in `brief-only` mode when the request also asks for a new look, and with `hyper-frontend` in `verify` mode before `hyper-plan` when the user asks for a PR or ship delivery or the change also needs API, data, or route work |
 | A change request in product language from the user, a client, or a planner (feedback, complaint, ticket, meeting notes, spec revision, new wording) against existing behavior | `hyper-feedback`; when it ends `handoff`, `hyper-plan` follows with its `brief.md` |
 | A runtime failure to explain or fix outside a deployment: a stack trace, a failing or intermittent test, a crash, or wrong output | `hyper-debug`; when it ends `handoff`, `hyper-plan` follows with its journal |
+| Code, tests, or comments to remove, simplify, deduplicate, or consolidate in a repository that already works, with the same observable behavior and the same public surface | `hyper-cleanup`; a request that really changes a public API, a signature, a dependency, or behavior is a different stage |
 | A question answered by computing over a dataset (a CSV, Parquet, or JSON file, or a spreadsheet or database export) | `hyper-data` alone; never followed by `hyper-git` |
+| A change that already exists to be reviewed: a named diff, commit range, branch, pull request, or the working tree, with review-only words such as "리뷰만", "판정만", "고치지는 마", "review this diff", "can this merge" | `hyper-review` in review-only mode alone, with no editing stage; review-and-fix only when the same request explicitly asks to repair the confirmed blockers |
+| Work that must continue from a short state memo: the context is nearly full, the session, agent, or machine is about to change, a handoff or continuation note is requested, or a memo is named to continue from | `hyper-handoff` in write or check mode alone, with nothing after it; a resume is a re-entry step that runs first and hands the remaining work to the open run at its first unfinished stage, and a delivery stage follows only on delivery words in the current request |
 | One new image, one edit of a supplied image, or one ready-to-use image prompt | `hyper-imagegen`, with `hyper-research` first when it depends on current external guidance or references; never followed by `hyper-git` |
 | A skill, document, MCP, decision-API, interface, frontend, database, GA4 analytics, tag manager, feedback, debug, or loop tail followed by commit-and-push or merge-and-push words, or a non-delivering tail followed by pull request words | the chain above, then `hyper-git` as the delivery stage |
 | A deployment readiness verdict, a first deployment setup, a deploy, a deployment configuration change, or a failed deployment to diagnose and fix | `hyper-deploy`, after the code chain when the same request also changes code, and never followed by `hyper-git` |
@@ -233,7 +248,7 @@ Write the route line, stage status lines, questions, the workflow record, and th
 
 | Phase | Task | Output |
 |---|---|---|
-| 0 | Check for an open workflow record or execution state to resume; otherwise classify the requested output | Resume point or job class |
+| 0 | On "이어서" / "continue", check in this order: a memo path named in the request, an open memo under `.hyper/handoff/` matching the current branch or worktree, the open workflow record, the open execution state. An open memo is read first in resume mode, then the record or run it points to resumes; a closed memo is ignored unless named. Otherwise classify the requested output | Resume point or job class |
 | 1 | Collect the selecting signals from the request and repository files, and choose the chain in the fixed stage order | Chain with one signal per stage |
 | 2 | Resolve delivery words, report-only words, and ambiguity (one question at most) | Delivery mode and final chain |
 | 3 | Print the Korean route line and write `.hyper/workflows/<slug>.md` | Route line and workflow record |
@@ -287,16 +302,17 @@ Phase rules:
 
 ## Sources
 
-> Checked 2026-11-09.
+> Checked 2026-11-10.
 
 | Claim | Source |
 |---|---|
-| The orchestrator role, the end-to-end run, and the user-directed exception that lets this package name its twenty-three stage skills and its companion skill | user instruction, 2026-11-06 (orchestrator role); the stage set extended to fifteen with `hyper-deploy` by user instruction, 2026-11-07, to sixteen with `hyper-feedback` by user instruction, 2026-11-07, to seventeen with `hyper-decision` by user instruction, 2026-11-08, to eighteen with `hyper-google-analytics` by user instruction, 2026-11-08, to nineteen with `hyper-debug` by user instruction, 2026-11-09 (issue #22), to twenty with `hyper-loop` by user instruction, 2026-11-09 (issue #21), to twenty-one with `hyper-data` by user instruction, 2026-11-09 (issue #25), to twenty-two with `hyper-google-tagmanager` by user instruction, 2026-11-09 (hyper routing refresh), and to the current twenty-three with `hyper-frontend` by user instruction, 2026-11-09 (issue #46); `hyper-browsing` attached to web-sourced research by user instruction, 2026-11-07 |
+| The orchestrator role, the end-to-end run, and the user-directed exception that lets this package name its twenty-seven stage skills and its companion skill | user instruction, 2026-11-06 (orchestrator role); the stage set extended to fifteen with `hyper-deploy` by user instruction, 2026-11-07, to sixteen with `hyper-feedback` by user instruction, 2026-11-07, to seventeen with `hyper-decision` by user instruction, 2026-11-08, to eighteen with `hyper-google-analytics` by user instruction, 2026-11-08, to nineteen with `hyper-debug` by user instruction, 2026-11-09 (issue #22), to twenty with `hyper-loop` by user instruction, 2026-11-09 (issue #21), to twenty-one with `hyper-data` by user instruction, 2026-11-09 (issue #25), to twenty-two with `hyper-google-tagmanager` by user instruction, 2026-11-09 (hyper routing refresh), to twenty-three with `hyper-frontend` by user instruction, 2026-11-09 (issue #46), to twenty-four with `hyper-handoff` by user instruction, 2026-11-10, to twenty-five with `hyper-debate` by user instruction, 2026-11-10 (issue #26), to twenty-six with `hyper-review` by user instruction, 2026-11-10 (issue #23), and to the current twenty-seven with `hyper-cleanup` by user instruction, 2026-11-10 (issue #24); `hyper-browsing` attached to web-sourced research by user instruction, 2026-11-07 |
 | The output, artifact path, and boundary of each stage skill | each stage skill's own `SKILL.md` in this repository, 2026-11-06 |
 | The plan stage continues into execution by itself and passes the delivery flag through | the plan skill's handoff rule in this repository, 2026-11-06 |
 | A sequential chain hands state forward through saved artifacts, and a router picks a branch by code-like rules | `instructions/graph-engineering/references/graph-patterns.md` |
 | Issue registration words and issue numbers run through `hyper-issue` into the lane batch by default, and a `hyper-issue` hand-off enters at the plan stage | user instruction, 2026-11-07 |
 | The `[Hyper]` trigger-first description, the bilingual package shape, and the one-level reference rule | `instructions/skill/SKILL_AUTHORING.md` |
+| Handoff write and check modes as a tail with nothing after them, resume mode as a re-entry step outside the chain and the four-stage cap, and the resume lookup order (named memo, open memo, workflow record, execution state) | this package's chosen design, not a validated optimum |
 
 ### Evidence grade
 

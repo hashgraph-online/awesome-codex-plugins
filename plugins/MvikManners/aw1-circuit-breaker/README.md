@@ -21,11 +21,7 @@ Get HOL Guard with `pipx install hol-guard` or `uv tool install hol-guard`.
 # AW-1 Circuit Breaker
 
 [![HOL Guard](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dmvikmanners%252Faw1-circuit-breaker%26metric%3Drelease)](https://hol.org/registry/plugins/mvikmanners%2Faw1-circuit-breaker?utm_source=hol_marketplace&utm_medium=plugins_badge&utm_campaign=plugins&utm_content=mvikmanners%2Faw1-circuit-breaker)
-
-
-
-
-
+[![mcptry](https://mcptry.com/badge/io.github.MvikManners/aw1-circuit-breaker)](https://mcptry.com/servers/io.github.MvikManners/aw1-circuit-breaker)
 [![Glama](https://glama.ai/mcp/servers/mvikmanners/aw1-circuit-breaker/badge)](https://glama.ai/mcp/servers/mvikmanners/aw1-circuit-breaker)
 
 [![PyPI version](https://img.shields.io/pypi/v/aw1-circuit-breaker.svg?color=blue)](https://pypi.org/project/aw1-circuit-breaker/)

@@ -1,6 +1,6 @@
 ---
 name: council
-description: 'Compare independent opinions from several models or contexts without inflating agreement. Use when: wanting a second opinion or debate, or summarizing several reviewers'' results.'
+description: 'Compare independent opinions from models or contexts without inflating agreement. Use when: wanting several opinions or a debate, or summarizing several reviewers'' results.'
 practices: [llm-eval-harness, design-by-contract]
 hexagonal_role: domain
 consumes: [explicit-question, evidence]
@@ -21,15 +21,19 @@ output_contract: council-report.v1 JSON (schemas/council-report.v1.schema.json) 
 
 # Council
 
-Council is an optional judgment strategy for hard questions where contrasting
-perspectives can expose alternatives, assumptions, or missed evidence. Use it
-when the caller selects multiple views for brainstorming, architecture or
-planning, or validation. Name the uncertainty that makes the additional
-contexts useful; routine work needs no council. Neighbours: one opinion or
-look-over is [Review](../review/SKILL.md), one adversarial challenge of a plan
-is [Premortem](../premortem/SKILL.md), one consequential choice for Plan is
-[Idea Genie](../idea-genie/SKILL.md), and an acceptance verdict is
-[Validate](../validate/SKILL.md).
+Council collects sealed judgments from independent contexts, then synthesizes
+them so that agreement from one model or one method counts once, dissent and
+the caller's own decisions survive, and no verdict comes out. Use it when the
+caller selects several views, or asks you to summarize views already collected,
+and name the uncertainty that makes the extra contexts worth their cost;
+routine work needs no council.
+
+| Use instead | When |
+|---|---|
+| [Review](../review/SKILL.md) | one opinion or look-over |
+| [Premortem](../premortem/SKILL.md) | how a plan could fail |
+| [Idea Genie](../idea-genie/SKILL.md) | options to build, or one consequential choice for Plan |
+| [Validate](../validate/SKILL.md) | an acceptance verdict |
 
 ## Rules that decide the synthesis
 
@@ -68,7 +72,7 @@ agreement on one.
 1. Freeze the question, constraints or acceptance, authorized evidence, and
    subject digest. Select participants, model pins, and real dispatch bounds;
    contexts stay in the author's model family unless the caller pins mixed
-   models through [model-dispatch](../agent-native/references/model-dispatch.md).
+   models through [model-dispatch](../validate/references/model-dispatch.md).
    The caller may give each participant its own model, effort and perspective
    (for example architect, reliability, security or simplicity); the same model
    in separate contexts counts as separate participants on the roster, but their
@@ -122,7 +126,7 @@ Load only the mode the caller selected:
   a majority cannot establish truth or acceptance.
 - Members scoring each other's ideas: [duel](references/duel.md).
 - A council answering an Interview: [interview panel](references/interview-panel.md).
-- A disagreement between validation judges that survives repair:
+- A disagreement between the legs of one validation read:
   [judge split](references/judge-split.md).
 
 ## Caller challenge

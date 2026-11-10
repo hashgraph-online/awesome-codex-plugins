@@ -1,0 +1,40 @@
+{
+  "name": "zenifra",
+  "version": "0.5.1",
+  "description": "Manage Zenifra projects and deploy from supported Git providers.",
+  "author": {
+    "name": "Zenifra"
+  },
+  "homepage": "https://zenifra.com/",
+  "repository": "https://github.com/zenifra/zenifra-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "zenifra",
+    "deploy",
+    "git",
+    "forgejo",
+    "projects",
+    "cloud",
+    "hosting"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Zenifra",
+    "shortDescription": "Manage and inspect Zenifra projects.",
+    "longDescription": "Use Zenifra from Codex to authenticate, manage projects, deploy from GitHub and Forgejo, and inspect builds, logs, health, metrics, and usage.",
+    "developerName": "Zenifra",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://zenifra.com/",
+    "defaultPrompt": [
+      "List my Zenifra projects.",
+      "Deploy a Zenifra project from GitHub or Forgejo.",
+      "Show my latest Zenifra builds.",
+      "Check my Zenifra project health and logs."
+    ],
+    "brandColor": "#0F766E"
+  }
+}

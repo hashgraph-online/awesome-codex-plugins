@@ -11,7 +11,7 @@ unknowns need observations, and caller choices need the caller.
    decision at stake. Preserve acceptance and scope unchanged. Use the author's
    proposal plus one fresh challenger by default, with distinct native context
    identity and only the inputs needed for this question. Follow
-   [model-dispatch](../../agent-native/references/model-dispatch.md) for actual
+   [model-dispatch](../../validate/references/model-dispatch.md) for actual
    authorization, same-family default, explicit cross-model selection and real
    remaining bounds. Method selection itself grants no dispatch authority.
    Without it, do not stand in as your own challenger: mark the claim as

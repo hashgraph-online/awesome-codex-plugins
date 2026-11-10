@@ -7,6 +7,8 @@ compatibility: Needs the sync. MCP server or a SYNC_API_KEY. See references/conn
 
 # Make a photo talk
 
+[sync. labs](https://sync.so) | [Talking photo guide](https://sync.so/docs/plugins-and-extensions/agent-skills/talking-photo)
+
 Delivers one MP4 of the picture speaking the user's words. The video is as long as the speech.
 
 If no sync. tools are available, follow [references/connect.md](references/connect.md) first. Without the MCP tools, use the REST requests in [references/api.md](references/api.md) for the same steps.

@@ -24,33 +24,38 @@ output_contract: schemas/premortem-plan-review.v1.schema.json
 
 # Premortem
 
-Premortem is an optional plan-challenge strategy. It asks one fresh context to
-identify concrete ways the resolved bead or caller intent could fail before implementation.
-It is not part of the required RPI sequence and does not authorize readiness.
+Before implementation, a context that did not write the plan runs three checks
+in order: who verifies each costly unit, which steps are one-way doors, and a
+constructed defeat for each premise the plan takes for granted. Report findings
+in the same order: a finding from the first or second check outranks any single
+technical risk the third check constructs.
+Premortem is an optional plan-challenge strategy, outside the required RPI
+sequence, and does not authorize readiness.
+
+| Use instead | When |
+|---|---|
+| [Review](../review/SKILL.md) | general advice on a plan or change |
+| [Validate](../validate/SKILL.md) | acceptance of a finished change |
+| [Council](../council/SKILL.md) | several independent views |
+
 [Plan's shared challenge method](../plan/references/challenge.md) owns optional
 exchange, dispatch and stopping rules; when no fresh context can be started,
 step 2's labelled self-judged fallback replaces its no-stand-in rule here.
-Premortem owns the three checks below. Neighbours: general advice is
-[Review](../review/SKILL.md), acceptance of a finished change is
-[Validate](../validate/SKILL.md), and several independent views are
-[Council](../council/SKILL.md).
-
-Run the checks in this order and report findings in the same order: a finding
-from the first or second check outranks any single technical risk the third
-check constructs.
 
 ## The first check: who verifies, and are they fresh?
 
 Test the plan's evidence shape before any technical risk: for every unit of
-work, who verifies it, and is the verifying context distinct from the one that
-authored it? CI and existing deterministic checks the author did not write
-count as distinct verifiers, and for an ordinary unit they are enough
-([Validate](../validate/SKILL.md#when-a-fresh-judgment-is-worth-it)). Two
-shapes are findings: a unit graded only by checks its author wrote, as in a
-closure step "the implementer runs its own tests and closes"; and a unit
-Validate lists as costly with no fresh author-distinct read. Report each shape
-once, listing its units. Self-graded green is the classic false-done, and it
-ranks first because it silently converts every other failure into a shipped one.
+work, who verifies it? For an ordinary unit the author's checks and CI are the
+gate, and that is not a finding
+([Validate](../validate/SKILL.md#when-a-fresh-judgment-is-worth-it)). A unit is
+costly when it meets a condition on Validate's list (a published release or
+user instructions, a security boundary, destroyed data or tracker state, a
+deleted protective check, behavior no deterministic check covers) or when a
+later one-way step depends on it. The finding is a costly unit whose only
+verification is checks its author wrote, with no check the author did not
+write and no fresh author-distinct read, as in a closure step "the implementer
+runs its own tests and closes" on a unit that guards authentication. Report
+the shape once, listing its units.
 
 ## The second check: which steps are one-way doors?
 
@@ -114,8 +119,9 @@ blocking fact is deleted, not softened.
 
 Observable in the output:
 
-- each unit names its verifier, and each self-verification shape is one
-  finding listing its units;
+- each unit names its verifier, and self-verification of costly units is one
+  finding listing those units; an ordinary unit graded by its author's checks
+  and CI is no finding;
 - each step is marked, and each one-way mark names its undo cost and point of
   no return;
 - each finding cites a defeat attempt or the fact that blocked it;
@@ -144,26 +150,7 @@ Checked: <what was examined>. Not checked: <what was not>.
 Independence: <judge context, distinct from author> or "missing: <reason>"
 ```
 
-`<skill-dir>` is the directory that contains this SKILL.md. Claude Code shows it
-as "Base directory for this skill"; Codex lists this skill's SKILL.md path; in
-an AgentOps source checkout it is `skills/premortem`. Replace `<skill-dir>` with
-that absolute path before running a command. The working directory stays the
-user's repository. If the host did not show where this skill is installed, use
-the directory of the SKILL.md you read. If you cannot determine it, do not guess
-a path or run a same-named script from the current repository; say the bundled
-script is unavailable and check the review's fields by hand against its
-[schema](schemas/premortem-plan-review.v1.schema.json).
-
-When the caller requests a durable review, return `premortem-plan-review.v1`
-and check it with `bash "<skill-dir>/scripts/validate-output.sh" <review.json>`. Its
-`intent_digest` is the 64-hex SHA-256 of the exact intent text as supplied:
-`shasum -a 256 plan.md | cut -d' ' -f1` for a file, or
-`printf '%s' "$TEXT" | shasum -a 256 | cut -d' ' -f1` for pasted text.
-`author_context_id` names who wrote the plan (the caller, or that session's ID)
-and `judge_context_id` names this context. The form has no fields for verifiers
-or step marks, so it is lossy: record each inline `Verifiers:` and `Steps:` line
-verbatim in `checked`, and put each finding's construction or blocking fact in
-its `evidence`. The validator rejects identical author and judge IDs but
-checks only that the strings differ, not that an independent judge ran, so a
-review without one stays inline. An empty finding set means only that this
+When the caller requests a durable review, follow
+[durable review](references/durable-review.md) to return and check
+`premortem-plan-review.v1`. An empty finding set means only that this
 optional challenge found no concrete defect; it is never a lifecycle gate.

@@ -52,11 +52,14 @@ python3 scripts/activitywatch_summary.py --start YYYY-MM-DD --end YYYY-MM-DD --f
 python3 scripts/activitywatch_summary.py --start YYYY-MM-DD --end YYYY-MM-DD --format tsv --table apps
 python3 scripts/activitywatch_summary.py --start YYYY-MM-DD --end YYYY-MM-DD --format tsv --table browser
 python3 scripts/activitywatch_summary.py --start YYYY-MM-DD --end YYYY-MM-DD --format tsv --table timeline
+python3 scripts/activitywatch_summary.py --start YYYY-MM-DD --end YYYY-MM-DD --format tsv --table categories
 ~~~
 
 Use --timezone Area/City only when the user explicitly requests a timezone different from the Mac system timezone.
 
-Use --min-tab-seconds 120 for a compact browser table. The default value is 0, which includes every normalized foreground browser page.
+The default browser display threshold is 120 accumulated foreground seconds. Use
+`--min-tab-seconds 0` when the user asks for every grouped foreground page; the
+report still records omitted short visits in `browser_short_visits`.
 
 3. Use JSON data to reconstruct daily activities from application names and sanitized titles.
 4. Mark an activity confirmed when a title directly supports it. Otherwise mark it unknown context.
@@ -64,6 +67,12 @@ Use --min-tab-seconds 120 for a compact browser table. The default value is 0, w
    - first_seen to last_active is an observation span and may contain gaps.
    - active_duration is accumulated confirmed foreground time.
 6. If ActivityWatch is unavailable or empty, use the fallback workflow and label unavailable metrics.
+
+Activity categories are deterministic and local-only: development,
+communication, research, email, creative, system, or other. `main_focus` is
+the category with the greatest accumulated active time; ties use the fixed
+category order. Generic browser titles such as a new-tab page remain
+`other` / `unknown context`.
 
 ## Required Output Contract
 
@@ -89,7 +98,7 @@ Include one row per day with:
 | Active time | Merged not-afk time |
 | Away time | Covered time not classified as active |
 | Untracked time | Time outside ActivityWatch coverage |
-| Main focus | Best-supported daily theme |
+| Main focus | Highest-duration deterministic category; do not overstate intent |
 
 Include a total row for multi-day reports.
 
@@ -144,6 +153,8 @@ State:
 - First-to-last spans are not continuous use.
 - Tracking covers only periods when ActivityWatch was running.
 - Browser data covers foreground titles only and does not come from browser history.
+- A report with no required ActivityWatch events is unavailable; do not replace
+  it with invented zero-duration totals.
 
 ## Table Export
 

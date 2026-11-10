@@ -21,9 +21,12 @@
 | `hyper-frontend` | 계획이나 mass 단계 앞에서는 "`verify` 모드만: 실제 브라우저에서 무엇이 깨지는지 파일 경로와 캡처 매트릭스와 함께 보고, 수정 금지"와 대상 경로, 모든 앞 단계 산출물 경로. `brief-only` 모드의 `hyper-design` 뒤에서는 사용자 요청 그대로와 그 안에서 만들 모습인 브리프 경로. 마지막 단계일 때는 사용자 요청 그대로와 모든 앞 단계 산출물 경로 | `.hyper/frontend/<slug>/report.md`. `Result:` 줄 하나(`delivered`, `delivered_unverified`, `awaiting_input`, `blocked`)로 끝나고 스크롤 소유권, 상태 매트릭스, `static`·`rendered`·`not verified` 라벨이 붙은 주장별 증거를 담음 | `hyper-git`이 뒤따르면 바뀐 경로, `hyper-plan`이 뒤따르면 보고서 경로와 발견 사항 |
 | `hyper-feedback` | 사용자 요청 그대로와 인용한 피드백 원문, 작성자나 전달 경로, 사용자의 제약, 모든 앞 단계 산출물 경로 | 항목별 상태와 검증 절(명령과 출력, 잔여 검색 결과)을 담은 `.hyper/feedback/<slug>/report.md`. 실행이 `handoff`로 끝났으면 `.hyper/feedback/<slug>/brief.md`도 | `hyper-git`이 뒤따르면 바뀐 경로, `hyper-plan`을 덧붙이면 브리프 경로와 전달 플래그 |
 | `hyper-debug` | 사용자 요청 그대로와 실패 근거(트레이스 발췌, 실패한 명령이나 테스트 이름, 관찰한 출력과 기대한 출력), 수정을 요청했는지, 사용자의 제약, 모든 앞 단계 산출물 경로 | `Result:` 줄 하나(`confirmed`, `fixed`, `handoff`, `unconfirmed`, `awaiting_input`, `blocked`)로 끝나는 `.hyper/debug/<slug>.md`. 재현 방법, 확인한 원인의 토글 증명, `fixed`면 빨강에서 초록으로 바뀐 명령 출력을 담습니다 | `hyper-git`이 뒤따르면 바뀐 경로, `hyper-plan`을 덧붙이면 기록 경로와 전달 플래그 |
+| `hyper-cleanup` | 사용자 요청 그대로와 정리할 파일 목록이나 diff, 동작을 잠그는 테스트 명령, 사용자의 전달 단어, 앞 단계 산출물 경로 전부 |
 | `hyper-data` | 사용자 요청 그대로와 질문, 데이터셋 경로, 요청에 있으면 읽는 사람의 시간대, 앞 단계 산출물 경로 전부 | `Result:` 줄 하나(`answered`, `prerequisite_missing`, `awaiting_input`, `blocked`)로 끝나는 `.hyper/data/<slug>/report.md`. 답을 먼저 쓰고, `answered`면 쿼리, 행 수, 소요 시간, 입력 digest를 담습니다 | - |
+| `hyper-handoff` | 사용자 요청 그대로, 모드(쓰기, 확인, 이어받기), 지목한 메모 경로나 slug, 앞 단계 산출물 경로 전부 | `Check:` 줄(`pass`, `unverified-standalone: <질문 번호>`, `self: pass`, `self: fail: <질문 번호>`, `skipped by user` 중 하나)이 있는 `.hyper/handoff/<slug>/memo.md`. 이어받기 모드는 세 줄 되풀이 | - |
 | `hyper-imagegen` | 사용자 요청 그대로, 있으면 제공한 편집 원본이나 참고 자료 경로, 모든 앞 단계 산출물 경로 | 종료 상태 한 줄(`generated_verified`, `generated_caveated`, `prompt_saved`, `awaiting_input`, `blocked` 중 하나)과 그 근거. 런타임이 돌려준 이미지 기록이나 `.hyper/imagegen/<topic>/` 아래 파일의 상대 경로와 digest | - |
 | `hyper-plan` | 사용자의 원래 요청, 꼭 읽어야 할 앞 단계 산출물 경로 전부, 전달 플래그, 사용자가 말했다면 `--plan-only`나 승인 보류 | `## Handoff` 섹션이 있는 `.hyper/plans/<slug>.md` | 없음. 이 단계가 스스로 `hyper-execute`로 이어집니다 |
+| `hyper-debate` | 토론을 선택한 표현이 그대로 들어간 사용자의 원래 요청, 꼭 읽어야 할 앞 단계 산출물 경로 전부, 전달 플래그. 승인 지점은 정확히 한 번이고 두 번째 질문을 하지 않는다는 점을 함께 넘깁니다 | `.hyper/debate/<slug>/` 영수증(라운드 1~3과 장부)과, 같은 계획 모양으로 쓴 `.hyper/plans/<slug>.md`. 묶음 끝의 `Result:`는 `planned`, `reduced-planned`, `awaiting-approval`, `declined`, `blocked` 중 하나 | 없음. 승인 뒤에 이 단계가 스스로 `hyper-execute`로 이어집니다 |
 | `hyper-execute` | 계획 slug와 전달 플래그 | `status`가 `complete`인 `.hyper/execute/<slug>/state.json`과 출력된 완료 블록 | - |
 | `hyper-mass` | 목표, 성공 기준, 앞 단계 산출물 경로 전부 | `status`가 `completed`인 `run.settled` 이벤트로 끝나는 `.hyper/mass/<run-key>/run.jsonl` | - |
 | `hyper-loop` | 사용자 요청 그대로와 그 목표·기준, 재개라면 루프 slug, 사용자의 제약, 앞 단계 산출물 경로 전부 | `status`가 `complete`, `blocked`, `paused` 중 하나인 `.hyper/loop/<slug>/final-gate.json`. `complete`면 종료 코드 0으로 끝난 `verify-loop-state.sh --final` 실행 결과 | `hyper-git`이 뒤따를 때는 바뀐 경로 |
@@ -102,6 +105,8 @@
 | `hyper-debug`가 `unconfirmed`로 끝남 | `Assumption:` 줄과 그것을 확인할 점검을 적어 `done`으로 표시합니다. 고칠 대상이 증명되지 않았으므로 `hyper-git`이나 `hyper-plan` 단계는 시작하지 않습니다 |
 | `hyper-debug`가 `awaiting_input`으로 끝남 | 그 단계의 질문 하나를 그대로 전하고 `stopped`로 표시합니다. 답을 받으면 같은 단계부터 재개합니다 |
 | `hyper-data`가 `awaiting_input`이나 `prerequisite_missing`으로 끝남 | 그 단계의 질문 하나, 또는 없는 엔진과 설치 명령을 그대로 전하고 `stopped`로 표시합니다. 답을 받거나 설치한 뒤 같은 단계부터 재개합니다 |
+| `hyper-handoff`가 `Check: unverified-standalone: <질문 번호>`나 `Check: self: fail: <질문 번호>`로 끝남 | `done`으로 표시하고 실패한 질문 번호를 마무리 보고에 단서로 넘깁니다. `hyper-git` 단계는 뒤따르지 않습니다 |
+| `hyper-handoff`가 찾지 못한 사실 때문에 멈춤 | 빠진 사실 하나를 그대로 전하고 `stopped`로 표시합니다. 답을 받으면 같은 단계부터 재개합니다 |
 | `hyper-loop`가 `blocked`나 `paused`로 끝남 | `final-gate.json`의 목표와 실패 서명이나 멈춘 이유를 적어 `stopped`로 표시합니다. `hyper-git` 단계는 시작하지 않고, "이어서"를 받으면 `.hyper/loop/<slug>/`에서 루프를 재개합니다 |
 | `hyper-frontend`가 `delivered_unverified`로 끝남 | `done`으로 표시하고 보고서의 없었던 브라우저 기능을 마무리 보고에 주의 사항으로 옮깁니다. `hyper-git` 단계는 사용자의 전달 단어가 있을 때만 이어집니다 |
 | `hyper-frontend`가 `awaiting_input`으로 끝남 | 그 단계의 질문 하나를 그대로 전하고 `stopped`로 표시합니다. 답을 받으면 같은 단계부터 재개합니다 |
@@ -123,7 +128,7 @@
 ## 6. 재라우팅과 재개
 
 - 재라우팅: 단계가 요청의 결과물 형태가 다르다고 하면(계획 단계가 사실은 리서치 작업이라고 보고함) 그 근거로 `rules/workflow-routing.md`에 따라 체인을 다시 만들고, 두 체인을 모두 기록한 뒤 계속합니다. 두 번째로 형태가 맞지 않으면 실행을 멈춥니다.
-- 재개: "이어서" / "resume"이면 `상태`가 `running`이나 `stopped`인 가장 최근 기록을 읽고, 멈춘 단계의 차단 요인이 사라졌는지 확인한 뒤 `done`도 `skipped`도 아닌 첫 단계부터 다시 시작합니다. 기록이 없으면 열린 실행 상태를 `hyper-execute` 단독으로 이어갑니다.
+- 재개: "이어서" / "continue"이면 이 순서로 이어갈 대상을 찾습니다. 요청에서 지목한 메모 경로, 현재 브랜치나 워크트리와 맞는 `.hyper/handoff/` 아래 열린 메모, 열린 워크플로 기록, 열린 실행 상태. 열린 메모는 이어받기 모드로 먼저 읽고, 그다음 메모가 가리키는 기록이나 실행을 이어갑니다. 닫힌 메모는 사용자가 지목하지 않으면 무시합니다. 기록이 있으면 멈춘 단계의 차단 요인이 사라졌는지 확인하고 `done`도 `skipped`도 아닌 첫 단계부터 다시 시작합니다. 기록은 없고 열린 실행 상태만 있으면 `hyper-execute` 단독으로 보냅니다. 셋 다 없는 평범한 "이어서 해줘"는 핸드오프 트리거가 아닙니다. 체인 중간에 쓴 메모는 `Where`에 워크플로 기록 경로를 적고, 기록은 그대로 두며 다음 세션은 메모를 먼저 읽습니다.
 
 ## 7. 마무리 보고
 
@@ -131,13 +136,14 @@
 
 ## Sources
 
-> Checked 2026-11-09.
+> Checked 2026-11-10.
 
 | Claim | Source |
 |---|---|
-| 단계 산출물 경로와 상태 값(`.hyper/research/`, `.hyper/seo/<slug>/`, `.hyper/google-analytics/<slug>/report.md`와 그 열 가지 종료 상태, `.hyper/gtm/<slug>/report.md`와 그 다섯 가지 결과, `.hyper/database/<slug>/report.md`, `.hyper/mcp/<slug>/report.md`, `.hyper/decision/<topic>/`와 그 검사기 경로, `.hyper/design/<slug>/brief.md`와 `report.md`, `.hyper/frontend/<slug>/report.md`와 프런트엔드 단계의 네 종료 상태, `.hyper/feedback/<slug>/report.md`와 `brief.md` 및 변경 요청 단계의 실행 종료 상태, `.hyper/debug/<slug>.md`와 디버그 단계의 여섯 종료 상태, `.hyper/loop/<slug>/final-gate.json`과 그 세 가지 상태, `.hyper/data/<slug>/report.md`와 데이터 단계의 네 종료 상태, `.hyper/imagegen/<topic>/`와 이미지 단계의 다섯 종료 상태, `.hyper/deploy/<slug>/report.md`와 그 아홉 가지 결과 값, `.hyper/plans/<slug>.md`, `state.json` `status`, `run.settled`, `skills/<name>/SKILL.md`, 문서 산출물 경로, Git 전달의 원격 브랜치 확인) | 이 저장소의 각 단계 스킬 `SKILL.md`와 references, 2026-11-09 |
+| 단계 산출물 경로와 상태 값(`.hyper/research/`, `.hyper/seo/<slug>/`, `.hyper/google-analytics/<slug>/report.md`와 그 열 가지 종료 상태, `.hyper/gtm/<slug>/report.md`와 그 다섯 가지 결과, `.hyper/database/<slug>/report.md`, `.hyper/mcp/<slug>/report.md`, `.hyper/decision/<topic>/`와 그 검사기 경로, `.hyper/design/<slug>/brief.md`와 `report.md`, `.hyper/frontend/<slug>/report.md`와 프런트엔드 단계의 네 종료 상태, `.hyper/feedback/<slug>/report.md`와 `brief.md` 및 변경 요청 단계의 실행 종료 상태, `.hyper/debug/<slug>.md`와 디버그 단계의 여섯 종료 상태, `.hyper/loop/<slug>/final-gate.json`과 그 세 가지 상태, `.hyper/data/<slug>/report.md`와 데이터 단계의 네 종료 상태, `.hyper/handoff/<slug>/memo.md`와 그 다섯 가지 `Check:` 값, `.hyper/imagegen/<topic>/`와 이미지 단계의 다섯 종료 상태, `.hyper/deploy/<slug>/report.md`와 그 아홉 가지 결과 값, `.hyper/plans/<slug>.md`, `state.json` `status`, `run.settled`, `skills/<name>/SKILL.md`, 문서 산출물 경로, Git 전달의 원격 브랜치 확인) | 이 저장소의 각 단계 스킬 `SKILL.md`와 references, 2026-11-09 |
 | 계획 단계의 `## Handoff` 줄과 실행으로 자동 연결 | 이 저장소의 계획 스킬 handoff 규칙, 2026-11-06 |
 | 아키텍처 단계가 지원하지 않는 스택에서 멈추고 없는 스킬의 설치 명령을 보고함 | 이 저장소의 아키텍처 스킬 stack-detection 규칙, 2026-11-06 |
 | 채팅이 아니라 저장된 산출물과 지속 상태로 전달 | `instructions/harness-engineering/HARNESS_ENGINEERING.md` |
 | 워크플로 기록 형태, 건너뜀 규칙, 한 번의 재라우팅 | 이 패키지가 고른 설계이며 검증된 최적값이 아님 |
 | `hyper-browsing` 동반 규칙: 호출마다 막힌 출처 하나, 체인을 멈추지 않는 종료 상태, 보고서 존재 확인 | 이 패키지가 고른 설계이며 검증된 최적값이 아님 |
+| 재개 대상을 찾는 순서(지목한 메모, 열린 메모, 워크플로 기록, 실행 상태), 닫힌 메모 규칙, 평범한 이어서 요청 제외, 중간에 쓴 메모가 기록을 그대로 두는 규칙 | 이 패키지가 고른 설계이며 검증된 최적값이 아님 |

@@ -22,7 +22,7 @@ through [supported connectors](#connectors).
 [![PyPI](https://img.shields.io/pypi/v/exmergo-dex-core?logo=pypi&logoColor=white&color=165dfc)](https://pypi.org/project/exmergo-dex-core/)
 [![License](https://img.shields.io/badge/license-Apache--2.0-165dfc)](LICENSE)
 [![data-eng-bench](https://img.shields.io/badge/data--eng--bench-57%25-33cf56)](benchmarks/data-eng-bench/README.md)
-[![ADE-bench](https://img.shields.io/badge/ADE--bench-76%25-33cf56)](benchmarks/ade_bench/README.md)
+[![ADE-bench](https://img.shields.io/badge/ADE--bench-80%25-33cf56)](benchmarks/ade_bench/README.md)
 [![CI](https://github.com/exmergo/dex/actions/workflows/ci.yml/badge.svg)](https://github.com/exmergo/dex/actions/workflows/ci.yml)
 
 [![Docs](https://img.shields.io/badge/docs-docs.exmergo.com%2Fdex-165dfc?logo=readthedocs&logoColor=white)](https://docs.exmergo.com/dex)
@@ -320,9 +320,12 @@ raw per-task results, including the ones that flatter us least.
 | Benchmark | Setup | Result | Details |
 |---|---|---|---|
 | **data-eng-bench** (Snowflake, 103 tasks) | Dex + Claude Sonnet 5 | **57.3%** resolved, 89.7% of assertions pass | [README](benchmarks/data-eng-bench/README.md) |
-| **ADE-bench** (dbt Labs, 75 tasks) | Dex + Claude Sonnet 5 | **76%** resolved, at 2.5x lower cost than Fable 5 | [README](benchmarks/ade_bench/README.md) |
+| **ADE-bench** (dbt Labs, 75 tasks) | Dex 1.17.4 + Claude Sonnet 5.5 | **80%** resolved vs 73.3% without Dex; **25% fewer failures** | [README](benchmarks/ade_bench/README.md) |
 
-<img width="719" height="283" alt="ADE-bench accuracy and cost by model" src="https://github.com/user-attachments/assets/9f8bca64-6508-4590-9fa7-bb1ac077263d" />
+On ADE-bench, the same Claude Sonnet 5.5 model solves **60 of 75 tasks with Dex**,
+compared with **55 without it**: **+6.7 percentage points**, with net gains across
+six of seven projects. Both configurations make one scored attempt per task.
+[Compare the runs and raw results](benchmarks/ade_bench/README.md).
 
 We believe that benchmarks are important, but not as important as user/agent experience.  
 Trust in a diff, cost surfaced before spend, and sensitive data kept out of context. We optimize for that experience

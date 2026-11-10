@@ -1,55 +1,7 @@
 {
   "schema_version": "3",
-  "skill_count": 31,
+  "skill_count": 28,
   "skills": [
-    {
-      "canonical_status": "canonical",
-      "capabilities": [
-        "role_dispatch",
-        "observe_workers",
-        "handoff",
-        "dispatch_once"
-      ],
-      "consumes": [
-        "explicit-role-packets"
-      ],
-      "context_rel": [
-        {
-          "kind": "customer-of",
-          "with": "codex-exec"
-        },
-        {
-          "kind": "customer-of",
-          "with": "claude-exec"
-        },
-        {
-          "kind": "customer-of",
-          "with": "agy-native"
-        }
-      ],
-      "dependencies": [],
-      "description": "Dispatch independent tasks to parallel workers or subagents without write collisions. Use when: running or planning agents in parallel, even two; check scopes before any launch.",
-      "disposition": "keep_optional_adapter",
-      "effects": [
-        "manage_runtime_sessions",
-        "invoke_selected_executor"
-      ],
-      "graph_root": false,
-      "hexagonal_role": "supporting",
-      "name": "agent-native",
-      "practices": [
-        "team-topologies",
-        "design-by-contract"
-      ],
-      "produces": [
-        "runtime-evidence",
-        "worker-handoff",
-        "per-packet-results"
-      ],
-      "references_count": 6,
-      "tier": "meta",
-      "user_invocable": true
-    },
     {
       "canonical_status": "canonical",
       "capabilities": [
@@ -219,7 +171,7 @@
       ],
       "context_rel": [],
       "dependencies": [],
-      "description": "Compare independent opinions from several models or contexts without inflating agreement. Use when: wanting a second opinion or debate, or summarizing several reviewers' results.",
+      "description": "Compare independent opinions from models or contexts without inflating agreement. Use when: wanting several opinions or a debate, or summarizing several reviewers' results.",
       "disposition": "keep_strategy",
       "effects": [
         "write_advisory_council_report"
@@ -304,7 +256,7 @@
         "documentation",
         "session-handoff"
       ],
-      "references_count": 14,
+      "references_count": 10,
       "tier": "product",
       "user_invocable": true
     },
@@ -333,7 +285,7 @@
       "produces": [
         "domain-language-guidance"
       ],
-      "references_count": 3,
+      "references_count": 2,
       "tier": "knowledge",
       "user_invocable": true
     },
@@ -422,7 +374,7 @@
         "idea-portfolio.v1",
         "idea-challenge.v1"
       ],
-      "references_count": 3,
+      "references_count": 4,
       "tier": "execution",
       "user_invocable": true
     },
@@ -585,33 +537,55 @@
       "capabilities": [
         "coordinate_native_work",
         "recover_assignments",
-        "reconcile_feedback"
+        "reconcile_feedback",
+        "role_dispatch",
+        "observe_workers",
+        "dispatch_once"
       ],
       "consumes": [
         "accepted-intent",
         "native-work-state",
-        "candidate-evidence"
+        "candidate-evidence",
+        "explicit-role-packets"
       ],
-      "context_rel": [],
+      "context_rel": [
+        {
+          "kind": "customer-of",
+          "with": "codex-exec"
+        },
+        {
+          "kind": "customer-of",
+          "with": "claude-exec"
+        },
+        {
+          "kind": "customer-of",
+          "with": "agy-native"
+        }
+      ],
       "dependencies": [],
-      "description": "Coordinate several workers: what idle agents do next, which finished work gets checked first, how to recover a dead one. Use when: managing multiple agents.",
+      "description": "Dispatch independent tasks to parallel workers without write collisions, decide what each does next, and recover dead ones. Use when: running or managing two or more agents.",
       "disposition": "keep",
       "effects": [
         "dispatch_authorized_workers",
-        "update_native_handoffs"
+        "update_native_handoffs",
+        "manage_runtime_sessions",
+        "invoke_selected_executor"
       ],
       "graph_root": true,
       "hexagonal_role": "supporting",
       "name": "orchestrate",
       "practices": [
         "team-topologies",
-        "evidence-based-engineering"
+        "evidence-based-engineering",
+        "design-by-contract"
       ],
       "produces": [
         "native-handoffs",
-        "reconciled-feedback"
+        "reconciled-feedback",
+        "runtime-evidence",
+        "per-packet-results"
       ],
-      "references_count": 1,
+      "references_count": 6,
       "tier": "execution",
       "user_invocable": true
     },
@@ -699,7 +673,7 @@
       "produces": [
         "premortem-plan-review.v1"
       ],
-      "references_count": 1,
+      "references_count": 2,
       "tier": "judgment",
       "user_invocable": true
     },
@@ -787,36 +761,6 @@
     {
       "canonical_status": "canonical",
       "capabilities": [
-        "reverse_engineer"
-      ],
-      "consumes": [],
-      "context_rel": [],
-      "dependencies": [],
-      "description": "Tear down a competitor's repo or product into a feature inventory and adoption choices. Use when: comparing us to another tool or asking what to steal.",
-      "disposition": "keep_specialist",
-      "effects": [
-        "clone_upstream_repo",
-        "authorized_binary_execution",
-        "write_teardown_artifacts"
-      ],
-      "graph_root": false,
-      "hexagonal_role": "supporting",
-      "name": "reverse-engineer",
-      "practices": [
-        "legacy-code-seams",
-        "ddd-bounded-context",
-        "adr"
-      ],
-      "produces": [
-        ".agents/scratch/reverse-engineer/*/"
-      ],
-      "references_count": 3,
-      "tier": "execution",
-      "user_invocable": true
-    },
-    {
-      "canonical_status": "canonical",
-      "capabilities": [
         "review_advisory",
         "identify_supported_findings",
         "report_review_gaps"
@@ -880,9 +824,7 @@
       "practices": [
         "design-by-contract"
       ],
-      "produces": [
-        "rpi-report.v1"
-      ],
+      "produces": [],
       "references_count": 2,
       "tier": "meta",
       "user_invocable": true
@@ -1030,7 +972,7 @@
       "produces": [
         "test-evidence"
       ],
-      "references_count": 10,
+      "references_count": 6,
       "tier": "execution",
       "user_invocable": true
     },
@@ -1072,44 +1014,7 @@
         "triage-outcome",
         "agent-ready-brief"
       ],
-      "references_count": 0,
-      "tier": "execution",
-      "user_invocable": true
-    },
-    {
-      "canonical_status": "canonical",
-      "capabilities": [
-        "observe_gc_runtime",
-        "inspect_pack_registries",
-        "drive_mayor_door"
-      ],
-      "consumes": [
-        "accepted-intent"
-      ],
-      "context_rel": [
-        {
-          "kind": "supplier-to",
-          "with": "orchestrate"
-        }
-      ],
-      "dependencies": [],
-      "description": "Operate Gas City through its own doors: Mayor, doctor and native run state. Use when: Gas City is selected or a gc run looks stuck.",
-      "disposition": "keep_optional_adapter",
-      "effects": [
-        "operate_gas_city",
-        "configure_codex_trust"
-      ],
-      "graph_root": false,
-      "hexagonal_role": "driving-adapter",
-      "name": "using-gc",
-      "practices": [
-        "team-topologies",
-        "design-by-contract"
-      ],
-      "produces": [
-        "gas-city-runtime-evidence"
-      ],
-      "references_count": 2,
+      "references_count": 1,
       "tier": "execution",
       "user_invocable": true
     },
@@ -1153,7 +1058,7 @@
         "validation-result",
         "verdict.v2"
       ],
-      "references_count": 2,
+      "references_count": 4,
       "tier": "judgment",
       "user_invocable": true
     }

@@ -23,13 +23,17 @@ output_contract: 'advisory findings or an honest no-finding result, with source 
 
 # Review
 
-Give useful, supported advice on the caller's plan, design or change, in the
-existing conversation. Review does not accept the subject, issue `PASS`, `FAIL`
-or `NOT_PROVEN`, or author `verdict.v2`. Neighbours: how a plan could fail is
-[Premortem](../premortem/SKILL.md); whether a stated claim holds is
-[Research](../research/SKILL.md#claimed-state-audit); an acceptance verdict is
-[Validate](../validate/SKILL.md); several independent views are
-[Council](../council/SKILL.md).
+Return located, evidence-backed findings on the caller's plan, design or
+change, state what was and was not inspected, and say that the advice is not
+acceptance. Review does not accept the subject, issue `PASS`, `FAIL` or
+`NOT_PROVEN`, or author `verdict.v2`.
+
+| Use instead | When |
+|---|---|
+| [Premortem](../premortem/SKILL.md) | how a plan could fail |
+| [Research](../research/SKILL.md#claimed-state-audit) | whether a stated claim holds |
+| [Validate](../validate/SKILL.md) | an acceptance verdict |
+| [Council](../council/SKILL.md) | several independent views |
 
 ## Rules an unaided review misses
 

@@ -4,7 +4,7 @@
 
 A Lean *quality system* for AI-assisted work — operators turn recurring defects into countermeasures. Built by a manufacturing operator, for people who actually ship.
 
-![License: MIT](https://img.shields.io/badge/License-MIT-black.svg) ![Kit: v1](https://img.shields.io/badge/kit-v1-blue.svg) ![Tests](https://github.com/PrimeFoldTools/andon/actions/workflows/tests.yml/badge.svg) [![HOL registry: listed](https://img.shields.io/badge/HOL%20registry-listed-2C6E8F)](https://hol.org/registry/plugins/primefoldtools%2Fandon)
+![License: MIT](https://img.shields.io/badge/License-MIT-black.svg) ![Kit: v1](https://img.shields.io/badge/kit-v1-blue.svg) ![Tests](https://github.com/PrimeFoldTools/andon/actions/workflows/tests.yml/badge.svg) [![Andon trust badge](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dprimefoldtools%252Fandon%26metric%3Dtrust%26style%3Dflat)](https://hol.org/registry/plugins/primefoldtools%2Fandon)
 
 > *Andon* is the cord on a Toyota line you pull to stop production when something's wrong. This is that cord for AI work: catch the defect, investigate it, and add a countermeasure.
 
@@ -26,6 +26,8 @@ Most "AI tips" make the *output* a little better. Recurring defects also need ex
 **The fix isn't a better prompt. It's an operating discipline — borrowed from a factory floor.** Use the same discipline in AI work: record a defect, investigate its cause, and add a countermeasure. Where practical, add a mechanical check and test both the failure and a legitimate passing case. Checks have limits; keep those visible.
 
 The aim: **retain what you learned and check whether the countermeasure works.**
+
+**This is not a memory tool.** Memory remembers the lesson. A countermeasure makes the mistake harder to repeat. ([Why that matters →](#why-this-and-not-the-20-other-memory-repos))
 
 ---
 

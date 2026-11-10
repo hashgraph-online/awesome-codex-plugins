@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "optiondesk": {
+      "type": "stdio",
+      "command": "optiondesk-mcp",
+      "args": []
+    }
+  }
+}

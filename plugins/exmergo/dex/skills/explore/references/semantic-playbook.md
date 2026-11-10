@@ -248,6 +248,17 @@ read differently:
   Bucket time with `--grain month`, which applies to the model's
   `default_time_dimension` (its `time_axis` in `list`). Order only by a metric or
   a column you grouped by, with `-` for descending (`--order-by=-orders.revenue`).
+- **A list column groups by its elements, `model.column.value`.** A column
+  declared `type: ARRAY` is listed with `groupable: false` and its
+  `element_type`; its elements are the token to group by and to read with
+  `values` (`--group-by posts.tags.value`, `values posts.tags.value`). Each row
+  counts the parents holding that element, so a post with two tags counts under
+  both: the rows overlap and do not sum to the total, and the result says so.
+  Grouping by the whole list is refused, naming the `.value` token. Filter on
+  membership with `contains(tags, 'dbt')`, `contains_any(tags, ['dbt', 'sql'])`,
+  `contains_all(tags, [...])` or `tags.value = 'dbt'`. A list of PII is screened
+  as its column, so `email.value` is refused wherever `email` would be. Redshift
+  has no native lists, so a list column is refused there.
 - **`--where` is SLayer's filter syntax, not Jinja.** Write
   `--where "status = 'paid'"`, with columns read relative to the query's model;
   a dotted name (`customers.region = 'EU'`) walks a declared join. The gate

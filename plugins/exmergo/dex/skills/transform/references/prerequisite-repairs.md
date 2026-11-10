@@ -36,9 +36,14 @@ dex transform build --target dev --verify --for-plan <plan-id>
 - `data.completion.deliverables` says which required models were built, failed or
   skipped, and what blocked each one. A skipped model's relation in dev predates
   this run, whatever it holds.
+- `data.completion.blockers[]` names each failed node, and its `next` is the one
+  command that repairs it: `repair: dex transform repair <node>` for a package
+  model the project can override, `repair: transform plan on <path>` for the
+  project's own. It sits in the bounded block, so it survives a cut-off read.
 - `data.prerequisites[]` has one entry per failed node: `node`, `owner`
   (`project` or `package`), `package`, `path`, `message`, `blocks` (the required
-  models behind it), `plan_relation`, `previous_run` and `options`.
+  models behind it), `plan_relation`, `previous_run`, `options` and the same
+  `next`.
 
 `plan_relation` separates a failure you inherited from one you may have caused:
 
@@ -68,12 +73,13 @@ run results; use `built` and `not_built` to distinguish successful execution.
 ## 2. Choose a route `options` supports
 
 `options` lists each route with `supported`, and `how` or the `reason` it does not
-apply. Dex describes routes and generates no repair.
+apply. Dex drafts the `project_override` route for you (section 2a); the others it
+describes.
 
 | `kind` | When | What it takes |
 |---|---|---|
 | `project_edit` | The project owns the node | An ordinary `transform plan` |
-| `project_override` | A package model no reader pins | A project model of the same name with the repair, plus `+enabled: false` for it under `models.<package>` in `dbt_project.yml`, in one plan |
+| `project_override` | A package model no reader pins | `dex transform repair <node>` (its `repair` field) drafts it: a project model of the same name with the repair, plus `+enabled: false` for it under `models.<package>` in `dbt_project.yml`, in one plan |
 | `macro_dispatch` | The node calls a package macro that goes through `adapter.dispatch` | A project macro plus a `dispatch` search order. `macros` names the candidates; check the failing logic is really in one |
 | `pinned_dependency` | A repaired revision of the package exists | A pin in `packages.yml` |
 
@@ -102,7 +108,65 @@ it declares nothing, and `transform declare` skips it as `package_documented`. T
 package's own tests run against the override, so a test that fails there is a
 finding about your repair.
 
-Copy the package model's SQL as it stands, column-listing macros included: a Fivetran
+## 2a. Draft the override with `transform repair`
+
+A blocker of the request's own deliverables is part of the request: the
+project-side repair is how the request completes, not scope creep. For a package
+model, let Dex write it:
+
+```bash
+dex explore profile <the input the failing model reads>   # the evidence
+dex transform repair <node> [<node>...]                   # the draft, as a plan
+```
+
+Name every failed package model in one call: each override disables its node in
+the same `dbt_project.yml`, so separate plans would conflict when applied.
+
+The draft restates the package's SQL as `<model path>/overrides/<node>.sql`, the
+mechanical part done for you: package macros called unqualified are qualified
+(`get_task_columns()` becomes `asana_source.get_task_columns()`), each `var()`
+gives the override what it gave the package (a relation var is inlined, which
+also removes a `var('task')` cycle; a pass-through list a macro reads by name is
+set under `vars.<project>`), and the package's `materialized`, `schema` and
+`alias` are restated. It disables the package's node in `dbt_project.yml`, in
+place.
+
+The conversion is read from the error and the data, never guessed. Only the
+columns of the type the error names, inside the calls it names, change, and only
+where the cached profile settles what they hold:
+
+| The profile shows | The draft writes | `meaning_changing` |
+|---|---|---|
+| every value NULL | a cast through text (`cast(cast(c as varchar) as timestamp)`) | false |
+| unix epoch seconds or milliseconds | the warehouse's epoch reader (`epoch_ms(...)`, `timestamp_seconds(...)`) | true: relay it as a decision |
+| ISO dates or timestamps in text | a parse (`cast(c as timestamp)`) | false |
+| anything else, or nothing profiled | the column as the package wrote it, `unresolved`, with the reason and the profile to run | |
+
+The draft is compiled and bound on dev before it is stored (DuckDB `limit 0`,
+BigQuery's free dry run), and a further typing error that binding reveals is
+converted the same way. `data.repair` says what was read and done; its `status`
+is `resolved` only when every failure was converted and the draft binds; a
+draft converted but never bound (no dbt, no connection, or a warehouse with no
+free check) is `unbound`, and the build is the first check of its types.
+
+Read the diff, then apply and build it as its own plan:
+
+```bash
+dex transform apply <plan-id>
+dex transform build --target dev --verify --for-plan <plan-id> --cold-deps
+```
+
+`data.completion.obligations.repair` holds the build to `repair_built`,
+`repair_tests` (the package's own tests, run on the override), `repair_cold_deps`,
+`repair_row_count`, and `repair_conversion` while a conversion stays unresolved
+or an `unbound` draft has not built. The draft never adds a filter, so the package's own
+filters stand and the override holds the rows the package would have: a Fivetran
+staging model still drops `_fivetran_deleted` rows, which can leave fewer rows
+than the raw source. A draft left `unresolved` is still a plan: edit the
+column it names (or profile the input and repair again) before applying it.
+
+Writing the override by hand is still possible. Copy the package model's SQL as
+it stands, column-listing macros included: a Fivetran
 staging model's `fill_staging_columns(adapter.get_columns_in_relation(...))` or a
 `dbt_utils.star(ref(...))` plans through `transform plan` like any other model, since
 Dex answers the column listing from metadata. Never apply the override outside Dex
@@ -195,8 +259,13 @@ whatever an earlier build left, so the comparison is `not_checked`
    says `baseline_ready: false` and lists each blocked input under
    `per_model[].blocked_inputs` with its `owner` (and `package`). Do not apply
    this plan: applying it discards the baseline (`plan_applied`).
-2. **Repair the prerequisite in a plan of its own**, through a supported route
-   from `data.prerequisites` (above). Apply it.
+2. **Repair the prerequisite in a plan of its own**: for a failed package
+   model, the `repair` its `blocked_inputs[]` entry names (`dex transform repair
+   <model>`, section 2a), every failed one in one call. A `skipped` input names
+   no repair: it was skipped because something upstream failed, so find that
+   failed node in the build's `data.prerequisites` and repair it, and the skipped
+   input rebuilds with it. Otherwise use a supported route from
+   `data.prerequisites`. Apply it.
 3. **Build the repair.** Where a package owns the node, build it cold:
 
    ```bash
@@ -224,10 +293,16 @@ Never put the repair in the refactor's plan. Its comparison would read the
 failed build for the baseline, so it can never be usable: the plan carries
 `mixed_with_repair`, a warning names the split, and `data.next` asks for it.
 
-## 6. When no repair is in scope
+## 6. When the repair cannot be made
 
-Report the deliverable as incomplete and name the exact prerequisite (`node`, `owner`,
-`message`) and the remedy you tried. Writing the requested SQL file does not complete
+A blocker of the request's own deliverables is in scope, so stop only when the
+repair cannot be made: `transform repair` refuses the node (the override route is
+refused, or the draft does not compile) and no other route the build's
+`data.prerequisites` marks `supported` (`macro_dispatch`, `pinned_dependency`)
+resolves it, or a conversion stays `unresolved` with no profile or request that
+settles it. Then report the deliverable as incomplete
+and name the exact prerequisite (`node`, `owner`, `message`) and the remedy you
+tried. Writing the requested SQL file does not complete
 it. A refactor left blocked has no comparison: say so, rather than citing a
 `not_checked` verdict or a manual spot check as equivalence. Where the request
 needs a change to data only its loader can make, that part stays incomplete

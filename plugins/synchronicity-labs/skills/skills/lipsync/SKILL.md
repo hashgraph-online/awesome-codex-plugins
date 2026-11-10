@@ -7,6 +7,8 @@ compatibility: Needs the sync. MCP server or a SYNC_API_KEY. See references/conn
 
 # Lipsync a video
 
+[sync. labs](https://sync.so) | [Lipsync guide](https://sync.so/docs/plugins-and-extensions/agent-skills/lipsync)
+
 Delivers one MP4 of the video with the lips matched to the new speech.
 
 If no sync. tools are available, follow [references/connect.md](references/connect.md) first. Without the MCP tools, use the REST requests in [references/api.md](references/api.md) for the same steps.

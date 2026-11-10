@@ -67,7 +67,9 @@ Under `semantic.vendor: slayer` the SLayer models are also held to the warehouse
 by SLayer's own `validate-models` rules, run on the metadata Dex captured and
 never through a SLayer datasource: `declared_column_missing`,
 `declared_type_conflict` (SLayer's type buckets: number, string, boolean,
-temporal), `declared_relation_missing` (a table gone since the baseline), and
+temporal, and a list; a column that became a list is `remedy_kind: reingest`
+with the warehouse's `element_type`, and reconcile states it as a `type: ARRAY`
+declaration rather than `slayer ingest`), `declared_relation_missing` (a table gone since the baseline), and
 `declared_dependency_dropped` (a join, measure or filter lost to another drop).
 Each carries the model's whole removal under `data.removal`, which is what
 `maintain reconcile` plans.
@@ -345,6 +347,20 @@ Needs no baseline. The classes of finding:
     relation the manifest names for it; with `--target dev` (and on a build's
     `--verify`) a package that sets `+schema` is read in the
     `<dev schema>_<name>` namespace dbt built it into.
+  - `population_delta` (high with orphan keys, medium with missing parents,
+    low for parents kept with no children), on `transform build --verify`
+    only, for a built model that declares no `population.parent` (#1228): the
+    same counts against the parent dex drafts for it, plus the rows whose child
+    columns are all NULL or zero (a sign of parents kept with no children, not
+    proof: children whose amounts sum to zero read the same). It asks which rows the model is for rather
+    than calling any of them wrong. Its records are under
+    `data.verification.population_delta` (`satisfied`, `needs_decision`,
+    `settled`, `not_applicable`, `unchecked`), and it is never named in
+    `suppressed`. Not every such model gets one: with `--for-plan` only the
+    plan's models are drafted (one the draft cannot reach is `unchecked`),
+    without it at most 25, and a model nothing could be drafted for is named in
+    `notes`, so an absent record does not mean the model was checked.
+    `maintain verify` measures declared parents only.
   - `temporal_transition_count_mismatch`, `temporal_latest_transition_mismatch`
     and `temporal_first_attainment_mismatch` (high), `temporal_population_missing`
     and `temporal_population_unexpected` (high), and

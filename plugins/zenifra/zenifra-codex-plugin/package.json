@@ -1,0 +1,14 @@
+{
+  "name": "@zenifra/codex-plugin",
+  "version": "0.5.1",
+  "private": true,
+  "description": "Zenifra Codex plugin.",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "check": "node --check scripts/zenifra.mjs",
+    "test": "node --test tests/*.test.mjs"
+  }
+}

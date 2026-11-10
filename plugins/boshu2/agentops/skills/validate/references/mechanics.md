@@ -1,8 +1,7 @@
 # Validate mechanics
 
 Depth for [SKILL.md](../SKILL.md): the `ao provenance` helpers, the
-`store-verdict` draft, evidence storage, cross-family adapters, report
-proportion and where each scope limit lives. Judgment never depends on this
+`store-verdict` draft, evidence storage and where each scope limit lives. Judgment never depends on this
 file: without it, use the Git subject fallback in `SKILL.md` and return the
 result inline.
 
@@ -93,7 +92,9 @@ evidence in `evidence_refs` and its reasoning in `reason`. Each finding is a
 `evidence_refs` item. `Checked` and `Not checked` are `checked` and
 `not_checked`; `validated_at` is an RFC 3339 time. `Subject` and `Identity` go
 in `--subject-manifest`, `--author-context-id`, `--validator-context-id`,
-`--freshness-source` and `--freshness-attester-id`, never in the draft. A
+`--freshness-source` and `--freshness-attester-id`, never in the draft.
+`verdict.v2` has no model field: when a cross-family leg ran, record each leg's
+actual model and context identity in `evidence_refs`. A
 `PASS` needs every criterion `PASS` with evidence, nonempty `evidence_refs`
 and `checked`, and an empty `not_checked`; otherwise storage records
 `NOT_PROVEN` with a `validate.integrity` finding. The full contract (AgentOps
@@ -129,46 +130,17 @@ usefulness remain separate questions. Evidence references are declared
 strings, not verified citations; read permission does not authorize model
 transmission or Git ingestion.
 
-## Proportionate fresh checks
+## Cross-model legs
 
-Apply the owning skill's fresh same-family default. Risk sizes evidence depth;
-only caller selection requires a different model family. Preserve an explicitly
-requested leg until the caller changes it. Every mode retains exact subject,
-full acceptance, evidence for every criterion, and the empty-`not_checked` bar.
-
-Reuse existing digest-bound check receipts when their subject, inputs, tool
-identity, and claimed criterion still match; one that no longer matches is no
-receipt. As [SKILL.md](../SKILL.md) requires, rerun only a risk-critical claim that
-has no receipt, and then only its fast discriminating check. A new receipt
-label, changed digest, reduced finding count, or repeated review is not useful
-progress without evidence that a named acceptance gap closed. Reuse the current
-findings/evidence fields for causal comparisons; create no progress ledger.
-
-## Cross-family adapters
-
-Use the single [agent-native model-dispatch recipe](../../agent-native/references/model-dispatch.md)
-for caller selection, host authorization and bounded invocation. The fresh
-same-family leg and any explicitly selected cross-family leg receive independent
-initial inputs. Time bounds come from the caller or native deadline. A judge
-reads and judges; it never mutates the subject. Record
-actual author/judge model and context identities in protected evidence refs
-and freshness attestation notes; the `verdict.v2` schema is unchanged.
-Transport, output, exit and process completion are facts, not semantic PASS.
-
-## Report proportion
-
-Keep the report proportional: cite the exact subject, complete bound manifest
-and existing receipts instead of copying path or digest inventories. Group
-generated companions by source owner and verified equivalence; still verify
-every changed path and cited binding. Include excerpts only to assess a finding.
-Retain every criterion, necessary finding, identity, freshness fact and
-unchecked surface. Complete coverage does not require a second copy of the
-evidence.
-
-When delivery is outside the accepted review scope, the caller checks its
-native facts without another semantic review of unchanged content. Use the
-existing result for any pending delivery update, without repeating the
-investigation or creating another report.
+Cross-model review is opt-in: `--cross-model [model]` is a skill prompt
+selection, not an AO flag, adding a fresh other-family reviewer through
+[model-dispatch](model-dispatch.md). A required
+leg that cannot run is a `diversity_unsatisfied` finding and makes the combined
+result NOT_PROVEN, even if another leg passed; unavailable optional diversity
+is disclosed without erasing findings. Delivered FAILs and dissent stand;
+neither voting nor model preference makes a split PASS, and agreement is not
+proof of truth. A split between legs goes to the caller, who may select
+[Council on the split](../../council/references/judge-split.md).
 
 ## Where each scope limit lives inside a PASS
 

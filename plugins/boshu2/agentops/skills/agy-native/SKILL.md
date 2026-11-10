@@ -24,12 +24,14 @@ output_contract: AGY runtime evidence
 
 Run a supplied packet in AGY (Antigravity) only when the caller explicitly
 selects that runtime. Scope the run to the supplied workspace and packet,
-return runtime evidence, and stop.
+return runtime evidence, and stop. It worked when the command passes an
+explicit `--print-timeout`, the posture is disclosed, and the result says
+whether the turn finished instead of reading exit 0 as proof.
 
 ## Before launch
 
 1. **Read the live surface.** The CLI changes faster than skill text.
-   Re-checked on 2026-10-25 against Claude Code 2.1.309, codex-cli 0.163.0, AGY 1.4.7, gc edge 97503b2 (with Gas City v1.5.1 docs and source), bd 1.3.1 and ao 3.11.0.
+   Re-checked on 2026-10-25 against AGY 1.4.7.
    Run `agy --help` for flags, `agy changelog` for behavior the help omits,
    and `agy models` for ids. That list includes Claude and GPT-OSS: a Gemini
    or cross-family run needs a `gemini-*` id.

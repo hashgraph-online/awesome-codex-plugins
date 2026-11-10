@@ -1148,6 +1148,21 @@
       "description": "Bounded-autonomy plugin that asks only the decisions that belong to the user, builds nothing before the intent is approved, verifies with checks that actually ran, and keeps project decisions as plain Markdown across Codex, Claude Code, Grok Build, Copilot CLI, and Antigravity CLI."
     },
     {
+      "name": "e2e",
+      "displayName": "e2e",
+      "source": {
+        "source": "local",
+        "path": "./plugins/tester-army/e2e"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Write, run, and debug end-to-end tests for web and mobile apps with agent skills and an MCP server.",
+      "icon": "./plugins/tester-army/e2e/assets/icon.png"
+    },
+    {
       "name": "ejentum",
       "displayName": "ejentum-mcp",
       "source": {
@@ -3616,7 +3631,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Privacy-first, local ActivityWatch reports for app time, AFK time, projects, billable work, and redacted timelines across macOS, Windows, and Linux.",
+      "description": "Privacy-first local ActivityWatch reports with deterministic categories, multi-day totals, and foreground browser-page summaries.",
       "icon": "./plugins/liuyewang/computer-usage-summary-skill/assets/icon.svg"
     },
     {
@@ -4779,6 +4794,21 @@
       "icon": "./plugins/ophis-fi/skills/assets/icon.svg"
     },
     {
+      "name": "option-desk",
+      "displayName": "Option Desk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Iman/agent-driven-options-desk-and-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skills and a local MCP server for option research on a supplied chain, with Greeks, dealer positioning, strategy payoffs, simulation and backtests.",
+      "icon": "./plugins/Iman/agent-driven-options-desk-and-skills/assets/openai-composer-icon.png"
+    },
+    {
       "name": "orgx-codex-plugin",
       "displayName": "OrgX",
       "source": {
@@ -5068,6 +5098,21 @@
       "category": "Tools & Integrations",
       "description": "Research what goes viral, make finished short-form videos (voice, captions, music, AI footage) and post them to TikTok, YouTube, Instagram and X through Revid's hosted MCP server.",
       "icon": "./plugins/tmakersas/revid-skills/assets/logo.png"
+    },
+    {
+      "name": "risk-desk",
+      "displayName": "Risk Desk",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Iman/agent-driven-risk-desk-and-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Skills and a local MCP server for portfolio risk on supplied data, with VaR, Expected Shortfall, backtests, stress tests and counterparty, credit and FRTB figures.",
+      "icon": "./plugins/Iman/agent-driven-risk-desk-and-skills/assets/openai-composer-icon.png"
     },
     {
       "name": "roomcomm",
@@ -5691,7 +5736,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Tools & Integrations",
-      "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter/X posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
+      "description": "Skills-only Codex plugin with 26 skills for LinkedIn and Twitter posts: draft in your own voice, audit before you publish, fix weak openings, draft comments and replies, read your numbers and plan the week, with no account or API key needed.",
       "icon": "./plugins/prateeks367/voicemoat-skills/assets/icon.png"
     },
     {
@@ -5797,6 +5842,20 @@
       "category": "Tools & Integrations",
       "description": "Twelve drop-in agent skills for YouTube transcripts, timestamped captions and subtitles, video and channel search, playlists and channel browsing through the TranscriptAPI service.",
       "icon": "./plugins/ZeroPointRepo/youtube-skills/assets/icon.svg"
+    },
+    {
+      "name": "zenifra",
+      "displayName": "Zenifra",
+      "source": {
+        "source": "local",
+        "path": "./plugins/zenifra/zenifra-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Deploy and manage apps, scheduled Jobs, managed databases and AI API keys on Zenifra, a Brazilian cloud with servers in Brazil, through the Zenifra CLI."
     },
     {
       "name": "zotero-research-tools",

@@ -1,6 +1,6 @@
 {
   "name": "computer-usage-summary-skill",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "Privacy-first local ActivityWatch reports with daily timelines, app usage, and foreground browser pages.",
   "author": {
     "name": "liuyewang",

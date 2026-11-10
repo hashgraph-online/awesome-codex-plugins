@@ -22,6 +22,15 @@ Remove writing artifacts that do not help the operator:
 
 Keep the tone direct, concrete, and source-grounded.
 
+A question about a draft ("does this read generated?") asks for a check: list
+each problem with its quoted line and a short suggested fix, and leave the text
+unchanged. Report patterns, never a guess about who or what wrote the text. A
+request to fix or polish asks for a rewrite: change only the sentences that
+show a problem and leave the rest as written. In the caller's own prose keep
+their word choice and voice; in a repository document match the surrounding
+idiom. A concrete particular (a name, number, path or command) comes from the
+source, the repository or the caller; never invent one to make prose specific.
+
 ## Order Ideas for a Learner
 
 For a tutorial or explanation, decide which concepts the reader already brings.
@@ -53,16 +62,6 @@ limit or contract in full in one owning document and link to it elsewhere,
 adding only what is local; for an external standard, cite it and name only this
 project's differences.
 
-## Architecture Report Rules
-
-For codebase reports:
-
-1. Start from the user-facing or operator-facing entry points.
-2. Explain the dominant flow before listing files.
-3. Name invariants and contracts, not just modules.
-4. Separate facts from inferences.
-5. End with risks and questions that affect future work.
-
 ## Final Pass
 
 Before publishing docs:
@@ -74,6 +73,3 @@ Before publishing docs:
 | Operator value | The next reader can act without rediscovery. |
 | No filler | Generic AI prose is removed. |
 
----
-
-**Source:** Adapted from an external skill corpus / `de-slopify` and `codebase-report`. Pattern-only, no verbatim text.

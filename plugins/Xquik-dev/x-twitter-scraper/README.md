@@ -1,5 +1,9 @@
 # X (Twitter) Scraper API & MCP Server by Xquik
 
+[![Framer connects Xquik MCP to coding agents](https://img.youtube.com/vi/4UOSpoOoC3Y/maxresdefault.jpg)](https://youtu.be/4UOSpoOoC3Y?t=367)\
+[Watch how Framer uses Xquik scrapers](https://youtu.be/4UOSpoOoC3Y?t=367)
+with Claude Code, Codex, Cursor & more, from 6:07.
+
 Use this X (Twitter) scraper by Xquik to search tweets & posts.
 Export profiles, followers & replies through REST, MCP, SDKs, CLI, webhooks & Apify.
 It's an X (Twitter) API alternative. Public reads need no X (Twitter) developer account.
@@ -157,20 +161,6 @@ over.
 
 [Read the Tweet search reference](https://docs.xquik.com/api-reference/x/search-tweets)
 or [open the complete documentation](https://docs.xquik.com).
-
-<table>
-  <tr>
-    <td align="center">
-      <a href="https://youtu.be/4UOSpoOoC3Y?t=367">
-        <img src="https://img.youtube.com/vi/4UOSpoOoC3Y/maxresdefault.jpg" alt="Framer connects Xquik MCP to coding agents" width="720">
-      </a>
-      <br>
-      <strong>Framer demo</strong>
-      <br>
-      <sub>Watch <a href="https://youtu.be/4UOSpoOoC3Y?t=367">Connect Framer to Claude Code, Codex, Cursor, and more</a> at 6:07 for the Xquik MCP connection.</sub>
-    </td>
-  </tr>
-</table>
 
 <!-- trust:start -->
 

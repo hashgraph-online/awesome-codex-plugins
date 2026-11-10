@@ -84,6 +84,26 @@ on the task path. A shorter root can cost more overall. Split only when a
 conditional operation or independently useful route makes navigation clearer;
 optional folders and assets earn no quality credit.
 
+## Shape the body
+
+- **Open on the move.** The first lines say what the skill makes a run do
+  differently; a reader who stops after the first screen still knows it.
+  Boundaries, positioning and history come after.
+- **Order by reach.** Steps every run takes come first, then reference every
+  branch needs; material only some branches reach goes behind a link that
+  states when to open it.
+- **Lead with the known mistakes.** When a skill exists because agents repeat
+  specific errors, name those errors near the top.
+- **Say what success looks like.** State what a user would see in the result
+  if the skill did its job; that sentence doubles as an eval criterion.
+- **One name per concept.** Use the same term for the same thing across the
+  skill and its siblings, and prefer a word the model already knows to a
+  coined one.
+- **Route neighbours in a scannable list.** When a sibling could fire on the
+  same words, a short "use X when" line per sibling beats a paragraph.
+- **Length is a load cost.** An entrypoint past about 150 lines must be able to
+  say what the extra lines buy; a body of true sentences can still sprawl.
+
 ## Interpret audit advice as evidence to inspect
 
 The default v2 audit reports located authoring suspicions separately from
@@ -122,7 +142,9 @@ check whether the miss is a missing condition or a missing case.
 - **Put a mechanism where it is owned.** Commands, exit codes and state
   changes belong to the skill or tool that owns them. A skill that delegates
   states the outcome it needs, the safe failure direction and the facts the
-  callee cannot derive, and links the owner.
+  callee cannot derive, and links the owner. Doctrine another skill or the
+  repository's instruction file owns is linked, not restated; the same
+  paragraph in several skills is a defect everywhere but its owner.
 - **Pin a command only where its help would not rebuild it.** Leave the
   approach open when context decides. Give the exact command when an agent
   reading the tool's own help would still get it wrong: interacting flags,

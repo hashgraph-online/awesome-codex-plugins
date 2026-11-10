@@ -7,6 +7,8 @@ compatibility: Needs the sync. MCP server or a SYNC_API_KEY. See references/conn
 
 # Localize a campaign
 
+[sync. labs](https://sync.so) | [Campaign localization guide](https://sync.so/docs/plugins-and-extensions/agent-skills/localize-campaign)
+
 Delivers every video in every target language as a dubbed, lip-synced MP4 with a predictable name, plus a sheet the regional teams can review from.
 
 If no sync. tools are available, follow [references/connect.md](references/connect.md) first. Without the MCP tools, each version is one `POST /v2/generate` with `dubParams`, as in [references/api.md](references/api.md).
@@ -39,7 +41,6 @@ Before spending anything, tell the user what stays the same, so nobody is surpri
 - **With `jobs_create-many` listed (any paid plan).** The approved total already covers them, so start the remaining versions together without asking again: one item per version, each exactly the `dubbing_create` arguments the pilot used (`videoAssetId`, `targetLang`, `sourceLang`, `model`, the `projectId` with `projectIntent: "explicit"`) plus that version's `idempotencyKey`. Save a new UUID for the set in the matrix, then call `jobs_create-many` with `tool: "dubbing_create"`, that UUID as `idempotencyKey` and the items, at most 50 per call. Record each started version's `id`, then follow them with `jobs_get-many` and `wait: true`, calling again while some are still running. When the response has `remaining`, send it again exactly as returned once running versions finish; if the tool refuses a single remaining item, send that version with `dubbing_create` and the same key. A failed item with a 5xx or no status may still have started, so send it again with the same keys; fix any other failed version first.
 - **Without it,** read `generationLimits.concurrency` from `account_get-context` and keep that many `dubbing_create` calls in flight at most. On `concurrency_limit_reached`, wait `error.retryAfterMs` milliseconds and retry the identical request with the same key.
 - If one version fails, record why and carry on with the others.
-- Only on Scale plans and above, a large run of 20 or more short versions (each video up to 30 seconds) that can wait hours may go in one `batches_create` call instead, each item a generate body with the video and `dubParams` (`{"providerName": "elevenlabs", "targetLang": "<lang>"}`). A batch is a queued pipeline, not a faster start: results can take up to about 24 hours. Validate with `dryRun: true` first, and follow it with `batches_get`.
 
 ## 5. Deliver
 

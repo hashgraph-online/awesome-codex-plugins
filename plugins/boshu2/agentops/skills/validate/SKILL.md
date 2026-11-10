@@ -32,11 +32,17 @@ output_contract: 'PASS | FAIL | NOT_PROVEN with criteria, evidence, checked/not_
 
 # Validate
 
-Freshly judge one finished candidate against its original acceptance, return
-`PASS`, `FAIL`, or `NOT_PROVEN` with criterion-level evidence, and stop.
-Neighbours: advice or a second look is [Review](../review/SKILL.md); whether a
-stated claim holds is [Research](../research/SKILL.md#claimed-state-audit). This file
-carries every rule the judgment needs. Linked files, including
+From a context that did not author it, judge one finished candidate against
+its original acceptance and return `PASS`, `FAIL`, or `NOT_PROVEN` with
+evidence for each criterion. The author's word is a claim, every criterion
+needs its own evidence, and green obtained by weakening a check is FAIL.
+
+| Use instead | When |
+|---|---|
+| [Review](../review/SKILL.md) | advice or a second look |
+| [Research](../research/SKILL.md#claimed-state-audit) | whether a stated claim holds |
+
+This file carries every rule the judgment needs. Linked files, including
 [RPI boundaries](../rpi/references/boundaries.md) and
 [mechanics](references/mechanics.md), add depth only: if one cannot be read,
 judge from this file and say which was unavailable.
@@ -95,10 +101,10 @@ checks and CI are the gate, and no fresh judgment is owed. Use Validate when:
 - no deterministic check covers the behavior that changed.
 
 Judge once. Report NOT_PROVEN with its gaps and stop; do not request or wait
-for another round. After the author repairs findings, the affected checks
-confirm the repair; a second judgment happens only when the caller asks for
-one. Keep the judgment's cost a fraction of the cost of the work: when it
-approaches that cost, stop and return what is unchecked.
+for another round. The author repairs findings and the checks that cover each
+repair confirm it; a repair does not start a second judgment. Keep the
+judgment's cost a fraction of the cost of the work: when it approaches that
+cost, stop and return what is unchecked.
 
 ## Subject
 
@@ -151,14 +157,13 @@ intent, scope, exact subject, the evidence each criterion needs and one
 question written before it starts, never full author history, the author's
 confidence, a desired verdict or peer conclusions.
 
-Cross-model review is opt-in: `--cross-model [model]` is a skill prompt
-selection, not an AO flag, adding a fresh other-family reviewer through
-[model-dispatch](../agent-native/references/model-dispatch.md). A required leg
-that cannot run is a `diversity_unsatisfied` finding and makes the combined
-result NOT_PROVEN, even if another leg passed; unavailable optional diversity
-is disclosed without erasing findings. Delivered FAILs and dissent stand;
-neither voting nor model preference makes a split PASS, and agreement is not
-proof of truth. Respect real caller and native time bounds without renewing
+When the caller selects a cross-model leg, read
+[cross-model legs](references/mechanics.md#cross-model-legs) before
+dispatching it. The rules for choosing and pinning that leg's
+model are in [model dispatch](references/model-dispatch.md). When a caller
+requires proof of which context judged, open
+[judgment receipts](references/judgment-receipts.md) before recording
+`evidence_refs`. Respect real caller and native time bounds without renewing
 them; a timeout is missing judgment, not FAIL.
 
 ## Judgment
@@ -195,12 +200,15 @@ Not checked: <in-scope acceptance not verified>   (empty only for PASS)
 Identity: author <id>; validator <id>; freshness attested by <runtime | caller>: <attester>
 ```
 
+The judgment worked when every criterion shows its own evidence or sits under
+`Not checked`, the subject line names what was judged and whether it stayed
+unchanged, and a PASS has an empty `Not checked`.
+
 A finding fails an acceptance criterion or would mislead a user, break install
 or the CLI, or remove protection for the product; anything else is an optional
-note the author may ignore. Give each new finding a short stable `class`,
-reused on recurrence, and say whether it is pre-existing, introduced or unknown
-from before/after evidence; counts and timestamps alone do not establish cause.
-Keep prior findings visible. `not_checked` holds in-scope acceptance that was
+note the author may ignore. Give each finding a short `class` and say whether
+it is pre-existing, introduced or unknown from before/after evidence; counts
+and timestamps alone do not establish cause. `not_checked` holds in-scope acceptance that was
 not verified, including delivery inside acceptance whose evidence does not yet
 exist; never remove a criterion or hide a limit to reach PASS. Other limits
 stay in criterion reasoning, declared non-goals or residual-risk prose

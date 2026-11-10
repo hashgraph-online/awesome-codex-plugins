@@ -2626,6 +2626,7 @@ Options:
 Commands:
   connect     Connect an existing install; repository updates become its...
   disconnect  Disconnect Git so future updates are manual Solution...
+  sources     List authorized private repository source IDs in a scope.
 ```
 
 #### `solution git connect`
@@ -2636,9 +2637,11 @@ Usage: solution git connect [OPTIONS] SOLUTION_REF REPOSITORY_URL
   Connect an existing install; repository updates become its sole writer.
 
 Options:
-  --subpath TEXT  Solution workspace path inside the repository.
-  --ref TEXT      Git ref to update from.  [default: main]
-  --help          Show this message and exit.
+  --subpath TEXT        Solution workspace path inside the repository.
+  --ref TEXT            Git ref to update from.  [default: main]
+  --git-source-id TEXT  Authorized Solution GitHub App source UUID. Omit for a
+                        public repository.
+  --help                Show this message and exit.
 ```
 
 #### `solution git disconnect`
@@ -2652,6 +2655,23 @@ Options:
   --help  Show this message and exit.
 ```
 
+#### `solution git sources`
+
+```
+Usage: solution git sources [OPTIONS]
+
+  List authorized private repository source IDs in a scope.
+
+Options:
+  --global                        Target global scope (org=NULL). Alias for
+                                  --org global.
+  --org, --organization, --scope TEXT
+                                  Org UUID/name, or 'none'/'global' for global
+                                  scope. Omit = your org. (--organization /
+                                  --scope are synonyms.)
+  --help                          Show this message and exit.
+```
+
 ### `solution import-workspace`
 
 ```
@@ -2661,20 +2681,22 @@ Usage: solution import-workspace [OPTIONS] [ARCHIVE]
   snapshot).
 
 Options:
-  --repo TEXT       Solution git repository URL (snapshot import; mutually
-                    exclusive with ARCHIVE).
-  --ref TEXT        Git ref to import (default branch when omitted).
-  --path TEXT       Package subfolder within the repository.
-  --org TEXT        Target organization name or UUID for scoped definitions.
-                    Omit for global workspace content.
-  --global          Target global workspace content (the default).
-  --keep-all        Keep every conflicting destination item.
-  --replace-all     Replace every conflicting destination item.
+  --repo TEXT           Solution git repository URL (snapshot import; mutually
+                        exclusive with ARCHIVE).
+  --ref TEXT            Git ref to import (default branch when omitted).
+  --path TEXT           Package subfolder within the repository.
+  --org TEXT            Target organization name or UUID for scoped
+                        definitions. Omit for global workspace content.
+  --global              Target global workspace content (the default).
+  --keep-all            Keep every conflicting destination item.
+  --replace-all         Replace every conflicting destination item.
   --decisions FILE
-  --preview         Print the staged collision preview without queuing an
-                    import.
-  --json            Emit raw preview and terminal job JSON.
-  --help            Show this message and exit.
+  --preview             Print the staged collision preview without queuing an
+                        import.
+  --json                Emit raw preview and terminal job JSON.
+  --git-source-id TEXT  Authorized Solution GitHub App source UUID; requires
+                        --repo.
+  --help                Show this message and exit.
 ```
 
 ### `solution init`
@@ -2743,9 +2765,17 @@ Usage: solution install-repo [OPTIONS] REPOSITORY_URL
   Install a Solution from a repository and make Git its sole writer.
 
 Options:
-  --subpath TEXT  Solution workspace path inside the repository.
-  --ref TEXT      Git ref to install.  [default: main]
-  --help          Show this message and exit.
+  --subpath TEXT                  Solution workspace path inside the
+                                  repository.
+  --ref TEXT                      Git ref to install.  [default: main]
+  --git-source-id TEXT            Authorized Solution GitHub App source UUID.
+  --global                        Target global scope (org=NULL). Alias for
+                                  --org global.
+  --org, --organization, --scope TEXT
+                                  Org UUID/name, or 'none'/'global' for global
+                                  scope. Omit = your org. (--organization /
+                                  --scope are synonyms.)
+  --help                          Show this message and exit.
 ```
 
 ### `solution migrate-app`

@@ -29,11 +29,9 @@ metadata:
 # Implement
 
 Implement the accepted outcome. Repair ordinary known defects directly. Use the
-existing intent; a clear edit needs no Plan first. Implement owns source changes
-and factual checks. Read changed paths from Git (`git status --porcelain`,
-`git diff --name-only <base>`), never from memory;
-`ao provenance manifest --root <repo>` with one `--include <path>` per declared
-path digests only the paths you declare and runs no Git. Copy check results from the command output.
+existing intent; a clear edit needs no Plan first. An incoming report nobody
+has accepted yet goes to [Triage](../triage/SKILL.md) first. Implement owns source changes
+and factual checks.
 
 ## Rules that decide the result
 
@@ -82,7 +80,7 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
 1. Read intent, acceptance, scope and repository boundaries before the first
    write; reuse loaded contracts. [RPI boundaries](../rpi/references/boundaries.md)
    apply when RPI is selected; caller-selected episode tracking follows the
-   [session association reference](../agent-native/references/session-associations.md#work-to-session-associations).
+   [session association reference](../orchestrate/references/session-associations.md#work-to-session-associations).
    Note the revision and files already modified, staged or untracked; report
    only your own as changed, and ask the caller before editing one holding
    others' edits.
@@ -120,7 +118,11 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
    Remove leftovers of abandoned approaches, temporary probes (one shared
    marker lets a single search prove none remain) and files your checks made;
    list any path you cannot explain under `gaps` as a scope amendment.
-6. Have the runtime derive actual changed paths and content identity. A delegated
+6. Have the runtime derive actual changed paths and content identity: read
+   changed paths from Git (`git status --porcelain`,
+   `git diff --name-only <base>`), never from memory;
+   `ao provenance manifest --root <repo>` with one `--include <path>` per
+   declared path digests only the paths you declare and runs no Git. A delegated
    increment awaiting integration returns an exact commit or runtime-derived
    content digests, author context ID and check facts in the existing handoff.
    Copy that ID from the session, subagent or thread ID the runtime exposes, or
@@ -135,20 +137,21 @@ recovery, resilience, toil); ordinary edits owe no operations phase.
    (they bind your paths); count the rest under `gaps` as pre-existing drift,
    and refresh a binding only when its owner asks. Without `ao`, list it under
    `not run`.
-7. Return the handoff below, then stop.
+7. Return the handoff below.
 
 ## Handoff
 
 Keep full logs at their source; do not duplicate inventories or status documents.
 
 ```text
-changed:   <runtime-derived paths>; identity: <commit or content digests>
-author:    <runtime session/subagent/thread ID, "ID (supplied)" or "unknown">; when an integrator or fresh read follows
-checks:    <exact command> -> <result>, one per line; before and after for a behavioral change
-not run:   <check> -> <reason>; "none" only when every relevant check ran
-consumers: <file:line> -> <covering check, or "uncovered">
-gaps:      <missing or truncated evidence, known failures, scope amendments needed>
-cause:     <defect repairs only: trigger -> mechanism -> symptom at file:line; sites left as follow-up>
+changed:        <runtime-derived paths>; identity: <commit or content digests>
+author:         <runtime session/subagent/thread ID, "ID (supplied)" or "unknown">; when an integrator or fresh read follows
+checks:         <exact command> -> <result>, one per line; before and after for a behavioral change
+not run:        <check> -> <reason>; "none" only when every relevant check ran
+consumers:      <file:line> -> <covering check, or "uncovered">
+not_as_briefed: <steps refused, held, worked around or unverified, one line with its reason each> | none
+gaps:           <missing or truncated evidence, known failures, scope amendments needed> | none
+cause:          <defect repairs only: trigger -> mechanism -> symptom at file:line; sites left as follow-up>
 ```
 
 Report an uncovered live consumer for a caller scope amendment and continue
@@ -160,34 +163,19 @@ to accepted direction, behavior or acceptance always needs caller authority.
 
 ## Diagnosis, scaffolding and delegated work
 
-For an unexplained failure, follow the [diagnosis loop](references/difficult-failures.md#diagnosis-loop)
-before repairing: confirm the failing run executes the code you think, ground
-the leading cause in an observation, name its strongest rival and test one
-prediction the two disagree on. The same file holds the experiments for races,
-leaked state, hangs, regressions and failures that cross components.
+Before repairing a failure you cannot yet explain, read and follow the
+[diagnosis loop](references/difficult-failures.md#diagnosis-loop). The same
+file holds the experiments for races, leaked state, hangs, regressions and
+failures that cross components.
 
 When scaffolding is the requested change, start from the repository's existing
 layout (or the ecosystem's standard one for a new project) and one working
 vertical slice; avoid placeholder success paths and a new framework for a
-one-off operation. For installers, agent-facing tool servers or a Rust CLI with
-local state, see [agent-facing tool scaffolds](references/scaffold/agent-facing-tool-scaffolds.md).
+one-off operation.
 
-Prefer current-session execution. If delegation is authorized and useful, keep
-concurrent writers disjoint and isolated as [Agent Native](../agent-native/SKILL.md)
-describes; shared generators and integration serialize. Supply each lane its
-intent, acceptance, scope and review owner, then integrate its exact content and
-check facts. A selected wave ends with the caller-requested wave result; do not
-invent another wave. One fresh review of the integrated candidate can cover
-unjudged increments; when the integrator owns that review, workers return their
-handoff without commissioning another. Preserve any separately required lane
-judgments; a successful process exit is not semantic PASS.
-
-When the caller asks for a one-shot adapter (a script or command that sends
-supplied operations to a tool or runtime), it dispatches each operation once,
-reports its output or error and stops, with no scheduler, retry controller or
-store; show its dispatch count and failure reporting with a dry-run or fixture.
-A factory, an external multi-agent system with its own coordinator such as Gas
-City ([Using GC](../using-gc/SKILL.md)), runs only when the caller selects it.
+Prefer current-session execution. When delegation is authorized, or the caller
+asks for a one-shot adapter or a factory, read
+[delegated work](references/delegated-work.md) before dispatching or writing it.
 
 ## Finish
 
@@ -199,5 +187,3 @@ Return facts, not semantic PASS. An implement-only handoff does not authorize
 Git, tracker or delivery transitions; existing caller authority remains usable.
 A full outcome request finishes on its checks and CI; it continues to one fresh
 independent judgment only on [Validate's triggers](../validate/SKILL.md#when-a-fresh-judgment-is-worth-it).
-Success is working behavior with usable evidence, not volume of logs or process
-artifacts.
