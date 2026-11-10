@@ -559,6 +559,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [X Twitter Scraper](https://github.com/Xquik-dev/x-twitter-scraper) - X/Twitter data, monitored workflows, HMAC webhooks, and MCP access through the Xquik REST API with confirmation-gated write guidance.
 - [Yandex Direct](https://github.com/nebelov/yandex-direct-for-all) - GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.
 - [YouTube Skills by TranscriptAPI](https://github.com/ZeroPointRepo/youtube-skills) - Twelve drop-in agent skills for YouTube transcripts, timestamped captions and subtitles, video and channel search, playlists and channel browsing through the TranscriptAPI service.
+- [Zenifra](https://github.com/zenifra/zenifra-codex-plugin) - Deploy and manage apps, scheduled Jobs, managed databases and AI API keys on Zenifra, a Brazilian cloud with servers in Brazil, through the Zenifra CLI.
 - [Zotero Research Tools](https://github.com/summer521521/Zotero_Research_plugin) - Connects Codex to Zotero Desktop for local-library search, citation export, collection and tag inspection, and research workflow support.
 
 ## Plugin Development
