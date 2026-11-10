@@ -407,7 +407,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [CometChat](https://github.com/cometchat/cometchat-skills) - Add real-time chat, voice and video calling to React, Angular, React Native, iOS, Android and Flutter apps, with the CometChat Docs MCP for current docs.
 - [Command Code Usage](https://github.com/Jovan1666/commandcode-usage) - Show your Command Code plan usage inside Codex: a per-turn quota line, plus a /quota command for the full panel.
 - [ComputeFirst](https://github.com/321zz321/computefirst-skill/tree/add-codex-plugin) - Free hosted MCP server and skill for versioned, deterministic checks, conversions and data transforms, with no API key.
-- [Computer Usage Summary](https://github.com/liuyewang/computer-usage-summary-skill) - Privacy-first, local ActivityWatch reports for app time, AFK time, projects, billable work, and redacted timelines across macOS, Windows, and Linux.
+- [Computer Usage Summary](https://github.com/liuyewang/computer-usage-summary-skill) - Privacy-first local ActivityWatch reports with deterministic categories, multi-day totals, and foreground browser-page summaries.
 - [CONTAM Tools](https://github.com/summer521521/CONTAM_plugin) - Runs and inspects CONTAM airflow projects through a local MCP server with project guards, diagnostics, simulation helpers, and bridge workflows.
 - [Context Pack](https://github.com/Rothschildiuk/context-pack) - Generate compact first-pass repository briefings for coding agents before deeper exploration.
 - [Coolify](https://github.com/Sevi-py/coolify-codex-plugin) - Control Coolify Cloud and self-hosted Coolify instances through API-aware workflow skills and local tools.
