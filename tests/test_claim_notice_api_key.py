@@ -2,12 +2,34 @@ import importlib.util
 import io
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 from urllib.request import HTTPRedirectHandler
+import yaml
 
 SPEC = importlib.util.spec_from_file_location('claim_api_key', Path(__file__).resolve().parents[1] / 'scripts/post-claim-notice.py')
 MODULE = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(MODULE)
+
+
+class MergedCatalogCheckoutTests(unittest.TestCase):
+    def test_closed_event_reads_catalog_after_the_merge(self):
+        workflow = yaml.safe_load((Path(__file__).resolve().parents[1] / '.github/workflows/claim-notice.yml').read_text())
+        snapshots = {
+            'event-base-sha': '## Community Plugins\n- [Old](https://github.com/owner/old) - Old plugin.\n',
+            'main': '## Community Plugins\n- [New](https://github.com/owner/new-plugin) - New plugin.\n',
+        }
+        checked = 0
+        for job in workflow['jobs'].values():
+            for step in job.get('steps', []):
+                if not step.get('uses', '').startswith('actions/checkout@'):
+                    continue
+                ref = step.get('with', {}).get('ref', 'event-base-sha')
+                if ref == '${{ github.event.repository.default_branch }}':
+                    ref = 'main'
+                with self.subTest(ref=ref), patch('builtins.open', mock_open(read_data=snapshots[ref])):
+                    self.assertIn('owner/new-plugin', MODULE.catalog_source_repos())
+                checked += 1
+        self.assertGreater(checked, 0)
 
 
 class CatalogKeyTests(unittest.TestCase):

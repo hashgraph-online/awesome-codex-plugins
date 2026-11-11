@@ -41,6 +41,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # The closed event SHA can precede the newly merged catalog entry.
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
 
       - name: Ensure retry label exists
