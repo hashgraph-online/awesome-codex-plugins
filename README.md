@@ -654,6 +654,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 - [Cross-LLM Delivery](https://github.com/jhesham/cross-llm-delivery) - On-demand skills that let Codex or Claude Code plan and review builds while delegating implementation to executor CLIs in isolated Git worktrees, with committed acceptance tests and verified integration.
 - [Email Marketing Bible](https://github.com/CosmoBlk/email-marketing-bible) - Codex skill (SKILL.md) for email marketing: automation flows, deliverability triage, copy de-slopping, AI email design, ESP control via MCP with send-safety gates, compliance and 19 industry playbooks.
 - [HOL Plugin Registry](https://hol.org/registry/plugins) - Browse plugins with scanner-backed security analysis and trust scores.
+- [HowAI](https://howai.build) - Directory of 500+ reusable AI agent skills for websites, slides, images and LaunchMotion; works with Claude Code, Codex and Cursor (free + Pro).
 - [Koto](https://github.com/mehrdadxzaker/Koto) - Alpha multi-agent coding CLI with isolated Git worktrees, live controls, optional local models, and explicit review before integration.
 - [PickAPlugin](https://pickaplugin.com) - Free, searchable directory of Codex and ChatGPT plugins and MCP servers, with GitHub stars, install commands and freshness for each listing.
 - [self-host](https://github.com/ajnart/self-host) - Lets your agent install self-hosted apps on your own hardware and set them up (admin accounts, API keys, apps connected to each other), asking before each step.
