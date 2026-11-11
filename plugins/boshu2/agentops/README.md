@@ -401,8 +401,10 @@ On Claude Opus 5.5, measured 2026-10-22 and 2026-10-23 over five rounds; the
 | Practice criteria met on 29 requests | 265 of 387 (68%) | 363 of 387 (94%) | 704 of 774 (91%) |
 | Matching skill loaded on its own request | | 62 of 75 runs | 104 of 150 runs |
 
-Sixteen of the 32 skills moved their case by 0.15 or more. Claude Exec, Skill
-Builder, Plan, Craft Goal and Using GC gained the most. Seven cases had no room
+Sixteen of the 32 skills measured then moved their case by 0.15 or more. Claude
+Exec, Skill Builder, Plan and Craft Goal gained the most among skills still
+shipped. Version 3.12 has 28 skills, and 24 of them changed in an audit that
+has not been re-measured. Seven cases had no room
 to move: the agent met every criterion with no plugin.
 
 Read the limits before you quote these numbers:
@@ -471,26 +473,27 @@ With Go installed: `go install github.com/boshu2/agentops/cli/cmd/ao@latest`.
 ## Updating and advanced setup
 
 <details>
-<summary><strong>Upgrading to 3.11</strong></summary>
+<summary><strong>Upgrading to 3.12</strong></summary>
 
+<a id="upgrading-to-312"></a>
 <a id="upgrading-to-311"></a>
 <a id="upgrading-to-310"></a>
 <a id="upgrading-to-39"></a>
 <a id="upgrading-to-38"></a>
 <a id="upgrading-to-37"></a>
 
-Version 3.11 keeps every 3.10 command and skill name. It adds
-[`triage`](skills/triage/SKILL.md), [`architecture`](skills/architecture/SKILL.md)
-and [`ergonomics`](skills/ergonomics/SKILL.md), and folds methods from other
-public skill libraries into 27 skills; none of that is measured yet.
-Read the [3.11 release notes](docs/releases/2026-10-22-v3.11.0-notes.md). Use the
+Version 3.12 removes four skill names. [`orchestrate`](skills/orchestrate/SKILL.md)
+now does what `agent-native` did, [`research`](skills/research/SKILL.md) carries
+`reality-check` and the adoption rules from `reverse-engineer`, and `using-gc`
+is gone. The other 28 skills keep their names; 24 of them changed in an audit that is not measured yet.
+Read the [3.12 release notes](docs/releases/2026-11-10-v3.12.0-notes.md). Use the
 [plugin update instructions](docs/install-day2-ops.md#install-and-update-runtime-plugins)
 or, for npx installs, `npx skills@latest update` ([update notes](docs/install-day2-ops.md#update)).
 For Homebrew: `brew update && brew upgrade agentops`. In a source checkout, run
-`git pull --ff-only`, then rerun `ao skills link` with the selectors you used
-before, adding `--skill triage --skill architecture --skill ergonomics` for the
-new skills; without selectors it links every skill. Start a new session
-afterward; new installs do not silently remove obsolete copies.
+`git pull --ff-only`, then rerun `ao skills link` with the same `--skill` and
+`--dest` flags you used before; without them it links every skill into every
+installed runtime. Start a new session afterward. New installs do not remove
+obsolete copies, so delete the four old skill directories from your agent's skills folder if they are still there.
 
 **Upgrading from 3.8 or earlier:** version 3.9 removed ten bundled external tool
 skills, retired three delivery workflows, deleted the old curl installers and

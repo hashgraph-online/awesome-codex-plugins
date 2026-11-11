@@ -2,7 +2,7 @@
 
 # bkt pipeline
 
-Interact with Bitbucket Cloud Pipelines. Commands are no-ops for Data Center contexts.
+Interact with Bitbucket Cloud Pipelines. Commands fail with an error for Data Center contexts.
 
 ```
 bkt pipeline <command> [flags]

@@ -12,15 +12,13 @@ Context Guard helps Codex remember what you asked for in a long task. After `/co
 
 For example, if you ask Codex to edit one file and run a test, a successful file read or an unrun test still leaves work open. Ordinary edits, commits and pushes use Codex's existing permissions.
 
-**Latest release: 0.17.1.** If you already use Context Guard, finish tasks that still need the old plugin before switching. The upgrade guide shows when to switch entries and when to upgrade in place. [release notes](docs/releases/v0.17.1.md) · [upgrade guide](docs/UPGRADE_0_17_1.md)
-
-The main branch is preparing 0.17.2, an [unreleased source candidate](CHANGELOG.md#0172--unreleased). The steps below install 0.17.1.
+**Latest release: 0.17.2.** Finish tasks that still need the old plugin before switching. The upgrade guide explains how to update the stable entry and keep your cleanup settings. [release notes](docs/releases/v0.17.2.md) · [upgrade guide](docs/UPGRADE_0_17_2.md)
 
 ## Install with Codex
 
-You need Python 3.10 or newer and a Codex client that can load plugins and their automatic scripts (Hooks). Run `codex plugin list --json` first. If any Context Guard entry is already installed, use the [0.17.1 upgrade guide](docs/UPGRADE_0_17_1.md) for that entry. The steps here are for a fresh installation.
+You need Python 3.10 or newer and a Codex client that can load plugins and their automatic scripts (Hooks). Run `codex plugin list --json` first. If any Context Guard entry is already installed, use the [0.17.2 upgrade guide](docs/UPGRADE_0_17_2.md) for that entry. The steps here are for a fresh installation.
 
-1. Download `context-guard-0.17.1.zip` from the [release assets](https://github.com/GreenLv/codex-context-guard/releases/tag/v0.17.1). Verify the published SHA-256, extract the ZIP into a directory you control, and keep it there as the marketplace source. The release ZIP includes the file list used for verification.
+1. Download `context-guard-0.17.2.zip` from the [release assets](https://github.com/GreenLv/codex-context-guard/releases/tag/v0.17.2). Verify the published SHA-256, extract the ZIP into a directory you control, and keep it there as the marketplace source. The release ZIP includes the file list used for verification.
 2. From that directory, register the marketplace and install Context Guard:
 
    ```shell
@@ -29,7 +27,7 @@ You need Python 3.10 or newer and a Codex client that can load plugins and their
    codex plugin list --json
    ```
 
-3. Check that the list has one `context-guard@codex-context-guard` entry at `0.17.1`, installed and enabled, with the extracted directory as its marketplace source. Save the `installedPath` from the add response. To compare the installed files, replace the quoted example with that full path. On Windows, use `py -3` in place of `python3`.
+3. Check that the list has one `context-guard@codex-context-guard` entry at `0.17.2`, installed and enabled, with the extracted directory as its marketplace source. Save the `installedPath` from the add response. To compare the installed files, replace the quoted example with that full path. On Windows, use `py -3` in place of `python3`.
 
    ```shell
    python3 scripts/artifact_identity.py --compare-to "/path/from/installedPath"
@@ -37,7 +35,7 @@ You need Python 3.10 or newer and a Codex client that can load plugins and their
 
 4. Start a fresh Codex CLI task with the same configuration directory. Open `/hooks` and check that the nine Context Guard Hooks come from `<installedPath>/hooks/hooks.json` before trusting them. If a source is missing or differs, stop and check the installation. Then try the plugin in the client you actually use. Desktop may need a restart to load the new entry.
 
-If a new task cannot find Python or still loads the old version, see [compatibility](docs/COMPATIBILITY.md) and [the upgrade guide](docs/UPGRADE_0_17_1.md). For a repeat check, inspect the installed entry and compare the files again. Repeating `plugin add` can recreate cache files.
+If a new task cannot find Python or still loads the old version, see [compatibility](docs/COMPATIBILITY.md) and [the upgrade guide](docs/UPGRADE_0_17_2.md). For a repeat check, inspect the installed entry and compare the files again. Repeating `plugin add` can recreate cache files.
 
 ## Try it
 
@@ -177,7 +175,7 @@ Read [Successor Pack Input](skills/context-guard/references/successor-pack.md) b
 
 Context Guard stores its task records locally in the plugin data directory. It writes a redacted handoff only on request and preserves any file already at the destination. [Privacy](docs/PRIVACY.md) lists what redaction covers. Direct CLI commands use the active `CODEX_HOME` when no plugin data directory is supplied.
 
-Version 0.17.1 keeps the cleanup command restored in 0.17.0. From the extracted release directory, `python3 scripts/context_guard.py cleanup --data-dir "/path/to/plugin-data"` previews the selected sessions. To change data, enable a retention policy and explicitly apply a selection. With the default settings, apply can move eligible sessions to quarantine after 30 days and permanently delete them after a further seven days in quarantine. Set `--no-purge` when enabling the policy to keep quarantined sessions recoverable. Scheduled maintenance is a separate choice. Ending a task saves state and performs no sweep.
+Since 0.17.2, ending a session can start automatic cleanup. Eligible sessions that ended more than 30 days ago can move to recoverable quarantine. After at least seven days there, a later maintenance pass can permanently delete them. Your disabled policy, custom period, quarantine-only setting or durable opt-out takes precedence. A damaged policy never authorizes deletion. From the extracted release directory, `python3 scripts/context_guard.py cleanup --data-dir "/path/to/plugin-data"` previews what maintenance would do. Add `--policy show` to see the active policy and last automatic attempt. Scheduled maintenance is an additional opt-in.
 
 Active, unfinished, resumable and old-format sessions stay protected. Cleanup also keeps directories whose identity it cannot verify. [Session storage and cleanup](docs/SESSION_STORAGE.md) explains the commands, how to restore a quarantined session, and why a scan may report unfinished work.
 
@@ -204,7 +202,7 @@ Private runtime data is separate; this procedure does not migrate or delete it.
 
 ## Documentation
 
-- [Upgrade to 0.17.1](docs/UPGRADE_0_17_1.md)
+- [Upgrade to 0.17.2](docs/UPGRADE_0_17_2.md)
 - [Session storage and cleanup](docs/SESSION_STORAGE.md)
 - [Documentation map](docs/README.md)
 - [Changelog](CHANGELOG.md)

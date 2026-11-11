@@ -21,7 +21,7 @@ agent's, starts from it instead of from scratch. The user decides when an old te
 Two references do most of the work. Read them; do not restate them.
 
 - The e2e skill for everything the runner does: `.agents/skills/e2e/SKILL.md`
-  once `npx e2e init` or `npx skills add tester-army/e2e` ran, or
+  once `npx e2e init` or `npx skills add e2e-inc/e2e` ran, or
   `npx e2e guide <topic>` from the installed package. Topics named below
   (`setup`, `writing-tests`, `agent`, `mcp`, `running`, `debugging`) are its
   reference files.

@@ -6,21 +6,21 @@
 
 [![CI](https://github.com/avalonreset/legends-seo-dungeon/actions/workflows/ci.yml/badge.svg)](https://github.com/avalonreset/legends-seo-dungeon/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
-[![Version](https://img.shields.io/badge/version-2.2.5-blue)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.2.7-blue)](CHANGELOG.md)
 [![Runtime](https://img.shields.io/badge/runtime-Codex%20%7C%20Claude%20%7C%20Gemini%20%7C%20Grok-2ea44f)](dungeon/)
 
-[Project Home](https://seodungeon.com) | [Source](https://github.com/avalonreset/legends-seo-dungeon) | [Releases](https://github.com/avalonreset/legends-seo-dungeon/releases)
+[Project Home](https://seodungeon.com) | [Source](https://github.com/avalonreset/legends-seo-dungeon) | [Releases](https://github.com/avalonreset/legends-seo-dungeon/releases) | [Release Readiness](docs/RELEASE-READINESS.md)
 
 Legends SEO Dungeon turns SEO audits into a 16-bit dungeon crawler. Enter a
 domain, inspect the issues as demons, and use a local AI CLI to analyze or fix
 them inside your local project.
 
-This Legends build carries the public Claude SEO v2.2.5 engine refresh while keeping the
+This Legends build carries the public Claude SEO v2.2.7 engine refresh while keeping the
 browser game Codex-default. The app can also spawn local Claude Code, Gemini CLI, or Grok
 CLI when selected, and the underlying skills, agents, scripts, and references
 remain plain files for compatible terminal agents.
 
-The Dungeon version follows the bundled public Claude SEO release: **2.2.5**.
+The Dungeon version follows the bundled public Claude SEO release: **2.2.7**.
 Dungeon-specific fixes within that engine version are identified by Git commits.
 
 ## Screenshots & Key Art
@@ -83,7 +83,7 @@ These are the cross-platform equivalents of upstream's `claude-seo` launcher.
 The Codex installers bind installed prompts to the installed runtime's absolute path.
 
 
-The bundled public Claude SEO v2.2.5 engine (plus published maintenance) has 25 sub-skills (21 core + 1 orchestrator + 1
+The bundled public Claude SEO v2.2.7 engine (plus published maintenance) has 25 sub-skills (21 core + 1 orchestrator + 1
 framework integration + 2 extension mirrors), 18 portable sub-agents, 23 Codex
 TOML profiles, and 53 upstream Python modules plus 2 Dungeon API adapters.
 
@@ -125,13 +125,13 @@ credentials; they are optional for starting the game.
 
 ### Install Codex Skills (Optional for the Game)
 
-```powershell
-# Windows
-.\install.ps1
+```bash
+# Cross-platform (Windows, macOS, Linux)
+python scripts/runtime.py install-codex
 ```
 
 ```bash
-# macOS/Linux
+# macOS/Linux shell wrapper
 bash install.sh
 ```
 
@@ -316,11 +316,20 @@ legends-seo-dungeon/
 | Problem | Fix |
 |---------|-----|
 | "The dungeon is unreachable" | Bridge server is not running. Run `npm run server` in `dungeon/`. |
-| Skills not found by Codex | Run `install.ps1` or `install.sh` from the repo root. |
-| Codex, Claude, Gemini, or Grok fails to spawn | Confirm the selected CLI is installed, signed in, and available on `PATH`. On Windows, the bridge resolves `.ps1`, `.cmd`, `.bat`, and `.exe` shims before launching; override `SEO_DUNGEON_CODEX_CLI`, `SEO_DUNGEON_CLAUDE_CLI`, `SEO_DUNGEON_GEMINI_CLI`, or `SEO_DUNGEON_GROK_CLI` if your CLI lives elsewhere. |
+| Skills not found by Codex | Run `python scripts/runtime.py install-codex` (or `bash install.sh`) from the repo root. |
+| Codex, Claude, Gemini, or Grok fails to spawn | Confirm the selected CLI is installed, signed in, and available on `PATH`. On Windows, the bridge resolves `.cmd`, `.bat`, and `.exe` shims directly to their Node or binary entrypoints without shell expansion; override `SEO_DUNGEON_CODEX_CLI`, `SEO_DUNGEON_CLAUDE_CLI`, `SEO_DUNGEON_GEMINI_CLI`, or `SEO_DUNGEON_GROK_CLI` if your CLI lives elsewhere. |
 | Audit takes a long time | Normal for first full-site audits. Use cached audits when available. |
 | Google API commands fail | Run `/seo google` for setup instructions. |
 | Drift baseline not found | Run `/seo drift baseline <url>` before `/seo drift compare <url>`. |
+
+## EDR and Security Guardrails
+
+When automating or extending this repository on Windows, macOS, or Linux:
+
+- **Subprocess discipline**: Always invoke `python scripts/runtime.py` or Node entrypoints directly with explicit argument arrays (`shell: false`). Never wrap CLI arguments in `cmd.exe /c`, `powershell.exe -Command`, `-EncodedCommand`, `-ExecutionPolicy Bypass`, or `WScript.Shell`.
+- **No hidden window flags**: Do not pass `windowsHide: true`, `CREATE_NO_WINDOW`, or `STARTF_USESHOWWINDOW` to child processes.
+- **Symlink and path safety**: Refuse symlinks on credential files, `.env` files, and output paths, and keep file writes inside the user-selected project or runtime directory outside Windows Controlled Folder Access protected folders (`Documents`, `Desktop`, `Pictures`).
+- **SSRF and credential isolation**: Route all remote URL fetches through `scripts/url_safety.py`, enforce response byte ceilings, and disable HTTP redirects and ambient proxies on authenticated API calls.
 
 ## Asset Credits
 

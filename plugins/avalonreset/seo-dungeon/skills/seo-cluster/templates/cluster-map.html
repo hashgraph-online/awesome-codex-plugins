@@ -401,17 +401,19 @@
       let svgContent = "";
 
       // Draw links first (behind nodes)
+      const ALLOWED_LINK_TYPES = { mandatory: true, recommended: true, optional: true };
       const linkElements = [];
       data.links.forEach(function(link, idx) {
         const fromPos = nodePositions[link.from];
         const toPos = nodePositions[link.to];
         if (!fromPos || !toPos) return;
-        const linkClass = "link-line " + link.type;
+        const safeType = ALLOWED_LINK_TYPES[link.type] ? link.type : "optional";
+        const linkClass = "link-line " + safeType;
         const linkId = "link-" + idx;
         svgContent += '<line id="' + linkId + '" class="' + linkClass + '" '
           + 'x1="' + fromPos.x + '" y1="' + fromPos.y + '" '
           + 'x2="' + toPos.x + '" y2="' + toPos.y + '" '
-          + 'data-from="' + link.from + '" data-to="' + link.to + '"/>';
+          + 'data-from="' + escapeHtml(link.from) + '" data-to="' + escapeHtml(link.to) + '"/>';
         linkElements.push(linkId);
       });
 
@@ -428,7 +430,9 @@
 
       // Draw spoke nodes
       data.clusters.forEach(function(cluster, ci) {
-        const color = cluster.color || COLORS[ci % COLORS.length];
+        const color = (typeof cluster.color === "string" && /^#[0-9a-fA-F]{6}$/.test(cluster.color))
+          ? cluster.color
+          : COLORS[ci % COLORS.length];
         cluster.posts.forEach(function(post, pi) {
           const nodeId = "cluster-" + ci + "-post-" + pi;
           const pos = nodePositions[nodeId];
@@ -472,11 +476,11 @@
 
         let html = '<div class="tooltip-title">' + escapeHtml(info.title) + '</div>';
         html += '<div class="tooltip-detail"><span>Keyword:</span><span>' + escapeHtml(info.keyword) + '</span></div>';
-        html += '<div class="tooltip-detail"><span>Volume:</span><span>' + (info.volume || "N/A") + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Volume:</span><span>' + escapeHtml(info.volume || "N/A") + '</span></div>';
         html += '<div class="tooltip-detail"><span>Template:</span><span>' + escapeHtml(info.template) + '</span></div>';
-        html += '<div class="tooltip-detail"><span>Words:</span><span>' + info.wordCount.toLocaleString() + '</span></div>';
+        html += '<div class="tooltip-detail"><span>Words:</span><span>' + escapeHtml((Number(info.wordCount) || 0).toLocaleString()) + '</span></div>';
         if (info.status) {
-          html += '<div class="tooltip-detail"><span>Status:</span><span>' + info.status + '</span></div>';
+          html += '<div class="tooltip-detail"><span>Status:</span><span>' + escapeHtml(info.status) + '</span></div>';
         }
 
         tooltip.innerHTML = html;
@@ -572,9 +576,12 @@
 
     // Utility functions
     function escapeHtml(str) {
-      var div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str == null ? "" : str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
     function truncate(str, maxLen) {

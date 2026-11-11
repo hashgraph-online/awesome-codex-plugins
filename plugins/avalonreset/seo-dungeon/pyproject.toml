@@ -1,9 +1,10 @@
 [project]
 name = "legends-seo-dungeon"
-version = "2.2.6"
+version = "2.2.7"
 description = "Open-source Legends SEO Dungeon skill suite"
 requires-python = ">=3.11"
 license = "MIT"
+license-files = ["LICENSE", "LICENSE-CLAUDE-SEO"]
 readme = "README.md"
 authors = [
   { name = "Avalon Reset", email = "avalonreset@users.noreply.github.com" },

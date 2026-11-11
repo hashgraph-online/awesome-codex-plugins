@@ -10,7 +10,7 @@ Keep an AI video project, or any agent-built project, in a private GitHub repo, 
 ```bash
 npx skills add vargHQ/skills --skill video-project-github                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills video-project-github --agent github-copilot --scope user
-# or all 73 skills as a Claude Code plugin:
+# or all 78 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -50,4 +50,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 73 skills](../README.md#all-73-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-project-github) · [varg.ai](https://varg.ai)
+More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-project-github) · [varg.ai](https://varg.ai)

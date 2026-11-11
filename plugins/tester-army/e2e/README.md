@@ -20,7 +20,7 @@ Android emulator, or phone.
 
 ## Install
 
-The [tester-army/e2e](https://github.com/tester-army/e2e) repository is a
+The [e2e-inc/e2e](https://github.com/e2e-inc/e2e) repository is a
 marketplace for Claude Code, Codex, and Cursor. All three marketplace files
 point to `plugins/e2e`, and installation copies this directory into the
 client's cache. Grok Build reads the Claude Code files.
@@ -28,14 +28,14 @@ client's cache. Grok Build reads the Claude Code files.
 Claude Code:
 
 ```bash
-claude plugin marketplace add tester-army/e2e
+claude plugin marketplace add e2e-inc/e2e
 claude plugin install e2e@e2e
 ```
 
 Codex:
 
 ```bash
-codex plugin marketplace add tester-army/e2e
+codex plugin marketplace add e2e-inc/e2e
 codex plugin add e2e@e2e
 ```
 
@@ -44,14 +44,14 @@ there, then run **Developer: Reload Window**:
 
 ```bash
 repo=$(mktemp -d)
-git clone --depth 1 https://github.com/tester-army/e2e "$repo"
+git clone --depth 1 https://github.com/e2e-inc/e2e "$repo"
 mkdir -p ~/.cursor/plugins/local
 rm -rf ~/.cursor/plugins/local/e2e
 cp -R "$repo/plugins/e2e" ~/.cursor/plugins/local/
 ```
 
 On Teams and Enterprise, local plugins need the admin setting Allow Local
-Plugin Imports, or an admin imports `tester-army/e2e` under Team Marketplaces
+Plugin Imports, or an admin imports `e2e-inc/e2e` under Team Marketplaces
 in the Cursor dashboard.
 
 Start a new session after installing. The plugin's version follows e2e
@@ -61,7 +61,7 @@ releases. Update it with `claude plugin marketplace update e2e` followed by
 Cursor, run the commands above again.
 
 To try local changes, run the same commands from the monorepo root with
-`./` in place of `tester-army/e2e`. Claude Code reads a local marketplace
+`./` in place of `e2e-inc/e2e`. Claude Code reads a local marketplace
 in place, so edits show at the next session start or `/reload-plugins`. For
 a one-session preview, run `claude --plugin-dir ./plugins/e2e` or
 `agent --plugin-dir ./plugins/e2e`.
@@ -126,6 +126,6 @@ work without the rest of the monorepo. The repo's development `.mcp.json`
 is outside this package.
 
 The initial Codex manifest, icons, and skill UI metadata came from
-[tester-army/plugins at 9954005](https://github.com/tester-army/plugins/tree/9954005c9688bb1928bdaad20cb8098160406931/plugins/e2e).
+[e2e-inc/plugins at 9954005](https://github.com/e2e-inc/plugins/tree/9954005c9688bb1928bdaad20cb8098160406931/plugins/e2e).
 The shared skill content follows this monorepo's current sources.
 Docs: <https://e2e.com/docs>.

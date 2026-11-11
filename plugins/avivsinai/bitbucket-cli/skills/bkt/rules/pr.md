@@ -728,7 +728,7 @@ bkt pr create [flags]
   bkt pr create --title "Add OAuth2 support" --description "Implements RFC 6749"
 
   # Create with reviewers and close source branch on merge
-  bkt pr create -t "Fix login bug" --reviewer alice --reviewer bob --close-source
+  bkt pr create --title "Fix login bug" --reviewer alice --reviewer bob --close-source
 
   # Create a draft pull request
   bkt pr create --title "WIP: new feature" --draft

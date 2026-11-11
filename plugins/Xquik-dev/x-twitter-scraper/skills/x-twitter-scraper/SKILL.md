@@ -68,7 +68,7 @@ account connected in the Xquik dashboard.
 | Base URL | `https://xquik.com/api/v1`. Route tables omit `/api/v1`, and full URLs include it |
 | Auth | Lowercase `x-api-key` header, read from `XQUIK_API_KEY` or the client's secret store |
 | MCP server | `https://xquik.com/mcp`, Streamable HTTP, OAuth first, API key fallback |
-| MCP tools | `docs` for guidance, `search` for a route contract, `execute` for a call |
+| MCP tools | `docs` for guidance, `search` for a route contract, `execute` for a call, `whoami` for the signed-in account |
 | IDs | Digit strings. Tweet IDs come from `https://x.com/<user>/status/<id>` |
 | Usernames | `^[A-Za-z0-9_]{1,15}$`, without the `@` |
 | Rate limits | 500 reads per second, 6,000 changes per minute, 120 X actions per minute. `429` carries `Retry-After` |
@@ -134,7 +134,7 @@ task needs.
 - A post costs 30 credits. A like, repost, follow, DM, or delete costs 10.
 - AI analysis bills 2 credits per analyzed post, so $0.0003. Posts without an
   analysis cost nothing.
-- [Pricing](references/compare-faq.md#pricing-facts) lists every rate.
+- [Pricing](references/pricing.md) lists every current rate and limit.
 - A cost quote names the billed unit, the credit rate & the hard ceiling. For
   known quantities, sum every operation, lookups included. Show total credits
   and exact pay-as-you-go dollars.

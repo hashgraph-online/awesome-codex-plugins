@@ -1401,6 +1401,21 @@
       "icon": "./plugins/arvkonstantin/herdr-codex-subagents/assets/icon.svg"
     },
     {
+      "name": "hiway-kit",
+      "displayName": "hiway-kit",
+      "source": {
+        "source": "local",
+        "path": "./plugins/This-HW/hiway-kit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Discipline kit for coding agents with 17 skills for planning, automated implementation, testing, debugging, review and multi-session coordination, where work counts as done only when the project's own checks pass.",
+      "icon": "./plugins/This-HW/hiway-kit/assets/icon.png"
+    },
+    {
       "name": "hol-guard",
       "displayName": "HOL Guard Plugin",
       "source": {
@@ -3010,7 +3025,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Hosted webhook inbox, memory locker, wake-up calls, uptime and heartbeat watch and ask-my-human utilities for agents over remote MCP with OAuth sign-in, paid from a prepaid balance the human tops up.",
-      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/logo.svg"
+      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/logo.png"
     },
     {
       "name": "ahel",
@@ -4138,21 +4153,6 @@
       "category": "Tools & Integrations",
       "description": "Publishes files, sites and apps with a shared database to a link you can share, and manages them through a remote MCP server.",
       "icon": "./plugins/host0-ai/skills/assets/icon.png"
-    },
-    {
-      "name": "imagera",
-      "displayName": "Imagera",
-      "source": {
-        "source": "local",
-        "path": "./plugins/alexadams6ix/imagera-skills"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Generate and edit images, video, voice and music through the hosted Imagera MCP server (OAuth sign-in) and 37 skills, with the credit cost stated before each run. Website: https://imagera.ai/mcp",
-      "icon": "./plugins/alexadams6ix/imagera-skills/assets/logo.svg"
     },
     {
       "name": "jk",

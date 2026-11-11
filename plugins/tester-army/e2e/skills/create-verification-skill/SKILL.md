@@ -24,7 +24,7 @@ mid-task, by an agent that has never seen the app.
 The e2e skill is the reference for everything e2e does. Read it first and
 link to it rather than restate it. It is the sibling
 [e2e skill](../e2e/SKILL.md), wherever this skill was installed from; when
-it is missing, `npx skills add tester-army/e2e` or `npx e2e init` installs
+it is missing, `npx skills add e2e-inc/e2e` or `npx e2e init` installs
 it. `npx e2e guide <topic>` prints a reference from the project's installed
 package; prefer that version when the two differ. Topics
 named below (`setup`, `writing-tests`, `mcp`, `explore`, `bug-bash`,

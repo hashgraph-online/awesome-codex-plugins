@@ -66,7 +66,7 @@ bkt admin logging <command> [flags]
 Display the current logging configuration of a Bitbucket Data Center
 instance, including the active log level and whether asynchronous logging
 is enabled. Output defaults to human-readable text but supports JSON via
-the --output flag. Requires a Data Center context.
+the --json flag. Requires a Data Center context.
 
 ### Usage
 
@@ -92,7 +92,7 @@ bkt admin logging get [flags]
   bkt admin logging get
 
   # Show logging config as JSON
-  bkt admin logging get --output json
+  bkt admin logging get --json
 
   # Query a specific DC context
   bkt admin logging get --context prod-dc

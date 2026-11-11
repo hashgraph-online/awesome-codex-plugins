@@ -18,6 +18,7 @@ import {
   GoalProgressUpdateStateSchema,
   type GoalProgressViewModel,
 } from "../../contracts/src/index.js";
+import { serializeGoalProgressLocaleCatalog } from "../../renderer/src/locale.js";
 import type { CodexHostPlatform } from "./anchor-adapter.js";
 import {
   type CdpCommandSender,
@@ -202,6 +203,8 @@ export class GoalProgressRendererBridge {
   #scriptRegistered = false;
   #installed = false;
   #configured = false;
+  #pageLocale: string | undefined;
+  #deliveredLocaleCatalogKeys = new Set<string>(["en-US"]);
   #lastErrorCode: string | null = null;
 
   constructor(options: GoalProgressRendererBridgeOptions) {
@@ -223,7 +226,11 @@ export class GoalProgressRendererBridge {
           }
           this.#installed = false;
           this.#configured = false;
-          if (this.#onVisibleThreadChange && this.#visibleThreadWatcherRegistered) {
+          this.#deliveredLocaleCatalogKeys = new Set<string>(["en-US"]);
+          if (
+            (this.#onVisibleThreadChange || typeof this.#sender.onEvent === "function") &&
+            this.#visibleThreadWatcherRegistered
+          ) {
             this.#visibleThreadLifecycleId = randomBytes(24).toString("base64url");
             await refreshGoalProgressVisibleThreadWatcher(
               this.#sender,
@@ -299,6 +306,7 @@ export class GoalProgressRendererBridge {
           await this.#mount(viewModel);
           return;
         }
+        await this.#deliverMissingLocaleCatalog(result);
         return;
       }
       await this.#mount(viewModel);
@@ -444,6 +452,7 @@ export class GoalProgressRendererBridge {
   }
 
   async #mount(viewModel: GoalProgressViewModel): Promise<void> {
+    const localeCatalog = this.#localeCatalogForMount();
     const result = this.#pageResult(
       await invokeGoalProgressPageApi(this.#sender, "mount", {
         platform: this.#platform,
@@ -451,6 +460,7 @@ export class GoalProgressRendererBridge {
         viewModel,
         updateState: this.#latestUpdateState,
         uiPreference: this.#uiPreference,
+        ...(localeCatalog === undefined ? {} : { localeCatalog }),
         ...(this.#onUiIntent || this.#onUpdateIntent
           ? {
               bridgeNonce: this.#bridgeNonce,
@@ -459,11 +469,58 @@ export class GoalProgressRendererBridge {
           : {}),
       }),
     );
+    if (localeCatalog !== undefined) {
+      this.#deliveredLocaleCatalogKeys.add(localeCatalog.key);
+    }
     this.#configured = result.reason !== "not-configured" && result.reason !== "invalid-input";
+    await this.#deliverMissingLocaleCatalog(result);
+  }
+
+  #localeCatalogForMount() {
+    if (!this.#pageLocale) {
+      return undefined;
+    }
+    const catalog = serializeGoalProgressLocaleCatalog(this.#pageLocale);
+    if (!catalog || this.#deliveredLocaleCatalogKeys.has(catalog.key)) {
+      return undefined;
+    }
+    return catalog;
+  }
+
+  async #deliverLocaleCatalogForLocale(rawLocale: string): Promise<void> {
+    const catalog = serializeGoalProgressLocaleCatalog(rawLocale);
+    if (!catalog || this.#deliveredLocaleCatalogKeys.has(catalog.key) || !this.#installed) {
+      return;
+    }
+    const applied = await invokeGoalProgressPageApi(this.#sender, "setLocaleCatalog", catalog);
+    if (
+      applied !== null &&
+      typeof applied === "object" &&
+      (applied as { ok?: unknown }).ok === true
+    ) {
+      this.#deliveredLocaleCatalogKeys.add(catalog.key);
+    }
+  }
+
+  async #deliverMissingLocaleCatalog(result: Record<string, unknown>): Promise<void> {
+    if (typeof result.missingLocaleCatalogKey === "string") {
+      this.#pageLocale = result.missingLocaleCatalogKey;
+      await this.#deliverLocaleCatalogForLocale(result.missingLocaleCatalogKey);
+    }
   }
 
   async #ensureInstalled(): Promise<void> {
-    if (this.#onVisibleThreadChange && !this.#visibleThreadWatcherRegistered) {
+    if ((this.#onUiIntent || this.#onUpdateIntent) && !this.#bindingRegistered) {
+      await this.#sender.send("Runtime.enable");
+      await this.#sender.send("Runtime.addBinding", {
+        name: this.#bindingName,
+      });
+      this.#bindingRegistered = true;
+    }
+    if (
+      (this.#onVisibleThreadChange || typeof this.#sender.onEvent === "function") &&
+      !this.#visibleThreadWatcherRegistered
+    ) {
       await installGoalProgressVisibleThreadWatcher(
         this.#sender,
         this.#visibleThreadBindingName,
@@ -471,13 +528,6 @@ export class GoalProgressRendererBridge {
         this.#visibleThreadLifecycleId,
       );
       this.#visibleThreadWatcherRegistered = true;
-    }
-    if ((this.#onUiIntent || this.#onUpdateIntent) && !this.#bindingRegistered) {
-      await this.#sender.send("Runtime.enable");
-      await this.#sender.send("Runtime.addBinding", {
-        name: this.#bindingName,
-      });
-      this.#bindingRegistered = true;
     }
     if (this.#installed) {
       return;
@@ -492,7 +542,7 @@ export class GoalProgressRendererBridge {
   }
 
   async #handleVisibleThreadSignal(params: unknown): Promise<boolean> {
-    if (!this.#onVisibleThreadChange) {
+    if (!this.#onVisibleThreadChange && typeof this.#sender.onEvent !== "function") {
       return false;
     }
     const binding = z
@@ -515,25 +565,39 @@ export class GoalProgressRendererBridge {
     } catch {
       return true;
     }
+    const commonSignalFields = {
+      protocolVersion: z.literal(1),
+      bridgeNonce: z.string().regex(/^[A-Za-z0-9_-]{32}$/u),
+      lifecycleId: z
+        .string()
+        .regex(/^[A-Za-z0-9_-]{32}$/u)
+        .optional(),
+    };
     const signal = z
-      .object({
-        protocolVersion: z.literal(1),
-        bridgeNonce: z.string().regex(/^[A-Za-z0-9_-]{32}$/u),
-        lifecycleId: z
-          .string()
-          .regex(/^[A-Za-z0-9_-]{32}$/u)
-          .optional(),
-        type: z.literal("visibleThreadChanged"),
-        threadId: z
-          .string()
-          .trim()
-          .min(1)
-          .max(256)
-          .refine((value) => !value.startsWith("client-new-thread:"))
-          .nullable(),
-        sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
-      })
-      .strict()
+      .discriminatedUnion("type", [
+        z
+          .object({
+            ...commonSignalFields,
+            type: z.literal("visibleThreadChanged"),
+            threadId: z
+              .string()
+              .trim()
+              .min(1)
+              .max(256)
+              .refine((value) => !value.startsWith("client-new-thread:"))
+              .nullable(),
+            locale: z.string().trim().min(1).max(64).optional(),
+            sequence: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).optional(),
+          })
+          .strict(),
+        z
+          .object({
+            ...commonSignalFields,
+            type: z.literal("localeChanged"),
+            locale: z.string().trim().min(1).max(64),
+          })
+          .strict(),
+      ])
       .safeParse(payload);
     if (!signal.success || signal.data.bridgeNonce !== this.#bridgeNonce) {
       return true;
@@ -542,6 +606,13 @@ export class GoalProgressRendererBridge {
       signal.data.lifecycleId !== undefined &&
       signal.data.lifecycleId !== this.#visibleThreadLifecycleId
     ) {
+      return true;
+    }
+    if (signal.data.locale !== undefined) {
+      this.#pageLocale = signal.data.locale;
+      await this.#deliverLocaleCatalogForLocale(signal.data.locale);
+    }
+    if (signal.data.type === "localeChanged" || !this.#onVisibleThreadChange) {
       return true;
     }
     try {

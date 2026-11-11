@@ -7,7 +7,7 @@
     "url": "https://tester.army"
   },
   "homepage": "https://e2e.com/docs",
-  "repository": "https://github.com/tester-army/e2e",
+  "repository": "https://github.com/e2e-inc/e2e",
   "license": "Apache-2.0",
   "keywords": [
     "e2e",
@@ -36,7 +36,7 @@
     "websiteURL": "https://tester.army/e2e",
     "privacyPolicyURL": "https://tester.army/privacy",
     "termsOfServiceURL": "https://tester.army/terms",
-    "supportURL": "https://github.com/tester-army/e2e/issues",
+    "supportURL": "https://github.com/e2e-inc/e2e/issues",
     "defaultPrompt": [
       "Add e2e tests for the sign-up flow",
       "Check my UI change in the running app",

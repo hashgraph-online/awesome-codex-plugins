@@ -16,10 +16,11 @@
 
 ## 🆕 Latest update
 
-### v0.3.11 — Compatible with the latest Codex update
+### v0.3.12 — Automatic connection recovery and lighter footprint
 
-- Stay compatible with the latest Codex Desktop update.
-- Complete local status checks much faster.
+- Automatically reconnect and restore the progress bar after long sessions or system sleep.
+- Clear outdated update prompts immediately after upgrading.
+- Reclaim disk space from older versions during upgrades and reduce page and conversation overhead.
 
 Existing goals, checklists, progress and display preferences are preserved.
 

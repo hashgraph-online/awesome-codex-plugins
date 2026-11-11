@@ -74,7 +74,7 @@ bkt context create <name> [flags]
   bkt context create work --host bitbucket.mycompany.com --project TEAM
 
   # Create a Cloud context with a default repository
-  bkt context create oss --host bitbucket.org --workspace my-team --repo api-service
+  bkt context create oss --host api.bitbucket.org --workspace my-team --repo api-service
 
   # Create a context and immediately make it active
   bkt context create staging --host staging.bb.internal --project OPS --set-active
@@ -150,7 +150,7 @@ bkt context list [flags]
   bkt context ls
 
   # List contexts as JSON
-  bkt context list --output json
+  bkt context list --json
 ```
 
 ## bkt context use

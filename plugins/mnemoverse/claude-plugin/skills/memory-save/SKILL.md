@@ -19,7 +19,7 @@ Never store passwords, API keys, tokens, payment data, MFA codes, government IDs
 
 1. **One fact per memory.** If the user gave several independent facts, save them separately and say how many were saved.
 2. **Self-contained.** Write `content` so it still makes sense when recalled months later in another tool: what was decided or observed, why, and where it came from (a file, a meeting, a test run) when that is known. Prefer the user's own words.
-3. **The right place.** Personal memory needs no `domain`. To keep a project's facts together, use a domain such as `project:<repository-name>`, and before writing to a named domain call `memory_stats` to reuse its exact spelling: a different case or a stray space opens a separate store. A shared room (beta) is written to only when the user means the room, with its address as `domain`.
+3. **The right place.** Personal memory needs no `domain`. To keep a project's facts together, use a domain such as `project:<repository-name>`, and before writing to a named domain call `memory_stats` to reuse its exact spelling: a different case or a stray space opens a separate store. A shared room is written to only when the user means the room, with its address as `domain`.
 4. **Corrections are new memories.** When something saved earlier turned out wrong, save the corrected statement and say in it what it replaces. Nothing is edited in place.
 
 ## After writing

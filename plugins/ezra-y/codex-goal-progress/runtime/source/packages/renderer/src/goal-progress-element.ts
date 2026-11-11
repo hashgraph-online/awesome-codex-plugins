@@ -20,7 +20,7 @@ import {
 import { renderErrorView, renderPreparingView } from "./components/states.js";
 import { renderTrackingView } from "./components/tracking.js";
 import { DisplaySettingsMenuController } from "./display-settings-menu-controller.js";
-import { resolveGoalProgressLocale } from "./locale.js";
+import { onGoalProgressLocaleCatalogRegistered, resolveGoalProgressLocale } from "./locale-core.js";
 import { ObjectiveScrollController } from "./objective-scroll-controller.js";
 import { codexThemeTokenStyles } from "./styles/codex-theme-tokens.js";
 import { colorTokenStyles } from "./styles/color-tokens.js";
@@ -122,6 +122,7 @@ export class GoalProgressElement extends LitElement {
     this._scrollThumbOffset = state.thumbOffset;
   });
   readonly #displaySettingsMenu = new DisplaySettingsMenuController(this);
+  #unsubscribeLocaleCatalog: (() => void) | null = null;
 
   constructor() {
     super();
@@ -153,6 +154,10 @@ export class GoalProgressElement extends LitElement {
       this.dir = this.ownerDocument.documentElement.dir === "rtl" ? "rtl" : "ltr";
     }
     super.connectedCallback();
+    this.#unsubscribeLocaleCatalog?.();
+    this.#unsubscribeLocaleCatalog = onGoalProgressLocaleCatalogRegistered(() => {
+      this.requestUpdate();
+    });
     this.ownerDocument.addEventListener("pointerdown", this.#onDocumentPointerDown, true);
     this.ownerDocument.addEventListener("keydown", this.#onDocumentKeyDown, true);
     this.ownerDocument.defaultView?.addEventListener("resize", this.#displaySettingsMenu.position);
@@ -164,6 +169,8 @@ export class GoalProgressElement extends LitElement {
   }
 
   override disconnectedCallback(): void {
+    this.#unsubscribeLocaleCatalog?.();
+    this.#unsubscribeLocaleCatalog = null;
     this.ownerDocument.removeEventListener("pointerdown", this.#onDocumentPointerDown, true);
     this.ownerDocument.removeEventListener("keydown", this.#onDocumentKeyDown, true);
     this.ownerDocument.defaultView?.removeEventListener(

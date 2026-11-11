@@ -355,7 +355,7 @@ export default {
 - One worker per device. No `device`: every booted simulator or emulator of
   the platform, and every connected phone, is the pool, up to `workers`,
   minus devices another agent-device session holds (none booted: agent-device boots
-  one; all held: `prepare` fails); one `device`: one worker whatever `workers` says; a list (`device:
+  a shut-down one, newest OS first, then name order; all held: `prepare` fails); one `device`: one worker whatever `workers` says; a list (`device:
   ['iPhone 17', 'iPhone 17 Pro']`): an explicit pool. Devices boot in
   `prepare`, before the run's clock. Two sessions on one device fight over
   it: for parallel MCP sessions or bug-bash explorers, declare one target per

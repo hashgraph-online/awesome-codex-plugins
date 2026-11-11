@@ -1,0 +1,299 @@
+{
+  "title": "The Smallest Star",
+  "subtitle": "a fable, by Claude Fable 5.2",
+  "fps": 24,
+  "bpm": 72,
+  "meter": "3/4",
+  "bar_seconds": 2.5,
+  "total_seconds": 70,
+  "shots": [
+    {
+      "id": "s01",
+      "start": 0.0,
+      "dur": 5.0,
+      "mood": "stillness, wonder",
+      "action": "Night meadow. Camera cranes down from a sky full of stars into tall grass; one faint glow among the blades.",
+      "caption": "Once, a small firefly looked up at the stars."
+    },
+    {
+      "id": "s02",
+      "start": 5.0,
+      "dur": 5.0,
+      "mood": "longing, small",
+      "action": "Close-up: the firefly sits on a blade tip looking up, its light pulsing weakly.",
+      "caption": "They were so bright. And it was so small."
+    },
+    {
+      "id": "s03",
+      "start": 10.0,
+      "dur": 5.0,
+      "mood": "hope, lift, rising",
+      "action": "It takes off and climbs; the grass falls away, the sky fills the frame.",
+      "caption": "So it flew up to join them."
+    },
+    {
+      "id": "s04",
+      "start": 15.0,
+      "dur": 5.0,
+      "mood": "vast, thin, doubt creeping in",
+      "action": "High above the meadow, a tiny light against a huge sky and moon. It slows, wavers; its light flickers low.",
+      "caption": "But however high it climbed, the stars came no closer."
+    },
+    {
+      "id": "s05",
+      "start": 20.0,
+      "dur": 2.5,
+      "mood": "falling, sigh",
+      "action": "It sinks like a dim ember back down into the dark grass.",
+      "caption": ""
+    },
+    {
+      "id": "s06",
+      "start": 22.5,
+      "dur": 5.0,
+      "mood": "dark, alone, afraid",
+      "action": "Ground level, deep grass like a forest. A tiny mouse, lost, shivering. Almost no light. A faint glow drifts in from above.",
+      "caption": "Down in the tall grass, a mouse had lost its way home."
+    },
+    {
+      "id": "s07",
+      "start": 27.5,
+      "dur": 5.0,
+      "mood": "the turn: warmth blooms",
+      "action": "Two-shot. The firefly hovers before the mouse and brightens; warm light spreads over the mouse's face and through the blades.",
+      "caption": "The firefly had only a little light."
+    },
+    {
+      "id": "s08",
+      "start": 32.5,
+      "dur": 7.5,
+      "mood": "journey, gentle motion, courage",
+      "action": "Side tracking shot: the firefly leads, the mouse hops behind through the grass and past red mushrooms; blade shadows sweep.",
+      "caption": "But a little light, close by, goes a long way."
+    },
+    {
+      "id": "s09",
+      "start": 40.0,
+      "dur": 5.0,
+      "mood": "delicate, hushed",
+      "action": "Crossing a still pond on a fallen twig; the firefly and the stars mirrored in the water.",
+      "caption": ""
+    },
+    {
+      "id": "s10",
+      "start": 45.0,
+      "dur": 5.0,
+      "mood": "arrival, relief, home",
+      "action": "A mushroom house with a warm lit window. The mouse reaches the door and turns to look back up.",
+      "caption": ""
+    },
+    {
+      "id": "s11",
+      "start": 50.0,
+      "dur": 10.0,
+      "mood": "release, awe, resolve",
+      "action": "Camera rises and pulls back over the meadow; the firefly hovers above the roof, one bright point beneath the stars. Hold for the moral.",
+      "caption": "From its doorway, the mouse looked up, and saw the brightest star in the sky.",
+      "moral_at": 56.0,
+      "moral": "You don't have to reach the stars to be one."
+    },
+    {
+      "id": "coda",
+      "start": 60.0,
+      "dur": 5.0,
+      "mood": "soft afterglow, curiosity",
+      "action": "Making-of breakdown: raw geometry, one sample of noise, converged light.",
+      "caption": ""
+    },
+    {
+      "id": "end",
+      "start": 65.0,
+      "dur": 5.0,
+      "mood": "last note rings out",
+      "action": "End card.",
+      "caption": ""
+    }
+  ],
+  "events": [
+    {
+      "t": 0.0,
+      "type": "ambience_in",
+      "note": "crickets and night air fade in"
+    },
+    {
+      "t": 2.8,
+      "type": "glow_pulse",
+      "note": "faint glow first seen, weak pulse about once a second through s02"
+    },
+    {
+      "t": 10.4,
+      "type": "takeoff",
+      "note": "wing buzz starts, rising"
+    },
+    {
+      "t": 10.4,
+      "type": "wings",
+      "until": 21.5,
+      "note": "soft wing buzz while flying; strongest 10.4-15, thinning and faltering 17-20, sputtering during the fall 20-21.5"
+    },
+    {
+      "t": 17.5,
+      "type": "falter",
+      "note": "glow flickers low, music thins"
+    },
+    {
+      "t": 20.0,
+      "type": "fall",
+      "note": "descending gesture"
+    },
+    {
+      "t": 22.5,
+      "type": "dark",
+      "note": "near silence, low drone, crickets muffled"
+    },
+    {
+      "t": 25.5,
+      "type": "glow_enters",
+      "note": "faint shimmer as the glow drifts into the mouse's shot"
+    },
+    {
+      "t": 27.5,
+      "type": "wings",
+      "until": 29.0,
+      "note": "soft hover buzz"
+    },
+    {
+      "t": 29.2,
+      "type": "glow_bloom",
+      "note": "THE TURN: light blooms over 1.5 s, warm chord opens"
+    },
+    {
+      "t": 32.5,
+      "type": "journey_start",
+      "note": "gentle pulse begins; mouse hops every half beat"
+    },
+    {
+      "t": 32.5,
+      "type": "hops",
+      "until": 39.6,
+      "every": 0.41667,
+      "note": "soft tiny footfalls, one per hop"
+    },
+    {
+      "t": 32.5,
+      "type": "wings",
+      "until": 50.0,
+      "note": "light steady flight buzz, low in the mix"
+    },
+    {
+      "t": 40.0,
+      "type": "pond",
+      "note": "hush; two or three water drips, glassy tones"
+    },
+    {
+      "t": 40.8,
+      "type": "hops",
+      "until": 44.4,
+      "every": 0.83333,
+      "note": "careful slow steps on wood"
+    },
+    {
+      "t": 45.0,
+      "type": "home",
+      "note": "warm resolution begins, window glow"
+    },
+    {
+      "t": 45.267,
+      "type": "hops",
+      "until": 47.0,
+      "every": 0.41667,
+      "note": "last quick hops to the door, soft"
+    },
+    {
+      "t": 47.6,
+      "type": "look_back",
+      "note": "small tender pause"
+    },
+    {
+      "t": 50.0,
+      "type": "rise",
+      "note": "final swell as camera rises"
+    },
+    {
+      "t": 56.0,
+      "type": "moral",
+      "note": "peak resolves; music-box states the theme alone"
+    },
+    {
+      "t": 60.0,
+      "type": "coda",
+      "note": "soft afterglow under the making-of"
+    },
+    {
+      "t": 65.0,
+      "type": "end",
+      "note": "final chord rings out to silence by 69.5"
+    }
+  ],
+  "narration": {
+    "voice": "George (ElevenLabs v4, via varg)",
+    "note": "The narration is the one part of the film that is not code: an AI voice reads the captions.",
+    "lines": [
+      {
+        "t": 0.7,
+        "file": "vo_00.wav",
+        "text": "The Smallest Star."
+      },
+      {
+        "t": 2.6,
+        "file": "vo_01.wav",
+        "text": "Once, a small firefly looked up at the stars."
+      },
+      {
+        "t": 6.3,
+        "file": "vo_02.wav",
+        "text": "They were so bright. And it was so small."
+      },
+      {
+        "t": 10.8,
+        "file": "vo_03.wav",
+        "text": "So it flew up to join them."
+      },
+      {
+        "t": 15.5,
+        "file": "vo_04.wav",
+        "text": "But however high it climbed, the stars came no closer."
+      },
+      {
+        "t": 23.0,
+        "file": "vo_05.wav",
+        "text": "Down in the tall grass, a mouse had lost its way home."
+      },
+      {
+        "t": 27.7,
+        "file": "vo_06.wav",
+        "text": "The firefly had only a little light."
+      },
+      {
+        "t": 31.0,
+        "file": "vo_07.wav",
+        "text": "But a little light, close by, goes a long way."
+      },
+      {
+        "t": 50.6,
+        "file": "vo_08.wav",
+        "text": "From its doorway, the mouse looked up, and saw the brightest star in the sky."
+      },
+      {
+        "t": 56.4,
+        "file": "vo_09.wav",
+        "text": "You don't have to reach the stars to be one."
+      },
+      {
+        "t": 60.3,
+        "file": "vo_10.wav",
+        "text": "Every shape, every ray of light and every note in this film was written as code, by Claude Fable 5.2."
+      }
+    ]
+  }
+}

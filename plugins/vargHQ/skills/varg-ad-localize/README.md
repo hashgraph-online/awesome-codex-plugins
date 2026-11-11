@@ -10,7 +10,7 @@ Turns one video ad into versions for 8+ TikTok Shop and Meta markets on varg: tr
 ```bash
 npx skills add vargHQ/skills --skill varg-ad-localize                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills varg-ad-localize --agent github-copilot --scope user
-# or all 73 skills as a Claude Code plugin:
+# or all 78 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -43,4 +43,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 73 skills](../README.md#all-73-skills) · [varg.ai](https://varg.ai)
+More: [all 78 skills](../README.md#all-78-skills) · [varg.ai](https://varg.ai)

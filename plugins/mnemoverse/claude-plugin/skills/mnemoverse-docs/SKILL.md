@@ -39,7 +39,7 @@ The REST base and the MCP address are different surfaces: an MCP client pointed 
 
 ## What to say about how it works
 
-Keep to what the docs state. Memory is written as self-contained statements, read back by relevance or newest first, and rated after use: tell it a recalled memory helped or misled, and it re-ranks what comes back next. Shared rooms (beta) let several accounts write to one pool: https://mnemoverse.com/docs/api/rooms. Prices and limits: https://mnemoverse.com/docs/api/pricing.
+Keep to what the docs state. Memory is written as self-contained statements, read back by relevance or newest first, and rated after use: tell it a recalled memory helped or misled, and it re-ranks what comes back next. Shared rooms let several accounts write to one pool: https://mnemoverse.com/docs/api/rooms. Prices and limits: https://mnemoverse.com/docs/api/pricing.
 
 ## Rules
 

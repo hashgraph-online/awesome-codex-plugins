@@ -10,7 +10,7 @@ Animate a video once the previz, characters, moodboard, script and sound exist. 
 ```bash
 npx skills add vargHQ/skills --skill video-animate                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills video-animate --agent github-copilot --scope user
-# or all 73 skills as a Claude Code plugin:
+# or all 78 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -51,4 +51,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 73 skills](../README.md#all-73-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-animate) · [varg.ai](https://varg.ai)
+More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-animate) · [varg.ai](https://varg.ai)

@@ -10,7 +10,7 @@ Make the sound of any video so it feels real: AI voices that don't sound fake (c
 ```bash
 npx skills add vargHQ/skills --skill video-sound                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills video-sound --agent github-copilot --scope user
-# or all 73 skills as a Claude Code plugin:
+# or all 78 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -37,6 +37,7 @@ claude plugin install varg@varg
 - [How to make a faceless YouTube video with AI and Claude Code](../how-to/make-a-faceless-youtube-video/README.md)
 - [How to make an AI movie or short film with Claude Code, script to final cut](../how-to/make-an-ai-movie/README.md)
 - [How to add an AI voiceover that doesn't sound fake (plus music and SFX)](../how-to/add-ai-voiceover-to-video/README.md)
+- [How to make videos with Claude Fable 5.2: Blender films, game trailers, 3D explainers and Fable vs Opus](../how-to/make-videos-with-claude-fable-5-2/README.md)
 
 ## Works well with
 
@@ -53,4 +54,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 73 skills](../README.md#all-73-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-sound) · [varg.ai](https://varg.ai)
+More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-sound) · [varg.ai](https://varg.ai)

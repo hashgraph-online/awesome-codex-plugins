@@ -4,7 +4,7 @@
 # on it, including the ComfyUI node package. The console script below carries
 # the same weight, since users have it on PATH.
 name = "remove-ai-watermarks"
-version = "0.55.0"
+version = "0.57.0"
 description = "AI watermark remover for visible, invisible, and provenance marks in images and video"
 readme = "README.md"
 requires-python = ">=3.11,<3.15"
@@ -78,10 +78,13 @@ heif = [
 ]
 visible = ["remove-ai-watermarks[pixels]"]
 # Video visible removal uses the shared pixel runtime. PyAV packetizes processed
-# VFR frames with explicit PTS before system ffmpeg encodes them.
+# VFR frames with explicit PTS before FFmpeg encodes them. The full bundle
+# includes both CLI tools, so video installations work without a system FFmpeg.
 video = [
     "remove-ai-watermarks[visible]",
     "av>=18,<19",
+    "portable-ffmpeg-full==0.5.0",
+    "filelock>=3.20",
 ]
 # Open DWT-DCT watermarks used by Stable Diffusion / SDXL / FLUX. The in-tree
 # decoder avoids the upstream invisible-watermark package's mandatory torch and
@@ -125,6 +128,8 @@ qwen-zimage = [
     # Transformers falls through to tiktoken, which cannot parse that file.
     "sentencepiece>=0.2.2,<0.3",
     "torchvision>=0.20.0",
+    # Fixed perceptual acceptance model for qwen21-zimage.
+    "lpips==0.1.4",
 ]
 # Opt-in verified-text reconstruction over qwen-zimage. LaMa removes the changed
 # candidate glyphs before exact Qwen-VAE cores are composited back.

@@ -1,0 +1,129 @@
+<title>The Smallest Star, live</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* layout: the picture first, full width; one strip of controls under it; then a narrow reading column */
+:root {
+  color-scheme: dark;
+  --night: #070a17; --deep: #0c1126; --panel: #121934; --line: #232c52;
+  --ink: #e9ecf8; --dim: #98a0c2; --glow: #f1e169; --ember: #f0a35e;
+  --story: "Iowan Old Style", "Newsreader", "Palatino Linotype", Georgia, serif;
+  --ui: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+  --data: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+body { background: var(--night); color: var(--ink); font-family: var(--ui); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 22px; }
+header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 24px; }
+h1 { font-family: var(--story); font-weight: 400; font-size: clamp(30px, 5vw, 46px); letter-spacing: 0.01em; line-height: 1.05; margin: 0; text-wrap: balance; }
+h1 em { color: var(--glow); font-style: italic; }
+.by { color: var(--dim); font-size: 14px; margin: 0; }
+.stage { position: relative; background: var(--deep); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; aspect-ratio: 16 / 9; max-width: 100%; }
+.stage img, .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage img { object-fit: cover; }
+.stage canvas { opacity: 0; cursor: grab; touch-action: pan-y; outline-offset: -3px; }
+.stage canvas:active { cursor: grabbing; }
+.stage.live canvas { opacity: 1; }
+.stage.failed canvas { display: none; }
+.status { position: absolute; left: 12px; bottom: 12px; right: 12px; margin: 0; font-size: 13px; color: var(--ink); text-shadow: 0 1px 6px #000; pointer-events: none; }
+.stage.live .status { opacity: 0.72; }
+.stage.busy .status::before { content: ""; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--glow); margin-right: 8px; animation: pulse 1.1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) { .stage.busy .status::before { animation: none; } }
+.controls { display: flex; flex-direction: column; gap: 14px; }
+.row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; }
+.label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); min-width: 62px; }
+button { font: inherit; font-size: 14px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+button:hover { border-color: var(--dim); }
+button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+button[aria-pressed="true"] { background: var(--glow); border-color: var(--glow); color: #17130a; font-weight: 500; }
+.scrub { flex: 1 1 220px; min-width: 0; display: flex; align-items: center; gap: 10px; }
+input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: var(--glow); }
+.readout { display: flex; flex-wrap: wrap; gap: 6px 22px; font-family: var(--data); font-size: 13px; color: var(--dim); font-variant-numeric: tabular-nums; margin: 0; }
+.readout b { color: var(--ink); font-weight: 500; }
+.cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 36px 48px; padding-top: 14px; border-top: 1px solid var(--line); }
+@media (max-width: 760px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+h2 { font-family: var(--ui); font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--dim); margin: 0 0 12px; }
+.cols p { margin: 0 0 12px; max-width: 62ch; }
+ol.stages { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; counter-reset: st; }
+ol.stages li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 0 10px; counter-increment: st; }
+ol.stages li::before { content: counter(st); font-family: var(--data); color: var(--glow); font-size: 13px; padding-top: 2px; }
+ol.stages b { font-weight: 600; }
+.fable { font-family: var(--story); font-size: 19px; line-height: 1.5; font-style: italic; }
+.fable p { margin: 0 0 10px; max-width: 34ch; }
+.fable .moral { color: var(--glow); }
+.facts { display: flex; flex-wrap: wrap; gap: 6px 26px; font-family: var(--data); font-size: 13px; color: var(--dim); margin: 14px 0 0; padding: 0; list-style: none; }
+.facts b { color: var(--ink); font-weight: 500; }
+a { color: var(--glow); }
+footer { color: var(--dim); font-size: 13px; }
+</style>
+<div class="wrap">
+  <header>
+    <h1>The Smallest <em>Star</em></h1>
+    <p class="by">A fable, path traced live on your graphics card</p>
+  </header>
+
+  <div class="stage busy" id="stage">
+    <img alt="A small mouse in a red scarf looks at a glowing firefly in tall grass at night" src="__POSTER__">
+    <canvas id="view" tabindex="0" aria-label="Live render. Drag, or use the arrow keys, to move the camera."></canvas>
+    <p class="status" id="status" role="status">Starting…</p>
+  </div>
+
+  <div class="controls">
+    <div class="row" role="group" aria-label="Scene">
+      <span class="label">Scene</span>
+      <button data-scene="first-light" aria-pressed="false">First light</button>
+      <button data-scene="the-moon" aria-pressed="false">The moon</button>
+      <button data-scene="the-meeting" aria-pressed="true">The meeting</button>
+      <button data-scene="the-crossing" aria-pressed="false">The crossing</button>
+      <button data-scene="home" aria-pressed="false">Home</button>
+      <button data-scene="the-star" aria-pressed="false">The star</button>
+    </div>
+    <div class="row" role="group" aria-label="What to show">
+      <span class="label">Show</span>
+      <button data-mode="2" aria-pressed="false">Shapes</button>
+      <button data-mode="1" aria-pressed="false">Colour</button>
+      <button data-mode="4" aria-pressed="false">One sample</button>
+      <button data-mode="0" aria-pressed="true">Film</button>
+    </div>
+    <div class="row">
+      <span class="label">Film</span>
+      <button id="play">Play</button>
+      <div class="scrub"><input id="scrub" type="range" min="0" max="59.9" step="0.05" value="31.6" aria-label="Position in the film, seconds"></div>
+      <span class="label" style="min-width:0">Firefly</span>
+      <div class="scrub" style="flex-basis:120px"><input id="light" type="range" min="0.1" max="2.5" step="0.05" value="1" aria-label="Firefly brightness"></div>
+      <button id="zin" aria-label="Move the camera closer">Closer</button>
+      <button id="zout" aria-label="Move the camera back">Back</button>
+      <button id="reset">Reset view</button>
+    </div>
+    <p class="readout"><span>samples per pixel <b id="r-spp">0</b></span><span>one sample takes <b id="r-ms">–</b> ms</span><span>render size <b id="r-res">–</b></span><span>film time <b id="r-time">31.6 s</b></span></p>
+  </div>
+
+  <div class="cols">
+    <section>
+      <h2>What you are looking at</h2>
+      <p>This is the renderer that made the film, not a recording of it. Your graphics card is tracing rays of light through the scene right now. The picture starts noisy and clears as samples add up; move the camera and it starts again.</p>
+      <p>There are no 3D models, no textures and no engine underneath. Claude Fable 5.2 wrote the story, the two characters, the meadow, the light transport, the denoiser and the score as code, then rendered the film with it.</p>
+      <ol class="stages">
+        <li><span><b>Shapes.</b> The mouse, the firefly and the mushroom house are distance functions: spheres, cones and capsules blended like clay. Every blade of grass is one curved ribbon found by solving a quadratic.</span></li>
+        <li><span><b>Colour.</b> Fur, bark, the spots on the caps and the stars are formulas. Nothing is painted or photographed.</span></li>
+        <li><span><b>One sample.</b> For each pixel a ray leaves the camera, bounces, and asks the moon, the firefly and the window how much light arrives. One ray per pixel is mostly noise.</span></li>
+        <li><span><b>Film.</b> Many samples are averaged, a denoiser guided by the shapes cleans what is left, and the result is tone mapped and graded.</span></li>
+      </ol>
+      <ul class="facts">
+        <li><b>__GLSL__</b> lines of shader</li><li><b>0</b> meshes</li><li><b>0</b> textures</li><li><b>3</b> lights</li><li><b>1</b> quadratic per blade</li>
+      </ul>
+    </section>
+    <section>
+      <h2>The fable</h2>
+      <div class="fable">
+        <p>Once, a small firefly looked up at the stars. They were so bright, and it was so small.</p>
+        <p>So it flew up to join them. But however high it climbed, the stars came no closer.</p>
+        <p>Down in the tall grass, a mouse had lost its way home. The firefly had only a little light. But a little light, close by, goes a long way.</p>
+        <p>From its doorway, the mouse looked up, and saw the brightest star in the sky.</p>
+        <p class="moral">You don't have to reach the stars to be one.</p>
+      </div>
+    </section>
+  </div>
+  <footer>Written, rendered and scored in code by Claude Fable 5.2. More ways to make video with code: <a href="https://varg.ai/how-to" target="_blank" rel="noopener">varg.ai/how-to</a></footer>
+</div>
+<script>__BUNDLE__</script>

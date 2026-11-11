@@ -46,7 +46,7 @@ the `docs/` directory of the installed `e2e` package
 (`node_modules/e2e/docs` in a single-package project); a link such as
 `/reference/cli` is `docs/reference/cli.mdx`. Complete projects for Vite,
 Next.js, Astro, Angular, Expo, SwiftUI, Jetpack Compose, Kotlin Multiplatform,
-Flutter, and .NET MAUI are in https://github.com/tester-army/e2e/tree/main/examples.
+Flutter, and .NET MAUI are in https://github.com/e2e-inc/e2e/tree/main/examples.
 
 ## Quick start
 
@@ -265,8 +265,8 @@ you worked around it or gave up. Never report:
 - anything on an outdated e2e: the command refuses it, so upgrade
   (`npx e2e@latest upgrade`) and check the problem still happens first.
 
-Search [existing issues](https://github.com/tester-army/e2e/issues) first
-(`gh issue list -R tester-army/e2e --search "<words>"`); comment on a match
+Search [existing issues](https://github.com/e2e-inc/e2e/issues) first
+(`gh issue list -R e2e-inc/e2e --search "<words>"`); comment on a match
 instead of sending a new report.
 
 A `bug` needs `--repro`, steps that reproduce it every time without app

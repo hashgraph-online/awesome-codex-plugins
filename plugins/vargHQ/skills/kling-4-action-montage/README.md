@@ -10,7 +10,7 @@ Turn three or four key frames into a 30-second action montage with Kling 4 (klin
 ```bash
 npx skills add vargHQ/skills --skill kling-4-action-montage                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills kling-4-action-montage --agent github-copilot --scope user
-# or all 73 skills as a Claude Code plugin:
+# or all 78 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -49,4 +49,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 73 skills](../README.md#all-73-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/kling-4-action-montage) · [varg.ai](https://varg.ai)
+More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/kling-4-action-montage) · [varg.ai](https://varg.ai)

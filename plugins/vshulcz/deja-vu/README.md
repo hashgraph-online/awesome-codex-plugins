@@ -5,27 +5,21 @@
   </picture>
 </p>
 
-<p align="center"><b>Shared local memory, cross-agent handoff, and code recovery across 43 coding agents.</b></p>
-
-<p align="center">Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 36 more agents already save every session to disk.<br>
-deja indexes all of it locally so your agents keep context across <code>/compact</code>, hand off mid-task via <code>deja handoff</code>, and recover overwritten code via <code>deja restore</code> — no LLM, one Go binary.</p>
+<p align="center"><b>Shared local memory, cross-agent handoff, and code recovery across 43 coding agents.</b><br>
+Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 36 more agents already save every session to disk.<br>
+<code>deja</code> indexes all of it locally in one Go binary — zero LLM calls, 0.7 ms in-process lookup, ~4% index footprint.</p>
 
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
-
-<p align="center">
-  <a href="https://trendshift.io/repositories/83640"><img src="https://trendshift.io/api/badge/trendshift/repositories/83640/daily?language=Go" alt="#1 Go Repository Of The Day" style="width: 250px; height: 55px;" width="250" height="55"></a>
-</p>
 
 <p align="center">
   <a href="https://github.com/vshulcz/deja-vu/stargazers"><img src="https://img.shields.io/github/stars/vshulcz/deja-vu?style=flat&color=f59e0b" alt="GitHub Stars"></a>
   <a href="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml"><img src="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml/badge.svg?branch=main&event=push" alt="CI"></a>
   <a href="https://github.com/vshulcz/deja-vu/actions/workflows/ci.yml"><img src="https://img.shields.io/badge/coverage-88%25-brightgreen" alt="Coverage"></a>
   <a href="https://github.com/vshulcz/deja-vu/releases"><img src="https://img.shields.io/github/v/release/vshulcz/deja-vu" alt="Release"></a>
-  <a href="https://mcptoplist.com/server/io.github.vshulcz%2Fdeja-vu"><img src="https://mcptoplist.com/badge/io.github.vshulcz%2Fdeja-vu.svg" alt="MCP Toplist"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
+  &middot;
+  <a href="https://vshulcz.github.io/deja-vu/"><b>Website</b></a> &middot; <a href="https://vshulcz.github.io/deja-vu/view/"><b>Live demo</b></a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/getting-started.html">Docs</a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/benchmarks.html">Benchmarks</a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/compare.html">Compare</a> &middot; <a href="docs/ARCHITECTURE.md">Architecture</a>
 </p>
-
-<p align="center"><a href="https://vshulcz.github.io/deja-vu/"><b>Website &amp; interactive search</b></a> &middot; <a href="https://vshulcz.github.io/deja-vu/view/"><b>Live browser demo</b></a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/getting-started.html">Docs</a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/benchmarks.html">Benchmarks</a> &middot; <a href="https://vshulcz.github.io/deja-vu/guide/compare.html">How it compares</a> &middot; <a href="docs/INTEGRATING.md">Building it into your tool</a></p>
 
 <p align="center"><img src="https://raw.githubusercontent.com/vshulcz/deja-vu/main/assets/demo.gif" width="720" alt="The same question put to the same agent twice: without memory it has no record of it, with deja it answers with the decision from eight months earlier"></p>
 
@@ -34,13 +28,20 @@ curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | s
 deja install --auto
 ```
 
-<p align="center"><sub>Or with Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code plugin: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Agent Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Try without installing: <code>npx @vshulcz/deja-vu sources</code> &middot; <a href="https://vshulcz.github.io/deja-vu/view/">Live demo →</a></sub></p>
+<p align="center"><sub>Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Inspect existing stores without installing: <code>npx @vshulcz/deja-vu sources</code></sub></p>
+
+```sh
+$ deja "jwt refresh token"             # lexical + structural search across all 43 agent stores
+$ deja handoff --to codex              # continue the active session's goal & state in another agent
+$ deja restore internal/auth/jwt.go    # recover code an agent overwrote before git commit
+$ deja blame internal/auth/jwt.go:42   # trace which agent session wrote or replaced a line
+```
 
 <table align="center">
 <tr>
 <td align="center" width="33%">Recall<br><b>97.2% R@5</b> on LongMemEval-S<br><sub>MemPalace publishes 96.6%, agentmemory 95.2%</sub></td>
 <td align="center" width="33%">Tokens<br><b>half the tokens</b> of agentmemory<br><sub>on a task this machine had already solved</sub></td>
-<td align="center" width="33%">Index time<br><b>13.6 s</b> to index 19,195 sessions<br><sub>the next of seven tools takes 72 s</sub></td>
+<td align="center" width="33%">Index &amp; lookup<br><b>13.6 s</b> / <b>0.7 ms</b> lookup<br><sub>19,195 sessions (next of 7 tools: 72 s)</sub></td>
 </tr>
 </table>
 
@@ -69,7 +70,7 @@ Prefer a browser? `deja view` exports the store — sessions, the recall audit t
 - **Automatic recall via hooks & MCP.** Surfaces prior sessions at session start, before a file edit or command runs, and when a command fails.
 - **Tracks decision lifecycle & staleness.** `deja promote <id> --state rejected` marks a reverted approach so later hits warn why it was dropped (`--state accepted` takes the mark back), and hits report when files touched by a session have changed since.
 - **Travels with the repository.** `deja repo add` commits the decisions and dead ends you pick into `.deja/memory.jsonl`; a teammate's agent recalls them after a clone ([repo memory](#memory-in-the-repository)).
-- **Local and private by default.** Zero LLM calls, no cloud account, and automatic credential redaction at index time ([privacy](#privacy)).
+- **Incremental local index.** Append-only `records.bin` plus token buckets in `~/.cache/deja`, with per-file watermarks in `manifest.gob` so repeat passes only read changed files (~50 ms freshness check; 4% index footprint on a 5.7 GB / 358k-message corpus). Zero LLM calls, no cloud account, and automatic credential redaction at index time ([architecture](docs/ARCHITECTURE.md), [privacy](#privacy)).
 
 ### Your own work, wrapped
 

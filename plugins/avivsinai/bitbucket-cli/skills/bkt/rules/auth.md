@@ -196,7 +196,7 @@ cloud), the stored username, and the token source (OS keychain or the
 BKT_TOKEN environment variable). Configured contexts are listed with their
 associated host, project/workspace, and default repository.
 
-Use --output json to get machine-readable output suitable for scripting.
+Use --json to get machine-readable output suitable for scripting.
 
 ### Usage
 
@@ -222,6 +222,6 @@ bkt auth status [flags]
   bkt auth status
 
   # Get status as JSON
-  bkt auth status --output json
+  bkt auth status --json
 ```
 

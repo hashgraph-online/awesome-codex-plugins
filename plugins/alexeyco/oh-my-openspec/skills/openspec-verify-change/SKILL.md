@@ -7,7 +7,7 @@ compatibility: Requires openspec CLI.
 metadata:
   author: openspec
   version: "1.0"
-  generatedBy: "1.16.1"
+  generatedBy: "1.17.0"
 ---
 
 Verify that an implementation matches the change artifacts (specs, tasks, design).

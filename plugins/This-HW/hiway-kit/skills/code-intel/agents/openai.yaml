@@ -1,0 +1,5 @@
+# 자동 생성 — scripts/build-targets.py (packaging/targets.json skillInterface).
+# 손으로 고치지 말 것: SKILL.md frontmatter 를 고치고 --write 로 재생성한다.
+interface:
+  display_name: "code-intel"
+  short_description: "Use AST search, replacement previews, and language-server diagnostics or navigation in trusted workspaces; servers may execute project code."

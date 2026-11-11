@@ -8,6 +8,8 @@ import {
 } from "./renderer-bundle.js";
 
 const CDP_REQUEST_TIMEOUT_MS = 10_000;
+const CDP_LIVENESS_INTERVAL_MS = 10_000;
+const CDP_LIVENESS_TIMEOUT_MS = 1_500;
 const CDP_MAX_MESSAGE_BYTES = 4 * 1024 * 1024;
 const CDP_MAX_HTTP_BYTES = 1024 * 1024;
 export const CODEX_RENDERER_URL = "app://-/index.html";
@@ -122,6 +124,8 @@ export type WebSocketFactory = (url: string) => WebSocket;
 
 export interface CdpProtocolClientOptions {
   readonly requestTimeoutMs?: number;
+  readonly livenessIntervalMs?: number;
+  readonly livenessTimeoutMs?: number;
   readonly webSocketFactory?: WebSocketFactory;
 }
 
@@ -252,16 +256,27 @@ export class CdpProtocolClient {
   readonly #pending = new Map<number, PendingCdpRequest>();
   readonly #ignoredResponseIds = new Set<number>();
   readonly #requestTimeoutMs: number;
+  readonly #livenessIntervalMs: number;
+  readonly #livenessTimeoutMs: number;
   readonly #eventMethods: string[] = [];
   readonly #eventListeners = new Map<string, Set<(params: unknown) => void>>();
   readonly #failureListeners = new Set<(error: Error) => void>();
+  #livenessTimer: ReturnType<typeof setTimeout> | undefined;
+  #livenessProbeId: number | undefined;
   #nextId = 1;
   #closed = false;
   #failed: Error | undefined;
 
-  private constructor(socket: WebSocket, requestTimeoutMs: number) {
+  private constructor(
+    socket: WebSocket,
+    requestTimeoutMs: number,
+    livenessIntervalMs: number,
+    livenessTimeoutMs: number,
+  ) {
     this.#socket = socket;
     this.#requestTimeoutMs = requestTimeoutMs;
+    this.#livenessIntervalMs = livenessIntervalMs;
+    this.#livenessTimeoutMs = livenessTimeoutMs;
     socket.addEventListener("message", (event) => {
       void this.#handleMessage(event.data);
     });
@@ -273,6 +288,7 @@ export class CdpProtocolClient {
         this.#fail(cdpError("GOAL_PROGRESS_CDP_WEBSOCKET_CLOSED"));
       }
     });
+    this.#scheduleLivenessCheck();
   }
 
   static async connect(
@@ -306,7 +322,12 @@ export class CdpProtocolClient {
         { once: true },
       );
     });
-    return new CdpProtocolClient(socket, options.requestTimeoutMs ?? CDP_REQUEST_TIMEOUT_MS);
+    return new CdpProtocolClient(
+      socket,
+      options.requestTimeoutMs ?? CDP_REQUEST_TIMEOUT_MS,
+      options.livenessIntervalMs ?? CDP_LIVENESS_INTERVAL_MS,
+      options.livenessTimeoutMs ?? CDP_LIVENESS_TIMEOUT_MS,
+    );
   }
 
   get eventMethods(): readonly string[] {
@@ -370,6 +391,7 @@ export class CdpProtocolClient {
         this.#pending.delete(id);
         this.#ignoredResponseIds.add(id);
         rejectResponse(cdpError("GOAL_PROGRESS_CDP_REQUEST_TIMEOUT", method));
+        this.#probeLiveness();
       }, options.timeoutMs ?? this.#requestTimeoutMs);
       this.#pending.set(id, {
         method,
@@ -403,13 +425,15 @@ export class CdpProtocolClient {
       return;
     }
     this.#closed = true;
+    this.#clearLivenessTimer();
+    this.#livenessProbeId = undefined;
     for (const pending of this.#pending.values()) {
       clearTimeout(pending.timeout);
       pending.reject(cdpError("GOAL_PROGRESS_CDP_WEBSOCKET_CLOSED"));
     }
     this.#pending.clear();
     this.#ignoredResponseIds.clear();
-    if (this.#socket.readyState === WebSocket.CLOSED) {
+    if (this.#failed || this.#socket.readyState === WebSocket.CLOSED) {
       return;
     }
     await new Promise<void>((resolveClose) => {
@@ -451,6 +475,9 @@ export class CdpProtocolClient {
     }
     const response = CdpResponseSchema.safeParse(value);
     if (response.success) {
+      if (this.#livenessProbeId === undefined) {
+        this.#scheduleLivenessCheck();
+      }
       if (this.#ignoredResponseIds.delete(response.data.id)) {
         if (response.data.error) {
           this.#fail(
@@ -483,6 +510,9 @@ export class CdpProtocolClient {
     }
     const event = CdpEventSchema.safeParse(value);
     if (event.success) {
+      if (this.#livenessProbeId === undefined) {
+        this.#scheduleLivenessCheck();
+      }
       this.#eventMethods.push(event.data.method);
       for (const listener of this.#eventListeners.get(event.data.method) ?? []) {
         try {
@@ -496,11 +526,76 @@ export class CdpProtocolClient {
     this.#fail(cdpError("GOAL_PROGRESS_CDP_UNEXPECTED_MESSAGE"));
   }
 
+  #clearLivenessTimer(): void {
+    if (this.#livenessTimer !== undefined) {
+      clearTimeout(this.#livenessTimer);
+      this.#livenessTimer = undefined;
+    }
+  }
+
+  #scheduleLivenessCheck(): void {
+    this.#clearLivenessTimer();
+    if (this.#closed || this.#failed || this.#livenessIntervalMs <= 0) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      this.#livenessTimer = undefined;
+      this.#probeLiveness();
+    }, this.#livenessIntervalMs);
+    timer.unref?.();
+    this.#livenessTimer = timer;
+  }
+
+  #probeLiveness(): void {
+    if (this.#closed || this.#failed || this.#livenessProbeId !== undefined) {
+      return;
+    }
+    this.#clearLivenessTimer();
+    const id = this.#nextId;
+    this.#nextId += 1;
+    this.#livenessProbeId = id;
+    const timeout = setTimeout(
+      () => {
+        if (this.#livenessProbeId !== id) {
+          return;
+        }
+        this.#livenessProbeId = undefined;
+        this.#pending.delete(id);
+        this.#fail(cdpError("GOAL_PROGRESS_CDP_TRANSPORT_UNRESPONSIVE"));
+      },
+      Math.min(this.#livenessTimeoutMs, this.#requestTimeoutMs),
+    );
+    timeout.unref?.();
+    this.#pending.set(id, {
+      method: "Browser.getVersion",
+      resolve: () => {
+        if (this.#livenessProbeId === id) {
+          this.#livenessProbeId = undefined;
+        }
+        this.#scheduleLivenessCheck();
+      },
+      reject: () => {
+        if (this.#livenessProbeId === id) {
+          this.#livenessProbeId = undefined;
+        }
+        this.#scheduleLivenessCheck();
+      },
+      timeout,
+    });
+    try {
+      this.#socket.send(JSON.stringify({ id, method: "Browser.getVersion", params: {} }));
+    } catch {
+      this.#fail(cdpError("GOAL_PROGRESS_CDP_WEBSOCKET_ERROR"));
+    }
+  }
+
   #fail(error: Error): void {
     if (this.#failed) {
       return;
     }
     this.#failed = error;
+    this.#clearLivenessTimer();
+    this.#livenessProbeId = undefined;
     for (const pending of this.#pending.values()) {
       clearTimeout(pending.timeout);
       pending.reject(error);
@@ -537,6 +632,7 @@ export type GoalProgressPageApiMethod =
   | "mount"
   | "update"
   | "setUpdateState"
+  | "setLocaleCatalog"
   | "unmount"
   | "health";
 
@@ -544,6 +640,7 @@ const goalProgressPageApiFunctions: Readonly<Record<GoalProgressPageApiMethod, s
   mount: "function(input) { return this.mount(input); }",
   update: "function(input) { return this.update(input); }",
   setUpdateState: "function(input) { return this.setUpdateState(input); }",
+  setLocaleCatalog: "function(input) { return this.setLocaleCatalog(input); }",
   unmount: "function() { return this.unmount(); }",
   health: "function() { return this.health(); }",
 };
@@ -741,32 +838,57 @@ export function createGoalProgressVisibleThreadWatcherSource(
     let active = true;
     let initialized = false;
     let lastThreadId = null;
+    let lastLocale = null;
     let sequence = 0;
     let scheduled = false;
+    const readLocale = () =>
+      (document.documentElement?.lang || navigator.language || "en-US").slice(0, 64);
     const report = () => {
       scheduled = false;
       if (!active) return;
       const threadId = readCurrentPage(document).threadId;
-      if (initialized && threadId === lastThreadId) {
+      const locale = readLocale();
+      const binding = globalThis[bindingName];
+      if (!initialized || threadId !== lastThreadId) {
+        initialized = true;
+        lastThreadId = threadId;
+        lastLocale = locale;
+        sequence += 1;
+        if (typeof binding === "function") {
+          binding(JSON.stringify({
+            protocolVersion: 1,
+            bridgeNonce,
+            lifecycleId: watcherId,
+            type: "visibleThreadChanged",
+            threadId,
+            locale,
+            sequence
+          }));
+        }
         return;
       }
-      initialized = true;
-      lastThreadId = threadId;
-      sequence += 1;
-      const binding = globalThis[bindingName];
-      if (typeof binding === "function") {
-        binding(JSON.stringify({
-          protocolVersion: 1,
-          bridgeNonce,
-          lifecycleId: watcherId,
-          type: "visibleThreadChanged",
-          threadId,
-          sequence
-        }));
+      if (locale !== lastLocale) {
+        lastLocale = locale;
+        if (typeof binding === "function") {
+          binding(JSON.stringify({
+            protocolVersion: 1,
+            bridgeNonce,
+            lifecycleId: watcherId,
+            type: "localeChanged",
+            locale
+          }));
+        }
       }
     };
     const relevant = (record) => {
       const target = record.target;
+      if (
+        record.type === "attributes" &&
+        target === document.documentElement &&
+        record.attributeName === "lang"
+      ) {
+        return true;
+      }
       if (target instanceof Element && target.closest("[data-app-action-sidebar-thread-row]")) {
         return true;
       }
@@ -802,6 +924,7 @@ export function createGoalProgressVisibleThreadWatcherSource(
         attributes: true,
         attributeFilter: [
           "aria-current",
+          "lang",
           "hidden", "inert", "aria-hidden", "style", "class", "data-app-shell-page-surface",
           "data-app-action-sidebar-thread-active",
           "data-app-action-sidebar-thread-host-id",

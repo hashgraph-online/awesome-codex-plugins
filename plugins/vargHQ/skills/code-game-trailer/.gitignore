@@ -1,0 +1,8 @@
+# outputs of the documented commands (regenerate with scripts/*.ts)
+examples/*/capture/
+examples/*/music.wav
+examples/*/sfx.wav
+examples/*/*.beats.json
+examples/*/master.mp4
+examples/*/master.*.json
+examples/*/master.sheet.jpg

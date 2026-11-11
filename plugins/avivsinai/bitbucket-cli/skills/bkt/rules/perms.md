@@ -155,7 +155,7 @@ bkt perms project list [flags]
   bkt perms project list --project MYPROJ --limit 0
 
   # Output as JSON
-  bkt perms project list --project MYPROJ --output json
+  bkt perms project list --project MYPROJ --json
 ```
 
 ## bkt perms project revoke
@@ -323,7 +323,7 @@ bkt perms repo list [flags]
   bkt perms repo list --project MYPROJ --repo my-service --limit 0
 
   # Output as JSON
-  bkt perms repo list --project MYPROJ --repo my-service --output json
+  bkt perms repo list --project MYPROJ --repo my-service --json
 ```
 
 ## bkt perms repo revoke

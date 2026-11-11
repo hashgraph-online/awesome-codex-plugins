@@ -58,7 +58,7 @@ After the user completes authentication or the cause is resolved, repeat the rea
 
 ## What the connection exposes
 
-The memory tools the remote server serves: read, write, newest-first listing, stats, usefulness feedback, shared rooms (beta), and a vault alias listing; the current list is at https://mcp.mnemoverse.com/.well-known/mcp/server-card.json. There is no delete tool on the remote server or in the local package, so a one-click sign-in can never wipe memory; deletion is an administrative REST operation, documented at https://mnemoverse.com/docs/api/remote-mcp-server.
+The memory tools the remote server serves: read, write, newest-first listing, stats, usefulness feedback, shared rooms, and a vault alias listing; the current list is at https://mcp.mnemoverse.com/.well-known/mcp/server-card.json. There is no delete tool on the remote server or in the local package, so a one-click sign-in can never wipe memory; deletion is an administrative REST operation, documented at https://mnemoverse.com/docs/api/remote-mcp-server.
 
 ## Privacy
 

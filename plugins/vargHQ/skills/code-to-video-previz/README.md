@@ -10,7 +10,7 @@ Prototype a video in code with an agent. Decides if a shot needs a 3D prototype 
 ```bash
 npx skills add vargHQ/skills --skill code-to-video-previz                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills code-to-video-previz --agent github-copilot --scope user
-# or all 73 skills as a Claude Code plugin:
+# or all 78 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -31,21 +31,22 @@ claude plugin install varg@varg
 
 ## Guides that use it
 
+- [How to make videos with Claude Fable 5.2: Blender films, game trailers, 3D explainers and Fable vs Opus](../how-to/make-videos-with-claude-fable-5-2/README.md)
 - [AI storyboard to video: previz in three.js or Blender before you pay](../how-to/ai-storyboard-to-video/README.md)
 
 ## Works well with
 
 <table>
 <tr>
-<td width="33%" valign="top"><a href="../varg-mockups/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_c2a0028d3c9a.webp" alt="A storyboard approval board titled &quot;Last Bus&quot;: a strip of six night bus-stop frames, the look line and anchors, then frame cards with shot specs and Approve / Needs fix buttons." width="100%"></a><br><a href="../varg-mockups/README.md"><b>Storyboard mockups</b></a><br><sub>A shot list becomes one HTML board of numbered stills with specs, prompts and approve or fix notes, plus phone and app mockups.</sub></td>
-<td width="33%" valign="top"><a href="../varg-previz/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_bdbaf1990c82.webp" alt="Pre-visualisation of a retro anime space film: a pilot character sheet, then four neon storyboard frames from the film." width="100%"></a><br><a href="../varg-previz/README.md"><b>AI video previz</b></a><br><sub>A brief or song becomes a story, locked audio, anchor sheets and a three.js grey-box previz exported as Seedance 2.5 v2v packs.</sub></td>
-<td width="33%" valign="top"><a href="../threejs-animatic/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_5d51f752766a.webp" alt="A coded blockout animatic of a starship racing down a red tunnel plays beside the Seedance video made from it." width="100%"></a><br><a href="../threejs-animatic/README.md"><b>three.js animatic</b></a><br><sub>A shot list becomes a three.js grey-box with mannequins, real lenses and a camera plan, rendered to MP4 for Seedance @video1.</sub></td>
+<td width="33%" valign="top"><a href="../blender-code-film/README.md"><img src="https://s3.varg.ai/files/4325c578-378d-4c43-ae53-3cc3218df1ea/file_417a3b4d8684.webp" alt="A low-poly forest valley at dusk rendered in Blender from Python: a glowing lantern orb drifts between pine trees through warm haze and floating sparks." width="100%"></a><br><a href="../blender-code-film/README.md"><b>Blender film from code</b></a><br><sub>A brief becomes a Blender film built and rendered from one Python file: shots as data, stills first, critic loop, Eevee or Cycles.</sub></td>
+<td width="33%" valign="top"><a href="../code-game-trailer/README.md"><img src="https://s3.varg.ai/files/4325c578-378d-4c43-ae53-3cc3218df1ea/file_0a9bdd0e2104.webp" alt="Trailer of a browser game made in code: a paper-lantern glider with red wings flies through a dusk canyon, trailing sparks, past a score counter." width="100%"></a><br><a href="../code-game-trailer/README.md"><b>Code game trailer</b></a><br><sub>Record the three.js game your agent built with exact frames, scripted shots and trailer cameras, then cut it on the beat to a 1080p trailer.</sub></td>
+<td width="33%" valign="top"><a href="../code-3d-explainer/README.md"><img src="https://s3.varg.ai/files/4325c578-378d-4c43-ae53-3cc3218df1ea/file_822f53d8f96a.webp" alt="A 3D animal cell built in three.js part by part on a near-black background: a teal membrane, an orange nucleolus, labelled organelles and a scale bar." width="100%"></a><br><a href="../code-3d-explainer/README.md"><b>3D science explainer</b></a><br><sub>A cell, atom, virus or engine built in three.js part by part, zooming through scales to a cutaway, with every fact checked first.</sub></td>
 </tr>
 <tr>
-<td width="33%" valign="top"><a href="../video-animate/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_2ea643e37327.webp" alt="A grey-box previz shot and its cheap 480p Seedance pass play side by side: a starfighter faces a giant toothed tile monster in space." width="100%"></a><br><a href="../video-animate/README.md"><b>Previz to video</b></a><br><sub>An approved previz, cast and locked track become per-shot model picks, a cheap 480p pass, three takes per cut and plates.</sub></td>
-<td width="33%"></td>
-<td width="33%"></td>
+<td width="33%" valign="top"><a href="../model-split-screen/README.md"><img src="https://s3.varg.ai/files/4325c578-378d-4c43-ae53-3cc3218df1ea/file_2e1850a6570d.webp" alt="Split-screen comparison: the same Blender forest scene rendered by Eevee and by Cycles side by side, each labelled with seconds per frame and total render time." width="100%"></a><br><a href="../model-split-screen/README.md"><b>Model split screen</b></a><br><sub>Two runs of one prompt become a side-by-side or stacked video with each model's measured time and cost, optionally blind until the reveal.</sub></td>
+<td width="33%" valign="top"><a href="../video-sound/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_e6d4c33ff5cc.webp" alt="A designed launch soundtrack shown as a waveform and spectrogram with labelled voice, impact and music regions while a playhead moves across." width="100%"></a><br><a href="../video-sound/README.md"><b>Video sound</b></a><br><sub>A script becomes a cue sheet, auditioned AI voices, sound effects on the frame, a music bed and a mix checked for LUFS.</sub></td>
+<td width="33%" valign="top"><a href="../code-path-traced-film/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_39d3436e5fa9.webp" alt="A clay mouse in a red scarf looks up at a glowing firefly in tall night grass, path traced by a renderer written in code." width="100%"></a><br><a href="../code-path-traced-film/README.md"><b>Path-traced film from code</b></a><br><sub>A story becomes a short film from a path tracer the agent writes itself: SDF characters, analytic grass, a numpy score, no assets.</sub></td>
 </tr>
 </table>
 
-More: [all 73 skills](../README.md#all-73-skills) · [varg.ai](https://varg.ai)
+More: [all 78 skills](../README.md#all-78-skills) · [varg.ai](https://varg.ai)

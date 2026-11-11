@@ -593,6 +593,10 @@ export class GoalProgressHelper {
       record("UPDATE_ACTIVATION_HELPER_STOPPED");
       return "not-applicable";
     }
+    const updateState = this.#updateCoordinator.currentState;
+    if (updateState?.phase !== "restart-required" && updateState?.phase !== "restarting") {
+      return "not-applicable";
+    }
     if (!startupHandoff) {
       record("UPDATE_ACTIVATION_HANDOFF_MISSING");
       return "not-applicable";
@@ -605,7 +609,6 @@ export class GoalProgressHelper {
       record("UPDATE_ACTIVATION_ALREADY_RUNNING");
       return "retry";
     }
-    const updateState = this.#updateCoordinator.currentState;
     const viewModel =
       targetId === undefined
         ? this.#viewModelPublisher.currentViewModel
@@ -614,10 +617,6 @@ export class GoalProgressHelper {
       targetId === undefined
         ? this.#viewModelPublisher.deliveryCurrent
         : this.#viewModelPublisher.deliveryCurrentForTarget(targetId);
-    if (updateState?.phase !== "restart-required" && updateState?.phase !== "restarting") {
-      record("UPDATE_ACTIVATION_STATE_NOT_READY");
-      return "not-applicable";
-    }
     if (!viewModel) {
       record("UPDATE_ACTIVATION_VIEW_MISSING");
       return targetId !== undefined &&
@@ -1908,10 +1907,11 @@ export class GoalProgressHelper {
     if (request.method === "renderer.disconnected") {
       if (this.#viewModelPublisher.multiTargetAwarenessAvailable) {
         if (!this.#viewModelPublisher.hasTarget(request.params.targetId)) {
-          throw new GoalProgressIpcHandlerError(
-            "RENDERER_TARGET_UNKNOWN",
-            "Renderer target is not managed by this Helper",
-          );
+          this.#visibleThreadOrderByTarget.delete(request.params.targetId);
+          return {
+            revision: null,
+            result: { status: "scheduled", code: request.params.code },
+          };
         }
         const disconnectedThreadId = this.#viewModelPublisher.currentThreadIdForTarget(
           request.params.targetId,

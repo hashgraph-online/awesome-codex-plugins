@@ -56,6 +56,10 @@ removal.
 | Remove a registered visible AI mark from video | `video visible` | No |
 | Process a directory of videos | `video batch` | Depends on mode |
 | Apply the calibrated video-pixel SynthID-removal profile | `video invisible` | Recommended |
+| Identify C2PA text/HTML wrappers, `VSRMark`, and Unicode steganography | `text identify` | No |
+| Strip C2PA text/HTML wrappers, `VSRMark`, and Unicode steganography | `text metadata` | No |
+| Regenerate unlocked prose spans to remove token-level LLM watermarks | `text invisible` | Recommended |
+| Strip text provenance and optionally regenerate prose spans | `text all` | Depends on `--invisible` |
 | Regenerate an image to disrupt invisible watermarks | `invisible` | Required (CUDA) |
 | Run visible, invisible, and metadata removal | `all` | Recommended |
 | Process a directory | `batch` | Depends on mode |
@@ -304,13 +308,19 @@ ControlNet, followed by SAM-masked Z-Image repair of any detected face. The
 alternative, `sdxl-zimage`, swaps the global stage for SDXL and keeps the same face
 stage. `chroma-zimage` uses the Apache-2.0 Chroma1 global pass with its own flat
 vendor floors; see `docs/chroma1-engine-research.md` for the calibration. An opt-in
-fourth profile, `qwen21-zimage`, swaps the global stage for Qwen-Image-2.1 (with
+profile, `qwen21-zimage`, swaps the global stage for Qwen-Image-2.1 (with
 `madebyollin/texture-fix-vae-for-qwen-image-2.1` and `Qwen-Image-2.1-Fun-Controlnet-Union`
 Canny); because `Qwen/Qwen-Image-2.1` is released under the Qwen Research License,
 `qwen21-zimage` is for non-commercial research, evaluation, and personal use only
 (not for commercial use). `--pipeline auto` picks sdxl-zimage for Google,
 chroma-zimage for Microsoft, and qwen-zimage otherwise, keeping `auto` commercial-safe.
 All are CUDA only.
+
+Since 0.57.0, `qwen21-zimage` includes bounded geometric alignment by default after the shared
+Qwen-2.1 global and face stages, accepting a result only when both source MSE and local LPIPS improve.
+It retains the Qwen Research License restrictions. Qualified text geometry can
+be supplied through the Python API; the CLI does not run automatic OCR. See
+[the fidelity profile](https://github.com/wiltodelta/remove-ai-watermarks/blob/main/docs/cli.md#fidelity-profile) for limits and fallback behavior.
 
 ```bash
 uv tool install --force "remove-ai-watermarks[qwen-zimage]"
@@ -458,6 +468,13 @@ print(complete.visual_invisible_action, complete.audio.watermark_status)
 batch = raiw.remove_video_batch("videos", "videos_clean")
 cleaned = raiw.remove_video_metadata("input.mp4")
 synthid_cleaned = raiw.remove_video_invisible("input.mp4", "synthid_clean.mp4")
+seedance_experiment = raiw.remove_video_seedance_experimental(
+    "owned-label-cleaned.mp4", "seedance_clean.mp4", quality="delivery"
+)  # experimental pixel reconstruction; handle visible labels first
+seedance_complete = raiw.remove_video_all(
+    "input.mp4", "seedance-clean.mp4",
+    include_invisible=True, invisible_profile="seedance-experimental",
+)  # supported visible removal, then experimental reconstruction
 print(synthid_cleaned.visual_invisible_action, synthid_cleaned.audio.watermark_status)
 visible = raiw.remove_video_visible("input.mp4", "clean.mp4")
 print(visible.mark)

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-10",
+  "last_updated": "2026-11-11",
   "total": 396,
   "categories": [
     "Development & Workflow",
@@ -949,6 +949,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/arvkonstantin/herdr-codex-subagents/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "hiway-kit",
+      "url": "https://github.com/This-HW/hiway-kit",
+      "owner": "This-HW",
+      "repo": "hiway-kit",
+      "description": "Discipline kit for coding agents with 17 skills for planning, automated implementation, testing, debugging, review and multi-session coordination, where work counts as done only when the project's own checks pass.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/This-HW/hiway-kit/HEAD/plugins/common/.codex-plugin/plugin.json"
     },
     {
       "name": "HOL Guard Plugin",
@@ -2802,16 +2812,6 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/host0-ai/skills/HEAD/plugin.json"
-    },
-    {
-      "name": "Imagera",
-      "url": "https://github.com/alexadams6ix/imagera-skills",
-      "owner": "alexadams6ix",
-      "repo": "imagera-skills",
-      "description": "Generate and edit images, video, voice and music through the hosted Imagera MCP server (OAuth sign-in) and 37 skills, with the credit cost stated before each run. Website: https://imagera.ai/mcp",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/alexadams6ix/imagera-skills/HEAD/plugin.json"
     },
     {
       "name": "Jenkins CLI",

@@ -30,7 +30,11 @@ interface BrowserTargetInfo {
 export interface RendererTargetBrowserClient {
   onEvent(method: string, listener: (params: unknown) => void): () => void;
   onFailure?(listener: (error: Error) => void): () => void;
-  send(method: string, params?: unknown): Promise<unknown>;
+  send(
+    method: string,
+    params?: unknown,
+    options?: { readonly timeoutMs?: number },
+  ): Promise<unknown>;
   close(): Promise<void>;
 }
 
@@ -159,13 +163,22 @@ class BrowserRendererTargetSource implements RendererTargetSource {
       throw new Error("RENDERER_TARGET_UNKNOWN");
     }
     const webSocketDebuggerUrl = `ws://127.0.0.1:${this.#port}/devtools/page/${target.targetId}`;
-    return this.#connect({
-      id: target.targetId,
-      type: target.type,
-      title: "",
-      url: target.url,
-      webSocketDebuggerUrl,
-    });
+    try {
+      return await this.#connect({
+        id: target.targetId,
+        type: target.type,
+        title: "",
+        url: target.url,
+        webSocketDebuggerUrl,
+      });
+    } catch (error) {
+      if (!this.#closed && !this.#failed) {
+        void this.#browserClient
+          .send("Browser.getVersion", {}, { timeoutMs: 1_500 })
+          .catch(() => undefined);
+      }
+      throw error;
+    }
   }
 
   async close(): Promise<void> {

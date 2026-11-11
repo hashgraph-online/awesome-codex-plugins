@@ -3756,6 +3756,8 @@ Options:
   --category TEXT                 category
   --timeout-seconds INTEGER       timeout_seconds
   --memory-request-mib INTEGER    memory_request_mib
+  --execution-lane [auto|normal|fast_path]
+                                  execution_lane
   --tags TEXT                     tags (repeat for multiple).
   --endpoint-enabled / --no-endpoint-enabled
                                   endpoint_enabled (tri-state; omit to leave

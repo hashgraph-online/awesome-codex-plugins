@@ -1,8 +1,9 @@
 # Xquik MCP server
 
 The remote server lives at `https://xquik.com/mcp` and speaks Streamable HTTP.
-Sign in with OAuth from the client. The server exposes 3 tools. They are
-`docs` for guidance, `search` for route contracts, and `execute` for calls.
+Sign in with OAuth from the client. The server exposes 4 tools. They are
+`docs` for guidance, `search` for route contracts, `execute` for calls, and
+`whoami` for the signed-in Xquik account.
 Hosted MCP adds the `Idempotency-Key` header to writes.
 
 | Client | Setup |
@@ -15,7 +16,7 @@ Hosted MCP adds the `Idempotency-Key` header to writes.
 | ChatGPT | Developer mode, Apps, Create, enter the URL, choose OAuth |
 
 Confirm the connection by listing the client's MCP servers or tools and
-checking that `docs`, `search`, and `execute` appear.
+checking that `docs`, `search`, `execute`, and `whoami` appear.
 
 Use an API key only when the client cannot run OAuth. Keep it in an
 environment variable or the client's secret store, and reference it from the

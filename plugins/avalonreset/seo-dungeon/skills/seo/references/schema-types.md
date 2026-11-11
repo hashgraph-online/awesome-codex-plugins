@@ -40,7 +40,7 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 | DiscussionForumPosting | Forum threads | headline, author, datePublished, text, url |
 | ProductGroup | Variant products | name, productGroupID, variesBy, hasVariant |
 | ProfilePage | Author/creator profiles | mainEntity (Person), name, url, description, sameAs |
-| QAPage | Genuine user Q&A pages (one question, community answers) | mainEntity (Question), acceptedAnswer, suggestedAnswer — **fully supported** (not deprecated); expanded comment-thread properties added 2026-03-24 |
+| QAPage | Genuine user Q&A pages (one question, community answers) | mainEntity (Question), acceptedAnswer, suggestedAnswer - **fully supported** (not deprecated); expanded comment-thread properties added 2026-03-24 |
 | Education Q&A (Quiz) | Educational quiz / flashcard rich result | Quiz with Question, `eduQuestionType=Flashcard`; carousel expanded to PT/ES/VI in 2026 |
 
 ---
@@ -49,10 +49,10 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 
 | Type | SERP status | Since |
 |------|------------|-------|
-| FAQPage | Rich results fully retired — no SERP feature for any site | May 7, 2026 |
+| FAQPage | Rich results fully retired - no SERP feature for any site | May 7, 2026 |
 
 > Google retired FAQ rich results entirely on **May 7, 2026**. This **supersedes** the
-> Aug 2023 gov/health restriction — even authoritative sites no longer get the rich result.
+> Aug 2023 gov/health restriction - even authoritative sites no longer get the rich result.
 > FAQ docs carried a notice on **2026-05-08** and were removed on **2026-06-15**.
 >
 > FAQPage AI-citation benefit is unconfirmed in this pack. Do not claim it lifts
@@ -76,9 +76,9 @@ Google's documentation explicitly recommends JSON-LD over Microdata and RDFa.
 | VehicleListing | Retired from rich results | June 2025 | Vehicle listing structured data discontinued |
 | Book Actions | Deprecated | June 2025 | Deprecation banner added 2025-06-12; do not recommend unless a primary source confirms support |
 | Practice Problem | Retired from rich results | Deprecation notice 2025-11-05 | Search Console / Rich Results Test support removed Jan 2026 |
-| Dataset | No Google **Search** rich result | Clarified 2025-11-05 | **Not discontinued** — Dataset markup is used only by **Dataset Search** (which still exists and consumes it), not Google Search rich results. Don't tell users it was killed. |
+| Dataset | No Google **Search** rich result | Clarified 2025-11-05 | **Not discontinued** - Dataset markup is used only by **Dataset Search** (which still exists and consumes it), not Google Search rich results. Don't tell users it was killed. |
 
-> **Tooling-removal timeline:** for CourseInfo, EstimatedSalary, LearningVideo, SpecialAnnouncement, and VehicleListing — docs were removed 2025-09-09 and their **Search Console reporting, Rich Results Test, and appearance-filter support were removed starting January 2026**. Audits should stop telling users to validate these in the Rich Results Test / Search Console. See `skills/seo-schema/references/deprecated-types-2024-2026.md`.
+> **Tooling-removal timeline:** for CourseInfo, EstimatedSalary, LearningVideo, SpecialAnnouncement, and VehicleListing - docs were removed 2025-09-09 and their **Search Console reporting, Rich Results Test, and appearance-filter support were removed starting January 2026**. Audits should stop telling users to validate these in the Rich Results Test / Search Console. See `skills/seo-schema/references/deprecated-types-2024-2026.md`.
 
 ---
 

@@ -10,7 +10,7 @@ Replay these. Do not invent a hub, curl, or CLI-write.
 
 1. This same reply sends https://centricmem.com/login?signup=1 **and** tries to send a `/connect?device=` URL **plus its 8-digit code**. Plugin `mcp.json` is not a completed connect. **This agent** (and each client you install into) mints that URL this turn when it can — do not skip minting because OAuth or `mcp login` exists.
 2. Mint the device URL + code. Prefer `centricmem connect --device --url-only` when that flag exists (prints the URL and the 8-digit code, then exits). Later `centricmem connect --claim` (add `--target <this-host-mcp.json>` for an unlisted host). Blocking `centricmem connect --device` is still valid. If `connect --device` is missing, POST `/connect/device` `{hostname}` once and send JSON `url` **and** `userCode`. If `centricmem` is on PATH but has no `connect --device`, ignore that leftover npm binary — do not npm-install. Keep `secret` off chat. Send them the URL and the code; they sign in, confirm the code matches, pick access (every shelf or a selection), and click **Approve** (ten minutes). The server mints the key — no key is ever shown to them or to you. Claim off-chat; never print the token. Optional: `centricmem connect --verify` prints grants/tool count, never the key.
-3. **If minting that URL fails** (error, leftover CLI, blocked shell): if the shell works but `centricmem` is missing (no Node / no CLI), mint via **POST** `https://mem.centricmem.com/connect/device` as in Reach below — do **not** start with `doctor connect`. If `centricmem` is on PATH: run `centricmem doctor connect` and tell them to email zeyu@poppyg.com with that output (which agent; never a key or token). Do not send that mail for them. **Then MCP OAuth** only if this agent will receive the login after they finish a browser prompt: add `https://mem.centricmem.com/mcp` with no Bearer (Cursor: Add to Cursor on https://centricmem.com; Codex on this machine: `codex mcp add` then `codex mcp login`; Hermes: `hermes mcp add --url https://mem.centricmem.com/mcp --auth oauth centricmem`; cloud agents that can have them operate a browser this agent is waiting on — Grok Bot, Manus, Cursor Cloud, Claude). Do not send a Loopback `127.0.0.1` authorize link when this agent is not listening there. After a failed mint with no receivable browser login: they paste Bearer in this agent's MCP settings.
+3. **If minting that URL fails** (error, leftover CLI, blocked shell): if the shell works but `centricmem` is missing (no Node / no CLI), mint via **POST** `https://mem.centricmem.com/connect/device` as in Reach below — do **not** start with `doctor connect`. If `centricmem` is on PATH: run `centricmem doctor connect` and tell them to email zeyu@poppyg.com with that output (which agent; never a key or token). Do not send that mail for them. **Then MCP OAuth** only if this agent will receive the login after they finish a browser prompt: add `https://mem.centricmem.com/mcp` with no Bearer (per-client add commands and OAuth callback mechanics: `cm_ops` → Client connect recipes). Do not send a Loopback `127.0.0.1` authorize link when this agent is not listening there. After a failed mint with no receivable browser login: they paste Bearer in this agent's MCP settings.
 4. Retry `cm_health` here. New chat only if still 401. If connect still fails, or they have a usage problem this Skill cannot fix: tell them to email zeyu@poppyg.com (which agent + what they saw; never a key or token). Do not send that mail for them. Legal/privacy mail stays poppy@poppyg.com on the website.
 
 **No account yet — agent-initiated register.** When they have no CentricMem account and give you their email, you may register one yourself: POST `https://mem.centricmem.com/connect/register` `{email, label?, hostname?}` once → `{token, keyId, libraries}` — a **live `*` Bearer** for this agent's MCP settings, no claim step. They get a claim email to set their own password — never ask for, invent, or print it. `409 EMAIL_TAKEN` or `503 MAIL_UNAVAILABLE` → fall back to `/connect?device=`. Rate-limited; do not retry in a loop.
@@ -21,7 +21,7 @@ Replay these. Do not invent a hub, curl, or CLI-write.
 
 **Empty shelf → cards:** offer once (Existing memory below). Capture stays. They may skip. You file.
 
-**1Password / vault MCP** is not a fourth recipe — see Reach. MCP aggregators (Composio and similar), HashiCorp Vault, and AWS Secrets Manager are the same class: a customer who already has them may inject an extra key in **their** worker. They do not replace OAuth or `/connect?device=`.
+**1Password / vault MCP** is not a fourth recipe — detail in `cm_ops`. MCP aggregators (Composio and similar), HashiCorp Vault, and AWS Secrets Manager are the same class: a customer who already has them may inject an extra key in **their** worker. They do not replace OAuth or `/connect?device=`.
 
 ## What you are filing
 
@@ -71,9 +71,9 @@ If they are missing: **Already added** a Bearer or finished OAuth login in this 
 
 **First connect, this same reply** sends https://centricmem.com/login?signup=1 **and** tries to send a `/connect?device=` URL **plus its 8-digit code**; never paste a key here. Plugin `mcp.json` is URL-only: it is **not** a completed connect. **This agent** (and each client you install into) mints that connect URL this turn when it can.
 
-**If minting that URL fails:** prefer the no-CLI path first. **Detail on demand.** Host-specific install, refresh, sandbox and failure detail is not shipped in this copy: read `cm_ops` with the MCP tools, or ask zeyu@poppyg.com. The rules and shapes below are what you need to connect and to stay safe.
+**If minting that URL fails:** prefer the no-CLI path first. **Detail on demand.** Host-specific install, refresh, sandbox and failure detail is not shipped in this copy: read `cm_ops` with the MCP tools, or ask zeyu@poppyg.com. The rules and shapes below are what you need to connect and to stay safe; per-client install/connect commands (Cursor, Codex, Hermes, Pi, OpenClaw, DSH, ChatGPT Apps, OAuth callback mechanics) live in `cm_ops` → Client connect recipes.
 
-**Shell works, `centricmem` missing** (no Node / no CLI): do **not** run `doctor connect` — follow the POST `/connect/device` branch immediately below. **`centricmem` on PATH:** run `centricmem doctor connect` and tell them to email zeyu@poppyg.com with that output (which agent; never a key). Do not email on their behalf. **Then MCP OAuth** only if this agent will receive the login after they finish a browser prompt: add `https://mem.centricmem.com/mcp` **with no Bearer**. Cursor may use Add to Cursor on https://centricmem.com (URL only, then the same prompt). Codex on this machine: `codex mcp add centricmem --url https://mem.centricmem.com/mcp` then `codex mcp login centricmem`. Hermes: `hermes mcp add --url https://mem.centricmem.com/mcp --auth oauth centricmem` (or `auth: oauth` in `~/.hermes/config.yaml`). Cloud agents that can have them operate a browser this agent is waiting on (Grok Bot, Manus, Cursor Cloud, Claude) may use that same URL-only add. **Do not skip `/connect?device=` because OAuth exists.** Do not send a Loopback `127.0.0.1` authorize link when this agent is not listening there. Do not curl OAuth or librarian HTTP. Do not download or open a settings file that contains a key, and do not ask them to send you that path. A URL-only `mcp.json` or Codex `config.toml` (url, no `Authorization`) may be copied or opened. After they finish the prompt, retry `cm_health`. Still failing, or a usage problem you cannot fix: they email zeyu@poppyg.com (never a key). Do not email on their behalf.
+**Shell works, `centricmem` missing** (no Node / no CLI): do **not** run `doctor connect` — follow the POST `/connect/device` branch immediately below. **`centricmem` on PATH:** run `centricmem doctor connect` and tell them to email zeyu@poppyg.com with that output (which agent; never a key). Do not email on their behalf. **Then MCP OAuth** only if this agent will receive the login after they finish a browser prompt: add `https://mem.centricmem.com/mcp` **with no Bearer** (per-client add commands: `cm_ops` → Client connect recipes). **Do not skip `/connect?device=` because OAuth exists.** Do not send a Loopback `127.0.0.1` authorize link when this agent is not listening there. Do not curl OAuth or librarian HTTP. Do not download or open a settings file that contains a key, and do not ask them to send you that path. A URL-only `mcp.json` or Codex `config.toml` (url, no `Authorization`) may be copied or opened. After they finish the prompt, retry `cm_health`. Still failing, or a usage problem you cannot fix: they email zeyu@poppyg.com (never a key). Do not email on their behalf.
 
 **Shell blocked** (Grok Bot, some web bots): minting `device=` failed. Send signup, tell them to email zeyu@poppyg.com with that error (never a key), then OAuth if this agent will receive a browser login they can finish (Grok Bot / Manus may). Otherwise they paste Bearer **only** in this agent’s MCP / plugin settings (`https://mem.centricmem.com/mcp`). Never here.
 
@@ -106,24 +106,7 @@ Config (agent key stays off git). URL-only MCP (not a completed connect). Plugin
 }
 ```
 
-Cursor desktop may set `"auth": { "CLIENT_ID": "centricmem-cursor" }` on that entry (Add to Cursor on https://centricmem.com does this). Claude custom connectors add the same URL; the host uses DCR or CIMD. Do not put a Bearer in git or in a deeplink.
-
-Codex (`~/.codex/config.toml`) — URL only is **not** a completed connect. This agent (and each client you install into), including Codex, mints `/connect?device=` when `cm_*` are missing. `codex mcp login centricmem` is only after that mint fails, and only when this Codex will receive the loopback callback (this machine). Do not skip the connect URL for login:
-
-```toml
-[mcp_servers.centricmem]
-url = "https://mem.centricmem.com/mcp"
-```
-
-Do not put `http_headers` Authorization in that file when writing URL-only. Device-connect or a paste key may still write a Bearer there — that **is** a completed connect. If `cm_*` are missing after a Bearer or a finished local login, a new Codex thread, not a second `codex mcp add` with no Bearer.
-
-Codex / ChatGPT **OAuth vs Mixed**: Mixed is not “OAuth plus paste a key”. Mixed means the client may `initialize` / `tools/list` with **no** token, then OAuth later. We 401 unauthenticated MCP — Mixed fails. Pick **OAuth** for the browser prompt (`codex mcp login`). To paste a Keys agent key, put Bearer in `http_headers` (or `bearer_token_env_var`) **instead of** OAuth — Codex skips OAuth when Authorization is already set. An empty Mixed still tries anonymous discovery.
-
-HTTPS `redirect_uri` not already on the static list (loopback, Cursor Cloud, Claude, ChatGPT Apps connectors): they sign in at https://centricmem.com/oauth/callbacks, submit the exact URL, then publish `/.well-known/centricmem-oauth-callback` or send it for operator review. Do not email a callback URL. Librarian **>=0.21.55**.
-
-Authorize (after login) lists live agent keys. They pick an existing key (`*` = every shelf plus `share:`) or mint a new extra. Extra keys do not see invited `share:`. Sign-in is not the grant — they still click **Approve**. Librarian **>=0.21.56**.
-
-After **Approve**, Codex on this machine waits on `http://127.0.0.1:<port>/callback` (some builds append `/<callback_id>`). The authorize page hops through same-origin `/oauth/continue` then 302s to that loopback URL. ChatGPT Apps waits on `https://chatgpt.com/connector/oauth/{id}`. If the agent is still waiting, they click **Open the agent callback**. That hop is the **browser host**. Do not send a loopback link when this agent is not listening there. Do not re-add the MCP URL with no Bearer. Librarian **>=0.21.51**. ChatGPT Apps directory Skill is a Scan Tools snapshot of this folder via host MCP `skills/list` (not a live GitHub pull). After a Skill bump, origin deploy then Scan Tools then a new plugin version. Do not `npx skills add` inside ChatGPT to refresh the listed plugin.
+Claude custom connectors add the same URL; the host uses DCR or CIMD. Do not put a Bearer in git or in a deeplink. Per-client config shapes (Cursor `auth.CLIENT_ID`, Codex `http_headers` / `bearer_token_env_var` and the OAuth-vs-Mixed rule) and OAuth callback mechanics (loopback waits, connector waits, `redirect_uri` allowlist) live in `cm_ops` → Client connect recipes.
 
 **Approved, but the agent stays "connecting".** A known, common failure - not the human's mistake, and not a wrong key. The browser finished and the agent is still waiting on a callback that never lands. Say it in those words, then:
 
@@ -134,20 +117,7 @@ After **Approve**, Codex on this machine waits on `http://127.0.0.1:<port>/callb
 
 Hermes `~/.hermes/config.yaml` — mint `/connect?device=` first when `cm_*` are missing. OAuth (`auth: oauth`; tokens land in `~/.hermes/mcp-tokens/`) only after that mint fails, and only if this Hermes will receive the browser login:
 
-```yaml
-mcp_servers:
-  centricmem:
-    url: "https://mem.centricmem.com/mcp"
-    auth: oauth
-```
-
-Same as `hermes mcp add --url https://mem.centricmem.com/mcp --auth oauth centricmem`. Use that OAuth block only after `/connect?device=` minting failed and this Hermes will receive the browser login. When OAuth is unavailable, device-connect then Bearer. In **docs / install plans / git**, prefer an env placeholder — never a literal hex:
-
-Hermes with a key instead of OAuth: the same yaml with `headers.Authorization: "Bearer \${CENTRICMEM_API_KEY}"`.
-
-Other agents (`mcp.json`) paste-key fallback (same rule — placeholder in shareable text; host may expand from env):
-
-Any other `mcp.json` host: the canonical object above plus `headers.Authorization = "Bearer \${CENTRICMEM_API_KEY}"`. Placeholder in shareable text; the host writes the real value.
+Paste-key fallback for any MCP host: add `headers.Authorization = "Bearer \${CENTRICMEM_API_KEY}"` to the canonical entry — placeholder in shareable text, the host expands the env var or writes the real value. Hermes uses `mcp_servers.centricmem` in `~/.hermes/config.yaml` (`auth: oauth`, or `headers.Authorization` for a key); per-client shapes in `cm_ops` → Client connect recipes.
 
 **Bearer: where plaintext is OK vs not.** These are different layers — do not treat them as a conflict.
 
@@ -185,28 +155,17 @@ Scan the session database and transcripts, not only request logs: those rotate, 
 
 Skill folder name is always `centricmem-agent` (Agent Skills `name` = directory). That is **this Skill**, not the CLI (`centricmem`) and not the GitHub package (`centricmem-skill`). Install example: `npx skills add zeyu-j/centricmem-skill --skill centricmem-agent`. Say “CentricMem skill” to humans; keep `centricmem-agent` in paths and `--skill`. Plugin `mcp.json` is URL-only — not a completed connect. Do not list this Skill on ClawHub.
 
-**Pi.** `pi install https://github.com/zeyu-j/centricmem-skill` (discovers `skills/`; also loads `~/.agents/skills/`). MCP is not in the package. Write URL-only `~/.pi/agent/mcp.json`:
+Per-client install and connect recipes — Pi, OpenClaw, DSH, Codex, Hermes, Cursor, ChatGPT Apps, OAuth callback mechanics — live in `cm_ops` → Client connect recipes.
 
-```json
-{
-  "mcpServers": {
-    "centricmem": {
-      "url": "https://mem.centricmem.com/mcp",
-      "type": "streamable-http"
-    }
-  }
-}
-```
+### Kiro surfaces
 
-If `cm_*` are missing, mint `/connect?device=` this turn. Paste-key fallback may use `"Authorization": "Bearer ${CENTRICMEM_API_KEY}"` (env placeholder — never a literal in git).
+- **Kiro CLI** is MCP-only. Add `https://mem.centricmem.com/mcp` with `kiro-cli mcp add --name centricmem --url https://mem.centricmem.com/mcp --scope default`. The scope names the owning agent. This CLI has no Skill or hook surface.
+- **Kiro IDE** reads `.kiro/plugins/marketplace.json` through Powers. That manifest does not install anything into Kiro CLI or Kiro Crew.
+- **Kiro Crew** installs the Skill and MCP separately. Import `zeyu-j/centricmem-skill:skills/centricmem-agent` from Settings → Skills → Discover. Add the remote MCP under Customize → Connections, and attach it to the **current agent** that will run the chat. Complete the device claim first. Use the OAuth banner only when minting the device URL fails and this agent will receive the browser callback. Then drain the warm pool or restart before opening a **cold session**; a merely new chat may reuse an old process whose tool list was frozen before the MCP was added. Kiro Crew has no plugin hook surface for this package, so the Skill drives `cm_ambient` and the sweep itself.
 
-**OpenClaw.** Compatible **bundle** (Agent Plugins / `.claude-plugin` / `.codex-plugin` / `.cursor-plugin`). Not a native in-process plugin — do not add `openclaw.plugin.json`. Not ClawHub. `openclaw plugins install git:github.com/zeyu-j/centricmem-skill` or `openclaw plugins install centricmem-skill --marketplace zeyu-j/centricmem-skill`. Restart the gateway if tools stay missing. Then the same connect as other plugin clients.
+A connection shown under another Kiro Crew member is not a connection for the current agent. Do not hand-edit agent JSON as the normal install path. A URL-only entry is still waiting for OAuth or a device claim.
 
-**DSH.** Cordis **funnel** only. Needs `pnpm` on PATH (`npm i -g pnpm` if missing; `corepack enable pnpm` fails on Windows Program Files). Pin: `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v0.21.72`. That mounts URL-only `@deepseek-ai/dsh-mcp-client` from `dsh/cordis.patch.yml` (`failOnStartupError: true` — missing Bearer aborts boot, it does not register 0 tools). The Skill is MIT from 1.0.7; the patch is MIT glue. The funnel does **not** load SKILL.md from `node_modules`: from the profile dir run `node node_modules/centricmem-skill/dsh/copy-skill.mjs` so `$DSH_HOME/skills/centricmem-agent/` exists. Never `npx skills add -g` (writes `~/.agents`, not `$DSH_HOME`). Overlay Bearer in `$DSH_HOME/profiles/<profile>/cordis.patch.yml` after `/connect?device=` — **same** `id: mcp-centricmem`, restate the whole `config` (`serverName: centricmem`, `transport`, `url`, `headers`). A typo in `serverName` creates a second namespace. Never commit headers. Tools appear as `mcp__centricmem__cm_*` — call those names, not bare `cm_*`. After overlay: **new chat** (mandatory; this session’s catalog is frozen). DSH does not speak MCP OAuth. `session.v3.jsonl.zstd` is not a keep source — skip `cm_keep`; still file note / decision / done. GitHub topic `dsh-plugin` is discovery.
-
-### 1Password (optional vault, not a connect path)
-
-An optional vault, **not** a connect path. Ask if you need the detail.
+**Health binding state.** `cm_health` with valid `auth` / `grants` and `library:null` is healthy: the agent is connected but no shelf is bound to this session. It does **not** mean the account has no shelves. Call `cm_ambient` with `cwd=` or a named `shelf=`; use `suggested_shelf` only when its charter matches the task, otherwise choose from `libraries=`.
 
 ## Search and show
 

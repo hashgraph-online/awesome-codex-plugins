@@ -39,7 +39,7 @@ Submit one job within the existing spending authority, retain its ID, then use `
 
 Review the complete event: does the setup read, does the requested action happen, is the payoff visible, does geometry survive, and are cuts or sounds intentional? Judge physical interactions and timing, not just attractive still frames. Do not call a requested loop seamless without comparing the join.
 
-Treat exclusions as requirements to verify. In the [actual moon-elevator run](https://github.com/magichourhq/skills/tree/main/examples/midnight-remix), the reveal worked but the output added numerals and camera movement despite explicit constraints. Check lettering and the last frame; attractive scenery alone did not pass that brief.
+Treat exclusions as requirements to verify. The [LTX-2.5 moon-elevator run](https://github.com/magichourhq/skills/tree/main/examples/current-video#open-an-elevator-onto-a-lunar-landscape) opens the doors, but they keep moving through most of the clip and the requested blue Earth is unclear. Check when the action finishes, what is visible, and how long the shot holds.
 
 For an absent action, simplify the beat or provide clearer timing before changing everything at once. For wrong appearance, use an accepted still and Image-to-Video on the next authorized attempt. Preserve successful takes; do not repeatedly regenerate an accepted scene merely to change captions or export shape.
 

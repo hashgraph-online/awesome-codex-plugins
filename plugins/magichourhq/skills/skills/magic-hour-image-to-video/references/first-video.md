@@ -11,6 +11,8 @@ Use this flow when the user asks for their first result, is trying the skill, or
 
 ## Finish one coherent beat
 
+For a product still, the [LTX-2.5 benchmark example](https://github.com/magichourhq/skills/tree/main/examples/current-video#animate-a-product-photo) includes the source photo, exact motion prompt, finished clip and charged credits. Use the active model and settings supported by the current account.
+
 Set at most three concrete creative acceptance criteria before generating, such as recognizable identity, a visible floating fish separate from the face, and a small reaction without a cut. Also preserve the requested file dimensions, duration and sound. The user's explicit requirements override this starter shape.
 
 If the requested scene differs from the source, edit the still first and inspect it before paying for motion. If the source already matches, animate it directly. Submit once per stage, record the returned project ID immediately, and resume that same project after a wait timeout. A request whose creation response was lost is ambiguous: reconcile it before another paid creation call.

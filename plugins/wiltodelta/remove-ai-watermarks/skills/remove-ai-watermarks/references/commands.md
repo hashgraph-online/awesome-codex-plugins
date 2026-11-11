@@ -107,6 +107,10 @@ Pipeline profiles: `qwen-zimage` (the default), `qwen21-zimage`, `sdxl-zimage`,
 `qwen-zimage` extra. `qwen21-zimage` (since CLI 0.51.0) uses `Qwen/Qwen-Image-2.1` under the
 **Qwen Research License** (non-commercial research and personal use only; do
 not use `qwen21-zimage` for commercial workflows).
+Since CLI 0.57.0, `qwen21-zimage` includes bounded geometry by default and local quality acceptance
+under the same license restrictions. Its CLI path does not run automatic OCR.
+It falls back to the shared Qwen-2.1 recipe for tiles and reviewed manifests.
+Quality improvement does not prove watermark removal.
 `auto` picks a commercial-safe engine from the file's own provenance -- sdxl-zimage for Google,
 chroma-zimage for Microsoft, qwen-zimage for OpenAI (since CLI 0.39.0), Meta and unknown
 -- so prefer it over naming an engine when the user has no reason to care. `sdxl-zimage` is the
@@ -143,7 +147,27 @@ Video mark keys: `sora`, `veo`, `seedance`, `doubao`, `dola`, `hailuo`,
 order.
 
 `video invisible` and `video all --invisible` accept MP4, MOV, and M4V only.
-They are lossy. The shipped noise profile is pinned; do not lower it.
+That is the default SynthID profile. It is lossy; its shipped noise profile
+is pinned, so do not lower it.
+
+For an owned Seedance MP4, explicitly opt into the experimental fixed recipe
+(since CLI 0.56.0):
+
+```bash
+remove-ai-watermarks video all input.mp4 -o clean.mp4 --invisible --profile seedance-experimental
+remove-ai-watermarks video invisible label-cleaned.mp4 -o clean.mp4 --profile seedance-experimental
+remove-ai-watermarks video batch ./videos --invisible --profile seedance-experimental
+```
+
+Seedance requires SDR 8-bit MP4 with even dimensions. `--quality delivery`
+(default) writes H.264 High CRF18; `--quality master` retains a larger
+lossless-coded master. Leave SynthID tuning flags at their defaults; nondefault
+values are rejected for this fixed recipe. All/batch requires `--invisible`
+with this profile. Only all mode runs the supported visible stage first;
+unhandled visible overlays need separate preparation. The experiment has
+matched-control CapCut evidence but performs no per-file detector request.
+These profile options require a build containing the experimental Seedance
+integration; verify `video all --help` before using them.
 
 Unlike the image path, `video invisible`, `video all` and `video batch` do
 accept `--device [auto|cuda|mps|cpu]`. Leave it at `auto`. Set it only when the
@@ -151,6 +175,29 @@ user names a device, and never to claim a device the probe did not report.
 
 Without `-o`, video commands write `<source>_clean` and keep the original.
 Output extension must match the input container.
+
+## Text
+
+```bash
+remove-ai-watermarks text identify article.md
+remove-ai-watermarks text identify article.md --json
+remove-ai-watermarks text metadata article.md --check
+remove-ai-watermarks text metadata article.md --remove -o article_clean.md
+remove-ai-watermarks text invisible article.md -o article_clean.md --seed 0
+remove-ai-watermarks text all article.md -o article_clean.md
+remove-ai-watermarks text all article.md -o article_clean.md --invisible --seed 0
+```
+
+`text identify` and `text metadata` need no optional extras: they inspect and
+strip C2PA 2.3/2.4 Appendix A.8 (`C2PATXT\0`), Appendix A.9 (`-----BEGIN C2PA
+MANIFEST-----`), Appendix A.7 (`text/html` `<head>`), `VSRMark`
+(`com.cognitive-proof.vsrmark.1`), Unicode Tags (`U+E0000`..`U+E007F`), and
+zero-width steganography while preserving valid Emoji `U+FE0E`/`U+FE0F` and
+Emoji `U+200D` ZWJ sequences. Without `-o`, `text` commands write
+`<source>_clean` and keep the original. `text invisible` and `text all
+--invisible` lock code blocks, inline code, LaTeX math, URLs, file paths, HTML
+tags, and Markdown headings verbatim and regenerate unlocked prose spans with an
+unwatermarked local causal LM (needs the `diffusion` extra).
 
 ## MCP server
 

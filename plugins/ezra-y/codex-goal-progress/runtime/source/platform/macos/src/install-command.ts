@@ -13,7 +13,7 @@ import type {
 } from "./command-protocol.js";
 import { resolveMacosInstallationLayout } from "./install-layout.js";
 import { InstallTransaction } from "./install-transaction.js";
-import { inspectOrphanReleaseBackups } from "./installation-state.js";
+import { inspectOrphanReleaseBackups, pruneObsoleteProgramReleases } from "./installation-state.js";
 import type { HelperHealthInspection, HelperReadinessInspection } from "./installed-inspection.js";
 import { inspectInstalledHook } from "./installed-inspection.js";
 import {
@@ -541,12 +541,20 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
           cleanupWarningCode ??= stableErrorCode(error);
         }
       }
+      const prunedReleases = await pruneObsoleteProgramReleases({
+        programReleasesRoot: layout.programReleasesRoot,
+        currentVersion: release.releaseVersion,
+        previousInstalledVersion: installed?.releaseVersion ?? null,
+      });
+      cleanupWarningCode ??= prunedReleases.warningCode;
       const cleanupBackups = await inspectOrphanReleaseBackups(layout.programReleasesRoot).catch(
         () => (releaseBackupCreated ? [basename(releaseBackupPath)] : []),
       );
       const cleanupPending = cleanupBackups.length > 0;
       const changed =
-        transaction.partialState.changedSteps.length > 0 || cleanupBeforeInstall.removed.length > 0;
+        transaction.partialState.changedSteps.length > 0 ||
+        cleanupBeforeInstall.removed.length > 0 ||
+        prunedReleases.removed.length > 0;
       const codexSessionReconnectRequired =
         changed &&
         transaction.partialState.changedSteps.some(
@@ -581,6 +589,7 @@ export function createInstallCommand(dependencies: InstallCommandDependencies) {
           restartScheduled: false,
           cleanupPending,
           cleanupBackups,
+          prunedReleases: prunedReleases.removed,
           cleanupWarningCode,
           states: changed
             ? [

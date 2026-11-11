@@ -1,5 +1,5 @@
 <!--
-FLOW Framework — Operational Prompt Library
+FLOW Framework - Operational Prompt Library
 © Daniel Agrici | License: CC BY 4.0
 Source: github.com/AgriciDaniel/flow
 Attribution required when reproducing or adapting these prompts.

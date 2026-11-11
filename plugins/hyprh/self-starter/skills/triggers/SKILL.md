@@ -1,12 +1,26 @@
 ---
 license: MIT
 name: triggers
-description: Create and manage triggers that watch for something (a job that finishes, a service that goes down, a failing CI run, a new release, a price crossing a threshold) and hand a task to Codex when it happens. Use when the user wants to be told, or wants something done, "when X happens", and when handling a message that starts with [self-starter].
+description: Create and manage triggers that watch for something (a job that finishes, a service that goes down, a failing CI run, a new release, a price crossing a threshold) and hand a task to Codex when it happens. Use when the user wants to be told, or wants something done, "when X happens", when offering or setting up a watch for an in-flight asynchronous task (such as PR CI/reviews or a detached job), and when handling a message that starts with [self-starter].
 ---
 
 # Self-Starter
 
 A trigger is a small probe program that checks something, rules for when the result counts as "it happened", and what to do then. A background service runs the probe on a schedule and evaluates the rules; no model is involved until the trigger fires. Then the task goes to Codex: back into the thread where the trigger was created, or into a thread dedicated to the trigger.
+
+## Offering a watch
+
+When a turn leaves the user waiting on something asynchronous, you may add one short sentence at the end of your reply offering to watch it:
+
+- You just opened or pushed to a pull request and CI checks or review comments are still pending (for example: "Want me to watch CI on this PR and investigate in this thread if a check fails?").
+- You just started a detached long-running job—training, benchmark, build, migration or deployment—writing to a log or status endpoint (for example: "Want me to watch `runs/exp42/train.log` and compare the metrics when it finishes?").
+- The user has manually re-checked the same status across turns (`gh pr checks`, `nvidia-smi`, a health endpoint or a release feed).
+
+Keep offers unobtrusive and consent-first:
+
+- Call **no** `trigger_*` tools when making an unsolicited offer; wait until the user says yes before calling `trigger_draft` or `trigger_activate`.
+- Offer at most once for a given task; if the user ignores or declines it, do not repeat it.
+- Do not offer on ordinary edits, synchronous commands that already finished, general questions, or while handling a `[self-starter]` fire.
 
 ## Creating a trigger
 
@@ -15,7 +29,7 @@ A trigger is a small probe program that checks something, rules for when the res
 3. **Otherwise, find where to look.** The probe runs on the user's machine with their permissions, so it can read files and logs, run the commands and CLIs the user has (`git`, `gh`, `docker`, the scripts of another skill), talk to local services, or call web APIs. Prefer output that is already structured: a JSON API, a command with `--json`. If an API key is needed, ask the user to store it in a terminal with `self-starter secret set NAME`. Never ask for a key in the chat, and never put one in the code or the params.
 4. **Write the probe and the definition** following the contract below.
 5. **Call `trigger_draft`.** It checks everything, saves the draft and runs the probe once. If the trial run fails or its result looks wrong, fix it and call `trigger_draft` again.
-6. **Decide whether to ask before starting it.** A trigger keeps running on its own, possibly for weeks. Ask first, in one or two sentences (what it checks, how often, what you will do when it fires, then "Start it?"), when the task acts for the user when it fires (changes files, runs commands with side effects, sends messages, places orders), when it checks often or for a long time, or when the request left room for interpretation. When the user asked for exactly this and it only tells them or reports back ("let me know when the build finishes"), start it right away and say what you set up. Either way, mention warnings that matter, such as "the condition already holds, so it will fire right away".
+6. **Decide whether to ask before starting it.** A trigger keeps running on its own, possibly for weeks. Ask first, in one or two sentences (what it checks, how often, what you will do when it fires, then "Start it?"), when the task acts for the user when it fires (changes files, runs commands with side effects, sends messages, places orders), when it checks often or for a long time, or when the request left room for interpretation. When the user asked for exactly this and it only tells them or reports back ("let me know when the build finishes", or saying yes to a notify-only or read-only watch you just offered), start it right away and say what you set up. Either way, mention warnings that matter, such as "the condition already holds, so it will fire right away".
 7. **Call `trigger_activate`** with the draft id.
 
 ## The probe

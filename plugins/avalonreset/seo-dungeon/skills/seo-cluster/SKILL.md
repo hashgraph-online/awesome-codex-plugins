@@ -14,7 +14,7 @@ license: MIT
 metadata:
   author: AgriciDaniel
   original_author: "Lutfiya Miller (Pro Hub Challenge Winner)"
-  version: "2.2.6"
+  version: "2.2.7"
   category: seo
 ---
 
@@ -169,7 +169,7 @@ Generate `cluster-map.html` using the template at `templates/cluster-map.html`.
      meta: { totalPosts, totalClusters, totalLinks, estimatedWords }
    }
    ```
-3. Replace the `CLUSTER_DATA` placeholder in the template with the actual JSON
+3. Replace the `CLUSTER_DATA` placeholder in the template with the serialized JSON, escaping every `<` character as `\u003c` (for example `JSON.stringify(data).replace(/</g, "\\u003c")`) so untrusted page titles or keywords containing `</script>` cannot break out of the inline `<script>` block.
 4. Write the completed HTML file to the output directory
 5. Inform user: "Open `cluster-map.html` in a browser to explore the interactive cluster map."
 

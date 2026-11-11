@@ -51,11 +51,11 @@ gate, and that is not a finding
 costly when it meets a condition on Validate's list (a published release or
 user instructions, a security boundary, destroyed data or tracker state, a
 deleted protective check, behavior no deterministic check covers) or when a
-later one-way step depends on it. The finding is a costly unit whose only
-verification is checks its author wrote, with no check the author did not
-write and no fresh author-distinct read, as in a closure step "the implementer
-runs its own tests and closes" on a unit that guards authentication. Report
-the shape once, listing its units.
+later one-way step depends on it. The finding is a costly unit with no fresh
+author-distinct read planned, whoever wrote its checks, as in a closure step
+"the implementer runs its own tests and closes" on a unit that guards
+authentication. Tests are enough for an ordinary unit; they do not replace the
+read a costly unit owes. Report the shape once, listing its units.
 
 ## The second check: which steps are one-way doors?
 
@@ -119,9 +119,9 @@ blocking fact is deleted, not softened.
 
 Observable in the output:
 
-- each unit names its verifier, and self-verification of costly units is one
-  finding listing those units; an ordinary unit graded by its author's checks
-  and CI is no finding;
+- each unit names its verifier, and costly units with no fresh author-distinct
+  read are one finding listing those units; an ordinary unit graded by its
+  author's checks and CI is no finding;
 - each step is marked, and each one-way mark names its undo cost and point of
   no return;
 - each finding cites a defeat attempt or the fact that blocked it;

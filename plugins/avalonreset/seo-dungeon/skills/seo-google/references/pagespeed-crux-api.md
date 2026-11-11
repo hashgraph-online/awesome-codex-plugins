@@ -204,10 +204,10 @@ Current as of 2026-07-09; no threshold changes were announced. INP replaced FID 
 
 | Metric | Good | Needs Improvement | Poor |
 |--------|------|-------------------|------|
-| **LCP** | ≤ 2,500ms | 2,500–4,000ms | > 4,000ms |
-| **INP** | ≤ 200ms | 200–500ms | > 500ms |
-| **CLS** | ≤ 0.1 | 0.1–0.25 | > 0.25 |
-| **FCP** | ≤ 1,800ms | 1,800–3,000ms | > 3,000ms |
-| **TTFB** | ≤ 800ms | 800–1,800ms | > 1,800ms |
+| **LCP** | ≤ 2,500ms | 2,500-4,000ms | > 4,000ms |
+| **INP** | ≤ 200ms | 200-500ms | > 500ms |
+| **CLS** | ≤ 0.1 | 0.1-0.25 | > 0.25 |
+| **FCP** | ≤ 1,800ms | 1,800-3,000ms | > 3,000ms |
+| **TTFB** | ≤ 800ms | 800-1,800ms | > 1,800ms |
 
 FID was removed from Chrome's field-data tools (CrUX, PSI) on September 9, 2024. Never reference FID in outputs.
