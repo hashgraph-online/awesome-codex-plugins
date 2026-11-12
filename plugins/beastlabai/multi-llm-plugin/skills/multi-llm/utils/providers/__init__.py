@@ -1,20 +1,14 @@
 """LLM CLI provider implementations.
 
-``__all__`` is **generated, never hand-maintained** (§9.1). The hand-written
-list this replaced had silently lost ``ClaudeCodeProvider`` — the adapter worked
-only because ``provider_registry`` imports its module directly — while
-``utils/__init__.py``'s copy of the same roster had lost three
-(``ClaudeCodeProvider``, ``KiloCodeProvider``, ``MuseProvider``). Neither drift
-was detectable: *deleting* an export left the whole suite green, which is what
-makes "add one more line" the wrong fix.
-
-So the roster is derived instead: every concrete :class:`LLMProvider` subclass
-defined in this package is imported, bound into the package namespace and
-exported. ``PROVIDER_CLASSES`` maps class name → class;
-``provider_registry._PROVIDERS`` instantiates exactly this set, and
-``tests/test_provider_housekeeping.py`` asserts the two agree in **both**
-directions, so an adapter added without an export and an export removed without
-its adapter are equally red.
+The adapter roster is **derived, never hand-maintained**: every concrete
+:class:`LLMProvider` subclass defined in this package is imported, bound into
+the package namespace and exported. ``PROVIDER_CLASSES`` maps class name →
+class, and ``provider_registry._PROVIDERS`` is built from it (one instance per
+class, keyed by provider name), so dropping a module in this directory registers
+it and deleting one unregisters it. ``tests/test_provider_housekeeping.py``
+asserts the exports and the registry agree in both directions. The tables that must stay hand-kept (measured
+config rows, fixtures, docs) are compared with the registry by the roster tests;
+the order to fill them in is docs/development/providers.md#adding-a-provider-adapter.
 """
 import importlib
 import inspect
@@ -32,6 +26,11 @@ def _discover_provider_classes() -> Dict[str, Type[LLMProvider]]:
     under a second name; ``inspect.isabstract`` drops any partial base an
     adapter family might grow later, and ``LLMProvider`` itself is exported
     separately by name.
+
+    Two modules defining classes with one name refuse to load. The result and
+    the package exports are keyed by class name, so the later class would
+    otherwise replace the earlier one before the registry's provider-name check
+    could see both (docs/development/providers.md#adding-a-provider-adapter).
     """
     found: Dict[str, Type[LLMProvider]] = {}
     for info in pkgutil.iter_modules(__path__):
@@ -46,6 +45,15 @@ def _discover_provider_classes() -> Dict[str, Type[LLMProvider]]:
                 and not inspect.isabstract(obj)
                 and obj.__module__ == module.__name__
             ):
+                taken = found.get(attr)
+                if taken is not None:
+                    raise RuntimeError(
+                        f"two adapter classes are named {attr!r}: "
+                        f"{taken.__module__}.{taken.__qualname__} and "
+                        f"{obj.__module__}.{obj.__qualname__}. Adapters are "
+                        f"registered and exported by class name, so rename one "
+                        f"(docs/development/providers.md#adding-a-provider-adapter)."
+                    )
                 found[attr] = obj
     return found
 
@@ -58,4 +66,5 @@ PROVIDER_CLASSES: Dict[str, Type[LLMProvider]] = _discover_provider_classes()
 # typed out one per line.
 globals().update(PROVIDER_CLASSES)
 
-__all__ = ["LLMProvider", "PROVIDER_CLASSES", *sorted(PROVIDER_CLASSES)]
+__all__ = ["LLMProvider", "PROVIDER_CLASSES"]
+__all__.extend(sorted(PROVIDER_CLASSES))

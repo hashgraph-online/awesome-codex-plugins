@@ -2,17 +2,23 @@
 import json
 import os
 import shutil
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     REASONING_LADDER,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
+    STDOUT_ENVELOPE,
+    STDOUT_PLAIN,
     StructuredSchema,
+    diagnostic_streams,
+    envelope_signature,
+    read_stdout,
     split_reasoning_effort,
 )
+from .parse_kit import answer_from_text, fail, loads_or_extract, ok
 
 # Reasoning effort values accepted by `grok --reasoning-effort`
 # (verified live against grok 0.2.93) — exactly the seven canonical rungs, which
@@ -49,9 +55,11 @@ def _overlay_dict(text: str, toml: bool) -> Optional[Dict[str, Any]]:
     """``text`` parsed as one JSON (or TOML) object, else ``None``."""
     if toml:
         try:
+            # tomllib is 3.11+; on 3.10 the handler below falls back to tomli.
             import tomllib as _toml  # type: ignore[import-not-found]
         except ImportError:  # pragma: no cover - Python 3.10
             try:
+                # The 3.10 fallback for tomllib, when tomli is installed.
                 import tomli as _toml  # type: ignore[import-not-found,no-redef]
             except ImportError:
                 return None
@@ -168,7 +176,7 @@ class GrokProvider(LLMProvider):
     efforts are listed in REASONING_EFFORTS; anything else passes through
     verbatim as the model name.
 
-    Everything below was **measured** by the §6 step-5 probe on 2026-08-19
+    Everything below was **measured** by the step-5 probe on 2026-08-19
     against ``grok 0.2.93`` driven offline at a localhost stub
     (``--network none``, no credential), and re-measured by the same rig on
     2026-10-08 against ``grok 1.0.46`` (what moved is listed at
@@ -210,13 +218,13 @@ class GrokProvider(LLMProvider):
     answer still do (326 s), and a 5xx and a zero-byte response run **four such
     ladders back to back: 60 chat requests over ~1,340 s**, silent throughout —
     past the 1200 s slot providers.yaml gives grok (``grok.default_timeout``;
-    the class's own :attr:`default_timeout`, 600 s, is only the fallback for a
-    config without the row), so the slot was killed with zero bytes on both
+    the shared :data:`~utils.providers.base.DEFAULT_TIMEOUT_S` is only the
+    fallback for a config without the row), so the slot was killed with zero bytes on both
     channels and the transport retry re-ran the same silent ladder.
     :meth:`get_env` bounds it with grok's own ``models.max_retries``
     (:data:`GROK_MAX_RETRIES`, through the ``GROK_CONFIG`` overlay): measured,
     a fail-forever 5xx is then 8 chat requests over 54 s and reports its error,
-    and :attr:`internal_retries` declares that envelope so §7.5 rule 4 refuses,
+    and :attr:`internal_retries` declares that envelope so rule 4 refuses,
     with a reason, an attempt the slot has no room left for.
 
     **An upstream 404 classifies as ``server_error``, not ``invalid_model``**:
@@ -226,7 +234,7 @@ class GrokProvider(LLMProvider):
     carries no such wrapper — both shapes are committed as separate fixture rows.
     """
 
-    #: §9.4: the prompt trails. It used to sit at index 4 — the one adapter that
+    #: The prompt trails. It used to sit at index 4 — the one adapter that
     #: rendered a flag *after* it — which made `cmd[:-1]` and
     #: `build_agent_command_for_transport` silently wrong the moment grok gained
     #: a stdin transport or an agent profile. It has neither today, so
@@ -242,51 +250,35 @@ class GrokProvider(LLMProvider):
     #: headless write is unmeasured. `multi_llm.py doctor` prints this verbatim
     #: until a measurement either way lands under Phase 5.
     trust_status = "untested"
-    #: 0.2.93 is where every fixture in ``tests/fixtures/grok/`` was first
-    #: captured — the §6 step-5 probe, ``--network none``, the stub and the
-    #: failserver both running inside the container, no credential — and, until
-    #: the 1.0.46 re-capture below, the only release this parser had been run
-    #: against. A pin to re-confirm rather than a range to
-    #: trust: nothing older has been measured, and the two shapes the parser
-    #: depends on (``{"text": …}`` for an answer, ``{"type": "error", …}`` for a
-    #: failure) are both vendor-internal envelopes.
-    #: ``tests/container/cli-versions.lock`` pins the same string.
-    #:
-    #: ``grok --version`` prints ``grok 1.0.46 (<commit>)`` on stdout, whose
-    #: first dotted token the base :meth:`parse_version` reads without an
-    #: override.
-    #: NO FLOOR, deliberately. `min_version` was set to 0.2.93 on 2026-08-19 — the
-    #: version the §16 fixtures were captured against — and removed the same day
-    #: for the reason §5.4.1(a) of harness-invocation-improvements.md states: a
-    #: MEASURED-AT version is an upper bound on the true floor, never the floor.
-    #: This is a PRE-EXISTING adapter, so a floor pinned to the release that
-    #: happened to be in the image newly refuses installs that worked yesterday,
-    #: with exit 3 and no evidence that 0.2.93 is where anything actually broke.
-    #: (copilot/kimi/qwen-code/vibe keep theirs because they landed *together
-    #: with* their probes; muse, cursor-agent and agy leave it empty for this
-    #: same reason.) `verified_version` below is warning-only and carries the
-    #: measurement instead.
-    #:
-    #: 1.0.46 since 2026-10-08 (run 10, #10): every row re-captured on it by the
-    #: same rig in the pinned image (cli-versions.lock moved to 1.0.46 the same
-    #: day). Every parser verdict and classification is unchanged and the parser
-    #: needed no change; the three ``no_visible_content`` rows and the pre-flight
-    #: row are byte-identical. What moved: five requests per answered exec (a
-    #: root probe and a reply-summary call on the ``-m`` model), the title model
-    #: ``grok-4.6``, ``stopReason`` ``end_turn``, a 429 passing the vendor's own
-    #: words (with the wait), no ``Request URL`` / response-header lines, and a
-    #: 5xx or zero-byte response retried for ~1,340 s instead of 335 s. Re-captured
-    #: again the same day with :meth:`get_env`'s two switches in force (review 24,
-    #: pins #1/#2): four requests per answered exec, and every retry chain short.
+    #: No floor, deliberately: the captured release is an upper bound on the true
+    #: floor, so ``verified_version`` only warns. The two shapes the parser reads
+    #: (``{"text": …}``, ``{"type": "error", …}``) are vendor-internal envelopes;
+    #: re-confirm the pin when it moves. ``grok --version`` prints
+    #: ``grok <x.y.z> (<commit>)``, which the base :meth:`parse_version` reads.
+    #: Measurement history: docs/development/providers.md#version-floors-and-measured-versions.
     verified_version = "1.0.46"
+
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: grok prints one
+    #: envelope whose ``text`` is the answer, or its own ``{"type": "error"}``
+    #: object. :meth:`vendor_text` reads the envelope without ``text``, and a
+    #: cut or ambiguous stdout not at all.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: grok's stderr is its
+    #: own ``Error: …`` line (tests/fixtures/grok); the turn rides the stdout envelope.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_SIGNATURE`, from the captures: grok's answer envelope
+    #: opens on ``text`` and its error record on ``"type": "error"`` (tests/fixtures/grok/).
+    ENVELOPE_SIGNATURE = envelope_signature("text", ("type", "error"))
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_ANSWER_FIELDS`: the answer, whatever
+    #: ``stopReason`` says; grok's error record has none.
+    ENVELOPE_ANSWER_FIELDS = ("text",)
 
     @property
     def name(self) -> str:
         return "grok"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     @property
     def internal_retries(self) -> InternalRetryEnvelope:
@@ -337,7 +329,7 @@ class GrokProvider(LLMProvider):
         # --no-auto-update skips background update checks in automated runs;
         # --always-approve auto-approves tool executions (headless runs would
         # otherwise stall waiting for interactive approval).
-        # The `-p <prompt>` pair trails so the prompt is argv[-1] (§9.4); see
+        # The `-p <prompt>` pair trails so the prompt is argv[-1]; see
         # `prompt_argv_index` above for why the pair, not just the prompt, is
         # what a non-argv transport would have to drop.
         base_model, effort = split_reasoning_effort(model, REASONING_EFFORTS)
@@ -355,48 +347,55 @@ class GrokProvider(LLMProvider):
         cmd += ["-p", prompt]
         return cmd
 
+    def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
+        """:func:`stdout_shape.diagnostic_streams`: the envelope without ``text``.
+
+        Measured on the committed rows: every failure is one
+        ``{"type": "error", "message": …}`` object (exit 1), read whole, and a
+        finished turn is ``{"text", "stopReason", "sessionId", "requestId"}``,
+        whose ``text`` is the model's own answer and so never the vendor's
+        verdict. stderr is never reduced.
+        """
+        return diagnostic_streams(stdout, stderr, self)
+
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse JSON wrapper output from Grok Build CLI."""
         stdout = stdout.strip()
-        try:
-            wrapper = json.loads(stdout)
-            if isinstance(wrapper, dict) and "text" in wrapper:
-                text = wrapper["text"]
-                if isinstance(text, str):
-                    text = text.strip()
-                    if not text:
-                        return {"success": False, "error": "Empty text response", "raw": stdout, "data": None}
-                    if text.startswith(("[", "{")):
-                        try:
-                            return {"success": True, "data": json.loads(text)}
-                        except json.JSONDecodeError:
-                            pass
-                    return extract_json_from_text(text, prefer_arrays=True)
-                return {"success": True, "data": text}
-            # GROK'S ERROR ENVELOPE IS A DICT WITHOUT `text`, and the catch-all
-            # below used to hand it back as the ANSWER. Measured 2026-08-19 on the
-            # fixture capture: ten distinct injected failures — 401, 404, 400
-            # context-length, 500, a cut stream, a zero-byte body, an HTTP-200
-            # error document — every one of them arrives as
-            # `{"type":"error","message":"Internal error: …"}`, and every one of
-            # them returned `success: True` with that envelope as `data`. Only the
-            # nonzero exit code stood between a fan-out slot and an error string
-            # recorded as a model's review. `type == "error"` is grok's own
-            # discriminator; `message` carries the upstream text the classifier
-            # then reads.
-            if isinstance(wrapper, dict) and wrapper.get("type") == "error":
-                message = wrapper.get("message")
-                if not isinstance(message, str) or not message.strip():
-                    message = json.dumps(wrapper)
-                return {"success": False, "error": message.strip(),
-                        "raw": stdout, "data": None}
-            return {"success": True, "data": wrapper}
-        except json.JSONDecodeError as e:
-            # Try fallback extraction on raw stdout
-            fallback = extract_json_from_text(stdout, prefer_arrays=True)
-            if fallback.get("success"):
-                return fallback
-            return {"success": False, "error": f"JSON parse error: {e}", "raw": stdout, "data": None}
+        shape = read_stdout(stdout, self.ENVELOPE_SIGNATURE)
+        if shape.kind == STDOUT_ENVELOPE:
+            wrapper = shape.value
+        elif shape.kind != STDOUT_PLAIN:
+            return shape.failure("grok", stdout)
+        else:
+            wrapper, early = loads_or_extract(stdout)
+            if early is not None:
+                return early
+        if isinstance(wrapper, dict) and "text" in wrapper:
+            text = wrapper["text"]
+            if isinstance(text, str):
+                return answer_from_text(text, raw=stdout)
+            return ok(text)
+        # GROK'S ERROR ENVELOPE IS A DICT WITHOUT `text`, and the catch-all
+        # below used to hand it back as the ANSWER. Measured 2026-08-19 on the
+        # fixture capture: ten distinct injected failures — 401, 404, 400
+        # context-length, 500, a cut stream, a zero-byte body, an HTTP-200
+        # error document — every one of them arrives as
+        # `{"type":"error","message":"Internal error: …"}`, and every one of
+        # them returned `success: True` with that envelope as `data`. Only the
+        # nonzero exit code stood between a fan-out slot and an error string
+        # recorded as a model's review. `type == "error"` is grok's own
+        # discriminator; `message` carries the upstream text the classifier
+        # then reads.
+        if isinstance(wrapper, dict) and wrapper.get("type") == "error":
+            message = wrapper.get("message")
+            if not isinstance(message, str) or not message.strip():
+                message = json.dumps(wrapper)
+            return fail(message.strip(), stdout)
+        if isinstance(wrapper, dict) and "sessionId" in wrapper:
+            # grok's envelope without its answer field: the bookkeeping is
+            # not an answer. Another JSON object is the answer itself.
+            return fail("grok's envelope carries no text field", stdout)
+        return ok(wrapper)
 
     def salvage_text(self, stdout: str) -> Optional[str]:
         """The wrapper's ``text``, never the wrapper or grok's error body (D2.5).
@@ -404,15 +403,14 @@ class GrokProvider(LLMProvider):
         The text :meth:`parse_output` unwraps first: ``wrapper["text"]``,
         stripped, when stdout is one JSON object whose ``type`` is not
         ``"error"``. So the ask lane's answer text and the review lanes'
-        salvage read what the parser treats as the answer
-        (plans/ask-answer-recovery-and-false-success.md D2.5), and grok's
+        salvage read what the parser treats as the answer, and grok's
         ``{"type":"error","message":…}`` body — every one of the ten measured
         failures, and the 2026-09-22 body the ask lane once saved as an answer
         — gives ``""``, a final verdict. So does anything that is not one whole
         wrapper: ``generate`` always renders ``--output-format json``.
 
         ``text`` joins every turn of the run, so an answer carries any earlier
-        narration with it; nothing in the output separates the two (§14).
+        narration with it; nothing in the output separates the two.
         """
         try:
             if not isinstance(stdout, str):

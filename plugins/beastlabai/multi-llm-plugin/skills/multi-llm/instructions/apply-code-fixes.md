@@ -130,14 +130,13 @@ When validation failed due to parsing errors or timeouts, you can retry:
 - `--revalidate`: Re-run validation only on items with `validation_failed` status
 - `--revalidate-model MODEL`: Use a different model for retry (e.g., `cursor-agent:opus`)
 - `--revalidate-all-human`: Also re-validate all `needs-human-decision` items
-- `--internal-revalidation`: Run revalidation inside the orchestrator (legacy mode)
 
-**Note**: By default, revalidation is delegated to a subagent. Use `--internal-revalidation` to run revalidation inside the orchestrator (legacy mode).
+A run with `--revalidate` or `--revalidate-model` stops at a revalidation marker: see *When Validation Fails, and `--revalidate`* under Recovery Workflows.
 
 ### Resume/State Options
 
 - `--resume`: Resume from last checkpoint, skip already-processed items
-- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. The target file must already be back at its pre-run bytes (copy it from the phase's backup, or roll the batches back with `util restore-batch`): a target still carrying the previous run's edits is refused (exit 3), since every batch would land twice. Earlier rollback points are kept aside, never overwritten.
+- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. Put the files the previous run's batches edited back first, or every batch lands twice: after an `--exec-subagents` run, `util restore-batch` rolls the batches back newest-first; the native loop takes no snapshot of them, so undo its batches by hand (`git diff -- <the files>` shows their edits, together with any other uncommitted edit to the same files). This phase edits no single target file, so nothing checks for you that the previous run's edits are gone. Earlier rollback points are kept aside, never overwritten.
 - `--skip-human-review`: [DEPRECATED] Use `--skip-all-human` instead
 
 ### Batch Review Mode
@@ -185,6 +184,8 @@ The orchestrator will:
 5. Write output to `{plan}/apply-fixes/orchestrator_output.json`
 6. Exit — the driving agent handles the actual application
 
+An exit 3 naming another review round is a stop, with nothing applied or recorded: the review's `validation.json` holds an earlier round's verdicts, and a later run of the code review (`review-code --force`, say) has not produced its own — it is still running, or it stopped before it validated. Report the two ways forward it names: let that run finish (`status`), or run the code review again with `--force`; then run this phase again. Never apply the earlier round's suggestions by hand.
+
 ### 2a. Handle No-Selections Confirmation
 
 After the orchestrator completes, check if its stdout contains `"status": "confirmation_needed"`.
@@ -217,13 +218,15 @@ This prints a formatted summary with each fix's title and status. Display this o
 
 ### 4. Read the Orchestrator Output
 
-Read `{plan}/apply-fixes/orchestrator_output.json`.
+Read `{plan}/apply-fixes/orchestrator_summary.json`, written beside `orchestrator_output.json`: what the batch loop needs from that file and from `write_tasks.json`. When there is no summary, read `orchestrator_output.json` and `write_tasks.json` (printed as `[WRITE_TASKS_FILE]`: the same batches in the same order, with their task ids) instead.
 
 Extract the following key fields directly from the Read output (do NOT use Bash/python to parse — just read the JSON and understand it):
-- `batches`: Array of batch objects, each with `prompt`, `file_key`, `prior_changes_id`, `executor_role`, `fixes`
+- `batches`: one entry per batch, in dispatch order, with `task_id` (`apply-fix-batch-0`, `apply-fix-batch-1`, …), `batch_index`, `file_key`, `executor_role`, `prior_changes_id`, `task_title` and `expected_ids`, the values `write_tasks.json` holds, and `detail_path`, the batch's detail file
 - `needs_human_review`: Items requiring human decision
 - `human_review_config`: Batch mode config for human review
 - `summary`: Counts of valid, skipped, batches, etc.
+
+The batch loop below is keyed on `task_id`. Each batch's `fixes` are in its detail file at `detail_path` (`orchestrator_batches/<task_id>.json`: the batch's record in `orchestrator_output.json` without its prompt), read once at step 1 below and used again at step 4. The **unbound** `prompt` stays in `orchestrator_output.json` and is never handed to a subagent.
 
 ### 5. Process Batches Sequentially
 
@@ -238,63 +241,18 @@ Where `{total_batches}` is the length of the `batches` array.
 
 ### The Python write executor: `--exec-subagents` (an alternative to this loop)
 
-Everything from here to the end of the batch loop is the **native-subagent** path:
-this agent binds each batch's prompt with `util write-prompt`, snapshots the
-artifact, spawns a subagent on the bound prompt file, diffs against the snapshot
-and appends to the prior-changes log.
-
-A host with no native subagent tool runs the *same* loop in Python instead. Add
-`--exec-subagents` to the orchestrator invocation above and the phase schedules
-itself in one process: batches in ascending `batch_index`, each one's snapshot/diff
-classification completed and recorded **before** the next is dispatched, the
-prior-batch context bound late per dispatch (the literal `{prior_changes_context}`
-token never reaches a runner), `prior_changes.py append` and `metrics.py record`
-called per batch, and the phase marked completed only after every batch verified.
-The runner comes from `driver.subagent_runner` in `providers.yaml`; write
-concurrency comes from `driver.max_concurrent_write_subagents` (default **1**, and
-raise it above 1 only for this phase, whose batches are partitioned by file — and even then two batches co-schedule only when their declared file sets are provably disjoint).
-
-Do **not** combine the two: with `--exec-subagents` the phase finishes in that one
-invocation and there is no batch left for this agent to run. It also writes this
-phase's own summary report itself: the batch loop's outcome block names every item
-the judge decided, `{phase}/summary.md` is written with the same sections the
-*Generate Summary Report* step below describes, the recorded decisions are overlaid
-onto the review report, and the phase is marked completed only once every batch
-verified. Those steps below belong to the native path; do not run them a second time.
-
-Three flags belong to that path and are worth knowing even on this one:
-
-- `--dry-run-subagents` — full preflight, **zero dispatch**. Renders the exact
-  command per batch, applies the invocation profile, the co-scheduling admission
-  check and the `driver.write_paths` policy, writes
-  `{phase}/subagent_dry_run.json` and exits 0 having started no child and changed
-  nothing else. The recommended first unattended run on a new host.
-- `--detach` — the phase self-daemonizes and returns a log path plus a `status`
-  command to poll; it is how step 2 runs on this path. Per-batch progress lands in
-  `{phase}/.status.json` under `progress.write_subagents`, so an unattended write
-  run is observable with no chat context at all. Never combine it with a host's own
-  background primitive: a host that resolves *run detached* to its own background
-  mechanism uses that mechanism and never passes `--detach`.
-- Rollback, when a batch half-applies —
-  `multi_llm.py util restore-batch --phase-dir <dir> --task-id <id>` (also
-  `--all-failed`), invoked through the dispatcher the same way every other mode is.
-  It restores exactly the files `{phase}/subagent_audit.jsonl` recorded as touched,
-  from the pre-batch snapshot under `{phase}/pre_batch/{task_id}/`, and **refuses**
-  a file whose current hash no longer matches what the audit recorded at completion
-  (someone edited it since) unless `--force` is passed. A partial application never
-  reverts itself: the run exits 3 naming this command, because an automatic revert
-  would destroy the half-applied state a human needs to inspect.
+When the command that runs this phase carries `--exec-subagents`, `--detach` (which implies it) or `--dry-run-subagents`, however it got there (typed, printed by a resume or `util next-command`, forwarded by a workflow step, or as an abbreviation such as `--exec` or `--det`), the Python write executor runs the phase: read `references/apply-write-executor.md` in full before that command runs, or before your next command if it already ran. That one invocation is the whole phase; a dry run dispatched nothing and leaves no work either: do not run the loop below, step 3's `util decisions`, step 7's verification, step 8's summary report or step 10's `--mark-completed`. A command with none of `--exec-subagents`, `--detach` and `--dry-run-subagents`, in any spelling, skips the reference and runs the loop below.
 
 For each batch (index N, starting at 1) returned by the orchestrator, you MUST:
 
-1. **Bind the batch prompt** — Run:
+1. **Bind the batch prompt** — First read this batch's detail file at its `detail_path` (with no summary, its entry in `orchestrator_output.json`'s `batches`, already read): its `fixes`, each with its `file`, are what the batch applies and what step 4 checks. Then run:
    ```bash
    uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util write-prompt \
      --phase-dir "{plan}/apply-fixes" --task-id "{task.task_id}"
    ```
    `{task.task_id}` is this batch's `task_id` from `write_tasks.json` (`apply-fix-batch-0`, `apply-fix-batch-1`, … in dispatch order). The command rewrites the batch's prompt with the prior-batch context bound **now** — from `{plan}/prior_changes.jsonl` as it is at this moment, i.e. the batches step 7 has already appended — and the result contract appended: exactly the text the `--exec-subagents` executor would dispatch for this batch. It writes it to `{plan}/apply-fixes/prompts/{task.task_id}.prompt.txt` and prints three lines: `[WRITE_PROMPT] <path>`, `[WRITE_PROMPT_LINES] <n>` and `[WRITE_PROMPT_CONTEXT] …`. Note the path and the line count for step 2. Never substitute `{prior_changes_context}` yourself and never hand the subagent `batch.prompt` from the JSON: the literal token must never reach a subagent.
 
-   **Error handling**: an exit 3 names the problem (no `write_tasks.json` — re-run the orchestrator; an unknown task id — the known ids are listed). Do not fall back to the raw `batch.prompt`; stop and report.
+   **Error handling**: an exit 3 names the problem (no `write_tasks.json` — re-run the orchestrator; an unknown task id — the known ids are listed). Do not fall back to the raw `batch.prompt`; stop and report. A batch whose review round was superseded (the message names the two rounds: a later run of the review started another) is a stop: dispatch nothing, record nothing for it, close the phase without `--mark-completed` and report the way forward it names.
 
    A `[WRITE_PROMPT_ORDER]` line (on stderr; the prompt is still written) names an earlier batch whose summary this prompt does not carry — recorded but not appended yet, or not finished: do what it says, then run this `util write-prompt` again before spawning the subagent.
 
@@ -304,13 +262,13 @@ For each batch (index N, starting at 1) returned by the orchestrator, you MUST:
 3. **Wait for completion** - Do NOT parallelize batch processing
 
 4. **Verify batch outcome** — After the subagent completes (or fails), determine the batch outcome by inspecting actual file/diff state rather than relying solely on the subagent's exit status. Classify the result:
-   - **Success**: The expected changes are present in the target files (verified via diff or content check).
+   - **Success**: The expected changes are present in the target files (verified via diff or content check against the batch's fixes, which its detail file lists: you read it at step 1; read it again only if it is no longer in your context).
    - **Failure (clean)**: The subagent failed and no file modifications were made (verified by checking that target files are unchanged from their pre-batch state).
    - **Not applied**: The subagent reported `applied` **and** no file was modified: its edits did not land. Dispatch the batch once more, with one sentence added to its prompt saying the previous attempt answered `applied` but changed no file, and verify again; if nothing changed this time either, it is a clean failure (record it `failed`), never a success.
    - **Partial application**: Some but not all expected changes are present, or the subagent failed but file modifications were detected.
-   - **Declined items** (fix round 18): an item the reply lists in `declined` with a reason was left unapplied on purpose (for example, the implementation record calls that code deliberate). It is never applied and never a partial application: a batch whose every item is in `ids` or in `declined` is a success (a no-op when it changed nothing), whatever word its `status` carries, `failed` included: record it `--status completed`. An item in neither list, an id in both, or a `declined` entry without a reason is a partial application.
+   - **Declined items**: an item the reply lists in `declined` with a reason was left unapplied on purpose (for example, the implementation record calls that code deliberate). It is never applied and never a partial application: a batch whose every item is in `ids` or in `declined` is a success (a no-op when it changed nothing), whatever word its `status` carries, `failed` included: record it `--status completed`. An item in neither list, an id in both, or a `declined` entry without a reason is a partial application.
 
-   **Partial application handling**: If verification detects a partial application, **stop the batch loop and surface the issue for human review**. Do not continue to subsequent batches. Log the partial application details and prompt the human operator to resolve the state before resuming. When the reply's report attests at least one fix applied (in `ids`, with a `status` other than `failed`) and leaves others out of both `ids` and `declined`, give the user both ways forward and let them choose: restore the batch (`util restore-batch`) or fix the cause, then resume; **or** keep what the batch applied and go on without the fixes it left out — record it with step 6's `util batch-done` as `--status completed` plus one `--skipped <id>` per fix left out, append its summary (step 7) and continue with the next batch. A resume that does neither hands the same batch out again and stops the same way.
+   **Partial application handling**: If verification detects a partial application, **stop the batch loop and surface the issue for human review**. Do not continue to subsequent batches. Log the partial application details and prompt the human operator to resolve the state before resuming. When the reply's report attests at least one fix applied (in `ids`, with a `status` other than `failed`) and leaves others out of both `ids` and `declined`, give the user both ways forward and let them choose: undo the batch by hand — this loop takes no snapshot of the files a batch edits, so `util restore-batch` has nothing of this batch's to put back: `git diff -- <the batch's files>` shows its edits, together with any earlier batch's uncommitted edits to the same files, which stay — or fix the cause, then resume; **or** keep what the batch applied and go on without the fixes it left out — record it with step 6's `util batch-done` as `--status completed` plus one `--skipped <id>` per fix left out, append its summary (step 7) and continue with the next batch. A resume that does neither hands the same batch out again and stops the same way.
 
 5. **Extract summary** — The subagent's reply ends with one JSON object (`{"status", "ids", "declined", "files_touched", "summary", "notes"}`: the result contract the prompt file carries). Take its `summary` as the one-line summary; its `status` (`applied` / `no-op` / `failed`) and `files_touched` are evidence for step 4, never a substitute for the file check. If the reply carries no such object, compress the reply into a single sentence instead.
 
@@ -413,13 +371,9 @@ target), without running it or writing the config.
 If the command fails:
 - Report which fix may have caused the issue
 - Record the command, its exit code and the tail of its output in the summary
-- Do **not** revert anything — every batch was already verified against its own
-  pre-batch snapshot, and the half-applied state is what a human needs to read
+- Do **not** revert anything — each batch was verified when it finished (step 4),
+  and the failing state is what a human needs to read
 - The phase is **not** complete: stop and hand the failure to a human
-
-On the `--exec-subagents` leg the executor does all of this itself, from the same
-`driver.verify_command` — it runs the command once after the last batch, records the
-result in `summary.md` and `.status.json`, and ends the phase at exit 3 when it fails.
 
 ### 8. Generate Summary Report
 
@@ -831,98 +785,11 @@ The separate mode gives users time to:
 
 ## Recovery Workflows
 
-### When Validation Fails
+### When Validation Fails, and `--revalidate`
 
-If validation produces many `validation_failed` items due to parsing errors or timeouts:
-
-```bash
-# Option 1: Re-run validation with a different model
-uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-code-fixes \
-  --plan-file "$PLAN_PATH" \
-  --revalidate \
-  --revalidate-model cursor-agent:opus
-
-# Option 2: Bulk approve validation failures (if you trust the fixes)
-uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-code-fixes \
-  --plan-file "$PLAN_PATH" \
-  --approve-validation-failed
-```
-
-### Handling Revalidation Subagent
-
-When running with `--revalidate` (without `--internal-revalidation`), the orchestrator outputs a revalidation marker.
-
-#### The task file
-
-`revalidation_tasks.json` carries `tasks_schema_version: 2` and one complete task
-per batch under `batches` — each with `prompt`, `output_name`, the derived
-`output_path`, `prompt_path` and `prompt_lines`, `result_channel: file`,
-`context_mode`, `capability_tier`, `executor_role` and `task_id`. The
-sidecar at `prompt_path` holds exactly the bytes of `prompt` (`prompt_lines` is
-its line count), so the two are interchangeable and a host that would otherwise
-re-emit the whole prompt can point the subagent at the file instead. The
-context excerpt and this batch's issue records travel **inside** `prompt`;
-`item_indices` and `original_validation` stay on the file for the merge step.
-The context is the fix diff, which is never named by path. Only when the diff
-is missing and the plan stands in can a plan over the inline limit be named
-once under `## Plan file` (a hash-bound snapshot in the phase dir), making the
-task `context_mode: workspace-read`. The subagent must then be able to read
-that path, so do not run it where it cannot. Never treat such a batch as
-having the full plan inline.
-
-**For each task in the file: when the task carries `prompt_path`, run a subagent
-that reads that file in full — through line `prompt_lines`, paging if a single
-read stops short — and follows it verbatim; otherwise, or if the file is absent,
-run `task.prompt` as a subagent. Either way, write the JSON it returns to
-`task.output_path`.** That is the whole contract — do not assemble a prompt
-beyond that one read instruction, and do not tell the subagent to write the file
-itself. The file's bytes are exactly `task.prompt`; the two are interchangeable.
-
-A file whose `tasks_schema_version` is missing or not `2`, or whose recorded
-`inputs` hashes no longer match their sources, is refused with exit 3: re-run the
-phase with `--force` to re-materialize it.
-
-**Check each reply right after you write it.** Run
-`uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util check-reply --tasks-file "{plan}/code-review/revalidation_tasks.json" --task-id <task_id>`
-(omit `--task-id` to check every batch, and only once every batch's subagent has
-returned: a reply not written yet prints `[REPLY_MISSING]`, which is no bad reply and
-no re-ask). `[REPLY_INVALID]` means the subagent's reply
-did not parse or did not cover its groups — Sonnet subagents lost a closing `]` on 3 of
-14 batches in the 2026-10-01 Claude Code run. Re-ask the same subagent once for the
-whole reply and write the new reply over the file. Never edit, trim or complete a reply
-yourself, and never assemble one from the parts of two replies. A batch still
-`[REPLY_INVALID]` after that one re-ask is a failed batch: leave its file as it is and say so.
-
-#### Single Batch: `[REVALIDATION_PENDING]`
-
-If `[REVALIDATION_PENDING]` marker is present:
-1. Read `revalidation_tasks.json` from `{plan}/code-review/`
-2. Run the single task as the contract above says — the sidecar at `prompt_path`
-   when it has one, `task.prompt` otherwise — and write its JSON reply to that
-   task's `output_path`
-3. After the result file is written, run the orchestrator again (without `--revalidate`)
-
-#### Multiple Batches: `[REVALIDATION_BATCHES_PENDING]`
-
-If `[REVALIDATION_BATCHES_PENDING]` marker is present:
-1. Read `revalidation_tasks.json` from `{plan}/code-review/`
-2. Count the number of batches and choose a strategy:
-
-**Strategy A: Direct parallel spawning (≤ 4 batches)**
-
-For each task in the `batches` array, run the task exactly as the contract above says — the sidecar at `prompt_path` when it has one, `task.prompt` otherwise — and write the JSON it returns to that task's `output_path`.
-
-**Run all batches in parallel** (single message with multiple subagent calls).
-
-**Strategy B: Wave-based parallel spawning (> 4 batches)**
-
-Follow the wave-based spawning strategy in `references/wave-batching.md`.
-
-**Before you continue: verify every batch wrote its file, and do not end your turn before it has.** Confirm that each task's `output_path` exists and is not empty. Re-dispatch any task whose file is missing — exactly as the contract above says — and write its reply yourself; only a batch that comes back empty-handed a second time is a failed batch, and a batch nobody re-dispatched is not one. Spawn batches so their replies return inside this turn, and stay in the turn until the last file is on disk: **you** write these files, not the subagents, and a host that runs one headless turn has no second turn in which to write them — a reply that lands after the turn ends is a batch lost with nothing on disk to say so. Naming the batch you are waiting on is not waiting for it.
-
-3. After ALL batches complete, run the orchestrator again (without `--revalidate`) to merge and continue
-
-**Legacy Mode**: Add `--internal-revalidation` to run revalidation inside the orchestrator instead of delegating to a subagent.
+Two cases lead here, and in either you read `references/revalidation.md` in full, with `apply-code-fixes` as its `{mode}` and `code-review` as its `{review}`, and follow it before your next command. Skip this only when no item is `validation_failed` and no run printed `[REVALIDATION_PENDING]` or `[REVALIDATION_BATCHES_PENDING]`.
+- **Failed items to recover:** validation left items `validation_failed` (`summary.validation_failed_count` above 0: a parse error, a timeout or a rate limit, unlike `needs-human-decision`; see Error Types below). No marker prints for these until a retry is requested. Start at the reference's *When validation fails*, which offers the two ways forward: `--revalidate` (optionally with `--revalidate-model`) and `--approve-validation-failed`.
+- **Revalidation pending:** a run with `--revalidate` or `--revalidate-model` printed `[REVALIDATION_PENDING]` (one batch) or `[REVALIDATION_BATCHES_PENDING]` (several) and exited 0 having applied nothing. Start at the reference's *Running the revalidation subagents*.
 
 ### Resuming Interrupted Sessions
 

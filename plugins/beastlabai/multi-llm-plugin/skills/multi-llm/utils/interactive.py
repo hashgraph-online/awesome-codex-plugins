@@ -16,8 +16,11 @@ import sys
 from typing import Dict, List, Optional
 
 from .json_extractor import sanitize_model_name
-from .provider_registry import load_config
-from .unattended import NeedsHuman, row
+# `resolve_models` reads the resolvers through the module, at each call: tests
+# patch `provider_registry.get_provider` and `parse_model_spec`.
+from . import provider_registry as _provider_registry
+from .provider_registry import get_all_model_specs, is_model_valid, load_config
+from .unattended import NeedsHuman, fail_closed, row
 
 
 def _availability_reason(provider_name: str) -> str:
@@ -34,9 +37,7 @@ def _availability_reason(provider_name: str) -> str:
     diagnostic may not become the reason a model list cannot be filtered.
     """
     try:
-        from .provider_registry import get_provider
-
-        provider = get_provider(provider_name)
+        provider = _provider_registry.get_provider(provider_name)
         if provider is None:
             return ""
         return provider.describe_availability().detail
@@ -168,14 +169,14 @@ def _numbered_prompt(options: List[str], prompt: str) -> List[str]:
 
     try:
         user_input = input("> ").strip()
-    except EOFError:
+    except EOFError as exc:
         # stdin is closed (or the user pressed Ctrl-D): there is no channel to
         # answer on, which is a visible failure rather than "selected nothing".
         raise NoDecisionChannel(
             "No interactive channel for model selection: stdin is closed. "
             "Pass --models \"provider:model,...\" (or --quick), or configure "
             "defaults.models in providers.yaml."
-        )
+        ) from exc
     except KeyboardInterrupt:
         return []
 
@@ -286,7 +287,6 @@ def select_models_two_step(anchor: Optional[str] = None) -> List[str]:
     Returns:
         List of model specs in provider:model format (e.g., ["gemini:gemini-2.5-flash"])
     """
-    from .provider_registry import get_provider
 
     config = load_config(anchor=anchor)
     providers = config.get("providers", {})
@@ -303,7 +303,7 @@ def select_models_two_step(anchor: Optional[str] = None) -> List[str]:
         # picker list, and the typed report has nothing to add to a row that is
         # either shown or not. The warnings further down are where the state
         # earns its keep.
-        provider = get_provider(name)
+        provider = _provider_registry.get_provider(name)
         if provider is None or not provider.is_available():
             continue
 
@@ -514,15 +514,6 @@ def resolve_models(
             distinct canonical specs sanitize to the same filename stem and
             would therefore write over each other's per-model results.
     """
-    # Import here to avoid circular imports
-    from .provider_registry import (
-        get_default_models,
-        get_provider,
-        get_quick_models,
-        has_default_models,
-        has_quick_models,
-        parse_model_spec,
-    )
 
     def _canonical(specs: List[str]) -> List[str]:
         """Resolve every entry once, against this call's anchor (§9.3.d), then
@@ -547,7 +538,7 @@ def resolve_models(
         """
         resolved: List[str] = []
         for spec in specs:
-            provider_name, model_name = parse_model_spec(spec, anchor=anchor)
+            provider_name, model_name = _provider_registry.parse_model_spec(spec, anchor=anchor)
             canonical = f"{provider_name}:{model_name}"
             if canonical not in resolved:
                 resolved.append(canonical)
@@ -585,7 +576,7 @@ def resolve_models(
 
     # 3. --quick flag uses quick_models from YAML
     if quick:
-        if not has_quick_models(mode, anchor=anchor):
+        if not _provider_registry.has_quick_models(mode, anchor=anchor):
             message = (
                 "No quick_models configured in providers.yaml. "
                 "Add a 'quick_models' list under 'defaults' in providers.yaml."
@@ -593,13 +584,13 @@ def resolve_models(
             if unattended:
                 raise NeedsHuman(f"ERROR: {message}", site=row(2).site_id)
             raise RuntimeError(message)
-        quick_models = get_quick_models(mode, anchor=anchor)
+        quick_models = _provider_registry.get_quick_models(mode, anchor=anchor)
         available_models = []
         unavailable_providers = set()
 
         for model_spec in quick_models:
-            provider_name, _ = parse_model_spec(model_spec, anchor=anchor)
-            provider = get_provider(provider_name)
+            provider_name, _ = _provider_registry.parse_model_spec(model_spec, anchor=anchor)
+            provider = _provider_registry.get_provider(provider_name)
 
             if provider is not None and provider.is_available():
                 available_models.append(model_spec)
@@ -629,14 +620,14 @@ def resolve_models(
             raise RuntimeError(message)
 
     # 4. Check for YAML defaults (with availability filtering)
-    if has_default_models(mode, anchor=anchor):
-        default_models = get_default_models(mode, anchor=anchor)
+    if _provider_registry.has_default_models(mode, anchor=anchor):
+        default_models = _provider_registry.get_default_models(mode, anchor=anchor)
         available_models = []
         unavailable_providers = set()
 
         for model_spec in default_models:
-            provider_name, _ = parse_model_spec(model_spec, anchor=anchor)
-            provider = get_provider(provider_name)
+            provider_name, _ = _provider_registry.parse_model_spec(model_spec, anchor=anchor)
+            provider = _provider_registry.get_provider(provider_name)
 
             if provider is not None and provider.is_available():
                 available_models.append(model_spec)
@@ -687,3 +678,77 @@ def resolve_models(
                                  "pick them now"),
         site=row(2).site_id,
     )
+
+
+class ModelSelectionError(Exception):
+    """:func:`select_models` stopped the run; its message is already printed.
+
+    ``exit_code`` is what the caller exits with: 3 for a gate nobody may
+    answer unattended, 1 for a configuration that resolves to nothing.
+    """
+
+    def __init__(self, exit_code: int):
+        super().__init__(exit_code)
+        self.exit_code = exit_code
+
+
+def select_models(
+    args,
+    *,
+    mode: str,
+    anchor: Optional[str],
+    unattended: bool,
+    announce: bool = True,
+) -> List[str]:
+    """The model-selection preamble the review lanes and ``ask`` share.
+
+    :func:`resolve_models` from the parsed flags (``--models``,
+    ``--interactive``, ``--quick``), then the printed outcome: the error and a
+    short list of available specs when nothing resolves, ``Using ...`` naming
+    where the models came from (*announce*), and a warn-and-proceed line for
+    specs the registry does not know. *anchor* is the plan-derived discovery
+    anchor, passed through as the caller spells it.
+
+    Raises:
+        ModelSelectionError: Selection stopped the run (exit 3 for a gate
+            :class:`NeedsHuman` raised, 1 otherwise), message already printed.
+    """
+    try:
+        model_specs = resolve_models(
+            cli_models=args.models,
+            interactive=args.interactive,
+            quick=args.quick,
+            mode=mode,
+            anchor=anchor,
+            unattended=unattended,
+        )
+    except NeedsHuman as e:
+        raise ModelSelectionError(fail_closed(e.message, site_id=e.site)) from None
+    except RuntimeError as e:
+        print(f"ERROR: {e}")
+        available = get_all_model_specs(anchor=anchor)
+        print(f"Use --models flag. Available: {', '.join(available[:5])}...")
+        raise ModelSelectionError(1) from None
+
+    if not model_specs:
+        print("ERROR: No models selected.")
+        raise ModelSelectionError(1)
+
+    if announce:
+        if args.models:
+            print(f"Using models from --models flag: {', '.join(model_specs)}")
+        elif args.interactive:
+            print(f"Using interactively selected models: {', '.join(model_specs)}")
+        elif args.quick:
+            print(f"Using quick models from providers.yaml: {', '.join(model_specs)}")
+        else:
+            print(f"Using default models from providers.yaml: {', '.join(model_specs)}")
+
+    # Warn and proceed. The suggestion list is read against the same anchor
+    # as the check, or a project's own models would be called unknown.
+    invalid_models = [m for m in model_specs if not is_model_valid(m, anchor=anchor)]
+    if invalid_models:
+        print(f"WARNING: Unknown models (proceeding anyway): {', '.join(invalid_models)}")
+        available = get_all_model_specs(anchor=anchor)
+        print(f"Available models: {', '.join(available[:10])}...")
+    return model_specs

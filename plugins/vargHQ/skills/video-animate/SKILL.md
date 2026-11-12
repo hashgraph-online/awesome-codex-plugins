@@ -14,7 +14,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
   openclaw:
     requires:
       anyBins:
@@ -29,6 +29,8 @@ allowed-tools: Bash(python3:*) Bash(ffmpeg:*) Bash(ffprobe:*) Bash(curl:*) Read 
 ---
 
 # Video animate
+
+> Step 7 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/animate-a-previz-with-ai-video-models (as Markdown: add `.md`).
 
 You already have the hard parts: an approved previz in Blender or three.js, characters, a moodboard, a script and
 locked sound. This skill turns them into footage. One idea runs through all of it: **give each variable one owner,

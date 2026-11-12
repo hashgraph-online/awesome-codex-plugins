@@ -31,33 +31,23 @@ import hashlib
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
 
-try:  # pragma: no cover - import shim mirrors the rest of utils/
-    from .schema_validator import (
-        TASKS_SCHEMA_VERSION,
-        validate_subagent_task,
-        validate_subagent_task_file,
-    )
-    from .llm_client import (
-        CMDLINE_CAP_UTF16_BATCH,
-        CMDLINE_CAP_UTF16_NATIVE,
-        CMDLINE_UTF16_HEADROOM,
-        _utf16_code_units,
-    )
-except ImportError:  # pragma: no cover
-    from utils.schema_validator import (
-        TASKS_SCHEMA_VERSION,
-        validate_subagent_task,
-        validate_subagent_task_file,
-    )
-    from utils.llm_client import (
-        CMDLINE_CAP_UTF16_BATCH,
-        CMDLINE_CAP_UTF16_NATIVE,
-        CMDLINE_UTF16_HEADROOM,
-        _utf16_code_units,
-    )
+from . import provider_registry as _provider_registry
+from .subagent_prompts import build_salvage_prompt
+from .schema_validator import (
+    TASKS_SCHEMA_VERSION,
+    validate_subagent_task,
+    validate_subagent_task_file,
+)
+from .llm_client import (
+    CMDLINE_CAP_UTF16_BATCH,
+    CMDLINE_CAP_UTF16_NATIVE,
+    CMDLINE_UTF16_HEADROOM,
+    _utf16_code_units,
+)
 
 
 __all__ = [
@@ -74,6 +64,7 @@ __all__ = [
     "make_write_task",
     "write_output_name",
     "implement_output_name",
+    "safe_output_token",
     "WRITE_OUTPUT_NAME_TEMPLATE",
     "declared_file_set",
     "snapshot_file_set",
@@ -87,6 +78,7 @@ __all__ = [
     "make_task",
     "make_task_file",
     "tasks_of",
+    "task_file_text",
     "write_task_file",
     "read_task_file",
     "assert_dispatchable",
@@ -228,6 +220,7 @@ def build_inputs(
     salvage_request_file: Optional[str] = None,
     items: Optional[Any] = None,
     context_plan_sha256: Optional[str] = None,
+    grouped_text: Optional[str] = None,
 ) -> Dict[str, str]:
     """Build the ``inputs`` hash block for a task file.
 
@@ -257,9 +250,17 @@ def build_inputs(
     plans/review-commits.md §2.4): passed as recorded rather than re-read, so
     a resume or a reaggregate whose snapshot no longer hashes to it is refused
     like a changed plan. Absent everywhere else, so no other block moves.
+
+    ``grouped_text`` is the grouping a review round wrote, as text: when given,
+    ``grouped_sha256`` is its hash rather than a read of *grouped_file*, so the
+    round binds the groups its prompts were built from, never a file replaced
+    after it was written (docs/development/review-results.md, "Consuming
+    checked bytes").
     """
     inputs: Dict[str, str] = {"plan_sha256": file_content_hash(plan_file)}
-    if grouped_file is not None:
+    if grouped_text is not None:
+        inputs["grouped_sha256"] = content_hash(grouped_text)
+    elif grouped_file is not None:
         inputs["grouped_sha256"] = file_content_hash(grouped_file)
     if tasks_file:
         inputs["tasks_sha256"] = file_content_hash(tasks_file)
@@ -482,8 +483,16 @@ WRITE_OUTPUT_NAME_TEMPLATE = {
 }
 
 #: The basename charset ``schemas/subagent_tasks.schema.json`` admits for an
-#: ``output_name`` token. Mirrors ``human_decisions._SAFE_VERDICT_TOKEN``.
+#: ``output_name`` token.
 _SAFE_OUTPUT_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+
+
+def safe_output_token(token: Any) -> str:
+    """*token* as an ``output_name`` token: itself when the task schema's
+    basename charset admits it, else its :func:`content_hash`, so an exotic id
+    still names exactly one stable file rather than being rejected."""
+    token = str(token or "")
+    return token if _SAFE_OUTPUT_TOKEN.match(token) else content_hash(token)
 
 
 def write_output_name(kind: str, batch_index: int) -> str:
@@ -499,27 +508,14 @@ def write_output_name(kind: str, batch_index: int) -> str:
 
 
 def implement_output_name(task_id: str) -> str:
-    """The result basename for one implement task, keyed by the *task id*.
+    """The result basename for one implement task, keyed by the *task id*
+    (:func:`safe_output_token`).
 
-    **Never its position** in the materialized list.
-    ``implement_orchestrator`` re-materializes from
-    ``format_batches_for_output(skip_completed=--resume)``, so the list a counter
-    would run over *shrinks* on a resume and every survivor is renamed: measured
-    2026-09-16, a resumed run re-pointed T006 at T001's ``implement_batch_0.json``,
-    ``_already_done`` found an ``applied`` file with no fingerprint under T006 and
-    declared five never-dispatched tasks complete — the phase exited 0 having
-    implemented four of the fourteen tasks it reported. The judging phase hit the
-    identical defect and fixed it the identical way
-    (``human_decisions.verdict_output_name``); keying by the task id is what makes
-    "resume by id" true of the filenames too.
-
-    A token outside the task schema's basename charset is hashed rather than
-    rejected, so an exotic id still names exactly one stable file.
+    **Never its position** in the materialized list: a resume re-materializes a
+    shorter list, so a position renames every survivor onto another task's
+    result file (2026-09-16: five never-dispatched tasks read as complete).
     """
-    token = str(task_id or "")
-    if not _SAFE_OUTPUT_TOKEN.match(token):
-        token = content_hash(token)
-    return f"implement_batch_{token}.json"
+    return f"implement_batch_{safe_output_token(task_id)}.json"
 
 
 def _default_write_output_name(kind: str, task_id: str, batch_index: int) -> str:
@@ -770,19 +766,28 @@ def make_task_file(
     return document
 
 
-def write_task_file(path: str, document: Dict[str, Any]) -> None:
-    """Validate a task file and write it, creating parent directories."""
+def task_file_text(path: str, document: Dict[str, Any]) -> str:
+    """What :func:`write_task_file` writes to *path*: *document* as JSON,
+    once it matches the schema (:class:`TaskFileError` naming *path* if not),
+    for a writer that puts the text on disk its own way
+    (``generate_tasks_orchestrator.materialize_task_file``)."""
     errors = validate_subagent_task_file(document)
     if errors:
         raise TaskFileError(
             f"Refusing to write {path}: it does not match "
             "schemas/subagent_tasks.schema.json — " + "; ".join(errors)
         )
+    return json.dumps(document, indent=2)
+
+
+def write_task_file(path: str, document: Dict[str, Any]) -> None:
+    """Validate a task file and write it, creating parent directories."""
+    text = task_file_text(path, document)
     parent = os.path.dirname(os.path.abspath(path))
     if parent:
         os.makedirs(parent, exist_ok=True)
     with open(path, "w", encoding="utf-8") as handle:
-        json.dump(document, handle, indent=2)
+        handle.write(text)
 
 
 # ---------------------------------------------------------------------------
@@ -911,11 +916,36 @@ def read_task_file(
         with open(path, "r", encoding="utf-8") as handle:
             document = json.load(handle)
     except (OSError, json.JSONDecodeError) as exc:
-        raise TaskFileError(
-            f"Refusing task file {path}: it could not be read as JSON ({exc}). "
-            f"Phase dir: {resolved_phase_dir}. {_REMATERIALIZE_FIX}."
-        ) from exc
+        raise unreadable_task_file(path, resolved_phase_dir, exc) from exc
+    return check_task_document(
+        document, path, phase_dir=resolved_phase_dir, current_inputs=current_inputs,
+    )
 
+
+def unreadable_task_file(path: str, phase_dir: str, exc: BaseException) -> TaskFileError:
+    """The refusal :func:`read_task_file` raises for a file it could not read
+    as JSON (*exc*)."""
+    return TaskFileError(
+        f"Refusing task file {path}: it could not be read as JSON ({exc}). "
+        f"Phase dir: {phase_dir}. {_REMATERIALIZE_FIX}."
+    )
+
+
+def check_task_document(
+    document: Any,
+    path: str,
+    *,
+    phase_dir: Optional[str] = None,
+    current_inputs: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
+    """:func:`read_task_file`'s version, schema and inputs checks, on a
+    document the caller has already read from *path*, so a caller that judges
+    the file by more than these checks judges one read of it.
+
+    Raises:
+        TaskFileError: exit code 3, as :func:`read_task_file`.
+    """
+    resolved_phase_dir = phase_dir or os.path.dirname(os.path.abspath(path))
     check_task_file_version(document, path, resolved_phase_dir)
     errors = validate_subagent_task_file(document)
     if errors:
@@ -954,8 +984,6 @@ def write_salvage_task_file(
     Returns:
         The path of the task file written.
     """
-    from .subagent_prompts import build_salvage_prompt  # local: avoid cycles
-
     output_name = os.path.basename(salvage_request.get("output_path", "") or "")
     suggestion_id = os.path.splitext(output_name)[0] or "unknown"
     task = make_task(
@@ -1097,20 +1125,13 @@ def preferred_prompt_transport(provider_name: Optional[str]) -> str:
     if not provider_name:
         return "argv"
     base = provider_name.split(":", 1)[0]
-    try:  # ask the adapter itself; fall back to the known-good list
-        from .provider_registry import get_provider  # local: avoids a cycle
-    except ImportError:  # pragma: no cover
-        try:
-            from utils.provider_registry import get_provider
-        except ImportError:
-            get_provider = None  # type: ignore[assignment]
-    if get_provider is not None:
-        provider = get_provider(base)
-        if provider is not None:
-            for candidate in ("stdin", "file"):
-                if provider.supports_prompt_transport(candidate):
-                    return candidate
-            return "argv"
+    # Through the module, at each call: tests patch `provider_registry.get_provider`.
+    provider = _provider_registry.get_provider(base)
+    if provider is not None:
+        for candidate in ("stdin", "file"):
+            if provider.supports_prompt_transport(candidate):
+                return candidate
+        return "argv"
     return "stdin" if base in _NON_ARGV_TRANSPORT_PROVIDERS else "argv"
 
 
@@ -1141,8 +1162,6 @@ def prompt_budget_utf16(
     cap = CMDLINE_CAP_UTF16_BATCH if is_batch_shim else CMDLINE_CAP_UTF16_NATIVE
     budget = cap - CMDLINE_UTF16_HEADROOM
     if non_prompt_argv:
-        import subprocess  # local: keeps module import cheap and side-effect free
-
         budget -= _utf16_code_units(subprocess.list2cmdline(list(non_prompt_argv)))
     return max(budget, 0)
 

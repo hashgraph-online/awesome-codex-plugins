@@ -1,33 +1,79 @@
 # Zcode Bridge
 
-把开发任务从 Codex 交给本机 ZCode Agent，在 Codex 中跟进进度并审查实际改动。
+把有明确边界的开发任务从 Codex 交给本机官方 ZCode Agent Runtime，在 Codex 中跟进进度，并独立审查实际改动后再决定是否接受。
+
+当前稳定版本为 `1.7.0`，包含 SQLite-only 编排以及 Start Plan 与 Coding Plan 集成。
+
+## 支持范围
+
+| 套餐 | 当前支持 |
+| --- | --- |
+| Z.ai Start Plan | 只读发现官方账户凭据，执行实时模型权益检查，并通过单任务私有凭据 Lease 向官方 Runtime 交付认证。 |
+| Z.ai Coding Plan | 使用既有的官方 Coding Plan 账户/API Key 路径。 |
+
+两条路径都通过官方 ZCode AppServer 执行。Start Plan 的真实证据目前仅覆盖 Windows、官方 AppServer `0.17.1` 和 `GLM-5.3-Flash`；其他模型与平台仍取决于官方 Registry、账户权益和实际环境，不能从单一模型的成功推广为全部 Start Plan 模型已验证。
 
 ## 使用前
 
-需要 Node.js 22.18+、Git、已安装并登录的 ZCode，以及支持插件 marketplace 的 Codex。
+Stable `1.7.0` 需要 Node.js `>=24.16.0 <25`、Git、已安装并登录的 ZCode，以及支持插件 Marketplace 的 Codex。
 
-添加本项目 GitHub marketplace 并安装 **Zcode Bridge**：在桌面应用中先用 CLI 注册 marketplace，再到 **Plugins Directory** 选择并安装；CLI 用户可直接按下方命令安装。之后开启新对话并检查、信任插件的 `SessionStart` hook。Windows 上 hook 会检查本机环境并报告配置问题。Marketplace 安装无需克隆源码或运行 `npm install`；Node.js 和 ZCode 需另行安装。
-
-CLI 安装示例：
+添加 Stable Marketplace 并安装 **Zcode Bridge**。桌面应用中可先在 CLI 注册 Marketplace，再到 **Plugins Directory** 安装；之后开启新对话并检查、信任插件的 `SessionStart` Hook。
 
 ```sh
-codex plugin marketplace add https://github.com/Sandyzzx/codex-zcode-bridge.git --ref master
+codex plugin marketplace add https://github.com/Sandyzzx/codex-zcode-bridge.git --ref codex-zcode-bridge-v1.7.0
 codex plugin add codex-zcode-bridge@codex-zcode-bridge
 ```
 
-## 派发任务
+更新 Stable Marketplace：
 
-向 Codex 描述开发任务和验收条件。Codex 根据任务决定是否准备 worktree，并把任务交给 ZCode。未提供 worktree 时在项目目录执行；提供时在该 worktree 执行。完成后由 Codex 检查 diff 和验收结果。`completed` 不等于 Codex 已接受改动。
+```sh
+codex plugin marketplace upgrade codex-zcode-bridge
+```
 
-遇到安装或启动问题时，可调用 MCP 工具 `zcode_doctor` 查看只读诊断；它不会启动 ZCode session。
+固定到当前 Stable 快照：
 
-可按任务选择 provider/model，也可配置用户默认模型。JSON 路径默认使用 `yolo`，并可通过 `ZCODE_BRIDGE_MODE` 选择审批模式；单用户本机 SQLite 使用固定受信任档案 `yolo`。`yolo` 会放行普通工具操作并使用当前操作系统账户权限。记录版本上已完成单次 43,014-byte Write 的真实审批往返实测。超过单事件行上限的大审批请求会以显式标记的预览事件交付，并附私有完整记录的 `full_request` 引用（路径、字节数、SHA256，按 `JSON.stringify(params)` 紧凑序列化计量）；预览不是全文，批准前需要全文时读引用记录。审批 params 完整保存上限为 1 MiB，超过时会收到含 actual/limit 与拆分建议的明确拒绝。worktree 不是沙箱。
+```sh
+codex plugin marketplace add https://github.com/Sandyzzx/codex-zcode-bridge.git --ref codex-zcode-bridge-v1.7.0
+```
 
-可选浏览器宿主（ADR-007）：`ZCODE_BRIDGE_BROWSER_USE` 默认 `off`；设为 `headless` 后，任务内 ZCode 原生浏览器工具经 `interaction/browserList`/`interaction/browserExecute` 反向 RPC 使用 worker 托管的 headless Chromium/Edge（独立临时 profile，不下载浏览器、不连接用户窗口）。可选 `ZCODE_BRIDGE_BROWSER_EXECUTABLE` 指定系统浏览器绝对路径。插件包内 `worker/vendor/` 自带所需运行资源，不依赖 Codex 的 node_modules。真实模型链路验收与边界见 仓库中的 `../../docs/reports/2026-10-15-browser-and-transport-fixes.md`。
+Marketplace 安装不需要克隆源码或运行 `npm install`；Node.js 和 ZCode 需另行安装。
+
+## 派发和验收
+
+只有当用户明确要求使用 ZCode/Bridge，或既有明确授权覆盖当前目标时，Codex 才应派发任务。普通开发请求不会自动转交 ZCode。
+
+Codex 作为 Master 定义目标、约束、允许范围和验收条件，并选择整任务或分阶段交付。ZCode 在给定 Workspace 中执行工作；如果调用方创建了 Git Worktree，Bridge 使用该现有目录，但不会自行创建、选择或删除 Worktree。
+
+可用 MCP 工具：
+
+- `zcode_task`、`zcode_status`、`zcode_feedback`、`zcode_events`、`zcode_result`
+- `zcode_continue`、`zcode_cancel`、`zcode_interaction_reply`
+- `zcode_doctor`、`zcode_model_catalog`、`zcode_default_model`、`zcode_set_default_model`、`zcode_clear_default_model`
+
+`completed` 只表示 Worker 执行结束并规范化了报告，不表示 Codex 已接受代码。必须检查实际 Diff、测试和 Result。`zcode_continue` 仅用于验收返工、必要决定、受控恢复或报告修复，不用于普通的分步调度。
+
+遇到安装或启动问题时，可调用只读诊断工具 `zcode_doctor`；它不会启动 ZCode Session。模型目录可通过 `zcode_model_catalog` 查询；Start Plan 条目使用 `<ModelId>-StartPlan` 别名，并在任务执行时进行实时权益检查。
 
 ## 安全边界
 
-ZCode 以当前操作系统用户权限运行。Git worktree 不是 OS 沙箱；`allowed_paths` 和 `forbidden_paths` 是任务指令，不能强制限制文件或命令访问。普通本地读取、编辑、构建、测试和批准范围内的清理可按 `yolo` 策略执行；Push、Merge、Tag、Release、生产 Authority 切换、任务范围外的数据删除、凭据修改和真实生产任务数据操作仍需用户明确授权。任务 prompt、Skill 或 worktree 选择不能自行产生这些授权。任务 prompt、日志、可见模型输出和结果会保存在本机 `.codex/codex-zcode-bridge/` 目录。派发前请检查任务可见的工作区内容。
+Bridge 以当前 Windows 用户权限运行。固定 `yolo` 执行档案允许普通读取、编辑、构建、测试和任务范围内清理，但这不是提权或恶意进程隔离机制。
 
-Marketplace 用户配置自定义 ZCode 路径或默认模型的说明见[中文安装指南](https://github.com/Sandyzzx/codex-zcode-bridge/blob/master/README.zh-CN.md#安装)。
-- **Read-only wait helper:** hosts with background-command completion can run the bundled `dist/wait-task.mjs` against the same SQLite Attention Core. The helper never approves, cancels, or mutates task state; its notification still depends on the host lifecycle.
+Push、Merge、Tag、Release、生产 Authority 切换、任务范围外删除、凭据修改和真实生产任务数据访问仍需用户明确授权。任务 Prompt、Skill、路径列表和 Worktree 选择不会自行产生这些授权。
+
+Git Worktree 只是工作目录布局，不是 OS 沙箱。`allowed_paths` 和 `forbidden_paths` 是任务指令，不是强制访问控制。派发前应检查 ZCode 可见的工作区内容，不要在 Prompt 中放入凭据、JWT、私钥或敏感账户数据。
+
+Start Plan 不支持绕过 CAPTCHA 或 unusual activity；需要用户交互的官方账户流程应由用户在官方 ZCode 客户端中处理，Bridge 在无法确认权益时 fail-closed。
+
+## SQLite Authority
+
+Bridge 的任务权威存储是 SQLite。首次启动会创建并验证：
+
+```text
+${LOCALAPPDATA}\CodexZCodeBridge\state\bridge.sqlite
+```
+
+启动时发现有效的 Schema v13 Authority 后，Bridge 会在既有跨进程 bootstrap 锁内执行受控副本升级到 v14，并保留原库作为同目录 v13 备份。损坏或非 v13 数据库继续 fail-closed；不要通过清除 Hold 强制启动。完整说明见仓库的 [Runtime 指南](../../docs/ZCODE_RUNTIME.md) 和 [中文主 README](../../README.zh-CN.md)。
+
+## 可选后台等待器
+
+支持后台命令完成通知的 Host 可运行插件包内的只读 `dist/wait-task.mjs`。它观察同一 SQLite Attention Core，不批准、取消或修改任务状态；通知仍取决于 Host 的生命周期。

@@ -6,6 +6,8 @@ import math
 import re
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
+from . import importance as _importance
+from .json_extractor import first_fenced_block
 from .schema_validator import drop_non_record_entries
 
 
@@ -35,13 +37,14 @@ class SuggestionGroup:
         self._recalculate_priority()
 
     def _recalculate_priority(self) -> None:
-        """Recalculate priority based on model consensus and importance."""
-        base_score = len(self.models)
+        """Recalculate priority based on model consensus and importance.
 
-        importance_weights = {"high": 3, "medium": 2, "low": 1}
+        Each member adds its importance's weight, read in either case
+        (``utils/importance.py``).
+        """
+        base_score = len(self.models)
         for suggestion in self.suggestions:
-            importance = suggestion.get("importance", "medium")
-            base_score += importance_weights.get(importance, 1)
+            base_score += _importance.weight(suggestion.get("importance"))
 
         self.priority_score = base_score
 
@@ -94,11 +97,12 @@ def extract_suggestions_from_review(
     """
     suggestions = []
 
-    # Try to extract JSON if present
-    json_match = re.search(r'```(?:json)?\s*([\[\{][\s\S]*?[\]\}])\s*```', review_text)
-    if json_match:
+    # Try to extract JSON if present: the first fenced block, read in linear
+    # time (utils.json_extractor), as are the prose patterns below.
+    block = first_fenced_block(review_text)
+    if block is not None:
         try:
-            parsed = json.loads(json_match.group(1))
+            parsed = json.loads(block)
             if isinstance(parsed, list):
                 # Same guard as the aggregation sites: `item["source_model"] = …`
                 # is an item assignment, and a fenced array can carry a bare
@@ -116,7 +120,12 @@ def extract_suggestions_from_review(
     suggestion_patterns = [
         r'(?:Suggestion|Issue|Problem|Concern|Improvement)[\s:]+(.+?)(?=\n\n|\n-|\n\d+\.|\Z)',
         r'-\s+(.+?)(?=\n-|\n\n|\Z)',
-        r'\d+\.\s+(.+?)(?=\n\d+\.|\n\n|\Z)',
+        # `(?<!\d)`: a match starts where a number does. A match from inside
+        # a run of digits is also one from the run's start, which no earlier
+        # match can have taken (each ends before a newline or at the end), so
+        # findall's matches are unchanged and a run is read once, not once
+        # per digit.
+        r'(?<!\d)\d+\.\s+(.+?)(?=\n\d+\.|\n\n|\Z)',
     ]
 
     for pattern in suggestion_patterns:
@@ -379,6 +388,37 @@ def _files_disagree(a: str, b: str) -> bool:
     return not (a.endswith("/" + b) or b.endswith("/" + a))
 
 
+#: Where a reference separator turns: a comma, or a slash with whitespace on
+#: both sides.
+_REFERENCE_SEPARATOR_TURN = re.compile(r",|(?<=\s)/(?=\s)")
+_WHITESPACE_RUN = re.compile(r"\s*")
+
+
+def _split_reference(raw: str) -> List[str]:
+    """``re.split(r"\\s+/\\s+|\\s*,\\s*", raw)``, in linear time.
+
+    That split retries both alternatives at every character of a whitespace
+    run, each retry walking the rest of the run (1.2 s for 32 KB of spaces in
+    a reviewer's ``reference``). A match is fixed by where it turns, the first
+    character after its leading whitespace, so this walks the turns instead:
+    each separator runs from the start of the whitespace in front of its turn
+    (never before where the previous one ended) through the whitespace after
+    it. A slash needs whitespace in front that the previous separator did not
+    take, which is ``re.split``'s leftmost-match rule: in ``a / / b`` the first
+    separator takes the space before the second slash, which then stays text.
+    """
+    parts: List[str] = []
+    last = 0
+    for turn in _REFERENCE_SEPARATOR_TURN.finditer(raw):
+        at = turn.start()
+        if raw[at] == "/" and at - 1 < last:
+            continue
+        parts.append(raw[last:last + len(raw[last:at].rstrip())])
+        last = _WHITESPACE_RUN.match(raw, at + 1).end()
+    parts.append(raw[last:])
+    return parts
+
+
 def _reference_tokens(suggestion: Dict[str, Any]) -> set:
     """Each section a suggestion cites, as a normalized set.
 
@@ -391,7 +431,7 @@ def _reference_tokens(suggestion: Dict[str, Any]) -> set:
     twice.
     """
     raw = str(suggestion.get("reference", suggestion.get("section", "")) or "")
-    parts = re.split(r"\s+/\s+|\s*,\s*", raw)
+    parts = _split_reference(raw)
     return {part.strip().lstrip("#").strip().lower() for part in parts if part.strip()}
 
 
@@ -477,7 +517,7 @@ def _section_agreement(
 ) -> float:
     """Containment over cited sections, scaled by how rare those sections are.
 
-    With no weights (a one-off ``compute_similarity``) this is the plain
+    With no weights (a one-off :func:`_similarity`) this is the plain
     containment it has always been — there is no set to measure rarity over.
     """
     base = _overlap(a, b)
@@ -547,34 +587,6 @@ def _similarity(
         + WEIGHT_TITLE_RARITY * _title_rarity(a[0], b[0], token_weights)
     )
     return min(1.0, score)
-
-
-def compute_similarity(
-    s1: Dict[str, Any],
-    s2: Dict[str, Any],
-    token_weights: Optional[Mapping[str, float]] = None,
-    section_weights: Optional[Mapping[str, float]] = None,
-) -> float:
-    """
-    Compute a meaning-tracking similarity score between two suggestions.
-
-    Args:
-        s1: First suggestion
-        s2: Second suggestion
-        token_weights: Optional token → weight map from
-            ``compute_token_weights()`` over the whole set being grouped.
-            Omitted (the default), every token counts the same — fine for a
-            one-off comparison, weaker for clustering, which is why
-            ``group_similar_suggestions`` always passes one. Without it the
-            title-rarity channel is silent: rarity is a property of a set.
-        section_weights: Optional section → weight map from
-            ``compute_section_weights()``. Omitted, a shared section scores
-            plain containment, as it did before sections were weighted.
-
-    Returns:
-        Similarity score between 0 and 1
-    """
-    return _similarity(_prepare(s1), _prepare(s2), token_weights, section_weights)
 
 
 #: A theme is a label, not a sentence — it goes in a heading, a table cell and
@@ -651,12 +663,10 @@ def group_similar_suggestions(
     # review vs. ``glob`` order during ``--reaggregate``) must produce
     # byte-identical groups, or validation — tasked against the original
     # grouping — mis-joins the re-grouped output by stale index.
-    importance_order = {"high": 0, "medium": 1, "low": 2}
-
     def _stable_sort_key(item: Tuple[int, Dict[str, Any]]):
         _, s = item
         return (
-            importance_order.get(s.get("importance", "medium"), 1),
+            _importance.rank(s.get("importance")),
             str(s.get("file", "")),
             str(s.get("line_range", s.get("line", ""))),
             str(s.get("title", "")),
@@ -767,62 +777,3 @@ def deduplicate_suggestions(suggestions: List[Dict[str, Any]]) -> List[Dict[str,
             unique.append(suggestion)
 
     return unique
-
-
-def merge_suggestions_by_model(
-    reviews: Dict[str, str]
-) -> List[Dict[str, Any]]:
-    """
-    Extract and merge suggestions from multiple model reviews.
-
-    Args:
-        reviews: Dictionary mapping model names to their review text
-
-    Returns:
-        Merged list of suggestions
-    """
-    all_suggestions = []
-
-    for model_name, review_text in reviews.items():
-        suggestions = extract_suggestions_from_review(review_text, model_name)
-        all_suggestions.extend(suggestions)
-
-    return deduplicate_suggestions(all_suggestions)
-
-
-def filter_by_importance(
-    groups: List[SuggestionGroup],
-    min_importance: str = "low"
-) -> List[SuggestionGroup]:
-    """
-    Filter suggestion groups by minimum importance.
-
-    Args:
-        groups: List of suggestion groups
-        min_importance: Minimum importance level ("low", "medium", "high")
-
-    Returns:
-        Filtered list of groups
-    """
-    importance_levels = {"low": 0, "medium": 1, "high": 2}
-    min_level = importance_levels.get(min_importance, 0)
-
-    def group_meets_threshold(group: SuggestionGroup) -> bool:
-        for suggestion in group.suggestions:
-            importance = suggestion.get("importance", "medium")
-            if importance_levels.get(importance, 1) >= min_level:
-                return True
-        return False
-
-    return [g for g in groups if group_meets_threshold(g)]
-
-
-def export_groups_to_json(groups: List[SuggestionGroup]) -> str:
-    """Export suggestion groups to JSON string."""
-    return json.dumps([g.to_dict() for g in groups], indent=2)
-
-
-def import_groups_from_json(json_str: str) -> List[SuggestionGroup]:
-    """Import suggestion groups from JSON string."""
-    data = json.loads(json_str)
-    return [SuggestionGroup.from_dict(item) for item in data]

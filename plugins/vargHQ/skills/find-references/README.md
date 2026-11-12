@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | free (no varg credits) |
 | Uses | Python, FFmpeg, ImageMagick, uv, Claude or Codex CLI |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v2.0.1) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v2.0.2) |
 
 ## Ask your agent
 

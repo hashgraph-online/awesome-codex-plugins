@@ -72,7 +72,7 @@ manager is a fail-closed gate, not a question.
 
 - **`default_provider`** is set to the **first detected provider in base
   declaration order** (claude-code, cursor-agent, gemini, grok, fx, opencode,
-  codex, kilocode, kimi, qwen-code, copilot, cline, goose, aider, agy, pi, muse,
+  codex, kilocode, cline, goose, aider, agy, muse, pi, kimi, qwen-code, copilot,
   vibe, omp). So with both claude-code and cursor-agent installed it becomes
   `claude-code`. When **nothing** is detected it is left commented and inherits
   the base default.

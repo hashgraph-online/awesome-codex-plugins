@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
   openclaw:
     requires:
       bins:
@@ -28,6 +28,8 @@ allowed-tools: Bash(git:*) Bash(gh:*) Bash(python3:*) Read Write Edit
 ---
 
 # Keep a video project in a private GitHub repo
+
+> Step 10 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/keep-a-video-project-in-github (as Markdown: add `.md`).
 
 People want an undo button and a backup, not version control. This skill gives them both and never asks them to learn git.
 

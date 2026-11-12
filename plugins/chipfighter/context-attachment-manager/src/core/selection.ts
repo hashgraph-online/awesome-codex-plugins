@@ -87,6 +87,11 @@ export const autoDefaultSince = (dir = selectionDir): string | null => sinceIn(A
 // order, get ids too (claude-index.ts). Under newer rules the start time starts again, so what was written under the
 // earlier ones is translated.
 const ID_RULES = 2;
+// When the calls that hang off another call's result (Claude Code 2.1.317 and 2.1.321) first got ids here, written once:
+// what was written between the two times is translated (claude-index.ts). A file of its own, since a copy of v0.10 or
+// v0.11 still running beside this one (a Claude plugin not updated yet) writes stable-ids.json again under any rules but
+// its own.
+const CHAINED_IDS = "chained-ids.json";
 export function ensureStableIds(dir = selectionDir, now = new Date()): void {
   const file = join(dir, STABLE_IDS);
   let rules: unknown;
@@ -95,14 +100,20 @@ export function ensureStableIds(dir = selectionDir, now = new Date()): void {
   } catch {
     mkdirSync(dir, { recursive: true });
     try { writeFileSync(file, JSON.stringify({ since: now.toISOString(), rules: ID_RULES }, null, 2), { flag: "wx" }); } catch (error) { if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error; }
+    ensureSince(CHAINED_IDS, dir, now);
     return;
   }
+  ensureSince(CHAINED_IDS, dir, now);
   if (rules === ID_RULES) return;
   writeFileSync(file, JSON.stringify({ since: now.toISOString(), rules: ID_RULES }, null, 2));
   sinceOf.delete(file);
 }
-// null until this version has run here: then nothing is translated.
-export const stableIdsSince = (dir = selectionDir): string | null => sinceIn(STABLE_IDS, dir);
+// null until this version has run here: then nothing is translated. chained: null until then too.
+export type IdTimes = { since: string; chained: string | null };
+export function stableIdTimes(dir = selectionDir): IdTimes | null {
+  const since = sinceIn(STABLE_IDS, dir);
+  return since === null ? null : { since, chained: sinceIn(CHAINED_IDS, dir) };
+}
 
 // A thread with no switch of its own that started at or after `since` has automatic selection on, from its start;
 // one with no history yet (startedAt null) is just starting.

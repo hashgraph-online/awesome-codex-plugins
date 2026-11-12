@@ -1,5 +1,8 @@
+---
 interface:
   display_name: "Phone a friend"
-  short_description: "Get a cross-model second opinion on a plan or code change"
+  short_description: "Cross-model second opinion on a plan or implementation, with one rebuttal round and user escalation"
 policy:
+  # Codex analog of disable-model-invocation: a cross-model review is invoked
+  # by a person, never picked up implicitly from a prompt.
   allow_implicit_invocation: false

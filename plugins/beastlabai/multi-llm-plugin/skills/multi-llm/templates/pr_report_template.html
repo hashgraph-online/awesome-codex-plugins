@@ -4,13 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Multi-LLM Review Report</title>
+  <!--MLLM:report-core-style-->
   <style>
     /* CSS Reset and Base */
-    *, *::before, *::after {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
 
     :root {
       /* Core theme (matches report_template.html) */
@@ -135,14 +131,6 @@
       overflow: hidden;
       text-overflow: ellipsis;
       max-width: 400px;
-    }
-
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background: var(--bg-primary);
-      color: var(--text-primary);
-      line-height: 1.6;
-      min-height: 100vh;
     }
 
     /* ================================================================
@@ -569,41 +557,6 @@
       gap: 0.25rem;
     }
 
-    .badge-importance-high {
-      background: var(--importance-high-bg);
-      color: var(--importance-high);
-    }
-
-    .badge-importance-medium {
-      background: var(--importance-medium-bg);
-      color: var(--importance-medium);
-    }
-
-    .badge-importance-low {
-      background: var(--importance-low-bg);
-      color: var(--importance-low);
-    }
-
-    .badge-validation-valid {
-      background: var(--validation-valid-bg);
-      color: var(--validation-valid);
-    }
-
-    .badge-validation-invalid {
-      background: var(--validation-invalid-bg);
-      color: var(--validation-invalid);
-    }
-
-    .badge-validation-needs-human {
-      background: var(--validation-human-bg);
-      color: var(--validation-human);
-    }
-
-    .badge-validation-failed {
-      background: var(--validation-failed-bg);
-      color: var(--validation-failed);
-    }
-
     /* Human/agent decision (post-apply overlay) */
     .badge-judge-decision {
       background: var(--bg-hover);
@@ -643,26 +596,11 @@
       border: 1px solid var(--consensus-border);
     }
 
-    .badge-category {
-      background: var(--bg-hover);
-      color: var(--text-secondary);
-    }
-
     .badge-models {
       background: var(--bg-hover);
       color: var(--text-muted);
       font-weight: 500;
       text-transform: none;
-    }
-
-    .badge-model {
-      color: white;
-      opacity: 0.9;
-    }
-
-    .badge-provider {
-      color: white;
-      opacity: 0.9;
     }
 
     .model-icon {
@@ -672,12 +610,6 @@
       vertical-align: middle;
       display: inline-block;
       flex-shrink: 0;
-    }
-
-    .model-badge-group {
-      display: inline-flex;
-      align-items: center;
-      gap: 2px;
     }
 
     .confidence-bar {
@@ -1524,16 +1456,6 @@
     /* ================================================================
        EMPTY STATE
        ================================================================ */
-    .empty-state {
-      text-align: center;
-      padding: 4rem 2rem;
-      color: var(--text-muted);
-    }
-
-    .empty-state-icon {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-    }
 
     .empty-state-text {
       font-size: 1rem;
@@ -1547,23 +1469,6 @@
     /* ================================================================
        NOTICE / WARNING BARS
        ================================================================ */
-    .report-notice {
-      padding: 0.5rem 1rem;
-      font-size: 0.8125rem;
-      background: var(--importance-medium-bg);
-      color: var(--importance-medium);
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .report-notice.info {
-      background: var(--importance-low-bg);
-      color: var(--importance-low);
-    }
-
-    .report-notice.warning {
-      background: var(--importance-medium-bg);
-      color: var(--importance-medium);
-    }
 
     /* ================================================================
        CONSOLIDATED UMBRELLA BANNER
@@ -2024,50 +1929,6 @@
     /* ================================================================
        SCROLLBAR STYLING
        ================================================================ */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-      background: var(--bg-secondary);
-    }
-
-    ::-webkit-scrollbar-thumb {
-      background: var(--border-color);
-      border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-      background: var(--text-muted);
-    }
-    /* Scope tags (plans/scope-policy-and-report-tags.md §6): text badges whose
-       label is the exact report label, at a contrast of 7:1 or more in both
-       colour schemes. */
-    .badge.scope-badge {
-      text-transform: none;
-      letter-spacing: 0;
-      border: 1px solid currentColor;
-    }
-    .scope-tags { display: inline-flex; gap: 0.25rem; flex-wrap: wrap; align-items: center; }
-    .scope-in { background: #dcfce7; color: #14532d; }
-    .scope-extension { background: #ffedd5; color: #7c2d12; }
-    .scope-unclear { background: #e5e7eb; color: #1f2937; }
-    .scope-deferred { background: #fef3c7; color: #78350f; }
-    .scope-summary { margin: 0.5rem 0; font-size: 0.8125rem; line-height: 1.6; }
-    .scope-counts { display: flex; flex-wrap: wrap; gap: 0.375rem; align-items: center; }
-    .scope-legend, .scope-count-note { color: var(--text-muted); font-size: 0.75rem; }
-    .scope-section { margin: 0.375rem 0; font-size: 0.8125rem; }
-    .scope-section summary { cursor: pointer; color: var(--text-secondary); }
-    .scope-detail { padding: 0.25rem 0.5rem; }
-    .scope-line { margin: 0.125rem 0; }
-    .umbrella-scope-line { margin: 0.5rem 0 0.25rem; font-size: 0.8125rem; color: var(--text-secondary); }
-    @media (prefers-color-scheme: dark) {
-      .scope-in { background: #14532d; color: #dcfce7; }
-      .scope-extension { background: #7c2d12; color: #ffedd5; }
-      .scope-unclear { background: #374151; color: #f3f4f6; }
-      .scope-deferred { background: #78350f; color: #fef3c7; }
-    }
   </style>
 </head>
 <body>
@@ -2178,13 +2039,8 @@
     </div>
   </div>
 
-  <!-- Load marked.js for markdown rendering (plan review sections, descriptions) -->
-  <script type="module">
-    import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
-    marked.setOptions({ breaks: true });
-    window.markedParse = marked.parse.bind(marked);
-    window.dispatchEvent(new Event('marked-ready'));
-  </script>
+  <!--MLLM:vendor-scripts-->
+  <!--MLLM:report-core-script-->
 
   <script>
     // ================================================================
@@ -2201,10 +2057,47 @@
       }
     })();
 
+    /**
+     * Rebuild the views from `groups`, in place. The generator stores every
+     * group once: each fileView/sectionView/taskView bucket names its groups
+     * by position in `groups` (`groupIndexes`), and `globalSuggestions` names
+     * the groups whose suggestions it lists. Each bucket gets `suggestions`
+     * back as those very group objects, so every view shows what the page and
+     * the decision overlay put on a group. A bucket that already holds
+     * `suggestions` (a report written before) is left as it is. The Python
+     * twin is utils/report_view.py hydrate_views.
+     */
+    function hydrateViews(data) {
+      if (!data) return data;
+      var groups = data.groups || [];
+      function picked(indexes) {
+        return indexes.map(function(i) { return groups[i]; }).filter(Boolean);
+      }
+      ['fileView', 'sectionView', 'taskView'].forEach(function(name) {
+        var view = data[name];
+        if (!view || typeof view !== 'object') return;
+        Object.keys(view).forEach(function(key) {
+          var bucket = view[key];
+          if (bucket && Array.isArray(bucket.groupIndexes) && !Array.isArray(bucket.suggestions)) {
+            bucket.suggestions = picked(bucket.groupIndexes);
+          }
+        });
+      });
+      var flat = data.globalSuggestions;
+      if (flat && !Array.isArray(flat) && Array.isArray(flat.groupIndexes)) {
+        data.globalSuggestions = [];
+        picked(flat.groupIndexes).forEach(function(group) {
+          (group.suggestions || []).forEach(function(s) { data.globalSuggestions.push(s); });
+        });
+      }
+      return data;
+    }
+
     // ================================================================
     // Data injection placeholder — replaced by generator
     // ================================================================
     const reportData = /* REPORT_DATA_PLACEHOLDER */null;
+    hydrateViews(reportData);
 
     // ================================================================
     // State
@@ -2232,322 +2125,17 @@
     // ================================================================
     // Utilities
     // ================================================================
-    function escapeHtml(str) {
-      if (!str) return '';
-      var div = document.createElement('div');
-      div.appendChild(document.createTextNode(str));
-      return div.innerHTML;
-    }
-
-    function escapeAttr(str) {
-      if (!str) return '';
-      return escapeHtml(str).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    // A value inside a single-quoted JS string in an inline handler
-    // (onclick="f('…')"). The browser decodes the attribute's entities before
-    // the handler runs, so escapeAttr alone would hand a quote back to the JS
-    // parser: escape for the JS string first, then for the attribute.
-    function escapeJsAttr(str) {
-      if (str === null || str === undefined) return '';
-      return escapeAttr(String(str).replace(/\\/g, '\\\\').replace(/'/g, '\\\'')
-        .replace(/\r/g, '\\r').replace(/\n/g, '\\n')
-        .replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029'));
-    }
-
+    // Where this page keeps its selections, and the file Export saves: the
+    // whole selection, which every apply phase of a review reads as
+    // user_selections.json (shared/report_core.js, Selections).
     function getStorageKey() {
       return 'multi-llm-selections-' + selections.phase + '-' + selections.plan_path;
     }
 
-    function migrateLegacyOverrides(overrides) {
-      if (!overrides) return;
-      Object.keys(overrides).forEach(function(k) {
-        if (overrides[k] === 'claude_decide') overrides[k] = 'judge_decide';
-      });
+    function selectionsFile(now) {
+      selections.exported_at = now;
+      return { name: 'user_selections.json', data: selections };
     }
-
-    function loadSelections() {
-      var stored = localStorage.getItem(getStorageKey());
-      if (stored) {
-        try {
-          var parsed = stripScopeSelectionFields(JSON.parse(stored));
-          if (Array.isArray(parsed.skipped_groups)) {
-            var migrated = {};
-            parsed.skipped_groups.forEach(function(g) { migrated[String(g)] = true; });
-            parsed.skipped_groups = migrated;
-          }
-          if (Array.isArray(parsed.skipped_suggestions)) {
-            var migratedSugg = {};
-            parsed.skipped_suggestions.forEach(function(s) { migratedSugg[String(s)] = true; });
-            parsed.skipped_suggestions = migratedSugg;
-          }
-          // A selection saved before the judge rename says 'claude_decide' (utils/judge_vocab.py).
-          migrateLegacyOverrides(parsed.validation_overrides);
-          selections = Object.assign({}, selections, parsed);
-        } catch (e) {
-          console.error('Failed to load selections:', e);
-        }
-      }
-    }
-
-    function saveSelections() {
-      selections.exported_at = new Date().toISOString();
-      localStorage.setItem(getStorageKey(), JSON.stringify(selections));
-    }
-
-    function renderMarkdown(text) {
-      if (!text) return '';
-      if (window.markedParse) {
-        try { return window.markedParse(text); } catch (e) { /* fall through */ }
-      }
-      // Fallback: escape and preserve line breaks
-      return '<p>' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>';
-    }
-
-    function getModelBadgeHtml(modelString) {
-      var metadata = reportData && reportData.modelMetadata ? reportData.modelMetadata[modelString] : null;
-      if (!metadata) {
-        return '<span class="badge badge-model" style="background: #6B7280;">' + escapeHtml(modelString) + '</span>';
-      }
-      var html = '<span class="model-badge-group">';
-      if (metadata.provider_icon) {
-        html += '<img class="model-icon" src="' + metadata.provider_icon + '" alt="" />';
-      }
-      if (metadata.icon) {
-        html += '<img class="model-icon" src="' + metadata.icon + '" alt="" />';
-      }
-      if (metadata.provider) {
-        html += '<span class="badge badge-provider" style="background: ' + metadata.provider_color + ';">' +
-                escapeHtml(metadata.provider) + '</span>';
-      }
-      html += '<span class="badge badge-model" style="background: ' + (metadata.model_color || '#6B7280') + ';">' + escapeHtml(metadata.model || modelString) + '</span>';
-      // Stage U: what this slot spent, when the adapter reported it. The text
-      // is `usage_label`, rendered server-side by the one `describe_usage` the
-      // markdown report and the failed-slot log line also use — this template
-      // deliberately does not re-derive it from `metadata.usage` (the numbers
-      // are there for anything that wants to compute), because three templates
-      // each rounding a cost their own way is three answers to "what did this
-      // run cost". A model that reported nothing has no key and renders no
-      // badge — never `$0.00`, which would claim a free run.
-      if (metadata.usage_label) {
-        html += '<span class="badge badge-usage" style="background: #6B7280;" title="Estimated from the CLI\'s own price catalog, not a vendor invoice">' + escapeHtml(metadata.usage_label) + '</span>';
-      }
-      html += '</span>';
-      return html;
-    }
-
-    // ================================================================
-    // Scope tags (plans/scope-policy-and-report-tags.md §6). BEGIN SCOPE TAGS
-    // The same block in all three report templates. Tags describe proposals:
-    // they never change validity or selection, and no selection — restored
-    // from localStorage or imported — ever changes a tag. Every word comes
-    // from reportData (written by the generator); a payload without scope
-    // data (a legacy report) reads `Scope unclear` throughout.
-    // ================================================================
-    var SCOPE_LABELS = { in_scope: 'Within scope', scope_extension: 'Scope extension', unclear: 'Scope unclear' };
-    var SCOPE_CLASSES = { in_scope: 'scope-in', scope_extension: 'scope-extension', unclear: 'scope-unclear' };
-    var SCOPE_DEFERRED = 'Deferred: scope preservation requested';
-    var SCOPE_LEGACY_LINE = 'Scope policy: expand. This report predates scope classification, so every tag reads Scope unclear.';
-
-    function scopeAttr(text) {
-      if (text === null || text === undefined) return '';
-      return escapeHtml(String(text)).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-
-    function scopeSelectorValue(text) {
-      return String(text === null || text === undefined ? '' : text).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-    }
-
-    function scopeRelation(relation) {
-      return Object.prototype.hasOwnProperty.call(SCOPE_LABELS, relation) ? relation : 'unclear';
-    }
-
-    function scopeBadgeHtml(relation, qualifier, title) {
-      var rel = scopeRelation(relation);
-      var text = SCOPE_LABELS[rel] + (qualifier ? ' (' + qualifier + ')' : '');
-      return '<span class="badge scope-badge ' + SCOPE_CLASSES[rel] + '" title="' +
-        scopeAttr(title || text) + '">' + escapeHtml(text) + '</span>';
-    }
-
-    function scopeDeferredHtml(text, title) {
-      return '<span class="badge scope-badge scope-deferred" title="' + scopeAttr(title || text) + '">' +
-        escapeHtml(text) + '</span>';
-    }
-
-    // An edited description changes the proposal its classification was made for.
-    function scopeSuggestionEdited(s) {
-      if (!s || !selections || !selections.edited_descriptions) return false;
-      var edited = selections.edited_descriptions[s.id];
-      return edited !== undefined && edited !== (s.description || s.content || '');
-    }
-
-    function scopeGroupEdited(group) {
-      return ((group && group.suggestions) || []).some(scopeSuggestionEdited);
-    }
-
-    // The reviewer's own tag: provisional, never authority.
-    function scopeMemberBadges(s) {
-      var e = (s && s.scope) || {};
-      var classified = !!e.classified;
-      var qualifier = 'provisional' + (scopeSuggestionEdited(s) ? '; may be stale: description edited' : '');
-      var reason = classified ? (e.reason || '') : 'not classified';
-      return scopeBadgeHtml(classified ? e.relation : 'unclear', qualifier,
-        'Reviewer classification (provisional)' + (reason ? ': ' + reason : ''));
-    }
-
-    function scopeMemberHtml(s) {
-      return '<span class="scope-tags" data-scope-suggestion="' + scopeAttr((s && s.id) || '') + '">' +
-        scopeMemberBadges(s) + '</span>';
-    }
-
-    // The group's validated tag as this page can vouch for it now.
-    function scopeGroupView(group) {
-      var e = (group && group.scope) || null;
-      var edited = scopeGroupEdited(group);
-      if (!e) {
-        return { relation: 'unclear', qualifier: 'not classified', decision: null,
-                 title: 'No validated scope classification', reason: 'no validated scope classification' };
-      }
-      var state = e.authority || 'missing';
-      var classifiedLabel = SCOPE_LABELS[scopeRelation(e.classifiedRelation || e.relation)];
-      var view = { relation: 'unclear', decision: e.decision || null, reason: e.reason || '' };
-      if (state === 'bound' && edited) {
-        view.qualifier = 'may be stale: description edited';
-        view.reason = 'validated as ' + classifiedLabel + ' before this description was edited' +
-          (e.reason ? ': ' + e.reason : '');
-        if (view.decision && view.decision.policy === 'preserve') {
-          view.decision = { policy: 'preserve', outcome: 'deferred',
-                            reason: SCOPE_DEFERRED + ': the proposal changed after its scope was validated' };
-        }
-      } else if (state === 'bound') {
-        view.relation = e.relation;
-        view.qualifier = 'validated';
-      } else if (state === 'stale') {
-        view.qualifier = 'may be stale';
-        view.reason = 'validated as ' + classifiedLabel + ' before the proposal changed' +
-          (e.classifiedReason ? ': ' + e.classifiedReason : '');
-      } else {
-        view.qualifier = state === 'missing' ? 'not classified' : 'not bound';
-      }
-      view.title = 'Group scope (' + view.qualifier + ')' + (view.reason ? ': ' + view.reason : '');
-      return view;
-    }
-
-    function scopeGroupBadges(group) {
-      var view = scopeGroupView(group);
-      var html = scopeBadgeHtml(view.relation, view.qualifier, view.title);
-      var d = view.decision;
-      // Under preserve a deferral shows whatever the validity is; the
-      // selection controls stay usable for a later policy override.
-      if (d && d.policy === 'preserve' && d.outcome === 'deferred') {
-        html += scopeDeferredHtml(SCOPE_DEFERRED, d.reason || SCOPE_DEFERRED);
-      }
-      return html;
-    }
-
-    // Keyed by the stable group hash only: a hash-less legacy group is never
-    // re-rendered in place (no key could tell two of them apart).
-    function scopeGroupHtml(group) {
-      var key = (group && group.groupHash) || '';
-      return '<span class="scope-tags"' + (key ? ' data-scope-group="' + scopeAttr(key) + '"' : '') + '>' +
-        scopeGroupBadges(group) + '</span>';
-    }
-
-    function scopeDetailBody(group) {
-      var view = scopeGroupView(group);
-      var e = (group && group.scope) || {};
-      var html = '<div class="scope-line"><strong>Scope (' + escapeHtml(view.qualifier) + '):</strong> ' +
-        escapeHtml(SCOPE_LABELS[scopeRelation(view.relation)]) +
-        (view.reason ? ' &mdash; ' + escapeHtml(view.reason) : '') + '</div>';
-      if (e.reference) html += '<div class="scope-line"><strong>Baseline reference:</strong> ' + escapeHtml(e.reference) + '</div>';
-      if (e.selectedRemedy && e.authority === 'bound') {
-        html += '<div class="scope-line"><strong>Selected remedy:</strong> ' + escapeHtml(e.selectedRemedy) + '</div>';
-      }
-      var d = view.decision;
-      if (d && d.policy === 'preserve') {
-        html += '<div class="scope-line"><strong>Scope outcome:</strong> ' +
-          escapeHtml(d.outcome === 'deferred' ? (d.reason || SCOPE_DEFERRED) : 'Eligible under scope preservation') + '</div>';
-      }
-      return html;
-    }
-
-    function scopeDetailHtml(group) {
-      var view = scopeGroupView(group);
-      return '<details class="scope-section"><summary>Scope: ' +
-        escapeHtml(SCOPE_LABELS[scopeRelation(view.relation)] + ' (' + view.qualifier + ')') + '</summary>' +
-        '<div class="scope-detail"' + (group && group.groupHash ? ' data-scope-detail="' + scopeAttr(group.groupHash) + '"' : '') + '>' +
-        scopeDetailBody(group) + '</div></details>';
-    }
-
-    // An umbrella's tag is derived from its underlying groups; each keeps its own.
-    function scopeUmbrellaBadges(entry) {
-      var e = entry || null;
-      if (!e) return scopeBadgeHtml('unclear', 'derived', 'No scope data for this consolidated group');
-      var qualifier = 'derived' + (e.mixed ? '; mixed members' : '');
-      var html = scopeBadgeHtml(e.relation, qualifier, (e.label || SCOPE_LABELS[scopeRelation(e.relation)]) +
-        ': ' + (e.reason || '') + ' (each underlying group keeps its own tag and decision)');
-      var deferred = e.deferred || [];
-      if (deferred.length) {
-        html += scopeDeferredHtml(SCOPE_DEFERRED + ' (' + deferred.length + ' of ' + (e.members || deferred.length) + ')',
-          SCOPE_DEFERRED + ': ' + deferred.join(', '));
-      }
-      return html;
-    }
-
-    function scopeSummaryHtml() {
-      var block = (reportData && reportData.scopePolicy) || null;
-      var line = block ? (block.policyLine || '') : SCOPE_LEGACY_LINE;
-      var html = '<div class="scope-summary"><div class="scope-policy-line">' + escapeHtml(line) + '</div>';
-      if (block) {
-        var c = block.counts || {};
-        html += '<div class="scope-counts">' +
-          scopeBadgeHtml('in_scope', '', SCOPE_LABELS.in_scope) + ' ' + (c.in_scope || 0) + ' ' +
-          scopeBadgeHtml('scope_extension', '', SCOPE_LABELS.scope_extension) + ' ' + (c.scope_extension || 0) + ' ' +
-          scopeBadgeHtml('unclear', '', SCOPE_LABELS.unclear) + ' ' + (c.unclear || 0) +
-          ' <span class="scope-count-note">(validated, distinct groups)</span>';
-        if (block.effectivePolicy === 'preserve') {
-          html += ' ' + scopeDeferredHtml(SCOPE_DEFERRED, SCOPE_DEFERRED) + ' ' + (c.deferred || 0);
-        }
-        html += '</div><div class="scope-legend">' + escapeHtml(String(block.legend || '').replace(/`/g, '')) + '</div>';
-      }
-      return html + '</div>';
-    }
-
-    // An edit changes the classification's proposal: re-render its tags in place.
-    function refreshScopeTags(suggestionId) {
-      if (!reportData || !document.querySelectorAll) return;
-      var seen = {};
-      (reportData.groups || []).forEach(function(group) {
-        var member = (group.suggestions || []).filter(function(s) { return s.id === suggestionId; })[0];
-        if (!member) return;
-        document.querySelectorAll('.scope-tags[data-scope-suggestion="' + scopeSelectorValue(suggestionId) + '"]').forEach(function(el) {
-          el.innerHTML = scopeMemberBadges(member);
-        });
-        var key = group.groupHash || '';
-        if (!key || seen[key]) return;
-        seen[key] = true;
-        document.querySelectorAll('.scope-tags[data-scope-group="' + scopeSelectorValue(key) + '"]').forEach(function(el) {
-          el.innerHTML = scopeGroupBadges(group);
-        });
-        document.querySelectorAll('.scope-detail[data-scope-detail="' + scopeSelectorValue(key) + '"]').forEach(function(el) {
-          el.innerHTML = scopeDetailBody(group);
-        });
-      });
-    }
-
-    // Selection files carry ids and choices only; a scope- or policy-like key
-    // in a stored or imported selection is dropped, never rendered or exported.
-    function stripScopeSelectionFields(parsed) {
-      if (!parsed || typeof parsed !== 'object') return parsed;
-      Object.keys(parsed).forEach(function(k) {
-        var key = String(k).replace(/-/g, '_').toLowerCase();
-        if (key.indexOf('scope') === 0 || key.indexOf('selected_remedy') === 0 || key.indexOf('selectedremedy') === 0) {
-          delete parsed[k];
-        }
-      });
-      return parsed;
-    }
-    // END SCOPE TAGS
 
     // ================================================================
     // Summary Panel
@@ -2737,24 +2325,6 @@
     }
 
     // ================================================================
-    // Notices
-    // ================================================================
-    function renderNotices() {
-      if (!reportData) return;
-      var container = document.getElementById('report-notices');
-      if (!container) return;
-      var html = '';
-      var notices = reportData.notices || [];
-      notices.forEach(function(n) {
-        var cls = 'report-notice';
-        if (n.type === 'info') cls += ' info';
-        else if (n.type === 'warning') cls += ' warning';
-        html += '<div class="' + cls + '">' + escapeHtml(n.message) + '</div>';
-      });
-      container.innerHTML = html;
-    }
-
-    // ================================================================
     // Provider logs (collapsed per-model tail; empty when none captured)
     // ================================================================
     function renderProviderLogs() {
@@ -2867,16 +2437,9 @@
         var entry = taskView[taskId];
         var hasSuggestions = entry.hasSuggestions !== false && (entry.suggestions || []).length > 0;
         var count = 0;
-        var maxImp = 'low';
+        var maxImp = (entry.maxImportance || 'low').toLowerCase();
         if (hasSuggestions) {
           (entry.suggestions || []).forEach(function(g) { count += (g.suggestions || []).length; });
-          (entry.suggestions || []).forEach(function(g) {
-            (g.suggestions || []).forEach(function(s) {
-              var imp = (s.importance || 'low').toLowerCase();
-              if (imp === 'high') maxImp = 'high';
-              else if (imp === 'medium' && maxImp !== 'high') maxImp = 'medium';
-            });
-          });
         }
         var dotClass = hasSuggestions
           ? (maxImp === 'high' ? 'dot-high' : maxImp === 'medium' ? 'dot-medium' : 'dot-low')
@@ -3082,52 +2645,6 @@
 
       // Update batch skip count display
       updateBatchSkipCount();
-    }
-
-    // ================================================================
-    // Export indicator
-    // ================================================================
-    function timeAgo(isoString) {
-      if (!isoString) return '';
-      var diff = Date.now() - new Date(isoString).getTime();
-      var seconds = Math.floor(diff / 1000);
-      if (seconds < 60) return 'just now';
-      var minutes = Math.floor(seconds / 60);
-      if (minutes < 60) return minutes + 'm ago';
-      var hours = Math.floor(minutes / 60);
-      if (hours < 24) return hours + 'h ago';
-      var days = Math.floor(hours / 24);
-      return days + 'd ago';
-    }
-
-    function updateExportIndicator() {
-      var el = document.getElementById('export-indicator');
-      if (!el) return;
-      if (selections.last_file_export_at) {
-        el.textContent = '\u2713 Exported ' + timeAgo(selections.last_file_export_at);
-        el.style.display = '';
-      } else {
-        el.style.display = 'none';
-      }
-    }
-
-    // ================================================================
-    // Export (same ID scheme as flat view)
-    // ================================================================
-    function exportSelections() {
-      selections.exported_at = new Date().toISOString();
-      selections.last_file_export_at = selections.exported_at;
-      saveSelections();
-      var blob = new Blob([JSON.stringify(selections, null, 2)], { type: 'application/json' });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement('a');
-      a.href = url;
-      a.download = 'user_selections.json';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      updateExportIndicator();
     }
 
     // ================================================================
@@ -3674,26 +3191,18 @@
         var aModels = (a.group.models || []).length;
         var bModels = (b.group.models || []).length;
         if (aModels !== bModels) return bModels - aModels;
-        var impOrder = { high: 0, medium: 1, low: 2 };
-        var aImp = getGroupMaxImportance(a.group);
-        var bImp = getGroupMaxImportance(b.group);
-        return (impOrder[aImp] || 2) - (impOrder[bImp] || 2);
+        // The generator's group importance and rank table (`sortConfig`).
+        var sortConfig = reportData.sortConfig || {};
+        var impOrder = sortConfig.importanceOrder || {};
+        var unknownImp = sortConfig.unknownImportanceRank || 3;
+        var aImp = a.group.maxImportance || '';
+        var bImp = b.group.maxImportance || '';
+        var aRank = impOrder[aImp] !== undefined ? impOrder[aImp] : unknownImp;
+        var bRank = impOrder[bImp] !== undefined ? impOrder[bImp] : unknownImp;
+        return aRank - bRank;
       });
 
       return result;
-    }
-
-    /**
-     * Get the maximum importance level from a group's suggestions.
-     */
-    function getGroupMaxImportance(group) {
-      var maxImp = 'low';
-      (group.suggestions || []).forEach(function(s) {
-        var imp = (s.importance || 'low').toLowerCase();
-        if (imp === 'high') maxImp = 'high';
-        else if (imp === 'medium' && maxImp !== 'high') maxImp = 'medium';
-      });
-      return maxImp;
     }
 
     /**
@@ -4595,16 +4104,7 @@
         var hasSuggestions = entry.hasSuggestions !== false && groups.length > 0;
         var meta = entry.taskMetadata;
         var title = taskId + (meta && meta.title ? ': ' + meta.title : '');
-        var maxImp = 'low';
-        if (hasSuggestions) {
-          groups.forEach(function(g) {
-            (g.suggestions || []).forEach(function(s) {
-              var imp = (s.importance || 'low').toLowerCase();
-              if (imp === 'high') maxImp = 'high';
-              else if (imp === 'medium' && maxImp !== 'high') maxImp = 'medium';
-            });
-          });
-        }
+        var maxImp = (entry.maxImportance || 'low').toLowerCase();
 
         // Task block
         html += '<div class="block' + (hasSuggestions ? '' : ' no-suggestions') + '" id="task-' + escapeAttr(taskId) + '">';
@@ -4832,12 +4332,7 @@
       var validationConfidence = group.validationConfidence || group.validation_confidence || 0;
       var isConsensus = models.length >= 3;
       var isGroupSkipped = !!selections.skipped_groups[groupHashKey];
-      var maxImp = 'low';
-      suggestions.forEach(function(s) {
-        var imp = (s.importance || 'low').toLowerCase();
-        if (imp === 'high') maxImp = 'high';
-        else if (imp === 'medium' && maxImp !== 'high') maxImp = 'medium';
-      });
+      var maxImp = (group.maxImportance || 'low').toLowerCase();
 
       // Build labels map
       if (group.groupHash && group.displayLabel) {
@@ -4991,10 +4486,9 @@
       if (vs && validationReason) {
         var confidencePercent = Math.round(validationConfidence * 100);
         var confidenceClass = confidencePercent >= 70 ? 'high' : (confidencePercent >= 40 ? 'medium' : 'low');
-        var valBadgeClass = 'badge-validation-' + (vs === 'needs-human-decision' ? 'needs-human' : vs.replace('_', '-'));
         html += '<details class="inline-validation-section">';
         html += '<summary>';
-        html += '<span class="badge ' + valBadgeClass + '">' + escapeHtml(vs) + '</span>';
+        html += '<span class="badge ' + getValidationBadgeClass(vs) + '">' + escapeHtml(vs) + '</span>';
         html += ' Validation';
         if (confidencePercent > 0) {
           html += ' <span class="confidence-bar"><span class="confidence-fill ' + confidenceClass + '" style="width: ' + confidencePercent + '%"></span></span>';
@@ -5132,15 +4626,12 @@
         var theme = group.theme || (suggestions.length > 0 ? suggestions[0].title : 'Untitled Group');
         var isConsensus = models.length >= 3;
 
-        // Compute max importance
-        var maxImportance = '';
+        // The group's importance is the one the generator computed
+        // (`utils/importance.py`), which apply filters by.
+        var maxImportance = group.maxImportance || '';
         var groupModels = [];
         suggestions.forEach(function(s) {
           if (s.model && groupModels.indexOf(s.model) === -1) groupModels.push(s.model);
-          var imp = (s.importance || '').toUpperCase();
-          if (imp === 'HIGH') maxImportance = 'HIGH';
-          else if (imp === 'MEDIUM' && maxImportance !== 'HIGH') maxImportance = 'MEDIUM';
-          else if (imp === 'LOW' && !maxImportance) maxImportance = 'LOW';
         });
 
         var modelBadgesHtml = groupModels.map(function(model) {
@@ -5211,7 +4702,7 @@
           var confidenceClass = confidencePercent >= 70 ? 'high' : (confidencePercent >= 40 ? 'medium' : 'low');
           html += '<details class="flat-validation-section">' +
             '<summary>' +
-            '<span class="badge badge-validation-' + (validationStatus === 'needs-human-decision' ? 'needs-human' : validationStatus.replace('_', '-')) + '">' + escapeHtml(validationStatus) + '</span>' +
+            '<span class="badge ' + getValidationBadgeClass(validationStatus) + '">' + escapeHtml(validationStatus) + '</span>' +
             ' Validation' +
             ' <span class="confidence-bar"><span class="confidence-fill ' + confidenceClass + '" style="width: ' + confidencePercent + '%"></span></span>' +
             ' (' + confidencePercent + '%)' +
@@ -5356,23 +4847,10 @@
     }
 
     // ================================================================
-    // Commit review (plans/review-commits.md §2.10). Everything here reads
+    // Commit review (plans/review-commits.md §2.10): this page's views of
     // reportData.commitRange, which the generator stores only for a commit
-    // review, so a plan's report renders none of it.
+    // review, so a plan's report renders none of it. The badges are shared.
     // ================================================================
-    function commitKeyOf(group) {
-      return (group && group.introducedBy) ? group.introducedBy : 'unattributed';
-    }
-
-    function commitRankOf(key) {
-      var cr = reportData && reportData.commitRange;
-      var commits = (cr && cr.commits) || [];
-      for (var i = 0; i < commits.length; i++) {
-        if (commits[i].sha === key) return i;
-      }
-      return commits.length + (key === 'unattributed' ? 1 : 0);
-    }
-
     function commitEntry(sha) {
       var cr = reportData && reportData.commitRange;
       var commits = (cr && cr.commits) || [];
@@ -5399,52 +4877,6 @@
       var entry = commitEntry(key) || {};
       return '<div class="commit-group-heading"><code>' + escapeHtml(entry.short || String(key).substring(0, 7)) +
         '</code> ' + escapeHtml(entry.subject || '') + '</div>';
-    }
-
-    function introducedByHtml(group) {
-      if (!reportData.commitRange || !group || !group.introducedBy) return '';
-      var source = group.introducedBySource || '';
-      if (source === 'none' || !source) return '';
-      var html = '<div class="introduced-by">Introduced by <code>' +
-        escapeHtml(group.introducedByShort || String(group.introducedBy).substring(0, 7)) + '</code>';
-      if (group.introducedBySubject) html += ' \u2014 ' + escapeHtml(group.introducedBySubject);
-      if (source === 'model' || source === 'model-drifted') {
-        html += ' <span class="introduced-by-model" title="The reviewing model named this commit; git blame did not measure it">(model)</span>';
-      }
-      return html + '</div>';
-    }
-
-    function groupFiles(group) {
-      var files = [];
-      ((group && group.suggestions) || []).forEach(function(s) {
-        var ref = s.fileRef || '';
-        var path = ref.replace(/:\d+(-\d+)?$/, '');
-        if (path && files.indexOf(path) === -1) files.push(path);
-      });
-      return files;
-    }
-
-    // A path absent at `head` on a pinned review: its header carries the same
-    // words as its validation excerpt (plans/review-commits.md §2.5), "deleted
-    // in <range>", "renamed to <new> in <range>" or "absent at <head7>". The
-    // generator stores them as fileContexts[path].label; a plan's report has none.
-    function fileLabelHtml(fileRef) {
-      var path = String(fileRef || '').replace(/:\d+(-\d+)?$/, '');
-      var entry = ((reportData && reportData.fileContexts) || {})[path];
-      var label = (entry && !Array.isArray(entry)) ? entry.label : '';
-      if (!label) return '';
-      return ' <span class="file-absent-label">(' + escapeHtml(label) + ')</span>';
-    }
-
-    function driftBadgeHtml(paths) {
-      var cr = reportData && reportData.commitRange;
-      if (!cr || !cr.drifted || !cr.drifted.length) return '';
-      var hit = (paths || []).some(function(path) { return cr.drifted.indexOf(path) !== -1; });
-      if (!hit) return '';
-      var head7 = String(cr.head || '').substring(0, 7);
-      return '<span class="badge badge-drift" title="This file differs on disk from ' + escapeAttr(head7) +
-        ': a skip or apply decision on it is skipped anyway by the apply\'s guard">changed on disk since ' +
-        escapeHtml(head7) + '</span>';
     }
 
     function renderCommitHeader() {
@@ -5720,23 +5152,11 @@
       setupScrollObserver();
     }
 
-    // Run on DOM ready, waiting for marked library to load
-    function startInit() {
-      if (window.markedParse) {
-        init();
-      } else {
-        window.addEventListener('marked-ready', init, { once: true });
-        // Fallback: if marked doesn't load within 3 seconds, init anyway
-        setTimeout(function() {
-          if (!window._initDone) init();
-        }, 3000);
-      }
-    }
-
+    // The vendored libraries are inline above this script: start at once.
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', startInit);
+      document.addEventListener('DOMContentLoaded', init);
     } else {
-      startInit();
+      init();
     }
   </script>
 </body>

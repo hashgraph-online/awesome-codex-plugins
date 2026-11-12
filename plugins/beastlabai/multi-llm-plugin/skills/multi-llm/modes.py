@@ -31,7 +31,7 @@ from typing import Dict, Optional, Tuple
 POS_PLAN = "<plan>"
 POS_QUESTION = "<question>"
 POS_HOST = "<host>"
-#: The commit modes' range (plans/review-commits.md §2.2). Spelled in square
+#: The commit modes' range. Spelled in square
 #: brackets because, unlike the three kinds above, it is optional: no words
 #: means ``HEAD``. It is also the only kind that spans several bare words, so
 #: ``--review-commits last 2 commits`` needs no quotes: the dispatcher joins
@@ -111,18 +111,17 @@ class Mode:
             without a list in a host layer or a mode word in ``detach``.
         optional_why: The generic reason an *optional* phase is offered before
             the next required one, shown beside its command in a finished
-            phase's next-step block (``user_next_step.optional_before[].why``,
-            plans/next-phase-command.md §2.1 "Each ``why`` has one owner").
+            phase's next-step block (``user_next_step.optional_before[].why``).
             Set on exactly the rows whose phase is in
             ``check_workflow_prerequisites.OPTIONAL_PHASES`` and ``None`` on
             every other row; ``utils/next_phase.py`` holds no prose of its own.
             A sentence that reads after the host's own "Optional, before
             that:" label, saying what the step does and what skipping it
-            means, never one that starts "optional" itself (fix round 22: a
+            means, never one that starts "optional" itself (a
             host printed "Optional, before that: optional: have the models
             review…").
         commit_view_of: The phase mode a commit front door fronts
-            (plans/review-commits.md §2.1): ``review-code`` on
+            ``review-code`` on
             ``review-commits``, ``apply-code-fixes`` on ``apply-commit-fixes``.
             Such a front door resolves its range to a commit brief, then
             re-records the invocation as that mode and calls its ``main``, so
@@ -130,7 +129,7 @@ class Mode:
             the fronted mode. This column is the one owner of the mapping
             back: wherever a command is rendered for a brief whose
             ``state.json`` holds ``commit_range``, the fronted word is spelled
-            as the row that names it here (§2.8). ``None`` on every other row,
+            as the row that names it here. ``None`` on every other row,
             ``improve-commits`` included: that composite is recorded as
             itself (its own run dir, ``--mode improve-commits``) and never as
             ``improve-code``, so nothing maps back for it, and its steps come
@@ -322,13 +321,13 @@ MODES: Tuple[Mode, ...] = (
         supports_detach=True,
         sequence=("review-code", "apply-code-fixes"),
     ),
-    # The three commit modes (plans/review-commits.md §2.1): front doors that
+    # The three commit modes: front doors that
     # resolve a commit range to a commit brief and run the code phases on it.
     # None is a workflow phase, so `full` never runs them and `full.sequence`
     # stays the workflow rows. Each core runs its front door (or, natively on
     # improve-commits, `util commit-brief`) and then loads the code phase cores
     # it fronts with `util instructions <phase>`, so validation, reaggregate and
-    # the report stay single-sourced (plans/review-commits.md §2.9).
+    # the report stay single-sourced.
     Mode(
         name="review-commits",
         positionals=(POS_REVS,),
@@ -554,7 +553,7 @@ TOOL_DESCRIPTION_LEDE = (
 #: into the tool description after the mode block, so a model meets it in the
 #: same glance as the modes. The four numbers are ``cli_common.EXIT_*``, held
 #: to this line by a test rather than by an import: this module imports nothing
-#: by design. Fix round 18 (live run 7, Codex racing 08): "report" is the
+#: by design. "report" is the
 #: result's ``error`` line whole — the stop's what, reported and not-run text
 #: and whether anything ran the tests — beside the commands the result names.
 TOOL_OUTCOMES_LINE = (
@@ -564,9 +563,7 @@ TOOL_OUTCOMES_LINE = (
 
 #: How a host prints a ready section (``user_next_step.markdown``, a stop's
 #: ``resume_markdown``, Claude Code's ``[NEXT_STEP_MARKDOWN]`` section), said
-#: once here and word for word on every route (fix round 26, live run 11:
-#: hosts wrote its sentences above it a second time, wrapped it in a fence of
-#: their own and reworded its manual note). The relay surfaces carry it as a
+#: once here and word for word on every route. The relay surfaces carry it as a
 #: literal, held to this constant by ``tests/test_relay_says_it_once.py``.
 READY_SECTION_RULE = (
     "Copy it word for word, never wrapped in a fenced block of your own (its "
@@ -574,34 +571,27 @@ READY_SECTION_RULE = (
     "manual tasks and \"Workflow complete.\" appear only in it, never above it."
 )
 
-#: The outcomes line's second sibling (plans/next-phase-command.md §2.4): what
+#: The outcomes line's second sibling: what
 #: ``user_next_step`` in a result is, said in the tool description a model reads
 #: before any result. Lifting that key to a tool result's top level puts it next
 #: to ``next``, which the same model is taught to treat as a call — so the
 #: description says, once, that this one is the user's to type and never a call.
 #: Rendered after :data:`TOOL_OUTCOMES_LINE` on both package hosts; neither
-#: server authors the string. "Only then" / "never otherwise" since fix round
-#: 11: on OpenCode racing run 4, phase 06, the host ended an implement result
+#: server authors the string. "Only then" / "never otherwise": on OpenCode racing run 4,
+#: phase 06, the host ended an implement result
 #: whose `command` named review-code, and whose notice listed the manual tasks
-#: left, with "Workflow complete. Manual tasks left …". Fix round 16 (Codex
-#: racing 06r/07): a command answer carries `manual_tasks` and its note too,
+#: left, with "Workflow complete. Manual tasks left …". A command answer carries
+#: `manual_tasks` and its note too,
 #: and the line says to relay them on any result — the hosts named T009 from
-#: the notice but never the command that records it done. Fix round 17: it
+#: the notice but never the command that records it done. It
 #: said "which no phase will run" of every entry, while a task skipped with a
-#: manual one (`waits_on`) runs on the resume the note names. Fix round 18
-#: (live run 7): the `command` first and each optional entry after it with its
-#: `why` (plans/next-phase-command.md §2.1, "Primary first"; Codex had put the
-#: optional step first, OpenCode had dropped its `why`), and the note as prose
-#: (Codex racing 06 put it in a ```text fence). Fix round 22 (live run 9:
-#: Codex 04 printed both commands as bare paragraphs, and the manual-task
-#: close command, which the note carried at its end, reached the user as
-#: prose): the key carries the section already written, each command fenced
+#: manual one (`waits_on`) runs on the resume the note names. The `command` first and
+#: each optional entry after it with its
+#: `why`, and the note as prose. The key carries the section already written, each command fenced
 #: (`next_phase.render_next_step_markdown`), and the line says to copy it.
-#: Fix round 24 (live run 10: OpenCode 03 reordered the step under captions
-#: of its own, 08 wrote "Workflow complete." beside the markdown that says
-#: it): its words and order, no caption, and the words never the host's own;
+#: Its words and order, no caption, and the words never the host's own;
 #: a stop's `resume_markdown` is copied the same way.
-#: Fix round 26 (live run 11): Codex 04/06/08 and OpenCode 03-08 wrote the
+#: Codex 04/06/08 and OpenCode 03-08 wrote the
 #: notice or the manual note above the copied section, OpenCode 08 opened a
 #: fence of its own around it, the OpenCode decline run printed "Workflow
 #: complete." twice (plain, then fenced), Codex 06 reworded the manual
@@ -622,15 +612,14 @@ TOOL_USER_NEXT_STEP_LINE = (
     "never a call."
 )
 
-#: Where a finished run's notice goes (fix round 26, live run 11: the hosts
-#: wrote it above the ready section, which said the same sentences again).
+#: Where a finished run's notice goes.
 #: The notice no longer carries what that section says (``run_status``); the
 #: relay surfaces say so too, word for word.
 NOTICE_PLACEMENT = (
     "Put it above the closing section, and repeat nothing that section says."
 )
 
-#: The finished run's relay (live run 8, OpenCode racing 08): a completed
+#: The finished run's relay: a completed
 #: apply-code-fixes result carried, in `result.notice`, that nothing ran the
 #: repository's tests and that two invalid fixes were not applied, and the host
 #: relayed neither: no route's text named the key. The stop's own line is the
@@ -643,8 +632,7 @@ TOOL_NOTICE_LINE = (
     "outside any fenced block. " + NOTICE_PLACEMENT
 )
 
-#: What a host does with a commit mode's blocks on a tool route
-#: (plans/review-commits.md §2.3, "Relay"). The CLI prints the commit block
+#: What a host does with a commit mode's blocks on a tool route. The CLI prints the commit block
 #: (and ``[COMMIT_FIXES]`` on an apply) before any model runs, and the cores
 #: relay them verbatim and once; both servers lift those lines out of the
 #: output into one ``commit_blocks`` string, so the tool description has to say
@@ -656,15 +644,14 @@ TOOL_COMMIT_BLOCKS_LINE = (
     "once, as soon as you read it, before anything else from the result."
 )
 
-#: What every host does with the write policy at a stop (fix round 20, live
-#: run 8 #4; a user decision, 2026-10-07: permissive). Round 18 told hosts
+#: What every host does with the write policy at a stop. Round 18 told hosts
 #: never to suggest loosening ``driver.write_paths`` after a Claude Code host
 #: offered "remove the deny rule" on its own, while the plugin's own stop line
 #: offered allowing the file, which hosts are told to relay whole. The plugin
 #: keeps offering it, worded as the user's own call
 #: (``write_safety.policy_allow_clause``), since it is theirs to decide and it
 #: lets the run complete; a host relays it as given, adds no policy advice of
-#: its own and never edits the setting itself. Fix round 21: the change is
+#: its own and never edits the setting itself. The change is
 #: worded per rule (a deny hit names the deny rule to narrow, since the deny
 #: list wins over ``allow``), so the rule names both kinds. Rendered into
 #: :data:`NEEDS_HUMAN_RULE` (every file route, both plugin instructions and
@@ -689,9 +676,8 @@ STOP_POLICY_RULE = (
 #: one says they are the only commands, and what a result carrying neither
 #: means — every failed or needs-human result now says so explicitly, with
 #: ``user_next_step: null`` and :data:`NO_COMMAND_REASON`. Rendered directly
-#: after :data:`TOOL_USER_NEXT_STEP_LINE` on both package hosts. Fix round 18
-#: (live run 7, the Claude Code stop path): a host offered "remove the deny
-#: rule" as a way past a task the write policy refused. Fix round 20: it ends
+#: after :data:`TOOL_USER_NEXT_STEP_LINE` on both package hosts. A host offered "remove the deny
+#: rule" as a way past a task the write policy refused. It ends
 #: with :data:`STOP_POLICY_RULE` instead of "never suggest loosening".
 TOOL_NO_COMPOSED_COMMAND_LINE = (
     "Never compose a command for the user yourself, and never spell one from "
@@ -717,7 +703,7 @@ NO_COMMAND_REASON = (
 )
 
 #: The title the OpenCode package puts on its tool part when a call ends at a
-#: stop (``tool.execute.after``; fix round 16). ``opencode run`` prints a
+#: stop (``tool.execute.after``). ``opencode run`` prints a
 #: plugin tool's title on the tool's own line (the TUI's header reads it too,
 #: not measured) as soon as the call returns and whether or not the session's model ever
 #: writes its reply: OpenCode racing run 6's free model never did (28 min
@@ -725,9 +711,9 @@ NO_COMMAND_REASON = (
 #: ``{line}`` is the run's own last error line (``result.error``, the line
 #: the exit-3 ``message`` quotes) or ``no_line``; ``resume`` is appended,
 #: ``{command}`` filled with ``resume_command``, when the result carries one.
-#: Fix round 17: ``{line}`` is shown without control characters and cut at
+#: ``{line}`` is shown without control characters and cut at
 #: ``max_line`` characters, ending in ``cut``; the command is never cut.
-#: Fix round 22: by ``utils.text_clip.clip``'s rule (a word boundary, no
+#: By ``utils.text_clip.clip``'s rule (a word boundary, no
 #: separator before ``cut``, a bracket the kept part opened closed after it).
 STOP_TITLE = {
     "template": "stopped and needs you: {line}",
@@ -737,8 +723,7 @@ STOP_TITLE = {
     "cut": "…",
 }
 
-#: The route signal's one owner (plans/next-phase-command.md §2.1, "Knowing the
-#: route"). The package routes' tool servers set ``ROUTE_ENV`` in every child
+#: The route signal's one owner. The package routes' tool servers set ``ROUTE_ENV`` in every child
 #: env they spawn (polls included) to their surface's
 #: ``dispatcher.route_env.value``, which the surface generator picks from
 #: ``TOOL_ROUTES`` — so neither server spells the name or the value. It picks
@@ -780,11 +765,11 @@ NEEDS_HUMAN_WORK_SENTENCE = (
 #: template, not here, so this constant — and the ``SKILL.md`` literal held
 #: to it — keep one wording. Four hand-typed paraphrases of this rule are
 #: exactly how two hosts come to contradict each other on the behaviour an
-#: incident hinges on. Fix round 19: it asked for "what was being run", which
+#: incident hinges on. It asked for "what was being run", which
 #: on a file route is the dispatcher command with the flags the shim composed
 #: (the needs-human message's `argv`, run-7 #13); it asks for the phase and
-#: the plan. Fix round 22: "which phase was running" came back as "Phase
-#: running: implement" for a phase that had stopped (OpenCode, live run 9).
+#: the plan. "which phase was running" came back as "Phase
+#: running: implement" for a phase that had stopped.
 #: "Or commit range" (commit modes' live run, 2026-10-26): a commit mode's
 #: refusal before any phase (`[RANGE_DIVERGED]`) has a range and no plan, and
 #: OpenCode reported "on which plan" all the same.
@@ -825,10 +810,10 @@ NEEDS_HUMAN_RULE = (
 #: The ``options`` sentence is kept word for word from the message it replaces:
 #: it is what tells the model where the redacted commands went.
 #:
-#: Fix round 18 (Codex racing run 7, phase 08): the message named `argv` as
+#: The message named `argv` as
 #: what was being run, and the host told the user the tool's own
 #: `--exec-subagents --detach`; it now says to report the phase and the plan,
-#: and never to quote `argv` or its flags. Fix round 19: the round's merge had
+#: and never to quote `argv` or its flags. The round's merge had
 #: kept "what was being run (`argv`)" as the opening instruction beside the
 #: later prohibition, telling the host both; the opening asks for the phase
 #: and the plan, and a test fails any host-facing text that asks for `argv`.
@@ -873,9 +858,9 @@ NEEDS_HUMAN_MESSAGE = {
         "command: do not run it, and do not offer to run it for them."
     ),
     # Appended instead of `resume` when the lookup says what the plain resume
-    # does (`user_resume.why`, the result's `resume_why`; fix round 22, live
-    # run 9: with no why the hosts wrote one — "re-runs the T002 check",
-    # false on unchanged files, or "after addressing the write policy").
+    # does (`user_resume.why`, the result's `resume_why`). With no why the
+    # hosts wrote one of their own — "re-runs the T002 check", false on
+    # unchanged files, or "after addressing the write policy".
     # `{why}` is substituted as it comes.
     "resume_why": (
         "`resume_command` is what the user types to resume this phase; it "
@@ -884,14 +869,12 @@ NEEDS_HUMAN_MESSAGE = {
         "never a shell command: do not run it, and do not offer to run it for "
         "them."
     ),
-    # Appended after `resume` when the stop offers answers as well (fix round
-    # 14, live run 5: the `--human-task` answers lived only in `error`, and
-    # hosts relayed them in two of four first stops). `{answers}` is the
+    # Appended after `resume` when the stop offers answers as well. `{answers}` is the
     # dispatcher's `user_resume.answers_text` — each command in backticks and
-    # what it does, one sentence apiece and ending its own (the merge of fix
-    # round 28: a bracketed why read "(T006))") — substituted as it comes; the
+    # what it does, one sentence apiece and ending its own (so a bracketed why never
+    # reads "(T006))") — substituted as it comes; the
     # server authors none of it. Each is also in `resume_answers` and an `options` entry.
-    # Fix round 22 (live run 9, OpenCode accept 01): the host headed each
+    # The host headed each
     # answer "Optional, before that:" and added a paraphrased "Ways forward"
     # list beside them; the clause says what they are and where the why goes.
     "answers": (
@@ -905,10 +888,10 @@ NEEDS_HUMAN_MESSAGE = {
     ),
     # Appended instead of `resume`/`resume_why` and `answers` when the lookup
     # wrote the stop's ways forward as one section (`user_resume.markdown`,
-    # the result's `resume_markdown`; fix round 24, live run 10: the hosts
-    # composed their own blocks, reworded the whys, added "what ran" lists
-    # and printed `options` entries as "Call multi_llm with …").
-    # Fix round 26 (live run 11, OpenCode stop 01): the host added a recap
+    # the result's `resume_markdown`). Without it the hosts composed their own
+    # blocks, reworded the whys, added "what ran" lists and printed `options`
+    # entries as "Call multi_llm with …".
+    # The host added a recap
     # and an "Options named in output (resume choices)" list before the
     # section, following the template's "report … the `options`": the
     # section IS that report.
@@ -1047,8 +1030,7 @@ TOOL_WRITE_CAPABLE_NOTE = (
     + WRITE_POSTURE_LEVER_ENV + "=" + WRITE_POSTURE_LEVER_VALUE + "."
 )
 
-#: The codex host's rule for waiting on a call (fix round 16, Codex racing run
-#: 6). Under codex's code mode the model calls this tool from a JavaScript
+#: The codex host's rule for waiting on a call. Under codex's code mode the model calls this tool from a JavaScript
 #: ``exec`` cell that hands control back after ``yield_time_ms`` (30 s by
 #: default) while the call is still running, and a model that then ends its
 #: turn ends ``codex exec``, whose teardown aborts the run. Measured offline on

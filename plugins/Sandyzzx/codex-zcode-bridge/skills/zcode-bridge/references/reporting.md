@@ -1,9 +1,9 @@
 # 用户反馈与执行证据表达
 
 > Status: AUTHORITATIVE
-> Last updated: 2026-11-01
-> Last verified: 2026-11-01，仅核对 Codex Rollout Master token 的既有报告字段映射；真实Worker、Host按需加载强制与token收益 NOT RUN。
-> Verified against: bfab3386937f552d4c60761f32df9ea097fcb6f1 + Codex Rollout token候选；来源74d4764和经审查的JSON文案。
+> Last updated: 2026-11-11
+> Last verified: 2026-11-11，核对当前报告字段、runtime 模型来源与 Codex Rollout token 脚本；真实Host展示与模型A/B NOT RUN。
+> Verified against: 372e90622772b070357a278f1da3dea58fa42dee（基线；本候选离线证据见 docs/research/master-skill-simplification-20261111.md）
 
 ## 结果反馈格式（适合人来判读）
 

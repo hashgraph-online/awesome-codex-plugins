@@ -1,0 +1,556 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "status_file.schema.json",
+  "title": "Phase checkpoint ({phase}/.status.json)",
+  "description": "The orchestrator checkpoint of one phase dir, written only through utils/status_file.py (write_status, update_status, update_progress, claim_run, update_run). The schema is additive, never forked: the phase checkpoint's own keys at the top level, plus two reserved objects, `run` (the detached worker's process machine, absent on a foreground run) and `progress` (display only, written by every run). Every key is optional because each writer adds its own keys to the same document. Unknown keys are allowed at every level because this file outlives the plugin version that wrote it: a plan dir keeps its checkpoints across plugin updates, and a reader of either version must accept the other's file. tests/test_result_contract.py instead requires every key the source can write to be declared here. Nothing validates against this schema at run time. The prose contract is in the utils/status_file.py module docstring and docs/development/runtime.md, 'Status file schema'. The `definitions` here are shared: result_line.schema.json and status_json.schema.json refer to them because the same objects ride the result line and the run view.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "phase": {
+      "type": ["string", "null"],
+      "description": "The phase name the dir belongs to (`review-plan`, `code-review`, `ask`, ...)."
+    },
+    "state": {
+      "type": "string",
+      "description": "The phase machine (models_running -> models_complete/grouping_complete -> validation_pending -> complete, plus the pending markers of the hand-off phases and the refusal words runner_rejected/executor_refused). Not `run.state`: a crashed fan-out is `state: models_running` beside `run.state: failed`. An open set: resume and reaggregate never gate on the exact word."
+    },
+    "updated_at": {
+      "type": "string",
+      "description": "ISO timestamp `write_status` stamps on every write."
+    },
+    "started_at": {
+      "type": "string",
+      "description": "When the phase's fan-out began."
+    },
+    "error": {
+      "type": ["string", "null"],
+      "description": "The phase's own stop reason, cleared (`null`) when a new fan-out starts."
+    },
+    "round_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16,64}$",
+      "description": "Review phases only: the review round, a random token a fan-out stamps right past its detach boundary, before it replaces any file of the previous round (utils/review_round.py). validation_tasks.json, validation.json (`metadata.round_id`) and report.md (its second line) record the round that wrote them; a file whose id differs is another round's, and the partial-completion guard and `util resume-state` never complete or resume the phase on it. A `--reaggregate` keeps it. Absent on a checkpoint written before round ids."
+    },
+    "question": {
+      "type": "string",
+      "description": "ask only: the question text, read byte-for-byte as the slug-collision guard."
+    },
+    "question_slug": {
+      "type": "string",
+      "description": "ask only: the question dir's slug."
+    },
+    "plan_hash": {
+      "type": "string",
+      "description": "ask only: the plan's hash when asked, for the stale-answers warning."
+    },
+    "answers_md": {
+      "type": ["string", "null"],
+      "description": "ask only: path of the merged answers file."
+    },
+    "answer_origins": {
+      "$ref": "#/definitions/answer_origins"
+    },
+    "models_requested": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Every model spec the fan-out was asked to run; build_unsanitize_map reads it."
+    },
+    "models_completed": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Specs that produced a usable result."
+    },
+    "models_failed": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "Failed specs and why: {spec: reason}."
+    },
+    "models_rejected": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "{spec: reason}: models whose slot failed its safety checks and that no checked attempt has superseded since; a file of theirs is never salvaged, reused or reaggregated (review_lane.reject_slot_answer)."
+    },
+    "models_unchecked": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "description": "{spec: reason}: models a slot was dispatched for whose safety checks have not passed since: recorded before the dispatch, cleared when the checks pass; left by a slot the deadline, an interrupt or an exception ended first. A file of theirs is never salvaged, reused or reaggregated (review_lane.run_slot)."
+    },
+    "checkpoint_recovered": {
+      "type": "object",
+      "properties": {
+        "reason": { "type": "string" },
+        "accepted": { "type": "array", "items": { "type": "string" } }
+      },
+      "description": "{reason, accepted: [spec]}: the phase's damaged checkpoint was replaced by a fresh run's startup (review_lane.recover_damaged_checkpoint), and a run it left behind may still write any file of the folder, so no result file on disk is trusted there: every model is withheld, selected, unselected or never seen (a resume reuses nothing, salvage never runs, --reaggregate refuses, a run counts only the answers it holds in memory). `accepted`: models the operator counted anyway (ask's --accept-partial), never a passed check; a model's next checked attempt drops it. Carried across every round's opening, never removed (result_files.RECOVERED_KEY)."
+    },
+    "models_served": {
+      "type": "object",
+      "description": "{spec: {served_model, fallback, sandbox, ...}}, present only when an adapter attributed something."
+    },
+    "usage": {
+      "type": "object",
+      "description": "Per-model usage an adapter reported; absent means none was reported, never zero."
+    },
+    "output_files": {
+      "type": "object",
+      "description": "Named artifact paths; merged key by key like `run` and `progress`."
+    },
+    "stdout_markers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The bracketed hand-off markers the phase printed (VALIDATION_PENDING, ...), without brackets."
+    },
+    "validation_tasks_path": {
+      "type": "string",
+      "description": "Where the validation hand-off's task file is."
+    },
+    "task_file": {
+      "type": "string",
+      "description": "generate-tasks hand-off: the prompt file the host runs."
+    },
+    "reaggregate_mode": {
+      "type": "string",
+      "description": "With `plan_file` and `replay_flags`, the durable triple utils/detach.resolved_reaggregate_command rebuilds the continuation from at read time (never a stored command)."
+    },
+    "plan_file": {
+      "type": "string",
+      "description": "The plan path the reaggregate triple names."
+    },
+    "plan_arg": {
+      "type": "string",
+      "description": "The plan as the user typed it, for follow-up commands in their spelling."
+    },
+    "replay_flags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The launcher's selection flags the continuation replays."
+    },
+    "total_groups": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Groups after grouping."
+    },
+    "total_suggestions": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Suggestions before grouping."
+    },
+    "consolidation_recommended": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/consolidation_recommended"
+        },
+        { "type": "null" }
+      ],
+      "description": "Absent when nothing is recommended; `null` only in a checkpoint an older version wrote (its writer now removes the key)."
+    },
+    "high_priority_groups": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/high_priority_groups"
+        },
+        { "type": "null" }
+      ],
+      "description": "A finished code review's distinct-HIGH-group count; `null` after a clean reaggregation cleared it. Run-scoped: claim_run drops it."
+    },
+    "validation_counts": {
+      "$ref": "#/definitions/validation_counts"
+    },
+    "validation_context": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/validation_context"
+        },
+        { "type": "null" }
+      ],
+      "description": "Absent when every context source fit inline; `null` only in a checkpoint an older version wrote (its writer now removes the key)."
+    },
+    "step_results": {
+      "$ref": "#/definitions/step_results"
+    },
+    "result_notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Notes on the phase's result files (utils/result_files.RESULT_NOTES_KEY), republished as progress.notes."
+    },
+    "scope_policy_decisions": {
+      "type": "object",
+      "description": "The scope round's decision counts (utils/scope_round.DECISIONS_METADATA_KEY)."
+    },
+    "reason_code": {
+      "type": "string",
+      "description": "A pre-dispatch refusal's reason (beside state runner_rejected/executor_refused). Run-scoped: claim_run drops it (status_file.REFUSAL_KEYS)."
+    },
+    "runner": {
+      "type": ["string", "null"],
+      "description": "The refused runner's spec (refusal close-out)."
+    },
+    "runner_key": {
+      "type": ["string", "null"],
+      "description": "The refused runner's key (refusal close-out)."
+    },
+    "refused_batch": {
+      "type": ["integer", "null"],
+      "description": "The write batch a refusal stopped at."
+    },
+    "run": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/run"
+        },
+        { "type": "null" }
+      ],
+      "description": "The detached worker's process record; only claim_run replaces it (with `null` in between, inside one lock)."
+    },
+    "progress": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/progress"
+        },
+        { "type": "null" }
+      ],
+      "description": "Display only; written by every run, foreground or detached."
+    }
+  },
+  "definitions": {
+    "run": {
+      "type": "object",
+      "description": "The process machine starting -> running -> {done, failed, aborted}. claim_run installs it, every later write is a compare-and-set on run_id (status_file.update_run).",
+      "additionalProperties": true,
+      "properties": {
+        "run_id": { "type": "string" },
+        "pid": { "type": ["integer", "null"] },
+        "process_start_time": {
+          "type": ["string", "number", "null"],
+          "description": "With pid, the identity the liveness probe checks."
+        },
+        "pgid": {
+          "type": ["integer", "null"],
+          "description": "The worker's process group (null on Windows and in the foreground)."
+        },
+        "detached": { "type": "boolean" },
+        "host": { "type": ["string", "null"] },
+        "route": {
+          "type": "string",
+          "description": "The tool route that started the run, when one did."
+        },
+        "mode": { "type": ["string", "null"] },
+        "plan_file": { "type": "string" },
+        "plan_arg": { "type": "string" },
+        "cwd": { "type": ["string", "null"] },
+        "log_path": { "type": ["string", "null"] },
+        "started_at": { "type": "string" },
+        "heartbeat_at": { "type": ["string", "null"] },
+        "heartbeat_interval_s": { "type": ["number", "null"] },
+        "state": {
+          "enum": ["starting", "running", "done", "failed", "aborted"]
+        },
+        "exit_code": {
+          "type": ["integer", "null"],
+          "description": "null when no exit status was observed (a heartbeat-timeout close-out)."
+        },
+        "error": { "type": ["string", "null"] },
+        "result_state": {
+          "type": ["string", "null"],
+          "description": "A result word the exit code cannot express (`partial`), carried to the terminal poll."
+        },
+        "resolutions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "site": { "type": "string" },
+              "decision": { "type": "string" },
+              "at": { "type": "string" }
+            }
+          },
+          "description": "Auto-resolved decision points (unattended.ROWS sites)."
+        },
+        "replay_flags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "finished_at": { "type": "string" },
+        "closed_out_at": {
+          "type": "string",
+          "description": "When status or --abort closed the run out."
+        },
+        "cleanup": {
+          "type": "object",
+          "description": "The teardown of the run's processes (docs/development/runtime.md, 'When not everything is confirmed stopped'): pending while an abort's kill is under way, incomplete when a kill could not confirm them all stopped, until a later abort or util runs --sweep does; complete once one has.",
+          "properties": {
+            "state": { "type": "string", "enum": ["pending", "incomplete", "complete"] },
+            "verdict": {
+              "type": ["string", "null"],
+              "description": "The last kill's verdict (survived, unresolved, skipped, killed, gone); null when the kill raised."
+            },
+            "pid": { "type": ["integer", "null"] },
+            "pgid": { "type": ["integer", "null"] },
+            "checked_at": { "type": "string" }
+          }
+        }
+      }
+    },
+    "progress": {
+      "type": "object",
+      "description": "Reporting only: nothing resumes, reaggregates or branches on it. The result line carries it whole and unreworded.",
+      "additionalProperties": true,
+      "properties": {
+        "step": {
+          "type": ["string", "null"],
+          "description": "The current step word (fanout, grouping, validating, dispatching <label>, complete, ...)."
+        },
+        "models": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/definitions/model_entry"
+          },
+          "description": "The fan-out's per-model map, keyed by model spec."
+        },
+        "models_done": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Finished slots (done + failed); never walks backwards mid-run."
+        },
+        "models_succeeded": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Slots that produced a usable result."
+        },
+        "models_total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Specs requested."
+        },
+        "interval_s": {
+          "type": ["number", "null"],
+          "description": "The ticker cadence the run resolved."
+        },
+        "tasks_generated": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "generate-tasks: tasks in the decomposition."
+        },
+        "notes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Plain lines a host relays beside the counts; status carries them into a terminal poll's notice."
+        },
+        "subagents": {
+          "type": ["object", "null"],
+          "description": "The executor's batch mirror (utils/subagent_executor._mirror_status): {kind, invoker, total, ok, counts, failed_task_ids, ...}. `null` when a new validation round clears the previous one."
+        },
+        "write_subagents": {
+          "type": ["object", "null"],
+          "description": "The write scheduler's batch mirror (utils/write_batch_scheduler), including its `stop` record."
+        },
+        "sandbox_bypassed": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "The specs, sorted, of slots that ran with the runner's own sandbox bypassed (review_orchestrator_base.record_sandbox_bypassed)."
+        },
+        "sandbox_fallback": {
+          "type": "object",
+          "description": "{spec: rung} for slots that ran on a contained fallback rung (plugin-landlock, ...); never part of sandbox_bypassed."
+        }
+      }
+    },
+    "model_entry": {
+      "type": "object",
+      "description": "One fan-out slot (utils/progress_tracker.py). Open: a slot's diagnostic keys grow with the providers.",
+      "additionalProperties": true,
+      "required": ["state"],
+      "properties": {
+        "state": {
+          "enum": ["queued", "staggering", "running", "retrying", "done", "failed"]
+        },
+        "started_at": {
+          "type": "string",
+          "description": "When the slot was admitted to the fan-out."
+        },
+        "dispatched_at": {
+          "type": "string",
+          "description": "The first dispatch; a retry does not move it."
+        },
+        "updated_at": { "type": "string" },
+        "ended_at": { "type": "string" },
+        "elapsed_s": {
+          "type": ["number", "null"],
+          "description": "Run time frozen at the terminal transition, from the first dispatch."
+        },
+        "queued_s": {
+          "type": ["number", "null"],
+          "description": "The wait between admission and dispatch."
+        },
+        "timeout_s": { "type": ["number", "null"] },
+        "attempt": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retry_after_s": { "type": ["number", "null"] },
+        "stagger_until": {
+          "type": ["string", "number"],
+          "description": "When a staggering slot's launch sleep ends."
+        },
+        "error": { "type": ["string", "null"] },
+        "source": {
+          "type": ["string", "null"],
+          "description": "Where the result came from (file, stdout, fallback, ...), once an attempt completed."
+        },
+        "warning": {
+          "type": "string",
+          "description": "A non-fatal note on a slot that still counts."
+        },
+        "readonly_audit": {
+          "type": "object",
+          "description": "The compact verdict of an uncontained slot's stream audit: {clean, reason, actions}."
+        }
+      }
+    },
+    "consolidation_recommended": {
+      "type": "object",
+      "description": "Present only on a review phase whose valid groups crossed CONSOLIDATION_RECOMMENDED_THRESHOLD. A recommendation, never `next`.",
+      "additionalProperties": true,
+      "required": ["valid_groups", "threshold", "command"],
+      "properties": {
+        "valid_groups": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "threshold": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "command": { "type": "string" }
+      }
+    },
+    "high_priority_groups": {
+      "type": "object",
+      "description": "A finished code review's count of distinct HIGH groups; present only when positive.",
+      "additionalProperties": true,
+      "required": ["count"],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "validation_counts": {
+      "type": "object",
+      "description": "Groups by validation verdict (review_orchestrator_base.VALIDATION_COUNT_KEYS); present only when validation ran.",
+      "additionalProperties": true,
+      "required": ["valid", "invalid", "needs_human_decision", "validation_failed"],
+      "properties": {
+        "valid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "invalid": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "needs_human_decision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "validation_failed": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "answer_origins": {
+      "type": "object",
+      "description": "ask only: answers by origin, the numbers of the closing report's `answered:` line (ask_orchestrator.answer_origins).",
+      "additionalProperties": true,
+      "required": ["answered", "file", "stdout", "fallback", "accepted", "unrecorded", "kept", "warn_all_fallback"],
+      "properties": {
+        "answered": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "file": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "stdout": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fallback": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "accepted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unrecorded": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "kept": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warn_all_fallback": { "type": "boolean" }
+      }
+    },
+    "validation_context": {
+      "type": "object",
+      "description": "Published by validation.publish_validation_context only when a context document did not fit inline (utils/validation_context.build_validation_context).",
+      "additionalProperties": true,
+      "required": ["mode", "sources"],
+      "properties": {
+        "phase": { "type": ["string", "null"] },
+        "limit": { "type": "integer" },
+        "mode": {
+          "type": "string",
+          "description": "The worst source mode (excerpt, truncated, ...)."
+        },
+        "insufficient": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sources": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "label": { "type": ["string", "null"] },
+              "mode": { "type": "string" },
+              "chars": { "type": ["integer", "null"] },
+              "bytes": { "type": ["integer", "null"] },
+              "path": { "type": ["string", "null"] },
+              "sha256": { "type": ["string", "null"] },
+              "dropped_sections": { "type": "array" },
+              "sections_total": { "type": "integer" },
+              "sections_shown": { "type": "integer" },
+              "reason": { "type": "string" },
+              "dropped_files": { "type": "array" }
+            }
+          }
+        }
+      }
+    },
+    "step_results": {
+      "type": "object",
+      "description": "A detached composite's report of the steps it ran in process (detach.record_step_results).",
+      "additionalProperties": true,
+      "properties": {
+        "run_id": { "type": "string" },
+        "phase": { "type": ["string", "null"] },
+        "steps": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "artifacts": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

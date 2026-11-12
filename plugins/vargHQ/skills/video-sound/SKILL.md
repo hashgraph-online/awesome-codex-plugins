@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.1.0"
+  version: "1.1.1"
   openclaw:
     requires:
       anyBins:
@@ -30,11 +30,13 @@ allowed-tools: Bash(python3:*) Bash(ffmpeg:*) Bash(ffprobe:*) Bash(uv:*) Bash(cu
 
 # Video sound
 
+> Step 4 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/design-sound-and-voice-for-ai-video (as Markdown: add `.md`).
+
 Picture gets the attention; sound decides whether it feels real. Agents make sound badly for three reasons: they
 can't hear, they put an effect on every cut, and they let music bury the words. This skill fixes all three with a
 plan written before picture, people's ears where taste is needed, and numbers everywhere else.
 
-What the evidence says (full guide: https://claude.ai/artifact/Hw1EFJw4Xr86XcP8QpVt1V; sources in
+What the evidence says (full guide: https://varg.ai/how-to/design-sound-and-voice-for-ai-video; sources in
 `references/evidence.md`):
 
 - **Pros use few effects.** In measured launch films about 85% of hard cuts have no sound of their own and there

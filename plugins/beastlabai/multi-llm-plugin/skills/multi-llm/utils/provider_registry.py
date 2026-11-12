@@ -26,66 +26,105 @@ import math
 import os
 import re
 import sys
-import yaml
+import threading
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Mapping, Optional, Tuple, Type, Union
 
+from . import yaml_io
+from .process_state import process_cache
+from . import status_file as _status_file
 from .git_utils import (
     COLLAPSE_PATH_KEYS,
     DEFAULT_COLLAPSE_PATHS,
     compile_path_glob,
     get_project_root_from_dir,
 )
-from .providers.agy import AgyProvider
-from .providers.aider import AiderProvider
-from .providers.claude_code import ClaudeCodeProvider
-from .providers.cline import ClineProvider
-from .providers.codex import CodexProvider
-from .providers.copilot import CopilotProvider
-from .providers.cursor_agent import CursorAgentProvider
-from .providers.fx import FxProvider
-from .providers.gemini import GeminiProvider
-from .providers.goose import GooseProvider
-from .providers.grok import GrokProvider
-from .providers.kilocode import KiloCodeProvider
-from .providers.kimi import KimiProvider
-from .providers.muse import MuseProvider
-from .providers.omp import OmpProvider
-from .providers.opencode import OpenCodeProvider
-from .providers.pi import PiProvider
-from .providers.qwen_code import QwenCodeProvider
-from .providers.vibe import VibeProvider
-from .providers.base import GIT_HELPER_AUTO, GIT_HELPER_POLICIES, LLMProvider
+from .providers import PROVIDER_CLASSES
+from .providers.base import (
+    DEFAULT_TIMEOUT_S,
+    GIT_HELPER_AUTO,
+    GIT_HELPER_POLICIES,
+    LLMProvider,
+)
+
+
+def _build_registry(
+    classes: Mapping[str, Type[LLMProvider]],
+) -> Dict[str, LLMProvider]:
+    """One instance of every adapter in ``classes``, keyed by provider name.
+
+    Derived, never typed: ``classes`` is ``PROVIDER_CLASSES``, which discovers
+    each concrete :class:`LLMProvider` subclass, so a new adapter module is
+    registered by existing. The keys are sorted so ``doctor``, help text and
+    every sweep keep one stable order, and two classes claiming one ``name``
+    refuse to load rather than letting the later one win. The instances are the
+    module-level singletons the fan-out shares. Adding an adapter:
+    docs/development/providers.md#adding-a-provider-adapter.
+    """
+    by_name: Dict[str, LLMProvider] = {}
+    for cls in classes.values():
+        adapter = cls()
+        claimed = by_name.get(adapter.name)
+        if claimed is not None:
+            raise RuntimeError(
+                f"two adapters claim the provider name {adapter.name!r}: "
+                f"{type(claimed).__qualname__} and {cls.__qualname__}"
+            )
+        by_name[adapter.name] = adapter
+    return dict(sorted(by_name.items()))
+
 
 # Built-in providers
-_PROVIDERS: Dict[str, LLMProvider] = {
-    "agy": AgyProvider(),
-    "aider": AiderProvider(),
-    "claude-code": ClaudeCodeProvider(),
-    "cline": ClineProvider(),
-    "codex": CodexProvider(),
-    "copilot": CopilotProvider(),
-    "cursor-agent": CursorAgentProvider(),
-    "fx": FxProvider(),
-    "gemini": GeminiProvider(),
-    "goose": GooseProvider(),
-    "grok": GrokProvider(),
-    "kilocode": KiloCodeProvider(),
-    "kimi": KimiProvider(),
-    "muse": MuseProvider(),
-    "omp": OmpProvider(),
-    "opencode": OpenCodeProvider(),
-    "pi": PiProvider(),
-    "qwen-code": QwenCodeProvider(),
-    "vibe": VibeProvider(),
-}
+_PROVIDERS: Dict[str, LLMProvider] = _build_registry(PROVIDER_CLASSES)
 
-# Process-global config cache. Keyed on the resolved discovery anchor + env (see
-# _cache_key) so a CWD-anchored result is not reused for a plan-derived root
-# within the same process. Cache captures cwd/env at first load for a given key;
-# a later os.chdir/setenv is not reflected for an already-cached key.
-_config: Optional[dict] = None
-_config_key: Optional[tuple] = None
+
+class _ConfigSnapshot:
+    """One load of the layered config: the merged dict and where each
+    ``driver.*`` value came from, read from the same layer files.
+
+    ``driver_layers`` maps a ``driver`` key to the layer that supplied it
+    (``env``, ``project`` or ``base``); a key no layer names is ``default``.
+    An executed value (``driver.verify_command``) and the provenance logged
+    beside it are always taken from one snapshot (:func:`_driver_view`).
+    """
+
+    __slots__ = ("config", "driver_layers")
+
+    def __init__(self, config: dict, driver_layers: Dict[str, str]) -> None:
+        self.config = config
+        self.driver_layers = driver_layers
+
+
+class _ConfigCache:
+    """The process-global config cache that ``_config`` holds.
+
+    ``merged`` maps the signatures of the exact layer files a load read
+    (:func:`_layer_key`) to its :class:`_ConfigSnapshot`, so ``/repo`` and
+    ``/repo/plans`` share one entry, two repositories never do, and a layer
+    that changed, appeared or disappeared is read again on the next access
+    from any anchor. Which layer files a load reads is never cached: every
+    access asks git for the project root afresh (:func:`_find_project_config`).
+    See docs/development/providers.md#configuration-and-runner-resolution.
+    """
+
+    __slots__ = ("merged",)
+
+    def __init__(self) -> None:
+        self.merged: Dict[tuple, _ConfigSnapshot] = {}
+
+
+#: Most merged configs kept; the oldest goes first. A run holds one or two,
+#: plus one per edit of a layer it saw.
+_MAX_MERGED_CONFIGS = 16
+
+# Assigning None drops the whole cache: set_run_anchor, init_config and the
+# tests reset it that way. Every read and fill holds _CONFIG_LOCK, so concurrent
+# first callers share one load instead of each parsing the layers.
+_config: Optional[_ConfigCache] = None
+_CONFIG_LOCK = threading.RLock()
+
+#: The built-in base layer, shipped with the skill.
+_BASE_CONFIG_PATH = Path(__file__).parent.parent / "providers.yaml"
 
 # The run's discovery anchor (§9.3.b): the absolute plan-file path this process
 # is working on, captured once during pre-flight. Consumed by _anchor_start_dir
@@ -119,7 +158,9 @@ CONFIG_WARNING_PREFIX = "multi-llm config warning:"
 
 # Provider names already warned about as "no hardcoded adapter" (re-init drift),
 # so the read-site filter warns once per name per process instead of every call.
-_WARNED_UNKNOWN_PROVIDERS: set = set()
+_WARNED_UNKNOWN_PROVIDERS: set = process_cache(
+    "utils.provider_registry._WARNED_UNKNOWN_PROVIDERS", set
+)
 
 
 class ConfigError(RuntimeError):
@@ -133,9 +174,9 @@ class ConfigError(RuntimeError):
     pass
 
 
-def _truthy_env(name: str) -> bool:
-    """Return True if env var ``name`` is set to a truthy value."""
-    val = os.environ.get(name)
+def _permissive_env() -> bool:
+    """True when ``MULTI_LLM_PROVIDERS_CONFIG_PERMISSIVE`` is set to a truthy value."""
+    val = os.environ.get(ENV_PERMISSIVE_VAR)
     return val is not None and val.strip().lower() in ("1", "true", "yes", "on")
 
 
@@ -167,13 +208,13 @@ def set_run_anchor(path: Union[str, Path]) -> None:
     ``--plan-file`` has been resolved to an absolute path and before any model
     or agent CLI runs. Two invariants keep it safe rather than order-dependent:
 
-    1. **Set once, before the run's decision reads.** The config cache is keyed
-       on the resolved anchor, so a value set after a load would leave earlier
-       reads on the CWD key and later reads on the anchor key — exactly the
+    1. **Set once, before the run's decision reads.** Config is discovered from
+       the anchor, so a value set after a load would leave earlier reads on the
+       CWD's layers and later reads on the anchor's — exactly the
        half-anchored run this exists to forbid. A parser's ``--help`` epilog
        legitimately reads config before a plan path exists, so rather than
-       refusing, changing the effective anchor **drops the cached slot**: no
-       value read on the CWD key survives into the anchored half of the run.
+       refusing, changing the effective anchor **drops the whole cache**: no
+       value read from the CWD's layers survives into the anchored half of the run.
     2. **Re-setting to a different path raises.** ``full`` runs several modes in
        one interpreter, but always against one plan; a second, different anchor
        means something multi-llm does not model is driving it, and failing
@@ -195,7 +236,7 @@ def set_run_anchor(path: Union[str, Path]) -> None:
     reached through a symlink now discovers from the real directory — the
     directory ``ask`` and ``code-review`` already anchored at.
     """
-    global _RUN_ANCHOR, _config, _config_key
+    global _RUN_ANCHOR, _config
     resolved = os.path.realpath(str(path))
     if _RUN_ANCHOR == resolved:
         return
@@ -207,8 +248,8 @@ def set_run_anchor(path: Union[str, Path]) -> None:
         )
     _RUN_ANCHOR = resolved
     # Invariant 1: nothing loaded on the pre-anchor key may be served afterwards.
-    _config = None
-    _config_key = None
+    with _CONFIG_LOCK:
+        _config = None
 
 
 def get_run_anchor() -> Optional[str]:
@@ -241,6 +282,11 @@ def _find_project_config(anchor: Optional[Union[str, Path]] = None) -> Optional[
     — and on CWD otherwise. The anchor → CWD precedence makes the plan-derived
     root authoritative when available while keeping CWD as a convenience
     fallback. Returns None outside a git repository or when the file is absent.
+
+    git is asked on every call, never remembered: its answer depends on more
+    than a process can cheaply watch (symlinks, gitfiles, ``core.worktree`` in
+    any config git reads, ``safe.directory``), and this layer's
+    ``driver.verify_command`` is executed.
     """
     root = get_project_root_from_dir(_anchor_start_dir(anchor))
     if not root:
@@ -296,31 +342,45 @@ def _override_paths(anchor: Optional[Union[str, Path]] = None) -> List[Tuple[str
     return paths
 
 
-def _cache_key(anchor: Optional[Union[str, Path]], permissive: bool) -> tuple:
-    """Cache key identifying the discovery context (anchor dir + relevant env).
+def _config_cache() -> _ConfigCache:
+    """The live :class:`_ConfigCache`, created after a reset. Call under the lock."""
+    global _config
+    if _config is None:
+        _config = _ConfigCache()
+    return _config
 
-    ``permissive`` is the *effective* (resolved) flag, not just the env var: a
-    permissive load that warn-and-skips a broken override must not be served to a
-    later strict call with the same anchor/env, which would bypass fail-fast.
+
+def _layer_key(layers: List[Tuple[str, Path]], permissive: bool) -> Tuple[tuple, bool]:
+    """``(key, settled)`` for the merged cache: what a load of *layers* reads.
+
+    The key holds the base file's and each override layer's name, path and
+    :func:`yaml_io.file_signature` (device, inode, size, mtime, ctime of the
+    file the path leads to), plus ``permissive``: the *effective* flag, not
+    just the env var, so a permissive load that warn-and-skipped a broken
+    override is never served to a later strict call, which would bypass
+    fail-fast. ``settled`` is False while any of those files changed in the
+    last :data:`yaml_io.SETTLE_S`, when an unchanged signature does not yet
+    prove unchanged bytes.
     """
-    return (
-        os.path.abspath(_anchor_start_dir(anchor)),
-        os.environ.get(ENV_CONFIG_VAR, ""),
-        os.environ.get(ENV_PERMISSIVE_VAR, ""),
+    signatures = [yaml_io.file_signature(_BASE_CONFIG_PATH)]
+    signatures.extend(yaml_io.file_signature(path) for _, path in layers)
+    key = (
+        signatures[0],
+        tuple((name, str(path), sig) for (name, path), sig in zip(layers, signatures[1:])),
         permissive,
     )
+    return key, all(yaml_io.is_settled(sig) for sig in signatures)
 
 
 def _load_base_config() -> dict:
     """Load and parse the built-in base ``providers.yaml`` (strict).
 
     Raises FileNotFoundError if the base is missing (matches prior behavior).
+    Parsed once per process (``yaml_io.load_file``); each call gets its own copy.
     """
-    config_path = Path(__file__).parent.parent / "providers.yaml"
-    if not config_path.exists():
-        raise FileNotFoundError(f"providers.yaml not found at {config_path}")
-    with open(config_path, 'r', encoding='utf-8') as f:
-        return yaml.safe_load(f) or {}
+    if not _BASE_CONFIG_PATH.exists():
+        raise FileNotFoundError(f"providers.yaml not found at {_BASE_CONFIG_PATH}")
+    return yaml_io.load_file(_BASE_CONFIG_PATH) or {}
 
 
 def _load_override_layer(layer_name: str, path: Path, permissive: bool) -> Optional[dict]:
@@ -353,9 +413,8 @@ def _load_override_layer(layer_name: str, path: Path, permissive: bool) -> Optio
         return None
 
     try:
-        with open(path, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(f)
-    except yaml.YAMLError as e:
+        data = yaml_io.load_file(path)
+    except yaml_io.YAMLError as e:
         if permissive:
             print(
                 f"{CONFIG_WARNING_PREFIX} ignoring malformed YAML in override config: "
@@ -447,31 +506,128 @@ def load_config(anchor: Optional[Union[str, Path]] = None,
             ``MULTI_LLM_PROVIDERS_CONFIG_PERMISSIVE`` env var (strict otherwise).
 
     Returns:
-        The merged config dict. Cached per resolved anchor/env within a process.
+        The merged config dict, cached per process while the layer files it
+        was read from are unchanged (:class:`_ConfigCache`). Callers share the
+        cached dict: read it, never edit it.
     """
-    global _config, _config_key
+    return _load_snapshot(anchor, permissive).config
+
+
+def load_config_snapshot(
+    anchor: Optional[Union[str, Path]] = None,
+) -> _ConfigSnapshot:
+    """One load of the layered config, for a caller that reads several values.
+
+    Discovery runs once here, as for any other access; the accessors that
+    take ``snapshot=`` then read this load instead of loading again, so the
+    values come from the same files and cost one git lookup together. The
+    snapshot stands for *anchor*: an accessor takes it or an anchor, never
+    both (:func:`require_one_config_source`). Hold it for one decision only
+    (one write batch's admission, say): a later read must load again to see
+    an edited layer or a changed project root.
+    """
+    return _load_snapshot(anchor)
+
+
+def require_one_config_source(
+    anchor: Optional[Union[str, Path]],
+    snapshot: Optional[_ConfigSnapshot],
+) -> None:
+    """Refuse a read given both a discovery ``anchor`` and a config ``snapshot``.
+
+    A snapshot answers for the project its :func:`load_config_snapshot` call
+    was anchored on, so an anchor passed beside it would be ignored and the
+    read would answer for another repository: its caps, its runner, its
+    executed ``verify_command``. Checking that the two name one project would
+    cost the git discovery the snapshot exists to save, so the pair is
+    refused outright (docs/development/providers.md#configuration-and-runner-resolution).
+    """
+    if snapshot is None:
+        return
+    if anchor is not None:
+        raise TypeError(
+            "pass anchor= or snapshot=, not both: a config snapshot answers for "
+            "the project load_config_snapshot(anchor=...) was given, so the "
+            f"anchor {str(anchor)!r} would be ignored"
+        )
+    if not isinstance(snapshot, _ConfigSnapshot):
+        raise TypeError(
+            "snapshot= takes what load_config_snapshot() returns, got "
+            f"{type(snapshot).__name__}"
+        )
+
+
+def _config_snapshot_for(
+    anchor: Optional[Union[str, Path]],
+    snapshot: Optional[_ConfigSnapshot],
+) -> _ConfigSnapshot:
+    """``snapshot`` when given, else a load for ``anchor``; never both."""
+    require_one_config_source(anchor, snapshot)
+    return snapshot if snapshot is not None else _load_snapshot(anchor)
+
+
+def _load_snapshot(anchor: Optional[Union[str, Path]] = None,
+                   permissive: Optional[bool] = None) -> _ConfigSnapshot:
+    """The cached :class:`_ConfigSnapshot` for *anchor*, loaded on a miss.
+
+    A load is admitted to the cache only when every file it read was settled
+    before the read and has the same signature after it (:func:`_layer_key`),
+    so an edit made during the merge, or inside one timestamp tick, is never
+    pinned: the next access reads the files again.
+    """
     # Resolve the effective permissive flag *before* the cache lookup so it is
     # part of the key — otherwise a prior permissive load that degraded past a
     # broken override could be served to a later strict call, bypassing
     # fail-fast.
     if permissive is None:
-        permissive = _truthy_env(ENV_PERMISSIVE_VAR)
+        permissive = _permissive_env()
 
-    key = _cache_key(anchor, permissive)
-    if _config is not None and _config_key == key:
-        return _config
+    # Discovery runs git on every access; it shares no state, so concurrent
+    # callers run it outside the lock and serialise only on the cache.
+    layers = _override_paths(anchor)
+    with _CONFIG_LOCK:
+        key, settled = _layer_key(layers, permissive)
+        merged = _config_cache().merged
+        snapshot = merged.get(key)
+        if snapshot is not None:
+            return snapshot
+        snapshot = _merge_layers(layers, permissive)
+        if settled and _layer_key(layers, permissive)[0] == key:
+            while len(merged) >= _MAX_MERGED_CONFIGS:
+                merged.pop(next(iter(merged)))
+            merged[key] = snapshot
+        return snapshot
 
+
+def _merge_layers(layers: List[Tuple[str, Path]], permissive: bool) -> _ConfigSnapshot:
+    """Base deep-merged with each override layer in *layers*, validated (uncached).
+
+    The ``driver.*`` provenance is recorded from the same layer documents as
+    the merge (highest-precedence layer naming the key with a value wins, then
+    ``base`` when base names it at all), so the two can never disagree.
+    """
     base_config = _load_base_config()
     config = base_config
+    base_driver = base_config.get("driver")
+    driver_layers: Dict[str, str] = {
+        key: "base" for key in (base_driver if isinstance(base_driver, dict) else {})
+    }
     driver_overridden = False
     git_env_overridden = False
     progress_overridden = False
     code_review_overridden = False
-    for layer_name, path in _override_paths(anchor):
+    for layer_name, path in layers:
         data = _load_override_layer(layer_name, path, permissive)
         if data:
             if "driver" in data:
                 driver_overridden = True
+                layer_driver = data["driver"]
+                if isinstance(layer_driver, dict):
+                    driver_layers.update(
+                        (key, layer_name)
+                        for key, value in layer_driver.items()
+                        if value is not None
+                    )
             if "progress" in data:
                 progress_overridden = True
             if "code_review" in data:
@@ -545,6 +701,19 @@ def load_config(anchor: Optional[Union[str, Path]] = None,
     base_providers = base_config.get("providers")
     base_providers = base_providers if isinstance(base_providers, dict) else {}
     providers = config.get("providers")
+    if "providers" in config and not isinstance(providers, dict):
+        # A non-mapping `providers:` block (a list, a scalar) replaced the whole
+        # base mapping during the merge. Every per-provider read (timeouts,
+        # concurrency, model lists) would fall back to an adapter default no
+        # layer states, so the shipped block is restored, as for one malformed
+        # entry below (docs/development/providers.md#configuration-and-runner-resolution).
+        print(
+            f"{CONFIG_WARNING_PREFIX} ignoring malformed 'providers' block in "
+            f"merged config (expected a mapping, got {type(providers).__name__}) "
+            f"— restoring the base definitions",
+            file=sys.stderr,
+        )
+        providers = config["providers"] = copy.deepcopy(base_providers)
     if isinstance(providers, dict):
         for name in [k for k, v in providers.items() if not isinstance(v, dict)]:
             base_entry = base_providers.get(name)
@@ -561,9 +730,7 @@ def load_config(anchor: Optional[Union[str, Path]] = None,
             else:
                 del providers[name]
 
-    _config = config
-    _config_key = key
-    return config
+    return _ConfigSnapshot(config, driver_layers)
 
 
 def get_provider(name: str) -> Optional[LLMProvider]:
@@ -571,17 +738,30 @@ def get_provider(name: str) -> Optional[LLMProvider]:
     return _PROVIDERS.get(name)
 
 
-def parse_model_spec(spec: str, anchor: Optional[Union[str, Path]] = None) -> Tuple[str, str]:
+def registered_provider_names() -> List[str]:
+    """Every built-in adapter's name, sorted: the roster any listing derives from."""
+    return list(_PROVIDERS)
+
+
+def parse_model_spec(
+    spec: str,
+    anchor: Optional[Union[str, Path]] = None,
+    *,
+    snapshot: Optional[_ConfigSnapshot] = None,
+) -> Tuple[str, str]:
     """Parse 'provider:model' format.
 
     Returns (provider_name, model_name).
-    If no provider prefix, uses default_provider from config.
+    If no provider prefix, uses default_provider from config: from
+    ``snapshot`` when given (:func:`load_config_snapshot`), else a load for
+    ``anchor``; never both (:func:`require_one_config_source`).
     """
+    require_one_config_source(anchor, snapshot)
     if ":" in spec:
         provider, model = spec.split(":", 1)
         return provider, model
 
-    config = load_config(anchor=anchor)
+    config = snapshot.config if snapshot is not None else load_config(anchor=anchor)
     default = config.get("default_provider", "cursor-agent")
     return default, spec
 
@@ -659,10 +839,10 @@ def get_provider_timeout(provider_name: str,
     config = load_config(anchor=anchor)
     providers = config.get("providers", {})
     if provider_name in providers:
-        return providers[provider_name].get("default_timeout", 1200)
-    # Fallback to provider's built-in default
+        return providers[provider_name].get("default_timeout", DEFAULT_TIMEOUT_S)
+    # No row: the shared fallback (every adapter's `default_timeout` is it).
     provider = get_provider(provider_name)
-    return provider.default_timeout if provider else 1200
+    return provider.default_timeout if provider else DEFAULT_TIMEOUT_S
 
 
 # ---------------------------------------------------------------------------
@@ -1139,15 +1319,38 @@ def _validate_path_glob(key: str, name: str, pattern: str) -> None:
     )
 
 
-def get_driver_config(anchor: Optional[Union[str, Path]] = None) -> dict:
+def get_driver_config(
+    anchor: Optional[Union[str, Path]] = None,
+    *,
+    snapshot: Optional[_ConfigSnapshot] = None,
+) -> dict:
     """The merged ``driver:`` block, with every key present (D3).
 
     Reads go through this and the typed accessors below — never ad-hoc
     ``config["driver"]`` indexing — so a config layer that omitted a key still
-    yields a complete block.
+    yields a complete block. Read from ``snapshot`` when given
+    (:func:`load_config_snapshot`), else from a load for ``anchor``; never
+    both (:func:`require_one_config_source`).
     """
-    config = load_config(anchor=anchor)
-    driver = config.get("driver")
+    return _driver_view(anchor, snapshot=snapshot)[0]
+
+
+def _driver_view(
+    anchor: Optional[Union[str, Path]] = None,
+    *,
+    snapshot: Optional[_ConfigSnapshot] = None,
+) -> Tuple[dict, Dict[str, str]]:
+    """``(complete driver block, provenance per key)`` from one config load.
+
+    A caller that needs a value and the layer that supplied it reads both
+    here, never through two loads: the layer files can change between two
+    loads, and a value from one snapshot logged as coming from another layer
+    would misname what runs (``driver.verify_command`` is executed). With
+    ``snapshot`` the view is read from that load, and an ``anchor`` beside it
+    is refused (:func:`require_one_config_source`).
+    """
+    snapshot = _config_snapshot_for(anchor, snapshot)
+    driver = snapshot.config.get("driver")
     driver = dict(driver) if isinstance(driver, dict) else {}
     merged = dict(DRIVER_FALLBACKS)
     for key in DRIVER_KEYS:
@@ -1155,7 +1358,7 @@ def get_driver_config(anchor: Optional[Union[str, Path]] = None) -> dict:
             merged[key] = driver[key]
         elif key in driver and key in DRIVER_OPTIONAL_INT_KEYS:
             merged[key] = None
-    return merged
+    return merged, snapshot.driver_layers
 
 
 def get_driver_provenance(
@@ -1166,18 +1369,11 @@ def get_driver_provenance(
     D3o: `--status` and `install-host --check` print the resolved runner together
     with the layer that supplied it, because "I set it and nothing changed" is
     otherwise a support question. Highest-precedence layer that names the key
-    wins, matching the merge order exactly.
+    wins, matching the merge order exactly. Recorded at load time
+    (:class:`_ConfigSnapshot`); a caller that also needs the value reads both
+    through :func:`_driver_view`.
     """
-    permissive = _truthy_env(ENV_PERMISSIVE_VAR)
-    for layer_name, path in reversed(_override_paths(anchor)):
-        data = _load_override_layer(layer_name, path, permissive)
-        driver = (data or {}).get("driver")
-        if isinstance(driver, dict) and driver.get(key) is not None:
-            return layer_name
-    base_driver = _load_base_config().get("driver")
-    if isinstance(base_driver, dict) and key in base_driver:
-        return "base"
-    return "default"
+    return _driver_view(anchor)[1].get(key, "default")
 
 
 #: The override layers that count as an operator *opinion* about a ``driver.*``
@@ -1200,13 +1396,8 @@ def _host_capabilities():
     imports ``cli_common`` (which imports this module's siblings) and because most
     invocations never need the yaml parse at all.
     """
-    try:
-        from . import host_capabilities
-    except ImportError:  # pragma: no cover - partial install / direct script run
-        try:
-            import host_capabilities  # type: ignore
-        except ImportError:
-            return None
+    # Imported here for the reasons the docstring gives.
+    from . import host_capabilities
     return host_capabilities
 
 
@@ -1359,6 +1550,8 @@ def resolve_subagent_runner(
     anchor: Optional[Union[str, Path]] = None,
     host_id: Optional[str] = None,
     skip_session: bool = False,
+    *,
+    snapshot: Optional[_ConfigSnapshot] = None,
 ) -> Tuple[str, str]:
     """The resolved runner spec **and the layer that supplied it** (D2e/D3/D3o).
 
@@ -1376,7 +1569,7 @@ def resolve_subagent_runner(
     they configured, so it yields to any ``driver.*`` value a config layer really
     carries while still outranking a shipped floor nobody chose. It is also the
     one rung that is allowed to *fall through at preflight* rather than refuse —
-    see ``subagent_executor.run_tasks``, which re-resolves with
+    see ``task_batch.run_tasks``, which re-resolves with
     ``skip_session=True`` and prints what it fell back to. Every other rung keeps
     refusing, because an explicit opinion that cannot be served is a config error
     and silently substituting something else is how "I set it and nothing
@@ -1395,15 +1588,18 @@ def resolve_subagent_runner(
         skip_session: skip the session rung entirely. The fallback path passes it
             after the session model failed preflight, so the re-resolution cannot
             return the spec that was just refused.
+        snapshot: the config load to read the ``driver`` keys from
+            (:func:`load_config_snapshot`); a load for ``anchor`` when omitted.
+            Never both (:func:`require_one_config_source`).
 
     Returns:
         ``(spec, layer)``, where ``layer`` is one of ``env``, ``project``,
         :data:`SESSION_LAYER`, :data:`HOST_DEFAULT_LAYER`, ``base`` or ``default``.
     """
-    driver = get_driver_config(anchor=anchor)
+    driver, driver_layers = _driver_view(anchor=anchor, snapshot=snapshot)
     key = "subagent_runner_cheap" if tier == "cheap" else "subagent_runner"
     configured = driver.get(key)
-    layer = get_driver_provenance(key, anchor=anchor)
+    layer = driver_layers.get(key, "default")
     if (
         isinstance(configured, str)
         and configured.strip()
@@ -1424,7 +1620,7 @@ def resolve_subagent_runner(
         return configured.strip(), layer
     fallback_layer = (
         layer if key == "subagent_runner"
-        else get_driver_provenance("subagent_runner", anchor=anchor)
+        else driver_layers.get("subagent_runner", "default")
     )
     return (
         str(driver.get("subagent_runner") or DRIVER_FALLBACKS["subagent_runner"]),
@@ -1454,7 +1650,9 @@ def get_max_concurrent_subagents(anchor: Optional[Union[str, Path]] = None) -> i
 
 
 def get_max_concurrent_write_subagents(
-    anchor: Optional[Union[str, Path]] = None
+    anchor: Optional[Union[str, Path]] = None,
+    *,
+    snapshot: Optional[_ConfigSnapshot] = None,
 ) -> int:
     """``driver.max_concurrent_write_subagents`` — the write gate (default 1, D3h).
 
@@ -1464,8 +1662,11 @@ def get_max_concurrent_write_subagents(
     two agents editing one file. Raising this only *permits* parallelism —
     ``can_parallelize`` and the dispatch-time pairwise-disjoint admission check
     still have to agree, and a shared-artifact phase is pinned to 1 regardless.
+    Read from ``snapshot`` when given (:func:`load_config_snapshot`), never
+    beside an ``anchor`` (:func:`require_one_config_source`).
     """
-    return max(1, int(get_driver_config(anchor=anchor)["max_concurrent_write_subagents"]))
+    driver = get_driver_config(anchor=anchor, snapshot=snapshot)
+    return max(1, int(driver["max_concurrent_write_subagents"]))
 
 
 def get_verify_command(anchor: Optional[Union[str, Path]] = None) -> Optional[str]:
@@ -1486,6 +1687,23 @@ def get_verify_command(anchor: Optional[Union[str, Path]] = None) -> Optional[st
 def get_verify_timeout_s(anchor: Optional[Union[str, Path]] = None) -> int:
     """``driver.verify_timeout_s`` — the wall-clock ceiling for the command above."""
     return max(1, int(get_driver_config(anchor=anchor)["verify_timeout_s"]))
+
+
+def get_verify_settings(
+    anchor: Optional[Union[str, Path]] = None,
+) -> Tuple[Optional[str], int, str]:
+    """``(command, timeout_s, layer)`` for the post-write check, from one load.
+
+    :func:`get_verify_command`, :func:`get_verify_timeout_s` and the layer that
+    supplied the command (:func:`get_driver_provenance`), read from a single
+    snapshot so the command that runs and the source logged beside it always
+    come from the same files (:func:`_driver_view`).
+    """
+    driver, driver_layers = _driver_view(anchor=anchor)
+    value = driver.get("verify_command")
+    command = value.strip() if isinstance(value, str) and value.strip() else None
+    timeout = max(1, int(driver["verify_timeout_s"]))
+    return command, timeout, driver_layers.get("verify_command", "default")
 
 
 def get_write_paths(anchor: Optional[Union[str, Path]] = None) -> Dict[str, List[str]]:
@@ -1534,18 +1752,13 @@ PROGRESS_FALLBACKS: Dict[str, float] = {
 
 
 def _progress_floor_s() -> float:
-    """The floor both keys share: ``run_status.WAIT_POLL_INTERVAL_S`` (5 s).
+    """The floor both keys share: ``status_file.WAIT_POLL_INTERVAL_S`` (5 s).
 
     Single-sourced rather than retyped, because the two numbers are the same one
     by construction: a cadence faster than the loop that re-reads the status file
-    learns nothing new. Imported lazily because ``utils.run_status`` pulls in the
-    detach/status/metrics subtree, and this module is imported by every entry
-    point — a module-level import would make the registry drag the whole status
-    stack behind it for a constant only the validator reads.
+    learns nothing new.
     """
-    from .run_status import WAIT_POLL_INTERVAL_S
-
-    return float(WAIT_POLL_INTERVAL_S)
+    return float(_status_file.WAIT_POLL_INTERVAL_S)
 
 
 def _progress_error(key: str, value: object, reason: str) -> str:
@@ -1892,7 +2105,7 @@ def get_commit_reviews_dir(anchor: Optional[Union[str, Path]] = None) -> Path:
     """``code_review.commit_reviews_dir`` as an absolute folder in the anchor's repository.
 
     The one reader of the key (plans/review-commits.md §2.4): the commit-review
-    path layer (``utils/commit_review.py``), the front doors and the
+    path layer (``utils/commit_paths.py``), the front doors and the
     no-argument apply lookup all call it and none reads the YAML. The merged
     value, or :data:`DEFAULT_COMMIT_REVIEWS_DIR` when no layer has one, is
     joined to the git root of *anchor* (a brief path, or a directory such as
@@ -2054,7 +2267,10 @@ def get_subagent_timeout(
 
 
 def get_provider_max_concurrent(
-    provider_name: str, anchor: Optional[Union[str, Path]] = None
+    provider_name: str,
+    anchor: Optional[Union[str, Path]] = None,
+    *,
+    snapshot: Optional[_ConfigSnapshot] = None,
 ) -> Optional[int]:
     """Get the max concurrent limit for a provider, if configured.
 
@@ -2066,8 +2282,12 @@ def get_provider_max_concurrent(
             through to ``load_config`` exactly like the ``driver`` accessors so a
             project-local ``.multi-llm/providers.yaml`` still binds when the run
             starts outside that project. Omitted, discovery falls back to CWD.
+        snapshot: the config load to read instead
+            (:func:`load_config_snapshot`); never beside an ``anchor``
+            (:func:`require_one_config_source`).
     """
-    config = load_config(anchor=anchor)
+    require_one_config_source(anchor, snapshot)
+    config = snapshot.config if snapshot is not None else load_config(anchor=anchor)
     providers = config.get("providers", {})
     if provider_name in providers:
         return providers[provider_name].get("max_concurrent")

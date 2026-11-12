@@ -12,7 +12,7 @@ Which composites exist, which of them takes a review scope and which step
 method runs each word are read off the mode table (each composite row's
 ``sequence``), never listed here, so a composite is added by adding its row.
 ``improve-commits`` is ``improve-code``'s sequence behind a commit front door
-(plans/review-commits.md §2.8): its front door resolves the range, writes the
+Its front door resolves the range, writes the
 commit brief that stands in for the plan, and hands :func:`entry_point`
 ``--plan-file <brief> --base-ref <base> --head-ref <head>``. Everything that
 differs for it keys on the row's range positional (:func:`pins_commit_range`)
@@ -21,8 +21,8 @@ or on the brief's ``commit_range`` record, never on its name.
 Every rule both legs follow lives here, once, as a function of the mode word,
 the parsed flags and :class:`Records`, the state read once before step 1:
 
-* :func:`skip_reason` decides whether a step runs (§2.3 of the plan);
-* :func:`step_flags` decides the flags it gets (§2.2), the one
+* :func:`skip_reason` decides whether a step runs;
+* :func:`step_flags` decides the flags it gets, the one
   ``--scope-policy`` :func:`scope_policy_choice` resolved included;
 * :func:`continuation_flags` is the command a stop names (row 14);
 * :func:`plan_steps` is the per-step plan with its reasons, for the planner.
@@ -66,6 +66,7 @@ from .cli_common import (
     add_scope_policy_argument,
     build_parent_parser,
     dispatcher_prefix,
+    dispatcher_command,
 )
 from .output_handler import (
     PHASE_DIRECTORIES,
@@ -73,7 +74,19 @@ from .output_handler import (
     output_dir_path,
     phase_dir_path,
 )
-from .state_manager import StateManager, _parse_completion_time
+from .state_manager import (
+    StateManager, _parse_completion_time, predates_review,
+)
+from . import commit_spelling
+from .commit_spelling import step_word
+from .subagent_tasks import WRITE_KIND_BY_PHASE
+from .git_utils import get_project_root
+from .review_diff import REVIEW_SCOPE_FILENAME, read_review_scope
+
+# ``review_orchestrator_base``, ``write_resume`` and ``batch_ledger`` load in
+# the functions that use them: ``status`` and ``util next-command`` import
+# this module to spell a stopped run's continuation and read none of them
+# (tests/test_utils_imports.py ``test_a_reader_path_loads_no_module_its_base_did_not``).
 
 #: The step word of review-plan's advisory consolidation pass. Not a mode and
 #: not in any ``sequence``: it is ``review-plan --consolidate``, run between the
@@ -180,8 +193,8 @@ def pins_commit_range(mode: str) -> bool:
     Read off the row: its positional is a range (``modes.POS_REVS``), not a
     plan, so its front door resolves the range, records ``commit_range`` in the
     brief's ``state.json`` and synthesises ``--plan-file``, ``--base-ref`` and
-    ``--head-ref`` on every call, a resume included (plans/review-commits.md
-    §2.1). Those three are therefore never the user's: no continuation
+    ``--head-ref`` on every call, a resume included. Those three are therefore never the
+    user's: no continuation
     carries them, and the user reads the steps as the commit modes
     (``commit_spelling.step_word`` keys on the same positional).
     """
@@ -192,8 +205,7 @@ def _step_word(mode: str, word: str) -> str:
     """A sequence word as a line the user reads spells it: the commit mode on a
     composite whose range a front door pins (``review-code`` →
     ``review-commits``), else the word itself (``commit_spelling.step_word``,
-    the row-keyed mapping of plans/review-commits.md §2.8)."""
-    from .commit_spelling import step_word
+    the row-keyed mapping)."""
 
     return step_word(_row(mode).name, word)
 
@@ -223,8 +235,8 @@ def review_phase_for(apply_step: str) -> str:
     ``code-review``); this one lookup is how neither mistake is made. Kept here
     rather than in ``state_manager``, which ``write_batch_scheduler`` imports.
     """
-    from .subagent_tasks import WRITE_KIND_BY_PHASE
-    from .write_batch_scheduler import REVIEW_PHASE_BY_WRITE_KIND
+    # Imported here: `status` and `util next-command` import this module and need none of it.
+    from .write_resume import REVIEW_PHASE_BY_WRITE_KIND
 
     phase = mode_table.phase_for(apply_step)
     return REVIEW_PHASE_BY_WRITE_KIND[WRITE_KIND_BY_PHASE[phase]]
@@ -367,7 +379,7 @@ class Records:
             (:func:`pins_commit_range`) only: the brief's
             ``commit_range.header_sha256`` differs from the
             ``reviewed_header_sha256`` the review on record answered (a changed
-            ``--focus`` or context plan, plans/review-commits.md §2.4), so the
+            ``--focus`` or context plan), so the
             review starts a new round, as under ``--force``. ``False`` when no
             round has started yet (no ``reviewed_header_sha256``), and on every
             other composite.
@@ -477,9 +489,9 @@ def _requested_scope(
     files_from = getattr(args, "files_from", None)
     if not files and files_from is None:
         return None
+    # review-code's orchestrator imports this module (through the commit front
+    # door): a load-time cycle.
     import code_review_orchestrator as review_code
-
-    from .git_utils import get_project_root
 
     root = review_code.review_git_root(get_project_root(str(plan))) or os.getcwd()
     if files_from == "-":
@@ -495,7 +507,6 @@ def _recorded_base_ref(mode: str, plan: Path) -> Optional[str]:
     """The ref the code review on record diffed against, from its manifest."""
     if not _reviews_code(mode):
         return None
-    from .git_utils import REVIEW_SCOPE_FILENAME, read_review_scope
 
     review_dir = phase_dir_path(plan, _row(mode).sequence_phases[0])
     header = read_review_scope(review_dir / REVIEW_SCOPE_FILENAME)
@@ -505,7 +516,7 @@ def _recorded_base_ref(mode: str, plan: Path) -> Optional[str]:
 def _leftover_results(mode: str, review_dir: Path) -> bool:
     """:attr:`Records.leftover_results`: per-model files, no ``grouped.json``.
 
-    Fable review, finding 1 (2026-10-27): a fan-out stopped before grouping (on
+    Fable review, finding 1: a fan-out stopped before grouping (on
     Claude Code, at the background launch's time limit) leaves only per-model
     files. ``--resume`` handed the review step ``--yes`` alone, review-code's
     partial-completion guard refused it (exit 3, "Run: --reaggregate"), and the
@@ -514,6 +525,7 @@ def _leftover_results(mode: str, review_dir: Path) -> bool:
     """
     if not _reviews_code(mode) or (review_dir / "grouped.json").exists():
         return False
+    # Review-code's orchestrator: a load-time cycle, as in :func:`_requested_scope`.
     import code_review_orchestrator as review_code
 
     return bool(review_code.leftover_model_results(review_dir))
@@ -559,6 +571,7 @@ def read_records(
     apply_word, apply_word_at = _newer_apply_record(completed, skipped, apply_phase)
     recorded_scope = None
     if _reviews_code(row.name):
+        # Review-code's orchestrator: a load-time cycle, as in :func:`_requested_scope`.
         from code_review_orchestrator import REVIEW_SCOPE_FILES_KEY
 
         recorded = state.get(REVIEW_SCOPE_FILES_KEY)
@@ -725,7 +738,7 @@ def scope_policy_choice(
 def releases_deferrals(args: argparse.Namespace, records: Records) -> bool:
     """The user's ``expand`` over a completed apply with remaining scope work.
 
-    Plan §4: a completed bounded apply that still holds scope deferrals, or
+    A completed bounded apply that still holds scope deferrals, or
     stopped on a scope blocker, is offered them again, never "already
     complete". The choice is :func:`scope_policy_choice`'s — the typed flag
     or this composite's live recorded one — so the override survives a later
@@ -774,8 +787,8 @@ def step_flags(
     when step 1 is passed over, the one the code review on record used. The
     improve-commits front door passes its pinned base (the empty-tree id on a
     root range) on every call, and ``util improve-steps`` sets the same from
-    ``commit_range``, so on that composite the first branch always answers
-    (plans/review-commits.md §2.8); the rule itself names no mode.
+    ``commit_range``, so on that composite the first branch always answers; the rule
+    itself names no mode.
     """
     row = _row(mode)
     review, apply = row.sequence
@@ -878,7 +891,7 @@ def continuation_flags(mode: str, args: argparse.Namespace) -> List[str]:
     one would fail), and are left out; the range itself is the command's
     positional, which :func:`continuation_args` spells as the pinned range.
     ``--focus`` and ``--context-plan`` never reach this parser: the brief
-    inherits them (plans/review-commits.md §2.8, "The continuation").
+    inherits them.
     """
     flags: List[str] = []
     if getattr(args, "models", None):
@@ -922,7 +935,6 @@ def continuation_args(
     range, which the front door also takes. Every other composite comes back
     as ``(mode, [plan_arg, *flags])``, unchanged.
     """
-    from . import commit_spelling
 
     flags = continuation_flags(mode, args)
     shown = plan if plan_arg is None else plan_arg
@@ -941,7 +953,6 @@ def continuation_command(
     base: Optional[Path] = None,
 ) -> str:
     """:func:`continuation_args` as the dispatcher command a stop names."""
-    from .cli_common import dispatcher_command
 
     word, rest = continuation_args(mode, plan, args)
     return dispatcher_command(word, *rest, base=base)
@@ -1186,6 +1197,7 @@ def scope_changed_line(mode: str, records: Records) -> str:
     """``[IMPROVE_SCOPE_CHANGED]``: the scope on record, and the one typed."""
     recorded = records.recorded_scope
     if recorded:
+        # Review-code's orchestrator: a load-time cycle, as in :func:`_requested_scope`.
         from code_review_orchestrator import REVIEW_SCOPE_FILES_KEY
 
         then = (
@@ -1229,6 +1241,7 @@ def scope_notices(mode: str, args: argparse.Namespace, records: Records) -> List
 
 def files_from_stdin_refusal() -> str:
     """The ``ERROR:`` line review-code prints for ``-`` under ``--detach``."""
+    # Review-code's orchestrator: a load-time cycle, as in :func:`_requested_scope`.
     from code_review_orchestrator import FILES_FROM_STDIN_DETACHED
 
     return f"ERROR: {FILES_FROM_STDIN_DETACHED}"
@@ -1238,6 +1251,7 @@ def is_scope_files_error(exc: BaseException) -> bool:
     """Whether *exc* is review-code's ``ScopeFilesError`` (imported only to ask)."""
     if not isinstance(exc, ValueError):
         return False
+    # Review-code's orchestrator: a load-time cycle, as in :func:`_requested_scope`.
     from code_review_orchestrator import ScopeFilesError
 
     return isinstance(exc, ScopeFilesError)
@@ -1258,7 +1272,7 @@ def state_read_error_line(mode: str, exc: StateReadError) -> str:
 
 
 # ---------------------------------------------------------------------------
-# A live run is refused, never joined (§2.5)
+# A live run is refused, never joined
 # ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
@@ -1301,8 +1315,7 @@ def _age_of(run: Dict[str, Any]) -> Optional[float]:
 #: Phase-dir locks this process already holds for the composite it runs, by
 #: lock path (:func:`_held_key`). Set only inside :func:`holding`: the
 #: improve-commits front door's code-review lock, which it holds through
-#: :func:`entry_point` (plans/review-commits.md §2.1, "It holds the lock
-#: through the fronted phase's main").
+#: :func:`entry_point`.
 _HELD_LOCKS: Dict[str, process_control.PhaseLock] = {}
 
 
@@ -1502,8 +1515,7 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
     A composite whose range a front door pins (:func:`pins_commit_range`,
     improve-commits) also takes ``--head-ref`` and the hidden
     ``--commit-stage``: only its front door passes them, with ``--plan-file``
-    and ``--base-ref`` (plans/review-commits.md §2.5, "Which parsers take
-    ``--head-ref``"). On improve-code ``--head-ref`` stays argparse's usage
+    and ``--base-ref``. On improve-code ``--head-ref`` stays argparse's usage
     error. ``--focus`` and ``--context-plan`` are the front door's and never
     reach this parser. Its help names the steps as the commit modes.
     """
@@ -1649,7 +1661,7 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
         help="Accepted and implied: nothing is confirmed in an unattended run.",
     )
     if pinned:
-        # The front door's `--detach` stage (plans/review-commits.md §2.1),
+        # The front door's `--detach` stage,
         # applied by the composite's worker right after its run-dir lock.
         parser.add_argument("--commit-stage", dest="commit_stage", default=None,
                             help=argparse.SUPPRESS)
@@ -1823,8 +1835,8 @@ class ImproveWorkflow(fwo.FullWorkflow):
         an improve-commits stop names ``apply-commit-fixes``; the command is
         built by ``FullWorkflow._phase_failed`` from :meth:`resume_flags`,
         which carries none of the front door's flags, and the commit spelling
-        of its plan argument is that method's hook (plans/review-commits.md
-        §2.8); :meth:`resume_command` is the command it must come to.
+        of its plan argument is that method's hook; :meth:`resume_command` is the
+        command it must come to.
         """
         exit_code = super()._phase_failed(step, detail, code)
         if step.phase == self.row.sequence_phases[0]:
@@ -1988,7 +2000,7 @@ class ImproveWorkflow(fwo.FullWorkflow):
 
         The ``files_touched`` of every ``ok`` or partly applied row of the
         apply's ``write_batch_report.json``: the set the apply hands back as
-        its own ``touched_file_{n}`` (``ApplyOrchestratorBase._touched_files``),
+        its own ``touched_file_{n}`` (``ApplyPhaseReport.touched_files``),
         earlier runs of this review cycle's rows included. Never
         ``tracked_files``: that list also holds implement's entries (label
         ``implementation``), so the summary, and the artifacts on the result
@@ -1999,7 +2011,7 @@ class ImproveWorkflow(fwo.FullWorkflow):
 
         A report written before the review's latest completion is an earlier
         cycle's and names nothing, the scheduler's own rule
-        (``_earlier_report_rows``); a missing date on either side keeps it. A
+        (``ResumeEvidence.earlier_report_rows``); a missing date on either side keeps it. A
         missing or unreadable report names nothing, so an apply with nothing
         to fix lists no file it did not write.
 
@@ -2007,27 +2019,16 @@ class ImproveWorkflow(fwo.FullWorkflow):
         ``self.state``: its load writes the judge-name upgrade back (and
         takes ``.state.lock``) when an old run left a ``claude_*`` spelling,
         and this report is also what a finished run's exit 2 prints, which
-        writes nothing (§2.3, §2.4; Fable review 2026-10-09).
+        writes nothing.
         """
-        from .git_utils import get_project_root
-        from .retry_ladder import STATUS_OK
-        from .subagent_executor import WRITE_PARTIAL
-        from .write_batch_scheduler import WRITE_BATCH_REPORT_FILENAME
+        # Imported here: `status` and `util next-command` import this module and need none of it.
+        from .batch_ledger import BatchLedger, touched_files
 
-        report_path = apply_dir / WRITE_BATCH_REPORT_FILENAME
-        try:
-            report = json.loads(report_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        ledger = BatchLedger(apply_dir)
+        rows = ledger.rows()
+        if rows is None:
             return []
-        rows = report.get("tasks") if isinstance(report, dict) else None
-        if not isinstance(rows, list):
-            return []
-        written_at = _parse_completion_time(report.get("written_at"))
-        if written_at is None:
-            try:
-                written_at = datetime.fromtimestamp(report_path.stat().st_mtime)
-            except OSError:
-                written_at = None
+        written_at = ledger.written_at()
         try:
             completed = StateManager(self.plan_path, read_only=True).get(
                 "phases_completed")
@@ -2038,23 +2039,14 @@ class ImproveWorkflow(fwo.FullWorkflow):
                 completed.get(review_phase_for(self.row.sequence[1])))
             if isinstance(completed, dict) else None
         )
-        if written_at is not None and reviewed_at is not None \
-                and written_at < reviewed_at:
+        if predates_review(written_at, reviewed_at):
             return []
         root = Path(get_project_root(str(self.plan_path)) or os.getcwd())
         paths: List[Path] = []
-        for row in rows:
-            if not isinstance(row, dict) or not (
-                row.get("status") == STATUS_OK
-                or row.get("write_outcome") == WRITE_PARTIAL
-            ):
-                continue
-            touched = row.get("files_touched")
-            for name in touched if isinstance(touched, list) else []:
-                if isinstance(name, str) and name:
-                    path = root / name
-                    if path not in paths:
-                        paths.append(path)
+        for name in touched_files(rows, include_partial=True):
+            path = root / name
+            if path not in paths:
+                paths.append(path)
         return paths
 
 
@@ -2065,7 +2057,7 @@ class ImproveWorkflow(fwo.FullWorkflow):
 def entry_point(mode: str, argv: Optional[Sequence[str]] = None) -> int:
     """``improve_plan_orchestrator.main`` / ``improve_code_orchestrator.main``,
     and the fronted main of the improve-commits front door
-    (``utils/commit_review.py``), which calls it with ``--plan-file <brief>
+    (``utils/commit_front_door.py``), which calls it with ``--plan-file <brief>
     --base-ref <base> --head-ref <head>`` recorded as ``improve-commits``.
 
     In order: parse; refuse ``--interactive`` (before the workflow sets
@@ -2107,7 +2099,7 @@ def entry_point(mode: str, argv: Optional[Sequence[str]] = None) -> int:
         # Only a re-attach is `launch`'s to answer for the composite's own live
         # run. While every `--detach` skipped it, `--detach --force` reached
         # `launch`'s take-over of a worker still writing a step dir; `--force`
-        # and `--resume` change nothing here (§2.5, Fable review 2026-10-09).
+        # and `--resume` change nothing here.
         reattaching = detaching and bool(getattr(args, "if_not_running", False))
         outcome = preflight(
             mode, plan_path, args, records,
@@ -2123,6 +2115,7 @@ def entry_point(mode: str, argv: Optional[Sequence[str]] = None) -> int:
         args, mode, records=read.get("records"), checked=checked
     )
 
+    # Imported here: `status` and `util next-command` import this module and need none of it.
     from .review_orchestrator_base import maybe_detach
 
     detached = maybe_detach(

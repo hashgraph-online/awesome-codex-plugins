@@ -41,17 +41,25 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import yaml
-
 # The script ships inside the skill but runs with the *user's* repo as CWD.
 # Make the skill's own packages importable regardless of the caller's CWD.
 sys.path.insert(0, str(Path(__file__).parent))
 
+from utils import yaml_io  # noqa: E402
 from utils.stream_bootstrap import bootstrap_streams  # noqa: E402
 from utils.cli_common import build_parent_parser  # noqa: E402
 from utils.git_utils import get_project_root_from_dir  # noqa: E402
-from utils.provider_registry import get_provider, load_base_config  # noqa: E402
+from utils.provider_registry import (  # noqa: E402
+    get_provider,
+    load_base_config,
+    registered_provider_names,
+)
 from utils.providers.base import Availability  # noqa: E402
+from utils import provider_registry  # noqa: E402
+from utils import host_capabilities  # noqa: E402
+from utils import next_phase  # noqa: E402
+from utils import sandbox_walk  # noqa: E402
+import check_workflow_prerequisites as prereq  # noqa: E402
 
 # Template is resolved strictly relative to THIS file, never CWD / --project dir
 # (both diverge from the install location). If this moves, update the Section 4
@@ -203,6 +211,21 @@ def _unusable_notices(detected: "list[str]") -> "list[str]":
         if report.state in (Availability.NEEDS_AUTH, Availability.VERSION_TOO_LOW):
             lines.append(f"{name}: {report.detail}")
     return lines
+
+
+def _supported_provider_names() -> "list[str]":
+    """Every registered adapter, in base-config declaration order.
+
+    Derived from the registry, so the install notice never lists a CLI the
+    plugin cannot drive nor omits one it can; an adapter the base config does
+    not declare yet goes last.
+    """
+    registered = registered_provider_names()
+    declared = [
+        name for name in (load_base_config().get("providers") or {})
+        if name in registered
+    ]
+    return declared + [name for name in registered if name not in declared]
 
 
 def _available_providers(providers_cfg: dict) -> "list[str]":
@@ -843,8 +866,8 @@ def _validate_generated_config(text: str, detected, base_config: dict) -> "str |
     provider was detected). Aborts the write on any failure.
     """
     try:
-        parsed = yaml.safe_load(text)
-    except yaml.YAMLError as e:
+        parsed = yaml_io.safe_load(text)
+    except yaml_io.YAMLError as e:
         return f"generated YAML does not parse: {e}"
     if not isinstance(parsed, dict):
         return "generated YAML is not a top-level mapping"
@@ -918,14 +941,10 @@ def _recheck_merged(target_dir: Path, expected_models: "list[str]", config_path:
     fires when the discovered project-config path is exactly the file we wrote.
     """
     try:
-        import utils.provider_registry as registry
-
-        registry._config = None
-        registry._config_key = None
-        merged = registry.load_config(anchor=str(target_dir))
-        discovered = registry._find_project_config(anchor=str(target_dir))
-        registry._config = None
-        registry._config_key = None
+        provider_registry._config = None
+        merged = provider_registry.load_config(anchor=str(target_dir))
+        discovered = provider_registry._find_project_config(anchor=str(target_dir))
+        provider_registry._config = None
         # Only diagnose shadowing when the written file is the one discovery picks
         # up; otherwise 'resolved' is the base catalog, not our file, and the
         # mismatch would misattribute an env override that may not exist.
@@ -1058,10 +1077,8 @@ def _write_config(
         print(
             "No supported provider CLIs found on PATH; wrote an inert "
             ".multi-llm/providers.yaml that inherits the built-in defaults.\n"
-            "Install one of: claude, cursor-agent, gemini, grok, opencode, "
-            "codex, kilocode, kimi, qwen, copilot, cline, goose, aider, agy, pi, muse, "
-            "vibe, omp, fx and "
-            "re-run `--init`."
+            "Install the CLI of one of these providers and re-run `--init`: "
+            f"{', '.join(_supported_provider_names())}."
         )
     else:
         chosen = detected_list[0]  # validation guarantees default_provider == this
@@ -1093,23 +1110,17 @@ def _runner_warning_lines(args: argparse.Namespace, target_dir: Path) -> "list[s
     """The ``[RUNNER_WARNING]`` line when ``implement`` / ``apply-code-fixes``
     would be refused for the runner the config just written resolves to
     (racing-run issue #1, 2026-10-02): the dispatch's own decision
-    (``subagent_executor.repo_wide_write_refusal``, the model-free probes once),
+    (``sandbox_walk.repo_wide_write_refusal``, the model-free probes once),
     resolved for the host ``init`` ran from, so a Codex user learns at init
     and not at phase 6. Empty when the runner would run, or for a runner with
     no sandbox probe. Advisory: any failure prints nothing."""
     try:
-        from utils import host_capabilities, next_phase
-        from utils import provider_registry
-        from utils.provider_registry import resolve_subagent_runner
-        from utils.subagent_executor import repo_wide_write_refusal
-        import check_workflow_prerequisites as prereq
-
         host_id = host_capabilities.resolve_host_id(explicit=getattr(args, "host", None))
         # The config this init just wrote, not whatever an earlier read cached.
         provider_registry._config = None
-        provider_registry._config_key = None
-        spec, _layer = resolve_subagent_runner("full", anchor=str(target_dir), host_id=host_id)
-        refusal = repo_wide_write_refusal(spec, anchor=str(target_dir))
+        spec, _layer = provider_registry.resolve_subagent_runner(
+            "full", anchor=str(target_dir), host_id=host_id)
+        refusal = sandbox_walk.repo_wide_write_refusal(spec, anchor=str(target_dir))
     except Exception:  # noqa: BLE001 - advisory, never a failed init
         return []
     if refusal is None:
@@ -1133,7 +1144,6 @@ def _smoke_test_command(args: argparse.Namespace) -> str:
     A host or route the capability data does not know falls back to the
     reference host's plugin spelling rather than failing a finished init.
     """
-    from utils import host_capabilities, next_phase
 
     try:
         host_id = host_capabilities.resolve_host_id(explicit=getattr(args, "host", None))

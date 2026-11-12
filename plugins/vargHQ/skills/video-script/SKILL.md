@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.3.1"
+  version: "1.3.2"
   openclaw:
     requires:
       anyBins:
@@ -25,6 +25,8 @@ allowed-tools: Bash(python3:*) Read Write Edit
 ---
 
 # Video script
+
+> Step 3 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/write-a-video-script-with-an-agent (as Markdown: add `.md`).
 
 Write the script before any voice, image or clip is made: every later step is cut to it. Left alone you drift to the
 most probable script, which is the one everybody else gets: a "have you ever wondered" opener, three adjectives, a

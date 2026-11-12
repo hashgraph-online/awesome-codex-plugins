@@ -1,6 +1,6 @@
 # Recording a code batch's own check
 
-A subagent that edited code — an implement task that declares files, or an apply-code-fixes batch — ends its reply with a `check` object saying which checks it ran on its edits. Record it on that batch's `util batch-done` call with `--own-check`, by the first rule below that fits the object. The `--exec-subagents` leg reads the same object by the same rules (`subagent_executor.batch_check_findings`), so both legs record the same result.
+A subagent that edited code — an implement task that declares files, or an apply-code-fixes batch — ends its reply with a `check` object saying which checks it ran on its edits. Record it on that batch's `util batch-done` call with `--own-check`, by the first rule below that fits the object. The `--exec-subagents` leg reads the same object by the same rules (`batch_reply.batch_check_findings`), so both legs record the same result.
 
 ## Words the rules use
 

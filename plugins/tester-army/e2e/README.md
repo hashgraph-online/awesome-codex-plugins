@@ -77,25 +77,14 @@ model: an AI SDK provider key, or a ChatGPT subscription through
 
 ## MCP server
 
-The plugin does not bundle the e2e MCP server, which runs from the project's
-own `e2e` install. `e2e init` offers to register it for Codex. In an existing
-project, run `e2e init --yes --skills none --mcp .codex/config.toml` with the installed CLI
-or add the entry below. Install dependencies, trust the project, and start a
-new Codex session from the project directory. In a directory with no e2e
-config, the agent can still open a session by naming the engine package:
+The plugin registers the e2e MCP server from `.mcp.json` as
+`npx -y e2e mcp`. Claude Code and Codex start it in the session's working
+directory, where `npx` runs the project's installed `e2e` and the server finds
+the project's config; start the session from the project directory after
+installing dependencies. In a directory without `e2e`, `npx` downloads it.
+Claude Code shows the plugin's server as `plugin:e2e:e2e`. In a directory with no e2e config, the agent can still
+open a session by naming the engine package:
 `open_session {engine: "@e2e-dev/web", app: {url: "http://localhost:3000"}}`.
-
-```toml
-[mcp_servers.e2e]
-command = "npx"
-args = ["e2e", "mcp"]
-```
-
-For Claude Code, run this from the project to test:
-
-```bash
-claude mcp add --scope project e2e -- npx e2e mcp
-```
 
 Writing and running tests through the CLI does not require an MCP connection.
 
@@ -120,7 +109,7 @@ Edit skill Markdown in the monorepo's `skills/` directory, then run
 
 The Codex manifest owns the plugin's metadata. The sync command generates
 the Claude and Cursor manifests from it and copies the root license. Skill UI metadata
-in `skills/*/agents/openai.yaml` and the plugin's assets are maintained here.
+in `skills/*/agents/openai.yaml`, the plugin's assets, and `.mcp.json` are maintained here.
 Keep every referenced file inside this plugin directory so cached installs
 work without the rest of the monorepo. The repo's development `.mcp.json`
 is outside this package.

@@ -92,120 +92,7 @@ State is persisted in `{plan}/state.json` (plan-local):
 
 ### 0. Check Prerequisites
 
-The implement orchestrator checks prerequisites and may output special markers. Handle them as follows:
-
-#### If output contains `[PREREQUISITE_UNMET]` (under `--yes`):
-
-There are unapplied suggestions from plan review and this run is unattended, so
-the orchestrator has already **exited 3** without producing anything — no phase
-dir, no task JSON, no `state.json` mutation (D6a). Print the block verbatim and
-stop. It names both fixes:
-
-```
-[PREREQUISITE_UNMET] implement: 7 HIGH / 3 MEDIUM suggestions in
-/abs/plans/x/review-plan/validation.json have not been applied.
-  1) Apply them first — <dispatcher> apply-suggestions /abs/plans/x.md --yes
-     then re-run      — <dispatcher> implement /abs/plans/x.md --yes
-  2) Proceed on unapplied review output (recorded) —
-     <dispatcher> implement /abs/plans/x.md --yes --skip-prerequisites
-```
-
-`--yes` never implies `--skip-prerequisites`: consent to run unattended is not
-consent to stale input. With `--skip-prerequisites` the orchestrator prints
-`[PREREQUISITE_SKIPPED] implement: …(reason: explicit --skip-prerequisites)`,
-records the skip in `state.json`, and proceeds.
-
-**`--implement` gates on its own prerequisite only.** It does not re-litigate how
-the tasks it is about to implement were produced: if `generate-tasks` ran under
-`--skip-prerequisites`, that shows up as one
-`[PREREQUISITE_SKIPPED_UPSTREAM apply-suggestions: …]` line quoting the recorded
-reason and the run proceeds — re-asking would make the recorded skip meaningless.
-
-#### If output contains `[PREREQUISITE_CHECK]` (no `--yes`):
-
-There are unapplied suggestions from plan review. Parse the JSON that follows the marker.
-
-1. **Ask the user**:
-   - "Review found N suggestions. Apply them before implementation?"
-   - Options: "Apply suggestions first", "Skip suggestions, proceed", "Cancel"
-
-2. Handle the response:
-   - **"Apply suggestions first"**: Stop and instruct the user to run this in a separate context:
-     ```
-     ## Apply Suggestions First
-
-     To keep the implementation context clean, please run in order:
-
-     1. Run: `<dispatcher> apply-suggestions $PLAN_PATH`
-     2. Run: `/clear`
-     3. Run: `<dispatcher> implement $PLAN_PATH`
-     ```
-     **Do NOT** proceed further. Stop execution after displaying this message.
-
-   - **"Skip suggestions, proceed"**: Run `uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-suggestions --plan-file "$PLAN_PATH" --skip`, then re-run implement orchestrator (this is lightweight — no context bloat)
-   - **"Cancel"**: Stop and inform user
-
-#### If output contains `[TASKS_MISSING]`:
-
-No implementation tasks exist. To avoid context bloat from codebase exploration, do NOT auto-run generate-tasks in this context. Instead, stop and instruct the user to run it separately.
-
-**Output the following to the user:**
-
-```
-## Tasks Missing
-
-No implementation tasks found for this plan. To keep the implementation context clean,
-please run task generation in a separate context:
-
-1. Run: `<dispatcher> generate-tasks $PLAN_PATH`
-2. Run: `/clear`
-3. Run: `<dispatcher> implement $PLAN_PATH`
-
-The `/clear` step ensures the implementation phase starts with a fresh context,
-free from the codebase exploration data generated during task creation.
-```
-
-**Do NOT** proceed further. Stop execution after displaying this message.
-
-#### If output contains `[TASK_SUGGESTIONS_ADVISORY]`:
-
-There are unapplied task suggestions from `review-tasks`. This is an **advisory only** — it does NOT block implementation. Parse the JSON that follows the marker to get the `actionable_count`.
-
-**If `--yes` or `--no-confirm` was passed** (D6 row 7): the orchestrator has
-already resolved this — it records `apply-task-suggestions` as skipped in
-`state.json` and prints
-`[AUTO_RESOLVED] task-suggestion-advisory: skipped; apply-task-suggestions
-recorded as skipped`. Proceed with implementation and do NOT prompt. The phase is
-*recorded* skipped rather than merely ignored, so `--status`, the implementation
-summary and any later review can all see that the task-review findings were never
-applied.
-
-**Otherwise**, **ask the user**:
-- "There are N unapplied task suggestions from review-tasks. Apply them first? [y/N]"
-- Options: "Apply task suggestions first", "Skip, proceed to implement" (default), "Cancel"
-
-Handle the response:
-- **"Apply task suggestions first"**: Stop and instruct the user to run this in a separate context:
-  ```
-  ## Apply Task Suggestions First
-
-  To keep the implementation context clean, please run in order:
-
-  1. Run: `<dispatcher> apply-task-suggestions $PLAN_PATH`
-  2. Run: `/clear`
-  3. Run: `<dispatcher> implement $PLAN_PATH`
-  ```
-  **Do NOT** proceed further. Stop execution after displaying this message.
-
-- **"Skip, proceed to implement"** (default): Run `uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-task-suggestions --plan-file "$PLAN_PATH" --skip` to mark the phase as skipped, then continue with implementation.
-
-- **"Cancel"**: Stop and inform user.
-
-**Important**: The `[TASK_SUGGESTIONS_ADVISORY]` marker does NOT cause the orchestrator to exit early. The orchestrator continues and produces the full task JSON output. Check for this marker in the complete output alongside the other markers.
-
-#### If output contains no blocking markers (`[PREREQUISITE_CHECK]` or `[TASKS_MISSING]`):
-
-Prerequisites are met. If `[TASK_SUGGESTIONS_ADVISORY]` was present, handle it as described above, then proceed with normal implementation flow.
+The implement orchestrator checks prerequisites. When step 2's output carries `[PREREQUISITE_UNMET]` (under `--yes`, exit 3: print its block verbatim and stop), `[PREREQUISITE_CHECK]` (unapplied plan-review suggestions, no `--yes`: ask the user), `[TASKS_MISSING]` (no tasks: stop and tell the user to generate them) or `[TASK_SUGGESTIONS_ADVISORY]` (unapplied task-review suggestions: advisory, auto-resolved under `--yes` or `--no-confirm`), read `references/implement-prerequisites.md` in full before your next command and do what it says for that marker; with none of these four, the prerequisites are met: go on with the rest of step 3. Three notices need neither that read nor a question, because the run proceeds past them: `[PREREQUISITE_SKIPPED]` (the user's `--skip-prerequisites`, recorded in `state.json`), `[PREREQUISITE_SKIPPED_UPSTREAM …]` (an earlier phase's recorded skip, which asking again would make meaningless) and `[AUTO_RESOLVED] task-suggestion-advisory` (the advisory recorded as skipped).
 
 ---
 
@@ -228,7 +115,7 @@ Prerequisites are met. If `[TASK_SUGGESTIONS_ADVISORY]` was present, handle it a
 
    **IMPORTANT**: Foreground or detached depends on who runs the tasks. On the native-subagent path (no `--exec-subagents`), run this command in the foreground — do **not** run it detached: there the orchestrator only generates task JSON, it does not execute tasks, so 10 minutes is far more than enough (and `--detach` implies `--exec-subagents`, which would hand the tasks to the executor). With `--exec-subagents` (step 4b) it is the other way round: this one command dispatches, verifies and records every task and finalizes the phase itself, so it **does** execute the tasks and runs as long as all of them together. On that path **run detached**: add `--detach` (which implies `--yes`; see step 4b), poll the `status` command the launcher printed until the run is finished, and read the run's markers and output paths from the log it named.
 
-3. **Check for prerequisite markers in orchestrator output** (see Step 0 above)
+3. **Check for prerequisite markers in orchestrator output** (see Step 0 above: any of its four markers means reading `references/implement-prerequisites.md` before step 4)
 
    When step 2 ended with `Nothing is left to run: implement stays completed`, the run only recorded answers for an implement that already completed (a `--resume --human-task {id}=done` closing a deferred manual task, say): report the answers it recorded (`[HUMAN_TASK_ANSWERED]`) and end the report with the command `util next-command` prints, as step 11 does. Skip steps 4 to 10: dispatch nothing, write no summary (the completed run's `summary.md` stays as it is) and run no `util finalize-tracking`.
 
@@ -270,78 +157,7 @@ After reading the task JSON, scan all batches for tasks with `is_human: true`. I
 
 #### 4b. The Python write executor: `--exec-subagents` (an alternative to steps 5-10)
 
-Steps 5 through 10 below are the **native-subagent** path: this agent walks the
-batches, spawns a subagent per task, updates state, records metrics, finalizes
-tracking, writes the implementation summary and inserts the plan-side reference.
-
-A host with no native subagent tool runs the *same* loop in Python. Add
-`--exec-subagents` to the step-2 invocation and the phase schedules itself in one
-process:
-
-- batches in ascending `batch_index`, with each batch's snapshot/diff verification
-  completed and recorded **before** the next is dispatched (a partial application is
-  never compounded by a concurrent one);
-- tasks inside a batch dispatched together only when all three of `can_parallelize`,
-  `driver.max_concurrent_write_subagents > 1` (default **1**) and a dispatch-time
-  check that their declared file sets are pairwise disjoint agree — a task declaring
-  no file set runs alone;
-- the human-task strategy resolved **once** from `--force-strategy`, the value
-  persisted in `state.json` on a resume, or `--yes`'s `skip-dependents` default, then
-  applied as a graph walk: `skip-dependents` propagates transitively over
-  `depends_on`, `skip-continue` records a dependency override per unblocked task,
-  and `pause-and-ask` exits 3 naming both `--human-task <id>=done|skip`
-  re-invocations rather than blocking on a stdin nobody is on;
-- `prior_changes.py append`, `metrics.py record` and `update_task_status` per task;
-- and finalization — `metrics.py finish`, `mark_phase_completed`,
-  `finalize_tracking.py`, the implementation summary (including its
-  `## Manual Tasks (Deferred)`, `## Dependency Override Warnings` and `## Cancelled`
-  sections) and `insert_implementation_summary_reference` — as part of the loop's
-  contract. A run that dispatched every batch and produced none of those is a
-  **failed** run, not a partial one.
-
-Do **not** combine the two: with `--exec-subagents` the phase finishes in that one
-invocation and there is no batch left for this agent to run.
-
-On a stop: a partial application halts at the batch boundary, keeps every pre-batch
-snapshot under `{phase}/pre_batch/{task_id}/`, leaves the phase **not** completed,
-and exits 3 naming the exact re-invocation plus the rollback command
-(`multi_llm.py util restore-batch --phase-dir <dir> --task-id <id>`, which refuses a
-file that changed after the run unless `--force`). `--resume` then re-dispatches only
-the unfinished batches, replaying the prior-changes log from disk so the resumed
-batch sees the context an uninterrupted run would have. The stop message, the
-`## Cancelled` section of `summary.md`, `write_batch_report.json` (`not_run_tasks`,
-`stop`) and the status mirror (`not_run_task_ids`) account for every task of the
-decomposition — done, failed, not run (the stop came before they were dispatched),
-accepted after failing, completed by hand, skipped at your request, skipped with a
-skipped task, deferred manual — and the message names the way forward: for a failed
-check (a task that declares no files), fix what it reported (by hand, or review-code
-then apply-code-fixes) and `--resume`, which runs the check again and the tasks after
-it; or accept the failure with `--human-task <id>=done` (`skip` leaves it and its
-dependents undone, whatever the human-task strategy; a `--resume` after that keeps
-them skipped). A `--resume` that changes nothing does not run a failed check
-again: when the files git sees have the same sizes and timestamps as when it failed
-(`verdict.tree_fingerprint` on its result file), the stop is repeated with the remedy
-and no dispatch is spent; `--human-task <id>=retry` runs it anyway. A stop after a
-code task of the phase completed, with no `driver.verify_command` configured, also
-says what ran the repository's tests, if anything did, and that the plugin ran none (its log, `notice` and `summary.md`, and
-at the end of the stop's own line, the result's `error`), as a finished run does.
-
-A check that ran and reported problems (`check-findings`, also from a reply that said `failed` but listed findings and not `could_not_run`) is not a stop: the tasks that
-do not depend on it run. The tasks that depend on it, directly or through another task,
-are not run — each is recorded `not run — upstream check <id> reported problems` in
-`state.json`, `summary.md` (`## Not Run: Upstream Check Reported Problems`),
-`write_batch_report.json` (`blocked_by_check`, `not_run_tasks`, `stop`) and `status` —
-and once every other task has run, implement ends needing a human (exit 3, the phase not
-completed) with the same three ways forward: fix the code and `--resume`, accept the
-findings with `--human-task <id>=done` (the waiting tasks run, their prompts say the
-findings were accepted, and the findings stay listed for review-code), or `--human-task <id>=skip`.
-
-`--dry-run-subagents` renders every command, applies every admission and policy
-check, writes `{phase}/subagent_dry_run.json` and starts no child.
-`--detach` self-daemonizes the phase and reports per-task progress in
-`{phase}/.status.json` under `progress.write_subagents`; it is how step 2 runs on
-this path. Never combine it with a host's own background mechanism, whichever
-*run detached* resolves to for your host.
+When step 2's command carries `--exec-subagents`, `--detach` (which implies it) or `--dry-run-subagents`, however it got there (typed, printed by a resume or `util next-command`, forwarded by a workflow step, or as an abbreviation such as `--exec` or `--det`), the Python write executor runs the phase: read `references/implement-write-executor.md` in full before that command runs, or before your next command if it already ran. That one invocation is the whole phase; a dry run dispatched nothing and leaves no work either: run none of steps 5 to 10 (no subagent, metrics, summary, tracking or `--mark-completed`) and go on to step 11's report. A command with none of `--exec-subagents`, `--detach` and `--dry-run-subagents`, in any spelling, skips the reference and goes on with step 5.
 
 5. **Execute batches sequentially (batches have dependencies):**
 
@@ -360,7 +176,9 @@ this path. Never combine it with a host's own background mechanism, whichever
      uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util write-prompt \
        --phase-dir "{plan}/implement" --task-id "{task.id}"
      ```
-     The orchestrator materialized `{plan}/implement/write_tasks.json` (printed as `[WRITE_TASKS_FILE]`) beside the task JSON, one entry per task under the task's own `id`. This rewrites the task's prompt with the prior-task context bound **now** — from `{plan}/prior_changes.jsonl` as it is at this moment, i.e. the tasks already appended below — and the result contract appended: exactly the text the `--exec-subagents` executor would dispatch. It writes it to `{plan}/implement/prompts/{task.id}.prompt.txt` and prints `[WRITE_PROMPT] <path>`, `[WRITE_PROMPT_LINES] <n>` and `[WRITE_PROMPT_CONTEXT] …`. Never hand a subagent `task["prompt"]` from the JSON: it carries a literal `{prior_changes_context}` token that must never reach a subagent. An exit 3 names the problem (no `write_tasks.json` — re-run step 2; an unknown id — the known ids are listed; `[WRITE_PROMPT_BLOCKED]` — the task depends on a check that reported problems, see the check task record below: do not dispatch it; `[WRITE_PROMPT_REFUSED]` — the write policy (`driver.write_paths`) does not allow a file the task declares, as the `--exec-subagents` leg refuses it before dispatch: do not dispatch it, record it with the `util batch-done … --status failed` line the refusal prints, skip the tasks that depend on it and report the way forward it names); do not fall back to the raw prompt. Run each `util write-prompt` as a command of its own, never chained after the records of the tasks before it: its exit 3 refuses that one task, and at the end of a chain it reads as the failure of the calls before it, while `util batch-done` exits 0 whenever it recorded the task (`[CHECK_BLOCKED]` included) and each call's own `MULTI_LLM_RESULT` line names its own exit. A `[WRITE_PROMPT_ORDER]` line (on stderr; the prompt is still written) names an earlier task whose summary this prompt does not carry — recorded but not appended yet, or not finished: do what it says, then run this `util write-prompt` again before spawning the subagent.
+     The orchestrator materialized `{plan}/implement/write_tasks.json` (printed as `[WRITE_TASKS_FILE]`) beside the task JSON, one entry per task under the task's own `id`. This rewrites the task's prompt with the prior-task context bound **now** — from `{plan}/prior_changes.jsonl` as it is at this moment, i.e. the tasks already appended below — and the result contract appended: exactly the text the `--exec-subagents` executor would dispatch. It writes it to `{plan}/implement/prompts/{task.id}.prompt.txt` and prints `[WRITE_PROMPT] <path>`, `[WRITE_PROMPT_LINES] <n>` and `[WRITE_PROMPT_CONTEXT] …`. Never hand a subagent `task["prompt"]` from the JSON: it carries a literal `{prior_changes_context}` token that must never reach a subagent.
+     An exit 3 names the problem (no `write_tasks.json` — re-run step 2; an unknown id — the known ids are listed; `[WRITE_PROMPT_BLOCKED]` — the task depends on a check that reported problems, see the check task record below: do not dispatch it; `[WRITE_PROMPT_REFUSED]` — the write policy (`driver.write_paths`) does not allow a file the task declares, as the `--exec-subagents` leg refuses it before dispatch: do not dispatch it, record it with the `util batch-done … --status failed` line the refusal prints, skip the tasks that depend on it and report the way forward it names); do not fall back to the raw prompt. Run each `util write-prompt` as a command of its own, never chained after the records of the tasks before it: its exit 3 refuses that one task, and at the end of a chain it reads as the failure of the calls before it, while `util batch-done` exits 0 whenever it recorded the task (`[CHECK_BLOCKED]` included) and each call's own `MULTI_LLM_RESULT` line names its own exit.
+     A `[WRITE_PROMPT_ORDER]` line (on stderr; the prompt is still written) names an earlier task whose summary this prompt does not carry — recorded but not appended yet, or not finished: do what it says, then run this `util write-prompt` again before spawning the subagent.
    - Then spawn one subagent:
      ```
      Spawn one subagent with:
@@ -476,9 +294,13 @@ this path. Never combine it with a host's own background mechanism, whichever
        --phase-dir "{plan}/implement" --task-id "{task_id}" --status {batch_status} {check_flags}
      ```
      `{check_flags}` is the result the reply's `check` object reports, never left out when the reply carries one: `--own-check passed`, `--own-check findings` (with one `--finding` per failing check) or `--own-check none` for a task that edits files, read off its `check` by the rules in `references/own-check.md`, plus `--note "{note}"` when that `check` carries a `note` (the subagent's own words about its checks, never a `--finding`), and `--check passed` (or `--check findings`, or `--status failed --check could-not-run`) for a check task, each explained below; empty only when the reply carries no `check`. Pass each `--finding` exactly as the reply wrote it, adding no words of your own. A `completed` record without it prints `[OWN_CHECK_NOT_RECORDED]` (`[CHECK_NOT_RECORDED]` for a check task) naming the call that records it, the same flags plus the result: run that call before the append below.
-     `{batch_status}` is `completed` for an applied task (a verified no-op included) and `failed` for one that failed — add `--reason "{compact reason}"` to a `failed` one, and `--partial` when its subagent changed files before it failed (its reply's `files_touched`, or files you see changed on disk): its edits are half-applied, `batch-done` says so, and the stop offers no `--human-task` answer for it until the user has inspected them, as the `--exec-subagents` leg's stop offers none for a partial application. A reply that says `applied` while none of the files its task declares changed did not do the task: dispatch it once more, with one sentence added to the prompt saying its previous attempt answered `applied` but changed no file, and if that changes nothing either, record it `failed` (`--reason "said applied, no file changed"`), never `completed` (fix round 14). It prints one `[BATCH_DONE] {task_id} {batch_status}` line and writes `task_status[{task_id}]` into `state.json`, the same entry the `--exec-subagents` executor writes: what `--resume` reads to skip the task (a `failed` task is dispatched again) and what `status` counts as progress. Run it **before** the append below — a run that dies between the two leaves a record `--resume` honours, never a log entry `--resume` would re-run — and never retype this as a hand-rolled JSON edit of the state file.
-     For a **check task** (an agent task that declares no files) its reply carries a `check` object: add `--check passed` when it says `"passed": true` with no findings (a bare `findings` of `"none"`, `"n/a"`, `"no problems found"`, `""` or `0` beside it lists none), else `--check findings` and one `--finding "{finding}"` per entry of its `findings` list, with `--status completed`. A check that ran, changed no file and reported problems is not a failed task: `status`, the workflow notice and the code review are told the findings. A check task whose `check` says `"could_not_run": true` is a check that could not run (a missing command, a crash, a timeout), whatever its `status` says: record it `--status failed --check could-not-run` (add `--reason` naming the check and why), never as findings. A reply that says `"status": "failed"` but lists findings in its `check` and does not say `could_not_run` is a check that ran and found problems: record it `--status completed --check findings` like any other. A `failed` reply that lists no finding is a failed task: record it `failed`. Use `failed` for a check task also when its subagent changed a file, with `--partial`. `batch-done` holds a check to that: when a file git sees changed after the check's `util write-prompt` and no other task of the phase declares it, `--status completed` is refused (exit 3, naming the files); record the check `--status failed`, or, if something other than its subagent changed them, run its `util write-prompt` again and run the check again. A check recorded with findings holds back the tasks that depend on it: `batch-done` prints a `[CHECK_BLOCKED]` line naming them and records each `pending` with the reason `not run — upstream check {id} reported problems`. Do not dispatch them and record nothing for them (their `util write-prompt` exits 3); run every task that does not depend on the check. At the end, write the summary and close the phase without `--mark-completed` (step 10 refuses it while a held task is left), and report the held tasks and the way forward: fix what the check reported (by hand, or review-code then apply-code-fixes) and run this phase with `--resume` (the check runs again), or accept its findings with `--resume --human-task {id}=done` (the held tasks then run, and their prompts say the findings were accepted), or `--resume --human-task {id}=skip`. Its prior-changes summary is `(check findings — {n} problem(s): {findings}; no file changed)`.
-     For a task that **edits files** (it declares files, even when its title calls it a check), its reply carries a `check` object naming in `ran` the checks its subagent ran on its own edits (a test, a build, a syntax check): record it with the `--own-check` flags the rules in `references/own-check.md` give for that object, the reading the `--exec-subagents` leg applies to the same reply, with `--status completed`: `--own-check passed`, `--own-check findings` and one `--finding "{finding}"` per entry they list, or `--own-check none` (it ran no check, which is not a pass); never `--check`, which records only a check task's verdict (`batch-done` refuses it on such a task and names the call to make). A recorded `--own-check findings` prints a `[BATCH_CHECK_FAILED]` line and records the failure in `state.json`, where `status` and the code review read it: the edits are kept and nothing waits for the task, but it is not a clean success — list it in the summary's `## Check Findings` (step 9) and say in your report that its check fails. When every finding it reports only repeats what the user accepted for a check (`--human-task <check>=done`) that the task depends on and whose failure is not the task's own job (the same command, all of one accepted finding or its first words, every number the same), `batch-done` prints `[BATCH_CHECK_ACCEPTED]` for those findings instead and records no failure for the task: name it under that check's accepted findings in `## Check Findings`, never as its own failing check, and the phase stays a clean finish; any other finding still prints `[BATCH_CHECK_FAILED]`. A `[FINDING_RESTATE]` line after it names a finding that holds an accepted one word for word with words added, and gives the call that records the task again with the accepted finding alone and those words as `--note`: run it only when those words are the subagent's comment, never when they report something the check printed beyond the accepted finding (a note is a comment, never a failure: every failure the check printed stays a finding).
+     `{batch_status}` is `completed` for an applied task (a verified no-op included) and `failed` for one that failed — add `--reason "{compact reason}"` to a `failed` one, and `--partial` when its subagent changed files before it failed (its reply's `files_touched`, or files you see changed on disk): its edits are half-applied, `batch-done` says so, and the stop offers no `--human-task` answer for it until the user has inspected them, as the `--exec-subagents` leg's stop offers none for a partial application. A reply that says `applied` while none of the files its task declares changed did not do the task: dispatch it once more, with one sentence added to the prompt saying its previous attempt answered `applied` but changed no file, and if that changes nothing either, record it `failed` (`--reason "said applied, no file changed"`), never `completed`. It prints one `[BATCH_DONE] {task_id} {batch_status}` line and writes `task_status[{task_id}]` into `state.json`, the same entry the `--exec-subagents` executor writes: what `--resume` reads to skip the task (a `failed` task is dispatched again) and what `status` counts as progress. Run it **before** the append below — a run that dies between the two leaves a record `--resume` honours, never a log entry `--resume` would re-run — and never retype this as a hand-rolled JSON edit of the state file.
+     For a **check task** (an agent task that declares no files) its reply carries a `check` object: add `--check passed` when it says `"passed": true` with no findings (a bare `findings` of `"none"`, `"n/a"`, `"no problems found"`, `""` or `0` beside it lists none), else `--check findings` and one `--finding "{finding}"` per entry of its `findings` list, with `--status completed`. A check that ran, changed no file and reported problems is not a failed task: `status`, the workflow notice and the code review are told the findings. A check task whose `check` says `"could_not_run": true` is a check that could not run (a missing command, a crash, a timeout), whatever its `status` says: record it `--status failed --check could-not-run` (add `--reason` naming the check and why), never as findings.
+     A reply that says `"status": "failed"` but lists findings in its `check` and does not say `could_not_run` is a check that ran and found problems: record it `--status completed --check findings` like any other. A `failed` reply that lists no finding is a failed task: record it `failed`. Use `failed` for a check task also when its subagent changed a file, with `--partial`. `batch-done` holds a check to that: when a file git sees changed after the check's `util write-prompt` and no other task of the phase declares it, `--status completed` is refused (exit 3, naming the files); record the check `--status failed`, or, if something other than its subagent changed them, run its `util write-prompt` again and run the check again. A check recorded with findings holds back the tasks that depend on it: `batch-done` prints a `[CHECK_BLOCKED]` line naming them and records each `pending` with the reason `not run — upstream check {id} reported problems`.
+     Do not dispatch them and record nothing for them (their `util write-prompt` exits 3); run every task that does not depend on the check. At the end, write the summary and close the phase without `--mark-completed` (step 10 refuses it while a held task is left), and report the held tasks and the way forward: fix what the check reported (by hand, or review-code then apply-code-fixes) and run this phase with `--resume` (the check runs again), or accept its findings with `--resume --human-task {id}=done` (the held tasks then run, and their prompts say the findings were accepted), or `--resume --human-task {id}=skip`. Its prior-changes summary is `(check findings — {n} problem(s): {findings}; no file changed)`.
+     For a task that **edits files** (it declares files, even when its title calls it a check), its reply carries a `check` object naming in `ran` the checks its subagent ran on its own edits (a test, a build, a syntax check): record it with the `--own-check` flags the rules in `references/own-check.md` give for that object, the reading the `--exec-subagents` leg applies to the same reply, with `--status completed`: `--own-check passed`, `--own-check findings` and one `--finding "{finding}"` per entry they list, or `--own-check none` (it ran no check, which is not a pass); never `--check`, which records only a check task's verdict (`batch-done` refuses it on such a task and names the call to make).
+     A recorded `--own-check findings` prints a `[BATCH_CHECK_FAILED]` line and records the failure in `state.json`, where `status` and the code review read it: the edits are kept and nothing waits for the task, but it is not a clean success — list it in the summary's `## Check Findings` (step 9) and say in your report that its check fails. When every finding it reports only repeats what the user accepted for a check (`--human-task <check>=done`) that the task depends on and whose failure is not the task's own job (the same command, all of one accepted finding or its first words, every number the same), `batch-done` prints `[BATCH_CHECK_ACCEPTED]` for those findings instead and records no failure for the task: name it under that check's accepted findings in `## Check Findings`, never as its own failing check, and the phase stays a clean finish; any other finding still prints `[BATCH_CHECK_FAILED]`.
+     A `[FINDING_RESTATE]` line after it names a finding that holds an accepted one word for word with words added, and gives the call that records the task again with the accepted finding alone and those words as `--note`: run it only when those words are the subagent's comment, never when they report something the check printed beyond the accepted finding (a note is a comment, never a failure: every failure the check printed stays a finding).
    - **Append to prior changes** — record the task's one-line `summary` (normalized: one line, at most 200 characters; for a failed task `(task failed — {compact reason})`) so every later task's bound prompt sees it, as the `--exec-subagents` leg records it. `--id` is the task id, `--phase` is `implement`, and `--output-dir` is the plan directory `{plan}` (the one holding `state.json`: the one log every write phase shares and the one `util write-prompt` binds from):
      ```bash
      uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util prior-changes append \

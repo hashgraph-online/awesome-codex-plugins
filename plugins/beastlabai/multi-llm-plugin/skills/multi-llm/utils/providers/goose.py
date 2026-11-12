@@ -4,17 +4,24 @@ import re
 import shutil
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     STATUS_AUTH_FAILED,
     STATUS_CONTEXT_LENGTH_EXCEEDED,
     STATUS_RATE_LIMITED,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
+    STDOUT_ENVELOPE,
+    STDOUT_PLAIN,
     StructuredSchema,
+    diagnostic_streams,
+    structural_stdout,
+    envelope_signature,
+    read_stdout,
     split_reasoning_effort,
 )
+from .parse_kit import answer_from_text, fail, loads_or_extract
 
 # Thinking effort values accepted by goose's ThinkingEffort parser, aliases
 # included (verified on goose 1.41.0). goose has no CLI flag for this — the
@@ -84,7 +91,7 @@ class GooseProvider(LLMProvider):
     Gotcha 2, and it is the parser's own: the envelope ECHOES the user
     prompt, so anything reading raw stdout is reading our prompt too.
     prompts/plan_review.txt contains the word "timeout", which alone makes
-    base.classify_streams answer `timeout` on a completely successful run
+    failure_classifier.classify_streams answer `timeout` on a completely successful run
     (the `prompt-echo` fixture row pins it).
     """
 
@@ -119,7 +126,7 @@ class GooseProvider(LLMProvider):
     #: refusing older installs buys nothing; the release that would actually hurt
     #: is a newer one that restyles the prefix, and that is precisely the case
     #: ``verified_version`` warns on. ``min_version`` is a hard exit-3 refusal in
-    #: ``subagent_executor._detect_version``; ``verified_version`` is a one-line
+    #: ``runner_preflight._detect_version``; ``verified_version`` is a one-line
     #: warning, and only the warning is earned.
     #:
     #: ``version_cmd`` stays, because it is the only thing that can ever make
@@ -197,13 +204,30 @@ class GooseProvider(LLMProvider):
         configurable_by=(),
     )
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: ``False``.
+    #: goose exits 0 on a provider error and writes its diagnosis as a text
+    #: part of the last assistant message (``Ran into this error: …``), where
+    #: the answer arrives too, and nothing captured marks which one a text part
+    #: is: a model turn lacks the ``metadata.inference`` stamp whenever goose
+    #: could not resolve the model's info (1.41.0), and the structured
+    #: ``type: "error"`` part only goose builds appears on no exit-0 capture
+    #: (``tests/fixtures/goose/``: only the exit-1 401). So an exit 0 is never
+    #: classified, on either lane
+    #: (docs/development/delegation.md#read-and-analyze-executor).
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: goose's shell tool and
+    #: the whole turn ride the stdout envelope; stderr is empty on every capture but the 401's,
+    #: which repeats goose's own ``Error: Ran into this error`` (tests/fixtures/goose).
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_SIGNATURE`, from the captures: goose's envelope opens
+    #: on ``messages`` (every row under tests/fixtures/goose/).
+    ENVELOPE_SIGNATURE = envelope_signature("messages")
+
     @property
     def name(self) -> str:
         return "goose"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("goose") is not None
@@ -256,6 +280,10 @@ class GooseProvider(LLMProvider):
         return {}
 
     def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
+        """:func:`stdout_shape.diagnostic_streams`, with :meth:`envelope_diagnostics`."""
+        return diagnostic_streams(stdout, stderr, self)
+
+    def envelope_diagnostics(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
         """The envelope minus the turns goose echoed back at us.
 
         goose's ``{"messages": [...], "metadata": {...}}`` envelope opens with
@@ -273,29 +301,22 @@ class GooseProvider(LLMProvider):
         gloss and the ``Available models for this provider`` list are all on
         that side of the filter, and ``metadata`` is untouched.
 
-        Degrades to its input on anything unexpected: a non-JSON stdout (goose
-        prints one on no measured path, but a killed process leaves a partial
-        envelope), a non-list ``messages``, or an envelope with no user turn in
-        it at all. stderr is returned unchanged — goose writes 0 bytes there on
-        every capture but the 1.53.0 401, which carries only goose's own
-        diagnosis there, and a reduction of a stream that carries no echo could
-        only lose a diagnosis.
+        Returns its input on anything unexpected: a non-list ``messages``, or
+        an envelope with no user turn in it at all. stderr is never reduced —
+        goose writes 0 bytes there on every capture but the 1.53.0 401, which
+        carries only goose's own diagnosis there, and a reduction of a stream
+        that carries no echo could only lose a diagnosis.
         """
-        try:
-            envelope = json.loads(stdout)
-            messages = envelope["messages"]
-            if not isinstance(messages, list):
-                return stdout, stderr
-            kept = [
-                message for message in messages
-                if not (isinstance(message, dict) and message.get("role") == "user")
-            ]
-            if len(kept) == len(messages):
-                return stdout, stderr
-            envelope["messages"] = kept
-            return json.dumps(envelope, indent=2, ensure_ascii=False), stderr
-        except (AttributeError, KeyError, TypeError, ValueError):
-            return stdout, stderr
+        messages = envelope.get("messages")
+        if not isinstance(messages, list):
+            return envelope
+        kept = [
+            message for message in messages
+            if not (isinstance(message, dict) and message.get("role") == "user")
+        ]
+        if len(kept) == len(messages):
+            return envelope
+        return {**envelope, "messages": kept}
 
     def classify_failure(
         self, stdout: str, stderr: str, exit_code: int = 0
@@ -320,7 +341,7 @@ class GooseProvider(LLMProvider):
         that reduction keeps.
         """
         try:
-            envelope = json.loads(stdout)
+            envelope = json.loads(structural_stdout(stdout, self))
         except (TypeError, ValueError):
             envelope = None
         for kind in last_assistant_error_kinds(envelope):
@@ -340,19 +361,21 @@ class GooseProvider(LLMProvider):
            and JSON embedded in prose
         """
         stdout = stdout.strip()
-        try:
-            envelope = json.loads(stdout)
-        except json.JSONDecodeError as e:
-            # Try fallback extraction on raw stdout
-            fallback = extract_json_from_text(stdout, prefer_arrays=True)
-            if fallback.get("success"):
-                return fallback
-            return {"success": False, "error": f"JSON parse error: {e}", "raw": stdout, "data": None}
+        shape = read_stdout(stdout, self.ENVELOPE_SIGNATURE)
+        if shape.kind == STDOUT_ENVELOPE:
+            envelope = shape.value
+        elif shape.kind != STDOUT_PLAIN:
+            # A text extraction over it would find the echoed user turn.
+            return shape.failure("goose", stdout)
+        else:
+            envelope, early = loads_or_extract(stdout)
+            if early is not None:
+                return early
 
         text = last_assistant_text(envelope)
 
         if text is None:
-            return {"success": False, "error": "No assistant message in output", "raw": stdout, "data": None}
+            return fail("No assistant message in output", stdout)
 
         # goose 1.53.0 puts a credential failure in a `type: "error"` part
         # (`kind: "authentication"`), not in text, and exits 1 with
@@ -360,22 +383,14 @@ class GooseProvider(LLMProvider):
         # without this branch, the run reported "Empty text response".
         error = last_assistant_error(envelope)
         if error:
-            return {"success": False, "error": error, "raw": stdout, "data": None}
+            return fail(error, stdout)
 
         text = text.strip()
 
         if "Ran into this error:" in text:
-            return {"success": False, "error": text, "raw": stdout, "data": None}
+            return fail(text, stdout)
 
-        if not text:
-            return {"success": False, "error": "Empty text response", "raw": stdout, "data": None}
-
-        if text.startswith(("[", "{")):
-            try:
-                return {"success": True, "data": json.loads(text)}
-            except json.JSONDecodeError:
-                pass
-        return extract_json_from_text(text, prefer_arrays=True)
+        return answer_from_text(text, raw=stdout)
 
     def salvage_text(self, stdout: str) -> Optional[str]:
         """The last assistant message's text, never the envelope (D2.5).

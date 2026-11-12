@@ -1,20 +1,16 @@
 """Shared filtering logic for suggestions and code fixes."""
 
 import copy
+import re
 import sys
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 from .human_decisions import is_judge_source
 from .judge_vocab import JUDGE_DECIDE, JUDGE_DECIDE_ITEM_IDS, upgrade_legacy
+from . import importance as _importance
 from .importance import get_highest_importance
 
-# Import error type constants (will be added to validation.py)
-try:
-    from .validation import ERROR_TYPE_AMBIGUOUS, RECOVERABLE_ERROR_TYPES
-except ImportError:
-    # Fallback if validation module not yet updated
-    ERROR_TYPE_AMBIGUOUS = "real_ambiguity"
-    RECOVERABLE_ERROR_TYPES = frozenset({"parsing_error", "timeout", "rate_limited"})
+from .validation import ERROR_TYPE_AMBIGUOUS
 
 
 def resolve_bulk_option_conflicts(
@@ -150,9 +146,9 @@ def filter_items(
     for warning in warnings:
         print(warning, file=sys.stderr)
 
-    # Priority levels for filtering
-    priority_levels = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
-    min_level = priority_levels.get(min_priority.upper(), 0)
+    # The floor for valid items, in either case; one naming no level is LOW
+    # (keep everything).
+    min_importance = _importance.normalize(min_priority, "LOW")
 
     valid = []
     needs_human = []
@@ -235,8 +231,7 @@ def filter_items(
                 approval_reason = f"--approve-importance {importance}"
 
         elif status == "valid":
-            importance_level = priority_levels.get(importance, 0)
-            if importance_level < min_level:
+            if not _importance.at_least(importance, min_importance):
                 skipped.append(group)
                 continue
             else:
@@ -280,65 +275,6 @@ def filter_items(
     return valid, needs_human, skipped, dry_run_report
 
 
-def validate_batch_mode_honored(
-    human_review_config: Dict[str, Any],
-    recorded_decisions: Dict[str, Any]
-) -> Tuple[bool, List[str]]:
-    """
-    Verify that batch mode was respected based on recorded decisions.
-
-    When batch mode is enabled, decisions should be recorded with batch_context.
-    This function validates that per-item prompting did not occur despite
-    batch mode being enabled.
-
-    Args:
-        human_review_config: The human_review_config from orchestrator output
-        recorded_decisions: The recorded decisions from state (group_id -> decision)
-
-    Returns:
-        Tuple of (is_valid, warnings)
-        - is_valid: True if batch mode was honored
-        - warnings: List of warning messages if batch mode was not honored
-    """
-    warnings = []
-
-    if not human_review_config.get("batch_enabled", False):
-        return True, []  # Batch mode not enabled, no validation needed
-
-    if not recorded_decisions:
-        return True, []  # No decisions recorded yet
-
-    # Check if decisions have batch_context
-    batch_ids = set()
-    non_batch_decisions = []
-
-    for group_id, decision in recorded_decisions.items():
-        batch_ctx = decision.get("batch_context")
-        if batch_ctx:
-            batch_ids.add(batch_ctx.get("batch_id"))
-        else:
-            non_batch_decisions.append(group_id)
-
-    is_valid = True
-
-    if non_batch_decisions:
-        is_valid = False
-        warnings.append(
-            f"WARNING: {len(non_batch_decisions)} decisions were recorded without "
-            f"batch_context despite batch_enabled=True. This suggests per-item "
-            f"prompting occurred instead of batch prompting."
-        )
-
-    if len(batch_ids) > 2:  # Allow at most 2 batches (e.g., one approve, one skip)
-        warnings.append(
-            f"WARNING: {len(batch_ids)} different batch_ids found. Expected 1-2 "
-            f"batches for efficient batch mode. Multiple batches may indicate "
-            f"suboptimal prompting strategy."
-        )
-
-    return is_valid, warnings
-
-
 def validate_judge_decide_items_honored(
     human_review_config: Dict[str, Any],
     recorded_decisions: Dict[str, Any],
@@ -347,8 +283,7 @@ def validate_judge_decide_items_honored(
 
     The per-item routing decision (judge-without-prompting vs. prompt) is made
     by the host agent following the prose in the apply instructions; this is a
-    post-hoc audit (a sibling of :func:`validate_batch_mode_honored`), not a
-    hard pre-flight gate. For every id in
+    post-hoc audit, not a hard pre-flight gate. For every id in
     ``human_review_config["judge_decide_item_ids"]`` it checks that a decision
     was recorded and that the decision's ``batch_context.decision_source`` is
     ``judge_auto_decide`` or ``judge_auto_decide_salvage`` (i.e. it was
@@ -399,12 +334,6 @@ def validate_judge_decide_items_honored(
     return is_valid, warnings
 
 
-def generate_batch_id() -> str:
-    """Generate a unique batch ID for recording batch decisions."""
-    from datetime import datetime
-    return f"batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
-
 def filter_user_skipped_groups(
     groups: List[Dict[str, Any]],
     skipped_group_hashes: Set[str],
@@ -433,7 +362,6 @@ def filter_user_skipped_groups(
     Returns:
         Tuple of (filtered_groups, user_skipped_count)
     """
-    import re
 
     # --- Sanitize skipped_group_hashes: filter out non-str elements ---
     sanitized_group_hashes: Set[str] = set()

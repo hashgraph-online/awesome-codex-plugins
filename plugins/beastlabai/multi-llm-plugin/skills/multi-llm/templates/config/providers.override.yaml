@@ -127,7 +127,7 @@
 #       - haiku
 #       - claude-sonnet-5-5
 #       - claude-opus-5-5
-#       - claude-fable-5-1
+#       - claude-fable-5-2
 #       - claude-haiku-5-5
 #     fallback_models: {}
 #     strip_vendor_keys: auto
@@ -143,7 +143,7 @@
 #       - gpt-5.6-sol-xhigh
 #       - gpt-5.6-terra-xhigh
 #       - gpt-5.6-luna-high
-#       - gemini-4-argon-high
+#       - gemini-4-carbon-high
 #       - gemini-3.8-flash-high
 #       - kimi-k3-high
 #       - kimi-k3-max
@@ -152,7 +152,7 @@
 #       - grok-4.7-high
 #       - claude-sonnet-5-5-xhigh
 #       - claude-opus-5-5-xhigh
-#       - claude-fable-5-1-high
+#       - claude-fable-5-2-high
 #       - claude-haiku-5-5-thinking-high
 #       - muse-wonder-1.0-xhigh
 #       - muse-spark-1.3-xhigh
@@ -160,7 +160,7 @@
 #   gemini:
 #     default_timeout: 1200
 #     models:
-#       - gemini-4-argon
+#       - gemini-4-carbon
 #       - gemini-3.8-flash
 #       - gemini-3.5-flash-lite
 #       - gemini-flash-latest
@@ -183,7 +183,7 @@
 #     models:
 #       - opencode/big-pickle
 #       - opencode/nemotron-3.5-super-vl-free
-#       - google/gemini-4-argon
+#       - google/gemini-4-carbon
 #       - openai/gpt-6.1-sol
 #       - openai/gpt-6-astra
 #       - openrouter/deepseek/deepseek-v4.1-flash-1017
@@ -195,6 +195,7 @@
 #       - gpt-6.1-sol:xhigh
 #       - gpt-6-astra
 #       - gpt-6-astra:xhigh
+#       - gpt-6.1-terra
 #       - gpt-6-luna
 #     sandbox_fallback: auto
 
@@ -202,26 +203,26 @@
 #     default_timeout: 1200
 #     max_concurrent: 2
 #     models:
-#       - openrouter/moonshotai/kimi-k3:max
+#       - openrouter/moonshotai/kimi-k3.1-pro:max
 #       - openrouter/nvidia/nemotron-3-ultra-550b-a55b
 #       - openrouter/z-ai/glm-5.3:max
 #       - kilo/z-ai/glm-5.3
 #       - openrouter/minimax/minimax-m3.1-flash
 #       - openrouter/x-ai/grok-4.7
-#       - openrouter/arcee-ai/trinity-large-thinking
 #       - openrouter/xiaomi/mimo-v2.6-pro
 #       - openrouter/qwen/qwen3.8-max-0902:xhigh
-#       - openrouter/tencent/hy4-preview:high
+#       - openrouter/tencent/hy4:high
 #       - openrouter/stepfun/step-5-preview:high
 #       - openrouter/openai/gpt-6-astra-pro
 #       - openai/gpt-6-astra
-#       - openrouter/nex-agi/nex-n2.5-pro
+#       - openrouter/nex-agi/nex-n2.6
 #       - openrouter/google/gemini-3.8-flash
-#       - openrouter/google/gemini-4-argon
-#       - google/gemini-4-argon
+#       - openrouter/google/gemini-4-carbon
+#       - google/gemini-4-carbon
 #       - openrouter/deepseek/deepseek-v4-pro-0813
 #       - openrouter/anthropic/claude-sonnet-5.5
-#       - openrouter/anthropic/claude-fable-5.1
+#       - openrouter/anthropic/claude-fable-5.2
+#       - openrouter/meta/muse-wonder
 
 #   cline:
 #     default_timeout: 1200
@@ -282,6 +283,7 @@
 #     default_timeout: 1200
 #     max_concurrent: 2
 #     models:
+#       - moonshotai/kimi-k3.1-pro
 #       - moonshotai/kimi-k3
 
 #   qwen-code:
@@ -383,17 +385,17 @@ defaults:
   ## `--init` uncomments the candidates whose provider is detected; with none
   ## uncommented the (blank) list inherits the base.
   models:
-#     - cursor-agent:gemini-4-argon-high
+#     - cursor-agent:gemini-4-carbon-high
 #     - cursor-agent:grok-4.7-high
 #     - opencode:openrouter/deepseek/deepseek-v4.1-flash-1017
-#     - kilocode:openrouter/moonshotai/kimi-k3:max
+#     - kilocode:openrouter/moonshotai/kimi-k3.1-pro:max
 #     - kilocode:openrouter/nvidia/nemotron-3-ultra-550b-a55b:high
 #     - kilocode:openrouter/z-ai/glm-5.3:max
 #     - kilocode:openrouter/minimax/minimax-m3.1-flash
 #     - kilocode:openrouter/xiaomi/mimo-v2.6-pro:high
 #     - kilocode:openrouter/qwen/qwen3.8-max-0902:xhigh
 #     - codex:gpt-6-astra:xhigh
-#     - claude-code:claude-fable-5-1:high
+#     - claude-code:claude-fable-5-2:high
 
   ## --- defaults.quick_models ------------------------------------------------
   ## Lightweight subset used with --quick / -q. REPLACES the base list. Same
@@ -401,7 +403,7 @@ defaults:
   quick_models:
 #     - cursor-agent:grok-4.7-high
 #     - codex:gpt-6-astra:xhigh
-#     - claude-code:claude-fable-5-1:high
+#     - claude-code:claude-fable-5-2:high
 
   ## --- defaults.modes -------------------------------------------------------
   ## Per-mode overrides (NOT written by `--init`). A mode's `models` (and optional

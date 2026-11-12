@@ -5,9 +5,12 @@ Usage:
     uv run --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util update-tasks --plan-file <plan_path> --tasks-file <tasks_json_path>
 
 This script:
-1. Reads the tasks JSON file
+1. Reads the tasks JSON file and validates it as a task-generation result
 2. Creates the tasks markdown file in {plan}/tasks/tasks.md
 3. Updates the plan file with a reference to the tasks file
+
+``apply_tasks_document`` does steps 2-3 for a parsed document; generate-tasks
+calls it in-process, and ``main`` is the CLI wrapper around it.
 """
 
 import argparse
@@ -15,18 +18,22 @@ import json
 import os
 import re
 import sys
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
+from utils.atomic_io import atomic_write_bytes, atomic_write_text
 from utils.stream_bootstrap import bootstrap_streams
-from utils.output_handler import get_output_paths, get_relative_output_path
+from utils.output_handler import output_file_path
 from utils.plan_updater import insert_tasks_file_reference
 from utils.state_manager import get_or_create_state
 from utils.subagent_tasks import derive_executor_role
+from utils.write_safety import PathEscape, contain_local_path, write_below_root
+from utils.task_result import normalize_result, supply_result_version, validate_result
 
 
 COMPLEXITY_COLORS = {
@@ -254,124 +261,184 @@ def find_in_plan_task_sections(plan_content: str) -> List[str]:
     return found
 
 
-def validate_tasks_json(data: Any) -> tuple[bool, str]:
+class TasksDocumentError(Exception):
+    """A task-generation document was not applied.
+
+    Raised before the first write for a missing plan, an invalid document, a
+    malformed ``SOURCE_DATE_EPOCH`` or a task list that would resolve out of
+    the plan's directory; an ``OSError`` from a write propagates as
+    itself. Callers that must leave the plan untouched snapshot it first
+    (``generate_tasks_orchestrator._Snapshot``).
     """
-    Validate the tasks JSON structure.
 
-    Args:
-        data: Parsed JSON data
 
-    Returns:
-        Tuple of (is_valid, error_message)
+class TasksOutputEscape(TasksDocumentError):
+    """A file in the plan's output folder resolves outside the plan's
+    directory, so it is not written (:func:`contain_plan_output`)."""
+
+
+class TasksDocumentInvalid(TasksDocumentError):
+    """The document fails ``validate_result("task_generation", ...)``: the
+    schema, then ``task_decomposer.validate_generated_tasks``' graph rules."""
+
+    def __init__(self, errors: List[str]):
+        self.errors = list(errors)
+        super().__init__(
+            "the document is not a valid task-generation result:\n"
+            + "\n".join(f"  - {problem}" for problem in self.errors[:10])
+        )
+
+
+@dataclass(frozen=True)
+class AppliedTasks:
+    """What :func:`apply_tasks_document` wrote, or would write on a dry run."""
+
+    tasks_path: Path
+    tasks_relative_path: str
+    task_count: int
+    dry_run: bool
+
+
+def plan_output_root(plan_path: Path) -> str:
+    """The folder *plan_path*'s outputs stay in: the directory the plan is
+    reached through. The plan file itself is not followed, so a plan kept
+    elsewhere and linked in keeps its outputs beside the link."""
+    return os.path.dirname(os.path.abspath(plan_path))
+
+
+def contain_plan_output(
+    plan_path: Path, path: Path, *, what: str, follow_final: bool = True
+) -> Path:
+    """Where *path*, a file in *plan_path*'s output folder, resolves;
+    :class:`TasksOutputEscape` unless that stays inside the plan's directory
+    (docs/development/write-safety.md#plan-output-containment).
+
+    The boundary (:func:`plan_output_root`), resolved, is inside the plan's
+    repository, and is where implement reads the task list from
+    (``tasks_file.resolve_tasks_marker`` refuses a list that resolves
+    anywhere else). A link that stays inside is resolved, so the write lands
+    where it leads; *follow_final* off resolves the folder alone, for a
+    rename of the entry itself. Pure: nothing is created. This is the check;
+    the write is :func:`write_plan_output` (or ``write_safety``'s rename and
+    removal), made through the resolved folder held, so a link swapped in
+    after this check is never followed.
     """
-    if not isinstance(data, dict):
-        return False, "Root must be an object with 'tasks' array"
 
-    if "tasks" not in data:
-        return False, "Missing 'tasks' field"
+    path = Path(path)
+    plan_dir = plan_output_root(plan_path)
+    try:
+        if follow_final:
+            return contain_local_path(path, plan_dir, what=what)
+        return contain_local_path(path.parent, plan_dir, what=what) / path.name
+    except PathEscape as escape:
+        raise TasksOutputEscape(
+            f"{escape.message} A symlink in the plan's output folder leads out of "
+            f"the plan's directory, so nothing was written: the plan and its "
+            f"state are unchanged. Remove the link, or point it inside "
+            f"{plan_dir}, and re-run."
+        ) from escape
+
+
+def write_plan_output(plan_path: Path, target: Path, data: Union[str, bytes]) -> None:
+    """Write *data* at *target*, a file in *plan_path*'s output folder as
+    :func:`contain_plan_output` resolved it, through its folder held below
+    the plan's directory and never through a link
+    (``write_safety.write_below_root``). Text is written as
+    :func:`replace_file` writes it (the platform's newlines); an existing
+    file's mode carries over. ``OSError`` when it is not written: a link or
+    a moved folder met on the way is refused, never followed."""
+
+    if isinstance(data, str):
+        data = data.replace("\n", os.linesep).encode("utf-8")
+    write_below_root(plan_output_root(plan_path), target, data)
+
+
+def replace_file(path: Path, data: Union[str, bytes]) -> None:
+    """Write *data* to the plan at *path* by ``atomic_io``'s atomic write.
+
+    A crash or a failed write leaves the old bytes in place, never a truncated
+    file. Text is written the way ``Path.write_text(encoding="utf-8")`` writes
+    it (the platform's newlines); bytes land exactly. A symlink is written
+    through to its target, so the link survives: the plan is the user's own
+    file, which they may keep elsewhere and link in on purpose, so it is the
+    one file this flow follows a link for. Every output written beside it
+    goes through :func:`write_plan_output`, which never does. An existing
+    file's permission bits carry over to the replacement; a new file gets the
+    process umask, as ``write_text`` would. The temp file is never readable
+    more widely than the file it replaces, and a returned call survives a
+    power loss.
+    """
+    if isinstance(data, bytes):
+        atomic_write_bytes(path, data, follow_symlinks=True)
+    else:
+        atomic_write_text(path, data, newline=os.linesep, follow_symlinks=True)
+
+
+def apply_tasks_document(
+    plan_path: Path, data: Any, *, dry_run: bool = False
+) -> AppliedTasks:
+    """Render *data*'s tasks into ``tasks.md``, point the plan at it, record the phase.
+
+    *data* is a parsed task-generation document. It is read the way every lane
+    reads one — an omitted empty list, ``subagent_type`` or ``schema_version``
+    is supplied in place (``task_result.normalize_result``,
+    ``supply_result_version``) — then validated with the executor's own verdict
+    for the kind, so nothing reaches the plan that the executor would have
+    refused. Raises :class:`TasksDocumentError` (or an ``OSError`` from a
+    write) on failure; prints what it did.
+    """
+    plan_path = Path(plan_path)
+    if not plan_path.exists():
+        raise TasksDocumentError(f"Plan file not found: {plan_path}")
+
+    normalize_result("task_generation", data)
+    supply_result_version("task_generation", data)
+    errors = validate_result("task_generation", data)
+    if errors:
+        raise TasksDocumentInvalid(errors)
 
     tasks = data["tasks"]
-    if not isinstance(tasks, list):
-        return False, "'tasks' must be an array"
+    preamble = data.get("plan_preamble", "")
 
-    if len(tasks) == 0:
-        return False, "'tasks' array is empty"
-
-    for i, task in enumerate(tasks):
-        if not isinstance(task, dict):
-            return False, f"Task {i} is not an object"
-        if "id" not in task:
-            return False, f"Task {i} missing 'id' field"
-        if "title" not in task:
-            return False, f"Task {i} missing 'title' field"
-
-    return True, ""
-
-
-def main(argv=None) -> int:
-    """Main entry point."""
-    bootstrap_streams()
-    parser = argparse.ArgumentParser(
-        description="Update plan file with generated tasks"
-    )
-    parser.add_argument(
-        "--plan-file",
-        required=True,
-        help="Path to the plan markdown file"
-    )
-    parser.add_argument(
-        "--tasks-file",
-        required=True,
-        help="Path to the tasks JSON file"
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Show what would be done without modifying files"
-    )
-    args = parser.parse_args(argv)
-
-    plan_path = Path(args.plan_file).resolve()
-    tasks_json_path = Path(args.tasks_file).resolve()
-
-    # Validate inputs
-    if not plan_path.exists():
-        print(f"ERROR: Plan file not found: {plan_path}", file=sys.stderr)
-        return 1
-
-    if not tasks_json_path.exists():
-        print(f"ERROR: Tasks JSON file not found: {tasks_json_path}", file=sys.stderr)
-        return 1
-
-    # Read and parse tasks JSON
     try:
-        tasks_data = json.loads(tasks_json_path.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as e:
-        print(f"ERROR: Failed to parse tasks JSON: {e}", file=sys.stderr)
-        return 1
-
-    # Validate structure
-    is_valid, error_msg = validate_tasks_json(tasks_data)
-    if not is_valid:
-        print(f"ERROR: Invalid tasks JSON: {error_msg}", file=sys.stderr)
-        return 1
-
-    tasks = tasks_data["tasks"]
-    preamble = tasks_data.get("plan_preamble", "")
-
-    # Generate tasks markdown
-    plan_name = plan_path.name
-    try:
-        tasks_markdown = generate_tasks_markdown(tasks, plan_name)
+        tasks_markdown = generate_tasks_markdown(tasks, plan_path.name)
     except ValueError as e:  # a malformed SOURCE_DATE_EPOCH; nothing written yet
-        print(f"ERROR: {e}", file=sys.stderr)
-        return 1
+        raise TasksDocumentError(str(e)) from e
 
-    # Get output path for tasks file
-    tasks_output_path = get_output_paths(plan_path, "tasks", phase="tasks")
-    tasks_relative_path = get_relative_output_path(plan_path, "tasks", phase="tasks")
+    # Computed, not created, then contained before anything is written: a
+    # symlink named like the output (the list, its folder, the plan's output
+    # folder) must not carry the write out of the plan's directory. A dry run
+    # reports the same refusal.
+    tasks_output_path = output_file_path(plan_path, "tasks", phase="tasks")
+    tasks_target = contain_plan_output(plan_path, tasks_output_path, what="task list")
+    tasks_relative_path = tasks_output_path.relative_to(plan_path.parent).as_posix()
+    applied = AppliedTasks(
+        tasks_path=tasks_output_path,
+        tasks_relative_path=tasks_relative_path,
+        task_count=len(tasks),
+        dry_run=dry_run,
+    )
 
-    # Read plan content
     plan_content = plan_path.read_text(encoding="utf-8")
-
-    # Update plan with tasks file reference
     updated_plan = insert_tasks_file_reference(plan_content, tasks_relative_path)
 
-    if args.dry_run:
+    if dry_run:
         print("Dry run - would perform these actions:")
         print(f"\n1. Create tasks file: {tasks_output_path}")
         print(f"   ({len(tasks)} tasks)")
         print(f"\n2. Update plan file: {plan_path}")
         print(f"   Add reference: <!-- TASKS_FILE: {tasks_relative_path} -->")
-        return 0
+        return applied
 
-    # Create tasks directory and file
-    tasks_output_path.parent.mkdir(parents=True, exist_ok=True)
-    tasks_output_path.write_text(tasks_markdown, encoding="utf-8")
+    # Through its folder, held below the plan's directory: a link swapped in
+    # after the check above, for the list or a folder above it, is refused.
+    write_plan_output(plan_path, tasks_target, tasks_markdown)
     print(f"Created tasks file: {tasks_output_path}")
 
-    # Update plan file
-    plan_path.write_text(updated_plan, encoding="utf-8")
+    # The plan alone is written through a symlink wherever it leads: the
+    # user's own file, kept elsewhere and linked in on purpose (not an
+    # output, so not contained).
+    replace_file(plan_path, updated_plan)
     # Said what was written: a bare "Updated plan file" read as generate-tasks
     # rewriting the plan (OpenCode racing run 4). The section and its
     # TASKS_FILE marker are how every later phase finds the task list.
@@ -400,7 +467,7 @@ def main(argv=None) -> int:
         state.save()
         print(f"Stored plan preamble ({len(preamble)} chars)")
 
-    # Re-stamp the hash over the plan *this script just rewrote*. The
+    # Re-stamp the hash over the plan *this function just rewrote*. The
     # StateManager above is constructed after the write, so `_load_or_create`
     # sees the marker insertion as drift and sets `plan_changed: True` — the
     # plugin flagging its own edit as a human's. Measured 2026-09-16: the next
@@ -416,6 +483,57 @@ def main(argv=None) -> int:
         deps_str = f" (depends on: {', '.join(deps)})" if deps else ""
         print(f"  - {task['id']}: {task['title']}{deps_str}")
 
+    return applied
+
+
+def main(argv=None) -> int:
+    """``util update-tasks``: read a tasks JSON file and apply it to a plan."""
+    bootstrap_streams()
+    parser = argparse.ArgumentParser(
+        description="Update plan file with generated tasks"
+    )
+    parser.add_argument(
+        "--plan-file",
+        required=True,
+        help="Path to the plan markdown file"
+    )
+    parser.add_argument(
+        "--tasks-file",
+        required=True,
+        help="Path to the tasks JSON file"
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show what would be done without modifying files"
+    )
+    args = parser.parse_args(argv)
+
+    plan_path = Path(args.plan_file).resolve()
+    tasks_json_path = Path(args.tasks_file).resolve()
+
+    if not plan_path.exists():
+        print(f"ERROR: Plan file not found: {plan_path}", file=sys.stderr)
+        return 1
+
+    if not tasks_json_path.exists():
+        print(f"ERROR: Tasks JSON file not found: {tasks_json_path}", file=sys.stderr)
+        return 1
+
+    try:
+        tasks_data = json.loads(tasks_json_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        print(f"ERROR: Failed to parse tasks JSON: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        apply_tasks_document(plan_path, tasks_data, dry_run=args.dry_run)
+    except TasksDocumentInvalid as invalid:
+        print(f"ERROR: Invalid tasks JSON: {invalid}", file=sys.stderr)
+        return 1
+    except TasksDocumentError as e:
+        print(f"ERROR: {e}", file=sys.stderr)
+        return 1
     return 0
 
 

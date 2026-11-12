@@ -5,9 +5,9 @@
   </picture>
 </p>
 
-<p align="center"><b>Shared local memory, cross-agent handoff, and code recovery across 43 coding agents.</b><br>
+<p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 43 coding agents.</b><br>
 Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 36 more agents already save every session to disk.<br>
-<code>deja</code> indexes all of it locally in one Go binary — zero LLM calls, 0.7 ms in-process lookup, ~4% index footprint.</p>
+<b>deja-vu</b> (<code>deja</code>) indexes all of it locally in one Go binary — zero LLM calls, 0.7 ms in-process lookup, ~4% index footprint.</p>
 
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
 
@@ -24,17 +24,19 @@ Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 36 more a
 <p align="center"><img src="https://raw.githubusercontent.com/vshulcz/deja-vu/main/assets/demo.gif" width="720" alt="The same question put to the same agent twice: without memory it has no record of it, with deja it answers with the decision from eight months earlier"></p>
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh
-deja install --auto
+npx @vshulcz/deja-vu install --auto                # 1-step cross-platform install + wire installed agents
+# or via shell / Homebrew:
+curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh && deja install --auto
 ```
 
-<p align="center"><sub>Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Inspect existing stores without installing: <code>npx @vshulcz/deja-vu sources</code></sub></p>
+<p align="center"><sub>Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Audit local stores &amp; retention risk without installing: <code>npx @vshulcz/deja-vu audit</code></sub></p>
 
 ```sh
 $ deja "jwt refresh token"             # lexical + structural search across all 43 agent stores
 $ deja handoff --to codex              # continue the active session's goal & state in another agent
 $ deja restore internal/auth/jwt.go    # recover code an agent overwrote before git commit
 $ deja blame internal/auth/jwt.go:42   # trace which agent session wrote or replaced a line
+$ deja audit                           # check retention risk, purged chats & index health across all 43 stores
 ```
 
 <table align="center">
@@ -243,6 +245,7 @@ as usual. `deja search <query>` skips the suggestion.
 | `deja secrets [--scrub]` | Which sessions' source transcripts carry credentials, and what kind. Never prints a value. `--scrub` rewrites the ones it can, original kept beside the file. |
 | `deja rules [sync]` | Keep your standing rules in `~/.config/deja/rules.md`; `sync` copies them as a marked block into every installed agent's global rules file. |
 | `deja rules candidates [--json] [--limit n] [--since 90d] [--project name] [--repo]` | The turns where you corrected an agent, across every tool (or scoped to `--repo` / `--project`), numbered with their session. Ask your agent to suggest rules and it groups them; nothing is written until you pick. |
+| `deja audit [--json]` | Read-only check of local agent stores, Claude Code `cleanupPeriodDays` transcript deletion risk, preserved deleted sessions, recoverable edit paths, and wiring state. |
 | `deja doctor [--deep]` | Self-diagnosis, and with `--deep`, proof of the index against the sources. |
 | `deja mcp` | The stdio MCP server, which is what `deja install` wires in. |
 
@@ -374,7 +377,7 @@ for people who install extensions there rather than from a CLI:
 | Hermes | memory provider `deja-memory`, in the Hermes plugin catalog | `hermes plugins install deja-memory`, or from GitHub: `hermes plugins install vshulcz/deja-vu/extensions/hermes` |
 | Magpie | npm `@vshulcz/magpie-deja` | `magpie plugin add @vshulcz/magpie-deja` |
 | VS Code / Cursor / Windsurf | status bar extension `vshulcz.deja-status` | `code --install-extension vshulcz.deja-status` |
-| JetBrains IDEs | IntelliJ, GoLand, PyCharm, WebStorm &amp; RustRover plugin ([`extensions/jetbrains/`](extensions/jetbrains/)) | `idea installPlugins com.github.vshulcz.deja-vu` |
+| JetBrains IDEs | [JetBrains Marketplace](https://plugins.jetbrains.com/plugin/35998-deja-vu-cross-agent-ai-session-memory) (`com.github.vshulcz.deja-vu`) | `idea installPlugins com.github.vshulcz.deja-vu` |
 | Neovim | `lazy.nvim` &amp; CodeCompanion plugin ([`extensions/nvim/`](extensions/nvim/)) | `{ "vshulcz/deja-vu", opts = {} }` |
 | tmux | [TPM](https://github.com/tmux-plugins/tpm) popup (`prefix + D`) &amp; `#{deja_status}` (`deja.tmux`) | `set -g @plugin 'vshulcz/deja-vu'` |
 | Raycast | Raycast extension `deja-vu` | `cd extensions/raycast && npm install && npx ray develop` |
@@ -531,6 +534,20 @@ and a search for a word most sessions hold takes about a second.
 
 </details>
 
+### How it compares
+
+| Capability | `deja-vu` | `claude-mem` | `MemPalace` |
+| --- | --- | --- | --- |
+| History before install ([day zero](https://vshulcz.github.io/deja-vu/guide/day-zero.html)) | Yes — indexes existing transcripts (`36/100` hit@1) | No — records from install onward (`0/100`) | Claude Code, Codex, Cursor (`16/100`) |
+| Agents shared | 43 harnesses | 9 (hooks) | 3 (CLI) |
+| LongMemEval-S R@5 | **97.2%** (88.9% hit@1) | — | 96.6% |
+| Runtime & dependencies | 1 Go binary | Bun worker + SQLite + Chroma | Python + 300 MB embedding model |
+| LLM calls / account required | None | Observer LLM calls | None |
+| Uncommitted file recovery | `deja restore <path>` | No | No |
+| Existing `claude-mem.db` | Reads `~/.claude-mem/claude-mem.db` directly | Native | No |
+
+Side-by-side notes: [all 15 tools compared](https://vshulcz.github.io/deja-vu/guide/compare.html) · [claude-mem alternative](https://vshulcz.github.io/deja-vu/guide/claude-mem-alternative.html) · [Mem0 alternative](https://vshulcz.github.io/deja-vu/guide/mem0-alternative.html) · [SpecStory alternative](https://vshulcz.github.io/deja-vu/guide/specstory-alternative.html) · [Basic Memory alternative](https://vshulcz.github.io/deja-vu/guide/basic-memory-alternative.html).
+
 ## How it works
 
 Local inverted index in `~/.cache/deja`: parse the JSONL and SQLite stores, redact
@@ -639,10 +656,10 @@ Windows the notes are in `%AppData%\deja`).
 
 ## Guides
 
-- **Context & recovery:** [Does your agent remember previous conversations?](https://vshulcz.github.io/deja-vu/guide/does-my-agent-remember.html) · [The agent lost the context you had](https://vshulcz.github.io/deja-vu/guide/lost-context.html) · [The context window is full](https://vshulcz.github.io/deja-vu/guide/context-window-full.html) · [What compaction drops](https://vshulcz.github.io/deja-vu/guide/after-compaction.html) · [Why agents forget between sessions](https://vshulcz.github.io/deja-vu/guide/forgetting.html)
-- **Resuming & finding:** [Resuming yesterday's session](https://vshulcz.github.io/deja-vu/guide/resume-a-session.html) · [Finding the session where you solved it](https://vshulcz.github.io/deja-vu/guide/find-a-session.html) · [The agent repeats a mistake you already fixed](https://vshulcz.github.io/deja-vu/guide/repeated-mistakes.html) · [Switching agents](https://vshulcz.github.io/deja-vu/guide/switching-agents.html)
-- **Session files & cleanup:** [Session files on disk](https://vshulcz.github.io/deja-vu/guide/session-files-on-disk.html) · [Where each agent keeps its history](https://vshulcz.github.io/deja-vu/guide/where-sessions-are-stored.html) · [Recovering a deleted Claude Code session](https://vshulcz.github.io/deja-vu/guide/recover-a-deleted-session.html) · [Claude Code: No conversation found with session ID](https://vshulcz.github.io/deja-vu/guide/no-conversation-found-claude-code.html) · [Codex resume session](https://vshulcz.github.io/deja-vu/guide/codex-resume-session.html) · [Deleting old Claude Code sessions](https://vshulcz.github.io/deja-vu/guide/delete-old-claude-sessions.html)
-- **Comparisons & operations:** [What each memory tool knows the day you install it](https://vshulcz.github.io/deja-vu/guide/day-zero.html) · [Memory plugins compared](https://vshulcz.github.io/deja-vu/guide/compare.html) · [What memory costs](https://vshulcz.github.io/deja-vu/guide/token-cost.html) · [Auditing an agent](https://vshulcz.github.io/deja-vu/guide/auditing-agents.html) · [Exporting a conversation](https://vshulcz.github.io/deja-vu/guide/export-conversations.html) · [Across machines](https://vshulcz.github.io/deja-vu/guide/sync-across-machines.html)
+- **Context & recovery:** [Recovering overwritten uncommitted files](https://vshulcz.github.io/deja-vu/guide/recover-overwritten-files.html) · [Does your agent remember previous conversations?](https://vshulcz.github.io/deja-vu/guide/does-my-agent-remember.html) · [The agent lost the context you had](https://vshulcz.github.io/deja-vu/guide/lost-context.html) · [The context window is full](https://vshulcz.github.io/deja-vu/guide/context-window-full.html) · [What compaction drops](https://vshulcz.github.io/deja-vu/guide/after-compaction.html) · [Why agents forget between sessions](https://vshulcz.github.io/deja-vu/guide/forgetting.html)
+- **Resuming & finding:** [Claude Code usage-limit handoff](https://vshulcz.github.io/deja-vu/guide/claude-code-usage-limit-handoff.html) · [Resuming yesterday's session](https://vshulcz.github.io/deja-vu/guide/resume-a-session.html) · [Finding the session where you solved it](https://vshulcz.github.io/deja-vu/guide/find-a-session.html) · [The agent repeats a mistake you already fixed](https://vshulcz.github.io/deja-vu/guide/repeated-mistakes.html) · [Switching agents](https://vshulcz.github.io/deja-vu/guide/switching-agents.html)
+- **Session files & cleanup:** [Session files on disk](https://vshulcz.github.io/deja-vu/guide/session-files-on-disk.html) · [Where each agent keeps its history](https://vshulcz.github.io/deja-vu/guide/where-sessions-are-stored.html) · [Recovering a deleted Claude Code session](https://vshulcz.github.io/deja-vu/guide/recover-a-deleted-session.html) · [Claude Code: No conversation found with session ID](https://vshulcz.github.io/deja-vu/guide/no-conversation-found-claude-code.html) · [Cursor state.vscdb too large](https://vshulcz.github.io/deja-vu/guide/cursor-state-vscdb-too-large.html) · [Codex resume session](https://vshulcz.github.io/deja-vu/guide/codex-resume-session.html) · [Deleting old Claude Code sessions](https://vshulcz.github.io/deja-vu/guide/delete-old-claude-sessions.html)
+- **Comparisons & operations:** [What each memory tool knows the day you install it](https://vshulcz.github.io/deja-vu/guide/day-zero.html) · [Memory plugins compared](https://vshulcz.github.io/deja-vu/guide/compare.html) · [claude-mem alternative](https://vshulcz.github.io/deja-vu/guide/claude-mem-alternative.html) · [Mem0 alternative](https://vshulcz.github.io/deja-vu/guide/mem0-alternative.html) · [SpecStory alternative](https://vshulcz.github.io/deja-vu/guide/specstory-alternative.html) · [Basic Memory alternative](https://vshulcz.github.io/deja-vu/guide/basic-memory-alternative.html) · [What memory costs](https://vshulcz.github.io/deja-vu/guide/token-cost.html) · [Auditing an agent](https://vshulcz.github.io/deja-vu/guide/auditing-agents.html) · [Exporting a conversation](https://vshulcz.github.io/deja-vu/guide/export-conversations.html) · [Across machines](https://vshulcz.github.io/deja-vu/guide/sync-across-machines.html)
 
 <details>
 <summary><b>Per-harness setup guides (Claude Code, Codex, Cursor, OpenClaw, Hermes…)</b></summary>

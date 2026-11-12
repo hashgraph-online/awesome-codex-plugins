@@ -10,14 +10,6 @@ both wrap the model's answer in the same envelope::
 behavioural differences measured over the envelope shapes in
 ``tests/test_result_envelope.py``. This module is that logic, once.
 
-Not folded in here: ``llm_client.parse_subagent_response``, the legacy third
-copy. It uses a weaker extractor and returns bare parsed JSON instead of a
-``{"success": ..., "data": ...}`` result, and it is **live** behind the shipped
-``--internal-validation`` flag (``review_orchestrator_base`` →
-``validation.validate_groups`` → ``invoke_for_json`` → ``invoke_subagent`` +
-``parse_subagent_response``). Unifying it would change what that flag returns,
-so it stays until the flag is retired.
-
 **The envelope also carries the CLI's own verdict, and this module reads it**
 (C5). Three machine-readable fields were printed and ignored: ``is_error`` and
 ``terminal_reason``, which say *whether* the run failed, and
@@ -30,15 +22,22 @@ ladder. Both value sets are measured off the committed captures under
 guessed — see the two tables below.
 """
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Collection, Dict, List, Optional
 
 from ..json_extractor import extract_json_from_text
-from .base import (
-    CATEGORY_INVALID_MODEL,
-    CATEGORY_SERVER_ERROR,
-    STATUS_AUTH_FAILED,
-    STATUS_RATE_LIMITED,
-)
+from ..retry_ladder import STATUS_AUTH_FAILED, STATUS_RATE_LIMITED
+from .failure_classifier import CATEGORY_INVALID_MODEL, CATEGORY_SERVER_ERROR
+from .stdout_shape import STDOUT_ENVELOPE, STDOUT_PLAIN, envelope_signature, read_stdout
+from .parse_kit import answer_from_text, fail, ok
+
+#: How the result envelope opens, from the captures: claude-code 2.1.319 prints
+#: ``duration_api_ms`` first (every row under ``tests/fixtures/claude-code/``),
+#: cursor-agent ``"type": "result"`` (every row under
+#: ``tests/fixtures/cursor-agent/``), which is also the shape claude-code's
+#: headless JSON mode documents. ``type`` alone opens ordinary answers too, so
+#: it is read with its value. Both adapters declare it as their
+#: ``ENVELOPE_SIGNATURE``.
+RESULT_ENVELOPE_SIGNATURE = envelope_signature(("type", "result"), "duration_api_ms")
 
 #: The ``terminal_reason`` values that mean "this run finished normally".
 #:
@@ -135,7 +134,7 @@ def _refuse(wrapper: Dict[str, Any], raw: str) -> Optional[Dict[str, Any]]:
     words = _envelope_words(wrapper)
     if words:
         error = f"{error}: {words}"
-    return {"success": False, "error": error, "raw": raw, "data": None}
+    return fail(error, raw)
 
 
 def _whole_envelope(stdout: str) -> Optional[Dict[str, Any]]:
@@ -229,6 +228,36 @@ def is_clean_envelope(stdout: str) -> bool:
     return wrapper.get("api_error_status") is None
 
 
+#: The ``terminal_reason`` that makes ``result`` the CLI's own sentence: the
+#: API call failed, and ``result`` says so (``API Error: …``). Measured on all
+#: eight refusing claude-code captures; ``truncated``'s ``server_error`` has no
+#: route but that sentence.
+API_ERROR_TERMINAL_REASON = "api_error"
+
+
+def result_envelope_diagnostics(
+    envelope: Dict[str, Any], answer_fields: Collection[str]
+) -> Dict[str, Any]:
+    """The result envelope as a failure verdict may read it, on any exit code.
+
+    ``answer_fields`` go: ``result`` is the model's own prose wherever the
+    envelope's flags say it failed (cursor-agent's ``exit-zero-failure`` row
+    is ``is_error: true`` around an answer), and claude-code's
+    ``permission_denials`` quotes tool input. The one exception is a
+    ``result`` beside ``terminal_reason: "api_error"``
+    (:data:`API_ERROR_TERMINAL_REASON`), the vendor's sentence the text ladder
+    reads. Every other field, ``is_error``, ``subtype`` and
+    ``api_error_status`` among them, stays. The two adapters'
+    ``envelope_diagnostics`` (plan
+    ``opencode-validator-false-rate-limit-and-denied-turn`` T3.2).
+    """
+    keep_result = envelope.get("terminal_reason") == API_ERROR_TERMINAL_REASON
+    return {
+        key: value for key, value in envelope.items()
+        if key not in answer_fields or (key == "result" and keep_result)
+    }
+
+
 def category_for_api_error_status(status: Any) -> Optional[str]:
     """The classifier category an ``api_error_status`` names, or ``None``.
 
@@ -280,7 +309,9 @@ def classify_api_error_status(stdout: str) -> Optional[str]:
     return category_for_api_error_status(envelope_api_error_status(stdout))
 
 
-def parse_result_envelope(stdout: str) -> Dict[str, Any]:
+def parse_result_envelope(
+    stdout: str, signature: Any = RESULT_ENVELOPE_SIGNATURE
+) -> Dict[str, Any]:
     """Unwrap a ``{"type": "result", "result": ...}`` envelope.
 
     The envelope's *bookkeeping* is discarded — adapters that need what it
@@ -321,49 +352,72 @@ def parse_result_envelope(stdout: str) -> Dict[str, Any]:
     carries no ``result`` key — so no record reaching here from that adapter has
     a verdict left to read, checked over its whole committed corpus. qwen's own
     rule stays load-bearing rather than becoming redundant: it reads a
-    ``subtype`` and a missing-key case this function does not.
+    ``subtype`` this function does not.
+
+    **The answer comes from an envelope's ``result`` field alone.** A
+    ``type: "result"`` envelope with no ``result`` field is a failure, not its
+    bookkeeping served as data; another JSON object is the answer itself.
+    stdout is read by :func:`~.stdout_shape.read_stdout` first, with ``signature``
+    (:data:`RESULT_ENVELOPE_SIGNATURE`): the envelope where the CLI writes it,
+    JSON log lines or trailing text around it, is read as above; a cut one,
+    or the envelope's opening anywhere else, is a parse failure before any
+    text extraction could serve its ``usage`` or an example as the answer;
+    a stdout with no opening in it goes to the text extraction, unchanged.
 
     Args:
         stdout: The child's captured stdout.
+        signature: How the envelope opens (:data:`RESULT_ENVELOPE_SIGNATURE`).
 
     Returns:
         ``{"success": True, "data": ...}`` or ``{"success": False, "error":
         ..., "data": None}``, the shape every ``parse_output`` returns.
     """
     stdout = stdout.strip()
+    shape = read_stdout(stdout, signature)
+    if shape.kind == STDOUT_ENVELOPE:
+        return _unwrap_result_envelope(shape.value, stdout)
+    if shape.kind != STDOUT_PLAIN:
+        return shape.failure("the runner", stdout)
 
     if stdout.startswith("{"):
         try:
-            wrapper = json.loads(stdout)
-            if isinstance(wrapper, dict):
-                refusal = _refuse(wrapper, stdout)
-                if refusal is not None:
-                    return refusal
-            if isinstance(wrapper, dict) and "result" in wrapper:
-                inner_result = wrapper["result"]
-                if isinstance(inner_result, str):
-                    inner_result = inner_result.strip()
-                    if inner_result.startswith(("[", "{")):
-                        try:
-                            return {"success": True, "data": json.loads(inner_result)}
-                        except json.JSONDecodeError:
-                            pass
-                    # Try to extract JSON from text
-                    return extract_json_from_text(inner_result, prefer_arrays=True)
-                return (
-                    {"success": True, "data": inner_result}
-                    if inner_result
-                    else {"success": False, "error": "Empty result", "data": None}
-                )
-            return {"success": True, "data": wrapper}
+            return _unwrap_result_envelope(json.loads(stdout), stdout)
         except json.JSONDecodeError:
             pass
 
     # Try direct JSON parsing for arrays
     if stdout.startswith("["):
         try:
-            return {"success": True, "data": json.loads(stdout)}
+            return ok(json.loads(stdout))
         except json.JSONDecodeError:
             pass
 
     return extract_json_from_text(stdout, prefer_arrays=True)
+
+
+def _unwrap_result_envelope(wrapper: Any, stdout: str) -> Dict[str, Any]:
+    """:func:`parse_result_envelope`'s reading of one decoded JSON document."""
+    if isinstance(wrapper, dict):
+        refusal = _refuse(wrapper, stdout)
+        if refusal is not None:
+            return refusal
+    if (
+        isinstance(wrapper, dict)
+        and "result" not in wrapper
+        and wrapper.get("type") == "result"
+    ):
+        # The envelope without its answer field: its bookkeeping is not an
+        # answer. Another JSON object is the answer itself.
+        return fail("the result envelope carries no result field", stdout)
+    if isinstance(wrapper, dict) and "result" in wrapper:
+        inner_result = wrapper["result"]
+        if isinstance(inner_result, str):
+            # No empty check of its own: an empty result is the extractor's
+            # failure, as it always was.
+            return answer_from_text(inner_result, empty_error=None)
+        return (
+            ok(inner_result)
+            if inner_result
+            else {"success": False, "error": "Empty result", "data": None}
+        )
+    return ok(wrapper)

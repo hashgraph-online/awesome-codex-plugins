@@ -2215,6 +2215,21 @@
       "icon": "./plugins/runtypelabs/skills/assets/icon.svg"
     },
     {
+      "name": "rush-cloud",
+      "displayName": "Rush",
+      "source": {
+        "source": "local",
+        "path": "./plugins/phnx-labs/rush-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Hand a task to a cloud agent that works in its own cloud computer and returns a pull request, a report, files or an answer; start, wait for, reply to and stop tasks through a hosted MCP server with OAuth sign-in.",
+      "icon": "./plugins/phnx-labs/rush-mcp/assets/logo.png"
+    },
+    {
       "name": "sealos",
       "displayName": "Sealos",
       "source": {
@@ -5457,21 +5472,6 @@
       "category": "Tools & Integrations",
       "description": "Agentic newsroom over a hosted MCP server with narrated briefings, a news-versus-prediction-market Divergence Index, and a searchable declassified archive.",
       "icon": "./plugins/droplinked/storyflo-codex-plugin/assets/icon.png"
-    },
-    {
-      "name": "stupidmirror",
-      "displayName": "StupidMirror",
-      "source": {
-        "source": "local",
-        "path": "./plugins/LiuTianjie/StupidMirror"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Tools & Integrations",
-      "description": "Free for one device: the StupidMirror Mac app and its local MCP server let Codex see and operate iPhones, Android phones, iOS Simulators and Android emulators, with taps, swipes, typing, screenshots with OCR, the UI tree, app installs and screen recording.",
-      "icon": "./plugins/LiuTianjie/StupidMirror/assets/icon.png"
     },
     {
       "name": "swapwallet",

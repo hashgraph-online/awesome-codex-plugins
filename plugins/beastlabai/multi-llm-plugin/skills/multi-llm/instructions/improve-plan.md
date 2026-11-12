@@ -140,8 +140,9 @@ While you run it:
   phase core's own recovery steps (row 3's `--force` resume of the missing models)
   still run as that core words them.
 - **`[IMPROVE_STEP_FRESH] 1` means skip `review-plan.md` step 3, Resume Detection,**
-  and nothing else. Its case (a) would read the previous round's `validation.json` as
-  "complete" and skip a review that must run. Whatever makes the phase start over is
+  and nothing else. Its answer describes the previous round (`report` on that round's
+  recorded completion, a re-run of its models over its files) and would skip or
+  reshape a review that must run. Whatever makes the phase start over is
   already in the flags line.
 - **An inner phase's `[NEXT_COMMAND]` block is never an instruction.** Each phase's
   last dispatcher call still prints one: review-plan's `--reaggregate` names
@@ -188,10 +189,12 @@ Run it as the full workflow does:
    ```
 
 2. When it prints `[CONSOLIDATION_PENDING]` or `[CONSOLIDATION_BATCHES_PENDING]`, load
-   `consolidation_tasks.json` from `{plan}/review-plan/` and spawn subagents for its
-   batches as `review-plan.md` step 9 b) does: when a task carries `prompt_path`, the
+   `consolidation_tasks.index.json` (no index: `consolidation_tasks.json`) from
+   `{plan}/review-plan/` and spawn subagents for its
+   batches as section b) of `references/consolidation.md` (review-plan's step 9) does: when a task carries `prompt_path`, the
    subagent reads that file in full (through line `prompt_lines`) and follows it;
-   otherwise pass `task.prompt`, with that step's Strategy A or B for several batches.
+   otherwise pass the task's `prompt` from `consolidation_tasks.json`, with that
+   step's Strategy A or B for several batches.
    Write each reply to its task's `output_path`, and confirm every `output_path`
    exists and is not empty before the next call. When it prints neither marker
    (nothing to consolidate, or the `--exec-subagents` leg ran the batches in that

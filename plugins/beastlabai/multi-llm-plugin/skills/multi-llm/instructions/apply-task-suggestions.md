@@ -120,7 +120,7 @@ These options reduce manual review for items with `needs-human-decision` status:
 ### Resume/State Options
 
 - `--resume`: Resume from last checkpoint, skip already-processed items
-- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. The target file must already be back at its pre-run bytes (copy it from the phase's backup, or roll the batches back with `util restore-batch`): a target still carrying the previous run's edits is refused (exit 3), since every batch would land twice. Earlier rollback points are kept aside, never overwritten.
+- `--fresh`: Discard this phase's recorded progress (decisions, processed items, prior-changes log) and dispatch every batch again. Put tasks.md back at its pre-run bytes first, or every batch lands twice: copy it from `{phase}/tasks-backup.md` (tasks.md as this phase found it before its first batch; a resume keeps it); after an `--exec-subagents` run, `util restore-batch` can roll the batches back newest-first instead. The native loop keeps no rollback point per batch: its per-batch snapshot holds only the last bound batch's pre-batch bytes (the next batch replaces it), and `util restore-batch` has nothing of a native run's. Only after an `--exec-subagents` run is a target still carrying that run's edits refused (exit 3); after a native run, check tasks.md yourself. Earlier rollback points are kept aside, never overwritten.
 
 ### Batch Review Mode
 
@@ -166,6 +166,8 @@ The orchestrator will:
 4. Write output to `{plan}/apply-task-suggestions/orchestrator_output.json`
 5. Exit — the driving agent handles the actual application
 
+An exit 3 naming another review round is a stop, with nothing applied or recorded: the review's `validation.json` holds an earlier round's verdicts, and a later run of the review (`review-tasks --force`, say) has not produced its own — it is still running, or it stopped before it validated. Report the two ways forward it names: let that run finish (`status`), or run the review again with `--force`; then run this phase again. Never apply the earlier round's suggestions by hand.
+
 #### Zero-Finding and Zero-Selection Paths
 
 The orchestrator handles four distinct no-op/early-exit scenarios:
@@ -210,13 +212,16 @@ This prints a formatted summary with each suggestion's title and status. Display
 
 ### 4. Read the Orchestrator Output
 
-Read `{plan}/apply-task-suggestions/orchestrator_output.json`.
+Read `{plan}/apply-task-suggestions/orchestrator_summary.json`, written beside `orchestrator_output.json`: what the batch loop needs from that file and from `write_tasks.json`. When there is no summary, read `orchestrator_output.json` and `write_tasks.json` (printed as `[WRITE_TASKS_FILE]`: the same batches in the same order, with their task ids) instead.
 
 Extract the following key fields directly from the Read output (do NOT use Bash/python to parse — just read the JSON and understand it):
-- `batches`: Array of batch objects, each with `prompt`, `section_key`, `prior_changes_id`, `suggestions`
+- `batches`: one entry per batch, in dispatch order, with `task_id` (`apply-task-batch-0`, `apply-task-batch-1`, …), `batch_index`, `section_key`, `prior_changes_id`, `task_title` and `expected_ids`, the values `write_tasks.json` holds, and `detail_path`, the batch's detail file
 - `needs_human_review`: Items requiring human decision
 - `human_review_config`: Batch mode config for human review
 - `summary`: Counts of valid, skipped, batches, etc.
+- `tasks_file`: the tasks.md every batch edits, the same path `orchestrator_output.json` names
+
+The batch loop below is keyed on `task_id`. Each batch's `suggestions` are in its detail file at `detail_path` (`orchestrator_batches/<task_id>.json`: the batch's record in `orchestrator_output.json` without its prompt), read once at step 1 below and used again at step 5. The **unbound** `prompt` stays in `orchestrator_output.json` and is never handed to a subagent.
 
 ### 5. Process Batches Sequentially
 
@@ -231,99 +236,42 @@ Where `{total_batches}` is the length of the `batches` array.
 
 ### The Python write executor: `--exec-subagents` (an alternative to this loop)
 
-Everything from here to the end of the batch loop is the **native-subagent** path:
-this agent binds each batch's prompt with `util write-prompt`, snapshots the
-artifact, spawns a subagent on the bound prompt file, diffs against the snapshot
-and appends to the prior-changes log.
-
-A host with no native subagent tool runs the *same* loop in Python instead. Add
-`--exec-subagents` to the orchestrator invocation above and the phase schedules
-itself in one process: batches in ascending `batch_index`, each one's snapshot/diff
-classification completed and recorded **before** the next is dispatched, the
-prior-batch context bound late per dispatch (the literal `{prior_changes_context}`
-token never reaches a runner), `prior_changes.py append` and `metrics.py record`
-called per batch, and the phase marked completed only after every batch verified.
-The runner comes from `driver.subagent_runner` in `providers.yaml`; write
-concurrency comes from `driver.max_concurrent_write_subagents` (default **1**, and
-pinned to 1 for this phase regardless, because its batches all edit one artifact).
-
-Do **not** combine the two: with `--exec-subagents` the phase finishes in that one
-invocation and there is no batch left for this agent to run. It also writes this
-phase's own summary report itself: the batch loop's outcome block names every item
-the judge decided, `{phase}/summary.md` is written with the same sections the
-*Generate Summary Report* step below describes, the recorded decisions are overlaid
-onto the review report, and the phase is marked completed only once every batch
-verified. Those steps below belong to the native path; do not run them a second time.
-
-Three flags belong to that path and are worth knowing even on this one:
-
-- `--dry-run-subagents` — full preflight, **zero dispatch**. Renders the exact
-  command per batch, applies the invocation profile, the co-scheduling admission
-  check and the `driver.write_paths` policy, writes
-  `{phase}/subagent_dry_run.json` and exits 0 having started no child and changed
-  nothing else. The recommended first unattended run on a new host.
-- `--detach` — the phase self-daemonizes and returns a log path plus a `status`
-  command to poll; it is how step 2 runs on this path. Per-batch progress lands in
-  `{phase}/.status.json` under `progress.write_subagents`, so an unattended write
-  run is observable with no chat context at all. Never combine it with a host's own
-  background primitive: a host that resolves *run detached* to its own background
-  mechanism uses that mechanism and never passes `--detach`.
-- Rollback, when a batch half-applies —
-  `multi_llm.py util restore-batch --phase-dir <dir> --task-id <id>` (also
-  `--all-failed`), invoked through the dispatcher the same way every other mode is.
-  It restores exactly the files `{phase}/subagent_audit.jsonl` recorded as touched,
-  from the pre-batch snapshot under `{phase}/pre_batch/{task_id}/`, and **refuses**
-  a file whose current hash no longer matches what the audit recorded at completion
-  (someone edited it since) unless `--force` is passed. A partial application never
-  reverts itself: the run exits 3 naming this command, because an automatic revert
-  would destroy the half-applied state a human needs to inspect.
+When the command that runs this phase carries `--exec-subagents`, `--detach` (which implies it) or `--dry-run-subagents`, however it got there (typed, printed by a resume or `util next-command`, forwarded by a workflow step, or as an abbreviation such as `--exec` or `--det`), the Python write executor runs the phase: read `references/apply-write-executor.md` in full before that command runs, or before your next command if it already ran. That one invocation is the whole phase; a dry run dispatched nothing and leaves no work either: do not run the loop below, step 3's `util decisions`, step 7's summary report or step 8's `--mark-completed`. A command with none of `--exec-subagents`, `--detach` and `--dry-run-subagents`, in any spelling, skips the reference and runs the loop below.
 
 For each batch (index N, starting at 1) returned by the orchestrator, you MUST:
 
-1. **Bind the batch prompt** — Run:
+1. **Bind the batch prompt** — First read this batch's detail file at its `detail_path` (with no summary, its entry in `orchestrator_output.json`'s `batches`, already read): its `suggestions` are what the batch applies and what step 5 checks. Then run:
    ```bash
    uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util write-prompt \
      --phase-dir "{plan}/apply-task-suggestions" --task-id "{task.task_id}"
    ```
-   `{task.task_id}` is this batch's `task_id` from `write_tasks.json` (`apply-task-batch-0`, `apply-task-batch-1`, … in dispatch order). The command rewrites the batch's prompt with the prior-batch context bound **now** — from `{plan}/prior_changes.jsonl` as it is at this moment, i.e. the batches step 8 has already appended — and the result contract appended: exactly the text the `--exec-subagents` executor would dispatch for this batch. It writes it to `{plan}/apply-task-suggestions/prompts/{task.task_id}.prompt.txt` and prints three lines: `[WRITE_PROMPT] <path>`, `[WRITE_PROMPT_LINES] <n>` and `[WRITE_PROMPT_CONTEXT] …`. Note the path and the line count for step 3. Never substitute `{prior_changes_context}` yourself and never hand the subagent `batch.prompt` from the JSON: the literal token must never reach a subagent.
+   `{task.task_id}` is this batch's `task_id` from `write_tasks.json` (`apply-task-batch-0`, `apply-task-batch-1`, … in dispatch order). The command rewrites the batch's prompt with the prior-batch context bound **now** — from `{plan}/prior_changes.jsonl` as it is at this moment, i.e. the batches step 8 has already appended — and the result contract appended: exactly the text the `--exec-subagents` executor would dispatch for this batch. It writes it to `{plan}/apply-task-suggestions/prompts/{task.task_id}.prompt.txt` and prints three lines: `[WRITE_PROMPT] <path>`, `[WRITE_PROMPT_LINES] <n>` and `[WRITE_PROMPT_CONTEXT] …`, then the two snapshot lines step 2 describes. Note the path and the line count for step 3. Never substitute `{prior_changes_context}` yourself and never hand the subagent `batch.prompt` from the JSON: the literal token must never reach a subagent.
 
-   **Error handling**: an exit 3 names the problem (no `write_tasks.json` — re-run the orchestrator; an unknown task id — the known ids are listed). Do not fall back to the raw `batch.prompt`; stop and report.
+   **Error handling**: an exit 3 names the problem (no `write_tasks.json` — re-run the orchestrator; an unknown task id — the known ids are listed; no snapshot — a repository holding the plan's folder that git cannot pin (a `GIT_DIR` set, a `core.worktree` that disagrees), a tasks file it cannot read, a snapshot lock the file system cannot take at all (`Cannot lock …`), or a snapshot whose files are damaged or no longer the copy it took: the message names the files and the user's manual way out). Do not fall back to the raw `batch.prompt`; stop and report. Only two exits 3 are worth running this command again for; every other one is a stop. A batch whose review round was superseded (the message names the two rounds: a later run of the review started another) is a stop: dispatch nothing, record nothing for it, close the phase without `--mark-completed` and report the way forward it names. An earlier batch of this run has no step-7 record yet (the snapshot still belongs to it): run the batch the message names first — bind it with this command, then its steps, or the partial-application stop below — then run this command again. Another `util write-prompt` holds the snapshot's lock (it is binding a batch now): let it finish, then run this command again. One more needs no user: an earlier batch whose record carries no run stamp (an older plugin version made it). If this loop has not run that batch, run it first, as above; if it has (the loop began before the upgrade) or you cannot tell, re-run the phase's orchestrator with `--resume`, as the message says (it skips what is recorded and emits the rest as a new run), and continue the loop from that run's first batch.
 
    A `[WRITE_PROMPT_ORDER]` line (on stderr; the prompt is still written) names an earlier batch whose summary this prompt does not carry — recorded but not appended yet, or not finished: do what it says, then run this `util write-prompt` again before spawning the subagent.
 
-2. **Read current tasks.md state and snapshot it** — Always read the latest version of tasks.md before each batch, then capture a pre-batch snapshot so the batch's effect can be verified in step 5 **without** relying on git. (tasks.md is frequently untracked — freshly created — and every `git diff` variant silently ignores fully-untracked files, so git CANNOT detect whether a batch changed it. Snapshot the file and diff against the snapshot instead.)
-
-   The snapshot lives in the **workspace temp dir** at a deterministic path (each batch overwrites it; no cleanup step; the dir is self-gitignored). Resolve the project root first — if the command fails or prints nothing, STOP with the error: "multi-llm requires running inside a git repository". Use the `tasks_file` path from `orchestrator_output.json` as `$TASKS_PATH`:
-   ```bash
-   TASKS_PATH="<tasks_file from orchestrator_output.json>"
-   PROJECT_ROOT="$(git rev-parse --show-toplevel)"
-   BATCH_SNAPSHOT="$PROJECT_ROOT/.multi-llm/tmp/batch_snapshot_tasks_{plan_stem}.md"
-   ```
-   Where `{plan_stem}` is the plan filename without extension.
-
-   Capture the snapshot with your host's file tools, not Bash: read `$TASKS_PATH`, then write its exact content to the snapshot path (use the absolute path — join the resolved project root with `.multi-llm/tmp/batch_snapshot_tasks_{plan_stem}.md`; a host file-write that creates parent directories needs no mkdir step and no Bash copy command). If `{PROJECT_ROOT}/.multi-llm/tmp/.gitignore` does not exist yet, also write it with content `*` so the temp dir ignores itself.
-
-   This batch only ever touches the single `tasks.md` file, so one snapshot covers it. Keep `$BATCH_SNAPSHOT` for step 5.
+2. **Note the pre-batch snapshot** — step 1's command has already copied tasks.md (the `tasks_file` from `orchestrator_output.json`, the one file this batch touches), byte for byte, to the workspace temp dir (`.multi-llm/tmp/batch_snapshot_tasks_<plan stem>-…` under the root of the repository holding the plan's folder, or in the phase folder's own `snapshots/` when no repository holds it; a name of its own per plan and phase; the dir ignores itself) and printed `[WRITE_SNAPSHOT] <snapshot path>` and `[WRITE_ARTIFACT] <tasks.md path>`, both absolute. Keep both paths for step 5; take no copy of your own. Step 5 diffs against this snapshot instead of asking git: tasks.md is frequently untracked (freshly created), and every `git diff` variant silently ignores fully-untracked files. The snapshot belongs to this batch: running `util write-prompt` for it again keeps it, and no later batch's call replaces it before this batch has its step-7 record. It is a convenience copy where the subagent can write too: its checksum catches an accidental change, not a deliberate one.
 
 3. **Spawn a subagent** whose whole prompt is: read the file at the `[WRITE_PROMPT]` path in full — through line `[WRITE_PROMPT_LINES]`, paging if a single read stops short — and follow it verbatim.
    - Use `general-purpose` subagent type
    - That is the entire contract: do not paste the prompt text, add instructions of your own, or hand the subagent the JSON. The file already contains all suggestions, the prior-batch context and the reply format (it ends with a JSON object the steps below read)
 4. **Wait for completion** - Do NOT parallelize batch processing
 
-5. **Verify batch outcome** — After the subagent completes (or fails), determine the batch outcome by inspecting actual file state rather than relying solely on the subagent's exit status. **Do NOT use `git diff` / `git diff --stat` as the change detector**: every `git diff` variant silently ignores fully-untracked files, and tasks.md is frequently freshly-created and untracked — so git would report "no changes" even when the subagent successfully edited it, producing a false clean-failure. Instead, diff the file against the pre-batch snapshot captured in step 2:
+5. **Verify batch outcome** — After the subagent completes (or fails), determine the batch outcome by inspecting actual file state rather than relying solely on the subagent's exit status. **Do NOT use `git diff` / `git diff --stat` as the change detector**: every `git diff` variant silently ignores fully-untracked files, and tasks.md is frequently freshly-created and untracked — so git would report "no changes" even when the subagent successfully edited it, producing a false clean-failure. Instead, diff the file against the step-2 snapshot:
    ```bash
-   diff -u "$BATCH_SNAPSHOT" "$TASKS_PATH"
+   diff -u "{snapshot_path}" "{tasks_path}"
    ```
-   An empty diff means the file is byte-for-byte unchanged; a non-empty diff means it was modified. The snapshot diff is the authoritative, fully git-independent detector — no git intent-to-add step is needed here (flows that genuinely need untracked files visible to git diffs, like code review, handle that inside their Python orchestrator via `utils/git_utils.intent_to_add_untracked`). Classify the result:
-   - **Success**: The snapshot diff is non-empty **and** the expected changes are present (grep spot-check the modified tasks.md for the intended task IDs / fields from the batch).
+   `{snapshot_path}` and `{tasks_path}` are the `[WRITE_SNAPSHOT]` and `[WRITE_ARTIFACT]` paths from step 1, written out literally (a shell variable from an earlier Bash call does not exist in this one); if you no longer have them, run step 1's command again for this same batch: it keeps this batch's snapshot and prints the same two lines. An empty diff means the file is byte-for-byte unchanged; a non-empty diff means it was modified. The snapshot diff is the authoritative, fully git-independent detector — no git intent-to-add step is needed here (flows that genuinely need untracked files visible to git diffs, like code review, handle that inside their Python orchestrator via `utils/git_utils.intent_to_add_untracked`). Classify the result:
+   - **Success**: The snapshot diff is non-empty **and** the expected changes are present (grep spot-check the modified tasks.md for the intended task IDs / fields from the batch's suggestions, which its detail file lists: you read it at step 1; read it again only if it is no longer in your context).
    - **Failure (clean)**: The subagent failed **and** the snapshot diff is empty (tasks.md is byte-for-byte identical to its pre-batch snapshot).
    - **Not applied**: The subagent reported `applied` **and** the snapshot diff is empty: its edits did not land. Dispatch the batch once more, with one sentence added to its prompt saying the previous attempt answered `applied` but changed no file, and verify again; if nothing changed this time either, it is a clean failure (record it `failed`), never a success.
    - **Partial application**: The snapshot diff is non-empty but the expected changes are incomplete, **or** the subagent failed but the snapshot diff is non-empty.
-   - **Declined items** (fix round 18): an item the reply lists in `declined` with a reason was left unapplied on purpose (for example, the implementation record calls that code deliberate). It is never applied and never a partial application: a batch whose every item is in `ids` or in `declined` is a success (a no-op when it changed nothing), whatever word its `status` carries, `failed` included: record it `--status completed`. An item in neither list, an id in both, or a `declined` entry without a reason is a partial application.
+   - **Declined items**: an item the reply lists in `declined` with a reason was left unapplied on purpose (for example, the implementation record calls that code deliberate). It is never applied and never a partial application: a batch whose every item is in `ids` or in `declined` is a success (a no-op when it changed nothing), whatever word its `status` carries, `failed` included: record it `--status completed`. An item in neither list, an id in both, or a `declined` entry without a reason is a partial application.
 
-   There is **no snapshot cleanup step**: the snapshot lives in the self-gitignored workspace temp dir and is simply overwritten by the next batch. On **partial application** the loop stops (below), so `$BATCH_SNAPSHOT` still holds the pre-batch content for a human to inspect.
+   There is **no snapshot cleanup step**: the snapshot lives in the self-gitignored workspace temp dir, and the next batch's `util write-prompt` replaces it once this batch is recorded. On **partial application** the loop stops (below), so the snapshot still holds the pre-batch content for a human to inspect.
 
-   **Partial application handling**: If verification detects a partial application, **stop the batch loop and surface the issue for human review**. Do not continue to subsequent batches. Log the partial application details and prompt the human operator to resolve the state before resuming. When the reply's report attests at least one suggestion applied (in `ids`, with a `status` other than `failed`) and leaves others out of both `ids` and `declined`, give the user both ways forward and let them choose: restore the batch (`util restore-batch`) or fix the cause, then resume; **or** keep what the batch applied and go on without the suggestions it left out — record it with step 7's `util batch-done` as `--status completed` plus one `--skipped <id>` per suggestion left out, append its summary (step 8) and continue with the next batch. A resume that does neither hands the same batch out again and stops the same way.
+   **Partial application handling**: If verification detects a partial application, **stop the batch loop and surface the issue for human review**. Do not continue to subsequent batches. Log the partial application details and prompt the human operator to resolve the state before resuming. When the reply's report attests at least one suggestion applied (in `ids`, with a `status` other than `failed`) and leaves others out of both `ids` and `declined`, give the user both ways forward and let them choose: put tasks.md back and fix the cause, then resume — the step-2 snapshot holds tasks.md as it was before this batch, so read the step-5 diff and copy it back by hand (`cp "{snapshot_path}" "{tasks_path}"`, which also undoes every edit made to tasks.md since the snapshot, the user's included). It is a convenience copy, not tamper-proof evidence: the batch's subagent could write it too, so read the diff before trusting it. This loop has no other per-batch rollback point — `util restore-batch` has nothing of a native batch's, and `{plan}/apply-task-suggestions/tasks-backup.md` holds tasks.md from before the whole phase; **or** keep what the batch applied and go on without the suggestions it left out — record it with step 7's `util batch-done` as `--status completed` plus one `--skipped <id>` per suggestion left out, append its summary (step 8) and continue with the next batch. A resume that does neither hands the same batch out again and stops the same way.
 
 6. **Extract summary** — The subagent's reply ends with one JSON object (`{"status", "ids", "declined", "files_touched", "summary", "notes"}`: the result contract the prompt file carries). Take its `summary` as the one-line summary; its `status` (`applied` / `no-op` / `failed`) and `files_touched` are evidence for step 5, never a substitute for the snapshot diff. If the reply carries no such object, compress the reply into a single sentence instead.
 
@@ -475,7 +423,7 @@ Suggestions whose decision was offloaded to the judge agent — via `--agent-dec
    ```
    Include the output (if non-empty) at the end of the summary report.
 
-   **Check the task graph the batches left.** Each batch edited one corner of `tasks.md` and none saw the whole of it. Pass the `tasks_file` path from `orchestrator_output.json` (the path the orchestrator printed as `Tasks file:`), the same path the batch loop's snapshot step sets as `$TASKS_PATH`:
+   **Check the task graph the batches left.** Each batch edited one corner of `tasks.md` and none saw the whole of it. Pass the `tasks_file` path from `orchestrator_output.json` (the path the orchestrator printed as `Tasks file:`), the file each batch's `[WRITE_ARTIFACT]` line named:
    ```bash
    uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util check-tasks "<tasks_file from orchestrator_output.json>"
    ```

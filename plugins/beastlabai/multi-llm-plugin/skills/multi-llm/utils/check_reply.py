@@ -53,26 +53,31 @@ swapped against its own verdicts (live run 11, Claude Code review-plan batch 5).
 
 from __future__ import annotations
 
+if __name__ == "__main__" and not __package__:
+    # Run by path: put the skill root on sys.path, found from this file's real
+    # location as Python finds sys.path[0], then call the package module's entry
+    # point with sys.argv untouched, so the program name stays the one typed
+    # (docs/development/dispatcher.md#import-safety).
+    import os
+    import sys
+
+    _UTILS_DIR = os.path.dirname(os.path.realpath(__file__))
+    sys.path[:] = [os.path.dirname(_UTILS_DIR)] + [
+        p for p in sys.path if os.path.realpath(p) != _UTILS_DIR]
+    from utils.check_reply import main
+
+    sys.exit(main())
+
 import argparse
 import json
 import os
 import sys
 from typing import Any, Dict, List, Optional, Sequence
 
-try:
-    from .stream_bootstrap import bootstrap_streams
-except ImportError:  # pragma: no cover - direct-script import shim
-    from stream_bootstrap import bootstrap_streams
+from .schema_validator import validation_reply_problems
+from .stream_bootstrap import bootstrap_streams
 
-_VERDICTS = ("valid", "invalid", "needs-human-decision")
 _GROUP_KINDS = ("validation", "revalidation")
-
-
-def _entries(document: Any) -> Optional[List[Any]]:
-    if isinstance(document, dict):
-        groups = document.get("groups")
-        return groups if isinstance(groups, list) else None
-    return document if isinstance(document, list) else None
 
 
 def _objects_in(text: str) -> int:
@@ -162,37 +167,7 @@ def check_task_reply(task: Dict[str, Any], phase_dir: str) -> List[str]:
         return [f"reply is not valid JSON ({where})"]
     if task.get("kind") not in _GROUP_KINDS:
         return []
-
-    entries = _entries(document)
-    if entries is None:
-        return ['reply has no "groups" list']
-    problems: List[str] = []
-    seen: List[str] = []
-    for position, entry in enumerate(entries):
-        if not isinstance(entry, dict):
-            problems.append(f"groups[{position}] is not an object")
-            continue
-        if entry.get("status") not in _VERDICTS:
-            problems.append(
-                f"groups[{position}] status {entry.get('status')!r} is not one of "
-                + ", ".join(_VERDICTS)
-            )
-        group_hash = entry.get("group_hash") or entry.get("group_id")
-        if isinstance(group_hash, str) and group_hash:
-            seen.append(group_hash)
-        else:
-            problems.append(f"groups[{position}] has no group_hash (or group_id)")
-    expected = [str(item) for item in task.get("group_ids") or []]
-    if expected:
-        missing = [item for item in expected if item not in seen]
-        foreign = sorted({item for item in seen if item not in expected})
-        if missing:
-            problems.append("missing group_hash: " + ", ".join(missing))
-        if foreign:
-            problems.append("foreign group_hash: " + ", ".join(foreign))
-        if len(seen) != len(set(seen)):
-            problems.append("a group_hash appears more than once")
-    return problems
+    return validation_reply_problems(document, group_ids=task.get("group_ids"))
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
@@ -208,6 +183,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parser.parse_args(argv)
 
     try:
+        # Imported here to keep check_reply light.
         from utils.subagent_tasks import tasks_of
         with open(args.tasks_file, "r", encoding="utf-8") as handle:
             document = json.load(handle)

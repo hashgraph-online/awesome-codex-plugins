@@ -209,6 +209,43 @@ define|update|plan` also take `declarations`, which annotate the view they name,
 splicing only what changes. See
 [declarations.md](declarations.md#databricks-metric-views-semanticvendor-databricks).
 
+**The Ossie bridge: one layer from the other.**
+`semantic databricks define|update|plan --from-ossie <file>` proposes a whole view
+from an Apache Ossie document. Under `semantic.vendor: ossie`,
+`semantic ossie define|update|plan --from-metric-view <file>` proposes a whole
+Ossie document from a Metric View file. The source file is only read and needs no configuration. Both go through
+Dex's port of the apache/ossie-converters `databricks` spoke.
+
+- **Read the notices before applying.** Every entry of `data.bridge.conversions`
+  (one per file) has its own `notices`, listing everything dropped or rewritten
+  for that file; read and relay them for every entry, not only the first. Each notice is `origin: converter` (the
+  converter's own words: `datatype`, `is_time`, object `ai_context` members,
+  synonyms past ten, diamond and one-to-many drops) or `origin: dex` (a
+  `key_only` field added for a join column, a field resolved to its column,
+  `expression.sql` read, a dataset metric exported or dropped). Relay the dropped
+  ones; they are not carried into the target.
+- **`--fact <dataset>`** names the dataset a view is on when the Ossie graph has
+  several roots (the refusal says so). **`--name <model>`** names the imported
+  model and its fact dataset (default: the source table's name).
+  **`--dataset-metrics`** writes each measure that reads only the fact source as
+  a dataset-scoped metric. **`--into <path>`** places the output.
+- **Several files at once.** Each flag takes several files. Use this when several
+  new paths are configured: the layer validates every configured file together,
+  so they can only be authored together.
+- **Each entry's `status` says where it went.** `included`: its output is a
+  configured file and is in the stored plan (`data.plan_id`), for
+  `transform apply`. `proposed`: its output is not configured, no plan writes it,
+  and the document is in that entry's own `content`. A batch can hold both: then
+  `data.plan_id` is set for the included ones, and `data.bridge.next` names the
+  `dex config set` that adopts the proposed paths (the user confirms it) and the
+  command to run again. With none included, `data.plan_id` is `null`.
+- **A refusal** names the converter's kind and reason (a cross or non-equi join,
+  a cyclic graph, mixed cardinalities in one branch). Fix the source, or author
+  the target by hand with `--edits-file`.
+
+Every adaptation and difference from the converter is in
+<https://github.com/exmergo/dex/blob/main/references/databricks-metric-views-compatibility.md#the-ossie-bridge>.
+
 ## SLayer models: `semantic slayer define|update|plan`
 
 Under `semantic.vendor: slayer`, the configured SLayer model files are the

@@ -5,6 +5,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
+from .tasks_marker import (
+    TASKS_FILE_MARKER_PATTERN,
+    markdown_code_ranges,
+    tasks_marker,
+    tasks_marker_spans,
+)
+
 
 # HTML comment markers for idempotent updates
 IMPL_START_MARKER = "<!-- IMPLEMENTATION_STATUS_START -->"
@@ -15,13 +22,125 @@ TASK_STATUS_PATTERN = r'<!-- TASK_STATUS:(\w+):(\w+) -->'
 GENERATED_TASKS_START = "<!-- GENERATED_TASKS_START -->"
 GENERATED_TASKS_END = "<!-- GENERATED_TASKS_END -->"
 
-# Marker for external tasks file reference (new - tasks in separate file)
-TASKS_FILE_REFERENCE_PATTERN = r'<!-- TASKS_FILE:\s*(.+?)\s*-->'
+# Marker for external tasks file reference (new - tasks in separate file).
+# The pattern is `tasks_marker`'s, the one every phase reads the marker with.
+TASKS_FILE_REFERENCE_PATTERN = TASKS_FILE_MARKER_PATTERN
 TASKS_FILE_REFERENCE_TEMPLATE = "<!-- TASKS_FILE: {tasks_file} -->"
 
-# Marker for implementation summary file reference
+# Marker for implementation summary file reference. The pattern is the
+# marker's grammar; the readers below match it with `_ImplSummaryMarkers`
+# rather than `re`, because the regex is cubic on whitespace.
 IMPL_SUMMARY_REFERENCE_PATTERN = r'<!-- IMPL_SUMMARY:\s*(.+?)\s*-->'
 IMPL_SUMMARY_REFERENCE_TEMPLATE = "<!-- IMPL_SUMMARY: {summary_file} -->"
+_IMPL_SUMMARY_OPEN = "<!-- IMPL_SUMMARY:"
+_IMPL_SUMMARY_HEADING = "## Implementation Summary"
+_WHITESPACE = re.compile(r"\s*")
+
+
+class _NextOccurrence:
+    """``text.find(needle, start)``, remembered: for starts that only grow,
+    each stretch of the text is searched once."""
+
+    def __init__(self, text: str, needle: str):
+        self._text, self._needle = text, needle
+        self._from, self._at = -1, -1
+
+    def __call__(self, start: int) -> int:
+        if self._from < 0 or start < self._from or 0 <= self._at < start:
+            self._from, self._at = start, self._text.find(self._needle, start)
+        return self._at
+
+
+class _ImplSummaryMarkers:
+    """Matches of :data:`IMPL_SUMMARY_REFERENCE_PATTERN` in one text, in O(n).
+
+    The regex is cubic (97 s for 8 KB of spaces after the colon): its
+    ``\\s*``, its lazy group and its closing ``\\s*`` share one whitespace run
+    every possible way before the match fails. Its result is simpler than its
+    search. After the opening ``\\s*`` takes the whole run, the group starts at
+    the first non-blank character and ends where the whitespace before the
+    first ``-->`` after that character begins, unless the group would then
+    cross a newline (``.``), in which case no match starts at this marker,
+    with one exception the backtracking finds: a marker whose run is followed
+    directly by ``-->`` still matches with the run's last non-newline
+    character as the group. Under ``re.DOTALL`` there is no newline rule.
+    Positions only grow, so each search here reads each character once.
+    """
+
+    def __init__(self, text: str):
+        self.text = text
+        self._close = _NextOccurrence(text, "-->")
+        self._newline = _NextOccurrence(text, "\n")
+        self._blank_before: Dict[int, int] = {}
+
+    def _blank_run_start(self, at: int) -> int:
+        """Where the whitespace run that ends at *at* starts."""
+        if at not in self._blank_before:
+            start = at
+            while start > 0 and self.text[start - 1].isspace():
+                start -= 1
+            self._blank_before[at] = start
+        return self._blank_before[at]
+
+    def at(self, start: int, dotall: bool = False) -> Optional[Tuple[int, int, int]]:
+        """``(end, group start, group end)`` of the match at *start*, where the
+        text has the opening marker, or None."""
+        text = self.text
+        opened = start + len(_IMPL_SUMMARY_OPEN)
+        first = _WHITESPACE.match(text, opened).end()
+        if first < len(text):
+            close = self._close(first + 1)
+            if close >= 0:
+                # `first` is not blank, so this run starts after it.
+                group_end = self._blank_run_start(close)
+                newline = self._newline(first)
+                if dotall or newline < 0 or newline >= group_end:
+                    return close + 3, first, group_end
+        if first > opened and text.startswith("-->", first):
+            last = first - 1
+            while not dotall and last >= opened and text[last] == "\n":
+                last -= 1
+            if last >= opened:
+                return first + 3, last, last + 1
+        return None
+
+    def search(self) -> Optional[Tuple[int, int, int, int]]:
+        """``(start, end, group start, group end)`` of
+        ``re.search(IMPL_SUMMARY_REFERENCE_PATTERN, text)``, or None."""
+        start = self.text.find(_IMPL_SUMMARY_OPEN)
+        while start >= 0:
+            found = self.at(start)
+            if found:
+                return (start,) + found
+            start = self.text.find(_IMPL_SUMMARY_OPEN, start + 1)
+        return None
+
+    def sections(self) -> List[Tuple[int, int]]:
+        """The spans ``re.sub`` replaces for
+        ``'## Implementation Summary\\s*\\n.*?' + IMPL_SUMMARY_REFERENCE_PATTERN``
+        under ``re.DOTALL``: a heading whose following whitespace holds a
+        newline, through the first marker after that run's last newline.
+        When that marker has no match, no later one has (nothing closes
+        after it), so the scan ends there."""
+        text = self.text
+        spans: List[Tuple[int, int]] = []
+        markers = _NextOccurrence(text, _IMPL_SUMMARY_OPEN)
+        position = 0
+        while True:
+            heading = text.find(_IMPL_SUMMARY_HEADING, position)
+            if heading < 0:
+                return spans
+            after = heading + len(_IMPL_SUMMARY_HEADING)
+            newline = text.rfind("\n", after, _WHITESPACE.match(text, after).end())
+            if newline < 0:
+                position = heading + 1
+                continue
+            marker = markers(newline + 1)
+            found = self.at(marker, dotall=True) if marker >= 0 else None
+            if found is None:
+                return spans
+            spans.append((heading, found[0]))
+            position = found[0]
 
 
 class PlanUpdater:
@@ -239,95 +358,6 @@ class PlanUpdater:
         return self.task_statuses.copy()
 
 
-def update_plan_status(
-    plan_path: Path,
-    task_statuses: Dict[str, str],
-    save: bool = True
-) -> str:
-    """
-    Convenience function to update plan with task statuses.
-
-    Args:
-        plan_path: Path to the plan file
-        task_statuses: Dictionary mapping task IDs to statuses
-        save: Whether to save changes to file
-
-    Returns:
-        Updated plan content
-    """
-    updater = PlanUpdater(plan_path)
-
-    for task_id, status in task_statuses.items():
-        updater.update_task_status(task_id, status)
-
-    updater.apply_updates()
-
-    if save:
-        updater.save()
-
-    return updater.get_content()
-
-
-def extract_task_list(plan_content: str) -> List[Dict[str, str]]:
-    """
-    Extract task list from plan content.
-
-    Args:
-        plan_content: Markdown content of the plan
-
-    Returns:
-        List of task dictionaries with id, title, and status
-    """
-    tasks = []
-
-    # Match task headers
-    task_pattern = r'(?:#{2,3})\s*(?:Task\s+)?([T]?\d+):?\s*(.+?)(?=\n)'
-    matches = re.findall(task_pattern, plan_content, re.IGNORECASE)
-
-    # Also get any status markers
-    status_markers = dict(re.findall(TASK_STATUS_PATTERN, plan_content))
-
-    for task_id, title in matches:
-        normalized_id = f"T{task_id}" if not task_id.startswith('T') else task_id
-        tasks.append({
-            "id": normalized_id,
-            "title": title.strip(),
-            "status": status_markers.get(normalized_id, "pending"),
-        })
-
-    return tasks
-
-
-def has_implementation_tasks(content: str) -> bool:
-    """
-    Check if plan content already has implementation tasks.
-
-    Checks for:
-    1. External tasks file reference (<!-- TASKS_FILE: path -->)
-    2. Generated tasks section markers (GENERATED_TASKS_START) - legacy
-    3. Existing task patterns (## Task N:, ### Step N:, etc.)
-
-    Args:
-        content: Plan markdown content
-
-    Returns:
-        True if tasks exist, False otherwise
-    """
-    # Check for external tasks file reference
-    if re.search(TASKS_FILE_REFERENCE_PATTERN, content):
-        return True
-
-    # Check for generated tasks section (legacy embedded tasks)
-    if GENERATED_TASKS_START in content:
-        return True
-
-    # Check for existing task patterns using same regex as TaskDecomposer
-    task_pattern = r'(?:#{2,3})\s*(?:Step|Task)?\s*([T]?\d+):?\s*(.+?)(?=\n#{2,3}\s*(?:Step|Task)?\s*[T]?\d|\n## |\Z)'
-    matches = re.findall(task_pattern, content, re.DOTALL | re.IGNORECASE)
-
-    return len(matches) > 0
-
-
 def get_tasks_file_path(content: str) -> Optional[str]:
     """
     Extract the tasks file path from plan content if present.
@@ -336,11 +366,29 @@ def get_tasks_file_path(content: str) -> Optional[str]:
         content: Plan markdown content
 
     Returns:
-        Path to tasks file, or None if not found
+        Path to tasks file as written, or None if not found. A caller that
+        reads the task list uses ``tasks_file.read_task_list``, which also
+        keeps the path inside the plan's directory.
     """
-    match = re.search(TASKS_FILE_REFERENCE_PATTERN, content)
-    if match:
-        return match.group(1).strip()
+    return tasks_marker(content)
+
+
+_REFERENCE_SECTION_HEADING = "## Implementation Tasks"
+_HEADING_LINE_RE = re.compile(r"^#{1,6}[ \t].*$", re.MULTILINE)
+
+
+def _reference_section_start(content: str, marker_start: int, code) -> Optional[int]:
+    """Where the ``## Implementation Tasks`` section holding a marker starts.
+
+    ``None`` unless the nearest heading before *marker_start* that is not
+    inside code (*code*, ``tasks_marker.markdown_code_ranges``) is that heading.
+    """
+    nearest = None
+    for heading in _HEADING_LINE_RE.finditer(content, 0, marker_start):
+        if not any(start <= heading.start() < end for start, end in code):
+            nearest = heading
+    if nearest is not None and nearest.group(0).rstrip() == _REFERENCE_SECTION_HEADING:
+        return nearest.start()
     return None
 
 
@@ -364,16 +412,20 @@ See [{tasks_file}]({tasks_file}) for the detailed task breakdown.
 {reference}
 """
 
-    # Check if reference already exists
-    existing_match = re.search(TASKS_FILE_REFERENCE_PATTERN, content)
-    if existing_match:
-        # Replace existing reference section
-        # Find the section boundaries (## Implementation Tasks ... <!-- TASKS_FILE -->)
-        section_pattern = r'## Implementation Tasks\s*\n.*?' + TASKS_FILE_REFERENCE_PATTERN
-        # A function replacement: a template string would read the path's
-        # backslashes (a Windows spelling) as escapes and raise `bad escape`.
-        replacement = reference_section.strip()
-        content = re.sub(section_pattern, lambda _m: replacement, content, flags=re.DOTALL)
+    # Every marker that counts (`tasks_marker.tasks_marker_spans`: not one quoted
+    # as code) now names the new list, so none is left for implement to refuse
+    # or follow: the marker of this function's own section is rewritten with
+    # its heading and link, any other in place. Spliced, not `re.sub`: a
+    # template would read a Windows path's backslashes as escapes.
+    spans = tasks_marker_spans(content)
+    if spans:
+        code = markdown_code_ranges(content)
+        for start, end, _raw in reversed(spans):
+            heading = _reference_section_start(content, start, code)
+            if heading is None:
+                content = content[:start] + reference + content[end:]
+            else:
+                content = content[:heading] + reference_section.strip() + content[end:]
         return content
 
     # Check for legacy embedded tasks and remove them
@@ -386,53 +438,6 @@ See [{tasks_file}]({tasks_file}) for the detailed task breakdown.
 
     # Append new reference section at the end
     return content.rstrip() + "\n" + reference_section
-
-
-def insert_generated_tasks(content: str, tasks_markdown: str) -> str:
-    """
-    Insert or replace the generated tasks section in plan content.
-
-    Uses HTML comment markers for idempotent updates.
-
-    Args:
-        content: Original plan markdown content
-        tasks_markdown: Formatted markdown for tasks section
-
-    Returns:
-        Updated plan content with tasks section
-    """
-    tasks_section = f"{GENERATED_TASKS_START}\n{tasks_markdown}\n{GENERATED_TASKS_END}"
-
-    # Check if section already exists
-    start_idx = content.find(GENERATED_TASKS_START)
-    end_idx = content.find(GENERATED_TASKS_END)
-
-    if start_idx != -1 and end_idx != -1:
-        # Replace existing section
-        return (
-            content[:start_idx] +
-            tasks_section +
-            content[end_idx + len(GENERATED_TASKS_END):]
-        )
-    else:
-        # Append new section at the end
-        return content.rstrip() + "\n\n" + tasks_section + "\n"
-
-
-def get_implementation_summary_path(content: str) -> Optional[str]:
-    """
-    Extract the implementation summary file path from plan content if present.
-
-    Args:
-        content: Plan markdown content
-
-    Returns:
-        Path to implementation summary file, or None if not found
-    """
-    match = re.search(IMPL_SUMMARY_REFERENCE_PATTERN, content)
-    if match:
-        return match.group(1).strip()
-    return None
 
 
 def insert_implementation_summary_reference(content: str, summary_file: str) -> str:
@@ -456,15 +461,20 @@ See [{summary_file}]({summary_file}) for the implementation summary including fi
 """
 
     # Check if reference already exists
-    existing_match = re.search(IMPL_SUMMARY_REFERENCE_PATTERN, content)
-    if existing_match:
-        # Replace existing reference section
-        section_pattern = r'## Implementation Summary\s*\n.*?' + IMPL_SUMMARY_REFERENCE_PATTERN
-        # Literal, as in insert_tasks_file_reference: `..\.multi-llm\p\...`
-        # was `bad escape \p` (Windows CI, 2026-10-23).
+    markers = _ImplSummaryMarkers(content)
+    if markers.search():
+        # Replace each existing reference section: the matches of
+        # `## Implementation Summary\s*\n.*?` + IMPL_SUMMARY_REFERENCE_PATTERN
+        # under re.DOTALL. Spliced literally, as in insert_tasks_file_reference:
+        # `..\.multi-llm\p\...` was `bad escape \p` (Windows CI, 2026-10-23).
         replacement = reference_section.strip()
-        content = re.sub(section_pattern, lambda _m: replacement, content, flags=re.DOTALL)
-        return content
+        pieces: List[str] = []
+        position = 0
+        for start, end in markers.sections():
+            pieces.extend((content[position:start], replacement))
+            position = end
+        pieces.append(content[position:])
+        return "".join(pieces)
 
     # Append new reference section at the end
     return content.rstrip() + "\n" + reference_section

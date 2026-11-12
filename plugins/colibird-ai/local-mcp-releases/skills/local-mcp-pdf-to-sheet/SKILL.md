@@ -29,5 +29,5 @@ text goes to the user's AI provider as part of the conversation.
 - Watch totals: if the PDF has a stated total, add a check row or verify your sum matches.
 - Keep money as numbers (not "$1,234.50" strings) so the sheet can compute.
 - Write the output next to the source or to a path the user names; `excel_create`/`excel_write_cell`
-  are preview/confirm-gated (pass `confirm: true` once the user approves the columns).
+  are preview/confirm-gated (set `confirm: true` once the user approves the columns).
 - Multi-PDF: keep a `Source` column so each row traces back to its file.

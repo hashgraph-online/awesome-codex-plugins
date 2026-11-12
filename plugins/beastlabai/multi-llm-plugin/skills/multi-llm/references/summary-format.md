@@ -112,7 +112,13 @@ Every mode ends with this report. Four rules, and a fifth for `ask`:
     last: its why as plain text, then its command alone in its own fenced
     block. A stopped implement's lookup can also print a `[TESTS_NOT_RUN]`
     line above them, saying what ran the repository's tests: give the text
-    after its tag verbatim in the report, above `### Next Steps`; it is never a command. When
+    after its tag verbatim in the report, above `### Next Steps`; it is never a command.
+    Any lookup can print a `[RUNNER_WARNING]` line above the `[NEXT_COMMAND]`
+    block, when the command it names would be refused for the runner the
+    config resolves to; neither the markdown nor the rest of `user_next_step`
+    carries it (on a tool route it stays in the result's `output`): give the
+    text after its tag verbatim in the report too, as plain text, above
+    `### Next Steps`; it is never a command. When
     `complete` is `true` (its `command` is then `null`), write
     "Workflow complete." instead, and when it carries `manual_tasks`, list
     each one under it, its `id` and `title`, as the user's to do: implement

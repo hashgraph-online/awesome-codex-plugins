@@ -22,9 +22,10 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from utils.stream_bootstrap import bootstrap_streams
+from utils import importance as _importance
 from utils.human_decisions import judge_source_label
 from utils.judge_vocab import JUDGE_SKIPPED, upgrade_legacy
-from utils.output_handler import sanitize_prefix, get_phase_dir
+from utils.output_handler import get_phase_dir
 
 
 def load_output(path: str) -> dict:
@@ -38,7 +39,7 @@ def get_title(item: dict) -> str:
 
 
 def get_importance(item: dict) -> str:
-    return (item.get("importance") or "MEDIUM").upper()
+    return _importance.normalize(item.get("importance"))
 
 
 def importance_badge(imp: str) -> str:
@@ -60,13 +61,10 @@ def display(data: dict, phase: str) -> None:
     is_task_suggestions = phase == "apply-task-suggestions"
     is_code_fixes = "fix" in phase
     if is_task_suggestions:
-        item_noun = "task suggestion"
         item_noun_plural = "task suggestions"
     elif is_code_fixes:
-        item_noun = "fix"
         item_noun_plural = "fixes"
     else:
-        item_noun = "suggestion"
         item_noun_plural = "suggestions"
 
     to_apply = data.get("to_apply", [])
@@ -90,7 +88,6 @@ def display(data: dict, phase: str) -> None:
     total_groups = summary.get("total_groups", summary.get("total_issues", 0))
     valid_count = len(to_apply)
     human_count = len(needs_human)
-    skipped_count = len(skipped_items)
     user_skipped_count = len(user_skipped_items)
 
     # Header
@@ -119,7 +116,7 @@ def display(data: dict, phase: str) -> None:
             print(format_item_line(item, counter))
             counter += 1
     else:
-        print(f"    (none)")
+        print("    (none)")
     print()
 
     # Needs Human Review

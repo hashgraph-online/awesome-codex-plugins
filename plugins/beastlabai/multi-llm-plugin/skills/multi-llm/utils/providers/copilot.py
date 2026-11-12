@@ -1,17 +1,17 @@
 """GitHub Copilot CLI provider implementation.
 
 `@github/copilot` (proprietary, npm, binary ``copilot``). Everything below is
-measured against **1.0.80** in the containerized probe of
-`plans/harness-expansion.md` §6 — stub-only, ``--network none``, **no GitHub
-account and no GitHub token** — and several measurements contradict the plan's
-researched §3.1 contract. Where they do, the measurement is what shipped and the
-contradiction is recorded on the member it affects.
+measured against **1.0.80** in a containerized probe — stub-only,
+``--network none``, **no GitHub account and no GitHub token** — and several
+measurements contradict the contract researched from the vendor's docs. Where
+they do, the measurement is what shipped and the contradiction is recorded on
+the member it affects.
 
 **Auth is BYOK and nothing else.** ``COPILOT_PROVIDER_BASE_URL`` is the
 activation switch — the vendor's own words are *"Set …BASE_URL to activate BYOK
 mode. GitHub authentication is not required"* — so the whole credential surface
 is the ``COPILOT_PROVIDER_*`` family. The Copilot-seat path (a fine-grained PAT
-carrying "Copilot Requests") is deliberately **not** implemented: §0 bars a
+carrying "Copilot Requests") is deliberately **not** implemented: bars a
 benefit that depends on a subscription nobody holds from justifying adapter work,
 and the two paths are mutually exclusive within one run. The only auth work here
 is therefore subtractive — see :meth:`CopilotProvider.get_remove_env`.
@@ -22,7 +22,7 @@ argument-parse errors. ``--stream on`` adds two ephemeral records and still emit
 the same terminal ``assistant.message``, so one parser serves both stream modes
 and ``--stream off`` is a determinism choice rather than a parsing requirement.
 
-**The unwrap trap, and it is the sharpest thing in this adapter.** §3.4's copilot
+**The unwrap trap, and it is the sharpest thing in this adapter.** the copilot
 row says *"drop every ``"ephemeral":true`` record first, then take the assistant
 content"*. Dropping ephemerals is **not sufficient on its own**: ``user.message``
 is non-ephemeral and *also* carries ``data.content`` — our own prompt, 30 412
@@ -44,19 +44,19 @@ carries no content is a failure however cheerful the envelope is. That is
 (``errorType: query``, *"No response was returned…"*, no ``statusCode``) with
 exit 1, which the ``session.error`` branch already handles.
 
-**``session.error`` is the real error channel** and §3.1 does not mention it. It
-arrives **on stdout with stderr empty** — §6.2's ``stdout-error`` trap in its
+**``session.error`` is the real error channel** and does not mention it. It
+arrives **on stdout with stderr empty** — the ``stdout-error`` trap in its
 exact shape — carrying a structured ``errorType`` (``authentication`` / 401,
 ``rate_limit`` / 429, ``query`` / 400 and 404) and a ``statusCode``.
 
 **Tool permissions: tier 1, and the help text is wrong.** ``--allow-all-tools``
 is documented as *"required for non-interactive mode"*. Measured, it is **not**:
-the §6.5 ladder was walked in ascending order with a seeded filesystem canary and
+the ladder was walked in ascending order with a seeded filesystem canary and
 all four rungs produced byte-identical output with a **clean** canary, so rule 1's
-ascending stop applies at rung 1. §3.1's bracketed
+ascending stop applies at rung 1. The bracketed
 ``[--allow-all-tools --add-dir "$WORKDIR"]`` line is therefore **struck**, not
-shipped — this is precisely the case §6.5 exists to catch. ``--add-dir`` is not
-emitted at any shipped tier, so §3.1's ``$WORKDIR`` resolution question is moot
+shipped — this is precisely the case exists to catch. ``--add-dir`` is not
+emitted at any shipped tier, so the ``$WORKDIR`` resolution question is moot
 for v1: copilot answered a realistic review-plan prompt without the enclosing
 worktree. Never ``--yolo`` or ``--allow-all``; both expand to all tools **plus**
 all paths **plus** all URLs.
@@ -64,8 +64,8 @@ all paths **plus** all URLs.
 **The permission tier is enforced in env as well as argv, and that is not
 belt-and-braces.** ``COPILOT_ALLOW_ALL`` is the environment equivalent of
 ``--allow-all-tools``: a user with it exported silently promotes the run to tier
-4 with no argv change at all. Stripping it is what makes §6.5's recorded tier
-enforceable rather than aspirational, and it is a name §3.1's strip list missed.
+4 with no argv change at all. Stripping it is what makes the recorded tier
+enforceable rather than aspirational, and it is a name the strip list missed.
 
 **Prompt transport: argv and stdin.** Measured on the wire with a 30 414-byte
 prompt: piped stdin with ``-p`` **omitted entirely** carried it (stub
@@ -76,7 +76,7 @@ has to be measured against the Windows command-line cap.
 
 **Reasoning effort: supported.** ``--effort`` accepts all seven of
 ``none, minimal, low, medium, high, xhigh, max`` at 1.0.80 (an invalid level
-exits 1 and names the allowed set), confirming §3.1's researched set exactly.
+exits 1 and names the allowed set), confirming the researched set exactly.
 
 **The image blocker, solved at build time rather than here.** The ``copilot`` npm
 entry point is a *loader*: on first run it self-extracts the whole platform
@@ -84,7 +84,7 @@ package into ``$XDG_CACHE_HOME/copilot/pkg/linux-x64/<version>/`` — **209 MB**
 ~2 s — and executes from there. Under the committed ``posture.yaml`` the tmpfs
 mounts default to ``noexec`` and copilot dies with *"failed to map segment from
 shared object"*. ``COPILOT_HOME`` does **not** relocate that cache (a direct
-answer to §8.2's open question, and the answer is no); ``XDG_CACHE_HOME`` does.
+answer to the open question, and the answer is no); ``XDG_CACHE_HOME`` does.
 
 **So this adapter deliberately does NOT set ``XDG_CACHE_HOME``**, and the reason
 is worth stating because the probe listed it among the injected names. A
@@ -100,13 +100,11 @@ import json
 import os
 import re
 import shutil
-import sys
-import tempfile
-import threading
 from typing import Any, Dict, List, NamedTuple, Optional, Set, Tuple
 
 from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     REASONING_LADDER,
     InternalRetryEnvelope,
     LLMProvider,
@@ -114,6 +112,8 @@ from .base import (
     StructuredSchema,
     split_reasoning_effort,
 )
+from .parse_kit import fail
+from .private_home import PrivateHomes
 
 #: Levels accepted by ``copilot --effort`` at 1.0.80, measured one at a time
 #: (1.0.93's invalid-level error names the same seven, 2026-10-08).
@@ -128,7 +128,7 @@ EFFORT_LADDER = ReasoningLadder(
 )
 REASONING_EFFORTS = EFFORT_LADDER.accepted
 
-#: §3.1's token-limit ladder, rung 3 — the conservative floor.
+#: The token-limit ladder, rung 3 — the conservative floor.
 #:
 #: The pair must be emitted **at all** because a catalog miss leaves copilot on
 #: defaults small enough to truncate a real plan prompt. But the draft's fixed
@@ -141,7 +141,7 @@ FLOOR_MAX_PROMPT_TOKENS = 32000
 FLOOR_MAX_OUTPUT_TOKENS = 8000
 
 #: The output reserve held back from a slug's context window, and the output
-#: ceiling this adapter will ever declare. It doubles as §7.4's required per-CLI
+#: ceiling this adapter will ever declare. It doubles as the required per-CLI
 #: output bound on the credentialed lane.
 #:
 #: kimi's live smoke is why this is a real control rather than hygiene: a capped
@@ -149,7 +149,7 @@ FLOOR_MAX_OUTPUT_TOKENS = 8000
 #: an unpinned CLI does not answer at all on those providers.
 OUTPUT_RESERVE_TOKENS = 8000
 
-#: §3.1's ladder, rung 2 — a committed per-slug table beside the
+#: The ladder, rung 2 — a committed per-slug table beside the
 #: ``providers.yaml`` model list, which that bullet names as an accepted catalog
 #: source alongside OpenRouter's ``/models`` document.
 #:
@@ -182,13 +182,15 @@ _MODEL_ID_SPLIT_DECLINED = True
 #: and ``qwen-code``'s all follow.
 _HOME_PREFIX = "multi-llm-copilot-"
 
-_HOME_LOCK = threading.Lock()
-#: Every config root **this process created**. Nothing outside this list is ever
-#: removed: a user-pinned ``COPILOT_HOME`` is respected, never deleted.
-_HOME_DIRS: List[str] = []
-_HOME_ATEXIT_REGISTERED = False
+#: Every config root **this process created** (:class:`PrivateHomes`). Nothing
+#: else is ever removed: a user-pinned ``COPILOT_HOME`` is respected, never
+#: deleted.
+_HOMES = PrivateHomes(_HOME_PREFIX)
+isolated_home_dirs = _HOMES.isolated_home_dirs
+cleanup_home_dirs = _HOMES.cleanup
+reset_home_dirs = _HOMES.reset
 
-#: The B1 selector set (§2.2 rule 2), emitted as one indivisible set.
+#: The B1 selector set, emitted as one indivisible set.
 #: ``COPILOT_PROVIDER_BASE_URL`` is the **activation switch** for BYOK, so a
 #: partial set is not a degraded run — it is a run that falls through to the
 #: GitHub seat path.
@@ -196,8 +198,7 @@ _BYOK_BASE_URL = "https://openrouter.ai/api/v1"
 
 #: B3 and ambient names, all confirmed present at 1.0.80. Stripped so ambient
 #: config cannot re-select a vendor route, silently widen the tool tier, or
-#: outrank the key we inject (§2.2 rule 3: adapter wins, ambient loses, no
-#: fallback).
+#: outrank the key we inject.
 _STRIPPED_VENDOR_VARS: Tuple[str, ...] = (
     # The seat path, in the documented precedence order. A token the user's
     # shell already exports for `gh` would otherwise re-enable the GitHub side
@@ -206,11 +207,11 @@ _STRIPPED_VENDOR_VARS: Tuple[str, ...] = (
     "COPILOT_GITHUB_TOKEN",
     "GH_TOKEN",
     "GITHUB_TOKEN",
-    # SHIP-GATE HOLE, and a §3.1 miss: the env equivalent of --allow-all-tools.
-    # Without this strip, §6.5's recorded tier is unenforceable.
+    # SHIP-GATE HOLE, and a miss: the env equivalent of --allow-all-tools.
+    # Without this strip, the recorded tier is unenforceable.
     "COPILOT_ALLOW_ALL",
     # Documented to take PRECEDENCE OVER COPILOT_PROVIDER_API_KEY, so a stale
-    # one overrides the key this adapter injects. Also a §3.1 miss.
+    # one overrides the key this adapter injects. Also a miss.
     "COPILOT_PROVIDER_BEARER_TOKEN",
     # New since 1.0.80 (`copilot help environment` at 1.0.93, 2026-10-08): "shell
     # command that prints a fresh API key for each provider request. Takes
@@ -270,7 +271,7 @@ def _is_copilot_record(record: Dict[str, Any]) -> bool:
 
 def _scan_copilot_records(text: str) -> _CopilotRecords:
     """Walk the JSONL once, keyed on record ``type`` (plan: review-run-scope-
-    salvage-and-failure-visibility §4, D4.4 — shared by ``parse_output`` and
+    salvage-and-failure-visibility, D4.4 — shared by ``parse_output`` and
     ``salvage_text``).
 
     ``assistant_contents`` and ``session_error`` are ``parse_output``'s inputs,
@@ -354,14 +355,14 @@ def token_limits_for(model: str) -> Tuple[int, int]:
     not. **There is no config override, and this is not a gap left for later**
     (C9).
 
-    §3.1's draft opened with a rung above these two — ``max_prompt_tokens:`` /
+    The draft opened with a rung above these two — ``max_prompt_tokens:`` /
     ``max_output_tokens:`` keys in the copilot block of ``providers.yaml``. The
     affordance is **removed** rather than deferred, because a documented key
-    that silently does nothing is worse than no key at all: §8 item 3 fixes a
+    that silently does nothing is worse than no key at all: item 3 fixes a
     provider block at exactly ``default_timeout`` / ``max_concurrent`` /
     ``models``, and ``provider_registry`` **merges an undeclared key and then
     ignores it**, so such an entry would read as a supported setting and be a
-    no-op — the footgun §5.1 refuses for a provider-level ``env:`` block. The
+    no-op — the footgun refuses for a provider-level ``env:`` block. The
     removal costs nothing a user can reach: the key appears in no
     ``providers.yaml``, in no schema and in no instruction text, so there is
     nothing shipped to break, and an override key would be the only member of a
@@ -385,7 +386,7 @@ def token_limits_for(model: str) -> Tuple[int, int]:
     own decision to make, not a ride-along on this one. It is deliberately not
     built here.
 
-    ``tests/test_providers.py::TestCopilotHasNoConfigurableTokenLimits`` pins the
+    ``tests/test_provider_copilot.py::TestCopilotHasNoConfigurableTokenLimits`` pins the
     absence: the same pair comes back for a model with and without a
     ``providers.yaml`` block carrying those keys, so the key cannot be re-added
     half-way.
@@ -397,46 +398,6 @@ def token_limits_for(model: str) -> Tuple[int, int]:
     prompt_budget = max(FLOOR_MAX_PROMPT_TOKENS, context_length - OUTPUT_RESERVE_TOKENS)
     output_budget = min(max_completion, OUTPUT_RESERVE_TOKENS)
     return prompt_budget, output_budget
-
-
-def _create_home_dir() -> str:
-    """A fresh 0700 config root, owned and tracked by this process."""
-    global _HOME_ATEXIT_REGISTERED
-
-    path = tempfile.mkdtemp(prefix=_HOME_PREFIX)
-    os.chmod(path, 0o700)  # mkdtemp already does this; asserted, not assumed
-    _HOME_DIRS.append(path)
-    if not _HOME_ATEXIT_REGISTERED:
-        import atexit
-
-        atexit.register(cleanup_home_dirs)
-        _HOME_ATEXIT_REGISTERED = True
-    return path
-
-
-def isolated_home_dirs() -> Tuple[str, ...]:
-    """Every config root this process created and has not yet removed."""
-    with _HOME_LOCK:
-        return tuple(_HOME_DIRS)
-
-
-def cleanup_home_dirs() -> None:
-    """Remove every config root this process created. Never raises.
-
-    Containment must never be the thing that fails a run, so a directory that
-    cannot be removed is left behind under a known prefix rather than
-    propagating an exception out of interpreter shutdown.
-    """
-    with _HOME_LOCK:
-        paths, _HOME_DIRS[:] = list(_HOME_DIRS), []
-    for path in paths:
-        shutil.rmtree(path, ignore_errors=True)
-
-
-def reset_home_dirs() -> None:
-    """Drop this process's tracking list without removing anything (tests)."""
-    with _HOME_LOCK:
-        _HOME_DIRS[:] = []
 
 
 class CopilotProvider(LLMProvider):
@@ -451,7 +412,7 @@ class CopilotProvider(LLMProvider):
     at ``usage_support = "none"``, also measured. See the module docstring.
     """
 
-    #: §8.3: flags first, the ``-p <prompt>`` **pair** trailing. Confirmed legal
+    #: Flags first, the ``-p <prompt>`` **pair** trailing. Confirmed legal
     #: at 1.0.80 — ``-p`` takes exactly one value and the flags are
     #: order-independent, so both prompt-first and prompt-last exit 0 and the
     #: grok-shape reorder changes no dispatched behaviour. Note the pair: the
@@ -478,7 +439,7 @@ class CopilotProvider(LLMProvider):
     #: denied error while writing the JSON file", and ``classify_failure``
     #: returned ``permission_denied``. No file.
     #:
-    #: This is the §6.5 tier stated as data. The shipped argv deliberately
+    #: This is the tier stated as data. The shipped argv deliberately
     #: carries no ``--allow-all-tools`` (and no ``--allow-tool``), which upstream
     #: documents as *required for non-interactive mode*; ``--no-ask-user`` is not
     #: a permission flag at all — it removes the ``ask_user`` tool — so under
@@ -488,7 +449,7 @@ class CopilotProvider(LLMProvider):
     #: the prompt: asking for stdout is what stops the model spending its turn on
     #: an instruction the CLI will deny.
     #:
-    #: WHY THE OLD "clean canary at all four §6.5 rungs" EVIDENCE DID NOT SETTLE
+    #: WHY THE OLD "clean canary at all four rungs" EVIDENCE DID NOT SETTLE
     #: THIS: that ladder ran against the offline stub, which never emits a tool
     #: call — ``"toolRequests":[]`` in 35 of 35 captures — so rung 4
     #: (``--allow-all-tools``, full permission) and rung 1 (none) produced
@@ -520,7 +481,7 @@ class CopilotProvider(LLMProvider):
     #: COPILOT_PROVIDER_API_KEY_COMMAND (new since 1.0.80) is now stripped.
     verified_version = "1.0.93"
 
-    #: Measured at 1.0.80, every field (§6.1.1). **All four of §3.1's
+    #: Measured at 1.0.80, every field. **All four of the
     #: placeholders were wrong and none of them shipped.**
     #:
     #: ``max_requests`` is **6** (1 + 5 retries), not 5 — confirmed twice over,
@@ -528,12 +489,12 @@ class CopilotProvider(LLMProvider):
     #: text ("retried 5 times (total retry wait time: 85.66 seconds)").
     #:
     #: ``retries_rate_limit`` is **True**, not codex's ``False``: a 429-forever
-    #: stub produced the same 6-request chain, so §7.5 rule 6(b) must suppress an
+    #: stub produced the same 6-request chain, so rule 6(b) must suppress an
     #: identical harness-side rate-limit re-dispatch rather than repeating a
     #: chain that already ran at the same price for the same verdict.
     #:
     #: ``max_wall_s`` is ``None``, and that is the **honest** declaration rather
-    #: than an unmeasured one — §3.1 pre-authorised it in those words. Two
+    #: than an unmeasured one — pre-authorised it in those words. Two
     #: independent measurements refuse a bound: a stalled request is **never
     #: retried and has no client-side timeout at all** (one request, still open
     #: at 180 s), and a honoured ``Retry-After`` is a **server-chosen** sleep the
@@ -562,7 +523,7 @@ class CopilotProvider(LLMProvider):
         "authentication failed",
     )
 
-    #: **Empty by measurement, not by omission** — and §6.1's column still reads
+    #: **Empty by measurement, not by omission** — and the column still reads
     #: YES for this CLI.
     #:
     #: copilot's one exit-0 failure shape is an empty provider 200 at 1.0.80
@@ -580,17 +541,22 @@ class CopilotProvider(LLMProvider):
     #: answer.
     exit_zero_failure_markers: Tuple[Any, ...] = ()
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: copilot's
+    #: ``vendor_text`` drops only the prompt it echoes; the answer's
+    #: ``assistant.message`` events reach the tables, so a review quoting a
+    #: rate limit, a 401 or a context limit classifies as one. No measured
+    #: failure of copilot's own exits 0 with a verdict (its exit-0 rows
+    #: classify ``None``).
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: the session, tool
+    #: calls and answer ride the stdout JSONL; stderr is empty on every committed capture
+    #: (tests/fixtures/copilot).
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "copilot"
-
-    @property
-    def default_timeout(self) -> int:
-        # 1200 s, matching the providers.yaml block. It has to clear copilot's
-        # own ~86 s internal rate-limit chain -- and, where a backend sends
-        # `Retry-After`, an unbounded one -- before the harness's bound bites,
-        # since the CLI exposes no knob to shorten either (see internal_retries).
-        return 1200
 
     def is_available(self) -> bool:
         return shutil.which("copilot") is not None
@@ -615,7 +581,7 @@ class CopilotProvider(LLMProvider):
                 ``--effort``.
             timeout_s: Accepted and **ignored** — copilot exposes no wall-clock,
                 turn or request-timeout flag at 1.0.80, so there is nothing to
-                render. §1's guard is satisfied trivially: the argv is
+                render. The guard is satisfied trivially: the argv is
                 byte-identical with and without the keyword.
             schema: Accepted and ignored; copilot declares no structured-output
                 support, so ``structured_output_support`` stays ``False`` and the
@@ -648,7 +614,7 @@ class CopilotProvider(LLMProvider):
         ]
         if effort is not None:
             cmd += ["--effort", effort]
-        # The §6.5 tier is expressed by what is ABSENT here: no --allow-all-tools,
+        # The tier is expressed by what is ABSENT here: no --allow-all-tools,
         # no --allow-tool/--deny-tool, no --add-dir. Tier 1 was measured
         # sufficient with a clean canary; the help text's claim that
         # --allow-all-tools is "required for non-interactive mode" is false for a
@@ -698,7 +664,7 @@ class CopilotProvider(LLMProvider):
         of it, so a green copilot run classified ``rate_limited`` — the plan
         under review says "rate-limit patterns … declared per adapter" — and
         ``rate_limited`` is one of the two classes
-        ``subagent_executor._classify_failed_run`` forwards to the retry ladder.
+        ``attempt_classifier._classify_failed_run`` forwards to the retry ladder.
         Nothing pinned that until this defect was written up: copilot shipped
         with no manifest.
 
@@ -760,7 +726,7 @@ class CopilotProvider(LLMProvider):
             return stdout, stderr
 
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
-        """§3.4's two-step unwrap, keyed on record **type** rather than ephemerality.
+        """The two-step unwrap, keyed on record **type** rather than ephemerality.
 
         **Step 1** walks the JSONL and collects records by ``type``:
 
@@ -787,12 +753,7 @@ class CopilotProvider(LLMProvider):
         """
         text = (stdout or "").strip()
         if not text:
-            return {
-                "success": False,
-                "error": self._empty_stdout_reason(stderr),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(self._empty_stdout_reason(stderr), stdout)
 
         scan = _scan_copilot_records(text)
         assistant_contents = scan.assistant_contents
@@ -800,12 +761,7 @@ class CopilotProvider(LLMProvider):
         saw_record = scan.saw_record
 
         if not saw_record:
-            return {
-                "success": False,
-                "error": "copilot emitted no JSON records on stdout",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail("copilot emitted no JSON records on stdout", stdout)
 
         if session_error is not None:
             message = session_error.get("message") or "copilot reported a session error"
@@ -814,38 +770,25 @@ class CopilotProvider(LLMProvider):
             detail = f"{kind or 'error'}"
             if status is not None:
                 detail = f"{detail} (HTTP {status})"
-            return {
-                "success": False,
-                "error": f"{detail}: {message}",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(f"{detail}: {message}", stdout)
 
         if not assistant_contents:
-            return {
-                "success": False,
-                "error": (
-                    "no assistant.message record in copilot output "
-                    "(the run produced no answer)"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "no assistant.message record in copilot output "
+                "(the run produced no answer)",
+                stdout,
+            )
 
         answer = assistant_contents[-1]
         if not answer.strip():
             # THE exit-0 failure shape: exit 0, result.exitCode 0, no error
             # record, and an empty answer. Structural by necessity -- there is no
             # text here for a marker to match.
-            return {
-                "success": False,
-                "error": (
-                    "copilot returned an empty assistant message "
-                    "(exit-0 failure: the provider answered 200 with no content)"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "copilot returned an empty assistant message "
+                "(exit-0 failure: the provider answered 200 with no content)",
+                stdout,
+            )
 
         return extract_json_from_text(answer, prefer_arrays=True)
 
@@ -901,7 +844,7 @@ class CopilotProvider(LLMProvider):
     def get_env(self, model: str) -> Dict[str, str]:
         """The complete B1 selector set, plus a per-slot config root.
 
-        §2.2 rule 2 — **selection is total, never partial**. Every member is
+ rule 2 — **selection is total, never partial**. Every member is
         emitted together for every ``(model, profile)``, *including the base URL
         when the key is empty*, so a missing credential fails as a legible
         OpenRouter auth error rather than quietly resolving to the GitHub seat
@@ -913,7 +856,7 @@ class CopilotProvider(LLMProvider):
         (the vendor doc's "requires a local model provider" wording raised a real
         risk that it would). It disables GitHub auth, telemetry, web tools, the
         GitHub MCP server and auto-update, and leaves the provider endpoint
-        reachable — so §7.4's belt-and-braces assertion can safely require it on
+        reachable — so the belt-and-braces assertion can safely require it on
         the live lane.
 
         The token pair is resolved **for the model handed in** (see
@@ -929,7 +872,7 @@ class CopilotProvider(LLMProvider):
             split_reasoning_effort(model, REASONING_EFFORTS)[0]
         )
         env = {
-            # The activation switch. Measured (§7 step 4): copilot appends
+            # The activation switch. Measured: copilot appends
             # exactly `/chat/completions` to this VERBATIM and adds no version
             # segment of its own, so the `/v1` is load-bearing and the feared
             # `.../v1/v1/chat/completions` 404 cannot occur.
@@ -955,7 +898,7 @@ class CopilotProvider(LLMProvider):
 
         Per **slot**, so two concurrent fan-out slots never share one writable
         config root — the corruption ``cursor-agent`` actually hit and the
-        assertion §8.2's test 2 makes.
+        assertion the test 2 makes.
 
         ``None`` when the user pinned ``COPILOT_HOME`` themselves — their
         directory is respected and never removed — or when a temp directory
@@ -964,20 +907,19 @@ class CopilotProvider(LLMProvider):
         """
         if os.environ.get("COPILOT_HOME"):
             return None
-        with _HOME_LOCK:
-            try:
-                return _create_home_dir()
-            except OSError:  # noqa: BLE001 - containment must never fail a run
-                return None
+        try:
+            return _HOMES.create()
+        except OSError:  # noqa: BLE001 - containment must never fail a run
+            return None
 
     def get_remove_env(self) -> List[str]:
         """Strip the seat path, the tier-widening switch and the key that outranks ours.
 
-        §2.2 rule 3: adapter wins, ambient loses, no fallback. Three of these are
-        §3.1 misses and each one is a different failure:
+ rule 3: adapter wins, ambient loses, no fallback. Three of these are
+ misses and each one is a different failure:
 
         * ``COPILOT_ALLOW_ALL`` silently promotes the run to tier 4 with no argv
-          change, which would make §6.5's recorded tier unenforceable;
+          change, which would make the recorded tier unenforceable;
         * ``COPILOT_PROVIDER_BEARER_TOKEN`` is documented to outrank the API key
           this adapter injects;
         * ``OTEL_EXPORTER_OTLP_ENDPOINT`` turns telemetry on from a variable the

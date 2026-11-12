@@ -14,21 +14,15 @@ Grouping Heuristics:
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
-try:
-    from .prior_changes import entry_id, stable_key
-except ImportError:
-    from utils.prior_changes import entry_id, stable_key
+from . import importance as _importance
+from .prior_changes import entry_id, stable_key
 
 
 # Configuration constants
 MAX_SUGGESTIONS_PER_BATCH = 4  # Hard limit to prevent context overload
 MAX_DESCRIPTION_CHARS = 2500  # Total description length limit per batch
-SECTION_PATTERN = re.compile(
-    r'(?:###?\s*)?(?:Step\s*)?(\d+)?[:\s.-]*(.+?)(?:\s*$)',
-    re.IGNORECASE
-)
 FILE_PATTERN = re.compile(
     r'(?:File|Path|Location):\s*([^\s,]+)',
     re.IGNORECASE
@@ -75,11 +69,7 @@ class SuggestionBatch:
     @property
     def priority_score(self) -> float:
         """Calculate batch priority based on contained suggestions."""
-        score = 0.0
-        importance_weights = {"HIGH": 3.0, "MEDIUM": 2.0, "LOW": 1.0}
-        for s in self.suggestions:
-            score += importance_weights.get(s.get("importance", "MEDIUM").upper(), 2.0)
-        return score
+        return float(sum(_importance.weight(s.get("importance")) for s in self.suggestions))
 
     def can_add(self, suggestion: Dict[str, Any]) -> bool:
         """Check if a suggestion can be added to this batch."""
@@ -138,6 +128,86 @@ class SuggestionBatch:
         }
 
 
+_WHITESPACE = re.compile(r"\s*")
+_STEP_WORD = re.compile(r"step", re.IGNORECASE)
+_DIGITS = re.compile(r"\d*")
+_SEPARATORS = re.compile(r"[:\s.-]*")
+
+
+def _section_parts(reference: str) -> Optional[Tuple[Optional[str], str]]:
+    """``(step number or None, section name)`` of a section reference, or None.
+
+    Exactly the groups of ``re.match(r'(?:###?\\s*)?(?:Step\\s*)?(\\d+)?[:\\s.-]*(.+?)(?:\\s*$)',
+    reference, re.IGNORECASE)``, computed in linear time. The regex itself is
+    polynomial on a reviewer's ``reference``: every way to share one whitespace
+    run between its three ``\\s`` quantifiers and the lazy name is tried before
+    a later line makes it fail (185 s for ``## `` + 1,000 spaces + ``x\\ny``).
+
+    The same search, with its order kept: each optional piece is tried taken
+    (longest first) before skipped, and the first parse whose separators can
+    end where the name may start wins. The name may start at *e* when it can
+    run to the end on one line: ``.`` stops at a newline, and the closing
+    ``\\s*$`` only matches all of the remaining whitespace. So *e* is past the
+    last newline before the trailing whitespace (or a non-newline inside it),
+    the name runs to that trailing whitespace (at least one character), and the
+    separators take the largest such *e* they can reach.
+    """
+    text = reference
+    size = len(text)
+    trailing = len(text.rstrip())  # where the closing \s*$ may begin
+    last_newline = text.rfind("\n", 0, trailing)
+    tail_start = next(
+        (e for e in range(size - 1, trailing - 1, -1) if text[e] != "\n"), None)
+    separators_end: Dict[int, int] = {}
+
+    def run_of_separators(c: int) -> int:
+        if c not in separators_end:
+            if c + 1 in separators_end and c < size and (
+                    text[c] in ":.-" or text[c].isspace()):
+                separators_end[c] = separators_end[c + 1]
+            else:
+                separators_end[c] = _SEPARATORS.match(text, c).end()
+        return separators_end[c]
+
+    def name_start(c: int) -> Optional[int]:
+        """The largest start the separators from *c* can leave the name."""
+        reach = min(run_of_separators(c), size - 1)
+        if tail_start is not None and c <= tail_start <= reach:
+            return tail_start
+        e = min(reach, trailing - 1)
+        return e if e >= c and e > last_newline else None
+
+    def after_step(b: int) -> Optional[Tuple[Optional[str], int]]:
+        for c in range(_DIGITS.match(text, b).end(), b, -1):
+            e = name_start(c)
+            if e is not None:
+                return text[b:c], e
+        e = name_start(b)
+        return None if e is None else (None, e)
+
+    def after_heading(a: int) -> Optional[Tuple[Optional[str], int]]:
+        step = _STEP_WORD.match(text, a)
+        if step:
+            for b in range(_WHITESPACE.match(text, step.end()).end(), step.end() - 1, -1):
+                found = after_step(b)
+                if found:
+                    return found
+        return after_step(a)
+
+    heading_ends: List[int] = []
+    if text.startswith("##"):
+        if text.startswith("###"):
+            heading_ends.extend(range(_WHITESPACE.match(text, 3).end(), 2, -1))
+        heading_ends.extend(range(_WHITESPACE.match(text, 2).end(), 1, -1))
+    heading_ends.append(0)
+    for a in heading_ends:
+        found = after_heading(a)
+        if found:
+            step_num, e = found
+            return step_num, text[e:max(e + 1, trailing)]
+    return None
+
+
 def normalize_section_reference(reference: str) -> str:
     """
     Normalize a section reference to a canonical key for grouping.
@@ -158,10 +228,10 @@ def normalize_section_reference(reference: str) -> str:
         return f"file:{file_match.group(1).lower()}"
 
     # Try to extract step number
-    section_match = SECTION_PATTERN.match(reference)
-    if section_match:
-        step_num = section_match.group(1)
-        section_name = section_match.group(2).strip().lower()
+    section = _section_parts(reference)
+    if section:
+        step_num = section[0]
+        section_name = section[1].strip().lower()
 
         if step_num:
             return f"step_{step_num}"
@@ -287,8 +357,7 @@ def group_suggestions_for_subagents(
     # Step 3: Within each section, create batches respecting limits
     for section_key, cluster in sorted_sections:
         # Sort by importance within cluster (HIGH first)
-        importance_order = {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
-        cluster.sort(key=lambda s: importance_order.get(s.get("importance", "MEDIUM").upper(), 1))
+        cluster.sort(key=lambda s: _importance.rank(s.get("importance")))
 
         current_batch = SuggestionBatch(section_key=section_key)
 
@@ -326,6 +395,30 @@ def group_suggestions_for_subagents(
     batches.sort(key=lambda b: (-b.priority_score,))
 
     return batches
+
+
+#: A multi-suggestion prompt's section on the batches before it: the
+#: ``{prior_changes_context}`` token is filled at dispatch time.
+PRIOR_BATCHES_SECTION = """## Changes Applied in Prior Batches
+(Review these to avoid redoing work — do NOT re-apply these changes)
+
+{prior_changes_context}
+"""
+
+
+def format_suggestion_block(number: int, suggestion: Dict[str, Any], reference_label: str) -> str:
+    """One suggestion of a multi-suggestion prompt, its reference under
+    *reference_label* (the plan's ``Section``, the task list's ``Task reference``)."""
+    s = suggestion
+    return f"""---
+### Suggestion {number}: {s.get('title', 'Untitled')}
+- **Type**: {s.get('type', 'modification')}
+- **{reference_label}**: {s.get('reference', 'N/A')}
+- **Importance**: {s.get('importance', 'MEDIUM')}
+
+**Details**:
+{s.get('description', 'No description provided.')}
+"""
 
 
 def format_batch_for_prompt(batch: SuggestionBatch, plan_path: str) -> str:
@@ -387,21 +480,9 @@ Return a brief summary of what was changed."""
     ]
 
     for i, s in enumerate(suggestions, 1):
-        prompt_parts.append(f"""---
-### Suggestion {i}: {s.get('title', 'Untitled')}
-- **Type**: {s.get('type', 'modification')}
-- **Section**: {s.get('reference', 'N/A')}
-- **Importance**: {s.get('importance', 'MEDIUM')}
+        prompt_parts.append(format_suggestion_block(i, s, "Section"))
 
-**Details**:
-{s.get('description', 'No description provided.')}
-""")
-
-    prompt_parts.append("""## Changes Applied in Prior Batches
-(Review these to avoid redoing work — do NOT re-apply these changes)
-
-{prior_changes_context}
-""")
+    prompt_parts.append(PRIOR_BATCHES_SECTION)
 
     prompt_parts.append("""---
 

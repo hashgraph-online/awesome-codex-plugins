@@ -3,18 +3,28 @@
 Creates backups of existing output files before salvage operations overwrite them.
 """
 
+if __name__ == "__main__" and not __package__:
+    # Run by path: put the skill root on sys.path, found from this file's real
+    # location as Python finds sys.path[0], then call the package module's entry
+    # point with sys.argv untouched, so the program name stays the one typed
+    # (docs/development/dispatcher.md#import-safety).
+    import os
+    import sys
+
+    _UTILS_DIR = os.path.dirname(os.path.realpath(__file__))
+    sys.path[:] = [os.path.dirname(_UTILS_DIR)] + [
+        p for p in sys.path if os.path.realpath(p) != _UTILS_DIR]
+    from utils.backup import main
+
+    sys.exit(main(sys.argv[1:]))
+
 import os
 import shutil
 import sys
 from datetime import datetime
 from typing import Optional
 
-try:
-    from .stream_bootstrap import bootstrap_streams
-except ImportError:
-    # Direct script invocation (`python utils/backup.py`): sys.path[0]
-    # is the utils/ directory, so import the sibling module directly.
-    from stream_bootstrap import bootstrap_streams
+from .stream_bootstrap import bootstrap_streams
 
 
 def generate_backup_path(file_path: str) -> str:

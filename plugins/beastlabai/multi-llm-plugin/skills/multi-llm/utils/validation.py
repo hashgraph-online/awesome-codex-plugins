@@ -2,113 +2,85 @@
 """
 Shared validation utility for plan review and code review orchestrators.
 
-Validates grouped suggestions/issues using an LLM to filter false positives
-and identify items needing human review.
+Prepares the validation of grouped suggestions/issues for delegated subagents,
+which filter false positives and identify items needing human review, then
+merges and records their verdicts.
 """
 
+import contextlib
+import hashlib
 import json
 import os
 import re
 import sys
+import threading
+import time
 from datetime import datetime
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
-# Import the invoke_for_json utility
-try:
-    from .llm_client import invoke_for_json
-    from .providers.base import (
-        CATEGORY_CONNECTION_ERROR,
-        CATEGORY_INVALID_MODEL,
-        CATEGORY_PERMISSION_DENIED,
-        CATEGORY_SERVER_ERROR,
-        classify_streams,
-    )
-    from .retry_ladder import (
-        STATUS_AUTH_FAILED,
-        STATUS_CONTEXT_LENGTH_EXCEEDED,
-        STATUS_RATE_LIMITED,
-        STATUS_RUNNER_ERROR,
-        STATUS_SPAWN_FAILED,
-        STATUS_TIMEOUT,
-    )
-    from .state_manager import generate_group_id, CURRENT_FORMAT_VERSION
-    from .cli_common import (
-        current_replay_flags, durable_reaggregate_fields, retry_command,
-    )
-    from .subagent_prompts import build_validation_prompt, code_review_validation_guidance
-    from . import scope_policy as _sp
-    from . import scope_round as _scope_round
-    from .subagent_tasks import (
-        PromptBudget,
-        TaskFileError,
-        batch_manifest,
-        build_inputs,
-        content_hash,
-        file_bytes_sha256,
-        file_content_hash,
-        make_task,
-        make_task_file,
-        split_indices,
-        tasks_of,
-    )
-except ImportError:
-    from utils.llm_client import invoke_for_json
-    from utils.providers.base import (
-        CATEGORY_CONNECTION_ERROR,
-        CATEGORY_INVALID_MODEL,
-        CATEGORY_PERMISSION_DENIED,
-        CATEGORY_SERVER_ERROR,
-        classify_streams,
-    )
-    from utils.retry_ladder import (
-        STATUS_AUTH_FAILED,
-        STATUS_CONTEXT_LENGTH_EXCEEDED,
-        STATUS_RATE_LIMITED,
-        STATUS_RUNNER_ERROR,
-        STATUS_SPAWN_FAILED,
-        STATUS_TIMEOUT,
-    )
-    from utils.state_manager import generate_group_id, CURRENT_FORMAT_VERSION
-    from utils.cli_common import (
-        current_replay_flags, durable_reaggregate_fields, retry_command,
-    )
-    from utils.subagent_prompts import build_validation_prompt, code_review_validation_guidance
-    from utils import scope_policy as _sp
-    from utils import scope_round as _scope_round
-    from utils.subagent_tasks import (
-        PromptBudget,
-        TaskFileError,
-        batch_manifest,
-        build_inputs,
-        content_hash,
-        file_bytes_sha256,
-        file_content_hash,
-        make_task,
-        make_task_file,
-        split_indices,
-        tasks_of,
-    )
+from .atomic_io import atomic_write_bytes, read_back_text
+from .held_folder import write_in_plan_dir
+from .state_manager import generate_group_id, CURRENT_FORMAT_VERSION  # noqa: F401 - re-export
+from .state_manager import group_join_ids, records_by_unique_id, stamped_group_id
+from .cli_common import (
+    current_replay_flags, durable_reaggregate_fields, retry_command,
+    typed_plan_for,
+)
+from .subagent_prompts import build_validation_prompt, code_review_validation_guidance
+from . import scope_policy as _sp
+from . import review_round as _review_round
+from . import scope_round as _scope_round
+from . import validation_sections as _sections
+from .schema_validator import VALIDATION_VERDICTS
+from .subagent_tasks import (
+    PromptBudget,
+    TaskFileError,
+    batch_manifest,
+    build_inputs,
+    content_hash,
+    file_bytes_sha256,
+    file_content_hash,
+    make_task,
+    make_task_file,
+    split_indices,
+    tasks_of,
+)
+from . import status_file
+from . import cli_common as _cli
+from . import process_control
+from .validation_context import build_validation_context, validation_context_notice
+from .status_file import read_status, remove_status_keys
+from .commit_range import display_range, pinned_endpoints, pinned_head_read_rule
+from .output_handler import output_dir_path
+from .commit_report import context_plan_path, run_commit_range
+from .git_utils import get_project_root
 
 
 #: The shared-context ceiling for a validation prompt, applied **per context
-#: block**. Excerpted **once per phase** and the identical excerpt reused across
-#: every batch: per-batch re-truncation would both bloat the file and break
-#: prompt determinism.
+#: block**. The whole-document excerpt is cut **once per phase** and reused by
+#: every batch that embeds it; a batch never re-truncates it. A batch may
+#: instead carry a *selection* — the plan sections its groups cite
+#: (:mod:`utils.validation_sections`) or the code windows its issues cite —
+#: which is a pure function of the round's inputs and the batch's records, so
+#: prompts stay deterministic (docs/development/delegation.md, "Cited plan
+#: sections").
 #:
 #: 60 000 rather than the original 30 000, because 30 000 was under the size of
 #: a real plan and the prompt asks the validator to judge against it. Measured
-#: on a review-code run over a 44 374-char plan: the excerpt ended mid-§4.6, so
-#: §4.7–§11 — the acceptance criteria and the single source of truth for every
-#: tunable — reached no validator, and four of the nine verdicts cited exactly
-#: those sections (they were right only because that runner could open the file
-#: itself, which ``context_mode: inline`` does not promise).
+#: on a review-code run over a 44 374-char plan: the excerpt ended in the middle
+#: of one section, so every later section — the acceptance criteria and the
+#: single source of truth for every tunable — reached no validator, and four of
+#: the nine verdicts cited exactly those sections (they were right only because
+#: that runner could open the file itself, which ``context_mode: inline`` does
+#: not promise).
 #:
 #: Above the limit a plan or tasks document is no longer silently cut: the
 #: excerpt stays (so prompts are deterministic and the common case needs no
 #: read) and the round's hash-bound snapshot is named by path, the task
-#: materializing ``context_mode: workspace-read`` (§2.3 of
-#: ``plans/validation-context-by-path-and-codex-0156-fallout.md``). Only a
+#: materializing ``context_mode: workspace-read``
+#: (docs/development/delegation.md#code-review-validation-context). Only a
 #: document with no readable file keeps the bare cut, and that is surfaced.
 #:
 #: What the raise costs, checked both ways. The **runner**: a prompt never
@@ -130,13 +102,11 @@ VALIDATION_CONTEXT_LIMIT = 60000
 #: lever that shrinks it is a *larger* ``max_per_batch`` — fewer batches means
 #: fewer copies of the excerpt — bounded above by the D2d per-task budget.
 #: Crossing this ceiling is **reported, not resolved**. Validation now emits
-#: ``context_mode: workspace-read`` for an over-limit document (§2.3 of
-#: ``plans/validation-context-by-path-and-codex-0156-fallout.md``), but that is
+#: ``context_mode: workspace-read`` for an over-limit document, but that is
 #: decided per document by :data:`VALIDATION_CONTEXT_LIMIT`, never by this
 #: file total: the excerpt stays in every batch either way, so a path cannot
 #: shrink the file, and failing a phase outright would throw away a completed
-#: fan-out over a scratch file being large (the D2f deviation note in
-#: ``plans/host-harness-portability.md`` says the same).
+#: fan-out over a scratch file being large.
 VALIDATION_TASKS_TOTAL_CHARS_CEILING = 2_000_000
 
 #: Sidecar beside ``validation_batch_{N}.json``, holding exactly the bytes of
@@ -148,6 +118,42 @@ VALIDATION_TASKS_TOTAL_CHARS_CEILING = 2_000_000
 #: three real runs improvised the same dump-to-file by hand before this existed.
 #: ``prompt`` stays the source of truth; the executor never opens this file.
 PROMPT_SIDECAR_TEMPLATE = "validation_batch_{index}.prompt.txt"
+
+#: The host index beside a task file: ``validation_tasks.json`` →
+#: ``validation_tasks.index.json``. A view a native host reads instead of the
+#: full file, whose ``prompt`` strings are ~90% of its bytes and are never read
+#: by a host that hands its subagent the sidecar. The full file stays the source
+#: of truth for the executor, ``check-reply``, the audit and the container
+#: digest; nothing but a host reads the index
+#: (docs/development/delegation.md#the-host-index).
+HOST_INDEX_SUFFIX = ".index.json"
+
+#: Per-task keys the index copies, in this order, from each task that has them.
+#: A task whose sidecar was skipped has no ``prompt_path``, so its entry has none
+#: either, and the host runs that task's ``prompt`` from the full file.
+HOST_INDEX_TASK_KEYS = (
+    "task_id", "batch_index", "prompt_path", "prompt_lines", "output_path",
+    "subagent_type", "context_mode",
+)
+
+#: File-level keys the index copies when the task file has them: the batch
+#: count and the durable pair the reaggregation command is rebuilt from.
+HOST_INDEX_DOCUMENT_KEYS = ("total_batches", "reaggregate_mode", "plan_file")
+
+#: The task files that have a host index beside them.
+HOST_INDEXED_TASK_FILES = frozenset({
+    "validation_tasks.json", "revalidation_tasks.json", "consolidation_tasks.json",
+})
+
+#: The phase dir's views mutex (:func:`host_views_lock`): held across every
+#: invalidate → source or sidecar change → publish sequence of a host index.
+#: Like every lock file here it is never unlinked.
+HOST_VIEWS_LOCK_FILENAME = ".views.lock"
+
+#: How long a views transaction waits for another holder before the run stops
+#: with exit 3. A holder keeps it for one materialization and its task-file
+#: write, one repair and its commit, or one read-and-publish.
+HOST_VIEWS_LOCK_TIMEOUT_S = 60.0
 
 
 def excerpt_context(context: str, limit: int = VALIDATION_CONTEXT_LIMIT) -> str:
@@ -228,7 +234,7 @@ def describe_context_cut(context: str, limit: int) -> str:
     A raw "N chars over" says how much was lost and nothing about *what*: the
     run this was measured on cut a 336 026-char plan at 60 000 and printed
     ``276143 chars over``, while every verdict that came back cited a section —
-    §2, §4, §6, the implementation notes at the tail — that no validator had
+    among them the implementation notes at the tail — that no validator had
     been shown. Named sections make the same line answer "did the part this
     review is about survive?" without opening the task file.
 
@@ -286,7 +292,7 @@ def excerpt_context_reported(
 
 
 # ---------------------------------------------------------------------------
-# Validation context by path (plans/validation-context-by-path-and-codex-0156-fallout.md §2)
+# Validation context by path
 # ---------------------------------------------------------------------------
 
 #: The context contract a validation round is materialized under (task 2.10).
@@ -316,7 +322,7 @@ REVALIDATION_SNAPSHOT_NAME = "revalidation-snapshot.md"
 LEGACY_TRUNCATION_MARKER = "[... truncated ...]"
 
 #: A verdict whose reason starts with this is a validator saying it could not
-#: read the document it was pointed at (§2.3 step 3a); the aggregate counts them
+#: read the document it was pointed at; the aggregate counts them
 #: into ``validation_context.insufficient``.
 INSUFFICIENT_CONTEXT_PREFIX = "insufficient-context:"
 
@@ -335,8 +341,6 @@ class ValidationContextError(TaskFileError):
 
 
 def _bytes_sha256(data: bytes) -> str:
-    import hashlib
-
     return hashlib.sha256(data).hexdigest()
 
 
@@ -361,7 +365,7 @@ def decode_document(data: bytes, path: str) -> str:
 
 
 class BoundDocument:
-    """One context document bound for a validation round (§2.3 steps 5 and 7).
+    """One context document bound for a validation round.
 
     ``text`` is what the excerpt is cut from, ``sha256``/``size`` are over the
     bytes the round read once, and ``path`` is the one absolute path a prompt
@@ -409,22 +413,8 @@ class BoundDocument:
 
 
 def _atomic_write_bytes(target: str, data: bytes) -> None:
-    """temp file + ``os.replace``, so a reader never sees a half-written snapshot."""
-    tmp = os.path.join(
-        os.path.dirname(target), f".{os.path.basename(target)}.{os.getpid()}.tmp"
-    )
-    try:
-        with open(tmp, "wb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, target)
-    except OSError:
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
+    """Atomic write, so a reader never sees a half-written snapshot."""
+    atomic_write_bytes(target, data)
 
 
 def bind_document_file(
@@ -438,7 +428,7 @@ def bind_document_file(
 ) -> BoundDocument:
     """Read a document once, as bytes, and bind a snapshot of exactly those bytes.
 
-    One read, one snapshot, one hash domain (§2.3 step 5): the snapshot is
+    One read, one snapshot, one hash domain: the snapshot is
     written from the bytes read here, never copied from the live path, so its
     sha256 is the recorded one by construction. ``reuse_names`` are existing
     phase-dir files that may stand in for the snapshot when their raw sha256
@@ -557,7 +547,7 @@ def build_context_source(
     limit: int = VALIDATION_CONTEXT_LIMIT,
     read_refusal: Optional[str] = None,
 ) -> Tuple[str, Dict[str, Any]]:
-    """``(excerpt, context source record)`` for one context block (§2.3 step 7).
+    """``(excerpt, context source record)`` for one context block.
 
     ``block_text`` is what the prompt embeds (not always ``document.text``: a
     caller may frame the document). The mode:
@@ -654,6 +644,87 @@ def build_context_source(
     if reason:
         print(f"  (reason: {reason})", file=sys.stderr)
     return excerpt, record
+
+
+def _path_inside(path: str, root: str) -> bool:
+    real_root = os.path.realpath(root)
+    real = os.path.realpath(path)
+    return real == real_root or real.startswith(real_root.rstrip(os.sep) + os.sep)
+
+
+def cited_plan_for_round(
+    context: str,
+    document: Optional[BoundDocument],
+    *,
+    read_refusal: Optional[str],
+    runner_read_refusal: Optional[Any] = None,
+) -> Optional["_sections.CitedPlan"]:
+    """The round's parsed plan when its batches may carry cited sections, else ``None``.
+
+    A batch that carries only the sections its groups cite still has to be able
+    to reach the rest — an omission claim, or a group whose verdict turns on a
+    section it does not cite — so a round qualifies only when every batch can
+    name a readable, hash-bound snapshot of the whole plan:
+
+    * the block is the bound ``plan`` document with a snapshot path;
+    * the runner may read it (``read_refusal is None``) and, on a native host,
+      the snapshot lies inside the project root the advisory checks;
+    * the plan is at least :data:`validation_sections.CITED_MIN_CHARS` long and
+      has section headings;
+    * ``MULTI_LLM_VALIDATION_CONTEXT`` is ``cited``: the whole plan is the
+      default until a live check shows verdicts hold up without it.
+
+    Every other round embeds the whole plan in every batch.
+    """
+    if document is None or document.label != "plan" or not document.path:
+        return None
+    if len(context) < _sections.CITED_MIN_CHARS:
+        return None
+    if read_refusal is not None:
+        return None
+    if getattr(runner_read_refusal, "advisory_only", False):
+        root = getattr(runner_read_refusal, "root", None)
+        if root and not _path_inside(str(document.path), str(root)):
+            return None
+    if not _sections.cited_context_enabled():
+        return None
+    return _sections.CitedPlan.parse(context)
+
+
+def cited_context_source(
+    document: BoundDocument,
+    excerpt: str,
+    selection: "_sections.CitedSelection",
+    *,
+    phase_dir: str,
+    sections_total: int,
+) -> Dict[str, Any]:
+    """The context source record of one batch's cited plan block.
+
+    ``mode: path`` like an over-limit excerpt — the prompt names the snapshot
+    and the task is ``workspace-read``, so dispatch, resume re-hashing and
+    phase-dir rebinding treat it the same — with ``selection: cited`` saying
+    the excerpt is the cited sections rather than the document's head.
+    """
+    abs_path = str(document.path)
+    return {
+        "label": "plan",
+        "kind": "plan",
+        "path": (
+            os.path.relpath(abs_path, os.path.abspath(phase_dir))
+            if document.in_phase_dir else abs_path
+        ),
+        "abs_path": abs_path,
+        "sha256": document.sha256,
+        "bytes": document.size,
+        "chars_shown": len(excerpt),
+        "truncated": True,
+        "mode": "path",
+        "in_phase_dir": bool(document.in_phase_dir),
+        "selection": _sections.SELECTION_CITED,
+        "sections_total": sections_total,
+        "sections_shown": selection.sections_shown,
+    }
 
 
 def context_sources_of(document: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -755,6 +826,13 @@ def legacy_context_round_reason(
             document = json.load(handle)
     except (OSError, ValueError):
         return None
+    return legacy_context_document_reason(document, tasks_name)
+
+
+def legacy_context_document_reason(
+    document: Any, tasks_name: str = "validation_tasks.json",
+) -> Optional[str]:
+    """:func:`legacy_context_round_reason` for a task document already read."""
     if not isinstance(document, dict):
         return None
     try:
@@ -779,7 +857,7 @@ def legacy_context_round_reason(
 
 
 def count_insufficient(results: List[Dict[str, Any]]) -> int:
-    """Verdicts whose reason starts ``insufficient-context:`` (§2.3 step 3a)."""
+    """Verdicts whose reason starts ``insufficient-context:``."""
     return sum(
         1
         for result in results or []
@@ -797,7 +875,7 @@ def publish_validation_context(
     *,
     phase: Optional[str] = None,
 ) -> Optional[Dict[str, Any]]:
-    """The one writer of ``.status.json``'s ``validation_context`` (§2.4).
+    """The one writer of ``.status.json``'s ``validation_context``.
 
     Aggregates the round's context source records (one entry per document
     label, worst mode wins), writes the object wholesale with
@@ -811,22 +889,6 @@ def publish_validation_context(
     Returns:
         The published object, or ``None`` when the round is all inline.
     """
-    try:
-        from .validation_context import (
-            build_validation_context,
-            validation_context_notice,
-        )
-        from .status_file import read_status, remove_status_keys, update_status
-        from . import cli_common as _cli
-    except ImportError:  # pragma: no cover - flat-import fallback
-        from utils.validation_context import (  # type: ignore[no-redef]
-            build_validation_context,
-            validation_context_notice,
-        )
-        from utils.status_file import (  # type: ignore[no-redef]
-            read_status, remove_status_keys, update_status,
-        )
-        from utils import cli_common as _cli  # type: ignore[no-redef]
 
     obj = build_validation_context(
         phase=phase or os.path.basename(os.path.abspath(phase_dir)),
@@ -838,7 +900,7 @@ def publish_validation_context(
         # Remove an earlier round's key, but never create a checkpoint just to
         # say "nothing": a phase with no .status.json keeps having none.
         # ``update_status`` merges and cannot delete: ``{"k": None}`` would
-        # leave a ``"validation_context": null`` member behind (§7.2a).
+        # leave a ``"validation_context": null`` member behind.
         if "validation_context" in read_status(phase_dir):
             remove_status_keys(phase_dir, ["validation_context"])
         recorder = getattr(_cli, "record_validation_context", None)
@@ -846,7 +908,7 @@ def publish_validation_context(
             recorder(None)
         _cli.record_notice(None)
         return None
-    update_status(phase_dir, {"validation_context": obj})
+    status_file.update_status(phase_dir, {"validation_context": obj})
     recorder = getattr(_cli, "record_validation_context", None)
     if recorder is not None:
         recorder(obj)
@@ -891,31 +953,17 @@ def sidecar_path(phase_dir: str, batch_index: int) -> str:
 def _write_one_sidecar(target: str, prompt: str) -> None:
     r"""Atomic, byte-identical write.
 
-    ``newline=""`` is load-bearing: a text-mode open on Windows would rewrite
-    ``\n`` as ``\r\n`` and the file would no longer equal ``prompt`` — and
-    byte identity is the whole contract, since a host hands a subagent this file
-    *instead of* the prompt. Same temp-then-``os.replace`` shape as
-    ``subagent_executor._atomic_write_json``, written out here because importing
-    that module from this one would close a cycle.
+    No newline translation (the UTF-8 bytes of ``prompt``, ``\n`` as ``\n``) is
+    load-bearing: a text-mode write on Windows would rewrite ``\n`` as
+    ``\r\n`` and the file would no longer equal ``prompt`` — and byte
+    identity is the whole contract, since a host hands a subagent this file
+    *instead of* the prompt. A failed write leaves no temp file behind, so the
+    all-or-none rule's cleanup of the sidecars already written is complete.
+    Published through the phase folder held below the plan's directory: a link
+    swapped in for it during the run is refused (``OSError``), never written
+    through (docs/development/write-safety.md#plan-output-containment).
     """
-    tmp = os.path.join(
-        os.path.dirname(target), f".{os.path.basename(target)}.{os.getpid()}.tmp"
-    )
-    try:
-        with open(tmp, "w", encoding="utf-8", newline="") as handle:
-            handle.write(prompt)
-            handle.flush()
-            os.fsync(handle.fileno())
-        os.replace(tmp, target)
-    except OSError:
-        # The all-or-none rule above removes the sidecars this one already
-        # wrote; without this the *partial* write would survive as a hidden
-        # `.…tmp` in the phase dir, matched by no glob and cleaned by nothing.
-        try:
-            os.unlink(tmp)
-        except OSError:
-            pass
-        raise
+    write_in_plan_dir(target, prompt.encode("utf-8"))
 
 
 def write_prompt_sidecars(
@@ -929,9 +977,7 @@ def write_prompt_sidecars(
     caller before :func:`make_task`, so the schema saw them). *stale_glob*
     names the kind's own sidecars in *phase_dir*, removed first: validation's
     by default; consolidation (``consolidation_batch_*.prompt.txt``) and task
-    generation (``task_generation.prompt.txt``) pass theirs (live run 8:
-    the Claude Code host wrote both kinds' prompts to temp files by hand, or
-    pasted a 21 KB prompt into its subagent call). A phase where some
+    generation (``task_generation.prompt.txt``) pass theirs. A phase where some
     tasks carry the key and others do not invites non-identical prompt bytes
     across batches, so on any ``OSError`` every written file is removed, both
     keys are popped from every task, one ``[PROMPT_SIDECAR_SKIPPED]`` line goes
@@ -970,6 +1016,218 @@ def write_prompt_sidecars(
     return True
 
 
+def host_index_path(task_file: str) -> str:
+    """The host index beside *task_file* (:data:`HOST_INDEX_SUFFIX`)."""
+    stem, _ext = os.path.splitext(task_file)
+    return stem + HOST_INDEX_SUFFIX
+
+
+def task_file_for_kind(phase_dir: str, kind: str) -> str:
+    """Where a sidecar-carrying kind's task file lives: ``<kind>_tasks.json``.
+
+    True of all four (``validation``, ``revalidation``, ``consolidation``,
+    ``task_generation``); ``task_result.RESERVED_OUTPUT_SUFFIXES`` keys
+    on the same shape.
+    """
+    return os.path.join(phase_dir, f"{kind}_tasks.json")
+
+
+def build_host_index(document: Dict[str, Any], task_file: str) -> Dict[str, Any]:
+    """The host's view of *document*: what a host dispatches from, no prompts."""
+    list_key = "batches" if "batches" in document else "tasks"
+    index: Dict[str, Any] = {"index_of": os.path.basename(task_file)}
+    for key in HOST_INDEX_DOCUMENT_KEYS:
+        if key in document:
+            index[key] = document[key]
+    index[list_key] = [
+        {key: task[key] for key in HOST_INDEX_TASK_KEYS if key in task}
+        for task in tasks_of(document)
+        if isinstance(task, dict)
+    ]
+    return index
+
+
+def remove_host_view(path: str) -> None:
+    """Remove the host view at *path*, or stop the run with exit 3 naming it.
+
+    A view (a task file's index, an apply phase's summary or batch detail) goes
+    before the file it describes changes, and whenever it cannot be rebuilt, so
+    a host finds a view of that file as it is or none, and then reads the file.
+    One that cannot be removed would be read in the file's place, so the run
+    stops instead of going on beside it
+    (docs/development/delegation.md#the-host-index).
+    """
+    if not os.path.lexists(path):
+        return
+    try:
+        os.unlink(path)
+    except FileNotFoundError:
+        return
+    except OSError as exc:
+        print(
+            f"ERROR: Cannot remove {path} ({exc}). It is a host's view of a file "
+            f"this run is changing, and a host would read it in that file's "
+            f"place. Nothing was handed out: make "
+            f"{os.path.dirname(os.path.abspath(path))} writable or remove the "
+            f"file, then run the command again.",
+            file=sys.stderr,
+        )
+        sys.exit(3)
+
+
+def publish_host_view(path: str, text: str) -> bool:
+    """Write the host view *path* atomically; ``False``, with none on disk, if not.
+
+    Degrades like the sidecars: a host that finds no view reads the file it
+    would have described, the fallback every instruction names.
+    """
+    try:
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        _write_one_sidecar(path, text)
+    except OSError as exc:
+        remove_host_view(path)
+        print(
+            f"WARNING: {os.path.basename(path)} not written ({exc}); a host reads "
+            "the file it describes instead",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+class _ViewsLockState:
+    """One phase dir's views lock in this process: a thread lock, then the file."""
+
+    def __init__(self) -> None:
+        self.thread_lock = threading.RLock()
+        self.depth = 0
+        self.mutex: Any = None
+
+
+_VIEWS_LOCKS_GUARD = threading.Lock()
+_VIEWS_LOCKS: Dict[str, _ViewsLockState] = {}
+
+
+def host_views_lock_path(phase_dir: str) -> str:
+    """The phase dir's views mutex (:data:`HOST_VIEWS_LOCK_FILENAME`)."""
+    return os.path.join(str(phase_dir), HOST_VIEWS_LOCK_FILENAME)
+
+
+@contextlib.contextmanager
+def host_views_lock(phase_dir: str) -> Iterator[bool]:
+    """Hold *phase_dir*'s views mutex, across threads and processes.
+
+    Every sequence that invalidates a host index, changes its task file or the
+    sidecars the index points at, and publishes the index again runs inside one
+    of these, so a refresh never reads the file before a change and publishes
+    after it (docs/development/delegation.md#the-host-index). Reentrant in one
+    thread: only the outermost frame takes the interprocess lock, which is held
+    per open file description.
+
+    Yields whether the interprocess lock is held. A lock file that cannot be
+    opened or locked at all (a missing or read-only phase dir, a file system
+    without locks) yields ``False`` at once: the body still runs and still
+    invalidates, but publishes no view, so a host reads the full file. Another
+    holder that keeps the lock for :data:`HOST_VIEWS_LOCK_TIMEOUT_S` stops the
+    run with exit 3 naming the lock file.
+    """
+    key = os.path.realpath(host_views_lock_path(phase_dir))
+    with _VIEWS_LOCKS_GUARD:
+        state = _VIEWS_LOCKS.setdefault(key, _ViewsLockState())
+    deadline = time.monotonic() + HOST_VIEWS_LOCK_TIMEOUT_S
+    if not state.thread_lock.acquire(timeout=HOST_VIEWS_LOCK_TIMEOUT_S):
+        _views_lock_timeout(key)
+    try:
+        if state.depth == 0:
+            mutex = process_control.FileMutex(key)
+            taken = mutex.acquire(
+                timeout_s=max(0.0, deadline - time.monotonic()), poll_interval_s=0.02,
+            )
+            if not taken and time.monotonic() >= deadline:
+                _views_lock_timeout(key)
+            state.mutex = mutex if taken else None
+        state.depth += 1
+        try:
+            yield state.mutex is not None
+        finally:
+            state.depth -= 1
+            if state.depth == 0 and state.mutex is not None:
+                state.mutex.release()
+                state.mutex = None
+    finally:
+        state.thread_lock.release()
+
+
+def _views_lock_timeout(key: str) -> None:
+    print(
+        f"ERROR: {key} was not free within {HOST_VIEWS_LOCK_TIMEOUT_S:g}s: another "
+        f"multi-llm command is updating this phase's task file and its host "
+        f"index. Nothing was handed out: run the command again once that one has "
+        f"finished.",
+        file=sys.stderr,
+    )
+    sys.exit(3)
+
+
+def _view_bytes(path: str) -> Optional[bytes]:
+    try:
+        with open(path, "rb") as handle:
+            return handle.read()
+    except OSError:
+        return None
+
+
+def invalidate_host_index(task_file: str) -> None:
+    """Remove *task_file*'s host index before the file or its sidecars change.
+
+    Under the views lock (:func:`host_views_lock`). Exit 3 when it cannot be
+    removed (:func:`remove_host_view`).
+    """
+    with host_views_lock(os.path.dirname(os.path.abspath(task_file))):
+        remove_host_view(host_index_path(task_file))
+
+
+def refresh_host_index(task_file: str) -> bool:
+    """Rebuild *task_file*'s host index from the file as it is on disk.
+
+    The only writer of an index, run once the file has been written: at every
+    hand-back of a round to the host (``dispatch_subagent_tasks``) and by
+    ``prepare_consolidation_tasks``. Built from the committed file, never from a
+    document in memory, so the index never describes a file newer or older than
+    the one beside it. The read and the publication are one step under the
+    views lock (:func:`host_views_lock`). An index whose bytes are already the
+    ones it would write is left alone: nothing is replaced or removed. A
+    missing or unreadable task file leaves no index; a file not in
+    :data:`HOST_INDEXED_TASK_FILES` is left alone. Returns whether an index is
+    on disk.
+    """
+    if os.path.basename(task_file) not in HOST_INDEXED_TASK_FILES:
+        return False
+    target = host_index_path(task_file)
+    with host_views_lock(os.path.dirname(os.path.abspath(task_file))) as serialized:
+        try:
+            with open(task_file, "r", encoding="utf-8") as handle:
+                document = json.load(handle)
+        except (OSError, ValueError):
+            document = None
+        if not isinstance(document, dict):
+            remove_host_view(target)
+            return False
+        text = json.dumps(build_host_index(document, task_file), indent=2) + "\n"
+        if _view_bytes(target) == text.encode("utf-8"):
+            return True
+        if not serialized:
+            remove_host_view(target)
+            print(
+                f"WARNING: {os.path.basename(target)} not written (its views lock "
+                f"{HOST_VIEWS_LOCK_FILENAME} cannot be taken); a host reads the "
+                "file it describes instead",
+                file=sys.stderr,
+            )
+            return False
+        return publish_host_view(target, text)
+
+
 def ensure_prompt_sidecars(document: Dict[str, Any], phase_dir: str) -> bool:
     """Rewrite any sidecar that is missing or whose bytes differ from ``prompt``.
 
@@ -983,43 +1241,53 @@ def ensure_prompt_sidecars(document: Dict[str, Any], phase_dir: str) -> bool:
     compare against, so a ``prompt_sha256`` field would only restate it.
 
     Returns whether task metadata changed. The caller must persist those
-    changes before handing the task file back to a native host.
+    changes before handing the task file back to a native host, holding
+    :func:`host_views_lock` across this call and that write.
+
+    The round's host index is removed before the first sidecar or pointer
+    changes, and left alone when nothing does: the caller may persist the
+    document next, and the hand-back rebuilds the index from the file it
+    persisted (:func:`refresh_host_index`).
     """
-    changed = False
-    for task in document.get("batches", []):
-        if not task.get("prompt_path"):
-            continue
-        expected = sidecar_path(os.path.abspath(phase_dir), task["batch_index"])
-        try:
-            with open(expected, "rb") as handle:
-                same = handle.read() == task["prompt"].encode("utf-8")
-        except OSError:
-            same = False
-        if not same:
+    index_of = task_file_for_kind(phase_dir, str(document.get("kind") or "validation"))
+    with host_views_lock(phase_dir):
+        changed = False
+        for task in document.get("batches", []):
+            if not task.get("prompt_path"):
+                continue
+            expected = sidecar_path(os.path.abspath(phase_dir), task["batch_index"])
             try:
-                _write_one_sidecar(expected, task["prompt"])
-            except OSError as exc:
-                # The incorrect file may still exist. Remove its advertised
-                # pointer so the native host actually takes the inline fallback.
-                task.pop("prompt_path", None)
-                task.pop("prompt_lines", None)
-                changed = True
+                with open(expected, "rb") as handle:
+                    same = handle.read() == task["prompt"].encode("utf-8")
+            except OSError:
+                same = False
+            if not same:
+                invalidate_host_index(index_of)
+                try:
+                    _write_one_sidecar(expected, task["prompt"])
+                except OSError as exc:
+                    # The incorrect file may still exist. Remove its advertised
+                    # pointer so the native host actually takes the inline fallback.
+                    task.pop("prompt_path", None)
+                    task.pop("prompt_lines", None)
+                    changed = True
+                    print(
+                        f"[PROMPT_SIDECAR_SKIPPED] {exc}; "
+                        f"{os.path.basename(expected)} keeps `prompt` only",
+                        file=sys.stderr,
+                    )
+                    continue
                 print(
-                    f"[PROMPT_SIDECAR_SKIPPED] {exc}; "
-                    f"{os.path.basename(expected)} keeps `prompt` only",
+                    f"[PROMPT_SIDECAR_REWRITTEN] {os.path.basename(expected)}",
                     file=sys.stderr,
                 )
-                continue
-            print(
-                f"[PROMPT_SIDECAR_REWRITTEN] {os.path.basename(expected)}",
-                file=sys.stderr,
-            )
-        lines = task["prompt"].count("\n") + 1
-        if task["prompt_path"] != expected or task.get("prompt_lines") != lines:
-            task["prompt_path"] = expected
-            task["prompt_lines"] = lines
-            changed = True
-    return changed
+            lines = task["prompt"].count("\n") + 1
+            if task["prompt_path"] != expected or task.get("prompt_lines") != lines:
+                invalidate_host_index(index_of)
+                task["prompt_path"] = expected
+                task["prompt_lines"] = lines
+                changed = True
+        return changed
 
 
 # Error type constants - ALWAYS use these constants, never raw strings
@@ -1036,108 +1304,6 @@ RECOVERABLE_ERROR_TYPES = frozenset({
     ERROR_TYPE_TIMEOUT,
     ERROR_TYPE_RATE_LIMITED,
 })
-
-
-#: Our *own* extraction failing, which is not a transport category at all — the
-#: provider answered, and this codebase could not turn the answer into JSON.
-#: Lane B's equivalent is D3k rung 5 (``unparseable_result``), not anything
-#: ``classify_failure`` returns, which is why this half deliberately stays local
-#: while the four transport categories delegate (§7.1.a).
-#:
-#: The bare ``"json"`` this list used to open with is gone: it classified *any*
-#: error merely **naming** a ``.json`` path — "output file …/plan_review.json was
-#: never written" — as a parsing error, hence ``recoverable``, hence worth a
-#: whole revalidation dispatch on a condition no re-ask can fix. Every entry now
-#: names a parse *event*.
-_PARSING_PATTERNS = (
-    "json parse",
-    "parse json",
-    "json decode",
-    "jsondecodeerror",
-    "invalid json",
-    "no valid json",
-    "no json found",
-    "malformed json",
-    "parse error",
-    "parsing error",
-    "decode error",
-    "decodeerror",
-    "syntax error",
-    "unexpected token",
-    "expecting value",
-    "expecting property",
-)
-
-#: The shared classifier's categories, mapped onto the vocabulary this module
-#: **persists** (§7.1.a). The mapping is deliberately lossy in one direction
-#: only: several distinct infrastructure verdicts collapse onto
-#: ``ERROR_TYPE_MODEL_FAILURE``, which is correctly **not** in
-#: :data:`RECOVERABLE_ERROR_TYPES` — none of them is fixed by re-asking.
-_CATEGORY_TO_ERROR_TYPE = {
-    STATUS_RATE_LIMITED: ERROR_TYPE_RATE_LIMITED,
-    STATUS_TIMEOUT: ERROR_TYPE_TIMEOUT,
-    CATEGORY_CONNECTION_ERROR: ERROR_TYPE_MODEL_FAILURE,
-    CATEGORY_SERVER_ERROR: ERROR_TYPE_MODEL_FAILURE,
-    STATUS_AUTH_FAILED: ERROR_TYPE_MODEL_FAILURE,
-    STATUS_SPAWN_FAILED: ERROR_TYPE_MODEL_FAILURE,
-    CATEGORY_PERMISSION_DENIED: ERROR_TYPE_MODEL_FAILURE,
-    CATEGORY_INVALID_MODEL: ERROR_TYPE_MODEL_FAILURE,
-    # A broken OS sandbox (D6) is a property of the machine, never of the turn.
-    "sandbox_unavailable": ERROR_TYPE_MODEL_FAILURE,
-    STATUS_RUNNER_ERROR: ERROR_TYPE_MODEL_FAILURE,
-    # A prompt that does not fit is terminal (§7.6(a)) and must never be
-    # recorded recoverable: a revalidation pass would resend it unchanged.
-    STATUS_CONTEXT_LENGTH_EXCEEDED: ERROR_TYPE_MODEL_FAILURE,
-}
-
-
-def _classify_validation_error(error: str, http_status: Optional[int] = None) -> str:
-    """
-    Classify a validation error by type.
-
-    Note: This function is for FAILURES during validation (parsing, timeout, etc.).
-    For genuine ambiguity where the LLM returns needs-human-decision, use
-    ERROR_TYPE_AMBIGUOUS directly in the validation result handler.
-
-    **Signature, return vocabulary and the ``http_status`` fast path are frozen**
-    (§7.1.a): callers branch on the ``ERROR_TYPE_*`` constants, and
-    ``error_type``/``recoverable`` are written into every persisted group result
-    and read downstream by ``filtering.RECOVERABLE_ERROR_TYPES``. What changed is
-    the *body*: this used to be a second, complete classifier — five ordered
-    substring lists including a bare ``"429"`` with the same boundary flaw Lane A
-    had, and a bare ``"json"`` — living three modules away from the one in
-    ``providers/base.py`` and disagreeing with it. The four transport categories
-    now delegate, and only the parse half stays local, because that classifies
-    *our own* extraction failure rather than the provider's transport.
-
-    Args:
-        error: The error message string
-        http_status: Optional HTTP status code if available (e.g., 429 for rate limit)
-
-    Returns:
-        One of the ERROR_TYPE_* constants
-    """
-    error_lower = (error or "").lower()
-
-    # Check HTTP status codes first (most reliable). It stays *first* and stays
-    # local: it is the one input that needs no patterns at all.
-    if http_status:
-        if http_status == 429:
-            return ERROR_TYPE_RATE_LIMITED
-        elif http_status in (408, 504):
-            return ERROR_TYPE_TIMEOUT
-        elif http_status in (500, 502, 503):
-            return ERROR_TYPE_MODEL_FAILURE
-
-    if any(pattern in error_lower for pattern in _PARSING_PATTERNS):
-        return ERROR_TYPE_PARSING
-
-    # Also classify non-success-but-parsable responses (raw/malformed data) as parsing errors
-    if "raw" in error_lower and ("response" in error_lower or "output" in error_lower):
-        return ERROR_TYPE_PARSING
-
-    category = classify_streams(error or "", "")
-    return _CATEGORY_TO_ERROR_TYPE.get(category, ERROR_TYPE_UNKNOWN)
 
 
 def _reported_group_index(result: Dict[str, Any]) -> int:
@@ -1173,292 +1339,6 @@ def _reported_group_index(result: Dict[str, Any]) -> int:
     return -1
 
 
-VALIDATION_PROMPT_TEMPLATE = '''You are validating review suggestions/issues for accuracy.
-
-## Context
-{context}
-
-## Suggestions to Validate
-{suggestions_json}
-
-## Your Task
-For each suggestion, determine if it is:
-- "valid": The issue is real and should be addressed
-- "invalid": False positive, the suggestion is incorrect or not applicable
-- "needs-human-decision": Cannot be determined automatically, requires human judgment
-
-{scope_guidance}
-
-## Output Format
-Return ONLY a valid JSON array with one entry per suggestion group. Copy each
-group's "index" into "group_index" and its "group_id" verbatim into "group_id":
-[
-  {{
-    "group_index": 0,
-    "group_id": "<the group's group_id value, copied verbatim>",
-    "status": "valid" | "invalid" | "needs-human-decision",
-    "reason": "Brief explanation for the classification",
-    "confidence": 0.0-1.0,
-    "scope_relation": "in_scope" | "scope_extension" | "unclear",
-    "scope_reason": "One brief sentence saying why, against the scope baseline",
-    "scope_reference": "The baseline section it rests on, or empty"
-  }}
-]
-'''
-
-
-async def validate_groups(
-    groups: List[Dict[str, Any]],
-    context: str,
-    model: str = "auto",
-    timeout: int = 120,
-    *,
-    scope_policy: Optional[str] = None,
-    scope_phase: str = "review-plan",
-    scope_baseline_id: Optional[str] = None,
-    revalidation_baseline_differs: bool = False,
-) -> List[Dict[str, Any]]:
-    """
-    Validate grouped suggestions/issues using an LLM.
-
-    Args:
-        groups: List of suggestion groups (from group_similar_suggestions or similar)
-                Each group should have 'theme', 'suggestions', etc.
-        context: Context for validation (plan content or diff)
-        model: Model to use for validation (default: "auto")
-        timeout: Timeout in seconds
-        scope_policy: The round's effective scope policy; omitted is
-            ``expand``. Renders ``scope_policy.validator_guidance`` into the
-            prompt per call (the template caches no policy text).
-        scope_phase: The ``scope_policy`` prompt phase (``review-plan``,
-            ``review-tasks``, ``code-review``, ``commits``).
-        scope_baseline_id: The baseline the context above binds, stamped on
-            every verdict that joins its group by the stable hash it echoed
-            (the reply contract asks for each input group's ``group_id``).
-            A verdict joined by position only is never stamped (no scope
-            authority, plan §3).
-        revalidation_baseline_differs: Adds the validator note that scope is
-            judged against the original round's baseline.
-
-    Returns:
-        List of validation results:
-        [
-            {
-                "group_index": int,
-                "status": "valid" | "invalid" | "needs-human-decision",
-                "reason": str,
-                "confidence": float
-            }
-        ]
-    """
-    if not groups:
-        return []
-
-    # Pre-compute group_ids for stable matching after reaggregation
-    group_ids = []
-    group_by_id: Dict[str, Dict[str, Any]] = {}
-    for group in groups:
-        if hasattr(group, 'to_dict'):
-            group_dict = group.to_dict()
-        else:
-            group_dict = group
-        group_ids.append(generate_group_id(group_dict))
-        group_by_id.setdefault(group_ids[-1], group_dict)
-
-    # Prepare suggestions JSON for the prompt
-    # Extract key info from each group for validation
-    validation_input = []
-    for i, group in enumerate(groups):
-        # Handle both dict and SuggestionGroup objects
-        if hasattr(group, 'to_dict'):
-            group_dict = group.to_dict()
-        else:
-            group_dict = group
-
-        validation_input.append({
-            "index": i,
-            "group_id": group_ids[i],
-            "theme": group_dict.get("theme", "Unknown"),
-            "category": group_dict.get("category", "unknown"),
-            "models": group_dict.get("models", []),
-            "suggestions": [
-                {
-                    "title": s.get("title", ""),
-                    "desc": s.get("desc", ""),
-                    "importance": s.get("importance", "medium"),
-                    "type": s.get("type", "unknown")
-                }
-                for s in group_dict.get("suggestions", [])
-            ]
-        })
-
-    suggestions_json = json.dumps(validation_input, indent=2)
-
-    # Truncate context if too long
-    max_context_len = 30000
-    if len(context) > max_context_len:
-        context = context[:max_context_len] + "\n\n[... truncated ...]"
-
-    prompt = VALIDATION_PROMPT_TEMPLATE.format(
-        context=context,
-        suggestions_json=suggestions_json,
-        scope_guidance=_sp.validator_guidance(
-            scope_policy, scope_phase,
-            revalidation_baseline_differs=revalidation_baseline_differs,
-        ),
-    )
-
-    print(f"[validation] Starting validation of {len(groups)} groups with model '{model}'...")
-
-    result = invoke_for_json(
-        prompt=prompt,
-        model=model,
-        timeout=timeout
-    )
-
-    if not result.get("success"):
-        error = result.get("error", "Unknown error")
-        error_type = _classify_validation_error(error)
-        print(f"[validation] Failed: {error} (type: {error_type})")
-
-        # Use validation_failed status for recoverable errors
-        status = "validation_failed" if error_type in RECOVERABLE_ERROR_TYPES else "needs-human-decision"
-
-        # Return all as validation_failed or needs-human-decision on failure WITH error type
-        return [
-            {
-                "group_index": i,
-                "group_id": group_ids[i],
-                "status": status,
-                "reason": f"Validation failed: {error}",
-                "confidence": 0.0,
-                "error_type": error_type,
-                "recoverable": error_type in RECOVERABLE_ERROR_TYPES
-            }
-            for i in range(len(groups))
-        ]
-
-    data = result.get("data", [])
-
-    # Handle case where data is wrapped or malformed
-    if isinstance(data, dict) and "raw" in data:
-        print("[validation] Warning: Could not parse validation response")
-        return [
-            {
-                "group_index": i,
-                "group_id": group_ids[i],
-                "status": "validation_failed",
-                "reason": "Could not parse validation response",
-                "confidence": 0.0,
-                "error_type": ERROR_TYPE_PARSING,
-                "recoverable": True
-            }
-            for i in range(len(groups))
-        ]
-
-    if not isinstance(data, list):
-        print("[validation] Warning: Unexpected response format")
-        return [
-            {
-                "group_index": i,
-                "group_id": group_ids[i],
-                "status": "validation_failed",
-                "reason": "Unexpected validation response format",
-                "confidence": 0.0,
-                "error_type": ERROR_TYPE_PARSING,
-                "recoverable": True
-            }
-            for i in range(len(groups))
-        ]
-
-    # Validate and normalize results
-    validation_results = []
-    valid_statuses = {"valid", "invalid", "needs-human-decision"}
-
-    for item in data:
-        # Coerced, not read raw: an echo that is not an index (a copied reply
-        # placeholder, a null) must not reach the `0 <= group_index` comparison
-        # below or the sort at the end of this function as a string.
-        group_index = _reported_group_index(item)
-        status = item.get("status", "needs-human-decision")
-        reason = item.get("reason", "No reason provided")
-        # `.get(..., 0.5)`'s default only fires when the key is absent; an LLM
-        # that replies with an explicit `"confidence": null` would otherwise
-        # reach the clamp below as None and crash `float(None)`.
-        confidence = item.get("confidence", 0.5)
-        if confidence is None:
-            confidence = 0.5
-
-        # Normalize status
-        if status not in valid_statuses:
-            status = "needs-human-decision"
-
-        # Clamp confidence
-        confidence = max(0.0, min(1.0, float(confidence)))
-
-        result_entry = {
-            "group_index": group_index,
-            "status": status,
-            "reason": reason,
-            "confidence": confidence
-        }
-        # The scope fields ride along (normalized; malformed ones read
-        # `unclear` and never cost the verdict). Only a verdict whose echoed
-        # stable hash names one of these groups is stamped with the host's
-        # baseline and proposal digest: an index-derived id below is a
-        # position, and a position never carries scope authority.
-        for key in (_sp.RELATION_FIELD, _sp.REASON_FIELD, _sp.REFERENCE_FIELD,
-                    _sp.SELECTED_REMEDY_FIELD):
-            if key in item:
-                result_entry[key] = item[key]
-        # The reply contract asks for the group's `group_id` verbatim. An echo
-        # naming one of these groups is authoritative (its index follows it);
-        # anything else — no echo, a copied placeholder, a garbled id — joins
-        # by the reported index exactly as before the echo was asked for, so
-        # a bad echo never costs the verdict its validity.
-        echoed = next((value for value in (item.get("group_id"), item.get("group_hash"))
-                       if isinstance(value, str) and value in group_by_id), None)
-        if echoed is not None:
-            result_entry["group_id"] = echoed
-            result_entry["group_index"] = group_ids.index(echoed)
-            result_entry = _scope_round.stamp(
-                result_entry, group_by_id[echoed],
-                {"policy": scope_policy, "baseline_id": scope_baseline_id},
-            )
-        else:
-            if 0 <= group_index < len(group_ids):
-                result_entry["group_id"] = group_ids[group_index]
-            _scope_round.unbound_record(result_entry)
-        validation_results.append(result_entry)
-
-    # Fill in any missing groups
-    validated_indices = {r["group_index"] for r in validation_results}
-    for i in range(len(groups)):
-        if i not in validated_indices:
-            validation_results.append({
-                "group_index": i,
-                "group_id": group_ids[i],
-                "status": "needs-human-decision",
-                "reason": "Not included in validation response",
-                "confidence": 0.0
-            })
-
-    # Sort by group index
-    validation_results.sort(key=lambda x: x["group_index"])
-
-    # Summary
-    valid_count = sum(1 for r in validation_results if r["status"] == "valid")
-    invalid_count = sum(1 for r in validation_results if r["status"] == "invalid")
-    needs_human = sum(1 for r in validation_results if r["status"] == "needs-human-decision")
-    validation_failed = sum(1 for r in validation_results if r["status"] == "validation_failed")
-    summary_parts = [f"{valid_count} valid", f"{invalid_count} invalid", f"{needs_human} needs-human-decision"]
-    if validation_failed > 0:
-        summary_parts.append(f"{validation_failed} validation_failed")
-    print(f"[validation] Complete: {', '.join(summary_parts)}")
-
-    return validation_results
-
-
 def apply_validation_to_groups(
     groups: List[Dict[str, Any]],
     validation_results: List[Dict[str, Any]]
@@ -1466,9 +1346,12 @@ def apply_validation_to_groups(
     """
     Apply validation results to groups by adding validation status.
 
-    Uses group_id (stable content hash) for matching when available. This
-    ensures validation results remain correctly associated with groups even
-    after reaggregation changes the sort order.
+    Uses group_id (the group's stamped ``group_hash``) for matching when
+    available. This ensures validation results remain correctly associated
+    with groups even after reaggregation changes the sort order, and keeps
+    same-content groups apart: each joins only a record filed under an id
+    that names it alone (``state_manager.group_join_ids``), and an id two
+    records carry joins neither.
 
     The ``group_index`` fallback exists for *hash-less* records only — the
     pre-hash ``validation.json`` format, where the index was the identity. A
@@ -1478,7 +1361,7 @@ def apply_validation_to_groups(
     reason and confidence to it, so such a group is left at the default
     "No validation result" and the count of those groups is printed.
 
-    Scope authority follows the same rule, only stricter (plan §3): a group's
+    Scope authority follows the same rule, only stricter: a group's
     ``scope_verdict`` is attached (``scope_policy.attach_verdict``) only from a
     record its stable hash joined, and only when the host stamped that record
     at merge time. The ``group_index`` fallback carries validity alone and
@@ -1486,17 +1369,13 @@ def apply_validation_to_groups(
 
     Args:
         groups: Original groups (list of dicts or SuggestionGroup objects)
-        validation_results: Results from validate_groups()
+        validation_results: The merged validation records (one per group)
 
     Returns:
         Groups with validation_status and validation_reason added
     """
     # Build lookups - group_id for hashed records, group_index for the rest
-    validation_by_id = {
-        r.get("group_id"): r
-        for r in validation_results
-        if r.get("group_id")
-    }
+    validation_by_id = records_by_unique_id(validation_results, "group_id")
     validation_by_index = {
         r["group_index"]: r
         for r in validation_results
@@ -1511,6 +1390,7 @@ def apply_validation_to_groups(
 
     updated_groups = []
     unmatched = 0
+    join_ids = group_join_ids(groups)
     for i, group in enumerate(groups):
         # Handle both dict and SuggestionGroup objects
         if hasattr(group, 'to_dict'):
@@ -1518,16 +1398,16 @@ def apply_validation_to_groups(
         else:
             group_dict = dict(group)
 
-        # Compute group_id for matching
-        gid = generate_group_id(group_dict)
-
         # group_id first; the index only reaches records that carry no hash
-        by_hash = validation_by_id.get(gid)
+        by_hash = next(
+            (validation_by_id[key] for key in join_ids[i] if key in validation_by_id),
+            None,
+        )
         validation = by_hash or validation_by_index.get(i)
         if validation is None:
             validation = default_validation
             unmatched += 1
-        # Scope authority by stable hash only — never by index (plan §3).
+        # Scope authority by stable hash only — never by index.
         _sp.attach_verdict(group_dict, by_hash, hash_matched=by_hash is not None)
 
         group_dict["validation_status"] = validation.get("status", "needs-human-decision")
@@ -1573,9 +1453,20 @@ def _read_task_manifest(tasks_path: Optional[Path]) -> Tuple[Optional[Dict[str, 
             document = json.load(f)
     except (OSError, ValueError):
         return None, []
+    return _task_manifest_of(document)
+
+
+def _task_manifest_of(document: Any) -> Tuple[Optional[Dict[str, str]], List[Dict[str, Any]]]:
+    """:func:`_read_task_manifest` for a task document already read (``None``:
+    there was none to read, or it could not be)."""
     if not isinstance(document, dict):
         return None, []
     return batch_manifest(document), tasks_of(document)
+
+
+#: :func:`validation_source_decision`'s *task_document* when the caller read no
+#: task file: the decision reads it itself.
+UNREAD = object()
 
 
 def _batch_file_group_hashes(path: Path) -> set:
@@ -1599,19 +1490,23 @@ def validation_source_decision(
     validation_path: Path,
     grouped_path: Path,
     tasks_path: Optional[Path] = None,
+    *,
+    validation_bytes: Optional[bytes] = None,
+    grouped_text: Optional[str] = None,
+    task_document: Any = UNREAD,
 ) -> Tuple[Optional[str], str]:
-    """``(stale_reason, use_note)`` for a ``validation.json`` (D7, §7.1).
+    """``(stale_reason, use_note)`` for a ``validation.json``.
 
     ``stale_reason`` is ``None`` when the file may be used, else the one-line
     reason it must be retired and the batch files re-merged. ``use_note`` is the
     parenthetical the caller prints when it *does* use the file, naming what was
-    checked (§7.1b).
+    checked.
 
     The checks, in order:
 
     1. **Grouping (D7).** ``metadata.grouped_sha256`` must match the
        ``grouped.json`` beside it now.
-    2. **Batch bytes (§7.1a).** A file written by ``merge_validation_batches``
+    2. **Batch bytes.** A file written by ``merge_validation_batches``
        records ``metadata.batch_sha256 = {batch_index: sha256}`` over the bytes
        of every batch it merged, plus ``metadata.batch_manifest = {kind,
        round}`` of the task file those batches answered. It is retired when a
@@ -1624,7 +1519,8 @@ def validation_source_decision(
        ``git checkout`` sets every mtime to now, and neither says anything
        about which verdicts the file holds.
     3. **Legacy fallback only.** A file with no ``batch_sha256`` (written before
-       §7.1, or by a writer that merges no batches of this round) keeps the old
+       the binding existed, or by a writer that merges no batches of this round)
+       keeps the old
        mtime test: it is honoured only if no ``validation_batch_*.json`` beside
        it is newer. No merge writes a file without the binding any more.
 
@@ -1636,10 +1532,24 @@ def validation_source_decision(
         grouped_path: The ``grouped.json`` it must belong to.
         tasks_path: The current task file; defaults to the
             ``validation_tasks.json`` beside ``validation_path``.
+        validation_bytes: ``validation_path``'s bytes, when the caller has read
+            them to use the verdicts they hold: they are judged, never the
+            file again.
+        grouped_text: ``grouped_path``'s text, when the caller holds the
+            grouping it reports (read, or written, as a text-mode read returns
+            it): its digest is checked, never the file's
+            (docs/development/review-results.md, "Consuming checked bytes").
+        task_document: ``tasks_path`` as the caller read it, once, to reuse
+            the verdicts against (``None``: absent or unreadable): the round
+            and contract checks read this document, never the file again.
+            :data:`UNREAD` (the default) reads the file here.
     """
     try:
-        with open(validation_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        if validation_bytes is not None:
+            data = json.loads(read_back_text(validation_bytes))
+        else:
+            with open(validation_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
     except (OSError, ValueError) as exc:
         return f"could not read {validation_path.name}: {exc}", ""
 
@@ -1649,7 +1559,10 @@ def validation_source_decision(
     bound_hash = metadata.get("grouped_sha256")
     grouping_note = ""
     if bound_hash:
-        current_hash = file_content_hash(str(grouped_path))
+        current_hash = (
+            content_hash(grouped_text) if grouped_text is not None
+            else file_content_hash(str(grouped_path))
+        )
         if bound_hash != current_hash:
             return (
                 f"{validation_path.name} belongs to grouping {bound_hash}, current "
@@ -1662,11 +1575,14 @@ def validation_source_decision(
         phase_dir = validation_path.parent
         if tasks_path is None:
             tasks_path = phase_dir / "validation_tasks.json"
-        current_manifest, current_tasks = _read_task_manifest(tasks_path)
+        current_manifest, current_tasks = (
+            _read_task_manifest(tasks_path) if task_document is UNREAD
+            else _task_manifest_of(task_document)
+        )
         recorded_manifest = metadata.get("batch_manifest")
         problems: List[str] = []
         # The round check needs both sides: a file that merged no batch round
-        # (an internal validation) records none, and a task file deleted by hand
+        # (one the retired in-process lane wrote) records none, and a task file deleted by hand
         # leaves no current mapping for the recorded hashes to disagree with.
         if isinstance(recorded_manifest, dict) and current_manifest is not None:
             if (
@@ -1734,7 +1650,7 @@ def validation_source_decision(
         # 7.1d / task 2.10: a bound, up-to-date file is still not reusable when
         # it predates the context contract and its round's prompts carry the
         # contract-1 cut of an over-limit document.
-        legacy = _legacy_contract_reason(metadata, phase_dir)
+        legacy = _legacy_contract_reason(metadata, phase_dir, task_document)
         if legacy:
             return legacy, ""
         batch_note = (
@@ -1751,7 +1667,7 @@ def validation_source_decision(
     # Legacy file: no binding to its batches, so fall back to what the phase dir
     # says happened after it was written — after the 2.10 check, which retires
     # it outright when its round cut an over-limit document.
-    legacy = _legacy_contract_reason(metadata, validation_path.parent)
+    legacy = _legacy_contract_reason(metadata, validation_path.parent, task_document)
     if legacy:
         return legacy, ""
     try:
@@ -1778,34 +1694,20 @@ def validation_source_decision(
     return None, ", ".join(parts)
 
 
-def _legacy_contract_reason(metadata: Dict[str, Any], phase_dir: Path) -> Optional[str]:
-    """7.1d: a ``validation.json`` from before contract 2 over an over-limit round."""
+def _legacy_contract_reason(
+    metadata: Dict[str, Any], phase_dir: Path, task_document: Any = UNREAD,
+) -> Optional[str]:
+    """7.1d: a ``validation.json`` from before contract 2 over an over-limit
+    round, judged on *task_document* when the caller read it."""
     try:
         contract = int(metadata.get("context_contract") or 1)
     except (TypeError, ValueError):
         contract = 1
     if contract >= CONTEXT_CONTRACT:
         return None
-    return legacy_context_round_reason(str(phase_dir))
-
-
-def stale_validation_reason(
-    validation_path: Path,
-    grouped_path: Path,
-    tasks_path: Optional[Path] = None,
-) -> Optional[str]:
-    """Why a ``validation.json`` must not be trusted over the batch files, or ``None``.
-
-    The reason half of :func:`validation_source_decision`, which documents the
-    rules: the ``grouped_sha256`` binding (D7), the ``batch_sha256`` +
-    ``batch_manifest`` binding to the exact batch bytes it merged (§7.1), and —
-    for a file without ``batch_sha256`` only — the legacy "a batch file is
-    newer" mtime test.
-
-    Returns:
-        ``None`` when the file may be used, else a one-line reason for the log.
-    """
-    return validation_source_decision(validation_path, grouped_path, tasks_path)[0]
+    if task_document is UNREAD:
+        return legacy_context_round_reason(str(phase_dir))
+    return legacy_context_document_reason(task_document)
 
 
 def _derive_model_from_results(validation_results: List[Dict[str, Any]]) -> Optional[str]:
@@ -1827,7 +1729,7 @@ def _derive_model_from_results(validation_results: List[Dict[str, Any]]) -> Opti
 
 def join_model_names(names: Any) -> Optional[str]:
     """One ``metadata.model`` value from several: the single name, or the sorted,
-    comma-joined list — never ``"mixed"`` (§7.3b).
+    comma-joined list — never ``"mixed"``.
 
     Shared by :func:`_derive_model_from_results` and the per-batch attribution
     in ``merge_validation_batches``, so both de-duplicate the same way. Returns
@@ -1859,20 +1761,25 @@ def save_validation_results(
     batch_manifest: Optional[Dict[str, Any]] = None,
     scope: Optional[Dict[str, Any]] = None,
     scope_decisions: Optional[Dict[str, Any]] = None,
+    round_id: Optional[str] = None,
+    claim: Optional["_review_round.Claim"] = None,
 ) -> None:
     """
     Save validation results to a JSON file with metadata.
 
-    When groups are provided, computes and stores group_id for each result
-    to enable stable matching after reaggregation.
+    When groups are provided, stores each group's stamped id as the result's
+    group_id to enable stable matching after reaggregation.
 
     ``metadata.grouped_sha256`` binds the file to the ``grouped.json`` it was
     produced for (D7) — the same ``file_content_hash`` value
     ``validation_tasks.json`` records under ``inputs.grouped_sha256`` — so
     ``reaggregate_from_existing_files`` can tell a file left behind by an
     earlier grouping from one that belongs to the current one. Defaults to the
-    ``grouped.json`` beside ``output_path``; the key is omitted when that file
-    does not exist.
+    ``grouped.json`` beside ``output_path``, and then to the text of it *claim*
+    holds (``review_round.Claim.grouping_text``: the grouping the merge joined
+    its verdicts to), never the file read again
+    (docs/development/review-results.md, "Consuming checked bytes"); the key is
+    omitted when that file does not exist.
 
     Args:
         validation_results: List of validation results
@@ -1885,7 +1792,7 @@ def save_validation_results(
             call sites merge then save without ever naming a model, which used
             to write the literal string ``"unknown"`` even though every batch
             file on disk carried its own ``metadata.model``.
-        groups: Optional list of groups to compute group_ids from
+        groups: Optional list of groups to read group_ids from
         grouped_file: The ``grouped.json`` this validation belongs to
         runner: The executor's own dispatch record for this batch (F3) —
             e.g. ``opencode:openrouter/~deepseek/deepseek-flash-latest``, read
@@ -1896,15 +1803,15 @@ def save_validation_results(
             tool) path has no executor record to attribute. Does not change
             how ``model`` is derived; a caller that wants the authoritative
             spec to also win ``metadata.model`` passes it as both.
-        runners: ``{batch_index: model}`` — who answered each batch (§7.3b),
+        runners: ``{batch_index: model}`` — who answered each batch,
             stored as ``metadata.runners`` so the per-batch answer survives a
             joined ``model``.
         batch_sha256: ``{batch_index: sha256}`` over the bytes of every batch
-            merged into this file (§7.1a). An empty dict is still a binding
+            merged into this file. An empty dict is still a binding
             (a writer that merged no batches); ``None`` omits the key and leaves
-            the file on the legacy mtime test in ``stale_validation_reason``.
+            the file on the legacy mtime test in ``validation_source_decision``.
         batch_manifest: ``{kind, round}`` of the task file those batches
-            answered (§7.1a), so a hash recorded under one round is never
+            answered, so a hash recorded under one round is never
             matched against another round's file of the same name.
         scope: The round's task-file scope block (``scope_round.scope_block``):
             recorded as ``metadata.scope_policy`` / ``scope_baseline_id`` /
@@ -1912,6 +1819,15 @@ def save_validation_results(
         scope_decisions: A ``preserve`` round's validation-stage decision
             counts (``scope_round.annotate_decisions``), recorded as
             ``metadata.scope_policy_decisions``.
+        round_id: The review round the merged task file records
+            (``utils/review_round.py``), as ``metadata.round_id``. ``None``
+            adds no key.
+        claim: The writing invocation's round claim: the file is published
+            only while the phase's checkpoint still records that round, and
+            the bytes written become the claim's verdicts, which the report's
+            seal binds (``review_round.Claim.publish_verdicts``). Either way it
+            is written to a temp file and renamed into place, so no reader sees
+            part of it.
 
     Each record keeps the scope keys it carries — the normalized
     ``scope_relation``/``scope_reason``/``scope_reference``, a ``preserve``
@@ -1923,9 +1839,14 @@ def save_validation_results(
     if not model:
         model = _derive_model_from_results(validation_results) or "unknown"
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    held_grouping = None
     if grouped_file is None:
         grouped_file = str(output_path.parent / "grouped.json")
-    grouped_sha256 = file_content_hash(grouped_file)
+        held_grouping = claim.grouping_text if claim is not None else None
+    grouped_sha256 = (
+        content_hash(held_grouping) if held_grouping is not None
+        else file_content_hash(grouped_file)
+    )
 
     # Build a mapping from index to group_id if groups provided
     group_id_by_index = {}
@@ -1935,7 +1856,7 @@ def save_validation_results(
                 group_dict = group.to_dict()
             else:
                 group_dict = group
-            group_id_by_index[i] = generate_group_id(group_dict)
+            group_id_by_index[i] = stamped_group_id(group_dict)
 
     # Build validation data with metadata
     saved_groups = []
@@ -1985,11 +1906,17 @@ def save_validation_results(
             "context_contract": CONTEXT_CONTRACT,
             **(_scope_round.validation_metadata(scope, scope_decisions)
                if scope is not None else {}),
+            **({_review_round.ROUND_KEY: round_id}
+               if _review_round.valid_round(round_id) else {}),
         }
     }
 
-    with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(validation_data, f, indent=2)
+    payload = json.dumps(validation_data, indent=2)
+    if claim is not None:
+        # The bytes written are the report's verdicts (`claim.verdicts`).
+        claim.publish_verdicts(output_path, payload)
+    else:
+        _review_round.replace_file(output_path, payload)
     print(f"[validation] Saved validation results to: {output_path}")
 
 
@@ -2078,8 +2005,8 @@ def prepare_validation_task(
         else:
             group_dict = group
 
-        # Compute group_id for stable matching after reaggregation
-        gid = generate_group_id(group_dict)
+        # The stamped id, for stable matching after reaggregation
+        gid = stamped_group_id(group_dict)
 
         validation_input.append({
             "index": i,
@@ -2120,84 +2047,9 @@ def prepare_validation_task(
     }
 
 
-def prepare_revalidation_task(
-    groups: List[Dict[str, Any]],
-    validation_results: List[Dict[str, Any]],
-    context: str,
-    output_path: str,
-    include_all_human: bool = False,
-    model: str = "auto"
-) -> Dict[str, Any]:
-    """
-    Prepare revalidation input for Claude Code subagent.
-
-    Similar to prepare_validation_task, but only includes items that need
-    revalidation (validation_failed status, optionally needs-human-decision).
-
-    Args:
-        groups: Original grouped suggestions/issues
-        validation_results: Previous validation results
-        context: Context for validation (plan content or diff)
-        output_path: Path where subagent should write results
-        include_all_human: If True, also revalidate needs-human-decision items
-        model: Model hint for reference
-
-    Returns:
-        Dict with:
-        - prompt: Full validation prompt for subagent (or None if nothing to revalidate)
-        - output_path: Where subagent should write results
-        - items_to_revalidate: Count of items needing revalidation
-        - item_indices: List of original indices being revalidated
-        - original_validation: The original validation results (for merging later)
-    """
-    # Identify items needing revalidation
-    items_to_revalidate = []
-    item_indices = []
-
-    for i, val in enumerate(validation_results):
-        status = val.get("status", "needs-human-decision")
-        error_type = val.get("error_type", ERROR_TYPE_UNKNOWN)
-
-        should_revalidate = (
-            status == "validation_failed" or
-            (include_all_human and status == "needs-human-decision" and
-             error_type != ERROR_TYPE_AMBIGUOUS)
-        )
-
-        if should_revalidate and i < len(groups):
-            items_to_revalidate.append(groups[i])
-            item_indices.append(i)
-
-    if not items_to_revalidate:
-        return {
-            "prompt": None,
-            "output_path": output_path,
-            "items_to_revalidate": 0,
-            "item_indices": [],
-            "original_validation": validation_results,
-            "model_hint": model,
-        }
-
-    # Prepare the validation task for the subset
-    validation_task = prepare_validation_task(
-        groups=items_to_revalidate,
-        context=context,
-        output_path=output_path,
-        model=model
-    )
-
-    return {
-        "prompt": validation_task["prompt"],
-        "output_path": output_path,
-        "items_to_revalidate": len(items_to_revalidate),
-        "item_indices": item_indices,
-        "original_validation": validation_results,
-        "suggestions_json": validation_task["suggestions_json"],
-        "model_hint": model,
-    }
-
-
-def load_validation_results(validation_path: Path) -> List[Dict[str, Any]]:
+def load_validation_results(
+    validation_path: Path, *, raw: Optional[bytes] = None
+) -> List[Dict[str, Any]]:
     """
     Load validation results with migration for older format files.
 
@@ -2207,12 +2059,18 @@ def load_validation_results(validation_path: Path) -> List[Dict[str, Any]]:
 
     Args:
         validation_path: Path to the validation.json file
+        raw: The file's bytes, when the caller read them already (a report
+            built from them binds those exact bytes, ``review_round.Verdicts``);
+            the path is not read again.
 
     Returns:
         List of validation results with all fields populated
     """
-    with open(validation_path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
+    if raw is not None:
+        data = json.loads(raw)
+    else:
+        with open(validation_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
 
     # Handle both old format (list) and new format (dict with groups/metadata)
     if isinstance(data, list):
@@ -2255,128 +2113,20 @@ def load_validation_results(validation_path: Path) -> List[Dict[str, Any]]:
     return groups
 
 
-async def revalidate_failed_items(
-    groups: List[Dict[str, Any]],
-    validation_results: List[Dict[str, Any]],
-    context: str,
-    model: str = "auto",
-    include_all_human: bool = False,
-    timeout: int = 180,
-    *,
-    scope_policy: Optional[str] = None,
-    scope_phase: str = "review-plan",
-    scope_baseline_id: Optional[str] = None,
-) -> List[Dict[str, Any]]:
-    """
-    Re-run validation only on items that previously failed.
-
-    Args:
-        groups: Original grouped suggestions/issues
-        validation_results: Previous validation results
-        context: Context for validation (plan content or diff)
-        model: Model to use for revalidation
-        include_all_human: If True, also revalidate needs-human-decision items
-        timeout: Timeout in seconds (default higher for retry)
-
-    Returns:
-        Updated validation results
-    """
-    # Identify items needing revalidation
-    items_to_revalidate = []
-    item_indices = []
-
-    for i, val in enumerate(validation_results):
-        status = val.get("status", "needs-human-decision")
-        error_type = val.get("error_type", ERROR_TYPE_UNKNOWN)
-
-        should_revalidate = (
-            status == "validation_failed" or
-            (include_all_human and status == "needs-human-decision" and
-             error_type != ERROR_TYPE_AMBIGUOUS)
-        )
-
-        if should_revalidate and i < len(groups):
-            items_to_revalidate.append(groups[i])
-            item_indices.append(i)
-
-    if not items_to_revalidate:
-        print("[revalidate] No items need revalidation")
-        return validation_results
-
-    print(f"[revalidate] Re-validating {len(items_to_revalidate)} items with model '{model}'...")
-
-    # Run validation on subset with error handling
-    try:
-        new_results = await validate_groups(
-            groups=items_to_revalidate,
-            context=context,
-            model=model,
-            timeout=timeout,
-            scope_policy=scope_policy,
-            scope_phase=scope_phase,
-            scope_baseline_id=scope_baseline_id,
-        )
-    except Exception as e:
-        # Revalidation itself failed - apply fallback strategy
-        print(f"[revalidate] ERROR: Revalidation failed: {e}", file=sys.stderr)
-        error_type = _classify_validation_error(str(e))
-
-        # Fallback strategies based on error type
-        if error_type == ERROR_TYPE_RATE_LIMITED:
-            print("[revalidate] Fallback: Rate limited. Try again later or use --revalidate-model with a different provider.", file=sys.stderr)
-        elif error_type == ERROR_TYPE_TIMEOUT:
-            print("[revalidate] Fallback: Timeout. Try --revalidate-model with a faster model.", file=sys.stderr)
-        else:
-            print(f"[revalidate] Fallback: Keeping original validation status for {len(items_to_revalidate)} items.", file=sys.stderr)
-
-        # Return original results unchanged on failure
-        return validation_results
-
-    # Check if revalidation produced more failures
-    revalidation_failures = sum(1 for r in new_results if r.get("status") == "validation_failed")
-    if revalidation_failures > 0:
-        print(f"[revalidate] Warning: {revalidation_failures} items still failed validation after retry.", file=sys.stderr)
-        print("[revalidate] Consider using --approve-validation-failed or trying a different model.", file=sys.stderr)
-
-    # Merge results back
-    updated_results = list(validation_results)
-    for j, original_idx in enumerate(item_indices):
-        new_result = new_results[j] if j < len(new_results) else validation_results[original_idx]
-        new_result["group_index"] = original_idx
-        new_result["revalidated"] = True
-        new_result["revalidation_model"] = model
-        updated_results[original_idx] = new_result
-
-    # Summary of changes
-    improved = sum(
-        1 for j, idx in enumerate(item_indices)
-        if j < len(new_results) and new_results[j].get("status") == "valid"
-    )
-    print(f"[revalidate] Complete: {improved} items now valid after revalidation")
-
-    return updated_results
-
-
 # --- Batched Validation Functions ---
 
-try:
-    from .validation_batcher import (
-        batch_validation_groups,
-        estimate_validation_batching_stats,
-        ValidationBatch,
-    )
-except ImportError:
-    from utils.validation_batcher import (
-        batch_validation_groups,
-        estimate_validation_batching_stats,
-        ValidationBatch,
-    )
+from .validation_batcher import (
+    batch_validation_groups,
+    estimate_validation_batching_stats,
+)
 
 
 def build_validation_batch_records(
     groups: List[Dict[str, Any]],
     group_indices: List[str],
     group_ids: List[str],
+    *,
+    with_reference: bool = False,
 ) -> List[Dict[str, Any]]:
     """Build the suggestion records one validation batch embeds in its prompt.
 
@@ -2408,6 +2158,13 @@ def build_validation_batch_records(
         located every one by reading the repository, which ``context_mode:
         inline`` does not promise. Keyed on presence, so a plan-review record
         (no location) renders byte-identically to before.
+
+        A suggestion's ``reference`` (the plan section a reviewer says it is
+        about) rides along only ``with_reference``: a batch that carries only
+        the plan sections its groups cite selects them from exactly these
+        values and shows them, so the validator sees which section each
+        suggestion names. Every other batch renders as it did before cited
+        sections existed.
     """
     records: List[Dict[str, Any]] = []
     for idx in group_indices:
@@ -2429,6 +2186,10 @@ def build_validation_batch_records(
                     "desc": s.get("desc", ""),
                     "importance": s.get("importance", "medium"),
                     "type": s.get("type", "unknown"),
+                    **(
+                        {"reference": s["reference"]}
+                        if with_reference and s.get("reference") else {}
+                    ),
                     **({"file": s["file"]} if s.get("file") else {}),
                     **(
                         {"line_range": s["line_range"]}
@@ -2471,15 +2232,13 @@ def resolved_reaggregate_command(
     Returns ``None`` when the document carries neither the durable pair nor a
     legacy resolved command (an empty phase, which owes no follow-up).
 
-    *typed_plan* (the native hand-off's printed command, fix round 14) names
+    *typed_plan* (the native hand-off's printed command) names
     the plan as this invocation's user typed it when that spelling names the
     same file (``cli_common.typed_plan_for``).
     """
     mode = document.get("reaggregate_mode")
     plan = document.get("plan_file")
     if mode and plan and typed_plan:
-        from .cli_common import typed_plan_for
-
         plan = typed_plan_for(str(plan))
     if mode and plan:
         # The live invocation of this mode wins over the document's stored
@@ -2499,6 +2258,128 @@ def resolved_reaggregate_command(
     return str(legacy) if legacy else None
 
 
+#: The heading a validation prompt gives its first block unless told otherwise.
+PLAN_CONTEXT_LABEL = "Plan content"
+
+
+@dataclass(frozen=True)
+class ContextBlock:
+    """One document a validation prompt embeds.
+
+    *text* is excerpted on its own per-context budget, so a long first block
+    cannot squeeze a second one out of the prompt. *label* is the block's
+    heading (``"Plan content"``, …). *document* is the bound document the text
+    was read from: its hash becomes ``inputs.plan_sha256``
+    (label ``plan``) or ``inputs.tasks_sha256`` (label ``tasks``) instead of a
+    re-read of the live file, and over the limit its snapshot is what the
+    prompt names. ``None`` keeps the legacy behaviour: no path, and an
+    over-limit block is ``mode: truncated``. Review-code's reviewed-code block
+    (label ``reviewed-code``) is never named by path.
+    """
+
+    text: str
+    label: str = PLAN_CONTEXT_LABEL
+    document: Optional[BoundDocument] = None
+
+
+@dataclass(frozen=True)
+class RoundProvenance:
+    """Where a validation round came from: recorded on its task file, never
+    interpolated into prompt text.
+
+    * ``model``: the hint every task carries, preserved verbatim.
+    * ``orchestrator``: the script whose ``--reaggregate`` continues the round
+      (the document's durable ``reaggregate_mode``).
+    * ``phase``: the phase the published ``validation_context`` names
+      (default: the phase dir's basename).
+    * ``base_ref`` / ``head_ref``: ``inputs.diff_base``; ``<base>..<head>``
+      for a review pinned to two commits.
+    * ``tasks_file``: review-tasks' task list, recorded and hashed into
+      ``inputs.tasks_sha256``.
+    * ``context_plan_sha256`` / ``context_plan_file``: a commit review's
+      frozen context plan, recorded as ``inputs.context_plan_sha256``
+      and, relative to the phase dir, ``context_plan_file``, so a resume
+      whose snapshot no longer hashes to it is refused.
+    * ``round_id``: the review round the phase's ``.status.json`` records
+      (``utils/review_round.py``), written as the task file's last top-level
+      key; ``None`` writes no key, so the file is byte-identical to one from
+      before round ids.
+    """
+
+    model: str = "auto"
+    orchestrator: str = "review_plan_orchestrator.py"
+    phase: Optional[str] = None
+    base_ref: str = ""
+    head_ref: Optional[str] = None
+    tasks_file: Optional[str] = ""
+    context_plan_sha256: Optional[str] = None
+    context_plan_file: Optional[str] = None
+    round_id: Optional[str] = None
+
+
+@dataclass(frozen=True)
+class ValidationRound:
+    """Everything one validation or revalidation round is materialized from
+    (:func:`materialize_validation_round`).
+
+    * ``groups``: the suggestion groups to validate; ``output_dir``: the
+      phase dir the batch results are written to.
+    * ``plan_file``: the plan's path, for provenance and the ``inputs`` hash.
+    * ``primary``: the first block (the plan, or a code fix's diff);
+      ``secondary``: an optional second one (review-tasks' task list,
+      review-code's reviewed code, a revalidation's original baseline).
+    * ``secondary_for_batch``: the second block per batch. Called with a
+      batch's indices into ``groups``, it returns that batch's ``(text,
+      document, extra_instructions)``, which replace ``secondary.text``,
+      ``secondary.document`` and ``extra_instructions`` for that batch;
+      ``secondary.text`` is then not embedded.
+    * ``reviewed_code``: the code-under-review excerpt hashed into
+      ``inputs.reviewed_code_sha256``. Passed rather than derived from the
+      second block, which may hold more than the code; it hashes the round's
+      whole excerpt even with ``secondary_for_batch``.
+    * ``extra_instructions``: capability-neutral phase guidance appended to
+      every batch prompt.
+    * ``scope``: the round's scope block (``scope_round.scope_block``),
+      rendered into every prompt (``scope_policy.validator_guidance``) and
+      recorded under ``scope``, which the merge stamps each hash-joined
+      verdict with. ``None`` is a default ``expand`` round with no baseline.
+    * ``runner_read_refusal``: who will read a ``mode: path`` source: ``None`` (a
+      capable reader), a string (the reason no source
+      may be named by path) or a callable taking the absolute path and
+      returning ``None`` or such a reason. A ``prompt_budget`` whose
+      ``supports_workspace_reads`` is false counts as a refusal.
+    * ``kind``: ``"validation"`` or ``"revalidation"``, the task ``kind``.
+    * ``max_per_batch``: the most groups a normal batch holds.
+    * ``prompt_budget``: the D2d budget; an over-budget batch is split, and a
+      single group that still does not fit fails loudly, never truncated.
+    * ``publish``: publish ``validation_context`` for this round.
+    * ``grouped_text``: the ``grouped.json`` text the round's groups were
+      written as (``review_round.Claim.grouping_text``), hashed into
+      ``inputs.grouped_sha256`` in place of a read of the file; ``None`` reads
+      the file (docs/development/review-results.md, "Consuming checked
+      bytes").
+    """
+
+    groups: List[Dict[str, Any]]
+    output_dir: str
+    primary: ContextBlock
+    plan_file: str = ""
+    secondary: Optional[ContextBlock] = None
+    secondary_for_batch: Optional[
+        Callable[[List[int]], Tuple[str, Optional[BoundDocument], str]]
+    ] = None
+    reviewed_code: Optional[str] = None
+    extra_instructions: str = ""
+    scope: Optional[Dict[str, Any]] = None
+    runner_read_refusal: Optional[Any] = None
+    provenance: RoundProvenance = RoundProvenance()
+    kind: str = "validation"
+    max_per_batch: int = 4
+    prompt_budget: Optional[PromptBudget] = None
+    publish: bool = True
+    grouped_text: Optional[str] = None
+
+
 def prepare_batched_validation_tasks(
     groups: List[Dict[str, Any]],
     context: str,
@@ -2510,7 +2391,7 @@ def prepare_batched_validation_tasks(
     base_ref: str = "",
     tasks_file: str = "",
     kind: str = "validation",
-    context_label: str = "Plan content",
+    context_label: str = PLAN_CONTEXT_LABEL,
     secondary_context: str = "",
     secondary_context_label: str = "",
     reviewed_code: Optional[str] = None,
@@ -2525,7 +2406,54 @@ def prepare_batched_validation_tasks(
     context_plan_sha256: Optional[str] = None,
     context_plan_file: Optional[str] = None,
     scope: Optional[Dict[str, Any]] = None,
+    secondary_for_batch: Optional[
+        Callable[[List[int]], Tuple[str, Optional[BoundDocument], str]]
+    ] = None,
+    round_id: Optional[str] = None,
 ) -> Dict[str, Any]:
+    """The keyword form of :func:`materialize_validation_round`.
+
+    Every field of :class:`ValidationRound`, :class:`ContextBlock` and
+    :class:`RoundProvenance` spelled as one keyword, for the tests that still
+    call it this way; the orchestrators build a :class:`ValidationRound`.
+    """
+    has_secondary = bool(
+        secondary_context or secondary_context_label or secondary_document is not None
+    )
+    return materialize_validation_round(ValidationRound(
+        groups=groups,
+        output_dir=output_dir,
+        plan_file=plan_file,
+        primary=ContextBlock(context, context_label, context_document),
+        secondary=ContextBlock(
+            secondary_context, secondary_context_label, secondary_document,
+        ) if has_secondary else None,
+        secondary_for_batch=secondary_for_batch,
+        reviewed_code=reviewed_code,
+        extra_instructions=extra_instructions,
+        scope=scope,
+        runner_read_refusal=runner_read_refusal,
+        provenance=RoundProvenance(
+            model=model, orchestrator=orchestrator, phase=phase,
+            base_ref=base_ref, head_ref=head_ref, tasks_file=tasks_file,
+            context_plan_sha256=context_plan_sha256,
+            context_plan_file=context_plan_file,
+            round_id=round_id,
+        ),
+        kind=kind,
+        max_per_batch=max_per_batch,
+        prompt_budget=prompt_budget,
+        publish=publish,
+    ))
+
+
+def _round_key(provenance: RoundProvenance) -> Dict[str, str]:
+    """The task file's round key (``utils/review_round.py``), or ``{}``."""
+    round_id = _review_round.valid_round(provenance.round_id)
+    return {_review_round.ROUND_KEY: round_id} if round_id else {}
+
+
+def materialize_validation_round(round_: ValidationRound) -> Dict[str, Any]:
     """
     Prepare batched validation tasks for sequential subagent processing.
 
@@ -2543,79 +2471,19 @@ def prepare_batched_validation_tasks(
     ``context_mode: workspace-read`` — declared in the task and capability-gated,
     instead of implicit in who reads the file.
 
-    The shared context is excerpted **once** and the identical excerpt reused
-    across batches: per-batch re-truncation would break prompt determinism.
+    The whole-document excerpt is cut **once** and reused by every batch that
+    embeds it; a batch never re-truncates it. Two blocks may instead be
+    selected per batch, each a pure function of the round's inputs and the
+    batch's own records, so identical inputs still render identical prompts:
 
-    Args:
-        groups: List of suggestion groups to validate
-        context: Context for validation (plan content or diff); excerpted once
-            and embedded in every batch prompt
-        output_dir: Directory where subagents should write batch results
-        plan_file: Path to the plan file (provenance and the ``inputs`` hash;
-            never interpolated into prompt text)
-        model: Model hint, preserved verbatim (free-form model string or ``auto``)
-        max_per_batch: Maximum groups per batch for normal items
-        orchestrator: Name of the orchestrator script for reaggregate command
-        base_ref: Git ref for code diff context (empty string for plan reviews);
-            recorded as ``inputs.diff_base``
-        tasks_file: Path to the tasks file for review-tasks validation context;
-            recorded as provenance *and* hashed into ``inputs.tasks_sha256``
-        kind: ``"validation"`` or ``"revalidation"`` — the task ``kind``
-        context_label: What the embedded context is (``"Plan content"``, …)
-        secondary_context: An optional second document to embed beside
-            ``context`` (review-tasks: the task list its suggestions are about).
-            Excerpted **separately**, against the same per-context limit, so a
-            long plan cannot squeeze the artifact under review out of the prompt
-        secondary_context_label: What that second document is; required with it
-        reviewed_code: The code-under-review excerpt to hash into
-            ``inputs.reviewed_code_sha256`` (code-review). Passed rather than
-            derived from ``secondary_context`` because a phase is free to embed
-            more than the code in its second block, and the hash has to name
-            the code alone
-        extra_instructions: Optional capability-neutral phase guidance appended
-            to every batch prompt (e.g. the code-review issue-location guidance)
-        prompt_budget: Optional D2d budget. Over-budget batches are split; a
-            single group that still does not fit fails loudly rather than being
-            truncated.
-        context_document: The round's bound primary document (§2.3 step 5):
-            the plan read once as bytes, with its hash-bound snapshot. Its text
-            hash becomes ``inputs.plan_sha256`` (label ``plan``) instead of a
-            re-read of the live ``plan_file``, and over the limit its snapshot
-            is what the prompt names. ``None`` keeps the legacy behaviour: no
-            path, and an over-limit block is ``mode: truncated``.
-        secondary_document: The same for the second block (review-tasks'
-            tasks file, label ``tasks``; review-code's reviewed-code block,
-            label ``reviewed-code``, which is never named by path).
-        runner_read_refusal: Who will read a ``mode: path`` source (§2.3 step
-            4a, decided at materialization): ``None`` (assume a capable reader
-            — every ``agent-readonly`` adapter declares workspace reads, and a
-            native host reads), a string (the reason no source may be named by
-            path, e.g. "runner R cannot read files"), or a callable taking the
-            absolute path and returning ``None`` or such a reason (a runner
-            that cannot read outside its cwd). An explicit ``prompt_budget``
-            whose ``supports_workspace_reads`` is false counts as a refusal.
-        phase: The phase name the published ``validation_context`` carries
-            (defaults to the phase dir's basename).
-        publish: Publish ``validation_context`` for this round (the
-            materialization caller of :func:`publish_validation_context`).
-        head_ref: The commit a review pinned to two commits ends at
-            (``review-code --head-ref``, plans/review-commits.md §2.5). Then
-            ``inputs.diff_base`` records ``<base_ref>..<head_ref>``, the pair
-            the excerpts were read from; ``None`` keeps ``base_ref`` alone.
-        context_plan_sha256: A commit review's ``commit_range.plan_sha256``
-            (§2.4 "The context plan is frozen"), recorded as
-            ``inputs.context_plan_sha256`` so a resume or reaggregate whose
-            snapshot no longer hashes to it is refused. ``None`` adds no key.
-        context_plan_file: The frozen snapshot's path, recorded relative to the
-            phase directory so executor resumes can verify that raw-byte hash.
-        scope: The round's scope block (``scope_round.scope_block``): the
-            effective policy, its prompt phase and the baseline these
-            validators are shown. Rendered into every batch prompt per call
-            (``scope_policy.validator_guidance``) and recorded on the document
-            under ``scope``, which both invokers read — the native host and the
-            executor run the same prompts — and which the merge stamps each
-            hash-joined verdict with. ``None`` is a default ``expand`` round
-            with no baseline (its verdicts carry no scope authority).
+    * the plan block carries only the sections the batch's groups cite, when
+      :func:`cited_plan_for_round` qualifies the round and
+      ``validation_sections.CitedPlan.select`` finds a section for every group
+      (else that batch embeds the whole plan);
+    * the second block comes from ``secondary_for_batch`` when given
+      (review-code: the windows its own issues cite).
+
+    The fields are described on :class:`ValidationRound`.
 
     Returns:
         Dict with:
@@ -2628,6 +2496,36 @@ def prepare_batched_validation_tasks(
           resolved string is rebuilt at print time by
           :func:`resolved_reaggregate_command`, never persisted (D1c)
     """
+    # The round's fields under the names the steps below read them by.
+    groups, output_dir, plan_file, kind = (
+        round_.groups, round_.output_dir, round_.plan_file, round_.kind,
+    )
+    # The index describes the task file this round replaces: it goes before a
+    # sidecar changes, and the hand-back rebuilds it from the file the caller
+    # commits. The caller holds `host_views_lock` across this call and that
+    # write (docs/development/delegation.md#the-host-index).
+    invalidate_host_index(task_file_for_kind(output_dir, kind))
+    context, context_label, context_document = (
+        round_.primary.text, round_.primary.label, round_.primary.document,
+    )
+    secondary = round_.secondary or ContextBlock("", "")
+    secondary_context, secondary_context_label, secondary_document = (
+        secondary.text, secondary.label, secondary.document,
+    )
+    provenance = round_.provenance
+    model, base_ref, head_ref, tasks_file, phase = (
+        provenance.model, provenance.base_ref, provenance.head_ref,
+        provenance.tasks_file, provenance.phase,
+    )
+    context_plan_sha256, context_plan_file = (
+        provenance.context_plan_sha256, provenance.context_plan_file,
+    )
+    runner_read_refusal, prompt_budget = round_.runner_read_refusal, round_.prompt_budget
+    max_per_batch, scope = round_.max_per_batch, round_.scope
+    secondary_for_batch, extra_instructions = (
+        round_.secondary_for_batch, round_.extra_instructions,
+    )
+
     grouped_file = str(Path(output_dir) / "grouped.json")
     context_provenance: Dict[str, str] = {}
     if context_plan_file and context_plan_sha256:
@@ -2643,18 +2541,19 @@ def prepare_batched_validation_tasks(
         secondary_document is not None and secondary_document.label == "tasks"
     ) else None
     inputs = build_inputs(
-        # One read, one hash domain (§2.3 step 5): a bound document's hash is
+        # One read, one hash domain: a bound document's hash is
         # taken over the bytes the round read, never over a second read of the
         # live file, so the excerpt, the snapshot and `inputs` cannot come from
         # two versions. The value keeps the 16-char text-hash domain the
         # resume guard and `state.plan_hash` compare in.
         plan_file=None if bound_plan is not None else plan_file,
         grouped_file=grouped_file,
+        grouped_text=round_.grouped_text,
         tasks_file=None if bound_tasks is not None else tasks_file,
         diff_base=(
             f"{base_ref}..{head_ref}" if base_ref and head_ref else base_ref
         ),
-        reviewed_code=reviewed_code,
+        reviewed_code=round_.reviewed_code,
         context_plan_sha256=context_plan_sha256,
     )
     if bound_plan is not None:
@@ -2664,7 +2563,7 @@ def prepare_batched_validation_tasks(
 
     # The round's scope block, rendered per call: the template text is never
     # cached with a policy in it, so an `expand` rendering cannot be served to
-    # a `preserve` round (plan §3.1).
+    # a `preserve` round.
     scope_meta = dict(scope) if scope else _scope_round.scope_block(
         None, _sp.review_phase_of(phase or os.path.basename(os.path.normpath(output_dir))),
     )
@@ -2674,7 +2573,7 @@ def prepare_batched_validation_tasks(
     )
 
     if not groups:
-        if publish:
+        if round_.publish:
             publish_validation_context(output_dir, [], phase=phase)
         empty = make_task_file(kind=kind, tasks=[], inputs=inputs, task_list_key="batches", extra={
             **context_provenance,
@@ -2687,6 +2586,7 @@ def prepare_batched_validation_tasks(
             "model_hint": model,
             "base_ref": base_ref,
             _scope_round.TASK_SCOPE_KEY: scope_meta,
+            **_round_key(provenance),
         })
         return empty
 
@@ -2697,21 +2597,18 @@ def prepare_batched_validation_tasks(
         isolate_high=True
     )
 
-    # Pre-compute group_ids for all groups
-    group_ids = []
-    for group in groups:
-        if hasattr(group, 'to_dict'):
-            group_dict = group.to_dict()
-        else:
-            group_dict = group
-        group_ids.append(generate_group_id(group_dict))
+    # Each group's stamped id: the one key that tells same-content groups
+    # apart, so each verdict joins its own group (docs/development/
+    # review-results.md, "Stable group IDs").
+    group_ids = [stamped_group_id(group) for group in groups]
 
-    # The one shared excerpt, reused verbatim by every batch below. A second
-    # document is excerpted on its own budget rather than appended to the first:
-    # concatenating would let a plan at the limit truncate the artifact under
-    # review down to nothing, which is the failure two contexts exist to fix.
+    # The whole-document excerpts, reused verbatim by every batch that embeds
+    # them. A second document is excerpted on its own budget rather than
+    # appended to the first: concatenating would let a plan at the limit
+    # truncate the artifact under review down to nothing, which is the failure
+    # two contexts exist to fix.
     #
-    # Each block becomes one context source record (§2.3 step 7): inline when
+    # Each block becomes one context source record: inline when
     # it fits, `path` when it is over the limit and a readable hash-bound
     # snapshot names the whole document, `truncated` otherwise — decided here,
     # at materialization, and reported one stderr line per non-inline source.
@@ -2732,6 +2629,11 @@ def prepare_batched_validation_tasks(
             ) else None
         return str(runner_read_refusal)
 
+    def secondary_label_for(document: Optional[BoundDocument]) -> str:
+        if document is not None:
+            return document.label
+        return "tasks" if tasks_file else "reviewed-code"
+
     # With no bound document the label names the block's kind explicitly
     # (plan | tasks | diff) — a "Tasks file" block is a tasks document, not a
     # diff, so its notice and recorded reason name the right document.
@@ -2749,12 +2651,11 @@ def prepare_batched_validation_tasks(
     )
     sources: List[Dict[str, Any]] = [primary_source]
     shared_secondary = ""
-    if secondary_context:
-        secondary_label = secondary_document.label if secondary_document is not None else (
-            "tasks" if tasks_file else "reviewed-code"
-        )
+    secondary_source: Optional[Dict[str, Any]] = None
+    if secondary_context and secondary_for_batch is None:
         shared_secondary, secondary_source = build_context_source(
-            secondary_context, secondary_document, label=secondary_label,
+            secondary_context, secondary_document,
+            label=secondary_label_for(secondary_document),
             block="secondary-context", phase_dir=output_dir,
             read_refusal=refusal_for(secondary_document),
         )
@@ -2768,13 +2669,15 @@ def prepare_batched_validation_tasks(
                 note = advisory(source.get("abs_path"))
                 if note:
                     source["reason"] = note
-    any_path = any(source["mode"] == "path" for source in sources)
-    context_mode = "workspace-read" if any_path else "inline"
-    # Only a round that is not wholly inline records its sources on the task:
-    # an under-limit task is byte-identical to what contract 1 wrote, so its
-    # goldens do not move.
-    task_sources = sources if any(s["mode"] != "inline" for s in sources) else None
-    prompt_sources = [s for s in sources if s["mode"] == "path"] or None
+    # The plan sections each batch's groups cite, when the round qualifies
+    # (docs/development/delegation.md, "Cited plan sections").
+    cited_plan = cited_plan_for_round(
+        context, context_document,
+        read_refusal=refusal_for(context_document),
+        runner_read_refusal=runner_read_refusal,
+    )
+    selections: List[Any] = []
+    published: List[Dict[str, Any]] = []
     budget = prompt_budget or PromptBudget(None)
 
     # Work list of (group_indices, is_high_priority). A batch whose materialized
@@ -2790,14 +2693,50 @@ def prepare_batched_validation_tasks(
     while pending:
         indices, is_high = pending.pop(0)
         records = build_validation_batch_records(groups, indices, group_ids)
+        batch_context, batch_primary = shared_context, primary_source
+        selection = None
+        if cited_plan is not None:
+            cited_records = build_validation_batch_records(
+                groups, indices, group_ids, with_reference=True,
+            )
+            selection = cited_plan.select(cited_records, limit=VALIDATION_CONTEXT_LIMIT)
+            if selection.excerpt is not None:
+                records = cited_records
+                batch_context = selection.excerpt
+                batch_primary = cited_context_source(
+                    context_document, selection.excerpt, selection,
+                    phase_dir=output_dir, sections_total=len(cited_plan.headings),
+                )
+        batch_secondary, batch_secondary_source = shared_secondary, secondary_source
+        batch_extra = extra_instructions
+        if secondary_for_batch is not None:
+            text, document, batch_extra = secondary_for_batch(list(indices))
+            batch_secondary, batch_secondary_source = "", None
+            if text:
+                batch_secondary, batch_secondary_source = build_context_source(
+                    text, document, label=secondary_label_for(document),
+                    block="secondary-context", phase_dir=output_dir,
+                    read_refusal=refusal_for(document),
+                )
+        batch_sources = [batch_primary] + (
+            [batch_secondary_source] if batch_secondary_source is not None else []
+        )
+        # Only a batch that is not wholly inline records its sources on the
+        # task: an under-limit task is byte-identical to what contract 1 wrote,
+        # so its goldens do not move.
+        task_sources = (
+            batch_sources if any(s["mode"] != "inline" for s in batch_sources) else None
+        )
+        prompt_sources = [s for s in batch_sources if s["mode"] == "path"] or None
+        context_mode = "workspace-read" if prompt_sources else "inline"
         prompt = build_validation_prompt(
-            plan_excerpt=shared_context,
+            plan_excerpt=batch_context,
             suggestion_records=records,
             kind=kind,
             context_label=context_label,
-            secondary_excerpt=shared_secondary,
+            secondary_excerpt=batch_secondary,
             secondary_label=secondary_context_label,
-            extra_instructions=extra_instructions,
+            extra_instructions=batch_extra,
             context_sources=prompt_sources,
             scope_guidance=scope_text,
         )
@@ -2811,7 +2750,7 @@ def prepare_batched_validation_tasks(
             # `resolution` raises for a runner with no workspace-read capability,
             # but *returns* "workspace-read" for one that has it. That return is
             # still not a further downgrade: each source's context mode is set
-            # by VALIDATION_CONTEXT_LIMIT (§2.3), not by the transport budget,
+            # by VALIDATION_CONTEXT_LIMIT, not by the transport budget,
             # and an unsplittable batch that is still over is over because of
             # its INLINE part — the excerpt and its suggestion records — which
             # naming a path cannot shrink.
@@ -2828,6 +2767,9 @@ def prepare_batched_validation_tasks(
                 f"stdin/file prompt transport (driver.subagent_runner). The "
                 f"prompt is never truncated."
             )
+        if selection is not None:
+            selections.append(selection)
+        published.extend(batch_sources)
 
         output_name = f"validation_batch_{next_index}.json"
         batch_tasks.append(make_task(
@@ -2858,6 +2800,10 @@ def prepare_batched_validation_tasks(
         next_index += 1
 
     write_prompt_sidecars(batch_tasks, output_dir)
+    if cited_plan is not None:
+        line = _sections.summary_line(selections, len(context))
+        if line:
+            print(line, file=sys.stderr)
 
     stats = estimate_validation_batching_stats(groups, max_per_batch)
 
@@ -2890,13 +2836,14 @@ def prepare_batched_validation_tasks(
         "batching_stats": stats,
         "grouped_file": grouped_file,
         "phase_dir": output_dir,
-        **durable_reaggregate_fields(orchestrator, plan_file),
+        **durable_reaggregate_fields(provenance.orchestrator, plan_file),
         "model_hint": model,
         "base_ref": base_ref,
         _scope_round.TASK_SCOPE_KEY: scope_meta,
     }
     if tasks_file:
         extra["tasks_file"] = tasks_file
+    extra.update(_round_key(provenance))
     document = make_task_file(
         kind=kind,
         tasks=batch_tasks,
@@ -2904,9 +2851,106 @@ def prepare_batched_validation_tasks(
         task_list_key="batches",
         extra=extra,
     )
-    if publish:
-        publish_validation_context(output_dir, sources, phase=phase)
+    if round_.publish:
+        # Every batch's own records: a cited plan block or a per-batch second
+        # block differs between batches, and the aggregate keeps the worst.
+        publish_validation_context(output_dir, published or sources, phase=phase)
     return document
+
+
+def _verdict_or_failure(result: Dict[str, Any]) -> Dict[str, Any]:
+    """``result`` as placed, or a ``validation_failed`` record in its stead
+    when its status is not one of :data:`VALIDATION_VERDICTS`.
+
+    An out-of-vocabulary status is no verdict, so the group stays
+    ``validation_failed`` as a discarded foreign hash leaves it, keeping the
+    ``group_id`` it was placed under. The executor lane persists such a reply
+    (``schema_validator.validation_reply_problems``), so this is where the word
+    stops before it reaches ``validation.json``. The record carries no scope
+    authority: it is never stamped.
+    """
+    status = result.get("status")
+    if status in VALIDATION_VERDICTS:
+        return result
+    failed: Dict[str, Any] = {"group_index": result.get("group_index")}
+    if result.get("group_id"):
+        failed["group_id"] = result["group_id"]
+    failed.update({
+        "status": "validation_failed",
+        "reason": (
+            f"the reply's status {status!r} is not one of "
+            + ", ".join(VALIDATION_VERDICTS)
+        ),
+        "confidence": 0.0,
+        "error_type": ERROR_TYPE_PARSING,
+        "recoverable": True,
+    })
+    return failed
+
+
+def _batch_verdicts(
+    batch_data: Any,
+) -> Tuple[Optional[List[Dict[str, Any]]], Optional[str], int]:
+    """``(verdict records, the batch's model, entries dropped)`` of one parsed
+    batch file; records are ``None`` when the file is not a reply at all.
+
+    A reply is a list of verdict objects, bare or under ``groups`` in an object
+    whose ``metadata.model`` names the model that wrote it. The file is model
+    output a native host wrote unchecked, so neither shape is assumed: a
+    ``groups`` that is not a list, or a document that is neither, is no reply
+    (its groups stay ``validation_failed``, as a batch that does not parse
+    leaves them), and an entry that is not an object is dropped while the rest
+    of the batch merges (docs/development/review-results.md, "Snapshots and
+    empty review outcomes").
+    """
+    model: Optional[str] = None
+    if isinstance(batch_data, dict):
+        metadata = batch_data.get("metadata")
+        if isinstance(metadata, dict) and isinstance(metadata.get("model"), str):
+            model = metadata["model"] or None
+        entries = batch_data.get("groups", [])
+    else:
+        entries = batch_data
+    if not isinstance(entries, list):
+        return None, model, 0
+    records = [entry for entry in entries if isinstance(entry, dict)]
+    return records, model, len(entries) - len(records)
+
+
+def _echoed_hash(result: Dict[str, Any]) -> Optional[str]:
+    """The group hash a verdict echoed, ``None`` when it echoed none.
+
+    A value that is not text names no group of any batch, so it comes back as
+    its ``repr``: a foreign hash the join discards, never an unhashable key.
+    """
+    raw = result.get("group_hash") or result.get("group_id")
+    if not raw:
+        return None
+    return raw if isinstance(raw, str) else repr(raw)
+
+
+#: The reason every group's slot starts the merge with.
+_BATCH_NOT_FOUND = "Batch result not found"
+
+
+def _unusable_batch(
+    merged_results: List[Dict[str, Any]],
+    batch_info: Dict[str, Any],
+    reason: str,
+) -> None:
+    """Give every group of a batch whose file holds no usable reply *reason*.
+
+    The groups were already ``validation_failed`` ("Batch result not found");
+    this only says why, so the report and ``--revalidate`` name the file.
+    """
+    for index in batch_info.get("group_indices", []):
+        if (isinstance(index, int) and 0 <= index < len(merged_results)
+                and merged_results[index].get("reason") == _BATCH_NOT_FOUND):
+            merged_results[index] = {
+                **merged_results[index],
+                "reason": reason,
+                "error_type": ERROR_TYPE_PARSING,
+            }
 
 
 def merge_batched_validation_results(
@@ -2914,11 +2958,13 @@ def merge_batched_validation_results(
     batch_metadata: Dict[str, Any],
     total_groups: int,
     groups: Optional[List[Any]] = None,
+    *,
+    batch_bytes: Optional[Dict[Any, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Merge results from multiple validation batch files.
 
-    Scope (plan §3): every verdict that joined its group **by hash** is stamped
+    Scope: every verdict that joined its group **by hash** is stamped
     (``scope_round.stamp``) against the host's own copy of that group from
     ``groups`` — the proposal digest and the baseline id recorded in the task
     file's ``scope`` block, never a model's echo of either — and under
@@ -2934,6 +2980,11 @@ def merge_batched_validation_results(
         groups: The host's groups the batches were materialized from
             (``grouped.json``), looked up by stable hash; ``None`` stamps
             nothing.
+        batch_bytes: ``{batch_index: bytes}`` for the batches the caller has
+            already read or taken from its dispatch, ``None`` for one it found
+            missing and the ``OSError`` for one it could not read; a batch
+            named here is never read from disk
+            (docs/development/review-results.md, "Consuming checked bytes").
 
     Returns:
         Merged validation results list with proper group indices
@@ -2954,7 +3005,7 @@ def merge_batched_validation_results(
         {
             "group_index": i,
             "status": "validation_failed",
-            "reason": "Batch result not found",
+            "reason": _BATCH_NOT_FOUND,
             "confidence": 0.0,
             "error_type": ERROR_TYPE_UNKNOWN,
             "recoverable": True,
@@ -2975,23 +3026,41 @@ def merge_batched_validation_results(
     for batch_info in batches:
         batch_index = batch_info["batch_index"]
         batch_file = output_path / f"validation_batch_{batch_index}.json"
+        given = batch_bytes is not None and batch_index in batch_bytes
+        held = batch_bytes[batch_index] if given else None
+        missing = held is None if given else not batch_file.exists()
 
-        if not batch_file.exists():
+        if missing:
             print(f"[merge] Warning: Batch file not found: {batch_file}")
             batches_missing += 1
             continue
 
         try:
-            with open(batch_file, 'r', encoding='utf-8') as f:
-                batch_data = json.load(f)
-
-            # Handle both wrapped format and direct list
-            if isinstance(batch_data, dict):
-                batch_results = batch_data.get("groups", [])
-                batch_model = batch_data.get("metadata", {}).get("model")
+            if isinstance(held, OSError):
+                raise held
+            if given:
+                batch_data = json.loads(read_back_text(held))
             else:
-                batch_results = batch_data
-                batch_model = None
+                with open(batch_file, 'r', encoding='utf-8') as f:
+                    batch_data = json.load(f)
+
+            # Both the wrapped format and a direct list; any other shape is no
+            # reply, read as a batch that does not parse is read.
+            batch_results, batch_model, dropped = _batch_verdicts(batch_data)
+            named = f"{batch_file} (model: {batch_model or 'not named'})"
+            if batch_results is None:
+                print(f"[merge] Error: {named} is not a list of verdicts "
+                      f"({type(batch_data).__name__}); its groups stay "
+                      f"validation_failed")
+                _unusable_batch(merged_results, batch_info, (
+                    f"{batch_file.name} holds no list of verdicts"
+                ))
+                batches_missing += 1
+                continue
+            if dropped:
+                print(f"[merge] Warning: {named}: dropped {dropped} entr"
+                      f"{'y' if dropped == 1 else 'ies'} that are not verdict "
+                      f"objects; the rest of the batch is merged")
 
             # Tag every result with the model its own batch file reported, so
             # `save_validation_results` can derive an overall model when its
@@ -3016,6 +3085,25 @@ def merge_batched_validation_results(
                 if local_idx < len(batch_group_ids):
                     hash_to_original_index[batch_group_ids[local_idx]] = gidx
 
+            # An id this batch assigned to more than one group (a task file
+            # written before ids were stamped) cannot say which of them a
+            # verdict echoing it judged: like a foreign hash, the verdict is
+            # discarded and its groups are left for revalidation.
+            shared_ids = {
+                gid for gid in batch_group_ids if batch_group_ids.count(gid) > 1
+            }
+            if shared_ids:
+                kept = [
+                    r for r in batch_results
+                    if _echoed_hash(r) not in shared_ids
+                ]
+                if len(kept) != len(batch_results):
+                    print(f"[merge] Warning: Batch {batch_index}: discarding "
+                          f"{len(batch_results) - len(kept)} result(s) whose "
+                          f"group_hash names more than one group of this batch; "
+                          f"leaving those groups for revalidation")
+                batch_results = kept
+
             # Strategy 0: Hash-based matching (group_hash is AUTHORITATIVE).
             # Whenever a result echoes a group_hash, route it by hash and ignore
             # its self-reported group_index — this corrects off-by-one and other
@@ -3031,7 +3119,7 @@ def merge_batched_validation_results(
             filled_indices: set = set()
             unhashed_results: List[Dict[str, Any]] = []
             for result in batch_results:
-                result_hash = result.get("group_hash") or result.get("group_id")
+                result_hash = _echoed_hash(result)
                 if not result_hash:
                     unhashed_results.append(result)
                     continue
@@ -3043,9 +3131,16 @@ def merge_batched_validation_results(
                         hash_join_mismatched += 1
                     result["group_index"] = original_index
                     result["group_id"] = result_hash
-                    merged_results[original_index] = result
+                    placed = _verdict_or_failure(result)
+                    merged_results[original_index] = placed
                     filled_indices.add(original_index)
-                    hash_joined[original_index] = result_hash
+                    # A later row for the same hash replaces the slot, so it
+                    # also decides the slot's scope authority: a failure in
+                    # place of a verdict is never stamped.
+                    if placed is result:
+                        hash_joined[original_index] = result_hash
+                    else:
+                        hash_joined.pop(original_index, None)
                 else:
                     print(f"[merge] Warning: Batch {batch_index}: discarding result with "
                           f"foreign group_hash {result_hash} (not assigned to this batch — "
@@ -3084,17 +3179,21 @@ def merge_batched_validation_results(
                     local_idx = group_indices.index(original_index)
                     if local_idx < len(batch_group_ids):
                         result["group_id"] = batch_group_ids[local_idx]
-                    merged_results[original_index] = result
+                    merged_results[original_index] = _verdict_or_failure(result)
                 continue
 
-            # Strategy 2: Positional match — correct count, wrong indices
-            if len(batch_results) == len(group_indices):
+            # Strategy 2: Positional match — correct count, wrong indices. Not
+            # once entries were dropped (`_batch_verdicts`): a dropped entry
+            # may have been any group's slot, so the order no longer says
+            # which group a verdict judged; index matches below still place
+            # theirs and the rest stay validation_failed.
+            if len(batch_results) == len(group_indices) and not dropped:
                 for i, result in enumerate(batch_results):
                     original_index = group_indices[i]
                     result["group_index"] = original_index
                     if i < len(batch_group_ids):
                         result["group_id"] = batch_group_ids[i]
-                    merged_results[original_index] = result
+                    merged_results[original_index] = _verdict_or_failure(result)
                 continue
 
             # Strategy 3: Salvage partial global matches
@@ -3104,7 +3203,7 @@ def merge_batched_validation_results(
                     local_idx = group_indices.index(original_index)
                     if local_idx < len(batch_group_ids):
                         result["group_id"] = batch_group_ids[local_idx]
-                    merged_results[original_index] = result
+                    merged_results[original_index] = _verdict_or_failure(result)
                 unmatched = global_indices_set - set(matched_globals.keys())
                 if unmatched:
                     print(f"[merge] Warning: Batch {batch_index}: matched {len(matched_globals)}/{len(group_indices)}, missing {unmatched}")
@@ -3118,12 +3217,15 @@ def merge_batched_validation_results(
                     result["group_index"] = original_index
                     if result_index < len(batch_group_ids):
                         result["group_id"] = batch_group_ids[result_index]
-                    merged_results[original_index] = result
+                    merged_results[original_index] = _verdict_or_failure(result)
                 else:
                     print(f"[merge] Warning: Index {result_index} out of range for batch {batch_index} (expected 0-{len(group_indices)-1})")
 
         except (json.JSONDecodeError, IOError) as e:
             print(f"[merge] Error reading batch file {batch_file}: {e}")
+            _unusable_batch(merged_results, batch_info, (
+                f"{batch_file.name} could not be read as JSON"
+            ))
             batches_missing += 1
 
     print(f"[merge] Merged {batches_found} batches, {batches_missing} missing")
@@ -3137,7 +3239,7 @@ def merge_batched_validation_results(
         print(f"[merge] {hash_join_mismatched} of {hash_join_total} verdicts "
               f"echoed a different group_index; all joined by hash")
 
-    # Scope authority by hash only (plan §3). A record left in a slot by an
+    # Scope authority by hash only. A record left in a slot by an
     # index strategy may be the very object a hash join also placed elsewhere,
     # so stamping replaces the slot's record rather than editing it in place.
     scope_meta = _scope_round.task_scope(batch_metadata)
@@ -3178,12 +3280,6 @@ def pinned_validation_guidance(plan_file: Optional[str]) -> str:
     if not plan_file:
         return ""
     try:
-        from .commit_range import display_range, pinned_endpoints, pinned_head_read_rule
-        from .output_handler import output_dir_path
-    except ImportError:  # pragma: no cover - flat import layout
-        from utils.commit_range import display_range, pinned_endpoints, pinned_head_read_rule
-        from utils.output_handler import output_dir_path
-    try:
         document = json.loads(
             (output_dir_path(Path(plan_file)) / "state.json").read_text(encoding="utf-8")
         )
@@ -3206,7 +3302,7 @@ def pinned_validation_guidance(plan_file: Optional[str]) -> str:
 
 
 #: The second context block of a revalidation whose current document is not
-#: the review round's scope baseline (plan §2: both labelled contexts).
+#: the review round's scope baseline (both labelled contexts).
 REVALIDATION_BASELINE_LABEL = (
     "Original scope baseline \u2014 the plan as this review round read it; "
     "judge scope against this, correctness against the context above"
@@ -3235,10 +3331,6 @@ def revalidation_scope_binding(
     )
     state: Dict[str, Any] = {}
     if plan_file:
-        try:
-            from .output_handler import output_dir_path
-        except ImportError:  # pragma: no cover - flat import layout
-            from utils.output_handler import output_dir_path
         try:
             loaded = json.loads(
                 (output_dir_path(Path(plan_file)) / "state.json").read_text(encoding="utf-8")
@@ -3361,7 +3453,7 @@ def prepare_batched_revalidation_tasks(
             a ``diff`` round (a code review's findings) whose plan state pins
             the review to a commit gets :func:`pinned_validation_guidance`, so
             its revalidators read the reviewed code at ``head`` as the review's
-            own validators did (plans/review-commits.md §2.5); anything else
+            own validators did; anything else
             gets none, as before. apply-code-fixes passes it explicitly
             (``get_revalidation_instructions``), because its batches carry
             the plan fallback as their context, not a ``diff``.
@@ -3371,7 +3463,7 @@ def prepare_batched_revalidation_tasks(
             (``state.json``'s ``scope_policy`` record of the review phase this
             revalidation writes into). Correctness is judged against the
             current document; scope against the round's **original** baseline
-            (plan §2): when the current document is not that baseline's
+            When the current document is not that baseline's
             primary document, the round's own ``validation-snapshot.md`` (hash
             verified) is embedded as a second, labelled context and the
             validators are told so. Without it the verdicts are bound to the
@@ -3443,13 +3535,6 @@ def prepare_batched_revalidation_tasks(
     # Create batched tasks for the subset
     # Revalidation reads the same frozen context plan, including when invoked
     # from apply-code-fixes. Carry its expected hash and source into the task file.
-    try:
-        from .commit_report import context_plan_path, run_commit_range
-        from .git_utils import get_project_root
-    except ImportError:  # pragma: no cover - flat import layout
-        from utils.commit_report import context_plan_path, run_commit_range
-        from utils.git_utils import get_project_root
-
     commit_record = run_commit_range(plan_file)
     context_plan_file = (
         context_plan_path(commit_record, repo_root=get_project_root(plan_file))
@@ -3460,41 +3545,36 @@ def prepare_batched_revalidation_tasks(
         explicit_policy=scope_policy,
         phase=phase,
     )
-    batched_tasks = prepare_batched_validation_tasks(
+    batched_tasks = materialize_validation_round(ValidationRound(
         groups=items_to_revalidate,
-        context=context,
         output_dir=output_dir,
         plan_file=plan_file,
-        model=model,
-        max_per_batch=max_per_batch,
-        orchestrator=orchestrator,
-        base_ref=base_ref,
-        kind="revalidation",
-        scope=revalidation_scope,
-        **(
-            {
-                "secondary_context": original_document.text,
-                "secondary_context_label": REVALIDATION_BASELINE_LABEL,
-                "secondary_document": original_document,
-            }
-            if original_document is not None else {}
-        ),
-        context_plan_file=context_plan_file,
-        context_plan_sha256=(commit_record or {}).get("plan_sha256"),
-        extra_instructions=extra_instructions,
         # The block says which document it carries: the diff a code-fix
         # revalidation judges is labelled a diff, and the plan fallback a plan.
-        context_label={
-            "diff": "Diff context",
-            "tasks": "Tasks file",
-        }.get(kind_of_context, "Plan content"),
-        context_document=context_document if context_document is not None else (
-            bind_document_text(context, label=kind_of_context)
-            if kind_of_context == "diff" else None
+        primary=ContextBlock(
+            context,
+            {"diff": "Diff context", "tasks": "Tasks file"}.get(
+                kind_of_context, PLAN_CONTEXT_LABEL,
+            ),
+            context_document if context_document is not None else (
+                bind_document_text(context, label=kind_of_context)
+                if kind_of_context == "diff" else None
+            ),
         ),
+        secondary=ContextBlock(
+            original_document.text, REVALIDATION_BASELINE_LABEL, original_document,
+        ) if original_document is not None else None,
+        extra_instructions=extra_instructions,
+        scope=revalidation_scope,
         runner_read_refusal=runner_read_refusal,
-        phase=phase,
-    )
+        provenance=RoundProvenance(
+            model=model, orchestrator=orchestrator, phase=phase, base_ref=base_ref,
+            context_plan_sha256=(commit_record or {}).get("plan_sha256"),
+            context_plan_file=context_plan_file,
+        ),
+        kind="revalidation",
+        max_per_batch=max_per_batch,
+    ))
 
     batched_tasks["context_kind"] = kind_of_context
     if original_sources:

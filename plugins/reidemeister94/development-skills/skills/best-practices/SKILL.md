@@ -1,33 +1,23 @@
 ---
 name: best-practices
-description: "Research current practices or compare approaches using primary evidence and the user's constraints."
+description: "Use when current practice or outside evidence can change a decision: comparing approaches, libraries, or patterns against the user's constraints."
 argument-hint: "<topic>"
 user-invocable: true
 allowed-tools: WebSearch, WebFetch, Read, Glob, Grep, Skill
 ---
 
-# Best practices
+Given a topic, you have to search online for the best, high quality, updated information about it, using critical thinking and reasoning by first principles.
+Save your searches result to a temporary file on the user system and if you are a subagent,
+tell to the main agent the path of those files so he can read them in detail.
 
-Research the requested topic with current, high-quality evidence and first-principles reasoning.
-Keep research artifacts outside the repository unless the result remains useful after the task.
-If a subagent performs the research, give the main agent the artifact paths.
+On technical topics, take evidence only from top sources, not SEO stuff or AI slop:
 
-For technical topics, prefer primary and authoritative sources:
+- official documentations and specifications
+- maintainer posts, authoritative engineering blogs, peer-reviewed papers
+- widely adopted github projects that are still actively maintained (ideally > 2k stars and last commit < 3 weeks ago)
 
-- official documentation and specifications;
-- maintainer posts, authoritative engineering blogs, and peer-reviewed papers;
-- widely adopted open-source projects that are actively maintained.
+Age each claim against its own horizon: weeks for versions, APIs, pricing, limits, and advisories; months for tool and library choices; years for architecture, patterns, and concepts. An old source holds when the idea still holds. Say why it holds, and confirm that no newer source replaced it. Mark what you cannot confirm as unverified.
 
-Age each claim against its own horizon.
-Versions, APIs, pricing, limits, and advisories can change within weeks.
-Tool choices can change within months. Architecture and patterns can remain valid for years.
-Explain why an older source still applies and check whether a newer source replaced it.
-Mark facts that you cannot confirm as unverified.
+Cite material claims inline, and separate evidence from inference. Explain consensus, disagreement, uncertainty, and where each recommendation applies. State what evidence would overturn your recommendation. Recommend for the user's goals and constraints, not for an imaginary average user.
 
-Cite material claims inline and separate evidence from inference.
-Explain consensus, disagreement, uncertainty, and where each recommendation applies.
-State what evidence would overturn the recommendation.
-Recommend for the user's goals and constraints, not for an imaginary average user.
-
-If missing context changes the answer, ask for it or give clearly conditional recommendations.
-Do not pad the report with source quotas, evidence labels, or weak secondary sources.
+If missing context changes the answer, ask for it or give clearly conditional recommendations. Do not pad the report with source quotas, evidence labels, or weak secondary material.

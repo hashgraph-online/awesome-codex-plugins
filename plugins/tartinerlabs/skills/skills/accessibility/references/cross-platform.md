@@ -20,6 +20,8 @@ First-class path. Check the installed React Native version before relying on a p
 
 Prefer `Pressable` with a role and label over `TouchableOpacity` wrappers without them; icon-only buttons always need a label.
 
+`@expo/ui` components are real SwiftUI and Jetpack Compose views, so they carry the native control's role and state, and names are set through the component's own props and modifiers (`accessibilityLabel` from `@expo/ui/swift-ui/modifiers` on the SwiftUI side). The package changes quickly, so read the installed version's type definitions for what each platform exposes before relying on one, or the current Expo docs when it is not installed yet.
+
 ### Announcements and Settings
 
 - `AccessibilityInfo.announceForAccessibility("Saved")` for status changes (`announceForAccessibilityWithOptions` for queueing on iOS)

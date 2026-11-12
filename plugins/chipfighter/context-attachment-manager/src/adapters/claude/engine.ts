@@ -11,7 +11,7 @@ import { claudeSelectionDirOf } from "../../core/paths.ts";
 import type { Lang } from "../../core/lang.ts";
 import { currentLang } from "../../core/language.ts";
 import { claudeSelection } from "./selection.ts";
-import { stableIdsSince } from "../../core/selection.ts";
+import { stableIdTimes } from "../../core/selection.ts";
 import { autoChoice, earlierCopies } from "../../core/session.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
 import { keepCacheRead, marksOutside, sentPrefixOf, type SentPrefix } from "../protocols/anthropic-messages/cache.ts";
@@ -44,7 +44,7 @@ export const claudeConversationRequest = (details: Json): boolean => details.kin
 export function claudeNeedsRewrite(sessionId: string | null, dir = claudeSelectionDirOf(), home = claudeHome()): boolean {
   if (!sessionId) return false;
   let index: ClaudeIndex | null = null;
-  try { index = loadClaudeIndex(sessionId, home, stableIdsSince(dir)); } catch { /* the selection still decides */ }
+  try { index = loadClaudeIndex(sessionId, home, stableIdTimes(dir)); } catch { /* the selection still decides */ }
   try {
     const selection = claudeSelection(sessionId, dir, index ? claudeStartedAt(index) : null, index?.previous ?? []);
     if (Object.keys(selection.unchecked).length > 0 || selection.autoSince) return true;
@@ -93,7 +93,7 @@ export function rewriteClaudeBody(original: Buffer, encoding: string | undefined
   if (!Array.isArray(json.messages)) return asIs({ skipped: "no messages array" });
   if (hasUnsafeInteger(text)) return asIs({ skipped: "integer beyond 2^53 would change when re-serialized" });
   let index: ClaudeIndex;
-  try { index = loadClaudeIndex(sessionId, home, stableIdsSince(dir)); } catch (error) { return asIs({ skipped: `thread index: ${String(error)}` }); }
+  try { index = loadClaudeIndex(sessionId, home, stableIdTimes(dir)); } catch (error) { return asIs({ skipped: `thread index: ${String(error)}` }); }
   const selection = claudeSelection(sessionId, dir, claudeStartedAt(index), index.previous);
   const current = index.turns;
   const copies = earlierCopies(index, current);

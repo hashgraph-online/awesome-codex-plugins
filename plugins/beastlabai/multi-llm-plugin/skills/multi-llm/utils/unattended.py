@@ -43,30 +43,16 @@ import sys
 from dataclasses import dataclass
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
-try:  # normal import (utils is a package)
-    from .cli_common import (
-        AGENT_DECIDE_FLAG,
-        LEGACY_AGENT_DECIDE_FLAGS,
-        EXIT_NEEDS_HUMAN,
-        EXIT_OK,
-        STATE_PARTIAL,
-        active_result,
-        skill_dir,
-    )
-    from .scope_policy import FLAG as SCOPE_POLICY_FLAG, POLICIES as SCOPE_POLICIES
-except ImportError:  # pragma: no cover - direct script runs with utils/ on path
-    from cli_common import (  # type: ignore
-        AGENT_DECIDE_FLAG,
-        LEGACY_AGENT_DECIDE_FLAGS,
-        EXIT_NEEDS_HUMAN,
-        EXIT_OK,
-        STATE_PARTIAL,
-        active_result,
-        skill_dir,
-    )
-    from scope_policy import (  # type: ignore
-        FLAG as SCOPE_POLICY_FLAG, POLICIES as SCOPE_POLICIES,
-    )
+from .cli_common import (
+    AGENT_DECIDE_FLAG,
+    LEGACY_AGENT_DECIDE_FLAGS,
+    EXIT_NEEDS_HUMAN,
+    EXIT_OK,
+    STATE_PARTIAL,
+    active_result,
+    skill_dir,
+)
+from .scope_policy import FLAG as SCOPE_POLICY_FLAG, POLICIES as SCOPE_POLICIES
 
 
 # ---------------------------------------------------------------------------
@@ -1035,10 +1021,10 @@ def record_resolution(
     <decision>`` and, when a detached run owns *phase_dir*, appends the entry to
     ``{phase}/.status.json`` ``run.resolutions`` (D4c) — which is what
     ``status --view run`` reports. A foreground run's ``.status.json`` still gains
-    no ``run`` keys: ``detach.record_resolution`` keeps its handle guard, because
+    no ``run`` keys: ``run_record.record_resolution`` keeps its handle guard, because
     a resolution is part of the detached hand-back and the ``[AUTO_RESOLVED]``
     marker line *is* the foreground record. (Only ``progress`` reaches a
-    foreground checkpoint, via ``detach.report_progress``; ``run`` stays the
+    foreground checkpoint, via ``run_record.report_progress``; ``run`` stays the
     detached worker's alone.)
     """
     if site_id not in _ROWS_BY_SITE:  # pragma: no cover - guarded by tests
@@ -1047,12 +1033,9 @@ def record_resolution(
         print(f"{RESOLVED_MARKER} {site_id}: {decision}")
     if not phase_dir:
         return
+    from . import run_record as _run_record  # local: keep `status` sub-second
     try:
-        from . import detach as _detach  # local: keep `status` sub-second
-    except ImportError:  # pragma: no cover - direct script runs
-        import detach as _detach  # type: ignore
-    try:
-        _detach.record_resolution(str(phase_dir), site_id, decision)
+        _run_record.record_resolution(str(phase_dir), site_id, decision)
     except Exception:  # pragma: no cover - recording must never break a phase
         pass
 

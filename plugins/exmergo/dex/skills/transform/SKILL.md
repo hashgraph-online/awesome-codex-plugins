@@ -14,6 +14,12 @@ until `transform apply`, and any build runs against a dev target only.
 <!-- dex:procedure:begin -->
 ## Procedure
 
+For project setup, run `dex init` (or `init` through an installed skill wrapper).
+It creates or adopts a project, installs managed README and agent instructions,
+and verifies the connection. It does not explore data or build models. Read its
+structured missing inputs and readiness before continuing; installing skills
+does not necessarily install a `dex` executable.
+
 Dex works in one loop: explore, transform, maintain. `dex <command>` below is
 the `dex` CLI; where it is not installed, run the same command through the
 skill's `scripts/run.py` wrapper. Each command prints one JSON envelope: read
@@ -380,9 +386,15 @@ fetches the engine's dependencies from PyPI or your configured index.
 
 ## Transforming, step by step
 
-1. **No dbt project yet?** Offer `transform init "<name>" --connector <c>` (scaffolds into `<name>/` by default, or the current directory with `--in-place`) before
-   anything else. Ask the user for the name and **confirm the connector with
-   them**: init never defaults one. Do not hand-write the skeleton. Read
+1. **Project setup requested, or no dbt project yet?** Use the installed wrapper
+   for complete setup, including README, agent instructions and connection
+   verification. For a new project, use `init "<name>" --connector <c>`;
+   for an existing project, use `init --mode adopt --project-dir <directory>`.
+   The adoption target is its directory, which may differ from the dbt project
+   name. Existing authored files are preserved. The legacy `transform init`
+   scaffolder remains available. New projects scaffold into `<name>/` by default,
+   or the current directory with `--in-place`. Confirm the connector and the
+   new project's name with the user; do not hand-write the skeleton. Read
    `${CLAUDE_SKILL_DIR}/references/init-and-dev-target.md` for per-connector
    setup, `--in-place`, `--layered-schemas`, and the namespace warning.
 2. **Find every use first** when a change has to land in more than one place:
@@ -407,7 +419,9 @@ fetches the engine's dependencies from PyPI or your configured index.
    `semantic slayer define|update|plan` (SLayer model files),
    `semantic cube define|update|plan` (Cube YAML model files), or
    `semantic databricks define|update|plan` (Databricks Metric View YAML files,
-   never deployed). Read
+   never deployed). To propose a Metric View from an Ossie document, use
+   `semantic databricks --from-ossie <file>`; for the reverse,
+   `semantic ossie --from-metric-view <file>`. Read
    `${CLAUDE_SKILL_DIR}/references/semantic-layer.md` first.
 4. **Declare.** Read `data.declarations.<model>` on the plan envelope: `drafted`
    is what Dex measured, `declared` is what the YAML says, `missing` is the intent

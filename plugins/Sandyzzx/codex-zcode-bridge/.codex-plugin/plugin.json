@@ -1,6 +1,6 @@
 {
   "name": "codex-zcode-bridge",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Let Codex delegate development tasks to your local ZCode runtime and review their progress and results.",
   "author": {
     "name": "Sandy"

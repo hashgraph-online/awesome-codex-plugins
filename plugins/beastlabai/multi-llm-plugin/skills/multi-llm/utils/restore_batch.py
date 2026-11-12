@@ -34,16 +34,10 @@ import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Sequence
 
-try:  # pragma: no cover - import shim mirrors the rest of utils/
-    from .stream_bootstrap import bootstrap_streams
-    from .write_safety import (
-        AuditLog, TaskSnapshot, WriteSafetyError, resolve_repo_root, safety_dir,
-    )
-except ImportError:  # pragma: no cover - direct-script invocation
-    from stream_bootstrap import bootstrap_streams
-    from write_safety import (  # type: ignore[no-redef]
-        AuditLog, TaskSnapshot, WriteSafetyError, resolve_repo_root, safety_dir,
-    )
+from .stream_bootstrap import bootstrap_streams
+from .write_safety import (
+    AuditLog, TaskSnapshot, WriteSafetyError, resolve_repo_root, safety_dir,
+)
 
 
 EXIT_OK = 0

@@ -5,12 +5,14 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
     StructuredSchema,
     split_reasoning_effort,
 )
+from .parse_kit import direct_json, fail
 
 # Reasoning effort values accepted by `muse exec --reasoning-effort`
 # (verified live against Muse Code 0.1.0-R708.1). Unlike most providers here,
@@ -137,7 +139,7 @@ class MuseProvider(LLMProvider):
     # A THIRD MEASURED SHAPE, recorded rather than fixed, and it is a base-table
     # ORDERING fact rather than a missing pattern here. muse prefixes every
     # vendor error it does not gloss with `API error <status>: <vendor text>`,
-    # and `\bapi error\b` is a member of `base.SERVER_ERROR_MARKERS`, which
+    # and `\bapi error\b` is a member of `failure_classifier.SERVER_ERROR_MARKERS`, which
     # `classify_streams` consults BEFORE `INVALID_MODEL_MARKERS`. So muse's 404
     # — which is otherwise ideal, keeping the vendor sentence verbatim and
     # NAMING the model ("API error 404: The model `muse-spark-9.9-nonexistent`
@@ -179,9 +181,9 @@ class MuseProvider(LLMProvider):
     #   to be killed part-way through the same chain (review 24, pins #3); at
     #   985 the ladder refuses that retry and says why. The slot that runs is
     #   providers.yaml's `muse.default_timeout`, 1800 s, which holds one whole
-    #   chain, so the rich diagnosis is seen; the class's own
-    #   `default_timeout` (600) is only the fallback for a config without the
-    #   row, and a 600 s slot is refused before the spawn.
+    #   chain, so the rich diagnosis is seen; the shared `DEFAULT_TIMEOUT_S`
+    #   (1200) is only the fallback for a config without the row, and would
+    #   also hold one chain.
     #
     # * `retries_rate_limit = True` — the `rate-limit` row IS the 5xx row's
     #   envelope to two decimal places: muse's ladder does not distinguish a 429
@@ -245,13 +247,21 @@ class MuseProvider(LLMProvider):
     sandbox_mechanism = "bubblewrap"
     sandbox_disabled_by = "--disable-sandbox"
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: muse's
+    #: ``vendor_text`` drops only the prompt it echoes; the answer's text
+    #: (deltas and the terminal message) reaches the tables, so a review
+    #: quoting a rate limit, a 401 or a context limit classifies as one. Its
+    #: one exit-0 failure row classifies ``None``.
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: muse's stderr is its
+    #: own ``muse: …`` notices and its ``run ended with Failed: …`` line (tests/fixtures/muse);
+    #: tool output rides the stdout JSONL.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "muse"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("muse") is not None
@@ -287,7 +297,7 @@ class MuseProvider(LLMProvider):
         this adapter's ``auth_error_patterns`` already carry ``api error 401``
         and its ``rate_limit_patterns`` carry ``api error 402`` /
         ``billing verification failed``, and both classes are forwarded by
-        ``subagent_executor._classify_failed_run`` to fail or back off the whole
+        ``attempt_classifier._classify_failed_run`` to fail or back off the whole
         batch. It is also why C1 lands before the auth-pattern widening: a wider
         table on an echoing adapter matches more of *our* wordings, not more of
         the vendor's.
@@ -353,16 +363,6 @@ class MuseProvider(LLMProvider):
                 continue
             if isinstance(event, dict) and isinstance(event.get("payload"), dict):
                 yield event
-
-    @staticmethod
-    def _direct_json(text: str) -> Optional[Dict[str, Any]]:
-        """Parse ``text`` as one complete JSON document, or return None."""
-        if text.startswith(('[', '{')):
-            try:
-                return {"success": True, "data": json.loads(text)}
-            except json.JSONDecodeError:
-                pass
-        return None
 
     def _scan(self, stdout: str) -> Dict[str, Any]:
         """Collect the answer text and terminal state from the event stream.
@@ -473,7 +473,7 @@ class MuseProvider(LLMProvider):
         MEASURED 2026-08-19, **FIXED 2026-08-20 (C8)**: a FAILED run whose
         salvaged text happened to parse used to be returned as a success. The
         first branch below fails a non-``completed`` run only ``and not full``,
-        so with any text present control fell through to ``_direct_json(tail)``
+        so with any text present control fell through to ``direct_json(tail)``
         and returned before the terminal state was consulted again.
         ``tests/fixtures/muse/truncated-json-answer.stdout.txt`` is the capture:
         exit **1**, ``run.terminal.failed`` reading "model failed after 10
@@ -538,20 +538,20 @@ class MuseProvider(LLMProvider):
             error = f"Muse run {scan['terminal']}"
             if reason:
                 error = f"{error}: {reason}"
-            return {"success": False, "error": error, "raw": stdout, "data": None}
+            return fail(error, stdout)
 
         if not full:
             error = "No output events found in output"
             reason = self.describe_failure(stdout, stderr)
             if reason:
                 error = f"Muse reported an error: {reason}"
-            return {"success": False, "error": error, "raw": stdout, "data": None}
+            return fail(error, stdout)
 
         # Exact parses first — they are unambiguous — closing message before
         # the whole transcript.
         for candidate in (tail, full):
             if candidate:
-                direct = self._direct_json(candidate)
+                direct = direct_json(candidate)
                 if direct is not None:
                     return direct
 

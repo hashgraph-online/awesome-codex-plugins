@@ -2,11 +2,10 @@
 
 `@qwen-code/qwen-code` (npm, binary ``qwen``, provider key ``qwen-code``).
 Originally a Gemini-CLI fork, independent since v0.1. Everything below is
-measured against **0.21.13** in the containerized probe of
-`plans/harness-expansion.md` §6 — stub-only, ``--network none``, no credential —
-and several measurements contradict the plan's researched contract. Where they
-do, the measurement is what shipped and the contradiction is recorded on the
-member it affects.
+measured against **0.21.13** in a containerized probe — stub-only,
+``--network none``, no credential — and several measurements contradict the
+contract researched from the vendor's docs. Where they do, the measurement is
+what shipped and the contradiction is recorded on the member it affects.
 
 **The defect that shapes this whole adapter: qwen exits 0 on total backend
 failure.** Measured against a 500-forever stub, 28 requests over 93 s::
@@ -19,7 +18,7 @@ failure.** Measured against a 500-forever stub, 28 requests over 93 s::
 
 The process exit code says success, the envelope's own ``is_error`` flag says
 success, ``subtype`` says success, and the model's "answer" is the error string.
-So §6 step 3's two named traps — *errors on stdout with an empty stderr* (the
+So step 3's two named traps — *errors on stdout with an empty stderr* (the
 opencode trap) and *exit-0 failures* — **coincide in one shape**, which is the
 worst case for a parser that checks either one alone. And it is not a 5xx quirk:
 401, 404, 400-overflow and 500 all produce byte-identically shaped envelopes, so
@@ -43,7 +42,7 @@ record that carries everything classification needs in a single object —
 ``result`` (the answer), ``is_error``, ``num_turns``, ``usage``, and a ``stats``
 block. ``-o stream-json`` is JSONL with additional ``stream_event`` noise records
 and its ``result`` record **drops the ``stats`` block**, which is the
-corroborating failure signal. (This corrects §3.3's provisional ``stream-json``.)
+corroborating failure signal. (This corrects the provisional ``stream-json``.)
 
 **Prompt: a bare positional, because ``-p`` is deprecated.** At 0.21.13 the help
 marks the flag ``[deprecated: Use the positional prompt instead. This flag will
@@ -65,7 +64,7 @@ left implicit, because the failure is silent: ``-m qwen3-coder-plus:high`` was
 measured going to the backend **verbatim**, suffix included, where it becomes a
 "model not found" with nothing pointing at the suffix.
 
-**Tool permissions: tier 1, plus a rung narrower than tier 1.** The §6.5 ladder
+**Tool permissions: tier 1, plus a rung narrower than tier 1.** The ladder
 was walked in ascending order and the bare invocation answered, so rule 1 forbids
 promoting — no ``--approval-mode``, no ``--yolo``, no ``--add-dir``. The
 filesystem canary was **clean at every rung** (nothing under the workspace
@@ -77,7 +76,7 @@ valuable thing this probe found: it means "no tool calls allowed (first call
 aborts)", it fires **before** the call executes, and a backend that demanded an
 ``edit`` got exit 55 with the workspace untouched. That makes ``(generate,)`` a
 real permission boundary rather than only a parsing decision — precisely what
-§1's ship gate asks for — and it costs nothing on a well-behaved answer run.
+The ship gate asks for — and it costs nothing on a well-behaved answer run.
 Contrast the rungs above it: ``--approval-mode plan`` still advertises ``edit``,
 ``run_shell_command`` and ``notebook_edit`` in the session's tool list, and
 ``--yolo`` was blocked in the probe only by a read-before-edit precondition, not
@@ -88,7 +87,7 @@ One consequence, stated so it is not mistaken for a defect later: with
 aborts the slot with exit 55 and zero bytes on stdout. That is the intended
 trade — a loud, classifiable failure instead of a quiet workspace write.
 
-**And it is not hypothetical: the §7.4 live smoke hit it.** The probe could not
+**And it is not hypothetical: the live smoke hit it.** The probe could not
 see this, because the committed stub never emits tool calls; a *real* model does,
 non-deterministically. On one trivial prompt against
 ``qwen/qwen3.8-max``, **4 of 14 live runs (~29%)** aborted with
@@ -113,7 +112,7 @@ would EXECUTE, in the user's own checkout, from a provider this adapter declares
 ``(generate,)``. The probe's clean canary was measured against a stub that never
 emits a tool call and therefore never licensed the bare rung for a real backend;
 this measurement is what settles it. Dropping the flag to make a smoke greener
-would be §11's "yolo-flag creep" with the evidence pointing the other way.
+would be the "yolo-flag creep" with the evidence pointing the other way.
 
 The trade this leaves is a noisier provider: a ~29% first-attempt abort that the
 retry ladder normally absorbs, at the price of a second call. ``--json-schema``
@@ -136,10 +135,10 @@ would have been a ``False``.
 the session on a **tool call**, and the committed ``stub_server.py`` never emits
 tool calls — a deliberate, documented non-goal of the rig. So the container
 provider lane cannot exercise this flag as the rig stands; its coverage is unit
-tests plus the §7.4 live smoke. Growing the stub to emit a tool call is rig
-growth, which §6 step 1 forbids at a probe.
+tests plus the live smoke. Growing the stub to emit a tool call is rig
+growth, which step 1 forbids at a probe.
 
-**``--max-wall-time`` is load-bearing, not a nicety.** §6.1.1 measured that only
+**``--max-wall-time`` is load-bearing, not a nicety.** measured that only
 the 5xx path self-terminates: a 429-forever backend was still retrying past 180 s
 with a growing-then-resetting backoff, and a stalled backend cost ~120 s per
 request with no self-imposed ceiling. Wiring the flag from ``timeout_s=`` turns
@@ -151,19 +150,20 @@ import os
 import re
 import shutil
 import sys
-import tempfile
-import threading
 from typing import Any, Dict, List, Optional, Tuple
 
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
     StructuredSchema,
 )
+from .parse_kit import fail
+from .private_home import PrivateHomes
 from .result_envelope import envelope_verdict, parse_result_envelope
 
-#: M12 (§6.1): qwen-code's position on the ladder is *declined*, carrying the
+#: M12: qwen-code's position on the ladder is *declined*, carrying the
 #: module docstring's measurement. There is no ``--effort``, thinking-level or
 #: reasoning option anywhere in the full (hidden) help, and ``/effort`` is
 #: interactive-only. The decline is written down rather than left implicit
@@ -181,7 +181,7 @@ EFFORT_LADDER = ReasoningLadder(
 
 #: Seconds by which qwen's own wall-clock cutoff is held UNDER the parent's
 #: ``subprocess.run(timeout=…)`` deadline — agy's ``INNER_SHUTDOWN_MARGIN_S``
-#: precedent, and the invariant §3.3 requires this adapter to encode.
+#: precedent, and the invariant requires this adapter to encode.
 #:
 #: The margin is the point: qwen must reach its own bound, write its structured
 #: ``FatalBudgetExceededError`` envelope to stderr and exit *before* the parent
@@ -198,14 +198,14 @@ INNER_SHUTDOWN_MARGIN_S = 30
 #: numbers rather than applied silently.
 MIN_INNER_TIMEOUT_S = 60
 
-#: Turn cap, a **module constant on every invocation** — policy, not row-derived
-#: (§7 step 6), so ``expected_argv.yaml`` keeps it verbatim. A fan-out slot asks
+#: Turn cap, a **module constant on every invocation** — policy, not row-derived, so
+#: ``expected_argv.yaml`` keeps it verbatim. A fan-out slot asks
 #: one question and reads one answer; 25 turns is far above anything a
 #: `generate` dispatch legitimately needs and is a backstop against a model that
 #: loops rather than a tuning knob.
 MAX_SESSION_TURNS = 25
 
-#: The §6.5 tool tier, expressed as argv. ``0`` means "no tool calls allowed;
+#: The tool tier, expressed as argv. ``0`` means "no tool calls allowed;
 #: the first one aborts the run" — see the module docstring for why this is a
 #: rung *below* tier 1 and why it ships. Policy, verbatim in the pinned table.
 MAX_TOOL_CALLS = 0
@@ -215,16 +215,18 @@ MAX_TOOL_CALLS = 0
 #: root both follow.
 _HOME_PREFIX = "multi-llm-qwen-"
 
-_HOME_LOCK = threading.Lock()
-#: Every config root **this process created**. Nothing outside this list is ever
-#: removed: a user-pinned ``QWEN_HOME`` is respected, never deleted.
-_HOME_DIRS: List[str] = []
-_HOME_ATEXIT_REGISTERED = False
+#: Every config root **this process created** (:class:`PrivateHomes`). Nothing
+#: else is ever removed: a user-pinned ``QWEN_HOME`` is respected, never
+#: deleted.
+_HOMES = PrivateHomes(_HOME_PREFIX)
+isolated_home_dirs = _HOMES.isolated_home_dirs
+cleanup_home_dirs = _HOMES.cleanup
+reset_home_dirs = _HOMES.reset
 
-#: §8.2's "sharp open item", **answered by measurement — branch (a)**.
+#: Where qwen's config lives, **answered by measurement**.
 #:
-#: §3.3 recorded that qwen "writes ``$HOME/.qwen/settings.json`` and exposes no
-#: config-dir env var", and ranked a per-spawn ``HOME`` redirect as the likely
+#: The vendor's docs say qwen "writes ``$HOME/.qwen/settings.json`` and exposes
+#: no config-dir env var", which would make a per-spawn ``HOME`` redirect the
 #: resolution. That is wrong at 0.21.13: ``QWEN_HOME`` exists and is exact — with
 #: it set, ``installation_id``, ``usage/token-usage-YYYY-MM.jsonl``,
 #: ``usage_record.jsonl`` and ``tmp/<sha>/scheduled_tasks.lock`` all land
@@ -238,17 +240,16 @@ _HOME_ATEXIT_REGISTERED = False
 #: and are **not** honoured.
 QWEN_HOME_ENV_VAR = "QWEN_HOME"
 
-#: The B1 selector set (§2.2 rule 2). Emitted as one indivisible set for every
+#: The B1 selector set. Emitted as one indivisible set for every
 #: ``(model, profile)`` — see :meth:`QwenCodeProvider.get_env` for why a partial
 #: set is the dangerous shape rather than a degraded one.
 _OPENAI_TRIO: Tuple[str, ...] = ("OPENAI_BASE_URL", "OPENAI_API_KEY", "OPENAI_MODEL")
 
 #: B3 and legacy names, all confirmed present in the 0.21.13 bundle. Stripped so
-#: a stale export cannot re-select the vendor route underneath BYOK (§2.2 rule 3:
-#: adapter wins, ambient loses, no fallback).
+#: a stale export cannot re-select the vendor route underneath BYOK.
 #:
 #: ``OPENAI_API_BASE`` is the legacy alias and it is stripped for the reason
-#: §3.3 rule 3 gives — *a strip is not a substitute for injecting the base URL*.
+#:  rule 3 gives — *a strip is not a substitute for injecting the base URL*.
 #: Measured: with ``OPENAI_API_BASE`` set and ``OPENAI_BASE_URL`` unset qwen made
 #: **no request at all** (rc=1, "No auth type is selected"), so the alias is not
 #: a live fallback; but it is in the bundle, and a value we strip must never also
@@ -276,7 +277,7 @@ _API_ERROR_MARKER = re.compile(r"\[API Error:")
 
 #: qwen's startup ripgrep check, printed to stderr on EVERY run when the
 #: bundled ``rg`` cannot be executed — an advisory, never a diagnosis.
-#: Measured at 0.25.0 (2026-10-08): qwen restores a missing exec bit on its
+#: Measured at 0.25.0: qwen restores a missing exec bit on its
 #: vendored ``rg`` itself, so a user-owned install never prints it, but a
 #: root-owned one (``sudo npm i -g``, a distro package, an image layer) cannot
 #: and prints ``Ripgrep not available: spawn …/rg EACCES. Falling back to
@@ -292,7 +293,7 @@ _RIPGREP_ADVISORY = re.compile(
 def max_wall_time_value(timeout_s: Optional[int]) -> Optional[str]:
     """Render ``--max-wall-time`` for an outer deadline of ``timeout_s``.
 
-    ``None`` in, ``None`` out — and that is §1's guard, not a convenience: a
+    ``None`` in, ``None`` out — and that is the guard, not a convenience: a
     caller that passes no timeout must get argv **byte-identical** to omitting
     the keyword, so the flag is absent entirely rather than carrying a default.
     That is also what keeps ``expected_argv.yaml`` free of a "sometimes present"
@@ -320,47 +321,6 @@ def max_wall_time_value(timeout_s: Optional[int]) -> Optional[str]:
     return str(inner)
 
 
-def _create_home_dir() -> str:
-    """A fresh 0700 config root, owned and tracked by this process."""
-    global _HOME_ATEXIT_REGISTERED
-
-    path = tempfile.mkdtemp(prefix=_HOME_PREFIX)
-    os.chmod(path, 0o700)  # mkdtemp already does this; asserted, not assumed
-    _HOME_DIRS.append(path)
-    if not _HOME_ATEXIT_REGISTERED:
-        import atexit
-
-        atexit.register(cleanup_home_dirs)
-        _HOME_ATEXIT_REGISTERED = True
-    return path
-
-
-def isolated_home_dirs() -> Tuple[str, ...]:
-    """Every config root this process created and has not yet removed."""
-    with _HOME_LOCK:
-        return tuple(_HOME_DIRS)
-
-
-def cleanup_home_dirs() -> None:
-    """Remove every config root this process created. Never raises.
-
-    Registered with ``atexit`` at the first creation. Containment must never be
-    the thing that fails a run, so a directory that cannot be removed is left
-    behind under a known prefix rather than propagating an exception out of
-    interpreter shutdown.
-    """
-    with _HOME_LOCK:
-        paths, _HOME_DIRS[:] = list(_HOME_DIRS), []
-    for path in paths:
-        shutil.rmtree(path, ignore_errors=True)
-
-
-def reset_home_dirs() -> None:
-    """Drop this process's tracking list without removing anything (tests)."""
-    with _HOME_LOCK:
-        _HOME_DIRS[:] = []
-
-
 class QwenCodeProvider(LLMProvider):
     """Provider for Alibaba's Qwen Code CLI.
 
@@ -372,7 +332,7 @@ class QwenCodeProvider(LLMProvider):
     declines the ``:effort`` suffix, also measured. See the module docstring.
     """
 
-    #: §8.3: flags first, the prompt a **bare trailing positional**. Not a
+    #: Flags first, the prompt a **bare trailing positional**. Not a
     #: ``-p <prompt>`` pair — ``-p`` is deprecated at 0.21.13 — so this is dsh's
     #: shape rather than grok's, and a non-argv transport drops exactly one
     #: element. ``-1`` is *required* rather than preferred here, because
@@ -440,12 +400,12 @@ class QwenCodeProvider(LLMProvider):
     structured_output_support = True
     structured_output_transport = "inline"
 
-    #: Measured at 0.21.13 from the stub's request log (§6.1.1), **not** from the
+    #: Measured at 0.21.13 from the stub's request log, **not** from the
     #: envelope: qwen's own ``stats.totalRequests`` reported 7 for a run the stub
     #: logged 28 completion POSTs for — a 4× understatement, because the retry
     #: structure is 4 wire requests per logical attempt (three fast inner retries
     #: at ~0.5/1/2 s) with a growing outer backoff between attempts. Re-measured
-    #: at 0.25.0 (2026-10-08): 28 POSTs on 5xx again (88-107 s, now exit 1), and
+    #: at 0.25.0: 28 POSTs on 5xx again (88-107 s, now exit 1), and
     #: 429-forever still running at 180 s after 44 POSTs (12 with
     #: ``Retry-After: 60``). 0.25.0's error envelope carries no ``stats`` block.
     #:
@@ -456,14 +416,14 @@ class QwenCodeProvider(LLMProvider):
     #: client timeout indefinitely. Declaring 93 would describe one path out of
     #: three and would misbudget every rate-limited slot. ``base.py`` defines
     #: ``None`` as "no bound this adapter can state", and rule 4 then performs no
-    #: admission test — which §6.1.1 blesses explicitly.
+    #: admission test — which blesses explicitly.
     #:
     #: ``retries_rate_limit`` is ``True`` and emphatically so, which is what
-    #: makes §7.5 rule 6(b) suppress an identical harness-side re-dispatch.
+    #: makes rule 6(b) suppress an identical harness-side re-dispatch.
     #:
     #: ``configurable_by`` names only ``QWEN_CODE_API_TIMEOUT_MS``, the knob that
     #: sets the ~120 s stall timeout. It deliberately does **not** name
-    #: ``QWEN_CODE_UNATTENDED_RETRY``: §3.3 flagged that variable as retry-shaped
+    #: ``QWEN_CODE_UNATTENDED_RETRY``: flagged that variable as retry-shaped
     #: env, but it was measured **inert in both states** (28 requests either way,
     #: within noise of the bare CLI), so this adapter does not set it and does not
     #: advertise it. Listing a knob shown to move nothing is the same category of
@@ -492,17 +452,20 @@ class QwenCodeProvider(LLMProvider):
     #: backend wrote.
     auth_error_patterns = LLMProvider.auth_error_patterns + ("[api error: 401",)
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: qwen-code's
+    #: ``vendor_text`` drops only its ripgrep advisory; the answer's
+    #: ``assistant`` and ``result`` records reach the tables, so a review
+    #: quoting a rate limit, a 401 or a context limit classifies as one.
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: qwen's stderr is its
+    #: own error object, retry notices and ripgrep notice (tests/fixtures/qwen-code); tool
+    #: turns ride the stdout array.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "qwen-code"
-
-    @property
-    def default_timeout(self) -> int:
-        # 1200 s, matching the providers.yaml block. `--max-wall-time` is derived
-        # from the caller's resolved timeout and held 30 s under it, so this
-        # value is also what bounds qwen's own unbounded 429/stall paths on a
-        # default run.
-        return 1200
 
     def is_available(self) -> bool:
         return shutil.which("qwen") is not None
@@ -528,7 +491,7 @@ class QwenCodeProvider(LLMProvider):
                 than implicit.
             timeout_s: Rendered as ``--max-wall-time`` minus the shutdown margin.
                 ``None`` emits **no flag at all**, byte-identical to omitting the
-                keyword (§1's guard).
+                keyword (the guard).
             schema: Rendered inline as ``--json-schema <json>``, claude-code's
                 shape. ``None`` emits nothing.
         """
@@ -541,14 +504,14 @@ class QwenCodeProvider(LLMProvider):
             "false",
             "-o",
             "json",
-            # The §6.5 tier. Policy constants, both of them -- see the module
+            # The tier. Policy constants, both of them -- see the module
             # docstring for why the tool cap is a rung BELOW tier 1.
             "--max-tool-calls",
             str(MAX_TOOL_CALLS),
             "--max-session-turns",
             str(MAX_SESSION_TURNS),
         ]
-        # Row-derived, and the only such value this adapter renders (§7 step 6).
+        # Row-derived, and the only such value this adapter renders.
         wall_time = max_wall_time_value(timeout_s)
         if wall_time is not None:
             cmd += ["--max-wall-time", wall_time]
@@ -600,19 +563,17 @@ class QwenCodeProvider(LLMProvider):
         return cmd[:-1], prompt
 
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
-        """§3.4's two-step unwrap, with classification **before** delegation.
+        """The two-step unwrap, with classification **before** delegation.
 
         **Step 1** parses stdout as a JSON *array* of records and takes the last
         ``type == "result"`` record. It then classifies, and this ordering is the
         whole point rather than a stylistic choice:
 
         * ``is_error`` true, or ``subtype`` other than ``"success"``, or no
-          ``result`` key at all ⇒ failure. That last condition is load-bearing:
-          the error-shaped ``result`` record carries ``error`` *instead of*
-          ``result``, so ``parse_result_envelope``'s ``if "result" in wrapper``
-          guard misses it and serves the record's own bookkeeping to
-          reaggregation as the model's answer. Verified against the committed
-          helper on the ``stdout-error`` fixture.
+          ``result`` key at all ⇒ failure. The error-shaped ``result`` record
+          carries ``error`` *instead of* ``result``; this rule names it by its
+          own text, where ``parse_result_envelope`` would only say the record
+          has no ``result`` field (the ``stdout-error`` fixture).
         * an ``[API Error: …]`` marker anywhere in the answer text ⇒ failure,
           **even though the exit code, ``subtype`` and ``is_error`` all say
           success** (see the module docstring). Searched, never prefix-matched,
@@ -623,34 +584,19 @@ class QwenCodeProvider(LLMProvider):
         :func:`parse_result_envelope` — the same envelope claude-code and
         cursor-agent already use — rather than growing a fourth copy of the
         unwrap. That helper runs ``extract_json_from_text`` internally, which is
-        §3.4's step 2.
+        The step 2.
         """
         text = (stdout or "").strip()
         if not text:
-            return {
-                "success": False,
-                "error": self._empty_stdout_reason(stderr),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(self._empty_stdout_reason(stderr), stdout)
 
         try:
             records = json.loads(text)
         except ValueError as exc:
-            return {
-                "success": False,
-                "error": f"JSON parse error: {exc}",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(f"JSON parse error: {exc}", stdout)
 
         if not isinstance(records, list):
-            return {
-                "success": False,
-                "error": "qwen -o json did not emit a JSON array of records",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail("qwen -o json did not emit a JSON array of records", stdout)
 
         result_records = [
             record
@@ -658,15 +604,11 @@ class QwenCodeProvider(LLMProvider):
             if isinstance(record, dict) and record.get("type") == "result"
         ]
         if not result_records:
-            return {
-                "success": False,
-                "error": (
-                    "no result record in qwen output "
-                    "(the run produced no terminal envelope)"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "no result record in qwen output "
+                "(the run produced no terminal envelope)",
+                stdout,
+            )
         record = result_records[-1]
 
         # Rule 1 -- the envelope's own verdict, where it has one. Since 0.25.0
@@ -675,43 +617,24 @@ class QwenCodeProvider(LLMProvider):
         # read out of the object rather than reported as its Python repr.
         subtype = record.get("subtype")
         if record.get("is_error") or (subtype is not None and subtype != "success"):
-            return {
-                "success": False,
-                "error": self._record_error_text(record),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(self._record_error_text(record), stdout)
 
         answer = record.get("result")
         if not isinstance(answer, str):
-            return {
-                "success": False,
-                "error": (
-                    "qwen result record carries no result string "
-                    "(an error-shaped envelope reported success)"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "qwen result record carries no result string "
+                "(an error-shaped envelope reported success)",
+                stdout,
+            )
 
         # Rule 2 -- the marker, which is the ONLY signal on seven of the eight
         # failure shapes measured at 0.21.13 (the floor). 0.25.0 sends those
         # shapes through rule 1 instead.
         if _API_ERROR_MARKER.search(answer):
-            return {
-                "success": False,
-                "error": answer.strip(),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(answer.strip(), stdout)
 
         if not answer.strip():
-            return {
-                "success": False,
-                "error": "Empty result",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail("Empty result", stdout)
 
         return parse_result_envelope(json.dumps(record))
 
@@ -725,8 +648,7 @@ class QwenCodeProvider(LLMProvider):
         marker (:data:`_API_ERROR_MARKER`), not blank — plus the verdict
         :func:`parse_result_envelope` reads (``envelope_verdict``). So the ask
         lane's answer text and the review lanes' salvage read what the parser
-        treats as the answer (plans/ask-answer-recovery-and-false-success.md
-        D2.5).
+        treats as the answer.
 
         The marker test is the one that matters: qwen reports its API failures
         **inside a record marked clean** (``is_error: false``,
@@ -829,7 +751,7 @@ class QwenCodeProvider(LLMProvider):
           ``FatalBudgetExceededError``, "wall-clock budget of Ns exceeded";
         * the tool-call cap (``--max-tool-calls 0``) — the same error type,
           "tool-call budget of 0 exceeded; observed 1". This one is **not**
-          hypothetical: it was hit against the real backend on the §7.4 live
+          hypothetical: it was hit against the real backend on the live
           smoke, because a real model sometimes chooses to call a tool where the
           stub never does.
 
@@ -853,7 +775,7 @@ class QwenCodeProvider(LLMProvider):
     def get_env(self, model: str) -> Dict[str, str]:
         """The complete B1 selector set, plus a per-slot config root.
 
-        §2.2 rule 2 — **selection is total, never partial**. All three
+ rule 2 — **selection is total, never partial**. All three
         ``OPENAI_*`` variables are emitted together for every ``(model,
         profile)``, including the base URL when the key is empty.
 
@@ -864,7 +786,7 @@ class QwenCodeProvider(LLMProvider):
           so it does not silently resolve to ``api.openai.com``;
         * but a *stale inherited* ``OPENAI_BASE_URL=https://api.openai.com/v1``
           **completes** the trio and would be used, pairing the user's real
-          OpenAI credit with an OpenRouter slug. That is §3.3's "money bug" in
+          OpenAI credit with an OpenRouter slug. That is the "money bug" in
           its exact original shape.
 
         So the rule stands unchanged: emit all three, always. And this dict is
@@ -874,7 +796,7 @@ class QwenCodeProvider(LLMProvider):
         composition cannot defend against.
         """
         env = {
-            # Measured (§7 step 4): qwen appends `/chat/completions` to this
+            # Measured: qwen appends `/chat/completions` to this
             # verbatim and adds no version segment of its own, so the `/v1` is
             # load-bearing.
             "OPENAI_BASE_URL": "https://openrouter.ai/api/v1",
@@ -896,12 +818,12 @@ class QwenCodeProvider(LLMProvider):
         """A fresh config root for this spawn, or ``None`` to leave it alone.
 
         Per **slot**, not per run. The probe could not reproduce the corruption
-        §8.2 feared — two simultaneous slots with different models completed rc=0
+ feared — two simultaneous slots with different models completed rc=0
         and each got its own model on the wire, with a separate ``QWEN_HOME``, a
         *shared* one, and a shared real ``$HOME`` alike, because qwen never
         writes ``settings.json`` on this path and its per-run writes are
         append-only JSONL. The per-slot root is set anyway: it is free, it
-        satisfies §8.2's test 2 by construction, and it keeps a fan-out's
+        satisfies the test 2 by construction, and it keeps a fan-out's
         ``usage_record.jsonl`` out of the user's own qwen state.
 
         ``None`` when the user pinned ``QWEN_HOME`` themselves — their directory
@@ -911,16 +833,15 @@ class QwenCodeProvider(LLMProvider):
         """
         if os.environ.get(QWEN_HOME_ENV_VAR):
             return None
-        with _HOME_LOCK:
-            try:
-                return _create_home_dir()
-            except OSError:  # noqa: BLE001 - containment must never fail a run
-                return None
+        try:
+            return _HOMES.create()
+        except OSError:  # noqa: BLE001 - containment must never fail a run
+            return None
 
     def get_remove_env(self) -> List[str]:
         """The B3 and legacy names, so ambient config cannot re-select a vendor.
 
-        §2.2 rule 3: adapter wins, ambient loses, no fallback. Note the division
+ rule 3: adapter wins, ambient loses, no fallback. Note the division
         of labour — the strip covers names this adapter does **not** set, and the
         *injection* covers the endpoint. Neither substitutes for the other:
         stripping ``OPENAI_API_BASE`` removes a stale value but would leave the

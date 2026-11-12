@@ -14,9 +14,8 @@
 
 - MCP 服务、worker、任务证据和临时 worktree 均在本机运行。任务 prompt、可见模型输出、工具摘要、状态和结果写入本地 `.tasks/`。
 - 生产路径将任务 prompt 交给本机 ZCode app-server，并直接使用宿主指定的项目或 worktree；可能按用户配置连接模型服务及 MCP 工具。具体数据处理取决于 ZCode、所选 provider 和所启用的工具。
-- Git worktree 不是沙箱。JSON 与单用户本机 SQLite 的默认受信任档案使用 `yolo` 模式，也可配置为 `plan`、`build` 或 `edit`；所有模式都以当前操作系统用户身份运行。`yolo` 自动放行普通本地工具操作，但不会授权 Push、Merge、Tag、Release、生产 Authority 切换、任务范围外删除、凭据修改或真实生产任务数据操作。Bridge 不提供操作系统级文件、命令或网络沙箱。
+- Git worktree 不是沙箱。单用户本机 SQLite 的受信任档案使用 `yolo` 模式；所有模式都以当前操作系统用户身份运行。`yolo` 自动放行普通本地工具操作，但不会授权 Push、Merge、Tag、Release、生产 Authority 切换、任务范围外删除、凭据修改或真实生产任务数据操作。Bridge 不提供操作系统级文件、命令或网络沙箱。
 - Bridge 会 best-effort 写入 ZCode Desktop 的 `tasks-index.sqlite`，其中包括 session ID、worktree 路径、模型/供应商标签和 Bridge task ID；不写入任务目标或 prompt。数据库 schema 不匹配、被锁定或不可写时只记录事件告警，不影响 ZCode。
-- 仅 legacy GitWorktreeProvider 有 Git 快照及启发式凭据排除；当前生产路径不创建快照，也不承诺过滤执行目录中的凭据。legacy 路径的 Git clean filters 可能在排除步骤前运行。
 - POSIX 下 `.tasks/` 使用 `0700` 目录和 `0600` 文件权限。Windows 的实际访问限制由父目录 ACL 决定。
 - 环境变量通过白名单传递给 worker 和 ZCode 子进程；未列入白名单的自定义代理或 provider 环境变量不会传递。请使用受支持的 provider 配置文件方式。
 

@@ -1,12 +1,77 @@
 """Output file handling utilities for managing files on rerun."""
 
 import hashlib
+import json
 import os
 import re
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+from .held_folder import anchor_plan_dir
+from .tasks_marker import tasks_marker
+
+
+# A phase's consolidation is current when ``consolidated.json`` was built from
+# the ``grouped.json`` beside it: a hash comparison over the output folder that
+# ``status``, the run record and the review fan-out ask before recommending a
+# consolidation, so it lives here rather than with the consolidation pass
+# (``consolidation`` re-exports both names).
+def _compute_file_hash(file_path: str) -> str:
+    """
+    Compute a SHA-256 hash of a file's contents for staleness detection.
+
+    Reads the file as UTF-8 text and returns the full hex digest.
+    Returns an empty string if the file does not exist or cannot be read.
+
+    Args:
+        file_path: Path to the file to hash.
+
+    Returns:
+        Full SHA-256 hex digest string, or empty string on error.
+    """
+    try:
+        content = Path(file_path).read_text(encoding="utf-8")
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()
+    except (FileNotFoundError, OSError, UnicodeDecodeError):
+        return ""
+
+
+def consolidation_is_current(phase_dir: str) -> bool:
+    """Whether ``consolidated.json`` in *phase_dir* was built from today's
+    ``grouped.json``: the consolidation already ran on these groups.
+
+    The staleness rule ``consolidation.load_merged_suggestions`` applies, read the
+    same way: the file's ``metadata.grouped_hash`` against the hash of the
+    ``grouped.json`` beside it. A minimal-reduction pass
+    (``skipped_report``) counts too: it ran, and found little to merge.
+    ``False`` when the file is missing, unreadable, carries no hash, or the
+    groups changed since (a later review round rewrote ``grouped.json``).
+
+    Live run 8 (Claude Code racing 01): ``status`` and its result line still
+    said "consolidation recommended: 17 valid groups >= 15 — run
+    --consolidate" after the same run had consolidated them, so every
+    reader of the recommendation asks this first.
+    """
+    path = Path(phase_dir) / "consolidated.json"
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    metadata = data.get("metadata") if isinstance(data, dict) else None
+    stored = metadata.get("grouped_hash") if isinstance(metadata, dict) else None
+    if not isinstance(stored, str) or not stored:
+        return False
+    return stored == _compute_file_hash(str(Path(phase_dir) / "grouped.json"))
+
+
+def state_home() -> str:
+    """``$XDG_STATE_HOME/multi-llm`` (default ``~/.local/state/multi-llm``)."""
+    base = os.environ.get("XDG_STATE_HOME") or os.path.join(
+        os.path.expanduser("~"), ".local", "state"
+    )
+    return os.path.join(base, "multi-llm")
 
 # Phase-to-subdirectory mapping (kebab-case for on-disk directories)
 PHASE_DIRECTORIES = {
@@ -70,15 +135,19 @@ OUTPUT_TYPE_TO_FILENAME = {
     'applied_task_suggestions': 'results.json',
 }
 
+def archive_name(path: Path) -> str:
+    """The name :func:`archive_file` renames *path* to: its stem, now's
+    timestamp, its suffix."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"{path.stem}_{timestamp}{path.suffix}"
+
+
 def archive_file(path: Path) -> Path:
     """Archive an existing file by renaming it with a timestamp."""
     if not path.exists():
         return path
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    stem = path.stem
-    suffix = path.suffix
-    archived_path = path.parent / f"{stem}_{timestamp}{suffix}"
+    archived_path = path.parent / archive_name(path)
 
     path.rename(archived_path)
     return archived_path
@@ -240,8 +309,13 @@ def output_dir_path(plan_path: Path) -> Path:
     :func:`get_output_dir` is the same computation plus ``mkdir``. Readers that
     must not write (``status``, which is polled while another run owns the dir)
     use this one; producers keep using ``get_output_dir``.
+
+    The run's first look at its outputs anchors the plan's directory, resolved
+    once, as the root the writes below it hold their folder from
+    (``held_folder.anchor_plan_dir``, docs/development/write-safety.md#plan-output-containment).
     """
     plan_path = Path(plan_path)
+    anchor_plan_dir(plan_path.parent)
     return plan_path.parent / sanitize_prefix(plan_path.stem)
 
 
@@ -364,11 +438,7 @@ def workflow_file_entries(plan_path, *, root, output_dirs=()) -> list:
         folders.insert(0, output_dir_path(plan))
         files.append(plan)
         try:
-            from .plan_updater import get_tasks_file_path
-        except ImportError:  # pragma: no cover - direct-script import shim
-            from utils.plan_updater import get_tasks_file_path  # type: ignore
-        try:
-            named = get_tasks_file_path(plan.read_text(encoding="utf-8"))
+            named = tasks_marker(plan.read_text(encoding="utf-8"))
         except (OSError, UnicodeDecodeError):
             named = None
         if named and Path(named).suffix.lower() in _TASK_LIST_SUFFIXES:
@@ -389,14 +459,9 @@ def workflow_file_entries(plan_path, *, root, output_dirs=()) -> list:
 
 
 def _mode_phase_names() -> tuple:
-    """``modes.phase_names()``, importable from ``utils/`` and from a script run."""
-    try:
-        import modes  # type: ignore
-    except ImportError:  # pragma: no cover - only when utils/ is sys.path[0]
-        import sys
-
-        sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-        import modes  # type: ignore
+    """``modes.phase_names()``."""
+    # Imported here to keep run_status, which loads this module, light.
+    import modes  # type: ignore
     return tuple(modes.phase_names())
 
 
@@ -457,8 +522,16 @@ def get_output_paths(plan_path: Path, output_type: str, phase: Optional[str] = N
     """
     if phase is None:
         phase = OUTPUT_TYPE_TO_PHASE.get(output_type, 'misc')
+    get_phase_dir(plan_path, phase)
+    return output_file_path(plan_path, output_type, phase)
 
-    phase_dir = get_phase_dir(plan_path, phase)
+
+def output_file_path(plan_path: Path, output_type: str, phase: Optional[str] = None) -> Path:
+    """:func:`get_output_paths`' answer — **computed, never created**, like
+    :func:`output_dir_path`: for a writer that must check where the file
+    resolves before any directory of it exists (``update_plan_tasks``)."""
+    if phase is None:
+        phase = OUTPUT_TYPE_TO_PHASE.get(output_type, 'misc')
 
     # Use mapped filename if available, otherwise construct from output_type
     if output_type in OUTPUT_TYPE_TO_FILENAME:
@@ -482,7 +555,7 @@ def get_output_paths(plan_path: Path, output_type: str, phase: Optional[str] = N
         suffix = suffix_map.get(output_type, ".json")
         filename = f"{output_type}{suffix}"
 
-    return phase_dir / filename
+    return phase_dir_path(plan_path, phase) / filename
 
 def get_relative_output_path(plan_path: Path, output_type: str, phase: Optional[str] = None) -> str:
     """Get the relative path from the plan file to an output file in the phase subfolder.

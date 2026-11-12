@@ -6,8 +6,10 @@ Groups validation items into batches to allow sequential subagent processing,
 where each subagent gets a fresh context window for better accuracy.
 """
 
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional
+from dataclasses import dataclass
+from typing import Any, Dict, List
+
+from . import importance as _importance
 
 
 # Configuration constants
@@ -40,26 +42,11 @@ class ValidationBatch:
 
 
 def _get_group_importance(group: Dict[str, Any]) -> str:
-    """Extract the highest importance level from a group."""
-    # Check group-level importance first
+    """The group's own importance when it carries one, else its members'
+    highest (``utils/importance.py``), in canonical spelling."""
     if "importance" in group:
-        return str(group["importance"]).upper()
-
-    # Check suggestions within the group
-    suggestions = group.get("suggestions", [])
-    if not suggestions:
-        return "MEDIUM"
-
-    importance_order = {"HIGH": 3, "MEDIUM": 2, "LOW": 1}
-    highest = 1
-    for s in suggestions:
-        imp = str(s.get("importance", "MEDIUM")).upper()
-        highest = max(highest, importance_order.get(imp, 1))
-
-    for imp, score in importance_order.items():
-        if score == highest:
-            return imp
-    return "MEDIUM"
+        return _importance.normalize(group["importance"])
+    return _importance.group_importance(group)
 
 
 def batch_validation_groups(

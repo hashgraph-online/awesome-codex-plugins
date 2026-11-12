@@ -1,0 +1,234 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "status_json.schema.json",
+  "title": "status --json output",
+  "description": "The one JSON document `multi_llm.py status <plan> --json` prints (utils/run_status.main), before its MULTI_LLM_RESULT line: an error object, the workflow view alone (`--view workflow`, byte-identical to check_workflow_prerequisites.py --status), or the run document (`--view run`, and `--view all` with the workflow view beside the runs). `--abort` and `--sweep` print text, never this document. A consumer takes the text before the last `MULTI_LLM_RESULT:` marker. Strict at the top level of each shape: the output is produced and read by one plugin version, so an unknown key is drift. The `run` and `progress` objects inside each run view are the checkpoint's own (status_file.schema.json) and stay open, since that file outlives its writer. Nothing validates against this schema at run time; tests/test_result_contract.py does.",
+  "anyOf": [
+    {
+      "$ref": "#/definitions/error"
+    },
+    {
+      "$ref": "#/definitions/workflow"
+    },
+    {
+      "$ref": "#/definitions/runs_document"
+    }
+  ],
+  "definitions": {
+    "error": {
+      "type": "object",
+      "description": "The plan could not be read (not found, unreadable state.json) or its spelling was refused; the exit code says which.",
+      "additionalProperties": false,
+      "required": ["error"],
+      "properties": {
+        "error": { "type": "string" }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "description": "The workflow view built from state.json (check_workflow_prerequisites.get_workflow_status).",
+      "additionalProperties": false,
+      "required": ["plan", "phases", "suggested_next"],
+      "properties": {
+        "plan": { "type": "string" },
+        "phases": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "required": ["status"],
+            "additionalProperties": true,
+            "properties": {
+              "status": {
+                "type": "string",
+                "description": "completed, skipped, pending or in_progress."
+              },
+              "timestamp": { "type": "string" },
+              "reason": { "type": "string" },
+              "optional": { "type": "boolean" },
+              "stale": { "type": "boolean" },
+              "warning": { "type": "string" }
+            }
+          },
+          "description": "One entry per workflow phase, keyed by phase name. Open: implement's entry carries its task counts and manual-task gate."
+        },
+        "suggested_next": { "type": ["string", "null"] },
+        "hint": { "type": "string" },
+        "notices": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "runs_document": {
+      "type": "object",
+      "description": "The run view: one entry per phase dir holding a checkpoint, after selection (--phase, --question, --run-id, --all).",
+      "additionalProperties": false,
+      "required": ["runs"],
+      "properties": {
+        "workflow": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/workflow"
+            },
+            { "type": "null" }
+          ],
+          "description": "--view all only."
+        },
+        "runs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/run_view"
+          }
+        },
+        "implement_tasks": {
+          "type": "object",
+          "description": "Implement's task account when the plan has an implement record (run_status's implement view)."
+        },
+        "apply_phases": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Each apply phase's batch account, present only when there is one."
+        },
+        "implement_tally": {
+          "type": "object",
+          "description": "Implement's task tally by bucket."
+        },
+        "ignored_dirs": {
+          "type": "array",
+          "description": "Non-phase children holding a .status.json, listed only when no --phase pins one dir."
+        },
+        "copied_runs": {
+          "type": "array",
+          "items": { "type": "object" },
+          "description": "Dirs whose run id another phase dir already carries ({dir, run_id, copy_of})."
+        },
+        "commit_fixes": {
+          "$ref": "result_line.schema.json#/definitions/commit_fixes"
+        }
+      }
+    },
+    "run_view": {
+      "type": "object",
+      "description": "One phase dir's run view (utils/detach.classify_run), the checkpoint's keys a poll needs plus the liveness verdict.",
+      "additionalProperties": false,
+      "required": ["phase_dir", "run", "run_state", "verdict", "lock_held"],
+      "properties": {
+        "phase_dir": { "type": "string" },
+        "phase": { "type": ["string", "null"] },
+        "question": { "type": ["string", "null"] },
+        "state": {
+          "type": ["string", "null"],
+          "description": "The checkpoint's phase machine word."
+        },
+        "updated_at": { "type": ["string", "null"] },
+        "output_files": { "type": "object" },
+        "progress": {
+          "$ref": "status_file.schema.json#/definitions/progress"
+        },
+        "consolidation_recommended": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/consolidation_recommended"
+            },
+            { "type": "null" }
+          ]
+        },
+        "validation_context": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/validation_context"
+            },
+            { "type": "null" }
+          ]
+        },
+        "validation_counts": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/validation_counts"
+            },
+            { "type": "null" }
+          ]
+        },
+        "answer_origins": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/answer_origins"
+            },
+            { "type": "null" }
+          ]
+        },
+        "high_priority_groups": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/high_priority_groups"
+            },
+            { "type": "null" }
+          ]
+        },
+        "step_results": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/step_results"
+            },
+            { "type": "null" }
+          ]
+        },
+        "run": {
+          "anyOf": [
+            {
+              "$ref": "status_file.schema.json#/definitions/run"
+            },
+            {
+              "type": "object",
+              "maxProperties": 0
+            }
+          ],
+          "description": "The checkpoint's run record, or {} on a foreground checkpoint."
+        },
+        "run_state": {
+          "type": ["string", "null"],
+          "description": "run.state, or null when no run is recorded."
+        },
+        "reason_code": {
+          "type": ["string", "null"],
+          "description": "A refusal close-out's reason."
+        },
+        "reaggregate_command": {
+          "type": ["string", "null"],
+          "description": "The continuation, rebuilt at read time from the checkpoint's reaggregate triple."
+        },
+        "lock_held": {
+          "type": "boolean",
+          "description": "Whether {phase}/.lock is held right now."
+        },
+        "verdict": {
+          "enum": ["no_run", "starting", "running", "stale", "done", "failed", "aborted"],
+          "description": "Liveness: the run's terminal state, `running`/`starting`, `stale` while the probe is inconclusive, or `no_run`."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Why the verdict is what it is, when it needs a reason."
+        },
+        "heartbeat_age_s": { "type": ["number", "null"] },
+        "identity": {
+          "enum": ["alive", "dead", "unknown"],
+          "description": "The pid + start-time probe."
+        },
+        "finished_during_wait": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "spec": { "type": "string" },
+              "state": { "type": "string" },
+              "elapsed_s": { "type": ["number", "null"] },
+              "error": { "type": ["string", "null"] }
+            }
+          },
+          "description": "--wait only: the slots that turned terminal during this call."
+        }
+      }
+    }
+  }
+}

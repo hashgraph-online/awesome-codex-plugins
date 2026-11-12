@@ -1,7 +1,8 @@
 """LLM client wrapper for multi-provider LLM subprocess calls."""
 
 import contextlib
-import json
+import contextvars
+import functools
 import os
 import re
 import shutil
@@ -13,114 +14,74 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Collection, Dict, List, NamedTuple, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, FrozenSet, Iterator, List, Optional, Sequence, Tuple, Union
 
 from . import structured_output
 from . import process_control
+from . import process_capture
+from . import prompt_channels
+from .providers import private_home
 from . import landlock_dispatch as _landlock
 from . import readonly_audit as _readonly_audit_mod
 from . import result_files as _result_files
 from .metrics import describe_usage as _describe_usage
+from .retry_ladder import STATUS_UNPARSEABLE
 from .provider_registry import parse_model_spec, get_provider, get_provider_timeout
-from .json_extractor import _ANSI_ESCAPE, looks_like_ndjson
 from .providers.base import (
-    JAIL_DENIED_MARKER,
+    INCIDENTAL_LANE_FANOUT,
     PROFILE_GENERATE,
-    SANDBOX_RUNG_LANDLOCK,
-    SANDBOX_RUNG_PLUGIN_LANDLOCK,
     SANDBOX_RUNG_UNSANDBOXED,
-    SKIP_RUNG_ENV,
     JailContext,
     JailRequest,
     ReadOnlyInvocationRefused,
     StructuredOutputUnavailable,
-    _matches_marker,
-    availability_from_failure,
     build_child_env,
     sandbox_rung_id,
-    version_tuple,
 )
-from .providers.result_envelope import is_clean_envelope
-
-
-class LLMClientError(Exception):
-    """Raised when LLM client operations fail."""
-    pass
-
-
-class SubagentTimeoutError(LLMClientError):
-    """Raised when subagent execution times out."""
-    pass
-
-
-# Error codes for consistent error reporting
-ERROR_TIMEOUT = "TIMEOUT"
-ERROR_PARSE_ERROR = "PARSE_ERROR"
-ERROR_BINARY_NOT_FOUND = "BINARY_NOT_FOUND"
-ERROR_SUBPROCESS_FAILED = "SUBPROCESS_FAILED"
-ERROR_FILE_NOT_FOUND = "FILE_NOT_FOUND"
-ERROR_PROMPT_TOO_LONG = "PROMPT_TOO_LONG"
-ERROR_PROMPT_UNSAFE = "PROMPT_UNSAFE"
-
-#: ``details["sandbox"]`` for a slot that ran under the D6 fallback (2026-09-17)
-#: on the **uncontained** rung: the runner's own OS sandbox could not start and
-#: ``sandbox_fallback: auto`` (the default) let the read-only dispatch run
-#: without any boundary. Absent means "ran as the adapter's default argv renders
-#: it". A slot on a **contained** rung (landlock rung, 2026-09-22) carries that
-#: rung's id here instead (``landlock``) — never this word, which would claim
-#: the opposite of what happened.
-SANDBOX_BYPASSED = "bypassed"
-
-#: The per-slot record word for a contained fallback rung — ``models_served``'s
-#: ``sandbox: fallback-landlock`` — so a run's provenance greps apart from
-#: ``bypassed`` the way ``[SANDBOX_FALLBACK]`` greps apart from
-#: ``[SANDBOX_BYPASSED]``. The renderers (``html_report_generator``,
-#: ``run_status``) read the recorded word back, never a bool.
-SANDBOX_FALLBACK_WORD_PREFIX = "fallback-"
-
-#: The contained rung ids a record word may name. Closed on purpose: a value
-#: nobody declared is dropped rather than recorded, exactly as an unknown word
-#: always was, so a stray string can never read as a sandbox.
-_CONTAINED_RUNG_IDS = frozenset({SANDBOX_RUNG_LANDLOCK})
-
-#: The ``incidental``-grade rung ids a record word may name (plan
-#: codex-sandbox-unavailable §7 "Step 2 subtask" item 3, 2026-09-30): the
-#: plugin's own Landlock jail. A **separate** closed set beside
-#: :data:`_CONTAINED_RUNG_IDS`, which stays ``{landlock}`` so nothing that reads
-#: "contained" widens; without this set ``sandbox_record_word`` would drop the
-#: rung from every per-slot record, ``models_served`` and reaggregate while the
-#: log line said it ran. Recorded as ``fallback-plugin-landlock``; the renderers
-#: keep their own closed set of incidental words (they import no provider code).
-_INCIDENTAL_RUNG_IDS = frozenset({SANDBOX_RUNG_PLUGIN_LANDLOCK})
-
-#: ``details["failure_reason"]`` for a jailed slot that failed on a
-#: codex-internal EACCES the plugin's jail caused (F1 "Where it sits" item 6),
-#: or whose required allow entry vanished before the spawn. Non-retryable and
-#: never moved to another rung.
-FAILURE_JAIL_DENIED = "jail-denied"
-
-#: Where a ``[JAIL_DENIED]`` line sends the reader (F1 item 6, "Next steps").
-JAIL_DENIED_ISSUES_URL = "github.com/beastlabai/multi-llm-plugin/issues"
-
-
-def _attach_sandbox_word(details: Dict[str, Any], sandbox_fallback: Any) -> None:
-    """Record the D6 override on ``details["sandbox"]`` for a child that ran.
-
-    ``bypassed`` for the uncontained rung, the rung id for a contained or
-    incidental one (``plugin-landlock``, 2026-09-30), and
-    nothing when the override did not fire. Called on every path where the
-    child actually ran — exit 0, a non-zero exit, and a timeout kill — because
-    the slot ran without the runner's sandbox whatever it then returned: a
-    record that dropped the word on failure would hide exactly the slots an
-    operator most needs to audit (the dogfood run 2026-09-25 lost a bypassed
-    codex slot's provenance this way).
-    """
-    fallback_rung = sandbox_rung_id(sandbox_fallback)
-    if fallback_rung:
-        details["sandbox"] = (
-            SANDBOX_BYPASSED if fallback_rung == SANDBOX_RUNG_UNSANDBOXED
-            else fallback_rung
-        )
+# What a run means — the result dict, its error codes and every `details` key
+# a child that ran carries — is read in `provider_outcome`. The names callers
+# have always read off this module are re-exported from it.
+from .provider_outcome import (  # noqa: F401 - re-exported, see above
+    ANSWER_TEXT_KEY,
+    ERROR_BINARY_NOT_FOUND,
+    ERROR_FILE_NOT_FOUND,
+    ERROR_PARSE_ERROR,
+    ERROR_PROMPT_TOO_LONG,
+    ERROR_PROMPT_UNSAFE,
+    ERROR_SUBPROCESS_FAILED,
+    ERROR_TIMEOUT,
+    FAILURE_CATEGORY_KEY,
+    FAILURE_JAIL_DENIED,
+    MAX_ANSWER_TEXT_BYTES,
+    MAX_LOG_LINE_BYTES,
+    MAX_LOG_STREAM_BYTES,
+    MAX_LOG_TAIL_LINES,
+    MAX_LOG_TOTAL_BYTES,
+    SALVAGE_TEXT_KEY,
+    SANDBOX_BYPASSED,
+    SANDBOX_FALLBACK_WORD_PREFIX,
+    _CONTAINED_RUNG_IDS,
+    _INCIDENTAL_RUNG_IDS,
+    _READONLY_AUDIT_KEY,
+    Capture,
+    JailReadBack,
+    _attach_answer_text,
+    _attach_salvage_text,
+    _attach_stdout_excerpt,
+    _attach_usage,
+    _bound_salvage_text,
+    _bound_stream,
+    _cut_bytes,
+    _readonly_audit,
+    _redact,
+    _salvage_hook_text,
+    generic_answer_text,
+    outcome_from_capture,
+    rejected_answer_category,
+)
+from . import probe_state as _probe_state
+from . import json_extractor
+from .json_extractor import generate_output_path, parse_file_content
 
 
 def sandbox_record_word(value: Any) -> Optional[str]:
@@ -358,25 +319,31 @@ def provider_dispatch_context(
     a version-dependent config key without spawning ``--version`` per dispatch
     (opencode's ``continue_loop_on_deny``, plan T4.2). It is forwarded only when
     the caller has one; ``None`` means "no read on this path".
+
+    The whole context is also the dispatch's private-home scope
+    (``private_home.dispatch_homes``): a per-slot config root an adapter's
+    ``get_env`` makes while it is open is removed when it closes, after the
+    adapter's own context (docs/development/providers.md#private-config-roots).
     """
-    # Plan codex-sandbox-unavailable I12 (2026-09-30): an adapter may also ask
-    # to be told a dispatch is about to start (codex records its trust state
-    # so the run can remove the entries its children add). A separate,
-    # side-effect-only hook — never a context, never a refusal, never argv or
-    # env — so `hermetic_dispatch` remains the configuration lifecycle hook.
-    note = getattr(provider, "note_dispatch", None)
-    if callable(note):
-        try:
-            note(profile, model, anchor=anchor)
-        except Exception:  # noqa: BLE001 - bookkeeping may never block a dispatch
-            pass
-    enter = getattr(provider, "hermetic_dispatch", None)
-    if not callable(enter):
-        yield DispatchContext()
-        return
-    extra = {"runner_version": runner_version} if runner_version is not None else {}
-    with enter(profile, model, anchor=anchor, **extra) as refusal:
-        yield DispatchContext(refusal)
+    with private_home.dispatch_homes():
+        # Unavailable I12: an adapter may also ask
+        # to be told a dispatch is about to start (codex records its trust state
+        # so the run can remove the entries its children add). A separate,
+        # side-effect-only hook — never a context, never a refusal, never argv or
+        # env — so `hermetic_dispatch` remains the configuration lifecycle hook.
+        note = getattr(provider, "note_dispatch", None)
+        if callable(note):
+            try:
+                note(profile, model, anchor=anchor)
+            except Exception:  # noqa: BLE001 - bookkeeping may never block a dispatch
+                pass
+        enter = getattr(provider, "hermetic_dispatch", None)
+        if not callable(enter):
+            yield DispatchContext()
+            return
+        extra = {"runner_version": runner_version} if runner_version is not None else {}
+        with enter(profile, model, anchor=anchor, **extra) as refusal:
+            yield DispatchContext(refusal)
 
 
 def _utf16_code_units(s: str) -> int:
@@ -487,542 +454,22 @@ def _batch_shim_metachar_error(
 
 MAX_LOGGED_PROMPT_LENGTH = 5000
 
-#: §4.4's storage caps. A *successful* ``review-plan`` against a provider
-#: emitting 3 MiB per stream wrote a 6,254,326 B ``log_gemini_*.txt``: this
-#: function truncated the prompt and nothing else. Lane B already ``_tail``s its
-#: failure captures at 64 KiB, so the log path is the one that was uncapped.
-#:
-#: Each stream keeps its **last** ``MAX_LOG_TAIL_LINES`` lines with every line
-#: cut to ``MAX_LOG_LINE_BYTES``; the per-stream and whole-file byte budgets are
-#: the backstops that make the ~100 KB total a property of the written file
-#: rather than of the input. Measured against the captured 6 MB artifact,
-#: 64 KiB/line + last-20 alone took it to ~17 KB.
-MAX_LOG_LINE_BYTES = 64 * 1024
-MAX_LOG_TAIL_LINES = 20
-MAX_LOG_TOTAL_BYTES = 100 * 1024
-#: Two streams plus a ≤5 KB prompt and the header stay inside the total.
-MAX_LOG_STREAM_BYTES = 45 * 1024
 
 
-def _redact(text: str) -> str:
-    """§4.5's one redaction boundary, imported late.
-
-    ``write_safety`` reaches this module through ``subagent_tasks``, so a
-    module-level import here would close an import cycle. The call is on a
-    per-invocation path, not a per-line one.
-    """
-    try:  # pragma: no cover - import shim mirrors the rest of utils/
-        from .write_safety import redact_text
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.write_safety import redact_text
-    return redact_text(text)
-
-
-def _cut_bytes(text: str, limit: int, marker: str) -> str:
-    """``text`` cut to ``limit`` UTF-8 bytes, head kept, ``marker`` appended.
-
-    The marker is charged against ``limit`` rather than added on top, so a cap
-    stated as a number of bytes really is one — a "~100 KB" file that comes out
-    at 100 KB plus a footer is a cap nobody can assert on.
-    """
-    encoded = text.encode("utf-8", errors="replace")
-    if len(encoded) <= limit:
-        return text
-    keep = max(0, limit - len(marker.encode("utf-8")))
-    return encoded[:keep].decode("utf-8", errors="ignore") + marker
-
-
-def _cut_bytes_middle(text: str, limit: int, marker: str) -> str:
-    """``text`` cut to ``limit`` UTF-8 bytes, head **and tail** kept, ``marker`` between.
-
-    A stream's end is where its answer is: codex's final ``agent_message`` and
-    ``turn.completed`` come last, after a few multi-KB ``aggregated_output`` lines
-    (2026-10-01, Claude Code review-code: a head-only cut left a log ending at the
-    diff read, and its "0 issues" verdict could not be audited). A quarter of the
-    budget keeps the opening, the rest keeps the ending. The marker is charged
-    against ``limit``, as in :func:`_cut_bytes`.
-    """
-    encoded = text.encode("utf-8", errors="replace")
-    if len(encoded) <= limit:
-        return text
-    room = max(0, limit - len(marker.encode("utf-8")))
-    head = room // 4
-    tail = room - head
-    return (
-        encoded[:head].decode("utf-8", errors="ignore")
-        + marker
-        + (encoded[len(encoded) - tail:].decode("utf-8", errors="ignore") if tail else "")
-    )
-
-
-def _bound_stream(text: str) -> str:
-    """One captured stream, bounded per §4.4 — **after** it has been redacted.
-
-    Order is normative and is the reason L3 and L4 are one atomic change: every
-    cut below slices by construction, and a cut applied first leaves a remnant no
-    pattern matches. The last-20-lines rule would decapitate a PEM block's
-    ``-----BEGIN`` header and keep its body; the per-line cut would keep a value
-    whose key name it had just removed. Neither is recoverable downstream.
-    """
-    if not text:
-        return ""
-    lines = text.splitlines()
-    if len(lines) > MAX_LOG_TAIL_LINES:
-        dropped = len(lines) - MAX_LOG_TAIL_LINES
-        lines = [
-            f"... [{dropped} earlier line(s) truncated; last {MAX_LOG_TAIL_LINES} kept]"
-        ] + lines[-MAX_LOG_TAIL_LINES:]
-    bounded = [
-        _cut_bytes(line, MAX_LOG_LINE_BYTES, f" ... [line truncated at {MAX_LOG_LINE_BYTES} B]")
-        for line in lines
-    ]
-    return _cut_bytes_middle(
-        "\n".join(bounded),
-        MAX_LOG_STREAM_BYTES,
-        f"\n... [stream truncated at {MAX_LOG_STREAM_BYTES} B; middle elided]\n",
-    )
-
-
-def _attach_stdout_excerpt(details: Dict[str, Any], stdout: Optional[str]) -> None:
-    """Put the run's stdout on ``details`` as ``stdout_excerpt``, redacted then bounded.
-
-    **Why a helper and not a third copy.** ``invoke_with_provider`` loses a run
-    three ways — a non-zero exit, a timeout kill, and a zero exit whose output
-    would not parse — and all three are cases where the provider may already have
-    said the thing the caller needs. The rule for carrying that text out is not
-    one line but four decisions (``_redact`` *before* ``_bound_stream``, per
-    §4.5/§4.4; ``.strip()``; set the key only when something survives; never the
-    raw stream), and this module argues elsewhere that a rule spelled three times
-    is a rule that drifts twice — see ``_bound_stream``'s own note that the
-    redact/bound order "is normative", and §2's forward-maintenance case against
-    two hand-aligned blocks plus a comment. A cap tightened or a pattern added at
-    one copy and not the others would leak from whichever site was forgotten, and
-    the leak would be invisible until an artifact was read by a human. So it is
-    written once, here, and the three sites call it.
-
-    **Why the key is omitted rather than set empty.** Consumers test
-    ``details.get("stdout_excerpt")`` for "did the provider say anything we can
-    still use" — salvage gating at ``code_review_orchestrator.py``'s site A reads
-    it ahead of ``details["stderr"]`` for exactly that. An always-present key
-    holding ``""`` would make every one of those call sites carry a second
-    emptiness check, and the first one written without it would treat "the
-    provider printed nothing" as "the provider printed something". Absent means
-    absent.
-
-    Args:
-        details: The result envelope's ``details`` dict, mutated in place.
-        stdout: The raw captured stdout, or ``None`` when the path never had it
-            (a ``TimeoutExpired`` that carried no partial output).
-    """
-    excerpt = _bound_stream(_redact(stdout or "")).strip()
-    if excerpt:
-        details["stdout_excerpt"] = excerpt
-
-
-#: The key :func:`_attach_salvage_text` writes. Its *presence* is a verdict:
-#: ``""`` means "the adapter read its stream and found no answer text", and an
-#: absent key means "no reducer applies" (``salvage_source`` then falls back to
-#: ``stdout_excerpt`` and stderr).
-SALVAGE_TEXT_KEY = "salvage_text"
 
 #: A salvage request's record of *how* the run it came from was lost, and the
 #: one value it takes today. Only a run cut by a deadline carries it: a salvaged
-#: ``[]`` from such a run is refused (``subagent_executor._salvage_gave_up``),
+#: ``[]`` from such a run is refused (``task_result._salvage_gave_up``),
 #: because a reviewer killed mid-review never said "I found nothing", while a
 #: ``[]`` from a run that finished and then exited non-zero is still a genuine
-#: empty review (plan: review-run-scope-salvage-and-failure-visibility D4.5,
-#: decision 11.10). Here because every lane that writes or reads a request
+#: empty review. Here because every lane that writes or reads a request
 #: already imports this module, and ``ERROR_TIMEOUT`` is what decides it.
 SALVAGE_FAILURE_KEY = "failure"
 SALVAGE_FAILURE_TIMEOUT = "timeout"
 
 
-def _answer_window_start(text: str) -> Optional[int]:
-    """Where the answer's JSON document opens, by a string-aware bracket walk.
-
-    The depth-0 ``[`` or ``{`` that is **never closed** (the answer was cut
-    mid-document) when there is one; otherwise the first depth-0 ``[``/``{``;
-    ``None`` when the text has no bracket at all. Quotes toggle string state
-    only inside a container, so an apostrophe or a quoted word in the prose
-    ahead of the array cannot hide its bracket. Nesting is tracked with a stack
-    of openers (the same string-aware walk as ``_unclosed_container`` in
-    ``utils/providers/pi_family_stream.py``, over the whole text rather than
-    from its first character).
-    """
-    first: Optional[int] = None
-    open_at: Optional[int] = None
-    stack: List[str] = []
-    in_string = False
-    escape_next = False
-    pairs = {"]": "[", "}": "{"}
-    for index, char in enumerate(text):
-        if stack:
-            if escape_next:
-                escape_next = False
-                continue
-            if in_string:
-                if char == "\\":
-                    escape_next = True
-                elif char == '"':
-                    in_string = False
-                continue
-            if char == '"':
-                in_string = True
-            elif char in "[{":
-                stack.append(char)
-            elif char in pairs and stack[-1] == pairs[char]:
-                stack.pop()
-                if not stack:
-                    open_at = None
-        elif char in "[{":
-            stack.append(char)
-            open_at = index
-            if first is None:
-                first = index
-    if stack and open_at is not None:
-        return open_at
-    return first
 
 
-def _bound_salvage_text(text: str) -> str:
-    """Salvage text capped at ``MAX_LOG_STREAM_BYTES``, **never cut before the answer**.
-
-    ``_bound_stream``'s last-20-lines rule is the wrong bound here: it would cut
-    the opening bracket off a pretty-printed array, which is the one part a
-    repair pass cannot reconstruct. So text within the cap is kept whole — the
-    usual case, since an adapter's reducer returns only the last message's text
-    — and longer text is windowed forward from the answer's opening bracket
-    (:func:`_answer_window_start`), then cut at the end with a marker charged
-    against the cap. Text with no bracket keeps its head.
-    """
-    if len(text.encode("utf-8", errors="replace")) <= MAX_LOG_STREAM_BYTES:
-        return text
-    start = _answer_window_start(text)
-    window = text[start:] if start is not None else text
-    return _cut_bytes(
-        window,
-        MAX_LOG_STREAM_BYTES,
-        f"\n... [salvage text truncated at {MAX_LOG_STREAM_BYTES} B]",
-    )
-
-
-#: Sentinel for "the caller has not read the hook yet": ``None`` is taken, it is
-#: the hook's own "no opinion".
-_HOOK_UNREAD: Any = object()
-
-
-def _salvage_hook_text(provider: Any, stdout: Optional[str]) -> Optional[str]:
-    """The adapter's :meth:`~utils.providers.base.LLMProvider.salvage_text` reading, once.
-
-    The one place the hook's three-answer contract is read, so
-    ``salvage_text`` and ``answer_text`` can never disagree about what the
-    hook said, and a losing path that attaches both runs the hook once
-    (plans/ask-answer-recovery-and-false-success.md D2.2):
-
-    * the hook's string, as it returned it (``""`` included: "nothing there");
-    * ``""`` when the hook raised: by overriding, the adapter declared its
-      stdout a transport, so falling back to the raw stream would restore the
-      bug the hook removes;
-    * ``None`` for "no opinion": the base default, a provider with no callable
-      hook, or a return that is not a string.
-    """
-    hook = getattr(provider, "salvage_text", None)
-    if not callable(hook):
-        return None
-    try:
-        text = hook(stdout or "")
-    except Exception:  # noqa: BLE001 - a reducer may never break a run
-        return ""
-    return text if isinstance(text, str) else None
-
-
-def _attach_salvage_text(
-    details: Dict[str, Any],
-    provider: Any,
-    stdout: Optional[str],
-    hook_text: Any = _HOOK_UNREAD,
-) -> None:
-    """Put the adapter's answer text on ``details['salvage_text']``, redacted then bounded.
-
-    The salvage gate used to judge ``stdout_excerpt`` — the raw stream's last
-    20 lines — and on a transport-stream adapter (pi, omp) those lines are
-    event data whose ``content`` arrays pass ``has_salvageable_json``: a
-    reviewer killed mid-tool-call was sent to salvage over its own
-    ``thinking``/``toolCall`` parts (plan:
-    review-run-scope-salvage-and-failure-visibility §4). The adapter's
-    :meth:`~utils.providers.base.LLMProvider.salvage_text` hook reads the
-    **full** stdout, before any bounding, and says which words are the answer.
-
-    Called beside :func:`_attach_stdout_excerpt` at the same three losing
-    sites, and — like it — one helper so the redact-then-bound order cannot
-    drift between them. What it records:
-
-    * the hook returned a string → that string, redacted, then bounded by
-      :func:`_bound_salvage_text`, **even when it is ``""``**: "present and
-      empty" is the adapter's verdict that there is nothing to salvage;
-    * the hook raised → ``""``: by overriding, the adapter declared its stdout
-      a transport, so falling back to the raw stream would restore the bug;
-    * the hook returned ``None`` (the base default, "no opinion") or anything
-      that is not a string → the key stays **absent**, and the gate keeps its
-      old input.
-
-    ``hook_text`` is :func:`_salvage_hook_text`'s reading when the caller has
-    already taken it (a losing path that also attaches ``answer_text`` passes
-    the one reading to both); left out, this helper reads the hook itself.
-    """
-    if hook_text is _HOOK_UNREAD:
-        hook_text = _salvage_hook_text(provider, stdout)
-    if hook_text is None:
-        return
-    details[SALVAGE_TEXT_KEY] = _bound_salvage_text(_redact(hook_text)).strip()
-
-
-#: The key :func:`_attach_answer_text` writes, and only when the caller passed
-#: ``want_answer_text=True`` to :func:`invoke_with_provider` (the ask lane).
-#: Its value is the model's **whole** answer text, reduced from the full stdout,
-#: redacted and head-capped. It goes to that caller alone — never into
-#: ``.status.json``, a result record or the log
-#: (plans/ask-answer-recovery-and-false-success.md D2.2).
-ANSWER_TEXT_KEY = "answer_text"
-
-#: ``answer_text``'s cap. An answer is read from the top, so the **head** is
-#: kept and a marker appended (:func:`_cut_bytes`), never the tail-bound of the
-#: log nor ``_bound_salvage_text``'s bracket window (D2.2).
-MAX_ANSWER_TEXT_BYTES = 1024 * 1024
-
-
-def _clean_envelope_answer(value: Any, text: str) -> str:
-    """Rule 2 of :func:`generic_answer_text`: a clean envelope's inner answer, else ``""``.
-
-    Clean means one of the two measured shapes (D2.2):
-
-    * ``{"type": "result", …}`` that
-      :func:`~utils.providers.result_envelope.is_clean_envelope` passes
-      (claude-code, cursor-agent): its ``result`` string;
-    * ``{"response": "<string>"}`` with no ``error`` and a ``status`` that is
-      absent or ``"SUCCESS"`` (gemini, agy). Without the ``status`` test an
-      agy failure that carries no ``error`` would pass. An ``error`` that is
-      present but empty (``null``, ``""``) says no error either: agy's success
-      shape is uncaptured (§14), and an answer lost to an empty field is the
-      loss this plan fixes.
-
-    Any other JSON value — a refusing envelope, grok's ``{"type":"error",…}``
-    body, a record array, a bare number — is transport, never the answer.
-    """
-    if not isinstance(value, dict):
-        return ""
-    if value.get("type") == "result":
-        if not is_clean_envelope(text):
-            return ""
-        inner = value.get("result")
-        return inner if isinstance(inner, str) else ""
-    response = value.get("response")
-    if (
-        isinstance(response, str)
-        and not value.get("error")
-        and value.get("status", "SUCCESS") == "SUCCESS"
-    ):
-        return response
-    return ""
-
-
-def generic_answer_text(
-    stdout: Optional[str],
-    *,
-    framing: str = "auto",
-    exit_zero_markers: Collection["re.Pattern[str]"] = (),
-) -> str:
-    """The answer text of a stdout whose adapter's hook has no opinion (D2.2).
-
-    A conservative default, not a parser. It serves the adapters without a
-    :meth:`~utils.providers.base.LLMProvider.salvage_text` hook
-    (claude-code, cursor-agent, gemini, agy, kilocode) and any adapter added
-    later without one. ``framing`` is the adapter's declared
-    ``answer_framing``; the reducer never guesses it.
-
-    Under ``"auto"`` the first rule that applies decides:
-
-    1. an event stream (:func:`~utils.json_extractor.looks_like_ndjson`) → ``""``;
-    2. a stdout that parses whole as one JSON value → the inner answer of a
-       clean result envelope (:func:`_clean_envelope_answer`), ``""`` for any
-       other JSON value: a provider's error body is never an answer;
-    3. anything else is plain text: the whole stdout, ANSI escapes removed.
-
-    Under ``"plain"`` (the stdout *is* the reply: kilocode) only rule 3 runs,
-    so a direct JSON object, a JSON array or NDJSON the question asked for
-    comes back whole.
-
-    **Rule 3's exit-zero check.** Rule 3 cannot tell a prose answer from a
-    prose error, and every exit-0 ``PARSE_ERROR`` may reach it (D3.1). So when
-    one of the adapter's own ``exit_zero_markers`` matches the lowercased
-    stdout (:func:`~utils.providers.base._matches_marker`, as step 6 of
-    ``classify_streams`` does), rule 3 gives ``""`` — on every path, success
-    included, under both framings. Only the adapter's markers: the shared
-    auth, rate-limit and context tables match words an answer *about* auth or
-    rate limits uses. The haystack is the stdout both as captured and with its
-    ANSI escapes removed, so a painted ``Error:`` still matches a marker.
-
-    Whitespace-only text is ``""``. Text is otherwise returned as is, not
-    stripped: the caller redacts and caps it.
-    """
-    raw = stdout or ""
-    text = _ANSI_ESCAPE.sub("", raw)
-    if not text.strip():
-        return ""
-    if framing != "plain":
-        if looks_like_ndjson(text):
-            return ""
-        try:
-            value = json.loads(text)
-        except ValueError:
-            pass
-        else:
-            answer = _clean_envelope_answer(value, text)
-            return answer if answer.strip() else ""
-    if exit_zero_markers and (
-        _matches_marker(exit_zero_markers, raw.lower())
-        or _matches_marker(exit_zero_markers, text.lower())
-    ):
-        return ""
-    return text
-
-
-def _attach_answer_text(
-    details: Dict[str, Any],
-    provider: Any,
-    stdout: Optional[str],
-    hook_text: Any = _HOOK_UNREAD,
-) -> None:
-    """Put the model's whole answer text on ``details['answer_text']`` (D2.2).
-
-    Set on every :func:`invoke_with_provider` exit that ran the child — the
-    success return, the exit-0 parse failure, the non-zero exit and the
-    timeout — when the caller asked for it, from the **full** stdout:
-
-    * the hook returned a string → used as is; ``""`` stays ``""``, a final
-      "nothing to recover" (so does a hook that raised, and whitespace alone);
-    * the hook had no opinion → :func:`generic_answer_text` under the
-      adapter's ``answer_framing`` and ``exit_zero_failure_markers``.
-
-    Then :func:`_redact` and the :data:`MAX_ANSWER_TEXT_BYTES` head-kept cap —
-    nothing else. Hook text **never** goes through :func:`_bound_salvage_text`:
-    its 45 KB window, forward from the first unclosed bracket, is built for a
-    findings array and would cut the head off a long prose answer. The two
-    keys read one hook result and each cuts its own copy, differently on
-    purpose.
-
-    ``hook_text`` is :func:`_salvage_hook_text`'s reading when the caller has
-    already taken it for ``salvage_text``; left out, it is read here.
-    """
-    if hook_text is _HOOK_UNREAD:
-        hook_text = _salvage_hook_text(provider, stdout)
-    if hook_text is None:
-        try:
-            text = generic_answer_text(
-                stdout,
-                framing=getattr(provider, "answer_framing", "auto"),
-                exit_zero_markers=tuple(
-                    getattr(provider, "exit_zero_failure_markers", ()) or ()
-                ),
-            )
-        except Exception:  # noqa: BLE001 - a reducer may never break a run
-            text = ""
-    else:
-        text = hook_text
-    if not text.strip():
-        details[ANSWER_TEXT_KEY] = ""
-        return
-    details[ANSWER_TEXT_KEY] = _cut_bytes(
-        _redact(text),
-        MAX_ANSWER_TEXT_BYTES,
-        f"\n... [answer text truncated at {MAX_ANSWER_TEXT_BYTES} B]",
-    )
-
-
-_READONLY_AUDIT_KEY = _readonly_audit_mod.DETAILS_KEY
-
-
-def _readonly_audit(
-    provider: Any, stdout: Optional[str], sandbox_fallback: Any = None
-) -> Optional[Dict[str, Any]]:
-    """The adapter's read-only verdict on this attempt's **full** stdout, compact.
-
-    Only for an attempt dispatched on the uncontained rung (``sandbox_fallback``
-    names ``unsandboxed``) or on the plugin's own jail (``plugin-landlock``,
-    2026-09-30): the first is the one slot the porcelain check brackets, the
-    second the one the mode check and the home check bracket, and both read
-    this verdict to decide whether a change seen in the window is downgraded to
-    a not-attributed warning (plan codex-sandbox-unavailable §6 F1, "What it
-    fixes"). A default or contained-rung run adds no key — the same rule the D6
-    ``sandbox`` provenance key follows.
-
-    Plan §4.2 option B / 4.2: the audit must see the whole in-memory stream —
-    the persisted log and ``stdout_excerpt`` are both cut at
-    ``MAX_LOG_STREAM_BYTES``, and a cut stream has no ``turn.completed`` and
-    would fail every long slot. So it runs here, at parse time, on every
-    outcome that has a stream, before anything is bounded; only the compact
-    verdict dict leaves (never the stream). ``None`` when the adapter has no
-    opinion or the hook raised — a missing verdict, which
-    ``readonly_audit.combine_audits`` treats as not clean.
-    """
-    if sandbox_rung_id(sandbox_fallback) not in (
-        SANDBOX_RUNG_UNSANDBOXED, *_INCIDENTAL_RUNG_IDS,
-    ):
-        return None
-    hook = getattr(provider, "audit_readonly_stream", None)
-    if hook is None:
-        return None
-    try:
-        verdict = hook(stdout or "")
-    except Exception:  # noqa: BLE001 - an audit may never break a run
-        return None
-    if verdict is None:
-        return None
-    to_dict = getattr(verdict, "to_dict", None)
-    if callable(to_dict):
-        verdict = to_dict()
-    return dict(verdict) if isinstance(verdict, dict) else None
-
-
-def _attach_readonly_audit(
-    details: Dict[str, Any], provider: Any, stdout: Optional[str],
-    sandbox_fallback: Any = None,
-) -> Optional[Dict[str, Any]]:
-    """Put :func:`_readonly_audit`'s verdict on ``details['readonly_audit']``."""
-    verdict = _readonly_audit(provider, stdout, sandbox_fallback)
-    if verdict is not None:
-        details[_READONLY_AUDIT_KEY] = verdict
-    return verdict
-
-
-def _attach_usage(
-    details: Dict[str, Any], provider: Any, stdout: Optional[str], stderr: Optional[str]
-) -> None:
-    """Put what the run spent on ``details`` as ``usage``, when the adapter can say.
-
-    The adapter's own :meth:`~utils.providers.base.LLMProvider.parse_usage`,
-    under the same never-raise rule ``subagent_executor._safe_parse_usage``
-    applies (D3j): metrics must not break a run, and an adapter that reports
-    nothing leaves the key **absent** — a ``{}`` would read as "reported,
-    free".
-
-    Called on **every** outcome ``invoke_with_provider`` can reach — the
-    non-zero exit, the timeout kill, and (Stage U) the exit-0 parse, clean or
-    not. It began as a losing-paths-only helper, on the reasoning that a
-    completed slot's usage was "a separate question"; it was not a separate
-    question, it was the same one asked of the runs an operator is most
-    likely to pay for. A successful slot's envelope was parsed for the answer
-    and then discarded, so the fan-out could name what a *failed* $25 run
-    spent and nothing at all about the run that succeeded beside it. The rule
-    is now uniform: whatever the adapter can say about what a run spent
-    travels on ``details``, whichever way the run ended.
-    """
-    try:
-        usage = provider.parse_usage(stdout or "", stderr or "")
-    except Exception:  # noqa: BLE001 - metrics must not break the run
-        return
-    if isinstance(usage, dict) and usage:
-        details["usage"] = usage
 
 
 #: What a run cost, as one clause (``$25.05 est., 137,348 output tokens``).
@@ -1079,7 +526,7 @@ def _save_log(
             told not to print JSON on stdout at all, so a failed stdout
             parse beside a file-channel success is expected, not a fault
             (F9.2).
-        readonly_audit: The attempt's compact read-only verdict (plan §4.2),
+        readonly_audit: The attempt's compact read-only verdict,
             rendered as one ``Readonly audit:`` header line — the verdict,
             never the stream it was computed on (which the ``STDOUT`` section
             below carries bounded, like any other).
@@ -1087,8 +534,8 @@ def _save_log(
     Returns:
         True if log was saved successfully, False otherwise
 
-    Every rendered field is passed through §4.5's ``redact_text`` **first** and
-    bounded by §4.4's caps **second**. This is the sink where all nine planted
+    Every rendered field is passed through the ``redact_text`` **first** and
+    bounded by the caps **second**. This is the sink where all nine planted
     secret shapes landed on a *successful* run, and the sink that wrote a
     6,254,326 B log for one ``review-plan``.
     """
@@ -1096,7 +543,7 @@ def _save_log(
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # §4.5 before §4.4: redact the fully rendered text, then cap it. Reversing
+        # Redact the fully rendered text, then cap it. Reversing
         # these two would slice a secret across a cut and leave a remnant nothing
         # downstream can match.
         prompt = _redact(prompt or "")
@@ -1193,40 +640,10 @@ def _save_log(
         return False
 
 
-def _served_model_attribution(
-    provider: Any, model: str, stdout: str
-) -> Optional[Tuple[str, bool, Optional[str]]]:
-    """§3.6's ``(served_model, is_fallback, warning)`` for one attempt, or None.
-
-    **Gated on a configured fallback list, which ships empty.** Attribution is
-    mandatory *whenever a fallback is configured* — without it a report
-    attributes a haiku answer to the sonnet the user asked for. With nothing
-    configured there is no substitution to disclose, so nothing is parsed,
-    nothing is recorded and nothing is printed: the result dict is byte-for-byte
-    what it has always been.
-
-    Only claude-code answers here (its envelope carries ``modelUsage``); §4.6
-    stays closed, so every other adapter lacks both methods and returns None.
-
-    **Read, never depended on.** Any failure to answer degrades to None — an
-    attribution field never fails an otherwise-successful attempt.
-    """
-    resolve = getattr(provider, "resolve_served_model", None)
-    configured = getattr(provider, "fallback_models", None)
-    if resolve is None or configured is None:
-        return None
-    try:
-        fallbacks = configured(model)
-        if not fallbacks:
-            return None
-        return resolve(stdout, model, fallbacks)
-    except Exception:  # noqa: BLE001 - attribution never fails a good attempt
-        return None
 
 
 # ---------------------------------------------------------------------------
-# The Lane A spawn: `subprocess.run`'s contract, plus the tree sweep (plan:
-# review-run-scope-salvage-and-failure-visibility D3.3)
+# The Lane A spawn: `subprocess.run`'s contract, plus the tree sweep
 # ---------------------------------------------------------------------------
 
 #: SIGTERM → SIGKILL grace for a stopped Lane A CLI and for each process group
@@ -1235,12 +652,16 @@ def _served_model_attribution(
 #: it.
 LANE_A_TERMINATE_GRACE_S = process_control.DEFAULT_TERMINATE_GRACE_S
 
-#: Ceiling on the post-sweep drain. A second ``communicate()`` collects whatever
-#: the CLI wrote before it died, but a grandchild the sweep did not reach would
-#: keep the inherited pipe open for ever — the reason
-#: ``write_batch_scheduler._run_verify_command`` captures to a file — so a
-#: drain that outlives this falls back to the output already read.
-LANE_A_DRAIN_S = 5.0
+#: Ceiling on the post-sweep drain, and the grace a CLI's pipes get to reach end
+#: of file once it has exited: the shared ``process_capture.DRAIN_S``. A
+#: grandchild the sweep did not reach can keep an inherited pipe open for ever,
+#: so a drain that outlives this returns the output already read.
+LANE_A_DRAIN_S = process_capture.DRAIN_S
+
+#: Per-stream capture bound, the executor's figure. A stdout past it is never
+#: parsed (``process_capture.oversized_stream_message``); a stderr past it is
+#: kept truncated.
+LANE_A_MAX_STREAM_BYTES = process_capture.MAX_STREAM_BYTES
 
 #: A CLI that died of one of these was stopped from outside the slot — a
 #: terminal Ctrl-C reaches the whole foreground group, an abort SIGTERMs the
@@ -1258,8 +679,8 @@ _STOP_SIGNALS = frozenset(
 #: shell leads a group of its own and survives it.
 _STOP_EXIT_CODES = frozenset(128 + sig for sig in _STOP_SIGNALS)
 
-#: ``STATUS_CONTROL_C_EXIT``: the Windows spelling of "died of Ctrl-C"
-#: (2026-10-25). Windows has no signal to die of, so a return code there is
+#: ``STATUS_CONTROL_C_EXIT``: the Windows spelling of "died of Ctrl-C". Windows has no
+#: signal to die of, so a return code there is
 #: never negative and the ``-N`` half of :func:`_stopped_from_outside` never
 #: fires. A console process whose Ctrl-C or Ctrl-Break reached the default
 #: handler exits with this status instead, and a Python CLI whose
@@ -1298,7 +719,7 @@ def _stop_cli_tree(
     its parent links still lead to its children) with the registry's last
     refreshed one (which still holds them when *proc* itself died first). On
     Windows, where there is no snapshot to take, *job* is the CLI's Job Object
-    and is terminated right after the CLI (2026-10-25). Never raises: teardown
+    and is terminated right after the CLI. Never raises: teardown
     must not mask the timeout or the interrupt that asked for it, so a failed
     sweep falls back to a plain kill of the CLI, and then of its job.
     """
@@ -1320,14 +741,56 @@ def _stop_cli_tree(
         return None
 
 
+#: :attr:`process_control.TreeSweep.cli` verdicts that saw the CLI exit.
+_CLI_SEEN_TO_EXIT = ("exited", "terminated", "killed")
+
+
+def _sweep_confirmed(sweep: Optional[process_control.TreeSweep]) -> bool:
+    """Did *sweep* confirm the CLI and everything it reached stopped?
+
+    The CLI was seen to exit, its Windows job (if any) ended, and every process
+    group the sweep met has a kill verdict that confirms a stop under the
+    executor's rule (``process_control.unconfirmed_kill``). A sweep that
+    raised (``None``), or a rule that cannot be read, confirms nothing.
+    """
+    if sweep is None or sweep.cli not in _CLI_SEEN_TO_EXIT:
+        return False
+    if sweep.job == process_control.JOB_FAILED:
+        return False
+    if not sweep.groups:
+        return True
+    try:
+        return all(process_control.unconfirmed_kill(verdict) is None
+                   for verdict in sweep.groups.values())
+    except Exception:  # noqa: BLE001 - unknown is unconfirmed
+        return False
+
+
+def _stop_and_note(
+    proc: "subprocess.Popen[Any]", job: Optional[process_control.TreeJob] = None,
+) -> Optional[process_control.TreeSweep]:
+    """:func:`_stop_cli_tree`, and its verdict recorded for the dispatch
+    (``process_control.note_stop``): a private home the CLI was lent outlives
+    a stop that is not confirmed (docs/development/providers.md#private-config-roots).
+    Never raises, like the stop."""
+    sweep = _stop_cli_tree(proc, job)
+    try:
+        confirmed = _sweep_confirmed(sweep)
+    except Exception:  # noqa: BLE001 - see above
+        confirmed = False
+    process_control.note_stop(proc, confirmed)
+    return sweep
+
+
 def _drain_after_stop(
-    proc: "subprocess.Popen[Any]", expired: subprocess.TimeoutExpired
+    proc: Any, expired: subprocess.TimeoutExpired
 ) -> Tuple[Any, Any]:
     """Everything the stopped CLI wrote, without ever hanging on a survivor.
 
-    The second ``communicate()`` returns the whole capture (what the first call
-    had read before the deadline included). If even that blocks, the newest
-    partial capture is used and the pipes are let go.
+    *proc* is the CLI's :class:`process_capture.PipeCapture`. The second
+    ``communicate()`` returns the whole capture (what the first call had read
+    before the deadline included). If even that blocks, the newest partial
+    capture is used and the pipes are let go.
     """
     try:
         return proc.communicate(timeout=LANE_A_DRAIN_S)
@@ -1352,13 +815,14 @@ def _run_provider_cli(
     input: Optional[str] = None,
     timeout: Optional[float] = None,
     capture_output: bool = False,
+    stream_watch: Optional[process_capture.StreamWatch] = None,
     **popen_kwargs: Any,
 ) -> subprocess.CompletedProcess:
     """Run one Lane A provider CLI: ``subprocess.run``'s contract, and its tree.
 
     Same arguments, same ``CompletedProcess``, and the same ``TimeoutExpired``
     carrying the output so far — the ``TimeoutExpired`` handler in
-    :func:`invoke_with_provider` and §4's salvage read that partial stdout. What
+    :func:`invoke_with_provider` and the salvage read that partial stdout. What
     changes is what a stop does. ``subprocess.run`` SIGKILLs the direct child
     only, which skips pi's own cleanup and leaves every child in a session of its
     own running (pi's detached shells, and a ``timeout`` inside one, which leads
@@ -1367,10 +831,31 @@ def _run_provider_cli(
     1. the CLI's descendants are snapshotted while it is still alive;
     2. the CLI is SIGTERMed, given :data:`LANE_A_TERMINATE_GRACE_S`, then
        SIGKILLed; every snapshotted process group is swept through
-       ``process_control.terminate_timed_out``;
+       ``process_control.terminate_timed_out``, and whether that confirmed the
+       stop is recorded for the dispatch (:func:`_stop_and_note`);
     3. a bounded second ``communicate()`` collects the rest of the output; and
     4. a ``TimeoutExpired`` is re-raised with it and with the per-group verdicts
        as ``tree_sweep``, which the handler writes into the provider log.
+
+    The pipes are read by ``process_capture.PipeCapture``: at most
+    :data:`LANE_A_MAX_STREAM_BYTES` per stream, and the wait ends when the CLI
+    exits (plus a drain of :data:`LANE_A_DRAIN_S` at most), not when the last
+    process holding an inherited pipe closes it. The streams that passed the
+    bound ride out as ``capped_streams`` on the ``CompletedProcess`` and on the
+    ``TimeoutExpired``. A pipe still held once the CLI exited is held by what
+    it left running: before this call returns, that is swept exactly as on
+    the deadline (:func:`_stop_and_note`). A sweep that is confirmed and lets
+    go of the pipes leaves the CLI's answer standing, and what it did rides
+    out as ``pipe_held`` (:func:`_held_pipe_record`; ``""`` when no pipe was
+    held); otherwise a process the sweep did not reach still holds the
+    output, or may, and the call ends as the deadline's ``TimeoutExpired``,
+    as it did when that process held the pipe until the deadline, with the
+    words saying so as ``held_pipe``.
+
+    *stream_watch* (the adapter's ``stream_watch()``, passed only when it
+    declares one) watches stdout as it arrives; when it asks for a stop, the
+    CLI is stopped exactly as on the deadline and the ``TimeoutExpired``
+    carries the watch's reason as ``stream_stop`` (``None`` on a deadline).
 
     A ``KeyboardInterrupt`` (or anything else) raised while waiting does the same
     sweep and is re-raised, so the interrupt still ends the run (decision 11.9).
@@ -1387,7 +872,8 @@ def _run_provider_cli(
     either: a job does not change who a terminal Ctrl-C reaches, a new group
     would. The job travels with the CLI into the registry, so a sweep ends it
     too, and is closed (never a kill) once the CLI is no longer waited on; a CLI
-    that exits on its own leaves whatever it started running, as on POSIX.
+    that exits on its own leaves whatever it started running, as on POSIX,
+    unless it still holds the CLI's pipes (above).
     """
     if capture_output:
         popen_kwargs["stdout"] = subprocess.PIPE
@@ -1395,35 +881,112 @@ def _run_provider_cli(
     if input is not None:
         popen_kwargs["stdin"] = subprocess.PIPE
     proc, job = process_control.popen_tree(cmd, **popen_kwargs)
+    streams: Optional[process_capture.PipeCapture] = None
+    held_sweep = ""
     try:
         with process_control.live_cli_registry.tracking(proc, job):
             try:
-                stdout, stderr = proc.communicate(input=input, timeout=timeout)
+                # A pipe still held once the CLI exited is what it left
+                # running: swept as on the deadline before this call returns,
+                # so the slot's write check after it sees every write it made
+                # (docs/development/runtime.md#process-primitives).
+                streams = process_capture.PipeCapture(
+                    proc, max_bytes=LANE_A_MAX_STREAM_BYTES, grace_s=LANE_A_DRAIN_S,
+                    watch=stream_watch,
+                    on_held=lambda _held: _stop_and_note(proc, job),
+                )
+                stdout, stderr = streams.communicate(input=input, timeout=timeout)
             except subprocess.TimeoutExpired as exc:
-                sweep = _stop_cli_tree(proc, job)
-                out, err = _drain_after_stop(proc, exc)
+                sweep = _stop_and_note(proc, job)
+                out, err = _drain_after_stop(streams, exc)
                 expired = subprocess.TimeoutExpired(
                     proc.args, exc.timeout, output=out, stderr=err
                 )
                 expired.tree_sweep = sweep
+                expired.capped_streams = streams.capped
+                expired.stream_stop = streams.stream_stop
                 raise expired from None
             except BaseException:
-                _stop_cli_tree(proc, job)
+                _stop_and_note(proc, job)
                 raise
-            if _stopped_from_outside(proc.returncode):
+            if streams.held_stopped:
+                held_sweep, confirmed = _held_pipe_record(proc, streams)
+                if not confirmed:
+                    expired = subprocess.TimeoutExpired(
+                        proc.args, timeout, output=stdout, stderr=stderr
+                    )
+                    expired.tree_sweep = streams.held_stop
+                    expired.capped_streams = streams.capped
+                    expired.stream_stop = None
+                    expired.held_pipe = held_sweep
+                    raise expired
+            elif _stopped_from_outside(proc.returncode):
                 # Dead already, and its detached children may not be: only the
                 # registry's snapshot still links them to this slot (on Windows,
                 # its job).
-                _stop_cli_tree(proc, job)
+                _stop_and_note(proc, job)
     finally:
         # After `tracking` has unregistered the CLI, so a sweep can no longer
         # be terminating the job through the handle closed here.
         try:
+            if streams is not None:
+                streams.close()
             _release_pipes(proc)
         finally:
             if job is not None:
                 job.close()
-    return subprocess.CompletedProcess(proc.args, proc.returncode, stdout, stderr)
+    completed = subprocess.CompletedProcess(proc.args, proc.returncode, stdout, stderr)
+    completed.capped_streams = streams.capped
+    completed.pipe_held = held_sweep
+    return completed
+
+
+def _held_pipe_record(
+    proc: "subprocess.Popen[Any]", streams: process_capture.PipeCapture,
+) -> Tuple[str, bool]:
+    """What the deadline's sweep did once the CLI exited while a process it
+    started still held its output (the capture's ``on_held``,
+    :func:`_stop_and_note`), and whether it confirmed the stop: the sweep
+    confirmed every group it met (:func:`_sweep_confirmed`) and the pipes
+    were let go. Confirmed, the text is the slot's record
+    (``Capture.pipe_held``). Not confirmed, it is the words the call's
+    timeout carries: a pipe still held is held by a process the sweep did not
+    reach, which may still run (the private home it was lent is kept,
+    ``process_control.note_stop``), and how to look for it; a ``WARNING``
+    says so too. Never raises."""
+    sweep = streams.held_stop
+    try:
+        line = sweep.describe() if sweep is not None else "the sweep failed"
+        confirmed = _sweep_confirmed(sweep)
+    except Exception:  # noqa: BLE001 - a record never fails the slot
+        line, confirmed = "the sweep could not be read", False
+    held = " and ".join(sorted(streams.still_held))
+    if not held and confirmed:
+        return ("the CLI exited while a process it started still held its output; "
+                f"swept before the slot's checks: {line}"), True
+    process_control.note_stop(proc, False)
+    text = (
+        f"the CLI exited (code {proc.returncode}) while a process it started held "
+        f"its output, so what it started was swept as at a timeout ({line})"
+        + (f", but its {held} was still held after that: a process the sweep did "
+           f"not reach holds it and may still be running" if held
+           else ", which could not be confirmed")
+        + "; the call was ended as a timeout. Look for it with: ps -eo "
+        "pid,ppid,pgid,sid,lstart,args (one in a session of its own has init or the "
+        "user's service manager as its parent and started during this run)"
+    )
+    print(f"WARNING: pid {getattr(proc, 'pid', None)}: {text}.", file=sys.stderr,
+          flush=True)
+    return text, False
+
+
+def _capped_streams(outcome: Any) -> FrozenSet[str]:
+    """The streams :func:`_run_provider_cli` cut at its bound; none for a
+    stand-in that returns a plain ``CompletedProcess``."""
+    capped = getattr(outcome, "capped_streams", None)
+    return frozenset(capped) if capped else frozenset()
+
+
 
 
 def _describe_tree_sweep(expired: BaseException) -> str:
@@ -1438,8 +1001,7 @@ def _describe_tree_sweep(expired: BaseException) -> str:
 
 
 # ---------------------------------------------------------------------------
-# A fan-out slot on the plugin's Landlock jail (plan
-# codex-sandbox-unavailable-findings-and-fixes §6 F1, 2026-09-30)
+# A fan-out slot on the plugin's Landlock jail
 # ---------------------------------------------------------------------------
 #
 # `invoke_with_provider` is the fan-out's spawn site, so it owns the attempt's
@@ -1510,84 +1072,13 @@ def _cached_cli_version(provider_name: str) -> str:
     process (its ladder declares a ``removed_at`` rung), so on the rung it is
     normally there.
     """
-    try:
-        from . import subagent_executor as _executor
-    except Exception:  # noqa: BLE001 - a diagnostic never ends a slot
-        return ""
     for name in ("_VERSION_CACHE", "_PROBE_VERSION_CACHE"):
-        cache = getattr(_executor, name, None)
+        cache = getattr(_probe_state, name, None)
         if isinstance(cache, dict):
             value = cache.get(provider_name)
             if value and value != "unknown":
                 return str(value)
     return ""
-
-
-def _version_newer(installed: str, measured: str) -> bool:
-    match = re.search(r"\d+(?:\.\d+)+", installed or "")
-    if not match or not measured:
-        return False
-    return version_tuple(match.group(0)) > version_tuple(measured)
-
-
-def _render_home_text(text: str) -> str:
-    """``text`` with every ``$HOME/`` prefix shown as ``~/`` (a line pasted
-    into an issue as it is)."""
-    home = os.path.expanduser("~")
-    if not text or not home or home in ("~", os.sep):
-        return text or ""
-    return text.replace(home + os.sep, "~" + os.sep)
-
-
-def jail_denied_notice(
-    provider_name: str,
-    model_spec: str,
-    rung: Any,
-    evidence: Dict[str, Any],
-    allow_list: str,
-    installed: str,
-) -> str:
-    """The one ``[JAIL_DENIED]`` line for a slot the plugin's jail failed
-    (F1 "Where it sits" item 6, "What prints").
-
-    The runner and spec, the rung, the denied path or "path not named", the
-    excerpt, the allow-list, the installed and measured-through versions —
-    with "the likely cause" when codex is newer — and the next steps. ``$HOME``
-    renders as ``~`` throughout.
-    """
-    rung_name = getattr(rung, "name", SANDBOX_RUNG_PLUGIN_LANDLOCK)
-    measured = (getattr(rung, "measured_through", None) or ("",))[0] or "unknown"
-    path = evidence.get("path")
-    where = evidence.get("where") or "stderr"
-    # The quoted line is codex's raw stderr or error event, and this notice
-    # reaches stdout, the detached run log and the closing summary: redacted
-    # first, as `describe_failure`'s text is, then `$HOME` rendered as `~`.
-    said = _render_home_text(" ".join(_redact(str(evidence.get("line") or "")).split()))
-    if path:
-        denied = _landlock.render_home(path)
-    elif evidence.get("class") == _landlock.JAIL_CLASS_PROBABLE:
-        denied = "path not named (Codex did not name the path; a probable jail denial)"
-    else:
-        denied = "path not named"
-    versions = f"{provider_name} installed {installed or 'unknown'}, jail measured through {measured}"
-    if _version_newer(installed, measured):
-        versions += (
-            f"; {provider_name.capitalize()} is newer than the jail was measured "
-            f"with, the likely cause"
-        )
-    return (
-        f"{JAIL_DENIED_MARKER} {provider_name} ({model_spec}): the plugin's "
-        f"Landlock jail (fallback rung {rung_name!r}) denied a write "
-        f"{provider_name} itself needed, so the turn failed: {denied}; "
-        f"{where}: \"{said}\"; allow list: {allow_list or '(unavailable)'}; "
-        f"{versions}; next steps: (1) compare with `multi_llm.py doctor` (its "
-        f"{rung_name} row lists the allow-list, both versions and the switch); "
-        f"(2) report it at {JAIL_DENIED_ISSUES_URL} with this line and that row "
-        f"(the allow-list is not configurable); (3) to run the job anyway, set "
-        f"this key to a runner that is not Codex (for example "
-        f"claude-code:<model>) in .multi-llm/providers.yaml, or for one run set "
-        f"{SKIP_RUNG_ENV}={rung_name}"
-    )
 
 
 def _toml_tree(text: Optional[str]) -> Optional[Dict[str, Any]]:
@@ -1673,7 +1164,8 @@ def _jail_refused_result(
 ) -> Dict[str, Any]:
     """A slot the jail could not be granted for: nothing was spawned."""
     evidence = {
-        "where": "spawn", "line": message[:300], "path": path,
+        "where": "spawn", "line": _landlock.redacted_excerpt(message),
+        "path": _landlock.redacted_excerpt(path) or None,
         "class": _landlock.JAIL_CLASS_JAIL, "reason": reason,
     }
     details: Dict[str, Any] = {
@@ -1683,9 +1175,10 @@ def _jail_refused_result(
         "retryable": False,
     }
     if failure_reason == FAILURE_JAIL_DENIED:
-        evidence["notice"] = jail_denied_notice(
-            provider_name, f"{provider_name}:{model}", rung, evidence, "",
-            _cached_cli_version(provider_name),
+        evidence["notice"] = _landlock.jail_denied_text(
+            spec=f"{provider_name}:{model}", rung=rung, evidence=evidence,
+            allow_list="", installed=_cached_cli_version(provider_name),
+            lane=INCIDENTAL_LANE_FANOUT,
         )
         evidence["rung"] = getattr(rung, "name", None)
         details["jail_failure"] = evidence
@@ -1703,35 +1196,111 @@ def _jail_refused_result(
     }
 
 
-def _turn_failed(stdout: Optional[str]) -> bool:
-    """Whether the stream holds a top-level ``turn.failed`` event."""
-    for raw in (stdout or "").splitlines():
-        raw = raw.strip()
-        if not raw.startswith("{") or "turn.failed" not in raw:
-            continue
-        try:
-            event = json.loads(raw)
-        except ValueError:
-            continue
-        if isinstance(event, dict) and event.get("type") == "turn.failed":
-            return True
-    return False
 
 
-def _exit0_left_no_answer(hook_text: Optional[str], stdout: Optional[str]) -> bool:
-    """Whether a jailed child that exited 0 left no finished answer — the only
-    exit 0 a jail failure is read on.
+def _home_check_record(
+    change: Any, before: Any, after: Any, *, codex_home: str, live: set,
+) -> Optional[Dict[str, Any]]:
+    """One jailed child's ``details["home_check"]``: only when the home's
+    security-relevant set changed or a foreign trust table appeared, else
+    ``None``. Shared by the invoker's own read-back and
+    :func:`raised_attempt_home_checks`, so both name a change the same way."""
+    if change is None or not (change.changed or change.foreign_trust):
+        return None
+    record = change.to_dict()
+    if _landlock.HOME_CONFIG in change.changed:
+        names = _config_key_names(
+            getattr(before, "config_text", None),
+            getattr(after, "config_text", None),
+        )
+        if names:
+            record["config_keys"] = names
+    record["home"] = _landlock.render_home(codex_home)
+    record["other_live_children"] = len(live)
+    return record
 
-    The parse verdict is not that question: codex's ``parse_output`` succeeds
-    only when it finds JSON, so a finished prose ``ask`` answer, or a review
-    whose JSON failed to parse for another reason, reads as failed. The answer
-    is the adapter's own final answer text (``hook_text``, the
-    :func:`_salvage_hook_text` reading — codex's last ``agent_message``), and a
-    ``turn.failed`` event means the turn never finished, whatever narration
-    came before it.
+
+@dataclass
+class _ArmedHome:
+    """What one jailed child's home check needs once its attempt has raised:
+    the home as the child saw it, the run cwd its trust table is expected
+    for, the invoker's before-snapshot, and the set of same-provider children
+    live beside it (``_live_child``'s, frozen once the child is gone)."""
+
+    codex_home: str
+    cwd: str
+    before: Any
+    live: set
+
+
+#: The jailed children the current fan-out attempt armed, or ``None`` outside
+#: :func:`armed_homes_window`. ``asyncio.to_thread`` copies the context into
+#: the dispatch's worker thread, so the invoker appends to the lane's list.
+_ARMED_HOMES: "contextvars.ContextVar[Optional[List[_ArmedHome]]]" = (
+    contextvars.ContextVar("multi_llm_armed_homes", default=None)
+)
+
+
+@contextlib.contextmanager
+def armed_homes_window() -> Iterator[List[_ArmedHome]]:
+    """Collect every jailed child one review fan-out attempt arms.
+
+    An attempt that raises returns no ``details``, so its ``home_check`` is
+    lost with it; the lane wraps each attempt in this window and, only on a
+    raise, hands the list to :func:`raised_attempt_home_checks`. Nothing is
+    read or written on the normal path."""
+    armed: List[_ArmedHome] = []
+    token = _ARMED_HOMES.set(armed)
+    try:
+        yield armed
+    finally:
+        _ARMED_HOMES.reset(token)
+
+
+def _note_armed_home(jail: "_JailedAttempt") -> None:
+    """Record a jailed child about to spawn in the lane's window, if any."""
+    armed = _ARMED_HOMES.get()
+    if armed is not None and jail.context is not None:
+        armed.append(_ArmedHome(
+            codex_home=jail.context.codex_home, cwd=jail.cwd,
+            before=jail.home_before, live=jail.live,
+        ))
+
+
+def raised_attempt_home_checks(armed: Sequence[_ArmedHome]) -> List[Dict[str, Any]]:
+    """The home check of every jailed child an attempt that raised had armed.
+
+    The comparison the invoker makes after a child exits, against its own
+    before-snapshot, so the record is the one the attempt would have returned
+    (only when something changed). A home that cannot be compared (no
+    before-snapshot, or none after: unreadable or gone) is recorded as
+    ``unaudited``: the attempt's own check never ran, so the lane fails it
+    closed (F1 Limits; see the home-check block in
+    ``review_orchestrator_base``). Blocking; the lane hands it to a thread.
     """
-    answered = isinstance(hook_text, str) and bool(hook_text.strip())
-    return not answered or _turn_failed(stdout)
+    records: List[Dict[str, Any]] = []
+    for entry in armed:
+        after = None
+        if entry.before is not None:
+            try:
+                after = _landlock.home_snapshot(entry.codex_home, [entry.cwd])
+            except Exception:  # noqa: BLE001 - recorded as unaudited below
+                after = None
+        change = _landlock.compare_home(entry.before, after)
+        if change is None:
+            records.append({
+                "home": _landlock.render_home(entry.codex_home),
+                "changed": [], "config_keys": [], "foreign_trust": [],
+                "other_live_children": len(entry.live), "unaudited": True,
+            })
+            continue
+        record = _home_check_record(
+            change, entry.before, after,
+            codex_home=entry.codex_home, live=entry.live,
+        )
+        if record is not None:
+            records.append(record)
+    return records
 
 
 def _jail_after_child(
@@ -1766,32 +1335,23 @@ def _jail_after_child(
     if jail is None or jail.context is None:
         return None, ""
     context = jail.context
+    after = None
     try:
         after = _landlock.home_snapshot(context.codex_home, [jail.cwd])
         change = _landlock.compare_home(jail.home_before, after)
     except Exception:  # noqa: BLE001 - a check never ends a slot
         change = None
-    if change is not None and (change.changed or change.foreign_trust):
-        record = change.to_dict()
-        if _landlock.HOME_CONFIG in change.changed:
-            names = _config_key_names(
-                getattr(jail.home_before, "config_text", None),
-                getattr(after, "config_text", None),
-            )
-            if names:
-                record["config_keys"] = names
-        record["home"] = _landlock.render_home(context.codex_home)
-        record["other_live_children"] = len(jail.live)
+    record = _home_check_record(
+        change, jail.home_before, after,
+        codex_home=context.codex_home, live=jail.live,
+    )
+    if record is not None:
         details["home_check"] = record
     try:
         denials = _landlock.jail_denied_edits(stdout or "", context, cwd=jail.cwd)
         record = denials.to_dict()
         record["total"] = denials.total
-        named: List[str] = []
-        for group in denials.failed_file_changes:
-            named.extend(group)
-        named.extend(denials.out_of_scope_paths)
-        record["paths"] = [p for i, p in enumerate(named) if p not in named[:i]][:3]
+        record["paths"] = denials.named_paths()
         details["jail_denials"] = record
     except Exception:  # noqa: BLE001 - a count never ends a slot
         pass
@@ -1818,9 +1378,10 @@ def _jail_after_child(
         "installed_version": installed,
         "measured_through": (getattr(jail.rung, "measured_through", None) or ("",))[0],
         "allow_list": allow,
-        "notice": jail_denied_notice(
-            provider_name, f"{provider_name}:{model}", jail.rung,
-            evidence.to_dict(), allow, installed,
+        "notice": _landlock.jail_denied_text(
+            spec=f"{provider_name}:{model}", rung=jail.rung,
+            evidence=evidence.to_dict(), allow_list=allow, installed=installed,
+            lane=INCIDENTAL_LANE_FANOUT,
         ),
     })
     details["jail_failure"] = record
@@ -1835,155 +1396,86 @@ def _jail_after_child(
     )
 
 
-def invoke_with_provider(
+@dataclass
+class PreparedDispatch:
+    """One fan-out dispatch ready to spawn (:func:`prepare_dispatch`).
+
+    ``cleanup`` holds what setup entered (the adapter's dispatch context, a
+    schema sidecar, a jailed attempt's scratch directory); the caller closes it
+    once the child is done, on every outcome. ``start_time`` is when setup
+    began composing the child's environment: a run's ``duration_seconds`` is
+    measured from it.
+    """
+
+    provider: Any
+    provider_name: str
+    model: str
+    timeout: Any
+    cmd: List[str]
+    stdin_text: Optional[str]
+    env: Optional[Dict[str, str]]
+    cwd: Optional[str]
+    schema: Any
+    structured_marker: str
+    jail: Optional[_JailedAttempt]
+    start_time: float
+    cleanup: contextlib.ExitStack
+
+    def jail_read_back(self) -> Optional[JailReadBack]:
+        """The jail's read-back for this attempt, or ``None`` off the jail."""
+        if self.jail is None:
+            return None
+        return functools.partial(
+            _jail_after_child, jail=self.jail,
+            provider_name=self.provider_name, model=self.model,
+        )
+
+
+def _phase_schema(
+    provider: Any, schema_phase: str, stack: contextlib.ExitStack
+) -> Tuple[Any, str]:
+    """The pre-dispatch read of ``schema_phase``'s schema, as ``(schema,
+    marker)``; raises ``structured_output.SchemaConfigError``.
+
+    Lane A only, and no production caller passes ``schema_phase`` (W1, deferred
+    by the repository owner; see :func:`invoke_with_provider`'s docstring).
+    ``schema_for_dispatch`` consults ``structured_output_support``: an adapter
+    that declares ``False``, or a schema this CLI provably cannot carry, comes
+    back ``None`` and the phase runs its prompt-level JSON path.
+    """
+    schema, structured_marker = structured_output.schema_for_dispatch(
+        provider, schema_phase
+    )
+    if schema is not None and provider.structured_output_transport == "file":
+        # One `mkdtemp` per invocation, written by the CALLER: adapters are
+        # singletons under a concurrent fan-out and cannot hold this. The
+        # stack's `close()` removes it on success, on timeout, on kill-path
+        # teardown and on exception.
+        schema = stack.enter_context(structured_output.schema_sidecar(schema))
+    return schema, structured_marker
+
+
+def prepare_dispatch(
     prompt: str,
     model_spec: str,
+    *,
     timeout: Optional[int] = None,
-    log_file: Optional[Union[str, Path]] = None,
     cwd: Optional[str] = None,
     prompt_transport: Optional[str] = None,
     anchor: Optional[Union[str, Path]] = None,
     schema_phase: Optional[str] = None,
-    _defer_parse_failure_log: bool = False,
     sandbox_fallback: Optional[str] = None,
-    want_answer_text: bool = False,
-) -> Dict[str, Any]:
-    """Invoke an LLM using the provider abstraction.
+) -> Union[PreparedDispatch, Dict[str, Any]]:
+    """Everything :func:`invoke_with_provider` does before the spawn.
 
-    This is the primary function for invoking LLM providers. It handles
-    provider lookup, command building, subprocess execution, and output
-    parsing with consistent error reporting.
-
-    Args:
-        prompt: The prompt to send to the LLM.
-        model_spec: Model specification in "provider:model" or "model" format.
-                   If no provider prefix is given, uses the default provider
-                   from providers.yaml configuration.
-        timeout: Optional timeout override in seconds. Uses provider default
-                if not specified.
-        log_file: Optional path to save full output log for debugging.
-        prompt_transport: Optional non-argv transport override (D2d) —
-            ``"stdin"`` writes the prompt to the child's stdin and omits it from
-            argv, so no part of it is measured against the Windows
-            command-line cap. Defaults to the adapter's ``prompt_transport``
-            (``"argv"`` for every adapter today), keeping existing invocations
-            byte-identical. Refused with SUBPROCESS_FAILED when the adapter does
-            not declare support, rather than silently falling back to argv and
-            re-introducing the cap the caller was avoiding.
-        anchor: Optional discovery anchor (the run's plan-file path). Threaded
-            into BOTH ``parse_model_spec`` and ``get_provider_timeout`` so a bare
-            (prefix-less) spec resolves its ``default_provider`` — and its
-            timeout — against the plan-derived project config rather than CWD's.
-            This is the spawn site: unanchored, a run started from a foreign CWD
-            launches a different binary than the project configured (§9.3.c).
-        schema_phase: §4.2's phase name (``review-plan``, ``code-review``, …),
-            or ``None``. **``None`` is the default and changes nothing**: no
-            schema is resolved, no flag is emitted and the returned dict is
-            byte-for-byte what it has always been.
-
-            When set, this is §4.2.2's "the caller reads the flag before
-            dispatch" leg: the phase's schema file is resolved through
-            ``utils.structured_output``, the adapter's
-            ``structured_output_support`` decides whether it is passed at all,
-            codex's sidecar is written and removed in a ``finally``, and
-            §4.2.1's failure policy is applied to the envelope afterwards. The
-            verdict lands on ``details['structured_output']`` as ``native`` /
-            ``recovered`` / ``unvalidated``; a refusal replaces the result with
-            a failure carrying ``details['failure_reason']``.
-
-            **Disposition (W1): DEFER — repository owner, 2026-08-20.** No
-            production caller passes ``schema_phase`` today; the only callers
-            are in ``tests/test_structured_output.py``, and that is the standing
-            check. Lane A's fan-out phases are deliberately *not* wired, because
-            Lane A's six shipped documents are array-rooted and claude-code
-            cannot natively carry an array-rooted schema at all — wiring the
-            callers first buys one WARN per dispatch and no native transport.
-            Object-rooting those six files is a contract change for every
-            consumer of them and is explicitly not a change a call site may
-            take, so it is the repository owner's to make and it has not been
-            made.
-
-            **Re-check trigger:** claude-code accepts an array-rooted
-            ``--json-schema``. **Re-read date:** 2027-02-20. Until one of those
-            fires, wiring a production caller here is a regression, not
-            progress. See ``plans/harness-residual-work.md`` §3, W1.
-        _defer_parse_failure_log: Internal (§Fix1/F13). When ``log_file`` is
-            set and the child exited 0, writing the log here — before
-            :func:`invoke_with_file_output` has chosen between the file
-            channel and the stdout fallback — would either freeze
-            ``Success: False`` on a run the file channel goes on to resolve
-            (§Fix1's original bug), or, on a clean parse, write a log with no
-            ``Result source:`` line at all because this function does not yet
-            know which channel will end up answering (F13). Set by that
-            caller only: skips the immediate ``_save_log`` write for every
-            exit-0 outcome and hands the raw capture back on
-            ``details["_deferred_log"]`` instead, so the one log entry gets
-            written once the final outcome — file, stdout fallback, or both
-            failed — is known, and always carries `Result source:`. A hard
-            failure (binary not found, timeout, non-zero exit) still logs
-            immediately, unaffected by this flag — there is no channel choice
-            to wait for.
-        sandbox_fallback: The fan-out's D6 override (2026-09-17): the rung id
-            ``review_orchestrator_base.sandbox_refusal`` selected for this slot
-            — the runner's own sandbox probe said ``unavailable``, the
-            fallback walk found a rung ``providers.<name>.sandbox_fallback``
-            permits, and this is a ``generate`` dispatch (``True`` is the
-            pre-rung spelling of the uncontained rung). It is forwarded to the
-            adapter's ``build_command_for_transport`` (which every adapter but
-            codex ignores) and, whenever the child ran (success, non-zero
-            exit or timeout kill), recorded as ``details["sandbox"]``
-            — ``"bypassed"`` for the uncontained rung only, the rung id for a
-            contained one — so the provenance rides the same dict
-            ``served_model`` does. The default renders every argv
-            byte-for-byte as before and adds no key.
-
-            **The plugin's own jail** (``plugin-landlock``, plan
-            codex-sandbox-unavailable-findings-and-fixes §6 F1, 2026-09-30):
-            this function is the fan-out's spawn site, so it builds the
-            read-only ``JailRequest`` from ``cwd``, owns the attempt's scratch
-            ``TMPDIR`` (``slot_tmpdir`` on ``setup_cleanup``, released by the
-            subprocess ``finally`` after the child's groups were swept),
-            renders with the ``JailContext``, completes it from the composed
-            env and wraps the resolved argv (``landlock_dispatch.wrap_argv``).
-            It then reads back, on every outcome that ran a child:
-            ``details["home_check"]`` (only when ``$CODEX_HOME``'s
-            security-relevant set changed or a foreign trust table appeared:
-            ``changed``, ``config_keys``, ``foreign_trust``, ``home``,
-            ``other_live_children``), ``details["jail_denials"]`` (the denials
-            inside the model's own commands: ``JailDenials.to_dict()`` plus
-            ``total`` and the first three ``paths``) and, on a failed attempt
-            the jail caused, ``details["jail_failure"]`` (``JailEvidence``'s
-            keys plus ``rung``, ``installed_version``, ``measured_through``,
-            ``allow_list`` and the ``[JAIL_DENIED]`` line under ``notice``)
-            with ``failure_reason: "jail-denied"`` and ``retryable: False``.
-            A home it cannot grant is the same jail failure with nothing
-            spawned; a scratch directory it cannot make is
-            ``failure_reason: "jail-setup-failed"``, also non-retryable.
-        want_answer_text: The ask lane's request for the model's **whole**
-            answer text (plans/ask-answer-recovery-and-false-success.md D2.2).
-            When True, every exit that ran the child — success, exit-0 parse
-            failure, non-zero exit, timeout — sets ``details["answer_text"]``
-            from the full stdout (:func:`_attach_answer_text`: the adapter's
-            ``salvage_text`` hook, else :func:`generic_answer_text`; redacted,
-            head-capped at 1 MiB). The returns before the spawn and the launch
-            failure carry no key, which a reader treats like ``""``. The
-            default adds no key and leaves ``salvage_text`` as it was, so the
-            review lanes are unchanged.
-
-    Returns:
-        Dict with 'success' key and either:
-        - On success: 'data' key with parsed response, plus 'details' dict
-        - On failure: 'error' message, 'error_code', and 'details' dict
-
-    Error codes:
-        BINARY_NOT_FOUND: Provider CLI tool not found in PATH
-        TIMEOUT: Command timed out
-        SUBPROCESS_FAILED: Command exited with non-zero code (or failed to launch)
-        PARSE_ERROR: Failed to parse output
-        PROMPT_TOO_LONG: The fully rendered command line (executable path,
-            flags, and prompt) exceeds the Windows command-line length budget
-        PROMPT_UNSAFE: Prompt carries cmd.exe metacharacters and the provider
-            only resolves to a Windows .cmd/.bat shim
+    Resolves the provider, the timeout, the transport, the phase schema, the
+    plugin's jail grant, the argv and the child's environment, with the
+    arguments :func:`invoke_with_provider` documents. Returns the prepared
+    dispatch, or the refusal result when it cannot start (an unknown or
+    unavailable provider, an unsupported transport, a refused dispatch
+    context, a schema or read-only refusal, a Windows command line it will not
+    risk, a jail it cannot grant), with nothing spawned and every context
+    entered so far released.
     """
     provider_name, model = parse_model_spec(model_spec, anchor=anchor)
     provider = get_provider(provider_name)
@@ -1999,7 +1491,7 @@ def invoke_with_provider(
             }
         }
 
-    # M10 (§5.1) — a **bool** consumer, and it stays one. The gate is still
+    # M10 — a **bool** consumer, and it stays one. The gate is still
     # `is_available()` verbatim, so this refusal is byte-for-byte the decision it
     # always was; the typed report is read only *inside* the branch, to put the
     # state and its sentence on the error details a caller renders.
@@ -2035,7 +1527,7 @@ def invoke_with_provider(
             "error_code": ERROR_SUBPROCESS_FAILED,
             "details": {"provider": provider_name, "model": model},
         }
-    # §4.2.2's pre-dispatch read, and M7's one call site. `schema_phase=None`
+    # The pre-dispatch read, and M7's one call site. `schema_phase=None`
     # skips all of it, so every existing caller renders the same argv it always
     # did. `schema_for_dispatch` is what consults `structured_output_support`:
     # an adapter that declares `False` — or a schema this CLI provably cannot
@@ -2043,20 +1535,20 @@ def invoke_with_provider(
     # path, marked `recovered`/`unvalidated` and never `native`.
     schema = None
     structured_marker = structured_output.MARKER_UNVALIDATED
-    # M4/§2.3 — the adapter's run-scoped dispatch context is entered BEFORE argv
+    # The adapter's run-scoped dispatch context is entered BEFORE argv
     # is built, because argv and env are rendered from the same context state
     # (opencode's `--pure` pairs with its `XDG_CONFIG_HOME` redirect and neither
     # is emitted without the other). It rides the same `ExitStack` as the schema
     # sidecar, so it is left on success, on timeout, on kill-path teardown and on
-    # exception alike — the `finally` half of §2.3's lifecycle, with the
+    # exception alike — the `finally` half of the lifecycle, with the
     # adapter's own `atexit` sweep as the backstop.
     # Every post-entry setup step — the schema read, the argv build, the
     # executable resolution and the env composition — runs INSIDE this `with`,
     # so a raise anywhere in it unwinds the context here rather than leaving
     # opencode's active context and its config-home reference behind for the
     # `atexit` sweep to find. Only once setup has survived is the live stack
-    # handed to `schema_cleanup` (`pop_all`), whose owner from that point on is
-    # the subprocess `finally` at the end of this function.
+    # handed to the prepared dispatch (`pop_all`), whose owner from that point
+    # on is `invoke_with_provider`'s `finally`.
     with contextlib.ExitStack() as setup_cleanup:
         dispatch = setup_cleanup.enter_context(
             provider_dispatch_context(provider, model, PROFILE_GENERATE, anchor=anchor)
@@ -2074,17 +1566,9 @@ def invoke_with_provider(
             }
         if schema_phase:
             try:
-                schema, structured_marker = structured_output.schema_for_dispatch(
-                    provider, schema_phase
+                schema, structured_marker = _phase_schema(
+                    provider, schema_phase, setup_cleanup
                 )
-                if schema is not None and provider.structured_output_transport == "file":
-                    # One `mkdtemp` per invocation, written by the CALLER: adapters
-                    # are singletons under a concurrent fan-out and cannot hold this.
-                    # The stack's `close()` in the `finally` below removes it on
-                    # success, on timeout, on kill-path teardown and on exception.
-                    schema = setup_cleanup.enter_context(
-                        structured_output.schema_sidecar(schema)
-                    )
             except structured_output.SchemaConfigError as exc:
                 return {
                     "success": False,
@@ -2098,14 +1582,14 @@ def invoke_with_provider(
                     },
                 }
 
-        # Plan codex-sandbox-unavailable §6 F1 (2026-09-30): a slot on a
+        # Unavailable F1: a slot on a
         # wrapping rung (the plugin's own Landlock jail) gets its grant here,
         # at the spawn site, once per attempt — order steps 1-2 of "How a
         # dispatch receives its grant". The read-only request comes from this
         # function's own `cwd` (a fan-out slot never carries a write scope),
         # and the attempt's scratch directory rides `setup_cleanup`, so a
         # return before the spawn removes it here and a spawned child's is
-        # removed by the subprocess `finally`, after `_run_provider_cli` swept
+        # removed by `invoke_with_provider`'s `finally`, after `_run_provider_cli` swept
         # the child's process groups. A slot on the rung with no declared
         # wrapping rung is refused rather than rendered with the bare atoms.
         jail: Optional[_JailedAttempt] = None
@@ -2139,10 +1623,10 @@ def invoke_with_provider(
                 rung=jail_rung, request=request, tmpdir=tmpdir, cwd=repo_root,
             )
 
-        # `timeout_s=effective_timeout` is L5's one call site (§9.6.b): the number is
+        # `timeout_s=effective_timeout` is L5's one call site: the number is
         # already resolved here, so an adapter with an internal cutoff of its own
         # (agy's `--print-timeout`) can hold it under the deadline this same call
-        # passes to `_run_provider_cli` below, instead of hardcoding a value that has to
+        # passes to `_run_provider_cli`, instead of hardcoding a value that has to
         # be kept in sync by hand. Twelve of the thirteen adapters ignore it, and
         # dropping the keyword restores every rendered argv byte-for-byte.
         try:
@@ -2167,10 +1651,10 @@ def invoke_with_provider(
                 ),
             )
         except (StructuredOutputUnavailable, ReadOnlyInvocationRefused) as exc:
-            # §4.2.1's sixth case: fails BEFORE spawn, so no partial argv reaches
+            # The sixth case: fails BEFORE spawn, so no partial argv reaches
             # the CLI. A configuration error, never retried. The same for an
             # adapter refusing an invocation the user's own config makes unsafe
-            # (plans/ask-answer-recovery-and-false-success.md D4.2: aider with
+            # (aider with
             # yes-always on in an `.aider.conf.yml` or `.env`): re-running
             # reads the same file, and the error names it.
             return {
@@ -2211,8 +1695,8 @@ def invoke_with_provider(
         start_time = time.time()
 
         # Build subprocess environment: add provider vars, remove blacklisted ones.
-        # `resolve_env`, not `get_env`: the Lane A fan-out IS the `generate` profile
-        # (§2.2), so it gets the global non-interactive git block plus the scoped
+        # `resolve_env`, not `get_env`: the Lane A fan-out IS the `generate` profile, so
+        # it gets the global non-interactive git block plus the scoped
         # `credential.helper=""` wipe. Naming the profile rather than leaning on the
         # default keeps the scoping greppable — `agent-write` must never appear here.
         # `cwd` rides along because an adapter's delta may carry a
@@ -2253,562 +1737,351 @@ def invoke_with_provider(
             except Exception:  # noqa: BLE001 - a check never ends a slot
                 jail.home_before = None
         # Setup survived: transfer the entered contexts out of the setup
-        # stack so leaving this `with` releases nothing, and the subprocess
-        # `finally` below owns them for the rest of the dispatch.
-        schema_cleanup = setup_cleanup.pop_all()
-
-    try:
-        # `subprocess.run`'s contract and arguments, but a `Popen` underneath:
-        # on the deadline, a Ctrl-C or an abort the CLI is SIGTERMed first and
-        # every process group it spawned is swept, instead of `run`'s bare
-        # SIGKILL of the CLI alone (D3.3; see `_run_provider_cli`). On Windows
-        # the CLI runs in a Job Object of its own, and the stop ends that job.
-        # Registered for exactly as long as the child runs, so a jailed slot's
-        # `[CODEX_HOME_CHECK]` line can say how many other children of this
-        # provider shared its window (F1 Limits, 2026-09-30).
-        with _live_child(provider_name) as live_overlap:
-            if jail is not None:
-                jail.live = live_overlap
-            result = _run_provider_cli(
-                cmd,
-                capture_output=True,
-                text=True,
-                # Provider output is not under our control: errors="replace" is
-                # lossy for non-UTF-8 bytes but guarantees a total decode — the
-                # standard choice for LLM/tool output. surrogateescape rejected
-                # (lone surrogates raise on downstream UTF-8 re-encode);
-                # backslashreplace rejected (noisier in model-visible output).
-                encoding="utf-8",
-                errors="replace",
-                timeout=effective_timeout,
-                env=env,
-                cwd=cwd,
-                # Under the argv transport the one provider that reads stdin is
-                # aider, which reads its decline supply there (D4.2: `s` answers to
-                # the "Add file to the chat?" prompts, handed back as `stdin_text`
-                # and closed at EOF once written). For every other one, closing it
-                # prevents CLIs that poll stdin for piped input (e.g. agy) from
-                # blocking forever when the orchestrator's stdin is a non-EOF pipe.
-                # Under the stdin transport the prompt IS the child's stdin, and it
-                # is closed at EOF once written, which those CLIs treat the same way.
-                **(
-                    {"input": stdin_text}
-                    if stdin_text is not None
-                    else {"stdin": subprocess.DEVNULL}
-                ),
-            )
-        duration = time.time() - start_time
-
-        if result.returncode != 0:
-            error_message = f"{provider_name} exited with code {result.returncode}"
-            # Some CLIs report the actual cause on stdout and leave stderr
-            # empty (opencode does this for auth/quota errors), which would
-            # otherwise leave the caller with a bare exit code. A provider
-            # override must never mask the real failure, so it is best-effort.
-            try:
-                reason = provider.describe_failure(result.stdout, result.stderr)
-            except Exception:  # noqa: BLE001 - diagnostics must not raise
-                reason = None
-            if reason:
-                # §4.5: the reason is the vendor's own sentence quoted off a
-                # stream, and it lands in `.status.json`'s `models_failed` and
-                # on the fan-out's stdout — neither of which goes through
-                # `_save_log`'s redaction. The one boundary applies here too.
-                error_message = f"{error_message}: {_redact(reason)}"
-            # M10 (§5.1) — the **status**-consumer half of this site. A failure
-            # whose own streams carry a login notice is an availability verdict,
-            # not a parse, so name it instead of leaving the caller with a
-            # generic tail. Only the named negatives speak (see
-            # `availability_from_failure`), and nothing is probed here.
-            unavailable = availability_from_failure(
-                provider, result.stdout, result.stderr, result.returncode
-            )
-            if unavailable is not None:
-                error_message = f"{error_message} [{unavailable.value}]"
-
-            # F1 item 6 (2026-09-30): a jailed child that died on a
-            # codex-internal EACCES the jail caused is a jail failure, never a
-            # model error; an ordinary permission error keeps today's message
-            # plus the reason it is not a jail denial. Read while the context
-            # is alive, with the home check and the in-stream denial count.
-            jail_details: Dict[str, Any] = {}
-            jail_error, jail_note = _jail_after_child(
-                jail_details, jail, provider_name=provider_name, model=model,
-                stdout=result.stdout, stderr=result.stderr,
-                returncode=result.returncode, failed=True,
-            )
-            if jail_error:
-                error_message = (
-                    f"{provider_name} exited with code {result.returncode}: {jail_error}"
-                )
-            elif jail_note:
-                error_message = f"{error_message}{jail_note}"
-
-            # Plan §4.2: the read-only audit sees the FULL stream, here, before
-            # the excerpt below bounds it — a failed attempt of a bypassed slot
-            # could still have written, and 4.3 ANDs every attempt's verdict.
-            audit = _readonly_audit(provider, result.stdout, sandbox_fallback)
-
-            # Save log on failure if requested
-            if log_file:
-                _save_log(
-                    log_file=log_file,
-                    model=f"{provider_name}:{model}",
-                    prompt=prompt,
-                    stdout=result.stdout,
-                    stderr=result.stderr,
-                    returncode=result.returncode,
-                    success=False,
-                    error=error_message,
-                    duration_seconds=duration,
-                    readonly_audit=audit,
-                )
-
-            details = {
-                "exit_code": result.returncode,
-                "stderr": result.stderr,
-                "provider": provider_name,
-                "model": model,
-                "duration_seconds": duration
-            }
-            # THE ANSWER MAY ALREADY BE ON STDOUT, and this return used to drop
-            # it. A non-zero exit is not only "the provider never spoke": it is
-            # also the provider that wrote a truncated or fenced array and *then*
-            # died — a kill after the answer, a crash on teardown — and that array
-            # is on stdout, never on stderr. The salvage gate at
-            # `code_review_orchestrator.py`'s site A runs under exactly this
-            # branch (`if not result["success"]`), so with stderr as its only
-            # channel it printed "Provider failed before producing any JSON —
-            # nothing to salvage" over a run that *had* produced JSON, and a
-            # recoverable review was thrown away silently.
-            #
-            # The JSON-erroring providers make the same point from the other
-            # side: `opencode run --format json` puts its failure shape on stdout
-            # with stderr empty, and a relayed `{"error": {"code": 401, ...}}`
-            # body looks identical from any HTTP-backed CLI. Those reached the
-            # gate as the empty string, so even the verdicts it got *right* were
-            # reached for the wrong reason.
-            #
-            # `provider.describe_failure` and `availability_from_failure` above
-            # already read `result.stdout` for their own one-line verdicts; this
-            # carries the text itself, under §4.5/§4.4, so a consumer can form a
-            # different judgement from the same evidence.
-            if audit is not None:
-                details[_READONLY_AUDIT_KEY] = audit
-            # The child ran, so the D6 provenance rides a failure too.
-            _attach_sandbox_word(details, sandbox_fallback)
-            details.update(jail_details)
-            _attach_stdout_excerpt(details, result.stdout)
-            # One hook reading for both keys (D2.2): each cuts its own copy.
-            hook_text = _salvage_hook_text(provider, result.stdout)
-            _attach_salvage_text(details, provider, result.stdout, hook_text=hook_text)
-            if want_answer_text:
-                _attach_answer_text(details, provider, result.stdout, hook_text=hook_text)
-            # A failed run still spent what its envelope records, and this lane
-            # never read it: `parse_usage` was Lane B's (`subagent_executor`)
-            # and the audit log's, so the fan-out carried usage for NO slot,
-            # failed or not. Measured 2026-09-17: a claude-code review slot ran
-            # 491 s, spent $25.05 and 137 348 output tokens, died on a usage cap,
-            # and nothing the run wrote — error log, `.status.json`, report —
-            # named a number. Best-effort like `describe_failure`, and absent
-            # rather than `{}` so "not reported" stays distinguishable.
-            _attach_usage(details, provider, result.stdout, result.stderr)
-
-            if schema_phase:
-                # §4.2.1 cases 2 and 4 both arrive here as a non-zero exit, and
-                # they are NOT the same failure: the CLI exhausting its own
-                # structured-output budget is a `schema_violation` our ladder
-                # must not re-run, while a malformed schema is a configuration
-                # error that made **zero requests** and cost nothing. Classifying
-                # here is what keeps the second from being retried as if it were
-                # transient.
-                verdict = structured_output.classify_attempt(
-                    schema,
-                    stdout=result.stdout,
-                    stderr=result.stderr,
-                    exit_code=result.returncode,
-                    phase=schema_phase,
-                    model=f"{provider_name}:{model}",
-                )
-                if (
-                    verdict.failure_reason
-                    and details.get("failure_reason") != FAILURE_JAIL_DENIED
-                ):
-                    details["failure_reason"] = verdict.failure_reason
-                    details["retryable"] = verdict.retryable
-                if verdict.warning:
-                    print(f"[WARN] {verdict.warning}", file=sys.stderr)
-            return {
-                "success": False,
-                "error": error_message,
-                "error_code": ERROR_SUBPROCESS_FAILED,
-                "details": details,
-            }
-
-        # Parse output using provider
-        parsed = provider.parse_output(result.stdout, result.stderr)
-
-        # Add details to successful results
-        parsed["details"] = {
-            "provider": provider_name,
-            "model": model,
-            "duration_seconds": duration
-        }
-        # The adapter's completion verdict moves onto `details` straight after
-        # the parse (plans/ask-answer-recovery-and-false-success.md D3.1):
-        # `incomplete` says the stream's own terminal state shows the answer did
-        # not finish (pi's `stopReason: "length"`), whether or not the text
-        # parsed. On `details` it survives the schema-verdict rebuild below,
-        # which keeps only `details`, and the `PARSE_ERROR` stamp. It is not an
-        # `error_code`, so `invoke_with_file_output`'s hard-failure gate — and
-        # with it the findings-file channel — is unchanged.
-        if parsed.pop("incomplete", False):
-            parsed["details"]["incomplete"] = True
-        # EXTRACT BEFORE DISCARDING. `parse_output` above has just unwrapped the
-        # answer out of the provider's envelope and thrown the envelope away —
-        # and the envelope is where the token counts and the catalog cost live.
-        # Until Stage U this lane asked for them on the losing paths only, so a
-        # run that *worked* reported no numbers anywhere: not on the slot result,
-        # not in `.status.json`, not in the report. Asked here, right where
-        # `details` is born, every exit-0 outcome carries them — a clean parse, a
-        # parse failure, a schema violation, and an adapter whose `parse_output`
-        # calls an exit-0 stream a hard failure. There is no second call for the
-        # schema-verdict branch below: it replaces `parsed` with a new dict whose
-        # `details` spreads `**parsed.get("details", {})`, so the key rides
-        # across. An adapter that reports nothing still leaves it absent.
-        _attach_usage(parsed["details"], provider, result.stdout, result.stderr)
-        # Plan §4.2: the read-only verdict on the full stream, on the same dict
-        # (the schema branch below spreads `details`, so it rides across), and
-        # always before `_attach_stdout_excerpt` bounds anything.
-        audit = _attach_readonly_audit(
-            parsed["details"], provider, result.stdout, sandbox_fallback
+        # stack so leaving this `with` releases nothing, and the caller's
+        # `finally` owns them for the rest of the dispatch.
+        return PreparedDispatch(
+            provider=provider, provider_name=provider_name, model=model,
+            timeout=effective_timeout, cmd=cmd, stdin_text=stdin_text, env=env,
+            cwd=cwd, schema=schema, structured_marker=structured_marker,
+            jail=jail, start_time=start_time, cleanup=setup_cleanup.pop_all(),
         )
-        # D6 override (2026-09-17): a slot that ran without the runner's own
-        # sandbox says so on the same dict, so `served_model_fields` carries it
-        # to the result record, `.status.json`'s `models_served` and the report
-        # label. Only when the override fired — a default run adds no key —
-        # and `bypassed` only for the uncontained rung: a contained rung is a
-        # sandbox, and records its own id rather than a word it would contradict.
-        _attach_sandbox_word(parsed["details"], sandbox_fallback)
 
-        # §3.6: a fallback that fired rides out on the same details dict the
-        # provider/model pair travels on, so every downstream record that names
-        # the requested model can name the model that actually served the turn.
-        # One WARN per slot — the adapter owns the text; there is no second one.
-        attribution = _served_model_attribution(provider, model, result.stdout)
-        if attribution is not None:
-            served, is_fallback, warning = attribution
-            parsed["details"]["served_model"] = served
-            parsed["details"]["served_model_is_fallback"] = is_fallback
-            if warning:
-                print(f"[WARN] {warning}", file=sys.stderr)
 
-        # §4.2.1's rule, stated as a rule and not only as a case: **no**
-        # combination of exit 0, `subtype: success` and `is_error: false` is by
-        # itself a success for a schema-carrying phase. The only success is
-        # `structured_output` present (→ `native`) or a recovered document that
-        # validates against the SAME schema file (→ `recovered`, one WARN).
-        # Anything else is `schema_violation`, handed to the retry ladder like
-        # any other parse failure. Applied here, on the parsed envelope, so no
-        # adapter can silently upgrade prose to validated output.
-        if schema_phase:
-            verdict = structured_output.classify_attempt(
-                schema,
-                stdout=result.stdout,
-                stderr=result.stderr,
-                exit_code=result.returncode,
-                phase=schema_phase,
-                model=f"{provider_name}:{model}",
-                native_document=structured_output.native_document_for(
-                    provider, result.stdout
-                ),
-            )
-            if verdict.warning:
-                print(f"[WARN] {verdict.warning}", file=sys.stderr)
-            if verdict.failure_reason:
-                parsed = {
-                    "success": False,
-                    "error": (
-                        f"{provider_name} returned no schema-conformant document "
-                        f"for {schema_phase} ({verdict.failure_reason})"
-                    ),
-                    "error_code": ERROR_PARSE_ERROR,
-                    "data": None,
-                    "details": {
-                        **parsed.get("details", {}),
-                        "failure_reason": verdict.failure_reason,
-                        "retryable": verdict.retryable,
-                        "structured_output": None,
-                    },
-                }
-            else:
-                parsed["details"]["structured_output"] = (
-                    verdict.marker or structured_marker
-                )
-                if verdict.data is not None:
-                    parsed["success"] = True
-                    parsed["data"] = verdict.data
+def _run_dispatch(prepared: PreparedDispatch) -> Capture:
+    """Spawn the prepared CLI and capture what it wrote.
 
-        # If parse_output indicates failure, add error_code
-        if not parsed.get("success", False) and "error_code" not in parsed:
-            parsed["error_code"] = ERROR_PARSE_ERROR
-
-        # F1 (2026-09-30): the jailed slot's read-back on an exit 0 too — the
-        # home check and the in-stream denial count always; a jail failure
-        # only when the run produced no answer (a `turn.failed` on a
-        # codex-internal EACCES can still exit 0). Such a failure is a hard
-        # one (`SUBPROCESS_FAILED`), so `invoke_with_file_output` returns it as
-        # it is instead of re-labelling it a parse failure of both channels.
-        # "No answer" is `_exit0_left_no_answer`'s reading, not the parse
-        # verdict: codex's `parse_output` succeeds only on JSON, so a finished
-        # prose answer would otherwise be rewritten as jail-denied by any
-        # EACCES-looking line on codex's stderr or in an `error` event.
-        hook_text: Any = _HOOK_UNREAD
+    ``_run_provider_cli``'s contract: a deadline raises ``TimeoutExpired``
+    carrying the output so far, a failed start ``OSError``.
+    """
+    jail = prepared.jail
+    # `subprocess.run`'s contract and arguments, but a `Popen` underneath: on
+    # the deadline, a Ctrl-C or an abort the CLI is SIGTERMed first and every
+    # process group it spawned is swept, instead of `run`'s bare SIGKILL of the
+    # CLI alone (D3.3; see `_run_provider_cli`). On Windows the CLI runs in a
+    # Job Object of its own, and the stop ends that job. Registered for exactly
+    # as long as the child runs, so a jailed slot's `[CODEX_HOME_CHECK]` line
+    # can say how many other children of this provider shared its window (F1
+    # Limits, 2026-09-30).
+    with _live_child(prepared.provider_name) as live_overlap:
         if jail is not None:
-            parsed_details = parsed.setdefault("details", {})
-            jail_failed = not parsed.get("success", False)
-            if jail_failed:
-                hook_text = _salvage_hook_text(provider, result.stdout)
-                jail_failed = _exit0_left_no_answer(hook_text, result.stdout)
-            jail_error, jail_note = _jail_after_child(
-                parsed_details, jail, provider_name=provider_name, model=model,
-                stdout=result.stdout, stderr=result.stderr,
-                returncode=result.returncode,
-                failed=jail_failed,
-            )
-            if jail_error:
-                parsed["success"] = False
-                parsed["error"] = f"{provider_name}: {jail_error}"
-                parsed["error_code"] = ERROR_SUBPROCESS_FAILED
-            elif jail_note and parsed.get("error"):
-                parsed["error"] = f"{parsed['error']}{jail_note}"
-
-        # WHAT THE MODEL ACTUALLY SAID, kept on the failure. A parse failure is
-        # the one class where the error message describes our disappointment
-        # rather than the event: "JSON parsing failed from both file and stdout"
-        # is what a cursor `--mode ask` write refusal looked like from the
-        # outside, and reading the sentence that caused it ("I can't write the
-        # requested file while Ask mode is active") cost three 450 s runs and a
-        # hand-driven CLI invocation, because nothing downstream carried the
-        # text. Redacted and bounded by the same §4.5/§4.4 boundary the log
-        # writer uses — never the raw stream. This is the *original* of the three
-        # `stdout_excerpt` sites; `_attach_stdout_excerpt` now spells the rule for
-        # all of them, and the two hard-failure returns above and below join it,
-        # so `details.get("stdout_excerpt")` means the same thing whichever way
-        # the run was lost. The jail read-back above may already have taken the
-        # hook's one reading; it is reused, never taken twice.
-        if not parsed.get("success", False):
-            _attach_stdout_excerpt(parsed.setdefault("details", {}), result.stdout)
-            if hook_text is _HOOK_UNREAD:
-                hook_text = _salvage_hook_text(provider, result.stdout)
-            _attach_salvage_text(
-                parsed["details"], provider, result.stdout, hook_text=hook_text
-            )
-
-        # Save log if requested. §Fix1/F13: a deferring caller (invoke_with_file_output)
-        # gets the raw capture on `details` instead of an immediate write, on
-        # EVERY exit-0 outcome — not only a failed stdout parse — because this
-        # function does not yet know which channel (file, stdout fallback, or
-        # neither) will end up answering for the run, and that is exactly what
-        # `Result source:` in the log is supposed to name. Writing here
-        # unconditionally on a clean parse used to freeze a log with no
-        # `Result source:` line at all: the caller's file-vs-stdout decision
-        # came later and had nothing left to add to. Only the deferring caller
-        # actually reads `_deferred_log`, so a plain `invoke_with_provider`
-        # call (no defer requested) still gets one immediate write.
-        if log_file:
-            if _defer_parse_failure_log:
-                parsed.setdefault("details", {})["_deferred_log"] = {
-                    "stdout": result.stdout,
-                    "stderr": result.stderr,
-                    "returncode": result.returncode,
-                    "duration_seconds": duration,
-                }
-            else:
-                _save_log(
-                    log_file=log_file,
-                    model=f"{provider_name}:{model}",
-                    prompt=prompt,
-                    stdout=result.stdout,
-                    stderr=result.stderr,
-                    returncode=result.returncode,
-                    success=parsed.get("success", False),
-                    error=parsed.get("error"),
-                    duration_seconds=duration,
-                    readonly_audit=audit,
-                )
-
-        # D2.2: the whole answer on the success return too — the path
-        # nemotron's 124-line answer was lost on, since `data` was a dict and
-        # the full stdout existed only here. A failed parse reuses the hook
-        # reading `salvage_text` took above; a success reads it now, once.
-        if want_answer_text:
-            _attach_answer_text(
-                parsed.setdefault("details", {}), provider, result.stdout,
-                hook_text=hook_text,
-            )
-
-        return parsed
-
-    except subprocess.TimeoutExpired as e:
-        duration = time.time() - start_time
-        # TimeoutExpired may carry partial output as str or bytes; decode
-        # bytes with the same utf-8/replace policy as the run() call above.
-        if e.stdout is None:
-            stdout = ""
-        elif isinstance(e.stdout, str):
-            stdout = e.stdout
-        else:
-            stdout = e.stdout.decode("utf-8", errors="replace")
-        if e.stderr is None:
-            stderr = ""
-        elif isinstance(e.stderr, str):
-            stderr = e.stderr
-        else:
-            stderr = e.stderr.decode("utf-8", errors="replace")
-
-        # Plan §4.2: a killed attempt is audited too — on whatever it streamed
-        # before the kill, which has no `turn.completed`, so it can only come
-        # out not clean (an incomplete stream is "could have written").
-        audit = _readonly_audit(provider, stdout, sandbox_fallback)
-
-        # F1 (2026-09-30): a jailed child killed at the deadline is read back
-        # like any other — the home check and the in-stream denials — but it
-        # stays a timeout, as on the executor lane: an EACCES on codex's own
-        # channels before the kill never makes it a never-retried jail denial.
-        jail_details: Dict[str, Any] = {}
-        jail_error, jail_note = _jail_after_child(
-            jail_details, jail, provider_name=provider_name, model=model,
-            stdout=stdout, stderr=stderr, returncode=None, failed=True,
-            timed_out=True,
+            jail.live = live_overlap
+            # For the lane, in case this attempt raises before its
+            # `details["home_check"]` is returned (armed_homes_window).
+            _note_armed_home(jail)
+        # Passed only when the adapter declares a watch, so every other
+        # adapter's spawn call (and a test's `subprocess.run` stand-in) is
+        # unchanged (docs/development/providers.md#a-cli-that-loops).
+        watch = process_capture.provider_watch(prepared.provider)
+        completed = _run_provider_cli(
+            prepared.cmd,
+            capture_output=True,
+            text=True,
+            # Provider output is not under our control: errors="replace" is
+            # lossy for non-UTF-8 bytes but guarantees a total decode — the
+            # standard choice for LLM/tool output. surrogateescape rejected
+            # (lone surrogates raise on downstream UTF-8 re-encode);
+            # backslashreplace rejected (noisier in model-visible output).
+            encoding="utf-8",
+            errors="replace",
+            timeout=prepared.timeout,
+            env=prepared.env,
+            cwd=prepared.cwd,
+            # Under the argv transport the one provider that reads stdin is
+            # aider, which reads its decline supply there (D4.2: `s` answers to
+            # the "Add file to the chat?" prompts, handed back as `stdin_text`
+            # and closed at EOF once written). For every other one, closing it
+            # prevents CLIs that poll stdin for piped input (e.g. agy) from
+            # blocking forever when the orchestrator's stdin is a non-EOF pipe.
+            # Under the stdin transport the prompt IS the child's stdin, and it
+            # is closed at EOF once written, which those CLIs treat the same way.
+            **(
+                {"input": prepared.stdin_text}
+                if prepared.stdin_text is not None
+                else {"stdin": subprocess.DEVNULL}
+            ),
+            **({"stream_watch": watch} if watch is not None else {}),
         )
-        timeout_error = f"{provider_name} timed out after {effective_timeout}s"
-        if jail_error:
-            timeout_error = f"{timeout_error}: {jail_error}"
-        elif jail_note:
-            timeout_error = f"{timeout_error}{jail_note}"
+    held = getattr(completed, "pipe_held", "")
+    return Capture(
+        stdout=completed.stdout,
+        stderr=completed.stderr,
+        exit_code=completed.returncode,
+        duration=time.time() - prepared.start_time,
+        capped_streams=_capped_streams(completed),
+        stream_bound=LANE_A_MAX_STREAM_BYTES,
+        pipe_held=held if isinstance(held, str) else "",
+    )
 
-        # Save log on timeout if requested
-        if log_file:
-            _save_log(
-                log_file=log_file,
-                model=f"{provider_name}:{model}",
-                prompt=prompt,
-                stdout=stdout,
-                stderr=stderr,
-                returncode=-1,
-                success=False,
-                # Plus what the sweep did to the CLI and to each process group
-                # it had spawned, so a `survived` group is named where the
-                # timeout is (D3.3).
-                error=f"{timeout_error}{_describe_tree_sweep(e)}",
-                duration_seconds=duration,
-                readonly_audit=audit,
-            )
 
-        details = {
-            "provider": provider_name,
-            "model": model,
-            "timeout": effective_timeout,
-            "duration_seconds": duration
-        }
-        # A TIMEOUT KILL DOES RECOVER PARTIAL STDOUT, so this return no longer
-        # throws it away — checked rather than assumed, because attaching a key
-        # that is empty by construction would be worse than attaching nothing.
-        # `_run_provider_cli` re-raises a `TimeoutExpired` carrying what the CLI
-        # wrote: the bytes read before the deadline plus whatever a bounded
-        # second `communicate()` collected after the sweep stopped it. That is
-        # the `e.stdout` the decode a few lines above has just
-        # turned into the `stdout` local — the same local `_save_log` is handed,
-        # so the log file has always kept this text and only the returned envelope
-        # did not. The envelope is the half a caller can act on.
-        #
-        # This is the archetype §2 of the plan names for salvage site A: a
-        # provider that streamed a review array and was killed mid-emission
-        # leaves a *truncated* array on stdout and nothing at all on stderr. It is
-        # the most salvageable failure this skill has, and the stderr-only gate
-        # was structurally unable to see it. Bounding matters more here than at
-        # either sibling site, because the run killed at the deadline is the run
-        # most likely to have emitted megabytes — the 6,254,326 B log `_save_log`
-        # was written to survive came off a path like this one.
-        #
-        # When the kill caught the child before its first write, `stdout` is the
-        # empty string rather than absent; the helper omits the key rather than
-        # attaching `""`, so this path and the non-zero-exit path answer
-        # `details.get("stdout_excerpt")` the same way.
-        if audit is not None:
-            details[_READONLY_AUDIT_KEY] = audit
-        # A killed child ran too, and ran under whatever rung it was given.
-        _attach_sandbox_word(details, sandbox_fallback)
-        details.update(jail_details)
-        _attach_stdout_excerpt(details, stdout)
-        # One hook reading for both keys (D2.2): each cuts its own copy.
-        hook_text = _salvage_hook_text(provider, stdout)
-        _attach_salvage_text(details, provider, stdout, hook_text=hook_text)
-        if want_answer_text:
-            _attach_answer_text(details, provider, stdout, hook_text=hook_text)
-        # AND THE SAME PARTIAL STDOUT IS WHAT USAGE IS PARSED OUT OF. This is
-        # the third of the three outcomes `_attach_usage` is documented to
-        # cover, and it was the one that never called it — so the run killed at
-        # the deadline, the expensive failure class Stage U exists to report,
-        # reported no numbers at all while the excerpt beside it carried the
-        # very bytes an adapter reads them from. A provider that streamed a
-        # terminal usage event before the kill, or that reports cumulatively per
-        # step, has already said what it spent; best-effort like every other
-        # call, and absent rather than `{}` when the adapter can say nothing.
-        _attach_usage(details, provider, stdout, stderr)
+def _decoded_partial(stream: Any) -> str:
+    """A ``TimeoutExpired``'s partial stream as text: it may carry ``str`` or
+    ``bytes``, decoded with the run's own utf-8/replace policy."""
+    if stream is None:
+        return ""
+    if isinstance(stream, str):
+        return stream
+    return stream.decode("utf-8", errors="replace")
 
-        return {
-            "success": False,
-            "error": timeout_error,
-            "error_code": ERROR_TIMEOUT,
-            "details": details,
-        }
 
-    except OSError as e:
-        # Process creation failed (executable removed after detection, an
-        # invalid resolved shim, or any other CreateProcess/exec failure):
-        # return a structured error through the same result-dict path as
-        # other provider errors instead of aborting the orchestrator.
-        duration = time.time() - start_time
-        if isinstance(e, FileNotFoundError):
-            error_code = ERROR_BINARY_NOT_FOUND
-            error_msg = f"{provider_name} CLI not found when launching: {e}"
-        else:
-            error_code = ERROR_SUBPROCESS_FAILED
-            error_msg = f"Failed to launch {provider_name} CLI: {e}"
+def _timed_out_capture(expired: subprocess.TimeoutExpired, start_time: float) -> Capture:
+    """A deadline kill's capture: what ``_run_provider_cli`` re-raised with, the
+    bytes read before the deadline plus what the bounded post-sweep drain
+    collected, what the sweep did, and the stdout watch's reason when it, not
+    the deadline, asked for the stop."""
+    duration = time.time() - start_time
+    stop = getattr(expired, "stream_stop", None)
+    held = getattr(expired, "held_pipe", "")
+    return Capture(
+        stdout=_decoded_partial(expired.stdout),
+        stderr=_decoded_partial(expired.stderr),
+        timed_out=True,
+        duration=duration,
+        capped_streams=_capped_streams(expired),
+        stream_bound=LANE_A_MAX_STREAM_BYTES,
+        tree_sweep=_describe_tree_sweep(expired),
+        stream_stop=stop if isinstance(stop, str) and stop else None,
+        pipe_held=held if isinstance(held, str) else "",
+    )
 
-        # Save log on launch failure if requested
-        if log_file:
-            _save_log(
-                log_file=log_file,
-                model=f"{provider_name}:{model}",
-                prompt=prompt,
-                stdout="",
-                stderr=str(e),
-                returncode=-1,
-                success=False,
-                error=error_msg,
-                duration_seconds=duration
-            )
 
-        return {
-            "success": False,
-            "error": error_msg,
-            "error_code": error_code,
-            "details": {
-                "provider": provider_name,
-                "model": model,
-                "duration_seconds": duration
-            }
-        }
+def _log_outcome(
+    log_file: Union[str, Path],
+    prompt: str,
+    prepared: PreparedDispatch,
+    capture: Capture,
+    result: Dict[str, Any],
+) -> None:
+    """The provider log for ``result``: ``outcome_from_capture``'s ``log``
+    writer, called where each path logs. It is never called for an exit 0 the
+    caller defers, which gets ``details["_deferred_log"]`` and writes the one
+    entry once it knows which channel answered."""
+    model = f"{prepared.provider_name}:{prepared.model}"
+    if capture.launch_error is not None:
+        _save_log(
+            log_file=log_file, model=model, prompt=prompt, stdout="",
+            stderr=capture.launch_error, returncode=-1, success=False,
+            error=result["error"], duration_seconds=capture.duration,
+        )
+        return
+    if capture.timed_out:
+        # Plus what the sweep did to the CLI and to each process group it had
+        # spawned, so a `survived` group is named where the timeout is (D3.3).
+        returncode, error = -1, f"{result['error']}{capture.tree_sweep}"
+    elif capture.exit_code != 0:
+        returncode, error = capture.exit_code, result["error"]
+    else:
+        returncode, error = capture.exit_code, result.get("error")
+    if capture.pipe_held and not capture.timed_out:
+        # What the sweep of the CLI's pipe holders did, beside how it ended
+        # (a timeout's error line names it already).
+        error = f"{error}; {capture.pipe_held}" if error else capture.pipe_held
+    _save_log(
+        log_file=log_file, model=model, prompt=prompt, stdout=capture.stdout,
+        stderr=capture.stderr, returncode=returncode,
+        success=result.get("success", False), error=error,
+        duration_seconds=capture.duration,
+        readonly_audit=result["details"].get(_READONLY_AUDIT_KEY),
+    )
 
+
+def invoke_with_provider(
+    prompt: str,
+    model_spec: str,
+    timeout: Optional[int] = None,
+    log_file: Optional[Union[str, Path]] = None,
+    cwd: Optional[str] = None,
+    prompt_transport: Optional[str] = None,
+    anchor: Optional[Union[str, Path]] = None,
+    schema_phase: Optional[str] = None,
+    _defer_parse_failure_log: bool = False,
+    sandbox_fallback: Optional[str] = None,
+    want_answer_text: bool = False,
+) -> Dict[str, Any]:
+    """Invoke an LLM using the provider abstraction.
+
+    This is the primary function for invoking LLM providers. It handles
+    provider lookup, command building, subprocess execution, and output
+    parsing with consistent error reporting, in three steps:
+    :func:`prepare_dispatch` (setup, and every refusal before a spawn), the
+    spawn, and :func:`utils.provider_outcome.outcome_from_capture` (the result,
+    read from what the spawn captured), which writes the provider log through
+    :func:`_log_outcome` at the point each path logs
+    (docs/development/providers.md#reading-a-capture).
+
+    Args:
+        prompt: The prompt to send to the LLM.
+        model_spec: Model specification in "provider:model" or "model" format.
+                   If no provider prefix is given, uses the default provider
+                   from providers.yaml configuration.
+        timeout: Optional timeout override in seconds. Uses provider default
+                if not specified.
+        log_file: Optional path to save full output log for debugging.
+        prompt_transport: Optional non-argv transport override (D2d) —
+            ``"stdin"`` writes the prompt to the child's stdin and omits it from
+            argv, so no part of it is measured against the Windows
+            command-line cap. Defaults to the adapter's ``prompt_transport``
+            (``"argv"`` for every adapter today), keeping existing invocations
+            byte-identical. Refused with SUBPROCESS_FAILED when the adapter does
+            not declare support, rather than silently falling back to argv and
+            re-introducing the cap the caller was avoiding.
+        anchor: Optional discovery anchor (the run's plan-file path). Threaded
+            into BOTH ``parse_model_spec`` and ``get_provider_timeout`` so a bare
+            (prefix-less) spec resolves its ``default_provider`` — and its
+            timeout — against the plan-derived project config rather than CWD's.
+            This is the spawn site: unanchored, a run started from a foreign CWD
+            launches a different binary than the project configured.
+        schema_phase: the phase name (``review-plan``, ``code-review``, …),
+            or ``None``. **``None`` is the default and changes nothing**: no
+            schema is resolved, no flag is emitted and the returned dict is
+            byte-for-byte what it has always been.
+
+            When set, this is the "the caller reads the flag before
+            dispatch" leg: the phase's schema file is resolved through
+            ``utils.structured_output``, the adapter's
+            ``structured_output_support`` decides whether it is passed at all,
+            codex's sidecar is written and removed in a ``finally``, and
+            The failure policy is applied to the envelope afterwards. The
+            verdict lands on ``details['structured_output']`` as ``native`` /
+            ``recovered`` / ``unvalidated``; a refusal replaces the result with
+            a failure carrying ``details['failure_reason']``.
+
+            **Disposition (W1): DEFER — repository owner, 2026-08-20.** No
+            production caller passes ``schema_phase`` today; the only callers
+            are in ``tests/test_structured_output.py``, and that is the standing
+            check. Lane A's fan-out phases are deliberately *not* wired, because
+            Lane A's six shipped documents are array-rooted and claude-code
+            cannot natively carry an array-rooted schema at all — wiring the
+            callers first buys one WARN per dispatch and no native transport.
+            Object-rooting those six files is a contract change for every
+            consumer of them and is explicitly not a change a call site may
+            take, so it is the repository owner's to make and it has not been
+            made.
+
+            **Re-check trigger:** claude-code accepts an array-rooted
+            ``--json-schema``. **Re-read date:** 2027-02-20. Until one of those
+            fires, wiring a production caller here is a regression, not
+            progress. Where the verdict sits:
+            docs/development/providers.md#reading-a-capture (the schema verdict).
+        _defer_parse_failure_log: Internal (§Fix1/F13). When the child
+            exited 0, writing the log here (if ``log_file`` is set) — before
+            :func:`invoke_with_file_output` has chosen between the file
+            channel and the stdout fallback — would either freeze
+            ``Success: False`` on a run the file channel goes on to resolve
+            (§Fix1's original bug), or, on a clean parse, write a log with no
+            ``Result source:`` line at all because this function does not yet
+            know which channel will end up answering (F13). Set by that
+            caller only: skips the immediate ``_save_log`` write for every
+            exit-0 outcome and hands the raw capture back on
+            ``details["_deferred_log"]`` instead, so the one log entry gets
+            written once the final outcome — file, stdout fallback, or both
+            failed — is known, and always carries `Result source:`. The
+            capture rides back with no ``log_file`` too: the caller reads a
+            rejected stdout answer's verdict off it
+            (``provider_outcome.rejected_answer_category``). A hard
+            failure (binary not found, timeout, non-zero exit) still logs
+            immediately, unaffected by this flag — there is no channel choice
+            to wait for.
+        sandbox_fallback: The fan-out's D6 override: the rung id
+            ``review_orchestrator_base.sandbox_refusal`` selected for this slot
+            — the runner's own sandbox probe said ``unavailable``, the
+            fallback walk found a rung ``providers.<name>.sandbox_fallback``
+            permits, and this is a ``generate`` dispatch (``True`` is the
+            pre-rung spelling of the uncontained rung). It is forwarded to the
+            adapter's ``build_command_for_transport`` (which every adapter but
+            codex ignores) and, whenever the child ran (success, non-zero
+            exit or timeout kill), recorded as ``details["sandbox"]``
+            — ``"bypassed"`` for the uncontained rung only, the rung id for a
+            contained one — so the provenance rides the same dict
+            ``served_model`` does. The default renders every argv
+            byte-for-byte as before and adds no key.
+
+            **The plugin's own jail** (``plugin-landlock`` F1, 2026-09-30):
+            this function is the fan-out's spawn site, so it builds the
+            read-only ``JailRequest`` from ``cwd``, owns the attempt's scratch
+            ``TMPDIR`` (``slot_tmpdir`` on ``setup_cleanup``, released by the
+            subprocess ``finally`` after the child's groups were swept),
+            renders with the ``JailContext``, completes it from the composed
+            env and wraps the resolved argv (``landlock_dispatch.wrap_argv``).
+            It then reads back, on every outcome that ran a child:
+            ``details["home_check"]`` (only when ``$CODEX_HOME``'s
+            security-relevant set changed or a foreign trust table appeared:
+            ``changed``, ``config_keys``, ``foreign_trust``, ``home``,
+            ``other_live_children``), ``details["jail_denials"]`` (the denials
+            inside the model's own commands: ``JailDenials.to_dict()`` plus
+            ``total`` and the first three ``paths``) and, on a failed attempt
+            the jail caused, ``details["jail_failure"]`` (``JailEvidence``'s
+            keys plus ``rung``, ``installed_version``, ``measured_through``,
+            ``allow_list`` and the ``[JAIL_DENIED]`` line under ``notice``)
+            with ``failure_reason: "jail-denied"`` and ``retryable: False``.
+            A home it cannot grant is the same jail failure with nothing
+            spawned; a scratch directory it cannot make is
+            ``failure_reason: "jail-setup-failed"``, also non-retryable.
+        want_answer_text: The ask lane's request for the model's **whole**
+            answer text.
+            When True, every exit that ran the child — success, exit-0 parse
+            failure, non-zero exit, timeout — sets ``details["answer_text"]``
+            from the full stdout (:func:`_attach_answer_text`: the adapter's
+            ``salvage_text`` hook, else :func:`generic_answer_text`; redacted,
+            head-capped at 1 MiB). The returns before the spawn and the launch
+            failure carry no key, which a reader treats like ``""``. The
+            default adds no key and leaves ``salvage_text`` as it was, so the
+            review lanes are unchanged.
+
+    Returns:
+        Dict with 'success' key and either:
+        - On success: 'data' key with parsed response, plus 'details' dict
+        - On failure: 'error' message, 'error_code', and 'details' dict
+
+    Error codes:
+        BINARY_NOT_FOUND: Provider CLI tool not found in PATH
+        TIMEOUT: Command timed out
+        SUBPROCESS_FAILED: Command exited with non-zero code (or failed to launch)
+        PARSE_ERROR: Failed to parse output
+        PROMPT_TOO_LONG: The fully rendered command line (executable path,
+            flags, and prompt) exceeds the Windows command-line length budget
+        PROMPT_UNSAFE: Prompt carries cmd.exe metacharacters and the provider
+            only resolves to a Windows .cmd/.bat shim
+    """
+    prepared = prepare_dispatch(
+        prompt, model_spec, timeout=timeout, cwd=cwd,
+        prompt_transport=prompt_transport, anchor=anchor,
+        schema_phase=schema_phase, sandbox_fallback=sandbox_fallback,
+    )
+    if not isinstance(prepared, PreparedDispatch):
+        return prepared
+    read = functools.partial(
+        outcome_from_capture, prepared.provider,
+        provider_name=prepared.provider_name, model=prepared.model,
+        timeout=prepared.timeout, sandbox_fallback=sandbox_fallback,
+        want_answer_text=want_answer_text, schema=prepared.schema,
+        schema_phase=schema_phase, structured_marker=prepared.structured_marker,
+        jail=prepared.jail_read_back(),
+        defer_log=_defer_parse_failure_log,
+        log=(
+            functools.partial(_log_outcome, log_file, prompt, prepared)
+            if log_file else None
+        ),
+    )
+    try:
+        # The reading of an exit shares the spawn's `try`: whatever raises out
+        # of either is handled the same way.
+        try:
+            return read(_run_dispatch(prepared))
+        except subprocess.TimeoutExpired as expired:
+            return read(_timed_out_capture(expired, prepared.start_time))
+        except OSError as exc:
+            return read(Capture(
+                launch_error=str(exc),
+                launch_not_found=isinstance(exc, FileNotFoundError),
+                duration=time.time() - prepared.start_time,
+            ))
     finally:
-        # §4.2.1: codex's per-invocation schema directory is removed in a
+        # Codex's per-invocation schema directory is removed in a
         # `finally` so it is cleaned up on success, on timeout, on kill-path
-        # teardown and on exception alike. A no-op when `schema_phase` is unset
-        # or the adapter's transport is inline.
-        schema_cleanup.close()
+        # teardown and on exception alike, and so are the adapter's dispatch
+        # context and a jailed attempt's scratch directory. A no-op for what
+        # was never entered.
+        prepared.cleanup.close()
 
 
 def _is_valid_parsed_data(data: Any) -> bool:
@@ -2831,737 +2104,75 @@ def _is_valid_parsed_data(data: Any) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# The ``{output_location}`` block the three review prompts end with
+# The names that moved to utils/prompt_channels.py
 # ---------------------------------------------------------------------------
 
-#: What a file-capable adapter is asked for. Byte-identical to the text
-#: ``prompts/{code,plan,task}_review.txt`` carried inline before the placeholder
-#: existed, so the rendered prompt of every adapter that declares
-#: ``supports_file_output`` is unchanged to the character — the golden container
-#: turns under ``tests/golden/container_turns/`` are captured from those bytes.
-FILE_OUTPUT_LOCATION = (
-    "CRITICAL: Write your JSON output to this file: {path}\n"
-    "Do NOT print JSON to stdout. Write ONLY the JSON array to the specified "
-    "file path.\n"
-    'After writing, confirm by printing: "JSON written to {path}"\n'
-    "\n"
-    "The file must contain ONLY valid JSON - no markdown, no code blocks, no "
-    "explanation. Just the raw JSON array."
-)
-
-#: What an adapter that declares ``supports_file_output = False`` is asked for
-#: instead. Two adapters run their CLI in a read-only chat mode on purpose
-#: (cursor ``--mode ask``, aider ``/ask``), and the file instruction is one they
-#: can only answer with a refusal sentence. Stdout is the channel they *do*
-#: have, it is the one ``invoke_with_file_output`` already falls back to, and
-#: the parsed array lands in exactly the same per-model result file either way —
-#: ``save_model_result`` writes it from the returned data, not from the model's
-#: own file.
-#:
-#: "Refused by the sandbox where one runs", not "will be refused": until D6's
-#: fallback (2026-09-17) every adapter on this roster really did refuse the
-#: write — a chat mode, a zero tool budget, a missing tool, or codex's own
-#: bubblewrap. A codex slot dispatched under the fallback (``sandbox_fallback:
-#: auto``, the default) runs with no sandbox at all, so a write there would
-#: *succeed*, and a prompt
-#: that promised otherwise would be lying to the model about the one thing it
-#: is being asked not to do. The instruction is the same either way (return the
-#: array on stdout); only the claim about what happens on disobedience moved.
-STDOUT_OUTPUT_LOCATION = (
-    "CRITICAL: Return your JSON output on stdout as your final message. Do NOT "
-    "write it to a file — this is a read-only task, and a file write is "
-    "refused by the sandbox where one runs.\n"
-    "Your final message must be ONLY the raw JSON array - no markdown, no code "
-    "blocks, no explanation, no preamble and no closing remarks."
-)
-
-
-def render_output_location(
-    output_json_path: Union[str, Path],
-    model_spec: str,
-    anchor: Optional[Union[str, Path]] = None,
-) -> str:
-    """The ``{output_location}`` block for ``model_spec``'s rendered prompt.
-
-    One decision, taken from the adapter's declared
-    :attr:`~utils.providers.base.LLMProvider.supports_file_output` rather than
-    from a provider name spelled out in an orchestrator: the caller that renders
-    a prompt does not need to know *which* CLIs refuse to write, only that this
-    one does. An unknown provider (a config naming an adapter this build no
-    longer ships) renders the file block, which is what every caller did before
-    this function existed.
-
-    ``anchor`` is the run's plan path (§9.3.c): a bare, prefix-less spec resolves
-    its ``default_provider`` against the plan-derived project config, so the
-    block matches the binary that will actually be spawned.
-    """
-    provider_name, _ = parse_model_spec(model_spec, anchor=anchor)
-    provider = get_provider(provider_name)
-    if provider is not None and not provider.supports_file_output:
-        return STDOUT_OUTPUT_LOCATION
-    return FILE_OUTPUT_LOCATION.format(path=output_json_path)
-
-
-# ---------------------------------------------------------------------------
-# The ``{diff_access}`` block of the code-review prompt
-# ---------------------------------------------------------------------------
-#
-# Measured on the 2026-09-25 review run (plan: review-run-scope-salvage-and-
-# failure-visibility §2.1): the code-review prompt only told reviewers to run
-# `git diff`, and the two cursor-agent lanes run `--mode ask`, which has no
-# shell — kimi returned `[]` having never seen a diff, and grok reported a test
-# failure it could not have run. The orchestrator now writes the scope manifest
-# and one diff per file into the phase dir before dispatch, and this block tells
-# each lane how to reach them, rendered from the adapter's two `generate`
-# declarations (`generate_read_scope`, `runs_shell_in_generate`) so the
-# orchestrator never names a provider. It is the ONLY block of the prompt that
-# may grant a shell command, and only its `True` text does.
-
-#: The one size cap decision 11.4 keeps. It bounds only the INLINE branch — a
-#: lane that cannot open the phase dir gets the plan, the manifest and every
-#: diff in the prompt itself — and it is physical, not a guess at a context
-#: window: an argv lane's whole prompt is one argument, Linux caps one argument
-#: at ``MAX_ARG_STRLEN`` (131072 bytes), and 96 KB leaves room for the template.
-INLINE_DIFF_CAP_BYTES = 96 * 1024
-
-#: The same physical limit applied to the WHOLE rendered prompt of an inline
-#: slot, not only its ``{diff_access}`` block: the template around that block
-#: also carries the implementation record (up to 20 000 chars, UTF-8 widens it),
-#: the file list and the working limits, so a block under
-#: :data:`INLINE_DIFF_CAP_BYTES` can still sit in a prompt past
-#: ``MAX_ARG_STRLEN`` and die as an ``E2BIG`` spawn failure. 4 KB under the
-#: kernel's number, for its NUL and an adapter's own wrapping of the prompt
-#: argument (aider's ``/ask `` prefix) — the ceiling ``ask_orchestrator``'s
-#: ``MAX_PROMPT_BYTES`` uses for the same reason. Measured with
-#: :func:`argv_prompt_bytes`.
-INLINE_PROMPT_CAP_BYTES = 124 * 1024
-
-#: The values ``LLMProvider.generate_read_scope`` may take.
-GENERATE_READ_SCOPES = ("none", "cwd", "any")
-
-#: What the inline branch calls the manifest block. A lane on that branch
-#: cannot open the file, so this is the name a truncated file-list notice can
-#: point it at ("the ``review-scope.md`` block below") instead of a path.
-INLINE_MANIFEST_LABEL = "review-scope.md"
-
-#: What the inline branch calls a commit review's frozen context plan
-#: (``commit_range.plan_snapshot``, plans/review-commits.md §2.4): the
-#: snapshot's own file name (``commit_brief.CONTEXT_PLAN_SNAPSHOT``), so the
-#: commit template's ``{plan_block}`` can point an inline lane at the block.
-INLINE_CONTEXT_PLAN_LABEL = "context-plan.md"
-
-#: Shared by the three path texts. Deliberately names no command: only the
-#: ``True`` text may.
-_MANIFEST_SENTENCE = (
-    "The scope manifest at {scope_file} lists every in-scope file with its "
-    "status, and names each file's diff file (relative to the manifest) and "
-    "its size."
-)
-
-#: ``runs_shell_in_generate is True`` — a shell runs, measured. Carries the
-#: guidance ``prompts/code_review.txt`` used to hold in its static text, now an
-#: optional cross-check rather than the only way to see the change.
-DIFF_ACCESS_SHELL_TEXT = (
-    "The diff files in {diff_dir} are the authoritative record of the change. "
-    + _MANIFEST_SENTENCE
-    + " Read the manifest first, then each entry's diff file, with your file "
-    "tools.\n"
-    "\n"
-    "You can also run shell commands. `git diff {base_ref}`, `git show` and "
-    "`git log` are an optional cross-check of the diff files, never a "
-    "replacement for reading them:\n"
-    "1. **All changes at once:** `git diff {base_ref} -- <file1> <file2> ...`\n"
-    "2. **One file's changes:** `git diff {base_ref} -- path/to/file`\n"
-    "3. **A file's current content:** `cat path/to/file`, or your file-read "
-    "tool\n"
-    "\n"
-    "`git diff {base_ref} -- <path>` is required for any file the manifest "
-    "marks `omitted`: it has no diff file, so that command's output is the only "
-    "record of its change you can review."
-)
-
-#: ``runs_shell_in_generate is False`` — no shell, measured. The first
-#: paragraph is plan D2.3's text, word for word.
-DIFF_ACCESS_NO_SHELL_TEXT = (
-    "You cannot run shell commands. The diff is at {diff_dir}; read it with "
-    "your file tools. Do not claim a test passes or fails, because you cannot "
-    "run it.\n"
-    "\n"
-    + _MANIFEST_SENTENCE
-    + " The diff files are the authoritative record of the change: read the "
-    "manifest first, then each entry's diff file."
-)
-
-#: ``runs_shell_in_generate is None`` — not measured. It neither grants nor
-#: denies a shell; the first paragraph is plan D2.3's text, word for word.
-DIFF_ACCESS_UNMEASURED_TEXT = (
-    "The diff files at {diff_dir} are the authoritative record of the change; "
-    "read them with your file tools. Do not claim a test passes or fails unless "
-    "you actually ran it and saw the result.\n"
-    "\n"
-    + _MANIFEST_SENTENCE
-    + " Read the manifest first, then each entry's diff file."
-)
-
-#: What each state adds when ``write_review_diff``'s coverage is ``partial``
-#: (git produced no diff for some in-scope path). ``False`` and ``None`` are
-#: plan D2.3's text, word for word. ``None``'s names ``git diff`` only as the
-#: command the MANIFEST gives, conditionally — it grants nothing.
-DIFF_ACCESS_SHELL_PARTIAL = (
-    "Diff coverage for this change is partial: git produced no diff file for "
-    "the files the manifest marks `omitted`. Run `git diff {base_ref} -- "
-    "<path>` for each of them and review it from that output; if the command "
-    "fails, list the file as not reviewed. Do not review their current "
-    "contents as if they were the change."
-)
-DIFF_ACCESS_NO_SHELL_PARTIAL = (
-    "Files the manifest marks `omitted` have no diff you can read. List them as "
-    "not reviewed. Do not review their current contents as if they were the "
-    "change."
-)
-DIFF_ACCESS_UNMEASURED_PARTIAL = (
-    "Files the manifest marks `omitted` have no diff file. If you can run the "
-    "`git diff` command the manifest gives for one, review it from that output; "
-    "otherwise list it as not reviewed. Do not review their current contents as "
-    "if they were the change."
-)
-
-# A review pinned to a commit (``--head-ref``: a direct two-commit run, or a
-# commit brief; plans/review-commits.md §2.5). The change is `git diff <base>
-# <head>`, so the working tree is never the reviewed content, for any file, and
-# nothing below says it is: the shell text's third command reads a file at the
-# head commit (`git show`), never with `cat`. The block opens by naming the
-# change as `<base7>..<head7>`, says it ends at the head commit and not at the
-# working tree, names the files that changed on disk since that commit, and
-# closes with the pinned-head read rule (with the §2.6 trust sentence), so
-# `code_review.txt`'s fixed "everything since it" is corrected on a direct run.
-# `{sides}` is `<base> <head>` as git takes them, `{head}` the head commit's
-# 12-character prefix.
-
-#: ``runs_shell_in_generate is True`` on a pinned review.
-DIFF_ACCESS_PINNED_SHELL_TEXT = (
-    "The diff files in {diff_dir} are the authoritative record of the change. "
-    + _MANIFEST_SENTENCE
-    + " Read the manifest first, then each entry's diff file, with your file "
-    "tools.\n"
-    "\n"
-    "You can also run shell commands. `git diff {sides}`, `git show` and "
-    "`git log` are an optional cross-check of the diff files, never a "
-    "replacement for reading them:\n"
-    "1. **All changes at once:** `git diff {sides} -- <file1> <file2> ...`\n"
-    "2. **One file's changes:** `git diff {sides} -- path/to/file`\n"
-    "3. **A file as the head commit holds it:** `git show {head}:path/to/file`\n"
-    "\n"
-    "`git diff {sides} -- <path>` is required for any file the manifest "
-    "marks `omitted`: it has no diff file, so that command's output is the only "
-    "record of its change you can review."
-)
-
-#: The shell state's partial-coverage sentence on a pinned review.
-DIFF_ACCESS_PINNED_SHELL_PARTIAL = (
-    "Diff coverage for this change is partial: git produced no diff file for "
-    "the files the manifest marks `omitted`. Run `git diff {sides} -- "
-    "<path>` for each of them and review it from that output; if the command "
-    "fails, list the file as not reviewed. Do not review their working-tree "
-    "contents as if they were the change."
-)
-
-#: What a lane with no shell (or an unmeasured one) is told on a pinned review:
-#: the read rule's commands need a shell, and its alternative is never the disk.
-DIFF_ACCESS_PINNED_NO_SHELL_NOTE = (
-    "Without a shell you cannot run the commands below: review from the diff "
-    "files and the manifest alone, and read no other file from the working "
-    "tree, which may not hold the reviewed code."
-)
-
-#: How many changed-on-disk files the opening names before "… and <k> more"
-#: (the `[SCOPE_DRIFT]` line names the same ten).
-_PINNED_DRIFT_NAMED = 10
-
-
-def _pinned_opening(
-    base_ref: str, head: str, *, root: bool, drifted: Sequence[str],
-) -> str:
-    """The pinned block's first paragraph: which change, where it ends, what
-    drifted. Built by concatenation, never ``str.format``: a drifted path may
-    hold braces."""
-    h7, h12 = head[:7], head[:12]
-    if root:
-        text = (
-            f"The change under review is `root..{h7}`: every commit up to and "
-            f"including `{h7}`, as `git diff {base_ref} {h12}` (the empty tree "
-            f"against that commit). It ends at commit `{h7}`, not at the working "
-            f"tree. The range starts at the repository's first commit, so the "
-            f"diff shows each whole file as new."
-        )
-    else:
-        text = (
-            f"The change under review is `{base_ref[:7]}..{h7}`: the net diff "
-            f"`git diff {base_ref[:12]} {h12}`, ending at commit `{h7}`, not at "
-            f"the working tree."
-        )
-    names = [str(path) for path in drifted if path]
-    if names:
-        shown = ", ".join(f"`{name}`" for name in names[:_PINNED_DRIFT_NAMED])
-        if len(names) > _PINNED_DRIFT_NAMED:
-            shown += f" … and {len(names) - _PINNED_DRIFT_NAMED} more"
-        text += (
-            f" {len(names)} reviewed file(s) have changed since `{h7}` and "
-            f"differ on disk from it, so their working-tree copies are not the "
-            f"reviewed code: {shown}."
-        )
-    return text
-
-
-def _pinned_rule(base_ref: str, head: str, *, root: bool) -> str:
-    """``commit_range.pinned_head_read_rule`` for this pair (imported here, not
-    at module load: ``commit_range`` reaches ``cli_common``)."""
-    from .commit_range import pinned_head_read_rule
-
-    return pinned_head_read_rule(None if root else base_ref, head)
-
-
-def _is_root_base(base_ref: str, cwd: Union[str, Path]) -> bool:
-    """Whether *base_ref* is the repository's empty-tree id (a root range)."""
-    from .git_utils import is_empty_tree_id
-
-    return bool(base_ref) and is_empty_tree_id(base_ref, str(cwd))
-
-#: The inline branch's opening, by read scope. It names no path: the lane
-#: cannot open the phase dir, so every block below is labelled with the name
-#: the manifest uses for it, never an address.
-_INLINE_HEAD_BY_SCOPE = {
-    "none": "You cannot open files in this review, so everything you need is "
-    "inline below:",
-    "cwd": "The review's artifacts sit outside the directory you can read, so "
-    "everything you need is inline below:",
-}
-_INLINE_HEAD_TAIL_REST = (
-    " the scope manifest (`" + INLINE_MANIFEST_LABEL + "`) and one "
-    "diff per in-scope source and test file. The diffs are the authoritative "
-    "record of the change. Each block is labelled with the name the manifest "
-    "uses for it; the labels are names, not files you can open."
-)
-_INLINE_HEAD_TAIL = " the plan," + _INLINE_HEAD_TAIL_REST
-#: The same tail when a commit review has a context plan: its frozen snapshot
-#: is one more block, right after the plan's.
-_INLINE_HEAD_TAIL_CONTEXT_PLAN = (
-    " the plan, the context plan's frozen snapshot (`"
-    + INLINE_CONTEXT_PLAN_LABEL + "`)," + _INLINE_HEAD_TAIL_REST
-)
-
-#: The inline branch's shell sentence, by ``runs_shell_in_generate``. Only the
-#: ``True`` one names a command, as on the path branch.
-_INLINE_SHELL_BY_STATE = {
-    True: (
-        "You can also run shell commands. `git diff {base_ref}`, `git show` and "
-        "`git log` are an optional cross-check of the inline diffs, never a "
-        "replacement for reading them."
-    ),
-    False: (
-        "You cannot run shell commands. Do not claim a test passes or fails, "
-        "because you cannot run it."
-    ),
-    None: (
-        "Do not claim a test passes or fails unless you actually ran it and saw "
-        "the result."
+#: Every top-level name of :mod:`utils.prompt_channels`, the prompt text and
+#: diff-access rendering split out of this module. They are read-only
+#: re-exports: reading one here returns that module's current binding, and
+#: ``dir()`` lists them. Nothing is copied into this module, so a patch of the
+#: owner shows through here; a write here only shadows the name in this module
+#: and reaches no code, which ``tests/test_llm_client_moved_names.py`` refuses.
+_MOVED: Dict[str, Tuple[str, ...]] = {
+    "prompt_channels": (
+        "DIFF_ACCESS_NO_SHELL_PARTIAL",
+        "DIFF_ACCESS_NO_SHELL_TEXT",
+        "DIFF_ACCESS_PINNED_NO_SHELL_NOTE",
+        "DIFF_ACCESS_PINNED_SHELL_PARTIAL",
+        "DIFF_ACCESS_PINNED_SHELL_TEXT",
+        "DIFF_ACCESS_SHELL_PARTIAL",
+        "DIFF_ACCESS_SHELL_TEXT",
+        "DIFF_ACCESS_UNMEASURED_PARTIAL",
+        "DIFF_ACCESS_UNMEASURED_TEXT",
+        "DiffAccess",
+        "FILE_OUTPUT_LOCATION",
+        "GENERATE_READ_SCOPES",
+        "INLINE_CONTEXT_PLAN_LABEL",
+        "INLINE_DIFF_CAP_BYTES",
+        "INLINE_MANIFEST_LABEL",
+        "INLINE_PROMPT_CAP_BYTES",
+        "STDOUT_OUTPUT_LOCATION",
+        "WORKING_LIMITS_BLOCK",
+        "_INLINE_HEAD_BY_SCOPE",
+        "_INLINE_HEAD_TAIL",
+        "_INLINE_HEAD_TAIL_CONTEXT_PLAN",
+        "_INLINE_HEAD_TAIL_REST",
+        "_INLINE_SHELL_BY_STATE",
+        "_MANIFEST_DIFF_REF_RE",
+        "_MANIFEST_SENTENCE",
+        "_PINNED_DRIFT_NAMED",
+        "_inline_block",
+        "_is_root_base",
+        "_lies_within",
+        "_pinned_opening",
+        "_pinned_rule",
+        "_read_inline_text",
+        "_render_inline_diff_access",
+        "_render_pinned_diff_access",
+        "render_diff_access",
+        "render_output_location",
+        "render_working_limits",
     ),
 }
-
-#: A diff file name as ``write_review_diff`` writes it (``<n>-<slug>.diff``),
-#: as the manifest cites it (relative to itself, under ``diff/``).
-_MANIFEST_DIFF_REF_RE = re.compile(r"\bdiff/(\d+-[A-Za-z0-9._-]+\.diff)")
-
-
-class DiffAccess(NamedTuple):
-    """What :func:`render_diff_access` decided for one code-review slot."""
-
-    #: ``"paths"`` (the lane reads the artifacts by absolute path),
-    #: ``"inline"`` (they are in :attr:`text`) or ``"unsupported"`` (the slot
-    #: must not be dispatched; :attr:`reason` says why).
-    mode: str
-    #: The rendered ``{diff_access}`` block; ``""`` when unsupported.
-    text: str
-    #: The adapter's ``generate_read_scope`` (``"cwd"`` for an unknown adapter).
-    read_scope: str
-    #: The adapter's ``runs_shell_in_generate`` (``None`` for an unknown one).
-    #: Not spelled ``shell``: a ``shell: <value>`` line is the identity-text
-    #: shape ``write_safety.redact_text`` redacts (``tests/test_redaction.py``'s
-    #: source-tree tripwire).
-    runs_shell: Optional[bool]
-    #: UTF-8 size of the inline block measured against
-    #: :data:`INLINE_DIFF_CAP_BYTES`; ``0`` on the path branch.
-    inline_bytes: int
-    #: Why the slot is unsupported; ``""`` otherwise.
-    reason: str
+_MOVED_TO: Dict[str, str] = {
+    name: module for module, names in _MOVED.items() for name in names
+}
 
 
-def _lies_within(path: Union[str, Path], root: Union[str, Path]) -> bool:
-    """True when ``path`` resolves to ``root`` or somewhere beneath it."""
+def __getattr__(name: str) -> Any:
+    """A moved name, read from the module that defines it now."""
+    owner = _MOVED_TO.get(name)
+    if owner is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     try:
-        resolved = os.path.realpath(str(path))
-        base = os.path.realpath(str(root))
-        return os.path.commonpath([resolved, base]) == base
-    except (OSError, ValueError):  # ValueError: different drives on Windows
-        return False
+        return getattr(globals()[owner], name)
+    except AttributeError:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from None
 
 
-def _read_inline_text(path: Union[str, Path]) -> Optional[str]:
-    """``path``'s text, or ``None`` when it cannot be read. Never raises."""
-    try:
-        return Path(path).read_text(encoding="utf-8", errors="replace")
-    except (OSError, ValueError):
-        return None
-
-
-def _inline_block(label: str, body: str) -> str:
-    """One labelled block of the inline payload.
-
-    Delimited rather than fenced: a plan or a diff routinely carries its own
-    triple-backtick fences, which would close a fence early.
-    """
-    content = body.rstrip("\n")
-    return f"===== BEGIN {label} =====\n{content}\n===== END {label} ====="
-
-
-def _render_inline_diff_access(
-    *,
-    read_scope: str,
-    runs_shell: Optional[bool],
-    scope_file: str,
-    diff_dir: str,
-    plan_path: str,
-    base_ref: str,
-    partial: bool,
-    head_ref: Optional[str] = None,
-    pinned_opening: str = "",
-    pinned_rule: str = "",
-    context_plan_path: Optional[str] = None,
-) -> DiffAccess:
-    """The bounded inline branch, or an explicit unsupported outcome.
-
-    The payload is the plan, the whole manifest and every file in ``diff_dir``
-    except ``.gitignore``, in name order (``<n>`` is zero-padded, so name order
-    is review order). It is offered only when ALL of it fits
-    :data:`INLINE_DIFF_CAP_BYTES` and the coverage is complete: a partial
-    inline review would read as a review of the whole change. A missing
-    manifest, plan or cited diff file is a reason, never an exception.
-
-    With *context_plan_path* (a commit review's frozen context plan,
-    plans/review-commits.md §2.4) the snapshot's text is one more block, the
-    :data:`INLINE_CONTEXT_PLAN_LABEL` one right after the plan, and it counts
-    against the cap like the rest: a lane that cannot open the snapshot is
-    shown it, or is not dispatched at all, never left to judge the range
-    without it. An unreadable snapshot is a reason too.
-
-    On a pinned review (*head_ref*) the block opens with *pinned_opening*, its
-    shell sentence names ``git diff <base> <head>``, and *pinned_rule* follows
-    the shell sentence, ahead of the payload; all of it counts against the cap.
-    """
-    reasons: List[str] = []
-    blocks: List[str] = []
-
-    plan_text = _read_inline_text(plan_path)
-    if plan_text is None:
-        reasons.append(f"plan file not readable: {plan_path}")
-    else:
-        blocks.append(_inline_block("plan", plan_text))
-
-    if context_plan_path is not None:
-        context_text = _read_inline_text(context_plan_path)
-        if context_text is None:
-            reasons.append(f"context plan snapshot not readable: {context_plan_path}")
-        else:
-            blocks.append(_inline_block(INLINE_CONTEXT_PLAN_LABEL, context_text))
-
-    manifest = _read_inline_text(scope_file)
-    if manifest is None:
-        reasons.append(f"scope manifest not readable: {scope_file}")
-    else:
-        blocks.append(_inline_block(INLINE_MANIFEST_LABEL, manifest))
-
-    try:
-        names = sorted(
-            entry.name
-            for entry in os.scandir(diff_dir)
-            if entry.is_file() and entry.name != ".gitignore"
-        )
-    except OSError:
-        names = []
-    unreadable: List[str] = []
-    for name in names:
-        body = _read_inline_text(os.path.join(diff_dir, name))
-        if body is None:
-            unreadable.append(name)
-            continue
-        blocks.append(_inline_block(f"diff/{name}", body))
-    if unreadable:
-        reasons.append(f"diff files not readable: {', '.join(unreadable)}")
-    if manifest is not None:
-        cited = set(_MANIFEST_DIFF_REF_RE.findall(manifest))
-        absent = sorted(cited - set(names))
-        if absent:
-            reasons.append(
-                f"the manifest names {len(absent)} diff file(s) that do not "
-                f"exist: {', '.join(absent[:3])}"
-                + (f" (+{len(absent) - 3} more)" if len(absent) > 3 else "")
-            )
-
-    if partial:
-        reasons.append("diff coverage is partial")
-
-    head = _INLINE_HEAD_BY_SCOPE.get(read_scope, _INLINE_HEAD_BY_SCOPE["none"])
-    head += (
-        _INLINE_HEAD_TAIL if context_plan_path is None else _INLINE_HEAD_TAIL_CONTEXT_PLAN
-    )
-    shell_sentence = _INLINE_SHELL_BY_STATE.get(runs_shell, _INLINE_SHELL_BY_STATE[None])
-    if head_ref is None:
-        text = "\n\n".join(
-            [head, shell_sentence.format(base_ref=base_ref)] + blocks
-        )
-    else:
-        sentence = shell_sentence.format(base_ref=f"{base_ref} {head_ref}")
-        if runs_shell is not True:
-            sentence += " " + DIFF_ACCESS_PINNED_NO_SHELL_NOTE
-        text = "\n\n".join(
-            [pinned_opening, head, sentence, pinned_rule] + blocks
-        )
-    size = len(text.encode("utf-8"))
-    if size > INLINE_DIFF_CAP_BYTES:
-        reasons.append(
-            f"inline context {size} B exceeds the {INLINE_DIFF_CAP_BYTES} B cap"
-        )
-
-    if reasons:
-        return DiffAccess("unsupported", "", read_scope, runs_shell, size, "; ".join(reasons))
-    return DiffAccess("inline", text, read_scope, runs_shell, size, "")
-
-
-def render_diff_access(
-    model_spec: str,
-    scope_file: Union[str, Path],
-    diff_dir: Union[str, Path],
-    phase_dir: Union[str, Path],
-    cwd: Union[str, Path],
-    *,
-    base_ref: str,
-    coverage: str,
-    plan_path: Union[str, Path],
-    anchor: Optional[Union[str, Path]] = None,
-    head_ref: Optional[str] = None,
-    drifted: Sequence[str] = (),
-    context_plan_path: Optional[Union[str, Path]] = None,
-) -> DiffAccess:
-    """Decide how ``model_spec``'s lane reaches the change, and render the block.
-
-    ``scope_file`` is ``code-review/review-scope.md``, ``diff_dir`` is
-    ``code-review/diff/``, ``phase_dir`` is the code-review phase dir and
-    ``cwd`` is the directory the lane runs in (the repo root), all absolute.
-    ``coverage`` is ``write_review_diff``'s ``"complete"`` or ``"partial"``;
-    anything but ``"complete"`` is treated as partial, the conservative reading.
-
-    The adapter is resolved exactly as :func:`render_output_location` resolves
-    it (``anchor`` is the run's plan path). An unknown adapter reads as
-    ``generate_read_scope="cwd"``, ``runs_shell_in_generate=None`` — the base
-    defaults, which assert nothing about a shell.
-
-    * **Usable file reads** — ``"any"``, or ``"cwd"`` with ``phase_dir``
-      resolving inside ``cwd`` — give ``mode="paths"``: one of three texts
-      chosen by ``runs_shell_in_generate``, each naming both absolute paths and
-      calling the diff files the authoritative record, plus that state's
-      partial-coverage sentence when coverage is partial.
-    * **No usable reads** — ``"none"``, or ``"cwd"`` with the phase dir outside
-      the repo — give the bounded inline branch, whatever the shell state:
-      ``mode="inline"`` when coverage is complete and the whole block fits
-      :data:`INLINE_DIFF_CAP_BYTES`, otherwise ``mode="unsupported"`` with an
-      empty ``text`` and the reason, so the caller dispatches nothing.
-
-    ``head_ref`` pins the review to a commit (``review-code --head-ref``, a
-    commit brief; plans/review-commits.md §2.5): ``base_ref`` is then the base
-    commit, or the empty-tree id on a root range. The block opens by naming
-    the change as ``<base7>..<head7>`` ending at the head commit, not at the
-    working tree, and names *drifted* (the reviewed files that differ on disk
-    from it) as changed since that commit; every command reads ``git diff
-    <base> <head>`` and a file's content through ``git show <head>:<path>``;
-    nothing says the disk is the reviewed content; and the pinned-head read
-    rule closes it. ``None`` renders today's text byte for byte.
-
-    ``context_plan_path`` is a commit review's frozen context-plan snapshot
-    (``commit_range.plan_snapshot``, plans/review-commits.md §2.4), absolute.
-    The paths branch leaves it to the prompt's ``{plan_block}``, which names
-    it; the inline branch carries its text as one more block, counted against
-    the cap, so an inline lane checks the range against the same plan every
-    other reviewer reads, or is not dispatched (too large, or unreadable).
-
-    Never raises for a missing manifest, diff, plan or snapshot file.
-    """
-    provider_name, _ = parse_model_spec(model_spec, anchor=anchor)
-    provider = get_provider(provider_name)
-    read_scope = (
-        getattr(provider, "generate_read_scope", "cwd") if provider is not None else "cwd"
-    )
-    shell = (
-        getattr(provider, "runs_shell_in_generate", None)
-        if provider is not None
-        else None
-    )
-    partial = coverage != "complete"
-    scope_file = os.path.abspath(str(scope_file))
-    diff_dir = os.path.abspath(str(diff_dir))
-    # An empty base ref (no resolvable ref, e.g. an initial commit) fails the
-    # whole diff set, so coverage is partial; the command text still has to
-    # read as a command with a slot in it rather than `git diff  -- <path>`.
-    ref = base_ref or "<base_ref>"
-    context_plan = (
-        os.path.abspath(str(context_plan_path)) if context_plan_path is not None else None
-    )
-
-    reads = read_scope == "any" or (
-        read_scope == "cwd" and _lies_within(phase_dir, cwd)
-    )
-    if head_ref is not None:
-        return _render_pinned_diff_access(
-            reads=reads,
-            read_scope=read_scope,
-            runs_shell=shell,
-            partial=partial,
-            scope_file=scope_file,
-            diff_dir=diff_dir,
-            plan_path=str(plan_path),
-            base_ref=ref,
-            head_ref=head_ref,
-            drifted=drifted,
-            root=_is_root_base(base_ref, cwd),
-            context_plan_path=context_plan,
-        )
-    if not reads:
-        return _render_inline_diff_access(
-            read_scope=read_scope,
-            runs_shell=shell,
-            scope_file=scope_file,
-            diff_dir=diff_dir,
-            plan_path=str(plan_path),
-            base_ref=ref,
-            partial=partial,
-            context_plan_path=context_plan,
-        )
-
-    if shell is True:
-        text, extra = DIFF_ACCESS_SHELL_TEXT, DIFF_ACCESS_SHELL_PARTIAL
-    elif shell is False:
-        text, extra = DIFF_ACCESS_NO_SHELL_TEXT, DIFF_ACCESS_NO_SHELL_PARTIAL
-    else:
-        text, extra = DIFF_ACCESS_UNMEASURED_TEXT, DIFF_ACCESS_UNMEASURED_PARTIAL
-    if partial:
-        text = text + "\n\n" + extra
-    rendered = text.format(scope_file=scope_file, diff_dir=diff_dir, base_ref=ref)
-    return DiffAccess("paths", rendered, read_scope, shell, 0, "")
-
-
-def _render_pinned_diff_access(
-    *,
-    reads: bool,
-    read_scope: str,
-    runs_shell: Optional[bool],
-    partial: bool,
-    scope_file: str,
-    diff_dir: str,
-    plan_path: str,
-    base_ref: str,
-    head_ref: str,
-    drifted: Sequence[str],
-    root: bool,
-    context_plan_path: Optional[str] = None,
-) -> DiffAccess:
-    """:func:`render_diff_access` for a review pinned to *head_ref*.
-
-    The same branch decision (paths, inline or unsupported) and the same
-    per-state texts, with the head commit as the new side: the opening names
-    the change and the drifted files, the body's commands take ``<base>
-    <head>``, and the pinned-head read rule follows. Only the template parts
-    go through ``str.format``; the opening and the rule are concatenated, as
-    paths and commit text may hold braces.
-    """
-    opening = _pinned_opening(base_ref, head_ref, root=root, drifted=drifted)
-    rule = _pinned_rule(base_ref, head_ref, root=root)
-    if not reads:
-        return _render_inline_diff_access(
-            read_scope=read_scope,
-            runs_shell=runs_shell,
-            scope_file=scope_file,
-            diff_dir=diff_dir,
-            plan_path=plan_path,
-            base_ref=base_ref,
-            partial=partial,
-            head_ref=head_ref,
-            pinned_opening=opening,
-            pinned_rule=rule,
-            context_plan_path=context_plan_path,
-        )
-    if runs_shell is True:
-        text, extra = DIFF_ACCESS_PINNED_SHELL_TEXT, DIFF_ACCESS_PINNED_SHELL_PARTIAL
-    elif runs_shell is False:
-        text, extra = DIFF_ACCESS_NO_SHELL_TEXT, DIFF_ACCESS_NO_SHELL_PARTIAL
-    else:
-        text, extra = DIFF_ACCESS_UNMEASURED_TEXT, DIFF_ACCESS_UNMEASURED_PARTIAL
-    if partial:
-        text = text + "\n\n" + extra
-    body = text.format(
-        scope_file=scope_file, diff_dir=diff_dir, base_ref=base_ref,
-        sides=f"{base_ref} {head_ref}", head=head_ref[:12],
-    )
-    parts = [opening, body]
-    if runs_shell is not True:
-        parts.append(DIFF_ACCESS_PINNED_NO_SHELL_NOTE)
-    parts.append(rule)
-    return DiffAccess("paths", "\n\n".join(parts), read_scope, runs_shell, 0, "")
-
-
-#: The ``{working_limits}`` block the review templates carry just above their
-#: output sections (plan: review-run-scope-salvage-and-failure-visibility D3.2).
-#: Measured on the 2026-09-25 review run: a pi code-review slot with a 1200 s
-#: budget started ``timeout 1700 python -m pytest tests`` and was killed
-#: mid-suite, having written nothing — nothing in the prompt told it how long it
-#: had or that the suite was off limits. So the block states the real number of minutes and
-#: forbids long commands, while still allowing ONE narrowly scoped test file
-#: (decision 11.7, the same allowance ``prompts/implementation_task.txt`` makes).
-#:
-#: It deliberately names no shell command: it reaches every Lane A lane,
-#: cursor-agent and claude-code included, which have no shell, so a "use
-#: ``git diff``" line here would grant what ``{diff_access}`` denies in the same
-#: prompt. The test-claim line is here rather than only in ``{diff_access}``
-#: because the false HIGH finding in that run's evidence was a model asserting
-#: a test result it had not run, and every lane can make that claim. Advisory
-#: text only — what bounds a model that ignores it is the slot's kill.
-WORKING_LIMITS_BLOCK = (
-    "## Working limits\n"
-    "- This review is stopped after about {minutes}. Anything unfinished at "
-    "that point is lost, so write your answer well before then.\n"
-    "- Do NOT run the project's test suite, builds, linters, installers, or any "
-    "other long-running command. This is a read-only review. If a finding "
-    "depends on a test's result, you may run that ONE narrowly scoped test "
-    "file, and only if you can run commands at all.\n"
-    "- Do NOT modify, create or delete any file except the output file named "
-    "below.\n"
-    "- Do NOT claim that a test passes or fails unless you ran it during this "
-    "review and saw its result. Say what a test covers, not what it would "
-    "report."
-)
-
-
-def render_working_limits(timeout_s: Union[int, float]) -> str:
-    """The ``{working_limits}`` block for an attempt with ``timeout_s`` seconds.
-
-    ``timeout_s`` must be the budget THIS attempt is really spawned with — the
-    ``timeout`` handed to :func:`invoke_with_file_output`, or the ladder's slice
-    on the review-plan/review-tasks fan-out — because the number is the point:
-    the incident's model chose ``timeout 1700`` inside a 1200 s slot. Minutes are
-    floored (never promise time the kill will not honour) and never below 1, so
-    a sub-minute slot still reads as a deadline rather than "about 0 minutes".
-    """
-    minutes = max(1, int(timeout_s // 60))
-    unit = "minute" if minutes == 1 else "minutes"
-    return WORKING_LIMITS_BLOCK.format(minutes=f"{minutes} {unit}")
+def __dir__() -> List[str]:
+    """This module's own names and the moved ones it re-exports."""
+    return sorted({*globals(), *_MOVED_TO})
 
 
 #: `result["source"]` values where the file on disk is what the model itself
@@ -3651,7 +2262,6 @@ def _file_output_context(
     Returns ``(full_context, output_json_path)``. One owner, so the prompt
     :func:`argv_prompt_bytes` measures is the prompt that is dispatched.
     """
-    from .json_extractor import generate_output_path
 
     # Generate output file path
     prefix = prompt_context.get("prefix", "output")
@@ -3666,14 +2276,14 @@ def _file_output_context(
     full_context = {
         **prompt_context,
         "output_json_path": str(output_json_path),
-        "output_location": render_output_location(
+        "output_location": prompt_channels.render_output_location(
             output_json_path, model_spec, anchor=anchor
         ),
         # The minutes this call will really be allowed: a missing `timeout` is
         # resolved exactly as `invoke_with_provider` resolves it below, so the
         # deadline the prompt states is the one the kill honours. A template
         # without the placeholder ignores the key (`str.format` drops extras).
-        "working_limits": render_working_limits(
+        "working_limits": prompt_channels.render_working_limits(
             timeout or get_provider_timeout(
                 parse_model_spec(model_spec, anchor=anchor)[0], anchor=anchor
             )
@@ -3695,7 +2305,8 @@ def argv_prompt_bytes(
 
     Takes that function's own arguments and renders the same prompt, so a
     caller can refuse a slot whose prompt would exceed the single-argument
-    ceiling (:data:`INLINE_PROMPT_CAP_BYTES`) before anything is spawned.
+    ceiling (:data:`~utils.prompt_channels.INLINE_PROMPT_CAP_BYTES`) before
+    anything is spawned.
     ``None`` when the prompt would not travel on argv at all — an adapter
     whose default ``prompt_transport`` is not ``argv``, an unknown adapter
     (nothing is spawned for it) — or when the template does not format, which
@@ -3725,24 +2336,27 @@ def misnamed_result_baseline(
     every attempt as ``misnamed_baseline``: a misnamed file is this slot's only
     when it appeared (or changed) after the slot started. Taken per attempt, an
     attempt killed after writing it under the wrong name left it in the next
-    attempt's baseline, and the slot was recorded failed beside its own answer
-    (review of fix round 24).
+    attempt's baseline, and the slot was recorded failed beside its own answer.
     """
-    from .json_extractor import generate_output_path
 
     phase_dir = generate_output_path(Path(output_dir), "output", phase, model_spec).parent
     return _result_files.snapshot_candidates(phase_dir)
 
 
 #: ``(st_dev, st_ino, st_size, st_mtime_ns)`` of a slot's requested result file
-#: when the slot started, or ``()`` when there was none.
+#: when the slot started, or ``()`` when there was none. Where one is
+#: ``Optional``, ``None`` is a stamp that could not be read.
 ResultFileStamp = Tuple[int, ...]
 
 
-def _result_file_stamp(path: Union[str, Path]) -> ResultFileStamp:
+def _result_file_stamp(path: Union[str, Path]) -> Optional[ResultFileStamp]:
     """What moves when anything writes *path*: its identity, size and mtime.
 
-    ``()`` when there is no file. Followed through a link, as
+    ``()`` only when the file is shown absent; ``None`` when its metadata
+    cannot be read, which says nothing about whether it is there, nor whether
+    it moved: every comparison of stamps keeps that open, and so never takes
+    an earlier answer for gone or for this call's (docs/development/
+    review-results.md, "Withheld slot answers"). Followed through a link, as
     :func:`read_json_from_file` follows one when it reads the file. The inode is
     in it so a file renamed over the old one is a change whatever its size and
     mtime say. No content hash, on purpose: a model that writes the same bytes
@@ -3753,8 +2367,10 @@ def _result_file_stamp(path: Union[str, Path]) -> ResultFileStamp:
     """
     try:
         st = os.stat(path)
-    except OSError:
+    except FileNotFoundError:
         return ()
+    except OSError:
+        return None
     return (st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns)
 
 
@@ -3762,8 +2378,17 @@ def requested_result_baseline(
     output_dir: Union[str, Path],
     phase: str,
     model_spec: str,
-) -> ResultFileStamp:
+) -> Optional[ResultFileStamp]:
     """The stamp of the file :func:`invoke_with_file_output` asks *model_spec* for, now.
+
+    ``()`` only when the file is shown absent; ``None`` when its metadata
+    cannot be read, which says nothing about whether it is there
+    (:func:`_result_file_stamp`). A slot that compares two of these to decide
+    an earlier answer is gone keeps it withheld on ``None``
+    (docs/development/review-results.md, "Withheld slot answers"); handed to
+    :func:`invoke_with_file_output` as ``requested_baseline``, ``None`` makes
+    each attempt take its own, and one it cannot take reads no file at the
+    requested name.
 
     A slot takes this once, before its first attempt, and hands it to every
     attempt as ``requested_baseline``, for the reason
@@ -3781,14 +2406,23 @@ def requested_result_baseline(
     both read it back as this round's answer at exit 0 (Fable review
     2026-10-09).
     """
-    from .json_extractor import generate_output_path
 
     return _result_file_stamp(
         generate_output_path(Path(output_dir), "output", phase, model_spec)
     )
 
 
-def _set_aside_unchanged_result(path: Path, baseline: ResultFileStamp) -> bool:
+#: :func:`_set_aside_unchanged_result`: the file is the earlier round's, unchanged.
+_RESULT_FILE_STALE = "stale"
+
+#: :func:`_set_aside_unchanged_result`: a stamp could not be read, so nothing
+#: shows the file was written after the slot started.
+_RESULT_FILE_UNVERIFIED = "unverified"
+
+
+def _set_aside_unchanged_result(
+    path: Path, baseline: Optional[ResultFileStamp],
+) -> Optional[str]:
     """Set *path* aside when it is still exactly the file the slot started beside.
 
     The one place every file-output lane reaches (review-plan and review-tasks
@@ -3807,14 +2441,29 @@ def _set_aside_unchanged_result(path: Path, baseline: ResultFileStamp) -> bool:
     requested name, where the old file would have been overwritten. ``()`` (no
     file when the slot started) and a file that moved since are never touched.
 
-    Returns whether *path* was that earlier round's file — ``True`` even when
-    the rename failed (which warns on stderr), because the caller's question is
-    whether to read it, and the answer is no either way.
+    Returns why *path* is not to be read, or ``None`` when it is this call's to
+    read: it was absent when the slot started, is absent now (the read then
+    reports it missing), or has changed since. :data:`_RESULT_FILE_STALE` when
+    it is that earlier round's file, even when the rename failed (which warns
+    on stderr), because the caller's question is whether to read it, and the
+    answer is no either way. :data:`_RESULT_FILE_UNVERIFIED` when either stamp
+    could not be read (*baseline* ``None``, or this one): nothing shows the
+    file was written since the slot started, so it may still be an earlier
+    answer, one whose safety checks failed among them; it is left in place,
+    neither read nor renamed (docs/development/review-results.md, "Withheld
+    slot answers").
     """
-    if not baseline or _result_file_stamp(path) != baseline:
-        return False
+    if baseline == ():
+        return None
+    now = _result_file_stamp(path)
+    if now == ():
+        return None
+    if baseline is None or now is None:
+        return _RESULT_FILE_UNVERIFIED
+    if now != baseline:
+        return None
     _result_files.set_aside_stale_result(path)
-    return True
+    return _RESULT_FILE_STALE
 
 
 def _adopt_misnamed_result(
@@ -3836,10 +2485,8 @@ def _adopt_misnamed_result(
     The candidate is read through one descriptor that never follows a link
     (:func:`utils.result_files.read_regular_text`), and what the rename left
     at the requested name must be that same regular file: a link swapped in
-    after the directory scan, or before the rename, is never adopted (review
-    of fix round 24).
+    after the directory scan, or before the rename, is never adopted.
     """
-    from .json_extractor import parse_file_content
 
     found = _result_files.find_misnamed_result(
         output_json_path.parent, before, model_spec, run_model_specs
@@ -3886,7 +2533,8 @@ def invoke_with_file_output(
     {output_location} block rendered from the adapter's declared
     ``supports_file_output`` — a CLI running in a read-only mode is asked for
     the array on stdout rather than for a file it is going to refuse (see
-    :func:`render_output_location`). Both channels are read below either way.
+    :func:`~utils.prompt_channels.render_output_location`). Both channels are
+    read below either way.
 
     Fallback strategy:
     1. Primary: Read from output file (with extraction fallback for code blocks)
@@ -3895,7 +2543,10 @@ def invoke_with_file_output(
        a previous round's answer, not this call's: it is not read, it is
        renamed ``<name>.stale-earlier-run`` so nothing after this call reads
        it either (:func:`_set_aside_unchanged_result`), and the steps below
-       run as if it were missing
+       run as if it were missing. One that a stamp which could not be read
+       leaves unproven (the baseline's or the one after the call) is not read
+       either, and is left in place (``source: unverified``): it may be an
+       earlier answer, one whose safety checks failed among them
     1b. With ``run_model_specs``, when the output file is missing: the one JSON
         array this model's provider prefix wrote elsewhere in the phase dir
         during the call (``utils/result_files.find_misnamed_result``), renamed
@@ -3913,7 +2564,7 @@ def invoke_with_file_output(
         log_file: Optional path to save full output log
         prefer_arrays: If True, prefer array candidates when extracting JSON
         anchor: Optional discovery anchor (the run's plan-file path), forwarded
-            verbatim to :func:`invoke_with_provider` (§9.3.c)
+            verbatim to :func:`invoke_with_provider`
         sandbox_fallback: The D6 override, forwarded verbatim to
             :func:`invoke_with_provider`; the prompt's ``{output_location}``
             block is unchanged by it (a bypassed codex still answers on
@@ -3934,7 +2585,9 @@ def invoke_with_file_output(
         requested_baseline: Step 1's baseline, from
             :func:`requested_result_baseline` taken once at the slot's start
             (``()`` when the file was not there), for the same reason. ``None``
-            takes it here, at the start of this call (a slot of one attempt).
+            takes it here, at the start of this call (a slot of one attempt);
+            when that stamp cannot be read either, no file at the requested
+            name is read on this call.
 
     Returns:
         Dict with keys:
@@ -3944,13 +2597,12 @@ def invoke_with_file_output(
         - 'output_file': Path to the output file (if generated)
         - 'error': Error message (if failed)
         - 'file_error': File-specific error (if file read failed, or the file
-          was left unread as older than the slot)
+          was left unread as older than the slot, or as not shown newer)
         - 'details': Provider execution details, forwarded verbatim on every
-          return path — including §3.6's ``served_model`` /
+          return path — including the ``served_model`` /
           ``served_model_is_fallback``, so the JSON's origin travels with it
           whichever channel (file, extracted file, stdout) supplied it
     """
-    from .json_extractor import read_json_from_file
 
     full_context, output_json_path = _file_output_context(
         model_spec, prompt_context, output_dir, phase, timeout, anchor
@@ -4046,9 +2698,12 @@ def invoke_with_file_output(
     # anything after it — the salvage recovery loop, `--reaggregate`, a slot
     # failed after this returns — can take it for this round's (Fable review
     # 2026-10-09), and every step below runs exactly as if it were missing. A
-    # stdout answer is then saved to the requested name as before.
-    stale_file = _set_aside_unchanged_result(output_json_path, requested_baseline)
-    if stale_file:
+    # stdout answer is then saved to the requested name as before. One no
+    # readable stamp shows to be newer than the slot is not read either, but
+    # stays where it is: it may be the earlier answer, or this call's.
+    refused_file = _set_aside_unchanged_result(output_json_path, requested_baseline)
+    stale_file = refused_file is not None
+    if refused_file == _RESULT_FILE_STALE:
         file_result = {
             "success": False,
             "error": (
@@ -4058,8 +2713,19 @@ def invoke_with_file_output(
             "source": "stale",
             "data": None,
         }
+    elif refused_file == _RESULT_FILE_UNVERIFIED:
+        file_result = {
+            "success": False,
+            "error": (
+                f"{output_json_path.name} could not be shown to have been written "
+                f"since this slot started (its metadata could not be read): it "
+                f"may be an earlier answer, not read"
+            ),
+            "source": "unverified",
+            "data": None,
+        }
     else:
-        file_result = read_json_from_file(output_json_path, prefer_arrays=prefer_arrays)
+        file_result = json_extractor.read_json_from_file(output_json_path, prefer_arrays=prefer_arrays)
 
     if file_result.get("success"):
         _finalize_file_output_log(
@@ -4078,7 +2744,7 @@ def invoke_with_file_output(
     # Step 1b: the requested file is missing (or only the previous round's), but
     # the model may have written its answer under another name. Before stdout,
     # because a file the model wrote is its deliberate answer and stdout is a
-    # scrape.
+    # scrape. Never over an unverified one, which the rename would overwrite.
     if phase_files_before is not None and file_result.get("source") in ("missing", "stale"):
         adopted = _adopt_misnamed_result(
             output_json_path, phase_files_before, model_spec, run_model_specs,
@@ -4124,6 +2790,22 @@ def invoke_with_file_output(
     # Both failed. The returned `error` is the one string callers match; the
     # log also says when the file channel was the previous round's file, which
     # was never parsed at all.
+    details = result.get("details", {})
+    if result.get("success") and FAILURE_CATEGORY_KEY not in details:
+        # The child exited 0 and its stdout parsed, but not into an answer
+        # (`_is_valid_parsed_data`): the executor's verdict for the same
+        # rejection, read off the capture the exit 0 handed back, so both
+        # lanes' ladders agree
+        # (docs/development/delegation.md#read-and-analyze-executor).
+        held = deferred_log or {}
+        try:
+            provider = get_provider(parse_model_spec(model_spec, anchor=anchor)[0])
+            category = rejected_answer_category(
+                provider, held.get("stdout"), held.get("stderr")
+            )
+        except Exception:  # noqa: BLE001 - classification must not break a failure path
+            category = STATUS_UNPARSEABLE
+        details = {**details, FAILURE_CATEGORY_KEY: category}
     _finalize_file_output_log(
         log_file, deferred_log, result, model_spec, prompt,
         success=False,
@@ -4140,195 +2822,6 @@ def invoke_with_file_output(
         "file_error": file_result.get("error"),
         "stdout_error": result.get("error", "No valid JSON in stdout"),
         "output_file": str(output_json_path),
-        "details": result.get("details", {}),
+        "details": details,
         "data": None,
-    }
-
-
-def invoke_subagent(
-    prompt: str,
-    model: Optional[str] = None,
-    context_files: Optional[List[str]] = None,
-    allowed_tools: Optional[List[str]] = None,
-    timeout: int = 1200,
-    max_retries: int = 2,
-    retry_backoff: Optional[List[int]] = None,
-    log_file: Optional[Union[str, Path]] = None
-) -> Dict[str, Any]:
-    """
-    Invoke a cursor-agent subagent with the given prompt.
-
-    This is a backward-compatible wrapper that delegates to invoke_with_provider()
-    while maintaining the original interface and retry logic.
-
-    Args:
-        prompt: The prompt/task for the subagent
-        model: Optional model to use (e.g., "sonnet", "opus")
-        context_files: List of file paths to provide as context (included in prompt)
-        allowed_tools: List of allowed tools for the subagent (included in prompt)
-        timeout: Timeout in seconds (default 1200 = 20 minutes)
-        max_retries: Maximum number of retry attempts
-        retry_backoff: List of backoff delays in seconds (default [5, 15])
-        log_file: Optional path to save full output log for debugging
-
-    Returns:
-        Dict with 'success', 'output', 'stderr', and optionally 'error' keys
-    """
-    if retry_backoff is None:
-        retry_backoff = [5, 15]
-
-    # Build model spec for provider abstraction
-    # cursor-agent is the default provider when model doesn't have a prefix
-    model_spec = f"cursor-agent:{model}" if model else "cursor-agent:auto"
-
-    last_result = None
-    last_error = None
-
-    for attempt in range(max_retries + 1):
-        # Delegate to invoke_with_provider()
-        result = invoke_with_provider(
-            prompt=prompt,
-            model_spec=model_spec,
-            timeout=timeout,
-            log_file=log_file if attempt == max_retries else None  # Only log final attempt
-        )
-
-        if result["success"]:
-            # Convert to legacy format for backward compatibility
-            # The invoke_with_provider returns 'data', but invoke_subagent returns 'output'
-            details = result.get("details", {})
-            # Return raw JSON output string to match legacy behavior
-            data = result.get("data", "")
-            output = json.dumps(data) if data and not isinstance(data, str) else str(data) if data else ""
-            return {
-                "success": True,
-                "output": output,
-                "stderr": details.get("stderr", "")
-            }
-
-        last_result = result
-        last_error = result.get("error", "Unknown error")
-
-        # Check if it's a binary not found error (no point retrying)
-        if result.get("error_code") == ERROR_BINARY_NOT_FOUND:
-            raise LLMClientError("cursor-agent CLI not found. Please ensure it is installed and in PATH.")
-
-        # Retry if we haven't exhausted attempts
-        if attempt < max_retries:
-            backoff_delay = retry_backoff[min(attempt, len(retry_backoff) - 1)]
-            time.sleep(backoff_delay)
-
-    # Check for timeout error
-    if last_result and last_result.get("error_code") == ERROR_TIMEOUT:
-        raise SubagentTimeoutError(f"Subagent timed out after {max_retries + 1} attempts: {last_error}")
-
-    # Return error in legacy format
-    details = last_result.get("details", {}) if last_result else {}
-    return {
-        "success": False,
-        "output": "",
-        "stderr": details.get("stderr", ""),
-        "error": last_error
-    }
-
-
-def parse_subagent_response(output: str) -> Dict[str, Any]:
-    """
-    Parse structured output from a subagent response.
-
-    Args:
-        output: Raw output string from subagent
-
-    Returns:
-        Parsed JSON as dict/list, or {"raw": output} if no JSON found
-    """
-    output = output.strip()
-
-    # First, try to parse as cursor-agent JSON wrapper format
-    # cursor-agent --output-format json returns: {"type":"result","result":"...","..."}
-    if output.startswith('{'):
-        try:
-            wrapper = json.loads(output)
-            if isinstance(wrapper, dict) and "result" in wrapper:
-                # Extract the inner result and parse it
-                inner_result = wrapper["result"]
-                if isinstance(inner_result, str):
-                    inner_result = inner_result.strip()
-                    if inner_result.startswith(('[', '{')):
-                        try:
-                            return json.loads(inner_result)
-                        except json.JSONDecodeError:
-                            pass
-                    # Try to find JSON in the inner result
-                    return _extract_json_from_text(inner_result)
-                return inner_result if inner_result else {"raw": output}
-            # Not a wrapper format, might be direct JSON
-            return wrapper
-        except json.JSONDecodeError:
-            pass
-
-    # Try direct JSON parsing for arrays
-    if output.startswith('['):
-        try:
-            return json.loads(output)
-        except json.JSONDecodeError:
-            pass
-
-    return _extract_json_from_text(output)
-
-
-def _extract_json_from_text(text: str) -> Dict[str, Any]:
-    """Extract JSON from text that may contain other content."""
-    # Try code block extraction
-    code_block_match = re.search(r'```(?:json)?\s*([\[\{][\s\S]*?[\]\}])\s*```', text)
-    if code_block_match:
-        try:
-            return json.loads(code_block_match.group(1))
-        except json.JSONDecodeError:
-            pass
-
-    # Try to find JSON arrays or objects
-    for pattern in [r'\[[\s\S]*\]', r'\{[\s\S]*\}']:
-        match = re.search(pattern, text)
-        if match:
-            try:
-                return json.loads(match.group(0))
-            except json.JSONDecodeError:
-                pass
-
-    return {"raw": text}
-
-def invoke_for_json(
-    prompt: str,
-    model: Optional[str] = None,
-    context_files: Optional[List[str]] = None,
-    timeout: int = 1200
-) -> Dict[str, Any]:
-    """
-    Invoke subagent expecting JSON output.
-
-    Args:
-        prompt: The prompt (should request JSON output)
-        model: Optional model to use
-        context_files: Optional list of context files
-        timeout: Timeout in seconds
-
-    Returns:
-        Parsed JSON response or error dict
-    """
-    result = invoke_subagent(
-        prompt=prompt,
-        model=model,
-        context_files=context_files,
-        timeout=timeout
-    )
-
-    if not result["success"]:
-        return result
-
-    parsed = parse_subagent_response(result["output"])
-    return {
-        "success": True,
-        "data": parsed,
-        "raw_output": result["output"]
     }

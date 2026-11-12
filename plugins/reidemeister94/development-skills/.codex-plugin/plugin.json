@@ -1,7 +1,7 @@
 {
   "name": "development-skills",
-  "version": "0.11.2",
-  "description": "Language-agnostic development workflows with risk-based paths, persistent decisions, focused proof, and independent review.",
+  "version": "0.12.0",
+  "description": "Language-agnostic development workflows with brainstorming-first sizing, persistent decisions, focused proof, and independent review.",
   "repository": "https://github.com/reidemeister94/development-skills",
   "homepage": "https://github.com/reidemeister94/development-skills",
   "license": "MIT",
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "Development Skills",
     "shortDescription": "Disciplined development workflows for AI coding agents",
-    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and research. The loop chooses direct, bounded, or full work based on scope, risk, proof, and the need for persistent decisions.",
+    "longDescription": "Use Development Skills for coding, debugging, refactoring, test design, code review, documentation alignment, and research. Every task starts with brainstorming, which sends a clear task straight to work and plans a task with open decisions for approval.",
     "developerName": "reidemeister",
     "category": "Coding",
     "capabilities": [

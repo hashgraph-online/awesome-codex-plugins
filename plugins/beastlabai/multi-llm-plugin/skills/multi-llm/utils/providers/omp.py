@@ -32,7 +32,7 @@ bounded by an explicit ``--tools`` allow-list. omp's own factory default **is**
 ``yolo`` over every tool, so there is no safe default to fall back on and the
 explicit flag is what makes both the default and the user's ``config.yml``
 irrelevant. The bypass is declared (``read_only_modes.omp.bypass_exception`` in
-``providers.yaml``, ``yolo`` in ``tests/test_read_only_modes.py``'s
+``tests/read_only_modes.yaml``, ``yolo`` in ``tests/test_read_only_modes.py``'s
 ``NEGATIVE_VALUE_TOKENS``) and was accepted by the repository owner on
 2026-09-17 for the ``generate`` profile only.
 
@@ -52,6 +52,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     PROFILE_GENERATE,
     CATEGORY_PERMISSION_DENIED,
     CATEGORY_SERVER_ERROR,
@@ -66,6 +67,7 @@ from .base import (
     VERSION_TOO_LOW,
     split_reasoning_effort,
 )
+from .parse_kit import fail
 from .pi import parse_answer_text
 from .pi_family_stream import (
     _ASSISTANT_MESSAGE_REQUIRED_KEYS,  # noqa: F401 - re-exported; the docstrings cite it
@@ -88,18 +90,6 @@ from .pi_family_stream import (
     version_clause,
     warn_stream_version,
 )
-
-# --------------------------------------------------------------------------- #
-# Terminal codes. Imported by name from the runner rather than re-spelled: the
-# whole point of `parse_output` setting one is that `invoke_with_file_output`
-# reads the *same* constants when it decides whether a written findings file may
-# still be recovered beside a failed parse.
-# --------------------------------------------------------------------------- #
-try:  # pragma: no cover - import shim mirrors the rest of utils/
-    from ..llm_client import ERROR_SUBPROCESS_FAILED, ERROR_TIMEOUT
-except ImportError:  # pragma: no cover - direct-script import shim
-    ERROR_SUBPROCESS_FAILED = "SUBPROCESS_FAILED"
-    ERROR_TIMEOUT = "TIMEOUT"
 
 
 #: The overlay every dispatch loads with ``--config``, resolved **absolutely**.
@@ -335,7 +325,7 @@ OMP_REQUIRED_FLAGS: Tuple[str, ...] = (
 #: and ~25× the steady state, and unlike qwen's 30 s it idles nothing that
 #: matters — the only slices it costs are ``timeout_s ≤ 5``, where the flag is
 #: omitted (see :func:`max_time_value`) and where no omp dispatch could have
-#: finished anyway. ``tests/test_providers.py`` pins this value as a literal
+#: finished anyway. ``tests/test_provider_omp.py`` pins this value as a literal
 #: alongside the renderings it produces (``1200 → "1195"``, ``25 → "20"``), so
 #: the constant and that table move together or not at all.
 OMP_SHUTDOWN_MARGIN_S = 5
@@ -541,14 +531,13 @@ def stderr_diagnosis(stderr: str) -> str:
 def _named_for_the_ladder(token: str, sentence: str) -> str:
     """``sentence`` with ``token`` in front of it, unless it already says it.
 
-    **Lane A classifies the error string, not the streams.** Its file-output
-    lane reaches for ``classify_streams(str(result.get("error", "")), "")``
-    (``utils/review_orchestrator_base.py``) — that composed sentence is the only
-    thing it is handed — and never :meth:`OmpProvider.classify_failure`, whose
-    callers are ``_format_failure_details`` and the Lane B executor. So a
-    structural verdict reaches Lane A's ladder only insofar as this sentence
-    carries a word the shared marker tables recognise, and three of the four
-    structural shapes carried none:
+    **The sentence names the verdict the ladder obeys.** Both lanes take
+    :meth:`OmpProvider.classify_failure`'s own verdict (the fan-out from
+    ``details["failure_category"]``, on an exit 0 too); the error sentence is
+    what ``.status.json`` and the log show, and what the fan-out's
+    ``classify_streams(str(result.get("error", "")), "")`` fallback reads when
+    an adapter gave no verdict. Read that way, three of the four structural
+    shapes carried no word the shared marker tables recognise:
 
     * the ``toolUse``-final deadline. ``Command aborted`` is deliberately not a
       marker — a tool error the model *recovered* from contains it — so "run
@@ -558,11 +547,13 @@ def _named_for_the_ladder(token: str, sentence: str) -> str:
       rung 2. One deadline, two behaviours on one ladder.
     * the step-3 denial, ``None`` as well: the same *outcome* as
       ``permission_denied`` — never retried — but reported under "Unknown".
-    * the 5xx ``error``. Its body says ``The server had an error`` and
-      ``(type=server_error)``, and neither is a :data:`SERVER_ERROR_MARKERS`
-      row: ``\\bserver error\\b`` wants a space where the type name has an
-      underscore, and the ``\\b5\\d{2}\\b\\s*(?:internal|server|…)`` row wants
-      one of its words straight after the code.
+    * the 5xx ``error``. Its body says ``(type=server_error)``, which is no
+      :data:`SERVER_ERROR_MARKERS` row: ``\\bserver error\\b`` wants a space
+      where the type name has an underscore, and the
+      ``\\b5\\d{2}\\b\\s*(?:internal|server|…)`` row wants one of its words
+      straight after the code. Its sentence is a row only when it is OpenAI's
+      whole ``The server had an error while processing your request``, so
+      another vendor's 5xx wording still needs the name.
 
     Naming the verdict here rather than widening those shared tables keeps the
     word where the shape is known *structurally*, so no other adapter's stream
@@ -615,10 +606,10 @@ def terminal_verdict(stdout: str, stderr: str) -> Optional[str]:
     what ``_DESCRIBE_FAILURE_CHANNELS``' ``STDOUT_ELSE_STDERR`` contract forbids.
 
     Three of these sentences go out with the shared tables' own word for their
-    shape in front of them (:func:`_named_for_the_ladder`), because Lane A
-    classifies this *string* and not the streams: an unnamed verdict reaches its
-    ladder as ``None`` — "never retried" — however confidently
-    :meth:`OmpProvider.classify_failure` read the same bytes.
+    shape in front of them (:func:`_named_for_the_ladder`), because on an exit-0
+    failure Lane A classifies this *string* and not the streams: an unnamed
+    verdict reaches its ladder as ``None`` — "never retried" — however
+    confidently :meth:`OmpProvider.classify_failure` read the same bytes.
     """
     events, _junk = _events(stdout)
     if not events:
@@ -781,7 +772,7 @@ class OmpProvider(LLMProvider):
     #: reads moved) and every class held. What moved: ``invalid-tool`` is exit 2
     #: with a plain ``Error: Unknown tool in --tools: …`` and no ``CliUsageError``
     #: word, which the shared launch-failure table now names
-    #: (``base.LAUNCH_FAILURE_MARKERS``); ``invalid-model``'s hint names no path;
+    #: (``failure_classifier.LAUNCH_FAILURE_MARKERS``); ``invalid-model``'s hint names no path;
     #: and the completions client's retry counts (``rate-limit`` 16 → 12,
     #: ``empty`` 21 → 12, ``truncated`` 20 → 12). The Responses chain production
     #: dispatches on is still 6 requests, so :attr:`internal_retries` holds.
@@ -957,13 +948,21 @@ class OmpProvider(LLMProvider):
     #: contain it in a tool result the model recovered from.
     exit_zero_failure_markers: Tuple[Any, ...] = ()
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: omp's
+    #: :meth:`vendor_text` keeps only the terminal message's ``errorMessage``
+    #: (``""`` on a ``stop``/``toolUse`` end, and on a stream with no assistant
+    #: message yet), never a message's content; a line cut inside an event is
+    #: not an event.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: omp's stderr is its
+    #: own refusals and Bun's stack frames (tests/fixtures/omp: invalid-tool, invalid-model,
+    #: auth-error-preflight); tool results ride the stdout JSONL.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "omp"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("omp") is not None
@@ -1136,11 +1135,17 @@ class OmpProvider(LLMProvider):
         The three in-stream terminal shapes and the denial therefore carry a code
         from the hard tuple, so the file is neither read nor reported.
         """
+        # The terminal codes, by name from their owner rather than re-spelled:
+        # `invoke_with_file_output` reads the same constants to decide whether a
+        # findings file beside a failed parse may still be recovered. Imported
+        # here because `provider_outcome` loads `providers.base`, whose package
+        # loads every adapter, this one included (a load-time cycle).
+        from ..provider_outcome import ERROR_SUBPROCESS_FAILED, ERROR_TIMEOUT
         raw = stdout or ""
         if not raw.strip():
             diagnosis = stderr_diagnosis(stderr)
             error = f"Empty output (stderr: {diagnosis})" if diagnosis else "Empty output"
-            return {"success": False, "error": error, "raw": "", "data": None}
+            return fail(error, "")
 
         events, junk = _events(raw)
         version = _stream_version(events)
@@ -1208,7 +1213,7 @@ class OmpProvider(LLMProvider):
             # No `error_code`: the model produced nothing, and a file it did not
             # write cannot be recovered — so `PARSE_ERROR` is correct and the
             # file channel is welcome to look.
-            return {"success": False, "error": sentence, "raw": raw, "data": None}
+            return fail(sentence, raw)
 
         final = messages[-1]
         reason = final.get("stopReason")
@@ -1229,14 +1234,7 @@ class OmpProvider(LLMProvider):
                 # not write cannot be recovered, so the file channel is welcome
                 # to look.
                 gave_up = terminal_verdict(raw, "")
-                return {
-                    "success": False,
-                    "error": (
-                        f"Empty output ({gave_up})" if gave_up else "Empty output"
-                    ),
-                    "raw": answer,
-                    "data": None,
-                }
+                return fail(f"Empty output ({gave_up})" if gave_up else "Empty output", answer)
             cut = _unclosed_container(answer)
             if cut is not None:
                 # **A cut document is never handed to the extractor.**
@@ -1257,16 +1255,12 @@ class OmpProvider(LLMProvider):
                 # model may have written whole before the stream was cut, so the
                 # file channel is welcome to look.
                 closing = "]" if cut == "[" else "}"
-                return {
-                    "success": False,
-                    "error": (
-                        f"Truncated output (the answer opens a JSON document "
-                        f"with '{cut}' and never closes it: no matching "
-                        f"'{closing}' in {len(answer)} characters)"
-                    ),
-                    "raw": answer,
-                    "data": None,
-                }
+                return fail(
+                    f"Truncated output (the answer opens a JSON document "
+                    f"with '{cut}' and never closes it: no matching "
+                    f"'{closing}' in {len(answer)} characters)",
+                    answer,
+                )
             result = dict(parse_answer_text(answer))
             # **`raw` carries the answer on every outcome, success included.**
             # A successful extraction returns `{"success": True, "data": …}`
@@ -1350,13 +1344,13 @@ class OmpProvider(LLMProvider):
         ``; stderr: …`` to it, where both halves are wanted and where
         ``error_contains`` grades them.
 
-        **Diagnostics first — but the words are load-bearing.** Nothing here
-        chooses a category; Lane A, however, classifies the string this sentence
-        is composed into (``omp exited with code 1: <this>``) rather than the
-        streams, so :func:`_named_for_the_ladder` puts the shared tables' own
-        word in front of the denial, the deadline and the 5xx ``error``. The
-        verdict is still :meth:`classify_failure`'s; this only keeps it from
-        being lost in transit.
+        **Diagnostics, never classification.** Nothing here chooses a category:
+        on this exit-1 path Lane A's ladder takes :meth:`classify_failure`'s
+        verdict from ``details["failure_category"]``, and the error line
+        (``omp exited with code 1: <this> [<category>]``) is for the reader.
+        :func:`_named_for_the_ladder` still puts the shared tables' own word in
+        front of the denial, the deadline and the 5xx ``error``, which the
+        exit-0 path, classified off its error string, depends on.
         """
         if _never_started(stdout):
             return stderr_diagnosis(stderr) or None
@@ -1396,8 +1390,7 @@ class OmpProvider(LLMProvider):
 
         Tool results and earlier assistant turns are **retained for diagnostics,
         not classification**: ``_attach_stdout_excerpt`` puts the raw stdout on
-        ``details.stdout_excerpt``, ``_save_log`` writes it in full, and
-        ``_format_failure_details``' stdout tail is cut from the raw stream. This
+        ``details.stdout_excerpt`` and ``_save_log`` writes it in full. This
         hook is applied inside :meth:`classify_failure` (to classify) and, for
         the failure reason's quote only, by the executor's
         ``_classify_failed_run`` (see the base docstring); neither writes the
@@ -1463,17 +1456,14 @@ class OmpProvider(LLMProvider):
         nothing.
 
         **Which ladder reads this method, and which reads the sentence.** The
-        Lane B executor and ``_format_failure_details`` call it. Lane A's
-        file-output lane does not: it classifies ``str(result["error"])``
-        through ``classify_streams``, so what reaches that ladder is whatever
-        :func:`terminal_verdict` wrote. :func:`_named_for_the_ladder` is what
-        keeps the two agreeing — the denial, the ``toolUse``/``aborted``
-        deadline and the 5xx ``error`` each carry the shared tables' own word in
-        the sentence, so Lane A lands on the same rung off the string that this
-        method reaches off the stream. Without it the exit-0 cut review
-        classified ``None`` (never retried) while the ``aborted`` half of the
-        same ``--max-time`` took rung 2, and the 500's structural
-        ``server_error`` never became the transport retry it names.
+        Lane B executor calls it, and so does ``invoke_with_provider`` on every
+        failed child, for Lane A's ladder. The sentence
+        :func:`terminal_verdict` wrote is the reader's account of the same
+        verdict, and the fan-out's error-line fallback when an adapter gave
+        none. :func:`_named_for_the_ladder` is what keeps the two agreeing:
+        the denial, the ``toolUse``/``aborted`` deadline and the 5xx ``error``
+        each carry the shared tables' own word in the sentence, so the string
+        reaches the same rung this method reaches off the stream.
 
         Anything the structural read has no branch for — including an
         unrecognized ``stopReason`` — falls through to the declared tables over

@@ -10,55 +10,39 @@ Usage:
     uv run --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-task-suggestions plans/my-plan.md [options]
 """
 
+import contextlib
+import io
 import os
 import re
 import shutil
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
 from utils.stream_bootstrap import bootstrap_streams
 from utils.apply_orchestrator_base import (
-    ApplyOrchestratorBase,
-    OrchestratorError,
-    build_common_arg_parser,
+    OrchestratorError, build_common_arg_parser, target_backup_name,
 )
+from utils.apply_suggestion_phase import SuggestionApplyPhase
 from utils.cli_common import dispatcher_prefix
-from utils.text_clip import clip
-from utils.judge_vocab import JUDGE_AUTO_DECIDE, JUDGE_DECIDE
 from utils.apply_output_helpers import (
     build_skipped_output,
-    emit_json_output,
     write_and_emit_output,
 )
-from utils.apply_path_helpers import load_json_file
-from utils.apply_selection_helpers import merge_edited_descriptions
-from utils.report_parser import (
-    find_edited_descriptions,
-    parse_skipped_groups,
-    parse_skipped_group_suggestions,
-    parse_skipped_suggestions,
-    parse_suggestion_validation_overrides,
-    parse_validation_overrides_groups,
-)
-from utils.state_manager import (
-    CURRENT_FORMAT_VERSION,
-    StateManager,
-    load_groups_payload,
-    stamp_stable_ids,
-)
+from utils.state_manager import StateManager
 from utils.suggestion_batcher import (
+    PRIOR_BATCHES_SECTION,
     SuggestionBatch,
+    format_suggestion_block,
 )
 from utils.tasks_file import find_tasks_file
 from utils.tasks_graph_check import tasks_graph_warnings
 
 
-class ApplyTaskSuggestionsOrchestrator(ApplyOrchestratorBase[Dict[str, Any], SuggestionBatch]):
+class ApplyTaskSuggestionsOrchestrator(SuggestionApplyPhase):
     """Thin subclass for the apply-task-suggestions phase."""
 
     phase_name = "apply-task-suggestions"
@@ -69,6 +53,8 @@ class ApplyTaskSuggestionsOrchestrator(ApplyOrchestratorBase[Dict[str, Any], Sug
     guard_double_nesting = False
     # One shared artifact (the tasks file), so batches are strictly sequential.
     write_kind = "apply_task_suggestions"
+    phase_dir_key = "apply_task_suggestions_dir"
+    summary_title = "TASK SUGGESTIONS TO APPLY (BATCHED)"
 
     # Instance state populated by pre_validate_hook
     tasks_file: str = ""
@@ -82,9 +68,6 @@ class ApplyTaskSuggestionsOrchestrator(ApplyOrchestratorBase[Dict[str, Any], Sug
         ``--mark-completed`` call runs before that hook, and without it
         ``write_phase_artifact`` would name the plan (fix round 26)."""
         if not self.tasks_file:
-            import contextlib
-            import io
-
             try:
                 with contextlib.redirect_stderr(io.StringIO()):
                     self.tasks_file = find_tasks_file(self.plan_path)
@@ -95,14 +78,14 @@ class ApplyTaskSuggestionsOrchestrator(ApplyOrchestratorBase[Dict[str, Any], Sug
     def write_target_backup(self) -> Optional[str]:
         """Already taken, under the name this phase's own output publishes.
 
-        `build_output_json` copies tasks.md to `{phase}/tasks-backup.md` before
+        `_target_output_fields` copies tasks.md to `{phase}/tasks-backup.md` before
         any batch runs (kept across a resume, so it still holds the pre-phase
         bytes) and hands the path back as `tasks_file_backup`, which
         `instructions/apply-task-suggestions.md` tells the agent to preserve. A
         second copy named `backup.md` would be the same bytes under a name
         nothing references, so the base's snapshot is answered rather than run.
         """
-        path = os.path.join(self.out_dir, self.phase_name, "tasks-backup.md")
+        path = os.path.join(self.out_dir, self.phase_name, target_backup_name(self.phase_name))
         return path if os.path.isfile(path) else None
 
     # ----------------------------------------------------------------
@@ -224,115 +207,40 @@ Bulk Approval Examples:
             },
         }
         write_and_emit_output(output, phase_dir)
-        emit_json_output(output)
+        self.emit_payload(output)
         sys.exit(0)
 
     # ----------------------------------------------------------------
-    # Abstract method implementations
+    # Phase hooks
     # ----------------------------------------------------------------
 
-    def load_data(self) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Load grouped suggestions and validation from review-tasks subdir."""
-        review_dir = os.path.join(self.out_dir, self.review_subdir)
-        validation_path = Path(review_dir) / "validation.json"
+    def _validation_missing(
+        self, validation_path: Path, groups: Optional[List[Dict[str, Any]]]
+    ) -> None:
+        """A review with no findings writes no validation: the phase is
+        skipped (exit 0). Groups without validation are an error."""
+        if groups:
+            super()._validation_missing(validation_path, groups)
+        skip_reason = "no actionable findings from review-tasks"
+        print(
+            "No actionable task suggestions found — skipping apply-task-suggestions phase.",
+            file=sys.stderr,
+        )
+        if self.state is not None:
+            self.state.mark_phase_skipped(self.phase_name, skip_reason)
+            self.state.save()
+        # Write empty output
+        phase_dir = os.path.join(self.out_dir, self.phase_name)
+        output = build_skipped_output(
+            self.phase_name,
+            "No actionable task suggestions found — skipping apply-task-suggestions phase.",
+        )
+        write_and_emit_output(output, phase_dir)
+        self.emit_payload(output)
+        sys.exit(0)
 
-        # Load grouped suggestions
-        grouped_path = os.path.join(review_dir, "grouped.json")
-        raw = load_json_file(grouped_path)
-        groups: Optional[List[Dict[str, Any]]] = None
-        if raw is not None:
-            groups = load_groups_payload(raw)
-            stamp_stable_ids(groups)
-
-        # Handle zero-finding path
-        if not validation_path.exists():
-            if groups is None or len(groups) == 0:
-                skip_reason = "no actionable findings from review-tasks"
-                print(
-                    "No actionable task suggestions found — skipping apply-task-suggestions phase.",
-                    file=sys.stderr,
-                )
-                if self.state is not None:
-                    self.state.mark_phase_skipped(self.phase_name, skip_reason)
-                    self.state.save()
-                # Write empty output
-                phase_dir = os.path.join(self.out_dir, self.phase_name)
-                output = build_skipped_output(
-                    self.phase_name,
-                    "No actionable task suggestions found — skipping apply-task-suggestions phase.",
-                )
-                write_and_emit_output(output, phase_dir)
-                emit_json_output(output)
-                sys.exit(0)
-            else:
-                raise OrchestratorError(
-                    f"Validation results not found at {validation_path}. "
-                    "Run --review-tasks first to generate validation results.",
-                    exit_code=1,
-                )
-
-        # Load validation using v2 loader
-        from utils.validation import load_validation_results as load_validation_v2
-
-        validation = load_validation_v2(validation_path)
-
-        if groups is None:
-            raise OrchestratorError(
-                f"Grouped suggestions not found in {self.out_dir}. "
-                "Run --review-tasks first to generate grouped suggestions.",
-                exit_code=1,
-            )
-
-        return groups, validation
-
-    def parse_user_edits(self, report_path: str) -> Dict[str, Tuple[str, str]]:
-        """Detect and return user-edited descriptions from report.md."""
-        return find_edited_descriptions(report_path, self.groups)
-
-    def merge_user_edits(
-        self,
-        groups: List[Dict[str, Any]],
-        edited_descriptions: Dict[str, Tuple[str, str]],
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
-        """Delegate to shared merge_edited_descriptions helper."""
-        return merge_edited_descriptions(groups, edited_descriptions)
-
-    def parse_skips_from_report(
-        self, report_path: str
-    ) -> Tuple[Set[str], Set[str], Set[str]]:
-        """Parse skipped groups and suggestions from report.md."""
-        skipped_group_indices = parse_skipped_groups(report_path)
-        skipped_suggestion_ids = parse_skipped_group_suggestions(report_path)
-        old_skipped_ids = parse_skipped_suggestions(report_path)
-        return skipped_group_indices, skipped_suggestion_ids, old_skipped_ids
-
-    def parse_validation_overrides_from_report(
-        self, report_path: str
-    ) -> Tuple[Dict[str, str], Dict[str, str]]:
-        """Parse validation overrides from report.md."""
-        group_overrides = parse_validation_overrides_groups(report_path)
-        suggestion_overrides = parse_suggestion_validation_overrides(report_path)
-        return group_overrides, suggestion_overrides
-
-    def format_item_for_output(self, group: Dict[str, Any], index: int) -> Dict[str, Any]:
-        """Format a suggestion group for output, including task_reference field."""
-        suggestions = group.get("suggestions", [])
-
-        if suggestions:
-            primary = suggestions[0]
-            title = primary.get("title", group.get("theme", "Unknown"))
-            desc = primary.get("desc", "")
-            suggestion_type = primary.get("type", "modification")
-            reference = primary.get("reference", "")
-            importance = primary.get("importance", "MEDIUM")
-        else:
-            title = group.get("theme", "Unknown")
-            desc = ""
-            suggestion_type = "modification"
-            reference = ""
-            importance = "MEDIUM"
-
-        # Derive task_reference
+    def _reference_fields(self, reference: str) -> Dict[str, Any]:
+        """``task_reference``: ``Task T###`` when the reference names a task id."""
         task_reference = ""
         if reference:
             task_match = re.search(r"(T\d+)", reference)
@@ -340,66 +248,16 @@ Bulk Approval Examples:
                 task_reference = f"Task {task_match.group(1)}"
             else:
                 task_reference = reference
+        return {"task_reference": task_reference}
 
-        # Combine descriptions if multiple suggestions
-        if len(suggestions) > 1:
-            all_descs = [s.get("desc", "") for s in suggestions if s.get("desc")]
-            desc = "\n\n".join(all_descs)
-
-        formatted = {
-            "index": index,
-            # Stable group identifier so judging subagents / human-decision
-            # routing can reference pre-marked items.
-            "group_id": group.get("group_hash", ""),
-            "title": title,
-            "description": desc,
-            "type": suggestion_type,
-            "reference": reference,
-            "task_reference": task_reference,
-            "importance": importance,
-            "theme": group.get("theme", ""),
-            "category": group.get("category", ""),
-            "validation_status": group.get("validation_status", "valid"),
-            "validation_reason": group.get("validation_reason", ""),
-            "validation_confidence": group.get("validation_confidence", 0.0),
-            "models": group.get("models", []),
-            "suggestion_count": len(suggestions),
-        }
-        # Per-item routing flag: reviewer pre-marked this group "Let the agent
-        # decide" in the report. Routed to the per-item judge without prompting.
-        if group.get(JUDGE_DECIDE):
-            formatted["decision_mode"] = JUDGE_AUTO_DECIDE
-        # Under `--scope-policy preserve`: the item's validated scope, and a
-        # selected remedy as its instruction. Untouched under `expand`.
-        return self.scope_annotate(formatted, group)
-
-    def generate_batch_prompts(self, batches: List[SuggestionBatch]) -> List[Dict[str, Any]]:
-        """Attach task-specific prompts to each batch.
-
-        Returns a list of dicts (batch.to_dict() + prompt) for output assembly.
-        """
-        result = []
-        for batch in batches:
-            prompt = self._generate_single_batch_prompt(batch)
-            result.append({**batch.to_dict(), "prompt": prompt})
-        return result
-
-    def build_output_json(
-        self,
-        batches: List[Any],
-        *,
-        resume_info: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """Assemble the final orchestrator_output.json payload."""
-        phase_dir = os.path.join(self.out_dir, self.phase_name)
-
+    def _target_output_fields(self, phase_dir: str) -> Dict[str, Any]:
+        """The tasks file, backed up before any batch edits it."""
         # Backup tasks.md before any modifications. A resumed run finds the
         # file as the failed batch left it — half-applied, by design — so the
         # backup a previous run took is the one that still holds the pre-phase
         # bytes, and it is kept rather than overwritten (measured 2026-09-15:
         # three resumes in a row each copied the partial edits over it).
-        tasks_backup_path = os.path.join(phase_dir, "tasks-backup.md")
-        os.makedirs(phase_dir, exist_ok=True)
+        tasks_backup_path = os.path.join(phase_dir, target_backup_name(self.phase_name))
         if getattr(self.args, "resume", False) and os.path.isfile(tasks_backup_path):
             print(
                 f"Tasks file backup kept from the previous run: {tasks_backup_path}",
@@ -418,94 +276,10 @@ Bulk Approval Examples:
                     )
             shutil.copy2(self.tasks_file, tasks_backup_path)
             print(f"Tasks file backup: {tasks_backup_path}", file=sys.stderr)
+        return {"tasks_file": self.tasks_file, "tasks_file_backup": tasks_backup_path}
 
-        return {
-            "format_version": CURRENT_FORMAT_VERSION,
-            "plan_file": self.plan_path,
-            "tasks_file": self.tasks_file,
-            "tasks_file_backup": tasks_backup_path,
-            "prefix": self.prefix,
-            "output_dir": self.out_dir,
-            "apply_task_suggestions_dir": phase_dir,
-            "timestamp": datetime.now().isoformat(),
-            "batches": batches,
-            "to_apply": self.formatted_valid,
-            "needs_human_review": self.formatted_human,
-            "skipped_items": self.formatted_skipped,
-            "user_skipped_items": self.user_skipped_items,
-            "skipped_count": len(self.skipped),
-            "batching_stats": self.batching_stats,
-            "human_review_config": self.build_human_review_config(),
-            "resume_info": resume_info,
-            "edited_descriptions": self.edit_log,
-            "summary": {
-                "total_groups": len(self.groups),
-                "valid_count": len(self.valid),
-                "needs_human_count": len(self.needs_human),
-                "skipped_count": len(self.skipped),
-                "user_skipped_count": len(self.user_skipped_items),
-                "batch_count": len(batches),
-                "validation_failed_count": sum(
-                    1 for g in self.merged if g.get("validation_status") == "validation_failed"
-                ),
-                "auto_approved_count": sum(
-                    1 for g in self.valid if g.get("auto_approved", False)
-                ),
-                "edited_description_count": len(self.edit_log),
-            },
-        }
-
-    def get_output_path(self) -> str:
-        """Return path for orchestrator_output.json."""
-        phase_dir = os.path.join(self.out_dir, self.phase_name)
-        return os.path.join(phase_dir, "orchestrator_output.json")
-
-    def print_text_summary(self, batches: List[Any], output_path: str) -> None:
-        """Print human-readable summary of results."""
-        print(f"\n{'=' * 60}")
-        print("TASK SUGGESTIONS TO APPLY (BATCHED)")
-        print(f"{'=' * 60}")
-        print(f"Plan: {self.plan_path}")
-        print(f"Tasks file: {self.tasks_file}")
-        print(f"Valid suggestions: {len(self.valid)}")
-        print(f"Batches: {len(batches)}")
-        print(f"Needs human review: {len(self.needs_human)}")
-        print(f"Skipped: {len(self.skipped)}")
-
-        if self.batching_stats.get("batching_enabled"):
-            print("\nBatching efficiency:")
-            print(f"  Subagent calls saved: {self.batching_stats.get('subagent_calls_saved', 0)}")
-            print(f"  Efficiency gain: {self.batching_stats.get('efficiency_gain_percent', 0)}%")
-
-        for i, batch in enumerate(batches):
-            batch_suggestions = batch.get("suggestions", []) if isinstance(batch, dict) else batch.suggestions
-            batch_section = batch.get("section_key", "") if isinstance(batch, dict) else batch.section_key
-            batch_type = batch.get("batch_type", "") if isinstance(batch, dict) else batch.batch_type
-            batch_size = batch.get("suggestion_count", len(batch_suggestions)) if isinstance(batch, dict) else batch.size
-            batch_priority = batch.get("priority_score", 0) if isinstance(batch, dict) else batch.priority_score
-
-            print(f"\n{'=' * 60}")
-            print(f"BATCH {i + 1} ({batch_size} suggestion(s))")
-            print(f"{'=' * 60}")
-            print(f"Section: {batch_section}")
-            print(f"Type: {batch_type}")
-            print(f"Priority score: {batch_priority}")
-
-            for j, s in enumerate(batch_suggestions):
-                print(f"\n  --- Suggestion {j + 1} ---")
-                print(f"  Title: {s['title']}")
-                print(f"  Type: {s['type']}")
-                print(f"  Importance: {s['importance']}")
-                print(f"  Task reference: {s.get('task_reference', s['reference'])}")
-                print(f"  Description:\n  {clip(s['description'], 200)}")
-
-        if self.formatted_human:
-            print(f"\n{'=' * 60}")
-            print("NEEDS HUMAN REVIEW")
-            print(f"{'=' * 60}")
-            for s in self.formatted_human:
-                print(f"\n- {s['title']}")
-                print(f"  Reason: {s['validation_reason']}")
+    def _summary_target_lines(self) -> List[str]:
+        return [f"Tasks file: {self.tasks_file}"]
 
     # ----------------------------------------------------------------
     # Private helpers
@@ -613,21 +387,9 @@ Return a brief summary of what was changed."""
         ]
 
         for i, s in enumerate(suggestions, 1):
-            prompt_parts.append(f"""---
-### Suggestion {i}: {s.get('title', 'Untitled')}
-- **Type**: {s.get('type', 'modification')}
-- **Task reference**: {s.get('reference', 'N/A')}
-- **Importance**: {s.get('importance', 'MEDIUM')}
+            prompt_parts.append(format_suggestion_block(i, s, "Task reference"))
 
-**Details**:
-{s.get('description', 'No description provided.')}
-""")
-
-        prompt_parts.append("""## Changes Applied in Prior Batches
-(Review these to avoid redoing work — do NOT re-apply these changes)
-
-{prior_changes_context}
-""")
+        prompt_parts.append(PRIOR_BATCHES_SECTION)
 
         prompt_parts.append(f"---{type_instructions}")
 
@@ -667,4 +429,8 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
+    from utils import process_control
+
+    # A process entry of its own: provider children must stay this process's.
+    process_control.restore_sigchld_default()
     sys.exit(main(sys.argv[1:]))

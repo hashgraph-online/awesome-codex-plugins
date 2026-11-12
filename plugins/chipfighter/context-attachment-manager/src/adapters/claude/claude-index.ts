@@ -26,6 +26,7 @@ import { baseName, FETCHED_STATE, imageDigest, type ImageKind } from "../../core
 import type { ImageRef } from "../protocols/openai-responses/images.ts";
 import { addNotes, copyNotes, type Notes } from "../../core/notes.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
+import type { IdTimes } from "../../core/selection.ts";
 import type { FetchedCopy } from "../../core/session.ts";
 import type { IndexedImage as SessionImage, SessionIndex } from "../../core/session.ts";
 
@@ -181,12 +182,17 @@ function relinked(records: ClaudeRecord[], byUuid: Map<string, ClaudeRecord>): M
   return parents;
 }
 
-// v0.10: the calls activeChain found off the chain (out-of-order parallel results) and their results.
-const offChain = new WeakSet<ClaudeRecord>();
+// Records recovered by activeChain and the subset numbered since `chained` (selection.ts). Keep the marks with
+// the chain: readTranscript reuses record objects even when a new reply continues from a different result.
+type ChainMarks = { offChain: Set<ClaudeRecord>; behindResult: Set<ClaudeRecord> };
+const marksOf = new WeakMap<ClaudeRecord[], ChainMarks>();
+const onlyResults = (record: ClaudeRecord | undefined): boolean => !!record && record.type === "user" && blocksOf(record).length > 0 && blocksOf(record).every((block) => block?.type === "tool_result");
 
 // The conversation as it stands: from the newest message (not a subagent's sidechain) back to the start. v0.10:
 // `links` are where boundaries whose history sits in an earlier transcript lead (withHistory).
 export function activeChain(records: ClaudeRecord[], links: Map<string, string> = new Map()): ClaudeRecord[] {
+  const offChain = new Set<ClaudeRecord>();
+  const behindResult = new Set<ClaudeRecord>();
   const byUuid = new Map<string, ClaudeRecord>();
   for (const record of records) if (typeof record.uuid === "string") byUuid.set(record.uuid, record);
   const parents = relinked(records, byUuid);
@@ -212,6 +218,8 @@ export function activeChain(records: ClaudeRecord[], links: Map<string, string> 
   // the calls of one reply its message id and sends them together, so they join the chain after that reply's records
   // and the result the conversation went on from, in the order they were made; their results join below like the
   // others. Their images were left out before: what was written then is translated (offChain, oldNumbering).
+  // Claude Code 2.1.321 (2026-11-12) writes each call after the first result off the result before it (call, result,
+  // call, result): such a call joins through that result, whose call is one of them (behindResult).
   const replyOf = (record: ClaudeRecord): string | null => (record.type === "assistant" && typeof record.message?.id === "string" ? record.message.id : null);
   const replies = new Set(chain.map(replyOf).filter((id): id is string => id !== null));
   const strays = new Map<string, ClaudeRecord[]>();
@@ -219,13 +227,22 @@ export function activeChain(records: ClaudeRecord[], links: Map<string, string> 
     const reply = replyOf(record);
     if (reply === null || !replies.has(reply) || seen.has(record.uuid!) || record.isSidechain || !blocksOf(record).some((block) => block?.type === "tool_use")) continue;
     const group = strays.get(reply) ?? [];
-    if (!record.parentUuid || !(seen.has(record.parentUuid) || group.some((other) => other.uuid === record.parentUuid))) continue;
+    const joins = (uuid: string | null | undefined) => !!uuid && (seen.has(uuid) || group.some((other) => other.uuid === uuid));
+    const parent = record.parentUuid ? byUuid.get(record.parentUuid) : undefined;
+    // Up through the results and the notes Claude Code writes after them ("[Image: original …]", isMeta; 2.1.317) to a
+    // record that joins.
+    let behind = false;
+    for (let at = parent, hops = 0; !joins(record.parentUuid) && at && hops < 8 && (onlyResults(at) || (at.type === "user" && at.isMeta === true && !isPrompt(at))); at = byUuid.get(at.parentUuid ?? ""), hops++) {
+      if (joins(at.parentUuid)) { behind = true; break; }
+    }
+    if (!joins(record.parentUuid) && !behind) continue;
     strays.set(reply, [...group, record]);
+    if (behind || (parent && behindResult.has(parent))) behindResult.add(record);
   }
   for (const [reply, group] of strays) {
     let at = chain.length - 1;
     while (at >= 0 && replyOf(chain[at]) !== reply) at--;
-    while (at + 1 < chain.length && chain[at + 1].type === "user" && blocksOf(chain[at + 1]).length > 0 && blocksOf(chain[at + 1]).every((block) => block?.type === "tool_result")) at++;
+    while (at + 1 < chain.length && onlyResults(chain[at + 1])) at++;
     chain.splice(at + 1, 0, ...group);
     for (const record of group) { seen.add(record.uuid!); offChain.add(record); }
   }
@@ -248,9 +265,12 @@ export function activeChain(records: ClaudeRecord[], links: Map<string, string> 
     if (results.length === 0 || !results.every((block) => calls.has(String(block.tool_use_id)) && !answered.has(String(block.tool_use_id)))) continue;
     for (const block of results) answered.add(String(block.tool_use_id));
     if (offChain.has(byUuid.get(record.parentUuid)!)) offChain.add(record);
+    if (behindResult.has(byUuid.get(record.parentUuid)!)) behindResult.add(record);
     after.set(record.parentUuid, [...(after.get(record.parentUuid) ?? []), record]);
   }
-  return after.size === 0 ? chain : chain.flatMap((record) => [record, ...(after.get(record.uuid!) ?? [])]);
+  const result = after.size === 0 ? chain : chain.flatMap((record) => [record, ...(after.get(record.uuid!) ?? [])]);
+  marksOf.set(result, { offChain, behindResult });
+  return result;
 }
 
 // A prompt the user sent (or a delivery queued as one): not a tool result, not Claude Code's own meta message or a
@@ -299,20 +319,27 @@ const mimeOf = (block: Json) => (typeof block.source?.media_type === "string" ? 
 
 // v0.10: when record lines and fetch labels were written under another numbering. `family`: the session's transcripts
 // (FamilyFile); a line written at a time belongs to the newest one started by then. One that starts at a compaction
-// was numbered, until `since` (when this version first ran here), from that compaction on.
-export type Eras = { family: FamilyFile[]; since: string | null };
+// was numbered, until `since` (when this version first ran here), from that compaction on. From `since` until
+// `chained` (when they first got ids here, selection.ts), the calls behind another call's result
+// (behindResult) had no ids.
+export type Eras = { family: FamilyFile[]; since: string | null; chained?: string | null };
 // chain: activeChain(records, links), when the caller has it already.
 export type ClaudeIndexOptions = { links?: Map<string, string>; eras?: Eras; chain?: ClaudeRecord[] };
 
 // The ids a transcript started at chain position `from` gave its images, as the plugin numbered it then: one by one
 // from there, a copy our fetch tool returned (its label naming an id of this numbering, same content) taking none, and
-// the calls found off the chain (offChain) taking none either: the plugin did not see them then.
+// the records it did not see then (`unseen`: before v0.10 all calls found off the chain, offChain; before `chained`
+// those behind another call's result, behindResult) taking none either.
 // Only up to `until` (nothing written later is translated), so it stays the same as the session goes on: kept.
 const numberings = new Map<string, Map<string, string>>();
-function oldNumbering(chain: ClaudeRecord[], from: number, until: string): Map<string, string> {
+function oldNumbering(chain: ClaudeRecord[], from: number, until: string, unseen: Set<ClaudeRecord> | undefined): Map<string, string> {
   let end = from;
-  while (end < chain.length && !(typeof chain[end].timestamp === "string" && chain[end].timestamp >= until)) end++;
-  const cacheKey = `${chain[from].uuid}\0${chain[end - 1]?.uuid}\0${end - from}`;
+  const hidden: string[] = [];
+  while (end < chain.length && !(typeof chain[end].timestamp === "string" && chain[end].timestamp >= until)) {
+    if (unseen?.has(chain[end])) hidden.push(chain[end].uuid!);
+    end++;
+  }
+  const cacheKey = `${chain[from].uuid}\0${chain[end - 1]?.uuid}\0${end - from}\0${hidden.join("\0")}`;
   const known = numberings.get(cacheKey);
   if (known) return known;
   const keys = new Map<string, string>();
@@ -320,7 +347,7 @@ function oldNumbering(chain: ClaudeRecord[], from: number, until: string): Map<s
   const content = new Map<string, { contentId: string; pixels: string | null }>();
   for (let position = from; position < end; position++) {
     const record = chain[position];
-    if (record.type !== "user" || offChain.has(record)) continue;
+    if (record.type !== "user" || unseen?.has(record)) continue;
     for (const found of keysOf(record)) {
       if (seen.has(found.key)) continue;
       seen.add(found.key);
@@ -339,24 +366,37 @@ function oldNumbering(chain: ClaudeRecord[], from: number, until: string): Map<s
 }
 
 // v0.10: for a record written at `timestamp`, the numbering its ids were in: null when they are this index's own.
-function translator(chain: ClaudeRecord[], eras: Eras | undefined): (timestamp: unknown) => Map<string, string> | null {
+// The numberings of the time between `since` and `chained`: the model saw the images behind another call's result
+// without ids, and named them as it counted on (buildClaudeIndex, ownId).
+type Numbering = { keys: Map<string, string>; countedOn: boolean };
+function translator(chain: ClaudeRecord[], eras: Eras | undefined): (timestamp: unknown) => Numbering | null {
   if (!eras || eras.since === null || !chain.length) return () => null;
   const positions = new Map<string, number>();
   chain.forEach((record, at) => { if (typeof record.uuid === "string") positions.set(record.uuid, at); });
   const family = eras.family.filter((file) => positions.has(file.start)).sort((a, b) => a.created.localeCompare(b.created));
   // Calls found off the chain shift every id after theirs, in the session's first transcript too.
-  const hidden = chain.some((record) => offChain.has(record));
-  if (!hidden && !family.some((file) => file.start !== chain[0].uuid)) return () => null;
-  const used = new Map<string, Map<string, string>>();
+  const marks = marksOf.get(chain);
+  const hidden = !!marks?.offChain.size;
+  const earlier = hidden || family.some((file) => file.start !== chain[0].uuid);
+  // Between `since` and `chained`, ids were stable but the calls behind another call's result had none.
+  const chained = typeof eras.chained === "string" && eras.chained > eras.since && marks?.behindResult.size ? eras.chained : null;
+  if (!earlier && chained === null) return () => null;
+  const used = new Map<string, Numbering>();
   return (timestamp) => {
-    if (typeof timestamp !== "string" || timestamp >= eras.since!) return null;
+    if (typeof timestamp !== "string") return null;
+    if (timestamp >= eras.since!) {
+      if (chained === null || timestamp >= chained) return null;
+      if (!used.has("")) used.set("", { keys: oldNumbering(chain, 0, chained, marks?.behindResult), countedOn: true });
+      return used.get("")!;
+    }
+    if (!earlier) return null;
     let start: string | null = null;
     for (const file of family) if (file.created <= timestamp) start = file.start;
     if (start === null || start === chain[0].uuid) {
       if (!hidden) return null;
       start = chain[0].uuid!;
     }
-    if (!used.has(start)) used.set(start, oldNumbering(chain, positions.get(start)!, eras.since!));
+    if (!used.has(start)) used.set(start, { keys: oldNumbering(chain, positions.get(start)!, eras.since!, marks?.offChain), countedOn: false });
     return used.get(start)!;
   };
 }
@@ -382,7 +422,19 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
   const skipped = new Set<number>();
   // v0.10: ids written under another numbering, back to this one's (through the image they named).
   const numberingAt = translator(chain, options.eras);
-  const ownId = (numbering: Map<string, string> | null) => (id: string) => (numbering ? byKey.get(numbering.get(id) ?? "")?.id ?? null : id);
+  // Between `since` and `chained`, an id that numbering had not given yet when it was written named an image the model
+  // saw without one, counting on from the last id it had (2026-11-12): the images behind a result listed after that
+  // one, in order. givenThen: how many ids that numbering had given so far; countedSince: those images' ids here.
+  const behindResult = marksOf.get(chain)?.behindResult;
+  let givenThen = 0;
+  let countedSince: string[] = [];
+  const ownId = (numbering: Numbering | null) => (id: string) => {
+    if (!numbering) return id;
+    const named = byKey.get(numbering.keys.get(id) ?? "");
+    if (named) return named.id;
+    const beyond = Number(/^IMG-(\d+)$/.exec(id)?.[1] ?? 0) - givenThen;
+    return numbering.countedOn && beyond >= 1 && beyond <= countedSince.length ? countedSince[beyond - 1] : null;
+  };
   chain.forEach((record, position) => {
     if (position === lastBoundary) compactedNotes = copyNotes(notes);
     const content = record.message?.content;
@@ -444,6 +496,8 @@ export function buildClaudeIndex(sessionId: string, records: ClaudeRecord[], tra
       };
       images.push(entry);
       byKey.set(key, entry);
+      if (behindResult?.has(record)) countedSince.push(entry.id);
+      else { givenThen++; countedSince = []; }
     }
     if (pasted.length) uploads.push({ uuid: record.uuid!, contentIds: pasted, compacted });
   });
@@ -675,26 +729,27 @@ export function familyOf(file: string, starts: Set<string>): FamilyFile[] {
   return family.sort((a, b) => a.created.localeCompare(b.created));
 }
 
-// v0.10: `since` is when this version first ran here (selection.ts, stableIdsSince); before it, transcripts resumed
-// after a compaction were numbered from their own start, and what was written then is translated back.
+// v0.10: `times.since` is when this version first ran here (selection.ts, stableIdTimes); before it, transcripts
+// resumed after a compaction were numbered from their own start, and what was written then is translated back. Until
+// `times.chained`, the calls behind another call's result had no ids (Eras).
 // The engine reads the index several times per request (whether to rewrite, the rewrite, the sizes): the last one is
-// kept while the transcripts, the project folder and `since` are as they were. Callers only read it.
+// kept while the transcripts, the project folder and the times are as they were. Callers only read it.
 const loaded = new WeakMap<ClaudeRecord[], { key: string; index: ClaudeIndex }>();
-export function loadClaudeIndex(sessionId: string, home = claudeHome(), since: string | null = null): ClaudeIndex {
+export function loadClaudeIndex(sessionId: string, home = claudeHome(), times: IdTimes | null = null): ClaudeIndex {
   const file = transcriptOf(sessionId, home);
   if (!file) return emptyClaudeIndex(sessionId);
   const own = readTranscript(file);
   const { records, links } = withHistory(file, own, home);
-  const key = [own.length, records.length, since, listings.get(dirname(file))?.names.length ?? -1].join("\0");
+  const key = [own.length, records.length, times?.since, times?.chained, listings.get(dirname(file))?.names.length ?? -1].join("\0");
   const known = loaded.get(own);
   if (known && known.key === key) return known.index;
-  const index = indexFor(sessionId, file, records, links, since);
+  const index = indexFor(sessionId, file, records, links, times);
   loaded.set(own, { key, index });
   return index;
 }
 
-function indexFor(sessionId: string, file: string, records: ClaudeRecord[], links: Map<string, string>, since: string | null): ClaudeIndex {
+function indexFor(sessionId: string, file: string, records: ClaudeRecord[], links: Map<string, string>, times: IdTimes | null): ClaudeIndex {
   const chain = activeChain(records, links);
   const starts = new Set([chain[0]?.uuid, ...chain.filter(isBoundary).map((record) => record.uuid)].filter((uuid): uuid is string => typeof uuid === "string"));
-  return buildClaudeIndex(sessionId, records, file, { links, chain, eras: { family: familyOf(file, starts), since } });
+  return buildClaudeIndex(sessionId, records, file, { links, chain, eras: { family: familyOf(file, starts), since: times?.since ?? null, chained: times?.chained ?? null } });
 }

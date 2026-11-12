@@ -54,10 +54,17 @@ Grammar (one line, no shell preprocessing)::
 
 from __future__ import annotations
 
+import hashlib
+import importlib
+import inspect
 import os
 import re
+import shlex
+import stat
 import sys
 import tempfile
+import textwrap
+import time
 import traceback
 from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence, Tuple
@@ -86,12 +93,28 @@ from utils.cli_common import (
     record_invocation,
     render_instruction_text,
     skill_dir,
+    record_ran_from_root,
 )
 from utils.stream_bootstrap import bootstrap_streams
 from utils.unattended import (
     NeedsHuman,
     require_uv,
     validate_decision_flags,
+)
+# The positional grammar lives in utils/positionals.py, shared with the commit
+# front door; this module reads it there. The private spellings below are
+# read-only aliases for readers of the old names (tests/test_layer_moves.py).
+from utils import positionals as _positionals
+from utils.positionals import (  # noqa: F401 - re-exported for reading only
+    COMMIT_BRIEF_SUFFIX as _COMMIT_BRIEF_SUFFIX,
+    RANGE_COUNT_WORD as _RANGE_COUNT_WORD,
+    inside as _inside,
+    names_a_commit_brief as _names_a_commit_brief,
+    relative_paths as _relative,
+    revs_flags as _revs_flags,
+    root_holding as _root_holding,
+    split_positionals as _split_positionals,
+    takes_revs as _takes_revs,
 )
 
 #: Above this many characters the ``ask`` question is handed over as a file
@@ -104,8 +127,9 @@ MAX_ARGV_QUESTION_CHARS = 4096
 #: prefix. Excluded from ``--help``, never rendered into a follow-up command or a
 #: ``MULTI_LLM_RESULT.next`` value (see ``ResultContext.set_next``), and not part
 #: of the compatibility surface. Targets own further ``--internal-*`` names of
-#: their own (e.g. ``--internal-revalidation``), which is why the dispatcher
-#: forwards the prefix rather than validating against this list.
+#: their own (e.g. the retired ``--internal-revalidation``, which must still
+#: reach its parser to warn), which is why the dispatcher forwards the prefix
+#: rather than validating against this list.
 INTERNAL_FLAGS: Tuple[str, ...] = tuple(
     INTERNAL_FLAG_PREFIX + name for name in ("reaggregate", "consolidate", "worker")
 )
@@ -135,7 +159,7 @@ UTIL_COMMANDS: Dict[str, Tuple[Optional[str], str, str]] = {
     "backup": ("utils.backup", "main", "Back up a file before it is modified."),
     "restore-batch": ("utils.restore_batch", "main",
                       "Restore a failed write batch from its pre-batch snapshot."),
-    "runs": ("utils.run_registry", "main", "List (or --sweep) this project's detached runs."),
+    "runs": ("utils.run_sweep", "main", "List (or --sweep) this project's detached runs."),
     "report-check": ("utils.report_check", "main",
                      "Check a turn's final message copies the printed next "
                      "command (Claude Code Stop hook)."),
@@ -149,7 +173,7 @@ UTIL_COMMANDS: Dict[str, Tuple[Optional[str], str, str]] = {
                       "Plan an --improve-plan/--improve-code/--improve-commits "
                       "run: each step's decision and flags (read-only; the "
                       "native leg's planner)."),
-    "commit-brief": ("utils.commit_review", "commit_brief_main",
+    "commit-brief": ("utils.commit_front_door", "commit_brief_main",
                      "Resolve a commit range, print its commit block and write "
                      "or reuse its commit brief (a commit mode's preparation, "
                      "launching nothing)."),
@@ -164,37 +188,21 @@ UTIL_COMMANDS: Dict[str, Tuple[Optional[str], str, str]] = {
     "batch-done": ("utils.batch_done", "main",
                    "Record one write batch's outcome in state.json (the "
                    "native leg's per-batch progress record)."),
+    "resume-state": ("utils.resume_state", "main",
+                     "Print a review phase's resume case and what to do "
+                     "about it (read-only)."),
     "instructions": (None, "", "Print a mode's core instruction file with every path resolved."),
 }
 
 #: The ``util`` command that is a commit front door's steps 1 to 6 on their
-#: own (plans/review-commits.md §2.8): the native leg's preparation entrypoint.
+#: own: the native leg's preparation entrypoint.
 COMMIT_BRIEF_UTIL = "commit-brief"
 
 
-#: The instruction-refactor escape hatch. Set to ``1`` and ``util instructions``
-#: serves the frozen pre-refactor core from ``legacy/`` instead of the host-neutral
-#: one — a way back from the ~5k-line markdown rewrite that does **not** revert the
-#: dispatcher, the executor or the unattended work with it. Read path only: same
-#: modes, same flags, same exit codes. See ``legacy/README.md``.
+#: Once served a frozen pre-refactor core; that core is gone (see
+#: docs/development/hosts.md). Still read so a set variable is answered on stderr,
+#: never with a stop: the current core is served either way.
 LEGACY_INSTRUCTIONS_ENV = "MULTI_LLM_LEGACY_INSTRUCTIONS"
-
-#: Where the frozen copies live, relative to the skill root.
-LEGACY_INSTRUCTIONS_DIR = "legacy"
-
-
-def _legacy_instruction_path(relative: str) -> Optional[Path]:
-    """The frozen pre-refactor file for *relative*, when the hatch is open.
-
-    ``None`` when the variable is unset (the overwhelmingly common case, and the
-    only one that costs nothing) or when no frozen copy exists for that mode —
-    a partial legacy tree falls back to the current core rather than failing,
-    because the hatch is a mitigation and must not become a new failure mode.
-    """
-    if os.environ.get(LEGACY_INSTRUCTIONS_ENV) != "1":
-        return None
-    candidate = skill_dir() / LEGACY_INSTRUCTIONS_DIR / relative
-    return candidate if candidate.exists() else None
 
 
 class DispatchError(Exception):
@@ -232,10 +240,8 @@ def render_help() -> str:
     ]
     for alias in sorted(mode_table.ALIASES):
         lines.append(f"  {alias} -> {mode_table.alias_expansion(alias)}")
-    revs_modes = [m.name for m in mode_table.MODES if _takes_revs(m)]
+    revs_modes = [m.name for m in mode_table.MODES if _positionals.takes_revs(m)]
     if revs_modes:
-        import textwrap
-
         lines.append("")
         lines += textwrap.wrap(
             f"The commit modes ({', '.join(revs_modes)}) take an optional "
@@ -299,7 +305,19 @@ def render_util_help() -> str:
         "",
         "`util instructions <mode>` prints instructions/<mode>.md with every",
         "skill-dir placeholder replaced by the running skill dir, so the text a host",
-        "agent reads contains no unexpanded token.",
+        "agent reads contains no unexpanded token. With --to-file it writes that",
+        "text to a file under <repository root>/.multi-llm/tmp/cores/ instead and",
+        "prints one [CORE_FILE] <path> lines=<n> bytes=<n> line. With --page <i>",
+        "[--page-size <bytes>] it prints page <i> of that text, between a",
+        "[CORE_PAGE] header and a [CORE_PAGE_END] line, for a host whose shell",
+        "output loses the middle of long text.",
+        "",
+        "`util resume-state <mode> <plan>` reads a review phase's folder (review-plan,",
+        "review-tasks, review-code) and prints one [RESUME_STATE] line: the resume",
+        "case, the action to take, the models, batches and flags it needs, and",
+        "ownership=stale (or uncertain) when validation files on disk are (or may",
+        "be) an earlier round's. Read-only; references/resume-detection.md lists",
+        "the cases.",
         "",
         "`util next-command <plan> [--after <mode>] [--host <id>]` prints the",
         "workflow's next phase as the next-command block (or the workflow-complete",
@@ -337,63 +355,17 @@ def _unknown_mode_message(word: str) -> str:
 # Grammar
 # ---------------------------------------------------------------------------
 
-#: A ``-N`` range word (plans/review-commits.md §2.2): a hyphen and ASCII
-#: digits, nothing else. ``-h``, ``-2h``, ``--2``, ``-2.5`` and a lone ``-``
-#: are not one; they end the leading run as any flag does.
-_RANGE_COUNT_WORD = re.compile(r"-[0-9]+")
-
-#: What a commit brief's path ends in (:func:`_names_a_commit_brief` asks no
-#: other word). Its one spelling: the generated CLI surface reads it as
-#: ``revs.brief_suffix``, so a server keeps a ``revs`` value ending in it as
-#: one argv element and a brief path holding a space reaches this dispatcher
-#: as the one word it turns into ``--plan-file``.
-_COMMIT_BRIEF_SUFFIX = ".md"
-
-
-def _takes_revs(mode: Optional["mode_table.Mode"]) -> bool:
-    """Whether *mode* takes the commit modes' range (``POS_REVS``)."""
-    return mode is not None and mode_table.POS_REVS in mode.positionals
-
-
-def _split_positionals(
-    rest: Sequence[str], mode: Optional["mode_table.Mode"] = None,
-) -> Tuple[List[str], List[str]]:
-    """Leading bare words are positionals; everything from the first flag on is
-    forwarded verbatim.
-
-    Deliberately not argparse: ``parse_known_args`` can reorder or swallow the
-    residual argv, and the residual has to reach the target's own parser exactly
-    as the user typed it.
-
-    On a mode that takes a range (``POS_REVS``), a token that fully matches
-    ``-[0-9]+`` continues the leading run instead of ending it: ``-2`` is the
-    range ``last 2``, never a flag. Only the leading run is scanned, so in
-    ``--review-commits --quick -2`` the ``-2`` is forwarded as typed (the front
-    door refuses it as a range word after a flag), and every other mode splits
-    as it always has: ``--review-code -2`` forwards ``-2``. This is the one
-    place that decides what is positional, and it runs before any parser.
-    """
-    revs = _takes_revs(mode)
-    index = 0
-    while index < len(rest):
-        token = rest[index]
-        if token.startswith("-") and not (revs and _RANGE_COUNT_WORD.fullmatch(token)):
-            break
-        index += 1
-    return list(rest[:index]), list(rest[index:])
-
-
 def _normalize_positionals(
     mode: "mode_table.Mode",
     positionals: Sequence[str],
     cleanup: List[Path],
 ) -> List[str]:
     """Turn a mode's positionals into the flags its target already parses."""
-    if _takes_revs(mode):
+    if _positionals.takes_revs(mode):
         # Ahead of the length check: `last 2 commits` is three words for the
         # range's one slot, and the extra-positional error never fires on a
         # commit mode (the range grammar is what refuses a bad range).
-        return _revs_flags(positionals)
+        return _positionals.revs_flags(positionals)
     if len(positionals) > len(mode.positionals):
         expected = " ".join(mode.positionals) or "(none)"
         raise DispatchError(
@@ -419,76 +391,8 @@ def _normalize_positionals(
     return normalized
 
 
-def _revs_flags(words: Sequence[str]) -> List[str]:
-    """The range words of a commit mode, as the flag its front door parses.
-
-    Zero words emit nothing, which means ``HEAD``. One word that is a commit
-    brief's path (:func:`_names_a_commit_brief`) becomes ``--plan-file``: a
-    root range's pinned spelling, and the re-attach a tool route builds, name
-    the brief. Anything else is joined with single spaces into one ``--revs``
-    value, since revisions never contain spaces (``last 2 commits`` needs no
-    quotes). So a markdown path is never a plan on these modes: a plan or a
-    README goes to the range grammar, which refuses it naming
-    ``--context-plan`` (plans/review-commits.md §2.2).
-    """
-    if not words:
-        return []
-    if len(words) == 1 and _names_a_commit_brief(words[0]):
-        return ["--plan-file", words[0]]
-    return ["--revs", " ".join(words)]
-
-
-def _names_a_commit_brief(word: str) -> bool:
-    """Whether *word* is a commit brief's path: it ends in
-    :data:`_COMMIT_BRIEF_SUFFIX` (``.md``), names an existing file and
-    ``commit_review.is_commit_brief`` accepts it.
-
-    One helper decides what a brief is (its marker on line 1, or a
-    ``<commit_reviews_dir>/<slug>.md`` path); this only finds the file. A
-    relative path that names nothing from here but a file at the root of the
-    repository the cwd is in is asked about there: a brief path spelled from
-    the root and typed in a subdirectory then becomes ``--plan-file``, and
-    :func:`_run_from_repository_root` moves the command to the root as it
-    would for a plan (live run 11's shape).
-    """
-    if not word.endswith(_COMMIT_BRIEF_SUFFIX):
-        return False
-    from utils import commit_review
-
-    if os.path.isfile(word):
-        return bool(commit_review.is_commit_brief(word))
-    root = _root_holding(word)
-    if root is None:
-        return False
-    return bool(commit_review.is_commit_brief(os.path.join(root, word), cwd=root))
-
-
-def _root_holding(path: str) -> Optional[str]:
-    """The root of the repository the cwd is in, when relative *path* names a
-    file there and stays inside it; else ``None``."""
-    if not _relative([path]):
-        return None
-    try:
-        from utils.git_utils import pin_repo_root
-
-        root, problem = pin_repo_root(os.getcwd())
-    except Exception:  # noqa: BLE001 - a convenience: the word stays a range
-        return None
-    if root is None or problem:
-        return None
-    candidate = os.path.join(root, path)
-    if not (
-        os.path.isfile(candidate)
-        and _inside(os.path.normpath(candidate), root)
-        and _inside(os.path.realpath(candidate), root)
-    ):
-        return None
-    return root
-
-
 #: The flags a commit front door synthesises for the phase it fronts, which a
-#: user may never type there (plans/review-commits.md §2.1, "Flags the front
-#: doors own"), each with the commit spelling that replaces it.
+#: user may never type there, each with the commit spelling that replaces it.
 COMMIT_OWNED_FLAGS: Tuple[Tuple[str, str], ...] = (
     ("--plan-file",
      "there is no plan by default: the commit messages are the stated intent. "
@@ -556,6 +460,7 @@ def _question_flags(question: str, cleanup: List[Path]) -> List[str]:
 
 def _host_capabilities():
     """Import the capability reader lazily (one yaml parse, only when needed)."""
+    # Imported here to keep multi_llm light.
     from utils import host_capabilities
 
     return host_capabilities
@@ -691,7 +596,6 @@ def _load_target(module_path: str, attr: str) -> Callable[[Sequence[str]], int]:
     inside ``main(argv)`` so two targets can safely run inside one interpreter
     (see tests/test_instruction_portability.py).
     """
-    import importlib
 
     module = importlib.import_module(module_path)
     target = getattr(module, attr, None)
@@ -710,10 +614,11 @@ def _call_target(target: Callable[[Sequence[str]], int], argv: Sequence[str]) ->
     stops its fan-out's CLIs from inside the cancellation, before ``asyncio.run``
     joins the worker threads waiting on them (decision 11.9).
     """
+    # Imported here: multi_llm does not otherwise load asyncio.
     import asyncio
-    import inspect
 
     if inspect.iscoroutinefunction(target):
+        # Imported here to keep multi_llm light.
         from utils import process_control
 
         result = asyncio.run(
@@ -725,14 +630,14 @@ def _call_target(target: Callable[[Sequence[str]], int], argv: Sequence[str]) ->
 
 
 def _validate_skip_rung(mode_name: str) -> None:
-    """Reject a bad ``MULTI_LLM_CODEX_SKIP_RUNG`` before any mode runs (plan
-    codex-sandbox-unavailable-findings-and-fixes §6 F1 "Where it sits" item 6,
-    2026-09-30): any value but ``plugin-landlock`` is exit 3 naming the
+    """Reject a bad ``MULTI_LLM_CODEX_SKIP_RUNG`` before any mode runs: any value but
+``plugin-landlock`` is exit 3 naming the
     variable and the accepted value, never silently ignored. ``doctor`` is
     exempt — it is where a user looks when something is wrong, so it reports
     the bad value on its ``plugin-landlock`` row instead of dying on it."""
     if mode_name == "doctor":
         return
+    # Imported here to keep multi_llm light.
     from utils.providers.base import skip_rung_requested
 
     try:
@@ -761,7 +666,7 @@ def _run_mode(word: str, rest: Sequence[str], ctx: ResultContext) -> int:
     assert mode.target_module is not None  # every available mode has a target
     cleanup: List[Path] = []
     try:
-        positionals, flags = _split_positionals(rest, mode)
+        positionals, flags = _positionals.split_positionals(rest, mode)
         if flag_present(flags, "--help", "-h"):
             # Forward to the target's own parser: it is the source of truth.
             return _call_target(
@@ -771,7 +676,7 @@ def _run_mode(word: str, rest: Sequence[str], ctx: ResultContext) -> int:
         # entry, and an unknown id must fail as itself rather than as a confusing
         # consequence.
         _validate_host(flags)
-        if _takes_revs(mode) and not flag_present(flags, _WORKER_FLAG):
+        if _positionals.takes_revs(mode) and not flag_present(flags, _WORKER_FLAG):
             # On the tokens as typed, before the brief path becomes the
             # door's own `--plan-file` below.
             _reject_commit_owned_flags(f"--{mode.name}", flags)
@@ -800,7 +705,7 @@ def _run_mode(word: str, rest: Sequence[str], ctx: ResultContext) -> int:
         # capable runner is exit 3 here rather than a marker nobody continues.
         _require_executor_capability(argv)
         # A plan spelled from the repository root, typed in a subdirectory of
-        # it (live run 11): the whole command runs from the root, before
+        # it: the whole command runs from the root, before
         # anything reads a path or records the invocation.
         _run_from_repository_root(
             [flag_value(argv, option) for option in _MODE_INPUT_PATH_OPTIONS],
@@ -842,7 +747,7 @@ def _run_util(rest: Sequence[str], ctx: ResultContext) -> int:
     assert module_path is not None
     if name == COMMIT_BRIEF_UTIL and not flag_present(args, "--help", "-h"):
         # The front doors' preparation half takes the same typed tokens, so
-        # it refuses the same three flags (plans/review-commits.md §2.8).
+        # it refuses the same three flags.
         _reject_commit_owned_flags(
             f"{mode_table.UTIL_NAMESPACE} {COMMIT_BRIEF_UTIL}", args)
     if not flag_present(args, "--help", "-h"):
@@ -856,15 +761,12 @@ def _run_util(rest: Sequence[str], ctx: ResultContext) -> int:
 # ---------------------------------------------------------------------------
 # A command run from a subdirectory of the repository
 # ---------------------------------------------------------------------------
-# Live run 11 (Claude Code racing 03, 2026-10-08): the host had `cd`'d into the
-# phase folder to look at its files, then ran `generate-tasks
-# plans/racing-game.md --reaggregate` there, and the plan "was not found" at
-# plans/racing-game/generate-tasks/plans/racing-game.md. Every path a workflow
-# command names (the plan, its folder, state.json, a phase folder, tasks.md) is
-# spelled from the repository root, so when the relative ones name nothing from
-# the cwd and each names something inside the root of the repository the cwd is
-# in, the command runs from that root, exactly as it would have there, and says
-# so on one line.
+# Every path a workflow command names (the plan, its folder, state.json, a phase
+# folder, tasks.md) is spelled from the repository root. When the relative ones
+# name nothing from the cwd and each names something inside the root of the
+# repository the cwd is in (a host that `cd`s into a phase folder and re-runs a
+# command there), the command runs from that root, exactly as it would have there,
+# and says so on one line.
 
 #: A mode's options whose value is an existing file the command reads (a plan
 #: positional is ``--plan-file`` by now, and so is a commit brief's path; a
@@ -876,9 +778,7 @@ _MODE_INPUT_PATH_OPTIONS: Tuple[str, ...] = (
 )
 
 #: A mode's options whose value is a path the command creates, so it need not
-#: exist yet (fix round 27, the Fable review of round 26: review-plan's
-#: ``--out-dir`` was read by nothing, so ``--out-dir out`` beside a ``sub/out``
-#: moved with the plan and wrote ``<root>/out``): review-plan's output folder
+#: exist yet: review-plan's output folder
 #: and implement's task JSON. ``--files`` and ``--touched`` are
 #: repository-relative wherever they are typed, and init's ``--dir`` is its
 #: target as typed; none of them is read here.
@@ -896,7 +796,7 @@ _UTIL_INPUT_PATH_OPTIONS: Tuple[str, ...] = (
 )
 
 #: A ``util`` command's options whose value is a path it creates:
-#: ``write-prompt``'s prompt file (fix round 27).
+#: ``write-prompt``'s prompt file.
 _UTIL_OUTPUT_PATH_OPTIONS: Tuple[str, ...] = ("--output",)
 
 #: The ``util`` commands whose first positional is such a path, with their
@@ -908,7 +808,12 @@ _UTIL_PATH_POSITIONAL: Dict[str, Tuple[str, ...]] = {
                       "--internal-run-id", "--scope-policy"),
     "check-tasks": (),
     "backup": (),
+    "resume-state": (),
 }
+
+#: The ``util`` commands whose path positional comes after this many other
+#: positionals: ``resume-state <mode> <plan>`` names the plan second.
+_UTIL_PATH_POSITIONAL_INDEX: Dict[str, int] = {"resume-state": 1}
 
 #: Of those options, the ones that take one or more values (``nargs="+"``):
 #: argparse hands such an option every token up to the next option, so none
@@ -929,13 +834,15 @@ def _is_option_token(token: str) -> bool:
 
 def _first_positional(
     args: Sequence[str], value_options: Sequence[str],
-    variadic_options: Sequence[str] = (),
+    variadic_options: Sequence[str] = (), skip: int = 0,
 ) -> Optional[str]:
+    """The first positional of *args* after *skip* others, or ``None``."""
     index = 0
     while index < len(args):
         token = args[index]
         if token == "--":
-            return args[index + 1] if index + 1 < len(args) else None
+            rest = args[index + 1:]
+            return rest[skip] if skip < len(rest) else None
         if _is_option_token(token):
             index += 1
             if "=" in token:
@@ -946,6 +853,10 @@ def _first_positional(
             elif token in value_options:
                 index += 1
             continue
+        if skip:
+            skip -= 1
+            index += 1
+            continue
         return token
     return None
 
@@ -955,19 +866,9 @@ def _util_input_paths(name: str, args: Sequence[str]) -> List[Optional[str]]:
     if name in _UTIL_PATH_POSITIONAL:
         paths.append(_first_positional(
             args, _UTIL_PATH_POSITIONAL[name], _UTIL_VARIADIC_OPTIONS.get(name, ()),
+            skip=_UTIL_PATH_POSITIONAL_INDEX.get(name, 0),
         ))
     return paths
-
-
-def _inside(path: str, root: str) -> bool:
-    return path == root or path.startswith(root.rstrip(os.sep) + os.sep)
-
-
-def _relative(paths: Sequence[Optional[str]]) -> List[str]:
-    return [
-        path for path in paths
-        if path and path != "-" and not path.startswith("~") and not os.path.isabs(path)
-    ]
 
 
 def _names_something_here(output: str) -> bool:
@@ -991,14 +892,14 @@ def _run_from_repository_root(
     when the cwd is the root already, or when a path is missing from the root
     too or resolves outside it (a ``..`` or a link out of the repository).
 
-    *outputs* are paths the command creates (fix round 27): one need not
+    *outputs* are paths the command creates: one need not
     exist at the root, but it keeps the command here when it, or the first
     folder it names, exists from the cwd, and it must stay inside the root as
     spelled and resolved. Outputs alone never move a command: only a path it
     reads says it was spelled from the root.
     """
-    relative = _relative(paths)
-    made = _relative(outputs)
+    relative = _positionals.relative_paths(paths)
+    made = _positionals.relative_paths(outputs)
     if (
         not relative
         or any(os.path.lexists(path) for path in relative)
@@ -1007,6 +908,7 @@ def _run_from_repository_root(
         return
     try:
         cwd = os.getcwd()
+        # Imported here to keep multi_llm light.
         from utils.git_utils import pin_repo_root
 
         root, problem = pin_repo_root(cwd)
@@ -1018,16 +920,14 @@ def _run_from_repository_root(
         candidate = os.path.join(root, path)
         if not (
             (path in made or os.path.exists(candidate))
-            and _inside(os.path.normpath(candidate), root)
-            and _inside(os.path.realpath(candidate), root)
+            and _positionals.inside(os.path.normpath(candidate), root)
+            and _positionals.inside(os.path.realpath(candidate), root)
         ):
             return
     os.chdir(root)
     _CWD_BEFORE_ROOT.append(cwd)
-    # Fix round 27: on the result line too, so a tool server names the plan
+    # On the result line too, so a tool server names the plan
     # the way this command reads it, never by a `.git` walk of its own.
-    from utils.cli_common import record_ran_from_root
-
     record_ran_from_root(root)
     print(
         f"multi-llm: running from the repository root {root}, where "
@@ -1057,14 +957,31 @@ def _run_util_instructions(args: Sequence[str], ctx: ResultContext) -> int:
     """
     if not args or args[0] in ("--help", "-h"):
         served = [m.name for m in mode_table.MODES if m.instruction_file]
-        print("usage: multi_llm.py util instructions <mode> [--host <id>]")
+        print(
+            "usage: multi_llm.py util instructions <mode> [--host <id>] "
+            "[--to-file | --page <i> [--page-size <bytes>]]"
+        )
         print(f"modes with a core instruction file: {', '.join(served)}")
         print(
-            "  --host <id>  append this host's three resolved capability-verb "
+            "  --host <id>         append this host's three resolved capability-verb "
             "sentences"
         )
+        print(
+            "  --to-file           write the core to a file under "
+            f"<repository root>/{'/'.join(CORE_FILE_DIR)}/ and print "
+            f"`{CORE_FILE_MARKER} <path> lines=<n> bytes=<n>` instead of the core"
+        )
+        print(
+            "  --page <i>          print page <i> of the core, framed by a "
+            f"`{CORE_PAGE_MARKER}` header and a `{CORE_PAGE_END_MARKER}` line"
+        )
+        print(
+            "  --page-size <bytes> the most core bytes one page holds (default "
+            f"{CORE_PAGE_SIZE_DEFAULT}, at least {CORE_PAGE_SIZE_MIN}); a longer "
+            "line gets a page of its own"
+        )
         return EXIT_OK
-    positional, host_id = _split_instructions_host(args)
+    positional, host_id, to_file, page, page_size = _split_instructions_host(args)
     if len(positional) > 1:
         raise DispatchError(
             "ERROR: `util instructions` takes exactly one mode word, got: "
@@ -1087,49 +1004,21 @@ def _run_util_instructions(args: Sequence[str], ctx: ResultContext) -> int:
         # observed on OpenCode, where the agent had to improvise past an exit 3.
         # Answer with the one useful thing instead and exit 0; a mode that
         # *declares* a core file which is missing is still a hard error below.
-        print(
-            f"Mode '{mode.name}' has no core instruction file: it is driven "
-            "entirely by the dispatcher, so there are no workflow steps to "
-            "follow. Its flags are the whole interface:"
-        )
-        print()
-        print(f"  {dispatcher_command(mode.name)} --help")
-        if mode.name == "status":
-            # 2026-10-04 (Claude Code racing re-run): a host reading `status`
-            # only to report it showed "Exit code 2" as a tool error. The code
-            # is the poll contract and never moves; the read step says so.
-            print()
-            print(
-                "Read its output, not its exit code: exit code 2 is not a "
-                "failure — it means no run is recorded (every phase a host ran "
-                "in the foreground) or one is still running, the poll "
-                "contract; 0 and 3 are a finished run's verdict, and only 1 is "
-                "an error (the phase dir could not be read). To report it to "
-                "the user on a host that shows any non-zero exit as an error, "
-                "add --exit-zero: the call then exits 0 whenever the status was "
-                "read, and the run's state is still in its text. Keep that flag "
-                "off a poll whose loop reads the exit code."
-            )
-        # The end marker is unconditional across `util instructions`, so "search
-        # for the end line" is a rule with no exception for a reader to hold. This
-        # branch's answer is a few hundred characters and can never be truncated;
-        # it carries the marker anyway, because a check that is sometimes
-        # inapplicable is a check an agent has to decide about.
-        print(f"{CORE_END_MARKER} {mode.name}")
+        answer = _dispatcher_only_answer(mode.name)
+        if to_file:
+            return _serve_core_file(mode.name, answer, answer, ctx)
+        if page is not None:
+            return _serve_core_page(mode.name, answer, page, page_size)
+        sys.stdout.write(answer)
         return EXIT_OK
     path = skill_dir() / relative
-    legacy = _legacy_instruction_path(relative)
-    if legacy is not None:
-        # Announced on stderr, never stdout: `util instructions` writes the core
-        # itself to stdout and a host may be piping it straight into a prompt.
+    if os.environ.get(LEGACY_INSTRUCTIONS_ENV) == "1":
+        # stderr, never stdout: stdout is the core, which a host may pipe into a prompt.
         print(
-            f"[LEGACY_INSTRUCTIONS] serving the pre-refactor core from "
-            f"{legacy.parent.name}/{legacy.name} because "
-            f"{LEGACY_INSTRUCTIONS_ENV}=1 (see legacy/README.md; Claude Code "
-            "only, frozen, unmaintained).",
+            f"[LEGACY_INSTRUCTIONS] {LEGACY_INSTRUCTIONS_ENV}=1 is ignored: the legacy "
+            "instruction core was removed, so the current instructions are served.",
             file=sys.stderr,
         )
-        path = legacy
     if not path.exists():
         raise DispatchError(
             f"ERROR: core instruction file missing: {path}\n"
@@ -1137,18 +1026,185 @@ def _run_util_instructions(args: Sequence[str], ctx: ResultContext) -> int:
             exit_code=EXIT_ERROR,
         )
     core = render_instruction_text(path.read_text(encoding="utf-8"), skill_dir())
-    sys.stdout.write(_truncation_notice(mode.name, core))
-    sys.stdout.write(core)
-    if not core.endswith("\n"):
-        sys.stdout.write("\n")
+    body = core if core.endswith("\n") else core + "\n"
     # The sentinel closes the *core*, before the optional verb appendix, because
     # `--host` has always appended to an unchanged core and a marker that moved
     # depending on the flag would be a second thing to reason about. Every shim
     # host runs the plain form, where this is the last line of content.
-    sys.stdout.write(f"{CORE_END_MARKER} {mode.name}\n")
+    body += f"{CORE_END_MARKER} {mode.name}\n"
     if host_id is not None:
-        sys.stdout.write(_verb_section(host_id))
+        body += _verb_section(host_id)
     ctx.add_artifact(path)
+    if page is not None:
+        # The paged form replaces the head banner, never the body: its own
+        # banner on page 1 states the paged completeness rule, because the
+        # printed banner's test (one end line in what arrived) is the wrong
+        # test for a page.
+        return _serve_core_page(mode.name, body, page, page_size)
+    served = _truncation_notice(mode.name, core) + body
+    if to_file:
+        return _serve_core_file(mode.name, body, served, ctx)
+    sys.stdout.write(served)
+    return EXIT_OK
+
+
+def _dispatcher_only_answer(mode_name: str) -> str:
+    """What ``util instructions`` serves for a mode with no core file."""
+    lines = [
+        f"Mode '{mode_name}' has no core instruction file: it is driven "
+        "entirely by the dispatcher, so there are no workflow steps to "
+        "follow. Its flags are the whole interface:",
+        "",
+        f"  {dispatcher_command(mode_name)} --help",
+    ]
+    if mode_name == "status":
+        # 2026-10-04: a host reading `status`
+        # only to report it showed "Exit code 2" as a tool error. The code
+        # is the poll contract and never moves; the read step says so.
+        lines += [
+            "",
+            "Read its output, not its exit code: exit code 2 is not a "
+            "failure — it means no run is recorded (every phase a host ran "
+            "in the foreground) or one is still running, the poll "
+            "contract; 0 and 3 are a finished run's verdict, and only 1 is "
+            "an error (the phase dir could not be read). To report it to "
+            "the user on a host that shows any non-zero exit as an error, "
+            "add --exit-zero: the call then exits 0 whenever the status was "
+            "read, and the run's state is still in its text. Keep that flag "
+            "off a poll whose loop reads the exit code.",
+        ]
+    # The end marker is unconditional across `util instructions`, so "search
+    # for the end line" is a rule with no exception for a reader to hold. This
+    # answer is a few hundred characters and can never be truncated; it
+    # carries the marker anyway, because a check that is sometimes
+    # inapplicable is a check an agent has to decide about.
+    lines.append(f"{CORE_END_MARKER} {mode_name}")
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# `util instructions --to-file`: the core as a file the host reads
+# ---------------------------------------------------------------------------
+# A host whose tool results are capped (Claude Code persists a Bash result over
+# ~30 000 characters behind a 2 KB stub; OpenCode cuts a tool result at 51 200
+# bytes or 2 000 lines) reads a printed core as a fragment. The file form hands
+# it a path and a line count instead, so "did I read all of it" is a count to
+# reach, not a marker to hunt for. See docs/development/hosts.md.
+
+#: The line ``--to-file`` prints, and the only line it prints on success.
+CORE_FILE_MARKER = "[CORE_FILE]"
+
+#: Where the file goes, under the repository root: a folder of its own inside
+#: the self-ignoring workspace temp dir every run's scratch files use
+#: (``utils/write_prompt.WORKSPACE_TMP``, implement's task JSON), inside the
+#: workspace so the host's file tools and its shell name the same file on every
+#: OS. Its own folder because the seven-day sweep deletes there: nothing but
+#: this command writes ``cores/``, and the sweep reads no other folder.
+CORE_FILE_DIR: Tuple[str, str, str] = (".multi-llm", "tmp", "cores")
+
+#: ``core-<mode>-<sha12>.md``. The hash is of the bytes written, so two runs of
+#: one mode under one plugin write the same bytes to the same name, and a
+#: different plugin (or a changed core) writes a different file beside it:
+#: concurrent runs never read each other's half-written or different core.
+CORE_FILE_PREFIX = "core-"
+
+#: The name format this command writes, and the only names its sweep removes:
+#: ``core-`` + a mode word (lower-case words joined by ``-``) + ``-`` + twelve
+#: hex digits + ``.md``.
+CORE_FILE_NAME = re.compile(r"core-[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{12}\.md")
+
+#: A core file older than this is removed when another one is written.
+CORE_FILE_MAX_AGE_S = 7 * 24 * 3600
+
+
+def _core_file_root() -> str:
+    """The repository root the core file goes under (the cwd outside one)."""
+    cwd = os.getcwd()
+    try:
+        # Imported here to keep multi_llm light.
+        from utils.git_utils import pin_repo_root
+
+        root, problem = pin_repo_root(cwd)
+    except Exception:  # noqa: BLE001 - no repository is the cwd's answer
+        return cwd
+    return root if root and not problem else cwd
+
+
+def _write_core_file(mode_name: str, text: str) -> str:
+    """Write *text* to ``<root>/.multi-llm/tmp/cores/core-<mode>-<sha12>.md``;
+    its path.
+
+    Written as a new file renamed into place, never through a link at the
+    name or in the folder chain (``utils/prompt_files``), so a reader sees the
+    previous complete file or the new one. Raises ``OSError``.
+    """
+
+    # Imported here to keep multi_llm light.
+    from utils import prompt_files
+
+    data = text.encode("utf-8")
+    root = _core_file_root()
+    try:
+        os.mkdir(os.path.join(root, CORE_FILE_DIR[0]))
+    except FileExistsError:
+        pass  # a link there is refused by the walk below
+    # `tmp` first, self-ignoring as the write phases leave it, then `cores`
+    # inside it: each opened below the one before without following a link.
+    tmp_pin = prompt_files.PhasePin(root=root, parts=CORE_FILE_DIR[:1])
+    with prompt_files.PromptFolder.open(tmp_pin, folder=CORE_FILE_DIR[1]) as tmp:
+        if ".gitignore" not in tmp.names():
+            tmp.write(".gitignore", "*\n")
+    pin = prompt_files.PhasePin(root=root, parts=CORE_FILE_DIR[:2])
+    name = f"{CORE_FILE_PREFIX}{mode_name}-{hashlib.sha256(data).hexdigest()[:12]}.md"
+    with prompt_files.PromptFolder.open(pin, folder=CORE_FILE_DIR[2]) as folder:
+        names = folder.names()
+        folder.write_bytes(name, data)
+        _sweep_core_files(folder, names, keep=name)
+        return os.path.join(folder.path, name)
+
+
+def _sweep_core_files(folder, names: Sequence[str], *, keep: str) -> None:
+    """Remove the core files in *folder* older than :data:`CORE_FILE_MAX_AGE_S`.
+
+    Only a name of :data:`CORE_FILE_NAME`'s format, and only a regular file:
+    each entry is inspected through the folder's own descriptor without
+    following a link (``PromptFolder.lstat``), so a link, a folder or any other
+    kind of entry stays, and so does every other name. Best effort: a file
+    left behind costs nothing.
+    """
+
+    cutoff = time.time() - CORE_FILE_MAX_AGE_S
+    for old in names:
+        if old == keep or not CORE_FILE_NAME.fullmatch(old):
+            continue
+        try:
+            info = folder.lstat(old)
+            if stat.S_ISREG(info.st_mode) and info.st_mtime < cutoff:
+                folder.remove(old)
+        except OSError:
+            pass
+
+
+def _serve_core_file(mode_name: str, text: str, fallback: str, ctx: ResultContext) -> int:
+    """Write *text* as the core file and print its ``[CORE_FILE]`` line.
+
+    A folder that cannot be written (a read-only checkout, a link planted at
+    ``.multi-llm``) costs the file, never the core: *fallback*, the printed
+    form, goes to stdout instead, after one stderr line saying why.
+    """
+    try:
+        path = _write_core_file(mode_name, text)
+    except OSError as exc:
+        print(
+            f"multi-llm: could not write the core file ({exc}); "
+            "printing the core instead.",
+            file=sys.stderr,
+        )
+        sys.stdout.write(fallback)
+        return EXIT_OK
+    ctx.add_artifact(path)
+    lines, size = text.count("\n"), len(text.encode("utf-8"))
+    print(f"{CORE_FILE_MARKER} {path} lines={lines} bytes={size}")
     return EXIT_OK
 
 
@@ -1195,14 +1251,290 @@ def _truncation_notice(mode_name: str, core: str) -> str:
         "read that file to the end before your next tool call and follow it, not\n"
         "this excerpt.\n"
         "\n"
-        "Truncation keeps the head and drops the tail. The head is what the mode is\n"
-        "and how it is invoked; the tail is the loop that does the work. So a cut\n"
+        "A note from your host, anywhere in what you received, that it truncated\n"
+        "or omitted part of this output means you do not have the whole core, even\n"
+        "with that line there: a host that cuts the middle keeps the end line.\n"
+        "\n"
+        "Truncation keeps the head. The head is what the mode is and how it is\n"
+        "invoked; the rest is the loop that does the work. So a cut\n"
         "core reads like a complete overview, and the usage line you can still see\n"
         "runs cleanly — it starts the orchestrator, which reports success, and you\n"
         "end the turn having applied nothing. Do not run any command from a core\n"
-        "you have not seen the end of.\n"
+        "you have not seen all of.\n"
         "=== the core begins on the next line ===\n"
     )
+
+
+# ---------------------------------------------------------------------------
+# `util instructions --page`: the core in pieces a cutting shell passes whole
+# ---------------------------------------------------------------------------
+# Codex has no file-read tool, and its shell keeps the head and the tail of an
+# output over its budget and drops the middle, so the printed core's end line
+# survives a cut that lost workflow steps (docs/development/hosts.md, "Paged
+# delivery"). Pages bounded under that budget arrive whole; each one says which
+# page it is and closes with its own end line, and a page that was cut anyway
+# is fetched again smaller.
+
+#: Opens every page: ``[CORE_PAGE] mode=<m> page=<i>/<n> sha=<sha12> bytes=<n>``.
+CORE_PAGE_MARKER = "[CORE_PAGE]"
+
+#: Closes every page: ``[CORE_PAGE_END] mode=<m> page=<i>/<n> sha=<sha12>``.
+CORE_PAGE_END_MARKER = "[CORE_PAGE_END]"
+
+#: The two page lines, whole: ``str.format`` templates over ``mode``, ``page``,
+#: ``pages``, ``sha`` and (the header) ``bytes``, the page's UTF-8 byte count
+#: between its two lines. The one spelling of the format, which the Codex tool
+#: route's pages carry too (``packaging/common/surface.py``, ``runbook.pages``).
+CORE_PAGE_HEADER = (
+    CORE_PAGE_MARKER + " mode={mode} page={page}/{pages} sha={sha} bytes={bytes}"
+)
+CORE_PAGE_END = CORE_PAGE_END_MARKER + " mode={mode} page={page}/{pages} sha={sha}"
+
+#: Hex digits of the sha every page line carries.
+CORE_PAGE_SHA_CHARS = 12
+
+#: The most core bytes one page holds when ``--page-size`` is not given:
+#: 4,000 tokens as codex counts them (4 bytes a token), 40% of the 10,000-token
+#: budget its shell and code-mode ``exec`` results default to. The model can
+#: lower that budget per call, and has (about 4,600 tokens in one measured
+#: read), so the default leaves room below the documented figure rather than
+#: filling it; a page cut anyway is fetched again at half the size.
+CORE_PAGE_SIZE_DEFAULT = 16_000
+
+#: The smallest ``--page-size`` served. The longest core line (about 2,500
+#: bytes) already gets a page of its own at this size, so a smaller one only
+#: multiplies the pages; and a typo (``8`` meant as 8 KB) is refused rather
+#: than served as a page per line.
+CORE_PAGE_SIZE_MIN = 2_000
+
+
+def _core_pages(text: str, size: int, first: int) -> List[str]:
+    """*text* cut into pages on line boundaries: the first of at most *first*
+    UTF-8 bytes, every later one of at most *size*.
+
+    Packed greedily from the start, so every page but the last is as full as
+    whole lines allow. A line longer than its page's room gets a page of its
+    own rather than being split. ``"".join`` of the result is *text*, byte for
+    byte.
+    """
+    pages: List[str] = []
+    current: List[str] = []
+    filled = 0
+    for line in re.findall(r"[^\n]*\n|[^\n]+$", text):
+        length = len(line.encode("utf-8"))
+        room = first if not pages else size
+        if current and filled + length > room:
+            pages.append("".join(current))
+            current, filled = [], 0
+        current.append(line)
+        filled += length
+    if current or not pages:
+        pages.append("".join(current))
+    return pages
+
+
+def _core_sha(text: str) -> str:
+    """The sha every page carries: sha256 of the whole paged text, 12 hex digits.
+
+    The same digest ``--to-file`` names its file by, so a paged read and the
+    file form of one render agree on it.
+    """
+
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:CORE_PAGE_SHA_CHARS]
+
+
+def _serve_core_page(mode_name: str, text: str, page: int, size: Optional[int]) -> int:
+    """Print page *page* of *text*: header, page 1's banner, the page, end line.
+
+    *text* is what ``--to-file`` writes (the core, its end line, the ``--host``
+    section), so the pages' bodies joined are that text exactly. Between its
+    header and its end line a page prints at most *size* bytes, page 1's banner
+    included, unless one line alone is longer.
+    """
+    size = size or CORE_PAGE_SIZE_DEFAULT
+    sha = _core_sha(text)
+    # Page 1's room is the size less the longest banner it could carry (both
+    # wordings, a four-digit count), so the cut never depends on the count the
+    # cut produces.
+    allowance = max(
+        len(_paged_notice(mode_name, text, count, sha, size).encode("utf-8"))
+        for count in (1, 9999)
+    )
+    pages = _core_pages(text, size, first=max(0, size - allowance))
+    count = len(pages)
+    if page > count:
+        raise DispatchError(
+            f"ERROR: `util instructions {mode_name} --page {page}`: at "
+            f"--page-size {size} the core has {count} page"
+            f"{'' if count == 1 else 's'}, so --page takes 1 to {count}."
+        )
+    body = pages[page - 1]
+    where = {"mode": mode_name, "page": page, "pages": count, "sha": sha}
+    out = CORE_PAGE_HEADER.format(bytes=len(body.encode("utf-8")), **where) + "\n"
+    if page == 1:
+        out += _paged_notice(mode_name, text, count, sha, size)
+    out += body + CORE_PAGE_END.format(**where) + "\n"
+    sys.stdout.write(out)
+    return EXIT_OK
+
+
+def _paged_notice(mode_name: str, text: str, count: int, sha: str, size: int) -> str:
+    """Page 1's banner: the paged completeness rule, after the header line.
+
+    It opens with :data:`TRUNCATION_BANNER_OPENING` and closes with the printed
+    banner's closing line, so a reader that drops the printed banner drops this
+    one the same way. It sits at the head, which a middle cut keeps.
+    """
+
+    smaller = max(CORE_PAGE_SIZE_MIN, size // 2)
+    total = len(text.encode("utf-8"))
+    if count == 1:
+        whole = (
+            f"The core is {total:,} bytes, all on this page: there is no other "
+            "page to fetch. You hold the whole core only when this page arrived "
+            "whole: it starts with its header line and ends with its end line, "
+            f"both carrying page=1/1 and sha={sha}:"
+        )
+    else:
+        whole = (
+            f"The core is {total:,} bytes in {count} pages. Run the same command "
+            f"for pages 2 to {count}, changing only the --page number. You hold "
+            f"the whole core only when every page from 1 to {count} arrived "
+            "whole: each starts with its header line and ends with its end "
+            f"line, both carrying its page=<i>/{count} and the same sha={sha}:"
+        )
+    if smaller < size:
+        again = (
+            f"Fetch it again with --page-size {smaller}. A new size cuts the "
+            "core afresh, so start again at page 1 with that size and keep it "
+            "for every later page; never combine pages of two sizes."
+        )
+    else:
+        again = (
+            f"--page-size {size} is already the smallest this command serves, "
+            "so your host cannot pass a page whole: stop and tell the user."
+        )
+    cut = (
+        "A note from your host, anywhere in a page's output, that it truncated "
+        "or omitted part of that output means the page is incomplete, even with "
+        "both of its lines there: a host that cuts the middle keeps the head and "
+        f"the end. {again}"
+    )
+    where = f"mode={mode_name} page=<i>/{count} sha={sha}"
+    return (
+        f"{TRUNCATION_BANNER_OPENING} · multi-llm core instructions · "
+        f"{mode_name} · page 1 of {count} ===\n"
+        f"{textwrap.fill(whole, 78)}\n"
+        "\n"
+        f"    {CORE_PAGE_MARKER} {where} bytes=<n>\n"
+        f"    {CORE_PAGE_END_MARKER} {where}\n"
+        "\n"
+        "One of the pages ends the core with this line (a --host section may follow it):\n"
+        "\n"
+        f"    {CORE_END_MARKER} {mode_name}\n"
+        "\n"
+        f"{textwrap.fill(cut, 78)}\n"
+        "\n"
+        "Do not run any command from the core until you hold every page.\n"
+        "=== the core begins on the next line ===\n"
+    )
+
+
+# The tool route's paging rule (docs/development/hosts.md, "Paged delivery on
+# the Codex tool route"). The Codex MCP server pages the runbook it attaches to
+# a tool result, with the two page lines above, and states this rule in the
+# key that closes the result, right after the page: a middle cut keeps the tail.
+# Templates the surface carries (``runbook.pages``): the server fills the
+# ``{name}`` tokens by plain substitution and spells none of these words.
+
+#: The option a page request carries in ``extra_flags``, and the size option.
+TOOL_PAGE_OPTION = "--page"
+TOOL_PAGE_SIZE_OPTION = "--page-size"
+
+_TOOL_PAGE_LINES = (
+    f"each opens with `{CORE_PAGE_MARKER} mode={{mode}} page=<i>/{{pages}} "
+    "sha={sha} bytes=<n>` and closes with "
+    f"`{CORE_PAGE_END_MARKER} mode={{mode}} page=<i>/{{pages}} sha={{sha}}`"
+)
+
+_TOOL_PAGE_CUT = (
+    "A note from your host anywhere in a result that it truncated or omitted "
+    "part of that result means its page is incomplete, even with both of its "
+    "lines there: a host that cuts the middle keeps the head and the end."
+)
+
+#: ``runbook_pages.rule`` for a runbook of several pages.
+TOOL_PAGES_RULE = (
+    "`runbook` holds page {page} of the {mode} runbook, which is {pages} pages "
+    "of at most {size} bytes. You hold the whole runbook only when every page "
+    f"from 1 to {{pages}} arrived whole: {_TOOL_PAGE_LINES}, every one with the "
+    "same sha, and one of them carries the line that closes the core, "
+    f"`{CORE_END_MARKER} {{mode}}`. To fetch page <i>, call this tool again "
+    f'with mode "{{mode}}" and extra_flags ["{TOOL_PAGE_OPTION}", "<i>", '
+    f'"{TOOL_PAGE_SIZE_OPTION}", "{{size}}"] (`next_page` is that call for the '
+    "next page): a call whose extra_flags carry "
+    f"{TOOL_PAGE_OPTION} returns that page and nothing else, and never starts, "
+    f"resumes or repeats a run. {_TOOL_PAGE_CUT} {{again}} Do not run any step "
+    "of the runbook until you hold every page."
+)
+
+#: ``runbook_pages.rule`` for a runbook that fits on one page.
+TOOL_PAGES_RULE_ONE = (
+    "`runbook` holds the whole {mode} runbook, on one page of at most {size} "
+    "bytes: there is no other page to fetch. You hold it only when it arrived "
+    f"whole: it opens with `{CORE_PAGE_MARKER} mode={{mode}} page=1/1 "
+    "sha={sha} bytes=<n>` and closes with "
+    f"`{CORE_PAGE_END_MARKER} mode={{mode}} page=1/1 sha={{sha}}`. "
+    f"{_TOOL_PAGE_CUT} {{again}} Do not run any step of the runbook until you "
+    "hold all of it."
+)
+
+#: The rule's ``{again}`` while a smaller size is left.
+TOOL_PAGES_AGAIN = (
+    f"Fetch it again at {TOOL_PAGE_SIZE_OPTION} {{smaller}} (`smaller` is that "
+    "call, for page 1): a new size cuts the runbook afresh, so start again at page 1 "
+    "with that size and keep it for every later page; never combine pages of "
+    "two sizes."
+)
+
+#: The rule's ``{again}`` at the smallest size.
+TOOL_PAGES_FLOOR = (
+    f"{TOOL_PAGE_SIZE_OPTION} {{size}} is already the smallest this tool "
+    "serves, so your host cannot pass a page whole: stop and tell the user."
+)
+
+#: The ``message`` of a page request's result.
+TOOL_PAGES_SERVED = (
+    "This call fetched page {page} of {pages} of the {mode} runbook into "
+    "`runbook`, and nothing else: it started, resumed and repeated no run. "
+    "`runbook_pages` says when you hold the whole runbook."
+)
+
+#: ``runbook.references``: the line a Codex tool-route runbook opens with when it
+#: names a reference. That route scrubs every dispatcher command line, and those
+#: are the only lines of a served core that name the skill directory, so the
+#: server states where ``references/`` is; ``{dir}`` is its own skill
+#: directory's ``references`` folder (docs/development/hosts.md, "Paged delivery
+#: on the Codex tool route").
+TOOL_REFERENCES_LINE = (
+    "Every `references/<file>.md` this runbook names, or a file it sends you to "
+    "names, is the file of that name in `{dir}`: read it there when a step says to."
+)
+
+#: ``runbook.core_file``: how a package route that hands the core to the model in
+#: a tool result hands it a file instead. OpenCode cuts a tool result at 51 200
+#: bytes and several cores are over that once JSON-escaped, so the OpenCode
+#: package asks ``util instructions <mode> --host <id>`` for this option's
+#: ``[CORE_FILE]`` line and attaches that line and :data:`TOOL_CORE_FILE_READ`
+#: (``{mode}``, ``{lines}``) in place of the core (docs/development/hosts.md,
+#: "Host-neutral instruction core").
+TOOL_CORE_FILE_OPTION = "--to-file"
+TOOL_CORE_FILE_READ = (
+    "The {mode} core instructions, this host's capability verbs included, are in "
+    "the file the line above names. Read that file in full, through line {lines}, "
+    "before your next command or call: a read that stops early names the offset "
+    "to go on from. Do not run any step of it until you have read all of it."
+)
 
 
 #: Heading the ``--host`` verb block is served under. The core files name the
@@ -1216,6 +1548,7 @@ _VERB_HEADING = "## Capability verbs — how this host answers each one"
 
 def _verb_section(host_id: str) -> str:
     """The three resolved verb sentences, as the section a shim used to carry."""
+    # Imported here to keep multi_llm light.
     from utils import host_capabilities as caps
 
     return (
@@ -1226,10 +1559,39 @@ def _verb_section(host_id: str) -> str:
     )
 
 
+#: ``util instructions``'s options, as its refusal of any other one names them.
+_INSTRUCTIONS_OPTIONS = (
+    "`--host <id>`, `--to-file`, `--page <i>` and `--page-size <bytes>`"
+)
+
+
+def _option_value(args: Sequence[str], index: int, name: str, what: str) -> "tuple[str, int]":
+    """The value of option *name* at ``args[index]`` (inline ``=`` or the next
+    token) and the index of the last token it used. Raises on a missing value."""
+    _head, separator, inline = args[index].partition("=")
+    if not separator:
+        index += 1
+        inline = args[index] if index < len(args) else ""
+    if not inline:
+        raise DispatchError(f"ERROR: `util instructions {name}` needs {what}.")
+    return inline, index
+
+
+def _positive_count(value: str, name: str, least: int) -> int:
+    """*value* as a whole number of at least *least*, or a refusal naming *name*."""
+    if not re.fullmatch(r"[0-9]+", value) or int(value) < least:
+        raise DispatchError(
+            f"ERROR: `util instructions {name}` takes a whole number of at least "
+            f"{least}, got {value!r}."
+        )
+    return int(value)
+
+
 def _split_instructions_host(
     args: Sequence[str],
-) -> "tuple[list[str], Optional[str]]":
-    """Split ``util instructions`` argv into positionals and a ``--host`` value.
+) -> "tuple[list[str], Optional[str], bool, Optional[int], Optional[int]]":
+    """Split ``util instructions`` argv into positionals, a ``--host`` value,
+    whether ``--to-file`` was given, the ``--page`` number and ``--page-size``.
 
     Hand-parsed rather than argparse'd because this command's whole contract is
     that its stdout **is** the core text: an argparse error would print a usage
@@ -1238,11 +1600,22 @@ def _split_instructions_host(
     """
     positional: list = []
     host_id: Optional[str] = None
+    to_file = False
+    page: Optional[int] = None
+    page_size: Optional[int] = None
     index = 0
     while index < len(args):
         token = args[index]
         head, separator, inline = token.partition("=")
-        if head == "--host":
+        if token == "--to-file":
+            to_file = True
+        elif head == "--page":
+            value, index = _option_value(args, index, "--page", "a page number")
+            page = _positive_count(value, "--page", 1)
+        elif head == "--page-size":
+            value, index = _option_value(args, index, "--page-size", "a size in bytes")
+            page_size = _positive_count(value, "--page-size", CORE_PAGE_SIZE_MIN)
+        elif head == "--host":
             if separator:
                 value = inline
             else:
@@ -1259,13 +1632,24 @@ def _split_instructions_host(
             host_id = value
         elif token.startswith("-"):
             raise DispatchError(
-                f"ERROR: `util instructions` does not take {token!r}. Its only "
-                "option is `--host <id>`."
+                f"ERROR: `util instructions` does not take {token!r}. Its "
+                f"options are {_INSTRUCTIONS_OPTIONS}."
             )
         else:
             positional.append(token)
         index += 1
-    return positional, host_id
+    if page_size is not None and page is None:
+        raise DispatchError(
+            "ERROR: `util instructions --page-size` sizes the pages of a paged "
+            "read; add `--page <i>`."
+        )
+    if page is not None and to_file:
+        raise DispatchError(
+            "ERROR: `util instructions` takes `--to-file` or `--page`, not both: "
+            "the file form is for a host that reads files, pages for one that "
+            "cannot."
+        )
+    return positional, host_id, to_file, page, page_size
 
 
 def _dispatch(argv: Sequence[str], ctx: ResultContext) -> int:
@@ -1335,8 +1719,7 @@ def _sweep_live_clis_on_interrupt() -> None:
 
     A fan-out's slots wait on their CLIs from worker threads, where
     ``KeyboardInterrupt`` is never raised, and an agent CLI's tool shells run in
-    sessions of their own that a terminal SIGINT does not reach (plan
-    review-run-scope-salvage-and-failure-visibility D3.3, decision 11.9). The
+    sessions of their own that a terminal SIGINT does not reach. The
     registry holds each live CLI with a refreshed snapshot of its descendants,
     so this reaps what those slots started before the process exits.
 
@@ -1348,6 +1731,7 @@ def _sweep_live_clis_on_interrupt() -> None:
     interrupt's own exit and result line must still happen.
     """
     try:
+        # Imported here to keep multi_llm light.
         from utils import process_control
     except Exception as exc:  # noqa: BLE001 - see above
         print(f"[INTERRUPT_SWEEP] failed: {exc}", file=sys.stderr)
@@ -1356,11 +1740,24 @@ def _sweep_live_clis_on_interrupt() -> None:
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
+    # Imported here to keep multi_llm light.
+    from utils import process_control
+
+    # The CLI's process, and the detached worker's: SIGCHLD at its default, so
+    # every provider child stays this process's until it is reaped.
+    process_control.restore_sigchld_default()
     argv = list(sys.argv[1:] if argv is None else argv)
     if _WORKER_FLAG in argv:
+        # Imported here to keep multi_llm light.
         from utils.detach import prepare_worker_output
 
         prepare_worker_output()
+        # A commit front door's stage, applied once the worker owns its dir:
+        # the applier sits above `detach`, so it is handed in here.
+        # Imported here to keep multi_llm light.
+        from utils.commit_front_door import hand_worker_the_stage_applier
+
+        hand_worker_the_stage_applier(argv)
     # Line buffering + UTF-8/replace stream encoding, once per invocation: there
     # is exactly one process per invocation, so this covers every mode and every
     # in-process continuation.
@@ -1419,13 +1816,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         try:
             _emit_user_next_step(ctx, exit_code)
         except Exception as exc:  # noqa: BLE001 - advisory, never the exit code
+            # Imported here to keep multi_llm light.
             from utils.next_phase import lookup_failure_line
 
             print(lookup_failure_line(exc), file=sys.stderr)
         ctx.emit(exit_code)
         return exit_code
     finally:
-        # Plan codex-sandbox-unavailable I12 (option B, 2026-09-30): every codex
+        # Unavailable I12 (option B, 2026-09-30): every codex
         # child of this run has exited by now, so remove the
         # `[projects."<repo>"] trust_level = "trusted"` tables they added to the
         # user's codex config — and nothing else. A detached worker's `--abort`
@@ -1449,13 +1847,14 @@ def _write_phases() -> "frozenset":
     From the executor's own table (``subagent_tasks.PHASE_BY_WRITE_KIND``, the
     mode/``state.json`` spelling), never a hand-kept list.
     """
+    # Imported here to keep multi_llm light.
     from utils.subagent_tasks import PHASE_BY_WRITE_KIND
 
     return frozenset(PHASE_BY_WRITE_KIND.values())
 
 
 def _emit_user_next_step(ctx: ResultContext, exit_code: int) -> None:
-    """Set ``user_next_step`` and print its block (plans/next-phase-command.md §2.2(1)).
+    """Set ``user_next_step`` and print its block.
 
     Only for the recorded invocation of a workflow-phase mode or a
     review-then-apply composite (``improve-plan``, ``improve-code``) that exits
@@ -1478,10 +1877,9 @@ def _emit_user_next_step(ctx: ResultContext, exit_code: int) -> None:
     output.
 
     A commit review's front doors record the phase they front (``review-code``,
-    ``apply-code-fixes``) or ``improve-commits`` with its pinned range
-    (plans/review-commits.md §2.1, "What step 7 records"), so the gate below
+    ``apply-code-fixes``) or ``improve-commits`` with its pinned range, so the gate below
     passes as for any phase, and the builder spells the answer back in the
-    commit spelling (§2.8): after ``review-commits``, ``--apply-commit-fixes
+    commit spelling: after ``review-commits``, ``--apply-commit-fixes
     <base12>..<head12>`` under a why naming both reports.
     """
     record = invocation()
@@ -1497,8 +1895,7 @@ def _emit_user_next_step(ctx: ResultContext, exit_code: int) -> None:
         (mode.is_workflow_phase or mode.is_composite)
         and exit_code in (EXIT_OK, EXIT_NOTHING_TO_DO)
     ):
-        # A review-then-apply composite answers on 0 and on 2 too
-        # (plans/improve-plan-and-improve-code.md §2.6): its exit 2 is
+        # A review-then-apply composite answers on 0 and on 2 too: its exit 2 is
         # `[ALREADY_COMPLETE]`, returned before its detach boundary, so a tool
         # route's `--detach` re-run of a finished composite carries the next
         # step like any foreground exit 2. The builder answers as the phase
@@ -1528,6 +1925,7 @@ def _emit_user_next_step(ctx: ResultContext, exit_code: int) -> None:
     plan_arg, plan_path = _typed_plan(argv)
     if not plan_arg:
         return
+    # Imported here to keep multi_llm light.
     from utils import next_phase
 
     as_json = flag_value(argv, "--output-format") == "json"
@@ -1549,10 +1947,10 @@ def _typed_plan(argv: Sequence[str]) -> Tuple[Optional[str], Optional[str]]:
     ``plan_arg`` (else its ``plan_file``) instead.
 
     ``improve-commits`` is recorded with its pinned range, not a plan
-    (``--revs <base12>..<head12>``, plans/review-commits.md §2.1, "What step
+    (``--revs <base12>..<head12>``, "What step
     7 records"): the plan is the brief that spelling names
-    (``commit_review.brief_for_pinned``), and the typed spelling is the
-    pinned range itself, which every command printed for it carries (§2.8).
+    (``commit_paths.brief_for_pinned``), and the typed spelling is the
+    pinned range itself, which every command printed for it carries.
     """
     plan_file = flag_value(argv, "--plan-file")
     plan_arg = invocation_plan_arg() or plan_file
@@ -1573,10 +1971,11 @@ def _typed_plan(argv: Sequence[str]) -> Tuple[Optional[str], Optional[str]]:
 
 def _brief_for_pinned(text: str) -> Optional[str]:
     """The brief a commit review's pinned ``<base12>..<head12>`` names
-    (``commit_review.brief_for_pinned``: by name, no git call beyond the
+    (``commit_paths.brief_for_pinned``: by name, no git call beyond the
     root), absolute, or ``None`` for any other text or outside a repository."""
     try:
-        from utils.commit_review import brief_for_pinned
+        # Imported here to keep multi_llm light.
+        from utils.commit_paths import brief_for_pinned
 
         brief = brief_for_pinned(str(text))
     except Exception:  # noqa: BLE001 - not a pinned range here
@@ -1591,12 +1990,11 @@ def _continuation_target(command: str) -> Optional[Tuple["mode_table.Mode", str]
     or ``--plan-file <plan>``) carrying one of
     :data:`utils.cli_common.CONTINUATION_VERBS`; its *mode* is a workflow phase.
 
-    A continuation in the commit spelling (plans/review-commits.md §2.8:
-    ``review-commits <base12>..<head12> --reaggregate``, or the brief path on
+    A continuation in the commit spelling (``review-commits <base12>..<head12>
+    --reaggregate``, or the brief path on
     a root range) names the phase its front door fronts
     (``Mode.commit_view_of``) and the brief its range names.
     """
-    import shlex
 
     try:
         tokens = shlex.split(command)
@@ -1629,6 +2027,7 @@ def _continuation_target(command: str) -> Optional[Tuple["mode_table.Mode", str]
 
 
 def _continued_phase_dir(mode: "mode_table.Mode", plan: str) -> Path:
+    # Imported here to keep multi_llm light.
     from utils.output_handler import phase_dir_path
 
     return phase_dir_path(Path(os.path.abspath(plan)), str(mode.phase))
@@ -1660,6 +2059,7 @@ def _remember_plan_spelling(ctx: ResultContext) -> None:
     phase_dir = _continued_phase_dir(mode, plan)
     if not phase_dir.is_dir():
         return
+    # Imported here to keep multi_llm light.
     from utils import status_file
 
     status_file.update_status(str(phase_dir), {"plan_arg": str(typed)})
@@ -1675,8 +2075,8 @@ def _continued_plan_arg(
     ``.status.json`` — else, when the hand-off recorded none (or one that does
     not pass), the phase's detached run record's ``plan_arg``, the plan as its
     launcher typed it: a detached launch records no hand-off spelling, and its
-    status read's "advance it with: … --reaggregate" names the plan absolutely
-    (hooks review of fix round 10). Either is printed only when
+    status read's "advance it with: … --reaggregate" names the plan absolutely. Either
+    is printed only when
     ``next_phase.recorded_plan_spelling`` passes it — the folder is writable by
     every jailed batch, so a spelling that does not resolve strictly to this
     plan from this cwd, or that holds a character a shell would act on, is
@@ -1690,6 +2090,7 @@ def _continued_plan_arg(
     plan = flag_value(argv, "--plan-file")
     if not plan:
         return None
+    # Imported here to keep multi_llm light.
     from utils import next_phase, status_file
 
     status = status_file.read_status(str(_continued_phase_dir(mode, plan)))
@@ -1713,6 +2114,7 @@ def _raise_on_sigterm(signum, frame):  # pragma: no cover - exercised in a subpr
     cutting short the config restore and the result line it exists to run.
     Nothing is printed here: a handler can land inside a buffered write.
     """
+    # Imported here: multi_llm does not otherwise load signal.
     import signal
 
     try:
@@ -1734,6 +2136,7 @@ def _install_foreground_sigterm():
     when nothing was installed.
     """
     try:
+        # Imported here: multi_llm does not otherwise load signal or threading.
         import signal
         import threading
 
@@ -1753,6 +2156,7 @@ def _uninstall_foreground_sigterm(previous) -> None:
     if previous is None:
         return
     try:
+        # Imported here: multi_llm does not otherwise load signal.
         import signal
 
         if signal.getsignal(signal.SIGTERM) is _raise_on_sigterm:
@@ -1765,6 +2169,7 @@ def _restore_codex_trust() -> None:
     """Remove the codex trust entries this run's children added (plan I12).
     Never raises: close-out must never mask the run's result."""
     try:
+        # Imported here to keep multi_llm light.
         from utils import codex_trust
     except Exception:  # noqa: BLE001 - see above
         return
@@ -1789,7 +2194,7 @@ def _close_detached_run(
 
     *result_state* is the result context's state; ``detach`` records it as
     ``run.result_state`` only when the exit code cannot express it
-    (``partial``), so a ``status`` poll can restate it (plan §5).
+    (``partial``), so a ``status`` poll can restate it.
     """
     detach = sys.modules.get("utils.detach")
     if detach is None:

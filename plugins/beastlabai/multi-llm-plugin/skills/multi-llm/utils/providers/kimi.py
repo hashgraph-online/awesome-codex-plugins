@@ -72,18 +72,20 @@ under the config root that :meth:`get_env` relocates per slot.
 """
 import json
 import os
+import re
 import shutil
-import tempfile
-import threading
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
     StructuredSchema,
 )
+from .parse_kit import fail
+from .private_home import PrivateHomes
 
 #: M12 (§6.1): kimi's position on the ladder is *declined*, and the module
 #: docstring above is the measurement behind it. ``KIMI_MODEL_THINKING_EFFORT``
@@ -151,11 +153,13 @@ KIMI_MODEL_MAX_TOKENS = 8192
 #: name — the same rule ``cursor_agent``'s profile isolation follows.
 _HOME_PREFIX = "multi-llm-kimi-"
 
-_HOME_LOCK = threading.Lock()
-#: Every config root **this process created**. Nothing outside this list is ever
-#: removed: a user-pinned ``KIMI_CODE_HOME`` is respected, never deleted.
-_HOME_DIRS: List[str] = []
-_HOME_ATEXIT_REGISTERED = False
+#: Every config root **this process created** (:class:`PrivateHomes`). Nothing
+#: else is ever removed: a user-pinned ``KIMI_CODE_HOME`` is respected, never
+#: deleted.
+_HOMES = PrivateHomes(_HOME_PREFIX)
+isolated_home_dirs = _HOMES.isolated_home_dirs
+cleanup_home_dirs = _HOMES.cleanup
+reset_home_dirs = _HOMES.reset
 
 #: The variable that relocates kimi's entire writable state — ``device_id``,
 #: ``config.toml``, ``logs/``, ``workspaces.json``, ``session_index.jsonl``,
@@ -239,41 +243,6 @@ _STRIPPED_VENDOR_VARS: Tuple[str, ...] = (
 )
 
 
-def _create_home_dir() -> str:
-    """A fresh 0700 config root, owned and tracked by this process."""
-    global _HOME_ATEXIT_REGISTERED
-
-    path = tempfile.mkdtemp(prefix=_HOME_PREFIX)
-    os.chmod(path, 0o700)  # mkdtemp already does this; asserted, not assumed
-    _HOME_DIRS.append(path)
-    if not _HOME_ATEXIT_REGISTERED:
-        import atexit
-
-        atexit.register(cleanup_home_dirs)
-        _HOME_ATEXIT_REGISTERED = True
-    return path
-
-
-def isolated_home_dirs() -> Tuple[str, ...]:
-    """Every config root this process created and has not yet removed."""
-    with _HOME_LOCK:
-        return tuple(_HOME_DIRS)
-
-
-def cleanup_home_dirs() -> None:
-    """Remove every config root this process created. Never raises.
-
-    Registered with ``atexit`` at the first creation. Containment must never be
-    the thing that fails a run, so a directory that cannot be removed is left
-    behind under a known prefix rather than propagating an exception out of
-    interpreter shutdown.
-    """
-    with _HOME_LOCK:
-        paths, _HOME_DIRS[:] = list(_HOME_DIRS), []
-    for path in paths:
-        shutil.rmtree(path, ignore_errors=True)
-
-
 def last_assistant_content(stdout: str) -> Optional[str]:
     """Step 1 of :meth:`KimiProvider.parse_output`: the answer text, or ``None``.
 
@@ -305,12 +274,6 @@ def last_assistant_content(stdout: str) -> Optional[str]:
             if isinstance(content, str):
                 answer = content
     return answer
-
-
-def reset_home_dirs() -> None:
-    """Drop this process's tracking list without removing anything (tests)."""
-    with _HOME_LOCK:
-        _HOME_DIRS[:] = []
 
 
 class KimiProvider(LLMProvider):
@@ -389,19 +352,21 @@ class KimiProvider(LLMProvider):
     # refused connection alike. Adding a marker here would be guessing at a
     # failure mode this CLI does not have.
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: kimi's answer
+    #: and tool output arrive as ``assistant`` and ``tool`` records, which
+    #: :meth:`vendor_text` drops, a final line cut inside one included; what
+    #: remains is kimi's ``meta`` records, and stderr carries every failure it
+    #: reports.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: kimi's stderr is its
+    #: own ``error: failed to run prompt:``, ``See log:`` and resume lines
+    #: (tests/fixtures/kimi); tool turns ride the stdout records.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "kimi"
-
-    @property
-    def default_timeout(self) -> int:
-        # 1200 s, matching the providers.yaml block. Generous on purpose: with
-        # the retry knob pinned to a single attempt a dispatch is one request,
-        # and a *stalled* upstream ends inside the child only at kimi's own
-        # ~300 s request timeout (measured at 2.1.1, see internal_retries) --
-        # a value no knob sets, so this outer timeout is the bound the plugin
-        # owns.
-        return 1200
 
     def is_available(self) -> bool:
         return shutil.which("kimi") is not None
@@ -427,6 +392,50 @@ class KimiProvider(LLMProvider):
         argv byte-identical to omitting them (§1's guard).
         """
         return ["kimi", "--output-format", "stream-json", "-p", prompt]
+
+    #: The stream-json roles whose records are the model's turn: its answer
+    #: (``assistant``) and the tool results it was handed (``tool``, our own
+    #: data back), as the committed ``success`` and ``multi-assistant`` rows
+    #: carry them.
+    _MODEL_ROLES = frozenset({"assistant", "tool"})
+
+    #: A line cut inside one of those records: its role on an unparsable
+    #: final line.
+    _CUT_MODEL_RECORD = re.compile(r'"role"\s*:\s*"(?:assistant|tool)"')
+
+    def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
+        """The stream without the model's records.
+
+        Measured on the committed rows: every failure is kimi's own
+        ``error: …`` line on stderr (exit 1) or its ``meta`` records (the
+        ``turn.step.retrying`` events of ``ephemeral-only``); the answer and
+        the tool output arrive as ``assistant`` and ``tool`` records. Those are
+        dropped, and so is a final line cut inside one of them
+        (:attr:`_CUT_MODEL_RECORD`); every other line, an unparsable one
+        included, is kept as it is. A reduction that raises returns its input;
+        stderr is never reduced.
+        """
+        try:
+            if not isinstance(stdout, str) or not stdout:
+                return stdout, stderr
+            lines = stdout.split("\n")
+            last = max((i for i, line in enumerate(lines) if line.strip()), default=-1)
+            kept = []
+            for index, line in enumerate(lines):
+                try:
+                    record = json.loads(line) if line.strip() else None
+                except ValueError:
+                    if index == last and self._CUT_MODEL_RECORD.search(line):
+                        continue
+                    record = None
+                if not (
+                    isinstance(record, dict)
+                    and record.get("role") in self._MODEL_ROLES
+                ):
+                    kept.append(line)
+            return "\n".join(kept), stderr
+        except Exception:  # noqa: BLE001 - a failed reduction returns its input
+            return stdout, stderr
 
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """§3.4's two-step unwrap: JSONL envelope → answer text → JSON document.
@@ -455,22 +464,13 @@ class KimiProvider(LLMProvider):
         answer = last_assistant_content(stdout)
 
         if answer is None:
-            return {
-                "success": False,
-                "error": (
-                    "no assistant record in kimi stream-json output "
-                    "(the run produced only meta records)"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "no assistant record in kimi stream-json output "
+                "(the run produced only meta records)",
+                stdout,
+            )
         if not answer.strip():
-            return {
-                "success": False,
-                "error": "Empty assistant content",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail("Empty assistant content", stdout)
         return extract_json_from_text(answer, prefer_arrays=True)
 
     def salvage_text(self, stdout: str) -> Optional[str]:
@@ -555,11 +555,10 @@ class KimiProvider(LLMProvider):
         """
         if os.environ.get(_HOME_ENV_VAR):
             return None
-        with _HOME_LOCK:
-            try:
-                return _create_home_dir()
-            except OSError:  # noqa: BLE001 - containment must never fail a run
-                return None
+        try:
+            return _HOMES.create()
+        except OSError:  # noqa: BLE001 - containment must never fail a run
+            return None
 
     def get_remove_env(self) -> List[str]:
         """Every ``KIMI_MODEL_*`` name this adapter does not set, plus the B3 set.

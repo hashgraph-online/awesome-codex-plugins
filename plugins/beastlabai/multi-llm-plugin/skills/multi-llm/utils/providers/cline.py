@@ -2,16 +2,17 @@
 import json
 import re
 import shutil
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
-from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
     StructuredSchema,
     split_reasoning_effort,
 )
+from .parse_kit import answer_from_text, answer_json, fail
 
 # Thinking levels accepted by `cline --thinking` (verified on cline 3.0.39).
 # Hard-validated by the CLI — invalid values exit 1. Unlike -m, --thinking
@@ -135,19 +136,40 @@ def read_cline_stream(stdout: str) -> ClineStreamReading:
     return ClineStreamReading((iteration_text or "").strip(), None, finished)
 
 
+#: The ``agent_event`` kinds whose lines carry the model's own words: its
+#: text, reasoning and tool content (a tool's input and output are our data
+#: handed back), as :func:`read_cline_stream` reads them, and ``done``, whose
+#: ``text`` is the turn's last text whatever its ``reason``.
+_MODEL_CONTENT_EVENTS = frozenset(
+    {"content_start", "content_update", "content_end", "done"}
+)
+
+#: A line cut inside one of those events, or inside a finished ``run_result``:
+#: the opener of either kind anywhere on an unparsable final line.
+_CUT_MODEL_LINE = re.compile(
+    r'"type"\s*:\s*"(?:content_start|content_update|content_end|done)"'
+    r'|"type"\s*:\s*"run_result"(?![^\n]*"finishReason"\s*:\s*"error")'
+)
+
+
+def _is_model_line(event: Any) -> bool:
+    """Whether one parsed ``--json`` line carries what the model wrote rather
+    than what cline reported: a content event, a ``done`` (its ``text`` is the
+    turn's text) or a ``run_result`` that is not an error."""
+    if not isinstance(event, dict):
+        return False
+    kind = event.get("type")
+    if kind == "run_result":
+        return event.get("finishReason") != "error"
+    inner = event.get("event") if kind == "agent_event" else None
+    if not isinstance(inner, dict):
+        return False
+    return inner.get("type") in _MODEL_CONTENT_EVENTS
+
+
 def cline_answer_text(stdout: str) -> str:
     """The reducer's text alone: :func:`read_cline_stream`'s ``text`` (D2.5)."""
     return read_cline_stream(stdout).text
-
-
-def _unwrap_answer_text(text: str) -> Dict[str, Any]:
-    """The answer text to a parse result, as the ``run_result`` branch does."""
-    if text.startswith(("[", "{")):
-        try:
-            return {"success": True, "data": json.loads(text)}
-        except json.JSONDecodeError:
-            pass
-    return extract_json_from_text(text, prefer_arrays=True)
 
 
 class ClineProvider(LLMProvider):
@@ -189,7 +211,7 @@ class ClineProvider(LLMProvider):
     #: truncated body, a zero-byte response, a 200 carrying an error object and
     #: an empty completion — ``tests/fixtures/cline/manifest.yaml`` records the
     #: nine captures and why `exit-zero-failure` is not-applicable there). The
-    #: markers stay declared: :func:`base.classify_streams` consults them
+    #: markers stay declared: :func:`failure_classifier.classify_streams` consults them
     #: regardless of exit code and they are the last-resort verdict on five of
     #: the committed rows. That is what makes ``verified_version`` worth
     #: re-confirming on every bump.
@@ -204,7 +226,7 @@ class ClineProvider(LLMProvider):
     #: exit code is. cline is a **pre-existing** adapter, so a floor here refuses
     #: installs that were working yesterday to protect against nothing.
     #: ``min_version`` is a hard exit-3 refusal in
-    #: ``subagent_executor._detect_version`` and ``verified_version`` is a
+    #: ``runner_preflight._detect_version`` and ``verified_version`` is a
     #: one-line warning; the evidence supports the warning only.
     #:
     #: ``version_cmd`` stays, because it is the only thing that can ever make
@@ -242,8 +264,9 @@ class ClineProvider(LLMProvider):
     #: 6 requests over 295.9 s), and 60 s or more is ignored for that ladder; a
     #: stalled request is ONE request that cline gives up on after 360 s
     #: (``The operation timed out.``, the new ``stall`` row, ``timeout``).
-    #: Nothing measured here reaches ``default_timeout``'s 600 s, though a 429
-    #: chain ending in a stall (295 + 360 s, inferred) would; ``internal_retries``
+    #: Nothing measured here reaches the 1200 s slot ``providers.yaml`` gives
+    #: cline, nor would a 429 chain ending in a stall (295 + 360 s, inferred),
+    #: though a slot under 655 s would be reached; ``internal_retries``
     #: below declares what was measured.
     verified_version = "3.0.70"
 
@@ -307,13 +330,22 @@ class ClineProvider(LLMProvider):
         re.compile(r'"errorclass"\s*:'),
     )
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: cline's answer
+    #: arrives only in content events, ``done`` events and a finished
+    #: ``run_result``, which :meth:`vendor_text` drops whatever the turn's end,
+    #: a final line cut inside one of them included; what remains is cline's
+    #: ``error`` events and an error ``run_result``, whose ``text`` is the
+    #: upstream sentence.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: cline's stderr is its
+    #: own JSON log records (``{"ts", "type": "error", "message"}``, tests/fixtures/cline),
+    #: each one line with its newlines escaped; tool turns ride the stdout events.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "cline"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("cline") is not None
@@ -371,9 +403,9 @@ class ClineProvider(LLMProvider):
 
         if run_result is None:
             if reading.text:
-                result = dict(_unwrap_answer_text(reading.text))
+                result = dict(answer_json(reading.text))
             else:
-                result = {"success": False, "error": "No run_result event found in output", "raw": stdout, "data": None}
+                result = fail("No run_result event found in output", stdout)
             if not reading.finished:
                 result["incomplete"] = True
             return result
@@ -382,12 +414,42 @@ class ClineProvider(LLMProvider):
         text = text.strip() if isinstance(text, str) else ""
 
         if run_result.get("finishReason") == "error":
-            return {"success": False, "error": text or "Cline run failed", "raw": stdout, "data": None}
+            return fail(text or "Cline run failed", stdout)
 
-        if not text:
-            return {"success": False, "error": "Empty text response", "raw": stdout, "data": None}
+        return answer_from_text(text, raw=stdout)
 
-        return _unwrap_answer_text(text)
+    def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
+        """The stream without the lines that carry the model's words.
+
+        Measured on the committed rows: every failure is reported by cline
+        itself, as an ``agent_event`` ``error`` plus a ``run_result`` whose
+        ``finishReason`` is ``error``, and no failure row carries content
+        events; the answer, reasoning and tool content arrive in content
+        events, ``done`` and a finished ``run_result``'s ``text``. Those lines
+        are dropped (:func:`_is_model_line`), and so is a final line cut
+        inside one of them (:data:`_CUT_MODEL_LINE`); every other line, an
+        unparsable one included, is kept as it is. Split on ``"\n"`` only, as
+        the reducer splits. A reduction that raises returns its input; stderr
+        is never reduced.
+        """
+        try:
+            if not isinstance(stdout, str) or not stdout:
+                return stdout, stderr
+            lines = stdout.split("\n")
+            last = max((i for i, line in enumerate(lines) if line.strip()), default=-1)
+            kept = []
+            for index, line in enumerate(lines):
+                try:
+                    event = json.loads(line) if line.strip() else None
+                except ValueError:
+                    if index == last and _CUT_MODEL_LINE.search(line):
+                        continue
+                    event = None
+                if not _is_model_line(event):
+                    kept.append(line)
+            return "\n".join(kept), stderr
+        except Exception:  # noqa: BLE001 - a failed reduction returns its input
+            return stdout, stderr
 
     def salvage_text(self, stdout: str) -> Optional[str]:
         """The reducer's answer text, never the event stream (D2.5).

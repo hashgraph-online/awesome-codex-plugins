@@ -1,8 +1,11 @@
 {
   "name": "pronounce",
-  "version": "2.36.0",
-  "description": "Pronounce developer jargon out loud — 1936+ confidence-tagged entries (kubectl, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
-  "author": "anzy-renlab-ai",
+  "version": "2.37.4",
+  "description": "Pronounce developer jargon out loud — 1972+ confidence-tagged entries (kubectl, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
+  "author": {
+    "name": "anzy-renlab-ai",
+    "url": "https://github.com/anzy-renlab-ai"
+  },
   "homepage": "https://pronounce.renlab.ai",
   "repository": "https://github.com/anzy-renlab-ai/pronounce",
   "license": "MIT",
@@ -19,7 +22,24 @@
   "interface": {
     "displayName": "Pronounce",
     "shortDescription": "Hear how developer jargon is actually pronounced",
-    "composerIcon": "./assets/icon.svg"
+    "longDescription": "A confidence-tagged pronunciation dictionary for developer jargon — kubectl, nginx, GIF, JSON, Pydantic — with a cited reading, an MP3 you can hear, and a CLI, skill and MCP server so your AI answers with audio instead of a phonetic guess.",
+    "developerName": "anzy-renlab-ai",
+    "category": "developer-tools",
+    "capabilities": [
+      "pronunciation-lookup",
+      "text-to-speech",
+      "developer-dictionary",
+      "mcp-server"
+    ],
+    "websiteURL": "https://pronounce.renlab.ai",
+    "privacyPolicyURL": "https://github.com/anzy-renlab-ai/pronounce/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/anzy-renlab-ai/pronounce/blob/main/LICENSE",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "screenshots": [
+      "./pitch/say-it-cli-screenshot.png",
+      "./integrations/vscode/media/screenshot-kubectl.png"
+    ]
   },
   "mcpServers": "./.mcp.json"
 }

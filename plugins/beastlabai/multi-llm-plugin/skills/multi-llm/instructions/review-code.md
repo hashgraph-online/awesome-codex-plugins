@@ -192,7 +192,17 @@ to bare `python`.
 
 4. **Resume Detection** (check BEFORE running orchestrator)
 
-   Check for existing output to avoid expensive duplicate runs. Follow the detection cases in `references/resume-detection.md`, using `{plan}/code-review/` as the phase directory.
+   Check for existing output to avoid expensive duplicate runs. Run this (read-only) and do what its one `[RESUME_STATE] case=… action=… models=… batches=… flags=… ownership=…` line says; `references/resume-detection.md` lists the cases behind it:
+
+   ```bash
+   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util resume-state review-code "$PLAN_PATH"
+   ```
+
+   - `action=run`: nothing to resume; go on to step 5.
+   - `action=rerun`: step 5's launch with `--models` set to the `models=` list (comma-separated there) and the `flags=` added (`-` is none; here it is `--force`, which a dir holding results needs): each model with a result keeps it (`[SKIP]`) and only the rest run. A composite's flags line already carries both: launch with it as it is. Never `--rerun-all`. `models=-` means none was recorded: select the models as for a fresh run. `ownership=stale` means validation files on disk are an earlier round's, and `ownership=uncertain` that they may be: the `--force` in `flags=` re-runs the phase over them rather than reporting them.
+   - `action=validate`: skip the launch and go to step 7 with `{plan}/code-review/validation_tasks.json`; when `batches=` lists numbers, run only those batches (the ones with no `validation_batch_<N>.json` yet), then `--reaggregate` as step 7 says.
+   - `action=reaggregate`: skip the launch and run step 7's `--reaggregate`.
+   - `action=report`: the phase is complete: report results from `{plan}/code-review/report.md` (or `report.html`) and run no orchestrator.
 
    **Note**: The orchestrator has TWO guards as defense-in-depth:
    - **Primary**: Exits with code 2 if phase is already marked complete in state.json. Use `--force` to override.
@@ -446,19 +456,26 @@ to bare `python`.
    records (including each issue's `file` and `line_range`) and the
    code-inspection guidance all travel **inside** `prompt`. A plan within the
    inline limit is complete there, and the task is `context_mode: inline`. A
-   larger plan keeps a head excerpt and is also named once under
+   larger plan keeps a head excerpt, and a batch whose issues cite plan
+   sections may carry only those; either is also named once under
    `## Plan file`: a hash-bound snapshot, `validation-snapshot.md` in this phase
    dir, and the task is `context_mode: workspace-read`. The subagent must be able to read
    that path, so do not run it where it cannot. Never treat such a batch as
-   having the full plan inline. The reviewed-code block is never named by path.
+   having the full plan inline. The reviewed-code block carries the windows this
+   batch's own issues cite and is never named by path.
+
+   Read `validation_tasks.index.json` beside it instead: the same tasks without
+   their prompts (`task_id`, `batch_index`, `prompt_path`, `prompt_lines`,
+   `output_path`, `context_mode`), plus `total_batches`, `reaggregate_mode` and
+   `plan_file`. Read `validation_tasks.json` only when there is no index.
 
    **For each task in the file: when the task carries `prompt_path`, run a
    subagent that reads that file in full — through line `prompt_lines`, paging
    if a single read stops short — and follows it verbatim; otherwise, or if the
-   file is absent, run `task.prompt` as a subagent. Either way, write the JSON
-   it returns to `task.output_path`.** That is the whole contract — do not
-   assemble a prompt beyond that one read instruction, and do not tell the
-   subagent to write the file itself. The file's bytes are exactly
+   file is absent, run that task's `prompt` from `validation_tasks.json` as a
+   subagent. Either way, write the JSON it returns to `task.output_path`.**
+   That is the whole contract — do not assemble a prompt beyond that one read
+   instruction, and do not tell the subagent to write the file itself. The file's bytes are exactly
    `task.prompt`; the two are interchangeable.
 
    A file whose `tasks_schema_version` is missing or not `2`, or whose recorded
@@ -472,7 +489,7 @@ to bare `python`.
    #### Single Batch: `[VALIDATION_PENDING]`
 
    If `[VALIDATION_PENDING]` marker is present:
-   1. Read `validation_tasks.json` from `{plan}/code-review/`
+   1. Read `validation_tasks.index.json` from `{plan}/code-review/` (no index: `validation_tasks.json`)
    2. Run the single task as the contract above says — the sidecar at
       `prompt_path` when it has one, `task.prompt` otherwise — and write its
       JSON reply to that task's `output_path`; do not run the next step, or end your turn, until that file exists and is not empty
@@ -492,7 +509,7 @@ to bare `python`.
    #### Multiple Batches: `[VALIDATION_BATCHES_PENDING]`
 
    If `[VALIDATION_BATCHES_PENDING]` marker is present (for 5+ issue groups):
-   1. Read `validation_tasks.json` once from `{plan}/code-review/`
+   1. Read `validation_tasks.index.json` once from `{plan}/code-review/` (no index: `validation_tasks.json`)
    2. Count the number of batches as `{total_batches}` and mark the phase start:
       ```bash
       uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics start \
@@ -542,109 +559,11 @@ to bare `python`.
 
    **CRITICAL**: Do NOT report results to the user until reaggregation is complete.
 
-8. **If `--apply-fixes` was used, apply fixes by spawning subagents:**
-
-   After the orchestrator outputs `{prefix}_fix_tasks.json`, **spawn one subagent per issue**.
-
-   Before the fix loop, mark the phase start where `{total_fixes}` is the number of fix tasks:
-   ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics start \
-     --state-file "$STATE_FILE" --phase "review-code-fixes" --total-batches {total_fixes}
-   ```
-
-   For each fix task in the JSON file:
-
-   a. Read the fix tasks JSON file to get the list of issues to fix
-   b. For each task, spawn a subagent:
-      ```
-      Spawn one subagent with:
-      - executor_role: "agent"
-      - description: "Fix: {task.title}"
-      - prompt: |
-          Fix the following code issue:
-
-          **Issue**: {task.title}
-          **Type**: {task.type}
-          **Importance**: {task.importance}
-          **Description**: {task.description}
-          **Location hints**: {task.location_hints}
-
-          Plan file for context: {task.plan_path}
-
-          1. Read the relevant files and understand the issue
-          2. Make the necessary code changes to fix it
-          3. Verify your changes don't break anything
-
-          After fixing, report what you changed.
-      ```
-   c. Track fix results (success/failure) for each task
-
-   **Record metrics** for each fix subagent:
-   ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics record \
-     --state-file "$STATE_FILE" --phase "code-review" \
-     --label "Fix: {task_title}" --subagent-type "{executor_role}" \
-     --tokens {token_count} --tool-uses {tool_uses} --duration-ms {duration_ms} \
-     --total-batches {total_fixes} --batch-index {N}
-   ```
-   Where `token_count`, `tool_uses`, `duration_ms` come from whatever your subagent mechanism reports, and `{N}` is the 1-based fix index. Omit any flag it does not report. Never pass `0` for an unknown value; omit the flag — a made-up zero is averaged into the phase totals as a real measurement. The script prints an `[ETA]` line to stderr after each call.
-
-   d. After all fixes are attempted, mark the phase finish:
-   ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics finish \
-     --state-file "$STATE_FILE" --phase "review-code-fixes"
-   ```
-
-   e. Update the plan file with a "Review Fixes Applied" section documenting what was fixed
+8. **If `--apply-fixes` was used, apply fixes by spawning subagents:** only then (the orchestrator wrote `{prefix}_fix_tasks.json`), read `references/review-code-apply-fixes.md` in full and follow it: one subagent per issue, then the *Post-Fix Workflow*'s steps 1 to 4. A review without `--apply-fixes` skips this step.
 
 ## Post-Fix Workflow
 
-After spawning subagents to apply fixes:
-
-1. **Wait for all subagents to complete**
-   - Track success/failure of each fix
-
-2. **Run verification**
-   Run the repository's own typecheck/lint commands, if any (for example
-   `pnpm typecheck` and `pnpm lint:fix` in a pnpm project) — this plan may
-   have neither.
-
-3. **Update `{plan}_code_review.md`** with implementation status for each issue:
-
-   For each issue in the code review file, add an "Implementation" subsection:
-
-   ```markdown
-   ### Issue N: [Original Title]
-   **Type**: security | **Importance**: HIGH
-   **Description**: [original description]
-   **Location Hints**: [original hints]
-
-   #### Implementation Status: FIXED
-   **Files Modified**:
-   - `path/to/file1.ts` - Added input validation
-   - `path/to/file2.ts` - Updated error handling
-
-   **Summary**: Added proper input sanitization to prevent SQL injection...
-   ```
-
-   Or if not fixed:
-   ```markdown
-   #### Implementation Status: NOT FIXED
-   **Reason**: Requires architectural changes beyond scope of this review
-   ```
-
-4. **Update the original plan file** by appending a reference section:
-
-   ```markdown
-   ---
-   ## Code Review Applied
-
-   A code review was performed on this implementation. See the full review and implementation details at:
-   **[{plan}_code_review.md](./{plan}/{plan}_code_review.md)**
-
-   **Summary**: X of Y issues were fixed.
-   **Date**: [timestamp]
-   ```
+Steps 1 to 4 of this workflow run only under `--apply-fixes`, and they are in `references/review-code-apply-fixes.md` with step 8. Step 6, the report, runs on every review:
 
 6. **Report results** following `references/summary-format.md`, including files in `{plan}/code-review/`:
 

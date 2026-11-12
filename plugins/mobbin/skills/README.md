@@ -51,6 +51,12 @@ gemini extensions install https://github.com/mobbin/skills
 
 Then run `/mcp auth mobbin` inside Gemini CLI to sign in.
 
+### Kiro
+
+[Add to Kiro](https://kiro.dev/launch/mcp/add?name=mobbin&config=%7B%22url%22%3A%22https%3A%2F%2Fapi.mobbin.com%2Fmcp%22%7D)
+
+This adds the Mobbin MCP server. Kiro opens a browser to sign in to Mobbin the first time it connects.
+
 ### npx skills
 
 Install using the [`npx skills`](https://skills.sh) CLI:

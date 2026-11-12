@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
   openclaw:
     requires:
       bins:
@@ -29,6 +29,8 @@ allowed-tools: Bash(uv:*) Bash(ffmpeg:*) Bash(ffprobe:*) Read Write
 ---
 
 # Media judge
+
+> Step 9 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/judge-an-ai-video-without-bias (as Markdown: add `.md`).
 
 **Measure, don't grade.** A judgment here is a time, a number and a picture. "Looks great", "8/10" and "feels premium"
 are not findings, and neither is any adjective with no measurement behind it.

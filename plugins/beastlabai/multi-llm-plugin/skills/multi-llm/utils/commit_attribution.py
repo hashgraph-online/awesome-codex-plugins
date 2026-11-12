@@ -60,7 +60,7 @@ from dataclasses import dataclass, field
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Set, Tuple
 
 from .commit_range import RangeError, resolve_commit_strict
-from .git_utils import _run_git, git_argv, git_path, paths_changed_since, read_at_commit
+from .git_utils import git_argv, git_path, paths_changed_since, read_at_commit, run_git
 
 #: One blame call (one file) may take this long before its groups fall back.
 BLAME_TIMEOUT_S = 60
@@ -265,7 +265,7 @@ class _ClaimResolver:
     def _side_commits(self) -> Set[str]:
         if self._side is None:
             spec = f"{self.base}..{self.head}" if self.base is not None else self.head
-            stdout, _, rc = _run_git("rev-list", spec, check=False, cwd=self.cwd)
+            stdout, _, rc = run_git("rev-list", spec, check=False, cwd=self.cwd)
             listed = set(stdout.split()) if rc == 0 else set()
             self._side = listed - self.commit_set
         return self._side
@@ -284,7 +284,7 @@ class _ClaimResolver:
         a two-commit side branch would be refused. One call per distinct side
         commit a claim names, remembered for the pass."""
         if side not in self._merges:
-            stdout, _, rc = _run_git(
+            stdout, _, rc = run_git(
                 "rev-list", "--ancestry-path", f"{side}..{self.head}",
                 check=False, cwd=self.cwd,
             )

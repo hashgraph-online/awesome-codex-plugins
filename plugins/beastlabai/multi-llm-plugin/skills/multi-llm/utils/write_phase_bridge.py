@@ -30,34 +30,23 @@ Nothing here dispatches: ``utils/write_batch_scheduler`` is the consumer.
 
 from __future__ import annotations
 
+import json
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
-try:  # pragma: no cover - import shim mirrors the rest of utils/
-    from .code_fix_batcher import fix_member_ids
-    from .prior_changes import entry_id, stable_key
-    from .scope_apply import TASK_KEY, task_block
-    from .suggestion_batcher import suggestion_member_ids
-    from .subagent_tasks import (
-        PHASE_BY_WRITE_KIND,
-        build_inputs,
-        make_task_file,
-        make_write_task,
-        write_task_file,
-    )
-except ImportError:  # pragma: no cover - direct-script import shim
-    from utils.code_fix_batcher import fix_member_ids
-    from utils.prior_changes import entry_id, stable_key
-    from utils.scope_apply import TASK_KEY, task_block
-    from utils.suggestion_batcher import suggestion_member_ids
-    from utils.subagent_tasks import (
-        PHASE_BY_WRITE_KIND,
-        build_inputs,
-        make_task_file,
-        make_write_task,
-        write_task_file,
-    )
+from .code_fix_batcher import fix_member_ids
+from .prior_changes import entry_id, stable_key
+from .scope_apply import TASK_KEY, task_block
+from .suggestion_batcher import suggestion_member_ids
+from .subagent_tasks import (
+    PHASE_BY_WRITE_KIND,
+    build_inputs,
+    make_task_file,
+    make_write_task,
+    write_task_file,
+)
 
 
 __all__ = [
@@ -294,6 +283,12 @@ def materialize_write_tasks(
 #: (``run_status._native_apply_not_applied``).
 NATIVE_RUN_KEY = "native_run"
 
+#: The key under :data:`NATIVE_RUN_KEY` naming the review round the batches'
+#: verdicts came from, ``{review, round_id}``, when they record one: ``util
+#: write-prompt`` refuses a batch once that review has started another round
+#: (``write_prompt.superseded_round_refusal``).
+REVIEW_ROUND_KEY = "review_round"
+
 
 def native_run_record(
     phase_dir: str,
@@ -313,7 +308,6 @@ def native_run_record(
     record existed) records ``started_at: None``, so every record of the
     review counts, as it did before. Any other emit — a first run, a bare
     re-run, ``--fresh`` — starts a run: ``started_at`` is *now*."""
-    from datetime import datetime
 
     now = now or datetime.now().isoformat()
     items: List[str] = []
@@ -325,8 +319,6 @@ def native_run_record(
         return {"started_at": now, "items": items, "emitted_at": now}
     previous: Any = None
     try:
-        import json
-
         with open(os.path.join(phase_dir, WRITE_TASK_FILENAME), encoding="utf-8") as handle:
             previous = json.load(handle)
     except (OSError, ValueError):

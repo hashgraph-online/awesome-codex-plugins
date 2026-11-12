@@ -68,4 +68,4 @@ then subject and action, then light, palette and texture, then camera. For image
 line; the start frame already carries the look.
 ```
 
-Why this order: https://claude.ai/artifact/5ptKSPYFzvd7turkZevfHZ (48-still test, 6,086 X posts, 14 vendor guides).
+Why this order: https://varg.ai/how-to/make-a-moodboard-for-an-ai-video (48-still test, 6,086 X posts, 14 vendor guides).

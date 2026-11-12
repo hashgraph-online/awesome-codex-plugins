@@ -10,6 +10,11 @@
       "minimum": 1,
       "description": "Format version for forward/backward compatibility (current: 2)"
     },
+    "group_id_format": {
+      "type": "string",
+      "enum": ["distinct"],
+      "description": "Each underlying_group_ids entry is one group's own id. Absent in files written when same-content groups shared one id, whose decisions cover every copy"
+    },
     "consolidated_groups": {
       "type": "array",
       "items": {

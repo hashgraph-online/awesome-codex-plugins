@@ -15,7 +15,7 @@ across calendar, reminders and email, read from the user's own apps.
 1. `get_datetime` — anchor to the user's current date/time (macOS and Windows).
 2. `list_calendar_events` for today (and optionally tomorrow) — meetings, with times and gaps.
 3. `list_reminders` — what's due/overdue.
-4. `list_emails` (pass `account=` when Mail has several accounts) — recent/unread that may need
+4. `list_emails` (set `account=` when Mail has several accounts) — recent/unread that may need
    attention; skip newsletters and noise.
 
 Steps 2–4 use Apple Calendar, Reminders and Mail, so they exist only on macOS. On Windows, rely

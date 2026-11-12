@@ -48,13 +48,13 @@ plan path or an empty question is an error: show the usage and stop.
 **range** (none means `HEAD`) or a commit brief's path, the bare words right after the mode flag, as typed. Bare words are joined into one range (`last 2 commits` needs no quotes, unlike
 `--ask`'s question), and a `-N` there is a range. One range per call, in that slot only and never after a flag (`[RANGE_AFTER_FLAGS]`); a context plan goes in `--context-plan <path>` among the flags, never in that slot. After the launch, every command you spell takes the brief `[COMMIT_BRIEF]` names as its plan path; a command the run prints keeps the pinned range it prints.
 
-## 3. Load the mode's core instructions, then execute them step by step
+## 3. Load the mode's core instructions, page by page, then execute them step by step
 
 ```bash
-uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util instructions <mode>
+uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util instructions <mode> --page 1
 ```
 
-That prints the core with every skill-dir placeholder already substituted.
+That prints page 1 of the core, every skill-dir placeholder already substituted, opening with a `[CORE_PAGE] mode=<mode> page=1/<n> sha=<sha> bytes=<b>` line that gives the page count `<n>`. Fetch pages 2 to `<n>` with the same command, changing only `--page`, and follow the core only once you hold every page whole: each opens with its `[CORE_PAGE]` line and closes with its `[CORE_PAGE_END]` line, and all of those lines carry the same `sha=`. Your shell keeps the head and the end of long output and drops the middle, so a note in any page's output that it truncated or omitted part of it means that page is incomplete, both lines or not: fetch again with the smaller `--page-size` that page 1's banner names, starting over at page 1 with that size and keeping it for every later page. Load every core this way, including a phase's core that a core tells you to load with `util instructions <phase>`: add `--page 1` to that command and page through it by the same rule.
 
 ## 4. Capability verbs — how this host answers each one
 

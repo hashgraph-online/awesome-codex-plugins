@@ -7,6 +7,7 @@ from typing import Any, Dict, List, NamedTuple, Optional, Tuple
 
 from ..json_extractor import _loads_reply, extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     PROFILE_AGENT_READONLY,
     PROFILE_AGENT_WRITE,
     PROFILE_GENERATE,
@@ -21,9 +22,7 @@ from .base import (
     SANDBOX_RUNG_LANDLOCK,
     SANDBOX_RUNG_PLUGIN_LANDLOCK,
     SANDBOX_RUNG_UNSANDBOXED,
-    WRITE_SCOPE_PLAN_FILE,
     WRITE_SCOPE_REPO_WIDE,
-    WRITE_SCOPE_TASKS,
     WRITE_SCOPES_BY_CONSENT,
     WRITE_SCOPES_ON_RUNG,
     HOST_POSTURE_FULL_ACCESS,
@@ -43,6 +42,8 @@ from .base import (
     sandbox_rung_id,
     split_reasoning_effort,
 )
+from .parse_kit import fail, ok
+from .codex_stream_audit import audit_codex_stream
 
 # Reasoning effort values this adapter EMITS as `model_reasoning_effort`
 # (verified live against codex-cli 0.144.0/0.146.0).
@@ -148,14 +149,13 @@ _SANDBOX_BY_PROFILE = {
 #: keeps it as the last rung rather than holding codex back until a machine
 #: installs the AppArmor repair — codex is the one reviewer that insists on its
 #: own sandbox, and a fan-out that dropped it for that reason alone was
-#: measured (2026-09-17) to miss 2 unique validated-high issues. Still: only
+#: measured to miss 2 unique validated-high issues. Still: only
 #: when rung 1 is unusable, only under `auto`; `contained` and `off` never
 #: render it.
 SANDBOX_FALLBACK_VALUE = "danger-full-access"
 
-#: Every codex slot starts without the user's installed plugins (2026-10-02,
-#: codex 0.160.0, offline against a stub, throwaway CODEX_HOME holding a copy of
-#: the multi-llm plugin install). A nested `codex exec` loads `$CODEX_HOME/plugins`
+#: Every codex slot starts without the user's installed plugins. A nested `codex exec`
+#: loads `$CODEX_HOME/plugins`
 #: like the interactive session does, so each review slot booted multi-llm's own
 #: `multi_llm` MCP server (a probe wrapper in the copied `.mcp.json` logged the
 #: start) whose venv Python wrote `__pycache__/*.pyc` under the watched
@@ -169,7 +169,7 @@ SANDBOX_FALLBACK_VALUE = "danger-full-access"
 #: `features.*` key (see the legacy-landlock probe note below).
 PLUGINS_OFF_PAIR = ("-c", "features.plugins=false")
 
-#: The one `-c` key the landlock rung adds (2026-09-22). codex-cli 0.155.1 still
+#: The one `-c` key the landlock rung adds. codex-cli 0.155.1 still
 #: ships a second Linux sandbox backend, `[features] use_legacy_landlock`, which
 #: needs no user namespace — so on a machine where bubblewrap cannot start it
 #: starts, and it really contains: under `sandbox_mode="read-only"` every write
@@ -323,8 +323,7 @@ UNSANDBOXED_RUNG = SandboxRung(
 )
 
 # ─────────────────────────────────────────────────────────────────────────────
-# The plugin-landlock rung (plan codex-sandbox-unavailable-findings-and-fixes
-# §6 F1, steps 2 and 3; 2026-09-30).
+# The plugin-landlock rung.
 #
 # When codex's own sandbox cannot start (bwrap blocked by
 # `apparmor_restrict_unprivileged_userns=1`) and only then, the plugin launches
@@ -350,7 +349,7 @@ PLUGIN_LANDLOCK_WRAPPER = "landlock_exec"
 #: The newest codex the rung's allow-list was measured against. Render-only:
 #: `doctor` shows it beside the installed version, and a `[JAIL_DENIED]` line
 #: names a newer installed codex as the likely cause. Raising it needs the
-#: allow-list re-measurement (plan §8.2) to pass on the newer build.
+#: allow-list re-measurement to pass on the newer build.
 PLUGIN_LANDLOCK_MEASURED_THROUGH: Tuple[str, str] = (
     "0.163.0",
     "measured 2026-09-29 on 0.158.0 (preflight step 1), re-measured "
@@ -538,7 +537,7 @@ JAIL_DEVELOPER_TARGET_REPO = (
     "{output_dir}, or any path driver.write_paths denies: the jail does not "
     "enforce this, and a change there fails the batch or is flagged afterwards."
 )
-#: Step 1b's decision (measured 2026-10-02 on codex 0.160.0), for `repo-wide`
+#: Step 1b's decision, for `repo-wide`
 #: only: the toolchain paths that stay denied, so the runner reads such an
 #: EACCES as the jail's. uv's cache, pytest's cache, npm's cache and Python's
 #: bytecode are redirected under $TMPDIR instead
@@ -549,7 +548,7 @@ JAIL_DEVELOPER_DENIED_TOOLCHAIN = (
     "caches under $TMPDIR; any other tool's cache outside the repository is "
     "denied unless you point it under $TMPDIR."
 )
-#: Step 1c's decision (measured 2026-09-30 on codex 0.159.0/0.159.1): what stays
+#: Step 1c's decision: what stays
 #: denied on the rung, named so the model reads such an EACCES as the jail's and
 #: not the code's. `git status`'s index refresh, Python's `__pycache__` and
 #: npm's cache are redirected instead (`landlock_dispatch.child_env_redirects`);
@@ -599,10 +598,9 @@ def jail_developer_instructions(context: JailContext) -> str:
 def repo_wide_developer_sentences(context: JailContext) -> str:
     """The ``repo-wide`` grant's sentences, naming the root the dir rule sits
     on and this run's output folder (root grant, 2026-10-05)."""
-    try:
-        from ..landlock_dispatch import repo_wide_root
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.landlock_dispatch import repo_wide_root  # type: ignore[no-redef]
+    # ``landlock_dispatch`` imports the provider package, which loads this
+    # adapter: a load-time cycle.
+    from ..landlock_dispatch import repo_wide_root
     output_dir = context.output_dir or "(none)"
     return JAIL_DEVELOPER_TARGET_REPO.format(
         root=repo_wide_root(context.request), output_dir=output_dir,
@@ -646,7 +644,7 @@ def is_landlock_global_panic(stderr: str) -> bool:
 
     stderr only: a Rust panic is written there, never into the ``--json``
     event stream on stdout, and :meth:`CodexProvider.describe_failure` reads
-    the one channel it declares (``tests/test_providers.py``'s channel table).
+    the one channel it declares (``tests/test_provider_failure_classification.py``'s channel table).
     """
     return LANDLOCK_GLOBAL_PANIC in " ".join((stderr or "").split())
 
@@ -752,22 +750,22 @@ _BASE_ARGV = (
     "--ephemeral", "--skip-git-repo-check",
 )
 
-#: §4.2's contract asymmetry, encoded from day one: claude takes the schema
-#: **inline**, codex takes a **file path**. No §5.4.1 probe — this is the
+#: The contract asymmetry, encoded from day one: claude takes the schema
+#: **inline**, codex takes a **file path**. No probe — this is the
 #: exemption, not an omission: `--output-schema <FILE>` is documented by
 #: `codex exec --help` at the declared floor 0.144.0 and was re-verified
-#: functionally, which is exactly §5.4.1's "verified at the adapter's declared
+#: functionally, which is exactly the "verified at the adapter's declared
 #: min_version" clause (the same reason `--ephemeral` carries none). It is
 #: declared as such in `flags_verified_at_floor` below.
 OUTPUT_SCHEMA_FLAG = "--output-schema"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# §7.6(b) — the retry envelope, measured 2026-08-16.
+# The retry envelope, measured 2026-08-16.
 #
 # codex's two internal retry knobs are **config keys, not env vars**, and they
 # compose multiplicatively: requests = (stream_max_retries + 1) ×
 # (request_max_retries + 1) = 5 × 6 = 30. Both are **unreachable for the
-# provider multi-llm uses** (§7.3): `-c request_max_retries=…` is an `unknown
+# provider multi-llm uses**: `-c request_max_retries=…` is an `unknown
 # configuration field`, and `-c model_providers.openai.…` is refused with
 # "model_providers contains reserved built-in provider IDs: `openai`. Built-in
 # providers cannot be overridden." The env names both donor plans proposed
@@ -775,7 +773,7 @@ OUTPUT_SCHEMA_FLAG = "--output-schema"
 # measurably inert — 30 requests in every configuration, with or without them.
 #
 # So this row is a declaration the harness cannot change, which is exactly why
-# it has to be *declared*: codex stays on the harness-side ladder, and §7.5's
+# it has to be *declared*: codex stays on the harness-side ladder, and the retry
 # arithmetic needs the number it cannot configure away.
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -877,8 +875,7 @@ def _vendor_stdout(stdout: str) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# The answer walk, shared by `parse_output` and `salvage_text` (plan:
-# review-run-scope-salvage-and-failure-visibility §4, D4.4). One walk so the
+# The answer walk, shared by `parse_output` and `salvage_text`. One walk so the
 # text salvage recovers is, by construction, the text the parser reads as the
 # answer — never the `command_execution` output or `reasoning` text around it.
 # ─────────────────────────────────────────────────────────────────────────────
@@ -992,7 +989,7 @@ def _scan_codex_stream(stdout: str) -> _CodexStream:
 
 def _require_write_context(profile: str, context: Optional[JailContext]) -> None:
     """Raise unless ``context`` carries a write scope the rung serves and its
-    target (plan step 3). A write dispatch with no grant is refused, never
+    target. A write dispatch with no grant is refused, never
     narrowed to the base entries or widened."""
     scope = getattr(context, "write_scope", None) if context is not None else None
     if context is None or not scope:
@@ -1122,23 +1119,22 @@ class CodexProvider(LLMProvider):
     supports_file_output = False
     supports_workspace_reads = True
     # `--sandbox read-only` restricts writes, not reads: a snapshot outside the
-    # repo root is readable with no extra flag (validation-context-by-path §2.2).
+    # repo root is readable with no extra flag (validation-context-by-path).
     reads_outside_cwd = True
     # MEASURED TRUE: an audited review stream of the 2026-09-25 run ran the
     # `command_execution` `pwd && rg --files …`, under `generate`'s
     # `--sandbox workspace-write` (`_SANDBOX_BY_PROFILE`) — the stream that
-    # moved `pwd` into `codex_stream_audit.ANY_FLAG_VERBS` (plan:
-    # review-run-scope-salvage-and-failure-visibility §7.3). Where bubblewrap
+    # moved `pwd` into `codex_stream_audit.ANY_FLAG_VERBS`. Where bubblewrap
     # cannot start, the D6 fallback runs the same profile unsandboxed, which
     # keeps the shell. `generate_read_scope` stays the "cwd" default:
     # `reads_outside_cwd` above describes `agent-readonly`, not this profile.
     runs_shell_in_generate = True
     usage_support = USAGE_FULL
-    # §4.2.2: this adapter really emits `--output-schema` when handed a
+    # This adapter really emits `--output-schema` when handed a
     # materialized schema (see `build_command`), so the caller may mark an
     # accepted result `native`.
     structured_output_support = True
-    # …and it takes a PATH, not inline JSON — §4.2's contract asymmetry, stated
+    # …and it takes a PATH, not inline JSON — the contract asymmetry, stated
     # as data so the caller materializes the sidecar without knowing the name
     # "codex".
     structured_output_transport = "file"
@@ -1154,7 +1150,7 @@ class CodexProvider(LLMProvider):
     # `multi_llm.py doctor` to pick the bwrap self-test; the dispatch-time gate
     # is `sandbox_probe_command` below, which asks codex's own runner instead.
     sandbox_mechanism = "bubblewrap"
-    # M14/§5.4 — the floor names the FEATURE, not a bare number: 0.144.0 is the
+    # The floor names the FEATURE, not a bare number: 0.144.0 is the
     # oldest build measured to emit the `item.completed`/`agent_message` JSONL
     # shape `parse_output` reads AND to accept the three flags below at the same
     # time. Both halves matter — a build that answers prompts but streams the
@@ -1164,7 +1160,7 @@ class CodexProvider(LLMProvider):
     # guessed `max_version_exclusive` would refuse runs nobody showed to be
     # broken. `verified_version` carries the "newer than the capture" *warning*,
     # which is the honest posture for an unmeasured future build. 0.156.1 since
-    # the §6.2 recapture (2026-09-24): `tests/fixtures/codex/0.156.1/`, driven
+    # the recapture: `tests/fixtures/codex/0.156.1/`, driven
     # offline against a localhost Responses stub, parsed by this adapter in
     # `tests/test_codex_stream_audit.py::TestTheCapturedFixtures`. 0.160.0 since
     # 2026-10-02: the same capture rig (`0.156.1/capture/`, offline, throwaway
@@ -1172,12 +1168,11 @@ class CodexProvider(LLMProvider):
     # key shapes for the five scripted cases (`tests/fixtures/codex/0.160.0/`
     # keeps three), so the version-lag WARN every run printed was this pin
     # lagging the install. The `web_search_*` / `code_mode_*` fixtures are live
-    # captures no stub can redo; they stay at 0.156.1. 0.160.1 since 2026-10-06
-    # (run 6, #11b, the same WARN on every phase): the rig re-run on the
-    # installed 0.160.1 gave byte-identical streams for the three kept cases
+    # captures no stub can redo; they stay at 0.156.1. 0.160.1 since 2026-10-06:
+    # the rig re-run on the installed 0.160.1 gave byte-identical streams for the three kept cases
     # (thread ids aside) and the same event kinds and keys for
     # `writes_patches_sessions` and `exec_session` (`tests/fixtures/codex/0.160.1/`).
-    # 0.161.0 since 2026-10-08 (run 10, #10, the same WARN): the same rig on the
+    # 0.161.0 since 2026-10-08: the same rig on the
     # installed 0.161.0 gave byte-identical streams for the three kept cases
     # (thread ids and the commit hash aside) and the same event kinds and keys
     # for all five scripted cases (`tests/fixtures/codex/0.161.0/`).
@@ -1187,7 +1182,7 @@ class CodexProvider(LLMProvider):
     # collaboration, hosted tools and code mode were not re-measured.
     verified_version = "0.163.0"
 
-    # M14/§5.4.1(a) — the exemption, as data. Each of these was re-verified
+    # The exemption, as data. Each of these was re-verified
     # FUNCTIONALLY (not merely found in help text) at the declared floor above
     # as well as at 0.146.0, which is the one clause that lets a flag ship with
     # no runtime gate: there is no release in the supported range that would
@@ -1199,7 +1194,7 @@ class CodexProvider(LLMProvider):
         OUTPUT_SCHEMA_FLAG,
     )
 
-    # §7.2 — the per-adapter pattern overrides. Before this, *zero* adapters
+    # The per-adapter pattern overrides. Before this, *zero* adapters
     # extended the base English lists, including the four with structured error
     # events; codex's own failure text is one of the ones the base list misses.
     #
@@ -1221,16 +1216,16 @@ class CodexProvider(LLMProvider):
         "authentication in header",
     )
 
-    # §7.2's measured note: codex never retries a 429 internally — one request,
+    # The measured note: codex never retries a 429 internally — one request,
     # then this exact terminal. It carries no word the base list recognises
-    # ("429" is there, but this is the sentence a user sees and the one §7.5
+    # ("429" is there, but this is the sentence a user sees and the one
     # rule 6(b) reasons about), so the adapter declares it.
     rate_limit_patterns = LLMProvider.rate_limit_patterns + (
         "exceeded retry limit, last status: 429",
     )
 
     # A stderr line that is deliberately NOT a verdict, recorded rather than
-    # fixed (plans/ask-answer-recovery-and-false-success.md T5.2):
+    # fixed:
     #   ERROR codex_core::tools::router: error=collab spawn failed: no thread with id: <uuid>
     # A `spawn_agent` (collab) sub-agent spawn failed inside the slot. Seen once
     # on the 2026-09-26 ask run whose 734 s codex answer was discarded, and
@@ -1240,13 +1235,13 @@ class CodexProvider(LLMProvider):
     # matches none of the patterns above, so `classify_failure` gives it no
     # verdict. Watch for recurrence; if it recurs, open a task.
 
-    # §7.6(b). A constant, not a property: nothing about this envelope moves with
+    # A constant, not a property: nothing about this envelope moves with
     # the resolved slot timeout — codex takes no timeout flag and this adapter
     # sets no env at all, so `configurable_by` is empty *from the harness's side*
     # (see the module comment for the two config keys and why they are
     # unreachable). `retries_rate_limit=False` is the measured negative: one
     # request, then `exceeded retry limit, last status: 429 Too Many Requests` —
-    # so the harness's own backoff is the only one a 429 gets here, and §7.5 rule
+    # so the harness's own backoff is the only one a 429 gets here, and rule
     # 6(b) must NOT suppress it for this adapter. The ~25 s wall is what 30
     # requests really cost on 5xx/stream failures inside the one awaited
     # subprocess.
@@ -1257,13 +1252,22 @@ class CodexProvider(LLMProvider):
         configurable_by=(),
     )
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: codex's
+    #: ``--json`` stream carries the model's words only in
+    #: ``agent_message``/``reasoning`` items and the repository's in
+    #: ``command_execution`` output, which :meth:`vendor_text` drops, a final
+    #: line cut inside one included; an unfinished turn (no ``turn.completed``)
+    #: keeps only codex's own events.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: tool output
+    #: (``command_execution``) and the model's prose ride the stdout JSONL, never stderr; the
+    #: ``codex sandbox`` probe's stderr is bubblewrap's own (:data:`~.failure_classifier.SANDBOX_MARKERS`).
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "codex"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("codex") is not None
@@ -1272,14 +1276,14 @@ class CodexProvider(LLMProvider):
     def _schema_argv(schema: Optional[StructuredSchema]) -> List[str]:
         """``[--output-schema, <path>]`` for a materialized schema, or ``[]``.
 
-        **The file is the caller's, and its absence fails before spawn** (§4.2.1,
-        sixth acceptance case). Adapters are module-level singletons shared
+        **The file is the caller's, and its absence fails before spawn**. Adapters are
+        module-level singletons shared
         across a concurrent fan-out, so this one cannot write a per-run temp file
         without becoming a data race — ``utils.structured_output.schema_sidecar``
         is the writer, and it removes the directory in a ``finally``.
 
         Raising here rather than dropping the flag is deliberate and is the
-        opposite posture from §5.4.1's *optional-flag* gate, for the reason that
+        opposite posture from the *optional-flag* gate, for the reason that
         gate states: a gate declines toward the status quo when the **CLI** may
         not understand a flag, whereas this is our own caller failing to produce
         a file it said it would. Silently dropping it would run the phase
@@ -1393,7 +1397,7 @@ class CodexProvider(LLMProvider):
         # in exec mode regardless — so this is a rename, not a permission
         # change.
         #
-        # §4.2.2's splice point: the schema pair goes in the same policy region
+        # The splice point: the schema pair goes in the same policy region
         # as claude's, immediately after `_BASE_ARGV` and ahead of `--model`, so
         # it is never the last pair before the prompt and
         # `build_command_for_transport`'s stdin leg (which drops `cmd[-1]`) can
@@ -1455,7 +1459,7 @@ class CodexProvider(LLMProvider):
         The profile gate is answered *here*, in the adapter, and not only at
         the call sites. The two read-only profiles return the resolved policy
         (``auto`` by default), which the gates then match against the rung the
-        walk selected. ``agent-write`` (plan step 3, user decision 2026-09-30)
+        walk selected. ``agent-write``
         returns the resolved policy only while :data:`WRITE_RUNG_OPT_IN` is in
         force, and the gates read it through ``write_rung_allowed``: the
         plugin-landlock rung under ``auto`` alone — never ``contained``, never
@@ -1511,7 +1515,7 @@ class CodexProvider(LLMProvider):
           an unknown id) raises the same ``ValueError`` as before step 3;
         * any other profile, a missing or an unknown rung raises.
 
-        F5 (plan step 6, user decision 2026-09-30) adds one route: ``agent-write``
+        F5 adds one route: ``agent-write``
         on ``unsandboxed`` renders only with a ``consent`` whose posture is
         ``danger-full-access`` — the chat's own full-access mode, exported per
         call — and whose ``write_scope`` is a step-3 scope
@@ -1598,7 +1602,7 @@ class CodexProvider(LLMProvider):
         boundary that makes the profile eligible. Network access is left at
         codex's own workspace-write default rather than being widened here.
 
-        **The one override** (D6, 2026-09-17): nothing this method renders is
+        **The one override**: nothing this method renders is
         ever a bypass, and the default argv of every profile stays that way —
         but a *dispatch-time* rewrite exists, :meth:`apply_sandbox_fallback`,
         which points the same ``--sandbox`` slot at ``danger-full-access`` for
@@ -1720,6 +1724,8 @@ class CodexProvider(LLMProvider):
         repo's ``AGENTS.md``), so it is not used.
         """
         try:
+            # Imported here: the adapters load on a commit front door's `--help` path; codex_trust
+            # stays off it.
             from .. import codex_trust
             env = dict(os.environ)
             try:
@@ -1748,7 +1754,7 @@ class CodexProvider(LLMProvider):
         """
         if is_landlock_global_panic(stderr):
             return LANDLOCK_GLOBAL_PANIC_REASON
-        # codex 0.156.1's rung-1 panic (2026-09-24): a different sentence from
+        # codex 0.156.1's rung-1 panic: a different sentence from
         # constraint 2's, with the same exit 101 — told apart by text alone.
         if is_landlock_needs_bwrap_panic(stderr):
             return LANDLOCK_NEEDS_BWRAP_REASON
@@ -1787,7 +1793,7 @@ class CodexProvider(LLMProvider):
             return stdout, stderr
 
     def audit_readonly_stream(self, raw_stream: str) -> Optional[Any]:
-        """Plan §4.2 option B: classify every tool item on the full stream.
+        """ option B: classify every tool item on the full stream.
 
         The walk (and every fail-closed rule) is
         ``codex_stream_audit.audit_codex_stream``, written against the 0.156.1
@@ -1795,7 +1801,6 @@ class CodexProvider(LLMProvider):
         never looks at ``command_execution``/``file_change`` items, so the
         audit parses them itself.
         """
-        from .codex_stream_audit import audit_codex_stream
 
         return audit_codex_stream(raw_stream)
 
@@ -1857,11 +1862,11 @@ class CodexProvider(LLMProvider):
         control character inside a string is kept, not fatal). The strict
         parse failed a whole document over one typed line break, and the
         array-preferring fallback then served the document's own ``tasks``
-        array where an object was expected (fix round 8).
+        array where an object was expected.
         """
         if text.startswith(('[', '{')):
             try:
-                return {"success": True, "data": _loads_reply(text)}
+                return ok(_loads_reply(text))
             except json.JSONDecodeError:
                 pass
 
@@ -1904,10 +1909,10 @@ class CodexProvider(LLMProvider):
             reported = fatal_errors or item_errors
             if reported:
                 error = "Codex reported an error: " + "; ".join(reported)
-            return {"success": False, "error": error, "raw": stdout, "data": None}
+            return fail(error, stdout)
 
         if not any(candidate.strip() for candidate in candidates):
-            return {"success": False, "error": "Empty text response", "raw": stdout, "data": None}
+            return fail("Empty text response", stdout)
 
         result: Dict[str, Any] = {}
         for candidate in candidates:
@@ -1939,8 +1944,7 @@ class CodexProvider(LLMProvider):
         what strict output produces, and stays on the recovery path. The caller
         validates the value against the schema before marking it ``native``.
         It parses as the rest of the lane does (``_loads_reply``), so a raw
-        control character inside a string does not lose the native answer
-        (fix round 8).
+        control character inside a string does not lose the native answer.
         """
         try:
             scan = _scan_codex_stream(stdout or "")

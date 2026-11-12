@@ -9,12 +9,13 @@ structures by tracking bracket depth, handling strings correctly (not counting
 brackets inside "..."), and returning each structure individually.
 """
 
+import heapq
 import json
 import re
 import sys
-from datetime import datetime
+from array import array
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 
 def strip_jsonc(text: str) -> str:
@@ -222,6 +223,209 @@ def build_unsanitize_map(phase_dir: str) -> Dict[str, str]:
     return mapping
 
 
+#: The characters that can change a bracket walk's state, per bracket pair: the
+#: pair itself, the quote that toggles string state, and the backslash that
+#: escapes inside a string. :func:`_pair_runs` never looks at the rest.
+_WALK_SPECIALS = {
+    "[": re.compile(r'[\[\]"\\]'),
+    "{": re.compile(r'[{}"\\]'),
+}
+
+#: A walk's string state between two brackets: outside a string, inside one,
+#: and inside one with the next character escaped.
+_OUT, _IN, _ESCAPED = 0, 1, 2
+
+
+def _walk_step(state: int, backslash: bool, adjacent: bool) -> int:
+    """The string state after a quote or a backslash; *adjacent* when it comes
+    straight after the previous quote or backslash, with nothing between."""
+    if state == _ESCAPED:
+        if adjacent:
+            return _IN  # this character is the escaped one
+        state = _IN  # the character before it was
+    if backslash:
+        return _ESCAPED if state == _IN else _OUT
+    return _IN if state == _OUT else _OUT
+
+
+#: :func:`_pair_runs` follows two walks at once between brackets, one that left
+#: the last bracket outside a string and one that left it inside, as the single
+#: state ``outside_walk * 3 + inside_walk``. ``_PAIR_STEP[state * 4 + 2 *
+#: backslash + adjacent]`` is that state after the next quote or backslash.
+_PAIR_STEP = tuple(
+    _walk_step(left_outside, backslash, adjacent) * 3
+    + _walk_step(left_inside, backslash, adjacent)
+    for left_outside in (_OUT, _IN, _ESCAPED)
+    for left_inside in (_OUT, _IN, _ESCAPED)
+    for backslash in (False, True)
+    for adjacent in (False, True)
+)
+#: The pair state just after a bracket.
+_LEFT_BRACKET = _OUT * 3 + _IN
+#: Bits 0 and 1: the walk that left the last bracket outside (bit 0) or inside
+#: (bit 1) a string reaches the next bracket inside one. A pending escape there
+#: lands on the bracket, which a walk inside a string ignores either way.
+_ARRIVES_INSIDE = tuple(
+    (left_outside != _OUT) | (left_inside != _OUT) << 1
+    for left_outside in (_OUT, _IN, _ESCAPED)
+    for left_inside in (_OUT, _IN, _ESCAPED)
+)
+_IS_CLOSER = 4
+
+
+def _pair_runs(text: str, opener: str, closer: str) -> Tuple[array, array]:
+    """The starts and ends of every balanced run of one bracket pair, by start.
+
+    One pass left to right over the specials records, for each bracket of the
+    pair, the string state in which each of the two walks leaving it reaches
+    the next bracket; quotes and backslashes are folded into that and never
+    stored. One pass right to left then solves the walk at the brackets alone:
+    ``at_outside[k]`` / ``at_inside[k]`` is the bracket at which a walk reaching
+    bracket *k* at depth 0, outside / inside a string, drops below it, or -1
+    when it reaches the end first. Memory is a few bytes per bracket, and
+    nothing before the first opener or after the last closer is read.
+    """
+    starts, ends = array("q"), array("q")
+    low = text.find(opener)
+    high = text.rfind(closer) + 1
+    if low < 0 or high <= low:
+        return starts, ends
+    brackets = array("q")
+    moves = bytearray()
+    state = _LEFT_BRACKET
+    previous = -2
+    for match in _WALK_SPECIALS[opener].finditer(text, low, high):
+        position = match.start()
+        char = text[position]
+        if char == opener or char == closer:
+            if moves:
+                moves[-1] |= _ARRIVES_INSIDE[state]
+            brackets.append(position)
+            moves.append(_IS_CLOSER if char == closer else 0)
+            state = _LEFT_BRACKET
+        else:
+            state = _PAIR_STEP[
+                state * 4 + (2 if char == "\\" else 0) + (position == previous + 1)
+            ]
+        previous = position
+
+    count = len(brackets)
+    # Index ``count`` is the end of the text: a walk that gets there has no run.
+    at_outside = array("q", [-1]) * (count + 1)
+    at_inside = array("q", [-1]) * (count + 1)
+    for k in range(count - 1, -1, -1):
+        move = moves[k]
+        leaving_outside = (at_inside if move & 1 else at_outside)[k + 1]
+        at_inside[k] = (at_inside if move & 2 else at_outside)[k + 1]
+        if move & _IS_CLOSER:
+            at_outside[k] = k
+        elif leaving_outside >= 0:
+            # The opener's own run ends at that closer; a walk that met the
+            # opener at depth 0 is back at depth 0 there, outside a string.
+            starts.append(brackets[k])
+            ends.append(brackets[leaving_outside] + 1)
+            after = leaving_outside + 1
+            at_outside[k] = (
+                at_inside if moves[leaving_outside] & 1 else at_outside)[after]
+    starts.reverse()
+    ends.reverse()
+    return starts, ends
+
+
+#: The most candidate text, in characters, one scan hands its readers: the
+#: larger of the floor and the per-character allowance times the text's length.
+#: Every reader slices and parses the candidates it tries, so their total length
+#: is the work a reply can demand, and nesting makes it quadratic: 1 MiB of
+#: ``[`` then ``]`` holds 256 GiB of candidates. Real replies stay far below it
+#: (8 characters per character at most across ``tests/fixtures``).
+_CANDIDATE_BUDGET_FLOOR = 8 * 1024 * 1024
+_CANDIDATE_BUDGET_PER_CHAR = 16
+
+
+def _balanced_spans(text: str, char_type: str) -> List[Tuple[int, int]]:
+    """``(start, end)`` of every balanced run in *text*, ordered by start.
+
+    A balanced run is defined by a walk that starts just after an opening
+    bracket at depth 1, outside a string:
+
+    * a ``"`` toggles string state;
+    * inside a string, a backslash makes the walk skip the next character,
+      whatever it is; outside one it is an ordinary character;
+    * outside a string, the same bracket pair moves the depth; the other pair
+      is ignored;
+    * the run ends on the character that brings the depth to 0; an opener whose
+      walk reaches the end of the text first has no run.
+
+    Every opener's walk starts afresh outside a string, so an opener inside a
+    string literal still gets its own walk, and at most one run starts at any
+    index. ``char_type`` is ``"array"`` (``[...]``), ``"object"`` (``{...}``) or
+    ``"both"``.
+
+    Walking from each opener is quadratic (every unmatched opener walks to the
+    end, and an ANSI colour code is an unmatched ``[``), so :func:`_pair_runs`
+    solves the walk once, in time linear in the text and memory linear in its
+    brackets. The walk itself is the contract;
+    ``tests/test_json_extractor.py::TestBalancedScanMatchesTheWalk`` pins the
+    scan against a literal copy of it.
+
+    **The budget.** When the runs' lengths add up to more than
+    :data:`_CANDIDATE_BUDGET_FLOOR` or :data:`_CANDIDATE_BUDGET_PER_CHAR` per
+    character of *text*, whichever is larger, only the outermost runs are
+    returned: ordered by nesting level (0 when no earlier-starting run ends at
+    or after a run's end, else one more than the level of the latest-starting
+    one that does), then by start, they are kept up to the first one that would
+    take the total over the budget. Top-level runs are the ones every
+    reader tries first, so a reply that nests brackets thousands deep still has
+    its documents read, in time and memory linear in its length.
+    """
+    runs = []
+    if char_type in ("array", "both"):
+        runs.append(_pair_runs(text, "[", "]"))
+    if char_type in ("object", "both"):
+        runs.append(_pair_runs(text, "{", "}"))
+
+    def in_order():
+        if len(runs) == 1:
+            return zip(*runs[0])
+        return heapq.merge(*(zip(starts, ends) for starts, ends in runs))
+
+    total = sum(sum(ends) - sum(starts) for starts, ends in runs)
+    budget = max(_CANDIDATE_BUDGET_FLOOR, _CANDIDATE_BUDGET_PER_CHAR * len(text))
+    if total <= budget:
+        return list(in_order())
+
+    # Nesting levels in one pass: the ends of the runs around the current one,
+    # outermost first, are a stack once every run ending before it is popped.
+    levels = array("q")
+    level_totals = array("q")
+    around = array("q")
+    for start, end in in_order():
+        while around and around[-1] < end:
+            around.pop()
+        level = len(around)
+        levels.append(level)
+        if level == len(level_totals):
+            level_totals.append(0)
+        level_totals[level] += end - start
+        around.append(end)
+    left = budget
+    whole_levels = 0
+    while whole_levels < len(level_totals) and level_totals[whole_levels] <= left:
+        left -= level_totals[whole_levels]
+        whole_levels += 1
+    kept: List[Tuple[int, int]] = []
+    for span, level in zip(in_order(), levels):
+        if level < whole_levels:
+            kept.append(span)
+        elif level == whole_levels:
+            if span[1] - span[0] > left:
+                left = -1  # the first run that does not fit ends the level
+            else:
+                kept.append(span)
+                left -= span[1] - span[0]
+    return kept
+
+
 def find_json_candidates(text: str, char_type: str = "array") -> List[str]:
     """Find all potential JSON structures using balanced bracket matching.
 
@@ -230,68 +434,12 @@ def find_json_candidates(text: str, char_type: str = "array") -> List[str]:
         char_type: 'array' for [...], 'object' for {...}, 'both' for either
 
     Returns:
-        List of candidate JSON strings, ordered by position in text
+        List of candidate JSON strings, ordered by position in text. What
+        counts as balanced, and the budget past which only the outermost
+        candidates are returned, are :func:`_balanced_spans`'s. The readers
+        in this module take the spans and slice only what they parse.
     """
-    candidates: List[Tuple[int, str]] = []
-    chars: List[Tuple[str, str]] = []
-
-    if char_type in ("array", "both"):
-        chars.append(("[", "]"))
-    if char_type in ("object", "both"):
-        chars.append(("{", "}"))
-
-    for start_char, end_char in chars:
-        i = 0
-        while i < len(text):
-            if text[i] == start_char:
-                depth = 1
-                in_string = False
-                escape_next = False
-                j = i + 1
-
-                while j < len(text) and depth > 0:
-                    c = text[j]
-                    if escape_next:
-                        escape_next = False
-                    elif c == "\\" and in_string:
-                        escape_next = True
-                    elif c == '"' and not escape_next:
-                        in_string = not in_string
-                    elif not in_string:
-                        if c == start_char:
-                            depth += 1
-                        elif c == end_char:
-                            depth -= 1
-                    j += 1
-
-                if depth == 0:
-                    candidates.append((i, text[i:j]))
-            i += 1
-
-    # Sort by position, return just the strings
-    candidates.sort(key=lambda x: x[0])
-    return [c[1] for c in candidates]
-
-
-def _candidate_spans(text: str, char_type: str) -> List[Tuple[int, int, str]]:
-    """Recover each candidate's ``(start, end, text)`` span, in position order.
-
-    :func:`find_json_candidates` returns the candidate strings only, but the
-    last-document rule has to know which candidates sit *inside* another one —
-    reversing a flat list would return the inner ``[1, 2]`` of ``[{"a": [1, 2]}]``.
-    At most one balanced run begins at any index, so candidate starts are
-    strictly increasing and a forward-only search recovers every span without
-    a second scan of the text.
-    """
-    spans: List[Tuple[int, int, str]] = []
-    pos = 0
-    for candidate in find_json_candidates(text, char_type):
-        start = text.find(candidate, pos)
-        if start < 0:  # pragma: no cover - defensive; find() cannot miss here
-            continue
-        spans.append((start, start + len(candidate), candidate))
-        pos = start + 1
-    return spans
+    return [text[start:end] for start, end in _balanced_spans(text, char_type)]
 
 
 #: How a parsed candidate ranks *as an answer*, lowest first (clause 5).
@@ -333,6 +481,13 @@ def _answer_rank(data: Any) -> int:
     return _RANK_BARE
 
 
+#: What a candidate that is not usable JSON raises: a syntax error, or a
+#: document nested deeper than the parser's stack allows (``RecursionError``).
+#: The candidate loops skip both, so a reply nesting brackets thousands deep
+#: reads as a reply without that document instead of raising out of the reader.
+_UNPARSED = (json.JSONDecodeError, RecursionError)
+
+
 def _loads_reply(candidate: str) -> Any:
     """``json.loads`` for a model's reply, tolerating raw control characters.
 
@@ -349,6 +504,125 @@ def _loads_reply(candidate: str) -> Any:
     being the report's own ``files_touched`` array.
     """
     return json.loads(candidate, strict=False)
+
+
+#: A markdown code fence.
+_FENCE = "```"
+#: The last character of a fenced block, by the brackets a block may open with:
+#: a closing bracket that nothing but whitespace separates from the fence after
+#: it. A block that may open with either bracket closes on either one.
+_FENCED_BLOCK_ENDS = {
+    "[{": re.compile(r"[\]}](?=\s*```)"),
+    "[": re.compile(r"\](?=\s*```)"),
+}
+#: A run of whitespace, possibly empty, by the same ``\s`` the fence rule uses.
+_WHITESPACE = re.compile(r"\s*")
+
+
+def _fenced_spans(text: str, openers: str = "[{") -> List[Tuple[int, int]]:
+    """``(start, end)`` of every fenced block :func:`extract_json_from_text`
+    tries, in order of position.
+
+    These are the spans of group 1 of ``re.finditer(pattern, text)`` for the
+    pattern below, which is the rule:
+
+        ```(?:json)?\\s*([\\[\\{][\\s\\S]*?[\\]\\}])\\s*```
+
+    * a fence is three backticks anywhere in the text. A block opens at a
+      fence followed by an optional lower-case ``json`` and then any
+      whitespace, if the next character is ``[`` or ``{``. Any other tag
+      (``python``, ``JSON``, ``jsonc``) or a fourth backtick opens nothing, and
+      the next fence is looked for one character on, so a fence that closes
+      another language's block can still open one.
+    * the block is the shortest stretch from that bracket to a ``]`` or ``}``
+      that nothing but whitespace separates from a fence. Brackets are not
+      matched, so a block may hold fences and brackets of its own.
+    * the next block is looked for after that closing fence.
+
+    *openers* is ``"[{"``, or ``"["`` for array blocks only: the same pattern
+    with ``\\[`` and ``\\]`` in place of the two bracket classes
+    (:func:`first_fenced_block`).
+
+    Matching the pattern is quadratic: every opening without a closing bracket
+    after it searches the rest of the text, and model output is not trusted.
+    Here the openings take their closing brackets from one forward pass instead:
+    an opening's block starts after the previous one's, so a closing bracket
+    passed over is never wanted again, and an opening with no closing bracket
+    after it means none of the later ones has one either. The scan is linear in
+    *text*. ``tests/test_json_extractor.py::TestFencedSpansMatchThePattern`` pins
+    it against the pattern.
+    """
+    return list(_iter_fenced_spans(text, openers))
+
+
+def _iter_fenced_spans(text: str, openers: str) -> Iterator[Tuple[int, int]]:
+    """:func:`_fenced_spans`, one span at a time."""
+    fence = text.find(_FENCE)
+    if fence < 0:
+        return
+    opening = tuple(openers)
+    block_ends = _FENCED_BLOCK_ENDS[openers].finditer(text, fence + 4)
+    block_end = -1  # the closing bracket read last; None once there are no more
+    while fence >= 0:
+        start = fence + 3
+        if text.startswith("json", start):
+            start += 4
+        start = _WHITESPACE.match(text, start).end()
+        if not text.startswith(opening, start):
+            fence = text.find(_FENCE, fence + 1)
+            continue
+        while block_end is not None and block_end <= start:
+            found = next(block_ends, None)
+            block_end = None if found is None else found.start()
+        if block_end is None:
+            return
+        yield start, block_end + 1
+        fence = text.find(_FENCE, _WHITESPACE.match(text, block_end + 1).end() + 3)
+
+
+def _require_text(text: Any) -> None:
+    """Raise ``TypeError`` for anything but a string, as the ``re.search`` the
+    two readers below replace did, so their callers' error handling holds."""
+    if not isinstance(text, str):
+        raise TypeError(f"expected a string, got {type(text).__name__}")
+
+
+def first_fenced_block(text: str, openers: str = "[{") -> Optional[str]:
+    """The first fenced block in *text*, or ``None``: what
+    ``re.search(pattern, text).group(1)`` returns for :func:`_fenced_spans`'s
+    fence pattern (with *openers* ``"["``, its array-only form).
+
+    For the readers that take the first fenced block where
+    :func:`extract_json_from_text` ranks them all. The search is quadratic on
+    fences with no closing bracket after them; this stops at the first block
+    the linear scan finds.
+    """
+    _require_text(text)
+    for start, end in _iter_fenced_spans(text, openers):
+        return text[start:end]
+    return None
+
+
+#: The closing bracket of each opening one.
+_CLOSING_BRACKET = {"[": "]", "{": "}"}
+
+
+def first_to_last_bracket(text: str, opener: str) -> Optional[str]:
+    """*text* from its first *opener* (``[`` or ``{``) to the last closing
+    bracket of that kind after it, or ``None`` when no closing one follows.
+
+    This is what the greedy ``re.search(r"\\[[\\s\\S]*\\]", text)``
+    (``\\{[\\s\\S]*\\}`` for ``{``) matched; nothing is balanced. The
+    search is quadratic on openers with no closing bracket after them: each
+    one reads to the end of the text and back. Two string scans find the same
+    span.
+    """
+    _require_text(text)
+    start = text.find(opener)
+    end = text.rfind(_CLOSING_BRACKET[opener])
+    if start < 0 or end < start:
+        return None
+    return text[start:end + 1]
 
 
 def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, Any]:
@@ -368,7 +642,9 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
        structure is still salvageable when the outer one does not parse. Among
        contained candidates an outer one is tried before the pieces inside it,
        so a document that a stray bracket in the prose happens to enclose is
-       still served whole.
+       still served whole. Past the scan's budget on total candidate length
+       (:func:`_balanced_spans`) the most deeply nested candidates are not
+       found at all, so they are never tried.
     2. **Shape before position.** ``prefer_arrays`` still tries every array
        before every object; last-wins applies *within* each group, so a trailing
        illustrative object never displaces a preceding array.
@@ -427,14 +703,11 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
     # finds that same fence body among its candidates (a fence lives inside
     # `text`) and ranks it against everything outside the fences before serving
     # it as a last resort.
-    fence_matches = list(
-        re.finditer(r"```(?:json)?\s*([\[\{][\s\S]*?[\]\}])\s*```", text)
-    )
     fence_fallbacks: Dict[int, Any] = {}
-    for match in reversed(fence_matches):
+    for start, end in reversed(_fenced_spans(text)):
         try:
-            fence_data = _loads_reply(match.group(1))
-        except json.JSONDecodeError:
+            fence_data = _loads_reply(text[start:end])
+        except _UNPARSED:
             continue
         rank = _answer_rank(fence_data)
         if rank == _RANK_ANSWER:
@@ -448,22 +721,23 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
     # Clause 2: shape before position - every array is tried before every
     # object when prefer_arrays is set, and last-wins applies within a group.
     if prefer_arrays:
-        groups = [_candidate_spans(text, "array"), _candidate_spans(text, "object")]
+        groups = [_balanced_spans(text, "array"), _balanced_spans(text, "object")]
     else:
-        groups = [_candidate_spans(text, "both")]
+        groups = [_balanced_spans(text, "both")]
 
     # A candidate sits inside another one iff some earlier-starting candidate
     # ends at or after it — balanced runs nest, they never partially overlap —
     # so one pass over the position-sorted union settles containment across both
-    # groups without comparing every pair.
+    # groups without comparing every pair. Candidates stay offsets into *text*
+    # until one is parsed, so only what is tried is ever copied.
     every_span = sorted(span for group in groups for span in group)
     contained_spans = set()
     furthest_end = -1
-    for start, end, _ in every_span:
-        if end <= furthest_end:
-            contained_spans.add((start, end))
+    for span in every_span:
+        if span[1] <= furthest_end:
+            contained_spans.add(span)
         else:
-            furthest_end = end
+            furthest_end = span[1]
 
     # Clause 1: within each group, every top-level candidate ranks ahead of
     # every contained one; within each tier the LAST by end position ranks
@@ -474,19 +748,19 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
     # `{` in the prose before a document and a `}` after it make the whole
     # document "contained" — ordered by start, its last task object was served
     # instead of the document (fix round 8).
-    candidates: List[Tuple[int, int, str]] = []
+    candidates: List[Tuple[int, int]] = []
     for group in groups:
         for contained in (False, True):
             candidates.extend(
                 span
                 for span in sorted(group, key=lambda s: s[1], reverse=True)
-                if ((span[0], span[1]) in contained_spans) is contained
+                if (span in contained_spans) is contained
             )
 
-    def served(data: Any, span: Tuple[int, int, str]) -> Dict[str, Any]:
+    def served(data: Any, span: Tuple[int, int]) -> Dict[str, Any]:
         result = {"success": True, "data": data}
-        if (span[0], span[1]) in contained_spans:
-            error = _enclosing_document_error(span, every_span)
+        if span in contained_spans:
+            error = _enclosing_document_error(text, span, every_span)
             if error is not None:
                 result["enclosing_syntax_error"] = error
         return _with_only_object(result, text, every_span)
@@ -497,11 +771,11 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
     # highest-ranked array of bare scalars. The last tier is still served rather
     # than dropped — `[1, 2]` really is the only JSON in a reply that holds
     # nothing else — but it can no longer outrank the `[]` a reviewer ended on.
-    fallbacks: Dict[int, Tuple[Any, Tuple[int, int, str]]] = {}
+    fallbacks: Dict[int, Tuple[Any, Tuple[int, int]]] = {}
     for span in candidates:
         try:
-            data = _loads_reply(span[2])
-        except json.JSONDecodeError:
+            data = _loads_reply(text[span[0]:span[1]])
+        except _UNPARSED:
             continue
         rank = _answer_rank(data)
         if rank == _RANK_ANSWER:
@@ -520,7 +794,7 @@ def extract_json_from_text(text: str, prefer_arrays: bool = True) -> Dict[str, A
 
 
 def _only_object(
-    text: str, spans: Optional[List[Tuple[int, int, str]]] = None,
+    text: str, spans: Optional[List[Tuple[int, int]]] = None,
 ) -> Optional[Dict[str, Any]]:
     """The one JSON object *text* holds outside every other document, or
     ``None`` when it holds none or several.
@@ -534,16 +808,16 @@ def _only_object(
     the validation reply's contract does. Never raises.
     """
     try:
-        spans = spans if spans is not None else _candidate_spans(text, "both")
+        spans = spans if spans is not None else _balanced_spans(text, "both")
         outermost: List[Any] = []
         covered = -1
         # Position order: a document starts before anything inside it, so
         # once one parses, every span ending inside it is a piece of it.
-        for start, end, candidate in sorted(spans):
-            if end <= covered or not _DOCUMENT_OPENING.match(candidate):
+        for start, end in sorted(spans):
+            if end <= covered or not _DOCUMENT_OPENING.match(text, start, end):
                 continue
             try:
-                value = _loads_reply(candidate)
+                value = _loads_reply(text[start:end])
             except json.JSONDecodeError:
                 continue
             outermost.append(value)
@@ -556,7 +830,7 @@ def _only_object(
 
 def _with_only_object(
     result: Dict[str, Any], text: str,
-    spans: Optional[List[Tuple[int, int, str]]] = None,
+    spans: Optional[List[Tuple[int, int]]] = None,
 ) -> Dict[str, Any]:
     """*result* with ``only_object`` when it served something other than the
     reply's one object (fix round 28, live run 12 #6: a Codex apply batch's
@@ -589,9 +863,10 @@ _DOCUMENT_OPENING = re.compile(
 
 
 def _enclosing_document_error(
-    span: Tuple[int, int, str], every_span: List[Tuple[int, int, str]]
+    text: str, span: Tuple[int, int], every_span: List[Tuple[int, int]]
 ) -> Optional[Dict[str, Any]]:
-    """Why the document around a served *span* is not JSON, when it is a piece of one.
+    """Why the document around a served *span* of *text* is not JSON, when it is
+    a piece of one.
 
     :func:`extract_json_from_text` salvages an inner structure when the one
     around it does not parse (clause 1). That is the right move for a reader
@@ -607,7 +882,7 @@ def _enclosing_document_error(
 
     Decided from the spans the extractor already found, for the candidate it
     actually served — never by searching the reply again for a value equal to
-    the served one (fix round 8): that search re-ran the quadratic scan, found
+    the served one (fix round 8): that search re-ran the candidate scan, found
     the *last* equal span rather than the served one (a document quoted again
     inside a wrapper later in the reply read as broken), and stopped matching
     once the caller completed the document in place. The enclosing document is
@@ -624,12 +899,13 @@ def _enclosing_document_error(
     spaces). Never raises.
     """
     try:
-        start, end = span[0], span[1]
-        for outer_start, outer_end, outer in every_span:
+        start, end = span
+        for outer_start, outer_end in every_span:
             if outer_start >= start:
                 break  # position order: every encloser starts before the span
-            if outer_end < end or not _DOCUMENT_OPENING.match(outer):
+            if outer_end < end or not _DOCUMENT_OPENING.match(text, outer_start, outer_end):
                 continue
+            outer = text[outer_start:outer_end]
             try:
                 _loads_reply(outer)
             except json.JSONDecodeError as exc:
@@ -785,10 +1061,8 @@ def is_refused_result_envelope(data: Any) -> bool:
     """
     if not isinstance(data, dict):
         return False
-    try:
-        from .providers.result_envelope import envelope_verdict
-    except ImportError:  # the flat import style ``utils/llm_client._redact`` also allows
-        from utils.providers.result_envelope import envelope_verdict
+    # ``result_envelope`` imports this module: a load-time cycle.
+    from .providers.result_envelope import envelope_verdict
     return bool(envelope_verdict(data))
 
 
@@ -810,7 +1084,7 @@ def is_answer_shaped(data: Any) -> bool:
       ``{"error": {"code": 401, …}}`` body parses and holds nothing, so no
       salvage is dispatched and the operator is sent to the provider's auth
       rather than to a JSON repair.
-    * the **persist step** — ``utils/subagent_executor._salvage_gave_up`` — asks
+    * the **persist step** — ``utils/task_result._salvage_gave_up`` — asks
       it of what the salvage subagent came back with: *is what came back an
       answer?* A salvage task's ``output_name`` **is** the model's own result
       file, so a subagent that faithfully "recovered" the relayed error envelope
@@ -912,12 +1186,12 @@ def has_salvageable_json(text: str) -> bool:
     # its children speak, because ``{"data": {"issues": [...]}}`` is a doubly
     # wrapped answer and the outer object is not the one that knows.
     refused_until = -1
-    for start, end, candidate in _candidate_spans(body, "both"):
+    for start, end in _balanced_spans(body, "both"):
         if start < refused_until:
             continue
         try:
-            data = json.loads(candidate)
-        except json.JSONDecodeError:
+            data = json.loads(body[start:end])
+        except _UNPARSED:
             continue
         if is_answer_shaped(data):
             return True
@@ -1045,11 +1319,14 @@ def parse_file_content(content: str, prefer_arrays: bool = True) -> Dict[str, An
             "data": None,
         }
 
-    # Try direct JSON parse first
+    # Try direct JSON parse first. A file nested deeper than the parser's
+    # stack is not usable JSON either (`_UNPARSED`): it falls back to
+    # extraction like any other, instead of raising out of the reader and
+    # ending the slot as an exception.
     try:
         data = json.loads(content)
         return {"success": True, "data": data, "source": "file"}
-    except json.JSONDecodeError:
+    except _UNPARSED:
         pass
 
     # Fall back to extraction (handles code blocks, etc.)

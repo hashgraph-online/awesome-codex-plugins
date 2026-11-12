@@ -1,6 +1,6 @@
 """The commit brief writer: the generated header, its identity, and the restart archive.
 
-A commit review has no plan, so the front doors (``utils/commit_review.py``)
+A commit review has no plan, so the front doors (``utils/commit_front_door.py``)
 write a **commit brief** that stands in for one (plans/review-commits.md
 §2.4). Every reviewer reads the whole brief before it opens a diff, the
 validation round binds it, and a host appends ``## Code Fixes Applied`` below
@@ -33,10 +33,8 @@ is met:
   round into ``restarted-<stamp>/`` and :func:`count_decisions` counts, with
   the readers apply uses, the decisions that will not carry over.
 
-The header's markers and the path layer live in ``utils/commit_review.py``,
-which imports this module; the markers are read from it lazily, so either
-module can be imported first. Every git call goes through
-``git_utils._run_git``.
+The header's markers and the path layer live in ``utils/commit_paths.py``.
+Every git call goes through ``git_utils.run_git``.
 """
 
 from __future__ import annotations
@@ -46,8 +44,6 @@ import hashlib
 import json
 import os
 import re
-import secrets
-import stat as stat_module
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -63,8 +59,23 @@ from .commit_range import (
     pinned_spelling,
     render_window_line,
 )
-from .git_utils import GitError, _run_git, attribute_source_args, git_path
+from .atomic_io import atomic_write_bytes
+from .commit_paths import BRIEF_END_MARKER, BRIEF_MARKER
+from .git_utils import GitError, attribute_source_args, git_path, run_git
 from .text_clip import clip, plain_line
+from .text_fmt import plural as _plural
+from .apply_orchestrator_base import VALID_OVERRIDE_VALUES
+from .judge_vocab import canonical_value
+from .state_manager import load_groups_payload, stamp_stable_ids
+from .report_parser import (
+    load_consolidated_html_selections,
+    load_html_selections,
+    merge_consolidated_selections,
+    parse_consolidated_skipped_groups,
+    parse_consolidated_validation_overrides,
+    parse_skipped_issues,
+    parse_validation_overrides_issues,
+)
 
 PathLike = Union[str, os.PathLike]
 
@@ -99,7 +110,10 @@ TABLE_AUTHOR_CHARS = 40
 
 #: What a restart leaves in ``<slug>/code-review/``: what the run that now owns
 #: the dir uses (§2.4 "What moves").
-RESTART_KEEP: Tuple[str, ...] = (".lock", ".status.lock", ".status.json", "orchestrator-run.log")
+RESTART_KEEP: Tuple[str, ...] = (
+    ".lock", ".status.lock", ".status.json", "orchestrator-run.log",
+    ".views.lock",  # validation.HOST_VIEWS_LOCK_FILENAME: a held views mutex stays put
+)
 
 #: A detach launch's stage file in the phase dir (§2.1): kept by a restart
 #: whatever its launch-unique suffix.
@@ -130,16 +144,8 @@ _MESSAGE_FORMAT = "%H%n%an%n%B"
 
 
 def _markers() -> Tuple[str, str]:
-    """``(BRIEF_MARKER, BRIEF_END_MARKER)`` from the path layer, read at call
-    time: ``commit_review`` imports this module, so a module-level import
-    here would make the two depend on their import order."""
-    from .commit_review import BRIEF_END_MARKER, BRIEF_MARKER
-
+    """``(BRIEF_MARKER, BRIEF_END_MARKER)``, the path layer's markers."""
     return BRIEF_MARKER, BRIEF_END_MARKER
-
-
-def _plural(count: int, singular: str, plural: Optional[str] = None) -> str:
-    return f"{count} {singular if count == 1 else (plural or singular + 's')}"
 
 
 def _break_openers(text: str) -> str:
@@ -213,7 +219,7 @@ def _read_messages(cr: CommitRange, listed: Sequence[Commit], cwd: str) -> Dict[
     if not listed:
         return {}
     spec = f"{cr.base}..{cr.head}" if cr.base is not None else cr.head
-    stdout, stderr, rc = _run_git(
+    stdout, stderr, rc = run_git(
         "log", "-z", "--first-parent", f"--max-count={len(listed)}",
         f"--format={_MESSAGE_FORMAT}", spec, "--", check=False, cwd=cwd,
     )
@@ -230,7 +236,7 @@ def _read_messages(cr: CommitRange, listed: Sequence[Commit], cwd: str) -> Dict[
     for commit in listed:
         if commit.sha in found:
             continue
-        stdout, stderr, rc = _run_git("show", "-s", "--format=%an%x00%B", commit.sha, "--",
+        stdout, stderr, rc = run_git("show", "-s", "--format=%an%x00%B", commit.sha, "--",
                                       check=False, cwd=cwd)
         if rc != 0:
             raise GitError(f"git show -s {commit.sha[:12]} failed: {stderr.strip()}")
@@ -242,7 +248,7 @@ def _read_messages(cr: CommitRange, listed: Sequence[Commit], cwd: str) -> Dict[
 def _read_stat(cr: CommitRange, cwd: str) -> Tuple[List[str], Optional[str]]:
     """``git diff --stat <diff_base> <head>`` as (per-file lines, summary
     line or None). The summary is git's last line ("N files changed, …")."""
-    stdout, stderr, rc = _run_git(*attribute_source_args(cr.head), "diff", "--stat", "--no-color",
+    stdout, stderr, rc = run_git(*attribute_source_args(cr.head), "diff", "--stat", "--no-color",
                                   diff_base(cr, cwd=cwd), cr.head, "--", check=False, cwd=cwd)
     if rc != 0:
         raise GitError(f"git diff --stat failed: {stderr.strip()}")
@@ -515,26 +521,10 @@ def split_brief(text: str) -> Tuple[Optional[str], str]:
 
 
 def _atomic_write_bytes(path: Path, data: bytes) -> None:
-    """A temp file beside *path* (created exclusively, so the umask applies),
-    ``fsync``, then ``os.replace``: a reader sees the old file or the new
-    one, never half of either. An existing file's mode is kept."""
-    temporary = path.parent / f".{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp"
-    try:
-        with open(temporary, "xb") as handle:
-            handle.write(data)
-            handle.flush()
-            os.fsync(handle.fileno())
-        try:
-            os.chmod(temporary, stat_module.S_IMODE(os.stat(path).st_mode))
-        except OSError:
-            pass
-        os.replace(temporary, path)
-    except BaseException:
-        try:
-            os.unlink(temporary)
-        except OSError:
-            pass
-        raise
+    """``atomic_io``'s atomic write: a reader sees the old file or the new
+    one, never half of either. An existing file's mode is kept; a new file
+    gets the umask's."""
+    atomic_write_bytes(path, data)
 
 
 def write_brief(path: PathLike, header: str, *, exclusive: bool = False) -> None:
@@ -661,8 +651,6 @@ def _keys(value: object) -> int:
 def _honoured(overrides: object) -> int:
     """How many override values apply would honour (``VALID_OVERRIDE_VALUES``
     after the legacy judge spelling is upgraded)."""
-    from .apply_orchestrator_base import VALID_OVERRIDE_VALUES
-    from .judge_vocab import canonical_value
 
     if not isinstance(overrides, dict):
         return 0
@@ -674,14 +662,13 @@ def _report_edits(phase: Path, report: Path) -> int:
     them: each ``### N.`` description against the grouped finding it names
     (``find_edited_issue_descriptions`` with ``build_issue_to_group_map``).
     0 without a readable ``grouped.json`` to compare with."""
-    from .state_manager import load_groups_payload, stamp_stable_ids
 
     try:
         groups = load_groups_payload(json.loads((phase / "grouped.json").read_text(encoding="utf-8")))
     except (OSError, ValueError):
         return 0
-    # The readers live with apply-code-fixes' orchestrator (a top-level
-    # module, imported lazily as utils/improve_workflow.py imports its phases).
+    # The readers live with apply-code-fixes' orchestrator, which imports this
+    # module through the commit front door: a load-time cycle.
     import apply_code_fixes_orchestrator as acf
 
     stamp_stable_ids(groups)
@@ -707,15 +694,6 @@ def count_decisions(phase_dir: PathLike) -> DecisionCounts:
     groups, because the restart carries none of them over either way.
     Read-only.
     """
-    from .report_parser import (
-        load_consolidated_html_selections,
-        load_html_selections,
-        merge_consolidated_selections,
-        parse_consolidated_skipped_groups,
-        parse_consolidated_validation_overrides,
-        parse_skipped_issues,
-        parse_validation_overrides_issues,
-    )
 
     phase = Path(phase_dir)
     counts = DecisionCounts()

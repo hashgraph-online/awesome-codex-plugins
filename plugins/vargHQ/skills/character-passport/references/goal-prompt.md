@@ -60,4 +60,4 @@ https://github.com/vargHQ/skills/tree/main/character-passport (references/ has t
    shaking) against over-acting.
 ````
 
-Why this order and what the test showed: https://claude.ai/artifact/AJ1g4Qren3ZvwERSwrQigt
+Why this order and what the test showed: https://varg.ai/how-to/design-characters-and-props-for-ai-video

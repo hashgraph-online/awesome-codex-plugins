@@ -54,14 +54,12 @@ hosts:
     # defensive: Claude Code persists a Bash result over ~30 000 characters to a
     # file and returns a ~2.2 KB stub holding the output's *first 2 KB*, and seven
     # of the eleven cores are over that cap — so the read step this shim exists to
-    # name silently delivers a fragment. Run 20260922T191142Z has one row that took
+    # name silently delivered a fragment. Run 20260922T191142Z has one row that took
     # the fragment for the whole, never spawned a subagent, and reported four
-    # batches applied with zero edits made. The excess is not workflow prose (the
-    # core is host-neutral and cannot name `<persisted-output>` or `Read`), not a
-    # capability value (this file is never on an agent read path), and not shared
-    # boilerplate (no other host truncates), so it belongs in this host's own shim.
-    # `util instructions` carries the host-neutral half: a head banner naming the
-    # sentinel the core ends with, which survives because the stub keeps the head.
+    # batches applied with zero edits made. Step 4 now reads the core through
+    # `util instructions <mode> --to-file` and a `Read` of the file it names
+    # (docs/development/hosts.md, "The read step comes in three forms"); the printed
+    # form keeps its head banner for the hosts and fallbacks that still use it.
     shim_max_lines: 120
     installable: false
     install_paths:
@@ -311,6 +309,16 @@ hosts:
     max_concurrent_subagents: 4
     timeout_ceiling_s: 0             # 0 = no documented cap on `codex exec`
     timeout_override: {frontmatter: none, env: unknown, config: unknown}
+    # Shell output budget, read off codex-cli 0.167.0 (2026-11-08); a comment,
+    # not a field, because no dispatch decision reads it. Every model in its
+    # catalog carries `truncation_policy: {mode: tokens, limit: 10000}`, and both
+    # shell tools (`exec_command`, code mode's `exec`) document `max_output_tokens`
+    # as "Defaults to 10000 tokens", a budget the model may lower per call (the
+    # `exec` tool's own example passes 1000). Over budget, codex keeps the head
+    # and the tail, drops the middle (`…N tokens truncated…`) and counts about 4
+    # bytes a token, so the file shim reads the core with `util instructions
+    # --page` (multi_llm.CORE_PAGE_SIZE_DEFAULT; docs/development/hosts.md,
+    # "Paged delivery").
     # A second install route — the Codex plugin marketplace — NOT a second host,
     # for the same reason as opencode's block below: every harness property above
     # is the same however the skill got installed. What the plugin adds is a
@@ -504,7 +512,7 @@ hosts:
     package:
       registry: npm
       name: opencode-multi-llm
-      version: "0.1.6"
+      version: "0.1.8"
       public_version: "0.1.4"
       config_key: plugin
       provides: [command, tool]

@@ -104,21 +104,36 @@ Writing SQL is one part of analytics engineering. Your agent also needs to:
 Dex gives the agent a repeatable explore, transform, maintain loop, with
 guardrails enforced in the engine.
 
-## Try it in three commands
+## Quickstart
 
-No existing database, no credentials, no cloud account, and no network once the
-package is installed.
+### Initialize
+If you want to use the python package `exmergo-dex-core`:
+
+1. Install it with `uv`, with the extras you need (i.e. DuckDB)
+```bash 
+uv tool install "exmergo-dex-core[duckdb]"
+```
+2. Initialize a Dex project (creatively called "analytics")
+```bash 
+dex init analytics
+```
+
+### Demo
+
+Try Dex in a demo experience with no existing database, no credentials, 
+no cloud account, and no network once the package is installed:
 
 ```bash
-pip install "exmergo-dex-core[duckdb]"
-dex demo
+uv tool install "exmergo-dex-core[duckdb]"
+dex init analytics --mode demo
 dex explore map
 ```
 
-`dex demo` writes a small e-commerce DuckDB database (`dex_demo.duckdb`, 7 tables,
-29,512 rows) and a `.dex/config.yml` into the current directory, so every command
-after it runs with no flags. It refuses rather than overwrite anything. The data
-comes from a pinned seed, so what you see is what is written here.
+`dex init analytics --mode demo` creates the e-commerce DuckDB warehouse
+(`dex_demo.duckdb`, 7 tables, 29,512 rows), a dbt project under `analytics/`,
+repository-level Dex configuration, and onboarding documentation. Reruns preserve
+authored files. The lower-level `dex demo` command remains available for creating
+just the warehouse and config. The data comes from a pinned seed.
 
 `explore map` maps all 7 tables, infers 5 joins, flags 6 columns as personal data,
 and reports 6 data-quality findings. Every command answers with one JSON envelope.
@@ -135,10 +150,10 @@ An excerpt, for one table:
 }
 ```
 
-### It is broken on purpose
+### The demo is broken (on purpose!)
 
-A first run that reports a clean bill of health teaches you nothing, so the demo
-ships with real defects. Dig into them:
+A first run that reports a clean bill of health doesn't teach us much, 
+so the demo ships with real defects. Dig into them:
 
 ```bash
 dex explore profile order_items products
@@ -252,10 +267,11 @@ in `.dex/config.yml`; Ossie, SLayer, and Cube need no dbt project.
 | --- | :---: | :---: | --- | --- | --- |
 | <img src="https://www.exmergo.com/connectors/ossie.png" width="20" height="20" alt=""> **[Apache Ossie](https://github.com/apache/ossie)** (incubating) | ❌ | ❌ | `ossie` / `local` | Native documents in the repository, no dbt or MetricFlow in the path | [Docs](https://docs.exmergo.com/dex/semantic-layers/ossie) |
 | <img src="https://www.exmergo.com/connectors/dbt.png" width="20" height="20" alt=""> **[dbt](https://github.com/dbt-labs/dbt-core)** | ✅ | ✅ | `dbt` / `local` or `dbt_cloud` | MetricFlow locally, run through the Dex connector and its cost guard, or the hosted dbt Cloud Semantic Layer API | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#choosing-a-backend-ambient-like-a-connector) |
-| <img src="assets/cube-logo.png" width="20" height="20" alt=""> **[Cube](https://github.com/cube-js/cube)** | ❌ | ✅ | `cube` / `local` | Plain YAML model files, read statically with no Node or Cube server; querying asks a running Cube server to render, Dex runs it under the cost guard | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#cube-models-vendor-cube) |
+| <img src="https://www.exmergo.com/connectors/databricks.png" width="20" height="20" alt=""> **[Databricks Metric Views](https://docs.databricks.com/aws/en/metric-views/)** | ❌ | ❌ | `databricks` / `local` | Metric View YAML files in the repository, read and authored statically with no workspace connection; nothing is deployed, and querying is not yet supported | [Docs](https://github.com/exmergo/dex/tree/main/packages/dex-core#semantic-layers) |
 | <img src="assets/motley-logo.jpeg" width="20" height="20" alt=""> **[SLayer](https://github.com/MotleyAI/slayer)** (by Motley) | ❌ | ✅ | `slayer` / `local` | SLayer model files, validated by one pinned release; SLayer renders, Dex runs it under the cost guard | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#slayer-models-vendor-slayer) |
+| <img src="assets/cube-logo.png" width="20" height="20" alt=""> **[Cube](https://github.com/cube-js/cube)** | ❌ | ✅ | `cube` / `local` | Plain YAML model files, read statically with no Node or Cube server; querying asks a running Cube server to render, Dex runs it under the cost guard | [Docs](https://docs.exmergo.com/dex/semantic-layers/overview#cube-models-vendor-cube) |
 
-**Coming next:** hosted Cube, hosted SLayer, Snowflake Semantic Views, Looker / LookML, and Databricks Metric Views.
+**Coming next:** hosted Cube, hosted SLayer, Snowflake Semantic Views and Looker / LookML.
 
 ## See it on a real project
 
@@ -410,6 +426,16 @@ Join the agent-native data/analytics community!
 - 🔗 [Follow Us on LinkedIn](https://www.linkedin.com/company/exmergo/)
 - 🐦 [Follow Us on X](https://x.com/exmergo)
 - 🔨 [Follow Us on GitHub](https://github.com/exmergo/)
+
+## Feedback and bug reports
+
+Found something wrong, or something Dex should do? Open an issue: bug reports and
+ideas are welcome, including ones your agent drafts for you. Run `dex feedback`
+for the environment to paste and links that prefill the
+[bug report](https://github.com/exmergo/dex/issues/new?template=bug_report.yml)
+and [feature request](https://github.com/exmergo/dex/issues/new?template=feature_request.yml)
+forms; nothing is sent. Security problems go to [SECURITY.md](SECURITY.md), never
+a public issue. More in [SUPPORT.md](SUPPORT.md).
 
 ## Contributing
 

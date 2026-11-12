@@ -9,6 +9,14 @@ make the cut (a 36-minute agent film cost $200+, and "none of the video model cl
 https://x.com/LLMJunky/status/2106411941497389342). Each step below writes one file, and the person approves it
 before the next step starts.
 
+The short way: paste the one line below and the agent reads the route itself (https://varg.ai/how-to/make-a-video-in-ten-steps.md, ten guides and ten skills, kept current). Use the long prompt under it when the agent cannot reach the web or you want every step spelled out in the chat.
+
+```text
+Make my video in ten steps. Read https://varg.ai/how-to/make-a-video-in-ten-steps.md and follow it: one step at a time, stop for my yes at every STOP, and tell me the cost before anything paid.
+
+The video: [what it is, who it is for, how long, where it will be shown]
+```
+
 ---
 
 ```text

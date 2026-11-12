@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | ~$0.05 per test still; the board itself is free |
 | Uses | Python, Pillow, varg API, Nano Banana 2.1, Seedream 5 Pro |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.0) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.1) |
 
 ## Ask your agent
 

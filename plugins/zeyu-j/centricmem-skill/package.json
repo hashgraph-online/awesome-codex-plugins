@@ -1,6 +1,6 @@
 {
   "name": "centricmem-skill",
-  "version": "1.0.43",
+  "version": "1.0.48",
   "private": true,
   "scripts": {
     "check:kiro": "node tools/check-kiro-docs.mjs",

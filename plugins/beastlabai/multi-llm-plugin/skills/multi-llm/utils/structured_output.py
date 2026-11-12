@@ -1,14 +1,14 @@
-"""Native structured output — the policy half (§4.2, §4.2.1, §4.2.2).
+"""Native structured output — the policy half.
 
 The adapters own the *argv* (``schema=`` on the four builders, plus
 ``structured_output_support``); this module owns everything else, because
-§4.2.1 puts the decision in the **caller**: ``parse_output`` keeps its
+ puts the decision in the **caller**: ``parse_output`` keeps its
 stdout-only signature and never learns about schemas, and no adapter can
 therefore silently upgrade prose to validated output.
 
 Four things live here:
 
-1. **The phase → schema-file table** (:data:`PHASE_SCHEMA_FILE`) §4.2.1 says
+1. **The phase → schema-file table** (:data:`PHASE_SCHEMA_FILE`) says
    lives beside the phase definitions, closed over every phase ``modes.py``
    declares. A phase either names a file under ``skills/multi-llm/schemas/`` or
    is explicitly ``None``; there is no third state and no inline schema at a
@@ -19,8 +19,8 @@ Four things live here:
    caller writes one temp file per invocation and removes the directory in a
    ``finally`` that covers timeout, kill-path teardown and exception alike.
    Adapters are module-level singletons shared across a concurrent fan-out, so
-   they may not hold this state (the same constraint that sank §4.1's T9).
-4. **The failure policy** (:func:`classify_attempt`) — §4.2.1's five branches,
+   they may not hold this state (the same constraint that sank the T9).
+4. **The failure policy** (:func:`classify_attempt`) — the five branches,
    with the one rule that makes the item worth shipping stated as a rule:
    *no combination of exit 0, ``subtype: success`` and ``is_error: false`` is by
    itself a success for a schema-carrying phase.*
@@ -52,6 +52,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 from .json_extractor import extract_json_from_text
+from .process_state import process_cache
 from .providers.base import (
     MAX_STRUCTURED_OUTPUT_RETRIES,
     STRUCTURED_OUTPUT_RETRY_ENV,
@@ -82,7 +83,7 @@ __all__ = [
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# The retry budget (§4.2.1), pinned in the child env rather than left to the CLI
+# The retry budget, pinned in the child env rather than left to the CLI
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ``MAX_STRUCTURED_OUTPUT_RETRIES`` and ``STRUCTURED_OUTPUT_RETRY_ENV`` are
@@ -90,13 +91,13 @@ __all__ = [
 # ``__all__``: an adapter's ``get_env`` is what emits the variable and cannot
 # import this module (the reverse edge would be a cycle through
 # ``utils.providers.__init__``), so there is one definition and two readers.
-# §4.2.1's rationale ("2× a normal call") is an upper bound that is never
+# The rationale ("2× a normal call") is an upper bound that is never
 # reached: the measured meaning of ``=1`` is one attempt total, so the pin is
 # cheaper than the section assumed, not more expensive.
 
 
 def structured_output_env() -> Dict[str, str]:
-    """The child env pin (§4.2.1). One place, so both lanes agree."""
+    """The child env pin. One place, so both lanes agree."""
     return {STRUCTURED_OUTPUT_RETRY_ENV: str(MAX_STRUCTURED_OUTPUT_RETRIES)}
 
 
@@ -110,15 +111,15 @@ MARKER_NATIVE = "native"
 #: schema file**, with one WARN naming the phase and model.
 MARKER_RECOVERED = "recovered"
 #: No schema was in play at all (an adapter without ``structured_output_support``,
-#: a declined §5.4.1 gate, or a phase with no schema file): the prompt-level path
+#: a declined gate, or a phase with no schema file): the prompt-level path
 #: ran and nothing validated it. Never confused with ``recovered``.
 MARKER_UNVALIDATED = "unvalidated"
 
-#: Handed to the existing retry ladder (§7.1) like any other parse failure.
+#: Handed to the existing retry ladder like any other parse failure.
 FAILURE_SCHEMA_VIOLATION = "schema_violation"
 #: A schema this run can never satisfy — never retried and never billed.
 FAILURE_CONFIG_ERROR = "config_error"
-#: §4.2.1 case 5: a timeout is a timeout, never a schema violation.
+#:  case 5: a timeout is a timeout, never a schema violation.
 FAILURE_TIMEOUT = "timeout"
 
 
@@ -127,7 +128,7 @@ class SchemaConfigError(Exception):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# §4.2.2's phase → schema-file table
+# The phase → schema-file table
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Closed over every phase ``modes.py`` declares, plus the two sub-phases that
@@ -137,17 +138,16 @@ class SchemaConfigError(Exception):
 #: rather than a document) are explicitly out of scope, because attaching a
 #: schema there would convert a legitimate prose answer into a failure.
 #:
-#: ``review-plan`` and ``review-tasks`` were §4.2.2's honest gap — "no file
+#: ``review-plan`` and ``review-tasks`` were the honest gap — "no file
 #: today". They now share ``review_suggestions.schema.json``, transcribed
 #: verbatim from the two shipped prompt contracts (which are byte-identical in
 #: field set, enum values and the "exactly these fields" rule). One file, not
 #: two, because it is one document; two copies would be free to drift.
-#: Both reviewer schemas carry the optional scope fields untyped
-#: (plans/scope-policy-and-report-tags.md §3), so a recovered document is never
+#: Both reviewer schemas carry the optional scope fields untyped, so a recovered document is never
 #: refused for a missing or malformed scope tag; normalization reads it
 #: ``unclear``. They stay array-rooted, so no native transport carries them.
 PHASE_SCHEMA_FILE: Dict[str, Optional[str]] = {
-    # ---- the five JSON-document phases §4.2.1 names ------------------------
+    # ---- the five JSON-document phases names ------------------------
     "review-plan": "review_suggestions.schema.json",
     "review-tasks": "review_suggestions.schema.json",
     "code-review": "code_review_issues.schema.json",
@@ -155,7 +155,7 @@ PHASE_SCHEMA_FILE: Dict[str, Optional[str]] = {
     "consolidation": "consolidation_batch.schema.json",
     # ---- adjacent documents that are already validated on write -----------
     "task-decomposition": "task_decomposition.schema.json",
-    # ---- explicitly out of scope (§4.2.1, "Affected phases") --------------
+    # ---- explicitly out of scope --------------
     "ask": None,
     "implement": None,
     "apply-suggestions": None,
@@ -165,7 +165,7 @@ PHASE_SCHEMA_FILE: Dict[str, Optional[str]] = {
     "full": None,
     "improve-plan": None,
     "improve-code": None,
-    # The commit composite's run dir (plans/review-commits.md §2.8). The two
+    # The commit composite's run dir. The two
     # commit front doors own no phase of their own: they run `code-review`
     # and `apply-code-fixes`, which have their rows above.
     "improve-commits": None,
@@ -180,7 +180,7 @@ def load_phase_schema(
     ``None`` means the phase is deliberately on the prompt-level path. A phase
     that names a file whose contents cannot be read is a **configuration error**
     naming the file — never a silently dropped flag, because the same file is
-    the source for §4.2.1 case 2's validation and a run that quietly lost it
+    the source for case 2's validation and a run that quietly lost it
     would validate nothing while reporting ``recovered``.
     """
     name = PHASE_SCHEMA_FILE.get(phase)
@@ -415,8 +415,8 @@ def native_transport_error(
     """Why ``provider`` cannot carry ``schema`` natively, or ``None``.
 
     **Not an invented restriction and not a second schema.** Both rules below
-    were measured, and both resolve the way a declined §5.4.1 gate does: the flag
-    is dropped, the phase runs its prompt-level JSON path, and §4.2.1's recovery
+    were measured, and both resolve the way a declined gate does: the flag
+    is dropped, the phase runs its prompt-level JSON path, and the recovery
     branch marks the result ``recovered``/``unvalidated`` — never ``native``.
     Emitting a flag the CLI will reject is the one outcome neither posture may
     produce.
@@ -460,7 +460,7 @@ def native_transport_error(
 
 
 #: One WARN per (provider, phase) per process, not one per dispatch.
-_DECLINED: set = set()
+_DECLINED: set = process_cache("utils.structured_output._DECLINED", set)
 
 
 def reset_declined_cache() -> None:
@@ -473,10 +473,10 @@ def schema_for_dispatch(
 ) -> Tuple[Optional[StructuredSchema], str]:
     """``(schema_or_None, marker_when_no_schema)`` — the pre-dispatch read.
 
-    §4.2.2: *the caller reads the flag before dispatch.* ``False`` (or a schema
+    *the caller reads the flag before dispatch.* ``False`` (or a schema
     this CLI cannot carry, or a phase with no schema file) means the phase runs
     its prompt-level JSON path and the result is marked ``recovered`` /
-    ``unvalidated`` per §4.2.1 — never ``native``.
+    ``unvalidated`` — never ``native``.
     """
     schema = load_phase_schema(phase)
     if schema is None:
@@ -486,8 +486,7 @@ def schema_for_dispatch(
         return schema, MARKER_NATIVE
     key = (provider.name, phase)
     # An adapter that declares no structured output at all is not warned
-    # about (run 6, #11c: "opencode declares no structured_output_support"
-    # opened every generate-tasks log): nothing was declined, it always takes
+    # about: nothing was declined, it always takes
     # the prompt-level path, and the result's `recovered` marker says so. A
     # schema an adapter that does carry one cannot take is a fact about the
     # schema someone can change, and keeps its WARN.
@@ -514,7 +513,7 @@ def schema_sidecar(schema: StructuredSchema) -> Iterator[StructuredSchema]:
     """One ``mkdtemp`` per invocation carrying ``schema``, removed on the way out.
 
     The directory is removed in a ``finally`` so it is cleaned up on timeout, on
-    kill-path teardown and on exception alike (§4.2.1 case 5). A temp dir that
+    kill-path teardown and on exception alike. A temp dir that
     cannot be created or written fails the attempt **before** spawn rather than
     silently dropping the flag.
     """
@@ -537,7 +536,7 @@ def schema_sidecar(schema: StructuredSchema) -> Iterator[StructuredSchema]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# §4.2.1 — the failure policy
+# The failure policy
 # ─────────────────────────────────────────────────────────────────────────────
 
 @dataclass
@@ -572,7 +571,7 @@ _MAX_RETRIES_SUBTYPE = "error_max_structured_output_retries"
 
 
 def _envelope(stdout: str) -> Optional[Dict[str, Any]]:
-    """The result envelope, from stdout only (§4.2.1, "Parser inputs")."""
+    """The result envelope, from stdout only."""
     text = (stdout or "").strip()
     if text.startswith("{"):
         try:
@@ -623,7 +622,7 @@ def classify_attempt(
     native_document: Any = None,
     normalize: Optional[Callable[[Any], Any]] = None,
 ) -> StructuredResult:
-    """§4.2.1's decision, applied to one attempt's captured streams.
+    """The decision, applied to one attempt's captured streams.
 
     Ordered deliberately: a timeout is classified before anything reads the
     streams (case 5), and a configuration error before anything reads the
@@ -636,7 +635,7 @@ def classify_attempt(
     exists. It is validated here exactly like the key, so it can only ever
     become ``native`` by conforming. Before it existed every codex
     task generation was marked ``recovered`` under a WARN, although codex had
-    carried the schema and answered in it (2026-10-05).
+    carried the schema and answered in it.
 
     ``normalize`` is the caller's completion of a document (the executor's
     ``normalize_result``: ``[]``/``null`` for the keys that mean the same thing
@@ -644,7 +643,7 @@ def classify_attempt(
     validated, exactly as the lane completes its own parse before validating.
     Without it a codex answer that left out the required-but-nullable
     ``subagent_type`` was reported "present but did not validate" and then
-    accepted by the lane as ``recovered`` (fix round 8).
+    accepted by the lane as ``recovered``.
     """
     if timed_out:
         return StructuredResult(
@@ -669,7 +668,7 @@ def classify_attempt(
 
     envelope = _envelope(stdout)
 
-    # Case 3 of §4.2.1's numbering: the CLI spent its own budget.
+    # Case 3 of the numbering: the CLI spent its own budget.
     if envelope is not None and envelope.get("subtype") == _MAX_RETRIES_SUBTYPE:
         return StructuredResult(
             failure_reason=FAILURE_SCHEMA_VIOLATION,

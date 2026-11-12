@@ -5,16 +5,20 @@ import json
 import logging
 import os
 import re
-import shutil
-import tempfile
 import unicodedata
+import warnings
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
-from .git_utils import get_branch_name, head_or_empty_tree
+from .clock import parse_local
+from .git_utils import GitError, get_branch_name, get_project_root_from_dir, head_or_empty_tree
 from .judge_vocab import upgrade_legacy
 from .schema_validator import validate_state_file
+from . import state_file as _state_file
+from . import task_ledger as _task_ledger
+from .unattended import NeedsHuman
+from .output_handler import get_output_dir
 
 logger = logging.getLogger(__name__)
 
@@ -25,24 +29,72 @@ CURRENT_FORMAT_VERSION = 2
 #: The phases that judge implement's output. A completion of one of them that
 #: predates implement's latest completion reviewed (or fixed) an earlier
 #: state of the code: typically the empty repository a review was run against
-#: before implement existed, or code implement has since rewritten
-#: (2026-10-02, Codex racing run: a plain `--review-code` was refused as
-#: already done, and implement's next step pointed at `--apply-code-fixes` on
-#: that stale review).
+#: before implement existed, or code implement has since rewritten.
 PHASES_STALED_BY_IMPLEMENT = ("code-review", "apply-code-fixes")
 
 
 def _parse_completion_time(value) -> Optional[datetime]:
-    """A ``phases_completed`` timestamp as a naive local datetime, or None."""
+    """An ISO timestamp as a naive local datetime, or None.
+
+    The one reading of a stamp, whatever wrote it: ``state.json``'s phase
+    and metrics stamps, a write report's ``written_at``, an audit record, a
+    snapshot manifest. A stamp with a UTC offset is converted to local time,
+    so it compares with a naive local one as the same instant.
+    """
     if not isinstance(value, str) or not value:
         return None
     try:
-        parsed = datetime.fromisoformat(value)
+        return parse_local(value)
     except ValueError:
         return None
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone().replace(tzinfo=None)
-    return parsed
+
+
+def predates_review(
+    stamped: Optional[datetime], reviewed_at: Optional[datetime], *,
+    whole_seconds: bool = False, undated_predates: bool = False,
+) -> bool:
+    """Whether a record dated *stamped* belongs to an earlier review cycle.
+
+    The review-cycle rule: a record older than the review's latest
+    completion (*reviewed_at*) is an earlier cycle's. Strictly older, so a
+    record stamped at the completion's instant is this cycle's. A missing
+    date on either side keeps the record: absence of a date is not
+    staleness. Both datetimes are naive local times, as
+    :func:`_parse_completion_time` reads them.
+
+    *whole_seconds* is for records stamped to the second (the audit log, a
+    pre-batch snapshot's manifest): the completion is truncated to its
+    second first, so a record in the review's own second is this cycle's.
+
+    *undated_predates* reads a record with no date as an earlier cycle's
+    when the review has one. Only a pre-batch snapshot takes it
+    (``write_safety.TaskSnapshot.taken_before``): the manifests without a
+    date predate the field, and a rollback point of unknown age is set
+    aside rather than trusted. See docs/development/write-scheduler.md.
+    """
+    if reviewed_at is None:
+        return False
+    if stamped is None:
+        return undated_predates
+    if whole_seconds:
+        reviewed_at = reviewed_at.replace(microsecond=0)
+    return stamped < reviewed_at
+
+
+def stamp_or_mtime(value: Any, path: Any) -> Optional[datetime]:
+    """*value* read as a stamp, else *path*'s modification time, else None.
+
+    How a file that carries its own date is dated (``write_batch_report.json``
+    and its ``written_at``): the stamp when it parses, the file's mtime when
+    the stamp is missing or unreadable.
+    """
+    parsed = _parse_completion_time(value)
+    if parsed is not None:
+        return parsed
+    try:
+        return datetime.fromtimestamp(os.stat(path).st_mtime)
+    except OSError:
+        return None
 
 
 def mark_phase_started_in_state(state: Dict[str, Any], phase: str) -> None:
@@ -91,7 +143,7 @@ def mark_phase_completed_in_state(state: Dict[str, Any], phase: str) -> None:
 def _pop_phase_started(state: Dict[str, Any], phase: str) -> None:
     """Drop *phase*'s started record, and the map once it is empty.
 
-    Fix round 18 (run 7 #9): a run that recorded a phase started and then
+    A run that recorded a phase started and then
     completed it left ``phases_started: {}`` behind, so a plain first
     implement on the executor leg wrote a key that says nothing.
     """
@@ -106,11 +158,9 @@ def _pop_phase_started(state: Dict[str, Any], phase: str) -> None:
 #: (``implement_orchestrator`` writes it; ``retry`` is never recorded).
 HUMAN_TASK_DECISIONS_KEY = "human_task_decisions"
 
-#: Twins of ``write_batch_scheduler.ACCEPTED_REASON_PREFIX`` and
-#: ``COMPLETED_MANUAL_REASON``: the reasons a ``done`` answer writes. Restated
-#: here so this low-level module imports nothing from the scheduler.
-_ACCEPTED_REASON_PREFIX = "accepted — "
-_COMPLETED_MANUAL_REASON = "answered --human-task <id>=done"
+#: The reasons a ``done`` answer writes (``task_ledger``'s words).
+_ACCEPTED_REASON_PREFIX = _task_ledger.ACCEPTED_REASON_PREFIX
+_COMPLETED_MANUAL_REASON = _task_ledger.COMPLETED_MANUAL_REASON
 
 
 def _answer_produced(action: str, status: str, reason: Optional[str]) -> bool:
@@ -132,7 +182,7 @@ def _consume_answer(
 ) -> None:
     """Drop *task_id*'s recorded ``--human-task`` answer once its task moved on.
 
-    An answer answers one stop (fix round 15, review of round 14): it is
+    An answer answers one stop: it is
     applied when the run that recorded it resolves its plan, and the status
     it writes keeps it (an accepted ``completed``, an answered ``skipped``).
     Any other status written for the task afterwards — it ran again (a
@@ -184,7 +234,7 @@ def update_task_status_in_state(
         # A reason describes the status it was written with: a status written
         # without one drops it. A task accepted after failing (`accepted —`)
         # and later run to completion kept the old reason, and a resume read
-        # it back as an accepted failure (fix round 9).
+        # it back as an accepted failure.
         state["task_status_reasons"].pop(task_id, None)
 
 
@@ -197,8 +247,8 @@ TASK_CHECK_FINDINGS_KEY = "task_check_findings"
 #: (:meth:`StateManager.record_task_titles`). A ``--resume`` materializes only
 #: the unfinished tasks, so a walk over ``write_tasks.json`` alone lost every
 #: edge through a finished one: a check's findings held back T004 but not
-#: T006, whose chain to the check ran through a manual task answered done
-#: (fix round 12). ``write_batch_scheduler.decomposition_graph`` reads it.
+#: T006, whose chain to the check ran through a manual task answered done.
+#: ``check_records.decomposition_graph`` reads it.
 IMPLEMENT_TASK_GRAPH_KEY = "implement_task_depends_on"
 
 
@@ -212,7 +262,7 @@ def manual_task_gates(
 ) -> Dict[str, Any]:
     """Which owed manual tasks the user can do now, and what waits on them.
 
-    Fix round 28 (live run 12, Codex racing 06): T010, a manual task every
+    T010, a manual task every
     code task depended on, was deferred under ``--yes``; implement ran
     nothing, reported done, said "No later phase waits for these manual
     tasks" and offered a command recording T008, T009 and T010 done at once,
@@ -330,6 +380,49 @@ def manual_task_gates(
     }
 
 
+def _set_task_entry(
+    state: Dict[str, Any], key: str, task_id: str, value: Any,
+) -> None:
+    """Set *task_id*'s entry of the per-task map *key* to *value*, or drop
+    the entry when *value* is empty; the key is dropped when the map empties.
+
+    The one body of the ``set_task_*_in_state`` map writers: each normalizes
+    its value and calls this. The map is replaced by a fresh copy, never
+    edited in place; a recorded *key* that is not a map counts as an empty
+    one. These writers edit a raw dict and journal nothing: their writes go
+    with the journaled record of the same task
+    (docs/development/write-scheduler.md, "How a save knows its own changes").
+    """
+    recorded = state.get(key)
+    current = dict(recorded) if isinstance(recorded, dict) else {}
+    if value:
+        current[str(task_id)] = value
+    else:
+        current.pop(str(task_id), None)
+    if current:
+        state[key] = current
+    else:
+        state.pop(key, None)
+
+
+def _set_task_member(
+    state: Dict[str, Any], key: str, task_id: str, member: bool,
+) -> None:
+    """Add *task_id* to (or remove it from) the per-task list *key*, kept as
+    sorted distinct ids; the key is dropped when the list empties. The list
+    twin of :func:`_set_task_entry`."""
+    recorded = state.get(key)
+    current = {str(t) for t in recorded} if isinstance(recorded, list) else set()
+    if member:
+        current.add(str(task_id))
+    else:
+        current.discard(str(task_id))
+    if current:
+        state[key] = sorted(current)
+    else:
+        state.pop(key, None)
+
+
 def set_task_check_findings_in_state(
     state: Dict[str, Any], task_id: str, findings: Optional[Iterable[str]],
 ) -> None:
@@ -342,22 +435,13 @@ def set_task_check_findings_in_state(
     closing notice and review-code's implementation record read it. The key
     is dropped when the map empties, so a plan with no findings gains none.
     """
-    recorded = state.get(TASK_CHECK_FINDINGS_KEY)
-    current = dict(recorded) if isinstance(recorded, dict) else {}
     kept = [str(item) for item in (findings or []) if str(item).strip()]
-    if kept:
-        current[str(task_id)] = kept
-    else:
-        current.pop(str(task_id), None)
-    if current:
-        state[TASK_CHECK_FINDINGS_KEY] = current
-    else:
-        state.pop(TASK_CHECK_FINDINGS_KEY, None)
+    _set_task_entry(state, TASK_CHECK_FINDINGS_KEY, task_id, kept)
 
 
 #: ``state.json``'s map of what the checks an implement task ran on its OWN
 #: edits reported when one failed: ``{task_id: [finding, ...]}``, present only
-#: while some task's own check fails (fix round 15). Never
+#: while some task's own check fails. Never
 #: :data:`TASK_CHECK_FINDINGS_KEY`: a code task whose own test fails keeps its
 #: edits and holds nothing back, where a check task's findings hold its
 #: dependents. Written by both legs (``util batch-done --own-check findings`` on a
@@ -370,27 +454,19 @@ def set_task_batch_check_in_state(
     state: Dict[str, Any], task_id: str, findings: Optional[Iterable[str]],
 ) -> None:
     """Record (or, with no findings, clear) *task_id*'s failing own check;
-    the key is dropped when the map empties."""
-    recorded = state.get(TASK_BATCH_CHECK_KEY)
-    current = dict(recorded) if isinstance(recorded, dict) else {}
+    the key is dropped when the map empties. Clearing it clears the task's
+    :data:`TASK_OWN_TEXT_KEY` entry too."""
     kept = [str(item) for item in (findings or []) if str(item).strip()]
-    if kept:
-        current[str(task_id)] = kept
-    else:
-        current.pop(str(task_id), None)
-        # Fix round 29: the words kept beside a failing own check go with it.
+    if not kept:
+        # The words kept beside a failing own check go with it.
         set_task_own_text_in_state(state, task_id, None)
-    if current:
-        state[TASK_BATCH_CHECK_KEY] = current
-    else:
-        state.pop(TASK_BATCH_CHECK_KEY, None)
+    _set_task_entry(state, TASK_BATCH_CHECK_KEY, task_id, kept)
 
 
 #: ``state.json``'s map of what an implement task with a failing own check
 #: (:data:`TASK_BATCH_CHECK_KEY`) itself says — its title, ``## Task``
-#: section and acceptance criteria (``write_batch_scheduler.task_own_text``)
-#: — ``{task_id: text}``, present only while some such task has one (fix
-#: round 29, review of round 28, checks #1). A check task that reports the
+#: section and acceptance criteria (``check_records.task_own_text``)
+#: — ``{task_id: text}``, present only while some such task has one. A check task that reports the
 #: same finding in a later run (a ``--resume`` materializes only what it
 #: hands out) reads it to judge whether the check is the task's own job
 #: (``task_owns_the_check``) before recording the task's finding as a
@@ -407,23 +483,16 @@ def set_task_own_text_in_state(
     """Record *task_id*'s own text while it has a failing own check on
     record (:data:`TASK_BATCH_CHECK_KEY`), else drop it; the key is dropped
     when the map empties."""
-    recorded = state.get(TASK_OWN_TEXT_KEY)
-    current = dict(recorded) if isinstance(recorded, dict) else {}
     failing = state.get(TASK_BATCH_CHECK_KEY)
     value = str(text or "").strip()
-    if value and isinstance(failing, dict) and failing.get(str(task_id)):
-        current[str(task_id)] = value
-    else:
-        current.pop(str(task_id), None)
-    if current:
-        state[TASK_OWN_TEXT_KEY] = current
-    else:
-        state.pop(TASK_OWN_TEXT_KEY, None)
+    if not (isinstance(failing, dict) and failing.get(str(task_id))):
+        value = ""
+    _set_task_entry(state, TASK_OWN_TEXT_KEY, task_id, value)
 
 
 #: ``state.json``'s map of an implement task's own words about the checks it
 #: ran on its edits (its reply's ``check.note``): ``{task_id: note}``,
-#: present only while some task has one (fix round 28, live run 12: the
+#: present only while some task has one (live run 12: the
 #: released T007 wrote "(known problem the user accepted in T002)" into its
 #: finding, which the strict match then read as its own failure). Recorded
 #: and shown, never read as a finding or matched on. Written by both legs
@@ -438,28 +507,16 @@ def set_task_own_check_note_in_state(
 ) -> None:
     """Record (or, with no note, clear) *task_id*'s own-check note; the key
     is dropped when the map empties."""
-    recorded = state.get(TASK_OWN_CHECK_NOTE_KEY)
-    current = dict(recorded) if isinstance(recorded, dict) else {}
-    text = str(note or "").strip()
-    if text:
-        current[str(task_id)] = text
-    else:
-        current.pop(str(task_id), None)
-    if current:
-        state[TASK_OWN_CHECK_NOTE_KEY] = current
-    else:
-        state.pop(TASK_OWN_CHECK_NOTE_KEY, None)
+    _set_task_entry(
+        state, TASK_OWN_CHECK_NOTE_KEY, task_id, str(note or "").strip())
 
 
 #: ``state.json``'s list of the implement tasks whose last record carried a
 #: report of their OWN checks (passed, failing, or repeating only accepted
-#: findings), sorted, present only while some task has one (fix round 24,
-#: live run 10: every racing task ran ``npm test`` and passed, and the tests
-#: line still said that nothing had run the repository's tests — a passing
-#: own check was recorded nowhere). Written by both legs (``util batch-done
+#: findings), sorted, present only while some task has one. Written by both legs (``util batch-done
 #: --own-check``, the scheduler from ``TaskOutcome.batch_check``); every
 #: other record of the task clears it; the tests line reads it
-#: (``write_batch_scheduler.implement_checks_ran``).
+#: (``verification_lines.implement_checks_ran``).
 TASK_OWN_CHECK_RAN_KEY = "task_own_check_ran"
 
 
@@ -468,26 +525,17 @@ def set_task_own_check_ran_in_state(
 ) -> None:
     """Record (or clear) that *task_id*'s own check reported; the key is
     dropped when the list empties."""
-    recorded = state.get(TASK_OWN_CHECK_RAN_KEY)
-    current = {str(t) for t in recorded} if isinstance(recorded, list) else set()
-    if ran:
-        current.add(str(task_id))
-    else:
-        current.discard(str(task_id))
-    if current:
-        state[TASK_OWN_CHECK_RAN_KEY] = sorted(current)
-    else:
-        state.pop(TASK_OWN_CHECK_RAN_KEY, None)
+    _set_task_member(state, TASK_OWN_CHECK_RAN_KEY, task_id, bool(ran))
 
 
 #: ``state.json``'s map of what an implement task's own check reported again
 #: of findings the user accepted for a check (``--human-task <check>=done``),
 #: by check: ``{task_id: {check_id: [finding, ...]}}``, present only while
-#: some task has one (fix round 23: round 22 kept them only in the result
+#: some task has one (round 22 kept them only in the result
 #: row and the printed line, so ``status`` showed the task as plainly
 #: ``completed``). Beside :data:`TASK_BATCH_CHECK_KEY`, never in it: they
 #: are not the task's own failure. Written by both legs
-#: (``write_batch_scheduler.split_accepted_findings``: the scheduler and
+#: (``check_records.split_accepted_findings``: the scheduler and
 #: ``util batch-done --own-check findings``); every other record of the task
 #: clears it; ``status`` reads it through
 #: :meth:`StateManager.implementation_batch_check_accepted`.
@@ -506,12 +554,11 @@ def set_task_batch_check_accepted_in_state(
 
 #: ``state.json``'s map of what an implement task's own check reported that
 #: is the same finding a check task of the run reported (the strict
-#: comparison of ``write_batch_scheduler.split_accepted_findings``), by that
+#: comparison of ``check_records.split_accepted_findings``), by that
 #: check: ``{task_id: {check_id: [finding, ...]}}``, present only while some
-#: task has one (fix round 28, live run 12 OpenCode accept 01: T001 ran
-#: T002's release check and was recorded as failing it). Beside
+#: task has one. Beside
 #: :data:`TASK_BATCH_CHECK_KEY`, never in it: T002's own record covers the
-#: finding. Written by both legs (``write_batch_scheduler.repeated_findings_for``:
+#: finding. Written by both legs (``check_records.repeated_findings_for``:
 #: the scheduler and ``util batch-done``, when the code task's record comes
 #: second and when the check's does); every other record of the task clears
 #: it; ``status`` reads it through
@@ -534,25 +581,16 @@ def _set_by_check_in_state(
     matched: Optional[Mapping[str, Iterable[str]]],
 ) -> None:
     """One ``{task_id: {check_id: [finding, ...]}}`` map's writer."""
-    recorded = state.get(key)
-    current = dict(recorded) if isinstance(recorded, dict) else {}
     kept = {
         str(check_id): [str(item) for item in (findings or []) if str(item).strip()]
         for check_id, findings in sorted((matched or {}).items())
     }
     kept = {check_id: findings for check_id, findings in kept.items() if findings}
-    if kept:
-        current[str(task_id)] = kept
-    else:
-        current.pop(str(task_id), None)
-    if current:
-        state[key] = current
-    else:
-        state.pop(key, None)
+    _set_task_entry(state, key, task_id, kept)
 
 
 #: ``task id -> tree fingerprint`` for each check with findings on the native
-#: leg (fix round 14): the files git saw when the run that recorded the
+#: leg: the files git saw when the run that recorded the
 #: findings ended (``write_prompt.check_tree_fingerprint``). A native
 #: ``--resume`` hands the check out again only when the tree moved since —
 #: the executor keeps the same stamp on the check's verdict
@@ -565,20 +603,44 @@ def set_task_check_tree_in_state(
 ) -> None:
     """Record (or, with ``None``, drop) *task_id*'s check tree stamp; the key
     is dropped when the map empties."""
-    recorded = state.get(TASK_CHECK_TREES_KEY)
-    current = dict(recorded) if isinstance(recorded, dict) else {}
-    if fingerprint:
-        current[str(task_id)] = str(fingerprint)
-    else:
-        current.pop(str(task_id), None)
-    if current:
-        state[TASK_CHECK_TREES_KEY] = current
-    else:
-        state.pop(TASK_CHECK_TREES_KEY, None)
+    _set_task_entry(
+        state, TASK_CHECK_TREES_KEY, task_id,
+        str(fingerprint) if fingerprint else None)
+
+
+#: The per-task keys that hold an implement task's verdict: what its last
+#: record said about checks (a check's findings and tree stamp, the task's
+#: own check, its words, what it repeated). A run that hands the task out
+#: again clears them all (:func:`clear_task_verdict`), so an earlier run's
+#: verdict never shows on the rerun. A new per-task key goes here or in the
+#: test's not-a-verdict list (``tests/test_task_verdict_keys.py``).
+TASK_VERDICT_KEYS: Tuple[str, ...] = (
+    TASK_CHECK_FINDINGS_KEY,
+    TASK_CHECK_TREES_KEY,
+    TASK_BATCH_CHECK_KEY,
+    TASK_OWN_TEXT_KEY,
+    TASK_BATCH_CHECK_ACCEPTED_KEY,
+    TASK_BATCH_CHECK_REPEATS_KEY,
+    TASK_OWN_CHECK_RAN_KEY,
+    TASK_OWN_CHECK_NOTE_KEY,
+)
+
+
+def clear_task_verdict(state: Dict[str, Any], task_id: str) -> None:
+    """Drop *task_id*'s entry from every :data:`TASK_VERDICT_KEYS` map and
+    list on a raw state dict, each key dropped when it empties: what each
+    ``set_task_*_in_state`` writer does when given nothing. Journals nothing;
+    the caller stamps the task's reset (:func:`mark_tasks_reset_in_state`)
+    or writes its status beside it."""
+    for key in TASK_VERDICT_KEYS:
+        if key in _TASK_RECORD_LISTS:
+            _set_task_member(state, key, task_id, False)
+        else:
+            _set_task_entry(state, key, task_id, None)
 
 
 #: ``task id -> when a run that hands the implement task out again set its
-#: earlier record aside`` (fix round 17): a start-over (``--fresh``, or a
+#: earlier record aside``: a start-over (``--fresh``, or a
 #: plain run after a finished implement) for every code task, an explicit
 #: ``--task`` rerun for the one it names. The task is ``pending`` again, but
 #: the prior-changes log still holds the line its earlier run wrote, and a
@@ -625,7 +687,7 @@ def mark_item_processed_in_state(
     }
 
 
-#: ``details.leg`` of a ``processed_<phase>`` record (fix round 22): which
+#: ``details.leg`` of a ``processed_<phase>`` record: which
 #: leg wrote it — the write executor's scheduler, or ``util batch-done`` for
 #: the native host.
 PROCESSED_LEG_EXECUTOR = "executor"
@@ -645,14 +707,12 @@ def record_batch_items_in_state(
 ) -> List[str]:
     """Record every item of an apply batch in ``processed_<phase>``; the ids.
 
-    One shape on both legs (fix round 22, live run 9: the executor leg wrote
-    no record at all, so ``state.json`` named a declined fix on Claude Code
-    and nowhere on Codex or OpenCode). Each of *task*'s ``expected_ids`` gets
+    One shape on both legs. Each of *task*'s ``expected_ids`` gets
     ``{status, details: {task_id, prior_changes_id, grouped_sha256, leg,
     reason?}, timestamp}``: ``declined`` / ``skipped`` with its reason
     (never ``applied``), else ``applied`` — ``no-op`` for a batch the
     executor read as changing nothing; the native leg has no such reading
-    and records a verified no-op ``applied`` (fix round 23: documented, no
+    and records a verified no-op ``applied`` (documented, no
     reader tells the two apart) — for a finished batch, and ``failed``
     for every item of a batch that did not finish, which keeps it in a
     ``--resume``'s work set. ``grouped_sha256`` is the review the batch
@@ -700,7 +760,7 @@ def processed_record_counts(
     a ``declined`` or ``skipped`` one stamped with another review than
     *review_stamp* (the current ``grouped.json``'s hash): an item an earlier
     review's batch did not apply, which a later review reports again, is
-    offered again (fix round 22) — as the executor leg offers it in the
+    offered again — as the executor leg offers it in the
     batch the later review makes — and never counted as applied. An
     ``applied`` record counts whatever review it names, so a native
     ``--resume`` never hands an applied item out twice. A record with no
@@ -913,15 +973,22 @@ def stamp_stable_ids(groups: List[Dict[str, Any]]) -> None:
         """The first of ``hash_of(0)``, ``hash_of(1)``, … not yet stamped on
         a *kind*. Deterministic: the n-th same-content item in stamping order
         always gets discriminator n-1, so a re-stamp of the same groups
-        reproduces every id."""
+        reproduces every id.
+
+        No fixed cap: any number of models may return the same suggestion,
+        and one boilerplate finding may land in any number of files. Each
+        discriminator hashes to a new value and at most ``len(all_hashes)``
+        are taken, so a free one turns up within that many steps; running
+        past it means the truncated hash itself repeated."""
+        limit = len(all_hashes)
         discriminator = 0
         candidate = hash_of(discriminator)
         while candidate in all_hashes and all_hashes[candidate][0] == kind:
             discriminator += 1
-            if discriminator > 10:
+            if discriminator > limit:
                 raise ValueError(
                     f"Cannot resolve hash collision for {kind} {label} "
-                    f"after 10 attempts"
+                    f"after {limit} attempts"
                 )
             candidate = hash_of(discriminator)
         return candidate
@@ -935,7 +1002,7 @@ def stamp_stable_ids(groups: List[Dict[str, Any]]) -> None:
         # consumer that filters by that hash (an apply-phase skip, an
         # `invalid` mark, a human decision) then hit both groups at once.
         ghash = _discriminated(
-            "group", f"G{g_num}", lambda d: generate_group_id(group, d)
+            "group", f"G{g_num}", lambda d, group=group: generate_group_id(group, d)
         )
         all_hashes[ghash] = ("group", g_idx, -1)
         group["group_hash"] = ghash
@@ -946,7 +1013,7 @@ def stamp_stable_ids(groups: List[Dict[str, Any]]) -> None:
             s_num = s_idx + 1
             shash = _discriminated(
                 "suggestion", f"G{g_num}S{s_num}",
-                lambda d: generate_suggestion_id(sugg, d),
+                lambda d, sugg=sugg: generate_suggestion_id(sugg, d),
             )
             all_hashes[shash] = ("suggestion", g_idx, s_idx)
             sugg["suggestion_hash"] = shash
@@ -954,6 +1021,68 @@ def stamp_stable_ids(groups: List[Dict[str, Any]]) -> None:
 
     # Now compute display hashes (8-char prefix, extended on collision)
     _assign_display_hashes(groups)
+
+
+def stamped_group_id(group: Any) -> str:
+    """The id to file a record about *group* under: the ``group_hash``
+    :func:`stamp_stable_ids` stamped, else the plain content hash.
+
+    Never recompute :func:`generate_group_id` for this: same-content groups
+    share the plain hash, so every one of them would get the first one's id
+    (docs/development/review-results.md, "Stable group IDs")."""
+    data = group.to_dict() if hasattr(group, "to_dict") else group
+    return str(data.get("group_hash") or "") or generate_group_id(data)
+
+
+def group_join_ids(groups: Sequence[Any]) -> List[Tuple[str, ...]]:
+    """For each of *groups*, the ids a record about it may be filed under.
+
+    The stamped ``group_hash``, and the plain content hash when it differs
+    (the key records were filed under before every writer used the stamp),
+    but each only when it names this one group: same-content groups share
+    the plain hash, so a record under it cannot say which of them it meant.
+    The first of them keeps it as its stamp; the rest are not joined on it
+    (docs/development/review-results.md, "Stable group IDs")."""
+    dicts = [g.to_dict() if hasattr(g, "to_dict") else g for g in groups]
+    stamped = [str(d.get("group_hash") or "") for d in dicts]
+    plain = [generate_group_id(d) for d in dicts]
+    by_stamp: Dict[str, set] = {}
+    by_any: Dict[str, set] = {}
+    for index, (stamp, content) in enumerate(zip(stamped, plain)):
+        if stamp:
+            by_stamp.setdefault(stamp, set()).add(index)
+            by_any.setdefault(stamp, set()).add(index)
+        by_any.setdefault(content, set()).add(index)
+    ids: List[Tuple[str, ...]] = []
+    for index, (stamp, content) in enumerate(zip(stamped, plain)):
+        keys: Tuple[str, ...] = ()
+        if stamp and by_stamp[stamp] == {index}:
+            keys += (stamp,)
+        if content != stamp and by_any[content] == {index}:
+            keys += (content,)
+        ids.append(keys)
+    return ids
+
+
+def records_by_unique_id(
+    records: Iterable[Any], *id_keys: str,
+) -> Dict[str, Dict[str, Any]]:
+    """``{id: record}`` over *records*, the id read from the first of
+    *id_keys* a record carries. An id more than one record carries is left
+    out: it cannot say which group each record was about (a validation file
+    written before verdicts carried the stamped id gives every same-content
+    group the first one's id)."""
+    found: Dict[str, Dict[str, Any]] = {}
+    shared: set = set()
+    for record in records:
+        if not isinstance(record, Mapping):
+            continue
+        rid = next((str(record[k]) for k in id_keys if record.get(k)), "")
+        if rid in found:
+            shared.add(rid)
+        elif rid:
+            found[rid] = record  # type: ignore[assignment]
+    return {rid: record for rid, record in found.items() if rid not in shared}
 
 
 def _assign_display_hashes(groups: List[Dict[str, Any]]) -> None:
@@ -1073,6 +1202,462 @@ def handle_plan_hash_change(
     return remapped
 
 
+#: ``state.json``'s record of the explicit resets: ``{key: when it was last
+#: reset}`` for a top-level key a ``clear_*`` method or
+#: :meth:`StateManager.clear_key` dropped (``--fresh`` calls them), and
+#: ``{"*": when}`` (:data:`DOCUMENT_RESET`) for :meth:`StateManager.reset`.
+#: :meth:`StateManager.save`'s merge reads it: what was reset since a writer
+#: loaded the file is the resetter's, so that writer's stale view cannot
+#: bring back what the reset dropped (docs/development/write-scheduler.md,
+#: "Merge units").
+STATE_RESETS_KEY = "state_resets"
+
+#: The :data:`STATE_RESETS_KEY` entry :meth:`StateManager.reset` stamps: the
+#: whole document was reset.
+DOCUMENT_RESET = "*"
+
+#: Twins of ``known_checks.APPLY_FIX_BATCH_CHECKS_KEY``,
+#: ``scope_policy.STATE_KEY`` and ``scope_policy_runs.RUNS_KEY``, restated so
+#: this low-level module imports none of them (a test pins the three).
+_APPLY_FIX_BATCH_CHECKS_KEY = "apply_fix_batch_checks"
+_SCOPE_POLICY_KEY = "scope_policy"
+_SCOPE_POLICY_RUNS_KEY = "scope_policy_runs"
+
+#: The per-task maps (``{task_id: value}``) one task's record spans: its
+#: status and the reason, findings, check records, reset stamp, recorded
+#: ``--human-task`` answer and dependency override written with it, and an
+#: apply-code-fixes batch's check report. :meth:`StateManager.save` merges a
+#: task's record as one unit.
+_TASK_RECORD_MAPS: Tuple[str, ...] = (
+    "task_status", "task_status_reasons", TASK_CHECK_FINDINGS_KEY,
+    TASK_BATCH_CHECK_KEY, TASK_OWN_TEXT_KEY, TASK_OWN_CHECK_NOTE_KEY,
+    TASK_BATCH_CHECK_ACCEPTED_KEY, TASK_BATCH_CHECK_REPEATS_KEY,
+    TASK_CHECK_TREES_KEY, TASK_RESET_AT_KEY, HUMAN_TASK_DECISIONS_KEY,
+    "dependency_overrides", _APPLY_FIX_BATCH_CHECKS_KEY,
+)
+
+#: The per-task lists (sorted task ids) whose membership is part of a task's
+#: record.
+_TASK_RECORD_LISTS: Tuple[str, ...] = (TASK_OWN_CHECK_RAN_KEY,)
+
+#: The per-phase maps one phase's record spans (a start, a completion, a skip).
+_PHASE_RECORD_MAPS: Tuple[str, ...] = (
+    "phases_completed", "phases_started", "phases_skipped",
+)
+
+#: The keys :meth:`StateManager.record_task_titles` writes together: one
+#: decomposition, merged as one unit.
+_DECOMPOSITION_KEYS: Tuple[str, ...] = (
+    "task_titles", "implement_task_ids", "implement_human_task_ids",
+    IMPLEMENT_TASK_GRAPH_KEY,
+)
+
+#: The keys the plan-change check writes together: the hash of the plan as
+#: last seen and the flag a human edit since then raised. One unit, so the
+#: hash a writer records always travels with its own flag.
+_PLAN_CHANGE_KEYS: Tuple[str, ...] = ("plan_hash", "plan_changed")
+
+#: The journal unit of a plan edit the load detected (``("plan",)`` is a
+#: mutator's write of the pair): this manager's unless the file already
+#: records the hash it detected.
+_PLAN_DETECTED: Tuple[str, ...] = ("plan", "detected")
+
+#: Maps merged entry by entry, each entry whole (``metrics_left_out`` and
+#: ``metrics_set_aside`` are ``metrics.LEFT_OUT_KEY`` and ``SET_ASIDE_KEY``;
+#: ``scope_policy`` is keyed by review phase, ``scope_policy_runs`` by mode).
+_ENTRY_MAPS: Tuple[str, ...] = (
+    "metrics_progress", "metrics_left_out", "metrics_set_aside",
+    _SCOPE_POLICY_KEY, _SCOPE_POLICY_RUNS_KEY,
+)
+
+#: The per-phase map of the judge's raw verdicts
+#: (``human_decisions._persist_ingested_verdicts``), keyed by group id.
+_VERDICTS_PREFIX = "human_decision_verdicts_"
+
+#: Prefixes of the per-phase item maps (``processed_<phase>``,
+#: ``human_decisions_<phase>``, ``human_decision_verdicts_<phase>``), merged
+#: item by item, each item whole.
+_ENTRY_MAP_PREFIXES: Tuple[str, ...] = (
+    "processed_", "human_decisions_", _VERDICTS_PREFIX,
+)
+
+#: A key or entry one side of the merge does not have.
+_ABSENT = object()
+
+
+def _unit_of_key(key: str) -> Optional[Tuple[str, ...]]:
+    """The journal unit a write of the whole top-level *key* is
+    (:meth:`StateManager.set`), or ``None`` for a key merged in finer units,
+    whose changes the value comparison finds entry by entry."""
+    if key in _DECOMPOSITION_KEYS:
+        return ("decomposition",)
+    if key in _PLAN_CHANGE_KEYS:
+        return ("plan",)
+    if (key in _TASK_RECORD_MAPS or key in _TASK_RECORD_LISTS
+            or key in _PHASE_RECORD_MAPS or key in _ENTRY_MAPS
+            or key.startswith(_ENTRY_MAP_PREFIXES)
+            or key in ("metrics", "tracked_files", STATE_RESETS_KEY)):
+        return None
+    return ("key", key)
+
+
+def _table(document: Dict[str, Any], key: str) -> Dict[str, Any]:
+    """*document*'s map at *key*, ``{}`` when it is absent or not a map."""
+    value = document.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _members(document: Dict[str, Any], key: str) -> set:
+    """*document*'s list at *key* as a set of ids, empty when absent."""
+    value = document.get(key)
+    return {str(item) for item in value} if isinstance(value, list) else set()
+
+
+def _put(document: Dict[str, Any], key: str, value: Any) -> None:
+    """Set ``document[key]`` to *value*, or drop it for :data:`_ABSENT`.
+
+    The merge's only write: it replaces a top-level value of the candidate
+    document and never edits one in place, since the candidate shares its
+    values with ``StateManager.state`` until the write succeeds.
+    """
+    if value is _ABSENT:
+        document.pop(key, None)
+    else:
+        document[key] = value
+
+
+def _adopt(container: Dict[str, Any], key: str, value: Any) -> None:
+    """Set ``container[key]`` to *value* (drop it for :data:`_ABSENT`).
+
+    A map or list already there is updated in place, so a reference a caller
+    holds into ``StateManager.state`` stays the saved one.
+    """
+    if value is _ABSENT:
+        container.pop(key, None)
+        return
+    current = container.get(key, _ABSENT)
+    if current is value:
+        return
+    if isinstance(current, dict) and isinstance(value, dict):
+        current.clear()
+        current.update(value)
+    elif isinstance(current, list) and isinstance(value, list):
+        current[:] = value
+    else:
+        container[key] = value
+
+
+def _adopt_document(target: Dict[str, Any], document: Dict[str, Any]) -> None:
+    """Make *target* hold *document*'s top-level values, in place (:func:`_adopt`)."""
+    for key in [key for key in target if key not in document]:
+        del target[key]
+    for key, value in document.items():
+        _adopt(target, key, value)
+
+
+def _place(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any],
+    key: str, value: Any, had_mine: bool,
+) -> None:
+    """Write a merged map or list back into *mine*. An empty one stays only
+    where this manager has it and the file kept it (or never had it): the
+    writers drop an emptied map, and a merge must not invent one."""
+    if not value and not (had_mine and (key in theirs or key not in base)):
+        mine.pop(key, None)
+    else:
+        _put(mine, key, value)
+
+
+def _merge_whole(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any],
+    keys: Sequence[str], touched: bool = False,
+) -> None:
+    """Merge *keys* as one unit: the file's values unless this manager
+    changed one of them (or wrote the unit, *touched*), then this
+    manager's, all of them."""
+    if touched or not keys:
+        return
+    sides = [tuple(d.get(key, _ABSENT) for key in keys) for d in (base, mine, theirs)]
+    if sides[1] == sides[0] and sides[2] != sides[1]:
+        for key, value in zip(keys, sides[2]):
+            _put(mine, key, value)
+
+
+def _merge_records(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any],
+    maps: Sequence[str], lists: Sequence[str] = (), reset_map: Optional[str] = None,
+    touched: Iterable[str] = (),
+) -> None:
+    """Merge the records keyed by id across *maps* (and membership of
+    *lists*), each record one unit.
+
+    A record this manager neither wrote (*touched*: the ids its mutators
+    wrote) nor left different from how it found it is the file's; any other
+    is its own, every field of it, whatever the file's writer did to it.
+    With *reset_map*, a record whose stamp there the file's writer changed
+    and this manager did not (a start-over or ``--task`` rerun since this
+    manager loaded) is the file's whatever this manager did: its view of the
+    record predates the reset.
+    """
+    sides = (base, mine, theirs)
+    wrote = {str(record_id) for record_id in touched}
+    had = {name: name in mine for name in (*maps, *lists)}
+    tables = {name: [_table(d, name) for d in sides] for name in maps}
+    members = {name: [_members(d, name) for d in sides] for name in lists}
+    # Only a record the file and this manager disagree on can change.
+    ids: Dict[str, None] = {}
+    for name in maps:
+        own, file = tables[name][1], tables[name][2]
+        if own != file:
+            ids.update(dict.fromkeys(
+                record_id for record_id in dict.fromkeys([*own, *file])
+                if own.get(record_id, _ABSENT) != file.get(record_id, _ABSENT)))
+    for name in lists:
+        ids.update(dict.fromkeys(sorted(members[name][1] ^ members[name][2])))
+
+    def record(side: int, record_id: str) -> Tuple[Any, ...]:
+        return (
+            tuple(tables[name][side].get(record_id, _ABSENT) for name in maps)
+            + tuple(record_id in members[name][side] for name in lists)
+        )
+
+    taken = []
+    for record_id in ids:
+        was, own, file = (record(side, record_id) for side in range(3))
+        if reset_map is not None:
+            stamps = [tables[reset_map][side].get(record_id, _ABSENT) for side in range(3)]
+            if stamps[2] != stamps[0] and stamps[1] == stamps[0]:
+                taken.append(record_id)
+                continue
+        if own == was and record_id not in wrote:
+            taken.append(record_id)
+    if not taken:
+        return
+    for name in maps:
+        target = dict(tables[name][1])
+        for record_id in taken:
+            value = tables[name][2].get(record_id, _ABSENT)
+            if value is _ABSENT:
+                target.pop(record_id, None)
+            else:
+                target[record_id] = value
+        _place(base, mine, theirs, name, target, had[name])
+    for name in lists:
+        kept = set(members[name][1])
+        for record_id in taken:
+            if record_id in members[name][2]:
+                kept.add(record_id)
+            else:
+                kept.discard(record_id)
+        _place(base, mine, theirs, name, sorted(kept), had[name])
+
+
+def _merge_metric_list(phase: str, was: Any, own: Any, file: Any) -> Any:
+    """One phase's ``metrics`` list after both writers changed it.
+
+    ``record_metric_in_state`` only ever appends an entry or replaces one in
+    place, so index *i* of each side is the same record as the baseline's
+    *i*. An entry this manager replaced replaces the file's when the file
+    still holds the baseline's; every other entry this manager added or
+    replaced is added by the identity rule (``metrics.merge_recorded_metric``):
+    a second record of one event collapses into the file's. A list that does
+    not have that shape is this manager's.
+    """
+    # Imported here to keep full_workflow_orchestrator, which loads this module, light.
+    from . import metrics as _metrics
+
+    before = [] if was is _ABSENT else was
+    if not (isinstance(before, list) and isinstance(own, list)
+            and isinstance(file, list)
+            and len(own) >= len(before) and len(file) >= len(before)):
+        return own
+    merged = list(file)
+    added = []
+    for index, entry in enumerate(own):
+        if index < len(before):
+            if entry == before[index]:
+                continue
+            if merged[index] == before[index]:
+                merged[index] = entry
+                continue
+        added.append(entry)
+    for entry in added:
+        _metrics.merge_recorded_metric(merged, phase, entry)
+    return merged
+
+
+def _merge_metrics(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any], key: str,
+) -> None:
+    """Merge ``metrics`` phase by phase (:func:`_merge_metric_list` where
+    both writers changed a phase's list, else whichever did)."""
+    if not all(isinstance(d.get(key, {}), dict) for d in (base, mine, theirs)):
+        _merge_whole(base, mine, theirs, (key,))
+        return
+    had = key in mine
+    was, own, file = (_table(d, key) for d in (base, mine, theirs))
+    if file == was:
+        return
+    target = dict(own)
+    for phase in dict.fromkeys([*own, *file, *was]):
+        before, mine_list, their_list = (
+            t.get(phase, _ABSENT) for t in (was, own, file))
+        # Both writers' lists equal is no reason to skip the identity rule
+        # when both changed it: two managers that recorded one event with the
+        # same timestamp (Windows' clock ticks every ~16 ms, so two quick
+        # records share one) made the same change twice, and that second
+        # record collapses, with its `[METRICS_DUPLICATE]` line, as one whose
+        # timestamp differs does.
+        if their_list == before:
+            continue
+        if mine_list == before:
+            _put(target, phase, their_list)
+        elif mine_list is not _ABSENT and their_list is not _ABSENT:
+            target[phase] = _merge_metric_list(phase, before, mine_list, their_list)
+    _place(base, mine, theirs, key, target, had)
+
+
+def _by_path(value: Any) -> Optional[Dict[str, Any]]:
+    """A ``tracked_files`` list keyed by path; ``None`` when it is not one
+    entry per path."""
+    if value is _ABSENT:
+        return {}
+    if not isinstance(value, list):
+        return None
+    keyed: Dict[str, Any] = {}
+    for entry in value:
+        path = entry.get("path") if isinstance(entry, dict) else None
+        if not isinstance(path, str) or path in keyed:
+            return None
+        keyed[path] = entry
+    return keyed
+
+
+def _merge_tracked_files(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any], key: str,
+    touched: Iterable[str] = (),
+) -> None:
+    """Merge ``tracked_files`` path by path, each entry whole, when both
+    writers changed it (else whichever did); an entry this manager wrote
+    (*touched*, :meth:`StateManager.track_file`) is its own. A list that is
+    not one entry per path is this manager's."""
+    wrote = set(touched)
+    was, own, file = (d.get(key, _ABSENT) for d in (base, mine, theirs))
+    if file == own or file == was:
+        return
+    if own == was and not wrote:
+        _put(mine, key, file)
+        return
+    keyed = [_by_path(value) for value in (was, own, file)]
+    if any(table is None for table in keyed):
+        return
+    before, mine_paths, their_paths = keyed
+    merged = []
+    for path in dict.fromkeys([*mine_paths, *their_paths]):
+        entry = mine_paths.get(path, _ABSENT)
+        if path not in wrote and entry == before.get(path, _ABSENT):
+            entry = their_paths.get(path, _ABSENT)
+        if entry is not _ABSENT:
+            merged.append(entry)
+    _put(mine, key, merged)
+
+
+def _merge_state_into(
+    base: Dict[str, Any], mine: Dict[str, Any], theirs: Dict[str, Any],
+    touched: Iterable[Tuple[str, ...]] = (),
+) -> None:
+    """:meth:`StateManager.save`'s merge of the file (*theirs*) into *mine*.
+
+    *mine* is a shallow copy of the saving manager's ``state``: the merge
+    replaces its top-level values (:func:`_put`) and edits none in place.
+    *base* is the file as that manager last read or wrote it, and *touched*
+    its journal: the units its mutators wrote since (``("task", id)``,
+    ``("phase", name)``, ``("entry", key, id)``, ``("tracked", path)``,
+    ``("decomposition",)``, ``("plan",)``, ``("key", key)``). A unit counts
+    as this manager's change when it is in the journal or differs from
+    *base*; the units are listed in ``save()``'s docstring.
+    """
+    journal = list(touched)
+    stamps = [_table(d, STATE_RESETS_KEY) for d in (base, mine, theirs)]
+    document = [s.get(DOCUMENT_RESET, _ABSENT) for s in stamps]
+    if document[1] != document[0]:
+        return  # this manager reset the whole document: it is its own
+    if document[2] != document[0]:
+        # Another writer reset the whole document since this manager loaded.
+        mine.clear()
+        mine.update(theirs)
+        return
+
+    done = {STATE_RESETS_KEY}
+    for key in dict.fromkeys([*stamps[1], *stamps[2]]):
+        if key == DOCUMENT_RESET:
+            continue
+        before, own, file = (s.get(key, _ABSENT) for s in stamps)
+        if own != before:
+            done.add(key)
+        elif file != before:
+            _put(mine, key, theirs.get(key, _ABSENT))
+            done.add(key)
+    _merge_records(base, mine, theirs, (STATE_RESETS_KEY,))
+
+    def wrote(kind: str, *within: str) -> List[str]:
+        size = len(within)
+        return [unit[1 + size] for unit in journal
+                if len(unit) == 2 + size and unit[0] == kind
+                and tuple(unit[1:1 + size]) == within]
+
+    task_maps = [name for name in _TASK_RECORD_MAPS if name not in done]
+    task_lists = [name for name in _TASK_RECORD_LISTS if name not in done]
+    _merge_records(
+        base, mine, theirs, task_maps, task_lists,
+        reset_map=TASK_RESET_AT_KEY if TASK_RESET_AT_KEY in task_maps else None,
+        touched=wrote("task"))
+    phase_maps = [name for name in _PHASE_RECORD_MAPS if name not in done]
+    _merge_records(base, mine, theirs, phase_maps, touched=wrote("phase"))
+    decomposition = [name for name in _DECOMPOSITION_KEYS if name not in done]
+    _merge_whole(base, mine, theirs, decomposition,
+                 touched=("decomposition",) in journal)
+    plan_change = [name for name in _PLAN_CHANGE_KEYS if name not in done]
+    if ("plan",) not in journal and _PLAN_DETECTED in journal and plan_change:
+        # Only this manager's load found the edit. A file that records the
+        # hash it found was written by someone who saw that same plan: the
+        # flag beside it there (raised, or consumed) is the newer word.
+        if theirs.get("plan_hash", _ABSENT) == mine.get("plan_hash", _ABSENT):
+            for name in plan_change:
+                _put(mine, name, theirs.get(name, _ABSENT))
+    else:
+        _merge_whole(base, mine, theirs, plan_change, touched=("plan",) in journal)
+    done.update(task_maps, task_lists, phase_maps, decomposition, plan_change)
+
+    for key in dict.fromkeys([*mine, *theirs, *base]):
+        if key in done:
+            continue
+        if key in _ENTRY_MAPS or key.startswith(_ENTRY_MAP_PREFIXES):
+            if all(isinstance(d.get(key, {}), dict) for d in (base, mine, theirs)):
+                _merge_records(base, mine, theirs, (key,), touched=wrote("entry", key))
+            else:
+                _merge_whole(base, mine, theirs, (key,))
+        elif key == "metrics":
+            _merge_metrics(base, mine, theirs, key)
+        elif key == "tracked_files":
+            _merge_tracked_files(base, mine, theirs, key, touched=wrote("tracked"))
+        else:
+            _merge_whole(base, mine, theirs, (key,), touched=("key", key) in journal)
+
+
+def _parse_state_text(text: Optional[str]) -> Optional[Dict[str, Any]]:
+    """*text* as a state document, judge names upgraded (``upgrade_legacy``,
+    as every read of the file upgrades them); ``None`` for no text, text
+    that is not JSON, or JSON that is not an object."""
+    if text is None:
+        return None
+    try:
+        document = upgrade_legacy(json.loads(text))
+    except ValueError:
+        return None
+    return document if isinstance(document, dict) else None
+
+
 class StateManager:
     """Manages persistent state for multi-LLM skill sessions."""
 
@@ -1102,11 +1687,24 @@ class StateManager:
         self.read_only = read_only
 
         # State file lives in the plan's output directory
-        from .output_handler import get_output_dir
         self.plan_dir = get_output_dir(self.plan_path)
         self.state_file = self.plan_dir / "state.json"
 
         self.state: Dict[str, Any] = {}
+        #: ``state.json``'s text as this manager last read or wrote it
+        #: (``None`` for none). The document it holds (:meth:`_baseline`) is
+        #: what :meth:`save` compares ``state`` with to find the changes no
+        #: mutator journaled (a caller editing ``state`` directly); a file
+        #: still holding exactly this text has no other writer's change to
+        #: merge.
+        self._baseline_text: Optional[str] = None
+        self._baseline_document: Optional[Dict[str, Any]] = None
+        #: The journal: the merge units this manager's mutators wrote since
+        #: it last read or wrote the file (:func:`_merge_state_into` names
+        #: their shapes). :meth:`save` keeps a journaled unit as this manager
+        #: has it even when its value equals the baseline's, since a write
+        #: that repeats the recorded value is still a write.
+        self._touched: set = set()
         if not read_only:
             self._migrate_from_old_location()  # Check for old state file
         self._load_or_create()
@@ -1114,32 +1712,40 @@ class StateManager:
     def _migrate_from_old_location(self) -> None:
         """Migrate state file from old hash-based location if it exists.
 
+        Copy, then delete, rather than a rename: the old location is in the
+        skill's folder, often on another filesystem. The old file's bytes
+        are written as they are, by ``state_file``'s writer (``write_bytes``:
+        owner-only, through the output folder held below the plan's
+        directory, docs/development/write-safety.md#plan-output-containment),
+        under the state lock from the check that ``state.json`` is absent to
+        the old file's removal. The old file is removed only once that write
+        succeeded, and kept on any failure, a refused write included.
+
         Note: Migration is silent unless verbose/debug logging is enabled.
-        Uses copy+delete instead of rename for cross-filesystem compatibility.
         """
         old_state_dir = Path(__file__).parent.parent / "state"
         path_hash = hashlib.sha256(str(self.plan_path).encode()).hexdigest()[:16]
         old_state_file = old_state_dir / f"{path_hash}.json"
 
-        if old_state_file.exists() and not self.state_file.exists():
-            try:
-                # Validate JSON is parseable before migrating
-                with open(old_state_file, 'r', encoding='utf-8') as f:
-                    json.load(f)
-
-                # Use copy+delete instead of rename (works across filesystems)
-                self.plan_dir.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(old_state_file, self.state_file)
-
-                # Verify copy succeeded before deleting old file
+        if not old_state_file.exists() or self.state_file.exists():
+            return
+        try:
+            # The lock lives beside the file, so its folder is made first.
+            self.plan_dir.mkdir(parents=True, exist_ok=True)
+            with _state_file.locked(self.state_file):
                 if self.state_file.exists():
-                    os.unlink(old_state_file)
-                    logger.debug(f"Migrated state file to: {self.state_file}")
-
-            except (json.JSONDecodeError, OSError) as e:
-                # Log warning but continue - old state may be corrupt or inaccessible
-                logger.warning(f"Failed to migrate state from {old_state_file}: {e}")
-                # Don't delete old file on failure - let user investigate
+                    return  # another process wrote it meanwhile
+                data = old_state_file.read_bytes()
+                # Validate JSON is parseable before migrating
+                json.loads(data.decode("utf-8"))
+                _state_file.write_bytes(self.state_file, data)
+                os.unlink(old_state_file)
+            logger.debug(f"Migrated state file to: {self.state_file}")
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
+            # Log warning but continue - old state may be corrupt (bad JSON or
+            # bad UTF-8) or inaccessible
+            logger.warning(f"Failed to migrate state from {old_state_file}: {e}")
+            # Don't delete old file on failure - let user investigate
 
     def _compute_plan_path_hash(self) -> str:
         """Compute hash of plan PATH for state file naming (stable across content edits)."""
@@ -1161,8 +1767,9 @@ class StateManager:
             # The diff base code review and apply-code-fixes fall back to.
             # Before the first commit it is the empty tree (every file is
             # new), not a refusal: a new state used to raise `GitError` here,
-            # and with it every mode on a plain `git init`.
-            "head_at_start": head_or_empty_tree(),
+            # and with it every mode on a plain `git init`. Outside a
+            # repository there is none to record (`_head_at_start`).
+            "head_at_start": self._head_at_start(),
             "branch_name": get_branch_name() or "unknown",
             "review_phase_completed": False,
             "tracked_files": [],
@@ -1171,16 +1778,42 @@ class StateManager:
             "phases_skipped": {},
         }
 
+    def _head_at_start(self) -> str:
+        """The commit a new state starts from (``git_utils.head_or_empty_tree``,
+        run where every git call of the run is: the current directory).
+
+        Outside a git repository this raises ``unattended.NeedsHuman`` (exit 3,
+        its message printed alone) instead of the ``GitError`` traceback: every
+        workflow phase diffs against this commit or records git state, so the
+        run cannot start, and the user only has to make the project a
+        repository. Any other git failure (a broken ref) is raised as it is."""
+        try:
+            return head_or_empty_tree()
+        except GitError:
+            if get_project_root_from_dir() is not None:
+                raise
+            raise NeedsHuman(
+                f"ERROR: {os.getcwd()} is not inside a git repository, so no "
+                f"workflow state could be started for {self.plan_path}: every phase "
+                f"records the commit the run starts from and diffs against it. Run "
+                f"the command from inside the project's repository, or make the "
+                f"project one (`git init`; a first commit is optional), then run it "
+                f"again."
+            ) from None
+
     def _load_or_create(self) -> None:
         """Load existing state or create new one."""
         if self.state_file.exists():
             try:
-                self.state = self._read_upgraded()
+                self.state, read_text = self._read_upgraded_text()
                 if not isinstance(self.state, dict):
                     # Parsed, but not a state (`[]`, a number): read as an
                     # unparseable one is, rather than failing on `.get`
                     # below (`record_commit_range` documents replacing it).
                     raise json.JSONDecodeError("state.json is not a JSON object", "", 0)
+                # The file as read, before the plan-change check below, so a
+                # flag it sets is this manager's change and the save carries it.
+                self._remember_baseline(read_text)
 
                 # Check for plan changes. Deliberately set-only: the flag is
                 # cleared by whoever CONSUMES it, never by a bare load.
@@ -1198,6 +1831,11 @@ class StateManager:
                 if self.state.get("plan_hash") != current_hash:
                     self.state["plan_hash"] = current_hash
                     self.state["plan_changed"] = True
+                    # Journaled: the save writes the detected hash with its
+                    # flag, also over an older flag another writer consumed
+                    # meanwhile (docs/development/write-scheduler.md, "Merge
+                    # units").
+                    self._touch(*_PLAN_DETECTED)
 
             except json.JSONDecodeError:
                 self.state = self._create_initial_state()
@@ -1214,18 +1852,36 @@ class StateManager:
         save — a native-leg ``--resume`` of an apply phase saves nothing until
         the host's ``--mark-completed`` — and the host reads this file raw,
         filtering ``human_decisions_{phase}`` on the new names, for its
-        "Decided by the judge agent" section (review 2026-10-02). Not under
+        "Decided by the judge agent" section. Not under
         ``read_only``, and never when nothing changed.
 
         Raises what ``open``/``json.loads`` raise; a failed write-back does not.
         """
+        return self._read_upgraded_text()[0]
+
+    def _read_upgraded_text(self) -> Tuple[Any, str]:
+        """:meth:`_read_upgraded`, and the text it read."""
         with open(self.state_file, "r", encoding="utf-8") as f:
             text = f.read()
         loaded = upgrade_legacy(json.loads(text))
         if (not self.read_only and isinstance(loaded, dict)
                 and loaded != json.loads(text)):
             self._write_back_upgrade(loaded, text)
-        return loaded
+        return loaded, text
+
+    def _remember_baseline(self, text: Optional[str]) -> None:
+        """Take *text* (``None``: no file) as the file this manager last read
+        or wrote."""
+        self._baseline_text = text
+        self._baseline_document = None
+
+    def _baseline(self) -> Dict[str, Any]:
+        """The document :attr:`_baseline_text` holds, judge names upgraded
+        as every read upgrades them; ``{}`` for none."""
+        if self._baseline_document is None:
+            parsed = _parse_state_text(self._baseline_text)
+            self._baseline_document = parsed if parsed is not None else {}
+        return self._baseline_document
 
     def _write_back_upgrade(self, document: Dict[str, Any], read_text: str) -> None:
         """Persist the judge-name upgrade of *read_text*, and only that.
@@ -1237,6 +1893,7 @@ class StateManager:
         The native writers' shared lock covers both comparison and replacement
         so a completion cannot land between them and then be overwritten.
         """
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
         from .metrics import state_file_lock
 
         try:
@@ -1272,87 +1929,134 @@ class StateManager:
             return True, [str(e)]
 
     def save(self) -> None:
-        """
-        Save current state to file with atomic writes.
+        """Merge this manager's changes into ``state.json`` and write it.
 
-        Uses write-to-temp + atomic rename pattern to prevent corruption
-        if the save operation is interrupted.
+        Under ``metrics.state_file_lock``, the lock every raw writer of the
+        file holds, the file is read again and only what this manager changed
+        since it last read or wrote the file is applied over it
+        (:func:`_merge_state_into`). The merge builds a candidate document
+        and leaves ``state`` alone; ``state`` adopts the candidate only once
+        it is written, so a failed write leaves ``state``, the baseline and
+        the journal as they were, and a retry merges afresh. The merge works
+        in units, never field by field inside one:
+
+        - **A task's record**: its entry in every map of
+          :data:`_TASK_RECORD_MAPS` (status, reason, findings, check
+          records, reset stamp, ``--human-task`` answer, dependency
+          override, an apply batch's check report) and its membership of
+          :data:`_TASK_RECORD_LISTS`.
+        - **A phase's record**: its entries in ``phases_completed``,
+          ``phases_started`` and ``phases_skipped``.
+        - **An entry's record**: one entry of a ``processed_<phase>``,
+          ``human_decisions_<phase>`` or ``human_decision_verdicts_<phase>``
+          map, of ``metrics_progress``, ``metrics_left_out`` or
+          ``metrics_set_aside``, of ``scope_policy`` (by review phase) or of
+          ``scope_policy_runs`` (by mode).
+        - **The decomposition**: :data:`_DECOMPOSITION_KEYS`, together.
+        - **The plan-change record**: ``plan_hash`` and ``plan_changed``,
+          together. An edit this manager's load detected is its change
+          unless the file already records the hash it detected (whoever
+          wrote that saw the same plan, so the flag there stands).
+        - **Lists**: ``metrics`` phase by phase, entry by entry, by
+          ``record_metric_in_state``'s identity rule (two records of one
+          event are one entry); ``tracked_files`` entry by entry, by path.
+        - **Every other top-level key**: one value.
+
+        A unit is this manager's change when one of its mutators wrote it
+        (the journal: ``update_task_status``, ``mark_phase_completed``,
+        ``set_metrics_left_out``, ``set`` of a whole-value key, the load's
+        plan-change check, :meth:`journal_entry` for the scope-policy
+        records, ...; a write that repeats the recorded value counts) or
+        when its value differs from the baseline (the fallback, for a
+        caller that edits ``state`` directly or
+        through a raw-dict helper: such a write that repeats the recorded
+        value is not seen). This manager's changes are its own, whole,
+        whatever the other writer did to them; every other unit is the
+        file's, so a record another writer made meanwhile is kept. Explicit
+        resets are authoritative: a key a
+        ``clear_*`` method or :meth:`clear_key` dropped is this manager's
+        whole (another writer's additions to it included), and a key
+        another writer reset since this manager loaded
+        (:data:`STATE_RESETS_KEY`) is the file's, so this manager's stale
+        view cannot bring it back. :meth:`reset` does the same for the
+        whole document. A task the file's writer reset
+        (``implement_task_reset_at``, a start-over or a ``--task`` rerun) is
+        the file's the same way, unless this manager reset it too. An
+        absent, unreadable or non-object file is written whole. Written by
+        temp file + ``os.replace``.
+
+        The state lock is the innermost lock: a caller may hold its own
+        (the scheduler's ``_effects_lock``), but nothing is taken while this
+        one is held. A lock not free within ``state_file.STATE_LOCK_TIMEOUT_S``
+        raises ``StateLockTimeout`` with nothing written; the changes stay in
+        memory for the next ``save()``.
 
         Raises:
-            IOError: If the save operation fails
+            IOError: If the save operation fails, ``StateLockTimeout`` included
             RuntimeError: On a ``read_only`` manager
         """
         if self.read_only:
             raise RuntimeError(
                 f"read-only StateManager for {self.plan_path} cannot save"
             )
-        self.state["updated_at"] = datetime.now().isoformat()
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
+        from .metrics import state_file_lock
 
-        # Validate state before saving
+        candidate = dict(self.state)
+        # The lock lives beside the file; a folder that does not exist yet
+        # has nothing to lock, so it is made first.
+        self.state_file.parent.mkdir(parents=True, exist_ok=True)
+        with state_file_lock(self.state_file):
+            on_disk = self._read_current_text()
+            # A file still holding the text this manager last read or wrote
+            # has nothing of another writer's to merge.
+            current = (
+                _parse_state_text(on_disk)
+                if on_disk is not None and on_disk != self._baseline_text else None
+            )
+            if current is not None:
+                _merge_state_into(self._baseline(), candidate, current, self._touched)
+            candidate["updated_at"] = datetime.now().isoformat()
+            written = self._write_atomic(candidate)
+        _adopt_document(self.state, candidate)
+        self._remember_baseline(written)
+        self._touched = set()
+
         is_valid, errors = self._validate_state(self.state)
         if not is_valid:
-            # Log validation errors but allow save to proceed
-            import warnings
+            # Log validation errors; the save has gone ahead
             warnings.warn(f"State validation warnings: {errors}")
 
-        self._write_atomic(self.state)
+    def _read_current_text(self) -> Optional[str]:
+        """``state.json``'s text as it is now, for :meth:`save`; ``None`` when
+        it is absent or unreadable."""
+        try:
+            with open(self.state_file, "r", encoding="utf-8") as f:
+                return f.read()
+        except (OSError, ValueError):
+            return None
 
-    def _write_atomic(self, document: Dict[str, Any]) -> None:
-        """Write *document* to ``state.json`` via a temp file and ``os.replace``.
+    def _write_atomic(self, document: Dict[str, Any]) -> str:
+        """Write *document* to ``state.json`` (``state_file.write_document``:
+        temp file and ``os.replace``). Returns the JSON text written.
 
         Raises:
             IOError: If the write fails
         """
-        # Write to temp file first, then atomically rename
-        temp_fd = None
-        temp_path = None
         try:
-            # Create a temp file in the same directory as the target
-            # Use state_file.parent since state is now plan-local
-            self.state_file.parent.mkdir(parents=True, exist_ok=True)
-            temp_fd, temp_path = tempfile.mkstemp(
-                dir=str(self.state_file.parent),
-                suffix='.tmp',
-                prefix='.state_'
-            )
-
-            # Write state to temp file
-            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
-                json.dump(document, f, indent=2)
-            temp_fd = None  # fdopen closes the file descriptor
-
-            # Atomically rename temp file to target location
-            os.replace(temp_path, str(self.state_file))
-            temp_path = None  # File has been moved
-
+            return _state_file.write_document(self.state_file, document)
         except Exception as e:
-            # Clean up temp file if something went wrong
-            if temp_fd is not None:
-                try:
-                    os.close(temp_fd)
-                except OSError:
-                    pass
-            if temp_path is not None and os.path.exists(temp_path):
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
             raise IOError(f"Failed to save state: {e}") from e
 
     def reload(self) -> None:
         """Re-read ``state.json`` from disk, replacing the in-memory dict.
 
         **Every unsaved in-memory change is discarded** — a caller with pending
-        edits must ``save()`` first. This exists for the one legitimate case of
-        a second writer: a file-level helper such as ``finalize_tracking.py``
-        reads ``state.json``, adds to it and writes it back, while ``save()``
-        dumps this object's dict wholesale and never merges. Whoever saves last
-        wins, and until 2026-09-16 that was `_finalize`'s closing `save()`,
-        which erased the `tracked_files` `finalize_tracking` had just computed —
-        an implement run that wrote `index.html` finalized with the two stale
-        entries earlier phases had left, and `review-code` would have reviewed
-        those (F3). Calling this straight after the external writer makes the
-        later `save()` carry its work instead of overwriting it.
+        edits must ``save()`` first. ``save()`` merges, so another writer's
+        work (``finalize_tracking.py``'s ``tracked_files``) survives the next
+        save either way; this makes ``state`` show it at once, and it is what
+        a caller wants after a file-level helper changed a value this object
+        has also changed, where the merge would keep this object's value.
 
         Unlike construction, this does not re-run the plan-change detection:
         `plan_changed` answers "did a human edit the plan since the last
@@ -1362,21 +2066,58 @@ class StateManager:
         if not self.state_file.exists():
             return
         try:
-            loaded = self._read_upgraded()
+            loaded, read_text = self._read_upgraded_text()
         except (json.JSONDecodeError, OSError):
             # A corrupt or unreadable file is not worth losing the dict we hold:
             # the next `save()` rewrites it wholesale anyway.
             return
         if isinstance(loaded, dict):
             self.state = loaded
+            self._remember_baseline(read_text)
+            self._touched = set()
 
     def get(self, key: str, default: Any = None) -> Any:
         """Get a state value."""
         return self.state.get(key, default)
 
     def set(self, key: str, value: Any) -> None:
-        """Set a state value."""
+        """Set a state value.
+
+        A key merged as one value is journaled (:meth:`save` keeps it as set
+        here, even when the value repeats the recorded one); a key merged in
+        finer units (a task map, ``tracked_files``, ...) is compared entry
+        by entry instead, so an entry set to the value it had is not seen as
+        written: record those through their family's mutator
+        (:meth:`record_human_task_answers`, :meth:`set_metrics_left_out`,
+        ...), which journals the entries it writes.
+        """
         self.state[key] = value
+        unit = _unit_of_key(key)
+        if unit is not None:
+            self._touch(*unit)
+
+    def _touch(self, *unit: str) -> None:
+        """Journal *unit* as written by this manager (see :attr:`_touched`)."""
+        self._touched.add(tuple(str(part) for part in unit))
+
+    def journal_entry(self, key: str, entry_id: str) -> None:
+        """Journal entry *entry_id* of the map *key* as written by this manager.
+
+        For a module that writes its own record into :attr:`state` with a
+        raw-dict helper (the scope-policy writers of ``scope_policy``,
+        ``scope_apply`` and ``scope_policy_runs``): :meth:`save` then keeps
+        that entry as this manager has it, whole, even when the write
+        repeated the recorded value. Journal only an entry the helper
+        wrote; one it left alone stays the file's.
+
+        *key* must be a map merged entry by entry (:data:`_ENTRY_MAPS`, or a
+        key with one of :data:`_ENTRY_MAP_PREFIXES`); any other key raises
+        ``ValueError``, since the merge would ignore the unit
+        (docs/development/write-scheduler.md, "Merge units").
+        """
+        if key not in _ENTRY_MAPS and not key.startswith(_ENTRY_MAP_PREFIXES):
+            raise ValueError(f"{key!r} is not a map merged entry by entry")
+        self._touch("entry", key, entry_id)
 
     # --- Metrics (in-memory; see utils/metrics.py for the file-level CLI) ---
 
@@ -1387,9 +2128,11 @@ class StateManager:
         this object rather than through ``metrics.py``'s own reader/writer is
         what stops the two racing on ``state.json`` — see :meth:`reload`.
         """
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
         from . import metrics as _metrics
 
         _metrics.start_phase_in_state(self.state, phase, int(total_batches))
+        self._touch("entry", "metrics_progress", phase)
 
     def finish_metrics_phase(
         self, phase: str
@@ -1401,11 +2144,52 @@ class StateManager:
         already hands back its own, so the scheduler can route it to the phase
         log the rest of that run's ETA lines went to (F7).
         """
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
         from . import metrics as _metrics
 
-        if phase not in (self.state.get("metrics_progress") or {}):
-            return None
-        return _metrics.finish_phase_in_state(self.state, phase)
+        started = phase in (self.state.get("metrics_progress") or {})
+        finished = _metrics.finish_phase_in_state(self.state, phase)
+        if finished is not None:
+            # What the helper cleared is this manager's write: the phase's
+            # left-out and set-aside tasks, and its progress entry when it
+            # had one (a run that dispatched nothing has none to clear).
+            keys = [_metrics.LEFT_OUT_KEY, _metrics.SET_ASIDE_KEY]
+            if started:
+                keys.append("metrics_progress")
+            for key in keys:
+                self._touch("entry", key, phase)
+        return finished
+
+    def set_metrics_left_out(self, phase: str, tasks: Mapping[str, str]) -> None:
+        """Replace *phase*'s left-out tasks (``metrics.LEFT_OUT_KEY``; ``{}``
+        clears them), journaled: a replacement that repeats the recorded
+        tasks, or clears tasks this manager never saw, is still this
+        manager's write."""
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
+        from . import metrics as _metrics
+
+        _metrics.set_left_out_in_state(self.state, phase, tasks)
+        self._touch("entry", _metrics.LEFT_OUT_KEY, phase)
+
+    def set_metrics_set_aside(self, phase: str, tasks: Mapping[str, str]) -> None:
+        """Replace *phase*'s set-aside tasks (``metrics.SET_ASIDE_KEY``;
+        ``{}`` clears them), journaled as :meth:`set_metrics_left_out` is."""
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
+        from . import metrics as _metrics
+
+        _metrics.set_set_aside_in_state(self.state, phase, tasks)
+        self._touch("entry", _metrics.SET_ASIDE_KEY, phase)
+
+    def set_metrics_total(self, phase: str, total: int) -> bool:
+        """Re-stamp ``metrics_progress.{phase}.total_batches`` to *total*, the
+        total the run's ``[ETA]`` lines count over, journaled. ``False``, and
+        nothing written, when the phase has no progress entry."""
+        progress = (self.state.get("metrics_progress") or {}).get(phase)
+        if not isinstance(progress, dict):
+            return False
+        progress["total_batches"] = total
+        self._touch("entry", "metrics_progress", phase)
+        return True
 
     def record_metric(self, phase: str, label: str, **kwargs: Any) -> Optional[str]:
         """Append one ``metrics.{phase}`` entry in memory; ``save()`` persists it.
@@ -1413,6 +2197,7 @@ class StateManager:
         The in-memory twin of ``metrics.record_metric``; returns the rendered
         ``[ETA]`` line (or None) for the caller to place, and prints nothing.
         """
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
         from . import metrics as _metrics
 
         return _metrics.record_metric_in_state(self.state, phase, label, **kwargs)
@@ -1426,6 +2211,7 @@ class StateManager:
             reason: Optional reason for the status change (e.g., why a task was skipped)
         """
         update_task_status_in_state(self.state, task_id, status, reason)
+        self._touch("task", task_id)
 
     def get_task_status(self, task_id: str) -> Optional[str]:
         """Get status of a task."""
@@ -1472,8 +2258,7 @@ class StateManager:
 
         ``implement`` records them when it decomposes the task list, on both
         legs, so a deferred task can be named later by what it is and not only
-        by its id (2026-10-04: a complete workflow said nothing about the two
-        manual tasks it left the user). *titles* is that whole decomposition:
+        by its id. *titles* is that whole decomposition:
         the titles merge, but its id set REPLACES ``implement_task_ids``, which
         is what :meth:`deferred_implementation_tasks` scopes to — nothing
         resets ``task_status`` on a fresh implement, so an id an earlier
@@ -1481,11 +2266,11 @@ class StateManager:
         (adversarial review, 2026-10-05). *human_ids*, when given, are that
         decomposition's manual tasks and REPLACE ``implement_human_task_ids``
         the same way — the key is absent when there are none, so a plan with
-        no manual task gains no key (fix round 7: the backstop in
+        no manual task gains no key (the backstop in
         :meth:`deferred_implementation_tasks`). *depends_on*, when given, is
         that decomposition's graph (every task's ``depends_on``, each list
         stored sorted and de-duplicated) and REPLACES
-        :data:`IMPLEMENT_TASK_GRAPH_KEY` (fix round 12). Returns whether
+        :data:`IMPLEMENT_TASK_GRAPH_KEY`. Returns whether
         anything changed; the caller saves.
         """
         recorded = dict(self.state.get("task_titles") or {})
@@ -1499,7 +2284,7 @@ class StateManager:
             human_ids is not None
             and self.state.get("implement_human_task_ids") != human
         )
-        # Each list sorted and de-duplicated (fix round 13), so the record
+        # Each list sorted and de-duplicated, so the record
         # does not depend on the order tasks.md lists a task's dependencies.
         graph = (
             None if depends_on is None
@@ -1527,66 +2312,55 @@ class StateManager:
             self.state.pop("implement_human_task_ids", None)
         if graph is not None:
             self.state[IMPLEMENT_TASK_GRAPH_KEY] = graph
+        self._touch("decomposition")
         return True
 
-    #: The recorded reason of an implement task the USER declined at
-    #: pause-and-ask (``write_batch_scheduler.resolve_human_task_plan``, and
-    #: the same words ``instructions/implement.md`` gives the native host). A
-    #: decision, not a deferral: the task is not left for them to do.
-    _USER_DECLINED_REASON = "skipped by user during pause-and-ask"
-
-    #: The recorded reason's prefix for a failed code task the user answered
-    #: ``--human-task <id>=skip`` (``write_batch_scheduler.ANSWERED_SKIP_PREFIX``
-    #: spells it). A decision too: the user gave the task up, so it is not
-    #: owed as manual work, and neither is a dependent skipped with it.
-    _ANSWERED_SKIP_PREFIX = "skipped — you answered --human-task "
+    #: The recorded reasons of a task the USER declined (a pause-and-ask
+    #: "Skip", a ``--human-task <id>=skip`` answer): a decision, not a
+    #: deferral, so the task is not owed as manual work, and neither is a
+    #: dependent skipped with it (``task_ledger.is_declined_reason``).
+    _USER_DECLINED_REASON = _task_ledger.USER_DECLINED_REASON
+    _ANSWERED_SKIP_PREFIX = _task_ledger.ANSWERED_SKIP_PREFIX
 
     #: The recorded reason of a dependent the transitive skip walk took with
     #: its parent (both legs spell it ``skipped — depends on skipped task
     #: {parent_id} ({parent_title})``); owed exactly when the parent is.
     _DEPENDS_ON_SKIPPED = re.compile(r"^skipped — depends on skipped task (T[0-9]{3})\b")
 
-    def _deferred_to_user(self, task_id: str, seen: Optional[set] = None) -> bool:
+    def _skip_parent(self, task_id: str) -> Optional[str]:
+        """The skipped task *task_id*'s recorded skip reason names
+        (:attr:`_DEPENDS_ON_SKIPPED`), or ``None``: one link of the skip
+        chain ``task_ledger`` walks."""
+        reasons = self.state.get("task_status_reasons") or {}
+        match = self._DEPENDS_ON_SKIPPED.match(str(reasons.get(task_id) or ""))
+        return match.group(1) if match else None
+
+    def _deferred_to_user(self, task_id: str) -> bool:
         """Whether *task_id*'s skip leaves the task for the user to do.
 
         A deferral (a human task under a skip strategy, ``deferred — …``) and
         a dependent of one are owed; a pause-and-ask "Skip", a failed code
         task answered ``--human-task <id>=skip``, and a dependent of either
-        are not. A reason this does not recognise — none recorded, a state
-        written before reasons were — stays owed, as every skip used to be.
+        are not (``task_ledger.chain_declined``). A reason this does not
+        recognise — none recorded, a state written before reasons were —
+        stays owed, as every skip used to be.
         """
-        reason = str((self.state.get("task_status_reasons") or {}).get(task_id) or "")
-        if reason.startswith((self._USER_DECLINED_REASON, self._ANSWERED_SKIP_PREFIX)):
-            return False
-        match = self._DEPENDS_ON_SKIPPED.match(reason)
-        seen = set() if seen is None else seen
-        if match is None or task_id in seen:
-            return True
-        seen.add(task_id)
-        return self._deferred_to_user(match.group(1), seen)
+        reasons = self.state.get("task_status_reasons") or {}
+        return not _task_ledger.chain_declined(
+            task_id, self._skip_parent, lambda current: reasons.get(current))
 
     def deferral_root(self, task_id: str) -> Optional[str]:
         """The task a dependent skipped with a deferral waits on: the end of
         its ``skipped — depends on skipped task …`` chain (the manual task),
         or ``None`` when *task_id* was not skipped as a dependent.
 
-        Fix round 17: such a task is a code task (or a check) the run did not
+        Such a task is a code task (or a check) the run did not
         do, not manual work. It runs on the resume that records its manual
         task done (``--human-task <id>=done``), so every surface names it
         apart: ``waits_on`` on its :meth:`deferred_implementation_tasks`
         entry, "skipped (depends on manual T005)" on ``status``.
         """
-        reasons = self.state.get("task_status_reasons") or {}
-        root: Optional[str] = None
-        current = task_id
-        seen: set = set()
-        while current not in seen:
-            seen.add(current)
-            match = self._DEPENDS_ON_SKIPPED.match(str(reasons.get(current) or ""))
-            if match is None:
-                break
-            root = current = match.group(1)
-        return root
+        return _task_ledger.skip_chain_root(task_id, self._skip_parent)
 
     def deferred_implementation_tasks(self) -> List[Dict[str, Optional[str]]]:
         """The implement tasks the run left for the user, as ``{id, title}``, by id.
@@ -1601,7 +2375,7 @@ class StateManager:
         ``None`` when ``task_titles`` has no entry (a state written before
         titles were recorded). A task skipped because it depends on a
         deferral also carries ``waits_on``, the deferred task it waits on
-        (:meth:`deferral_root`, fix round 17): implement runs it once that
+        (:meth:`deferral_root`): implement runs it once that
         one is recorded done.
         """
         titles = self.state.get("task_titles") or {}
@@ -1612,7 +2386,7 @@ class StateManager:
             task_id for task_id, status in statuses.items()
             if status == "skipped" and self._deferred_to_user(task_id)
         }
-        # The backstop (fix round 7): implement is on record as completed and
+        # The backstop: implement is on record as completed and
         # a manual task of its decomposition has no answer at all — neither
         # `completed` (done) nor a recorded skip. Nobody did it, so it is
         # owed: a host that resolved the strategy itself and recorded nothing
@@ -1638,12 +2412,12 @@ class StateManager:
         """The ids of *deferred* (:meth:`deferred_implementation_tasks`) that a
         ``--human-task <id>=done`` closes: the manual tasks themselves.
 
-        Fix round 16: the how-to-close note answered every deferred id, so a
+        The how-to-close note answered every deferred id, so a
         code task ``skip-dependents`` skipped with a manual task got
         ``--human-task <id>=done`` too, which implement refuses (a code task is
         answerable only once it failed); it runs on that same resume once its
         manual task is done. A state with no ``implement_human_task_ids`` (one
-        written before fix round 7) keeps every id, as before.
+        written) keeps every id, as before.
         """
         ids = [str(entry.get("id")) for entry in deferred
                if isinstance(entry, dict) and entry.get("id")]
@@ -1651,7 +2425,7 @@ class StateManager:
         if not isinstance(human, list):
             return ids
         manual = {str(task_id) for task_id in human}
-        # Fix round 28 (live run 12, Codex racing 06): only the ones the user
+        # Only the ones the user
         # can do now. T008 and T009 depend on code nothing had run yet, and
         # the command recorded them done beside T010.
         gates = self.manual_task_gates(deferred)
@@ -1701,7 +2475,7 @@ class StateManager:
         tasks recorded ``completed`` (a check with findings is a completed
         task; a later failure or re-run clears its entry) or ``skipped`` (the
         user answered ``--human-task <id>=skip`` to a check with findings: the
-        problems are still in the code, fix round 11) and scoped to the
+        problems are still in the code) and scoped to the
         decomposition implement ran last, as
         :meth:`deferred_implementation_tasks` is.
         """
@@ -1734,7 +2508,7 @@ class StateManager:
         ``[{id, title, findings}]`` from :data:`TASK_BATCH_CHECK_KEY`, for
         tasks recorded ``completed`` (a later record of the task clears its
         entry) and scoped to the decomposition implement ran last, as
-        :meth:`implementation_check_findings` is (fix round 15).
+        :meth:`implementation_check_findings` is.
         """
         recorded = self.state.get(TASK_BATCH_CHECK_KEY)
         if not isinstance(recorded, dict) or not recorded:
@@ -1761,7 +2535,7 @@ class StateManager:
 
     def implementation_batch_check_accepted(self) -> List[Dict[str, Any]]:
         """The implement tasks whose own check reported again only what the
-        user accepted for a check (fix round 23).
+        user accepted for a check.
 
         ``[{id, title, checks: {check_id: findings}}]`` from
         :data:`TASK_BATCH_CHECK_ACCEPTED_KEY`, for tasks recorded
@@ -1772,7 +2546,7 @@ class StateManager:
 
     def implementation_batch_check_repeats(self) -> List[Dict[str, Any]]:
         """The implement tasks whose own check reported only what a check
-        task of the run reported (fix round 28): ``[{id, title, checks:
+        task of the run reported: ``[{id, title, checks:
         {check_id: findings}}]`` from :data:`TASK_BATCH_CHECK_REPEATS_KEY`,
         by :meth:`implementation_batch_check_accepted`'s rule."""
         return self._implementation_batch_check_by_check(TASK_BATCH_CHECK_REPEATS_KEY)
@@ -1820,6 +2594,7 @@ class StateManager:
         """
         if "tracked_files" not in self.state:
             self.state["tracked_files"] = []
+        self._touch("tracked", path)
 
         # Check if file already tracked
         for entry in self.state["tracked_files"]:
@@ -1849,6 +2624,7 @@ class StateManager:
     def mark_review_phase_completed(self) -> None:
         """Mark the plan review phase as completed."""
         self.state["review_phase_completed"] = True
+        self._touch("key", "review_phase_completed")
 
     def is_review_phase_completed(self) -> bool:
         """Check if the plan review phase is completed."""
@@ -1865,6 +2641,7 @@ class StateManager:
                    implement, review-code, apply-code-fixes)
         """
         mark_phase_completed_in_state(self.state, phase)
+        self._touch("phase", phase)
         # `review_phase_completed` predates this general map and nothing ever
         # set it (F11): a fully completed review-plan phase left it `False`
         # forever, contradicting `phases_completed["review-plan"]` in the same
@@ -1883,6 +2660,7 @@ class StateManager:
         process.
         """
         mark_phase_started_in_state(self.state, phase)
+        self._touch("phase", phase)
 
     def is_phase_started(self, phase: str) -> bool:
         """Whether *phase*'s newest record is a start, not a completion.
@@ -1975,6 +2753,22 @@ class StateManager:
         # left beside it would keep offering `--resume` for a phase the user
         # chose not to finish.
         _pop_phase_started(self.state, phase)
+        self._touch("phase", phase)
+
+    def reopen_phase(self, phase: str) -> bool:
+        """Drop *phase*'s completion, so the phase reads as owing work again
+        (``--force``, a review round handed out for validation again).
+
+        Journaled as a write of the phase's record: the next :meth:`save`
+        keeps the phase as this manager has it, so a completion another
+        writer recorded after this manager loaded is dropped too, while
+        every other phase's record is the file's. Returns whether this
+        manager's view had a completion to drop; the caller saves.
+        """
+        completed = self.state.get("phases_completed")
+        removed = isinstance(completed, dict) and completed.pop(phase, None) is not None
+        self._touch("phase", phase)
+        return removed
 
     def is_phase_skipped(self, phase: str) -> bool:
         """
@@ -2015,11 +2809,9 @@ class StateManager:
         again after the apply last finished, so its findings are not applied
         yet.
 
-        Every stamp goes through :func:`_parse_completion_time`, the reading
-        ``phase_completion_is_stale`` and ``is_phase_started`` give a stamp
-        (``write_batch_scheduler._parse_local_timestamp`` and
-        ``check_workflow_prerequisites._parse_timestamp`` are its copies), so
-        a stamp with a UTC offset and a naive local one compare as instants.
+        Every stamp goes through :func:`_parse_completion_time`, the one
+        reading of a stamp, so a stamp with a UTC offset and a naive local
+        one compare as instants.
 
         False whenever a date does not parse (an unparseable review stamp, a
         completion that is not a string, a skip that is not a dict or has no
@@ -2051,15 +2843,22 @@ class StateManager:
             if stamp is None:
                 return False
             stamps.append(stamp)
-        return bool(stamps) and max(stamps) < reviewed_at
+        return bool(stamps) and predates_review(max(stamps), reviewed_at)
 
     def has_plan_changed(self) -> bool:
         """Check if plan has changed since last run."""
         return self.state.get("plan_changed", False)
 
     def clear_plan_changed_flag(self) -> None:
-        """Clear the plan changed flag."""
+        """Clear the plan changed flag (the flag consumed).
+
+        Journaled with ``plan_hash`` as one unit: the save writes this
+        manager's hash beside the cleared flag, so a newer edit another
+        writer detected meanwhile is found again by the next load rather
+        than recorded as consumed.
+        """
         self.state.pop("plan_changed", None)
+        self._touch("plan")
 
     def refresh_plan_hash(self) -> None:
         """Re-stamp ``plan_hash`` to the plan's current on-disk content.
@@ -2084,8 +2883,7 @@ class StateManager:
     ) -> None:
         """Replace only the given ``commit_range`` fields, and save.
 
-        The one writer of a commit front door's record (plans/review-commits.md
-        §2.1, "Who writes ``commit_range``"): step 6 of ``--review-commits``,
+        The one writer of a commit front door's record: step 6 of ``--review-commits``,
         ``--apply-commit-fixes``, ``--improve-commits`` and ``util
         commit-brief``, and a detached worker applying its launch's stage. A new
         brief passes every field; an existing one passes what this entry
@@ -2105,12 +2903,13 @@ class StateManager:
         *clear_phases* are popped from ``phases_completed`` in the same save:
         a restart's archived round (``["code-review"]``) stops reading as a
         completed review the moment it is recorded, whether or not the
-        restarted phase ever runs (§2.7, "Not candidates").
+        restarted phase ever runs.
         """
         if self.read_only:
             raise RuntimeError(
                 f"read-only StateManager for {self.plan_path} cannot record commit_range"
             )
+        # Imported here to keep full_workflow_orchestrator, which loads this module, light.
         from .metrics import state_file_lock
 
         # The lock lives beside the file; a folder that does not exist yet has
@@ -2118,14 +2917,19 @@ class StateManager:
         self.state_file.parent.mkdir(parents=True, exist_ok=True)
         with state_file_lock(self.state_file):
             loaded: Any = None
+            read_text: Optional[str] = None
             if self.state_file.exists():
                 try:
-                    loaded = self._read_upgraded()
+                    loaded, read_text = self._read_upgraded_text()
                 except (OSError, ValueError):
                     loaded = None
-            if not isinstance(loaded, dict):
+            if isinstance(loaded, dict):
+                self._remember_baseline(read_text)
+            else:
                 loaded = self._create_initial_state()
+                self._remember_baseline(None)
             self.state = loaded
+            self._touched = set()
             record = self.state.get("commit_range")
             merged: Dict[str, Any] = dict(record) if isinstance(record, Mapping) else {}
             merged.update(json.loads(json.dumps(dict(fields))))
@@ -2159,13 +2963,26 @@ class StateManager:
         }
 
     def reset(self) -> None:
-        """Reset state to initial values (preserves plan reference)."""
+        """Reset state to initial values (preserves plan reference).
+
+        An explicit reset of the whole document, stamped
+        :data:`DOCUMENT_RESET` in :data:`STATE_RESETS_KEY`: the next
+        :meth:`save` writes this manager's document whole, so a record
+        another writer made meanwhile does not survive it, and a writer that
+        loaded the file before it takes the reset document (its own changes
+        included: they predate the reset) rather than bringing anything back.
+        """
         self.state = self._create_initial_state()
+        self.state[STATE_RESETS_KEY] = {DOCUMENT_RESET: datetime.now().isoformat()}
+        self._touched = set()
 
     def delete(self) -> None:
-        """Delete the state file."""
-        if self.state_file.exists():
-            self.state_file.unlink()
+        """Delete the state file, under the state lock and through its folder
+        held below the plan's directory (``state_file.remove_document``)."""
+        with _state_file.locked(self.state_file):
+            if self.state_file.exists():
+                _state_file.remove_document(self.state_file)
+        self._remember_baseline(None)
 
     # --- Human Task Strategy ---
 
@@ -2176,6 +2993,7 @@ class StateManager:
             strategy: One of "pause-and-ask", "skip-continue", "skip-dependents", "cancel"
         """
         self.state["human_task_strategy"] = strategy
+        self._touch("key", "human_task_strategy")
 
     def get_human_task_strategy(self) -> Optional[str]:
         """Get the previously chosen human task handling strategy.
@@ -2184,6 +3002,22 @@ class StateManager:
             Strategy string if set, None otherwise (user should be re-prompted)
         """
         return self.state.get("human_task_strategy")
+
+    def record_human_task_answers(self, answers: Mapping[str, str]) -> None:
+        """Record the user's ``--human-task`` answers (``{task_id: action}``)
+        over the answers already recorded.
+
+        Each answered task's record is journaled, so an answer that repeats
+        the recorded one is still this manager's write: a writer that
+        consumed the earlier answer meanwhile does not take the repeated one
+        with it. The map is written even when *answers* is empty.
+        """
+        recorded = self.state.get(HUMAN_TASK_DECISIONS_KEY)
+        recorded = dict(recorded) if isinstance(recorded, dict) else {}
+        recorded.update({str(task_id): action for task_id, action in answers.items()})
+        self.state[HUMAN_TASK_DECISIONS_KEY] = recorded
+        for task_id in answers:
+            self._touch("task", task_id)
 
     # --- Dependency Override Tracking ---
 
@@ -2203,6 +3037,7 @@ class StateManager:
             "overridden_deps": overridden_deps,
             "timestamp": datetime.now().isoformat(),
         }
+        self._touch("task", task_id)
 
     def get_dependency_overrides(self, task_id: str) -> Optional[Dict[str, Any]]:
         """Get dependency override info for a task."""
@@ -2248,6 +3083,7 @@ class StateManager:
             decision_record["batch_context"] = batch_context
 
         self.state[key][group_id] = decision_record
+        self._touch("entry", key, group_id)
 
     def get_human_decision(self, phase: str, group_id: str) -> Optional[Dict[str, Any]]:
         """Get previously recorded human decision for an item."""
@@ -2260,10 +3096,34 @@ class StateManager:
         key = f"human_decisions_{phase}"
         return self.state.get(key, {}).copy()
 
+    def record_judge_verdicts(
+        self, phase: str, verdicts: Mapping[str, Mapping[str, Any]],
+        unresolved: Sequence[str] = (),
+    ) -> None:
+        """Store the judge's raw verdicts (``{group_id: verdict}``) in
+        ``human_decision_verdicts_<phase>``, and the groups it left
+        unresolved, when any, in ``human_decision_unresolved_<phase>``.
+
+        Each verdict is journaled as its group's entry and the unresolved
+        list as one value, so a verdict that repeats the stored one is still
+        this manager's write.
+        """
+        key = f"{_VERDICTS_PREFIX}{phase}"
+        stored = self.state.get(key)
+        if not isinstance(stored, dict):
+            stored = self.state[key] = {}
+        for group_id, verdict in verdicts.items():
+            stored[group_id] = dict(verdict)
+            self._touch("entry", key, group_id)
+        if unresolved:
+            unresolved_key = f"human_decision_unresolved_{phase}"
+            self.state[unresolved_key] = list(unresolved)
+            self._touch("key", unresolved_key)
+
     def clear_human_decisions(self, phase: str) -> None:
-        """Clear all human decisions for a phase (for fresh start)."""
-        key = f"human_decisions_{phase}"
-        self.state.pop(key, None)
+        """Clear all human decisions for a phase (for fresh start); an
+        explicit reset (:meth:`clear_key`)."""
+        self.clear_key(f"human_decisions_{phase}")
 
     # --- Processing Progress Tracking ---
 
@@ -2293,6 +3153,7 @@ class StateManager:
             "total_batches": total_batches,
             "last_updated": datetime.now().isoformat()
         }
+        self._touch("key", key)
 
     def get_processing_progress(self, phase: str) -> Optional[Dict[str, Any]]:
         """Get processing progress for resume."""
@@ -2318,6 +3179,7 @@ class StateManager:
             details: Optional details about the processing
         """
         mark_item_processed_in_state(self.state, phase, group_id, status, details)
+        self._touch("entry", f"processed_{phase}", group_id)
 
     def get_processed_items(self, phase: str) -> Dict[str, Dict[str, Any]]:
         """Get all processed items for a phase."""
@@ -2330,14 +3192,28 @@ class StateManager:
         return group_id in self.state.get(key, {})
 
     def clear_processed_items(self, phase: str) -> None:
-        """Clear all processed items for a phase (for fresh start)."""
-        key = f"processed_{phase}"
-        self.state.pop(key, None)
+        """Clear all processed items for a phase (for fresh start); an
+        explicit reset (:meth:`clear_key`)."""
+        self.clear_key(f"processed_{phase}")
 
     def clear_processing_progress(self, phase: str) -> None:
-        """Clear processing progress for a phase."""
-        key = f"progress_{phase}"
+        """Clear processing progress for a phase; an explicit reset
+        (:meth:`clear_key`)."""
+        self.clear_key(f"progress_{phase}")
+
+    def clear_key(self, key: str) -> None:
+        """Drop top-level *key* as an explicit reset (``--fresh``).
+
+        Stamped in :data:`STATE_RESETS_KEY`, so :meth:`save` keeps the key as
+        this manager has it: whatever another writer added to it meanwhile is
+        dropped with the rest, and a writer that loaded the file before the
+        reset cannot bring any of it back with its own save.
+        """
         self.state.pop(key, None)
+        stamps = self.state.get(STATE_RESETS_KEY)
+        stamps = dict(stamps) if isinstance(stamps, dict) else {}
+        stamps[key] = datetime.now().isoformat()
+        self.state[STATE_RESETS_KEY] = stamps
 
 
 def get_or_create_state(plan_path: Path, state_dir: Optional[Path] = None) -> StateManager:

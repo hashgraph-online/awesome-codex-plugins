@@ -5,7 +5,7 @@
 
 import { claudeRequestStatsDirOf, claudeSelectionDirOf, dataDir } from "../../core/paths.ts";
 import { readRequestStats, type RequestStats } from "../../core/request-stats.ts";
-import { stableIdsSince, writeSelection, type Selection } from "../../core/selection.ts";
+import { stableIdTimes, writeSelection, type Selection } from "../../core/selection.ts";
 import { askedIn, changedSelection, imageUrl, joinTurns, offKeys, panelStateOf, piece, type PanelState, type SelectionChange } from "../../panel/panel-state.ts";
 import { claudeHome, claudeImageData, claudeStartedAt, isPrompt, loadClaudeIndex, type ClaudeIndex, type ClaudeRecord } from "./claude-index.ts";
 import { claudeSelection } from "./selection.ts";
@@ -32,7 +32,7 @@ export type ClaudePanelOptions = { dataRoot?: string; home?: string };
 
 function loadClaude(sessionId: string, options: ClaudePanelOptions) {
   const root = options.dataRoot ?? dataDir();
-  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome(), stableIdsSince(claudeSelectionDirOf(root)));
+  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome(), stableIdTimes(claudeSelectionDirOf(root)));
   const selection = claudeSelection(sessionId, claudeSelectionDirOf(root), claudeStartedAt(index), index.previous);
   const stats = readRequestStats(sessionId, claudeRequestStatsDirOf(root));
   return { root, index, selection, stats };
@@ -54,7 +54,7 @@ export function applyClaudeSelection(sessionId: string, change: SelectionChange,
 }
 
 export function claudeImageFor(sessionId: string, id: string, maxSide: number, options: ClaudePanelOptions = {}): { id: string; dataUrl: string | null } {
-  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome(), stableIdsSince(claudeSelectionDirOf(options.dataRoot ?? dataDir())));
+  const index = loadClaudeIndex(sessionId, options.home ?? claudeHome(), stableIdTimes(claudeSelectionDirOf(options.dataRoot ?? dataDir())));
   const image = index.images.find((candidate) => candidate.id === id);
   if (!image) throw new Error(`${id} is not an image of this session`);
   return { id, dataUrl: imageUrl(image, claudeImageData(index, image), maxSide) };

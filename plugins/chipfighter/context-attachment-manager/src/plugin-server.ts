@@ -44,7 +44,7 @@ import { claudeSelectionDirOf, dataDir, pixelCacheDirOf, selectionDirOf } from "
 import { fetchedLabel, fetchWords } from "./core/words.ts";
 import { claudeSelection } from "./adapters/claude/selection.ts";
 import { effectiveSelection } from "./adapters/codex/selection.ts";
-import { ensureAutoDefault, ensureStableIds, stableIdsSince } from "./core/selection.ts";
+import { ensureAutoDefault, ensureStableIds, stableIdTimes } from "./core/selection.ts";
 import { connectDirectly, useEngine, usesEngine } from "./adapters/codex/setup.ts";
 import { hasRollout, loadThreadIndex, readThreadHistory, sessionMetaOf, sideChatOrigin } from "./adapters/codex/thread-index.ts";
 import { setPixelCache } from "./core/pixels.ts";
@@ -268,7 +268,7 @@ export function callClaudeTool(name: string, args: Json, options: ClaudePanelOpt
     const words = fetchWords(lang);
     const ids: string[] = Array.isArray(args.ids) ? args.ids.map(String) : typeof args.id === "string" ? [args.id] : [];
     const selectionDir = claudeSelectionDirOf(options.dataRoot ?? dataDir());
-    const index = loadClaudeIndex(sessionId, options.home, stableIdsSince(selectionDir));
+    const index = loadClaudeIndex(sessionId, options.home, stableIdTimes(selectionDir));
     if (!claudeSelection(sessionId, selectionDir, claudeStartedAt(index), index.previous).auto) {
       log({ event: "fetch", host: "claude", sessionId, ids, refused: "automatic selection is off" });
       return { content: [{ type: "text", text: words.off }], isError: true };

@@ -27,7 +27,7 @@ list edited since, which a batch may have written), in a check task's
 description and acceptance criteria and a code task's acceptance criteria (a
 plain check command in backticks, :func:`is_check_command`); and the test
 command a ``package.json`` (or the like)
-declares (``write_batch_scheduler.verify_command_candidate``). Shown as
+declares (``verification_lines.verify_command_candidate``). Shown as
 found; never run by the plugin.
 """
 
@@ -39,10 +39,9 @@ import shlex
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-try:
-    from .text_clip import clip
-except ImportError:  # pragma: no cover - direct script runs with utils/ on path
-    from text_clip import clip  # type: ignore
+from .state_file import STATE_FILENAME, read_document
+from .tasks_file import read_task_list
+from .text_clip import clip
 
 #: At most this many commands are listed in a prompt (prompt size).
 KNOWN_CHECKS_MAX = 6
@@ -378,11 +377,8 @@ def commands_in_text(text: Any) -> List[str]:
 
 
 def read_state(output_dir: Any) -> Dict[str, Any]:
-    try:
-        state = json.loads((Path(str(output_dir)) / "state.json").read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return state if isinstance(state, dict) else {}
+    """``state.json`` in *output_dir*, or ``{}`` (``state_file.read_document``)."""
+    return read_document(Path(str(output_dir)) / STATE_FILENAME) or {}
 
 
 def implement_task_list_text(output_dir: Any, plan: Optional[Path]) -> Optional[str]:
@@ -399,27 +395,22 @@ def implement_task_list_text(output_dir: Any, plan: Optional[Path]) -> Optional[
     if plan is None or output_dir is None:
         return None
     try:
-        try:
-            from .plan_updater import get_tasks_file_path
-            from .subagent_tasks import content_hash
-            from .write_phase_bridge import WRITE_TASK_FILENAME
-        except ImportError:  # pragma: no cover - direct script invocation
-            from utils.plan_updater import get_tasks_file_path  # type: ignore
-            from utils.subagent_tasks import content_hash  # type: ignore
-            from utils.write_phase_bridge import WRITE_TASK_FILENAME  # type: ignore
+        # Imported at call time, as are the readers below: `batch_reply` and
+        # `check_records` import this module and load neither the provider
+        # stack nor a YAML parser, which these modules bring.
+        from .subagent_tasks import content_hash
+        from .write_phase_bridge import WRITE_TASK_FILENAME
         document = json.loads(
             (Path(str(output_dir)) / "implement" / WRITE_TASK_FILENAME).read_text(encoding="utf-8")
         )
         inputs = document.get("inputs") if isinstance(document, dict) else None
         if not isinstance(inputs, dict):
             return None
-        content = Path(plan).read_text(encoding="utf-8")
-        reference = get_tasks_file_path(content)
-        if reference:
-            expected = inputs.get("tasks_sha256")
-            content = (Path(plan).parent / reference).read_text(encoding="utf-8")
-        else:
-            expected = inputs.get("plan_sha256")
+        task_list = read_task_list(plan)
+        content = task_list.text
+        expected = inputs.get(
+            "tasks_sha256" if task_list.path is not None else "plan_sha256"
+        )
         if not expected or content_hash(content) != str(expected):
             return None
         return content
@@ -447,10 +438,8 @@ def _task_list_commands(
     if text is None:
         return []
     try:
-        try:
-            from .task_decomposer import TaskDecomposer
-        except ImportError:  # pragma: no cover - direct script invocation
-            from utils.task_decomposer import TaskDecomposer  # type: ignore
+        # Imported at call time: `batch_reply` and `check_records` load this module and stay light.
+        from .task_decomposer import TaskDecomposer
         tasks = list(TaskDecomposer().parse_plan(text))
     except Exception:  # noqa: BLE001 - a task list that cannot be parsed names none
         return []
@@ -494,10 +483,8 @@ def known_check_commands(
     plan = Path(str(plan_text)) if plan_text else None
     found: List[Tuple[str, str]] = []
     try:
-        try:
-            from .provider_registry import get_verify_command
-        except ImportError:  # pragma: no cover - direct script invocation
-            from utils.provider_registry import get_verify_command  # type: ignore
+        # Imported at call time: `batch_reply` and `check_records` load this module and stay light.
+        from .provider_registry import get_verify_command
         verify = get_verify_command(anchor=str(plan) if plan else None)
     except Exception:  # noqa: BLE001 - no config read is no configured check
         verify = None
@@ -507,18 +494,15 @@ def known_check_commands(
     root = repo_root
     if root is None and plan is not None:
         try:
-            try:
-                from .write_safety import resolve_repo_root
-            except ImportError:  # pragma: no cover - direct script invocation
-                from utils.write_safety import resolve_repo_root  # type: ignore
+            # Imported at call time: `batch_reply` and `check_records` load this module and stay
+            # light.
+            from .write_safety import resolve_repo_root
             root = resolve_repo_root(str(plan))
         except Exception:  # noqa: BLE001 - no root is no declared test command
             root = None
     try:
-        try:
-            from .write_batch_scheduler import verify_command_candidate
-        except ImportError:  # pragma: no cover - direct script invocation
-            from utils.write_batch_scheduler import verify_command_candidate  # type: ignore
+        # Imported at call time: `verification_lines` imports this module.
+        from .verification_lines import verify_command_candidate
         candidate = verify_command_candidate(root)
     except Exception:  # noqa: BLE001
         candidate = None
@@ -696,14 +680,12 @@ def listed_check_outcomes(
     return out
 
 
-def _failed_without_findings() -> str:
-    """``subagent_executor.CHECK_FAILED_WITHOUT_FINDINGS``: what a check that
-    said ``passed: false`` and listed no finding reads as."""
-    try:
-        from .subagent_executor import CHECK_FAILED_WITHOUT_FINDINGS
-    except ImportError:  # pragma: no cover - direct script invocation
-        from utils.subagent_executor import CHECK_FAILED_WITHOUT_FINDINGS  # type: ignore
-    return CHECK_FAILED_WITHOUT_FINDINGS
+#: The finding recorded for a ``check`` that said it did not pass and listed
+#: no finding, so the task still reads as one with findings.
+CHECK_FAILED_WITHOUT_FINDINGS = (
+    "the check reported that it did not pass but listed no finding; "
+    "see the runner notes"
+)
 
 
 def with_listed_failures(
@@ -722,7 +704,7 @@ def with_listed_failures(
     """
     failed = [command for command, word in listed.items() if word == LISTED_FAILED]
     if not failed:
-        if listed and list(findings or []) == [_failed_without_findings()]:
+        if listed and list(findings or []) == [CHECK_FAILED_WITHOUT_FINDINGS]:
             return []
         return findings
     current = list(findings or [])

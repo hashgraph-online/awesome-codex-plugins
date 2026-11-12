@@ -541,8 +541,12 @@ params. A fixture's run-unique value in a goal's params goes in as
 Prefer `app` and `screen`; `browser` is for what only a browser has, and a
 portable suite declares `requires: ['browser']`. Page methods act on the one
 active tab; cookies, routes, and `onDialog` cover the whole browser. A tab
-the app opens itself (`target="_blank"`, `window.open`) is not followed:
-`browser.goto` its URL instead.
+the app opens (`target="_blank"`, `window.open`) opens in the background:
+the active tab stays where it was. `waitForPopup(() => trigger)` makes the
+tab the trigger opens active and resolves with it. When the active tab
+closes, its opener is active again, or the tab active most recently when
+the opener is gone. `tabs()`, `newTab()`, `tab.activate()`, and
+`tab.close()` move between tabs.
 
 - `goto(url, { waitUntil?, timeout? })`, `reload({ timeout? })`,
   `back({ timeout? })`, `forward({ timeout? })`: navigation on the test
@@ -568,11 +572,12 @@ the app opens itself (`target="_blank"`, `window.open`) is not followed:
   `fulfill({ status?, headers?, contentType?, json | body | path })` (`body`
   a string or bytes; several cookies as one `\n`-joined `set-cookie`),
   `continue({ url?, method?, headers?, postData? })` (straight to the
-  network; a header set to `undefined` is dropped, configured site headers
-  still added), `fallback()` (the route registered before it), or `abort()`;
+  network; a header set to `undefined` is dropped, the configured `headers`
+  still added on an allowed origin), `fallback()` (the route registered
+  before it), or `abort()`;
   none or two fails the next step with `ACTION_FAILED`, an unsupported
   option with `INVALID_ARGUMENT`.
-- `unrouteAll()` removes every route; configured site headers stay.
+- `unrouteAll()` removes every route; configured headers stay.
 - `waitForResponse(pattern, { timeout? })`: resolves once the headers
   arrive, with `{ url, status, headers, body(), json(), text() }`; the body
   readers wait for the body (up to the action timeout) and reject with

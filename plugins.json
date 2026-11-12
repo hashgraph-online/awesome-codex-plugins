@@ -1502,6 +1502,16 @@
       "install_url": "https://raw.githubusercontent.com/runtypelabs/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Rush",
+      "url": "https://github.com/phnx-labs/rush-mcp",
+      "owner": "phnx-labs",
+      "repo": "rush-mcp",
+      "description": "Hand a task to a cloud agent that works in its own cloud computer and returns a pull request, a report, files or an answer; start, wait for, reply to and stop tasks through a hosted MCP server with OAuth sign-in.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/phnx-labs/rush-mcp/HEAD/plugin.json"
+    },
+    {
       "name": "Sealos",
       "url": "https://github.com/labring/sealos-skills",
       "owner": "labring",
@@ -3692,16 +3702,6 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/droplinked/storyflo-codex-plugin/HEAD/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "StupidMirror",
-      "url": "https://github.com/LiuTianjie/StupidMirror",
-      "owner": "LiuTianjie",
-      "repo": "StupidMirror",
-      "description": "Free for one device: the StupidMirror Mac app and its local MCP server let Codex see and operate iPhones, Android phones, iOS Simulators and Android emulators, with taps, swipes, typing, screenshots with OCR, the UI tree, app installs and screen recording.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/LiuTianjie/StupidMirror/HEAD/plugins/stupidmirror/plugin.json"
     },
     {
       "name": "SwapWallet",

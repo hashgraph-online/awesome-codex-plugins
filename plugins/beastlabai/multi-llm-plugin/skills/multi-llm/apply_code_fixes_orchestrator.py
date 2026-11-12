@@ -10,13 +10,14 @@ Usage:
     uv run --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" apply-code-fixes plans/my-plan.md [options]
 """
 
-import json
+import copy
 import os
 import re
 import sys
+from argparse import SUPPRESS
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
@@ -29,15 +30,12 @@ from utils.apply_orchestrator_base import (
     build_common_arg_parser,
 )
 from utils.cli_common import dispatcher_prefix
-from utils.text_clip import clip
 from utils.judge_vocab import JUDGE_AUTO_DECIDE, JUDGE_DECIDE, canonical_value
 from utils.apply_output_helpers import (
-    build_skipped_output,
-    emit_json_output,
+    detail_pointer_lines,
     write_and_emit_output,
 )
 from utils.apply_path_helpers import load_json_file
-from utils.apply_selection_helpers import merge_validation_with_groups
 from utils.code_fix_batcher import (
     CodeFixBatch,
     batch_code_fixes,
@@ -46,14 +44,12 @@ from utils.code_fix_batcher import (
     estimate_batch_processing_stats,
     format_fix_batch_prompt,
 )
-from utils.git_utils import validate_git_ref
-from utils.importance import get_highest_importance
-from utils.output_handler import derive_prefix, find_output_dir
+from utils.git_utils import validate_git_ref, git_path
+from utils import importance as _importance
 from utils.report_parser import (
+    description_edited,
+    escaped_report,
     issue_numbering_digest,
-    load_html_selections,
-    merge_selections,
-    normalize_description,
     parse_issue_descriptions,
     parse_issue_numbering_digest,
     parse_skipped_issues,
@@ -61,14 +57,27 @@ from utils.report_parser import (
 )
 from utils.state_manager import (
     CURRENT_FORMAT_VERSION,
-    StateManager,
     load_groups_payload,
     match_issues_to_suggestions,
     stamp_stable_ids,
 )
 from utils.validation import (
     load_validation_results as load_validation_v2,
+    bind_document_text,
+    pinned_validation_guidance,
 )
+from utils.scope_apply import selected_remedy
+from utils.commit_apply import (
+    group_files,
+    PROTECTED_NAMED_MAX,
+    ROOT_RANGE_LINE,
+    deleted_file_history,
+    guard_record,
+    history_lines,
+    write_protected_list,
+)
+from utils.commit_range import DATA_UNDER_REVIEW, pinned_record
+from utils.commit_front_door import hand_worker_the_stage_applier
 
 
 # ---------------------------------------------------------------------------
@@ -169,6 +178,7 @@ def find_edited_issue_descriptions(
 
     if not report_descriptions:
         return {}
+    escaped = escaped_report(report_path)
 
     edited = {}
 
@@ -186,7 +196,7 @@ def find_edited_issue_descriptions(
             else:
                 original_desc = group.get('desc', group.get('description', ''))
 
-            if normalize_description(original_desc) != normalize_description(report_desc):
+            if description_edited(original_desc, report_desc, escaped=escaped):
                 edited[issue_num] = (original_desc, report_desc)
     else:
         for issue_idx, issue in enumerate(issues, start=1):
@@ -198,7 +208,7 @@ def find_edited_issue_descriptions(
 
             if issue_idx in report_descriptions:
                 report_desc = report_descriptions[issue_idx]
-                if normalize_description(original_desc) != normalize_description(report_desc):
+                if description_edited(original_desc, report_desc, escaped=escaped):
                     edited[issue_idx] = (original_desc, report_desc)
 
     return edited
@@ -231,7 +241,6 @@ def merge_edited_issue_descriptions(
     Returns:
         Tuple of (updated_issues, edit_log)
     """
-    import copy
 
     updated_issues = copy.deepcopy(issues)
     edit_log = []
@@ -324,8 +333,7 @@ def format_fix_for_output(
         anchor_text = group.get("anchor_text", "")
         importance = group.get("importance", "MEDIUM")
 
-    if isinstance(importance, str):
-        importance = importance.upper()
+    importance = _importance.normalize(importance)
 
     if len(suggestions) > 1:
         all_descs = [s.get("desc", s.get("description", "")) for s in suggestions if s.get("desc") or s.get("description")]
@@ -651,8 +659,6 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         parser.set_defaults(max_batch_size=3)
         # A commit front door's `--detach` stage (plans/review-commits.md
         # §2.1), applied by the detached worker right after its lock. Hidden.
-        from argparse import SUPPRESS
-
         parser.add_argument("--commit-stage", dest="commit_stage", default=None,
                             help=SUPPRESS)
         return parser.parse_args(argv)
@@ -774,7 +780,7 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         }
 
         write_and_emit_output(output, phase_dir)
-        emit_json_output(output)
+        self.emit_payload(output)
         sys.exit(0)
 
     def _group_hash_for_issue(self, issue_num: int) -> Optional[str]:
@@ -900,7 +906,6 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         is then labelled a plan (bound like any plan revalidation), so the
         prompt says which document it actually carries.
         """
-        from utils.validation import bind_document_text
 
         code_review_dir = os.path.join(self.out_dir, self.review_subdir)
         context_path = os.path.join(code_review_dir, "diff_context.txt")
@@ -923,7 +928,6 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         guidance for a ``diff``. ``""`` when nothing is pinned, which leaves an
         unpinned revalidation's prompts as they were.
         """
-        from utils.validation import pinned_validation_guidance
 
         return pinned_validation_guidance(str(self.plan_path))
 
@@ -992,7 +996,9 @@ Finalization (run by the host AFTER every batch has been applied and verified):
 
         # Load validation results (using v2 loader with migration)
         if validation_path.exists():
-            validation = load_validation_v2(validation_path)
+            # The bytes whose round step 9a checked (`held_verdicts`).
+            validation = load_validation_v2(
+                validation_path, raw=self.held_verdicts(validation_path))
         else:
             print("WARNING: Validation results not found, treating all as needs-human-decision", file=sys.stderr)
             validation = []
@@ -1071,13 +1077,10 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         pre-dispatch re-check and the protected-set check read (§2.7); a
         plan's run keeps its shape byte for byte.
         """
-        from utils.scope_apply import selected_remedy
 
-        remedy = selected_remedy(group, self.scope)
+        remedy = selected_remedy(group, self.scope_gate.policy)
         formatted = format_fix_for_output(group, index, selected_remedy=remedy)
         if getattr(self, "_pinned", None) is not None:
-            from utils.commit_apply import group_files
-
             formatted["files"] = group_files(group, repo_root=self._repo_root)
         # Under `--scope-policy preserve`: the fix's validated scope, its
         # original descriptions kept as evidence in the output JSON only.
@@ -1179,16 +1182,6 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         pinned = getattr(self, "_pinned", None)
         if pinned is None or self.state is None:
             return None
-        from utils.commit_apply import (
-            PROTECTED_NAMED_MAX,
-            ROOT_RANGE_LINE,
-            deleted_file_history,
-            guard_record,
-            history_lines,
-            write_protected_list,
-        )
-        from utils.commit_range import DATA_UNDER_REVIEW, pinned_record
-        from utils.git_utils import git_path
 
         root = self._repo_root or os.getcwd()
         record = pinned_record(self.state.state) or {}
@@ -1291,76 +1284,46 @@ Finalization (run by the host AFTER every batch has been applied and verified):
         return os.path.join(phase_dir, "orchestrator_output.json")
 
     def print_text_summary(self, batches: List[Any], output_path: str) -> None:
-        """Print human-readable summary or JSON output to stdout."""
-        output_format = getattr(self.args, "output_format", "text")
+        """Print the human-readable summary (``emit_summary`` owns JSON)."""
+        base_ref = getattr(self, "_base_ref", "")
 
-        if output_format == "json":
-            with open(output_path, "r", encoding="utf-8") as f:
-                output = json.load(f)
-            print(json.dumps(output, indent=2))
-        else:
-            base_ref = getattr(self, "_base_ref", "")
+        print(f"\n{'='*60}")
+        print("CODE FIXES TO APPLY (BATCHED)")
+        print(f"{'='*60}")
+        print(f"{self._document_title()}: {self.plan_path}")
+        print(f"Valid fixes: {len(self.valid)}")
+        print(f"Batches: {len(batches)}")
+        print(f"Needs human review: {len(self.needs_human)}")
+        print(f"Skipped: {len(self.skipped)}")
+        print(f"Base ref: {base_ref}")
 
-            print(f"\n{'='*60}")
-            print("CODE FIXES TO APPLY (BATCHED)")
-            print(f"{'='*60}")
-            print(f"{self._document_title()}: {self.plan_path}")
-            print(f"Valid fixes: {len(self.valid)}")
-            print(f"Batches: {len(batches)}")
-            print(f"Needs human review: {len(self.needs_human)}")
-            print(f"Skipped: {len(self.skipped)}")
-            print(f"Base ref: {base_ref}")
+        if self.batching_stats.get("batching_enabled"):
+            print("\nBatching efficiency:")
+            print(f"  Subagent calls saved: {self.batching_stats.get('subagent_calls_saved', 0)}")
+            print(f"  Efficiency gain: {self.batching_stats.get('efficiency_gain_percent', 0)}%")
 
-            if self.batching_stats.get("batching_enabled"):
-                print("\nBatching efficiency:")
-                print(f"  Subagent calls saved: {self.batching_stats.get('subagent_calls_saved', 0)}")
-                print(f"  Efficiency gain: {self.batching_stats.get('efficiency_gain_percent', 0)}%")
-
-            for i, batch in enumerate(batches):
-                batch_fixes = batch.get("fixes", []) if isinstance(batch, dict) else batch.fixes
-                batch_file = batch.get("file_key", "") if isinstance(batch, dict) else batch.file_key
-                batch_type = batch.get("batch_type", "") if isinstance(batch, dict) else batch.batch_type
-                batch_executor = (
-                    batch.get("executor_role", "agent") if isinstance(batch, dict)
-                    else batch.executor_role
-                )
-                batch_size = batch.get("fix_count", len(batch_fixes)) if isinstance(batch, dict) else batch.size
-                batch_priority = batch.get("priority_score", 0) if isinstance(batch, dict) else batch.priority_score
-
-                print(f"\n{'='*60}")
-                print(f"BATCH {i+1} ({batch_size} fix(es))")
-                print(f"{'='*60}")
-                print(f"File: {batch_file}")
-                print(f"Type: {batch_type}")
-                print(f"Executor: {batch_executor}")
-                print(f"Priority score: {batch_priority}")
-
-                for j, f in enumerate(batch_fixes):
-                    print(f"\n  --- Fix {j+1} ---")
-                    print(f"  Title: {f['title']}")
-                    print(f"  Type: {f['type']}")
-                    print(f"  Importance: {f['importance']}")
-                    print(f"  File: {f.get('file', 'unknown')}")
-                    desc = clip(f.get('description', f.get('desc', '')), 200)
-                    print(f"  Description:\n  {desc}")
-
-            if self.formatted_human:
-                print(f"\n{'='*60}")
-                print("NEEDS HUMAN REVIEW")
-                print(f"{'='*60}")
-                for f in self.formatted_human:
-                    print(f"\n- {f['title']}")
-                    print(f"  File: {f.get('file', 'unknown')}")
-                    print(f"  Reason: {f['validation_reason']}")
+        # The counts only: each batch's fixes are in the files named here, and
+        # `util decisions` shows them to the user (instructions, step 3).
+        print()
+        for line in detail_pointer_lines(output_path):
+            print(line)
 
 
 def main(argv=None) -> int:
     """Main entry point."""
     bootstrap_streams()
+
+    # A worker started here directly (apply-commit-fixes --detach) applies its
+    # stage as the dispatcher's does.
+    hand_worker_the_stage_applier(argv)
     args = ApplyCodeFixesOrchestrator.parse_args(argv)
     orchestrator = ApplyCodeFixesOrchestrator(args)
     return orchestrator.run()
 
 
 if __name__ == "__main__":
+    from utils import process_control
+
+    # A process entry of its own: provider children must stay this process's.
+    process_control.restore_sigchld_default()
     sys.exit(main(sys.argv[1:]))

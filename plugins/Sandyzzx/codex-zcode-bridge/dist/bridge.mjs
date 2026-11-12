@@ -14,6 +14,24 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
+// src/runtime/errors.ts
+var BridgeError;
+var init_errors = __esm({
+  "src/runtime/errors.ts"() {
+    "use strict";
+    BridgeError = class extends Error {
+      code;
+      memberPids;
+      constructor(code, message, options) {
+        super(message, options);
+        this.name = "BridgeError";
+        this.code = code;
+        if (options?.memberPids?.length) this.memberPids = [...new Set(options.memberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))];
+      }
+    };
+  }
+});
+
 // src/runtime/paths.ts
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
@@ -203,2271 +221,358 @@ var init_profile = __esm({
   }
 });
 
-// src/diagnostics/failure-facts.ts
-function safeIntegerOrNull(value) {
-  return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
-}
-function httpStatusOrNull(value) {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 100 && value <= 599 ? value : null;
-}
-function validateFailureFacts(value) {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("failure facts must be a JSON object");
-  }
-  const record4 = value;
-  for (const key of Object.keys(record4)) {
-    if (!FACTS_KEYS.has(key)) throw new Error("failure facts has an unknown field");
-  }
-  for (const key of FACTS_KEYS) {
-    if (!(key in record4)) throw new Error(`failure facts is missing the field: ${key}`);
-  }
-  if (record4["schema_version"] !== "1") throw new Error('failure facts schema_version must be "1"');
-  if (!FAILURE_SOURCES.includes(record4["source"])) {
-    throw new Error("failure facts source is not in the frozen registry");
-  }
-  if (!FAILURE_PHASE_SET.has(record4["phase"])) {
-    throw new Error("failure facts phase is not in the frozen registry");
-  }
-  if (!ACCEPTED_STATES.includes(record4["accepted_before_error"])) {
-    throw new Error("failure facts accepted_before_error must be yes, no, or unknown");
-  }
-  if (!FAILURE_CATEGORIES.includes(record4["category"])) {
-    throw new Error("failure facts category is not in the frozen registry");
-  }
-  if (!CONFIDENCE_LEVELS.includes(record4["confidence"])) {
-    throw new Error("failure facts confidence is not in the frozen registry");
-  }
-  if (!EVIDENCE_BASES.includes(record4["evidence_basis"])) {
-    throw new Error("failure facts evidence_basis is not in the frozen registry");
-  }
-  if (typeof record4["evidence_conflict"] !== "boolean") {
-    throw new Error("failure facts evidence_conflict must be a boolean");
-  }
-  const retryable2 = record4["runtime_retryable"];
-  const retryableBasis = record4["runtime_retryable_basis"];
-  if (retryable2 !== null && typeof retryable2 !== "boolean") {
-    throw new Error("failure facts runtime_retryable must be a boolean or null");
-  }
-  if (retryableBasis !== null && retryableBasis !== "reported") {
-    throw new Error("failure facts runtime_retryable_basis must be reported or null in P0; versioned_mapping is disabled");
-  }
-  if (retryable2 === null !== (retryableBasis === null)) {
-    throw new Error("failure facts runtime_retryable and runtime_retryable_basis must be null together");
-  }
-  const codeFields = [
-    // rpc_method strings contain "/" by design; membership in the frozen
-    // method registry is the whole validation, the bounded code pattern
-    // applies only to code families.
-    ["rpc_method", RPC_METHOD_REGISTRY],
-    ["rpc_data_code", RPC_DATA_CODE_REGISTRY],
-    ["error_type", ERROR_TYPE_REGISTRY],
-    ["error_code", MODEL_ERROR_CODES],
-    ["provider_code", PROVIDER_BUSINESS_CODES],
-    ["result_type", RESULT_TYPE_REGISTRY]
-  ];
-  for (const [key, registry2] of codeFields) {
-    const item = record4[key];
-    if (item === null) continue;
-    if (key !== "rpc_method" && (typeof item !== "string" || !CODE_PATTERN.test(item))) {
-      throw new Error(`failure facts field ${key} is not a bounded code value`);
-    }
-    if (typeof item !== "string" || !registry2.has(item)) {
-      throw new Error(`failure facts field ${key} is not a registered value`);
-    }
-  }
-  if (record4["rpc_code"] !== null && safeIntegerOrNull(record4["rpc_code"]) === null) {
-    throw new Error("failure facts rpc_code must be a safe integer or null");
-  }
-  if (record4["http_status"] !== null && httpStatusOrNull(record4["http_status"]) === null) {
-    throw new Error("failure facts http_status must be an integer in 100..599 or null");
-  }
-  if (record4["process_errno"] !== null && !PROCESS_ERRNOS.includes(record4["process_errno"])) {
-    throw new Error("failure facts process_errno must be ENOENT, EACCES, EPERM, or null");
-  }
-  const bytes = Buffer.byteLength(JSON.stringify(record4), "utf8");
-  if (bytes > MAX_FAILURE_FACTS_BYTES) {
-    throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
-  }
-  return value;
-}
-var FAILURE_PHASES, FAILURE_PHASE_SET, FAILURE_SOURCES, ACCEPTED_STATES, FAILURE_CATEGORIES, CONFIDENCE_LEVELS, EVIDENCE_BASES, PROCESS_ERRNOS, QUOTA_BUSINESS_CODES, RATE_LIMIT_STRING_CODES, PROVIDER_NUMERIC_CODES, PROVIDER_BUSINESS_CODES, MODEL_ERROR_CODES, ERROR_TYPE_REGISTRY, RPC_DATA_CODE_REGISTRY, RESULT_TYPE_REGISTRY, RPC_METHOD_REGISTRY, MAX_FAILURE_FACTS_BYTES, FACTS_KEYS, CODE_PATTERN;
-var init_failure_facts = __esm({
-  "src/diagnostics/failure-facts.ts"() {
-    "use strict";
-    FAILURE_PHASES = [
-      "unknown",
-      "pre_send",
-      "send_pending",
-      "rpc_rejected",
-      "turn_started",
-      "processing_input",
-      "awaiting_model_response",
-      "streaming",
-      "scheduling_tools",
-      "executing_tools",
-      "aggregating_results",
-      "awaiting_permission",
-      "completing",
-      "error",
-      "compact",
-      "rewind",
-      "model_creation",
-      "turn_terminal",
-      "spawn",
-      "process_exit",
-      "transport_lost",
-      "protocol_guard"
-    ];
-    FAILURE_PHASE_SET = new Set(FAILURE_PHASES);
-    FAILURE_SOURCES = ["rpc", "turn_event", "process", "transport"];
-    ACCEPTED_STATES = ["yes", "no", "unknown"];
-    FAILURE_CATEGORIES = [
-      "quota_exhausted",
-      "rate_limited",
-      "auth_failed",
-      "network_failure",
-      "context_exceeded",
-      "invalid_request",
-      "model_unavailable",
-      "execution_failed",
-      "protocol_failure",
-      "unknown"
-    ];
-    CONFIDENCE_LEVELS = ["confirmed", "inferred", "unknown"];
-    EVIDENCE_BASES = [
-      "business_code",
-      "runtime_type_or_reason",
-      "http_status",
-      "result_type",
-      "process_errno",
-      "protocol_guard",
-      "text",
-      "conflict",
-      "none"
-    ];
-    PROCESS_ERRNOS = ["ENOENT", "EACCES", "EPERM"];
-    QUOTA_BUSINESS_CODES = /* @__PURE__ */ new Set([
-      "insufficient_quota",
-      "credit_balance_exhausted",
-      "organization_spend_limit_exceeded",
-      "project_spend_limit_exceeded",
-      "organization_usage_limit_exceeded",
-      "exceeded_current_quota_error"
-    ]);
-    RATE_LIMIT_STRING_CODES = /* @__PURE__ */ new Set([
-      "rate_limit_error",
-      "rate_limit_reached_error"
-    ]);
-    PROVIDER_NUMERIC_CODES = /* @__PURE__ */ new Set([
-      "1005",
-      "1006",
-      "1261",
-      "3001",
-      "3006",
-      "3007",
-      "3008",
-      "3009",
-      "3010",
-      "1302",
-      "1303",
-      "1304",
-      "1305",
-      "1308",
-      "1310",
-      "1313",
-      "3002"
-    ]);
-    PROVIDER_BUSINESS_CODES = /* @__PURE__ */ new Set([
-      ...QUOTA_BUSINESS_CODES,
-      ...RATE_LIMIT_STRING_CODES,
-      ...PROVIDER_NUMERIC_CODES
-    ]);
-    MODEL_ERROR_CODES = /* @__PURE__ */ new Set([
-      "invalid_model_selection",
-      "model_config_missing",
-      "provider_not_found",
-      "provider_not_configured",
-      "model_not_found",
-      "invalid_model_request",
-      "invalid_model_response",
-      "model_request_failed",
-      "model_request_auth_missing",
-      "model_request_cancelled",
-      "model_request_timeout",
-      "model_rate_limited",
-      "model_context_exceeded",
-      ...PROVIDER_BUSINESS_CODES
-    ]);
-    ERROR_TYPE_REGISTRY = /* @__PURE__ */ new Set([
-      "model_error",
-      "model_timeout",
-      "model_rate_limited",
-      "model_context_exceeded",
-      "tool_not_found",
-      "tool_execution_failed",
-      "tool_timeout",
-      "tool_cancelled",
-      "tool_max_calls",
-      "permission_denied",
-      "permission_timeout",
-      "storage_error",
-      "configuration_error",
-      "unknown_error",
-      ...MODEL_ERROR_CODES
-    ]);
-    RPC_DATA_CODE_REGISTRY = MODEL_ERROR_CODES;
-    RESULT_TYPE_REGISTRY = /* @__PURE__ */ new Set([
-      "success",
-      "cancelled",
-      "error_max_turns",
-      "error_max_budget",
-      "error_during_execution",
-      "error_max_tool_calls"
-    ]);
-    RPC_METHOD_REGISTRY = /* @__PURE__ */ new Set([
-      "provider/updateAccountConfig",
-      "session/create",
-      "session/resume",
-      "session/setMode",
-      "session/setModel",
-      "session/subscribe",
-      "session/send",
-      "session/events"
-    ]);
-    MAX_FAILURE_FACTS_BYTES = 4096;
-    FACTS_KEYS = /* @__PURE__ */ new Set([
-      "schema_version",
-      "source",
-      "phase",
-      "rpc_method",
-      "rpc_code",
-      "rpc_data_code",
-      "error_type",
-      "error_code",
-      "provider_code",
-      "http_status",
-      "accepted_before_error",
-      "category",
-      "confidence",
-      "evidence_basis",
-      "evidence_conflict",
-      "runtime_retryable",
-      "runtime_retryable_basis",
-      "result_type",
-      "process_errno"
-    ]);
-    CODE_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/u;
-  }
+// src/runtime/resolver.ts
+var resolver_exports = {};
+__export(resolver_exports, {
+  NodeRuntimeResolver: () => NodeRuntimeResolver,
+  findPackageRoot: () => findPackageRoot,
+  loadPersistedRuntimeEnvironment: () => loadPersistedRuntimeEnvironment
 });
-
-// src/store/process-lock.ts
-import { existsSync as existsSync3, mkdirSync, readFileSync as readFileSync3, renameSync, rmdirSync, statSync as statSync2, unlinkSync, writeFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
-import path4 from "node:path";
-function isTransientLockFsError(error2) {
-  return TRANSIENT_LOCK_FS_CODES.has(error2?.code ?? "");
-}
-function pauseBriefly(delayMs = RETRY_PAUSE_MS) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
-}
-function publishSelfIdentity(identity) {
-  selfIdentity = identity;
-}
-async function withProcessLock(directory, operation, timeoutMs = 3e4) {
-  const deadline = Date.now() + timeoutMs;
-  let release;
-  while (!(release = tryAcquireProcessLock(directory))) {
-    if (Date.now() >= deadline) {
-      const owner = describeLockOwner(directory);
-      throw new Error(`timed out waiting for process lock: ${directory}${owner ? ` (live owner: ${owner})` : ""}`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 25));
+import { accessSync, existsSync as existsSync2, readFileSync as readFileSync2, statSync } from "node:fs";
+import { homedir as homedir2 } from "node:os";
+import path3 from "node:path";
+import { fileURLToPath } from "node:url";
+function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
+  validateHostProfile(host);
+  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path3.join(directory, "runtime-config.json"));
+  const legacyDataRoot = source["ZCODE_BRIDGE_DATA_DIR"]?.trim();
+  if (legacyDataRoot && path3.isAbsolute(legacyDataRoot)) {
+    settingsPaths.push(path3.join(legacyDataRoot, "runtime-config.json"));
   }
-  try {
-    return await operation();
-  } finally {
-    release();
-  }
-}
-function describeLockOwner(directory) {
-  try {
-    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid)) return null;
-    return `pid ${String(owner.pid)}${owner.started_at ? `, started ${owner.started_at}` : ""}`;
-  } catch {
-    return null;
-  }
-}
-function tryAcquireProcessLock(directory) {
-  return tryAcquireProcessLockWithRetry(directory, 0);
-}
-function tryAcquireProcessLockWithRetry(directory, retries) {
-  const token = randomUUID();
-  if (existsSync3(directory)) return acquireExistingLock(directory);
-  const staging = `${directory}.${process.pid}.${token}.pending`;
-  const ownerRecord = {
-    pid: process.pid,
-    token,
-    started_at: (/* @__PURE__ */ new Date()).toISOString(),
-    // Fingerprint may be null before the async self-identity probe finishes;
-    // null never authorizes binding a recycled PID to a prior owner.
-    identity: selfIdentity ? { fingerprint: selfIdentity.fingerprint, identity_version: selfIdentity.identity_version, platform: selfIdentity.platform } : null
-  };
-  try {
-    mkdirSync(staging, { mode: 448 });
-    writeFileSync(path4.join(staging, "owner.json"), JSON.stringify(ownerRecord), { mode: 384, flag: "wx" });
+  let parsed = null;
+  const seenPaths = /* @__PURE__ */ new Set();
+  for (const settingsPath of settingsPaths) {
+    const normalized = path3.resolve(settingsPath);
+    const identity = process.platform === "win32" ? normalized.toLocaleLowerCase("en-US") : normalized;
+    if (seenPaths.has(identity)) continue;
+    seenPaths.add(identity);
     try {
-      renameSync(staging, directory);
-    } catch (error2) {
-      removeStagedLock(staging);
-      const code = error2.code;
-      if (!isTransientLockFsError(error2)) throw error2;
-      if (DESTINATION_PRESENT_CONTENTION_CODES.has(code ?? "") || existsSync3(directory)) {
-        return acquireExistingLock(directory);
-      }
-      if (retries < PUBLICATION_RETRY_ATTEMPTS) {
-        pauseBriefly(PUBLICATION_RETRY_PAUSE_MS);
-        return tryAcquireProcessLockWithRetry(directory, retries + 1);
-      }
-      throw error2;
-    }
-  } catch (error2) {
-    removeStagedLock(staging);
-    throw error2;
-  }
-  return () => {
-    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
-    if (owner.token !== token) throw new Error("process lock ownership changed");
-    const retired = `${directory}.${token}.retired`;
-    renameWithTransientRetry(directory, retired);
-    removeStagedLock(retired);
-  };
-}
-function renameWithTransientRetry(source, target) {
-  const deadline = Date.now() + WITHDRAW_RETRY_MS;
-  while (true) {
-    try {
-      renameSync(source, target);
-      return;
-    } catch (error2) {
-      if (!isTransientLockFsError(error2) || Date.now() >= deadline) throw error2;
-      pauseBriefly();
-    }
-  }
-}
-function acquireExistingLock(directory) {
-  let owner;
-  try {
-    owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error("invalid lock owner");
-  } catch {
-    try {
-      if (Date.now() - statSync2(directory).mtimeMs > 3e4) throw new Error(`unreadable lock owner: ${directory}`);
-    } catch (failure2) {
-      if (failure2.code !== "ENOENT") throw failure2;
-    }
-    return null;
-  }
-  try {
-    process.kill(owner.pid, 0);
-  } catch (failure2) {
-    if (failure2.code === "ESRCH") {
-      if (reclaimDeadOwner(directory)) return tryAcquireProcessLock(directory);
-    }
-  }
-  return null;
-}
-function removeStagedLock(directory) {
-  removePrivateFile(path4.join(directory, "owner.json"));
-  removePrivateDirectory(directory);
-}
-function removePrivateFile(file) {
-  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
-  while (true) {
-    try {
-      unlinkSync(file);
-      return;
-    } catch (error2) {
-      const code = error2?.code;
-      if (code === "ENOENT" || !isTransientLockFsError(error2) || Date.now() >= deadline) return;
-      pauseBriefly();
-    }
-  }
-}
-function removePrivateDirectory(directory) {
-  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
-  while (true) {
-    try {
-      rmdirSync(directory);
-      return;
-    } catch (error2) {
-      const code = error2?.code;
-      if (code === "ENOENT" || !isTransientLockFsError(error2) || Date.now() >= deadline) return;
-      pauseBriefly();
-    }
-  }
-}
-function reclaimDeadOwner(directory) {
-  const guard = `${directory}.reclaim`;
-  try {
-    mkdirSync(guard);
-  } catch (error2) {
-    if (error2.code === "EEXIST") return false;
-    throw error2;
-  }
-  let outcome;
-  try {
-    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) {
-      outcome = { kind: "busy" };
-    } else {
-      try {
-        process.kill(owner.pid, 0);
-        outcome = { kind: "busy" };
-      } catch (failure2) {
-        if (failure2.code !== "ESRCH") {
-          outcome = { kind: "busy" };
-        } else {
-          const retired = `${directory}.${randomUUID()}.retired`;
-          renameWithTransientRetry(directory, retired);
-          removeStagedLock(retired);
-          outcome = { kind: "reclaimed" };
-        }
-      }
-    }
-  } catch (error2) {
-    outcome = error2.code === "ENOENT" ? { kind: "busy" } : { kind: "error", error: error2 };
-  }
-  let guardCleanupError = null;
-  try {
-    removeSharedGuard(guard);
-  } catch (error2) {
-    guardCleanupError = error2;
-  }
-  if (outcome.kind === "error") throw outcome.error;
-  if (guardCleanupError !== null) throw guardCleanupError;
-  return outcome.kind === "reclaimed";
-}
-function removeSharedGuard(guard) {
-  const deadline = Date.now() + SHARED_GUARD_RETRY_MS;
-  while (true) {
-    try {
-      rmdirSync(guard);
-      return;
-    } catch (error2) {
-      const code = error2?.code;
-      if (code === "ENOENT") return;
-      if (!isTransientLockFsError(error2) || Date.now() >= deadline) {
-        throw new Error(
-          `could not remove the lock reclaim guard at ${guard} (${code ?? "unknown error"}); a leftover guard blocks all future dead-owner reclaims of this lock and needs manual diagnosis`,
-          { cause: error2 }
-        );
-      }
-      pauseBriefly();
-    }
-  }
-}
-var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, PUBLICATION_RETRY_PAUSE_MS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
-var init_process_lock = __esm({
-  "src/store/process-lock.ts"() {
-    "use strict";
-    selfIdentity = null;
-    TRANSIENT_LOCK_FS_CODES = /* @__PURE__ */ new Set(["EEXIST", "EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
-    DESTINATION_PRESENT_CONTENTION_CODES = /* @__PURE__ */ new Set(["EEXIST", "ENOTEMPTY"]);
-    PUBLICATION_RETRY_ATTEMPTS = 5;
-    PUBLICATION_RETRY_PAUSE_MS = 50;
-    WITHDRAW_RETRY_MS = 5e3;
-    SHARED_GUARD_RETRY_MS = 2e3;
-    PRIVATE_CLEANUP_RETRY_MS = 1e3;
-    RETRY_PAUSE_MS = 10;
-  }
-});
-
-// src/store/atomic-rename.ts
-import { renameSync as renameSync2 } from "node:fs";
-import { rename } from "node:fs/promises";
-function retryable(error2, deadline) {
-  return process.platform === "win32" && Date.now() < deadline && ["EPERM", "EBUSY", "EACCES"].includes(error2.code ?? "");
-}
-function atomicRenameSync(source, target) {
-  const deadline = Date.now() + 2e3;
-  while (true) {
-    try {
-      renameSync2(source, target);
-      return;
-    } catch (error2) {
-      if (!retryable(error2, deadline)) throw error2;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-    }
-  }
-}
-async function atomicRename(source, target) {
-  const deadline = Date.now() + 2e3;
-  while (true) {
-    try {
-      await rename(source, target);
-      return;
-    } catch (error2) {
-      if (!retryable(error2, deadline)) throw error2;
-      await new Promise((resolve) => setTimeout(resolve, 10));
-    }
-  }
-}
-var init_atomic_rename = __esm({
-  "src/store/atomic-rename.ts"() {
-    "use strict";
-  }
-});
-
-// src/runtime/durable-file-system.ts
-import { spawnSync } from "node:child_process";
-import { closeSync, existsSync as existsSync4, fsyncSync, openSync, renameSync as renameSync3 } from "node:fs";
-import path5 from "node:path";
-function canonicalParent(filePath) {
-  return path5.dirname(path5.resolve(filePath));
-}
-function assertSameDirectory(source, destination) {
-  const left = canonicalParent(source);
-  const right = canonicalParent(destination);
-  const same = process.platform === "win32" ? left.toLocaleLowerCase("en-US") === right.toLocaleLowerCase("en-US") : left === right;
-  if (!same) throw new Error("durable file operation requires one directory");
-  if (path5.resolve(source) === path5.resolve(destination)) {
-    throw new Error("durable file operation requires distinct files");
-  }
-}
-function flushDirectoryPosix(directory) {
-  const fd = openSync(directory, "r");
-  try {
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-}
-function runWindowsHelper(operation, source, destination, replace) {
-  const result = spawnSync(
-    "powershell.exe",
-    [
-      "-NoProfile",
-      "-NonInteractive",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-EncodedCommand",
-      WINDOWS_HELPER_COMMAND
-    ],
-    {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CODEX_BRIDGE_DURABLE_OPERATION: operation,
-        CODEX_BRIDGE_DURABLE_SOURCE: source,
-        CODEX_BRIDGE_DURABLE_DESTINATION: destination ?? "",
-        CODEX_BRIDGE_DURABLE_REPLACE: replace ? "1" : "0"
-      },
-      maxBuffer: 64 * 1024,
-      timeout: WINDOWS_OPERATION_TIMEOUT_MS,
-      windowsHide: true
-    }
-  );
-  if (result.error || result.signal || result.status !== 0) {
-    const status = result.status ?? null;
-    const win32 = status === null ? null : status >= 3e3 ? status - 3e3 : status >= 2e3 ? status - 2e3 : status >= 20 ? status - 20 : null;
-    const code = win32 === 5 ? "EPERM" : win32 === 32 || win32 === 33 ? "EBUSY" : win32 === 183 ? "EEXIST" : win32 === null ? result.error?.name ?? result.signal ?? `status_${String(status)}` : `EWINDOWS_${win32}`;
-    const error2 = new Error(`windows_durable_file_operation_failed:${code}`);
-    error2.code = code;
-    throw error2;
-  }
-}
-function moveFileSync(source, destination, replace) {
-  assertSameDirectory(source, destination);
-  if (process.platform === "win32") {
-    runWindowsHelper("move", path5.resolve(source), path5.resolve(destination), replace);
-    return;
-  }
-  renameSync3(source, destination);
-  flushDirectoryPosix(canonicalParent(destination));
-}
-var WINDOWS_OPERATION_TIMEOUT_MS, WINDOWS_HELPER_SCRIPT, WINDOWS_HELPER_COMMAND, defaultDurableFileOperations;
-var init_durable_file_system = __esm({
-  "src/runtime/durable-file-system.ts"() {
-    "use strict";
-    WINDOWS_OPERATION_TIMEOUT_MS = 1e4;
-    WINDOWS_HELPER_SCRIPT = String.raw`
-$ErrorActionPreference = 'Stop'
-
-Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-
-public static class CodexBridgeDurableFileSystem {
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  private static extern IntPtr CreateFileW(
-    string fileName,
-    uint desiredAccess,
-    uint shareMode,
-    IntPtr securityAttributes,
-    uint creationDisposition,
-    uint flagsAndAttributes,
-    IntPtr templateFile);
-
-  [DllImport("kernel32.dll", SetLastError = true)]
-  private static extern bool FlushFileBuffers(IntPtr handle);
-
-  [DllImport("kernel32.dll", SetLastError = true)]
-  private static extern bool CloseHandle(IntPtr handle);
-
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  private static extern bool MoveFileExW(string source, string destination, uint flags);
-
-  public static int Move(string source, string destination, bool replace) {
-    uint flags = 0x00000008u;
-    if (replace) flags |= 0x00000001u;
-    if (!MoveFileExW(source, destination, flags)) return 20 + Marshal.GetLastWin32Error();
-    return Flush(System.IO.Path.GetDirectoryName(destination));
-  }
-
-  public static int Flush(string directory) {
-    const uint GENERIC_WRITE = 0x40000000u;
-    const uint FILE_SHARE_READ_WRITE_DELETE = 0x00000001u | 0x00000002u | 0x00000004u;
-    const uint OPEN_EXISTING = 3u;
-    const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000u;
-    IntPtr handle = CreateFileW(
-      directory,
-      GENERIC_WRITE,
-      FILE_SHARE_READ_WRITE_DELETE,
-      IntPtr.Zero,
-      OPEN_EXISTING,
-      FILE_FLAG_BACKUP_SEMANTICS,
-      IntPtr.Zero);
-    if (handle == new IntPtr(-1)) return 2000 + Marshal.GetLastWin32Error();
-    try {
-      if (!FlushFileBuffers(handle)) return 3000 + Marshal.GetLastWin32Error();
-      return 0;
-    } finally {
-      CloseHandle(handle);
-    }
-  }
-}
-'@
-
-$operation = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_OPERATION')
-$source = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_SOURCE')
-$destination = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_DESTINATION')
-$replace = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_REPLACE') -eq '1'
-
-if ($operation -eq 'flush') {
-  if ([string]::IsNullOrWhiteSpace($source)) { exit 10 }
-  exit ([CodexBridgeDurableFileSystem]::Flush($source))
-}
-
-if ($operation -eq 'move') {
-  if ([string]::IsNullOrWhiteSpace($source) -or [string]::IsNullOrWhiteSpace($destination)) { exit 11 }
-  exit ([CodexBridgeDurableFileSystem]::Move($source, $destination, $replace))
-}
-
-exit 12
-`;
-    WINDOWS_HELPER_COMMAND = Buffer.from(WINDOWS_HELPER_SCRIPT, "utf16le").toString("base64");
-    defaultDurableFileOperations = Object.freeze({
-      replaceFileSync(source, destination) {
-        moveFileSync(source, destination, existsSync4(destination));
-      },
-      moveFileSync(source, destination) {
-        moveFileSync(source, destination, false);
-      },
-      flushDirectorySync(directory) {
-        const resolved = path5.resolve(directory);
-        if (process.platform === "win32") {
-          runWindowsHelper("flush", resolved, null, false);
-          return;
-        }
-        flushDirectoryPosix(resolved);
-      }
-    });
-  }
-});
-
-// src/store/json-history-result-exceptions.mjs
-import { createHash } from "node:crypto";
-function freeze(value) {
-  if (value && typeof value === "object" && !Object.isFrozen(value)) {
-    for (const child of Object.values(value)) freeze(child);
-    Object.freeze(value);
-  }
-  return value;
-}
-function canonical(value) {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
-  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical(value[key])}`).join(",")}}`;
-}
-function historicalResultExceptionArtifactId(relativePath) {
-  const digest3 = createHash("sha256").update(relativePath).digest("hex");
-  return `artifact-${digest3.slice(0, 40)}`;
-}
-function annotateHistoricalResultException(entry) {
-  return Object.freeze({
-    exception_id: entry.exception_id,
-    task_id: entry.task_id,
-    stored_attempt: entry.stored_attempt,
-    internal_attempt: entry.internal_attempt,
-    relative_path: entry.relative_path,
-    artifact_id: historicalResultExceptionArtifactId(entry.relative_path),
-    sha256: entry.sha256,
-    byte_length: entry.byte_length,
-    archive_anomaly: Object.freeze({ ...entry.archive_anomaly })
-  });
-}
-function historicalResultExceptionSetDigest(entries) {
-  return createHash("sha256").update(canonical(entries)).digest("hex");
-}
-function isCanonicalHistoricalResultExceptionSet(entries) {
-  if (!Array.isArray(entries) || entries.length !== HISTORICAL_RESULT_EXCEPTIONS.length) return false;
-  return HISTORICAL_RESULT_EXCEPTIONS.every((expected, index) => {
-    const actual = entries[index];
-    const annotated = annotateHistoricalResultException(expected);
-    return canonical(actual) === canonical(annotated);
-  });
-}
-function historicalResultExceptionTaskIds(entries) {
-  return [...new Set(entries.map((entry) => entry.task_id))].sort((left, right) => left.localeCompare(right, "en"));
-}
-var HISTORICAL_RESULT_EXCEPTIONS;
-var init_json_history_result_exceptions = __esm({
-  "src/store/json-history-result-exceptions.mjs"() {
-    "use strict";
-    HISTORICAL_RESULT_EXCEPTIONS = freeze([
-      {
-        exception_id: "cad2bim_rm02_attempt_2_result_stored_at_3",
-        task_id: "CAD2BIM_FULL_AUDIT_RM02_001",
-        stored_attempt: 3,
-        internal_attempt: 2,
-        relative_path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/3/result.json",
-        sha256: "539c76d236155688feb906a8dfb9764f92a2f76ff8e16b97e6177c2e7bd95530",
-        byte_length: 13981,
-        archive_anomaly: {
-          code: "conflicting_projection",
-          path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/3/result.json",
-          record_type: "attempt",
-          detail: "result_attempt_does_not_match_storage_generation"
-        }
-      },
-      {
-        exception_id: "cad2bim_rm02_attempt_3_result_stored_at_4",
-        task_id: "CAD2BIM_FULL_AUDIT_RM02_001",
-        stored_attempt: 4,
-        internal_attempt: 3,
-        relative_path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/4/result.json",
-        sha256: "ec6faea33c6b3b7c299b2c4a6094c431b670d807e00398ed03364ec5a1c61cd3",
-        byte_length: 12989,
-        archive_anomaly: {
-          code: "conflicting_projection",
-          path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/4/result.json",
-          record_type: "attempt",
-          detail: "result_attempt_does_not_match_storage_generation"
-        }
-      },
-      {
-        exception_id: "project_alignment_current_attempt_2_root_result_binds_1",
-        task_id: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930",
-        stored_attempt: 2,
-        internal_attempt: 1,
-        relative_path: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930/result.json",
-        sha256: "494235a230178fe2aeb0128210bba0cf8fec5029202b07b0a1b3648476d3e12e",
-        byte_length: 6247,
-        archive_anomaly: {
-          code: "conflicting_projection",
-          path: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930/result.json",
-          record_type: "result",
-          detail: "result_attempt_does_not_match_storage_generation"
-        }
-      }
-    ]);
-  }
-});
-
-// src/store/json-writer-quiescence.ts
-import { closeSync as closeSync2, existsSync as existsSync5, fsyncSync as fsyncSync2, mkdirSync as mkdirSync2, openSync as openSync2, readFileSync as readFileSync4, readdirSync, realpathSync, rmSync, writeFileSync as writeFileSync2 } from "node:fs";
-import { createHash as createHash2, randomUUID as randomUUID2 } from "node:crypto";
-import path6 from "node:path";
-function jsonWriterFenceState(dataRoot) {
-  return readFence(dataRoot)?.state ?? "open";
-}
-function fencePath(dataRoot) {
-  return path6.join(dataRoot, ".tasks", FENCE_FILE);
-}
-function rosterPath(dataRoot) {
-  return path6.join(dataRoot, ".tasks", ROSTER_DIR);
-}
-function leasePath(dataRoot, token) {
-  if (!/^[a-f0-9-]{36}$/u.test(token)) throw new Error("invalid JSON writer lease token");
-  return path6.join(rosterPath(dataRoot), `${token}.json`);
-}
-function gateLockPath(dataRoot) {
-  return path6.join(dataRoot, ".tasks", GATE_LOCK);
-}
-function strictObject2(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function readFence(dataRoot) {
-  const file = fencePath(dataRoot);
-  if (!existsSync5(file)) return null;
-  let value;
-  try {
-    value = JSON.parse(readFileSync4(file, "utf8"));
-  } catch (error2) {
-    throw new Error("JSON writer quiescence record is unreadable; writes fail closed", { cause: error2 });
-  }
-  if (!strictObject2(value) || value.schema_version !== 1 || !["closing", "draining", "sealed"].includes(String(value.state)) || !Number.isSafeInteger(value.revision) || value.revision < 1 || typeof value.transition_id !== "string" || !value.transition_id || typeof value.updated_at !== "string" || !Number.isFinite(Date.parse(value.updated_at))) {
-    throw new Error("JSON writer quiescence record is malformed; writes fail closed");
-  }
-  return value;
-}
-function writeJsonAtomic(file, value, durability = defaultDurableFileOperations) {
-  mkdirSync2(path6.dirname(file), { recursive: true, mode: 448 });
-  const temporary = `${file}.${randomUUID2()}.tmp`;
-  let fd;
-  try {
-    fd = openSync2(temporary, "wx", 384);
-    writeFileSync2(fd, `${JSON.stringify(value, null, 2)}
-`, { encoding: "utf8" });
-    fsyncSync2(fd);
-    closeSync2(fd);
-    fd = void 0;
-    const deadline = Date.now() + ATOMIC_RENAME_RETRY_MS;
-    for (; ; ) {
-      try {
-        durability.replaceFileSync(temporary, file);
+      if (statSync(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
+      const candidate = JSON.parse(readFileSync2(normalized, "utf8"));
+      if (isPlainObject3(candidate)) {
+        parsed = candidate;
         break;
-      } catch (error2) {
-        if (!TRANSIENT_ATOMIC_RENAME_CODES.has(error2.code ?? "") || Date.now() >= deadline) {
-          throw error2;
-        }
-        Atomics.wait(
-          new Int32Array(new SharedArrayBuffer(4)),
-          0,
-          0,
-          ATOMIC_RENAME_RETRY_PAUSE_MS
-        );
       }
+      throw new Error("runtime settings must be an object");
+    } catch (error2) {
+      if (error2.code === "ENOENT") continue;
+      throw new BridgeError("provider_config_invalid", `invalid Bridge runtime settings: ${normalized}`, { cause: error2 });
+    }
+  }
+  if (!parsed) return { ...source };
+  const env = { ...source };
+  for (const key of PERSISTED_RUNTIME_KEYS) {
+    if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
+    const value = parsed[key];
+    if (typeof value === "string") env[key] = value.trim();
+    else if (value === null) env[key] = "";
+    else throw new BridgeError("provider_config_invalid", `Bridge runtime setting ${key} must be a string or null`);
+  }
+  return env;
+}
+function resolveZcodeHome(env) {
+  const configured = env["ZCODE_HOME"]?.trim();
+  if (!configured) return null;
+  if (!isAbsolutePathForPlatform(configured)) {
+    throw new BridgeError("provider_config_invalid", "ZCODE_HOME must be an absolute path");
+  }
+  const resolved = path3.normalize(configured);
+  if (path3.basename(resolved).toLowerCase() !== ".zcode") {
+    throw new BridgeError(
+      "provider_config_invalid",
+      "ZCODE_HOME must name a .zcode directory so app-server can use the same data root"
+    );
+  }
+  try {
+    if (!statSync(resolved).isDirectory()) {
+      throw new BridgeError("provider_config_invalid", `ZCODE_HOME is not a directory: ${resolved}`);
     }
   } catch (error2) {
-    if (fd !== void 0) {
-      try {
-        closeSync2(fd);
-      } catch {
-      }
-    }
-    try {
-      rmSync(temporary, { force: true });
-    } catch {
-    }
-    throw error2;
+    if (error2 instanceof BridgeError) throw error2;
+    throw new BridgeError("provider_config_missing", `ZCODE_HOME directory does not exist: ${resolved}`);
   }
+  return resolved;
 }
-function withSyncGateLock(dataRoot, operation) {
-  const directory = gateLockPath(dataRoot);
-  const deadline = Date.now() + 1e4;
-  let release;
-  while (!(release = tryAcquireProcessLock(directory))) {
-    if (Date.now() >= deadline) throw new Error("timed out waiting for JSON writer quiescence lock");
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-  }
+function samePath(left, right) {
+  const resolvedLeft = path3.resolve(left);
+  const resolvedRight = path3.resolve(right);
+  return process.platform === "win32" ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase() : resolvedLeft === resolvedRight;
+}
+function isReadableFile(filePath) {
   try {
-    return operation();
-  } finally {
-    release();
-  }
-}
-function withJsonWriterWritePermit(dataRoot, token, taskId, attempt, operation) {
-  const resolved = realpathSync(dataRoot);
-  const key = process.platform === "win32" ? resolved.toLocaleLowerCase("en-US") : resolved;
-  const active = activeWritePermits.get(key);
-  if (active) {
-    active.depth += 1;
-    try {
-      assertJsonWriterCanWrite(dataRoot, token, taskId, attempt);
-      return operation();
-    } finally {
-      active.depth -= 1;
-    }
-  }
-  return withSyncGateLock(dataRoot, () => {
-    assertJsonWriterCanWrite(dataRoot, token, taskId, attempt);
-    activeWritePermits.set(key, { depth: 1 });
-    try {
-      return operation();
-    } finally {
-      activeWritePermits.delete(key);
-    }
-  });
-}
-function readLease(dataRoot, token) {
-  const file = leasePath(dataRoot, token);
-  if (!existsSync5(file)) return null;
-  let value;
-  try {
-    value = JSON.parse(readFileSync4(file, "utf8"));
-  } catch (error2) {
-    throw new Error("JSON writer lease is unreadable; writes fail closed", { cause: error2 });
-  }
-  if (!strictObject2(value) || value.schema_version !== 1 || value.token !== token || value.kind !== "manager" && value.kind !== "worker" || value.pid !== null && (!Number.isSafeInteger(value.pid) || value.pid < 1) || value.identity !== null && !validIdentity(value.identity) || typeof value.created_at !== "string" || !Number.isFinite(Date.parse(value.created_at))) {
-    throw new Error("JSON writer lease is malformed; writes fail closed");
-  }
-  if (value.kind === "worker" && (typeof value.task_id !== "string" || !Number.isSafeInteger(value.attempt))) {
-    throw new Error("JSON worker lease is missing its attempt binding; writes fail closed");
-  }
-  return value;
-}
-function validIdentity(value) {
-  if (!strictObject2(value)) return false;
-  return Number.isSafeInteger(value.pid) && value.pid > 0 && typeof value.fingerprint === "string" && value.fingerprint.length > 0 && value.fingerprint_precision === "exact" && Number.isSafeInteger(value.identity_version) && typeof value.platform === "string" && typeof value.captured_at === "string" && Number.isFinite(Date.parse(value.captured_at));
-}
-function registryEnabled(dataRoot) {
-  const file = path6.join(rosterPath(dataRoot), REGISTRY_FILE);
-  if (!existsSync5(file)) return false;
-  let value;
-  try {
-    value = JSON.parse(readFileSync4(file, "utf8"));
-  } catch (error2) {
-    throw new Error("JSON writer registry is unreadable; writes fail closed", { cause: error2 });
-  }
-  if (!strictObject2(value) || value.schema_version !== 1 || typeof value.created_at !== "string" || !Number.isFinite(Date.parse(value.created_at))) throw new Error("JSON writer registry is malformed; writes fail closed");
-  return true;
-}
-function ensureFenceOpen(dataRoot) {
-  const fence = readFence(dataRoot);
-  if (fence) throw new Error(`JSON writer fence is ${fence.state}; new writer registration is closed`);
-}
-function assertJsonWriterCanWrite(dataRoot, token, taskId, attempt) {
-  const fence = readFence(dataRoot);
-  if (!fence) {
-    if (!registryEnabled(dataRoot)) return;
-    if (!token) throw new Error("JSON writer is not registered; write rejected");
-    const lease2 = readLease(dataRoot, token);
-    if (!lease2 || lease2.pid !== process.pid || lease2.kind === "worker" && lease2.identity?.pid !== process.pid) {
-      throw new Error("JSON writer lease does not belong to this process; write rejected");
-    }
-    assertLeaseMutationScope(dataRoot, lease2, taskId, attempt);
-    return;
-  }
-  if (fence.state === "sealed") throw new Error("JSON writer fence is sealed; write rejected");
-  if (!token) throw new Error(`JSON writer fence is ${fence.state}; unregistered write rejected`);
-  const lease = readLease(dataRoot, token);
-  if (!lease || lease.pid !== process.pid || lease.kind === "worker" && lease.identity?.pid !== process.pid) {
-    throw new Error("JSON writer lease does not belong to this process; write rejected");
-  }
-  assertLeaseMutationScope(dataRoot, lease, taskId, attempt);
-}
-function assertLeaseMutationScope(dataRoot, lease, taskId, attempt) {
-  if (lease.kind === "manager") return;
-  if (!taskId || lease.task_id !== taskId || attempt !== void 0 && lease.attempt !== attempt) {
-    throw new Error("Worker writer lease is not authorized for this Task/Attempt; write rejected");
-  }
-  let status;
-  try {
-    status = JSON.parse(readFileSync4(path6.join(dataRoot, ".tasks", taskId, "status.json"), "utf8"));
-  } catch (error2) {
-    throw new Error("Worker Task status is unreadable; write rejected", { cause: error2 });
-  }
-  if (!strictObject2(status) || status.attempt !== lease.attempt) {
-    throw new Error("Worker writer lease does not match the current Task Attempt; write rejected");
-  }
-}
-function assertJsonAdmissionOpen(dataRoot) {
-  const fence = readFence(dataRoot);
-  if (fence) throw new Error(`JSON writer fence is ${fence.state}; new task admission is closed`);
-}
-async function releaseManagerJsonWriter(dataRoot, token) {
-  await withProcessLock(gateLockPath(dataRoot), async () => {
-    const lease = readLease(dataRoot, token);
-    if (!lease) return;
-    if (lease.kind !== "manager" || lease.pid !== process.pid) throw new Error("Manager writer lease owner mismatch");
-    rmSync(leasePath(dataRoot, token));
-  });
-}
-function registerPendingWorkerJsonWriter(dataRoot, taskId, attempt) {
-  const token = randomUUID2();
-  return withSyncGateLock(dataRoot, () => {
-    ensureFenceOpen(dataRoot);
-    if (!registryEnabled(dataRoot)) throw new Error("JSON writer registry is missing; Worker registration rejected");
-    writeJsonAtomic(leasePath(dataRoot, token), {
-      schema_version: 1,
-      token,
-      kind: "worker",
-      pid: null,
-      identity: null,
-      task_id: taskId,
-      attempt,
-      created_at: (/* @__PURE__ */ new Date()).toISOString()
-    });
-    return token;
-  });
-}
-function bindPendingWorkerJsonWriter(dataRoot, token, pid) {
-  withSyncGateLock(dataRoot, () => {
-    const lease = readLease(dataRoot, token);
-    if (!lease) return;
-    if (lease.kind !== "worker" || !Number.isSafeInteger(pid) || pid < 1 || lease.pid !== null && lease.pid !== pid) throw new Error("spawned Worker does not match its pending writer lease");
-    if (lease.pid === null) writeJsonAtomic(leasePath(dataRoot, token), { ...lease, pid });
-  });
-}
-function removePendingWorkerJsonWriterSync(dataRoot, token) {
-  withSyncGateLock(dataRoot, () => {
-    const lease = readLease(dataRoot, token);
-    if (!lease) return;
-    if (lease.kind !== "worker" || lease.pid !== null) throw new Error("cannot remove an active worker writer lease as pending");
-    rmSync(leasePath(dataRoot, token));
-  });
-}
-async function beginJsonWriterDrainUnderManagerLock(dataRoot, durability = defaultDurableFileOperations) {
-  return withProcessLock(gateLockPath(dataRoot), async () => {
-    const current = readFence(dataRoot);
-    if (current?.state === "sealed") return "sealed";
-    if (current?.state === "draining") return "draining";
-    if (current?.state === "closing") {
-      writeFence(dataRoot, { ...current, state: "draining", revision: current.revision + 1, updated_at: (/* @__PURE__ */ new Date()).toISOString() }, durability);
-      return "draining";
-    }
-    const transitionId = randomUUID2();
-    const closing = {
-      schema_version: 1,
-      state: "closing",
-      revision: 1,
-      transition_id: transitionId,
-      updated_at: (/* @__PURE__ */ new Date()).toISOString()
-    };
-    writeFence(dataRoot, closing, durability);
-    writeFence(dataRoot, { ...closing, state: "draining", revision: 2, updated_at: (/* @__PURE__ */ new Date()).toISOString() }, durability);
-    return "draining";
-  });
-}
-function writeFence(dataRoot, record4, durability = defaultDurableFileOperations) {
-  writeJsonAtomic(fencePath(dataRoot), record4, durability);
-}
-var FENCE_FILE, ROSTER_DIR, REGISTRY_FILE, GATE_LOCK, ATOMIC_RENAME_RETRY_MS, ATOMIC_RENAME_RETRY_PAUSE_MS, TRANSIENT_ATOMIC_RENAME_CODES, activeWritePermits;
-var init_json_writer_quiescence = __esm({
-  "src/store/json-writer-quiescence.ts"() {
-    "use strict";
-    init_process_lock();
-    init_durable_file_system();
-    init_task_store();
-    init_json_history_result_exceptions();
-    FENCE_FILE = ".writer-quiescence.json";
-    ROSTER_DIR = ".writer-roster";
-    REGISTRY_FILE = "registry.json";
-    GATE_LOCK = ".writer-quiescence.lock";
-    ATOMIC_RENAME_RETRY_MS = 5e3;
-    ATOMIC_RENAME_RETRY_PAUSE_MS = 10;
-    TRANSIENT_ATOMIC_RENAME_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
-    activeWritePermits = /* @__PURE__ */ new Map();
-  }
-});
-
-// src/store/task-store.ts
-var task_store_exports = {};
-__export(task_store_exports, {
-  InteractionRequestTooLargeError: () => InteractionRequestTooLargeError,
-  MAX_INTERACTION_PARAMS_BYTES: () => MAX_INTERACTION_PARAMS_BYTES,
-  TaskStore: () => TaskStore,
-  isTerminalStatus: () => isTerminalStatus,
-  stableJson: () => stableJson,
-  toPublicStatus: () => toPublicStatus
-});
-import { appendFileSync, chmodSync, closeSync as closeSync3, copyFileSync, existsSync as existsSync6, mkdirSync as mkdirSync3, openSync as openSync3, readFileSync as readFileSync5, readSync, readdirSync as readdirSync2, rmSync as rmSync2, statSync as statSync3, writeFileSync as writeFileSync3 } from "node:fs";
-import { createHash as createHash3, randomUUID as randomUUID3 } from "node:crypto";
-import path7 from "node:path";
-import { StringDecoder } from "node:string_decoder";
-function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-  if (value && typeof value === "object") return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(",")}}`;
-  return JSON.stringify(value) ?? "null";
-}
-function withEventLock(lockDir, operation) {
-  const deadline = Date.now() + 1e4;
-  let release;
-  while (!(release = tryAcquireProcessLock(lockDir))) {
-    if (Date.now() >= deadline) throw new Error(`timed out waiting for task state/event lock: ${lockDir}`);
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-  }
-  try {
-    return operation();
-  } finally {
-    release();
-  }
-}
-function privateMkdir(directory) {
-  mkdirSync3(directory, { recursive: true, mode: 448 });
-  privateDirectory(directory);
-}
-function privateDirectory(directory) {
-  if (process.platform !== "win32") chmodSync(directory, 448);
-}
-function privateFile(file) {
-  if (process.platform !== "win32") chmodSync(file, 384);
-}
-function readLastEventSeq(file) {
-  if (!existsSync6(file)) return 0;
-  for (const line of readFileSync5(file, "utf8").trimEnd().split("\n").reverse()) {
-    try {
-      const event = JSON.parse(line);
-      if (Number.isInteger(event.seq)) return event.seq;
-    } catch {
-    }
-  }
-  return 0;
-}
-function parseProgressEvent(line) {
-  if (!line) return null;
-  try {
-    const event = JSON.parse(line);
-    return Number.isInteger(event.seq) ? event : null;
+    if (!existsSync2(filePath) || !statSync(filePath).isFile()) return false;
+    accessSync(filePath);
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
-function isTerminalStatus(status) {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "waiting_for_master";
+function findPackageRoot(startDir) {
+  let current = startDir ?? path3.dirname(fileURLToPath(import.meta.url));
+  for (let depth = 0; depth < 10; depth++) {
+    if (existsSync2(path3.join(current, "package.json"))) {
+      return current;
+    }
+    const parent = path3.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+  throw new Error(
+    `Cannot locate the Bridge package root (no package.json above ${startDir ?? "module directory"})`
+  );
 }
-function toPublicStatus(status) {
-  const record4 = {
-    task_id: status.task_id,
-    status: status.status,
-    attempt: status.attempt,
-    created_at: status.created_at,
-    updated_at: status.updated_at,
-    started_at: status.started_at,
-    finished_at: status.finished_at,
-    worker_pid: status.worker_pid,
-    zcode_session_id: status.zcode_session_id,
-    exit_code: status.exit_code
-  };
-  if (status.error_code) record4.error_code = status.error_code;
-  if (status.error) record4.error = status.error;
-  return record4;
+function isPlainObject3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-var TASK_ID_PATTERN, DEFAULT_MAX_LOG_BYTES, MAX_INTERACTION_PARAMS_BYTES, LEGACY_INTERACTION_PARAMS_BYTES, SHA256_HEX_PATTERN, InteractionRequestTooLargeError, MAX_CRITICAL_EVENT_RESERVE_BYTES, CRITICAL_EVENT_TYPES, TaskStore;
-var init_task_store = __esm({
-  "src/store/task-store.ts"() {
+function isNonEmptyCollection(value) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (isPlainObject3(value)) return Object.keys(value).length > 0;
+  return false;
+}
+function errorText(error2) {
+  const message = error2 instanceof Error ? error2.message : String(error2);
+  return message.length > 300 ? `${message.slice(0, 300)}\u2026` : message;
+}
+var PERSISTED_RUNTIME_KEYS, NodeRuntimeResolver;
+var init_resolver = __esm({
+  "src/runtime/resolver.ts"() {
     "use strict";
-    init_failure_facts();
-    init_process_lock();
-    init_atomic_rename();
-    init_json_writer_quiescence();
-    TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-    DEFAULT_MAX_LOG_BYTES = 10 * 1024 * 1024;
-    MAX_INTERACTION_PARAMS_BYTES = 1024 * 1024;
-    LEGACY_INTERACTION_PARAMS_BYTES = 32e3;
-    SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/u;
-    InteractionRequestTooLargeError = class extends Error {
-      actualBytes;
-      limitBytes;
-      constructor(actualBytes, limitBytes) {
-        super(
-          `ZCode interaction request exceeded the ${limitBytes}-byte persistence limit (actual ${actualBytes} UTF-8 bytes); split the tool input into smaller parts and retry`
-        );
-        this.name = "InteractionRequestTooLargeError";
-        this.actualBytes = actualBytes;
-        this.limitBytes = limitBytes;
+    init_errors();
+    init_paths();
+    init_profile();
+    PERSISTED_RUNTIME_KEYS = [
+      "ZCODE_BRIDGE_NODE",
+      "ZCODE_BRIDGE_ZCODE_CJS",
+      "ZCODE_BRIDGE_DATA_DIR",
+      "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE",
+      "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE",
+      "ZCODE_HOME",
+      "ZCODE_DATA_BASE_DIR",
+      "ZCODE_WINDOWS_APP_INSTALL_DIR",
+      "ZCODE_BRIDGE_DEFAULT_PROVIDER_ID",
+      "ZCODE_BRIDGE_DEFAULT_MODEL_ID",
+      "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
+      "ZCODE_BRIDGE_PREFER_STARTPLAN",
+      "ZCODE_BRIDGE_MODE",
+      "ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS",
+      "ZCODE_BRIDGE_TIMEOUT_MS",
+      "ZCODE_BRIDGE_BROWSER_USE",
+      "ZCODE_BRIDGE_BROWSER_EXECUTABLE"
+    ];
+    NodeRuntimeResolver = class {
+      #env;
+      #homeDir;
+      #packageRoot;
+      #host;
+      constructor(options = {}) {
+        this.#env = options.env ?? process.env;
+        this.#homeDir = options.homeDir ?? homedir2();
+        this.#packageRoot = options.packageRoot ?? null;
+        this.#host = validateHostProfile(options.host ?? codexHostProfile(this.#homeDir));
       }
-    };
-    MAX_CRITICAL_EVENT_RESERVE_BYTES = 256 * 1024;
-    CRITICAL_EVENT_TYPES = /* @__PURE__ */ new Set([
-      "error",
-      "task_finished",
-      "turn_completed",
-      "report_ready",
-      "session_ready",
-      "turn_started",
-      "worker_started",
-      "workspace_ready",
-      "timeout_warning",
-      "model_catalog",
-      "account_provider_sync_failed",
-      "interaction_requested",
-      "interaction_reply_submitted",
-      "cancelled",
-      "cancel_failed",
-      "cleanup_unverified",
-      "outcome_checkpoint_failed",
-      "outcome_recovered",
-      // ADR-008: fatal frame failures and undeliverable approvals must survive
-      // event-log capacity pressure.
-      "protocol_error",
-      "interaction_request_oversized",
-      "interaction_request_undeliverable"
-    ]);
-    TaskStore = class {
-      #dataRoot;
-      #tasksRoot;
-      #maxLogBytes;
-      #maxEventBytes;
-      #writerQuiescence;
-      #writerLeaseToken;
-      constructor(dataRoot, options = {}) {
-        this.#dataRoot = dataRoot;
-        this.#tasksRoot = path7.join(dataRoot, ".tasks");
-        this.#maxLogBytes = options.maxLogBytes ?? DEFAULT_MAX_LOG_BYTES;
-        this.#maxEventBytes = options.maxEventBytes ?? DEFAULT_MAX_LOG_BYTES;
-        this.#writerQuiescence = options.writerQuiescence ?? false;
-        this.#writerLeaseToken = options.writerLeaseToken;
-        privateMkdir(this.#tasksRoot);
-      }
-      get dataRoot() {
-        return this.#dataRoot;
-      }
-      get tasksRoot() {
-        return this.#tasksRoot;
-      }
-      get writerQuiescenceEnabled() {
-        return this.#writerQuiescence;
-      }
-      get writerLeaseToken() {
-        return this.#writerLeaseToken;
-      }
-      assertValidTaskId(taskId) {
-        if (typeof taskId !== "string" || !TASK_ID_PATTERN.test(taskId)) {
-          throw new Error(`invalid task_id (must match ${TASK_ID_PATTERN.source}): ${String(taskId)}`);
+      async resolve() {
+        const env = loadPersistedRuntimeEnvironment(this.#env, this.#homeDir, this.#host);
+        const data = discoverZCodeData(env, { fallbackHomeDir: this.#homeDir });
+        const zcodeHome = resolveZcodeHome(env);
+        const explicitDataBaseDir = env["ZCODE_DATA_BASE_DIR"]?.trim() || null;
+        if (explicitDataBaseDir && !isAbsolutePathForPlatform(explicitDataBaseDir)) {
+          throw new BridgeError("provider_config_invalid", "ZCODE_DATA_BASE_DIR must be an absolute path");
         }
-      }
-      taskDir(taskId) {
-        this.assertValidTaskId(taskId);
-        return path7.join(this.#tasksRoot, taskId);
-      }
-      hasTask(taskId) {
-        try {
-          return existsSync6(path7.join(this.taskDir(taskId), "status.json"));
-        } catch {
-          return false;
+        if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path3.dirname(zcodeHome), explicitDataBaseDir)) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `ZCODE_HOME (${zcodeHome}) and ZCODE_DATA_BASE_DIR (${explicitDataBaseDir}) conflict; ZCODE_HOME must name <ZCODE_DATA_BASE_DIR>/.zcode. Fix one of them instead of relying on silent selection.`
+          );
         }
-      }
-      listTaskIds() {
-        if (!existsSync6(this.#tasksRoot)) return [];
-        return readdirSync2(this.#tasksRoot).filter(
-          (entry) => existsSync6(path7.join(this.#tasksRoot, entry, "status.json"))
-        );
-      }
-      createTask(task, createdAt) {
-        return this.#withWriterMutation(() => {
-          assertJsonAdmissionOpen(this.#dataRoot);
-          this.assertValidTaskId(task.task_id);
-          const dir = this.taskDir(task.task_id);
-          if (existsSync6(path7.join(dir, "task.json"))) {
-            throw new Error(`task already exists: ${task.task_id}`);
+        let nodeExecutable = "node";
+        const nodeOverride = env["ZCODE_BRIDGE_NODE"]?.trim();
+        if (nodeOverride) {
+          this.#assertReadableFile(
+            nodeOverride,
+            "ZCODE_BRIDGE_NODE is set but is not a readable file"
+          );
+          nodeExecutable = nodeOverride;
+        }
+        const builtinEnv = env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() || null;
+        const personalEnv = env["ZCODE_PERSONAL_PROVIDER_CONFIG_FILE"]?.trim() || null;
+        let zcodeEntrypoint;
+        let explicitRuntime = false;
+        const entryOverride = env["ZCODE_BRIDGE_ZCODE_CJS"]?.trim();
+        if (entryOverride) {
+          this.#assertReadableFile(
+            entryOverride,
+            "ZCODE_BRIDGE_ZCODE_CJS is set but is not a readable file"
+          );
+          zcodeEntrypoint = entryOverride;
+          explicitRuntime = true;
+        } else {
+          const install = discoverZCodeInstall(env, { requireBuiltin: !builtinEnv });
+          if (!install.zcodeEntrypoint) {
+            throw new BridgeError(
+              "runtime_not_found",
+              `zcode.cjs${builtinEnv ? "" : " with a same-install zcode-builtin.json"} was not found; searched: ` + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
+            );
           }
-          privateMkdir(path7.join(dir, "attempts"));
-          this.#writeJsonAtomic(path7.join(dir, "task.json"), task);
-          const status = {
-            task_id: task.task_id,
-            status: "queued",
-            attempt: 1,
-            created_at: createdAt,
-            updated_at: createdAt,
-            started_at: null,
-            finished_at: null,
-            worker_pid: null,
-            zcode_session_id: null,
-            exit_code: null
-          };
-          this.#writeJsonAtomic(path7.join(dir, "status.json"), status);
-        });
+          zcodeEntrypoint = install.zcodeEntrypoint;
+        }
+        let builtinConfigFile;
+        let personalConfigFile;
+        if (builtinEnv && personalEnv) {
+          this.#validateBuiltinConfig(builtinEnv);
+          this.#validatePersonalConfig(personalEnv);
+          builtinConfigFile = builtinEnv;
+          personalConfigFile = personalEnv;
+        } else {
+          if (builtinEnv) {
+            this.#validateBuiltinConfig(builtinEnv);
+            builtinConfigFile = builtinEnv;
+          } else if (explicitRuntime) {
+            const derived2 = builtinConfigForRuntime(zcodeEntrypoint);
+            if (!isReadableFile(derived2)) {
+              throw new BridgeError(
+                "provider_config_missing",
+                `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and the builtin config was not found next to the configured runtime; expected: ${derived2}`
+              );
+            }
+            this.#validateBuiltinConfig(derived2);
+            builtinConfigFile = derived2;
+          } else {
+            const install = discoverZCodeInstall(env, { requireBuiltin: true });
+            if (!install.builtinConfigFile) {
+              throw new BridgeError(
+                "provider_config_missing",
+                "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and no builtin provider config was found in the ZCode installation; searched: " + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
+              );
+            }
+            this.#validateBuiltinConfig(install.builtinConfigFile);
+            builtinConfigFile = install.builtinConfigFile;
+          }
+          if (personalEnv) {
+            this.#validatePersonalConfig(personalEnv);
+            personalConfigFile = personalEnv;
+          } else {
+            const candidates = zcodeHome ? [path3.join(zcodeHome, "v2", "provider_config.json")] : [
+              explicitDataBaseDir,
+              data.configuredDataBaseDir,
+              data.userHome
+            ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path3.join(base, ".zcode", "v2", "provider_config.json"));
+            const existing = candidates.filter((candidate) => existsSync2(candidate));
+            if (existing.length === 0) {
+              throw new BridgeError(
+                "provider_config_missing",
+                "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE is not set and no personal provider config exists at any of: " + candidates.join(", ")
+              );
+            }
+            let accepted = null;
+            let lastError = null;
+            for (const candidate of existing) {
+              try {
+                this.#validatePersonalConfig(candidate);
+                accepted = candidate;
+                break;
+              } catch (error2) {
+                lastError = error2 instanceof Error ? error2.message : String(error2);
+              }
+            }
+            if (!accepted) {
+              throw new BridgeError(
+                "provider_config_invalid",
+                `No usable personal provider config among: ${existing.join(", ")}; last validation failure: ${lastError ?? "unknown"}`
+              );
+            }
+            personalConfigFile = accepted;
+          }
+        }
+        if (zcodeHome && !samePath(personalConfigFile, path3.join(zcodeHome, "v2", "provider_config.json"))) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE must be ZCODE_HOME/v2/provider_config.json (${zcodeHome})`
+          );
+        }
+        const dataOverride = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
+        let dataRoot;
+        if (dataOverride) {
+          if (!path3.isAbsolute(dataOverride)) {
+            throw new Error(
+              `ZCODE_BRIDGE_DATA_DIR must be an absolute path when set, got: ${dataOverride}`
+            );
+          }
+          dataRoot = path3.normalize(dataOverride);
+        } else {
+          dataRoot = this.#packageRoot ?? findPackageRoot();
+        }
+        return {
+          nodeExecutable,
+          zcodeEntrypoint,
+          providerBuiltinConfigFile: builtinConfigFile,
+          providerPersonalConfigFile: personalConfigFile,
+          zcodeDataRoot: data.zcodeDataDir,
+          dataRoot
+        };
       }
-      readTask(taskId) {
-        const file = path7.join(this.taskDir(taskId), "task.json");
-        const parsed = this.#readJson(file);
-        const task = parsed;
-        if (!task || task.task_id !== taskId || typeof task.workspace !== "string" || !task.workspace || typeof task.objective !== "string" || [task.requirements, task.allowed_paths, task.forbidden_paths, task.acceptance_criteria, task.test_commands].some((items) => !Array.isArray(items) || items.some((item) => typeof item !== "string"))) throw new Error(`corrupt task record: ${file}`);
-        return task;
+      #assertReadableFile(filePath, label) {
+        if (!isReadableFile(filePath)) {
+          throw new BridgeError("runtime_not_found", `${label}: ${filePath}`);
+        }
       }
-      readSubmission(taskId) {
-        const file = path7.join(this.taskDir(taskId), "submission.json");
-        if (!existsSync6(file)) return null;
-        return this.#readJson(file);
+      /**
+       * Structure validation only. The verified differential signal for the
+       * CLI-created stub is an empty providerRules map (see docs/ZCODE_RUNTIME.md);
+       * rejecting it implements "never silently select a known stub".
+       */
+      #validatePersonalConfig(filePath) {
+        const parsed = this.#readJsonConfig(filePath, "personal provider config");
+        const config2 = parsed["config"];
+        if (!isPlainObject3(config2)) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `Personal provider config has no config object: ${filePath}`
+          );
+        }
+        const providerConfigRules = config2["providerConfigRules"];
+        const rules = isPlainObject3(providerConfigRules) ? providerConfigRules["providerRules"] : void 0;
+        if (!isNonEmptyCollection(rules)) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `Personal provider config contains no provider rules (this matches the known CLI-created stub shape): ${filePath}`
+          );
+        }
       }
-      writeSubmission(taskId, submission) {
-        return this.#withWriterMutation(() => {
-          this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "submission.json"), submission);
-        }, taskId);
+      #validateBuiltinConfig(filePath) {
+        const parsed = this.#readJsonConfig(filePath, "builtin provider config");
+        if (!isPlainObject3(parsed["config"])) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `Builtin provider config has no config object: ${filePath}`
+          );
+        }
       }
-      writeWorkspaceRef(taskId, workspace) {
-        return this.#withWriterMutation(() => {
-          this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "workspace.json"), workspace);
-        }, taskId);
-      }
-      readWorkspaceRef(taskId) {
-        const file = path7.join(this.taskDir(taskId), "workspace.json");
-        if (!existsSync6(file)) return null;
-        const workspace = this.#readJson(file);
-        if (!workspace || typeof workspace.canonicalPath !== "string" || typeof workspace.requestedPath !== "string" || !["direct", "worktree"].includes(workspace.mode)) throw new Error(`corrupt workspace record: ${file}`);
-        return workspace;
-      }
-      readStatus(taskId) {
-        const file = path7.join(this.taskDir(taskId), "status.json");
-        const parsed = this.#readJson(file);
-        if (!parsed || parsed.task_id !== taskId || !["queued", "running", "completed", "failed", "cancelled", "waiting_for_master"].includes(parsed.status) || !Number.isSafeInteger(parsed.attempt) || parsed.attempt < 1 || typeof parsed.created_at !== "string") {
-          throw new Error(`corrupt status record: ${file}`);
+      #readJsonConfig(filePath, label) {
+        if (!isReadableFile(filePath)) {
+          throw new BridgeError("provider_config_missing", `${label} not found: ${filePath}`);
+        }
+        let text2;
+        try {
+          text2 = readFileSync2(filePath, "utf8");
+        } catch (error2) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `${label} is not readable: ${filePath} (${errorText(error2)})`
+          );
+        }
+        let parsed;
+        try {
+          parsed = JSON.parse(text2);
+        } catch (error2) {
+          throw new BridgeError(
+            "provider_config_invalid",
+            `${label} is not valid JSON: ${filePath}`
+          );
+        }
+        if (!isPlainObject3(parsed)) {
+          throw new BridgeError("provider_config_invalid", `${label} is not a JSON object: ${filePath}`);
         }
         return parsed;
-      }
-      /** Read-merge-write with an updated timestamp; atomic via temp file + rename. */
-      writeStatus(taskId, patch, expectedAttempt) {
-        return this.#withWriterMutation(() => {
-          return withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            const current = this.readStatus(taskId);
-            if (expectedAttempt !== void 0 && (current.attempt !== expectedAttempt || isTerminalStatus(current.status))) throw new Error("stale or terminal worker status rejected");
-            const next = {
-              ...current,
-              ...patch,
-              task_id: current.task_id,
-              updated_at: (/* @__PURE__ */ new Date()).toISOString()
-            };
-            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "status.json"), next);
-            return next;
-          });
-        }, taskId, expectedAttempt);
-      }
-      readResult(taskId) {
-        const file = path7.join(this.taskDir(taskId), "result.json");
-        if (!existsSync6(file)) return null;
-        const result = this.#readJson(file);
-        if (!result || result.task_id !== taskId || !Number.isSafeInteger(result.attempt) || !isTerminalStatus(result.status)) throw new Error(`corrupt result record: ${file}`);
-        return result.attempt === this.readStatus(taskId).attempt ? result : null;
-      }
-      writeResult(taskId, result) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            if (this.readStatus(taskId).attempt !== result.attempt) throw new Error("stale worker attempt result rejected");
-            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "result.json"), result);
-          });
-        }, taskId, result.attempt);
-      }
-      commitWorkerResult(taskId, attempt, result, patch) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            this.assertWorkerAttempt(taskId, attempt);
-            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "result.json"), result);
-            const current = this.readStatus(taskId);
-            let effective = patch;
-            if (current.cleanup_unverified === true) {
-              effective = { ...patch, cleanup_unverified: true };
-              if (typeof current.error === "string" && current.error.includes("[cleanup-members:")) {
-                effective = { ...effective, error: current.error };
-              }
-            }
-            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "status.json"), { ...current, ...effective, task_id: taskId, attempt, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
-          });
-        }, taskId, attempt);
-      }
-      patchRunningAttempt(taskId, attempt, patch) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            const current = this.readStatus(taskId);
-            if (current.attempt !== attempt || current.status !== "running") return;
-            this.#writeJsonAtomic(path7.join(this.taskDir(taskId), "status.json"), { ...current, ...patch, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
-          });
-        }, taskId, attempt);
-      }
-      /** Copies evidence before the continuation status commit; the old result remains recoverable. */
-      archiveResultToAttempt(taskId, attempt) {
-        return this.#withWriterMutation(() => {
-          const dir = this.taskDir(taskId);
-          const source = path7.join(dir, "result.json");
-          if (!existsSync6(source)) return;
-          const targetDir = this.attemptDir(taskId, attempt);
-          privateMkdir(targetDir);
-          copyFileSync(source, path7.join(targetDir, "result.json"));
-          privateFile(path7.join(targetDir, "result.json"));
-        }, taskId, attempt);
-      }
-      /** A claim is permanent: a started attempt must never execute again. */
-      claimWorkerExecution(taskId, attempt) {
-        return this.#withWriterMutation(() => {
-          return withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            if (status.attempt !== attempt || isTerminalStatus(status.status)) return false;
-            privateMkdir(this.attemptDir(taskId, attempt));
-            try {
-              writeFileSync3(path7.join(this.attemptDir(taskId, attempt), "execution.claim"), JSON.stringify({ pid: process.pid }), { flag: "wx", mode: 384 });
-              return true;
-            } catch (error2) {
-              if (error2.code === "EEXIST") return false;
-              throw error2;
-            }
-          });
-        }, taskId, attempt);
-      }
-      assertWorkerAttempt(taskId, attempt) {
-        const status = this.readStatus(taskId);
-        if (status.attempt !== attempt || isTerminalStatus(status.status)) throw new Error("stale or terminal worker attempt rejected");
-      }
-      readArchivedResult(taskId, attempt) {
-        const file = path7.join(this.attemptDir(taskId, attempt), "result.json");
-        if (!existsSync6(file)) return null;
-        return this.#readJson(file);
-      }
-      attemptDir(taskId, attempt) {
-        return path7.join(this.taskDir(taskId), "attempts", String(attempt));
-      }
-      writeAttemptFile(taskId, attempt, fileName, content) {
-        return this.#withWriterMutation(() => {
-          const dir = this.attemptDir(taskId, attempt);
-          privateMkdir(dir);
-          this.#writeTextAtomic(path7.join(dir, fileName), content);
-        }, taskId, attempt);
-      }
-      writeAttemptMeta(taskId, attempt, fileName, meta2) {
-        return this.#withWriterMutation(() => {
-          const dir = this.attemptDir(taskId, attempt);
-          privateMkdir(dir);
-          this.#writeJsonAtomic(path7.join(dir, fileName), meta2);
-        }, taskId, attempt);
-      }
-      // ---- ADR-011 P0 private failure facts (M3 dedicated ownership entry) ----
-      /**
-       * The only write entry for `<attempt>/failure-facts.json`. Inside one
-       * state.lock critical section it verifies status.attempt, running status,
-       * status.worker_pid, and the attempt's execution.claim pid against the
-       * calling worker, then performs the first-write / idempotent no-op decision
-       * and the atomic publish. Plain writeAttemptMeta() must never be used as the
-       * final entry for this file. Every mismatch, corrupt existing snapshot, or
-       * divergent replacement candidate is rejected: the first established root
-       * cause is never replaced, and a terminal attempt is never backfilled. The
-       * caller owns diagnostic isolation — a rejected write must never alter task
-       * state, results, or cleanup (ADR-011).
-       */
-      writeFailureFacts(taskId, attempt, writerPid, facts) {
-        const file = path7.join(this.attemptDir(taskId, attempt), "failure-facts.json");
-        return this.#withWriterMutation(() => withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-          const status = this.readStatus(taskId);
-          if (status.attempt !== attempt) throw new Error("stale attempt failure facts rejected");
-          if (status.status !== "running") throw new Error("non-running attempt failure facts rejected");
-          if (status.worker_pid !== writerPid) throw new Error("failure facts writer does not match the recorded worker pid");
-          const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
-          if (!claim2 || claim2.pid !== writerPid) throw new Error("failure facts writer does not own the execution claim");
-          validateFailureFacts(facts);
-          if (existsSync6(file)) {
-            const existing = validateFailureFacts(this.#readJson(file));
-            if (stableJson(existing) === stableJson(facts)) return "duplicate";
-            throw new Error("failure facts root cause already established; divergent snapshot rejected");
-          }
-          this.#writeJsonAtomic(file, facts);
-          return "written";
-        }), taskId, attempt);
-      }
-      /** Read-only accessor for diagnostics and tests. Never consulted for manager
-       * state, recovery, occupancy, or READY/DONE decisions (ADR-011). */
-      readFailureFacts(taskId, attempt) {
-        const file = path7.join(this.attemptDir(taskId, attempt), "failure-facts.json");
-        if (!existsSync6(file)) return { facts: null, corrupt: false };
-        try {
-          return { facts: validateFailureFacts(JSON.parse(readFileSync5(file, "utf8"))), corrupt: false };
-        } catch {
-          return { facts: null, corrupt: true };
-        }
-      }
-      readAttemptMeta(taskId, attempt, fileName) {
-        const file = path7.join(this.attemptDir(taskId, attempt), fileName);
-        if (!existsSync6(file)) return null;
-        return this.#readJson(file);
-      }
-      writeWorkerHeartbeat(taskId, attempt, heartbeat) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
-            if (status.attempt !== attempt || status.status !== "running" || status.worker_pid !== heartbeat.worker_pid || claim2?.pid !== heartbeat.worker_pid) {
-              throw new Error("stale or unowned worker heartbeat rejected");
-            }
-            this.#writeJsonAtomic(path7.join(this.attemptDir(taskId, attempt), "heartbeat.json"), heartbeat);
-          });
-        }, taskId, attempt);
-      }
-      readWorkerHeartbeat(taskId, attempt) {
-        const value = this.readAttemptMeta(taskId, attempt, "heartbeat.json");
-        if (!value || value.attempt !== attempt || !Number.isSafeInteger(value.worker_pid) || typeof value.heartbeat_at !== "string") return null;
-        return value;
-      }
-      readAttemptText(taskId, attempt, fileName) {
-        const file = path7.join(this.attemptDir(taskId, attempt), fileName);
-        if (!existsSync6(file)) return null;
-        return readFileSync5(file, "utf8");
-      }
-      // ---- A1 observation evidence (bounded reads, no task bodies) ----
-      /** Bounded persisted evidence for the observation judger. */
-      readObservationEvidence(taskId, attempt) {
-        const checkpointRaw = this.readAttemptMeta(taskId, attempt, "outcome-checkpoint.json");
-        const checkpoint = checkpointRaw && typeof checkpointRaw.recorded_at === "string" ? { recorded_at: checkpointRaw.recorded_at } : null;
-        const heartbeat = this.readWorkerHeartbeat(taskId, attempt);
-        return {
-          checkpoint,
-          heartbeat,
-          last_business_event: this.readLastBusinessEvent(taskId),
-          pending_interaction: this.readPendingInteraction(taskId)
-        };
-      }
-      /** Last complete event line, read from a bounded tail window. */
-      readLastBusinessEvent(taskId) {
-        const file = path7.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync6(file)) return null;
-        let size = 0;
-        try {
-          size = statSync3(file).size;
-        } catch {
-          return null;
-        }
-        if (size === 0) return null;
-        const window = Math.min(8192, size);
-        const buffer = Buffer.allocUnsafe(window);
-        let read = 0;
-        try {
-          const fd = openSync3(file, "r");
-          try {
-            read = readSync(fd, buffer, 0, window, size - window);
-          } finally {
-            closeSync3(fd);
-          }
-        } catch {
-          return null;
-        }
-        const text2 = buffer.subarray(0, read).toString("utf8");
-        const newline = text2.indexOf("\n");
-        const body = newline >= 0 && window < size ? text2.slice(newline + 1) : text2;
-        const lines = body.split("\n").filter((line) => line.trim());
-        for (let index = lines.length - 1; index >= 0; index -= 1) {
-          const event = parseProgressEvent(lines[index]);
-          if (event) return { at: event.at, type: event.type, seq: event.seq };
-        }
-        return null;
-      }
-      /** Distinct event types from a bounded tail window (A3 stage inference). */
-      listRecentEventTypes(taskId, maxLines) {
-        const file = path7.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync6(file)) return [];
-        let size = 0;
-        try {
-          size = statSync3(file).size;
-        } catch {
-          return [];
-        }
-        const window = Math.min(256 * 1024, size);
-        if (window === 0) return [];
-        const buffer = Buffer.allocUnsafe(window);
-        let read = 0;
-        try {
-          const fd = openSync3(file, "r");
-          try {
-            read = readSync(fd, buffer, 0, window, size - window);
-          } finally {
-            closeSync3(fd);
-          }
-        } catch {
-          return [];
-        }
-        const text2 = buffer.subarray(0, read).toString("utf8");
-        const newline = text2.indexOf("\n");
-        const body = newline >= 0 && window < size ? text2.slice(newline + 1) : text2;
-        const types = /* @__PURE__ */ new Set();
-        for (const line of body.split("\n").slice(-maxLines)) {
-          const event = parseProgressEvent(line);
-          if (event) types.add(event.type);
-        }
-        return [...types];
-      }
-      /** Newest unanswered interaction request (bounded directory scan). */
-      readPendingInteraction(taskId) {
-        const directory = path7.join(this.taskDir(taskId), "interactions");
-        let entries;
-        try {
-          entries = readdirSync2(directory);
-        } catch {
-          return null;
-        }
-        const files = entries.filter((entry) => entry.endsWith(".json")).slice(0, 64);
-        let newest = null;
-        for (const file of files) {
-          try {
-            const record4 = JSON.parse(readFileSync5(path7.join(directory, file), "utf8"));
-            if (record4.state === "pending" && typeof record4.method === "string" && typeof record4.created_at === "string") {
-              if (!newest || record4.created_at > newest.created_at) newest = { method: record4.method, created_at: record4.created_at };
-            }
-          } catch {
-          }
-        }
-        return newest;
-      }
-      // ---- B3 attempt-scoped observation snapshot (fenced writer) ----
-      /**
-       * Writes worker-owned snapshot fields. Fenced twice: the attempt must still
-       * be the current one, and the writer must own the attempt's execution claim,
-       * so a replaced or stale worker can never overwrite current facts. Revision
-       * is per writer and must strictly increase within one writer identity.
-       */
-      writeWorkerObservation(taskId, attempt, writerPid, patch, revision, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            if (status.attempt !== attempt) throw new Error("stale attempt observation rejected");
-            const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
-            if (claim2?.pid !== writerPid) throw new Error("observation writer does not own the execution claim");
-            this.#mergeObservationSnapshot(taskId, attempt, "worker", revision, patch, updatedAt);
-          });
-        }, taskId, attempt);
-      }
-      /** Writes manager-owned snapshot fields (probe verdicts); worker business
-       * phases are never overwritten from the manager side. */
-      writeManagerObservation(taskId, attempt, patch, revision, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path7.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            if (status.attempt !== attempt) throw new Error("stale attempt observation rejected");
-            this.#mergeObservationSnapshot(taskId, attempt, "manager", revision, patch, updatedAt);
-          });
-        }, taskId, attempt);
-      }
-      readObservationSnapshot(taskId, attempt) {
-        const file = path7.join(this.attemptDir(taskId, attempt), "observation.json");
-        if (!existsSync6(file)) return { snapshot: null, corrupt: false };
-        try {
-          const parsed = JSON.parse(readFileSync5(file, "utf8"));
-          if (parsed.schema_version !== 1 || parsed.task_id !== taskId || parsed.attempt !== attempt) {
-            return { snapshot: null, corrupt: true };
-          }
-          return { snapshot: parsed, corrupt: false };
-        } catch {
-          return { snapshot: null, corrupt: true };
-        }
-      }
-      #mergeObservationSnapshot(taskId, attempt, writer, revision, patch, updatedAt) {
-        if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("observation revision must be a non-negative integer");
-        const current = this.readObservationSnapshot(taskId, attempt).snapshot;
-        const previousRevision = current?.writers?.[writer] ?? -1;
-        if (revision <= previousRevision) throw new Error("stale observation revision rejected");
-        const carried = current ?? {};
-        const next = {
-          schema_version: 1,
-          task_id: taskId,
-          attempt,
-          writers: { ...carried.writers, [writer]: revision },
-          updated_at: updatedAt
-        };
-        const workerOwned = ["session_id", "turn_id", "last_runtime_seq", "activity_phase", "worker_identity", "runtime_identity"];
-        const managerOwned = ["worker_probe", "runtime_probe"];
-        for (const key of workerOwned) {
-          if (key in patch) next[key] = patch[key];
-          else if (key in carried) next[key] = carried[key];
-        }
-        for (const key of managerOwned) {
-          if (key in patch) next[key] = patch[key];
-          else if (key in carried) next[key] = carried[key];
-        }
-        this.writeAttemptMeta(taskId, attempt, "observation.json", next);
-      }
-      // ---- A2 executor identity evidence ----
-      writeExecutorIdentity(taskId, attempt, identity) {
-        return this.#withWriterMutation(() => {
-          const current = this.readAttemptMeta(taskId, attempt, "executor-identity.json") ?? {};
-          this.writeAttemptMeta(taskId, attempt, "executor-identity.json", {
-            ...current,
-            ...identity
-          });
-        }, taskId, attempt);
-      }
-      readExecutorIdentity(taskId, attempt) {
-        return this.readAttemptMeta(taskId, attempt, "executor-identity.json");
-      }
-      /**
-       * Atomically claims the single worker-respawn slot for an attempt by
-       * creating the marker file with an exclusive flag, so several Bridge
-       * processes sharing this data root can never spawn two replacement
-       * workers. Returns false when the slot is already claimed.
-       */
-      claimAttemptRespawn(taskId, attempt) {
-        return this.#withWriterMutation(() => {
-          const dir = this.attemptDir(taskId, attempt);
-          privateMkdir(dir);
-          try {
-            closeSync3(openSync3(path7.join(dir, "respawn.claim"), "wx"));
-            return true;
-          } catch (error2) {
-            if (error2.code === "EEXIST") return false;
-            throw error2;
-          }
-        }, taskId, attempt);
-      }
-      /** File time of the respawn claim, or null when the attempt is unclaimed. */
-      respawnClaimedAt(taskId, attempt) {
-        try {
-          return statSync3(path7.join(this.attemptDir(taskId, attempt), "respawn.claim")).mtime;
-        } catch {
-          return null;
-        }
-      }
-      /** Append-only, byte-bounded. Returns whether the chunk was truncated. */
-      appendLog(taskId, kind, text2) {
-        if (!text2) return { truncated: false };
-        return this.#withWriterMutation(() => {
-          const dir = this.taskDir(taskId);
-          privateMkdir(dir);
-          const file = path7.join(dir, `${kind}.log`);
-          let currentBytes = 0;
-          try {
-            currentBytes = statSync3(file).size;
-          } catch {
-            currentBytes = 0;
-          }
-          const bytes = Buffer.from(text2, "utf8");
-          const room = this.#maxLogBytes - currentBytes;
-          if (room <= 0) return { truncated: true };
-          appendFileSync(file, bytes.length <= room ? bytes : bytes.subarray(0, room), { mode: 384 });
-          privateFile(file);
-          return { truncated: bytes.length > room };
-        }, taskId);
-      }
-      readLog(taskId, kind) {
-        const file = path7.join(this.taskDir(taskId), `${kind}.log`);
-        return existsSync6(file) ? readFileSync5(file, "utf8") : "";
-      }
-      appendEvent(taskId, type, summary, details, at = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const dir = this.taskDir(taskId);
-          mkdirSync3(dir, { recursive: true });
-          const lockDir = path7.join(dir, "events.lock");
-          return withEventLock(lockDir, () => {
-            const file = path7.join(dir, "events.jsonl");
-            const seqFile = path7.join(dir, "events.seq");
-            let bytes = 0;
-            let previousSeq = 0;
-            let needsSeparator = false;
-            try {
-              const info = statSync3(file);
-              bytes = info.size;
-              let lastByte;
-              if (bytes > 0) {
-                const fd = openSync3(file, "r");
-                try {
-                  const tail = Buffer.alloc(1);
-                  readSync(fd, tail, 0, 1, bytes - 1);
-                  lastByte = tail[0];
-                } finally {
-                  closeSync3(fd);
-                }
-              }
-              needsSeparator = bytes > 0 && lastByte !== 10;
-            } catch (error2) {
-              if (error2.code !== "ENOENT") throw error2;
-              bytes = 0;
-            }
-            try {
-              previousSeq = Number(readFileSync5(seqFile, "utf8"));
-              if (!Number.isSafeInteger(previousSeq) || previousSeq < 0) previousSeq = readLastEventSeq(file);
-            } catch {
-              previousSeq = readLastEventSeq(file);
-            }
-            const event = {
-              seq: previousSeq + 1,
-              at,
-              type: type.slice(0, 80),
-              summary: summary.length <= 2e3 ? summary : `${summary.slice(0, 1970)}\u2026[output truncated]`,
-              ...details && Object.keys(details).length ? { details } : {}
-            };
-            const line = `${JSON.stringify(event)}
-`;
-            const lineBytes = Buffer.byteLength(line, "utf8") + (needsSeparator ? 1 : 0);
-            const critical = CRITICAL_EVENT_TYPES.has(type);
-            const capacity = this.#maxEventBytes + (critical ? MAX_CRITICAL_EVENT_RESERVE_BYTES : 0);
-            if (lineBytes > 64e3 || bytes + lineBytes > capacity) return null;
-            this.#writeTextAtomic(seqFile, String(event.seq));
-            const eventOffset = bytes + (needsSeparator ? 1 : 0);
-            appendFileSync(file, `${needsSeparator ? "\n" : ""}${line}`, { encoding: "utf8", mode: 384 });
-            privateFile(file);
-            const genFile = path7.join(dir, "events.gen");
-            if (!existsSync6(genFile)) {
-              this.#writeTextAtomic(genFile, randomUUID3());
-            }
-            if (event.seq % 100 === 0) {
-              const index = path7.join(dir, "events.index");
-              appendFileSync(index, `${event.seq}	${eventOffset}
-`, { encoding: "utf8", mode: 384 });
-              privateFile(index);
-            }
-            return event;
-          });
-        }, taskId);
-      }
-      readEvents(taskId, afterSeq = 0, limit = 100, view = "raw") {
-        const file = path7.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync6(file)) return { events: [], nextSeq: afterSeq, hasMore: false, omittedEvents: 0 };
-        let offset = 0;
-        const indexFile = path7.join(this.taskDir(taskId), "events.index");
-        if (existsSync6(indexFile)) {
-          for (const row of readFileSync5(indexFile, "utf8").split(/\r?\n/u)) {
-            const [seqText, offsetText] = row.split("	");
-            const seq = Number(seqText);
-            const candidateOffset = Number(offsetText);
-            if (Number.isInteger(seq) && Number.isSafeInteger(candidateOffset) && seq <= afterSeq) offset = candidateOffset;
-            if (seq > afterSeq) break;
-          }
-        }
-        const fd = openSync3(file, "r");
-        const page = [];
-        let hasMore = false;
-        let position = offset;
-        let pending = "";
-        const decoder = new StringDecoder("utf8");
-        const buffer = Buffer.allocUnsafe(64 * 1024);
-        try {
-          while (true) {
-            const count = readSync(fd, buffer, 0, buffer.length, position);
-            if (count <= 0) break;
-            position += count;
-            const lines = `${pending}${decoder.write(buffer.subarray(0, count))}`.split(/\r?\n/u);
-            pending = lines.pop() ?? "";
-            for (const line of lines) {
-              const event = parseProgressEvent(line);
-              if (!event || event.seq <= afterSeq) continue;
-              if (page.length === limit) {
-                hasMore = true;
-                break;
-              }
-              page.push(event);
-            }
-            if (hasMore) break;
-          }
-          pending += decoder.end();
-          if (!hasMore && pending) {
-            const event = parseProgressEvent(pending);
-            if (event && event.seq > afterSeq) {
-              if (page.length === limit) hasMore = true;
-              else page.push(event);
-            }
-          }
-        } finally {
-          closeSync3(fd);
-        }
-        let events = page;
-        let omittedEvents = 0;
-        if (view === "summary") {
-          events = [];
-          for (const event of page) {
-            const previous = events.at(-1);
-            if (event.type === "model_output" && previous?.type === "model_output") {
-              const combined = previous.summary + event.summary;
-              events[events.length - 1] = {
-                ...previous,
-                seq: event.seq,
-                at: event.at,
-                summary: combined.length <= 5e3 ? combined : `${combined.slice(0, 4950)}\u2026[output compacted]`
-              };
-              omittedEvents += 1;
-            } else {
-              events.push(event);
-            }
-          }
-        }
-        return {
-          events,
-          nextSeq: page.at(-1)?.seq ?? afterSeq,
-          hasMore,
-          omittedEvents
-        };
-      }
-      /**
-       * B1 bounded scan: parses complete byte lines only; an unfinished trailing
-       * line is not consumed and the cursor never passes it. Complete corrupt
-       * lines are skipped but counted. The byte budget covers at most the
-       * configured budget plus one read block; exhaustion reports scan_incomplete
-       * and never a has_more=true page with an unchanged after_seq.
-       */
-      readEventsBounded(taskId, input = {}) {
-        const afterSeq = input.afterSeq ?? 0;
-        const limit = input.limit ?? 100;
-        const view = input.view ?? "raw";
-        const budget = input.maxBytes ?? this.#maxEventBytes;
-        const file = path7.join(this.taskDir(taskId), "events.jsonl");
-        const empty = {
-          events: [],
-          nextSeq: afterSeq,
-          hasMore: false,
-          omittedEvents: 0,
-          scan_incomplete: false,
-          scan_cursor: null,
-          cursor_invalid: false,
-          metrics: { bytes_read: 0, records_scanned: 0, invalid_lines: 0, corrupt_count: 0, first_corrupt_offset: null, index_fallback: false }
-        };
-        let size = 0;
-        try {
-          size = statSync3(file).size;
-        } catch {
-          return empty;
-        }
-        if (size === 0) return empty;
-        let startOffset = 0;
-        let cursorInvalid = false;
-        if (input.cursor) {
-          const generation = this.readEventGeneration(taskId);
-          const valid = input.cursor.v === 1 && input.cursor.task_id === taskId && generation !== null && input.cursor.generation === generation && Number.isSafeInteger(input.cursor.offset) && input.cursor.offset >= 0 && input.cursor.offset <= size;
-          if (!valid) {
-            return { ...empty, cursor_invalid: true };
-          }
-          startOffset = input.cursor.offset;
-          if (input.cursor.first_seq !== null) {
-            const firstSeq = this.readFirstEventSeq(file, size);
-            if (firstSeq === null || firstSeq !== input.cursor.first_seq) {
-              return { ...empty, cursor_invalid: true };
-            }
-          }
-        }
-        let indexFallback = false;
-        if (startOffset === 0) {
-          const indexFile = path7.join(this.taskDir(taskId), "events.index");
-          if (existsSync6(indexFile)) {
-            try {
-              let lastSeq = 0;
-              let lastOffset = 0;
-              for (const row of readFileSync5(indexFile, "utf8").split(/\r?\n/u)) {
-                if (!row.trim()) continue;
-                const [seqText, offsetText] = row.split("	");
-                const seq = Number(seqText);
-                const offset = Number(offsetText);
-                if (!Number.isSafeInteger(seq) || !Number.isSafeInteger(offset) || seq <= lastSeq || offset < lastOffset || offset > size) {
-                  throw new Error("invalid index row");
-                }
-                lastSeq = seq;
-                lastOffset = offset;
-              }
-              for (const row of readFileSync5(indexFile, "utf8").split(/\r?\n/u)) {
-                const [seqText, offsetText] = row.split("	");
-                const seq = Number(seqText);
-                const offset = Number(offsetText);
-                if (Number.isSafeInteger(seq) && Number.isSafeInteger(offset) && seq <= afterSeq && offset <= size) startOffset = offset;
-                if (Number.isSafeInteger(seq) && seq > afterSeq) break;
-              }
-            } catch {
-              indexFallback = true;
-              startOffset = 0;
-            }
-          }
-        }
-        const events = [];
-        let scanned = 0;
-        let bytesRead = 0;
-        let invalidLines = 0;
-        let corruptCount = 0;
-        let firstCorruptOffset = null;
-        let hasMore = false;
-        let position = startOffset;
-        let lastCompleteOffset = startOffset;
-        let pending = "";
-        let pendingStartOffset = startOffset;
-        let reachedEnd = false;
-        const maxRead = budget + 64 * 1024;
-        const decoder = new StringDecoder("utf8");
-        const buffer = Buffer.allocUnsafe(64 * 1024);
-        const fd = openSync3(file, "r");
-        const processLine = (line, lineOffset, lineEndOffset) => {
-          lastCompleteOffset = lineEndOffset;
-          if (!line.trim()) return true;
-          const event = parseProgressEvent(line);
-          if (!event) {
-            invalidLines += 1;
-            corruptCount += 1;
-            if (firstCorruptOffset === null) firstCorruptOffset = lineOffset;
-            return true;
-          }
-          scanned += 1;
-          if (event.seq <= afterSeq) return true;
-          if (events.length === limit) {
-            hasMore = true;
-            lastCompleteOffset = lineOffset;
-            return false;
-          }
-          events.push(event);
-          return true;
-        };
-        try {
-          while (bytesRead < maxRead) {
-            const count = readSync(fd, buffer, 0, buffer.length, position);
-            if (count <= 0) {
-              reachedEnd = true;
-              break;
-            }
-            position += count;
-            bytesRead += count;
-            const text2 = pending + decoder.write(buffer.subarray(0, count));
-            let searchFrom = 0;
-            let consumedBytes = 0;
-            let stopped = false;
-            while (true) {
-              const newline = text2.indexOf("\n", searchFrom);
-              if (newline < 0) break;
-              const line = text2.slice(searchFrom, newline).replace(/\r$/u, "");
-              const lineBytes = Buffer.byteLength(text2.slice(searchFrom, newline + 1), "utf8");
-              const lineOffset = pendingStartOffset + consumedBytes;
-              consumedBytes += lineBytes;
-              searchFrom = newline + 1;
-              if (!processLine(line, lineOffset, pendingStartOffset + consumedBytes)) {
-                stopped = true;
-                break;
-              }
-            }
-            if (stopped) {
-              pending = "";
-              break;
-            }
-            pending = text2.slice(searchFrom);
-            pendingStartOffset += consumedBytes;
-          }
-          if (!hasMore) {
-            const tail = pending + decoder.end();
-            let searchFrom = 0;
-            let consumedBytes = 0;
-            while (true) {
-              const newline = tail.indexOf("\n", searchFrom);
-              if (newline < 0) break;
-              const line = tail.slice(searchFrom, newline).replace(/\r$/u, "");
-              const lineBytes = Buffer.byteLength(tail.slice(searchFrom, newline + 1), "utf8");
-              const lineOffset = pendingStartOffset + consumedBytes;
-              consumedBytes += lineBytes;
-              searchFrom = newline + 1;
-              if (!processLine(line, lineOffset, pendingStartOffset + consumedBytes)) break;
-            }
-            if (!hasMore && !reachedEnd && bytesRead >= maxRead) {
-              lastCompleteOffset = pendingStartOffset + consumedBytes;
-            }
-          }
-        } finally {
-          closeSync3(fd);
-        }
-        let page = events;
-        let omittedEvents = 0;
-        if (view === "summary") {
-          page = [];
-          for (const event of events) {
-            const previous = page.at(-1);
-            if (event.type === "model_output" && previous?.type === "model_output") {
-              const combined = previous.summary + event.summary;
-              page[page.length - 1] = {
-                ...previous,
-                seq: event.seq,
-                at: event.at,
-                summary: combined.length <= 5e3 ? combined : `${combined.slice(0, 4950)}\u2026[output compacted]`
-              };
-              omittedEvents += 1;
-            } else {
-              page.push(event);
-            }
-          }
-        }
-        const scanIncomplete = !reachedEnd && !hasMore;
-        const nextSeq = page.at(-1)?.seq ?? afterSeq;
-        if (hasMore && nextSeq === afterSeq && !input.cursor) hasMore = false;
-        const cursor = this.readEventGeneration(taskId) ? { v: 1, task_id: taskId, generation: this.readEventGeneration(taskId), offset: lastCompleteOffset, first_seq: input.cursor?.first_seq ?? this.readFirstEventSeq(file, size) } : null;
-        return {
-          events: page,
-          nextSeq,
-          hasMore,
-          omittedEvents,
-          scan_incomplete: scanIncomplete,
-          scan_cursor: cursor,
-          cursor_invalid: false,
-          metrics: { bytes_read: bytesRead, records_scanned: scanned, invalid_lines: invalidLines, corrupt_count: corruptCount, first_corrupt_offset: firstCorruptOffset, index_fallback: indexFallback }
-        };
-      }
-      /** Generation marker detecting log replacement/truncation across reads. */
-      readEventGeneration(taskId) {
-        try {
-          const value = readFileSync5(path7.join(this.taskDir(taskId), "events.gen"), "utf8").trim();
-          return value || null;
-        } catch {
-          return null;
-        }
-      }
-      readFirstEventSeq(file, size) {
-        const window = Math.min(64 * 1024, size);
-        const buffer = Buffer.allocUnsafe(window);
-        let read = 0;
-        try {
-          const fd = openSync3(file, "r");
-          try {
-            read = readSync(fd, buffer, 0, window, 0);
-          } finally {
-            closeSync3(fd);
-          }
-        } catch {
-          return null;
-        }
-        const text2 = buffer.subarray(0, read).toString("utf8");
-        const newline = text2.indexOf("\n");
-        if (newline < 0) return null;
-        const event = parseProgressEvent(text2.slice(0, newline).replace(/\r$/u, ""));
-        return event ? event.seq : null;
-      }
-      writeInteractionRequest(taskId, request, createdAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const directory = path7.join(this.taskDir(taskId), "interactions");
-          privateMkdir(directory);
-          const file = this.interactionFile(taskId, request.request_id);
-          return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (existsSync6(file)) {
-              const record5 = this.#readJson(file);
-              if (record5.request_id !== request.request_id || record5.method !== request.method || stableJson(record5.params) !== stableJson(request.params)) {
-                throw new Error("interaction request id collision");
-              }
-              return { record: record5, created: false };
-            }
-            const serialized = JSON.stringify(request.params);
-            const bytes = Buffer.byteLength(serialized, "utf8");
-            if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
-              throw new InteractionRequestTooLargeError(bytes, MAX_INTERACTION_PARAMS_BYTES);
-            }
-            const record4 = {
-              ...request,
-              state: "pending",
-              created_at: createdAt,
-              params_bytes: bytes,
-              params_sha256: createHash3("sha256").update(serialized).digest("hex")
-            };
-            this.#writeJsonAtomic(file, record4);
-            return { record: record4, created: true };
-          });
-        }, taskId);
-      }
-      readInteractionRequest(taskId, requestId) {
-        const file = this.interactionFile(taskId, requestId);
-        if (!existsSync6(file)) return null;
-        const record4 = this.#readJson(file);
-        if (record4.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-        return record4;
-      }
-      /** Absolute path of one attempt's private full-request record; referenced
-       * by bounded interaction_requested preview events (ADR-008). */
-      interactionRequestPath(taskId, requestId) {
-        if (!requestId || requestId.length > 512) throw new Error("invalid ZCode interaction request_id");
-        return this.interactionFile(taskId, requestId);
-      }
-      /**
-       * ADR-008 approval guard: the full request behind an approval must be
-       * readable and consistent with its persisted byte count and SHA256 before
-       * the reply may be treated as authorization. Corrupt, missing, edited, or
-       * metadata-stripped records are reported, never accepted. Only genuinely
-       * legacy small records (no metadata at all, within the old 32,000-byte
-       * store limit) stay compatible; anything larger or partially annotated must
-       * carry complete, well-typed, matching metadata, and verification still
-       * enforces the 1 MiB persistence limit.
-       */
-      verifyInteractionRequestIntegrity(taskId, requestId) {
-        const file = this.interactionFile(taskId, requestId);
-        try {
-          if (!existsSync6(file)) return { ok: false, reason: "the full request record is missing" };
-          const record4 = this.#readJson(file);
-          if (record4.request_id !== requestId) return { ok: false, reason: "the persisted request id does not match this request" };
-          if (record4.state !== "pending" && record4.state !== "answered") return { ok: false, reason: "the persisted request state is unreadable" };
-          const serialized = JSON.stringify(record4.params);
-          const bytes = Buffer.byteLength(serialized, "utf8");
-          if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
-            return { ok: false, reason: `the full request content is ${bytes} UTF-8 bytes, over the ${MAX_INTERACTION_PARAMS_BYTES}-byte persistence limit` };
-          }
-          const hasBytes = record4.params_bytes !== void 0;
-          const hasHash = record4.params_sha256 !== void 0;
-          if (!hasBytes && !hasHash) {
-            if (bytes <= LEGACY_INTERACTION_PARAMS_BYTES) return { ok: true };
-            return { ok: false, reason: `the full request record carries no integrity metadata but is ${bytes} UTF-8 bytes, over the legacy ${LEGACY_INTERACTION_PARAMS_BYTES}-byte limit; it cannot be treated as a legacy record` };
-          }
-          if (!hasBytes || !hasHash) {
-            return { ok: false, reason: "the full request record has incomplete integrity metadata (byte count and SHA256 must both be present)" };
-          }
-          if (typeof record4.params_bytes !== "number" || !Number.isSafeInteger(record4.params_bytes) || record4.params_bytes < 0) {
-            return { ok: false, reason: "the persisted byte count is not a valid non-negative integer" };
-          }
-          if (typeof record4.params_sha256 !== "string" || !SHA256_HEX_PATTERN.test(record4.params_sha256)) {
-            return { ok: false, reason: "the persisted SHA256 is not a valid 64-character hex digest" };
-          }
-          if (record4.params_bytes !== bytes) {
-            return { ok: false, reason: "the persisted byte count does not match the full content" };
-          }
-          if (record4.params_sha256 !== createHash3("sha256").update(serialized).digest("hex")) {
-            return { ok: false, reason: "the persisted SHA256 does not match the full content" };
-          }
-          return { ok: true };
-        } catch {
-          return { ok: false, reason: "the full request record is unreadable or corrupt" };
-        }
-      }
-      answerInteractionRequest(taskId, requestId, answer, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const file = this.interactionFile(taskId, requestId);
-          return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (!existsSync6(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
-            const current = this.#readJson(file);
-            if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-            if (current.state === "answered") return "already_answered";
-            this.#writeJsonAtomic(file, {
-              ...current,
-              state: "answered",
-              answer,
-              answered_at: answeredAt
-            });
-            return "answered";
-          });
-        }, taskId);
-      }
-      /** ADR-008: approval answers verify the full request inside the same
-       * interaction lock the answer is written under, so the record checked for
-       * integrity is exactly the one the answer lands on — there is no
-       * check-then-write window where an edited record could slip through. */
-      answerInteractionRequestVerified(taskId, requestId, answer, options, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const file = this.interactionFile(taskId, requestId);
-          return withEventLock(path7.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (!existsSync6(file)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
-            const current = this.#readJson(file);
-            if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-            if (current.state === "answered") return { state: "already_answered" };
-            if (options.requireIntegrity) {
-              const integrity = this.verifyInteractionRequestIntegrity(taskId, requestId);
-              if (!integrity.ok) return { state: "integrity_failed", reason: integrity.reason };
-            }
-            this.#writeJsonAtomic(file, {
-              ...current,
-              state: "answered",
-              answer,
-              answered_at: answeredAt
-            });
-            return { state: "answered" };
-          });
-        }, taskId);
-      }
-      interactionFile(taskId, requestId) {
-        if (!requestId || requestId.length > 512) throw new Error("invalid ZCode interaction request_id");
-        const key = createHash3("sha256").update(requestId).digest("hex");
-        return path7.join(this.taskDir(taskId), "interactions", `${this.readStatus(taskId).attempt}-${key}.json`);
-      }
-      #readJson(file) {
-        try {
-          return JSON.parse(readFileSync5(file, "utf8"));
-        } catch (error2) {
-          throw new Error(`unreadable or corrupt JSON record: ${file}`, { cause: error2 });
-        }
-      }
-      #writeJsonAtomic(file, value) {
-        this.#writeTextAtomic(file, JSON.stringify(value, null, 2));
-      }
-      #writeTextAtomic(file, text2) {
-        const tmp = `${file}.${randomUUID3()}.tmp`;
-        try {
-          writeFileSync3(tmp, text2, { encoding: "utf8", mode: 384 });
-          privateFile(tmp);
-          atomicRenameSync(tmp, file);
-        } catch (error2) {
-          try {
-            rmSync2(tmp, { force: true });
-          } catch {
-          }
-          throw error2;
-        }
-      }
-      #withWriterMutation(operation, taskId, attempt) {
-        const token = this.#writerQuiescence ? this.#writerLeaseToken : void 0;
-        return withJsonWriterWritePermit(this.#dataRoot, token, taskId, attempt, operation);
       }
     };
   }
@@ -2475,7 +580,7 @@ var init_task_store = __esm({
 
 // src/manager/errors.ts
 var TaskManagerError;
-var init_errors = __esm({
+var init_errors2 = __esm({
   "src/manager/errors.ts"() {
     "use strict";
     TaskManagerError = class extends Error {
@@ -2486,6 +591,40 @@ var init_errors = __esm({
         this.code = code;
       }
     };
+  }
+});
+
+// src/runtime/task-timeout.ts
+function resultWaitBudgetMs(executionTimeoutMs) {
+  return executionTimeoutMs + ADAPTER_CLEANUP_TIMEOUT_MS + RESULT_DELIVERY_GRACE_MS;
+}
+function resolveTaskTimeout(task, env) {
+  if (task.timeout_ms !== void 0) return validateTaskTimeout(task.timeout_ms);
+  const raw = env["ZCODE_BRIDGE_TIMEOUT_MS"]?.trim();
+  if (!raw) return DEFAULT_TASK_TIMEOUT_MS;
+  const value = Number(raw);
+  if (!Number.isSafeInteger(value) || value < MIN_TASK_TIMEOUT_MS || value > MAX_TASK_TIMEOUT_MS) {
+    return DEFAULT_TASK_TIMEOUT_MS;
+  }
+  return value;
+}
+function validateTaskTimeout(value) {
+  if (!Number.isSafeInteger(value) || value < MIN_TASK_TIMEOUT_MS || value > MAX_TASK_TIMEOUT_MS) {
+    throw new Error(`timeout_ms must be an integer from ${MIN_TASK_TIMEOUT_MS} to ${MAX_TASK_TIMEOUT_MS}`);
+  }
+  return value;
+}
+var DEFAULT_TASK_TIMEOUT_MS, MAX_TASK_TIMEOUT_MS, ADAPTER_CLEANUP_TIMEOUT_MS, RESULT_DELIVERY_GRACE_MS, WORKER_CLOSE_TIMEOUT_MS, EXECUTION_DELIVERY_TIMEOUT_MS, MIN_TASK_TIMEOUT_MS;
+var init_task_timeout = __esm({
+  "src/runtime/task-timeout.ts"() {
+    "use strict";
+    DEFAULT_TASK_TIMEOUT_MS = 60 * 60 * 1e3;
+    MAX_TASK_TIMEOUT_MS = 4 * 60 * 60 * 1e3;
+    ADAPTER_CLEANUP_TIMEOUT_MS = 3e5;
+    RESULT_DELIVERY_GRACE_MS = 3e4;
+    WORKER_CLOSE_TIMEOUT_MS = 15e3;
+    EXECUTION_DELIVERY_TIMEOUT_MS = 15e3;
+    MIN_TASK_TIMEOUT_MS = 60 * 1e3;
   }
 });
 
@@ -2577,138 +716,29 @@ var init_child_env = __esm({
   }
 });
 
-// src/runtime/build-provenance.ts
-import { createHash as createHash4 } from "node:crypto";
-import { readFileSync as readFileSync6, realpathSync as realpathSync2 } from "node:fs";
-import path8 from "node:path";
-function fingerprintRuntimeArtifact(filePath) {
-  if (!filePath) return { path: null, sha256: null };
-  try {
-    const resolvedPath = realpathSync2(filePath);
-    return {
-      path: resolvedPath,
-      sha256: createHash4("sha256").update(readFileSync6(resolvedPath)).digest("hex").toUpperCase()
-    };
-  } catch {
-    return { path: path8.resolve(filePath), sha256: null };
-  }
+// src/runtime/trusted-local-profile.ts
+function resolveTrustedLocalExecutionProfile(id) {
+  return PROFILES[id] ?? null;
 }
-var BRIDGE_WORKER_LAUNCH_MARKER;
-var init_build_provenance = __esm({
-  "src/runtime/build-provenance.ts"() {
+var PROFILES;
+var init_trusted_local_profile = __esm({
+  "src/runtime/trusted-local-profile.ts"() {
     "use strict";
-    BRIDGE_WORKER_LAUNCH_MARKER = "--zcode-bridge-launch-v1";
-  }
-});
-
-// src/manager/spawn-worker.ts
-import { spawn } from "node:child_process";
-import { closeSync as closeSync4, mkdirSync as mkdirSync4, openSync as openSync4 } from "node:fs";
-import path9 from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
-function spawnClaimOnlyWorker(workerPath, provenance, options = {}) {
-  if (!path9.isAbsolute(workerPath)) throw new TypeError("claim-only worker path must be absolute");
-  if (options.dropAfterPrepared && !options.interactionChannel) throw new TypeError("interaction channel is required for drop-after-prepared");
-  const env = {
-    ...createWorkerEnv(process.env),
-    ZCODE_BRIDGE_RUNTIME_PROVENANCE: JSON.stringify(provenance)
-  };
-  const args = [
-    workerPath,
-    ...options.interactionChannel ? ["--bridge-sqlite-interaction-v1"] : [],
-    ...options.dropAfterPrepared ? ["--bridge-sqlite-interaction-drop-after-prepared-v1"] : [],
-    BRIDGE_WORKER_LAUNCH_MARKER
-  ];
-  const child = spawn(process.execPath, args, {
-    // Match the production detached-worker process boundary while retaining
-    // this test-only harness's direct ChildProcess handle and private pipes.
-    detached: true,
-    shell: false,
-    stdio: options.interactionChannel ? ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe"] : ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe"],
-    windowsHide: true,
-    cwd: path9.dirname(workerPath),
-    env
-  });
-  const pipes = child.stdio;
-  let exitSeen = false;
-  Object.defineProperties(child, {
-    bootstrapChannel: { enumerable: false, get: () => pipes[3] },
-    reportChannel: { enumerable: false, get: () => pipes[4] },
-    decisionChannel: { enumerable: false, get: () => pipes[5] },
-    resultChannel: { enumerable: false, get: () => pipes[6] },
-    interactionRequestChannel: { enumerable: false, get: () => pipes[7] },
-    interactionReplyChannel: { enumerable: false, get: () => pipes[8] },
-    interactionAcknowledgementChannel: { enumerable: false, get: () => pipes[9] },
-    exitSeen: { enumerable: false, get: () => exitSeen }
-  });
-  child.once("exit", () => {
-    exitSeen = true;
-  });
-  return child;
-}
-function workerEntryPath() {
-  if (process.env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1") {
-    return fileURLToPath2(new URL("../worker/worker-main.mjs", import.meta.url));
-  }
-  return fileURLToPath2(new URL("../worker/worker-main.js", import.meta.url));
-}
-function createWorkerSpawner(host, provenance, options = {}) {
-  if (host) validateHostProfile(host);
-  const runtimeProvenance = provenance ?? {
-    bridge: fingerprintRuntimeArtifact(process.argv[1]),
-    worker: fingerprintRuntimeArtifact(host?.workerEntryPath ?? workerEntryPath())
-  };
-  return (dataRoot, taskId, attempt, writerLeaseToken) => {
-    const attemptDir = path9.join(dataRoot, ".tasks", taskId, "attempts", String(attempt));
-    mkdirSync4(attemptDir, { recursive: true });
-    const stderrFd = openSync4(path9.join(attemptDir, "worker-stderr.log"), "a", 384);
-    try {
-      const workerEnv = {
-        ...createWorkerEnv(process.env),
-        ...host ? { ZCODE_BRIDGE_HOST_PROFILE: JSON.stringify(host) } : {},
-        // Internal Bridge-to-Worker bootstrap metadata. It is deliberately not
-        // part of createWorkerEnv's inherited allowlist, and the Worker uses
-        // createMinimalOsEnv before spawning ZCode so this value is not exposed
-        // to the app-server or its tools.
-        ZCODE_BRIDGE_RUNTIME_PROVENANCE: JSON.stringify(runtimeProvenance),
-        ...options.writerQuiescence && writerLeaseToken ? { ZCODE_BRIDGE_JSON_WRITER_LEASE: writerLeaseToken } : {},
-        // DeepSeek Harness may host its MCP entrypoint inside Electron. Its
-        // executable is reusable for detached Node workers only in this mode.
-        ...process.versions.electron ? { ELECTRON_RUN_AS_NODE: "1" } : {}
-      };
-      const child = spawn(process.execPath, [host?.workerEntryPath ?? workerEntryPath(), dataRoot, taskId, String(attempt), BRIDGE_WORKER_LAUNCH_MARKER], {
-        detached: true,
-        shell: false,
-        stdio: ["ignore", "ignore", stderrFd],
-        windowsHide: true,
-        cwd: dataRoot,
-        env: workerEnv
-      });
-      child.on("error", (error2) => console.error(`Bridge worker spawn failed: ${error2.message}`));
-      child.unref();
-      if (typeof child.pid !== "number") {
-        throw new Error("worker process did not provide a pid");
-      }
-      return { pid: child.pid };
-    } finally {
-      closeSync4(stderrFd);
-    }
-  };
-}
-var defaultSpawnWorker;
-var init_spawn_worker = __esm({
-  "src/manager/spawn-worker.ts"() {
-    "use strict";
-    init_child_env();
-    init_build_provenance();
-    init_profile();
-    defaultSpawnWorker = createWorkerSpawner();
+    PROFILES = Object.freeze({
+      "local-build-v1": Object.freeze({
+        id: "local-build-v1",
+        // Keep the persisted profile ID for compatibility. The local single-user
+        // Bridge now uses the same ordinary-tool yolo mode as the JSON Host path.
+        sessionMode: "yolo",
+        unrestricted: false
+      })
+    });
   }
 });
 
 // src/runtime/process-probe.ts
 import { readFile } from "node:fs/promises";
-import { spawn as spawn2 } from "node:child_process";
+import { spawn } from "node:child_process";
 function identityOfFingerprint(pid, fingerprint, precision, now) {
   return {
     pid,
@@ -2732,14 +762,14 @@ function windowsPowerShellExecutable() {
 function windowsBatchQuery(pids, timeoutMs, onFailure) {
   return new Promise((resolve) => {
     const script = `$ErrorActionPreference = 'Stop'; foreach ($id in @(${pids.join(",")})) { try { $target = [System.Diagnostics.Process]::GetProcessById($id); try { [Console]::Out.WriteLine(("{0}|{1}" -f $id, $target.StartTime.Ticks)) } finally { $target.Dispose() } } catch [System.ArgumentException] { } }; [Console]::Out.WriteLine('bridge_probe_complete_v1')`;
-    const child = spawn2(windowsPowerShellExecutable(), ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
+    const child = spawn(windowsPowerShellExecutable(), ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
       shell: false
     });
     let stdout = "";
     let settled = false;
-    const fail2 = (reason) => {
+    const fail3 = (reason) => {
       if (settled) return;
       try {
         onFailure?.(reason);
@@ -2758,7 +788,7 @@ function windowsBatchQuery(pids, timeoutMs, onFailure) {
         child.kill("SIGKILL");
       } catch {
       }
-      fail2("timeout");
+      fail3("timeout");
     }, timeoutMs);
     timer.unref();
     child.stdout.setEncoding("utf8");
@@ -2770,27 +800,27 @@ function windowsBatchQuery(pids, timeoutMs, onFailure) {
     child.stdout.on("data", (chunk) => {
       if (stdout.length < 1e6) stdout += chunk;
     });
-    child.on("error", () => fail2("spawn_error"));
+    child.on("error", () => fail3("spawn_error"));
     child.on("close", (code) => {
       const map = /* @__PURE__ */ new Map();
       const lines = stdout.trim().split(/\r?\n/u);
       if (code !== 0) {
-        fail2("nonzero_exit");
+        fail3("nonzero_exit");
         return;
       }
       if (stderrBytes > 0) {
-        fail2("stderr");
+        fail3("stderr");
         return;
       }
       if (lines.pop() !== "bridge_probe_complete_v1") {
-        fail2("missing_completion_marker");
+        fail3("missing_completion_marker");
         return;
       }
       for (const line of lines) {
         if (!line.trim()) continue;
         const match = /^(\d+)\|(\d+)$/u.exec(line.trim());
         if (!match || !pids.includes(Number(match[1])) || map.has(Number(match[1]))) {
-          fail2("malformed_output");
+          fail3("malformed_output");
           return;
         }
         map.set(Number(match[1]), match[2]);
@@ -2801,7 +831,7 @@ function windowsBatchQuery(pids, timeoutMs, onFailure) {
 }
 async function darwinQuery(pids, timeoutMs) {
   return new Promise((resolve) => {
-    const child = spawn2("ps", ["-o", "pid=,lstart=", "-p", pids.join(",")], {
+    const child = spawn("ps", ["-o", "pid=,lstart=", "-p", pids.join(",")], {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
       shell: false
@@ -2934,10 +964,6 @@ function createPlatformProbe(options = {}) {
     probe
   };
 }
-function livenessVerdict(pid, isAlive, now) {
-  if (pid === null || !Number.isInteger(pid) || pid <= 0) return verdict("unknown", "no_pid_recorded", now);
-  return isAlive(pid) ? verdict("alive", "kill0_alive_no_identity", now) : verdict("exited", "kill0_pid_absent", now);
-}
 var PROCESS_IDENTITY_VERSION, DEFAULT_PROBE_TIMEOUT_MS, DEFAULT_MAX_CONCURRENT;
 var init_process_probe = __esm({
   "src/runtime/process-probe.ts"() {
@@ -2949,7 +975,7 @@ var init_process_probe = __esm({
 });
 
 // src/adapters/windows-process-cleanup.ts
-import { spawn as spawn3 } from "node:child_process";
+import { spawn as spawn2 } from "node:child_process";
 function withinCimInterval(exactFileTime, cimFileTime) {
   const exact = BigInt(exactFileTime);
   const cim = BigInt(cimFileTime);
@@ -3155,7 +1181,7 @@ async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, d
     throw new WindowsTreeCleanupError("process_tree_invalid_pid", `a positive integer PID is required, got: ${String(pid)}`);
   }
   const now = dependencies.now ?? Date.now;
-  const sleep4 = dependencies.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const sleep3 = dependencies.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const transaction = await dependencies.open();
   const killed = /* @__PURE__ */ new Map();
   const held = /* @__PURE__ */ new Map();
@@ -3221,7 +1247,7 @@ async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, d
           knownPids()
         );
       }
-      await sleep4(20);
+      await sleep3(20);
     }
     succeeded = true;
     return {
@@ -3515,6 +1541,14 @@ function windowsTreeTransactionScript() {
     "    Held.Clear();",
     '    return closed.ToString() + "|" + failed.ToString();',
     "  }",
+    "  public static string Alive(int pid) {",
+    "    IntPtr h;",
+    '    if (!Held.TryGetValue(pid, out h) || h == IntPtr.Zero) { return "not_held||"; }',
+    "    long c, e, k, u;",
+    '    if (!GetProcessTimes(h, out c, out e, out k, out u)) { return "error||" + Marshal.GetLastWin32Error().ToString(); }',
+    '    if (e != 0) { return "exited|" + e.ToString() + "|"; }',
+    '    return "alive|" + c.ToString() + "|";',
+    "  }",
     "}",
     "'@",
     "[Console]::Out.WriteLine('READY'); [Console]::Out.Flush()",
@@ -3557,6 +1591,12 @@ function windowsTreeTransactionScript() {
     "    elseif ($r[0] -eq 'not_held') { [Console]::Out.WriteLine(('K {0} not_held 0' -f $kpid)) }",
     "    else { [Console]::Out.WriteLine(('K {0} error {1}' -f $kpid, $r[1])) }",
     "    [Console]::Out.WriteLine('KILL_END'); [Console]::Out.Flush()",
+    "  } elseif ($parts[0] -eq 'alive') {",
+    "    $apid = [int]$parts[1]",
+    "    $r = [BridgeTreeTx]::Alive($apid).Split('|')",
+    "    if ($r[0] -eq 'alive' -or $r[0] -eq 'exited') { [Console]::Out.WriteLine(('A {0} {1} {2}' -f $apid, $r[0], $r[1])) }",
+    "    else { [Console]::Out.WriteLine(('A {0} {1} {2}' -f $apid, $r[0], $(if ([string]::IsNullOrEmpty($r[2])) { '0' } else { $r[2] }))) }",
+    "    [Console]::Out.WriteLine('ALIVE_END'); [Console]::Out.Flush()",
     "  } elseif ($parts[0] -eq 'close') {",
     "    $r = [BridgeTreeTx]::CloseAll().Split('|')",
     "    [Console]::Out.WriteLine(('CLOSED {0} {1}' -f $r[0], $r[1])); [Console]::Out.Flush()",
@@ -3719,7 +1759,7 @@ var init_windows_process_cleanup = __esm({
       }
       static async start(timeoutMs = TRANSPORT_HELPER_STARTUP_MS_DEFAULT) {
         const encoded = Buffer.from(windowsTreeTransactionScript(), "utf16le").toString("base64");
-        const child = spawn3("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], {
+        const child = spawn2("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded], {
           shell: false,
           windowsHide: true,
           stdio: ["pipe", "pipe", "pipe"]
@@ -3801,6 +1841,23 @@ var init_windows_process_cleanup = __esm({
           status,
           exitFileTime: status === "signaled" || status === "already_exited" || status === "wait_timeout" ? value === "0" ? null : value : null,
           detail: status === "identity_changed" ? value : void 0
+        };
+      }
+      async alive(pid) {
+        this.#child.stdin.write(`alive ${String(pid)}
+`);
+        const line = await this.#nextLine(1e4, "alive response");
+        const end = await this.#nextLine(5e3, "alive terminator");
+        if (end !== "ALIVE_END") throw new Error("process_tree_alive_invalid: terminator missing");
+        const match = /^A (\d{1,12}) (alive|exited|not_held|error) (\d{1,25})$/u.exec(line);
+        if (!match || Number(match[1]) !== pid) throw new Error("process_tree_alive_invalid: malformed response");
+        const status = match[2];
+        const value = match[3];
+        return {
+          status,
+          creationFileTime: status === "alive" ? value : null,
+          exitFileTime: status === "exited" ? value : null,
+          error: status === "not_held" || status === "error" ? Number(value) : void 0
         };
       }
       async close() {
@@ -3979,273 +2036,117 @@ var init_process_spawn = __esm({
   }
 });
 
-// src/observation/types.ts
-function judgeOptionsWith(overrides) {
-  const merged = { ...DEFAULT_JUDGE_OPTIONS };
-  if (overrides) {
-    for (const [key, value] of Object.entries(overrides)) {
-      if (value !== void 0) merged[key] = value;
-    }
-  }
-  return merged;
-}
-var OBSERVATION_SCHEMA_VERSION, DEFAULT_JUDGE_OPTIONS;
-var init_types = __esm({
-  "src/observation/types.ts"() {
-    "use strict";
-    OBSERVATION_SCHEMA_VERSION = 1;
-    DEFAULT_JUDGE_OPTIONS = {
-      start_grace_ms: 1e4,
-      heartbeat_fresh_ms: 15e3,
-      stall_hint_ms: 12e4,
-      clock_jump_guard_ms: 12e4
+// src/runtime/build-provenance.ts
+import { createHash as createHash4 } from "node:crypto";
+import { readFileSync as readFileSync8, realpathSync } from "node:fs";
+import path10 from "node:path";
+function fingerprintRuntimeArtifact(filePath) {
+  if (!filePath) return { path: null, sha256: null };
+  try {
+    const resolvedPath = realpathSync(filePath);
+    return {
+      path: resolvedPath,
+      sha256: createHash4("sha256").update(readFileSync8(resolvedPath)).digest("hex").toUpperCase()
     };
+  } catch {
+    return { path: path10.resolve(filePath), sha256: null };
   }
-});
-
-// src/observation/judge.ts
-function ageMs(now, iso, guardMs) {
-  if (!iso) return { value: null, skewed: false };
-  const parsed = Date.parse(iso);
-  if (!Number.isFinite(parsed)) return { value: null, skewed: false };
-  const age = now - parsed;
-  if (age < -guardMs) return { value: null, skewed: true };
-  return { value: Math.max(0, age), skewed: false };
 }
-function clampReason(reason) {
-  return reason.slice(0, 80);
-}
-function judgeTaskObservation(input) {
-  const options = judgeOptionsWith(input.options);
-  const now = input.now_ms;
-  const observedAt = new Date(now).toISOString();
-  const status = input.status;
-  const terminal = status.status === "completed" || status.status === "failed" || status.status === "cancelled" || status.status === "waiting_for_master";
-  const heartbeat = input.heartbeat && input.heartbeat.attempt === status.attempt && (status.worker_pid === null || input.heartbeat.worker_pid === status.worker_pid) ? input.heartbeat : null;
-  const heartbeatAge = ageMs(now, heartbeat?.heartbeat_at, options.clock_jump_guard_ms);
-  const heartbeatFresh = heartbeat !== null && heartbeatAge.value !== null && heartbeatAge.value <= options.heartbeat_fresh_ms;
-  const committed = input.result !== null && input.result.attempt === status.attempt && terminal;
-  const result = committed ? "committed" : input.checkpoint ? "checkpointed" : "absent";
-  const cleanup = status.cleanup_unverified === true ? "unverified" : committed ? "verified" : terminal || status.status === "running" ? "pending" : "not_started";
-  let worker;
-  if (input.probe_worker) {
-    worker = { state: input.probe_worker.state, reason_code: clampReason(input.probe_worker.reason_code), observed_at: input.probe_worker.observed_at };
-  } else if (heartbeatFresh && !heartbeatAge.skewed) {
-    worker = { state: "alive", reason_code: "heartbeat_fresh", observed_at: observedAt };
-  } else if (heartbeatAge.skewed) {
-    worker = { state: "unknown", reason_code: "clock_skew", observed_at: observedAt };
-  } else {
-    worker = { state: "unknown", reason_code: heartbeat ? "heartbeat_stale" : "no_heartbeat_evidence", observed_at: observedAt };
-  }
-  let runtime;
-  const runtimePid = status.zcode_pid ?? null;
-  if (input.probe_runtime) {
-    runtime = { state: input.probe_runtime.state, reason_code: clampReason(input.probe_runtime.reason_code), observed_at: input.probe_runtime.observed_at };
-  } else if (runtimePid === null) {
-    runtime = { state: "unknown", reason_code: "runtime_pid_not_reported", observed_at: observedAt };
-  } else {
-    runtime = { state: "unknown", reason_code: "persisted_pid_no_probe", observed_at: observedAt };
-  }
-  let activity = "unknown";
-  let activityReason = "no_activity_evidence";
-  if (terminal || committed) {
-    activity = "finalizing";
-    activityReason = "task_terminal";
-  } else if (status.status === "queued") {
-    activity = "starting";
-    activityReason = "queued_not_dispatched";
-  } else if (input.pending_interaction) {
-    activity = input.pending_interaction.method === "interaction/requestPermission" ? "waiting_for_permission" : "waiting_for_user";
-    activityReason = "pending_interaction_request";
-  } else {
-    const startAge = ageMs(now, status.started_at, options.clock_jump_guard_ms).value;
-    const eventAge = ageMs(now, input.last_business_event?.at, options.clock_jump_guard_ms).value;
-    const withinStartGrace = startAge !== null && startAge < options.start_grace_ms;
-    if (heartbeatFresh) {
-      if (eventAge === null) {
-        activity = withinStartGrace ? "starting" : "unknown";
-        activityReason = "heartbeat_alive_no_business_event";
-      } else if (eventAge > options.stall_hint_ms) {
-        activity = "stalled";
-        activityReason = "heartbeat_alive_business_events_stale";
-      } else {
-        activity = "executing";
-        activityReason = "heartbeat_and_events_fresh";
-      }
-    } else if (withinStartGrace) {
-      activity = "starting";
-      activityReason = "within_worker_start_grace";
-    } else if (worker.state === "unknown") {
-      activity = "unknown";
-      activityReason = worker.reason_code;
-    } else {
-      activity = "executing";
-      activityReason = "executor_alive_no_fresh_heartbeat";
-    }
-  }
-  return {
-    schema_version: OBSERVATION_SCHEMA_VERSION,
-    worker,
-    runtime,
-    activity: { code: activity, reason_code: clampReason(activityReason), observed_at: observedAt },
-    result,
-    cleanup,
-    stalled: activity === "stalled",
-    evidence: {
-      heartbeat_age_ms: heartbeatAge.skewed ? null : heartbeatAge.value,
-      last_event_age_ms: input.last_business_event ? ageMs(now, input.last_business_event.at, options.clock_jump_guard_ms).value : null,
-      last_event_seq: heartbeat?.last_event_seq ?? input.last_business_event?.seq ?? null,
-      last_event_type: heartbeat?.last_event_type ?? input.last_business_event?.type ?? null,
-      session_id: heartbeat?.session_id ?? status.zcode_session_id ?? null,
-      turn_id: heartbeat?.turn_id ?? null,
-      attempt: status.attempt,
-      status_updated_at: status.updated_at ?? null
-    }
-  };
-}
-var init_judge = __esm({
-  "src/observation/judge.ts"() {
+var BRIDGE_WORKER_LAUNCH_MARKER;
+var init_build_provenance = __esm({
+  "src/runtime/build-provenance.ts"() {
     "use strict";
-    init_types();
+    BRIDGE_WORKER_LAUNCH_MARKER = "--zcode-bridge-launch-v1";
   }
 });
 
-// src/observation/build.ts
-var build_exports = {};
-__export(build_exports, {
-  buildTaskObservation: () => buildTaskObservation,
-  inferExecutionStage: () => inferExecutionStage
-});
-function buildTaskObservation(store, taskId, status, options = {}) {
-  const now = (options.now ?? (() => /* @__PURE__ */ new Date()))().getTime();
-  const evidence = store.readObservationEvidence(taskId, status.attempt);
-  let probeWorker = null;
-  let probeRuntime = null;
-  const probes = options.probes;
-  if (probes && probes.task_id === taskId && probes.attempt === status.attempt) {
-    const probedAt = Date.parse(probes.probed_at);
-    if (Number.isFinite(probedAt) && now - probedAt >= 0 && now - probedAt <= PROBE_RECORD_MAX_AGE_MS) {
-      const pidMatch = (recorded, current) => recorded === null || current === null || recorded === current;
-      if (pidMatch(probes.worker_pid, status.worker_pid)) probeWorker = { ...probes.worker, observed_at: probes.probed_at };
-      if (pidMatch(probes.runtime_pid, status.zcode_pid ?? null)) probeRuntime = { ...probes.runtime, observed_at: probes.probed_at };
-    }
-  }
-  return judgeTaskObservation({
-    status: {
-      status: status.status,
-      attempt: status.attempt,
-      started_at: status.started_at,
-      finished_at: status.finished_at,
-      worker_pid: status.worker_pid,
-      zcode_pid: status.zcode_pid ?? null,
-      zcode_session_id: status.zcode_session_id ?? null,
-      cleanup_unverified: status.cleanup_unverified === true,
-      updated_at: status.updated_at
-    },
-    result: store.readResult(taskId),
-    checkpoint: evidence.checkpoint,
-    heartbeat: evidence.heartbeat,
-    last_business_event: evidence.last_business_event,
-    pending_interaction: evidence.pending_interaction,
-    probe_worker: probeWorker,
-    probe_runtime: probeRuntime,
-    now_ms: now,
-    options: judgeOptionsWith({
-      start_grace_ms: options.startGraceMs,
-      heartbeat_fresh_ms: options.heartbeatFreshMs,
-      stall_hint_ms: options.stallHintMs
-    })
+// src/manager/spawn-worker.ts
+import { spawn as spawn4 } from "node:child_process";
+import path11 from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
+function spawnClaimOnlyWorker(workerPath, provenance, options = {}) {
+  if (!path11.isAbsolute(workerPath)) throw new TypeError("claim-only worker path must be absolute");
+  if (options.dropAfterPrepared && !options.interactionChannel) throw new TypeError("interaction channel is required for drop-after-prepared");
+  if (options.privateAuthChannel && !options.interactionChannel) throw new TypeError("private auth requires interaction channel allocation");
+  const env = {
+    ...createWorkerEnv(process.env),
+    ZCODE_BRIDGE_RUNTIME_PROVENANCE: JSON.stringify(provenance)
+  };
+  const args = [
+    workerPath,
+    ...options.interactionChannel ? ["--bridge-sqlite-interaction-v1"] : [],
+    ...options.privateAuthChannel ? ["--bridge-sqlite-private-auth-v1"] : [],
+    ...options.dropAfterPrepared ? ["--bridge-sqlite-interaction-drop-after-prepared-v1"] : [],
+    BRIDGE_WORKER_LAUNCH_MARKER
+  ];
+  const child = spawn4(process.execPath, args, {
+    detached: true,
+    shell: false,
+    stdio: options.privateAuthChannel ? ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe"] : options.interactionChannel ? ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe", "pipe"] : ["ignore", "ignore", "pipe", "pipe", "pipe", "pipe", "pipe"],
+    windowsHide: true,
+    cwd: path11.dirname(workerPath),
+    env
   });
-}
-function inferExecutionStage(store, taskId, status) {
-  const eventTypes = new Set(store.listRecentEventTypes(taskId, 64));
-  if (status.cleanup_unverified === true) return "cleanup";
-  if (status.status === "queued") return "queue";
-  if (!eventTypes.has("worker_started") && !eventTypes.has("worker_running")) return "worker_spawn";
-  if (!eventTypes.has("app_server_started")) return "worker";
-  if (status.zcode_pid === null && !eventTypes.has("app_server_started")) return "worker";
-  if (!eventTypes.has("session_ready")) return "runtime";
-  if (!eventTypes.has("turn_started")) return "event_channel";
-  if (store.readResult(taskId) === null && status.status === "running") return "execution";
-  if (status.status !== "running" && !isTerminalDone(status)) return "cleanup";
-  return "execution";
-}
-function isTerminalDone(status) {
-  return status.status === "completed" || status.status === "failed" || status.status === "cancelled" || status.status === "waiting_for_master";
-}
-var PROBE_RECORD_MAX_AGE_MS;
-var init_build = __esm({
-  "src/observation/build.ts"() {
-    "use strict";
-    init_types();
-    init_judge();
-    PROBE_RECORD_MAX_AGE_MS = 6e4;
-  }
-});
-
-// src/attention/snapshot.ts
-function parseTaskAttentionSnapshot(value, expectedTaskId) {
-  if (!isRecord(value)) throw new TaskManagerError("TASK_STATE", "SQLite attention projection is invalid");
-  const taskId = value.task_id;
-  const attempt = value.attempt;
-  const status = value.status;
-  const pending = value.pending_requests;
-  if (typeof taskId !== "string" || !taskId || expectedTaskId !== void 0 && taskId !== expectedTaskId || !Number.isSafeInteger(attempt) || Number(attempt) < 1 || typeof status !== "string" || !TASK_STATUSES.has(status) || !Array.isArray(pending) || pending.some((requestId) => typeof requestId !== "string" || requestId.length < 1 || requestId.length > 512)) {
-    throw new TaskManagerError("TASK_STATE", "SQLite attention projection is invalid");
-  }
-  return {
-    task_id: taskId,
-    attempt: Number(attempt),
-    status,
-    pending_requests: [...pending]
-  };
-}
-function isAttentionTerminalStatus(status) {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "waiting_for_master";
-}
-function isRecord(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-var TASK_STATUSES;
-var init_snapshot = __esm({
-  "src/attention/snapshot.ts"() {
-    "use strict";
-    init_errors();
-    TASK_STATUSES = /* @__PURE__ */ new Set([
-      "queued",
-      "running",
-      "completed",
-      "failed",
-      "cancelled",
-      "waiting_for_master"
-    ]);
-  }
-});
-
-// src/runtime/trusted-local-profile.ts
-function resolveTrustedLocalExecutionProfile(id) {
-  return PROFILES[id] ?? null;
-}
-var PROFILES;
-var init_trusted_local_profile = __esm({
-  "src/runtime/trusted-local-profile.ts"() {
-    "use strict";
-    PROFILES = Object.freeze({
-      "local-build-v1": Object.freeze({
-        id: "local-build-v1",
-        // Keep the persisted profile ID for compatibility. The local single-user
-        // Bridge now uses the same ordinary-tool yolo mode as the JSON Host path.
-        sessionMode: "yolo",
-        unrestricted: false
-      })
+  const diagnosticSink = options.onWorkerDiagnosticLine;
+  if (diagnosticSink) {
+    child.stderr?.setEncoding("utf8");
+    let pending = "";
+    child.stderr?.on("data", (chunk) => {
+      pending += chunk;
+      if (pending.length > 65536) {
+        pending = pending.slice(pending.lastIndexOf("\n") + 1);
+        return;
+      }
+      for (; ; ) {
+        const index = pending.indexOf("\n");
+        if (index < 0) break;
+        const line = pending.slice(0, index);
+        pending = pending.slice(index + 1);
+        if (line.startsWith("[bridge-worker] failure-facts ")) diagnosticSink(line);
+      }
     });
+  } else {
+    child.stderr?.resume();
+  }
+  const pipes = child.stdio;
+  let exitSeen = false;
+  Object.defineProperties(child, {
+    bootstrapChannel: { enumerable: false, get: () => pipes[3] },
+    reportChannel: { enumerable: false, get: () => pipes[4] },
+    decisionChannel: { enumerable: false, get: () => pipes[5] },
+    resultChannel: { enumerable: false, get: () => pipes[6] },
+    interactionRequestChannel: { enumerable: false, get: () => pipes[7] },
+    interactionReplyChannel: { enumerable: false, get: () => pipes[8] },
+    interactionAcknowledgementChannel: { enumerable: false, get: () => pipes[9] },
+    privateAuthRequestChannel: { enumerable: false, get: () => pipes[10] },
+    privateAuthResponseChannel: { enumerable: false, get: () => pipes[11] },
+    privateAuthAcknowledgementChannel: { enumerable: false, get: () => pipes[12] },
+    privateAuthLifetimeChannel: { enumerable: false, get: () => pipes[13] },
+    exitSeen: { enumerable: false, get: () => exitSeen }
+  });
+  child.once("exit", () => {
+    exitSeen = true;
+  });
+  return child;
+}
+function workerEntryPath() {
+  if (process.env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1") {
+    return fileURLToPath2(new URL("../worker/worker-main.mjs", import.meta.url));
+  }
+  return fileURLToPath2(new URL("../worker/worker-main.js", import.meta.url));
+}
+var init_spawn_worker = __esm({
+  "src/manager/spawn-worker.ts"() {
+    "use strict";
+    init_child_env();
+    init_build_provenance();
   }
 });
 
 // src/sqlite-candidate/wp6b2b1/trusted-local-policy.ts
-import { createHash as createHash9 } from "node:crypto";
-import { realpathSync as realpathSync3, statSync as statSync6 } from "node:fs";
-import path15 from "node:path";
+import { createHash as createHash5 } from "node:crypto";
+import { realpathSync as realpathSync2, statSync as statSync4 } from "node:fs";
+import path12 from "node:path";
 function createTrustedLocalPolicyProvider(config2) {
   let enabled = false;
   let invalid = false;
@@ -4269,7 +2170,7 @@ function createTrustedLocalPolicyProvider(config2) {
         allowed_operation_kinds: ["attempt_lifecycle"],
         unrestricted: false
       };
-      policyDigest = createHash9("sha256").update(JSON.stringify(policyEnvelope), "utf8").digest("hex");
+      policyDigest = createHash5("sha256").update(JSON.stringify(policyEnvelope), "utf8").digest("hex");
       enabled = true;
     } catch (error2) {
       invalid = true;
@@ -4318,11 +2219,11 @@ function createTrustedLocalPolicyProvider(config2) {
       }
       try {
         const requested = resolveLocalDirectory(input.requestedPath);
-        const canonical4 = resolveLocalDirectory(input.canonicalPath);
-        if (!sameWindowsPath(requested, canonical4)) {
+        const canonical5 = resolveLocalDirectory(input.canonicalPath);
+        if (!sameWindowsPath(requested, canonical5)) {
           return { state: "deny", reason: "workspace_canonical_mismatch" };
         }
-        return allowed(canonical4);
+        return allowed(canonical5);
       } catch (error2) {
         const reason = error2 instanceof Error && (error2.message === "workspace_unavailable" || error2.message === "workspace_not_directory") ? error2.message : "workspace_unavailable";
         return { state: "unknown", reason };
@@ -4365,20 +2266,20 @@ function resolveLocalDirectory(input) {
   if (!isLocalAbsolute(input)) throw new Error("workspace_path_form_denied");
   let stat2;
   try {
-    stat2 = statSync6(input);
+    stat2 = statSync4(input);
   } catch {
     throw new Error("workspace_unavailable");
   }
   if (!stat2.isDirectory()) throw new Error("workspace_not_directory");
-  const canonical4 = realpathSync3(input);
-  if (!isLocalAbsolute(canonical4)) throw new Error("workspace_path_form_denied");
-  return path15.win32.normalize(canonical4);
+  const canonical5 = realpathSync2(input);
+  if (!isLocalAbsolute(canonical5)) throw new Error("workspace_path_form_denied");
+  return path12.win32.normalize(canonical5);
 }
 function isLocalAbsolute(value) {
-  return process.platform === "win32" && path15.win32.isAbsolute(value) && /^[A-Za-z]:[\\/]/u.test(value) && !value.startsWith("\\\\");
+  return process.platform === "win32" && path12.win32.isAbsolute(value) && /^[A-Za-z]:[\\/]/u.test(value) && !value.startsWith("\\\\");
 }
 function sameWindowsPath(left, right) {
-  return windowsKey(path15.win32.normalize(left)) === windowsKey(path15.win32.normalize(right));
+  return windowsKey(path12.win32.normalize(left)) === windowsKey(path12.win32.normalize(right));
 }
 function windowsKey(value) {
   return value.replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US");
@@ -4440,8 +2341,639 @@ var init_trusted_local_deployment = __esm({
   }
 });
 
+// src/runtime/start-plan-private-lease.ts
+function validBinding(value) {
+  return !!value && textFields.every((key) => typeof value[key] === "string" && value[key].length > 0) && numberFields.every((key) => Number.isSafeInteger(value[key]) && value[key] > 0);
+}
+function sameBinding(left, right) {
+  return validBinding(left) && validBinding(right) && textFields.every((key) => left[key] === right[key]) && numberFields.every((key) => left[key] === right[key]);
+}
+var textFields, numberFields, PrivateCredentialLease;
+var init_start_plan_private_lease = __esm({
+  "src/runtime/start-plan-private-lease.ts"() {
+    "use strict";
+    textFields = ["account", "provider", "model", "task", "operation", "claim", "session", "turn", "creation"];
+    numberFields = ["attempt", "generation", "pid"];
+    PrivateCredentialLease = class {
+      #binding;
+      #deliveryDeadline;
+      #credentialExpiresAt;
+      #now;
+      #credential;
+      #state = "active";
+      /**
+       * `credentialExpiresAt` is the credential's actual usability deadline.
+       * `deliveryDeadline` only bounds the one-shot private-channel delivery and
+       * defaults to the old single-deadline behaviour for existing callers.
+       */
+      constructor(binding, credential, credentialExpiresAt, now = Date.now, deliveryDeadline) {
+        const createdAt = now();
+        const boundedDeliveryDeadline = deliveryDeadline ?? Math.min(credentialExpiresAt, createdAt + 6e4);
+        if (!validBinding(binding) || typeof credential !== "string" || !credential || !Number.isFinite(credentialExpiresAt) || !Number.isFinite(createdAt) || credentialExpiresAt <= createdAt || !Number.isFinite(boundedDeliveryDeadline) || boundedDeliveryDeadline <= createdAt || boundedDeliveryDeadline - createdAt > 6e4 || boundedDeliveryDeadline > credentialExpiresAt) {
+          throw new Error("credential_lease_invalid");
+        }
+        this.#binding = Object.freeze({ ...binding });
+        this.#credential = credential;
+        this.#deliveryDeadline = boundedDeliveryDeadline;
+        this.#credentialExpiresAt = credentialExpiresAt;
+        this.#now = now;
+      }
+      revoke() {
+        this.#state = "revoked";
+        this.#credential = null;
+      }
+      /** Synchronous claim check before redeem; an already-claimed lease belongs
+       * to its in-flight delivery and must not be revoked by a competing call. */
+      isActive() {
+        return this.#state === "active";
+      }
+      async redeem(requested, verifyWorker, deliver, signal) {
+        if (this.#state !== "active") throw new Error("credential_lease_unavailable");
+        this.#state = "checking";
+        try {
+          if (signal.aborted || !Number.isFinite(this.#now()) || this.#now() >= this.#deliveryDeadline || this.#now() >= this.#credentialExpiresAt || !sameBinding(this.#binding, requested)) throw new Error("credential_lease_rejected");
+          if (!await verifyWorker(this.#binding)) throw new Error("credential_lease_rejected");
+          if (this.#state !== "checking" || signal.aborted || !Number.isFinite(this.#now()) || this.#now() >= this.#deliveryDeadline || this.#now() >= this.#credentialExpiresAt || !this.#credential) {
+            throw new Error("credential_lease_rejected");
+          }
+          this.#state = "delivering";
+          const credential = this.#credential;
+          this.#credential = null;
+          await deliver(credential, this.#credentialExpiresAt);
+          if (signal.aborted || this.#state !== "delivering") throw new Error("credential_delivery_unknown");
+          this.#state = "consumed";
+        } catch {
+          this.revoke();
+          throw new Error("credential_lease_unavailable");
+        }
+      }
+    };
+  }
+});
+
+// src/runtime/start-plan-production-auth.ts
+var start_plan_production_auth_exports = {};
+__export(start_plan_production_auth_exports, {
+  StartPlanBillingEntitlement: () => StartPlanBillingEntitlement,
+  classifyEntitlementFailure: () => classifyEntitlementFailure,
+  createProductionStartPlanAuth: () => createProductionStartPlanAuth,
+  readOfficialCliVersion: () => readOfficialCliVersion,
+  readOfficialStartPlanCredential: () => readOfficialStartPlanCredential
+});
+import { readFileSync as readFileSync10 } from "node:fs";
+import { spawn as spawn5 } from "node:child_process";
+import {
+  createDecipheriv as cryptoCreateDecipheriv,
+  createHash as cryptoCreateHash
+} from "node:crypto";
+import { homedir as osHomedir, platform as osPlatform, userInfo as osUserInfo } from "node:os";
+import path14 from "node:path";
+function isRecord6(value) {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+function officialCredentialSecret(env) {
+  const explicit = env["ZCODE_CREDENTIAL_SECRET"]?.trim();
+  if (explicit) return explicit;
+  let username = "unknown";
+  try {
+    username = osUserInfo().username;
+  } catch {
+  }
+  return `zcode-credential-fallback:${osPlatform()}:${osHomedir()}:${username}`;
+}
+function decodeOfficialCredentialString(value, env) {
+  if (!value.startsWith(OFFICIAL_CREDENTIAL_ENCRYPTION_PREFIX)) return value;
+  try {
+    const segments = value.slice(OFFICIAL_CREDENTIAL_ENCRYPTION_PREFIX.length).split(".");
+    if (segments.length !== 3 || segments.some((segment) => segment.length === 0)) return null;
+    const [ivSegment, authTagSegment, encryptedSegment] = segments;
+    const iv = Buffer.from(ivSegment, "base64url");
+    const authTag = Buffer.from(authTagSegment, "base64url");
+    const encrypted = Buffer.from(encryptedSegment, "base64url");
+    if (iv.length !== OFFICIAL_CREDENTIAL_IV_BYTES || authTag.length !== OFFICIAL_CREDENTIAL_AUTH_TAG_BYTES) {
+      return null;
+    }
+    const key = cryptoCreateHash("sha256").update(officialCredentialSecret(env)).digest();
+    const decipher = cryptoCreateDecipheriv("aes-256-gcm", key, iv);
+    decipher.setAuthTag(authTag);
+    return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString("utf8");
+  } catch {
+    return null;
+  }
+}
+function readOfficialCredentialString(value, env) {
+  if (typeof value !== "string") return null;
+  return decodeOfficialCredentialString(value, env);
+}
+function readOfficialUserInfo(value, env) {
+  if (isRecord6(value)) return value;
+  if (typeof value !== "string") return null;
+  const decoded = decodeOfficialCredentialString(value, env);
+  if (decoded === null) return null;
+  try {
+    const parsed = JSON.parse(decoded);
+    return isRecord6(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function looksLikeJwt(value) {
+  const parts = value.split(".");
+  return parts.length === 3 && parts.every((part) => part.length > 0);
+}
+function decodeJwtPayload(jwt) {
+  try {
+    const payload = jwt.split(".")[1];
+    const json = Buffer.from(payload, "base64url").toString("utf8");
+    const parsed = JSON.parse(json);
+    return isRecord6(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+function asOfficialBillingEnvelope(value) {
+  if (!isRecord6(value)) return null;
+  const data = isRecord6(value.data) ? value.data : void 0;
+  return {
+    success: value.success,
+    code: value.code,
+    msg: value.msg,
+    ...data ? { data: {
+      plans: data.plans,
+      balances: data.balances,
+      server_time: data.server_time
+    } } : {}
+  };
+}
+function isSuccessfulBusinessEnvelope(envelope) {
+  return envelope.success !== false && (envelope.code === void 0 || envelope.code === 0 || envelope.code === 200);
+}
+function stringKeyedArray(value) {
+  return Array.isArray(value) ? value.filter(isRecord6) : [];
+}
+function hasActiveStartPlan(envelope) {
+  const plans = stringKeyedArray(envelope.data?.plans);
+  return plans.some((plan) => {
+    const status = typeof plan.status === "string" ? plan.status.trim().toLowerCase() : "";
+    const planId = typeof plan.plan_id === "string" ? plan.plan_id.trim().toLowerCase() : "";
+    const name = typeof plan.name === "string" ? plan.name.trim().toLowerCase() : "";
+    const startPlanIdentity = planId.includes("start-plan") || planId.includes("start plan") || name.includes("start-plan") || name.includes("start plan");
+    return status === "active" && startPlanIdentity;
+  });
+}
+function startPlanBalanceModelIds(balances) {
+  const seen = /* @__PURE__ */ new Set();
+  const models = [];
+  for (const balance of balances) {
+    const capabilities = Array.isArray(balance.capabilities) ? balance.capabilities : [];
+    const capabilityModels = capabilities.flatMap((capability) => {
+      const raw = typeof capability === "string" ? capability.trim().toLowerCase() : "";
+      return raw.startsWith("model:") ? [raw.slice(6).trim()] : [];
+    }).filter(Boolean);
+    const candidates = capabilityModels.length > 0 ? capabilityModels : typeof balance.show_name === "string" ? [balance.show_name.trim().toLowerCase()] : [];
+    for (const model of candidates) {
+      if (!model || seen.has(model)) continue;
+      seen.add(model);
+      models.push(model);
+    }
+  }
+  return models;
+}
+function numericUnit(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return null;
+}
+function requestedModelQuotaVerdict(balances, requestedModel) {
+  const relevant = balances.filter((balance) => {
+    const capabilities = Array.isArray(balance.capabilities) ? balance.capabilities : [];
+    const models = capabilities.flatMap((capability) => {
+      const raw = typeof capability === "string" ? capability.trim().toLowerCase() : "";
+      return raw.startsWith("model:") ? [raw.slice(6).trim()] : [];
+    }).filter(Boolean);
+    return models.length > 0 ? models.includes(requestedModel) : typeof balance.show_name === "string" && balance.show_name.trim().toLowerCase() === requestedModel;
+  });
+  if (relevant.length === 0) return "unproven";
+  const units = relevant.map((balance) => numericUnit(balance.remaining_units));
+  if (units.some((unit) => unit === null || unit < 0)) return "unproven";
+  return units.every((unit) => unit === 0) ? "exhausted" : "available";
+}
+function extractProviderCode(value) {
+  if (!value) return void 0;
+  const error2 = isRecord6(value.error) ? value.error : void 0;
+  const candidates = [
+    value.providerCode,
+    error2?.providerCode,
+    error2 && isRecord6(error2) ? error2.code : void 0,
+    value.code
+  ];
+  const raw = candidates.find((candidate) => typeof candidate === "number" || typeof candidate === "string");
+  return typeof raw === "number" || typeof raw === "string" ? String(raw) : void 0;
+}
+function readOfficialStartPlanCredential(zcodeDataRoot, env = process.env) {
+  const credentialsPath = path14.join(zcodeDataRoot, "v2", "credentials.json");
+  let parsed;
+  try {
+    parsed = JSON.parse(readFileSync10(credentialsPath, "utf8"));
+  } catch {
+    return null;
+  }
+  if (!isRecord6(parsed)) return null;
+  const jwt = readOfficialCredentialString(parsed.zcodejwttoken, env)?.trim() ?? "";
+  if (!jwt || !looksLikeJwt(jwt)) return null;
+  const userInfo = readOfficialUserInfo(parsed["oauth:bigmodel:user_info"], env);
+  if (!userInfo) return null;
+  const accountCandidates = [userInfo?.id, userInfo?.user_id, userInfo?.account_id, userInfo?.email];
+  const account = accountCandidates.find(
+    (candidate) => typeof candidate === "string" && candidate.trim().length > 0
+  )?.trim();
+  if (!account) return null;
+  const payload = decodeJwtPayload(jwt);
+  if (!payload) return null;
+  const exp = payload?.exp;
+  const expiresAt = typeof exp === "number" && Number.isFinite(exp) && exp > 0 ? exp * 1e3 : null;
+  let deviceMid = "";
+  try {
+    const telemetry = JSON.parse(readFileSync10(path14.join(zcodeDataRoot, "v2", "telemetry-state.json"), "utf8"));
+    if (typeof telemetry.deviceMid === "string" && telemetry.deviceMid.trim()) deviceMid = telemetry.deviceMid.trim();
+  } catch {
+  }
+  if (!deviceMid) return null;
+  return { jwt, account, expiresAt, deviceMid };
+}
+function classifyEntitlementFailure(input) {
+  const code = input.providerCode?.trim();
+  const providerCode = code ? code : void 0;
+  if (code === "3007") return { status: "captcha_required", reason: "provider requested captcha verification", providerCode };
+  if (code === "3012") return { status: "unusual_activity", reason: "provider blocked this identity due to unusual activity", providerCode };
+  if (code === "3001") return { status: "billing_parameter_error", reason: "billing request parameters were rejected", providerCode };
+  if (input.statusCode === 401) return { status: "unauthorized", reason: "credential was rejected as unauthenticated" };
+  if (input.statusCode === 403) return { status: "forbidden", reason: "credential is authenticated but forbidden from this plan or model" };
+  const envelope = input.statusCode === 200 ? asOfficialBillingEnvelope(input.body) : void 0;
+  if (envelope && isSuccessfulBusinessEnvelope(envelope) && hasActiveStartPlan(envelope)) {
+    const balances = stringKeyedArray(envelope.data?.balances);
+    const models = startPlanBalanceModelIds(balances);
+    if (models.length === 0) {
+      return { status: "unavailable", reason: "billing response proved the plan but not the requested model" };
+    }
+    const requested = input.model?.trim().toLowerCase();
+    if (!requested) return { status: "unavailable", reason: "billing response had no requested model identity to authorize" };
+    if (!models.includes(requested)) {
+      return { status: "model_unavailable", reason: "active Start Plan does not list the requested model" };
+    }
+    const quota = requestedModelQuotaVerdict(balances, requested);
+    if (quota === "unproven") {
+      return { status: "unavailable", reason: "billing response did not prove available quota for the requested model" };
+    }
+    if (quota === "exhausted") {
+      return { status: "quota_exhausted", reason: "plan quota is exhausted for the requested model" };
+    }
+    return { status: "entitled", reason: "active Start Plan lists the requested model" };
+  } else if (envelope && isSuccessfulBusinessEnvelope(envelope) && !hasActiveStartPlan(envelope)) {
+    return { status: "no_entitlement", reason: "no active Start Plan was present in the billing response" };
+  }
+  if (input.statusCode === 429) return { status: "rate_limited", reason: "rate limited; quota state unknown from status alone" };
+  if (input.statusCode >= 500) return { status: "unavailable", reason: "entitlement service error" };
+  if (input.statusCode >= 400) return { status: "unavailable", reason: "entitlement query rejected without a recognized provider code" };
+  return { status: "unavailable", reason: "entitlement response could not be interpreted" };
+}
+function createProductionStartPlanAuth(options) {
+  const now = options.now ?? Date.now;
+  const env = options.env ?? process.env;
+  const initial = readOfficialStartPlanCredential(options.zcodeDataRoot, env);
+  if (!initial) return null;
+  let entitlementContext = null;
+  let issuedTask = null;
+  const sameEntitlementContext = (context, credential, provider, model, credentialDigest) => context.account === credential.account && context.provider === provider && context.model === model && context.deviceMid === credential.deviceMid && context.credentialDigest === credentialDigest && context.credentialExpiresAt === credential.expiresAt;
+  const rejection2 = (verdict2) => {
+    const providerCode = verdict2.status === "entitled" ? void 0 : verdict2.providerCode;
+    return new Error(`start_plan_entitlement_rejected:${verdict2.status}${providerCode ? `:${providerCode}` : ""}`);
+  };
+  const authoritativeEntitlement = async (credential, provider, model, signal) => {
+    const credentialDigest = cryptoCreateHash("sha256").update(credential.jwt).digest("hex");
+    if (entitlementContext) {
+      if (!sameEntitlementContext(entitlementContext, credential, provider, model, credentialDigest)) {
+        throw new Error("start_plan_entitlement_identity_invalid");
+      }
+      return entitlementContext.verdict;
+    }
+    const verdict2 = await options.entitlement.check({
+      account: credential.account,
+      provider,
+      model,
+      deviceMid: credential.deviceMid,
+      jwt: credential.jwt,
+      signal
+    });
+    entitlementContext = Object.freeze({
+      account: credential.account,
+      provider,
+      model,
+      deviceMid: credential.deviceMid,
+      credentialDigest,
+      credentialExpiresAt: credential.expiresAt,
+      verdict: verdict2
+    });
+    return verdict2;
+  };
+  return {
+    // Captured from the official credential at construction; issue() re-reads
+    // the credential and rejects if the account identity changed mid-run.
+    account: initial.account,
+    signal: options.signal,
+    async prepare(provider, model, signal) {
+      if (provider !== "account:bigmodel-start-plan" || !model || signal.aborted) return false;
+      const credential = readOfficialStartPlanCredential(options.zcodeDataRoot, env);
+      if (!credential || credential.account !== initial.account || credential.expiresAt !== null && credential.expiresAt <= now()) return false;
+      const credentialDigest = cryptoCreateHash("sha256").update(credential.jwt).digest("hex");
+      if (entitlementContext && !sameEntitlementContext(entitlementContext, credential, provider, model, credentialDigest)) return false;
+      const verdict2 = await authoritativeEntitlement(credential, provider, model, signal);
+      if (signal.aborted) return false;
+      if (verdict2.status !== "entitled") {
+        throw rejection2(verdict2);
+      }
+      return true;
+    },
+    async issue(binding, signal) {
+      const credential = readOfficialStartPlanCredential(options.zcodeDataRoot, env);
+      if (!credential) throw new Error("start_plan_credential_unavailable");
+      if (binding.account !== credential.account) throw new Error("start_plan_account_identity_invalid");
+      if (credential.expiresAt !== null && credential.expiresAt <= now()) throw new Error("start_plan_credential_expired");
+      if (signal.aborted) throw new Error("start_plan_issuer_cancelled");
+      if (binding.provider !== "account:bigmodel-start-plan" || !binding.model) {
+        throw new Error("start_plan_identity_invalid");
+      }
+      if (issuedTask !== null) throw new Error("start_plan_lease_already_issued");
+      if (!entitlementContext) throw new Error("start_plan_entitlement_not_prepared");
+      issuedTask = binding.task;
+      const verdict2 = await authoritativeEntitlement(credential, binding.provider, binding.model, signal);
+      if (verdict2.status !== "entitled") {
+        throw rejection2(verdict2);
+      }
+      const createdAt = now();
+      const credentialExpiresAt = credential.expiresAt ?? Number.MAX_SAFE_INTEGER;
+      const deliveryDeadline = Math.min(credentialExpiresAt, createdAt + 3e4);
+      return new PrivateCredentialLease(binding, credential.jwt, credentialExpiresAt, now, deliveryDeadline);
+    }
+  };
+}
+async function readOfficialCliVersion(zcodeEntrypoint) {
+  const key = path14.resolve(zcodeEntrypoint);
+  const cached2 = officialCliVersionCache.get(key);
+  if (cached2) return cached2;
+  const version2 = await new Promise((resolve) => {
+    const child = spawn5(process.execPath, [key, "--version"], { shell: false, windowsHide: true, stdio: ["ignore", "pipe", "ignore"] });
+    let out = "";
+    const timer = setTimeout(() => {
+      child.kill();
+      resolve(void 0);
+    }, 15e3);
+    timer.unref();
+    child.stdout.on("data", (chunk) => {
+      out += chunk.toString("utf8");
+    });
+    child.on("error", () => {
+      clearTimeout(timer);
+      resolve(void 0);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      const value = out.trim();
+      resolve(code === 0 && /^\d+\.\d+\.\d+/.test(value) ? value : void 0);
+    });
+  });
+  if (version2) officialCliVersionCache.set(key, version2);
+  return version2;
+}
+var OFFICIAL_CREDENTIAL_ENCRYPTION_PREFIX, OFFICIAL_CREDENTIAL_IV_BYTES, OFFICIAL_CREDENTIAL_AUTH_TAG_BYTES, OFFICIAL_START_PLAN_ORIGIN, BILLING_REQUEST_TIMEOUT_MS, StartPlanBillingEntitlement, officialCliVersionCache;
+var init_start_plan_production_auth = __esm({
+  "src/runtime/start-plan-production-auth.ts"() {
+    "use strict";
+    init_start_plan_private_lease();
+    OFFICIAL_CREDENTIAL_ENCRYPTION_PREFIX = "enc:v1:";
+    OFFICIAL_CREDENTIAL_IV_BYTES = 12;
+    OFFICIAL_CREDENTIAL_AUTH_TAG_BYTES = 16;
+    OFFICIAL_START_PLAN_ORIGIN = "https://zcode.z.ai";
+    BILLING_REQUEST_TIMEOUT_MS = 15e3;
+    StartPlanBillingEntitlement = class {
+      #origin;
+      #getAppVersion;
+      #fetchImpl;
+      #now;
+      constructor(options) {
+        this.#origin = (options.origin ?? OFFICIAL_START_PLAN_ORIGIN).replace(/\/+$/, "");
+        this.#getAppVersion = options.getAppVersion;
+        this.#fetchImpl = options.fetchImpl ?? fetch;
+        this.#now = options.now ?? Date.now;
+      }
+      async check(input) {
+        const observedAt = this.#now();
+        const appVersion = await this.#getAppVersion();
+        if (!appVersion) return { status: "unavailable", reason: "official cli version unavailable; refusing to guess", observedAt };
+        if (!input.deviceMid.trim()) return { status: "unavailable", reason: "official device identity unavailable; refusing to guess", observedAt };
+        const url2 = `${this.#origin}/api/v1/zcode-plan/billing/balance?app_version=${encodeURIComponent(appVersion)}&mid=${encodeURIComponent(input.deviceMid)}`;
+        let response;
+        try {
+          response = await this.#fetchImpl(url2, {
+            method: "GET",
+            headers: {
+              // Observed official balance requests carry the persistent device
+              // identity in both the `mid` query and the `X-Device-Mid` header
+              // (2026-11-06 native request audit); omitting them is rejected
+              // with provider code 3001. This is a read-only billing query,
+              // never a model request; app version comes from the official
+              // runtime and identity remains in memory.
+              Authorization: `Bearer ${input.jwt}`,
+              "X-Device-Mid": input.deviceMid
+            },
+            signal: AbortSignal.any([input.signal, AbortSignal.timeout(BILLING_REQUEST_TIMEOUT_MS)])
+          });
+        } catch (error2) {
+          if (input.signal.aborted) throw error2;
+          return { status: "unavailable", reason: "entitlement transport failed", observedAt };
+        }
+        if (response.status === 200) {
+          let body2;
+          let providerCode2;
+          try {
+            const parsed = await response.json();
+            if (isRecord6(parsed)) {
+              body2 = parsed;
+              providerCode2 = extractProviderCode(parsed);
+            }
+          } catch {
+          }
+          const classified = this.#interpretBillingBody({
+            statusCode: response.status,
+            providerCode: providerCode2,
+            body: body2,
+            model: input.model
+          });
+          if (classified.status === "entitled") {
+            let requestId = "";
+            try {
+              requestId = (response.headers.get("x-request-id") ?? "").trim();
+            } catch {
+            }
+            return { status: "entitled", observedAt: this.#now(), requestId };
+          }
+          return { ...classified, observedAt: this.#now() };
+        }
+        let body;
+        let providerCode;
+        try {
+          const parsed = await response.json();
+          if (isRecord6(parsed)) {
+            body = parsed;
+            providerCode = extractProviderCode(parsed);
+          }
+        } catch {
+        }
+        return { ...this.#interpretBillingBody({ statusCode: response.status, providerCode, body, model: input.model }), observedAt };
+      }
+      #interpretBillingBody(input) {
+        return classifyEntitlementFailure(input);
+      }
+    };
+    officialCliVersionCache = /* @__PURE__ */ new Map();
+  }
+});
+
+// src/result-contract.mjs
+function canonical(value) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number" && Number.isSafeInteger(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && Object.getPrototypeOf(value) === Object.prototype) return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonical(value[k])}`).join(",")}}`;
+  throw new ResultContractError("invalid_json_value");
+}
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((x) => typeof x === "string");
+}
+function validateTestReport(value) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) return { ok: false, error: "entry is not an object" };
+  if (typeof value.command !== "string") return { ok: false, error: "command must be a string" };
+  if (!["passed", "failed", "not_run"].includes(value.status)) return { ok: false, error: "status must be one of passed|failed|not_run" };
+  if (value.details !== void 0 && typeof value.details !== "string") return { ok: false, error: "details must be a string when present" };
+  return { ok: true, test: { command: value.command, status: value.status, ...value.details === void 0 ? {} : { details: value.details } } };
+}
+function validateReportFields(value, partial2 = false) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail("invalid_result_payload", "report is not a JSON object");
+  for (const key of ["summary", "files_changed", "tests", "issues", "needs_master_decision"]) {
+    if (partial2 && !Object.hasOwn(value, key)) continue;
+    const v = value[key];
+    if (key === "tests") {
+      if (!Array.isArray(v)) fail("invalid_result_payload", "report.tests must be an array");
+      for (const entry of v) {
+        const parsed = validateTestReport(entry);
+        if (!parsed.ok) fail("invalid_result_payload", `report.tests entry invalid: ${parsed.error}`);
+      }
+    } else if (key === "summary" ? typeof v !== "string" : key === "needs_master_decision" ? typeof v !== "boolean" : !isStringArray(v)) {
+      fail("invalid_result_payload", `report.${key} must be ${key === "summary" ? "a string" : key === "needs_master_decision" ? "a boolean" : "an array of strings"}`);
+    }
+  }
+}
+function submissionFailure(result, error2) {
+  const code = error2?.code === "result_too_large" ? "result_too_large" : "invalid_result_payload";
+  const summary = code === "result_too_large" ? error2.message : `Result schema invalid (${String(error2?.message ?? "invalid_result_payload").slice(0, 512)}); original report not committed`;
+  return {
+    task_id: result.task_id,
+    attempt: result.attempt,
+    status: "failed",
+    summary,
+    files_changed: [],
+    tests: [],
+    issues: [summary],
+    needs_master_decision: true,
+    zcode_output: "",
+    exit_code: null,
+    session_id: null,
+    started_at: null,
+    finished_at: (/* @__PURE__ */ new Date()).toISOString(),
+    error_code: code
+  };
+}
+function assertWorkerResultEnvelope(frame) {
+  const bytes = Buffer.byteLength(canonical({ ...frame, result: null }), "utf8") - 4;
+  if (bytes > MAX_RESULT_ENVELOPE_BYTES) throw new ResultContractError("result_envelope_too_large", `Worker Result envelope ${bytes} bytes exceeds ${MAX_RESULT_ENVELOPE_BYTES}`);
+}
+function validText(value, max) {
+  return typeof value === "string" && value.length > 0 && value.length <= max && !/[\x00-\x1f]/u.test(value);
+}
+function isNullableText(value, max = 4096) {
+  return value === null || typeof value === "string" && value.length <= max && !/[\x00-\x1f]/u.test(value);
+}
+function validateStringArray(value, maxItems = 256) {
+  if (!Array.isArray(value) || value.length > maxItems || value.some((x) => typeof x !== "string" || x.length > 4096 || /[\x00-\x1f]/u.test(x))) fail("invalid_result_payload");
+}
+function validateResultObject(value, keys, required2 = []) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail("invalid_result_payload");
+  const own2 = Object.keys(value);
+  if (own2.some((k) => !keys.has(k)) || required2.some((k) => !Object.hasOwn(value, k))) fail("invalid_result_payload");
+}
+function validateUsage(value) {
+  validateResultObject(
+    value,
+    /* @__PURE__ */ new Set(["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]),
+    ["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]
+  );
+  if (!isNullableText(value.source) || !isNullableText(value.scope) || !isNullableText(value.observed_at) || !["reported", "derived", "partial"].includes(value.finality) || ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || !Number.isSafeInteger(value.dropped_unknown_keys) || value.dropped_unknown_keys < 0) fail("invalid_result_payload");
+  validateStringArray(value.conflicts, 64);
+}
+function validateModel(value) {
+  validateResultObject(
+    value,
+    /* @__PURE__ */ new Set(["executor", "provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "effective_reasoning_level_source", "selection_source", "effective_at", "session_id", "turn_id"]),
+    ["executor", "provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "effective_reasoning_level_source", "selection_source", "effective_at", "session_id", "turn_id"]
+  );
+  if (typeof value.executor !== "string" || !["runtime", "not_reported"].includes(value.effective_reasoning_level_source) || ["provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "selection_source", "effective_at", "session_id", "turn_id"].some((k) => !isNullableText(value[k]))) fail("invalid_result_payload");
+}
+function validateTiming(value) {
+  validateResultObject(value, /* @__PURE__ */ new Set(["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms", "derived", "notes"]), ["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms", "derived", "notes"]);
+  if (["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || typeof value.derived !== "boolean") fail("invalid_result_payload");
+  validateStringArray(value.notes, 64);
+}
+function canonicalTaskResult(result, input) {
+  validateResultObject(result, RESULT_FIELDS, REQUIRED_RESULT_FIELDS);
+  if (result.task_id !== input.task_id || result.attempt !== input.attempt || result.status !== input.result_status || !RESULT_STATUSES.has(result.status) || typeof result.summary !== "string" || typeof result.zcode_output !== "string" || typeof result.needs_master_decision !== "boolean" || result.exit_code !== null && !Number.isSafeInteger(result.exit_code) || !isNullableText(result.session_id) || !isNullableText(result.started_at, 64) || !isNullableText(result.finished_at, 64)) fail("invalid_result_payload");
+  validateReportFields(result);
+  if (Object.hasOwn(result, "error_code") && !validText(result.error_code, 128)) fail("invalid_result_payload");
+  if (Object.hasOwn(result, "report_candidate")) {
+    validateResultObject(result.report_candidate, /* @__PURE__ */ new Set(["summary", "files_changed", "tests", "issues", "needs_master_decision"]));
+    validateReportFields(result.report_candidate, true);
+  }
+  if (Object.hasOwn(result, "usage") && result.usage !== null) validateUsage(result.usage);
+  if (Object.hasOwn(result, "model") && result.model !== null) validateModel(result.model);
+  if (Object.hasOwn(result, "timing") && result.timing !== null) validateTiming(result.timing);
+  const json = canonical(result);
+  const bytes = Buffer.byteLength(json, "utf8");
+  if (bytes > MAX_TASK_RESULT_BYTES) throw new ResultContractError("result_too_large", `canonical TaskResult ${bytes} bytes exceeds ${MAX_TASK_RESULT_BYTES}; original report not committed`);
+  return json;
+}
+var MAX_TASK_RESULT_BYTES, MAX_RESULT_ENVELOPE_BYTES, MAX_WORKER_RESULT_FRAME_BYTES, ResultContractError, fail, RESULT_STATUSES, RESULT_FIELDS, REQUIRED_RESULT_FIELDS;
+var init_result_contract = __esm({
+  "src/result-contract.mjs"() {
+    "use strict";
+    MAX_TASK_RESULT_BYTES = 32 * 1024 * 1024;
+    MAX_RESULT_ENVELOPE_BYTES = 256 * 1024;
+    MAX_WORKER_RESULT_FRAME_BYTES = MAX_TASK_RESULT_BYTES + MAX_RESULT_ENVELOPE_BYTES;
+    ResultContractError = class extends Error {
+      constructor(code, message = code) {
+        super(message);
+        this.code = code;
+      }
+    };
+    fail = (code, message = code) => {
+      throw new ResultContractError(code, message);
+    };
+    RESULT_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "cancelled", "waiting_for_master"]);
+    RESULT_FIELDS = /* @__PURE__ */ new Set(["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at", "error_code", "report_candidate", "usage", "model", "timing"]);
+    REQUIRED_RESULT_FIELDS = ["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at"];
+  }
+});
+
 // src/sqlite-candidate/wp6b2b1/launch-bootstrap.ts
-import { createHash as createHash10 } from "node:crypto";
+import { createHash as createHash6 } from "node:crypto";
 function createLaunchBootstrap(source) {
   const snapshot = source.policy_snapshot;
   const bootstrap = {
@@ -4528,7 +3060,7 @@ function deriveAdmissionPolicySnapshotDigest(value) {
     policy_digest: value.policy_digest,
     execution_profile_id: value.execution_profile_id
   };
-  return createHash10("sha256").update(canonicalJson(envelope), "utf8").digest("hex");
+  return createHash6("sha256").update(canonicalJson(envelope), "utf8").digest("hex");
 }
 function canonicalJson(value) {
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
@@ -4564,9 +3096,9 @@ var init_launch_bootstrap = __esm({
 });
 
 // src/sqlite-candidate/wp6b2b1/launch-identity.ts
-import { createHash as createHash11 } from "node:crypto";
+import { createHash as createHash7 } from "node:crypto";
 async function observeTrustedLaunchIdentity(child, probe, launchId, generation) {
-  if (probe.platform !== "win32" || !validText(launchId) || !positive2(generation)) return null;
+  if (probe.platform !== "win32" || !validText2(launchId) || !positive2(generation)) return null;
   const captured = await captureSpawnGenerationIdentity(child, probe);
   if (!captured || !childStillOnSpawnGeneration(child) || child.pid !== captured.pid) return null;
   let identity;
@@ -4598,7 +3130,7 @@ async function observeTrustedLaunchIdentity(child, probe, launchId, generation) 
   return { ...evidence, evidence_digest: digest(evidence) };
 }
 async function verifyWorkerAgainstLaunchReceipt(workerId, reportedPid, launch, probe) {
-  if (!validText(workerId) || probe.platform !== "win32" || reportedPid !== launch.process_id) return null;
+  if (!validText2(workerId) || probe.platform !== "win32" || reportedPid !== launch.process_id) return null;
   let identity;
   try {
     identity = await probe.identityOf(reportedPid);
@@ -4631,11 +3163,11 @@ function exactWindowsIdentity(identity) {
 function positive2(value) {
   return Number.isSafeInteger(value) && value > 0;
 }
-function validText(value) {
+function validText2(value) {
   return value.length > 0 && value.length <= 128 && !/[\x00-\x1f]/u.test(value);
 }
 function digest(value) {
-  return createHash11("sha256").update(canonical2(value), "utf8").digest("hex");
+  return createHash7("sha256").update(canonical2(value), "utf8").digest("hex");
 }
 function canonical2(value) {
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
@@ -4720,7 +3252,7 @@ var init_worker_handshake = __esm({
 });
 
 // src/runtime/sqlite-runtime-roster.ts
-import { createHash as createHash12 } from "node:crypto";
+import { createHash as createHash8 } from "node:crypto";
 function currentSqliteRuntimeRoster() {
   return {
     node: process.versions.node,
@@ -4733,7 +3265,7 @@ function currentSqliteRuntimeRoster() {
 }
 function currentSqliteRuntimeRosterDigest() {
   const roster = currentSqliteRuntimeRoster();
-  return createHash12("sha256").update(JSON.stringify(roster)).digest("hex");
+  return createHash8("sha256").update(JSON.stringify(roster)).digest("hex");
 }
 var SQLITE_CUTOVER_PROTOCOL_VERSION, SQLITE_CUTOVER_VERIFIER_VERSION, SQLITE_CANDIDATE_SCHEMA_VERSION;
 var init_sqlite_runtime_roster = __esm({
@@ -4741,7 +3273,7 @@ var init_sqlite_runtime_roster = __esm({
     "use strict";
     SQLITE_CUTOVER_PROTOCOL_VERSION = "wp6-stop-world-json-sqlite-v1";
     SQLITE_CUTOVER_VERIFIER_VERSION = "wp6-json-cutover-v1";
-    SQLITE_CANDIDATE_SCHEMA_VERSION = 13;
+    SQLITE_CANDIDATE_SCHEMA_VERSION = 14;
   }
 });
 
@@ -4760,8 +3292,271 @@ var init_node_runtime = __esm({
   }
 });
 
+// src/runtime/start-plan-private-frame.ts
+import { TextDecoder as TextDecoder2 } from "node:util";
+async function readPrivateFrame(stream, maximum2, signal) {
+  if (!Number.isSafeInteger(maximum2) || maximum2 < 1 || signal.aborted) throw new Error("private_frame_unavailable");
+  const chunks = [];
+  let total = 0;
+  const abort = () => {
+    stream.destroy();
+  };
+  signal.addEventListener("abort", abort, { once: true });
+  try {
+    for await (const chunk of stream) {
+      if (signal.aborted) throw new Error("private_frame_cancelled");
+      const bytes2 = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += bytes2.length;
+      if (total > maximum2 + 4) throw new Error("private_frame_too_large");
+      chunks.push(bytes2);
+      if (total >= 4) {
+        const prefix = Buffer.concat(chunks, total).readUInt32BE(0);
+        if (prefix < 1 || prefix > maximum2) throw new Error("private_frame_size_invalid");
+        if (total > prefix + 4) throw new Error("private_frame_extra_data");
+      }
+    }
+    if (signal.aborted || total < 4) throw new Error("private_frame_incomplete");
+    const bytes = Buffer.concat(chunks, total);
+    const length = bytes.readUInt32BE(0);
+    if (length < 1 || length > maximum2 || total !== length + 4) throw new Error("private_frame_incomplete");
+    let value;
+    try {
+      value = JSON.parse(new TextDecoder2("utf-8", { fatal: true }).decode(bytes.subarray(4)));
+    } catch {
+      throw new Error("private_frame_invalid");
+    }
+    return value;
+  } catch (error2) {
+    if (signal.aborted) throw new Error("private_frame_cancelled");
+    if (error2 instanceof Error && /^private_frame_[a-z_]+$/u.test(error2.message)) throw error2;
+    throw new Error("private_frame_transport_failed");
+  } finally {
+    signal.removeEventListener("abort", abort);
+    chunks.length = 0;
+  }
+}
+async function writePrivateFrame(stream, value, maximum2, signal) {
+  if (signal.aborted) throw new Error("private_frame_cancelled");
+  const json = JSON.stringify(value);
+  if (typeof json !== "string") throw new Error("private_frame_invalid");
+  const body = Buffer.from(json, "utf8");
+  if (!Number.isSafeInteger(maximum2) || maximum2 < 1 || body.length < 1 || body.length > maximum2) throw new Error("private_frame_size_invalid");
+  const prefix = Buffer.allocUnsafe(4);
+  prefix.writeUInt32BE(body.length);
+  const frame = Buffer.concat([prefix, body]);
+  const abort = () => {
+    stream.destroy();
+  };
+  signal.addEventListener("abort", abort, { once: true });
+  try {
+    await new Promise((resolve, reject) => {
+      const onError = () => {
+        cleanup();
+        reject(new Error("private_frame_delivery_unknown"));
+      };
+      const onClose = () => {
+        cleanup();
+        reject(new Error("private_frame_delivery_unknown"));
+      };
+      const onFinish = () => {
+        cleanup();
+        resolve();
+      };
+      const cleanup = () => {
+        stream.removeListener("error", onError);
+        stream.removeListener("close", onClose);
+        stream.removeListener("finish", onFinish);
+      };
+      stream.once("error", onError);
+      stream.once("close", onClose);
+      stream.once("finish", onFinish);
+      if (signal.aborted) {
+        cleanup();
+        reject(new Error("private_frame_delivery_unknown"));
+        return;
+      }
+      stream.end(frame);
+    });
+    if (signal.aborted) throw new Error("private_frame_delivery_unknown");
+  } finally {
+    signal.removeEventListener("abort", abort);
+  }
+}
+var init_start_plan_private_frame = __esm({
+  "src/runtime/start-plan-private-frame.ts"() {
+    "use strict";
+  }
+});
+
+// src/runtime/start-plan-private-channel.ts
+function record2(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("private_auth_invalid");
+  return value;
+}
+function exactKeys(value, keys) {
+  if (Object.keys(value).sort().join("|") !== [...keys].sort().join("|")) throw new Error("private_auth_invalid");
+}
+function boundedSignal(parent, timeoutMs) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 6e4) throw new Error("private_auth_invalid");
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  parent.addEventListener("abort", abort, { once: true });
+  if (parent.aborted) abort();
+  const timer = setTimeout(abort, timeoutMs);
+  timer.unref();
+  return { signal: controller.signal, close() {
+    clearTimeout(timer);
+    parent.removeEventListener("abort", abort);
+  } };
+}
+async function servePrivateCredential(options) {
+  const bounded2 = boundedSignal(options.signal, options.timeoutMs);
+  let lease;
+  try {
+    const request = record2(await readPrivateFrame(options.request, maximum, bounded2.signal));
+    exactKeys(request, ["protocol", "requestId", "binding"]);
+    if (request.protocol !== "start-plan-private-request-v1" || typeof request.requestId !== "string" || !request.requestId) throw new Error("private_auth_invalid");
+    const resolved = await new Promise((resolve, reject) => {
+      const abort = () => {
+        cleanup();
+        reject(new Error("private_auth_cancelled"));
+      };
+      const cleanup = () => bounded2.signal.removeEventListener("abort", abort);
+      bounded2.signal.addEventListener("abort", abort, { once: true });
+      if (bounded2.signal.aborted) {
+        abort();
+        return;
+      }
+      void Promise.resolve().then(() => options.resolveLease(Object.freeze({ ...request }), bounded2.signal)).then((value) => {
+        if (bounded2.signal.aborted) {
+          value.lease.revoke();
+          return;
+        }
+        cleanup();
+        resolve(value);
+      }, () => {
+        cleanup();
+        reject(new Error("private_auth_unavailable"));
+      });
+    });
+    lease = resolved.lease;
+    if (!lease.isActive()) {
+      lease = void 0;
+      throw new Error("private_auth_delivery_failed");
+    }
+    await lease.redeem(request.binding, resolved.verifyWorker, async (jwt, expiresAt) => {
+      await writePrivateFrame(options.response, {
+        protocol: "start-plan-private-response-v1",
+        requestId: request.requestId,
+        binding: resolved.binding,
+        jwt,
+        expiresAt
+      }, maximum, bounded2.signal);
+      const ack = record2(await readPrivateFrame(options.acknowledgement, maximum, bounded2.signal));
+      exactKeys(ack, ["protocol", "requestId"]);
+      if (ack.protocol !== "start-plan-private-ack-v1" || ack.requestId !== request.requestId) throw new Error("private_auth_ack_invalid");
+    }, bounded2.signal);
+    return "acknowledged";
+  } catch {
+    lease?.revoke();
+    throw new Error("private_auth_delivery_failed");
+  } finally {
+    bounded2.close();
+    options.request.destroy();
+    options.response.destroy();
+    options.acknowledgement.destroy();
+  }
+}
+var maximum;
+var init_start_plan_private_channel = __esm({
+  "src/runtime/start-plan-private-channel.ts"() {
+    "use strict";
+    init_start_plan_private_frame();
+    maximum = 16384;
+  }
+});
+
+// src/runtime/start-plan-handle-gate.ts
+var HandleGateError, WorkerHandleGate;
+var init_start_plan_handle_gate = __esm({
+  "src/runtime/start-plan-handle-gate.ts"() {
+    "use strict";
+    init_windows_process_cleanup();
+    HandleGateError = class extends Error {
+      code;
+      detail;
+      constructor(code, detail) {
+        super(`start_plan_${code}${detail ? `: ${detail}` : ""}`);
+        this.name = "HandleGateError";
+        this.code = code;
+        this.detail = detail;
+      }
+    };
+    WorkerHandleGate = class _WorkerHandleGate {
+      #transaction;
+      #pid;
+      #creationFileTime;
+      #closed = false;
+      constructor(transaction, pid, creationFileTime) {
+        this.#transaction = transaction;
+        this.#pid = pid;
+        this.#creationFileTime = creationFileTime;
+      }
+      static platformSupported() {
+        return process.platform === "win32";
+      }
+      /** Holds one kernel handle on `pid` and verifies its exact creation time
+       * against the launch receipt fingerprint (StartTime.Ticks read at spawn). */
+      static async open(options) {
+        if (!_WorkerHandleGate.platformSupported() && !options.transaction) {
+          throw new HandleGateError("handle_gate_platform_unsupported");
+        }
+        const owned = !options.transaction;
+        let transaction = options.transaction;
+        try {
+          transaction ??= await openPowerShellTreeTransaction();
+          const [hold] = await transaction.hold([options.pid]);
+          if (!hold || hold.status !== "ok" || !hold.creationFileTime || !hold.creationTicks) {
+            throw new HandleGateError("handle_gate_hold_rejected", hold ? `${hold.status}${hold.error ? ` win32=${String(hold.error)}` : ""}` : "no outcome");
+          }
+          if (hold.creationTicks !== options.expectedCreationTicks) {
+            throw new HandleGateError("handle_gate_identity_mismatch", `held=${hold.creationTicks} expected=${options.expectedCreationTicks}`);
+          }
+          return new _WorkerHandleGate(transaction, options.pid, hold.creationFileTime);
+        } catch (error2) {
+          if (owned && transaction) await transaction.close().catch(() => void 0);
+          throw error2;
+        }
+      }
+      /** Non-destructive liveness read on the held handle. exited / not_held /
+       * transport failure are all terminal rejections; nothing is inferred. */
+      async assertAlive() {
+        if (this.#closed) throw new HandleGateError("handle_gate_not_alive", "gate closed");
+        if (!this.#transaction.alive) throw new HandleGateError("handle_gate_unsupported_transaction");
+        let outcome;
+        try {
+          outcome = await this.#transaction.alive(this.#pid);
+        } catch (error2) {
+          throw new HandleGateError("handle_gate_transport_failed", error2 instanceof Error ? error2.message : String(error2));
+        }
+        if (outcome.status !== "alive") {
+          throw new HandleGateError("handle_gate_not_alive", `${outcome.status}${outcome.error ? ` win32=${String(outcome.error)}` : ""}`);
+        }
+        if (outcome.creationFileTime !== this.#creationFileTime) {
+          throw new HandleGateError("handle_gate_identity_changed", `now=${outcome.creationFileTime} expected=${this.#creationFileTime}`);
+        }
+      }
+      async close() {
+        if (this.#closed) return;
+        this.#closed = true;
+        await this.#transaction.close();
+      }
+    };
+  }
+});
+
 // src/sqlite-candidate/wp6b2b1/interaction-channel.mjs
-import { createHash as createHash13 } from "node:crypto";
+import { createHash as createHash9 } from "node:crypto";
 async function createCandidateInteractionChannel(child, operation, verifyProcessIdentity) {
   if (!child || !Number.isSafeInteger(child.pid) || !Array.isArray(child.stdio) || child.stdio.length < 10 || !operation || operation.operation_kind !== "attempt_lifecycle" || operation.phase !== "running" || !Number.isSafeInteger(operation.generation) || operation.generation < 1 || !operation.claim_id || operation.claim_generation !== operation.generation || !operation.claim_worker_identity_json || !operation.launch_identity_json || !operation.claim_worker_identity_digest || typeof verifyProcessIdentity !== "function") throw coded("interaction_channel_unavailable");
   let worker;
@@ -4772,7 +3567,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
   } catch {
     throw coded("interaction_channel_identity_invalid");
   }
-  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha256(stableJson3(worker)) !== operation.claim_worker_identity_digest)
+  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha256(stableJson(worker)) !== operation.claim_worker_identity_digest)
     throw coded("interaction_channel_identity_mismatch");
   const requestStream = child.stdio[7];
   const replyStream = child.stdio[8];
@@ -4807,7 +3602,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
       await verifyLive();
       const frame = await requestReader.read();
       const expected = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "request", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(frame).sort().join("|") !== expected.join("|") || frame.protocol !== "bridge-sqlite-interaction-request-v1" || !sameBinding(frame, binding) || !validRequest(frame.request)) throw coded("interaction_frame_identity_mismatch");
+      if (Object.keys(frame).sort().join("|") !== expected.join("|") || frame.protocol !== "bridge-sqlite-interaction-request-v1" || !sameBinding2(frame, binding) || !validRequest(frame.request)) throw coded("interaction_frame_identity_mismatch");
       return Object.freeze({ binding, request: Object.freeze(frame.request) });
     },
     async prepareReply(reply) {
@@ -4815,7 +3610,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
       sendPending = true;
       try {
         await verifyLive();
-        if (!sameBinding(reply, binding) || !validId2(reply.request_id) || !validId2(reply.reply_id) || !Number.isSafeInteger(reply.revision) || reply.revision < 1 || !/^[0-9a-f]{64}$/u.test(reply.answer_digest) || !reply.answer || Object.getPrototypeOf(reply.answer) !== Object.prototype) throw coded("interaction_reply_binding_mismatch");
+        if (!sameBinding2(reply, binding) || !validId2(reply.request_id) || !validId2(reply.reply_id) || !Number.isSafeInteger(reply.revision) || reply.revision < 1 || !/^[0-9a-f]{64}$/u.test(reply.answer_digest) || !reply.answer || Object.getPrototypeOf(reply.answer) !== Object.prototype) throw coded("interaction_reply_binding_mismatch");
         const frame = {
           protocol: "bridge-sqlite-interaction-prepare-v1",
           ...binding,
@@ -4835,7 +3630,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
           reply_id: reply.reply_id,
           revision: reply.revision,
           answer_digest: reply.answer_digest,
-          ack_digest: sha256(stableJson3(ack))
+          ack_digest: sha256(stableJson(ack))
         });
         PREPARED_ACKNOWLEDGEMENTS.add(proof);
         return proof;
@@ -4845,7 +3640,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
     },
     async commitReply(reply, commit) {
       if (sendPending) throw coded("interaction_channel_busy");
-      if (!commit || commit.state !== "committed" || !sameBinding(commit, binding) || commit.request_id !== reply.request_id || commit.reply_id !== reply.reply_id || commit.answer_digest !== reply.answer_digest || !Number.isSafeInteger(commit.revision) || !/^[0-9a-f]{64}$/u.test(commit.prepared_digest) || !/^[0-9a-f]{64}$/u.test(commit.commit_digest)) throw coded("interaction_commit_binding_mismatch");
+      if (!commit || commit.state !== "committed" || !sameBinding2(commit, binding) || commit.request_id !== reply.request_id || commit.reply_id !== reply.reply_id || commit.answer_digest !== reply.answer_digest || !Number.isSafeInteger(commit.revision) || !/^[0-9a-f]{64}$/u.test(commit.prepared_digest) || !/^[0-9a-f]{64}$/u.test(commit.commit_digest)) throw coded("interaction_commit_binding_mismatch");
       sendPending = true;
       try {
         await verifyLive();
@@ -4869,7 +3664,7 @@ async function createCandidateInteractionChannel(child, operation, verifyProcess
           revision: commit.revision,
           answer_digest: reply.answer_digest,
           commit_digest: commit.commit_digest,
-          ack_digest: sha256(stableJson3(ack))
+          ack_digest: sha256(stableJson(ack))
         });
         ACKNOWLEDGEMENTS.add(proof);
         return proof;
@@ -4893,7 +3688,7 @@ function isCandidateInteractionChannel(value) {
   return !!value && CHANNELS.has(value);
 }
 async function writeFrame(stream, frame) {
-  const bytes = Buffer.from(`${stableJson3(frame)}
+  const bytes = Buffer.from(`${stableJson(frame)}
 `, "utf8");
   if (bytes.length > MAX_FRAME_BYTES2) throw coded("interaction_frame_too_large");
   await new Promise((resolve, reject) => {
@@ -4906,16 +3701,16 @@ async function writeFrame(stream, frame) {
 }
 function validateAck(ack, state, binding, reply) {
   const keys = ["answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "state", "task_id", "worker_identity_digest"];
-  if (Object.keys(ack).sort().join("|") !== keys.join("|") || ack.protocol !== "bridge-sqlite-interaction-ack-v1" || ack.state !== state || !sameBinding(ack, binding) || ack.request_id !== reply.request_id || ack.reply_id !== reply.reply_id || ack.revision !== reply.revision || ack.answer_digest !== reply.answer_digest)
+  if (Object.keys(ack).sort().join("|") !== keys.join("|") || ack.protocol !== "bridge-sqlite-interaction-ack-v1" || ack.state !== state || !sameBinding2(ack, binding) || ack.request_id !== reply.request_id || ack.reply_id !== reply.reply_id || ack.revision !== reply.revision || ack.answer_digest !== reply.answer_digest)
     throw coded("interaction_ack_mismatch");
 }
-function sameBinding(value, binding) {
+function sameBinding2(value, binding) {
   return value.operation_id === binding.operation_id && value.task_id === binding.task_id && value.attempt === binding.attempt && value.generation === binding.generation && value.claim_id === binding.claim_id && value.worker_identity_digest === binding.worker_identity_digest && value.process_id === binding.process_id && value.start_fingerprint === binding.start_fingerprint;
 }
 function validRequest(value) {
   if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== "method|params|request_id" || !validId2(value.request_id) || value.request_id.length > 512 || !["interaction/requestPermission", "interaction/requestUserInput"].includes(value.method) || !value.params || Object.getPrototypeOf(value.params) !== Object.prototype) return false;
   try {
-    return Buffer.byteLength(stableJson3(value), "utf8") <= MAX_REQUEST_BYTES;
+    return Buffer.byteLength(stableJson(value), "utf8") <= MAX_REQUEST_BYTES;
   } catch {
     return false;
   }
@@ -4923,23 +3718,23 @@ function validRequest(value) {
 function validId2(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 512 && !/[\x00-\x1f]/u.test(value);
 }
-function stableJson3(value, depth = 0) {
+function stableJson(value, depth = 0) {
   if (depth > 32) throw coded("interaction_json_too_deep");
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
   if (Array.isArray(value)) {
     if (value.length > 256) throw coded("interaction_json_too_large");
-    return `[${value.map((item) => stableJson3(item, depth + 1)).join(",")}]`;
+    return `[${value.map((item) => stableJson(item, depth + 1)).join(",")}]`;
   }
   if (value && Object.getPrototypeOf(value) === Object.prototype) {
     const keys = Object.keys(value);
     if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) throw coded("interaction_json_invalid");
-    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson3(value[key], depth + 1)}`).join(",")}}`;
+    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key], depth + 1)}`).join(",")}}`;
   }
   throw coded("interaction_json_invalid");
 }
 function sha256(value) {
-  return createHash13("sha256").update(value).digest("hex");
+  return createHash9("sha256").update(value).digest("hex");
 }
 function coded(code) {
   return Object.assign(new Error(code), { code });
@@ -4959,13 +3754,13 @@ var init_interaction_channel = __esm({
       constructor(stream) {
         this.#iterator = stream[Symbol.asyncIterator]();
       }
-      async read(maximum = MAX_FRAME_BYTES2) {
+      async read(maximum2 = MAX_FRAME_BYTES2) {
         for (; ; ) {
           const end = this.#buffer.indexOf(10);
           if (end >= 0) {
             const frame = this.#buffer.subarray(0, end);
             this.#buffer = this.#buffer.subarray(end + 1);
-            if (!frame.length || frame.length > maximum) throw coded("interaction_frame_invalid");
+            if (!frame.length || frame.length > maximum2) throw coded("interaction_frame_invalid");
             let value;
             try {
               value = JSON.parse(frame.toString("utf8"));
@@ -4975,7 +3770,7 @@ var init_interaction_channel = __esm({
             if (!value || typeof value !== "object" || Array.isArray(value)) throw coded("interaction_frame_invalid");
             return value;
           }
-          if (this.#buffer.length > maximum) throw coded("interaction_frame_too_large");
+          if (this.#buffer.length > maximum2) throw coded("interaction_frame_too_large");
           const next = await this.#iterator.next();
           if (next.done) throw coded(this.#buffer.length ? "interaction_frame_truncated" : "interaction_channel_closed");
           const chunk = Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value);
@@ -4986,20 +3781,126 @@ var init_interaction_channel = __esm({
   }
 });
 
+// src/store/json-history-result-exceptions.mjs
+import { createHash as createHash10 } from "node:crypto";
+function freeze(value) {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    for (const child of Object.values(value)) freeze(child);
+    Object.freeze(value);
+  }
+  return value;
+}
+function canonical3(value) {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical3).join(",")}]`;
+  return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonical3(value[key])}`).join(",")}}`;
+}
+function historicalResultExceptionArtifactId(relativePath) {
+  const digest3 = createHash10("sha256").update(relativePath).digest("hex");
+  return `artifact-${digest3.slice(0, 40)}`;
+}
+function annotateHistoricalResultException(entry) {
+  return Object.freeze({
+    exception_id: entry.exception_id,
+    task_id: entry.task_id,
+    stored_attempt: entry.stored_attempt,
+    internal_attempt: entry.internal_attempt,
+    relative_path: entry.relative_path,
+    artifact_id: historicalResultExceptionArtifactId(entry.relative_path),
+    sha256: entry.sha256,
+    byte_length: entry.byte_length,
+    archive_anomaly: Object.freeze({ ...entry.archive_anomaly })
+  });
+}
+function historicalResultExceptionSetDigest(entries) {
+  return createHash10("sha256").update(canonical3(entries)).digest("hex");
+}
+function isCanonicalHistoricalResultExceptionSet(entries) {
+  if (!Array.isArray(entries) || entries.length !== HISTORICAL_RESULT_EXCEPTIONS.length) return false;
+  return HISTORICAL_RESULT_EXCEPTIONS.every((expected, index) => {
+    const actual = entries[index];
+    const annotated = annotateHistoricalResultException(expected);
+    return canonical3(actual) === canonical3(annotated);
+  });
+}
+function historicalResultExceptionTaskIds(entries) {
+  return [...new Set(entries.map((entry) => entry.task_id))].sort((left, right) => left.localeCompare(right, "en"));
+}
+var HISTORICAL_RESULT_EXCEPTIONS;
+var init_json_history_result_exceptions = __esm({
+  "src/store/json-history-result-exceptions.mjs"() {
+    "use strict";
+    HISTORICAL_RESULT_EXCEPTIONS = freeze([
+      {
+        exception_id: "cad2bim_rm02_attempt_2_result_stored_at_3",
+        task_id: "CAD2BIM_FULL_AUDIT_RM02_001",
+        stored_attempt: 3,
+        internal_attempt: 2,
+        relative_path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/3/result.json",
+        sha256: "539c76d236155688feb906a8dfb9764f92a2f76ff8e16b97e6177c2e7bd95530",
+        byte_length: 13981,
+        archive_anomaly: {
+          code: "conflicting_projection",
+          path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/3/result.json",
+          record_type: "attempt",
+          detail: "result_attempt_does_not_match_storage_generation"
+        }
+      },
+      {
+        exception_id: "cad2bim_rm02_attempt_3_result_stored_at_4",
+        task_id: "CAD2BIM_FULL_AUDIT_RM02_001",
+        stored_attempt: 4,
+        internal_attempt: 3,
+        relative_path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/4/result.json",
+        sha256: "ec6faea33c6b3b7c299b2c4a6094c431b670d807e00398ed03364ec5a1c61cd3",
+        byte_length: 12989,
+        archive_anomaly: {
+          code: "conflicting_projection",
+          path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/4/result.json",
+          record_type: "attempt",
+          detail: "result_attempt_does_not_match_storage_generation"
+        }
+      },
+      {
+        exception_id: "project_alignment_current_attempt_2_root_result_binds_1",
+        task_id: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930",
+        stored_attempt: 2,
+        internal_attempt: 1,
+        relative_path: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930/result.json",
+        sha256: "494235a230178fe2aeb0128210bba0cf8fec5029202b07b0a1b3648476d3e12e",
+        byte_length: 6247,
+        archive_anomaly: {
+          code: "conflicting_projection",
+          path: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930/result.json",
+          record_type: "result",
+          detail: "result_attempt_does_not_match_storage_generation"
+        }
+      }
+    ]);
+  }
+});
+
 // src/sqlite-candidate/wp6b2b1/store.mjs
 var store_exports = {};
 __export(store_exports, {
   AdmissionError: () => AdmissionError,
   IsolatedAdmissionStore: () => IsolatedAdmissionStore,
-  canonical: () => canonical3,
+  canonical: () => canonical4,
   digest: () => digest2,
   validateWorkspace: () => validateWorkspace
 });
 import { DatabaseSync } from "node:sqlite";
-import { createHash as createHash14, randomUUID as randomUUID5 } from "node:crypto";
-import { existsSync as existsSync12, lstatSync as lstatSync2, realpathSync as realpathSync5, readFileSync as readFileSync12, writeFileSync as writeFileSync6, openSync as openSync5, closeSync as closeSync5, fsyncSync as fsyncSync3, unlinkSync as unlinkSync2, renameSync as renameSync4, statSync as statSync7 } from "node:fs";
-import path17 from "node:path";
+import { createHash as createHash11, randomUUID as randomUUID3 } from "node:crypto";
+import { existsSync as existsSync9, lstatSync as lstatSync2, realpathSync as realpathSync4, readFileSync as readFileSync11, writeFileSync as writeFileSync3, openSync as openSync2, closeSync as closeSync2, fsyncSync, unlinkSync as unlinkSync2, renameSync as renameSync2, statSync as statSync5, readdirSync, mkdirSync as mkdirSync4, rmSync } from "node:fs";
+import path15 from "node:path";
 import { fileURLToPath as fileURLToPath4 } from "node:url";
+function canonical4(value) {
+  try {
+    return canonical(value);
+  } catch (error2) {
+    throw new AdmissionError(error2.code ?? "invalid_json_value", error2.message);
+  }
+}
 function schemaObjects(db) {
   return db.prepare(SCHEMA_OBJECT_QUERY).all().map((row) => [
     row.type,
@@ -5008,93 +3909,95 @@ function schemaObjects(db) {
     row.sql === null ? null : row.sql.trim().replace(/\r\n?/gu, "\n")
   ]);
 }
-function assertCandidateSchema(db) {
-  if (expectedBaseSchemaObjects === void 0) {
-    const base = new DatabaseSync(":memory:");
-    const admin = new DatabaseSync(":memory:");
+function assertCandidateSchema(db, version2 = SCHEMA_VERSION) {
+  if (!expectedSchemas.has(version2)) {
+    const base = new DatabaseSync(":memory:"), admin = new DatabaseSync(":memory:");
     try {
-      base.exec(SCHEMA);
-      expectedBaseSchemaObjects = schemaObjects(base);
-      admin.exec(`${SCHEMA}
-${ADMIN_ABANDONMENT_SCHEMA}`);
-      expectedAdminSchemaObjects = schemaObjects(admin);
+      const schema = version2 === 13 ? readFileSync11(new URL("./schema-v13.sql", import.meta.url), "utf8") : SCHEMA;
+      base.exec(schema);
+      admin.exec(schema + "\n" + ADMIN_ABANDONMENT_SCHEMA);
+      expectedSchemas.set(version2, [JSON.stringify(schemaObjects(base)), JSON.stringify(schemaObjects(admin))]);
     } finally {
       base.close();
       admin.close();
     }
   }
-  const actual = JSON.stringify(schemaObjects(db));
-  if (actual !== JSON.stringify(expectedBaseSchemaObjects) && actual !== JSON.stringify(expectedAdminSchemaObjects)) fail("candidate_schema_mismatch");
+  if (!expectedSchemas.get(version2).includes(JSON.stringify(schemaObjects(db)))) fail2("candidate_schema_mismatch");
+}
+function assertSchemaVersion(db) {
+  const version2 = db.prepare("PRAGMA user_version").get().user_version;
+  if (version2 === 13) fail2("schema_upgrade_required", "SQLite v13 requires explicit offline upgrade: node dist/upgrade-sqlite-v14.mjs --source <state-root> --destination <new-state-root> --database bridge.sqlite --offline");
+  if (version2 !== SCHEMA_VERSION) fail2("schema_version_unknown");
 }
 function validateEvidence(eventType, value) {
   const keys = EVIDENCE_KEYS[eventType];
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail("invalid_evidence");
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail2("invalid_evidence");
   if (eventType === "observation_recorded") validateObservationEventEvidence(value);
   else if (eventType.startsWith("interaction_")) validateInteractionEvidence(eventType, value);
   else if (eventType === "result_committed") {
     const base = ["claim_id", "outcome", "result_commit_ref", "result_digest", "worker_identity_digest"];
     const expected = value.outcome === "cancelled" ? [...base, "cancel_verification_digest"] : base;
-    if (Object.keys(value).sort().join("|") !== expected.sort().join("|")) fail("invalid_evidence");
+    if (Object.keys(value).sort().join("|") !== expected.sort().join("|")) fail2("invalid_evidence");
   } else if (eventType === "reserved") {
     const fields = Object.keys(value).sort().join("|");
-    if (fields !== ["capacity_slot", "reservation_id"].join("|") && fields !== ["authorization_source", "capacity_slot", "execution_profile_id", "policy_digest", "policy_revision", "reservation_id"].join("|")) fail("invalid_evidence");
-  } else if (keys && Object.keys(value).sort().join("|") !== keys.join("|")) fail("invalid_evidence");
+    if (fields !== ["capacity_slot", "reservation_id"].join("|") && fields !== ["authorization_source", "capacity_slot", "execution_profile_id", "policy_digest", "policy_revision", "reservation_id"].join("|")) fail2("invalid_evidence");
+  } else if (keys && Object.keys(value).sort().join("|") !== keys.join("|")) fail2("invalid_evidence");
   if (FUTURE_EVENT_TYPES.has(eventType)) {
     const ownKeys = Object.keys(value);
-    if (!ownKeys.length || ownKeys.some((k) => !FUTURE_EVIDENCE_KEYS.has(k))) fail("invalid_evidence");
+    if (!ownKeys.length || ownKeys.some((k) => !FUTURE_EVIDENCE_KEYS.has(k))) fail2("invalid_evidence");
     for (const [k, v] of Object.entries(value)) {
       if (k.endsWith("_digest") || k === "token_digest") {
-        if (typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) fail("invalid_evidence");
+        if (typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) fail2("invalid_evidence");
       } else if (k === "launch_epoch") {
-        if (!Number.isInteger(v) || v < 1) fail("invalid_evidence");
+        if (!Number.isInteger(v) || v < 1) fail2("invalid_evidence");
       } else if (k === "root_process_id") {
-        if (!Number.isSafeInteger(v) || v < 1) fail("invalid_evidence");
+        if (!Number.isSafeInteger(v) || v < 1) fail2("invalid_evidence");
       } else if (["operation_resources_complete", "worker_tree_complete", "workspace_touched"].includes(k)) {
-        if (typeof v !== "boolean") fail("invalid_evidence");
-      } else if (typeof v !== "string" || !validText2(v, 256)) fail("invalid_evidence");
+        if (typeof v !== "boolean") fail2("invalid_evidence");
+      } else if (typeof v !== "string" || !validText3(v, 256)) fail2("invalid_evidence");
     }
-  } else if (!keys) fail("invalid_evidence");
-  if (eventType === "capacity_policy_committed" && (!Number.isInteger(value.capacity_limit) || value.capacity_limit < 1 || value.capacity_limit > 8 || !Number.isInteger(value.generation) || value.generation < 1)) fail("invalid_evidence");
-  if (eventType === "reserved" && (!validText2(value.reservation_id, 128) || !Number.isInteger(value.capacity_slot) || value.capacity_slot < 1 || value.capacity_slot > 8)) fail("invalid_evidence");
-  if (eventType === "reserved" && "authorization_source" in value && (value.authorization_source !== "trusted_local_policy" || !validText2(value.policy_revision, 64) || !validText2(value.execution_profile_id, 64) || typeof value.policy_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.policy_digest))) fail("invalid_evidence");
-  if (eventType === "observation_recorded" && (!validText2(value.reason, 256) || typeof value.evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.evidence_digest))) fail("invalid_evidence");
-  if (eventType === "cleanup_reverified" && (!Array.isArray(value.resolved_recovery_event_digests) || value.resolved_recovery_event_digests.length > RECOVERY_LIMIT || value.resolved_recovery_event_digests.some((v) => typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) || new Set(value.resolved_recovery_event_digests).size !== value.resolved_recovery_event_digests.length || value.resolved_recovery_event_digests.join("|") !== [...value.resolved_recovery_event_digests].sort().join("|") || !/^([0-9a-f]{64})$/u.test(value.prior_cleanup_event_digest) || !validId3(value.operation_id) || !validId3(value.task_id) || !Number.isSafeInteger(value.attempt) || value.attempt < 1 || !Number.isSafeInteger(value.generation) || value.generation < 1)) fail("invalid_cleanup_reverification");
-  for (const key of ["launch_id", "claim_id"]) if (key in value && !validText2(value[key], 128)) fail("invalid_evidence");
-  if ("launch_epoch" in value && (!Number.isInteger(value.launch_epoch) || value.launch_epoch < 1)) fail("invalid_evidence");
-  const json = canonical3(value);
-  if (Buffer.byteLength(json, "utf8") > (eventType === "cleanup_reverified" ? 2048 : 1024)) fail("invalid_evidence");
+  } else if (!keys) fail2("invalid_evidence");
+  if (eventType === "capacity_policy_committed" && (!Number.isInteger(value.capacity_limit) || value.capacity_limit < 1 || value.capacity_limit > 8 || !Number.isInteger(value.generation) || value.generation < 1)) fail2("invalid_evidence");
+  if (eventType === "reserved" && (!validText3(value.reservation_id, 128) || !Number.isInteger(value.capacity_slot) || value.capacity_slot < 1 || value.capacity_slot > 8)) fail2("invalid_evidence");
+  if (eventType === "reserved" && "authorization_source" in value && (value.authorization_source !== "trusted_local_policy" || !validText3(value.policy_revision, 64) || !validText3(value.execution_profile_id, 64) || typeof value.policy_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.policy_digest))) fail2("invalid_evidence");
+  if (eventType === "observation_recorded" && (!validText3(value.reason, 256) || typeof value.evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.evidence_digest))) fail2("invalid_evidence");
+  if (eventType === "cleanup_reverified" && (!Array.isArray(value.resolved_recovery_event_digests) || value.resolved_recovery_event_digests.length > RECOVERY_LIMIT || value.resolved_recovery_event_digests.some((v) => typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) || new Set(value.resolved_recovery_event_digests).size !== value.resolved_recovery_event_digests.length || value.resolved_recovery_event_digests.join("|") !== [...value.resolved_recovery_event_digests].sort().join("|") || !/^([0-9a-f]{64})$/u.test(value.prior_cleanup_event_digest) || !validId3(value.operation_id) || !validId3(value.task_id) || !Number.isSafeInteger(value.attempt) || value.attempt < 1 || !Number.isSafeInteger(value.generation) || value.generation < 1)) fail2("invalid_cleanup_reverification");
+  for (const key of ["launch_id", "claim_id"]) if (key in value && !validText3(value[key], 128)) fail2("invalid_evidence");
+  if ("launch_epoch" in value && (!Number.isInteger(value.launch_epoch) || value.launch_epoch < 1)) fail2("invalid_evidence");
+  const json = canonical4(value);
+  if (Buffer.byteLength(json, "utf8") > (eventType === "cleanup_reverified" ? 2048 : 1024)) fail2("invalid_evidence");
   return value;
 }
 function validateInteractionEvidence(eventType, value) {
   const keys = EVIDENCE_KEYS[eventType];
   if (!keys || Object.keys(value).sort().join("|") !== keys.join("|") || !validId3(value.request_id) || value.request_id.length > 512 || !validId3(value.claim_id) || typeof value.worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.worker_identity_digest))
-    fail("invalid_interaction_evidence");
+    fail2("invalid_interaction_evidence");
   if (eventType === "interaction_requested") {
-    if (!["interaction/requestPermission", "interaction/requestUserInput"].includes(value.request_method) || typeof value.request_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.request_digest)) fail("invalid_interaction_evidence");
-  } else if (!validId3(value.reply_id) || typeof value.answer_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.answer_digest) || eventType === "interaction_reply_prepared" && (typeof value.prepared_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.prepared_digest)) || eventType === "interaction_reply_committed" && [value.prepared_digest, value.commit_digest].some((v) => typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) || eventType === "interaction_reply_accepted" && [value.ack_digest, value.commit_digest].some((v) => typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v))) fail("invalid_interaction_evidence");
-  if (Buffer.byteLength(canonical3(value), "utf8") > 1024) fail("invalid_interaction_evidence");
+    if (!["interaction/requestPermission", "interaction/requestUserInput"].includes(value.request_method) || typeof value.request_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.request_digest)) fail2("invalid_interaction_evidence");
+  } else if (!validId3(value.reply_id) || typeof value.answer_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.answer_digest) || eventType === "interaction_reply_prepared" && (typeof value.prepared_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.prepared_digest)) || eventType === "interaction_reply_committed" && [value.prepared_digest, value.commit_digest].some((v) => typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) || eventType === "interaction_reply_accepted" && [value.ack_digest, value.commit_digest].some((v) => typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v))) fail2("invalid_interaction_evidence");
+  if (Buffer.byteLength(canonical4(value), "utf8") > 1024) fail2("invalid_interaction_evidence");
 }
 function validateObservationEventEvidence(value) {
   const own2 = Object.keys(value).sort().join("|");
   if (own2 === "evidence_digest|reason") return;
   if (own2 === "cancel_id|claim_id|evidence_digest|identity_evidence_digest|identity_state|reason|worker_identity_digest") {
     if (value.reason !== "cancel_requested" || !validId3(value.cancel_id) || !validId3(value.claim_id) || !["alive", "exited"].includes(value.identity_state) || ![value.evidence_digest, value.identity_evidence_digest, value.worker_identity_digest].every((v) => typeof v === "string" && /^[0-9a-f]{64}$/u.test(v)))
-      fail("invalid_cancellation_intent");
+      fail2("invalid_cancellation_intent");
     return;
   }
   if (own2 === "cancel_id|claim_id|evidence_digest|intent_event_digest|process_tree_digest|proof_digest|reason|root_process_id|root_start_fingerprint|worker_identity_digest|worker_tree_complete") {
-    if (value.reason !== "cancel_tree_verified" || !validId3(value.cancel_id) || !validId3(value.claim_id) || ![value.evidence_digest, value.intent_event_digest, value.process_tree_digest, value.proof_digest, value.worker_identity_digest].every((v) => typeof v === "string" && /^[0-9a-f]{64}$/u.test(v)) || !Number.isSafeInteger(value.root_process_id) || value.root_process_id < 1 || !validText2(value.root_start_fingerprint, 256) || value.worker_tree_complete !== true)
-      fail("invalid_cancellation_verification");
+    if (value.reason !== "cancel_tree_verified" || !validId3(value.cancel_id) || !validId3(value.claim_id) || ![value.evidence_digest, value.intent_event_digest, value.process_tree_digest, value.proof_digest, value.worker_identity_digest].every((v) => typeof v === "string" && /^[0-9a-f]{64}$/u.test(v)) || !Number.isSafeInteger(value.root_process_id) || value.root_process_id < 1 || !validText3(value.root_start_fingerprint, 256) || value.worker_tree_complete !== true)
+      fail2("invalid_cancellation_verification");
     return;
   }
-  if (own2 !== [...RECOVERY_EVIDENCE_KEYS].sort().join("|")) fail("invalid_evidence");
+  if (own2 !== [...RECOVERY_EVIDENCE_KEYS].sort().join("|")) fail2("invalid_evidence");
   if (!Number.isSafeInteger(value.attempt) || value.attempt < 1 || !Number.isSafeInteger(value.expected_revision) || value.expected_revision < 1 || !validId3(value.task_id) || !validId3(value.claim_id) || !["hold", "quarantine"].includes(value.classification) || !["recovery_hold", "recovery_quarantine"].includes(value.reason) || value.reason !== `recovery_${value.classification}` || !RECOVERY_REASON_CODES.has(value.reason_code) || !RECOVERY_SOURCES.has(value.evidence_source) || RECOVERY_QUARANTINE_CODES.has(value.reason_code) !== (value.classification === "quarantine") || ![value.envelope_digest, value.evidence_digest, value.worker_identity_digest].every((v) => typeof v === "string" && /^[0-9a-f]{64}$/u.test(v)) || [value.task_id, value.claim_id, value.reason_code].some((v) => v !== v.normalize("NFC"))) {
-    fail("invalid_recovery_observation");
+    fail2("invalid_recovery_observation");
   }
 }
 function recoveryEnvelope(input) {
   if (!input || Object.getPrototypeOf(input) !== Object.prototype || Object.keys(input).sort().join("|") !== [...RECOVERY_INPUT_KEYS].sort().join("|") || ![input.operation_id, input.task_id, input.claim_id].every(validId3) || ![input.attempt, input.generation, input.expected_revision].every((v) => Number.isSafeInteger(v) && v >= 1) || !["hold", "quarantine"].includes(input.classification) || !RECOVERY_REASON_CODES.has(input.reason_code) || RECOVERY_QUARANTINE_CODES.has(input.reason_code) !== (input.classification === "quarantine") || !RECOVERY_SOURCES.has(input.evidence_source) || ![input.worker_identity_digest, input.evidence_digest].every((v) => typeof v === "string" && /^[0-9a-f]{64}$/u.test(v)) || [input.operation_id, input.task_id, input.claim_id, input.reason_code].some((v) => v !== v.normalize("NFC"))) {
-    fail("invalid_recovery_observation");
+    fail2("invalid_recovery_observation");
   }
   return {
     contract: "wp6c-c3b-recovery-observation-v1",
@@ -5138,12 +4041,12 @@ function recoveryEventsFor(events, operationId) {
     try {
       evidence = event.evidence ?? JSON.parse(event.evidence_json);
     } catch {
-      fail("invalid_evidence");
+      fail2("invalid_evidence");
     }
     const recoveryMarker = typeof evidence?.reason === "string" && evidence.reason.startsWith("recovery_") || evidence && ["classification", "envelope_digest", "expected_revision", "reason_code"].some((key) => Object.hasOwn(evidence, key));
     if (!recoveryMarker) continue;
     validateObservationEventEvidence(evidence);
-    if (!operation) fail("recovery_operation_binding_required");
+    if (!operation) fail2("recovery_operation_binding_required");
     validateRecoveryEventBinding(operation, event, evidence, claimSequence);
     recovery.push({ event, evidence });
   }
@@ -5154,20 +4057,20 @@ function recoveryEventsFor(events, operationId) {
     try {
       evidence = event.evidence ?? JSON.parse(event.evidence_json);
     } catch {
-      fail("cleanup_reverification_history_invalid");
+      fail2("cleanup_reverification_history_invalid");
     }
     validateEvidence("cleanup_reverified", evidence);
     const prior = operationEvents.find((candidate) => candidate.event_type === "cleanup_unverified");
     const priorEvidence = prior && JSON.parse(prior.evidence_json);
     if (!operation || !prior || prior.evidence_digest !== evidence.prior_cleanup_event_digest || prior.sequence >= event.sequence || event.from_phase !== "cleanup_unverified" || event.to_phase !== "cleanup_reverified" || event.generation !== operation.generation || evidence.operation_id !== operation.operation_id || evidence.task_id !== operation.task_id || evidence.attempt !== operation.attempt || evidence.generation !== operation.generation || evidence.claim_id !== operation.claim_id || evidence.worker_identity_digest !== operation.claim_worker_identity_digest || evidence.launch_receipt_digest !== operation.launch_receipt_digest || evidence.result_commit_ref !== operation.result_commit_ref || !priorEvidence || priorEvidence.claim_id !== evidence.claim_id || priorEvidence.worker_identity_digest !== evidence.worker_identity_digest)
-      fail("cleanup_reverification_history_mismatch");
+      fail2("cleanup_reverification_history_mismatch");
     const between = operationEvents.filter((candidate) => candidate.sequence > prior.sequence && candidate.sequence < event.sequence);
     const betweenRecovery = recovery.filter((item) => item.event.sequence > prior.sequence && item.event.sequence < event.sequence);
     if (between.some((candidate) => candidate.event_type !== "observation_recorded") || betweenRecovery.length !== between.length || betweenRecovery.some((item) => item.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(item.evidence.reason_code)))
-      fail("cleanup_reverification_intervening_event_mismatch");
+      fail2("cleanup_reverification_intervening_event_mismatch");
     for (const eventDigest of evidence.resolved_recovery_event_digests) {
       const held = recovery.find((item) => item.event.evidence_digest === eventDigest);
-      if (!held || held.event.sequence >= event.sequence || held.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(held.evidence.reason_code)) fail("cleanup_reverification_hold_binding_mismatch");
+      if (!held || held.event.sequence >= event.sequence || held.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(held.evidence.reason_code)) fail2("cleanup_reverification_hold_binding_mismatch");
       resolved.add(eventDigest);
     }
   }
@@ -5178,86 +4081,32 @@ function foldedRecoveryClassification(operation, events) {
   for (const { evidence, active } of recoveryEventsFor(events, operation)) if (active) level = Math.max(level, evidence.classification === "quarantine" ? 2 : 1);
   return level === 2 ? "quarantine" : level === 1 ? "hold" : "normal";
 }
-function validText2(value, max) {
+function validText3(value, max) {
   return typeof value === "string" && value.length > 0 && value.length <= max && !/[\x00-\x1f]/u.test(value);
 }
-function isNullableText(value, max = 4096) {
-  return value === null || typeof value === "string" && value.length <= max && !/[\x00-\x1f]/u.test(value);
-}
-function validateStringArray(value, maxItems = 256) {
-  if (!Array.isArray(value) || value.length > maxItems || value.some((x) => typeof x !== "string" || x.length > 4096 || /[\x00-\x1f]/u.test(x))) fail("invalid_result_payload");
-}
-function validateResultObject(value, keys, required2 = []) {
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail("invalid_result_payload");
-  const own2 = Object.keys(value);
-  if (own2.some((k) => !keys.has(k)) || required2.some((k) => !Object.hasOwn(value, k))) fail("invalid_result_payload");
-}
-function validateTestReports(value) {
-  if (!Array.isArray(value) || value.length > 256) fail("invalid_result_payload");
-  for (const report of value) {
-    validateResultObject(report, /* @__PURE__ */ new Set(["command", "status", "details"]), ["command", "status"]);
-    if (typeof report.command !== "string" || report.command.length > 4096 || !["passed", "failed", "not_run"].includes(report.status) || Object.hasOwn(report, "details") && typeof report.details !== "string") fail("invalid_result_payload");
+function canonicalTaskResult2(result, input) {
+  try {
+    return canonicalTaskResult(result, input);
+  } catch (error2) {
+    fail2(error2.code ?? "invalid_result_payload", error2.message);
   }
-}
-function validateAgentReport(value) {
-  validateResultObject(value, /* @__PURE__ */ new Set(["summary", "files_changed", "tests", "issues", "needs_master_decision"]));
-  if (Object.hasOwn(value, "summary") && typeof value.summary !== "string") fail("invalid_result_payload");
-  if (Object.hasOwn(value, "files_changed")) validateStringArray(value.files_changed);
-  if (Object.hasOwn(value, "tests")) validateTestReports(value.tests);
-  if (Object.hasOwn(value, "issues")) validateStringArray(value.issues);
-  if (Object.hasOwn(value, "needs_master_decision") && typeof value.needs_master_decision !== "boolean") fail("invalid_result_payload");
-}
-function validateUsage(value) {
-  validateResultObject(
-    value,
-    /* @__PURE__ */ new Set(["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]),
-    ["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]
-  );
-  if (!isNullableText(value.source) || !isNullableText(value.scope) || !isNullableText(value.observed_at) || !["reported", "derived", "partial"].includes(value.finality) || ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || !Number.isSafeInteger(value.dropped_unknown_keys) || value.dropped_unknown_keys < 0) fail("invalid_result_payload");
-  validateStringArray(value.conflicts, 64);
-}
-function validateModel(value) {
-  validateResultObject(
-    value,
-    /* @__PURE__ */ new Set(["executor", "provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "effective_reasoning_level_source", "selection_source", "effective_at", "session_id", "turn_id"]),
-    ["executor", "provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "effective_reasoning_level_source", "selection_source", "effective_at", "session_id", "turn_id"]
-  );
-  if (typeof value.executor !== "string" || !["runtime", "not_reported"].includes(value.effective_reasoning_level_source) || ["provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "selection_source", "effective_at", "session_id", "turn_id"].some((k) => !isNullableText(value[k]))) fail("invalid_result_payload");
-}
-function validateTiming(value) {
-  validateResultObject(value, /* @__PURE__ */ new Set(["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms", "derived", "notes"]), ["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms", "derived", "notes"]);
-  if (["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || typeof value.derived !== "boolean") fail("invalid_result_payload");
-  validateStringArray(value.notes, 64);
-}
-function canonicalTaskResult(result, input) {
-  validateResultObject(result, RESULT_FIELDS, REQUIRED_RESULT_FIELDS);
-  if (result.task_id !== input.task_id || result.attempt !== input.attempt || result.status !== input.result_status || !RESULT_STATUSES.has(result.status) || typeof result.summary !== "string" || typeof result.zcode_output !== "string" || typeof result.needs_master_decision !== "boolean" || result.exit_code !== null && !Number.isSafeInteger(result.exit_code) || !isNullableText(result.session_id) || !isNullableText(result.started_at, 64) || !isNullableText(result.finished_at, 64)) fail("invalid_result_payload");
-  validateStringArray(result.files_changed);
-  validateStringArray(result.issues);
-  validateTestReports(result.tests);
-  if (Object.hasOwn(result, "error_code") && !validText2(result.error_code, 128)) fail("invalid_result_payload");
-  if (Object.hasOwn(result, "report_candidate")) validateAgentReport(result.report_candidate);
-  if (Object.hasOwn(result, "usage") && result.usage !== null) validateUsage(result.usage);
-  if (Object.hasOwn(result, "model") && result.model !== null) validateModel(result.model);
-  if (Object.hasOwn(result, "timing") && result.timing !== null) validateTiming(result.timing);
-  return canonical3(result);
 }
 function fixtureLaunchIdentity(value) {
   if (value?.source === "manager_os_spawn_observation") {
     const { evidence_digest, ...evidence } = value;
-    if (Object.getPrototypeOf(value) !== Object.prototype || value.fixture !== false || !validId3(value.launch_id) || !Number.isSafeInteger(value.generation) || value.generation < 1 || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText2(value.start_fingerprint, 256) || value.fingerprint_precision !== "exact" || !Number.isSafeInteger(value.identity_version) || value.identity_version < 1 || value.platform !== "win32" || !validText2(value.captured_at, 64) || typeof evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence_digest) || digest2(evidence) !== evidence_digest || Object.keys(value).sort().join("|") !== "captured_at|evidence_digest|fingerprint_precision|fixture|generation|identity_version|launch_id|platform|process_id|source|start_fingerprint") fail("invalid_trusted_launch_identity");
+    if (Object.getPrototypeOf(value) !== Object.prototype || value.fixture !== false || !validId3(value.launch_id) || !Number.isSafeInteger(value.generation) || value.generation < 1 || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText3(value.start_fingerprint, 256) || value.fingerprint_precision !== "exact" || !Number.isSafeInteger(value.identity_version) || value.identity_version < 1 || value.platform !== "win32" || !validText3(value.captured_at, 64) || typeof evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence_digest) || digest2(evidence) !== evidence_digest || Object.keys(value).sort().join("|") !== "captured_at|evidence_digest|fingerprint_precision|fixture|generation|identity_version|launch_id|platform|process_id|source|start_fingerprint") fail2("invalid_trusted_launch_identity");
     return value;
   }
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || value.source !== "synthetic_fixture" || value.fixture !== true || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText2(value.start_fingerprint, 256) || Object.keys(value).sort().join("|") !== "fixture|process_id|source|start_fingerprint") fail("invalid_synthetic_launch_identity");
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || value.source !== "synthetic_fixture" || value.fixture !== true || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText3(value.start_fingerprint, 256) || Object.keys(value).sort().join("|") !== "fixture|process_id|source|start_fingerprint") fail2("invalid_synthetic_launch_identity");
   return value;
 }
 function fixtureWorkerIdentity(value) {
   if (value?.source === "manager_verified_process_probe") {
     const { evidence_digest, ...evidence } = value;
-    if (Object.getPrototypeOf(value) !== Object.prototype || value.fixture !== false || !validId3(value.worker_id) || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText2(value.start_fingerprint, 256) || value.fingerprint_precision !== "exact" || !Number.isSafeInteger(value.identity_version) || value.identity_version < 1 || value.platform !== "win32" || !validText2(value.captured_at, 64) || typeof evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence_digest) || digest2(evidence) !== evidence_digest || Object.keys(value).sort().join("|") !== "captured_at|evidence_digest|fingerprint_precision|fixture|identity_version|platform|process_id|source|start_fingerprint|worker_id") fail("invalid_trusted_worker_identity");
+    if (Object.getPrototypeOf(value) !== Object.prototype || value.fixture !== false || !validId3(value.worker_id) || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText3(value.start_fingerprint, 256) || value.fingerprint_precision !== "exact" || !Number.isSafeInteger(value.identity_version) || value.identity_version < 1 || value.platform !== "win32" || !validText3(value.captured_at, 64) || typeof evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence_digest) || digest2(evidence) !== evidence_digest || Object.keys(value).sort().join("|") !== "captured_at|evidence_digest|fingerprint_precision|fixture|identity_version|platform|process_id|source|start_fingerprint|worker_id") fail2("invalid_trusted_worker_identity");
     return value;
   }
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || value.source !== "synthetic_fixture" || value.fixture !== true || !validText2(value.worker_id, 128) || !validText2(value.incarnation, 128) || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText2(value.start_fingerprint, 256) || Object.keys(value).sort().join("|") !== "fixture|incarnation|process_id|source|start_fingerprint|worker_id") fail("invalid_synthetic_worker_identity");
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || value.source !== "synthetic_fixture" || value.fixture !== true || !validText3(value.worker_id, 128) || !validText3(value.incarnation, 128) || !Number.isSafeInteger(value.process_id) || value.process_id < 1 || !validText3(value.start_fingerprint, 256) || Object.keys(value).sort().join("|") !== "fixture|incarnation|process_id|source|start_fingerprint|worker_id") fail2("invalid_synthetic_worker_identity");
   return value;
 }
 function validLaunchRequest(x) {
@@ -5271,9 +4120,9 @@ function validCancellationFence(x) {
 }
 function normalizeCleanupEvidence(value, input) {
   const keys = ["attempt", "claim_id", "fixture", "generation", "launch_receipt_digest", "operation_id", "operation_resources_complete", "process_tree_digest", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "source", "task_id", "worker_identity_digest", "worker_tree_complete", "workspace_touched"];
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|")) fail("invalid_cleanup_evidence");
-  if (!["manager_os_cleanup_verification", "synthetic_fixture"].includes(value.source) || typeof value.fixture !== "boolean" || value.source === "synthetic_fixture" !== value.fixture || value.operation_id !== input.operation_id || value.task_id !== input.task_id || value.attempt !== input.attempt || value.generation !== input.generation || value.claim_id !== input.claim_id || value.worker_identity_digest !== input.claim_worker_identity_digest || !/^([0-9a-f]{64})$/u.test(value.launch_receipt_digest) || !/^([0-9a-f]{64})$/u.test(value.process_tree_digest) || !/^([0-9a-f]{64})$/u.test(value.resources_digest) || !validId3(value.result_commit_ref) || !Number.isSafeInteger(value.root_process_id) || value.root_process_id < 1 || !validText2(value.root_start_fingerprint, 256) || value.worker_tree_complete !== true || value.operation_resources_complete !== true || value.workspace_touched !== false) fail("invalid_cleanup_evidence");
-  if (Buffer.byteLength(canonical3(value), "utf8") > 4096) fail("cleanup_evidence_too_large");
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|")) fail2("invalid_cleanup_evidence");
+  if (!["manager_os_cleanup_verification", "synthetic_fixture"].includes(value.source) || typeof value.fixture !== "boolean" || value.source === "synthetic_fixture" !== value.fixture || value.operation_id !== input.operation_id || value.task_id !== input.task_id || value.attempt !== input.attempt || value.generation !== input.generation || value.claim_id !== input.claim_id || value.worker_identity_digest !== input.claim_worker_identity_digest || !/^([0-9a-f]{64})$/u.test(value.launch_receipt_digest) || !/^([0-9a-f]{64})$/u.test(value.process_tree_digest) || !/^([0-9a-f]{64})$/u.test(value.resources_digest) || !validId3(value.result_commit_ref) || !Number.isSafeInteger(value.root_process_id) || value.root_process_id < 1 || !validText3(value.root_start_fingerprint, 256) || value.worker_tree_complete !== true || value.operation_resources_complete !== true || value.workspace_touched !== false) fail2("invalid_cleanup_evidence");
+  if (Buffer.byteLength(canonical4(value), "utf8") > 4096) fail2("cleanup_evidence_too_large");
   return value;
 }
 function presentOperation(row, adminAbandonment) {
@@ -5298,23 +4147,16 @@ function validIsoInstant(value) {
 }
 function validateAdminAbandonmentInput(input) {
   if (!input || Object.getPrototypeOf(input) !== Object.prototype || Object.keys(input).sort().join("|") !== ADMIN_ABANDONMENT_INPUT_KEYS || !validId3(input.operation_id) || !validId3(input.task_id) || !Number.isSafeInteger(input.attempt) || input.attempt < 1 || !Number.isSafeInteger(input.generation) || input.generation < 1 || !Number.isSafeInteger(input.revision) || input.revision < 1 || !validId3(input.claim_id) || typeof input.claim_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.claim_worker_identity_digest))
-    fail("invalid_admin_abandonment_request");
+    fail2("invalid_admin_abandonment_request");
   const evidence = input.evidence;
-  if (!evidence || Object.getPrototypeOf(evidence) !== Object.prototype || Object.keys(evidence).sort().join("|") !== ADMIN_ABANDONMENT_EVIDENCE_KEYS || !validIsoInstant(evidence.boot_time) || !validIsoInstant(evidence.failed_at) || !validIsoInstant(evidence.observed_at) || !Number.isSafeInteger(evidence.worker_process_id) || evidence.worker_process_id < 1 || !validText2(evidence.worker_start_fingerprint, 256) || typeof evidence.process_inventory_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence.process_inventory_digest) || typeof evidence.platform_probe_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence.platform_probe_digest) || typeof evidence.claimant_scan_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence.claimant_scan_digest) || evidence.hosts_closed !== true || evidence.writer_closed !== true || evidence.worker_exited !== true || evidence.claimant_scan_clean !== true)
-    fail("invalid_admin_abandonment_evidence");
+  if (!evidence || Object.getPrototypeOf(evidence) !== Object.prototype || Object.keys(evidence).sort().join("|") !== ADMIN_ABANDONMENT_EVIDENCE_KEYS || !validIsoInstant(evidence.boot_time) || !validIsoInstant(evidence.failed_at) || !validIsoInstant(evidence.observed_at) || !Number.isSafeInteger(evidence.worker_process_id) || evidence.worker_process_id < 1 || !validText3(evidence.worker_start_fingerprint, 256) || typeof evidence.process_inventory_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence.process_inventory_digest) || typeof evidence.platform_probe_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence.platform_probe_digest) || typeof evidence.claimant_scan_digest !== "string" || !/^[0-9a-f]{64}$/u.test(evidence.claimant_scan_digest) || evidence.hosts_closed !== true || evidence.writer_closed !== true || evidence.worker_exited !== true || evidence.claimant_scan_clean !== true)
+    fail2("invalid_admin_abandonment_evidence");
   if (Date.parse(evidence.boot_time) <= Date.parse(evidence.failed_at) || Date.parse(evidence.observed_at) < Date.parse(evidence.boot_time))
-    fail("admin_abandonment_generation_boundary_unverified");
+    fail2("admin_abandonment_generation_boundary_unverified");
   return input;
 }
 function isBusy(error2) {
   return [5, 6].includes(error2?.errcode) || /SQLITE_(BUSY|LOCKED)/u.test(String(error2?.code ?? "")) || /database is (busy|locked)/iu.test(String(error2?.message ?? ""));
-}
-function canonical3(value) {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
-  if (typeof value === "number" && Number.isSafeInteger(value)) return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonical3).join(",")}]`;
-  if (value && Object.getPrototypeOf(value) === Object.prototype) return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonical3(value[k])}`).join(",")}}`;
-  throw new AdmissionError("invalid_json_value");
 }
 function containsNonNfcString(value, depth = 0) {
   if (depth > 32) return true;
@@ -5327,10 +4169,10 @@ function containsNonNfcString(value, depth = 0) {
   return false;
 }
 function validateRecoveryEventBinding(operation, event, evidence, claimSequence) {
-  if (!RECOVERY_REASON_CODES.has(evidence.reason_code) || !RECOVERY_SOURCES.has(evidence.evidence_source) || event.event_type !== "observation_recorded" || event.operation_id !== operation.operation_id || event.from_phase !== event.to_phase || !RECOVERY_PHASES.has(event.to_phase) || event.sequence !== evidence.expected_revision + 1 || event.generation !== operation.generation || event.sequence > operation.revision || event.evidence_digest !== digest2(event.evidence_json ?? canonical3(evidence)) || evidence.task_id !== operation.task_id || evidence.attempt !== operation.attempt || evidence.claim_id !== operation.claim_id || evidence.worker_identity_digest !== operation.claim_worker_identity_digest || !operation.claim_id || operation.claim_generation !== operation.generation || claimSequence === void 0 || event.sequence <= claimSequence) {
-    fail("recovery_event_binding_mismatch");
+  if (!RECOVERY_REASON_CODES.has(evidence.reason_code) || !RECOVERY_SOURCES.has(evidence.evidence_source) || event.event_type !== "observation_recorded" || event.operation_id !== operation.operation_id || event.from_phase !== event.to_phase || !RECOVERY_PHASES.has(event.to_phase) || event.sequence !== evidence.expected_revision + 1 || event.generation !== operation.generation || event.sequence > operation.revision || event.evidence_digest !== digest2(event.evidence_json ?? canonical4(evidence)) || evidence.task_id !== operation.task_id || evidence.attempt !== operation.attempt || evidence.claim_id !== operation.claim_id || evidence.worker_identity_digest !== operation.claim_worker_identity_digest || !operation.claim_id || operation.claim_generation !== operation.generation || claimSequence === void 0 || event.sequence <= claimSequence) {
+    fail2("recovery_event_binding_mismatch");
   }
-  if (event.to_phase === "quarantined" && evidence.classification !== "quarantine") fail("recovery_classification_downgrade");
+  if (event.to_phase === "quarantined" && evidence.classification !== "quarantine") fail2("recovery_classification_downgrade");
   const input = {
     operation_id: operation.operation_id,
     task_id: evidence.task_id,
@@ -5344,66 +4186,66 @@ function validateRecoveryEventBinding(operation, event, evidence, claimSequence)
     evidence_source: evidence.evidence_source,
     evidence_digest: evidence.evidence_digest
   };
-  if (digest2(recoveryEnvelope(input)) !== evidence.envelope_digest) fail("recovery_envelope_digest_mismatch");
+  if (digest2(recoveryEnvelope(input)) !== evidence.envelope_digest) fail2("recovery_envelope_digest_mismatch");
 }
 function parseHistoricalExceptionManifest(sourceManifestJson, sourceManifestDigest) {
   let manifest;
   try {
     manifest = JSON.parse(sourceManifestJson);
   } catch {
-    fail("invalid_source_manifest");
+    fail2("invalid_source_manifest");
   }
-  if (!manifest || Object.getPrototypeOf(manifest) !== Object.prototype || typeof sourceManifestDigest !== "string" || digest2(sourceManifestJson) !== sourceManifestDigest || !Array.isArray(manifest.files)) fail("invalid_source_manifest");
+  if (!manifest || Object.getPrototypeOf(manifest) !== Object.prototype || typeof sourceManifestDigest !== "string" || digest2(sourceManifestJson) !== sourceManifestDigest || !Array.isArray(manifest.files)) fail2("invalid_source_manifest");
   const exceptions = manifest.historical_exceptions;
-  if (!Array.isArray(exceptions) || exceptions.length !== 0 && !isCanonicalHistoricalResultExceptionSet(exceptions) || manifest.historical_exception_count !== exceptions.length || manifest.historical_exception_digest !== historicalResultExceptionSetDigest(exceptions)) fail("invalid_historical_exception_policy");
+  if (!Array.isArray(exceptions) || exceptions.length !== 0 && !isCanonicalHistoricalResultExceptionSet(exceptions) || manifest.historical_exception_count !== exceptions.length || manifest.historical_exception_digest !== historicalResultExceptionSetDigest(exceptions)) fail2("invalid_historical_exception_policy");
   return { manifest, exceptions, exceptionTaskIds: historicalResultExceptionTaskIds(exceptions) };
 }
 function parseAuthoritySourceManifest(sourceManifestJson, sourceManifestDigest) {
   const parsed = parseHistoricalExceptionManifest(sourceManifestJson, sourceManifestDigest);
   const { manifest } = parsed;
   if (manifest.kind === void 0) return { ...parsed, kind: "historical_projection" };
-  if (manifest.kind !== "raw_json_archive_cutover" || typeof manifest.source_tasks_root !== "string" || !path17.isAbsolute(manifest.source_tasks_root) || typeof manifest.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.archive_manifest_digest) || typeof manifest.source_files_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.source_files_digest) || manifest.task_count !== 0 || manifest.result_count !== 0 || manifest.event_count !== 0 || !Number.isSafeInteger(manifest.artifact_count) || manifest.artifact_count < 0 || !Number.isSafeInteger(manifest.artifact_bytes) || manifest.artifact_bytes < 0 || !Number.isSafeInteger(manifest.archive_file_count) || manifest.archive_file_count !== manifest.artifact_count || !Number.isSafeInteger(manifest.archive_byte_count) || manifest.archive_byte_count !== manifest.artifact_bytes || parsed.exceptions.length !== 0 || !Array.isArray(manifest.files) || manifest.files.length !== 0)
-    fail("invalid_raw_json_archive_cutover_manifest");
+  if (manifest.kind !== "raw_json_archive_cutover" || typeof manifest.source_tasks_root !== "string" || !path15.isAbsolute(manifest.source_tasks_root) || typeof manifest.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.archive_manifest_digest) || typeof manifest.source_files_digest !== "string" || !/^[0-9a-f]{64}$/u.test(manifest.source_files_digest) || manifest.task_count !== 0 || manifest.result_count !== 0 || manifest.event_count !== 0 || !Number.isSafeInteger(manifest.artifact_count) || manifest.artifact_count < 0 || !Number.isSafeInteger(manifest.artifact_bytes) || manifest.artifact_bytes < 0 || !Number.isSafeInteger(manifest.archive_file_count) || manifest.archive_file_count !== manifest.artifact_count || !Number.isSafeInteger(manifest.archive_byte_count) || manifest.archive_byte_count !== manifest.artifact_bytes || parsed.exceptions.length !== 0 || !Array.isArray(manifest.files) || manifest.files.length !== 0)
+    fail2("invalid_raw_json_archive_cutover_manifest");
   return { ...parsed, kind: "raw_json_archive_cutover" };
 }
 function validateHistoricalExceptionSnapshot(snapshot, sourceManifest) {
   const { manifest, exceptions, exceptionTaskIds } = sourceManifest;
   const expectedTaskCount = snapshot.tasks.length + exceptionTaskIds.length;
   const artifactBytes = snapshot.artifacts.reduce((total, artifact) => total + artifact.byte_length, 0);
-  if (manifest.task_count !== expectedTaskCount || manifest.artifact_count !== snapshot.artifacts.length || manifest.artifact_bytes !== artifactBytes || manifest.result_count !== snapshot.results.length || manifest.event_count !== snapshot.events.length || manifest.historical_exception_count !== exceptions.length || manifest.historical_exception_digest !== historicalResultExceptionSetDigest(exceptions)) fail("invalid_source_manifest");
+  if (manifest.task_count !== expectedTaskCount || manifest.artifact_count !== snapshot.artifacts.length || manifest.artifact_bytes !== artifactBytes || manifest.result_count !== snapshot.results.length || manifest.event_count !== snapshot.events.length || manifest.historical_exception_count !== exceptions.length || manifest.historical_exception_digest !== historicalResultExceptionSetDigest(exceptions)) fail2("invalid_source_manifest");
   for (const taskId of exceptionTaskIds) {
-    if (snapshot.tasks.some((task) => task.task_id === taskId) || snapshot.results.some((result) => result.task_id === taskId) || snapshot.events.some((event) => event.task_id === taskId) || snapshot.artifacts.some((artifact) => artifact.relative_path.startsWith(`${taskId}/`) && (artifact.task_id !== null || artifact.attempt !== null))) fail("historical_exception_promoted_to_online_authority");
+    if (snapshot.tasks.some((task) => task.task_id === taskId) || snapshot.results.some((result) => result.task_id === taskId) || snapshot.events.some((event) => event.task_id === taskId) || snapshot.artifacts.some((artifact) => artifact.relative_path.startsWith(`${taskId}/`) && (artifact.task_id !== null || artifact.attempt !== null))) fail2("historical_exception_promoted_to_online_authority");
   }
   for (const exception of exceptions) {
     const artifact = snapshot.artifacts.find((candidate) => candidate.relative_path === exception.relative_path);
-    if (!artifact || artifact.artifact_id !== exception.artifact_id || artifact.sha256 !== exception.sha256 || artifact.byte_length !== exception.byte_length || artifact.task_id !== null || artifact.attempt !== null || snapshot.results.some((result) => result.artifact_id === exception.artifact_id)) fail("invalid_historical_exception_artifact");
+    if (!artifact || artifact.artifact_id !== exception.artifact_id || artifact.sha256 !== exception.sha256 || artifact.byte_length !== exception.byte_length || artifact.task_id !== null || artifact.attempt !== null || snapshot.results.some((result) => result.artifact_id === exception.artifact_id)) fail2("invalid_historical_exception_artifact");
   }
 }
 function pathsFor(root, { databaseFileName = "operations.sqlite3", managedDataDirectory = false, allowCutoverPending = false, allowUnpublishedCutover = false, allowFreshBootstrapPending = false } = {}) {
-  if (typeof root !== "string" || !path17.isAbsolute(root) || !existsSync12(root) || !lstatSync2(root).isDirectory() || lstatSync2(root).isSymbolicLink()) fail("invalid_data_root");
-  if (typeof databaseFileName !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u.test(databaseFileName) || databaseFileName === "." || databaseFileName === "..") fail("invalid_database_file_name");
-  const resolved = realpathSync5.native(root);
+  if (typeof root !== "string" || !path15.isAbsolute(root) || !existsSync9(root) || !lstatSync2(root).isDirectory() || lstatSync2(root).isSymbolicLink()) fail2("invalid_data_root");
+  if (typeof databaseFileName !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/u.test(databaseFileName) || databaseFileName === "." || databaseFileName === "..") fail2("invalid_database_file_name");
+  const resolved = realpathSync4.native(root);
   if (!managedDataDirectory) {
-    const relative = path17.relative(HERE, resolved);
-    if (!relative || relative.startsWith("..") || path17.isAbsolute(relative)) fail("data_root_outside_candidate");
+    const relative = path15.relative(HERE, resolved);
+    if (!relative || relative.startsWith("..") || path15.isAbsolute(relative)) fail2("data_root_outside_candidate");
   }
-  const db = path17.join(resolved, databaseFileName);
+  const db = path15.join(resolved, databaseFileName);
   const files = {
     root: resolved,
     db,
     bootstrapPending: `${db}.bootstrap-pending.json`,
     cutoverPending: `${db}.cutover-pending.json`,
     cutoverPublished: `${db}.cutover-published.json`,
-    poison: path17.join(resolved, "ROOT_POISONED.json"),
-    intent: path17.join(resolved, "WRITER_INTENT.json")
+    poison: path15.join(resolved, "ROOT_POISONED.json"),
+    intent: path15.join(resolved, "WRITER_INTENT.json")
   };
   for (const file of [files.db, `${files.db}-wal`, `${files.db}-shm`, files.bootstrapPending, files.cutoverPending, files.cutoverPublished, files.poison, files.intent]) {
     try {
       const st = lstatSync2(file);
-      if (st.isSymbolicLink() || !st.isFile()) fail("unsafe_root_entry");
+      if (st.isSymbolicLink() || !st.isFile()) fail2("unsafe_root_entry");
     } catch (e) {
       if (e instanceof AdmissionError) throw e;
-      if (e?.code !== "ENOENT") fail("unsafe_root_entry");
+      if (e?.code !== "ENOENT") fail2("unsafe_root_entry");
     }
   }
   return { ...files, allowBootstrapPending: allowFreshBootstrapPending, allowCutoverPending, allowUnpublishedCutover };
@@ -5411,47 +4253,47 @@ function pathsFor(root, { databaseFileName = "operations.sqlite3", managedDataDi
 function readPublishedCutoverReceipt(file) {
   let value;
   try {
-    value = JSON.parse(readFileSync12(file, "utf8"));
+    value = JSON.parse(readFileSync11(file, "utf8"));
   } catch {
-    fail("cutover_publication_receipt_unreadable");
+    fail2("cutover_publication_receipt_unreadable");
   }
   const keys = ["archive", "created_at", "cutover_id", "database_file", "migration_id", "schema_version", "source_manifest_digest", "source_root_digest", "state"];
   const archiveKeys = ["archive_directory", "byte_count", "file_count", "manifest_digest", "source_tasks_root"];
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|") || value.schema_version !== 1 || value.state !== "authority_switch_receipt" || !validText2(value.migration_id, 128) || !validText2(value.cutover_id, 128) || typeof value.source_root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_root_digest) || typeof value.source_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_manifest_digest) || !validText2(value.database_file, 96) || !validText2(value.created_at, 64) || Number.isNaN(Date.parse(value.created_at)) || !value.archive || Object.getPrototypeOf(value.archive) !== Object.prototype || Object.keys(value.archive).sort().join("|") !== archiveKeys.join("|") || !validText2(value.archive.archive_directory, 32767) || !path17.isAbsolute(value.archive.archive_directory) || !validText2(value.archive.source_tasks_root, 32767) || !path17.isAbsolute(value.archive.source_tasks_root) || typeof value.archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.archive.manifest_digest) || !Number.isSafeInteger(value.archive.file_count) || value.archive.file_count < 0 || !Number.isSafeInteger(value.archive.byte_count) || value.archive.byte_count < 0) fail("cutover_publication_receipt_invalid");
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|") || value.schema_version !== 1 || value.state !== "authority_switch_receipt" || !validText3(value.migration_id, 128) || !validText3(value.cutover_id, 128) || typeof value.source_root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_root_digest) || typeof value.source_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.source_manifest_digest) || !validText3(value.database_file, 96) || !validText3(value.created_at, 64) || Number.isNaN(Date.parse(value.created_at)) || !value.archive || Object.getPrototypeOf(value.archive) !== Object.prototype || Object.keys(value.archive).sort().join("|") !== archiveKeys.join("|") || !validText3(value.archive.archive_directory, 32767) || !path15.isAbsolute(value.archive.archive_directory) || !validText3(value.archive.source_tasks_root, 32767) || !path15.isAbsolute(value.archive.source_tasks_root) || typeof value.archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(value.archive.manifest_digest) || !Number.isSafeInteger(value.archive.file_count) || value.archive.file_count < 0 || !Number.isSafeInteger(value.archive.byte_count) || value.archive.byte_count < 0) fail2("cutover_publication_receipt_invalid");
   return value;
 }
 function assertCutoverPublicationGate(db, paths) {
   const switched = db.prepare("SELECT * FROM authority_switch").all();
   if (switched.length === 0) return;
-  if (switched.length !== 1) fail("authority_receipt_missing_or_ambiguous");
-  const pending = existsSync12(paths.cutoverPending);
-  const published = existsSync12(paths.cutoverPublished);
-  if (pending && published) fail("cutover_publication_receipt_ambiguous");
+  if (switched.length !== 1) fail2("authority_receipt_missing_or_ambiguous");
+  const pending = existsSync9(paths.cutoverPending);
+  const published = existsSync9(paths.cutoverPublished);
+  if (pending && published) fail2("cutover_publication_receipt_ambiguous");
   if (pending) {
-    if (!paths.allowCutoverPending) fail("cutover_publish_pending");
+    if (!paths.allowCutoverPending) fail2("cutover_publish_pending");
     return;
   }
   if (!published) {
     if (paths.allowUnpublishedCutover) return;
-    fail("cutover_publication_receipt_missing");
+    fail2("cutover_publication_receipt_missing");
   }
   const receipt2 = switched[0];
   const publication = readPublishedCutoverReceipt(paths.cutoverPublished);
-  if (publication.database_file !== path17.basename(paths.db) || publication.migration_id !== receipt2.migration_id || publication.cutover_id !== receipt2.cutover_id || publication.source_root_digest !== receipt2.source_root_digest || publication.source_manifest_digest !== receipt2.source_manifest_digest || publication.archive.archive_directory !== receipt2.archive_directory || publication.archive.manifest_digest !== receipt2.archive_manifest_digest || publication.archive.source_tasks_root !== receipt2.archive_source_tasks_root || publication.archive.file_count !== receipt2.archive_file_count || publication.archive.byte_count !== receipt2.archive_byte_count) fail("cutover_publication_receipt_mismatch");
+  if (publication.database_file !== path15.basename(paths.db) || publication.migration_id !== receipt2.migration_id || publication.cutover_id !== receipt2.cutover_id || publication.source_root_digest !== receipt2.source_root_digest || publication.source_manifest_digest !== receipt2.source_manifest_digest || publication.archive.archive_directory !== receipt2.archive_directory || publication.archive.manifest_digest !== receipt2.archive_manifest_digest || publication.archive.source_tasks_root !== receipt2.archive_source_tasks_root || publication.archive.file_count !== receipt2.archive_file_count || publication.archive.byte_count !== receipt2.archive_byte_count) fail2("cutover_publication_receipt_mismatch");
 }
 function writePoison(file, value) {
-  const tmp = `${file}.${randomUUID5()}.tmp`;
-  const fd = openSync5(tmp, "wx", 384);
+  const tmp = `${file}.${randomUUID3()}.tmp`;
+  const fd = openSync2(tmp, "wx", 384);
   try {
-    writeFileSync6(fd, JSON.stringify(value));
-    fsyncSync3(fd);
+    writeFileSync3(fd, JSON.stringify(value));
+    fsyncSync(fd);
   } finally {
-    closeSync5(fd);
+    closeSync2(fd);
   }
   try {
-    renameSync4(tmp, file);
+    renameSync2(tmp, file);
   } catch (error2) {
-    if (!existsSync12(file)) throw error2;
+    if (!existsSync9(file)) throw error2;
     try {
       unlinkSync2(tmp);
     } catch {
@@ -5459,38 +4301,38 @@ function writePoison(file, value) {
   }
 }
 function workspacePathsOverlap(left, right) {
-  const a = path17.win32.resolve(left).toLowerCase();
-  const b = path17.win32.resolve(right).toLowerCase();
+  const a = path15.win32.resolve(left).toLowerCase();
+  const b = path15.win32.resolve(right).toLowerCase();
   const contains = (parent, child) => child === parent || child.startsWith(parent.endsWith("\\") ? parent : `${parent}\\`);
   return contains(a, b) || contains(b, a);
 }
 function validateInteractionHistory(db, operation, events) {
   const payloads = db.prepare("SELECT * FROM manager_interaction_payloads WHERE operation_id=? ORDER BY request_id").all(operation.operation_id);
   const interactionEvents = events.filter((event) => event.event_type.startsWith("interaction_"));
-  if (payloads.length > 128) fail("interaction_request_limit");
+  if (payloads.length > 128) fail2("interaction_request_limit");
   const grouped = /* @__PURE__ */ new Map();
   for (const event of interactionEvents) {
     let evidence;
     try {
       evidence = JSON.parse(event.evidence_json);
     } catch {
-      fail("interaction_history_mismatch");
+      fail2("interaction_history_mismatch");
     }
     const requestId = evidence.request_id;
-    if (!validId3(requestId) || event.evidence_digest !== digest2(event.evidence_json)) fail("interaction_history_mismatch");
+    if (!validId3(requestId) || event.evidence_digest !== digest2(event.evidence_json)) fail2("interaction_history_mismatch");
     const list = grouped.get(requestId) ?? [];
     list.push({ event, evidence });
     grouped.set(requestId, list);
   }
   const seen = /* @__PURE__ */ new Set();
   for (const payload of payloads) {
-    if (!validId3(payload.request_id) || seen.has(payload.request_id) || payload.task_id !== operation.task_id || payload.attempt !== operation.attempt || payload.generation !== operation.generation || payload.claim_id !== operation.claim_id || payload.worker_identity_digest !== operation.claim_worker_identity_digest || !operation.claim_id || operation.claim_generation !== operation.generation) fail("interaction_payload_identity_mismatch");
+    if (!validId3(payload.request_id) || seen.has(payload.request_id) || payload.task_id !== operation.task_id || payload.attempt !== operation.attempt || payload.generation !== operation.generation || payload.claim_id !== operation.claim_id || payload.worker_identity_digest !== operation.claim_worker_identity_digest || !operation.claim_id || operation.claim_generation !== operation.generation) fail2("interaction_payload_identity_mismatch");
     seen.add(payload.request_id);
     let request;
     try {
       request = JSON.parse(payload.request_json);
     } catch {
-      fail("interaction_history_mismatch");
+      fail2("interaction_history_mismatch");
     }
     if (!validateInteractionRequest(request) || request.request_id !== payload.request_id || request.method !== payload.request_method || interactionCanonical(request) !== payload.request_json || Buffer.byteLength(payload.request_json, "utf8") > 1048576 || payload.request_digest !== interactionDigest({
       interaction_contract_version: 1,
@@ -5502,23 +4344,23 @@ function validateInteractionHistory(db, operation, events) {
       worker_identity_digest: payload.worker_identity_digest,
       request
     }))
-      fail("interaction_history_mismatch");
+      fail2("interaction_history_mismatch");
     const rows = grouped.get(payload.request_id) ?? [];
     const requested = rows.filter((row) => row.event.event_type === "interaction_requested");
     const intents = rows.filter((row) => row.event.event_type === "interaction_reply_intent");
     const prepared = rows.filter((row) => row.event.event_type === "interaction_reply_prepared");
     const committed = rows.filter((row) => row.event.event_type === "interaction_reply_committed");
     const accepted = rows.filter((row) => row.event.event_type === "interaction_reply_accepted");
-    if (requested.length !== 1 || intents.length > 1 || prepared.length > 1 || committed.length > 1 || accepted.length > 1 || accepted.length && !committed.length || committed.length && !prepared.length || prepared.length && !intents.length || rows.length !== requested.length + intents.length + prepared.length + committed.length + accepted.length) fail("interaction_history_unbounded");
+    if (requested.length !== 1 || intents.length > 1 || prepared.length > 1 || committed.length > 1 || accepted.length > 1 || accepted.length && !committed.length || committed.length && !prepared.length || prepared.length && !intents.length || rows.length !== requested.length + intents.length + prepared.length + committed.length + accepted.length) fail2("interaction_history_unbounded");
     const req = requested[0];
-    if (req.event.sequence > operation.revision || req.evidence.claim_id !== payload.claim_id || req.evidence.request_digest !== payload.request_digest || req.evidence.request_method !== payload.request_method || req.evidence.worker_identity_digest !== payload.worker_identity_digest || req.event.from_phase !== "running" || req.event.to_phase !== "running" || req.event.generation !== payload.generation) fail("interaction_request_event_mismatch");
+    if (req.event.sequence > operation.revision || req.evidence.claim_id !== payload.claim_id || req.evidence.request_digest !== payload.request_digest || req.evidence.request_method !== payload.request_method || req.evidence.worker_identity_digest !== payload.worker_identity_digest || req.event.from_phase !== "running" || req.event.to_phase !== "running" || req.event.generation !== payload.generation) fail2("interaction_request_event_mismatch");
     if (intents.length) {
       const intent = intents[0];
       let answer;
       try {
         answer = JSON.parse(payload.answer_json);
       } catch {
-        fail("interaction_history_mismatch");
+        fail2("interaction_history_mismatch");
       }
       const answerDigest = interactionDigest({
         interaction_reply_contract_version: 1,
@@ -5531,10 +4373,10 @@ function validateInteractionHistory(db, operation, events) {
         request_id: payload.request_id,
         answer
       });
-      if (intent.event.sequence <= req.event.sequence || intent.evidence.claim_id !== payload.claim_id || intent.evidence.worker_identity_digest !== payload.worker_identity_digest || intent.evidence.reply_id !== payload.reply_id || intent.evidence.answer_digest !== payload.answer_digest || payload.answer_digest !== answerDigest || interactionCanonical(answer) !== payload.answer_json || !validPersistedInteractionAnswer(request, answer)) fail("interaction_reply_intent_mismatch");
+      if (intent.event.sequence <= req.event.sequence || intent.evidence.claim_id !== payload.claim_id || intent.evidence.worker_identity_digest !== payload.worker_identity_digest || intent.evidence.reply_id !== payload.reply_id || intent.evidence.answer_digest !== payload.answer_digest || payload.answer_digest !== answerDigest || interactionCanonical(answer) !== payload.answer_json || !validPersistedInteractionAnswer(request, answer)) fail2("interaction_reply_intent_mismatch");
       if (prepared.length) {
         const prep = prepared[0];
-        if (prep.event.sequence !== intent.event.sequence + 1 || prep.evidence.claim_id !== payload.claim_id || prep.evidence.worker_identity_digest !== payload.worker_identity_digest || prep.evidence.reply_id !== payload.reply_id || prep.evidence.answer_digest !== payload.answer_digest || !/^[0-9a-f]{64}$/u.test(prep.evidence.prepared_digest)) fail("interaction_reply_prepared_mismatch");
+        if (prep.event.sequence !== intent.event.sequence + 1 || prep.evidence.claim_id !== payload.claim_id || prep.evidence.worker_identity_digest !== payload.worker_identity_digest || prep.evidence.reply_id !== payload.reply_id || prep.evidence.answer_digest !== payload.answer_digest || !/^[0-9a-f]{64}$/u.test(prep.evidence.prepared_digest)) fail2("interaction_reply_prepared_mismatch");
       }
       if (committed.length) {
         const commit = committed[0], prep = prepared[0];
@@ -5554,16 +4396,16 @@ function validateInteractionHistory(db, operation, events) {
             answer_digest: payload.answer_digest,
             prepared_digest: prep.evidence.prepared_digest
           }
-        )) fail("interaction_reply_commit_mismatch");
+        )) fail2("interaction_reply_commit_mismatch");
       }
       if (accepted.length) {
         const ack = accepted[0];
-        if (!committed.length || ack.event.sequence !== committed[0].event.sequence + 1 || ack.evidence.claim_id !== payload.claim_id || ack.evidence.worker_identity_digest !== payload.worker_identity_digest || ack.evidence.reply_id !== payload.reply_id || ack.evidence.answer_digest !== payload.answer_digest || ack.evidence.commit_digest !== committed[0].evidence.commit_digest || !/^([0-9a-f]{64})$/u.test(ack.evidence.ack_digest)) fail("interaction_reply_acceptance_mismatch");
-      } else if (!["running", "quarantined"].includes(operation.phase)) fail("interaction_reply_outcome_unknown");
-    } else if (payload.answer_json !== null || payload.answer_digest !== null || payload.reply_id !== null) fail("interaction_payload_reply_without_intent");
+        if (!committed.length || ack.event.sequence !== committed[0].event.sequence + 1 || ack.evidence.claim_id !== payload.claim_id || ack.evidence.worker_identity_digest !== payload.worker_identity_digest || ack.evidence.reply_id !== payload.reply_id || ack.evidence.answer_digest !== payload.answer_digest || ack.evidence.commit_digest !== committed[0].evidence.commit_digest || !/^([0-9a-f]{64})$/u.test(ack.evidence.ack_digest)) fail2("interaction_reply_acceptance_mismatch");
+      } else if (!["running", "quarantined"].includes(operation.phase)) fail2("interaction_reply_outcome_unknown");
+    } else if (payload.answer_json !== null || payload.answer_digest !== null || payload.reply_id !== null) fail2("interaction_payload_reply_without_intent");
   }
-  for (const requestId of grouped.keys()) if (!seen.has(requestId)) fail("interaction_event_without_payload");
-  if (hasUnresolvedInteraction(events) && !["running", "quarantined"].includes(operation.phase)) fail("interaction_reply_outcome_unknown");
+  for (const requestId of grouped.keys()) if (!seen.has(requestId)) fail2("interaction_event_without_payload");
+  if (hasUnresolvedInteraction(events) && !["running", "quarantined"].includes(operation.phase)) fail2("interaction_reply_outcome_unknown");
 }
 function hasUnresolvedInteraction(events) {
   const pending = /* @__PURE__ */ new Set();
@@ -5592,19 +4434,19 @@ function validInteractionJson(value) {
   }
 }
 function interactionCanonical(value, depth = 0) {
-  if (depth > 32) fail("interaction_json_too_deep");
+  if (depth > 32) fail2("interaction_json_too_deep");
   if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
   if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
   if (Array.isArray(value)) {
-    if (value.length > 256) fail("interaction_json_too_large");
+    if (value.length > 256) fail2("interaction_json_too_large");
     return `[${value.map((item) => interactionCanonical(item, depth + 1)).join(",")}]`;
   }
   if (value && Object.getPrototypeOf(value) === Object.prototype) {
     const keys = Object.keys(value);
-    if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) fail("interaction_json_invalid");
+    if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) fail2("interaction_json_invalid");
     return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${interactionCanonical(value[key], depth + 1)}`).join(",")}}`;
   }
-  fail("interaction_json_invalid");
+  fail2("interaction_json_invalid");
 }
 function interactionDigest(value) {
   return digest2(interactionCanonical(value));
@@ -5632,25 +4474,25 @@ function validInteractionReplyInput(value) {
   if (!value || Object.getPrototypeOf(value) !== Object.prototype || !["answers", "decision", "reason", "request_id", "task_id"].every((key) => Object.hasOwn(value, key) ? true : ["answers", "reason"].includes(key)) || Object.keys(value).some((key) => !["task_id", "request_id", "decision", "answers", "reason"].includes(key)) || !validId3(value.task_id) || !validId3(value.request_id) || value.request_id.length > 512 || !["allow", "deny", "accept", "decline"].includes(value.decision) || "reason" in value && typeof value.reason !== "string" || "answers" in value && (!value.answers || Object.getPrototypeOf(value.answers) !== Object.prototype || Object.values(value.answers).some((answer) => typeof answer !== "string"))) return false;
   return true;
 }
-function buildInteractionAnswer2(request, input) {
+function buildInteractionAnswer(request, input) {
   const params = request.params;
   if (request.method === "interaction/requestPermission") {
-    if (!["allow", "deny"].includes(input.decision)) fail("invalid_interaction_decision");
-    if (input.decision === "allow" && !(Array.isArray(params.options) && params.options.some((option) => option && Object.getPrototypeOf(option) === Object.prototype && typeof option.kind === "string" && option.kind.startsWith("allow")))) fail("interaction_allow_not_offered");
+    if (!["allow", "deny"].includes(input.decision)) fail2("invalid_interaction_decision");
+    if (input.decision === "allow" && !(Array.isArray(params.options) && params.options.some((option) => option && Object.getPrototypeOf(option) === Object.prototype && typeof option.kind === "string" && option.kind.startsWith("allow")))) fail2("interaction_allow_not_offered");
     return input.decision === "allow" ? { decision: "allow" } : { decision: "deny", reason: (input.reason?.trim() || "the calling host declined this request").slice(0, 2e3) };
   }
-  if (!["accept", "decline"].includes(input.decision)) fail("invalid_interaction_decision");
+  if (!["accept", "decline"].includes(input.decision)) fail2("invalid_interaction_decision");
   if (input.decision === "decline") return { action: "decline" };
   if (params.schema && Object.getPrototypeOf(params.schema) === Object.prototype && params.schema.interaction === "plan_approval") return { action: "accept", content: { answer_0: "approve" } };
   const nested = params.input && Object.getPrototypeOf(params.input) === Object.prototype ? params.input : {};
   const raw = Array.isArray(params.questions) ? params.questions : Array.isArray(nested.questions) ? nested.questions : [];
   const questions = raw.filter((question) => question && Object.getPrototypeOf(question) === Object.prototype && typeof question.question === "string").map((question) => question.question);
-  if (!questions.length) fail("interaction_questions_missing");
+  if (!questions.length) fail2("interaction_questions_missing");
   const answers = input.answers ?? {};
   const keys = Object.keys(answers);
-  if (!keys.length || keys.some((key) => !questions.includes(key))) fail("interaction_answer_question_mismatch");
-  for (const [question, answer] of Object.entries(answers)) if (!answer.trim() || answer.length > 4e3) fail("invalid_interaction_answer");
-  if (Buffer.byteLength(JSON.stringify(answers), "utf8") > 16e3) fail("interaction_answers_too_large");
+  if (!keys.length || keys.some((key) => !questions.includes(key))) fail2("interaction_answer_question_mismatch");
+  for (const [question, answer] of Object.entries(answers)) if (!answer.trim() || answer.length > 4e3) fail2("invalid_interaction_answer");
+  if (Buffer.byteLength(JSON.stringify(answers), "utf8") > 16e3) fail2("interaction_answers_too_large");
   return { action: "accept", content: { answers } };
 }
 function validPersistedInteractionAnswer(request, answer) {
@@ -5673,47 +4515,47 @@ function validPersistedInteractionAnswer(request, answer) {
 }
 function validInteractionAcknowledgement(value) {
   const keys = ["ack_digest", "answer_digest", "attempt", "claim_id", "commit_digest", "generation", "operation_id", "process_id", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
-  return Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).sort().join("|") === keys.sort().join("|") && validId3(value.operation_id) && validId3(value.task_id) && validId3(value.claim_id) && validId3(value.request_id) && validId3(value.reply_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && Number.isSafeInteger(value.revision) && value.revision > 0 && Number.isSafeInteger(value.process_id) && value.process_id > 0 && validText2(value.start_fingerprint, 256) && [value.worker_identity_digest, value.answer_digest, value.commit_digest, value.ack_digest].every((item) => typeof item === "string" && /^[0-9a-f]{64}$/u.test(item));
+  return Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).sort().join("|") === keys.sort().join("|") && validId3(value.operation_id) && validId3(value.task_id) && validId3(value.claim_id) && validId3(value.request_id) && validId3(value.reply_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && Number.isSafeInteger(value.revision) && value.revision > 0 && Number.isSafeInteger(value.process_id) && value.process_id > 0 && validText3(value.start_fingerprint, 256) && [value.worker_identity_digest, value.answer_digest, value.commit_digest, value.ack_digest].every((item) => typeof item === "string" && /^[0-9a-f]{64}$/u.test(item));
 }
 function validInteractionPreparedAcknowledgement(value) {
   const keys = ["ack_digest", "answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
-  return Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).sort().join("|") === keys.sort().join("|") && validId3(value.operation_id) && validId3(value.task_id) && validId3(value.claim_id) && validId3(value.request_id) && validId3(value.reply_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && Number.isSafeInteger(value.revision) && value.revision > 0 && Number.isSafeInteger(value.process_id) && value.process_id > 0 && validText2(value.start_fingerprint, 256) && [value.worker_identity_digest, value.answer_digest, value.ack_digest].every((item) => typeof item === "string" && /^[0-9a-f]{64}$/u.test(item));
+  return Object.getPrototypeOf(value) === Object.prototype && Object.keys(value).sort().join("|") === keys.sort().join("|") && validId3(value.operation_id) && validId3(value.task_id) && validId3(value.claim_id) && validId3(value.request_id) && validId3(value.reply_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && Number.isSafeInteger(value.revision) && value.revision > 0 && Number.isSafeInteger(value.process_id) && value.process_id > 0 && validText3(value.start_fingerprint, 256) && [value.worker_identity_digest, value.answer_digest, value.ack_digest].every((item) => typeof item === "string" && /^[0-9a-f]{64}$/u.test(item));
 }
 function validId3(v) {
   return typeof v === "string" && v.length > 0 && v.length <= 128 && !/[\x00-\x1f]/u.test(v);
 }
 function validateTaskPackage(task) {
   if (!task || Object.getPrototypeOf(task) !== Object.prototype || !validId3(task.task_id) || typeof task.workspace !== "string" || !task.workspace || typeof task.objective !== "string" || !["requirements", "allowed_paths", "forbidden_paths", "acceptance_criteria", "test_commands"].every((k) => Array.isArray(task[k]) && task[k].every((v) => typeof v === "string")) || task.worktree_path !== void 0 && typeof task.worktree_path !== "string" || task.context !== void 0 && typeof task.context !== "string" || task.timeout_ms !== void 0 && (!Number.isSafeInteger(task.timeout_ms) || task.timeout_ms < 6e4 || task.timeout_ms > 144e5) || task.model !== void 0 && (!task.model || Object.getPrototypeOf(task.model) !== Object.prototype || typeof task.model.provider_id !== "string" || !task.model.provider_id || typeof task.model.model_id !== "string" || !task.model.model_id))
-    fail("invalid_task_package");
-  const json = canonical3(task);
-  if (Buffer.byteLength(json, "utf8") > 1048576) fail("task_package_too_large");
+    fail2("invalid_task_package");
+  const json = canonical4(task);
+  if (Buffer.byteLength(json, "utf8") > 1048576) fail2("task_package_too_large");
   return task;
 }
 function validateWorkspace(input, validator) {
-  if (typeof input !== "string" || !input.trim()) fail("workspace_missing");
-  if (!path17.isAbsolute(input)) fail("workspace_not_absolute");
-  if (input.replace(/\//g, "\\").startsWith("\\\\")) fail("workspace_unsupported_path_form");
+  if (typeof input !== "string" || !input.trim()) fail2("workspace_missing");
+  if (!path15.isAbsolute(input)) fail2("workspace_not_absolute");
+  if (input.replace(/\//g, "\\").startsWith("\\\\")) fail2("workspace_unsupported_path_form");
   let st, canonicalPath;
   try {
-    st = statSync7(input);
-    canonicalPath = realpathSync5(input);
+    st = statSync5(input);
+    canonicalPath = realpathSync4(input);
   } catch {
-    fail("workspace_unavailable");
+    fail2("workspace_unavailable");
   }
-  if (!st.isDirectory()) fail("workspace_not_directory");
-  if (!validator) fail("workspace_validator_missing");
+  if (!st.isDirectory()) fail2("workspace_not_directory");
+  if (!validator) fail2("workspace_validator_missing");
   let result;
   try {
     result = validator({ requestedPath: input, canonicalPath });
   } catch {
-    fail("workspace_validation_unknown");
+    fail2("workspace_validation_unknown");
   }
-  if (result === "deny" || result?.state === "deny") fail("workspace_validation_denied");
-  if (result !== "allow" && result?.state !== "allow") fail("workspace_validation_unknown");
+  if (result === "deny" || result?.state === "deny") fail2("workspace_validation_denied");
+  if (result !== "allow" && result?.state !== "allow") fail2("workspace_validation_unknown");
   return canonicalPath;
 }
 function callDecision(fn, workspace, input) {
-  if (typeof fn !== "function") fail("execution_permission_unknown");
+  if (typeof fn !== "function") fail2("execution_permission_unknown");
   try {
     const r = fn({ workspace, task: input });
     const state = r === "allow" || r?.state === "allow" ? "allow" : r === "deny" || r?.state === "deny" ? "deny" : "unknown";
@@ -5724,30 +4566,34 @@ function callDecision(fn, workspace, input) {
     return { state: "unknown" };
   }
 }
-var HERE, SCHEMA, ADMIN_ABANDONMENT_SCHEMA, CONSTRUCT, SCHEMA_VERSION, SCHEMA_OBJECT_QUERY, expectedBaseSchemaObjects, expectedAdminSchemaObjects, RESULT_CONTRACT_VERSION, RESULT_STATUSES, RECOVERY_PHASES, RECOVERY_SOURCES, RECOVERY_REASON_CODES, RECOVERY_QUARANTINE_CODES, RECOVERY_EVIDENCE_KEYS, RECOVERY_LIMIT, RESULT_FIELDS, REQUIRED_RESULT_FIELDS, digest2, rawDigest, EVIDENCE_KEYS, FUTURE_EVENT_TYPES, FUTURE_EVIDENCE_KEYS, EVENT_PHASE, RECOVERY_INPUT_KEYS, ADMIN_ABANDONMENT_INPUT_KEYS, ADMIN_ABANDONMENT_EVIDENCE_KEYS, AdmissionError, fail, IsolatedAdmissionStore;
+var HERE, SCHEMA, ADMIN_ABANDONMENT_SCHEMA, CONSTRUCT, SCHEMA_VERSION, SCHEMA_OBJECT_QUERY, expectedSchemas, RESULT_CONTRACT_VERSION, RESULT_STATUSES2, RECOVERY_PHASES, RECOVERY_SOURCES, RECOVERY_REASON_CODES, RECOVERY_QUARANTINE_CODES, RECOVERY_EVIDENCE_KEYS, RECOVERY_LIMIT, digest2, rawDigest, upgradeRowJson, EVIDENCE_KEYS, FUTURE_EVENT_TYPES, FUTURE_EVIDENCE_KEYS, EVENT_PHASE, RECOVERY_INPUT_KEYS, ADMIN_ABANDONMENT_INPUT_KEYS, ADMIN_ABANDONMENT_EVIDENCE_KEYS, AdmissionError, fail2, IsolatedAdmissionStore;
 var init_store = __esm({
   "src/sqlite-candidate/wp6b2b1/store.mjs"() {
     "use strict";
+    init_result_contract();
     init_interaction_channel();
     init_json_history_result_exceptions();
-    HERE = path17.dirname(fileURLToPath4(import.meta.url));
-    SCHEMA = readFileSync12(new URL("./schema.sql", import.meta.url), "utf8");
-    ADMIN_ABANDONMENT_SCHEMA = readFileSync12(new URL("./admin-abandonment.sql", import.meta.url), "utf8");
+    HERE = path15.dirname(fileURLToPath4(import.meta.url));
+    SCHEMA = readFileSync11(new URL("./schema.sql", import.meta.url), "utf8");
+    ADMIN_ABANDONMENT_SCHEMA = readFileSync11(new URL("./admin-abandonment.sql", import.meta.url), "utf8");
     CONSTRUCT = /* @__PURE__ */ Symbol("construct");
-    SCHEMA_VERSION = 13;
+    SCHEMA_VERSION = 14;
     SCHEMA_OBJECT_QUERY = "SELECT type,name,tbl_name,sql FROM sqlite_schema WHERE type IN ('table','view','index','trigger') AND substr(lower(name),1,7)<>'sqlite_' ORDER BY type COLLATE BINARY,name COLLATE BINARY";
+    expectedSchemas = /* @__PURE__ */ new Map();
     RESULT_CONTRACT_VERSION = 1;
-    RESULT_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "cancelled", "waiting_for_master"]);
+    RESULT_STATUSES2 = /* @__PURE__ */ new Set(["completed", "failed", "cancelled", "waiting_for_master"]);
     RECOVERY_PHASES = /* @__PURE__ */ new Set(["running", "result_committed", "cleanup_pending", "cleanup_verified", "cleanup_unverified", "cleanup_reverified", "quarantined"]);
     RECOVERY_SOURCES = /* @__PURE__ */ new Set(["manager_process_probe", "manager_launch_probe", "manager_cleanup_probe", "manager_projection_validator"]);
     RECOVERY_REASON_CODES = /* @__PURE__ */ new Set(["worker_identity_unknown", "launch_outcome_unknown", "cleanup_identity_unknown", "cleanup_incomplete", "claim_identity_conflict", "operation_projection_conflict"]);
     RECOVERY_QUARANTINE_CODES = /* @__PURE__ */ new Set(["claim_identity_conflict", "operation_projection_conflict"]);
     RECOVERY_EVIDENCE_KEYS = Object.freeze(["attempt", "claim_id", "classification", "envelope_digest", "evidence_digest", "evidence_source", "expected_revision", "reason", "reason_code", "task_id", "worker_identity_digest"]);
     RECOVERY_LIMIT = 8;
-    RESULT_FIELDS = /* @__PURE__ */ new Set(["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at", "error_code", "report_candidate", "usage", "model", "timing"]);
-    REQUIRED_RESULT_FIELDS = ["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at"];
-    digest2 = (value) => createHash14("sha256").update(typeof value === "string" ? value : canonical3(value)).digest("hex");
-    rawDigest = (value) => createHash14("sha256").update(Buffer.from(value)).digest("hex");
+    digest2 = (value) => createHash11("sha256").update(typeof value === "string" ? value : canonical4(value)).digest("hex");
+    rawDigest = (value) => createHash11("sha256").update(Buffer.from(value)).digest("hex");
+    upgradeRowJson = (row) => canonical4(Object.fromEntries(Object.entries(row).map(([key, value]) => [
+      key,
+      value instanceof Uint8Array ? { sqlite_type: "blob", bytes: value.byteLength, sha256: createHash11("sha256").update(value).digest("hex") } : value
+    ])));
     EVIDENCE_KEYS = Object.freeze({
       capacity_policy_committed: ["capacity_limit", "generation"],
       reserved: ["capacity_slot", "reservation_id"],
@@ -5795,7 +4641,7 @@ var init_store = __esm({
         this.code = code;
       }
     };
-    fail = (code, message) => {
+    fail2 = (code, message) => {
       throw new AdmissionError(code, message);
     };
     IsolatedAdmissionStore = class _IsolatedAdmissionStore {
@@ -5805,17 +4651,281 @@ var init_store = __esm({
       #poisoned = false;
       #fault;
       #recoveryOnly = false;
-      constructor(key, db, paths, fault, recoveryOnly = false) {
-        if (key !== CONSTRUCT) fail("private_constructor");
+      #schemaVersion = SCHEMA_VERSION;
+      #validatedSnapshot = null;
+      constructor(key, db, paths, fault, recoveryOnly = false, schemaVersion = SCHEMA_VERSION) {
+        if (key !== CONSTRUCT) fail2("private_constructor");
         this.#db = db;
         this.#paths = paths;
         this.#fault = fault;
         this.#recoveryOnly = recoveryOnly;
+        this.#schemaVersion = schemaVersion;
+      }
+      /** Explicit offline copy upgrade. Never called by startup, never edits source rows.
+       * The source writer lock spans verification/copy. The operator must stop Managers
+       * before running this command and switch configuration only after success. */
+      static upgradeV13Copy(sourceRoot, destinationRoot, {
+        databaseFileName = "operations.sqlite3",
+        offline = false,
+        expectedV13RuntimeRosterDigest = "",
+        runtimeRosterDigest = "",
+        preserveActiveOperations = false,
+        onStage = (_stage) => {
+        }
+      } = {}) {
+        if (offline !== true) fail2("offline_upgrade_required");
+        if (!path15.isAbsolute(destinationRoot) || realpathSync4(destinationRoot) !== path15.resolve(destinationRoot) || readdirSync(destinationRoot).length) fail2("upgrade_destination_not_empty");
+        const options = { databaseFileName, managedDataDirectory: true };
+        const source = pathsFor(sourceRoot, options), destination = pathsFor(destinationRoot, options);
+        if (source.root === destination.root || path15.resolve(sourceRoot) === path15.resolve(destinationRoot)) fail2("upgrade_same_root");
+        const blocked = () => {
+          for (const file of [source.intent, source.poison, source.bootstrapPending, source.cutoverPending]) if (existsSync9(file)) fail2("upgrade_source_blocked");
+        };
+        blocked();
+        if (!existsSync9(source.db)) fail2("database_missing");
+        const db = new DatabaseSync(source.db, { timeout: 1e3 });
+        let target, locked = false;
+        try {
+          db.exec("PRAGMA foreign_keys=ON; BEGIN IMMEDIATE");
+          locked = true;
+          blocked();
+          if (db.prepare("PRAGMA user_version").get().user_version !== 13) fail2("upgrade_requires_v13");
+          const reader = new _IsolatedAdmissionStore(CONSTRUCT, db, source, void 0, true, 13);
+          reader.#validateContents();
+          assertCutoverPublicationGate(db, source);
+          reader.#assertAuthorityReadyContents(expectedV13RuntimeRosterDigest);
+          const admins = reader.#adminAbandonments();
+          const unfinished = db.prepare("SELECT operation_id FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").all().filter((row) => !admins.has(row.operation_id));
+          if (unfinished.length && !preserveActiveOperations) fail2("upgrade_active_operations", "Stop and resolve known lifecycle work before upgrade; unknown Holds are not migrated or cleared");
+          if (typeof runtimeRosterDigest !== "string" || !/^[0-9a-f]{64}$/u.test(runtimeRosterDigest)) fail2("upgrade_runtime_roster_required");
+          onStage?.("source_verified");
+          blocked();
+          writeFileSync3(destination.bootstrapPending, JSON.stringify({ contract: "v14-offline-upgrade-in-progress" }), { flag: "wx", mode: 384 });
+          target = new DatabaseSync(destination.db, { timeout: 1e3 });
+          target.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=OFF; BEGIN IMMEDIATE");
+          target.exec(SCHEMA);
+          if (admins.size || db.prepare("SELECT 1 FROM sqlite_schema WHERE name='manager_admin_abandonments'").get()) target.exec(ADMIN_ABANDONMENT_SCHEMA);
+          const triggers = target.prepare("SELECT name,sql FROM sqlite_schema WHERE type='trigger'").all();
+          const q = (name) => '"' + name.replaceAll('"', '""') + '"';
+          for (const row of triggers) target.exec("DROP TRIGGER " + q(row.name));
+          const tables = db.prepare("SELECT name FROM sqlite_schema WHERE type='table' AND substr(name,1,7)<>'sqlite_' ORDER BY name").all();
+          const verification = [];
+          for (const { name } of tables) {
+            const columns = db.prepare("PRAGMA table_info(" + q(name) + ")").all();
+            const names = columns.map((c) => c.name);
+            const keys = columns.filter((c) => c.pk).sort((a, b) => a.pk - b.pk).map((c) => q(c.name));
+            const select = "SELECT * FROM " + q(name) + " ORDER BY " + (keys.length ? keys.join(",") : "rowid");
+            const insert = target.prepare("INSERT INTO " + q(name) + "(" + names.map(q).join(",") + ") VALUES(" + names.map(() => "?").join(",") + ")");
+            const before = createHash11("sha256"), expected = createHash11("sha256");
+            let count = 0;
+            for (const raw of db.prepare(select).iterate()) {
+              const row = { ...raw };
+              before.update(upgradeRowJson(row) + "\n");
+              if (name === "authority_metadata" || name === "authority_switch") row.schema_version = 14;
+              if (name === "authority_switch") row.runtime_roster_digest = runtimeRosterDigest;
+              expected.update(upgradeRowJson(row) + "\n");
+              insert.run(...names.map((key) => row[key]));
+              count++;
+            }
+            const after = createHash11("sha256");
+            let copied = 0;
+            for (const raw of target.prepare(select).iterate()) {
+              after.update(upgradeRowJson(raw) + "\n");
+              copied++;
+            }
+            const expectedDigest = expected.digest("hex"), afterDigest = after.digest("hex");
+            if (count !== copied || expectedDigest !== afterDigest) fail2("upgrade_row_parity_failed");
+            verification.push({ table: name, rows: count, source_digest: before.digest("hex"), destination_digest: afterDigest });
+          }
+          for (const row of db.prepare("SELECT name,seq FROM sqlite_sequence").all()) {
+            target.prepare("DELETE FROM sqlite_sequence WHERE name=?").run(row.name);
+            target.prepare("INSERT INTO sqlite_sequence(name,seq) VALUES(?,?)").run(row.name, row.seq);
+          }
+          for (const row of triggers) target.exec(row.sql);
+          target.exec("PRAGMA user_version=14; COMMIT; PRAGMA foreign_keys=ON");
+          if (target.prepare("PRAGMA integrity_check").get().integrity_check !== "ok" || target.prepare("PRAGMA foreign_key_check").all().length) fail2("upgrade_integrity_failed");
+          if (existsSync9(source.cutoverPublished)) writeFileSync3(destination.cutoverPublished, readFileSync11(source.cutoverPublished), { flag: "wx", mode: 384 });
+          const upgraded = new _IsolatedAdmissionStore(CONSTRUCT, target, destination);
+          upgraded.#validateContents();
+          upgraded.assertAuthorityReady(runtimeRosterDigest);
+          assertCutoverPublicationGate(target, destination);
+          onStage?.("destination_verified");
+          blocked();
+          const receipt2 = {
+            contract: "sqlite-v13-v14-copy-upgrade-v1",
+            source: path15.resolve(sourceRoot),
+            destination: path15.resolve(destinationRoot),
+            database_file: databaseFileName,
+            source_version: 13,
+            destination_version: 14,
+            verified_at: (/* @__PURE__ */ new Date()).toISOString(),
+            tables: verification
+          };
+          const fd = openSync2(path15.join(destinationRoot, "v14-upgrade-receipt.json"), "wx", 384);
+          try {
+            writeFileSync3(fd, JSON.stringify(receipt2, null, 2));
+            fsyncSync(fd);
+          } finally {
+            closeSync2(fd);
+          }
+          target.exec("PRAGMA wal_checkpoint(TRUNCATE)");
+          unlinkSync2(destination.bootstrapPending);
+          return receipt2;
+        } catch (error2) {
+          if (target) {
+            try {
+              target.exec("ROLLBACK");
+            } catch {
+            }
+          }
+          if (target) writeFileSync3(path15.join(destinationRoot, "ROOT_POISONED.json"), JSON.stringify({ version: 1, reason: "v14_upgrade_failed", detail: String(error2), at: (/* @__PURE__ */ new Date()).toISOString() }), { flag: "wx" });
+          throw error2;
+        } finally {
+          target?.close();
+          if (locked) db.exec("ROLLBACK");
+          db.close();
+        }
+      }
+      /**
+       * Automatic v13 -> v14 migration at production startup, under the existing
+       * cross-process bootstrap lock. This is not a live hot migration.
+       * Retains every occupied Operation and all Recovery evidence unchanged.
+       */
+      static autoUpgradeV13(root, { databaseFileName = "bridge.sqlite", runtimeRosterDigest = "", assertStartupLock = () => {
+      } } = {}) {
+        if (typeof runtimeRosterDigest !== "string" || !/^[0-9a-f]{64}$/u.test(runtimeRosterDigest)) fail2("upgrade_runtime_roster_required");
+        const opts = { databaseFileName, managedDataDirectory: true }, p = pathsFor(root, opts);
+        const pending = p.db + ".v13-v14-pending.json";
+        const version2 = () => {
+          if (!existsSync9(p.db)) return null;
+          try {
+            const db = new DatabaseSync(p.db, { readOnly: true, timeout: 1e3 });
+            try {
+              return db.prepare("PRAGMA user_version").get().user_version;
+            } finally {
+              db.close();
+            }
+          } catch (error2) {
+            if (existsSync9(pending)) throw error2;
+            return null;
+          }
+        };
+        const names = (token2) => ({
+          stage: path15.join(p.root, databaseFileName + ".v14-stage-" + token2),
+          backup: path15.join(p.root, databaseFileName + ".v13-backup-" + token2)
+        });
+        const validatePublished = () => {
+          const ready = this.open(p.root, opts);
+          try {
+            ready.assertAuthorityReady(runtimeRosterDigest);
+          } finally {
+            ready.close();
+          }
+        };
+        const resetPending = (stage2) => {
+          rmSync(stage2, { recursive: true, force: true });
+          unlinkSync2(pending);
+        };
+        assertStartupLock();
+        if (existsSync9(pending)) {
+          const st = lstatSync2(pending);
+          if (!st.isFile() || st.isSymbolicLink() || st.size > 4096) fail2("upgrade_marker_invalid");
+          let marker;
+          try {
+            marker = JSON.parse(readFileSync11(pending, "utf8"));
+          } catch {
+            fail2("upgrade_marker_invalid");
+          }
+          if (!marker || Object.keys(marker).sort().join("|") !== "contract|database_file|token" || marker.contract !== "sqlite-v13-v14-auto-upgrade-v1" || marker.database_file !== databaseFileName || typeof marker.token !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(marker.token)) fail2("upgrade_marker_invalid");
+          const { stage: stage2, backup: backup2 } = names(marker.token);
+          const current = version2();
+          if (current === 14) {
+            validatePublished();
+            resetPending(stage2);
+            return { state: "upgraded", source_version: 13, destination_version: 14, backup: backup2 };
+          }
+          if (current === null && existsSync9(backup2)) {
+            assertStartupLock();
+            renameSync2(backup2, p.db);
+          } else if (current !== 13 || existsSync9(backup2)) fail2("upgrade_recovery_ambiguous");
+          assertStartupLock();
+          resetPending(stage2);
+        }
+        const sourceVersion = version2();
+        if (sourceVersion === 14) return { state: "already_v14", destination_version: 14 };
+        if (sourceVersion !== 13) return { state: "not_v13", source_version: sourceVersion };
+        for (const file of [p.intent, p.poison, p.bootstrapPending, p.cutoverPending])
+          if (existsSync9(file)) fail2("upgrade_source_blocked");
+        const token = randomUUID3(), { stage, backup } = names(token);
+        const fd = openSync2(pending, "wx", 384);
+        try {
+          writeFileSync3(fd, JSON.stringify({ contract: "sqlite-v13-v14-auto-upgrade-v1", database_file: databaseFileName, token }));
+          fsyncSync(fd);
+        } finally {
+          closeSync2(fd);
+        }
+        try {
+          assertStartupLock();
+          mkdirSync4(stage);
+          const reader = new DatabaseSync(p.db, { readOnly: true, timeout: 1e3 });
+          let oldRoster = "";
+          try {
+            oldRoster = reader.prepare("SELECT runtime_roster_digest FROM authority_switch").get()?.runtime_roster_digest ?? "";
+          } finally {
+            reader.close();
+          }
+          const receipt2 = this.upgradeV13Copy(p.root, stage, {
+            databaseFileName,
+            offline: true,
+            preserveActiveOperations: true,
+            expectedV13RuntimeRosterDigest: oldRoster,
+            runtimeRosterDigest
+          });
+          assertStartupLock();
+          const old = new DatabaseSync(p.db, { timeout: 1e3 });
+          try {
+            const checkpoint = old.prepare("PRAGMA wal_checkpoint(TRUNCATE)").get();
+            if (checkpoint.busy !== 0) fail2("upgrade_old_database_busy");
+          } finally {
+            old.close();
+          }
+          const stageDb = path15.join(stage, databaseFileName);
+          if (existsSync9(p.db + "-wal") || existsSync9(p.db + "-shm") || existsSync9(stageDb + "-wal") || existsSync9(stageDb + "-shm")) fail2("upgrade_database_still_open");
+          if (version2() !== 13) fail2("upgrade_source_changed");
+          assertStartupLock();
+          renameSync2(p.db, backup);
+          assertStartupLock();
+          renameSync2(stageDb, p.db);
+          validatePublished();
+          assertStartupLock();
+          resetPending(stage);
+          return { ...receipt2, state: "upgraded", backup };
+        } catch (error2) {
+          if (existsSync9(backup)) {
+            if (existsSync9(p.db)) {
+              try {
+                if (version2() === 14) {
+                  assertStartupLock();
+                  renameSync2(p.db, p.db + ".v14-failed-" + token);
+                }
+              } catch {
+              }
+            }
+            if (!existsSync9(p.db)) {
+              try {
+                assertStartupLock();
+                renameSync2(backup, p.db);
+              } catch {
+              }
+            }
+          }
+          throw error2;
+        }
       }
       static initialize(root, options = {}) {
         const p = pathsFor(root, options);
-        if (existsSync12(p.db) || existsSync12(p.cutoverPending) || existsSync12(p.cutoverPublished) || existsSync12(p.poison) || existsSync12(p.intent)) fail("root_not_empty");
-        if (options.onFreshBootstrapStage !== void 0 && typeof options.onFreshBootstrapStage !== "function") fail("invalid_fresh_bootstrap_stage_hook");
+        if (existsSync9(p.db) || existsSync9(p.cutoverPending) || existsSync9(p.cutoverPublished) || existsSync9(p.poison) || existsSync9(p.intent)) fail2("root_not_empty");
+        if (options.onFreshBootstrapStage !== void 0 && typeof options.onFreshBootstrapStage !== "function") fail2("invalid_fresh_bootstrap_stage_hook");
         const freshBootstrapStage = options.onFreshBootstrapStage;
         const db = new DatabaseSync(p.db, { timeout: 5e3 });
         try {
@@ -5824,7 +4934,7 @@ var init_store = __esm({
           db.prepare("INSERT INTO authority_metadata(singleton,schema_version,next_generation) VALUES(1,?,0)").run(SCHEMA_VERSION);
           if (options.freshInstallReceiptId !== void 0) freshBootstrapStage?.("schema_initialized");
           if (options.freshInstallReceiptId !== void 0) {
-            if (!validText2(options.freshInstallReceiptId, 128) || !validText2(options.verifierVersion, 128) || !Number.isInteger(options.freshInstallCapacityLimit) || options.freshInstallCapacityLimit < 1 || options.freshInstallCapacityLimit > 8) fail("invalid_fresh_install_receipt");
+            if (!validText3(options.freshInstallReceiptId, 128) || !validText3(options.verifierVersion, 128) || !Number.isInteger(options.freshInstallCapacityLimit) || options.freshInstallCapacityLimit < 1 || options.freshInstallCapacityLimit > 8) fail2("invalid_fresh_install_receipt");
             freshBootstrapStage?.("before_ready_receipt");
             db.prepare("INSERT INTO fresh_install_receipt(singleton,receipt_id,verifier_version,created_at) VALUES(1,?,?,?)").run(options.freshInstallReceiptId, options.verifierVersion, (/* @__PURE__ */ new Date()).toISOString());
             freshBootstrapStage?.("ready_receipt_written");
@@ -5833,7 +4943,7 @@ var init_store = __esm({
             const requestDigest = digest2({ operation_id: operationId, capacity_limit: capacityLimit, expected_generation: 0 });
             const at = (/* @__PURE__ */ new Date()).toISOString();
             db.prepare("INSERT INTO manager_operations(operation_id,operation_kind,request_digest,revision,phase,policy_generation,capacity_limit,created_at) VALUES(?,'capacity_policy_change',?,1,'policy_change_committed',1,?,?)").run(operationId, requestDigest, capacityLimit, at);
-            const evidenceJson = canonical3({ generation: 1, capacity_limit: capacityLimit });
+            const evidenceJson = canonical4({ generation: 1, capacity_limit: capacityLimit });
             const evidenceDigest = digest2(evidenceJson);
             db.prepare("INSERT INTO manager_operation_events(event_cursor,operation_id,sequence,event_type,from_phase,to_phase,generation,evidence_json,evidence_digest,at) VALUES(1,?,1,'capacity_policy_committed',NULL,'policy_change_committed',NULL,?,?,?)").run(operationId, evidenceJson, evidenceDigest, at);
             db.prepare("UPDATE authority_metadata SET next_event_cursor=1,policy_version=1,policy_generation=1,capacity_limit=?,policy_operation_id=? WHERE singleton=1").run(capacityLimit, operationId);
@@ -5852,46 +4962,47 @@ var init_store = __esm({
       }
       static open(root, { fault, ...pathOptions } = {}) {
         const p = pathsFor(root, pathOptions);
-        if (existsSync12(p.bootstrapPending) && !p.allowBootstrapPending) fail("sqlite_bootstrap_pending");
-        if (existsSync12(p.cutoverPending)) fail("cutover_publish_pending");
-        if (existsSync12(p.poison)) fail("root_poisoned");
-        if (!existsSync12(p.db)) fail("database_missing");
+        if (existsSync9(p.bootstrapPending) && !p.allowBootstrapPending) fail2("sqlite_bootstrap_pending");
+        if (existsSync9(p.cutoverPending)) fail2("cutover_publish_pending");
+        if (existsSync9(p.poison)) fail2("root_poisoned");
+        if (!existsSync9(p.db)) fail2("database_missing");
         const db = new DatabaseSync(p.db, { timeout: 5e3 });
         db.exec("PRAGMA foreign_keys=ON");
         const s = new _IsolatedAdmissionStore(CONSTRUCT, db, p, fault);
         try {
+          assertSchemaVersion(db);
           const columns = new Set(db.prepare("PRAGMA table_info(manager_operations)").all().map((x) => x.name));
-          if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail("candidate_schema_mismatch");
-          if (!db.prepare("SELECT 1 FROM pragma_table_info('manager_operation_events') WHERE name='event_cursor'").get()) fail("candidate_schema_mismatch");
+          if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail2("candidate_schema_mismatch");
+          if (!db.prepare("SELECT 1 FROM pragma_table_info('manager_operation_events') WHERE name='event_cursor'").get()) fail2("candidate_schema_mismatch");
           s.#validate();
           assertCutoverPublicationGate(db, p);
         } catch (e) {
           db.close();
           if (e instanceof AdmissionError) throw e;
-          fail("database_unreadable", String(e));
+          fail2("database_unreadable", String(e));
         }
         return s;
       }
       /** Open only the current candidate schema read-only for conservative recovery inspection. */
       static openForRecovery(root, options = {}) {
         const p = pathsFor(root, options);
-        if (existsSync12(p.bootstrapPending)) fail("sqlite_bootstrap_pending");
-        if (existsSync12(p.cutoverPending) && !p.allowCutoverPending) fail("cutover_publish_pending");
-        if (!existsSync12(p.db)) fail("database_missing");
+        if (existsSync9(p.bootstrapPending)) fail2("sqlite_bootstrap_pending");
+        if (existsSync9(p.cutoverPending) && !p.allowCutoverPending) fail2("cutover_publish_pending");
+        if (!existsSync9(p.db)) fail2("database_missing");
         const db = new DatabaseSync(p.db, { timeout: 5e3, readOnly: true });
         try {
           db.exec("PRAGMA foreign_keys=ON");
           db.exec("PRAGMA query_only=ON");
-          if (db.prepare("PRAGMA user_version").get().user_version !== SCHEMA_VERSION) fail("schema_version_unknown");
+          assertSchemaVersion(db);
           const columns = new Set(db.prepare("PRAGMA table_info(manager_operations)").all().map((x) => x.name));
-          if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail("candidate_schema_mismatch");
-          if (!db.prepare("SELECT 1 FROM pragma_table_info('manager_operation_events') WHERE name='event_cursor'").get()) fail("candidate_schema_mismatch");
+          if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail2("candidate_schema_mismatch");
+          if (!db.prepare("SELECT 1 FROM pragma_table_info('manager_operation_events') WHERE name='event_cursor'").get()) fail2("candidate_schema_mismatch");
           assertCutoverPublicationGate(db, p);
           return new _IsolatedAdmissionStore(CONSTRUCT, db, p, void 0, true);
         } catch (e) {
           db.close();
           if (e instanceof AdmissionError) throw e;
-          fail("database_unreadable", String(e));
+          fail2("database_unreadable", String(e));
         }
       }
       close() {
@@ -5905,7 +5016,7 @@ var init_store = __esm({
         this.#db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
       }
       get poisoned() {
-        return this.#poisoned || existsSync12(this.#paths.poison);
+        return this.#poisoned || existsSync9(this.#paths.poison);
       }
       get foreignKeysEnabled() {
         this.#assertOpen();
@@ -5922,42 +5033,43 @@ var init_store = __esm({
       }
       /** Production startup requires exactly one durable reason for this root. */
       assertAuthorityReady(expectedRuntimeRosterDigest) {
-        return this.#readConsistent(() => {
-          const integrity = this.#db.prepare("PRAGMA integrity_check").all();
-          if (integrity.length !== 1 || integrity[0].integrity_check !== "ok") fail("database_corrupt");
-          const fresh = this.#db.prepare("SELECT * FROM fresh_install_receipt").all();
-          const switched = this.#db.prepare("SELECT * FROM authority_switch").all();
-          if (fresh.length + switched.length !== 1) fail("authority_receipt_missing_or_ambiguous");
-          const metadata = this.#db.prepare("SELECT policy_generation,capacity_limit,policy_operation_id FROM authority_metadata WHERE singleton=1").get();
-          if (!metadata || metadata.policy_generation < 1 || metadata.capacity_limit < 1 || metadata.capacity_limit > 8 || !validId3(metadata.policy_operation_id)) fail("capacity_policy_missing");
-          if (fresh.length) {
-            if (this.#db.prepare("SELECT COUNT(*) AS n FROM migration_runs").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migrated_task_results").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migrated_task_events").get().n !== 0) fail("fresh_install_contains_legacy_data");
-            return { kind: "fresh_install", receipt_id: fresh[0].receipt_id, verifier_version: fresh[0].verifier_version };
-          }
-          const receipt2 = switched[0];
-          const migration = this.#db.prepare("SELECT source_manifest_json,source_manifest_digest FROM migration_runs WHERE migration_id=?").get(receipt2.migration_id);
-          if (!migration) fail("migration_receipt_missing");
-          const policy = parseAuthoritySourceManifest(migration.source_manifest_json, migration.source_manifest_digest);
-          if (typeof expectedRuntimeRosterDigest !== "string" || !/^[0-9a-f]{64}$/u.test(expectedRuntimeRosterDigest) || receipt2.runtime_roster_digest !== expectedRuntimeRosterDigest) fail("authority_runtime_roster_mismatch");
-          assertCutoverPublicationGate(this.#db, this.#paths);
-          return {
-            kind: "authority_switch",
-            authority_generation: receipt2.authority_generation,
-            cutover_id: receipt2.cutover_id,
-            migration_id: receipt2.migration_id,
-            source_root_digest: receipt2.source_root_digest,
-            source_manifest_digest: receipt2.source_manifest_digest,
-            archive_directory: receipt2.archive_directory,
-            archive_manifest_digest: receipt2.archive_manifest_digest,
-            archive_source_tasks_root: receipt2.archive_source_tasks_root,
-            archive_file_count: receipt2.archive_file_count,
-            archive_byte_count: receipt2.archive_byte_count,
-            historical_exception_count: policy.exceptions.length,
-            historical_exception_digest: policy.manifest.historical_exception_digest,
-            source_kind: policy.kind,
-            verifier_version: receipt2.verifier_version
-          };
-        });
+        return this.#readConsistent(() => this.#assertAuthorityReadyContents(expectedRuntimeRosterDigest));
+      }
+      #assertAuthorityReadyContents(expectedRuntimeRosterDigest) {
+        const integrity = this.#db.prepare("PRAGMA integrity_check").all();
+        if (integrity.length !== 1 || integrity[0].integrity_check !== "ok") fail2("database_corrupt");
+        const fresh = this.#db.prepare("SELECT * FROM fresh_install_receipt").all();
+        const switched = this.#db.prepare("SELECT * FROM authority_switch").all();
+        if (fresh.length + switched.length !== 1) fail2("authority_receipt_missing_or_ambiguous");
+        const metadata = this.#db.prepare("SELECT policy_generation,capacity_limit,policy_operation_id FROM authority_metadata WHERE singleton=1").get();
+        if (!metadata || metadata.policy_generation < 1 || metadata.capacity_limit < 1 || metadata.capacity_limit > 8 || !validId3(metadata.policy_operation_id)) fail2("capacity_policy_missing");
+        if (fresh.length) {
+          if (this.#db.prepare("SELECT COUNT(*) AS n FROM migration_runs").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migrated_task_results").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migrated_task_events").get().n !== 0) fail2("fresh_install_contains_legacy_data");
+          return { kind: "fresh_install", receipt_id: fresh[0].receipt_id, verifier_version: fresh[0].verifier_version };
+        }
+        const receipt2 = switched[0];
+        const migration = this.#db.prepare("SELECT source_manifest_json,source_manifest_digest FROM migration_runs WHERE migration_id=?").get(receipt2.migration_id);
+        if (!migration) fail2("migration_receipt_missing");
+        const policy = parseAuthoritySourceManifest(migration.source_manifest_json, migration.source_manifest_digest);
+        if (typeof expectedRuntimeRosterDigest !== "string" || !/^[0-9a-f]{64}$/u.test(expectedRuntimeRosterDigest) || receipt2.runtime_roster_digest !== expectedRuntimeRosterDigest) fail2("authority_runtime_roster_mismatch");
+        assertCutoverPublicationGate(this.#db, this.#paths);
+        return {
+          kind: "authority_switch",
+          authority_generation: receipt2.authority_generation,
+          cutover_id: receipt2.cutover_id,
+          migration_id: receipt2.migration_id,
+          source_root_digest: receipt2.source_root_digest,
+          source_manifest_digest: receipt2.source_manifest_digest,
+          archive_directory: receipt2.archive_directory,
+          archive_manifest_digest: receipt2.archive_manifest_digest,
+          archive_source_tasks_root: receipt2.archive_source_tasks_root,
+          archive_file_count: receipt2.archive_file_count,
+          archive_byte_count: receipt2.archive_byte_count,
+          historical_exception_count: policy.exceptions.length,
+          historical_exception_digest: policy.manifest.historical_exception_digest,
+          source_kind: policy.kind,
+          verifier_version: receipt2.verifier_version
+        };
       }
       /**
        * Record a stop-the-world cutover to a new empty SQLite Task Authority.
@@ -5965,18 +5077,18 @@ var init_store = __esm({
        */
       recordRawJsonArchiveCutover(snapshot) {
         this.#assertWritable();
-        if (!snapshot || Object.getPrototypeOf(snapshot) !== Object.prototype || snapshot.schema_version !== 1) fail("invalid_raw_cutover_snapshot");
+        if (!snapshot || Object.getPrototypeOf(snapshot) !== Object.prototype || snapshot.schema_version !== 1) fail2("invalid_raw_cutover_snapshot");
         const topKeys = ["archive", "cutover_id", "migration_id", "protocol_version", "runtime_roster_digest", "schema_version", "source", "verifier_version"];
         const source = snapshot.source;
         const sourceKeys = ["manifest_digest", "manifest_json", "root_digest"];
         const archive = snapshot.archive;
         const archiveKeys = ["archive_directory", "byte_count", "file_count", "manifest_digest", "source_tasks_root"];
-        if (Object.keys(snapshot).sort().join("|") !== topKeys.join("|") || !source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText2(snapshot.verifier_version, 128) || !validText2(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText2(archive.archive_directory, 32767) || !path17.isAbsolute(archive.archive_directory) || !validText2(archive.source_tasks_root, 32767) || !path17.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0) fail("invalid_raw_cutover_snapshot");
+        if (Object.keys(snapshot).sort().join("|") !== topKeys.join("|") || !source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText3(snapshot.verifier_version, 128) || !validText3(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText3(archive.archive_directory, 32767) || !path15.isAbsolute(archive.archive_directory) || !validText3(archive.source_tasks_root, 32767) || !path15.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0) fail2("invalid_raw_cutover_snapshot");
         const policy = parseAuthoritySourceManifest(source.manifest_json, source.manifest_digest);
-        if (policy.kind !== "raw_json_archive_cutover" || policy.manifest.source_tasks_root !== archive.source_tasks_root || policy.manifest.archive_manifest_digest !== archive.manifest_digest || policy.manifest.archive_file_count !== archive.file_count || policy.manifest.archive_byte_count !== archive.byte_count) fail("raw_cutover_archive_identity_mismatch");
+        if (policy.kind !== "raw_json_archive_cutover" || policy.manifest.source_tasks_root !== archive.source_tasks_root || policy.manifest.archive_manifest_digest !== archive.manifest_digest || policy.manifest.archive_file_count !== archive.file_count || policy.manifest.archive_byte_count !== archive.byte_count) fail2("raw_cutover_archive_identity_mismatch");
         const at = (/* @__PURE__ */ new Date()).toISOString();
         return this.#transaction(() => {
-          if (this.#db.prepare("SELECT COUNT(*) AS n FROM tasks").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migration_runs").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM fresh_install_receipt").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM authority_switch").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n !== 0) fail("migration_target_not_empty");
+          if (this.#db.prepare("SELECT COUNT(*) AS n FROM tasks").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migration_runs").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM fresh_install_receipt").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM authority_switch").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n !== 0) fail2("migration_target_not_empty");
           this.#db.prepare(`INSERT INTO migration_runs(migration_id,state,source_root_digest,source_manifest_json,source_manifest_digest,
         source_task_count,source_artifact_count,source_artifact_bytes,source_result_count,source_event_count,
         archive_directory,archive_manifest_digest,archive_source_tasks_root,archive_file_count,archive_byte_count,
@@ -6019,7 +5131,7 @@ var init_store = __esm({
             snapshot.verifier_version,
             at
           );
-          if (inserted.changes !== 1) fail("authority_switch_insert_failed");
+          if (inserted.changes !== 1) fail2("authority_switch_insert_failed");
           return {
             migration_id: snapshot.migration_id,
             cutover_id: snapshot.cutover_id,
@@ -6038,41 +5150,41 @@ var init_store = __esm({
        */
       importJsonAuthoritySnapshot(snapshot) {
         this.#assertWritable();
-        if (!snapshot || Object.getPrototypeOf(snapshot) !== Object.prototype || snapshot.schema_version !== 1) fail("invalid_migration_snapshot");
+        if (!snapshot || Object.getPrototypeOf(snapshot) !== Object.prototype || snapshot.schema_version !== 1) fail2("invalid_migration_snapshot");
         const topKeys = ["archive", "artifacts", "cutover_id", "events", "historical_exceptions", "migration_id", "protocol_version", "results", "runtime_roster_digest", "schema_version", "source", "tasks", "verifier_version"];
-        if (Object.keys(snapshot).sort().join("|") !== topKeys.join("|")) fail("invalid_migration_snapshot");
+        if (Object.keys(snapshot).sort().join("|") !== topKeys.join("|")) fail2("invalid_migration_snapshot");
         const source = snapshot.source;
         const sourceKeys = ["artifact_bytes", "artifact_count", "event_count", "historical_exception_count", "historical_exception_digest", "manifest_digest", "manifest_json", "result_count", "root_digest", "task_count"];
         const archive = snapshot.archive;
         const archiveKeys = ["archive_directory", "byte_count", "file_count", "manifest_digest", "source_tasks_root"];
-        if (!source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText2(snapshot.verifier_version, 128) || !validText2(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText2(archive.archive_directory, 32767) || !path17.isAbsolute(archive.archive_directory) || !validText2(archive.source_tasks_root, 32767) || !path17.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0 || archive.file_count !== source.artifact_count || archive.byte_count !== source.artifact_bytes || !Array.isArray(snapshot.tasks) || !Array.isArray(snapshot.artifacts) || !Array.isArray(snapshot.results) || !Array.isArray(snapshot.events) || !Array.isArray(snapshot.historical_exceptions) || ![source.task_count, source.artifact_count, source.artifact_bytes, source.result_count, source.event_count].every((v) => Number.isSafeInteger(v) && v >= 0) || !Number.isSafeInteger(source.historical_exception_count) || source.historical_exception_count < 0 || typeof source.historical_exception_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.historical_exception_digest) || source.historical_exception_count !== snapshot.historical_exceptions.length || source.historical_exception_digest !== historicalResultExceptionSetDigest(snapshot.historical_exceptions) || source.artifact_count !== snapshot.artifacts.length || source.result_count !== snapshot.results.length || source.event_count !== snapshot.events.length) fail("invalid_migration_snapshot");
+        if (!source || Object.getPrototypeOf(source) !== Object.prototype || Object.keys(source).sort().join("|") !== sourceKeys.join("|") || !archive || Object.getPrototypeOf(archive) !== Object.prototype || Object.keys(archive).sort().join("|") !== archiveKeys.join("|") || !validId3(snapshot.migration_id) || !validId3(snapshot.cutover_id) || !validText3(snapshot.verifier_version, 128) || !validText3(snapshot.protocol_version, 128) || typeof snapshot.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(snapshot.runtime_roster_digest) || typeof source.root_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.root_digest) || typeof source.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.manifest_digest) || typeof source.manifest_json !== "string" || digest2(source.manifest_json) !== source.manifest_digest || !validText3(archive.archive_directory, 32767) || !path15.isAbsolute(archive.archive_directory) || !validText3(archive.source_tasks_root, 32767) || !path15.isAbsolute(archive.source_tasks_root) || typeof archive.manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(archive.manifest_digest) || !Number.isSafeInteger(archive.file_count) || archive.file_count < 0 || !Number.isSafeInteger(archive.byte_count) || archive.byte_count < 0 || archive.file_count !== source.artifact_count || archive.byte_count !== source.artifact_bytes || !Array.isArray(snapshot.tasks) || !Array.isArray(snapshot.artifacts) || !Array.isArray(snapshot.results) || !Array.isArray(snapshot.events) || !Array.isArray(snapshot.historical_exceptions) || ![source.task_count, source.artifact_count, source.artifact_bytes, source.result_count, source.event_count].every((v) => Number.isSafeInteger(v) && v >= 0) || !Number.isSafeInteger(source.historical_exception_count) || source.historical_exception_count < 0 || typeof source.historical_exception_digest !== "string" || !/^[0-9a-f]{64}$/u.test(source.historical_exception_digest) || source.historical_exception_count !== snapshot.historical_exceptions.length || source.historical_exception_digest !== historicalResultExceptionSetDigest(snapshot.historical_exceptions) || source.artifact_count !== snapshot.artifacts.length || source.result_count !== snapshot.results.length || source.event_count !== snapshot.events.length) fail2("invalid_migration_snapshot");
         const sourceManifest = parseHistoricalExceptionManifest(source.manifest_json, source.manifest_digest);
-        if (sourceManifest.manifest.task_count !== source.task_count || sourceManifest.manifest.artifact_count !== source.artifact_count || sourceManifest.manifest.artifact_bytes !== source.artifact_bytes || sourceManifest.manifest.result_count !== source.result_count || sourceManifest.manifest.event_count !== source.event_count || sourceManifest.manifest.historical_exception_count !== source.historical_exception_count || sourceManifest.manifest.historical_exception_digest !== source.historical_exception_digest || canonical3(sourceManifest.exceptions) !== canonical3(snapshot.historical_exceptions)) fail("invalid_source_manifest");
+        if (sourceManifest.manifest.task_count !== source.task_count || sourceManifest.manifest.artifact_count !== source.artifact_count || sourceManifest.manifest.artifact_bytes !== source.artifact_bytes || sourceManifest.manifest.result_count !== source.result_count || sourceManifest.manifest.event_count !== source.event_count || sourceManifest.manifest.historical_exception_count !== source.historical_exception_count || sourceManifest.manifest.historical_exception_digest !== source.historical_exception_digest || canonical4(sourceManifest.exceptions) !== canonical4(snapshot.historical_exceptions)) fail2("invalid_source_manifest");
         validateHistoricalExceptionSnapshot(snapshot, sourceManifest);
         const at = (/* @__PURE__ */ new Date()).toISOString();
         return this.#transaction(() => {
-          if (this.#db.prepare("SELECT COUNT(*) AS n FROM tasks").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migration_runs").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM fresh_install_receipt").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM authority_switch").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations").get().n !== 0) fail("migration_target_not_empty");
+          if (this.#db.prepare("SELECT COUNT(*) AS n FROM tasks").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM migration_runs").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM fresh_install_receipt").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM authority_switch").get().n !== 0 || this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations").get().n !== 0) fail2("migration_target_not_empty");
           const tasksById = /* @__PURE__ */ new Map();
           for (const task of snapshot.tasks) {
             const taskKeys = ["attempts", "created_at", "current_attempt", "status", "task", "task_id"];
-            if (!task || Object.getPrototypeOf(task) !== Object.prototype || Object.keys(task).sort().join("|") !== taskKeys.join("|") || !validId3(task.task_id) || !task.task || Object.getPrototypeOf(task.task) !== Object.prototype || task.task.task_id !== task.task_id || !validText2(task.created_at, 64) || Number.isNaN(Date.parse(task.created_at)) || !Number.isSafeInteger(task.current_attempt) || task.current_attempt < 1 || !["queued", "running", "completed", "failed", "cancelled", "waiting_for_master"].includes(task.status) || !Array.isArray(task.attempts) || tasksById.has(task.task_id)) fail("invalid_migrated_task");
+            if (!task || Object.getPrototypeOf(task) !== Object.prototype || Object.keys(task).sort().join("|") !== taskKeys.join("|") || !validId3(task.task_id) || !task.task || Object.getPrototypeOf(task.task) !== Object.prototype || task.task.task_id !== task.task_id || !validText3(task.created_at, 64) || Number.isNaN(Date.parse(task.created_at)) || !Number.isSafeInteger(task.current_attempt) || task.current_attempt < 1 || !["queued", "running", "completed", "failed", "cancelled", "waiting_for_master"].includes(task.status) || !Array.isArray(task.attempts) || tasksById.has(task.task_id)) fail2("invalid_migrated_task");
             try {
               validateTaskPackage(task.task);
             } catch {
-              fail("invalid_migrated_task");
+              fail2("invalid_migrated_task");
             }
-            if (task.status === "running") fail("running_task_not_migratable");
-            this.#db.prepare("INSERT INTO tasks(task_id,task_json,status,current_attempt,created_at) VALUES(?,?,?,?,?)").run(task.task_id, canonical3(task.task), task.status, task.current_attempt, task.created_at);
+            if (task.status === "running") fail2("running_task_not_migratable");
+            this.#db.prepare("INSERT INTO tasks(task_id,task_json,status,current_attempt,created_at) VALUES(?,?,?,?,?)").run(task.task_id, canonical4(task.task), task.status, task.current_attempt, task.created_at);
             const seen = /* @__PURE__ */ new Set();
             for (const attempt of task.attempts) {
               const attemptKeys = ["attempt", "created_at", "status"];
-              if (!attempt || Object.getPrototypeOf(attempt) !== Object.prototype || Object.keys(attempt).sort().join("|") !== attemptKeys.join("|") || !Number.isSafeInteger(attempt.attempt) || attempt.attempt < 1 || seen.has(attempt.attempt) || !validText2(attempt.created_at, 64) || Number.isNaN(Date.parse(attempt.created_at)) || !["queued", "completed", "failed", "cancelled", "waiting_for_master"].includes(attempt.status)) fail("invalid_migrated_attempt");
+              if (!attempt || Object.getPrototypeOf(attempt) !== Object.prototype || Object.keys(attempt).sort().join("|") !== attemptKeys.join("|") || !Number.isSafeInteger(attempt.attempt) || attempt.attempt < 1 || seen.has(attempt.attempt) || !validText3(attempt.created_at, 64) || Number.isNaN(Date.parse(attempt.created_at)) || !["queued", "completed", "failed", "cancelled", "waiting_for_master"].includes(attempt.status)) fail2("invalid_migrated_attempt");
               seen.add(attempt.attempt);
               this.#db.prepare("INSERT INTO attempts(task_id,attempt,generation,status,created_at) VALUES(?,?,NULL,?,?)").run(task.task_id, attempt.attempt, attempt.status, attempt.created_at);
             }
             const current = [...task.attempts].find((a) => a.attempt === task.current_attempt);
-            if (!current || current.status !== task.status) fail("migrated_task_attempt_mismatch");
-            for (let n = 1; n <= task.current_attempt; n++) if (!seen.has(n)) fail("migrated_attempt_gap");
+            if (!current || current.status !== task.status) fail2("migrated_task_attempt_mismatch");
+            for (let n = 1; n <= task.current_attempt; n++) if (!seen.has(n)) fail2("migrated_attempt_gap");
             tasksById.set(task.task_id, task);
           }
           this.#db.prepare(`INSERT INTO migration_runs(migration_id,state,source_root_digest,source_manifest_json,source_manifest_digest,
@@ -6102,41 +5214,41 @@ var init_store = __esm({
           const artifactsById = /* @__PURE__ */ new Map();
           for (const artifact of snapshot.artifacts) {
             const keys = ["artifact_id", "attempt", "byte_length", "content", "kind", "relative_path", "sha256", "task_id"];
-            if (!artifact || Object.getPrototypeOf(artifact) !== Object.prototype || Object.keys(artifact).sort().join("|") !== keys.join("|") || !validId3(artifact.artifact_id) || !validText2(artifact.relative_path, 1024) || artifact.relative_path.includes("\\") || artifact.relative_path.startsWith("/") || artifact.relative_path.split("/").some((v) => !v || v === "." || v === "..") || !validText2(artifact.kind, 64) || !Number.isSafeInteger(artifact.byte_length) || artifact.byte_length < 0 || artifact.byte_length > 67108864 || typeof artifact.sha256 !== "string" || !/^[0-9a-f]{64}$/u.test(artifact.sha256) || !(artifact.content instanceof Uint8Array) || artifact.content.byteLength !== artifact.byte_length || rawDigest(artifact.content) !== artifact.sha256 || artifact.task_id !== null && !tasksById.has(artifact.task_id) || artifact.attempt !== null && (!Number.isSafeInteger(artifact.attempt) || artifact.attempt < 1) || artifact.attempt !== null && artifact.task_id === null || artifactsById.has(artifact.artifact_id) || [...artifactsById.values()].some((existing) => existing.relative_path === artifact.relative_path)) fail("invalid_migrated_artifact");
+            if (!artifact || Object.getPrototypeOf(artifact) !== Object.prototype || Object.keys(artifact).sort().join("|") !== keys.join("|") || !validId3(artifact.artifact_id) || !validText3(artifact.relative_path, 1024) || artifact.relative_path.includes("\\") || artifact.relative_path.startsWith("/") || artifact.relative_path.split("/").some((v) => !v || v === "." || v === "..") || !validText3(artifact.kind, 64) || !Number.isSafeInteger(artifact.byte_length) || artifact.byte_length < 0 || artifact.byte_length > 67108864 || typeof artifact.sha256 !== "string" || !/^[0-9a-f]{64}$/u.test(artifact.sha256) || !(artifact.content instanceof Uint8Array) || artifact.content.byteLength !== artifact.byte_length || rawDigest(artifact.content) !== artifact.sha256 || artifact.task_id !== null && !tasksById.has(artifact.task_id) || artifact.attempt !== null && (!Number.isSafeInteger(artifact.attempt) || artifact.attempt < 1) || artifact.attempt !== null && artifact.task_id === null || artifactsById.has(artifact.artifact_id) || [...artifactsById.values()].some((existing) => existing.relative_path === artifact.relative_path)) fail2("invalid_migrated_artifact");
             if (artifact.attempt !== null && !this.#db.prepare("SELECT 1 FROM attempts WHERE task_id=? AND attempt=?").get(artifact.task_id, artifact.attempt))
-              fail("invalid_migrated_artifact_attempt");
+              fail2("invalid_migrated_artifact_attempt");
             const content = Buffer.from(artifact.content);
             this.#db.prepare("INSERT INTO json_artifacts(artifact_id,migration_id,relative_path,task_id,attempt,kind,byte_length,sha256,content,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)").run(artifact.artifact_id, snapshot.migration_id, artifact.relative_path, artifact.task_id, artifact.attempt, artifact.kind, artifact.byte_length, artifact.sha256, content, at);
             artifactsById.set(artifact.artifact_id, artifact);
             artifactBytes += artifact.byte_length;
           }
-          if (artifactBytes !== source.artifact_bytes) fail("migration_artifact_bytes_mismatch");
+          if (artifactBytes !== source.artifact_bytes) fail2("migration_artifact_bytes_mismatch");
           for (const result of snapshot.results) {
             const keys = ["artifact_id", "attempt", "result", "task_id"];
-            if (!result || Object.getPrototypeOf(result) !== Object.prototype || Object.keys(result).sort().join("|") !== keys.join("|") || !tasksById.has(result.task_id) || !Number.isSafeInteger(result.attempt) || result.attempt < 1 || !validId3(result.artifact_id)) fail("invalid_migrated_result");
+            if (!result || Object.getPrototypeOf(result) !== Object.prototype || Object.keys(result).sort().join("|") !== keys.join("|") || !tasksById.has(result.task_id) || !Number.isSafeInteger(result.attempt) || result.attempt < 1 || !validId3(result.artifact_id)) fail2("invalid_migrated_result");
             const task = tasksById.get(result.task_id);
             const artifact = artifactsById.get(result.artifact_id);
             const expectedPath = result.attempt === task.current_attempt ? `${result.task_id}/result.json` : `${result.task_id}/attempts/${result.attempt}/result.json`;
             const currentResultArtifact = artifact?.attempt === null && artifact?.kind === "task_result" && expectedPath === `${result.task_id}/result.json`;
             if (!task.attempts.some((value) => value.attempt === result.attempt) || !artifact || artifact.task_id !== result.task_id || artifact.attempt !== result.attempt && !currentResultArtifact || artifact.relative_path !== expectedPath)
-              fail("migrated_result_artifact_mismatch");
+              fail2("migrated_result_artifact_mismatch");
             let canonicalResult;
             try {
-              canonicalResult = canonicalTaskResult(result.result, { task_id: result.task_id, attempt: result.attempt, result_status: result.result?.status });
+              canonicalResult = canonicalTaskResult2(result.result, { task_id: result.task_id, attempt: result.attempt, result_status: result.result?.status });
             } catch {
-              fail("invalid_migrated_result");
+              fail2("invalid_migrated_result");
             }
             this.#db.prepare("INSERT INTO migrated_task_results(task_id,attempt,result_json,result_digest,artifact_id) VALUES(?,?,?,?,?)").run(result.task_id, result.attempt, canonicalResult, digest2(canonicalResult), result.artifact_id);
           }
           let cursor = 0;
           for (const event of snapshot.events) {
             const keys = ["artifact_id", "at", "attempt", "details", "event_type", "source_sequence", "summary", "task_id"];
-            if (!event || Object.getPrototypeOf(event) !== Object.prototype || Object.keys(event).sort().join("|") !== keys.join("|") || !tasksById.has(event.task_id) || !Number.isSafeInteger(event.source_sequence) || event.source_sequence < 1 || !validText2(event.event_type, 128) || !validText2(event.at, 64) || Number.isNaN(Date.parse(event.at)) || !validText2(event.summary, 4096) || !validId3(event.artifact_id) || event.attempt !== null && (!Number.isSafeInteger(event.attempt) || event.attempt < 1) || event.details !== null && Object.getPrototypeOf(event.details) !== Object.prototype) fail("invalid_migrated_event");
+            if (!event || Object.getPrototypeOf(event) !== Object.prototype || Object.keys(event).sort().join("|") !== keys.join("|") || !tasksById.has(event.task_id) || !Number.isSafeInteger(event.source_sequence) || event.source_sequence < 1 || !validText3(event.event_type, 128) || !validText3(event.at, 64) || Number.isNaN(Date.parse(event.at)) || !validText3(event.summary, 4096) || !validId3(event.artifact_id) || event.attempt !== null && (!Number.isSafeInteger(event.attempt) || event.attempt < 1) || event.details !== null && Object.getPrototypeOf(event.details) !== Object.prototype) fail2("invalid_migrated_event");
             const artifact = artifactsById.get(event.artifact_id);
             if (!artifact || artifact.task_id !== event.task_id || artifact.attempt !== null || artifact.relative_path !== `${event.task_id}/events.jsonl`)
-              fail("migrated_event_artifact_mismatch");
-            const detailsJson = event.details === null ? null : canonical3(event.details);
-            if (detailsJson !== null && Buffer.byteLength(detailsJson, "utf8") > 1048576) fail("invalid_migrated_event");
+              fail2("migrated_event_artifact_mismatch");
+            const detailsJson = event.details === null ? null : canonical4(event.details);
+            if (detailsJson !== null && Buffer.byteLength(detailsJson, "utf8") > 1048576) fail2("invalid_migrated_event");
             cursor += 1;
             this.#db.prepare(`INSERT INTO migrated_task_events(event_cursor,task_id,attempt,source_sequence,event_type,at,summary,details_json,details_digest,artifact_id)
           VALUES(?,?,?,?,?,?,?,?,?,?)`).run(
@@ -6153,7 +5265,7 @@ var init_store = __esm({
             );
           }
           const changed = this.#db.prepare("UPDATE authority_metadata SET next_event_cursor=? WHERE singleton=1 AND next_event_cursor=0").run(cursor);
-          if (changed.changes !== 1) fail("event_cursor_authority_not_initial");
+          if (changed.changes !== 1) fail2("event_cursor_authority_not_initial");
           if (cursor > 0) {
             const sequence = this.#db.prepare("SELECT seq FROM sqlite_sequence WHERE name='manager_operation_events'").get();
             if (sequence) this.#db.prepare("UPDATE sqlite_sequence SET seq=? WHERE name='manager_operation_events'").run(cursor);
@@ -6178,7 +5290,7 @@ var init_store = __esm({
             snapshot.verifier_version,
             at
           );
-          if (inserted.changes !== 1) fail("authority_switch_insert_failed");
+          if (inserted.changes !== 1) fail2("authority_switch_insert_failed");
           return {
             migration_id: snapshot.migration_id,
             cutover_id: snapshot.cutover_id,
@@ -6194,10 +5306,10 @@ var init_store = __esm({
       createTask(task, createdAt = (/* @__PURE__ */ new Date()).toISOString()) {
         this.#assertWritable();
         validateTaskPackage(task);
-        if (!validText2(createdAt, 64) || Number.isNaN(Date.parse(createdAt))) fail("invalid_task_created_at");
-        const taskJson = canonical3(task);
+        if (!validText3(createdAt, 64) || Number.isNaN(Date.parse(createdAt))) fail2("invalid_task_created_at");
+        const taskJson = canonical4(task);
         return this.#transaction(() => {
-          if (this.#db.prepare("SELECT task_id FROM tasks WHERE task_id=?").get(task.task_id)) fail("task_already_exists");
+          if (this.#db.prepare("SELECT task_id FROM tasks WHERE task_id=?").get(task.task_id)) fail2("task_already_exists");
           this.#db.prepare("INSERT INTO tasks(task_id,task_json,status,current_attempt,created_at) VALUES(?,?,'queued',1,?)").run(task.task_id, taskJson, createdAt);
           this.#db.prepare("INSERT INTO attempts(task_id,attempt,generation,status,created_at) VALUES(?,1,NULL,'queued',?)").run(task.task_id, createdAt);
           this.#faultPoint("after_projection");
@@ -6212,10 +5324,10 @@ var init_store = __esm({
           try {
             task = JSON.parse(row.task_json);
           } catch {
-            fail("task_projection_invalid");
+            fail2("task_projection_invalid");
           }
           validateTaskPackage(task);
-          if (task.task_id !== taskId) fail("task_projection_identity_mismatch");
+          if (task.task_id !== taskId) fail2("task_projection_identity_mismatch");
           return task;
         });
       }
@@ -6242,25 +5354,25 @@ var init_store = __esm({
             try {
               task = JSON.parse(row.task_json);
             } catch {
-              fail("task_projection_invalid");
+              fail2("task_projection_invalid");
             }
             validateTaskPackage(task);
-            if (task.task_id !== row.task_id || row.attempt !== row.current_attempt) fail("task_attempt_projection_mismatch");
+            if (task.task_id !== row.task_id || row.attempt !== row.current_attempt) fail2("task_attempt_projection_mismatch");
             const hasOperation = row.operation_id !== null;
-            if (!hasOperation && row.generation !== null) fail("queued_attempt_generation_without_operation");
-            if (hasOperation && (row.operation_task_id !== row.task_id || row.operation_attempt !== row.attempt || row.operation_generation !== row.generation || row.generation === null)) fail("queued_operation_identity_mismatch");
+            if (!hasOperation && row.generation !== null) fail2("queued_attempt_generation_without_operation");
+            if (hasOperation && (row.operation_task_id !== row.task_id || row.operation_attempt !== row.attempt || row.operation_generation !== row.generation || row.generation === null)) fail2("queued_operation_identity_mismatch");
             let dispatchable = !hasOperation;
             let reason = hasOperation ? "operation_requires_recovery" : null;
             if (hasOperation && row.phase === "reserved" && row.operation_revision === 1 && row.launch_id === null && row.launch_epoch === null && row.launch_token_digest === null && row.launch_intent_digest === null && row.launch_receipt_id === null && row.launch_receipt_digest === null && row.launch_identity_json === null && row.claim_id === null && row.claim_request_digest === null && row.claim_worker_identity_json === null && row.claim_worker_identity_digest === null && row.claim_launch_id === null && row.claim_generation === null && row.claim_token_digest === null && row.result_status === null && row.result_generation === null && row.result_digest === null && row.result_json === null && row.result_commit_ref === null) {
               const events = this.#db.prepare("SELECT operation_id,event_cursor,sequence,event_type,from_phase,to_phase,generation,evidence_json FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(row.operation_id);
-              if (events.length !== 1 || events[0].sequence !== 1 || events[0].event_type !== "reserved" || events[0].from_phase !== null || events[0].operation_id !== row.operation_id || !Number.isSafeInteger(events[0].event_cursor) || events[0].event_cursor < 1 || events[0].to_phase !== "reserved" || events[0].generation !== row.generation) fail("reserved_operation_history_invalid");
+              if (events.length !== 1 || events[0].sequence !== 1 || events[0].event_type !== "reserved" || events[0].from_phase !== null || events[0].operation_id !== row.operation_id || !Number.isSafeInteger(events[0].event_cursor) || events[0].event_cursor < 1 || events[0].to_phase !== "reserved" || events[0].generation !== row.generation) fail2("reserved_operation_history_invalid");
               let evidence;
               try {
                 evidence = JSON.parse(events[0].evidence_json);
               } catch {
-                fail("reserved_operation_history_invalid");
+                fail2("reserved_operation_history_invalid");
               }
-              if (evidence.reservation_id !== row.reservation_id || evidence.capacity_slot !== row.capacity_slot) fail("reserved_operation_history_invalid");
+              if (evidence.reservation_id !== row.reservation_id || evidence.capacity_slot !== row.capacity_slot) fail2("reserved_operation_history_invalid");
               dispatchable = true;
               reason = null;
             }
@@ -6278,12 +5390,12 @@ var init_store = __esm({
         });
       }
       readAttempt(taskId, attempt) {
-        if (!validId3(taskId) || !Number.isSafeInteger(attempt) || attempt < 1) fail("invalid_attempt_identity");
+        if (!validId3(taskId) || !Number.isSafeInteger(attempt) || attempt < 1) fail2("invalid_attempt_identity");
         return this.#readConsistent(() => this.#db.prepare("SELECT task_id,attempt,generation,status,created_at FROM attempts WHERE task_id=? AND attempt=?").get(taskId, attempt) ?? null);
       }
       /** Read one imported historical Result without treating JSON as online authority. */
       readMigratedResult(taskId, attempt) {
-        if (!validId3(taskId) || !Number.isSafeInteger(attempt) || attempt < 1) fail("invalid_result_identity");
+        if (!validId3(taskId) || !Number.isSafeInteger(attempt) || attempt < 1) fail2("invalid_result_identity");
         return this.#readConsistent(() => {
           const row = this.#db.prepare("SELECT task_id,attempt,result_json,result_digest,artifact_id FROM migrated_task_results WHERE task_id=? AND attempt=?").get(taskId, attempt);
           if (!row) return null;
@@ -6291,9 +5403,9 @@ var init_store = __esm({
           try {
             result = JSON.parse(row.result_json);
           } catch {
-            fail("migrated_result_projection_invalid");
+            fail2("migrated_result_projection_invalid");
           }
-          if (digest2(row.result_json) !== row.result_digest) fail("migrated_result_digest_mismatch");
+          if (digest2(row.result_json) !== row.result_digest) fail2("migrated_result_digest_mismatch");
           return { task_id: row.task_id, attempt: row.attempt, result, artifact_id: row.artifact_id };
         });
       }
@@ -6307,7 +5419,7 @@ var init_store = __esm({
       }
       /** Read the Task, current Attempt, bound Operation and verified Result in one snapshot. */
       readTaskLifecycle(taskId) {
-        if (!validId3(taskId)) fail("invalid_task_id");
+        if (!validId3(taskId)) fail2("invalid_task_id");
         return this.#readConsistent(() => {
           const taskRow = this.#db.prepare("SELECT task_id,status,current_attempt,created_at,task_json FROM tasks WHERE task_id=?").get(taskId);
           if (!taskRow) return null;
@@ -6315,13 +5427,13 @@ var init_store = __esm({
           try {
             task = JSON.parse(taskRow.task_json);
           } catch {
-            fail("task_projection_invalid");
+            fail2("task_projection_invalid");
           }
           validateTaskPackage(task);
-          if (task.task_id !== taskId) fail("task_projection_identity_mismatch");
+          if (task.task_id !== taskId) fail2("task_projection_identity_mismatch");
           const attemptRow = this.#db.prepare("SELECT task_id,attempt,generation,status,created_at,continuation_operation_id,continuation_json,continuation_digest,queued_cancel_result_json FROM attempts WHERE task_id=? AND attempt=?").get(taskId, taskRow.current_attempt);
           const attempt = attemptRow ? { task_id: attemptRow.task_id, attempt: attemptRow.attempt, generation: attemptRow.generation, status: attemptRow.status, created_at: attemptRow.created_at } : null;
-          if (!attempt) fail("task_attempt_projection_mismatch");
+          if (!attempt) fail2("task_attempt_projection_mismatch");
           const operationRow = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(taskId, taskRow.current_attempt);
           const adminAbandonment = operationRow ? this.#adminAbandonments().get(operationRow.operation_id) : void 0;
           const operation = operationRow ? presentOperation(operationRow, adminAbandonment) : null;
@@ -6330,13 +5442,13 @@ var init_store = __esm({
             try {
               result = JSON.parse(operationRow.result_json);
             } catch {
-              fail("result_projection_invalid");
+              fail2("result_projection_invalid");
             }
           } else if (attemptRow.queued_cancel_result_json !== null) {
             try {
               result = JSON.parse(attemptRow.queued_cancel_result_json);
             } catch {
-              fail("result_projection_invalid");
+              fail2("result_projection_invalid");
             }
           } else {
             const migrated = this.#db.prepare("SELECT result_json FROM migrated_task_results WHERE task_id=? AND attempt=?").get(taskId, taskRow.current_attempt);
@@ -6344,12 +5456,14 @@ var init_store = __esm({
               try {
                 result = JSON.parse(migrated.result_json);
               } catch {
-                fail("result_projection_invalid");
+                fail2("result_projection_invalid");
               }
             }
           }
           const continuation = attemptRow.continuation_json === null ? null : JSON.parse(attemptRow.continuation_json);
-          return { task, projection: { task_id: taskRow.task_id, status: taskRow.status, current_attempt: taskRow.current_attempt, created_at: taskRow.created_at }, attempt, operation, result, continuation };
+          const rejected = operationRow ? this.#db.prepare("SELECT evidence_json FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded' AND json_extract(evidence_json,'$.reason') LIKE 'result_submission_failed:%' ORDER BY sequence DESC LIMIT 1").get(operationRow.operation_id) : null;
+          const result_submission_error = rejected ? JSON.parse(rejected.evidence_json).reason.slice("result_submission_failed:".length) : null;
+          return { task, projection: { task_id: taskRow.task_id, status: taskRow.status, current_attempt: taskRow.current_attempt, created_at: taskRow.created_at }, attempt, operation, result, continuation, ...result_submission_error ? { result_submission_error } : {} };
         });
       }
       /** Conservative Candidate feedback projection. No runtime observation or
@@ -6357,7 +5471,7 @@ var init_store = __esm({
       readTaskFeedback(taskId) {
         const snapshot = this.readTaskLifecycle(taskId);
         if (!snapshot) return null;
-        if (snapshot.projection.status !== snapshot.attempt.status) fail("task_attempt_projection_mismatch");
+        if (snapshot.projection.status !== snapshot.attempt.status) fail2("task_attempt_projection_mismatch");
         return {
           schema_version: "0.1",
           task_id: snapshot.projection.task_id,
@@ -6377,10 +5491,10 @@ var init_store = __esm({
       recordInteractionRequest(input) {
         this.#assertWritable();
         const request = input?.request;
-        if (!validateInteractionRequest(request)) fail("invalid_interaction_request");
-        if (!validInteractionFence(input) || typeof input.worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.worker_identity_digest)) fail("invalid_interaction_fence");
+        if (!validateInteractionRequest(request)) fail2("invalid_interaction_request");
+        if (!validInteractionFence(input) || typeof input.worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.worker_identity_digest)) fail2("invalid_interaction_fence");
         const requestJson = interactionCanonical(request);
-        if (Buffer.byteLength(requestJson, "utf8") > 1048576) fail("interaction_request_too_large");
+        if (Buffer.byteLength(requestJson, "utf8") > 1048576) fail2("interaction_request_too_large");
         const requestDigest = interactionDigest({
           interaction_contract_version: 1,
           operation_id: input.operation_id,
@@ -6395,9 +5509,9 @@ var init_store = __esm({
           const existing = this.#db.prepare("SELECT * FROM manager_interaction_payloads WHERE operation_id=? AND request_id=?").get(input.operation_id, request.request_id);
           if (existing) {
             if (existing.request_digest !== requestDigest || existing.task_id !== input.task_id || existing.attempt !== input.attempt || existing.generation !== input.generation || existing.claim_id !== input.claim_id || existing.worker_identity_digest !== input.worker_identity_digest)
-              fail("interaction_request_conflict");
+              fail2("interaction_request_conflict");
             const event = this.#db.prepare("SELECT sequence FROM manager_operation_events WHERE operation_id=? AND event_type='interaction_requested' AND json_extract(evidence_json,'$.request_id')=?").get(input.operation_id, request.request_id);
-            if (!event) fail("interaction_history_mismatch");
+            if (!event) fail2("interaction_history_mismatch");
             return {
               duplicate: true,
               operation_id: input.operation_id,
@@ -6413,11 +5527,11 @@ var init_store = __esm({
           const o = this.#attemptOperation(input);
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertInteractionRunning(o, input);
-          if (o.revision !== input.expected_revision) fail("stale_interaction_cas");
+          if (o.revision !== input.expected_revision) fail2("stale_interaction_cas");
           const priorCount = this.#db.prepare("SELECT COUNT(*) AS n FROM manager_interaction_payloads WHERE operation_id=?").get(o.operation_id).n;
-          if (priorCount >= 128) fail("interaction_request_limit");
+          if (priorCount >= 128) fail2("interaction_request_limit");
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, o.revision, o.claim_id, o.generation, o.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_interaction_cas");
+          if (changed.changes !== 1) fail2("stale_interaction_cas");
           this.#faultPoint("after_projection");
           this.#db.prepare("INSERT INTO manager_interaction_payloads(operation_id,request_id,task_id,attempt,generation,claim_id,worker_identity_digest,request_method,request_json,request_digest) VALUES(?,?,?,?,?,?,?,?,?,?)").run(o.operation_id, request.request_id, o.task_id, o.attempt, o.generation, o.claim_id, o.claim_worker_identity_digest, request.method, requestJson, requestDigest);
           this.#faultPoint("after_interaction_payload");
@@ -6449,30 +5563,30 @@ var init_store = __esm({
       }
       /** Read the current Attempt's request and derive state only from immutable events. */
       readInteractionRequest(taskId, requestId) {
-        if (!validId3(taskId) || typeof requestId !== "string" || !validId3(requestId) || requestId.length > 512) fail("invalid_interaction_request_id");
+        if (!validId3(taskId) || typeof requestId !== "string" || !validId3(requestId) || requestId.length > 512) fail2("invalid_interaction_request_id");
         return this.#readConsistent(() => {
           const task = this.#db.prepare("SELECT task_id,current_attempt FROM tasks WHERE task_id=?").get(taskId);
-          if (!task) fail("task_not_found");
+          if (!task) fail2("task_not_found");
           return this.#readInteractionRequestInSnapshot(task, requestId);
         });
       }
       /** Read current Attention facts in one SQLite snapshot without mutating state. */
       readTaskAttention(taskId) {
-        if (!validId3(taskId)) fail("invalid_task_id");
+        if (!validId3(taskId)) fail2("invalid_task_id");
         return this.#readConsistent(() => {
           const task = this.#db.prepare("SELECT task_id,status,current_attempt FROM tasks WHERE task_id=?").get(taskId);
           if (!task) return null;
           const attempt = this.#db.prepare("SELECT attempt,generation,status FROM attempts WHERE task_id=? AND attempt=?").get(taskId, task.current_attempt);
-          if (!attempt || attempt.attempt !== task.current_attempt || attempt.status !== task.status) fail("task_attempt_projection_mismatch");
+          if (!attempt || attempt.attempt !== task.current_attempt || attempt.status !== task.status) fail2("task_attempt_projection_mismatch");
           const pending = [];
           if (task.status === "completed" || task.status === "failed" || task.status === "cancelled" || task.status === "waiting_for_master") {
             return { task_id: task.task_id, attempt: task.current_attempt, status: task.status, pending_requests: [] };
           }
           if (task.status === "queued") return { task_id: task.task_id, attempt: task.current_attempt, status: task.status, pending_requests: [] };
-          if (task.status !== "running") fail("task_attempt_projection_mismatch");
+          if (task.status !== "running") fail2("task_attempt_projection_mismatch");
           const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(taskId, task.current_attempt);
           if (!operation || attempt.status !== "running" || operation.phase !== "running" || operation.generation !== attempt.generation || operation.claim_generation !== operation.generation || !operation.claim_id || !operation.claim_worker_identity_digest)
-            fail("interaction_task_projection_mismatch");
+            fail2("interaction_task_projection_mismatch");
           const candidates = this.#db.prepare(`SELECT p.request_id,e.sequence
         FROM manager_interaction_payloads p
         LEFT JOIN manager_operation_events e ON e.operation_id=p.operation_id
@@ -6482,8 +5596,8 @@ var init_store = __esm({
         ORDER BY e.sequence,p.rowid`).all(operation.operation_id, taskId, task.current_attempt);
           for (const candidate of candidates) {
             const request = this.#readInteractionRequestInSnapshot(task, candidate.request_id);
-            if (!request) fail("interaction_history_mismatch");
-            if (request.state === "unknown") fail("interaction_reply_outcome_unknown");
+            if (!request) fail2("interaction_history_mismatch");
+            if (request.state === "unknown") fail2("interaction_reply_outcome_unknown");
             if (request.state === "pending") pending.push(candidate.request_id);
           }
           return { task_id: task.task_id, attempt: task.current_attempt, status: task.status, pending_requests: pending };
@@ -6499,7 +5613,7 @@ var init_store = __esm({
         const prepared = events.find((e) => e.event_type === "interaction_reply_prepared");
         const committed = events.find((e) => e.event_type === "interaction_reply_committed");
         const accepted = events.find((e) => e.event_type === "interaction_reply_accepted");
-        if (!requestEvent || events.filter((e) => e.event_type === "interaction_requested").length !== 1 || events.filter((e) => e.event_type === "interaction_reply_intent").length > 1 || events.filter((e) => e.event_type === "interaction_reply_prepared").length > 1 || events.filter((e) => e.event_type === "interaction_reply_committed").length > 1 || events.filter((e) => e.event_type === "interaction_reply_accepted").length > 1 || accepted && !committed || events.some((e) => e.evidence_digest !== digest2(e.evidence_json)) || requestEvent.evidence.request_digest !== payload.request_digest || requestEvent.evidence.request_method !== payload.request_method || intent && (intent.sequence <= requestEvent.sequence || intent.evidence.reply_id !== payload.reply_id || intent.evidence.answer_digest !== payload.answer_digest) || prepared && (!intent || prepared.sequence !== intent.sequence + 1 || prepared.evidence.reply_id !== payload.reply_id || prepared.evidence.answer_digest !== payload.answer_digest) || committed && (!prepared || committed.sequence !== prepared.sequence + 1 || committed.evidence.reply_id !== payload.reply_id || committed.evidence.answer_digest !== payload.answer_digest || committed.evidence.prepared_digest !== prepared.evidence.prepared_digest) || accepted && (!committed || accepted.sequence !== committed.sequence + 1 || accepted.evidence.reply_id !== payload.reply_id || accepted.evidence.answer_digest !== payload.answer_digest || accepted.evidence.commit_digest !== committed.evidence.commit_digest)) fail("interaction_history_mismatch");
+        if (!requestEvent || events.filter((e) => e.event_type === "interaction_requested").length !== 1 || events.filter((e) => e.event_type === "interaction_reply_intent").length > 1 || events.filter((e) => e.event_type === "interaction_reply_prepared").length > 1 || events.filter((e) => e.event_type === "interaction_reply_committed").length > 1 || events.filter((e) => e.event_type === "interaction_reply_accepted").length > 1 || accepted && !committed || events.some((e) => e.evidence_digest !== digest2(e.evidence_json)) || requestEvent.evidence.request_digest !== payload.request_digest || requestEvent.evidence.request_method !== payload.request_method || intent && (intent.sequence <= requestEvent.sequence || intent.evidence.reply_id !== payload.reply_id || intent.evidence.answer_digest !== payload.answer_digest) || prepared && (!intent || prepared.sequence !== intent.sequence + 1 || prepared.evidence.reply_id !== payload.reply_id || prepared.evidence.answer_digest !== payload.answer_digest) || committed && (!prepared || committed.sequence !== prepared.sequence + 1 || committed.evidence.reply_id !== payload.reply_id || committed.evidence.answer_digest !== payload.answer_digest || committed.evidence.prepared_digest !== prepared.evidence.prepared_digest) || accepted && (!committed || accepted.sequence !== committed.sequence + 1 || accepted.evidence.reply_id !== payload.reply_id || accepted.evidence.answer_digest !== payload.answer_digest || accepted.evidence.commit_digest !== committed.evidence.commit_digest)) fail2("interaction_history_mismatch");
         const request = JSON.parse(payload.request_json);
         if (!validateInteractionRequest(request) || interactionCanonical(request) !== payload.request_json || request.request_id !== requestIdValue || request.method !== payload.request_method || payload.request_digest !== interactionDigest({
           interaction_contract_version: 1,
@@ -6511,7 +5625,7 @@ var init_store = __esm({
           worker_identity_digest: payload.worker_identity_digest,
           request
         }))
-          fail("interaction_history_mismatch");
+          fail2("interaction_history_mismatch");
         if (intent) {
           const answer = JSON.parse(payload.answer_json);
           if (interactionCanonical(answer) !== payload.answer_json || !validPersistedInteractionAnswer(request, answer) || payload.answer_digest !== interactionDigest({
@@ -6525,7 +5639,7 @@ var init_store = __esm({
             request_id: requestIdValue,
             answer
           }))
-            fail("interaction_history_mismatch");
+            fail2("interaction_history_mismatch");
         }
         return {
           operation_id: payload.operation_id,
@@ -6544,20 +5658,20 @@ var init_store = __esm({
       /** Persist reply intent before any channel write. An intent without accepted ack is never replayed. */
       beginInteractionReply(input) {
         this.#assertWritable();
-        if (!validInteractionReplyInput(input)) fail("invalid_interaction_reply");
+        if (!validInteractionReplyInput(input)) fail2("invalid_interaction_reply");
         return this.#transaction(() => {
           const task = this.#db.prepare("SELECT status,current_attempt FROM tasks WHERE task_id=?").get(input.task_id);
-          if (!task) fail("task_not_found");
+          if (!task) fail2("task_not_found");
           const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(input.task_id, task.current_attempt);
-          if (!o) fail("interaction_operation_missing");
+          if (!o) fail2("interaction_operation_missing");
           const p = this.#db.prepare("SELECT * FROM manager_interaction_payloads WHERE operation_id=? AND request_id=?").get(o.operation_id, input.request_id);
-          if (!p) fail("interaction_request_not_found");
+          if (!p) fail2("interaction_request_not_found");
           const ev = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='interaction_requested' AND json_extract(evidence_json,'$.request_id')=?").get(o.operation_id, input.request_id);
-          if (!ev || ev.evidence_digest !== digest2(ev.evidence_json) || JSON.parse(ev.evidence_json).request_digest !== p.request_digest) fail("interaction_history_mismatch");
+          if (!ev || ev.evidence_digest !== digest2(ev.evidence_json) || JSON.parse(ev.evidence_json).request_digest !== p.request_digest) fail2("interaction_history_mismatch");
           const previous = this.#db.prepare("SELECT event_type,evidence_json FROM manager_operation_events WHERE operation_id=? AND json_extract(evidence_json,'$.request_id')=? AND event_type IN ('interaction_reply_intent','interaction_reply_accepted') ORDER BY sequence").all(o.operation_id, input.request_id);
-          if (previous.some((e) => e.event_type === "interaction_reply_accepted")) fail("interaction_already_answered");
-          if (previous.some((e) => e.event_type === "interaction_reply_intent")) fail("interaction_reply_outcome_unknown");
-          if (task.status !== "running" || o.phase !== "running" || o.task_id !== p.task_id || o.attempt !== p.attempt || o.generation !== p.generation || o.claim_id !== p.claim_id || o.claim_worker_identity_digest !== p.worker_identity_digest) fail("stale_interaction_identity");
+          if (previous.some((e) => e.event_type === "interaction_reply_accepted")) fail2("interaction_already_answered");
+          if (previous.some((e) => e.event_type === "interaction_reply_intent")) fail2("interaction_reply_outcome_unknown");
+          if (task.status !== "running" || o.phase !== "running" || o.task_id !== p.task_id || o.attempt !== p.attempt || o.generation !== p.generation || o.claim_id !== p.claim_id || o.claim_worker_identity_digest !== p.worker_identity_digest) fail2("stale_interaction_identity");
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertNoCancellationIntent(o.operation_id);
           this.#assertInteractionRunning(o, {
@@ -6569,9 +5683,9 @@ var init_store = __esm({
             worker_identity_digest: p.worker_identity_digest
           });
           const request = JSON.parse(p.request_json);
-          const answer = buildInteractionAnswer2(request, input);
+          const answer = buildInteractionAnswer(request, input);
           const answerJson = interactionCanonical(answer);
-          if (Buffer.byteLength(answerJson, "utf8") > 2e4) fail("interaction_answer_too_large");
+          if (Buffer.byteLength(answerJson, "utf8") > 2e4) fail2("interaction_answer_too_large");
           const answerDigest = interactionDigest({
             interaction_reply_contract_version: 1,
             operation_id: o.operation_id,
@@ -6583,11 +5697,11 @@ var init_store = __esm({
             request_id: input.request_id,
             answer
           });
-          const replyId = randomUUID5();
+          const replyId = randomUUID3();
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, o.revision, o.claim_id, o.generation, o.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_interaction_cas");
+          if (changed.changes !== 1) fail2("stale_interaction_cas");
           const saved = this.#db.prepare("UPDATE manager_interaction_payloads SET answer_json=?,answer_digest=?,reply_id=? WHERE operation_id=? AND request_id=? AND answer_json IS NULL").run(answerJson, answerDigest, replyId, o.operation_id, input.request_id);
-          if (saved.changes !== 1) fail("interaction_reply_conflict");
+          if (saved.changes !== 1) fail2("interaction_reply_conflict");
           this.#faultPoint("after_projection");
           this.#event(
             o.operation_id,
@@ -6621,16 +5735,16 @@ var init_store = __esm({
        * before allowing the caller to send the commit frame. */
       commitInteractionReply(preparedAck) {
         this.#assertWritable();
-        if (!isCandidateInteractionPreparedAcknowledgement(preparedAck) || !validInteractionPreparedAcknowledgement(preparedAck)) fail("invalid_interaction_prepared_ack");
+        if (!isCandidateInteractionPreparedAcknowledgement(preparedAck) || !validInteractionPreparedAcknowledgement(preparedAck)) fail2("invalid_interaction_prepared_ack");
         return this.#transaction(() => {
           const o = this.#attemptOperation({ ...preparedAck, expected_revision: preparedAck.revision });
           const p = this.#db.prepare("SELECT * FROM manager_interaction_payloads WHERE operation_id=? AND request_id=?").get(o.operation_id, preparedAck.request_id);
           const intent = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='interaction_reply_intent' AND json_extract(evidence_json,'$.request_id')=?").get(o.operation_id, preparedAck.request_id);
-          if (!p || !intent) fail("interaction_reply_intent_missing");
+          if (!p || !intent) fail2("interaction_reply_intent_missing");
           const ie = JSON.parse(intent.evidence_json);
-          if (p.reply_id !== preparedAck.reply_id || p.answer_digest !== preparedAck.answer_digest || ie.reply_id !== preparedAck.reply_id || ie.answer_digest !== preparedAck.answer_digest || o.claim_id !== preparedAck.claim_id || o.claim_worker_identity_digest !== preparedAck.worker_identity_digest || o.claim_generation !== o.generation || o.phase !== "running" || o.revision !== intent.sequence || preparedAck.revision !== intent.sequence || preparedAck.process_id !== JSON.parse(o.claim_worker_identity_json).process_id || preparedAck.start_fingerprint !== JSON.parse(o.claim_worker_identity_json).start_fingerprint) fail("interaction_prepared_ack_identity_mismatch");
+          if (p.reply_id !== preparedAck.reply_id || p.answer_digest !== preparedAck.answer_digest || ie.reply_id !== preparedAck.reply_id || ie.answer_digest !== preparedAck.answer_digest || o.claim_id !== preparedAck.claim_id || o.claim_worker_identity_digest !== preparedAck.worker_identity_digest || o.claim_generation !== o.generation || o.phase !== "running" || o.revision !== intent.sequence || preparedAck.revision !== intent.sequence || preparedAck.process_id !== JSON.parse(o.claim_worker_identity_json).process_id || preparedAck.start_fingerprint !== JSON.parse(o.claim_worker_identity_json).start_fingerprint) fail2("interaction_prepared_ack_identity_mismatch");
           const events = this.#db.prepare("SELECT event_type FROM manager_operation_events WHERE operation_id=? AND json_extract(evidence_json,'$.request_id')=? AND event_type IN ('interaction_reply_prepared','interaction_reply_committed','interaction_reply_accepted')").all(o.operation_id, preparedAck.request_id);
-          if (events.length) fail("interaction_reply_outcome_unknown");
+          if (events.length) fail2("interaction_reply_outcome_unknown");
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertNoCancellationIntent(o.operation_id);
           for (const [offset, eventType, evidence] of [
@@ -6653,7 +5767,7 @@ var init_store = __esm({
             }]
           ]) {
             const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, o.revision + offset - 1, o.claim_id, o.generation, o.claim_worker_identity_digest);
-            if (changed.changes !== 1) fail("stale_interaction_prepared_ack");
+            if (changed.changes !== 1) fail2("stale_interaction_prepared_ack");
             if (eventType === "interaction_reply_committed") evidence.commit_digest = interactionCommitDigest(
               {
                 operation_id: o.operation_id,
@@ -6689,7 +5803,7 @@ var init_store = __esm({
       /** Confirm only an ack already validated by the bound private Worker channel. */
       completeInteractionReply(input) {
         this.#assertWritable();
-        if (!isCandidateInteractionAcknowledgement(input) || !validInteractionAcknowledgement(input)) fail("invalid_interaction_ack");
+        if (!isCandidateInteractionAcknowledgement(input) || !validInteractionAcknowledgement(input)) fail2("invalid_interaction_ack");
         return this.#transaction(() => {
           const o = this.#attemptOperation({ ...input, expected_revision: input.revision });
           this.#assertRecoveryNotLatched(o.operation_id);
@@ -6697,13 +5811,13 @@ var init_store = __esm({
           const p = this.#db.prepare("SELECT * FROM manager_interaction_payloads WHERE operation_id=? AND request_id=?").get(o.operation_id, input.request_id);
           const intent = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='interaction_reply_intent' AND json_extract(evidence_json,'$.request_id')=?").get(o.operation_id, input.request_id);
           const committed = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='interaction_reply_committed' AND json_extract(evidence_json,'$.request_id')=?").get(o.operation_id, input.request_id);
-          if (!p || !intent) fail("interaction_reply_intent_missing");
+          if (!p || !intent) fail2("interaction_reply_intent_missing");
           const evidence = JSON.parse(intent.evidence_json);
-          if (evidence.reply_id !== input.reply_id || evidence.answer_digest !== input.answer_digest || evidence.claim_id !== input.claim_id || evidence.worker_identity_digest !== input.worker_identity_digest || p.reply_id !== input.reply_id || p.answer_digest !== input.answer_digest || o.claim_id !== input.claim_id || o.claim_worker_identity_digest !== input.worker_identity_digest || !committed || JSON.parse(committed.evidence_json).commit_digest !== input.commit_digest) fail("interaction_ack_identity_mismatch");
+          if (evidence.reply_id !== input.reply_id || evidence.answer_digest !== input.answer_digest || evidence.claim_id !== input.claim_id || evidence.worker_identity_digest !== input.worker_identity_digest || p.reply_id !== input.reply_id || p.answer_digest !== input.answer_digest || o.claim_id !== input.claim_id || o.claim_worker_identity_digest !== input.worker_identity_digest || !committed || JSON.parse(committed.evidence_json).commit_digest !== input.commit_digest) fail2("interaction_ack_identity_mismatch");
           const priorAccepted = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='interaction_reply_accepted' AND json_extract(evidence_json,'$.request_id')=?").get(o.operation_id, input.request_id);
           if (priorAccepted) {
             const priorEvidence = JSON.parse(priorAccepted.evidence_json);
-            if (priorEvidence.ack_digest !== input.ack_digest || priorAccepted.evidence_digest !== digest2(priorAccepted.evidence_json)) fail("interaction_ack_conflict");
+            if (priorEvidence.ack_digest !== input.ack_digest || priorAccepted.evidence_digest !== digest2(priorAccepted.evidence_json)) fail2("interaction_ack_conflict");
             return {
               duplicate: true,
               task_id: o.task_id,
@@ -6716,9 +5830,9 @@ var init_store = __esm({
               revision: priorAccepted.sequence
             };
           }
-          if (o.phase !== "running" || o.revision !== input.revision) fail("stale_interaction_ack");
+          if (o.phase !== "running" || o.revision !== input.revision) fail2("stale_interaction_ack");
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, o.revision, o.claim_id, o.generation, o.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_interaction_ack");
+          if (changed.changes !== 1) fail2("stale_interaction_ack");
           this.#faultPoint("after_projection");
           this.#event(
             o.operation_id,
@@ -6754,23 +5868,23 @@ var init_store = __esm({
       /** Atomically persist a queued continuation Attempt without reserving lifecycle Capacity. */
       createNextAttempt(input, { workspaceValidator, executionPermissionCheck } = {}) {
         this.#assertWritable();
-        const operationId = input?.operation_id === void 0 ? randomUUID5() : input.operation_id;
-        if (!validId3(operationId) || operationId !== operationId.trim() || !validId3(input?.task_id) || typeof input?.feedback !== "string" || !input.feedback.trim() || input.additional_requirements !== void 0 && (!Array.isArray(input.additional_requirements) || input.additional_requirements.some((value) => typeof value !== "string"))) fail("invalid_continue_request");
+        const operationId = input?.operation_id === void 0 ? randomUUID3() : input.operation_id;
+        if (!validId3(operationId) || operationId !== operationId.trim() || !validId3(input?.task_id) || typeof input?.feedback !== "string" || !input.feedback.trim() || input.additional_requirements !== void 0 && (!Array.isArray(input.additional_requirements) || input.additional_requirements.some((value) => typeof value !== "string"))) fail2("invalid_continue_request");
         const additionalRequirements = input.additional_requirements ?? [];
         const publicRequest = { task_id: input.task_id, feedback: input.feedback, additional_requirements: additionalRequirements };
-        const publicRequestJson = canonical3(publicRequest);
-        if (Buffer.byteLength(publicRequestJson, "utf8") > 1048576) fail("continue_request_too_large");
+        const publicRequestJson = canonical4(publicRequest);
+        if (Buffer.byteLength(publicRequestJson, "utf8") > 1048576) fail2("continue_request_too_large");
         const duplicateReceipt = (priorAttempt) => {
-          if (priorAttempt.task_id !== input.task_id) fail("continue_operation_conflict");
+          if (priorAttempt.task_id !== input.task_id) fail2("continue_operation_conflict");
           let stored;
           try {
             stored = JSON.parse(priorAttempt.continuation_json);
           } catch {
-            fail("continue_history_mismatch");
+            fail2("continue_history_mismatch");
           }
-          if (!stored || Object.getPrototypeOf(stored) !== Object.prototype || priorAttempt.continuation_operation_id !== operationId || priorAttempt.continuation_digest !== digest2(priorAttempt.continuation_json) || stored.contract !== "wp6b2b-continue-v1" || stored.operation_id !== operationId || stored.task_id !== priorAttempt.task_id) fail("continue_history_mismatch");
-          if (canonical3({ task_id: stored.task_id, feedback: stored.feedback, additional_requirements: stored.additional_requirements }) !== publicRequestJson)
-            fail("continue_operation_conflict");
+          if (!stored || Object.getPrototypeOf(stored) !== Object.prototype || priorAttempt.continuation_operation_id !== operationId || priorAttempt.continuation_digest !== digest2(priorAttempt.continuation_json) || stored.contract !== "wp6b2b-continue-v1" || stored.operation_id !== operationId || stored.task_id !== priorAttempt.task_id) fail2("continue_history_mismatch");
+          if (canonical4({ task_id: stored.task_id, feedback: stored.feedback, additional_requirements: stored.additional_requirements }) !== publicRequestJson)
+            fail2("continue_operation_conflict");
           return { duplicate: true, operation_id: operationId, task_id: input.task_id, attempt: priorAttempt.attempt, status: "queued", created_at: priorAttempt.created_at };
         };
         const existing = this.#readConsistent(() => {
@@ -6779,7 +5893,7 @@ var init_store = __esm({
         });
         if (existing) return existing;
         if (!Number.isSafeInteger(input.previous_attempt) || input.previous_attempt < 1 || !validId3(input.previous_operation_id) || !Number.isSafeInteger(input.expected_generation) || input.expected_generation < 1 || !Number.isSafeInteger(input.expected_revision) || input.expected_revision < 1 || !validId3(input.claim_id) || typeof input.claim_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.claim_worker_identity_digest))
-          fail("continue_cas_required");
+          fail2("continue_cas_required");
         const continuation = {
           contract: "wp6b2b-continue-v1",
           operation_id: operationId,
@@ -6793,17 +5907,17 @@ var init_store = __esm({
           previous_claim_id: input.claim_id,
           previous_worker_identity_digest: input.claim_worker_identity_digest
         };
-        const continuationJson = canonical3(continuation);
-        if (Buffer.byteLength(continuationJson, "utf8") > 1048576) fail("continue_request_too_large");
+        const continuationJson = canonical4(continuation);
+        if (Buffer.byteLength(continuationJson, "utf8") > 1048576) fail2("continue_request_too_large");
         const continuationDigest = digest2(continuationJson);
         const prior = this.readOperation(input.previous_operation_id);
-        if (!prior) fail("continue_prior_operation_missing");
+        if (!prior) fail2("continue_prior_operation_missing");
         const task = this.readTask(input.task_id);
-        if (!task) fail("task_not_found");
+        if (!task) fail2("task_not_found");
         const workspace = validateWorkspace(prior.workspace_ref, workspaceValidator);
-        if (workspace !== prior.workspace_ref) fail("continue_workspace_mismatch");
+        if (workspace !== prior.workspace_ref) fail2("continue_workspace_mismatch");
         const permission = callDecision(executionPermissionCheck, workspace, { operation_id: operationId, task_id: input.task_id, attempt: input.previous_attempt + 1, task });
-        if (permission.state !== "allow") fail(permission.state === "deny" ? "execution_permission_denied" : "execution_permission_unknown");
+        if (permission.state !== "allow") fail2(permission.state === "deny" ? "execution_permission_denied" : "execution_permission_unknown");
         const createdAt = (/* @__PURE__ */ new Date()).toISOString();
         return this.#transaction(() => {
           const raced = this.#db.prepare("SELECT task_id,attempt,continuation_operation_id,continuation_json,continuation_digest,created_at FROM attempts WHERE continuation_operation_id=?").get(operationId);
@@ -6812,37 +5926,37 @@ var init_store = __esm({
           const previousAttempt = this.#db.prepare("SELECT task_id,attempt,generation,status FROM attempts WHERE task_id=? AND attempt=?").get(input.task_id, input.previous_attempt);
           const previous = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.previous_operation_id);
           if (!taskRow || !previousAttempt || !previous || previous.task_id !== input.task_id || previous.attempt !== input.previous_attempt || taskRow.current_attempt !== input.previous_attempt || previousAttempt.generation !== input.expected_generation || previous.revision !== input.expected_revision || previous.claim_id !== input.claim_id || previous.claim_generation !== input.expected_generation || previous.claim_worker_identity_digest !== input.claim_worker_identity_digest)
-            fail("stale_continue_cas");
+            fail2("stale_continue_cas");
           const eligible = /* @__PURE__ */ new Set(["completed", "failed", "waiting_for_master"]);
           if (!eligible.has(taskRow.status) || taskRow.status !== previousAttempt.status || taskRow.status !== previous.result_status)
-            fail(taskRow.status === "cancelled" ? "continue_cancelled_not_supported" : "continue_status_not_eligible");
+            fail2(taskRow.status === "cancelled" ? "continue_cancelled_not_supported" : "continue_status_not_eligible");
           if (previous.phase !== "released" || !previous.result_digest || !previous.result_commit_ref || !previous.claim_id || !this.#db.prepare("SELECT 1 FROM manager_operation_events WHERE operation_id=? AND event_type='released'").get(previous.operation_id))
-            fail("continue_prior_not_released");
+            fail2("continue_prior_not_released");
           this.#assertRecoveryNotLatched(previous.operation_id);
           const nextAttempt = input.previous_attempt + 1;
           const changedTask = this.#db.prepare("UPDATE tasks SET status='queued',current_attempt=? WHERE task_id=? AND current_attempt=? AND status=?").run(nextAttempt, input.task_id, input.previous_attempt, taskRow.status);
-          if (changedTask.changes !== 1) fail("stale_continue_cas");
+          if (changedTask.changes !== 1) fail2("stale_continue_cas");
           const insertedAttempt = this.#db.prepare("INSERT INTO attempts(task_id,attempt,generation,status,created_at,continuation_operation_id,continuation_json,continuation_digest) VALUES(?,?,NULL,'queued',?,?,?,?)").run(input.task_id, nextAttempt, createdAt, operationId, continuationJson, continuationDigest);
-          if (insertedAttempt.changes !== 1) fail("continue_attempt_conflict");
+          if (insertedAttempt.changes !== 1) fail2("continue_attempt_conflict");
           this.#faultPoint("after_projection");
           return { duplicate: false, operation_id: operationId, task_id: input.task_id, attempt: nextAttempt, status: "queued", created_at: createdAt };
         });
       }
       provisionCapacity({ operation_id, capacity_limit, expected_generation = 0, maintenance }) {
         this.#assertWritable();
-        if (!validId3(operation_id) || !Number.isInteger(capacity_limit) || capacity_limit < 1 || capacity_limit > 8 || maintenance?.dispatch_blocked !== true || maintenance?.writers_drained !== true) fail("invalid_maintenance_request");
+        if (!validId3(operation_id) || !Number.isInteger(capacity_limit) || capacity_limit < 1 || capacity_limit > 8 || maintenance?.dispatch_blocked !== true || maintenance?.writers_drained !== true) fail2("invalid_maintenance_request");
         return this.#transaction(() => {
           const req = { operation_id, capacity_limit, expected_generation };
           const d = digest2(req);
           const old = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=?").get(operation_id);
           if (old) {
-            if (old.request_digest !== d) fail("operation_id_conflict");
+            if (old.request_digest !== d) fail2("operation_id_conflict");
             return { duplicate: true, operation_id };
           }
           const meta2 = this.#db.prepare("SELECT * FROM authority_metadata WHERE singleton=1").get();
-          if (meta2.policy_generation !== expected_generation) fail("stale_policy_generation");
+          if (meta2.policy_generation !== expected_generation) fail2("stale_policy_generation");
           const n = this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").get().n;
-          if (n !== 0) fail("active_occupancy");
+          if (n !== 0) fail2("active_occupancy");
           const generation = expected_generation + 1;
           const at = (/* @__PURE__ */ new Date()).toISOString();
           this.#db.prepare("INSERT INTO manager_operations(operation_id,operation_kind,request_digest,revision,phase,policy_generation,capacity_limit,created_at) VALUES(?,'capacity_policy_change',?,1,'policy_change_committed',?,?,?)").run(operation_id, d, generation, capacity_limit, at);
@@ -6855,58 +5969,58 @@ var init_store = __esm({
       assertCapacityPolicy(expected) {
         this.#assertWritable();
         const m = this.#db.prepare("SELECT * FROM authority_metadata WHERE singleton=1").get();
-        if (!m || m.policy_version !== 1 || m.policy_generation < 1 || m.capacity_limit !== expected) fail("capacity_policy_mismatch");
+        if (!m || m.policy_version !== 1 || m.policy_generation < 1 || m.capacity_limit !== expected) fail2("capacity_policy_mismatch");
         return { capacity_limit: m.capacity_limit, policy_generation: m.policy_generation };
       }
       admitOperation(input, gates) {
-        if (input && Object.hasOwn(input, "generation")) fail("caller_generation_forbidden");
+        if (input && Object.hasOwn(input, "generation")) fail2("caller_generation_forbidden");
         return this.#admitOperation(input, gates, false);
       }
       /** Explicitly synthetic compatibility path for inherited fixture-only regressions. */
       admitSyntheticFixtureOperation(input, gates) {
-        if (!Number.isSafeInteger(input?.generation) || input.generation < 1) fail("invalid_fixture_generation");
+        if (!Number.isSafeInteger(input?.generation) || input.generation < 1) fail2("invalid_fixture_generation");
         return this.#admitOperation(input, gates, true);
       }
       #admitOperation(input, { workspaceValidator, executionPermissionCheck }, fixtureGenerationAuthority) {
         this.#assertWritable();
         const w = validateWorkspace(input?.workspace_ref, workspaceValidator);
         const permission = callDecision(executionPermissionCheck, w, input);
-        if (permission.state !== "allow") fail(permission.state === "deny" ? "execution_permission_denied" : "execution_permission_unknown");
+        if (permission.state !== "allow") fail2(permission.state === "deny" ? "execution_permission_denied" : "execution_permission_unknown");
         const requested = { operation_id: input.operation_id, task_id: input.task_id, attempt: input.attempt, workspace_ref: w };
         const fixtureGeneration = fixtureGenerationAuthority ? input.generation : void 0;
-        if (!validId3(requested.operation_id) || !validId3(requested.task_id) || !Number.isInteger(requested.attempt) || requested.attempt < 1 || fixtureGeneration !== void 0 && (!Number.isInteger(fixtureGeneration) || fixtureGeneration < 1)) fail("invalid_request");
+        if (!validId3(requested.operation_id) || !validId3(requested.task_id) || !Number.isInteger(requested.attempt) || requested.attempt < 1 || fixtureGeneration !== void 0 && (!Number.isInteger(fixtureGeneration) || fixtureGeneration < 1)) fail2("invalid_request");
         const d = digest2(fixtureGeneration === void 0 ? requested : { ...requested, generation: fixtureGeneration });
         const at = (/* @__PURE__ */ new Date()).toISOString();
         return this.#transaction(() => {
           const prior = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=?").get(requested.operation_id);
           if (prior) {
-            if (prior.request_digest !== d) fail("operation_id_conflict");
+            if (prior.request_digest !== d) fail2("operation_id_conflict");
             return { duplicate: true, operation_id: prior.operation_id, generation: prior.generation, revision: prior.revision, phase: prior.phase };
           }
           const same = this.#db.prepare("SELECT operation_id FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(requested.task_id, requested.attempt);
-          if (same) fail("attempt_already_admitted");
+          if (same) fail2("attempt_already_admitted");
           const occupiedWorkspaces = this.#db.prepare("SELECT workspace_ref FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").all();
-          if (occupiedWorkspaces.some((row2) => typeof row2.workspace_ref === "string" && workspacePathsOverlap(w, row2.workspace_ref))) fail("workspace_already_occupied");
+          if (occupiedWorkspaces.some((row2) => typeof row2.workspace_ref === "string" && workspacePathsOverlap(w, row2.workspace_ref))) fail2("workspace_already_occupied");
           const meta2 = this.#db.prepare("SELECT * FROM authority_metadata WHERE singleton=1").get();
-          if (!meta2 || meta2.policy_version !== 1 || meta2.policy_generation < 1) fail("capacity_policy_missing");
+          if (!meta2 || meta2.policy_version !== 1 || meta2.policy_generation < 1) fail2("capacity_policy_missing");
           const active = this.#db.prepare("SELECT COUNT(*) AS n FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").get().n;
-          if (active >= meta2.capacity_limit) fail("capacity_exhausted");
+          if (active >= meta2.capacity_limit) fail2("capacity_exhausted");
           const row = this.#db.prepare("SELECT a.status,a.generation,t.current_attempt FROM attempts a JOIN tasks t ON t.task_id=a.task_id WHERE a.task_id=? AND a.attempt=?").get(requested.task_id, requested.attempt);
-          if (!row || row.current_attempt !== requested.attempt || row.status !== "queued") fail("task_attempt_not_admissible");
+          if (!row || row.current_attempt !== requested.attempt || row.status !== "queued") fail2("task_attempt_not_admissible");
           let generation = fixtureGeneration;
           if (generation === void 0) {
-            if (row.generation !== null) fail("attempt_generation_already_assigned");
+            if (row.generation !== null) fail2("attempt_generation_already_assigned");
             const highest = this.#db.prepare("SELECT MAX(generation) AS n FROM attempts WHERE generation IS NOT NULL").get().n ?? 0;
             generation = Math.max(meta2.next_generation, highest) + 1;
             const assigned = this.#db.prepare("UPDATE attempts SET generation=? WHERE task_id=? AND attempt=? AND generation IS NULL AND status='queued'").run(generation, requested.task_id, requested.attempt);
-            if (assigned.changes !== 1) fail("attempt_generation_cas_conflict");
+            if (assigned.changes !== 1) fail2("attempt_generation_cas_conflict");
             const generationChanged = this.#db.prepare("UPDATE authority_metadata SET next_generation=? WHERE singleton=1 AND next_generation=?").run(generation, meta2.next_generation);
-            if (generationChanged.changes !== 1) fail("generation_authority_cas_conflict");
-          } else if (row.generation !== generation) fail("attempt_generation_mismatch");
+            if (generationChanged.changes !== 1) fail2("generation_authority_cas_conflict");
+          } else if (row.generation !== generation) fail2("attempt_generation_mismatch");
           const normalized = { ...requested, generation };
           const slot = this.#db.prepare("SELECT n FROM (SELECT 1 AS n UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5 UNION ALL SELECT 6 UNION ALL SELECT 7 UNION ALL SELECT 8) WHERE n<=? AND n NOT IN (SELECT capacity_slot FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')) ORDER BY n LIMIT 1").get(meta2.capacity_limit);
-          if (!slot) fail("capacity_exhausted");
-          const reservation_id = randomUUID5();
+          if (!slot) fail2("capacity_exhausted");
+          const reservation_id = randomUUID3();
           this.#db.prepare("INSERT INTO manager_operations(operation_id,operation_kind,request_digest,task_id,attempt,generation,reservation_id,revision,phase,capacity_slot,workspace_ref,workspace_identity_json,created_at) VALUES(?,'attempt_lifecycle',?,?,?,?,?,1,'reserved',?,?,NULL,?)").run(normalized.operation_id, d, normalized.task_id, normalized.attempt, normalized.generation, reservation_id, slot.n, w, at);
           this.#faultPoint("after_projection");
           this.#event(normalized.operation_id, 1, "reserved", null, "reserved", normalized.generation, {
@@ -6925,18 +6039,18 @@ var init_store = __esm({
       }
       readLifecycleEvents(operationId, { afterSequence = 0, limit = 100 } = {}) {
         this.#assertOpen();
-        if (!validId3(operationId) || !Number.isSafeInteger(afterSequence) || afterSequence < 0 || !Number.isInteger(limit) || limit < 1 || limit > 200) fail("invalid_event_read");
+        if (!validId3(operationId) || !Number.isSafeInteger(afterSequence) || afterSequence < 0 || !Number.isInteger(limit) || limit < 1 || limit > 200) fail2("invalid_event_read");
         return this.#readConsistent(() => {
-          if (!this.#db.prepare("SELECT operation_id FROM manager_operations WHERE operation_id=?").get(operationId)) fail("operation_not_found");
+          if (!this.#db.prepare("SELECT operation_id FROM manager_operations WHERE operation_id=?").get(operationId)) fail2("operation_not_found");
           return this.#db.prepare("SELECT event_cursor,operation_id,sequence,event_type,from_phase,to_phase,generation,evidence_json,evidence_digest,at FROM manager_operation_events WHERE operation_id=? AND sequence>? ORDER BY sequence LIMIT ?").all(operationId, afterSequence, limit);
         });
       }
       /** Read persisted lifecycle facts for one Task across all its Operations and Attempts. */
       readTaskEvents(taskId, { afterCursor = 0, limit = 100 } = {}) {
         this.#assertOpen();
-        if (!validId3(taskId) || !Number.isSafeInteger(afterCursor) || afterCursor < 0 || !Number.isInteger(limit) || limit < 1 || limit > 200) fail("invalid_event_read");
+        if (!validId3(taskId) || !Number.isSafeInteger(afterCursor) || afterCursor < 0 || !Number.isInteger(limit) || limit < 1 || limit > 200) fail2("invalid_event_read");
         return this.#readConsistent(() => {
-          if (!this.#db.prepare("SELECT task_id FROM tasks WHERE task_id=?").get(taskId)) fail("task_not_found");
+          if (!this.#db.prepare("SELECT task_id FROM tasks WHERE task_id=?").get(taskId)) fail2("task_not_found");
           const operationRows = this.#db.prepare(`SELECT e.event_cursor AS cursor,e.event_cursor AS sequence,e.sequence AS operation_sequence,
           e.operation_id,e.event_type,e.from_phase,e.to_phase,e.generation,
           e.evidence_json,e.evidence_digest,e.at,o.task_id,o.attempt AS operation_attempt
@@ -6947,7 +6061,7 @@ var init_store = __esm({
           NULL AS from_phase,'cancelled' AS to_phase,generation,
           queued_cancel_id,queued_cancel_request_digest,queued_cancelled_at AS at,task_id,attempt AS operation_attempt
         FROM attempts WHERE task_id=? AND queued_cancel_event_cursor>? AND queued_cancel_operation_id IS NULL ORDER BY queued_cancel_event_cursor LIMIT ?`).all(taskId, afterCursor, limit + 1).map((row) => {
-            const evidence_json = canonical3({ cancel_id: row.queued_cancel_id, request_digest: row.queued_cancel_request_digest });
+            const evidence_json = canonical4({ cancel_id: row.queued_cancel_id, request_digest: row.queued_cancel_request_digest });
             const { queued_cancel_id, queued_cancel_request_digest, ...event } = row;
             return { ...event, evidence_json, evidence_digest: digest2(evidence_json) };
           });
@@ -6963,9 +6077,9 @@ var init_store = __esm({
       }
       /** Read only the imported historical Event rows for one Task. */
       readMigratedEvents(taskId) {
-        if (!validId3(taskId)) fail("invalid_task_id");
+        if (!validId3(taskId)) fail2("invalid_task_id");
         return this.#readConsistent(() => {
-          if (!this.#db.prepare("SELECT task_id FROM tasks WHERE task_id=?").get(taskId)) fail("task_not_found");
+          if (!this.#db.prepare("SELECT task_id FROM tasks WHERE task_id=?").get(taskId)) fail2("task_not_found");
           return this.#db.prepare(`SELECT event_cursor,task_id,attempt,source_sequence,event_type,at,summary,
         details_json,details_digest,artifact_id FROM migrated_task_events WHERE task_id=? ORDER BY event_cursor`).all(taskId);
         });
@@ -6973,7 +6087,7 @@ var init_store = __esm({
       /** Read imported source bytes by their source-relative path. */
       readMigratedArtifact(relativePath) {
         this.#assertOpen();
-        if (!validText2(relativePath, 1024) || relativePath.includes("\\") || relativePath.startsWith("/") || relativePath.split("/").some((part) => !part || part === "." || part === "..")) fail("invalid_artifact_path");
+        if (!validText3(relativePath, 1024) || relativePath.includes("\\") || relativePath.startsWith("/") || relativePath.split("/").some((part) => !part || part === "." || part === "..")) fail2("invalid_artifact_path");
         return this.#readConsistent(() => {
           const row = this.#db.prepare("SELECT artifact_id,relative_path,task_id,attempt,kind,byte_length,sha256,content FROM json_artifacts WHERE relative_path=?").get(relativePath);
           return row ? { ...row, content: Buffer.from(row.content) } : null;
@@ -6982,15 +6096,15 @@ var init_store = __esm({
       /** Persist cancellation of the current queued Attempt without inventing an Operation or Worker. */
       cancelQueuedAttempt({ task_id, expected_attempt } = {}) {
         this.#assertWritable();
-        if (!validId3(task_id) || !Number.isSafeInteger(expected_attempt) || expected_attempt < 1) fail("invalid_queued_cancel");
+        if (!validId3(task_id) || !Number.isSafeInteger(expected_attempt) || expected_attempt < 1) fail2("invalid_queued_cancel");
         const requestDigest = digest2({ contract: "wp6a-queued-cancel-v1", task_id, attempt: expected_attempt });
         return this.#transaction(() => {
           const task = this.#db.prepare("SELECT task_id,status,current_attempt FROM tasks WHERE task_id=?").get(task_id);
-          if (!task) fail("task_not_found");
+          if (!task) fail2("task_not_found");
           const attempt = this.#db.prepare("SELECT * FROM attempts WHERE task_id=? AND attempt=?").get(task_id, expected_attempt);
-          if (!attempt) fail("task_attempt_not_found");
+          if (!attempt) fail2("task_attempt_not_found");
           if (attempt.queued_cancel_id !== null) {
-            if (attempt.queued_cancel_request_digest !== requestDigest || attempt.status !== "cancelled" || task.status !== "cancelled" || task.current_attempt !== expected_attempt) fail("queued_cancel_history_mismatch");
+            if (attempt.queued_cancel_request_digest !== requestDigest || attempt.status !== "cancelled" || task.status !== "cancelled" || task.current_attempt !== expected_attempt) fail2("queued_cancel_history_mismatch");
             return {
               duplicate: true,
               task_id,
@@ -7001,13 +6115,13 @@ var init_store = __esm({
               operation_id: attempt.queued_cancel_operation_id
             };
           }
-          if (task.current_attempt !== expected_attempt || task.status !== "queued" || attempt.status !== "queued") fail("queued_cancel_not_admissible");
+          if (task.current_attempt !== expected_attempt || task.status !== "queued" || attempt.status !== "queued") fail2("queued_cancel_not_admissible");
           const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(task_id, expected_attempt);
-          if (operation && operation.phase !== "reserved") fail(operation.launch_id !== null ? "queued_cancel_launch_already_intended" : "queued_cancel_operation_not_cancellable");
+          if (operation && operation.phase !== "reserved") fail2(operation.launch_id !== null ? "queued_cancel_launch_already_intended" : "queued_cancel_operation_not_cancellable");
           if (operation && (operation.generation !== attempt.generation || operation.launch_id !== null || operation.claim_id !== null || operation.result_digest !== null))
-            fail("queued_cancel_operation_mismatch");
-          if (!operation && attempt.generation !== null) fail("queued_cancel_generation_without_operation");
-          const cancelId = randomUUID5(), at = (/* @__PURE__ */ new Date()).toISOString(), next = this.#nextEventCursor();
+            fail2("queued_cancel_operation_mismatch");
+          if (!operation && attempt.generation !== null) fail2("queued_cancel_generation_without_operation");
+          const cancelId = randomUUID3(), at = (/* @__PURE__ */ new Date()).toISOString(), next = this.#nextEventCursor();
           const result = {
             task_id,
             attempt: expected_attempt,
@@ -7023,14 +6137,14 @@ var init_store = __esm({
             started_at: null,
             finished_at: at
           };
-          canonicalTaskResult(result, { task_id, attempt: expected_attempt, result_status: "cancelled" });
-          const resultJson = canonical3(result), resultDigest = digest2(resultJson);
+          canonicalTaskResult2(result, { task_id, attempt: expected_attempt, result_status: "cancelled" });
+          const resultJson = canonical4(result), resultDigest = digest2(resultJson);
           const changedAttempt = this.#db.prepare("UPDATE attempts SET status='cancelled',queued_cancel_id=?,queued_cancel_request_digest=?,queued_cancel_event_cursor=?,queued_cancelled_at=?,queued_cancel_operation_id=?,queued_cancel_result_digest=?,queued_cancel_result_json=? WHERE task_id=? AND attempt=? AND generation IS ? AND status='queued' AND queued_cancel_id IS NULL").run(cancelId, requestDigest, next, at, operation?.operation_id ?? null, resultDigest, resultJson, task_id, expected_attempt, attempt.generation);
           const changedTask = this.#db.prepare("UPDATE tasks SET status='cancelled' WHERE task_id=? AND current_attempt=? AND status='queued'").run(task_id, expected_attempt);
-          if (changedAttempt.changes !== 1 || changedTask.changes !== 1) fail("queued_cancel_cas_conflict");
+          if (changedAttempt.changes !== 1 || changedTask.changes !== 1) fail2("queued_cancel_cas_conflict");
           if (operation) {
             const changedOperation = this.#db.prepare("UPDATE manager_operations SET phase='cancelled_before_launch',revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='reserved' AND revision=? AND launch_id IS NULL AND claim_id IS NULL AND result_digest IS NULL").run(operation.operation_id, task_id, expected_attempt, attempt.generation, operation.revision);
-            if (changedOperation.changes !== 1) fail("queued_cancel_operation_cas_conflict");
+            if (changedOperation.changes !== 1) fail2("queued_cancel_operation_cas_conflict");
             this.#event(
               operation.operation_id,
               operation.revision + 1,
@@ -7057,16 +6171,16 @@ var init_store = __esm({
       }
       readCommittedResult(operationId) {
         this.#assertOpen();
-        if (!validId3(operationId)) fail("invalid_operation_id");
+        if (!validId3(operationId)) fail2("invalid_operation_id");
         return this.#readConsistent(() => {
           const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(operationId);
-          if (!o) fail("operation_not_found");
+          if (!o) fail2("operation_not_found");
           if (o.result_json === null) return null;
           let result;
           try {
             result = JSON.parse(o.result_json);
           } catch {
-            fail("result_projection_invalid");
+            fail2("result_projection_invalid");
           }
           return {
             operation_id: o.operation_id,
@@ -7088,16 +6202,16 @@ var init_store = __esm({
       /** Persist one cancellation intent for a claimed running Operation after exact identity verification. */
       requestCancellation(input, identityEvidence, identityVerifier) {
         this.#assertWritable();
-        if (!validCancellationFence(input)) fail("invalid_cancellation_request");
+        if (!validCancellationFence(input)) fail2("invalid_cancellation_request");
         const snapshot = this.#readConsistent(() => {
           const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
-          if (!operation) fail("operation_not_found");
+          if (!operation) fail2("operation_not_found");
           this.#assertNoUnknownInteraction(input.operation_id);
           const observations = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded'").all(input.operation_id).map((event) => ({ ...event, evidence: JSON.parse(event.evidence_json) }));
           return { operation, observations };
         });
         if (snapshot.operation.task_id !== input.task_id || snapshot.operation.attempt !== input.attempt || snapshot.operation.generation !== input.generation)
-          fail("operation_identity_mismatch");
+          fail2("operation_identity_mismatch");
         const worker = this.#cancellationWorker(input, snapshot.operation);
         const existing = snapshot.observations.find((event) => event.evidence.reason === "cancel_requested");
         if (snapshot.operation.result_digest !== null || ["result_committed", "cleanup_pending", "cleanup_verified", "cleanup_unverified", "released", "quarantined"].includes(snapshot.operation.phase))
@@ -7124,17 +6238,17 @@ var init_store = __esm({
           phase: snapshot.operation.phase,
           cancel_id: existing.evidence.cancel_id
         };
-        if (snapshot.operation.phase !== "running" || snapshot.operation.revision !== input.revision) fail("stale_cancellation_cas");
-        if (typeof identityVerifier !== "function") fail("cancellation_identity_verifier_required");
+        if (snapshot.operation.phase !== "running" || snapshot.operation.revision !== input.revision) fail2("stale_cancellation_cas");
+        if (typeof identityVerifier !== "function") fail2("cancellation_identity_verifier_required");
         let identityVerdict;
         try {
           identityVerdict = identityVerifier({ operation: presentOperation(snapshot.operation), worker_identity: worker, evidence: identityEvidence });
         } catch (error2) {
-          fail("cancellation_identity_unknown", String(error2));
+          fail2("cancellation_identity_unknown", String(error2));
         }
-        if (!identityVerdict || !["alive", "exited"].includes(identityVerdict.state) || identityVerdict.worker_identity_digest !== snapshot.operation.claim_worker_identity_digest || typeof identityVerdict.evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(identityVerdict.evidence_digest)) fail("cancellation_identity_unknown");
-        if (identityVerdict.evidence_digest !== digest2(identityEvidence)) fail("cancellation_identity_evidence_mismatch");
-        const cancelId = randomUUID5();
+        if (!identityVerdict || !["alive", "exited"].includes(identityVerdict.state) || identityVerdict.worker_identity_digest !== snapshot.operation.claim_worker_identity_digest || typeof identityVerdict.evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(identityVerdict.evidence_digest)) fail2("cancellation_identity_unknown");
+        if (identityVerdict.evidence_digest !== digest2(identityEvidence)) fail2("cancellation_identity_evidence_mismatch");
+        const cancelId = randomUUID3();
         return this.#transaction(() => {
           const current = this.#attemptOperation(input);
           if (current.result_digest !== null || ["result_committed", "cleanup_pending", "cleanup_verified", "cleanup_unverified", "released", "quarantined"].includes(current.phase))
@@ -7160,7 +6274,7 @@ var init_store = __esm({
             phase: current.phase,
             cancel_id: raced.evidence.cancel_id
           };
-          if (current.phase !== "running" || current.revision !== input.revision) fail("stale_cancellation_cas");
+          if (current.phase !== "running" || current.revision !== input.revision) fail2("stale_cancellation_cas");
           this.#assertRecoveryNotLatched(input.operation_id);
           this.#assertNoUnknownInteraction(input.operation_id);
           const intent = {
@@ -7185,7 +6299,7 @@ var init_store = __esm({
             evidence_digest: digest2(intent)
           };
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_cancellation_cas");
+          if (changed.changes !== 1) fail2("stale_cancellation_cas");
           this.#faultPoint("after_projection");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           this.#event(input.operation_id, input.revision + 1, "observation_recorded", "running", "running", input.generation, evidence, at);
@@ -7206,19 +6320,19 @@ var init_store = __esm({
       /** Persist verified Worker-tree exit evidence without marking Result, Cleanup, or Release complete. */
       recordCancellationVerification(input, treeEvidence, cancellationVerifier) {
         this.#assertWritable();
-        if (!validCancellationFence(input)) fail("invalid_cancellation_verification");
+        if (!validCancellationFence(input)) fail2("invalid_cancellation_verification");
         const snapshot = this.#readConsistent(() => {
           const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
-          if (!operation) fail("operation_not_found");
+          if (!operation) fail2("operation_not_found");
           this.#assertNoUnknownInteraction(input.operation_id);
           const observations = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded'").all(input.operation_id).map((event) => ({ ...event, evidence: JSON.parse(event.evidence_json) }));
           return { operation, observations };
         });
         if (snapshot.operation.task_id !== input.task_id || snapshot.operation.attempt !== input.attempt || snapshot.operation.generation !== input.generation)
-          fail("operation_identity_mismatch");
+          fail2("operation_identity_mismatch");
         const worker = this.#cancellationWorker(input, snapshot.operation);
         const intent = snapshot.observations.find((event) => event.evidence.reason === "cancel_requested");
-        if (!intent) fail("cancel_intent_required");
+        if (!intent) fail2("cancel_intent_required");
         const prior = snapshot.observations.find((event) => event.evidence.reason === "cancel_tree_verified");
         if (snapshot.operation.result_digest !== null || snapshot.operation.phase !== "running") {
           if (prior && prior.evidence.proof_digest === digest2(treeEvidence) && snapshot.operation.result_status === "cancelled") return {
@@ -7249,16 +6363,16 @@ var init_store = __esm({
           phase: snapshot.operation.phase,
           cancellation_verification_digest: prior.evidence_digest
         };
-        if (snapshot.operation.revision !== input.revision) fail("stale_cancellation_cas");
-        if (typeof cancellationVerifier !== "function") fail("cancellation_verifier_required");
+        if (snapshot.operation.revision !== input.revision) fail2("stale_cancellation_cas");
+        if (typeof cancellationVerifier !== "function") fail2("cancellation_verifier_required");
         let verdict2;
         try {
           verdict2 = cancellationVerifier({ operation: presentOperation(snapshot.operation), cancel_intent: intent.evidence, worker_identity: worker, evidence: treeEvidence });
         } catch (error2) {
-          fail("cancellation_verification_unknown", String(error2));
+          fail2("cancellation_verification_unknown", String(error2));
         }
         const launchIdentity = JSON.parse(snapshot.operation.launch_identity_json);
-        if (!verdict2 || verdict2.state !== "verified" || verdict2.worker_identity_digest !== snapshot.operation.claim_worker_identity_digest || typeof verdict2.process_tree_digest !== "string" || !/^[0-9a-f]{64}$/u.test(verdict2.process_tree_digest) || verdict2.root_process_id !== worker.process_id || verdict2.root_process_id !== launchIdentity.process_id || verdict2.root_start_fingerprint !== worker.start_fingerprint || verdict2.root_start_fingerprint !== launchIdentity.start_fingerprint || verdict2.worker_tree_complete !== true || typeof verdict2.evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(verdict2.evidence_digest) || verdict2.evidence_digest !== digest2(treeEvidence)) fail("cancellation_verification_unverified");
+        if (!verdict2 || verdict2.state !== "verified" || verdict2.worker_identity_digest !== snapshot.operation.claim_worker_identity_digest || typeof verdict2.process_tree_digest !== "string" || !/^[0-9a-f]{64}$/u.test(verdict2.process_tree_digest) || verdict2.root_process_id !== worker.process_id || verdict2.root_process_id !== launchIdentity.process_id || verdict2.root_start_fingerprint !== worker.start_fingerprint || verdict2.root_start_fingerprint !== launchIdentity.start_fingerprint || verdict2.worker_tree_complete !== true || typeof verdict2.evidence_digest !== "string" || !/^[0-9a-f]{64}$/u.test(verdict2.evidence_digest) || verdict2.evidence_digest !== digest2(treeEvidence)) fail2("cancellation_verification_unverified");
         return this.#transaction(() => {
           const current = this.#attemptOperation(input);
           if (current.result_digest !== null || current.phase !== "running") return {
@@ -7270,10 +6384,10 @@ var init_store = __esm({
             phase: current.phase,
             result_status: current.result_status
           };
-          if (current.revision !== input.revision) fail("stale_cancellation_cas");
+          if (current.revision !== input.revision) fail2("stale_cancellation_cas");
           this.#cancellationWorker(input, current);
           const persistedIntent = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded'").all(input.operation_id).map((event2) => ({ ...event2, evidence: JSON.parse(event2.evidence_json) })).find((event2) => event2.evidence.reason === "cancel_requested");
-          if (!persistedIntent || persistedIntent.evidence.cancel_id !== intent.evidence.cancel_id) fail("cancel_intent_mismatch");
+          if (!persistedIntent || persistedIntent.evidence.cancel_id !== intent.evidence.cancel_id) fail2("cancel_intent_mismatch");
           const existing = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded'").all(input.operation_id).map((event2) => ({ ...event2, evidence: JSON.parse(event2.evidence_json) })).find((event2) => event2.evidence.reason === "cancel_tree_verified");
           if (existing) {
             if (existing.evidence.proof_digest === verdict2.evidence_digest) return {
@@ -7285,7 +6399,7 @@ var init_store = __esm({
               phase: current.phase,
               cancellation_verification_digest: existing.evidence_digest
             };
-            fail("cancellation_verification_conflict");
+            fail2("cancellation_verification_conflict");
           }
           this.#assertRecoveryNotLatched(input.operation_id);
           this.#assertNoUnknownInteraction(input.operation_id);
@@ -7303,7 +6417,7 @@ var init_store = __esm({
           };
           const evidence = { ...unsigned, evidence_digest: digest2({ cancel_verification_contract_version: 1, ...unsigned }) };
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_cancellation_cas");
+          if (changed.changes !== 1) fail2("stale_cancellation_cas");
           this.#faultPoint("after_projection");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           this.#event(input.operation_id, input.revision + 1, "observation_recorded", "running", "running", input.generation, evidence, at);
@@ -7333,18 +6447,18 @@ var init_store = __esm({
           if (!this.#db.prepare("SELECT 1 FROM sqlite_schema WHERE type='table' AND name='manager_admin_abandonments'").get())
             this.#db.exec(ADMIN_ABANDONMENT_SCHEMA);
           const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
-          if (!operation) fail("operation_not_found");
+          if (!operation) fail2("operation_not_found");
           const existing = this.#db.prepare("SELECT * FROM manager_admin_abandonments WHERE operation_id=?").get(input.operation_id);
           if (operation.task_id !== input.task_id || operation.attempt !== input.attempt || operation.generation !== input.generation || operation.claim_id !== input.claim_id || operation.claim_worker_identity_digest !== input.claim_worker_identity_digest)
-            fail("admin_abandonment_identity_mismatch");
+            fail2("admin_abandonment_identity_mismatch");
           let worker, launch;
           try {
             worker = JSON.parse(operation.claim_worker_identity_json);
             launch = JSON.parse(operation.launch_identity_json);
           } catch {
-            fail("admin_abandonment_identity_invalid");
+            fail2("admin_abandonment_identity_invalid");
           }
-          if (!worker || worker.source !== "manager_verified_process_probe" || worker.fixture !== false || worker.platform !== "win32" || worker.fingerprint_precision !== "exact" || digest2(canonical3(worker)) !== input.claim_worker_identity_digest || !launch || launch.source !== "manager_os_spawn_observation" || launch.fixture !== false || launch.platform !== "win32" || launch.fingerprint_precision !== "exact" || launch.process_id !== worker.process_id || launch.start_fingerprint !== worker.start_fingerprint || input.evidence.worker_process_id !== worker.process_id || input.evidence.worker_start_fingerprint !== worker.start_fingerprint) fail("admin_abandonment_worker_identity_mismatch");
+          if (!worker || worker.source !== "manager_verified_process_probe" || worker.fixture !== false || worker.platform !== "win32" || worker.fingerprint_precision !== "exact" || digest2(canonical4(worker)) !== input.claim_worker_identity_digest || !launch || launch.source !== "manager_os_spawn_observation" || launch.fixture !== false || launch.platform !== "win32" || launch.fingerprint_precision !== "exact" || launch.process_id !== worker.process_id || launch.start_fingerprint !== worker.start_fingerprint || input.evidence.worker_process_id !== worker.process_id || input.evidence.worker_start_fingerprint !== worker.start_fingerprint) fail2("admin_abandonment_worker_identity_mismatch");
           const audit = {
             boot_time: input.evidence.boot_time,
             claimant_scan_clean: true,
@@ -7359,7 +6473,7 @@ var init_store = __esm({
             worker_exited: true,
             writer_closed: true
           };
-          const auditJson = canonical3(audit), auditDigest = digest2(auditJson);
+          const auditJson = canonical4(audit), auditDigest = digest2(auditJson);
           const requestDigest = digest2({
             operation_id: input.operation_id,
             task_id: input.task_id,
@@ -7387,14 +6501,14 @@ var init_store = __esm({
                 event_sequence: existing.event_sequence,
                 audit_digest: existing.audit_digest
               };
-            fail("admin_abandonment_evidence_conflict");
+            fail2("admin_abandonment_evidence_conflict");
           }
-          if (operation.revision !== input.revision) fail("admin_abandonment_identity_mismatch");
-          if (operation.phase !== "running" || operation.result_digest !== null || operation.result_json !== null || operation.result_commit_ref !== null || operation.result_status !== null || operation.result_generation !== null) fail("admin_abandonment_result_or_phase_invalid");
+          if (operation.revision !== input.revision) fail2("admin_abandonment_identity_mismatch");
+          if (operation.phase !== "running" || operation.result_digest !== null || operation.result_json !== null || operation.result_commit_ref !== null || operation.result_status !== null || operation.result_generation !== null) fail2("admin_abandonment_result_or_phase_invalid");
           const projection = this.#db.prepare(`SELECT t.current_attempt,t.status AS task_status,a.status AS attempt_status,a.generation
         FROM tasks t JOIN attempts a ON a.task_id=t.task_id AND a.attempt=t.current_attempt
         WHERE t.task_id=? AND a.attempt=?`).get(input.task_id, input.attempt);
-          if (!projection || projection.current_attempt !== input.attempt || projection.task_status !== "running" || projection.attempt_status !== "running" || projection.generation !== input.generation) fail("admin_abandonment_projection_invalid");
+          if (!projection || projection.current_attempt !== input.attempt || projection.task_status !== "running" || projection.attempt_status !== "running" || projection.generation !== input.generation) fail2("admin_abandonment_projection_invalid");
           const events = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(input.operation_id);
           const holds = [];
           for (const event of events) {
@@ -7403,13 +6517,13 @@ var init_store = __esm({
             try {
               evidence = JSON.parse(event.evidence_json);
             } catch {
-              fail("database_unreadable");
+              fail2("database_unreadable");
             }
             if (evidence.reason === "recovery_hold" && evidence.reason_code === "cleanup_incomplete" && evidence.claim_id === input.claim_id && evidence.worker_identity_digest === input.claim_worker_identity_digest) holds.push({ event, evidence });
           }
-          if (holds.length === 0) fail("admin_abandonment_cleanup_hold_required");
+          if (holds.length === 0) fail2("admin_abandonment_cleanup_hold_required");
           const latestHold = holds.at(-1);
-          if (input.evidence.failed_at !== latestHold.event.at) fail("admin_abandonment_failure_time_mismatch");
+          if (input.evidence.failed_at !== latestHold.event.at) fail2("admin_abandonment_failure_time_mismatch");
           this.#assertNoUnknownInteraction(input.operation_id);
           this.#assertNoCancellationIntent(input.operation_id);
           const changedOperation = this.#db.prepare(`UPDATE manager_operations
@@ -7417,12 +6531,12 @@ var init_store = __esm({
         WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=?
           AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?
           AND result_digest IS NULL AND result_json IS NULL AND result_commit_ref IS NULL`).run(input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
-          if (changedOperation.changes !== 1) fail("stale_admin_abandonment_cas");
+          if (changedOperation.changes !== 1) fail2("stale_admin_abandonment_cas");
           const changedAttempt = this.#db.prepare(`UPDATE attempts SET status='failed'
         WHERE task_id=? AND attempt=? AND generation=? AND status='running'`).run(input.task_id, input.attempt, input.generation);
           const changedTask = this.#db.prepare(`UPDATE tasks SET status='failed'
         WHERE task_id=? AND current_attempt=? AND status='running'`).run(input.task_id, input.attempt);
-          if (changedAttempt.changes !== 1 || changedTask.changes !== 1) fail("admin_abandonment_projection_cas");
+          if (changedAttempt.changes !== 1 || changedTask.changes !== 1) fail2("admin_abandonment_projection_cas");
           const eventSequence = input.revision + 1;
           this.#event(
             input.operation_id,
@@ -7451,7 +6565,7 @@ var init_store = __esm({
             auditDigest,
             input.evidence.observed_at
           );
-          if (inserted.changes !== 1) fail("admin_abandonment_insert_failed");
+          if (inserted.changes !== 1) fail2("admin_abandonment_insert_failed");
           return {
             duplicate: false,
             operation_id: input.operation_id,
@@ -7476,26 +6590,26 @@ var init_store = __esm({
             events: this.#db.prepare("SELECT * FROM manager_operation_events ORDER BY operation_id,sequence").all()
           };
         });
-        return { ...snapshot, root_poisoned: this.poisoned || existsSync12(this.#paths.intent) };
+        return { ...snapshot, root_poisoned: this.poisoned || existsSync9(this.#paths.intent) };
       }
       /** Read-only recovery entry point. Writable Stores cannot be used as Recovery authority. */
       readRecoverySnapshot() {
         this.#assertOpen();
-        if (!this.#recoveryOnly) fail("recovery_read_only");
+        if (!this.#recoveryOnly) fail2("recovery_read_only");
         return this.rebuildRecoveryState();
       }
       /** Reconstruct only from persisted facts. Any inconsistency blocks the whole root; no repair or release occurs. */
       rebuildRecoveryState() {
         this.#assertOpen();
-        if (!this.#recoveryOnly) fail("recovery_read_only");
+        if (!this.#recoveryOnly) fail2("recovery_read_only");
         let transaction = false;
         try {
           this.#db.exec("BEGIN");
           transaction = true;
           const userVersion = this.#db.prepare("PRAGMA user_version").get().user_version;
-          if (userVersion !== SCHEMA_VERSION) fail("schema_version_unknown");
+          if (userVersion !== SCHEMA_VERSION) fail2("schema_version_unknown");
           const columns = new Set(this.#db.prepare("PRAGMA table_info(manager_operations)").all().map((x) => x.name));
-          if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail("candidate_schema_mismatch");
+          if (!["result_status", "result_generation", "result_digest", "result_json", "result_commit_ref"].every((x) => columns.has(x))) fail2("candidate_schema_mismatch");
           const meta2 = this.#db.prepare("SELECT * FROM authority_metadata").all();
           const operations = this.#db.prepare("SELECT * FROM manager_operations ORDER BY operation_id").all();
           const events = this.#db.prepare("SELECT * FROM manager_operation_events ORDER BY operation_id,sequence").all();
@@ -7509,7 +6623,7 @@ var init_store = __esm({
           }
           this.#db.exec("COMMIT");
           transaction = false;
-          const poisoned = this.poisoned, writerIntent = existsSync12(this.#paths.intent);
+          const poisoned = this.poisoned, writerIntent = existsSync9(this.#paths.intent);
           const rootBlocked = Boolean(integrityError || meta2.length !== 1 || poisoned || writerIntent);
           const operationsWithRecovery = operations.map((row) => {
             const adminAbandonment = adminAbandonments.get(row.operation_id);
@@ -7583,43 +6697,55 @@ var init_store = __esm({
         }
       }
       compareAndSwapObservation({ operation_id, generation, revision, evidence }) {
-        if (!Number.isInteger(generation) || !Number.isInteger(revision)) fail("invalid_cas");
+        if (!Number.isInteger(generation) || !Number.isInteger(revision)) fail2("invalid_cas");
         validateEvidence("observation_recorded", evidence);
         return this.#transaction(() => {
-          if (evidence.reason === "recovery_hold" || evidence.reason === "recovery_quarantine") fail("reserved_recovery_reason");
-          if (evidence.reason === "cancel_requested" || evidence.reason === "cancel_tree_verified") fail("reserved_cancellation_reason");
+          if (evidence.reason === "recovery_hold" || evidence.reason === "recovery_quarantine") fail2("reserved_recovery_reason");
+          if (evidence.reason === "cancel_requested" || evidence.reason === "cancel_tree_verified") fail2("reserved_cancellation_reason");
           const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(operation_id);
-          if (!o || o.generation !== generation || o.revision !== revision || o.phase !== "reserved") fail("stale_operation_cas");
+          if (!o || o.generation !== generation || o.revision !== revision || o.phase !== "reserved") fail2("stale_operation_cas");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND generation=? AND revision=?").run(operation_id, generation, revision);
-          if (changed.changes !== 1) fail("stale_operation_cas");
+          if (changed.changes !== 1) fail2("stale_operation_cas");
           this.#faultPoint("after_projection");
-          const evidenceJson = canonical3(evidence);
+          const evidenceJson = canonical4(evidence);
           this.#event(operation_id, revision + 1, "observation_recorded", "reserved", "reserved", generation, evidence, at);
           return { revision: revision + 1, phase: "reserved" };
+        });
+      }
+      /** Diagnostic only: no Result, phase transition, cleanup proof or Release. */
+      recordResultSubmissionFailure(input, reason) {
+        if (!validText3(reason, 128)) fail2("invalid_result_failure_reason");
+        return this.#transaction(() => {
+          const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=?").get(input.operation_id);
+          if (!o || o.phase !== "running" || o.generation !== input.generation || o.revision !== input.revision || o.claim_id !== input.claim_id || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail2("stale_operation_cas");
+          const evidence = { reason: `result_submission_failed:${reason}`, evidence_digest: digest2({ operation_id: o.operation_id, claim_id: o.claim_id, reason }) };
+          this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=?").run(o.operation_id);
+          this.#event(o.operation_id, o.revision + 1, "observation_recorded", "running", "running", o.generation, evidence, (/* @__PURE__ */ new Date()).toISOString());
+          return { revision: o.revision + 1, phase: "running" };
         });
       }
       /** Persist only a verified, operation-scoped Recovery classification; no external action is performed. */
       compareAndSwapRecoveryObservation(input, evidence, verifyEvidence) {
         this.#assertWritable();
-        if (typeof verifyEvidence !== "function") fail("recovery_evidence_verifier_required");
+        if (typeof verifyEvidence !== "function") fail2("recovery_evidence_verifier_required");
         const envelope = recoveryEnvelope(input), envelopeDigest = digest2(envelope);
         let evidenceJson;
         try {
-          evidenceJson = canonical3(evidence);
+          evidenceJson = canonical4(evidence);
         } catch {
-          fail("recovery_evidence_invalid");
+          fail2("recovery_evidence_invalid");
         }
-        if (Buffer.byteLength(evidenceJson, "utf8") > 4096 || !evidence || Object.getPrototypeOf(evidence) !== Object.prototype || containsNonNfcString(evidence) || digest2(evidenceJson) !== input.evidence_digest) fail("recovery_evidence_invalid");
+        if (Buffer.byteLength(evidenceJson, "utf8") > 4096 || !evidence || Object.getPrototypeOf(evidence) !== Object.prototype || containsNonNfcString(evidence) || digest2(evidenceJson) !== input.evidence_digest) fail2("recovery_evidence_invalid");
         const eventEvidence = recoveryEventEvidence(input, envelopeDigest);
         validateEvidence("observation_recorded", eventEvidence);
         return this.#transaction(() => {
           const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
-          if (!o) fail("operation_not_found");
-          if (o.task_id !== input.task_id || o.attempt !== input.attempt || o.generation !== input.generation) fail("operation_identity_mismatch");
-          if (o.claim_id === null || o.claim_generation !== input.generation || !o.claim_worker_identity_digest) fail("recovery_claim_missing");
-          if (o.claim_id !== input.claim_id || o.claim_worker_identity_digest !== input.worker_identity_digest) fail("recovery_claim_identity_mismatch");
-          if (!RECOVERY_PHASES.has(o.phase)) fail("recovery_phase_not_allowed");
+          if (!o) fail2("operation_not_found");
+          if (o.task_id !== input.task_id || o.attempt !== input.attempt || o.generation !== input.generation) fail2("operation_identity_mismatch");
+          if (o.claim_id === null || o.claim_generation !== input.generation || !o.claim_worker_identity_digest) fail2("recovery_claim_missing");
+          if (o.claim_id !== input.claim_id || o.claim_worker_identity_digest !== input.worker_identity_digest) fail2("recovery_claim_identity_mismatch");
+          if (!RECOVERY_PHASES.has(o.phase)) fail2("recovery_phase_not_allowed");
           let verified = null;
           try {
             verified = verifyEvidence({ operation: {
@@ -7635,7 +6761,7 @@ var init_store = __esm({
           } catch {
             verified = null;
           }
-          if (!verified || Object.getPrototypeOf(verified) !== Object.prototype || Object.keys(verified).sort().join("|") !== "classification|evidence_digest|evidence_source|reason_code" || verified.classification !== input.classification || verified.evidence_digest !== input.evidence_digest || verified.evidence_source !== input.evidence_source || verified.reason_code !== input.reason_code) fail("recovery_evidence_unverified");
+          if (!verified || Object.getPrototypeOf(verified) !== Object.prototype || Object.keys(verified).sort().join("|") !== "classification|evidence_digest|evidence_source|reason_code" || verified.classification !== input.classification || verified.evidence_digest !== input.evidence_digest || verified.evidence_source !== input.evidence_source || verified.reason_code !== input.reason_code) fail2("recovery_evidence_unverified");
           const history = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(input.operation_id).map((e) => ({ ...e, evidence: JSON.parse(e.evidence_json) }));
           const existing = history.filter((e) => e.event_type === "observation_recorded");
           const same = existing.find((e) => e.evidence?.envelope_digest === envelopeDigest);
@@ -7654,16 +6780,16 @@ var init_store = __esm({
             worker_identity_digest: o.claim_worker_identity_digest
           };
           const sameRevision = existing.find((e) => e.evidence?.reason?.startsWith("recovery_") && e.evidence.expected_revision === input.expected_revision);
-          if (sameRevision) fail("recovery_observation_conflict");
-          if (o.revision !== input.expected_revision) fail("stale_recovery_cas");
-          if (o.phase === "quarantined" && input.classification !== "quarantine") fail("recovery_classification_downgrade");
+          if (sameRevision) fail2("recovery_observation_conflict");
+          if (o.revision !== input.expected_revision) fail2("stale_recovery_cas");
+          if (o.phase === "quarantined" && input.classification !== "quarantine") fail2("recovery_classification_downgrade");
           const recoveryEvents = existing.filter((e) => e.evidence?.reason === "recovery_hold" || e.evidence?.reason === "recovery_quarantine");
-          if (recoveryEvents.length >= RECOVERY_LIMIT) fail("recovery_observation_limit");
+          if (recoveryEvents.length >= RECOVERY_LIMIT) fail2("recovery_observation_limit");
           const currentClass = foldedRecoveryClassification(o, history);
-          if (currentClass === "quarantine" && input.classification !== "quarantine") fail("recovery_classification_downgrade");
+          if (currentClass === "quarantine" && input.classification !== "quarantine") fail2("recovery_classification_downgrade");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase=? AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, o.phase, input.expected_revision, input.claim_id, input.generation, input.worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_recovery_cas");
+          if (changed.changes !== 1) fail2("stale_recovery_cas");
           this.#faultPoint("after_projection");
           this.#event(o.operation_id, input.expected_revision + 1, "observation_recorded", o.phase, o.phase, o.generation, eventEvidence, at);
           return {
@@ -7684,7 +6810,7 @@ var init_store = __esm({
       }
       createLaunchIntent(input) {
         this.#assertWritable();
-        if (!validLaunchRequest(input)) fail("invalid_launch_intent");
+        if (!validLaunchRequest(input)) fail2("invalid_launch_intent");
         const tokenDigest = digest2(input.launch_token);
         const intentDigest = digest2({
           operation_id: input.operation_id,
@@ -7698,17 +6824,17 @@ var init_store = __esm({
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           if (o.launch_id !== null) {
-            if (o.launch_id !== input.launch_id || o.launch_epoch !== input.launch_epoch || o.launch_token_digest !== tokenDigest || o.launch_intent_digest !== intentDigest) fail("launch_intent_conflict");
+            if (o.launch_id !== input.launch_id || o.launch_epoch !== input.launch_epoch || o.launch_token_digest !== tokenDigest || o.launch_intent_digest !== intentDigest) fail2("launch_intent_conflict");
             return { duplicate: true, operation_id: o.operation_id, launch_id: o.launch_id, launch_epoch: o.launch_epoch, revision: o.revision, phase: o.phase, process_started: "unknown" };
           }
-          if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE launch_id=?").get(input.launch_id)) fail("launch_id_already_used");
-          if (o.phase !== "reserved" || o.revision !== input.revision) fail("stale_launch_cas");
+          if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE launch_id=?").get(input.launch_id)) fail2("launch_id_already_used");
+          if (o.phase !== "reserved" || o.revision !== input.revision) fail2("stale_launch_cas");
           const current = this.#db.prepare("SELECT t.current_attempt,t.status AS task_status,a.status AS attempt_status,a.generation FROM tasks t JOIN attempts a ON a.task_id=t.task_id AND a.attempt=? WHERE t.task_id=?").get(input.attempt, input.task_id);
           if (!current || current.current_attempt !== input.attempt || current.task_status !== "queued" || current.attempt_status !== "queued" || current.generation !== input.generation)
-            fail("launch_task_attempt_not_queued");
+            fail2("launch_task_attempt_not_queued");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const changed = this.#db.prepare("UPDATE manager_operations SET phase='launch_intent',revision=revision+1,launch_id=?,launch_epoch=?,launch_token_digest=?,launch_intent_digest=? WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='reserved' AND revision=?").run(input.launch_id, input.launch_epoch, tokenDigest, intentDigest, input.operation_id, input.task_id, input.attempt, input.generation, input.revision);
-          if (changed.changes !== 1) fail("stale_launch_cas");
+          if (changed.changes !== 1) fail2("stale_launch_cas");
           this.#faultPoint("after_projection");
           this.#event(
             input.operation_id,
@@ -7736,11 +6862,11 @@ var init_store = __esm({
       }
       recordLaunchReceipt(input) {
         this.#assertWritable();
-        if (!validLaunchRequest(input) || !validId3(input.receipt_id)) fail("invalid_launch_receipt");
+        if (!validLaunchRequest(input) || !validId3(input.receipt_id)) fail2("invalid_launch_receipt");
         fixtureLaunchIdentity(input.launch_identity);
         if (input.launch_identity.source === "manager_os_spawn_observation" && (input.launch_identity.launch_id !== input.launch_id || input.launch_identity.generation !== input.generation))
-          fail("trusted_launch_identity_binding_mismatch");
-        const tokenDigest = digest2(input.launch_token), identityJson = canonical3(input.launch_identity);
+          fail2("trusted_launch_identity_binding_mismatch");
+        const tokenDigest = digest2(input.launch_token), identityJson = canonical4(input.launch_identity);
         const receiptDigest = digest2({
           receipt_id: input.receipt_id,
           operation_id: input.operation_id,
@@ -7754,17 +6880,17 @@ var init_store = __esm({
         });
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
-          if (!o.launch_id) fail("launch_intent_missing");
-          if (o.launch_id !== input.launch_id || o.launch_epoch !== input.launch_epoch || o.launch_token_digest !== tokenDigest) fail("launch_receipt_intent_mismatch");
+          if (!o.launch_id) fail2("launch_intent_missing");
+          if (o.launch_id !== input.launch_id || o.launch_epoch !== input.launch_epoch || o.launch_token_digest !== tokenDigest) fail2("launch_receipt_intent_mismatch");
           if (o.launch_receipt_digest !== null) {
-            if (o.launch_receipt_digest !== receiptDigest || o.launch_identity_json !== identityJson) fail("launch_receipt_conflict");
+            if (o.launch_receipt_digest !== receiptDigest || o.launch_identity_json !== identityJson) fail2("launch_receipt_conflict");
             return { duplicate: true, operation_id: o.operation_id, launch_id: o.launch_id, revision: o.revision, phase: o.phase, process_started: "not_independently_verified", synthetic: input.launch_identity.source === "synthetic_fixture" };
           }
-          if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE launch_receipt_id=?").get(input.receipt_id)) fail("launch_receipt_id_already_used");
-          if (o.phase !== "launch_intent" || o.revision !== input.revision) fail("stale_launch_cas");
+          if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE launch_receipt_id=?").get(input.receipt_id)) fail2("launch_receipt_id_already_used");
+          if (o.phase !== "launch_intent" || o.revision !== input.revision) fail2("stale_launch_cas");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1,launch_receipt_id=?,launch_receipt_digest=?,launch_identity_json=? WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='launch_intent' AND revision=? AND launch_id=? AND launch_epoch=? AND launch_token_digest=?").run(input.receipt_id, receiptDigest, identityJson, input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.launch_id, input.launch_epoch, tokenDigest);
-          if (changed.changes !== 1) fail("stale_launch_cas");
+          if (changed.changes !== 1) fail2("stale_launch_cas");
           this.#faultPoint("after_projection");
           this.#event(
             input.operation_id,
@@ -7793,9 +6919,9 @@ var init_store = __esm({
       }
       commitPermanentClaim(input) {
         this.#assertWritable();
-        if (!validLaunchRequest(input) || !validId3(input.claim_id)) fail("invalid_claim");
+        if (!validLaunchRequest(input) || !validId3(input.claim_id)) fail2("invalid_claim");
         fixtureWorkerIdentity(input.worker_identity);
-        const tokenDigest = digest2(input.launch_token), workerJson = canonical3(input.worker_identity), workerDigest = digest2(workerJson);
+        const tokenDigest = digest2(input.launch_token), workerJson = canonical4(input.worker_identity), workerDigest = digest2(workerJson);
         const claimDigest = digest2({
           claim_id: input.claim_id,
           operation_id: input.operation_id,
@@ -7810,24 +6936,24 @@ var init_store = __esm({
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           if (o.claim_id !== null) {
-            if (o.claim_id !== input.claim_id || o.claim_request_digest !== claimDigest || o.claim_worker_identity_json !== workerJson) fail("claim_conflict");
+            if (o.claim_id !== input.claim_id || o.claim_request_digest !== claimDigest || o.claim_worker_identity_json !== workerJson) fail2("claim_conflict");
             return { duplicate: true, operation_id: o.operation_id, claim_id: o.claim_id, revision: o.revision, phase: o.phase, claim_permanent: true, synthetic: input.worker_identity.source === "synthetic_fixture" };
           }
-          if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE claim_id=?").get(input.claim_id)) fail("claim_id_already_used");
-          if (o.phase !== "launch_intent" || o.launch_receipt_digest === null) fail("launch_receipt_required");
-          if (o.launch_id !== input.launch_id || o.launch_epoch !== input.launch_epoch || o.launch_token_digest !== tokenDigest) fail("claim_launch_mismatch");
+          if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE claim_id=?").get(input.claim_id)) fail2("claim_id_already_used");
+          if (o.phase !== "launch_intent" || o.launch_receipt_digest === null) fail2("launch_receipt_required");
+          if (o.launch_id !== input.launch_id || o.launch_epoch !== input.launch_epoch || o.launch_token_digest !== tokenDigest) fail2("claim_launch_mismatch");
           const launchIdentity = JSON.parse(o.launch_identity_json);
-          if (input.worker_identity.process_id !== launchIdentity.process_id || input.worker_identity.start_fingerprint !== launchIdentity.start_fingerprint) fail("claim_worker_launch_identity_mismatch");
-          if (o.revision !== input.revision) fail("stale_claim_cas");
+          if (input.worker_identity.process_id !== launchIdentity.process_id || input.worker_identity.start_fingerprint !== launchIdentity.start_fingerprint) fail2("claim_worker_launch_identity_mismatch");
+          if (o.revision !== input.revision) fail2("stale_claim_cas");
           const current = this.#db.prepare("SELECT t.current_attempt,t.status AS task_status,a.status AS attempt_status FROM tasks t JOIN attempts a ON a.task_id=t.task_id WHERE t.task_id=? AND a.attempt=? AND a.generation=?").get(input.task_id, input.attempt, input.generation);
-          if (!current || current.current_attempt !== input.attempt || current.task_status !== "queued" || current.attempt_status !== "queued") fail("claim_attempt_not_current");
+          if (!current || current.current_attempt !== input.attempt || current.task_status !== "queued" || current.attempt_status !== "queued") fail2("claim_attempt_not_current");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const changed = this.#db.prepare("UPDATE manager_operations SET phase='running',revision=revision+1,claim_id=?,claim_request_digest=?,claim_worker_identity_json=?,claim_worker_identity_digest=?,claim_launch_id=?,claim_generation=?,claim_token_digest=? WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='launch_intent' AND revision=? AND launch_id=? AND launch_epoch=? AND launch_token_digest=? AND launch_receipt_digest IS NOT NULL AND claim_id IS NULL").run(input.claim_id, claimDigest, workerJson, workerDigest, input.launch_id, input.generation, tokenDigest, input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.launch_id, input.launch_epoch, tokenDigest);
-          if (changed.changes !== 1) fail("stale_claim_cas");
+          if (changed.changes !== 1) fail2("stale_claim_cas");
           const attemptChanged = this.#db.prepare("UPDATE attempts SET status='running' WHERE task_id=? AND attempt=? AND generation=? AND status='queued'").run(input.task_id, input.attempt, input.generation);
-          if (attemptChanged.changes !== 1) fail("claim_attempt_status_conflict");
+          if (attemptChanged.changes !== 1) fail2("claim_attempt_status_conflict");
           const taskChanged = this.#db.prepare("UPDATE tasks SET status='running' WHERE task_id=? AND current_attempt=? AND status='queued'").run(input.task_id, input.attempt);
-          if (taskChanged.changes !== 1) fail("claim_task_status_conflict");
+          if (taskChanged.changes !== 1) fail2("claim_task_status_conflict");
           this.#faultPoint("after_projection");
           this.#event(
             input.operation_id,
@@ -7855,25 +6981,24 @@ var init_store = __esm({
       }
       commitResult(input) {
         this.#assertWritable();
-        if (!validId3(input?.operation_id) || !validId3(input?.task_id) || !Number.isSafeInteger(input?.attempt) || input.attempt < 1 || !Number.isSafeInteger(input?.generation) || input.generation < 1 || !Number.isSafeInteger(input?.revision) || input.revision < 1 || !validId3(input?.claim_id) || !RESULT_STATUSES.has(input?.result_status) || typeof input?.claim_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.claim_worker_identity_digest)) fail("invalid_result_commit");
-        if (input.result_status === "cancelled" ? typeof input.cancel_verification_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.cancel_verification_digest) : Object.hasOwn(input, "cancel_verification_digest")) fail("invalid_result_commit");
-        const resultJson = canonicalTaskResult(input.result, input);
-        if (Buffer.byteLength(resultJson, "utf8") > 65536) fail("result_too_large");
+        if (!validId3(input?.operation_id) || !validId3(input?.task_id) || !Number.isSafeInteger(input?.attempt) || input.attempt < 1 || !Number.isSafeInteger(input?.generation) || input.generation < 1 || !Number.isSafeInteger(input?.revision) || input.revision < 1 || !validId3(input?.claim_id) || !RESULT_STATUSES2.has(input?.result_status) || typeof input?.claim_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.claim_worker_identity_digest)) fail2("invalid_result_commit");
+        if (input.result_status === "cancelled" ? typeof input.cancel_verification_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.cancel_verification_digest) : Object.hasOwn(input, "cancel_verification_digest")) fail2("invalid_result_commit");
+        const resultJson = canonicalTaskResult2(input.result, input);
         const resultDigest = digest2({ result_contract_version: RESULT_CONTRACT_VERSION, result_status: input.result_status, result: JSON.parse(resultJson) });
         const commitRef = `result-${resultDigest}`;
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertNoUnknownInteraction(o.operation_id);
-          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail("result_claim_mismatch");
+          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail2("result_claim_mismatch");
           if (o.result_digest !== null) {
-            if (o.result_generation !== input.generation) fail("result_generation_mismatch");
+            if (o.result_generation !== input.generation) fail2("result_generation_mismatch");
             const resultEvent = this.#db.prepare("SELECT sequence FROM manager_operation_events WHERE operation_id=? AND event_type='result_committed'").get(input.operation_id);
-            if (!resultEvent || input.revision !== resultEvent.sequence - 1) fail("stale_result_cas");
+            if (!resultEvent || input.revision !== resultEvent.sequence - 1) fail2("stale_result_cas");
             if (o.result_digest === resultDigest && o.result_status === input.result_status && o.result_json === resultJson && o.result_commit_ref === commitRef) {
               if (input.result_status === "cancelled") {
                 const persisted = this.#db.prepare("SELECT evidence_json FROM manager_operation_events WHERE operation_id=? AND sequence=?").get(input.operation_id, resultEvent.sequence);
-                if (!persisted || JSON.parse(persisted.evidence_json).cancel_verification_digest !== input.cancel_verification_digest) fail("result_cancellation_evidence_mismatch");
+                if (!persisted || JSON.parse(persisted.evidence_json).cancel_verification_digest !== input.cancel_verification_digest) fail2("result_cancellation_evidence_mismatch");
               }
               return {
                 duplicate: true,
@@ -7919,11 +7044,11 @@ var init_store = __esm({
                 result_digest: o.result_digest,
                 conflict_evidence_digest: quarantineEvent.evidence.evidence_digest
               };
-              fail("result_quarantine_exists");
+              fail2("result_quarantine_exists");
             }
             if (o.phase === "released") {
               this.#poison("result_conflict_after_release", digest2({ operation_id: o.operation_id, claim_id: o.claim_id, generation: o.generation, existing_result_digest: o.result_digest, conflicting_result_digest: resultDigest }));
-              fail("result_conflict_after_release");
+              fail2("result_conflict_after_release");
             }
             const quarantineDigest = digest2({
               result_contract_version: RESULT_CONTRACT_VERSION,
@@ -7936,7 +7061,7 @@ var init_store = __esm({
             });
             const at2 = (/* @__PURE__ */ new Date()).toISOString();
             const changed2 = this.#db.prepare("UPDATE manager_operations SET phase='quarantined',revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase=? AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, o.phase, o.revision, input.claim_id, input.generation, input.claim_worker_identity_digest, o.result_digest);
-            if (changed2.changes !== 1) fail("stale_result_cas");
+            if (changed2.changes !== 1) fail2("stale_result_cas");
             this.#faultPoint("after_projection");
             this.#event(
               o.operation_id,
@@ -7959,22 +7084,22 @@ var init_store = __esm({
               conflict_evidence_digest: quarantineDigest
             };
           }
-          if (o.phase !== "running" || o.revision !== input.revision) fail("stale_result_cas");
+          if (o.phase !== "running" || o.revision !== input.revision) fail2("stale_result_cas");
           if (input.result_status === "cancelled") {
             const observations = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded'").all(input.operation_id).map((event) => ({ ...event, evidence: JSON.parse(event.evidence_json) }));
             const intent = observations.find((event) => event.evidence.reason === "cancel_requested");
             const verification = observations.find((event) => event.evidence.reason === "cancel_tree_verified");
-            if (!intent || !verification || verification.sequence <= intent.sequence || verification.evidence.cancel_id !== intent.evidence.cancel_id || verification.evidence.claim_id !== input.claim_id || verification.evidence.worker_identity_digest !== input.claim_worker_identity_digest || verification.evidence_digest !== input.cancel_verification_digest) fail("cancel_verification_required");
+            if (!intent || !verification || verification.sequence <= intent.sequence || verification.evidence.cancel_id !== intent.evidence.cancel_id || verification.evidence.claim_id !== input.claim_id || verification.evidence.worker_identity_digest !== input.claim_worker_identity_digest || verification.evidence_digest !== input.cancel_verification_digest) fail2("cancel_verification_required");
           }
           const current = this.#db.prepare("SELECT t.status AS task_status,t.current_attempt,a.status AS attempt_status FROM tasks t JOIN attempts a ON a.task_id=t.task_id WHERE t.task_id=? AND a.attempt=? AND a.generation=?").get(input.task_id, input.attempt, input.generation);
-          if (!current || current.current_attempt !== input.attempt || current.task_status !== "running" || current.attempt_status !== "running") fail("result_attempt_not_running");
+          if (!current || current.current_attempt !== input.attempt || current.task_status !== "running" || current.attempt_status !== "running") fail2("result_attempt_not_running");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const changed = this.#db.prepare("UPDATE manager_operations SET phase='result_committed',revision=revision+1,result_status=?,result_generation=?,result_digest=?,result_json=?,result_commit_ref=? WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_digest IS NULL").run(input.result_status, input.generation, resultDigest, resultJson, commitRef, input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_result_cas");
+          if (changed.changes !== 1) fail2("stale_result_cas");
           const attempt = this.#db.prepare("UPDATE attempts SET status=? WHERE task_id=? AND attempt=? AND generation=? AND status='running'").run(input.result_status, input.task_id, input.attempt, input.generation);
-          if (attempt.changes !== 1) fail("result_attempt_status_conflict");
+          if (attempt.changes !== 1) fail2("result_attempt_status_conflict");
           const task = this.#db.prepare("UPDATE tasks SET status=? WHERE task_id=? AND current_attempt=? AND status='running'").run(input.result_status, input.task_id, input.attempt);
-          if (task.changes !== 1) fail("result_task_status_conflict");
+          if (task.changes !== 1) fail2("result_task_status_conflict");
           this.#faultPoint("after_projection");
           this.#event(
             input.operation_id,
@@ -8013,21 +7138,21 @@ var init_store = __esm({
       /** Persist an operation-scoped cleanup intent before any external OS cleanup is attempted. */
       beginCleanup(input) {
         this.#assertWritable();
-        if (!validCleanupRequest(input)) fail("invalid_cleanup_request");
+        if (!validCleanupRequest(input)) fail2("invalid_cleanup_request");
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertNoUnknownInteraction(o.operation_id);
-          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail("cleanup_claim_mismatch");
+          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail2("cleanup_claim_mismatch");
           if (o.phase === "cleanup_pending") {
             const prior = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='cleanup_pending'").get(input.operation_id);
             const evidence = prior && JSON.parse(prior.evidence_json);
             if (prior && prior.sequence === input.revision + 1 && evidence.claim_id === input.claim_id && evidence.result_commit_ref === o.result_commit_ref && evidence.worker_identity_digest === input.claim_worker_identity_digest) return { duplicate: true, operation_id: o.operation_id, generation: o.generation, revision: o.revision, phase: o.phase };
-            fail("cleanup_pending_conflict");
+            fail2("cleanup_pending_conflict");
           }
-          if (o.phase !== "result_committed" || o.revision !== input.revision || o.result_digest === null || o.result_commit_ref === null) fail("cleanup_result_not_committed");
+          if (o.phase !== "result_committed" || o.revision !== input.revision || o.result_digest === null || o.result_commit_ref === null) fail2("cleanup_result_not_committed");
           const changed = this.#db.prepare("UPDATE manager_operations SET phase='cleanup_pending',revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='result_committed' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_digest IS NOT NULL").run(input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_cleanup_cas");
+          if (changed.changes !== 1) fail2("stale_cleanup_cas");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           this.#faultPoint("after_projection");
           this.#event(
@@ -8046,22 +7171,22 @@ var init_store = __esm({
       /** Persist only evidence supplied after an external, operation-scoped cleanup attempt. */
       recordCleanupEvidence(input) {
         this.#assertWritable();
-        if (!validCleanupRequest(input) || !["verified", "unverified"].includes(input?.outcome)) fail("invalid_cleanup_request");
+        if (!validCleanupRequest(input) || !["verified", "unverified"].includes(input?.outcome)) fail2("invalid_cleanup_request");
         let normalized = null, cleanupDigest = null;
         if (input.outcome === "verified") {
           normalized = normalizeCleanupEvidence(input.cleanup_evidence, input);
           cleanupDigest = digest2({ cleanup_contract_version: 1, evidence: normalized });
-        } else if (!["alive", "unknown", "identity_mismatch", "incomplete"].includes(input?.probe_state) || !validText2(input?.reason, 128)) fail("invalid_cleanup_outcome");
+        } else if (!["alive", "unknown", "identity_mismatch", "incomplete"].includes(input?.probe_state) || !validText3(input?.reason, 128)) fail2("invalid_cleanup_outcome");
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertNoUnknownInteraction(o.operation_id);
-          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail("cleanup_claim_mismatch");
-          if (o.launch_receipt_digest === null || o.result_commit_ref === null || o.result_digest === null) fail("cleanup_prerequisite_missing");
-          if (input.outcome === "verified" && (normalized.launch_receipt_digest !== o.launch_receipt_digest || normalized.result_commit_ref !== o.result_commit_ref)) fail("cleanup_evidence_identity_mismatch");
+          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail2("cleanup_claim_mismatch");
+          if (o.launch_receipt_digest === null || o.result_commit_ref === null || o.result_digest === null) fail2("cleanup_prerequisite_missing");
+          if (input.outcome === "verified" && (normalized.launch_receipt_digest !== o.launch_receipt_digest || normalized.result_commit_ref !== o.result_commit_ref)) fail2("cleanup_evidence_identity_mismatch");
           if (input.outcome === "verified") {
             const worker = JSON.parse(o.claim_worker_identity_json), launchIdentity = JSON.parse(o.launch_identity_json);
-            if (normalized.root_process_id !== worker.process_id || normalized.root_start_fingerprint !== worker.start_fingerprint || normalized.root_process_id !== launchIdentity.process_id || normalized.root_start_fingerprint !== launchIdentity.start_fingerprint) fail("cleanup_worker_identity_mismatch");
+            if (normalized.root_process_id !== worker.process_id || normalized.root_start_fingerprint !== worker.start_fingerprint || normalized.root_process_id !== launchIdentity.process_id || normalized.root_start_fingerprint !== launchIdentity.start_fingerprint) fail2("cleanup_worker_identity_mismatch");
           }
           const finalType = input.outcome === "verified" ? "cleanup_verified" : "cleanup_unverified";
           const final = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type IN ('cleanup_verified','cleanup_unverified')").get(input.operation_id);
@@ -8079,15 +7204,15 @@ var init_store = __esm({
             };
             if (o.phase === "released") {
               this.#poison("cleanup_evidence_conflict_after_release", digest2({ operation_id: o.operation_id, generation: o.generation, cleanup_digest: cleanupDigest ?? null }));
-              fail("cleanup_result_conflict_after_release");
+              fail2("cleanup_result_conflict_after_release");
             }
-            fail("cleanup_evidence_conflict");
+            fail2("cleanup_evidence_conflict");
           }
-          if (o.phase !== "cleanup_pending" || o.revision !== input.revision) fail("stale_cleanup_cas");
+          if (o.phase !== "cleanup_pending" || o.revision !== input.revision) fail2("stale_cleanup_cas");
           const at = (/* @__PURE__ */ new Date()).toISOString();
           const next = input.outcome === "verified" ? "cleanup_verified" : "cleanup_unverified";
           const changed = this.#db.prepare("UPDATE manager_operations SET phase=?,revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='cleanup_pending' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_commit_ref=?").run(next, input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest, o.result_commit_ref);
-          if (changed.changes !== 1) fail("stale_cleanup_cas");
+          if (changed.changes !== 1) fail2("stale_cleanup_cas");
           this.#faultPoint("after_projection");
           if (input.outcome === "verified") {
             const eventEvidence = {
@@ -8135,16 +7260,16 @@ var init_store = __esm({
        */
       reverifyCleanup(input) {
         this.#assertWritable();
-        if (!validCleanupRequest(input) || !input.cleanup_evidence) fail("invalid_cleanup_reverification");
+        if (!validCleanupRequest(input) || !input.cleanup_evidence) fail2("invalid_cleanup_reverification");
         const normalized = normalizeCleanupEvidence(input.cleanup_evidence, input);
         const cleanupDigest = digest2({ cleanup_contract_version: 1, evidence: normalized });
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           this.#assertNoUnknownInteraction(o.operation_id);
-          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest || o.launch_receipt_digest !== normalized.launch_receipt_digest || o.result_commit_ref !== normalized.result_commit_ref || o.result_digest === null) fail("cleanup_reverification_identity_mismatch");
+          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest || o.launch_receipt_digest !== normalized.launch_receipt_digest || o.result_commit_ref !== normalized.result_commit_ref || o.result_digest === null) fail2("cleanup_reverification_identity_mismatch");
           const history = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(o.operation_id).map((event) => ({ ...event, evidence: JSON.parse(event.evidence_json) }));
           const unverified = history.filter((event) => event.event_type === "cleanup_unverified");
-          if (unverified.length !== 1 || unverified[0].evidence.claim_id !== o.claim_id || unverified[0].evidence.worker_identity_digest !== o.claim_worker_identity_digest) fail("cleanup_unverified_event_missing_or_conflicting");
+          if (unverified.length !== 1 || unverified[0].evidence.claim_id !== o.claim_id || unverified[0].evidence.worker_identity_digest !== o.claim_worker_identity_digest) fail2("cleanup_unverified_event_missing_or_conflicting");
           const priorReverification = history.find((event) => event.event_type === "cleanup_reverified");
           if (priorReverification && (o.phase === "cleanup_verified" || o.phase === "released") && o.revision >= input.revision + 2 && priorReverification.from_phase === "cleanup_unverified" && priorReverification.to_phase === "cleanup_reverified" && priorReverification.evidence.prior_cleanup_event_digest === unverified[0].evidence_digest && priorReverification.evidence.cleanup_digest === cleanupDigest && history.some((event) => event.event_type === "cleanup_verified" && event.evidence.cleanup_digest === cleanupDigest && event.sequence === priorReverification.sequence + 1)) {
             const verified = history.find((event) => event.event_type === "cleanup_verified" && event.evidence.cleanup_digest === cleanupDigest);
@@ -8163,15 +7288,15 @@ var init_store = __esm({
               resolved_recovery_event_digests: priorReverification.evidence.resolved_recovery_event_digests
             };
           }
-          if (o.phase !== "cleanup_unverified" || o.revision !== input.revision) fail("stale_cleanup_reverification_cas");
-          if (priorReverification) fail("cleanup_reverification_already_committed");
+          if (o.phase !== "cleanup_unverified" || o.revision !== input.revision) fail2("stale_cleanup_reverification_cas");
+          if (priorReverification) fail2("cleanup_reverification_already_committed");
           const recovery = recoveryEventsFor(history, o);
           const active = recovery.filter((event) => event.active);
-          if (active.some((event) => event.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(event.evidence.reason_code))) fail("cleanup_reverification_blocked_by_unrelated_hold");
+          if (active.some((event) => event.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(event.evidence.reason_code))) fail2("cleanup_reverification_blocked_by_unrelated_hold");
           const resolvedDigests = active.map((event) => event.event.evidence_digest).sort();
-          if (resolvedDigests.length > RECOVERY_LIMIT) fail("cleanup_reverification_hold_limit");
+          if (resolvedDigests.length > RECOVERY_LIMIT) fail2("cleanup_reverification_hold_limit");
           const changed = this.#db.prepare("UPDATE manager_operations SET phase='cleanup_reverified',revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='cleanup_unverified' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_commit_ref=?").run(o.operation_id, o.task_id, o.attempt, o.generation, input.revision, o.claim_id, o.generation, o.claim_worker_identity_digest, o.result_commit_ref);
-          if (changed.changes !== 1) fail("stale_cleanup_reverification_cas");
+          if (changed.changes !== 1) fail2("stale_cleanup_reverification_cas");
           const baseEvidence = {
             claim_id: o.claim_id,
             cleanup_digest: cleanupDigest,
@@ -8201,7 +7326,7 @@ var init_store = __esm({
           this.#event(o.operation_id, input.revision + 1, "cleanup_reverified", "cleanup_unverified", "cleanup_reverified", o.generation, reverifiedEvidence, at);
           this.#faultPoint("after_cleanup_reverification_event");
           const finalized = this.#db.prepare("UPDATE manager_operations SET phase='cleanup_verified',revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='cleanup_reverified' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=?").run(o.operation_id, o.task_id, o.attempt, o.generation, input.revision + 1, o.claim_id, o.generation, o.claim_worker_identity_digest);
-          if (finalized.changes !== 1) fail("stale_cleanup_reverification_finalize");
+          if (finalized.changes !== 1) fail2("stale_cleanup_reverification_finalize");
           this.#event(o.operation_id, input.revision + 2, "cleanup_verified", "cleanup_reverified", "cleanup_verified", o.generation, baseEvidence, at);
           return {
             duplicate: false,
@@ -8222,12 +7347,12 @@ var init_store = __esm({
       /** Release only this operation's capacity slot after persisted verified cleanup evidence. */
       releaseCapacity(input) {
         this.#assertWritable();
-        if (!validCleanupRequest(input) || typeof input.cleanup_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.cleanup_digest)) fail("invalid_release_request");
+        if (!validCleanupRequest(input) || typeof input.cleanup_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.cleanup_digest)) fail2("invalid_release_request");
         return this.#transaction(() => {
           const o = this.#attemptOperation(input);
           this.#assertRecoveryNotLatched(o.operation_id);
           this.#assertNoUnknownInteraction(o.operation_id);
-          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail("release_claim_mismatch");
+          if (o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail2("release_claim_mismatch");
           const verified = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='cleanup_verified'").get(input.operation_id);
           const release = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? AND event_type='released'").get(input.operation_id);
           if (o.phase === "released") {
@@ -8241,15 +7366,15 @@ var init_store = __esm({
               capacity_released: true
             };
             this.#poison("release_conflict_after_release", digest2({ operation_id: o.operation_id, generation: o.generation, cleanup_digest: input.cleanup_digest }));
-            fail("release_conflict_after_release");
+            fail2("release_conflict_after_release");
           }
-          if (o.phase !== "cleanup_verified" || o.revision !== input.revision || !verified) fail("cleanup_not_verified");
+          if (o.phase !== "cleanup_verified" || o.revision !== input.revision || !verified) fail2("cleanup_not_verified");
           const evidence = JSON.parse(verified.evidence_json);
-          if (evidence.cleanup_digest !== input.cleanup_digest || evidence.claim_id !== input.claim_id || evidence.worker_identity_digest !== input.claim_worker_identity_digest || evidence.launch_receipt_digest !== o.launch_receipt_digest || evidence.result_commit_ref !== o.result_commit_ref) fail("release_cleanup_evidence_mismatch");
+          if (evidence.cleanup_digest !== input.cleanup_digest || evidence.claim_id !== input.claim_id || evidence.worker_identity_digest !== input.claim_worker_identity_digest || evidence.launch_receipt_digest !== o.launch_receipt_digest || evidence.result_commit_ref !== o.result_commit_ref) fail2("release_cleanup_evidence_mismatch");
           const projection = this.#db.prepare("SELECT t.status AS task_status,t.current_attempt,a.status AS attempt_status FROM tasks t JOIN attempts a ON a.task_id=t.task_id WHERE t.task_id=? AND a.attempt=? AND a.generation=?").get(o.task_id, o.attempt, o.generation);
-          if (!projection || projection.current_attempt !== o.attempt || projection.task_status !== o.result_status || projection.attempt_status !== o.result_status || o.result_generation !== o.generation || o.result_digest === null) fail("release_result_projection_mismatch");
+          if (!projection || projection.current_attempt !== o.attempt || projection.task_status !== o.result_status || projection.attempt_status !== o.result_status || o.result_generation !== o.generation || o.result_digest === null) fail2("release_result_projection_mismatch");
           const changed = this.#db.prepare("UPDATE manager_operations SET phase='released',revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='cleanup_verified' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_digest IS NOT NULL").run(input.operation_id, input.task_id, input.attempt, input.generation, input.revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
-          if (changed.changes !== 1) fail("stale_release_cas");
+          if (changed.changes !== 1) fail2("stale_release_cas");
           this.#faultPoint("after_projection");
           this.#event(
             input.operation_id,
@@ -8266,36 +7391,36 @@ var init_store = __esm({
       }
       #cancellationWorker(input, o) {
         if (!o.claim_id || o.claim_id !== input.claim_id || o.claim_generation !== input.generation || o.claim_worker_identity_digest !== input.claim_worker_identity_digest || !o.claim_worker_identity_json || !o.launch_identity_json)
-          fail("cancellation_claim_mismatch");
+          fail2("cancellation_claim_mismatch");
         fixtureWorkerIdentity(input.worker_identity);
-        const workerJson = canonical3(input.worker_identity);
-        if (workerJson !== o.claim_worker_identity_json || digest2(workerJson) !== o.claim_worker_identity_digest) fail("cancellation_worker_identity_mismatch");
+        const workerJson = canonical4(input.worker_identity);
+        if (workerJson !== o.claim_worker_identity_json || digest2(workerJson) !== o.claim_worker_identity_digest) fail2("cancellation_worker_identity_mismatch");
         let launchIdentity;
         try {
           launchIdentity = JSON.parse(o.launch_identity_json);
         } catch {
-          fail("launch_identity_invalid");
+          fail2("launch_identity_invalid");
         }
         if (input.worker_identity.process_id !== launchIdentity.process_id || input.worker_identity.start_fingerprint !== launchIdentity.start_fingerprint)
-          fail("cancellation_worker_identity_mismatch");
+          fail2("cancellation_worker_identity_mismatch");
         return input.worker_identity;
       }
       #attemptOperation(input) {
         const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
-        if (!o) fail("operation_not_found");
-        if (o.task_id !== input.task_id || o.attempt !== input.attempt || o.generation !== input.generation) fail("operation_identity_mismatch");
+        if (!o) fail2("operation_not_found");
+        if (o.task_id !== input.task_id || o.attempt !== input.attempt || o.generation !== input.generation) fail2("operation_identity_mismatch");
         return o;
       }
       #assertRecoveryNotLatched(operationId) {
         const operation = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=?").get(operationId);
-        if (!operation) fail("operation_not_found");
+        if (!operation) fail2("operation_not_found");
         const events = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(operationId);
-        if (recoveryEventsFor(events, operation).some((event) => event.active)) fail("operation_recovery_latched");
+        if (recoveryEventsFor(events, operation).some((event) => event.active)) fail2("operation_recovery_latched");
       }
       #assertInteractionRunning(o, input) {
-        if (o.operation_kind !== "attempt_lifecycle" || o.phase !== "running" || o.task_id !== input.task_id || o.attempt !== input.attempt || o.generation !== input.generation || o.claim_id !== input.claim_id || o.claim_generation !== o.generation || o.claim_worker_identity_digest !== input.worker_identity_digest) fail("interaction_identity_mismatch");
+        if (o.operation_kind !== "attempt_lifecycle" || o.phase !== "running" || o.task_id !== input.task_id || o.attempt !== input.attempt || o.generation !== input.generation || o.claim_id !== input.claim_id || o.claim_generation !== o.generation || o.claim_worker_identity_digest !== input.worker_identity_digest) fail2("interaction_identity_mismatch");
         const projection = this.#db.prepare("SELECT t.current_attempt,t.status AS task_status,a.status AS attempt_status,a.generation FROM tasks t JOIN attempts a ON a.task_id=t.task_id AND a.attempt=? WHERE t.task_id=?").get(o.attempt, o.task_id);
-        if (!projection || projection.current_attempt !== o.attempt || projection.task_status !== "running" || projection.attempt_status !== "running" || projection.generation !== o.generation) fail("interaction_task_projection_mismatch");
+        if (!projection || projection.current_attempt !== o.attempt || projection.task_status !== "running" || projection.attempt_status !== "running" || projection.generation !== o.generation) fail2("interaction_task_projection_mismatch");
       }
       #assertNoUnknownInteraction(operationId) {
         const rows = this.#db.prepare("SELECT event_type,evidence_json FROM manager_operation_events WHERE operation_id=? AND event_type IN ('interaction_reply_intent','interaction_reply_accepted') ORDER BY sequence").all(operationId);
@@ -8305,7 +7430,7 @@ var init_store = __esm({
           if (row.event_type === "interaction_reply_intent") pending.add(requestId);
           else pending.delete(requestId);
         }
-        if (pending.size) fail("interaction_reply_outcome_unknown");
+        if (pending.size) fail2("interaction_reply_outcome_unknown");
       }
       #assertNoCancellationIntent(operationId) {
         const rows = this.#db.prepare("SELECT evidence_json FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded'").all(operationId);
@@ -8313,16 +7438,23 @@ var init_store = __esm({
           try {
             return JSON.parse(row.evidence_json).reason === "cancel_requested";
           } catch {
-            fail("database_unreadable");
+            fail2("database_unreadable");
           }
         }))
-          fail("interaction_cancel_intent_present");
+          fail2("interaction_cancel_intent_present");
       }
       #readConsistent(read) {
         this.#assertOpen();
         this.#db.exec("BEGIN");
         try {
-          this.#validateContents();
+          this.#db.prepare("SELECT name FROM sqlite_schema LIMIT 1").get();
+          const external = this.#db.prepare("PRAGMA data_version").get().data_version;
+          const local = this.#db.prepare("SELECT total_changes() AS n").get().n;
+          const snapshot = `${external}:${local}`;
+          if (this.#validatedSnapshot !== snapshot) {
+            this.#validateContents();
+            this.#validatedSnapshot = snapshot;
+          }
           const result = read();
           this.#db.exec("COMMIT");
           return result;
@@ -8336,46 +7468,46 @@ var init_store = __esm({
       }
       #nextEventCursor() {
         const row = this.#db.prepare("UPDATE authority_metadata SET next_event_cursor=next_event_cursor+1 WHERE singleton=1 AND next_event_cursor<9007199254740991 RETURNING next_event_cursor").get();
-        if (!row || !Number.isSafeInteger(row.next_event_cursor) || row.next_event_cursor < 1) fail("event_cursor_exhausted");
+        if (!row || !Number.isSafeInteger(row.next_event_cursor) || row.next_event_cursor < 1) fail2("event_cursor_exhausted");
         const sequence = this.#db.prepare("SELECT seq FROM sqlite_sequence WHERE name='manager_operation_events'").get();
-        if (sequence && (!Number.isSafeInteger(sequence.seq) || sequence.seq < 0 || sequence.seq > row.next_event_cursor)) fail("event_cursor_invalid");
+        if (sequence && (!Number.isSafeInteger(sequence.seq) || sequence.seq < 0 || sequence.seq > row.next_event_cursor)) fail2("event_cursor_invalid");
         const changed = this.#db.prepare("UPDATE sqlite_sequence SET seq=? WHERE name='manager_operation_events'").run(row.next_event_cursor);
         if (changed.changes === 0) this.#db.prepare("INSERT INTO sqlite_sequence(name,seq) VALUES('manager_operation_events',?)").run(row.next_event_cursor);
-        else if (changed.changes !== 1) fail("event_cursor_invalid");
+        else if (changed.changes !== 1) fail2("event_cursor_invalid");
         return row.next_event_cursor;
       }
       #event(id, seq, type, from, to, generation, evidence, at, cursor) {
-        const eventCursor = cursor ?? this.#nextEventCursor(), j = canonical3(validateEvidence(type, evidence));
+        const eventCursor = cursor ?? this.#nextEventCursor(), j = canonical4(validateEvidence(type, evidence));
         this.#db.prepare("INSERT INTO manager_operation_events(event_cursor,operation_id,sequence,event_type,from_phase,to_phase,generation,evidence_json,evidence_digest,at) VALUES(?,?,?,?,?,?,?,?,?,?)").run(eventCursor, id, seq, type, from, to, generation, j, digest2(j), at);
         this.#faultPoint("after_event_insert");
         return eventCursor;
       }
       #assertOpen() {
-        if (this.#closed) fail("store_closed");
+        if (this.#closed) fail2("store_closed");
       }
       #assertWritable() {
         this.#assertOpen();
-        if (this.#recoveryOnly) fail("recovery_read_only");
-        if (this.poisoned) fail("root_poisoned");
+        if (this.#recoveryOnly) fail2("recovery_read_only");
+        if (this.poisoned) fail2("root_poisoned");
         this.#validate();
       }
       #faultPoint(name) {
-        if (this.#fault === name || this.#fault === "rollback_unknown" && name === "after_projection") fail("injected_failure", `injected ${name}`);
+        if (this.#fault === name || this.#fault === "rollback_unknown" && name === "after_projection") fail2("injected_failure", `injected ${name}`);
       }
       #transaction(fn) {
         this.#assertWritable();
         let began = false, commitStarted = false, settled = false;
-        const token = randomUUID5();
+        const token = randomUUID3();
         try {
-          const fd = openSync5(this.#paths.intent, "wx", 384);
+          const fd = openSync2(this.#paths.intent, "wx", 384);
           try {
-            writeFileSync6(fd, JSON.stringify({ version: 1, token, started_at: (/* @__PURE__ */ new Date()).toISOString() }));
-            fsyncSync3(fd);
+            writeFileSync3(fd, JSON.stringify({ version: 1, token, started_at: (/* @__PURE__ */ new Date()).toISOString() }));
+            fsyncSync(fd);
           } finally {
-            closeSync5(fd);
+            closeSync2(fd);
           }
         } catch (e) {
-          if (e?.code === "EEXIST") fail("root_writer_busy");
+          if (e?.code === "EEXIST") fail2("root_writer_busy");
           throw e;
         }
         try {
@@ -8394,16 +7526,16 @@ var init_store = __esm({
             try {
               this.#db.exec("ROLLBACK");
               settled = true;
-              fail("root_writer_busy");
+              fail2("root_writer_busy");
             } catch (re) {
               if (re instanceof AdmissionError && re.code === "root_writer_busy") throw re;
               this.#poison("commit_busy_rollback_unknown", String(re));
-              fail("transaction_outcome_unknown", String(re));
+              fail2("transaction_outcome_unknown", String(re));
             }
           }
           if (commitStarted) {
             this.#poison("commit_outcome_unknown", String(e));
-            fail("transaction_outcome_unknown", String(e));
+            fail2("transaction_outcome_unknown", String(e));
           }
           if (began) {
             try {
@@ -8412,73 +7544,78 @@ var init_store = __esm({
               settled = true;
             } catch (re) {
               this.#poison("rollback_outcome_unknown", String(re));
-              fail("transaction_outcome_unknown", String(re));
+              fail2("transaction_outcome_unknown", String(re));
             }
           } else {
             settled = true;
-            if (isBusy(e)) fail("root_writer_busy");
+            if (isBusy(e)) fail2("root_writer_busy");
           }
           throw e;
         } finally {
-          if (settled && !this.#poisoned && !existsSync12(this.#paths.poison)) {
+          if (settled && !this.#poisoned && !existsSync9(this.#paths.poison)) {
             try {
-              const intent = JSON.parse(readFileSync12(this.#paths.intent, "utf8"));
-              if (intent.token !== token) fail("writer_intent_identity_mismatch");
+              const intent = JSON.parse(readFileSync11(this.#paths.intent, "utf8"));
+              if (intent.token !== token) fail2("writer_intent_identity_mismatch");
               unlinkSync2(this.#paths.intent);
             } catch (e) {
               this.#poison("writer_intent_release_unknown", String(e));
-              fail("transaction_outcome_unknown", String(e));
+              fail2("transaction_outcome_unknown", String(e));
             }
           }
         }
       }
       #poison(reason, detail) {
         this.#poisoned = true;
-        writePoison(this.#paths.poison, { version: 1, reason, detail, at: (/* @__PURE__ */ new Date()).toISOString() });
+        try {
+          writePoison(this.#paths.poison, { version: 1, reason, detail, at: (/* @__PURE__ */ new Date()).toISOString() });
+        } catch (error2) {
+          process.stderr.write(`SQLITE_POISON_RECORD_FAILED ${JSON.stringify({ reason, error: error2.code ?? "io_error" })}
+`);
+        }
       }
       #validate(integrity = true) {
         if (!integrity) {
-          if (this.#db.prepare("PRAGMA foreign_keys").get().foreign_keys !== 1) fail("foreign_keys_disabled");
-          if (this.#db.prepare("PRAGMA user_version").get().user_version !== SCHEMA_VERSION) fail("schema_version_unknown");
+          if (this.#db.prepare("PRAGMA foreign_keys").get().foreign_keys !== 1) fail2("foreign_keys_disabled");
+          if (this.#db.prepare("PRAGMA user_version").get().user_version !== SCHEMA_VERSION) fail2("schema_version_unknown");
           return;
         }
         this.#readConsistent(() => void 0);
       }
       #validateContents() {
         try {
-          if (this.#db.prepare("PRAGMA foreign_keys").get().foreign_keys !== 1) fail("foreign_keys_disabled");
-          if (this.#db.prepare("PRAGMA user_version").get().user_version !== SCHEMA_VERSION) fail("schema_version_unknown");
-          assertCandidateSchema(this.#db);
-          if (this.#db.prepare("PRAGMA quick_check").get().quick_check !== "ok") fail("database_corrupt");
-          if (this.#db.prepare("PRAGMA foreign_key_check").all().length) fail("database_inconsistent");
+          if (this.#db.prepare("PRAGMA foreign_keys").get().foreign_keys !== 1) fail2("foreign_keys_disabled");
+          if (this.#db.prepare("PRAGMA user_version").get().user_version !== this.#schemaVersion) fail2("schema_version_unknown");
+          assertCandidateSchema(this.#db, this.#schemaVersion);
+          if (this.#db.prepare("PRAGMA quick_check").get().quick_check !== "ok") fail2("database_corrupt");
+          if (this.#db.prepare("PRAGMA foreign_key_check").all().length) fail2("database_inconsistent");
           const m = this.#db.prepare("SELECT * FROM authority_metadata").all();
-          if (m.length !== 1 || m[0].schema_version !== SCHEMA_VERSION) fail("policy_or_schema_mismatch");
+          if (m.length !== 1 || m[0].schema_version !== this.#schemaVersion) fail2("policy_or_schema_mismatch");
           const freshReceipts = this.#db.prepare("SELECT * FROM fresh_install_receipt").all();
           const authoritySwitches = this.#db.prepare("SELECT * FROM authority_switch").all();
           const migrationRuns = this.#db.prepare("SELECT * FROM migration_runs").all();
           const migratedResultsCount = this.#db.prepare("SELECT COUNT(*) AS n FROM migrated_task_results").get().n;
           const migratedEventsCount = this.#db.prepare("SELECT COUNT(*) AS n FROM migrated_task_events").get().n;
-          if (freshReceipts.length > 1 || authoritySwitches.length > 1 || migrationRuns.length > 1 || freshReceipts.length && authoritySwitches.length) fail("authority_receipt_missing_or_ambiguous");
+          if (freshReceipts.length > 1 || authoritySwitches.length > 1 || migrationRuns.length > 1 || freshReceipts.length && authoritySwitches.length) fail2("authority_receipt_missing_or_ambiguous");
           if (freshReceipts.length) {
-            if (migrationRuns.length || migratedResultsCount || migratedEventsCount || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n) fail("fresh_install_contains_legacy_data");
+            if (migrationRuns.length || migratedResultsCount || migratedEventsCount || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n) fail2("fresh_install_contains_legacy_data");
           } else if (authoritySwitches.length) {
             const receipt2 = authoritySwitches[0], migration = migrationRuns[0];
-            if (!migration || migration.state !== "verified" || migration.migration_id !== receipt2.migration_id || migration.source_root_digest !== receipt2.source_root_digest || migration.source_manifest_digest !== receipt2.source_manifest_digest || digest2(migration.source_manifest_json) !== migration.source_manifest_digest || !validText2(migration.archive_directory, 32767) || !path17.isAbsolute(migration.archive_directory) || !validText2(receipt2.archive_directory, 32767) || !path17.isAbsolute(receipt2.archive_directory) || migration.archive_directory !== receipt2.archive_directory || typeof migration.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(migration.archive_manifest_digest) || migration.archive_manifest_digest !== receipt2.archive_manifest_digest || !validText2(migration.archive_source_tasks_root, 32767) || !path17.isAbsolute(migration.archive_source_tasks_root) || migration.archive_source_tasks_root !== receipt2.archive_source_tasks_root || !Number.isSafeInteger(migration.archive_file_count) || migration.archive_file_count < 0 || migration.archive_file_count !== migration.source_artifact_count || migration.archive_file_count !== receipt2.archive_file_count || !Number.isSafeInteger(migration.archive_byte_count) || migration.archive_byte_count < 0 || migration.archive_byte_count !== migration.source_artifact_bytes || migration.archive_byte_count !== receipt2.archive_byte_count || receipt2.schema_version !== SCHEMA_VERSION || !validText2(receipt2.protocol_version, 128) || typeof receipt2.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(receipt2.runtime_roster_digest) || !validText2(receipt2.verifier_version, 128) || !validText2(migration.verifier_version, 128) || receipt2.verifier_version !== migration.verifier_version || !validText2(receipt2.cutover_id, 128) || !validText2(receipt2.created_at, 64) || Number.isNaN(Date.parse(receipt2.created_at)) || !validText2(migration.created_at, 64) || !validText2(migration.verified_at, 64) || Number.isNaN(Date.parse(migration.created_at)) || Number.isNaN(Date.parse(migration.verified_at))) fail("authority_switch_invalid");
+            if (!migration || migration.state !== "verified" || migration.migration_id !== receipt2.migration_id || migration.source_root_digest !== receipt2.source_root_digest || migration.source_manifest_digest !== receipt2.source_manifest_digest || digest2(migration.source_manifest_json) !== migration.source_manifest_digest || !validText3(migration.archive_directory, 32767) || !path15.isAbsolute(migration.archive_directory) || !validText3(receipt2.archive_directory, 32767) || !path15.isAbsolute(receipt2.archive_directory) || migration.archive_directory !== receipt2.archive_directory || typeof migration.archive_manifest_digest !== "string" || !/^[0-9a-f]{64}$/u.test(migration.archive_manifest_digest) || migration.archive_manifest_digest !== receipt2.archive_manifest_digest || !validText3(migration.archive_source_tasks_root, 32767) || !path15.isAbsolute(migration.archive_source_tasks_root) || migration.archive_source_tasks_root !== receipt2.archive_source_tasks_root || !Number.isSafeInteger(migration.archive_file_count) || migration.archive_file_count < 0 || migration.archive_file_count !== migration.source_artifact_count || migration.archive_file_count !== receipt2.archive_file_count || !Number.isSafeInteger(migration.archive_byte_count) || migration.archive_byte_count < 0 || migration.archive_byte_count !== migration.source_artifact_bytes || migration.archive_byte_count !== receipt2.archive_byte_count || receipt2.schema_version !== this.#schemaVersion || !validText3(receipt2.protocol_version, 128) || typeof receipt2.runtime_roster_digest !== "string" || !/^[0-9a-f]{64}$/u.test(receipt2.runtime_roster_digest) || !validText3(receipt2.verifier_version, 128) || !validText3(migration.verifier_version, 128) || receipt2.verifier_version !== migration.verifier_version || !validText3(receipt2.cutover_id, 128) || !validText3(receipt2.created_at, 64) || Number.isNaN(Date.parse(receipt2.created_at)) || !validText3(migration.created_at, 64) || !validText3(migration.verified_at, 64) || Number.isNaN(Date.parse(migration.created_at)) || Number.isNaN(Date.parse(migration.verified_at))) fail2("authority_switch_invalid");
             const policy = parseAuthoritySourceManifest(migration.source_manifest_json, migration.source_manifest_digest);
-            if (policy.manifest.task_count !== migration.source_task_count || policy.manifest.artifact_count !== migration.source_artifact_count || policy.manifest.artifact_bytes !== migration.source_artifact_bytes || policy.manifest.result_count !== migration.source_result_count || policy.manifest.event_count !== migration.source_event_count) fail("authority_switch_invalid");
+            if (policy.manifest.task_count !== migration.source_task_count || policy.manifest.artifact_count !== migration.source_artifact_count || policy.manifest.artifact_bytes !== migration.source_artifact_bytes || policy.manifest.result_count !== migration.source_result_count || policy.manifest.event_count !== migration.source_event_count) fail2("authority_switch_invalid");
           } else if (migrationRuns.length || migratedResultsCount || migratedEventsCount || this.#db.prepare("SELECT COUNT(*) AS n FROM json_artifacts").get().n) {
-            fail("migration_receipt_missing");
+            fail2("migration_receipt_missing");
           }
           const artifacts = this.#db.prepare("SELECT * FROM json_artifacts ORDER BY artifact_id").all();
           const artifactById = /* @__PURE__ */ new Map(), artifactPathById = /* @__PURE__ */ new Map();
           let artifactBytes = 0;
           for (const artifact of artifacts) {
             const content = Buffer.from(artifact.content);
-            if (!validText2(artifact.relative_path, 1024) || artifact.relative_path.includes("\\") || artifact.relative_path.startsWith("/") || artifact.relative_path.split("/").some((part) => !part || part === "." || part === "..") || !validText2(artifact.kind, 64) || !Number.isSafeInteger(artifact.byte_length) || artifact.byte_length < 0 || content.length !== artifact.byte_length || rawDigest(content) !== artifact.sha256 || artifactPathById.has(artifact.relative_path)) fail("migrated_artifact_invalid");
+            if (!validText3(artifact.relative_path, 1024) || artifact.relative_path.includes("\\") || artifact.relative_path.startsWith("/") || artifact.relative_path.split("/").some((part) => !part || part === "." || part === "..") || !validText3(artifact.kind, 64) || !Number.isSafeInteger(artifact.byte_length) || artifact.byte_length < 0 || content.length !== artifact.byte_length || rawDigest(content) !== artifact.sha256 || artifactPathById.has(artifact.relative_path)) fail2("migrated_artifact_invalid");
             if (artifact.task_id !== null && !this.#db.prepare("SELECT 1 FROM tasks WHERE task_id=?").get(artifact.task_id))
-              fail("migrated_artifact_task_mismatch");
+              fail2("migrated_artifact_task_mismatch");
             if (artifact.attempt !== null && (artifact.task_id === null || !this.#db.prepare("SELECT 1 FROM attempts WHERE task_id=? AND attempt=?").get(artifact.task_id, artifact.attempt)))
-              fail("migrated_artifact_attempt_mismatch");
+              fail2("migrated_artifact_attempt_mismatch");
             artifactById.set(artifact.artifact_id, artifact);
             artifactPathById.set(artifact.relative_path, artifact);
             artifactBytes += artifact.byte_length;
@@ -8488,7 +7625,7 @@ var init_store = __esm({
             const policy = parseAuthoritySourceManifest(migration.source_manifest_json, migration.source_manifest_digest);
             if (policy.kind === "raw_json_archive_cutover") {
               if (artifacts.length !== 0 || migratedResultsCount !== 0 || migratedEventsCount !== 0 || migration.source_task_count !== 0 || migration.source_result_count !== 0 || migration.source_event_count !== 0 || migration.source_artifact_count !== migration.archive_file_count || migration.source_artifact_bytes !== migration.archive_byte_count)
-                fail("raw_cutover_contains_legacy_projection", JSON.stringify({
+                fail2("raw_cutover_contains_legacy_projection", JSON.stringify({
                   artifact_count: artifacts.length,
                   migrated_result_count: migratedResultsCount,
                   migrated_event_count: migratedEventsCount,
@@ -8503,15 +7640,15 @@ var init_store = __esm({
             } else {
               const migratedOnlineTaskIds = new Set(artifacts.map((artifact) => artifact.task_id).filter((taskId) => taskId !== null));
               if (!Number.isSafeInteger(migration.source_task_count) || migration.source_task_count < 0 || !Number.isSafeInteger(migration.source_artifact_count) || migration.source_artifact_count < 0 || !Number.isSafeInteger(migration.source_artifact_bytes) || migration.source_artifact_bytes < 0 || !Number.isSafeInteger(migration.source_result_count) || migration.source_result_count < 0 || !Number.isSafeInteger(migration.source_event_count) || migration.source_event_count < 0 || migration.source_task_count !== migratedOnlineTaskIds.size + policy.exceptionTaskIds.length || migration.source_artifact_count !== artifacts.length || migration.source_artifact_bytes !== artifactBytes || migration.source_result_count !== migratedResultsCount || migration.source_event_count !== migratedEventsCount || migration.archive_file_count !== artifacts.length || migration.archive_byte_count !== artifactBytes)
-                fail("migration_counts_mismatch");
+                fail2("migration_counts_mismatch");
             }
             for (const taskId of policy.exceptionTaskIds) {
-              if (this.#db.prepare("SELECT 1 FROM tasks WHERE task_id=?").get(taskId) || this.#db.prepare("SELECT 1 FROM migrated_task_results WHERE task_id=?").get(taskId) || this.#db.prepare("SELECT 1 FROM migrated_task_events WHERE task_id=?").get(taskId) || artifacts.some((artifact) => artifact.relative_path.startsWith(`${taskId}/`) && (artifact.task_id !== null || artifact.attempt !== null))) fail("historical_exception_promoted_to_online_authority");
+              if (this.#db.prepare("SELECT 1 FROM tasks WHERE task_id=?").get(taskId) || this.#db.prepare("SELECT 1 FROM migrated_task_results WHERE task_id=?").get(taskId) || this.#db.prepare("SELECT 1 FROM migrated_task_events WHERE task_id=?").get(taskId) || artifacts.some((artifact) => artifact.relative_path.startsWith(`${taskId}/`) && (artifact.task_id !== null || artifact.attempt !== null))) fail2("historical_exception_promoted_to_online_authority");
             }
             for (const exception of policy.exceptions) {
               const artifact = artifactById.get(exception.artifact_id);
               if (!artifact || artifact.relative_path !== exception.relative_path || artifact.sha256 !== exception.sha256 || artifact.byte_length !== exception.byte_length || artifact.task_id !== null || artifact.attempt !== null || this.#db.prepare("SELECT 1 FROM migrated_task_results WHERE artifact_id=?").get(exception.artifact_id))
-                fail("invalid_historical_exception_artifact");
+                fail2("invalid_historical_exception_artifact");
             }
           }
           const migratedResults = this.#db.prepare("SELECT * FROM migrated_task_results ORDER BY task_id,attempt").all();
@@ -8523,11 +7660,11 @@ var init_store = __esm({
             let result;
             try {
               result = JSON.parse(resultRow.result_json);
-              canonicalTaskResult(result, { task_id: resultRow.task_id, attempt: resultRow.attempt, result_status: result.status });
+              canonicalTaskResult2(result, { task_id: resultRow.task_id, attempt: resultRow.attempt, result_status: result.status });
             } catch {
-              fail("migrated_result_invalid");
+              fail2("migrated_result_invalid");
             }
-            if (!task || !artifact || artifact.task_id !== resultRow.task_id || artifact.attempt !== resultRow.attempt && !currentResultArtifact || artifact.relative_path !== expectedPath || canonical3(result) !== resultRow.result_json || digest2(resultRow.result_json) !== resultRow.result_digest) fail("migrated_result_artifact_mismatch");
+            if (!task || !artifact || artifact.task_id !== resultRow.task_id || artifact.attempt !== resultRow.attempt && !currentResultArtifact || artifact.relative_path !== expectedPath || canonical4(result) !== resultRow.result_json || digest2(resultRow.result_json) !== resultRow.result_digest) fail2("migrated_result_artifact_mismatch");
           }
           const migratedEvents = this.#db.prepare("SELECT * FROM migrated_task_events ORDER BY event_cursor").all();
           const seenSourceEvents = /* @__PURE__ */ new Set();
@@ -8536,30 +7673,30 @@ var init_store = __esm({
             const artifact = artifactById.get(event.artifact_id);
             const sourceKey = `${event.task_id}\0${event.source_sequence}`;
             const expectedDetails = event.details_json === null ? null : digest2(event.details_json);
-            if (!Number.isSafeInteger(event.event_cursor) || event.event_cursor < 1 || seenEventCursors.has(event.event_cursor) || !Number.isSafeInteger(event.source_sequence) || event.source_sequence < 1 || seenSourceEvents.has(sourceKey) || !validText2(event.event_type, 128) || !validText2(event.at, 64) || Number.isNaN(Date.parse(event.at)) || !validText2(event.summary, 4096) || !artifact || artifact.task_id !== event.task_id || artifact.attempt !== null || artifact.relative_path !== `${event.task_id}/events.jsonl` || expectedDetails !== event.details_digest)
-              fail("migrated_event_invalid");
+            if (!Number.isSafeInteger(event.event_cursor) || event.event_cursor < 1 || seenEventCursors.has(event.event_cursor) || !Number.isSafeInteger(event.source_sequence) || event.source_sequence < 1 || seenSourceEvents.has(sourceKey) || !validText3(event.event_type, 128) || !validText3(event.at, 64) || Number.isNaN(Date.parse(event.at)) || !validText3(event.summary, 4096) || !artifact || artifact.task_id !== event.task_id || artifact.attempt !== null || artifact.relative_path !== `${event.task_id}/events.jsonl` || expectedDetails !== event.details_digest)
+              fail2("migrated_event_invalid");
             seenEventCursors.add(event.event_cursor);
             seenSourceEvents.add(sourceKey);
           }
           const maxAssigned = this.#db.prepare("SELECT MAX(generation) AS n FROM attempts WHERE generation IS NOT NULL").get().n ?? 0;
-          if (m[0].next_generation < maxAssigned) fail("generation_authority_regressed");
+          if (m[0].next_generation < maxAssigned) fail2("generation_authority_regressed");
           const eventCursorState = this.#db.prepare("SELECT COUNT(*) AS n,MIN(event_cursor) AS min_cursor,MAX(event_cursor) AS max_cursor FROM manager_operation_events").get();
-          if (eventCursorState.max_cursor !== null && (!Number.isSafeInteger(eventCursorState.max_cursor) || eventCursorState.max_cursor < 1) || eventCursorState.n > 0 && (!Number.isSafeInteger(eventCursorState.min_cursor) || eventCursorState.min_cursor < 1)) fail("event_cursor_invalid");
+          if (eventCursorState.max_cursor !== null && (!Number.isSafeInteger(eventCursorState.max_cursor) || eventCursorState.max_cursor < 1) || eventCursorState.n > 0 && (!Number.isSafeInteger(eventCursorState.min_cursor) || eventCursorState.min_cursor < 1)) fail2("event_cursor_invalid");
           const invalidCursor = this.#db.prepare("SELECT event_cursor FROM manager_operation_events WHERE event_cursor<=0 LIMIT 1").get();
-          if (invalidCursor) fail("event_cursor_invalid");
+          if (invalidCursor) fail2("event_cursor_invalid");
           const eventSchema = this.#db.prepare("SELECT sql FROM sqlite_schema WHERE type='table' AND name='manager_operation_events'").get()?.sql;
-          if (typeof eventSchema !== "string" || !/event_cursor\s+INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/iu.test(eventSchema)) fail("event_cursor_schema_mismatch");
+          if (typeof eventSchema !== "string" || !/event_cursor\s+INTEGER\s+PRIMARY\s+KEY\s+AUTOINCREMENT/iu.test(eventSchema)) fail2("event_cursor_schema_mismatch");
           const sequenceRows = this.#db.prepare("SELECT name,seq FROM sqlite_sequence").all();
           const unlinkedCancelCursorState = this.#db.prepare("SELECT COUNT(*) AS n,MIN(queued_cancel_event_cursor) AS min_cursor,MAX(queued_cancel_event_cursor) AS max_cursor FROM attempts WHERE queued_cancel_id IS NOT NULL AND queued_cancel_operation_id IS NULL").get();
           const logicalCursorState = this.#db.prepare(`SELECT COUNT(*) AS n,MIN(cursor) AS min_cursor,MAX(cursor) AS max_cursor FROM (
         SELECT event_cursor AS cursor FROM manager_operation_events
         UNION ALL SELECT queued_cancel_event_cursor AS cursor FROM attempts WHERE queued_cancel_id IS NOT NULL AND queued_cancel_operation_id IS NULL
         UNION ALL SELECT event_cursor AS cursor FROM migrated_task_events)`).get();
-          if (unlinkedCancelCursorState.n && (!Number.isSafeInteger(unlinkedCancelCursorState.min_cursor) || unlinkedCancelCursorState.min_cursor < 1 || !Number.isSafeInteger(unlinkedCancelCursorState.max_cursor) || unlinkedCancelCursorState.max_cursor < 1) || logicalCursorState.n !== m[0].next_event_cursor || m[0].next_event_cursor === 0 && (logicalCursorState.min_cursor !== null || logicalCursorState.max_cursor !== null) || m[0].next_event_cursor > 0 && (logicalCursorState.min_cursor !== 1 || logicalCursorState.max_cursor !== m[0].next_event_cursor)) fail("event_cursor_invalid");
-          if (sequenceRows.some((row) => row.name !== "manager_operation_events") || logicalCursorState.n === 0 && sequenceRows.length !== 0 || logicalCursorState.n > 0 && (sequenceRows.length !== 1 || sequenceRows[0].seq !== logicalCursorState.max_cursor || !Number.isSafeInteger(sequenceRows[0].seq) || sequenceRows[0].seq < 1)) fail("event_cursor_invalid");
+          if (unlinkedCancelCursorState.n && (!Number.isSafeInteger(unlinkedCancelCursorState.min_cursor) || unlinkedCancelCursorState.min_cursor < 1 || !Number.isSafeInteger(unlinkedCancelCursorState.max_cursor) || unlinkedCancelCursorState.max_cursor < 1) || logicalCursorState.n !== m[0].next_event_cursor || m[0].next_event_cursor === 0 && (logicalCursorState.min_cursor !== null || logicalCursorState.max_cursor !== null) || m[0].next_event_cursor > 0 && (logicalCursorState.min_cursor !== 1 || logicalCursorState.max_cursor !== m[0].next_event_cursor)) fail2("event_cursor_invalid");
+          if (sequenceRows.some((row) => row.name !== "manager_operation_events") || logicalCursorState.n === 0 && sequenceRows.length !== 0 || logicalCursorState.n > 0 && (sequenceRows.length !== 1 || sequenceRows[0].seq !== logicalCursorState.max_cursor || !Number.isSafeInteger(sequenceRows[0].seq) || sequenceRows[0].seq < 1)) fail2("event_cursor_invalid");
           if (this.#db.prepare(`SELECT a.task_id FROM attempts a JOIN manager_operation_events e ON e.event_cursor=a.queued_cancel_event_cursor
         WHERE a.queued_cancel_id IS NOT NULL AND (a.queued_cancel_operation_id IS NULL OR e.operation_id<>a.queued_cancel_operation_id
-          OR e.event_type<>'cancelled_before_launch') LIMIT 1`).get()) fail("queued_cancel_event_mismatch");
+          OR e.event_type<>'cancelled_before_launch') LIMIT 1`).get()) fail2("queued_cancel_event_mismatch");
           const queuedCancels = this.#db.prepare("SELECT * FROM attempts WHERE queued_cancel_id IS NOT NULL ORDER BY task_id,attempt").all();
           for (const a of queuedCancels) {
             const task = this.#db.prepare("SELECT current_attempt,status FROM tasks WHERE task_id=?").get(a.task_id);
@@ -8567,13 +7704,13 @@ var init_store = __esm({
             try {
               result = JSON.parse(a.queued_cancel_result_json);
             } catch {
-              fail("queued_cancel_result_invalid");
+              fail2("queued_cancel_result_invalid");
             }
             const requestDigest = digest2({ contract: "wp6a-queued-cancel-v1", task_id: a.task_id, attempt: a.attempt });
-            canonicalTaskResult(result, { task_id: a.task_id, attempt: a.attempt, result_status: "cancelled" });
-            if (a.status !== "cancelled" || task?.status !== "cancelled" || task.current_attempt !== a.attempt || !validId3(a.queued_cancel_id) || a.queued_cancel_request_digest !== requestDigest || !Number.isSafeInteger(a.queued_cancel_event_cursor) || a.queued_cancel_event_cursor < 1 || !validText2(a.queued_cancelled_at, 64) || Number.isNaN(Date.parse(a.queued_cancelled_at)) || canonical3(result) !== a.queued_cancel_result_json || a.queued_cancel_result_digest !== digest2(a.queued_cancel_result_json) || result.task_id !== a.task_id || result.attempt !== a.attempt || result.status !== "cancelled" || result.finished_at !== a.queued_cancelled_at || result.started_at !== null || result.needs_master_decision !== false) fail("queued_cancel_projection_mismatch");
+            canonicalTaskResult2(result, { task_id: a.task_id, attempt: a.attempt, result_status: "cancelled" });
+            if (a.status !== "cancelled" || task?.status !== "cancelled" || task.current_attempt !== a.attempt || !validId3(a.queued_cancel_id) || a.queued_cancel_request_digest !== requestDigest || !Number.isSafeInteger(a.queued_cancel_event_cursor) || a.queued_cancel_event_cursor < 1 || !validText3(a.queued_cancelled_at, 64) || Number.isNaN(Date.parse(a.queued_cancelled_at)) || canonical4(result) !== a.queued_cancel_result_json || a.queued_cancel_result_digest !== digest2(a.queued_cancel_result_json) || result.task_id !== a.task_id || result.attempt !== a.attempt || result.status !== "cancelled" || result.finished_at !== a.queued_cancelled_at || result.started_at !== null || result.needs_master_decision !== false) fail2("queued_cancel_projection_mismatch");
             if (a.queued_cancel_operation_id === null) {
-              if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(a.task_id, a.attempt)) fail("queued_cancel_operation_missing");
+              if (this.#db.prepare("SELECT operation_id FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(a.task_id, a.attempt)) fail2("queued_cancel_operation_missing");
             } else {
               const o = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(a.queued_cancel_operation_id);
               const e = this.#db.prepare("SELECT * FROM manager_operation_events WHERE event_cursor=? AND operation_id=? AND event_type='cancelled_before_launch'").get(a.queued_cancel_event_cursor, a.queued_cancel_operation_id);
@@ -8581,21 +7718,21 @@ var init_store = __esm({
               try {
                 evidence = e ? JSON.parse(e.evidence_json) : null;
               } catch {
-                fail("queued_cancel_event_mismatch");
+                fail2("queued_cancel_event_mismatch");
               }
-              if (!o || o.task_id !== a.task_id || o.attempt !== a.attempt || o.generation !== a.generation || o.phase !== "cancelled_before_launch" || o.launch_id !== null || o.claim_id !== null || o.result_digest !== null || !e || e.sequence !== o.revision || evidence.cancel_id !== a.queued_cancel_id || evidence.request_digest !== requestDigest) fail("queued_cancel_operation_mismatch");
+              if (!o || o.task_id !== a.task_id || o.attempt !== a.attempt || o.generation !== a.generation || o.phase !== "cancelled_before_launch" || o.launch_id !== null || o.claim_id !== null || o.result_digest !== null || !e || e.sequence !== o.revision || evidence.cancel_id !== a.queued_cancel_id || evidence.request_digest !== requestDigest) fail2("queued_cancel_operation_mismatch");
             }
           }
-          if (this.#db.prepare("SELECT t.task_id FROM tasks t LEFT JOIN attempts a ON a.task_id=t.task_id AND a.attempt=t.current_attempt WHERE a.task_id IS NULL").all().length) fail("task_attempt_projection_mismatch");
+          if (this.#db.prepare("SELECT t.task_id FROM tasks t LEFT JOIN attempts a ON a.task_id=t.task_id AND a.attempt=t.current_attempt WHERE a.task_id IS NULL").all().length) fail2("task_attempt_projection_mismatch");
           const malformedContinuations = this.#db.prepare("SELECT task_id,attempt FROM attempts WHERE NOT ((continuation_operation_id IS NULL AND continuation_json IS NULL AND continuation_digest IS NULL) OR (attempt>1 AND continuation_operation_id IS NOT NULL AND continuation_json IS NOT NULL AND continuation_digest IS NOT NULL))").all();
-          if (malformedContinuations.length) fail("continue_history_mismatch");
+          if (malformedContinuations.length) fail2("continue_history_mismatch");
           const continuationRows = this.#db.prepare("SELECT * FROM attempts WHERE continuation_operation_id IS NOT NULL ORDER BY task_id,attempt").all();
           for (const a of continuationRows) {
             let c;
             try {
               c = JSON.parse(a.continuation_json);
             } catch {
-              fail("continue_history_mismatch");
+              fail2("continue_history_mismatch");
             }
             const continuationKeys = [
               "additional_requirements",
@@ -8610,46 +7747,46 @@ var init_store = __esm({
               "previous_worker_identity_digest",
               "task_id"
             ];
-            if (!c || Object.getPrototypeOf(c) !== Object.prototype || Object.keys(c).sort().join("|") !== continuationKeys.join("|") || c.contract !== "wp6b2b-continue-v1" || canonical3(c) !== a.continuation_json || a.continuation_digest !== digest2(a.continuation_json) || c.operation_id !== a.continuation_operation_id || c.task_id !== a.task_id || c.previous_attempt !== a.attempt - 1 || !validId3(c.operation_id) || c.operation_id !== c.operation_id.trim() || !validId3(c.previous_operation_id) || typeof c.feedback !== "string" || !c.feedback.trim() || c.feedback.includes("\0") || !Array.isArray(c.additional_requirements) || c.additional_requirements.some((value) => typeof value !== "string") || !Number.isSafeInteger(c.previous_generation) || c.previous_generation < 1 || !Number.isSafeInteger(c.previous_revision) || c.previous_revision < 1 || !validId3(c.previous_claim_id) || typeof c.previous_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(c.previous_worker_identity_digest)) fail("continue_history_mismatch");
+            if (!c || Object.getPrototypeOf(c) !== Object.prototype || Object.keys(c).sort().join("|") !== continuationKeys.join("|") || c.contract !== "wp6b2b-continue-v1" || canonical4(c) !== a.continuation_json || a.continuation_digest !== digest2(a.continuation_json) || c.operation_id !== a.continuation_operation_id || c.task_id !== a.task_id || c.previous_attempt !== a.attempt - 1 || !validId3(c.operation_id) || c.operation_id !== c.operation_id.trim() || !validId3(c.previous_operation_id) || typeof c.feedback !== "string" || !c.feedback.trim() || c.feedback.includes("\0") || !Array.isArray(c.additional_requirements) || c.additional_requirements.some((value) => typeof value !== "string") || !Number.isSafeInteger(c.previous_generation) || c.previous_generation < 1 || !Number.isSafeInteger(c.previous_revision) || c.previous_revision < 1 || !validId3(c.previous_claim_id) || typeof c.previous_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(c.previous_worker_identity_digest)) fail2("continue_history_mismatch");
             const prior = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(c.previous_operation_id);
             const op = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND task_id=? AND attempt=?").get(a.task_id, a.attempt);
             const priorAttempt = this.#db.prepare("SELECT status,generation FROM attempts WHERE task_id=? AND attempt=?").get(a.task_id, c.previous_attempt);
-            if (!prior || prior.task_id !== a.task_id || prior.attempt !== c.previous_attempt || prior.generation !== c.previous_generation || prior.revision !== c.previous_revision || prior.claim_id !== c.previous_claim_id || prior.claim_worker_identity_digest !== c.previous_worker_identity_digest || prior.phase !== "released" || !["completed", "failed", "waiting_for_master"].includes(prior.result_status) || priorAttempt?.status !== prior.result_status) fail("continue_history_mismatch");
+            if (!prior || prior.task_id !== a.task_id || prior.attempt !== c.previous_attempt || prior.generation !== c.previous_generation || prior.revision !== c.previous_revision || prior.claim_id !== c.previous_claim_id || prior.claim_worker_identity_digest !== c.previous_worker_identity_digest || prior.phase !== "released" || !["completed", "failed", "waiting_for_master"].includes(prior.result_status) || priorAttempt?.status !== prior.result_status) fail2("continue_history_mismatch");
             const current = this.#db.prepare("SELECT current_attempt,status FROM tasks WHERE task_id=?").get(a.task_id);
             const cancelledCurrent = current?.status === "cancelled" && a.status === "cancelled" && a.queued_cancel_id !== null;
-            if (op ? op.generation !== a.generation || a.generation === null : a.generation !== null || current?.current_attempt !== a.attempt || !(current.status === "queued" && a.status === "queued") && !cancelledCurrent) fail("continue_history_mismatch");
+            if (op ? op.generation !== a.generation || a.generation === null : a.generation !== null || current?.current_attempt !== a.attempt || !(current.status === "queued" && a.status === "queued") && !cancelledCurrent) fail2("continue_history_mismatch");
           }
           if (m[0].policy_generation === 0) {
-            if (m[0].policy_version !== null || m[0].capacity_limit !== null || m[0].policy_operation_id !== null) fail("policy_or_schema_mismatch");
+            if (m[0].policy_version !== null || m[0].capacity_limit !== null || m[0].policy_operation_id !== null) fail2("policy_or_schema_mismatch");
           } else {
             const ps = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_kind='capacity_policy_change' ORDER BY policy_generation").all();
-            if (m[0].policy_version !== 1 || ps.length !== m[0].policy_generation) fail("policy_or_schema_mismatch");
+            if (m[0].policy_version !== 1 || ps.length !== m[0].policy_generation) fail2("policy_or_schema_mismatch");
             for (let i = 0; i < ps.length; i++) {
               const p = ps[i], ev = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(p.operation_id);
-              if (p.policy_generation !== i + 1 || !p.capacity_limit || p.capacity_limit > 8 || p.request_digest !== digest2({ operation_id: p.operation_id, capacity_limit: p.capacity_limit, expected_generation: i }) || ev.length !== 1 || ev[0].event_type !== "capacity_policy_committed" || ev[0].generation !== null || ev[0].evidence_digest !== digest2(ev[0].evidence_json)) fail("policy_or_schema_mismatch");
+              if (p.policy_generation !== i + 1 || !p.capacity_limit || p.capacity_limit > 8 || p.request_digest !== digest2({ operation_id: p.operation_id, capacity_limit: p.capacity_limit, expected_generation: i }) || ev.length !== 1 || ev[0].event_type !== "capacity_policy_committed" || ev[0].generation !== null || ev[0].evidence_digest !== digest2(ev[0].evidence_json)) fail2("policy_or_schema_mismatch");
               const e = JSON.parse(ev[0].evidence_json);
-              if (e.generation !== i + 1 || e.capacity_limit !== p.capacity_limit) fail("policy_or_schema_mismatch");
+              if (e.generation !== i + 1 || e.capacity_limit !== p.capacity_limit) fail2("policy_or_schema_mismatch");
             }
             const current = ps.at(-1);
-            if (!current || current.operation_id !== m[0].policy_operation_id || current.capacity_limit !== m[0].capacity_limit) fail("policy_or_schema_mismatch");
+            if (!current || current.operation_id !== m[0].policy_operation_id || current.capacity_limit !== m[0].capacity_limit) fail2("policy_or_schema_mismatch");
           }
           const slots = this.#db.prepare("SELECT capacity_slot,COUNT(*) n FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch') GROUP BY capacity_slot HAVING COUNT(*)>1").all();
           const active = this.#db.prepare("SELECT COUNT(*) n,MAX(capacity_slot) max_slot FROM manager_operations WHERE operation_kind='attempt_lifecycle' AND phase NOT IN ('released','cancelled_before_launch')").get();
-          if (slots.length || active.n > m[0].capacity_limit || active.max_slot > m[0].capacity_limit) fail("active_capacity_invariant");
+          if (slots.length || active.n > m[0].capacity_limit || active.max_slot > m[0].capacity_limit) fail2("active_capacity_invariant");
           const adminAbandonments = this.#adminAbandonments();
           const os2 = this.#db.prepare("SELECT * FROM manager_operations").all();
           for (const o of os2) {
             if (o.operation_kind === "attempt_lifecycle" && o.phase === "running") {
               const running = this.#db.prepare("SELECT t.status AS task_status,t.current_attempt,a.status AS attempt_status FROM tasks t JOIN attempts a ON a.task_id=t.task_id AND a.attempt=t.current_attempt WHERE t.task_id=? AND a.attempt=? AND a.generation=?").get(o.task_id, o.attempt, o.generation);
-              if (!running || running.task_status !== "running" || running.attempt_status !== "running") fail("claim_task_projection_mismatch");
+              if (!running || running.task_status !== "running" || running.attempt_status !== "running") fail2("claim_task_projection_mismatch");
             }
             const es = this.#db.prepare("SELECT * FROM manager_operation_events WHERE operation_id=? ORDER BY sequence").all(o.operation_id);
-            if (es.length !== o.revision || es.at(-1)?.to_phase !== o.phase) fail("projection_event_mismatch");
+            if (es.length !== o.revision || es.at(-1)?.to_phase !== o.phase) fail2("projection_event_mismatch");
             if (o.operation_kind === "attempt_lifecycle" && o.phase === "cancelled_before_launch") {
               const a = this.#db.prepare("SELECT status,queued_cancel_id,queued_cancel_operation_id FROM attempts WHERE task_id=? AND attempt=? AND generation=?").get(o.task_id, o.attempt, o.generation);
               const task = this.#db.prepare("SELECT current_attempt,status FROM tasks WHERE task_id=?").get(o.task_id);
               const evidence = es.at(-1)?.event_type === "cancelled_before_launch" ? JSON.parse(es.at(-1).evidence_json) : null;
-              if (!a || a.status !== "cancelled" || !a.queued_cancel_id || a.queued_cancel_operation_id !== o.operation_id || task?.current_attempt !== o.attempt || task.status !== "cancelled" || o.launch_id !== null || o.claim_id !== null || o.result_digest !== null || es.length !== 2 || es.at(-1)?.from_phase !== "reserved" || evidence?.cancel_id !== a.queued_cancel_id) fail("queued_cancel_operation_mismatch");
+              if (!a || a.status !== "cancelled" || !a.queued_cancel_id || a.queued_cancel_operation_id !== o.operation_id || task?.current_attempt !== o.attempt || task.status !== "cancelled" || o.launch_id !== null || o.claim_id !== null || o.result_digest !== null || es.length !== 2 || es.at(-1)?.from_phase !== "reserved" || evidence?.cancel_id !== a.queued_cancel_id) fail2("queued_cancel_operation_mismatch");
             }
             const launchEvents = { launch_intent: [], launch_receipt: [], claim_committed: [] };
             const cleanupEvents = { cleanup_pending: [], cleanup_verified: [], cleanup_unverified: [], cleanup_reverified: [], released: [] };
@@ -8657,12 +7794,12 @@ var init_store = __esm({
             const recoveryEvents = [], cancellationIntents = [], cancellationVerifications = [];
             for (let i = 0; i < es.length; i++) {
               const e = es[i];
-              if (e.sequence !== i + 1 || e.evidence_digest !== digest2(e.evidence_json) || (i === 0 ? e.from_phase !== null : e.from_phase !== es[i - 1].to_phase)) fail("projection_event_mismatch");
+              if (e.sequence !== i + 1 || e.evidence_digest !== digest2(e.evidence_json) || (i === 0 ? e.from_phase !== null : e.from_phase !== es[i - 1].to_phase)) fail2("projection_event_mismatch");
               let parsed;
               try {
                 parsed = JSON.parse(e.evidence_json);
               } catch {
-                fail("invalid_evidence");
+                fail2("invalid_evidence");
               }
               validateEvidence(e.event_type, parsed);
               if (e.event_type in launchEvents) launchEvents[e.event_type].push({ event: e, evidence: parsed });
@@ -8671,27 +7808,27 @@ var init_store = __esm({
               if (e.event_type === "observation_recorded" && (parsed.reason === "recovery_hold" || parsed.reason === "recovery_quarantine")) recoveryEvents.push({ event: e, evidence: parsed });
               if (e.event_type === "observation_recorded" && parsed.reason === "cancel_requested") cancellationIntents.push({ event: e, evidence: parsed });
               if (e.event_type === "observation_recorded" && parsed.reason === "cancel_tree_verified") cancellationVerifications.push({ event: e, evidence: parsed });
-              if (i > 0 && e.from_phase !== es[i - 1].to_phase) fail("projection_event_mismatch");
-              if (e.event_type === "launch_receipt" && (e.from_phase !== "launch_intent" || e.to_phase !== "launch_intent")) fail("invalid_event_phase");
-              if (e.event_type === "claim_committed" && (e.from_phase !== "launch_intent" || e.to_phase !== "running")) fail("invalid_event_phase");
-              if (e.event_type === "result_committed" && (e.from_phase !== "running" || e.to_phase !== "result_committed")) fail("invalid_event_phase");
-              if (e.event_type === "cleanup_pending" && (e.from_phase !== "result_committed" || e.to_phase !== "cleanup_pending")) fail("invalid_event_phase");
-              if (e.event_type === "cleanup_verified" && (!(e.from_phase === "cleanup_pending" || e.from_phase === "cleanup_reverified") || e.to_phase !== "cleanup_verified")) fail("invalid_event_phase");
-              if (e.event_type === "cleanup_unverified" && (e.from_phase !== "cleanup_pending" || e.to_phase !== "cleanup_unverified")) fail("invalid_event_phase");
-              if (e.event_type === "cleanup_reverified" && (e.from_phase !== "cleanup_unverified" || e.to_phase !== "cleanup_reverified")) fail("invalid_event_phase");
-              if (e.event_type === "released" && (e.from_phase !== "cleanup_verified" || e.to_phase !== "released")) fail("invalid_event_phase");
-              if (e.event_type === "launch_intent" && (e.from_phase !== "reserved" || e.to_phase !== "launch_intent")) fail("invalid_event_phase");
-              if (e.event_type === "observation_recorded" && e.from_phase !== e.to_phase && !(parsed.reason === "admin_abandoned" && e.from_phase === "running" && e.to_phase === "released")) fail("invalid_event_phase");
-              if (e.event_type !== "launch_receipt" && e.event_type !== "claim_committed" && e.event_type !== "launch_intent" && e.event_type !== "observation_recorded" && !e.event_type.startsWith("interaction_") && EVENT_PHASE[e.event_type] !== e.to_phase) fail("invalid_event_phase");
-              if (e.event_type.startsWith("interaction_") && (e.from_phase !== "running" || e.to_phase !== "running")) fail("invalid_event_phase");
-              if (o.operation_kind === "attempt_lifecycle" && e.generation !== o.generation) fail("invalid_event_phase");
-              if (o.operation_kind === "capacity_policy_change" && (e.generation !== null || e.event_type !== "capacity_policy_committed" || e.to_phase !== "policy_change_committed")) fail("invalid_event_phase");
+              if (i > 0 && e.from_phase !== es[i - 1].to_phase) fail2("projection_event_mismatch");
+              if (e.event_type === "launch_receipt" && (e.from_phase !== "launch_intent" || e.to_phase !== "launch_intent")) fail2("invalid_event_phase");
+              if (e.event_type === "claim_committed" && (e.from_phase !== "launch_intent" || e.to_phase !== "running")) fail2("invalid_event_phase");
+              if (e.event_type === "result_committed" && (e.from_phase !== "running" || e.to_phase !== "result_committed")) fail2("invalid_event_phase");
+              if (e.event_type === "cleanup_pending" && (e.from_phase !== "result_committed" || e.to_phase !== "cleanup_pending")) fail2("invalid_event_phase");
+              if (e.event_type === "cleanup_verified" && (!(e.from_phase === "cleanup_pending" || e.from_phase === "cleanup_reverified") || e.to_phase !== "cleanup_verified")) fail2("invalid_event_phase");
+              if (e.event_type === "cleanup_unverified" && (e.from_phase !== "cleanup_pending" || e.to_phase !== "cleanup_unverified")) fail2("invalid_event_phase");
+              if (e.event_type === "cleanup_reverified" && (e.from_phase !== "cleanup_unverified" || e.to_phase !== "cleanup_reverified")) fail2("invalid_event_phase");
+              if (e.event_type === "released" && (e.from_phase !== "cleanup_verified" || e.to_phase !== "released")) fail2("invalid_event_phase");
+              if (e.event_type === "launch_intent" && (e.from_phase !== "reserved" || e.to_phase !== "launch_intent")) fail2("invalid_event_phase");
+              if (e.event_type === "observation_recorded" && e.from_phase !== e.to_phase && !(parsed.reason === "admin_abandoned" && e.from_phase === "running" && e.to_phase === "released")) fail2("invalid_event_phase");
+              if (e.event_type !== "launch_receipt" && e.event_type !== "claim_committed" && e.event_type !== "launch_intent" && e.event_type !== "observation_recorded" && !e.event_type.startsWith("interaction_") && EVENT_PHASE[e.event_type] !== e.to_phase) fail2("invalid_event_phase");
+              if (e.event_type.startsWith("interaction_") && (e.from_phase !== "running" || e.to_phase !== "running")) fail2("invalid_event_phase");
+              if (o.operation_kind === "attempt_lifecycle" && e.generation !== o.generation) fail2("invalid_event_phase");
+              if (o.operation_kind === "capacity_policy_change" && (e.generation !== null || e.event_type !== "capacity_policy_committed" || e.to_phase !== "policy_change_committed")) fail2("invalid_event_phase");
             }
             if (o.operation_kind === "attempt_lifecycle") {
               const intents = launchEvents.launch_intent, receipts = launchEvents.launch_receipt, claims = launchEvents.claim_committed;
-              if (cancellationIntents.length > 1 || cancellationVerifications.length > 1 || cancellationVerifications.length > 0 && cancellationIntents.length !== 1) fail("cancellation_history_unbounded");
+              if (cancellationIntents.length > 1 || cancellationVerifications.length > 1 || cancellationVerifications.length > 0 && cancellationIntents.length !== 1) fail2("cancellation_history_unbounded");
               if (cancellationIntents.length || cancellationVerifications.length) {
-                if (claims.length !== 1 || !o.claim_id || o.claim_generation !== o.generation || !o.claim_worker_identity_json || !o.launch_identity_json) fail("cancellation_claim_missing");
+                if (claims.length !== 1 || !o.claim_id || o.claim_generation !== o.generation || !o.claim_worker_identity_json || !o.launch_identity_json) fail2("cancellation_claim_missing");
                 const worker = JSON.parse(o.claim_worker_identity_json), launchIdentity = JSON.parse(o.launch_identity_json);
                 if (cancellationIntents.length) {
                   const { event, evidence } = cancellationIntents[0];
@@ -8707,9 +7844,9 @@ var init_store = __esm({
                     identity_state: evidence.identity_state,
                     identity_evidence_digest: evidence.identity_evidence_digest
                   };
-                  if (event.sequence <= claims[0].event.sequence || event.from_phase !== "running" || event.to_phase !== "running" || evidence.claim_id !== o.claim_id || evidence.worker_identity_digest !== o.claim_worker_identity_digest || evidence.evidence_digest !== digest2(intent)) fail("cancellation_intent_history_mismatch");
-                  const identityJson = canonical3(worker);
-                  if (digest2(identityJson) !== o.claim_worker_identity_digest || worker.process_id !== launchIdentity.process_id || worker.start_fingerprint !== launchIdentity.start_fingerprint) fail("cancellation_identity_history_mismatch");
+                  if (event.sequence <= claims[0].event.sequence || event.from_phase !== "running" || event.to_phase !== "running" || evidence.claim_id !== o.claim_id || evidence.worker_identity_digest !== o.claim_worker_identity_digest || evidence.evidence_digest !== digest2(intent)) fail2("cancellation_intent_history_mismatch");
+                  const identityJson = canonical4(worker);
+                  if (digest2(identityJson) !== o.claim_worker_identity_digest || worker.process_id !== launchIdentity.process_id || worker.start_fingerprint !== launchIdentity.start_fingerprint) fail2("cancellation_identity_history_mismatch");
                 }
                 if (cancellationVerifications.length) {
                   const { event, evidence } = cancellationVerifications[0], intent = cancellationIntents[0];
@@ -8726,84 +7863,84 @@ var init_store = __esm({
                     worker_tree_complete: true
                   };
                   if (event.sequence <= intent.event.sequence || event.from_phase !== "running" || event.to_phase !== "running" || evidence.cancel_id !== intent.evidence.cancel_id || evidence.claim_id !== o.claim_id || evidence.worker_identity_digest !== o.claim_worker_identity_digest || evidence.intent_event_digest !== intent.event.evidence_digest || evidence.evidence_digest !== digest2({ cancel_verification_contract_version: 1, ...unsigned }) || evidence.root_process_id !== worker.process_id || evidence.root_process_id !== launchIdentity.process_id || evidence.root_start_fingerprint !== worker.start_fingerprint || evidence.root_start_fingerprint !== launchIdentity.start_fingerprint)
-                    fail("cancellation_verification_history_mismatch");
+                    fail2("cancellation_verification_history_mismatch");
                 }
               }
-              if (recoveryEvents.length > RECOVERY_LIMIT) fail("recovery_observation_limit");
+              if (recoveryEvents.length > RECOVERY_LIMIT) fail2("recovery_observation_limit");
               const seenRecoveryEnvelopes = /* @__PURE__ */ new Set(), seenRecoveryRevisions = /* @__PURE__ */ new Set();
               let recoveryLevel = o.phase === "quarantined" ? 2 : 0;
               for (const { event, evidence } of recoveryEvents) {
                 validateRecoveryEventBinding(o, event, evidence, claims[0]?.event.sequence);
-                if (seenRecoveryEnvelopes.has(evidence.envelope_digest) || seenRecoveryRevisions.has(evidence.expected_revision)) fail("recovery_event_duplicate");
+                if (seenRecoveryEnvelopes.has(evidence.envelope_digest) || seenRecoveryRevisions.has(evidence.expected_revision)) fail2("recovery_event_duplicate");
                 seenRecoveryEnvelopes.add(evidence.envelope_digest);
                 seenRecoveryRevisions.add(evidence.expected_revision);
                 const level = evidence.classification === "quarantine" ? 2 : 1;
-                if (level < recoveryLevel) fail("recovery_classification_downgrade");
+                if (level < recoveryLevel) fail2("recovery_classification_downgrade");
                 recoveryLevel = level;
               }
-              if (intents.length > 1 || receipts.length > 1 || claims.length > 1) fail("launch_claim_history_mismatch");
-              if (intents.length === 0 !== (o.launch_id === null)) fail("launch_claim_history_mismatch");
+              if (intents.length > 1 || receipts.length > 1 || claims.length > 1) fail2("launch_claim_history_mismatch");
+              if (intents.length === 0 !== (o.launch_id === null)) fail2("launch_claim_history_mismatch");
               if (intents.length) {
                 const i = intents[0], v = i.evidence;
-                if (i.event.sequence < 2 || v.launch_id !== o.launch_id || v.launch_epoch !== o.launch_epoch || v.token_digest !== o.launch_token_digest || o.launch_intent_digest !== digest2({ operation_id: o.operation_id, task_id: o.task_id, attempt: o.attempt, generation: o.generation, launch_id: o.launch_id, launch_epoch: o.launch_epoch, token_digest: o.launch_token_digest })) fail("launch_claim_history_mismatch");
+                if (i.event.sequence < 2 || v.launch_id !== o.launch_id || v.launch_epoch !== o.launch_epoch || v.token_digest !== o.launch_token_digest || o.launch_intent_digest !== digest2({ operation_id: o.operation_id, task_id: o.task_id, attempt: o.attempt, generation: o.generation, launch_id: o.launch_id, launch_epoch: o.launch_epoch, token_digest: o.launch_token_digest })) fail2("launch_claim_history_mismatch");
               }
-              if (receipts.length === 0 !== (o.launch_receipt_digest === null) || receipts.length !== (o.launch_identity_json === null ? 0 : 1) || receipts.length !== (o.launch_receipt_id === null ? 0 : 1)) fail("launch_claim_history_mismatch");
+              if (receipts.length === 0 !== (o.launch_receipt_digest === null) || receipts.length !== (o.launch_identity_json === null ? 0 : 1) || receipts.length !== (o.launch_receipt_id === null ? 0 : 1)) fail2("launch_claim_history_mismatch");
               if (receipts.length) {
                 const r = receipts[0], v = r.evidence, identity = JSON.parse(o.launch_identity_json);
-                if (r.event.sequence <= intents[0].event.sequence || v.launch_id !== o.launch_id || v.launch_epoch !== o.launch_epoch || v.token_digest !== o.launch_token_digest || v.receipt_digest !== o.launch_receipt_digest || o.launch_receipt_digest !== digest2({ receipt_id: o.launch_receipt_id, operation_id: o.operation_id, task_id: o.task_id, attempt: o.attempt, generation: o.generation, launch_id: o.launch_id, launch_epoch: o.launch_epoch, token_digest: o.launch_token_digest, launch_identity: identity })) fail("launch_claim_history_mismatch");
+                if (r.event.sequence <= intents[0].event.sequence || v.launch_id !== o.launch_id || v.launch_epoch !== o.launch_epoch || v.token_digest !== o.launch_token_digest || v.receipt_digest !== o.launch_receipt_digest || o.launch_receipt_digest !== digest2({ receipt_id: o.launch_receipt_id, operation_id: o.operation_id, task_id: o.task_id, attempt: o.attempt, generation: o.generation, launch_id: o.launch_id, launch_epoch: o.launch_epoch, token_digest: o.launch_token_digest, launch_identity: identity })) fail2("launch_claim_history_mismatch");
                 fixtureLaunchIdentity(identity);
               }
-              if (claims.length === 0 !== (o.claim_id === null) || claims.length !== (o.claim_worker_identity_json === null ? 0 : 1)) fail("launch_claim_history_mismatch");
+              if (claims.length === 0 !== (o.claim_id === null) || claims.length !== (o.claim_worker_identity_json === null ? 0 : 1)) fail2("launch_claim_history_mismatch");
               if (claims.length) {
                 const c = claims[0], v = c.evidence, worker = JSON.parse(o.claim_worker_identity_json);
-                if (!receipts.length || c.event.sequence <= receipts[0].event.sequence || v.claim_id !== o.claim_id || v.launch_id !== o.launch_id || v.launch_epoch !== o.launch_epoch || v.token_digest !== o.launch_token_digest || v.worker_identity_digest !== o.claim_worker_identity_digest || o.claim_launch_id !== o.launch_id || o.claim_generation !== o.generation || o.claim_token_digest !== o.launch_token_digest || o.claim_worker_identity_digest !== digest2(o.claim_worker_identity_json) || o.claim_request_digest !== digest2({ claim_id: o.claim_id, operation_id: o.operation_id, task_id: o.task_id, attempt: o.attempt, generation: o.generation, launch_id: o.launch_id, launch_epoch: o.launch_epoch, token_digest: o.launch_token_digest, worker_identity: worker })) fail("launch_claim_history_mismatch");
+                if (!receipts.length || c.event.sequence <= receipts[0].event.sequence || v.claim_id !== o.claim_id || v.launch_id !== o.launch_id || v.launch_epoch !== o.launch_epoch || v.token_digest !== o.launch_token_digest || v.worker_identity_digest !== o.claim_worker_identity_digest || o.claim_launch_id !== o.launch_id || o.claim_generation !== o.generation || o.claim_token_digest !== o.launch_token_digest || o.claim_worker_identity_digest !== digest2(o.claim_worker_identity_json) || o.claim_request_digest !== digest2({ claim_id: o.claim_id, operation_id: o.operation_id, task_id: o.task_id, attempt: o.attempt, generation: o.generation, launch_id: o.launch_id, launch_epoch: o.launch_epoch, token_digest: o.launch_token_digest, worker_identity: worker })) fail2("launch_claim_history_mismatch");
                 fixtureWorkerIdentity(worker);
                 const task = this.#db.prepare("SELECT status FROM attempts WHERE task_id=? AND attempt=? AND generation=?").get(o.task_id, o.attempt, o.generation);
                 const allowed = o.phase === "running" ? task?.status === "running" : ["running", "completed", "failed", "cancelled", "waiting_for_master"].includes(task?.status);
-                if (!allowed) fail("launch_claim_task_mismatch");
+                if (!allowed) fail2("launch_claim_task_mismatch");
               }
-              if (o.launch_id === null && (o.launch_receipt_id !== null || o.launch_receipt_digest !== null || o.launch_identity_json !== null || o.claim_id !== null)) fail("launch_claim_history_mismatch");
-              if (resultEvents.length === 0 !== (o.result_digest === null) || resultEvents.length !== (o.result_json === null ? 0 : 1) || resultEvents.length !== (o.result_commit_ref === null ? 0 : 1) || resultEvents.length !== (o.result_status === null ? 0 : 1)) fail("result_event_projection_mismatch");
+              if (o.launch_id === null && (o.launch_receipt_id !== null || o.launch_receipt_digest !== null || o.launch_identity_json !== null || o.claim_id !== null)) fail2("launch_claim_history_mismatch");
+              if (resultEvents.length === 0 !== (o.result_digest === null) || resultEvents.length !== (o.result_json === null ? 0 : 1) || resultEvents.length !== (o.result_commit_ref === null ? 0 : 1) || resultEvents.length !== (o.result_status === null ? 0 : 1)) fail2("result_event_projection_mismatch");
               const resultConflictEvents = es.filter((e) => e.event_type === "quarantined" && JSON.parse(e.evidence_json).reason === "result_conflict");
-              if (resultConflictEvents.length > 1) fail("result_conflict_quarantine_unbounded");
+              if (resultConflictEvents.length > 1) fail2("result_conflict_quarantine_unbounded");
               if (resultEvents.length) {
                 const r = resultEvents[0], v = r.evidence, result = JSON.parse(o.result_json);
-                if (claims.length !== 1 || r.event.sequence <= claims[0].event.sequence || v.claim_id !== o.claim_id || v.outcome !== o.result_status || v.worker_identity_digest !== o.claim_worker_identity_digest || v.result_digest !== o.result_digest || v.result_commit_ref !== o.result_commit_ref || o.result_generation !== o.generation || result.task_id !== o.task_id || result.attempt !== o.attempt || result.status !== o.result_status || !RESULT_STATUSES.has(o.result_status) || o.result_digest !== digest2({ result_contract_version: RESULT_CONTRACT_VERSION, result_status: o.result_status, result }) || o.result_commit_ref !== `result-${o.result_digest}`) fail("result_event_projection_mismatch");
+                if (claims.length !== 1 || r.event.sequence <= claims[0].event.sequence || v.claim_id !== o.claim_id || v.outcome !== o.result_status || v.worker_identity_digest !== o.claim_worker_identity_digest || v.result_digest !== o.result_digest || v.result_commit_ref !== o.result_commit_ref || o.result_generation !== o.generation || result.task_id !== o.task_id || result.attempt !== o.attempt || result.status !== o.result_status || !RESULT_STATUSES2.has(o.result_status) || o.result_digest !== digest2({ result_contract_version: RESULT_CONTRACT_VERSION, result_status: o.result_status, result }) || o.result_commit_ref !== `result-${o.result_digest}`) fail2("result_event_projection_mismatch");
                 const projection = this.#db.prepare("SELECT t.status AS task_status,t.current_attempt,a.status AS attempt_status FROM tasks t JOIN attempts a ON a.task_id=t.task_id WHERE t.task_id=? AND a.attempt=? AND a.generation=?").get(o.task_id, o.attempt, o.generation);
-                if (projection?.current_attempt < o.attempt || projection?.attempt_status !== o.result_status || projection.current_attempt === o.attempt && projection.task_status !== o.result_status) fail("result_task_attempt_projection_mismatch");
+                if (projection?.current_attempt < o.attempt || projection?.attempt_status !== o.result_status || projection.current_attempt === o.attempt && projection.task_status !== o.result_status) fail2("result_task_attempt_projection_mismatch");
               }
               if (resultConflictEvents.length) {
                 const q = resultConflictEvents[0], e = JSON.parse(q.evidence_json);
-                if (!resultEvents.length || q.to_phase !== "quarantined" || e.claim_id !== o.claim_id || !validText2(e.reason, 256) || !/^[0-9a-f]{64}$/u.test(e.result_digest) || !/^[0-9a-f]{64}$/u.test(e.evidence_digest) || !validText2(e.result_commit_ref, 128)) fail("result_conflict_quarantine_mismatch");
+                if (!resultEvents.length || q.to_phase !== "quarantined" || e.claim_id !== o.claim_id || !validText3(e.reason, 256) || !/^[0-9a-f]{64}$/u.test(e.result_digest) || !/^[0-9a-f]{64}$/u.test(e.evidence_digest) || !validText3(e.result_commit_ref, 128)) fail2("result_conflict_quarantine_mismatch");
               }
               const pending = cleanupEvents.cleanup_pending, verified = cleanupEvents.cleanup_verified, unverified = cleanupEvents.cleanup_unverified, reverified = cleanupEvents.cleanup_reverified, released = cleanupEvents.released;
-              if (pending.length > 1 || verified.length > 1 || unverified.length > 1 || reverified.length > 1 || released.length > 1 || verified.length && unverified.length && !reverified.length || reverified.length && (verified.length !== reverified.length || unverified.length !== reverified.length)) fail("cleanup_history_unbounded");
-              if (pending.length === 0 && (verified.length !== 0 || unverified.length !== 0 || reverified.length !== 0 || released.length !== 0) || pending.length === 1 && resultEvents.length !== 1) fail("cleanup_history_mismatch");
+              if (pending.length > 1 || verified.length > 1 || unverified.length > 1 || reverified.length > 1 || released.length > 1 || verified.length && unverified.length && !reverified.length || reverified.length && (verified.length !== reverified.length || unverified.length !== reverified.length)) fail2("cleanup_history_unbounded");
+              if (pending.length === 0 && (verified.length !== 0 || unverified.length !== 0 || reverified.length !== 0 || released.length !== 0) || pending.length === 1 && resultEvents.length !== 1) fail2("cleanup_history_mismatch");
               if (pending.length) {
                 const p = pending[0], pe = p.evidence, resultEvent = resultEvents[0];
-                if (!resultEvent || p.event.sequence <= resultEvent.event.sequence || pe.claim_id !== o.claim_id || pe.result_commit_ref !== o.result_commit_ref || pe.worker_identity_digest !== o.claim_worker_identity_digest) fail("cleanup_pending_mismatch");
+                if (!resultEvent || p.event.sequence <= resultEvent.event.sequence || pe.claim_id !== o.claim_id || pe.result_commit_ref !== o.result_commit_ref || pe.worker_identity_digest !== o.claim_worker_identity_digest) fail2("cleanup_pending_mismatch");
                 if (unverified.length) {
                   const u = unverified[0], ue = u.evidence;
-                  if (u.event.sequence !== p.event.sequence + 1 || ue.claim_id !== o.claim_id || ue.worker_identity_digest !== o.claim_worker_identity_digest || !["alive", "unknown", "identity_mismatch", "incomplete"].includes(ue.probe_state) || !validText2(ue.reason, 128)) fail("cleanup_unverified_mismatch");
+                  if (u.event.sequence !== p.event.sequence + 1 || ue.claim_id !== o.claim_id || ue.worker_identity_digest !== o.claim_worker_identity_digest || !["alive", "unknown", "identity_mismatch", "incomplete"].includes(ue.probe_state) || !validText3(ue.reason, 128)) fail2("cleanup_unverified_mismatch");
                 }
                 if (reverified.length) {
                   const rv = reverified[0], rve = rv.evidence;
-                  if (unverified.length !== 1 || rv.event.sequence <= unverified[0].event.sequence || !Array.isArray(rve.resolved_recovery_event_digests) || rve.prior_cleanup_event_digest !== unverified[0].event.evidence_digest || rve.claim_id !== o.claim_id || rve.operation_id !== o.operation_id || rve.task_id !== o.task_id || rve.attempt !== o.attempt || rve.generation !== o.generation || rve.worker_identity_digest !== o.claim_worker_identity_digest) fail("cleanup_reverification_history_mismatch");
+                  if (unverified.length !== 1 || rv.event.sequence <= unverified[0].event.sequence || !Array.isArray(rve.resolved_recovery_event_digests) || rve.prior_cleanup_event_digest !== unverified[0].event.evidence_digest || rve.claim_id !== o.claim_id || rve.operation_id !== o.operation_id || rve.task_id !== o.task_id || rve.attempt !== o.attempt || rve.generation !== o.generation || rve.worker_identity_digest !== o.claim_worker_identity_digest) fail2("cleanup_reverification_history_mismatch");
                   const between = es.filter((event) => event.sequence > unverified[0].event.sequence && event.sequence < rv.event.sequence);
                   const betweenRecovery = recoveryEventsFor(es, o).filter((item) => item.event.sequence > unverified[0].event.sequence && item.event.sequence < rv.event.sequence);
                   if (between.some((event) => event.event_type !== "observation_recorded") || betweenRecovery.length !== between.length)
-                    fail("cleanup_reverification_intervening_event_mismatch");
+                    fail2("cleanup_reverification_intervening_event_mismatch");
                   const priorRecovery = recoveryEventsFor(es, o).filter((item) => item.event.sequence < rv.event.sequence);
-                  if (priorRecovery.some((item) => item.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(item.evidence.reason_code))) fail("cleanup_reverification_unrelated_hold");
+                  if (priorRecovery.some((item) => item.evidence.classification !== "hold" || !["cleanup_identity_unknown", "cleanup_incomplete"].includes(item.evidence.reason_code))) fail2("cleanup_reverification_unrelated_hold");
                   const eligible = priorRecovery.map((item) => item.event.evidence_digest).sort();
-                  if (rve.resolved_recovery_event_digests.join("|") !== eligible.join("|")) fail("cleanup_reverification_hold_set_mismatch");
-                } else if (unverified.length && verified.length) fail("cleanup_reverification_event_missing");
+                  if (rve.resolved_recovery_event_digests.join("|") !== eligible.join("|")) fail2("cleanup_reverification_hold_set_mismatch");
+                } else if (unverified.length && verified.length) fail2("cleanup_reverification_event_missing");
                 if (verified.length) {
                   const v = verified[0], ve = v.evidence;
                   const expectedVerifiedSequence = reverified.length ? reverified[0].event.sequence + 1 : p.event.sequence + 1;
-                  if (v.event.sequence !== expectedVerifiedSequence || ve.claim_id !== o.claim_id || ve.launch_receipt_digest !== o.launch_receipt_digest || ve.result_commit_ref !== o.result_commit_ref || ve.worker_identity_digest !== o.claim_worker_identity_digest || ve.workspace_touched !== false || ve.worker_tree_complete !== true || ve.operation_resources_complete !== true || !["synthetic_fixture", "manager_os_cleanup_verification"].includes(ve.evidence_source) || !/^[0-9a-f]{64}$/u.test(ve.process_tree_digest) || !/^[0-9a-f]{64}$/u.test(ve.resources_digest)) fail("cleanup_verified_mismatch");
+                  if (v.event.sequence !== expectedVerifiedSequence || ve.claim_id !== o.claim_id || ve.launch_receipt_digest !== o.launch_receipt_digest || ve.result_commit_ref !== o.result_commit_ref || ve.worker_identity_digest !== o.claim_worker_identity_digest || ve.workspace_touched !== false || ve.worker_tree_complete !== true || ve.operation_resources_complete !== true || !["synthetic_fixture", "manager_os_cleanup_verification"].includes(ve.evidence_source) || !/^[0-9a-f]{64}$/u.test(ve.process_tree_digest) || !/^[0-9a-f]{64}$/u.test(ve.resources_digest)) fail2("cleanup_verified_mismatch");
                   const worker = JSON.parse(o.claim_worker_identity_json), launchIdentity = JSON.parse(o.launch_identity_json);
-                  if (ve.root_process_id !== worker.process_id || ve.root_start_fingerprint !== worker.start_fingerprint || ve.root_process_id !== launchIdentity.process_id || ve.root_start_fingerprint !== launchIdentity.start_fingerprint) fail("cleanup_worker_identity_mismatch");
+                  if (ve.root_process_id !== worker.process_id || ve.root_start_fingerprint !== worker.start_fingerprint || ve.root_process_id !== launchIdentity.process_id || ve.root_start_fingerprint !== launchIdentity.start_fingerprint) fail2("cleanup_worker_identity_mismatch");
                   const normalized = {
                     operation_id: o.operation_id,
                     task_id: o.task_id,
@@ -8823,7 +7960,7 @@ var init_store = __esm({
                     source: ve.evidence_source,
                     fixture: ve.evidence_source === "synthetic_fixture"
                   };
-                  if (ve.cleanup_digest !== digest2({ cleanup_contract_version: 1, evidence: normalized })) fail("cleanup_digest_mismatch");
+                  if (ve.cleanup_digest !== digest2({ cleanup_contract_version: 1, evidence: normalized })) fail2("cleanup_digest_mismatch");
                   if (reverified.length) {
                     const rve = reverified[0].evidence;
                     const paired = [
@@ -8841,25 +7978,25 @@ var init_store = __esm({
                       "worker_tree_complete",
                       "workspace_touched"
                     ];
-                    if (paired.some((key) => rve[key] !== ve[key])) fail("cleanup_reverification_evidence_mismatch");
+                    if (paired.some((key) => rve[key] !== ve[key])) fail2("cleanup_reverification_evidence_mismatch");
                   }
                 }
                 if (released.length) {
                   const r = released[0], re = r.evidence, ve = verified[0]?.evidence;
-                  if (!ve || r.event.sequence !== verified[0].event.sequence + 1 || re.claim_id !== o.claim_id || re.cleanup_digest !== ve.cleanup_digest || re.result_commit_ref !== o.result_commit_ref || re.worker_identity_digest !== o.claim_worker_identity_digest) fail("release_history_mismatch");
+                  if (!ve || r.event.sequence !== verified[0].event.sequence + 1 || re.claim_id !== o.claim_id || re.cleanup_digest !== ve.cleanup_digest || re.result_commit_ref !== o.result_commit_ref || re.worker_identity_digest !== o.claim_worker_identity_digest) fail2("release_history_mismatch");
                 }
                 const expected = o.phase === "quarantined" ? "quarantined" : released.length ? "released" : verified.length ? "cleanup_verified" : unverified.length ? "cleanup_unverified" : "cleanup_pending";
-                if (o.phase !== expected) fail("cleanup_projection_mismatch");
-              } else if (["cleanup_pending", "cleanup_verified", "cleanup_unverified", "cleanup_reverified", "released"].includes(o.phase) && !adminAbandonments.has(o.operation_id)) fail("cleanup_projection_mismatch");
+                if (o.phase !== expected) fail2("cleanup_projection_mismatch");
+              } else if (["cleanup_pending", "cleanup_verified", "cleanup_unverified", "cleanup_reverified", "released"].includes(o.phase) && !adminAbandonments.has(o.operation_id)) fail2("cleanup_projection_mismatch");
               const adminAbandonment = adminAbandonments.get(o.operation_id);
               if (adminAbandonment) {
                 let adminWorker;
                 try {
                   adminWorker = JSON.parse(o.claim_worker_identity_json);
                 } catch {
-                  fail("admin_abandonment_projection_mismatch");
+                  fail2("admin_abandonment_projection_mismatch");
                 }
-                if (!adminWorker || typeof adminWorker !== "object") fail("admin_abandonment_projection_mismatch");
+                if (!adminWorker || typeof adminWorker !== "object") fail2("admin_abandonment_projection_mismatch");
                 const expectedRouteDigest = digest2({
                   operation_id: o.operation_id,
                   task_id: o.task_id,
@@ -8872,34 +8009,34 @@ var init_store = __esm({
                   worker_start_fingerprint: adminWorker.start_fingerprint,
                   audit_digest: adminAbandonment.audit_digest
                 });
-                if (adminAbandonment.operation_kind !== "attempt_lifecycle" || adminAbandonment.task_id !== o.task_id || adminAbandonment.attempt !== o.attempt || adminAbandonment.generation !== o.generation || adminAbandonment.claim_id !== o.claim_id || adminAbandonment.worker_identity_digest !== o.claim_worker_identity_digest || adminAbandonment.original_revision + 1 !== o.revision || adminAbandonment.event_sequence !== o.revision || adminAbandonment.outcome !== "admin_abandoned" || adminAbandonment.result_absent !== 1 || adminAbandonment.cleanup_verified !== 0 || adminAbandonment.release_reason !== "cleanup_incomplete" || adminAbandonment.audit_digest !== digest2(adminAbandonment.audit_json) || adminAbandonment.request_digest !== expectedRouteDigest || o.phase !== "released" || o.result_digest !== null || o.result_json !== null || o.result_commit_ref !== null || !Number.isFinite(Date.parse(adminAbandonment.abandoned_at))) fail("admin_abandonment_projection_mismatch");
+                if (adminAbandonment.operation_kind !== "attempt_lifecycle" || adminAbandonment.task_id !== o.task_id || adminAbandonment.attempt !== o.attempt || adminAbandonment.generation !== o.generation || adminAbandonment.claim_id !== o.claim_id || adminAbandonment.worker_identity_digest !== o.claim_worker_identity_digest || adminAbandonment.original_revision + 1 !== o.revision || adminAbandonment.event_sequence !== o.revision || adminAbandonment.outcome !== "admin_abandoned" || adminAbandonment.result_absent !== 1 || adminAbandonment.cleanup_verified !== 0 || adminAbandonment.release_reason !== "cleanup_incomplete" || adminAbandonment.audit_digest !== digest2(adminAbandonment.audit_json) || adminAbandonment.request_digest !== expectedRouteDigest || o.phase !== "released" || o.result_digest !== null || o.result_json !== null || o.result_commit_ref !== null || !Number.isFinite(Date.parse(adminAbandonment.abandoned_at))) fail2("admin_abandonment_projection_mismatch");
                 const terminalEvent = es.at(-1);
                 let terminalEvidence;
                 try {
                   terminalEvidence = JSON.parse(terminalEvent.evidence_json);
                 } catch {
-                  fail("admin_abandonment_projection_mismatch");
+                  fail2("admin_abandonment_projection_mismatch");
                 }
                 if (!terminalEvent || terminalEvent.sequence !== adminAbandonment.event_sequence || terminalEvent.event_type !== "observation_recorded" || terminalEvent.from_phase !== "running" || terminalEvent.to_phase !== "released" || terminalEvidence.reason !== "admin_abandoned" || terminalEvidence.evidence_digest !== adminAbandonment.audit_digest)
-                  fail("admin_abandonment_event_mismatch");
+                  fail2("admin_abandonment_event_mismatch");
                 let audit;
                 try {
                   audit = JSON.parse(adminAbandonment.audit_json);
                 } catch {
-                  fail("admin_abandonment_audit_invalid");
+                  fail2("admin_abandonment_audit_invalid");
                 }
-                if (Object.keys(audit).sort().join("|") !== "boot_time|claimant_scan_clean|claimant_scan_digest|cleanup_verified|failed_at|hosts_closed|observed_at|platform_probe_digest|process_inventory_digest|result_absent|worker_exited|writer_closed" || audit.claimant_scan_clean !== true || audit.cleanup_verified !== false || audit.hosts_closed !== true || audit.result_absent !== true || audit.worker_exited !== true || audit.writer_closed !== true || !validIsoInstant(audit.boot_time) || typeof audit.claimant_scan_digest !== "string" || !/^[0-9a-f]{64}$/u.test(audit.claimant_scan_digest) || typeof audit.platform_probe_digest !== "string" || !/^[0-9a-f]{64}$/u.test(audit.platform_probe_digest) || typeof audit.process_inventory_digest !== "string" || !/^[0-9a-f]{64}$/u.test(audit.process_inventory_digest) || !validIsoInstant(audit.failed_at) || !validIsoInstant(audit.observed_at) || Date.parse(audit.boot_time) <= Date.parse(audit.failed_at) || Date.parse(audit.observed_at) < Date.parse(audit.boot_time) || adminAbandonment.abandoned_at !== audit.observed_at) fail("admin_abandonment_audit_invalid");
+                if (Object.keys(audit).sort().join("|") !== "boot_time|claimant_scan_clean|claimant_scan_digest|cleanup_verified|failed_at|hosts_closed|observed_at|platform_probe_digest|process_inventory_digest|result_absent|worker_exited|writer_closed" || audit.claimant_scan_clean !== true || audit.cleanup_verified !== false || audit.hosts_closed !== true || audit.result_absent !== true || audit.worker_exited !== true || audit.writer_closed !== true || !validIsoInstant(audit.boot_time) || typeof audit.claimant_scan_digest !== "string" || !/^[0-9a-f]{64}$/u.test(audit.claimant_scan_digest) || typeof audit.platform_probe_digest !== "string" || !/^[0-9a-f]{64}$/u.test(audit.platform_probe_digest) || typeof audit.process_inventory_digest !== "string" || !/^[0-9a-f]{64}$/u.test(audit.process_inventory_digest) || !validIsoInstant(audit.failed_at) || !validIsoInstant(audit.observed_at) || Date.parse(audit.boot_time) <= Date.parse(audit.failed_at) || Date.parse(audit.observed_at) < Date.parse(audit.boot_time) || adminAbandonment.abandoned_at !== audit.observed_at) fail2("admin_abandonment_audit_invalid");
                 const projection = this.#db.prepare(`SELECT t.current_attempt,t.status AS task_status,a.status AS attempt_status
               FROM tasks t JOIN attempts a ON a.task_id=t.task_id AND a.attempt=t.current_attempt
               WHERE t.task_id=? AND a.attempt=? AND a.generation=?`).get(o.task_id, o.attempt, o.generation);
-                if (!projection || projection.current_attempt !== o.attempt || projection.task_status !== "failed" || projection.attempt_status !== "failed") fail("admin_abandonment_projection_mismatch");
+                if (!projection || projection.current_attempt !== o.attempt || projection.task_status !== "failed" || projection.attempt_status !== "failed") fail2("admin_abandonment_projection_mismatch");
               }
               validateInteractionHistory(this.#db, o, es);
             }
           }
         } catch (e) {
           if (e instanceof AdmissionError) throw e;
-          fail("database_unreadable", String(e));
+          fail2("database_unreadable", String(e));
         }
       }
     };
@@ -9076,7 +8213,7 @@ var init_lifecycle_port = __esm({
       "recordLaunchReceipt",
       "commitPermanentClaim"
     ]);
-    C1_METHODS = Object.freeze(["readLifecycleEvents", "commitResult", "readCommittedResult"]);
+    C1_METHODS = Object.freeze(["readLifecycleEvents", "commitResult", "readCommittedResult", "recordResultSubmissionFailure"]);
     C2_METHODS = Object.freeze(["beginCleanup", "recordCleanupEvidence", "reverifyCleanup", "releaseCapacity"]);
     C3_READ_METHODS = Object.freeze(["readRecoverySnapshot"]);
     CANCEL_METHODS = Object.freeze(["requestCancellation", "recordCancellationVerification"]);
@@ -9096,12 +8233,13 @@ __export(lifecycle_gate_exports, {
   openClaimOnlyDriver: () => openClaimOnlyDriver,
   readAllLifecycleEventsForRecovery: () => readAllLifecycleEventsForRecovery
 });
-import { createHash as createHash15, randomUUID as randomUUID6 } from "node:crypto";
-import { closeSync as closeSync6, existsSync as existsSync13, fsyncSync as fsyncSync4, linkSync, lstatSync as lstatSync3, openSync as openSync6, readFileSync as readFileSync13, readdirSync as readdirSync3, realpathSync as realpathSync6, unlinkSync as unlinkSync3, writeFileSync as writeFileSync7 } from "node:fs";
-import { spawn as spawn5 } from "node:child_process";
-import path18 from "node:path";
+import { createHash as createHash12, randomUUID as randomUUID4 } from "node:crypto";
+import { closeSync as closeSync3, existsSync as existsSync10, fsyncSync as fsyncSync2, linkSync, lstatSync as lstatSync3, openSync as openSync3, readFileSync as readFileSync12, readdirSync as readdirSync2, realpathSync as realpathSync5, unlinkSync as unlinkSync3, writeFileSync as writeFileSync4 } from "node:fs";
+import { spawn as spawn6 } from "node:child_process";
+import path16 from "node:path";
+import { homedir as homedir4 } from "node:os";
 function recoveryStopKey(dataRoot, databaseFileName, operationId) {
-  return `${path18.resolve(dataRoot)}\0${databaseFileName ?? "operations.sqlite3"}\0${operationId}`;
+  return `${path16.resolve(dataRoot)}\0${databaseFileName ?? "operations.sqlite3"}\0${operationId}`;
 }
 function readAllLifecycleEventsForRecovery(port, operationId) {
   const pageSize = 200;
@@ -9156,7 +8294,7 @@ async function initializeFreshInstallSqliteRoot(root, databaseFileName, version2
     throw new LifecycleGateError("sqlite_bootstrap_database_name_invalid");
   }
   const modules = await loadLifecycleCandidateModules(version2);
-  const key = path18.join(path18.resolve(root), databaseFileName);
+  const key = path16.join(path16.resolve(root), databaseFileName);
   const pending = freshBootstrapPromises.get(key);
   if (pending) return pending;
   const operation = ensureFreshSqliteAuthority(root, databaseFileName, modules, processProbe, options);
@@ -9174,7 +8312,7 @@ async function acquireFreshBootstrapLock(root, databaseFileName, timeoutMs, owne
       "Fresh SQLite bootstrap requires the Windows exclusive-file-handle lock"
     );
   }
-  const lockPath = path18.join(root, `${databaseFileName}.bootstrap.lock`);
+  const lockPath = path16.join(root, `${databaseFileName}.bootstrap.lock`);
   const deadline = Date.now() + timeoutMs;
   for (; ; ) {
     assertFreshBootstrapRootPath(root);
@@ -9207,7 +8345,7 @@ async function tryAcquireWindowsBootstrapLock(root, lockPath, databaseFileName, 
     database_file: databaseFileName,
     owner_identity: ownerIdentity,
     acquired_at: (/* @__PURE__ */ new Date()).toISOString(),
-    token: randomUUID6()
+    token: randomUUID4()
   })}
 `;
   const releaseRecord = `${JSON.stringify({
@@ -9218,9 +8356,9 @@ async function tryAcquireWindowsBootstrapLock(root, lockPath, databaseFileName, 
   })}
 `;
   const systemRoot = process.env["SystemRoot"];
-  const absolutePowerShell = systemRoot ? path18.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe") : "powershell.exe";
-  const executable = existsSync13(absolutePowerShell) ? absolutePowerShell : "powershell.exe";
-  const child = spawn5(executable, [
+  const absolutePowerShell = systemRoot ? path16.join(systemRoot, "System32", "WindowsPowerShell", "v1.0", "powershell.exe") : "powershell.exe";
+  const executable = existsSync10(absolutePowerShell) ? absolutePowerShell : "powershell.exe";
+  const child = spawn6(executable, [
     "-NoLogo",
     "-NoProfile",
     "-NonInteractive",
@@ -9430,9 +8568,9 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 async function ensureFreshSqliteAuthority(root, databaseFileName, modules, processProbe, options) {
-  const resolvedRoot = path18.resolve(root);
+  const resolvedRoot = path16.resolve(root);
   assertFreshBootstrapRootPath(resolvedRoot);
-  const databasePath = path18.join(resolvedRoot, databaseFileName);
+  const databasePath = path16.join(resolvedRoot, databaseFileName);
   const pendingPath = `${databasePath}.bootstrap-pending.json`;
   const markerTempPath = `${databasePath}.bootstrap-marker.tmp`;
   const lockTimeoutMs = options.lockTimeoutMs ?? DEFAULT_FRESH_BOOTSTRAP_LOCK_TIMEOUT_MS;
@@ -9458,18 +8596,18 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
     for (; ; ) {
       assertFreshBootstrapRootPath(resolvedRoot);
       lock.assertHeld();
-      if (existsSync13(markerTempPath)) {
+      if (existsSync10(markerTempPath)) {
         const tempStat = lstatSync3(markerTempPath);
-        if (!tempStat.isFile() || tempStat.isSymbolicLink() || existsSync13(databasePath) && !existsSync13(pendingPath)) {
+        if (!tempStat.isFile() || tempStat.isSymbolicLink() || existsSync10(databasePath) && !existsSync10(pendingPath)) {
           throw new LifecycleGateError("sqlite_bootstrap_marker_temp_unexpected");
         }
       }
-      if (existsSync13(pendingPath)) {
+      if (existsSync10(pendingPath)) {
         const marker2 = readFreshBootstrapMarker(pendingPath, databaseFileName);
-        if (existsSync13(databasePath)) {
+        if (existsSync10(databasePath)) {
           const published = tryReadReadySqliteAuthority(modules, resolvedRoot, databaseFileName, true);
           if (published?.kind === "fresh_install" && published.receipt_id === `fresh-install-${marker2.token}`) {
-            const stagePath2 = path18.join(resolvedRoot, marker2.stage_file);
+            const stagePath2 = path16.join(resolvedRoot, marker2.stage_file);
             removeOwnedBootstrapFile(stagePath2);
             removeOwnedBootstrapFile(`${stagePath2}-wal`);
             removeOwnedBootstrapFile(`${stagePath2}-shm`);
@@ -9482,7 +8620,7 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
           }
           throw new LifecycleGateError("sqlite_bootstrap_published_database_unverified");
         }
-        const stagePath = path18.join(resolvedRoot, marker2.stage_file);
+        const stagePath = path16.join(resolvedRoot, marker2.stage_file);
         removeOwnedBootstrapFile(stagePath);
         removeOwnedBootstrapFile(`${stagePath}-wal`);
         removeOwnedBootstrapFile(`${stagePath}-shm`);
@@ -9491,10 +8629,15 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
         removeOwnedBootstrapFile(markerTempPath);
         continue;
       }
-      if (existsSync13(markerTempPath)) {
+      if (existsSync10(markerTempPath)) {
         removeOwnedBootstrapFile(markerTempPath);
       }
-      if (existsSync13(databasePath)) {
+      if (existsSync10(databasePath) || existsSync10(databasePath + ".v13-v14-pending.json")) {
+        modules.Store.autoUpgradeV13?.(resolvedRoot, {
+          databaseFileName,
+          runtimeRosterDigest: currentSqliteRuntimeRosterDigest(),
+          assertStartupLock: () => lock.assertHeld()
+        });
         const existing = tryReadReadySqliteAuthority(modules, resolvedRoot, databaseFileName, false);
         if (!existing) throw new LifecycleGateError("sqlite_existing_database_unverified", "existing SQLite database is not a valid production Authority");
         emitFreshBootstrapStage(options, "ready");
@@ -9502,7 +8645,7 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
         break;
       }
       assertFreshBootstrapRootEmpty(resolvedRoot, databaseFileName);
-      const token = randomUUID6();
+      const token = randomUUID4();
       const stageFile = `${databaseFileName}.bootstrap-${token}.stage`;
       const marker = {
         schema_version: 1,
@@ -9544,9 +8687,9 @@ async function ensureFreshSqliteAuthority(root, databaseFileName, modules, proce
   return result;
 }
 async function constructAndPublishFreshSqlite(root, databaseFileName, marker, modules, lock, options) {
-  const databasePath = path18.join(root, databaseFileName);
+  const databasePath = path16.join(root, databaseFileName);
   const pendingPath = `${databasePath}.bootstrap-pending.json`;
-  const stagePath = path18.join(root, marker.stage_file);
+  const stagePath = path16.join(root, marker.stage_file);
   let published = false;
   try {
     lock.assertHeld();
@@ -9573,7 +8716,7 @@ async function constructAndPublishFreshSqlite(root, databaseFileName, marker, mo
     }
     lock.assertHeld();
     assertFreshBootstrapRootPath(root);
-    if (existsSync13(databasePath)) throw new LifecycleGateError("sqlite_database_appeared_during_bootstrap");
+    if (existsSync10(databasePath)) throw new LifecycleGateError("sqlite_database_appeared_during_bootstrap");
     linkSync(stagePath, databasePath);
     published = true;
     unlinkSync3(stagePath);
@@ -9610,7 +8753,8 @@ function tryReadReadySqliteAuthority(modules, root, databaseFileName, allowPendi
       ...allowPending ? { allowFreshBootstrapPending: true } : {}
     });
     return store.assertAuthorityReady(currentSqliteRuntimeRosterDigest());
-  } catch {
+  } catch (error2) {
+    if (errorCode(error2) === "schema_upgrade_required") throw error2;
     return null;
   } finally {
     store?.close();
@@ -9627,15 +8771,15 @@ function assertFreshBootstrapRootEmpty(root, databaseFileName) {
     `${databaseFileName}.bootstrap-pending.json`,
     `${databaseFileName}.bootstrap.lock`
   ]);
-  for (const name of readdirSync3(root)) {
+  for (const name of readdirSync2(root)) {
     if (!allowed.has(name)) throw new LifecycleGateError("sqlite_existing_state_incomplete", `unexpected SQLite root entry: ${name}`);
   }
 }
 function assertFreshBootstrapRootPath(root) {
   try {
     const stat2 = lstatSync3(root);
-    const real = realpathSync6.native(root);
-    const normalize = (value) => process.platform === "win32" ? path18.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path18.resolve(value);
+    const real = realpathSync5.native(root);
+    const normalize = (value) => process.platform === "win32" ? path16.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path16.resolve(value);
     if (!stat2.isDirectory() || stat2.isSymbolicLink() || normalize(real) !== normalize(root)) {
       throw new LifecycleGateError("sqlite_data_root_redirected");
     }
@@ -9648,7 +8792,7 @@ function readFreshBootstrapMarker(file, databaseFileName) {
   try {
     const stat2 = lstatSync3(file);
     if (!stat2.isFile() || stat2.isSymbolicLink() || stat2.size > 16 * 1024) throw new Error("unsafe_marker");
-    const value = JSON.parse(readFileSync13(file, "utf8"));
+    const value = JSON.parse(readFileSync12(file, "utf8"));
     const expectedStagePrefix = `${databaseFileName}.bootstrap-`;
     if (value.schema_version !== 1 || value.state !== "sqlite_bootstrap_pending" || value.database_file !== databaseFileName || typeof value.token !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(value.token) || value.stage_file !== `${expectedStagePrefix}${value.token}.stage` || !value.owner_identity || value.owner_identity.pid < 1 || !Number.isSafeInteger(value.owner_identity.pid) || value.owner_identity.fingerprint_precision !== "exact" || !value.owner_identity.fingerprint || value.owner_identity.identity_version !== PROCESS_IDENTITY_VERSION || !value.owner_identity.platform || !value.owner_identity.captured_at || Number.isNaN(Date.parse(value.owner_identity.captured_at))) throw new Error("invalid_marker");
     return value;
@@ -9663,14 +8807,14 @@ function writeDurableBootstrapMarker(file, marker, options, lock) {
   let tempCreated = false;
   try {
     lock.assertHeld();
-    fd = openSync6(temp, "wx", 384);
+    fd = openSync3(temp, "wx", 384);
     lock.assertHeld();
     tempCreated = true;
-    writeFileSync7(fd, `${JSON.stringify(marker)}
+    writeFileSync4(fd, `${JSON.stringify(marker)}
 `, "utf8");
-    fsyncSync4(fd);
+    fsyncSync2(fd);
     lock.assertHeld();
-    closeSync6(fd);
+    closeSync3(fd);
     fd = void 0;
     emitFreshBootstrapStage(options, "marker_temp_written");
     lock.assertHeld();
@@ -9682,7 +8826,7 @@ function writeDurableBootstrapMarker(file, marker, options, lock) {
   } catch (error2) {
     if (fd !== void 0) {
       try {
-        closeSync6(fd);
+        closeSync3(fd);
       } catch {
       }
     }
@@ -9747,11 +8891,11 @@ function parsePreviousBootstrapLockRecord(encoded, databaseFileName) {
 function syncRegularFile(file) {
   const stat2 = lstatSync3(file);
   if (!stat2.isFile() || stat2.isSymbolicLink()) throw new LifecycleGateError("sqlite_bootstrap_stage_unsafe");
-  const fd = openSync6(file, "r+");
+  const fd = openSync3(file, "r+");
   try {
-    fsyncSync4(fd);
+    fsyncSync2(fd);
   } finally {
-    closeSync6(fd);
+    closeSync3(fd);
   }
 }
 function removeOwnedBootstrapFile(file) {
@@ -9779,7 +8923,7 @@ async function openClaimOnlyDriver(options) {
   const modules = await (options.loadModules?.() ?? loadLifecycleCandidateModules());
   let raw;
   try {
-    if (!existsSync13(options.dataRoot)) throw new LifecycleGateError("sqlite_database_missing", "candidate database must be initialized explicitly");
+    if (!existsSync10(options.dataRoot)) throw new LifecycleGateError("sqlite_database_missing", "candidate database must be initialized explicitly");
     raw = modules.Store.open(options.dataRoot, {
       ...options.databaseFileName ? { databaseFileName: options.databaseFileName } : {},
       ...options.managedDataDirectory ? { managedDataDirectory: true } : {}
@@ -9835,6 +8979,16 @@ async function openClaimOnlyDriver(options) {
   const localPolicy = options.trustedLocalContext.policy;
   const interactionChannels = /* @__PURE__ */ new Map();
   const activeWorkers = /* @__PURE__ */ new Map();
+  let resultFinalization = Promise.resolve();
+  const takeResultFinalization = async () => {
+    const preceding = resultFinalization;
+    let release;
+    resultFinalization = new Promise((resolve) => {
+      release = resolve;
+    });
+    await preceding;
+    return release;
+  };
   const cancellationProofs = /* @__PURE__ */ new Map();
   const provenance = {
     bridge: fingerprintRuntimeArtifact(options.bridgeEntryPath),
@@ -9859,7 +9013,7 @@ async function openClaimOnlyDriver(options) {
       const stopKey = recoveryStopKey(options.dataRoot, options.databaseFileName, operationId);
       const operationValue = port.readOperation(operationId);
       if (!operationValue) throw new LifecycleGateError("recovery_operation_missing");
-      const operation = asRecord4(operationValue);
+      const operation = asRecord3(operationValue);
       if (operation.operation_kind !== "attempt_lifecycle") return { state: "not_applicable", operation_id: operationId };
       const phase = text(operation.phase, "recovery_phase_missing");
       if (phase === "released" || phase === "cancelled_before_launch" || phase === "admin_abandoned") {
@@ -9912,7 +9066,7 @@ async function openClaimOnlyDriver(options) {
           throw new LifecycleGateError("recovery_cleanup_evidence_invalid");
         }
         const cleanupDigest = text(evidence2.cleanup_digest, "recovery_cleanup_digest_missing");
-        const release = asRecord4(port.releaseCapacity({
+        const release = asRecord3(port.releaseCapacity({
           operation_id: operationId,
           task_id: text(operation.task_id, "recovery_task_id_missing"),
           attempt: positive3(Number(operation.attempt), "recovery_attempt_invalid"),
@@ -9970,12 +9124,12 @@ async function openClaimOnlyDriver(options) {
           throw new LifecycleGateError("recovery_event_evidence_invalid");
         }
       });
-      if (phase === "running" && identityState !== "exited") {
+      if (phase === "running") {
         return {
           state: "held",
           operation_id: operationId,
           phase,
-          reason: identityState === "alive" ? "worker_still_alive_managed_elsewhere" : "worker_identity_unknown_managed_elsewhere",
+          reason: identityState === "alive" ? "worker_still_alive_managed_elsewhere" : identityState === "exited" ? "worker_exited_without_committed_result" : "worker_identity_unknown_managed_elsewhere",
           identity_state: identityState,
           probe_reason: probeReason
         };
@@ -10022,7 +9176,7 @@ async function openClaimOnlyDriver(options) {
       if ((phase === "result_committed" || phase === "cleanup_pending" || phase === "cleanup_unverified") && identityState === "exited") {
         const completeCleanupClosureAvailable = treeOutcome?.status === "resolved" && treeOutcome.result.clean === true && treeOutcome.result.livePids.length === 0;
         if (completeCleanupClosureAvailable && treeOutcome?.status === "resolved" && treeOutcome.result.clean === true && treeOutcome.result.livePids.length === 0) {
-          const currentOperation = asRecord4(port.readOperation(operationId));
+          const currentOperation = asRecord3(port.readOperation(operationId));
           if (currentOperation.task_id !== operation.task_id || Number(currentOperation.attempt) !== Number(operation.attempt) || Number(currentOperation.generation) !== Number(operation.generation) || currentOperation.claim_id !== claimId || currentOperation.claim_worker_identity_digest !== workerDigest) {
             return { state: "held", operation_id: operationId, phase: String(currentOperation.phase), reason: "recovery_identity_fence_changed" };
           }
@@ -10045,7 +9199,7 @@ async function openClaimOnlyDriver(options) {
             if (verifiedEvidence.claim_id !== claimId || verifiedEvidence.worker_identity_digest !== workerDigest || verifiedEvidence.root_process_id !== processId || verifiedEvidence.root_start_fingerprint !== fingerprint || verifiedEvidence.workspace_touched !== false || verifiedEvidence.worker_tree_complete !== true || verifiedEvidence.operation_resources_complete !== true) {
               throw new LifecycleGateError("recovery_cleanup_evidence_binding_invalid");
             }
-            const released2 = asRecord4(port.releaseCapacity({
+            const released2 = asRecord3(port.releaseCapacity({
               operation_id: operationId,
               task_id: text(currentOperation.task_id, "recovery_task_id_missing"),
               attempt: positive3(Number(currentOperation.attempt), "recovery_attempt_invalid"),
@@ -10091,7 +9245,7 @@ async function openClaimOnlyDriver(options) {
             claim_worker_identity_digest: text(workerDigest, "recovery_claim_identity_missing")
           };
           if (currentPhase === "cleanup_unverified") await options.testBeforeRecoveryWrite?.(operationId, currentPhase);
-          const pending = currentPhase === "result_committed" ? asRecord4(port.beginCleanup(fence)) : currentOperation;
+          const pending = currentPhase === "result_committed" ? asRecord3(port.beginCleanup(fence)) : currentOperation;
           const expectedCleanupPhase = currentPhase === "cleanup_unverified" ? "cleanup_unverified" : "cleanup_pending";
           if (pending.phase !== expectedCleanupPhase || pending.operation_id !== operationId || Number(pending.generation) !== fence.generation) {
             throw new LifecycleGateError("recovery_cleanup_pending_not_persisted");
@@ -10143,11 +9297,11 @@ async function openClaimOnlyDriver(options) {
             operation_resources_complete: true,
             workspace_touched: false
           };
-          const recorded = asRecord4(currentPhase === "cleanup_unverified" ? port.reverifyCleanup({ ...cleanupFence, cleanup_evidence: cleanupEvidence }) : port.recordCleanupEvidence({ ...cleanupFence, outcome: "verified", cleanup_evidence: cleanupEvidence }));
+          const recorded = asRecord3(currentPhase === "cleanup_unverified" ? port.reverifyCleanup({ ...cleanupFence, cleanup_evidence: cleanupEvidence }) : port.recordCleanupEvidence({ ...cleanupFence, outcome: "verified", cleanup_evidence: cleanupEvidence }));
           if (recorded.cleanup_verified !== true || recorded.phase !== "cleanup_verified" && recorded.phase !== "released") {
             throw new LifecycleGateError("recovery_cleanup_evidence_not_persisted");
           }
-          const released = asRecord4(port.releaseCapacity({
+          const released = asRecord3(port.releaseCapacity({
             ...cleanupFence,
             revision: positive3(Number(recorded.revision), "recovery_cleanup_verified_revision_missing"),
             cleanup_digest: text(recorded.cleanup_digest, "recovery_cleanup_digest_missing")
@@ -10204,7 +9358,7 @@ async function openClaimOnlyDriver(options) {
       };
       recoveryEvidenceBindings.set(evidenceDigest, { ...input, evidence_json: canonicalJson2(evidence) });
       try {
-        const recorded = asRecord4(port.recordRecoveryObservation(input, evidence));
+        const recorded = asRecord3(port.recordRecoveryObservation(input, evidence));
         return {
           state: "held",
           operation_id: operationId,
@@ -10238,21 +9392,32 @@ async function openClaimOnlyDriver(options) {
     recordCancellationVerification: (input, evidence) => port.recordCancellationVerification(input, evidence),
     async cancelRunning(taskId, attempt) {
       const activeEntry = [...activeWorkers.entries()].find(([, value]) => value.input.task.task_id === taskId && value.input.attempt === attempt);
-      const operationId = activeEntry?.[0];
       const active = activeEntry?.[1];
-      if (!operationId || !active || !active.child.pid) {
-        throw new LifecycleGateError("cancellation_worker_unavailable", "no bound Worker process handle exists for this SQLite Attempt");
+      let operationId = activeEntry?.[0];
+      if (!operationId) {
+        const lifecycleValue = port.readTaskLifecycle(taskId);
+        if (!lifecycleValue) throw new LifecycleGateError("cancellation_task_missing");
+        const lifecycle = asRecord3(lifecycleValue);
+        const projection = asRecord3(lifecycle.projection);
+        if (Number(projection.current_attempt) !== attempt || !lifecycle.operation) {
+          throw new LifecycleGateError("cancellation_operation_unavailable", "the current SQLite Attempt has no cancellable Operation");
+        }
+        operationId = text(asRecord3(lifecycle.operation).operation_id, "cancellation_operation_id_missing");
       }
-      const operation = asRecord4(port.readOperation(operationId));
+      const operation = asRecord3(port.readOperation(operationId));
       if (operation.phase !== "running" || operation.task_id !== taskId || Number(operation.attempt) !== attempt) {
         return { result_won: operation.result_digest !== null, operation_id: operationId, phase: operation.phase, result_status: operation.result_status };
       }
       const worker = parseEvidence(String(operation.claim_worker_identity_json), "cancellation_worker_identity_invalid");
-      if (worker.source !== "manager_verified_process_probe" || worker.fixture !== false || Number(worker.process_id) !== active.child.pid || worker.platform !== "win32" || worker.fingerprint_precision !== "exact" || typeof worker.start_fingerprint !== "string") {
+      const workerPid = positive3(Number(worker.process_id), "cancellation_worker_pid_invalid");
+      if (active?.child.pid !== void 0 && active.child.pid !== workerPid) {
+        throw new LifecycleGateError("cancellation_worker_identity_mismatch");
+      }
+      if (worker.source !== "manager_verified_process_probe" || worker.fixture !== false || worker.platform !== "win32" || worker.fingerprint_precision !== "exact" || worker.identity_version !== PROCESS_IDENTITY_VERSION || typeof worker.start_fingerprint !== "string") {
         throw new LifecycleGateError("cancellation_worker_identity_mismatch");
       }
       const processIdentity = {
-        pid: Number(worker.process_id),
+        pid: workerPid,
         fingerprint: String(worker.start_fingerprint),
         fingerprint_precision: "exact",
         identity_version: PROCESS_IDENTITY_VERSION,
@@ -10283,9 +9448,45 @@ async function openClaimOnlyDriver(options) {
         process_id: processIdentity.pid,
         start_fingerprint: processIdentity.fingerprint
       };
-      const intent = asRecord4(port.requestCancellation(fence, identityEvidence));
+      const intent = asRecord3(port.requestCancellation(fence, identityEvidence));
       if (intent.result_won === true) return intent;
+      if (active?.privateAuthState) {
+        active.privateAuthState.cancelled = true;
+      }
+      await active?.closeHandleGate?.();
       const cancelId = text(intent.cancel_id, "cancellation_intent_missing");
+      const persistedVerification = readAllLifecycleEventsForRecovery(port, operationId).find((event) => {
+        if (event.event_type !== "observation_recorded") return false;
+        try {
+          return parseEvidence(event.evidence_json, "cancellation_verification_invalid").reason === "cancel_tree_verified";
+        } catch {
+          throw new LifecycleGateError("cancellation_verification_invalid");
+        }
+      });
+      if (persistedVerification) {
+        if (identityVerdict.state !== "exited") throw new LifecycleGateError("cancellation_verification_conflict");
+        const persistedEvidence = parseEvidence(persistedVerification.evidence_json, "cancellation_verification_invalid");
+        if (persistedEvidence.cancel_id !== cancelId || persistedEvidence.claim_id !== fence.claim_id || persistedEvidence.worker_identity_digest !== fence.claim_worker_identity_digest || persistedEvidence.root_process_id !== processIdentity.pid || persistedEvidence.root_start_fingerprint !== processIdentity.fingerprint || persistedEvidence.worker_tree_complete !== true) {
+          throw new LifecycleGateError("cancellation_verification_conflict");
+        }
+        const verificationDigest2 = text(persistedVerification.evidence_digest, "cancellation_verification_missing");
+        const processTreeDigest = text(persistedEvidence.process_tree_digest, "cancellation_process_tree_digest_missing");
+        cancellationProofs.set(operationId, {
+          task_id: taskId,
+          attempt,
+          child: active?.child ?? null,
+          verificationDigest: verificationDigest2,
+          processTreeDigest
+        });
+        return {
+          duplicate: true,
+          result_won: false,
+          operation_id: operationId,
+          cancel_id: cancelId,
+          phase: operation.phase,
+          cancellation_verification_digest: verificationDigest2
+        };
+      }
       const terminationState = identityVerdict.state === "alive" ? "terminated" : "already_exited";
       if (identityVerdict.state === "alive") {
         const terminated = await terminateProcessTree(processIdentity.pid, {
@@ -10295,8 +9496,17 @@ async function openClaimOnlyDriver(options) {
         });
         if (terminated.verified !== true) throw new LifecycleGateError("cancellation_tree_termination_unverified");
       }
-      const workerExitCode = await waitForClose(active.child, 15e3);
-      if (workerExitCode === null) throw new LifecycleGateError("cancellation_worker_exit_unknown");
+      let workerExitCode = null;
+      if (active?.child) {
+        workerExitCode = await waitForClose(active.child, 15e3);
+        if (workerExitCode === null && !active.child.signalCode) throw new LifecycleGateError("cancellation_worker_exit_unknown");
+      } else if (identityVerdict.state === "alive") {
+        const afterStop = await probeWithDeadline(probe, { pid: processIdentity.pid, identity: processIdentity }, processProbeTimeoutMs);
+        if (afterStop.status !== "resolved" || afterStop.verdict?.state !== "exited") {
+          throw new LifecycleGateError("cancellation_worker_exit_unknown");
+        }
+      }
+      const terminationSignal = workerExitCode === null && active?.child ? active.child.signalCode ?? null : null;
       const scan = await verifyProcessTreeClaimantsClean([{ pid: processIdentity.pid, fingerprint: processIdentity.fingerprint }]);
       if (!scan.clean || scan.livePids.length > 0) throw new LifecycleGateError("cancellation_tree_not_clean");
       const processTreeFacts = {
@@ -10313,6 +9523,7 @@ async function openClaimOnlyDriver(options) {
         identity_state: identityVerdict.state,
         termination_state: terminationState,
         worker_exit_code: workerExitCode,
+        worker_termination_signal: terminationSignal,
         scan_clean: true,
         live_pids: [],
         observed_pids: [...scan.observedPids].sort((a, b) => a - b)
@@ -10331,34 +9542,30 @@ async function openClaimOnlyDriver(options) {
         root_start_fingerprint: processIdentity.fingerprint,
         worker_tree_complete: true,
         scan_clean: true,
+        termination_signal: terminationSignal,
         live_pids: [],
         termination_state: terminationState,
         process_tree_digest: sha2562(canonicalJson2(processTreeFacts))
       };
-      const current = asRecord4(port.readOperation(operationId));
-      const verification = asRecord4(port.recordCancellationVerification({ ...fence, revision: Number(current.revision) }, treeEvidence));
+      const current = asRecord3(port.readOperation(operationId));
+      const verification = asRecord3(port.recordCancellationVerification({ ...fence, revision: Number(current.revision) }, treeEvidence));
       if (verification.result_won === true) return verification;
       const verificationDigest = text(verification.cancellation_verification_digest, "cancellation_verification_missing");
       cancellationProofs.set(operationId, {
-        input: active.input,
-        child: active.child,
-        cancelId,
+        task_id: taskId,
+        attempt,
+        child: active?.child ?? null,
         verificationDigest,
-        identityState: identityVerdict.state,
-        terminationState,
-        processTreeDigest: String(treeEvidence.process_tree_digest),
-        livePids: [],
-        observedPids: [...scan.observedPids],
-        workerExitCode
+        processTreeDigest: String(treeEvidence.process_tree_digest)
       });
       return { ...verification, result_won: false, cancellation_verification_digest: verificationDigest };
     },
     async completeRunningCancellation(taskId, attempt) {
-      const proofEntry = [...cancellationProofs.entries()].find(([, value]) => value.input.task.task_id === taskId && value.input.attempt === attempt);
+      const proofEntry = [...cancellationProofs.entries()].find(([, value]) => value.task_id === taskId && value.attempt === attempt);
       const operationId = proofEntry?.[0];
       const proof = proofEntry?.[1];
       if (!operationId || !proof) throw new LifecycleGateError("cancellation_verification_missing");
-      let operation = asRecord4(port.readOperation(operationId));
+      let operation = asRecord3(port.readOperation(operationId));
       if (operation.result_digest === null && operation.phase === "running") {
         const result = {
           task_id: taskId,
@@ -10376,7 +9583,7 @@ async function openClaimOnlyDriver(options) {
           finished_at: (/* @__PURE__ */ new Date()).toISOString(),
           error_code: "cancelled"
         };
-        const committed = asRecord4(port.commitResult({
+        const committed = asRecord3(port.commitResult({
           operation_id: operationId,
           task_id: taskId,
           attempt,
@@ -10390,7 +9597,7 @@ async function openClaimOnlyDriver(options) {
         }));
         if (committed.cancellation_lost_to_result === true) return { cancelled: false, result_won: true, phase: committed.phase };
         if (committed.conflict === true || committed.quarantined === true) throw new LifecycleGateError("cancellation_result_conflict");
-        operation = asRecord4(port.readOperation(operationId));
+        operation = asRecord3(port.readOperation(operationId));
       }
       if (operation.result_status !== "cancelled") return { cancelled: false, result_won: true, phase: operation.phase, result_status: operation.result_status };
       if (operation.phase === "released") {
@@ -10409,11 +9616,11 @@ async function openClaimOnlyDriver(options) {
         claim_id: claimId,
         claim_worker_identity_digest: claimDigest
       };
-      const pending = asRecord4(port.beginCleanup(cleanupBase));
+      const pending = asRecord3(port.beginCleanup(cleanupBase));
       if (pending.phase !== "cleanup_pending") throw new LifecycleGateError("cancellation_cleanup_pending_missing");
       const cleanupFence = { ...cleanupBase, revision: Number(pending.revision) };
-      const streams = proof.child.stdio;
-      const workerStdioClosed = streams.every((stream) => stream === null || stream.destroyed === true || stream.closed === true);
+      const streams = proof.child?.stdio;
+      const workerStdioClosed = streams === void 0 || streams.every((stream) => stream === null || stream.destroyed === true || stream.closed === true);
       const worker = parseEvidence(String(operation.claim_worker_identity_json), "cancellation_worker_identity_invalid");
       const resourceFacts = {
         contract: "sqlite-candidate-cancelled-worker-resources-v1",
@@ -10423,7 +9630,7 @@ async function openClaimOnlyDriver(options) {
         interaction_channels_closed: workerStdioClosed
       };
       if (!workerStdioClosed) {
-        const failed = asRecord4(port.recordCleanupEvidence({ ...cleanupFence, outcome: "unverified", probe_state: "incomplete", reason: "worker_stdio_not_closed" }));
+        const failed = asRecord3(port.recordCleanupEvidence({ ...cleanupFence, outcome: "unverified", probe_state: "incomplete", reason: "worker_stdio_not_closed" }));
         cancellationProofs.delete(operationId);
         return { cancelled: true, phase: failed.phase, cleanup_verified: false };
       }
@@ -10446,22 +9653,24 @@ async function openClaimOnlyDriver(options) {
         operation_resources_complete: true,
         workspace_touched: false
       };
-      const recorded = asRecord4(port.recordCleanupEvidence({ ...cleanupFence, outcome: "verified", cleanup_evidence: cleanupEvidence }));
+      const recorded = asRecord3(port.recordCleanupEvidence({ ...cleanupFence, outcome: "verified", cleanup_evidence: cleanupEvidence }));
       if (recorded.cleanup_verified !== true || recorded.phase !== "cleanup_verified") throw new LifecycleGateError("cancellation_cleanup_evidence_not_persisted");
-      const released = asRecord4(port.releaseCapacity({
+      const released = asRecord3(port.releaseCapacity({
         ...cleanupFence,
         revision: Number(recorded.revision),
         cleanup_digest: text(recorded.cleanup_digest, "cancellation_cleanup_digest_missing")
       }));
       if (released.phase !== "released" || released.capacity_released !== true) throw new LifecycleGateError("cancellation_release_not_persisted");
       cancellationProofs.delete(operationId);
+      const retired = [...activeWorkers.entries()].find(([, value]) => value.input.task.task_id === taskId && value.input.attempt === attempt && value.child === proof.child);
+      if (retired) activeWorkers.delete(retired[0]);
       return { cancelled: true, phase: "released", cleanup_verified: true };
     },
     readInteractionRequest: (taskId, requestId) => port.readInteractionRequest(taskId, requestId),
     openInteractionChannel: (child, operation, verifyProcessIdentity) => port.openInteractionChannel(child, operation, verifyProcessIdentity),
     receiveInteractionRequest: (channel) => port.receiveInteractionRequest(channel),
     async replyToInteractionRequest(input) {
-      const value = asRecord4(input);
+      const value = asRecord3(input);
       const key = interactionKey(String(value.task_id), String(value.request_id));
       const channel = interactionChannels.get(key);
       if (!channel) throw new LifecycleGateError("interaction_channel_unavailable", "no live Worker channel is bound to this SQLite interaction request");
@@ -10469,11 +9678,25 @@ async function openClaimOnlyDriver(options) {
       interactionChannels.delete(key);
       return result;
     },
-    close: () => raw.close(),
+    close: () => {
+      for (const { child } of activeWorkers.values()) {
+        for (const stream of child.stdio) stream?.destroy();
+        child.unref();
+      }
+      activeWorkers.clear();
+      raw.close();
+    },
     async run(input) {
       if (!Number.isSafeInteger(input.attempt) || input.attempt < 1) {
         throw new LifecycleGateError("attempt_invalid");
       }
+      const runtimeEnv = loadPersistedRuntimeEnvironment(process.env, homedir4(), workerHostProfile);
+      const executionTimeoutMs = resolveTaskTimeout(input.task, runtimeEnv);
+      const executionTask = { ...input.task, timeout_ms: executionTimeoutMs };
+      const resultWaitMs = options.testResultWaitMs ?? resultWaitBudgetMs(executionTimeoutMs);
+      const workerCloseWaitMs = options.testWorkerCloseWaitMs ?? WORKER_CLOSE_TIMEOUT_MS;
+      if (!Number.isSafeInteger(resultWaitMs) || resultWaitMs < 1 || resultWaitMs > resultWaitBudgetMs(executionTimeoutMs) || !Number.isSafeInteger(workerCloseWaitMs) || workerCloseWaitMs < 1 || workerCloseWaitMs > WORKER_CLOSE_TIMEOUT_MS) throw new LifecycleGateError("invalid_phase_test_budget");
+      let runFinished = false, workerClosed = false;
       let child;
       let operation = null;
       let task = null;
@@ -10493,11 +9716,11 @@ async function openClaimOnlyDriver(options) {
         let admission;
         const existingOperation = port.readOperation(input.operationId);
         if (existingOperation) {
-          admission = readSafeReservedAdmission(port, input, asRecord4(existingOperation));
+          admission = readSafeReservedAdmission(port, input, asRecord3(existingOperation));
           stage("reserved_operation_resumed", { revision: admission.revision, generation: admission.generation });
         } else {
           const executionWorkspace = taskExecutionWorkspace(input.task);
-          admission = asRecord4(port.admitOperation({
+          admission = asRecord3(port.admitOperation({
             operation_id: input.operationId,
             task_id: input.task.task_id,
             attempt: input.attempt,
@@ -10511,7 +9734,7 @@ async function openClaimOnlyDriver(options) {
         const generation = positive3(admission.generation, "admission_generation_missing");
         const revision = positive3(admission.revision, "admission_revision_missing");
         stage("reserved_snapshot_read_start");
-        const admissionOperation = asRecord4(port.readOperation(input.operationId));
+        const admissionOperation = asRecord3(port.readOperation(input.operationId));
         let safeReserved;
         let policySnapshot;
         try {
@@ -10528,6 +9751,14 @@ async function openClaimOnlyDriver(options) {
           throw error2;
         }
         stage("reserved_snapshot_read_complete", { policy_snapshot_digest: policySnapshot.policy_snapshot_digest });
+        for (const workspace of /* @__PURE__ */ new Set([input.task.workspace, taskExecutionWorkspace(input.task)])) {
+          const usePolicy = localPolicy.validateWorkspaceForUse(workspace);
+          if (usePolicy.state !== "allow") {
+            state = "launch_outcome_unknown";
+            reason = usePolicy.reason;
+            throw new LifecycleGateError("trusted_local_workspace_use_denied", usePolicy.reason);
+          }
+        }
         const launchRequest = {
           operation_id: input.operationId,
           task_id: input.task.task_id,
@@ -10539,23 +9770,25 @@ async function openClaimOnlyDriver(options) {
           launch_token: input.launchToken
         };
         stage("intent_start");
-        const intent = asRecord4(port.createLaunchIntent(launchRequest));
+        const intent = asRecord3(port.createLaunchIntent(launchRequest));
         if (intent.duplicate === true) throw new LifecycleGateError("launch_outcome_unknown", "existing Intent never authorizes another Spawn");
         const intentRevision = positive3(intent.revision, "launch_intent_revision_missing");
         stage("intent_complete", { revision: intentRevision });
-        for (const workspace of /* @__PURE__ */ new Set([input.task.workspace, taskExecutionWorkspace(input.task)])) {
-          const usePolicy = localPolicy.validateWorkspaceForUse(workspace);
-          if (usePolicy.state !== "allow") {
-            state = "launch_outcome_unknown";
-            reason = usePolicy.reason;
-            throw new LifecycleGateError("trusted_local_workspace_use_denied", usePolicy.reason);
-          }
-        }
         stage("spawn_bootstrap_start");
+        const startPlanRequested = input.task.model?.provider_id === "account:bigmodel-start-plan";
+        const startPlanPrivateAuth = options.startPlanPrivateAuth ?? (startPlanRequested && !options.testOnlyFakeAdapter ? await options.startPlanPrivateAuthFactory?.().catch(() => null) ?? null : null);
+        if (startPlanRequested && !startPlanPrivateAuth && !options.testOnlyFakeAdapter) {
+          throw new LifecycleGateError("start_plan_private_auth_unavailable");
+        }
+        const usePrivateAuth = startPlanRequested && !!startPlanPrivateAuth;
+        if (usePrivateAuth && (!startPlanPrivateAuth.account || !startPlanPrivateAuth.signal || startPlanPrivateAuth.signal.aborted || options.testOnlyFakeAdapter)) throw new LifecycleGateError("private_auth_configuration_invalid");
+        stage("start_plan_private_auth_resolved", { requested: startPlanRequested, resolved: usePrivateAuth, source: options.startPlanPrivateAuth ? "injected" : "factory" });
         const launch = await spawnAndBootstrapOnce(() => {
           spawnCount += 1;
           child = spawnClaimOnlyWorker(options.workerEntryPath, provenance, {
-            ...options.enableSyntheticInteractionChannel || !options.testOnlyFakeAdapter ? { interactionChannel: true } : {}
+            ...options.enableSyntheticInteractionChannel || !options.testOnlyFakeAdapter ? { interactionChannel: true } : {},
+            ...usePrivateAuth ? { privateAuthChannel: true } : {},
+            ...options.onWorkerDiagnosticLine ? { onWorkerDiagnosticLine: options.onWorkerDiagnosticLine } : {}
           });
           options.onChildSpawn?.(child);
           return child;
@@ -10584,15 +9817,15 @@ async function openClaimOnlyDriver(options) {
           await rejectChild(child);
           throw new LifecycleGateError(reason);
         }
-        const receipt2 = asRecord4(port.recordLaunchReceipt({
+        const receipt2 = asRecord3(port.recordLaunchReceipt({
           ...launchRequest,
           revision: intentRevision,
-          receipt_id: randomUUID6(),
+          receipt_id: randomUUID4(),
           launch_identity: launchIdentity
         }));
         const receiptRevision = positive3(receipt2.revision, "launch_receipt_revision_missing");
         stage("receipt_complete", { revision: receiptRevision });
-        const persisted = asRecord4(port.readOperation(input.operationId));
+        const persisted = asRecord3(port.readOperation(input.operationId));
         verifyPersistedLaunchEvidence(port, input, persisted, policySnapshot, launchRequest, intentRevision, receiptRevision);
         stage("preflight_complete", { revision: receiptRevision });
         stage("worker_report_read_start", { pid: child.pid ?? null });
@@ -10607,7 +9840,7 @@ async function openClaimOnlyDriver(options) {
           execution_profile_id: report.execution_profile_id,
           provenance_digest: report.provenance_digest
         });
-        const claimId = randomUUID6();
+        const claimId = randomUUID4();
         const claim2 = await verifyHandshakeAndCommitClaim(port, {
           operation_id: input.operationId,
           task_id: input.task.task_id,
@@ -10635,26 +9868,163 @@ async function openClaimOnlyDriver(options) {
           reason = "result_not_committed";
           stopBoundary = "result";
           stage("claim_committed", { claim_id: claimId });
-          activeWorkers.set(input.operationId, { child, input });
-          await sendDecision(child, "claim_committed", {
-            protocol: "bridge-sqlite-execution-envelope-v1",
-            operation_id: input.operationId,
-            task_id: input.task.task_id,
-            attempt: input.attempt,
-            generation,
-            workspace_ref: policySnapshot.workspace_ref,
-            policy_snapshot_digest: policySnapshot.policy_snapshot_digest,
-            execution_profile_id: policySnapshot.execution_profile_id,
-            adapter_mode: options.testOnlyFakeAdapter ? "test_fake" : "zcode_app_server",
-            task: input.task,
-            host_profile: workerHostProfile,
-            continuation: input.continuation ?? null,
-            previous_result: input.previousResult ?? null
+          const privateAuthAbort = new AbortController();
+          const privateAuthState = { cancelled: false, phase: "resolving" };
+          const accountSignal = usePrivateAuth ? startPlanPrivateAuth.signal : void 0;
+          const revokeOnAccountChange = () => privateAuthAbort.abort();
+          accountSignal?.addEventListener("abort", revokeOnAccountChange, { once: true });
+          if (accountSignal?.aborted) privateAuthAbort.abort();
+          let startPlanEntitled = false;
+          let handleGate;
+          const closeHandleGate = async () => {
+            const gate = handleGate;
+            handleGate = void 0;
+            if (gate) await gate.close().catch(() => void 0);
+          };
+          activeWorkers.set(input.operationId, { child, input, ...usePrivateAuth ? {
+            privateAuthAbort,
+            privateAuthState,
+            releasePrivateAuth: () => accountSignal?.removeEventListener("abort", revokeOnAccountChange),
+            closeHandleGate
+          } : {} });
+          if (usePrivateAuth) {
+            if (!child.privateAuthLifetimeChannel) throw new LifecycleGateError("private_auth_lifetime_unavailable");
+            const lifetime = child.privateAuthLifetimeChannel;
+            lifetime.on("error", () => privateAuthAbort.abort());
+            privateAuthAbort.signal.addEventListener("abort", () => lifetime.destroy(), { once: true });
+            if (privateAuthAbort.signal.aborted) lifetime.destroy();
+            else lifetime.write(Buffer.from([1]));
+            try {
+              startPlanEntitled = await startPlanPrivateAuth.prepare(
+                input.task.model.provider_id,
+                input.task.model.model_id,
+                privateAuthAbort.signal
+              );
+            } catch (error2) {
+              startPlanEntitled = false;
+              stage("start_plan_entitlement_preflight_rejected", {
+                ...classifyStartPlanEntitlementRejection(error2)
+              });
+            }
+            if (privateAuthAbort.signal.aborted) startPlanEntitled = false;
+            stage("start_plan_entitlement_preflight", { entitled: startPlanEntitled });
+          }
+          child.once("close", () => {
+            workerClosed = true;
+            const active = activeWorkers.get(input.operationId);
+            if (active && active.child === child) {
+              active.privateAuthAbort?.abort();
+              active.releasePrivateAuth?.();
+              void active.closeHandleGate?.();
+              if (runFinished) {
+                let operationStillRunning = true;
+                try {
+                  operationStillRunning = asRecord3(port.readOperation(input.operationId)).phase === "running";
+                } catch {
+                  operationStillRunning = true;
+                }
+                if (!operationStillRunning) activeWorkers.delete(input.operationId);
+              }
+            }
           });
-          stage("claim_continue_sent", { claim_id: claimId });
+          try {
+            await sendDecision(child, "claim_committed", {
+              protocol: "bridge-sqlite-execution-envelope-v1",
+              operation_id: input.operationId,
+              task_id: input.task.task_id,
+              attempt: input.attempt,
+              generation,
+              workspace_ref: policySnapshot.workspace_ref,
+              policy_snapshot_digest: policySnapshot.policy_snapshot_digest,
+              execution_profile_id: policySnapshot.execution_profile_id,
+              adapter_mode: options.testOnlyFakeAdapter ? "test_fake" : "zcode_app_server",
+              task: executionTask,
+              host_profile: workerHostProfile,
+              continuation: input.continuation ?? null,
+              previous_result: input.previousResult ?? null,
+              ...usePrivateAuth ? { private_auth: {
+                account: startPlanPrivateAuth.account,
+                claim: claimId,
+                provider: input.task.model.provider_id,
+                model: input.task.model.model_id,
+                entitled: startPlanEntitled
+              } } : {}
+            });
+          } catch (error2) {
+            state = "result_rejected";
+            reason = errorCode(error2) ?? "private_execution_delivery_failed";
+            throw error2;
+          }
+          stage("claim_continue_sent", { claim_id: claimId, execution_timeout_ms: executionTimeoutMs, result_wait_ms: resultWaitMs });
           let interactionPump;
+          let privateAuthPump;
+          if (usePrivateAuth) {
+            const owner = child;
+            const claimed = asRecord3(port.readOperation(input.operationId));
+            const worker = parseEvidence(String(claimed.claim_worker_identity_json), "private_auth_identity_invalid");
+            if (!owner.privateAuthRequestChannel || !owner.privateAuthResponseChannel || !owner.privateAuthAcknowledgementChannel || typeof owner.pid !== "number" || claimed.phase !== "running" || claimed.claim_id !== claimId || claimed.claim_generation !== generation || worker.process_id !== owner.pid || worker.fingerprint_precision !== "exact" || typeof worker.start_fingerprint !== "string") {
+              throw new LifecycleGateError("private_auth_binding_invalid");
+            }
+            try {
+              handleGate = await WorkerHandleGate.open({
+                pid: owner.pid,
+                expectedCreationTicks: String(worker.start_fingerprint),
+                ...options.startPlanPrivateAuthHandleTransaction ? { transaction: await options.startPlanPrivateAuthHandleTransaction(owner.pid, String(worker.start_fingerprint)) } : {}
+              });
+            } catch (error2) {
+              throw new LifecycleGateError(`private_auth_handle_gate_unavailable: ${error2 instanceof Error ? error2.message : String(error2)}`);
+            }
+            owner.once("exit", () => privateAuthAbort.abort());
+            privateAuthPump = servePrivateCredential({
+              request: owner.privateAuthRequestChannel,
+              response: owner.privateAuthResponseChannel,
+              acknowledgement: owner.privateAuthAcknowledgementChannel,
+              signal: privateAuthAbort.signal,
+              timeoutMs: 6e4,
+              resolveLease: async (request, signal) => {
+                const candidate = asRecord3(request.binding);
+                if (candidate.account !== startPlanPrivateAuth.account || candidate.provider !== input.task.model?.provider_id || candidate.model !== input.task.model?.model_id || candidate.task !== input.task.task_id || candidate.attempt !== input.attempt || candidate.operation !== input.operationId || candidate.generation !== generation || candidate.claim !== claimId || candidate.pid !== owner.pid || candidate.creation !== worker.start_fingerprint || typeof candidate.session !== "string" || !candidate.session || typeof candidate.turn !== "string" || !candidate.turn) {
+                  throw new Error("private_auth_binding_invalid");
+                }
+                const binding = Object.freeze({ ...candidate });
+                const waitUntilOwnerExit = () => new Promise((_, reject) => {
+                  if (privateAuthAbort.signal.aborted) {
+                    reject(new Error("private_auth_cancelled"));
+                    return;
+                  }
+                  privateAuthAbort.signal.addEventListener("abort", () => reject(new Error("private_auth_cancelled")), { once: true });
+                });
+                const verifyWorker = async () => {
+                  const current = asRecord3(port.readOperation(input.operationId));
+                  if (signal.aborted || owner.exitCode !== null || owner.signalCode !== null || current.phase !== "running" || current.claim_id !== claimId || current.claim_generation !== generation || current.claim_worker_identity_digest !== claimed.claim_worker_identity_digest) return false;
+                  await handleGate?.assertAlive();
+                  return !signal.aborted && owner.exitCode === null && owner.signalCode === null;
+                };
+                if (!await verifyWorker()) throw new Error("private_auth_identity_invalid");
+                const lease = await startPlanPrivateAuth.issue(binding, signal);
+                if (signal.aborted || privateAuthState.cancelled) {
+                  lease.revoke();
+                  await waitUntilOwnerExit();
+                }
+                privateAuthState.phase = "delivering";
+                return { lease, binding, verifyWorker };
+              }
+            }).then(() => {
+              privateAuthState.phase = "acknowledged";
+              const lifetime = owner.privateAuthLifetimeChannel;
+              if (privateAuthAbort.signal.aborted || !lifetime || lifetime.destroyed || lifetime.writableEnded) {
+                privateAuthAbort.abort();
+                return;
+              }
+              lifetime.write(Buffer.from([2]), (error2) => {
+                if (error2) privateAuthAbort.abort();
+              });
+            }).catch(() => {
+              privateAuthAbort.abort();
+            });
+          }
           if (options.enableSyntheticInteractionChannel || !options.testOnlyFakeAdapter) {
-            const claimedOperation = asRecord4(port.readOperation(input.operationId));
+            const claimedOperation = asRecord3(port.readOperation(input.operationId));
             const channel = await port.openInteractionChannel(child, claimedOperation, async ({ child: observedChild, expected }) => {
               if (observedChild.pid !== expected.process_id || observedChild.exitCode !== null || observedChild.signalCode !== null) return false;
               const workerIdentity = parseEvidence(String(claimedOperation.claim_worker_identity_json), "interaction_worker_identity_invalid");
@@ -10676,7 +10046,7 @@ async function openClaimOnlyDriver(options) {
             interactionPump = (async () => {
               while (child.exitCode === null && child.signalCode === null) {
                 const persistedRequest = await port.receiveInteractionRequest(channel);
-                const request = asRecord4(persistedRequest.request);
+                const request = asRecord3(persistedRequest.request);
                 interactionChannels.set(interactionKey(input.task.task_id, String(request.request_id)), channel);
                 stage("interaction_request_persisted", {
                   request_id: request.request_id,
@@ -10691,32 +10061,33 @@ async function openClaimOnlyDriver(options) {
           let rawResult;
           try {
             stage("worker_result_frame_read_start");
-            const resultWaitMs = Math.min(60 * 6e4, input.task.timeout_ms ?? 60 * 6e4) + 3e4;
-            rawResult = await readJsonLine(child.resultChannel, 16 * 1024 * 1024, resultWaitMs);
+            rawResult = await readJsonLine(child.resultChannel, MAX_WORKER_RESULT_FRAME_BYTES + 1, resultWaitMs);
             stage("worker_result_frame_read_complete");
           } catch (error2) {
             state = "result_rejected";
             reason = error2 instanceof Error ? error2.message : "worker_result_unavailable";
-            stage("worker_result_unavailable", { reason });
+            stage("worker_result_unavailable", {
+              reason,
+              child_exit_code: child.exitCode ?? null,
+              child_signal: child.signalCode ?? null,
+              child_exit_seen: child.exitSeen === true,
+              spawn_count: spawnCount
+            });
           }
-          workerExitCode = await waitForClose(child, 15e3);
-          await interactionPump;
-          stage("worker_close", { pid: child.pid ?? null, exitCode: workerExitCode });
-          if (state !== "result_rejected") {
-            if (workerExitCode !== 0) {
-              state = "result_rejected";
-              reason = "worker_result_exit_unverified";
-              stage("worker_result_rejected", { reason, workerExitCode });
-            } else {
+          privateAuthAbort.abort();
+          await privateAuthPump;
+          const releaseResultFinalization = await takeResultFinalization();
+          try {
+            if (state !== "result_rejected") {
               try {
-                const resultFrame = validateWorkerResultFrame(rawResult, {
+                const resultFrame = { ...validateWorkerResultFrame(rawResult, {
                   operation_id: input.operationId,
                   task_id: input.task.task_id,
                   attempt: input.attempt,
                   generation,
                   workspace_ref: policySnapshot.workspace_ref,
                   policy_snapshot_digest: policySnapshot.policy_snapshot_digest
-                });
+                }) };
                 if (!options.testOnlyFakeAdapter && resultFrame.execution_cleanup?.source === "explicit_test_fake") {
                   throw new LifecycleGateError("test_adapter_frame_forbidden");
                 }
@@ -10724,8 +10095,13 @@ async function openClaimOnlyDriver(options) {
                   resultFrame.execution_cleanup,
                   options.testOnlyFakeAdapter === true
                 );
+                try {
+                  canonicalTaskResult(resultFrame.result, { task_id: input.task.task_id, attempt: input.attempt, result_status: resultFrame.result.status });
+                } catch (error2) {
+                  resultFrame.result = submissionFailure({ task_id: input.task.task_id, attempt: input.attempt }, error2);
+                }
                 stage("worker_result_verified", { status: resultFrame.result.status });
-                const current = asRecord4(port.readOperation(input.operationId));
+                const current = asRecord3(port.readOperation(input.operationId));
                 verifyPersistedClaimEvidence(port, current, input, generation, claimId);
                 const revision2 = positive3(current.revision, "result_revision_missing");
                 const identityDigest = text(current.claim_worker_identity_digest, "result_claim_identity_missing");
@@ -10765,7 +10141,7 @@ async function openClaimOnlyDriver(options) {
                 } else {
                   try {
                     const persistedResult = port.readCommittedResult(input.operationId);
-                    const currentAfter = asRecord4(port.readOperation(input.operationId));
+                    const currentAfter = asRecord3(port.readOperation(input.operationId));
                     verifyPersistedResult(port, currentAfter, persistedResult, commitInput, commit);
                     committedResult = resultFrame.result;
                     resultStatus = resultFrame.result.status;
@@ -10773,6 +10149,13 @@ async function openClaimOnlyDriver(options) {
                     state = "result_committed";
                     reason = "result_committed";
                     stage("result_projection_verified", { revision: commit.revision, status: resultStatus, result_digest: resultDigest });
+                    try {
+                      workerExitCode = await waitForClose(child, workerCloseWaitMs, interactionPump);
+                    } catch (error2) {
+                      stage("worker_close_unverified", { reason: errorCode(error2) ?? "worker_stop_timeout" });
+                    }
+                    if (workerClosed) await closeHandleGate();
+                    stage("worker_close", { pid: child.pid ?? null, exitCode: workerExitCode });
                     cleanupState = await finalizeClaimedWorkerCleanup(
                       port,
                       input,
@@ -10800,6 +10183,12 @@ async function openClaimOnlyDriver(options) {
                 }
               } catch (error2) {
                 if (error2 instanceof LifecycleGateError && error2.code === "result_commit_terminal") {
+                  try {
+                    workerExitCode = await waitForClose(child, workerCloseWaitMs, interactionPump);
+                  } catch (closeError) {
+                    stage("worker_close_unverified", { reason: errorCode(closeError) ?? "worker_stop_timeout" });
+                  }
+                  stage("worker_close", { pid: child.pid ?? null, exitCode: workerExitCode });
                 } else {
                   state = "result_rejected";
                   reason = errorCode(error2) ?? "worker_result_invalid";
@@ -10807,22 +10196,78 @@ async function openClaimOnlyDriver(options) {
                 }
               }
             }
+          } finally {
+            releaseResultFinalization();
           }
         }
       } catch (error2) {
         if (state === "launch_outcome_unknown") reason = error2 instanceof LifecycleGateError ? error2.code : "claim_only_lifecycle_failed";
         else if (state === "result_outcome_unknown") reason = errorCode(error2) ?? reason;
-        else reason = errorCode(error2) ?? reason;
+        else if (state !== "result_rejected" || !reason || reason === "result_not_committed") reason = errorCode(error2) ?? reason;
         if (child && workerExitCode === null) {
           try {
-            await rejectChild(child);
-            workerExitCode = await waitForClose(child, 5e3);
+            if (activeWorkers.get(input.operationId)?.child !== child) await rejectChild(child);
+            workerExitCode = await waitForClose(child, workerCloseWaitMs);
           } catch {
           }
         }
       } finally {
+        if (state === "result_rejected") {
+          try {
+            const current = asRecord3(port.readOperation(input.operationId));
+            if (current.phase === "running" && current.result_digest === null && current.task_id === input.task.task_id && current.attempt === input.attempt) {
+              port.recordResultSubmissionFailure?.(
+                {
+                  operation_id: input.operationId,
+                  generation: current.generation,
+                  revision: current.revision,
+                  claim_id: current.claim_id,
+                  claim_worker_identity_digest: current.claim_worker_identity_digest
+                },
+                /^[a-z0-9_]{1,128}$/u.test(reason) ? reason : "worker_result_unavailable"
+              );
+            }
+          } catch (error2) {
+            stage("result_failure_diagnostic_unavailable", { reason: errorCode(error2) ?? "diagnostic_write_failed" });
+          }
+        }
+        if (state === "result_rejected" || state === "result_outcome_unknown") {
+          process.stderr.write(`SQLITE_RESULT_SUBMISSION_FAILED ${JSON.stringify({ operation_id: input.operationId, task_id: input.task.task_id, state, reason })}
+`);
+          if (state === "result_outcome_unknown") {
+            try {
+              const recoveryStore = modules.Store.openForRecovery(options.dataRoot, {
+                ...options.databaseFileName ? { databaseFileName: options.databaseFileName } : {},
+                ...options.managedDataDirectory ? { managedDataDirectory: true } : {}
+              });
+              try {
+                const snapshot = asRecord3(modules.createPort(recoveryStore).readRecoverySnapshot());
+                const matching = Array.isArray(snapshot.operations) ? snapshot.operations.map(asRecord3).find((o) => o.operation_id === input.operationId) : null;
+                const reconciled = { root_status: snapshot.root_status, phase: matching?.phase ?? null, result_digest: matching?.result_digest ?? null };
+                stage("result_outcome_reconciled_read_only", reconciled);
+                process.stderr.write(`SQLITE_RESULT_OUTCOME_UNKNOWN ${JSON.stringify({ operation_id: input.operationId, ...reconciled })}
+`);
+              } finally {
+                recoveryStore?.close();
+              }
+            } catch {
+            }
+          }
+        }
         const active = activeWorkers.get(input.operationId);
-        if (active?.child === child) activeWorkers.delete(input.operationId);
+        runFinished = true;
+        if (active && active.child === child && workerClosed) {
+          active.privateAuthAbort?.abort();
+          active.releasePrivateAuth?.();
+          await active.closeHandleGate?.();
+          let operationStillRunning = true;
+          try {
+            operationStillRunning = asRecord3(port.readOperation(input.operationId)).phase === "running";
+          } catch {
+            operationStillRunning = true;
+          }
+          if (!operationStillRunning) activeWorkers.delete(input.operationId);
+        }
         try {
           operation = port.readOperation(input.operationId);
           task = port.readTaskProjection(input.task.task_id);
@@ -10855,7 +10300,7 @@ async function openClaimOnlyDriver(options) {
 }
 async function finalizeClaimedWorkerCleanup(port, input, generation, claimId, probe, probeTimeoutMs, workerExitCode, executionCleanup, adapterCleanupState, stage) {
   stage("cleanup_prepare_start");
-  const current = asRecord4(port.readOperation(input.operationId));
+  const current = asRecord3(port.readOperation(input.operationId));
   const claimIdentity = parseEvidence(current.claim_worker_identity_json, "cleanup_worker_identity_missing");
   const launchIdentity = parseEvidence(current.launch_identity_json, "cleanup_launch_identity_missing");
   const claimIdentityDigest = text(current.claim_worker_identity_digest, "cleanup_claim_identity_digest_missing");
@@ -10874,7 +10319,7 @@ async function finalizeClaimedWorkerCleanup(port, input, generation, claimId, pr
     claim_id: claimId,
     claim_worker_identity_digest: claimIdentityDigest
   };
-  const pending = asRecord4(port.beginCleanup(fence));
+  const pending = asRecord3(port.beginCleanup(fence));
   if (pending.phase !== "cleanup_pending" || pending.operation_id !== input.operationId || pending.generation !== generation) throw new LifecycleGateError("cleanup_pending_projection_mismatch");
   stage("cleanup_pending_persisted", { revision: pending.revision });
   const cleanupFence = { ...fence, revision: positive3(pending.revision, "cleanup_pending_revision_missing") };
@@ -10960,7 +10405,7 @@ async function finalizeClaimedWorkerCleanup(port, input, generation, claimId, pr
     });
     return "unverified";
   }
-  const recorded = asRecord4(port.recordCleanupEvidence({
+  const recorded = asRecord3(port.recordCleanupEvidence({
     ...cleanupFence,
     outcome: "verified",
     cleanup_evidence: cleanupEvidence
@@ -10970,7 +10415,7 @@ async function finalizeClaimedWorkerCleanup(port, input, generation, claimId, pr
   }
   stage("cleanup_verified_persisted", { revision: recorded.revision, cleanup_digest: recorded.cleanup_digest });
   const cleanupDigest = text(recorded.cleanup_digest, "cleanup_digest_missing");
-  const released = asRecord4(port.releaseCapacity({
+  const released = asRecord3(port.releaseCapacity({
     ...cleanupFence,
     revision: positive3(recorded.revision, "cleanup_verified_revision_missing"),
     cleanup_digest: cleanupDigest
@@ -10978,7 +10423,7 @@ async function finalizeClaimedWorkerCleanup(port, input, generation, claimId, pr
   if (released.phase !== "released" || released.capacity_released !== true) {
     throw new LifecycleGateError("capacity_release_not_persisted");
   }
-  const finalOperation = asRecord4(port.readOperation(input.operationId));
+  const finalOperation = asRecord3(port.readOperation(input.operationId));
   if (finalOperation.phase !== "released" || finalOperation.generation !== generation || finalOperation.claim_id !== claimId || finalOperation.claim_worker_identity_digest !== claimIdentityDigest) {
     throw new LifecycleGateError("released_operation_projection_mismatch");
   }
@@ -10999,13 +10444,24 @@ async function sendDecision(child, state, execution) {
 `, "utf8");
   if (frame.byteLength > 11e5) throw new LifecycleGateError("private_execution_envelope_too_large");
   await new Promise((resolve, reject) => {
-    channel.once("error", reject);
-    channel.once("finish", resolve);
+    const timer = setTimeout(() => {
+      channel.destroy();
+      reject(new LifecycleGateError("private_execution_delivery_timeout"));
+    }, EXECUTION_DELIVERY_TIMEOUT_MS);
+    channel.once("error", (error2) => {
+      clearTimeout(timer);
+      reject(error2);
+    });
+    channel.once("finish", () => {
+      clearTimeout(timer);
+      resolve();
+    });
     channel.end(frame);
   });
 }
 async function readJsonLine(stream, limit, timeoutMs) {
   if (!stream) throw new LifecycleGateError("private_report_channel_unavailable");
+  const startedAtMs = Date.now();
   return await new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
@@ -11015,47 +10471,65 @@ async function readJsonLine(stream, limit, timeoutMs) {
       stream.removeListener("end", onEnd);
       stream.removeListener("error", onError);
     };
-    const fail2 = (error2) => {
+    const fail3 = (error2) => {
       cleanup();
+      chunks.length = 0;
+      if (!stream.closed) {
+        const drainingError = () => {
+        };
+        stream.on("error", drainingError);
+        stream.once("close", () => stream.removeListener("error", drainingError));
+        stream.resume();
+      }
       reject(error2);
     };
     const onData = (chunk) => {
       const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
       size += bytes.length;
-      if (size > limit) return fail2(new LifecycleGateError("private_report_too_large"));
+      if (size > limit) return fail3(new LifecycleGateError("private_report_too_large"));
       chunks.push(bytes);
     };
     const onEnd = () => {
       try {
         const bytes = Buffer.concat(chunks, size);
-        if (!bytes.length || bytes.at(-1) !== 10 || bytes.subarray(0, -1).includes(10)) throw new Error("invalid worker report frame");
+        chunks.length = 0;
+        if (!bytes.length || bytes.at(-1) !== 10 || bytes.subarray(0, -1).includes(10)) {
+          throw new Error(`invalid worker report frame (bytes=${bytes.length}, trailing_newline=${bytes.at(-1) === 10}, embedded_newline=${bytes.subarray(0, -1).includes(10)}, elapsed_ms=${Date.now() - startedAtMs})`);
+        }
         const value = JSON.parse(bytes.subarray(0, -1).toString("utf8"));
         cleanup();
         resolve(value);
       } catch (error2) {
-        fail2(error2 instanceof Error ? error2 : new Error("invalid worker report"));
+        fail3(error2 instanceof Error ? error2 : new Error("invalid worker report"));
       }
     };
-    const onError = (error2) => fail2(error2);
-    const timer = setTimeout(() => fail2(new LifecycleGateError("private_report_timeout")), timeoutMs);
+    const onError = (error2) => fail3(error2);
+    const timer = setTimeout(() => fail3(new LifecycleGateError("private_report_timeout")), timeoutMs);
     stream.on("data", onData);
     stream.once("end", onEnd);
     stream.once("error", onError);
   });
 }
-async function waitForClose(child, timeoutMs) {
-  if (child.exitCode !== null) return child.exitCode;
-  return await new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      child.removeListener("close", onClose);
-      reject(new LifecycleGateError("worker_stop_timeout"));
-    }, timeoutMs);
-    const onClose = (code) => {
-      clearTimeout(timer);
-      resolve(code);
-    };
+async function waitForClose(child, timeoutMs, drain) {
+  let timer;
+  let onClose;
+  const stdioClosed = child.stdio.every((stream) => stream === null || stream.destroyed === true || stream.closed === true);
+  const closeAlreadyObserved = child.exitCode !== null || child.signalCode !== null || child.exitSeen === true && stdioClosed;
+  const closed = closeAlreadyObserved ? Promise.resolve(child.exitCode) : new Promise((resolve) => {
+    onClose = resolve;
     child.once("close", onClose);
   });
+  try {
+    return await Promise.race([
+      Promise.all([closed, drain]).then(([code]) => code),
+      new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new LifecycleGateError("worker_stop_timeout")), timeoutMs);
+      })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (onClose) child.removeListener("close", onClose);
+  }
 }
 async function probeWithDeadline(probe, request, timeoutMs) {
   let timer;
@@ -11087,12 +10561,12 @@ async function processTreeWithDeadline(targets, timeoutMs) {
     if (timer) clearTimeout(timer);
   }
 }
-function asRecord4(value) {
+function asRecord3(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new LifecycleGateError("candidate_projection_invalid");
   return value;
 }
 function sha2562(value) {
-  return createHash15("sha256").update(value, "utf8").digest("hex");
+  return createHash12("sha256").update(value, "utf8").digest("hex");
 }
 function positive3(value, code) {
   if (!Number.isSafeInteger(value) || Number(value) < 1) throw new LifecycleGateError(code);
@@ -11110,7 +10584,8 @@ function errorCode(error2) {
   return typeof code === "string" && code.length <= 128 ? code : void 0;
 }
 function validateWorkerResultFrame(value, expected) {
-  const frame = asRecord4(value);
+  const frame = asRecord3(value);
+  assertWorkerResultEnvelope(frame);
   if (Object.keys(frame).sort().join("|") !== "attempt|execution_cleanup|execution_cleanup_verified|generation|operation_id|policy_snapshot_digest|protocol|result|task_id|workspace_ref" || frame.protocol !== "bridge-sqlite-candidate-result-v1" || frame.operation_id !== expected.operation_id || frame.task_id !== expected.task_id || frame.attempt !== expected.attempt || frame.generation !== expected.generation || frame.workspace_ref !== expected.workspace_ref || frame.policy_snapshot_digest !== expected.policy_snapshot_digest || typeof frame.execution_cleanup_verified !== "boolean") {
     throw new LifecycleGateError("worker_result_coordinates_mismatch");
   }
@@ -11118,7 +10593,7 @@ function validateWorkerResultFrame(value, expected) {
   if (frame.execution_cleanup_verified !== (executionCleanup !== null)) {
     throw new LifecycleGateError("worker_cleanup_proof_inconsistent");
   }
-  const result = asRecord4(frame.result);
+  const result = asRecord3(frame.result);
   if (result.task_id !== expected.task_id || result.attempt !== expected.attempt || !["completed", "failed", "cancelled", "waiting_for_master"].includes(String(result.status))) {
     throw new LifecycleGateError("worker_result_identity_or_status_invalid");
   }
@@ -11126,11 +10601,23 @@ function validateWorkerResultFrame(value, expected) {
 }
 function validateExecutionCleanupProof(value) {
   if (value === null) return null;
-  const proof = asRecord4(value);
+  const proof = asRecord3(value);
   if (proof.contract !== "candidate-execution-cleanup-proof-v1" || proof.complete !== true || proof.workspace_retained !== true || proof.managed_browser_cleanup_verified !== true) {
     throw new LifecycleGateError("worker_cleanup_proof_invalid");
   }
+  if (proof.source === "zcode_app_server_adapter" && proof.method === "verified_recorded_tree_scan") {
+    if (Object.keys(proof).sort().join("|") !== "adapter_process_id|adapter_start_fingerprint|complete|contract|managed_browser_cleanup_verified|method|process_tree_member_count|process_tree_scan_digest|source|workspace_retained" || !Number.isSafeInteger(proof.adapter_process_id) || Number(proof.adapter_process_id) < 1 || typeof proof.adapter_start_fingerprint !== "string" || proof.adapter_start_fingerprint.length === 0 || typeof proof.process_tree_scan_digest !== "string" || !/^[0-9a-f]{64}$/u.test(proof.process_tree_scan_digest) || !Number.isSafeInteger(proof.process_tree_member_count) || Number(proof.process_tree_member_count) < 1) {
+      throw new LifecycleGateError("worker_cleanup_proof_invalid");
+    }
+    return proof;
+  }
   if (proof.source === "zcode_app_server_adapter") {
+    if (proof.method === "adapter_not_started") {
+      if (Object.keys(proof).sort().join("|") !== "complete|contract|managed_browser_cleanup_verified|method|reason|source|workspace_retained" || proof.reason !== "start_plan_preflight_rejected") {
+        throw new LifecycleGateError("worker_cleanup_proof_invalid");
+      }
+      return proof;
+    }
     if (Object.keys(proof).sort().join("|") !== "adapter_process_id|adapter_start_fingerprint|complete|contract|managed_browser_cleanup_verified|method|process_tree_member_count|process_tree_receipt_digest|source|workspace_retained" || proof.method !== "identity_bound_windows_tree_cleanup" || !Number.isSafeInteger(proof.adapter_process_id) || Number(proof.adapter_process_id) < 1 || typeof proof.adapter_start_fingerprint !== "string" || proof.adapter_start_fingerprint.length === 0 || typeof proof.process_tree_receipt_digest !== "string" || !/^[0-9a-f]{64}$/u.test(proof.process_tree_receipt_digest) || !Number.isSafeInteger(proof.process_tree_member_count) || Number(proof.process_tree_member_count) < 1) {
       throw new LifecycleGateError("worker_cleanup_proof_invalid");
     }
@@ -11147,7 +10634,7 @@ function validateExecutionCleanupProof(value) {
 function trustedExecutionCleanupProof(proof, testOnlyFakeAdapter) {
   if (!proof) return null;
   if (testOnlyFakeAdapter) return proof.source === "explicit_test_fake" ? proof : null;
-  return proof.source === "zcode_app_server_adapter" && proof.method === "identity_bound_windows_tree_cleanup" && proof.complete === true && proof.managed_browser_cleanup_verified === true && proof.workspace_retained === true ? proof : null;
+  return proof.source === "zcode_app_server_adapter" && proof.complete === true && proof.managed_browser_cleanup_verified === true && proof.workspace_retained === true && (proof.method === "identity_bound_windows_tree_cleanup" || proof.method === "verified_recorded_tree_scan" || proof.method === "adapter_not_started" && proof.reason === "start_plan_preflight_rejected") ? proof : null;
 }
 function verifyPersistedClaimEvidence(port, operation, input, generation, claimId) {
   if (operation.operation_id !== input.operationId || operation.task_id !== input.task.task_id || operation.attempt !== input.attempt || operation.generation !== generation || operation.phase !== "running" || operation.claim_id !== claimId || operation.claim_generation !== generation || !validSnapshotDigest(operation.claim_worker_identity_digest)) {
@@ -11182,8 +10669,8 @@ function verifyPersistedResult(port, operation, persisted, input, commit) {
   if (events.some((event) => typeof event.event_type === "string" && cleanupEventTypes.has(event.event_type))) {
     throw new LifecycleGateError("result_path_entered_cleanup");
   }
-  const task = asRecord4(port.readTaskProjection(input.task_id));
-  const attempt = asRecord4(port.readAttempt(input.task_id, input.attempt));
+  const task = asRecord3(port.readTaskProjection(input.task_id));
+  const attempt = asRecord3(port.readAttempt(input.task_id, input.attempt));
   if (task.status !== input.result_status || task.current_attempt !== input.attempt || attempt.status !== input.result_status) {
     throw new LifecycleGateError("result_task_attempt_projection_mismatch");
   }
@@ -11194,9 +10681,9 @@ function readSafeReservedAdmission(port, input, operation) {
   if (operation.operation_id !== input.operationId || operation.operation_kind !== "attempt_lifecycle" || operation.task_id !== input.task.task_id || Number(operation.attempt) !== input.attempt || operation.phase !== "reserved" || revision !== 1 || operation.launch_id !== null || operation.launch_epoch !== null || operation.launch_token_digest !== null || operation.launch_intent_digest !== null || operation.launch_receipt_id !== null || operation.launch_receipt_digest !== null || operation.launch_identity_json !== null || operation.claim_id !== null || operation.claim_request_digest !== null || operation.claim_worker_identity_json !== null || operation.claim_worker_identity_digest !== null || operation.claim_launch_id !== null || operation.claim_generation !== null || operation.claim_token_digest !== null || operation.result_status !== null || operation.result_generation !== null || operation.result_digest !== null || operation.result_json !== null || operation.result_commit_ref !== null) {
     throw new LifecycleGateError("launch_outcome_unknown", "only an untouched reserved Operation can resume; existing launch evidence is never replayed");
   }
-  const lifecycle = asRecord4(port.readTaskLifecycle(input.task.task_id));
-  const projection = asRecord4(lifecycle.projection);
-  const attempt = asRecord4(lifecycle.attempt);
+  const lifecycle = asRecord3(port.readTaskLifecycle(input.task.task_id));
+  const projection = asRecord3(lifecycle.projection);
+  const attempt = asRecord3(lifecycle.attempt);
   if (canonicalJson2(lifecycle.task) !== canonicalJson2(input.task) || projection.status !== "queued" || Number(projection.current_attempt) !== input.attempt || attempt.status !== "queued" || Number(attempt.attempt) !== input.attempt || Number(attempt.generation) !== generation) {
     throw new LifecycleGateError("launch_outcome_unknown", "reserved Operation no longer matches the current queued Attempt");
   }
@@ -11282,6 +10769,12 @@ function parseEvidence(value, errorCode3) {
     throw new LifecycleGateError(errorCode3);
   }
 }
+function classifyStartPlanEntitlementRejection(error2) {
+  const message = error2 instanceof Error ? error2.message : "";
+  const match = /^start_plan_entitlement_rejected:([a-z_]+)(?::([0-9A-Za-z_.-]{1,32}))?$/u.exec(message);
+  if (match && match[1]) return { classification: match[1], ...match[2] ? { provider_code: match[2] } : {} };
+  return { classification: "transport_unavailable" };
+}
 function validSnapshotText(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 128 && !/[\x00-\x1f]/u.test(value);
 }
@@ -11299,11 +10792,11 @@ function canonicalJson2(value) {
   throw new LifecycleGateError("cleanup_evidence_not_canonicalizable");
 }
 function digestProvenance(value) {
-  const canonical4 = JSON.stringify({
+  const canonical5 = JSON.stringify({
     bridge: { path: value.bridge.path, sha256: value.bridge.sha256 },
     worker: { path: value.worker.path, sha256: value.worker.sha256 }
   });
-  return sha2562(canonical4);
+  return sha2562(canonical5);
 }
 function interactionKey(taskId, requestId) {
   return `${taskId}\0${requestId}`;
@@ -11312,6 +10805,9 @@ var DEFAULT_PROCESS_PROBE_TIMEOUT_MS, verifiedRecoveryStops, LifecycleGateError,
 var init_lifecycle_gate = __esm({
   "src/store/lifecycle-gate.ts"() {
     "use strict";
+    init_result_contract();
+    init_resolver();
+    init_task_timeout();
     init_process_probe();
     init_process_spawn();
     init_build_provenance();
@@ -11323,6 +10819,8 @@ var init_lifecycle_gate = __esm({
     init_profile();
     init_sqlite_runtime_roster();
     init_node_runtime();
+    init_start_plan_private_channel();
+    init_start_plan_handle_gate();
     DEFAULT_PROCESS_PROBE_TIMEOUT_MS = 5e3;
     verifiedRecoveryStops = /* @__PURE__ */ new Map();
     LifecycleGateError = class extends Error {
@@ -11413,13 +10911,85 @@ try {
   }
 });
 
+// src/attention/snapshot.ts
+function parseTaskAttentionSnapshot(value, expectedTaskId) {
+  if (!isRecord7(value)) throw new TaskManagerError("TASK_STATE", "SQLite attention projection is invalid");
+  const taskId = value.task_id;
+  const attempt = value.attempt;
+  const status = value.status;
+  const pending = value.pending_requests;
+  if (typeof taskId !== "string" || !taskId || expectedTaskId !== void 0 && taskId !== expectedTaskId || !Number.isSafeInteger(attempt) || Number(attempt) < 1 || typeof status !== "string" || !TASK_STATUSES.has(status) || !Array.isArray(pending) || pending.some((requestId) => typeof requestId !== "string" || requestId.length < 1 || requestId.length > 512)) {
+    throw new TaskManagerError("TASK_STATE", "SQLite attention projection is invalid");
+  }
+  return {
+    task_id: taskId,
+    attempt: Number(attempt),
+    status,
+    pending_requests: [...pending]
+  };
+}
+function isAttentionTerminalStatus(status) {
+  return status === "completed" || status === "failed" || status === "cancelled" || status === "waiting_for_master";
+}
+function isRecord7(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+var TASK_STATUSES;
+var init_snapshot = __esm({
+  "src/attention/snapshot.ts"() {
+    "use strict";
+    init_errors2();
+    TASK_STATUSES = /* @__PURE__ */ new Set([
+      "queued",
+      "running",
+      "completed",
+      "failed",
+      "cancelled",
+      "waiting_for_master"
+    ]);
+  }
+});
+
+// src/attention/wait.ts
+async function waitForAttentionSnapshot(options) {
+  const now = options.now ?? Date.now;
+  const pollMs = options.pollMs ?? 250;
+  const sleep3 = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
+  if (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 0) throw new Error("timeoutMs must be non-negative");
+  if (!Number.isInteger(pollMs) || pollMs < 1) throw new Error("pollMs must be a positive integer");
+  const started = now();
+  const deadline = started + options.timeoutMs;
+  let snapshot = await options.read();
+  const initialAttempt = snapshot.attempt;
+  for (; ; ) {
+    const reason = classify(snapshot, initialAttempt, now() >= deadline);
+    if (reason) {
+      return { snapshot, initial_attempt: initialAttempt, reason, elapsed_ms: Math.max(0, now() - started) };
+    }
+    await sleep3(Math.min(pollMs, Math.max(1, deadline - now())));
+    snapshot = await options.read();
+  }
+}
+function classify(snapshot, initialAttempt, deadlineReached) {
+  if (isAttentionTerminalStatus(snapshot.status)) return "terminal";
+  if (snapshot.pending_requests.length > 0) return "interaction";
+  if (snapshot.attempt !== initialAttempt) return "attempt_changed";
+  return deadlineReached ? "timeout" : null;
+}
+var init_wait = __esm({
+  "src/attention/wait.ts"() {
+    "use strict";
+    init_snapshot();
+  }
+});
+
 // src/runtime/sqlite-doctor.ts
 function buildSqliteDoctorChecks(value, managerFence) {
   const snapshot = record3(value);
   if (snapshot.root_status !== "consistent_read_only" || snapshot.verified_event_projection_consistency !== true || snapshot.writes_allowed !== false || snapshot.cleanup_performed !== false || snapshot.claim_release_performed !== false || snapshot.operation_release_performed !== false || !Array.isArray(snapshot.operations) || !Array.isArray(snapshot.task_projections)) {
     return [
       { name: "active_tasks", status: "unknown", summary: "SQLite lifecycle snapshot is unavailable or inconsistent; task occupancy is unknown" },
-      { name: "recovery_lock", status: "error", summary: bounded2(`SQLite Recovery snapshot is not verified: ${String(snapshot.root_status ?? "unavailable")}; ${Array.isArray(snapshot.root_blockers) ? snapshot.root_blockers.join(", ") : "snapshot_invalid"}`) }
+      { name: "recovery_lock", status: "error", summary: bounded(`SQLite Recovery snapshot is not verified: ${String(snapshot.root_status ?? "unavailable")}; ${Array.isArray(snapshot.root_blockers) ? snapshot.root_blockers.join(", ") : "snapshot_invalid"}`) }
     ];
   }
   const operations = snapshot.operations.map(record3);
@@ -11433,7 +11003,7 @@ function buildSqliteDoctorChecks(value, managerFence) {
   const byAttempt = new Map(operations.map((operation) => [`${operation.task_id}#${operation.attempt}`, operation]));
   const active = tasks.filter((task) => task.status === "queued" || task.status === "running" || occupiedTaskIds.has(task.task_id));
   const holdDetails = durableHolds.slice(0, 8).map((operation) => `${operation.operation_id}: ${operation.recovery_classification}`).join("; ");
-  const recovery = durableHolds.length > 0 ? { name: "recovery_lock", status: "error", summary: bounded2(`SQLite persisted Recovery Hold/Quarantine: ${holdDetails}. Existing evidence-bound recovery is required; no automatic unlock`) } : managerFence ? { name: "recovery_lock", status: "warning", summary: bounded2(`SQLite Manager is read-only/fenced: ${managerFence}`) } : { name: "recovery_lock", status: "ok", summary: "SQLite snapshot has no persisted Recovery Hold/Quarantine; this Manager has no recovery fence" };
+  const recovery = durableHolds.length > 0 ? { name: "recovery_lock", status: "error", summary: bounded(`SQLite persisted Recovery Hold/Quarantine: ${holdDetails}. Existing evidence-bound recovery is required; no automatic unlock`) } : managerFence ? { name: "recovery_lock", status: "warning", summary: bounded(`SQLite Manager is read-only/fenced: ${managerFence}`) } : { name: "recovery_lock", status: "ok", summary: "SQLite snapshot has no persisted Recovery Hold/Quarantine; this Manager has no recovery fence" };
   const details = active.slice(0, 32).map((task) => {
     const operation = byAttempt.get(`${task.task_id}#${task.current_attempt}`);
     return `${task.task_id}#${task.current_attempt}: ${task.status}${operation ? ` (operation ${operation.operation_id}, phase ${operation.phase}, result ${operation.result_digest ? "committed" : "absent"}, cleanup ${operation.cleanup_state}, recovery ${operation.recovery_classification ?? "none"})` : " (no Operation)"}`;
@@ -11442,7 +11012,7 @@ function buildSqliteDoctorChecks(value, managerFence) {
     {
       name: "active_tasks",
       status: durableHolds.length > 0 || managerFence || queued.length > 0 || cleanupPending.length > 0 ? "warning" : "ok",
-      summary: bounded2(`SQLite: ${running.length} running, ${queued.length} queued, ${occupied.length} occupied, ${cleanupPending.length} cleanup-pending, ${durableHolds.length} recovery-held. ${details}`)
+      summary: bounded(`SQLite: ${running.length} running, ${queued.length} queued, ${occupied.length} occupied, ${cleanupPending.length} cleanup-pending, ${durableHolds.length} recovery-held. ${details}`)
     },
     recovery
   ];
@@ -11451,7 +11021,7 @@ function record3(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("SQLite diagnostic record is invalid");
   return value;
 }
-function bounded2(value) {
+function bounded(value) {
   return value.replace(/[\r\n\0]/gu, " ").slice(0, 1200);
 }
 var init_sqlite_doctor = __esm({
@@ -11465,8 +11035,8 @@ var sqlite_lifecycle_mcp_authority_exports = {};
 __export(sqlite_lifecycle_mcp_authority_exports, {
   SqliteLifecycleMcpAuthority: () => SqliteLifecycleMcpAuthority
 });
-import { createHash as createHash16, randomBytes } from "node:crypto";
-import path19 from "node:path";
+import { createHash as createHash13, randomBytes } from "node:crypto";
+import path17 from "node:path";
 function validateTaskPackage2(task) {
   const worktreePath = task.worktree_path;
   if (!task || typeof task.task_id !== "string" || !task.task_id.trim() || task.task_id.length > 128 || typeof task.workspace !== "string" || !task.workspace.trim() || !pathIsAbsolute(task.workspace) || worktreePath !== void 0 && (typeof worktreePath !== "string" || !worktreePath.trim() || !pathIsAbsolute(worktreePath)) || typeof task.objective !== "string" || !task.objective.trim() || !Array.isArray(task.requirements) || !Array.isArray(task.allowed_paths) || !Array.isArray(task.forbidden_paths) || !Array.isArray(task.acceptance_criteria) || !Array.isArray(task.test_commands)) {
@@ -11505,7 +11075,7 @@ function decodeCursor(value, taskId) {
   if (typeof value !== "string" || value.length > 2048) throw new TaskManagerError("TASK_INVALID", "invalid scan_cursor");
   try {
     const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
-    const cursor = asRecord5(parsed);
+    const cursor = asRecord4(parsed);
     if (cursor.v !== 1 || cursor.task_id !== taskId || !Number.isSafeInteger(cursor.cursor) || Number(cursor.cursor) < 0) throw new Error("invalid cursor");
     return Number(cursor.cursor);
   } catch {
@@ -11516,7 +11086,7 @@ function encodeCursor(taskId, cursor) {
   return Buffer.from(JSON.stringify({ v: 1, task_id: taskId, cursor }), "utf8").toString("base64url");
 }
 function operationIdFor(taskId, attempt) {
-  const digest3 = createHash16("sha256").update(`${taskId}\0${attempt}`, "utf8").digest("hex").slice(0, 32);
+  const digest3 = createHash13("sha256").update(`${taskId}\0${attempt}`, "utf8").digest("hex").slice(0, 32);
   return `sqlite-${digest3}`;
 }
 function taskExecutionPath(task) {
@@ -11525,10 +11095,10 @@ function taskExecutionPath(task) {
 function executionPathsOverlap(left, right) {
   const leftPath = normalizeExecutionPath(left);
   const rightPath = normalizeExecutionPath(right);
-  return leftPath === rightPath || leftPath.startsWith(rightPath + path19.sep) || rightPath.startsWith(leftPath + path19.sep);
+  return leftPath === rightPath || leftPath.startsWith(rightPath + path17.sep) || rightPath.startsWith(leftPath + path17.sep);
 }
 function normalizeExecutionPath(value) {
-  const resolved = path19.resolve(value).replace(/[\\/]+$/u, "");
+  const resolved = path17.resolve(value).replace(/[\\/]+$/u, "");
   return process.platform === "win32" ? resolved.toLowerCase() : resolved;
 }
 function queueKey(taskId, attempt) {
@@ -11575,13 +11145,13 @@ function canonicalJson3(value) {
   const record4 = value;
   return `{${Object.keys(record4).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson3(record4[key])}`).join(",")}}`;
 }
-function asRecord5(value) {
+function asRecord4(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TaskManagerError("TASK_STATE", "invalid SQLite lifecycle projection");
   return value;
 }
 function parseRecord(value) {
   try {
-    return asRecord5(JSON.parse(string4(value, "identity_missing")));
+    return asRecord4(JSON.parse(string4(value, "identity_missing")));
   } catch {
     throw new TaskManagerError("TASK_STATE", "SQLite Worker identity projection is corrupt");
   }
@@ -11602,7 +11172,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
   "src/manager/sqlite-lifecycle-mcp-authority.ts"() {
     "use strict";
     init_lifecycle_gate();
-    init_errors();
+    init_errors2();
+    init_wait();
     init_snapshot();
     init_process_probe();
     init_sqlite_doctor();
@@ -11633,18 +11204,32 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
       #shutdownWaitMs;
       #context;
       #processProbe;
-      constructor(driver, context, processProbe, testBeforeDispatch, testOnScheduler, shutdownWaitMs = DEFAULT_HOST_SHUTDOWN_WAIT_MS) {
+      #startPlanAuthAvailable;
+      #startPlanAuthInjected;
+      #startPlanPrivateAuthFactory;
+      #testOnlyFakeAdapter;
+      #routeTaskModel;
+      constructor(driver, context, processProbe, testBeforeDispatch, testOnScheduler, shutdownWaitMs = DEFAULT_HOST_SHUTDOWN_WAIT_MS, startPlanAuthAvailable = false, testOnlyFakeAdapter = false, routeTaskModel2, startPlanAuthInjected = false, startPlanPrivateAuthFactory) {
         this.#driver = driver;
         this.#context = context;
         this.#processProbe = processProbe;
         this.#testBeforeDispatch = testBeforeDispatch;
         this.#testOnScheduler = testOnScheduler;
         this.#shutdownWaitMs = shutdownWaitMs;
+        this.#startPlanAuthAvailable = startPlanAuthAvailable;
+        this.#startPlanAuthInjected = startPlanAuthInjected;
+        this.#startPlanPrivateAuthFactory = startPlanPrivateAuthFactory;
+        this.#testOnlyFakeAdapter = testOnlyFakeAdapter;
+        this.#routeTaskModel = routeTaskModel2;
       }
       async createTask(task) {
         this.#assertOpen();
         this.#assertAccepting();
         this.#assertRecoveryReady();
+        task = this.#routeTaskModel ? await this.#routeTaskModel.route(task) : task;
+        if (task.model && !task.model.provider_id?.trim()) {
+          throw new TaskManagerError("TASK_INVALID", "model.provider_id is required because task model routing is not configured");
+        }
         validateTaskPackage2(task);
         const policy = this.#driverTrustedPolicy();
         const sourceDecision = policy.validateWorkspace({ requestedPath: task.workspace, canonicalPath: task.workspace });
@@ -11664,36 +11249,45 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         if (permission.state !== "allow") throw new TaskManagerError("TASK_INVALID", `SQLite admission rejected: ${permission.state === "unknown" ? permission.reason : permission.reason}`);
         const existingValue = this.#driver.readTaskLifecycle(task.task_id);
         if (existingValue) {
-          const existing = asRecord5(existingValue);
+          const existing = asRecord4(existingValue);
           if (canonicalJson3(existing.task) !== canonicalJson3(normalizedTask)) {
             throw new TaskManagerError("TASK_ID_CONFLICT", `task_id already belongs to a different SQLite request: ${task.task_id}`);
           }
-          const projection2 = asRecord5(existing.projection);
+          const projection2 = asRecord4(existing.projection);
+          this.#routeTaskModel?.confirmRouting(task);
           return receipt(task.task_id, projection2.status, projection2.created_at);
+        }
+        if (task.model?.provider_id === "account:bigmodel-start-plan" && !this.#testOnlyFakeAdapter) {
+          if (!this.#startPlanAuthAvailable) throw new TaskManagerError("TASK_INVALID", "official Start Plan credentials are unavailable");
+          if (!this.#startPlanAuthInjected) {
+            const issuer = await this.#startPlanPrivateAuthFactory?.().catch(() => null) ?? null;
+            if (!issuer) throw new TaskManagerError("TASK_INVALID", "official Start Plan credentials are unavailable");
+          }
         }
         try {
           this.#driver.createTask(normalizedTask);
         } catch (error2) {
-          const raced = asRecord5(this.#driver.readTaskLifecycle(task.task_id));
+          const raced = asRecord4(this.#driver.readTaskLifecycle(task.task_id));
           if (!raced || canonicalJson3(raced.task) !== canonicalJson3(normalizedTask)) {
             if (errorCode2(error2) === "task_already_exists") throw new TaskManagerError("TASK_ID_CONFLICT", `task_id already exists with different SQLite input: ${task.task_id}`);
             throw error2;
           }
         }
-        const snapshot = asRecord5(this.#driver.readTaskLifecycle(task.task_id));
-        const projection = asRecord5(snapshot.projection);
+        this.#routeTaskModel?.confirmRouting(task);
+        const snapshot = asRecord4(this.#driver.readTaskLifecycle(task.task_id));
+        const projection = asRecord4(snapshot.projection);
         this.#enqueue(task.task_id, Number(projection.current_attempt));
         return { task_id: task.task_id, status: "queued", created_at: string4(projection.created_at, "task_created_at_missing") };
       }
       async getStatus(taskId) {
         const snapshot = this.#readSnapshot(taskId);
-        const projection = asRecord5(snapshot.projection);
+        const projection = asRecord4(snapshot.projection);
         if (this.#pumpFailure && projection.status === "queued") {
           throw new TaskManagerError("TASK_STATE", `SQLite dispatch is blocked after ${this.#pumpFailure.reason}; queued lifecycle facts remain persisted and no automatic retry was attempted`);
         }
-        const attempt = asRecord5(snapshot.attempt);
-        const operation = snapshot.operation ? asRecord5(snapshot.operation) : null;
-        const result = snapshot.result ? asRecord5(snapshot.result) : null;
+        const attempt = asRecord4(snapshot.attempt);
+        const operation = snapshot.operation ? asRecord4(snapshot.operation) : null;
+        const result = snapshot.result ? asRecord4(snapshot.result) : null;
         const events = this.#driver.readTaskEvents(taskId, { afterCursor: 0, limit: 200 });
         const lastAt = events.events?.at(-1)?.at;
         const createdAt = string4(projection.created_at, "task_created_at_missing");
@@ -11715,6 +11309,10 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           exit_code: typeof result?.exit_code === "number" ? result.exit_code : null,
           ...typeof result?.error_code === "string" ? { error_code: result.error_code } : {},
           ...typeof result?.summary === "string" && status === "failed" ? { error: result.summary } : {},
+          ...!result && typeof snapshot.result_submission_error === "string" ? {
+            error_code: snapshot.result_submission_error,
+            error: `Worker Result not committed: ${snapshot.result_submission_error}; execution is not retried and resources remain held pending identity-bound Recovery`
+          } : {},
           ...executionObservation ? { execution_observation: executionObservation } : {},
           ...Number(attempt.attempt) > 0 ? {} : {}
         };
@@ -11739,11 +11337,14 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
       }
       async getResult(taskId) {
         const snapshot = this.#readSnapshot(taskId);
-        if (!snapshot.result) throw new TaskManagerError("TASK_NOT_FINISHED", `task ${taskId} has no committed SQLite Result`);
+        if (!snapshot.result) throw new TaskManagerError("TASK_NOT_FINISHED", `task ${taskId} has no committed SQLite Result${snapshot.result_submission_error ? `: ${String(snapshot.result_submission_error)}; Recovery required; no automatic retry` : ""}`);
         return snapshot.result;
       }
       async getEvents(input) {
         this.#assertOpen();
+        if (input.wait_for !== void 0 && input.wait_for !== "attention") throw new TaskManagerError("TASK_INVALID", "wait_for must be attention when provided");
+        if (input.view !== void 0 && input.view !== "raw" && input.view !== "summary") throw new TaskManagerError("TASK_INVALID", "view must be raw or summary");
+        if (input.max_bytes !== void 0 && (!Number.isInteger(input.max_bytes) || input.max_bytes < 1024 || input.max_bytes > 32 * 1024 * 1024)) throw new TaskManagerError("TASK_INVALID", "max_bytes must be between 1024 and 33554432");
         const afterSeq = input.after_seq ?? 0;
         const limit = input.limit ?? 100;
         const waitMs = input.wait_ms ?? 0;
@@ -11756,6 +11357,12 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           if (input.after_seq !== void 0 && input.after_seq !== decoded) throw new TaskManagerError("TASK_INVALID", "after_seq conflicts with scan_cursor");
           cursor = decoded;
         }
+        if (input.wait_for === "attention") {
+          await waitForAttentionSnapshot({ read: () => this.getAttention(input.task_id), timeoutMs: waitMs });
+          const page = await this.getEvents({ ...input, wait_for: void 0, wait_ms: 0 });
+          const attention = await this.getAttention(input.task_id);
+          return { ...page, status: attention.status, attention };
+        }
         const deadline = Date.now() + waitMs;
         while (true) {
           const snapshot = this.#readSnapshot(input.task_id);
@@ -11765,15 +11372,12 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
             if (event.type !== "interaction_requested" || !event.details || typeof event.details.request_id !== "string") return event;
             const persisted = this.#driver.readInteractionRequest(input.task_id, event.details.request_id);
             if (!persisted) return event;
-            const request = asRecord5(persisted.request);
+            const request = asRecord4(persisted.request);
             return { ...event, details: { ...event.details, method: request.method, params: request.params } };
           });
           let nextCursor = page.nextCursor;
           let scanIncomplete = false;
           if (input.max_bytes !== void 0) {
-            if (!Number.isInteger(input.max_bytes) || input.max_bytes < 1024 || input.max_bytes > 32 * 1024 * 1024) {
-              throw new TaskManagerError("TASK_INVALID", "max_bytes must be between 1024 and 33554432");
-            }
             let bytes = 0;
             let kept = 0;
             for (const event of events) {
@@ -11792,7 +11396,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
               scanIncomplete = true;
             }
           }
-          const status = taskStatus(asRecord5(snapshot.projection).status);
+          const status = taskStatus(asRecord4(snapshot.projection).status);
           if (events.length || isTerminal(status) || Date.now() >= deadline) {
             return {
               task_id: input.task_id,
@@ -11823,7 +11427,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         };
         if (input.operation_id) {
           try {
-            const replay = asRecord5(this.#driver.createNextAttempt(common));
+            const replay = asRecord4(this.#driver.createNextAttempt(common));
             this.#enqueue(input.task_id, Number(replay.attempt));
             return { task_id: input.task_id, status: "queued", created_at: string4(replay.created_at, "continue_created_at_missing") };
           } catch (error2) {
@@ -11832,11 +11436,11 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         }
         const snapshot = this.#readSnapshot(input.task_id);
         if (!snapshot.operation) throw new TaskManagerError("TASK_STATE", "the prior SQLite Attempt has no released Operation");
-        const operation = asRecord5(snapshot.operation);
+        const operation = asRecord4(snapshot.operation);
         const result = snapshot.result;
-        const outcome = asRecord5(this.#driver.createNextAttempt({
+        const outcome = asRecord4(this.#driver.createNextAttempt({
           ...common,
-          previous_attempt: Number(asRecord5(snapshot.attempt).attempt),
+          previous_attempt: Number(asRecord4(snapshot.attempt).attempt),
           previous_operation_id: string4(operation.operation_id, "continue_operation_missing"),
           expected_generation: Number(operation.generation),
           expected_revision: Number(operation.revision),
@@ -11851,8 +11455,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         this.#assertOpen();
         this.#assertRecoveryReady();
         const snapshot = this.#readSnapshot(taskId);
-        const projection = asRecord5(snapshot.projection);
-        const attempt = asRecord5(snapshot.attempt);
+        const projection = asRecord4(snapshot.projection);
+        const attempt = asRecord4(snapshot.attempt);
         if (projection.status === "queued") {
           this.#driver.cancelQueuedAttempt({ task_id: taskId, expected_attempt: Number(attempt.attempt) });
           this.#queued.delete(queueKey(taskId, Number(attempt.attempt)));
@@ -11863,7 +11467,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           const key = queueKey(taskId, attemptNumber);
           let cancellation;
           try {
-            cancellation = asRecord5(await this.#driver.cancelRunning(taskId, attemptNumber));
+            cancellation = asRecord4(await this.#driver.cancelRunning(taskId, attemptNumber));
           } catch (error2) {
             throw new TaskManagerError("CANCEL_FAILED", `SQLite Worker cancellation could not be verified: ${error2 instanceof Error ? error2.message : String(error2)}`);
           }
@@ -11872,7 +11476,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           if (cancellation.result_won === true) return this.getStatus(taskId);
           let completion;
           try {
-            completion = asRecord5(await this.#driver.completeRunningCancellation(taskId, attemptNumber));
+            completion = asRecord4(await this.#driver.completeRunningCancellation(taskId, attemptNumber));
           } catch (error2) {
             throw new TaskManagerError("CANCEL_FAILED", `SQLite cancellation Result/Cleanup could not be committed: ${error2 instanceof Error ? error2.message : String(error2)}`);
           }
@@ -11882,24 +11486,24 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           this.#schedulePump();
           return this.getStatus(taskId);
         }
-        const operation = snapshot.operation ? asRecord5(snapshot.operation) : null;
-        if (projection.status === "failed" && operation?.phase === "released") {
+        const operation = snapshot.operation ? asRecord4(snapshot.operation) : null;
+        if (isTerminal(projection.status) && operation?.phase === "released") {
           return this.getStatus(taskId);
         }
-        if (projection.status === "failed" && operation && operation.phase === "cleanup_unverified") {
+        if (isTerminal(projection.status) && operation && operation.phase === "cleanup_unverified") {
           const recoveryKey = queueKey(taskId, Number(attempt.attempt));
           const existingRecovery = this.#recoveryRuns.get(recoveryKey);
           if (existingRecovery) return existingRecovery;
           const recovery = Promise.resolve().then(async () => {
             const readReleased = async () => {
               const latest = this.#readSnapshot(taskId);
-              const latestProjection = asRecord5(latest.projection);
-              const latestOperation = latest.operation ? asRecord5(latest.operation) : null;
-              return latestProjection.status === "failed" && latestOperation?.phase === "released" ? this.getStatus(taskId) : null;
+              const latestProjection = asRecord4(latest.projection);
+              const latestOperation = latest.operation ? asRecord4(latest.operation) : null;
+              return isTerminal(latestProjection.status) && latestOperation?.phase === "released" ? this.getStatus(taskId) : null;
             };
             let outcome;
             try {
-              outcome = asRecord5(await this.#driver.recoverOperation(
+              outcome = asRecord4(await this.#driver.recoverOperation(
                 string4(operation.operation_id, "operation_id_missing"),
                 { stopAliveWorker: true }
               ));
@@ -11972,7 +11576,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           let alreadyTerminal = false;
           try {
             const snapshot = this.#readSnapshot(taskId);
-            const projection = asRecord5(snapshot.projection);
+            const projection = asRecord4(snapshot.projection);
             alreadyTerminal = Number(snapshot.attempt.attempt) === attempt && isTerminal(taskStatus(projection.status));
           } catch {
           }
@@ -12005,8 +11609,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           const attempt = Number(key.slice(separator + 1));
           try {
             const snapshot = this.#readSnapshot(taskId);
-            const projection = asRecord5(snapshot.projection);
-            const operation = snapshot.operation ? asRecord5(snapshot.operation) : null;
+            const projection = asRecord4(snapshot.projection);
+            const operation = snapshot.operation ? asRecord4(snapshot.operation) : null;
             const released = Number(snapshot.attempt.attempt) === attempt && isTerminal(taskStatus(projection.status)) && operation?.phase === "released";
             if (!released) failures.push(`${taskId}:shutdown_release_unverified`);
           } catch {
@@ -12034,14 +11638,14 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           this.#recoveryBlocked = null;
           this.#schedulerStage("recovery_snapshot_verified", {
             operation_count: snapshot.operations.length,
-            occupied_count: snapshot.operations.filter((operation) => Boolean(asRecord5(operation).capacity_occupied)).length,
+            occupied_count: snapshot.operations.filter((operation) => Boolean(asRecord4(operation).capacity_occupied)).length,
             writes_allowed: false
           });
           for (const value of snapshot.operations) {
-            const operation = asRecord5(value);
+            const operation = asRecord4(value);
             const operationId = operation.operation_id;
             if (typeof operationId !== "string") throw new TaskManagerError("TASK_STATE", "Recovery snapshot contains an Operation without identity");
-            const outcome = asRecord5(await this.#driver.recoverOperation(operationId));
+            const outcome = asRecord4(await this.#driver.recoverOperation(operationId));
             this.#schedulerStage("operation_recovery_classified", {
               operation_id: operationId,
               phase: operation.phase,
@@ -12058,7 +11662,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           snapshot = this.#validateRecoverySnapshot(this.#driver.readRecoverySnapshot());
           const queued = this.#driver.readRecoverableQueuedAttempts();
           for (const value of queued) {
-            const candidate = asRecord5(value);
+            const candidate = asRecord4(value);
             if (candidate.dispatchable === true && typeof candidate.task_id === "string" && Number.isSafeInteger(candidate.attempt) && Number(candidate.attempt) > 0) {
               this.#enqueue(candidate.task_id, Number(candidate.attempt));
             } else {
@@ -12117,7 +11721,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
       }
       #makeExecutionObservation(state, taskId, snapshot, reason, observedAt) {
         const operation = snapshot.operation;
-        const reference = createHash16("sha256").update(canonicalJson3({
+        const reference = createHash13("sha256").update(canonicalJson3({
           task_id: taskId,
           attempt: Number(snapshot.projection.current_attempt),
           operation_id: operation?.operation_id ?? null,
@@ -12132,8 +11736,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         return { state, observed_at: observedAt, evidence_ref: reference };
       }
       #validateRecoverySnapshot(value) {
-        const snapshot = asRecord5(value);
-        const capacity = snapshot.capacity ? asRecord5(snapshot.capacity) : null;
+        const snapshot = asRecord4(value);
+        const capacity = snapshot.capacity ? asRecord4(snapshot.capacity) : null;
         if (snapshot.root_status !== "consistent_read_only" || snapshot.writes_allowed !== false || snapshot.cleanup_performed !== false || snapshot.claim_release_performed !== false || snapshot.operation_release_performed !== false || !Array.isArray(snapshot.operations) || !capacity || Number(capacity.policy_version) !== 1 || !Number.isSafeInteger(capacity.policy_generation) || Number(capacity.policy_generation) < 1 || !Number.isSafeInteger(capacity.capacity_limit) || Number(capacity.capacity_limit) < 1 || Number(capacity.capacity_limit) > 8) {
           const blockers = Array.isArray(snapshot.root_blockers) ? snapshot.root_blockers.map(String).join(",") : "recovery_snapshot_invalid";
           throw new TaskManagerError("TASK_STATE", `SQLite Recovery is blocked (${blockers || "root_not_consistent"}); no lifecycle side effect was attempted`);
@@ -12146,7 +11750,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
       }
       static async create(options) {
         if (!options.trustedLocalContext) throw new TaskManagerError("TASK_STATE", "trusted local context is required");
-        const { testBeforeDispatch, testOnScheduler, testShutdownWaitMs, ...driverOptions } = options;
+        const { testBeforeDispatch, testOnScheduler, testShutdownWaitMs, routeTaskModel: routeTaskModel2, ...driverOptions } = options;
         const shutdownWaitMs = testShutdownWaitMs ?? DEFAULT_HOST_SHUTDOWN_WAIT_MS;
         if (!Number.isSafeInteger(shutdownWaitMs) || shutdownWaitMs < 1 || shutdownWaitMs > DEFAULT_HOST_SHUTDOWN_WAIT_MS) {
           throw new TaskManagerError("TASK_STATE", "invalid Host shutdown wait budget");
@@ -12158,7 +11762,12 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
           processProbe,
           testBeforeDispatch,
           testOnScheduler,
-          shutdownWaitMs
+          shutdownWaitMs,
+          options.startPlanPrivateAuth !== void 0 || options.startPlanPrivateAuthFactory !== void 0,
+          options.testOnlyFakeAdapter === true,
+          routeTaskModel2,
+          options.startPlanPrivateAuth !== void 0,
+          options.startPlanPrivateAuthFactory
         );
         try {
           await authority.recoverTasks();
@@ -12172,14 +11781,15 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
         this.#assertOpen();
         const value = this.#driver.readTaskLifecycle(taskId);
         if (!value) throw new TaskManagerError("TASK_NOT_FOUND", `unknown SQLite task: ${taskId}`);
-        const snapshot = asRecord5(value);
+        const snapshot = asRecord4(value);
         return {
           task: snapshot.task,
-          projection: asRecord5(snapshot.projection),
-          attempt: asRecord5(snapshot.attempt),
-          operation: snapshot.operation ? asRecord5(snapshot.operation) : null,
+          projection: asRecord4(snapshot.projection),
+          attempt: asRecord4(snapshot.attempt),
+          operation: snapshot.operation ? asRecord4(snapshot.operation) : null,
           result: snapshot.result,
-          continuation: snapshot.continuation ? asRecord5(snapshot.continuation) : null
+          continuation: snapshot.continuation ? asRecord4(snapshot.continuation) : null,
+          result_submission_error: typeof snapshot.result_submission_error === "string" ? snapshot.result_submission_error : null
         };
       }
       #enqueue(taskId, attempt) {
@@ -12240,7 +11850,7 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
       #activeExecutionPaths(excludeOperationId) {
         const snapshot = this.#validateRecoverySnapshot(this.#driver.readRecoverySnapshot());
         return snapshot.operations.flatMap((value) => {
-          const operation = asRecord5(value);
+          const operation = asRecord4(value);
           return operation.operation_id !== excludeOperationId && operation.capacity_occupied === true && typeof operation.workspace_ref === "string" ? [operation.workspace_ref] : [];
         });
       }
@@ -12368,8 +11978,8 @@ var init_sqlite_lifecycle_mcp_authority = __esm({
 });
 
 // src/mcp/main.ts
-import { realpathSync as realpathSync7 } from "node:fs";
-import path21 from "node:path";
+import { realpathSync as realpathSync6 } from "node:fs";
+import path19 from "node:path";
 import { fileURLToPath as fileURLToPath5 } from "node:url";
 
 // node_modules/@modelcontextprotocol/server/dist/chunk-Br0eD_fh.mjs
@@ -12665,10 +12275,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path22) {
-  if (!path22)
+function getElementAtPath(obj, path20) {
+  if (!path20)
     return obj;
-  return path22.reduce((acc, key) => acc?.[key], obj);
+  return path20.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -13008,11 +12618,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path22, issues) {
+function prefixIssues(path20, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path22);
+    iss.path.unshift(path20);
     return iss;
   });
 }
@@ -13461,16 +13071,16 @@ function flattenError(error2, mapper = (issue2) => issue2.message) {
 }
 function formatError(error2, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error3, path22 = []) => {
+  const processError = (error3, path20 = []) => {
     for (const issue2 of error3.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path22, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path20, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path22, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path22, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path20, ...issue2.path]);
       } else {
-        const fullpath = [...path22, ...issue2.path];
+        const fullpath = [...path20, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -13794,7 +13404,7 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
   def.format = def.format || "float64";
   const isInt = def.format?.includes("int");
   const origin = isInt ? "int" : "number";
-  const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
+  const [minimum, maximum2] = NUMBER_FORMAT_RANGES[def.format];
   inst._zod.check = (payload) => {
     const input = payload.value;
     if (isInt) {
@@ -13847,12 +13457,12 @@ var $ZodCheckNumberFormat = /* @__PURE__ */ $constructor("$ZodCheckNumberFormat"
         continue: !def.abort
       });
     }
-    if (input > maximum) {
+    if (input > maximum2) {
       payload.issues.push({
         origin: "number",
         input,
         code: "too_big",
-        maximum,
+        maximum: maximum2,
         inclusive: true,
         inst,
         continue: !def.abort
@@ -16636,11 +16246,11 @@ function _multipleOf(value, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _maxLength(maximum, params) {
+function _maxLength(maximum2, params) {
   const ch = new $ZodCheckMaxLength({
     check: "max_length",
     ...normalizeParams(params),
-    maximum
+    maximum: maximum2
   });
   return ch;
 }
@@ -17356,9 +16966,9 @@ var minContributor = (agg, def) => narrowMin(agg, "minimum", def.minimum);
 var maxContributor = (agg, def) => narrowMax(agg, "maximum", def.maximum);
 var formatContributor = (ranges) => (agg, def) => {
   setFormat(agg, def.format);
-  const [minimum, maximum] = ranges[def.format];
+  const [minimum, maximum2] = ranges[def.format];
   narrowMin(agg, "minimum", minimum);
-  narrowMax(agg, "maximum", maximum);
+  narrowMax(agg, "maximum", maximum2);
 };
 var contributors = {
   greater_than: (agg, def) => narrowMin(agg, def.inclusive ? "minimum" : "exclusiveMinimum", def.value),
@@ -17427,11 +17037,11 @@ var exactPattern = (p) => exactPatterns.get(p) ?? p;
 var stringProcessor = (schema, ctx, _json, _params) => {
   const json = _json;
   json.type = "string";
-  const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
+  const { minimum, maximum: maximum2, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
   if (typeof minimum === "number")
     json.minLength = minimum;
-  if (typeof maximum === "number")
-    json.maxLength = maximum;
+  if (typeof maximum2 === "number")
+    json.maxLength = maximum2;
   if (format) {
     json.format = formatMap[format] ?? format;
     if (json.format === "")
@@ -17458,10 +17068,10 @@ var stringProcessor = (schema, ctx, _json, _params) => {
 };
 var numberProcessor = (schema, ctx, _json, params) => {
   const json = _json;
-  const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
+  const { minimum, maximum: maximum2, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
   json.type = isInt ? "integer" : "number";
   const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum ?? Number.NEGATIVE_INFINITY);
-  const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum ?? Number.POSITIVE_INFINITY);
+  const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum2 ?? Number.POSITIVE_INFINITY);
   const legacy = ctx.target === "draft-04" || ctx.target === "openapi-3.0";
   if (exMin) {
     if (legacy) {
@@ -17480,8 +17090,8 @@ var numberProcessor = (schema, ctx, _json, params) => {
     } else {
       json.exclusiveMaximum = exclusiveMaximum;
     }
-  } else if (typeof maximum === "number") {
-    json.maximum = maximum;
+  } else if (typeof maximum2 === "number") {
+    json.maximum = maximum2;
   }
   if (multipleOf) {
     const divisors = /* @__PURE__ */ new Set();
@@ -17601,11 +17211,11 @@ var fileProcessor = (schema, _ctx, json, _params) => {
   _json.type = "string";
   _json.format = "binary";
   _json.contentEncoding = "binary";
-  const { minimum, maximum, mime } = aggregateChecks(schema);
+  const { minimum, maximum: maximum2, mime } = aggregateChecks(schema);
   if (minimum !== void 0)
     _json.minLength = minimum;
-  if (maximum !== void 0)
-    _json.maxLength = maximum;
+  if (maximum2 !== void 0)
+    _json.maxLength = maximum2;
   if (!mime)
     return;
   if (mime.length === 0)
@@ -17636,11 +17246,11 @@ var setProcessor = (schema, ctx, json, params) => {
 var arrayProcessor = (schema, ctx, _json, params) => {
   const json = _json;
   const def = schema._zod.def;
-  const { minimum, maximum } = aggregateChecks(schema);
+  const { minimum, maximum: maximum2 } = aggregateChecks(schema);
   if (typeof minimum === "number")
     json.minItems = minimum;
-  if (typeof maximum === "number")
-    json.maxItems = maximum;
+  if (typeof maximum2 === "number")
+    json.maxItems = maximum2;
   json.type = "array";
   json.items = processSchema(def.element, ctx, {
     ...params,
@@ -17784,11 +17394,11 @@ var tupleProcessor = (schema, ctx, _json, params) => {
     if (isClosed)
       json.maxItems = maxItems;
   }
-  const { minimum, maximum } = aggregateChecks(schema);
+  const { minimum, maximum: maximum2 } = aggregateChecks(schema);
   if (typeof minimum === "number")
     json.minItems = minimum;
-  if (typeof maximum === "number")
-    json.maxItems = maximum;
+  if (typeof maximum2 === "number")
+    json.maxItems = maximum2;
 };
 function stringifyKeyNames(bySchema, json, visited) {
   if (json.$ref) {
@@ -17814,7 +17424,7 @@ function stringifyKeyNames(bySchema, json, visited) {
   const values = json.enum ?? (json.const !== void 0 ? [json.const] : void 0);
   if (!numericType && !values?.some((v) => typeof v === "number"))
     return json;
-  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json;
+  const { minimum, maximum: maximum2, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json;
   if (rest.enum)
     rest.enum = rest.enum.map((v) => typeof v === "number" ? String(v) : v);
   else if (typeof rest.const === "number")
@@ -18574,8 +18184,8 @@ var ZodNumber = /* @__PURE__ */ $constructor(
       return Math.max(minimum ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
     },
     maxValue: (inst) => {
-      const { maximum, exclusiveMaximum } = aggregateChecks(inst);
-      return Math.min(maximum ?? Number.POSITIVE_INFINITY, exclusiveMaximum ?? Number.POSITIVE_INFINITY);
+      const { maximum: maximum2, exclusiveMaximum } = aggregateChecks(inst);
+      return Math.min(maximum2 ?? Number.POSITIVE_INFINITY, exclusiveMaximum ?? Number.POSITIVE_INFINITY);
     },
     isInt: (inst) => {
       const { isInt, multipleOf } = aggregateChecks(inst);
@@ -18742,8 +18352,8 @@ var ZodDate = /* @__PURE__ */ $constructor(
       return minimum ? new Date(minimum) : null;
     },
     maxDate: (inst) => {
-      const { maximum } = aggregateChecks(inst);
-      return maximum ? new Date(maximum) : null;
+      const { maximum: maximum2 } = aggregateChecks(inst);
+      return maximum2 ? new Date(maximum2) : null;
     }
   }, {})
 );
@@ -22813,9 +22423,9 @@ var rev2026Codec = {
     });
     const parsed = buildSchemas2026().RequestMetaEnvelopeSchema.safeParse(meta2);
     if (!parsed.success) for (const issue2 of parsed.error.issues) {
-      const path22 = issue2.path.map(String);
-      const key = path22.length > 0 ? path22.join(".") : "_meta";
-      if (path22.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
+      const path20 = issue2.path.map(String);
+      const key = path20.length > 0 ? path20.join(".") : "_meta";
+      if (path20.length === 1 && issues.some((existing) => existing.key === key && existing.problem === "missing")) continue;
       issues.push({
         key,
         problem: issue2.message
@@ -23136,29 +22746,29 @@ var PERMITTED_X_MCP_HEADER_TYPES = /* @__PURE__ */ new Set([
 function scanXMcpHeaderDeclarations(inputSchema) {
   const declarations = [];
   const seenLower = /* @__PURE__ */ new Map();
-  const visit = (node2, path22, reachable) => {
+  const visit = (node2, path20, reachable) => {
     if (node2 === null || typeof node2 !== "object") return void 0;
     const schema = node2;
     if (X_MCP_HEADER_KEY in schema) {
-      if (!reachable || path22.length === 0) return `${pathName(path22)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
+      if (!reachable || path20.length === 0) return `${pathName(path20)}: x-mcp-header is only permitted on properties statically reachable via a chain of 'properties' keys (not under items, additionalProperties, oneOf/anyOf/allOf/not, if/then/else, or $ref)`;
       const raw = schema[X_MCP_HEADER_KEY];
-      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path22)}: x-mcp-header MUST be a non-empty string`;
-      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path22)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
+      if (typeof raw !== "string" || raw.length === 0) return `${pathName(path20)}: x-mcp-header MUST be a non-empty string`;
+      if (!RFC9110_TOKEN.test(raw)) return `${pathName(path20)}: x-mcp-header '${raw}' is not a valid RFC 9110 token (no spaces, control characters or HTTP delimiters)`;
       const type = typeof schema.type === "string" ? schema.type : void 0;
-      if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) return `${pathName(path22)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
+      if (type === void 0 || !PERMITTED_X_MCP_HEADER_TYPES.has(type)) return `${pathName(path20)}: x-mcp-header is only permitted on primitive-typed properties (string, integer, boolean); got ${type ?? "<none>"}`;
       const lower = raw.toLowerCase();
       const prior = seenLower.get(lower);
       if (prior !== void 0) return `x-mcp-header '${raw}' is not case-insensitively unique (also declared as '${prior}')`;
       seenLower.set(lower, raw);
       declarations.push({
-        path: path22,
+        path: path20,
         headerName: raw,
         type
       });
     }
     const properties = schema.properties;
     if (properties !== null && typeof properties === "object") for (const [key, child] of Object.entries(properties)) {
-      const fault$1 = visit(child, [...path22, key], reachable);
+      const fault$1 = visit(child, [...path20, key], reachable);
       if (fault$1 !== void 0) return fault$1;
     }
     for (const k of NON_REACHABLE_SUBSCHEMA_KEYWORDS) {
@@ -23166,7 +22776,7 @@ function scanXMcpHeaderDeclarations(inputSchema) {
       if (sub === void 0) continue;
       const branches = Array.isArray(sub) ? sub : sub !== null && typeof sub === "object" && OBJECT_VALUED_SUBSCHEMA_KEYWORDS.has(k) ? Object.values(sub) : [sub];
       for (const branch of branches) {
-        const fault$1 = visit(branch, [...path22, `<${k}>`], false);
+        const fault$1 = visit(branch, [...path20, `<${k}>`], false);
         if (fault$1 !== void 0) return fault$1;
       }
     }
@@ -23206,8 +22816,8 @@ var OBJECT_VALUED_SUBSCHEMA_KEYWORDS = /* @__PURE__ */ new Set([
   "$defs",
   "definitions"
 ]);
-function pathName(path22) {
-  return path22.length === 0 ? "<root>" : path22.join(".");
+function pathName(path20) {
+  return path20.length === 0 ? "<root>" : path20.join(".");
 }
 var HEADER_MISMATCH_ERROR_CODE = -32020;
 var INBOUND_VALIDATION_LADDER = [
@@ -23496,7 +23106,7 @@ var PROPERTY_KEYS_BY_TYPE = {
   array: shapeKeys([UntitledMultiSelectEnumSchemaSchema, TitledMultiSelectEnumSchemaSchema])
 };
 var SUPPORTED_STRING_FORMATS = new Set(StringSchemaSchema.shape.format.unwrap().options);
-function walkProperty(node2, path22, vendor, unsupported) {
+function walkProperty(node2, path20, vendor, unsupported) {
   if (!isJsonObject(node2)) return node2;
   const allowedKeys = typeof node2.type === "string" && Object.hasOwn(PROPERTY_KEYS_BY_TYPE, node2.type) ? PROPERTY_KEYS_BY_TYPE[node2.type] : void 0;
   if (allowedKeys === void 0) return node2;
@@ -23504,8 +23114,8 @@ function walkProperty(node2, path22, vendor, unsupported) {
   for (const [key, value] of Object.entries(node2)) if (allowedKeys.has(key) || isAnnotationOnlyJsonSchemaKeyword(key)) pruned[key] = value;
   else if (key === "pattern" && node2.type === "string" && typeof node2.format === "string") {
     if (!SUPPORTED_STRING_FORMATS.has(node2.format)) pruned[key] = value;
-    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path22}.${key}`);
-  } else unsupported.push(`${path22}.${key}`);
+    else if (typeof value !== "string" || !isLibraryFormatPattern(node2.format, value, vendor)) unsupported.push(`${path20}.${key}`);
+  } else unsupported.push(`${path20}.${key}`);
   return pruned;
 }
 function walkRequestedSchema(converted, vendor) {
@@ -23522,11 +23132,11 @@ function describeUnsupportedProperties(pruned, fallback) {
   const offenders = Object.entries(pruned.properties).filter(([, node2]) => !parseSchema(PrimitiveSchemaDefinitionSchema, node2).success).map(([name]) => `properties.${name}`);
   return offenders.length > 0 ? offenders.join(", ") : fallback;
 }
-function findDroppedConstraintPaths(original, parsed, path22 = "") {
-  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path22}[${index}]`));
+function findDroppedConstraintPaths(original, parsed, path20 = "") {
+  if (Array.isArray(original) && Array.isArray(parsed)) return original.flatMap((item, index) => findDroppedConstraintPaths(item, parsed[index], `${path20}[${index}]`));
   if (!isJsonObject(original) || !isJsonObject(parsed)) return [];
   return Object.entries(original).flatMap(([key, value]) => {
-    const childPath = path22 ? `${path22}.${key}` : key;
+    const childPath = path20 ? `${path20}.${key}` : key;
     if (!Object.prototype.hasOwnProperty.call(parsed, key)) return isAnnotationOnlyJsonSchemaKeyword(key) ? [] : [childPath];
     return findDroppedConstraintPaths(value, parsed[key], childPath);
   });
@@ -27605,8 +27215,8 @@ var require_utils = /* @__PURE__ */ __commonJSMin(((exports, module) => {
     for (let i = 0; i < str.length; i++) if (str[i] === token) ind++;
     return ind;
   }
-  function removeDotSegments(path22) {
-    let input = path22;
+  function removeDotSegments(path20) {
+    let input = path20;
     const output = [];
     let nextSlash = -1;
     let len = 0;
@@ -27759,8 +27369,8 @@ var require_schemes = /* @__PURE__ */ __commonJSMin(((exports, module) => {
       wsComponent.secure = void 0;
     }
     if (wsComponent.resourceName) {
-      const [path22, query] = wsComponent.resourceName.split("?");
-      wsComponent.path = path22 && path22 !== "/" ? path22 : void 0;
+      const [path20, query] = wsComponent.resourceName.split("?");
+      wsComponent.path = path20 && path20 !== "/" ? path20 : void 0;
       wsComponent.query = query;
       wsComponent.resourceName = void 0;
     }
@@ -33899,2378 +33509,30 @@ function toError(value) {
 }
 
 // src/host/stdio.ts
-import { homedir as homedir4 } from "node:os";
-import path20 from "node:path";
-
-// src/runtime/resolver.ts
-import { accessSync, existsSync as existsSync2, readFileSync as readFileSync2, statSync } from "node:fs";
-import { homedir as homedir2 } from "node:os";
-import path3 from "node:path";
-import { fileURLToPath } from "node:url";
-
-// src/runtime/errors.ts
-var BridgeError = class extends Error {
-  code;
-  memberPids;
-  constructor(code, message, options) {
-    super(message, options);
-    this.name = "BridgeError";
-    this.code = code;
-    if (options?.memberPids?.length) this.memberPids = [...new Set(options.memberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))];
-  }
-};
-
-// src/runtime/resolver.ts
-init_paths();
-init_profile();
-var PERSISTED_RUNTIME_KEYS = [
-  "ZCODE_BRIDGE_NODE",
-  "ZCODE_BRIDGE_ZCODE_CJS",
-  "ZCODE_BRIDGE_DATA_DIR",
-  "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE",
-  "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE",
-  "ZCODE_HOME",
-  "ZCODE_DATA_BASE_DIR",
-  "ZCODE_WINDOWS_APP_INSTALL_DIR",
-  "ZCODE_BRIDGE_DEFAULT_PROVIDER_ID",
-  "ZCODE_BRIDGE_DEFAULT_MODEL_ID",
-  "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
-  "ZCODE_BRIDGE_MODE",
-  "ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS",
-  "ZCODE_BRIDGE_TIMEOUT_MS",
-  "ZCODE_BRIDGE_BROWSER_USE",
-  "ZCODE_BRIDGE_BROWSER_EXECUTABLE"
-];
-function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
-  validateHostProfile(host);
-  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path3.join(directory, "runtime-config.json"));
-  const legacyDataRoot = source["ZCODE_BRIDGE_DATA_DIR"]?.trim();
-  if (legacyDataRoot && path3.isAbsolute(legacyDataRoot)) {
-    settingsPaths.push(path3.join(legacyDataRoot, "runtime-config.json"));
-  }
-  let parsed = null;
-  const seenPaths = /* @__PURE__ */ new Set();
-  for (const settingsPath of settingsPaths) {
-    const normalized = path3.resolve(settingsPath);
-    const identity = process.platform === "win32" ? normalized.toLocaleLowerCase("en-US") : normalized;
-    if (seenPaths.has(identity)) continue;
-    seenPaths.add(identity);
-    try {
-      if (statSync(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
-      const candidate = JSON.parse(readFileSync2(normalized, "utf8"));
-      if (isPlainObject3(candidate)) {
-        parsed = candidate;
-        break;
-      }
-      throw new Error("runtime settings must be an object");
-    } catch (error2) {
-      if (error2.code === "ENOENT") continue;
-      throw new BridgeError("provider_config_invalid", `invalid Bridge runtime settings: ${normalized}`, { cause: error2 });
-    }
-  }
-  if (!parsed) return { ...source };
-  const env = { ...source };
-  for (const key of PERSISTED_RUNTIME_KEYS) {
-    if (!Object.prototype.hasOwnProperty.call(parsed, key)) continue;
-    const value = parsed[key];
-    if (typeof value === "string") env[key] = value.trim();
-    else if (value === null) env[key] = "";
-    else throw new BridgeError("provider_config_invalid", `Bridge runtime setting ${key} must be a string or null`);
-  }
-  return env;
-}
-var NodeRuntimeResolver = class {
-  #env;
-  #homeDir;
-  #packageRoot;
-  #host;
-  constructor(options = {}) {
-    this.#env = options.env ?? process.env;
-    this.#homeDir = options.homeDir ?? homedir2();
-    this.#packageRoot = options.packageRoot ?? null;
-    this.#host = validateHostProfile(options.host ?? codexHostProfile(this.#homeDir));
-  }
-  async resolve() {
-    const env = loadPersistedRuntimeEnvironment(this.#env, this.#homeDir, this.#host);
-    const data = discoverZCodeData(env, { fallbackHomeDir: this.#homeDir });
-    const zcodeHome = resolveZcodeHome(env);
-    const explicitDataBaseDir = env["ZCODE_DATA_BASE_DIR"]?.trim() || null;
-    if (explicitDataBaseDir && !isAbsolutePathForPlatform(explicitDataBaseDir)) {
-      throw new BridgeError("provider_config_invalid", "ZCODE_DATA_BASE_DIR must be an absolute path");
-    }
-    if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path3.dirname(zcodeHome), explicitDataBaseDir)) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `ZCODE_HOME (${zcodeHome}) and ZCODE_DATA_BASE_DIR (${explicitDataBaseDir}) conflict; ZCODE_HOME must name <ZCODE_DATA_BASE_DIR>/.zcode. Fix one of them instead of relying on silent selection.`
-      );
-    }
-    let nodeExecutable = "node";
-    const nodeOverride = env["ZCODE_BRIDGE_NODE"]?.trim();
-    if (nodeOverride) {
-      this.#assertReadableFile(
-        nodeOverride,
-        "ZCODE_BRIDGE_NODE is set but is not a readable file"
-      );
-      nodeExecutable = nodeOverride;
-    }
-    const builtinEnv = env["ZCODE_BUILTIN_PROVIDER_CONFIG_FILE"]?.trim() || null;
-    const personalEnv = env["ZCODE_PERSONAL_PROVIDER_CONFIG_FILE"]?.trim() || null;
-    let zcodeEntrypoint;
-    let explicitRuntime = false;
-    const entryOverride = env["ZCODE_BRIDGE_ZCODE_CJS"]?.trim();
-    if (entryOverride) {
-      this.#assertReadableFile(
-        entryOverride,
-        "ZCODE_BRIDGE_ZCODE_CJS is set but is not a readable file"
-      );
-      zcodeEntrypoint = entryOverride;
-      explicitRuntime = true;
-    } else {
-      const install = discoverZCodeInstall(env, { requireBuiltin: !builtinEnv });
-      if (!install.zcodeEntrypoint) {
-        throw new BridgeError(
-          "runtime_not_found",
-          `zcode.cjs${builtinEnv ? "" : " with a same-install zcode-builtin.json"} was not found; searched: ` + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
-        );
-      }
-      zcodeEntrypoint = install.zcodeEntrypoint;
-    }
-    let builtinConfigFile;
-    let personalConfigFile;
-    if (builtinEnv && personalEnv) {
-      this.#validateBuiltinConfig(builtinEnv);
-      this.#validatePersonalConfig(personalEnv);
-      builtinConfigFile = builtinEnv;
-      personalConfigFile = personalEnv;
-    } else {
-      if (builtinEnv) {
-        this.#validateBuiltinConfig(builtinEnv);
-        builtinConfigFile = builtinEnv;
-      } else if (explicitRuntime) {
-        const derived2 = builtinConfigForRuntime(zcodeEntrypoint);
-        if (!isReadableFile(derived2)) {
-          throw new BridgeError(
-            "provider_config_missing",
-            `ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and the builtin config was not found next to the configured runtime; expected: ${derived2}`
-          );
-        }
-        this.#validateBuiltinConfig(derived2);
-        builtinConfigFile = derived2;
-      } else {
-        const install = discoverZCodeInstall(env, { requireBuiltin: true });
-        if (!install.builtinConfigFile) {
-          throw new BridgeError(
-            "provider_config_missing",
-            "ZCODE_BUILTIN_PROVIDER_CONFIG_FILE is not set and no builtin provider config was found in the ZCode installation; searched: " + (install.candidates.map((candidate) => `${candidate.root} (runtime: ${candidate.runtimeExists}, builtin: ${candidate.builtinExists})`).join(", ") || "(no installation roots available)")
-          );
-        }
-        this.#validateBuiltinConfig(install.builtinConfigFile);
-        builtinConfigFile = install.builtinConfigFile;
-      }
-      if (personalEnv) {
-        this.#validatePersonalConfig(personalEnv);
-        personalConfigFile = personalEnv;
-      } else {
-        const candidates = zcodeHome ? [path3.join(zcodeHome, "v2", "provider_config.json")] : [
-          explicitDataBaseDir,
-          data.configuredDataBaseDir,
-          data.userHome
-        ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path3.join(base, ".zcode", "v2", "provider_config.json"));
-        const existing = candidates.filter((candidate) => existsSync2(candidate));
-        if (existing.length === 0) {
-          throw new BridgeError(
-            "provider_config_missing",
-            "ZCODE_PERSONAL_PROVIDER_CONFIG_FILE is not set and no personal provider config exists at any of: " + candidates.join(", ")
-          );
-        }
-        let accepted = null;
-        let lastError = null;
-        for (const candidate of existing) {
-          try {
-            this.#validatePersonalConfig(candidate);
-            accepted = candidate;
-            break;
-          } catch (error2) {
-            lastError = error2 instanceof Error ? error2.message : String(error2);
-          }
-        }
-        if (!accepted) {
-          throw new BridgeError(
-            "provider_config_invalid",
-            `No usable personal provider config among: ${existing.join(", ")}; last validation failure: ${lastError ?? "unknown"}`
-          );
-        }
-        personalConfigFile = accepted;
-      }
-    }
-    if (zcodeHome && !samePath(personalConfigFile, path3.join(zcodeHome, "v2", "provider_config.json"))) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE must be ZCODE_HOME/v2/provider_config.json (${zcodeHome})`
-      );
-    }
-    const dataOverride = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
-    let dataRoot;
-    if (dataOverride) {
-      if (!path3.isAbsolute(dataOverride)) {
-        throw new Error(
-          `ZCODE_BRIDGE_DATA_DIR must be an absolute path when set, got: ${dataOverride}`
-        );
-      }
-      dataRoot = path3.normalize(dataOverride);
-    } else {
-      dataRoot = this.#packageRoot ?? findPackageRoot();
-    }
-    return {
-      nodeExecutable,
-      zcodeEntrypoint,
-      providerBuiltinConfigFile: builtinConfigFile,
-      providerPersonalConfigFile: personalConfigFile,
-      dataRoot
-    };
-  }
-  #assertReadableFile(filePath, label) {
-    if (!isReadableFile(filePath)) {
-      throw new BridgeError("runtime_not_found", `${label}: ${filePath}`);
-    }
-  }
-  /**
-   * Structure validation only. The verified differential signal for the
-   * CLI-created stub is an empty providerRules map (see docs/ZCODE_RUNTIME.md);
-   * rejecting it implements "never silently select a known stub".
-   */
-  #validatePersonalConfig(filePath) {
-    const parsed = this.#readJsonConfig(filePath, "personal provider config");
-    const config2 = parsed["config"];
-    if (!isPlainObject3(config2)) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `Personal provider config has no config object: ${filePath}`
-      );
-    }
-    const providerConfigRules = config2["providerConfigRules"];
-    const rules = isPlainObject3(providerConfigRules) ? providerConfigRules["providerRules"] : void 0;
-    if (!isNonEmptyCollection(rules)) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `Personal provider config contains no provider rules (this matches the known CLI-created stub shape): ${filePath}`
-      );
-    }
-  }
-  #validateBuiltinConfig(filePath) {
-    const parsed = this.#readJsonConfig(filePath, "builtin provider config");
-    if (!isPlainObject3(parsed["config"])) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `Builtin provider config has no config object: ${filePath}`
-      );
-    }
-  }
-  #readJsonConfig(filePath, label) {
-    if (!isReadableFile(filePath)) {
-      throw new BridgeError("provider_config_missing", `${label} not found: ${filePath}`);
-    }
-    let text2;
-    try {
-      text2 = readFileSync2(filePath, "utf8");
-    } catch (error2) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `${label} is not readable: ${filePath} (${errorText(error2)})`
-      );
-    }
-    let parsed;
-    try {
-      parsed = JSON.parse(text2);
-    } catch (error2) {
-      throw new BridgeError(
-        "provider_config_invalid",
-        `${label} is not valid JSON: ${filePath}`
-      );
-    }
-    if (!isPlainObject3(parsed)) {
-      throw new BridgeError("provider_config_invalid", `${label} is not a JSON object: ${filePath}`);
-    }
-    return parsed;
-  }
-};
-function resolveZcodeHome(env) {
-  const configured = env["ZCODE_HOME"]?.trim();
-  if (!configured) return null;
-  if (!isAbsolutePathForPlatform(configured)) {
-    throw new BridgeError("provider_config_invalid", "ZCODE_HOME must be an absolute path");
-  }
-  const resolved = path3.normalize(configured);
-  if (path3.basename(resolved).toLowerCase() !== ".zcode") {
-    throw new BridgeError(
-      "provider_config_invalid",
-      "ZCODE_HOME must name a .zcode directory so app-server can use the same data root"
-    );
-  }
-  try {
-    if (!statSync(resolved).isDirectory()) {
-      throw new BridgeError("provider_config_invalid", `ZCODE_HOME is not a directory: ${resolved}`);
-    }
-  } catch (error2) {
-    if (error2 instanceof BridgeError) throw error2;
-    throw new BridgeError("provider_config_missing", `ZCODE_HOME directory does not exist: ${resolved}`);
-  }
-  return resolved;
-}
-function samePath(left, right) {
-  const resolvedLeft = path3.resolve(left);
-  const resolvedRight = path3.resolve(right);
-  return process.platform === "win32" ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase() : resolvedLeft === resolvedRight;
-}
-function isReadableFile(filePath) {
-  try {
-    if (!existsSync2(filePath) || !statSync(filePath).isFile()) return false;
-    accessSync(filePath);
-    return true;
-  } catch {
-    return false;
-  }
-}
-function findPackageRoot(startDir) {
-  let current = startDir ?? path3.dirname(fileURLToPath(import.meta.url));
-  for (let depth = 0; depth < 10; depth++) {
-    if (existsSync2(path3.join(current, "package.json"))) {
-      return current;
-    }
-    const parent = path3.dirname(current);
-    if (parent === current) break;
-    current = parent;
-  }
-  throw new Error(
-    `Cannot locate the Bridge package root (no package.json above ${startDir ?? "module directory"})`
-  );
-}
-function isPlainObject3(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function isNonEmptyCollection(value) {
-  if (Array.isArray(value)) return value.length > 0;
-  if (isPlainObject3(value)) return Object.keys(value).length > 0;
-  return false;
-}
-function errorText(error2) {
-  const message = error2 instanceof Error ? error2.message : String(error2);
-  return message.length > 300 ? `${message.slice(0, 300)}\u2026` : message;
-}
-
-// src/manager/task-manager.ts
-init_task_store();
-import path10 from "node:path";
-import { createHash as createHash5 } from "node:crypto";
-import { existsSync as existsSync7, statSync as statSync4, writeFileSync as writeFileSync4 } from "node:fs";
-
-// src/manager/normalize.ts
-function buildTaskResult(input) {
-  const { task, attempt, startedAt, finishedAt, outcome } = input;
-  const base = {
-    task_id: task.task_id,
-    attempt,
-    started_at: startedAt,
-    finished_at: finishedAt,
-    zcode_output: outcome?.response ?? "",
-    exit_code: outcome?.exitCode ?? null,
-    session_id: outcome?.sessionId ?? input.sessionId ?? null,
-    ...input.usage !== void 0 ? { usage: input.usage } : {},
-    ...input.model !== void 0 ? { model: input.model } : {},
-    ...input.timing !== void 0 ? { timing: input.timing } : {}
-  };
-  if (input.cancelled || outcome?.cancelled) {
-    return {
-      ...base,
-      status: "cancelled",
-      summary: input.failure?.message ?? "cancelled by request",
-      files_changed: [],
-      tests: [],
-      issues: [],
-      needs_master_decision: false
-    };
-  }
-  const failure2 = input.failure ?? (outcome ? null : { code: "worker_lost", message: "no adapter outcome was recorded" });
-  if (failure2 || !outcome) {
-    const resolved = failure2 ?? { code: "worker_lost", message: "no adapter outcome was recorded" };
-    return {
-      ...base,
-      status: "failed",
-      summary: truncate(`${resolved.code}: ${resolved.message}`, 2e3),
-      files_changed: [],
-      tests: [],
-      issues: [truncate(resolved.message, 2e3)],
-      needs_master_decision: true,
-      error_code: resolved.code,
-      ...resolved.code === "cleanup_failed" && outcome?.reportCandidate ? { report_candidate: outcome.reportCandidate } : {}
-    };
-  }
-  if (outcome.errorCode || outcome.reportError) {
-    const code = outcome.errorCode ?? "invalid_agent_report";
-    const message = outcome.reportError ?? "the subordinate report was invalid";
-    return {
-      ...base,
-      status: "failed",
-      summary: truncate(`${code}: ${message}`, 2e3),
-      files_changed: [],
-      tests: [],
-      issues: [truncate(message, 2e3)],
-      needs_master_decision: true,
-      error_code: code,
-      ...outcome.reportCandidate ? { report_candidate: outcome.reportCandidate } : {}
-    };
-  }
-  const report = outcome.agentReport;
-  if (!report) {
-    return {
-      ...base,
-      status: "failed",
-      summary: "the adapter reported success without a normalized report",
-      files_changed: [],
-      tests: [],
-      issues: ["missing AgentReport despite a clean exit"],
-      needs_master_decision: true,
-      error_code: "invalid_agent_report"
-    };
-  }
-  return {
-    ...base,
-    status: report.needs_master_decision ? "waiting_for_master" : "completed",
-    summary: report.summary,
-    files_changed: report.files_changed,
-    tests: report.tests,
-    issues: report.issues,
-    needs_master_decision: report.needs_master_decision
-  };
-}
-function truncate(text2, maxChars) {
-  return text2.length <= maxChars ? text2 : `${text2.slice(0, maxChars)}\u2026[truncated]`;
-}
-
-// src/manager/task-manager.ts
-init_errors();
-init_spawn_worker();
-init_process_spawn();
-init_windows_process_cleanup();
-
-// src/runtime/task-timeout.ts
-var DEFAULT_TASK_TIMEOUT_MS = 60 * 60 * 1e3;
-var MAX_TASK_TIMEOUT_MS = 4 * 60 * 60 * 1e3;
-var MIN_TASK_TIMEOUT_MS = 60 * 1e3;
-function validateTaskTimeout(value) {
-  if (!Number.isSafeInteger(value) || value < MIN_TASK_TIMEOUT_MS || value > MAX_TASK_TIMEOUT_MS) {
-    throw new Error(`timeout_ms must be an integer from ${MIN_TASK_TIMEOUT_MS} to ${MAX_TASK_TIMEOUT_MS}`);
-  }
-  return value;
-}
-
-// src/manager/task-manager.ts
-init_process_lock();
-
-// src/prompts/task-prompt.ts
-var MAX_PROMPT_CHARS = 6e4;
-var MAX_SECTION_CHARS = 4e3;
-var MAX_CONTEXT_CHARS = 2e3;
-function buildTaskPrompt(task) {
-  const sections = [
-    `TASK ID: ${task.task_id}`,
-    "You are the Coding Worker executing one complete task inside the current working directory. Own its delivery end to end. Stay inside the workspace; do not touch files outside it.",
-    `PROJECT WORKSPACE: ${task.workspace}`,
-    ...task.worktree_path ? [`HOST-SELECTED EXECUTION WORKTREE: ${task.worktree_path}. Make task changes in the current working directory, which is this worktree; the project workspace above identifies its parent project.`] : [],
-    ...task.model ? [`REQUESTED ZCODE MODEL: ${task.model.provider_id}/${task.model.model_id}${task.model.reasoning_level ? ` (reasoning level: ${task.model.reasoning_level})` : ""}. The Bridge configures this model for the session.`] : [],
-    ...task.timeout_ms ? [`EXECUTION TIME LIMIT: ${task.timeout_ms} ms for this attempt.`] : [],
-    DELIVERY_OWNERSHIP,
-    `OBJECTIVE
-${task.objective}`,
-    renderList("REQUIREMENTS", task.requirements),
-    renderPaths("ALLOWED PATHS (write only inside these when provided; relative paths resolve against the current working directory)", task.allowed_paths),
-    renderPaths("FORBIDDEN PATHS (never create, modify, or delete; relative paths resolve against the current working directory)", task.forbidden_paths),
-    renderList(
-      "ACCEPTANCE CRITERIA (the master verifies these independently; do not self-certify)",
-      task.acceptance_criteria
-    ),
-    renderList(
-      "TEST COMMANDS (run the applicable ones and report a status for each)",
-      task.test_commands
-    ),
-    DECISION_RULE
-  ];
-  if (task.context && task.context.trim().length > 0) {
-    sections.push(`CONTEXT
-${bounded(task.context, MAX_CONTEXT_CHARS)}`);
-  }
-  return joinBoundedPreservingTail([...sections, OUTPUT_CONTRACT], OUTPUT_CONTRACT);
-}
-function buildContinuePrompt(input) {
-  const { task, feedback, additionalRequirements, previousSessionId, previousResult } = input;
-  const sections = [
-    `TASK ID: ${task.task_id}`,
-    "You are a subordinate coding agent continuing a previous task in the same workspace. Own the remaining delivery end to end. Stay inside the workspace.",
-    DELIVERY_OWNERSHIP,
-    ...task.model ? [`REQUESTED ZCODE MODEL: ${task.model.provider_id}/${task.model.model_id}${task.model.reasoning_level ? ` (reasoning level: ${task.model.reasoning_level})` : ""}. The Bridge configures this model for the session.`] : []
-  ];
-  if (previousSessionId) {
-    sections.push(
-      `This run resumes persisted session ${previousSessionId}; earlier conversation context may be available.`
-    );
-  }
-  if (previousResult?.error_code === "invalid_agent_report") {
-    sections.push(
-      "REPORT REPAIR MODE: The previous execution has ended. Only its final report failed validation. Do not use tools, edit files, rerun tests, or repeat task work. Return the corrected JSON report from the evidence below. Preserve claims as claims, including not_run and failures. Do not invent tests or missing facts. If needs_master_decision cannot be established, explicitly set it to true and record the uncertainty in issues.",
-      `PROJECT WORKSPACE: ${task.workspace}`,
-      ...task.worktree_path ? [`HOST-SELECTED EXECUTION WORKTREE: ${task.worktree_path}`] : [],
-      `PREVIOUS REPORT ERROR
-${previousResult.summary}`,
-      `REPORT CANDIDATE CLAIMS (not independently verified)
-${JSON.stringify(previousResult.report_candidate ?? {}, null, 2)}`,
-      `PREVIOUS RESPONSE
-${bounded(previousResult.zcode_output, MAX_SECTION_CHARS)}`,
-      `MASTER FEEDBACK (report repair only)
-${feedback}`,
-      ...additionalRequirements.length ? [renderList("ADDITIONAL REPORT REQUIREMENTS", [...additionalRequirements])] : [],
-      OUTPUT_CONTRACT
-    );
-    return joinBoundedPreservingTail(sections, OUTPUT_CONTRACT);
-  }
-  if (previousResult) {
-    sections.push(
-      `PREVIOUS RESULT (normalized claims from the previous attempt)
-${bounded(
-        JSON.stringify(previousResult, null, 2),
-        MAX_SECTION_CHARS
-      )}`
-    );
-  }
-  sections.push(`MASTER FEEDBACK (address every point)
-${feedback}`);
-  if (additionalRequirements.length > 0) {
-    sections.push(renderList("ADDITIONAL REQUIREMENTS", [...additionalRequirements]));
-  }
-  sections.push(`ORIGINAL TASK
-${buildTaskPrompt(task)}`);
-  return joinBoundedPreservingTail(sections, OUTPUT_CONTRACT);
-}
-var OUTPUT_CONTRACT = [
-  "OUTPUT CONTRACT (mandatory)",
-  "Your final response must be exactly one JSON object with no markdown fences and no text before or after it.",
-  'Required fields: summary (non-empty string), files_changed (array of strings), tests (array of objects with command string, status "passed" | "failed" | "not_run", optional details string), issues (array of strings), needs_master_decision (JSON boolean).',
-  'Valid JSON example (replace example values with observed facts): {"summary":"Describe the actual work","files_changed":[],"tests":[{"command":"An applicable command","status":"not_run","details":"Explain why it was not run"}],"issues":[],"needs_master_decision":true}',
-  "List every file you created or modified in files_changed (workspace-relative paths). Give one tests entry per applicable test command; use status not_run when a command was not applicable or could not run. Record problems in issues. Set needs_master_decision=true only when a required decision is outside your authority; never guess.",
-  "Before sending, check that all five top-level fields exist and needs_master_decision is a JSON boolean true or false, never a quoted string and never text such as needs_master_decision=false. If its value is uncertain, set true and explain in issues. Do not omit it."
-].join("\n");
-var DECISION_RULE = [
-  "DECISION RULE",
-  "Use only this task package, this prompt, repository files you inspect, and available tools; do not assume access to the calling host's conversation.",
-  "Do not choose unresolved items explicitly listed under OPEN DECISIONS; a later explicit Master Feedback decision resolves that item. Also escalate conflicting requirements or missing decisions that would materially change externally visible behavior, even when the calling host did not list them. Record the exact question in issues and set needs_master_decision=true. Continue independent work that does not depend on the decision. For low-impact implementation choices, use the simplest consistent option and state the assumption in issues."
-].join("\n");
-var DELIVERY_OWNERSHIP = [
-  "DELIVERY OWNERSHIP",
-  "You own this task's complete delivery, not a single step of it. Inspect the repository, plan the work internally, implement every required change, run the applicable tests, fix failures you can resolve within the stated boundaries, and repeat until the acceptance criteria are met or a genuine blocker requires the master.",
-  "Do not stop after a partial step to ask what to do next, and do not wait for the master to list files or functions. Make low-impact implementation choices yourself and record assumptions in issues.",
-  "The master independently verifies the final result; your report is evidence of what you did, not a substitute for that review."
-].join("\n");
-function renderList(title, items) {
-  if (items.length === 0) {
-    return `${title}
-- (none)`;
-  }
-  return `${title}
-${items.map((item) => `- ${item}`).join("\n")}`;
-}
-function renderPaths(title, paths) {
-  if (paths.length === 0) {
-    return `${title}
-- (unspecified; still write only within the workspace)`;
-  }
-  return `${title}
-${paths.map((item) => `- ${item}`).join("\n")}`;
-}
-function bounded(text2, maxChars) {
-  if (text2.length <= maxChars) return text2;
-  return `${text2.slice(0, maxChars)}\u2026[truncated]`;
-}
-function joinBoundedPreservingTail(sections, requiredTail) {
-  const joined = sections.join("\n\n");
-  if (joined.length <= MAX_PROMPT_CHARS) return joined;
-  void requiredTail;
-  throw new Error(`task prompt exceeds ${MAX_PROMPT_CHARS} characters; shorten the task package without dropping constraints`);
-}
-
-// src/manager/task-manager.ts
-init_process_probe();
-init_build();
-
-// src/observation/diagnostics.ts
-function boundedErrorMessage(message, maxChars = 500) {
-  const text2 = message instanceof Error ? message.message : String(message ?? "");
-  return text2.replace(/[\r\n\0\t]/gu, " ").slice(0, maxChars);
-}
-var MAX_COUNTER_KEYS = 64;
-var MAX_LATENCY_SAMPLES = 64;
-var DiagnosticCounters = class {
-  #counters = /* @__PURE__ */ new Map();
-  #latency = [];
-  #now;
-  constructor(now = Date.now) {
-    this.#now = now;
-  }
-  record(reason, detail = "") {
-    const key = `${reason}${detail ? `:${detail}` : ""}`.slice(0, 160);
-    let entry = this.#counters.get(key);
-    if (!entry) {
-      if (this.#counters.size >= MAX_COUNTER_KEYS) {
-        const oldest = this.#counters.keys().next().value;
-        if (oldest !== void 0) this.#counters.delete(oldest);
-      }
-      entry = { count: 0, last_seen_at: new Date(this.#now()).toISOString(), last_reason: reason };
-      this.#counters.set(key, entry);
-    }
-    entry.count += 1;
-    entry.last_seen_at = new Date(this.#now()).toISOString();
-    entry.last_reason = reason;
-    return { count: entry.count, last_seen_at: entry.last_seen_at };
-  }
-  /** Throttle decision: emit a persistent event on the first occurrence and
-   * then every `every`th occurrence, always carrying the cumulative count. */
-  shouldEmit(reason, detail = "", every = 10) {
-    const key = `${reason}${detail ? `:${detail}` : ""}`.slice(0, 160);
-    const entry = this.#counters.get(key);
-    if (!entry) return true;
-    return entry.count === 1 || entry.count % every === 0;
-  }
-  recordLatency(ms) {
-    if (!Number.isFinite(ms)) return;
-    this.#latency.push(ms);
-    if (this.#latency.length > MAX_LATENCY_SAMPLES) this.#latency.shift();
-  }
-  latencySummary() {
-    if (this.#latency.length === 0) return { samples: 0, p50_ms: null, p95_ms: null, max_ms: null };
-    const sorted = [...this.#latency].sort((a, b) => a - b);
-    const percentile = (p) => sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * p / 100))];
-    return { samples: sorted.length, p50_ms: percentile(50), p95_ms: percentile(95), max_ms: sorted[sorted.length - 1] };
-  }
-  snapshot() {
-    const result = {};
-    for (const [key, entry] of this.#counters) {
-      result[key] = { count: entry.count, last_seen_at: entry.last_seen_at, reason: entry.last_reason };
-    }
-    return result;
-  }
-};
-
-// src/feedback/task-feedback.ts
-var EMPTY_INTERACTION = { state: "not_observed", kind: null };
-function record2(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : null;
-}
-function safeRuntimeText(value) {
-  if (typeof value !== "string") return null;
-  const text2 = value.replace(/[\u0000-\u001f\u007f]/gu, " ").trim();
-  return text2 ? text2.slice(0, 160) : null;
-}
-function safeToolName(value) {
-  if (typeof value !== "string") return "tool";
-  const name = value.replace(/[^A-Za-z0-9_.-]/gu, "").slice(0, 80);
-  return name || "tool";
-}
-function durationMs(startedAt, finishedAt) {
-  if (!startedAt || !finishedAt) return null;
-  const start = Date.parse(startedAt);
-  const finish = Date.parse(finishedAt);
-  if (!Number.isFinite(start) || !Number.isFinite(finish) || finish < start) return null;
-  return finish - start;
-}
-function buildTaskFeedbackSnapshotV01(input) {
-  let model = null;
-  let activity = null;
-  let agentReportReady = false;
-  for (const event of input.events) {
-    const details = record2(event.details);
-    if (event.type === "model_selected" && details) {
-      const providerId = safeRuntimeText(details["provider_id"]);
-      const modelId = safeRuntimeText(details["model_id"]);
-      if (providerId && modelId) {
-        model = {
-          provider_id: providerId,
-          model_id: modelId,
-          reasoning_level: details["reasoning_level_source"] === "runtime" ? safeRuntimeText(details["reasoning_level"]) : null,
-          source: "runtime"
-        };
-      }
-    } else if (event.type === "model_tool_call" && details) {
-      activity = {
-        kind: "tool_call",
-        summary: `Tool request \xB7 ${safeToolName(details["tool_name"])}`,
-        observed_at: event.at,
-        currentness: "last_observed"
-      };
-    } else if (event.type === "tool_status" && details) {
-      activity = {
-        kind: "tool_update",
-        // The normalized update state has not been validated as a current
-        // running/completed state; deliberately render only the observation.
-        summary: `Tool update \xB7 ${safeToolName(details["tool_name"])}`,
-        observed_at: event.at,
-        currentness: "last_observed"
-      };
-    } else if (event.type === "report_ready") {
-      agentReportReady = true;
-    }
-  }
-  const finalResult = input.result;
-  const result = agentReportReady && finalResult && finalResult.attempt === input.status.attempt && finalResult.status === input.status.status && (finalResult.status === "completed" || finalResult.status === "waiting_for_master") ? {
-    source: "agent_report",
-    summary: finalResult.summary,
-    issues: [...finalResult.issues],
-    files_changed: [...finalResult.files_changed],
-    tests: finalResult.tests.map((test) => ({ ...test })),
-    started_at: input.status.started_at,
-    finished_at: input.status.finished_at,
-    duration_ms: durationMs(input.status.started_at, input.status.finished_at)
-  } : null;
-  return {
-    schema_version: "0.1",
-    task_id: input.status.task_id,
-    attempt: input.status.attempt,
-    status: input.status.status,
-    model,
-    phase: null,
-    progress: null,
-    activity,
-    interaction: { ...EMPTY_INTERACTION },
-    result
-  };
-}
-
-// src/manager/task-manager.ts
-init_json_writer_quiescence();
-
-// src/attention/wait.ts
-init_snapshot();
-async function waitForAttentionSnapshot(options) {
-  const now = options.now ?? Date.now;
-  const pollMs = options.pollMs ?? 250;
-  const sleep4 = options.sleep ?? ((milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds)));
-  if (!Number.isFinite(options.timeoutMs) || options.timeoutMs < 0) throw new Error("timeoutMs must be non-negative");
-  if (!Number.isInteger(pollMs) || pollMs < 1) throw new Error("pollMs must be a positive integer");
-  const started = now();
-  const deadline = started + options.timeoutMs;
-  let snapshot = await options.read();
-  const initialAttempt = snapshot.attempt;
-  for (; ; ) {
-    const reason = classify(snapshot, initialAttempt, now() >= deadline);
-    if (reason) {
-      return { snapshot, initial_attempt: initialAttempt, reason, elapsed_ms: Math.max(0, now() - started) };
-    }
-    await sleep4(Math.min(pollMs, Math.max(1, deadline - now())));
-    snapshot = await options.read();
-  }
-}
-function classify(snapshot, initialAttempt, deadlineReached) {
-  if (isAttentionTerminalStatus(snapshot.status)) return "terminal";
-  if (snapshot.pending_requests.length > 0) return "interaction";
-  if (snapshot.attempt !== initialAttempt) return "attempt_changed";
-  return deadlineReached ? "timeout" : null;
-}
-
-// src/manager/task-manager.ts
-var BridgeTaskManager = class _BridgeTaskManager {
-  /** How long a respawn claim counts as in-flight across Bridge processes. */
-  static RESPAWN_IN_FLIGHT_MS = 1e4;
-  #store;
-  #workspaceProvider;
-  #lifecycleAuthority;
-  #spawnWorker;
-  #isProcessRunning;
-  #terminateProcessTree;
-  #verifyTreeClean;
-  #probe;
-  #now;
-  #dataRoot;
-  #maxConcurrentWorkers;
-  #workerStartGraceMs;
-  #stallHintMs;
-  #managerWriterLeaseToken;
-  #recoveryCooldownMs;
-  /** Task IDs are revalidation hints only; statuses and paths are never cached. */
-  #occupiedTaskHints = /* @__PURE__ */ new Set();
-  #counters = new DiagnosticCounters();
-  #timer = null;
-  #mutex = Promise.resolve();
-  #queuedOperations = 0;
-  #recoveryPromise = null;
-  constructor(options) {
-    if (Boolean(options.store) === Boolean(options.lifecycleAuthority)) {
-      throw new TypeError("configure exactly one TaskManager authority");
-    }
-    this.#lifecycleAuthority = options.lifecycleAuthority ?? null;
-    const store = options.store;
-    if (store) this.#store = store;
-    if (options.workspaceProvider) this.#workspaceProvider = options.workspaceProvider;
-    if (options.store && !options.workspaceProvider) throw new TypeError("JSON TaskManager requires a WorkspaceProvider");
-    if (this.#lifecycleAuthority) {
-      this.#dataRoot = "";
-      this.#maxConcurrentWorkers = options.maxConcurrentWorkers ?? 8;
-      this.#workerStartGraceMs = options.workerStartGraceMs ?? 1e4;
-      this.#stallHintMs = options.stallHintMs ?? 12e4;
-      this.#managerWriterLeaseToken = void 0;
-      this.#recoveryCooldownMs = options.pollIntervalMs ?? 1e3;
-      return;
-    }
-    if (!store) throw new TypeError("JSON TaskManager store is required");
-    this.#spawnWorker = options.spawnWorker ?? defaultSpawnWorker;
-    this.#isProcessRunning = options.isProcessRunning ?? isProcessRunning;
-    this.#terminateProcessTree = options.terminateProcessTree ?? terminateProcessTree;
-    this.#verifyTreeClean = options.verifyTreeClean ?? verifyProcessTreeClaimantsClean;
-    this.#probe = options.probe ?? null;
-    this.#now = options.now ?? (() => /* @__PURE__ */ new Date());
-    this.#dataRoot = store.dataRoot;
-    this.#maxConcurrentWorkers = options.maxConcurrentWorkers ?? 8;
-    if (!Number.isInteger(this.#maxConcurrentWorkers) || this.#maxConcurrentWorkers < 1 || this.#maxConcurrentWorkers > 8) {
-      throw new RangeError("maxConcurrentWorkers must be an integer from 1 to 8");
-    }
-    this.#workerStartGraceMs = options.workerStartGraceMs ?? 1e4;
-    if (!Number.isInteger(this.#workerStartGraceMs) || this.#workerStartGraceMs < 0) {
-      throw new RangeError("workerStartGraceMs must be a non-negative integer");
-    }
-    this.#stallHintMs = options.stallHintMs ?? 12e4;
-    this.#managerWriterLeaseToken = options.managerWriterLeaseToken ?? store.writerLeaseToken;
-    const pollIntervalMs = options.pollIntervalMs ?? 1e3;
-    this.#recoveryCooldownMs = pollIntervalMs;
-    if (pollIntervalMs > 0) {
-      this.#timer = setInterval(() => {
-        void this.recoverTasks().catch((error2) => {
-          const reason = boundedErrorMessage(error2);
-          const occurrence = this.#counters.record("recovery_loop_error", reason);
-          if (this.#counters.shouldEmit("recovery_loop_error", reason, 60)) {
-            console.error(`Bridge recovery failed: ${reason} (occurrence ${occurrence.count})`);
-          }
-        });
-      }, pollIntervalMs);
-      this.#timer.unref();
-    }
-    const probe = this.#probe;
-    if (probe) {
-      void probe.selfIdentity().then(
-        (identity) => publishSelfIdentity(identity),
-        () => void 0
-      );
-    }
-  }
-  /** Bounded live diagnostics (counters + lock latency), for doctor/ops tooling. */
-  diagnostics() {
-    return { counters: this.#counters.snapshot(), lock_wait: this.#counters.latencySummary() };
-  }
-  /** Stops the reconcile timer; safe to call repeatedly. */
-  dispose() {
-    this.#lifecycleAuthority?.dispose?.();
-    if (this.#timer) {
-      clearInterval(this.#timer);
-      this.#timer = null;
-    }
-  }
-  /** Closes JSON admission and dispatch for an archive-first cutover. This is
-   * an internal lifecycle operation and is not exposed as an MCP tool. */
-  async beginWriterQuiescence() {
-    if (this.#lifecycleAuthority) throw new TaskManagerError("TASK_STATE", "JSON writer quiescence is unavailable for this authority");
-    if (!this.#store.writerQuiescenceEnabled || !this.#managerWriterLeaseToken) {
-      throw new TaskManagerError("TASK_STATE", "JSON writer quiescence participant is not configured");
-    }
-    return this.#exclusive(async () => beginJsonWriterDrainUnderManagerLock(this.#dataRoot));
-  }
-  /** Graceful host shutdown releases this Manager's roster entry only after
-   * the MCP transport has stopped accepting new calls. Detached Workers have
-   * independent leases and remain accounted for. */
-  async shutdown() {
-    this.dispose();
-    if (this.#lifecycleAuthority) {
-      await this.#lifecycleAuthority.shutdown?.();
-      return;
-    }
-    if (this.#recoveryPromise) await this.#recoveryPromise.catch(() => void 0);
-    await this.#mutex;
-    if (this.#managerWriterLeaseToken) await releaseManagerJsonWriter(this.#dataRoot, this.#managerWriterLeaseToken);
-  }
-  /** Scans all non-terminal tasks and reconciles them, then pumps the queue.
-   * Per the A2 three-phase design, OS probes run OUTSIDE the manager mutex:
-   * snapshot → async probe → re-verify and commit. One task's failure never
-   * blocks the others. */
-  async recoverTasks() {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.recoverTasks?.() ?? Promise.resolve();
-    if (jsonWriterFenceState(this.#dataRoot) === "sealed") return;
-    if (this.#recoveryPromise) return this.#recoveryPromise;
-    const releaseRecovery = tryAcquireProcessLock(path10.join(this.#store.tasksRoot, ".recovery.lock"));
-    if (!releaseRecovery) return;
-    try {
-      if (jsonWriterFenceState(this.#dataRoot) === "sealed") {
-        releaseRecovery();
-        return;
-      }
-    } catch (error2) {
-      releaseRecovery();
-      throw error2;
-    }
-    const lastRunFile = path10.join(this.#store.tasksRoot, ".recovery-last-run");
-    if (this.#recoveryCooldownMs > 0 && existsSync7(lastRunFile) && Date.now() - statSync4(lastRunFile).mtimeMs < this.#recoveryCooldownMs) {
-      releaseRecovery();
-      return;
-    }
-    const run = (async () => {
-      for (const taskId of this.#store.listTaskIds()) {
-        try {
-          const status = this.#safeStatus(taskId);
-          if (!status) continue;
-          if (status.status === "running") {
-            await this.#reconcileRunningThreePhase(taskId, status);
-          } else if (isTerminalStatus(status.status) && status.cleanup_unverified === true) {
-            await this.#reconcileTerminalCleanup(taskId, status);
-          }
-        } catch (error2) {
-          const reason = this.#counters.record("reconcile_error", taskId);
-          if (this.#counters.shouldEmit("reconcile_error", taskId)) {
-            console.error(`Bridge could not reconcile task ${taskId}: ${boundedErrorMessage(error2)} (occurrence ${reason.count})`);
-          }
-        }
-      }
-      await this.#exclusive(async () => {
-        this.#pumpLocked();
-      });
-    })();
-    this.#recoveryPromise = run;
-    try {
-      await run;
-    } finally {
-      try {
-        if (this.#recoveryCooldownMs > 0) {
-          writeFileSync4(lastRunFile, String(Date.now()), { mode: 384 });
-        }
-      } finally {
-        try {
-          releaseRecovery();
-        } finally {
-          this.#recoveryPromise = null;
-        }
-      }
-    }
-  }
-  /** Releases terminal-task occupancy only after the persisted executor exits
-   * are independently confirmed. A probe never signals or retries the task. */
-  async #reconcileTerminalCleanup(taskId, status) {
-    const identity = this.#store.readExecutorIdentity(taskId, status.attempt);
-    const started = this.#store.readAttemptMeta(taskId, status.attempt, "started.json");
-    const snapshot = {
-      attempt: status.attempt,
-      status_worker_pid: status.worker_pid,
-      // A terminal status clears worker_pid before the worker process itself
-      // has necessarily exited. Retain its attempt identity as exit evidence.
-      worker_pid: status.worker_pid ?? identity?.worker?.pid ?? started?.worker_pid ?? null,
-      zcode_pid: status.zcode_pid ?? null,
-      identity
-    };
-    if (snapshot.worker_pid === null && snapshot.zcode_pid === null) {
-      const occurrence = this.#counters.record("terminal_cleanup_unverifiable", "missing_pid");
-      if (this.#counters.shouldEmit("terminal_cleanup_unverifiable", "missing_pid")) {
-        this.#store.appendEvent(taskId, "cleanup_probe_unknown", "Terminal task has no recorded executor PID; cleanup remains occupied", {
-          reason_code: "missing_executor_pid",
-          count: occurrence.count
-        }, this.#now().toISOString());
-      }
-      return;
-    }
-    const verdicts = await this.#probeExecutors(snapshot);
-    const workerExited = snapshot.worker_pid === null || verdicts.worker.state === "exited";
-    const runtimeExited = snapshot.zcode_pid === null || verdicts.runtime.state === "exited";
-    if (!workerExited || !runtimeExited) {
-      const reason = !runtimeExited ? verdicts.runtime.reason_code : verdicts.worker.reason_code;
-      const occurrence = this.#counters.record("terminal_cleanup_unverifiable", reason);
-      if (this.#counters.shouldEmit("terminal_cleanup_unverifiable", reason)) {
-        this.#store.appendEvent(taskId, "cleanup_probe_unknown", "Terminal task cleanup is not yet verified; its execution path remains occupied", {
-          reason_code: reason,
-          worker_state: verdicts.worker.state,
-          runtime_state: verdicts.runtime.state,
-          count: occurrence.count
-        }, this.#now().toISOString());
-      }
-      return;
-    }
-    const failureRecordState = this.#cleanupFailureRecordState(taskId, status.attempt);
-    if (failureRecordState !== "none") {
-      const occurrence = this.#counters.record("terminal_cleanup_latched", failureRecordState);
-      if (this.#counters.shouldEmit("terminal_cleanup_latched", failureRecordState)) {
-        this.#store.appendEvent(taskId, "cleanup_unverified", "A recorded tree-cleanup failure with known members keeps the terminal task occupied; cancel runs the recorded-tree scan", {
-          record_state: failureRecordState,
-          count: occurrence.count
-        }, this.#now().toISOString());
-      }
-      return;
-    }
-    await this.#exclusive(async () => {
-      const current = this.#safeStatus(taskId);
-      if (!current || !isTerminalStatus(current.status) || current.cleanup_unverified !== true) return;
-      const currentIdentity = this.#store.readExecutorIdentity(taskId, current.attempt);
-      if (current.attempt !== snapshot.attempt || current.worker_pid !== snapshot.status_worker_pid || (current.zcode_pid ?? null) !== snapshot.zcode_pid || currentIdentity?.worker?.pid !== snapshot.identity?.worker?.pid || currentIdentity?.worker?.fingerprint !== snapshot.identity?.worker?.fingerprint || currentIdentity?.runtime?.pid !== snapshot.identity?.runtime?.pid || currentIdentity?.runtime?.fingerprint !== snapshot.identity?.runtime?.fingerprint) return;
-      this.#store.writeStatus(taskId, { cleanup_unverified: null, worker_pid: null, zcode_pid: null });
-      this.#store.appendEvent(taskId, "cleanup_verified", "Recorded worker and ZCode runtime exits were confirmed; terminal result was preserved", {
-        attempt: snapshot.attempt,
-        worker_reason_code: snapshot.worker_pid === null ? "not_recorded" : verdicts.worker.reason_code,
-        runtime_reason_code: snapshot.zcode_pid === null ? "not_recorded" : verdicts.runtime.reason_code
-      }, this.#now().toISOString());
-      this.#pumpLocked();
-    });
-  }
-  /** Persisted facts needed for one recovery probe cycle. */
-  async #reconcileRunningThreePhase(taskId, status) {
-    const snapshot = {
-      attempt: status.attempt,
-      worker_pid: status.worker_pid,
-      zcode_pid: status.zcode_pid ?? null,
-      started_at: status.started_at,
-      heartbeat: this.#store.readWorkerHeartbeat(taskId, status.attempt),
-      identity: this.#store.readExecutorIdentity(taskId, status.attempt)
-    };
-    const heartbeatAgeMs = snapshot.heartbeat ? this.#now().getTime() - Date.parse(snapshot.heartbeat.heartbeat_at) : Number.NaN;
-    if (snapshot.heartbeat && snapshot.worker_pid !== null && snapshot.heartbeat.worker_pid === snapshot.worker_pid && heartbeatAgeMs >= 0 && heartbeatAgeMs <= 15e3) return;
-    const verdicts = await this.#probeExecutors(snapshot);
-    await this.#exclusive(async () => {
-      const current = this.#safeStatus(taskId);
-      if (!current) return;
-      if (isTerminalStatus(current.status)) return;
-      if (current.attempt !== snapshot.attempt || current.worker_pid !== snapshot.worker_pid || (current.zcode_pid ?? null) !== snapshot.zcode_pid) return;
-      this.#persistProbeVerdicts(taskId, snapshot.attempt, verdicts);
-      this.#applyReconcileVerdicts(taskId, current, snapshot, verdicts);
-    });
-  }
-  async #probeExecutors(snapshot) {
-    const probe = this.#probe;
-    const nowMs = () => this.#now().getTime();
-    const workerIdentity = snapshot.identity?.worker ?? null;
-    const runtimeIdentity = snapshot.identity?.runtime ?? null;
-    if (probe && (snapshot.worker_pid !== null || snapshot.zcode_pid !== null)) {
-      try {
-        const requests = [];
-        if (snapshot.worker_pid !== null) requests.push({ pid: snapshot.worker_pid, identity: workerIdentity });
-        if (snapshot.zcode_pid !== null) requests.push({ pid: snapshot.zcode_pid, identity: runtimeIdentity });
-        const results = await probe.probe(requests);
-        let worker = livenessVerdict(snapshot.worker_pid, this.#isProcessRunning, nowMs);
-        let runtime = snapshot.zcode_pid === null ? { state: "unknown", reason_code: "runtime_pid_not_reported", observed_at: new Date(nowMs()).toISOString() } : livenessVerdict(snapshot.zcode_pid, this.#isProcessRunning, nowMs);
-        let index = 0;
-        if (snapshot.worker_pid !== null) {
-          worker = results[index] ?? worker;
-          index += 1;
-        }
-        if (snapshot.zcode_pid !== null) {
-          runtime = results[index] ?? runtime;
-        }
-        if (worker.state === "unknown") this.#counters.record("probe_unknown_worker", worker.reason_code);
-        if (runtime.state === "unknown") this.#counters.record("probe_unknown_runtime", runtime.reason_code);
-        return { worker, runtime };
-      } catch (error2) {
-        this.#counters.record("probe_failed", boundedErrorMessage(error2, 80));
-      }
-    }
-    return {
-      worker: livenessVerdict(snapshot.worker_pid, this.#isProcessRunning, nowMs),
-      runtime: snapshot.zcode_pid === null ? { state: "unknown", reason_code: "runtime_pid_not_reported", observed_at: new Date(nowMs()).toISOString() } : livenessVerdict(snapshot.zcode_pid, this.#isProcessRunning, nowMs)
-    };
-  }
-  #persistProbeVerdicts(taskId, attempt, verdicts) {
-    try {
-      const current = this.#store.readObservationSnapshot(taskId, attempt).snapshot;
-      const revision = (current?.writers["manager"] ?? -1) + 1;
-      this.#store.writeManagerObservation(taskId, attempt, {
-        worker_probe: { state: verdicts.worker.state, reason_code: verdicts.worker.reason_code },
-        runtime_probe: { state: verdicts.runtime.state, reason_code: verdicts.runtime.reason_code }
-      }, revision, this.#now().toISOString());
-    } catch {
-    }
-  }
-  /** Latches a failed termination (ADR-009): occupancy is retained via
-   * cleanup_unverified and the member pids observed by the failed
-   * transaction are persisted so later claimant scans cover them. The
-   * complete member set is persisted structurally (cleanup-failure.json);
-   * the bounded [cleanup-members: …] marker in the status text is a durable
-   * fallback that is only trusted when complete — a truncated marker (or a
-   * missing/corrupt record) fails later releases closed instead of silently
-   * narrowing the scan (review-round-1 R3 + addendum). */
-  #recordCleanupFailure(taskId, attempt, error2) {
-    const message = boundedErrorMessage(error2, 300);
-    const freshPids = Array.isArray(error2.memberPids) ? error2.memberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0) : [];
-    let metaPids = [];
-    let metaKnownIncomplete = false;
-    try {
-      const previous = this.#store.readAttemptMeta(taskId, attempt, "cleanup-failure.json");
-      if (previous !== null) {
-        metaPids = this.#validMemberPids(previous.member_pids);
-        metaKnownIncomplete = previous.complete === false;
-      }
-    } catch {
-    }
-    const priorMarker = this.#parseCleanupMembersMarker(this.#safeStatus(taskId)?.error);
-    const priorMarkerIncomplete = priorMarker !== null && !priorMarker.complete;
-    const previousPids = [.../* @__PURE__ */ new Set([...metaPids, ...priorMarker?.pids ?? []])];
-    const mergedPids = [.../* @__PURE__ */ new Set([...previousPids, ...freshPids])];
-    const joined = mergedPids.join(",");
-    const fitsWithoutTruncation = joined.length <= 1600 && !(metaKnownIncomplete || priorMarkerIncomplete);
-    const memberMarker = mergedPids.length > 0 ? fitsWithoutTruncation ? ` [cleanup-members: ${joined}]` : ` [cleanup-members: ${mergedPids.slice(0, 200).join(",")},\u2026]` : metaKnownIncomplete || priorMarkerIncomplete ? " [cleanup-members: ,\u2026]" : "";
-    const recordComplete = fitsWithoutTruncation;
-    try {
-      this.#store.writeAttemptMeta(taskId, attempt, "cleanup-failure.json", {
-        member_pids: mergedPids,
-        complete: recordComplete,
-        last_error: message
-      });
-    } catch {
-    }
-    try {
-      this.#store.writeStatus(taskId, {
-        cleanup_unverified: true,
-        error: `cancellation could not be verified: ${boundedErrorMessage(error2, 200)}${memberMarker}`
-      });
-      this.#store.appendEvent(taskId, "cancel_failed", message, mergedPids.length > 0 ? { member_pids: mergedPids } : void 0, this.#now().toISOString());
-    } catch {
-    }
-  }
-  /** Validates a persisted member_pids value (review-round-1 addendum R3): a
-   * PRESENT record without the member_pids field, a null, or a non-array is
-   * corrupt and fails closed — "missing" must never read as "no members". */
-  #validMemberPids(value) {
-    if (value === void 0 || value === null) {
-      throw new TaskManagerError("CANCEL_FAILED", "cleanup failure record is corrupt: member pid list is missing");
-    }
-    if (!Array.isArray(value) || !value.every((pid) => Number.isSafeInteger(pid) && pid > 0)) {
-      throw new TaskManagerError("CANCEL_FAILED", "cleanup failure record is corrupt: member pid list is not a valid array of positive integers");
-    }
-    return value;
-  }
-  /** Parses the durable [cleanup-members: …] marker from a latched status
-   * error text. A TRUNCATED marker (…) is reported as incomplete: it must
-   * never be treated as the full member set (addendum R3 case 2). */
-  #parseCleanupMembersMarker(errorText2) {
-    const marker = /\[cleanup-members: ([0-9,]+)(,…)?\]/u.exec(errorText2 ?? "");
-    if (!marker) return null;
-    const pids = marker[1].split(",").map((part) => Number(part)).filter((pid) => Number.isSafeInteger(pid) && pid > 0);
-    return { pids, complete: marker[2] === void 0 };
-  }
-  /** Classification of the persisted cleanup-failure state for an attempt:
-   * "none" (no record and no known-member marker — legacy latch), "empty"
-   * (explicitly member-less record), "members" (known member pids must stay
-   * covered, including via a complete latch marker), or "corrupt" (fail
-   * closed). A read error is treated as corrupt. */
-  #cleanupFailureRecordState(taskId, attempt) {
-    let meta2 = null;
-    try {
-      meta2 = this.#store.readAttemptMeta(taskId, attempt, "cleanup-failure.json") ?? null;
-    } catch {
-      return "corrupt";
-    }
-    const marker = this.#parseCleanupMembersMarker(this.#safeStatus(taskId)?.error);
-    if (meta2 === null) {
-      if (marker === null) return "none";
-      return marker.complete ? "members" : "corrupt";
-    }
-    let memberPids;
-    try {
-      memberPids = this.#validMemberPids(meta2.member_pids);
-    } catch {
-      return "corrupt";
-    }
-    if (meta2.complete === false) return "corrupt";
-    return memberPids.length > 0 ? "members" : "empty";
-  }
-  /** Recorded pids (with persisted fingerprints when available) that later
-   * claimant scans must cover after a termination failure. The durable
-   * [cleanup-members: …] marker inside the latched status text is ALWAYS
-   * unioned in (R3): a missing or emptied failure record can never narrow
-   * the scan below what the latch itself recorded; a corrupt record — or a
-   * TRUNCATED marker that cannot restore the full set — fails closed before
-   * any scan runs. */
-  #claimantTargets(taskId, attempt, probeSnapshot) {
-    const targets = [];
-    const addPid = (pid, fingerprint) => {
-      if (Number.isSafeInteger(pid) && pid > 0 && !targets.some((t) => t.pid === pid)) targets.push({ pid, fingerprint });
-    };
-    const workerFingerprint = typeof probeSnapshot.identity?.worker?.fingerprint === "string" ? probeSnapshot.identity.worker.fingerprint : null;
-    const runtimeFingerprint = typeof probeSnapshot.identity?.runtime?.fingerprint === "string" ? probeSnapshot.identity.runtime.fingerprint : null;
-    if (probeSnapshot.worker_pid !== null) addPid(probeSnapshot.worker_pid, workerFingerprint);
-    if (probeSnapshot.zcode_pid !== null) addPid(probeSnapshot.zcode_pid, runtimeFingerprint);
-    const marker = this.#parseCleanupMembersMarker(this.#safeStatus(taskId)?.error);
-    if (marker !== null && !marker.complete) {
-      throw new TaskManagerError("CANCEL_FAILED", "cleanup member record is incomplete: the latched member list was truncated and cannot be reconstructed; the task stays occupied");
-    }
-    if (marker !== null) {
-      for (const pid of marker.pids) addPid(pid, null);
-    }
-    let meta2 = null;
-    try {
-      meta2 = this.#store.readAttemptMeta(taskId, attempt, "cleanup-failure.json") ?? null;
-    } catch {
-    }
-    if (meta2 === null) return targets;
-    if (meta2.complete === false) {
-      throw new TaskManagerError("CANCEL_FAILED", "cleanup member record is incomplete: the structured member list is marked partial; the task stays occupied");
-    }
-    for (const pid of this.#validMemberPids(meta2.member_pids)) addPid(pid, null);
-    return targets;
-  }
-  /** Applies confirmed probe verdicts to one unchanged attempt snapshot. */
-  #applyReconcileVerdicts(taskId, status, snapshot, verdicts) {
-    if (status.cleanup_unverified === true) {
-      const occurrence = this.#counters.record("reconcile_latched_cleanup", "cleanup_unverified");
-      if (this.#counters.shouldEmit("reconcile_latched_cleanup", "cleanup_unverified")) {
-        this.#store.appendEvent(taskId, "cleanup_unverified", "Reconciliation skipped: a recorded tree-cleanup failure keeps the task occupied until a verified cancel releases it", {
-          count: occurrence.count
-        }, this.#now().toISOString());
-      }
-      return;
-    }
-    const persistedResult = this.#store.readResult(taskId);
-    if (persistedResult && persistedResult.attempt === status.attempt) {
-      this.#store.writeStatus(taskId, {
-        status: persistedResult.status,
-        finished_at: persistedResult.finished_at,
-        exit_code: persistedResult.exit_code,
-        zcode_session_id: persistedResult.session_id,
-        error_code: persistedResult.error_code ?? null,
-        error: persistedResult.status === "failed" ? persistedResult.summary : null,
-        worker_pid: null,
-        cleanup_unverified: persistedResult.error_code === "cleanup_failed"
-      });
-      return;
-    }
-    const pid = status.worker_pid;
-    const heartbeat = snapshot.heartbeat;
-    const heartbeatAt = heartbeat ? Date.parse(heartbeat.heartbeat_at) : Number.NaN;
-    const heartbeatAgeMs = this.#now().getTime() - heartbeatAt;
-    if (pid !== null && heartbeat?.worker_pid === pid && heartbeatAgeMs >= 0 && heartbeatAgeMs <= 15e3) return;
-    if (verdicts.worker.state === "alive") return;
-    if (verdicts.worker.state === "unknown" && pid !== null) {
-      const occurrence = this.#counters.record("worker_probe_unknown", verdicts.worker.reason_code);
-      if (this.#counters.shouldEmit("worker_probe_unknown", verdicts.worker.reason_code)) {
-        this.#store.appendEvent(taskId, "probe_unknown", "Worker liveness could not be confirmed; the task stays occupied", {
-          reason_code: verdicts.worker.reason_code,
-          count: occurrence.count,
-          observed_at: verdicts.worker.observed_at
-        }, verdicts.worker.observed_at);
-      }
-      return;
-    }
-    const runtimePid = status.zcode_pid ?? null;
-    if (runtimePid !== null && verdicts.runtime.state === "alive") {
-      if (this.#recoverOutcomeCheckpoint(taskId, status, runtimePid, false)) return;
-      this.#store.writeStatus(taskId, { cleanup_unverified: true, error_code: "cleanup_failed", error: "Worker exited while ZCode remains alive; cancel to verify runtime cleanup" });
-      return;
-    }
-    if (runtimePid !== null && verdicts.runtime.state === "unknown") {
-      if (this.#recoverOutcomeCheckpoint(taskId, status, runtimePid, false)) return;
-      const occurrence = this.#counters.record("runtime_probe_unknown", verdicts.runtime.reason_code);
-      if (this.#counters.shouldEmit("runtime_probe_unknown", verdicts.runtime.reason_code)) {
-        this.#store.appendEvent(taskId, "probe_unknown", "ZCode runtime exit could not be confirmed; cleanup stays unverified", {
-          reason_code: verdicts.runtime.reason_code,
-          count: occurrence.count
-        }, verdicts.runtime.observed_at);
-      }
-      this.#store.writeStatus(taskId, { cleanup_unverified: true, error_code: "cleanup_failed", error: "Worker exited; ZCode runtime exit could not be confirmed; cancel to verify cleanup" });
-      return;
-    }
-    if (this.#recoverOutcomeCheckpoint(taskId, status, runtimePid, true)) return;
-    const startedAtMs = status.started_at === null ? Number.NaN : Date.parse(status.started_at);
-    const withinGrace = Number.isFinite(startedAtMs) && this.#now().getTime() - startedAtMs < this.#workerStartGraceMs;
-    const workerBegan = this.#store.readAttemptMeta(taskId, status.attempt, "started.json") !== null;
-    if (pid === null && withinGrace) return;
-    if (pid !== null && workerBegan && withinGrace) return;
-    if (!workerBegan) {
-      const fenceState = jsonWriterFenceState(this.#dataRoot);
-      if (fenceState === "open" && this.#store.claimAttemptRespawn(taskId, status.attempt)) {
-        const writerLeaseToken = this.#store.writerQuiescenceEnabled ? registerPendingWorkerJsonWriter(this.#dataRoot, taskId, status.attempt) : null;
-        let respawned;
-        try {
-          respawned = this.#spawnWorker(this.#dataRoot, taskId, status.attempt, writerLeaseToken ?? void 0);
-        } catch (error2) {
-          if (writerLeaseToken) {
-            try {
-              removePendingWorkerJsonWriterSync(this.#dataRoot, writerLeaseToken);
-            } catch {
-            }
-          }
-          throw error2;
-        }
-        if (writerLeaseToken) bindPendingWorkerJsonWriter(this.#dataRoot, writerLeaseToken, respawned.pid);
-        this.#store.writeStatus(taskId, { worker_pid: respawned.pid });
-        this.#store.appendEvent(
-          taskId,
-          "worker_respawned",
-          `Bridge respawned the worker: previous pid ${String(pid)} exited before writing any task state`,
-          { worker_pid: respawned.pid, worker_pid_previous: pid, attempt: status.attempt }
-        );
-        return;
-      }
-      if (fenceState === "open") {
-        const claimedAt = this.#store.respawnClaimedAt(taskId, status.attempt);
-        if (claimedAt && Date.now() - claimedAt.getTime() < _BridgeTaskManager.RESPAWN_IN_FLIGHT_MS) return;
-      }
-    }
-    const task = this.#store.readTask(taskId);
-    const finishedAt = this.#now().toISOString();
-    const workerStderr = this.#store.readAttemptText(taskId, status.attempt, "worker-stderr.log") ?? "";
-    const failure2 = {
-      code: "worker_lost",
-      message: `worker pid ${String(pid)} is gone without a terminal result${workerStderr.trim() ? "; diagnostic stderr is available in private attempt evidence" : "; worker stderr was empty"}`
-    };
-    const result = buildTaskResult({
-      task,
-      attempt: status.attempt,
-      startedAt: status.started_at,
-      finishedAt,
-      outcome: null,
-      failure: failure2,
-      sessionId: status.zcode_session_id
-    });
-    this.#store.writeResult(taskId, result);
-    this.#store.writeStatus(taskId, {
-      status: "failed",
-      finished_at: finishedAt,
-      error_code: "worker_lost",
-      error: result.summary,
-      worker_pid: null
-    });
-    this.#store.appendEvent(taskId, "error", result.summary, { error_code: "worker_lost" }, finishedAt);
-  }
-  async createTask(task) {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.createTask(task);
-    return this.#exclusive(async () => {
-      this.#assertAdmissionOpen();
-      this.#validateTaskPackage(task);
-      if (this.#store.hasTask(task.task_id)) {
-        const existing = this.#store.readTask(task.task_id);
-        const ref = this.#store.readWorkspaceRef(task.task_id);
-        const sameWorkspace = path10.resolve(task.workspace) === path10.resolve(ref?.requestedPath ?? existing.workspace);
-        const sameExecutionPath = task.worktree_path === void 0 ? existing.worktree_path === void 0 : existing.worktree_path !== void 0 && path10.resolve(task.worktree_path) === path10.resolve(ref?.canonicalPath ?? existing.worktree_path);
-        const normalizedRetry = {
-          ...task,
-          workspace: existing.workspace,
-          ...existing.worktree_path === void 0 ? { worktree_path: void 0 } : { worktree_path: existing.worktree_path }
-        };
-        const fingerprint2 = createHash5("sha256").update(stableJson2(normalizedRetry)).digest("hex");
-        const previous = this.#store.readSubmission(task.task_id);
-        const existingFingerprint = previous?.fingerprint ?? createHash5("sha256").update(stableJson2(existing)).digest("hex");
-        if (!sameWorkspace || !sameExecutionPath || existingFingerprint !== fingerprint2) {
-          throw new TaskManagerError("TASK_ID_CONFLICT", `task_id already belongs to a different request: ${task.task_id}`);
-        }
-        const status2 = this.#store.readStatus(task.task_id);
-        const receipt3 = previous?.receipt ?? {
-          task_id: task.task_id,
-          status: status2.status === "running" ? "running" : "queued",
-          created_at: status2.created_at
-        };
-        this.#store.writeSubmission(task.task_id, { fingerprint: fingerprint2, receipt: receipt3 });
-        return receipt3;
-      }
-      let workspaceRef;
-      try {
-        workspaceRef = await this.#workspaceProvider.resolve(task.workspace, task.task_id, task.worktree_path);
-      } catch (error2) {
-        throw new TaskManagerError(
-          "TASK_INVALID",
-          error2 instanceof Error ? error2.message : String(error2)
-        );
-      }
-      const createdAt = this.#now().toISOString();
-      try {
-        buildTaskPrompt(task);
-      } catch (error2) {
-        throw new TaskManagerError("TASK_INVALID", String(error2));
-      }
-      const normalizedTask = {
-        ...task,
-        workspace: workspaceRef.sourcePath ?? workspaceRef.canonicalPath,
-        ...workspaceRef.mode === "worktree" ? { worktree_path: workspaceRef.canonicalPath } : { worktree_path: void 0 }
-      };
-      const fingerprint = createHash5("sha256").update(stableJson2(normalizedTask)).digest("hex");
-      try {
-        this.#store.createTask(normalizedTask, createdAt);
-        this.#store.writeWorkspaceRef(task.task_id, workspaceRef);
-      } catch (error2) {
-        await this.#workspaceProvider.release(workspaceRef).catch(() => void 0);
-        throw error2;
-      }
-      this.#store.appendEvent(task.task_id, "queued", "Task accepted and queued", void 0, createdAt);
-      this.#store.appendEvent(task.task_id, "workspace_ready", workspaceRef.mode === "worktree" ? "Using the the calling host-selected worktree for execution under the requested project" : "Using the requested project directory for execution", {
-        project_path: workspaceRef.sourcePath ?? workspaceRef.canonicalPath,
-        execution_path: workspaceRef.canonicalPath,
-        ...workspaceRef.mode === "worktree" ? { worktree_path: workspaceRef.canonicalPath } : {},
-        mode: workspaceRef.mode,
-        ...workspaceRef.branchName ? { branch_name: workspaceRef.branchName } : {}
-      }, createdAt);
-      const acceptedReceipt = { task_id: task.task_id, status: "queued", created_at: createdAt };
-      this.#store.writeSubmission(task.task_id, { fingerprint, receipt: acceptedReceipt });
-      this.#pumpLocked();
-      const status = this.#store.readStatus(task.task_id);
-      const receipt2 = status.status === "running" ? {
-        task_id: task.task_id,
-        status: "running",
-        created_at: createdAt
-      } : acceptedReceipt;
-      if (receipt2 !== acceptedReceipt) this.#store.writeSubmission(task.task_id, { fingerprint, receipt: receipt2 });
-      return receipt2;
-    });
-  }
-  async getStatus(taskId) {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.getStatus(taskId);
-    this.#requireTask(taskId);
-    const status = this.#store.readStatus(taskId);
-    const observation = this.#safeObservation(taskId, status);
-    return { ...toPublicStatus(status), ...observation ? { observation } : {} };
-  }
-  async getAttention(taskId) {
-    if (!this.#lifecycleAuthority) {
-      throw new TaskManagerError("TASK_STATE", "attention waiting is unsupported for the JSON Authority");
-    }
-    if (!this.#lifecycleAuthority.getAttention) {
-      throw new TaskManagerError("TASK_STATE", "lifecycle authority does not provide attention snapshots");
-    }
-    return this.#lifecycleAuthority.getAttention(taskId);
-  }
-  /** Observation built by the shared judger; a corrupt/failed build degrades
-   * to a minimal unknown observation instead of failing the status read.
-   * Fresh persisted probe verdicts from the recovery scan are included. */
-  #safeObservation(taskId, status) {
-    try {
-      const snapshot = this.#store.readObservationSnapshot(taskId, status.attempt).snapshot;
-      const probes = snapshot?.worker_probe || snapshot?.runtime_probe ? {
-        task_id: taskId,
-        attempt: status.attempt,
-        worker_pid: status.worker_pid,
-        runtime_pid: status.zcode_pid ?? null,
-        worker: snapshot.worker_probe ?? { state: "unknown", reason_code: "not_probed" },
-        runtime: snapshot.runtime_probe ?? { state: "unknown", reason_code: "not_probed" },
-        probed_at: snapshot.updated_at
-      } : null;
-      return buildTaskObservation(this.#store, taskId, status, {
-        now: this.#now,
-        startGraceMs: this.#workerStartGraceMs,
-        stallHintMs: this.#stallHintMs,
-        probes
-      });
-    } catch {
-      return null;
-    }
-  }
-  async getEvents(input) {
-    if (input.wait_for !== void 0 && input.wait_for !== "attention") {
-      throw new TaskManagerError("TASK_INVALID", "wait_for must be attention when provided");
-    }
-    if (input.wait_for === "attention") return this.#waitForAttention(input);
-    const startCursor = this.#validateEventsInput(input);
-    if (this.#lifecycleAuthority) {
-      if (!this.#lifecycleAuthority.getEvents) throw new TaskManagerError("TASK_STATE", "lifecycle authority does not provide events");
-      return this.#lifecycleAuthority.getEvents(input);
-    }
-    const afterSeq = input.after_seq ?? 0;
-    const limit = input.limit ?? 100;
-    const waitMs = input.wait_ms ?? 0;
-    const deadline = Date.now() + waitMs;
-    const readPage = () => {
-      this.#requireTask(input.task_id);
-      const status = this.#store.readStatus(input.task_id);
-      const observation = this.#safeObservation(input.task_id, status);
-      const bounded3 = Boolean(startCursor) || input.max_bytes !== void 0;
-      const read = bounded3 ? this.#store.readEventsBounded(input.task_id, { afterSeq, limit, view: input.view ?? "raw", maxBytes: input.max_bytes, cursor: startCursor }) : this.#store.readEvents(input.task_id, afterSeq, limit, input.view ?? "raw");
-      const page = {
-        task_id: input.task_id,
-        status: status.status,
-        events: read.events,
-        next_seq: read.nextSeq,
-        has_more: read.hasMore,
-        ...read.omittedEvents ? { omitted_events: read.omittedEvents } : {},
-        ...observation ? { observation } : {}
-      };
-      if (bounded3) {
-        const scan = read;
-        if (scan.scan_incomplete) page.scan_incomplete = true;
-        if (scan.scan_cursor) page.scan_cursor = encodeScanCursor(scan.scan_cursor);
-        page.scan_metrics = {
-          bytes_read: scan.metrics.bytes_read,
-          records_scanned: scan.metrics.records_scanned,
-          invalid_lines: scan.metrics.invalid_lines,
-          corrupt_count: scan.metrics.corrupt_count,
-          first_corrupt_offset: scan.metrics.first_corrupt_offset,
-          index_fallback: scan.metrics.index_fallback ? 1 : 0
-        };
-        return { ...page, cursor_invalid: scan.cursor_invalid };
-      }
-      return page;
-    };
-    while (true) {
-      const page = readPage();
-      if (page.cursor_invalid) {
-        throw new TaskManagerError("TASK_INVALID", "scan_cursor no longer matches the task log (log replaced or truncated); restart with after_seq");
-      }
-      if (page.events.length || isTerminalStatus(page.status) || Date.now() >= deadline) return page;
-      await sleep3(Math.min(250, Math.max(1, deadline - Date.now())));
-    }
-  }
-  async #waitForAttention(input) {
-    const cursor = this.#validateEventsInput(input);
-    if (input.scan_cursor !== void 0 && this.#lifecycleAuthority) {
-      const sqliteCursor = cursor?.cursor;
-      if (!Number.isSafeInteger(sqliteCursor) || Number(sqliteCursor) < 0) {
-        throw new TaskManagerError("TASK_INVALID", "scan_cursor is not a valid cursor for this SQLite task");
-      }
-      if (input.after_seq !== void 0 && input.after_seq !== sqliteCursor) {
-        throw new TaskManagerError("TASK_INVALID", "after_seq conflicts with scan_cursor");
-      }
-    }
-    const waitMs = input.wait_ms ?? 0;
-    await waitForAttentionSnapshot({ read: () => this.getAttention(input.task_id), timeoutMs: waitMs });
-    const page = await this.getEvents({ ...input, wait_for: void 0, wait_ms: 0 });
-    const finalAttention = await this.getAttention(input.task_id);
-    return { ...page, status: finalAttention.status, attention: finalAttention };
-  }
-  #validateEventsInput(input) {
-    const afterSeq = input.after_seq ?? 0;
-    const limit = input.limit ?? 100;
-    const waitMs = input.wait_ms ?? 0;
-    if (!Number.isInteger(afterSeq) || afterSeq < 0) {
-      throw new TaskManagerError("TASK_INVALID", "after_seq must be a non-negative integer");
-    }
-    if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
-      throw new TaskManagerError("TASK_INVALID", "limit must be an integer from 1 to 200");
-    }
-    if (!Number.isInteger(waitMs) || waitMs < 0 || waitMs > 25e3) {
-      throw new TaskManagerError("TASK_INVALID", "wait_ms must be an integer from 0 to 25000");
-    }
-    if (input.view !== void 0 && input.view !== "raw" && input.view !== "summary") {
-      throw new TaskManagerError("TASK_INVALID", "view must be raw or summary");
-    }
-    if (input.max_bytes !== void 0 && (!Number.isInteger(input.max_bytes) || input.max_bytes < 1024 || input.max_bytes > 32 * 1024 * 1024)) {
-      throw new TaskManagerError("TASK_INVALID", "max_bytes must be an integer from 1024 to 33554432");
-    }
-    if (input.scan_cursor === void 0) return null;
-    if (typeof input.scan_cursor !== "string" || input.scan_cursor.length > 2048) {
-      throw new TaskManagerError("TASK_INVALID", "scan_cursor must be an opaque cursor string returned by a previous page");
-    }
-    try {
-      const decoded = JSON.parse(Buffer.from(input.scan_cursor, "base64url").toString("utf8"));
-      if (decoded?.v !== 1 || decoded.task_id !== input.task_id) throw new Error("cursor does not belong to this task");
-      return decoded;
-    } catch {
-      throw new TaskManagerError("TASK_INVALID", "scan_cursor is not a valid cursor for this task; restart the scan with after_seq");
-    }
-  }
-  async getFeedback(taskId) {
-    if (this.#lifecycleAuthority) {
-      if (!this.#lifecycleAuthority.getFeedback) throw new TaskManagerError("TASK_STATE", "lifecycle authority does not provide feedback");
-      return this.#lifecycleAuthority.getFeedback(taskId);
-    }
-    this.#requireTask(taskId);
-    const status = this.#store.readStatus(taskId);
-    const startTime = status.started_at ? Date.parse(status.started_at) : Number.NaN;
-    const relevantTypes = /* @__PURE__ */ new Set(["model_selected", "model_tool_call", "tool_status", "report_ready", "worker_started"]);
-    const attemptEvents = [];
-    let afterSeq = 0;
-    while (true) {
-      const previousSeq = afterSeq;
-      const page = this.#store.readEvents(taskId, afterSeq, 200, "raw");
-      for (const event of page.events) {
-        const eventTime = Date.parse(event.at);
-        if (!Number.isFinite(startTime) || !Number.isFinite(eventTime) || eventTime < startTime) continue;
-        if (relevantTypes.has(event.type)) attemptEvents.push(event);
-      }
-      afterSeq = page.nextSeq;
-      if (!page.hasMore || page.nextSeq <= previousSeq) break;
-    }
-    let currentWorkerStarted = null;
-    for (const event of attemptEvents) {
-      if (event.type === "worker_started" && event.details?.["attempt"] === status.attempt) currentWorkerStarted = event;
-    }
-    const events = attemptEvents.filter((event) => {
-      if (event.type === "worker_started") return false;
-      if (!currentWorkerStarted) return true;
-      return event.seq > currentWorkerStarted.seq;
-    });
-    const result = isTerminalStatus(status.status) ? this.#store.readResult(taskId) : null;
-    return buildTaskFeedbackSnapshotV01({ status: toPublicStatus(status), events, result });
-  }
-  async getResult(taskId) {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.getResult(taskId);
-    return (async () => {
-      this.#requireTask(taskId);
-      const status = this.#store.readStatus(taskId);
-      if (!isTerminalStatus(status.status)) {
-        throw new TaskManagerError(
-          "TASK_NOT_FINISHED",
-          `task ${taskId} is not finished (status: ${status.status})`
-        );
-      }
-      const result = this.#store.readResult(taskId);
-      if (!result) {
-        throw new TaskManagerError(
-          "TASK_NOT_FINISHED",
-          `task ${taskId} has terminal status ${status.status} but no persisted result`
-        );
-      }
-      return result;
-    })();
-  }
-  async replyToInteraction(input) {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.replyToInteraction(input);
-    return this.#exclusive(async () => {
-      this.#requireTask(input.task_id);
-      if (typeof input.request_id !== "string" || !input.request_id.trim() || input.request_id.length > 512) {
-        throw new TaskManagerError("TASK_INVALID", "request_id must be a non-empty string up to 512 characters");
-      }
-      const status = this.#store.readStatus(input.task_id);
-      if (status.status !== "running") {
-        throw new TaskManagerError("TASK_STATE", `ZCode interaction can only be answered while the task is running (status: ${status.status})`);
-      }
-      let record4;
-      try {
-        const read = this.#store.readInteractionRequest(input.task_id, input.request_id);
-        if (!read) throw new TaskManagerError("TASK_NOT_FOUND", `unknown ZCode interaction request: ${input.request_id}`);
-        record4 = read;
-      } catch (error2) {
-        if (error2 instanceof TaskManagerError) throw error2;
-        throw new TaskManagerError(
-          "TASK_STATE",
-          `ZCode interaction request ${input.request_id} could not be read: the persisted full request is unreadable or corrupt`
-        );
-      }
-      if (record4.state === "answered") {
-        throw new TaskManagerError("TASK_STATE", `ZCode interaction request ${input.request_id} was already answered`);
-      }
-      const answer = buildInteractionAnswer(record4, input);
-      const answered = input.decision === "allow" || input.decision === "accept" ? this.#store.answerInteractionRequestVerified(input.task_id, input.request_id, answer, { requireIntegrity: true }, this.#now().toISOString()) : { state: this.#store.answerInteractionRequest(input.task_id, input.request_id, answer, this.#now().toISOString()) };
-      if (answered.state === "already_answered") {
-        throw new TaskManagerError("TASK_STATE", `ZCode interaction request ${input.request_id} was already answered`);
-      }
-      if (answered.state === "integrity_failed") {
-        throw new TaskManagerError(
-          "TASK_STATE",
-          `ZCode interaction request ${input.request_id} cannot be approved: ${answered.reason}; the approval was not recorded as granted`
-        );
-      }
-      this.#store.appendEvent(input.task_id, "interaction_reply_submitted", "the calling host submitted a response to the ZCode interaction", {
-        request_id: input.request_id,
-        method: record4.method,
-        decision: input.decision
-      }, this.#now().toISOString());
-      return { task_id: input.task_id, request_id: input.request_id, state: "answered" };
-    });
-  }
-  async continueTask(input) {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.continueTask(input);
-    return this.#exclusive(async () => {
-      this.#assertAdmissionOpen();
-      const taskId = input.task_id;
-      this.#requireTask(taskId);
-      if (typeof input.feedback !== "string" || input.feedback.trim().length === 0) {
-        throw new TaskManagerError("TASK_INVALID", "feedback must be a non-empty string");
-      }
-      if (input.additional_requirements !== void 0 && (!Array.isArray(input.additional_requirements) || input.additional_requirements.some((item) => typeof item !== "string"))) {
-        throw new TaskManagerError("TASK_INVALID", "additional_requirements must be an array of strings");
-      }
-      const status = this.#store.readStatus(taskId);
-      const continueFingerprint = createHash5("sha256").update(stableJson2({ feedback: input.feedback, additional_requirements: input.additional_requirements ?? [] })).digest("hex");
-      if (input.operation_id !== void 0 && (typeof input.operation_id !== "string" || !input.operation_id.trim() || input.operation_id.length > 128)) {
-        throw new TaskManagerError("TASK_INVALID", "operation_id must be a non-empty string up to 128 characters");
-      }
-      if (input.operation_id) {
-        for (let attempt = 2; attempt <= status.attempt; attempt += 1) {
-          const prior = this.#store.readAttemptMeta(taskId, attempt, "continue.json");
-          if (prior?.operation_id !== input.operation_id) continue;
-          if (prior.fingerprint !== continueFingerprint) throw new TaskManagerError("CONTINUE_OPERATION_CONFLICT", "operation_id already belongs to different continuation input");
-          if (prior.receipt) return prior.receipt;
-          return { task_id: taskId, status: status.status === "running" ? "running" : "queued", created_at: status.created_at };
-        }
-      }
-      if (!["completed", "failed", "waiting_for_master"].includes(status.status)) {
-        throw new TaskManagerError(
-          "TASK_STATE",
-          `zcode_continue is not allowed from status ${status.status}`
-        );
-      }
-      if (status.cleanup_unverified) throw new TaskManagerError("TASK_STATE", "Cannot continue until unverified ZCode process cleanup is resolved");
-      const task = this.#store.readTask(taskId);
-      try {
-        const ref = await this.#workspaceProvider.resolve(task.workspace, taskId, task.worktree_path);
-        const recorded = this.#store.readWorkspaceRef(taskId);
-        if (recorded && (ref.canonicalPath !== recorded.canonicalPath || ref.requestedPath !== recorded.requestedPath)) {
-          throw new Error(`project or execution workspace no longer resolves to its recorded path`);
-        }
-      } catch (error2) {
-        throw new TaskManagerError(
-          "TASK_INVALID",
-          error2 instanceof Error ? error2.message : String(error2)
-        );
-      }
-      const previousAttempt = status.attempt;
-      const previousResult = this.#store.readResult(taskId);
-      try {
-        buildContinuePrompt({ task, feedback: input.feedback, additionalRequirements: input.additional_requirements ?? [], previousSessionId: previousResult?.session_id ?? status.zcode_session_id, previousResult });
-      } catch (error2) {
-        throw new TaskManagerError("TASK_INVALID", String(error2));
-      }
-      const nextAttempt = previousAttempt + 1;
-      const createdAt = this.#now().toISOString();
-      const continuationReceipt = { task_id: taskId, status: "queued", created_at: createdAt };
-      this.#store.archiveResultToAttempt(taskId, previousAttempt);
-      this.#store.writeAttemptMeta(taskId, nextAttempt, "continue.json", {
-        ...input.operation_id ? { operation_id: input.operation_id, fingerprint: continueFingerprint, receipt: continuationReceipt } : {},
-        feedback: input.feedback,
-        additional_requirements: [...input.additional_requirements ?? []],
-        previous_session_id: previousResult?.session_id ?? status.zcode_session_id,
-        previous_attempt: previousAttempt
-      });
-      this.#store.writeStatus(taskId, {
-        status: "queued",
-        attempt: nextAttempt,
-        started_at: null,
-        finished_at: null,
-        worker_pid: null,
-        zcode_session_id: null,
-        exit_code: null,
-        error_code: null,
-        error: null,
-        cancel_requested: null,
-        zcode_pid: null,
-        cleanup_unverified: null
-      });
-      this.#pumpLocked();
-      const after = this.#store.readStatus(taskId);
-      const receipt2 = {
-        task_id: taskId,
-        status: after.status === "running" ? "running" : "queued",
-        created_at: after.updated_at
-      };
-      if (input.operation_id) this.#store.writeAttemptMeta(taskId, nextAttempt, "continue.json", {
-        ...this.#store.readAttemptMeta(taskId, nextAttempt, "continue.json"),
-        receipt: receipt2
-      });
-      return receipt2;
-    });
-  }
-  async cancelTask(taskId) {
-    if (this.#lifecycleAuthority) return this.#lifecycleAuthority.cancelTask(taskId);
-    return this.#exclusive(async () => {
-      this.#requireTask(taskId);
-      const status = this.#store.readStatus(taskId);
-      const identity = this.#store.readExecutorIdentity(taskId, status.attempt);
-      const started = this.#store.readAttemptMeta(taskId, status.attempt, "started.json");
-      const probeSnapshot = {
-        attempt: status.attempt,
-        worker_pid: status.worker_pid ?? identity?.worker?.pid ?? started?.worker_pid ?? null,
-        zcode_pid: status.zcode_pid ?? null,
-        identity
-      };
-      const verdicts = await this.#probeExecutors(probeSnapshot);
-      const workerFingerprint = typeof probeSnapshot.identity?.worker?.fingerprint === "string" ? probeSnapshot.identity.worker.fingerprint : null;
-      const runtimeFingerprint = typeof probeSnapshot.identity?.runtime?.fingerprint === "string" ? probeSnapshot.identity.runtime.fingerprint : null;
-      if (status.cleanup_unverified) {
-        if (probeSnapshot.worker_pid === null && probeSnapshot.zcode_pid === null) {
-          throw new TaskManagerError("CANCEL_FAILED", "No worker or ZCode process identity is available to verify cleanup");
-        }
-        if (probeSnapshot.zcode_pid !== null && verdicts.runtime.state === "unknown") {
-          throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: runtime probe returned ${verdicts.runtime.reason_code}`);
-        }
-        if (probeSnapshot.worker_pid !== null && verdicts.worker.state === "unknown") {
-          throw new TaskManagerError("CANCEL_FAILED", `Worker cleanup could not be verified: worker probe returned ${verdicts.worker.reason_code}`);
-        }
-        const verifiedRoots = /* @__PURE__ */ new Set();
-        try {
-          if (probeSnapshot.zcode_pid !== null && verdicts.runtime.state === "alive") {
-            await this.#terminateProcessTree(probeSnapshot.zcode_pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: runtimeFingerprint });
-            const after = (await this.#probeExecutors(probeSnapshot)).runtime;
-            if (after.state === "alive") throw new Error("runtime still alive after termination");
-            if (after.state === "unknown") throw new Error(`runtime exit could not be verified (${after.reason_code})`);
-            verifiedRoots.add(probeSnapshot.zcode_pid);
-          }
-          if (probeSnapshot.worker_pid !== null && verdicts.worker.state === "alive") {
-            await this.#terminateProcessTree(probeSnapshot.worker_pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: workerFingerprint });
-            verifiedRoots.add(probeSnapshot.worker_pid);
-          }
-        } catch (error2) {
-          this.#recordCleanupFailure(taskId, status.attempt, error2);
-          throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: ${error2 instanceof Error ? error2.message : String(error2)}`);
-        }
-        const scanTargets = this.#claimantTargets(taskId, status.attempt, probeSnapshot).filter((target) => !verifiedRoots.has(target.pid));
-        if (scanTargets.length > 0) {
-          const retainObserved = (observed, livePids, error2) => {
-            const fromError = error2 instanceof WindowsTreeCleanupError ? error2.memberPids : [];
-            const pids = [.../* @__PURE__ */ new Set([...observed ?? [], ...livePids ?? [], ...fromError])].filter((pid2) => Number.isSafeInteger(pid2) && pid2 > 0);
-            if (pids.length === 0) return;
-            const carrier = error2 instanceof WindowsTreeCleanupError && error2.memberPids.length > 0 ? error2 : new WindowsTreeCleanupError(
-              "process_tree_cleanup_unverified",
-              `recorded-tree scan keeps occupancy: ${pids.join(",")} still requires attribution`,
-              pids
-            );
-            this.#recordCleanupFailure(taskId, status.attempt, carrier);
-          };
-          const scan = await this.#verifyTreeClean(scanTargets).catch((error2) => {
-            retainObserved(void 0, void 0, error2);
-            throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup verification failed: ${error2 instanceof Error ? error2.message : String(error2)}`);
-          });
-          if (!scan.clean) {
-            retainObserved(scan.observedPids, scan.livePids);
-            this.#store.appendEvent(taskId, "cleanup_unverified", "Recorded-tree scan still observes live claimants; the task stays occupied", { live_pids: [...scan.livePids] }, this.#now().toISOString());
-            throw new TaskManagerError("CANCEL_FAILED", `ZCode cleanup could not be verified: ${String(scan.livePids.length)} recorded-tree process(es) still alive`);
-          }
-        }
-        if (status.status === "running") {
-          const finishedAt2 = this.#now().toISOString();
-          const result2 = buildTaskResult({ task: this.#store.readTask(taskId), attempt: status.attempt, startedAt: status.started_at, finishedAt: finishedAt2, outcome: null, cancelled: true, sessionId: status.zcode_session_id });
-          this.#store.writeResult(taskId, result2);
-          this.#store.writeStatus(taskId, { status: "cancelled", finished_at: finishedAt2, worker_pid: null, cleanup_unverified: null, zcode_pid: null, error: null, error_code: null, cancel_requested: null });
-        } else this.#store.writeStatus(taskId, { cleanup_unverified: null, zcode_pid: null });
-        this.#pumpLocked();
-        return toPublicStatus(this.#store.readStatus(taskId));
-      }
-      if (isTerminalStatus(status.status)) {
-        throw new TaskManagerError(
-          "TASK_STATE",
-          `zcode_cancel is not allowed from status ${status.status}`
-        );
-      }
-      const task = this.#store.readTask(taskId);
-      if (status.status === "running" && this.#store.readResult(taskId)) {
-        const raced2 = this.#store.readResult(taskId);
-        this.#store.writeStatus(taskId, {
-          status: raced2.status,
-          finished_at: raced2.finished_at,
-          exit_code: raced2.exit_code,
-          zcode_session_id: raced2.session_id,
-          error_code: raced2.error_code ?? null,
-          error: raced2.status === "failed" ? raced2.summary : null,
-          worker_pid: null,
-          cleanup_unverified: raced2.error_code === "cleanup_failed"
-        });
-        this.#pumpLocked();
-        return toPublicStatus(this.#store.readStatus(taskId));
-      }
-      if (status.status === "queued") {
-        const finishedAt2 = this.#now().toISOString();
-        const result2 = buildTaskResult({
-          task,
-          attempt: status.attempt,
-          startedAt: null,
-          finishedAt: finishedAt2,
-          outcome: null,
-          failure: { code: "cancelled", message: "cancelled by request before the task started" },
-          cancelled: true
-        });
-        this.#store.writeResult(taskId, result2);
-        this.#store.writeStatus(taskId, { status: "cancelled", finished_at: finishedAt2 });
-        this.#store.appendEvent(taskId, "cancelled", "Queued task cancelled before worker start", void 0, finishedAt2);
-        this.#pumpLocked();
-        return toPublicStatus(this.#store.readStatus(taskId));
-      }
-      this.#store.writeStatus(taskId, { cancel_requested: true });
-      this.#store.appendEvent(taskId, "cancel_requested", "Cancellation requested; waiting for process-tree confirmation", void 0, this.#now().toISOString());
-      const pid = status.worker_pid;
-      if (pid === null) {
-        const finishedAt2 = this.#now().toISOString();
-        const result2 = buildTaskResult({
-          task,
-          attempt: status.attempt,
-          startedAt: status.started_at,
-          finishedAt: finishedAt2,
-          outcome: null,
-          failure: { code: "worker_lost", message: "running task had no worker pid recorded" }
-        });
-        this.#store.writeResult(taskId, result2);
-        this.#store.writeStatus(taskId, {
-          status: "failed",
-          finished_at: finishedAt2,
-          error_code: "worker_lost",
-          error: result2.summary
-        });
-        return toPublicStatus(this.#store.readStatus(taskId));
-      }
-      if (verdicts.worker.state === "exited") {
-        const racedEarly = this.#store.readResult(taskId);
-        if (racedEarly) {
-          this.#store.writeStatus(taskId, {
-            status: racedEarly.status,
-            finished_at: racedEarly.finished_at,
-            exit_code: racedEarly.exit_code,
-            zcode_session_id: racedEarly.session_id,
-            error_code: racedEarly.error_code ?? null,
-            error: racedEarly.status === "failed" ? racedEarly.summary : null,
-            worker_pid: null,
-            cancel_requested: null,
-            cleanup_unverified: racedEarly.error_code === "cleanup_failed",
-            zcode_pid: racedEarly.error_code === "cleanup_failed" ? status.zcode_pid ?? null : null
-          });
-          this.#pumpLocked();
-          return toPublicStatus(this.#store.readStatus(taskId));
-        }
-        const finishedAt2 = this.#now().toISOString();
-        const reused = verdicts.worker.reason_code.startsWith("pid_reused");
-        const result2 = buildTaskResult({
-          task,
-          attempt: status.attempt,
-          startedAt: status.started_at,
-          finishedAt: finishedAt2,
-          outcome: null,
-          failure: {
-            code: "cancelled",
-            message: reused ? `cancelled by request; the recorded worker pid ${String(pid)} was reused by another process, so the previous executor had already exited` : `cancelled by request; the recorded worker pid ${String(pid)} no longer exists`
-          },
-          cancelled: true,
-          sessionId: status.zcode_session_id
-        });
-        this.#store.writeResult(taskId, result2);
-        this.#store.appendEvent(taskId, "cancelled", "Cancellation confirmed without termination: the recorded worker process was already gone", { reason_code: verdicts.worker.reason_code }, finishedAt2);
-        this.#store.writeStatus(taskId, {
-          status: "cancelled",
-          finished_at: finishedAt2,
-          worker_pid: null,
-          cleanup_unverified: verdicts.runtime.state !== "exited" && status.zcode_pid !== null,
-          zcode_pid: verdicts.runtime.state === "exited" ? null : status.zcode_pid,
-          cancel_requested: null
-        });
-        this.#pumpLocked();
-        return toPublicStatus(this.#store.readStatus(taskId));
-      }
-      const finishedSafely = () => {
-        const result2 = this.#store.readResult(taskId);
-        return result2 !== null && result2.error_code !== "cleanup_failed" && !this.#store.readStatus(taskId).cleanup_unverified && !this.#isProcessRunning(pid) && (!status.zcode_pid || !this.#isProcessRunning(status.zcode_pid));
-      };
-      const waitForSafeExit = async () => {
-        const deadline = Date.now() + 500;
-        do {
-          if (finishedSafely()) return true;
-          await new Promise((resolve) => setTimeout(resolve, 25));
-        } while (Date.now() < deadline);
-        return finishedSafely();
-      };
-      try {
-        if (!await waitForSafeExit()) {
-          if (process.platform !== "win32" && status.zcode_pid && this.#isProcessRunning(status.zcode_pid)) {
-            await this.#terminateProcessTree(status.zcode_pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: runtimeFingerprint });
-          }
-          await this.#terminateProcessTree(pid, { graceMs: 500, killWaitMs: 5e3, expectedRootFingerprint: workerFingerprint });
-        }
-      } catch (error2) {
-        this.#recordCleanupFailure(taskId, status.attempt, error2);
-        const message = error2 instanceof Error ? error2.message : String(error2);
-        throw new TaskManagerError(
-          "CANCEL_FAILED",
-          `process-tree termination for task ${taskId} (pid ${pid}) could not be verified: ${message}`
-        );
-      }
-      const raced = this.#store.readResult(taskId);
-      if (raced) {
-        this.#store.writeStatus(taskId, {
-          status: raced.status,
-          finished_at: raced.finished_at,
-          exit_code: raced.exit_code,
-          zcode_session_id: raced.session_id,
-          error_code: raced.error_code ?? null,
-          error: raced.status === "failed" ? raced.summary : null,
-          worker_pid: null,
-          cancel_requested: null,
-          cleanup_unverified: null,
-          zcode_pid: null
-        });
-        this.#pumpLocked();
-        return toPublicStatus(this.#store.readStatus(taskId));
-      }
-      const finishedAt = this.#now().toISOString();
-      const result = buildTaskResult({
-        task,
-        attempt: status.attempt,
-        startedAt: status.started_at,
-        finishedAt,
-        outcome: null,
-        failure: {
-          code: "cancelled",
-          message: `cancelled by request; worker process tree (pid ${pid}) was terminated and verified`
-        },
-        cancelled: true,
-        sessionId: status.zcode_session_id
-      });
-      this.#store.writeResult(taskId, result);
-      this.#store.appendEvent(taskId, "cancelled", "Worker process tree terminated and cancellation confirmed", void 0, finishedAt);
-      this.#store.writeStatus(taskId, {
-        status: "cancelled",
-        finished_at: finishedAt,
-        worker_pid: null,
-        cleanup_unverified: null,
-        zcode_pid: null,
-        cancel_requested: null
-      });
-      this.#pumpLocked();
-      return toPublicStatus(this.#store.readStatus(taskId));
-    });
-  }
-  // ---- internals (must be called under the mutex) ----
-  #recoverOutcomeCheckpoint(taskId, status, runtimePid, runtimeExited) {
-    const checkpoint = this.#store.readAttemptMeta(taskId, status.attempt, "outcome-checkpoint.json");
-    if (!checkpoint || typeof checkpoint.response !== "string") return false;
-    const outcome = {
-      attempts: 1,
-      cancelled: false,
-      stdoutTruncated: false,
-      stderrTruncated: false,
-      stdout: checkpoint.response,
-      stderr: "",
-      exitCode: typeof checkpoint.exit_code === "number" ? checkpoint.exit_code : null,
-      signal: typeof checkpoint.signal === "string" ? checkpoint.signal : null,
-      sessionId: typeof checkpoint.session_id === "string" ? checkpoint.session_id : null,
-      response: checkpoint.response,
-      usage: checkpoint.usage && typeof checkpoint.usage === "object" ? checkpoint.usage : null,
-      timedOut: false,
-      agentReport: checkpoint.agent_report ?? null,
-      reportCandidate: checkpoint.report_candidate && typeof checkpoint.report_candidate === "object" ? checkpoint.report_candidate : null,
-      reportError: typeof checkpoint.report_error === "string" ? checkpoint.report_error : null,
-      errorCode: typeof checkpoint.error_code === "string" ? checkpoint.error_code : null,
-      cleanupError: typeof checkpoint.cleanup_error === "string" ? checkpoint.cleanup_error : null,
-      cleanupVerified: checkpoint.cleanup_verified === true,
-      cleanupMemberPids: Array.isArray(checkpoint.cleanup_member_pids) ? checkpoint.cleanup_member_pids.filter((pid) => Number.isSafeInteger(pid) && pid > 0) : []
-    };
-    const cleanupVerified = outcome.cleanupVerified && runtimeExited;
-    const failure2 = cleanupVerified ? null : {
-      code: "cleanup_failed",
-      message: outcome.cleanupError ?? "Worker exited before process cleanup could be verified; the ZCode result was recovered from its private checkpoint"
-    };
-    const finishedAt = this.#now().toISOString();
-    if (!outcome.cleanupVerified && outcome.cleanupMemberPids?.length) {
-      this.#store.writeAttemptMeta(taskId, status.attempt, "cleanup-failure.json", {
-        member_pids: [...new Set(outcome.cleanupMemberPids)],
-        complete: true,
-        last_error: (outcome.cleanupError ?? "recovered cleanup was unverified").slice(0, 300)
-      });
-    }
-    const result = buildTaskResult({
-      task: this.#store.readTask(taskId),
-      attempt: status.attempt,
-      startedAt: status.started_at,
-      finishedAt,
-      outcome,
-      failure: failure2,
-      sessionId: status.zcode_session_id ?? outcome.sessionId
-    });
-    this.#store.commitWorkerResult(taskId, status.attempt, result, {
-      status: result.status,
-      finished_at: finishedAt,
-      exit_code: result.exit_code,
-      zcode_session_id: result.session_id,
-      error_code: result.error_code ?? null,
-      error: result.status === "failed" ? result.summary : null,
-      worker_pid: null,
-      cleanup_unverified: !cleanupVerified,
-      zcode_pid: cleanupVerified ? null : runtimePid
-    });
-    this.#store.appendEvent(
-      taskId,
-      "outcome_recovered",
-      cleanupVerified ? "Recovered the completed ZCode report after the worker exited before committing its result" : "Recovered the ZCode report, but process cleanup could not be verified",
-      { status: result.status, cleanup_verified: cleanupVerified },
-      finishedAt
-    );
-    return true;
-  }
-  #pumpLocked() {
-    if (jsonWriterFenceState(this.#dataRoot) !== "open") return;
-    if (this.#occupiedTaskHints.size >= this.#maxConcurrentWorkers) {
-      const revalidated = /* @__PURE__ */ new Set();
-      let allSlotsOccupied = true;
-      for (const taskId of this.#occupiedTaskHints) {
-        const status = this.#safeStatus(taskId);
-        if (status?.status === "running" || status?.cleanup_unverified === true) {
-          revalidated.add(taskId);
-          if (revalidated.size >= this.#maxConcurrentWorkers) break;
-        } else {
-          allSlotsOccupied = false;
-        }
-      }
-      if (allSlotsOccupied && revalidated.size >= this.#maxConcurrentWorkers) {
-        this.#occupiedTaskHints = revalidated;
-        return;
-      }
-      this.#occupiedTaskHints = revalidated;
-    }
-    const snapshot = this.#store.listTaskIds().map((taskId) => ({ taskId, status: this.#safeStatus(taskId) }));
-    const running = snapshot.filter(({ status }) => status?.status === "running" || status?.cleanup_unverified === true).map(({ taskId }) => taskId);
-    this.#occupiedTaskHints = new Set(running.slice(0, this.#maxConcurrentWorkers));
-    if (running.length >= this.#maxConcurrentWorkers) return;
-    const occupiedPaths = running.map((taskId) => this.#executionPathKeyLocked(taskId));
-    for (const { taskId, status } of snapshot) {
-      if (status) continue;
-      try {
-        occupiedPaths.push(this.#executionPathKeyLocked(taskId));
-      } catch {
-        return;
-      }
-    }
-    let slots = this.#maxConcurrentWorkers - running.length;
-    const queued = snapshot.filter(({ status }) => status?.status === "queued").sort((a, b) => a.status.created_at.localeCompare(b.status.created_at));
-    for (const { taskId } of queued) {
-      if (slots <= 0) break;
-      const executionPath = this.#executionPathKeyLocked(taskId);
-      if (occupiedPaths.some((occupied) => pathsOverlap(occupied, executionPath))) continue;
-      this.#startWorkerLocked(taskId);
-      if (this.#store.readStatus(taskId).status === "running") {
-        occupiedPaths.push(executionPath);
-        slots -= 1;
-        const startedStatus = this.#safeStatus(taskId);
-        if ((startedStatus?.status === "running" || startedStatus?.cleanup_unverified === true) && this.#occupiedTaskHints.size < this.#maxConcurrentWorkers) this.#occupiedTaskHints.add(taskId);
-      }
-    }
-  }
-  #executionPathKeyLocked(taskId) {
-    const recorded = this.#store.readWorkspaceRef(taskId)?.canonicalPath;
-    const task = recorded ? null : this.#store.readTask(taskId);
-    const resolved = path10.resolve(recorded ?? task.worktree_path ?? task.workspace);
-    return process.platform === "win32" ? resolved.toLocaleLowerCase("en-US") : resolved;
-  }
-  #startWorkerLocked(taskId) {
-    const status = this.#store.readStatus(taskId);
-    if (status.status !== "queued") return;
-    this.#store.writeStatus(taskId, {
-      status: "running",
-      started_at: this.#now().toISOString(),
-      worker_pid: null
-    });
-    const writerLeaseToken = this.#store.writerQuiescenceEnabled ? registerPendingWorkerJsonWriter(this.#dataRoot, taskId, status.attempt) : null;
-    let pid;
-    try {
-      const spawned = this.#spawnWorker(this.#dataRoot, taskId, status.attempt, writerLeaseToken ?? void 0);
-      pid = spawned.pid;
-    } catch (error2) {
-      if (writerLeaseToken) {
-        try {
-          removePendingWorkerJsonWriterSync(this.#dataRoot, writerLeaseToken);
-        } catch {
-        }
-      }
-      const finishedAt = this.#now().toISOString();
-      const message = error2 instanceof Error ? error2.message : String(error2);
-      const task = this.#store.readTask(taskId);
-      const result = buildTaskResult({
-        task,
-        attempt: status.attempt,
-        startedAt: null,
-        finishedAt,
-        outcome: null,
-        failure: { code: "spawn_failed", message }
-      });
-      this.#store.writeResult(taskId, result);
-      this.#store.writeStatus(taskId, {
-        status: "failed",
-        finished_at: finishedAt,
-        error_code: "spawn_failed",
-        error: result.summary
-      });
-      this.#store.appendEvent(taskId, "error", result.summary, { error_code: "spawn_failed" }, finishedAt);
-      return;
-    }
-    if (writerLeaseToken) {
-      try {
-        bindPendingWorkerJsonWriter(this.#dataRoot, writerLeaseToken, pid);
-      } catch (error2) {
-        this.#store.patchRunningAttempt(taskId, status.attempt, { worker_pid: pid, cleanup_unverified: true });
-        this.#store.appendEvent(taskId, "writer_roster_unknown", "Worker was launched but its writer roster binding could not be verified", {
-          worker_pid: pid,
-          reason: boundedErrorMessage(error2)
-        }, this.#now().toISOString());
-        return;
-      }
-    }
-    this.#store.patchRunningAttempt(taskId, status.attempt, { worker_pid: pid });
-    this.#store.appendEvent(taskId, "worker_started", "Bridge worker started", { worker_pid: pid, attempt: status.attempt }, this.#now().toISOString());
-  }
-  #requireTask(taskId) {
-    if (!this.#store.hasTask(taskId)) {
-      throw new TaskManagerError("TASK_NOT_FOUND", `unknown task_id: ${taskId}`);
-    }
-  }
-  #validateTaskPackage(task) {
-    if (typeof task !== "object" || task === null) {
-      throw new TaskManagerError("TASK_INVALID", "task package must be an object");
-    }
-    if (typeof task.task_id !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(task.task_id)) {
-      throw new TaskManagerError(
-        "TASK_INVALID",
-        "task_id must match [A-Za-z0-9][A-Za-z0-9_-]{0,63}"
-      );
-    }
-    if (typeof task.objective !== "string" || task.objective.trim().length === 0) {
-      throw new TaskManagerError("TASK_INVALID", "objective must be a non-empty string");
-    }
-    for (const field of [
-      "requirements",
-      "allowed_paths",
-      "forbidden_paths",
-      "acceptance_criteria",
-      "test_commands"
-    ]) {
-      const value = task[field];
-      if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
-        throw new TaskManagerError("TASK_INVALID", `${field} must be an array of strings (may be empty)`);
-      }
-    }
-    if (task.context !== void 0 && typeof task.context !== "string") {
-      throw new TaskManagerError("TASK_INVALID", "context must be a string when present");
-    }
-    if (task.timeout_ms !== void 0) {
-      try {
-        validateTaskTimeout(task.timeout_ms);
-      } catch (error2) {
-        throw new TaskManagerError("TASK_INVALID", error2 instanceof Error ? error2.message : String(error2));
-      }
-    }
-    if (typeof task.workspace !== "string" || task.workspace.trim().length === 0) {
-      throw new TaskManagerError("TASK_INVALID", "workspace is required");
-    }
-    if (task.worktree_path !== void 0 && (typeof task.worktree_path !== "string" || task.worktree_path.trim().length === 0)) {
-      throw new TaskManagerError("TASK_INVALID", "worktree_path must be a non-empty absolute path when present");
-    }
-    if (task.model !== void 0 && (typeof task.model !== "object" || task.model === null || typeof task.model.provider_id !== "string" || task.model.provider_id.trim().length === 0 || typeof task.model.model_id !== "string" || task.model.model_id.trim().length === 0 || task.model.reasoning_level !== void 0 && (typeof task.model.reasoning_level !== "string" || task.model.reasoning_level.trim().length === 0))) {
-      throw new TaskManagerError("TASK_INVALID", "model must include non-empty provider_id and model_id strings");
-    }
-  }
-  #assertAdmissionOpen() {
-    try {
-      assertJsonAdmissionOpen(this.#dataRoot);
-    } catch (error2) {
-      throw new TaskManagerError("TASK_STATE", error2 instanceof Error ? error2.message : "JSON writer fence is closed");
-    }
-  }
-  #exclusive(operation) {
-    if (this.#queuedOperations >= 32) return Promise.reject(new TaskManagerError("BRIDGE_BUSY", "Bridge operation queue is full; retry with the same task_id"));
-    this.#queuedOperations += 1;
-    let started = false;
-    let expired = false;
-    let rejectTimeout;
-    const timeout = setTimeout(() => {
-      if (started) return;
-      expired = true;
-      this.#queuedOperations = Math.max(0, this.#queuedOperations - 1);
-      rejectTimeout?.(new TaskManagerError("REQUEST_QUEUE_TIMEOUT", "Bridge operation did not start within 5 seconds; retry with the same task_id"));
-    }, 5e3);
-    const locked = async () => {
-      if (expired) throw new TaskManagerError("REQUEST_QUEUE_TIMEOUT", "Bridge operation expired before it started");
-      started = true;
-      clearTimeout(timeout);
-      this.#queuedOperations = Math.max(0, this.#queuedOperations - 1);
-      try {
-        return await withProcessLock(path10.join(this.#store.tasksRoot, ".manager.lock"), operation, 5e3);
-      } catch (error2) {
-        if (error2 instanceof Error && error2.message.startsWith("timed out waiting for process lock:")) {
-          throw new TaskManagerError("REQUEST_QUEUE_TIMEOUT", "Bridge operation did not acquire the shared scheduling lock within 5 seconds; retry with the same task_id");
-        }
-        throw error2;
-      }
-    };
-    const run = this.#mutex.then(locked, locked);
-    const bounded3 = new Promise((resolve, reject) => {
-      rejectTimeout = reject;
-      run.then(resolve, reject);
-    });
-    this.#mutex = run.catch(() => void 0);
-    return bounded3;
-  }
-  #safeStatus(taskId) {
-    try {
-      const status = this.#store.readStatus(taskId);
-      this.#store.readTask(taskId);
-      this.#store.readWorkspaceRef(taskId);
-      this.#store.readResult(taskId);
-      this.#store.readAttemptMeta(taskId, status.attempt, "started.json");
-      this.#store.readAttemptMeta(taskId, status.attempt, "continue.json");
-      return status;
-    } catch (error2) {
-      console.error(`Bridge skipped corrupt task ${taskId}: ${error2 instanceof Error ? error2.message : String(error2)}`);
-      return null;
-    }
-  }
-};
-function pathsOverlap(left, right) {
-  const relative = path10.relative(left, right);
-  const reverse = path10.relative(right, left);
-  const inside = (value) => value === "" || !path10.isAbsolute(value) && value !== ".." && !value.startsWith(`..${path10.sep}`);
-  return inside(relative) || inside(reverse);
-}
-function encodeScanCursor(cursor) {
-  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64url");
-}
-function stableJson2(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson2).join(",")}]`;
-  if (value && typeof value === "object") return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson2(item)}`).join(",")}}`;
-  return JSON.stringify(value);
-}
-function buildInteractionAnswer(record4, input) {
-  const params = record4.params;
-  if (record4.method === "interaction/requestPermission") {
-    if (input.decision !== "allow" && input.decision !== "deny") {
-      throw new TaskManagerError("TASK_INVALID", "permission requests require decision allow or deny");
-    }
-    if (input.decision === "allow") {
-      const options = Array.isArray(params.options) ? params.options : [];
-      const canAllow = options.some((option) => {
-        const item = asRecord(option);
-        return typeof item.kind === "string" && item.kind.startsWith("allow");
-      });
-      if (!canAllow) throw new TaskManagerError("TASK_INVALID", "ZCode did not offer an allow option for this request");
-    }
-    return {
-      decision: input.decision,
-      ...input.decision === "deny" ? { reason: boundedReason(input.reason) } : {}
-    };
-  }
-  if (input.decision !== "accept" && input.decision !== "decline") {
-    throw new TaskManagerError("TASK_INVALID", "user input requests require decision accept or decline");
-  }
-  if (input.decision === "decline") return { action: "decline" };
-  if (asRecord(params.schema).interaction === "plan_approval") {
-    return { action: "accept", content: { answer_0: "approve" } };
-  }
-  const rawQuestions = Array.isArray(params.questions) ? params.questions : Array.isArray(asRecord(params.input).questions) ? asRecord(params.input).questions : [];
-  const validQuestions = rawQuestions.map(asRecord).filter((question) => typeof question.question === "string").map((question) => question.question);
-  if (!validQuestions.length) throw new TaskManagerError("TASK_INVALID", "ZCode request has no supported questions");
-  const answers = input.answers ?? {};
-  const answerKeys = Object.keys(answers);
-  if (!answerKeys.length) throw new TaskManagerError("TASK_INVALID", "accepting an AskUserQuestion requires answers");
-  if (answerKeys.some((question) => !validQuestions.includes(question))) {
-    throw new TaskManagerError("TASK_INVALID", "answers must be keyed by the exact ZCode question text");
-  }
-  for (const [question, value] of Object.entries(answers)) {
-    if (!value.trim() || value.length > 4e3) {
-      throw new TaskManagerError("TASK_INVALID", `answer for '${question.slice(0, 80)}' must be non-empty and at most 4000 characters`);
-    }
-  }
-  if (Buffer.byteLength(JSON.stringify(answers), "utf8") > 16e3) {
-    throw new TaskManagerError("TASK_INVALID", "combined ZCode answers exceed the 16 KB limit");
-  }
-  return { action: "accept", content: { answers } };
-}
-function boundedReason(reason) {
-  return (reason?.trim() || "the calling host declined this request").slice(0, 2e3);
-}
-function asRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
-}
-function sleep3(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+init_resolver();
+import { homedir as homedir5 } from "node:os";
+import path18 from "node:path";
 
 // node_modules/@modelcontextprotocol/server/dist/index.mjs
 var DEFAULT_MAX_REQUEST_BODY_SIZE = 4 * 1024 * 1024;
 
 // src/mcp/server.ts
-init_errors();
+init_errors2();
 
 // src/mcp/schemas.ts
-var TASK_ID_PATTERN2 = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-var taskIdSchema = string2().regex(TASK_ID_PATTERN2, `task_id must match ${TASK_ID_PATTERN2.source}`);
+var TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+var taskIdSchema = string2().regex(TASK_ID_PATTERN, `task_id must match ${TASK_ID_PATTERN.source}`);
 var stringArray = array(string2());
 var zcodeTaskInputSchema = strictObject({
   task_id: taskIdSchema,
   workspace: string2().min(1),
   worktree_path: string2().min(1).optional(),
   model: strictObject({
-    provider_id: string2().trim().min(1),
+    // ADR-031: provider_id is optional so a plain model (or a
+    // `<ModelId>-StartPlan` alias) is routed once at task creation via
+    // ZCODE_BRIDGE_PREFER_STARTPLAN; an explicit provider stays mandatory
+    // when supplied.
+    provider_id: string2().trim().min(1).optional(),
     model_id: string2().trim().min(1),
     reasoning_level: string2().trim().min(1).optional()
   }).optional(),
@@ -36561,14 +33823,230 @@ var defaultModelSchema = object({
   model: modelSelectionSchema.nullable()
 });
 
-// src/ledger/mcp.ts
-import { createHash as createHash6 } from "node:crypto";
+// src/mcp/server.ts
 init_errors();
 
+// src/ledger/mcp.ts
+import { createHash } from "node:crypto";
+init_errors2();
+
 // src/ledger/bridge.ts
-init_process_lock();
-import { existsSync as existsSync8, mkdirSync as mkdirSync5, readFileSync as readFileSync8, writeFileSync as writeFileSync5 } from "node:fs";
-import path11 from "node:path";
+import { existsSync as existsSync4, mkdirSync as mkdirSync2, readFileSync as readFileSync4, writeFileSync as writeFileSync2 } from "node:fs";
+import path5 from "node:path";
+
+// src/store/process-lock.ts
+import { existsSync as existsSync3, mkdirSync, readFileSync as readFileSync3, renameSync, rmdirSync, statSync as statSync2, unlinkSync, writeFileSync } from "node:fs";
+import { randomUUID } from "node:crypto";
+import path4 from "node:path";
+var selfIdentity = null;
+var TRANSIENT_LOCK_FS_CODES = /* @__PURE__ */ new Set(["EEXIST", "EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
+var DESTINATION_PRESENT_CONTENTION_CODES = /* @__PURE__ */ new Set(["EEXIST", "ENOTEMPTY"]);
+var PUBLICATION_RETRY_PAUSE_MS = 50;
+var PUBLICATION_RETRY_MS = 5e3;
+var WITHDRAW_RETRY_MS = 5e3;
+var SHARED_GUARD_RETRY_MS = 2e3;
+var PRIVATE_CLEANUP_RETRY_MS = 1e3;
+var RETRY_PAUSE_MS = 10;
+function isTransientLockFsError(error2) {
+  return TRANSIENT_LOCK_FS_CODES.has(error2?.code ?? "");
+}
+function pauseBriefly(delayMs = RETRY_PAUSE_MS) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
+}
+async function withProcessLock(directory, operation, timeoutMs = 3e4) {
+  const deadline = Date.now() + timeoutMs;
+  let release;
+  while (!(release = tryAcquireProcessLock(directory))) {
+    if (Date.now() >= deadline) {
+      const owner = describeLockOwner(directory);
+      throw new Error(`timed out waiting for process lock: ${directory}${owner ? ` (live owner: ${owner})` : ""}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  try {
+    return await operation();
+  } finally {
+    release();
+  }
+}
+function describeLockOwner(directory) {
+  try {
+    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
+    if (!Number.isSafeInteger(owner.pid)) return null;
+    return `pid ${String(owner.pid)}${owner.started_at ? `, started ${owner.started_at}` : ""}`;
+  } catch {
+    return null;
+  }
+}
+function tryAcquireProcessLock(directory) {
+  return tryAcquireProcessLockWithRetry(directory, Date.now() + PUBLICATION_RETRY_MS);
+}
+function tryAcquireProcessLockWithRetry(directory, deadline) {
+  const token = randomUUID();
+  if (existsSync3(directory)) return acquireExistingLock(directory);
+  const staging = `${directory}.${process.pid}.${token}.pending`;
+  const ownerRecord = {
+    pid: process.pid,
+    token,
+    started_at: (/* @__PURE__ */ new Date()).toISOString(),
+    // Fingerprint may be null before the async self-identity probe finishes;
+    // null never authorizes binding a recycled PID to a prior owner.
+    identity: selfIdentity ? { fingerprint: selfIdentity.fingerprint, identity_version: selfIdentity.identity_version, platform: selfIdentity.platform } : null
+  };
+  try {
+    mkdirSync(staging, { mode: 448 });
+    writeFileSync(path4.join(staging, "owner.json"), JSON.stringify(ownerRecord), { mode: 384, flag: "wx" });
+    try {
+      renameSync(staging, directory);
+    } catch (error2) {
+      removeStagedLock(staging);
+      const code = error2.code;
+      if (!isTransientLockFsError(error2)) throw error2;
+      if (DESTINATION_PRESENT_CONTENTION_CODES.has(code ?? "") || existsSync3(directory)) {
+        return acquireExistingLock(directory);
+      }
+      if (Date.now() < deadline) {
+        pauseBriefly(PUBLICATION_RETRY_PAUSE_MS);
+        return tryAcquireProcessLockWithRetry(directory, deadline);
+      }
+      throw error2;
+    }
+  } catch (error2) {
+    removeStagedLock(staging);
+    throw error2;
+  }
+  return () => {
+    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
+    if (owner.token !== token) throw new Error("process lock ownership changed");
+    const retired = `${directory}.${token}.retired`;
+    renameWithTransientRetry(directory, retired);
+    removeStagedLock(retired);
+  };
+}
+function renameWithTransientRetry(source, target) {
+  const deadline = Date.now() + WITHDRAW_RETRY_MS;
+  while (true) {
+    try {
+      renameSync(source, target);
+      return;
+    } catch (error2) {
+      if (!isTransientLockFsError(error2) || Date.now() >= deadline) throw error2;
+      pauseBriefly();
+    }
+  }
+}
+function acquireExistingLock(directory) {
+  let owner;
+  try {
+    owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
+    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error("invalid lock owner");
+  } catch {
+    try {
+      if (Date.now() - statSync2(directory).mtimeMs > 3e4) throw new Error(`unreadable lock owner: ${directory}`);
+    } catch (failure2) {
+      if (failure2.code !== "ENOENT") throw failure2;
+    }
+    return null;
+  }
+  try {
+    process.kill(owner.pid, 0);
+  } catch (failure2) {
+    if (failure2.code === "ESRCH") {
+      if (reclaimDeadOwner(directory)) return tryAcquireProcessLock(directory);
+    }
+  }
+  return null;
+}
+function removeStagedLock(directory) {
+  removePrivateFile(path4.join(directory, "owner.json"));
+  removePrivateDirectory(directory);
+}
+function removePrivateFile(file) {
+  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
+  while (true) {
+    try {
+      unlinkSync(file);
+      return;
+    } catch (error2) {
+      const code = error2?.code;
+      if (code === "ENOENT" || !isTransientLockFsError(error2) || Date.now() >= deadline) return;
+      pauseBriefly();
+    }
+  }
+}
+function removePrivateDirectory(directory) {
+  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
+  while (true) {
+    try {
+      rmdirSync(directory);
+      return;
+    } catch (error2) {
+      const code = error2?.code;
+      if (code === "ENOENT" || !isTransientLockFsError(error2) || Date.now() >= deadline) return;
+      pauseBriefly();
+    }
+  }
+}
+function reclaimDeadOwner(directory) {
+  const guard = `${directory}.reclaim`;
+  try {
+    mkdirSync(guard);
+  } catch (error2) {
+    if (error2.code === "EEXIST") return false;
+    throw error2;
+  }
+  let outcome;
+  try {
+    const owner = JSON.parse(readFileSync3(path4.join(directory, "owner.json"), "utf8"));
+    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) {
+      outcome = { kind: "busy" };
+    } else {
+      try {
+        process.kill(owner.pid, 0);
+        outcome = { kind: "busy" };
+      } catch (failure2) {
+        if (failure2.code !== "ESRCH") {
+          outcome = { kind: "busy" };
+        } else {
+          const retired = `${directory}.${randomUUID()}.retired`;
+          renameWithTransientRetry(directory, retired);
+          removeStagedLock(retired);
+          outcome = { kind: "reclaimed" };
+        }
+      }
+    }
+  } catch (error2) {
+    outcome = error2.code === "ENOENT" ? { kind: "busy" } : { kind: "error", error: error2 };
+  }
+  let guardCleanupError = null;
+  try {
+    removeSharedGuard(guard);
+  } catch (error2) {
+    guardCleanupError = error2;
+  }
+  if (outcome.kind === "error") throw outcome.error;
+  if (guardCleanupError !== null) throw guardCleanupError;
+  return outcome.kind === "reclaimed";
+}
+function removeSharedGuard(guard) {
+  const deadline = Date.now() + SHARED_GUARD_RETRY_MS;
+  while (true) {
+    try {
+      rmdirSync(guard);
+      return;
+    } catch (error2) {
+      const code = error2?.code;
+      if (code === "ENOENT") return;
+      if (!isTransientLockFsError(error2) || Date.now() >= deadline) {
+        throw new Error(
+          `could not remove the lock reclaim guard at ${guard} (${code ?? "unknown error"}); a leftover guard blocks all future dead-owner reclaims of this lock and needs manual diagnosis`,
+          { cause: error2 }
+        );
+      }
+      pauseBriefly();
+    }
+  }
+}
 
 // src/ledger/types.ts
 var LedgerError = class extends Error {
@@ -36590,8 +34068,8 @@ var LedgerBridgeLink = class {
   #cursorFile;
   constructor(ledger) {
     this.#ledger = ledger;
-    this.#ledgerDir = path11.join(ledger.root, ".agent-ledger", "ledger");
-    this.#cursorFile = path11.join(this.#ledgerDir, "bridge-cursors.json");
+    this.#ledgerDir = path5.join(ledger.root, ".agent-ledger", "ledger");
+    this.#cursorFile = path5.join(this.#ledgerDir, "bridge-cursors.json");
   }
   /** Persists the run intent, then dispatches; every retry of the same
    * operation keeps the same run and the same executor task id (C2-01). */
@@ -36690,9 +34168,9 @@ var LedgerBridgeLink = class {
     return run;
   }
   #readCursors() {
-    if (!existsSync8(this.#cursorFile)) return {};
+    if (!existsSync4(this.#cursorFile)) return {};
     try {
-      return JSON.parse(readFileSync8(this.#cursorFile, "utf8"));
+      return JSON.parse(readFileSync4(this.#cursorFile, "utf8"));
     } catch {
       return {};
     }
@@ -36700,11 +34178,11 @@ var LedgerBridgeLink = class {
   #writeCursor(runId, executorTaskId, lastSeq) {
     const cursors = this.#readCursors();
     cursors[runId] = { executor_task_id: executorTaskId, last_seq: lastSeq };
-    mkdirSync5(this.#ledgerDir, { recursive: true });
-    const release = tryAcquireProcessLock(path11.join(this.#ledgerDir, "cursor.lock"));
+    mkdirSync2(this.#ledgerDir, { recursive: true });
+    const release = tryAcquireProcessLock(path5.join(this.#ledgerDir, "cursor.lock"));
     if (!release) return;
     try {
-      writeFileSync5(this.#cursorFile, JSON.stringify(cursors, null, 2), { mode: 384 });
+      writeFileSync2(this.#cursorFile, JSON.stringify(cursors, null, 2), { mode: 384 });
     } finally {
       release();
     }
@@ -36952,7 +34430,7 @@ function registerLedgerTools(server, options) {
   });
 }
 function fingerprintOf(value) {
-  return createHash6("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 16);
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex").slice(0, 16);
 }
 
 // src/feedback/renderer.ts
@@ -37034,8 +34512,8 @@ function renderTaskFeedback(snapshot) {
   }
   return lines.join("\n");
 }
-function formatDuration(durationMs2) {
-  const seconds = Math.floor(durationMs2 / 1e3);
+function formatDuration(durationMs) {
+  const seconds = Math.floor(durationMs / 1e3);
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
   return minutes > 0 ? `${minutes}m ${remainingSeconds}s` : `${remainingSeconds}s`;
@@ -37043,7 +34521,7 @@ function formatDuration(durationMs2) {
 
 // src/mcp/server.ts
 var SERVER_NAME = "codex-zcode-bridge";
-var SERVER_VERSION = "1.6.0"; // x-release-please-version
+var SERVER_VERSION = "1.7.0"; // x-release-please-version
 var EXECUTION_NOT_VERDICT = "Results describe Bridge/ZCode execution only: status 'completed' means the invocation and report normalization finished, NOT that the calling host accepted the work. the calling host must independently review the workspace diff and checks before deciding PASS.";
 function okResult2(data) {
   return {
@@ -37097,7 +34575,7 @@ function createBridgeServer(options) {
     "zcode_model_catalog",
     {
       title: "Read available ZCode models",
-      description: "Read models and reasoning levels for this workspace. The Bridge caches the catalog for 24 hours, refreshes when provider settings change or the cache expires, and re-reads provider config before retrying a failed refresh. A cache response has current_model=null; use provider_id/model_id from models in zcode_task.model.",
+      description: "Read models and reasoning levels for this workspace. The Bridge caches the catalog for 24 hours, refreshes when provider settings change or the cache expires, and re-reads provider config before retrying a failed refresh. A cache response has current_model=null; use provider_id/model_id from models in zcode_task.model. Start Plan entries appear as <ModelId>-StartPlan aliases and are entitlement-checked live when such a task runs.",
       inputSchema: zcodeModelCatalogInputSchema,
       outputSchema: modelCatalogSchema
     },
@@ -37149,7 +34627,7 @@ function createBridgeServer(options) {
     "zcode_task",
     {
       title: "Submit one ZCode coding task",
-      description: `Create one complete, independently acceptable coding task for the local ZCode Coding Worker. Delegate a deliverable with clear constraints and acceptance criteria; the Worker owns implementation, tests, and repair end to end. workspace is the calling host project root and determines the ZCode Desktop project identity. The calling host decides whether to create a worktree; if it does, pass its existing absolute directory as optional worktree_path. The Bridge never creates, selects, or removes a worktree. Without worktree_path, ZCode runs directly in workspace. Optional model selects a ZCode provider_id/model_id for this session without changing the project default. Returns a TaskReceipt; the task runs asynchronously in a detached worker. ${EXECUTION_NOT_VERDICT}`,
+      description: `Create one complete, independently acceptable coding task for the local ZCode Coding Worker. Delegate a deliverable with clear constraints and acceptance criteria; the Worker owns implementation, tests, and repair end to end. workspace is the calling host project root and determines the ZCode Desktop project identity. The calling host decides whether to create a worktree; if it does, pass its existing absolute directory as optional worktree_path. The Bridge never creates, selects, or removes a worktree. Without worktree_path, ZCode runs directly in workspace. Optional model: pass provider_id+model_id to force that provider, or omit provider_id with a plain model id or a <ModelId>-StartPlan alias to route once per task (prefer_startplan, default true, prefers Start Plan for plain models). Returns a TaskReceipt; the task runs asynchronously in a detached worker. ${EXECUTION_NOT_VERDICT}`,
       inputSchema: zcodeTaskInputSchema,
       outputSchema: taskReceiptSchema
     },
@@ -37284,92 +34762,162 @@ function createBridgeServer(options) {
   return server;
 }
 
+// src/host/stdio.ts
+init_task_timeout();
+
 // src/runtime/doctor.ts
-import { accessSync as accessSync2, constants, existsSync as existsSync10, readFileSync as readFileSync10, statSync as statSync5 } from "node:fs";
+import { accessSync as accessSync2, constants, existsSync as existsSync6, statSync as statSync3 } from "node:fs";
 import { execFileSync } from "node:child_process";
-import path13 from "node:path";
+import path7 from "node:path";
 
 // src/runtime/account-provider.ts
-import { createHash as createHash7 } from "node:crypto";
-import { existsSync as existsSync9, readFileSync as readFileSync9 } from "node:fs";
-import path12 from "node:path";
-function buildAccountProviderPayload(config2) {
-  const table = readJson(config2.providerBuiltinConfigFile);
-  const providerRules = readProviderRules(table).filter(isRecord2).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string");
-  if (!providerRules.length) return null;
-  const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
-  if (!dataDir) return null;
-  const credentials = readJson(path12.join(dataDir, "config.json"));
-  const credentialProviders = asRecord2(credentials?.provider);
-  const cache = readJson(path12.join(dataDir, "coding-plan-cache.json"));
-  const cacheItems = asRecord2(asRecord2(cache?.entryStatus).items);
+import { createHash as createHash2 } from "node:crypto";
+import { existsSync as existsSync5, readFileSync as readFileSync5 } from "node:fs";
+import path6 from "node:path";
+function buildAccountProviderPayload(config2, verifiedSelection, homeDir, taskProviderId) {
+  const source = readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId);
+  if (!source) return null;
   const providers = {};
   const states = {};
-  for (const rule of providerRules) {
-    const providerId = rule.providerId;
-    const legacyId = configProviderId(providerId, rule);
-    const cacheStatus = asRecord2(cacheItems[legacyId]).status;
-    const legacyConfig = asRecord2(credentialProviders[legacyId]);
-    const options = asRecord2(legacyConfig.options);
-    const entitled = cacheStatus === "available" || legacyConfig.enabled === true && typeof options.apiKey === "string" && options.apiKey.trim().length > 0;
-    providers[providerId] = {
-      ...Array.isArray(rule.config?.builtinModelIds) ? { builtinModelIds: rule.config.builtinModelIds } : {},
-      access: { type: "zhipu-account", entitled }
+  for (const entry of source.entries) {
+    providers[entry.providerId] = {
+      ...entry.builtinModelIds.length ? { builtinModelIds: [...entry.builtinModelIds] } : {},
+      access: { type: entry.accessType, entitled: entry.entitled }
     };
-    states[providerId] = {
-      availability: entitled ? "available" : "unavailable",
-      entitled,
-      current: entitled
+    states[entry.providerId] = {
+      availability: entry.availability,
+      entitled: entry.entitled,
+      ...entry.current === void 0 ? {} : { current: entry.current }
     };
   }
-  const revision = typeof table?.revision === "number" ? table.revision : 0;
-  const resolvedBuiltinPath = path12.resolve(config2.providerBuiltinConfigFile);
   return {
-    revision: `account:codex-zcode-bridge:${Date.now()}`,
-    basedOnZCodeBuiltinRevision: `zcode-builtin:${revision}:${createHash7("sha256").update(resolvedBuiltinPath).digest("hex")}`,
+    revision: accountProviderRevision(source.builtinRevision, providers, states),
+    basedOnZCodeBuiltinRevision: source.builtinRevision,
     providers,
     states
   };
+}
+function accountSettingFile(homeDir) {
+  return path6.join(homeDir, ".zcode", "v2", "setting.json");
 }
 function runtimeAuthReply(providerId, config2) {
   const unavailable = {
     headersApplied: false,
     errorMessage: "Start Plan requires a ZCode desktop captcha session; this headless app-server bridge cannot provide it."
   };
-  if (!providerId?.startsWith("account:")) return unavailable;
-  const table = readJson(config2.providerBuiltinConfigFile);
-  const rule = readProviderRules(table).find(
-    (candidate) => isRecord2(candidate) && candidate.providerId === providerId
-  );
-  if (rule?.config?.access?.mode !== "individual-coding-plan") return unavailable;
-  const legacyId = configProviderId(providerId, rule);
-  const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
-  if (!dataDir) return unavailable;
-  const credentials = readJson(path12.join(dataDir, "config.json"));
-  const cache = readJson(path12.join(dataDir, "coding-plan-cache.json"));
-  const status = asRecord2(asRecord2(asRecord2(cache?.entryStatus).items)[legacyId]).status;
-  const provider = asRecord2(asRecord2(credentials?.provider)[legacyId]);
-  const options = asRecord2(provider.options);
-  const apiKey = typeof options.apiKey === "string" ? options.apiKey.trim() : "";
-  if (!apiKey || status !== "available" && provider.enabled !== true) return unavailable;
-  return { headersApplied: true, requestAuth: { apiKey } };
+  const source = readAccountProviderSource(config2, void 0, void 0);
+  const entry = source?.entries.find((candidate) => candidate.providerId === providerId);
+  if (entry?.planKind !== "individual-coding-plan" || !entry.entitled || !entry.apiKey) return unavailable;
+  return { headersApplied: true, requestAuth: { apiKey: entry.apiKey } };
 }
 function zcodeDataBaseDir(personalProviderConfigFile) {
   const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path12.dirname(path12.dirname(dataDir)) : null;
+  return dataDir ? path6.dirname(path6.dirname(dataDir)) : null;
 }
 function zcodeTasksIndexPath(personalProviderConfigFile) {
   const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path12.join(dataDir, "tasks-index.sqlite") : null;
+  return dataDir ? path6.join(dataDir, "tasks-index.sqlite") : null;
 }
 function zcodeV2DataDir(personalProviderConfigFile) {
-  const absolute = path12.resolve(personalProviderConfigFile);
-  if (path12.basename(absolute).toLowerCase() !== "provider_config.json") return null;
-  const v2Dir = path12.dirname(absolute);
-  if (path12.basename(v2Dir).toLowerCase() !== "v2") return null;
-  const zcodeDir = path12.dirname(v2Dir);
-  if (path12.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
+  const absolute = path6.resolve(personalProviderConfigFile);
+  if (path6.basename(absolute).toLowerCase() !== "provider_config.json") return null;
+  const v2Dir = path6.dirname(absolute);
+  if (path6.basename(v2Dir).toLowerCase() !== "v2") return null;
+  const zcodeDir = path6.dirname(v2Dir);
+  if (path6.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
   return v2Dir;
+}
+function readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId) {
+  const table = readJson(config2.providerBuiltinConfigFile);
+  const providerRules = readProviderRules(table).filter(isRecord).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string").sort((left, right) => left.providerId.localeCompare(right.providerId));
+  if (!providerRules.length) return null;
+  const officialDataRoot = path6.resolve(config2.zcodeDataRoot);
+  const officialV2Dir = zcodeV2Dir(officialDataRoot);
+  if (!officialV2Dir) return null;
+  const credentials = readJson(path6.join(officialV2Dir, "config.json"));
+  const credentialProviders = asRecord(credentials?.provider);
+  const cache = readJson(path6.join(officialV2Dir, "coding-plan-cache.json"));
+  const cacheItems = asRecord(asRecord(cache?.entryStatus).items);
+  const settingFile = homeDir ? accountSettingFile(homeDir) : path6.join(officialV2Dir, "setting.json");
+  const settings = readJson(settingFile);
+  const selectedKeys = asRecord(settings?.modelProviderFamilySelectedKeys);
+  const rawConnectionSelections = settings?.providerFamilyConnectionSelections;
+  const connectionSelectionsPresent = settings !== null && Object.prototype.hasOwnProperty.call(settings, "providerFamilyConnectionSelections");
+  const connectionSelections = asRecord(rawConnectionSelections);
+  const connectionSelectionsInvalid = connectionSelectionsPresent && !isRecord(rawConnectionSelections);
+  const taskAccountProviderId = taskProviderId && providerRules.some((rule) => rule.providerId === taskProviderId) ? taskProviderId : null;
+  const entries = providerRules.map((rule) => {
+    const providerId = rule.providerId;
+    const legacyId = configProviderId(providerId, rule);
+    const planKind = normalizePlanKind(rule.config?.access?.mode);
+    const cacheStatus = asRecord(cacheItems[legacyId]).status;
+    const legacyConfig = asRecord(credentialProviders[legacyId]);
+    const options = asRecord(legacyConfig.options);
+    const apiKey = typeof options.apiKey === "string" ? options.apiKey.trim() : "";
+    const selectedEntitled = verifiedSelection?.providerId === providerId && Array.isArray(rule.config?.builtinModelIds) && rule.config.builtinModelIds.includes(verifiedSelection.modelId);
+    if (verifiedSelection?.providerId === providerId && !selectedEntitled) {
+      throw new Error("start_plan_model_not_registered");
+    }
+    const entitled = planKind === "start-plan" ? selectedEntitled : cacheStatus === "available" || legacyConfig.enabled === true && apiKey.length > 0;
+    const desktopCurrent = isCurrentProvider(
+      rule,
+      legacyId,
+      selectedKeys,
+      connectionSelectionsInvalid,
+      connectionSelections
+    );
+    const current = taskAccountProviderId ? providerId === taskAccountProviderId : desktopCurrent;
+    return {
+      providerId,
+      legacyId,
+      planKind,
+      accessType: rule.config?.access?.type ?? "zhipu-account",
+      builtinModelIds: [...rule.config?.builtinModelIds ?? []],
+      entitled,
+      availability: entitled ? "available" : "unavailable",
+      current,
+      apiKey
+    };
+  });
+  const builtinRevision = zcodeBuiltinRevision(table, config2.providerBuiltinConfigFile);
+  return { officialDataRoot, officialV2Dir, settingFile, builtinRevision, entries };
+}
+function zcodeV2Dir(zcodeDataRoot) {
+  if (path6.basename(zcodeDataRoot).toLowerCase() !== ".zcode") return null;
+  return path6.join(zcodeDataRoot, "v2");
+}
+function zcodeBuiltinRevision(table, sourceFile) {
+  const revision = typeof table?.revision === "number" ? table.revision : 0;
+  const sourceDigest = createHash2("sha256").update(path6.resolve(sourceFile)).digest("hex");
+  return `zcode-builtin:${revision}:${sourceDigest}`;
+}
+function accountProviderRevision(builtinRevision, providers, states) {
+  return `account:${JSON.stringify([builtinRevision, providers, states])}`;
+}
+function isCurrentProvider(rule, legacyId, selectedKeys, connectionSelectionsInvalid, connectionSelections) {
+  const access = rule.config?.access;
+  if (!access?.accountType) return false;
+  if (access.mode === "off-peak" || access.mode === "highspeed") return void 0;
+  if (connectionSelectionsInvalid) return false;
+  if (Object.prototype.hasOwnProperty.call(connectionSelections, access.accountType)) {
+    const connection = asRecord(connectionSelections[access.accountType]);
+    if (!isConnectionSelectionKind(connection.kind)) return false;
+    if (connection.kind === "team-coding-plan" && (!isNonEmptyString(connection.productId) || !isNonEmptyString(connection.organizationId) || !isNonEmptyString(connection.projectId))) {
+      return false;
+    }
+    return connection.kind === access.mode;
+  }
+  const selected = selectedKeys[access.accountType];
+  return typeof selected === "string" && (selected === legacyId || selected.endsWith(`:${legacyId}`));
+}
+function isConnectionSelectionKind(value) {
+  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan";
+}
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+function normalizePlanKind(value) {
+  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan" || value === "off-peak" || value === "highspeed" ? value : null;
 }
 function configProviderId(providerId, rule) {
   const access = rule.config?.access;
@@ -37378,30 +34926,32 @@ function configProviderId(providerId, rule) {
   return `builtin:${access.accountType}-${plan}`;
 }
 function readProviderRules(table) {
-  const providerConfigRules = asRecord2(asRecord2(table?.config).providerConfigRules);
+  const providerConfigRules = asRecord(asRecord(table?.config).providerConfigRules);
   return Array.isArray(providerConfigRules.providerRules) ? providerConfigRules.providerRules : [];
 }
 function readJson(filePath) {
   try {
-    if (!existsSync9(filePath)) return null;
-    const value = JSON.parse(readFileSync9(filePath, "utf8"));
-    return isRecord2(value) ? value : null;
+    if (!existsSync5(filePath)) return null;
+    const value = JSON.parse(readFileSync5(filePath, "utf8"));
+    return isRecord(value) ? value : null;
   } catch {
     return null;
   }
 }
-function asRecord2(value) {
-  return isRecord2(value) ? value : {};
+function asRecord(value) {
+  return isRecord(value) ? value : {};
 }
-function isRecord2(value) {
+function isRecord(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 // src/runtime/doctor.ts
+init_errors();
 init_child_env();
 init_paths();
 
 // src/runtime/session-preferences.ts
+init_errors();
 init_trusted_local_profile();
 var ZCODE_SESSION_MODES = ["plan", "build", "edit", "yolo"];
 function resolveSessionPreferences(taskModel, env, trustedExecutionProfileId) {
@@ -37455,6 +35005,7 @@ function isSessionMode(value) {
 }
 
 // src/runtime/doctor.ts
+init_resolver();
 async function runBridgeDoctor(options = {}) {
   const sourceEnv = options.env ?? process.env;
   let env = sourceEnv;
@@ -37529,13 +35080,13 @@ async function runBridgeDoctor(options = {}) {
     let effectiveBase = setting.dataBaseDir;
     let baseSource;
     if (explicitHome && homeValid) {
-      effectiveBase = path13.dirname(path13.resolve(explicitHome));
+      effectiveBase = path7.dirname(path7.resolve(explicitHome));
       baseSource = explicitBase ? "explicit ZCODE_HOME and ZCODE_DATA_BASE_DIR (consistent)" : "explicit ZCODE_HOME (parent directory)";
     } else if (explicitBase && baseValid) {
-      effectiveBase = path13.resolve(explicitBase);
+      effectiveBase = path7.resolve(explicitBase);
       baseSource = "explicit ZCODE_DATA_BASE_DIR";
     } else if (explicitHome || explicitBase) {
-      effectiveBase = path13.resolve(explicitHome ?? explicitBase);
+      effectiveBase = path7.resolve(explicitHome ?? explicitBase);
       baseSource = `explicit ${explicitHome ? "ZCODE_HOME" : "ZCODE_DATA_BASE_DIR"} (invalid absolute path)`;
     } else {
       baseSource = setting.migrated ? "setting.json dataBaseDir" : "default (user directory)";
@@ -37543,7 +35094,7 @@ async function runBridgeDoctor(options = {}) {
     let dataDirStatus = "ok";
     let dataDirSummary = `ZCode data base directory: ${effectiveBase} (from ${baseSource})`;
     if (explicitHome && explicitBase) {
-      if (!sameFileSystemPath(path13.dirname(path13.resolve(explicitHome)), path13.resolve(explicitBase))) {
+      if (!sameFileSystemPath(path7.dirname(path7.resolve(explicitHome)), path7.resolve(explicitBase))) {
         dataDirStatus = "error";
         dataDirSummary = `ZCODE_HOME (${explicitHome}) and ZCODE_DATA_BASE_DIR (${explicitBase}) conflict; ZCODE_HOME must be <ZCODE_DATA_BASE_DIR>/.zcode`;
       }
@@ -37554,7 +35105,7 @@ async function runBridgeDoctor(options = {}) {
     }
     if (dataDirStatus === "ok") {
       try {
-        const inspectDirectory = options.dataDirStat ?? statSync5;
+        const inspectDirectory = options.dataDirStat ?? statSync3;
         const directoryInfo = inspectDirectory(effectiveBase);
         if (!directoryInfo.isDirectory()) {
           dataDirStatus = "error";
@@ -37580,10 +35131,10 @@ async function runBridgeDoctor(options = {}) {
   if (explicitRuntime) {
     let explicitRuntimeStatus = "ok";
     const automaticDiscovery = install.installDir ? `; auto-discovery would choose ${install.installDir} (${install.source})` : "; auto-discovery found no complete installation";
-    let explicitRuntimeSummary = `Runtime is explicitly configured (ZCODE_BRIDGE_ZCODE_CJS); the builtin provider config is derived from the same installation: ${path13.dirname(path13.dirname(explicitRuntime))}${automaticDiscovery}`;
+    let explicitRuntimeSummary = `Runtime is explicitly configured (ZCODE_BRIDGE_ZCODE_CJS); the builtin provider config is derived from the same installation: ${path7.dirname(path7.dirname(explicitRuntime))}${automaticDiscovery}`;
     try {
       if (!isAbsolutePathForPlatform(explicitRuntime)) throw new Error("not a full absolute path");
-      const runtimeStat = statSync5(explicitRuntime);
+      const runtimeStat = statSync3(explicitRuntime);
       if (!runtimeStat.isFile()) throw new Error("not a regular file");
       accessSync2(explicitRuntime, constants.R_OK);
     } catch (error2) {
@@ -37667,10 +35218,10 @@ async function runBridgeDoctor(options = {}) {
       });
     } else if (browserUse === "headless") {
       if (browserExecutable) {
-        if (!path13.isAbsolute(browserExecutable)) {
+        if (!path7.isAbsolute(browserExecutable)) {
           checks.push({ name: "browser_host", status: "error", summary: `ZCODE_BRIDGE_BROWSER_EXECUTABLE must be an absolute path: ${browserExecutable}` });
-        } else if (existsSync10(browserExecutable)) {
-          checks.push({ name: "browser_host", status: "ok", summary: `Headless browser host is enabled with the configured executable (${path13.basename(browserExecutable)})` });
+        } else if (existsSync6(browserExecutable)) {
+          checks.push({ name: "browser_host", status: "ok", summary: `Headless browser host is enabled with the configured executable (${path7.basename(browserExecutable)})` });
         } else {
           checks.push({ name: "browser_host", status: "error", summary: `Configured browser executable does not exist: ${browserExecutable}` });
         }
@@ -37681,9 +35232,9 @@ async function runBridgeDoctor(options = {}) {
       checks.push({ name: "browser_host", status: "warning", summary: `ZCODE_BRIDGE_BROWSER_USE must be "off" or "headless"; got "${browserUse}" \u2014 the browser host stays disabled` });
     }
     const dataRoot = options.dataRoot ?? env["ZCODE_BRIDGE_DATA_DIR"]?.trim() ?? null;
-    if (dataRoot && existsSync10(dataRoot)) {
+    if (dataRoot && existsSync6(dataRoot)) {
       try {
-        const info = statSync5(dataRoot);
+        const info = statSync3(dataRoot);
         accessSync2(dataRoot, constants.W_OK);
         checks.push({ name: "task_data", status: info.isDirectory() ? "ok" : "error", summary: info.isDirectory() ? "Bridge task data directory exists and is writable" : "Bridge task data path is not a directory" });
       } catch {
@@ -37695,8 +35246,8 @@ async function runBridgeDoctor(options = {}) {
     const indexPath = zcodeTasksIndexPath(config2.providerPersonalConfigFile);
     checks.push({
       name: "desktop_index",
-      status: indexPath && existsSync10(indexPath) ? "ok" : "warning",
-      summary: indexPath && existsSync10(indexPath) ? "ZCode Desktop task index file exists; Desktop refresh timing is not tested" : "ZCode Desktop task index file was not found at the configured data location"
+      status: indexPath && existsSync6(indexPath) ? "ok" : "warning",
+      summary: indexPath && existsSync6(indexPath) ? "ZCode Desktop task index file exists; Desktop refresh timing is not tested" : "ZCode Desktop task index file was not found at the configured data location"
     });
   } else {
     checks.push({ name: "runtime_node", status: "unknown", summary: "Not checked because runtime validation did not complete" });
@@ -37705,7 +35256,7 @@ async function runBridgeDoctor(options = {}) {
     checks.push({ name: "desktop_index", status: "unknown", summary: "Not checked because the active ZCode data location is unknown" });
   }
   checks.push({ name: "app_server", status: "unknown", summary: "Not probed; doctor does not start an app-server session" });
-  checks.push({ name: "start_plan", status: "warning", summary: "Unsupported through the headless Bridge; ZCode Start Plan requires a Desktop captcha session" });
+  checks.push({ name: "start_plan", status: "warning", summary: "Selected Start Plan tasks require a live account/model entitlement check before provider registration; CAPTCHA-required responses fail closed, and Doctor does not send Billing requests" });
   checks.push({ name: "permission_roundtrip", status: "unknown", summary: "Bridge protocol tests exist; a real ZCode permission-approval roundtrip has not been verified" });
   checks.push({
     name: "process_probe",
@@ -37725,82 +35276,14 @@ async function runBridgeDoctor(options = {}) {
       checks.push({ name: "active_tasks", status: "unknown", summary: `SQLite lifecycle diagnostics unavailable: ${safeError(error2)}` });
       checks.push({ name: "recovery_lock", status: "unknown", summary: "SQLite Recovery state is unknown; the bound Authority could not be read" });
     }
-  } else if (observedRoot && existsSync10(path13.join(observedRoot, "bridge.sqlite"))) {
+  } else if (observedRoot && existsSync6(path7.join(observedRoot, "bridge.sqlite"))) {
     checks.push({ name: "active_tasks", status: "unknown", summary: "SQLite data root is present but no lifecycle Authority diagnostics are bound" });
     checks.push({ name: "recovery_lock", status: "unknown", summary: "SQLite Recovery state is unknown; JSON recovery locks are not authoritative" });
-  } else if (observedRoot && existsSync10(observedRoot)) {
-    try {
-      const { TaskStore: Store } = await Promise.resolve().then(() => (init_task_store(), task_store_exports));
-      const { buildTaskObservation: buildTaskObservation2, inferExecutionStage: inferExecutionStage2 } = await Promise.resolve().then(() => (init_build(), build_exports));
-      const store = new Store(observedRoot);
-      const activeAll = store.listTaskIds().map((taskId) => {
-        try {
-          const status = store.readStatus(taskId);
-          return { taskId, status };
-        } catch {
-          return null;
-        }
-      }).filter((entry) => entry !== null).filter((entry) => entry.status.status === "running" || entry.status.status === "queued" || entry.status.cleanup_unverified === true);
-      const queued = activeAll.filter((entry) => entry.status.status === "queued");
-      const cleanupPending = activeAll.filter((entry) => entry.status.cleanup_unverified === true);
-      const running = activeAll.filter((entry) => entry.status.status === "running");
-      const active = activeAll.slice(0, 32);
-      if (active.length === 0) {
-        checks.push({ name: "active_tasks", status: "ok", summary: "No queued/running tasks" });
-      } else {
-        const lines = active.map((entry) => {
-          try {
-            const observation = buildTaskObservation2(store, entry.taskId, entry.status);
-            const stage = inferExecutionStage2(store, entry.taskId, entry.status);
-            return `${entry.taskId}#${entry.status.attempt}: ${observation.activity.code} (stage ${stage}, worker ${observation.worker.state}, runtime ${observation.runtime.state}, result ${observation.result}, cleanup ${observation.cleanup}${observation.stalled ? ", stalled-hint" : ""})`;
-          } catch (error2) {
-            return `${entry.taskId}#${entry.status.attempt}: observation unavailable (${safeError(error2)})`;
-          }
-        });
-        const oldestQueuedAt = queued.map((entry) => Date.parse(entry.status.created_at)).filter(Number.isFinite).sort((a, b) => a - b)[0];
-        const queueAge = oldestQueuedAt === void 0 ? "unknown" : `${Math.floor(Math.max(0, Date.now() - oldestQueuedAt) / 6e4)}m`;
-        const blocked = queued.length > 0 || cleanupPending.length > 0;
-        const summary = `${running.length} running, ${queued.length} queued, ${cleanupPending.length} cleanup-unverified; oldest queue ${queueAge}${blocked ? "; dispatch may be blocked" : ""}. ${lines.join("; ")}`;
-        checks.push({ name: "active_tasks", status: blocked ? "warning" : "ok", summary: summary.slice(0, 1200) });
-      }
-      checks.push(inspectRecoveryLock(path13.join(store.tasksRoot, ".recovery.lock")));
-    } catch (error2) {
-      checks.push({ name: "active_tasks", status: "unknown", summary: safeError(error2) });
-    }
+  } else {
+    checks.push({ name: "active_tasks", status: "unknown", summary: "No SQLite lifecycle Authority diagnostics are bound" });
+    checks.push({ name: "recovery_lock", status: "unknown", summary: "Recovery state requires the bound SQLite Authority" });
   }
   return { checked_at: (/* @__PURE__ */ new Date()).toISOString(), execution_mode: mode, checks };
-}
-function inspectRecoveryLock(lockDirectory) {
-  if (!existsSync10(lockDirectory)) {
-    return { name: "recovery_lock", status: "ok", summary: "No persisted recovery lock is blocking task reconciliation" };
-  }
-  try {
-    const lockStat = statSync5(lockDirectory);
-    const raw = readFileSync10(path13.join(lockDirectory, "owner.json"), "utf8");
-    const owner = JSON.parse(raw);
-    if (!Number.isSafeInteger(owner.pid) || (owner.pid ?? 0) <= 0 || typeof owner.token !== "string" || !owner.token) {
-      throw new Error("invalid lock owner record");
-    }
-    const ageMs2 = Date.now() - lockStat.mtimeMs;
-    if (ageMs2 <= 3e4) {
-      return { name: "recovery_lock", status: "ok", summary: "A recent recovery pass owns the reconciliation lock" };
-    }
-    try {
-      process.kill(owner.pid, 0);
-      return { name: "recovery_lock", status: "warning", summary: "Recovery lock is older than 30 seconds and its owner PID still exists; reconciliation may be stalled" };
-    } catch (error2) {
-      if (error2.code === "ESRCH") {
-        return { name: "recovery_lock", status: "warning", summary: "Recovery lock owner PID is absent; the next recovery pass should reclaim the lock" };
-      }
-      return { name: "recovery_lock", status: "warning", summary: "Recovery lock owner liveness could not be confirmed" };
-    }
-  } catch (error2) {
-    const ageMs2 = Date.now() - statSync5(lockDirectory).mtimeMs;
-    if (ageMs2 <= 3e4) {
-      return { name: "recovery_lock", status: "warning", summary: "Recovery lock owner record is being published or is unreadable; check again if it persists" };
-    }
-    return { name: "recovery_lock", status: "error", summary: `Recovery lock owner record is unreadable; automated reconciliation is blocked and needs repair (${safeError(error2)})` };
-  }
 }
 function safeError(error2) {
   const message = error2 instanceof Error ? error2.message : String(error2);
@@ -37809,15 +35292,366 @@ function safeError(error2) {
 
 // src/runtime/model-settings.ts
 init_child_env();
-import { spawn as spawn4 } from "node:child_process";
-import { createHash as createHash8, randomUUID as randomUUID4 } from "node:crypto";
+import { spawn as spawn3 } from "node:child_process";
+import { createHash as createHash3, randomUUID as randomUUID2 } from "node:crypto";
 import { mkdir, readFile as readFile2, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
-import path14 from "node:path";
+import path9 from "node:path";
+
+// src/runtime/desktop-host-launch.ts
+init_errors();
+import { closeSync, openSync, readSync } from "node:fs";
+import path8 from "node:path";
+var ZCODE_APP_VERSION_ENV = "ZCODE_APP_VERSION";
+var ZCODE_BUILD_COMMIT_ID_ENV = "ZCODE_BUILD_COMMIT_ID";
+var APP_SERVER_ARGS = ["app-server", "--stdio", "--surface", "desktop"];
+var BUILD_METADATA_PATH = ["out", "metadata", "build-meta.json"];
+var MAX_ASAR_HEADER_BYTES = 32 * 1024 * 1024;
+var MAX_METADATA_BYTES = 64 * 1024;
+var VERSION_PATTERN = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
+var BUILD_COMMIT_PATTERN = /^[0-9a-f]{8}$/u;
+function buildZCodeAppServerLaunch(zcodeEntrypoint, baseEnv) {
+  const metadata = readDesktopMetadata(zcodeEntrypoint);
+  return {
+    args: [...APP_SERVER_ARGS],
+    env: metadata === null ? { ...baseEnv } : {
+      ...baseEnv,
+      [ZCODE_APP_VERSION_ENV]: metadata.appVersion,
+      [ZCODE_BUILD_COMMIT_ID_ENV]: metadata.buildCommitId
+    }
+  };
+}
+function readDesktopMetadata(zcodeEntrypoint) {
+  const archivePath = path8.resolve(path8.dirname(zcodeEntrypoint), "..", "app.asar");
+  let archive;
+  try {
+    archive = readAsarMetadataFiles(archivePath);
+  } catch (error2) {
+    if (isMissingFile(error2)) return null;
+    throw invalidMetadata("could not be read");
+  }
+  if (archive === null) return null;
+  const packageJson = parseObject(archive.packageJson, "package.json");
+  const buildMetadata = parseObject(archive.buildMetadata, "build-meta.json");
+  const packageVersion = packageJson["version"];
+  const appVersion = buildMetadata["appVersion"];
+  const buildCommitId = buildMetadata["buildCommitId"];
+  if (typeof packageVersion !== "string" || typeof appVersion !== "string" || typeof buildCommitId !== "string") {
+    throw invalidMetadata("is missing required fields");
+  }
+  if (!VERSION_PATTERN.test(packageVersion) || !VERSION_PATTERN.test(appVersion) || !BUILD_COMMIT_PATTERN.test(buildCommitId)) {
+    throw invalidMetadata("uses an unsupported version or build commit format");
+  }
+  if (packageVersion !== appVersion) {
+    throw invalidMetadata("contains conflicting application versions");
+  }
+  return { appVersion, buildCommitId };
+}
+function readAsarMetadataFiles(archivePath) {
+  const fd = openSync(archivePath, "r");
+  try {
+    const sizeHeader = Buffer.alloc(16);
+    readExact(fd, sizeHeader, 16, 0);
+    if (sizeHeader.readUInt32LE(0) !== 4) throw new Error("invalid asar header");
+    const headerPayloadBytes = sizeHeader.readUInt32LE(4);
+    const headerBytes = sizeHeader.readUInt32LE(12);
+    if (headerBytes === 0 || headerBytes > MAX_ASAR_HEADER_BYTES || headerPayloadBytes < headerBytes) {
+      throw new Error("invalid asar header size");
+    }
+    const headerBuffer = Buffer.alloc(headerBytes);
+    readExact(fd, headerBuffer, headerBytes, 16);
+    const root = parseObject(headerBuffer, "asar header");
+    if (!isRecord2(root.files)) throw new Error("asar header file table is not an object");
+    const buildEntry = findEntry(root.files, BUILD_METADATA_PATH);
+    if (buildEntry === null) return null;
+    const packageEntry = findEntry(root.files, ["package.json"]);
+    if (packageEntry === null) throw new Error("asar package.json is missing");
+    return {
+      packageJson: readEntry(fd, packageEntry, 8 + headerPayloadBytes),
+      buildMetadata: readEntry(fd, buildEntry, 8 + headerPayloadBytes)
+    };
+  } finally {
+    closeSync(fd);
+  }
+}
+function findEntry(root, parts) {
+  let files = root;
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (!Object.hasOwn(files, part)) return null;
+    const current = files[part];
+    if (!isRecord2(current)) throw new Error(`asar ${part} entry is not an object`);
+    if (index === parts.length - 1) return current;
+    if (!isRecord2(current.files)) throw new Error(`asar ${part} entry is not a directory`);
+    files = current.files;
+  }
+  return null;
+}
+function readEntry(fd, entry, contentOffset) {
+  const offset = asNonNegativeSafeInteger(entry.offset);
+  const size = asNonNegativeSafeInteger(entry.size);
+  if (entry.files || entry.unpacked || entry.link || offset === null || size === null || size > MAX_METADATA_BYTES || !Number.isSafeInteger(contentOffset + offset)) {
+    throw new Error("invalid asar metadata entry");
+  }
+  const output = Buffer.alloc(size);
+  readExact(fd, output, output.length, contentOffset + offset);
+  return output;
+}
+function asNonNegativeSafeInteger(value) {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)$/u.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+function readExact(fd, target, length, position) {
+  let offset = 0;
+  while (offset < length) {
+    const read = readSync(fd, target, offset, length - offset, position + offset);
+    if (read === 0) throw new Error("unexpected end of asar file");
+    offset += read;
+  }
+}
+function parseObject(buffer, label) {
+  let parsed;
+  try {
+    parsed = JSON.parse(buffer.toString("utf8"));
+  } catch {
+    throw invalidMetadata(`${label} is not valid JSON`);
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw invalidMetadata(`${label} is not an object`);
+  }
+  return parsed;
+}
+function invalidMetadata(reason) {
+  return new BridgeError(
+    "provider_config_invalid",
+    `Installed ZCode Desktop metadata ${reason}; refusing to invent a Desktop identity.`
+  );
+}
+function isMissingFile(error2) {
+  return typeof error2 === "object" && error2 !== null && "code" in error2 && error2.code === "ENOENT";
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// src/runtime/model-settings.ts
+init_errors();
+
+// src/runtime/model-routing.ts
+init_errors();
+import { existsSync as existsSync7, readFileSync as readFileSync7 } from "node:fs";
+var START_PLAN_PROVIDER_ID = "account:bigmodel-start-plan";
+var START_PLAN_ALIAS_SUFFIX = "-StartPlan";
+function stripStartPlanAlias(modelId) {
+  if (!modelId.endsWith(START_PLAN_ALIAS_SUFFIX)) return null;
+  const base = modelId.slice(0, -START_PLAN_ALIAS_SUFFIX.length).trim();
+  return base ? base : null;
+}
+function readStartPlanRoutingRegistry(config2) {
+  const rules = [config2.providerBuiltinConfigFile, config2.providerPersonalConfigFile].flatMap((file) => readProviderRules2(readJson2(file)));
+  const startPlanModelIds = [];
+  const codingPlanProviders = [];
+  for (const rule of rules) {
+    if (!isRecord3(rule) || typeof rule.providerId !== "string") continue;
+    const access = isRecord3(rule.config) && isRecord3(rule.config.access) ? rule.config.access : null;
+    const builtin = isRecord3(rule.config) && Array.isArray(rule.config.builtinModelIds) ? rule.config.builtinModelIds.filter((id) => typeof id === "string" && id.trim().length > 0) : [];
+    if (rule.providerId === START_PLAN_PROVIDER_ID) {
+      for (const id of builtin) if (!startPlanModelIds.includes(id)) startPlanModelIds.push(id);
+      continue;
+    }
+    if (access?.mode === "individual-coding-plan" && builtin.length > 0) {
+      codingPlanProviders.push({ providerId: rule.providerId, modelIds: builtin });
+    }
+  }
+  return { startPlanModelIds, codingPlanProviders };
+}
+function startPlanAliasCatalogEntries(registry2) {
+  return registry2.startPlanModelIds.map((modelId) => ({
+    provider_id: START_PLAN_PROVIDER_ID,
+    model_id: `${modelId}${START_PLAN_ALIAS_SUFFIX}`,
+    label: `${modelId} (Start Plan)`,
+    provider_label: "Start Plan"
+  }));
+}
+var FALLBACK_VERDICTS = /* @__PURE__ */ new Set(["no_entitlement", "quota_exhausted", "model_unavailable"]);
+function resolvePreferStartPlan(env) {
+  const raw = env["ZCODE_BRIDGE_PREFER_STARTPLAN"]?.trim();
+  if (!raw) return true;
+  const normalized = raw.toLowerCase();
+  if (normalized === "true") return true;
+  if (normalized === "false") return false;
+  throw new BridgeError("provider_config_invalid", "ZCODE_BRIDGE_PREFER_STARTPLAN must be true or false");
+}
+var StartPlanEntitlementJournal = class {
+  #verdicts = /* @__PURE__ */ new Map();
+  record(model, status, observedAt) {
+    this.#verdicts.set(model, { status, observedAt });
+  }
+  latest(model) {
+    return this.#verdicts.get(model)?.status ?? null;
+  }
+};
+var RecordingStartPlanEntitlement = class {
+  #inner;
+  #journal;
+  constructor(inner, journal) {
+    this.#inner = inner;
+    this.#journal = journal;
+  }
+  async check(input) {
+    const verdict2 = await this.#inner.check(input);
+    this.#journal.record(input.model, verdict2.status, verdict2.observedAt);
+    return verdict2;
+  }
+};
+function normalizedRawRequestIdentity(raw) {
+  return JSON.stringify([raw.provider_id ?? null, raw.model_id, raw.reasoning_level ?? null]);
+}
+function createTaskModelRouter(options) {
+  const cacheLimit = options.cacheLimit ?? 500;
+  const accepted = /* @__PURE__ */ new Map();
+  const pending = /* @__PURE__ */ new WeakMap();
+  const route = async (task) => {
+    if (!task.model) return task;
+    const raw = {
+      model_id: task.model.model_id.trim(),
+      ...task.model.provider_id?.trim() ? { provider_id: task.model.provider_id.trim() } : {},
+      ...task.model.reasoning_level?.trim() ? { reasoning_level: task.model.reasoning_level.trim() } : {}
+    };
+    if (!raw.model_id) throw new BridgeError("provider_config_invalid", "model_id must not be blank");
+    const identity = normalizedRawRequestIdentity(raw);
+    const cached2 = accepted.get(task.task_id);
+    if (cached2 && cached2.identity === identity) return { ...task, model: cached2.resolved };
+    const settings = options.settings();
+    const registry2 = await options.registry();
+    const routed = routeTaskModel(raw, settings, registry2, options.journal);
+    const entry = { identity, resolved: routed.resolved };
+    const routedTask = { ...task, model: routed.resolved };
+    if (!accepted.has(task.task_id)) pending.set(routedTask, entry);
+    return routedTask;
+  };
+  return {
+    route,
+    confirmRouting(routedTask) {
+      const entry = pending.get(routedTask);
+      if (!entry) return;
+      pending.delete(routedTask);
+      if (accepted.has(routedTask.task_id)) return;
+      accepted.set(routedTask.task_id, entry);
+      if (accepted.size > cacheLimit) {
+        const oldest = accepted.keys().next().value;
+        if (oldest !== void 0) accepted.delete(oldest);
+      }
+    }
+  };
+}
+function routeTaskModel(raw, settings, registry2, journal) {
+  const reasoning = raw.reasoning_level?.trim();
+  const withReasoning = (modelId) => ({
+    provider_id: "",
+    model_id: modelId,
+    ...reasoning ? { reasoning_level: reasoning } : {}
+  });
+  if (raw.provider_id) {
+    if (raw.provider_id === START_PLAN_PROVIDER_ID) {
+      const base = stripStartPlanAlias(raw.model_id) ?? raw.model_id;
+      if (registry2 && registry2.startPlanModelIds.length > 0 && !registry2.startPlanModelIds.includes(base)) {
+        throw new BridgeError("provider_config_invalid", `the requested Start Plan model is not present in the official provider registry: ${base}`);
+      }
+      return { mode: "explicit-start-plan", requested: raw, resolved: { ...withReasoning(base), provider_id: START_PLAN_PROVIDER_ID } };
+    }
+    return { mode: "explicit-provider", requested: raw, resolved: { ...withReasoning(raw.model_id), provider_id: raw.provider_id } };
+  }
+  const aliasBase = stripStartPlanAlias(raw.model_id);
+  if (aliasBase) {
+    if (!registry2 || registry2.startPlanModelIds.length === 0 || !registry2.startPlanModelIds.includes(aliasBase)) {
+      throw new BridgeError("provider_config_invalid", `unknown Start Plan model alias: ${raw.model_id}`);
+    }
+    return {
+      mode: "explicit-start-plan",
+      requested: raw,
+      resolved: { ...withReasoning(aliasBase), provider_id: START_PLAN_PROVIDER_ID }
+    };
+  }
+  if (settings.preferStartPlan) {
+    const verdict2 = journal.latest(raw.model_id);
+    if (verdict2 && FALLBACK_VERDICTS.has(verdict2)) {
+      const providerId2 = resolveCodingPlanProvider(raw.model_id, settings, registry2);
+      if (providerId2) {
+        return {
+          mode: "fallback-coding-plan",
+          requested: raw,
+          resolved: { ...withReasoning(raw.model_id), provider_id: providerId2 },
+          reason: `start plan verdict ${verdict2} for this model; routing to the coding plan provider`
+        };
+      }
+      return {
+        mode: "auto-start-plan",
+        requested: raw,
+        resolved: { ...withReasoning(raw.model_id), provider_id: START_PLAN_PROVIDER_ID },
+        reason: `start plan verdict ${verdict2} but no coding plan provider supports this model; deferring to the live preflight`
+      };
+    }
+    return { mode: "auto-start-plan", requested: raw, resolved: { ...withReasoning(raw.model_id), provider_id: START_PLAN_PROVIDER_ID } };
+  }
+  const providerId = resolveCodingPlanProvider(raw.model_id, settings, registry2);
+  if (!providerId) {
+    throw new BridgeError("provider_config_invalid", `no coding plan provider supports the model: ${raw.model_id}`);
+  }
+  return { mode: "prefer-off-coding-plan", requested: raw, resolved: { ...withReasoning(raw.model_id), provider_id: providerId } };
+}
+function resolveCodingPlanProvider(modelId, settings, registry2) {
+  if (settings.defaultProviderId && settings.defaultProviderId !== START_PLAN_PROVIDER_ID && (!registry2 || registry2.codingPlanProviders.some((provider) => provider.providerId === settings.defaultProviderId && provider.modelIds.includes(modelId)))) {
+    return settings.defaultProviderId;
+  }
+  return registry2?.codingPlanProviders.find((provider) => provider.modelIds.includes(modelId))?.providerId ?? null;
+}
+function readJson2(filePath) {
+  try {
+    if (!existsSync7(filePath)) return null;
+    const value = JSON.parse(readFileSync7(filePath, "utf8"));
+    return isRecord3(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+function readProviderRules2(table) {
+  const providerConfigRules = isRecord3(table?.config) ? table.config : {};
+  const rules = isRecord3(providerConfigRules.providerConfigRules) ? providerConfigRules.providerConfigRules.providerRules : void 0;
+  return Array.isArray(rules) ? rules : [];
+}
+function isRecord3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// src/runtime/model-settings.ts
+init_resolver();
 init_process_spawn();
 init_profile();
-init_process_lock();
-init_atomic_rename();
+
+// src/store/atomic-rename.ts
+import { rename } from "node:fs/promises";
+function retryable(error2, deadline) {
+  return process.platform === "win32" && Date.now() < deadline && ["EPERM", "EBUSY", "EACCES"].includes(error2.code ?? "");
+}
+async function atomicRename(source, target) {
+  const deadline = Date.now() + 2e3;
+  while (true) {
+    try {
+      await rename(source, target);
+      return;
+    } catch (error2) {
+      if (!retryable(error2, deadline)) throw error2;
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+  }
+}
+
+// src/runtime/model-settings.ts
 var RPC_TIMEOUT_MS = 3e4;
 var PROCESS_CLOSE_TIMEOUT_MS = 1500;
 var MODEL_CATALOG_TTL_MS = 24 * 60 * 60 * 1e3;
@@ -37833,7 +35667,7 @@ var ZCodeModelSettings = class {
   }
   async listModels(workspace) {
     const requestedWorkspace = workspace.trim();
-    if (!path14.isAbsolute(requestedWorkspace)) {
+    if (!path9.isAbsolute(requestedWorkspace)) {
       throw new BridgeError("provider_config_invalid", "workspace must be an absolute existing directory");
     }
     let workspacePath;
@@ -37858,13 +35692,16 @@ var ZCodeModelSettings = class {
     const cached2 = await readModelCatalogCache(source.cachePath);
     const cacheAge = cached2 ? Date.now() - cached2.cached_at_ms : null;
     if (cached2 && cached2.source_fingerprint === source.fingerprint && cacheAge !== null && cacheAge >= 0 && cacheAge < MODEL_CATALOG_TTL_MS) {
+      const cachedModels = withStartPlanAliasEntries(cached2.models, source.config);
+      const warning = startPlanCatalogWarning(buildAccountProviderPayload(source.config, void 0, this.#homeDir), cachedModels);
       return {
         workspace: workspacePath,
         current_model: null,
-        models: cached2.models,
+        models: cachedModels,
         account_provider_sync: "not_needed",
         cache_status: "fresh",
-        cached_at: new Date(cached2.cached_at_ms).toISOString()
+        cached_at: new Date(cached2.cached_at_ms).toISOString(),
+        ...warning ? { warning } : {}
       };
     }
     let lastError;
@@ -37884,7 +35721,7 @@ var ZCodeModelSettings = class {
     const runtimeEnv = loadPersistedRuntimeEnvironment(this.#sourceEnv, this.#homeDir, this.#host);
     const config2 = await new NodeRuntimeResolver({ env: runtimeEnv, homeDir: this.#homeDir, host: this.#host }).resolve();
     const cachePath = modelCatalogCachePath(workspacePath, config2, runtimeEnv, this.#host.settingsDirectory);
-    const fingerprint = await modelCatalogSourceFingerprint(config2, runtimeEnv);
+    const fingerprint = await modelCatalogSourceFingerprint(config2, runtimeEnv, this.#homeDir);
     return { config: config2, runtimeEnv, cachePath, fingerprint };
   }
   async #readLiveCatalog(workspacePath, source) {
@@ -37895,7 +35732,7 @@ var ZCodeModelSettings = class {
     let accountSync = "not_needed";
     let warning;
     try {
-      const accountPayload = buildAccountProviderPayload(config2);
+      const accountPayload = buildAccountProviderPayload(config2, void 0, this.#homeDir);
       if (accountPayload) {
         try {
           await client.request("provider/updateAccountConfig", accountPayload);
@@ -37906,21 +35743,22 @@ var ZCodeModelSettings = class {
       }
       const configuredMode = runtimeEnv["ZCODE_BRIDGE_MODE"]?.trim() ?? "build";
       const mode = ZCODE_SESSION_MODES.includes(configuredMode) ? configuredMode : "build";
-      const snapshot = asRecord3(await client.request("session/create", {
+      const snapshot = asRecord2(await client.request("session/create", {
         workspace: { workspacePath, workspaceKey: workspacePath },
         mode,
         persistence: "deferred"
       }));
       sessionId = nestedString(snapshot, ["session", "sessionId"]);
       if (!sessionId) throw new BridgeError("zcode_nonzero_exit", "ZCode app-server did not return a session ID");
-      const settings = asRecord3(snapshot.settings);
-      const modelSettings = asRecord3(settings.model);
+      const settings = asRecord2(snapshot.settings);
+      const modelSettings = asRecord2(settings.model);
       const rawAvailable = Array.isArray(modelSettings.available) ? modelSettings.available : [];
-      const models = rawAvailable.map(toCatalogEntry).filter((entry) => entry !== null);
+      const models = withStartPlanAliasEntries(rawAvailable.map(toCatalogEntry).filter((entry) => entry !== null), config2);
       const current = toModelRef(modelSettings.current);
       if (models.length === 0) throw new BridgeError("zcode_nonzero_exit", "ZCode app-server returned an empty model catalog for this workspace");
       const cachedAt = Date.now();
       await writeModelCatalogCache(cachePath, { cached_at_ms: cachedAt, source_fingerprint: fingerprint, models }).catch(() => void 0);
+      warning = startPlanCatalogWarning(accountPayload, models);
       return {
         workspace: workspacePath,
         current_model: current,
@@ -37983,8 +35821,8 @@ var ZCodeModelSettings = class {
   #updateConfig(update) {
     const operation = this.#writeQueue.then(async () => {
       await mkdir(this.#host.settingsDirectory, { recursive: true });
-      return withProcessLock(path14.join(this.#host.settingsDirectory, ".settings.lock"), async () => {
-        const configPath = path14.join(this.#host.settingsDirectory, "runtime-config.json");
+      return withProcessLock(path9.join(this.#host.settingsDirectory, ".settings.lock"), async () => {
+        const configPath = path9.join(this.#host.settingsDirectory, "runtime-config.json");
         let config2 = {};
         try {
           const info = await stat(configPath);
@@ -37992,22 +35830,22 @@ var ZCodeModelSettings = class {
             throw new BridgeError("provider_config_invalid", "Bridge runtime config is not a small regular JSON file");
           }
           const parsed = JSON.parse(await readFile2(configPath, "utf8"));
-          if (!isRecord3(parsed)) throw new BridgeError("provider_config_invalid", "Bridge runtime config must contain a JSON object");
+          if (!isRecord4(parsed)) throw new BridgeError("provider_config_invalid", "Bridge runtime config must contain a JSON object");
           config2 = parsed;
         } catch (error2) {
-          if (isMissingFile(error2)) {
+          if (isMissingFile2(error2)) {
             config2 = {};
             for (const directory of this.#host.legacySettingsDirectories ?? []) {
-              const legacyPath = path14.join(directory, "runtime-config.json");
+              const legacyPath = path9.join(directory, "runtime-config.json");
               try {
                 if ((await stat(legacyPath)).size > 64 * 1024) throw new Error("legacy settings exceed size limit");
                 const legacy = JSON.parse(await readFile2(legacyPath, "utf8"));
-                if (!isRecord3(legacy)) throw new Error("invalid legacy settings");
+                if (!isRecord4(legacy)) throw new Error("invalid legacy settings");
                 loadPersistedRuntimeEnvironment(this.#sourceEnv, this.#homeDir, this.#host);
                 config2 = legacy;
                 break;
               } catch (legacyError) {
-                if (!isMissingFile(legacyError)) throw new BridgeError("provider_config_invalid", "Could not migrate host runtime settings", { cause: legacyError });
+                if (!isMissingFile2(legacyError)) throw new BridgeError("provider_config_invalid", "Could not migrate host runtime settings", { cause: legacyError });
               }
             }
           } else if (error2 instanceof BridgeError) throw error2;
@@ -38019,7 +35857,7 @@ var ZCodeModelSettings = class {
         if (Buffer.byteLength(serialized, "utf8") > 64 * 1024) {
           throw new BridgeError("provider_config_invalid", "Updated Bridge runtime config would exceed 64 KiB");
         }
-        const tempPath = `${configPath}.${process.pid}.${randomUUID4()}.tmp`;
+        const tempPath = `${configPath}.${process.pid}.${randomUUID2()}.tmp`;
         try {
           await writeFile(tempPath, serialized, { encoding: "utf8", flag: "wx", mode: 384 });
           await atomicRename(tempPath, configPath);
@@ -38043,9 +35881,10 @@ function buildRuntimeChildEnv(config2, source) {
   return env;
 }
 function startAppServer(config2, cwd, env) {
-  const child = spawn4(config2.nodeExecutable, [config2.zcodeEntrypoint, "app-server", "--stdio"], {
+  const launch = buildZCodeAppServerLaunch(config2.zcodeEntrypoint, env);
+  const child = spawn3(config2.nodeExecutable, [config2.zcodeEntrypoint, ...launch.args], {
     cwd,
-    env,
+    env: launch.env,
     shell: false,
     windowsHide: true,
     detached: process.platform !== "win32",
@@ -38096,15 +35935,15 @@ function startAppServer(config2, cwd, env) {
       if (!line) continue;
       let message;
       try {
-        message = asRecord3(JSON.parse(line));
+        message = asRecord2(JSON.parse(line));
       } catch {
         continue;
       }
       if (message.method === "session/requestRuntimePreferences" && (typeof message.id === "string" || typeof message.id === "number")) {
         write({ id: message.id, result: { nativeSearchEnhancementsEnabled: false, memoryEnabled: false, askUserQuestionAutoResolutionEnabled: false } });
       } else if (message.method === "interaction/requestProviderRuntimeHeaders" && (typeof message.id === "string" || typeof message.id === "number")) {
-        const params = asRecord3(message.params);
-        const selection = asRecord3(params.modelSelection);
+        const params = asRecord2(message.params);
+        const selection = asRecord2(params.modelSelection);
         const providerId = typeof selection.providerId === "string" ? selection.providerId : typeof params.providerId === "string" ? params.providerId : void 0;
         write({ id: message.id, result: runtimeAuthReply(providerId, config2) });
       } else if (message.id !== void 0 && message.method === void 0) {
@@ -38113,7 +35952,7 @@ function startAppServer(config2, cwd, env) {
         clearTimeout(call.timer);
         pending.delete(message.id);
         if (message.error !== void 0) {
-          const error2 = asRecord3(message.error);
+          const error2 = asRecord2(message.error);
           call.reject(new Error(`ZCode app-server request failed${typeof error2.code === "number" ? ` (code ${error2.code})` : ""}`));
         } else call.resolve(message.result);
       } else if ((typeof message.id === "string" || typeof message.id === "number") && typeof message.method === "string") {
@@ -38184,13 +36023,13 @@ function startAppServer(config2, cwd, env) {
   } };
 }
 function toCatalogEntry(value) {
-  const entry = asRecord3(value);
+  const entry = asRecord2(value);
   const ref = toModelRef(entry.ref);
   if (!ref) return null;
-  const reasoning = asRecord3(entry.reasoning);
+  const reasoning = asRecord2(entry.reasoning);
   const rawLevels = Array.isArray(reasoning.levels) ? reasoning.levels : [];
   const reasoningLevels = rawLevels.flatMap((raw) => {
-    const level = asRecord3(raw);
+    const level = asRecord2(raw);
     if (typeof level.value !== "string" || !level.value.trim()) return [];
     return [{ value: level.value, label: typeof level.label === "string" && level.label.trim() ? level.label : level.value }];
   });
@@ -38207,21 +36046,21 @@ function toCatalogEntry(value) {
   };
 }
 function toModelRef(value) {
-  const ref = asRecord3(value);
+  const ref = asRecord2(value);
   return typeof ref.providerId === "string" && typeof ref.modelId === "string" ? { provider_id: ref.providerId, model_id: ref.modelId } : null;
 }
 function nestedString(record4, keys) {
   let value = record4;
-  for (const key of keys) value = asRecord3(value)[key];
+  for (const key of keys) value = asRecord2(value)[key];
   return typeof value === "string" ? value : null;
 }
-function asRecord3(value) {
-  return isRecord3(value) ? value : {};
+function asRecord2(value) {
+  return isRecord4(value) ? value : {};
 }
-function isRecord3(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-function isMissingFile(error2) {
+function isMissingFile2(error2) {
   return typeof error2 === "object" && error2 !== null && "code" in error2 && error2.code === "ENOENT";
 }
 function modelCatalogCachePath(workspace, config2, env, settingsDirectory) {
@@ -38233,27 +36072,47 @@ function modelCatalogCachePath(workspace, config2, env, settingsDirectory) {
     personal: config2.providerPersonalConfigFile,
     zcodeHome: env.ZCODE_HOME ?? ""
   });
-  const key = createHash8("sha256").update(identity).digest("hex");
-  return path14.join(settingsDirectory, "model-catalog", `${key}.json`);
+  const key = createHash3("sha256").update(identity).digest("hex");
+  return path9.join(settingsDirectory, "model-catalog", `${key}.json`);
 }
-async function modelCatalogSourceFingerprint(config2, env) {
-  const digest3 = createHash8("sha256");
+async function modelCatalogSourceFingerprint(config2, env, homeDir) {
+  const digest3 = createHash3("sha256");
+  digest3.update("start-plan-task-scoped-live-billing-v1");
   for (const file of [config2.providerBuiltinConfigFile, config2.providerPersonalConfigFile]) {
     digest3.update(file);
     digest3.update(await readFile2(file));
   }
   const entry = await stat(config2.zcodeEntrypoint);
   digest3.update(JSON.stringify({ entrypoint: config2.zcodeEntrypoint, size: entry.size, mtimeMs: entry.mtimeMs, mode: env.ZCODE_BRIDGE_MODE ?? "build" }));
-  const account = buildAccountProviderPayload(config2);
+  const account = buildAccountProviderPayload(config2, void 0, homeDir);
   if (account) digest3.update(JSON.stringify({ providers: account.providers, states: account.states, builtinRevision: account.basedOnZCodeBuiltinRevision }));
   return digest3.digest("hex");
+}
+function startPlanCatalogWarning(account, models) {
+  const providerId = "account:bigmodel-start-plan";
+  if (!account?.providers[providerId] || account.states[providerId]?.entitled === true || models.some((model) => model.provider_id === providerId)) return void 0;
+  return "Start Plan models are checked for a selected task; this catalog read does not send Billing requests.";
+}
+function withStartPlanAliasEntries(models, config2) {
+  let aliases;
+  try {
+    aliases = startPlanAliasCatalogEntries(readStartPlanRoutingRegistry(config2));
+  } catch {
+    return models;
+  }
+  if (!aliases.length) return models;
+  const seen = new Set(models.map((model) => `${model.provider_id}
+${model.model_id}`));
+  const additions = aliases.filter((alias) => !seen.has(`${alias.provider_id}
+${alias.model_id}`)).map((alias) => ({ ...alias }));
+  return [...models, ...additions];
 }
 async function readModelCatalogCache(cachePath) {
   try {
     const info = await stat(cachePath);
     if (!info.isFile() || info.size > 2 * 1024 * 1024) return null;
     const value = JSON.parse(await readFile2(cachePath, "utf8"));
-    if (!isRecord3(value) || !Number.isFinite(value.cached_at_ms) || typeof value.source_fingerprint !== "string" || !Array.isArray(value.models)) return null;
+    if (!isRecord4(value) || !Number.isFinite(value.cached_at_ms) || typeof value.source_fingerprint !== "string" || !Array.isArray(value.models)) return null;
     const models = value.models.map(toCachedCatalogEntry).filter((entry) => entry !== null);
     if (models.length !== value.models.length || models.length === 0) return null;
     return { cached_at_ms: value.cached_at_ms, source_fingerprint: value.source_fingerprint, models };
@@ -38262,8 +36121,8 @@ async function readModelCatalogCache(cachePath) {
   }
 }
 function toCachedCatalogEntry(value) {
-  if (!isRecord3(value) || typeof value.provider_id !== "string" || !value.provider_id || typeof value.model_id !== "string" || !value.model_id || typeof value.label !== "string") return null;
-  if (value.reasoning_levels !== void 0 && (!Array.isArray(value.reasoning_levels) || !value.reasoning_levels.every((level) => isRecord3(level) && typeof level.value === "string" && typeof level.label === "string"))) return null;
+  if (!isRecord4(value) || typeof value.provider_id !== "string" || !value.provider_id || typeof value.model_id !== "string" || !value.model_id || typeof value.label !== "string") return null;
+  if (value.reasoning_levels !== void 0 && (!Array.isArray(value.reasoning_levels) || !value.reasoning_levels.every((level) => isRecord4(level) && typeof level.value === "string" && typeof level.label === "string"))) return null;
   for (const key of ["provider_label", "reasoning_default_level", "disabled_reason"]) if (value[key] !== void 0 && typeof value[key] !== "string") return null;
   for (const key of ["context_window", "max_output_tokens"]) if (value[key] !== void 0 && (typeof value[key] !== "number" || !Number.isFinite(value[key]) || value[key] < 0)) return null;
   const result = {};
@@ -38272,8 +36131,8 @@ function toCachedCatalogEntry(value) {
   return result;
 }
 async function writeModelCatalogCache(cachePath, cache) {
-  await mkdir(path14.dirname(cachePath), { recursive: true });
-  const tempPath = `${cachePath}.${process.pid}.${randomUUID4()}.tmp`;
+  await mkdir(path9.dirname(cachePath), { recursive: true });
+  const tempPath = `${cachePath}.${process.pid}.${randomUUID2()}.tmp`;
   try {
     await writeFile(tempPath, `${JSON.stringify(cache)}
 `, { encoding: "utf8", flag: "wx", mode: 384 });
@@ -38291,12 +36150,264 @@ init_process_probe();
 init_build_provenance();
 init_trusted_local_deployment();
 
+// src/diagnostics/failure-facts.ts
+var FAILURE_PHASES = [
+  "unknown",
+  "pre_send",
+  "send_pending",
+  "rpc_rejected",
+  "turn_started",
+  "processing_input",
+  "awaiting_model_response",
+  "streaming",
+  "scheduling_tools",
+  "executing_tools",
+  "aggregating_results",
+  "awaiting_permission",
+  "completing",
+  "error",
+  "compact",
+  "rewind",
+  "model_creation",
+  "turn_terminal",
+  "spawn",
+  "process_exit",
+  "transport_lost",
+  "protocol_guard"
+];
+var FAILURE_PHASE_SET = new Set(FAILURE_PHASES);
+var FAILURE_SOURCES = ["rpc", "turn_event", "process", "transport"];
+var ACCEPTED_STATES = ["yes", "no", "unknown"];
+var FAILURE_CATEGORIES = [
+  "quota_exhausted",
+  "rate_limited",
+  "auth_failed",
+  "network_failure",
+  "context_exceeded",
+  "invalid_request",
+  "model_unavailable",
+  "execution_failed",
+  "protocol_failure",
+  "unknown"
+];
+var CONFIDENCE_LEVELS = ["confirmed", "inferred", "unknown"];
+var EVIDENCE_BASES = [
+  "business_code",
+  "runtime_type_or_reason",
+  "http_status",
+  "result_type",
+  "process_errno",
+  "protocol_guard",
+  "text",
+  "conflict",
+  "none"
+];
+var PROCESS_ERRNOS = ["ENOENT", "EACCES", "EPERM"];
+var QUOTA_BUSINESS_CODES = /* @__PURE__ */ new Set([
+  "insufficient_quota",
+  "credit_balance_exhausted",
+  "organization_spend_limit_exceeded",
+  "project_spend_limit_exceeded",
+  "organization_usage_limit_exceeded",
+  "exceeded_current_quota_error"
+]);
+var RATE_LIMIT_STRING_CODES = /* @__PURE__ */ new Set([
+  "rate_limit_error",
+  "rate_limit_reached_error"
+]);
+var PROVIDER_NUMERIC_CODES = /* @__PURE__ */ new Set([
+  "1005",
+  "1006",
+  "1261",
+  "3001",
+  "3006",
+  "3007",
+  "3008",
+  "3009",
+  "3010",
+  "1302",
+  "1303",
+  "1304",
+  "1305",
+  "1308",
+  "1310",
+  "1313",
+  "3002"
+]);
+var PROVIDER_BUSINESS_CODES = /* @__PURE__ */ new Set([
+  ...QUOTA_BUSINESS_CODES,
+  ...RATE_LIMIT_STRING_CODES,
+  ...PROVIDER_NUMERIC_CODES
+]);
+var MODEL_ERROR_CODES = /* @__PURE__ */ new Set([
+  "invalid_model_selection",
+  "model_config_missing",
+  "provider_not_found",
+  "provider_not_configured",
+  "model_not_found",
+  "invalid_model_request",
+  "invalid_model_response",
+  "model_request_failed",
+  "model_request_auth_missing",
+  "model_request_cancelled",
+  "model_request_timeout",
+  "model_rate_limited",
+  "model_context_exceeded",
+  ...PROVIDER_BUSINESS_CODES
+]);
+var ERROR_TYPE_REGISTRY = /* @__PURE__ */ new Set([
+  "model_error",
+  "model_timeout",
+  "model_rate_limited",
+  "model_context_exceeded",
+  "tool_not_found",
+  "tool_execution_failed",
+  "tool_timeout",
+  "tool_cancelled",
+  "tool_max_calls",
+  "permission_denied",
+  "permission_timeout",
+  "storage_error",
+  "configuration_error",
+  "unknown_error",
+  ...MODEL_ERROR_CODES
+]);
+var RPC_DATA_CODE_REGISTRY = MODEL_ERROR_CODES;
+var RESULT_TYPE_REGISTRY = /* @__PURE__ */ new Set([
+  "success",
+  "cancelled",
+  "error_max_turns",
+  "error_max_budget",
+  "error_during_execution",
+  "error_max_tool_calls"
+]);
+var RPC_METHOD_REGISTRY = /* @__PURE__ */ new Set([
+  "provider/updateAccountConfig",
+  "session/create",
+  "session/resume",
+  "session/setMode",
+  "session/setModel",
+  "session/subscribe",
+  "session/send",
+  "session/events"
+]);
+var MAX_FAILURE_FACTS_BYTES = 4096;
+var FACTS_KEYS = /* @__PURE__ */ new Set([
+  "schema_version",
+  "source",
+  "phase",
+  "rpc_method",
+  "rpc_code",
+  "rpc_data_code",
+  "error_type",
+  "error_code",
+  "provider_code",
+  "http_status",
+  "accepted_before_error",
+  "category",
+  "confidence",
+  "evidence_basis",
+  "evidence_conflict",
+  "runtime_retryable",
+  "runtime_retryable_basis",
+  "result_type",
+  "process_errno"
+]);
+var CODE_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/u;
+function safeIntegerOrNull(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
+}
+function httpStatusOrNull(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 100 && value <= 599 ? value : null;
+}
+function validateFailureFacts(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error("failure facts must be a JSON object");
+  }
+  const record4 = value;
+  for (const key of Object.keys(record4)) {
+    if (!FACTS_KEYS.has(key)) throw new Error("failure facts has an unknown field");
+  }
+  for (const key of FACTS_KEYS) {
+    if (!(key in record4)) throw new Error(`failure facts is missing the field: ${key}`);
+  }
+  if (record4["schema_version"] !== "1") throw new Error('failure facts schema_version must be "1"');
+  if (!FAILURE_SOURCES.includes(record4["source"])) {
+    throw new Error("failure facts source is not in the frozen registry");
+  }
+  if (!FAILURE_PHASE_SET.has(record4["phase"])) {
+    throw new Error("failure facts phase is not in the frozen registry");
+  }
+  if (!ACCEPTED_STATES.includes(record4["accepted_before_error"])) {
+    throw new Error("failure facts accepted_before_error must be yes, no, or unknown");
+  }
+  if (!FAILURE_CATEGORIES.includes(record4["category"])) {
+    throw new Error("failure facts category is not in the frozen registry");
+  }
+  if (!CONFIDENCE_LEVELS.includes(record4["confidence"])) {
+    throw new Error("failure facts confidence is not in the frozen registry");
+  }
+  if (!EVIDENCE_BASES.includes(record4["evidence_basis"])) {
+    throw new Error("failure facts evidence_basis is not in the frozen registry");
+  }
+  if (typeof record4["evidence_conflict"] !== "boolean") {
+    throw new Error("failure facts evidence_conflict must be a boolean");
+  }
+  const retryable2 = record4["runtime_retryable"];
+  const retryableBasis = record4["runtime_retryable_basis"];
+  if (retryable2 !== null && typeof retryable2 !== "boolean") {
+    throw new Error("failure facts runtime_retryable must be a boolean or null");
+  }
+  if (retryableBasis !== null && retryableBasis !== "reported") {
+    throw new Error("failure facts runtime_retryable_basis must be reported or null in P0; versioned_mapping is disabled");
+  }
+  if (retryable2 === null !== (retryableBasis === null)) {
+    throw new Error("failure facts runtime_retryable and runtime_retryable_basis must be null together");
+  }
+  const codeFields = [
+    // rpc_method strings contain "/" by design; membership in the frozen
+    // method registry is the whole validation, the bounded code pattern
+    // applies only to code families.
+    ["rpc_method", RPC_METHOD_REGISTRY],
+    ["rpc_data_code", RPC_DATA_CODE_REGISTRY],
+    ["error_type", ERROR_TYPE_REGISTRY],
+    ["error_code", MODEL_ERROR_CODES],
+    ["provider_code", PROVIDER_BUSINESS_CODES],
+    ["result_type", RESULT_TYPE_REGISTRY]
+  ];
+  for (const [key, registry2] of codeFields) {
+    const item = record4[key];
+    if (item === null) continue;
+    if (key !== "rpc_method" && (typeof item !== "string" || !CODE_PATTERN.test(item))) {
+      throw new Error(`failure facts field ${key} is not a bounded code value`);
+    }
+    if (typeof item !== "string" || !registry2.has(item)) {
+      throw new Error(`failure facts field ${key} is not a registered value`);
+    }
+  }
+  if (record4["rpc_code"] !== null && safeIntegerOrNull(record4["rpc_code"]) === null) {
+    throw new Error("failure facts rpc_code must be a safe integer or null");
+  }
+  if (record4["http_status"] !== null && httpStatusOrNull(record4["http_status"]) === null) {
+    throw new Error("failure facts http_status must be an integer in 100..599 or null");
+  }
+  if (record4["process_errno"] !== null && !PROCESS_ERRNOS.includes(record4["process_errno"])) {
+    throw new Error("failure facts process_errno must be ENOENT, EACCES, EPERM, or null");
+  }
+  const bytes = Buffer.byteLength(JSON.stringify(record4), "utf8");
+  if (bytes > MAX_FAILURE_FACTS_BYTES) {
+    throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
+  }
+  return value;
+}
+
 // src/runtime/sqlite-install-config.ts
-import { existsSync as existsSync11, lstatSync, mkdirSync as mkdirSync6, readFileSync as readFileSync11, realpathSync as realpathSync4 } from "node:fs";
-import os from "node:os";
-import path16 from "node:path";
-import { fileURLToPath as fileURLToPath3 } from "node:url";
+init_resolver();
 init_profile();
+import { existsSync as existsSync8, lstatSync, mkdirSync as mkdirSync3, readFileSync as readFileSync9, realpathSync as realpathSync3 } from "node:fs";
+import os from "node:os";
+import path13 from "node:path";
+import { fileURLToPath as fileURLToPath3 } from "node:url";
 var CONFIG_FILE = "authority.json";
 var CONFIG_LIMIT = 8 * 1024;
 var FRESH_SQLITE_DATABASE_FILE = "bridge.sqlite";
@@ -38310,13 +36421,13 @@ var SqliteInstallConfigurationError = class extends Error {
 };
 function loadInstallAuthoritySelection(host) {
   validateHostProfile(host);
-  const configPath = path16.join(host.settingsDirectory, CONFIG_FILE);
+  const configPath = path13.join(host.settingsDirectory, CONFIG_FILE);
   try {
     const stat2 = lstatSync(configPath);
     if (!stat2.isFile() || stat2.isSymbolicLink()) throw new SqliteInstallConfigurationError("authority_config_not_regular_file");
     if (stat2.size > CONFIG_LIMIT) throw new SqliteInstallConfigurationError("authority_config_too_large");
-    const parsed = JSON.parse(readFileSync11(configPath, "utf8"));
-    if (!isRecord4(parsed)) throw new SqliteInstallConfigurationError("authority_config_invalid_shape");
+    const parsed = JSON.parse(readFileSync9(configPath, "utf8"));
+    if (!isRecord5(parsed)) throw new SqliteInstallConfigurationError("authority_config_invalid_shape");
     const keys = Object.keys(parsed).sort().join("|");
     if (parsed.schema_version !== 1) throw new SqliteInstallConfigurationError("authority_config_version_unsupported");
     if (parsed.authority === "json" && keys === "authority|schema_version") {
@@ -38341,12 +36452,12 @@ function prepareFreshSqliteStateDirectory(selection, env) {
 }
 function sqliteInstallationRoot(env) {
   const modulePath = fileURLToPath3(import.meta.url);
-  const dist = path16.dirname(modulePath);
-  const entry = path16.basename(modulePath);
+  const dist = path13.dirname(modulePath);
+  const entry = path13.basename(modulePath);
   const pluginEntry = entry === "wait-task.mjs" || entry === "bridge.mjs" && env["ZCODE_BRIDGE_PLUGIN_MODE"] === "1";
-  if (pluginEntry && path16.basename(dist) === "dist") {
-    const pluginRoot = path16.dirname(dist);
-    if (!existsSync11(path16.join(pluginRoot, ".codex-plugin", "plugin.json")) || !existsSync11(path16.join(pluginRoot, "launch-node24.mjs"))) {
+  if (pluginEntry && path13.basename(dist) === "dist") {
+    const pluginRoot = path13.dirname(dist);
+    if (!existsSync8(path13.join(pluginRoot, ".codex-plugin", "plugin.json")) || !existsSync8(path13.join(pluginRoot, "launch-node24.mjs"))) {
       throw new SqliteInstallConfigurationError("sqlite_plugin_layout_invalid");
     }
     return pluginRoot;
@@ -38356,10 +36467,10 @@ function sqliteInstallationRoot(env) {
 function resolveStateDirectory(selection, env, packageRootValue, tempRootValue) {
   const appRoot = selection.configuredDataRoot || defaultDataRoot(env);
   if (!isLocalAbsolutePath(appRoot)) throw new SqliteInstallConfigurationError("sqlite_data_root_not_local_absolute");
-  const normalizedRoot = path16.resolve(appRoot);
-  const stateDirectory = path16.join(normalizedRoot, "state");
-  const packageRoot = path16.resolve(packageRootValue);
-  const tempRoot = path16.resolve(tempRootValue);
+  const normalizedRoot = path13.resolve(appRoot);
+  const stateDirectory = path13.join(normalizedRoot, "state");
+  const packageRoot = path13.resolve(packageRootValue);
+  const tempRoot = path13.resolve(tempRootValue);
   if (within(packageRoot, normalizedRoot) || within(tempRoot, normalizedRoot) || within(packageRoot, stateDirectory) || within(tempRoot, stateDirectory)) {
     throw new SqliteInstallConfigurationError("sqlite_data_root_reserved_location");
   }
@@ -38367,7 +36478,7 @@ function resolveStateDirectory(selection, env, packageRootValue, tempRootValue) 
 }
 function prepareStateDirectory(selection, env, packageRootValue, tempRootValue) {
   const resolved = resolveStateDirectory(selection, env, packageRootValue, tempRootValue);
-  const normalizedRoot = path16.dirname(resolved.dataRoot);
+  const normalizedRoot = path13.dirname(resolved.dataRoot);
   ensurePlainDirectoryTree(normalizedRoot);
   ensurePlainDirectoryTree(resolved.dataRoot);
   const canonicalState = canonicalDirectory(resolved.dataRoot);
@@ -38377,28 +36488,28 @@ function prepareStateDirectory(selection, env, packageRootValue, tempRootValue) 
 function defaultDataRoot(env) {
   const localAppData = env["LOCALAPPDATA"]?.trim();
   if (!localAppData || !isLocalAbsolutePath(localAppData)) throw new SqliteInstallConfigurationError("local_app_data_unavailable");
-  return path16.join(localAppData, "CodexZCodeBridge");
+  return path13.join(localAppData, "CodexZCodeBridge");
 }
 function ensurePlainDirectoryTree(value) {
   if (!isLocalAbsolutePath(value)) throw new SqliteInstallConfigurationError("sqlite_data_path_not_local");
-  const parsed = path16.parse(value);
-  const segments = value.slice(parsed.root.length).split(path16.sep).filter(Boolean);
+  const parsed = path13.parse(value);
+  const segments = value.slice(parsed.root.length).split(path13.sep).filter(Boolean);
   let current = parsed.root;
   for (const segment of segments) {
-    current = path16.join(current, segment);
+    current = path13.join(current, segment);
     try {
       const stat2 = lstatSync(current);
       if (!stat2.isDirectory() || stat2.isSymbolicLink()) throw new SqliteInstallConfigurationError("sqlite_data_path_component_unsafe");
-      if (!samePath2(realpathSync4.native(current), current)) throw new SqliteInstallConfigurationError("sqlite_data_path_redirected");
+      if (!samePath2(realpathSync3.native(current), current)) throw new SqliteInstallConfigurationError("sqlite_data_path_redirected");
     } catch (error2) {
       if (error2.code !== "ENOENT") throw error2;
       try {
-        mkdirSync6(current);
+        mkdirSync3(current);
       } catch (createError) {
         if (createError.code !== "EEXIST") throw new SqliteInstallConfigurationError("sqlite_data_path_create_failed", String(createError));
       }
       const created = lstatSync(current);
-      if (!created.isDirectory() || created.isSymbolicLink() || !samePath2(realpathSync4.native(current), current)) {
+      if (!created.isDirectory() || created.isSymbolicLink() || !samePath2(realpathSync3.native(current), current)) {
         throw new SqliteInstallConfigurationError("sqlite_data_path_create_unverified");
       }
     }
@@ -38407,7 +36518,7 @@ function ensurePlainDirectoryTree(value) {
 function canonicalDirectory(value) {
   try {
     const stat2 = lstatSync(value);
-    const real = realpathSync4.native(value);
+    const real = realpathSync3.native(value);
     if (!stat2.isDirectory() || stat2.isSymbolicLink() || !samePath2(real, value)) throw new Error("directory_identity_mismatch");
     return real;
   } catch (error2) {
@@ -38415,8 +36526,8 @@ function canonicalDirectory(value) {
   }
 }
 function rejectOrphanedDatabaseState(root) {
-  const expected = path16.join(root, FRESH_SQLITE_DATABASE_FILE);
-  if (existsSync11(expected)) return;
+  const expected = path13.join(root, FRESH_SQLITE_DATABASE_FILE);
+  if (existsSync8(expected)) return;
   for (const name of [
     `${FRESH_SQLITE_DATABASE_FILE}-wal`,
     `${FRESH_SQLITE_DATABASE_FILE}-shm`,
@@ -38426,26 +36537,27 @@ function rejectOrphanedDatabaseState(root) {
     "ROOT_POISONED.json",
     "WRITER_INTENT.json"
   ]) {
-    if (existsSync11(path16.join(root, name))) throw new SqliteInstallConfigurationError("sqlite_existing_state_incomplete");
+    if (existsSync8(path13.join(root, name))) throw new SqliteInstallConfigurationError("sqlite_existing_state_incomplete");
   }
 }
 function isLocalAbsolutePath(value) {
-  if (process.platform === "win32") return /^[A-Za-z]:\\/u.test(value) && path16.win32.isAbsolute(value) && !value.startsWith("\\\\");
-  return path16.isAbsolute(value) && !value.startsWith("/proc/") && !value.startsWith("/sys/") && !value.startsWith("/dev/");
+  if (process.platform === "win32") return /^[A-Za-z]:\\/u.test(value) && path13.win32.isAbsolute(value) && !value.startsWith("\\\\");
+  return path13.isAbsolute(value) && !value.startsWith("/proc/") && !value.startsWith("/sys/") && !value.startsWith("/dev/");
 }
 function within(root, candidate) {
-  const relative = path16.relative(root, candidate);
-  return relative === "" || relative !== ".." && !relative.startsWith(`..${path16.sep}`) && !path16.isAbsolute(relative);
+  const relative = path13.relative(root, candidate);
+  return relative === "" || relative !== ".." && !relative.startsWith(`..${path13.sep}`) && !path13.isAbsolute(relative);
 }
 function samePath2(left, right) {
-  const normalize = (value) => process.platform === "win32" ? path16.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path16.resolve(value);
+  const normalize = (value) => process.platform === "win32" ? path13.win32.normalize(value).replace(/[\\/]+$/u, "").toLocaleLowerCase("en-US") : path13.resolve(value);
   return normalize(left) === normalize(right);
 }
-function isRecord4(value) {
+function isRecord5(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null);
 }
 
 // src/host/stdio.ts
+init_errors();
 function createTrustedLocalCandidateContext(host) {
   validateHostProfile(host);
   return createTrustedLocalStdioContext(host);
@@ -38453,15 +36565,35 @@ function createTrustedLocalCandidateContext(host) {
 function resolveDataRoot(env) {
   const override = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
   if (override) {
-    if (!path20.isAbsolute(override)) {
+    if (!path18.isAbsolute(override)) {
       return {
         dataRoot: findPackageRoot(),
         warning: `ZCODE_BRIDGE_DATA_DIR must be an absolute path; ignoring ${override} and using the Bridge installation directory`
       };
     }
-    return { dataRoot: path20.normalize(override) };
+    return { dataRoot: path18.normalize(override) };
   }
   return { dataRoot: findPackageRoot() };
+}
+async function createHostStartPlanIssuer(options) {
+  try {
+    const { NodeRuntimeResolver: NodeRuntimeResolver2 } = await Promise.resolve().then(() => (init_resolver(), resolver_exports));
+    const config2 = await new NodeRuntimeResolver2({ env: options.env, homeDir: options.homeDir, host: options.host }).resolve();
+    if (!config2.zcodeEntrypoint || !config2.zcodeDataRoot) return null;
+    const { createProductionStartPlanAuth: createProductionStartPlanAuth2, StartPlanBillingEntitlement: StartPlanBillingEntitlement2, readOfficialCliVersion: readOfficialCliVersion2 } = await Promise.resolve().then(() => (init_start_plan_production_auth(), start_plan_production_auth_exports));
+    const entrypoint = config2.zcodeEntrypoint;
+    const billingEntitlement = options.entitlement ?? new StartPlanBillingEntitlement2({
+      getAppVersion: () => readOfficialCliVersion2(entrypoint)
+    });
+    return createProductionStartPlanAuth2({
+      zcodeDataRoot: config2.zcodeDataRoot,
+      env: options.env,
+      signal: options.signal,
+      entitlement: options.journal ? new RecordingStartPlanEntitlement(billingEntitlement, options.journal) : billingEntitlement
+    });
+  } catch {
+    return null;
+  }
 }
 function resolveMaxConcurrentWorkers(env) {
   const raw = env["ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS"]?.trim();
@@ -38473,6 +36605,15 @@ function resolveMaxConcurrentWorkers(env) {
     };
   }
   return { maxConcurrentWorkers: Number(raw) };
+}
+function formatWorkerFailureFactsLine(line) {
+  const marker = "[bridge-worker] failure-facts ";
+  if (!line.startsWith(marker)) return null;
+  try {
+    return JSON.stringify(validateFailureFacts(JSON.parse(line.slice(marker.length))));
+  } catch {
+    return null;
+  }
 }
 function serveStdioLifecycleHost(server, manager, options = {}) {
   const stdin = options.stdin ?? process.stdin;
@@ -38522,7 +36663,7 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
   let runtimeEnv;
   let prepared;
   try {
-    runtimeEnv = loadPersistedRuntimeEnvironment(process.env, homedir4(), host);
+    runtimeEnv = loadPersistedRuntimeEnvironment(process.env, homedir5(), host);
     authoritySelection = loadInstallAuthoritySelection(host);
     prepared = prepareFreshSqliteStateDirectory(authoritySelection, process.env);
   } catch (error2) {
@@ -38550,10 +36691,34 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
       console.error(`[bridge] ${error2 instanceof Error ? error2.message : String(error2)}; using the ${DEFAULT_TASK_TIMEOUT_MS / 6e4} minute default`);
     }
   }
+  const startPlanAuthAbort = new AbortController();
+  const modelRoutingJournal = new StartPlanEntitlementJournal();
+  const routeTaskModel2 = createTaskModelRouter({
+    settings: () => {
+      const persistedEnv = loadPersistedRuntimeEnvironment(process.env, homedir5(), host);
+      return {
+        preferStartPlan: resolvePreferStartPlan(persistedEnv),
+        defaultProviderId: persistedEnv["ZCODE_BRIDGE_DEFAULT_PROVIDER_ID"]?.trim() ?? ""
+      };
+    },
+    journal: modelRoutingJournal,
+    registry: async () => {
+      try {
+        const persistedEnv = loadPersistedRuntimeEnvironment(process.env, homedir5(), host);
+        const config2 = await new NodeRuntimeResolver({ env: persistedEnv, homeDir: homedir5(), host }).resolve();
+        return readStartPlanRoutingRegistry(config2);
+      } catch (error2) {
+        throw new BridgeError(
+          "provider_config_invalid",
+          `ZCode runtime configuration could not be resolved for model routing: ${error2 instanceof Error ? error2.message : String(error2)}`
+        );
+      }
+    }
+  });
   const processProbe = createPlatformProbe();
   let manager;
   let lifecycleChecks;
-  const databasePath = path20.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
+  const databasePath = path18.join(dataRoot, FRESH_SQLITE_DATABASE_FILE);
   let trustedLocalContext;
   try {
     trustedLocalContext = createTrustedLocalCandidateContext(host);
@@ -38572,11 +36737,24 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
       bridgeEntryPath: bridgeEntryPath ?? "",
       processProbe,
       trustedLocalContext,
-      requireAuthorityReceipt: true
+      requireAuthorityReceipt: true,
+      startPlanPrivateAuthFactory: () => createHostStartPlanIssuer({
+        env: process.env,
+        homeDir: homedir5(),
+        host,
+        signal: startPlanAuthAbort.signal,
+        journal: modelRoutingJournal
+      }),
+      routeTaskModel: routeTaskModel2,
+      onWorkerDiagnosticLine: (line) => {
+        const facts = formatWorkerFailureFactsLine(line);
+        if (facts) console.error(`[bridge] worker failure-facts ${facts}`);
+      }
     });
-    manager = new BridgeTaskManager({ lifecycleAuthority: authority, maxConcurrentWorkers: workerLimit.maxConcurrentWorkers });
+    manager = authority;
     lifecycleChecks = () => authority.getDoctorChecks();
   } catch (error2) {
+    startPlanAuthAbort.abort();
     console.error(`[bridge] SQLITE_INITIALIZATION_FAILED: ${error2 instanceof Error ? error2.message : String(error2)}`);
     throw error2;
   }
@@ -38590,10 +36768,12 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
   });
   const stdioHost = serveStdioLifecycleHost(server, manager, {
     onShutdownFailure: (reason, error2) => {
+      startPlanAuthAbort.abort();
       process.exitCode = 1;
       console.error(`[bridge] ${reason} shutdown retained the lifecycle Root because cleanup was not verified: ${error2 instanceof Error ? error2.message : String(error2)}`);
     },
     onShutdownComplete: (reason) => {
+      startPlanAuthAbort.abort();
       if (reason !== "EOF") process.exit(0);
     }
   });
@@ -38611,8 +36791,8 @@ async function startBridge(host = codexHostProfile(), version2 = SERVER_VERSION,
 var isEntry = process.argv[1] !== void 0 && sameRealPath(import.meta.url, process.argv[1]);
 function sameRealPath(moduleUrl, argvPath) {
   try {
-    const modulePath = realpathSync7(fileURLToPath5(moduleUrl));
-    const entryPath = realpathSync7(path21.resolve(argvPath));
+    const modulePath = realpathSync6(fileURLToPath5(moduleUrl));
+    const entryPath = realpathSync6(path19.resolve(argvPath));
     return process.platform === "win32" ? modulePath.toLocaleLowerCase("en-US") === entryPath.toLocaleLowerCase("en-US") : modulePath === entryPath;
   } catch {
     return false;

@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | free |
 | Uses | Python |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.3.1) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.3.2) |
 
 ## Ask your agent
 

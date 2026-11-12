@@ -9,8 +9,6 @@ import os
 import sys
 from typing import Any, Dict, List, Optional, Union
 
-from .output_handler import sanitize_prefix
-
 
 def load_json_file(path: str) -> Optional[Union[Dict[str, Any], List[Any]]]:
     """Load a JSON file, returning None if not found or invalid."""

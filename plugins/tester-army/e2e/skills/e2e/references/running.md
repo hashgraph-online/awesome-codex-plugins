@@ -52,7 +52,7 @@ npx e2e telemetry [disable|enable] # anonymous usage telemetry: status or switch
 | `--max-duration <ms>` | Stop after ms of running tests, over config `maxDuration`: the rest skip (cause `time-limit`), running tests end `interrupted`, `RUN_TIMEOUT`; exit 1. |
 | `--repeat-each <n>` | Run every selected test n times, each run its own result (`repeat` 0 through n-1); add `--no-cache` or later runs replay the first's recording. The `Repeats` summary row names each unstable test's failed runs. |
 | `--reporter <ids>` | `list`, `json`, `junit`, `markdown`, comma-separated; `json` cannot combine with `list`. An empty value is a usage error, exit 2. |
-| `--output <dir>` | Results directory, over the config's `output` (default `.e2e`). |
+| `--output <dir>` | Results directory, over the config's `output` (default `.e2e`). Must be inside the project root, not the root itself (`INVALID_CONFIG`); to keep reports elsewhere, copy them after the run. |
 | `--no-cache` | Replay cache off for this run. |
 | `--strict-cache` | Fail a step whose committed recording no longer replays (`REPLAY_STALE`, exit 2) instead of handing it to the agent; retries replay too, and the run never writes the cache. |
 | `-u`, `--update-snapshots` | Write the stored screenshots `toHaveScreenshot` finds missing or different, and pass. |

@@ -51,10 +51,10 @@ re-join an unquoted multi-word question, and never infer a plan path from the co
 ## 3. Load the mode's core instructions, then execute them step by step
 
 ```bash
-uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util instructions <mode>
+uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util instructions <mode> --to-file
 ```
 
-That prints the core with every skill-dir placeholder already substituted.
+That writes the core, placeholders substituted, to a file and prints `[CORE_FILE] <path> lines=<n> bytes=<n>`. Read that file in full, through line `<n>`, before your next command: a read that stops early names the offset to go on from. No such line means it printed the core instead; its first lines say how to check it. Load every core this way, including a phase's core that a core tells you to load with `util instructions <phase>`: add `--to-file` to that command and read the file it names by the same rule.
 
 ## 4. Capability verbs — how this host answers each one
 

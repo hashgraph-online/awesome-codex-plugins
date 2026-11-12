@@ -20,18 +20,22 @@ a temporary name and renamed into place, unlinked or listed relative to the
 folder's descriptor. A component swapped for a link at any moment is refused,
 never followed, and a link or a hard link at a file's name is replaced, never
 written through. A platform without these calls (Windows, where no jail runs)
-writes by path, checking each component with ``lstat``.
+writes by path, checking each component with ``lstat``. Either way the write
+itself is ``atomic_io``'s (relative to the folder's descriptor where there is
+one: docs/development/runtime.md#atomic-file-writes).
 
-Standard library only, so both legs import it without a shim.
+Standard library and the stdlib-only ``atomic_io`` only, so both legs import
+it without a shim.
 """
 
 from __future__ import annotations
 
 import os
 import stat
-import tempfile
 from dataclasses import dataclass
 from typing import Any, Callable, List, Optional, Tuple
+
+from .atomic_io import atomic_write_bytes
 
 __all__ = [
     "FOLDER",
@@ -39,6 +43,7 @@ __all__ = [
     "PromptFolder",
     "identify",
     "pin_phase_dir",
+    "read_in_phase_dir",
     "remove_held",
 ]
 
@@ -46,7 +51,8 @@ __all__ = [
 #: native leg and the scheduler keeps on the executor leg.
 FOLDER = "prompts"
 
-#: The temporary name prefix of a file being written.
+#: The temporary name prefix of a file being written
+#: (``.prompt-<pid>.<random>.tmp``, ``atomic_io``'s name after it).
 TEMP_PREFIX = ".prompt-"
 
 _CLOEXEC = getattr(os, "O_CLOEXEC", 0)
@@ -99,6 +105,14 @@ def _why_not_a_folder(path: str, info: os.stat_result) -> Optional[str]:
     return None
 
 
+def _why_not_a_file(path: str, info: os.stat_result) -> Optional[str]:
+    if stat.S_ISLNK(info.st_mode):
+        return f"{path} is a symlink"
+    if not stat.S_ISREG(info.st_mode):
+        return f"{path} is not a regular file"
+    return None
+
+
 def _open_child(parent: int, name: str, shown: str) -> int:
     """``name`` under the descriptor ``parent``, opened as a directory and
     never through a link; refused in words when it is a link or a file."""
@@ -111,7 +125,7 @@ def _open_child(parent: int, name: str, shown: str) -> int:
         try:
             info = os.stat(name, dir_fd=parent, follow_symlinks=False)
         except OSError:
-            raise exc
+            raise exc from None
         problem = _why_not_a_folder(shown, info)
         if problem:
             raise OSError(problem) from exc
@@ -205,11 +219,26 @@ def identify(pin: PhasePin) -> PhasePin:
     return PhasePin(root=pin.root, parts=pin.parts, identity=identity)
 
 
+def read_in_phase_dir(pin: PhasePin, name: str) -> bytes:
+    """The regular file ``name`` in the pinned phase dir itself, reached the
+    way every write is: no link followed, the pinned identity checked.
+    Raises ``OSError`` naming the problem (``FileNotFoundError`` when there
+    is no such file)."""
+    if FD_RELATIVE:
+        folder = PromptFolder(_walk(pin), pin.path)
+    else:
+        folder = PromptFolder(None, _walk_by_path(pin))
+    with folder:
+        return folder.read_bytes(name)
+
+
 class PromptFolder:
-    """The open ``prompts`` folder of one pinned phase dir.
+    """The open ``prompts`` folder of one pinned phase dir (or, with
+    ``folder=``, another folder directly below a pinned directory).
 
     ``with PromptFolder.open(pin) as folder:`` then :meth:`names`,
-    :meth:`remove` and :meth:`write`, each relative to the folder itself.
+    :meth:`lstat`, :meth:`remove`, :meth:`read_bytes`, :meth:`open_lock`,
+    :meth:`write` and :meth:`write_bytes`, each relative to the folder itself.
     """
 
     def __init__(self, handle: Optional[int], path: str) -> None:
@@ -217,22 +246,26 @@ class PromptFolder:
         self.path = path
 
     @classmethod
-    def open(cls, pin: PhasePin, *, create: bool = True) -> "PromptFolder":
-        """Open ``{phase}/prompts``, creating it when ``create``.
+    def open(
+        cls, pin: PhasePin, *, create: bool = True, folder: str = FOLDER,
+    ) -> "PromptFolder":
+        """Open ``{phase}/prompts`` (``{pin}/{folder}``), creating it when
+        ``create``.
 
         Raises ``OSError`` naming the problem: a component of the phase dir
-        or ``prompts`` itself is a link or a file, the phase dir is not the
+        or the folder itself is a link or a file, the phase dir is not the
         pinned one, or (``create`` off) the folder does not exist.
         """
-        shown = os.path.join(pin.path, FOLDER)
+        folder = _check_name(folder)
+        shown = os.path.join(pin.path, folder)
         if not FD_RELATIVE:
             phase = _walk_by_path(pin)
             if create:
                 try:
-                    os.mkdir(os.path.join(phase, FOLDER))
+                    os.mkdir(os.path.join(phase, folder))
                 except FileExistsError:
                     pass
-            problem = _why_not_a_folder(shown, os.lstat(os.path.join(phase, FOLDER)))
+            problem = _why_not_a_folder(shown, os.lstat(os.path.join(phase, folder)))
             if problem:
                 raise OSError(problem)
             return cls(None, shown)
@@ -240,10 +273,10 @@ class PromptFolder:
         try:
             if create:
                 try:
-                    os.mkdir(FOLDER, dir_fd=phase)
+                    os.mkdir(folder, dir_fd=phase)
                 except FileExistsError:
                     pass
-            handle = _open_child(phase, FOLDER, shown)
+            handle = _open_child(phase, folder, shown)
             try:
                 if os.fstat(handle).st_dev != os.fstat(phase).st_dev:
                     raise OSError(f"{shown} is on another file system than {pin.path}")
@@ -271,6 +304,15 @@ class PromptFolder:
             return os.listdir(self.path)
         return os.listdir(self._handle)
 
+    def lstat(self, name: str) -> os.stat_result:
+        """The status of the entry ``name`` itself: a link there is reported
+        as the link, never followed. Raises ``OSError`` (``FileNotFoundError``
+        when there is none)."""
+        name = _check_name(name)
+        if self._handle is None:
+            return os.lstat(os.path.join(self.path, name))
+        return os.stat(name, dir_fd=self._handle, follow_symlinks=False)
+
     def remove(self, name: str) -> None:
         """Unlink ``name`` (never what a link names; a directory raises)."""
         name = _check_name(name)
@@ -279,47 +321,91 @@ class PromptFolder:
         else:
             os.unlink(name, dir_fd=self._handle)
 
+    def _open_regular(self, name: str, flags: int) -> int:
+        """A descriptor of the regular file ``name``, opened with ``flags``
+        and never through a link (a FIFO is opened non-blocking and refused,
+        never waited on). Raises ``FileNotFoundError`` when there is none and
+        ``flags`` does not create it, and ``OSError`` naming the problem when
+        ``name`` is a link or not a regular file."""
+        name = _check_name(name)
+        shown = os.path.join(self.path, name)
+        flags |= (getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+                  | getattr(os, "O_BINARY", 0) | _CLOEXEC)
+        try:
+            if self._handle is None:
+                try:
+                    problem = _why_not_a_file(shown, os.lstat(shown))
+                except FileNotFoundError:
+                    if not flags & os.O_CREAT:
+                        raise
+                    problem = None
+                if problem:
+                    raise OSError(problem)
+                handle = os.open(shown, flags, 0o600)
+            else:
+                handle = os.open(name, flags, 0o600, dir_fd=self._handle)
+        except FileNotFoundError:
+            raise
+        except OSError as exc:
+            try:
+                info = (os.lstat(shown) if self._handle is None
+                        else os.stat(name, dir_fd=self._handle, follow_symlinks=False))
+            except OSError:
+                raise exc from None
+            problem = _why_not_a_file(shown, info)
+            if problem:
+                raise OSError(problem) from exc
+            raise
+        try:
+            problem = _why_not_a_file(shown, os.fstat(handle))
+            if problem:
+                raise OSError(problem)
+        except BaseException:
+            os.close(handle)
+            raise
+        return handle
+
+    def open_lock(self, name: str) -> int:
+        """A read-write descriptor of the regular file ``name``, created empty
+        (0600) when absent and never opened through a link, for a lock held on
+        it; the caller closes it. Raises ``OSError`` naming the problem."""
+        return self._open_regular(name, os.O_RDWR | os.O_CREAT)
+
+    def read_bytes(self, name: str) -> bytes:
+        """The bytes of the regular file ``name``, never what a link there
+        names. Raises ``FileNotFoundError`` when there is none, and ``OSError``
+        naming the problem when ``name`` is a link or not a regular file (a
+        FIFO is opened non-blocking and refused, never waited on)."""
+        handle = self._open_regular(name, os.O_RDONLY)
+        try:
+            chunks = []
+            while True:
+                chunk = os.read(handle, 1 << 20)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            return b"".join(chunks)
+        finally:
+            os.close(handle)
+
     def write(self, name: str, text: str) -> None:
         """Write ``text`` to ``name`` by a new file renamed into place: a link
         or a hard link at ``name`` is replaced, never written through, and a
         directory there raises."""
+        self.write_bytes(name, text.encode("utf-8"))
+
+    def write_bytes(self, name: str, data: bytes) -> None:
+        """:meth:`write` for bytes, written exactly as given: ``atomic_io``'s
+        write (an exclusively created temp file, renamed in), owner-only
+        (0600) and without ``fsync``, relative to the folder's descriptor
+        where there is one."""
         name = _check_name(name)
         if self._handle is None:
-            handle, temporary = tempfile.mkstemp(prefix=TEMP_PREFIX, dir=self.path)
-            try:
-                with os.fdopen(handle, "w", encoding="utf-8", newline="") as stream:
-                    stream.write(text)
-                os.replace(temporary, os.path.join(self.path, name))
-            except BaseException:
-                try:
-                    os.unlink(temporary)
-                except OSError:
-                    pass
-                raise
-            return
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW | _CLOEXEC
-        for _ in range(100):
-            temporary = TEMP_PREFIX + os.urandom(6).hex()
-            try:
-                handle = os.open(temporary, flags, 0o600, dir_fd=self._handle)
-                break
-            except FileExistsError:
-                continue
-        else:  # pragma: no cover - 100 collisions of 48 random bits
-            raise FileExistsError(f"no free temporary name in {self.path}")
-        try:
-            with os.fdopen(handle, "w", encoding="utf-8", newline="") as stream:
-                stream.write(text)
-            os.replace(
-                temporary, name,
-                src_dir_fd=self._handle, dst_dir_fd=self._handle,
-            )
-        except BaseException:
-            try:
-                os.unlink(temporary, dir_fd=self._handle)
-            except OSError:
-                pass
-            raise
+            atomic_write_bytes(os.path.join(self.path, name), data, mode=0o600,
+                               fsync=False, temp_prefix=TEMP_PREFIX)
+        else:
+            atomic_write_bytes(name, data, mode=0o600, fsync=False,
+                               temp_prefix=TEMP_PREFIX, dir_fd=self._handle)
 
 
 # ---------------------------------------------------------------------------
@@ -349,6 +435,7 @@ class _WindowsFiles:  # pragma: no cover - Windows
     _FILE_DISPOSITION_INFO = 4
 
     def __init__(self) -> None:
+        # ctypes loads only on the platform path that calls it.
         import ctypes
         from ctypes import wintypes
 

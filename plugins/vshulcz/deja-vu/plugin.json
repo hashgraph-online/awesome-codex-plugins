@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "deja-vu",
-  "version": "0.24.1",
+  "version": "0.24.2",
   "description": "deja-vu: memory for coding agents from the sessions already on your disk — Claude Code, Codex, Cursor, opencode and thirty-nine more — including work from before it was installed.",
   "author": {
     "name": "vshulcz",

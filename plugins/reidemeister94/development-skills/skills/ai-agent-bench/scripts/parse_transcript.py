@@ -99,6 +99,8 @@ def _extract_command_basenames(cmd: str | None) -> set[str]:
     if not cmd:
         return set()
     interpreters = {"python", "python3", "bash", "sh", "node"}
+    # Runner wrappers execute another program: `uv run [--flags] pytest …` runs pytest,
+    # and `uvx pytest …` behaves like `uv run` without the subcommand.
     run_wrappers = {"uv", "poetry", "pipenv"}
     separators = {"&&", "||", ";", "|"}
     # shlex.split honors quotes, so `echo "a && b"` does NOT split on the quoted &&.
@@ -116,7 +118,7 @@ def _extract_command_basenames(cmd: str | None) -> set[str]:
             segments[-1].append(tok)
 
     def next_command(tokens: list[str], start: int) -> int | None:
-        """Return the next token that can name a command."""
+        """Index of the next token that can be a command: skips flags and env assignments."""
         for i in range(start, len(tokens)):
             token = tokens[i]
             if token.startswith("-"):
@@ -129,6 +131,7 @@ def _extract_command_basenames(cmd: str | None) -> set[str]:
     basenames: set[str] = set()
     for tokens in segments:
         idx = next_command(tokens, 0)
+        # Unwrap runners so the observed command is the real target.
         while idx is not None:
             name = Path(tokens[idx]).name
             if name == "uvx":
@@ -164,8 +167,9 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
 
     # Cumulative token tallies. Claude Opus 4.6+ splits cache_creation into 5m/1h TTL buckets
     # (different per-token prices: 5m = 1.25x input, 1h = 2.0x input).
-    # Count each main-chain usage snapshot once. Subagent totals arrive through
-    # task notifications and are tracked separately.
+    # The stream emits one `assistant` event per content block, each repeating the same
+    # usage snapshot for the same message id — count usage once per message id, and skip
+    # sidechain (subagent) events: their usage arrives via system/task_notification below.
     input_tokens = 0
     output_tokens = 0
     cache_read_tokens = 0
@@ -173,6 +177,10 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
     cache_creation_5m = 0
     cache_creation_1h = 0
     seen_message_ids: set[str] = set()
+
+    # Subagent transcripts do not stream; each Task/Agent completion emits a
+    # system/task_notification with the subagent's cumulative total_tokens (last wins
+    # per task_id, since a resumed agent notifies again).
     subagent_tokens_by_task: dict[str, int] = {}
 
     # Thinking tokens: Claude stream-json exposes thinking blocks in message.content with
@@ -252,6 +260,8 @@ def parse_claude_session(path: Path, harness_basenames: set[str] | None = None) 
         cost_usd = result_block.get("total_cost_usd") or result_block.get("cost_usd")
         duration_ms = result_block.get("duration_ms")
         num_turns = result_block.get("num_turns")
+        # The result usage is the authoritative cumulative main-chain total: per-event
+        # usage is snapshotted at message start, so its output_tokens undercount badly.
         final_usage = result_block.get("usage") or {}
         input_tokens = int(final_usage.get("input_tokens") or input_tokens)
         output_tokens = int(final_usage.get("output_tokens") or output_tokens)
@@ -768,6 +778,7 @@ def estimate_cost_usd(model: str | None, tokens: dict, pricing: dict) -> float |
         return None
     p = pricing.get(model)
     if p is None:
+        # Longest prefix wins: a dated id resolves to its base model, never to a shorter sibling.
         prefixes = [key for key in pricing if model.startswith(key)]
         if prefixes:
             p = pricing[max(prefixes, key=len)]
@@ -993,6 +1004,8 @@ def aggregate_run_dir(agent: str, run_dir: Path, pricing: dict) -> dict:
             out["config"] = cfg
         except json.JSONDecodeError, OSError:
             pass
+    # Basenames shared with inner_check are the agent's permitted fast loop, so only
+    # outer_check-specific commands count as protocol violations.
     outer_basenames = _extract_command_basenames(cfg.get("outer_check"))
     harness_basenames = outer_basenames - _extract_command_basenames(cfg.get("inner_check"))
     if outer_basenames:

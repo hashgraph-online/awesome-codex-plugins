@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | ~$0.01–0.02 per voice line, $0.01–0.06 per sound effect, $0.05 per 20 s music bed; mixing free |
 | Uses | Python, FFmpeg, librosa, varg API, ElevenLabs v4, ElevenLabs Music, HyperFrames |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.1.0) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.1.1) |
 
 ## Ask your agent
 

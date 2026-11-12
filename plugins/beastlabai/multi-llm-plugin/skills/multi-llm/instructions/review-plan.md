@@ -142,7 +142,17 @@ to bare `python`.
 
 3. **Resume Detection** (check BEFORE running orchestrator)
 
-   Check for existing output to avoid expensive duplicate runs. Follow the detection cases in `references/resume-detection.md`, using `{plan}/review-plan/` as the phase directory.
+   Check for existing output to avoid expensive duplicate runs. Run this (read-only) and do what its one `[RESUME_STATE] case=… action=… models=… batches=… flags=… ownership=…` line says; `references/resume-detection.md` lists the cases behind it:
+
+   ```bash
+   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util resume-state review-plan "$PLAN_PATH"
+   ```
+
+   - `action=run`: nothing to resume; go on to step 4.
+   - `action=rerun`: step 4's launch with `--models` set to the `models=` list (comma-separated there) and the `flags=` added (`-` is none): each model with a result keeps it (`[SKIP]`) and only the rest run. A composite's flags line already carries both: launch with it as it is. Never `--rerun-all`. `models=-` means none was recorded: select the models as for a fresh run. `ownership=stale` means validation files on disk are an earlier round's, and `ownership=uncertain` that they may be: the `--force` in `flags=` re-runs the phase over them rather than reporting them.
+   - `action=validate`: skip the launch and go to step 7 with `{plan}/review-plan/validation_tasks.json`; when `batches=` lists numbers, run only those batches (the ones with no `validation_batch_<N>.json` yet), then `--reaggregate` as step 7 says.
+   - `action=reaggregate`: skip the launch and run step 7's `--reaggregate`.
+   - `action=report`: the phase is complete: report results from `{plan}/review-plan/report.md` (or `report.html`) and run no orchestrator.
 
    **Note**: The orchestrator guards against re-runs (exits with code 2 if phase is already marked complete in state.json). Use `--force` to override. This instruction-level resume detection is the FIRST line of defense; the orchestrator guard is backup protection.
 
@@ -339,39 +349,9 @@ to bare `python`.
       configured it; state that number there instead. Announcing an interval you are
       not waiting is worse than announcing none.
 
-   **Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/review-plan/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. Left out, `--scope-policy` stays the one the kept results were requested under (the run prints one `Scope policy notice:` line naming it); a different one typed stops at exit 3 with `[SCOPE_POLICY_CONFLICT]` rather than mix two policies in one round, and `--force --rerun-all` starts a fresh round under `expand` or the policy typed.
+   **Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/review-plan/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. The retry prints `[SKIP] <model> - already has results` for each model it keeps, so tell the user which model re-ran and which kept its result. Left out, `--scope-policy` stays the one the kept results were requested under (the run prints one `Scope policy notice:` line naming it); a different one typed stops at exit 3 with `[SCOPE_POLICY_CONFLICT]` rather than mix two policies in one round, and `--force --rerun-all` starts a fresh round under `expand` or the policy typed.
 
-5. **Interrupted-run Recovery** (conditional — only if the background run was interrupted or the log shows no completion markers)
-
-   If the detached orchestrator was interrupted (e.g. the session ended) or `{plan}/review-plan/orchestrator-run.log` shows neither a validation marker nor a clean completion:
-
-   1. Read `{plan}/review-plan/.status.json`
-   2. Based on `state` field, determine progress:
-      - `models_running` → check which `{model}.json` files exist in `{plan}/review-plan/` (those models completed)
-      - `models_complete` / `grouping_complete` → check for `grouped.json`, `validation_tasks.json`
-      - `validation_pending` → orchestrator completed normally; proceed to validation using `validation_tasks_path` from the status file, then reaggregate. Both the status file and the tasks file record the mode + plan path (`reaggregate_mode`, `plan_file`) rather than a resolved command, so a plugin update cannot leave a stale skill-dir path behind; `multi_llm.py status <plan> --view run` prints the command resolved against the running skill dir.
-      - `complete` → report results
-   3. If no `.status.json` → fall back to existing file-based resume detection (step 3)
-   4. **With `--yes` (or `--non-interactive`): always resume, never ask** (D6
-      row 3). Re-run with `--force` and the original run's full `--models`
-      selection (only the missing models actually run: the retry prints
-      `[SKIP] <model> - already has results` for each model it keeps, so tell
-      the user which model re-ran and which kept its result); never `--rerun-all`
-      (it discards work that succeeded). If a model fails a second time in the
-      same run, reaggregate with what exists: the orchestrator — the fan-out or
-      `--reaggregate` alike — prints `[PARTIAL_RESULTS: <model>,…]`, names the
-      failed models and their reasons on the report's `**Models failed:**` line
-      and in `.status.json` (`models_failed`, and the `failed` rows of
-      `progress.models`), sets `MULTI_LLM_RESULT.state: "partial"` and exits
-      **0** — a partial aggregate is usable output, the phase is recorded
-      complete and `next` stays `null`. The one exception: if *no* model
-      produced a result there is nothing to aggregate, so it exits **3** naming
-      the retry command (a `--reaggregate` does so when the checkpoint records
-      failed models) and records no completed phase.
-   5. Without `--yes`, **ask the user**, showing:
-      - Which models completed successfully
-      - Which models failed or were interrupted
-      - Options: (a) Proceed with partial results (`--reaggregate`), (b) Resume — re-run only the missing models (`--force` with the original full `--models` selection), (c) Re-run everything from scratch (`--force --rerun-all`)
+5. **Interrupted-run Recovery** (conditional): only when the detached orchestrator was interrupted (the session ended, the process was killed) or `{plan}/review-plan/orchestrator-run.log` shows neither a validation marker nor a clean completion, read `references/interrupted-run-recovery.md` in full, with `review-plan` as its `{phase}`, and follow it before step 6. Under `--yes` (or `--non-interactive`) it resumes and never asks (D6 row 3). A run that was not interrupted and whose `orchestrator-run.log` shows a validation marker or a clean completion skips this step.
 
 6. **Salvage Handling (Post-Orchestrator):**
 
@@ -398,21 +378,27 @@ to bare `python`.
    bytes of `prompt` (`prompt_lines` is its line count), so the two are
    interchangeable and a host that would otherwise re-emit the whole prompt can
    point the subagent at the file instead. The plan excerpt and this batch's
-   suggestion records travel **inside** `prompt`. For a plan within the inline
-   limit that is the whole plan, and the task is `context_mode: inline`. For a
-   larger plan, `prompt` keeps a head excerpt and names the full plan once under
+   suggestion records travel **inside** `prompt`. When that is the whole plan
+   the task is `context_mode: inline`. When it is not — a batch that carries
+   only the plan sections its suggestions cite, or a plan over the inline limit
+   cut to a head excerpt — `prompt` also names the full plan once under
    `## Plan file`: a hash-bound snapshot, `validation-snapshot.md` in this phase
    dir, and the task is `context_mode: workspace-read`. The subagent must be
    able to read that path, so do not run it where it cannot. Never treat such a
    batch as having the full plan inline.
 
+   Read `validation_tasks.index.json` beside it instead: the same tasks without
+   their prompts (`task_id`, `batch_index`, `prompt_path`, `prompt_lines`,
+   `output_path`, `context_mode`), plus `total_batches`, `reaggregate_mode` and
+   `plan_file`. Read `validation_tasks.json` only when there is no index.
+
    **For each task in the file: when the task carries `prompt_path`, run a
    subagent that reads that file in full — through line `prompt_lines`, paging
    if a single read stops short — and follows it verbatim; otherwise, or if the
-   file is absent, run `task.prompt` as a subagent. Either way, write the JSON
-   it returns to `task.output_path`.** That is the whole contract — do not
-   assemble a prompt beyond that one read instruction, and do not tell the
-   subagent to write the file itself. The file's bytes are exactly
+   file is absent, run that task's `prompt` from `validation_tasks.json` as a
+   subagent. Either way, write the JSON it returns to `task.output_path`.**
+   That is the whole contract — do not assemble a prompt beyond that one read
+   instruction, and do not tell the subagent to write the file itself. The file's bytes are exactly
    `task.prompt`; the two are interchangeable.
 
    A file whose `tasks_schema_version` is missing or not `2`, or whose recorded
@@ -422,7 +408,7 @@ to bare `python`.
    #### Single Batch: `[VALIDATION_PENDING]`
 
    If `[VALIDATION_PENDING]` marker is present:
-   1. Read `validation_tasks.json` from `{plan}/review-plan/`
+   1. Read `validation_tasks.index.json` from `{plan}/review-plan/` (no index: `validation_tasks.json`)
    2. Run the single task as the contract above says — the sidecar at
       `prompt_path` when it has one, `task.prompt` otherwise — and write its
       JSON reply to that task's `output_path`; do not run the next step, or end your turn, until that file exists and is not empty
@@ -431,7 +417,7 @@ to bare `python`.
    #### Multiple Batches: `[VALIDATION_BATCHES_PENDING]`
 
    If `[VALIDATION_BATCHES_PENDING]` marker is present (for 5+ suggestion groups):
-   1. Read `validation_tasks.json` once from `{plan}/review-plan/`
+   1. Read `validation_tasks.index.json` once from `{plan}/review-plan/` (no index: `validation_tasks.json`)
    2. Count the number of batches as `{total_batches}` and mark the phase start before spawning the first wave:
       ```bash
       uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics start \
@@ -476,8 +462,6 @@ to bare `python`.
 
    **CRITICAL**: Do NOT report results to the user until reaggregation is complete.
 
-   **Legacy Mode**: To run validation inside the orchestrator (bypassing subagent delegation), add `--internal-validation` flag to the orchestrator command.
-
 8. **Report results** following `references/summary-format.md`, including all generated files in `{plan}/review-plan/`:
    - `report.md` - Consolidated review report
    - `grouped.json` - Grouped suggestions
@@ -506,79 +490,9 @@ to bare `python`.
      --state-file "$STATE_FILE" --phase "review-plan"
    ```
 
-9. **Suggestion Consolidation (Optional):**
-
-   After reporting results, check the log file `{plan}/review-plan/orchestrator-run.log` for a `[CONSOLIDATION_RECOMMENDED]` marker. The same fact rides the result contract for a caller that never sees the log — `MULTI_LLM_RESULT.consolidation_recommended` (`{valid_groups, threshold, command}`, present only when recommended, and carried by `status --view run` too) — so report it from there rather than inferring it from the marker's absence.
-
-   If **not present**, skip this step entirely.
-
-   If **present** with `--yes` (or `--non-interactive`): **auto-run consolidation
-   once, no prompt** (D6 row 4). There is no second threshold to apply here — the
-   orchestrator only emits the marker at `CONSOLIDATION_RECOMMENDED_THRESHOLD`
-   (15 valid groups, tunable with `--consolidation-threshold`), so the marker's
-   presence *is* the decision. If consolidation itself fails, keep the
-   unconsolidated results, warn, and continue — a failed optional pass is not a
-   failed phase.
-
-   If **present** without `--yes`, inform the user of the group count and **ask the user** whether to run consolidation. If the user declines, skip this step.
-
-   If consolidation is to run (auto or agreed):
-
-   **a) Run the consolidation orchestrator:**
-
-   ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" review-plan --plan-file "$PLAN_PATH" --consolidate
-   ```
-
-   **b) Handle subagent spawning for consolidation batches:**
-
-   Check the orchestrator output for markers:
-   - `[CONSOLIDATION_PENDING]` — single batch (1 batch)
-   - `[CONSOLIDATION_BATCHES_PENDING]` — multiple batches
-
-   Then:
-   1. Load `consolidation_tasks.json` from the phase directory (`{plan}/review-plan/`) — every task in its `batches` array carries a complete `prompt`, and `prompt_path` (`consolidation_batch_N.prompt.txt` in the same directory, exactly the bytes of `prompt`) with its line count `prompt_lines`
-   2. Count the number of batches as `{total_batches}` and mark the consolidation phase start:
-      ```bash
-      uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics start \
-        --state-file "$STATE_FILE" --phase "review-plan-consolidation" --total-batches {total_batches}
-      ```
-   3. For each task in the file, run a subagent the way validation's contract above says: when the task carries `prompt_path`, the subagent reads that file in full (through line `prompt_lines`) and follows it; otherwise, or if the file is absent, pass `task.prompt`. The filled `consolidate_suggestions.txt` template and that batch's group records are already inside it, so write no prompt file of your own
-   4. Write the JSON each subagent returns to that task's `output_path` (`consolidation_batch_N.json` in the phase directory)
-   5. After each batch completes, record metrics with cumulative `--batch-index`:
-      ```bash
-      uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics record \
-        --state-file "$STATE_FILE" --phase "review-plan-consolidation" \
-        --label "Consolidation batch {N}" --subagent-type "general-purpose" \
-        --tokens {token_count} --tool-uses {tool_uses} --duration-ms {duration_ms} \
-        --total-batches {total_batches} --batch-index {N}
-      ```
-      Where `token_count`, `tool_uses`, `duration_ms` come from whatever your subagent mechanism reports. Omit any flag it does not report. Never pass `0` for an unknown value; omit the flag — a made-up zero is averaged into the phase totals as a real measurement.
-
-   **Strategy A (≤ 4 batches):** Run all batch subagents from the main agent in parallel (single message with multiple subagent calls).
-
-   **Strategy B (> 4 batches):** Split batches into waves of up to 4 (last wave may absorb remaining batches, up to 6). For each wave, run all batch subagents in parallel (single message), wait for completion, then proceed to the next wave.
-
-   **Before you continue: verify every batch wrote its file, and do not end your turn before it has.** Confirm that each task's `output_path` — `consolidation_batch_N.json` — exists and is not empty, and re-dispatch any task whose file is missing before reaggregating; **you** write these files, and a host that runs one headless turn has no second turn in which to write them.
-
-   **c) Run reaggregation after all batches complete:**
-
-   ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" review-plan --plan-file "$PLAN_PATH" --reaggregate-consolidation
-   ```
-
-   After reaggregation, mark the consolidation phase finish:
-   ```bash
-   uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics finish \
-     --state-file "$STATE_FILE" --phase "review-plan-consolidation"
-   ```
-
-   **CRITICAL**: Do NOT report consolidation results until reaggregation is complete.
-
-   **d) Report all consolidation output paths:**
-   - `consolidated.json` - Consolidated suggestion groups
-   - `consolidated-report.md` - Human-readable consolidation report
-   - `consolidated-report.html` - HTML version of the consolidation report
+9. **Suggestion Consolidation (Optional):** two cases lead here, and in either you read `references/consolidation.md` in full before your next command and follow it from the section named below. Skip this step only when there is no `[CONSOLIDATION_RECOMMENDED]` line, no `consolidation_recommended` field, no `--consolidate` from the user and no `[CONSOLIDATION_PENDING]` or `[CONSOLIDATION_BATCHES_PENDING]` line.
+   - **Starting a recommended pass:** after reporting results, look for a `[CONSOLIDATION_RECOMMENDED]` line in `{plan}/review-plan/orchestrator-run.log` and a `consolidation_recommended` field on `MULTI_LLM_RESULT` (`status --view run` carries it too). With either, start at the reference's *Decide whether it runs*: under `--yes` (or `--non-interactive`) it runs consolidation once with no prompt (D6 row 4), and without `--yes` it asks the user first.
+   - **Continuing a requested or pending pass:** the user typed `--consolidate` (it needs no recommendation, so it runs below the threshold too), or a review-plan run printed `[CONSOLIDATION_PENDING]` (one batch) or `[CONSOLIDATION_BATCHES_PENDING]` (several). That pass is already decided: it needs no recommendation check and no question. Start at the reference's section a) when that `--consolidate` has not run yet, or at section b) for the batches a pending marker names.
 
 ---
 

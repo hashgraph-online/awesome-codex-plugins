@@ -13,105 +13,165 @@ var __export = (target, all) => {
     __defProp(target, name, { get: all[name], enumerable: true });
 };
 
-// src/runtime/build-provenance.ts
-import { createHash } from "node:crypto";
-import { readFileSync, realpathSync } from "node:fs";
-import path from "node:path";
-function verifyWorkerProvenance(input2) {
-  const { bridgeLaunchMarker: bridgeLaunchMarker2, rawEnvelope, actualWorker } = input2;
-  if (rawEnvelope === void 0 && !bridgeLaunchMarker2) {
-    return {
-      status: "unverified",
-      expected: null,
-      actualWorker,
-      workerMatchesExpected: false,
-      reason: "provenance_unverified_legacy"
-    };
-  }
-  if (rawEnvelope === void 0) {
-    return rejected("provenance_missing", "Bridge launch marker was present but the provenance envelope was missing", actualWorker);
-  }
-  let parsed;
-  try {
-    parsed = JSON.parse(rawEnvelope);
-  } catch {
-    return rejected("provenance_malformed", "provenance envelope was not valid JSON", actualWorker);
-  }
-  if (!isRecord(parsed) || !hasExactKeys(parsed, ["bridge", "worker"])) {
-    return rejected("provenance_malformed", "provenance envelope must contain exactly bridge and worker fingerprints", actualWorker);
-  }
-  const bridge = parseFingerprint(parsed["bridge"], false);
-  const worker = parseFingerprint(parsed["worker"], true);
-  if (!bridge || !worker) {
-    return rejected("provenance_malformed", "provenance fingerprint fields were invalid", actualWorker);
-  }
-  const expected = { bridge, worker };
-  let expectedWorkerPath;
-  try {
-    if (!path.isAbsolute(worker.path)) throw new Error("expected worker path was not absolute");
-    expectedWorkerPath = realpathSync(worker.path);
-  } catch {
-    return rejected("provenance_malformed", "expected worker path was missing, unreadable, or non-canonicalizable", actualWorker, expected);
-  }
-  const actualPath = actualWorker.path;
-  let canonicalActualPath = null;
-  if (actualPath !== null) {
-    try {
-      canonicalActualPath = realpathSync(actualPath);
-    } catch {
+// src/result-contract.mjs
+function canonical(value) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number" && Number.isSafeInteger(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  if (value && Object.getPrototypeOf(value) === Object.prototype) return `{${Object.keys(value).sort().map((k) => `${JSON.stringify(k)}:${canonical(value[k])}`).join(",")}}`;
+  throw new ResultContractError("invalid_json_value");
+}
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((x) => typeof x === "string");
+}
+function validateTestReport(value) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) return { ok: false, error: "entry is not an object" };
+  if (typeof value.command !== "string") return { ok: false, error: "command must be a string" };
+  if (!["passed", "failed", "not_run"].includes(value.status)) return { ok: false, error: "status must be one of passed|failed|not_run" };
+  if (value.details !== void 0 && typeof value.details !== "string") return { ok: false, error: "details must be a string when present" };
+  return { ok: true, test: { command: value.command, status: value.status, ...value.details === void 0 ? {} : { details: value.details } } };
+}
+function validateReportFields(value, partial2 = false) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail("invalid_result_payload", "report is not a JSON object");
+  for (const key of ["summary", "files_changed", "tests", "issues", "needs_master_decision"]) {
+    if (partial2 && !Object.hasOwn(value, key)) continue;
+    const v = value[key];
+    if (key === "tests") {
+      if (!Array.isArray(v)) fail("invalid_result_payload", "report.tests must be an array");
+      for (const entry of v) {
+        const parsed = validateTestReport(entry);
+        if (!parsed.ok) fail("invalid_result_payload", `report.tests entry invalid: ${parsed.error}`);
+      }
+    } else if (key === "summary" ? typeof v !== "string" : key === "needs_master_decision" ? typeof v !== "boolean" : !isStringArray(v)) {
+      fail("invalid_result_payload", `report.${key} must be ${key === "summary" ? "a string" : key === "needs_master_decision" ? "a boolean" : "an array of strings"}`);
     }
   }
-  if (canonicalActualPath === null || normalizeComparisonPath(canonicalActualPath) !== normalizeComparisonPath(expectedWorkerPath)) {
-    return rejected("provenance_path_mismatch", "actual worker path did not match the Bridge-expected worker path", actualWorker, expected);
-  }
-  if (actualWorker.sha256 === null || actualWorker.sha256.toUpperCase() !== worker.sha256.toUpperCase()) {
-    return rejected("provenance_hash_mismatch", "actual worker SHA256 did not match the Bridge-expected SHA256", actualWorker, expected);
-  }
-  return { status: "verified", expected, actualWorker, workerMatchesExpected: true };
 }
-function rejected(errorCode, reason, actualWorker, expected = null) {
-  return { status: "rejected", expected, actualWorker, workerMatchesExpected: false, errorCode, reason };
-}
-function parseFingerprint(value, requireComplete) {
-  if (!isRecord(value) || !hasExactKeys(value, ["path", "sha256"])) return null;
-  const artifactPath = value["path"];
-  const sha2562 = value["sha256"];
-  if (requireComplete) {
-    if (typeof artifactPath !== "string" || !path.isAbsolute(artifactPath)) return null;
-    if (typeof sha2562 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2562)) return null;
-    return { path: artifactPath, sha256: sha2562 };
-  }
-  if (artifactPath !== null && (typeof artifactPath !== "string" || !path.isAbsolute(artifactPath))) return null;
-  if (sha2562 !== null && (typeof sha2562 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2562))) return null;
-  return { path: artifactPath, sha256: sha2562 };
-}
-function isRecord(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-function hasExactKeys(value, keys) {
-  return Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
-}
-function normalizeComparisonPath(value) {
-  const normalized = path.normalize(value);
-  return process.platform === "win32" ? normalized.toUpperCase() : normalized;
-}
-function fingerprintRuntimeArtifact(filePath) {
-  if (!filePath) return { path: null, sha256: null };
+function validateAgentReport(value) {
   try {
-    const resolvedPath = realpathSync(filePath);
-    return {
-      path: resolvedPath,
-      sha256: createHash("sha256").update(readFileSync(resolvedPath)).digest("hex").toUpperCase()
-    };
-  } catch {
-    return { path: path.resolve(filePath), sha256: null };
+    validateReportFields(value);
+  } catch (error62) {
+    return { ok: false, error: error62.message };
   }
+  if (!value.summary.trim()) return { ok: false, error: "report.summary must be a non-empty string" };
+  return { ok: true, report: { summary: value.summary, files_changed: value.files_changed, tests: value.tests.map((x) => validateTestReport(x).test), issues: value.issues, needs_master_decision: value.needs_master_decision } };
 }
-var BRIDGE_WORKER_LAUNCH_MARKER;
-var init_build_provenance = __esm({
-  "src/runtime/build-provenance.ts"() {
+function submissionFailure(result, error62) {
+  const code = error62?.code === "result_too_large" ? "result_too_large" : "invalid_result_payload";
+  const summary = code === "result_too_large" ? error62.message : `Result schema invalid (${String(error62?.message ?? "invalid_result_payload").slice(0, 512)}); original report not committed`;
+  return {
+    task_id: result.task_id,
+    attempt: result.attempt,
+    status: "failed",
+    summary,
+    files_changed: [],
+    tests: [],
+    issues: [summary],
+    needs_master_decision: true,
+    zcode_output: "",
+    exit_code: null,
+    session_id: null,
+    started_at: null,
+    finished_at: (/* @__PURE__ */ new Date()).toISOString(),
+    error_code: code
+  };
+}
+function assertWorkerResultEnvelope(frame) {
+  const bytes = Buffer.byteLength(canonical({ ...frame, result: null }), "utf8") - 4;
+  if (bytes > MAX_RESULT_ENVELOPE_BYTES) throw new ResultContractError("result_envelope_too_large", `Worker Result envelope ${bytes} bytes exceeds ${MAX_RESULT_ENVELOPE_BYTES}`);
+}
+function prepareWorkerResultFrameParts(frame) {
+  assertWorkerResultEnvelope(frame);
+  let resultJson;
+  try {
+    resultJson = canonicalTaskResult(frame.result, { task_id: frame.task_id, attempt: frame.attempt, result_status: frame.result?.status });
+  } catch (error62) {
+    const result = submissionFailure({ task_id: frame.task_id, attempt: frame.attempt }, error62);
+    resultJson = canonicalTaskResult(result, { task_id: frame.task_id, attempt: frame.attempt, result_status: "failed" });
+  }
+  const parts = ["{"];
+  for (const key of Object.keys(frame).sort()) {
+    if (parts.length > 1) parts.push(",");
+    parts.push(JSON.stringify(key), ":", key === "result" ? resultJson : canonical(frame[key]));
+  }
+  parts.push("}");
+  const bytes = parts.reduce((sum, part) => sum + Buffer.byteLength(part, "utf8"), 0);
+  if (bytes - Buffer.byteLength(resultJson, "utf8") > MAX_RESULT_ENVELOPE_BYTES || bytes > MAX_WORKER_RESULT_FRAME_BYTES)
+    throw new ResultContractError("result_envelope_too_large", "Worker Result envelope exceeds 256 KiB allowance");
+  return parts;
+}
+function validText(value, max) {
+  return typeof value === "string" && value.length > 0 && value.length <= max && !/[\x00-\x1f]/u.test(value);
+}
+function isNullableText(value, max = 4096) {
+  return value === null || typeof value === "string" && value.length <= max && !/[\x00-\x1f]/u.test(value);
+}
+function validateStringArray(value, maxItems = 256) {
+  if (!Array.isArray(value) || value.length > maxItems || value.some((x) => typeof x !== "string" || x.length > 4096 || /[\x00-\x1f]/u.test(x))) fail("invalid_result_payload");
+}
+function validateResultObject(value, keys, required2 = []) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype) fail("invalid_result_payload");
+  const own2 = Object.keys(value);
+  if (own2.some((k) => !keys.has(k)) || required2.some((k) => !Object.hasOwn(value, k))) fail("invalid_result_payload");
+}
+function validateUsage(value) {
+  validateResultObject(
+    value,
+    /* @__PURE__ */ new Set(["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]),
+    ["source", "scope", "observed_at", "finality", "input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens", "conflicts", "dropped_unknown_keys"]
+  );
+  if (!isNullableText(value.source) || !isNullableText(value.scope) || !isNullableText(value.observed_at) || !["reported", "derived", "partial"].includes(value.finality) || ["input_tokens", "output_tokens", "total_tokens", "cached_input_tokens", "reasoning_tokens"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || !Number.isSafeInteger(value.dropped_unknown_keys) || value.dropped_unknown_keys < 0) fail("invalid_result_payload");
+  validateStringArray(value.conflicts, 64);
+}
+function validateModel(value) {
+  validateResultObject(
+    value,
+    /* @__PURE__ */ new Set(["executor", "provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "effective_reasoning_level_source", "selection_source", "effective_at", "session_id", "turn_id"]),
+    ["executor", "provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "effective_reasoning_level_source", "selection_source", "effective_at", "session_id", "turn_id"]
+  );
+  if (typeof value.executor !== "string" || !["runtime", "not_reported"].includes(value.effective_reasoning_level_source) || ["provider_id", "model_id", "requested_model", "requested_reasoning_level", "effective_reasoning_level", "selection_source", "effective_at", "session_id", "turn_id"].some((k) => !isNullableText(value[k]))) fail("invalid_result_payload");
+}
+function validateTiming(value) {
+  validateResultObject(value, /* @__PURE__ */ new Set(["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms", "derived", "notes"]), ["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms", "derived", "notes"]);
+  if (["queued_ms", "execution_ms", "turn_ms", "finalize_ms", "wall_ms"].some((k) => value[k] !== null && (!Number.isSafeInteger(value[k]) || value[k] < 0)) || typeof value.derived !== "boolean") fail("invalid_result_payload");
+  validateStringArray(value.notes, 64);
+}
+function canonicalTaskResult(result, input2) {
+  validateResultObject(result, RESULT_FIELDS, REQUIRED_RESULT_FIELDS);
+  if (result.task_id !== input2.task_id || result.attempt !== input2.attempt || result.status !== input2.result_status || !RESULT_STATUSES.has(result.status) || typeof result.summary !== "string" || typeof result.zcode_output !== "string" || typeof result.needs_master_decision !== "boolean" || result.exit_code !== null && !Number.isSafeInteger(result.exit_code) || !isNullableText(result.session_id) || !isNullableText(result.started_at, 64) || !isNullableText(result.finished_at, 64)) fail("invalid_result_payload");
+  validateReportFields(result);
+  if (Object.hasOwn(result, "error_code") && !validText(result.error_code, 128)) fail("invalid_result_payload");
+  if (Object.hasOwn(result, "report_candidate")) {
+    validateResultObject(result.report_candidate, /* @__PURE__ */ new Set(["summary", "files_changed", "tests", "issues", "needs_master_decision"]));
+    validateReportFields(result.report_candidate, true);
+  }
+  if (Object.hasOwn(result, "usage") && result.usage !== null) validateUsage(result.usage);
+  if (Object.hasOwn(result, "model") && result.model !== null) validateModel(result.model);
+  if (Object.hasOwn(result, "timing") && result.timing !== null) validateTiming(result.timing);
+  const json2 = canonical(result);
+  const bytes = Buffer.byteLength(json2, "utf8");
+  if (bytes > MAX_TASK_RESULT_BYTES) throw new ResultContractError("result_too_large", `canonical TaskResult ${bytes} bytes exceeds ${MAX_TASK_RESULT_BYTES}; original report not committed`);
+  return json2;
+}
+var MAX_TASK_RESULT_BYTES, MAX_RESULT_ENVELOPE_BYTES, MAX_WORKER_RESULT_FRAME_BYTES, ResultContractError, fail, RESULT_STATUSES, RESULT_FIELDS, REQUIRED_RESULT_FIELDS;
+var init_result_contract = __esm({
+  "src/result-contract.mjs"() {
     "use strict";
-    BRIDGE_WORKER_LAUNCH_MARKER = "--zcode-bridge-launch-v1";
+    MAX_TASK_RESULT_BYTES = 32 * 1024 * 1024;
+    MAX_RESULT_ENVELOPE_BYTES = 256 * 1024;
+    MAX_WORKER_RESULT_FRAME_BYTES = MAX_TASK_RESULT_BYTES + MAX_RESULT_ENVELOPE_BYTES;
+    ResultContractError = class extends Error {
+      constructor(code, message = code) {
+        super(message);
+        this.code = code;
+      }
+    };
+    fail = (code, message = code) => {
+      throw new ResultContractError(code, message);
+    };
+    RESULT_STATUSES = /* @__PURE__ */ new Set(["completed", "failed", "cancelled", "waiting_for_master"]);
+    RESULT_FIELDS = /* @__PURE__ */ new Set(["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at", "error_code", "report_candidate", "usage", "model", "timing"]);
+    REQUIRED_RESULT_FIELDS = ["task_id", "attempt", "status", "summary", "files_changed", "tests", "issues", "needs_master_decision", "zcode_output", "exit_code", "session_id", "started_at", "finished_at"];
   }
 });
 
@@ -135,2342 +195,169 @@ var init_profile = __esm({
   }
 });
 
-// src/store/process-lock.ts
-import { existsSync, mkdirSync, readFileSync as readFileSync2, renameSync, rmdirSync, statSync, unlinkSync, writeFileSync } from "node:fs";
-import { randomUUID } from "node:crypto";
-import path3 from "node:path";
-function isTransientLockFsError(error62) {
-  return TRANSIENT_LOCK_FS_CODES.has(error62?.code ?? "");
-}
-function pauseBriefly(delayMs = RETRY_PAUSE_MS) {
-  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, delayMs);
-}
-async function withProcessLock(directory, operation, timeoutMs = 3e4) {
-  const deadline = Date.now() + timeoutMs;
-  let release;
-  while (!(release = tryAcquireProcessLock(directory))) {
-    if (Date.now() >= deadline) {
-      const owner = describeLockOwner(directory);
-      throw new Error(`timed out waiting for process lock: ${directory}${owner ? ` (live owner: ${owner})` : ""}`);
-    }
-    await new Promise((resolve) => setTimeout(resolve, 25));
-  }
-  try {
-    return await operation();
-  } finally {
-    release();
-  }
-}
-function describeLockOwner(directory) {
-  try {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid)) return null;
-    return `pid ${String(owner.pid)}${owner.started_at ? `, started ${owner.started_at}` : ""}`;
-  } catch {
-    return null;
-  }
-}
-function tryAcquireProcessLock(directory) {
-  return tryAcquireProcessLockWithRetry(directory, 0);
-}
-function tryAcquireProcessLockWithRetry(directory, retries) {
-  const token = randomUUID();
-  if (existsSync(directory)) return acquireExistingLock(directory);
-  const staging = `${directory}.${process.pid}.${token}.pending`;
-  const ownerRecord = {
-    pid: process.pid,
-    token,
-    started_at: (/* @__PURE__ */ new Date()).toISOString(),
-    // Fingerprint may be null before the async self-identity probe finishes;
-    // null never authorizes binding a recycled PID to a prior owner.
-    identity: selfIdentity ? { fingerprint: selfIdentity.fingerprint, identity_version: selfIdentity.identity_version, platform: selfIdentity.platform } : null
+// src/sqlite-candidate/wp6b2b1/launch-bootstrap.ts
+var launch_bootstrap_exports = {};
+__export(launch_bootstrap_exports, {
+  createLaunchBootstrap: () => createLaunchBootstrap,
+  decodeLaunchBootstrap: () => decodeLaunchBootstrap,
+  deriveAdmissionPolicySnapshotDigest: () => deriveAdmissionPolicySnapshotDigest,
+  encodeLaunchBootstrap: () => encodeLaunchBootstrap,
+  spawnAndBootstrapOnce: () => spawnAndBootstrapOnce,
+  writeLaunchBootstrap: () => writeLaunchBootstrap
+});
+import { createHash as createHash3 } from "node:crypto";
+function createLaunchBootstrap(source) {
+  const snapshot = source.policy_snapshot;
+  const bootstrap = {
+    protocol: "bridge-launch-bootstrap-v1",
+    operation_id: source.operation_id,
+    task_id: source.task_id,
+    attempt: source.attempt,
+    generation: source.generation,
+    launch_id: source.launch_id,
+    launch_epoch: source.launch_epoch,
+    launch_token: source.launch_token,
+    authorization_source: snapshot.authorization_source,
+    workspace_ref: snapshot.workspace_ref,
+    policy_revision: snapshot.policy_revision,
+    policy_digest: snapshot.policy_digest,
+    execution_profile_id: snapshot.execution_profile_id,
+    policy_snapshot_digest: snapshot.policy_snapshot_digest
   };
-  try {
-    mkdirSync(staging, { mode: 448 });
-    writeFileSync(path3.join(staging, "owner.json"), JSON.stringify(ownerRecord), { mode: 384, flag: "wx" });
-    try {
-      renameSync(staging, directory);
-    } catch (error62) {
-      removeStagedLock(staging);
-      const code = error62.code;
-      if (!isTransientLockFsError(error62)) throw error62;
-      if (DESTINATION_PRESENT_CONTENTION_CODES.has(code ?? "") || existsSync(directory)) {
-        return acquireExistingLock(directory);
-      }
-      if (retries < PUBLICATION_RETRY_ATTEMPTS) {
-        pauseBriefly(PUBLICATION_RETRY_PAUSE_MS);
-        return tryAcquireProcessLockWithRetry(directory, retries + 1);
-      }
-      throw error62;
-    }
-  } catch (error62) {
-    removeStagedLock(staging);
-    throw error62;
-  }
-  return () => {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
-    if (owner.token !== token) throw new Error("process lock ownership changed");
-    const retired = `${directory}.${token}.retired`;
-    renameWithTransientRetry(directory, retired);
-    removeStagedLock(retired);
-  };
+  validate(bootstrap);
+  return bootstrap;
 }
-function renameWithTransientRetry(source, target) {
-  const deadline = Date.now() + WITHDRAW_RETRY_MS;
-  while (true) {
-    try {
-      renameSync(source, target);
-      return;
-    } catch (error62) {
-      if (!isTransientLockFsError(error62) || Date.now() >= deadline) throw error62;
-      pauseBriefly();
-    }
-  }
+function encodeLaunchBootstrap(value) {
+  validate(value);
+  const frame = Buffer.from(`${JSON.stringify(value)}
+`, "utf8");
+  if (frame.byteLength > MAX_FRAME_BYTES) throw new TypeError("launch bootstrap exceeds frame limit");
+  return frame;
 }
-function acquireExistingLock(directory) {
-  let owner;
+function decodeLaunchBootstrap(frame) {
+  const bytes = typeof frame === "string" ? Buffer.from(frame, "utf8") : Buffer.from(frame);
+  if (bytes.byteLength === 0 || bytes.byteLength > MAX_FRAME_BYTES || bytes.at(-1) !== 10 || bytes.subarray(0, -1).includes(10)) throw new TypeError("invalid launch bootstrap frame");
+  const payload = bytes.subarray(0, -1);
+  const text = payload.toString("utf8");
+  if (!Buffer.from(text, "utf8").equals(payload)) throw new TypeError("invalid launch bootstrap UTF-8");
+  const value = JSON.parse(text);
+  validate(value);
+  return value;
+}
+function writeLaunchBootstrap(channel, source) {
+  const frame = encodeLaunchBootstrap(createLaunchBootstrap(source));
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (error62) => {
+      if (settled) return;
+      settled = true;
+      channel.removeListener("error", onError);
+      channel.removeListener("finish", onFinish);
+      if (error62) reject(error62);
+      else resolve();
+    };
+    const onError = (error62) => finish(error62);
+    const onFinish = () => finish();
+    channel.once("error", onError);
+    channel.once("finish", onFinish);
+    try {
+      channel.end(frame);
+    } catch (error62) {
+      finish(error62 instanceof Error ? error62 : new Error(String(error62)));
+    }
+  });
+}
+async function spawnAndBootstrapOnce(spawnChild, source) {
+  let child;
   try {
-    owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) throw new Error("invalid lock owner");
+    child = await spawnChild();
   } catch {
-    try {
-      if (Date.now() - statSync(directory).mtimeMs > 3e4) throw new Error(`unreadable lock owner: ${directory}`);
-    } catch (failure2) {
-      if (failure2.code !== "ENOENT") throw failure2;
-    }
-    return null;
+    return { state: "launch_outcome_unknown", reason: "spawn_threw" };
   }
+  if (!child.bootstrapChannel) return { state: "launch_outcome_unknown", reason: "private_channel_unavailable", child };
   try {
-    process.kill(owner.pid, 0);
-  } catch (failure2) {
-    if (failure2.code === "ESRCH") {
-      if (reclaimDeadOwner(directory)) return tryAcquireProcessLock(directory);
-    }
-  }
-  return null;
-}
-function removeStagedLock(directory) {
-  removePrivateFile(path3.join(directory, "owner.json"));
-  removePrivateDirectory(directory);
-}
-function removePrivateFile(file2) {
-  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
-  while (true) {
-    try {
-      unlinkSync(file2);
-      return;
-    } catch (error62) {
-      const code = error62?.code;
-      if (code === "ENOENT" || !isTransientLockFsError(error62) || Date.now() >= deadline) return;
-      pauseBriefly();
-    }
+    await writeLaunchBootstrap(child.bootstrapChannel, source);
+    return { state: "bootstrap_sent", child };
+  } catch {
+    return { state: "launch_outcome_unknown", reason: "private_channel_failed", child };
   }
 }
-function removePrivateDirectory(directory) {
-  const deadline = Date.now() + PRIVATE_CLEANUP_RETRY_MS;
-  while (true) {
-    try {
-      rmdirSync(directory);
-      return;
-    } catch (error62) {
-      const code = error62?.code;
-      if (code === "ENOENT" || !isTransientLockFsError(error62) || Date.now() >= deadline) return;
-      pauseBriefly();
-    }
+function validate(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid launch bootstrap");
+  const record3 = value;
+  if (Object.keys(record3).sort().join("\0") !== [...KEYS].sort().join("\0") || record3.protocol !== "bridge-launch-bootstrap-v1" || !validId(record3.operation_id) || !validId(record3.task_id) || !validId(record3.launch_id) || !validToken(record3.launch_token) || !positive(record3.attempt) || !positive(record3.generation) || !positive(record3.launch_epoch) || record3.authorization_source !== "trusted_local_policy" || !validWorkspace(record3.workspace_ref) || !validId(record3.policy_revision) || !validDigest(record3.policy_digest) || !validId(record3.execution_profile_id) || !validDigest(record3.policy_snapshot_digest) || record3.policy_snapshot_digest !== deriveAdmissionPolicySnapshotDigest(record3)) {
+    throw new TypeError("invalid launch bootstrap fields");
   }
 }
-function reclaimDeadOwner(directory) {
-  const guard = `${directory}.reclaim`;
-  try {
-    mkdirSync(guard);
-  } catch (error62) {
-    if (error62.code === "EEXIST") return false;
-    throw error62;
-  }
-  let outcome;
-  try {
-    const owner = JSON.parse(readFileSync2(path3.join(directory, "owner.json"), "utf8"));
-    if (!Number.isSafeInteger(owner.pid) || owner.pid <= 0) {
-      outcome = { kind: "busy" };
-    } else {
-      try {
-        process.kill(owner.pid, 0);
-        outcome = { kind: "busy" };
-      } catch (failure2) {
-        if (failure2.code !== "ESRCH") {
-          outcome = { kind: "busy" };
-        } else {
-          const retired = `${directory}.${randomUUID()}.retired`;
-          renameWithTransientRetry(directory, retired);
-          removeStagedLock(retired);
-          outcome = { kind: "reclaimed" };
-        }
-      }
-    }
-  } catch (error62) {
-    outcome = error62.code === "ENOENT" ? { kind: "busy" } : { kind: "error", error: error62 };
-  }
-  let guardCleanupError = null;
-  try {
-    removeSharedGuard(guard);
-  } catch (error62) {
-    guardCleanupError = error62;
-  }
-  if (outcome.kind === "error") throw outcome.error;
-  if (guardCleanupError !== null) throw guardCleanupError;
-  return outcome.kind === "reclaimed";
+function deriveAdmissionPolicySnapshotDigest(value) {
+  const envelope = {
+    contract: "bridge-admission-policy-snapshot-v1",
+    operation_id: value.operation_id,
+    task_id: value.task_id,
+    attempt: value.attempt,
+    generation: value.generation,
+    workspace_ref: value.workspace_ref,
+    authorization_source: value.authorization_source,
+    policy_revision: value.policy_revision,
+    policy_digest: value.policy_digest,
+    execution_profile_id: value.execution_profile_id
+  };
+  return createHash3("sha256").update(canonicalJson(envelope), "utf8").digest("hex");
 }
-function removeSharedGuard(guard) {
-  const deadline = Date.now() + SHARED_GUARD_RETRY_MS;
-  while (true) {
-    try {
-      rmdirSync(guard);
-      return;
-    } catch (error62) {
-      const code = error62?.code;
-      if (code === "ENOENT") return;
-      if (!isTransientLockFsError(error62) || Date.now() >= deadline) {
-        throw new Error(
-          `could not remove the lock reclaim guard at ${guard} (${code ?? "unknown error"}); a leftover guard blocks all future dead-owner reclaims of this lock and needs manual diagnosis`,
-          { cause: error62 }
-        );
-      }
-      pauseBriefly();
-    }
+function canonicalJson(value) {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number" && Number.isSafeInteger(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && Object.getPrototypeOf(value) === Object.prototype) {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
   }
+  throw new TypeError("invalid admission policy snapshot");
 }
-var selfIdentity, TRANSIENT_LOCK_FS_CODES, DESTINATION_PRESENT_CONTENTION_CODES, PUBLICATION_RETRY_ATTEMPTS, PUBLICATION_RETRY_PAUSE_MS, WITHDRAW_RETRY_MS, SHARED_GUARD_RETRY_MS, PRIVATE_CLEANUP_RETRY_MS, RETRY_PAUSE_MS;
-var init_process_lock = __esm({
-  "src/store/process-lock.ts"() {
+function validId(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= 128 && !/[\x00-\x1f]/u.test(value);
+}
+function positive(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+function validToken(value) {
+  return typeof value === "string" && Buffer.byteLength(value, "utf8") >= 16 && Buffer.byteLength(value, "utf8") <= 4096;
+}
+function validDigest(value) {
+  return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
+}
+function validWorkspace(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= 4096 && !/[\x00-\x1f]/u.test(value);
+}
+var KEYS, MAX_FRAME_BYTES;
+var init_launch_bootstrap = __esm({
+  "src/sqlite-candidate/wp6b2b1/launch-bootstrap.ts"() {
     "use strict";
-    selfIdentity = null;
-    TRANSIENT_LOCK_FS_CODES = /* @__PURE__ */ new Set(["EEXIST", "EPERM", "EACCES", "EBUSY", "ENOTEMPTY"]);
-    DESTINATION_PRESENT_CONTENTION_CODES = /* @__PURE__ */ new Set(["EEXIST", "ENOTEMPTY"]);
-    PUBLICATION_RETRY_ATTEMPTS = 5;
-    PUBLICATION_RETRY_PAUSE_MS = 50;
-    WITHDRAW_RETRY_MS = 5e3;
-    SHARED_GUARD_RETRY_MS = 2e3;
-    PRIVATE_CLEANUP_RETRY_MS = 1e3;
-    RETRY_PAUSE_MS = 10;
+    KEYS = ["attempt", "authorization_source", "execution_profile_id", "generation", "launch_epoch", "launch_id", "launch_token", "operation_id", "policy_digest", "policy_revision", "policy_snapshot_digest", "protocol", "task_id", "workspace_ref"];
+    MAX_FRAME_BYTES = 8192;
   }
 });
 
-// src/runtime/durable-file-system.ts
-import { spawnSync } from "node:child_process";
-import { closeSync, existsSync as existsSync2, fsyncSync, openSync, renameSync as renameSync2 } from "node:fs";
-import path4 from "node:path";
-function canonicalParent(filePath) {
-  return path4.dirname(path4.resolve(filePath));
+// src/runtime/trusted-local-profile.ts
+var trusted_local_profile_exports = {};
+__export(trusted_local_profile_exports, {
+  resolveTrustedLocalExecutionProfile: () => resolveTrustedLocalExecutionProfile
+});
+function resolveTrustedLocalExecutionProfile(id) {
+  return PROFILES[id] ?? null;
 }
-function assertSameDirectory(source, destination) {
-  const left = canonicalParent(source);
-  const right = canonicalParent(destination);
-  const same = process.platform === "win32" ? left.toLocaleLowerCase("en-US") === right.toLocaleLowerCase("en-US") : left === right;
-  if (!same) throw new Error("durable file operation requires one directory");
-  if (path4.resolve(source) === path4.resolve(destination)) {
-    throw new Error("durable file operation requires distinct files");
-  }
-}
-function flushDirectoryPosix(directory) {
-  const fd = openSync(directory, "r");
-  try {
-    fsyncSync(fd);
-  } finally {
-    closeSync(fd);
-  }
-}
-function runWindowsHelper(operation, source, destination, replace) {
-  const result = spawnSync(
-    "powershell.exe",
-    [
-      "-NoProfile",
-      "-NonInteractive",
-      "-ExecutionPolicy",
-      "Bypass",
-      "-EncodedCommand",
-      WINDOWS_HELPER_COMMAND
-    ],
-    {
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CODEX_BRIDGE_DURABLE_OPERATION: operation,
-        CODEX_BRIDGE_DURABLE_SOURCE: source,
-        CODEX_BRIDGE_DURABLE_DESTINATION: destination ?? "",
-        CODEX_BRIDGE_DURABLE_REPLACE: replace ? "1" : "0"
-      },
-      maxBuffer: 64 * 1024,
-      timeout: WINDOWS_OPERATION_TIMEOUT_MS,
-      windowsHide: true
-    }
-  );
-  if (result.error || result.signal || result.status !== 0) {
-    const status = result.status ?? null;
-    const win32 = status === null ? null : status >= 3e3 ? status - 3e3 : status >= 2e3 ? status - 2e3 : status >= 20 ? status - 20 : null;
-    const code = win32 === 5 ? "EPERM" : win32 === 32 || win32 === 33 ? "EBUSY" : win32 === 183 ? "EEXIST" : win32 === null ? result.error?.name ?? result.signal ?? `status_${String(status)}` : `EWINDOWS_${win32}`;
-    const error62 = new Error(`windows_durable_file_operation_failed:${code}`);
-    error62.code = code;
-    throw error62;
-  }
-}
-function moveFileSync(source, destination, replace) {
-  assertSameDirectory(source, destination);
-  if (process.platform === "win32") {
-    runWindowsHelper("move", path4.resolve(source), path4.resolve(destination), replace);
-    return;
-  }
-  renameSync2(source, destination);
-  flushDirectoryPosix(canonicalParent(destination));
-}
-var WINDOWS_OPERATION_TIMEOUT_MS, WINDOWS_HELPER_SCRIPT, WINDOWS_HELPER_COMMAND, defaultDurableFileOperations;
-var init_durable_file_system = __esm({
-  "src/runtime/durable-file-system.ts"() {
+var PROFILES;
+var init_trusted_local_profile = __esm({
+  "src/runtime/trusted-local-profile.ts"() {
     "use strict";
-    WINDOWS_OPERATION_TIMEOUT_MS = 1e4;
-    WINDOWS_HELPER_SCRIPT = String.raw`
-$ErrorActionPreference = 'Stop'
-
-Add-Type -TypeDefinition @'
-using System;
-using System.Runtime.InteropServices;
-
-public static class CodexBridgeDurableFileSystem {
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  private static extern IntPtr CreateFileW(
-    string fileName,
-    uint desiredAccess,
-    uint shareMode,
-    IntPtr securityAttributes,
-    uint creationDisposition,
-    uint flagsAndAttributes,
-    IntPtr templateFile);
-
-  [DllImport("kernel32.dll", SetLastError = true)]
-  private static extern bool FlushFileBuffers(IntPtr handle);
-
-  [DllImport("kernel32.dll", SetLastError = true)]
-  private static extern bool CloseHandle(IntPtr handle);
-
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-  private static extern bool MoveFileExW(string source, string destination, uint flags);
-
-  public static int Move(string source, string destination, bool replace) {
-    uint flags = 0x00000008u;
-    if (replace) flags |= 0x00000001u;
-    if (!MoveFileExW(source, destination, flags)) return 20 + Marshal.GetLastWin32Error();
-    return Flush(System.IO.Path.GetDirectoryName(destination));
-  }
-
-  public static int Flush(string directory) {
-    const uint GENERIC_WRITE = 0x40000000u;
-    const uint FILE_SHARE_READ_WRITE_DELETE = 0x00000001u | 0x00000002u | 0x00000004u;
-    const uint OPEN_EXISTING = 3u;
-    const uint FILE_FLAG_BACKUP_SEMANTICS = 0x02000000u;
-    IntPtr handle = CreateFileW(
-      directory,
-      GENERIC_WRITE,
-      FILE_SHARE_READ_WRITE_DELETE,
-      IntPtr.Zero,
-      OPEN_EXISTING,
-      FILE_FLAG_BACKUP_SEMANTICS,
-      IntPtr.Zero);
-    if (handle == new IntPtr(-1)) return 2000 + Marshal.GetLastWin32Error();
-    try {
-      if (!FlushFileBuffers(handle)) return 3000 + Marshal.GetLastWin32Error();
-      return 0;
-    } finally {
-      CloseHandle(handle);
-    }
-  }
-}
-'@
-
-$operation = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_OPERATION')
-$source = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_SOURCE')
-$destination = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_DESTINATION')
-$replace = [Environment]::GetEnvironmentVariable('CODEX_BRIDGE_DURABLE_REPLACE') -eq '1'
-
-if ($operation -eq 'flush') {
-  if ([string]::IsNullOrWhiteSpace($source)) { exit 10 }
-  exit ([CodexBridgeDurableFileSystem]::Flush($source))
-}
-
-if ($operation -eq 'move') {
-  if ([string]::IsNullOrWhiteSpace($source) -or [string]::IsNullOrWhiteSpace($destination)) { exit 11 }
-  exit ([CodexBridgeDurableFileSystem]::Move($source, $destination, $replace))
-}
-
-exit 12
-`;
-    WINDOWS_HELPER_COMMAND = Buffer.from(WINDOWS_HELPER_SCRIPT, "utf16le").toString("base64");
-    defaultDurableFileOperations = Object.freeze({
-      replaceFileSync(source, destination) {
-        moveFileSync(source, destination, existsSync2(destination));
-      },
-      moveFileSync(source, destination) {
-        moveFileSync(source, destination, false);
-      },
-      flushDirectorySync(directory) {
-        const resolved = path4.resolve(directory);
-        if (process.platform === "win32") {
-          runWindowsHelper("flush", resolved, null, false);
-          return;
-        }
-        flushDirectoryPosix(resolved);
-      }
+    PROFILES = Object.freeze({
+      "local-build-v1": Object.freeze({
+        id: "local-build-v1",
+        // Keep the persisted profile ID for compatibility. The local single-user
+        // Bridge now uses the same ordinary-tool yolo mode as the JSON Host path.
+        sessionMode: "yolo",
+        unrestricted: false
+      })
     });
-  }
-});
-
-// src/diagnostics/failure-facts.ts
-function registeredCode(value, registry2) {
-  if (typeof value !== "string" && typeof value !== "number") return null;
-  const text = typeof value === "number" ? Number.isSafeInteger(value) ? String(value) : null : value;
-  if (text === null || !CODE_PATTERN.test(text)) return null;
-  return registry2.has(text) ? text : null;
-}
-function reviewedTypeOrReasonCategories(input2) {
-  const categories = /* @__PURE__ */ new Set();
-  const type = input2.errorType ?? null;
-  const code = input2.errorCode ?? null;
-  const reason = input2.reviewedReason ?? null;
-  if (type === "model_context_exceeded" || code === "model_context_exceeded" || reason === "context_exceeded") {
-    categories.add("context_exceeded");
-  }
-  if (type === "model_rate_limited" || code === "model_rate_limited" || reason === "rate_limited") {
-    categories.add("rate_limited");
-  }
-  if (code === "model_not_found" || type === "model_not_found") categories.add("model_unavailable");
-  if (type === "tool_execution_failed" || type === "tool_timeout") categories.add("execution_failed");
-  if (reason === "auth_failed") categories.add("auth_failed");
-  if (reason === "invalid_request" && !categories.has("auth_failed")) {
-    if (code !== "invalid_model_response" && code !== "1005" && input2.providerCode !== "1005" && input2.rpcDataCode !== "1005") {
-      categories.add("invalid_request");
-    }
-  }
-  return categories;
-}
-function classifyFailureEvidence(input2) {
-  const booleans = (input2.retryableBooleans ?? []).filter((value) => typeof value === "boolean");
-  const distinct = new Set(booleans);
-  let retryableConflict = false;
-  let runtimeRetryable = null;
-  let retryableBasis = null;
-  if (distinct.size === 1) {
-    runtimeRetryable = booleans[0];
-    retryableBasis = "reported";
-  } else if (distinct.size > 1) {
-    retryableConflict = true;
-  }
-  const quotaCodes = [input2.providerCode, input2.errorCode, input2.rpcDataCode].filter((value) => typeof value === "string" && QUOTA_BUSINESS_CODES.has(value));
-  const rateCodes = [input2.providerCode, input2.errorCode, input2.rpcDataCode].filter((value) => typeof value === "string" && RATE_LIMIT_STRING_CODES.has(value));
-  const businessConflict = quotaCodes.length > 0 && rateCodes.length > 0;
-  let evidenceConflict = businessConflict || retryableConflict || input2.acceptedContradiction === true;
-  let category = "unknown";
-  let confidence = "unknown";
-  let basis = "none";
-  if (businessConflict) {
-    category = "unknown";
-    confidence = "unknown";
-    basis = "conflict";
-  } else if (quotaCodes.length > 0) {
-    category = "quota_exhausted";
-    confidence = "confirmed";
-    basis = "business_code";
-  } else if (rateCodes.length > 0) {
-    category = "rate_limited";
-    confidence = "confirmed";
-    basis = "business_code";
-  } else {
-    const typeReasons = reviewedTypeOrReasonCategories(input2);
-    const typeReason = typeReasons.values().next().value;
-    if (typeReasons.size > 1) {
-      evidenceConflict = true;
-      basis = "conflict";
-    } else if (typeReason && DIRECT_FACT_CATEGORIES.has(typeReason)) {
-      category = typeReason;
-      confidence = "confirmed";
-      basis = "runtime_type_or_reason";
-    } else if (input2.resultType !== null && input2.resultType !== void 0 && EXECUTION_RESULT_TYPES.has(input2.resultType)) {
-      category = "execution_failed";
-      confidence = "confirmed";
-      basis = "result_type";
-    } else if (input2.httpStatus === 429) {
-      category = "rate_limited";
-      confidence = "inferred";
-      basis = "http_status";
-    } else if (input2.quotaText && typeReasons.size === 0 && ![input2.providerCode, input2.errorCode, input2.rpcDataCode].includes("1005")) {
-      category = "quota_exhausted";
-      confidence = "inferred";
-      basis = "text";
-    }
-  }
-  if (category === "unknown" && input2.protocolGuard) {
-    category = "protocol_failure";
-    confidence = "confirmed";
-    basis = "protocol_guard";
-  } else if (category === "unknown" && input2.processErrno) {
-    basis = "process_errno";
-  }
-  return {
-    category,
-    confidence,
-    evidence_basis: basis,
-    evidence_conflict: evidenceConflict,
-    runtime_retryable: runtimeRetryable,
-    runtime_retryable_basis: retryableBasis
-  };
-}
-function safeIntegerOrNull(value) {
-  return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
-}
-function httpStatusOrNull(value) {
-  return typeof value === "number" && Number.isSafeInteger(value) && value >= 100 && value <= 599 ? value : null;
-}
-function errnoOrNull(value) {
-  return typeof value === "string" && PROCESS_ERRNOS.includes(value) ? value : null;
-}
-function registeredPhase(value) {
-  return typeof value === "string" && FAILURE_PHASE_SET.has(value) ? value : "unknown";
-}
-function buildFailureFacts(input2) {
-  const source = input2.source;
-  const classification = classifyFailureEvidence(input2);
-  const facts = {
-    schema_version: "1",
-    source,
-    phase: registeredPhase(input2.phase),
-    rpc_method: input2.rpcMethod != null && RPC_METHOD_REGISTRY.has(input2.rpcMethod) ? input2.rpcMethod : null,
-    rpc_code: safeIntegerOrNull(input2.rpcCode),
-    rpc_data_code: registeredCode(input2.rpcDataCode ?? null, RPC_DATA_CODE_REGISTRY),
-    error_type: registeredCode(input2.errorType ?? null, ERROR_TYPE_REGISTRY),
-    error_code: registeredCode(input2.errorCode ?? null, MODEL_ERROR_CODES),
-    provider_code: registeredCode(input2.providerCode ?? null, PROVIDER_BUSINESS_CODES),
-    http_status: httpStatusOrNull(input2.httpStatus),
-    accepted_before_error: input2.acceptedContradiction ? "unknown" : input2.accepted,
-    category: classification.category,
-    confidence: classification.confidence,
-    evidence_basis: classification.evidence_basis,
-    evidence_conflict: classification.evidence_conflict,
-    runtime_retryable: classification.runtime_retryable,
-    runtime_retryable_basis: classification.runtime_retryable_basis,
-    result_type: registeredCode(input2.resultType ?? null, RESULT_TYPE_REGISTRY),
-    process_errno: errnoOrNull(input2.processErrno ?? null)
-  };
-  const bytes = Buffer.byteLength(JSON.stringify(facts), "utf8");
-  if (bytes > MAX_FAILURE_FACTS_BYTES) {
-    throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
-  }
-  return validateFailureFacts(facts);
-}
-function validateFailureFacts(value) {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
-    throw new Error("failure facts must be a JSON object");
-  }
-  const record2 = value;
-  for (const key of Object.keys(record2)) {
-    if (!FACTS_KEYS.has(key)) throw new Error("failure facts has an unknown field");
-  }
-  for (const key of FACTS_KEYS) {
-    if (!(key in record2)) throw new Error(`failure facts is missing the field: ${key}`);
-  }
-  if (record2["schema_version"] !== "1") throw new Error('failure facts schema_version must be "1"');
-  if (!FAILURE_SOURCES.includes(record2["source"])) {
-    throw new Error("failure facts source is not in the frozen registry");
-  }
-  if (!FAILURE_PHASE_SET.has(record2["phase"])) {
-    throw new Error("failure facts phase is not in the frozen registry");
-  }
-  if (!ACCEPTED_STATES.includes(record2["accepted_before_error"])) {
-    throw new Error("failure facts accepted_before_error must be yes, no, or unknown");
-  }
-  if (!FAILURE_CATEGORIES.includes(record2["category"])) {
-    throw new Error("failure facts category is not in the frozen registry");
-  }
-  if (!CONFIDENCE_LEVELS.includes(record2["confidence"])) {
-    throw new Error("failure facts confidence is not in the frozen registry");
-  }
-  if (!EVIDENCE_BASES.includes(record2["evidence_basis"])) {
-    throw new Error("failure facts evidence_basis is not in the frozen registry");
-  }
-  if (typeof record2["evidence_conflict"] !== "boolean") {
-    throw new Error("failure facts evidence_conflict must be a boolean");
-  }
-  const retryable2 = record2["runtime_retryable"];
-  const retryableBasis = record2["runtime_retryable_basis"];
-  if (retryable2 !== null && typeof retryable2 !== "boolean") {
-    throw new Error("failure facts runtime_retryable must be a boolean or null");
-  }
-  if (retryableBasis !== null && retryableBasis !== "reported") {
-    throw new Error("failure facts runtime_retryable_basis must be reported or null in P0; versioned_mapping is disabled");
-  }
-  if (retryable2 === null !== (retryableBasis === null)) {
-    throw new Error("failure facts runtime_retryable and runtime_retryable_basis must be null together");
-  }
-  const codeFields = [
-    // rpc_method strings contain "/" by design; membership in the frozen
-    // method registry is the whole validation, the bounded code pattern
-    // applies only to code families.
-    ["rpc_method", RPC_METHOD_REGISTRY],
-    ["rpc_data_code", RPC_DATA_CODE_REGISTRY],
-    ["error_type", ERROR_TYPE_REGISTRY],
-    ["error_code", MODEL_ERROR_CODES],
-    ["provider_code", PROVIDER_BUSINESS_CODES],
-    ["result_type", RESULT_TYPE_REGISTRY]
-  ];
-  for (const [key, registry2] of codeFields) {
-    const item = record2[key];
-    if (item === null) continue;
-    if (key !== "rpc_method" && (typeof item !== "string" || !CODE_PATTERN.test(item))) {
-      throw new Error(`failure facts field ${key} is not a bounded code value`);
-    }
-    if (typeof item !== "string" || !registry2.has(item)) {
-      throw new Error(`failure facts field ${key} is not a registered value`);
-    }
-  }
-  if (record2["rpc_code"] !== null && safeIntegerOrNull(record2["rpc_code"]) === null) {
-    throw new Error("failure facts rpc_code must be a safe integer or null");
-  }
-  if (record2["http_status"] !== null && httpStatusOrNull(record2["http_status"]) === null) {
-    throw new Error("failure facts http_status must be an integer in 100..599 or null");
-  }
-  if (record2["process_errno"] !== null && !PROCESS_ERRNOS.includes(record2["process_errno"])) {
-    throw new Error("failure facts process_errno must be ENOENT, EACCES, EPERM, or null");
-  }
-  const bytes = Buffer.byteLength(JSON.stringify(record2), "utf8");
-  if (bytes > MAX_FAILURE_FACTS_BYTES) {
-    throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
-  }
-  return value;
-}
-function matchesExplicitQuotaText(value) {
-  const error62 = typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
-  const candidates = [
-    typeof value === "string" ? value : null,
-    typeof error62["code"] === "string" ? error62["code"] : null,
-    typeof error62["type"] === "string" ? error62["type"] : null,
-    typeof error62["message"] === "string" ? error62["message"] : null
-  ].filter((candidate) => candidate !== null).map((candidate) => candidate.slice(0, 2048));
-  if (candidates.length === 0) return false;
-  const text = candidates.join("\n").normalize("NFKC").toLowerCase();
-  return QUOTA_TEXT_PATTERNS.some((pattern) => pattern.test(text));
-}
-function evaluateAcceptedUpgrade(context, event) {
-  if (!context.nativeCorrelationVerified) return "unknown";
-  if (event.sessionId === null || event.sessionId !== context.sessionId) return "unknown";
-  if (context.seqBaseline === null || !Number.isSafeInteger(context.seqBaseline) || context.seqBaseline < 0) return "unknown";
-  if (typeof event.seq !== "number" || !Number.isSafeInteger(event.seq) || event.seq <= context.seqBaseline) return "unknown";
-  if (!event.turnId || context.boundTurnIds.has(event.turnId)) return "unknown";
-  if (!context.sessionId || !context.submitCorrelationId) return "unknown";
-  if (event.correlationEcho !== context.submitCorrelationId) return "unknown";
-  return "yes";
-}
-var FAILURE_PHASES, FAILURE_PHASE_SET, FAILURE_SOURCES, ACCEPTED_STATES, FAILURE_CATEGORIES, CONFIDENCE_LEVELS, EVIDENCE_BASES, PROCESS_ERRNOS, QUOTA_BUSINESS_CODES, RATE_LIMIT_STRING_CODES, PROVIDER_NUMERIC_CODES, PROVIDER_BUSINESS_CODES, MODEL_ERROR_CODES, ERROR_TYPE_REGISTRY, RPC_DATA_CODE_REGISTRY, RESULT_TYPE_REGISTRY, EXECUTION_RESULT_TYPES, RPC_METHOD_REGISTRY, MAX_FAILURE_FACTS_BYTES, FACTS_KEYS, CODE_PATTERN, DIRECT_FACT_CATEGORIES, REVIEWED_REASON_TOKENS, QUOTA_TEXT_PATTERNS;
-var init_failure_facts = __esm({
-  "src/diagnostics/failure-facts.ts"() {
-    "use strict";
-    FAILURE_PHASES = [
-      "unknown",
-      "pre_send",
-      "send_pending",
-      "rpc_rejected",
-      "turn_started",
-      "processing_input",
-      "awaiting_model_response",
-      "streaming",
-      "scheduling_tools",
-      "executing_tools",
-      "aggregating_results",
-      "awaiting_permission",
-      "completing",
-      "error",
-      "compact",
-      "rewind",
-      "model_creation",
-      "turn_terminal",
-      "spawn",
-      "process_exit",
-      "transport_lost",
-      "protocol_guard"
-    ];
-    FAILURE_PHASE_SET = new Set(FAILURE_PHASES);
-    FAILURE_SOURCES = ["rpc", "turn_event", "process", "transport"];
-    ACCEPTED_STATES = ["yes", "no", "unknown"];
-    FAILURE_CATEGORIES = [
-      "quota_exhausted",
-      "rate_limited",
-      "auth_failed",
-      "network_failure",
-      "context_exceeded",
-      "invalid_request",
-      "model_unavailable",
-      "execution_failed",
-      "protocol_failure",
-      "unknown"
-    ];
-    CONFIDENCE_LEVELS = ["confirmed", "inferred", "unknown"];
-    EVIDENCE_BASES = [
-      "business_code",
-      "runtime_type_or_reason",
-      "http_status",
-      "result_type",
-      "process_errno",
-      "protocol_guard",
-      "text",
-      "conflict",
-      "none"
-    ];
-    PROCESS_ERRNOS = ["ENOENT", "EACCES", "EPERM"];
-    QUOTA_BUSINESS_CODES = /* @__PURE__ */ new Set([
-      "insufficient_quota",
-      "credit_balance_exhausted",
-      "organization_spend_limit_exceeded",
-      "project_spend_limit_exceeded",
-      "organization_usage_limit_exceeded",
-      "exceeded_current_quota_error"
-    ]);
-    RATE_LIMIT_STRING_CODES = /* @__PURE__ */ new Set([
-      "rate_limit_error",
-      "rate_limit_reached_error"
-    ]);
-    PROVIDER_NUMERIC_CODES = /* @__PURE__ */ new Set([
-      "1005",
-      "1006",
-      "1261",
-      "3001",
-      "3006",
-      "3007",
-      "3008",
-      "3009",
-      "3010",
-      "1302",
-      "1303",
-      "1304",
-      "1305",
-      "1308",
-      "1310",
-      "1313",
-      "3002"
-    ]);
-    PROVIDER_BUSINESS_CODES = /* @__PURE__ */ new Set([
-      ...QUOTA_BUSINESS_CODES,
-      ...RATE_LIMIT_STRING_CODES,
-      ...PROVIDER_NUMERIC_CODES
-    ]);
-    MODEL_ERROR_CODES = /* @__PURE__ */ new Set([
-      "invalid_model_selection",
-      "model_config_missing",
-      "provider_not_found",
-      "provider_not_configured",
-      "model_not_found",
-      "invalid_model_request",
-      "invalid_model_response",
-      "model_request_failed",
-      "model_request_auth_missing",
-      "model_request_cancelled",
-      "model_request_timeout",
-      "model_rate_limited",
-      "model_context_exceeded",
-      ...PROVIDER_BUSINESS_CODES
-    ]);
-    ERROR_TYPE_REGISTRY = /* @__PURE__ */ new Set([
-      "model_error",
-      "model_timeout",
-      "model_rate_limited",
-      "model_context_exceeded",
-      "tool_not_found",
-      "tool_execution_failed",
-      "tool_timeout",
-      "tool_cancelled",
-      "tool_max_calls",
-      "permission_denied",
-      "permission_timeout",
-      "storage_error",
-      "configuration_error",
-      "unknown_error",
-      ...MODEL_ERROR_CODES
-    ]);
-    RPC_DATA_CODE_REGISTRY = MODEL_ERROR_CODES;
-    RESULT_TYPE_REGISTRY = /* @__PURE__ */ new Set([
-      "success",
-      "cancelled",
-      "error_max_turns",
-      "error_max_budget",
-      "error_during_execution",
-      "error_max_tool_calls"
-    ]);
-    EXECUTION_RESULT_TYPES = /* @__PURE__ */ new Set([
-      "error_max_turns",
-      "error_max_budget",
-      "error_during_execution",
-      "error_max_tool_calls"
-    ]);
-    RPC_METHOD_REGISTRY = /* @__PURE__ */ new Set([
-      "provider/updateAccountConfig",
-      "session/create",
-      "session/resume",
-      "session/setMode",
-      "session/setModel",
-      "session/subscribe",
-      "session/send",
-      "session/events"
-    ]);
-    MAX_FAILURE_FACTS_BYTES = 4096;
-    FACTS_KEYS = /* @__PURE__ */ new Set([
-      "schema_version",
-      "source",
-      "phase",
-      "rpc_method",
-      "rpc_code",
-      "rpc_data_code",
-      "error_type",
-      "error_code",
-      "provider_code",
-      "http_status",
-      "accepted_before_error",
-      "category",
-      "confidence",
-      "evidence_basis",
-      "evidence_conflict",
-      "runtime_retryable",
-      "runtime_retryable_basis",
-      "result_type",
-      "process_errno"
-    ]);
-    CODE_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/u;
-    DIRECT_FACT_CATEGORIES = /* @__PURE__ */ new Set([
-      "quota_exhausted",
-      "rate_limited",
-      "auth_failed",
-      "context_exceeded",
-      "invalid_request",
-      "model_unavailable",
-      "execution_failed"
-    ]);
-    REVIEWED_REASON_TOKENS = /* @__PURE__ */ new Set([
-      "auth_failed",
-      "invalid_request",
-      "context_exceeded",
-      "rate_limited"
-    ]);
-    QUOTA_TEXT_PATTERNS = [
-      /\binsufficient[_\s-]+quota\b/,
-      /\bquota[_\s-]+(?:(?:has[_\s-]+been)[_\s-]+)?(?:exceeded|exhausted|depleted)\b/,
-      /\b(?:usage|token)[_\s-]+quota[_\s-]+(?:exceeded|exhausted|depleted)\b/,
-      /\b(?:usage|token)[_\s-]+limit[_\s-]+(?:exceeded|exhausted|reached)\b/,
-      /\b(?:out[_\s-]+of|no[_\s-]+remaining|insufficient[_\s-]+)(?:[_\s-]+)?credits?\b/,
-      /\bcredits?[_\s-]+(?:exhausted|depleted)\b/,
-      /\bbilling[_\s-]+hard[_\s-]+limit[_\s-]+reached\b/,
-      /(?:用量|额度|配额)(?:已|已经)?(?:用尽|耗尽|用完|不足)/,
-      /(?:用尽|耗尽|用完|不足)(?:了)?(?:用量|额度|配额)/,
-      /(?:超出|超过)(?:了)?(?:当前)?(?:用量|额度|配额)/,
-      /(?:当前)?(?:用量|额度|配额)(?:已经)?(?:超出|不足)/
-    ];
-  }
-});
-
-// src/store/atomic-rename.ts
-import { renameSync as renameSync3 } from "node:fs";
-function retryable(error62, deadline) {
-  return process.platform === "win32" && Date.now() < deadline && ["EPERM", "EBUSY", "EACCES"].includes(error62.code ?? "");
-}
-function atomicRenameSync(source, target) {
-  const deadline = Date.now() + 2e3;
-  while (true) {
-    try {
-      renameSync3(source, target);
-      return;
-    } catch (error62) {
-      if (!retryable(error62, deadline)) throw error62;
-      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-    }
-  }
-}
-var init_atomic_rename = __esm({
-  "src/store/atomic-rename.ts"() {
-    "use strict";
-  }
-});
-
-// src/store/task-store.ts
-import { appendFileSync, chmodSync, closeSync as closeSync2, copyFileSync, existsSync as existsSync3, mkdirSync as mkdirSync2, openSync as openSync2, readFileSync as readFileSync3, readSync, readdirSync, rmSync, statSync as statSync2, writeFileSync as writeFileSync2 } from "node:fs";
-import { createHash as createHash2, randomUUID as randomUUID2 } from "node:crypto";
-import path5 from "node:path";
-import { StringDecoder } from "node:string_decoder";
-function stableJson(value) {
-  if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
-  if (value && typeof value === "object") return `{${Object.entries(value).sort(([a], [b]) => a.localeCompare(b)).map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(",")}}`;
-  return JSON.stringify(value) ?? "null";
-}
-function withEventLock(lockDir, operation) {
-  const deadline = Date.now() + 1e4;
-  let release;
-  while (!(release = tryAcquireProcessLock(lockDir))) {
-    if (Date.now() >= deadline) throw new Error(`timed out waiting for task state/event lock: ${lockDir}`);
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-  }
-  try {
-    return operation();
-  } finally {
-    release();
-  }
-}
-function privateMkdir(directory) {
-  mkdirSync2(directory, { recursive: true, mode: 448 });
-  privateDirectory(directory);
-}
-function privateDirectory(directory) {
-  if (process.platform !== "win32") chmodSync(directory, 448);
-}
-function privateFile(file2) {
-  if (process.platform !== "win32") chmodSync(file2, 384);
-}
-function readLastEventSeq(file2) {
-  if (!existsSync3(file2)) return 0;
-  for (const line of readFileSync3(file2, "utf8").trimEnd().split("\n").reverse()) {
-    try {
-      const event = JSON.parse(line);
-      if (Number.isInteger(event.seq)) return event.seq;
-    } catch {
-    }
-  }
-  return 0;
-}
-function parseProgressEvent(line) {
-  if (!line) return null;
-  try {
-    const event = JSON.parse(line);
-    return Number.isInteger(event.seq) ? event : null;
-  } catch {
-    return null;
-  }
-}
-function isTerminalStatus(status) {
-  return status === "completed" || status === "failed" || status === "cancelled" || status === "waiting_for_master";
-}
-var TASK_ID_PATTERN, DEFAULT_MAX_LOG_BYTES, MAX_INTERACTION_PARAMS_BYTES, LEGACY_INTERACTION_PARAMS_BYTES, SHA256_HEX_PATTERN, InteractionRequestTooLargeError, MAX_CRITICAL_EVENT_RESERVE_BYTES, CRITICAL_EVENT_TYPES, TaskStore;
-var init_task_store = __esm({
-  "src/store/task-store.ts"() {
-    "use strict";
-    init_failure_facts();
-    init_process_lock();
-    init_atomic_rename();
-    init_json_writer_quiescence();
-    TASK_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
-    DEFAULT_MAX_LOG_BYTES = 10 * 1024 * 1024;
-    MAX_INTERACTION_PARAMS_BYTES = 1024 * 1024;
-    LEGACY_INTERACTION_PARAMS_BYTES = 32e3;
-    SHA256_HEX_PATTERN = /^[0-9a-f]{64}$/u;
-    InteractionRequestTooLargeError = class extends Error {
-      actualBytes;
-      limitBytes;
-      constructor(actualBytes, limitBytes) {
-        super(
-          `ZCode interaction request exceeded the ${limitBytes}-byte persistence limit (actual ${actualBytes} UTF-8 bytes); split the tool input into smaller parts and retry`
-        );
-        this.name = "InteractionRequestTooLargeError";
-        this.actualBytes = actualBytes;
-        this.limitBytes = limitBytes;
-      }
-    };
-    MAX_CRITICAL_EVENT_RESERVE_BYTES = 256 * 1024;
-    CRITICAL_EVENT_TYPES = /* @__PURE__ */ new Set([
-      "error",
-      "task_finished",
-      "turn_completed",
-      "report_ready",
-      "session_ready",
-      "turn_started",
-      "worker_started",
-      "workspace_ready",
-      "timeout_warning",
-      "model_catalog",
-      "account_provider_sync_failed",
-      "interaction_requested",
-      "interaction_reply_submitted",
-      "cancelled",
-      "cancel_failed",
-      "cleanup_unverified",
-      "outcome_checkpoint_failed",
-      "outcome_recovered",
-      // ADR-008: fatal frame failures and undeliverable approvals must survive
-      // event-log capacity pressure.
-      "protocol_error",
-      "interaction_request_oversized",
-      "interaction_request_undeliverable"
-    ]);
-    TaskStore = class {
-      #dataRoot;
-      #tasksRoot;
-      #maxLogBytes;
-      #maxEventBytes;
-      #writerQuiescence;
-      #writerLeaseToken;
-      constructor(dataRoot, options = {}) {
-        this.#dataRoot = dataRoot;
-        this.#tasksRoot = path5.join(dataRoot, ".tasks");
-        this.#maxLogBytes = options.maxLogBytes ?? DEFAULT_MAX_LOG_BYTES;
-        this.#maxEventBytes = options.maxEventBytes ?? DEFAULT_MAX_LOG_BYTES;
-        this.#writerQuiescence = options.writerQuiescence ?? false;
-        this.#writerLeaseToken = options.writerLeaseToken;
-        privateMkdir(this.#tasksRoot);
-      }
-      get dataRoot() {
-        return this.#dataRoot;
-      }
-      get tasksRoot() {
-        return this.#tasksRoot;
-      }
-      get writerQuiescenceEnabled() {
-        return this.#writerQuiescence;
-      }
-      get writerLeaseToken() {
-        return this.#writerLeaseToken;
-      }
-      assertValidTaskId(taskId) {
-        if (typeof taskId !== "string" || !TASK_ID_PATTERN.test(taskId)) {
-          throw new Error(`invalid task_id (must match ${TASK_ID_PATTERN.source}): ${String(taskId)}`);
-        }
-      }
-      taskDir(taskId) {
-        this.assertValidTaskId(taskId);
-        return path5.join(this.#tasksRoot, taskId);
-      }
-      hasTask(taskId) {
-        try {
-          return existsSync3(path5.join(this.taskDir(taskId), "status.json"));
-        } catch {
-          return false;
-        }
-      }
-      listTaskIds() {
-        if (!existsSync3(this.#tasksRoot)) return [];
-        return readdirSync(this.#tasksRoot).filter(
-          (entry) => existsSync3(path5.join(this.#tasksRoot, entry, "status.json"))
-        );
-      }
-      createTask(task, createdAt) {
-        return this.#withWriterMutation(() => {
-          assertJsonAdmissionOpen(this.#dataRoot);
-          this.assertValidTaskId(task.task_id);
-          const dir = this.taskDir(task.task_id);
-          if (existsSync3(path5.join(dir, "task.json"))) {
-            throw new Error(`task already exists: ${task.task_id}`);
-          }
-          privateMkdir(path5.join(dir, "attempts"));
-          this.#writeJsonAtomic(path5.join(dir, "task.json"), task);
-          const status = {
-            task_id: task.task_id,
-            status: "queued",
-            attempt: 1,
-            created_at: createdAt,
-            updated_at: createdAt,
-            started_at: null,
-            finished_at: null,
-            worker_pid: null,
-            zcode_session_id: null,
-            exit_code: null
-          };
-          this.#writeJsonAtomic(path5.join(dir, "status.json"), status);
-        });
-      }
-      readTask(taskId) {
-        const file2 = path5.join(this.taskDir(taskId), "task.json");
-        const parsed = this.#readJson(file2);
-        const task = parsed;
-        if (!task || task.task_id !== taskId || typeof task.workspace !== "string" || !task.workspace || typeof task.objective !== "string" || [task.requirements, task.allowed_paths, task.forbidden_paths, task.acceptance_criteria, task.test_commands].some((items) => !Array.isArray(items) || items.some((item) => typeof item !== "string"))) throw new Error(`corrupt task record: ${file2}`);
-        return task;
-      }
-      readSubmission(taskId) {
-        const file2 = path5.join(this.taskDir(taskId), "submission.json");
-        if (!existsSync3(file2)) return null;
-        return this.#readJson(file2);
-      }
-      writeSubmission(taskId, submission) {
-        return this.#withWriterMutation(() => {
-          this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "submission.json"), submission);
-        }, taskId);
-      }
-      writeWorkspaceRef(taskId, workspace) {
-        return this.#withWriterMutation(() => {
-          this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "workspace.json"), workspace);
-        }, taskId);
-      }
-      readWorkspaceRef(taskId) {
-        const file2 = path5.join(this.taskDir(taskId), "workspace.json");
-        if (!existsSync3(file2)) return null;
-        const workspace = this.#readJson(file2);
-        if (!workspace || typeof workspace.canonicalPath !== "string" || typeof workspace.requestedPath !== "string" || !["direct", "worktree"].includes(workspace.mode)) throw new Error(`corrupt workspace record: ${file2}`);
-        return workspace;
-      }
-      readStatus(taskId) {
-        const file2 = path5.join(this.taskDir(taskId), "status.json");
-        const parsed = this.#readJson(file2);
-        if (!parsed || parsed.task_id !== taskId || !["queued", "running", "completed", "failed", "cancelled", "waiting_for_master"].includes(parsed.status) || !Number.isSafeInteger(parsed.attempt) || parsed.attempt < 1 || typeof parsed.created_at !== "string") {
-          throw new Error(`corrupt status record: ${file2}`);
-        }
-        return parsed;
-      }
-      /** Read-merge-write with an updated timestamp; atomic via temp file + rename. */
-      writeStatus(taskId, patch, expectedAttempt) {
-        return this.#withWriterMutation(() => {
-          return withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            const current = this.readStatus(taskId);
-            if (expectedAttempt !== void 0 && (current.attempt !== expectedAttempt || isTerminalStatus(current.status))) throw new Error("stale or terminal worker status rejected");
-            const next = {
-              ...current,
-              ...patch,
-              task_id: current.task_id,
-              updated_at: (/* @__PURE__ */ new Date()).toISOString()
-            };
-            this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "status.json"), next);
-            return next;
-          });
-        }, taskId, expectedAttempt);
-      }
-      readResult(taskId) {
-        const file2 = path5.join(this.taskDir(taskId), "result.json");
-        if (!existsSync3(file2)) return null;
-        const result = this.#readJson(file2);
-        if (!result || result.task_id !== taskId || !Number.isSafeInteger(result.attempt) || !isTerminalStatus(result.status)) throw new Error(`corrupt result record: ${file2}`);
-        return result.attempt === this.readStatus(taskId).attempt ? result : null;
-      }
-      writeResult(taskId, result) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            if (this.readStatus(taskId).attempt !== result.attempt) throw new Error("stale worker attempt result rejected");
-            this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "result.json"), result);
-          });
-        }, taskId, result.attempt);
-      }
-      commitWorkerResult(taskId, attempt, result, patch) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            this.assertWorkerAttempt(taskId, attempt);
-            this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "result.json"), result);
-            const current = this.readStatus(taskId);
-            let effective = patch;
-            if (current.cleanup_unverified === true) {
-              effective = { ...patch, cleanup_unverified: true };
-              if (typeof current.error === "string" && current.error.includes("[cleanup-members:")) {
-                effective = { ...effective, error: current.error };
-              }
-            }
-            this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "status.json"), { ...current, ...effective, task_id: taskId, attempt, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
-          });
-        }, taskId, attempt);
-      }
-      patchRunningAttempt(taskId, attempt, patch) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            const current = this.readStatus(taskId);
-            if (current.attempt !== attempt || current.status !== "running") return;
-            this.#writeJsonAtomic(path5.join(this.taskDir(taskId), "status.json"), { ...current, ...patch, updated_at: (/* @__PURE__ */ new Date()).toISOString() });
-          });
-        }, taskId, attempt);
-      }
-      /** Copies evidence before the continuation status commit; the old result remains recoverable. */
-      archiveResultToAttempt(taskId, attempt) {
-        return this.#withWriterMutation(() => {
-          const dir = this.taskDir(taskId);
-          const source = path5.join(dir, "result.json");
-          if (!existsSync3(source)) return;
-          const targetDir = this.attemptDir(taskId, attempt);
-          privateMkdir(targetDir);
-          copyFileSync(source, path5.join(targetDir, "result.json"));
-          privateFile(path5.join(targetDir, "result.json"));
-        }, taskId, attempt);
-      }
-      /** A claim is permanent: a started attempt must never execute again. */
-      claimWorkerExecution(taskId, attempt) {
-        return this.#withWriterMutation(() => {
-          return withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            if (status.attempt !== attempt || isTerminalStatus(status.status)) return false;
-            privateMkdir(this.attemptDir(taskId, attempt));
-            try {
-              writeFileSync2(path5.join(this.attemptDir(taskId, attempt), "execution.claim"), JSON.stringify({ pid: process.pid }), { flag: "wx", mode: 384 });
-              return true;
-            } catch (error62) {
-              if (error62.code === "EEXIST") return false;
-              throw error62;
-            }
-          });
-        }, taskId, attempt);
-      }
-      assertWorkerAttempt(taskId, attempt) {
-        const status = this.readStatus(taskId);
-        if (status.attempt !== attempt || isTerminalStatus(status.status)) throw new Error("stale or terminal worker attempt rejected");
-      }
-      readArchivedResult(taskId, attempt) {
-        const file2 = path5.join(this.attemptDir(taskId, attempt), "result.json");
-        if (!existsSync3(file2)) return null;
-        return this.#readJson(file2);
-      }
-      attemptDir(taskId, attempt) {
-        return path5.join(this.taskDir(taskId), "attempts", String(attempt));
-      }
-      writeAttemptFile(taskId, attempt, fileName, content) {
-        return this.#withWriterMutation(() => {
-          const dir = this.attemptDir(taskId, attempt);
-          privateMkdir(dir);
-          this.#writeTextAtomic(path5.join(dir, fileName), content);
-        }, taskId, attempt);
-      }
-      writeAttemptMeta(taskId, attempt, fileName, meta3) {
-        return this.#withWriterMutation(() => {
-          const dir = this.attemptDir(taskId, attempt);
-          privateMkdir(dir);
-          this.#writeJsonAtomic(path5.join(dir, fileName), meta3);
-        }, taskId, attempt);
-      }
-      // ---- ADR-011 P0 private failure facts (M3 dedicated ownership entry) ----
-      /**
-       * The only write entry for `<attempt>/failure-facts.json`. Inside one
-       * state.lock critical section it verifies status.attempt, running status,
-       * status.worker_pid, and the attempt's execution.claim pid against the
-       * calling worker, then performs the first-write / idempotent no-op decision
-       * and the atomic publish. Plain writeAttemptMeta() must never be used as the
-       * final entry for this file. Every mismatch, corrupt existing snapshot, or
-       * divergent replacement candidate is rejected: the first established root
-       * cause is never replaced, and a terminal attempt is never backfilled. The
-       * caller owns diagnostic isolation — a rejected write must never alter task
-       * state, results, or cleanup (ADR-011).
-       */
-      writeFailureFacts(taskId, attempt, writerPid, facts) {
-        const file2 = path5.join(this.attemptDir(taskId, attempt), "failure-facts.json");
-        return this.#withWriterMutation(() => withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-          const status = this.readStatus(taskId);
-          if (status.attempt !== attempt) throw new Error("stale attempt failure facts rejected");
-          if (status.status !== "running") throw new Error("non-running attempt failure facts rejected");
-          if (status.worker_pid !== writerPid) throw new Error("failure facts writer does not match the recorded worker pid");
-          const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
-          if (!claim2 || claim2.pid !== writerPid) throw new Error("failure facts writer does not own the execution claim");
-          validateFailureFacts(facts);
-          if (existsSync3(file2)) {
-            const existing = validateFailureFacts(this.#readJson(file2));
-            if (stableJson(existing) === stableJson(facts)) return "duplicate";
-            throw new Error("failure facts root cause already established; divergent snapshot rejected");
-          }
-          this.#writeJsonAtomic(file2, facts);
-          return "written";
-        }), taskId, attempt);
-      }
-      /** Read-only accessor for diagnostics and tests. Never consulted for manager
-       * state, recovery, occupancy, or READY/DONE decisions (ADR-011). */
-      readFailureFacts(taskId, attempt) {
-        const file2 = path5.join(this.attemptDir(taskId, attempt), "failure-facts.json");
-        if (!existsSync3(file2)) return { facts: null, corrupt: false };
-        try {
-          return { facts: validateFailureFacts(JSON.parse(readFileSync3(file2, "utf8"))), corrupt: false };
-        } catch {
-          return { facts: null, corrupt: true };
-        }
-      }
-      readAttemptMeta(taskId, attempt, fileName) {
-        const file2 = path5.join(this.attemptDir(taskId, attempt), fileName);
-        if (!existsSync3(file2)) return null;
-        return this.#readJson(file2);
-      }
-      writeWorkerHeartbeat(taskId, attempt, heartbeat) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
-            if (status.attempt !== attempt || status.status !== "running" || status.worker_pid !== heartbeat.worker_pid || claim2?.pid !== heartbeat.worker_pid) {
-              throw new Error("stale or unowned worker heartbeat rejected");
-            }
-            this.#writeJsonAtomic(path5.join(this.attemptDir(taskId, attempt), "heartbeat.json"), heartbeat);
-          });
-        }, taskId, attempt);
-      }
-      readWorkerHeartbeat(taskId, attempt) {
-        const value = this.readAttemptMeta(taskId, attempt, "heartbeat.json");
-        if (!value || value.attempt !== attempt || !Number.isSafeInteger(value.worker_pid) || typeof value.heartbeat_at !== "string") return null;
-        return value;
-      }
-      readAttemptText(taskId, attempt, fileName) {
-        const file2 = path5.join(this.attemptDir(taskId, attempt), fileName);
-        if (!existsSync3(file2)) return null;
-        return readFileSync3(file2, "utf8");
-      }
-      // ---- A1 observation evidence (bounded reads, no task bodies) ----
-      /** Bounded persisted evidence for the observation judger. */
-      readObservationEvidence(taskId, attempt) {
-        const checkpointRaw = this.readAttemptMeta(taskId, attempt, "outcome-checkpoint.json");
-        const checkpoint = checkpointRaw && typeof checkpointRaw.recorded_at === "string" ? { recorded_at: checkpointRaw.recorded_at } : null;
-        const heartbeat = this.readWorkerHeartbeat(taskId, attempt);
-        return {
-          checkpoint,
-          heartbeat,
-          last_business_event: this.readLastBusinessEvent(taskId),
-          pending_interaction: this.readPendingInteraction(taskId)
-        };
-      }
-      /** Last complete event line, read from a bounded tail window. */
-      readLastBusinessEvent(taskId) {
-        const file2 = path5.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync3(file2)) return null;
-        let size = 0;
-        try {
-          size = statSync2(file2).size;
-        } catch {
-          return null;
-        }
-        if (size === 0) return null;
-        const window = Math.min(8192, size);
-        const buffer = Buffer.allocUnsafe(window);
-        let read = 0;
-        try {
-          const fd = openSync2(file2, "r");
-          try {
-            read = readSync(fd, buffer, 0, window, size - window);
-          } finally {
-            closeSync2(fd);
-          }
-        } catch {
-          return null;
-        }
-        const text = buffer.subarray(0, read).toString("utf8");
-        const newline = text.indexOf("\n");
-        const body = newline >= 0 && window < size ? text.slice(newline + 1) : text;
-        const lines = body.split("\n").filter((line) => line.trim());
-        for (let index = lines.length - 1; index >= 0; index -= 1) {
-          const event = parseProgressEvent(lines[index]);
-          if (event) return { at: event.at, type: event.type, seq: event.seq };
-        }
-        return null;
-      }
-      /** Distinct event types from a bounded tail window (A3 stage inference). */
-      listRecentEventTypes(taskId, maxLines) {
-        const file2 = path5.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync3(file2)) return [];
-        let size = 0;
-        try {
-          size = statSync2(file2).size;
-        } catch {
-          return [];
-        }
-        const window = Math.min(256 * 1024, size);
-        if (window === 0) return [];
-        const buffer = Buffer.allocUnsafe(window);
-        let read = 0;
-        try {
-          const fd = openSync2(file2, "r");
-          try {
-            read = readSync(fd, buffer, 0, window, size - window);
-          } finally {
-            closeSync2(fd);
-          }
-        } catch {
-          return [];
-        }
-        const text = buffer.subarray(0, read).toString("utf8");
-        const newline = text.indexOf("\n");
-        const body = newline >= 0 && window < size ? text.slice(newline + 1) : text;
-        const types = /* @__PURE__ */ new Set();
-        for (const line of body.split("\n").slice(-maxLines)) {
-          const event = parseProgressEvent(line);
-          if (event) types.add(event.type);
-        }
-        return [...types];
-      }
-      /** Newest unanswered interaction request (bounded directory scan). */
-      readPendingInteraction(taskId) {
-        const directory = path5.join(this.taskDir(taskId), "interactions");
-        let entries;
-        try {
-          entries = readdirSync(directory);
-        } catch {
-          return null;
-        }
-        const files = entries.filter((entry) => entry.endsWith(".json")).slice(0, 64);
-        let newest = null;
-        for (const file2 of files) {
-          try {
-            const record2 = JSON.parse(readFileSync3(path5.join(directory, file2), "utf8"));
-            if (record2.state === "pending" && typeof record2.method === "string" && typeof record2.created_at === "string") {
-              if (!newest || record2.created_at > newest.created_at) newest = { method: record2.method, created_at: record2.created_at };
-            }
-          } catch {
-          }
-        }
-        return newest;
-      }
-      // ---- B3 attempt-scoped observation snapshot (fenced writer) ----
-      /**
-       * Writes worker-owned snapshot fields. Fenced twice: the attempt must still
-       * be the current one, and the writer must own the attempt's execution claim,
-       * so a replaced or stale worker can never overwrite current facts. Revision
-       * is per writer and must strictly increase within one writer identity.
-       */
-      writeWorkerObservation(taskId, attempt, writerPid, patch, revision, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            if (status.attempt !== attempt) throw new Error("stale attempt observation rejected");
-            const claim2 = this.readAttemptMeta(taskId, attempt, "execution.claim");
-            if (claim2?.pid !== writerPid) throw new Error("observation writer does not own the execution claim");
-            this.#mergeObservationSnapshot(taskId, attempt, "worker", revision, patch, updatedAt);
-          });
-        }, taskId, attempt);
-      }
-      /** Writes manager-owned snapshot fields (probe verdicts); worker business
-       * phases are never overwritten from the manager side. */
-      writeManagerObservation(taskId, attempt, patch, revision, updatedAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          withEventLock(path5.join(this.taskDir(taskId), "state.lock"), () => {
-            const status = this.readStatus(taskId);
-            if (status.attempt !== attempt) throw new Error("stale attempt observation rejected");
-            this.#mergeObservationSnapshot(taskId, attempt, "manager", revision, patch, updatedAt);
-          });
-        }, taskId, attempt);
-      }
-      readObservationSnapshot(taskId, attempt) {
-        const file2 = path5.join(this.attemptDir(taskId, attempt), "observation.json");
-        if (!existsSync3(file2)) return { snapshot: null, corrupt: false };
-        try {
-          const parsed = JSON.parse(readFileSync3(file2, "utf8"));
-          if (parsed.schema_version !== 1 || parsed.task_id !== taskId || parsed.attempt !== attempt) {
-            return { snapshot: null, corrupt: true };
-          }
-          return { snapshot: parsed, corrupt: false };
-        } catch {
-          return { snapshot: null, corrupt: true };
-        }
-      }
-      #mergeObservationSnapshot(taskId, attempt, writer, revision, patch, updatedAt) {
-        if (!Number.isSafeInteger(revision) || revision < 0) throw new Error("observation revision must be a non-negative integer");
-        const current = this.readObservationSnapshot(taskId, attempt).snapshot;
-        const previousRevision = current?.writers?.[writer] ?? -1;
-        if (revision <= previousRevision) throw new Error("stale observation revision rejected");
-        const carried = current ?? {};
-        const next = {
-          schema_version: 1,
-          task_id: taskId,
-          attempt,
-          writers: { ...carried.writers, [writer]: revision },
-          updated_at: updatedAt
-        };
-        const workerOwned = ["session_id", "turn_id", "last_runtime_seq", "activity_phase", "worker_identity", "runtime_identity"];
-        const managerOwned = ["worker_probe", "runtime_probe"];
-        for (const key of workerOwned) {
-          if (key in patch) next[key] = patch[key];
-          else if (key in carried) next[key] = carried[key];
-        }
-        for (const key of managerOwned) {
-          if (key in patch) next[key] = patch[key];
-          else if (key in carried) next[key] = carried[key];
-        }
-        this.writeAttemptMeta(taskId, attempt, "observation.json", next);
-      }
-      // ---- A2 executor identity evidence ----
-      writeExecutorIdentity(taskId, attempt, identity) {
-        return this.#withWriterMutation(() => {
-          const current = this.readAttemptMeta(taskId, attempt, "executor-identity.json") ?? {};
-          this.writeAttemptMeta(taskId, attempt, "executor-identity.json", {
-            ...current,
-            ...identity
-          });
-        }, taskId, attempt);
-      }
-      readExecutorIdentity(taskId, attempt) {
-        return this.readAttemptMeta(taskId, attempt, "executor-identity.json");
-      }
-      /**
-       * Atomically claims the single worker-respawn slot for an attempt by
-       * creating the marker file with an exclusive flag, so several Bridge
-       * processes sharing this data root can never spawn two replacement
-       * workers. Returns false when the slot is already claimed.
-       */
-      claimAttemptRespawn(taskId, attempt) {
-        return this.#withWriterMutation(() => {
-          const dir = this.attemptDir(taskId, attempt);
-          privateMkdir(dir);
-          try {
-            closeSync2(openSync2(path5.join(dir, "respawn.claim"), "wx"));
-            return true;
-          } catch (error62) {
-            if (error62.code === "EEXIST") return false;
-            throw error62;
-          }
-        }, taskId, attempt);
-      }
-      /** File time of the respawn claim, or null when the attempt is unclaimed. */
-      respawnClaimedAt(taskId, attempt) {
-        try {
-          return statSync2(path5.join(this.attemptDir(taskId, attempt), "respawn.claim")).mtime;
-        } catch {
-          return null;
-        }
-      }
-      /** Append-only, byte-bounded. Returns whether the chunk was truncated. */
-      appendLog(taskId, kind, text) {
-        if (!text) return { truncated: false };
-        return this.#withWriterMutation(() => {
-          const dir = this.taskDir(taskId);
-          privateMkdir(dir);
-          const file2 = path5.join(dir, `${kind}.log`);
-          let currentBytes = 0;
-          try {
-            currentBytes = statSync2(file2).size;
-          } catch {
-            currentBytes = 0;
-          }
-          const bytes = Buffer.from(text, "utf8");
-          const room = this.#maxLogBytes - currentBytes;
-          if (room <= 0) return { truncated: true };
-          appendFileSync(file2, bytes.length <= room ? bytes : bytes.subarray(0, room), { mode: 384 });
-          privateFile(file2);
-          return { truncated: bytes.length > room };
-        }, taskId);
-      }
-      readLog(taskId, kind) {
-        const file2 = path5.join(this.taskDir(taskId), `${kind}.log`);
-        return existsSync3(file2) ? readFileSync3(file2, "utf8") : "";
-      }
-      appendEvent(taskId, type, summary, details, at = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const dir = this.taskDir(taskId);
-          mkdirSync2(dir, { recursive: true });
-          const lockDir = path5.join(dir, "events.lock");
-          return withEventLock(lockDir, () => {
-            const file2 = path5.join(dir, "events.jsonl");
-            const seqFile = path5.join(dir, "events.seq");
-            let bytes = 0;
-            let previousSeq = 0;
-            let needsSeparator = false;
-            try {
-              const info = statSync2(file2);
-              bytes = info.size;
-              let lastByte;
-              if (bytes > 0) {
-                const fd = openSync2(file2, "r");
-                try {
-                  const tail = Buffer.alloc(1);
-                  readSync(fd, tail, 0, 1, bytes - 1);
-                  lastByte = tail[0];
-                } finally {
-                  closeSync2(fd);
-                }
-              }
-              needsSeparator = bytes > 0 && lastByte !== 10;
-            } catch (error62) {
-              if (error62.code !== "ENOENT") throw error62;
-              bytes = 0;
-            }
-            try {
-              previousSeq = Number(readFileSync3(seqFile, "utf8"));
-              if (!Number.isSafeInteger(previousSeq) || previousSeq < 0) previousSeq = readLastEventSeq(file2);
-            } catch {
-              previousSeq = readLastEventSeq(file2);
-            }
-            const event = {
-              seq: previousSeq + 1,
-              at,
-              type: type.slice(0, 80),
-              summary: summary.length <= 2e3 ? summary : `${summary.slice(0, 1970)}\u2026[output truncated]`,
-              ...details && Object.keys(details).length ? { details } : {}
-            };
-            const line = `${JSON.stringify(event)}
-`;
-            const lineBytes = Buffer.byteLength(line, "utf8") + (needsSeparator ? 1 : 0);
-            const critical = CRITICAL_EVENT_TYPES.has(type);
-            const capacity = this.#maxEventBytes + (critical ? MAX_CRITICAL_EVENT_RESERVE_BYTES : 0);
-            if (lineBytes > 64e3 || bytes + lineBytes > capacity) return null;
-            this.#writeTextAtomic(seqFile, String(event.seq));
-            const eventOffset = bytes + (needsSeparator ? 1 : 0);
-            appendFileSync(file2, `${needsSeparator ? "\n" : ""}${line}`, { encoding: "utf8", mode: 384 });
-            privateFile(file2);
-            const genFile = path5.join(dir, "events.gen");
-            if (!existsSync3(genFile)) {
-              this.#writeTextAtomic(genFile, randomUUID2());
-            }
-            if (event.seq % 100 === 0) {
-              const index = path5.join(dir, "events.index");
-              appendFileSync(index, `${event.seq}	${eventOffset}
-`, { encoding: "utf8", mode: 384 });
-              privateFile(index);
-            }
-            return event;
-          });
-        }, taskId);
-      }
-      readEvents(taskId, afterSeq = 0, limit = 100, view = "raw") {
-        const file2 = path5.join(this.taskDir(taskId), "events.jsonl");
-        if (!existsSync3(file2)) return { events: [], nextSeq: afterSeq, hasMore: false, omittedEvents: 0 };
-        let offset = 0;
-        const indexFile = path5.join(this.taskDir(taskId), "events.index");
-        if (existsSync3(indexFile)) {
-          for (const row of readFileSync3(indexFile, "utf8").split(/\r?\n/u)) {
-            const [seqText, offsetText] = row.split("	");
-            const seq = Number(seqText);
-            const candidateOffset = Number(offsetText);
-            if (Number.isInteger(seq) && Number.isSafeInteger(candidateOffset) && seq <= afterSeq) offset = candidateOffset;
-            if (seq > afterSeq) break;
-          }
-        }
-        const fd = openSync2(file2, "r");
-        const page = [];
-        let hasMore = false;
-        let position = offset;
-        let pending = "";
-        const decoder = new StringDecoder("utf8");
-        const buffer = Buffer.allocUnsafe(64 * 1024);
-        try {
-          while (true) {
-            const count = readSync(fd, buffer, 0, buffer.length, position);
-            if (count <= 0) break;
-            position += count;
-            const lines = `${pending}${decoder.write(buffer.subarray(0, count))}`.split(/\r?\n/u);
-            pending = lines.pop() ?? "";
-            for (const line of lines) {
-              const event = parseProgressEvent(line);
-              if (!event || event.seq <= afterSeq) continue;
-              if (page.length === limit) {
-                hasMore = true;
-                break;
-              }
-              page.push(event);
-            }
-            if (hasMore) break;
-          }
-          pending += decoder.end();
-          if (!hasMore && pending) {
-            const event = parseProgressEvent(pending);
-            if (event && event.seq > afterSeq) {
-              if (page.length === limit) hasMore = true;
-              else page.push(event);
-            }
-          }
-        } finally {
-          closeSync2(fd);
-        }
-        let events = page;
-        let omittedEvents = 0;
-        if (view === "summary") {
-          events = [];
-          for (const event of page) {
-            const previous = events.at(-1);
-            if (event.type === "model_output" && previous?.type === "model_output") {
-              const combined = previous.summary + event.summary;
-              events[events.length - 1] = {
-                ...previous,
-                seq: event.seq,
-                at: event.at,
-                summary: combined.length <= 5e3 ? combined : `${combined.slice(0, 4950)}\u2026[output compacted]`
-              };
-              omittedEvents += 1;
-            } else {
-              events.push(event);
-            }
-          }
-        }
-        return {
-          events,
-          nextSeq: page.at(-1)?.seq ?? afterSeq,
-          hasMore,
-          omittedEvents
-        };
-      }
-      /**
-       * B1 bounded scan: parses complete byte lines only; an unfinished trailing
-       * line is not consumed and the cursor never passes it. Complete corrupt
-       * lines are skipped but counted. The byte budget covers at most the
-       * configured budget plus one read block; exhaustion reports scan_incomplete
-       * and never a has_more=true page with an unchanged after_seq.
-       */
-      readEventsBounded(taskId, input2 = {}) {
-        const afterSeq = input2.afterSeq ?? 0;
-        const limit = input2.limit ?? 100;
-        const view = input2.view ?? "raw";
-        const budget = input2.maxBytes ?? this.#maxEventBytes;
-        const file2 = path5.join(this.taskDir(taskId), "events.jsonl");
-        const empty = {
-          events: [],
-          nextSeq: afterSeq,
-          hasMore: false,
-          omittedEvents: 0,
-          scan_incomplete: false,
-          scan_cursor: null,
-          cursor_invalid: false,
-          metrics: { bytes_read: 0, records_scanned: 0, invalid_lines: 0, corrupt_count: 0, first_corrupt_offset: null, index_fallback: false }
-        };
-        let size = 0;
-        try {
-          size = statSync2(file2).size;
-        } catch {
-          return empty;
-        }
-        if (size === 0) return empty;
-        let startOffset = 0;
-        let cursorInvalid = false;
-        if (input2.cursor) {
-          const generation = this.readEventGeneration(taskId);
-          const valid = input2.cursor.v === 1 && input2.cursor.task_id === taskId && generation !== null && input2.cursor.generation === generation && Number.isSafeInteger(input2.cursor.offset) && input2.cursor.offset >= 0 && input2.cursor.offset <= size;
-          if (!valid) {
-            return { ...empty, cursor_invalid: true };
-          }
-          startOffset = input2.cursor.offset;
-          if (input2.cursor.first_seq !== null) {
-            const firstSeq = this.readFirstEventSeq(file2, size);
-            if (firstSeq === null || firstSeq !== input2.cursor.first_seq) {
-              return { ...empty, cursor_invalid: true };
-            }
-          }
-        }
-        let indexFallback = false;
-        if (startOffset === 0) {
-          const indexFile = path5.join(this.taskDir(taskId), "events.index");
-          if (existsSync3(indexFile)) {
-            try {
-              let lastSeq = 0;
-              let lastOffset = 0;
-              for (const row of readFileSync3(indexFile, "utf8").split(/\r?\n/u)) {
-                if (!row.trim()) continue;
-                const [seqText, offsetText] = row.split("	");
-                const seq = Number(seqText);
-                const offset = Number(offsetText);
-                if (!Number.isSafeInteger(seq) || !Number.isSafeInteger(offset) || seq <= lastSeq || offset < lastOffset || offset > size) {
-                  throw new Error("invalid index row");
-                }
-                lastSeq = seq;
-                lastOffset = offset;
-              }
-              for (const row of readFileSync3(indexFile, "utf8").split(/\r?\n/u)) {
-                const [seqText, offsetText] = row.split("	");
-                const seq = Number(seqText);
-                const offset = Number(offsetText);
-                if (Number.isSafeInteger(seq) && Number.isSafeInteger(offset) && seq <= afterSeq && offset <= size) startOffset = offset;
-                if (Number.isSafeInteger(seq) && seq > afterSeq) break;
-              }
-            } catch {
-              indexFallback = true;
-              startOffset = 0;
-            }
-          }
-        }
-        const events = [];
-        let scanned = 0;
-        let bytesRead = 0;
-        let invalidLines = 0;
-        let corruptCount = 0;
-        let firstCorruptOffset = null;
-        let hasMore = false;
-        let position = startOffset;
-        let lastCompleteOffset = startOffset;
-        let pending = "";
-        let pendingStartOffset = startOffset;
-        let reachedEnd = false;
-        const maxRead = budget + 64 * 1024;
-        const decoder = new StringDecoder("utf8");
-        const buffer = Buffer.allocUnsafe(64 * 1024);
-        const fd = openSync2(file2, "r");
-        const processLine = (line, lineOffset, lineEndOffset) => {
-          lastCompleteOffset = lineEndOffset;
-          if (!line.trim()) return true;
-          const event = parseProgressEvent(line);
-          if (!event) {
-            invalidLines += 1;
-            corruptCount += 1;
-            if (firstCorruptOffset === null) firstCorruptOffset = lineOffset;
-            return true;
-          }
-          scanned += 1;
-          if (event.seq <= afterSeq) return true;
-          if (events.length === limit) {
-            hasMore = true;
-            lastCompleteOffset = lineOffset;
-            return false;
-          }
-          events.push(event);
-          return true;
-        };
-        try {
-          while (bytesRead < maxRead) {
-            const count = readSync(fd, buffer, 0, buffer.length, position);
-            if (count <= 0) {
-              reachedEnd = true;
-              break;
-            }
-            position += count;
-            bytesRead += count;
-            const text = pending + decoder.write(buffer.subarray(0, count));
-            let searchFrom = 0;
-            let consumedBytes = 0;
-            let stopped = false;
-            while (true) {
-              const newline = text.indexOf("\n", searchFrom);
-              if (newline < 0) break;
-              const line = text.slice(searchFrom, newline).replace(/\r$/u, "");
-              const lineBytes = Buffer.byteLength(text.slice(searchFrom, newline + 1), "utf8");
-              const lineOffset = pendingStartOffset + consumedBytes;
-              consumedBytes += lineBytes;
-              searchFrom = newline + 1;
-              if (!processLine(line, lineOffset, pendingStartOffset + consumedBytes)) {
-                stopped = true;
-                break;
-              }
-            }
-            if (stopped) {
-              pending = "";
-              break;
-            }
-            pending = text.slice(searchFrom);
-            pendingStartOffset += consumedBytes;
-          }
-          if (!hasMore) {
-            const tail = pending + decoder.end();
-            let searchFrom = 0;
-            let consumedBytes = 0;
-            while (true) {
-              const newline = tail.indexOf("\n", searchFrom);
-              if (newline < 0) break;
-              const line = tail.slice(searchFrom, newline).replace(/\r$/u, "");
-              const lineBytes = Buffer.byteLength(tail.slice(searchFrom, newline + 1), "utf8");
-              const lineOffset = pendingStartOffset + consumedBytes;
-              consumedBytes += lineBytes;
-              searchFrom = newline + 1;
-              if (!processLine(line, lineOffset, pendingStartOffset + consumedBytes)) break;
-            }
-            if (!hasMore && !reachedEnd && bytesRead >= maxRead) {
-              lastCompleteOffset = pendingStartOffset + consumedBytes;
-            }
-          }
-        } finally {
-          closeSync2(fd);
-        }
-        let page = events;
-        let omittedEvents = 0;
-        if (view === "summary") {
-          page = [];
-          for (const event of events) {
-            const previous = page.at(-1);
-            if (event.type === "model_output" && previous?.type === "model_output") {
-              const combined = previous.summary + event.summary;
-              page[page.length - 1] = {
-                ...previous,
-                seq: event.seq,
-                at: event.at,
-                summary: combined.length <= 5e3 ? combined : `${combined.slice(0, 4950)}\u2026[output compacted]`
-              };
-              omittedEvents += 1;
-            } else {
-              page.push(event);
-            }
-          }
-        }
-        const scanIncomplete = !reachedEnd && !hasMore;
-        const nextSeq = page.at(-1)?.seq ?? afterSeq;
-        if (hasMore && nextSeq === afterSeq && !input2.cursor) hasMore = false;
-        const cursor = this.readEventGeneration(taskId) ? { v: 1, task_id: taskId, generation: this.readEventGeneration(taskId), offset: lastCompleteOffset, first_seq: input2.cursor?.first_seq ?? this.readFirstEventSeq(file2, size) } : null;
-        return {
-          events: page,
-          nextSeq,
-          hasMore,
-          omittedEvents,
-          scan_incomplete: scanIncomplete,
-          scan_cursor: cursor,
-          cursor_invalid: false,
-          metrics: { bytes_read: bytesRead, records_scanned: scanned, invalid_lines: invalidLines, corrupt_count: corruptCount, first_corrupt_offset: firstCorruptOffset, index_fallback: indexFallback }
-        };
-      }
-      /** Generation marker detecting log replacement/truncation across reads. */
-      readEventGeneration(taskId) {
-        try {
-          const value = readFileSync3(path5.join(this.taskDir(taskId), "events.gen"), "utf8").trim();
-          return value || null;
-        } catch {
-          return null;
-        }
-      }
-      readFirstEventSeq(file2, size) {
-        const window = Math.min(64 * 1024, size);
-        const buffer = Buffer.allocUnsafe(window);
-        let read = 0;
-        try {
-          const fd = openSync2(file2, "r");
-          try {
-            read = readSync(fd, buffer, 0, window, 0);
-          } finally {
-            closeSync2(fd);
-          }
-        } catch {
-          return null;
-        }
-        const text = buffer.subarray(0, read).toString("utf8");
-        const newline = text.indexOf("\n");
-        if (newline < 0) return null;
-        const event = parseProgressEvent(text.slice(0, newline).replace(/\r$/u, ""));
-        return event ? event.seq : null;
-      }
-      writeInteractionRequest(taskId, request, createdAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const directory = path5.join(this.taskDir(taskId), "interactions");
-          privateMkdir(directory);
-          const file2 = this.interactionFile(taskId, request.request_id);
-          return withEventLock(path5.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (existsSync3(file2)) {
-              const record3 = this.#readJson(file2);
-              if (record3.request_id !== request.request_id || record3.method !== request.method || stableJson(record3.params) !== stableJson(request.params)) {
-                throw new Error("interaction request id collision");
-              }
-              return { record: record3, created: false };
-            }
-            const serialized = JSON.stringify(request.params);
-            const bytes = Buffer.byteLength(serialized, "utf8");
-            if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
-              throw new InteractionRequestTooLargeError(bytes, MAX_INTERACTION_PARAMS_BYTES);
-            }
-            const record2 = {
-              ...request,
-              state: "pending",
-              created_at: createdAt,
-              params_bytes: bytes,
-              params_sha256: createHash2("sha256").update(serialized).digest("hex")
-            };
-            this.#writeJsonAtomic(file2, record2);
-            return { record: record2, created: true };
-          });
-        }, taskId);
-      }
-      readInteractionRequest(taskId, requestId) {
-        const file2 = this.interactionFile(taskId, requestId);
-        if (!existsSync3(file2)) return null;
-        const record2 = this.#readJson(file2);
-        if (record2.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-        return record2;
-      }
-      /** Absolute path of one attempt's private full-request record; referenced
-       * by bounded interaction_requested preview events (ADR-008). */
-      interactionRequestPath(taskId, requestId) {
-        if (!requestId || requestId.length > 512) throw new Error("invalid ZCode interaction request_id");
-        return this.interactionFile(taskId, requestId);
-      }
-      /**
-       * ADR-008 approval guard: the full request behind an approval must be
-       * readable and consistent with its persisted byte count and SHA256 before
-       * the reply may be treated as authorization. Corrupt, missing, edited, or
-       * metadata-stripped records are reported, never accepted. Only genuinely
-       * legacy small records (no metadata at all, within the old 32,000-byte
-       * store limit) stay compatible; anything larger or partially annotated must
-       * carry complete, well-typed, matching metadata, and verification still
-       * enforces the 1 MiB persistence limit.
-       */
-      verifyInteractionRequestIntegrity(taskId, requestId) {
-        const file2 = this.interactionFile(taskId, requestId);
-        try {
-          if (!existsSync3(file2)) return { ok: false, reason: "the full request record is missing" };
-          const record2 = this.#readJson(file2);
-          if (record2.request_id !== requestId) return { ok: false, reason: "the persisted request id does not match this request" };
-          if (record2.state !== "pending" && record2.state !== "answered") return { ok: false, reason: "the persisted request state is unreadable" };
-          const serialized = JSON.stringify(record2.params);
-          const bytes = Buffer.byteLength(serialized, "utf8");
-          if (bytes > MAX_INTERACTION_PARAMS_BYTES) {
-            return { ok: false, reason: `the full request content is ${bytes} UTF-8 bytes, over the ${MAX_INTERACTION_PARAMS_BYTES}-byte persistence limit` };
-          }
-          const hasBytes = record2.params_bytes !== void 0;
-          const hasHash = record2.params_sha256 !== void 0;
-          if (!hasBytes && !hasHash) {
-            if (bytes <= LEGACY_INTERACTION_PARAMS_BYTES) return { ok: true };
-            return { ok: false, reason: `the full request record carries no integrity metadata but is ${bytes} UTF-8 bytes, over the legacy ${LEGACY_INTERACTION_PARAMS_BYTES}-byte limit; it cannot be treated as a legacy record` };
-          }
-          if (!hasBytes || !hasHash) {
-            return { ok: false, reason: "the full request record has incomplete integrity metadata (byte count and SHA256 must both be present)" };
-          }
-          if (typeof record2.params_bytes !== "number" || !Number.isSafeInteger(record2.params_bytes) || record2.params_bytes < 0) {
-            return { ok: false, reason: "the persisted byte count is not a valid non-negative integer" };
-          }
-          if (typeof record2.params_sha256 !== "string" || !SHA256_HEX_PATTERN.test(record2.params_sha256)) {
-            return { ok: false, reason: "the persisted SHA256 is not a valid 64-character hex digest" };
-          }
-          if (record2.params_bytes !== bytes) {
-            return { ok: false, reason: "the persisted byte count does not match the full content" };
-          }
-          if (record2.params_sha256 !== createHash2("sha256").update(serialized).digest("hex")) {
-            return { ok: false, reason: "the persisted SHA256 does not match the full content" };
-          }
-          return { ok: true };
-        } catch {
-          return { ok: false, reason: "the full request record is unreadable or corrupt" };
-        }
-      }
-      answerInteractionRequest(taskId, requestId, answer, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const file2 = this.interactionFile(taskId, requestId);
-          return withEventLock(path5.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (!existsSync3(file2)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
-            const current = this.#readJson(file2);
-            if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-            if (current.state === "answered") return "already_answered";
-            this.#writeJsonAtomic(file2, {
-              ...current,
-              state: "answered",
-              answer,
-              answered_at: answeredAt
-            });
-            return "answered";
-          });
-        }, taskId);
-      }
-      /** ADR-008: approval answers verify the full request inside the same
-       * interaction lock the answer is written under, so the record checked for
-       * integrity is exactly the one the answer lands on — there is no
-       * check-then-write window where an edited record could slip through. */
-      answerInteractionRequestVerified(taskId, requestId, answer, options, answeredAt = (/* @__PURE__ */ new Date()).toISOString()) {
-        return this.#withWriterMutation(() => {
-          const file2 = this.interactionFile(taskId, requestId);
-          return withEventLock(path5.join(this.taskDir(taskId), "interactions.lock"), () => {
-            if (!existsSync3(file2)) throw new Error(`unknown ZCode interaction request: ${requestId}`);
-            const current = this.#readJson(file2);
-            if (current.request_id !== requestId) throw new Error("interaction request id hash mismatch");
-            if (current.state === "answered") return { state: "already_answered" };
-            if (options.requireIntegrity) {
-              const integrity = this.verifyInteractionRequestIntegrity(taskId, requestId);
-              if (!integrity.ok) return { state: "integrity_failed", reason: integrity.reason };
-            }
-            this.#writeJsonAtomic(file2, {
-              ...current,
-              state: "answered",
-              answer,
-              answered_at: answeredAt
-            });
-            return { state: "answered" };
-          });
-        }, taskId);
-      }
-      interactionFile(taskId, requestId) {
-        if (!requestId || requestId.length > 512) throw new Error("invalid ZCode interaction request_id");
-        const key = createHash2("sha256").update(requestId).digest("hex");
-        return path5.join(this.taskDir(taskId), "interactions", `${this.readStatus(taskId).attempt}-${key}.json`);
-      }
-      #readJson(file2) {
-        try {
-          return JSON.parse(readFileSync3(file2, "utf8"));
-        } catch (error62) {
-          throw new Error(`unreadable or corrupt JSON record: ${file2}`, { cause: error62 });
-        }
-      }
-      #writeJsonAtomic(file2, value) {
-        this.#writeTextAtomic(file2, JSON.stringify(value, null, 2));
-      }
-      #writeTextAtomic(file2, text) {
-        const tmp = `${file2}.${randomUUID2()}.tmp`;
-        try {
-          writeFileSync2(tmp, text, { encoding: "utf8", mode: 384 });
-          privateFile(tmp);
-          atomicRenameSync(tmp, file2);
-        } catch (error62) {
-          try {
-            rmSync(tmp, { force: true });
-          } catch {
-          }
-          throw error62;
-        }
-      }
-      #withWriterMutation(operation, taskId, attempt) {
-        const token = this.#writerQuiescence ? this.#writerLeaseToken : void 0;
-        return withJsonWriterWritePermit(this.#dataRoot, token, taskId, attempt, operation);
-      }
-    };
-  }
-});
-
-// src/store/json-history-result-exceptions.mjs
-function freeze(value) {
-  if (value && typeof value === "object" && !Object.isFrozen(value)) {
-    for (const child of Object.values(value)) freeze(child);
-    Object.freeze(value);
-  }
-  return value;
-}
-var HISTORICAL_RESULT_EXCEPTIONS;
-var init_json_history_result_exceptions = __esm({
-  "src/store/json-history-result-exceptions.mjs"() {
-    "use strict";
-    HISTORICAL_RESULT_EXCEPTIONS = freeze([
-      {
-        exception_id: "cad2bim_rm02_attempt_2_result_stored_at_3",
-        task_id: "CAD2BIM_FULL_AUDIT_RM02_001",
-        stored_attempt: 3,
-        internal_attempt: 2,
-        relative_path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/3/result.json",
-        sha256: "539c76d236155688feb906a8dfb9764f92a2f76ff8e16b97e6177c2e7bd95530",
-        byte_length: 13981,
-        archive_anomaly: {
-          code: "conflicting_projection",
-          path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/3/result.json",
-          record_type: "attempt",
-          detail: "result_attempt_does_not_match_storage_generation"
-        }
-      },
-      {
-        exception_id: "cad2bim_rm02_attempt_3_result_stored_at_4",
-        task_id: "CAD2BIM_FULL_AUDIT_RM02_001",
-        stored_attempt: 4,
-        internal_attempt: 3,
-        relative_path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/4/result.json",
-        sha256: "ec6faea33c6b3b7c299b2c4a6094c431b670d807e00398ed03364ec5a1c61cd3",
-        byte_length: 12989,
-        archive_anomaly: {
-          code: "conflicting_projection",
-          path: "CAD2BIM_FULL_AUDIT_RM02_001/attempts/4/result.json",
-          record_type: "attempt",
-          detail: "result_attempt_does_not_match_storage_generation"
-        }
-      },
-      {
-        exception_id: "project_alignment_current_attempt_2_root_result_binds_1",
-        task_id: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930",
-        stored_attempt: 2,
-        internal_attempt: 1,
-        relative_path: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930/result.json",
-        sha256: "494235a230178fe2aeb0128210bba0cf8fec5029202b07b0a1b3648476d3e12e",
-        byte_length: 6247,
-        archive_anomaly: {
-          code: "conflicting_projection",
-          path: "PROJECT-ALIGNMENT-DOC-HYGIENE-CLOSE-1-COMMIT-20260930/result.json",
-          record_type: "result",
-          detail: "result_attempt_does_not_match_storage_generation"
-        }
-      }
-    ]);
-  }
-});
-
-// src/store/json-writer-quiescence.ts
-import { closeSync as closeSync3, existsSync as existsSync4, fsyncSync as fsyncSync2, mkdirSync as mkdirSync3, openSync as openSync3, readFileSync as readFileSync4, readdirSync as readdirSync2, realpathSync as realpathSync2, rmSync as rmSync2, writeFileSync as writeFileSync3 } from "node:fs";
-import { createHash as createHash3, randomUUID as randomUUID3 } from "node:crypto";
-import path6 from "node:path";
-function fencePath(dataRoot) {
-  return path6.join(dataRoot, ".tasks", FENCE_FILE);
-}
-function rosterPath(dataRoot) {
-  return path6.join(dataRoot, ".tasks", ROSTER_DIR);
-}
-function leasePath(dataRoot, token) {
-  if (!/^[a-f0-9-]{36}$/u.test(token)) throw new Error("invalid JSON writer lease token");
-  return path6.join(rosterPath(dataRoot), `${token}.json`);
-}
-function gateLockPath(dataRoot) {
-  return path6.join(dataRoot, ".tasks", GATE_LOCK);
-}
-function strictObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function readFence(dataRoot) {
-  const file2 = fencePath(dataRoot);
-  if (!existsSync4(file2)) return null;
-  let value;
-  try {
-    value = JSON.parse(readFileSync4(file2, "utf8"));
-  } catch (error62) {
-    throw new Error("JSON writer quiescence record is unreadable; writes fail closed", { cause: error62 });
-  }
-  if (!strictObject(value) || value.schema_version !== 1 || !["closing", "draining", "sealed"].includes(String(value.state)) || !Number.isSafeInteger(value.revision) || value.revision < 1 || typeof value.transition_id !== "string" || !value.transition_id || typeof value.updated_at !== "string" || !Number.isFinite(Date.parse(value.updated_at))) {
-    throw new Error("JSON writer quiescence record is malformed; writes fail closed");
-  }
-  return value;
-}
-function writeJsonAtomic(file2, value, durability = defaultDurableFileOperations) {
-  mkdirSync3(path6.dirname(file2), { recursive: true, mode: 448 });
-  const temporary = `${file2}.${randomUUID3()}.tmp`;
-  let fd;
-  try {
-    fd = openSync3(temporary, "wx", 384);
-    writeFileSync3(fd, `${JSON.stringify(value, null, 2)}
-`, { encoding: "utf8" });
-    fsyncSync2(fd);
-    closeSync3(fd);
-    fd = void 0;
-    const deadline = Date.now() + ATOMIC_RENAME_RETRY_MS;
-    for (; ; ) {
-      try {
-        durability.replaceFileSync(temporary, file2);
-        break;
-      } catch (error62) {
-        if (!TRANSIENT_ATOMIC_RENAME_CODES.has(error62.code ?? "") || Date.now() >= deadline) {
-          throw error62;
-        }
-        Atomics.wait(
-          new Int32Array(new SharedArrayBuffer(4)),
-          0,
-          0,
-          ATOMIC_RENAME_RETRY_PAUSE_MS
-        );
-      }
-    }
-  } catch (error62) {
-    if (fd !== void 0) {
-      try {
-        closeSync3(fd);
-      } catch {
-      }
-    }
-    try {
-      rmSync2(temporary, { force: true });
-    } catch {
-    }
-    throw error62;
-  }
-}
-function withSyncGateLock(dataRoot, operation) {
-  const directory = gateLockPath(dataRoot);
-  const deadline = Date.now() + 1e4;
-  let release;
-  while (!(release = tryAcquireProcessLock(directory))) {
-    if (Date.now() >= deadline) throw new Error("timed out waiting for JSON writer quiescence lock");
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 10);
-  }
-  try {
-    return operation();
-  } finally {
-    release();
-  }
-}
-function withJsonWriterWritePermit(dataRoot, token, taskId, attempt, operation) {
-  const resolved = realpathSync2(dataRoot);
-  const key = process.platform === "win32" ? resolved.toLocaleLowerCase("en-US") : resolved;
-  const active = activeWritePermits.get(key);
-  if (active) {
-    active.depth += 1;
-    try {
-      assertJsonWriterCanWrite(dataRoot, token, taskId, attempt);
-      return operation();
-    } finally {
-      active.depth -= 1;
-    }
-  }
-  return withSyncGateLock(dataRoot, () => {
-    assertJsonWriterCanWrite(dataRoot, token, taskId, attempt);
-    activeWritePermits.set(key, { depth: 1 });
-    try {
-      return operation();
-    } finally {
-      activeWritePermits.delete(key);
-    }
-  });
-}
-function readLease(dataRoot, token) {
-  const file2 = leasePath(dataRoot, token);
-  if (!existsSync4(file2)) return null;
-  let value;
-  try {
-    value = JSON.parse(readFileSync4(file2, "utf8"));
-  } catch (error62) {
-    throw new Error("JSON writer lease is unreadable; writes fail closed", { cause: error62 });
-  }
-  if (!strictObject(value) || value.schema_version !== 1 || value.token !== token || value.kind !== "manager" && value.kind !== "worker" || value.pid !== null && (!Number.isSafeInteger(value.pid) || value.pid < 1) || value.identity !== null && !validIdentity(value.identity) || typeof value.created_at !== "string" || !Number.isFinite(Date.parse(value.created_at))) {
-    throw new Error("JSON writer lease is malformed; writes fail closed");
-  }
-  if (value.kind === "worker" && (typeof value.task_id !== "string" || !Number.isSafeInteger(value.attempt))) {
-    throw new Error("JSON worker lease is missing its attempt binding; writes fail closed");
-  }
-  return value;
-}
-function validIdentity(value) {
-  if (!strictObject(value)) return false;
-  return Number.isSafeInteger(value.pid) && value.pid > 0 && typeof value.fingerprint === "string" && value.fingerprint.length > 0 && value.fingerprint_precision === "exact" && Number.isSafeInteger(value.identity_version) && typeof value.platform === "string" && typeof value.captured_at === "string" && Number.isFinite(Date.parse(value.captured_at));
-}
-function registryEnabled(dataRoot) {
-  const file2 = path6.join(rosterPath(dataRoot), REGISTRY_FILE);
-  if (!existsSync4(file2)) return false;
-  let value;
-  try {
-    value = JSON.parse(readFileSync4(file2, "utf8"));
-  } catch (error62) {
-    throw new Error("JSON writer registry is unreadable; writes fail closed", { cause: error62 });
-  }
-  if (!strictObject(value) || value.schema_version !== 1 || typeof value.created_at !== "string" || !Number.isFinite(Date.parse(value.created_at))) throw new Error("JSON writer registry is malformed; writes fail closed");
-  return true;
-}
-function jsonWriterParticipationRequired(dataRoot) {
-  return registryEnabled(dataRoot) || readFence(dataRoot) !== null;
-}
-function assertJsonWriterCanWrite(dataRoot, token, taskId, attempt) {
-  const fence = readFence(dataRoot);
-  if (!fence) {
-    if (!registryEnabled(dataRoot)) return;
-    if (!token) throw new Error("JSON writer is not registered; write rejected");
-    const lease2 = readLease(dataRoot, token);
-    if (!lease2 || lease2.pid !== process.pid || lease2.kind === "worker" && lease2.identity?.pid !== process.pid) {
-      throw new Error("JSON writer lease does not belong to this process; write rejected");
-    }
-    assertLeaseMutationScope(dataRoot, lease2, taskId, attempt);
-    return;
-  }
-  if (fence.state === "sealed") throw new Error("JSON writer fence is sealed; write rejected");
-  if (!token) throw new Error(`JSON writer fence is ${fence.state}; unregistered write rejected`);
-  const lease = readLease(dataRoot, token);
-  if (!lease || lease.pid !== process.pid || lease.kind === "worker" && lease.identity?.pid !== process.pid) {
-    throw new Error("JSON writer lease does not belong to this process; write rejected");
-  }
-  assertLeaseMutationScope(dataRoot, lease, taskId, attempt);
-}
-function assertLeaseMutationScope(dataRoot, lease, taskId, attempt) {
-  if (lease.kind === "manager") return;
-  if (!taskId || lease.task_id !== taskId || attempt !== void 0 && lease.attempt !== attempt) {
-    throw new Error("Worker writer lease is not authorized for this Task/Attempt; write rejected");
-  }
-  let status;
-  try {
-    status = JSON.parse(readFileSync4(path6.join(dataRoot, ".tasks", taskId, "status.json"), "utf8"));
-  } catch (error62) {
-    throw new Error("Worker Task status is unreadable; write rejected", { cause: error62 });
-  }
-  if (!strictObject(status) || status.attempt !== lease.attempt) {
-    throw new Error("Worker writer lease does not match the current Task Attempt; write rejected");
-  }
-}
-function assertJsonAdmissionOpen(dataRoot) {
-  const fence = readFence(dataRoot);
-  if (fence) throw new Error(`JSON writer fence is ${fence.state}; new task admission is closed`);
-}
-function assertJsonWorkerLease(dataRoot, token, taskId, attempt) {
-  const fence = readFence(dataRoot);
-  if (!fence && !registryEnabled(dataRoot)) return;
-  if (!token) throw new Error("worker launch has no registered JSON writer lease");
-  const lease = readLease(dataRoot, token);
-  if (!lease || lease.kind !== "worker" || lease.pid !== process.pid || lease.task_id !== taskId || lease.attempt !== attempt || !lease.identity || lease.identity.pid !== process.pid) {
-    throw new Error("worker JSON writer lease does not match this process and attempt");
-  }
-  if (fence?.state === "sealed") throw new Error("JSON writer fence is sealed; worker start rejected");
-}
-async function activateWorkerJsonWriter(dataRoot, token, taskId, attempt, identity) {
-  await withProcessLock(gateLockPath(dataRoot), async () => {
-    const fence = readFence(dataRoot);
-    if (fence?.state === "sealed") throw new Error("JSON writer fence is sealed; worker activation rejected");
-    const lease = readLease(dataRoot, token);
-    if (!lease || lease.kind !== "worker" || lease.task_id !== taskId || lease.attempt !== attempt || lease.pid !== null && lease.pid !== process.pid || !validIdentity(identity) || identity.pid !== process.pid) {
-      throw new Error("pending worker writer lease does not match this process and attempt");
-    }
-    writeJsonAtomic(leasePath(dataRoot, token), { ...lease, pid: process.pid, identity });
-  });
-}
-async function releaseWorkerJsonWriter(dataRoot, token) {
-  await withProcessLock(gateLockPath(dataRoot), async () => {
-    const lease = readLease(dataRoot, token);
-    if (!lease) return;
-    if (lease.kind !== "worker" || lease.pid !== process.pid) throw new Error("Worker writer lease owner mismatch");
-    rmSync2(leasePath(dataRoot, token));
-  });
-}
-var FENCE_FILE, ROSTER_DIR, REGISTRY_FILE, GATE_LOCK, ATOMIC_RENAME_RETRY_MS, ATOMIC_RENAME_RETRY_PAUSE_MS, TRANSIENT_ATOMIC_RENAME_CODES, activeWritePermits;
-var init_json_writer_quiescence = __esm({
-  "src/store/json-writer-quiescence.ts"() {
-    "use strict";
-    init_process_lock();
-    init_durable_file_system();
-    init_task_store();
-    init_json_history_result_exceptions();
-    FENCE_FILE = ".writer-quiescence.json";
-    ROSTER_DIR = ".writer-roster";
-    REGISTRY_FILE = "registry.json";
-    GATE_LOCK = ".writer-quiescence.lock";
-    ATOMIC_RENAME_RETRY_MS = 5e3;
-    ATOMIC_RENAME_RETRY_PAUSE_MS = 10;
-    TRANSIENT_ATOMIC_RENAME_CODES = /* @__PURE__ */ new Set(["EPERM", "EACCES", "EBUSY"]);
-    activeWritePermits = /* @__PURE__ */ new Map();
   }
 });
 
@@ -2517,7 +404,7 @@ function windowsBatchQuery(pids, timeoutMs, onFailure) {
     });
     let stdout = "";
     let settled = false;
-    const fail = (reason) => {
+    const fail2 = (reason) => {
       if (settled) return;
       try {
         onFailure?.(reason);
@@ -2536,7 +423,7 @@ function windowsBatchQuery(pids, timeoutMs, onFailure) {
         child.kill("SIGKILL");
       } catch {
       }
-      fail("timeout");
+      fail2("timeout");
     }, timeoutMs);
     timer.unref();
     child.stdout.setEncoding("utf8");
@@ -2548,27 +435,27 @@ function windowsBatchQuery(pids, timeoutMs, onFailure) {
     child.stdout.on("data", (chunk) => {
       if (stdout.length < 1e6) stdout += chunk;
     });
-    child.on("error", () => fail("spawn_error"));
+    child.on("error", () => fail2("spawn_error"));
     child.on("close", (code) => {
       const map2 = /* @__PURE__ */ new Map();
       const lines = stdout.trim().split(/\r?\n/u);
       if (code !== 0) {
-        fail("nonzero_exit");
+        fail2("nonzero_exit");
         return;
       }
       if (stderrBytes > 0) {
-        fail("stderr");
+        fail2("stderr");
         return;
       }
       if (lines.pop() !== "bridge_probe_complete_v1") {
-        fail("missing_completion_marker");
+        fail2("missing_completion_marker");
         return;
       }
       for (const line of lines) {
         if (!line.trim()) continue;
         const match = /^(\d+)\|(\d+)$/u.exec(line.trim());
         if (!match || !pids.includes(Number(match[1])) || map2.has(Number(match[1]))) {
-          fail("malformed_output");
+          fail2("malformed_output");
           return;
         }
         map2.set(Number(match[1]), match[2]);
@@ -2726,12 +613,457 @@ var init_process_probe = __esm({
   }
 });
 
+// src/sqlite-candidate/wp6b2b1/interaction-channel.mjs
+var interaction_channel_exports = {};
+__export(interaction_channel_exports, {
+  createCandidateInteractionChannel: () => createCandidateInteractionChannel,
+  createCandidateWorkerInteractionChannel: () => createCandidateWorkerInteractionChannel,
+  isCandidateInteractionAcknowledgement: () => isCandidateInteractionAcknowledgement,
+  isCandidateInteractionChannel: () => isCandidateInteractionChannel,
+  isCandidateInteractionPreparedAcknowledgement: () => isCandidateInteractionPreparedAcknowledgement
+});
+import { createHash as createHash4 } from "node:crypto";
+async function createCandidateInteractionChannel(child, operation, verifyProcessIdentity) {
+  if (!child || !Number.isSafeInteger(child.pid) || !Array.isArray(child.stdio) || child.stdio.length < 10 || !operation || operation.operation_kind !== "attempt_lifecycle" || operation.phase !== "running" || !Number.isSafeInteger(operation.generation) || operation.generation < 1 || !operation.claim_id || operation.claim_generation !== operation.generation || !operation.claim_worker_identity_json || !operation.launch_identity_json || !operation.claim_worker_identity_digest || typeof verifyProcessIdentity !== "function") throw coded("interaction_channel_unavailable");
+  let worker;
+  let launch;
+  try {
+    worker = JSON.parse(operation.claim_worker_identity_json);
+    launch = JSON.parse(operation.launch_identity_json);
+  } catch {
+    throw coded("interaction_channel_identity_invalid");
+  }
+  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha256(stableJson(worker)) !== operation.claim_worker_identity_digest)
+    throw coded("interaction_channel_identity_mismatch");
+  const requestStream = child.stdio[7];
+  const replyStream = child.stdio[8];
+  const ackStream = child.stdio[9];
+  if (!requestStream || typeof requestStream[Symbol.asyncIterator] !== "function" || !replyStream || typeof replyStream.write !== "function" || !ackStream || typeof ackStream[Symbol.asyncIterator] !== "function") throw coded("interaction_channel_unavailable");
+  const binding = Object.freeze({
+    operation_id: operation.operation_id,
+    task_id: operation.task_id,
+    attempt: operation.attempt,
+    generation: operation.generation,
+    claim_id: operation.claim_id,
+    worker_identity_digest: operation.claim_worker_identity_digest,
+    process_id: worker.process_id,
+    start_fingerprint: worker.start_fingerprint
+  });
+  const requestReader = new JsonLineReader(requestStream);
+  const ackReader = new JsonLineReader(ackStream);
+  let sendPending = false;
+  const verifyLive = async () => {
+    if (child.exitCode !== null || child.signalCode !== null) throw coded("interaction_worker_not_live");
+    let observed;
+    try {
+      observed = await verifyProcessIdentity({ child, expected: binding });
+    } catch {
+      throw coded("interaction_channel_identity_unknown");
+    }
+    if (!observed || observed.state !== "verified" || observed.process_id !== binding.process_id || observed.start_fingerprint !== binding.start_fingerprint) throw coded("interaction_channel_identity_mismatch");
+  };
+  const channel = {
+    binding,
+    async receiveRequest() {
+      await verifyLive();
+      const frame = await requestReader.read();
+      const expected = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "request", "start_fingerprint", "task_id", "worker_identity_digest"];
+      if (Object.keys(frame).sort().join("|") !== expected.join("|") || frame.protocol !== "bridge-sqlite-interaction-request-v1" || !sameBinding(frame, binding) || !validRequest(frame.request)) throw coded("interaction_frame_identity_mismatch");
+      return Object.freeze({ binding, request: Object.freeze(frame.request) });
+    },
+    async prepareReply(reply) {
+      if (sendPending) throw coded("interaction_channel_busy");
+      sendPending = true;
+      try {
+        await verifyLive();
+        if (!sameBinding(reply, binding) || !validId2(reply.request_id) || !validId2(reply.reply_id) || !Number.isSafeInteger(reply.revision) || reply.revision < 1 || !/^[0-9a-f]{64}$/u.test(reply.answer_digest) || !reply.answer || Object.getPrototypeOf(reply.answer) !== Object.prototype) throw coded("interaction_reply_binding_mismatch");
+        const frame = {
+          protocol: "bridge-sqlite-interaction-prepare-v1",
+          ...binding,
+          request_id: reply.request_id,
+          reply_id: reply.reply_id,
+          revision: reply.revision,
+          answer: reply.answer,
+          answer_digest: reply.answer_digest
+        };
+        await writeFrame(replyStream, frame);
+        await verifyLive();
+        const ack = await ackReader.read(8192);
+        validateAck(ack, "prepared", binding, reply);
+        const proof = Object.freeze({
+          ...binding,
+          request_id: reply.request_id,
+          reply_id: reply.reply_id,
+          revision: reply.revision,
+          answer_digest: reply.answer_digest,
+          ack_digest: sha256(stableJson(ack))
+        });
+        PREPARED_ACKNOWLEDGEMENTS.add(proof);
+        return proof;
+      } finally {
+        sendPending = false;
+      }
+    },
+    async commitReply(reply, commit) {
+      if (sendPending) throw coded("interaction_channel_busy");
+      if (!commit || commit.state !== "committed" || !sameBinding(commit, binding) || commit.request_id !== reply.request_id || commit.reply_id !== reply.reply_id || commit.answer_digest !== reply.answer_digest || !Number.isSafeInteger(commit.revision) || !/^[0-9a-f]{64}$/u.test(commit.prepared_digest) || !/^[0-9a-f]{64}$/u.test(commit.commit_digest)) throw coded("interaction_commit_binding_mismatch");
+      sendPending = true;
+      try {
+        await verifyLive();
+        const frame = {
+          protocol: "bridge-sqlite-interaction-commit-v1",
+          ...binding,
+          request_id: reply.request_id,
+          reply_id: reply.reply_id,
+          revision: commit.revision,
+          answer_digest: reply.answer_digest,
+          prepared_digest: commit.prepared_digest,
+          commit_digest: commit.commit_digest
+        };
+        await writeFrame(replyStream, frame);
+        const ack = await ackReader.read(8192);
+        validateAck(ack, "accepted", binding, { ...reply, revision: commit.revision });
+        const proof = Object.freeze({
+          ...binding,
+          request_id: reply.request_id,
+          reply_id: reply.reply_id,
+          revision: commit.revision,
+          answer_digest: reply.answer_digest,
+          commit_digest: commit.commit_digest,
+          ack_digest: sha256(stableJson(ack))
+        });
+        ACKNOWLEDGEMENTS.add(proof);
+        return proof;
+      } finally {
+        sendPending = false;
+      }
+    }
+  };
+  await verifyLive();
+  await writeFrame(replyStream, { protocol: "bridge-sqlite-interaction-bind-v1", ...binding });
+  CHANNELS.add(channel);
+  return Object.freeze(channel);
+}
+async function createCandidateWorkerInteractionChannel({
+  requestStream,
+  replyStream,
+  ackStream,
+  processId,
+  verifySelfIdentity,
+  onStage = (
+    /** @type {(stage: string) => void} */
+    (() => {
+    })
+  )
+}) {
+  if (!Number.isSafeInteger(processId) || processId < 1 || typeof verifySelfIdentity !== "function" || !requestStream || typeof requestStream.write !== "function" || !replyStream || typeof replyStream[Symbol.asyncIterator] !== "function" || !ackStream || typeof ackStream.write !== "function") throw coded("interaction_channel_unavailable");
+  const replyReader = new JsonLineReader(replyStream);
+  onStage("worker bind read");
+  const bind = await replyReader.read(8192);
+  onStage("worker bind received");
+  const bindKeys = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "start_fingerprint", "task_id", "worker_identity_digest"];
+  if (Object.keys(bind).sort().join("|") !== bindKeys.join("|") || bind.protocol !== "bridge-sqlite-interaction-bind-v1" || !validBinding(bind) || bind.process_id !== processId) throw coded("interaction_bind_invalid");
+  let observed;
+  onStage("worker identity verification");
+  try {
+    observed = await verifySelfIdentity({ processId, expected: bind });
+  } catch {
+    throw coded("interaction_channel_identity_unknown");
+  }
+  if (!observed || observed.state !== "verified" || observed.process_id !== processId || observed.start_fingerprint !== bind.start_fingerprint) throw coded("interaction_bind_identity_mismatch");
+  onStage("worker identity verified");
+  let pendingReply = null;
+  let closed = false;
+  const channel = {
+    async close() {
+      if (closed) return;
+      closed = true;
+      onStage("worker close request stream start");
+      await closeWritable(requestStream);
+      onStage("worker close request stream complete");
+      await closeReadable(replyStream);
+      onStage("worker close reply stream complete");
+      await closeWritable(ackStream);
+      onStage("worker close acknowledgement stream complete");
+    },
+    binding: Object.freeze({ ...bind, protocol: void 0 }),
+    async sendRequest(request) {
+      if (closed) throw coded("interaction_channel_closed");
+      if (pendingReply) throw coded("interaction_channel_busy");
+      if (!validRequest(request)) throw coded("interaction_frame_invalid");
+      onStage("worker request write");
+      await writeFrame(requestStream, { ...bindingWithoutProtocol(bind), protocol: "bridge-sqlite-interaction-request-v1", request });
+      onStage("worker request written");
+      onStage("worker prepare reply read");
+      const frame = await replyReader.read();
+      onStage("worker prepare reply received");
+      const keys = ["answer", "answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
+      if (Object.keys(frame).sort().join("|") !== keys.join("|") || frame.protocol !== "bridge-sqlite-interaction-prepare-v1" || !sameBinding(frame, bind) || frame.request_id !== request.request_id || !validId2(frame.reply_id) || !Number.isSafeInteger(frame.revision) || frame.revision < 1 || !/^[0-9a-f]{64}$/u.test(frame.answer_digest) || !validPersistedInteractionAnswer(request, frame.answer) || interactionReplyDigest(bind, request.request_id, frame.answer) !== frame.answer_digest) throw coded("interaction_prepare_invalid");
+      const preparedAck = {
+        protocol: "bridge-sqlite-interaction-ack-v1",
+        state: "prepared",
+        ...bindingWithoutProtocol(bind),
+        request_id: request.request_id,
+        reply_id: frame.reply_id,
+        revision: frame.revision,
+        answer_digest: frame.answer_digest
+      };
+      await writeFrame(ackStream, preparedAck);
+      pendingReply = { request, frame, preparedAck };
+      return Object.freeze({ state: "prepared", request_id: request.request_id, reply_id: frame.reply_id });
+    },
+    async acceptCommittedReply() {
+      if (closed) throw coded("interaction_channel_closed");
+      if (!pendingReply) throw coded("interaction_reply_not_prepared");
+      onStage("worker committed reply frame read");
+      const { request, frame, preparedAck } = pendingReply;
+      const commit = await replyReader.read(8192);
+      onStage("worker committed reply frame received");
+      const commitKeys = ["answer_digest", "attempt", "claim_id", "commit_digest", "generation", "operation_id", "prepared_digest", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
+      if (Object.keys(commit).sort().join("|") !== commitKeys.join("|") || commit.protocol !== "bridge-sqlite-interaction-commit-v1" || !sameBinding(commit, bind) || commit.request_id !== request.request_id || commit.reply_id !== frame.reply_id || commit.answer_digest !== frame.answer_digest || commit.revision <= frame.revision || commit.prepared_digest !== sha256(stableJson(preparedAck)) || commit.commit_digest !== interactionCommitDigest(bind, commit)) throw coded("interaction_commit_invalid");
+      const ack = {
+        protocol: "bridge-sqlite-interaction-ack-v1",
+        state: "accepted",
+        ...bindingWithoutProtocol(bind),
+        request_id: request.request_id,
+        reply_id: frame.reply_id,
+        revision: commit.revision,
+        answer_digest: frame.answer_digest
+      };
+      onStage("worker accepted acknowledgement write start");
+      await writeFrame(ackStream, ack);
+      onStage("worker accepted acknowledgement write complete");
+      pendingReply = null;
+      return Object.freeze({ answer: frame.answer, reply_id: frame.reply_id, answer_digest: frame.answer_digest });
+    }
+  };
+  return Object.freeze(channel);
+}
+function isCandidateInteractionPreparedAcknowledgement(value) {
+  return !!value && PREPARED_ACKNOWLEDGEMENTS.has(value);
+}
+function isCandidateInteractionAcknowledgement(value) {
+  return !!value && ACKNOWLEDGEMENTS.has(value);
+}
+function isCandidateInteractionChannel(value) {
+  return !!value && CHANNELS.has(value);
+}
+async function writeFrame(stream, frame) {
+  const bytes = Buffer.from(`${stableJson(frame)}
+`, "utf8");
+  if (bytes.length > MAX_FRAME_BYTES2) throw coded("interaction_frame_too_large");
+  await new Promise((resolve, reject) => {
+    try {
+      stream.write(bytes, (error62) => error62 ? reject(error62) : resolve());
+    } catch (error62) {
+      reject(error62);
+    }
+  });
+}
+function validateAck(ack, state, binding, reply) {
+  const keys = ["answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "state", "task_id", "worker_identity_digest"];
+  if (Object.keys(ack).sort().join("|") !== keys.join("|") || ack.protocol !== "bridge-sqlite-interaction-ack-v1" || ack.state !== state || !sameBinding(ack, binding) || ack.request_id !== reply.request_id || ack.reply_id !== reply.reply_id || ack.revision !== reply.revision || ack.answer_digest !== reply.answer_digest)
+    throw coded("interaction_ack_mismatch");
+}
+function validBinding(value) {
+  return value.protocol === "bridge-sqlite-interaction-bind-v1" && validId2(value.operation_id) && validId2(value.task_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && validId2(value.claim_id) && /^[0-9a-f]{64}$/u.test(value.worker_identity_digest) && Number.isSafeInteger(value.process_id) && value.process_id > 0 && typeof value.start_fingerprint === "string" && !!value.start_fingerprint;
+}
+function bindingWithoutProtocol(value) {
+  const { protocol: _protocol, ...binding } = value;
+  return binding;
+}
+function interactionReplyDigest(binding, requestId, answer) {
+  return sha256(stableJson({
+    interaction_reply_contract_version: 1,
+    operation_id: binding.operation_id,
+    task_id: binding.task_id,
+    attempt: binding.attempt,
+    generation: binding.generation,
+    claim_id: binding.claim_id,
+    worker_identity_digest: binding.worker_identity_digest,
+    request_id: requestId,
+    answer
+  }));
+}
+function interactionCommitDigest(binding, commit) {
+  return sha256(stableJson({
+    interaction_commit_contract_version: 1,
+    operation_id: binding.operation_id,
+    task_id: binding.task_id,
+    attempt: binding.attempt,
+    generation: binding.generation,
+    claim_id: binding.claim_id,
+    worker_identity_digest: binding.worker_identity_digest,
+    request_id: commit.request_id,
+    reply_id: commit.reply_id,
+    revision: commit.revision,
+    answer_digest: commit.answer_digest,
+    prepared_digest: commit.prepared_digest
+  }));
+}
+function validPersistedInteractionAnswer(request, answer) {
+  if (!answer || Object.getPrototypeOf(answer) !== Object.prototype) return false;
+  if (request.method === "interaction/requestPermission") {
+    const keys = Object.keys(answer).sort().join("|");
+    if (answer.decision === "allow") return keys === "decision" && Array.isArray(request.params.options) && request.params.options.some((option) => option && Object.getPrototypeOf(option) === Object.prototype && typeof option.kind === "string" && option.kind.startsWith("allow"));
+    return answer.decision === "deny" && keys === "decision|reason" && typeof answer.reason === "string" && answer.reason.length <= 2e3;
+  }
+  if (answer.action === "decline") return Object.keys(answer).join("|") === "action";
+  if (answer.action !== "accept" || Object.keys(answer).sort().join("|") !== "action|content" || !answer.content || Object.getPrototypeOf(answer.content) !== Object.prototype) return false;
+  if (request.params.schema && Object.getPrototypeOf(request.params.schema) === Object.prototype && request.params.schema.interaction === "plan_approval") return Object.keys(answer.content).join("|") === "answer_0" && answer.content.answer_0 === "approve";
+  if (Object.keys(answer.content).join("|") !== "answers" || !answer.content.answers || Object.getPrototypeOf(answer.content.answers) !== Object.prototype) return false;
+  const nested = request.params.input && Object.getPrototypeOf(request.params.input) === Object.prototype ? request.params.input : {};
+  const raw = Array.isArray(request.params.questions) ? request.params.questions : Array.isArray(nested.questions) ? nested.questions : [];
+  const questions = raw.filter((question) => question && Object.getPrototypeOf(question) === Object.prototype && typeof question.question === "string").map((question) => question.question);
+  const entries = Object.entries(answer.content.answers);
+  return entries.length > 0 && entries.every(([key, value]) => questions.includes(key) && typeof value === "string" && !!value.trim() && value.length <= 4e3) && Buffer.byteLength(stableJson(answer.content.answers), "utf8") <= 16e3;
+}
+function sameBinding(value, binding) {
+  return value.operation_id === binding.operation_id && value.task_id === binding.task_id && value.attempt === binding.attempt && value.generation === binding.generation && value.claim_id === binding.claim_id && value.worker_identity_digest === binding.worker_identity_digest && value.process_id === binding.process_id && value.start_fingerprint === binding.start_fingerprint;
+}
+function validRequest(value) {
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== "method|params|request_id" || !validId2(value.request_id) || value.request_id.length > 512 || !["interaction/requestPermission", "interaction/requestUserInput"].includes(value.method) || !value.params || Object.getPrototypeOf(value.params) !== Object.prototype) return false;
+  try {
+    return Buffer.byteLength(stableJson(value), "utf8") <= MAX_REQUEST_BYTES;
+  } catch {
+    return false;
+  }
+}
+function validId2(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= 512 && !/[\x00-\x1f]/u.test(value);
+}
+function stableJson(value, depth = 0) {
+  if (depth > 32) throw coded("interaction_json_too_deep");
+  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
+  if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
+  if (Array.isArray(value)) {
+    if (value.length > 256) throw coded("interaction_json_too_large");
+    return `[${value.map((item) => stableJson(item, depth + 1)).join(",")}]`;
+  }
+  if (value && Object.getPrototypeOf(value) === Object.prototype) {
+    const keys = Object.keys(value);
+    if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) throw coded("interaction_json_invalid");
+    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson(value[key], depth + 1)}`).join(",")}}`;
+  }
+  throw coded("interaction_json_invalid");
+}
+function sha256(value) {
+  return createHash4("sha256").update(value).digest("hex");
+}
+function coded(code) {
+  return Object.assign(new Error(code), { code });
+}
+function closeWritable(stream) {
+  if (stream.closed) return Promise.resolve();
+  const closed = new Promise((resolve, reject) => {
+    stream.once("close", resolve);
+    stream.once("error", reject);
+  });
+  stream.end();
+  return closed;
+}
+async function closeReadable(stream) {
+  if (stream.closed) return;
+  const closed = new Promise((resolve) => stream.once("close", resolve));
+  if (typeof stream.close === "function") stream.close();
+  else if (!stream.destroyed) stream.destroy();
+  await closed;
+}
+var CHANNELS, ACKNOWLEDGEMENTS, PREPARED_ACKNOWLEDGEMENTS, MAX_REQUEST_BYTES, MAX_FRAME_BYTES2, JsonLineReader;
+var init_interaction_channel = __esm({
+  "src/sqlite-candidate/wp6b2b1/interaction-channel.mjs"() {
+    "use strict";
+    CHANNELS = /* @__PURE__ */ new WeakSet();
+    ACKNOWLEDGEMENTS = /* @__PURE__ */ new WeakSet();
+    PREPARED_ACKNOWLEDGEMENTS = /* @__PURE__ */ new WeakSet();
+    MAX_REQUEST_BYTES = 1048576;
+    MAX_FRAME_BYTES2 = MAX_REQUEST_BYTES + 8192;
+    JsonLineReader = class {
+      #iterator;
+      #buffer = Buffer.alloc(0);
+      constructor(stream) {
+        this.#iterator = stream[Symbol.asyncIterator]();
+      }
+      async read(maximum2 = MAX_FRAME_BYTES2) {
+        for (; ; ) {
+          const end = this.#buffer.indexOf(10);
+          if (end >= 0) {
+            const frame = this.#buffer.subarray(0, end);
+            this.#buffer = this.#buffer.subarray(end + 1);
+            if (!frame.length || frame.length > maximum2) throw coded("interaction_frame_invalid");
+            let value;
+            try {
+              value = JSON.parse(frame.toString("utf8"));
+            } catch {
+              throw coded("interaction_frame_invalid");
+            }
+            if (!value || typeof value !== "object" || Array.isArray(value)) throw coded("interaction_frame_invalid");
+            return value;
+          }
+          if (this.#buffer.length > maximum2) throw coded("interaction_frame_too_large");
+          const next = await this.#iterator.next();
+          if (next.done) throw coded(this.#buffer.length ? "interaction_frame_truncated" : "interaction_channel_closed");
+          const chunk = Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value);
+          this.#buffer = Buffer.concat([this.#buffer, chunk]);
+        }
+      }
+    };
+  }
+});
+
+// src/sqlite-candidate/wp6c/fake-result-adapter.ts
+var fake_result_adapter_exports = {};
+__export(fake_result_adapter_exports, {
+  executeFakeResultAdapter: () => executeFakeResultAdapter
+});
+function executeFakeResultAdapter(snapshot) {
+  const result = {
+    task_id: snapshot.task_id,
+    attempt: snapshot.attempt,
+    status: "completed",
+    summary: "Synthetic WP6C FakeAdapter result",
+    files_changed: [],
+    tests: [],
+    issues: [],
+    needs_master_decision: false,
+    zcode_output: "synthetic adapter output",
+    exit_code: 0,
+    session_id: null,
+    started_at: "2026-10-24T00:00:00.000Z",
+    finished_at: "2026-10-24T00:00:01.000Z"
+  };
+  return {
+    protocol: "bridge-sqlite-candidate-result-v1",
+    operation_id: snapshot.operation_id,
+    task_id: snapshot.task_id,
+    attempt: snapshot.attempt,
+    generation: snapshot.generation,
+    workspace_ref: snapshot.workspace_ref,
+    policy_snapshot_digest: snapshot.policy_snapshot_digest,
+    execution_cleanup_verified: true,
+    execution_cleanup: {
+      contract: "candidate-execution-cleanup-proof-v1",
+      source: "explicit_test_fake",
+      method: "synthetic_fixture",
+      complete: true,
+      workspace_retained: true,
+      managed_browser_cleanup_verified: true
+    },
+    result
+  };
+}
+var init_fake_result_adapter = __esm({
+  "src/sqlite-candidate/wp6c/fake-result-adapter.ts"() {
+    "use strict";
+  }
+});
+
 // src/adapters/agent-report.ts
 function parseAgentReport(responseText) {
   let lastError = null;
   let lastCandidate = null;
   for (const candidate of extractJsonObjects(responseText)) {
-    const validated = validateAgentReport(candidate);
+    const validated = validateAgentReport2(candidate);
     if (validated.ok) {
       return { report: validated.report, candidate: validated.report, error: null };
     }
@@ -2748,13 +1080,13 @@ function extractReportCandidate(value) {
   if (!isPlainObject(value)) return null;
   const candidate = {};
   if (typeof value["summary"] === "string") candidate.summary = value["summary"];
-  if (isStringArray(value["files_changed"])) candidate.files_changed = value["files_changed"];
-  if (isStringArray(value["issues"])) candidate.issues = value["issues"];
+  if (isStringArray2(value["files_changed"])) candidate.files_changed = value["files_changed"];
+  if (isStringArray2(value["issues"])) candidate.issues = value["issues"];
   if (typeof value["needs_master_decision"] === "boolean") candidate.needs_master_decision = value["needs_master_decision"];
   if (Array.isArray(value["tests"])) {
     const tests = [];
     for (const entry of value["tests"]) {
-      const test = validateTestReport(entry);
+      const test = validateTestReport2(entry);
       if (!test.ok) return candidate;
       tests.push(test.test);
     }
@@ -2762,69 +1094,11 @@ function extractReportCandidate(value) {
   }
   return Object.keys(candidate).length ? candidate : null;
 }
-function validateAgentReport(value) {
-  if (!isPlainObject(value)) {
-    return { ok: false, error: "report is not a JSON object" };
-  }
-  const summary = value["summary"];
-  if (typeof summary !== "string" || summary.trim().length === 0) {
-    return { ok: false, error: "report.summary must be a non-empty string" };
-  }
-  const filesChanged = value["files_changed"];
-  if (!isStringArray(filesChanged)) {
-    return { ok: false, error: "report.files_changed must be an array of strings" };
-  }
-  const testsRaw = value["tests"];
-  if (!Array.isArray(testsRaw)) {
-    return { ok: false, error: "report.tests must be an array" };
-  }
-  const tests = [];
-  for (const entry of testsRaw) {
-    const test = validateTestReport(entry);
-    if (!test.ok) {
-      return { ok: false, error: `report.tests entry invalid: ${test.error}` };
-    }
-    tests.push(test.test);
-  }
-  const issues = value["issues"];
-  if (!isStringArray(issues)) {
-    return { ok: false, error: "report.issues must be an array of strings" };
-  }
-  const needsMasterDecision = value["needs_master_decision"];
-  if (typeof needsMasterDecision !== "boolean") {
-    return { ok: false, error: "report.needs_master_decision must be a boolean" };
-  }
-  return {
-    ok: true,
-    report: {
-      summary,
-      files_changed: filesChanged,
-      tests,
-      issues,
-      needs_master_decision: needsMasterDecision
-    }
-  };
+function validateAgentReport2(value) {
+  return validateAgentReport(value);
 }
-function validateTestReport(value) {
-  if (!isPlainObject(value)) {
-    return { ok: false, error: "entry is not an object" };
-  }
-  const command = value["command"];
-  if (typeof command !== "string") {
-    return { ok: false, error: "command must be a string" };
-  }
-  const status = value["status"];
-  if (typeof status !== "string" || !TEST_STATUSES.has(status)) {
-    return { ok: false, error: "status must be one of passed|failed|not_run" };
-  }
-  const details = value["details"];
-  if (details !== void 0 && typeof details !== "string") {
-    return { ok: false, error: "details must be a string when present" };
-  }
-  return {
-    ok: true,
-    test: details === void 0 ? { command, status } : { command, status, details }
-  };
+function validateTestReport2(value) {
+  return validateTestReport(value);
 }
 function* extractJsonObjects(text) {
   if (text.trimStart().startsWith("{")) {
@@ -2872,17 +1146,17 @@ function* extractJsonObjects(text) {
     }
   }
 }
-function isStringArray(value) {
+function isStringArray2(value) {
   return Array.isArray(value) && value.every((entry) => typeof entry === "string");
 }
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
-var TEST_STATUSES, MAX_SCAN_CHARS;
+var MAX_SCAN_CHARS;
 var init_agent_report = __esm({
   "src/adapters/agent-report.ts"() {
     "use strict";
-    TEST_STATUSES = /* @__PURE__ */ new Set(["passed", "failed", "not_run"]);
+    init_result_contract();
     MAX_SCAN_CHARS = 4e5;
   }
 });
@@ -3041,11 +1315,11 @@ var init_errors = __esm({
 });
 
 // src/runtime/paths.ts
-import { existsSync as existsSync5, readFileSync as readFileSync5 } from "node:fs";
-import path7 from "node:path";
+import { existsSync, readFileSync as readFileSync2 } from "node:fs";
+import path3 from "node:path";
 function resolveUserHome(env, options = {}) {
   const platform = options.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path7.win32 : path7.posix;
+  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
   const homeRaw = env["HOME"]?.trim() || null;
   const userProfileRaw = env["USERPROFILE"]?.trim() || null;
   if (platform !== "win32") {
@@ -3085,9 +1359,9 @@ function resolveUserHome(env, options = {}) {
 }
 function discoverZCodeData(env, options = {}) {
   const platform = options.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path7.win32 : path7.posix;
-  const readFile2 = options.readFile ?? ((filePath) => readFileSync5(filePath, "utf8"));
-  const fileExists = options.fileExists ?? existsSync5;
+  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
+  const readFile2 = options.readFile ?? ((filePath) => readFileSync2(filePath, "utf8"));
+  const fileExists = options.fileExists ?? existsSync;
   const home = resolveUserHome(env, options);
   const settingFile = pathImpl.join(home.userHome, ".zcode", "v2", "setting.json");
   let settingStatus = "ok";
@@ -3152,7 +1426,7 @@ function isWindowsAbsolutePath(value) {
   return /^[A-Za-z]:[\\/]/u.test(value) || /^\/\/[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value) || /^\\\\[^\\/]+[\\/][^\\/]+(?:[\\/].*)?$/u.test(value);
 }
 function isAbsolutePathForPlatform(value, platform = process.platform) {
-  return platform === "win32" ? isWindowsAbsolutePath(value) : path7.isAbsolute(value);
+  return platform === "win32" ? isWindowsAbsolutePath(value) : path3.isAbsolute(value);
 }
 function isPermissionDeniedCode(error62) {
   const code = error62?.code;
@@ -3160,8 +1434,8 @@ function isPermissionDeniedCode(error62) {
 }
 function discoverZCodeInstall(env, options = {}) {
   const platform = options.platform ?? process.platform;
-  const pathImpl = platform === "win32" ? path7.win32 : path7.posix;
-  const fileExists = options.fileExists ?? existsSync5;
+  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
+  const fileExists = options.fileExists ?? existsSync;
   const requireBuiltin = options.requireBuiltin ?? true;
   const roots = [];
   const explicit = env["ZCODE_WINDOWS_APP_INSTALL_DIR"]?.trim();
@@ -3190,12 +1464,12 @@ function discoverZCodeInstall(env, options = {}) {
   return { installDir: null, source: null, zcodeEntrypoint: null, builtinConfigFile: null, candidates };
 }
 function builtinConfigForRuntime(zcodeEntrypoint, platform = process.platform) {
-  const pathImpl = platform === "win32" ? path7.win32 : path7.posix;
+  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
   const resourcesDir = pathImpl.dirname(pathImpl.dirname(zcodeEntrypoint));
   return pathImpl.join(resourcesDir, "config", "provider", "zcode-builtin.json");
 }
 function sameFileSystemPath(left, right, platform = process.platform) {
-  const pathImpl = platform === "win32" ? path7.win32 : path7.posix;
+  const pathImpl = platform === "win32" ? path3.win32 : path3.posix;
   return sameCleanPath(left, right, pathImpl, platform === "win32");
 }
 function sameCleanPath(left, right, pathImpl, caseInsensitive) {
@@ -3210,27 +1484,27 @@ var init_paths = __esm({
 });
 
 // src/runtime/resolver.ts
-import { accessSync, existsSync as existsSync6, readFileSync as readFileSync6, statSync as statSync3 } from "node:fs";
+import { accessSync, existsSync as existsSync2, readFileSync as readFileSync3, statSync } from "node:fs";
 import { homedir as homedir2 } from "node:os";
-import path8 from "node:path";
+import path4 from "node:path";
 import { fileURLToPath } from "node:url";
 function loadPersistedRuntimeEnvironment(source, homeDir = homedir2(), host = codexHostProfile(homeDir)) {
   validateHostProfile(host);
-  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path8.join(directory, "runtime-config.json"));
+  const settingsPaths = [host.settingsDirectory, ...host.legacySettingsDirectories ?? []].map((directory) => path4.join(directory, "runtime-config.json"));
   const legacyDataRoot = source["ZCODE_BRIDGE_DATA_DIR"]?.trim();
-  if (legacyDataRoot && path8.isAbsolute(legacyDataRoot)) {
-    settingsPaths.push(path8.join(legacyDataRoot, "runtime-config.json"));
+  if (legacyDataRoot && path4.isAbsolute(legacyDataRoot)) {
+    settingsPaths.push(path4.join(legacyDataRoot, "runtime-config.json"));
   }
   let parsed = null;
   const seenPaths = /* @__PURE__ */ new Set();
   for (const settingsPath of settingsPaths) {
-    const normalized = path8.resolve(settingsPath);
+    const normalized = path4.resolve(settingsPath);
     const identity = process.platform === "win32" ? normalized.toLocaleLowerCase("en-US") : normalized;
     if (seenPaths.has(identity)) continue;
     seenPaths.add(identity);
     try {
-      if (statSync3(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
-      const candidate = JSON.parse(readFileSync6(normalized, "utf8"));
+      if (statSync(normalized).size > 64 * 1024) throw new Error("runtime settings exceed 64 KB");
+      const candidate = JSON.parse(readFileSync3(normalized, "utf8"));
       if (isPlainObject2(candidate)) {
         parsed = candidate;
         break;
@@ -3258,15 +1532,15 @@ function resolveZcodeHome(env) {
   if (!isAbsolutePathForPlatform(configured)) {
     throw new BridgeError("provider_config_invalid", "ZCODE_HOME must be an absolute path");
   }
-  const resolved = path8.normalize(configured);
-  if (path8.basename(resolved).toLowerCase() !== ".zcode") {
+  const resolved = path4.normalize(configured);
+  if (path4.basename(resolved).toLowerCase() !== ".zcode") {
     throw new BridgeError(
       "provider_config_invalid",
       "ZCODE_HOME must name a .zcode directory so app-server can use the same data root"
     );
   }
   try {
-    if (!statSync3(resolved).isDirectory()) {
+    if (!statSync(resolved).isDirectory()) {
       throw new BridgeError("provider_config_invalid", `ZCODE_HOME is not a directory: ${resolved}`);
     }
   } catch (error62) {
@@ -3276,13 +1550,13 @@ function resolveZcodeHome(env) {
   return resolved;
 }
 function samePath(left, right) {
-  const resolvedLeft = path8.resolve(left);
-  const resolvedRight = path8.resolve(right);
+  const resolvedLeft = path4.resolve(left);
+  const resolvedRight = path4.resolve(right);
   return process.platform === "win32" ? resolvedLeft.toLowerCase() === resolvedRight.toLowerCase() : resolvedLeft === resolvedRight;
 }
 function isReadableFile(filePath) {
   try {
-    if (!existsSync6(filePath) || !statSync3(filePath).isFile()) return false;
+    if (!existsSync2(filePath) || !statSync(filePath).isFile()) return false;
     accessSync(filePath);
     return true;
   } catch {
@@ -3290,12 +1564,12 @@ function isReadableFile(filePath) {
   }
 }
 function findPackageRoot(startDir) {
-  let current = startDir ?? path8.dirname(fileURLToPath(import.meta.url));
+  let current = startDir ?? path4.dirname(fileURLToPath(import.meta.url));
   for (let depth = 0; depth < 10; depth++) {
-    if (existsSync6(path8.join(current, "package.json"))) {
+    if (existsSync2(path4.join(current, "package.json"))) {
       return current;
     }
-    const parent = path8.dirname(current);
+    const parent = path4.dirname(current);
     if (parent === current) break;
     current = parent;
   }
@@ -3334,6 +1608,7 @@ var init_resolver = __esm({
       "ZCODE_BRIDGE_DEFAULT_PROVIDER_ID",
       "ZCODE_BRIDGE_DEFAULT_MODEL_ID",
       "ZCODE_BRIDGE_DEFAULT_REASONING_LEVEL",
+      "ZCODE_BRIDGE_PREFER_STARTPLAN",
       "ZCODE_BRIDGE_MODE",
       "ZCODE_BRIDGE_MAX_CONCURRENT_WORKERS",
       "ZCODE_BRIDGE_TIMEOUT_MS",
@@ -3359,7 +1634,7 @@ var init_resolver = __esm({
         if (explicitDataBaseDir && !isAbsolutePathForPlatform(explicitDataBaseDir)) {
           throw new BridgeError("provider_config_invalid", "ZCODE_DATA_BASE_DIR must be an absolute path");
         }
-        if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path8.dirname(zcodeHome), explicitDataBaseDir)) {
+        if (zcodeHome && explicitDataBaseDir && !sameFileSystemPath(path4.dirname(zcodeHome), explicitDataBaseDir)) {
           throw new BridgeError(
             "provider_config_invalid",
             `ZCODE_HOME (${zcodeHome}) and ZCODE_DATA_BASE_DIR (${explicitDataBaseDir}) conflict; ZCODE_HOME must name <ZCODE_DATA_BASE_DIR>/.zcode. Fix one of them instead of relying on silent selection.`
@@ -3432,12 +1707,12 @@ var init_resolver = __esm({
             this.#validatePersonalConfig(personalEnv);
             personalConfigFile = personalEnv;
           } else {
-            const candidates = zcodeHome ? [path8.join(zcodeHome, "v2", "provider_config.json")] : [
+            const candidates = zcodeHome ? [path4.join(zcodeHome, "v2", "provider_config.json")] : [
               explicitDataBaseDir,
               data.configuredDataBaseDir,
               data.userHome
-            ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path8.join(base, ".zcode", "v2", "provider_config.json"));
-            const existing = candidates.filter((candidate) => existsSync6(candidate));
+            ].filter((base) => Boolean(base)).filter((base, index, values) => values.indexOf(base) === index).map((base) => path4.join(base, ".zcode", "v2", "provider_config.json"));
+            const existing = candidates.filter((candidate) => existsSync2(candidate));
             if (existing.length === 0) {
               throw new BridgeError(
                 "provider_config_missing",
@@ -3464,7 +1739,7 @@ var init_resolver = __esm({
             personalConfigFile = accepted;
           }
         }
-        if (zcodeHome && !samePath(personalConfigFile, path8.join(zcodeHome, "v2", "provider_config.json"))) {
+        if (zcodeHome && !samePath(personalConfigFile, path4.join(zcodeHome, "v2", "provider_config.json"))) {
           throw new BridgeError(
             "provider_config_invalid",
             `ZCODE_PERSONAL_PROVIDER_CONFIG_FILE must be ZCODE_HOME/v2/provider_config.json (${zcodeHome})`
@@ -3473,12 +1748,12 @@ var init_resolver = __esm({
         const dataOverride = env["ZCODE_BRIDGE_DATA_DIR"]?.trim();
         let dataRoot;
         if (dataOverride) {
-          if (!path8.isAbsolute(dataOverride)) {
+          if (!path4.isAbsolute(dataOverride)) {
             throw new Error(
               `ZCODE_BRIDGE_DATA_DIR must be an absolute path when set, got: ${dataOverride}`
             );
           }
-          dataRoot = path8.normalize(dataOverride);
+          dataRoot = path4.normalize(dataOverride);
         } else {
           dataRoot = this.#packageRoot ?? findPackageRoot();
         }
@@ -3487,6 +1762,7 @@ var init_resolver = __esm({
           zcodeEntrypoint,
           providerBuiltinConfigFile: builtinConfigFile,
           providerPersonalConfigFile: personalConfigFile,
+          zcodeDataRoot: data.zcodeDataDir,
           dataRoot
         };
       }
@@ -3533,7 +1809,7 @@ var init_resolver = __esm({
         }
         let text;
         try {
-          text = readFileSync6(filePath, "utf8");
+          text = readFileSync3(filePath, "utf8");
         } catch (error62) {
           throw new BridgeError(
             "provider_config_invalid",
@@ -3765,7 +2041,7 @@ async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, d
     throw new WindowsTreeCleanupError("process_tree_invalid_pid", `a positive integer PID is required, got: ${String(pid)}`);
   }
   const now = dependencies.now ?? Date.now;
-  const sleep3 = dependencies.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+  const sleep2 = dependencies.sleep ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   const transaction = await dependencies.open();
   const killed = /* @__PURE__ */ new Map();
   const held = /* @__PURE__ */ new Map();
@@ -3821,8 +2097,8 @@ async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, d
         }
       }
       const unconfirmedMembers = members2.filter((m) => {
-        const record2 = killed.get(m.pid);
-        return record2 === void 0 || record2.exitFileTime === null;
+        const record3 = killed.get(m.pid);
+        return record3 === void 0 || record3.exitFileTime === null;
       });
       if (now() >= deadline && unconfirmedMembers.length > 0) {
         throw new WindowsTreeCleanupError(
@@ -3831,7 +2107,7 @@ async function terminateWindowsProcessTree(pid, expectedRootTicks, killWaitMs, d
           knownPids()
         );
       }
-      await sleep3(20);
+      await sleep2(20);
     }
     succeeded = true;
     return {
@@ -4125,6 +2401,14 @@ function windowsTreeTransactionScript() {
     "    Held.Clear();",
     '    return closed.ToString() + "|" + failed.ToString();',
     "  }",
+    "  public static string Alive(int pid) {",
+    "    IntPtr h;",
+    '    if (!Held.TryGetValue(pid, out h) || h == IntPtr.Zero) { return "not_held||"; }',
+    "    long c, e, k, u;",
+    '    if (!GetProcessTimes(h, out c, out e, out k, out u)) { return "error||" + Marshal.GetLastWin32Error().ToString(); }',
+    '    if (e != 0) { return "exited|" + e.ToString() + "|"; }',
+    '    return "alive|" + c.ToString() + "|";',
+    "  }",
     "}",
     "'@",
     "[Console]::Out.WriteLine('READY'); [Console]::Out.Flush()",
@@ -4167,6 +2451,12 @@ function windowsTreeTransactionScript() {
     "    elseif ($r[0] -eq 'not_held') { [Console]::Out.WriteLine(('K {0} not_held 0' -f $kpid)) }",
     "    else { [Console]::Out.WriteLine(('K {0} error {1}' -f $kpid, $r[1])) }",
     "    [Console]::Out.WriteLine('KILL_END'); [Console]::Out.Flush()",
+    "  } elseif ($parts[0] -eq 'alive') {",
+    "    $apid = [int]$parts[1]",
+    "    $r = [BridgeTreeTx]::Alive($apid).Split('|')",
+    "    if ($r[0] -eq 'alive' -or $r[0] -eq 'exited') { [Console]::Out.WriteLine(('A {0} {1} {2}' -f $apid, $r[0], $r[1])) }",
+    "    else { [Console]::Out.WriteLine(('A {0} {1} {2}' -f $apid, $r[0], $(if ([string]::IsNullOrEmpty($r[2])) { '0' } else { $r[2] }))) }",
+    "    [Console]::Out.WriteLine('ALIVE_END'); [Console]::Out.Flush()",
     "  } elseif ($parts[0] -eq 'close') {",
     "    $r = [BridgeTreeTx]::CloseAll().Split('|')",
     "    [Console]::Out.WriteLine(('CLOSED {0} {1}' -f $r[0], $r[1])); [Console]::Out.Flush()",
@@ -4413,6 +2703,23 @@ var init_windows_process_cleanup = __esm({
           detail: status === "identity_changed" ? value : void 0
         };
       }
+      async alive(pid) {
+        this.#child.stdin.write(`alive ${String(pid)}
+`);
+        const line = await this.#nextLine(1e4, "alive response");
+        const end = await this.#nextLine(5e3, "alive terminator");
+        if (end !== "ALIVE_END") throw new Error("process_tree_alive_invalid: terminator missing");
+        const match = /^A (\d{1,12}) (alive|exited|not_held|error) (\d{1,25})$/u.exec(line);
+        if (!match || Number(match[1]) !== pid) throw new Error("process_tree_alive_invalid: malformed response");
+        const status = match[2];
+        const value = match[3];
+        return {
+          status,
+          creationFileTime: status === "alive" ? value : null,
+          exitFileTime: status === "exited" ? value : null,
+          error: status === "not_held" || status === "error" ? Number(value) : void 0
+        };
+      }
       async close() {
         let failure2 = this.#failure;
         if (!failure2 && !this.#closed) {
@@ -4589,6 +2896,453 @@ var init_process_spawn = __esm({
   }
 });
 
+// src/diagnostics/failure-facts.ts
+function registeredCode(value, registry2) {
+  if (typeof value !== "string" && typeof value !== "number") return null;
+  const text = typeof value === "number" ? Number.isSafeInteger(value) ? String(value) : null : value;
+  if (text === null || !CODE_PATTERN.test(text)) return null;
+  return registry2.has(text) ? text : null;
+}
+function reviewedTypeOrReasonCategories(input2) {
+  const categories = /* @__PURE__ */ new Set();
+  const type = input2.errorType ?? null;
+  const code = input2.errorCode ?? null;
+  const reason = input2.reviewedReason ?? null;
+  if (type === "model_context_exceeded" || code === "model_context_exceeded" || reason === "context_exceeded") {
+    categories.add("context_exceeded");
+  }
+  if (type === "model_rate_limited" || code === "model_rate_limited" || reason === "rate_limited") {
+    categories.add("rate_limited");
+  }
+  if (code === "model_not_found" || type === "model_not_found") categories.add("model_unavailable");
+  if (type === "tool_execution_failed" || type === "tool_timeout") categories.add("execution_failed");
+  if (reason === "auth_failed") categories.add("auth_failed");
+  if (reason === "invalid_request" && !categories.has("auth_failed")) {
+    if (code !== "invalid_model_response" && code !== "1005" && input2.providerCode !== "1005" && input2.rpcDataCode !== "1005") {
+      categories.add("invalid_request");
+    }
+  }
+  return categories;
+}
+function classifyFailureEvidence(input2) {
+  const booleans = (input2.retryableBooleans ?? []).filter((value) => typeof value === "boolean");
+  const distinct = new Set(booleans);
+  let retryableConflict = false;
+  let runtimeRetryable = null;
+  let retryableBasis = null;
+  if (distinct.size === 1) {
+    runtimeRetryable = booleans[0];
+    retryableBasis = "reported";
+  } else if (distinct.size > 1) {
+    retryableConflict = true;
+  }
+  const quotaCodes = [input2.providerCode, input2.errorCode, input2.rpcDataCode].filter((value) => typeof value === "string" && QUOTA_BUSINESS_CODES.has(value));
+  const rateCodes = [input2.providerCode, input2.errorCode, input2.rpcDataCode].filter((value) => typeof value === "string" && RATE_LIMIT_STRING_CODES.has(value));
+  const businessConflict = quotaCodes.length > 0 && rateCodes.length > 0;
+  let evidenceConflict = businessConflict || retryableConflict || input2.acceptedContradiction === true;
+  let category = "unknown";
+  let confidence = "unknown";
+  let basis = "none";
+  if (businessConflict) {
+    category = "unknown";
+    confidence = "unknown";
+    basis = "conflict";
+  } else if (quotaCodes.length > 0) {
+    category = "quota_exhausted";
+    confidence = "confirmed";
+    basis = "business_code";
+  } else if (rateCodes.length > 0) {
+    category = "rate_limited";
+    confidence = "confirmed";
+    basis = "business_code";
+  } else {
+    const typeReasons = reviewedTypeOrReasonCategories(input2);
+    const typeReason = typeReasons.values().next().value;
+    if (typeReasons.size > 1) {
+      evidenceConflict = true;
+      basis = "conflict";
+    } else if (typeReason && DIRECT_FACT_CATEGORIES.has(typeReason)) {
+      category = typeReason;
+      confidence = "confirmed";
+      basis = "runtime_type_or_reason";
+    } else if (input2.resultType !== null && input2.resultType !== void 0 && EXECUTION_RESULT_TYPES.has(input2.resultType)) {
+      category = "execution_failed";
+      confidence = "confirmed";
+      basis = "result_type";
+    } else if (input2.httpStatus === 429) {
+      category = "rate_limited";
+      confidence = "inferred";
+      basis = "http_status";
+    } else if (input2.quotaText && typeReasons.size === 0 && ![input2.providerCode, input2.errorCode, input2.rpcDataCode].includes("1005")) {
+      category = "quota_exhausted";
+      confidence = "inferred";
+      basis = "text";
+    }
+  }
+  if (category === "unknown" && input2.protocolGuard) {
+    category = "protocol_failure";
+    confidence = "confirmed";
+    basis = "protocol_guard";
+  } else if (category === "unknown" && input2.processErrno) {
+    basis = "process_errno";
+  }
+  return {
+    category,
+    confidence,
+    evidence_basis: basis,
+    evidence_conflict: evidenceConflict,
+    runtime_retryable: runtimeRetryable,
+    runtime_retryable_basis: retryableBasis
+  };
+}
+function safeIntegerOrNull(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) ? value : null;
+}
+function httpStatusOrNull(value) {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 100 && value <= 599 ? value : null;
+}
+function errnoOrNull(value) {
+  return typeof value === "string" && PROCESS_ERRNOS.includes(value) ? value : null;
+}
+function registeredPhase(value) {
+  return typeof value === "string" && FAILURE_PHASE_SET.has(value) ? value : "unknown";
+}
+function buildFailureFacts(input2) {
+  const source = input2.source;
+  const classification = classifyFailureEvidence(input2);
+  const facts = {
+    schema_version: "1",
+    source,
+    phase: registeredPhase(input2.phase),
+    rpc_method: input2.rpcMethod != null && RPC_METHOD_REGISTRY.has(input2.rpcMethod) ? input2.rpcMethod : null,
+    rpc_code: safeIntegerOrNull(input2.rpcCode),
+    rpc_data_code: registeredCode(input2.rpcDataCode ?? null, RPC_DATA_CODE_REGISTRY),
+    error_type: registeredCode(input2.errorType ?? null, ERROR_TYPE_REGISTRY),
+    error_code: registeredCode(input2.errorCode ?? null, MODEL_ERROR_CODES),
+    provider_code: registeredCode(input2.providerCode ?? null, PROVIDER_BUSINESS_CODES),
+    http_status: httpStatusOrNull(input2.httpStatus),
+    accepted_before_error: input2.acceptedContradiction ? "unknown" : input2.accepted,
+    category: classification.category,
+    confidence: classification.confidence,
+    evidence_basis: classification.evidence_basis,
+    evidence_conflict: classification.evidence_conflict,
+    runtime_retryable: classification.runtime_retryable,
+    runtime_retryable_basis: classification.runtime_retryable_basis,
+    result_type: registeredCode(input2.resultType ?? null, RESULT_TYPE_REGISTRY),
+    process_errno: errnoOrNull(input2.processErrno ?? null)
+  };
+  const bytes = Buffer.byteLength(JSON.stringify(facts), "utf8");
+  if (bytes > MAX_FAILURE_FACTS_BYTES) {
+    throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
+  }
+  return validateFailureFacts(facts);
+}
+function validateFailureFacts(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    throw new Error("failure facts must be a JSON object");
+  }
+  const record3 = value;
+  for (const key of Object.keys(record3)) {
+    if (!FACTS_KEYS.has(key)) throw new Error("failure facts has an unknown field");
+  }
+  for (const key of FACTS_KEYS) {
+    if (!(key in record3)) throw new Error(`failure facts is missing the field: ${key}`);
+  }
+  if (record3["schema_version"] !== "1") throw new Error('failure facts schema_version must be "1"');
+  if (!FAILURE_SOURCES.includes(record3["source"])) {
+    throw new Error("failure facts source is not in the frozen registry");
+  }
+  if (!FAILURE_PHASE_SET.has(record3["phase"])) {
+    throw new Error("failure facts phase is not in the frozen registry");
+  }
+  if (!ACCEPTED_STATES.includes(record3["accepted_before_error"])) {
+    throw new Error("failure facts accepted_before_error must be yes, no, or unknown");
+  }
+  if (!FAILURE_CATEGORIES.includes(record3["category"])) {
+    throw new Error("failure facts category is not in the frozen registry");
+  }
+  if (!CONFIDENCE_LEVELS.includes(record3["confidence"])) {
+    throw new Error("failure facts confidence is not in the frozen registry");
+  }
+  if (!EVIDENCE_BASES.includes(record3["evidence_basis"])) {
+    throw new Error("failure facts evidence_basis is not in the frozen registry");
+  }
+  if (typeof record3["evidence_conflict"] !== "boolean") {
+    throw new Error("failure facts evidence_conflict must be a boolean");
+  }
+  const retryable = record3["runtime_retryable"];
+  const retryableBasis = record3["runtime_retryable_basis"];
+  if (retryable !== null && typeof retryable !== "boolean") {
+    throw new Error("failure facts runtime_retryable must be a boolean or null");
+  }
+  if (retryableBasis !== null && retryableBasis !== "reported") {
+    throw new Error("failure facts runtime_retryable_basis must be reported or null in P0; versioned_mapping is disabled");
+  }
+  if (retryable === null !== (retryableBasis === null)) {
+    throw new Error("failure facts runtime_retryable and runtime_retryable_basis must be null together");
+  }
+  const codeFields = [
+    // rpc_method strings contain "/" by design; membership in the frozen
+    // method registry is the whole validation, the bounded code pattern
+    // applies only to code families.
+    ["rpc_method", RPC_METHOD_REGISTRY],
+    ["rpc_data_code", RPC_DATA_CODE_REGISTRY],
+    ["error_type", ERROR_TYPE_REGISTRY],
+    ["error_code", MODEL_ERROR_CODES],
+    ["provider_code", PROVIDER_BUSINESS_CODES],
+    ["result_type", RESULT_TYPE_REGISTRY]
+  ];
+  for (const [key, registry2] of codeFields) {
+    const item = record3[key];
+    if (item === null) continue;
+    if (key !== "rpc_method" && (typeof item !== "string" || !CODE_PATTERN.test(item))) {
+      throw new Error(`failure facts field ${key} is not a bounded code value`);
+    }
+    if (typeof item !== "string" || !registry2.has(item)) {
+      throw new Error(`failure facts field ${key} is not a registered value`);
+    }
+  }
+  if (record3["rpc_code"] !== null && safeIntegerOrNull(record3["rpc_code"]) === null) {
+    throw new Error("failure facts rpc_code must be a safe integer or null");
+  }
+  if (record3["http_status"] !== null && httpStatusOrNull(record3["http_status"]) === null) {
+    throw new Error("failure facts http_status must be an integer in 100..599 or null");
+  }
+  if (record3["process_errno"] !== null && !PROCESS_ERRNOS.includes(record3["process_errno"])) {
+    throw new Error("failure facts process_errno must be ENOENT, EACCES, EPERM, or null");
+  }
+  const bytes = Buffer.byteLength(JSON.stringify(record3), "utf8");
+  if (bytes > MAX_FAILURE_FACTS_BYTES) {
+    throw new Error(`failure facts snapshot exceeds the ${MAX_FAILURE_FACTS_BYTES}-byte limit (${bytes} bytes)`);
+  }
+  return value;
+}
+function matchesExplicitQuotaText(value) {
+  const error62 = typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
+  const candidates = [
+    typeof value === "string" ? value : null,
+    typeof error62["code"] === "string" ? error62["code"] : null,
+    typeof error62["type"] === "string" ? error62["type"] : null,
+    typeof error62["message"] === "string" ? error62["message"] : null
+  ].filter((candidate) => candidate !== null).map((candidate) => candidate.slice(0, 2048));
+  if (candidates.length === 0) return false;
+  const text = candidates.join("\n").normalize("NFKC").toLowerCase();
+  return QUOTA_TEXT_PATTERNS.some((pattern) => pattern.test(text));
+}
+function evaluateAcceptedUpgrade(context, event) {
+  if (!context.nativeCorrelationVerified) return "unknown";
+  if (event.sessionId === null || event.sessionId !== context.sessionId) return "unknown";
+  if (context.seqBaseline === null || !Number.isSafeInteger(context.seqBaseline) || context.seqBaseline < 0) return "unknown";
+  if (typeof event.seq !== "number" || !Number.isSafeInteger(event.seq) || event.seq <= context.seqBaseline) return "unknown";
+  if (!event.turnId || context.boundTurnIds.has(event.turnId)) return "unknown";
+  if (!context.sessionId || !context.submitCorrelationId) return "unknown";
+  if (event.correlationEcho !== context.submitCorrelationId) return "unknown";
+  return "yes";
+}
+var FAILURE_PHASES, FAILURE_PHASE_SET, FAILURE_SOURCES, ACCEPTED_STATES, FAILURE_CATEGORIES, CONFIDENCE_LEVELS, EVIDENCE_BASES, PROCESS_ERRNOS, QUOTA_BUSINESS_CODES, RATE_LIMIT_STRING_CODES, PROVIDER_NUMERIC_CODES, PROVIDER_BUSINESS_CODES, MODEL_ERROR_CODES, ERROR_TYPE_REGISTRY, RPC_DATA_CODE_REGISTRY, RESULT_TYPE_REGISTRY, EXECUTION_RESULT_TYPES, RPC_METHOD_REGISTRY, MAX_FAILURE_FACTS_BYTES, FACTS_KEYS, CODE_PATTERN, DIRECT_FACT_CATEGORIES, REVIEWED_REASON_TOKENS, QUOTA_TEXT_PATTERNS;
+var init_failure_facts = __esm({
+  "src/diagnostics/failure-facts.ts"() {
+    "use strict";
+    FAILURE_PHASES = [
+      "unknown",
+      "pre_send",
+      "send_pending",
+      "rpc_rejected",
+      "turn_started",
+      "processing_input",
+      "awaiting_model_response",
+      "streaming",
+      "scheduling_tools",
+      "executing_tools",
+      "aggregating_results",
+      "awaiting_permission",
+      "completing",
+      "error",
+      "compact",
+      "rewind",
+      "model_creation",
+      "turn_terminal",
+      "spawn",
+      "process_exit",
+      "transport_lost",
+      "protocol_guard"
+    ];
+    FAILURE_PHASE_SET = new Set(FAILURE_PHASES);
+    FAILURE_SOURCES = ["rpc", "turn_event", "process", "transport"];
+    ACCEPTED_STATES = ["yes", "no", "unknown"];
+    FAILURE_CATEGORIES = [
+      "quota_exhausted",
+      "rate_limited",
+      "auth_failed",
+      "network_failure",
+      "context_exceeded",
+      "invalid_request",
+      "model_unavailable",
+      "execution_failed",
+      "protocol_failure",
+      "unknown"
+    ];
+    CONFIDENCE_LEVELS = ["confirmed", "inferred", "unknown"];
+    EVIDENCE_BASES = [
+      "business_code",
+      "runtime_type_or_reason",
+      "http_status",
+      "result_type",
+      "process_errno",
+      "protocol_guard",
+      "text",
+      "conflict",
+      "none"
+    ];
+    PROCESS_ERRNOS = ["ENOENT", "EACCES", "EPERM"];
+    QUOTA_BUSINESS_CODES = /* @__PURE__ */ new Set([
+      "insufficient_quota",
+      "credit_balance_exhausted",
+      "organization_spend_limit_exceeded",
+      "project_spend_limit_exceeded",
+      "organization_usage_limit_exceeded",
+      "exceeded_current_quota_error"
+    ]);
+    RATE_LIMIT_STRING_CODES = /* @__PURE__ */ new Set([
+      "rate_limit_error",
+      "rate_limit_reached_error"
+    ]);
+    PROVIDER_NUMERIC_CODES = /* @__PURE__ */ new Set([
+      "1005",
+      "1006",
+      "1261",
+      "3001",
+      "3006",
+      "3007",
+      "3008",
+      "3009",
+      "3010",
+      "1302",
+      "1303",
+      "1304",
+      "1305",
+      "1308",
+      "1310",
+      "1313",
+      "3002"
+    ]);
+    PROVIDER_BUSINESS_CODES = /* @__PURE__ */ new Set([
+      ...QUOTA_BUSINESS_CODES,
+      ...RATE_LIMIT_STRING_CODES,
+      ...PROVIDER_NUMERIC_CODES
+    ]);
+    MODEL_ERROR_CODES = /* @__PURE__ */ new Set([
+      "invalid_model_selection",
+      "model_config_missing",
+      "provider_not_found",
+      "provider_not_configured",
+      "model_not_found",
+      "invalid_model_request",
+      "invalid_model_response",
+      "model_request_failed",
+      "model_request_auth_missing",
+      "model_request_cancelled",
+      "model_request_timeout",
+      "model_rate_limited",
+      "model_context_exceeded",
+      ...PROVIDER_BUSINESS_CODES
+    ]);
+    ERROR_TYPE_REGISTRY = /* @__PURE__ */ new Set([
+      "model_error",
+      "model_timeout",
+      "model_rate_limited",
+      "model_context_exceeded",
+      "tool_not_found",
+      "tool_execution_failed",
+      "tool_timeout",
+      "tool_cancelled",
+      "tool_max_calls",
+      "permission_denied",
+      "permission_timeout",
+      "storage_error",
+      "configuration_error",
+      "unknown_error",
+      ...MODEL_ERROR_CODES
+    ]);
+    RPC_DATA_CODE_REGISTRY = MODEL_ERROR_CODES;
+    RESULT_TYPE_REGISTRY = /* @__PURE__ */ new Set([
+      "success",
+      "cancelled",
+      "error_max_turns",
+      "error_max_budget",
+      "error_during_execution",
+      "error_max_tool_calls"
+    ]);
+    EXECUTION_RESULT_TYPES = /* @__PURE__ */ new Set([
+      "error_max_turns",
+      "error_max_budget",
+      "error_during_execution",
+      "error_max_tool_calls"
+    ]);
+    RPC_METHOD_REGISTRY = /* @__PURE__ */ new Set([
+      "provider/updateAccountConfig",
+      "session/create",
+      "session/resume",
+      "session/setMode",
+      "session/setModel",
+      "session/subscribe",
+      "session/send",
+      "session/events"
+    ]);
+    MAX_FAILURE_FACTS_BYTES = 4096;
+    FACTS_KEYS = /* @__PURE__ */ new Set([
+      "schema_version",
+      "source",
+      "phase",
+      "rpc_method",
+      "rpc_code",
+      "rpc_data_code",
+      "error_type",
+      "error_code",
+      "provider_code",
+      "http_status",
+      "accepted_before_error",
+      "category",
+      "confidence",
+      "evidence_basis",
+      "evidence_conflict",
+      "runtime_retryable",
+      "runtime_retryable_basis",
+      "result_type",
+      "process_errno"
+    ]);
+    CODE_PATTERN = /^[A-Za-z0-9_.:-]{1,64}$/u;
+    DIRECT_FACT_CATEGORIES = /* @__PURE__ */ new Set([
+      "quota_exhausted",
+      "rate_limited",
+      "auth_failed",
+      "context_exceeded",
+      "invalid_request",
+      "model_unavailable",
+      "execution_failed"
+    ]);
+    REVIEWED_REASON_TOKENS = /* @__PURE__ */ new Set([
+      "auth_failed",
+      "invalid_request",
+      "context_exceeded",
+      "rate_limited"
+    ]);
+    QUOTA_TEXT_PATTERNS = [
+      /\binsufficient[_\s-]+quota\b/,
+      /\bquota[_\s-]+(?:(?:has[_\s-]+been)[_\s-]+)?(?:exceeded|exhausted|depleted)\b/,
+      /\b(?:usage|token)[_\s-]+quota[_\s-]+(?:exceeded|exhausted|depleted)\b/,
+      /\b(?:usage|token)[_\s-]+limit[_\s-]+(?:exceeded|exhausted|reached)\b/,
+      /\b(?:out[_\s-]+of|no[_\s-]+remaining|insufficient[_\s-]+)(?:[_\s-]+)?credits?\b/,
+      /\bcredits?[_\s-]+(?:exhausted|depleted)\b/,
+      /\bbilling[_\s-]+hard[_\s-]+limit[_\s-]+reached\b/,
+      /(?:用量|额度|配额)(?:已|已经)?(?:用尽|耗尽|用完|不足)/,
+      /(?:用尽|耗尽|用完|不足)(?:了)?(?:用量|额度|配额)/,
+      /(?:超出|超过)(?:了)?(?:当前)?(?:用量|额度|配额)/,
+      /(?:当前)?(?:用量|额度|配额)(?:已经)?(?:超出|不足)/
+    ];
+  }
+});
+
 // src/runtime/child-env.ts
 function createMinimalOsEnv(source, options = {}) {
   const platform = options.platform ?? process.platform;
@@ -4650,53 +3404,203 @@ var init_child_env = __esm({
   }
 });
 
+// src/runtime/desktop-host-launch.ts
+import { closeSync, openSync, readSync } from "node:fs";
+import path5 from "node:path";
+function buildZCodeAppServerLaunch(zcodeEntrypoint, baseEnv) {
+  const metadata = readDesktopMetadata(zcodeEntrypoint);
+  return {
+    args: [...APP_SERVER_ARGS],
+    env: metadata === null ? { ...baseEnv } : {
+      ...baseEnv,
+      [ZCODE_APP_VERSION_ENV]: metadata.appVersion,
+      [ZCODE_BUILD_COMMIT_ID_ENV]: metadata.buildCommitId
+    }
+  };
+}
+function readDesktopMetadata(zcodeEntrypoint) {
+  const archivePath = path5.resolve(path5.dirname(zcodeEntrypoint), "..", "app.asar");
+  let archive;
+  try {
+    archive = readAsarMetadataFiles(archivePath);
+  } catch (error62) {
+    if (isMissingFile(error62)) return null;
+    throw invalidMetadata("could not be read");
+  }
+  if (archive === null) return null;
+  const packageJson = parseObject(archive.packageJson, "package.json");
+  const buildMetadata = parseObject(archive.buildMetadata, "build-meta.json");
+  const packageVersion = packageJson["version"];
+  const appVersion = buildMetadata["appVersion"];
+  const buildCommitId = buildMetadata["buildCommitId"];
+  if (typeof packageVersion !== "string" || typeof appVersion !== "string" || typeof buildCommitId !== "string") {
+    throw invalidMetadata("is missing required fields");
+  }
+  if (!VERSION_PATTERN.test(packageVersion) || !VERSION_PATTERN.test(appVersion) || !BUILD_COMMIT_PATTERN.test(buildCommitId)) {
+    throw invalidMetadata("uses an unsupported version or build commit format");
+  }
+  if (packageVersion !== appVersion) {
+    throw invalidMetadata("contains conflicting application versions");
+  }
+  return { appVersion, buildCommitId };
+}
+function readAsarMetadataFiles(archivePath) {
+  const fd = openSync(archivePath, "r");
+  try {
+    const sizeHeader = Buffer.alloc(16);
+    readExact(fd, sizeHeader, 16, 0);
+    if (sizeHeader.readUInt32LE(0) !== 4) throw new Error("invalid asar header");
+    const headerPayloadBytes = sizeHeader.readUInt32LE(4);
+    const headerBytes = sizeHeader.readUInt32LE(12);
+    if (headerBytes === 0 || headerBytes > MAX_ASAR_HEADER_BYTES || headerPayloadBytes < headerBytes) {
+      throw new Error("invalid asar header size");
+    }
+    const headerBuffer = Buffer.alloc(headerBytes);
+    readExact(fd, headerBuffer, headerBytes, 16);
+    const root = parseObject(headerBuffer, "asar header");
+    if (!isRecord2(root.files)) throw new Error("asar header file table is not an object");
+    const buildEntry = findEntry(root.files, BUILD_METADATA_PATH);
+    if (buildEntry === null) return null;
+    const packageEntry = findEntry(root.files, ["package.json"]);
+    if (packageEntry === null) throw new Error("asar package.json is missing");
+    return {
+      packageJson: readEntry(fd, packageEntry, 8 + headerPayloadBytes),
+      buildMetadata: readEntry(fd, buildEntry, 8 + headerPayloadBytes)
+    };
+  } finally {
+    closeSync(fd);
+  }
+}
+function findEntry(root, parts) {
+  let files = root;
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (!Object.hasOwn(files, part)) return null;
+    const current = files[part];
+    if (!isRecord2(current)) throw new Error(`asar ${part} entry is not an object`);
+    if (index === parts.length - 1) return current;
+    if (!isRecord2(current.files)) throw new Error(`asar ${part} entry is not a directory`);
+    files = current.files;
+  }
+  return null;
+}
+function readEntry(fd, entry, contentOffset) {
+  const offset = asNonNegativeSafeInteger(entry.offset);
+  const size = asNonNegativeSafeInteger(entry.size);
+  if (entry.files || entry.unpacked || entry.link || offset === null || size === null || size > MAX_METADATA_BYTES || !Number.isSafeInteger(contentOffset + offset)) {
+    throw new Error("invalid asar metadata entry");
+  }
+  const output2 = Buffer.alloc(size);
+  readExact(fd, output2, output2.length, contentOffset + offset);
+  return output2;
+}
+function asNonNegativeSafeInteger(value) {
+  if (typeof value === "number") {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null;
+  }
+  if (typeof value !== "string" || !/^(?:0|[1-9]\d*)$/u.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+function readExact(fd, target, length, position) {
+  let offset = 0;
+  while (offset < length) {
+    const read = readSync(fd, target, offset, length - offset, position + offset);
+    if (read === 0) throw new Error("unexpected end of asar file");
+    offset += read;
+  }
+}
+function parseObject(buffer, label) {
+  let parsed;
+  try {
+    parsed = JSON.parse(buffer.toString("utf8"));
+  } catch {
+    throw invalidMetadata(`${label} is not valid JSON`);
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw invalidMetadata(`${label} is not an object`);
+  }
+  return parsed;
+}
+function invalidMetadata(reason) {
+  return new BridgeError(
+    "provider_config_invalid",
+    `Installed ZCode Desktop metadata ${reason}; refusing to invent a Desktop identity.`
+  );
+}
+function isMissingFile(error62) {
+  return typeof error62 === "object" && error62 !== null && "code" in error62 && error62.code === "ENOENT";
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+var ZCODE_APP_VERSION_ENV, ZCODE_BUILD_COMMIT_ID_ENV, APP_SERVER_ARGS, BUILD_METADATA_PATH, MAX_ASAR_HEADER_BYTES, MAX_METADATA_BYTES, VERSION_PATTERN, BUILD_COMMIT_PATTERN;
+var init_desktop_host_launch = __esm({
+  "src/runtime/desktop-host-launch.ts"() {
+    "use strict";
+    init_errors();
+    ZCODE_APP_VERSION_ENV = "ZCODE_APP_VERSION";
+    ZCODE_BUILD_COMMIT_ID_ENV = "ZCODE_BUILD_COMMIT_ID";
+    APP_SERVER_ARGS = ["app-server", "--stdio", "--surface", "desktop"];
+    BUILD_METADATA_PATH = ["out", "metadata", "build-meta.json"];
+    MAX_ASAR_HEADER_BYTES = 32 * 1024 * 1024;
+    MAX_METADATA_BYTES = 64 * 1024;
+    VERSION_PATTERN = /^(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u;
+    BUILD_COMMIT_PATTERN = /^[0-9a-f]{8}$/u;
+  }
+});
+
 // src/runtime/account-provider.ts
-import { createHash as createHash4 } from "node:crypto";
-import { existsSync as existsSync7, readFileSync as readFileSync7 } from "node:fs";
-import path9 from "node:path";
-function buildAccountProviderPayload(config2) {
-  const table = readJson(config2.providerBuiltinConfigFile);
-  const providerRules = readProviderRules(table).filter(isRecord2).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string");
-  if (!providerRules.length) return null;
-  const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
-  if (!dataDir) return null;
-  const credentials = readJson(path9.join(dataDir, "config.json"));
-  const credentialProviders = asRecord(credentials?.provider);
-  const cache = readJson(path9.join(dataDir, "coding-plan-cache.json"));
-  const cacheItems = asRecord(asRecord(cache?.entryStatus).items);
+import { createHash as createHash5 } from "node:crypto";
+import { existsSync as existsSync3, readFileSync as readFileSync4 } from "node:fs";
+import path6 from "node:path";
+function buildAccountProviderPayload(config2, verifiedSelection, homeDir, taskProviderId) {
+  const source = readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId);
+  if (!source) return null;
   const providers = {};
   const states = {};
-  for (const rule of providerRules) {
-    const providerId = rule.providerId;
-    const legacyId = configProviderId(providerId, rule);
-    const cacheStatus = asRecord(cacheItems[legacyId]).status;
-    const legacyConfig = asRecord(credentialProviders[legacyId]);
-    const options = asRecord(legacyConfig.options);
-    const entitled = cacheStatus === "available" || legacyConfig.enabled === true && typeof options.apiKey === "string" && options.apiKey.trim().length > 0;
-    providers[providerId] = {
-      ...Array.isArray(rule.config?.builtinModelIds) ? { builtinModelIds: rule.config.builtinModelIds } : {},
-      access: { type: "zhipu-account", entitled }
+  for (const entry of source.entries) {
+    providers[entry.providerId] = {
+      ...entry.builtinModelIds.length ? { builtinModelIds: [...entry.builtinModelIds] } : {},
+      access: { type: entry.accessType, entitled: entry.entitled }
     };
-    states[providerId] = {
-      availability: entitled ? "available" : "unavailable",
-      entitled,
-      current: entitled
+    states[entry.providerId] = {
+      availability: entry.availability,
+      entitled: entry.entitled,
+      ...entry.current === void 0 ? {} : { current: entry.current }
     };
   }
-  const revision = typeof table?.revision === "number" ? table.revision : 0;
-  const resolvedBuiltinPath = path9.resolve(config2.providerBuiltinConfigFile);
   return {
-    revision: `account:codex-zcode-bridge:${Date.now()}`,
-    basedOnZCodeBuiltinRevision: `zcode-builtin:${revision}:${createHash4("sha256").update(resolvedBuiltinPath).digest("hex")}`,
+    revision: accountProviderRevision(source.builtinRevision, providers, states),
+    basedOnZCodeBuiltinRevision: source.builtinRevision,
     providers,
     states
+  };
+}
+function accountSettingFile(homeDir) {
+  return path6.join(homeDir, ".zcode", "v2", "setting.json");
+}
+function accountProviderRuleFacts(providerId, config2) {
+  if (!providerId?.startsWith("account:")) return null;
+  const table = readJson(config2.providerBuiltinConfigFile);
+  const rule = readProviderRules(table).find(
+    (candidate) => isRecord3(candidate) && candidate.providerId === providerId
+  );
+  if (!rule) return null;
+  const access = rule.config?.access;
+  if (access?.type !== "zhipu-account") {
+    return { planKind: null, accountType: null };
+  }
+  return {
+    planKind: normalizePlanKind(access.mode),
+    accountType: typeof access.accountType === "string" ? access.accountType : null
   };
 }
 function accountProviderId(providerId, config2) {
   if (providerId.startsWith("account:")) return providerId;
   const rules = [config2.providerBuiltinConfigFile, config2.providerPersonalConfigFile].flatMap((file2) => readProviderRules(readJson(file2)));
   for (const rawRule of rules) {
-    if (!isRecord2(rawRule)) continue;
+    if (!isRecord3(rawRule)) continue;
     const rule = rawRule;
     if (!providerId.startsWith("builtin:") && rule.providerId === `account:${providerId}`) return rule.providerId;
     if (!providerId.startsWith("builtin:") && rule.providerId === providerId && rule.config?.access?.type === "zhipu-account") {
@@ -4723,40 +3627,119 @@ function runtimeAuthReply(providerId, config2) {
     headersApplied: false,
     errorMessage: "Start Plan requires a ZCode desktop captcha session; this headless app-server bridge cannot provide it."
   };
-  if (!providerId?.startsWith("account:")) return unavailable;
-  const table = readJson(config2.providerBuiltinConfigFile);
-  const rule = readProviderRules(table).find(
-    (candidate) => isRecord2(candidate) && candidate.providerId === providerId
-  );
-  if (rule?.config?.access?.mode !== "individual-coding-plan") return unavailable;
-  const legacyId = configProviderId(providerId, rule);
-  const dataDir = zcodeV2DataDir(config2.providerPersonalConfigFile);
-  if (!dataDir) return unavailable;
-  const credentials = readJson(path9.join(dataDir, "config.json"));
-  const cache = readJson(path9.join(dataDir, "coding-plan-cache.json"));
-  const status = asRecord(asRecord(asRecord(cache?.entryStatus).items)[legacyId]).status;
-  const provider = asRecord(asRecord(credentials?.provider)[legacyId]);
-  const options = asRecord(provider.options);
-  const apiKey = typeof options.apiKey === "string" ? options.apiKey.trim() : "";
-  if (!apiKey || status !== "available" && provider.enabled !== true) return unavailable;
-  return { headersApplied: true, requestAuth: { apiKey } };
+  const source = readAccountProviderSource(config2, void 0, void 0);
+  const entry = source?.entries.find((candidate) => candidate.providerId === providerId);
+  if (entry?.planKind !== "individual-coding-plan" || !entry.entitled || !entry.apiKey) return unavailable;
+  return { headersApplied: true, requestAuth: { apiKey: entry.apiKey } };
 }
 function zcodeDataBaseDir(personalProviderConfigFile) {
   const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path9.dirname(path9.dirname(dataDir)) : null;
+  return dataDir ? path6.dirname(path6.dirname(dataDir)) : null;
 }
 function zcodeTasksIndexPath(personalProviderConfigFile) {
   const dataDir = zcodeV2DataDir(personalProviderConfigFile);
-  return dataDir ? path9.join(dataDir, "tasks-index.sqlite") : null;
+  return dataDir ? path6.join(dataDir, "tasks-index.sqlite") : null;
 }
 function zcodeV2DataDir(personalProviderConfigFile) {
-  const absolute = path9.resolve(personalProviderConfigFile);
-  if (path9.basename(absolute).toLowerCase() !== "provider_config.json") return null;
-  const v2Dir = path9.dirname(absolute);
-  if (path9.basename(v2Dir).toLowerCase() !== "v2") return null;
-  const zcodeDir = path9.dirname(v2Dir);
-  if (path9.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
+  const absolute = path6.resolve(personalProviderConfigFile);
+  if (path6.basename(absolute).toLowerCase() !== "provider_config.json") return null;
+  const v2Dir = path6.dirname(absolute);
+  if (path6.basename(v2Dir).toLowerCase() !== "v2") return null;
+  const zcodeDir = path6.dirname(v2Dir);
+  if (path6.basename(zcodeDir).toLowerCase() !== ".zcode") return null;
   return v2Dir;
+}
+function readAccountProviderSource(config2, verifiedSelection, homeDir, taskProviderId) {
+  const table = readJson(config2.providerBuiltinConfigFile);
+  const providerRules = readProviderRules(table).filter(isRecord3).map((rule) => rule).filter((rule) => rule.config?.access?.type === "zhipu-account" && typeof rule.providerId === "string").sort((left, right) => left.providerId.localeCompare(right.providerId));
+  if (!providerRules.length) return null;
+  const officialDataRoot = path6.resolve(config2.zcodeDataRoot);
+  const officialV2Dir = zcodeV2Dir(officialDataRoot);
+  if (!officialV2Dir) return null;
+  const credentials = readJson(path6.join(officialV2Dir, "config.json"));
+  const credentialProviders = asRecord(credentials?.provider);
+  const cache = readJson(path6.join(officialV2Dir, "coding-plan-cache.json"));
+  const cacheItems = asRecord(asRecord(cache?.entryStatus).items);
+  const settingFile = homeDir ? accountSettingFile(homeDir) : path6.join(officialV2Dir, "setting.json");
+  const settings = readJson(settingFile);
+  const selectedKeys = asRecord(settings?.modelProviderFamilySelectedKeys);
+  const rawConnectionSelections = settings?.providerFamilyConnectionSelections;
+  const connectionSelectionsPresent = settings !== null && Object.prototype.hasOwnProperty.call(settings, "providerFamilyConnectionSelections");
+  const connectionSelections = asRecord(rawConnectionSelections);
+  const connectionSelectionsInvalid = connectionSelectionsPresent && !isRecord3(rawConnectionSelections);
+  const taskAccountProviderId = taskProviderId && providerRules.some((rule) => rule.providerId === taskProviderId) ? taskProviderId : null;
+  const entries = providerRules.map((rule) => {
+    const providerId = rule.providerId;
+    const legacyId = configProviderId(providerId, rule);
+    const planKind = normalizePlanKind(rule.config?.access?.mode);
+    const cacheStatus = asRecord(cacheItems[legacyId]).status;
+    const legacyConfig = asRecord(credentialProviders[legacyId]);
+    const options = asRecord(legacyConfig.options);
+    const apiKey = typeof options.apiKey === "string" ? options.apiKey.trim() : "";
+    const selectedEntitled = verifiedSelection?.providerId === providerId && Array.isArray(rule.config?.builtinModelIds) && rule.config.builtinModelIds.includes(verifiedSelection.modelId);
+    if (verifiedSelection?.providerId === providerId && !selectedEntitled) {
+      throw new Error("start_plan_model_not_registered");
+    }
+    const entitled = planKind === "start-plan" ? selectedEntitled : cacheStatus === "available" || legacyConfig.enabled === true && apiKey.length > 0;
+    const desktopCurrent = isCurrentProvider(
+      rule,
+      legacyId,
+      selectedKeys,
+      connectionSelectionsInvalid,
+      connectionSelections
+    );
+    const current = taskAccountProviderId ? providerId === taskAccountProviderId : desktopCurrent;
+    return {
+      providerId,
+      legacyId,
+      planKind,
+      accessType: rule.config?.access?.type ?? "zhipu-account",
+      builtinModelIds: [...rule.config?.builtinModelIds ?? []],
+      entitled,
+      availability: entitled ? "available" : "unavailable",
+      current,
+      apiKey
+    };
+  });
+  const builtinRevision = zcodeBuiltinRevision(table, config2.providerBuiltinConfigFile);
+  return { officialDataRoot, officialV2Dir, settingFile, builtinRevision, entries };
+}
+function zcodeV2Dir(zcodeDataRoot) {
+  if (path6.basename(zcodeDataRoot).toLowerCase() !== ".zcode") return null;
+  return path6.join(zcodeDataRoot, "v2");
+}
+function zcodeBuiltinRevision(table, sourceFile) {
+  const revision = typeof table?.revision === "number" ? table.revision : 0;
+  const sourceDigest = createHash5("sha256").update(path6.resolve(sourceFile)).digest("hex");
+  return `zcode-builtin:${revision}:${sourceDigest}`;
+}
+function accountProviderRevision(builtinRevision, providers, states) {
+  return `account:${JSON.stringify([builtinRevision, providers, states])}`;
+}
+function isCurrentProvider(rule, legacyId, selectedKeys, connectionSelectionsInvalid, connectionSelections) {
+  const access = rule.config?.access;
+  if (!access?.accountType) return false;
+  if (access.mode === "off-peak" || access.mode === "highspeed") return void 0;
+  if (connectionSelectionsInvalid) return false;
+  if (Object.prototype.hasOwnProperty.call(connectionSelections, access.accountType)) {
+    const connection = asRecord(connectionSelections[access.accountType]);
+    if (!isConnectionSelectionKind(connection.kind)) return false;
+    if (connection.kind === "team-coding-plan" && (!isNonEmptyString(connection.productId) || !isNonEmptyString(connection.organizationId) || !isNonEmptyString(connection.projectId))) {
+      return false;
+    }
+    return connection.kind === access.mode;
+  }
+  const selected = selectedKeys[access.accountType];
+  return typeof selected === "string" && (selected === legacyId || selected.endsWith(`:${legacyId}`));
+}
+function isConnectionSelectionKind(value) {
+  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan";
+}
+function isNonEmptyString(value) {
+  return typeof value === "string" && value.trim().length > 0;
+}
+function normalizePlanKind(value) {
+  return value === "start-plan" || value === "individual-coding-plan" || value === "team-coding-plan" || value === "off-peak" || value === "highspeed" ? value : null;
 }
 function configProviderId(providerId, rule) {
   const access = rule.config?.access;
@@ -4770,46 +3753,24 @@ function readProviderRules(table) {
 }
 function readJson(filePath) {
   try {
-    if (!existsSync7(filePath)) return null;
-    const value = JSON.parse(readFileSync7(filePath, "utf8"));
-    return isRecord2(value) ? value : null;
+    if (!existsSync3(filePath)) return null;
+    const value = JSON.parse(readFileSync4(filePath, "utf8"));
+    return isRecord3(value) ? value : null;
   } catch {
     return null;
   }
 }
 function asRecord(value) {
-  return isRecord2(value) ? value : {};
+  return isRecord3(value) ? value : {};
 }
-function isRecord2(value) {
+function isRecord3(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+var BIGMODEL_START_PLAN_PROVIDER_ID;
 var init_account_provider = __esm({
   "src/runtime/account-provider.ts"() {
     "use strict";
-  }
-});
-
-// src/runtime/trusted-local-profile.ts
-var trusted_local_profile_exports = {};
-__export(trusted_local_profile_exports, {
-  resolveTrustedLocalExecutionProfile: () => resolveTrustedLocalExecutionProfile
-});
-function resolveTrustedLocalExecutionProfile(id) {
-  return PROFILES[id] ?? null;
-}
-var PROFILES;
-var init_trusted_local_profile = __esm({
-  "src/runtime/trusted-local-profile.ts"() {
-    "use strict";
-    PROFILES = Object.freeze({
-      "local-build-v1": Object.freeze({
-        id: "local-build-v1",
-        // Keep the persisted profile ID for compatibility. The local single-user
-        // Bridge now uses the same ordinary-tool yolo mode as the JSON Host path.
-        sessionMode: "yolo",
-        unrestricted: false
-      })
-    });
+    BIGMODEL_START_PLAN_PROVIDER_ID = "account:bigmodel-start-plan";
   }
 });
 
@@ -4890,18 +3851,19 @@ function validateTaskTimeout(value) {
   }
   return value;
 }
-var DEFAULT_TASK_TIMEOUT_MS, MAX_TASK_TIMEOUT_MS, MIN_TASK_TIMEOUT_MS;
+var DEFAULT_TASK_TIMEOUT_MS, MAX_TASK_TIMEOUT_MS, ADAPTER_CLEANUP_TIMEOUT_MS, MIN_TASK_TIMEOUT_MS;
 var init_task_timeout = __esm({
   "src/runtime/task-timeout.ts"() {
     "use strict";
     DEFAULT_TASK_TIMEOUT_MS = 60 * 60 * 1e3;
     MAX_TASK_TIMEOUT_MS = 4 * 60 * 60 * 1e3;
+    ADAPTER_CLEANUP_TIMEOUT_MS = 3e5;
     MIN_TASK_TIMEOUT_MS = 60 * 1e3;
   }
 });
 
 // src/adapters/task-index-sync.ts
-import { existsSync as existsSync8 } from "node:fs";
+import { existsSync as existsSync4 } from "node:fs";
 async function loadDatabaseSync() {
   databaseSyncPromise ??= import("node:sqlite").then((module) => module.DatabaseSync).catch(() => null);
   return databaseSyncPromise;
@@ -5008,7 +3970,7 @@ function requireTaskTable(database) {
   }
 }
 async function withDatabase(databasePath, operation) {
-  if (!existsSync8(databasePath)) {
+  if (!existsSync4(databasePath)) {
     throw new Error("ZCode Desktop tasks-index database does not exist");
   }
   const DatabaseSync = await loadDatabaseSync();
@@ -5273,10 +4235,10 @@ function mergeDefs(...defs) {
 function cloneDef(schema) {
   return mergeDefs(schema._zod.def);
 }
-function getElementAtPath(obj, path12) {
-  if (!path12)
+function getElementAtPath(obj, path9) {
+  if (!path9)
     return obj;
-  return path12.reduce((acc, key) => acc?.[key], obj);
+  return path9.reduce((acc, key) => acc?.[key], obj);
 }
 function promiseAllObject(promisesObj) {
   const keys = Object.keys(promisesObj);
@@ -5535,11 +4497,11 @@ function explicitlyAborted(x, startIndex = 0) {
   }
   return false;
 }
-function prefixIssues(path12, issues) {
+function prefixIssues(path9, issues) {
   return issues.map((iss) => {
     var _a3;
     (_a3 = iss).path ?? (_a3.path = []);
-    iss.path.unshift(path12);
+    iss.path.unshift(path9);
     return iss;
   });
 }
@@ -6060,16 +5022,16 @@ function flattenError(error62, mapper = (issue2) => issue2.message) {
 }
 function formatError(error62, mapper = (issue2) => issue2.message) {
   const fieldErrors = { _errors: [] };
-  const processError = (error63, path12 = []) => {
+  const processError = (error63, path9 = []) => {
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path12, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path12, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path12, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else {
-        const fullpath = [...path12, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           fieldErrors._errors.push(mapper(issue2));
         } else {
@@ -6108,17 +5070,17 @@ function formatError(error62, mapper = (issue2) => issue2.message) {
 }
 function treeifyError(error62, mapper = (issue2) => issue2.message) {
   const result = { errors: [] };
-  const processError = (error63, path12 = []) => {
+  const processError = (error63, path9 = []) => {
     var _a3;
     for (const issue2 of error63.issues) {
       if (issue2.code === "invalid_union" && issue2.errors.length) {
-        issue2.errors.map((issues) => processError({ issues }, [...path12, ...issue2.path]));
+        issue2.errors.map((issues) => processError({ issues }, [...path9, ...issue2.path]));
       } else if (issue2.code === "invalid_key") {
-        processError({ issues: issue2.issues }, [...path12, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else if (issue2.code === "invalid_element") {
-        processError({ issues: issue2.issues }, [...path12, ...issue2.path]);
+        processError({ issues: issue2.issues }, [...path9, ...issue2.path]);
       } else {
-        const fullpath = [...path12, ...issue2.path];
+        const fullpath = [...path9, ...issue2.path];
         if (fullpath.length === 0) {
           result.errors.push(mapper(issue2));
           continue;
@@ -6157,8 +5119,8 @@ function treeifyError(error62, mapper = (issue2) => issue2.message) {
 }
 function toDotPath(_path) {
   const segs = [];
-  const path12 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
-  for (const seg of path12) {
+  const path9 = _path.map((seg) => typeof seg === "object" ? seg.key : seg);
+  for (const seg of path9) {
     if (typeof seg === "number")
       segs.push(`[${seg}]`);
     else if (typeof seg === "symbol")
@@ -6264,7 +5226,7 @@ function validateFallback(schema, value, _ctx) {
   }
   return result.issues.length === 0;
 }
-var _parse, parse, _parseAsync, parseAsync, _safeParse, safeParse, _safeParseAsync, safeParseAsync, COMPILE_INVALID, COMPILE_FALLBACK, validate, validateAsync, _encode, encode, _decode, decode, _encodeAsync, encodeAsync, _decodeAsync, decodeAsync, _safeEncode, safeEncode, _safeDecode, safeDecode, _safeEncodeAsync, safeEncodeAsync, _safeDecodeAsync, safeDecodeAsync;
+var _parse, parse, _parseAsync, parseAsync, _safeParse, safeParse, _safeParseAsync, safeParseAsync, COMPILE_INVALID, COMPILE_FALLBACK, validate2, validateAsync, _encode, encode, _decode, decode, _encodeAsync, encodeAsync, _decodeAsync, decodeAsync, _safeEncode, safeEncode, _safeDecode, safeDecode, _safeEncodeAsync, safeEncodeAsync, _safeDecodeAsync, safeDecodeAsync;
 var init_parse = __esm({
   "node_modules/zod/v4/core/parse.js"() {
     init_core();
@@ -6322,7 +5284,7 @@ var init_parse = __esm({
     safeParseAsync = /* @__PURE__ */ _safeParseAsync($ZodRealError);
     COMPILE_INVALID = /* @__PURE__ */ Symbol.for("zod.compile.invalid");
     COMPILE_FALLBACK = /* @__PURE__ */ Symbol.for("zod.compile.fallback");
-    validate = ((schema, value, _ctx) => {
+    validate2 = ((schema, value, _ctx) => {
       const validator = schema._zod.bag.validator;
       if (validator !== void 0) {
         if (validator(value) !== COMPILE_INVALID)
@@ -6665,7 +5627,7 @@ var init_checks = __esm({
       def.format = def.format || "float64";
       const isInt = def.format?.includes("int");
       const origin = isInt ? "int" : "number";
-      const [minimum, maximum] = NUMBER_FORMAT_RANGES[def.format];
+      const [minimum, maximum2] = NUMBER_FORMAT_RANGES[def.format];
       inst._zod.check = (payload) => {
         const input2 = payload.value;
         if (isInt) {
@@ -6718,12 +5680,12 @@ var init_checks = __esm({
             continue: !def.abort
           });
         }
-        if (input2 > maximum) {
+        if (input2 > maximum2) {
           payload.issues.push({
             origin: "number",
             input: input2,
             code: "too_big",
-            maximum,
+            maximum: maximum2,
             inclusive: true,
             inst,
             continue: !def.abort
@@ -6733,7 +5695,7 @@ var init_checks = __esm({
     });
     $ZodCheckBigIntFormat = /* @__PURE__ */ $constructor("$ZodCheckBigIntFormat", (inst, def) => {
       $ZodCheck.init(inst, def);
-      const [minimum, maximum] = BIGINT_FORMAT_RANGES[def.format];
+      const [minimum, maximum2] = BIGINT_FORMAT_RANGES[def.format];
       inst._zod.check = (payload) => {
         const input2 = payload.value;
         if (input2 < minimum) {
@@ -6747,12 +5709,12 @@ var init_checks = __esm({
             continue: !def.abort
           });
         }
-        if (input2 > maximum) {
+        if (input2 > maximum2) {
           payload.issues.push({
             origin: "bigint",
             input: input2,
             code: "too_big",
-            maximum,
+            maximum: maximum2,
             inclusive: true,
             inst,
             continue: !def.abort
@@ -7713,7 +6675,7 @@ function leafPattern(schema) {
   let pattern = def.pattern;
   let isInt = !!def.format?.includes("int");
   let minimum;
-  let maximum;
+  let maximum2;
   for (const ch of def.checks ?? []) {
     const d = ch._zod.def;
     if (d.pattern)
@@ -7723,15 +6685,15 @@ function leafPattern(schema) {
     const hi = d.maximum ?? d.length;
     if (lo !== void 0 && (minimum === void 0 || lo > minimum))
       minimum = lo;
-    if (hi !== void 0 && (maximum === void 0 || hi < maximum))
-      maximum = hi;
+    if (hi !== void 0 && (maximum2 === void 0 || hi < maximum2))
+      maximum2 = hi;
   }
   if (pattern)
     return pattern.source;
-  if (minimum !== void 0 && maximum !== void 0 && minimum > maximum)
+  if (minimum !== void 0 && maximum2 !== void 0 && minimum > maximum2)
     return "(?!)";
-  if (minimum !== void 0 || maximum !== void 0)
-    return string({ minimum, maximum }).source;
+  if (minimum !== void 0 || maximum2 !== void 0)
+    return string({ minimum, maximum: maximum2 }).source;
   const own2 = schema._zod.pattern;
   return (isInt && own2 === number ? integer : own2)?.source;
 }
@@ -20045,11 +19007,11 @@ function _multipleOf(value, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _maxSize(maximum, params) {
+function _maxSize(maximum2, params) {
   return new $ZodCheckMaxSize({
     check: "max_size",
     ...normalizeParams(params),
-    maximum
+    maximum: maximum2
   });
 }
 // @__NO_SIDE_EFFECTS__
@@ -20069,11 +19031,11 @@ function _size(size, params) {
   });
 }
 // @__NO_SIDE_EFFECTS__
-function _maxLength(maximum, params) {
+function _maxLength(maximum2, params) {
   const ch = new $ZodCheckMaxLength({
     check: "max_length",
     ...normalizeParams(params),
-    maximum
+    maximum: maximum2
   });
   return ch;
 }
@@ -21168,7 +20130,7 @@ function stringifyKeyNames(bySchema, json2, visited) {
   const values = json2.enum ?? (json2.const !== void 0 ? [json2.const] : void 0);
   if (!numericType && !values?.some((v) => typeof v === "number"))
     return json2;
-  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json2;
+  const { minimum, maximum: maximum2, exclusiveMinimum, exclusiveMaximum, multipleOf, format, id, ...rest } = json2;
   if (rest.enum)
     rest.enum = rest.enum.map((v) => typeof v === "number" ? String(v) : v);
   else if (typeof rest.const === "number")
@@ -21187,8 +20149,8 @@ function rewriteKeyNames(ctx) {
       bySchema.set(entry.schema, entry);
   }
   const rewrites = /* @__PURE__ */ new Map();
-  for (const record2 of pendingRecords.get(ctx) ?? []) {
-    const seen = ctx.seen.get(record2);
+  for (const record3 of pendingRecords.get(ctx) ?? []) {
+    const seen = ctx.seen.get(record3);
     const names = (seen?.def ?? seen?.schema)?.propertyNames;
     if (!names || names === true || rewrites.has(names))
       continue;
@@ -21293,9 +20255,9 @@ var init_json_schema_processors = __esm({
     maxContributor = (agg, def) => narrowMax(agg, "maximum", def.maximum);
     formatContributor = (ranges) => (agg, def) => {
       setFormat(agg, def.format);
-      const [minimum, maximum] = ranges[def.format];
+      const [minimum, maximum2] = ranges[def.format];
       narrowMin(agg, "minimum", minimum);
-      narrowMax(agg, "maximum", maximum);
+      narrowMax(agg, "maximum", maximum2);
     };
     contributors = {
       greater_than: (agg, def) => narrowMin(agg, def.inclusive ? "minimum" : "exclusiveMinimum", def.value),
@@ -21336,11 +20298,11 @@ var init_json_schema_processors = __esm({
     stringProcessor = (schema, ctx, _json, _params) => {
       const json2 = _json;
       json2.type = "string";
-      const { minimum, maximum, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
+      const { minimum, maximum: maximum2, format, patterns, contentEncoding, laxFormat } = aggregateChecks(schema);
       if (typeof minimum === "number")
         json2.minLength = minimum;
-      if (typeof maximum === "number")
-        json2.maxLength = maximum;
+      if (typeof maximum2 === "number")
+        json2.maxLength = maximum2;
       if (format) {
         json2.format = formatMap[format] ?? format;
         if (json2.format === "")
@@ -21367,10 +20329,10 @@ var init_json_schema_processors = __esm({
     };
     numberProcessor = (schema, ctx, _json, params) => {
       const json2 = _json;
-      const { minimum, maximum, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
+      const { minimum, maximum: maximum2, multipleOf, exclusiveMaximum, exclusiveMinimum, isInt } = aggregateChecks(schema);
       json2.type = isInt ? "integer" : "number";
       const exMin = typeof exclusiveMinimum === "number" && exclusiveMinimum >= (minimum ?? Number.NEGATIVE_INFINITY);
-      const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum ?? Number.POSITIVE_INFINITY);
+      const exMax = typeof exclusiveMaximum === "number" && exclusiveMaximum <= (maximum2 ?? Number.POSITIVE_INFINITY);
       const legacy = ctx.target === "draft-04" || ctx.target === "openapi-3.0";
       if (exMin) {
         if (legacy) {
@@ -21389,8 +20351,8 @@ var init_json_schema_processors = __esm({
         } else {
           json2.exclusiveMaximum = exclusiveMaximum;
         }
-      } else if (typeof maximum === "number") {
-        json2.maximum = maximum;
+      } else if (typeof maximum2 === "number") {
+        json2.maximum = maximum2;
       }
       if (multipleOf) {
         const divisors = /* @__PURE__ */ new Set();
@@ -21510,11 +20472,11 @@ var init_json_schema_processors = __esm({
       _json.type = "string";
       _json.format = "binary";
       _json.contentEncoding = "binary";
-      const { minimum, maximum, mime } = aggregateChecks(schema);
+      const { minimum, maximum: maximum2, mime } = aggregateChecks(schema);
       if (minimum !== void 0)
         _json.minLength = minimum;
-      if (maximum !== void 0)
-        _json.maxLength = maximum;
+      if (maximum2 !== void 0)
+        _json.maxLength = maximum2;
       if (!mime)
         return;
       if (mime.length === 0)
@@ -21545,11 +20507,11 @@ var init_json_schema_processors = __esm({
     arrayProcessor = (schema, ctx, _json, params) => {
       const json2 = _json;
       const def = schema._zod.def;
-      const { minimum, maximum } = aggregateChecks(schema);
+      const { minimum, maximum: maximum2 } = aggregateChecks(schema);
       if (typeof minimum === "number")
         json2.minItems = minimum;
-      if (typeof maximum === "number")
-        json2.maxItems = maximum;
+      if (typeof maximum2 === "number")
+        json2.maxItems = maximum2;
       json2.type = "array";
       json2.items = processSchema(def.element, ctx, {
         ...params,
@@ -21683,11 +20645,11 @@ var init_json_schema_processors = __esm({
         if (isClosed)
           json2.maxItems = maxItems;
       }
-      const { minimum, maximum } = aggregateChecks(schema);
+      const { minimum, maximum: maximum2 } = aggregateChecks(schema);
       if (typeof minimum === "number")
         json2.minItems = minimum;
-      if (typeof maximum === "number")
-        json2.maxItems = maximum;
+      if (typeof maximum2 === "number")
+        json2.maxItems = maximum2;
     };
     pendingRecords = /* @__PURE__ */ new WeakMap();
     recordProcessor = (schema, ctx, _json, params) => {
@@ -22264,7 +21226,7 @@ __export(core_exports2, {
   urlHostnameOk: () => urlHostnameOk,
   urlProtocolOk: () => urlProtocolOk,
   util: () => util_exports,
-  validate: () => validate,
+  validate: () => validate2,
   validateAsync: () => validateAsync,
   validateURL: () => validateURL,
   version: () => version,
@@ -22565,7 +21527,7 @@ __export(schemas_exports2, {
   record: () => record,
   refine: () => refine,
   set: () => set,
-  strictObject: () => strictObject2,
+  strictObject: () => strictObject,
   string: () => string2,
   stringFormat: () => stringFormat,
   stringbool: () => stringbool,
@@ -22772,7 +21734,7 @@ function object(shape, params) {
   };
   return new ZodObject(def);
 }
-function strictObject2(shape, params) {
+function strictObject(shape, params) {
   return new ZodObject({
     type: "object",
     shape,
@@ -23227,7 +22189,7 @@ var init_schemas2 = __esm({
         util_exports.own(this, "spa", value);
       },
       validate(data, params) {
-        return validate(this, data, params);
+        return validate2(this, data, params);
       },
       validateAsync(data, params) {
         return validateAsync(this, data, params);
@@ -23536,8 +22498,8 @@ var init_schemas2 = __esm({
           return Math.max(minimum ?? Number.NEGATIVE_INFINITY, exclusiveMinimum ?? Number.NEGATIVE_INFINITY);
         },
         maxValue: (inst) => {
-          const { maximum, exclusiveMaximum } = aggregateChecks(inst);
-          return Math.min(maximum ?? Number.POSITIVE_INFINITY, exclusiveMaximum ?? Number.POSITIVE_INFINITY);
+          const { maximum: maximum2, exclusiveMaximum } = aggregateChecks(inst);
+          return Math.min(maximum2 ?? Number.POSITIVE_INFINITY, exclusiveMaximum ?? Number.POSITIVE_INFINITY);
         },
         isInt: (inst) => {
           const { isInt, multipleOf } = aggregateChecks(inst);
@@ -23702,8 +22664,8 @@ var init_schemas2 = __esm({
           return minimum ? new Date(minimum) : null;
         },
         maxDate: (inst) => {
-          const { maximum } = aggregateChecks(inst);
-          return maximum ? new Date(maximum) : null;
+          const { maximum: maximum2 } = aggregateChecks(inst);
+          return maximum2 ? new Date(maximum2) : null;
         }
       }, {})
     );
@@ -24154,13 +23116,13 @@ function resolveRef(ref, ctx) {
   if (!ref.startsWith("#")) {
     throw new Error("External $ref is not supported, only local refs (#/...) are allowed");
   }
-  const path12 = ref.slice(1).split("/").filter(Boolean);
-  if (path12.length === 0) {
+  const path9 = ref.slice(1).split("/").filter(Boolean);
+  if (path9.length === 0) {
     return ctx.rootSchema;
   }
   const defsKey = ctx.version === "draft-2020-12" ? "$defs" : "definitions";
-  if (path12[0] === defsKey) {
-    const key = path12[1] === void 0 ? void 0 : decodeJSONPointerSegment(path12[1]);
+  if (path9[0] === defsKey) {
+    const key = path9[1] === void 0 ? void 0 : decodeJSONPointerSegment(path9[1]);
     if (!key || !ctx.defs[key]) {
       throw new Error(`Reference not found: ${ref}`);
     }
@@ -25347,7 +24309,7 @@ __export(external_exports, {
   size: () => _size,
   slugify: () => _slugify,
   startsWith: () => _startsWith,
-  strictObject: () => strictObject2,
+  strictObject: () => strictObject,
   string: () => string2,
   stringFormat: () => stringFormat,
   stringbool: () => stringbool,
@@ -25376,7 +24338,7 @@ __export(external_exports, {
   uuidv4: () => uuidv4,
   uuidv6: () => uuidv6,
   uuidv7: () => uuidv7,
-  validate: () => validate,
+  validate: () => validate2,
   validateAsync: () => validateAsync,
   void: () => _void2,
   withParser: () => withParser,
@@ -26352,8 +25314,8 @@ var init_host = __esm({
 });
 
 // src/browser/load-backend.ts
-import { existsSync as existsSync9 } from "node:fs";
-import path10 from "node:path";
+import { existsSync as existsSync5 } from "node:fs";
+import path7 from "node:path";
 import { fileURLToPath as fileURLToPath2, pathToFileURL } from "node:url";
 function devRuntimeSpecifier() {
   return ["./runtime", "js"].join(".");
@@ -26370,9 +25332,9 @@ function asBackendModule(imported, label) {
   throw new Error(`${label} does not export createManagedCdpBrowserRuntime`);
 }
 async function loadBackendModule() {
-  const moduleDir = path10.dirname(fileURLToPath2(import.meta.url));
-  const vendorEntry = path10.join(moduleDir, "vendor", "pkg", "browser-host.cjs");
-  if (existsSync9(vendorEntry)) {
+  const moduleDir = path7.dirname(fileURLToPath2(import.meta.url));
+  const vendorEntry = path7.join(moduleDir, "vendor", "pkg", "browser-host.cjs");
+  if (existsSync5(vendorEntry)) {
     return asBackendModule(
       await import(pathToFileURL(vendorEntry).href),
       "Vendor browser backend bundle"
@@ -26406,10 +25368,10 @@ __export(zcode_app_server_adapter_exports, {
 });
 import { spawn as spawn3 } from "node:child_process";
 import { homedir as homedir3 } from "node:os";
-import path11 from "node:path";
-import { randomUUID as randomUUID4 } from "node:crypto";
+import path8 from "node:path";
+import { createHash as createHash6, randomUUID } from "node:crypto";
 function publicUsage(value) {
-  if (!isRecord3(value)) return null;
+  if (!isRecord4(value)) return null;
   const result = {};
   for (const key of ["inputTokens", "outputTokens", "totalTokens", "cachedInputTokens", "reasoningTokens", "input_tokens", "output_tokens", "total_tokens", "cost"]) {
     const item = value[key];
@@ -26424,6 +25386,24 @@ function withFactsCandidate(error62, candidate) {
 function readFactsCandidate(error62) {
   if (!(error62 instanceof Error)) return null;
   return error62[FACTS_CANDIDATE] ?? null;
+}
+function registrationFailure(error62) {
+  const candidate = readFactsCandidate(error62);
+  const rpcRejected = candidate?.kind === "rpc" && candidate.rejected;
+  const details = {
+    failure_stage: "provider_registration",
+    failure_kind: rpcRejected ? "RPC_REJECTED" : candidate?.kind === "transport" ? "TRANSPORT_FAILURE" : candidate?.kind === "process_exit" ? "APPSERVER_EXITED" : candidate?.kind === "spawn" ? "APPSERVER_SPAWN_FAILED" : candidate?.kind === "protocol" ? "PROTOCOL_FAILURE" : "UNKNOWN"
+  };
+  if (candidate?.kind === "rpc") {
+    details.rpc_method = "provider/updateAccountConfig";
+    if (candidate.code !== null) details.rpc_error_code = candidate.code;
+    if (candidate.dataCode !== null) details.rpc_data_code = candidate.dataCode;
+  }
+  return {
+    summary: rpcRejected ? "ZCode rejected account provider registration" : candidate?.kind === "transport" ? "ZCode account provider registration transport failed" : candidate?.kind === "process_exit" ? "ZCode app-server exited during account provider registration" : "ZCode account provider registration failed",
+    details,
+    candidate
+  };
 }
 function retryAfterMilliseconds(value) {
   if (typeof value === "number" && Number.isFinite(value)) return value * 1e3;
@@ -26444,7 +25424,7 @@ function browserHostClosedResult() {
   };
 }
 function sameWorkspacePath(left, right) {
-  const normalize = (value) => path11.normalize(value).replace(/[/\\]+/gu, (match) => match.includes("\\") || process.platform === "win32" ? "\\" : "/");
+  const normalize = (value) => path8.normalize(value).replace(/[/\\]+/gu, (match) => match.includes("\\") || process.platform === "win32" ? "\\" : "/");
   const resolvedLeft = normalize(left);
   const resolvedRight = normalize(right);
   return process.platform === "win32" ? resolvedLeft.toLocaleLowerCase("en-US") === resolvedRight.toLocaleLowerCase("en-US") : resolvedLeft === resolvedRight;
@@ -26523,18 +25503,18 @@ function readEffectiveReasoningLevel(snapshot) {
   const level = thoughtLevel.current;
   return typeof level === "string" && level.trim() ? level.trim() : null;
 }
-function nestedString(record2, path12) {
-  let value = record2;
-  for (const part of path12) value = asRecord2(value)[part];
+function nestedString(record3, path9) {
+  let value = record3;
+  for (const part of path9) value = asRecord2(value)[part];
   return typeof value === "string" ? value : null;
 }
-function nestedNumber(record2, path12) {
-  let value = record2;
-  for (const part of path12) value = asRecord2(value)[part];
+function nestedNumber(record3, path9) {
+  let value = record3;
+  for (const part of path9) value = asRecord2(value)[part];
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 function asRecord2(value) {
-  return isRecord3(value) ? value : {};
+  return isRecord4(value) ? value : {};
 }
 function extractTurnFailureEvidence(value) {
   if (typeof value === "string") {
@@ -26571,17 +25551,17 @@ function reportDesktopIndexIssue(onEvent, error62) {
     summary: `ZCode Desktop task index could not be updated: ${message.slice(0, 500)}`
   });
 }
-function isRecord3(value) {
+function isRecord4(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 function stableSerialize(value) {
   if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
-  if (isRecord3(value)) {
+  if (isRecord4(value)) {
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(value[key])}`).join(",")}}`;
   }
   return JSON.stringify(value) ?? "undefined";
 }
-var FACTS_CANDIDATE, PROVIDER_RETRY_LIMIT, MAX_PROVIDER_RETRY_AFTER_MS, RPC_TIMEOUT_MS, MAX_CAPTURE_CHARS, MAX_FRAME_BYTES, ZCodeAppServerAdapter;
+var FACTS_CANDIDATE, PROVIDER_RETRY_LIMIT, MAX_PROVIDER_RETRY_AFTER_MS, RPC_TIMEOUT_MS, MAX_CAPTURE_CHARS, MAX_FRAME_BYTES3, ZCodeAppServerAdapter;
 var init_zcode_app_server_adapter = __esm({
   "src/adapters/zcode-app-server-adapter.ts"() {
     "use strict";
@@ -26594,6 +25574,7 @@ var init_zcode_app_server_adapter = __esm({
     init_windows_process_cleanup();
     init_failure_facts();
     init_child_env();
+    init_desktop_host_launch();
     init_account_provider();
     init_session_preferences();
     init_task_timeout();
@@ -26607,11 +25588,17 @@ var init_zcode_app_server_adapter = __esm({
     MAX_PROVIDER_RETRY_AFTER_MS = 6e4;
     RPC_TIMEOUT_MS = 3e4;
     MAX_CAPTURE_CHARS = 2e6;
-    MAX_FRAME_BYTES = 16 * 1024 * 1024;
+    MAX_FRAME_BYTES3 = 16 * 1024 * 1024;
     ZCodeAppServerAdapter = class {
+      #resolveStartPlanRuntimeAuth;
+      #startPlanProviderEntitled;
+      #sanitizeStartPlanFrame;
+      #sanitizeStartPlanText;
+      #onVerifiedFailureCleanup;
       #resolver;
       #onEvent;
       #timeoutMs;
+      #cleanupTimeoutMs;
       #childEnvBase;
       #homeDir;
       #host;
@@ -26635,9 +25622,16 @@ var init_zcode_app_server_adapter = __esm({
       #runs = /* @__PURE__ */ new Map();
       #workspaceByTask = /* @__PURE__ */ new Map();
       constructor(options = {}) {
+        this.#resolveStartPlanRuntimeAuth = options.resolveStartPlanRuntimeAuth;
+        this.#startPlanProviderEntitled = options.startPlanProviderEntitled === true;
+        this.#sanitizeStartPlanFrame = options.sanitizeStartPlanFrame;
+        this.#sanitizeStartPlanText = options.sanitizeStartPlanText;
+        this.#onVerifiedFailureCleanup = options.onVerifiedFailureCleanup;
         this.#resolver = options.resolver ?? new NodeRuntimeResolver({ env: options.childEnvBase, homeDir: options.homeDir, host: options.host });
         this.#onEvent = options.onEvent ?? (() => void 0);
         this.#timeoutMs = options.timeoutMs ?? null;
+        this.#cleanupTimeoutMs = options.testCleanupTimeoutMs ?? ADAPTER_CLEANUP_TIMEOUT_MS;
+        if (!Number.isSafeInteger(this.#cleanupTimeoutMs) || this.#cleanupTimeoutMs < 1 || this.#cleanupTimeoutMs > ADAPTER_CLEANUP_TIMEOUT_MS) throw new Error("invalid cleanup test budget");
         this.#childEnvBase = options.childEnvBase ?? process.env;
         this.#homeDir = options.homeDir ?? homedir3();
         this.#host = validateHostProfile(options.host ?? codexHostProfile(this.#homeDir));
@@ -26805,14 +25799,6 @@ var init_zcode_app_server_adapter = __esm({
         try {
           const runtimeEnv = loadPersistedRuntimeEnvironment(this.#childEnvBase, this.#homeDir, this.#host);
           const timeoutMs = this.#timeoutMs ?? resolveTaskTimeout(task, runtimeEnv);
-          const config2 = await this.#resolver.resolve();
-          const preferences = resolveSessionPreferences(task.model, runtimeEnv, this.#executionProfileId);
-          const childEnv = this.#buildChildEnv(config2, runtimeEnv);
-          entry.onEvent({ type: "zcode_starting", summary: "Starting ZCode streaming runtime" });
-          const client = this.#startAppServer(config2, workspace.canonicalPath, childEnv, entry);
-          entry.client = client;
-          entry.child = client.child;
-          entry.onEvent({ type: "app_server_started", summary: "ZCode app-server process started", details: { pid: client.child.pid } });
           timer = setTimeout(() => {
             entry.timedOut = true;
             entry.abort.abort();
@@ -26827,7 +25813,64 @@ var init_zcode_app_server_adapter = __esm({
             });
           }, Math.max(15e3, timeoutMs - Math.min(3e5, Math.floor(timeoutMs / 2))));
           warningTimer.unref();
-          const accountProviderPayload = buildAccountProviderPayload(config2);
+          const config2 = await new Promise((resolve, reject) => {
+            const aborted2 = () => reject(new Error("ZCode execution aborted during runtime resolution"));
+            entry.abort.signal.addEventListener("abort", aborted2, { once: true });
+            if (entry.abort.signal.aborted) aborted2();
+            void this.#resolver.resolve().then(resolve, reject).finally(() => entry.abort.signal.removeEventListener("abort", aborted2));
+          });
+          entry.abort.signal.throwIfAborted();
+          const taskProviderId = task.model?.provider_id;
+          const taskProviderFacts = accountProviderRuleFacts(taskProviderId, config2);
+          const otherStartPlanSelected = taskProviderFacts?.planKind === "start-plan" && taskProviderId !== BIGMODEL_START_PLAN_PROVIDER_ID;
+          if (otherStartPlanSelected) {
+            return this.#startPlanReadinessFailure(
+              entry,
+              "Only the BigModel Start Plan provider has a supported Bridge credential binding; no ZCode session was started."
+            );
+          }
+          const exactStartPlanRegistryValid = taskProviderFacts?.planKind === "start-plan" && taskProviderFacts.accountType === "bigmodel";
+          if (taskProviderId === BIGMODEL_START_PLAN_PROVIDER_ID && !exactStartPlanRegistryValid) {
+            return this.#startPlanReadinessFailure(
+              entry,
+              "The BigModel Start Plan provider is missing or invalid in the official provider registry; no ZCode session was started."
+            );
+          }
+          const startPlanSelected = taskProviderId === BIGMODEL_START_PLAN_PROVIDER_ID && exactStartPlanRegistryValid;
+          if (startPlanSelected && !this.#resolveStartPlanRuntimeAuth) {
+            return this.#startPlanReadinessFailure(
+              entry,
+              "Start Plan runtime authorization is unavailable; no ZCode session was started."
+            );
+          }
+          if (startPlanSelected && !this.#startPlanProviderEntitled) {
+            return this.#startPlanReadinessFailure(entry, "Start Plan live entitlement was not verified; no ZCode session was started.");
+          }
+          let accountProviderPayload;
+          try {
+            accountProviderPayload = buildAccountProviderPayload(
+              config2,
+              startPlanSelected ? { providerId: BIGMODEL_START_PLAN_PROVIDER_ID, modelId: task.model.model_id } : void 0,
+              this.#homeDir,
+              taskProviderId
+            );
+          } catch (error62) {
+            if (startPlanSelected) {
+              return this.#startPlanReadinessFailure(entry, error62 instanceof Error && error62.message === "start_plan_model_not_registered" ? "The requested Start Plan model is not present in the official provider registry." : "Start Plan provider snapshot could not be prepared after live entitlement verification.");
+            }
+            throw error62;
+          }
+          if (startPlanSelected && (!accountProviderPayload?.providers[BIGMODEL_START_PLAN_PROVIDER_ID] || accountProviderPayload.providers[BIGMODEL_START_PLAN_PROVIDER_ID].access.entitled !== true)) {
+            return this.#startPlanReadinessFailure(entry, "Start Plan provider snapshot could not be prepared after live entitlement verification.");
+          }
+          const preferences = resolveSessionPreferences(task.model, runtimeEnv, this.#executionProfileId);
+          const childEnv = this.#buildChildEnv(config2, runtimeEnv);
+          if (startPlanSelected) childEnv.ZCODE_MODEL_RETRY_MAX_RETRIES = "0";
+          entry.onEvent({ type: "zcode_starting", summary: "Starting ZCode streaming runtime" });
+          const client = this.#startAppServer(config2, workspace.canonicalPath, childEnv, entry);
+          entry.client = client;
+          entry.child = client.child;
+          entry.onEvent({ type: "app_server_started", summary: "ZCode app-server process started", details: { pid: client.child.pid } });
           if (accountProviderPayload) {
             try {
               const syncResult = asRecord2(await client.request(
@@ -26844,10 +25887,20 @@ var init_zcode_app_server_adapter = __esm({
                 }
               });
             } catch (error62) {
+              const failure2 = registrationFailure(error62);
               entry.onEvent({
                 type: "account_provider_sync_failed",
-                summary: error62 instanceof Error ? error62.message : "ZCode account provider synchronization failed"
+                summary: failure2.summary,
+                details: failure2.details
               });
+              if (startPlanSelected) {
+                const registrationError = new BridgeError(
+                  "provider_config_invalid",
+                  "ZCode rejected Start Plan provider registration before session creation."
+                );
+                if (failure2.candidate) withFactsCandidate(registrationError, failure2.candidate);
+                throw registrationError;
+              }
             }
           }
           let snapshot;
@@ -27089,6 +26142,14 @@ var init_zcode_app_server_adapter = __esm({
               entry.providerRetryTimer = null;
             }
           }
+          if (timer) {
+            clearTimeout(timer);
+            timer = void 0;
+          }
+          if (warningTimer) {
+            clearTimeout(warningTimer);
+            warningTimer = void 0;
+          }
           entry.turnCompletedAt = turnResult.completedAt;
           const desktopStatus = turnResult.resultType === "cancelled" ? null : turnResult.resultType && turnResult.resultType !== "success" ? "error" : "completed";
           let outcome;
@@ -27222,54 +26283,7 @@ var init_zcode_app_server_adapter = __esm({
           } catch (error62) {
             entry.onEvent({ type: "desktop_status_sync_failed", summary: error62 instanceof Error ? error62.message : String(error62) });
           }
-          await this.#closeBrowserHost(entry);
-          try {
-            const cleanupTreeReceipt = await client.close();
-            entry.child = null;
-            if (entry.browserCleanupError) {
-              outcome = { ...outcome, cleanupError: `Managed browser cleanup could not be verified: ${entry.browserCleanupError}`, cleanupVerified: false };
-            } else if (cleanupTreeReceipt) {
-              outcome = { ...outcome, cleanupVerified: true, cleanupTreeReceipt };
-            } else if (process.platform !== "win32") {
-              outcome = { ...outcome, cleanupVerified: true };
-            } else {
-              outcome = {
-                ...outcome,
-                cleanupError: "Identity-bound Windows process-tree cleanup receipt was unavailable",
-                cleanupVerified: false
-              };
-            }
-            try {
-              this.#onOutcomeCheckpoint?.(outcome);
-            } catch (error62) {
-              entry.onEvent({ type: "outcome_checkpoint_failed", summary: error62 instanceof Error ? error62.message : String(error62) });
-            }
-          } catch (error62) {
-            const cleanupError = error62 instanceof Error ? error62.message : String(error62);
-            const cleanupScan = await this.#scanRootExitedCleanup(client, entry, error62);
-            const cleanupMemberPids = cleanupScan?.memberPids ?? this.#cleanupMemberPids(error62);
-            const cleanupVerifiedByRecordedScan = cleanupScan?.clean === true;
-            if (cleanupVerifiedByRecordedScan && !entry.browserCleanupError) entry.onEvent({
-              type: "cleanup_verified",
-              summary: "The captured app-server generation had exited; an ADR-009 recorded-tree claimant scan found no live claimants",
-              details: { pid: client.child.pid, evidence: "recorded_tree_claimant_scan" }
-            });
-            const combined = entry.browserCleanupError ? `Managed browser cleanup could not be verified: ${entry.browserCleanupError} (app-server cleanup also unverified: ${cleanupError})` : cleanupError;
-            const cleanupVerified = cleanupVerifiedByRecordedScan && !entry.browserCleanupError;
-            if (!cleanupVerified) entry.onEvent({ type: "cleanup_unverified", summary: combined.slice(0, 1500), details: { pid: client.child.pid } });
-            outcome = {
-              ...outcome,
-              cleanupError: cleanupVerified ? null : combined,
-              cleanupVerified,
-              ...cleanupMemberPids.length > 0 ? { cleanupMemberPids } : {}
-            };
-            try {
-              this.#onOutcomeCheckpoint?.(outcome);
-            } catch (checkpointError) {
-              entry.onEvent({ type: "outcome_checkpoint_failed", summary: checkpointError instanceof Error ? checkpointError.message : String(checkpointError) });
-            }
-          }
-          return outcome;
+          return await this.#completeCleanup(entry, outcome);
         } catch (error62) {
           if (timer) {
             clearTimeout(timer);
@@ -27279,6 +26293,7 @@ var init_zcode_app_server_adapter = __esm({
             clearTimeout(warningTimer);
             warningTimer = void 0;
           }
+          if (process.platform === "win32") entry.client?.prewarmCleanup();
           await syncDesktopStatus(desktopTask, entry.cancelRequested ? null : "error", entry.onEvent);
           entry.abort.abort();
           const spawnRecovery = entry.spawnFailure && !entry.timedOut && !entry.cancelRequested ? entry.spawnFailure : null;
@@ -27294,10 +26309,12 @@ var init_zcode_app_server_adapter = __esm({
               this.#submitTerminalFactsFromError(entry, error62);
             }
           }
+          entry.onEvent({ type: "cleanup_started", summary: "Adapter entered bounded failure cleanup" });
           await this.#closeBrowserHost(entry);
           let cleanupFailure;
+          let failureCleanupReceipt = null;
           try {
-            if (entry.client) await entry.client.close();
+            if (entry.client) failureCleanupReceipt = await entry.client.close();
             else if (entry.child?.pid) await this.#terminateOwnedChild(entry);
           } catch (cleanupError) {
             cleanupFailure = cleanupError;
@@ -27315,7 +26332,11 @@ var init_zcode_app_server_adapter = __esm({
               entry.onEvent({
                 type: "cleanup_unverified",
                 summary: `ZCode process termination could not be verified; workspace remains occupied.${browserSuffix}`,
-                details: { pid: entry.child?.pid ?? null, member_pids: memberPids }
+                details: {
+                  pid: entry.child?.pid ?? null,
+                  member_pids: memberPids,
+                  ...cleanupScan?.scanError ? { scan_error: cleanupScan.scanError } : {}
+                }
               });
               throw new BridgeError("cleanup_failed", `ZCode process termination could not be verified; workspace remains occupied.${browserSuffix}`, {
                 cause: cleanupFailure,
@@ -27330,6 +26351,12 @@ var init_zcode_app_server_adapter = __esm({
               { cause: error62 }
             );
           }
+          if (failureCleanupReceipt && !cleanupFailure) {
+            try {
+              this.#onVerifiedFailureCleanup?.(failureCleanupReceipt);
+            } catch {
+            }
+          }
           entry.child = null;
           const baseMessage = error62 instanceof Error ? error62.message : String(error62);
           let message = entry.timedOut ? "ZCode run exceeded its wall-clock budget" : entry.cancelRequested ? "ZCode task cancelled" : baseMessage;
@@ -27338,6 +26365,27 @@ var init_zcode_app_server_adapter = __esm({
             code = "spawn_failed";
             message = spawnRecovery.errno ? `ZCode app-server could not be started (${spawnRecovery.errno}); the configured runtime executable was not found or cannot be executed.` : "ZCode app-server process failed before or during startup";
           }
+          const failedOutcome = {
+            attempts: 1,
+            cancelled: entry.cancelRequested,
+            timedOut: entry.timedOut,
+            stdoutTruncated: false,
+            stderrTruncated: false,
+            stdout: "",
+            stderr: "",
+            exitCode: null,
+            signal: null,
+            sessionId: entry.sessionId,
+            response: "",
+            usage: null,
+            agentReport: null,
+            reportCandidate: null,
+            reportError: message,
+            errorCode: code,
+            cleanupVerified: false
+          };
+          const cleaned = await this.#completeCleanup(entry, failedOutcome);
+          if (!cleaned.cleanupVerified) throw new BridgeError("cleanup_failed", `${message}; cleanup: ${cleaned.cleanupError ?? "unverified"}`, { cause: error62, memberPids: cleaned.cleanupMemberPids });
           entry.onEvent({ type: "error", summary: message.slice(0, 1500), details: { error_code: code } });
           if (spawnRecovery) throw new BridgeError("spawn_failed", message);
           if (error62 instanceof BridgeError) throw error62;
@@ -27348,6 +26396,82 @@ var init_zcode_app_server_adapter = __esm({
           entry.abort.abort();
           entry.finished = true;
           void startedAt;
+        }
+      }
+      /** One independent cleanup deadline for success, failure and cancellation. */
+      async #completeCleanup(entry, outcome) {
+        let expired = false;
+        const timeoutOutcome = {
+          ...outcome,
+          cleanupVerified: false,
+          cleanupError: "Adapter cleanup deadline exceeded; workspace remains occupied",
+          cleanupMemberPids: entry.child?.pid ? [entry.child.pid] : []
+        };
+        let timer;
+        const cleanup = (async () => {
+          await this.#closeBrowserHost(entry);
+          if (expired) return timeoutOutcome;
+          let receipt = null;
+          let error62;
+          try {
+            if (entry.client) receipt = await entry.client.close();
+            else if (entry.child?.pid) await this.#terminateOwnedChild(entry);
+          } catch (failure2) {
+            error62 = failure2;
+          }
+          if (expired) return timeoutOutcome;
+          let scan = null;
+          if (error62 && entry.client) scan = await this.#scanRootExitedCleanup(entry.client, entry, error62);
+          if (expired) return timeoutOutcome;
+          const noSpawn = entry.spawnFailure !== null && !entry.child?.pid;
+          const treeVerified = noSpawn || (error62 ? scan?.clean === true : !!receipt || process.platform !== "win32" || !entry.child);
+          const cleanupVerified = treeVerified && !entry.browserCleanupError;
+          const reason = entry.browserCleanupError ? "Managed browser cleanup could not be verified: " + entry.browserCleanupError : error62 instanceof Error ? error62.message : "Identity-bound Windows process-tree cleanup receipt was unavailable";
+          const members2 = scan?.memberPids ?? this.#cleanupMemberPids(error62);
+          const scanRootPid = entry.client?.child.pid;
+          const scanRootFingerprint = scanRootPid && entry.childIdentity?.pid === scanRootPid ? entry.childIdentity.fingerprint : null;
+          const cleanupTreeScan = scan?.clean && cleanupVerified && scanRootPid && scanRootFingerprint ? {
+            rootPid: scanRootPid,
+            rootFingerprint: scanRootFingerprint,
+            evidenceDigest: createHash6("sha256").update(JSON.stringify({
+              rootPid: scanRootPid,
+              rootFingerprint: scanRootFingerprint,
+              memberPids: [...scan.memberPids].sort((left, right) => left - right)
+            }), "utf8").digest("hex"),
+            observedMemberCount: scan.memberPids.length
+          } : void 0;
+          if (scan?.clean && cleanupVerified) entry.onEvent({
+            type: "cleanup_verified",
+            summary: "The captured app-server generation had exited; an ADR-009 recorded-tree claimant scan found no live claimants",
+            details: { pid: entry.child?.pid ?? null, evidence: "recorded_tree_claimant_scan" }
+          });
+          if (cleanupVerified) entry.child = null;
+          return {
+            ...outcome,
+            cleanupVerified,
+            ...cleanupVerified && !error62 ? {} : { cleanupError: cleanupVerified ? null : reason },
+            ...receipt ? { cleanupTreeReceipt: receipt } : {},
+            ...cleanupTreeScan ? { cleanupTreeScan } : {},
+            ...members2.length ? { cleanupMemberPids: members2 } : {}
+          };
+        })();
+        try {
+          const result = await Promise.race([cleanup, new Promise((resolve) => {
+            timer = setTimeout(() => {
+              expired = true;
+              resolve(timeoutOutcome);
+            }, this.#cleanupTimeoutMs);
+            timer.unref();
+          })]);
+          if (!result.cleanupVerified) entry.onEvent({ type: "cleanup_unverified", summary: (result.cleanupError ?? "cleanup unverified").slice(0, 1500), details: { pid: entry.child?.pid ?? null } });
+          try {
+            this.#onOutcomeCheckpoint?.(result);
+          } catch (error62) {
+            entry.onEvent({ type: "outcome_checkpoint_failed", summary: error62 instanceof Error ? error62.message : String(error62) });
+          }
+          return result;
+        } finally {
+          if (timer) clearTimeout(timer);
         }
       }
       #cleanupMemberPids(error62) {
@@ -27367,13 +26491,14 @@ var init_zcode_app_server_adapter = __esm({
           return { clean: scan.clean && scan.livePids.length === 0, memberPids };
         } catch (scanError) {
           memberPids = [.../* @__PURE__ */ new Set([...memberPids, ...this.#cleanupMemberPids(scanError)])];
-          return { clean: false, memberPids };
+          return { clean: false, memberPids, scanError: (scanError instanceof Error ? scanError.message : String(scanError)).slice(0, 500) };
         }
       }
       #startAppServer(config2, cwd, env, entry) {
-        const child = spawn3(config2.nodeExecutable, [config2.zcodeEntrypoint, "app-server", "--stdio"], {
+        const launch = buildZCodeAppServerLaunch(config2.zcodeEntrypoint, env);
+        const child = spawn3(config2.nodeExecutable, [config2.zcodeEntrypoint, ...launch.args], {
           cwd,
-          env,
+          env: launch.env,
           shell: false,
           windowsHide: true,
           detached: process.platform !== "win32",
@@ -27422,7 +26547,7 @@ var init_zcode_app_server_adapter = __esm({
         let protocolFatal = null;
         const failProtocol = (code, frameBytes, detail) => {
           if (protocolFatal) return;
-          const message = code === "frame_over_limit" ? `ZCode app-server protocol frame exceeded the 16 MiB UTF-8 limit (observed ${frameBytes} bytes, limit ${MAX_FRAME_BYTES} bytes)` : `ZCode app-server protocol stream delivered an invalid JSON frame (${frameBytes} bytes)${detail ? `: ${detail}` : ""}`;
+          const message = code === "frame_over_limit" ? `ZCode app-server protocol frame exceeded the 16 MiB UTF-8 limit (observed ${frameBytes} bytes, limit ${MAX_FRAME_BYTES3} bytes)` : `ZCode app-server protocol stream delivered an invalid JSON frame (${frameBytes} bytes)${detail ? `: ${detail}` : ""}`;
           protocolFatal = withFactsCandidate(new Error(message), { kind: "protocol" });
           stdoutBuffer = "";
           for (const call of pending.values()) {
@@ -27433,7 +26558,7 @@ var init_zcode_app_server_adapter = __esm({
           entry.onEvent({
             type: "protocol_error",
             summary: message,
-            details: { error_code: code, frame_bytes: frameBytes, limit_bytes: MAX_FRAME_BYTES }
+            details: { error_code: code, frame_bytes: frameBytes, limit_bytes: MAX_FRAME_BYTES3 }
           });
           entry.rejectTurn(protocolFatal);
         };
@@ -27457,7 +26582,7 @@ var init_zcode_app_server_adapter = __esm({
             const rawLine = stdoutBuffer.slice(0, newline);
             stdoutBuffer = stdoutBuffer.slice(newline + 1);
             const frameBytes = Buffer.byteLength(rawLine, "utf8");
-            if (frameBytes > MAX_FRAME_BYTES) {
+            if (frameBytes > MAX_FRAME_BYTES3) {
               failProtocol("frame_over_limit", frameBytes);
               return;
             }
@@ -27470,11 +26595,11 @@ var init_zcode_app_server_adapter = __esm({
               failProtocol("invalid_frame", frameBytes);
               return;
             }
-            if (!isRecord3(parsed)) {
+            if (!isRecord4(parsed)) {
               failProtocol("invalid_frame", frameBytes, "the top-level frame value must be a JSON object");
               return;
             }
-            const message = parsed;
+            const message = this.#sanitizeStartPlanFrame ? this.#sanitizeStartPlanFrame(parsed) : parsed;
             try {
               this.#handleMessage(message, entry, pending, config2, (reply) => {
                 child.stdin.write(`${JSON.stringify(reply)}
@@ -27486,7 +26611,7 @@ var init_zcode_app_server_adapter = __esm({
           }
           if (!protocolFatal) {
             const bufferedBytes = Buffer.byteLength(stdoutBuffer, "utf8");
-            if (bufferedBytes > MAX_FRAME_BYTES) failProtocol("frame_over_limit", bufferedBytes);
+            if (bufferedBytes > MAX_FRAME_BYTES3) failProtocol("frame_over_limit", bufferedBytes);
           }
         });
         child.stderr.on("data", (chunk) => {
@@ -27528,13 +26653,19 @@ var init_zcode_app_server_adapter = __esm({
           if (protocolFatal) return Promise.reject(withFactsCandidate(new Error(`${protocolFatal.message}; blocked ${method} request after the fatal protocol error`), { kind: "protocol" }));
           if (closed) {
             if (spawnFailure) return Promise.reject(spawnFailure);
-            return Promise.reject(withFactsCandidate(new Error(`ZCode app-server is closed before ${method}`), { kind: "rpc", method, code: null, dataCode: null }));
+            return Promise.reject(withFactsCandidate(
+              new Error(`ZCode app-server is closed before ${method}`),
+              { kind: "rpc", method, code: null, dataCode: null, rejected: false }
+            ));
           }
           const id = ++rpcId;
           return new Promise((resolve, reject) => {
             const timer = setTimeout(() => {
               pending.delete(id);
-              reject(withFactsCandidate(new Error(`ZCode app-server request timed out: ${method}`), { kind: "rpc", method, code: null, dataCode: null }));
+              reject(withFactsCandidate(
+                new Error(`ZCode app-server request timed out: ${method}`),
+                { kind: "rpc", method, code: null, dataCode: null, rejected: false }
+              ));
             }, RPC_TIMEOUT_MS);
             timer.unref();
             pending.set(id, { method, resolve, reject, timer });
@@ -27588,7 +26719,15 @@ var init_zcode_app_server_adapter = __esm({
             cleanupTransaction = null;
             if (pendingTransaction) {
               try {
-                const transaction = await pendingTransaction;
+                let transactionTimer;
+                const transaction = await Promise.race([
+                  pendingTransaction,
+                  new Promise((_, reject) => {
+                    transactionTimer = setTimeout(() => reject(new Error("cleanup transaction startup timeout")), 15e3);
+                    transactionTimer.unref();
+                  })
+                ]);
+                if (transactionTimer) clearTimeout(transactionTimer);
                 terminated = {
                   pid: child.pid,
                   signal: "SIGKILL",
@@ -27653,8 +26792,9 @@ var init_zcode_app_server_adapter = __esm({
           }
           return null;
         };
+        const sanitizeStderr = this.#sanitizeStartPlanText;
         return { child, request, replayEvents, prewarmCleanup, close, get stderr() {
-          return stderr;
+          return sanitizeStderr ? sanitizeStderr(stderr) : stderr;
         } };
       }
       /** ADR-009: terminate the adapter's own spawned child with the identity
@@ -27690,6 +26830,33 @@ var init_zcode_app_server_adapter = __esm({
             const params = asRecord2(message.params);
             const selection = asRecord2(params.modelSelection);
             const providerId = typeof selection.providerId === "string" ? selection.providerId : typeof params.providerId === "string" ? params.providerId : void 0;
+            if (providerId === BIGMODEL_START_PLAN_PROVIDER_ID && this.#resolveStartPlanRuntimeAuth) {
+              const replySafely = (result) => {
+                try {
+                  write({ id, result });
+                } catch {
+                  entry.rejectTurn(new Error("Start Plan authorization transport failed."));
+                }
+              };
+              const modelId = typeof selection.modelId === "string" ? selection.modelId : "";
+              const selected = entry.selectedModelSelection;
+              const turnId = typeof params.turnId === "string" ? params.turnId : "";
+              const sessionId = typeof params.sessionId === "string" ? params.sessionId : "";
+              if (typeof params.providerId === "string" && params.providerId !== providerId || !entry.acceptingTurn || !entry.turnId || turnId !== entry.turnId || !entry.sessionId || sessionId !== entry.sessionId || !selected || selected.providerId !== providerId || selected.modelId !== modelId || entry.abort.signal.aborted) {
+                replySafely({ headersApplied: false, errorMessage: "Start Plan runtime identity is not verified." });
+                return;
+              }
+              void this.#resolveStartPlanRuntimeAuth({ sessionId, turnId, providerId, modelId }, entry.abort.signal).then((credential) => {
+                if (entry.abort.signal.aborted || !entry.acceptingTurn || entry.turnId !== turnId || entry.sessionId !== sessionId || !credential || typeof credential.apiKey !== "string" || !credential.apiKey || !Number.isFinite(credential.expiresAt) || credential.expiresAt <= Date.now() || !credential.isValid()) {
+                  replySafely({ headersApplied: false, errorMessage: "Start Plan authorization is unavailable." });
+                  return;
+                }
+                replySafely({ headersApplied: true, requestAuth: { apiKey: credential.apiKey } });
+              }).catch(() => {
+                if (!entry.abort.signal.aborted) replySafely({ headersApplied: false, errorMessage: "Start Plan authorization is unavailable." });
+              });
+              return;
+            }
             write({ id, result: runtimeAuthReply(providerId, config2) });
           }
           return;
@@ -27713,7 +26880,7 @@ var init_zcode_app_server_adapter = __esm({
             const dataCode = registeredCode(data.code, RPC_DATA_CODE_REGISTRY);
             call.reject(withFactsCandidate(
               new Error(`ZCode app-server request failed for ${call.method}${typeof error62.code === "number" ? ` (code ${error62.code})` : ""}`),
-              { kind: "rpc", method: call.method, code: rpcCode, dataCode }
+              { kind: "rpc", method: call.method, code: rpcCode, dataCode, rejected: true }
             ));
           } else {
             call.resolve(message.result);
@@ -28011,6 +27178,37 @@ var init_zcode_app_server_adapter = __esm({
           }
         });
       }
+      #startPlanReadinessFailure(entry, message) {
+        const outcome = {
+          exitCode: 1,
+          signal: null,
+          stdout: "",
+          stderr: "",
+          sessionId: null,
+          response: null,
+          usage: null,
+          timedOut: false,
+          agentReport: null,
+          reportCandidate: null,
+          reportError: message,
+          errorCode: "provider_config_invalid",
+          cancelled: false,
+          stdoutTruncated: false,
+          stderrTruncated: false,
+          attempts: 1,
+          cleanupNotRequired: "start_plan_preflight_rejected",
+          // No app-server or browser was created, so there are no Adapter-owned
+          // runtime resources to clean. SQLite still independently verifies the
+          // Worker close before it releases the execution path.
+          cleanupVerified: true
+        };
+        entry.onEvent({ type: "error", summary: message, details: { error_code: "provider_config_invalid" } });
+        try {
+          this.#onOutcomeCheckpoint?.(outcome);
+        } catch {
+        }
+        return outcome;
+      }
       async #closeBrowserHost(entry) {
         if (!entry.browserHost || entry.browserHostClosed) return;
         entry.browserHostClosed = true;
@@ -28155,7 +27353,7 @@ var init_zcode_app_server_adapter = __esm({
       #beginSendBoundary(entry) {
         if (entry.sendAttempted) return;
         entry.sendAttempted = true;
-        entry.submitCorrelationId = randomUUID4();
+        entry.submitCorrelationId = randomUUID();
         entry.sendSeqBaseline = entry.lastEventSeq > 0 ? entry.lastEventSeq : null;
         if (entry.acceptedEvidence === "no") entry.acceptedEvidence = "unknown";
         try {
@@ -28422,1419 +27620,379 @@ var init_normalize = __esm({
   }
 });
 
-// src/usage/normalize.ts
-function acceptNumber(value) {
-  if (value === void 0 || value === null) return { value: null, conflict: null };
-  if (typeof value !== "number") return { value: null, conflict: "non_numeric_rejected" };
-  if (Number.isNaN(value)) return { value: null, conflict: "nan_rejected" };
-  if (!Number.isFinite(value)) return { value: null, conflict: "non_finite_rejected" };
-  if (!Number.isSafeInteger(value)) return { value: null, conflict: "unsafe_integer_rejected" };
-  if (value < 0) return { value: null, conflict: "negative_rejected" };
-  return { value, conflict: null };
-}
-function normalizeUsage(raw, options = {}) {
-  if (raw === null || raw === void 0) return null;
-  if (typeof raw !== "object" || Array.isArray(raw)) return null;
-  const record2 = raw;
-  const conflicts = /* @__PURE__ */ new Set();
-  const result = {
-    source: null,
-    scope: null,
-    observed_at: null,
-    finality: "reported",
-    input_tokens: null,
-    output_tokens: null,
-    total_tokens: null,
-    cached_input_tokens: null,
-    reasoning_tokens: null,
-    conflicts: [],
-    dropped_unknown_keys: 0
+// src/runtime/start-plan-private-frame.ts
+import { TextDecoder } from "node:util";
+async function readPrivateFrame(stream, maximum2, signal) {
+  if (!Number.isSafeInteger(maximum2) || maximum2 < 1 || signal.aborted) throw new Error("private_frame_unavailable");
+  const chunks = [];
+  let total = 0;
+  const abort = () => {
+    stream.destroy();
   };
-  let knownKeys = 0;
-  for (const [canonical, alias] of KNOWN_NUMERIC_FIELDS) {
-    const snake = record2[canonical];
-    const camel = record2[alias];
-    const hasSnake = snake !== void 0;
-    const hasCamel = camel !== void 0;
-    if (!hasSnake && !hasCamel) continue;
-    knownKeys += 1;
-    if (hasSnake && hasCamel && snake !== camel) conflicts.add("duplicate_synonyms");
-    const accepted = acceptNumber(hasSnake ? snake : camel);
-    if (accepted.conflict) {
-      conflicts.add(accepted.conflict);
-      continue;
-    }
-    result[canonical] = accepted.value;
-  }
-  for (const key of Object.keys(record2)) {
-    const known = KNOWN_NUMERIC_FIELDS.some(([canonical, alias]) => key === canonical || key === alias);
-    const source = SOURCE_FIELDS.some((candidate) => key === candidate);
-    if (!known && !source) result.dropped_unknown_keys += 1;
-  }
-  for (const sourceField of SOURCE_FIELDS) {
-    const value = record2[sourceField];
-    if (typeof value === "string" && value.trim()) {
-      result.source = options.source ?? value.trim();
-      break;
-    }
-  }
-  if (result.source === null) result.source = options.source ?? null;
-  result.scope = options.scope ?? null;
-  result.observed_at = options.observedAt ?? null;
-  const { input_tokens: input2, output_tokens: output2, total_tokens: total } = result;
-  if (total !== null && input2 !== null && output2 !== null && total !== input2 + output2) {
-    conflicts.add("total_mismatch");
-  }
-  if (options.source?.includes("session_delta")) result.finality = "derived";
-  if (conflicts.size > 0) result.finality = result.finality === "derived" ? "derived" : "partial";
-  result.conflicts = [...conflicts];
-  if (knownKeys === 0 && result.dropped_unknown_keys === 0) return null;
-  return result;
-}
-function phaseDuration(startIso, endIso, notes) {
-  if (!startIso || !endIso) return null;
-  const start = Date.parse(startIso);
-  const end = Date.parse(endIso);
-  if (!Number.isFinite(start) || !Number.isFinite(end)) {
-    notes.push("unparsable_timestamp");
-    return null;
-  }
-  if (end < start) {
-    notes.push("clock_regression_dropped");
-    return null;
-  }
-  return end - start;
-}
-var KNOWN_NUMERIC_FIELDS, SOURCE_FIELDS;
-var init_normalize2 = __esm({
-  "src/usage/normalize.ts"() {
-    "use strict";
-    KNOWN_NUMERIC_FIELDS = [
-      ["input_tokens", "inputTokens"],
-      ["output_tokens", "outputTokens"],
-      ["total_tokens", "totalTokens"],
-      ["cached_input_tokens", "cachedInputTokens"],
-      ["reasoning_tokens", "reasoningTokens"]
-    ];
-    SOURCE_FIELDS = ["source", "usage_source"];
-  }
-});
-
-// src/worker/run-task.ts
-var run_task_exports = {};
-__export(run_task_exports, {
-  previewInteractionDetails: () => previewInteractionDetails,
-  publishInteractionRequest: () => publishInteractionRequest,
-  runWorkerTask: () => runWorkerTask
-});
-async function runWorkerTask(options) {
-  const store = new TaskStore(options.dataRoot, {
-    writerQuiescence: options.writerQuiescence,
-    writerLeaseToken: options.writerLeaseToken
-  });
-  const now = options.now ?? (() => /* @__PURE__ */ new Date());
-  const probe = options.probe ?? createPlatformProbe();
-  const taskId = options.taskId;
-  const task = store.readTask(taskId);
-  const initialStatus = store.readStatus(taskId);
-  const attempt = options.attempt;
-  if (options.writerQuiescence) assertJsonWorkerLease(options.dataRoot, options.writerLeaseToken, taskId, attempt);
-  if (!store.claimWorkerExecution(taskId, attempt)) throw new Error("worker attempt already claimed, stale, or terminal");
-  if (options.runtimeProvenance) {
-    const provenance = verifyWorkerProvenance({
-      bridgeLaunchMarker: options.runtimeProvenance.bridgeLaunchMarker,
-      rawEnvelope: options.runtimeProvenance.rawEnvelope,
-      actualWorker: options.runtimeProvenance.worker
-    });
-    store.writeAttemptMeta(taskId, attempt, "runtime-provenance.json", {
-      expected: provenance.expected,
-      actual_worker: {
-        path: options.runtimeProvenance.worker.path,
-        sha256: options.runtimeProvenance.worker.sha256
-      },
-      cleanup_code_bundle_sha256: options.runtimeProvenance.worker.sha256,
-      provenance_status: provenance.status,
-      ...provenance.status === "rejected" ? { provenance_error_code: provenance.errorCode } : {},
-      ...provenance.status === "unverified" ? { provenance_reason: provenance.reason } : {},
-      worker_matches_expected: provenance.workerMatchesExpected
-    });
-    if (provenance.status === "rejected") {
-      return commitProvenanceRejection(store, task, attempt, initialStatus.started_at, now().toISOString(), provenance);
-    }
-  }
-  let observationRevision = 0;
-  let activityPhase = "preparing";
-  const writePhase = () => {
-    observationRevision += 1;
-    try {
-      store.writeWorkerObservation(taskId, attempt, process.pid, { activity_phase: activityPhase }, observationRevision, now().toISOString());
-    } catch {
-    }
-  };
-  if (initialStatus.cancel_requested === true) {
-    const finishedAt = now().toISOString();
-    const result = buildTaskResult({
-      task,
-      attempt,
-      startedAt: initialStatus.started_at,
-      finishedAt,
-      outcome: null,
-      failure: { code: "cancelled", message: "cancelled by request before the worker started the agent" },
-      cancelled: true
-    });
-    store.commitWorkerResult(taskId, attempt, result, { status: "cancelled", finished_at: finishedAt, worker_pid: null });
-    return { status: result.status, result };
-  }
-  const startedAt = initialStatus.started_at ?? now().toISOString();
-  store.writeStatus(taskId, { status: "running", started_at: startedAt, worker_pid: process.pid }, attempt);
-  store.appendEvent(taskId, "worker_running", "Task worker is preparing the ZCode runtime");
-  store.writeAttemptMeta(taskId, attempt, "started.json", {
-    worker_pid: process.pid,
-    started_at: startedAt
-  });
-  writePhase();
-  const IDENTITY_WRITE_REAP_MS = 5500;
-  const identityWrites = /* @__PURE__ */ new Set();
-  let identityWritesClosed = false;
-  const trackIdentityWrite = (write) => {
-    identityWrites.add(write);
-    void write.then(() => identityWrites.delete(write), () => identityWrites.delete(write));
-  };
-  const reapIdentityWrites = async () => {
-    if (identityWritesClosed) return;
-    const deadline = Date.now() + IDENTITY_WRITE_REAP_MS;
-    while (identityWrites.size > 0 && Date.now() < deadline) await sleep2(25);
-    identityWritesClosed = true;
-  };
-  trackIdentityWrite(probe.selfIdentity().then(
-    (identity) => {
-      if (identityWritesClosed) return;
-      store.writeExecutorIdentity(taskId, attempt, { worker: identity });
-      observationRevision += 1;
-      try {
-        store.writeWorkerObservation(taskId, attempt, process.pid, { worker_identity: identity }, observationRevision, now().toISOString());
-      } catch {
-      }
-    },
-    () => void 0
-  ));
-  let heartbeatTimer;
-  let persistCorrelationTimer;
+  signal.addEventListener("abort", abort, { once: true });
   try {
-    const heartbeat = {
-      attempt,
-      worker_pid: process.pid,
-      started_at: startedAt,
-      heartbeat_at: now().toISOString(),
-      heartbeat_seq: 0,
-      session_id: initialStatus.zcode_session_id ?? null,
-      turn_id: null,
-      last_event_seq: 0,
-      last_event_type: "worker_running",
-      zcode_event_seq: 0
-    };
-    const persistHeartbeat = () => {
-      heartbeat.heartbeat_at = now().toISOString();
-      heartbeat.heartbeat_seq += 1;
-      store.writeWorkerHeartbeat(taskId, attempt, heartbeat);
-      writePhase();
-    };
-    persistHeartbeat();
-    heartbeatTimer = setInterval(() => {
-      try {
-        persistHeartbeat();
-      } catch {
+    for await (const chunk of stream) {
+      if (signal.aborted) throw new Error("private_frame_cancelled");
+      const bytes2 = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      total += bytes2.length;
+      if (total > maximum2 + 4) throw new Error("private_frame_too_large");
+      chunks.push(bytes2);
+      if (total >= 4) {
+        const prefix = Buffer.concat(chunks, total).readUInt32BE(0);
+        if (prefix < 1 || prefix > maximum2) throw new Error("private_frame_size_invalid");
+        if (total > prefix + 4) throw new Error("private_frame_extra_data");
       }
-    }, 3e3);
-    heartbeatTimer.unref();
-    const continueSpec = store.readAttemptMeta(taskId, attempt, "continue.json");
-    const previousResult = continueSpec ? store.readArchivedResult(taskId, continueSpec.previous_attempt ?? attempt - 1) : null;
-    const promptText = continueSpec ? buildContinuePrompt({
-      task,
-      feedback: continueSpec.feedback,
-      additionalRequirements: continueSpec.additional_requirements ?? [],
-      previousSessionId: continueSpec.previous_session_id,
-      previousResult
-    }) : buildTaskPrompt(task);
-    store.writeAttemptFile(taskId, attempt, "prompt.txt", promptText);
-    const correlation = {
-      rpc_accepted_at: null,
-      turn_started_at: null,
-      turn_completed_at: null,
-      turn_id: null,
-      session_id: initialStatus.zcode_session_id ?? null
-    };
-    const persistCorrelation = () => {
-      try {
-        store.writeAttemptMeta(taskId, attempt, "turn-correlation.json", { ...correlation });
-      } catch {
-      }
-    };
-    persistCorrelationTimer = setInterval(persistCorrelation, 5e3);
-    persistCorrelationTimer.unref();
-    const modelProfile = {
-      executor: "zcode",
-      provider_id: null,
-      model_id: null,
-      requested_model: task.model ? `${task.model.provider_id}/${task.model.model_id}` : null,
-      requested_reasoning_level: task.model?.reasoning_level ?? null,
-      effective_reasoning_level: null,
-      effective_reasoning_level_source: "not_reported",
-      selection_source: null,
-      effective_at: null,
-      session_id: initialStatus.zcode_session_id ?? null,
-      turn_id: null
-    };
-    let outcome = null;
-    let failure2 = null;
-    let pendingModelOutput = "";
-    let lastModelOutputAt = 0;
-    const flushModelOutput = () => {
-      if (!pendingModelOutput) return;
-      store.assertWorkerAttempt(taskId, attempt);
-      for (let offset = 0; offset < pendingModelOutput.length; offset += 2e3) store.appendEvent(taskId, "model_output", pendingModelOutput.slice(offset, offset + 2e3));
-      pendingModelOutput = "";
-      lastModelOutputAt = Date.now();
-    };
+    }
+    if (signal.aborted || total < 4) throw new Error("private_frame_incomplete");
+    const bytes = Buffer.concat(chunks, total);
+    const length = bytes.readUInt32BE(0);
+    if (length < 1 || length > maximum2 || total !== length + 4) throw new Error("private_frame_incomplete");
+    let value;
     try {
-      if (options.resolver) {
-        await options.resolver.resolve();
-      }
-      const adapter = options.adapter ?? new ZCodeAppServerAdapter({
-        host: options.host,
-        ...options.resolver ? { resolver: options.resolver } : {},
-        // ADR-011: the adapter submits a snapshot only after this attempt's
-        // termination cause is established. The dedicated store entry enforces
-        // attempt/running/PID/claim ownership in one state.lock; any diagnostic
-        // rejection is swallowed here so evidence delivery never alters
-        // execution, cleanup, or the committed result.
-        onFailureFacts: (facts) => {
-          try {
-            store.writeFailureFacts(taskId, attempt, process.pid, facts);
-          } catch {
-          }
-        },
-        onEvent: (event) => {
-          store.assertWorkerAttempt(taskId, attempt);
-          if (event.type === "model_output") {
-            pendingModelOutput += event.summary;
-            if (pendingModelOutput.length >= 4e3 || Date.now() - lastModelOutputAt >= 500) flushModelOutput();
-            return;
-          }
-          flushModelOutput();
-          const persistedEvent = store.appendEvent(taskId, event.type, event.summary, event.details);
-          if (persistedEvent) {
-            heartbeat.last_event_seq = persistedEvent.seq;
-            heartbeat.last_event_type = event.type;
-          }
-          const sessionId = event.type === "session_ready" ? event.details?.["session_id"] : void 0;
-          if (typeof sessionId === "string") {
-            heartbeat.session_id = sessionId;
-            correlation.session_id = sessionId;
-            modelProfile.session_id = sessionId;
-            store.writeStatus(taskId, { zcode_session_id: sessionId }, attempt);
-          }
-          if (event.type === "turn_started") {
-            correlation.rpc_accepted_at = correlation.rpc_accepted_at ?? now().toISOString();
-            correlation.turn_started_at = now().toISOString();
-            if (typeof event.details?.["turn_id"] === "string") {
-              heartbeat.turn_id = event.details["turn_id"];
-              correlation.turn_id = event.details["turn_id"];
-              modelProfile.turn_id = event.details["turn_id"];
-            }
-            activityPhase = "executing";
-            writePhase();
-          }
-          if (event.type === "turn_completed") {
-            correlation.turn_completed_at = now().toISOString();
-            activityPhase = "finalizing";
-            writePhase();
-          }
-          if (event.type === "model_selected") {
-            if (typeof event.details?.["provider_id"] === "string") modelProfile.provider_id = event.details["provider_id"];
-            if (typeof event.details?.["model_id"] === "string") modelProfile.model_id = event.details["model_id"];
-            if (typeof event.details?.["selected_model"] === "string" && modelProfile.model_id === null) {
-              modelProfile.model_id = event.details["selected_model"];
-            }
-            if (typeof event.details?.["reasoning_level"] === "string") {
-              modelProfile.effective_reasoning_level = event.details["reasoning_level"];
-              modelProfile.effective_reasoning_level_source = "runtime";
-            }
-            if (typeof event.details?.["model_source"] === "string") modelProfile.selection_source = event.details["model_source"];
-            modelProfile.effective_at = now().toISOString();
-          }
-          if (typeof event.details?.["event_seq"] === "number") heartbeat.zcode_event_seq = event.details["event_seq"];
-          if (event.type === "app_server_started" && typeof event.details?.["pid"] === "number") {
-            store.writeStatus(taskId, { zcode_pid: event.details["pid"] }, attempt);
-            trackIdentityWrite(probe.identityOf(event.details["pid"]).then(
-              (identity) => {
-                if (identityWritesClosed) return;
-                try {
-                  store.writeExecutorIdentity(taskId, attempt, { runtime: identity });
-                  observationRevision += 1;
-                  store.writeWorkerObservation(taskId, attempt, process.pid, { runtime_identity: identity }, observationRevision, now().toISOString());
-                } catch {
-                }
-              },
-              () => void 0
-            ));
-          }
-        },
-        onInteractionState: (state) => {
-          activityPhase = state === "waiting" ? "waiting_for_permission" : "executing";
-          writePhase();
-        },
-        onOutcomeCheckpoint: (checkpoint) => {
-          store.writeAttemptMeta(taskId, attempt, "outcome-checkpoint.json", {
-            recorded_at: now().toISOString(),
-            exit_code: checkpoint.exitCode,
-            signal: checkpoint.signal,
-            session_id: checkpoint.sessionId,
-            response: checkpoint.response,
-            usage: checkpoint.usage,
-            error_code: checkpoint.errorCode,
-            report_error: checkpoint.reportError,
-            agent_report: checkpoint.agentReport,
-            report_candidate: checkpoint.reportCandidate,
-            cleanup_error: checkpoint.cleanupError ?? null,
-            cleanup_verified: checkpoint.cleanupVerified === true,
-            cleanup_member_pids: checkpoint.cleanupMemberPids ?? [],
-            usage_normalized: normalizeUsage(checkpoint.usage, { source: "zcode_runtime_turn", scope: checkpoint.sessionId ? `session:${checkpoint.sessionId}` : null, observedAt: now().toISOString() }),
-            model_profile: modelProfile
-          });
-        },
-        resolveInteraction: async (request, signal) => {
-          store.assertWorkerAttempt(taskId, attempt);
-          const safeRequest = sanitizeInteractionRequest({ ...request, request_id: `${attempt}:${request.request_id}` });
-          let record2;
-          let created = false;
-          try {
-            const written = store.writeInteractionRequest(taskId, safeRequest, now().toISOString());
-            record2 = written.record;
-            created = written.created;
-          } catch (error62) {
-            if (error62 instanceof InteractionRequestTooLargeError) {
-              store.appendEvent(taskId, "interaction_request_oversized", `ZCode requested approval of a tool input too large to deliver: ${error62.actualBytes} UTF-8 bytes, over the ${error62.limitBytes}-byte limit; the request was declined and nothing was executed`, {
-                error_code: "interaction_params_over_limit",
-                request_id: safeRequest.request_id,
-                method: safeRequest.method,
-                actual_bytes: error62.actualBytes,
-                limit_bytes: error62.limitBytes
-              }, now().toISOString());
-              return interactionDecline2(
-                request.method,
-                `Bridge cannot deliver this approval request: the tool input is ${error62.actualBytes} UTF-8 bytes, over the ${error62.limitBytes}-byte limit. Split the input into smaller parts (for example write the file in multiple Write or append steps) and retry. Nothing was executed.`
-              );
-            }
-            store.appendEvent(taskId, "interaction_request_undeliverable", "ZCode requested approval but the Bridge could not persist the request for the calling host; the request was declined and nothing was executed", {
-              error_code: "interaction_persist_failed",
-              request_id: safeRequest.request_id,
-              method: safeRequest.method
-            }, now().toISOString());
-            return interactionDecline2(
-              request.method,
-              `Bridge could not persist this approval request for the calling host (${safeErrorSummary(error62)}); the request was declined and nothing was executed. Split the input into smaller parts and retry.`
-            );
-          }
-          activityPhase = request.method === "interaction/requestPermission" ? "waiting_for_permission" : "waiting_for_user";
-          writePhase();
-          if (created) {
-            const published = publishInteractionRequest(store, taskId, safeRequest, record2);
-            if (!published.event) {
-              store.appendEvent(taskId, "interaction_request_undeliverable", `ZCode requested approval but the Bridge could not publish it to the calling host (${published.declineReason}); the request was declined and nothing was executed`, {
-                error_code: "interaction_publish_failed",
-                request_id: safeRequest.request_id,
-                method: safeRequest.method
-              }, now().toISOString());
-              const fallback = interactionDecline2(request.method, published.declineReason);
-              store.answerInteractionRequest(taskId, safeRequest.request_id, fallback, now().toISOString());
-              activityPhase = "executing";
-              writePhase();
-              return fallback;
-            }
-          }
-          let answer = null;
-          while (!signal.aborted) {
-            store.assertWorkerAttempt(taskId, attempt);
-            let current;
-            try {
-              current = store.readInteractionRequest(taskId, safeRequest.request_id);
-            } catch (error62) {
-              activityPhase = "executing";
-              writePhase();
-              store.appendEvent(taskId, "interaction_request_undeliverable", "The persisted ZCode interaction request became unreadable while waiting for the calling host; the request was declined and nothing was executed", {
-                error_code: "interaction_record_unreadable",
-                request_id: safeRequest.request_id,
-                method: safeRequest.method
-              }, now().toISOString());
-              return interactionDecline2(
-                request.method,
-                `Bridge can no longer read the full content of this approval request (${safeErrorSummary(error62)}); the request was declined and nothing was executed.`
-              );
-            }
-            if (!current) {
-              activityPhase = "executing";
-              writePhase();
-              store.appendEvent(taskId, "interaction_request_undeliverable", "The persisted ZCode interaction request disappeared while waiting for the calling host; the request was declined and nothing was executed", {
-                error_code: "interaction_record_missing",
-                request_id: safeRequest.request_id,
-                method: safeRequest.method
-              }, now().toISOString());
-              return interactionDecline2(
-                request.method,
-                "Bridge can no longer read the full content of this approval request (the persisted record disappeared); the request was declined and nothing was executed."
-              );
-            }
-            if (current.state === "answered" && current.answer) {
-              if (current.method !== safeRequest.method || stableJson(current.params) !== stableJson(safeRequest.params)) {
-                activityPhase = "executing";
-                writePhase();
-                store.appendEvent(taskId, "interaction_request_undeliverable", "The persisted ZCode interaction request no longer matches the request ZCode sent; the request was declined and nothing was executed", {
-                  error_code: "interaction_record_mismatch",
-                  request_id: safeRequest.request_id,
-                  method: safeRequest.method
-                }, now().toISOString());
-                return interactionDecline2(
-                  request.method,
-                  "Bridge can no longer read the full content of this approval request (the persisted record no longer matches the request ZCode sent); the request was declined and nothing was executed."
-                );
-              }
-              answer = current.answer;
-              break;
-            }
-            await sleep2(250);
-          }
-          activityPhase = "executing";
-          writePhase();
-          if (answer) return answer;
-          return interactionDecline2(request.method, "The task attempt ended before the calling host replied; nothing was executed");
-        }
-      });
-      const workspaceRef = store.readWorkspaceRef(taskId) ?? {
-        requestedPath: task.workspace,
-        canonicalPath: task.worktree_path ?? task.workspace,
-        mode: task.worktree_path ? "worktree" : "direct",
-        ...task.worktree_path ? { sourcePath: task.workspace } : {}
-      };
-      const handle = continueSpec ? await adapter.continueTask({
-        task,
-        workspace: workspaceRef,
-        attempt,
-        feedback: continueSpec.feedback,
-        additionalRequirements: [...continueSpec.additional_requirements ?? []],
-        previousSessionId: continueSpec.previous_session_id,
-        previousResult
-      }) : await adapter.startTask({ task, workspace: workspaceRef, attempt });
-      let cancelTimer;
-      const cancellation = new Promise((_resolve, reject) => {
-        cancelTimer = setInterval(() => {
-          try {
-            const current = store.readStatus(taskId);
-            if (current.attempt !== attempt || !current.cancel_requested) return;
-            clearInterval(cancelTimer);
-            void adapter.cancelTask(handle).catch(reject);
-          } catch (error62) {
-            clearInterval(cancelTimer);
-            reject(error62);
-          }
-        }, 50);
-      });
-      try {
-        outcome = await Promise.race([adapter.getResult(handle), cancellation]);
-      } finally {
-        clearInterval(cancelTimer);
-      }
-      if (outcome.cleanupError) failure2 = { code: "cleanup_failed", message: `ZCode returned a turn result, but process cleanup could not be verified: ${outcome.cleanupError}` };
-      flushModelOutput();
-    } catch (error62) {
-      flushModelOutput();
-      const cleanupMemberPids = error62 instanceof BridgeError && error62.code === "cleanup_failed" ? error62.memberPids ?? [] : [];
-      failure2 = {
-        code: error62 instanceof BridgeError ? error62.code : "worker_error",
-        message: error62 instanceof Error ? error62.message : String(error62)
-      };
-      if (cleanupMemberPids.length > 0) {
-        store.writeAttemptMeta(taskId, attempt, "cleanup-failure.json", {
-          member_pids: [...new Set(cleanupMemberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))],
-          complete: true,
-          last_error: failure2.message.slice(0, 300)
-        });
-      }
+      value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes.subarray(4)));
+    } catch {
+      throw new Error("private_frame_invalid");
     }
-    await reapIdentityWrites();
-    activityPhase = "finalizing";
-    writePhase();
-    const finishedAt = now().toISOString();
-    store.assertWorkerAttempt(taskId, attempt);
-    if (outcome?.cleanupError && outcome.cleanupMemberPids?.length) {
-      store.writeAttemptMeta(taskId, attempt, "cleanup-failure.json", {
-        member_pids: [...new Set(outcome.cleanupMemberPids.filter((pid) => Number.isSafeInteger(pid) && pid > 0))],
-        complete: true,
-        last_error: outcome.cleanupError.slice(0, 300)
-      });
-    }
-    const stdoutLog = store.appendLog(taskId, "stdout", outcome?.stdout ? `${outcome.stdout}
-` : "");
-    const stderrLog = store.appendLog(
-      taskId,
-      "stderr",
-      outcome?.stderr ? `${outcome.stderr}
-` : failure2 ? `${failure2.code}: ${failure2.message}
-` : ""
-    );
-    if (modelProfile.model_id === null && outcome?.modelProfile?.model_id) {
-      Object.assign(modelProfile, outcome.modelProfile);
-    }
-    correlation.rpc_accepted_at = correlation.rpc_accepted_at ?? outcome?.phaseTimestamps?.rpc_accepted_at ?? null;
-    correlation.turn_started_at = correlation.turn_started_at ?? outcome?.phaseTimestamps?.turn_started_at ?? null;
-    correlation.turn_completed_at = correlation.turn_completed_at ?? outcome?.phaseTimestamps?.turn_completed_at ?? null;
-    if (modelProfile.turn_id === null && correlation.turn_id) modelProfile.turn_id = correlation.turn_id;
-    const timingNotes = [];
-    const timing = {
-      queued_ms: phaseDuration(initialStatus.created_at, startedAt, timingNotes),
-      execution_ms: phaseDuration(startedAt, finishedAt, timingNotes),
-      turn_ms: phaseDuration(correlation.turn_started_at, correlation.turn_completed_at, timingNotes),
-      finalize_ms: phaseDuration(correlation.turn_completed_at, finishedAt, timingNotes),
-      wall_ms: phaseDuration(startedAt, finishedAt, timingNotes),
-      derived: false,
-      notes: timingNotes
-    };
-    const usage = normalizeUsage(outcome?.usage ?? null, {
-      source: "zcode_runtime_turn",
-      scope: outcome?.sessionId ? `session:${outcome.sessionId}` : null,
-      observedAt: finishedAt
-    });
-    persistCorrelation();
-    store.writeAttemptMeta(taskId, attempt, "outcome.json", {
-      started_at: startedAt,
-      finished_at: finishedAt,
-      failure: failure2,
-      outcome: outcome ? {
-        exitCode: outcome.exitCode,
-        signal: outcome.signal,
-        sessionId: outcome.sessionId,
-        response: outcome.response,
-        usage: outcome.usage,
-        timedOut: outcome.timedOut,
-        cancelled: outcome.cancelled,
-        attempts: outcome.attempts,
-        errorCode: outcome.errorCode,
-        reportError: outcome.reportError,
-        stdoutTruncated: outcome.stdoutTruncated,
-        stderrTruncated: outcome.stderrTruncated,
-        agentReport: outcome.agentReport,
-        reportCandidate: outcome.reportCandidate,
-        cleanupError: outcome.cleanupError ?? null,
-        cleanupVerified: outcome.cleanupVerified === true,
-        cleanupMemberPids: outcome.cleanupMemberPids ?? []
-      } : null,
-      usage_normalized: usage,
-      model_profile: modelProfile,
-      timing,
-      correlation: { ...correlation },
-      logs: { stdout_truncated: stdoutLog.truncated, stderr_truncated: stderrLog.truncated }
-    });
-    const result = buildTaskResult({
-      task,
-      attempt,
-      startedAt,
-      finishedAt,
-      outcome,
-      failure: failure2,
-      cancelled: outcome?.cancelled === true || failure2?.code === "cancelled",
-      sessionId: store.readStatus(taskId).zcode_session_id ?? continueSpec?.previous_session_id,
-      usage,
-      model: modelProfile,
-      timing
-    });
-    store.appendEvent(taskId, "task_finished", `Task reached terminal status: ${result.status}`, {
-      status: result.status,
-      needs_master_decision: result.needs_master_decision
-    }, finishedAt);
-    store.commitWorkerResult(taskId, attempt, result, {
-      status: result.status,
-      finished_at: finishedAt,
-      exit_code: result.exit_code,
-      zcode_session_id: result.session_id,
-      error_code: result.error_code ?? null,
-      error: result.status === "failed" ? result.summary : null,
-      worker_pid: null,
-      cleanup_unverified: failure2?.code === "cleanup_failed",
-      zcode_pid: failure2?.code === "cleanup_failed" ? store.readStatus(taskId).zcode_pid : null
-    });
-    return { status: result.status, result };
+    return value;
+  } catch (error62) {
+    if (signal.aborted) throw new Error("private_frame_cancelled");
+    if (error62 instanceof Error && /^private_frame_[a-z_]+$/u.test(error62.message)) throw error62;
+    throw new Error("private_frame_transport_failed");
   } finally {
-    if (heartbeatTimer) clearInterval(heartbeatTimer);
-    if (persistCorrelationTimer) clearInterval(persistCorrelationTimer);
-    await reapIdentityWrites();
+    signal.removeEventListener("abort", abort);
+    chunks.length = 0;
   }
 }
-function commitProvenanceRejection(store, task, attempt, startedAt, finishedAt, check2) {
-  const message = `Worker provenance rejected: ${check2.reason}`;
-  const result = buildTaskResult({
-    task,
-    attempt,
-    startedAt,
-    finishedAt,
-    outcome: null,
-    failure: { code: check2.errorCode, message }
-  });
-  store.appendEvent(task.task_id, "worker_provenance_rejected", "Worker startup was refused by the Bridge provenance gate", {
-    error_code: check2.errorCode
-  }, finishedAt);
-  store.appendEvent(task.task_id, "task_finished", "Task reached terminal status: failed", {
-    status: "failed",
-    needs_master_decision: true
-  }, finishedAt);
-  store.commitWorkerResult(task.task_id, attempt, result, {
-    status: "failed",
-    finished_at: finishedAt,
-    exit_code: null,
-    error_code: check2.errorCode,
-    error: result.summary,
-    worker_pid: null,
-    zcode_pid: null,
-    cleanup_unverified: false
-  });
-  return { status: result.status, result };
-}
-function interactionSummary(request) {
-  const params = request.params;
-  if (request.method === "interaction/requestPermission") {
-    const toolName = typeof params.toolName === "string" ? params.toolName : "tool";
-    const reason = typeof params.reason === "string" ? `: ${params.reason}` : "";
-    return `ZCode is waiting for the calling host to decide whether ${toolName} may proceed${reason}`;
-  }
-  if (asRecord3(params.schema).interaction === "plan_approval") {
-    return "ZCode is waiting for the calling host to approve or reject its plan";
-  }
-  return "ZCode is waiting for the calling host to answer a question";
-}
-function publicInteractionDetails(request) {
-  const params = request.params;
-  const details = {
-    request_id: request.request_id,
-    method: request.method,
-    ...typeof params.sessionId === "string" ? { session_id: params.sessionId } : {},
-    ...typeof params.toolCallId === "string" ? { tool_call_id: params.toolCallId } : {}
+async function writePrivateFrame(stream, value, maximum2, signal) {
+  if (signal.aborted) throw new Error("private_frame_cancelled");
+  const json2 = JSON.stringify(value);
+  if (typeof json2 !== "string") throw new Error("private_frame_invalid");
+  const body = Buffer.from(json2, "utf8");
+  if (!Number.isSafeInteger(maximum2) || maximum2 < 1 || body.length < 1 || body.length > maximum2) throw new Error("private_frame_size_invalid");
+  const prefix = Buffer.allocUnsafe(4);
+  prefix.writeUInt32BE(body.length);
+  const frame = Buffer.concat([prefix, body]);
+  const abort = () => {
+    stream.destroy();
   };
-  for (const key of ["toolName", "reason", "input", "options", "schema", "questions"]) {
-    if (params[key] !== void 0) details[key] = params[key];
+  signal.addEventListener("abort", abort, { once: true });
+  try {
+    await new Promise((resolve, reject) => {
+      const onError = () => {
+        cleanup();
+        reject(new Error("private_frame_delivery_unknown"));
+      };
+      const onClose = () => {
+        cleanup();
+        reject(new Error("private_frame_delivery_unknown"));
+      };
+      const onFinish = () => {
+        cleanup();
+        resolve();
+      };
+      const cleanup = () => {
+        stream.removeListener("error", onError);
+        stream.removeListener("close", onClose);
+        stream.removeListener("finish", onFinish);
+      };
+      stream.once("error", onError);
+      stream.once("close", onClose);
+      stream.once("finish", onFinish);
+      if (signal.aborted) {
+        cleanup();
+        reject(new Error("private_frame_delivery_unknown"));
+        return;
+      }
+      stream.end(frame);
+    });
+    if (signal.aborted) throw new Error("private_frame_delivery_unknown");
+  } finally {
+    signal.removeEventListener("abort", abort);
   }
-  if (details["questions"] === void 0 && Array.isArray(asRecord3(params.input).questions)) {
-    details["questions"] = asRecord3(params.input).questions;
-  }
-  return details;
 }
-function publishInteractionRequest(store, taskId, request, record2) {
-  const full = store.appendEvent(taskId, "interaction_requested", interactionSummary(request), publicInteractionDetails(request), record2.created_at);
-  if (full) return { event: full, declineReason: "" };
-  const preview = store.appendEvent(taskId, "interaction_requested", interactionSummary(request), previewInteractionDetails(store, taskId, request, record2), record2.created_at);
-  if (preview) return { event: preview, declineReason: "" };
-  return {
-    event: null,
-    declineReason: "Bridge could not publish this request to the calling host because the task event log is out of capacity; the request was declined and nothing was executed. Retry with a smaller input after freeing task history."
-  };
-}
-function previewInteractionDetails(store, taskId, request, record2) {
-  const params = request.params;
-  const inputBytes = Buffer.byteLength(JSON.stringify(params.input ?? null), "utf8");
-  const details = {
-    request_id: request.request_id,
-    method: request.method,
-    ...typeof params.sessionId === "string" ? { session_id: params.sessionId } : {},
-    ...typeof params.toolCallId === "string" ? { tool_call_id: params.toolCallId } : {},
-    ...typeof params.toolName === "string" ? { tool_name: params.toolName } : {},
-    preview: true
-  };
-  if (params.reason !== void 0) {
-    const bounded2 = boundedUtf8Text(typeof params.reason === "string" ? params.reason : JSON.stringify(params.reason), PREVIEW_REASON_CHARS);
-    details["reason"] = bounded2.text;
-    if (bounded2.truncated) details["reason_preview_truncated"] = true;
-  }
-  if (params.input !== void 0) {
-    details["input_preview"] = boundedJsonPreview(params.input, PREVIEW_INPUT_BUDGET_BYTES);
-    details["input_bytes"] = inputBytes;
-  }
-  if (params.questions !== void 0 && !Array.isArray(asRecord3(params.input).questions)) {
-    details["questions_preview"] = boundedJsonPreview(params.questions, PREVIEW_SECONDARY_BUDGET_BYTES);
-  }
-  for (const key of ["options", "schema"]) {
-    if (params[key] === void 0) continue;
-    const serialized = JSON.stringify(params[key]) ?? "null";
-    if (Buffer.byteLength(serialized, "utf8") <= PREVIEW_SECONDARY_BUDGET_BYTES) details[key] = params[key];
-    else details[`${key}_preview`] = boundedJsonPreview(params[key], PREVIEW_SECONDARY_BUDGET_BYTES);
-  }
-  details["full_request"] = {
-    task_id: taskId,
-    request_id: request.request_id,
-    file: store.interactionRequestPath(taskId, request.request_id),
-    ...typeof record2.params_bytes === "number" ? { bytes: record2.params_bytes } : {},
-    ...record2.params_sha256 ? { sha256: record2.params_sha256 } : {}
-  };
-  return details;
-}
-function boundedUtf8Text(text, budgetBytes) {
-  if (Buffer.byteLength(text, "utf8") <= budgetBytes) return { text, truncated: false };
-  const buffer = Buffer.from(text, "utf8").subarray(0, budgetBytes);
-  let end = buffer.length;
-  while (end > 0 && (buffer[end - 1] & 192) === 128) end -= 1;
-  if (end > 0 && (buffer[end - 1] & 192) === 192) end -= 1;
-  return { text: buffer.subarray(0, end).toString("utf8"), truncated: true };
-}
-function boundedJsonPreview(value, budgetBytes) {
-  const serialized = JSON.stringify(value) ?? "null";
-  const totalBytes = Buffer.byteLength(serialized, "utf8");
-  const bounded2 = boundedUtf8Text(serialized, budgetBytes);
-  if (!bounded2.truncated) return serialized;
-  return `${bounded2.text}\u2026[preview truncated; showing at most ${budgetBytes} of ${totalBytes} UTF-8 bytes \u2014 read full_request.file for the complete input]`;
-}
-function safeErrorSummary(error62) {
-  if (error62 instanceof Error) {
-    const code = error62.code;
-    if (typeof code === "string" && code) return code;
-    return error62.message.split(/\r?\n/u)[0].slice(0, 300);
-  }
-  return String(error62).slice(0, 300);
-}
-function sanitizeInteractionRequest(request) {
-  const params = {};
-  for (const key of ["sessionId", "toolCallId", "toolName", "reason", "input", "options", "schema", "questions"]) {
-    if (request.params[key] !== void 0) params[key] = request.params[key];
-  }
-  if (params["questions"] === void 0 && Array.isArray(asRecord3(params["input"]).questions)) {
-    params["questions"] = asRecord3(params["input"]).questions;
-  }
-  return { request_id: request.request_id, method: request.method, params };
-}
-function interactionDecline2(method, reason) {
-  return method === "interaction/requestPermission" ? { decision: "deny", reason } : { action: "decline", reason };
-}
-function asRecord3(value) {
-  return typeof value === "object" && value !== null && !Array.isArray(value) ? value : {};
-}
-function sleep2(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-var PREVIEW_INPUT_BUDGET_BYTES, PREVIEW_SECONDARY_BUDGET_BYTES, PREVIEW_REASON_CHARS;
-var init_run_task = __esm({
-  "src/worker/run-task.ts"() {
+var init_start_plan_private_frame = __esm({
+  "src/runtime/start-plan-private-frame.ts"() {
     "use strict";
-    init_zcode_app_server_adapter();
-    init_errors();
-    init_task_prompt();
-    init_normalize();
-    init_task_store();
-    init_process_probe();
-    init_normalize2();
-    init_build_provenance();
-    init_json_writer_quiescence();
-    PREVIEW_INPUT_BUDGET_BYTES = 2e4;
-    PREVIEW_SECONDARY_BUDGET_BYTES = 4e3;
-    PREVIEW_REASON_CHARS = 1500;
   }
 });
 
-// src/sqlite-candidate/wp6b2b1/launch-bootstrap.ts
-var launch_bootstrap_exports = {};
-__export(launch_bootstrap_exports, {
-  createLaunchBootstrap: () => createLaunchBootstrap,
-  decodeLaunchBootstrap: () => decodeLaunchBootstrap,
-  deriveAdmissionPolicySnapshotDigest: () => deriveAdmissionPolicySnapshotDigest,
-  encodeLaunchBootstrap: () => encodeLaunchBootstrap,
-  spawnAndBootstrapOnce: () => spawnAndBootstrapOnce,
-  writeLaunchBootstrap: () => writeLaunchBootstrap
+// src/runtime/start-plan-private-channel.ts
+var start_plan_private_channel_exports = {};
+__export(start_plan_private_channel_exports, {
+  receivePrivateCredential: () => receivePrivateCredential,
+  servePrivateCredential: () => servePrivateCredential
 });
-import { createHash as createHash5 } from "node:crypto";
-function createLaunchBootstrap(source) {
-  const snapshot = source.policy_snapshot;
-  const bootstrap = {
-    protocol: "bridge-launch-bootstrap-v1",
-    operation_id: source.operation_id,
-    task_id: source.task_id,
-    attempt: source.attempt,
-    generation: source.generation,
-    launch_id: source.launch_id,
-    launch_epoch: source.launch_epoch,
-    launch_token: source.launch_token,
-    authorization_source: snapshot.authorization_source,
-    workspace_ref: snapshot.workspace_ref,
-    policy_revision: snapshot.policy_revision,
-    policy_digest: snapshot.policy_digest,
-    execution_profile_id: snapshot.execution_profile_id,
-    policy_snapshot_digest: snapshot.policy_snapshot_digest
-  };
-  validate2(bootstrap);
-  return bootstrap;
-}
-function encodeLaunchBootstrap(value) {
-  validate2(value);
-  const frame = Buffer.from(`${JSON.stringify(value)}
-`, "utf8");
-  if (frame.byteLength > MAX_FRAME_BYTES2) throw new TypeError("launch bootstrap exceeds frame limit");
-  return frame;
-}
-function decodeLaunchBootstrap(frame) {
-  const bytes = typeof frame === "string" ? Buffer.from(frame, "utf8") : Buffer.from(frame);
-  if (bytes.byteLength === 0 || bytes.byteLength > MAX_FRAME_BYTES2 || bytes.at(-1) !== 10 || bytes.subarray(0, -1).includes(10)) throw new TypeError("invalid launch bootstrap frame");
-  const payload = bytes.subarray(0, -1);
-  const text = payload.toString("utf8");
-  if (!Buffer.from(text, "utf8").equals(payload)) throw new TypeError("invalid launch bootstrap UTF-8");
-  const value = JSON.parse(text);
-  validate2(value);
+import { randomUUID as randomUUID2 } from "node:crypto";
+function record2(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("private_auth_invalid");
   return value;
 }
-function writeLaunchBootstrap(channel, source) {
-  const frame = encodeLaunchBootstrap(createLaunchBootstrap(source));
-  return new Promise((resolve, reject) => {
-    let settled = false;
-    const finish = (error62) => {
-      if (settled) return;
-      settled = true;
-      channel.removeListener("error", onError);
-      channel.removeListener("finish", onFinish);
-      if (error62) reject(error62);
-      else resolve();
-    };
-    const onError = (error62) => finish(error62);
-    const onFinish = () => finish();
-    channel.once("error", onError);
-    channel.once("finish", onFinish);
-    try {
-      channel.end(frame);
-    } catch (error62) {
-      finish(error62 instanceof Error ? error62 : new Error(String(error62)));
-    }
-  });
+function exactKeys(value, keys) {
+  if (Object.keys(value).sort().join("|") !== [...keys].sort().join("|")) throw new Error("private_auth_invalid");
 }
-async function spawnAndBootstrapOnce(spawnChild, source) {
-  let child;
+function boundedSignal(parent, timeoutMs) {
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 6e4) throw new Error("private_auth_invalid");
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  parent.addEventListener("abort", abort, { once: true });
+  if (parent.aborted) abort();
+  const timer = setTimeout(abort, timeoutMs);
+  timer.unref();
+  return { signal: controller.signal, close() {
+    clearTimeout(timer);
+    parent.removeEventListener("abort", abort);
+  } };
+}
+async function servePrivateCredential(options) {
+  const bounded2 = boundedSignal(options.signal, options.timeoutMs);
+  let lease;
   try {
-    child = await spawnChild();
-  } catch {
-    return { state: "launch_outcome_unknown", reason: "spawn_threw" };
-  }
-  if (!child.bootstrapChannel) return { state: "launch_outcome_unknown", reason: "private_channel_unavailable", child };
-  try {
-    await writeLaunchBootstrap(child.bootstrapChannel, source);
-    return { state: "bootstrap_sent", child };
-  } catch {
-    return { state: "launch_outcome_unknown", reason: "private_channel_failed", child };
-  }
-}
-function validate2(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("invalid launch bootstrap");
-  const record2 = value;
-  if (Object.keys(record2).sort().join("\0") !== [...KEYS].sort().join("\0") || record2.protocol !== "bridge-launch-bootstrap-v1" || !validId(record2.operation_id) || !validId(record2.task_id) || !validId(record2.launch_id) || !validToken(record2.launch_token) || !positive(record2.attempt) || !positive(record2.generation) || !positive(record2.launch_epoch) || record2.authorization_source !== "trusted_local_policy" || !validWorkspace(record2.workspace_ref) || !validId(record2.policy_revision) || !validDigest(record2.policy_digest) || !validId(record2.execution_profile_id) || !validDigest(record2.policy_snapshot_digest) || record2.policy_snapshot_digest !== deriveAdmissionPolicySnapshotDigest(record2)) {
-    throw new TypeError("invalid launch bootstrap fields");
-  }
-}
-function deriveAdmissionPolicySnapshotDigest(value) {
-  const envelope = {
-    contract: "bridge-admission-policy-snapshot-v1",
-    operation_id: value.operation_id,
-    task_id: value.task_id,
-    attempt: value.attempt,
-    generation: value.generation,
-    workspace_ref: value.workspace_ref,
-    authorization_source: value.authorization_source,
-    policy_revision: value.policy_revision,
-    policy_digest: value.policy_digest,
-    execution_profile_id: value.execution_profile_id
-  };
-  return createHash5("sha256").update(canonicalJson(envelope), "utf8").digest("hex");
-}
-function canonicalJson(value) {
-  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
-  if (typeof value === "number" && Number.isSafeInteger(value)) return JSON.stringify(value);
-  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
-  if (value && Object.getPrototypeOf(value) === Object.prototype) {
-    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
-  }
-  throw new TypeError("invalid admission policy snapshot");
-}
-function validId(value) {
-  return typeof value === "string" && value.length > 0 && value.length <= 128 && !/[\x00-\x1f]/u.test(value);
-}
-function positive(value) {
-  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
-}
-function validToken(value) {
-  return typeof value === "string" && Buffer.byteLength(value, "utf8") >= 16 && Buffer.byteLength(value, "utf8") <= 4096;
-}
-function validDigest(value) {
-  return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value);
-}
-function validWorkspace(value) {
-  return typeof value === "string" && value.length > 0 && value.length <= 4096 && !/[\x00-\x1f]/u.test(value);
-}
-var KEYS, MAX_FRAME_BYTES2;
-var init_launch_bootstrap = __esm({
-  "src/sqlite-candidate/wp6b2b1/launch-bootstrap.ts"() {
-    "use strict";
-    KEYS = ["attempt", "authorization_source", "execution_profile_id", "generation", "launch_epoch", "launch_id", "launch_token", "operation_id", "policy_digest", "policy_revision", "policy_snapshot_digest", "protocol", "task_id", "workspace_ref"];
-    MAX_FRAME_BYTES2 = 8192;
-  }
-});
-
-// src/sqlite-candidate/wp6b2b1/interaction-channel.mjs
-var interaction_channel_exports = {};
-__export(interaction_channel_exports, {
-  createCandidateInteractionChannel: () => createCandidateInteractionChannel,
-  createCandidateWorkerInteractionChannel: () => createCandidateWorkerInteractionChannel,
-  isCandidateInteractionAcknowledgement: () => isCandidateInteractionAcknowledgement,
-  isCandidateInteractionChannel: () => isCandidateInteractionChannel,
-  isCandidateInteractionPreparedAcknowledgement: () => isCandidateInteractionPreparedAcknowledgement
-});
-import { createHash as createHash6 } from "node:crypto";
-async function createCandidateInteractionChannel(child, operation, verifyProcessIdentity) {
-  if (!child || !Number.isSafeInteger(child.pid) || !Array.isArray(child.stdio) || child.stdio.length < 10 || !operation || operation.operation_kind !== "attempt_lifecycle" || operation.phase !== "running" || !Number.isSafeInteger(operation.generation) || operation.generation < 1 || !operation.claim_id || operation.claim_generation !== operation.generation || !operation.claim_worker_identity_json || !operation.launch_identity_json || !operation.claim_worker_identity_digest || typeof verifyProcessIdentity !== "function") throw coded("interaction_channel_unavailable");
-  let worker;
-  let launch;
-  try {
-    worker = JSON.parse(operation.claim_worker_identity_json);
-    launch = JSON.parse(operation.launch_identity_json);
-  } catch {
-    throw coded("interaction_channel_identity_invalid");
-  }
-  if (worker.process_id !== child.pid || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || sha256(stableJson2(worker)) !== operation.claim_worker_identity_digest)
-    throw coded("interaction_channel_identity_mismatch");
-  const requestStream = child.stdio[7];
-  const replyStream = child.stdio[8];
-  const ackStream = child.stdio[9];
-  if (!requestStream || typeof requestStream[Symbol.asyncIterator] !== "function" || !replyStream || typeof replyStream.write !== "function" || !ackStream || typeof ackStream[Symbol.asyncIterator] !== "function") throw coded("interaction_channel_unavailable");
-  const binding = Object.freeze({
-    operation_id: operation.operation_id,
-    task_id: operation.task_id,
-    attempt: operation.attempt,
-    generation: operation.generation,
-    claim_id: operation.claim_id,
-    worker_identity_digest: operation.claim_worker_identity_digest,
-    process_id: worker.process_id,
-    start_fingerprint: worker.start_fingerprint
-  });
-  const requestReader = new JsonLineReader(requestStream);
-  const ackReader = new JsonLineReader(ackStream);
-  let sendPending = false;
-  const verifyLive = async () => {
-    if (child.exitCode !== null || child.signalCode !== null) throw coded("interaction_worker_not_live");
-    let observed;
-    try {
-      observed = await verifyProcessIdentity({ child, expected: binding });
-    } catch {
-      throw coded("interaction_channel_identity_unknown");
-    }
-    if (!observed || observed.state !== "verified" || observed.process_id !== binding.process_id || observed.start_fingerprint !== binding.start_fingerprint) throw coded("interaction_channel_identity_mismatch");
-  };
-  const channel = {
-    binding,
-    async receiveRequest() {
-      await verifyLive();
-      const frame = await requestReader.read();
-      const expected = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "request", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(frame).sort().join("|") !== expected.join("|") || frame.protocol !== "bridge-sqlite-interaction-request-v1" || !sameBinding(frame, binding) || !validRequest(frame.request)) throw coded("interaction_frame_identity_mismatch");
-      return Object.freeze({ binding, request: Object.freeze(frame.request) });
-    },
-    async prepareReply(reply) {
-      if (sendPending) throw coded("interaction_channel_busy");
-      sendPending = true;
-      try {
-        await verifyLive();
-        if (!sameBinding(reply, binding) || !validId2(reply.request_id) || !validId2(reply.reply_id) || !Number.isSafeInteger(reply.revision) || reply.revision < 1 || !/^[0-9a-f]{64}$/u.test(reply.answer_digest) || !reply.answer || Object.getPrototypeOf(reply.answer) !== Object.prototype) throw coded("interaction_reply_binding_mismatch");
-        const frame = {
-          protocol: "bridge-sqlite-interaction-prepare-v1",
-          ...binding,
-          request_id: reply.request_id,
-          reply_id: reply.reply_id,
-          revision: reply.revision,
-          answer: reply.answer,
-          answer_digest: reply.answer_digest
-        };
-        await writeFrame(replyStream, frame);
-        await verifyLive();
-        const ack = await ackReader.read(8192);
-        validateAck(ack, "prepared", binding, reply);
-        const proof = Object.freeze({
-          ...binding,
-          request_id: reply.request_id,
-          reply_id: reply.reply_id,
-          revision: reply.revision,
-          answer_digest: reply.answer_digest,
-          ack_digest: sha256(stableJson2(ack))
-        });
-        PREPARED_ACKNOWLEDGEMENTS.add(proof);
-        return proof;
-      } finally {
-        sendPending = false;
-      }
-    },
-    async commitReply(reply, commit) {
-      if (sendPending) throw coded("interaction_channel_busy");
-      if (!commit || commit.state !== "committed" || !sameBinding(commit, binding) || commit.request_id !== reply.request_id || commit.reply_id !== reply.reply_id || commit.answer_digest !== reply.answer_digest || !Number.isSafeInteger(commit.revision) || !/^[0-9a-f]{64}$/u.test(commit.prepared_digest) || !/^[0-9a-f]{64}$/u.test(commit.commit_digest)) throw coded("interaction_commit_binding_mismatch");
-      sendPending = true;
-      try {
-        await verifyLive();
-        const frame = {
-          protocol: "bridge-sqlite-interaction-commit-v1",
-          ...binding,
-          request_id: reply.request_id,
-          reply_id: reply.reply_id,
-          revision: commit.revision,
-          answer_digest: reply.answer_digest,
-          prepared_digest: commit.prepared_digest,
-          commit_digest: commit.commit_digest
-        };
-        await writeFrame(replyStream, frame);
-        const ack = await ackReader.read(8192);
-        validateAck(ack, "accepted", binding, { ...reply, revision: commit.revision });
-        const proof = Object.freeze({
-          ...binding,
-          request_id: reply.request_id,
-          reply_id: reply.reply_id,
-          revision: commit.revision,
-          answer_digest: reply.answer_digest,
-          commit_digest: commit.commit_digest,
-          ack_digest: sha256(stableJson2(ack))
-        });
-        ACKNOWLEDGEMENTS.add(proof);
-        return proof;
-      } finally {
-        sendPending = false;
-      }
-    }
-  };
-  await verifyLive();
-  await writeFrame(replyStream, { protocol: "bridge-sqlite-interaction-bind-v1", ...binding });
-  CHANNELS.add(channel);
-  return Object.freeze(channel);
-}
-async function createCandidateWorkerInteractionChannel({
-  requestStream,
-  replyStream,
-  ackStream,
-  processId,
-  verifySelfIdentity,
-  onStage = (
-    /** @type {(stage: string) => void} */
-    (() => {
-    })
-  )
-}) {
-  if (!Number.isSafeInteger(processId) || processId < 1 || typeof verifySelfIdentity !== "function" || !requestStream || typeof requestStream.write !== "function" || !replyStream || typeof replyStream[Symbol.asyncIterator] !== "function" || !ackStream || typeof ackStream.write !== "function") throw coded("interaction_channel_unavailable");
-  const replyReader = new JsonLineReader(replyStream);
-  onStage("worker bind read");
-  const bind = await replyReader.read(8192);
-  onStage("worker bind received");
-  const bindKeys = ["attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "start_fingerprint", "task_id", "worker_identity_digest"];
-  if (Object.keys(bind).sort().join("|") !== bindKeys.join("|") || bind.protocol !== "bridge-sqlite-interaction-bind-v1" || !validBinding(bind) || bind.process_id !== processId) throw coded("interaction_bind_invalid");
-  let observed;
-  onStage("worker identity verification");
-  try {
-    observed = await verifySelfIdentity({ processId, expected: bind });
-  } catch {
-    throw coded("interaction_channel_identity_unknown");
-  }
-  if (!observed || observed.state !== "verified" || observed.process_id !== processId || observed.start_fingerprint !== bind.start_fingerprint) throw coded("interaction_bind_identity_mismatch");
-  onStage("worker identity verified");
-  let pendingReply = null;
-  let closed = false;
-  const channel = {
-    async close() {
-      if (closed) return;
-      closed = true;
-      onStage("worker close request stream start");
-      await closeWritable(requestStream);
-      onStage("worker close request stream complete");
-      await closeReadable(replyStream);
-      onStage("worker close reply stream complete");
-      await closeWritable(ackStream);
-      onStage("worker close acknowledgement stream complete");
-    },
-    binding: Object.freeze({ ...bind, protocol: void 0 }),
-    async sendRequest(request) {
-      if (closed) throw coded("interaction_channel_closed");
-      if (pendingReply) throw coded("interaction_channel_busy");
-      if (!validRequest(request)) throw coded("interaction_frame_invalid");
-      onStage("worker request write");
-      await writeFrame(requestStream, { ...bindingWithoutProtocol(bind), protocol: "bridge-sqlite-interaction-request-v1", request });
-      onStage("worker request written");
-      onStage("worker prepare reply read");
-      const frame = await replyReader.read();
-      onStage("worker prepare reply received");
-      const keys = ["answer", "answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(frame).sort().join("|") !== keys.join("|") || frame.protocol !== "bridge-sqlite-interaction-prepare-v1" || !sameBinding(frame, bind) || frame.request_id !== request.request_id || !validId2(frame.reply_id) || !Number.isSafeInteger(frame.revision) || frame.revision < 1 || !/^[0-9a-f]{64}$/u.test(frame.answer_digest) || !validPersistedInteractionAnswer(request, frame.answer) || interactionReplyDigest(bind, request.request_id, frame.answer) !== frame.answer_digest) throw coded("interaction_prepare_invalid");
-      const preparedAck = {
-        protocol: "bridge-sqlite-interaction-ack-v1",
-        state: "prepared",
-        ...bindingWithoutProtocol(bind),
-        request_id: request.request_id,
-        reply_id: frame.reply_id,
-        revision: frame.revision,
-        answer_digest: frame.answer_digest
+    const request = record2(await readPrivateFrame(options.request, maximum, bounded2.signal));
+    exactKeys(request, ["protocol", "requestId", "binding"]);
+    if (request.protocol !== "start-plan-private-request-v1" || typeof request.requestId !== "string" || !request.requestId) throw new Error("private_auth_invalid");
+    const resolved = await new Promise((resolve, reject) => {
+      const abort = () => {
+        cleanup();
+        reject(new Error("private_auth_cancelled"));
       };
-      await writeFrame(ackStream, preparedAck);
-      pendingReply = { request, frame, preparedAck };
-      return Object.freeze({ state: "prepared", request_id: request.request_id, reply_id: frame.reply_id });
-    },
-    async acceptCommittedReply() {
-      if (closed) throw coded("interaction_channel_closed");
-      if (!pendingReply) throw coded("interaction_reply_not_prepared");
-      onStage("worker committed reply frame read");
-      const { request, frame, preparedAck } = pendingReply;
-      const commit = await replyReader.read(8192);
-      onStage("worker committed reply frame received");
-      const commitKeys = ["answer_digest", "attempt", "claim_id", "commit_digest", "generation", "operation_id", "prepared_digest", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "task_id", "worker_identity_digest"];
-      if (Object.keys(commit).sort().join("|") !== commitKeys.join("|") || commit.protocol !== "bridge-sqlite-interaction-commit-v1" || !sameBinding(commit, bind) || commit.request_id !== request.request_id || commit.reply_id !== frame.reply_id || commit.answer_digest !== frame.answer_digest || commit.revision <= frame.revision || commit.prepared_digest !== sha256(stableJson2(preparedAck)) || commit.commit_digest !== interactionCommitDigest(bind, commit)) throw coded("interaction_commit_invalid");
-      const ack = {
-        protocol: "bridge-sqlite-interaction-ack-v1",
-        state: "accepted",
-        ...bindingWithoutProtocol(bind),
-        request_id: request.request_id,
-        reply_id: frame.reply_id,
-        revision: commit.revision,
-        answer_digest: frame.answer_digest
-      };
-      onStage("worker accepted acknowledgement write start");
-      await writeFrame(ackStream, ack);
-      onStage("worker accepted acknowledgement write complete");
-      pendingReply = null;
-      return Object.freeze({ answer: frame.answer, reply_id: frame.reply_id, answer_digest: frame.answer_digest });
-    }
-  };
-  return Object.freeze(channel);
-}
-function isCandidateInteractionPreparedAcknowledgement(value) {
-  return !!value && PREPARED_ACKNOWLEDGEMENTS.has(value);
-}
-function isCandidateInteractionAcknowledgement(value) {
-  return !!value && ACKNOWLEDGEMENTS.has(value);
-}
-function isCandidateInteractionChannel(value) {
-  return !!value && CHANNELS.has(value);
-}
-async function writeFrame(stream, frame) {
-  const bytes = Buffer.from(`${stableJson2(frame)}
-`, "utf8");
-  if (bytes.length > MAX_FRAME_BYTES3) throw coded("interaction_frame_too_large");
-  await new Promise((resolve, reject) => {
-    try {
-      stream.write(bytes, (error62) => error62 ? reject(error62) : resolve());
-    } catch (error62) {
-      reject(error62);
-    }
-  });
-}
-function validateAck(ack, state, binding, reply) {
-  const keys = ["answer_digest", "attempt", "claim_id", "generation", "operation_id", "process_id", "protocol", "reply_id", "request_id", "revision", "start_fingerprint", "state", "task_id", "worker_identity_digest"];
-  if (Object.keys(ack).sort().join("|") !== keys.join("|") || ack.protocol !== "bridge-sqlite-interaction-ack-v1" || ack.state !== state || !sameBinding(ack, binding) || ack.request_id !== reply.request_id || ack.reply_id !== reply.reply_id || ack.revision !== reply.revision || ack.answer_digest !== reply.answer_digest)
-    throw coded("interaction_ack_mismatch");
-}
-function validBinding(value) {
-  return value.protocol === "bridge-sqlite-interaction-bind-v1" && validId2(value.operation_id) && validId2(value.task_id) && Number.isSafeInteger(value.attempt) && value.attempt > 0 && Number.isSafeInteger(value.generation) && value.generation > 0 && validId2(value.claim_id) && /^[0-9a-f]{64}$/u.test(value.worker_identity_digest) && Number.isSafeInteger(value.process_id) && value.process_id > 0 && typeof value.start_fingerprint === "string" && !!value.start_fingerprint;
-}
-function bindingWithoutProtocol(value) {
-  const { protocol: _protocol, ...binding } = value;
-  return binding;
-}
-function interactionReplyDigest(binding, requestId, answer) {
-  return sha256(stableJson2({
-    interaction_reply_contract_version: 1,
-    operation_id: binding.operation_id,
-    task_id: binding.task_id,
-    attempt: binding.attempt,
-    generation: binding.generation,
-    claim_id: binding.claim_id,
-    worker_identity_digest: binding.worker_identity_digest,
-    request_id: requestId,
-    answer
-  }));
-}
-function interactionCommitDigest(binding, commit) {
-  return sha256(stableJson2({
-    interaction_commit_contract_version: 1,
-    operation_id: binding.operation_id,
-    task_id: binding.task_id,
-    attempt: binding.attempt,
-    generation: binding.generation,
-    claim_id: binding.claim_id,
-    worker_identity_digest: binding.worker_identity_digest,
-    request_id: commit.request_id,
-    reply_id: commit.reply_id,
-    revision: commit.revision,
-    answer_digest: commit.answer_digest,
-    prepared_digest: commit.prepared_digest
-  }));
-}
-function validPersistedInteractionAnswer(request, answer) {
-  if (!answer || Object.getPrototypeOf(answer) !== Object.prototype) return false;
-  if (request.method === "interaction/requestPermission") {
-    const keys = Object.keys(answer).sort().join("|");
-    if (answer.decision === "allow") return keys === "decision" && Array.isArray(request.params.options) && request.params.options.some((option) => option && Object.getPrototypeOf(option) === Object.prototype && typeof option.kind === "string" && option.kind.startsWith("allow"));
-    return answer.decision === "deny" && keys === "decision|reason" && typeof answer.reason === "string" && answer.reason.length <= 2e3;
-  }
-  if (answer.action === "decline") return Object.keys(answer).join("|") === "action";
-  if (answer.action !== "accept" || Object.keys(answer).sort().join("|") !== "action|content" || !answer.content || Object.getPrototypeOf(answer.content) !== Object.prototype) return false;
-  if (request.params.schema && Object.getPrototypeOf(request.params.schema) === Object.prototype && request.params.schema.interaction === "plan_approval") return Object.keys(answer.content).join("|") === "answer_0" && answer.content.answer_0 === "approve";
-  if (Object.keys(answer.content).join("|") !== "answers" || !answer.content.answers || Object.getPrototypeOf(answer.content.answers) !== Object.prototype) return false;
-  const nested = request.params.input && Object.getPrototypeOf(request.params.input) === Object.prototype ? request.params.input : {};
-  const raw = Array.isArray(request.params.questions) ? request.params.questions : Array.isArray(nested.questions) ? nested.questions : [];
-  const questions = raw.filter((question) => question && Object.getPrototypeOf(question) === Object.prototype && typeof question.question === "string").map((question) => question.question);
-  const entries = Object.entries(answer.content.answers);
-  return entries.length > 0 && entries.every(([key, value]) => questions.includes(key) && typeof value === "string" && !!value.trim() && value.length <= 4e3) && Buffer.byteLength(stableJson2(answer.content.answers), "utf8") <= 16e3;
-}
-function sameBinding(value, binding) {
-  return value.operation_id === binding.operation_id && value.task_id === binding.task_id && value.attempt === binding.attempt && value.generation === binding.generation && value.claim_id === binding.claim_id && value.worker_identity_digest === binding.worker_identity_digest && value.process_id === binding.process_id && value.start_fingerprint === binding.start_fingerprint;
-}
-function validRequest(value) {
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== "method|params|request_id" || !validId2(value.request_id) || value.request_id.length > 512 || !["interaction/requestPermission", "interaction/requestUserInput"].includes(value.method) || !value.params || Object.getPrototypeOf(value.params) !== Object.prototype) return false;
-  try {
-    return Buffer.byteLength(stableJson2(value), "utf8") <= MAX_REQUEST_BYTES;
-  } catch {
-    return false;
-  }
-}
-function validId2(value) {
-  return typeof value === "string" && value.length > 0 && value.length <= 512 && !/[\x00-\x1f]/u.test(value);
-}
-function stableJson2(value, depth = 0) {
-  if (depth > 32) throw coded("interaction_json_too_deep");
-  if (value === null || typeof value === "string" || typeof value === "boolean") return JSON.stringify(value);
-  if (typeof value === "number" && Number.isFinite(value)) return JSON.stringify(value);
-  if (Array.isArray(value)) {
-    if (value.length > 256) throw coded("interaction_json_too_large");
-    return `[${value.map((item) => stableJson2(item, depth + 1)).join(",")}]`;
-  }
-  if (value && Object.getPrototypeOf(value) === Object.prototype) {
-    const keys = Object.keys(value);
-    if (keys.length > 256 || keys.some((key) => key !== key.normalize("NFC"))) throw coded("interaction_json_invalid");
-    return `{${keys.sort().map((key) => `${JSON.stringify(key)}:${stableJson2(value[key], depth + 1)}`).join(",")}}`;
-  }
-  throw coded("interaction_json_invalid");
-}
-function sha256(value) {
-  return createHash6("sha256").update(value).digest("hex");
-}
-function coded(code) {
-  return Object.assign(new Error(code), { code });
-}
-function closeWritable(stream) {
-  if (stream.closed) return Promise.resolve();
-  const closed = new Promise((resolve, reject) => {
-    stream.once("close", resolve);
-    stream.once("error", reject);
-  });
-  stream.end();
-  return closed;
-}
-async function closeReadable(stream) {
-  if (stream.closed) return;
-  const closed = new Promise((resolve) => stream.once("close", resolve));
-  if (typeof stream.close === "function") stream.close();
-  else if (!stream.destroyed) stream.destroy();
-  await closed;
-}
-var CHANNELS, ACKNOWLEDGEMENTS, PREPARED_ACKNOWLEDGEMENTS, MAX_REQUEST_BYTES, MAX_FRAME_BYTES3, JsonLineReader;
-var init_interaction_channel = __esm({
-  "src/sqlite-candidate/wp6b2b1/interaction-channel.mjs"() {
-    "use strict";
-    CHANNELS = /* @__PURE__ */ new WeakSet();
-    ACKNOWLEDGEMENTS = /* @__PURE__ */ new WeakSet();
-    PREPARED_ACKNOWLEDGEMENTS = /* @__PURE__ */ new WeakSet();
-    MAX_REQUEST_BYTES = 1048576;
-    MAX_FRAME_BYTES3 = MAX_REQUEST_BYTES + 8192;
-    JsonLineReader = class {
-      #iterator;
-      #buffer = Buffer.alloc(0);
-      constructor(stream) {
-        this.#iterator = stream[Symbol.asyncIterator]();
+      const cleanup = () => bounded2.signal.removeEventListener("abort", abort);
+      bounded2.signal.addEventListener("abort", abort, { once: true });
+      if (bounded2.signal.aborted) {
+        abort();
+        return;
       }
-      async read(maximum = MAX_FRAME_BYTES3) {
-        for (; ; ) {
-          const end = this.#buffer.indexOf(10);
-          if (end >= 0) {
-            const frame = this.#buffer.subarray(0, end);
-            this.#buffer = this.#buffer.subarray(end + 1);
-            if (!frame.length || frame.length > maximum) throw coded("interaction_frame_invalid");
-            let value;
-            try {
-              value = JSON.parse(frame.toString("utf8"));
-            } catch {
-              throw coded("interaction_frame_invalid");
-            }
-            if (!value || typeof value !== "object" || Array.isArray(value)) throw coded("interaction_frame_invalid");
-            return value;
-          }
-          if (this.#buffer.length > maximum) throw coded("interaction_frame_too_large");
-          const next = await this.#iterator.next();
-          if (next.done) throw coded(this.#buffer.length ? "interaction_frame_truncated" : "interaction_channel_closed");
-          const chunk = Buffer.isBuffer(next.value) ? next.value : Buffer.from(next.value);
-          this.#buffer = Buffer.concat([this.#buffer, chunk]);
+      void Promise.resolve().then(() => options.resolveLease(Object.freeze({ ...request }), bounded2.signal)).then((value) => {
+        if (bounded2.signal.aborted) {
+          value.lease.revoke();
+          return;
         }
-      }
-    };
+        cleanup();
+        resolve(value);
+      }, () => {
+        cleanup();
+        reject(new Error("private_auth_unavailable"));
+      });
+    });
+    lease = resolved.lease;
+    if (!lease.isActive()) {
+      lease = void 0;
+      throw new Error("private_auth_delivery_failed");
+    }
+    await lease.redeem(request.binding, resolved.verifyWorker, async (jwt2, expiresAt) => {
+      await writePrivateFrame(options.response, {
+        protocol: "start-plan-private-response-v1",
+        requestId: request.requestId,
+        binding: resolved.binding,
+        jwt: jwt2,
+        expiresAt
+      }, maximum, bounded2.signal);
+      const ack = record2(await readPrivateFrame(options.acknowledgement, maximum, bounded2.signal));
+      exactKeys(ack, ["protocol", "requestId"]);
+      if (ack.protocol !== "start-plan-private-ack-v1" || ack.requestId !== request.requestId) throw new Error("private_auth_ack_invalid");
+    }, bounded2.signal);
+    return "acknowledged";
+  } catch {
+    lease?.revoke();
+    throw new Error("private_auth_delivery_failed");
+  } finally {
+    bounded2.close();
+    options.request.destroy();
+    options.response.destroy();
+    options.acknowledgement.destroy();
   }
-});
-
-// src/sqlite-candidate/wp6c/fake-result-adapter.ts
-var fake_result_adapter_exports = {};
-__export(fake_result_adapter_exports, {
-  executeFakeResultAdapter: () => executeFakeResultAdapter
-});
-function executeFakeResultAdapter(snapshot) {
-  const result = {
-    task_id: snapshot.task_id,
-    attempt: snapshot.attempt,
-    status: "completed",
-    summary: "Synthetic WP6C FakeAdapter result",
-    files_changed: [],
-    tests: [],
-    issues: [],
-    needs_master_decision: false,
-    zcode_output: "synthetic adapter output",
-    exit_code: 0,
-    session_id: null,
-    started_at: "2026-10-24T00:00:00.000Z",
-    finished_at: "2026-10-24T00:00:01.000Z"
-  };
-  return {
-    protocol: "bridge-sqlite-candidate-result-v1",
-    operation_id: snapshot.operation_id,
-    task_id: snapshot.task_id,
-    attempt: snapshot.attempt,
-    generation: snapshot.generation,
-    workspace_ref: snapshot.workspace_ref,
-    policy_snapshot_digest: snapshot.policy_snapshot_digest,
-    execution_cleanup_verified: true,
-    execution_cleanup: {
-      contract: "candidate-execution-cleanup-proof-v1",
-      source: "explicit_test_fake",
-      method: "synthetic_fixture",
-      complete: true,
-      workspace_retained: true,
-      managed_browser_cleanup_verified: true
-    },
-    result
-  };
 }
-var init_fake_result_adapter = __esm({
-  "src/sqlite-candidate/wp6c/fake-result-adapter.ts"() {
+async function receivePrivateCredential(options) {
+  const bounded2 = boundedSignal(options.signal, options.timeoutMs);
+  const requestId = randomUUID2();
+  let responseStream;
+  try {
+    await writePrivateFrame(options.request, { protocol: "start-plan-private-request-v1", requestId, binding: options.binding }, maximum, bounded2.signal);
+    responseStream = typeof options.response === "function" ? options.response() : options.response;
+    const response = record2(await readPrivateFrame(responseStream, maximum, bounded2.signal));
+    exactKeys(response, ["protocol", "requestId", "binding", "jwt", "expiresAt"]);
+    const binding = record2(response.binding);
+    const keys = ["account", "provider", "model", "task", "attempt", "operation", "generation", "claim", "session", "turn", "pid", "creation"];
+    exactKeys(binding, keys);
+    const now = (options.now ?? Date.now)();
+    if (response.protocol !== "start-plan-private-response-v1" || response.requestId !== requestId || keys.some((key) => binding[key] !== options.binding[key]) || typeof response.jwt !== "string" || !response.jwt || typeof response.expiresAt !== "number" || !Number.isFinite(response.expiresAt) || !Number.isFinite(now) || response.expiresAt <= now || bounded2.signal.aborted) throw new Error("private_auth_invalid");
+    await writePrivateFrame(options.acknowledgement, { protocol: "start-plan-private-ack-v1", requestId }, maximum, bounded2.signal);
+    if (bounded2.signal.aborted) throw new Error("private_auth_invalid");
+    return { jwt: response.jwt, expiresAt: response.expiresAt };
+  } catch {
+    throw new Error("private_auth_receive_failed");
+  } finally {
+    bounded2.close();
+    options.request.destroy();
+    responseStream?.destroy();
+    options.acknowledgement.destroy();
+  }
+}
+var maximum;
+var init_start_plan_private_channel = __esm({
+  "src/runtime/start-plan-private-channel.ts"() {
     "use strict";
+    init_start_plan_private_frame();
+    maximum = 16384;
   }
 });
 
 // src/worker/worker-main.ts
-init_build_provenance();
-init_profile();
-init_json_writer_quiescence();
-init_process_probe();
-import { createHash as createHash7, randomUUID as randomUUID5 } from "node:crypto";
-import { closeSync as closeSync4, createWriteStream, readFileSync as readFileSync8, writeFileSync as writeFileSync4, writeSync } from "node:fs";
+init_result_contract();
+import { createHash as createHash7, randomUUID as randomUUID3 } from "node:crypto";
+import { closeSync as closeSync2, createWriteStream, readFileSync as readFileSync5, writeFileSync, writeSync } from "node:fs";
 import { Socket } from "node:net";
+
+// src/runtime/build-provenance.ts
+import { createHash } from "node:crypto";
+import { readFileSync, realpathSync } from "node:fs";
+import path from "node:path";
+var BRIDGE_WORKER_LAUNCH_MARKER = "--zcode-bridge-launch-v1";
+function verifyWorkerProvenance(input2) {
+  const { bridgeLaunchMarker: bridgeLaunchMarker2, rawEnvelope, actualWorker } = input2;
+  if (rawEnvelope === void 0 && !bridgeLaunchMarker2) {
+    return {
+      status: "unverified",
+      expected: null,
+      actualWorker,
+      workerMatchesExpected: false,
+      reason: "provenance_unverified_legacy"
+    };
+  }
+  if (rawEnvelope === void 0) {
+    return rejected("provenance_missing", "Bridge launch marker was present but the provenance envelope was missing", actualWorker);
+  }
+  let parsed;
+  try {
+    parsed = JSON.parse(rawEnvelope);
+  } catch {
+    return rejected("provenance_malformed", "provenance envelope was not valid JSON", actualWorker);
+  }
+  if (!isRecord(parsed) || !hasExactKeys(parsed, ["bridge", "worker"])) {
+    return rejected("provenance_malformed", "provenance envelope must contain exactly bridge and worker fingerprints", actualWorker);
+  }
+  const bridge = parseFingerprint(parsed["bridge"], false);
+  const worker = parseFingerprint(parsed["worker"], true);
+  if (!bridge || !worker) {
+    return rejected("provenance_malformed", "provenance fingerprint fields were invalid", actualWorker);
+  }
+  const expected = { bridge, worker };
+  let expectedWorkerPath;
+  try {
+    if (!path.isAbsolute(worker.path)) throw new Error("expected worker path was not absolute");
+    expectedWorkerPath = realpathSync(worker.path);
+  } catch {
+    return rejected("provenance_malformed", "expected worker path was missing, unreadable, or non-canonicalizable", actualWorker, expected);
+  }
+  const actualPath = actualWorker.path;
+  let canonicalActualPath = null;
+  if (actualPath !== null) {
+    try {
+      canonicalActualPath = realpathSync(actualPath);
+    } catch {
+    }
+  }
+  if (canonicalActualPath === null || normalizeComparisonPath(canonicalActualPath) !== normalizeComparisonPath(expectedWorkerPath)) {
+    return rejected("provenance_path_mismatch", "actual worker path did not match the Bridge-expected worker path", actualWorker, expected);
+  }
+  if (actualWorker.sha256 === null || actualWorker.sha256.toUpperCase() !== worker.sha256.toUpperCase()) {
+    return rejected("provenance_hash_mismatch", "actual worker SHA256 did not match the Bridge-expected SHA256", actualWorker, expected);
+  }
+  return { status: "verified", expected, actualWorker, workerMatchesExpected: true };
+}
+function rejected(errorCode, reason, actualWorker, expected = null) {
+  return { status: "rejected", expected, actualWorker, workerMatchesExpected: false, errorCode, reason };
+}
+function parseFingerprint(value, requireComplete) {
+  if (!isRecord(value) || !hasExactKeys(value, ["path", "sha256"])) return null;
+  const artifactPath = value["path"];
+  const sha2562 = value["sha256"];
+  if (requireComplete) {
+    if (typeof artifactPath !== "string" || !path.isAbsolute(artifactPath)) return null;
+    if (typeof sha2562 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2562)) return null;
+    return { path: artifactPath, sha256: sha2562 };
+  }
+  if (artifactPath !== null && (typeof artifactPath !== "string" || !path.isAbsolute(artifactPath))) return null;
+  if (sha2562 !== null && (typeof sha2562 !== "string" || !/^[a-f0-9]{64}$/iu.test(sha2562))) return null;
+  return { path: artifactPath, sha256: sha2562 };
+}
+function isRecord(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function hasExactKeys(value, keys) {
+  return Object.keys(value).length === keys.length && keys.every((key) => Object.hasOwn(value, key));
+}
+function normalizeComparisonPath(value) {
+  const normalized = path.normalize(value);
+  return process.platform === "win32" ? normalized.toUpperCase() : normalized;
+}
+function fingerprintRuntimeArtifact(filePath) {
+  if (!filePath) return { path: null, sha256: null };
+  try {
+    const resolvedPath = realpathSync(filePath);
+    return {
+      path: resolvedPath,
+      sha256: createHash("sha256").update(readFileSync(resolvedPath)).digest("hex").toUpperCase()
+    };
+  } catch {
+    return { path: path.resolve(filePath), sha256: null };
+  }
+}
+
+// src/worker/worker-main.ts
+init_profile();
+
+// src/runtime/start-plan-secret-redactor.ts
+import { createHash as createHash2 } from "node:crypto";
+var StartPlanSecretRedactor = class {
+  #length = 0;
+  #prefix = "";
+  #digest = "";
+  register(secret) {
+    if (typeof secret !== "string" || secret.length < 2) throw new Error("private_auth_invalid");
+    this.#length = secret.length;
+    this.#prefix = secret.slice(0, Math.min(8, secret.length - 1));
+    this.#digest = createHash2("sha256").update(secret, "utf8").digest("hex");
+  }
+  text(input2) {
+    if (!this.#length || input2.length < this.#length) return input2;
+    let cursor = 0, checked = 0, out = "";
+    for (; ; ) {
+      const index = input2.indexOf(this.#prefix, cursor);
+      if (index < 0 || index + this.#length > input2.length) return out + input2.slice(cursor);
+      if (++checked > 128) return "[REDACTED]";
+      const candidate = input2.slice(index, index + this.#length);
+      if (createHash2("sha256").update(candidate, "utf8").digest("hex") === this.#digest) {
+        out += input2.slice(cursor, index) + "[REDACTED]";
+        cursor = index + this.#length;
+      } else {
+        out += input2.slice(cursor, index + 1);
+        cursor = index + 1;
+      }
+    }
+  }
+  value(value) {
+    if (typeof value === "string") return this.text(value);
+    if (Array.isArray(value)) return value.map((item) => this.value(item));
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([key, item]) => [this.text(key), this.value(item)]));
+    }
+    return value;
+  }
+  close() {
+    this.#length = 0;
+    this.#prefix = "";
+    this.#digest = "";
+  }
+};
+
+// src/worker/worker-main.ts
+var MAX_NODE_TIMER_DELAY_MS = 2147483647;
 var workerArgs = process.argv.slice(2);
 var bridgeLaunchMarker = workerArgs.at(-1) === BRIDGE_WORKER_LAUNCH_MARKER;
 var interactionMode = workerArgs.includes("--bridge-sqlite-interaction-v1");
+var privateAuthMode = workerArgs.includes("--bridge-sqlite-private-auth-v1");
 var dropAfterPrepared = workerArgs.includes("--bridge-sqlite-interaction-drop-after-prepared-v1");
-var positionalArgs = bridgeLaunchMarker ? workerArgs.slice(0, -1).filter((argument) => argument !== "--bridge-sqlite-interaction-v1" && argument !== "--bridge-sqlite-interaction-drop-after-prepared-v1") : workerArgs;
+var positionalArgs = bridgeLaunchMarker ? workerArgs.slice(0, -1).filter((argument) => argument !== "--bridge-sqlite-interaction-v1" && argument !== "--bridge-sqlite-interaction-drop-after-prepared-v1" && argument !== "--bridge-sqlite-private-auth-v1") : workerArgs;
 if (bridgeLaunchMarker && positionalArgs.length === 0) {
   let claimOnlyStage = "start";
   let interactionStreamsCreated = false;
@@ -29860,7 +28018,7 @@ ${frames.slice(0, 1200)}
   });
   try {
     if (dropAfterPrepared && !interactionMode) throw new Error("interaction test mode required");
-    await runClaimOnlyHandshake({ interactionMode, dropAfterPrepared, onStage: (stage) => {
+    await runClaimOnlyHandshake({ interactionMode, privateAuthMode, dropAfterPrepared, onStage: (stage) => {
       claimOnlyStage = stage;
       if (interactionMode) writeDiagnostic(`[bridge-worker] claim-only stage=${stage}
 `);
@@ -29872,9 +28030,15 @@ ${frames.slice(0, 1200)}
     if (interactionMode && !interactionStreamsCreated) {
       for (const fd of [7, 8, 9]) {
         try {
-          closeSync4(fd);
+          closeSync2(fd);
         } catch {
         }
+      }
+    }
+    if (privateAuthMode) for (const fd of [10, 11, 12, 13]) {
+      try {
+        closeSync2(fd);
+      } catch {
       }
     }
     const failureCode = error62 && typeof error62 === "object" && "code" in error62 && typeof error62.code === "string" ? error62.code : "unclassified";
@@ -29884,47 +28048,8 @@ ${frames.slice(0, 1200)}
   }
   process.exit(process.exitCode ?? 0);
 } else {
-  const [dataRoot, taskId, attemptText] = positionalArgs;
-  if (positionalArgs.length !== 3 || !dataRoot || !taskId || !attemptText || !/^[1-9]\d*$/u.test(attemptText) || !Number.isSafeInteger(Number(attemptText))) {
-    console.error("usage: node worker-main.js <dataRoot> <taskId> <attempt>");
-    process.exit(2);
-  }
-  try {
-    const leaseToken = process.env["ZCODE_BRIDGE_JSON_WRITER_LEASE"];
-    const writerQuiescence = jsonWriterParticipationRequired(dataRoot);
-    if (writerQuiescence && !leaseToken) throw new Error("JSON writer participant lease is required");
-    const probe = writerQuiescence ? createPlatformProbe() : void 0;
-    let leaseActivated = false;
-    try {
-      if (leaseToken && probe) {
-        const identity = await probe.selfIdentity();
-        await activateWorkerJsonWriter(dataRoot, leaseToken, taskId, Number(attemptText), identity);
-        leaseActivated = true;
-      }
-      const { runWorkerTask: runWorkerTask2 } = await Promise.resolve().then(() => (init_run_task(), run_task_exports));
-      const hostText = process.env["ZCODE_BRIDGE_HOST_PROFILE"];
-      const host = hostText ? validateHostProfile(JSON.parse(hostText)) : void 0;
-      const rawEnvelope = process.env["ZCODE_BRIDGE_RUNTIME_PROVENANCE"];
-      const worker = fingerprintRuntimeArtifact(process.argv[1]);
-      const { status } = await runWorkerTask2({
-        dataRoot,
-        taskId,
-        host,
-        attempt: Number(attemptText),
-        probe,
-        writerQuiescence,
-        writerLeaseToken: leaseToken,
-        runtimeProvenance: { bridgeLaunchMarker, rawEnvelope, worker }
-      });
-      process.exitCode = 0;
-      void status;
-    } finally {
-      if (leaseActivated && leaseToken) await releaseWorkerJsonWriter(dataRoot, leaseToken);
-    }
-  } catch (error62) {
-    console.error(error62 instanceof Error ? error62.stack ?? error62.message : String(error62));
-    process.exitCode = 1;
-  }
+  console.error("usage: Worker requires the SQLite private lifecycle channels");
+  process.exit(2);
 }
 async function runClaimOnlyHandshake(options) {
   options.onStage?.("provenance verification");
@@ -29934,7 +28059,7 @@ async function runClaimOnlyHandshake(options) {
   const provenance = verifyWorkerProvenance({ bridgeLaunchMarker: true, rawEnvelope, actualWorker: worker });
   if (provenance.status !== "verified") throw new Error("worker provenance rejected");
   options.onStage?.("bootstrap read");
-  const frame = readPrivateFrame(3, 8192);
+  const frame = readPrivateFrame2(3, 8192);
   options.onStage?.("bootstrap decode");
   const { decodeLaunchBootstrap: decodeLaunchBootstrap2 } = await Promise.resolve().then(() => (init_launch_bootstrap(), launch_bootstrap_exports));
   const bootstrap = decodeLaunchBootstrap2(frame);
@@ -29964,7 +28089,7 @@ async function runClaimOnlyHandshake(options) {
     throw error62;
   }
   const report = {
-    worker_id: randomUUID5(),
+    worker_id: randomUUID3(),
     operation_id: bootstrap.operation_id,
     task_id: bootstrap.task_id,
     attempt: bootstrap.attempt,
@@ -29984,9 +28109,9 @@ async function runClaimOnlyHandshake(options) {
     provenance_digest: digestProvenance(provenance.expected)
   };
   options.onStage?.("identity report write");
-  writePrivateFrame(4, report);
+  writePrivateFrame2(4, report);
   options.onStage?.("Claim decision read");
-  const decision = readPrivateFrame(5, 11e5);
+  const decision = readPrivateFrame2(5, 11e5);
   const value = JSON.parse(decision.subarray(0, -1).toString("utf8"));
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("claim was not committed");
   const decisionRecord = value;
@@ -29996,6 +28121,7 @@ async function runClaimOnlyHandshake(options) {
     throw new Error("claim was not committed");
   }
   const execution = validateExecutionEnvelope(decisionRecord.execution, bootstrap, profile);
+  if (options.privateAuthMode !== Boolean(execution.private_auth)) throw new Error("private auth mode mismatch");
   let closeInteraction;
   let candidateInteraction;
   if (options.interactionMode) {
@@ -30040,9 +28166,9 @@ async function runClaimOnlyHandshake(options) {
   }
   try {
     options.onStage?.(execution.adapter_mode === "test_fake" ? "test adapter start" : "zcode adapter start");
-    const resultFrame = execution.adapter_mode === "test_fake" ? await runExplicitFakeAdapter(bootstrap, execution, candidateInteraction) : await runZCodeAdapter(bootstrap, execution, candidateInteraction);
+    const resultFrame = execution.adapter_mode === "test_fake" ? await runExplicitFakeAdapter(bootstrap, execution, candidateInteraction) : await runZCodeAdapter(bootstrap, execution, candidateInteraction, options.privateAuthMode ? identity : void 0);
     options.onStage?.("adapter result frame prepared");
-    writePrivateFrame(6, resultFrame);
+    writePrivateFrame2(6, resultFrame, prepareWorkerResultFrameParts(resultFrame));
     options.onStage?.("adapter result frame written");
   } finally {
     options.onStage?.("worker interaction close start");
@@ -30054,7 +28180,8 @@ async function runClaimOnlyHandshake(options) {
 function validateExecutionEnvelope(value, bootstrap, profile) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("post-Claim execution envelope is required");
   const envelope = value;
-  if (Object.keys(envelope).sort().join("|") !== "adapter_mode|attempt|continuation|execution_profile_id|generation|host_profile|operation_id|policy_snapshot_digest|previous_result|protocol|task|task_id|workspace_ref" || envelope.protocol !== "bridge-sqlite-execution-envelope-v1" || envelope.operation_id !== bootstrap.operation_id || envelope.task_id !== bootstrap.task_id || envelope.attempt !== bootstrap.attempt || envelope.generation !== bootstrap.generation || envelope.workspace_ref !== bootstrap.workspace_ref || envelope.policy_snapshot_digest !== bootstrap.policy_snapshot_digest || envelope.execution_profile_id !== profile.id || !["zcode_app_server", "test_fake"].includes(String(envelope.adapter_mode))) {
+  const envelopeKeys = Object.keys(envelope).sort().join("|");
+  if (!["adapter_mode|attempt|continuation|execution_profile_id|generation|host_profile|operation_id|policy_snapshot_digest|previous_result|protocol|task|task_id|workspace_ref", "adapter_mode|attempt|continuation|execution_profile_id|generation|host_profile|operation_id|policy_snapshot_digest|previous_result|private_auth|protocol|task|task_id|workspace_ref"].includes(envelopeKeys) || envelope.protocol !== "bridge-sqlite-execution-envelope-v1" || envelope.operation_id !== bootstrap.operation_id || envelope.task_id !== bootstrap.task_id || envelope.attempt !== bootstrap.attempt || envelope.generation !== bootstrap.generation || envelope.workspace_ref !== bootstrap.workspace_ref || envelope.policy_snapshot_digest !== bootstrap.policy_snapshot_digest || envelope.execution_profile_id !== profile.id || !["zcode_app_server", "test_fake"].includes(String(envelope.adapter_mode))) {
     throw new Error("post-Claim execution envelope binding rejected");
   }
   const task = envelope.task;
@@ -30063,6 +28190,12 @@ function validateExecutionEnvelope(value, bootstrap, profile) {
   }
   if (!envelope.host_profile || typeof envelope.host_profile !== "object" || Array.isArray(envelope.host_profile)) {
     throw new Error("post-Claim Host profile is required");
+  }
+  if (envelope.private_auth !== void 0) {
+    const auth = envelope.private_auth;
+    if (!auth || typeof auth !== "object" || Array.isArray(auth) || Object.keys(auth).sort().join("|") !== "account|claim|entitled|model|provider" || typeof auth.account !== "string" || !auth.account || typeof auth.claim !== "string" || !auth.claim || auth.provider !== "account:bigmodel-start-plan" || typeof auth.model !== "string" || !auth.model || typeof auth.entitled !== "boolean" || task.model?.provider_id !== auth.provider || task.model.model_id !== auth.model) {
+      throw new Error("private auth binding rejected");
+    }
   }
   validateHostProfile(envelope.host_profile);
   return envelope;
@@ -30073,16 +28206,193 @@ async function runExplicitFakeAdapter(bootstrap, execution, interaction) {
   const { executeFakeResultAdapter: executeFakeResultAdapter2 } = await Promise.resolve().then(() => (init_fake_result_adapter(), fake_result_adapter_exports));
   return executeFakeResultAdapter2(bootstrap);
 }
-async function runZCodeAdapter(bootstrap, execution, interaction) {
+async function runZCodeAdapter(bootstrap, execution, interaction, workerIdentity) {
   if (execution.adapter_mode !== "zcode_app_server") throw new Error("real ZCode Adapter mode is required");
   const { ZCodeAppServerAdapter: ZCodeAppServerAdapter2 } = await Promise.resolve().then(() => (init_zcode_app_server_adapter(), zcode_app_server_adapter_exports));
   const { buildTaskResult: buildTaskResult2 } = await Promise.resolve().then(() => (init_normalize(), normalize_exports));
   const startedAt = (/* @__PURE__ */ new Date()).toISOString();
   let outcome = null;
   let failure2 = null;
+  let cachedAuth = null;
+  let privateAuthPending = null;
+  let privateAuthExpiryTimer;
+  let privateAuthStarted = false;
+  const secretRedactor = execution.private_auth ? new StartPlanSecretRedactor() : void 0;
+  let privateAuthParentLive = false;
+  let privateAuthConfirmed = false;
+  let notifyPrivateAuthConfirmation;
+  const privateAuthLifetime = execution.private_auth ? new Socket({ fd: 13, readable: true, writable: false }) : void 0;
+  privateAuthLifetime?.on("data", (chunk) => {
+    for (const byte of chunk) {
+      if (!privateAuthParentLive && !privateAuthConfirmed && byte === 1) privateAuthParentLive = true;
+      else if (privateAuthParentLive && !privateAuthConfirmed && byte === 2) {
+        privateAuthConfirmed = true;
+        notifyPrivateAuthConfirmation?.();
+      } else {
+        revokeParentLease();
+        privateAuthLifetime.destroy();
+        break;
+      }
+    }
+  });
+  const clearCachedAuth = () => {
+    cachedAuth = null;
+    if (privateAuthExpiryTimer) {
+      clearTimeout(privateAuthExpiryTimer);
+      privateAuthExpiryTimer = void 0;
+    }
+  };
+  const scheduleCachedAuthExpiry = () => {
+    if (privateAuthExpiryTimer) {
+      clearTimeout(privateAuthExpiryTimer);
+      privateAuthExpiryTimer = void 0;
+    }
+    const current = cachedAuth;
+    if (!current) return;
+    const remaining = current.expiresAt - Date.now();
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      clearCachedAuth();
+      return;
+    }
+    privateAuthExpiryTimer = setTimeout(() => {
+      if (cachedAuth === current) scheduleCachedAuthExpiry();
+    }, Math.min(remaining, MAX_NODE_TIMER_DELAY_MS));
+    privateAuthExpiryTimer.unref();
+  };
+  const revokeParentLease = () => {
+    privateAuthParentLive = false;
+    clearCachedAuth();
+    notifyPrivateAuthConfirmation?.();
+  };
+  privateAuthLifetime?.once("end", revokeParentLease);
+  privateAuthLifetime?.once("close", revokeParentLease);
+  privateAuthLifetime?.once("error", revokeParentLease);
+  const samePrivateAuthScope = (left, right) => left.sessionId === right.sessionId && left.turnId === right.turnId && left.providerId === right.providerId && left.modelId === right.modelId;
+  const privateAuthView = (current, signal) => ({
+    ...current,
+    isValid: () => privateAuthParentLive && !signal.aborted && cachedAuth === current && current.expiresAt > Date.now()
+  });
+  const waitForPrivateAuth = (promise2, signal) => new Promise((resolve, reject) => {
+    const cleanup = () => signal.removeEventListener("abort", abort);
+    const abort = () => {
+      cleanup();
+      reject(new Error("private auth unavailable"));
+    };
+    if (signal.aborted) {
+      abort();
+      return;
+    }
+    signal.addEventListener("abort", abort, { once: true });
+    void promise2.then((value) => {
+      cleanup();
+      if (signal.aborted) reject(new Error("private auth unavailable"));
+      else resolve(value);
+    }, (error62) => {
+      cleanup();
+      reject(error62);
+    });
+  });
+  const acquirePrivateAuth = async (scope, signal) => {
+    privateAuthStarted = true;
+    const identity = workerIdentity;
+    if (!identity || identity.pid !== process.pid || identity.fingerprint_precision !== "exact" || !identity.fingerprint) {
+      throw new Error("private auth unavailable");
+    }
+    const { receivePrivateCredential: receivePrivateCredential2 } = await Promise.resolve().then(() => (init_start_plan_private_channel(), start_plan_private_channel_exports));
+    const auth = execution.private_auth;
+    const request = createWriteStream(process.execPath, { fd: 10 });
+    const acknowledgement = createWriteStream(process.execPath, { fd: 12 });
+    let responseOpened = false;
+    let result2;
+    writeDiagnostic("[bridge-worker] private auth acquire stage=receive\n");
+    try {
+      result2 = await receivePrivateCredential2({
+        request,
+        response: () => {
+          responseOpened = true;
+          return new Socket({ fd: 11, readable: true, writable: false });
+        },
+        acknowledgement,
+        binding: {
+          account: auth.account,
+          provider: scope.providerId,
+          model: scope.modelId,
+          task: bootstrap.task_id,
+          attempt: bootstrap.attempt,
+          operation: bootstrap.operation_id,
+          generation: bootstrap.generation,
+          claim: auth.claim,
+          session: scope.sessionId,
+          turn: scope.turnId,
+          pid: identity.pid,
+          creation: identity.fingerprint
+        },
+        signal,
+        timeoutMs: 15e3
+      });
+    } finally {
+      if (!responseOpened) {
+        try {
+          closeSync2(11);
+        } catch {
+        }
+      }
+    }
+    writeDiagnostic("[bridge-worker] private auth acquire stage=received\n");
+    await new Promise((resolve, reject) => {
+      let timer;
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        signal.removeEventListener("abort", check2);
+        notifyPrivateAuthConfirmation = void 0;
+      };
+      const check2 = () => {
+        if (signal.aborted || !privateAuthParentLive || result2.expiresAt <= Date.now()) {
+          cleanup();
+          reject(new Error("private auth unavailable"));
+        } else if (privateAuthConfirmed) {
+          cleanup();
+          resolve();
+        }
+      };
+      notifyPrivateAuthConfirmation = check2;
+      signal.addEventListener("abort", check2, { once: true });
+      timer = setTimeout(() => {
+        cleanup();
+        reject(new Error("private auth unavailable"));
+      }, Math.max(0, Math.min(15e3, result2.expiresAt - Date.now())));
+      timer.unref();
+      check2();
+    });
+    if (signal.aborted || !privateAuthParentLive) throw new Error("private auth unavailable");
+    writeDiagnostic("[bridge-worker] private auth acquire stage=confirmed\n");
+    secretRedactor?.register(result2.jwt);
+    const current = { apiKey: result2.jwt, expiresAt: result2.expiresAt, ...scope };
+    cachedAuth = current;
+    scheduleCachedAuthExpiry();
+    writeDiagnostic("[bridge-worker] private auth acquire stage=cached\n");
+    signal.addEventListener("abort", () => {
+      if (cachedAuth === current) clearCachedAuth();
+    }, { once: true });
+    return current;
+  };
   const adapter = new ZCodeAppServerAdapter2({
     host: execution.host_profile,
+    // Manager resolved this attempt's effective budget before dispatch.
+    timeoutMs: execution.task.timeout_ms,
+    // Preserve cleanup evidence on an execution error as well as success.
+    onOutcomeCheckpoint: (checkpoint) => {
+      outcome = checkpoint;
+    },
+    // ADR-011: the validated FailureFactsV1 snapshot leaves the Worker only
+    // through this bounded diagnostic stderr line; it is never part of the
+    // Result frame or public events.
+    onFailureFacts: (facts) => {
+      writeDiagnostic(`[bridge-worker] failure-facts ${JSON.stringify(facts)}
+`);
+    },
     executionProfileId: execution.execution_profile_id,
+    ...execution.private_auth ? { startPlanProviderEntitled: execution.private_auth.entitled } : {},
     onEvent: (event) => {
       if (!interactionMode) return;
       if (event.type === "cleanup_unverified") {
@@ -30095,6 +28405,41 @@ async function runZCodeAdapter(bootstrap, execution, interaction) {
       writeDiagnostic(`[bridge-worker] adapter event=${event.type}
 `);
     },
+    ...secretRedactor ? {
+      sanitizeStartPlanFrame: (value) => secretRedactor.value(value),
+      sanitizeStartPlanText: (value) => secretRedactor.text(value)
+    } : {},
+    resolveStartPlanRuntimeAuth: execution.private_auth ? async (scope, signal) => {
+      if (signal.aborted || !privateAuthParentLive || !workerIdentity || workerIdentity.pid !== process.pid || workerIdentity.fingerprint_precision !== "exact" || !workerIdentity.fingerprint) throw new Error("private auth unavailable");
+      if (cachedAuth) {
+        if (!samePrivateAuthScope(cachedAuth, scope) || cachedAuth.expiresAt <= Date.now()) throw new Error("private auth unavailable");
+        const current2 = cachedAuth;
+        return privateAuthView(current2, signal);
+      }
+      let pending = privateAuthPending;
+      if (pending) {
+        if (!samePrivateAuthScope(pending.scope, scope)) throw new Error("private auth unavailable");
+      } else {
+        if (privateAuthStarted) throw new Error("private auth unavailable");
+        const scopeSnapshot = Object.freeze({ ...scope });
+        const promise2 = acquirePrivateAuth(scopeSnapshot, signal).catch((error62) => {
+          const errorClass = error62 instanceof Error && /^[A-Za-z][A-Za-z0-9_]{0,63}$/u.test(error62.name) ? error62.name : "unknown";
+          writeDiagnostic(`[bridge-worker] private auth acquire rejected class=${errorClass}
+`);
+          throw error62;
+        });
+        pending = { scope: scopeSnapshot, promise: promise2 };
+        privateAuthPending = pending;
+        void promise2.then(() => {
+          if (privateAuthPending === pending) privateAuthPending = null;
+        }, () => {
+          if (privateAuthPending === pending) privateAuthPending = null;
+        });
+      }
+      const current = await waitForPrivateAuth(pending.promise, signal);
+      if (!samePrivateAuthScope(current, scope) || current.expiresAt <= Date.now()) throw new Error("private auth unavailable");
+      return privateAuthView(current, signal);
+    } : void 0,
     resolveInteraction: interaction ? async (request, signal) => {
       if (signal.aborted) return { action: "decline" };
       await interaction.sendRequest(request);
@@ -30122,6 +28467,16 @@ async function runZCodeAdapter(bootstrap, execution, interaction) {
     if (outcome.cleanupError) failure2 = { code: "cleanup_failed", message: outcome.cleanupError };
   } catch (error62) {
     failure2 = { code: error62 instanceof Error && "code" in error62 && typeof error62.code === "string" ? error62.code : "worker_error", message: error62 instanceof Error ? error62.message : String(error62) };
+  } finally {
+    writeDiagnostic("[bridge-worker] adapter run settled\n");
+    clearCachedAuth();
+    privateAuthLifetime?.destroy();
+    if (execution.private_auth && !privateAuthStarted) for (const fd of [10, 11, 12]) {
+      try {
+        closeSync2(fd);
+      } catch {
+      }
+    }
   }
   const finishedAt = (/* @__PURE__ */ new Date()).toISOString();
   const taskResult = buildTaskResult2({ task: execution.task, attempt: bootstrap.attempt, startedAt, finishedAt, outcome, failure: failure2 });
@@ -30146,6 +28501,7 @@ async function runZCodeAdapter(bootstrap, execution, interaction) {
     ...taskResult.report_candidate ? { report_candidate: taskResult.report_candidate } : {}
   };
   const executionCleanup = buildExecutionCleanupProof(outcome);
+  secretRedactor?.close();
   return {
     protocol: "bridge-sqlite-candidate-result-v1",
     operation_id: bootstrap.operation_id,
@@ -30161,7 +28517,34 @@ async function runZCodeAdapter(bootstrap, execution, interaction) {
 }
 function buildExecutionCleanupProof(outcome) {
   const receipt = outcome?.cleanupTreeReceipt;
-  if (outcome?.cleanupVerified !== true || outcome.cleanupError || !receipt) return null;
+  if (outcome?.cleanupVerified === true && !outcome.cleanupError && outcome.cleanupNotRequired === "start_plan_preflight_rejected" && outcome.errorCode === "provider_config_invalid" && outcome.sessionId === null && !outcome.cleanupTreeReceipt) {
+    return {
+      contract: "candidate-execution-cleanup-proof-v1",
+      source: "zcode_app_server_adapter",
+      method: "adapter_not_started",
+      reason: "start_plan_preflight_rejected",
+      complete: true,
+      workspace_retained: true,
+      managed_browser_cleanup_verified: true
+    };
+  }
+  if (outcome?.cleanupVerified !== true || outcome.cleanupError) return null;
+  if (!receipt) {
+    const scan = outcome.cleanupTreeScan;
+    if (!scan || !Number.isSafeInteger(scan.rootPid) || scan.rootPid < 1 || !scan.rootFingerprint || !/^[0-9a-f]{64}$/u.test(scan.evidenceDigest) || !Number.isSafeInteger(scan.observedMemberCount) || scan.observedMemberCount < 1) return null;
+    return {
+      contract: "candidate-execution-cleanup-proof-v1",
+      source: "zcode_app_server_adapter",
+      method: "verified_recorded_tree_scan",
+      complete: true,
+      workspace_retained: true,
+      adapter_process_id: scan.rootPid,
+      adapter_start_fingerprint: scan.rootFingerprint,
+      process_tree_scan_digest: scan.evidenceDigest,
+      process_tree_member_count: scan.observedMemberCount,
+      managed_browser_cleanup_verified: true
+    };
+  }
   const root = receipt.members.find((member) => member.pid === receipt.rootPid);
   if (!root || !root.fingerprint || receipt.members.length < 1 || !Number.isSafeInteger(receipt.rootPid) || receipt.rootPid < 1) return null;
   return {
@@ -30205,21 +28588,28 @@ async function closeOwnedStreams(streams) {
   })));
 }
 function digestProvenance(value) {
-  const canonical = JSON.stringify({
+  const canonical2 = JSON.stringify({
     bridge: { path: value.bridge.path, sha256: value.bridge.sha256 },
     worker: { path: value.worker.path, sha256: value.worker.sha256 }
   });
-  return createHash7("sha256").update(canonical, "utf8").digest("hex");
+  return createHash7("sha256").update(canonical2, "utf8").digest("hex");
 }
-function readPrivateFrame(fd, maximum) {
-  const frame = readFileSync8(fd);
-  closeSync4(fd);
-  if (frame.byteLength > maximum) throw new Error("private frame exceeded limit");
+function readPrivateFrame2(fd, maximum2) {
+  const frame = readFileSync5(fd);
+  closeSync2(fd);
+  if (frame.byteLength > maximum2) throw new Error("private frame exceeded limit");
   return frame;
 }
-function writePrivateFrame(fd, value) {
-  const frame = Buffer.from(`${JSON.stringify(value)}
-`, "utf8");
-  writeFileSync4(fd, frame);
-  closeSync4(fd);
+function writePrivateFrame2(fd, value, encoded = JSON.stringify(value)) {
+  for (const part of typeof encoded === "string" ? [encoded] : encoded) {
+    for (let offset = 0; offset < part.length; ) {
+      let end = Math.min(offset + 64 * 1024, part.length);
+      const last = part.charCodeAt(end - 1);
+      if (end < part.length && last >= 55296 && last <= 56319) end--;
+      writeFileSync(fd, part.slice(offset, end), "utf8");
+      offset = end;
+    }
+  }
+  writeFileSync(fd, "\n", "utf8");
+  closeSync2(fd);
 }

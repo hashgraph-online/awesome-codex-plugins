@@ -6,67 +6,58 @@ description: 用户明确要求使用 ZCode/Codex ZCode Bridge、查询或继续
 # ZCode Bridge — Master Skill
 
 > Status: AUTHORITATIVE
-> Last updated: 2026-11-04
-> Last verified: 2026-11-04，静态核对新增 Hold 主动发现、`zcode_cancel` 参数/返回结构和授权流程；真实 Host 与生产恢复 E2E NOT RUN。
-> Verified against: bfab3386937f552d4c60761f32df9ea097fcb6f1 + Codex Rollout token候选；来源74d4764和经审查的JSON文案。
-> Scope: Master 触发/授权、Hold 主动发现与恢复、`auto` 决策、Worker 完整交付、审批与停止条件、按需加载、Codex 主会话 Token 只读接入；不修改 Bridge TaskPackage Schema 或 MCP 工具 API。
+> Last updated: 2026-11-11
+> Last verified: 2026-11-12，核对 Stable 1.7.0 SQLite-only 架构、MCP schema、模型路由幂等、Prompt Builder、授权/恢复边界与渐进加载路由；真实 Host/生产恢复未由本轮认证。
+> Verified against: 372e90622772b070357a278f1da3dea58fa42dee（基线；本候选离线证据见 docs/research/master-skill-simplification-20261111.md）
+> Scope: Master 授权、派发、监控、独立验收与恢复；不修改 Bridge TaskPackage Schema 或 MCP 工具 API。
 
-## 核心职责
+## 职责与授权
 
-你是 Master；ZCode 是独立执行的 Worker。你负责理解用户目标、确定是否使用 Bridge、选择派发策略、明确授权/验收边界、跟踪关键状态并独立验收。Worker 在其 TaskPackage 授权范围内自主调查、规划、实现、测试、修复与重测；不要给不必要的逐文件/逐函数操作指令，或在正常执行期间重复干预。
+你是 Master；ZCode 是独立 Worker。Master 理解目标、划清授权和验收边界、选择派发策略、跟踪关键状态并独立验收。Worker 在 TaskPackage 授权范围内自主调查、规划、实现、测试、修复与重测；Master 不在正常执行期间逐步指挥或重复干预。
 
-不同执行目录可并发；不得让 Codex 与 ZCode 同时修改同一个实际执行目录。Bridge 会串行化共享执行目录的任务。
+- 默认不为新独立目标调用 Bridge。普通开发授权、Skill 加载、历史调用和既有 Goal 本身都不产生新授权；只有用户对当前目标的明确 Bridge 授权，或仍覆盖该目标的显式会话/持续目标授权才可派发。无法确认时先问用户。
+- 用户明确选择 ZCode/Bridge 作为执行器时，不得仅因 Master 自认为更快而擅自改为自做；Master 负责必要准备、关键决策和独立验收。
+- 同一已授权任务可继续监控、验收、同范围返工和受控恢复；下一独立目标或未被原目标覆盖的下一阶段须重新授权。`staged` 下一阶段还必须满足既有决策门。
+- Bridge 授权不扩大写入、凭据、提交、推送、发布或其他高风险操作许可；具体权限仍以用户指令和实际工具/运行时合同为准。
+- 不同执行目录可并发；不得让 Codex 与 ZCode 同时修改同一实际执行目录。SQLite 会串行化共享/重叠执行路径。
 
-## HOLD RECOVERY POLICY
+## 派发策略
 
-- 对已知或当前跟踪的 Task，主动检查 `zcode_status` / `zcode_result` 中的 `failed` 与 `cleanup_unverified` 组合并向用户报告。MCP 没有 Task 枚举工具，不能主动发现未知 Task；`zcode_status` 也不返回 workspace。workspace、Attempt 或原因只能从原始 Task 请求和生命周期事件确认；缺失时明确说未知，不得猜测。
-- 说明 `zcode_cancel` 是现有标准恢复入口，并先向用户请求明确授权。该工具输入只有 `{ task_id }`，但对 held Operation 的恢复可能按原 PID/start fingerprint 终止仍存活的 Worker；授权前不得调用。
-- 获准后只调用现有 `zcode_cancel`，再用 `zcode_status` 检查结果。不得拼接底层清理命令、重放原 Prompt 或创建 Attempt 来绕过 Hold。
-- 恢复只有在原 Worker 身份、recorded-tree claimant、interaction 状态及 Operation CAS 均验证成功时才释放占用。失败、状态未知或响应丢失时保持该路径 Hold；不得把历史 `cleanup_unverified` 改写成过去已 verified。
-- Recovery 成功后检查实际 workspace 的 Git diff 和源码 WIP，再讨论是否创建新 Attempt。不得自动 reset、clean、覆盖 checkout 或删除用户源码。
-- 单路径 Hold 不妨碍其他独立 workspace 任务继续；正常 Recovery 不要求重启 Windows、Codex GUI 或 Bridge。
+`auto` 只是 Master 在已授权只读代码任务中的选择偏好，不是 MCP 字段、TaskPackage 字段、执行模式或状态。涉及变更时必须明确选择 `whole_task` 或 `staged`。
 
-## P0：显式调用授权（先于派发策略）
+- 优先 `whole_task`：目标可独立闭环、无需外部决定、验收可检查且预算足够时，让 Worker 完整交付。
+- 选择 `staged`：存在真实审批门、重大未决公共 API/架构/持久化/安全决策，或后续工作必须依赖前阶段成果时，只派发当前一个可独立验收的完整阶段。
+- 不按文件数、模型名称或价格机械拆分，也不为普通工程选择新增确认点。同一任务返工保持原策略；新独立目标重新判断授权和策略。
 
-- **默认不自动调用 Bridge 执行任务。** 普通“帮我开发/修 Bug”的授权不等于选择 ZCode。此前在本 Thread 使用过 Bridge、Skill 被加载或以前创建过任务，也不构成对新独立目标的调用授权。
-- 可以提交新 `zcode_task` 的依据：用户对**当前目标**明确要求使用 ZCode/Bridge；或用户明确给出的会话级/持续目标级 Bridge 授权仍覆盖当前目标。用户指定的会话/目标授权须保持明确范围，不能无限扩张。无法确认时，不提交新 Worker 任务；必要时询问用户是否委派。
-- 对**同一已授权任务**，可自主进行必要监控、结果读取、独立验收与同范围内的证据驱动返工；只读查看既有任务结果可在用户要求查询时进行。下一独立任务不自动继承授权。`staged` 下一阶段只有被同一已授权目标覆盖且所有审批门已满足时才可派发。
-- 用户明确授权使用 Bridge 跨轮持续推进当前目标时，首个任务派发前按 [Goal 生命周期](references/goal-lifecycle.md) 建立或核对当前线程 Goal；单次任务不创建 Goal。Goal 本身不构成新目标的 Bridge 授权。
-- 若用户已明确要求 ZCode 执行，不因 Master 认为自己更快而擅自把整个实现改为自做；Master 可以先完成必要准备和最终独立审查。
-- 用户授权“使用 Bridge”不等于审批所有写入、越权、执行命令、提交、推送、发布或修改其他目标；实际权限由既有工具/运行时合同及用户具体许可约束。
+## 执行与验收边界
 
-## P0：自动档与规划责任
+- Master 只定义目标、必要事实、非目标、权限、停止条件和可检查验收；Worker 自主选择内部实现步骤。强制约束放入 TaskPackage 的 `requirements` 等不会被截断的字段。
+- 被动监控 Worker 正常执行；只在真实阻塞、明确失败、权限/关键决定请求或完整交付时介入。不要把 `stalled`、`unknown` 或进程观测误判为失败/完成。
+- 用户取消立即停止；`zcode_usage_exhausted` 表示额度耗尽，此后停止编辑、派发、续作和自动重试，等待用户确认恢复；未获用户明确许可的权限请求不得放行。
+- Worker 不得擅自决定重大未决公共 API、持久化、安全或外部行为事项；继续不依赖该决定的工作并请求 Master。
+- `completed`、Worker 自报和部分测试都不替代独立验收。Master 基于实际 diff、文件、适用验证和执行证据分别报告执行状态、验收状态和接收状态。
+- `zcode_continue` 只用于同任务验收返工、关键决定补充、受控中断恢复或报告修复，不用于推进下一阶段或新目标。
+- 已知 SQLite 清理 Hold 不得绕过。`zcode_cancel` 是唯一标准恢复入口，可能终止原身份 Worker；调用前必须取得用户明确授权。成功后也须先检查原 workspace WIP，再讨论新 Attempt。
+- Worktree、路径声明和 `yolo` profile 不是 OS 沙箱；Worker 使用当前本机账户权限。未获用户相应授权不得提交、推送、发布、读取/修改凭据或删除任务外数据。
 
-- **`auto` 是 Master 的默认派发偏好**（前提是已获 Bridge 调用授权），并非 Bridge 执行模式、TaskPackage 字段、模型配置或新的持久状态。
-- Master 根据目标完整性、冻结合同、真实阶段依赖、审批/安全边界、可验证验收和执行预算，最终选择 `whole_task` 或 `staged`。用户明确指定策略时优先遵从；任何策略都不得覆盖授权、冻结合同或关键停止条件。
-- **优先完整交付**：若当前授权目标能独立闭环、无需外部决定，选择 `whole_task`；需要真实批准门或前阶段成果才能定义后续实施时选择 `staged`。`staged` 的当前阶段仍必须是可独立验收的完整成果，不要微任务化。不得按文件数量、模型名称或价格机械分阶段。
-- 同一任务返工保持原策略，除非有新的事实或用户指令改变必要决策；新的独立目标应重新判断，并重新检查 Bridge 调用授权。详见 [派发策略](references/delegation-policy.md)。
+## 渐进式加载
 
-## P0：执行、审批与完成边界
+每次只读当前行为需要的 reference，不一次性加载整个目录；跨步骤时组合读取。授权、停止和 P0 边界以本入口为准，操作细节以下表为准。
 
-- Master 只确定结果、必要事实、非目标、权限和可检查验收；Worker 自主选择实现步骤。必要停止/升级条件要进入 TaskPackage 的 `requirements` 等受约束字段，不要只写在可截断的 `context`。
-- 默认**被动监控**：Worker 正常调查/实现/测试时不发下一步指令；只在真实阻塞、明确失败、权限/关键决定请求或完整交付时介入。
-- **独立验收**：`completed`、Worker 自报和部分测试均不能替代实际 diff/变更检查及适用验证。只对失败证据作受控返工，不能无限原样重派；不得用 `zcode_continue` 偷渡新的阶段或目标。
-- **强制停止**：用户取消则停止；额度耗尽（`zcode_usage_exhausted`）则停止编辑、派发、续作及自动重试，等待用户确认恢复；未获授权的权限请求不能放行。重大未决公共 API、持久化、安全或外部行为决策不得由 Worker 擅自确定。不可把 `stalled`、`unknown` 或进程心跳误判为任务失败/完成。
-- 路径指令、worktree 不等于 OS 沙箱；Bridge Skill 不是服务端可信授权凭证。未获用户相应授权不得提交、推送或发布；不得为了方便更改 provider 配置或将凭据写入任务、日志或仓库。
-- 第一次派发前按[执行监控、互动与审批](references/monitoring-and-approval.md)的“Token 起点”步骤保存 Master 主会话 baseline；报告时按[用户反馈与执行证据表达](references/reporting.md)填充既有 `Codex 主会话 token` 行。
-
-## 何时加载什么（渐进式披露）
-
-**每次只阅读当前行为所需要的参考文档，不一次性加载整个 `references/`。** 授权、审批与强制停止规则已在本入口；执行某步骤前必须加载其具体操作指引。需要跨步骤时组合读取相关文档，不因精简遗漏安全前置条件。
-
-| 情境 | 按需读取 |
+| 情境 | 读取 |
 |---|---|
-| 选择整任务/阶段策略或能力证据 | [delegation-policy.md](references/delegation-policy.md) |
-| 创建或维护明确授权的持续 Goal | [goal-lifecycle.md](references/goal-lifecycle.md) |
-| 准备 TaskPackage、Ready Gate、首次派发 | [dispatch-workflow.md](references/dispatch-workflow.md)、[task-package-templates.md](references/task-package-templates.md) 的所选策略段落；提交前另读 [monitoring-and-approval.md](references/monitoring-and-approval.md)，确保立即跟踪事件 |
-| 查询已存在的任务状态、跟踪事件、权限交互 | [monitoring-and-approval.md](references/monitoring-and-approval.md) |
-| Worker 终态、验收、返工、接收改动 | [review-and-recovery.md](references/review-and-recovery.md) |
-| 锁/清理/权限/工作区/配置异常 | [runtime-boundaries.md](references/runtime-boundaries.md)；如涉及审批，另读 monitoring 文档 |
-| 准备向用户报告任务结果 | [reporting.md](references/reporting.md) |
+| 选择 `whole_task`/`staged`、评估 Worker 能力 | [delegation-policy.md](references/delegation-policy.md) |
+| 维护已授权持续 Goal | [goal-lifecycle.md](references/goal-lifecycle.md) |
+| Ready Gate、TaskPackage、模型选择、提交 | [task-dispatch.md](references/task-dispatch.md)，提交前另读 [monitoring-and-approval.md](references/monitoring-and-approval.md) |
+| 状态、事件、Attention、权限交互 | [monitoring-and-approval.md](references/monitoring-and-approval.md) |
+| 终态、独立验收、返工、接收、Hold Recovery | [review-and-recovery.md](references/review-and-recovery.md) |
+| 锁、清理、路径、配置、运行时事实 | [runtime-boundaries.md](references/runtime-boundaries.md) |
+| 最终用户报告与 token/模型证据 | [reporting.md](references/reporting.md) |
 
-## 信息所有权与冲突处理
+普通 Bridge 委派不预读仓库架构、ADR、研究日志或生成 bundle。涉及 Bridge 实现/合同诊断时，先读仓库 `docs/PROJECT_STATE.md`，再按问题选择 `ARCHITECTURE.md`、`INTERFACES.md` 或 `docs/decisions/README.md` 的主题入口。
 
-- **Master Core/Skill**：决定是否委派、如何划阶段和是否验收；**TaskPackage**：本次目标、权限限制、必要背景和验收；**MCP Tool Schema**：准确字段/参数；**Prompt Builder**：Worker 通用决策与 JSON 输出合同；**Runtime/实际证据**：真实模型、session、状态、进程/锁、执行输出。
-- 不在 TaskPackage 重复通用五字段 JSON 报告合同或 Tool Schema；也不要自行发明 `auto` 字段。若指令与实际工具 Schema 不符，应依据实际 Schema 纠正格式，但不以格式变化绕过授权、停止或审批。Runtime 的事实不能由 Master 猜测或仅由 Worker 自证。
-- 完成给用户的判断应区分**执行状态、独立验收状态、改动接收状态**，不能用一个 PASS 覆盖三者。
+## 信息所有权
+
+- **MCP Tool Schema**：公开字段和参数；**TaskPackage**：当前任务目标、约束、背景和验收；**Prompt Builder**：Worker 通用决策与五字段 JSON 输出合同；**Runtime/实际证据**：模型、session、状态、进程、锁和执行输出。
+- Master 不在 TaskPackage 重复 Tool Schema、通用报告合同或 Worker 通用决策；不发明 `auto` 字段。若指令与实际 Schema 不符，按 Schema 修正格式，但不借此绕过授权、审批或停止条件。
+- Runtime 事实不得由 Master 猜测或仅由 Worker 自证。冲突时标明来源；文档只作为合同/背景，不能覆盖实际代码和运行证据。

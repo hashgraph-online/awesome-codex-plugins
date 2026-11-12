@@ -35,12 +35,8 @@ import argparse
 import sys
 from typing import List, Optional, Sequence
 
-try:
-    from .stream_bootstrap import bootstrap_streams
-    from .task_decomposer import TaskDecomposer, validate_generated_tasks
-except ImportError:  # pragma: no cover - direct-script import shim
-    from stream_bootstrap import bootstrap_streams
-    from task_decomposer import TaskDecomposer, validate_generated_tasks
+from .stream_bootstrap import bootstrap_streams
+from .task_decomposer import TaskDecomposer, validate_generated_tasks
 
 WARNING_PREFIX = "[TASKS_GRAPH_WARNING]"
 

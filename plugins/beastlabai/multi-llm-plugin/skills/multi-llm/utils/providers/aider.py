@@ -6,16 +6,17 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-import yaml
-
+from .. import yaml_io
 from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     LLMProvider,
     ReadOnlyInvocationRefused,
     ReasoningLadder,
     StructuredSchema,
     split_reasoning_effort,
 )
+from .parse_kit import fail, ok
 
 # Reasoning effort values passed to aider's --reasoning-effort, which is an
 # unvalidated pass-through (verified on aider 0.86.2): for openrouter/ models
@@ -328,8 +329,10 @@ def _conf_values(path: Path, option: str, line_re: "re.Pattern[str]") -> List[An
     except OSError:
         return []
     try:
-        document = yaml.safe_load(text)
-    except yaml.YAMLError:
+        # yaml_io's loader is the one aider's configargparse picks: CSafeLoader
+        # when libyaml is there, else SafeLoader.
+        document = yaml_io.safe_load(text)
+    except yaml_io.YAMLError:
         return [
             match.group(1).split(" #", 1)[0].strip().strip("'\"")
             for match in map(line_re.match, text.splitlines())
@@ -599,7 +602,7 @@ class AiderProvider(LLMProvider):
     #: **pre-existing** adapter — unlike copilot, kimi, qwen-code and vibe, which
     #: landed together with their probes and have no older users to refuse — and
     #: nothing measured says 0.85 fails. ``min_version`` is a hard exit-3 refusal
-    #: in ``subagent_executor._detect_version``; ``verified_version`` is a
+    #: in ``runner_preflight._detect_version``; ``verified_version`` is a
     #: one-line warning. The capture supports the warning and not the refusal, so
     #: only the warning is declared. ``muse``, ``cursor-agent`` and ``agy``
     #: already leave the floor empty for the mirror-image reason.
@@ -657,7 +660,7 @@ class AiderProvider(LLMProvider):
     #:
     #: But aider prints that failure to **stdout** (stderr stays empty) and the
     #: text ends in ``Name or service not known``, which is a literal entry in
-    #: :data:`base.CONNECTION_ERROR_MARKERS`. So on any host that cannot reach
+    #: :data:`failure_classifier.CONNECTION_ERROR_MARKERS`. So on any host that cannot reach
     #: raw.githubusercontent.com — an air-gapped build box, a corporate proxy, a
     #: container with an egress allowlist — a *successful* aider run was
     #: classified ``connection_error``: the model answered, the JSON parsed, the
@@ -732,7 +735,7 @@ class AiderProvider(LLMProvider):
     #:
     #: **Residual, recorded rather than fixed here.** ``exit-zero-failure``
     #: lands on ``runner_error`` and not on the more specific ``server_error``,
-    #: because :data:`base.SERVER_ERROR_MARKERS` spells the phrase with
+    #: because :data:`failure_classifier.SERVER_ERROR_MARKERS` spells the phrase with
     #: separators (``internal server error``) while litellm prints the class name
     #: ``InternalServerError``, and the run carries no bare ``500``. Lane A maps
     #: both to rung 4, so only the ``Reason:`` line differs — and it is right
@@ -748,7 +751,7 @@ class AiderProvider(LLMProvider):
         """Remove aider's own gloss, keeping every word the vendor wrote.
 
         Degrades to its input rather than to ``""``: an empty haystack
-        classifies as ``None`` (:func:`base.classify_streams`), so an excision
+        classifies as ``None`` (:func:`failure_classifier.classify_streams`), so an excision
         that consumed a whole capture would launder a failure into a
         transport-shaped retry — the same rule :meth:`base.LLMProvider.
         vendor_text` states for the hook this narrowing sits beside.
@@ -760,6 +763,30 @@ class AiderProvider(LLMProvider):
             if not any(p.search(line) for p in cls._ADAPTER_GLOSS_LINES)
         )
         return narrowed if narrowed.strip() else stream
+
+    def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
+        """aider's own diagnostic lines, without the model's answer.
+
+        aider exits 0 on every outcome and prints the answer as plain text on
+        stdout, so on a failed parse the whole stdout is mostly the model's
+        prose. The lines kept are the ones :meth:`_exit_zero_failure` reads as
+        aider's (the module's structure note): the banner prologue and what
+        follows the trailing accounting line, or every line when there is
+        none (no request completed, or the answer was cut before the line).
+        Removal only; a reduction that raises returns its input, and stderr
+        (0 bytes on every capture) is passed through.
+        """
+        try:
+            lines = _drop_confirmation_pairs(
+                self._drop_tolerated_lines(stdout or "").splitlines()
+            )
+            accounting = _last_accounting_index(lines)
+            if accounting is None:
+                return stdout, stderr
+            kept = list(lines[:_prologue_end(lines)]) + list(lines[accounting + 1:])
+            return "\n".join(kept), stderr
+        except Exception:  # noqa: BLE001 - a failed reduction returns its input
+            return stdout, stderr
 
     def classify_failure(
         self, stdout: str, stderr: str, exit_code: int = 0
@@ -790,13 +817,24 @@ class AiderProvider(LLMProvider):
             exit_code,
         )
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: ``False``.
+    #: aider exits 0 on every outcome and prints the answer as plain text, and
+    #: an answer cut before its accounting line can quote aider's own
+    #: diagnostic lines (``litellm.RateLimitError: …``, ``Model … has hit a
+    #: token limit!``) verbatim: a line's shape cannot say who wrote it. So an
+    #: exit 0 is never classified, on either lane, and aider's own provider
+    #: failures get the unclassified exit 0's handling
+    #: (docs/development/delegation.md#read-and-analyze-executor).
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: aider writes the chat,
+    #: its shell commands' output and its own banner to stdout; stderr is empty on every
+    #: committed capture (tests/fixtures/aider).
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
     @property
     def name(self) -> str:
         return "aider"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("aider") is not None
@@ -1015,7 +1053,7 @@ class AiderProvider(LLMProvider):
         """
         stdout = stdout.strip()
         if not stdout:
-            return {"success": False, "error": "Empty output from aider", "raw": stdout, "data": None}
+            return fail("Empty output from aider", stdout)
         lines = _drop_confirmation_pairs(self._drop_tolerated_lines(stdout).splitlines())
         text = "\n".join(lines)
 
@@ -1026,24 +1064,19 @@ class AiderProvider(LLMProvider):
                 if not line.strip().startswith(("Tokens:", "Cost:"))
             ).strip()
             if not answer:
-                return {"success": False, "error": "Empty answer after ANSWER marker", "raw": stdout, "data": None}
+                return fail("Empty answer after ANSWER marker", stdout)
             if answer.startswith(("[", "{")):
                 try:
                     data = json.loads(answer)
                 except json.JSONDecodeError:
                     pass
                 else:
-                    return {"success": True, "data": self._unwrap_file_write_envelope(data)}
+                    return ok(self._unwrap_file_write_envelope(data))
             result = extract_json_from_text(answer, prefer_arrays=True)
             if result.get("success"):
                 result["data"] = self._unwrap_file_write_envelope(result["data"])
                 return result
-            return {
-                "success": False,
-                "error": f"No JSON found in aider answer: {answer[:500]}",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(f"No JSON found in aider answer: {answer[:500]}", stdout)
 
         # No ANSWER marker (e.g. auth error / rate-limit give-up printed to
         # stdout with exit code 0). An exit-0 failure on a diagnostic line wins
@@ -1052,7 +1085,7 @@ class AiderProvider(LLMProvider):
         # body carrying any array got written as a clean `[]` review.
         failure = self._exit_zero_failure(lines)
         if failure is not None:
-            return {"success": False, "error": failure, "raw": stdout, "data": None}
+            return fail(failure, stdout)
         fallback = extract_json_from_text(text, prefer_arrays=True)
         if fallback.get("success"):
             fallback["data"] = self._unwrap_file_write_envelope(fallback["data"])
@@ -1067,12 +1100,7 @@ class AiderProvider(LLMProvider):
         # fixture capture. `_drop_tolerated_lines` already exists for
         # `classify_failure`; the error text needs it for the same reason.
         diagnosis = text.strip() or stdout
-        return {
-            "success": False,
-            "error": f"No JSON found in aider output: {diagnosis[:500]}",
-            "raw": stdout,
-            "data": None,
-        }
+        return fail(f"No JSON found in aider output: {diagnosis[:500]}", stdout)
 
     def _exit_zero_failure(self, lines: Sequence[str]) -> Optional[str]:
         """D4.1: the error for an exit-0 failure on aider's diagnostic lines, else ``None``.

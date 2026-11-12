@@ -5,6 +5,21 @@ Commands: read, append, clear.
 Storage: {output-dir}/prior_changes.jsonl
 """
 
+if __name__ == "__main__" and not __package__:
+    # Run by path: put the skill root on sys.path, found from this file's real
+    # location as Python finds sys.path[0], then call the package module's entry
+    # point with sys.argv untouched, so the program name stays the one typed
+    # (docs/development/dispatcher.md#import-safety).
+    import os
+    import sys
+
+    _UTILS_DIR = os.path.dirname(os.path.realpath(__file__))
+    sys.path[:] = [os.path.dirname(_UTILS_DIR)] + [
+        p for p in sys.path if os.path.realpath(p) != _UTILS_DIR]
+    from utils.prior_changes import main
+
+    sys.exit(main(sys.argv[1:]))
+
 import argparse
 import hashlib
 import json
@@ -15,14 +30,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Collection, Iterable, List, Optional, Sequence, Tuple
 
-try:
-    from .stream_bootstrap import bootstrap_streams
-    from .text_clip import plain_line
-except ImportError:
-    # Direct script invocation (`python utils/prior_changes.py`): sys.path[0]
-    # is the utils/ directory, so import the sibling module directly.
-    from stream_bootstrap import bootstrap_streams
-    from text_clip import plain_line
+from .clock import parse_local
+from .stream_bootstrap import bootstrap_streams
+from .text_clip import plain_line
 
 FILENAME = "prior_changes.jsonl"
 DEFAULT_TAIL = 15
@@ -193,12 +203,9 @@ def parse_stamp(value: Any) -> Optional[datetime]:
     if not isinstance(value, str) or not value:
         return None
     try:
-        parsed = datetime.fromisoformat(value)
+        return parse_local(value)
     except ValueError:
         return None
-    if parsed.tzinfo is not None:
-        parsed = parsed.astimezone().replace(tzinfo=None)
-    return parsed
 
 
 def run_entries(

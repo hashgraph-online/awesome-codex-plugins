@@ -6,7 +6,7 @@ Contents: [1 Start here](#1-start-here) · [2 Reference libraries and tools by d
 
 ## 1. Start here
 
-- [Moodboards for AI Video: A Data-Driven Guide (Claude Doc, varg team access)](https://claude.ai/artifact/5ptKSPYFzvd7turkZevfHZ): the full write-up: ranking, charts, per-dimension rules, databases, the prompt
+- [Moodboards for AI Video: A Data-Driven Guide (varg how to)](https://varg.ai/how-to/make-a-moodboard-for-an-ai-video): the full write-up: ranking, charts, per-dimension rules, databases, the prompt
 - [Research data (vargHQ/aeo, varg team access)](https://github.com/vargHQ/aeo/tree/main/research/2026-11-03-moodboards): 6,086 X posts, reader outputs, 48-still test, judge scores, scripts
 - [find-references skill](https://github.com/vargHQ/skills/tree/main/find-references): step 1 of this skill in depth: one query pack per job, light first, a never board, a judge benched for bias
 - [find-references on varg how to](https://varg.ai/how-to/skills/find-references): catalog card

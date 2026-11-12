@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | ~$0.05 per image (Nano Banana 2.1), ~$0.01 per voice take |
 | Uses | varg API, Nano Banana 2.1, Gemini 3.8 Flash TTS, Python, Pillow, FFmpeg |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.1) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.2) |
 
 ## Ask your agent
 

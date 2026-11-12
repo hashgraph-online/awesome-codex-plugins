@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | free |
 | Uses | FFmpeg, libvmaf, Python, uv, OpenCV, RapidOCR, faster-whisper |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.0) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.1) |
 
 ## Ask your agent
 

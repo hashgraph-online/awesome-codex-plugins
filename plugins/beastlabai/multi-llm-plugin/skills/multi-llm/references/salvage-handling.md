@@ -120,7 +120,7 @@ failed, and report it as `salvage_failed`, naming it as transport data.
 **On this lane both checks are yours, and the second one is the write itself.**
 Nothing stands between the subagent's reply and `task.output_path` except you:
 under `--exec-subagents` that position is held by
-`utils/subagent_executor._salvage_gave_up`, and here there is no such reader. So
+`utils/task_result._salvage_gave_up`, and here there is no such reader. So
 apply them in the prompt's own order — the sentinel first, because a subagent
 that read the raw output and named what was in it gives a better diagnostic than
 anything the shape test can reconstruct from the reply alone; then the shape
@@ -137,7 +137,7 @@ with nothing written and no retry. The second rule is one shared predicate,
 `json_extractor.is_answer_shaped` — the same one that decides whether a salvage
 is worth dispatching at all, asked again of what came back. What it buys *there*
 is the diagnostic rather than the write: the salvage result shape
-(`subagent_executor._salvage_result_errors`) already refuses a top-level object
+(`task_result._salvage_result_errors`) already refuses a top-level object
 for not being an array, so an error envelope never reached disk on that lane —
 it was reported as `schema_invalid`, "expected a JSON array of suggestions, got
 dict", which reads as a botched repair pass and invites another one when the fix

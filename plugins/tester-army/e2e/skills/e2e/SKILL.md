@@ -218,8 +218,8 @@ lines you changed:
 
 - In a project without e2e, set it up when the user requests it. Otherwise
   ask before adding a test framework, and name any existing framework.
-- Live MCP tools need the project's own `e2e mcp` server registered in the
-  client (topic `mcp`). In a directory with no e2e config, a live look still
+- Live MCP tools need an `e2e mcp` server in the client: the e2e plugin's, or
+  one registered in the project (topic `mcp`). In a directory with no e2e config, a live look still
   works: `open_session {engine: "@e2e-dev/web", app: {url: "http://localhost:3000"}}` opens a session
   on the engine's defaults. Tests need a config. Tests run with the CLI, or with the server's
   `run_tests`, the same run without a shell.

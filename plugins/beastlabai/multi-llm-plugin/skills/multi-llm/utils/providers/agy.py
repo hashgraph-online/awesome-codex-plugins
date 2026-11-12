@@ -1,16 +1,21 @@
 """Google Antigravity CLI (agy) provider implementation with JSON envelope parsing."""
-import json
 import shutil
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
-from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
+    STDOUT_ENVELOPE,
+    STDOUT_PLAIN,
     LLMProvider,
     ReasoningLadder,
     StructuredSchema,
+    diagnostic_streams,
+    envelope_signature,
+    read_stdout,
     split_reasoning_effort,
 )
+from .parse_kit import answer_from_text, fail, loads_or_extract, ok
 
 # Reasoning effort values accepted by `agy --effort` (read from `agy --help` on
 # agy 1.1.13, offline and unauthenticated):
@@ -51,7 +56,7 @@ MIN_INNER_TIMEOUT_S = 60
 
 #: What `--print-timeout` rendered before the resolved timeout was threaded in.
 #: It is not a fourth number — `20m` IS 1200 s, the same value `providers.yaml`
-#: configures and :attr:`AgyProvider.default_timeout` falls back to — but it is
+#: configures and the shared ``DEFAULT_TIMEOUT_S`` falls back to — but it is
 #: the spelling that made the two deadlines an exact tie. It survives for one
 #: reason only: `timeout_s=None` must render this adapter's pre-L5 argv
 #: byte-for-byte, so dropping the single `timeout_s=` call site in
@@ -179,19 +184,29 @@ class AgyProvider(LLMProvider):
     #: timed out`` line (939 bytes, was 897).
     verified_version = "1.3.1"
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: agy's envelope
+    #: is one JSON object whose ``response`` is the model's answer (a review of
+    #: "429 files" would read as a rate limit). :meth:`vendor_text` drops it,
+    #: but no failure shape of agy's own exits 0 (its one row, ``auth-error``,
+    #: exits 1), so none is reviewed.
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: agy's stderr is its
+    #: own: the login prompt and URL (tests/fixtures/agy/auth-error); the answer and tool turns
+    #: ride the stdout envelope.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_SIGNATURE`, from the captures: agy's envelope opens
+    #: on ``conversation_id`` (tests/fixtures/agy/auth-error).
+    ENVELOPE_SIGNATURE = envelope_signature("conversation_id")
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_ANSWER_FIELDS`: the answer; agy's own
+    #: ``status`` and ``error`` stay.
+    ENVELOPE_ANSWER_FIELDS = ("response",)
+
     @property
     def name(self) -> str:
         return "agy"
-
-    @property
-    def default_timeout(self) -> int:
-        # 1200, matching `providers.yaml`'s `providers.agy.default_timeout`
-        # (§9.6.d). This is the fallback twin of the configured number, not a
-        # second number: the provider ships in base config, so
-        # `get_provider_timeout` returns the yaml value and never reaches here.
-        # It read 600 while the yaml read 1200 and the argv read `20m` — three
-        # numbers for one fact, which is the disagreement L5 removes.
-        return 1200
 
     def is_available(self) -> bool:
         return shutil.which("agy") is not None
@@ -236,8 +251,8 @@ class AgyProvider(LLMProvider):
             # assumption that a read/analyze prompt needs no tool approval is a
             # guess, and if it is wrong every agy slot becomes an unexplained
             # timeout. So it takes the second disposition: a `null` row plus a
-            # named `bypass_exception:` in `providers.yaml`'s `read_only_modes:`
-            # table, which is what keeps `tests/test_read_only_modes.py` green
+            # named `bypass_exception:` in `tests/read_only_modes.yaml`'s
+            # `read_only_modes:` table, which keeps `tests/test_read_only_modes.py` green
             # here and red everywhere else. The exception cannot outlive the
             # flag — that guard also fails if the declaration stays after the
             # token goes.
@@ -259,6 +274,10 @@ class AgyProvider(LLMProvider):
         cmd += ["-p", prompt]
         return cmd
 
+    def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
+        """:func:`stdout_shape.diagnostic_streams`: the envelope without ``response``."""
+        return diagnostic_streams(stdout, stderr, self)
+
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
         """Parse the single JSON envelope emitted by agy --output-format json.
 
@@ -270,32 +289,28 @@ class AgyProvider(LLMProvider):
            blocks and JSON embedded in prose
         """
         stdout = stdout.strip()
-        try:
-            envelope = json.loads(stdout)
-        except json.JSONDecodeError as e:
-            # Try fallback extraction on raw stdout
-            fallback = extract_json_from_text(stdout, prefer_arrays=True)
-            if fallback.get("success"):
-                return fallback
-            return {"success": False, "error": f"JSON parse error: {e}", "raw": stdout, "data": None}
+        shape = read_stdout(stdout, self.ENVELOPE_SIGNATURE)
+        if shape.kind == STDOUT_ENVELOPE:
+            envelope = shape.value
+        elif shape.kind != STDOUT_PLAIN:
+            return shape.failure("agy", stdout)
+        else:
+            envelope, early = loads_or_extract(stdout)
+            if early is not None:
+                return early
 
         if isinstance(envelope, dict) and "status" in envelope:
             status = envelope.get("status")
             if status != "SUCCESS":
                 error = envelope.get("error") or f"agy returned status {status}"
-                return {"success": False, "error": error, "raw": stdout, "data": None}
+                return fail(error, stdout)
 
             text = envelope.get("response")
-            if not isinstance(text, str) or not text.strip():
-                return {"success": False, "error": "Empty response in agy output", "raw": stdout, "data": None}
-
-            text = text.strip()
-            if text.startswith(("[", "{")):
-                try:
-                    return {"success": True, "data": json.loads(text)}
-                except json.JSONDecodeError:
-                    pass
-            return extract_json_from_text(text, prefer_arrays=True)
+            if not isinstance(text, str):
+                return fail("Empty response in agy output", stdout)
+            return answer_from_text(
+                text, raw=stdout, empty_error="Empty response in agy output"
+            )
 
         # Valid JSON without the envelope shape: treat it as the answer itself
-        return {"success": True, "data": envelope}
+        return ok(envelope)

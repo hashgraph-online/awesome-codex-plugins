@@ -1,18 +1,178 @@
 """Utility for locating and validating task files associated with a plan.
 
-Provides find_tasks_file() which handles TASKS_FILE comment parsing, fallback
-path resolution, security checks, staleness warnings, and file validation.
-
-Extracted from review_tasks_orchestrator.py for reuse across orchestrators
-that need to locate the tasks file (review-tasks, apply-task-suggestions, etc.).
+Follows the plan's task-list marker, ``<!-- TASKS_FILE: tasks/tasks.md -->``,
+which ``tasks_marker`` reads (:data:`TASKS_FILE_MARKER_PATTERN`,
+:func:`tasks_marker_spans`, :func:`tasks_marker`, all re-exported here):
+:func:`resolve_tasks_marker` follows it inside the plan's directory, and
+:func:`read_task_list` gives the text a phase parses tasks from.
+Both fall back to the default location, ``{plan}/tasks/tasks.md``, for a plan
+with no marker (:func:`default_tasks_path`); find_tasks_file() adds staleness
+warnings and file validation for review-tasks, apply-task-suggestions and
+code-review.
+See docs/development/workflows.md ("Task generation").
 """
 
 import os
 import re
 import sys
-from datetime import datetime
+from pathlib import Path
+from typing import NamedTuple, Optional, Sequence, Union
 
+from .clock import parse_iso
 from .output_handler import sanitize_prefix
+from .tasks_marker import (  # noqa: F401 - the marker's reader, re-exported
+    TASKS_FILE_MARKER_PATTERN,
+    TASKS_FILE_MARKER_RE,
+    _BACKTICK_RUN_RE,
+    _FENCE_OPEN_RE,
+    _inline_code_ranges,
+    _opens_fence,
+    markdown_code_ranges,
+    tasks_marker,
+    tasks_marker_spans,
+)
+
+class TasksFileRefused(ValueError):
+    """The plan's ``TASKS_FILE`` marker names a path outside the plan's directory.
+
+    ``str(exc)`` is the message :func:`find_tasks_file` prints; ``raw_path`` is
+    the marker's value as written and ``reason`` says what is wrong with it.
+    """
+
+    def __init__(self, message: str, raw_path: str, reason: str) -> None:
+        super().__init__(message)
+        self.raw_path = raw_path
+        self.reason = reason
+
+
+class TasksFileAmbiguous(TasksFileRefused):
+    """The plan carries ``TASKS_FILE`` markers that name different task lists.
+
+    ``raw_paths`` holds every marker's value as written, in plan order.
+    """
+
+    def __init__(self, raw_paths: Sequence[str]) -> None:
+        listed = ", ".join(raw_paths)
+        super().__init__(
+            f"ERROR: the plan carries TASKS_FILE comments naming different task "
+            f"lists: {listed}. Keep exactly one (a marker quoted as code does not "
+            f"count), or re-run '--generate-tasks' to rewrite them.",
+            raw_paths[0],
+            f"it carries {len(raw_paths)} markers naming different task lists: {listed}",
+        )
+        self.raw_paths = list(raw_paths)
+
+
+class TasksFileMissing(FileNotFoundError):
+    """The plan's ``TASKS_FILE`` marker names a task list that is not a file."""
+
+    def __init__(self, path: Path, raw_path: str) -> None:
+        super().__init__(f"Tasks file referenced in plan not found: {path}")
+        self.path = path
+        self.raw_path = raw_path
+
+
+class TaskList(NamedTuple):
+    """The text a phase parses tasks from, and the file it came from.
+
+    ``path`` is ``None`` for a plan with no marker (the legacy format that
+    embeds its tasks in the plan), whose ``text`` is the plan itself.
+    """
+
+    text: str
+    path: Optional[Path]
+
+
+def _resolve_one(plan_dir: str, raw_path: str) -> str:
+    if os.path.isabs(raw_path):
+        raise TasksFileRefused(
+            f"ERROR: TASKS_FILE comment contains an absolute path: {raw_path}. "
+            f"Only relative paths within the plan directory are allowed.",
+            raw_path,
+            "it is an absolute path",
+        )
+    if ".." in raw_path.split(os.sep) or ".." in raw_path.split("/"):
+        raise TasksFileRefused(
+            f"ERROR: TASKS_FILE comment contains path traversal (..): {raw_path}. "
+            f"Only paths within the plan directory are allowed.",
+            raw_path,
+            "it climbs out with ..",
+        )
+
+    workspace_root = os.path.realpath(plan_dir)
+    resolved = os.path.realpath(os.path.join(plan_dir, raw_path))
+    if not resolved.startswith(workspace_root + os.sep) and resolved != workspace_root:
+        raise TasksFileRefused(
+            f"ERROR: TASKS_FILE path resolves outside the plan directory: {resolved}. "
+            f"Must be within: {workspace_root}",
+            raw_path,
+            f"it resolves to {resolved}",
+        )
+    return resolved
+
+
+def resolve_tasks_marker(
+    plan_path: Union[str, "os.PathLike[str]"], plan_text: Optional[str] = None
+) -> Optional[Path]:
+    """The real path of the task list the plan's marker names, or ``None`` without one.
+
+    Each marker must name a relative path that stays inside the plan's
+    directory: an absolute path, a ``..`` part, or a symlink that leads out
+    raises :class:`TasksFileRefused`. Markers that lead to different files
+    raise :class:`TasksFileAmbiguous`: which one is current is the plan
+    author's call, and following the first would implement a stale or
+    pasted list. Whether the file exists is the caller's question.
+    *plan_text* is read from *plan_path* when omitted.
+    """
+    plan_path_abs = os.path.abspath(str(plan_path))
+    plan_dir = os.path.dirname(plan_path_abs)
+    if plan_text is None:
+        with open(plan_path_abs, "r", encoding="utf-8") as handle:
+            plan_text = handle.read()
+    raw_paths = [raw for _, _, raw in tasks_marker_spans(plan_text)]
+    if not raw_paths:
+        return None
+    resolved = [_resolve_one(plan_dir, raw) for raw in raw_paths]
+    if len(set(resolved)) > 1:
+        raise TasksFileAmbiguous(raw_paths)
+    return Path(resolved[0])
+
+
+def default_tasks_path(plan_path: Union[str, "os.PathLike[str]"]) -> str:
+    """Where generate-tasks writes a plan's task list when no marker says
+    otherwise: ``{plan_dir}/{sanitized plan name}/tasks/tasks.md``, as a
+    path relative to the plan's directory."""
+    prefix = sanitize_prefix(os.path.basename(os.path.abspath(str(plan_path))))
+    return os.path.join(prefix, "tasks", "tasks.md")
+
+
+def read_task_list(
+    plan_path: Union[str, "os.PathLike[str]"], plan_text: Optional[str] = None
+) -> TaskList:
+    """The task list a phase parses: the file the plan's marker names, the
+    default task list, or the plan.
+
+    The same resolution :func:`find_tasks_file` makes, so every phase reads
+    one task list: a plan with no marker reads the default task list
+    (:func:`default_tasks_path`, the workflow's own output folder, which no
+    plan text names) when that is a file, and is its own task list only when
+    it is not. A plan whose marker is refused raises
+    :class:`TasksFileRefused`, and one whose marker names no file raises
+    :class:`TasksFileMissing`: parsing the plan instead would turn its prose
+    into tasks.
+    """
+    if plan_text is None:
+        plan_text = Path(plan_path).read_text(encoding="utf-8")
+    resolved = resolve_tasks_marker(plan_path, plan_text)
+    if resolved is None:
+        plan_dir = os.path.dirname(os.path.abspath(str(plan_path)))
+        default = os.path.realpath(os.path.join(plan_dir, default_tasks_path(plan_path)))
+        if not os.path.isfile(default):
+            return TaskList(plan_text, None)
+        return TaskList(Path(default).read_text(encoding="utf-8"), Path(default))
+    if not resolved.is_file():
+        raise TasksFileMissing(resolved, tasks_marker(plan_text) or "")
+    return TaskList(resolved.read_text(encoding="utf-8"), resolved)
 
 #: `update_plan_tasks.py` writes tasks.md and then the plan itself,
 #: microseconds apart, so "older" only counts a gap past filesystem clock
@@ -36,12 +196,13 @@ def _plan_edited_after_generate_tasks(
     (no state.json, or the tasks file predates the generate-tasks map).
     """
     try:
+        # Imported here to keep batch_reply, which loads this module, light.
         from .state_manager import StateManager
 
         state = StateManager(plan_path_abs, read_only=True)
         completed_at = state.get("phases_completed", {}).get("generate-tasks")
         if completed_at:
-            completed_ts = datetime.fromisoformat(completed_at).timestamp()
+            completed_ts = parse_iso(completed_at).timestamp()
             return plan_mtime > completed_ts + STALENESS_TOLERANCE_S
     except Exception:
         pass  # No usable state record — fall back to the raw mtime comparison.
@@ -85,57 +246,18 @@ def find_tasks_file(plan_path: str) -> str:
     plan_path_abs = os.path.abspath(plan_path)
     plan_dir = os.path.dirname(plan_path_abs)
 
-    # Determine the workspace root (the plan's output directory tree root)
-    # The workspace is the plan file's parent directory
-    workspace_root = os.path.realpath(plan_dir)
-
-    # Read the plan file to look for TASKS_FILE comment
-    with open(plan_path_abs, 'r', encoding='utf-8') as f:
-        plan_content = f.read()
-
-    # 1. Check for <!-- TASKS_FILE: path/to/tasks.md --> comment
-    tasks_file_match = re.search(
-        r'<!--\s*TASKS_FILE:\s*(.+?)\s*-->', plan_content
-    )
-
-    comment_path = None
-    if tasks_file_match:
-        raw_path = tasks_file_match.group(1).strip()
-
-        # Security: reject absolute paths and .. traversal in the raw value
-        if os.path.isabs(raw_path):
-            print(
-                f"ERROR: TASKS_FILE comment contains an absolute path: {raw_path}. "
-                f"Only relative paths within the plan directory are allowed.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        if '..' in raw_path.split(os.sep) or '..' in raw_path.split('/'):
-            print(
-                f"ERROR: TASKS_FILE comment contains path traversal (..): {raw_path}. "
-                f"Only paths within the plan directory are allowed.",
-                file=sys.stderr,
-            )
-            sys.exit(1)
-
-        # Resolve relative to plan directory
-        comment_path = os.path.realpath(os.path.join(plan_dir, raw_path))
-
-        # Verify it stays within workspace
-        if not comment_path.startswith(workspace_root + os.sep) and comment_path != workspace_root:
-            print(
-                f"ERROR: TASKS_FILE path resolves outside the plan directory: {comment_path}. "
-                f"Must be within: {workspace_root}",
-                file=sys.stderr,
-            )
-            sys.exit(1)
+    # 1. The plan's <!-- TASKS_FILE: path/to/tasks.md --> marker, followed only
+    # inside the plan's directory. A refusal is exit 1 here, as it always was.
+    try:
+        resolved = resolve_tasks_marker(plan_path_abs)
+    except TasksFileRefused as refused:
+        print(str(refused), file=sys.stderr)
+        sys.exit(1)
+    comment_path = str(resolved) if resolved is not None else None
 
     # 2. Determine default tasks file location
     # Uses the plan's output directory structure: {plan_dir}/{sanitized_name}/tasks/tasks.md
-    prefix = sanitize_prefix(os.path.basename(plan_path_abs))
-    default_tasks_dir = os.path.join(plan_dir, prefix, "tasks")
-    default_path = os.path.realpath(os.path.join(default_tasks_dir, "tasks.md"))
+    default_path = os.path.realpath(os.path.join(plan_dir, default_tasks_path(plan_path_abs)))
 
     # 3. Resolve which file to use
     tasks_path = None
@@ -183,7 +305,7 @@ def find_tasks_file(plan_path: str) -> str:
         with open(tasks_path, 'r', encoding='utf-8') as f:
             content = f.read()
     except (IOError, OSError) as e:
-        raise ValueError(f"Cannot read tasks file {tasks_path}: {e}")
+        raise ValueError(f"Cannot read tasks file {tasks_path}: {e}") from e
 
     if not content.strip():
         raise ValueError(

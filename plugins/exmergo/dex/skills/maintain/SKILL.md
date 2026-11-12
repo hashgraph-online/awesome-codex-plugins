@@ -15,6 +15,12 @@ each project layer. Detection is read-only; only `reconcile` proposes edits, and
 <!-- dex:procedure:begin -->
 ## Procedure
 
+For project setup, run `dex init` (or `init` through an installed skill wrapper).
+It creates or adopts a project, installs managed README and agent instructions,
+and verifies the connection. It does not explore data or build models. Read its
+structured missing inputs and readiness before continuing; installing skills
+does not necessarily install a `dex` executable.
+
 Dex works in one loop: explore, transform, maintain. `dex <command>` below is
 the `dex` CLI; where it is not installed, run the same command through the
 skill's `scripts/run.py` wrapper. Each command prints one JSON envelope: read

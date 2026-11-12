@@ -9,12 +9,8 @@ import copy
 import sys
 from typing import Any, Dict, List, Set, Tuple
 
-try:
-    from .scope_policy import attach_verdict
-    from .state_manager import generate_group_id
-except ImportError:
-    from utils.scope_policy import attach_verdict
-    from utils.state_manager import generate_group_id
+from .scope_policy import attach_verdict
+from .state_manager import group_join_ids, records_by_unique_id
 
 
 def _is_user_skipped(group: Dict[str, Any], skipped_ids: Set[str]) -> bool:
@@ -54,23 +50,26 @@ def merge_validation_with_groups(
     scope authority, and any verdict the group arrived with is dropped, so
     the group reads ``unclear``. Validity fields are unaffected either way.
     """
-    # Primary lookup: stable content hash -> validation record
-    validation_by_id = {
-        v.get("group_id"): v for v in validation if v.get("group_id")
-    }
+    # Primary lookup: stamped group id -> validation record (an id two
+    # records carry is left out: it cannot say which group each judged)
+    validation_by_id = records_by_unique_id(validation, "group_id")
     # Fallback lookup: positional index -> validation record (legacy data)
     validation_by_index = {
         v.get("group_index", i): v for i, v in enumerate(validation)
     }
 
     merged = []
+    join_ids = group_join_ids(groups)
     for i, group in enumerate(groups):
         group_copy = dict(group)
         group_copy["group_index"] = i  # Track original index
-        # Prefer the stamped group_hash; compute it if absent so groups that
-        # were never stamped still match by content.
-        ghash = group.get("group_hash") or generate_group_id(group)
-        hashed = validation_by_id.get(ghash)
+        # The stamped group_hash, or the plain content hash for a group never
+        # stamped, each only where it names this one group (same-content
+        # groups share the plain hash).
+        hashed = next(
+            (validation_by_id[key] for key in join_ids[i] if key in validation_by_id),
+            None,
+        )
         val = (
             hashed
             or validation_by_index.get(i)

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "e2e": {
+      "command": "npx",
+      "args": ["-y", "e2e", "mcp"]
+    }
+  }
+}

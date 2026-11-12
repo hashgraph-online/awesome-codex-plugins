@@ -27,6 +27,11 @@
       "$ref": "#/$defs/inputs",
       "description": "File-level copy of the inputs block; identical to every task's own inputs."
     },
+    "round_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16,64}$",
+      "description": "Validation task files of the review phases: the review round `.status.json` recorded when the file was materialized (utils/review_round.py), so a resume and review-code's partial-completion guard can tell this round's file from an earlier round's. Absent on a file written before round ids, or with no round on record."
+    },
     "context_plan_file": {
       "type": "string",
       "description": "Frozen context-plan snapshot, relative to the phase directory (absolute across drives). Its raw bytes must match inputs.context_plan_sha256 before dispatch."

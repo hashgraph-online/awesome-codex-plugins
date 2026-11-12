@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
   openclaw:
     requires:
       anyBins:
@@ -28,11 +28,13 @@ allowed-tools: Bash(python3:*) Bash(curl:*) Read Write Edit
 
 # Video moodboard
 
+> Step 2 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/make-a-moodboard-for-an-ai-video (as Markdown: add `.md`).
+
 A moodboard for an AI video is not a mood. It is a short list of lines a model can obey and a person can check:
 where the light comes from, which five colours, which lens, which film stock, which font, which camera move. Write
 it that way and the model follows; write "cinematic, moody, premium" and it falls back to its default look.
 
-What the data says (full write-up: https://claude.ai/artifact/5ptKSPYFzvd7turkZevfHZ):
+What the data says (full write-up: https://varg.ai/how-to/make-a-moodboard-for-an-ai-video):
 
 - **A board works.** In a blind test of 48 stills on Nano Banana 2.1 and Seedream 5 Pro, the full board made frames
   1.0 point more film-like (1–10) than no board, and every line lifted its own match by 31–73 points.

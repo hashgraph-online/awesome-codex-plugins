@@ -1,4 +1,4 @@
--- Isolated WP6B/WP6C candidate schema v13. Task/Attempt are durable domain
+-- Isolated WP6B/WP6C candidate schema v14. Task/Attempt are durable domain
 -- projections; manager_operations and manager_operation_events remain the two
 -- lifecycle structures required by ADR-014 v1.1.
 PRAGMA foreign_keys=ON;
@@ -25,7 +25,7 @@ CREATE TABLE attempts (
   queued_cancelled_at TEXT,
   queued_cancel_operation_id TEXT,
   queued_cancel_result_digest TEXT CHECK(queued_cancel_result_digest IS NULL OR length(queued_cancel_result_digest)=64),
-  queued_cancel_result_json TEXT CHECK(queued_cancel_result_json IS NULL OR (json_valid(queued_cancel_result_json) AND json_type(queued_cancel_result_json)='object' AND length(CAST(queued_cancel_result_json AS BLOB))<=65536)),
+  queued_cancel_result_json TEXT CHECK(queued_cancel_result_json IS NULL OR (json_valid(queued_cancel_result_json) AND json_type(queued_cancel_result_json)='object' AND length(CAST(queued_cancel_result_json AS BLOB))<=33554432)),
   PRIMARY KEY(task_id,attempt),
   UNIQUE(task_id,generation),
   UNIQUE(task_id,attempt,generation),
@@ -42,7 +42,7 @@ CREATE TABLE attempts (
 
 CREATE TABLE authority_metadata (
   singleton INTEGER PRIMARY KEY CHECK(singleton=1),
-  schema_version INTEGER NOT NULL CHECK(schema_version=13),
+  schema_version INTEGER NOT NULL CHECK(schema_version=14),
   next_generation INTEGER NOT NULL DEFAULT 0 CHECK(next_generation>=0),
   next_event_cursor INTEGER NOT NULL DEFAULT 0 CHECK(next_event_cursor BETWEEN 0 AND 9007199254740991),
   policy_version INTEGER,
@@ -110,7 +110,7 @@ CREATE TABLE authority_switch (
   archive_source_tasks_root TEXT NOT NULL CHECK(length(archive_source_tasks_root) BETWEEN 1 AND 32767),
   archive_file_count INTEGER NOT NULL CHECK(archive_file_count>=0),
   archive_byte_count INTEGER NOT NULL CHECK(archive_byte_count>=0),
-  schema_version INTEGER NOT NULL CHECK(schema_version=13),
+  schema_version INTEGER NOT NULL CHECK(schema_version=14),
   protocol_version TEXT NOT NULL CHECK(length(protocol_version) BETWEEN 1 AND 128),
   runtime_roster_digest TEXT NOT NULL CHECK(length(runtime_roster_digest)=64),
   verifier_version TEXT NOT NULL CHECK(length(verifier_version) BETWEEN 1 AND 128),
@@ -236,7 +236,7 @@ CREATE TABLE manager_operations (
   result_status TEXT CHECK(result_status IN ('completed','failed','cancelled','waiting_for_master')),
   result_generation INTEGER,
   result_digest TEXT CHECK(result_digest IS NULL OR length(result_digest)=64),
-  result_json TEXT CHECK(result_json IS NULL OR (json_valid(result_json) AND json_type(result_json)='object' AND length(CAST(result_json AS BLOB))<=65536)),
+  result_json TEXT CHECK(result_json IS NULL OR (json_valid(result_json) AND json_type(result_json)='object' AND length(CAST(result_json AS BLOB))<=33554432)),
   result_commit_ref TEXT UNIQUE,
   FOREIGN KEY(task_id,attempt,generation) REFERENCES attempts(task_id,attempt,generation),
   CHECK ((operation_kind='attempt_lifecycle' AND task_id IS NOT NULL AND attempt IS NOT NULL AND generation IS NOT NULL

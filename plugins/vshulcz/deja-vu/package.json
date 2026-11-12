@@ -1,6 +1,6 @@
 {
   "name": "dsh-deja",
-  "version": "0.24.1",
+  "version": "0.24.2",
   "private": true,
   "description": "Repository-root manifest for the DeepSeek Harness plugin that lives in extensions/dsh — the same package published to npm as dsh-deja. It re-exports the subdirectory so the plugin installs from a bare git URL or from github:vshulcz/deja-vu#path:extensions/dsh; the npm package is the shorter path. The repository itself is the Go project behind the deja binary.",
   "type": "module",
@@ -58,7 +58,7 @@
     }
   },
   "dependencies": {
-    "@vshulcz/deja-vu": "^0.24.1"
+    "@vshulcz/deja-vu": "^0.24.2"
   },
   "funding": {
     "type": "github",

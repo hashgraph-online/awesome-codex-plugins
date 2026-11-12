@@ -26,14 +26,12 @@ parser keys on, or the issue-digest footer. Pure apart from :func:`read_state`.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
+import sys
 
-try:
-    from . import scope_policy as sp
-except ImportError:  # pragma: no cover - direct script import
-    import scope_policy as sp  # type: ignore
+from . import scope_policy as sp
+from .state_file import STATE_FILENAME, read_document
 
 #: ``report_data.json`` / ``consolidated_report_data.json`` key holding the
 #: round's policy block (policy line, legend, counts, baseline).
@@ -87,12 +85,7 @@ def read_state(phase_dir: Any) -> Dict[str, Any]:
     """``state.json`` beside a review phase dir (``<plan dir>/state.json``), or ``{}``."""
     if phase_dir is None:
         return {}
-    path = Path(phase_dir).parent / "state.json"
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return {}
-    return data if isinstance(data, dict) else {}
+    return read_document(Path(phase_dir).parent / STATE_FILENAME) or {}
 
 
 def round_info(state: Optional[Mapping[str, Any]], phase: str,
@@ -445,8 +438,6 @@ def strip_selection_scope_fields(data: Any, source: str = "selections") -> Any:
     dropped = [k for k in list(data)
                if str(k).replace("-", "_").lower().startswith(SELECTION_DENY_PREFIXES)]
     if dropped:
-        import sys
-
         for key in dropped:
             data.pop(key, None)
         print(f"WARNING: {source} carries {', '.join(sorted(map(str, dropped)))}; "

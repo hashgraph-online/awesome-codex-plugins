@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.141.0 # x-release-please-version
+version: 0.142.2 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -15,20 +15,26 @@ worktrees, approvals, and delivery.
 
 ## Start in the correct context
 
-Inside `coop exec`, use the environment as provided and run bare `amq` commands.
-Do not override `--me` or reconstruct the root. Outside it, resolve and export the
-complete context before reading or sending:
+Use the first case that applies:
 
-```bash
-amq_context="$(amq env --me "<handle>" --export)" && eval "$amq_context" &&
-  amq drain --include-body
-```
+1. `AM_ME` is set (`amq coop exec` or `amq launch` started the session): run
+   bare `amq` commands. Do not override `--me` or reconstruct the root.
+2. A Claude Code session with no `AM_ME`, such as a chat of the desktop app:
+   run `amq coop join` once; add `--me "<handle>"` when the user named a
+   handle or the output says the default is taken. Later bare `amq` commands
+   in that session use the handle. Follow what the output says about the wake: when
+   the wait hook is not installed, tell the user that `amq coop install-hooks`
+   installs it once per machine and that it takes effect in a new session.
+   When a later command says the session has no handle (a terminal session
+   after `/clear`), join again. Do not use the `amq env` export here; a shell
+   variable does not last between the shell calls of a Claude Code session.
+3. Any other shell: resolve and export the complete context before reading or
+   sending:
 
-In a Claude Code session that `coop exec` did not start (the desktop app has
-no `AM_ME`), run `amq coop join --me "<handle>"` once. Later bare `amq`
-commands in that session use the handle, and its output says whether a hook
-wakes the session for new mail. A session after `/clear` has no handle: join
-again.
+   ```bash
+   amq_context="$(amq env --me "<handle>" --export)" && eval "$amq_context" &&
+     amq drain --include-body
+   ```
 
 For a named session, add `--session <name>` to `amq env`. Treat the evaluated
 context as one terminal bound to one session. Use `--session` or `--project` for
@@ -37,9 +43,10 @@ raw `--root`.
 
 ## Receive under a live wake
 
-If session-start context says `wake=live(...)`, or
-`amq wake check --me <handle> --json` reports `live_wake: true` with an
-injection mode other than `none`, the wake delivers a doorbell for you.
+If session-start context says that a wake rings this terminal or that a hook
+wakes this session, or `amq wake check --me <handle> --json` reports
+`live_wake: true` with an injection mode other than `none`, a doorbell is
+delivered for you.
 Run `amq drain --include-body` when it fires, then act on the messages.
 
 The default drain reads at most 20 messages in filename order, including held
@@ -48,7 +55,7 @@ as needed; do not assume the inbox is empty. Use `--limit 0` only for a known,
 manageable batch. Urgent hold bypass does not change drain order.
 
 Do not run `amq watch`, `amq monitor`, sleep-poll, or start another inbox
-watcher under that live wake. A blocking wait holds your turn while the
+watcher under that live wake or wait hook. A blocking wait holds your turn while the
 doorbell queues behind it. When your work is done, finish the turn; do not
 keep a tool running or send idle check-ins just to wait for mail.
 
@@ -76,7 +83,8 @@ it, `--unset <key>` falls back, and `--machine` sets this user's default.
 Injection flags are fixed for a running wake. Exit codes and recovery are in
 [wake operations](https://github.com/avivsinai/agent-message-queue/blob/main/docs/wake-operations.md#live-settings).
 
-Without an injecting wake, use the receive methods in the operations guide.
+Without an injecting wake or a wait hook, use the receive methods in the
+operations guide.
 A notify-only wake (`--inject-mode none`) paired with a supervisor `monitor`
 service is a separate supported setup.
 

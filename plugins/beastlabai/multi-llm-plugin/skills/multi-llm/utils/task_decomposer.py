@@ -7,10 +7,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Set
 from pathlib import Path
 
-try:
-    from .subagent_tasks import derive_executor_role, subagent_type_for_role
-except ImportError:
-    from utils.subagent_tasks import derive_executor_role, subagent_type_for_role
+from .subagent_tasks import derive_executor_role, subagent_type_for_role
+from .tasks_file import read_task_list
 
 
 class TaskStatus(Enum):
@@ -130,25 +128,51 @@ class Task:
 #: human-task set to work on. The second and third forms are the executor line a
 #: hand-written plan may carry and the pre-D2h ``subagent_type`` rendering that
 #: files already on disk still use.
+#:
+#: **Every line-anchored pattern in this module is linear, and must stay so:**
+#: a task list is model output (``generate-tasks``) and ``parse_plan`` reads it
+#: whole. A line anchor followed by ``\s*`` (``(?:^|\n)\s*X``, or ``^\s*X``
+#: under ``re.MULTILINE``) is retried at every line start of a run of blank
+#: lines, and each retry walks the rest of the run: quadratic, 12 s for 32 KB
+#: of newlines. ``(?:^|(?<=\n))[^\S\n]*X`` (``^[^\S\n]*X`` under MULTILINE)
+#: reaches the same first non-blank character from that character's own line,
+#: so the same lines match and every match ends where it did; only its start
+#: moves. Where a caller uses the start, :func:`_run_line_start` puts it back
+#: where the ``\s*`` began. Likewise adjacent ``\s*`` around an optional piece
+#: (``\s*:?\s*``) becomes ``\s*(?::\s*)?``: the same strings, without the
+#: quadratic ways to split one run between the two.
 HUMAN_TASK_PATTERNS = (
     # **Type**: Manual (user action required)
     re.compile(
-        r'(?:^|\n)\s*(?:[-*]\s+)?\*{0,2}type\*{0,2}\s*:\s*\*{0,2}manual\b',
+        r'(?:^|(?<=\n))[^\S\n]*(?:[-*]\s+)?\*{0,2}type\*{0,2}\s*:\s*\*{0,2}manual\b',
         re.IGNORECASE,
     ),
     # **Executor**: human  /  **Executor role**: human
     re.compile(
-        r'(?:^|\n)\s*(?:[-*]\s+)?\*{0,2}executor(?:\s+role)?\*{0,2}\s*:\s*'
+        r'(?:^|(?<=\n))[^\S\n]*(?:[-*]\s+)?\*{0,2}executor(?:\s+role)?\*{0,2}\s*:\s*'
         r'\*{0,2}human\b',
         re.IGNORECASE,
     ),
     # **Subagent**: human  /  **Subagent type**: human  (legacy renderings)
     re.compile(
-        r'(?:^|\n)\s*(?:[-*]\s+)?\*{0,2}subagent(?:\s+type)?\*{0,2}\s*:\s*'
+        r'(?:^|(?<=\n))[^\S\n]*(?:[-*]\s+)?\*{0,2}subagent(?:\s+type)?\*{0,2}\s*:\s*'
         r'\*{0,2}human\b',
         re.IGNORECASE,
     ),
 )
+
+
+def _run_line_start(text: str, first: int, floor: int = 0) -> int:
+    """Where an old ``(?:^|(?<=\\n))\\s*X`` match of *text* began, given the
+    position *first* of its first non-blank character: the first line start in
+    the whitespace run before it, and not before *floor* (where the search that
+    found it started)."""
+    start = first
+    while start > floor and text[start - 1].isspace():
+        start -= 1
+    if start == 0 or text[start - 1] == "\n":
+        return start
+    return text.index("\n", start) + 1
 
 
 _DEPENDENCY_LABEL = r"(?:dependenc(?:y|ies)|depends?\s+on)"
@@ -162,7 +186,7 @@ _DEPENDENCY_LABEL = r"(?:dependenc(?:y|ies)|depends?\s+on)"
 #: either one optionally bulleted. ``**Requires**:`` / ``**After**:``, which
 #: the old reader also took, appear in no template, renderer or fixture.
 DEPENDENCIES_LINE = re.compile(
-    r"^\s*(?:[-*]\s+)?"
+    r"^[^\S\n]*(?:[-*]\s+)?"
     r"(?:\*{2}\s*" + _DEPENDENCY_LABEL + r"\s*(?::\s*\*{2}|\*{2}\s*:)"
     r"|" + _DEPENDENCY_LABEL + r"\s*:)"
     r"(?P<ids>[^\n]*)$",
@@ -182,6 +206,10 @@ _NO_DEPENDENCY = re.compile(r"^\s*(?:none|n/?a|-|—|–)(?![\w/])", re.IGNORECA
 _DEPENDENCY_ID = re.compile(r"\b(T?\d+)(?:\s*-\s*(T?\d+))?\b")
 #: A bullet under an empty label line (``**Dependencies**:`` then ``- T001``).
 _DEPENDENCY_BULLET = re.compile(r"^\s*[-*]\s+(?P<ids>.*)$")
+#: A bullet made of ids only: ``T001, T002-T004,``.
+_ID_LIST = re.compile(
+    r"\s*T?\d+(?:\s*-\s*T?\d+)?(?:\s*,\s*T?\d+(?:\s*-\s*T?\d+)?)*\s*(?:,\s*)?"
+)
 #: The most ids one range may expand to; a wider one is a typo, not a graph.
 _MAX_RANGE = 50
 
@@ -224,7 +252,7 @@ def _bullets_after(text: str, position: int) -> List[str]:
         if bullet is None:
             break
         ids_only = _DEPENDENCY_PROSE.split(bullet.group("ids"), maxsplit=1)[0]
-        if not re.fullmatch(r"\s*T?\d+(?:\s*-\s*T?\d+)?(?:\s*,\s*T?\d+(?:\s*-\s*T?\d+)?)*\s*,?\s*", ids_only):
+        if not _ID_LIST.fullmatch(ids_only):
             break
         chunks.append(bullet.group("ids"))
     return chunks
@@ -261,6 +289,19 @@ def declared_dependencies(text: str, *, bare_numbers: bool = False) -> List[str]
     return deps
 
 
+#: One task section of a task list, matched with ``re.DOTALL | re.IGNORECASE``:
+#: ``### T001: Title``, ``## Task 1: Title``, ``### Step 1: Title`` or
+#: ``## 1: Title``, then its body up to the next task heading or ``## `` heading.
+#: Group 1 is the id, group 2 the title line and body.
+#: ``\s*(?:(?:Step|Task)\s*)?`` is ``\s*(?:Step|Task)?\s*`` without the
+#: quadratic splits of one whitespace run between two ``\s*`` (see
+#: :data:`HUMAN_TASK_PATTERNS`).
+TASK_SECTION_PATTERN = (
+    r'(?:#{2,3})\s*(?:(?:Step|Task)\s*)?([T]?\d+):?\s*(.+?)'
+    r'(?=\n#{2,3}\s*(?:(?:Step|Task)\s*)?[T]?\d|\n## |\Z)'
+)
+
+
 class TaskDecomposer:
     """Decomposes plans into executable tasks with dependency management."""
 
@@ -280,12 +321,9 @@ class TaskDecomposer:
         """
         tasks = []
 
-        # Look for task sections with various formats:
-        # - "### Step 1: Title" or "## Step 1: Title"
-        # - "### Task 1: Title" or "## Task 1: Title"
-        # - "### T1: Title" or "## 1: Title"
-        task_pattern = r'(?:#{2,3})\s*(?:Step|Task)?\s*([T]?\d+):?\s*(.+?)(?=\n#{2,3}\s*(?:Step|Task)?\s*[T]?\d|\n## |\Z)'
-        matches = re.findall(task_pattern, plan_content, re.DOTALL | re.IGNORECASE)
+        matches = re.findall(
+            TASK_SECTION_PATTERN, plan_content, re.DOTALL | re.IGNORECASE
+        )
         # A bare number names a task only in a document whose own ids are
         # bare (`### Step 1`); in a `T001`-numbered one it is prose.
         bare_numbers = any(
@@ -369,7 +407,7 @@ class TaskDecomposer:
 
     #: The metadata lines ``plan_updater`` renders for every generated task.
     _FILES_LINE = re.compile(
-        r'^\s*(?:\*{2}\s*files?\s+to\s+(modify|create)\s*\*{2}'
+        r'^[^\S\n]*(?:\*{2}\s*files?\s+to\s+(modify|create)\s*\*{2}'
         r'|[-*]\s+files?\s+to\s+(modify|create))\s*:\s*(?P<paths>[^\n]*)$',
         re.IGNORECASE | re.MULTILINE,
     )
@@ -410,8 +448,10 @@ class TaskDecomposer:
 
         files = []
 
-        # Look for file paths
-        path_pattern = r'[`"]?([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)[`"]?'
+        # Look for file paths. A path starts where its run of path characters
+        # does: a match from inside a run is a match from its start, and the
+        # retries in between made a long run without an extension quadratic.
+        path_pattern = r'[`"]?(?<![a-zA-Z0-9_\-./])([a-zA-Z0-9_\-./]+\.[a-zA-Z0-9]+)[`"]?'
         all_paths = re.findall(path_pattern, description)
 
         # Filter by action keywords near the path
@@ -431,8 +471,8 @@ class TaskDecomposer:
     #: The ``**Complexity**`` line ``update_plan_tasks`` renders for every
     #: generated task, in the same two spellings ``_FILES_LINE`` accepts.
     _COMPLEXITY_LINE = re.compile(
-        r'^\s*(?:\*{2}\s*complexity\s*\*{2}|[-*]\s+complexity)\s*:\s*'
-        r'\**\s*(?P<level>low|medium|high)\b',
+        r'^[^\S\n]*(?:\*{2}\s*complexity\s*\*{2}|[-*]\s+complexity)\s*:\s*'
+        r'(?:\*+\s*)?(?P<level>low|medium|high)\b',
         re.IGNORECASE | re.MULTILINE,
     )
 
@@ -521,7 +561,10 @@ class TaskDecomposer:
         """
         # Match an Acceptance Criteria heading: **Acceptance Criteria**: or **Acceptance Criteria**
         # Case-insensitive, optional colon, optional bold markers
-        heading_pattern = r'(?:^|\n)\s*\*{0,2}acceptance\s+criteria\*{0,2}\s*:?\s*\n'
+        # (Linear forms: see HUMAN_TASK_PATTERNS.)
+        heading_pattern = (
+            r'(?:^|(?<=\n))[^\S\n]*\*{0,2}acceptance\s+criteria\*{0,2}(?:\s*:)?\s*\n'
+        )
         match = re.search(heading_pattern, description, re.IGNORECASE)
         if not match:
             return []
@@ -529,8 +572,10 @@ class TaskDecomposer:
         # Extract the content after the heading until the next metadata section
         # heading or end of string
         rest = description[match.end():]
-        # Stop at the next bold metadata heading or end of string
-        next_section = re.search(r'\n\s*\*{2}[A-Za-z]', rest)
+        # Stop at the next bold metadata heading or end of string. The cut is
+        # the heading's own line start rather than the first newline of the
+        # blank lines in front of it: those lines are blank, and skipped below.
+        next_section = re.search(r'\n[^\S\n]*\*{2}[A-Za-z]', rest)
         if next_section:
             rest = rest[:next_section.start()]
 
@@ -606,15 +651,27 @@ class TaskDecomposer:
             # **Section Name**: content  (single line)
             # **Section Name**:\n- item\n- item  (multi-line with list items)
             # - Section Name: content (as a list item)
-            pattern = (
-                r'(?:(?<=\n)|(?:^))\s*'             # line start (zero-width)
-                r'(?:\*{2}' + name + r'\*{2}'       # **Section Name**
+            # Each removal starts at the first line start of the blank run in
+            # front of the heading, found linearly (see HUMAN_TASK_PATTERNS).
+            pattern = re.compile(
+                r'(?:(?<=\n)|(?:^))[^\S\n]*'        # the heading's line start
+                r'((?:\*{2}' + name + r'\*{2}'      # **Section Name**
                 r'|[-*]\s+' + name + r')'           # or - Section Name
                 r'\s*:?\s*'                         # optional colon
                 r'[^\n]*'                           # rest of heading line
-                r'(?:\n(?!\s*\n)(?!\s*\*{2}[A-Za-z])(?!\s*#{2,})[^\n]*)*'  # continuation lines
+                r'(?:\n(?!\s*\n)(?!\s*\*{2}[A-Za-z])(?!\s*#{2,})[^\n]*)*)',  # continuation lines
+                re.IGNORECASE,
             )
-            result = re.sub(pattern, '', result, flags=re.IGNORECASE)
+            pieces: List[str] = []
+            position = 0
+            while True:
+                found = pattern.search(result, position)
+                if found is None:
+                    break
+                pieces.append(result[position:_run_line_start(result, found.start(1), position)])
+                position = found.end()
+            pieces.append(result[position:])
+            result = "".join(pieces)
 
         # Clean up excessive blank lines left by removals
         result = re.sub(r'\n{3,}', '\n\n', result)
@@ -892,6 +949,11 @@ def decompose_plan_file(plan_path: Path) -> TaskDecomposer:
     """
     Convenience function to decompose a plan file.
 
+    Parses the task list the plan's ``TASKS_FILE`` marker names, the default
+    task list without a marker, or the plan itself when it has neither
+    (``tasks_file.read_task_list``, which
+    raises rather than parse the prose of a plan whose marker it cannot follow).
+
     Args:
         plan_path: Path to the plan markdown file
 
@@ -899,6 +961,5 @@ def decompose_plan_file(plan_path: Path) -> TaskDecomposer:
         TaskDecomposer instance with parsed tasks
     """
     decomposer = TaskDecomposer()
-    plan_content = plan_path.read_text(encoding="utf-8")
-    decomposer.parse_plan(plan_content)
+    decomposer.parse_plan(read_task_list(plan_path).text)
     return decomposer

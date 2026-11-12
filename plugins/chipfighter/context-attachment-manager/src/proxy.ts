@@ -48,7 +48,7 @@ import { say } from "./core/messages.ts";
 import { headerOf } from "./core/platform.ts";
 import { formatOf, rewritePlatformRequest } from "./adapters/protocols/any.ts";
 import { corePlatformOf, isPlatform } from "./platforms.ts";
-import { ensureAutoDefault, ensureStableIds, selectionDir, stableIdsSince } from "./core/selection.ts";
+import { ensureAutoDefault, ensureStableIds, selectionDir, stableIdTimes } from "./core/selection.ts";
 
 type Json = Record<string, any>;
 
@@ -404,7 +404,7 @@ async function main(): Promise<void> {
           details = describeBody(path, json);
           // Measured on the body as Codex sent it, before any rewrite: the panel's "everything sent" baseline.
           if (/\/responses$/.test(path) && Array.isArray(json.input)) imageSizes = imageSizesOf(json.input);
-          if (claudeSession && Array.isArray(json.messages)) imageSizes = claudeImageSizes(json.messages, loadClaudeIndex(claudeSession, claudeHome(), stableIdsSince(claudeSelectionDirOf())));
+          if (claudeSession && Array.isArray(json.messages)) imageSizes = claudeImageSizes(json.messages, loadClaudeIndex(claudeSession, claudeHome(), stableIdTimes(claudeSelectionDirOf())));
           if (dumpDir && (/\/responses$/.test(path) || path === "/v1/messages")) {
             mkdirSync(dumpDir, { recursive: true });
             const headers = Object.fromEntries(Object.entries(req.headers).filter(([name]) => /^(x-codex|session_id|conversation_id|openai-beta|content-|anthropic-(beta|version)|x-claude-code-|user-agent)/.test(name)));

@@ -112,7 +112,17 @@ Also verify the tasks file exists: check for `<!-- TASKS_FILE: ... -->` marker i
 
 ### 2. Resume Detection (check BEFORE running orchestrator)
 
-Check for existing output to avoid expensive duplicate runs. Follow the detection cases in `references/resume-detection.md`, using `{plan}/review-tasks/` as the phase directory.
+Check for existing output to avoid expensive duplicate runs. Run this (read-only) and do what its one `[RESUME_STATE] case=… action=… models=… batches=… flags=… ownership=…` line says; `references/resume-detection.md` lists the cases behind it:
+
+```bash
+uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util resume-state review-tasks "$PLAN_PATH"
+```
+
+- `action=run`: nothing to resume; go on to step 3.
+- `action=rerun`: step 3's launch with `--models` set to the `models=` list (comma-separated there) and the `flags=` added (`-` is none): each model with a result keeps it (`[SKIP]`) and only the rest run. Never `--rerun-all`. `models=-` means none was recorded: select the models as for a fresh run. `ownership=stale` means validation files on disk are an earlier round's, and `ownership=uncertain` that they may be: the `--force` in `flags=` re-runs the phase over them rather than reporting them.
+- `action=validate`: skip the launch and go to step 6 with `{plan}/review-tasks/validation_tasks.json`; when `batches=` lists numbers, run only those batches (the ones with no `validation_batch_<N>.json` yet), then `--reaggregate` as step 6 says.
+- `action=reaggregate`: skip the launch and run step 6's `--reaggregate`.
+- `action=report`: the phase is complete: report results from `{plan}/review-tasks/report.md` (or `report.html`) and run no orchestrator.
 
 **Note**: The orchestrator guards against re-runs (exits with code 2 if phase is already marked complete in state.json). Use `--force` to override. This instruction-level resume detection is the FIRST line of defense; the orchestrator guard is backup protection.
 
@@ -310,24 +320,11 @@ Five rules govern the loop:
    configured it; state that number there instead. Announcing an interval you are
    not waiting is worse than announcing none.
 
-**Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/review-tasks/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. Left out, `--scope-policy` stays the one the kept results were requested under (the run prints one `Scope policy notice:` line naming it); a different one typed stops at exit 3 with `[SCOPE_POLICY_CONFLICT]` rather than mix two policies in one round, and `--force --rerun-all` starts a fresh round under `expand` or the policy typed.
+**Resume**: re-invoking with `--force` RESUMES (keeps already-completed per-model result files, runs only the missing models); `--rerun-all` forces a full re-run discarding existing per-model results. Pass the **same `--models` selection as the original run** (`models_requested` in `{plan}/review-tasks/.status.json`), never only the missing ones: the orchestrator skips the models that already have a result, and the run's report covers only the models passed. The retry prints `[SKIP] <model> - already has results` for each model it keeps, so tell the user which model re-ran and which kept its result. Left out, `--scope-policy` stays the one the kept results were requested under (the run prints one `Scope policy notice:` line naming it); a different one typed stops at exit 3 with `[SCOPE_POLICY_CONFLICT]` rather than mix two policies in one round, and `--force --rerun-all` starts a fresh round under `expand` or the policy typed.
 
-### 4. Interrupted-run Recovery (conditional -- only if the background run was interrupted or the log shows no completion markers)
+### 4. Interrupted-run Recovery (conditional)
 
-If the detached orchestrator was interrupted or `{plan}/review-tasks/orchestrator-run.log` shows neither a validation marker nor a clean completion:
-
-1. Read `{plan}/review-tasks/.status.json`
-2. Based on `state` field: `models_running` -> check which `{model}.json` files exist; `models_complete`/`grouping_complete` -> check for `grouped.json`, `validation_tasks.json`; `validation_pending` -> proceed to validation; `complete` -> report results
-3. If no `.status.json` -> fall back to file-based resume detection (step 2)
-4. **With `--yes`: always resume, never ask** (D6 row 3) -- re-run with
-   `--force` and the original run's full `--models` selection (only the
-   missing models actually run: the retry prints `[SKIP] <model> - already
-   has results` for each model it keeps, so tell the user which model re-ran
-   and which kept its result), never `--rerun-all`. A model that fails twice in
-   one run is reported, not retried again: `[PARTIAL_RESULTS: <model>,...]`,
-   `MULTI_LLM_RESULT.state: "partial"`, exit **0**. Zero results is exit **3**
-   naming the retry command.
-5. Without `--yes`, **ask the user**, showing which models completed/failed, offering: (a) Proceed with partial results, (b) Resume -- re-run only the missing models (`--force` with the original full `--models` selection), (c) Re-run everything from scratch (`--force --rerun-all`)
+Only when the detached orchestrator was interrupted (the session ended, the process was killed) or `{plan}/review-tasks/orchestrator-run.log` shows neither a validation marker nor a clean completion, read `references/interrupted-run-recovery.md` in full, with `review-tasks` as its `{phase}`, and follow it before step 5. Under `--yes` (or `--non-interactive`) it resumes and never asks (D6 row 3). A run that was not interrupted and whose `orchestrator-run.log` shows a validation marker or a clean completion skips this step.
 
 ### 5. Salvage Handling (Post-Orchestrator)
 
@@ -355,8 +352,9 @@ its line count), so the two are interchangeable and a host that would otherwise
 re-emit the whole prompt can point the subagent at the file instead. This
 batch's records and **both** context excerpts — the plan, and the task list
 under review — travel inside `prompt`, each under its own `## Context (…)`
-heading. When both fit the inline limit they are complete, and the task is
-`context_mode: inline`. A document over the limit keeps a head excerpt and is
+heading. When both are complete the task is `context_mode: inline`. A
+document over the inline limit keeps a head excerpt, and a
+plan block may carry only the sections this batch's suggestions cite; either is
 also named once under `## Plan file` or `## Tasks file`: a hash-bound snapshot
 in this phase dir (`validation-snapshot.md` for the plan; `tasks-backup.md` or
 `validation-tasks-snapshot.md` for the task list), and the task is
@@ -364,13 +362,19 @@ in this phase dir (`validation-snapshot.md` for the plan; `tasks-backup.md` or
 so do not run it where it cannot. Never treat such a batch as having that
 document inline in full.
 
+Read `validation_tasks.index.json` beside it instead: the same tasks without
+their prompts (`task_id`, `batch_index`, `prompt_path`, `prompt_lines`,
+`output_path`, `context_mode`), plus `total_batches`, `reaggregate_mode` and
+`plan_file`. Read `validation_tasks.json` only when there is no index.
+
 **For each task in the file: when the task carries `prompt_path`, run a subagent
 that reads that file in full — through line `prompt_lines`, paging if a single
 read stops short — and follows it verbatim; otherwise, or if the file is absent,
-run `task.prompt` as a subagent. Either way, write the JSON it returns to
-`task.output_path`.** That is the whole contract — do not assemble a prompt
-beyond that one read instruction, and do not tell the subagent to write the file
-itself. The file's bytes are exactly `task.prompt`; the two are interchangeable.
+run that task's `prompt` from `validation_tasks.json` as a subagent. Either way,
+write the JSON it returns to `task.output_path`.** That is the whole contract —
+do not assemble a prompt beyond that one read instruction, and do not tell the
+subagent to write the file itself. The file's bytes are exactly `task.prompt`;
+the two are interchangeable.
 
 A file whose `tasks_schema_version` is missing or not `2`, or whose recorded
 `inputs` hashes no longer match their sources, is refused with exit 3: re-run the
@@ -379,7 +383,7 @@ phase with `--force` to re-materialize it.
 #### Single Batch: `[VALIDATION_PENDING]`
 
 If `[VALIDATION_PENDING]` marker is present:
-1. Read `validation_tasks.json` from `{plan}/review-tasks/`
+1. Read `validation_tasks.index.json` from `{plan}/review-tasks/` (no index: `validation_tasks.json`)
 2. Run the single task as the contract above says — the sidecar at `prompt_path`
    when it has one, `task.prompt` otherwise — and write its JSON reply to that
    task's `output_path`; do not run the next step, or end your turn, until that file exists and is not empty
@@ -388,7 +392,7 @@ If `[VALIDATION_PENDING]` marker is present:
 #### Multiple Batches: `[VALIDATION_BATCHES_PENDING]`
 
 If `[VALIDATION_BATCHES_PENDING]` marker is present (for 5+ finding groups):
-1. Read `validation_tasks.json` once from `{plan}/review-tasks/`
+1. Read `validation_tasks.index.json` once from `{plan}/review-tasks/` (no index: `validation_tasks.json`)
 2. Count the number of batches as `{total_batches}` and mark the phase start:
    ```bash
    uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" util metrics start \

@@ -1,6 +1,6 @@
 # Evidence behind the ranking
 
-All collected on 2026-11-03. Full write-up with charts: https://claude.ai/artifact/5ptKSPYFzvd7turkZevfHZ.
+All collected on 2026-11-03. Full write-up with charts: https://varg.ai/how-to/make-a-moodboard-for-an-ai-video.
 Raw data and scripts: https://github.com/vargHQ/aeo/tree/main/research/2026-11-03-moodboards (private).
 
 ## 1. The 48-still line test

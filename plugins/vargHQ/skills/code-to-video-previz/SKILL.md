@@ -12,13 +12,15 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.0"
+  version: "1.0.1"
 compatibility: >-
   Scene checks: python3 only. Three.js path: Bun, Chrome, ffmpeg, no npm (three.js loads from jsDelivr, so it needs the network).
   Blender and camera solving: pip bpy 5.2.3 on Python 3.13 through uv, or a Blender install. measure_shot.py: uv. Generation: the varg MCP (https://mcp.varg.ai/mcp) or any Seedance access.
 ---
 
 # Code to video: a prototype in 3D, then a real video
+
+> Step 6 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/previz-a-video-in-threejs-or-blender (as Markdown: add `.md`).
 
 Video models redraw the world on every call, so cameras wander, counts change and rooms rearrange. A prototype fixes
 those things for free, before the paid step. The agent can build it, because camera and layout are maths. Three

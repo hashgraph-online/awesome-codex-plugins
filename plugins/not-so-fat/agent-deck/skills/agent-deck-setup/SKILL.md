@@ -27,8 +27,17 @@ Treat setup as three separate layers: daemon health, host transport, then folder
      plus project `.mcp.json` with the workspace header). Trust the folder, approve the
      project entry, run `agent-deck use <deck>` when the assignment is missing or legacy,
      then reload MCP. `agent-deck setup --client claude` writes the fallback.
-   - **Cursor:** run `agent-deck setup --client cursor --start`, then restart
-     that host. (Cursor still connects through the `agent-deck mcp-launch` launcher.)
+   - **Cursor:** same pure-MCP connection as Codex (global fallback in
+     `~/.cursor/mcp.json` plus project `.cursor/mcp.json` with the workspace
+     header — no `agent-deck` executable lookup). `agent-deck setup --client
+     cursor` writes the fallback; approve the project server, run `agent-deck
+     use <deck>` when the assignment is missing or legacy, then reload MCP.
+   - **Muse:** same pure-MCP connection (global headerless fallback in the
+     user settings — no `agent-deck` executable lookup). `agent-deck setup
+     --client muse` writes the fallback and installs the native bootstrap
+     skills; run `agent-deck use <deck>` in the folder when its assignment is
+     missing or legacy, trust the folder, then reload MCP (restart Muse).
+     Verify with `/mcp` — unassigned folders land in the explain-only session.
 4. Check the folder assignment reported by `agent-deck status`. If it is missing or legacy,
    tell the user to run `agent-deck use <deck>` in that folder, then reload or retry MCP.
 5. For delegation (agents use the MCP `start_run` tool; the run executes on this host), the client CLI must also be installed and signed in on the host. Check `claude auth status`, `codex login status`, `cursor-agent status`, or `muse --version`; if missing, point the user to the official install docs ([Claude Code](https://docs.anthropic.com/en/docs/claude-code/setup), [Codex](https://developers.openai.com/codex/cli), [Cursor CLI](https://cursor.com/docs/cli/installation); muse per its distribution) and its sign-in (`claude`, `codex login`, `cursor-agent login`, `muse login`).

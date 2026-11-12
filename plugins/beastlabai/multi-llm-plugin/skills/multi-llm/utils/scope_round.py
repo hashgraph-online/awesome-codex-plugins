@@ -31,10 +31,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence
 
-try:
-    from . import scope_policy as sp
-except ImportError:  # pragma: no cover - script-style import
-    from utils import scope_policy as sp  # type: ignore
+from . import scope_policy as sp
+from . import status_file
+from .state_manager import stamped_group_id, group_join_ids, records_by_unique_id
+from .status_file import remove_status_keys
 
 #: The task-file key holding one validation round's scope block.
 TASK_SCOPE_KEY = "scope"
@@ -212,17 +212,16 @@ def record_round(state_manager: Any, phase: str, round_policy: RoundPolicy,
     state = getattr(state_manager, "state", None)
     if not isinstance(state, dict):
         return sp.baseline_id_of(baseline)
+    # Through scope_policy's journaled writers, which journal the record they
+    # write for the manager's merging save().
     if round_policy.new_round:
-        sp.record_review_round(state, phase, round_policy.policy, round_policy.source, baseline)
+        sp.record_scope_round(
+            state_manager, phase, round_policy.policy, round_policy.source, baseline)
     elif baseline:
-        sp.update_round_baseline(state, phase, baseline)
+        sp.attach_scope_baseline(state_manager, phase, baseline)
     elif sp.round_record(state, phase) is None:
         # A legacy round without a baseline still gets its (expand) record.
-        state.setdefault(sp.STATE_KEY, {})[sp.review_phase_of(phase)] = {
-            "review_policy": round_policy.policy,
-            "review_policy_source": round_policy.source,
-            "recorded_at": sp._now(),
-        }
+        sp.record_scope_round(state_manager, phase, round_policy.policy, round_policy.source)
     try:
         state_manager.save()
     except Exception as exc:  # noqa: BLE001 - a record must not fail the phase
@@ -498,17 +497,13 @@ def group_dict(group: Any) -> Dict[str, Any]:
 
 
 def groups_by_hash(groups: Optional[Sequence[Any]]) -> Dict[str, Dict[str, Any]]:
-    """``{stable group id: host group}`` for a list of groups."""
+    """``{stamped group id: host group}`` for a list of groups."""
     if not groups:
         return {}
-    try:
-        from .state_manager import generate_group_id
-    except ImportError:  # pragma: no cover
-        from utils.state_manager import generate_group_id  # type: ignore
     table: Dict[str, Dict[str, Any]] = {}
     for group in groups:
         data = group_dict(group)
-        table.setdefault(generate_group_id(data), data)
+        table.setdefault(stamped_group_id(data), data)
     return table
 
 
@@ -572,12 +567,8 @@ def record_decisions(phase_dir: Optional[str], counts: Optional[Mapping[str, int
     if not phase_dir:
         return
     try:
-        from .status_file import remove_status_keys, update_status
-    except ImportError:  # pragma: no cover
-        from utils.status_file import remove_status_keys, update_status  # type: ignore
-    try:
         if counts:
-            update_status(str(phase_dir), {DECISIONS_METADATA_KEY: dict(counts)})
+            status_file.update_status(str(phase_dir), {DECISIONS_METADATA_KEY: dict(counts)})
         elif os.path.exists(os.path.join(str(phase_dir), ".status.json")):
             remove_status_keys(str(phase_dir), [DECISIONS_METADATA_KEY])
     except Exception:  # noqa: BLE001 - a status note never fails the phase
@@ -594,18 +585,10 @@ def attach_verdicts(groups: Optional[List[Dict[str, Any]]],
     """
     if not groups:
         return
-    try:
-        from .state_manager import generate_group_id
-    except ImportError:  # pragma: no cover
-        from utils.state_manager import generate_group_id  # type: ignore
-    by_hash = {
-        r.get("group_id") or r.get("group_hash"): r
-        for r in records or [] if isinstance(r, Mapping) and (r.get("group_id") or r.get("group_hash"))
-    }
-    for group in groups:
-        if not isinstance(group, dict):
-            continue
-        record = by_hash.get(generate_group_id(group))
+    by_hash = records_by_unique_id(records or [], "group_id", "group_hash")
+    dict_groups = [group for group in groups if isinstance(group, dict)]
+    for group, ids in zip(dict_groups, group_join_ids(dict_groups)):
+        record = next((by_hash[key] for key in ids if key in by_hash), None)
         sp.attach_verdict(group, record, hash_matched=record is not None)
 
 

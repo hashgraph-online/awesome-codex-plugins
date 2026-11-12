@@ -19,7 +19,9 @@ write-prompt`` share on top of it:
 
 Under ``expand`` every function here is a pass-through or returns nothing, so
 the default work set, formatting, task files and prompts stay byte-identical.
-Pure and import-light, like its parent module: callers own I/O and saving.
+Import-light, like its parent module, and callers own I/O and saving, except
+in :class:`ApplyScopeGate`, one apply run's scope state, which prints its
+marker lines and saves the deferrals it records.
 """
 
 from __future__ import annotations
@@ -27,14 +29,14 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import sys
 from dataclasses import dataclass
-from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-try:
-    from . import scope_policy as sp
-except ImportError:  # pragma: no cover - script-style import
-    from utils import scope_policy as sp  # type: ignore
+from . import scope_policy as sp
+from .clock import local_iso_seconds
+from .human_decisions import group_id_of
+from .importance import get_highest_importance
 
 #: Formatted ``to_apply`` / ``needs_human_review`` items carry their scope
 #: context here, under ``preserve`` only.
@@ -176,6 +178,41 @@ def deferral_note(entries: Sequence[Mapping[str, Any]], item_noun_plural: str) -
         f"({shown}); they stay on record as deferred, not applied, skipped or "
         f"invalid, and an apply with {sp.FLAG} expand offers them again"
     )
+
+
+def summary_lines(entries: Sequence[Mapping[str, Any]], released: Sequence[str] = (), *,
+                  markdown: bool = False, would: bool = False) -> List[str]:
+    """The deferral (and release) lines a summary prints; ``[]`` under a default run.
+
+    *entries* are this run's deferrals, *released* the group ids of earlier
+    ones an ``expand`` override offered again. ``markdown`` is
+    ``summary.md``'s section (it names no release); ``would`` is a dry run's
+    wording.
+    """
+    lines: List[str] = []
+    entries = list(entries)
+    if entries:
+        verb = "Would defer" if would else "Deferred"
+        if markdown:
+            lines += [f"## Deferred by scope policy ({len(entries)}, not applied)", ""]
+        else:
+            lines += ["", f"{verb} by {sp.FLAG} preserve ({len(entries)}, not applied):"]
+        for entry in entries:
+            gid = str(entry.get("group_id") or "")
+            if markdown:
+                lines.append(
+                    f"- **{entry.get('title')}** (`{gid}`) `{entry.get('label')}` — "
+                    f"{entry.get('reason')}"
+                )
+            else:
+                lines.append(f"  - [{entry.get('label')}] {entry.get('title')} [{gid[:8]}]")
+                lines.append(f"      reason: {entry.get('reason')}")
+        if markdown:
+            lines.append("")
+    if released and not markdown:
+        lines += ["", f"Offered again under {sp.FLAG} expand: "
+                      f"{len(released)} earlier scope deferral(s)"]
+    return lines
 
 
 def output_block(applied: Optional[ApplyPolicy], entries: Sequence[Mapping[str, Any]],
@@ -518,8 +555,10 @@ def unsettled_refusal(change: PolicyChange, *, mode_word: str) -> List[str]:
         f"batches now could apply its half-applied items again. Nothing was "
         f"changed.",
         f"  1) Settle it first: re-run {mode_word} with --resume {sp.FLAG} "
-        f"{change.previous}, or restore its pre-batch snapshot with util "
-        f"restore-batch, then run {mode_word} {sp.FLAG} {change.current} again.",
+        f"{change.previous}, or put back what it changed (after an "
+        f"--exec-subagents run, util restore-batch restores its pre-batch "
+        f"snapshot; a native batch has none there, so by hand), then run "
+        f"{mode_word} {sp.FLAG} {change.current} again.",
         f"  2) Or start a fresh review of the current artifact under {sp.FLAG} "
         f"{change.current}.",
     ]
@@ -530,8 +569,8 @@ def unsettled_refusal(change: PolicyChange, *, mode_word: str) -> List[str]:
 # ---------------------------------------------------------------------------
 
 
-def _now() -> str:
-    return datetime.now().isoformat(timespec="seconds")
+#: A record's timestamp: local time, whole seconds (``utils/clock.py``).
+_now = local_iso_seconds
 
 
 def blockers_from_processed(processed: Mapping[str, Any], review_stamp: str = "") -> List[Dict[str, Any]]:
@@ -585,6 +624,33 @@ def record_completion(state: Dict[str, Any], phase: str, applied: Optional[Apply
         "at": _now(),
     }
     table[COMPLETION_KEY] = outcome
+    return outcome
+
+
+# Journaled writers: each takes a ``StateManager`` (*manager*), writes its
+# ``state`` through the raw-dict helper and journals the round record it wrote
+# (``scope_policy.journal_round``); see the twins in ``scope_policy``.
+
+
+def record_scope_deferrals(
+    manager: Any, phase: str, entries: Sequence[Mapping[str, Any]],
+) -> None:
+    """Replace the round's scope deferrals (``[]`` releases them) and drop
+    its stale completion (:func:`persist_deferrals`)."""
+    persist_deferrals(manager.state, phase, entries)
+    sp.journal_round(manager, phase)
+
+
+def record_scope_completion(
+    manager: Any, phase: str, applied: Optional[ApplyPolicy],
+    blockers: Sequence[Mapping[str, Any]] = (),
+) -> Optional[Dict[str, Any]]:
+    """Write the round's completion outcome (:func:`record_completion`),
+    which a round with no record does not have; returns the outcome."""
+    recorded = sp.round_record(manager.state, phase) is not None
+    outcome = record_completion(manager.state, phase, applied, blockers)
+    if recorded:
+        sp.journal_round(manager, phase)
     return outcome
 
 
@@ -654,8 +720,234 @@ def blocker_error(blockers: Sequence[Mapping[str, Any]], *, mode_word: str) -> s
     )
 
 
+# ---------------------------------------------------------------------------
+# One apply run's scope state
+# ---------------------------------------------------------------------------
+
+
+class ApplyScopeGate:
+    """One apply run's scope-policy state, and the steps that read or change it.
+
+    ``ApplyOrchestratorBase.scope_gate`` holds one: the effective policy step
+    10b resolves (:attr:`policy`), this run's deferrals (:attr:`deferred`,
+    their own outcome: never invalid, skipped, applied or processed), the
+    earlier deferrals an ``expand`` override released (:attr:`released`),
+    the policy change step 10c detected (:attr:`change`) and the first batch
+    index new work takes after it (:attr:`start_index`). Under ``expand``,
+    or before step 10b, every step is a pass-through. The steps print their
+    marker lines on stderr, and :meth:`persist` saves the deferrals it
+    records; the caller owns the rest of the state, raises and picks the
+    exit code.
+    """
+
+    def __init__(self) -> None:
+        self.policy: Optional[ApplyPolicy] = None
+        self.deferred: List[Dict[str, Any]] = []
+        self.released: List[str] = []
+        self.start_index: int = 0
+        self.change: Optional[PolicyChange] = None
+        self._landed_reported: bool = False
+
+    @property
+    def preserve(self) -> bool:
+        return self.policy is not None and self.policy.preserve
+
+    def effective(self, state: Mapping[str, Any], explicit: Any, phase: str) -> ApplyPolicy:
+        """This run's policy, or (``--mark-completed``, which resolves none)
+        the one the round's record gives, with *explicit* when it is valid."""
+        if self.policy is not None:
+            return self.policy
+        return resolve_apply_policy(
+            explicit if sp.is_valid_policy(explicit) else None, state, phase)
+
+    def landed_ids(self) -> set:
+        """Member ids an earlier run of this review landed under another policy."""
+        change = self.change
+        return set(change.landed) if change is not None else set()
+
+    def exclude_landed(self, valid: List[Dict[str, Any]],
+                       needs_human: List[Dict[str, Any]], *, phase: str) -> None:
+        """Keep what an earlier run of this review landed out of this run.
+
+        After a policy change those items stay applied (or no-op, or skipped
+        at the user's request) and are never dispatched again. They leave
+        the work sets (*valid*, *needs_human*, edited in place) *before* the
+        gate, so a ``preserve`` run never records or reports an applied item
+        as deferred, and this run's batches start past every earlier batch
+        index. Idempotent; reported once.
+        """
+        landed = self.landed_ids()
+        if not landed:
+            return
+        before = len(valid) + len(needs_human)
+        valid[:] = [g for g in valid if group_id_of(g) not in landed]
+        needs_human[:] = [g for g in needs_human if group_id_of(g) not in landed]
+        self.start_index = self.change.next_index
+        if self._landed_reported:
+            return
+        self._landed_reported = True
+        print(
+            f"{RETIRED_MARKER} {phase}: this review's tasks "
+            f"were materialized under {sp.FLAG} {self.change.previous}; the "
+            f"{len(landed)} item(s) an earlier run landed stay applied and are "
+            f"not dispatched again ({before - len(valid) - len(needs_human)} "
+            f"left out of this run), and this run's batches start at index "
+            f"{self.change.next_index}.",
+            file=sys.stderr,
+        )
+
+    def counts_as_deferred(self, group: Dict[str, Any]) -> bool:
+        """Whether a loaded ``valid`` group is one this ``preserve`` run defers.
+
+        For the counts printed before the gate runs (the confirmation, row
+        11's tally); an item an earlier run landed is not deferred.
+        """
+        if not self.preserve:
+            return False
+        if group_id_of(group) in self.landed_ids():
+            return False
+        return not sp.scope_decision(
+            group, self.policy.policy, self.policy.baseline_id).eligible
+
+    def confirmation_message(self, message: str,
+                             merged: Sequence[Dict[str, Any]]) -> str:
+        """Step 19's text naming the deferred set, over the *merged* groups."""
+        deferred = sum(
+            1 for group in merged
+            if group.get("validation_status") == "valid"
+            and self.counts_as_deferred(group)
+        )
+        return message.replace(
+            "ALL valid items will be applied if you proceed.",
+            "ALL valid items validated as within scope will be applied if you "
+            f"proceed; {deferred} valid item(s) are deferred by {sp.FLAG} preserve.",
+        )
+
+    def gate_work_set(self, valid: List[Dict[str, Any]],
+                      needs_human: List[Dict[str, Any]]) -> None:
+        """The pre-write gate over *valid* and *needs_human* (plan §5).
+
+        A pass-through under ``expand``. Under ``preserve`` a group without a
+        bound ``in_scope`` verdict leaves both sets for :attr:`deferred` —
+        its own outcome, never ``skipped`` — and never reaches the judge,
+        whose approval cannot make it eligible (approval keeps the relation;
+        salvage makes the binding stale). No flag bypasses it.
+        """
+        if not self.preserve:
+            return
+        known = {str(entry.get("group_id")) for entry in self.deferred}
+        for work in (valid, needs_human):
+            eligible, deferred = gate(work, self.policy)
+            work[:] = eligible
+            for group in deferred:
+                entry = deferral_entry(
+                    group, self.policy, importance=get_highest_importance(group))
+                if entry["group_id"] in known:
+                    continue
+                known.add(entry["group_id"])
+                self.deferred.append(entry)
+                print(
+                    f"{DEFERRED_MARKER} {entry['group_id'][:8]} "
+                    f"[{entry['label']}] {entry['title']}: {entry['reason']}",
+                    file=sys.stderr,
+                )
+
+    def apply_policy_change(self, valid: List[Dict[str, Any]],
+                            needs_human: List[Dict[str, Any]], *,
+                            phase: str, dry: bool) -> None:
+        """This review's earlier materialization under another policy (plan §5).
+
+        Detected at step 10c (:attr:`change`, which the caller refuses when a
+        batch did not finish). With no started work the obsolete task file is
+        kept aside and the batches are rematerialized (never under a dry
+        run). With landed work its items stay done (never dispatched again;
+        :meth:`exclude_landed` already took them out before the gate) and new
+        batches take ids past every earlier one, so pending work is never
+        renumbered onto a completed batch id.
+        """
+        change = self.change
+        if change is None:
+            return
+        if change.landed:
+            self.exclude_landed(valid, needs_human, phase=phase)
+            return
+        if dry:
+            return
+        retired = retire_task_file(change)
+        if retired:
+            print(
+                f"{RETIRED_MARKER} {phase}: no batch of the "
+                f"tasks materialized under {sp.FLAG} {change.previous} had started; "
+                f"kept them at {retired} and rematerializing under {change.current}.",
+                file=sys.stderr,
+            )
+
+    def persist(self, manager: Any, phase: str) -> None:
+        """Record this run's deferrals on the round, and save (*manager*, a
+        ``StateManager``). The caller never calls this under a dry run.
+
+        Under ``expand`` the round's earlier deferrals are released: they are
+        in this run's work set again under the ordinary rules, and the record
+        no longer holds them.
+        """
+        if self.policy is None:
+            return
+        if self.policy.preserve:
+            record_scope_deferrals(manager, phase, self.deferred)
+            manager.save()
+            return
+        if not self.policy.recorded_deferrals:
+            return
+        self.released = [
+            str(entry.get("group_id")) for entry in self.policy.recorded_deferrals
+            if entry.get("group_id")
+        ]
+        record_scope_deferrals(manager, phase, [])
+        manager.save()
+        print(
+            f"[scope-policy] {phase}: {len(self.released)} item(s) an "
+            f"earlier {sp.FLAG} preserve run deferred are offered again "
+            f"under expand",
+            file=sys.stderr,
+        )
+
+    def annotate(self, formatted: Dict[str, Any], group: Mapping[str, Any], *,
+                 original_description: Optional[str] = None) -> Dict[str, Any]:
+        """:func:`annotate_item` under this run's policy."""
+        return annotate_item(formatted, group, self.policy,
+                             original_description=original_description)
+
+    def output_fields(self) -> Dict[str, Any]:
+        """``orchestrator_output.json``'s scope block, or ``{}`` (expand, nothing released)."""
+        return output_block(self.policy, self.deferred, self.released)
+
+    def materialize_kwargs(self) -> Dict[str, Any]:
+        """``materialize_write_tasks``' scope arguments; ``{}`` under ``expand``."""
+        kwargs: Dict[str, Any] = {}
+        if self.preserve:
+            kwargs["scope"] = self.policy
+        if self.start_index:
+            kwargs["start_index"] = self.start_index
+        return kwargs
+
+    def scheduler_kwargs(self) -> Dict[str, Any]:
+        """The scheduler's scope arguments: the policy its dispatch check enforces."""
+        if self.policy is None:
+            return {}
+        return {"scope_policy": self.policy.policy,
+                "scope_baseline_id": self.policy.baseline_id}
+
+    def summary_lines(self, *, markdown: bool = False, would: bool = False) -> List[str]:
+        """:func:`summary_lines` over this run's deferrals and releases."""
+        return summary_lines(self.deferred, self.released, markdown=markdown, would=would)
+
+    def notice(self, item_noun_plural: str) -> Optional[str]:
+        """:func:`deferral_note` over this run's deferrals."""
+        return deferral_note(self.deferred, item_noun_plural)
+
+
 __all__ = [
-    "ApplyPolicy", "BLOCKERS_KEY", "BLOCKER_MARKER", "BLOCKER_PREFIX",
+    "ApplyPolicy", "ApplyScopeGate", "BLOCKERS_KEY", "BLOCKER_MARKER", "BLOCKER_PREFIX",
     "COMPLETION_KEY", "DEFERRED_MARKER", "ITEM_KEY", "OUTCOME_BLOCKED",
     "OUTCOME_ELIGIBLE_DONE", "OUTPUT_KEY", "PolicyChange", "RETIRED_MARKER",
     "TASK_KEY", "annotate_item", "blocker_error", "blocker_lines",
@@ -664,6 +956,6 @@ __all__ = [
     "invalid_policy_message", "output_block", "persist_deferrals",
     "record_completion", "recorded_blockers", "recorded_deferrals",
     "releases_deferrals", "resolve_apply_policy", "retire_task_file",
-    "selected_remedy", "stale_task_refusal", "task_block", "task_policy",
+    "selected_remedy", "stale_task_refusal", "summary_lines", "task_block", "task_policy",
     "unsettled_refusal", "writer_block",
 ]

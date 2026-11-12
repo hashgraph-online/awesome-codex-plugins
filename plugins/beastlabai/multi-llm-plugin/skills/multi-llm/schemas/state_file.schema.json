@@ -54,6 +54,11 @@
       "description": "The task ids of the decomposition implement ran last, replaced on every run (scopes the deferred manual tasks named on completion)",
       "items": { "type": "string" }
     },
+    "implement_human_task_ids": {
+      "type": "array",
+      "description": "The manual (human) task ids of that decomposition, sorted, replaced with it; absent when it has none (StateManager.record_task_titles)",
+      "items": { "type": "string" }
+    },
     "task_check_findings": {
       "type": "object",
       "description": "Per implement check task (no declared files) whose check ran, changed nothing and reported problems: the findings from its reply's structured `check` object. Present only while some task has findings; read by status, the result notice and review-code's implementation record",
@@ -123,6 +128,11 @@
     "implement_task_reset_at": {
       "type": "object",
       "description": "Per implement task: when a run that hands it out again (a start-over, a --task rerun) set its earlier record aside. A native --resume does not count a prior-changes line no newer than this as one the run left unrecorded",
+      "additionalProperties": { "type": "string", "format": "date-time" }
+    },
+    "state_resets": {
+      "type": "object",
+      "description": "Per top-level key an explicit reset cleared (--fresh's clears of processed_<phase>, human_decisions_<phase>, progress_<phase>, apply_fix_batch_checks): when; the entry \"*\" is StateManager.reset() of the whole document. StateManager.save() keeps what was reset since a writer loaded the file as the resetter left it, so that writer's stale view cannot bring the cleared records back",
       "additionalProperties": { "type": "string", "format": "date-time" }
     },
     "human_task_strategy": {
@@ -228,6 +238,62 @@
       },
       "required": ["head"]
     },
+    "phases_completed": {
+      "type": "object",
+      "description": "Per phase: when it completed (StateManager.mark_phase_completed)"
+    },
+    "phases_skipped": {
+      "type": "object",
+      "description": "Per phase: skipped_at and reason of its explicit skip (StateManager.mark_phase_skipped)"
+    },
+    "phases_started": {
+      "type": "object",
+      "description": "Per phase handed out and not yet finished: when it started; dropped when empty"
+    },
+    "plan_preamble": {
+      "type": "string",
+      "description": "The task-generation result's plan_preamble, recorded by update_plan_tasks for implement's prompts"
+    },
+    "review_scope_files": {
+      "type": "array",
+      "description": "The --files/--files-from scope of the last code-review fan-out, for a later --reaggregate (code_review_orchestrator.REVIEW_SCOPE_FILES_KEY)"
+    },
+    "full_workflow": {
+      "type": "object",
+      "description": "The full workflow's own progress record (full_workflow_orchestrator.STATE_KEY)"
+    },
+    "pre_existing_changes": {
+      "type": "array",
+      "description": "Paths already changed in the working tree when a write phase started; finalize_tracking subtracts them from tracked_files"
+    },
+    "metrics_progress": {
+      "type": "object",
+      "description": "Per phase being measured: started_at, total_batches and run_id (metrics.start_phase)"
+    },
+    "metrics_left_out": {
+      "type": "object",
+      "description": "Per phase: the tasks left out of its ETA total, with why (metrics.LEFT_OUT_KEY)"
+    },
+    "metrics_set_aside": {
+      "type": "object",
+      "description": "Per phase: the tasks set aside from its progress count (metrics.SET_ASIDE_KEY)"
+    },
+    "scope_policy_runs": {
+      "type": "object",
+      "description": "Per mode: the scope-policy record of its last run (scope_policy_runs.RUNS_KEY)"
+    },
+    "batch_snapshot_records": {
+      "type": "object",
+      "description": "The native write leg's pre-batch snapshot records (write_prompt.SNAPSHOT_RECORDS_KEY)"
+    },
+    "human_task_decisions": {
+      "type": "object",
+      "description": "Per manual task: the --human-task answer recorded for it (state_manager.HUMAN_TASK_DECISIONS_KEY)"
+    },
+    "implement_task_depends_on": {
+      "type": "object",
+      "description": "Per implement task: the task ids it depends on (state_manager.IMPLEMENT_TASK_GRAPH_KEY)"
+    },
     "scope_policy": {
       "type": "object",
       "description": "--scope-policy records keyed by REVIEW round (review-plan, review-tasks, code-review; an apply phase reads its review's record, utils/scope_policy.review_phase_of; plans/scope-policy-and-report-tags.md §4-§5). Absent for a legacy round, which reads as expand. review_policy is what the reviewers were asked under; apply_policy an explicit apply override that later omission keeps; baseline the round's scope baseline record; deferrals the items the last preserve apply deferred (never invalid, user-skipped, applied, failed or processed); completion that apply's outcome (eligible work completed with the deferrals kept, or blocked); blockers the preserve writer declines that named a scope blocker, which dependent phases refuse to build past",
@@ -298,6 +364,14 @@
     }
   },
   "patternProperties": {
+    "^human_decision_unresolved_": {
+      "type": "array",
+      "description": "The group ids the judge left unresolved in a phase (StateManager.record_judge_verdicts)"
+    },
+    "^human_decision_verdicts_": {
+      "type": "object",
+      "description": "The judge's raw verdicts for a phase, keyed by group_id (StateManager.record_judge_verdicts)"
+    },
     "^human_decisions_": {
       "type": "object",
       "description": "Human decisions keyed by group_id",

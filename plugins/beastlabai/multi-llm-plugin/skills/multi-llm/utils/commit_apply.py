@@ -51,7 +51,7 @@ apply phase's one hook calls it, keyed on the endpoints state pins
 The guard lives under whichever record ``pinned_endpoints`` sourced
 (``commit_range.guard``, or ``head_ref.guard`` after a direct run), and the
 review round that replaces the groups removes it (§2.1). Every git call goes
-through ``git_utils._run_git`` / ``git_argv``.
+through ``git_utils.run_git`` / ``git_argv``.
 """
 
 from __future__ import annotations
@@ -82,7 +82,7 @@ from .commit_range import (
     render_fix_block,
     resolve_commit_strict,
 )
-from .commit_review import (
+from .commit_paths import (
     SLUG_PATTERN,
     CommitReviewError,
     commit_review_artifact,
@@ -91,17 +91,26 @@ from .commit_review import (
     repo_root_of,
 )
 from .git_utils import (
-    _run_git,
-    _run_git_for_paths,
     blobs_in_commit,
     deleting_commit,
     git_argv,
     git_path,
     paths_changed_since,
     paths_in_commit,
+    run_git,
+    run_git_for_paths,
     subtract_baseline,
 )
+from .clock import parse_iso
+from .clock import utc_iso_z as _now_utc
+from .state_file import update as update_state
 from .text_clip import clip, plain_line
+from .text_fmt import plural as _plural
+from . import write_safety
+from .human_decisions import group_id_of
+from .output_handler import workflow_file_entries
+from .write_safety import WritePolicy, glob_to_regex, restore_path
+from .provider_registry import ConfigError, get_commit_reviews_dir
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -174,14 +183,6 @@ _SPECIAL_PREFIX = "special:"
 # ---------------------------------------------------------------------------
 
 
-def _now_utc() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-
-
-def _plural(count: int, singular: str, plural: Optional[str] = None) -> str:
-    return f"{count} {singular if count == 1 else (plural or singular + 's')}"
-
-
 def _inside(name: str) -> bool:
     """Whether a path in git's form names something inside the repository."""
     return bool(name) and not os.path.isabs(name) and not name.startswith("/") \
@@ -239,8 +240,6 @@ def group_files(group: Mapping[str, Any], *, repo_root: Optional[str]) -> List[s
 
 
 def _group_id(group: Mapping[str, Any]) -> str:
-    from .human_decisions import group_id_of
-
     return group_id_of(dict(group))
 
 
@@ -375,7 +374,6 @@ def _workflow_filter(paths: Sequence[str], *, cwd: str, plan_path: Optional[str]
     folder of the commit-reviews folder: ``code_only_rule`` and the run's own
     writers govern those (§2.7, "The set").
     """
-    from .output_handler import workflow_file_entries
 
     workflow = workflow_file_entries(
         plan_path, root=cwd, output_dirs=[out_dir] if out_dir else [],
@@ -404,7 +402,7 @@ def protected_paths(head: str, *, cwd: str, plan_path: Optional[str] = None,
     must not take an unanswered question as an empty set.
     """
     found: List[str] = []
-    stdout, stderr, rc = _run_git_for_paths(
+    stdout, stderr, rc = run_git_for_paths(
         "diff", "--name-only", "--no-renames", "-z", head, "--", cwd=cwd,
     )
     if rc != 0:
@@ -412,7 +410,7 @@ def protected_paths(head: str, *, cwd: str, plan_path: Optional[str] = None,
               f"{(stderr or '').strip()[:200]}", file=sys.stderr)
         return None
     found.extend(name for name in stdout.split("\0") if name)
-    stdout, stderr, rc = _run_git_for_paths(
+    stdout, stderr, rc = run_git_for_paths(
         "ls-files", "--others", "--exclude-standard", "-z", cwd=cwd,
     )
     if rc != 0:
@@ -420,7 +418,7 @@ def protected_paths(head: str, *, cwd: str, plan_path: Optional[str] = None,
               f"{(stderr or '').strip()[:200]}", file=sys.stderr)
         return None
     found.extend(name for name in stdout.split("\0") if name)
-    stdout, stderr, rc = _run_git_for_paths("ls-files", "-v", "-z", cwd=cwd)
+    stdout, stderr, rc = run_git_for_paths("ls-files", "-v", "-z", cwd=cwd)
     if rc != 0:
         print(f"Warning: git ls-files -v failed: "
               f"{(stderr or '').strip()[:200]}", file=sys.stderr)
@@ -453,7 +451,6 @@ def _write_paths_denied(cwd: str, anchor: Optional[str]) -> Optional[Callable[[s
     on the path's own name (a symlink by its name, never its target); ``None``
     when the policy cannot be read. The merged policy both write legs enforce
     (``write_safety.WritePolicy.load``), anchored on *anchor*, else *cwd*."""
-    from .write_safety import WritePolicy, glob_to_regex
 
     try:
         patterns = [glob_to_regex(pattern) for pattern in
@@ -474,7 +471,7 @@ def copy_protected(paths: Iterable[str], *, cwd: str, dest: str,
     A path ``driver.write_paths.deny`` names (``.env``, ``**/*.pem``,
     ``**/.ssh/**``, ``.multi-llm/**``) is never copied, and a copy an earlier
     run left of it is removed, as the executor's rollback store never retains
-    one (``write_batch_scheduler._retain``): the deny list exists to keep that
+    one (``write_sweep.ContainmentSweep.retain``): the deny list exists to keep that
     material out of the run's artifacts, and a copy here would put a
     credential under ``apply-fixes/protected/`` whether or not a batch ever
     touches it. Such a path stays protected and watched, so a batch that
@@ -805,7 +802,6 @@ def restore_watched(guard: Mapping[str, Any], paths: Sequence[str], *, cwd: str,
 
     Every write revalidates the path no-follow (``write_safety.restore_path``).
     Paths not watched are left out of the answer."""
-    from .write_safety import restore_path
 
     watched = watched_ids(guard)
     copies = _copies_dir(guard, cwd)
@@ -875,20 +871,16 @@ def mark_stale(guard: Dict[str, Any], groups: Mapping[str, Sequence[str]],
 
 def save_guard(state_path: Any, guard: Mapping[str, Any]) -> None:
     """Write *guard* under the pinned record of ``state.json`` at *state_path*,
-    under ``metrics.state_file_lock``, keeping every other key: for an update
+    under the state lock (``state_file.update``), keeping every other key: for an update
     taken outside the apply phase's own ``StateManager`` (a pre-dispatch
-    re-check, ``util batch-done``). Raises ``ValueError`` when the file pins
-    no endpoints."""
-    from .metrics import _read_state, _write_state, state_file_lock
-
+    re-check, ``util batch-done``). Raises ``ValueError`` when the file holds
+    no JSON object (``state_file.StateDocumentError``) or pins no endpoints."""
     target = Path(state_path)
-    with state_file_lock(target):
-        state = _read_state(target)
-        record = pinned_record(state) if isinstance(state, dict) else None
+    with update_state(target) as state:
+        record = pinned_record(state)
         if record is None:
             raise ValueError(f"{target} records neither commit_range nor head_ref")
         record["guard"] = copy.deepcopy(dict(guard))
-        _write_state(target, state)
 
 
 # ---------------------------------------------------------------------------
@@ -1126,9 +1118,7 @@ def take_guard(state: Mapping[str, Any], groups: Sequence[Mapping[str, Any]], *,
     if endpoints is None or record is None:
         return None
     if file_sha256 is None:
-        from .write_safety import file_sha256 as _sha
-
-        file_sha256 = _sha
+        file_sha256 = write_safety.file_sha256
     head = endpoints.head
     context_plan: Optional[str] = None
     if endpoints.source == "commit_range" and isinstance(record.get("plan"), str) \
@@ -1364,7 +1354,7 @@ def _when(text: Any) -> datetime:
     the earliest instant for anything unreadable."""
     if isinstance(text, str) and text:
         try:
-            value = datetime.fromisoformat(text.replace("Z", "+00:00"))
+            value = parse_iso(text)
             return value if value.tzinfo else value.astimezone()
         except ValueError:
             pass
@@ -1450,12 +1440,12 @@ def _scan(folder: Path) -> Tuple[List[_Review], List[_Review], List[Path]]:
 
 def _head_sha(cwd: str) -> str:
     """``HEAD``'s full SHA; on an unborn ``HEAD`` §2.2's exit 2."""
-    stdout, _, rc = _run_git("rev-parse", "--verify", "--quiet", "HEAD^{commit}",
+    stdout, _, rc = run_git("rev-parse", "--verify", "--quiet", "HEAD^{commit}",
                              check=False, cwd=cwd)
     sha = stdout.strip()
     if rc == 0 and _FULL_SHA.fullmatch(sha):
         return sha
-    stdout, _, rc = _run_git("symbolic-ref", "-q", "HEAD", check=False, cwd=cwd)
+    stdout, _, rc = run_git("symbolic-ref", "-q", "HEAD", check=False, cwd=cwd)
     branch = stdout.strip()
     if rc == 0 and branch:
         short = branch[len("refs/heads/"):] if branch.startswith("refs/heads/") else branch
@@ -1472,12 +1462,12 @@ def _ancestry(head: str, current: str, cwd: str) -> Optional[int]:
         return 0
     if not _FULL_SHA.fullmatch(head):
         return -1
-    _, _, rc = _run_git("merge-base", "--is-ancestor", head, current, check=False, cwd=cwd)
+    _, _, rc = run_git("merge-base", "--is-ancestor", head, current, check=False, cwd=cwd)
     if rc == 1:
         return None
     if rc != 0:
         return -1
-    stdout, _, rc = _run_git("rev-list", "--count", f"{head}..{current}", check=False, cwd=cwd)
+    stdout, _, rc = run_git("rev-list", "--count", f"{head}..{current}", check=False, cwd=cwd)
     text = stdout.strip()
     return int(text) if rc == 0 and text.isdigit() else 0
 
@@ -1575,7 +1565,6 @@ def select_review(*, cwd: str) -> Selection:
     the newest candidate and of at most three others for ``; also:``, or of
     the five listed rows on exit 3.
     """
-    from .provider_registry import ConfigError, get_commit_reviews_dir
 
     root = repo_root_of(cwd)
     head = _head_sha(str(root))

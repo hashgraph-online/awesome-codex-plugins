@@ -187,9 +187,10 @@ Claude Code プラグインとしてインストールされている場合、`r
 
 スキルのパス解決:
 
-1. Bash で `echo "$CLAUDE_PLUGIN_ROOT"` を実行し、出力された絶対パスに `/skills/agent-skills/river-review/SKILL.md` を連結して Read する。Read ツールが環境変数を展開するとは限らないため、`${CLAUDE_PLUGIN_ROOT}` を含むパスをそのまま渡さない。
-2. 出力が空のときに `<root>/skills/agent-skills/river-review/SKILL.md` を使ってよいのは、river-review リポジトリ内で動かす場合だけである。リポジトリ内かどうかは、`git rev-parse --show-toplevel` で得たリポジトリのルート `<root>`（サブディレクトリから起動してもルートを指す）を基準に判定する。`<root>/skills/agent-skills/river-review/SKILL.md` と `<root>/agents/river-review.md` の両方があり、かつ `<root>/package.json` の `name` が `river-review` であればリポジトリ内とみなす。同名のファイルを vendor した利用側リポジトリを内と誤判定しないため、`name` も条件に含める（例: Bash で `root="$(git rev-parse --show-toplevel)" && test -f "$root/skills/agent-skills/river-review/SKILL.md" && test -f "$root/agents/river-review.md" && grep -q '"name": "river-review"' "$root/package.json" && echo "$root"`）。このコマンドが失敗したとき（git リポジトリでない、`package.json` が無いなど）はリポジトリ外として扱う。
-3. それでも読めなければレビューに進まず、代替基準でのレビューもしない。「Skill Registry が未解決のためレビューを実行できない」と報告して止まる。
+1. `${CLAUDE_PLUGIN_ROOT}/skills/agent-skills/river-review/SKILL.md` を Read する。プラグインとして読み込まれていれば、この `${CLAUDE_PLUGIN_ROOT}` は本文の読み込み時に絶対パスへ置換されている。Bash の環境変数 `$CLAUDE_PLUGIN_ROOT` はメインセッションでもサブエージェントでも空になるため、こちらが主経路である。
+2. 手順 1 の Read に失敗した、またはパスが絶対パスにならず `$` と `{` で始まる変数表記を含んだままのときは、Bash で `echo "$CLAUDE_PLUGIN_ROOT"` を実行し、出力された絶対パスに `/skills/agent-skills/river-review/SKILL.md` を連結して Read する。
+3. echo の出力が空、または echo が拒否・失敗したときに `<root>/skills/agent-skills/river-review/SKILL.md` を使ってよいのは、river-review リポジトリ内で動かす場合だけである。リポジトリ内かどうかは、`git rev-parse --show-toplevel` で得たリポジトリのルート `<root>`（サブディレクトリから起動してもルートを指す）を基準に判定する。`<root>/skills/agent-skills/river-review/SKILL.md` と `<root>/agents/river-review.md` の両方があり、かつ `<root>/package.json` の `name` が `river-review` であればリポジトリ内とみなす。同名のファイルを vendor した利用側リポジトリを内と誤判定しないため、`name` も条件に含める（例: Bash で `root="$(git rev-parse --show-toplevel)" && test -f "$root/skills/agent-skills/river-review/SKILL.md" && test -f "$root/agents/river-review.md" && grep -q '"name": "river-review"' "$root/package.json" && echo "$root"`）。このコマンドが失敗したとき（git リポジトリでない、`package.json` が無いなど）はリポジトリ外として扱う。
+4. それでも読めなければレビューに進まず、代替基準でのレビューもしない。「Skill Registry が未解決のためレビューを実行できない」と報告して止まる。報告には、試したパスと失敗の理由、Read が作業ディレクトリ外として拒否された場合の `--add-dir <plugin root>`（または `permissions.additionalDirectories`）の案内、依頼文で SKILL.md の絶対パスを指定する回避策を含める。
 
 ### Codex スキルとして
 

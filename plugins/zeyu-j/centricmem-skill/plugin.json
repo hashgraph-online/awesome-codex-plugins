@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "centricmem-skill",
-  "version": "1.0.43",
+  "version": "1.0.48",
   "description": "Hosted CentricMem librarian: organise and retrieve Markdown memory via host MCP.",
   "author": {
     "name": "Dr. Z",

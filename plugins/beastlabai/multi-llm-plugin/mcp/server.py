@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import codecs
 import collections
+import hashlib
 import json
 import os
 import re
@@ -62,6 +63,8 @@ from urllib.parse import unquote, urlparse
 
 PLUGIN_ROOT = Path(__file__).resolve().parent.parent
 SKILL_DIR = PLUGIN_ROOT / "skills" / "multi-llm"
+#: The skill's folder of conditional runbooks a core names by a relative path.
+REFERENCES_DIR = "references"
 SURFACE_PATH = PLUGIN_ROOT / "dist" / "cli-surface.json"
 MCP_JSON_PATH = PLUGIN_ROOT / ".mcp.json"
 PLUGIN_MANIFEST_PATH = PLUGIN_ROOT / ".codex-plugin" / "plugin.json"
@@ -118,6 +121,11 @@ DEFAULT_CONTINUATION_CAP = 8
 STDOUT_TAIL_CHARS = 64 * 1024
 STDERR_TAIL_CHARS = 8 * 1024
 STDOUT_LINE_BYTES = 4 * STDOUT_TAIL_CHARS
+#: What the runbook fetch keeps of its child's stdout: the whole core, never a
+#: tail, since a tail keeps the closing line and loses the head. A runbook that
+#: still arrives cut is refused (``fetch_runbook``; docs/development/hosts.md,
+#: "Paged delivery on the Codex tool route").
+RUNBOOK_STDOUT_CHARS = 1024 * 1024
 
 #: MCP protocol versions this server speaks; an unknown request gets the default.
 PROTOCOL_VERSIONS = ("2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25")
@@ -231,10 +239,16 @@ WAY_FORWARD_KEYS = (USER_NEXT_STEP_KEY, "resume_command", "resume_why",
                     "resume_answers", "resume_markdown", "no_command_reason",
                     "next", "abort_command", "options")
 
+#: The key the runbook's paging rule rides in (docs/development/hosts.md,
+#: "Paged delivery on the Codex tool route").
+RUNBOOK_PAGES_KEY = "runbook_pages"
+
 #: The keys placed last: the long runbook (Open question 20 of
 #: plans/codex-native-plugin.md: a cut must lose runbook text, never the
-#: envelope).
-LAST_KEYS = ("runbook",)
+#: envelope), then its paging rule. A head-and-tail cut keeps the tail at any
+#: budget, so the rule stays beside the page's end line, while ``message`` ahead
+#: of it can fill a small head on its own (2,132 characters at a needs-human stop).
+LAST_KEYS = ("runbook", RUNBOOK_PAGES_KEY)
 
 #: Where a redacted ``next`` went, and where any other removed command went.
 NEXT_MARKER = "<see the `next` field of this result for the tool call>"
@@ -943,6 +957,101 @@ def scrub_runbook(text: str, surface) -> str:
 def redact(value, command, surface, respell=None):
     return scrub_value(value, command_forms(command),
                        runnable_pattern(surface) if surface else None, respell)
+
+
+# ---------------------------------------------------------------------------
+# Runbook pages (docs/development/hosts.md, "Paged delivery on the Codex tool
+# route"): the runbook a result carries is cut into pages framed the way
+# ``util instructions --page`` frames the core, and a call asking for a page is
+# answered with that page before anything can run.
+# ---------------------------------------------------------------------------
+
+def runbook_paging(surface):
+    """The surface's ``runbook.pages`` block, or None on a surface without one."""
+    pages = ((surface or {}).get("runbook") or {}).get("pages")
+    return pages if isinstance(pages, dict) else None
+
+
+def runbook_page_request(args, surface):
+    """``(request, None)`` for a call asking for one runbook page, ``(None,
+    problem)`` for a malformed one, ``(None, None)`` for every other call.
+
+    A call is a page request when its ``extra_flags`` carry the surface's page
+    option or its size option, alone or in the ``=`` form, and its mode word
+    resolves (an unknown one is left to validation, which refuses it). It is
+    answered from the mode word alone: a page request runs no workflow, so its
+    plan, question, range and every other flag are never read, and nothing in
+    it can start, resume or repeat a run. ``request`` is ``{"row", "page",
+    "size"}``. A surface without paging has no page option to find.
+    """
+    pages = runbook_paging(surface)
+    if pages is None or not isinstance(args, dict):
+        return None, None
+    extra = args.get("extra_flags")
+    if not isinstance(extra, list) or not all(isinstance(t, str) for t in extra):
+        return None, None
+    option, size_option = pages["option"], pages["size_option"]
+    if not any(token.partition("=")[0] in (option, size_option) for token in extra):
+        return None, None
+    mode = args.get("mode")
+    row = resolve_mode(mode, surface) if isinstance(mode, str) and mode else None
+    if row is None:
+        return None, None
+    page = size = None
+    index = 0
+    while index < len(extra):
+        head, separator, value = extra[index].partition("=")
+        if head in (option, size_option):
+            if not separator:
+                index += 1
+                value = extra[index] if index < len(extra) else ""
+            least = 1 if head == option else pages["size_min"]
+            if not re.fullmatch(r"[0-9]+", value) or int(value) < least:
+                return None, "{} takes a whole number of at least {}, got {}.".format(
+                    head, least, json.dumps(value))
+            if head == option:
+                page = int(value)
+            else:
+                size = int(value)
+        index += 1
+    if page is None:
+        return None, "{} sizes the pages of a runbook page request; add {} <i>.".format(
+            size_option, option)
+    return {"row": row, "page": page, "size": size or pages["size_default"]}, None
+
+
+def runbook_page_bodies(text: str, size: int) -> list:
+    """*text* cut on line boundaries into pages of at most *size* UTF-8 bytes.
+
+    The cut ``util instructions --page`` makes (``multi_llm._core_pages``), with
+    every page's room *size*: this route states its rule in a key of its own,
+    not in a banner on page 1. Packed greedily, a longer line alone on its page;
+    ``"".join`` of the result is *text*, byte for byte.
+    """
+    pages, current, filled = [], [], 0
+    for line in re.findall(r"[^\n]*\n|[^\n]+$", text):
+        length = len(line.encode("utf-8"))
+        if current and filled + length > size:
+            pages.append("".join(current))
+            current, filled = [], 0
+        current.append(line)
+        filled += length
+    if current or not pages:
+        pages.append("".join(current))
+    return pages
+
+
+def runbook_sha(text: str, pages) -> str:
+    """The sha every page line carries: sha256 of the whole paged text."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:pages["sha_chars"]]
+
+
+def frame_runbook_page(pages, mode: str, body: str, page: int, count: int,
+                       sha: str) -> str:
+    """*body* between its header line and its end line, each closed by a newline."""
+    where = {"mode": mode, "page": str(page), "pages": str(count), "sha": sha}
+    header = fill(pages["header"], dict(where, bytes=str(len(body.encode("utf-8")))))
+    return header + "\n" + body + fill(pages["end"], where) + "\n"
 
 
 def split_posix(text: str):
@@ -1908,7 +2017,8 @@ class Server:
 
         Ordered for a reader that sees only part of it (:data:`WAY_FORWARD_KEYS`,
         :data:`LAST_KEYS`): ``ok`` and ``state``, then the way forward, then
-        ``message`` and the other fields, and the runbook last.
+        ``message`` and the other fields, and the runbook and its paging rule
+        last.
         """
         def kept(key, value):
             # A null `user_next_step` is the answer "no next phase", set on
@@ -2120,18 +2230,28 @@ class Server:
                 DEGRADED_DESCRIPTION, self.surface_problem or ""))
         surface = self.surface
         call.args = with_absent_question(call.args)
-        row, problem = validate_args(call.args, surface)
+        # A page request is answered in place of validation and the workflow:
+        # it fetches documentation, so it can never start, resume or repeat a
+        # run, and its other arguments are never read (runbook_page_request).
+        paging, problem = runbook_page_request(call.args, surface)
         if problem:
             return self.refusal(call, "error", problem)
-        kept_flags, _dropped, _refused = split_extra_flags(
-            call.args["extra_flags"], surface)
+        if paging is not None:
+            row = paging["row"]
+        else:
+            row, problem = validate_args(call.args, surface)
+            if problem:
+                return self.refusal(call, "error", problem)
+            kept_flags, _dropped, _refused = split_extra_flags(
+                call.args["extra_flags"], surface)
         if call.anchor is None:
             return self.refusal(call, "needs_human", fill(
                 surface["anchor_unresolved"], {"probed": ", ".join(probed)}))
         args = call.args
         posture = surface["write_posture_refusal"]
         session = session_posture(call.meta)
-        if row.get("writes_worktree") and session not in POSTURES_ALLOWING_WRITES \
+        if paging is None and row.get("writes_worktree") \
+                and session not in POSTURES_ALLOWING_WRITES \
                 and self.layer1.get(posture["lever_env"]) != posture["lever_value"]:
             # D3b: the posture is read per call from codex's turn metadata. A
             # read-only session refuses; a posture that is absent or not a word
@@ -2167,6 +2287,8 @@ class Server:
         os.environ[route_env["name"]] = route_env["value"]
         if NO_BYTECODE_ENV not in os.environ:
             os.environ[NO_BYTECODE_ENV] = "1"
+        if paging is not None:
+            return self.envelope(call, self.serve_runbook_page(call, paging))
         model = self.export_session_model(call)
         self.export_host_posture(call)
         values = {"word": args["mode"], "plan": self.normalize_plan(args["plan"], call),
@@ -2328,14 +2450,16 @@ class Server:
     # -- one child ------------------------------------------------------------------
 
     def run_child(self, call: Call, dispatcher_argv, timeout_s: float,
-                  cancellable: bool = True) -> ChildRun:
+                  cancellable: bool = True,
+                  stdout_keep: int = STDOUT_TAIL_CHARS) -> ChildRun:
         """Spawn ``[bash, -lc, CONST, bash, anchor, *argv]`` and supervise it.
 
         One shell at this one site, an argv list, ``shell=False``, its own
         session (so the kill reaches uv's python grandchild; on Windows, its
         own Job Object, :class:`WindowsJob`), stdin from /dev/null (fd 0 is
         the protocol's read half), both pipes drained by their own threads so
-        a chatty child can never fill one.
+        a chatty child can never fill one. *stdout_keep* bounds the stdout
+        kept (its newest characters); keeping less sets ``truncated``.
         """
         argv = self.spawn_argv(dispatcher_argv)
         run = ChildRun(argv)
@@ -2368,19 +2492,21 @@ class Server:
             return run
         call.shell_argv = prefix
         try:
-            return self.supervise_child(call, run, proc, job, timeout_s, cancellable)
+            return self.supervise_child(call, run, proc, job, timeout_s, cancellable,
+                                        stdout_keep)
         finally:
             if job is not None:
                 job.close()
 
     def supervise_child(self, call: Call, run: ChildRun, proc, job, timeout_s: float,
-                        cancellable: bool) -> ChildRun:
+                        cancellable: bool,
+                        stdout_keep: int = STDOUT_TAIL_CHARS) -> ChildRun:
         """:meth:`run_child` from the spawn on: drain, wait, kill, collect."""
         dispatcher = self.surface["dispatcher"]
         fields = dispatcher["banner"].get("fields") or [dispatcher["banner"]["run_id_field"]]
         banner_re = re.compile(
             r"^\s*(" + "|".join(re.escape(f) for f in fields) + r"):\s*(.+?)\s*$")
-        out_tail, err_tail = _Tail(STDOUT_TAIL_CHARS), _Tail(STDERR_TAIL_CHARS)
+        out_tail, err_tail = _Tail(stdout_keep), _Tail(STDERR_TAIL_CHARS)
         drains = [
             threading.Thread(target=_drain_stdout, daemon=True, args=(
                 proc.stdout, run, dispatcher["result_marker"], banner_re, out_tail)),
@@ -3163,8 +3289,12 @@ class Server:
                 if json.dumps(option, sort_keys=True) not in seen]
         outcome["options"] = lead + rest
 
-    def attach_runbook(self, call: Call, row, outcome) -> None:
-        """``util instructions <mode> --host <id>``: integrity-checked, banner dropped."""
+    def fetch_runbook(self, call: Call, row):
+        """``util instructions <mode> --host <id>``, integrity-checked, banner
+        dropped, scrubbed and redacted: ``(runbook, None, exit)``, or ``(None,
+        problem, exit)`` for a fetch that failed, a payload that arrived
+        without its closing line, or one whose stdout was cut (kept to
+        :data:`RUNBOOK_STDOUT_CHARS`, or a line past the line bound)."""
         dispatcher = self.surface["dispatcher"]
         runbook = self.surface["runbook"]
         argv = list(dispatcher["instructions"]) + [
@@ -3172,10 +3302,16 @@ class Server:
         # Cut from the reserve the loop held back, not from the loop's deadline:
         # on the handoff edge that deadline has already passed.
         spare = max(1.0, call.hard_deadline - time.monotonic() - 0.5)
-        child = self.run_child(call, argv, spare)
+        child = self.run_child(call, argv, spare, stdout_keep=RUNBOOK_STDOUT_CHARS)
         problem = None
         if child.spawn_error or child.code != dispatcher["exit_codes"]["ok"]:
             problem = "the runbook fetch did not complete (exit {})".format(child.code)
+        elif child.truncated:
+            # A cut keeps the closing line, so the sentinel test below would pass
+            # on a runbook that lost its head: refuse it here.
+            problem = ("the runbook arrived cut (its output passed the {:,} characters "
+                       "this server keeps of it), so it is a partial payload and was "
+                       "not attached".format(RUNBOOK_STDOUT_CHARS))
         lines = (child.stdout or "").split("\n")
         # Drop the head banner: its character count describes the unscrubbed core.
         opening = runbook.get("banner_opening") or ""
@@ -3197,13 +3333,100 @@ class Server:
             problem = ("the runbook arrived without its closing line ({}), so it is a "
                        "partial payload and was not attached".format(sentinel))
         if problem:
+            return None, problem, child.code
+        text = redact(scrub_runbook("\n".join(kept).strip("\n"), self.surface),
+                      None, self.surface)
+        # The scrub removed every line that named the skill directory, so a
+        # runbook naming `references/<file>.md` opens with where that folder is.
+        line = runbook.get("references")
+        if isinstance(line, str) and REFERENCES_DIR + "/" in text:
+            text = fill(line, {"dir": str(SKILL_DIR / REFERENCES_DIR)}) + "\n" + text
+        return text, None, child.code
+
+    def attach_runbook(self, call: Call, row, outcome) -> None:
+        """The runbook an unfinished outcome owes: page 1 and its paging rule,
+        or the whole runbook on a surface that carries no paging."""
+        text, problem, _code = self.fetch_runbook(call, row)
+        if problem:
             # A documentation fetch never restates the run: ok/state/isError stay
             # as the run produced them (a live handoff or an exit-0 with an
             # unfollowed next is not a failure because its runbook was not fetched).
             outcome["runbook_error"] = problem
             return
-        outcome["runbook"] = redact(scrub_runbook("\n".join(kept).strip("\n"), self.surface),
-                                    None, self.surface)
+        pages = runbook_paging(self.surface)
+        if pages is None:
+            outcome["runbook"] = text
+            return
+        self.attach_page(outcome, row, text, 1, pages["size_default"])
+
+    def attach_page(self, outcome: dict, row, text: str, page: int, size: int):
+        """Page *page* of *text* cut at *size* into ``runbook``, and into
+        :data:`RUNBOOK_PAGES_KEY` the rule that says when the whole runbook is
+        held, how to fetch any page and the calls for the next page and for a
+        smaller size. Returns ``None``, or the page count when *page* is past
+        the last page (then nothing is attached).
+
+        The paged text is the runbook and its last line's newline, so the
+        pages' bodies joined are exactly that, and its sha names it."""
+        pages = runbook_paging(self.surface)
+        paged = text + "\n"
+        bodies = runbook_page_bodies(paged, size)
+        count = len(bodies)
+        if page > count:
+            return count
+        sha = runbook_sha(paged, pages)
+        smaller = max(pages["size_min"], size // 2)
+        values = {"mode": row["name"], "page": str(page), "pages": str(count),
+                  "sha": sha, "size": str(size), "smaller": str(smaller)}
+        again = fill(pages["again"] if smaller < size else pages["floor"], values)
+        rule = fill(pages["rule"] if len(bodies) > 1 else pages["rule_one"],
+                    dict(values, again=again))
+        info = {"page": page, "pages": count, "sha": sha, "page_size": size,
+                "rule": rule}
+        if page < count:
+            info["next_page"] = self.page_call(row, page + 1, size)
+        if smaller < size:
+            info["smaller"] = self.page_call(row, 1, smaller)
+        outcome[RUNBOOK_PAGES_KEY] = info
+        outcome["runbook"] = frame_runbook_page(
+            pages, row["name"], bodies[page - 1], page, count, sha)
+        return None
+
+    def page_call(self, row, page: int, size: int) -> dict:
+        """The tool call that fetches page *page* at *size*: the mode word and
+        the page options, every positional empty, since a page request reads
+        none of them (:func:`runbook_page_request`)."""
+        pages = runbook_paging(self.surface)
+        return {"mode": row["name"], "plan": "", "question": "",
+                "extra_flags": [pages["option"], str(page),
+                                pages["size_option"], str(size)]}
+
+    def serve_runbook_page(self, call: Call, request: dict) -> dict:
+        """A page request's result: the page and its rule, and nothing run.
+
+        The same fetch and the same cut an unfinished run's result makes, so
+        page 1 here is page 1 there. A failed fetch or a page past the last is
+        an ``ok: false`` result that, like an argument error, runs nothing and
+        names no command for the user.
+        """
+        row, pages = request["row"], runbook_paging(self.surface)
+        states = self.surface["dispatcher"]["states"]
+        text, problem, code = self.fetch_runbook(call, row)
+        if problem:
+            return {"ok": False, "state": states["error"], "message": problem,
+                    "exit": code, "runbook_error": problem}
+        outcome = {"ok": True, "state": states["ok"], "exit": code}
+        count = self.attach_page(outcome, row, text, request["page"], request["size"])
+        if count is not None:
+            return {"ok": False, "state": states["error"], "exit": code, "message": (
+                "{} {} is past the last page: {} takes 1 to {} for the {} runbook "
+                "at {} {}.".format(pages["option"], request["page"], pages["option"],
+                                   count, row["name"], pages["size_option"],
+                                   request["size"]))}
+        outcome["message"] = fill(pages["served"], {
+            "page": str(request["page"]), "pages": str(outcome[RUNBOOK_PAGES_KEY][
+                "pages"]), "mode": row["name"]})
+        return outcome
 
 
 def turn_metadata(meta) -> dict:

@@ -13,6 +13,7 @@ npx e2e explore 'Explore checkout like a first-time buyer and report anything of
 npx e2e explore --target web --max-steps 4 --headed
 npx e2e explore 'Hunt for broken forms' --video
 npx e2e explore --session admin 'Explore the admin settings'
+npx e2e explore --changed-since origin/main   # explore what the branch changed
 ```
 
 ## Contents
@@ -72,6 +73,7 @@ configured secrets are redacted (topic `writing-tests`).
 | `--target <id>` | first configured target | The one target to explore. |
 | `--agent <name>` | `default` | Build the explorer from another configured agent (`agents.<name>`). |
 | `--session <name>` | none | Run the setup that saves this session, then explore with it restored. |
+| `--changed-since <ref>` | none | Explore what the branch changed since the merge base of the ref and HEAD. The planner reads the commit messages and the committed diff, and plans charters for the screens the change can affect. Only a defect the change can cause is an `issue`; one elsewhere is a `warning`. With no goal, the goal becomes `Explore what this change affects and find bugs in it`, and the planner may skip a change no user can see, such as docs or tests only. That run ends `skipped` and passes. In CI it needs the base in the checkout (`fetch-depth: 0`), and a clean working tree for the skip. |
 | `--max-steps <n>` | 8 (1 to 100) | Exploration steps at most. |
 | `--timeout <ms>` | 600000 (180000 to 7200000) | Wall clock; the last minute is for the assessment. |
 | `--headed`, `--reporter`, `--output`, `--debug`, `--ai-trace`, `--trace [mode]`, `--video [mode]` | as `run` | Same meaning as for `e2e run`. The exploration is one attempt, so a retry mode (`on-first-retry`, `on-all-retries`) records nothing (the run's notice says to pass `--trace on`); put the goal before a bare `--trace` or `--video`. |
@@ -84,8 +86,9 @@ exploration.
 ## Reading the result
 
 Exit code `0`: steps ran, no `issue` was reported, and not every charter was
-blocked; warnings are allowed. Exit code `1`: at least one `issue`, or no step
-ran and nothing was found. If every charter was blocked and no `issue` was
+blocked; warnings are allowed. With `--changed-since`, a change the planner
+skipped before the first step (no file a user can see) is also `0`. Exit
+code `1`: at least one `issue`, or no step ran and nothing was found. If every charter was blocked and no `issue` was
 reported, the run is `blocked` even with warnings, and the exit code is the
 first blocker's own, as for `run`: 1 for an automation limit, 2 for a missing
 model, credentials, seed data, or test setup, 3 for an unavailable
@@ -106,14 +109,15 @@ medium 3, low 2, trivial 1. `.e2e/report.json` has the record under
 {
   "goal": "...",
   "budgets": { "maxSteps": 8, "timeoutMs": 600000 },
-  "ended": "finished | step-limit | time | stuck | aborted",
+  "ended": "finished | skipped | step-limit | time | stuck | aborted",
   "summary": "the closing assessment",
+  "change": { "base": "<merge base sha>", "files": 3 },
   "steps": [{ "index": 1, "title": "...", "instruction": "...", "status": "passed | failed | blocked | exhausted", "summary": "...", "errorCode": "...", "startedAt": "...", "durationMs": 0 }],
   "findings": [{ "id": "<uuid>", "index": 0, "step": 1, "kind": "issue", "severity": 4, "title": "...", "expected": "...", "actual": "...", "reproduction": ["..."], "path": "/cart", "observationRevision": "...", "artifactId": "<attempt id>:artifact:2", "reportedAt": "..." }]
 }
 ```
 
-A step carries `errorCode` only when it did not pass; a finding carries
+`change` is there only with `--changed-since`. A step carries `errorCode` only when it did not pass; a finding carries
 `step`, `path`, `observationRevision`, and `artifactId` only when known.
 `artifactId` names the evidence screenshot among the attempt's `artifacts` in
 the result whose `file` is `explore`, where its path, size, and digest are.

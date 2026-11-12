@@ -40,43 +40,79 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import shutil
 import stat
 import sys
 import tempfile
 import threading
-import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, Iterator, List, Mapping, Optional, Sequence, Tuple
 
 try:  # pragma: no cover - import shim mirrors the rest of utils/
     from .providers.base import (
         CODEX_HOME_CHECK_MARKER,
+        HOST_POSTURE_FULL_ACCESS,
+        HOST_SANDBOX_POSTURE_ENV,
+        INCIDENTAL_LANE_EXECUTOR,
+        JAIL_DENIED_MARKER,
         JailContext,
         JailRequest,
+        SANDBOX_FALLBACK_AUTO,
+        SANDBOX_RUNG_PLUGIN_LANDLOCK,
+        SANDBOX_WRITE_FALLBACK_PROFILES,
+        SKIP_RUNG_ENV,
         SandboxRung,
         WRITE_SCOPE_REPO_WIDE,
         WRITE_SCOPE_TASKS,
         WRITE_SCOPES,
+        version_newer,
+    )
+    from .providers.codex import (
+        CANARY_ENV_PYTHON,
+        CANARY_ENV_SEEDED,
+        CANARY_ENV_WORKDIR,
+        CANARY_ENV_WRITE_DIR,
+        CANARY_ENV_WRITE_FILE,
     )
     from . import process_control
     from . import landlock_exec
+    from .atomic_io import atomic_write_bytes
     from . import git_utils as _git_utils
     from . import codex_trust as _codex_trust
+    from . import redact as _redact
 except ImportError:  # pragma: no cover - direct-script import shim
     from utils.providers.base import (  # type: ignore[no-redef]
         CODEX_HOME_CHECK_MARKER,
+        HOST_POSTURE_FULL_ACCESS,
+        HOST_SANDBOX_POSTURE_ENV,
+        INCIDENTAL_LANE_EXECUTOR,
+        JAIL_DENIED_MARKER,
         JailContext,
         JailRequest,
+        SANDBOX_FALLBACK_AUTO,
+        SANDBOX_RUNG_PLUGIN_LANDLOCK,
+        SANDBOX_WRITE_FALLBACK_PROFILES,
+        SKIP_RUNG_ENV,
         SandboxRung,
         WRITE_SCOPE_REPO_WIDE,
         WRITE_SCOPE_TASKS,
         WRITE_SCOPES,
+        version_newer,
+    )
+    from utils.providers.codex import (  # type: ignore[no-redef]
+        CANARY_ENV_PYTHON,
+        CANARY_ENV_SEEDED,
+        CANARY_ENV_WORKDIR,
+        CANARY_ENV_WRITE_DIR,
+        CANARY_ENV_WRITE_FILE,
     )
     from utils import process_control  # type: ignore[no-redef]
     from utils import landlock_exec  # type: ignore[no-redef]
+    from utils.atomic_io import atomic_write_bytes  # type: ignore[no-redef]
     from utils import git_utils as _git_utils  # type: ignore[no-redef]
     from utils import codex_trust as _codex_trust  # type: ignore[no-redef]
+    from utils import redact as _redact  # type: ignore[no-redef]
 
 # ---------------------------------------------------------------------------
 # The wrapper and its launch
@@ -235,6 +271,8 @@ def default_tasks_dir(plan_file: str, tasks_file: str) -> Optional[str]:
     tasks file.
     """
     try:
+        # Imported here: llm_client loads this module, and doctor's version probe
+        # loads llm_client; neither needs output_handler or the mode table it brings.
         from .output_handler import sanitize_prefix
     except ImportError:  # pragma: no cover - direct-script import shim
         from utils.output_handler import sanitize_prefix  # type: ignore[no-redef]
@@ -470,7 +508,6 @@ def repo_wide_env_redirects(context: JailContext) -> Dict[str, str]:
     ``TMPDIR`` by itself. ``~/.cargo`` and ``~/.cache/go-build`` were not
     measured (no such project) and stay denied.
     """
-    import shlex
     base = context.tmpdir
     return {
         "UV_CACHE_DIR": os.path.join(base, "uv-cache"),
@@ -810,6 +847,33 @@ def render_home(path: Optional[str]) -> str:
     return text
 
 
+def render_home_text(text: Optional[str]) -> str:
+    """``text`` with every ``$HOME`` shown as ``~`` where it is a path of its
+    own or starts one (``$HOME/…``, ``'$HOME'``, ``HOME=$HOME``,
+    ``--cd=$HOME``), so a line quoting the child's output can be pasted into
+    an issue as it is. Only where no path character comes before it (as for
+    an absolute path the jail's lines name), an escaped newline, tab, return
+    or quote counting as none, and none after it but a separator:
+    a backup copy of the home under another folder (``<folder>$HOME/x``) and
+    ``$HOME2`` are other folders and stay as they are. :func:`render_home`
+    renders one path."""
+    home = os.path.expanduser("~")
+    if not text or not home or home in ("~", os.sep):
+        return text or ""
+    return _home_pattern(home).sub("~", text)
+
+
+def _home_pattern(home: str) -> "re.Pattern[str]":
+    """*home* where it starts a path: after a JSON or shell escape that stands
+    for a boundary (``\\n``, ``\\t``, ``\\r``, ``\\"``: a CLI's event text
+    quotes its tool output escaped), or with no path character before it;
+    and after it a separator, the end, or anything that cannot continue a
+    name."""
+    return re.compile(
+        r'(?:(?<=\\[ntr"])|(?<![\w.\-/\\~]))'
+        + re.escape(home.rstrip("/\\") or home) + r"(?![\w.\-~])")
+
+
 def render_allow_list(entries: Iterable[AllowEntry]) -> str:
     """``dir:~/.codex, dir:/tmp/multi-llm-slot-…, file:/dev/null, …``"""
     return ", ".join(f"{e.kind}:{render_home(e.path)}" for e in entries)
@@ -848,7 +912,8 @@ class JailEvidence:
     """What :func:`is_jail_failure` found: where the EACCES was (``stderr`` or
     ``event``), the one line carrying it (≤300 chars), the absolute path when
     the line names one, the class (``jail`` / ``ordinary`` / ``probable``) and,
-    for ``ordinary``, why it is not a jail denial."""
+    for ``ordinary``, why it is not a jail denial. ``line``, ``path`` and
+    ``reason`` are redacted (:func:`redacted_excerpt`): both lanes print them."""
 
     where: str
     line: str
@@ -861,6 +926,27 @@ class JailEvidence:
             "where": self.where, "line": self.line, "path": self.path,
             "class": self.klass, "reason": self.reason,
         }
+
+
+#: How much of the line carrying an EACCES the evidence keeps, and of the
+#: denied path.
+EXCERPT_CHARS = 300
+
+#: A ``reason`` quotes a path and an allow entry, so it gets room for both.
+REASON_CHARS = 2 * EXCERPT_CHARS
+
+
+def redacted_excerpt(text: Optional[str], limit: Optional[int] = EXCERPT_CHARS) -> str:
+    """``text`` redacted, then cut to ``limit`` characters (``None``: uncut).
+
+    Jail evidence quotes codex's own stderr or ``error`` event, or a path
+    taken from one, and both lanes print it to stdout, the detached run log
+    and the closing summary, so it is redacted where it is taken. Redaction
+    runs before the cut: a cut inside a token leaves a fragment no pattern
+    matches (``redact.redact_text``).
+    """
+    redacted = _redact.redact_text(text or "")
+    return redacted if limit is None else redacted[:limit]
 
 
 def _events(stdout: str) -> Iterator[Dict[str, Any]]:
@@ -946,8 +1032,11 @@ def wrapper_evidence(returncode: Optional[int], stderr: str) -> Optional[JailEvi
         spec = body[len("required-entry: "):]
         spec = spec.rsplit(": ", 1)[0] if ": " in spec else spec
         path = spec.split(":", 1)[1] if ":" in spec else spec
+    # The note is read off the child's stderr, where any line can start with
+    # the prefix: redacted like codex's own text.
     return JailEvidence(
-        where="wrapper", line=note[:300], path=path or None, klass=JAIL_CLASS_JAIL,
+        where="wrapper", line=redacted_excerpt(note),
+        path=redacted_excerpt(path) or None, klass=JAIL_CLASS_JAIL,
     )
 
 
@@ -975,6 +1064,12 @@ def is_jail_failure(
     cannot hide a jail denial after it, nor the reverse. What a lane makes of
     the evidence is its own rule, and it is the same on both: a child killed
     at its deadline is a timeout, never a jail failure.
+
+    The path and the class are read from the raw line, since a redaction can
+    rewrite the denied path: a path that starts in the first
+    :data:`EXCERPT_CHARS` characters is read whole, past the cut. The
+    evidence's ``line``, ``path`` and ``reason`` are then redacted before they
+    are cut (:func:`redacted_excerpt`).
     """
     if returncode is not None:
         refused = wrapper_evidence(returncode, stderr)
@@ -991,8 +1086,9 @@ def is_jail_failure(
     best: Optional[JailEvidence] = None
     for where, raw in candidates:
         full = raw.strip()
-        line = full[:300]
-        match = _ABS_PATH.search(line)
+        match = _ABS_PATH.search(full[:EXCERPT_CHARS])
+        if match:
+            match = _ABS_PATH.match(full, match.start())
         path = match.group(1).rstrip(".") if match else None
         if not _EACCES.search(full) and not (path and _PERMISSION_DENIED.search(full)):
             continue
@@ -1005,7 +1101,11 @@ def is_jail_failure(
                     entries = []
         klass, reason = classify_denied_path(path, entries)
         if best is None or _CLASS_RANK[klass] > _CLASS_RANK[best.klass]:
-            best = JailEvidence(where=where, line=line, path=path, klass=klass, reason=reason)
+            best = JailEvidence(
+                where=where, line=redacted_excerpt(full),
+                path=redacted_excerpt(path) if path else None,
+                klass=klass, reason=redacted_excerpt(reason, REASON_CHARS),
+            )
             if klass == JAIL_CLASS_JAIL:
                 break
     return best
@@ -1053,6 +1153,48 @@ class JailDenials:
             "out_of_scope_count": self.out_of_scope_count,
             "out_of_scope_paths": list(self.out_of_scope_paths[:3]),
         }
+
+    def named_paths(self, limit: int = 3) -> List[str]:
+        """The first ``limit`` distinct paths the denials name: the failed
+        ``file_change`` items' paths, then the command writes outside the
+        grant (the fan-out's record and log line)."""
+        named: List[str] = []
+        for group in self.failed_file_changes:
+            named.extend(group)
+        named.extend(self.out_of_scope_paths)
+        return [p for i, p in enumerate(named) if p not in named[:i]][:limit]
+
+
+def as_jail_denials(value: Any) -> Any:
+    """``value`` as a :class:`JailDenials`, or ``None``.
+
+    The executor's capture holds the dataclass itself; a dict in its
+    ``to_dict()`` shape (the fan-out's ``details["jail_denials"]``, or a record
+    read back) is rebuilt, its other keys ignored, so every reader reads one
+    type. ``None``, or any other value, is ``None``.
+    """
+    if value is None or isinstance(value, JailDenials):
+        return value
+    if hasattr(value, "failed_file_changes") and hasattr(value, "denied_paths"):
+        # The same dataclass reached through another import path of the
+        # module (a duplicate module object fails `isinstance`, not the shape).
+        return value
+    if isinstance(value, dict):
+        return JailDenials(
+            failed_file_changes=[
+                [str(p) for p in group]
+                for group in (value.get("failed_file_changes") or [])
+            ],
+            in_scope_paths=[str(p) for p in (value.get("in_scope_paths") or [])],
+            replacement_paths=[
+                str(p) for p in (value.get("replacement_paths") or [])
+            ],
+            out_of_scope_count=int(value.get("out_of_scope_count") or 0),
+            out_of_scope_paths=[
+                str(p) for p in (value.get("out_of_scope_paths") or [])
+            ],
+        )
+    return None
 
 
 _DENIAL_LINE = re.compile(r"permission denied|\[errno 13\]|os error 13|eacces", re.IGNORECASE)
@@ -1208,6 +1350,183 @@ def jail_denied_edits(
                 if len(result.out_of_scope_paths) < 3:
                     result.out_of_scope_paths.append(resolved)
     return result
+
+
+# ---------------------------------------------------------------------------
+# What a jailed attempt prints: the [JAIL_DENIED] line and the denial count
+# ---------------------------------------------------------------------------
+
+#: Where a ``[JAIL_DENIED]`` line sends the reader (F1 item 6, "Next steps").
+JAIL_DENIED_ISSUES_URL = "github.com/beastlabai/multi-llm-plugin/issues"
+
+#: A denial whose line names no path, which :func:`classify_denied_path` calls
+#: probable.
+_PATH_NOT_NAMED_PROBABLE = (
+    "path not named (Codex did not name the path; a probable jail denial)"
+)
+
+
+def jail_denied_text(
+    *,
+    spec: str,
+    rung: Any,
+    evidence: Mapping[str, Any],
+    allow_list: str,
+    installed: str,
+    profile: Optional[str] = None,
+    write_scope: Optional[str] = None,
+    lane: str,
+) -> str:
+    """The one ``[JAIL_DENIED]`` line for an attempt the plugin's jail failed
+    (plan codex-sandbox-unavailable §6 F1 item 6, "What prints").
+
+    Both lanes state the same facts: the runner and ``spec``, the rung, the
+    denied path (``evidence["path"]``, or that none was named), the quoted
+    line (``evidence["line"]``), the allow-list, the ``installed`` and
+    measured-through versions — adding "the likely cause" when the installed
+    CLI is newer (:func:`version_newer`) — and the next steps. ``$HOME``
+    renders as ``~``, so the line can be pasted into an issue as it is.
+
+    The quoted line is codex's raw stderr or error event, and the line reaches
+    stdout, the detached run log and the closing summary: it is redacted
+    before any cut, then ``$HOME`` rendered (:func:`render_home_text`), and the
+    whole line goes through the redaction boundary too, whatever ``evidence``
+    already held.
+
+    Each lane keeps its own layout (``lane``): the executor's
+    (``INCIDENTAL_LANE_EXECUTOR``) quotes at most :data:`EXCERPT_CHARS` and
+    reads any unnamed path as probable; the fan-out's
+    (``INCIDENTAL_LANE_FANOUT``) names the class. The field order, the labels
+    and the skip step are the lane's: on the executor the skip step is worded
+    per dispatch (:func:`_jail_skip_step`).
+
+    ``evidence`` has :class:`JailEvidence`'s ``to_dict()`` keys (``where``,
+    ``line``, ``path``, ``class``); ``installed`` is a version this process
+    already read, ``""`` for none.
+    """
+    runner = spec.split(":", 1)[0]
+    rung_name = getattr(rung, "name", SANDBOX_RUNG_PLUGIN_LANDLOCK)
+    measured = (getattr(rung, "measured_through", None) or ("",))[0] or "unknown"
+    installed = installed or "unknown"
+    newer = version_newer(installed, measured)
+    path = evidence.get("path")
+    quoted = " ".join(redacted_excerpt(str(evidence.get("line") or ""), None).split())
+    if lane == INCIDENTAL_LANE_EXECUTOR:
+        where = render_home(path) if path else _PATH_NOT_NAMED_PROBABLE
+        shown = render_home_text(quoted[:EXCERPT_CHARS])
+        versions = (
+            f"{runner} {installed} installed, the jail measured through {measured}"
+            + ("; Codex is newer than the jail was measured with, the likely cause"
+               if newer else "")
+        )
+        text = (
+            f"{JAIL_DENIED_MARKER} {spec} on rung {rung_name!r}: denied {where}; "
+            f"excerpt: {shown!r}; allow-list: {allow_list or '(not computed)'}; "
+            f"{versions}. This is a jail failure, not a model error, and is not "
+            f"retried on another rung. Next: compare with `multi_llm.py doctor`'s "
+            f"`{rung_name}` row; report it at {JAIL_DENIED_ISSUES_URL} with this "
+            f"line and that row; {_jail_skip_step(rung_name, profile, write_scope)}"
+        )
+    else:
+        if path:
+            denied = render_home(path)
+        elif evidence.get("class") == JAIL_CLASS_PROBABLE:
+            denied = _PATH_NOT_NAMED_PROBABLE
+        else:
+            denied = "path not named"
+        said = render_home_text(quoted)
+        versions = (
+            f"{runner} installed {installed}, jail measured through {measured}"
+            + (f"; {runner.capitalize()} is newer than the jail was measured "
+               f"with, the likely cause" if newer else "")
+        )
+        text = (
+            f"{JAIL_DENIED_MARKER} {runner} ({spec}): the plugin's Landlock jail "
+            f"(fallback rung {rung_name!r}) denied a write {runner} itself "
+            f"needed, so the turn failed: {denied}; "
+            f"{evidence.get('where') or 'stderr'}: \"{said}\"; allow list: "
+            f"{allow_list or '(unavailable)'}; {versions}; next steps: (1) "
+            f"compare with `multi_llm.py doctor` (its {rung_name} row lists the "
+            f"allow-list, both versions and the switch); (2) report it at "
+            f"{JAIL_DENIED_ISSUES_URL} with this line and that row (the "
+            f"allow-list is not configurable); (3) to run the job anyway, set "
+            f"this key to a runner that is not Codex (for example "
+            f"claude-code:<model>) in .multi-llm/providers.yaml, or for one run "
+            f"set {SKIP_RUNG_ENV}={rung_name}"
+        )
+    return redacted_excerpt(text, None)
+
+
+def _jail_skip_step(rung_name: str, profile: Optional[str], write_scope: Optional[str]) -> str:
+    """The executor's last next step: how to run the job anyway.
+
+    For a read dispatch, skipping the rung runs the job on the next rung for
+    one run. For an ``agent-write`` dispatch the jail is the only write rung,
+    so skipping it refuses the write unless F5's consent (the chat's own
+    ``danger-full-access`` posture, under ``sandbox_fallback=auto``) is
+    present: the step says so rather than advising a switch that does not run
+    the job.
+    """
+    if profile in SANDBOX_WRITE_FALLBACK_PROFILES:
+        return (
+            f"to run the job anyway, set `driver.subagent_runner` to a runner "
+            f"that is not Codex (F6). Setting {SKIP_RUNG_ENV}={rung_name} does "
+            f"not run it: this is a write dispatch (scope "
+            f"{write_scope or 'none'}) and {rung_name!r} is its only write "
+            f"rung, so with it skipped the write is refused unless the chat "
+            f"itself runs in {HOST_POSTURE_FULL_ACCESS} "
+            f"({HOST_SANDBOX_POSTURE_ENV}; F5, under "
+            f"sandbox_fallback={SANDBOX_FALLBACK_AUTO}), which then runs it with "
+            f"no OS boundary."
+        )
+    return (
+        f"to run the job anyway, set `driver.subagent_runner` to a runner "
+        f"that is not Codex (F6), or else set {SKIP_RUNG_ENV}={rung_name} "
+        f"for one run."
+    )
+
+
+def jail_denials_text(denials: Optional[JailDenials], *, lane: str) -> str:
+    """What a jailed attempt's in-stream denials print, without the lane's
+    prefix, or ``""`` when there is nothing to say.
+
+    These are the writes the jail stopped inside the model's own commands,
+    which fail nothing (F1 "A denied edit is never recorded as applied" is the
+    write grant's rule, not this line's). The executor's lane
+    (``INCIDENTAL_LANE_EXECUTOR``) counts the command writes outside the grant
+    and the failed ``file_change`` items apart, naming the first three of the
+    former; the fan-out's (``INCIDENTAL_LANE_FANOUT``) gives the total and the
+    first three paths (:meth:`JailDenials.named_paths`).
+    """
+    if denials is None:
+        return ""
+    if lane == INCIDENTAL_LANE_EXECUTOR:
+        stray = denials.out_of_scope_count or 0
+        failed = len(denials.failed_file_changes or ())
+        if not stray and not failed:
+            return ""
+        shown = ", ".join(render_home(p) for p in (denials.out_of_scope_paths or ())[:3])
+        parts = []
+        if stray:
+            parts.append(
+                f"{stray} command write(s) outside the grant denied"
+                + (f" ({shown})" if shown else "")
+            )
+        if failed:
+            parts.append(f"{failed} failed file_change item(s)")
+        return (
+            f"the plugin's Landlock jail stopped {'; '.join(parts)} — stray "
+            f"writes stopped by the jail"
+        )
+    total = denials.total
+    if not total:
+        return ""
+    paths = [render_home(p) for p in denials.named_paths() if p]
+    return (
+        f"the plugin's Landlock jail denied {total} write{'s' if total != 1 else ''} "
+        f"inside the model's own commands (not a failure)"
+        + (f": {', '.join(paths)}" if paths else "")
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1556,7 +1875,8 @@ def home_snapshot(codex_home: Optional[str], run_cwds: Sequence[str] = ()) -> Op
 
 def _toml_names(text: str) -> Dict[str, Any]:
     try:
-        import tomllib  # Python 3.11+
+        # tomllib is 3.11+; on 3.10 a config change reads "(unparsed change)".
+        import tomllib
     except ImportError:  # pragma: no cover - 3.10 fallback
         return {}
     try:
@@ -1634,9 +1954,6 @@ HOME_CHANGE_LIST_DIR = "codex-home-check"
 #: (fix round 8: nothing pruned it, and every render wrote another file).
 HOME_CHANGE_LIST_KEEP = 50
 
-_LIST_SEQ = {"n": 0}
-_LIST_LOCK = threading.Lock()
-
 
 def render_name(name: Any) -> str:
     """A changed name as one printable token: as found when every character
@@ -1685,20 +2002,19 @@ def _write_change_list(lines: Sequence[str]) -> Optional[str]:
 
     One file per record: rendering the same change again names the same file
     and does not rewrite it. The file is 0600 and the directory 0700 whatever
-    the umask, and the directory keeps the newest
+    the umask, the write is ``atomic_io``'s (a link at the name is replaced,
+    never written through), and the directory keeps the newest
     :data:`HOME_CHANGE_LIST_KEEP` lists."""
     try:
-        from .write_safety import state_home
+        # Imported here: llm_client loads this module, and doctor's version probe
+        # loads llm_client; neither needs output_handler or the mode table it brings.
+        from .output_handler import state_home
     except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.write_safety import state_home  # type: ignore[no-redef]
+        from utils.output_handler import state_home  # type: ignore[no-redef]
     body = ("\n".join(lines) + "\n").encode("utf-8", "backslashreplace")
     name = hashlib.sha256(body).hexdigest()[:24] + ".txt"
     directory = os.path.join(state_home(), HOME_CHANGE_LIST_DIR)
     path = os.path.join(directory, name)
-    with _LIST_LOCK:
-        _LIST_SEQ["n"] += 1
-        seq = _LIST_SEQ["n"]
-    temp = os.path.join(directory, f".{name}.{os.getpid()}-{seq}.tmp")
     try:
         if not _private_dir(directory):
             return None
@@ -1706,17 +2022,7 @@ def _write_change_list(lines: Sequence[str]) -> Optional[str]:
         if (status == "ok" and current == body
                 and stat.S_IMODE(os.lstat(path).st_mode) == 0o600):
             return path
-        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
-        for extra in ("O_NOFOLLOW", "O_CLOEXEC"):
-            flags |= getattr(os, extra, 0)
-        fd = os.open(temp, flags, 0o600)
-        try:
-            with os.fdopen(fd, "wb") as handle:
-                handle.write(body)
-            os.replace(temp, path)
-        finally:
-            with contextlib.suppress(OSError):
-                os.unlink(temp)
+        atomic_write_bytes(path, body, mode=0o600)
     except OSError:
         return None
     _prune_lists(directory, name)
@@ -1946,12 +2252,6 @@ def canary_env(context: JailContext) -> Dict[str, str]:
     negative controls live outside the repository (:func:`rung_probe` moves
     the canary's workdir there, since the root grant makes ``.multi-llm/tmp``
     writable). Empty for a read-only probe."""
-    try:
-        from .providers.codex import CANARY_ENV_WRITE_DIR, CANARY_ENV_WRITE_FILE
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.providers.codex import (  # type: ignore[no-redef]
-            CANARY_ENV_WRITE_DIR, CANARY_ENV_WRITE_FILE,
-        )
     if context.write_scope == WRITE_SCOPE_REPO_WIDE:
         return {}
     if not context.write_scope or not context.target:
@@ -1992,12 +2292,6 @@ def rung_probe(
     the canary as ``$MULTI_LLM_CANARY_WORKDIR`` and removed afterwards; the
     positive control stays the ``$TMPDIR`` write.
     """
-    try:
-        from .providers.codex import CANARY_ENV_PYTHON, CANARY_ENV_SEEDED, CANARY_ENV_WORKDIR
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.providers.codex import (  # type: ignore[no-redef]
-            CANARY_ENV_PYTHON, CANARY_ENV_SEEDED, CANARY_ENV_WORKDIR,
-        )
     base_env = dict(os.environ if env is None else env)
     outside: Optional[str] = None
     if request.write_scope == WRITE_SCOPE_REPO_WIDE:
@@ -2071,6 +2365,7 @@ __all__ = [
     "JailDenials",
     "JailEvidence",
     "JailRefused",
+    "JAIL_DENIED_ISSUES_URL",
     "NOTE_PREFIX",
     "ProbeSetupFailed",
     "REPO_WIDE_HANDS_OFF_NAMES",
@@ -2079,6 +2374,7 @@ __all__ = [
     "VCS_DIR_NAMES",
     "WRAPPER_PATHS",
     "allow_entries",
+    "as_jail_denials",
     "canary_env",
     "child_env_redirects",
     "merge_env_redirects",
@@ -2093,10 +2389,14 @@ __all__ = [
     "is_jail_failure",
     "is_wrapped",
     "jail_denied_edits",
+    "jail_denied_text",
+    "jail_denials_text",
     "preview_context",
     "preview_wrap_argv",
+    "redacted_excerpt",
     "render_allow_list",
     "render_home",
+    "render_home_text",
     "rung_probe",
     "slot_tmpdir",
     "sweep_slot_leftovers",

@@ -23,14 +23,12 @@ this file states *facts about hosts* and ships with the skill.
 from __future__ import annotations
 
 import os
+import threading
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-try:  # normal import (utils is a package)
-    from .cli_common import skill_dir
-    from .unattended import NeedsHuman
-except ImportError:  # pragma: no cover - direct script runs with utils/ on path
-    from cli_common import skill_dir  # type: ignore
-    from unattended import NeedsHuman  # type: ignore
+from .cli_common import skill_dir, flag_value
+from .process_state import process_cache
+from .unattended import NeedsHuman
 
 
 #: Relative to the skill root. Ships inside the skill so a shim can name the
@@ -109,7 +107,12 @@ _CORRUPT_INSTALL = (
     "       one means a partial or corrupt install; reinstall the skill."
 )
 
-_CACHE: Dict[str, Dict[str, Any]] = {}
+# Held across a miss, so concurrent first readers (doctor's probe threads) wait
+# for one parse instead of each running their own.
+_CACHE_LOCK = threading.Lock()
+_CACHE: Dict[str, Dict[str, Any]] = process_cache(
+    "utils.host_capabilities._CACHE", lock=_CACHE_LOCK
+)
 
 
 class UnknownHost(NeedsHuman):
@@ -142,19 +145,31 @@ def load(base: Optional[str] = None) -> Dict[str, Any]:
     cached = _CACHE.get(root)
     if cached is not None:
         return cached
-    import yaml
+    with _CACHE_LOCK:
+        cached = _CACHE.get(root)
+        if cached is None:
+            cached = _load_uncached(root)
+            _CACHE[root] = cached
+    return cached
+
+
+def _load_uncached(root: str) -> Dict[str, Any]:
+    """Parse and check ``<root>/hosts/capabilities.yaml``; :func:`load` caches it."""
+    # Imported here, not at module scope: most readers of this module never
+    # parse, and importing PyYAML costs about 7 ms.
+    from . import yaml_io
 
     path = os.path.join(root, CAPABILITIES_FILE)
     try:
         with open(path, "r", encoding="utf-8") as handle:
-            document = yaml.safe_load(handle) or {}
+            document = yaml_io.safe_load(handle) or {}
     except OSError as exc:
         raise NeedsHuman(
             f"ERROR: host capability data is missing or unreadable: {path}\n"
             f"       ({exc})\n"
             "       The install looks corrupt or partial; reinstall the skill."
         ) from exc
-    except yaml.YAMLError as exc:
+    except yaml_io.YAMLError as exc:
         # Without this the parser's own exception escapes as an unhandled crash
         # (exit 1, a traceback) rather than as this project's "needs a human"
         # exit 3 — and the traceback names the parser, not the install.
@@ -164,7 +179,6 @@ def load(base: Optional[str] = None) -> Dict[str, Any]:
             f"{_CORRUPT_INSTALL}"
         ) from exc
     _validate_document(document, path)
-    _CACHE[root] = document
     return document
 
 
@@ -287,10 +301,6 @@ def resolve_host_id(
     if explicit:
         return explicit
     if argv:
-        try:
-            from .cli_common import flag_value
-        except ImportError:  # pragma: no cover
-            from cli_common import flag_value  # type: ignore
         found = flag_value(argv, "--host")
         if found:
             return found
@@ -810,8 +820,8 @@ _DETACH = {
         "the process exited; read the markers and output paths from "
         "`orchestrator-run.log` then, and report a non-zero exit status with "
         "that path rather than retrying. A stop at the mechanism's time limit "
-        "(exit `143`, `next` `null`, `status` still reading `running in "
-        "foreground`) names no way forward of its own, so offer the user each "
+        "(exit `143`, `next` `null`, `status` reading `ended in foreground "
+        "without a final state`) names no way forward of its own, so offer the user each "
         "of these and run none yourself: the launch, made again the same way "
         "with `--force` added, which resumes, keeping each model whose result "
         "file is in the phase dir (`[SKIP]`) and running the rest (without "

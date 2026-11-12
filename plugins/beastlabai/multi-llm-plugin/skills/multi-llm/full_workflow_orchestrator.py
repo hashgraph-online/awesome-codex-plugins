@@ -44,10 +44,12 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import asyncio
 import importlib
 import inspect
 import json
 import os
+import shlex
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -77,13 +79,14 @@ from utils.cli_common import (
     record_error,
     record_next,
 )
-from utils.output_handler import get_output_dir, get_phase_dir
+from utils.output_handler import get_output_dir, get_phase_dir, consolidation_is_current
 from utils.state_manager import StateManager
 from utils.stream_bootstrap import bootstrap_streams
 from utils.text_clip import clip, drop_said_clauses, join_clauses
-from utils import scope_policy, scope_policy_runs
+from utils import scope_policy_runs
 from utils import unattended as unattended_mod
 from utils.unattended import NeedsHuman
+from utils import process_control
 
 #: Step outcomes the driver branches on.
 DONE = "done"
@@ -323,10 +326,6 @@ class FullWorkflow:
         self._clear_next()
         try:
             if inspect.iscoroutinefunction(target):
-                import asyncio
-
-                from utils import process_control
-
                 # As the dispatcher's `_call_target` does: a Ctrl-C stops the
                 # phase's CLIs inside the cancellation, before `asyncio.run`
                 # joins the worker threads that are waiting on them.
@@ -440,7 +439,7 @@ class FullWorkflow:
         flags += scope_policy_runs.forwarded_flags(self.scope_policy_choice())
         return flags
 
-    # -- the scope policy (plans/scope-policy-and-report-tags.md §4) ---------
+    # -- the scope policy ---------
     def scope_policy_choice(self) -> Optional[Tuple[str, str]]:
         """``(policy, source)`` of the user's ``--scope-policy`` for this run, or ``None``.
 
@@ -470,24 +469,17 @@ class FullWorkflow:
         """Keep a typed choice for this workflow's own resume, and announce an
         inherited one under ``--yes`` (D6 row 16)."""
         choice = self.scope_policy_choice()
-        if not getattr(self.args, "dry_run_subagents", False):
-            state = self.state
-            if scope_policy_runs.record_run_start(state.state, self.MODE_NAME, choice):
-                state.save()
-        if choice is None:
-            return
-        policy, source = choice
-        if source == scope_policy.SOURCE_EXPLICIT:
-            return
-        scope_policy_runs.announce(
-            str(self.run_dir), policy, source, unattended=self.unattended,
-            mode=self.MODE_NAME,
+        scope_policy_runs.open_run(
+            None if getattr(self.args, "dry_run_subagents", False) else self.state,
+            self.MODE_NAME, choice,
+            phase_dir=str(self.run_dir), unattended=self.unattended,
+            announce_default=False,
         )
 
     def _close_scope_policy(self) -> None:
         """The workflow finished: its recorded choice answers no later run."""
         state = self.state
-        if scope_policy_runs.close_run_choice(state.state, self.MODE_NAME):
+        if scope_policy_runs.close_scope_run(state, self.MODE_NAME):
             state.save()
 
     def model_flags(self) -> List[str]:
@@ -658,6 +650,7 @@ class FullWorkflow:
         dispatch, validation, the in-process ``update_plan_tasks`` and the
         ``TASKS_FILE`` verification — is the standalone mode's code, unchanged.
         """
+        # Imported here to keep full_workflow_orchestrator light.
         import generate_tasks_orchestrator as generate_tasks
 
         child = argparse.Namespace(**vars(self.args))
@@ -807,6 +800,7 @@ class FullWorkflow:
         # phase's own function (never a second spelling of that path) and only
         # once its git-root precondition holds, so the probe cannot exit for it.
         try:
+            # Imported here: this driver loads a phase's orchestrator only when it runs that phase.
             import implement_orchestrator
 
             if not implement_orchestrator.get_project_root(str(self.plan_path)):
@@ -930,13 +924,14 @@ class FullWorkflow:
         point.
 
         A completed ``preserve`` apply that left scope deferrals is not done
-        for an explicit ``expand`` (plans/scope-policy-and-report-tags.md §4):
+        for an explicit ``expand``:
         it runs again to offer them. Asked here, where a step is chosen, never
         in :meth:`_recorded`, which also judges whether a step that ran
         recorded itself.
         """
         recorded = self._recorded(step.phase)
         if recorded == "completed":
+            # Imported here to keep full_workflow_orchestrator light.
             from utils import scope_apply
 
             # The run's choice (typed, or this workflow's live record), so the
@@ -970,15 +965,16 @@ class FullWorkflow:
 
         On a commit review (the brief's ``state.json`` holds
         ``commit_range``; ``improve-commits``) it is spelled through the
-        commit spelling hook (plans/review-commits.md §2.8): the pinned
+        commit spelling hook: the pinned
         ``<base12>..<head12>`` (the brief path on a root range) in place of
         the plan, and none of the flags its front door synthesises or
         consumes. Every other run keeps ``dispatcher_command`` byte for byte.
         """
-        from utils import next_phase
+        # Imported here to keep full_workflow_orchestrator light.
+        from utils import next_phase_words
         from utils.commit_spelling import spell_command
 
-        view = next_phase.commit_view_for(self.MODE_NAME, str(self.plan_path))
+        view = next_phase_words.commit_view_for(self.MODE_NAME, str(self.plan_path))
         if view is None:
             return dispatcher_command(self.MODE_NAME, self.plan_path, *self.resume_flags())
         return spell_command(self.MODE_NAME, self.plan_path, *self.resume_flags(), view=view)
@@ -986,11 +982,10 @@ class FullWorkflow:
     def _commit_spelled(self, command: Optional[str]) -> Optional[str]:
         """*command*, a follow-up the stopped phase printed, in the commit
         spelling when it is a dispatcher command naming this plan and the
-        plan is a commit brief (plans/review-commits.md §2.8: the stop prints
+        plan is a commit brief (the stop prints
         it and records it as ``next``); anything else comes back unchanged."""
         if not command:
             return command
-        import shlex
 
         try:
             tokens = shlex.split(command)
@@ -1004,13 +999,14 @@ class FullWorkflow:
         if plan.startswith("-") or (
                 os.path.realpath(plan) != os.path.realpath(str(self.plan_path))):
             return command
-        from utils import next_phase
+        # Imported here to keep full_workflow_orchestrator light.
+        from utils import next_phase_words
         from utils.commit_spelling import spell_command
 
-        view = next_phase.commit_view_for(mode, plan)
+        view = next_phase_words.commit_view_for(mode, plan)
         if view is None:
             return command
-        return spell_command(next_phase.commit_mode_word(mode, view), plan, *rest, view=view)
+        return spell_command(next_phase_words.commit_mode_word(mode, view), plan, *rest, view=view)
 
     def _phase_failed(self, step: Step, detail: str, code: Optional[int]) -> int:
         """D6 row 14: exit 3, name the phase and the ``--resume`` re-invocation
@@ -1094,8 +1090,8 @@ class FullWorkflow:
     # ------------------------------------------------------------------
     def print_report(self) -> None:
         print(f"\n## {self.REPORT_TITLE}\n")
-        # "Commit brief", never "Plan", for a commit review's composite
-        # (plans/review-commits.md §2.8), through the one owner of the word.
+        # "Commit brief", never "Plan", for a commit review's composite, through the one
+        # owner of the word.
         print(f"**{self._document_title()}**: {self.plan_path}")
         print("")
         for report in self.reports:
@@ -1121,6 +1117,7 @@ class FullWorkflow:
         process and recorded its artifacts on the line, so the whole list
         goes. A no-op in the foreground.
         """
+        # Imported here to keep full_workflow_orchestrator light.
         from utils import detach
 
         ctx = active_result()
@@ -1131,9 +1128,10 @@ class FullWorkflow:
 
     def _document_title(self) -> str:
         """``Plan``, or ``Commit brief`` when the plan's ``state.json``
-        records a ``commit_range`` (``commit_review.document_label``)."""
+        records a ``commit_range`` (``commit_paths.document_label``)."""
         try:
-            from utils.commit_review import document_label, read_commit_range
+            # Imported here to keep full_workflow_orchestrator light.
+            from utils.commit_paths import document_label, read_commit_range
 
             return document_label(
                 {"commit_range": read_commit_range(self.plan_path)}).capitalize()
@@ -1159,6 +1157,7 @@ class FullWorkflow:
     def _print_metrics(self) -> None:
         """Combined resource usage, when the run recorded any."""
         try:
+            # Imported here to keep full_workflow_orchestrator light.
             from utils import metrics
 
             state_file = self.plan_dir / "state.json"
@@ -1181,10 +1180,8 @@ def consolidation_skip_reason(plan_dir: Union[str, Path]) -> Optional[str]:
     A module function, not a method, so a planner that builds no workflow asks
     the same question with only the plan dir. The step that runs the pass is
     not skippable, so a resumed run re-enters it; without the first check it
-    ran the pass again on groups it had already consolidated (live run 8's
-    stale recommendation, the workflow's copy).
+    ran the pass again on groups it had already consolidated.
     """
-    from utils.consolidation import consolidation_is_current
 
     if consolidation_is_current(str(Path(plan_dir) / "review-plan")):
         return "already ran on these review groups"
@@ -1195,6 +1192,7 @@ def consolidation_skip_reason(plan_dir: Union[str, Path]) -> Optional[str]:
 
 def _consolidation_recommended(plan_dir: Union[str, Path]) -> bool:
     """The same threshold ``review_plan_orchestrator`` prints its marker on."""
+    # Imported here to keep full_workflow_orchestrator light.
     from utils.consolidation import CONSOLIDATION_RECOMMENDED_THRESHOLD
 
     entries = _validation_entries(Path(plan_dir) / "review-plan" / "validation.json")
@@ -1245,6 +1243,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     # The detach boundary: after pre-flight (plan readable, flags parsed, run dir
     # created) and before the first phase runs, so a bad flag fails on the
     # caller's terminal with no child and no log.
+    # Imported here to keep full_workflow_orchestrator light.
     from utils.review_orchestrator_base import maybe_detach
 
     detached = maybe_detach(
@@ -1261,4 +1260,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
 
 if __name__ == "__main__":
+    from utils import process_control
+
+    # A process entry of its own: provider children must stay this process's.
+    process_control.restore_sigchld_default()
     sys.exit(main(sys.argv[1:]))

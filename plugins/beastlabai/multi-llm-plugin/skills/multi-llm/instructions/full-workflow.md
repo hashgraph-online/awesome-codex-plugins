@@ -143,12 +143,13 @@ After Phase 1 completes (including any validation and reaggregation), check the 
 2. Handle subagent batches using the same Strategy A/B logic from review-plan instructions:
    - `[CONSOLIDATION_PENDING]`: single batch — spawn one subagent
    - `[CONSOLIDATION_BATCHES_PENDING]`: multiple batches — Strategy A (≤ 4: parallel direct) or Strategy B (> 4: wave-based spawning in waves of 4, last wave absorbs remainder)
-   - Load `consolidation_tasks.json` from `{plan}/review-plan/`
+   - Load `consolidation_tasks.index.json` from `{plan}/review-plan/` (no index: `consolidation_tasks.json`)
    - Every task in that file already carries a complete `prompt` (the filled
      consolidation template plus that batch's group records), so there is no
      template to open and no prompt to assemble, and its `prompt_path` file
-     holds the same bytes: hand the subagent that file to read in full, or
-     `task.prompt` when the task has no `prompt_path` or the file is absent
+     holds the same bytes: hand the subagent that file to read in full, or the
+     task's `prompt` from `consolidation_tasks.json` when the task has no
+     `prompt_path` or the file is absent
    - Before step 3, confirm every task's `output_path` exists and is not empty,
      and re-dispatch any batch whose file is missing. Do not end your turn with a
      batch still outstanding: **you** write these files, and a host that runs one

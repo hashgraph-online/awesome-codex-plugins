@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.1"
+  version: "1.0.2"
   openclaw:
     requires:
       bins:
@@ -28,6 +28,8 @@ allowed-tools: Bash(ffmpeg:*) Bash(ffprobe:*) Bash(python3:*) Bash(npx:*) Read W
 ---
 
 # Edit footage with code
+
+> Step 8 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/edit-a-video-with-hyperframes-and-agents (as Markdown: add `.md`).
 
 An agent can cut footage well when it stops trying to do everything at once. The people getting usable edits work in the same stages, whatever engine or language they use: read the take as text, agree a plan, cut the speech, lock the audio, then add picture on top, sound last. One prompt on long raw footage is the most repeated failure.
 

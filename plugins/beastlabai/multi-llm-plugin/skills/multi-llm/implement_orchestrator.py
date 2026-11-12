@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Implementation orchestrator for preparing tasks for Claude Code execution.
+Implementation orchestrator: prepares a plan's tasks for the driving agent.
 
 This orchestrator takes a plan file, decomposes it into tasks, organizes them
-into dependency-respecting batches, and outputs JSON for Claude Code to execute
-using its native Task tool.
+into dependency-respecting batches, and either outputs JSON for the driving
+agent to execute with its own subagents (the native leg) or schedules the
+batches itself through the write executor (``--exec-subagents``).
 
 Usage:
     uv run --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.py" implement plans/my-plan.md [--output tasks.json]
@@ -12,32 +13,29 @@ Usage:
 
 import argparse
 import hashlib
+import io
 import json
 import logging
 import os
-import re
+import stat as _stat
 import sys
+from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from types import SimpleNamespace
+from typing import (
+    Any, Callable, Collection, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple,
+)
 
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent))
 
-from utils import (
-    TaskDecomposer,
-    TaskStatus,
-    Task,
-    StateManager,
-    get_or_create_state,
-    get_tasks_file_path,
-    load_prompt,
-    get_output_paths,
-    get_relative_output_path,
-    get_modified_files,
-    get_staged_files,
-    head_or_empty_tree,
-)
+from utils.git_utils import get_modified_files, get_staged_files, head_or_empty_tree
+from utils.output_handler import get_output_paths, get_relative_output_path
+from utils.prompt_loader import load_prompt
+from utils.state_manager import StateManager, get_or_create_state
+from utils.task_decomposer import Task, TaskDecomposer, TaskStatus
 from utils import metrics as metrics_mod
 from utils.stream_bootstrap import bootstrap_streams
 from utils.text_clip import clip, join_clauses
@@ -51,8 +49,21 @@ from utils.cli_common import (
     record_notice,
     typed_plan_for,
 )
-from utils.output_handler import get_phase_dir, get_output_dir
-from utils.state_manager import mark_tasks_reset_in_state
+from utils.output_handler import get_phase_dir, get_output_dir, phase_dir_path
+from utils.tasks_file import (
+    TasksFileAmbiguous,
+    TasksFileMissing,
+    TasksFileRefused,
+    read_task_list,
+)
+from utils.state_manager import (
+    mark_tasks_reset_in_state,
+    clear_task_verdict,
+    TASK_BATCH_CHECK_KEY,
+    TASK_CHECK_FINDINGS_KEY,
+    TASK_CHECK_TREES_KEY,
+    set_task_check_tree_in_state,
+)
 from utils.git_utils import get_project_root
 from utils.provider_registry import set_run_anchor
 from utils import scope_policy_runs
@@ -73,22 +84,59 @@ from check_workflow_prerequisites import (
     record_prerequisite_skip,
     upstream_skip_notices,
 )
+from utils import review_orchestrator_base
+from utils import prior_changes as _prior_changes
+from utils import prompt_files
+from utils import host_capabilities as _hosts
+from utils import manual_tasks as _manual
+from utils import routes as _routes
+from utils import detach as _detach
+from utils import next_phase_words as _words
+from utils import write_safety as _write_safety
+from utils import write_batch_scheduler
+from utils import write_phase_bridge
+from utils.check_records import (
+    rerunnable_checks,
+    unlanded_on_record,
+    decomposition_graph,
+    write_result_notice,
+    blocked_by_check_reason,
+    transitive_dependents,
+)
+from utils.subagent_tasks import implement_output_name
+from utils.write_safety import (
+    TaskSnapshot,
+    WriteSafetyError,
+    policy_allow_clause,
+    policy_skip_clause,
+)
+from utils.batch_prompt import DISPATCHED_PROMPTS_SUBDIR, is_check_task, dispatch_line
+from utils.human_task_plan import (
+    plan_manual_gates,
+    manual_gate_head,
+    manual_gate_way_on,
+    mark_no_longer_skipped,
+    resolve_human_task_plan,
+    answered_done_label,
+    answered_done_on_record,
+    set_aside_by_plan,
+    persist_human_task_plan,
+)
+from utils.batch_ledger import touched_files
+from utils.write_batch_scheduler import SchedulerOptions
+from utils.write_prompt import check_tree_fingerprint, policy_violation_for
+from utils.stop_answers import executor_check_stamp, NATIVE_REFUSED_PREFIX
+from utils.task_ledger import KEPT_WITH_FINDINGS_LABEL, kept_named
+from utils.batch_done import resume_refusal_lines, unrecorded_logged_batches
+from utils.host_capabilities import resolve_host_id
+from utils.manual_tasks import after_code_note
 
 logger = logging.getLogger(__name__)
 
 
-def rerunnable_checks(state: Any) -> List[str]:
-    """``write_batch_scheduler.rerunnable_checks``, imported when first used
-    (the scheduler stays off this module's import path)."""
-    from utils.write_batch_scheduler import rerunnable_checks as _rerunnable
-
-    return _rerunnable(state)
-
-
 def _unlanded_on_record(plan_path: Path, state: Any) -> List[str]:
-    """``write_batch_scheduler.unlanded_on_record`` for this plan, each id
-    named on stdout with why it runs again (fix round 15)."""
-    from utils.write_batch_scheduler import unlanded_on_record
+    """``check_records.unlanded_on_record`` for this plan, each id
+    named on stdout with why it runs again."""
 
     phase_dir = get_phase_dir(plan_path, "implement")
     unlanded = unlanded_on_record(str(phase_dir), state.state)
@@ -109,7 +157,7 @@ def check_apply_suggestions_prerequisite(state, plan_dir: Path) -> dict:
     shape and returns the ``valid_count``/``importance_breakdown`` the unmet
     block below renders. The copy this used to be read only the v1 flat dict
     and crashed on the v2 envelope (``validation.values()`` handed it an int)
-    whenever the gate was actually reached (fix round 6, 2026-10-05).
+    whenever the gate was actually reached.
     """
     return _shared_apply_suggestions_prerequisite(state, plan_dir)
 
@@ -157,7 +205,7 @@ def resolve_human_task_strategy(
 def parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Prepare implementation tasks from a plan file for Claude Code execution",
+        description="Prepare implementation tasks from a plan file for the driving agent to execute",
         parents=[build_parent_parser()],
     )
 
@@ -342,8 +390,7 @@ def record_pre_existing_changes(state: StateManager) -> None:
     # implement's first run, so a baseline without it was left by a planning
     # phase (apply-suggestions records one at its own start), before that
     # phase edited the plan: kept, it counted the plan edit as implement's
-    # change (2026-10-05, OpenCode racing run 3: the plan listed `modified`
-    # by implementation). Implement's first run takes its own.
+    # change. Implement's first run takes its own.
     if state.get("pre_existing_changes") is not None:
         if state.get("head_before_implement") is not None:
             print(f"Pre-existing changes already recorded ({len(state.get('pre_existing_changes', []))} paths)")
@@ -356,26 +403,32 @@ def record_pre_existing_changes(state: StateManager) -> None:
 
     # Get all modified files (staged and unstaged)
     # Filter empty strings before set union for robustness
+    census_failed = False
     try:
         unstaged = set(f for f in get_modified_files() if f)
         staged = set(f for f in get_staged_files() if f)
-
         pre_existing = unstaged | staged
-
-        # Sorted, as the apply phases record theirs: `state.json` must not
-        # change with the set's per-process order (17 bundles of one
-        # container run held 17 orders of the same 5 paths).
-        state.set("pre_existing_changes", sorted(pre_existing))
-        state.save()
-
-        if pre_existing:
-            print(f"Recorded {len(pre_existing)} pre-existing changed paths")
-        else:
-            print("No pre-existing changes to record")
     except Exception as e:
+        # Only a failed census records an empty baseline. A failed save below
+        # (`StateLockTimeout` included) propagates with the baseline it was
+        # saving still set: an empty one would count the user's dirty files
+        # as implement's changes.
         print(f"Warning: Could not record pre-existing changes: {e}")
-        state.set("pre_existing_changes", [])
-        state.save()
+        pre_existing = set()
+        census_failed = True
+
+    # Sorted, as the apply phases record theirs: `state.json` must not
+    # change with the set's per-process order (17 bundles of one
+    # container run held 17 orders of the same 5 paths).
+    state.set("pre_existing_changes", sorted(pre_existing))
+    state.save()
+
+    if census_failed:
+        return
+    if pre_existing:
+        print(f"Recorded {len(pre_existing)} pre-existing changed paths")
+    else:
+        print("No pre-existing changes to record")
 
 
 def load_implementation_prompt() -> str:
@@ -477,7 +530,7 @@ def _build_acceptance_criteria_section(criteria: List[str]) -> str:
 #: whole job *is* the browser/manual work the framing forbids — a materialized
 #: T014 once read both in the same file. (The process-safety rules the
 #: template's ``## Constraints`` block once carried live only in
-#: ``_with_result_contract`` now, appended per dispatch and never rendered
+#: ``BatchPromptBuilder.with_result_contract`` now, appended per dispatch and never rendered
 #: for a human task.)
 #: Nothing dispatches a human task (``executor_role == "human"`` routes
 #: around every invoker), so there is no runner to instruct: the rendered
@@ -593,7 +646,7 @@ def _build_dependency_section(
     return "\n".join(lines) + "\n"
 
 
-def _enforce_token_budget(
+def _enforce_char_budget(
     acceptance_section: str,
     dependency_section: str,
     budget: int = 2000,
@@ -666,7 +719,7 @@ def build_task_prompt(
     dependency_section = _build_dependency_section(task, all_tasks)
 
     # Enforce combined budget
-    acceptance_criteria_section, dependency_section = _enforce_token_budget(
+    acceptance_criteria_section, dependency_section = _enforce_char_budget(
         acceptance_criteria_section, dependency_section
     )
 
@@ -754,11 +807,11 @@ def format_batches_for_output(
     ``resolve_human_task_plan`` had no human id to resolve, and the resumed
     phase's ``write_batch_report.json`` reported ``skipped_tasks: {}`` while its
     ``summary.md`` lost the ``## Manual Tasks (Deferred)`` section that is the
-    only place the finished run tells the reader what is still owed by hand
-    (measured 2026-09-16). A human task is never dispatched by either invoker,
+    only place the finished run tells the reader what is still owed by hand. A human
+    task is never dispatched by either invoker,
     so carrying it through costs the resume nothing.
 
-    A **skipped code task** rides along for the same reason (fix round 8): a
+    A **skipped code task** rides along for the same reason: a
     dependent skipped with a deferred manual task, or a failed task answered
     ``--human-task <id>=skip`` and its dependents, is ``skipped`` too, and
     dropping it put it in no bucket of the resumed run's account — the
@@ -768,9 +821,9 @@ def format_batches_for_output(
     scheduler re-resolves the same plan from the recorded strategy and
     answers, so the task is skipped again, never dispatched.
 
-    *rerun_ids* (``write_batch_scheduler.rerunnable_checks``) are ``completed``
+    *rerun_ids* (``check_records.rerunnable_checks``) are ``completed``
     check tasks whose findings hold back the tasks after them, kept as well
-    (fix round 11): dropped, the check could never run again and the tasks
+    Dropped, the check could never run again and the tasks
     it held never ran. The executor runs it again only when the files
     changed (or on ``--human-task <id>=retry``); a native host runs it again.
     """
@@ -785,7 +838,7 @@ def format_batches_for_output(
             # clean failure or partial application stops the loop at exit 3
             # promising "--resume re-dispatches this batch", and the resumed
             # run then never materialized it, ran the rest and stamped the
-            # phase completed with that task undone (2026-09-16).
+            # phase completed with that task undone.
             # IN_PROGRESS is a run killed mid-dispatch — the same debt.
             tasks_to_include = [
                 t for t in batch
@@ -845,52 +898,60 @@ def maybe_detach_implement_phase(
     """
     if not (getattr(args, "detach", False)
             or getattr(args, "internal_worker", False)):
+        # The foreground run replaces a damaged checkpoint (utils/detach.py,
+        # `settle_foreground_checkpoint`; the worker does it in `RunHandle.start`).
+        _detach.settle_foreground_checkpoint(
+            str(phase_dir_path(plan_path, "implement")), phase="implement")
         return None
-
-    from utils.review_orchestrator_base import maybe_detach
 
     phase_dir = str(get_phase_dir(plan_path, "implement"))
     Path(phase_dir).mkdir(parents=True, exist_ok=True)
-    return maybe_detach(
+    return review_orchestrator_base.maybe_detach(
         args=args, mode="implement", phase_dir=phase_dir,
         plan_file=str(plan_path.absolute()), phase="implement",
     )
 
 
 def _applicable_task_decisions(
-    state: StateManager,
-    human_task_ids: List[str],
-    this_run: Dict[str, str],
+    recorded: Mapping[str, str],
+    statuses: Mapping[str, str],
+    held_by: Collection[str],
+    human_task_ids: Collection[str],
+    this_run: Mapping[str, str],
     *,
     rerun_task: Optional[str] = None,
 ) -> Dict[str, str]:
     """The ``--human-task`` answers the scheduler applies this run.
+
+    *recorded* is ``state.json``'s ``human_task_decisions``, *statuses* its
+    ``task_status`` and *held_by* the checks whose findings hold back the tasks
+    after them (``rerunnable_checks``); :func:`_applicable_from_state` reads
+    the three from a :class:`StateManager`.
 
     Every recorded answer for a human task (they persist, so ``--resume``
     never re-asks), plus this run's ``retry`` answers (one-shot, never
     recorded) and a recorded ``done``/``skip`` for a code task only while
     the state still says that task ``failed`` — or, for ``skip``, ``skipped``:
     the answer that skipped it is what keeps it skipped on the next resume,
-    now that a skipped code task is materialized again (fix round 8). Once
+    now that a skipped code task is materialized again. Once
     it ran again or was accepted, a stale answer must not mark it done
     behind the user's back — and once its task has a status the answer did
-    not write, it is gone from the record (``state_manager._consume_answer``,
-    fix round 15).
+    not write, it is gone from the record (``state_manager._consume_answer``).
 
     *rerun_task* is ``--task <id>``: the user asked to run that code task,
     so an answer an earlier run recorded for it does not apply (a recorded
-    ``skip`` used to leave ``--task`` nothing to hand out, fix round 15);
+    ``skip`` used to leave ``--task`` nothing to hand out);
     the status its run writes retires the answer.
     """
-    recorded = dict(state.get("human_task_decisions") or {})
+    recorded = dict(recorded)
     if rerun_task and rerun_task not in human_task_ids and rerun_task not in this_run:
         recorded.pop(rerun_task, None)
     decisions: Dict[str, str] = {}
     # A check whose findings hold back the tasks after it is answered like a
-    # failed task (fix round 11), until the answer is taken.
-    held_by = set(rerunnable_checks(state.state))
+    # failed task, until the answer is taken.
+    held_by = set(held_by)
     for task_id, action in recorded.items():
-        status = state.get_task_status(task_id)
+        status = statuses.get(task_id)
         if task_id in human_task_ids:
             decisions[task_id] = action
         elif (
@@ -902,6 +963,22 @@ def _applicable_task_decisions(
         if action == "retry" and task_id not in human_task_ids:
             decisions[task_id] = action
     return decisions
+
+
+def _applicable_from_state(
+    state: StateManager,
+    human_task_ids: Collection[str],
+    this_run: Mapping[str, str],
+    *,
+    rerun_task: Optional[str] = None,
+) -> Dict[str, str]:
+    """:func:`_applicable_task_decisions` over what *state* records."""
+    return _applicable_task_decisions(
+        dict(state.get("human_task_decisions") or {}),
+        state.get_all_task_statuses(),
+        rerunnable_checks(state.state),
+        human_task_ids, this_run, rerun_task=rerun_task,
+    )
 
 
 def _prepare_selected_task(
@@ -921,14 +998,11 @@ def _prepare_selected_task(
     if dry_run:
         return
     if state.get_task_status(task.id) == TaskStatus.COMPLETED.value:
-        from utils.subagent_tasks import implement_output_name
-        from utils.write_safety import TaskSnapshot, resolve_repo_root
-
         phase_dir = get_phase_dir(plan_path, "implement")
         stamp = datetime.now().strftime("%Y%m%dT%H%M%S%f")
         snapshot = TaskSnapshot.load(
             str(phase_dir), task.id,
-            expected_root=resolve_repo_root(str(plan_path)),
+            expected_root=_write_safety.resolve_repo_root(str(plan_path)),
         )
         if snapshot is not None:
             directory = Path(snapshot.directory)
@@ -939,21 +1013,8 @@ def _prepare_selected_task(
     state.update_task_status(task.id, TaskStatus.PENDING.value)
     # A fresh result replaces these; until then the old verdict is not the
     # selected attempt's verdict, including after a host dies mid-handoff.
-    from utils.state_manager import (
-        set_task_batch_check_accepted_in_state, set_task_batch_check_in_state,
-        set_task_batch_check_repeats_in_state,
-        set_task_check_findings_in_state, set_task_check_tree_in_state,
-        set_task_own_check_note_in_state, set_task_own_check_ran_in_state,
-    )
-
-    set_task_check_findings_in_state(state.state, task.id, None)
-    set_task_check_tree_in_state(state.state, task.id, None)
-    set_task_batch_check_in_state(state.state, task.id, None)
-    set_task_batch_check_accepted_in_state(state.state, task.id, None)
-    set_task_batch_check_repeats_in_state(state.state, task.id, None)
-    set_task_own_check_ran_in_state(state.state, task.id, False)
-    set_task_own_check_note_in_state(state.state, task.id, None)
-    # Fix round 17: the log line its earlier run wrote is not this rerun's
+    clear_task_verdict(state.state, task.id)
+    # The log line its earlier run wrote is not this rerun's
     # (`batch_done.unrecorded_logged_batches`): a host gone before its
     # `batch-done` left T001 refused on the next plain emit.
     mark_tasks_reset_in_state(state.state, [task.id])
@@ -965,7 +1026,7 @@ def _start_over(
     state: StateManager, plan_path: Path, tasks: Iterable[Task],
 ) -> None:
     """Set aside what earlier runs recorded for each code task, and record
-    implement started (fix round 17, review of fix round 16).
+    implement started.
 
     A start-over (``--fresh``, or a plain run on an implement that finished)
     hands every task out again. It used to leave the earlier run's records in
@@ -980,8 +1041,9 @@ def _start_over(
     * its status, including a code task skipped at the user's request or
       with another task, goes back to ``pending`` without a reason — a recorded
       ``--human-task`` answer for it goes with it
-      (``state_manager._consume_answer``) — and its check findings, check
-      tree stamp and own-check findings are dropped;
+      (``state_manager._consume_answer``) — and its verdict (check findings,
+      check tree stamp, own-check records: ``state_manager.TASK_VERDICT_KEYS``)
+      is dropped;
     * its result file is kept as ``<name>.rerun-<stamp>`` and its pre-batch
       snapshot set aside beside its slot (``TaskSnapshot.set_aside``, what
       the executor's own start-over does to a slot it dispatches into),
@@ -995,19 +1057,9 @@ def _start_over(
     legs, as the native emit records it.
 
     A first implement has nothing to set aside, and this writes nothing then
-    (fix round 18, run 7 #9: a plain first run stamped a reset for every code
-    task and recorded implement started, which the executor's completion
-    popped into an empty ``phases_started``): see
+    See
     :func:`_has_earlier_implement_records`.
     """
-    from utils.state_manager import (
-        set_task_batch_check_accepted_in_state, set_task_batch_check_in_state,
-        set_task_batch_check_repeats_in_state,
-        set_task_check_findings_in_state, set_task_check_tree_in_state,
-        set_task_own_check_note_in_state, set_task_own_check_ran_in_state,
-    )
-    from utils.subagent_tasks import implement_output_name
-    from utils.write_safety import TaskSnapshot, WriteSafetyError, resolve_repo_root
 
     phase_dir = get_phase_dir(plan_path, "implement")
     stamp = datetime.now().strftime("%Y%m%dT%H%M%S%f")
@@ -1016,7 +1068,7 @@ def _start_over(
         if getattr(task, "executor_role", "") != "human"
     ]
     try:
-        repo_root: Optional[str] = resolve_repo_root(str(plan_path))
+        repo_root: Optional[str] = _write_safety.resolve_repo_root(str(plan_path))
     except WriteSafetyError as exc:
         repo_root = None
         print(
@@ -1052,13 +1104,7 @@ def _start_over(
             # A reason an earlier run gave it (held behind a check) is not
             # this run's.
             state.update_task_status(task_id, TaskStatus.PENDING.value)
-        set_task_check_findings_in_state(state.state, task_id, None)
-        set_task_check_tree_in_state(state.state, task_id, None)
-        set_task_batch_check_in_state(state.state, task_id, None)
-        set_task_batch_check_accepted_in_state(state.state, task_id, None)
-        set_task_batch_check_repeats_in_state(state.state, task_id, None)
-        set_task_own_check_ran_in_state(state.state, task_id, False)
-        set_task_own_check_note_in_state(state.state, task_id, None)
+        clear_task_verdict(state.state, task_id)
         if touched:
             set_aside.append(task_id)
     mark_tasks_reset_in_state(state.state, code_ids)
@@ -1093,17 +1139,10 @@ def _has_earlier_implement_records(
     code task in *code_ids*; a line the prior-changes log holds for one of
     them under implement; a kept prompt. Absent all of these the run is the
     plan's first implement, and starting it over would only stamp resets and
-    a started record for work that never ran (fix round 18, run 7 #9). A
+    a started record for work that never ran. A
     snapshot that cannot be read counts as a record, so the start-over that
     would warn about it still runs.
     """
-    from utils import prior_changes as _prior_changes
-    from utils.state_manager import (
-        TASK_BATCH_CHECK_KEY, TASK_CHECK_FINDINGS_KEY, TASK_CHECK_TREES_KEY,
-    )
-    from utils.subagent_tasks import implement_output_name
-    from utils.write_batch_scheduler import DISPATCHED_PROMPTS_SUBDIR
-    from utils.write_safety import TaskSnapshot, WriteSafetyError
 
     ids = set(code_ids)
     for task_id in code_ids:
@@ -1154,8 +1193,8 @@ def _remove_kept_prompts(phase_dir: Path) -> int:
 
     The batch prompts each dispatch keeps (``<id>.prompt.txt``, and
     ``<id>.attempt-<n>.prompt.txt`` for a re-ask) are one run's: after a
-    start-over, a task the new run refuses before dispatch must have none
-    (fix round 17, review of fix round 16). Anything else in the folder — a
+    start-over, a task the new run refuses before dispatch must have none. Anything else
+    in the folder — a
     check's ``<id>.tree.json``, which the native leg binds there — stays.
 
     A jailed repo-wide batch can write the phase dir, so nothing here
@@ -1167,9 +1206,6 @@ def _remove_kept_prompts(phase_dir: Path) -> int:
     (:func:`_remove_kept_prompts_windows`); it used to remove nothing, so a
     start-over there kept every earlier prompt (Windows port, round seven).
     """
-    import stat as _stat
-
-    from utils.write_batch_scheduler import DISPATCHED_PROMPTS_SUBDIR
 
     nofollow = getattr(os, "O_NOFOLLOW", 0)
     directory = getattr(os, "O_DIRECTORY", 0)
@@ -1217,7 +1253,6 @@ def _remove_kept_prompts_windows(phase_dir: Path) -> int:
     link (round-8 review). The path walk is what is left where that walk
     cannot be made at all (the calls cannot be loaded, a folder cannot be
     opened, a volume without a drive letter)."""
-    from utils import prompt_files
 
     removed = prompt_files.remove_held(
         str(phase_dir), lambda name: name.endswith(".prompt.txt"),
@@ -1232,9 +1267,6 @@ def _remove_kept_prompts_by_path(phase_dir: Path) -> int:
     nothing, each name is ``lstat``-checked and removed only when it is a
     regular file. Nothing is held between a check and its removal. Best-effort,
     like the descriptor walk."""
-    import stat as _stat
-
-    from utils.write_batch_scheduler import DISPATCHED_PROMPTS_SUBDIR
 
     reparse = getattr(_stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
     folder = os.path.join(str(phase_dir), DISPATCHED_PROMPTS_SUBDIR)
@@ -1271,18 +1303,14 @@ def _manual_close_note(
     """``next_phase.manual_close_note`` for *task_ids*, in this host's own
     command spelling (the template the result line's ``user_next_step``
     uses); ``None`` when nothing can be spelled. *waiting*: how many code
-    tasks wait on them (fix round 28)."""
-    import io
+    tasks wait on them."""
 
     try:
-        from utils import host_capabilities as _hosts
-        from utils import next_phase as _next
-
         host_id = _hosts.resolve_host_id(explicit=getattr(args, "host", None))
         template = _hosts.next_command_template(
-            host_id, _next.resolve_route(host_id, stderr=io.StringIO()))
-        return _next.manual_close_note(
-            _next.close_command(template, plan_arg, task_ids), len(task_ids),
+            host_id, _routes.resolve_route(host_id, stderr=io.StringIO()))
+        return _manual.manual_close_note(
+            _manual.close_command(template, plan_arg, task_ids), len(task_ids),
             waiting=waiting)
     except Exception:  # noqa: BLE001 - advisory: the deferred list still stands
         return None
@@ -1291,13 +1319,12 @@ def _manual_close_note(
 def _native_manual_gates(
     plan: Any, output_data: Dict[str, Any], state: StateManager,
 ) -> Optional[Dict[str, Any]]:
-    """``write_batch_scheduler.plan_manual_gates`` over the native handoff's
+    """``human_task_plan.plan_manual_gates`` over the native handoff's
     tasks, the recorded decomposition and ``state.json`` as it stands (the
-    emit has not persisted *plan* yet); ``None`` when it cannot be read
-    (fix round 28).
+    emit has not persisted *plan* yet); ``None`` when it cannot be read.
 
-    A code task this emit hands out is not done yet. Fix round 29 (review of
-    round 28 #3): it used to count as done, so the note named a manual task
+    A code task this emit hands out is not done yet. It used to count as done, so the
+    note named a manual task
     that comes after it as one the user can do, and the host copied that
     note into summary.md even when the task then failed, while ``status``
     and ``util next-command`` said the manual task comes after it. Such a
@@ -1305,8 +1332,6 @@ def _native_manual_gates(
     after, and the report's lookup, made once the batches are recorded,
     gives its command."""
     try:
-        from utils.write_batch_scheduler import decomposition_graph, plan_manual_gates
-
         entries = [
             task for batch in output_data.get("batches") or []
             for task in batch.get("tasks") or []
@@ -1332,14 +1357,11 @@ def _native_manual_gate_stop(
 ) -> Optional[Tuple[List[str], str, str]]:
     """``(lines, headline, closing [ETA] line)`` of a native emit that hands
     out nothing because every code task left waits on a manual task not
-    recorded done, one the user can do now among them; ``None`` otherwise
-    (fix round 28, live run 12, Codex racing 06: implement reported done
-    having run nothing, next step review-code on an empty tree). The words
+    recorded done, one the user can do now among them; ``None`` otherwise. The words
     are the executor stop's."""
     gates = _native_manual_gates(plan, output_data, state)
     if not gates or not gates.get("gated") or not gates.get("waiting"):
         return None
-    from utils.write_batch_scheduler import manual_gate_head, manual_gate_way_on
 
     titles = dict(state.get("task_titles") or {})
     waiting = {k: list(v) for k, v in sorted(gates["waiting"].items()) if v}
@@ -1353,7 +1375,7 @@ def _native_manual_gate_stop(
     it = "it" if len(gating) == 1 else "them"
     head = manual_gate_head("implement", {t: label(t) for t in gating}, waiting)
     headline = f"{head}. {manual_gate_way_on(gating)}"
-    # The merge of fix round 28: the line the report relays says what stopped
+    # The: the line the report relays says what stopped
     # and why, as the tool routes' line beside the section does; the way on
     # is the section's resume alone (the result line's `error` keeps it).
     lines = [
@@ -1380,8 +1402,8 @@ def _native_manual_gate_stop(
 
 def _refuse_answer(message: str) -> int:
     """Refuse a ``--human-task`` answer: exit 3, the message on stderr and,
-    whole, as the result line's ``error`` (fix round 19, review of round 18:
-    a refused answer printed its reason on stderr alone, and the tool routes
+    whole, as the result line's ``error`` (a refused answer printed its reason on stderr
+    alone, and the tool routes
     said the result line named no error)."""
     record_error(message.replace("ERROR: ", "", 1))
     return unattended_mod.fail_closed(
@@ -1393,18 +1415,14 @@ def _stop_user_commands(args: argparse.Namespace) -> Dict[str, str]:
     """The way forward after a stop, in this host's own command spelling.
 
     Built from the host's ``next_command`` template the way the result line's
-    ``user_next_step`` and ``resume_command`` are (``next_phase.phase_command``),
+    ``user_next_step`` and ``resume_command`` are (``next_phase_words.phase_command``),
     with the plan as the user typed it (the run record's ``plan_arg``, else
     the ``--plan-file`` value). Empty when nothing can be spelled (no template
     for this host and route): the stop message then names the flags.
     """
     try:
-        from utils import detach as _detach
-        from utils import host_capabilities as _hosts
-        from utils import next_phase as _next
-
         host_id = _hosts.resolve_host_id(explicit=getattr(args, "host", None))
-        route = _next.resolve_route(host_id)
+        route = _routes.resolve_route(host_id)
         handle = _detach.active_run()
         plan_arg = (
             (handle.plan_arg if handle is not None else None)
@@ -1413,7 +1431,7 @@ def _stop_user_commands(args: argparse.Namespace) -> Dict[str, str]:
         )
 
         def command(mode: str, *flags: str) -> str:
-            return _next.phase_command(plan_arg, host_id, route, mode, *flags)
+            return _words.phase_command(plan_arg, host_id, route, mode, *flags)
 
         return {
             "resume": command("implement", "--resume"),
@@ -1422,7 +1440,7 @@ def _stop_user_commands(args: argparse.Namespace) -> Dict[str, str]:
             "accept": command("implement", "--resume", "--human-task", "{task_id}=done"),
             "skip": command("implement", "--resume", "--human-task", "{task_id}=skip"),
             "retry": command("implement", "--resume", "--human-task", "{task_id}=retry"),
-            # One resume carrying several answers (fix round 13: a stop that
+            # One resume carrying several answers (a stop that
             # needs a check's findings accepted and a refused task skipped).
             "answers": command("implement", "--resume", "{answers}"),
         }
@@ -1465,10 +1483,10 @@ def _record_implement_write_artifacts(
 
     ``implement`` never goes through ``ApplyOrchestratorBase`` — this function
     drives ``WriteBatchScheduler`` directly — so it never got that base's
-    ``_record_write_artifacts``: a fully completed detached run's result line
+    ``record_write_artifacts``: a fully completed detached run's result line
     said ``"artifacts": []`` and ``status`` had no ``output_files:`` block,
-    unlike every apply phase. This mirrors ``ApplyOrchestratorBase.
-    _record_write_artifacts``'s shape (same two channels: ``record_output_files``
+    unlike every apply phase. This mirrors ``ApplyPhaseReport.
+    record_write_artifacts``'s shape (same two channels: ``record_output_files``
     feeds ``.status.json`` for ``status``, ``record_artifacts`` feeds the
     terminal ``MULTI_LLM_RESULT`` line) for the files implement itself writes,
     plus the file(s) the write executor actually verified changed
@@ -1498,19 +1516,9 @@ def _record_implement_write_artifacts(
     summary_file = getattr(result, "summary_file", None)
     paths["summary"] = summary_file or os.path.join(phase_dir, "summary.md")
 
-    from utils import write_safety as _write_safety
-
     repo_root = _write_safety.repo_root_for_report(plan_file)
 
-    touched: List[str] = []
-    seen: set = set()
-    for outcome in getattr(result, "outcomes", None) or []:
-        if not getattr(outcome, "ok", False):
-            continue
-        for touched_path in getattr(outcome, "files_touched", None) or []:
-            if touched_path and touched_path not in seen:
-                seen.add(touched_path)
-                touched.append(touched_path)
+    touched = touched_files(getattr(result, "outcomes", None) or [], include_partial=False)
     for index, touched_path in enumerate(touched, start=1):
         # The report's `/`-spelled relative path, joined natively: on Windows a
         # bare join gave `C:\repo\src/main.py`, a second spelling of the file.
@@ -1519,8 +1527,6 @@ def _record_implement_write_artifacts(
             else os.path.join(repo_root, os.path.normpath(touched_path))
         )
         paths[f"touched_file_{index}"] = resolved
-
-    from utils import detach as _detach
 
     _detach.record_output_files(phase_dir, **paths)
     record_artifacts(path for path in paths.values() if path and os.path.exists(path))
@@ -1583,28 +1589,20 @@ def run_implement_write_phase(
             or getattr(args, "dry_run_subagents", False)):
         return None
 
-    from utils.write_batch_scheduler import WriteBatchScheduler, write_result_notice
-    from utils.write_phase_bridge import (
-        materialize_write_tasks,
-        write_task_file_for_phase,
-    )
-
     phase_dir = str(get_phase_dir(plan_path, "implement"))
     Path(phase_dir).mkdir(parents=True, exist_ok=True)
     plan_file = str(plan_path.absolute())
     output_dir = str(get_output_dir(plan_path))
     tasks_file_str = str(tasks_file) if tasks_file else None
 
-    from utils import write_safety as _write_safety
-
-    tasks = materialize_write_tasks(
+    tasks = write_phase_bridge.materialize_write_tasks(
         kind="implement",
         batches=output_data.get("batches") or [],
         phase_dir=phase_dir,
         plan_file=plan_file,
         tasks_file=tasks_file_str,
     )
-    task_file = write_task_file_for_phase(
+    task_file = write_phase_bridge.write_task_file_for_phase(
         kind="implement", tasks=tasks, phase_dir=phase_dir, plan_file=plan_file,
         tasks_file=tasks_file_str,
     )
@@ -1615,7 +1613,7 @@ def run_implement_write_phase(
     _seed_pending_task_statuses(state, tasks)
 
     try:
-        scheduler = WriteBatchScheduler(
+        scheduler = write_batch_scheduler.WriteBatchScheduler(SchedulerOptions(
             tasks=tasks,
             phase_dir=phase_dir,
             kind="implement",
@@ -1630,7 +1628,7 @@ def run_implement_write_phase(
             human_task_strategy=human_task_strategy,
             human_task_decisions=human_task_decisions,
             user_commands=_stop_user_commands(args),
-        )
+        ))
     except _write_safety.WriteSafetyError as exc:
         # A repository root that cannot be pinned (a planted `core.worktree`,
         # review fixes 2026-10-05) is exit 3 with the resolver's own words.
@@ -1646,16 +1644,16 @@ def run_implement_write_phase(
         record_error(stop["headline"])
     found = result.check_findings() if hasattr(result, "check_findings") else {}
     notice = [check_findings_notice(found)] if found else []
-    # Fix round 14: a task whose own check failed after its edits, and a run
+    # A task whose own check failed after its edits, and a run
     # nothing verified, are on the same line.
     extra = write_result_notice(result) if hasattr(result, "report_rows") else None
     if extra:
         notice.append(extra)
     if notice:
-        # Racing re-run 4 (2026-10-05): a check task's problems were on no
+        # Racing re-run 4: a check task's problems were on no
         # surface a host reads. The result line's `notice` carries them,
         # beside the `[CHECK_FINDINGS]` lines above.
-        # Fix round 28 (live run 12 #7): joined so a clause gives up its
+        # Joined so a clause gives up its
         # closing stop to the separator, never ".;".
         record_notice(join_clauses(notice))
     if result.report_path:
@@ -1678,25 +1676,21 @@ def _materialize_native_write_tasks(
     The same two bridge calls :func:`run_implement_write_phase` makes, with
     the same inputs, so the file a native host's ``util write-prompt`` reads
     is the one the executor leg would have dispatched from. Stamped native
-    with *host* (fix round 26), so ``status`` shows this run rather than an
+    with *host*, so ``status`` shows this run rather than an
     earlier executor run's ``.status.json``.
     """
-    from utils.write_phase_bridge import (
-        materialize_write_tasks,
-        write_task_file_for_phase,
-    )
 
     phase_dir = str(get_phase_dir(plan_path, "implement"))
     plan_file = str(plan_path.absolute())
     tasks_file_str = str(tasks_file) if tasks_file else None
-    tasks = materialize_write_tasks(
+    tasks = write_phase_bridge.materialize_write_tasks(
         kind="implement",
         batches=output_data.get("batches") or [],
         phase_dir=phase_dir,
         plan_file=plan_file,
         tasks_file=tasks_file_str,
     )
-    path = write_task_file_for_phase(
+    path = write_phase_bridge.write_task_file_for_phase(
         kind="implement", tasks=tasks, phase_dir=phase_dir, plan_file=plan_file,
         tasks_file=tasks_file_str, native_host=host or "claude-code",
     )
@@ -1727,29 +1721,24 @@ def _native_human_task_plan(
     A failed code task the user accepted (``--human-task <id>=done`` on a
     resume) is **taken out of the batches**, exactly as a completed task is,
     and named in a top-level ``accepted_tasks`` map with its reason: a task
-    left in the batches is one the host dispatches, and until fix round 8
+    left in the batches is one the host dispatches, and until
     the native leg recorded the acceptance in ``state.json`` while handing
     the task out again as ``failed`` — whose ``util batch-done`` then
     overwrote the acceptance (reviewer repro, 2026-10-05).
 
-    *on_record* is ``write_batch_scheduler.answered_done_on_record``'s
+    *on_record* is ``human_task_plan.answered_done_on_record``'s
     ``(accepted, completed_manual)`` for the tasks this emit did not
     materialize: an answer an earlier run recorded keeps its place in
     ``accepted_tasks``, and a manual task answered ``done`` is named in a
     top-level ``completed_manual_tasks`` list, on every later resume too
-    (fix round 9: both dropped out once the task was recorded completed).
+    (both dropped out once the task was recorded completed).
 
     A task *recorded_statuses* (``state.json``'s ``task_status``) says
     ``skipped`` that this plan no longer skips — ``--resume --force-strategy
     skip-continue`` after a ``skip-dependents`` run — is handed out
-    ``pending`` and recorded so (``write_batch_scheduler.mark_no_longer_skipped``),
-    never left ``skipped`` for the host to pass over (fix round 9).
+    ``pending`` and recorded so (``human_task_plan.mark_no_longer_skipped``),
+    never left ``skipped`` for the host to pass over.
     """
-    from utils.write_batch_scheduler import (
-        decomposition_graph,
-        mark_no_longer_skipped,
-        resolve_human_task_plan,
-    )
 
     batches = output_data.get("batches") or []
     check_findings_ids = list(check_findings_ids or ())
@@ -1769,7 +1758,7 @@ def _native_human_task_plan(
         strategy=strategy,
         decisions=decisions,
         check_findings_ids=check_findings_ids,
-        # The whole decomposition (fix round 12): a resume's batches lack
+        # The whole decomposition: a resume's batches lack
         # the finished tasks a skip's walk must go through.
         graph=decomposition_graph(nodes, state_record),
     )
@@ -1831,11 +1820,11 @@ def _native_check_reruns(
 ) -> Tuple[List[str], Dict[str, List[str]]]:
     """``(checks handed out again, checks kept)`` for a native ``--resume``.
 
-    Fix round 14 (stop fixture, Claude Code 01b): the native leg handed every
+    The native leg handed every
     check whose findings hold tasks back out again on every ``--resume``, so a
     resume the user changed nothing for spent a new subagent (~23k tokens) on
     the same findings — the executor refuses that run
-    (``WriteBatchScheduler._check_findings_rerun``). A check is kept — not in
+    (``CheckHolds.check_findings_rerun``). A check is kept — not in
     the batches, its findings standing, the tasks after it held — when the
     files git sees are the ones its stamp recorded
     (``state.json``'s ``task_check_trees``: ``util batch-done`` stamps it,
@@ -1849,15 +1838,10 @@ def _native_check_reruns(
     A check whose findings the ``--exec-subagents`` leg recorded has no
     ``task_check_trees`` stamp: the executor stamps its verdict instead
     (:func:`_executor_check_stamp`), which is read when the state holds none
-    (fix round 15: an executor stop resumed natively handed the check out
+    (an executor stop resumed natively handed the check out
     again on unchanged files). A check kept on that stamp adopts it, so the
     native run's closing ``util finalize-tracking`` re-stamps it like its own.
     """
-    from utils.state_manager import (
-        TASK_CHECK_TREES_KEY,
-        set_task_check_tree_in_state,
-    )
-    from utils.write_prompt import check_tree_fingerprint
 
     stamps = state.get(TASK_CHECK_TREES_KEY) or {}
     if not isinstance(stamps, dict):
@@ -1902,16 +1886,13 @@ def _executor_check_stamp(
 
     ``verdict.tree_fingerprint`` of ``{phase}/implement_batch_<id>.json``
     (``WriteBatchScheduler._stamp_verdict``, re-stamped with the tree the run
-    left by its ``_restamp_check_trees``), the same digest
+    left by its ``CheckHolds.restamp_check_trees``), the same digest
     ``write_prompt.check_tree_fingerprint`` takes. Only a verdict that is an
     ``ok`` check with findings, and the very findings ``state.json`` holds
     (*findings*), so a stamp is never read off another run of the check than
     the one on record. ``None`` otherwise.
     """
-    # One reader for both the resume and its why (fix round 23:
-    # `write_batch_scheduler.check_kept_on_resume`).
-    from utils.write_batch_scheduler import executor_check_stamp
-
+    # One reader for both the resume and its why (`stop_answers.check_kept_on_resume`).
     return executor_check_stamp(
         get_phase_dir(plan_path, "implement"), check_id, findings)
 
@@ -1927,7 +1908,7 @@ def _native_withheld(
     """Take out of the native handoff's batches every task the host must not
     dispatch; what was taken out, by bucket.
 
-    Fix round 14 (stop fixture, Claude Code accept 02): T005 and T006,
+    T005 and T006,
     skipped by ``--human-task T005=skip``, were in ``skipped_tasks`` and the
     prose said "do not dispatch", yet they sat in ``batches`` 3 and 4, and the
     emit counted "4 task(s) to dispatch" beside "Pending tasks: 3". The
@@ -1949,12 +1930,6 @@ def _native_withheld(
 
     ``pending_tasks`` is recounted from what is left.
     """
-    from utils.write_batch_scheduler import (
-        NATIVE_REFUSED_PREFIX,
-        blocked_by_check_reason,
-        decomposition_graph,
-        transitive_dependents,
-    )
 
     batches = output_data.get("batches") or []
     entries = [task for batch in batches for task in batch.get("tasks") or []]
@@ -2001,12 +1976,8 @@ def _native_withheld(
     ]
     if candidates:
         try:
-            from utils.write_phase_bridge import materialize_write_tasks
-            from utils.write_prompt import policy_violation_for
-            from utils.write_safety import policy_allow_clause, policy_skip_clause
-
             phase_dir = get_phase_dir(plan_path, "implement")
-            write_tasks = materialize_write_tasks(
+            write_tasks = write_phase_bridge.materialize_write_tasks(
                 kind="implement",
                 batches=[{"batch_index": 0, "can_parallelize": False, "tasks": candidates}],
                 phase_dir=str(phase_dir),
@@ -2024,10 +1995,10 @@ def _native_withheld(
             if violation is None:
                 continue
             message = violation.message
-            # Fix round 20 (live run 8 #4): the refusal ends with allowing
+            # The refusal ends with allowing
             # the file as the user's call (`write_safety.policy_allow_clause`);
-            # beside it, the skip answer, in the executor stop's words. Fix
-            # round 21: per rule, and the skip alone for a file outside the
+            # beside it, the skip answer, in the executor stop's words. Per rule, and
+            # the skip alone for a file outside the
             # repository, which no policy change can allow.
             skip = policy_skip_clause(
                 task_id, alone=policy_allow_clause(violation.hits) is None)
@@ -2086,7 +2057,7 @@ def _native_withheld(
         output_data["refused_tasks"] = dict(sorted(refused.items()))
     if not_run:
         output_data["not_run_tasks"] = dict(sorted(not_run.items()))
-    # Fix round 22 (live run 9 #1): what the host's `util metrics finish`
+    # What the host's `util metrics finish`
     # names on its closing `[ETA]` line, as the executor's closing line
     # names the same tasks — also when this emit hands out nothing and the
     # host runs no `util metrics start`. Replaced by every native emit.
@@ -2097,7 +2068,7 @@ def _native_withheld(
         for task_id, check_id in held_by.items()
     })
     left.update({task_id: metrics_mod.LEFT_REFUSED for task_id in refused})
-    metrics_mod.set_left_out_in_state(state.state, "implement", left)
+    state.set_metrics_left_out("implement", left)
     return {"held": held, "refused": refused, "not_run": not_run}
 
 
@@ -2124,18 +2095,9 @@ def _kept_labels(state: StateManager, plan: Any = None) -> Dict[str, str]:
     list — "accepted with its check findings", "accepted after failing",
     "completed by hand" — from *plan* (this run's human-task plan) and the
     answers on record, in the words the executor's ``resume: kept`` line and
-    summary.md use (``write_batch_scheduler.answered_done_label``); and a
+    summary.md use (``human_task_plan.answered_done_label``); and a
     check whose findings stand, not accepted, as
-    ``write_batch_scheduler.KEPT_WITH_FINDINGS_LABEL`` (fix round 20, live
-    run 8 #6: 01b and 01c listed T002 as if it had passed)."""
-    from types import SimpleNamespace
-
-    from utils.write_batch_scheduler import (
-        KEPT_WITH_FINDINGS_LABEL,
-        answered_done_label,
-        answered_done_on_record,
-        rerunnable_checks,
-    )
+    ``task_ledger.KEPT_WITH_FINDINGS_LABEL``."""
 
     accepted, completed = answered_done_on_record(state)
     accepted = dict(accepted)
@@ -2161,15 +2123,14 @@ def _kept_labels(state: StateManager, plan: Any = None) -> Dict[str, str]:
 def _kept_named(kept: Sequence[str], labels: Dict[str, str]) -> str:
     """The kept tasks as a resume line names them: the plain ones first (at
     most eight), then each labelled one with what it is
-    (``write_batch_scheduler.kept_named``, the executor's and the progress
+    (``task_ledger.kept_named``, the executor's and the progress
     line's words too)."""
-    from utils.write_batch_scheduler import kept_named
 
     return kept_named(kept, labels)
 
 
 def _continued_line(kept: Sequence[str], labels: Optional[Dict[str, str]] = None) -> str:
-    """The one line a continued run prints (fix round 16)."""
+    """The one line a continued run prints."""
     named = _kept_named(kept, labels or {})
     return (
         "resume: implement started earlier and did not finish, so this run "
@@ -2186,7 +2147,7 @@ def _native_kept_line(
     """The ``resume: kept …`` line of a native ``--resume`` typed by the user,
     or ``None`` when it keeps nothing.
 
-    Fix round 18 (live run 7, Claude Code stop 01b and accept 02): only the
+    Only the
     plain ``--implement`` that continues a started run said what it kept, so
     on the native leg an explicit ``--resume`` never showed "T002 (accepted
     with its check findings)", which both tool routes print (the executor's
@@ -2220,7 +2181,7 @@ def _waiting_on_checks(
     """Each handed-out task that depends, directly or through another task,
     on a check task handed out in the same batches: ``{task id: [check ids]}``.
 
-    Fix round 16 (live run 6, Claude Code stop 01): T007 sat in the first
+    T007 sat in the first
     emit's batches beside T004 although it depends on check T002, whose
     verdict nobody knows until T002 runs — rightly, since a pass releases it,
     but nothing said so, and the counts read as one more task than ran. Its
@@ -2228,7 +2189,6 @@ def _waiting_on_checks(
     and ``util write-prompt`` (``[WRITE_PROMPT_BLOCKED]``); this only names it
     in advance. A manual task waits on nothing (no subagent runs it).
     """
-    from utils.write_batch_scheduler import is_check_task, transitive_dependents
 
     entries = [task for batch in batches for task in batch.get("tasks") or []]
 
@@ -2251,8 +2211,7 @@ def _waiting_on_checks(
 
 def _handoff_counts(output_data: Dict[str, Any]) -> Dict[str, int]:
     """Every count the emit prints and hands over, read off one source: the
-    batches as handed out (fix round 16, live run 6: "5 execution batches"
-    beside "Batches: 3")."""
+    batches as handed out."""
     batches = output_data.get("batches") or []
     entries = [t for b in batches for t in b.get("tasks") or []]
     manual = sum(
@@ -2271,7 +2230,6 @@ def _dispatch_line(output_data: Dict[str, Any]) -> str:
     counted from the batches as handed out (the native emit and ``--dry-run``;
     the executor's run prints its own, ``WriteBatchScheduler._dispatch_preview``,
     in the same words)."""
-    from utils.write_batch_scheduler import dispatch_line
 
     counts = _handoff_counts(output_data)
     return dispatch_line(
@@ -2292,7 +2250,6 @@ def _refuse_unrecorded_native_resume(
     """
     if not resume or not tasks:
         return False
-    from utils.batch_done import resume_refusal_lines, unrecorded_logged_batches
 
     output_dir = str(get_output_dir(plan_path))
     unrecorded = unrecorded_logged_batches(
@@ -2306,23 +2263,459 @@ def _refuse_unrecorded_native_resume(
     return True
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    """Main entry point."""
-    bootstrap_streams()
-    args = parse_args(argv)
+def _prerequisite_unmet(
+    plan_path: Path, plan_dir: Path, missing: List[Dict[str, Any]],
+) -> int:
+    """Print the ``[PREREQUISITE_UNMET]`` stop for *missing*; exit 3."""
+    print(build_unmet_message("implement", plan_path, plan_dir, missing))
+    unattended_mod.mark_needs_human("implement")
+    print(json.dumps({
+        "marker": "PREREQUISITE_UNMET",
+        "mode": "implement",
+        "state": "needs-human",
+        "exit": EXIT_NEEDS_HUMAN,
+        "missing": missing,
+    }, indent=2))
+    return EXIT_NEEDS_HUMAN
 
-    # D6b: unattended is a *flag*, never a runtime guess — nothing here sniffs a
-    # TTY, `CI` or a `--print` flag to decide it.
-    unattended = bool(getattr(args, "yes", False))
 
-    # D6 rows 9/15: validate the per-task answers before anything is read, so an
-    # empty or unrecognized value is exit 3 at parse time rather than a silent
-    # default halfway through a batch.
+def _stop_on_unreadable_task_list(plan_path: Path, unreadable: Exception) -> int:
+    """Exit 3 for a ``TASKS_FILE`` marker implement cannot follow.
+
+    *unreadable* is the :class:`TasksFileMissing` (no such file),
+    :class:`TasksFileAmbiguous` (markers naming different files) or
+    :class:`TasksFileRefused` (outside the plan's directory) that
+    ``read_task_list`` raised. Each prints the ``TASKS_FILE_MISSING`` block.
+    """
+    raw = getattr(unreadable, "raw_path", "")
+    regenerate = dispatcher_command("generate-tasks", plan_path.absolute(), "--yes")
+    if isinstance(unreadable, TasksFileAmbiguous):
+        named = plan_path.parent / raw
+        listed = "\n".join(
+            f"         <!-- TASKS_FILE: {path} -->" for path in unreadable.raw_paths
+        )
+        print(
+            "ERROR: the plan carries TASKS_FILE markers naming different task "
+            f"lists:\n{listed}\n"
+            "       Nothing was implemented. Keep the one that names this plan's "
+            "task list (a marker quoted as code does not count), or regenerate "
+            "it — " + regenerate
+            + "\n       then re-run this command. (Following either one would "
+            "risk implementing a stale or pasted task list.)"
+        )
+        reason = "Plan carries TASKS_FILE markers naming different task lists"
+    elif isinstance(unreadable, TasksFileRefused):
+        named = plan_path.parent / raw
+        print(
+            f"ERROR: the plan's <!-- TASKS_FILE: {raw} --> marker names a task "
+            f"list outside the plan's directory ({unreadable.reason}).\n"
+            f"       Nothing was implemented. Point the marker at the task list "
+            f"in {plan_path.parent}, or regenerate it — " + regenerate
+            + "\n       then re-run this command. (Parsing the plan itself "
+            "instead would invent a task list from its prose.)"
+        )
+        reason = "Plan names a TASKS_FILE outside the plan's directory"
+    else:
+        named = unreadable.path
+        print(
+            f"ERROR: the plan's <!-- TASKS_FILE: {raw} --> marker "
+            f"names a task list that does not exist:\n"
+            f"       {named}\n"
+            f"       Nothing was implemented. Regenerate the task list — "
+            + regenerate
+            + "\n       then re-run this command. (Parsing the plan itself "
+            "instead would invent a task list from its prose, which every "
+            "later phase would treat as ground truth.)"
+        )
+        reason = "Plan names a TASKS_FILE that does not exist"
+    unattended_mod.mark_needs_human("implement")
+    print(json.dumps({
+        "marker": "TASKS_FILE_MISSING",
+        "mode": "implement",
+        "state": "needs-human",
+        "exit": EXIT_NEEDS_HUMAN,
+        "tasks_file": str(named),
+        "reason": reason,
+    }, indent=2))
+    return EXIT_NEEDS_HUMAN
+
+
+# ---------------------------------------------------------------------------
+# The decisions `main` takes, as pure functions: no file, no print, no state.
+# Each one is a table in tests/test_implement_decisions.py, one named row per
+# case; read the table before changing a rule here.
+# ---------------------------------------------------------------------------
+
+
+class GateAction(str, Enum):
+    """How a prerequisite gate of ``implement`` ends (D6 rows 6 and 14)."""
+
+    #: Met: the run goes on.
+    PROCEED = "proceed"
+    #: ``--skip-prerequisites`` over unapplied advice: recorded, said, goes on.
+    RECORD_SKIP = "record-skip"
+    #: ``--yes`` (or a skip the flag cannot make): ``[PREREQUISITE_UNMET]``, exit 3.
+    NEEDS_HUMAN = "needs-human"
+    #: Attended: the marker the driving agent acts on, exit 0.
+    MARKER_EXIT_0 = "marker-exit-0"
+
+
+@dataclass(frozen=True)
+class ApplyGate:
+    """:func:`decide_apply_gate`'s answer.
+
+    *missing* is the ``[PREREQUISITE_UNMET]`` payload's list (one entry);
+    *refused_skip* says ``--skip-prerequisites`` was typed over a scope
+    blocker, which only the user can lift.
+    """
+
+    action: GateAction
+    gate_phase: str = "apply-suggestions"
+    missing: List[Dict[str, Any]] = field(default_factory=list)
+    refused_skip: bool = False
+
+
+def decide_apply_gate(
+    apply_check: Mapping[str, Any],
+    task_gate: Optional[Mapping[str, Any]],
+    *,
+    skip_prerequisites: bool,
+    unattended: bool,
+) -> ApplyGate:
+    """D6 row 6: the unapplied-suggestions gate, before anything is written.
+
+    *apply_check* is ``check_apply_suggestions_prerequisite``; *task_gate* is
+    ``check_apply_task_suggestions_prerequisite``, read only once *apply_check*
+    is met (``None`` otherwise). A scope blocker recorded by
+    apply-task-suggestions is a gate here too, never the row-7 advisory: the
+    task list's accepted goal is not complete, and implement builds on it.
+    Three endings, no fourth: ``--skip-prerequisites`` records the skip, ``--yes``
+    stops with exit 3, neither prints the ``[PREREQUISITE_CHECK]`` marker. A
+    scope blocker is the user's scope decision, not unapplied advice, so
+    ``--skip-prerequisites`` cannot record a skip over it.
+    """
+    check, gate_phase = apply_check, "apply-suggestions"
+    if check["met"] and task_gate is not None and task_gate.get("scope_blocked"):
+        check, gate_phase = task_gate, "apply-task-suggestions"
+    if check["met"]:
+        return ApplyGate(GateAction.PROCEED, gate_phase)
+    scope_blocked = bool(check.get("scope_blocked"))
+    missing = [{
+        "phase": gate_phase,
+        "reason": check["reason"],
+        "valid_count": check.get("valid_count", 0),
+        "importance_breakdown": check.get("importance_breakdown", {}),
+        **({"scope_blocked": True} if scope_blocked else {}),
+    }]
+    if skip_prerequisites and not scope_blocked:
+        action = GateAction.RECORD_SKIP
+    elif unattended or skip_prerequisites:
+        action = GateAction.NEEDS_HUMAN
+    else:
+        action = GateAction.MARKER_EXIT_0
+    return ApplyGate(
+        action, gate_phase, missing,
+        refused_skip=bool(skip_prerequisites and scope_blocked),
+    )
+
+
+def decide_tasks_missing(*, generate_tasks_completed: bool, unattended: bool) -> GateAction:
+    """No task list yet: the same rule as the row-6 gate.
+
+    Attended, the ``[TASKS_MISSING]`` marker and exit 0: the driving agent
+    reads it and runs generate-tasks itself. Under ``--yes`` there is no agent
+    to read a marker, and exit 0 would report a run that implemented nothing
+    as done, so it is exit 3 naming the generate-tasks re-invocation.
+    """
+    if generate_tasks_completed:
+        return GateAction.PROCEED
+    return GateAction.NEEDS_HUMAN if unattended else GateAction.MARKER_EXIT_0
+
+
+@dataclass(frozen=True)
+class RunMode:
+    """Whether this run resumes, and whether it starts over.
+
+    *resume*: it restores the recorded statuses and hands out only what is
+    left (typed ``--resume``, or a started run it continues). *resume_typed*:
+    the user typed ``--resume``, which a code task's ``--human-task`` answer
+    needs. *start_over*: it hands every task out again, so what earlier runs
+    recorded is set aside first (``_start_over``). *continued_ids*: the tasks
+    an unfinished earlier run finished, which a run continuing it keeps.
+    """
+
+    resume: bool
+    resume_typed: bool
+    start_over: bool
+    continued_ids: Tuple[str, ...] = ()
+
+
+def decide_run_mode(
+    *,
+    resume: bool,
+    task: Optional[str],
+    fresh: bool,
+    dry_run: bool,
+    dry_run_subagents: bool,
+    started_unfinished: Callable[[], Sequence[str]],
+) -> RunMode:
+    """Resume, continue, or start over (docs/development/host-reporting.md).
+
+    A run without ``--resume`` on an implement that started and did not
+    finish continues it: *started_unfinished* names what an earlier run of it
+    finished, and is asked only when nothing typed decides (``--resume``,
+    ``--task``, ``--fresh``). Starting over is ``--fresh``; a finished
+    implement starts over without it; ``--task`` reruns what it names. Any
+    run that is no resume, no ``--task`` rerun and no dry run starts over.
+    """
+    resume_typed = bool(resume)
+    continued: Tuple[str, ...] = ()
+    if not resume and not task and not fresh:
+        continued = tuple(started_unfinished())
+    resumes = resume_typed or bool(continued)
+    start_over = not (resumes or task or dry_run or dry_run_subagents)
+    return RunMode(
+        resume=resumes, resume_typed=resume_typed, start_over=start_over,
+        continued_ids=continued,
+    )
+
+
+def refuse_human_answers(
+    answers: Mapping[str, str],
+    *,
+    known_ids: Collection[str],
+    human_ids: Sequence[str],
+    failed_or_held: Collection[str],
+    resume_typed: bool,
+) -> Optional[str]:
+    """The refusal of this run's ``--human-task`` answers, or ``None``.
+
+    A human task is answered ``done`` or ``skip``. A code task is answerable
+    only on a typed ``--resume`` and only once it failed or its check reported
+    findings that hold back the tasks after it (*failed_or_held*): ``done``
+    accepts, ``skip`` leaves it and its dependents undone, ``retry`` runs it
+    again. Refusals are checked in this order: an id not in the plan, a code
+    task without ``--resume``, a code task that did not fail, a human task
+    answered ``retry``.
+    """
+    unknown = [tid for tid in answers if tid not in known_ids]
+    if unknown:
+        return (
+            "ERROR: --human-task names task(s) that are not in this plan: "
+            f"{', '.join(sorted(unknown))}.\n"
+            f"       Human tasks in this plan: "
+            f"{', '.join(human_ids) or 'none'}"
+        )
+    not_human = [tid for tid in answers if tid not in human_ids]
+    if not_human and not resume_typed:
+        return (
+            "ERROR: --human-task answers a code task only with --resume, "
+            "after a run recorded it failed or its check reported "
+            "problems; these are code tasks: "
+            f"{', '.join(sorted(not_human))}."
+        )
+    unanswerable = sorted(set(not_human) - set(failed_or_held))
+    if unanswerable:
+        return (
+            "ERROR: --human-task answers a human task, a code task the "
+            "last run recorded failed, or a check whose findings hold "
+            "back the tasks after it; these are code tasks that did not "
+            f"fail: {', '.join(unanswerable)}."
+        )
+    retried_human = sorted(
+        tid for tid, action in answers.items()
+        if action == "retry" and tid in human_ids
+    )
+    if retried_human:
+        return (
+            "ERROR: --human-task <id>=retry re-runs a failed code task; a "
+            f"human task is answered done or skip: {', '.join(retried_human)}."
+        )
+    return None
+
+
+class StartOver(str, Enum):
+    """Where a start-over sets aside earlier records (``_start_over``)."""
+
+    #: The native leg: before the emit reads the records.
+    BEFORE_EMIT = "before-emit"
+    #: The executor leg: past the detach boundary, in the process that owns
+    #: the phase dir.
+    AFTER_DETACH = "after-detach"
+    NEVER = "never"
+
+
+def start_over_when(
+    *, start_over: bool, executor_backed: bool, detach: bool, internal_worker: bool,
+) -> StartOver:
+    """When this run sets aside what earlier runs recorded, if it does.
+
+    Never in a ``--detach`` launcher, which may be re-attaching to a live run;
+    its worker (``--internal-worker``) does it instead. The executor leg's
+    launcher stops at the detach boundary before :attr:`StartOver.AFTER_DETACH`
+    anyway.
+    """
+    if not start_over or (detach and not internal_worker):
+        return StartOver.NEVER
+    return StartOver.AFTER_DETACH if executor_backed else StartOver.BEFORE_EMIT
+
+
+def native_gate_applies(
+    *,
+    withheld: Optional[Mapping[str, Mapping[str, Any]]],
+    rerun_task: bool,
+    has_human_plan: bool,
+    kept_checks: bool,
+    tasks_to_dispatch: int,
+    implement_completed: bool,
+) -> bool:
+    """Whether a native emit stops on a manual task (``_native_manual_gate_stop``).
+
+    Only on the native leg (*withheld*, ``_native_withheld``'s lists, is
+    ``None`` on the executor leg), not for a ``--task`` rerun, and only when
+    the emit hands out nothing: no task withheld, no check kept, nothing to
+    dispatch, on an implement not completed. Whether a manual task is what
+    every code task left waits on is the stop's own question.
+    """
+    return bool(
+        withheld is not None
+        and not rerun_task
+        and has_human_plan
+        and not any(withheld[key] for key in withheld)
+        and not kept_checks
+        and not tasks_to_dispatch
+        and not implement_completed
+    )
+
+
+#: The heading of a native emit's closing steps, in the neutral host wording
+#: ``instructions/`` uses.
+NATIVE_STEPS_HEADING = "The driving agent should now:"
+
+
+def closing_steps(*, closes: bool, stopped_short: bool, summary_file: str) -> List[str]:
+    """The lines that end a native emit: what the driving agent does next.
+
+    *closes*: the emit only records answers on a completed implement
+    (``_closes_a_completed_implement``), so it asks for no summary and no
+    close, and the phase stays completed. *stopped_short*: tasks listed above
+    did not run, so the phase closes without ``--mark-completed``.
+    """
+    if closes:
+        return [
+            "\nNothing is left to run: implement stays completed. The answers "
+            "above are recorded in state.json; there is no batch to execute and "
+            "no phase to close.",
+            f"\n{NATIVE_STEPS_HEADING}",
+            "  1. Report the answers recorded above; spawn no subagent, write no "
+            "implementation summary (the completed run's summary.md stays as it "
+            "is) and run no `util finalize-tracking`",
+            "  2. End the report with the command `util next-command` prints",
+        ]
+    lines = [
+        f"\n{NATIVE_STEPS_HEADING}",
+        "  1. Read the output JSON file",
+        "  2. Execute each batch sequentially (batches have dependencies)",
+        "  3. Tasks within a batch can run in parallel",
+        "  4. Update the state file after each task completes",
+        "  5. After all tasks complete, generate the implementation summary",
+        f"     Summary file: {summary_file}",
+    ]
+    if stopped_short:
+        lines.append(
+            "  6. Close the phase with `util finalize-tracking` without "
+            "--mark-completed (tasks listed above did not run), then end the "
+            "report with the commands `util next-command` prints"
+        )
+    else:
+        # The emit cannot know how the run ends: a check that records
+        # findings holds tasks back mid-run.
+        lines.append(
+            "  6. Close the phase with `util finalize-tracking … --mark-completed` "
+            "once every task ran; after a [CHECK_BLOCKED] line, a failed task or "
+            "a stop, run it without --mark-completed and end the report with "
+            "the commands `util next-command` prints"
+        )
+    return lines
+
+
+# ---------------------------------------------------------------------------
+# `main`, in stages. Each stage takes the run and returns ``None`` to go on, or
+# the exit code to stop with (0, 1 or 3, as AGENTS.md defines them; `multi_llm`
+# and `full` read a returned code exactly as they read a `sys.exit`). A
+# detached worker re-enters `main` and runs every stage again, so each stage
+# must be safe to run a second time over what the first run recorded.
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ImplementRun:
+    """What one ``implement`` invocation knows, filled in stage by stage.
+
+    A field keeps its default until the stage that sets it has run:
+    :func:`open_run` sets the plan and the state, :func:`load_task_list` the
+    decomposition, :func:`apply_run_mode` the :class:`RunMode`,
+    :func:`build_handoff` the task JSON, :func:`prepare_native_emit` the
+    native leg's plan of what it withholds.
+    """
+
+    args: argparse.Namespace
+    #: ``--yes``: D6b makes unattended a flag, never a guess from a TTY or ``CI``.
+    unattended: bool
+    #: This run's ``--human-task`` answers, validated before anything is read.
+    human_task_decisions: Dict[str, str] = field(default_factory=dict)
+    plan_path: Path = Path()
+    plan_content: str = ""
+    state: Optional[StateManager] = None
+    plan_preamble: str = ""
+    plan_dir: Path = Path()
+    #: D6 decisions taken before this process owns the phase dir, written by
+    #: :func:`cross_detach_boundary` once it does.
+    pending_resolutions: List[Tuple[str, str]] = field(default_factory=list)
+    #: The external task list the prompts are built from (F15), so
+    #: ``write_tasks.json`` records ``inputs.tasks_sha256``; ``None`` for the
+    #: legacy embedded-task format.
+    tasks_file: Optional[Path] = None
+    decomposer: Optional[TaskDecomposer] = None
+    tasks: List[Task] = field(default_factory=list)
+    mode: RunMode = RunMode(resume=False, resume_typed=False, start_over=False)
+    human_task_ids: List[str] = field(default_factory=list)
+    human_task_strategy: Optional[str] = None
+    scope_policy: str = ""
+    #: The Python executor schedules the batches itself; otherwise the host
+    #: does (the native leg).
+    executor_backed: bool = False
+    #: A check whose findings stand is handed out again on a native resume
+    #: only once the files moved; the executor decides at dispatch.
+    kept_checks: Dict[str, List[str]] = field(default_factory=dict)
+    output_data: Dict[str, Any] = field(default_factory=dict)
+    start_over_at: StartOver = StartOver.NEVER
+    #: The answers both legs apply this run (:func:`_applicable_task_decisions`).
+    applicable_decisions: Dict[str, str] = field(default_factory=dict)
+    native_human_plan: Any = None
+    #: What each later manual task comes after, for its deferred-list line.
+    native_after: Dict[str, List[str]] = field(default_factory=dict)
+    native_withheld: Optional[Dict[str, Dict[str, str]]] = None
+    native_gate: Optional[Tuple[List[str], str, str]] = None
+    #: The emit only records answers on a completed implement.
+    closes: bool = False
+
+    @property
+    def output_path(self) -> Path:
+        return Path(self.args.output)
+
+
+def check_answers_flags(run: ImplementRun) -> Optional[int]:
+    """D6 rows 9 and 15: refuse a bad ``--human-task`` value or
+    ``--force-strategy pause-and-ask`` under ``--yes`` before anything is
+    read, so a bad value is exit 3 at parse time rather than a silent
+    default halfway through a batch."""
+    args = run.args
     try:
-        human_task_decisions = parse_human_task_decisions(args.human_task)
+        run.human_task_decisions = parse_human_task_decisions(args.human_task)
     except NeedsHuman as exc:
         return unattended_mod.fail_closed(exc.message, site_id=exc.site)
-    if unattended and args.force_strategy == "pause-and-ask":
+    if run.unattended and args.force_strategy == "pause-and-ask":
         # The dispatcher already rejects this combination at parse time; this is
         # the same refusal for a direct invocation, so neither route can hang.
         return unattended_mod.fail_closed(
@@ -2331,42 +2724,52 @@ def main(argv: Optional[List[str]] = None) -> int:
             f"(e.g. {UNATTENDED_HUMAN_TASK_STRATEGY}) or drop --yes.",
             site_id=unattended_mod.row(9).site_id,
         )
+    return None
 
-    # Validate plan file (resolve to absolute path first to handle
-    # uv --directory which changes the working directory)
-    plan_path = Path(args.plan_file).resolve()
+
+def open_run(run: ImplementRun) -> Optional[int]:
+    """Resolve the plan, anchor the run, and read (never write) its state."""
+    args = run.args
+    # Resolved to an absolute path first: `uv --directory` changes the cwd.
+    plan_path = run.plan_path = Path(args.plan_file).resolve()
     if not plan_path.exists():
         print(f"ERROR: Plan file not found: {args.plan_file}")
         print(f"       Resolved path: {plan_path}")
-        sys.exit(1)
+        return 1
 
-    # §9.3.a/b: the anchor capture point — absolute, before anything can chdir
+    # The anchor capture point — absolute, before anything can chdir
     # and before any provider read that decides routing.
     set_run_anchor(str(plan_path))
 
-    # Resolve the default --output now that the plan argument is known (the
-    # default depends on the git root and the plan stem, so it cannot be a
-    # static argparse default).
+    # The default --output depends on the git root and the plan stem, so it
+    # cannot be a static argparse default.
     if args.output is None:
         args.output = resolve_default_output(plan_path)
 
-    # Load plan
-    plan_content = plan_path.read_text(encoding="utf-8")
+    run.plan_content = plan_path.read_text(encoding="utf-8")
     print(f"Loaded plan: {plan_path}")
 
-    # Initialize state manager. Constructing it only *reads* (or synthesizes in
-    # memory) the document — the first `save()` deliberately waits until the row-6
-    # gate below has been cleared, so an unmet gate really does leave nothing
-    # behind, exactly as its comment claims.
-    state = get_or_create_state(plan_path)
-    print(f"State file: {state.state_file}")
+    # Constructing the state only *reads* (or synthesizes in memory) the
+    # document: the first `save()` waits until the row-6 gate has cleared
+    # (`run_prerequisite_gates`), so an unmet gate leaves nothing behind.
+    run.state = get_or_create_state(plan_path)
+    print(f"State file: {run.state.state_file}")
 
-    # Load plan preamble for task prompts
-    plan_preamble = state.get("plan_preamble") or ""
-    plan_path_str = str(plan_path.absolute())
+    # The plan preamble goes into every task prompt.
+    run.plan_preamble = run.state.get("plan_preamble") or ""
+    run.plan_dir = get_output_dir(plan_path)
+    return None
 
-    # Check prerequisites
-    plan_dir = get_output_dir(plan_path)
+
+def run_prerequisite_gates(run: ImplementRun) -> Optional[int]:
+    """D6 rows 6, 7 and 14 (:func:`decide_apply_gate`,
+    :func:`decide_tasks_missing`), and the run's first ``state.save()``.
+
+    Nothing is produced before the row-6 gate clears: no phase dir, no tasks,
+    no state.json mutation, so an unmet gate leaves no half-generated
+    artifact.
+    """
+    args, state, plan_path, plan_dir = run.args, run.state, run.plan_path, run.plan_dir
 
     # A recorded upstream `--skip-prerequisites` is reported once and never
     # re-litigated: consent was already given explicitly, and re-asking would make
@@ -2374,193 +2777,128 @@ def main(argv: Optional[List[str]] = None) -> int:
     for notice in upstream_skip_notices(state):
         print(notice)
 
-    # Check for unapplied suggestions (D6 row 6). Three endings, no fourth:
-    #   --skip-prerequisites  -> loud, recorded, proceed
-    #   --yes                 -> exit 3, one message naming both fixes
-    #   neither               -> today's [PREREQUISITE_CHECK] payload, exit 0
-    # Nothing has been produced at this point: no phase dir, no tasks, no
-    # state.json mutation (the first `state.save()` is below this block, not
-    # above it), so an unmet gate leaves no half-generated artifact.
     apply_check = check_apply_suggestions_prerequisite(state, plan_dir)
-    gate_phase = "apply-suggestions"
-    if apply_check["met"]:
-        # A scope blocker recorded by apply-task-suggestions (plan §5) is a
-        # gate here too, never the row-7 advisory below: the task list's
-        # accepted goal is not complete, and implement builds on it.
-        task_gate = check_apply_task_suggestions_prerequisite(state, plan_dir)
-        if task_gate.get("scope_blocked"):
-            apply_check, gate_phase = task_gate, "apply-task-suggestions"
-    if not apply_check["met"]:
-        # A scope blocker is the user's scope decision, not unapplied advice:
-        # `--skip-prerequisites` cannot record a skip over it.
-        scope_blocked = bool(apply_check.get("scope_blocked"))
-        missing = [{
-            "phase": gate_phase,
-            "reason": apply_check["reason"],
-            "valid_count": apply_check.get("valid_count", 0),
-            "importance_breakdown": apply_check.get("importance_breakdown", {}),
-            **({"scope_blocked": True} if scope_blocked else {}),
-        }]
-        if args.skip_prerequisites and not scope_blocked:
-            record_prerequisite_skip(
-                state, "apply-suggestions", reason=SKIP_PREREQUISITES_REASON
-            )
+    gate = decide_apply_gate(
+        apply_check,
+        (check_apply_task_suggestions_prerequisite(state, plan_dir)
+         if apply_check["met"] else None),
+        skip_prerequisites=bool(args.skip_prerequisites),
+        unattended=run.unattended,
+    )
+    if gate.action is GateAction.RECORD_SKIP:
+        record_prerequisite_skip(
+            state, "apply-suggestions", reason=SKIP_PREREQUISITES_REASON
+        )
+        print(
+            f"{SKIPPED_MARKER} implement: "
+            f"{gate.missing[0]['valid_count']} unapplied apply-suggestions "
+            f"suggestions (reason: {SKIP_PREREQUISITES_REASON})"
+        )
+    elif gate.action is GateAction.NEEDS_HUMAN:
+        if gate.refused_skip:
             print(
-                f"{SKIPPED_MARKER} implement: "
-                f"{apply_check.get('valid_count', 0)} unapplied apply-suggestions "
-                f"suggestions (reason: {SKIP_PREREQUISITES_REASON})"
+                f"ERROR: --skip-prerequisites cannot skip {gate.gate_phase} for "
+                f"implement: it stopped on a scope blocker, a scope decision "
+                f"only the user can make."
             )
-        elif unattended or args.skip_prerequisites:
-            if args.skip_prerequisites:
-                print(
-                    f"ERROR: --skip-prerequisites cannot skip {gate_phase} for "
-                    f"implement: it stopped on a scope blocker, a scope decision "
-                    f"only the user can make."
-                )
-            print(build_unmet_message("implement", plan_path, plan_dir, missing))
-            unattended_mod.mark_needs_human("implement")
-            print(json.dumps({
-                "marker": "PREREQUISITE_UNMET",
-                "mode": "implement",
-                "state": "needs-human",
-                "exit": EXIT_NEEDS_HUMAN,
-                "missing": missing,
-            }, indent=2))
-            sys.exit(EXIT_NEEDS_HUMAN)
-        else:
-            prereq_info = {
-                "marker": "PREREQUISITE_CHECK",
-                "phase": gate_phase,
-                "reason": apply_check["reason"],
-                "valid_count": apply_check.get("valid_count", 0)
-            }
-            print(f"[PREREQUISITE_CHECK]")
-            print(json.dumps(prereq_info, indent=2))
-            sys.exit(0)
+        return _prerequisite_unmet(plan_path, plan_dir, gate.missing)
+    elif gate.action is GateAction.MARKER_EXIT_0:
+        prereq_info = {
+            "marker": "PREREQUISITE_CHECK",
+            "phase": gate.gate_phase,
+            "reason": gate.missing[0]["reason"],
+            "valid_count": gate.missing[0]["valid_count"],
+        }
+        print("[PREREQUISITE_CHECK]")
+        print(json.dumps(prereq_info, indent=2))
+        return 0
 
     # The gate is cleared (or explicitly skipped, which recorded its own save):
     # only now does this run own a state.json on disk.
     state.save()
 
-    # Preflight resolutions are replayed after the run has claimed its phase.
-    pending_resolutions: List[Tuple[str, str]] = []
+    _advise_on_task_suggestions(run)
+
+    tasks_gate = decide_tasks_missing(
+        generate_tasks_completed=state.is_phase_completed("generate-tasks"),
+        unattended=run.unattended,
+    )
+    if tasks_gate is not GateAction.PROCEED:
+        print("[TASKS_MISSING]")
+        print(json.dumps({"marker": "TASKS_MISSING", "reason": "No implementation tasks found"}))
+        if tasks_gate is GateAction.NEEDS_HUMAN:
+            return _prerequisite_unmet(plan_path, plan_dir, [{
+                "phase": "generate-tasks",
+                "reason": "No implementation tasks found",
+            }])
+        return 0
+    return None
+
+
+def _advise_on_task_suggestions(run: ImplementRun) -> None:
+    """D6 row 7: unapplied task suggestions are an advisory that never blocks.
+
+    Under ``--yes``/``--no-confirm`` the advisory resolves to "skip", and the
+    phase is *recorded* skipped here rather than left for the agent to
+    remember: an auto-selection nobody can see afterwards is
+    indistinguishable from a silent degradation. The decision is buffered in
+    ``pending_resolutions`` until this process owns the phase dir.
+    """
+    args, state = run.args, run.state
     task_skip_reason = "auto-skipped by --yes/--no-confirm (D6 row 7)"
     task_skip_decision = "skipped; apply-task-suggestions recorded as skipped"
     # The detached launcher may already have saved this choice. Its worker
     # then sees the prerequisite as met, but must still report the choice that
     # lets this run proceed. Explicit human skips keep their existing notice.
-    if (unattended or args.no_confirm) and (
+    if (run.unattended or args.no_confirm) and (
         state.get_phase_skip_reason("apply-task-suggestions") == task_skip_reason
     ):
-        pending_resolutions.append((unattended_mod.row(7).site_id, task_skip_decision))
+        run.pending_resolutions.append((unattended_mod.row(7).site_id, task_skip_decision))
 
-    # Check for unapplied task suggestions (soft advisory — does NOT block)
-    task_suggestions_check = check_apply_task_suggestions_prerequisite(state, plan_dir)
-    if not task_suggestions_check["met"]:
-        advisory_info = {
-            "marker": "TASK_SUGGESTIONS_ADVISORY",
-            "phase": "apply-task-suggestions",
-            "reason": task_suggestions_check["reason"],
-            "actionable_count": task_suggestions_check.get("actionable_count", 0),
-            "importance_breakdown": task_suggestions_check.get("importance_breakdown", {})
-        }
-        print(f"[TASK_SUGGESTIONS_ADVISORY]")
-        print(json.dumps(advisory_info, indent=2))
-        # NOTE: Does NOT exit — this is advisory only, implementation proceeds
-        # D6 row 7: under --yes / --no-confirm the advisory resolves to "skip",
-        # and the phase is *recorded* skipped here rather than left for the agent
-        # to remember — an auto-selection nobody can see afterwards is
-        # indistinguishable from a silent degradation.
-        if unattended or args.no_confirm:
-            record_prerequisite_skip(
-                state,
-                "apply-task-suggestions",
-                reason=task_skip_reason,
-            )
-            unattended_mod.record_resolution(
-                None,
-                unattended_mod.row(7).site_id,
-                task_skip_decision,
-            )
-            pending_resolutions.append((unattended_mod.row(7).site_id, task_skip_decision))
+    task_suggestions_check = check_apply_task_suggestions_prerequisite(state, run.plan_dir)
+    if task_suggestions_check["met"]:
+        return
+    advisory_info = {
+        "marker": "TASK_SUGGESTIONS_ADVISORY",
+        "phase": "apply-task-suggestions",
+        "reason": task_suggestions_check["reason"],
+        "actionable_count": task_suggestions_check.get("actionable_count", 0),
+        "importance_breakdown": task_suggestions_check.get("importance_breakdown", {})
+    }
+    print("[TASK_SUGGESTIONS_ADVISORY]")
+    print(json.dumps(advisory_info, indent=2))
+    if run.unattended or args.no_confirm:
+        record_prerequisite_skip(
+            state,
+            "apply-task-suggestions",
+            reason=task_skip_reason,
+        )
+        unattended_mod.record_resolution(
+            None,
+            unattended_mod.row(7).site_id,
+            task_skip_decision,
+        )
+        run.pending_resolutions.append((unattended_mod.row(7).site_id, task_skip_decision))
 
-    # Check if generate-tasks phase has been completed. Two endings, decided by
-    # the same rule the row-6 gate above uses:
-    #   attended    -> today's [TASKS_MISSING] payload, exit 0 — the driving agent
-    #                  reads the marker and runs generate-tasks itself.
-    #   --yes       -> exit 3 naming the generate-tasks re-invocation. There is no
-    #                  agent to read a marker on this path, and exit 0 would report
-    #                  MULTI_LLM_RESULT state "done" for a run that implemented
-    #                  nothing — a silent no-op reported as success.
-    if not state.is_phase_completed("generate-tasks"):
-        print("[TASKS_MISSING]")
-        print(json.dumps({"marker": "TASKS_MISSING", "reason": "No implementation tasks found"}))
-        if unattended:
-            missing = [{
-                "phase": "generate-tasks",
-                "reason": "No implementation tasks found",
-            }]
-            print(build_unmet_message("implement", plan_path, plan_dir, missing))
-            unattended_mod.mark_needs_human("implement")
-            print(json.dumps({
-                "marker": "PREREQUISITE_UNMET",
-                "mode": "implement",
-                "state": "needs-human",
-                "exit": EXIT_NEEDS_HUMAN,
-                "missing": missing,
-            }, indent=2))
-            sys.exit(EXIT_NEEDS_HUMAN)
-        sys.exit(0)
 
-    # Check for external tasks file reference
-    tasks_file_ref = get_tasks_file_path(plan_content)
-    tasks_content = plan_content  # Default: parse from plan itself
+def load_task_list(run: ImplementRun) -> Optional[int]:
+    """Read the task list, take the pre-implement baselines, and decompose it.
 
-    if tasks_file_ref:
-        # Load tasks from external file
-        tasks_file_path = plan_path.parent / tasks_file_ref
-        if tasks_file_path.exists():
-            tasks_content = tasks_file_path.read_text(encoding="utf-8")
-            print(f"Loading tasks from: {tasks_file_path}")
-        else:
-            # The plan names a task list that is not on disk (a moved or cleaned
-            # `plans/<plan>/tasks/`, a plan copied without its sibling dir).
-            # Parsing the plan instead does not fail — it *fabricates*: measured
-            # 2026-09-16 against a real plan, the fallback returned 18 confident
-            # tasks titled ". Overview" and ".1 Rendering", with zero acceptance
-            # criteria and `camera.update` declared as a file to create. A
-            # WARNING into a detached log is not a gate, and this is the same
-            # rule `generate_tasks_orchestrator.verify_outcome` applies at the
-            # other end: a task list nobody generated is worse than none. Only a
-            # plan with NO marker at all (the legacy embedded-task format) still
-            # parses its own content.
-            print(
-                f"ERROR: the plan's <!-- TASKS_FILE: {tasks_file_ref} --> marker "
-                f"names a task list that does not exist:\n"
-                f"       {tasks_file_path}\n"
-                f"       Nothing was implemented. Regenerate the task list — "
-                + dispatcher_command("generate-tasks", plan_path.absolute(), "--yes")
-                + "\n       then re-run this command. (Parsing the plan itself "
-                "instead would invent a task list from its prose, which every "
-                "later phase would treat as ground truth.)"
-            )
-            unattended_mod.mark_needs_human("implement")
-            print(json.dumps({
-                "marker": "TASKS_FILE_MISSING",
-                "mode": "implement",
-                "state": "needs-human",
-                "exit": EXIT_NEEDS_HUMAN,
-                "tasks_file": str(tasks_file_path),
-                "reason": "Plan names a TASKS_FILE that does not exist",
-            }, indent=2))
-            sys.exit(EXIT_NEEDS_HUMAN)
-
-    # F15: the external tasks file this run's prompts are actually built from,
-    # captured here (before `tasks_file_path` is reassigned below to the
-    # phase-based `tasks_file` output path) so `run_implement_write_phase` can
-    # stamp `write_tasks.json` with `inputs.tasks_sha256` — `None` for the
-    # legacy embedded-task format, where there is no such file.
-    implement_tasks_file: Optional[Path] = tasks_file_path if tasks_file_ref else None
+    The task list is the file the plan's TASKS_FILE marker names, the default
+    task list without a marker, or the plan itself only when it has neither
+    (the legacy embedded-task format; ``tasks_file.read_task_list``).
+    A marker naming no file, or a path outside the plan's directory, stops
+    here: parsing the plan instead would invent tasks from its prose
+    (docs/development/workflows.md, "Task generation").
+    """
+    args, state, plan_path = run.args, run.state, run.plan_path
+    try:
+        task_list = read_task_list(plan_path, run.plan_content)
+    except (TasksFileMissing, TasksFileRefused) as unreadable:
+        return _stop_on_unreadable_task_list(plan_path, unreadable)
+    if task_list.path is not None:
+        print(f"Loading tasks from: {task_list.path}")
+    run.tasks_file = task_list.path
 
     # Record pre-existing changes (before implementation modifies anything)
     record_pre_existing_changes(state)
@@ -2581,486 +2919,458 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("WARNING: Plan has changed since last session")
         state.clear_plan_changed_flag()
 
-    # Decompose tasks (from tasks file or plan content)
-    decomposer = TaskDecomposer()
-    tasks = decomposer.parse_plan(tasks_content)
-    print(f"Found {len(tasks)} tasks")
+    run.decomposer = TaskDecomposer()
+    run.tasks = run.decomposer.parse_plan(task_list.text)
+    print(f"Found {len(run.tasks)} tasks")
     # Both legs pass here, so a task the run defers (a human task, or a
     # dependent `skip-dependents` skips with it) can be named by its title
     # once the workflow completes, not only by its id: `persist_human_task_plan`
-    # (the scheduler's, and this emit's since fix round 7) records the
-    # `skipped` status and its reason but no title, and `[MANUAL_TASK]` reads
-    # the title from here (2026-10-04).
+    # records the `skipped` status and its reason but no title, and
+    # `[MANUAL_TASK]` reads the title from here.
     # The manual tasks ride along (`implement_human_task_ids`), so a finished
     # implement whose manual task nobody answered still names it as owed.
-    # So does the whole graph (fix round 12): a resume materializes only the
-    # unfinished tasks, and the hold a check with findings puts on the tasks
-    # after it must still reach a task whose chain runs through a finished one.
+    # So does the whole graph: a resume materializes only the unfinished
+    # tasks, and the hold a check with findings puts on the tasks after it
+    # must still reach a task whose chain runs through a finished one.
     if state.record_task_titles(
-        {task.id: task.title for task in tasks},
+        {task.id: task.title for task in run.tasks},
         human_ids=[
-            task.id for task in tasks
+            task.id for task in run.tasks
             if getattr(task, "executor_role", "") == "human"
         ],
-        depends_on={task.id: list(task.depends_on or []) for task in tasks},
+        depends_on={task.id: list(task.depends_on or []) for task in run.tasks},
     ):
         state.save()
+    return None
 
-    # A run without `--resume` on an implement that started and did not
-    # finish continues it (fix round 16): Codex racing 06r re-dispatched the
-    # three tasks an aborted run had finished, which came back `no-op` and
-    # lost their "applied" rows. Starting over is `--fresh`, and a finished
-    # implement still starts over without it; `--task` reruns what it names.
-    # A code task's `--human-task` answer still needs the `--resume` typed:
-    # the commands that carry one always do, and an answer is a decision.
-    resume_typed = bool(args.resume)
-    if not args.resume and not args.task and not getattr(args, "fresh", False):
-        kept = _started_and_unfinished(state, decomposer.tasks)
-        if kept:
-            args.resume = True
-            print(_continued_line(kept, _kept_labels(state)))
-            if state.has_plan_changed():
-                print("WARNING: Plan has changed since last session")
-                state.clear_plan_changed_flag()
-    # A run that is no resume (typed or continued), no `--task` rerun and no
-    # dry run starts over: it hands every task out again, so it sets aside
-    # what earlier runs recorded for them (`_start_over`, fix round 17) once
-    # nothing can still refuse it — on the native leg before the emit reads
-    # the records, on the executor leg past the detach boundary, in the
-    # process that owns the phase dir (never in a `--detach` launcher, which
-    # may be re-attaching to a live run).
-    start_over = not (
-        args.resume or args.task or args.dry_run
-        or getattr(args, "dry_run_subagents", False)
+
+def apply_run_mode(run: ImplementRun) -> Optional[int]:
+    """Resume, continue or start over (:func:`decide_run_mode`), and restore
+    the recorded statuses of a run that resumes."""
+    args, state, decomposer = run.args, run.state, run.decomposer
+    run.mode = decide_run_mode(
+        resume=bool(args.resume),
+        task=args.task,
+        fresh=bool(getattr(args, "fresh", False)),
+        dry_run=bool(args.dry_run),
+        dry_run_subagents=bool(getattr(args, "dry_run_subagents", False)),
+        started_unfinished=lambda: _started_and_unfinished(state, decomposer.tasks),
     )
+    if run.mode.continued_ids:
+        # A continued run is `--resume` for every later reader of `args`
+        # too: `run_implement_write_phase` hands it to the scheduler.
+        args.resume = True
+        print(_continued_line(run.mode.continued_ids, _kept_labels(state)))
+        if state.has_plan_changed():
+            print("WARNING: Plan has changed since last session")
+            state.clear_plan_changed_flag()
 
-    # Restore previous statuses if resuming
-    if args.resume:
+    if run.mode.resume:
         for task_id, status in state.get_all_task_statuses().items():
             if task_id in decomposer.tasks:
                 decomposer.update_task_status(task_id, TaskStatus(status))
         print("Restored previous session state")
+    return None
 
-    # --- D6 rows 8 and 9: resolve and record, never prompt ------------------
-    human_task_ids = [
-        task.id for task in decomposer.tasks.values()
+
+def record_human_answers(run: ImplementRun) -> Optional[int]:
+    """D6 rows 8 and 9: resolve the human-task strategy and record this run's
+    ``--human-task`` answers (:func:`refuse_human_answers`); never prompt."""
+    args, state = run.args, run.state
+    human_task_ids = run.human_task_ids = [
+        task.id for task in run.decomposer.tasks.values()
         if getattr(task, "executor_role", "") == "human"
     ]
-    human_task_strategy = resolve_human_task_strategy(
+    run.human_task_strategy = resolve_human_task_strategy(
         state,
         human_task_ids,
         force_strategy=args.force_strategy,
-        unattended=unattended,
-        resume=args.resume,
+        unattended=run.unattended,
+        resume=run.mode.resume,
     )
-    # F8: this fires before `run()`'s equivalent — `maybe_detach_implement_phase`,
-    # further down — crosses the detach boundary, so no run handle is claimed
-    # yet: recording against the phase dir here is a silent no-op
-    # (`detach.record_resolution` only writes when `_ACTIVE` names that phase
-    # dir), and `.status.json.resolutions` stayed `[]` even though the log's
-    # `[AUTO_RESOLVED]` line printed. Buffer it instead, the way
-    # `ApplyOrchestratorBase._record_resolution`/`_flush_resolutions` do, and
-    # replay it once this process owns the phase dir, just past the boundary.
-    if human_task_ids and human_task_strategy and unattended and not args.force_strategy:
-        decision = f"{human_task_strategy} for {len(human_task_ids)} human task(s)"
+    # F8: no run handle is claimed before the detach boundary, so recording
+    # against the phase dir here would be a silent no-op
+    # (`run_record.record_resolution` only writes when `_ACTIVE` names that phase
+    # dir). The decision is buffered, as `ApplyOrchestratorBase._record_resolution`
+    # / `_flush_resolutions` do, and replayed past the boundary.
+    if (human_task_ids and run.human_task_strategy and run.unattended
+            and not args.force_strategy):
+        decision = f"{run.human_task_strategy} for {len(human_task_ids)} human task(s)"
         unattended_mod.record_resolution(None, unattended_mod.row(8).site_id, decision)
-        pending_resolutions.append((unattended_mod.row(8).site_id, decision))
-    if human_task_decisions:
-        # Row 9's answer channel: a per-task decision arrives as a flag, is
-        # recorded in state.json, and is handed to the driving agent in the task
-        # JSON so the pause is a process boundary rather than a blocked stdin.
-        unknown = [tid for tid in human_task_decisions if tid not in decomposer.tasks]
-        if unknown:
-            return _refuse_answer(
-                "ERROR: --human-task names task(s) that are not in this plan: "
-                f"{', '.join(sorted(unknown))}.\n"
-                f"       Human tasks in this plan: "
-                f"{', '.join(human_task_ids) or 'none'}",
-            )
-        not_human = [tid for tid in human_task_decisions if tid not in human_task_ids]
-        # A code task is answerable only once it FAILED and only on a resume
-        # (racing re-run 3, 2026-10-05: a failed check blocked implement for
-        # good; `done` accepts the failure, `skip` leaves it and its dependents
-        # undone, `retry` re-runs a check the unchanged-tree guard refuses) —
-        # or, since fix round 11, a check whose findings hold back the tasks
-        # after it (`rerunnable_checks`): `done` accepts the findings and runs
-        # them, `retry` runs the check again on unchanged files.
-        held_by = set(rerunnable_checks(state.state))
-        failed_ids = {
-            tid for tid in not_human
-            if state.get_task_status(tid) == "failed" or tid in held_by
-        }
-        if not_human and not resume_typed:
-            return _refuse_answer(
-                "ERROR: --human-task answers a code task only with --resume, "
-                "after a run recorded it failed or its check reported "
-                "problems; these are code tasks: "
-                f"{', '.join(sorted(not_human))}.",
-            )
-        unanswerable = sorted(set(not_human) - failed_ids)
-        if unanswerable:
-            return _refuse_answer(
-                "ERROR: --human-task answers a human task, a code task the "
-                "last run recorded failed, or a check whose findings hold "
-                "back the tasks after it; these are code tasks that did not "
-                f"fail: {', '.join(unanswerable)}.",
-            )
-        retried_human = sorted(
-            tid for tid, action in human_task_decisions.items()
-            if action == "retry" and tid in human_task_ids
-        )
-        if retried_human:
-            return _refuse_answer(
-                "ERROR: --human-task <id>=retry re-runs a failed code task; a "
-                f"human task is answered done or skip: {', '.join(retried_human)}.",
-            )
-        recorded = dict(state.get("human_task_decisions") or {})
-        recorded.update({
-            tid: action for tid, action in human_task_decisions.items()
-            if action != "retry"  # one-shot: never carried into a later run
-        })
-        state.set("human_task_decisions", recorded)
-        state.save()
-        for task_id, action in sorted(human_task_decisions.items()):
-            print(f"[HUMAN_TASK_ANSWERED] {task_id}={action}")
+        run.pending_resolutions.append((unattended_mod.row(8).site_id, decision))
 
-    # D6 row 16 (plans/scope-policy-and-report-tags.md §4): the typed
-    # --scope-policy, else this implement run's live recorded choice, else
-    # expand. A typed one is kept, so the resume that never repeats the flag
-    # (`--resume --human-task …`) renders the same prompts.
-    # `--fresh` starts the implementation over: a new run, which never
-    # inherits an earlier run's recorded choice (as under `full --force`).
+    answers = run.human_task_decisions
+    if not answers:
+        return None
+    # Row 9's answer channel: a per-task decision arrives as a flag, is
+    # recorded in state.json, and is handed to the driving agent in the task
+    # JSON so the pause is a process boundary rather than a blocked stdin.
+    held_by = set(rerunnable_checks(state.state))
+    refusal = refuse_human_answers(
+        answers,
+        known_ids=run.decomposer.tasks,
+        human_ids=human_task_ids,
+        failed_or_held={
+            tid for tid in answers
+            if state.get_task_status(tid) == "failed" or tid in held_by
+        },
+        resume_typed=run.mode.resume_typed,
+    )
+    if refusal is not None:
+        return _refuse_answer(refusal)
+    state.record_human_task_answers({
+        tid: action for tid, action in answers.items()
+        if action != "retry"  # one-shot: never carried into a later run
+    })
+    state.save()
+    for task_id, action in sorted(answers.items()):
+        print(f"[HUMAN_TASK_ANSWERED] {task_id}={action}")
+    return None
+
+
+def resolve_scope(run: ImplementRun) -> Optional[int]:
+    """D6 row 16: the scope policy this run's prompts follow.
+
+    The typed ``--scope-policy``, else this implement run's live recorded
+    choice, else expand. A typed one is kept, so the resume that never
+    repeats the flag (``--resume --human-task …``) renders the same prompts.
+    ``--fresh`` starts the implementation over: a new run, which never
+    inherits an earlier run's recorded choice (as under ``full --force``).
+    """
+    args, state = run.args, run.state
     scope_choice = scope_policy_runs.resolve_run_choice(
         getattr(args, "scope_policy", None), state.state, "implement",
         new_run=bool(getattr(args, "fresh", False)))
-    scope_policy_value, scope_source = scope_policy_runs.effective_choice(scope_choice)
-    if not (args.dry_run or getattr(args, "dry_run_subagents", False)):
-        if scope_policy_runs.record_run_start(state.state, "implement", scope_choice):
-            state.save()
-    if scope_source != scope_policy_runs.sp.SOURCE_EXPLICIT:
-        scope_decision = scope_policy_runs.announce(
-            None, scope_policy_value, scope_source, unattended=unattended,
-            mode="implement")
-        if scope_decision:
-            pending_resolutions.append((scope_policy_runs.SITE_ID, scope_decision))
+    dry_run = args.dry_run or getattr(args, "dry_run_subagents", False)
+    run.scope_policy, _source, scope_decision = scope_policy_runs.open_run(
+        None if dry_run else state, "implement", scope_choice,
+        phase_dir=None, unattended=run.unattended,
+    )
+    if scope_decision:
+        run.pending_resolutions.append((scope_policy_runs.SITE_ID, scope_decision))
+    return None
 
-    # Which leg hands the batches out: the Python executor schedules them
-    # itself, anything else hands them to the host (the native leg).
-    executor_backed = bool(
+
+def _base_handoff(
+    plan_path: Path, state: StateManager, total: int, batches: List[Dict[str, Any]],
+    *, pending: Optional[int] = None,
+) -> Dict[str, Any]:
+    """The handoff JSON's fixed keys: the plan, task list, summary and state
+    paths (the task list and the summary also plan-relative, in their
+    phase-based subdirectories), the time, the counts and the batches.
+    *pending* counts the tasks the batches hold; a ``--task`` rerun has none."""
+    data: Dict[str, Any] = {
+        "plan_file": str(plan_path.absolute()),
+        "tasks_file": str(get_output_paths(plan_path, "tasks", phase='tasks')),
+        "summary_file": str(
+            get_output_paths(plan_path, "implementation_summary", phase='implement')),
+        "tasks_file_relative": get_relative_output_path(plan_path, "tasks", phase='tasks'),
+        "summary_file_relative": get_relative_output_path(
+            plan_path, "implementation_summary", phase='implement'),
+        "state_file": str(state.state_file),
+        "generated_at": datetime.now().isoformat(),
+        "total_tasks": total,
+    }
+    if pending is not None:
+        data["pending_tasks"] = pending
+    data["batches"] = batches
+    return data
+
+
+def build_handoff(run: ImplementRun) -> Optional[int]:
+    """The task JSON both legs build their batches from (``run.output_data``):
+    the one task ``--task`` names, else every batch still to run."""
+    args, state, plan_path, decomposer = run.args, run.state, run.plan_path, run.decomposer
+    run.executor_backed = bool(
         getattr(args, "exec_subagents", False)
         or getattr(args, "dry_run_subagents", False)
     )
-    # A check whose findings stand is handed out again on a native resume only
-    # once the files moved (fix round 14); the executor decides at dispatch.
-    kept_checks: Dict[str, List[str]] = {}
-
-    # If specific task requested
     if args.task:
         task = decomposer.get_task(args.task)
         if not task:
             print(f"ERROR: Task not found: {args.task}")
-            sys.exit(1)
-
-        if human_task_decisions.get(task.id) not in ("done", "skip"):
+            return 1
+        if run.human_task_decisions.get(task.id) not in ("done", "skip"):
             _prepare_selected_task(
                 task, state, plan_path,
                 dry_run=bool(args.dry_run or getattr(args, "dry_run_subagents", False)),
             )
-
-        # Compute related file paths (in phase-based subdirectories)
-        tasks_file_path = get_output_paths(plan_path, "tasks", phase='tasks')
-        summary_file_path = get_output_paths(plan_path, "implementation_summary", phase='implement')
-        tasks_file_relative = get_relative_output_path(plan_path, "tasks", phase='tasks')
-        summary_file_relative = get_relative_output_path(plan_path, "implementation_summary", phase='implement')
-
-        output_data = {
-            "plan_file": str(plan_path.absolute()),
-            "tasks_file": str(tasks_file_path),
-            "summary_file": str(summary_file_path),
-            "tasks_file_relative": tasks_file_relative,
-            "summary_file_relative": summary_file_relative,
-            "state_file": str(state.state_file),
-            "generated_at": datetime.now().isoformat(),
-            "total_tasks": 1,
-            "batches": [{
-                "batch_index": 0,
-                "can_parallelize": False,
-                "tasks": [format_task_for_output(task, plan_preamble, plan_path_str, all_tasks=decomposer.tasks)]
-            }]
-        }
+        output_data = _base_handoff(plan_path, state, 1, [{
+            "batch_index": 0,
+            "can_parallelize": False,
+            "tasks": [format_task_for_output(
+                task, run.plan_preamble, str(plan_path.absolute()),
+                all_tasks=decomposer.tasks)],
+        }])
     else:
-        # Get parallel batches
-        batches = decomposer.get_parallel_batches()
-        rerun_ids = rerunnable_checks(state.state) if args.resume else None
-        if rerun_ids and not executor_backed:
-            rerun_ids, kept_checks = _native_check_reruns(
-                state, plan_path, rerun_ids,
-                _applicable_task_decisions(state, human_task_ids, human_task_decisions),
-            )
-        if args.resume:
-            # Fix round 15: a task a run before fix round 14 recorded done
-            # although its change never landed is handed out again.
-            unlanded = _unlanded_on_record(plan_path, state)
-            if unlanded:
-                rerun_ids = sorted(set(rerun_ids or []) | set(unlanded))
-        # Format for output
-        output_batches = format_batches_for_output(
-            batches, skip_completed=args.resume, plan_preamble=plan_preamble,
-            plan_path=plan_path_str, all_tasks=decomposer.tasks,
-            rerun_ids=rerun_ids,
-        )
-
+        output_batches = _batches_to_hand_out(run)
         # The result line counts what dispatches ("0/13 batches"), and a manual
-        # task is a graph node that dispatches nothing, so a bare "15 execution
-        # batches" read as two more than the run would ever report (2026-10-01).
-        # The native leg prints it once it has taken out what the host must not
-        # dispatch (`_native_withheld`), so it agrees with "Pending tasks".
-        # Both legs count the batches handed out, never the decomposition's
-        # layers (fix round 16: "5 execution batches" beside "Batches: 3").
-        # The executor leg's line is the scheduler's, printed once it knows
-        # what its run dispatches (fix round 18, run 7 #3: a resume said "4
-        # task(s) to dispatch" and dispatched none).
+        # task is a graph node that dispatches nothing, so the native leg prints
+        # this line once it has taken out what the host must not dispatch
+        # (`_native_withheld`), so it agrees with "Pending tasks". Both legs
+        # count the batches handed out, never the decomposition's layers; the
+        # executor leg's line is the scheduler's, printed once it knows what
+        # its run dispatches.
         if args.dry_run:
             print(_dispatch_line({"batches": output_batches}))
-
-        # Count pending tasks
-        pending_count = sum(len(b["tasks"]) for b in output_batches)
-
-        # Compute related file paths (in phase-based subdirectories)
-        tasks_file_path = get_output_paths(plan_path, "tasks", phase='tasks')
-        summary_file_path = get_output_paths(plan_path, "implementation_summary", phase='implement')
-        tasks_file_relative = get_relative_output_path(plan_path, "tasks", phase='tasks')
-        summary_file_relative = get_relative_output_path(plan_path, "implementation_summary", phase='implement')
-
-        output_data = {
-            "plan_file": str(plan_path.absolute()),
-            "tasks_file": str(tasks_file_path),
-            "summary_file": str(summary_file_path),
-            "tasks_file_relative": tasks_file_relative,
-            "summary_file_relative": summary_file_relative,
-            "state_file": str(state.state_file),
-            "generated_at": datetime.now().isoformat(),
-            "total_tasks": len(tasks),
-            "pending_tasks": pending_count,
-            "batches": output_batches
-        }
+        output_data = _base_handoff(
+            plan_path, state, len(run.tasks), output_batches,
+            pending=sum(len(b["tasks"]) for b in output_batches),
+        )
 
     # The plan as the user typed it, for the closing `util finalize-tracking
-    # --plan-file` (fix round 14: the host copied the absolute `plan_file`).
+    # --plan-file` (the host used to copy the absolute `plan_file`).
     output_data["plan_arg"] = typed_plan_for(plan_path)
 
     # Under preserve every code task's prompt says not to go beyond it; both
     # legs build their batches from these prompts. Nothing changes under expand.
-    _apply_scope_guidance(output_data, scope_policy_value)
+    _apply_scope_guidance(output_data, run.scope_policy)
 
     # The resolved answers travel with the tasks, so the invoker copies a
     # decision instead of composing one (D5a).
-    if human_task_ids:
-        output_data["human_tasks"] = list(human_task_ids)
-        output_data["human_task_strategy"] = human_task_strategy
-        if human_task_decisions:
+    if run.human_task_ids:
+        output_data["human_tasks"] = list(run.human_task_ids)
+        output_data["human_task_strategy"] = run.human_task_strategy
+        if run.human_task_decisions:
             output_data["human_task_decisions"] = dict(
                 state.get("human_task_decisions") or {}
             )
+    run.output_data = output_data
+    return None
 
-    # Dry run - just print summary
-    if args.dry_run:
-        print("\n" + "=" * 60)
-        print("Task Summary (Dry Run)")
-        print("=" * 60)
-        summary = decomposer.get_progress_summary()
-        print(f"Total tasks: {summary['total']}")
-        print(f"Completed: {summary['by_status']['completed']}")
-        print(f"Pending: {summary['by_status']['pending']}")
-        print(f"Failed: {summary['by_status']['failed']}")
-        print(f"\nBatches: {len(output_data['batches'])}")
 
-        for batch in output_data["batches"]:
-            print(f"\n  Batch {batch['batch_index']}:")
-            for task in batch["tasks"]:
-                print(f"    - {task['id']}: {task['title']} ({task['executor_role']})")
+def _batches_to_hand_out(run: ImplementRun) -> List[Dict[str, Any]]:
+    """Every batch still to run, as the handoff lists them. A resume skips
+    finished tasks but hands out again a check whose findings stand (on the
+    native leg only once the files moved: ``_native_check_reruns``) and a
+    task recorded done whose change never landed."""
+    state, plan_path = run.state, run.plan_path
+    batches = run.decomposer.get_parallel_batches()
+    rerun_ids = rerunnable_checks(state.state) if run.mode.resume else None
+    if rerun_ids and not run.executor_backed:
+        rerun_ids, run.kept_checks = _native_check_reruns(
+            state, plan_path, rerun_ids,
+            _applicable_from_state(state, run.human_task_ids, run.human_task_decisions),
+        )
+    if run.mode.resume:
+        unlanded = _unlanded_on_record(plan_path, state)
+        if unlanded:
+            rerun_ids = sorted(set(rerun_ids or []) | set(unlanded))
+    return format_batches_for_output(
+        batches, skip_completed=run.mode.resume, plan_preamble=run.plan_preamble,
+        plan_path=str(plan_path.absolute()), all_tasks=run.decomposer.tasks,
+        rerun_ids=rerun_ids,
+    )
 
-        print(f"\nWould write to: {args.output}")
-        sys.exit(0)
 
-    # Write output JSON, for the one reader that needs it: the driving agent of
-    # the native path, which `Output file:` hands it. The write executor reads
-    # `write_tasks.json` in the phase dir instead, so an `--exec-subagents` run
-    # that never needed `.multi-llm/tmp/` used to create it, `.gitignore`
-    # included, even when it was refused at preflight and dispatched nothing
-    # (2026-10-02). `--detach` without the executor still writes it: the worker
-    # re-enters here and reaches this point itself.
-    output_path = Path(args.output)
+def print_dry_run(run: ImplementRun) -> Optional[int]:
+    """``--dry-run``: print the task summary and stop with exit 0, before
+    anything is written for the host."""
+    if not run.args.dry_run:
+        return None
+    print("\n" + "=" * 60)
+    print("Task Summary (Dry Run)")
+    print("=" * 60)
+    summary = run.decomposer.get_progress_summary()
+    print(f"Total tasks: {summary['total']}")
+    print(f"Completed: {summary['by_status']['completed']}")
+    print(f"Pending: {summary['by_status']['pending']}")
+    print(f"Failed: {summary['by_status']['failed']}")
+    print(f"\nBatches: {len(run.output_data['batches'])}")
 
-    def write_native_handoff() -> None:
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-        _write_temp_dir_gitignore(output_path.parent)
-        output_path.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+    for batch in run.output_data["batches"]:
+        print(f"\n  Batch {batch['batch_index']}:")
+        for task in batch["tasks"]:
+            print(f"    - {task['id']}: {task['title']} ({task['executor_role']})")
 
-    if start_over and not executor_backed and not (
-        getattr(args, "detach", False) and not getattr(args, "internal_worker", False)
-    ):
-        _start_over(state, plan_path, decomposer.tasks.values())
+    print(f"\nWould write to: {run.args.output}")
+    return 0
+
+
+def _write_native_handoff(run: ImplementRun) -> None:
+    """Write the task JSON for its one reader, the native leg's driving agent,
+    which the ``Output file:`` line hands it. The write executor reads
+    ``write_tasks.json`` in the phase dir instead, so an ``--exec-subagents``
+    run never creates ``.multi-llm/tmp/``. ``--detach`` without the executor
+    still writes it: the worker re-enters ``main`` and reaches this itself."""
+    output_path = run.output_path
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _write_temp_dir_gitignore(output_path.parent)
+    output_path.write_text(json.dumps(run.output_data, indent=2), encoding="utf-8")
+
+
+def prepare_native_emit(run: ImplementRun) -> Optional[int]:
+    """The start-over (:func:`start_over_when`), the answers this run applies,
+    and on the native leg everything its emit decides before the detach
+    boundary: the human-task plan, what it withholds, the task JSON, and
+    whether the emit stops on a manual task (:func:`native_gate_applies`)."""
+    args, state, plan_path, output_data = run.args, run.state, run.plan_path, run.output_data
+    run.start_over_at = start_over_when(
+        start_over=run.mode.start_over,
+        executor_backed=run.executor_backed,
+        detach=bool(getattr(args, "detach", False)),
+        internal_worker=bool(getattr(args, "internal_worker", False)),
+    )
+    if run.start_over_at is StartOver.BEFORE_EMIT:
+        _start_over(state, plan_path, run.decomposer.tasks.values())
 
     # The answers both legs apply this run: every human task's, and a code
     # task's only while it still applies (`_applicable_task_decisions`).
-    applicable_decisions = _applicable_task_decisions(
-        state, human_task_ids, human_task_decisions,
+    run.applicable_decisions = _applicable_from_state(
+        state, run.human_task_ids, run.human_task_decisions,
         rerun_task=str(args.task) if args.task else None,
     )
-    # The native leg resolves the human-task plan here, from the strategy and
-    # the answers it already holds, exactly as the executor resolves it before
-    # its first batch — so the skips are in the task JSON the host reads and
-    # are written to state.json below, not left for the host to record. Also
-    # with no manual task in the plan whenever an answer applies: a failed
-    # code task's `done`/`skip` used to pass validation, print
-    # `[HUMAN_TASK_ANSWERED]` and change nothing on this leg, because the
-    # plan was only resolved for a plan holding a human task (fix round 8).
-    native_human_plan = None
-    answered_on_record = None
-    native_after: Dict[str, List[str]] = {}
-    if not executor_backed:
-        from utils.write_batch_scheduler import answered_done_on_record
+    if run.executor_backed:
+        return None
 
-        answered_on_record = answered_done_on_record(
-            state,
-            exclude=[
-                str(task.get("id") or "")
-                for batch in output_data.get("batches") or []
-                for task in batch.get("tasks") or []
-            ],
-        )
-    if not executor_backed and (
-        human_task_ids or applicable_decisions or any(answered_on_record)
-    ):
-        native_human_plan = _native_human_task_plan(
-            output_data,
-            strategy=human_task_strategy,
-            decisions=applicable_decisions,
-            on_record=answered_on_record,
-            recorded_statuses=state.get_all_task_statuses(),
-            check_findings_ids=rerunnable_checks(state.state),
-            state_record=state.state,
-        )
-    if native_human_plan is not None:
-        # How to record the deferred manual tasks done, in this host's
-        # spelling, for the host's summary and report (fix round 16, live
-        # run 6: the native implement said only "T011 … deferred" and the
-        # command first appeared two phases later). The manual tasks only: a
-        # code task skipped with one runs on that resume.
-        manual_ids = sorted(
-            set(native_human_plan.deferred()) & {str(t) for t in human_task_ids}
-        )
-        # Fix round 28 (live run 12, Codex racing 06): only the manual tasks
-        # the user can do now, and the note says what waits on them.
-        native_gates = _native_manual_gates(native_human_plan, output_data, state)
-        waiting = 0
-        if native_gates is not None:
-            # Fix round 29: what each later manual task comes after, for
-            # its line in the deferred list below.
-            native_after = dict(native_gates.get("after") or {})
-            manual_ids = [t for t in manual_ids if t in native_gates["closable"]]
-            waiting = len({
-                code for task_id in manual_ids
-                for code in native_gates["waiting"].get(task_id, ())
-            })
-        note = (
-            _manual_close_note(
-                args, str(output_data["plan_arg"]), manual_ids, waiting=waiting)
-            if manual_ids else None
-        )
-        if note:
-            output_data["manual_tasks_note"] = note
-    native_withheld: Optional[Dict[str, Dict[str, str]]] = None
-    if not executor_backed:
-        native_withheld = _native_withheld(
-            output_data, state, plan_path,
-            kept_checks=kept_checks, tasks_file=implement_tasks_file,
-        )
-        # Fix round 24 (Claude Code racing #6: "task 10/10 done … ALL TASKS
-        # COMPLETE" beside the manual T011 and T012): the tasks the plan set
-        # aside, which the host's N/N `[ETA]` line names, as the executor's
-        # does. Replaced by every native emit.
-        from utils.write_batch_scheduler import set_aside_by_plan
-
-        metrics_mod.set_set_aside_in_state(
-            state.state, "implement",
-            set_aside_by_plan(native_human_plan, human_task_ids),
-        )
-        output_data["tasks_to_dispatch"] = _handoff_counts(output_data)["dispatch"]
-        if not args.task:
-            print(_dispatch_line(output_data))
-        write_native_handoff()
-    # Fix round 28 (live run 12, Codex racing 06): an emit that hands out
-    # nothing because every code task left waits on a manual task not
-    # recorded done is a stop for the user, as on the executor leg.
-    native_gate = (
-        _native_manual_gate_stop(native_human_plan, output_data, state)
-        if (native_withheld is not None and not args.task
-            and native_human_plan is not None
-            and not any(native_withheld[key] for key in native_withheld)
-            and not kept_checks
-            and not output_data["tasks_to_dispatch"]
-            and not state.is_phase_completed("implement"))
-        else None
+    _plan_native_human_tasks(run)
+    run.native_withheld = _native_withheld(
+        output_data, state, plan_path,
+        kept_checks=run.kept_checks, tasks_file=run.tasks_file,
     )
+    # The tasks the plan set aside, which the host's N/N `[ETA]` line names,
+    # as the executor's does. Replaced by every native emit.
+    state.set_metrics_set_aside(
+        "implement", set_aside_by_plan(run.native_human_plan, run.human_task_ids),
+    )
+    output_data["tasks_to_dispatch"] = _handoff_counts(output_data)["dispatch"]
+    if not args.task:
+        print(_dispatch_line(output_data))
+    _write_native_handoff(run)
+    # An emit that hands out nothing because every code task left waits on a
+    # manual task not recorded done is a stop for the user, as on the
+    # executor leg.
+    if native_gate_applies(
+        withheld=run.native_withheld,
+        rerun_task=bool(args.task),
+        has_human_plan=run.native_human_plan is not None,
+        kept_checks=bool(run.kept_checks),
+        tasks_to_dispatch=output_data["tasks_to_dispatch"],
+        implement_completed=state.is_phase_completed("implement"),
+    ):
+        run.native_gate = _native_manual_gate_stop(run.native_human_plan, output_data, state)
+    return None
 
-    # --- the detach boundary (D4) ---------------------------------------------
-    # Crossed here, before the write executor and independently of it: `implement`
-    # is registered `supports_detach=True`, so `--detach` must produce a worker and
-    # a `.status.json` whether or not `--exec-subagents` was passed.
-    detached = maybe_detach_implement_phase(args, plan_path=plan_path)
+
+def _plan_native_human_tasks(run: ImplementRun) -> None:
+    """The native leg's human-task plan (``run.native_human_plan``).
+
+    Resolved here, from the strategy and the answers already held, exactly as
+    the executor resolves it before its first batch, so the skips are in the
+    task JSON the host reads and are written to state.json by
+    :func:`record_emit`, not left for the host to record. Also with no manual
+    task in the plan whenever an answer applies: a failed code task's
+    ``done``/``skip`` must change what this leg hands out.
+    """
+    args, state, output_data = run.args, run.state, run.output_data
+
+    answered_on_record = answered_done_on_record(
+        state,
+        exclude=[
+            str(task.get("id") or "")
+            for batch in output_data.get("batches") or []
+            for task in batch.get("tasks") or []
+        ],
+    )
+    if not (run.human_task_ids or run.applicable_decisions or any(answered_on_record)):
+        return
+    plan = run.native_human_plan = _native_human_task_plan(
+        output_data,
+        strategy=run.human_task_strategy,
+        decisions=run.applicable_decisions,
+        on_record=answered_on_record,
+        recorded_statuses=state.get_all_task_statuses(),
+        check_findings_ids=rerunnable_checks(state.state),
+        state_record=state.state,
+    )
+    # How to record the deferred manual tasks done, in this host's spelling,
+    # for the host's summary and report. The manual tasks only: a code task
+    # skipped with one runs on that resume.
+    manual_ids = sorted(
+        set(plan.deferred()) & {str(t) for t in run.human_task_ids}
+    )
+    # Only the manual tasks the user can do now, and the note says what waits
+    # on them.
+    native_gates = _native_manual_gates(plan, output_data, state)
+    waiting = 0
+    if native_gates is not None:
+        # What each later manual task comes after, for its line in the
+        # deferred list.
+        run.native_after = dict(native_gates.get("after") or {})
+        manual_ids = [t for t in manual_ids if t in native_gates["closable"]]
+        waiting = len({
+            code for task_id in manual_ids
+            for code in native_gates["waiting"].get(task_id, ())
+        })
+    note = (
+        _manual_close_note(
+            args, str(output_data["plan_arg"]), manual_ids, waiting=waiting)
+        if manual_ids else None
+    )
+    if note:
+        output_data["manual_tasks_note"] = note
+
+
+def cross_detach_boundary(run: ImplementRun) -> Optional[int]:
+    """The detach boundary (D4), then the D6 decisions buffered before it.
+
+    Crossed before the write executor and independently of it: ``implement``
+    is registered ``supports_detach=True``, so ``--detach`` must produce a
+    worker and a ``.status.json`` whether or not ``--exec-subagents`` was
+    passed. Past it this process owns the phase dir (the foreground run, or
+    the detached worker once it has claimed it), so the buffered decisions
+    are written where ``status`` reads them (``run.resolutions``). Quietly:
+    the marker line already printed at the decision site, and printing it
+    twice would make one decision read as two.
+    """
+    detached = maybe_detach_implement_phase(run.args, plan_path=run.plan_path)
     if detached is not None:
         return detached
-
-    # F8: past the boundary this process owns the phase dir (the ordinary
-    # foreground run, or the detached worker once it has claimed it), so the
-    # D6 decisions buffered above can finally be written where `status`
-    # reads it (`run.resolutions`). Quiet: the marker line already printed at
-    # the decision site, and printing it twice would make one decision read as
-    # two.
-    if pending_resolutions:
-        resolutions_phase_dir = str(get_phase_dir(plan_path, "implement"))
-        for site_id, decision in pending_resolutions:
+    if run.pending_resolutions:
+        resolutions_phase_dir = str(get_phase_dir(run.plan_path, "implement"))
+        for site_id, decision in run.pending_resolutions:
             unattended_mod.record_resolution(
                 resolutions_phase_dir, site_id, decision, quiet=True
             )
+    return None
 
-    if start_over and executor_backed:
-        _start_over(state, plan_path, decomposer.tasks.values())
-        # The reset consumes earlier code-task answers, including skips.
-        # Resolve from that state, as the native leg does after its reset;
-        # the pre-detach copy otherwise skips the tasks just made pending.
-        applicable_decisions = _applicable_task_decisions(
-            state, human_task_ids, human_task_decisions,
+
+def run_executor_leg(run: ImplementRun) -> Optional[int]:
+    """The write executor (D3n) schedules the batches in this process;
+    ``None`` on the native leg, which goes on to :func:`emit_native`.
+
+    Its start-over comes here, past the detach boundary. The reset consumes
+    earlier code-task answers, including skips, so the answers are resolved
+    again from the state it leaves, as the native leg does after its reset.
+    """
+    if run.start_over_at is StartOver.AFTER_DETACH:
+        _start_over(run.state, run.plan_path, run.decomposer.tasks.values())
+        run.applicable_decisions = _applicable_from_state(
+            run.state, run.human_task_ids, run.human_task_decisions,
         )
-
-    # --- the write executor (D3n): schedule the batches in this process --------
-    # Strictly additive: with neither flag set this returns None and everything
-    # below is byte-for-byte the native path that shipped before the executor.
-    scheduled = run_implement_write_phase(
-        args,
-        plan_path=plan_path,
-        state=state,
-        output_data=output_data,
-        human_task_strategy=human_task_strategy,
-        human_task_decisions=applicable_decisions,
-        tasks_file=implement_tasks_file,
+    return run_implement_write_phase(
+        run.args,
+        plan_path=run.plan_path,
+        state=run.state,
+        output_data=run.output_data,
+        human_task_strategy=run.human_task_strategy,
+        human_task_decisions=run.applicable_decisions,
+        tasks_file=run.tasks_file,
     )
-    if scheduled is not None:
-        return scheduled
 
-    # The native leg (2026-10-05): the same `write_tasks.json` the executor
-    # leg materializes, so the host's per-task `util write-prompt` binds each
-    # task's prior-changes context from the same seam instead of the host
-    # fishing the prompt out of the handoff JSON and substituting the token
-    # by hand (measured 2026-10-04: 3-6 tool calls per subagent, and one that
-    # read tasks.md instead of its prompt).
+
+def emit_native(run: ImplementRun) -> Optional[int]:
+    """The native leg's emit: ``write_tasks.json``, the report the driving
+    agent reads (:func:`render_native_report`), and its closing steps
+    (:func:`closing_steps`), or the stop on a manual task."""
+    args, state, plan_path = run.args, run.state, run.plan_path
+    # The same `write_tasks.json` the executor leg materializes, so the host's
+    # per-task `util write-prompt` binds each task's prior-changes context from
+    # the same seam instead of the host fishing the prompt out of the handoff
+    # JSON and substituting the token by hand.
     try:
-        from utils.host_capabilities import resolve_host_id
-
         write_task_file, native_tasks = _materialize_native_write_tasks(
-            plan_path, output_data, tasks_file=implement_tasks_file,
+            plan_path, run.output_data, tasks_file=run.tasks_file,
             host=resolve_host_id(explicit=getattr(args, "host", None)),
         )
     except Exception as exc:  # noqa: BLE001 - the handoff JSON is still usable
@@ -3069,289 +3379,317 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"[WRITE_TASKS_FILE] {write_task_file}", file=sys.stderr)
         # A native `--resume` promises to skip what already ran: a task the
         # implement log already holds and no record says finished is refused
-        # rather than handed out a second time (reviewer repro, 2026-10-05).
+        # rather than handed out a second time.
         if _refuse_unrecorded_native_resume(
             native_tasks, plan_path=plan_path, state=state,
-            resume=bool(args.resume and not args.task),
+            resume=bool(run.mode.resume and not args.task),
         ):
             return 3
 
-    # Fix round 18: an explicit native `--resume` says what it kept, as the
-    # continued run above and the executor leg's scheduler do.
-    if resume_typed and not args.task:
+    # An explicit native `--resume` says what it kept, as the continued run
+    # and the executor leg's scheduler do.
+    if run.mode.resume_typed and not args.task:
         kept_line = _native_kept_line(
-            state, decomposer.tasks, output_data, native_human_plan,
+            state, run.decomposer.tasks, run.output_data, run.native_human_plan,
         )
         if kept_line:
             print(kept_line)
 
-    # Print summary
-    print("\n" + "=" * 60)
-    print("Tasks Prepared for Claude Code")
-    print("=" * 60)
-    print(f"Output file: {output_path}")
-    print(f"State file: {state.state_file}")
-    print(f"Total tasks: {output_data['total_tasks']}")
-    print(f"Pending tasks: {output_data.get('pending_tasks', output_data['total_tasks'])}")
-    print(f"Batches: {len(output_data['batches'])}")
-    if "tasks_to_dispatch" in output_data and native_gate is None:
-        # The one number the host passes to `util metrics` (fix round 16:
-        # the host counted "5 execution batches" and passed that). Fix round
-        # 18 (run 7 #2): it is in the [ETA] line's unit, one record per task
-        # dispatched, and `util batch-done` takes a task out of it once a
-        # record keeps that task from running (T007 behind check T002).
+    for line in render_native_report(run):
+        print(line)
+    if run.native_gate is not None:
+        return _stop_on_native_gate(run)
+
+    # A resume of a completed implement that only records answers
+    # (`--human-task T007=done` closing a deferred manual task) hands out
+    # nothing to run: it does not reopen the phase, and asks for no summary
+    # and no close (`closing_steps`).
+    run.closes = not args.task and _closes_a_completed_implement(state, run.output_data)
+    for line in closing_steps(
+        closes=run.closes, stopped_short=_stopped_short(run),
+        summary_file=run.output_data["summary_file"],
+    ):
+        print(line)
+    return None
+
+
+def _stopped_short(run: ImplementRun) -> bool:
+    """Tasks the native emit lists as withheld, or a check kept with its
+    findings, will not run: the phase closes without ``--mark-completed``."""
+    withheld = run.native_withheld
+    return withheld is not None and bool(
+        run.kept_checks or any(withheld[key] for key in withheld)
+    )
+
+
+def _stop_on_native_gate(run: ImplementRun) -> int:
+    """The native emit's stop on a manual task: its block, its closing
+    ``[ETA]`` line, and the records a resume reads — the plan's deferrals
+    and implement started (never completed), so ``util next-command``
+    answers its resume. Exit 3."""
+    state = run.state
+    lines, headline, eta_line = run.native_gate
+    print(eta_line)
+    for line in lines:
+        print(line)
+    state.set_metrics_left_out("implement", {})
+    state.set_metrics_set_aside("implement", {})
+
+    persist_human_task_plan(state, run.native_human_plan)
+    state.mark_phase_started("implement")
+    state.save()
+    record_error(headline)
+    return 3
+
+
+def render_native_report(run: ImplementRun) -> List[str]:
+    """The native emit's report to the driving agent, as lines: the summary
+    block, then what the human-task plan and ``_native_withheld`` keep out of
+    the batches, each list with what the host does about it. Reads the run
+    and the state in memory only; writes nothing."""
+    state, output_data = run.state, run.output_data
+    titles = dict(state.get("task_titles") or {})
+
+    def named(task_id: str) -> str:
+        title = titles.get(task_id)
+        return f"{task_id}{' ' + title if title else ''}"
+
+    lines = [
+        "\n" + "=" * 60,
+        "Tasks Prepared for the Driving Agent",
+        "=" * 60,
+        f"Output file: {run.output_path}",
+        f"State file: {state.state_file}",
+        f"Total tasks: {output_data['total_tasks']}",
+        f"Pending tasks: {output_data.get('pending_tasks', output_data['total_tasks'])}",
+        f"Batches: {len(output_data['batches'])}",
+    ]
+    if "tasks_to_dispatch" in output_data and run.native_gate is None:
+        # The one number the host passes to `util metrics`, in the [ETA]
+        # line's unit: one record per task dispatched, and `util batch-done`
+        # takes a task out of it once a record keeps that task from running.
         dispatch = output_data["tasks_to_dispatch"]
-        print(
+        lines.append(
             f"Tasks to dispatch: {dispatch} (pass --total-batches {dispatch} to "
             f"`util metrics start` and `util metrics record`; the [ETA] line "
             f"counts tasks, not batches, and leaves out a task that a "
             f"`util batch-done` record keeps from running)"
         )
+    if run.native_human_plan is not None:
+        lines += _human_plan_lines(run, named)
+    if run.native_withheld is not None:
+        lines += _withheld_lines(run, named)
+    return lines
 
-    if native_human_plan is not None:
-        titles = dict(state.get("task_titles") or {})
 
-        def _named(task_id: str) -> str:
-            title = titles.get(task_id)
-            return f"{task_id}{' ' + title if title else ''}"
-
-        deferred = native_human_plan.deferred()
-        declined = native_human_plan.declined()
-        if deferred and native_gate is not None:
-            # Fix round 28: nothing runs and no summary is written; the
-            # report's closing section gives the resume that records the
-            # manual task done, so no note repeats its command here.
-            print(
-                "Deferred tasks (recorded skipped in state.json; do not "
-                "dispatch them; name them in your report):"
-            )
-            for task_id, reason in sorted(deferred.items()):
-                print(f"  {_named(task_id)}: {reason}")
-        elif deferred:
-            note = output_data.get("manual_tasks_note")
-            print(
-                "Deferred tasks (recorded skipped in state.json; do not "
-                "dispatch them, and list them in the summary's Manual Tasks "
-                "(Deferred) section"
-                + (", with the text of the [MANUAL_TASK_NOTE] line below the "
-                   "list under it, verbatim; give that text in your report "
-                   "too" if note else "")
-                + "):"
-            )
-            from utils.next_phase import after_code_note
-
-            for task_id, reason in sorted(deferred.items()):
-                # Fix round 29: a manual task after code this emit hands out
-                # says so; the report's lookup gives its command.
-                after = native_after.get(task_id)
-                print(f"  {_named(task_id)}: {reason}"
-                      + (f" {after_code_note(after)}" if after else ""))
-            if note:
-                print(f"[MANUAL_TASK_NOTE] {note}")
-        if declined:
-            # Not owed: the workflow's `[MANUAL_TASK]` lines leave these out,
-            # so a summary that filed them under Manual Tasks (Deferred)
-            # disagreed with `[WORKFLOW_COMPLETE]` (fix round 8).
-            print(
-                "Skipped at your request (recorded skipped in state.json; do "
-                "not dispatch them, and list them in the summary under a "
-                "separate 'Skipped at your request' heading, not under Manual "
-                "Tasks (Deferred) — they are not owed):"
-            )
-            for task_id, reason in sorted(declined.items()):
-                print(f"  {_named(task_id)}: {reason}")
-        if native_human_plan.accepted:
-            # Fix round 18 (live run 7, Claude Code accept 02): a check whose
-            # findings the user accepted was listed "accepted after failing",
-            # and the host's summary said so of a check that never failed. The
-            # words are the executor's (`answered_done_label`).
-            from utils.write_batch_scheduler import answered_done_label
-
-            labels = {
-                task_id: answered_done_label(native_human_plan, task_id)
-                for task_id in native_human_plan.accepted
-            }
-            kinds = sorted(set(labels.values()))
-            heading = (
-                kinds[0][:1].upper() + kinds[0][1:] if len(kinds) == 1
-                else "Accepted on your answer"
-            ).replace("its check findings", "their check findings")
-            print(
-                f"{heading} (recorded completed in state.json; not in the "
-                f"batches, do not dispatch or record them; list them in the "
-                + (
-                    f"summary as {kinds[0].replace('its check findings', 'their check findings')}):"
-                    if len(kinds) == 1 else
-                    "summary with the words in brackets after each id):"
-                )
-            )
-            for task_id, reason in sorted(native_human_plan.accepted.items()):
-                label = f" ({labels[task_id]})" if len(kinds) > 1 else ""
-                print(f"  {_named(task_id)}{label}: {reason}")
-        if native_human_plan.completed:
-            print(
-                "Completed by hand (manual tasks recorded completed in "
-                "state.json; do not dispatch or record them; list them in the "
-                "summary as completed by hand):"
-            )
-            for task_id in sorted(native_human_plan.completed):
-                print(f"  {_named(task_id)}: answered --human-task {task_id}=done")
-
-    stopped_short = False
-    if native_withheld is not None:
-        titles = dict(state.get("task_titles") or {})
-
-        def _titled(task_id: str) -> str:
-            title = titles.get(task_id)
-            return f"{task_id}{' ' + title if title else ''}"
-
-        for check_id, findings in sorted(kept_checks.items()):
-            waiting = sorted(
-                task_id for task_id, reason in native_withheld["held"].items()
-                if reason.startswith(f"not run — upstream check {check_id} ")
-            )
-            print(
-                f"[CHECK_NOT_RERUN] {check_id} is not run again: nothing in the "
-                f"repository changed since its check reported problems, so it "
-                f"would report the same"
-                + (f" ({clip('; '.join(findings), 300)})" if findings else "")
-                + ". Its findings stand"
-                + (
-                    f", and {', '.join(waiting)} "
-                    f"{'stays' if len(waiting) == 1 else 'stay'} held behind it"
-                    if waiting else ""
-                )
-                + "."
-            )
-        if native_withheld["held"]:
-            print(
-                "Held back by a check with findings (pending in state.json; not "
-                "in the batches, do not dispatch or record them; list them in "
-                "the summary as not run):"
-            )
-            for task_id, reason in sorted(native_withheld["held"].items()):
-                print(f"  {_titled(task_id)}: {reason}")
-        if native_withheld["refused"]:
-            print(
-                "Refused before dispatch (recorded failed in state.json; not in "
-                "the batches, do not dispatch or record them; list them in the "
-                "summary as failed, refused before dispatch; in your report give "
-                "each one's way forward as its line words it, the user's call, "
-                "and never change driver.write_paths yourself):"
-            )
-            for task_id, reason in sorted(native_withheld["refused"].items()):
-                print(f"  {_titled(task_id)}: {reason}")
-        if native_withheld["not_run"]:
-            print(
-                "Not run because a task they depend on was refused (not in the "
-                "batches, do not dispatch or record them; list them in the "
-                "summary as not run):"
-            )
-            for task_id, reason in sorted(native_withheld["not_run"].items()):
-                print(f"  {_titled(task_id)}: {reason}")
-        if output_data.get("waiting_on_checks"):
-            print(
-                "Waiting on a check's verdict (in the batches after the check "
-                "they depend on; if the check reports problems, do not dispatch "
-                "them — they stay pending and the phase closes without "
-                "--mark-completed):"
-            )
-            for task_id, reason in sorted(output_data["waiting_on_checks"].items()):
-                print(f"  {_titled(task_id)}: {reason}")
-        stopped_short = bool(
-            kept_checks or any(native_withheld[key] for key in native_withheld)
+def _human_plan_lines(run: ImplementRun, named: Callable[[str], str]) -> List[str]:
+    """:func:`render_native_report`'s lists from the human-task plan:
+    deferred, skipped at the user's request, accepted, completed by hand."""
+    plan, output_data = run.native_human_plan, run.output_data
+    lines: List[str] = []
+    deferred = plan.deferred()
+    declined = plan.declined()
+    if deferred and run.native_gate is not None:
+        # Nothing runs and no summary is written; the report's closing
+        # section gives the resume that records the manual task done, so no
+        # note repeats its command here.
+        lines.append(
+            "Deferred tasks (recorded skipped in state.json; do not "
+            "dispatch them; name them in your report):"
         )
-        if not output_data["batches"] and native_gate is None:
-            print(
-                "Nothing to dispatch: every task is done, skipped, accepted or "
-                "listed above. Do not spawn a subagent; still run step 7's "
-                "`util metrics finish`, which prints this run's closing [ETA] "
-                "line (no `util metrics start` is needed)."
-            )
-
-    if native_gate is not None:
-        # The stop's own block, its closing [ETA] line, and the records a
-        # resume reads: the plan's deferrals and implement started (never
-        # completed), so `util next-command` answers its resume.
-        lines, headline, eta_line = native_gate
-        print(eta_line)
-        for line in lines:
-            print(line)
-        metrics_mod.set_left_out_in_state(state.state, "implement", {})
-        metrics_mod.set_set_aside_in_state(state.state, "implement", {})
-        from utils.write_batch_scheduler import persist_human_task_plan
-
-        persist_human_task_plan(state, native_human_plan)
-        state.mark_phase_started("implement")
-        state.save()
-        record_error(headline)
-        return 3
-
-    # Fix round 14: a resume of a completed implement that only records
-    # answers (`--human-task T007=done` closing a deferred manual task) hands
-    # out nothing to run, so it does not reopen the phase: marked started, the
-    # host's closing `--mark-completed` re-stamped it and review-code and
-    # apply-code-fixes read stale for no code change. Fix round 15: and it
-    # asks for no summary and no close either — the generic steps below sent
-    # the host on to write a nothing-ran summary.md over the completed run's.
-    closes = not args.task and _closes_a_completed_implement(state, output_data)
-    if closes:
-        print(
-            "\nNothing is left to run: implement stays completed. The answers "
-            "above are recorded in state.json; there is no batch to execute and "
-            "no phase to close."
+        for task_id, reason in sorted(deferred.items()):
+            lines.append(f"  {named(task_id)}: {reason}")
+    elif deferred:
+        note = output_data.get("manual_tasks_note")
+        lines.append(
+            "Deferred tasks (recorded skipped in state.json; do not "
+            "dispatch them, and list them in the summary's Manual Tasks "
+            "(Deferred) section"
+            + (", with the text of the [MANUAL_TASK_NOTE] line below the "
+               "list under it, verbatim; give that text in your report "
+               "too" if note else "")
+            + "):"
         )
-        print("\nClaude Code should now:")
-        print(
-            "  1. Report the answers recorded above; spawn no subagent, write no "
-            "implementation summary (the completed run's summary.md stays as it "
-            "is) and run no `util finalize-tracking`"
+
+        for task_id, reason in sorted(deferred.items()):
+            # A manual task after code this emit hands out says so; the
+            # report's lookup gives its command.
+            after = run.native_after.get(task_id)
+            lines.append(f"  {named(task_id)}: {reason}"
+                         + (f" {after_code_note(after)}" if after else ""))
+        if note:
+            lines.append(f"[MANUAL_TASK_NOTE] {note}")
+    if declined:
+        # Not owed: the workflow's `[MANUAL_TASK]` lines leave these out, so
+        # a summary that filed them under Manual Tasks (Deferred) would
+        # disagree with `[WORKFLOW_COMPLETE]`.
+        lines.append(
+            "Skipped at your request (recorded skipped in state.json; do "
+            "not dispatch them, and list them in the summary under a "
+            "separate 'Skipped at your request' heading, not under Manual "
+            "Tasks (Deferred) — they are not owed):"
         )
-        print("  2. End the report with the command `util next-command` prints")
-    else:
-        print("\nClaude Code should now:")
-        print("  1. Read the output JSON file")
-        print("  2. Execute each batch sequentially (batches have dependencies)")
-        print("  3. Tasks within a batch can run in parallel")
-        print("  4. Update the state file after each task completes")
-        print("  5. After all tasks complete, generate the implementation summary")
-        print(f"     Summary file: {output_data['summary_file']}")
-        if stopped_short:
-            print(
-                "  6. Close the phase with `util finalize-tracking` without "
-                "--mark-completed (tasks listed above did not run), then end the "
-                "report with the commands `util next-command` prints"
+        for task_id, reason in sorted(declined.items()):
+            lines.append(f"  {named(task_id)}: {reason}")
+    if plan.accepted:
+        # A check whose findings the user accepted never failed, so the words
+        # are the executor's (`answered_done_label`), never "accepted after
+        # failing" for every one.
+        labels = {
+            task_id: answered_done_label(plan, task_id)
+            for task_id in plan.accepted
+        }
+        kinds = sorted(set(labels.values()))
+        heading = (
+            kinds[0][:1].upper() + kinds[0][1:] if len(kinds) == 1
+            else "Accepted on your answer"
+        ).replace("its check findings", "their check findings")
+        lines.append(
+            f"{heading} (recorded completed in state.json; not in the "
+            f"batches, do not dispatch or record them; list them in the "
+            + (
+                f"summary as {kinds[0].replace('its check findings', 'their check findings')}):"
+                if len(kinds) == 1 else
+                "summary with the words in brackets after each id):"
             )
-        else:
-            # The emit cannot know how the run ends: a check that records
-            # findings holds tasks back mid-run (fix round 15, stop fixture).
-            print(
-                "  6. Close the phase with `util finalize-tracking … --mark-completed` "
-                "once every task ran; after a [CHECK_BLOCKED] line, a failed task or "
-                "a stop, run it without --mark-completed and end the report with "
-                "the commands `util next-command` prints"
+        )
+        for task_id, reason in sorted(plan.accepted.items()):
+            label = f" ({labels[task_id]})" if len(kinds) > 1 else ""
+            lines.append(f"  {named(task_id)}{label}: {reason}")
+    if plan.completed:
+        lines.append(
+            "Completed by hand (manual tasks recorded completed in "
+            "state.json; do not dispatch or record them; list them in the "
+            "summary as completed by hand):"
+        )
+        for task_id in sorted(plan.completed):
+            lines.append(f"  {named(task_id)}: answered --human-task {task_id}=done")
+    return lines
+
+
+def _withheld_lines(run: ImplementRun, named: Callable[[str], str]) -> List[str]:
+    """:func:`render_native_report`'s lists of what ``_native_withheld`` keeps
+    out of the batches, and the line for an emit with nothing to dispatch."""
+    withheld, output_data = run.native_withheld, run.output_data
+    lines: List[str] = []
+    for check_id, findings in sorted(run.kept_checks.items()):
+        waiting = sorted(
+            task_id for task_id, reason in withheld["held"].items()
+            if reason.startswith(f"not run — upstream check {check_id} ")
+        )
+        lines.append(
+            f"[CHECK_NOT_RERUN] {check_id} is not run again: nothing in the "
+            f"repository changed since its check reported problems, so it "
+            f"would report the same"
+            + (f" ({clip('; '.join(findings), 300)})" if findings else "")
+            + ". Its findings stand"
+            + (
+                f", and {', '.join(waiting)} "
+                f"{'stays' if len(waiting) == 1 else 'stay'} held behind it"
+                if waiting else ""
             )
+            + "."
+        )
+    if withheld["held"]:
+        lines.append(
+            "Held back by a check with findings (pending in state.json; not "
+            "in the batches, do not dispatch or record them; list them in "
+            "the summary as not run):"
+        )
+        for task_id, reason in sorted(withheld["held"].items()):
+            lines.append(f"  {named(task_id)}: {reason}")
+    if withheld["refused"]:
+        lines.append(
+            "Refused before dispatch (recorded failed in state.json; not in "
+            "the batches, do not dispatch or record them; list them in the "
+            "summary as failed, refused before dispatch; in your report give "
+            "each one's way forward as its line words it, the user's call, "
+            "and never change driver.write_paths yourself):"
+        )
+        for task_id, reason in sorted(withheld["refused"].items()):
+            lines.append(f"  {named(task_id)}: {reason}")
+    if withheld["not_run"]:
+        lines.append(
+            "Not run because a task they depend on was refused (not in the "
+            "batches, do not dispatch or record them; list them in the "
+            "summary as not run):"
+        )
+        for task_id, reason in sorted(withheld["not_run"].items()):
+            lines.append(f"  {named(task_id)}: {reason}")
+    if output_data.get("waiting_on_checks"):
+        lines.append(
+            "Waiting on a check's verdict (in the batches after the check "
+            "they depend on; if the check reports problems, do not dispatch "
+            "them — they stay pending and the phase closes without "
+            "--mark-completed):"
+        )
+        for task_id, reason in sorted(output_data["waiting_on_checks"].items()):
+            lines.append(f"  {named(task_id)}: {reason}")
+    if not output_data["batches"] and run.native_gate is None:
+        lines.append(
+            "Nothing to dispatch: every task is done, skipped, accepted or "
+            "listed above. Do not spawn a subagent; still run step 7's "
+            "`util metrics finish`, which prints this run's closing [ETA] "
+            "line (no `util metrics start` is needed)."
+        )
+    return lines
 
-    # The batches are now the host's to run, so the phase is recorded
-    # *started*, never completed: completion is the instruction's closing
-    # `util finalize-tracking --plan-file … --mark-completed`, which runs only
-    # after every task, the verify step and the summary. Until 2026-10-05 this
-    # site wrote `mark_phase_completed("implement")`, so `status` read the
-    # phase as done minutes before its last task (racing re-run, 2026-10-04).
-    if native_human_plan is not None:
-        # What the executor's `_persist_human_plan` writes before its first
-        # batch: the deferred manual tasks (and the dependents skipped with
-        # them) as `skipped` with their reasons, a `done` answer as completed,
-        # the skip-continue overrides. Until fix round 7 the native leg left
-        # these writes to the host, which never made them, so `task_status`
-        # had no T010 and the finished workflow named no manual task.
-        from utils.write_batch_scheduler import persist_human_task_plan
 
-        persist_human_task_plan(state, native_human_plan)
-    if not closes:
+def record_emit(run: ImplementRun) -> Optional[int]:
+    """Record the native emit in state.json.
+
+    The batches are now the host's to run, so the phase is recorded
+    *started*, never completed: completion is the instruction's closing
+    ``util finalize-tracking --plan-file … --mark-completed``, which runs
+    only after every task, the verify step and the summary. An emit that
+    only records answers on a completed implement leaves it completed.
+    The human-task plan is written as the executor's ``_persist_human_plan``
+    writes it before its first batch: the deferred manual tasks (and the
+    dependents skipped with them) as ``skipped`` with their reasons, a
+    ``done`` answer as completed, the skip-continue overrides.
+    """
+    state = run.state
+    if run.native_human_plan is not None:
+        persist_human_task_plan(state, run.native_human_plan)
+    if not run.closes:
         state.mark_phase_started("implement")
     state.save()
+    return None
 
+
+def main(argv: Optional[List[str]] = None) -> int:
+    """Run ``implement``: each stage in order, until one returns an exit code.
+
+    The stages are in the order the invariants need: nothing is saved before
+    the row-6 gate clears (:func:`run_prerequisite_gates`); the native leg's
+    start-over runs before its emit reads the records and the executor leg's
+    past the detach boundary (:func:`start_over_when`); the buffered D6
+    decisions are written only once this process owns the phase dir
+    (:func:`cross_detach_boundary`).
+    """
+    bootstrap_streams()
+    args = parse_args(argv)
+    run = ImplementRun(args=args, unattended=bool(getattr(args, "yes", False)))
+    stages = (
+        check_answers_flags,
+        open_run,
+        run_prerequisite_gates,
+        load_task_list,
+        apply_run_mode,
+        record_human_answers,
+        resolve_scope,
+        build_handoff,
+        print_dry_run,
+        prepare_native_emit,
+        cross_detach_boundary,
+        run_executor_leg,
+        emit_native,
+        record_emit,
+    )
+    for stage in stages:
+        code = stage(run)
+        if code is not None:
+            return code
     return 0
 
 
@@ -3360,7 +3698,7 @@ def _closes_a_completed_implement(state: StateManager, output_data: Dict[str, An
 
     True when ``implement`` is on record completed and the handoff holds no
     code task left to run — every task it lists is a manual one or already
-    ``completed``/``skipped`` (fix round 14). Never asked for ``--task``,
+    ``completed``/``skipped``. Never asked for ``--task``,
     which hands one task out to be run again whatever its status.
     """
     if not state.is_phase_completed("implement"):
@@ -3375,4 +3713,8 @@ def _closes_a_completed_implement(state: StateManager, output_data: Dict[str, An
 
 
 if __name__ == "__main__":
+    from utils import process_control
+
+    # A process entry of its own: provider children must stay this process's.
+    process_control.restore_sigchld_default()
     sys.exit(main(sys.argv[1:]))

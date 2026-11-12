@@ -3,14 +3,22 @@
 
 This module holds the primitives that were previously inline in
 ``utils/review_orchestrator_base.py`` (``write_status``/``update_status``, which
-still re-exports them under the same names, as do
-``review_plan_orchestrator._write_status``/``_update_status``). They live in a
+still re-exports them under the same names). They live in a
 module of their own for one reason: ``status`` has to be a *sub-second* command
 (a file read plus a liveness probe, polled by hosts with a 2-minute shell cap),
 and importing the review orchestration base pulls in the provider client, the
 HTML report generator and the validation stack. Nothing about the write path
 changed in the move — same atomic temp+rename, same best-effort swallow, same
-merge semantics — so every existing consumer and test keeps its meaning.
+merge semantics — so every existing consumer and test keeps its meaning. One
+rule was added since: a merge that cannot read the checkpoint skips its update
+rather than writing the update alone over it (:func:`update_status`,
+:func:`load_status`). And two writers replace a damaged checkpoint whole
+(:func:`checkpoint_damage`, :func:`archive_damaged_checkpoint`,
+:func:`publish_checkpoint`): a fresh run's recovery in a phase whose
+checkpoint records withheld answers (:data:`WITHHELD_RECORD_PHASES`,
+``review_lane.recover_damaged_checkpoint``), and the owning run's
+replacement in every other phase (:func:`replace_damaged_checkpoint`,
+called by ``detach``).
 
 **The schema is additive, never forked.** ``{phase}/.status.json`` is the
 orchestrator checkpoint: ``ask_orchestrator`` reads ``question`` byte-for-byte as
@@ -33,11 +41,11 @@ writing a second file with a private shape — ``run`` only ever on a detached r
   ``resume with:`` command so a ``--quick`` run is retried as one. It is
   **not** process state — ``update_run``'s successor-state guard does not
   apply to it, and ``claim_run`` writes it once at start and never again.
-* ``progress``: ``{step, batch_index, batches_total, tasks_done, tasks_total,
-  tasks_generated, failed_task_ids, models, models_done, models_succeeded,
-  models_total, interval_s, notes}`` — reporting only; no external actor advances it, and nothing
+* ``progress``: ``{step, models, models_done, models_succeeded, models_total,
+  interval_s, tasks_generated, notes, subagents, write_subagents,
+  sandbox_bypassed, sandbox_fallback}`` — reporting only; no external actor advances it, and nothing
   resumes, reaggregates or branches on it. That is why it is the one reserved
-  object a **foreground** run writes too, and why ``detach.report_progress``
+  object a **foreground** run writes too, and why ``run_record.report_progress``
   writes on *every* path: the run handle it consults picks the **door**, never
   whether the write happens. It goes through ``handle.progress`` (which stamps
   that run's heartbeat with it) only when the handle owns the dir being written,
@@ -76,10 +84,17 @@ writing a second file with a private shape — ``run`` only ever on a detached r
   of plain lines a host must relay beside its counts — a consistency warning,
   the items left unapplied and why (fix round 14), or a review phase's notes
   on its result files (``utils/result_files.py``, fix round 24) — which
-  ``status`` renders and carries into a terminal poll's ``notice``. This enumeration is the in-code contract for
-  the object — a reader who finds a key missing from it concludes the key is not
-  part of the schema and writes a second file for it, so a new ``progress`` key
-  lands here in the same commit as its writer.
+  ``status`` renders and carries into a terminal poll's ``notice``. ``subagents``
+  and ``write_subagents`` are the executor's and the write scheduler's batch
+  mirrors, ``sandbox_bypassed`` the sorted specs whose runner sandbox was
+  bypassed and ``sandbox_fallback`` ``{spec: rung}`` for the contained rungs.
+  This enumeration is the prose contract for the object — a reader who finds a
+  key missing from it concludes the key is not part of the schema and writes a
+  second file for it, so a new ``progress`` key lands here in the same commit as
+  its writer. ``schemas/status_file.schema.json`` declares every key of the
+  file, ``run`` and ``progress`` included, and ``tests/test_result_contract.py``
+  fails on a key a writer adds without declaring it there
+  (docs/development/dispatcher.md, "Result schemas").
 
 ``run.state`` is **not** the top-level ``state``. The top-level field stays the
 *phase* machine (``models_running`` → ``models_complete``/``grouping_complete`` →
@@ -132,20 +147,27 @@ about whether anyone holds it.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import os
+import stat
 import sys
-import tempfile
 import threading
+import time
 from datetime import datetime
-from typing import Any, Dict, Iterable, Iterator, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, NamedTuple, Optional, Tuple
 
 from . import process_control
+from .held_folder import write_in_plan_dir
+from .clock import local_iso
 
 #: The checkpoint file name. Dot-prefixed on purpose: reaggregation globs
 #: ``{phase_dir}/*.json`` and Python's ``glob`` skips leading-dot names, which is
 #: the only reason this file is not parsed as a model result.
 STATUS_FILENAME = ".status.json"
+
+#: The temp-file prefix of :func:`write_status` (``.status_<pid>.<random>.tmp``).
+STATUS_TEMP_PREFIX = ".status_"
 
 #: The interprocess mutex guarding every read-modify-write of the checkpoint.
 #: A *second* lock file next to ``{phase}/.lock`` on purpose — that one is
@@ -163,6 +185,42 @@ _MERGED_OBJECTS: Tuple[str, ...] = ("output_files", "run", "progress")
 #: The objects a detach run owns. A plain ``write_status`` from the phase's own
 #: checkpoint path must not erase them (see :func:`write_status`).
 _RESERVED_OBJECTS: Tuple[str, ...] = ("run", "progress")
+
+#: Top-level checkpoint keys that are one run's result, not the phase's state:
+#: :func:`claim_run` drops them with the predecessor's ``run`` and ``progress``.
+#: A pinned poll relays each one as the polled run's own, and nothing else on
+#: the checkpoint (the claim keeps the top-level ``state``) tells a
+#: predecessor's copy apart (docs/development/runtime.md, "Status file schema").
+RUN_SCOPED_KEYS: Tuple[str, ...] = ("high_priority_groups", "validation_counts")
+
+#: A pre-dispatch refusal's close-out (``review_orchestrator_base.
+#: _print_executor_refusal``, the write scheduler's batch refusal): the top-level
+#: ``state`` words it writes, and the keys it writes beside them. It is one
+#: run's ending, not the phase's state, so :func:`claim_run` retires the whole
+#: of it: ``status`` renders a ``runner_rejected`` state's repair off
+#: ``reason_code`` (``run_status._resume_shape``), and a retry refused before
+#: its own first write would otherwise be told to repair the previous run's
+#: fault (docs/development/runtime.md, "Status file schema").
+REFUSAL_STATES: Tuple[str, ...] = ("runner_rejected", "executor_refused")
+REFUSAL_KEYS: Tuple[str, ...] = ("reason_code", "runner", "runner_key", "refused_batch")
+
+#: How often ``status --wait`` re-reads the status file (``run_status``). The
+#: heartbeat is 10 s, so a faster cadence learns nothing; 5 s keeps the
+#: returned view fresh. Also the floor of the registry's ``progress.*`` keys
+#: (``provider_registry._progress_floor_s``).
+WAIT_POLL_INTERVAL_S = 5.0
+
+#: A model slot's two end states in ``progress.models``, from the fan-out's
+#: lifecycle (``progress_tracker``, which re-exports them with its live states):
+#: the result-file reader counts them too.
+STATE_DONE = "done"
+STATE_FAILED = "failed"
+
+#: The two states a slot may end in. There is deliberately no ``skipped``: a
+#: model answered from disk is ``done`` — it has a usable result — and the
+#: distinction lives in ``source`` (see ``progress_tracker.RESUME_SOURCES``), so
+#: ``models_done`` and ``models_succeeded`` stay derivable from ``state`` alone.
+TERMINAL_STATES = frozenset({STATE_DONE, STATE_FAILED})
 
 #: The process state machine. ``stale`` is deliberately absent: it is a *view* of
 #: a ``running`` record whose heartbeat expired, never a stored state.
@@ -210,12 +268,18 @@ def status_lock_path(phase_dir: str) -> str:
     return os.path.join(str(phase_dir), STATUS_LOCK_FILENAME)
 
 
-def now_iso() -> str:
-    return datetime.now().isoformat()
+#: Every stamp in the checkpoint (``heartbeat_at``, ``updated_at``, ...): local
+#: time, to the microsecond (``utils/clock.py``); ``run_record._elapsed_since``
+#: reads them.
+now_iso = local_iso
+
+
+class CheckpointLockUnavailable(Exception):
+    """:func:`checkpoint_lock` with ``required=True`` could not take the mutex."""
 
 
 @contextlib.contextmanager
-def checkpoint_lock(phase_dir: str) -> Iterator[None]:
+def checkpoint_lock(phase_dir: str, *, required: bool = False) -> Iterator[None]:
     """Hold *phase_dir*'s checkpoint mutex — across threads and processes.
 
     Every read-modify-write in this module runs inside one of these, and so must
@@ -233,6 +297,11 @@ def checkpoint_lock(phase_dir: str) -> Iterator[None]:
     wait; the body then runs unserialized, which is what it did before this lock
     existed. It is never an exception, because a heartbeat that raises out of a
     checkpoint write kills a run over a lock file.
+
+    ``required=True`` is the one exception, for a decision that is only sound
+    serialized (a review round's ownership check, ``utils/review_round.py``):
+    a mutex it cannot take raises :class:`CheckpointLockUnavailable` before
+    the body runs, and so does a nested frame whose outer frame ran untaken.
     """
     with _WRITE_LOCK:
         # `realpath`, so one phase dir is one lock domain however a caller spells
@@ -240,10 +309,13 @@ def checkpoint_lock(phase_dir: str) -> Iterator[None]:
         # --abort` started through the real one must contend for the same file.
         key = os.path.realpath(status_lock_path(phase_dir))
         if key in _HELD_MUTEXES:  # a nested write; the outer frame owns it
+            if required and not _HELD_MUTEXES[key].held:
+                raise CheckpointLockUnavailable(key)
             yield
             return
         mutex = process_control.FileMutex(key)
-        mutex.acquire()
+        if not mutex.acquire() and required:
+            raise CheckpointLockUnavailable(key)
         _HELD_MUTEXES[key] = mutex
         try:
             yield
@@ -269,8 +341,16 @@ def write_status(phase_dir: str, data: dict) -> None:
     The carry-over read and the rename are one critical section (thread *and*
     process): a concurrent writer between them would either lose its own
     reserved objects or be reverted by this one.
+
+    The write is ``atomic_io``'s, owner-only (0600), without ``fsync``: the
+    heartbeat rewrites the file every few seconds under the checkpoint lock
+    (docs/development/runtime.md#atomic-file-writes). It is published through
+    the phase folder held below the plan's directory
+    (``held_folder.write_in_plan_dir``): a link swapped in for that folder
+    during the run is refused, never written through, and the checkpoint is
+    then not written, as any failed write leaves it
+    (docs/development/write-safety.md#plan-output-containment).
     """
-    temp_path = None
     path = status_path(phase_dir)
     with checkpoint_lock(phase_dir):
         try:
@@ -283,18 +363,10 @@ def write_status(phase_dir: str, data: dict) -> None:
             pass
         try:
             data["updated_at"] = now_iso()
-            temp_fd, temp_path = tempfile.mkstemp(
-                dir=phase_dir, suffix='.tmp', prefix='.status_'
-            )
-            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2)
-            os.replace(temp_path, path)
+            write_in_plan_dir(path, json.dumps(data, indent=2).encode("utf-8"),
+                              mode=0o600, fsync=False, temp_prefix=STATUS_TEMP_PREFIX)
         except Exception:
-            try:
-                if temp_path and os.path.exists(temp_path):
-                    os.unlink(temp_path)
-            except Exception:
-                pass
+            pass
 
 
 def update_status(phase_dir: str, updates: dict) -> None:
@@ -309,16 +381,22 @@ def update_status(phase_dir: str, updates: dict) -> None:
     section — held against other processes as well as other threads — so a
     concurrent writer's document can neither be read stale nor be reverted by
     the rename that follows.
+
+    No checkpoint yet: the update is the whole new document. A checkpoint that
+    exists but cannot be read now, or holds something other than a JSON object
+    (:func:`load_status`), is kept as it is and the update is skipped: written
+    over it, the update alone would replace every key it does not name, the
+    records of withheld slot answers among them
+    (docs/development/review-results.md, "Withheld slot answers"). A damaged
+    one is replaced whole only at a run's start, by the run that owns the
+    dir (:func:`replace_damaged_checkpoint`, ``review_lane.recover_damaged_checkpoint``).
     """
-    path = status_path(phase_dir)
     with checkpoint_lock(phase_dir):
         try:
-            existing = {}
-            if os.path.exists(path):
-                with open(path, 'r', encoding='utf-8') as f:
-                    existing = json.load(f)
-            if not isinstance(existing, dict):
-                existing = {}
+            existing = load_status(phase_dir) or {}
+        except CheckpointUnreadable:
+            return
+        try:
             for key in _MERGED_OBJECTS:
                 incoming = updates.get(key)
                 current = existing.get(key)
@@ -330,10 +408,7 @@ def update_status(phase_dir: str, updates: dict) -> None:
             existing.update(updates)
             write_status(phase_dir, existing)
         except Exception:
-            try:
-                write_status(phase_dir, updates)
-            except Exception:
-                pass
+            pass
 
 
 def remove_status_keys(phase_dir: str, keys: Iterable[str]) -> None:
@@ -375,11 +450,333 @@ def read_status(phase_dir: str) -> Dict[str, Any]:
     """
     path = status_path(phase_dir)
     try:
-        with open(path, 'r', encoding='utf-8') as f:
+        with _open_checkpoint(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return data if isinstance(data, dict) else {}
     except (OSError, IOError, ValueError):
         return {}
+
+
+def _nonblocking(path: str, flags: int) -> int:
+    return os.open(path, flags | getattr(os, "O_NONBLOCK", 0))
+
+
+def _open_checkpoint(path: str, mode: str, **kwargs: Any) -> Any:
+    """*path* opened for reading as ``open`` opens it, but never blocking (a
+    FIFO at the name, or at a link's end, opens at once) and only when the
+    descriptor is a regular file (``fstat``, so a name swapped after any
+    earlier ``lstat`` cannot slip a FIFO or a device in): ``OSError``
+    otherwise, which every reader takes for a read that failed. Links are
+    followed, as the readers always followed them."""
+    handle = open(path, mode, opener=_nonblocking, **kwargs)
+    try:
+        if not stat.S_ISREG(os.fstat(handle.fileno()).st_mode):
+            raise OSError(f"{path} is not a regular file")
+    except BaseException:
+        handle.close()
+        raise
+    return handle
+
+
+class CheckpointUnreadable(Exception):
+    """:func:`load_status`: the checkpoint exists, but could not be read or
+    is not a JSON object."""
+
+
+#: How often a reader that stops the run over an unreadable checkpoint reads
+#: it before it gives up (:func:`load_status`'s *attempts*): a read failure
+#: that passes (a descriptor limit, a flaky mount) is not damage.
+CHECKPOINT_READ_ATTEMPTS = 3
+
+#: The pause before the second read, doubled before each one after it.
+_CHECKPOINT_RETRY_DELAY = 0.05
+
+
+def load_status(phase_dir: str, *, attempts: int = 1) -> Optional[Dict[str, Any]]:
+    """A phase dir's checkpoint for a reader that decides something on it.
+
+    ``None`` when there is none; raises :class:`CheckpointUnreadable` when one
+    exists but cannot be opened or parsed, or holds something other than a
+    JSON object, on each of *attempts* reads. :func:`read_status` folds both
+    into ``{}``, which is right for a view but not for a merge, nor for a
+    reader that would take a missing key for permission
+    (docs/development/review-results.md, "Withheld slot answers").
+    """
+    path = status_path(phase_dir)
+    for attempt in range(max(1, attempts)):
+        if attempt:
+            time.sleep(_CHECKPOINT_RETRY_DELAY * 2 ** (attempt - 1))
+        try:
+            with _open_checkpoint(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except FileNotFoundError:
+            return None
+        except (OSError, ValueError) as exc:
+            failure: BaseException = exc
+            continue
+        if isinstance(data, dict):
+            return data
+        failure = CheckpointUnreadable(path)
+    raise CheckpointUnreadable(path) from failure
+
+
+#: The phases whose checkpoint records which model answers are withheld
+#: (``result_files``: ``models_rejected``, ``models_unchecked``,
+#: ``checkpoint_recovered``): the review fan-outs (review-plan, review-tasks,
+#: review-code and review-commits, whose phase is ``code-review``) and ask.
+#: Only a fresh run of the phase recovers their damaged checkpoint, every
+#: earlier answer set aside and every model withheld after
+#: (``review_lane.recover_damaged_checkpoint``). Every other phase's
+#: checkpoint holds run, progress and display records only, so the run that
+#: owns the dir replaces a damaged one (:func:`replace_damaged_checkpoint`)
+#: (docs/development/review-results.md, "Recovering a damaged one").
+WITHHELD_RECORD_PHASES: Tuple[str, ...] = ("review-plan", "review-tasks", "code-review", "ask")
+
+
+def records_withheld_answers(phase: Optional[str]) -> bool:
+    """Whether *phase*'s checkpoint can record withheld answers
+    (:data:`WITHHELD_RECORD_PHASES`). A phase that cannot be named
+    (``None``) is taken to, so nothing is replaced over it."""
+    return phase is None or phase in WITHHELD_RECORD_PHASES
+
+
+def unreadable_checkpoint_advice(phase_dir: str, *, phase: Optional[str] = None) -> str:
+    """What every stop over a phase checkpoint that cannot be read tells the
+    user to do, the same everywhere (docs/development/review-results.md,
+    "Withheld slot answers").
+
+    In a phase whose checkpoint records withheld answers
+    (:func:`records_withheld_answers`, the default when *phase* is not
+    given) the checkpoint is what withholds answers whose safety checks
+    failed or never finished: moved aside alone, it would leave their files
+    beside a phase that no longer records them, and they would be read as
+    results. A fresh run of the phase, a review fan-out or ask, recovers a
+    damaged one in that order: every earlier result set aside or withheld
+    first, its bytes copied aside and a fresh checkpoint renamed over it
+    after (``review_lane.recover_damaged_checkpoint``). Every other phase's
+    run replaces a damaged one at its start
+    (:func:`replace_damaged_checkpoint`), and its checkpoint may be moved
+    aside alone."""
+    if not records_withheld_answers(phase):
+        return (
+            f"If the read failure has passed, running again is enough. If the file "
+            f"is damaged, run the phase again: its run keeps the damaged file as "
+            f"{STATUS_FILENAME}{UNREADABLE_ARCHIVE_INFIX}<time> and starts a fresh "
+            f"one (this phase's checkpoint holds run and progress records only). "
+            f"If the file cannot be opened at all, or that replacement stops, move "
+            f"{status_path(phase_dir)} aside, or delete it, and run the phase again."
+        )
+    return (
+        f"If the read failure has passed, running again is enough. If the file "
+        f"is damaged, run the phase again without --reaggregate once no run of "
+        f"this phase is live (`status`): a fresh run (a review fan-out, or the "
+        f"same ask question) keeps the damaged file as "
+        f"{STATUS_FILENAME}{UNREADABLE_ARCHIVE_INFIX}<time> and reuses no earlier "
+        f"result in the folder: every model runs again. If the file cannot be "
+        f"opened at all, or that recovery stops, move the whole phase folder "
+        f"{phase_dir} aside, or delete it, and run the phase again. Never move "
+        f".status.json aside on its own: the result files left beside it would "
+        f"then be read as results, answers whose safety checks failed among them."
+    )
+
+
+# ---------------------------------------------------------------------------
+# A damaged checkpoint: told apart from a read that failed, archived, replaced
+# ---------------------------------------------------------------------------
+
+#: What a damaged checkpoint's bytes are kept as (:func:`archive_damaged_checkpoint`):
+#: ``.status.json.unreadable-<stamp>``. Dot-prefixed and no longer ending in
+#: ``.json``, so no reader of the phase dir takes it for a checkpoint or a result.
+UNREADABLE_ARCHIVE_INFIX = ".unreadable-"
+
+
+class CheckpointDamage(NamedTuple):
+    """A checkpoint read whole whose bytes are not a JSON object
+    (:func:`checkpoint_damage`): its path, the SHA-256 of the bytes, their
+    length and what they are instead."""
+
+    path: str
+    digest: str
+    size: int
+    detail: str
+
+
+def _not_an_object(data: bytes) -> Optional[str]:
+    """What *data* is instead of a JSON object, or ``None`` when it is one."""
+    if not data:
+        return "empty"
+    try:
+        document = json.loads(data.decode("utf-8"))
+    except UnicodeDecodeError:
+        return "not UTF-8 text"
+    except (ValueError, RecursionError):
+        return "not JSON"
+    if isinstance(document, dict):
+        return None
+    return f"a JSON {type(document).__name__}, not an object"
+
+
+def checkpoint_damage(
+    phase_dir: str, *, attempts: int = CHECKPOINT_READ_ATTEMPTS,
+) -> Optional[CheckpointDamage]:
+    """Whether *phase_dir*'s checkpoint is **damaged**, as opposed to absent,
+    readable, or unread.
+
+    ``None`` when there is none, or when a read finds a JSON object. A
+    :class:`CheckpointDamage` only when each of *attempts* reads got the same
+    bytes, from a regular file, and they are not a JSON object: the file is
+    there and wrong, and reading it again will not change that. Raises
+    :class:`CheckpointUnreadable` otherwise: a read that failed (a descriptor
+    limit, a permission, a flaky mount), a link or anything but a file at the
+    name, or bytes that changed between reads. Those are not proven damage,
+    and nothing may be done to the file over them
+    (docs/development/review-results.md, "Withheld slot answers"). Nothing
+    blocks: a name that is no file is never opened, and every open is
+    :func:`_open_checkpoint`'s, so a FIFO behind a link, or swapped in after
+    the ``lstat``, is a failed read too."""
+    path = status_path(phase_dir)
+    failure: Optional[BaseException] = None
+    found: Optional[CheckpointDamage] = None
+    stable = True
+    for attempt in range(max(1, attempts)):
+        if attempt:
+            time.sleep(_CHECKPOINT_RETRY_DELAY * 2 ** (attempt - 1))
+        try:
+            info = os.lstat(path)
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            failure, stable = exc, False
+            continue
+        link = stat.S_ISLNK(info.st_mode)
+        if not (link or stat.S_ISREG(info.st_mode)):
+            failure, stable = CheckpointUnreadable(f"{path} is not a file"), False
+            continue
+        try:
+            with _open_checkpoint(path, "rb") as handle:
+                data = handle.read()
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            failure, stable = exc, False
+            continue
+        detail = _not_an_object(data)
+        if detail is None:
+            return None
+        if link:
+            failure, stable = CheckpointUnreadable(f"{path} is a link"), False
+            continue
+        seen = CheckpointDamage(path, hashlib.sha256(data).hexdigest(), len(data), detail)
+        if found is not None and found.digest != seen.digest:
+            failure, stable = CheckpointUnreadable(f"{path} changed between reads"), False
+        found = seen
+    if stable and found is not None:
+        return found
+    raise CheckpointUnreadable(path) from failure
+
+
+def _still_damaged(path: str, damage: CheckpointDamage, *, doing: str) -> bytes:
+    """The bytes at *path*, read again: ``OSError`` unless they are the ones
+    *damage* found, in a regular file (a link is refused, never followed)."""
+    try:
+        if not stat.S_ISREG(os.lstat(path).st_mode):
+            raise OSError(f"{path} is not a regular file")
+        with _open_checkpoint(path, "rb") as handle:
+            data = handle.read()
+    except OSError as exc:
+        raise OSError(f"{path} could not be read again before it was {doing} "
+                      f"({exc})") from exc
+    if hashlib.sha256(data).hexdigest() != damage.digest:
+        raise OSError(f"{path} changed after it was found damaged, so it was not {doing}")
+    return data
+
+
+def archive_damaged_checkpoint(phase_dir: str, damage: CheckpointDamage, stamp: str) -> str:
+    """Copy the damaged checkpoint's bytes to ``.status.json.unreadable-<stamp>``
+    (:data:`UNREADABLE_ARCHIVE_INFIX`, ``-2``... on a collision); the copy's path.
+
+    The checkpoint itself is left in place, so it keeps refusing the folder
+    until :func:`publish_checkpoint` replaces it in one rename: no moment
+    leaves the phase without one. Under the checkpoint mutex, which must be
+    taken (:class:`CheckpointLockUnavailable`), and only while the file still
+    holds the bytes *damage* read; the copy is written through the phase
+    folder held below the plan's directory and flushed. ``OSError`` when no
+    copy was written."""
+    path = status_path(phase_dir)
+    with checkpoint_lock(phase_dir, required=True):
+        data = _still_damaged(path, damage, doing="archived")
+        name = f"{STATUS_FILENAME}{UNREADABLE_ARCHIVE_INFIX}{stamp}"
+        suffix = 2
+        while os.path.lexists(os.path.join(str(phase_dir), name)):
+            name = f"{STATUS_FILENAME}{UNREADABLE_ARCHIVE_INFIX}{stamp}-{suffix}"
+            suffix += 1
+        target = os.path.join(str(phase_dir), name)
+        write_in_plan_dir(target, data, mode=0o600, fsync=True, temp_prefix=STATUS_TEMP_PREFIX)
+        return target
+
+
+def publish_checkpoint(
+    phase_dir: str, document: Dict[str, Any], *, replacing: Optional[CheckpointDamage] = None,
+) -> Dict[str, Any]:
+    """Write *document* as *phase_dir*'s whole checkpoint, and read it back;
+    the document as read.
+
+    Unlike :func:`write_status`, nothing is carried over and nothing is
+    swallowed: the write (published through the phase folder held below the
+    plan's directory, flushed, renamed over the old file in one step) raises
+    ``OSError`` when it fails, a read-back that cannot be read raises
+    :class:`CheckpointUnreadable`, and one that differs raises ``OSError``.
+    With *replacing*, only over the damaged bytes it found (``OSError``
+    otherwise, nothing written). Under the checkpoint mutex, which must be
+    taken (:class:`CheckpointLockUnavailable`). For the one writer that
+    replaces a damaged checkpoint (``review_lane.recover_damaged_checkpoint``)."""
+    data = dict(document)
+    path = status_path(phase_dir)
+    with checkpoint_lock(phase_dir, required=True):
+        if replacing is not None:
+            _still_damaged(path, replacing, doing="replaced")
+        data["updated_at"] = now_iso()
+        write_in_plan_dir(path, json.dumps(data, indent=2).encode("utf-8"),
+                          mode=0o600, fsync=True, temp_prefix=STATUS_TEMP_PREFIX)
+        back = load_status(phase_dir)
+        if back != data:
+            raise OSError(f"{path} does not read back as written")
+        return back
+
+
+def replace_damaged_checkpoint(
+    phase_dir: str, damage: CheckpointDamage, *, phase: Optional[str],
+) -> str:
+    """Replace *damage*, a damaged checkpoint of a phase whose checkpoint
+    records no withheld answers, with a fresh one; the path of the damaged
+    bytes' copy.
+
+    For the run that owns *phase_dir*, at its start, before its first
+    checkpoint write. Nothing of the damaged file is read: its bytes are
+    copied to ``.status.json.unreadable-<stamp>``
+    (:func:`archive_damaged_checkpoint`), then ``{"phase": phase}`` is
+    renamed over it in one step, only while it still holds those bytes, and
+    read back (:func:`publish_checkpoint`), under one hold of the checkpoint
+    mutex. What is lost is the run, progress and display records an earlier
+    run wrote there, which no later run decides on.
+
+    Refused with ``ValueError``, nothing written, for a phase in
+    :data:`WITHHELD_RECORD_PHASES` or one not named: only a fresh run of such
+    a phase recovers its checkpoint, every earlier answer set aside first
+    (``review_lane.recover_damaged_checkpoint``). Raises
+    :class:`CheckpointLockUnavailable` when the mutex cannot be taken,
+    ``OSError`` when the copy or the replacement fails or the bytes changed,
+    and :class:`CheckpointUnreadable` when the fresh one cannot be read back
+    (docs/development/review-results.md, "Recovering a damaged one")."""
+    if records_withheld_answers(phase):
+        raise ValueError(
+            f"{status_path(phase_dir)} records withheld answers ({phase or 'phase not named'}): "
+            f"only a fresh run of the phase recovers it")
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S%f")
+    with checkpoint_lock(phase_dir, required=True):
+        archived = archive_damaged_checkpoint(phase_dir, damage, stamp)
+        publish_checkpoint(phase_dir, {"phase": phase}, replacing=damage)
+    return archived
 
 
 def read_run(phase_dir: str) -> Dict[str, Any]:
@@ -414,8 +811,17 @@ def claim_run(phase_dir: str, record: Dict[str, Any]) -> None:
     # compare-and-set takes — so no writer, in this process or another, can
     # observe (or write into) the momentary run-less document between them and
     # mistake it for a dir with no owner.
+    # The run-scoped results go with them (`RUN_SCOPED_KEYS`): the top-level
+    # `state` this keeps would let a poll relay them as the new run's. So does
+    # a refusal close-out, its `state` word included (`REFUSAL_STATES`,
+    # `REFUSAL_KEYS`): kept, it is read as this run's refusal
+    # (docs/development/runtime.md, "Status file schema").
     with checkpoint_lock(phase_dir):
         update_status(phase_dir, {"run": None, "progress": None})
+        retired = [*RUN_SCOPED_KEYS, *REFUSAL_KEYS]
+        if read_status(phase_dir).get("state") in REFUSAL_STATES:
+            retired.append("state")
+        remove_status_keys(phase_dir, retired)
         update_status(phase_dir, {"run": dict(record)})
 
 

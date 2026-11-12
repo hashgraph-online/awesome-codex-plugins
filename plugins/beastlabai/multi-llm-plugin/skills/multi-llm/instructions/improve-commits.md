@@ -213,8 +213,9 @@ While you run it:
   never holds. The phase core's own recovery steps (row 3's `--force` resume of the
   missing models) still run as that core words them.
 - **`[IMPROVE_STEP_FRESH] 1` means skip `review-code.md` step 4, Resume Detection,**
-  and nothing else. Its case (a) would read the previous round's `validation.json` as
-  "complete" and skip a review that must run. Whatever makes the phase start over is
+  and nothing else. Its answer describes the previous round (`report` on that round's
+  recorded completion, a re-run of its models over its files) and would skip or
+  reshape a review that must run. Whatever makes the phase start over is
   already in the flags line.
 - **The review's follow-ups run as printed.** On the brief, review-code prints its
   `--reaggregate` (its `next` after validation, `[REAGGREGATE_AFTER_SALVAGE]` after

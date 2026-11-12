@@ -56,7 +56,9 @@ asks only for the skill, MCP, and install.
 The wizard needs a terminal: without one, `init` exits with code 2. From an
 agent's shell, run `npx e2e init --yes` when its defaults fit and install the
 dependencies after it, or install by hand (below). `--yes` includes MCP
-registration; a manual install needs a separate entry (topic `mcp`).
+registration. When the client already has the e2e plugin, pass
+`--skills none --mcp none`, since the plugin gives it the skill and the server
+(`plugin:e2e:e2e`). A manual install needs a separate entry (topic `mcp`).
 
 Init adds dependencies and a `test:e2e` script to `package.json`, writes
 `e2e.config.ts` and `tests/example.e2e.ts`, updates `.gitignore`, leaves
@@ -215,8 +217,8 @@ start a script that brings them up and serves the app.
 | `browser` | `'chromium'` (default), `'firefox'`, `'webkit'`, or a `BrowserProvider` leasing hosted browsers over CDP (`kernel()` from `@e2e-dev/kernel`, `smol()` from `@e2e-dev/smol`, `lightpanda()` from `@e2e-dev/lightpanda`, `testmuBrowsers()` from `@e2e-dev/testmu/web`, `e2bBrowsers()` from `@e2e-dev/e2b/web`, or your own), which implies chromium and excludes `connect`. Scope `'worker'` (default): one browser per worker slot from `prepare` to `finish`; `'attempt'`: one per attempt, with `reconnectEndpoint`'s limits (`lightpanda()` and `testmuBrowsers()` are worker scope only). |
 | `viewport` | `{ width, height }`, default 1280x720; `null` follows the browser window (hosted live view, headed run). On a headed hosted browser (Kernel) use `null` and size the service's screen; a fixed size gives a smaller, unmaximized window. |
 | `connect` | `{ cdpEndpoint }` attaches to a remote Chromium over CDP; `cdpEndpoint` is required, and both it and `reconnectEndpoint` are resolvers `(signal) => url`, not strings, else `INVALID_CONFIG` at load. With `reconnectEndpoint` it rides one persistent default context, needs a fresh browser from `cdpEndpoint` every attempt, and reconnects only to the original browser and page. |
-| `headers` | Sent to the app's site only (Vercel's `x-vercel-protection-bypass`, ngrok's `ngrok-skip-browser-warning`), `agent.act` included; disables the browser HTTP cache and service workers. |
-| `basicAuth` | `{ username, password }` for a `401` challenge; `password` may be `secrets.get('name')`, resolved per attempt and redacted like any secret, the base64 `Authorization` credential too. |
+| `headers` | Sent to the app's origin only (scheme, host, and port of `app.url`; Vercel's `x-vercel-protection-bypass`, ngrok's `ngrok-skip-browser-warning`), `agent.act` included; `credentialOrigins: ['https://api.example.com']` adds exact origins for `headers` and `basicAuth`. A request keeps them through its redirects, to any origin. Disables the browser HTTP cache and service workers. |
+| `basicAuth` | `{ username, password }` for a `401` challenge from the app's origin, or one `credentialOrigins` lists (a redirect to `www` or `https:` is another origin; WebKit answers any origin when one is on a default port or an IPv6 host); `password` may be `secrets.get('name')`, resolved per attempt and redacted like any secret, the base64 `Authorization` credential too. |
 | `userAgent` | The `User-Agent` every attempt sends and `navigator.userAgent` reports. |
 | `locale`, `timezoneId` | The language (`'de-DE'`: `navigator.language`, `Intl`, `Accept-Language`) and IANA time zone (`'Europe/Berlin'`) every attempt runs in. |
 | `colorScheme`, `reducedMotion` | The `prefers-color-scheme` (`'light'`, `'dark'`, `'no-preference'`) and `prefers-reduced-motion` (`'reduce'`, `'no-preference'`) every page reports to its `@media` rules and `matchMedia`, from first paint. |
@@ -414,6 +416,12 @@ export default {
   Non-input targets return `UNSUPPORTED_CAPABILITY`; an iOS `other` that holds
   a value or only text is typed into, since a custom-drawn field (Compose
   Multiplatform, Flutter) can read that way.
+- A node whose centre the soft keyboard covers is hidden, so
+  `scrollUntilVisible` keeps scrolling and `toBeVisible()` fails. The
+  keyboard's own keys and dock, the focused field, and a container with a
+  child still showing stay visible. A tap on a
+  node agent-device finds covered (by an overlay or the keyboard) fails
+  `ACTION_FAILED` naming the cover; dismiss it or scroll the target clear.
 - `screen`, `expect`, `app`, `agent` work unchanged; `test` from
   `@e2e-dev/mobile` types the `device` fixture (`installApp`, `openLink`,
   `setPermission`, `setNetwork`, `setAppearance`, `clearKeychain`, `fold`

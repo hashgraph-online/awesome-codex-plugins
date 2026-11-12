@@ -25,6 +25,7 @@ import warnings
 from typing import Any, Dict, Iterator, List, Mapping, Optional, Tuple
 
 from .base import (
+    LAUNCH_DIAGNOSTICS_NONE,
     CATEGORY_INVALID_MODEL,
     CATEGORY_PERMISSION_DENIED,
     CATEGORY_SERVER_ERROR,
@@ -42,6 +43,7 @@ from .base import (
     skill_environment_path,
 )
 from .pi import parse_answer_text
+from ..process_state import process_cache
 from ..retry_ladder import STATUS_BUDGET_EXHAUSTED
 
 
@@ -152,8 +154,8 @@ _ENVELOPE_KEYS = frozenset({
     "output", "final_output", "exit_code", "model", "resolved_provider",
     "session_id", "steps", "tool_calls", "usage", "error", "auth_failure", "recovery",
 })
-_WARNED_KEYS: set = set()
 _WARN_LOCK = threading.Lock()
+_WARNED_KEYS: set = process_cache("utils.providers.fx._WARNED_KEYS", set, lock=_WARN_LOCK)
 _HTTP = re.compile(
     r"^(?:API request failed|API access denied|configured provider authentication failed)"
     r" · HTTP (?P<status>\d{3})(?: · (?P<body>[^\n]*))?\s*$", re.MULTILINE
@@ -285,13 +287,23 @@ class FxProvider(LLMProvider):
     runs_shell_in_generate = True
     internal_retries = InternalRetryEnvelope(max_requests=None, retries_rate_limit=True)
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: fx's
+    #: :meth:`vendor_text` keeps only fx's own line shapes (``API request
+    #: failed · HTTP …`` in a failed envelope's ``output``, anchored stderr
+    #: notices), and :meth:`classify_failure` reads the envelope's structured
+    #: ``error`` and ``auth_failure`` fields; neither is ever the model's
+    #: ``final_output``, and a cut envelope parses to none.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: fx relays its shell
+    #: tool on stderr, the command and then its output unmarked (``Running pwd; …`` then the
+    #: directory it printed, tests/fixtures/fx/shell-reviewed), so no line there can be told
+    #: apart from a tool's. fx classifies from its envelope anyway (:meth:`classify_failure`).
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_NONE
+
     @property
     def name(self) -> str:
         return "fx"
-
-    @property
-    def default_timeout(self) -> int:
-        return 1200
 
     def is_available(self) -> bool:
         return shutil.which("fx") is not None

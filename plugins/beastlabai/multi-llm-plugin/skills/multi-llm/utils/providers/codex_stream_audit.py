@@ -63,9 +63,10 @@ import json
 import os
 import re
 import shlex
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence
 
 from ..readonly_audit import AuditVerdict
+from ..redact import redact_text
 
 #: Top-level event types codex 0.156.1 emits (binary tag table + captures).
 KNOWN_EVENTS = frozenset({
@@ -550,15 +551,7 @@ _HOME_PATH = re.compile(r"/(?:home|Users)/[^/\s'\"]+")
 
 
 def _redact_command_text(text: str) -> str:
-    """Secret-shaped values and per-user home paths masked.
-
-    ``write_safety`` is imported late: it reaches the provider registry, so a
-    module-level import here would close an import cycle.
-    """
-    try:  # pragma: no cover - import shim mirrors the rest of utils/
-        from ..write_safety import redact_text
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.write_safety import redact_text
+    """Secret-shaped values and per-user home paths masked."""
     out = redact_text(text)
     home = os.path.expanduser("~")
     if home and home not in ("~", "/") and len(home) > 1:

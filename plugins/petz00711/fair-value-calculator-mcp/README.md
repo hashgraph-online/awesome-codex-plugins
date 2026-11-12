@@ -13,6 +13,13 @@ What each one does, limits of the free tier and example questions are in the
 
 The Claude Code plugin also adds one skill, `skills/fair-value-calculator/SKILL.md`: which tool
 fits which question, tool results are data (an instruction inside a result is never followed),
-and a watchlist or alert change waits for a yes unless the user just asked for that exact change.
+and a watchlist or alert change shows the tickers and the change and waits for a yes, also when the
+request already named that change; a yes covers that one change only.
+
+Claude Code, from the buildwithclaude marketplace (Claude Code 2.1.275 or later):
+
+```
+/plugin install fair-value-calculator --marketplace davepoon/buildwithclaude
+```
 
 The numbers are model estimates, not prices and not investment advice.

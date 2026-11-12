@@ -8,15 +8,16 @@
             "type": "command",
             "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/session-start\"",
             "timeout": 5
-          },
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/session-start\" loop",
-            "timeout": 5
-          },
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/session-start\" engineering",
+            "command": "\"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/hooks/user-prompt\"",
             "timeout": 5
           }
         ]

@@ -32,6 +32,7 @@ First-class path. Check the installed versions before relying on an API.
 - Native date/time pickers (`@react-native-community/datetimepicker`) rather than one custom picker for both
 - `Alert.alert` for system alerts; an action sheet on iOS and a bottom sheet or menu on Android for option lists
 - `@expo/ui` renders real SwiftUI on iOS and Jetpack Compose on Android from React — its Universal components give each OS its native controls from one component tree, which is the "follow the OS" column above in one package
+- Before choosing an `@expo/ui` component, map what the installed version offers: check its version in `package.json`, then read the installed package's type definitions for what each entry point exports — the package root (Universal), `@expo/ui/swift-ui`, and `@expo/ui/jetpack-compose`. The package changes quickly, so a remembered component list is often out of date. When it is not installed yet, read the current Expo docs instead
 - `expo-glass-effect` (`GlassView`) only for custom floating controls that need glass; it falls back to a plain `View` below iOS 26 and on Android, so the design must work without it
 
 ### Layout

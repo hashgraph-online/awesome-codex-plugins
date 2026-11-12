@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | ~$0.64–3.42 per 5 s Seedance 2.5 clip, 480p–1080p (estimate) |
 | Uses | varg API, Seedance 2.5, Kling 4, Wan 3, MiniMax H3, Python, FFmpeg |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.0) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.1) |
 
 ## Ask your agent
 

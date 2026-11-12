@@ -8,6 +8,7 @@ A cross-platform app's look is one design, defined once and shared by both platf
 - **Light and dark** as two objects of the same shape, chosen with `useColorScheme()`. Use the theme provider when a library supplies one (React Navigation's `ThemeProvider`, Tamagui, NativeWind's dark variants, Unistyles).
 - **NativeWind / Tailwind**: put the tokens in the Tailwind theme and use CSS variables for light and dark, as on the web
 - **Navigation chrome**: pass the tokens to React Navigation's theme or Expo Router's native tabs so headers and tab bars match, while keeping native components
+- **`@expo/ui`**: its components are real SwiftUI and Jetpack Compose views inside a `Host`, so tokens reach them through each component's own props and modifiers (`font` and `foregroundStyle` on the SwiftUI side) rather than a React Native `style`. The package changes quickly, so read the installed version's type definitions for the components and modifiers it exports before mapping tokens onto them. When it is not installed yet, read the current Expo docs.
 
 ## Fonts
 

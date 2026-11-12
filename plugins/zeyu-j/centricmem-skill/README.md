@@ -29,9 +29,9 @@ client asks for a skill id. It is not a second product.
 ```
 Install CentricMem from the GitHub package zeyu-j/centricmem-skill (the skill folder is centricmem-agent).
 Then send me https://centricmem.com/login?signup=1 and try a /connect?device= link. Tell me to set a PIN
-on Connections and remember it, and never paste the key in chat. If minting that link fails, run
+on Connections and remember it, and never paste the credential in chat. If minting that link fails, run
 centricmem doctor connect and ask me to email zeyu@poppyg.com with the output - you never send that mail and
-never see the key.
+never see the credential.
 ```
 
 If a shell is available, the same install is one command:
@@ -66,16 +66,16 @@ npx --yes skills add zeyu-j/centricmem-skill --skill centricmem-agent -y
 | Kiro CLI | `kiro-cli mcp add --name centricmem --url https://mem.centricmem.com/mcp --scope default`; this client has no Skill or hook surface |
 | Kiro Crew | Settings → Skills → Discover → `zeyu-j/centricmem-skill:skills/centricmem-agent`, then Customize → Connections → Add Custom → `https://mem.centricmem.com/mcp`. Attach it to the agent that will run the chat. Complete the device claim; use the OAuth banner only when minting fails and this agent receives the browser callback. Drain the warm pool or restart, then open a cold session |
 | DSH | `dsh plugin --profile web add github:zeyu-j/centricmem-skill#v1.0.32`, then `node node_modules/centricmem-skill/dsh/copy-skill.mjs` from the profile directory, then the two overlay rows in [`dsh/README.md`](./dsh/README.md). Read that file first: adding the package puts its patch into the profile bundle stack, where a missing Bearer aborts boot on purpose |
-| Dify | Its own distribution: [zeyu-j/centricmem-dify](https://github.com/zeyu-j/centricmem-dify); marketplace review pending. Any MCP client can also attach `https://mem.centricmem.com/mcp` with the same agent key |
+| Dify | Its own distribution: [zeyu-j/centricmem-dify](https://github.com/zeyu-j/centricmem-dify); marketplace review pending. Any MCP client can also attach `https://mem.centricmem.com/mcp` with the same agent credential |
 | Kilo | `npx --yes skills add zeyu-j/centricmem-skill` for the Skill; the MCP half is the interactive `kilo mcp add`. See [VERIFIED-INSTALLS.md](./VERIFIED-INSTALLS.md) |
 | junie / Devin | Documented surfaces only: `junie --mcp-location` is flag-driven, and Devin's plugin docs need a browser to render. See [`devin/`](./devin/) and [VERIFIED-INSTALLS.md](./VERIFIED-INSTALLS.md) |
 | SkillKit / skills.sh | `skillkit add https://centricmem.com`, `skillkit add zeyu-j/centricmem-skill`, or the `npx skills add` line above |
-| Any other Agent Skills host | Copy `skills/centricmem-agent/` so the file lands at `<skills-root>/centricmem-agent/SKILL.md`, then point the host's MCP client at `https://mem.centricmem.com/mcp` - **streamable HTTP only**: the hosted librarian has no stdio transport, so a host that offers only stdio cannot attach. Claim the machine with `centricmem connect --claim --target <this-host-config.json>` (or `CENTRICMEM_MCP_TARGETS`) and confirm with `centricmem connect --verify`. Never copy a key out of another client's config |
+| Any other Agent Skills host | Copy `skills/centricmem-agent/` so the file lands at `<skills-root>/centricmem-agent/SKILL.md`, then point the host's MCP client at `https://mem.centricmem.com/mcp` - **streamable HTTP only**: the hosted librarian has no stdio transport, so a host that offers only stdio cannot attach. Claim the machine with `centricmem connect --claim --target <this-host-config.json>` (or `CENTRICMEM_MCP_TARGETS`) and confirm with `centricmem connect --verify`. Never copy a credential out of another client's config |
 
 **After install.** If `cm_*` tools are missing, the agent tries the connect link above - a plugin `mcp.json`
 with no Bearer is not a finished connect. OAuth is for hosts that can receive the browser login, and it is a
-fallback for a failed mint, not a substitute for the connect link. Save the key when it is shown; it appears
-once. Never paste a key, a transcript, or CLI output that contains one into chat.
+fallback for a failed mint, not a substitute for the connect link. Save the credential when it is shown; it appears
+once. Never paste a credential, a transcript, or CLI output that contains one into chat.
 
 Hosted librarian: [centricmem.com](https://centricmem.com). Sign-up is open. Host MCP:
 `https://mem.centricmem.com/mcp`.
@@ -87,9 +87,9 @@ still files cards through the Skill. Direct HTTP callers that are not MCP client
 
 ## How you use it
 
-1. Keep working where you already work. The agent keeps its own memory on, says **once** which key this chat
+1. Keep working where you already work. The agent keeps its own memory on, says **once** which credential this chat
    is using, and files real work as it happens - you never have to say "wrap up". Extra grants are per-shelf
-   ticks on **Connections**. A full-access key (`*`) opens every shelf.
+   ticks on **Connections**. A full-access credential (`*`) opens every shelf.
 2. If the library looks empty it offers **once** to file notes you already have as cards. That is optional
    and it is not a dump of every chat.
 3. Later, ask the agent - or log in to search and download originals. There is no Inbox: work lands on a
@@ -138,13 +138,13 @@ MIT, and the Dify plugin is its own distribution.
 Claude Code, Codex and OpenClaw install this repository as a plugin, and a plugin can carry more than
 skills. This one carries a **SessionStart hook** (`hooks/hooks.json`) that runs a small Node script:
 it looks for a credential in `CENTRICMEM_TOKEN`, `CENTRICMEM_API_KEY` or `CENTRICMEM_AGENT_KEY`, then
-in the host's own MCP config (where the key usually is), then in a `centricmem/api.json` beside your
+in the host's own MCP config (where the credential usually is), then in a `centricmem/api.json` beside your
 config, and if it finds one it prints the shelf context so the session starts oriented. The same file
 adds a **SessionEnd hook** that files the session unit. With no credential nothing is printed at all,
 which is the normal case on an OAuth-connected host, and neither hook ever exits non-zero: a network
 problem can only mean a quieter session, never a broken one.
 
-On a host that scrubs key-shaped environment variables the file is the only channel - `dsh/README.md`
+On a host that scrubs credential-shaped environment variables the file is the only channel - `dsh/README.md`
 records that one. OpenClaw takes the same idea as a hook pack (`openclaw/`) and goose uses recipes and
 the MOIM file instead (`goose/`); the per-host detail, event names and timeouts live in
 [VERIFIED-OPTIMISATIONS.md](./VERIFIED-OPTIMISATIONS.md).

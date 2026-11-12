@@ -32,51 +32,39 @@ invokers apart from the ``judge`` they name.
 from __future__ import annotations
 
 import glob
+import hashlib
 import json
 import os
-import re
 import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
-try:
-    from .judge_vocab import (
-        JUDGE_AUTO_DECIDE,
-        JUDGE_AUTO_DECIDE_SALVAGE,
-        JUDGE_BATCH_ID_PREFIX,
-        JUDGE_SKIPPED,
-        canonical_value,
-    )
-    from .schema_validator import validate_human_decision_verdicts
-    from .subagent_prompts import build_human_decision_judge_prompt
-    from .subagent_tasks import (
-        PromptBudget,
-        build_inputs,
-        content_hash,
-        file_bytes_sha256,
-        make_task,
-        make_task_file,
-        write_task_file,
-    )
-except ImportError:  # pragma: no cover - direct-script import shim
-    from utils.judge_vocab import (
-        JUDGE_AUTO_DECIDE,
-        JUDGE_AUTO_DECIDE_SALVAGE,
-        JUDGE_BATCH_ID_PREFIX,
-        JUDGE_SKIPPED,
-        canonical_value,
-    )
-    from utils.schema_validator import validate_human_decision_verdicts
-    from utils.subagent_prompts import build_human_decision_judge_prompt
-    from utils.subagent_tasks import (
-        PromptBudget,
-        build_inputs,
-        content_hash,
-        file_bytes_sha256,
-        make_task,
-        make_task_file,
-        write_task_file,
-    )
+from .judge_vocab import (
+    JUDGE_AUTO_DECIDE,
+    JUDGE_AUTO_DECIDE_SALVAGE,
+    JUDGE_BATCH_ID_PREFIX,
+    JUDGE_SKIPPED,
+    canonical_value,
+)
+from . import importance as _importance
+from .schema_validator import (
+    schema_version_supplied,
+    validate_human_decision_verdicts,
+    supply_schema_version,
+)
+from .subagent_prompts import build_human_decision_judge_prompt
+from .subagent_tasks import (
+    PromptBudget,
+    build_inputs,
+    content_hash,
+    file_bytes_sha256,
+    make_task,
+    make_task_file,
+    safe_output_token,
+    write_task_file,
+)
+from .state_manager import generate_group_id
+from .task_outcome import batch_report_path
 
 
 __all__ = [
@@ -109,10 +97,6 @@ JUDGE_TASKS_FILENAME = "human_decision_tasks.json"
 #: judged item's stable id (see :func:`verdict_output_name`), never its position,
 #: so the glob is deliberately wider than ``_\d+``.
 VERDICT_FILE_PATTERN = "human_decision_batch_*.json"
-
-#: The basename charset ``schemas/subagent_tasks.schema.json`` allows for
-#: ``output_name``. A token outside it is hashed rather than rejected.
-_SAFE_VERDICT_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 DECISION_APPROVE = "approve"
 DECISION_SALVAGE = "salvage"
@@ -191,10 +175,6 @@ def group_id_of(group: Dict[str, Any]) -> str:
     existing = group.get("group_hash") or group.get("group_id")
     if existing:
         return str(existing)
-    try:
-        from .state_manager import generate_group_id
-    except ImportError:  # pragma: no cover
-        from utils.state_manager import generate_group_id
     return generate_group_id(group)
 
 
@@ -223,9 +203,9 @@ def judge_item_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
         "group_id": group_id_of(group),
         "title": primary.get("title") or group.get("theme") or "Untitled",
         "description": description or group.get("desc") or group.get("description") or "",
-        "importance": (
-            primary.get("importance") or group.get("importance") or "MEDIUM"
-        ).upper(),
+        "importance": _importance.normalize(
+            primary.get("importance") or group.get("importance")
+        ),
         "validation_reason": group.get("validation_reason", ""),
         "validation_confidence": group.get("validation_confidence", 0.0),
         "models": list(group.get("models", [])),
@@ -244,25 +224,14 @@ def judge_item_from_group(group: Dict[str, Any]) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def verdict_output_name(token: str) -> str:
-    """Return the verdict basename for one judging task, keyed by *token*.
+    """Return the verdict basename for one judging task, keyed by *token*
+    (``subagent_tasks.safe_output_token``).
 
-    The token is the item's stable ``group_id`` — **never its position** in the
-    materialized list. ``build_judge_tasks`` is called with whatever items are
-    still unjudged, so a re-enumerated index names a *different* group's verdict
-    file on the next invocation; and because a task counts as done iff its
-    ``output_name`` exists, parses and validates, the resumed task would read the
-    previous round's already-ingested verdict, never be dispatched, and leave its
-    own group unjudged (silently skipped under ``--yes``) — while a native
-    invoker would instead overwrite the earlier group's file. Keying by
-    ``group_id`` is what makes "resume by id" true of the filenames too.
-
-    A token outside the task schema's basename charset is hashed rather than
-    rejected, so an exotic id still names exactly one stable file.
+    The token is the item's stable ``group_id`` — **never its position**: the
+    tasks are rebuilt from whatever is still unjudged, so a position names
+    another group's verdict file, which then reads as done.
     """
-    token = str(token or "")
-    if not _SAFE_VERDICT_TOKEN.match(token):
-        token = content_hash(token)
-    return f"human_decision_batch_{token}.json"
+    return f"human_decision_batch_{safe_output_token(token)}.json"
 
 
 def build_judge_tasks(
@@ -381,6 +350,15 @@ class VerdictIngest:
     files_read: List[str] = field(default_factory=list)
     #: ``group_id -> the verdict file it was read from``.
     sources: Dict[str, str] = field(default_factory=dict)
+    #: ``verdict file -> sha256 of the bytes ingested from it``, and the judge
+    #: the file declared of itself, so labelling never reads a file again
+    #: (:func:`judge_labels`).
+    digests: Dict[str, str] = field(default_factory=dict)
+    declared: Dict[str, Any] = field(default_factory=dict)
+    #: ``verdict file -> its realpath when it was read``: the identity each
+    #: source had at ingestion, which labelling matches report rows against
+    #: instead of resolving paths again (:func:`judge_labels`).
+    identities: Dict[str, str] = field(default_factory=dict)
 
     @property
     def ok(self) -> bool:
@@ -388,19 +366,7 @@ class VerdictIngest:
 
 
 def _supply_verdict_version(document: Any) -> Optional[str]:
-    try:
-        from .schema_validator import supply_schema_version
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.schema_validator import supply_schema_version
     return supply_schema_version(document, "human_decision_verdicts.schema.json")
-
-
-def _schema_version_supplied(subject: str, version: str) -> str:
-    try:
-        from .schema_validator import schema_version_supplied
-    except ImportError:  # pragma: no cover - direct-script import shim
-        from utils.schema_validator import schema_version_supplied
-    return schema_version_supplied(subject, version)
 
 
 def read_verdict_files(phase_dir: str) -> List[Tuple[str, Any, List[str]]]:
@@ -410,13 +376,24 @@ def read_verdict_files(phase_dir: str) -> List[Tuple[str, Any, List[str]]]:
         ``[(path, document_or_None, errors)]`` sorted by path, so ingest order is
         deterministic regardless of filesystem enumeration order.
     """
-    results: List[Tuple[str, Any, List[str]]] = []
+    return [(path, doc, errors) for path, doc, errors, _digest
+            in _read_verdict_files(phase_dir)]
+
+
+def _read_verdict_files(
+    phase_dir: str,
+) -> List[Tuple[str, Any, List[str], Optional[str]]]:
+    """:func:`read_verdict_files`, each file read once, with the sha256 of the
+    bytes parsed (``None`` for a file that could not be read)."""
+    results: List[Tuple[str, Any, List[str], Optional[str]]] = []
     for path in sorted(glob.glob(os.path.join(phase_dir, VERDICT_FILE_PATTERN))):
         try:
-            with open(path, "r", encoding="utf-8") as handle:
-                document = json.load(handle)
-        except (OSError, json.JSONDecodeError) as exc:
-            results.append((path, None, [f"{path}: could not be read as JSON ({exc})"]))
+            with open(path, "rb") as handle:
+                raw = handle.read()
+            document = json.loads(raw.decode("utf-8"))
+        except (OSError, ValueError) as exc:
+            results.append(
+                (path, None, [f"{path}: could not be read as JSON ({exc})"], None))
             continue
         # Fix round 28: a host's copy of the judge's reply that left out
         # "schema_version" is read as the one version there is, said once
@@ -425,7 +402,7 @@ def read_verdict_files(phase_dir: str) -> List[Tuple[str, Any, List[str]]]:
         if version:
             print(
                 "[human-decision] "
-                + _schema_version_supplied(os.path.basename(path), version)
+                + schema_version_supplied(os.path.basename(path), version)
                 + ".",
                 file=sys.stderr,
             )
@@ -433,7 +410,8 @@ def read_verdict_files(phase_dir: str) -> List[Tuple[str, Any, List[str]]]:
             f"{path}: {message}"
             for message in validate_human_decision_verdicts(document)
         ]
-        results.append((path, document if not errors else None, errors))
+        results.append((path, document if not errors else None, errors,
+                        hashlib.sha256(raw).hexdigest()))
     return results
 
 
@@ -457,11 +435,15 @@ def ingest_verdicts(
     expected = list(expected_group_ids)
     expected_set = set(expected)
 
-    for path, document, errors in read_verdict_files(phase_dir):
+    for path, document, errors, digest in _read_verdict_files(phase_dir):
         result.files_read.append(path)
         if errors:
             result.errors.extend(errors)
             continue
+        result.digests[path] = digest or ""
+        result.identities[path] = os.path.realpath(path)
+        result.declared[path] = (
+            document.get("judge") if isinstance(document, dict) else None)
         for index, verdict in enumerate(document.get("verdicts", [])):
             group_id = verdict["group_id"]
             if expected_set and group_id not in expected_set:
@@ -503,6 +485,7 @@ def judge_labels(
     sources: Dict[str, str],
     *,
     fallback: str = NATIVE_JUDGE,
+    ingest: Optional[VerdictIngest] = None,
 ) -> Dict[str, str]:
     """``group_id -> the runner spec that wrote its verdict file``.
 
@@ -511,11 +494,15 @@ def judge_labels(
     hash to what the executor recorded, so a report left over from an earlier
     executor run never names the judge of a file the host agent rewrote since;
     every other verdict gets *fallback*.
+
+    With *ingest* (the :class:`VerdictIngest` *sources* came from), a file is
+    compared by the digest of the bytes ingested from it and its declared
+    judge is the one parsed then; no verdict file is read again, so a file
+    replaced after ingestion never takes another file's credit. Without it
+    (offline callers) the files are read now.
     """
-    try:
-        from .subagent_executor import batch_report_path
-    except ImportError:  # pragma: no cover
-        from utils.subagent_executor import batch_report_path
+    # With *ingest* the key is the source path as ingested; without it (offline
+    # callers) the file's realpath now, as before.
     runner_by_path: Dict[str, str] = {}
     try:
         with open(batch_report_path(phase_dir, "human_decision_judge"),
@@ -536,20 +523,64 @@ def judge_labels(
             prov = provenance.get(str(row.get("task_id")))
             if not isinstance(prov, dict) or not prov.get("sha256"):
                 continue
-            if file_bytes_sha256(path) != prov["sha256"]:
+            key = path if ingest is None else _ingested_source(path, ingest)
+            if key is None or _ingested_digest(key, ingest) != prov["sha256"]:
                 continue
             runner = prov.get("runner") or runner
-            runner_by_path[os.path.realpath(path)] = str(runner)
+            if ingest is None:
+                runner_by_path[os.path.realpath(key)] = str(runner)
+                continue
+            # Every ingested source that had the matched source's identity at
+            # ingestion (a batch file that was already a link to it) shares
+            # the credit, each on its own ingested digest; nothing is equated
+            # by what a path resolves to now.
+            identity = ingest.identities.get(key)
+            for known, digest in ingest.digests.items():
+                same = known == key or (
+                    identity is not None and ingest.identities.get(known) == identity)
+                if same and digest == prov["sha256"]:
+                    runner_by_path[known] = str(runner)
     labels: Dict[str, str] = {}
     for group_id, path in sources.items():
-        runner = runner_by_path.get(os.path.realpath(path))
+        runner = runner_by_path.get(os.path.realpath(path) if ingest is None else path)
         if runner is None:
-            runner = _with_declared_model(fallback, path)
+            runner = _with_declared_model(fallback, path, ingest)
         labels[group_id] = runner
     return labels
 
 
-def _with_declared_model(fallback: str, path: str) -> str:
+def _ingested_source(path: str, ingest: VerdictIngest) -> Optional[str]:
+    """The ingested source a report row's *path* names, or ``None``.
+
+    Matched by the path as given, then its absolute form, then the identity the
+    source had at ingestion. Two ingested sources are never equated by what
+    their paths resolve to now: a file replaced by a link to another keeps its
+    own ingested digest (:func:`_ingested_digest`).
+    """
+    if path in ingest.digests:
+        return path
+    absolute = os.path.abspath(path)
+    for known in ingest.digests:
+        if os.path.abspath(known) == absolute:
+            return known
+    real = os.path.realpath(path)
+    for known, identity in ingest.identities.items():
+        if identity == real:
+            return known
+    return None
+
+
+def _ingested_digest(path: str, ingest: Optional[VerdictIngest]) -> str:
+    """sha256 of the bytes of *path* that were ingested, or of the file now
+    when there was no ingestion; ``""`` for a file that was not ingested."""
+    if ingest is None:
+        return file_bytes_sha256(path)
+    return ingest.digests.get(path, "")
+
+
+def _with_declared_model(
+    fallback: str, path: str, ingest: Optional[VerdictIngest] = None,
+) -> str:
     """A native judge's label, plus the model it says it is, when it said.
 
     "claude-code host agent" names no model (2026-10-01). The verdict file's
@@ -558,11 +589,14 @@ def _with_declared_model(fallback: str, path: str) -> str:
     """
     if not str(fallback).endswith("host agent"):
         return fallback
-    try:
-        with open(path, "r", encoding="utf-8") as handle:
-            declared = (json.load(handle) or {}).get("judge")
-    except (OSError, json.JSONDecodeError, AttributeError):
-        return fallback
+    if ingest is not None:
+        declared = ingest.declared.get(path)
+    else:
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                declared = (json.load(handle) or {}).get("judge")
+        except (OSError, json.JSONDecodeError, AttributeError):
+            return fallback
     declared = str(declared or "").strip()
     return f"{declared} ({fallback})" if declared and len(declared) <= 80 else fallback
 
@@ -609,7 +643,7 @@ def record_verdicts(
     for group_id, verdict in ingest.verdicts.items():
         decision = verdict["decision"]
         item = items_by_group.get(group_id, {})
-        importance = (item.get("importance") or "MEDIUM").upper()
+        importance = _importance.normalize(item.get("importance"))
         salvaged = verdict.get("salvaged_description")
         dropped = verdict.get("dropped")
         model_reason = verdict.get("reason", "")
@@ -655,13 +689,7 @@ def record_verdicts(
 
 def _persist_ingested_verdicts(state: Any, phase: str, ingest: VerdictIngest) -> None:
     """Store the raw ingested verdicts under a phase-scoped state key."""
-    key = f"human_decision_verdicts_{phase}"
-    stored = state.state.setdefault(key, {})
-    for group_id, verdict in ingest.verdicts.items():
-        stored[group_id] = dict(verdict)
-    if ingest.unresolved:
-        state.state.setdefault(f"human_decision_unresolved_{phase}", [])
-        state.state[f"human_decision_unresolved_{phase}"] = list(ingest.unresolved)
+    state.record_judge_verdicts(phase, ingest.verdicts, ingest.unresolved)
 
 
 def get_persisted_verdicts(state: Any, phase: str) -> Dict[str, Dict[str, Any]]:

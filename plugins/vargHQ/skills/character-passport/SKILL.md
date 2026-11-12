@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "1.0.1"
+  version: "1.0.2"
   openclaw:
     requires:
       anyBins:
@@ -28,10 +28,12 @@ allowed-tools: Bash(python3:*) Bash(curl:*) Bash(ffmpeg:*) Bash(ffprobe:*) Read 
 
 # Character passport
 
+> Step 5 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/design-characters-and-props-for-ai-video (as Markdown: add `.md`).
+
 Character slop comes from letting the model choose the face, the clothes and the feeling. This skill takes those
 choices back, one checkable line at a time, and proves each step on a still before any video is paid for.
 
-What our test showed (Nano Banana 2.1, 2026-11-03, full write-up: https://claude.ai/artifact/AJ1g4Qren3ZvwERSwrQigt):
+What our test showed (Nano Banana 2.1, 2026-11-03, full write-up: https://varg.ai/how-to/design-characters-and-props-for-ai-video):
 
 - **The passport gets you halfway; the sheet finishes the job.** Two blind AI judges scored "same person across four
   shots" 2/10 for the moodboard's one-line subject, 5/10 for the passport alone, and 7.5-8.5/10 with a sheet as

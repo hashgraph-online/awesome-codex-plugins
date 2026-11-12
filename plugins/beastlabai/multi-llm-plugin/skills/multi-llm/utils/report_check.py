@@ -2,8 +2,8 @@
 """``util report-check``: does this turn's final message carry the next command?
 
 The Claude Code plugin's ``Stop`` hook (``hooks/report-check.sh``) runs this
-after every turn whose transcript mentions the block at all
-(plans/next-phase-command.md T11). A phase result, or ``util next-command``,
+after every turn whose transcript mentions the block at all. A phase result, or ``util
+next-command``,
 prints the next step as a block of marker lines above its result line::
 
     [NEXT_COMMAND] <command>
@@ -13,15 +13,15 @@ prints the next step as a block of marker lines above its result line::
     [NEXT_COMMAND_ANSWERS] <command>
 
 (the answers pairs only from ``util next-command`` on a stopped implement,
-fix round 14: the combined answer first when more than one task waits, then
-each answer alone since fix round 20; the check holds the report to the
+The combined answer first when more than one task waits, then
+each answer alone; the check holds the report to the
 commands printed, in any order, so one waiting task means no combined
 command to carry), or ``[WORKFLOW_COMPLETE]``. Either kind is followed by one
 ``[MANUAL_TASK] <id> <title>`` line per implement task the run deferred to the
 user, while any is owed, and one ``[MANUAL_TASK_NOTE]`` line saying how to
-record them done (after the commands of a command block since fix round 16),
+record them done (after the commands of a command block),
 then the ``[MANUAL_TASK_COMMAND]`` line that does it, a command the report
-fences like the others (fix round 22).
+fences like the others.
 The model is told to end its report with each command in a fenced block,
 copied character for character, or with "Workflow complete.", and then those
 tasks listed. This checks the copy, and only the copy:
@@ -30,7 +30,7 @@ tasks listed. This checks the copy, and only the copy:
   user entry whose content is a string or carries a text block. A user entry
   that only carries ``tool_result`` blocks is part of the run, and so is an
   ``isMeta`` entry (a loaded skill body, a local-command caveat, a scheduled
-  wakeup's prompt), a compaction summary and, since fix round 26, an entry
+  wakeup's prompt), a compaction summary and an entry
   the harness sent (``origin.kind`` other than ``human``: a background task's
   ``task-notification``). Claude Code runs a phase's subagents in the
   background, so one headless phase spans several turns, and live run 11's
@@ -39,17 +39,17 @@ tasks listed. This checks the copy, and only the copy:
 * Among that run's tool results it takes the **last** block. A block printed
   only before the user's last typed prompt is not this run's to copy, so it
   is never checked. Nor is a block a subagent's report quotes (an ``Agent``,
-  ``Task`` or ``SendMessage`` result, :data:`SUBAGENT_TOOLS`, fix round 27):
+  ``Task`` or ``SendMessage`` result, :data:`SUBAGENT_TOOLS`):
   those are the subagent's words, not a phase's output, while a ``Read``, a
   ``tail`` or a ``grep`` of the phase's own output still counts.
 * A block's ready section (``util next-command``'s ``[NEXT_STEP_MARKDOWN]``
   … ``[NEXT_STEP_MARKDOWN_END]``, a success's or a stop's) holds the report
-  to every command it fences too, beside the marker lines' (fix round 26),
+  to every command it fences too, beside the marker lines',
   and a block reason asks for the section printed as given.
 * **A native ``--improve-plan`` / ``--improve-code`` / ``--improve-commits``
   run is held to its own continuation, never to an inner phase's next step**
   (Fable review 2026-10-09; improve-commits' core runs the same planner on
-  the commit brief, plans/review-commits.md §2.8). Its core first runs
+  the commit brief). Its core first runs
   ``util improve-steps``, which ends with
   ``[IMPROVE_RERUN] <command>``, the composite's continuation in the host's
   spelling; each phase it then runs still prints its own standalone block
@@ -81,14 +81,13 @@ tasks listed. This checks the copy, and only the copy:
   a line is ignored, so a fence nested in a list item still counts. For
   ``[WORKFLOW_COMPLETE]`` it passes when the message says "Workflow complete."
   A block of either kind with ``[MANUAL_TASK]`` lines also needs each of their
-  ids named as a word of its own, anywhere in the message (fix round 17: after
-  a command block too, which SKILL.md and summary-format.md have asked for
-  since fix round 16). Only the ids: a report that lists the tasks as the
+  ids named as a word of its own, anywhere in the message. Only the ids: a report that
+  lists the tasks as the
   rule says always names them, while a check of the note's wording would
   block a report that put its command in backticks. A why line is never a
   command.
 * The final message is the text of the run's trailing assistant entries, the
-  ones after its last user entry of any kind (fix round 26: a wakeup's
+  ones after its last user entry of any kind (a wakeup's
   ``isMeta`` prompt ends the reply before it too). The
   ``Stop`` hook input's ``last_assistant_message`` is read too, when present,
   and the turn passes when either carries the copy: a stale transcript must
@@ -97,10 +96,10 @@ tasks listed. This checks the copy, and only the copy:
   ``prompt_id``, ``permission_mode``, ``effort``, ``hook_event_name``,
   ``stop_hook_active``, ``last_assistant_message``, ``background_tasks`` and
   ``session_crons``.
-* **The hook waits for the transcript to settle before reading it** (fix
-  round 27). Claude Code writes the transcript in batches, so the entries of
+* **The hook waits for the transcript to settle before reading it**. Claude Code writes
+  the transcript in batches, so the entries of
   the last moments before ``Stop`` are not on file when the hook starts.
-  Measured on 2.1.293 against a localhost stub (2026-10-08): the reply was
+  Measured on 2.1.293 against a localhost stub: the reply was
   never on file at ``Stop`` and appeared 0.1-0.2 s later; with a reply sent
   2.5 s after the last tool result, that result was on file at ``Stop``; with
   a reply sent at once, it was not (the whole file was missing at ``Stop``
@@ -115,8 +114,8 @@ tasks listed. This checks the copy, and only the copy:
   reply is. Past the budget it decides on what is on file, a last line still
   being written left out. A transcript already settled costs one read.
 * ``last_assistant_message`` is the text of the **last** assistant message
-  Claude Code holds in memory, not the whole reply (hooks review of fix round
-  10, read from the harness, not measured live). A reply split into several
+  Claude Code holds in memory, not the whole reply (hooks, read from the harness, not
+  measured live). A reply split into several
   text blocks hands the hook only the last one, so a command copied into an
   earlier block reads as missing. Once the transcript has settled, its own
   trailing assistant entries carry the earlier blocks and are checked beside
@@ -137,9 +136,7 @@ tasks listed. This checks the copy, and only the copy:
   at once when ``stop_hook_active`` is true, and so does this. A block with a
   ready section says once how the report ends: with that section, in
   SKILL.md's words (:data:`SECTION_REQUEST`); the commands it holds are not
-  listed again, and no reason asks for a ``### Next Steps`` section (fix round
-  28, live run 12, Claude Code 03: it asked for both, and the resent report
-  added a heading of its own above the section).
+  listed again, and no reason asks for a ``### Next Steps`` section.
 * The interactive UI labels a block "Stop hook error occurred" (a
   ``stop-hook-error`` notification in a ``stream-json`` stream). Measured on
   racing run 5 (Claude Code 2.1.289): it fired only in the round this hook
@@ -166,6 +163,21 @@ Import is side-effect free: argparse and all I/O live inside :func:`main`.
 
 from __future__ import annotations
 
+if __name__ == "__main__" and not __package__:
+    # Run by path: put the skill root on sys.path, found from this file's real
+    # location as Python finds sys.path[0], then call the package module's entry
+    # point with sys.argv untouched, so the program name stays the one typed
+    # (docs/development/dispatcher.md#import-safety).
+    import os
+    import sys
+
+    _UTILS_DIR = os.path.dirname(os.path.realpath(__file__))
+    sys.path[:] = [os.path.dirname(_UTILS_DIR)] + [
+        p for p in sys.path if os.path.realpath(p) != _UTILS_DIR]
+    from utils.report_check import main
+
+    sys.exit(main(sys.argv[1:]))
+
 import argparse
 import json
 import re
@@ -174,19 +186,16 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Set
 
-try:
-    from .stream_bootstrap import bootstrap_streams
-except ImportError:  # direct script invocation
-    from stream_bootstrap import bootstrap_streams  # type: ignore
+from .stream_bootstrap import bootstrap_streams
 
-#: The block's four line kinds (plans/next-phase-command.md §2.2(2)). The
+#: The block's four line kinds. The
 #: trailing space is part of each command prefix: ``[NEXT_COMMAND] `` must never
 #: match ``[NEXT_COMMAND_OPTIONAL] ``.
 NEXT_COMMAND = "[NEXT_COMMAND] "
 NEXT_COMMAND_OPTIONAL = "[NEXT_COMMAND_OPTIONAL] "
 NEXT_COMMAND_OPTIONAL_WHY = "[NEXT_COMMAND_OPTIONAL_WHY] "
-#: A stopped implement's answers (``util next-command``, fix round 14; each
-#: alone after the combined one since fix round 20), after the primary and
+#: A stopped implement's answers (``util next-command``; each
+#: alone after the combined one), after the primary and
 #: any optional entries, each below its why line.
 NEXT_COMMAND_ANSWERS = "[NEXT_COMMAND_ANSWERS] "
 NEXT_COMMAND_ANSWERS_WHY = "[NEXT_COMMAND_ANSWERS_WHY] "
@@ -199,19 +208,19 @@ MANUAL_TASK = "[MANUAL_TASK] "
 #: (``next_phase.MANUAL_TASK_NOTE_MARKER``). Quoted in a block's reason.
 MANUAL_TASK_NOTE = "[MANUAL_TASK_NOTE] "
 #: After the note: the command that records them done, alone
-#: (``next_phase.MANUAL_TASK_COMMAND_MARKER``, fix round 22). A command the
+#: (``next_phase.MANUAL_TASK_COMMAND_MARKER``). A command the
 #: report carries in a fenced block like the block's others.
 MANUAL_TASK_COMMAND = "[MANUAL_TASK_COMMAND] "
 
 #: The lines around the section ``util next-command`` prints below the block
-#: (``next_phase.NEXT_STEP_MARKDOWN_MARKER``, fix round 24). Every line
+#: (``next_phase.NEXT_STEP_MARKDOWN_MARKER``). Every line
 #: between them is the section's, never a marker line of the block.
 NEXT_STEP_MARKDOWN = "[NEXT_STEP_MARKDOWN]"
 NEXT_STEP_MARKDOWN_END = "[NEXT_STEP_MARKDOWN_END]"
 
 #: The composite's continuation, the last line ``util improve-steps`` prints
-#: (``improve_steps.RERUN_MARKER``; plans/improve-plan-and-improve-code.md
-#: §2.4). Read as a block only in a planner call's result (:func:`last_block`).
+#: (``improve_steps.RERUN_MARKER``). Read as a block only in a planner call's result
+#: (:func:`last_block`).
 IMPROVE_RERUN = "[IMPROVE_RERUN] "
 
 #: A Bash command that ran the planner: ``multi_llm.py util improve-steps``,
@@ -220,7 +229,7 @@ IMPROVE_RERUN = "[IMPROVE_RERUN] "
 _PLANNER_RE = re.compile(
     r"multi_llm\.py[\"']?\s+[\"']?util[\"']?\s+[\"']?improve-steps\b")
 
-#: What the report says when the block is ``[WORKFLOW_COMPLETE]`` (§2.3).
+#: What the report says when the block is ``[WORKFLOW_COMPLETE]``.
 COMPLETE_SENTENCE = "Workflow complete."
 
 #: Every decision line starts with this, so the hook script can select it from
@@ -232,7 +241,7 @@ DECISION_PREFIX = '{"decision"'
 _FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})(.*)$")
 
 #: How long a hook waits for Claude Code to write a turn's last entries to the
-#: transcript, and how often it looks (fix round 27, :func:`settled_turn`).
+#: transcript, and how often it looks.
 #: Claude Code 2.1.293 wrote them 0.1-0.2 s after the hook started, measured
 #: against a localhost stub; the hook scripts' own timeout is 30 s.
 SETTLE_BUDGET_S = 2.0
@@ -242,8 +251,8 @@ SETTLE_STEP_S = 0.1
 #: it follows was an earlier ``Stop``'s, never the one being checked.
 STOP_HOOK_SUMMARY = "stop_hook_summary"
 
-#: The tools whose result is a subagent's own words, never a phase's output
-#: (fix round 27): a block quoted in one is not a block the report owes, nor
+#: The tools whose result is a subagent's own words, never a phase's output: a
+#: block quoted in one is not a block the report owes, nor
 #: does it end ``util wakeup-check``'s hold.
 SUBAGENT_TOOLS = ("Agent", "Task", "SendMessage")
 
@@ -294,8 +303,7 @@ class Block:
         #: The ``[MANUAL_TASK_COMMAND]`` after the note, when printed.
         self.manual_command: Optional[str] = None
         #: The ready section ``util next-command`` printed below the block,
-        #: between ``[NEXT_STEP_MARKDOWN]`` and ``[NEXT_STEP_MARKDOWN_END]``
-        #: (fix round 26), when it printed one.
+        #: between ``[NEXT_STEP_MARKDOWN]`` and ``[NEXT_STEP_MARKDOWN_END]``, when it printed one.
         self.section: Optional[str] = None
 
     def section_commands(self) -> List[str]:
@@ -309,8 +317,8 @@ class Block:
     def commands(self) -> List[str]:
         """Every command the report has to carry: the primary one first, the
         manual tasks' close command after the block's others, then any
-        command the ready section fences that no marker line printed (fix
-        round 26: the section is what the report copies, so every command it
+        command the ready section fences that no marker line printed (the section is
+        what the report copies, so every command it
         fences is held to the report). A complete block's marker command is
         the manual one alone (its primary is the sentence)."""
         manual = [self.manual_command] if self.manual_command else []
@@ -354,7 +362,7 @@ def find_blocks(text: str, continuations: bool = False) -> List[Block]:
     section_lines: List[str] = []
     for raw in text.splitlines():
         line = raw.rstrip("\r")
-        # The section printed below the block (fix round 24) is the
+        # The section printed below the block is the
         # block's own rendering: none of its lines is a marker line.
         if line.rstrip() == NEXT_STEP_MARKDOWN:
             in_section = True
@@ -488,8 +496,8 @@ def missing_manual_tasks(block: Block, message: str) -> List[str]:
     ]
 
 
-#: What every block reason asks for (fix round 14, racing run 5 Claude Code
-#: 08): the reply after a block is what the run's final message becomes, and
+#: What every block reason asks for: the reply after a block is what the run's final
+#: message becomes, and
 #: a reason that asked for "your report's `### Next Steps` section" got back
 #: that section alone, so the run's result lost the report it had written
 #: (what was fixed, skipped and left out). The whole report is asked for again.
@@ -533,11 +541,9 @@ READY_SECTION_RULE = (
     "manual tasks and \"Workflow complete.\" appear only in it, never above it."
 )
 
-#: How a block reason asks for the section the lookup printed (fix round 26,
-#: live run 11, Claude Code 04: the reply the run ended on carried none of
-#: the section's commands). It finishes :data:`WHOLE_REPORT`'s sentence and
-#: the section follows it verbatim. Fix round 28 (live run 12, Claude Code
-#: 03): the reason asked for "its `### Next Steps` section, with each
+#: How a block reason asks for the section the lookup printed. It finishes
+#: :data:`WHOLE_REPORT`'s sentence and
+#: the section follows it verbatim. The reason asked for "its `### Next Steps` section, with each
 #: command in its own fenced code block …" and then for the section "printed
 #: as given …, no caption of your own", and the resent report put a
 #: `### Next Steps` heading of its own above the section. A reason with a
@@ -670,7 +676,7 @@ def _block_reason(block: Block, missing: Sequence[str]) -> str:
         "workflow goes on."
     )
     if not lost:
-        # Fix round 17: every command is there and the tasks after them are
+        # Every command is there and the tasks after them are
         # not. The reply replaces the final message, so it carries the
         # commands again too.
         parts = [
@@ -746,10 +752,7 @@ def _is_real_prompt(entry: Dict[str, Any]) -> bool:
     Not a tool-result carrier, not an ``isMeta`` entry (a loaded skill body, a
     hook's feedback, a scheduled wakeup's prompt), and not one the harness
     sent: an entry whose ``origin.kind`` is anything but
-    :data:`TYPED_ORIGIN_KIND` (fix round 26, live run 11: Claude Code runs a
-    phase's subagents in the background, so one phase spans several turns,
-    each opened by a ``task-notification`` entry, and the ready section is
-    printed in one of them while the run ends on another).
+    :data:`TYPED_ORIGIN_KIND`.
     """
     if entry.get("type") != "user":
         return False
@@ -769,19 +772,10 @@ def _is_real_prompt(entry: Dict[str, Any]) -> bool:
     return False
 
 
-def _tool_result_texts(
-    entry: Dict[str, Any], skip: Iterable[str] = (),
-) -> Iterable[str]:
-    """The text of every ``tool_result`` block a user entry carries, in order,
-    but those answering a call whose id is in *skip*."""
-    for _call_id, text in _tool_results(entry, skip):
-        yield text
-
-
 def _tool_results(
     entry: Dict[str, Any], skip: Iterable[str] = (),
 ) -> Iterable[tuple]:
-    """``(tool_use_id, text)`` for :func:`_tool_result_texts`' results."""
+    """``(tool_use_id, text)`` for each ``tool_result`` block of *entry* not in *skip*."""
     content = _content(entry)
     if not isinstance(content, list):
         return
@@ -865,8 +859,7 @@ def settled_turn(
     budget: Optional[float] = None,
     step: Optional[float] = None,
 ) -> List[Dict[str, Any]]:
-    """:func:`read_turn` once Claude Code has written what the hook waits for
-    (fix round 27).
+    """:func:`read_turn` once Claude Code has written what the hook waits for.
 
     *settled* says whether a turn read off the file holds it; ``None`` means
     the hook input names nothing to wait for, and the file then counts as
@@ -1007,8 +1000,8 @@ def _trailing_assistant(turn: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """The assistant entries after the turn's last user entry, newest first:
     the reply the run ends on.
 
-    Every user entry ends the stretch, an ``isMeta`` one included (fix round
-    26). A scheduled wakeup's prompt is ``isMeta``, and live run 11's Claude
+    Every user entry ends the stretch, an ``isMeta`` one included. A scheduled wakeup's
+    prompt is ``isMeta``, and live run 11's Claude
     Code 04 ended on the reply to one, which carried none of the ready
     section's commands: read together with the report before the wakeup, the
     two passed as one message. The other ``isMeta`` entries end nothing a

@@ -15,7 +15,7 @@ commits: it asks this module, keyed on ``state.json``'s ``commit_range``
   user's file), and the drift list;
 - **the report header and lines.** The commit block, the focus and context
   plan under it, the "Commit brief" label (through
-  :func:`commit_review.document_label`, the one owner of that word), each
+  :func:`commit_paths.document_label`, the one owner of that word), each
   finding's "Introduced by" line, and the apply commands the export help
   names, as one payload that ``report_data.json`` keeps (``commitRange``) so
   a regenerated report renders the same header, filter and badges without
@@ -52,8 +52,11 @@ from .commit_range import (
     render_commit_block,
     render_drift_line,
 )
-from .commit_review import document_label
+from .commit_paths import document_label
 from .text_clip import clip, plain_line
+from .text_fmt import plural as _plural
+from .output_handler import output_dir_path
+from .prompt_channels import INLINE_CONTEXT_PLAN_LABEL
 
 #: The two review templates (``prompts/``).
 CODE_REVIEW_PROMPT = "code_review.txt"
@@ -89,7 +92,6 @@ def run_commit_range(plan_path: Any) -> Optional[Dict[str, Any]]:
     """The ``commit_range`` the run anchored on *plan_path* records, read
     without touching ``state.json`` (a review slot only reads it); None when
     there is no state file, it is unreadable, or it records none."""
-    from .output_handler import output_dir_path
 
     try:
         state_file = Path(output_dir_path(Path(plan_path).resolve())) / "state.json"
@@ -126,10 +128,6 @@ def range_size(record: Mapping[str, Any], *, cwd: Optional[str] = None) -> Range
         except Exception:  # noqa: BLE001 - a size is presentation; never fail the slot
             pass
     return RangeSize.of(len(cr.commits), 0, 0, 0)
-
-
-def _plural(count: int, word: str) -> str:
-    return f"{count} {word}{'' if count == 1 else 's'}"
 
 
 # ---------------------------------------------------------------------------
@@ -196,12 +194,11 @@ def plan_block(record: Mapping[str, Any], *, repo_root: Optional[str] = None,
 
     An *inline* lane cannot open the snapshot, so it is pointed at the
     snapshot's block in its ``{diff_access}`` payload instead
-    (``llm_client.render_diff_access``'s ``context_plan_path``, which refuses
+    (``prompt_channels.render_diff_access``'s ``context_plan_path``, which refuses
     the lane when the snapshot cannot be shown in full)."""
     path = context_plan_path(record, repo_root=repo_root)
     if path is None:
         return ""
-    from .llm_client import INLINE_CONTEXT_PLAN_LABEL
 
     digest = record.get("plan_sha256") or "unknown"
     where = (

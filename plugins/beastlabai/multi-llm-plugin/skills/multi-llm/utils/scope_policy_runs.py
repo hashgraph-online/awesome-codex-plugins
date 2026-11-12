@@ -56,10 +56,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
-try:  # normal import (utils is a package)
-    from . import scope_policy as sp
-except ImportError:  # pragma: no cover - direct script runs with utils/ on path
-    import scope_policy as sp  # type: ignore
+from . import scope_policy as sp
+from .clock import local_iso, parse_local
+import modes as mode_table
+from . import unattended as unattended_mod
 
 #: The ``state.json`` top-level key holding the run records.
 RUNS_KEY = "scope_policy_runs"
@@ -71,17 +71,18 @@ SITE_ID = "scope-policy"
 Choice = Tuple[str, str]
 
 
-def _now() -> str:
-    # Full precision: a completion stamp in the same second as the record must
-    # still compare on the right side of it.
-    return datetime.now().isoformat()
+#: A record's timestamp, to the microsecond (``utils/clock.py``): a completion
+#: stamp in the same second as the record must still compare on the right
+#: side of it.
+_now = local_iso
 
 
 def _parse(value: Any) -> Optional[datetime]:
+    """A stamp as a naive local datetime (naive, ``Z`` and offset stamps compare), or ``None``."""
     if not isinstance(value, str) or not value:
         return None
     try:
-        return datetime.fromisoformat(value)
+        return parse_local(value)
     except ValueError:
         return None
 
@@ -93,12 +94,6 @@ def ending_phases(mode: str) -> Tuple[str, ...]:
     apply-suggestions), a leaf mode's own phase (``implement``). Read off the
     mode table, so a new composite needs no edit here.
     """
-    try:
-        import modes as mode_table  # type: ignore
-    except ImportError:  # pragma: no cover - only when utils/ is sys.path[0]
-        from .cli_common import modes_table
-
-        mode_table = modes_table()
     row = mode_table.resolve(mode)
     if row is None:
         return ()
@@ -157,6 +152,30 @@ def record_run_start(state: Dict[str, Any], key: str, choice: Optional[Choice]) 
         record_run_choice(state, key, policy, source)
         return True
     return False
+
+
+# Journaled writers: each takes a ``StateManager`` (*manager*), writes its
+# ``state`` through the raw-dict helper above and journals *key*'s run record
+# when it wrote one (``StateManager.journal_entry``), so the manager's merging
+# save() keeps that record whole; see the twins in ``scope_policy``.
+
+
+def record_scope_run_start(manager: Any, key: str, choice: Optional[Choice]) -> bool:
+    """Persist *key*'s run choice (:func:`record_run_start`); ``True`` when
+    it wrote one, and the caller saves."""
+    wrote = record_run_start(manager.state, key, choice)
+    if wrote:
+        manager.journal_entry(RUNS_KEY, key)
+    return wrote
+
+
+def close_scope_run(manager: Any, key: str) -> bool:
+    """Mark *key*'s run choice finished (:func:`close_run_choice`); ``True``
+    when it changed."""
+    closed = close_run_choice(manager.state, key)
+    if closed:
+        manager.journal_entry(RUNS_KEY, key)
+    return closed
 
 
 def _finished_after(state: Mapping[str, Any], phase: str, since: datetime) -> bool:
@@ -270,13 +289,37 @@ def announce(
     """
     if not unattended or source == sp.SOURCE_EXPLICIT:
         return None
-    try:
-        from . import unattended as unattended_mod
-    except ImportError:  # pragma: no cover - direct script runs
-        import unattended as unattended_mod  # type: ignore
     decision = resolution_text(policy, source, mode=mode)
     unattended_mod.record_resolution(phase_dir, SITE_ID, decision, quiet=quiet)
     return decision
+
+
+def open_run(
+    manager: Optional[Any],
+    key: str,
+    choice: Optional[Choice],
+    *,
+    phase_dir: Optional[str],
+    unattended: bool,
+    announce_default: bool = True,
+) -> Tuple[str, str, Optional[str]]:
+    """Open a run of *key* under *choice*: the one opening ``generate-tasks``,
+    ``implement`` and ``full`` share.
+
+    Persists the choice in *manager* (a ``StateManager``; ``None`` on a dry
+    run, which writes nothing), then announces a policy nobody typed as D6
+    row 16's resolution (:func:`announce`, under ``--yes`` only). A composite
+    with no choice forwards no flag and leaves each step to announce its own
+    default, so it passes ``announce_default=False``. Returns the effective
+    ``(policy, source)`` and the decision text recorded, or ``None``.
+    """
+    if manager is not None and record_scope_run_start(manager, key, choice):
+        manager.save()
+    policy, source = effective_choice(choice)
+    decision = None
+    if choice is not None or announce_default:
+        decision = announce(phase_dir, policy, source, unattended=unattended, mode=key)
+    return policy, source, decision
 
 
 # ---------------------------------------------------------------------------
@@ -334,6 +377,7 @@ def with_guidance(prompt: str, block: str, *, before: Optional[str] = None) -> s
 __all__ = [
     "Choice", "RUNS_KEY", "SITE_ID", "announce", "close_run_choice",
     "effective_choice", "ending_phases", "forwarded_flags", "generation_guidance",
-    "implementation_guidance", "live_run_choice", "record_run_choice", "record_run_start",
+    "implementation_guidance", "live_run_choice", "open_run", "record_run_choice",
+    "record_run_start",
     "resolution_text", "resolve_run_choice", "run_record", "with_guidance",
 ]

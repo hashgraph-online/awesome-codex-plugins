@@ -66,9 +66,9 @@ rather than a preference:
 
 Top-level imports stay light on purpose. ``utils.run_status`` reuses the
 formatters below to render ``status --view run``, and ``status`` must stay a
-sub-second command, so ``utils.detach``, ``utils.status_file`` and
-``utils.provider_registry`` are imported lazily inside the functions that need
-them rather than dragged in by every importer of this module.
+sub-second command, so ``utils.run_record`` and ``utils.provider_registry`` are
+imported lazily inside the functions that need them rather than dragged in by
+every importer of this module.
 """
 
 from __future__ import annotations
@@ -76,7 +76,15 @@ from __future__ import annotations
 import asyncio
 import sys
 import time
+from datetime import datetime, timedelta
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union
+
+from .clock import parse_local
+from .process_state import process_cache
+# A slot's end states live in status_file, where the result-file reader below
+# this module counts them too; read here and re-exported.
+from .status_file import STATE_DONE, STATE_FAILED, TERMINAL_STATES
+from . import status_file
 
 # ---------------------------------------------------------------------------
 # The lifecycle
@@ -86,14 +94,8 @@ STATE_QUEUED = "queued"
 STATE_STAGGERING = "staggering"
 STATE_RUNNING = "running"
 STATE_RETRYING = "retrying"
-STATE_DONE = "done"
-STATE_FAILED = "failed"
-
-#: The two states a slot may end in. There is deliberately no ``skipped``: a
-#: model answered from disk is ``done`` — it has a usable result — and the
-#: distinction lives in ``source`` (see :data:`RESUME_SOURCES`), so
-#: ``models_done`` and ``models_succeeded`` stay derivable from ``state`` alone.
-TERMINAL_STATES = frozenset({STATE_DONE, STATE_FAILED})
+# STATE_DONE, STATE_FAILED and TERMINAL_STATES, the end states, are imported
+# above from status_file.
 
 #: Render order for the live half of the map: **reverse** lifecycle, most
 #: advanced state first, so a ticker line opens with the models that are really
@@ -107,13 +109,15 @@ LIVE_STATES: Tuple[str, ...] = (
     STATE_RUNNING, STATE_RETRYING, STATE_STAGGERING, STATE_QUEUED,
 )
 
-#: The live states that mean *admitted, not yet dispatched*: the slot is
-#: sleeping out its stagger or parked on a concurrency semaphore. A row in one
-#: of them has no run time yet — :func:`entry_elapsed_s` is ``None`` for it —
-#: only a wait (:func:`entry_queued_s`). Read from ``state`` and never from the
-#: absence of ``dispatched_at``, so a map written before that key existed reads
-#: its queued rows the same way (plan: review-run-scope-salvage-and-failure-
-#: visibility §6.2).
+#: The live states that mean *waiting for a dispatch*: the slot is waiting for
+#: its provider's launch turn or parked on a concurrency semaphore. A row in one
+#: of them that has not dispatched yet has no run time — :func:`entry_elapsed_s`
+#: is ``None`` for it — only a wait (:func:`entry_queued_s`); read through
+#: :func:`awaits_first_dispatch`, from ``state`` and not from the absence of
+#: ``dispatched_at`` alone, so a map written before that key existed reads its
+#: queued rows the same way (plan: review-run-scope-salvage-and-failure-
+#: visibility §6.2). A retry waiting for its launch turn is ``staggering`` too,
+#: and it has dispatched.
 WAITING_STATES = frozenset({STATE_QUEUED, STATE_STAGGERING})
 
 #: How many queued slots the ``[PROGRESS]`` line names, longest wait first,
@@ -208,10 +212,9 @@ def _now_iso() -> str:
 
     Single-sourced from ``status_file.now_iso`` — the same writer as
     ``heartbeat_at`` — so every ISO stamp in ``.status.json`` parses with one
-    reader (``detach._elapsed_since``) rather than with two that disagree about
+    reader (``run_record._elapsed_since``) rather than with two that disagree about
     the timezone suffix.
     """
-    from . import status_file
 
     return status_file.now_iso()
 
@@ -231,10 +234,9 @@ def _stamp_after(delay_s: Any) -> Optional[str]:
     number = _seconds(delay_s)
     if number is None or number < 0:
         return None
-    from datetime import datetime, timedelta
 
     try:
-        when = datetime.fromisoformat(_now_iso()) + timedelta(seconds=number)
+        when = parse_local(_now_iso()) + timedelta(seconds=number)
     except (ValueError, OverflowError):
         return None
     return when.isoformat()
@@ -331,6 +333,21 @@ def format_budget(seconds: Optional[float]) -> str:
     return f"{minutes}m"
 
 
+def awaits_first_dispatch(entry: Any) -> bool:
+    """Whether this live row is waiting and has never dispatched.
+
+    A :data:`WAITING_STATES` row with no ``dispatched_at``: admitted, not yet
+    run, so it has a wait and no run time. A ``staggering`` row that carries
+    ``dispatched_at`` is a retry waiting for its provider's launch turn: its run
+    time keeps counting from the first dispatch, against the same deadline.
+    """
+    return (
+        isinstance(entry, Mapping)
+        and _entry_state(entry) in WAITING_STATES
+        and not entry.get("dispatched_at")
+    )
+
+
 def entry_elapsed_s(
     entry: Mapping[str, Any], now: Optional[float] = None
 ) -> Optional[float]:
@@ -341,11 +358,12 @@ def entry_elapsed_s(
     1. ``ended_at`` present -> the stored ``elapsed_s``, frozen at the terminal
        transition and never touched again, so a table rendered an hour later
        shows the slot's real duration rather than a clock that kept running.
-    2. A row still waiting for its dispatch (``state`` in
-       :data:`WAITING_STATES`) -> ``None``. It has no run time yet; what it
-       has is a wait, and :func:`entry_queued_s` is the rule for that. Keyed on
-       ``state`` rather than on a missing ``dispatched_at``, so a map written
-       before that key existed reads its queued rows the same way.
+    2. A row still waiting for its first dispatch
+       (:func:`awaits_first_dispatch`) -> ``None``. It has no run time yet;
+       what it has is a wait, and :func:`entry_queued_s` is the rule for that.
+       Keyed on ``state`` rather than on a missing ``dispatched_at`` alone, so
+       a map written before that key existed reads its queued rows the same
+       way. A retry waiting for its launch turn has dispatched: rule 3.
     3. A live row carrying ``dispatched_at`` -> ``now - dispatched_at``,
        clamped at ``timeout_s``. Always fresh, which is why no writer has to
        tick.
@@ -375,16 +393,16 @@ def entry_elapsed_s(
         if isinstance(stored, bool) or not isinstance(stored, (int, float)):
             return None
         return float(stored)
-    if _entry_state(entry) in WAITING_STATES:
+    if awaits_first_dispatch(entry):
         return None
 
     # One ISO parser for the whole checkpoint (`heartbeat_at`, `dispatched_at`,
-    # `started_at`), imported lazily so `status` does not pay for the detach
-    # subtree just to format a row.
-    from . import detach
+    # `started_at`), the run record's, imported lazily like the rest of this
+    # module's run-record reads.
+    from . import run_record
 
     dispatched = entry.get("dispatched_at")
-    live = detach._elapsed_since(
+    live = run_record._elapsed_since(
         dispatched if dispatched else entry.get("started_at"), now
     )
     if live is None:
@@ -427,12 +445,13 @@ def entry_queued_s(
       beside ``elapsed_s``, or ``None`` when none was stored (a map written
       before the key existed, or a slot a ``--reaggregate`` closed out without
       knowing when its wait would have ended).
-    * A row still waiting (:data:`WAITING_STATES`) -> ``now - started_at``: the
-      wait so far, **unclamped**, because a wait is not charged to the slot's
-      budget.
-    * A live dispatched row -> the stored ``queued_s`` the first dispatch
-      wrote, measured on the monotonic clock; failing that, ``dispatched_at -
-      started_at``, since both stamps are exact.
+    * A row still waiting for its first dispatch
+      (:func:`awaits_first_dispatch`) -> ``now - started_at``: the wait so far,
+      **unclamped**, because a wait is not charged to the slot's budget.
+    * A live dispatched row, a retry waiting for its launch turn included ->
+      the stored ``queued_s`` the first dispatch wrote, measured on the
+      monotonic clock; failing that, ``dispatched_at - started_at``, since
+      both stamps are exact.
     * A live row with no ``dispatched_at`` in any other state (a map written
       before the key existed) -> ``None``: its wait was never recorded.
 
@@ -445,18 +464,19 @@ def entry_queued_s(
     if entry.get("ended_at"):
         return _stored_duration(entry.get("queued_s"))
 
-    from . import detach
+    # Imported here to keep progress_tracker light.
+    from . import run_record
 
-    if _entry_state(entry) in WAITING_STATES:
-        return detach._elapsed_since(entry.get("started_at"), now)
+    if awaits_first_dispatch(entry):
+        return run_record._elapsed_since(entry.get("started_at"), now)
     dispatched = entry.get("dispatched_at")
     if not dispatched:
         return None
     stored = _stored_duration(entry.get("queued_s"))
     if stored is not None:
         return stored
-    start = detach._parse_stamp(entry.get("started_at"))
-    end = detach._parse_stamp(dispatched)
+    start = run_record._parse_stamp(entry.get("started_at"))
+    end = run_record._parse_stamp(dispatched)
     if start is None or end is None:
         return None
     try:
@@ -484,11 +504,11 @@ def entry_stagger_remaining_s(
     """
     if not isinstance(entry, Mapping) or _entry_state(entry) != STATE_STAGGERING:
         return None
-    from datetime import datetime
 
-    from . import detach
+    # Imported here to keep progress_tracker light.
+    from . import run_record
 
-    when = detach._parse_stamp(entry.get("stagger_until"))
+    when = run_record._parse_stamp(entry.get("stagger_until"))
     if when is None:
         return None
     try:
@@ -802,6 +822,7 @@ def budget_for_spec(
     if timeout is not None:
         return _seconds(timeout)
     try:
+        # Imported here to keep run_status, which loads this module, light.
         from .provider_registry import get_provider_timeout, parse_model_spec
 
         provider, _model = parse_model_spec(spec, anchor=anchor)
@@ -944,6 +965,7 @@ class FanoutProgress:
         self.anchor = anchor
         self.timeout = timeout
         if interval_s is None:
+            # Imported here to keep run_status, which loads this module, light.
             from .provider_registry import get_progress_interval
 
             interval_s = get_progress_interval(anchor=anchor)
@@ -1049,17 +1071,20 @@ class FanoutProgress:
         return None if entry["state"] in TERMINAL_STATES else entry
 
     def staggering(self, spec: str, *, delay_s: Optional[float] = None) -> None:
-        """The slot is waiting out its stagger delay before dispatch.
+        """The slot is waiting for its provider's launch turn before dispatch.
 
-        **Only the stagger sleep**, not the semaphore wait that follows it —
-        see :meth:`queued`, which is where the slot goes next.
+        **Only that wait**, not the semaphore wait before it — see
+        :meth:`queued`, which is where the slot waits for a semaphore and where
+        it goes back to until its dispatch. A retry's wait for a launch turn is
+        this state too, between ``retrying`` and ``running``.
 
         *delay_s* is the sleep the caller is about to take, and it is what the
-        row renders (2026-09-21): a fan-out launches its slots
-        ``index * PROVIDER_STAGGER_DELAY`` apart, so the launch-time ``status``
-        call — made on purpose at second zero, because the roster is the one
-        thing worth relaying before the loop — finds every row but the first
-        reading ``staggering``, which a reader took for the models being run one
+        row renders (2026-09-21): a fan-out dispatches a provider at most once
+        per ``LAUNCH_STAGGER_S`` (an adapter that declares none never
+        staggers), so the launch-time ``status`` call — made on purpose at
+        second zero, because the roster is the one thing worth relaying before
+        the loop — finds every later slot of a staggering provider reading
+        ``staggering``, which a reader took for the models being run one
         at a time. The word was true and said nothing about *how long*. The
         entry therefore carries ``stagger_until``, the wall-clock stamp the sleep
         ends at, and the table's detail column reads it back as ``starts in
@@ -1080,18 +1105,15 @@ class FanoutProgress:
         self._write()
 
     def queued(self, spec: str) -> None:
-        """The stagger is over; the slot is waiting for a concurrency slot.
+        """The launch wait is over; the slot is admitted, not yet dispatched.
 
         The other half of :meth:`staggering`, and the seeded state read back
         (2026-09-21). ``max_parallel`` — and a provider's own
-        ``max_concurrent`` — park a slot *after* its stagger sleep has elapsed
-        and *before* the per-model coroutine that calls :meth:`running` is
-        entered, and nothing marked that boundary: five models at
-        ``max_parallel: 2`` rendered three rows as ``staggering`` for as long
-        as they waited, minutes after every stagger delay had run out, which
-        the lifecycle does not describe. Index 0 never staggers and never calls
-        this — it reads ``queued`` from the seed until it runs — so the two
-        waits are one state either way.
+        ``max_concurrent`` — park a slot in this state from the seed; a slot
+        that then waited for its launch turn comes back here until the
+        per-model coroutine calls :meth:`running`, as a slot that never waited
+        reads it from the seed until it runs, so the waits that are not the
+        launch spacing are one state either way.
 
         Not a step backwards: ``queued`` is *admitted, not yet dispatched*, and
         that is exactly what a slot parked on a semaphore is. :meth:`_live_entry`
@@ -1261,20 +1283,26 @@ class FanoutProgress:
         return, so a call site that has the result in hand does not have to
         re-derive which of :meth:`done` / :meth:`failed` it means — and cannot
         get the ``source`` pass-through wrong, which is the value the resume and
-        salvage renderers read.
+        salvage renderers read. A typed outcome carrying the same three
+        attributes (``review_lane.SlotResult``) reads the same way.
         """
-        if not isinstance(result, Mapping):
+        if isinstance(result, Mapping):
+            success = result.get("success")
+            source = result.get("source")
+            error = result.get("error")
+        elif all(hasattr(result, name) for name in ("success", "source", "error")):
+            success, source, error = result.success, result.source, result.error
+        else:
             # A lane that returned `None` (or a bare tuple) still has to retire
             # its slot; leaving it live would strand it until the sweep.
             self.failed(spec, error="no result recorded", source=None)
             return
-        source = result.get("source")
-        if result.get("success"):
+        if success:
             self.done(spec, source=source)
         else:
             self.failed(
                 spec,
-                error=result.get("error") or "failed with no error recorded",
+                error=error or "failed with no error recorded",
                 source=source,
             )
 
@@ -1494,9 +1522,10 @@ class FanoutProgress:
         """
         done, succeeded, total = self.counts()
         try:
-            from . import detach
+            # Imported here to keep progress_tracker light.
+            from . import run_record
 
-            detach.report_progress(
+            run_record.report_progress(
                 self.phase_dir,
                 models=self.snapshot(),
                 models_done=done,
@@ -1635,8 +1664,8 @@ class PhaseProgress:
         [PROGRESS] step: validation | 2m30s | subagents 5/8 done (5 ok)
 
     Those counters are **read**, never recomputed into a second key:
-    ``subagent_executor._mirror_status`` already writes ``progress.subagents``
-    (and ``write_batch_scheduler._mirror_status`` ``write_subagents``) on every
+    ``task_batch._mirror_status`` already writes ``progress.subagents``
+    (and ``write_reports.WriteReports.mirror_status`` ``write_subagents``) on every
     outcome, straight through ``update_status``, so they reach a foreground
     checkpoint today. A ``progress.validation`` beside them would be the
     two-writers-for-one-fact failure the plan forbids.
@@ -1663,6 +1692,7 @@ class PhaseProgress:
         self.phase_dir = str(phase_dir)
         self.anchor = anchor
         if interval_s is None:
+            # Imported here to keep run_status, which loads this module, light.
             from .provider_registry import get_progress_interval
 
             interval_s = get_progress_interval(anchor=anchor)
@@ -1685,7 +1715,6 @@ class PhaseProgress:
 
     def render_line(self) -> str:
         """``[PROGRESS] step: validation | 2m30s | subagents 5/8 done (5 ok)``."""
-        from . import status_file
 
         progress = status_file.read_status(self.phase_dir).get("progress")
         if not isinstance(progress, Mapping):
@@ -1770,7 +1799,7 @@ class PhaseProgress:
 # ---------------------------------------------------------------------------
 
 #: Conditions :func:`retire_live_entries` has already reported (:func:`_warn_once`).
-_RETIRE_WARNED: set = set()
+_RETIRE_WARNED: set = process_cache("utils.progress_tracker._RETIRE_WARNED", set)
 
 
 def retire_live_entries(
@@ -1805,8 +1834,10 @@ def retire_live_entries(
     the rule all three close-out writers share (the third is
     ``review_orchestrator_base.flip_map_entries_to_done``): a row that
     dispatched freezes ``elapsed_s`` as ``now - dispatched_at`` and keeps its
-    ``queued_s``; a row still waiting (``queued``/``staggering``) freezes
-    ``elapsed_s: 0`` and ``queued_s`` as ``now - started_at``, because this
+    ``queued_s`` (a retry waiting for its launch turn is one); a row still
+    waiting for its first dispatch (``queued``/``staggering``, no
+    ``dispatched_at``) freezes ``elapsed_s: 0`` and ``queued_s`` as
+    ``now - started_at``, because this
     runs at the real end of the run, so *now* is when that wait ended. Without
     the ``queued_s`` half, every row an abort retired would lose the wait the
     table exists to show. The figures come from the persisted wall stamps
@@ -1823,7 +1854,6 @@ def retire_live_entries(
     rewritten on the ordinary path, where the fan-out's own sweep has already
     retired everything and only the ``run`` record is left to write.
     """
-    from . import status_file
 
     directory = str(phase_dir)
     reference = _wall_time() if now is None else float(now)

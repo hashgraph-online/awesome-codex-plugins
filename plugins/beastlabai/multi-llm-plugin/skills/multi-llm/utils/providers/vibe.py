@@ -1,22 +1,22 @@
 """Mistral Vibe provider implementation.
 
 ``mistral-vibe`` (Apache-2.0, PyPI, binary ``vibe``). Everything below is
-measured against **2.24.1** in the containerized probe of
-`plans/harness-expansion.md` §6 — stub-only, ``--network none``, no credential —
-and the probe contradicted the plan's researched §4.2 contract on four separate
-points. Where it did, the measurement is what shipped and the contradiction is
-recorded on the member it affects.
+measured against **2.24.1** in a containerized probe — stub-only,
+``--network none``, no credential — and the probe contradicted the contract
+researched from the vendor's docs on four separate points. Where it did, the
+measurement is what shipped and the contradiction is recorded on the member it
+affects.
 
-**vibe is not the marginal row §0.1 scored.** It was admitted on exactly one (c)
+**vibe is not a marginal row.** It was admitted on exactly one (c)
 win, ``--max-price``. Measured, it has three: the spend cap, a **stdin prompt
 transport** carrying a multi-KB prompt, and a **permission tier narrower than
 all-or-nothing** (``--agent plan``, plus tool allow/deny lists). Two of those are
-explicitly enumerated (c) properties in §0, and the transport is the one §6.4
+explicitly enumerated (c) properties, and the transport is the one
 says these adapters need in order to be usable on Windows at all.
 
-**§4.2's central wrinkle does not exist, and it took ``prepare_run`` with it.**
+**the central wrinkle does not exist, and it took ``prepare_run`` with it.**
 The plan's premise was *"no ``--model`` flag ⇒ the adapter must template a
-per-run config"*, which is why §1 grew a ``prepare_run(model, profile, *,
+per-run config"*, which is why grew a ``prepare_run(model, profile, *,
 run_dir)`` hook at all. Measured: **``VIBE_ACTIVE_MODEL`` selects the model from
 the environment** — the ``VIBE_`` prefix overrides *any* config field — and two
 concurrent slots with **different** models both succeeded while sharing one
@@ -24,17 +24,17 @@ concurrent slots with **different** models both succeeded while sharing one
 ``wire-model-ALPHA`` and ``wire-model-BETA``). There is no per-run file to write,
 so there is no race, so there is no hook: the catalog is a **static, committed**
 ``home_seed/vibe/`` tree and the only per-run-varying value is an env var. With
-dsh deferred by §0.1, ``prepare_run`` has no consumer left in this plan and does
+dsh deferred, ``prepare_run`` has no consumer left in this plan and does
 not ship on vibe's account.
 
 **The permission ladder is inverted at the bottom, and the default is the
 dangerous end.** ``--agent NAME`` selects a builtin profile carrying an explicit
 safety enum, and ``default_agent`` defaults to **``accept-edits``**, whose
 ``AgentSafety`` is **DESTRUCTIVE** and whose ``write_file``/``edit`` permission
-is ``always``. So the bare ``vibe -p …`` that §6.5's table lists as *tier 1* is
+is ``always``. So the bare ``vibe -p …`` that the table lists as *tier 1* is
 in fact the second-widest rung on the ladder. The real rung 1 is ``--agent plan``
 (``AgentSafety.SAFE``, "read-only agent for exploration and planning"), it
-completes a realistic review prompt with a clean filesystem canary, and §6.5
+completes a realistic review prompt with a clean filesystem canary, and
 rule 1's ascending stop therefore forbids promoting above it. ``--trust`` is
 **not** required either — a rung-1 run completed with no trust prompt and no
 stall — so it is a permission widener bought for nothing and is not emitted.
@@ -50,7 +50,7 @@ last-wins is what the ``multi-assistant`` fixture pins.
 Every runtime failure measured — 401, 404, 400 context, 429, 500, stall,
 truncated stream, error envelope, zero-byte response — writes to **stderr** with
 stdout empty. At 2.24.1 and 2.26.0 every one exits 1, and *config validation*
-errors are §6.2's ``stdout-error`` trap: they print on **stdout with stderr
+errors are the ``stdout-error`` trap: they print on **stdout with stderr
 empty**, still exit 1. 2.26.1 (re-measured 2026-10-09) documents four
 programmatic exits and uses them: **0** finished; **1** usage or config error —
 the 401, and a config validation error, which now prints ``Error: Invalid
@@ -73,7 +73,7 @@ exit, but the executor lane lets a schema-valid result win over one.
 
 **No exit-0 failures.** Every failure mode measured exits nonzero (1 at 2.24.1
 and 2.26.0; 1, 2 or 3 at 2.26.1), so ``exit_zero_failure_markers`` is empty *by
-measurement* and §6.2's ``exit-zero-failure`` row is recorded N/A rather than
+measurement* and the ``exit-zero-failure`` row is recorded N/A rather than
 skipped.
 
 **``VIBE_API_TIMEOUT`` is pinned, and that is load-bearing rather than tidy.**
@@ -84,10 +84,10 @@ a single slot**. Pinning the knob and declaring the pinned number is the
 ``claude_code.py`` precedent, and it is what keeps the declared envelope honest.
 That is 2.24.1's chain. 2.26.0 retries for a wall-clock budget instead
 (``api_retry_max_elapsed_time``, default 300 s), so ``VIBE_API_RETRY_MAX_ELAPSED_TIME``
-is pinned beside it (2026-10-08; see ``API_RETRY_BUDGET_S``). 2.26.1 keeps the
-budget and changes the chain inside it (2026-10-09; see ``internal_retries``).
+is pinned beside it. 2.26.1 keeps the
+budget and changes the chain inside it.
 
-**``--max-price`` ships, and its role is narrower than §7.4 assumed.** §4.2 feared
+**``--max-price`` ships, and its role is narrower than assumed.** feared
 vibe enforces the cap against a priced catalog the stub cannot serve; measured,
 vibe issues **no ``GET /models`` at all**, in any run — pricing comes from the
 seed's ``input_price``/``output_price`` keys, so the cap is decidable entirely
@@ -95,7 +95,7 @@ offline and the flag's "drop it from v1" branch never fires. But the help text i
 precise: *"Session will be interrupted if cost exceeds this limit"*. It is a
 **between-turns** guard, and a single completion under a ``0.0000001`` cap ran to
 completion with the full answer. So it bounds a runaway loop, **not** one
-expensive call, and it is not sufficient as §7.4's spend bound on its own —
+expensive call, and it is not sufficient as the spend bound on its own —
 ``--max-turns`` and the key-side credit cap remain load-bearing. 2.26.1 still
 lets that one completion run to its end, but then reports the run
 ``Stopped: price_limit`` and exits 3 with the whole answer on stdout (the
@@ -108,31 +108,33 @@ the installed validator itself: ``off, low, medium, high, max``. So
 ``split_reasoning_effort`` runs in :meth:`VibeProvider.build_command` — a
 ``:effort`` suffix must never reach the model surface verbatim — but the level is
 carried in ``VIBE_THINKING``, not in a flag. That is the same "env, not argv"
-split §8 item 8 records for kimi, and it means the §14.1 seven-artifact rule
+split item 8 records for kimi, and it means the seven-artifact rule
 attaches to the env declaration rather than to ``expected_argv.yaml``.
 
 **Two operational traps, recorded so nobody re-derives them.** A **positional**
 prompt with no ``-p`` launches the interactive TUI and hangs forever (ANSI
 alt-screen on stderr), so ``-p`` is mandatory and the trailing-positional shape
-§8.3 contemplates for dsh must never be copied here. And the wheel also installs
+ contemplates for dsh must never be copied here. And the wheel also installs
 ``vibe-acp`` and ``vibe-app-server``; neither is wanted.
 """
 import json
 import os
 import re
 import shutil
-import tempfile
-import threading
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
+    STATUS_SPAWN_FAILED,
     InternalRetryEnvelope,
     LLMProvider,
     ReasoningLadder,
     StructuredSchema,
     split_reasoning_effort,
 )
+from .parse_kit import fail
+from .private_home import PrivateHomes
 
 #: Levels accepted by the ``[[models]]`` key ``thinking`` at 2.24.1, read off the
 #: installed pydantic validator rather than from documentation: a bogus value
@@ -154,7 +156,7 @@ EFFORT_LADDER = ReasoningLadder(
 )
 REASONING_EFFORTS = EFFORT_LADDER.accepted
 
-#: §4.2's decision, taken here rather than left to taste: emitted on **every**
+#: The decision, taken here rather than left to taste: emitted on **every**
 #: ``build_command``, never lane- or kwarg-conditional. A config-conditional flag
 #: would break the argv contract — the provider lane's call log is graded against
 #: ``expected_argv.yaml``, whose reference shapes are built from this adapter
@@ -164,11 +166,11 @@ REASONING_EFFORTS = EFFORT_LADDER.accepted
 #: would make the assertion vacuous.
 MAX_PRICE_USD = "0.25"
 
-#: The per-run turn ceiling. A module constant, so §7 step 6 classifies it as
+#: The per-run turn ceiling. A module constant, so step 6 classifies it as
 #: **policy, verbatim** — nothing derives it from the slot, and it does not join
 #: ``normalize_argv.py``'s ``_ROW_DERIVED``.
 #:
-#: This is the bound that actually stops a runaway on §7.4's credentialed lane.
+#: This is the bound that actually stops a runaway on the credentialed lane.
 #: ``--max-price`` is checked *between* turns, so it cannot interrupt a single
 #: expensive completion; a turn cap can.
 MAX_TURNS = "4"
@@ -178,7 +180,7 @@ MAX_TURNS = "4"
 #: times, so leaving it alone would put a ~36-minute worst case inside one slot.
 #:
 #: 90 s × 3 + margin sits comfortably under the 1200 s block timeout with room
-#: for the harness's own shutdown, which is the invariant §3.3 states for any
+#: for the harness's own shutdown, which is the invariant states for any
 #: inner bound.
 API_TIMEOUT_S = 90
 
@@ -220,13 +222,15 @@ _MAX_WALL_S = max(
 #: follow.
 _HOME_PREFIX = "multi-llm-vibe-"
 
-_HOME_LOCK = threading.Lock()
-#: Every config root **this process created**. Nothing outside this list is ever
-#: removed: a user-pinned ``VIBE_HOME`` is respected, never deleted.
-_HOME_DIRS: List[str] = []
-_HOME_ATEXIT_REGISTERED = False
+#: Every config root **this process created** (:class:`PrivateHomes`). Nothing
+#: else is ever removed: a user-pinned ``VIBE_HOME`` is respected, never
+#: deleted.
+_HOMES = PrivateHomes(_HOME_PREFIX)
+isolated_home_dirs = _HOMES.isolated_home_dirs
+cleanup_home_dirs = _HOMES.cleanup
+reset_home_dirs = _HOMES.reset
 
-#: B3 and ambient names (§2.2 rule 3: adapter wins, ambient loses, no fallback).
+#: B3 and ambient names.
 #:
 #: **This list holds only names :meth:`VibeProvider.get_env` never sets, and that
 #: is a correctness constraint rather than a stylistic one.** Both spawn sites
@@ -241,7 +245,7 @@ _HOME_ATEXIT_REGISTERED = False
 #: names this adapter leaves alone can be shadowed, so only they appear below.
 #: ``test_nothing_the_adapter_injects_is_also_stripped`` pins the invariant.
 _STRIPPED_VENDOR_VARS: Tuple[str, ...] = (
-    # The vendor backend. §2.2's vibe row says a seed missing `backend =
+    # The vendor backend. The vibe row says a seed missing `backend =
     # "generic"` selects Mistral's own path; measured, that is FALSE --
     # `ProviderConfig.backend` DEFAULTS to `Backend.GENERIC`. The real trap is
     # narrower: a provider *named* `mistral` with no explicit backend is
@@ -284,46 +288,6 @@ def stopped_by_a_limit(stderr: str) -> Optional[str]:
     return match.group(1) if match else None
 
 
-def _create_home_dir() -> str:
-    """A fresh 0700 config root, owned and tracked by this process."""
-    global _HOME_ATEXIT_REGISTERED
-
-    path = tempfile.mkdtemp(prefix=_HOME_PREFIX)
-    os.chmod(path, 0o700)  # mkdtemp already does this; asserted, not assumed
-    _HOME_DIRS.append(path)
-    if not _HOME_ATEXIT_REGISTERED:
-        import atexit
-
-        atexit.register(cleanup_home_dirs)
-        _HOME_ATEXIT_REGISTERED = True
-    return path
-
-
-def isolated_home_dirs() -> Tuple[str, ...]:
-    """Every config root this process created and has not yet removed."""
-    with _HOME_LOCK:
-        return tuple(_HOME_DIRS)
-
-
-def cleanup_home_dirs() -> None:
-    """Remove every config root this process created. Never raises.
-
-    Containment must never be the thing that fails a run, so a directory that
-    cannot be removed is left behind under a known prefix rather than
-    propagating an exception out of interpreter shutdown.
-    """
-    with _HOME_LOCK:
-        paths, _HOME_DIRS[:] = list(_HOME_DIRS), []
-    for path in paths:
-        shutil.rmtree(path, ignore_errors=True)
-
-
-def reset_home_dirs() -> None:
-    """Drop this process's tracking list without removing anything (tests)."""
-    with _HOME_LOCK:
-        _HOME_DIRS[:] = []
-
-
 class VibeProvider(LLMProvider):
     """Provider for Mistral's Vibe CLI, driven against a generic OpenAI backend.
 
@@ -334,7 +298,7 @@ class VibeProvider(LLMProvider):
     at ``usage_support = "none"``, also measured. See the module docstring.
     """
 
-    #: §8.3: flags first, the ``-p <prompt>`` **pair** trailing. Confirmed legal
+    #: Flags first, the ``-p <prompt>`` **pair** trailing. Confirmed legal
     #: at 2.24.1 — ``-p`` takes exactly one value and the flags are
     #: order-independent, so the grok-shape reorder changes no dispatched
     #: behaviour. Note the pair: the stdin transport drops ``-p`` **and** the
@@ -351,7 +315,7 @@ class VibeProvider(LLMProvider):
     #: intact as the user message, with ``-p`` still trailing.
     supported_prompt_transports = ("argv", "stdin")
 
-    #: ``--agent plan`` — §6.5's rung 1, emitted unconditionally and pinned again
+    #: ``--agent plan`` — the rung 1, emitted unconditionally and pinned again
     #: through ``VIBE_DEFAULT_AGENT`` — is upstream's read-only profile, so this
     #: adapter cannot write the ``{output_json_path}`` file the Lane A prompts
     #: used to demand. The plan profile *advertises* ``write_file`` and ``edit``
@@ -394,7 +358,7 @@ class VibeProvider(LLMProvider):
     min_version = "2.24.1"
     verified_version = "2.26.1"
 
-    #: Measured at 2.24.1 (§6.1.1), every field, including the one experiment the
+    #: Measured at 2.24.1, every field, including the one experiment the
     #: other adapters do not run, and re-measured at 2.26.0 on 2026-10-08 with
     #: the retry budget pinned (2.26.0 retries for a budget, not three times),
     #: and at 2.26.1 on 2026-10-09.
@@ -413,7 +377,7 @@ class VibeProvider(LLMProvider):
     #: ``Retry-After: 1`` measured 150 requests over 153 s at 2.26.1 (one per
     #: second until the budget). The wall bound below holds either way.
     #:
-    #: ``retries_rate_limit`` is **True** (429 is in the retryable set), so §7.5
+    #: ``retries_rate_limit`` is **True** (429 is in the retryable set), so
     #: rule 6(b) suppresses an identical harness-side re-dispatch. ``Retry-After``
     #: was **not** honoured at 2.24.1 (a 30 s header produced no sleep at all);
     #: 2.26.0 honours it up to a 30 s cap, so a server-chosen delay is still
@@ -431,13 +395,13 @@ class VibeProvider(LLMProvider):
     #: requests (the last started at 145 s); a plain stall at 185 s, 2 requests,
     #: because 2.26.1 retries a stall once whatever the budget has left.
     #:
-    #: **Experiment 6 is why this row is trustworthy.** §4.2 predicted that a 200
+    #: **Experiment 6 is why this row is trustworthy.** predicted that a 200
     #: whose stream carries no ``finish_reason`` makes vibe "treat the stream as
     #: incomplete and retry", and warned that a 5xx-only measurement would report
     #: zero retries and be wrong. Measured, the opposite is true: that case is
     #: **one POST, exit 1, immediate hard error** — a fail-fast, not a retry loop.
     #: The "un-pinnable stream-retry loop spends the slot's budget invisibly"
-    #: hazard behind §4.2's abort criterion 1 is empirically void. The experiment
+    #: hazard behind the abort criterion 1 is empirically void. The experiment
     #: still earns its place: it is what proves the absence, and it is what
     #: showed ``emits_finish_reason = false`` in the seed turns that hard error
     #: into a clean exit 0 against an endpoint that omits the field.
@@ -469,20 +433,25 @@ class VibeProvider(LLMProvider):
     #: exercised — 401, 404, 400 context-overflow, 429, 500, stall, truncated
     #: stream, error envelope and a bad config — exits **1** at 2.24.1 and
     #: 2.26.0, and nonzero at 2.26.1 (1, or 2 for infrastructure; a run stopped
-    #: by a limit exits 3). §6.2's ``exit-zero-failure`` row is therefore
+    #: by a limit exits 3). The ``exit-zero-failure`` row is therefore
     #: recorded N/A for this CLI rather than left untested.
     exit_zero_failure_markers: Tuple[Any, ...] = ()
+
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: vibe's
+    #: ``vendor_text`` drops only the ``user`` entries it echoes; the answer's
+    #: ``assistant`` entries reach the tables, so a review quoting a rate
+    #: limit, a 401 or a context limit classifies as one. Its exit-0 failure
+    #: rows classify ``None``.
+    EXIT0_CLASSIFIABLE = False
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: vibe's stderr is its
+    #: own ``Error: …`` / ``Stopped: …`` line (tests/fixtures/vibe); the transcript rides
+    #: stdout.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
 
     @property
     def name(self) -> str:
         return "vibe"
-
-    @property
-    def default_timeout(self) -> int:
-        # 1200 s, matching the providers.yaml block. It has to clear vibe's own
-        # declared inner bound (3 x 90 s + backoff) with room for the harness's
-        # shutdown margin, which is the invariant §3.3 states for any inner cap.
-        return 1200
 
     def is_available(self) -> bool:
         return shutil.which("vibe") is not None
@@ -509,7 +478,7 @@ class VibeProvider(LLMProvider):
             timeout_s: Accepted and **ignored** — vibe exposes no wall-clock flag
                 at 2.24.1. Its inner bound is ``VIBE_API_TIMEOUT``, which
                 :meth:`get_env` pins to a constant, so there is nothing to
-                render. §1's guard is satisfied trivially: the argv is
+                render. The guard is satisfied trivially: the argv is
                 byte-identical with and without the keyword.
             schema: Accepted and ignored; vibe declares no structured-output
                 support, so ``structured_output_support`` stays ``False`` and the
@@ -520,14 +489,14 @@ class VibeProvider(LLMProvider):
             "--output",
             "json",
             # The roster's only USD spend cap. Policy value, verbatim in the
-            # pinned argv table -- never a placeholder (§4.2).
+            # pinned argv table -- never a placeholder.
             "--max-price",
             MAX_PRICE_USD,
             # The bound that actually stops a runaway loop: --max-price is only
             # checked BETWEEN turns.
             "--max-turns",
             MAX_TURNS,
-            # §6.5 RUNG 1, AND THE BARE FORM IS NOT IT. `default_agent` is
+            #  RUNG 1, AND THE BARE FORM IS NOT IT. `default_agent` is
             # `accept-edits`, whose AgentSafety is DESTRUCTIVE and whose
             # write_file/edit permission is `always`. `plan` is SAFE and
             # read-only, it completes a realistic review prompt with a clean
@@ -571,6 +540,36 @@ class VibeProvider(LLMProvider):
         cmd = self.build_command(prompt, model, timeout_s=timeout_s, schema=schema)
         # Drop the prompt VALUE only; `-p` itself is what keeps vibe headless.
         return cmd[:-1], prompt
+
+    #: vibe's config-validation refusal: opening stdout at 2.24.1 and 2.26.0
+    #: (the ``stdout-error`` row), opening a stderr line behind ``Error: `` at
+    #: 2.26.1 (``config-error``). Both exit 1 before any request, so on stdout
+    #: it is the first thing vibe printed and is read nowhere else there: a
+    #: model's answer, which can quote it anywhere, comes after the run starts.
+    _CONFIG_REFUSAL = re.compile(r"(?:Error: )?Invalid configuration \(\d+ error\(s\)\):")
+
+    def classify_failure(
+        self, stdout: str, stderr: str, exit_code: int = 0
+    ) -> Optional[str]:
+        """``spawn_failed`` for a config-validation refusal, else the base rule.
+
+        A rejected config is a property of the install (the seed, or the user's
+        own vibe config), identical for every sibling slot, and it made zero
+        requests: the disposition omp's ``Config overlay not found`` gets in
+        ``failure_classifier.STDERR_LAUNCH_FAILURE_MARKERS``, where a transport retry would
+        only repeat it. Read on a nonzero exit only: at the start of any
+        stderr line, and on stdout only where it opens stdout, since this
+        verdict fails the executor's whole batch.
+        """
+        if exit_code and (
+            any(
+                self._CONFIG_REFUSAL.match(line)
+                for line in (stderr or "").splitlines()
+            )
+            or self._CONFIG_REFUSAL.match((stdout or "").lstrip())
+        ):
+            return STATUS_SPAWN_FAILED
+        return super().classify_failure(stdout, stderr, exit_code)
 
     def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
         """The transcript minus the ``role: "user"`` entries, which are ours.
@@ -632,7 +631,7 @@ class VibeProvider(LLMProvider):
             return stdout, stderr
 
     def parse_output(self, stdout: str, stderr: str) -> Dict[str, Any]:
-        """§3.4's two-step unwrap over a JSON array of transcript entries.
+        """The two-step unwrap over a JSON array of transcript entries.
 
         **Step 1** parses stdout as a JSON array and takes the **last** entry
         with ``role == "assistant"`` and ``type == "message"``, concatenating the
@@ -662,12 +661,7 @@ class VibeProvider(LLMProvider):
         """
         text = (stdout or "").strip()
         if not text:
-            return {
-                "success": False,
-                "error": self._empty_stdout_reason(stderr),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(self._empty_stdout_reason(stderr), stdout)
 
         stopped = stopped_by_a_limit(stderr)
         if stopped is not None:
@@ -676,15 +670,11 @@ class VibeProvider(LLMProvider):
             # had said when the limit fell -- half an array, or a whole one
             # that cost more than --max-price. stderr's one line is the only
             # sign; read without it, all four limit rows parsed as success.
-            return {
-                "success": False,
-                "error": (
-                    f"vibe stopped before finishing (Stopped: {stopped}); the "
-                    "transcript on stdout is a stopped run's, not an answer"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                f"vibe stopped before finishing (Stopped: {stopped}); the "
+                "transcript on stdout is a stopped run's, not an answer",
+                stdout,
+            )
 
         try:
             entries = json.loads(text)
@@ -692,42 +682,24 @@ class VibeProvider(LLMProvider):
             # THE stdout-error shape: vibe's config-validation diagnostics land
             # here, on stdout, with stderr empty. Quoting them is the whole
             # point -- this is the only place the reason exists.
-            return {
-                "success": False,
-                "error": f"vibe produced non-JSON output on stdout: {text[:300]}",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(f"vibe produced non-JSON output on stdout: {text[:300]}", stdout)
 
         if not isinstance(entries, list):
-            return {
-                "success": False,
-                "error": (
-                    "vibe --output json returned "
-                    f"{type(entries).__name__}, expected a transcript array"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "vibe --output json returned "
+                f"{type(entries).__name__}, expected a transcript array",
+                stdout,
+            )
 
         answer = self._last_assistant_text(entries)
         if answer is None:
-            return {
-                "success": False,
-                "error": (
-                    "no assistant message in vibe's transcript "
-                    "(the run produced no answer)"
-                ),
-                "raw": stdout,
-                "data": None,
-            }
+            return fail(
+                "no assistant message in vibe's transcript "
+                "(the run produced no answer)",
+                stdout,
+            )
         if not answer.strip():
-            return {
-                "success": False,
-                "error": "vibe returned an empty assistant message",
-                "raw": stdout,
-                "data": None,
-            }
+            return fail("vibe returned an empty assistant message", stdout)
 
         return extract_json_from_text(answer, prefer_arrays=True)
 
@@ -762,8 +734,7 @@ class VibeProvider(LLMProvider):
 
         The text :meth:`parse_output` reads: :meth:`_last_assistant_text` over
         the ``--output json`` array. So the ask lane's answer text and the
-        review lanes' salvage read what the parser treats as the answer
-        (plans/ask-answer-recovery-and-false-success.md D2.5).
+        review lanes' salvage read what the parser treats as the answer.
 
         ``""`` — a final verdict — for everything else: no assistant entry, a
         blank one, and any stdout that is not one JSON array. That last case is
@@ -866,7 +837,7 @@ class VibeProvider(LLMProvider):
 
         Per **slot**, so two concurrent fan-out slots never share one writable
         config root — the corruption ``cursor-agent`` actually hit and the
-        assertion §8.2's test 2 makes. vibe writes on every run: session logs,
+        assertion the test 2 makes. vibe writes on every run: session logs,
         ``vibehistory`` and ``trusted_folders.toml``.
 
         ``None`` when the user (or a lane) pinned ``VIBE_HOME`` themselves —
@@ -884,16 +855,15 @@ class VibeProvider(LLMProvider):
         """
         if os.environ.get("VIBE_HOME"):
             return None
-        with _HOME_LOCK:
-            try:
-                return _create_home_dir()
-            except OSError:  # noqa: BLE001 - containment must never fail a run
-                return None
+        try:
+            return _HOMES.create()
+        except OSError:  # noqa: BLE001 - containment must never fail a run
+            return None
 
     def get_remove_env(self) -> List[str]:
         """Strip the vendor key and every ``VIBE_*`` knob this adapter does not set.
 
-        §2.2 rule 3: adapter wins, ambient loses, no fallback. The ``VIBE_``
+ rule 3: adapter wins, ambient loses, no fallback. The ``VIBE_``
         prefix overrides *any* config field, so an ambient one outranks the
         committed seed — which makes this list the thing that keeps the seed
         authoritative. ``LOG_LEVEL`` is in it because vibe reads the **bare**

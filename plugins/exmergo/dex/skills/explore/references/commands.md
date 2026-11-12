@@ -66,6 +66,17 @@ editing one. `--check <file>` reports each file's copy as `current`, `stale`,
 such file) or `unreadable` (it exists but could not be read), and the envelope is
 an error when any copy is not current.
 
+## `feedback [--command <subcommand>]`
+
+What a bug report or a feature request needs, with no project, connection or
+extra: `data.environment` (versions, OS, the connector and semantic vendor
+names), safe to paste into a public issue as it stands, `data.links` to the
+issue forms prefilled from it, and `data.guidance`. Nothing is sent. Use it when
+Dex itself misbehaves (an error with `reason: internal`, which also carries
+`data.report`, or an envelope that contradicts the docs), not for a defect in
+the user's data or project. Draft the issue and ask the person before filing:
+an issue is public.
+
 ## `explore profile <objects>`
 
 Objects are space- or comma-separated. Each profile carries column profiles, PII

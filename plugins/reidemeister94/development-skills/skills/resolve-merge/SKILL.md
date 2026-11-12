@@ -1,6 +1,6 @@
 ---
 name: resolve-merge
-description: "Resolve an active merge or rebase conflict, including plans and chronicles with colliding names."
+description: "Use when a merge or rebase has conflicts, including plans and chronicles with colliding names."
 user-invocable: true
 allowed-tools: Glob, Grep, Read, Bash, Edit, Write, AskUserQuestion
 ---
@@ -14,7 +14,7 @@ allowed-tools: Glob, Grep, Read, Bash, Edit, Write, AskUserQuestion
    - AU → `git add`, but `git rm` if its slug already exists in theirs under another name (duplicate).
    - Lock file → checkout one side, regenerate via the package manager.
    - `CHANGELOG.md` → merge unique entries, dedupe, keep category order.
-4. When an OURS-only `NNNN__` plan or chronicle collides with a THEIRS number, keep THEIRS. Rename OURS to `YYYY-MM-DD__<slug>.md` with its own date and slug. Repair paired records, research, and cross-references. When date names collide, reconcile the same task or give different tasks distinct slugs.
+4. When an OURS-only `NNNN__` plan or chronicle collides with a THEIRS number, keep THEIRS. Rename the OURS file to `YYYY-MM-DD__<slug>.md` with its own date and slug, and never give it a new number. Repair its paired record, research, and cross-references. When date names collide, reconcile the same task or give different tasks distinct slugs.
 5. Show every conflict with file, code, action, and classification. Ask once: Approve / Modify / Abort. Abort writes nothing.
 6. Apply approved AUTO actions; report only counts and failures.
 7. For each JUDGMENT file, show exact OURS and THEIRS hunks plus the proposed merge. Ask Approve / Edit / Skip; Skip leaves it conflicted.

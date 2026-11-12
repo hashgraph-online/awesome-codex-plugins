@@ -4,8 +4,8 @@ import re
 import shutil
 from typing import Any, Dict, List, Optional, Tuple
 
-from ..json_extractor import extract_json_from_text
 from .base import (
+    LAUNCH_DIAGNOSTICS_NONE,
     CATEGORY_SERVER_ERROR,
     STATUS_AUTH_FAILED,
     STATUS_CONTEXT_LENGTH_EXCEEDED,
@@ -20,6 +20,7 @@ from .base import (
     split_reasoning_effort,
     warn_gate_once,
 )
+from .parse_kit import answer_from_text, fail
 from .pi_family_stream import (  # noqa: F401 - _MAX_DIAGNOSIS_CHARS re-exported
     _MAX_DIAGNOSIS_CHARS,
     StreamDialect,
@@ -41,15 +42,6 @@ from .pi_family_stream import (  # noqa: F401 - _MAX_DIAGNOSIS_CHARS re-exported
     unrecognized_stop_reason,
     warn_stream_version,
 )
-
-# Terminal codes, imported by name from the runner as omp.py does: a parse that
-# sets one tells `invoke_with_file_output` whether a findings file beside a
-# failed parse may still be recovered.
-try:  # pragma: no cover - import shim mirrors the rest of utils/
-    from ..llm_client import ERROR_SUBPROCESS_FAILED, ERROR_TIMEOUT
-except ImportError:  # pragma: no cover - direct-script import shim
-    ERROR_SUBPROCESS_FAILED = "SUBPROCESS_FAILED"
-    ERROR_TIMEOUT = "TIMEOUT"
 
 # Thinking levels accepted by `pi --thinking` (per pi.dev docs). pi also
 # parses the same levels as a native ":level" suffix on --model; the adapter
@@ -189,18 +181,7 @@ def parse_answer_text(text: str) -> Dict[str, Any]:
     tool policy, transports — diverges, which is why omp does not subclass pi;
     the stream reader they now share lives in ``pi_family_stream``.
     """
-    text = (text or "").strip()
-
-    if not text:
-        return {"success": False, "error": "Empty output", "raw": text, "data": None}
-
-    if text.startswith(('[', '{')):
-        try:
-            return {"success": True, "data": json.loads(text)}
-        except json.JSONDecodeError:
-            pass
-
-    return extract_json_from_text(text, prefer_arrays=True)
+    return answer_from_text(text or "", empty_error="Empty output")
 
 
 # --------------------------------------------------------------------------- #
@@ -275,7 +256,7 @@ def _is_overflow(final: Dict[str, Any], events: List[Dict[str, Any]]) -> bool:
     """True for a real context overflow — never for a truncated-response recovery.
 
     Either the terminal ``error``'s own ``errorMessage`` carries a shared
-    :data:`~utils.providers.base.CONTEXT_OVERFLOW_MARKERS` row (measured: the
+    :data:`~utils.providers.failure_classifier.CONTEXT_OVERFLOW_MARKERS` row (measured: the
     vendor's ``400: … maximum context length …`` arrives verbatim), or the stream
     holds a failed overflow ``compaction_end`` whose sentence is **not** pi's
     truncated-recovery one (§7.3 step 5's pre-flight correction: both share
@@ -296,9 +277,10 @@ def _is_overflow(final: Dict[str, Any], events: List[Dict[str, Any]]) -> bool:
 def _named_for_the_ladder(status: str, token: str, sentence: str) -> str:
     """``sentence``, with ``token`` in front when the shared tables would miss it.
 
-    Lane A classifies the composed error *string* through ``classify_streams``
-    with no adapter in hand, so a structural verdict reaches its ladder only if
-    the sentence carries a table word. omp's helper of the same name checks for
+    The ladder obeys :meth:`PiProvider.classify_failure`'s verdict on both
+    lanes; the error *string* is the reader's account of it, and the fan-out's
+    ``classify_streams`` fallback when an adapter gave none, so it carries the
+    table word that names the same verdict. omp's helper of the same name checks for
     the token as a substring; this one asks the table itself, so a sentence that
     already classifies (the measured ``400: … maximum context length …``) is
     returned untouched.
@@ -538,7 +520,7 @@ class PiProvider(LLMProvider):
     #: (every release before 0.87.1 silently ignored an invalid one) is read by
     #: :meth:`parse_output`'s back-compat leg rather than refused.
     #: ``min_version`` is a hard exit-3 refusal in
-    #: ``subagent_executor._detect_version``; ``verified_version`` is a one-line
+    #: ``runner_preflight._detect_version``; ``verified_version`` is a one-line
     #: warning, and only the warning is earned.
     #:
     #: ``version_cmd`` stays, because it is the only thing that can ever make
@@ -617,13 +599,22 @@ class PiProvider(LLMProvider):
         "No API key for",
     )
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: pi's
+    #: :meth:`vendor_text` is omp's: the terminal message's ``errorMessage``
+    #: only, ``""`` on ``stop``/``toolUse``/``length`` and before any assistant
+    #: message; ``generate`` always renders ``--mode json``, so the answer is
+    #: never plain stdout.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: pi's OpenAI SDK dumps
+    #: a chunk it could not parse on stderr after ``Could not parse message into JSON:`` /
+    #: ``From chunk:`` (tests/fixtures/pi/truncated), and a chunk is the model's streamed
+    #: tokens, so none of stderr is read for a batch-fatal verdict.
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_NONE
+
     @property
     def name(self) -> str:
         return "pi"
-
-    @property
-    def default_timeout(self) -> int:
-        return 600
 
     def is_available(self) -> bool:
         return shutil.which("pi") is not None
@@ -792,6 +783,12 @@ class PiProvider(LLMProvider):
            it classifies ``context_length_exceeded``. A successful run that
            compacted after its answer is still a success.
         """
+        # The terminal codes, by name from their owner rather than re-spelled:
+        # `invoke_with_file_output` reads the same constants to decide whether a
+        # findings file beside a failed parse may still be recovered. Imported
+        # here because `provider_outcome` loads `providers.base`, whose package
+        # loads every adapter, this one included (a load-time cycle).
+        from ..provider_outcome import ERROR_SUBPROCESS_FAILED, ERROR_TIMEOUT
         raw = stdout or ""
         if not raw.strip() or not has_stream_envelope(raw, PI_DIALECT):
             if raw.strip():
@@ -814,12 +811,7 @@ class PiProvider(LLMProvider):
             return sentence
 
         def failed(code: Optional[str]) -> Dict[str, Any]:
-            out = {
-                "success": False,
-                "error": with_junk(terminal_verdict(raw)),
-                "raw": raw,
-                "data": None,
-            }
+            out = fail(with_junk(terminal_verdict(raw)), raw)
             if code is not None:
                 out["error_code"] = code
             return out
@@ -834,7 +826,7 @@ class PiProvider(LLMProvider):
                 sentence = f"{sentence}; stderr: {diagnosis[1]}"
             # No `error_code`: the model produced nothing, so the file channel is
             # welcome to look (and will find nothing).
-            return {"success": False, "error": sentence, "raw": raw, "data": None}
+            return fail(sentence, raw)
 
         final = messages[-1]
         reason = final.get("stopReason")
@@ -843,25 +835,18 @@ class PiProvider(LLMProvider):
             answer = _answer_text(final)
             if not answer.strip():
                 gave_up = terminal_verdict(raw)
-                return {
-                    "success": False,
-                    "error": f"Empty output ({gave_up})" if gave_up else "Empty output",
-                    "raw": answer,
-                    "data": None,
-                }
+                return fail(
+                    f"Empty output ({gave_up})" if gave_up else "Empty output", answer
+                )
             cut = _unclosed_container(answer)
             if cut is not None:
                 closing = "]" if cut == "[" else "}"
-                return {
-                    "success": False,
-                    "error": (
-                        f"Truncated output (the answer opens a JSON document "
-                        f"with '{cut}' and never closes it: no matching "
-                        f"'{closing}' in {len(answer)} characters)"
-                    ),
-                    "raw": answer,
-                    "data": None,
-                }
+                return fail(
+                    f"Truncated output (the answer opens a JSON document "
+                    f"with '{cut}' and never closes it: no matching "
+                    f"'{closing}' in {len(answer)} characters)",
+                    answer,
+                )
             result = dict(parse_answer_text(answer))
             # `raw` carries the answer on every outcome: `ask`'s
             # `recover_answer_text` falls back to it, and without it would fall
@@ -881,13 +866,9 @@ class PiProvider(LLMProvider):
             # success.md D3.1). The `stop` branch's unclosed-container refusal
             # above does not set it: there the model ended its turn, and the
             # refusal is a verdict on JSON, which an ask answer need not be.
-            return {
-                "success": False,
-                "error": with_junk(terminal_verdict(raw)),
-                "raw": _answer_text(final),
-                "data": None,
-                "incomplete": True,
-            }
+            return fail(
+                with_junk(terminal_verdict(raw)), _answer_text(final), incomplete=True
+            )
 
         if reason == "toolUse":
             out = failed(ERROR_TIMEOUT)

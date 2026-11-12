@@ -14,7 +14,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.0.1"
+  version: "2.0.2"
   openclaw:
     requires:
       anyBins:
@@ -31,6 +31,8 @@ allowed-tools: Bash(python3:*) Bash(curl:*) Bash(ffmpeg:*) Bash(ffprobe:*) Bash(
 ---
 
 # Find references
+
+> Step 1 of 10 in [How to make a video with an AI agent in ten steps](https://varg.ai/how-to/make-a-video-in-ten-steps). The full guide, with every test and source: https://varg.ai/how-to/find-references-for-an-ai-video (as Markdown: add `.md`).
 
 Without a reference an agent falls back to its default look: "centered text, gradient background, everything fading in"
 (https://x.com/rexan_wong/status/2103707054108299437). Adding more words does not fix it. Three facts shape this skill:

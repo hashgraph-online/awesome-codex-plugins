@@ -9,9 +9,9 @@ LMCP reads Apple Mail on the user's Mac (Gmail, Outlook, iCloud — any account 
 
 ## Core tools
 - `list_email_accounts` — see the user's accounts first if there are several.
-- `list_emails` — recent headers. **On a multi-account Mac, always pass `account="<name>"`** to avoid scanning every account (slow). Use `offset` to page (limit caps at 50).
-- `search_emails` — search by text; pass `account=` to scope and stay fast.
-- `read_email` — full body of one message (pass `account=` and `mailbox=` from the list result to make the lookup fast).
+- `list_emails` — recent headers. **On a multi-account Mac, always set `account="<name>"`** to avoid scanning every account (slow). Use `offset` to page (limit caps at 50).
+- `search_emails` — search by text; set `account=` to scope and stay fast.
+- `read_email` — full body of one message (set `account=` and `mailbox=` from the list result to make the lookup fast).
 - `create_draft` — compose a draft in Mail's Drafts for the user to review and send. **Never auto-send.**
 
 ## Good practice

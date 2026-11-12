@@ -1,6 +1,6 @@
 ---
 name: ai-agent-bench
-description: "Compare Claude Code and Codex on the same code task, with isolated worktrees, common checks, time, and cost."
+description: "Use when the user wants to compare Claude Code and Codex on the same code task, with isolated worktrees, common checks, time, and cost."
 user-invocable: true
 allowed-tools: Glob, Grep, Read, Bash, Edit, Write
 ---
@@ -31,6 +31,6 @@ Results go to `eval-results/<task>/<agent>/run-<id>-<timestamp>/`. Record unexpe
 
 Aggregate with `scripts/parse_transcript.py --aggregate <run-dirs> --output comparison.json --render-report comparison.md`. Report gates, branches, time delta, tokens, and cost. Never rank a failed trial.
 
-For plugin behavior rather than a real code task, use the bounded Pydantic runner owned by `eval-regression`.
+For plugin behavior rather than a real code task, use `claude plugin eval`.
 
 Never commit on the user's branch. A repeated run creates a new timestamped result and preserves prior evidence.

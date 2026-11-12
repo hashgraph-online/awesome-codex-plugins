@@ -21,7 +21,7 @@ claude plugin install varg@varg
 | Needs | no API key |
 | Uses | varg how to search, varg how to MCP, curl |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.0) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.2) |
 
 ## Ask your agent
 

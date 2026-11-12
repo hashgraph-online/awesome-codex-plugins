@@ -7,7 +7,9 @@ import shutil
 import subprocess
 from typing import Any, Collection, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from ..process_state import process_cache
 from .base import (
+    LAUNCH_DIAGNOSTICS_STDERR,
     PROFILE_AGENT_READONLY,
     PROFILE_AGENT_WRITE,
     PROFILE_GENERATE,
@@ -24,6 +26,8 @@ from .base import (
     StructuredSchema,
     _warn_policy_once,
     declared_env_names,
+    diagnostic_streams,
+    structural_stdout,
     git_env,
     reset_flag_gate_cache,  # noqa: F401 - M14: re-exported for the gate's tests
     split_reasoning_effort,
@@ -34,8 +38,9 @@ from .base import (
 from .result_envelope import (
     classify_api_error_status,
     describe_refused_envelope,
-    is_clean_envelope,
+    RESULT_ENVELOPE_SIGNATURE,
     parse_result_envelope,
+    result_envelope_diagnostics,
 )
 
 # Reasoning effort values accepted by `claude --effort`
@@ -120,7 +125,7 @@ WRITE_DENIED_TOOLS = ("Task",)
 PERMISSION_MODE_FLAG = "--permission-mode"
 PERMISSION_MODE_ACCEPT_EDITS = "acceptEdits"
 
-# §9.8. `--allowed-tools` / `--disallowed-tools` take `<tools...>`, so every
+# `--allowed-tools` / `--disallowed-tools` take `<tools...>`, so every
 # token after one of them — up to a separator — is part of its VALUE. The agent
 # profiles used to emit the prompt immediately after `--disallowed-tools`, and
 # the variadic swallowed it: the adapter's own rendered argv, run verbatim at
@@ -132,11 +137,11 @@ PERMISSION_MODE_ACCEPT_EDITS = "acceptEdits"
 # `--` before the prompt is one of the two fixes verified working (1 request,
 # exit 0); it is the one chosen here because it keeps the prompt at `argv[-1]`,
 # which every `cmd[:-1]` override, `build_agent_command_for_transport` and the
-# cross-adapter `agent-write` invariant in `tests/test_providers.py` rely on.
+# cross-adapter `agent-write` invariant in the provider tests (`tests/test_provider_*.py`) rely on.
 PROMPT_SEPARATOR = "--"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# M3 / §2.1 — strip vendor API keys so subscription auth wins (the "money bug").
+# M3 / — strip vendor API keys so subscription auth wins (the "money bug").
 #
 # Measured on the wire at claude-code 2.1.233: with a subscription token present,
 # adding `ANTHROPIC_API_KEY` swaps the request's `authorization: Bearer …` for
@@ -164,7 +169,7 @@ PROMPT_SEPARATOR = "--"
 # ─────────────────────────────────────────────────────────────────────────────
 
 # transcribed from claude-code 2.1.233 — evidence: plans/evidence-harness-
-#   invocation-2026-08-16/A2-claude-code-findings.md ("Surrounding vars
+#   invocation-2026-08-16/ ("Surrounding vars
 #   measured", rows 3–4). Nothing at run time reads the bundle.
 _CREDENTIAL_ENV = ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_CUSTOM_HEADERS")
 _VENDOR_BACKEND_ENV = (
@@ -188,7 +193,7 @@ NEVER_STRIPPED = ("OPENAI_API_KEY", "ANTHROPIC_BASE_URL", "CLAUDE_CONFIG_DIR")
 #: that is what the escape hatch is for.
 GATEWAY_ENV = ("ANTHROPIC_BASE_URL",)
 
-#: The sanitized preflight (§2.1 rule 1). `claude auth status` **is** a real
+#: The sanitized preflight. `claude auth status` **is** a real
 #: non-interactive subcommand: it emits JSON on stdout with **zero network** in
 #: ~0.3 s. Run with the full candidate strip set already removed — i.e. the env
 #: the post-strip spawn would actually get — because run with those variables
@@ -198,12 +203,12 @@ AUTH_STATUS_ARGV = ("auth", "status")
 AUTH_PROBE_TIMEOUT_S = 5.0
 
 #: The `authMethod` values that mean "a subscription won". Gating on
-#: `apiKeySource` instead is the trap §2.1 calls out and supersedes: it names the
+#: `apiKeySource` instead is the trap calls out and supersedes: it names the
 #: current winner and cannot separate *subscription overridden by env* (the money
 #: bug — strip is correct) from *API-key-only* (strip yields "Not logged in" in
 #: 0.35 s), because both report the same `apiKeySource`.
 #:
-#: **Two spellings, and the second one is a correction measured here.** §2.1 was
+#: **Two spellings, and the second one is a correction measured here.** was
 #: written against `authMethod: "oauth_token"` at 2.1.233. Re-measured at
 #: **2.1.237** (four zero-network `claude auth status` runs, no paid tokens),
 #: that is *not* what a subscription reports:
@@ -220,12 +225,12 @@ AUTH_PROBE_TIMEOUT_S = 5.0
 #: 3's state. `claude.ai` is added because without it the gate never fires on a
 #: current CLI (it fails open, so it is a silent no-op rather than a breakage);
 #: `oauth_token` is kept because dropping it would silently disable the strip on
-#: the version §2.1 measured. The sanitized probe removes
+#: the version measured. The sanitized probe removes
 #: :data:`_CREDENTIAL_ENV` before it runs, so row 3 cannot be produced by the
 #: probe itself — which is exactly what makes accepting both spellings safe, and
 #: exactly why the probe must be sanitized rather than merely run.
 #:
-#: Rows 1 and 2 are also the ambiguity §2.1's "Normative gate" describes,
+#: Rows 1 and 2 are also the ambiguity the "Normative gate" describes,
 #: reproduced on the wire: adding the key makes `apiKeySource` appear and
 #: `subscriptionType` go `null`, while `loggedIn` stays `true` — so an
 #: *unsanitized* `loggedIn: true` describes an API-key run.
@@ -247,7 +252,9 @@ STRIP_VERDICT_DECLINE = "decline"
 #: sanitized against. Nothing invalidates it mid-process: a credential that
 #: changes under a running orchestrator keeps the run's first verdict, which is
 #: precisely what makes the two lanes agree for the whole run.
-_VERDICT_CACHE: Dict[Tuple[str, ...], Tuple[str, str]] = {}
+_VERDICT_CACHE: Dict[Tuple[str, ...], Tuple[str, str]] = process_cache(
+    "utils.providers.claude_code._VERDICT_CACHE"
+)
 #: Counts probe **spawns**, so the "one probe per process, never per slot" rule
 #: is observable rather than asserted. Read by tests only.
 _PROBE_SPAWNS = 0
@@ -292,7 +299,7 @@ def _subscription_verdict(
     *,
     base_env: Optional[Mapping[str, str]] = None,
 ) -> Tuple[str, str]:
-    """``(verdict, reason)`` from the sanitized preflight — §2.1's decision table.
+    """``(verdict, reason)`` from the sanitized preflight — the decision table.
 
     | sanitized `claude auth status` (env already stripped) | strip? |
     |---|---|
@@ -334,7 +341,7 @@ def _subscription_verdict(
 
     # Sanitized: the candidate strip set is already gone, plus the nested-session
     # marker (a probe run from inside a Claude Code session would otherwise be
-    # refused by the same guard a dispatch is), plus §2.2's global git env so it
+    # refused by the same guard a dispatch is), plus the global git env so it
     # cannot prompt and cannot hang on a credential helper.
     env = {k: v for k, v in source.items() if k not in set(strip_set) | {"CLAUDECODE"}}
     env.update(git_env(PROFILE_GENERATE))
@@ -393,7 +400,7 @@ def _verdict_from_probe(returncode: int, stdout: str) -> Tuple[str, str]:
 def _stripped_vendor_backends(
     present: Sequence[str], policy: str, declared: Collection[str]
 ) -> List[str]:
-    """The `CLAUDE_CODE_USE_*` half of the strip — §2.1's second table.
+    """The `CLAUDE_CODE_USE_*` half of the strip — the second table.
 
     | origin | action |
     |---|---|
@@ -403,7 +410,7 @@ def _stripped_vendor_backends(
 
     A declared backend is the user's configured auth path; stripping it
     unconditionally trades a 137 s hang for "the user's only route to a model is
-    gone". Its hang risk is bounded by the per-slot timeout and the §8
+    gone". Its hang risk is bounded by the per-slot timeout and the
     process-group kill, and that is the user's own choice.
     """
     if policy == VENDOR_BACKEND_KEEP:
@@ -414,7 +421,7 @@ def _stripped_vendor_backends(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# §7.3 — the retry budget is delegated to the vendor CLI, in ITS OWN env names.
+# The retry budget is delegated to the vendor CLI, in ITS OWN env names.
 #
 # The CLI ships a default of **10 retries**. Measured 2026-08-16 against a stub
 # that 429s forever: 11 requests and **182 s** in a single rate-limited slot
@@ -426,24 +433,24 @@ def _stripped_vendor_backends(
 # occur zero times in the shipped binary (control: the API-key variable occurs
 # 185 times), and a request-timeout value expressed in seconds is ignored while
 # the millisecond one aborts an 8 s request at 2.37 s. `get_env` must therefore
-# never emit them; `tests/test_providers.py` asserts their absence in both
+# never emit them; the provider tests (`tests/test_provider_*.py`) asserts their absence in both
 # directions (not in the env, not as a key anywhere in this module).
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: §3.6's floor exactly — not one more. Below 3, `--fallback-model`'s overload
+#: The floor exactly — not one more. Below 3, `--fallback-model`'s overload
 #: path is silently dead (it needs three consecutive 529s), which is why L6 and
 #: L7 are atomic group A3. Above 3 buys no additional fallback capability and
 #: multiplies the worst-case wall by one more API_TIMEOUT_MS each. Values above
 #: 15 are silently clamped by the CLI, with a warning.
 CLAUDE_CODE_MAX_RETRIES = 3
 
-#: §9.6.c's margin rule applied one level in: the CLI must reach its own cutoff
+#: .c's margin rule applied one level in: the CLI must reach its own cutoff
 #: and exit *before* the harness's outer deadline, or the parent kills a live
 #: child and reports a bare timeout instead of the CLI's own reason. Named, never
 #: a literal inside get_env.
 INNER_REQUEST_MARGIN_MS = 30_000
 
-#: The hang ceiling, and the one judgement in §7.3 — flagged as one. It is above
+#: The hang ceiling, and the one judgement — flagged as one. It is above
 #: every measured single request and below the point at which a request that has
 #: produced nothing is anything but hung. FALSIFIER: an attempt aborting at
 #: 300 s ± jitter *with a partial answer* is a legitimate generation being
@@ -453,7 +460,7 @@ API_TIMEOUT_CEILING_MS = 300_000
 
 
 def derive_api_timeout_ms(resolved_timeout_s: int) -> Optional[int]:
-    """The CLI's own per-request timeout, in **milliseconds** (§7.3).
+    """The CLI's own per-request timeout, in **milliseconds**.
 
     Derived rather than constant, because "sized to sit under the outer
     per-provider slot timeout" is a relation, not a number:
@@ -479,23 +486,23 @@ def derive_api_timeout_ms(resolved_timeout_s: int) -> Optional[int]:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# §3.6 — `--fallback-model`, and §5.4.1's per-flag capability gate for it.
+# `--fallback-model`, and the per-flag capability gate for it.
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: Verified functionally at claude **2.1.233** while this adapter's declared
 #: floor is `min_version = "2.0.0"`. A measured-at version is an upper bound on
 #: the true floor, never the floor itself, so raising `min_version` to it would
-#: disable installs that work (§5.4.1(a) — rejected). Hence the gate below.
+#: disable installs that work. Hence the gate below.
 FALLBACK_MODEL_FLAG = "--fallback-model"
 FALLBACK_MODEL_VERIFIED_AT = "2.1.233"
 
 # ─────────────────────────────────────────────────────────────────────────────
-# §4.2 — `--json-schema`, and the SAME §5.4.1 gate (M14 absorbs both, later).
+# `--json-schema`, and the SAME gate (M14 absorbs both, later).
 # ─────────────────────────────────────────────────────────────────────────────
 
-#: Verified at claude **2.1.227** (§4.2) and re-verified functionally here at
+#: Verified at claude **2.1.227** and re-verified functionally here at
 #: 2.1.233 against a localhost Anthropic stub, while this adapter's declared
-#: floor is `min_version = "2.0.0"`. Same §5.4.1(a) rejection as
+#: floor is `min_version = "2.0.0"`. Same rejection as
 #: `--fallback-model`: a measured-at version is an upper bound on the true floor,
 #: so raising the floor to it would disable installs that work. Hence the gate —
 #: and it is the same one help read, not a second one.
@@ -517,7 +524,7 @@ JSON_SCHEMA_VERIFIED_AT = "2.1.227"
 #: however long the cap takes to reset.
 USAGE_LIMIT_TAG = "[USAGE_LIMIT]"
 
-#: The measured shape (2026-09-17, ``claude-fable-5-1``, ``claude 2.1.x``):
+#: The measured shape:
 #: ``You've reached your Fable limit. Switch to another model, or manage usage
 #: credits at claude.ai/settings/usage?from=cc_cli_limit_message, to
 #: continue.`` No ``API Error:`` prefix, no number, no "rate limit" — the text
@@ -534,10 +541,10 @@ USAGE_LIMIT_MARKERS = (
 )
 
 # The help read, its per-process cache, the flag-token regex and the warn-once
-# set that used to live here are **gone** — M14 (§5.4) absorbed them into the one
+# set that used to live here are **gone** — M14 absorbed them into the one
 # shared gate in `base.py`. What is left below is what is genuinely this
 # adapter's: which flags it gates, and what the one WARN says about the
-# capability a declined flag costs. `base.reset_flag_gate_cache` is the reset,
+# capability a declined flag costs. `version_gate.reset_flag_gate_cache` is the reset,
 # for the whole gate rather than for one adapter's copy of it.
 
 
@@ -580,7 +587,7 @@ def _base_name(model: str) -> str:
 
 
 def validate_fallback_models(provider_config: Dict[str, Any]) -> None:
-    """Validate ``providers.claude-code.fallback_models`` (§3.6).
+    """Validate ``providers.claude-code.fallback_models``.
 
     Run over the **whole** block, not just the key about to be dispatched: the
     contract is "fails the run at load, naming the offending key", so a bad list
@@ -666,7 +673,7 @@ class ClaudeCodeProvider(LLMProvider):
     When invoked from within a Claude Code session, the CLAUDECODE env var is
     stripped to avoid the nested-session guard.
 
-    Everything below was **measured** by the §6 step-5 probe on 2026-08-19
+    Everything below was **measured** by the step-5 probe on 2026-08-19
     against ``claude 2.1.232`` driven offline at a localhost Anthropic stub
     (``--network none``, no credential), and re-measured by the same rig on
     2026-10-08 against ``claude 2.1.293`` (one API call per exec now, no
@@ -723,14 +730,14 @@ class ClaudeCodeProvider(LLMProvider):
 
     # Subagent-runner declarations (D3e/D3j/D3m). `agent-write` is the
     # `--permission-mode acceptEdits` invocation below; `supports_file_edits`
-    # tracks it so `tests/test_providers.py` can cross-check the declaration
+    # tracks it so the provider tests (`tests/test_provider_*.py`) can cross-check the declaration
     # against the implemented branch in both directions.
     agent_profiles = (PROFILE_GENERATE, PROFILE_AGENT_READONLY, PROFILE_AGENT_WRITE)
     supports_file_edits = True
     supports_workspace_reads = True
     # Claude Code denies `Read` outside its working directory unless the
     # directory is added: a validation batch naming a snapshot in a phase dir
-    # outside the repo gets `--add-dir <dir>` (validation-context-by-path §2.2).
+    # outside the repo gets `--add-dir <dir>` (validation-context-by-path).
     read_scope_flag = "--add-dir"
     # MEASURED FALSE, and by design: `generate` renders `--permission-mode
     # acceptEdits`, which "auto-accepts FILE EDITS only; Bash and the rest still
@@ -742,7 +749,7 @@ class ClaudeCodeProvider(LLMProvider):
     # `generate` never renders it.
     runs_shell_in_generate = False
     usage_support = USAGE_FULL
-    # §4.2.2: this adapter really emits `--json-schema` when handed a schema (see
+    # This adapter really emits `--json-schema` when handed a schema (see
     # `build_command`), so the caller may mark an accepted result `native`.
     structured_output_support = True
     # No `auth_check`: the CLI ships no non-interactive login-status subcommand
@@ -752,15 +759,15 @@ class ClaudeCodeProvider(LLMProvider):
     # (D3c) and a login notice is still caught reactively by auth_error_patterns.
     login_cmd = "claude login"
     version_cmd = ("claude", "--version")
-    #: M14/§5.4 — the floor names the FEATURE it protects: 2.0.0 is where
+    #: The floor names the FEATURE it protects: 2.0.0 is where
     #: ``claude -p --output-format json`` settled into the ``result`` envelope
     #: this adapter's :meth:`parse_output` and :meth:`parse_usage` read. It stays
-    #: 2.0.0 — §5.4.1(a): a measured-at version is an upper bound on the true
+    #: 2.0.0, because a measured-at version is an upper bound on the true
     #: floor, never the floor itself, and raising it to the build
     #: ``--fallback-model`` or ``--json-schema`` happened to be probed on would
     #: disable installs that work. Those two are gated per flag instead
     #: (:meth:`~.base.LLMProvider.supports_flag`), which is the whole reason
-    #: §5.4.1(b) exists.
+    #: the per-flag gate exists.
     min_version = "2.0.0"
     #: No ceiling. ``max_version_exclusive`` would be a *refusal*, and no claude
     #: release has been measured to break this parser; ``verified_version`` below
@@ -783,14 +790,14 @@ class ClaudeCodeProvider(LLMProvider):
     #: itself, so it is the pair that has to stay coherent, not a third
     #: expectation.
     #:
-    #: 2.1.293 since 2026-10-08 (run 10, #10): every row re-captured on it by the
+    #: 2.1.293 since 2026-10-08: every row re-captured on it by the
     #: same rig in the pinned image (cli-versions.lock moved to 2.1.293 the same
     #: day); the parser's verdict on every row is unchanged, and the envelope
     #: only gained keys (``queued_turn_count``, ``result_index``,
     #: ``safety_stops``, ``subagent_stats``, ``first_content_frame_ms``).
     verified_version = "2.1.293"
 
-    #: §7.2 — the base auth set, EXTENDED by this CLI's own measured 401 gloss
+    #: The base auth set, EXTENDED by this CLI's own measured 401 gloss
     #: (C3). ``tests/fixtures/claude-code/auth-error.stdout.txt`` is failserver
     #: `--mode 401` captured at 2.1.232, and the sentence claude-code prints is
     #: ``Failed to authenticate. API Error: 401 Incorrect API key provided: …``.
@@ -808,24 +815,39 @@ class ClaudeCodeProvider(LLMProvider):
         "failed to authenticate",
     )
 
+    #: :attr:`~.base.LLMProvider.EXIT0_CLASSIFIABLE`, reviewed: claude-code's
+    #: answer is one envelope field, ``result``. :meth:`vendor_text` reads the
+    #: envelope without it unless the API call failed, and a cut or ambiguous
+    #: stdout not at all (:func:`stdout_shape.diagnostic_streams`); the status rung
+    #: reads ``api_error_status`` as before.
+    EXIT0_CLASSIFIABLE = True
+
+    #: :attr:`~.base.LLMProvider.LAUNCH_DIAGNOSTICS`, from the captures: the whole turn, tool
+    #: results included, rides the stdout envelope; stderr is empty on every committed capture
+    #: (tests/fixtures/claude-code).
+    LAUNCH_DIAGNOSTICS = LAUNCH_DIAGNOSTICS_STDERR
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_SIGNATURE`: the result envelope's openers
+    #: (:data:`~.result_envelope.RESULT_ENVELOPE_SIGNATURE`).
+    ENVELOPE_SIGNATURE = RESULT_ENVELOPE_SIGNATURE
+
+    #: :attr:`~.base.LLMProvider.ENVELOPE_ANSWER_FIELDS`: the answer, and
+    #: ``permission_denials``, which quotes the model's tool input.
+    ENVELOPE_ANSWER_FIELDS = ("result", "permission_denials")
+
     @property
     def name(self) -> str:
         """Return the provider identifier."""
         return "claude-code"
 
-    @property
-    def default_timeout(self) -> int:
-        """Return the default timeout in seconds."""
-        return 600
-
     def is_available(self) -> bool:
         """Check if Claude Code CLI is available in PATH."""
         return shutil.which("claude") is not None
 
-    # ── §3.6: the fallback list is configuration, and it ships empty ─────────
+    # ──: the fallback list is configuration, and it ships empty ─────────
 
     def _provider_config(self) -> Dict[str, Any]:
-        """This provider's own block from the layered config (§3.6).
+        """This provider's own block from the layered config.
 
         Read through the normal layering (base → auto-discovered
         ``<git-root>/.multi-llm/providers.yaml`` → ``MULTI_LLM_PROVIDERS_CONFIG``),
@@ -833,9 +855,15 @@ class ClaudeCodeProvider(LLMProvider):
         setting is.
 
         ``build_command`` has no anchor to thread (the signature is the base
-        class's, shared by every adapter and every caller), so this is §9.3.b's
+        class's, shared by every adapter and every caller), so this is.b's
         backstop used deliberately and explicitly: the run's pinned plan path,
         or CWD when no pre-flight set one.
+
+        A config that cannot be read **raises** here, unlike the shared
+        ``child_env._provider_block``, which reads it as no configuration: this
+        block holds the fallback list :meth:`fallback_models` validates so a
+        malformed entry fails the run before a child is spawned, and reading a
+        broken config as empty would run without the fallback the user set.
         """
         from ..provider_registry import get_run_anchor, load_config  # import cycle
 
@@ -844,7 +872,7 @@ class ClaudeCodeProvider(LLMProvider):
         return block if isinstance(block, dict) else {}
 
     def fallback_models(self, model: str) -> List[str]:
-        """The configured fallback list for ``model``, or ``[]`` (§3.6).
+        """The configured fallback list for ``model``, or ``[]``.
 
         **Default off, explicit per model, never silently substituted.** The
         probe proves the *flag* works; it says nothing about which model should
@@ -870,8 +898,8 @@ class ClaudeCodeProvider(LLMProvider):
         return [str(entry).strip() for entry in configured]
 
     # `supports_flag` is **not** overridden here any more. It was L7's one-off —
-    # shipped inside that task because §3.6 is in the severable live-defect set
-    # and may not depend on §11.2 — and M14 absorbed it into
+    # shipped inside that task because is in the severable live-defect set
+    # and may not depend on — and M14 absorbed it into
     # `LLMProvider.supports_flag`, which answers both flags below from one
     # memoised help read of the binary `version_cmd` names. The optional-flag
     # posture it holds is unchanged: unsupported *or undecidable* ⇒ False, whole
@@ -893,12 +921,12 @@ class ClaudeCodeProvider(LLMProvider):
         return supported
 
     def _json_schema_flag_supported(self) -> bool:
-        """§5.4.1's gate for ``--json-schema``, answered from the SAME help read.
+        """The gate for ``--json-schema``, answered from the SAME help read.
 
         One help read per CLI per process, memoised on the resolved binary — not
         one per flag — so adding this capability adds no spawn. Optional-flag
         posture: unsupported or undecidable ⇒ the flag is omitted with one WARN
-        and the phase falls back to prompt-level JSON plus §4.2.1's recovery
+        and the phase falls back to prompt-level JSON plus the recovery
         branch. The degraded run is a documented degraded mode, and it is marked
         ``recovered`` (or fails as ``schema_violation``), **never** ``native``.
         """
@@ -928,8 +956,8 @@ class ClaudeCodeProvider(LLMProvider):
             prompt: The prompt text to send to the LLM.
             model: The model identifier to use (e.g., 'sonnet', 'opus', 'haiku').
             timeout_s: Accepted and ignored — claude has no internal print-mode
-                cutoff to keep under the parent's deadline (§9.6.a).
-            schema: §4.2.2's optional structured-output schema. claude's
+                cutoff to keep under the parent's deadline.
+            schema: the optional structured-output schema. claude's
                 transport is **inline** (`--json-schema <json>`), so only
                 ``schema.document`` is read and ``schema.path`` is irrelevant
                 here — the asymmetry with codex's file is encoded in the two
@@ -995,7 +1023,7 @@ class ClaudeCodeProvider(LLMProvider):
             "--output-format",
             "json",
         ]
-        # §4.2.2's normative splice point, at a FIXED INDEX immediately after
+        # The normative splice point, at a FIXED INDEX immediately after
         # `--output-format json` — never an append before `cmd[-1]`. That one
         # position makes all six rows right at once (generate on argv and on
         # stdin, both agent profiles on both transports):
@@ -1004,7 +1032,7 @@ class ClaudeCodeProvider(LLMProvider):
         #   never the token after the schema and the schema is never the token
         #   after the prompt;
         # * it precedes the variadic `--allowed-tools` / `--disallowed-tools`
-        #   the agent profiles splice in later, so §9.8's swallowing trap cannot
+        #   the agent profiles splice in later, so the swallowing trap cannot
         #   reach it;
         # * `cmd[-1] is the prompt` still holds, which every `cmd[:-1]` override
         #   and `build_agent_command_for_transport` relies on.
@@ -1025,7 +1053,7 @@ class ClaudeCodeProvider(LLMProvider):
         ]
         if effort is not None:
             cmd += ["--effort", effort]
-        # §3.6's splice point: in the policy region beside --model/--effort,
+        # The splice point: in the policy region beside --model/--effort,
         # INSIDE build_command and ahead of the prompt append. That one position
         # makes all four rows right at once — generate on argv and on stdin, and
         # both agent profiles, each carrying the flag *before* the variadic
@@ -1035,7 +1063,7 @@ class ClaudeCodeProvider(LLMProvider):
         # cmd[:-1] and would ship a valueless --fallback-model, and the agent
         # profiles splice their tool policy in after cmd[-1].
         # THE WRITE GRANT THE FAN-OUT ALWAYS NEEDED, and whose absence was a
-        # measured defect (harness-expansion.md §17). `supports_file_output` is
+        # measured defect (harness-expansion.md). `supports_file_output` is
         # True here, so `render_output_location` ends the review prompt with
         # "write your JSON output to this file: <path>" — and this argv granted
         # nothing, so headless `claude -p` DENIED the model's own Write. Measured
@@ -1048,12 +1076,12 @@ class ClaudeCodeProvider(LLMProvider):
         # `--auto` -- so claude-code was the outlier, not the exception.
         #
         # `--permission-mode acceptEdits` and NOT `--allowed-tools Write`: it is
-        # non-variadic, so it cannot swallow the trailing positional (§9.8) and
+        # non-variadic, so it cannot swallow the trailing positional and
         # `cmd[-1] is the prompt` still holds for the stdin transport's
         # `cmd[:-1]`. It auto-accepts FILE EDITS only; Bash and the rest still hit
         # the headless prompt and are denied, which is the narrow grant this path
         # wants. It is deliberately NOT `--yolo`/`-f`: that is the write bypass
-        # §3.1 removed, and this is not it.
+        #  removed, and this is not it.
         #
         # Emitted here for `generate` and `agent-write` and OMITTED for
         # `agent-readonly` — see `_render_argv`'s own docstring for why the knob
@@ -1172,7 +1200,7 @@ class ClaudeCodeProvider(LLMProvider):
         schema: Optional[StructuredSchema] = None,
         sandbox_fallback: Optional[str] = None,
     ) -> Tuple[List[str], Optional[str]]:
-        """Drop the ``--`` separator along with the prompt it shields (§9.8).
+        """Drop the ``--`` separator along with the prompt it shields.
 
         The separator exists for exactly one reason: to end option parsing so the
         variadic ``--disallowed-tools`` cannot swallow the trailing positional.
@@ -1244,7 +1272,7 @@ class ClaudeCodeProvider(LLMProvider):
         if "input_tokens" in out and "output_tokens" in out:
             out["total_tokens"] = out["input_tokens"] + out["output_tokens"]
 
-        # §3.6: cost follows the served model. This extractor already holds the
+        # Cost follows the served model. This extractor already holds the
         # one envelope that carries `modelUsage`, so the attribution rides the
         # same channel as the tokens it belongs to rather than being re-parsed.
         # It is a string among numbers on purpose — the numeric accumulator
@@ -1279,7 +1307,7 @@ class ClaudeCodeProvider(LLMProvider):
         return max(names, key=produced)
 
     def parse_served_model(self, stdout: str, stderr: str = "") -> Optional[str]:
-        """``served_model`` from the ``--output-format json`` envelope (§3.6).
+        """``served_model`` from the ``--output-format json`` envelope.
 
         claude's envelope carries ``modelUsage`` keyed by the model that actually
         served the turn — measured: a 529 run's fourth request and its
@@ -1303,7 +1331,7 @@ class ClaudeCodeProvider(LLMProvider):
         requested_model: str,
         fallback_models: Optional[Sequence[str]] = None,
     ) -> Tuple[str, bool, Optional[str]]:
-        """``(served_model, is_fallback, warning)`` for one attempt (§3.6).
+        """``(served_model, is_fallback, warning)`` for one attempt.
 
         Attribution is mandatory whenever a fallback is configured: without it a
         report attributes a haiku answer to the sonnet the user asked for, and
@@ -1359,14 +1387,14 @@ class ClaudeCodeProvider(LLMProvider):
         )
 
     def resolved_timeout_s(self) -> int:
-        """The outer per-provider slot timeout `get_env` derives from (§7.3).
+        """The outer per-provider slot timeout `get_env` derives from.
 
-        The same value §7.5 rule 1 takes its deadline from: ``providers.yaml``'s
+        The same value the retry ladder's first rule takes its deadline from: ``providers.yaml``'s
         ``default_timeout`` (**1800** for claude-code) or the configured
-        override, falling back to this adapter's own ``default_timeout`` (600)
+        override, falling back to the shared ``default_timeout`` (1200)
         when the provider is absent from config or the read fails.
 
-        ``get_env`` has no anchor to thread either, so it reads the same §9.3.b
+        ``get_env`` has no anchor to thread either, so it reads the same
         run anchor ``_provider_config`` does — the alternative is a slot timeout
         resolved against CWD while the fan-out resolves its own against the
         plan, i.e. an inner budget sized for the wrong outer deadline.
@@ -1384,7 +1412,7 @@ class ClaudeCodeProvider(LLMProvider):
 
     @property
     def internal_retries(self) -> InternalRetryEnvelope:
-        """What `claude -p` does inside one awaited subprocess (§7.6(b)).
+        """What `claude -p` does inside one awaited subprocess.
 
         Measured 2026-08-16 against a stub that 429s forever: **11 requests and
         182 s** at the CLI's own default of 10 retries. The number declared here
@@ -1394,15 +1422,15 @@ class ClaudeCodeProvider(LLMProvider):
 
         A **property**, not a constant, because ``max_wall_s`` is 4 ×
         ``API_TIMEOUT_MS`` and ``API_TIMEOUT_MS`` is itself *derived from the
-        resolved slot timeout* (§7.3) — 1200 s at a 1800 s slot, 480 s at a 600 s
+        resolved slot timeout* — 1200 s at a 1800 s slot, 480 s at a 600 s
         one. Both halves therefore come from the same
-        :func:`derive_api_timeout_ms` call ``get_env`` makes, so the bound §7.5
+        :func:`derive_api_timeout_ms` call ``get_env`` makes, so the bound
         rule 4 subtracts can never disagree with the env the child was handed.
         A slot too short to carry a whole retry budget emits no ``API_TIMEOUT_MS``
         at all, and the wall is then honestly ``None`` rather than a guess.
 
         ``retries_rate_limit`` is ``True`` — the 182 s measurement *is* a
-        rate-limit chain — which is what makes §7.5 rule 6(b) forbid an identical
+        rate-limit chain — which is what makes rule 6(b) forbid an identical
         rate-limit re-dispatch to this adapter: ≤ 3 harness backoffs would turn 4
         requests into 20 against the same upstream for the same verdict.
         """
@@ -1418,12 +1446,12 @@ class ClaudeCodeProvider(LLMProvider):
         )
 
     def get_env(self, model: str) -> Dict[str, str]:
-        """Delegate retry to the vendor CLI's own engine (§7.3, task L6).
+        """Delegate retry to the vendor CLI's own engine.
 
         Absorbs transient 429s inside the one subprocess already awaited, instead
         of wrapping it in a harness-side retry loop. Two variables, both in the
         CLI's real names (see the module comment for the two fictional ones this
-        must never emit), and both chosen together with §3.6's
+        must never emit), and both chosen together with
         ``--fallback-model``: below three retries its overload path is silently
         dead, which is why they are atomic group A3.
         """
@@ -1431,7 +1459,7 @@ class ClaudeCodeProvider(LLMProvider):
         api_timeout_ms = derive_api_timeout_ms(self.resolved_timeout_s())
         if api_timeout_ms is not None:
             env["API_TIMEOUT_MS"] = str(api_timeout_ms)
-        # §4.2.1's pinned structured-output budget. Emitted UNCONDITIONALLY, not
+        # The pinned structured-output budget. Emitted UNCONDITIONALLY, not
         # only when a schema is attached: the variable is inert without
         # `--json-schema`, and making it conditional would mean a dispatch that
         # acquired a schema by some other route (a future caller, a config
@@ -1454,7 +1482,7 @@ class ClaudeCodeProvider(LLMProvider):
         and refuses to start, so that strip is not a policy — it is what makes
         the dispatch work at all.
 
-        The two vendor gates on top of it are independent of each other (§2.1):
+        The two vendor gates on top of it are independent of each other:
 
         * the **credential** names (:data:`_CREDENTIAL_ENV`) follow
           `providers.claude-code.strip_vendor_keys` — `auto` (default) consults
@@ -1470,7 +1498,7 @@ class ClaudeCodeProvider(LLMProvider):
         dispatch is actually taking away, and it means the probe never spawns for
         a run that has no vendor credential to decide about.
 
-        This is called by :func:`base.build_child_env`, the one builder both
+        This is called by :func:`child_env.build_child_env`, the one builder both
         lanes go through, so Lane A and Lane B consume the same verdict and a
         decline re-admits the same names on both — and it is called with **that
         dispatch's** context. Both parameters are load-bearing here, which is why
@@ -1574,52 +1602,43 @@ class ClaudeCodeProvider(LLMProvider):
         selected model (X). It may not exist…"*, which no
         ``INVALID_MODEL_MARKERS`` entry matches at any ladder order.
 
-        **A clean envelope's ``result`` is never scanned** (plan
-        ``opencode-validator-false-rate-limit-and-denied-turn`` T3.2). When the
-        CLI reports the run clean — ``is_error`` false, ``terminal_reason``
-        completed, no ``api_error_status`` (:func:`result_envelope.
-        is_clean_envelope`) — ``result`` is the model's own prose, and a
-        validator that read a plan discussing rate limits or model names says
-        so there. Handed to the ladder whole, that prose classified a green
-        run ``rate_limited`` (a backoff for the batch) or ``invalid_model``
-        (fatal to it). So the ladder runs over stderr and the exit code alone;
-        the envelope's other fields are bookkeeping and ``permission_denials``,
-        which quotes tool input, so none of stdout is kept. The audit that set
-        this rule found no committed failure capture that needs the prose: all
-        eight refusing rows carry ``is_error: true`` and the real 429
-        (``rate-limit``) carries ``api_error_status: 429``, so every one of
-        them still reaches the ladder or the status rung exactly as before.
+        **The model's ``result`` is never scanned.** It is
+        the model's own prose, and a validator that read a plan discussing
+        rate limits or model names says so there. Handed to the ladder whole,
+        that prose classified a green run ``rate_limited`` (a backoff for the
+        batch) or ``invalid_model`` (fatal to it). So the ladder reads the
+        envelope without ``result`` and ``permission_denials`` (which quotes
+        tool input), except a ``result`` beside ``terminal_reason:
+        "api_error"``: the API call failed and ``result`` is the CLI's own
+        ``API Error: …`` sentence (:func:`result_envelope.
+        result_envelope_diagnostics`). All eight refusing rows carry that
+        reason, and the real 429 (``rate-limit``) carries
+        ``api_error_status: 429``, so every one of them still reaches the
+        ladder or the status rung exactly as before.
 
         The exclusion itself lives in :meth:`vendor_text`, so the failure
-        reason's quote (``subagent_executor._classify_failed_run``) is cut from
+        reason's quote (``attempt_classifier._classify_failed_run``) is cut from
         the same reduced capture the verdict was decided on; the status rung
         above still reads the raw stdout.
         """
-        category = classify_api_error_status(stdout)
+        category = classify_api_error_status(structural_stdout(stdout, self))
         if category is not None:
             return category
         return super().classify_failure(stdout, stderr, exit_code)
 
     def vendor_text(self, stdout: str, stderr: str) -> Tuple[str, str]:
-        """``("", stderr)`` for a clean envelope; the capture unchanged otherwise.
+        """:func:`stdout_shape.diagnostic_streams`: the envelope without the model's words.
 
-        A clean envelope's ``result`` is the model's own prose (see
-        :meth:`classify_failure`), and the rest of stdout is bookkeeping and
-        ``permission_denials`` quoting tool input, so none of it is the
-        vendor's verdict. Living here rather than inline in
-        :meth:`classify_failure` is what keeps the verdict and its quote on one
-        haystack: ``_classify_failed_run`` re-reduces through this hook to cut
-        the quote, and an identity hook let it quote the prose the verdict
-        excluded (plan T2.5). Any other stdout, including one that fails to
-        parse, is returned unchanged, per the base contract; stderr is never
-        reduced.
+        On every exit code (:meth:`classify_failure`). Living here rather than
+        inline in :meth:`classify_failure` is what keeps the verdict and its
+        quote on one haystack: ``_classify_failed_run`` re-reduces through this
+        hook to cut the quote (plan T2.5).
         """
-        try:
-            if is_clean_envelope(stdout):
-                return "", stderr
-        except Exception:  # noqa: BLE001 - a failed reduction returns its input
-            pass
-        return stdout, stderr
+        return diagnostic_streams(stdout, stderr, self)
+
+    def envelope_diagnostics(self, envelope: Dict[str, Any]) -> Dict[str, Any]:
+        """:func:`result_envelope.result_envelope_diagnostics`."""
+        return result_envelope_diagnostics(envelope, self.ENVELOPE_ANSWER_FIELDS)
 
     def describe_failure(self, stdout: str, stderr: str) -> Optional[str]:
         """The refusing envelope's own line, tagged when it names a usage cap.
@@ -1644,7 +1663,7 @@ class ClaudeCodeProvider(LLMProvider):
         nothing here changes it. ``stderr`` is accepted for the signature and
         deliberately unread: it has been empty on every capture.
         """
-        line = describe_refused_envelope(stdout)
+        line = describe_refused_envelope(structural_stdout(stdout, self))
         if line is None:
             return None
         lowered = line.lower()
@@ -1674,6 +1693,6 @@ class ClaudeCodeProvider(LLMProvider):
         Returns:
             A dictionary with 'success' and 'data' (or 'error') keys.
         """
-        # One shared implementation (§9.5): cursor-agent emits the same envelope
+        # One shared implementation: cursor-agent emits the same envelope
         # and used to carry a byte-identical copy of the unwrapping.
-        return parse_result_envelope(stdout)
+        return parse_result_envelope(stdout, self.ENVELOPE_SIGNATURE)

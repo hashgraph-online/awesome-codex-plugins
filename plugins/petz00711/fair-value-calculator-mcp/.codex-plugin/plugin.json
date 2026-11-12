@@ -1,6 +1,6 @@
 {
   "name": "fair-value-calculator",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Look up fair value, quality score, uptrend and the three buy rules for 40,000+ stocks, compare and screen them, and manage a watchlist.",
   "author": {
     "name": "Fair Value Calculator",

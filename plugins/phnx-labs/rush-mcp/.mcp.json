@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "rush": {
+      "type": "http",
+      "url": "https://api.phoenix.so/mcp"
+    }
+  }
+}

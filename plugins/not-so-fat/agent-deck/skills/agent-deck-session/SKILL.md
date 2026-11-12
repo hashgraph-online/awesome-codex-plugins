@@ -49,11 +49,12 @@ other read-only diagnostics needed to restore the connection are allowed.
 Give the operator recovery for the failed layer:
 
 - **Transport unavailable:** run `agent-deck status`. In Codex, verify the Agent Deck plugin
-  is installed, enabled, and current; in Claude Code, check `claude mcp list`. Trust the
-  folder, approve the project agent-deck entry, run `agent-deck use <deck>` in the folder
-  when its assignment is missing or legacy, then reload or start a new task. `agent-deck
-  setup --client codex|claude` writes the global headerless fallback and refreshes the
-  AGENTS.md/CLAUDE.md guidance only; it does not install or repair the plugin.
+  is installed, enabled, and current; in Claude Code, check `claude mcp list`; in Cursor,
+  check the MCP server list; in Muse, check `/mcp`. Trust the folder, approve the project
+  agent-deck entry (server), run `agent-deck use <deck>` in the folder when its assignment
+  is missing or legacy, then reload or start a new task. `agent-deck setup --client
+  codex|claude|cursor|muse` writes the global headerless fallback and refreshes the host
+  guidance only; it does not install or repair the plugin.
 - **Assignment missing or legacy:** run `agent-deck use <deck>` in the IDE folder, then reload
   or retry the MCP connection.
 - **Unattended launch:** fix `x-agent-deck-deck-id` / the launch configuration.

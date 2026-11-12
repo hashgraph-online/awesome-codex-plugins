@@ -328,8 +328,9 @@ Bulk JSON separates `retried`, `already_delivered`, and `skipped`, and its
 
 `amq who` and `amq doctor --ops` report `notifier_live` only when the wake-lock
 inspector verifies a live `amq wake` process identity. That proves prompt
-notification, not message consumption. `recent_activity` means only that
-`last_seen` is fresh. Use `drain` or `monitor` when consumption is required;
+notification, not message consumption. `hook_live` means a co-op wait hook of
+the agent's Claude Code session waits to wake it. `recent_activity` means only
+that `last_seen` is fresh. Use `drain` or `monitor` when consumption is required;
 run long-lived wake/monitor commands under launchd, systemd, or another
 supervisor rather than treating AMQ itself as a daemon.
 
@@ -469,7 +470,7 @@ amq drain --include-body --limit 20               # Continue with another bounde
 amq drain --include-body --limit 0                # All pending mail, only for a manageable batch
 amq drain --session auth --include-body           # Deliberate sibling-session receive
 amq reply --id "<msg_id>" --body "Response"          # Reply in thread
-amq watch --timeout 60s                           # Block until message arrives (only when no wake is live for you)
+amq watch --timeout 60s                           # Block until message arrives (only when no wake or wait hook rings for you)
 amq list --new                                    # Peek without side effects
 amq send --to grok --body "hello"                 # Grok is a normal peer handle, like codex or claude
 ```

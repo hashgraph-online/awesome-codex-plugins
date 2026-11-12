@@ -22,6 +22,7 @@
     "bug-bash"
   ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "e2e",
     "shortDescription": "Agentic tests for web & mobile",

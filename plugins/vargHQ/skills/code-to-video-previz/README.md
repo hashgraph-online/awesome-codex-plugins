@@ -21,7 +21,7 @@ claude plugin install varg@varg
 | Needs | nothing paid: runs locally |
 | Uses | three.js, Blender, Python, Bun, Chrome, FFmpeg, uv, Seedance 2.5 |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.0) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.1) |
 
 ## Ask your agent
 

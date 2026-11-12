@@ -18,6 +18,13 @@ modes, recorded per document as a *context source*:
   The prompt carries today's bare cut. This is the one mode that sets the
   result ``notice``.
 
+A ``path`` source with ``selection: cited`` is a batch that carries only the
+plan sections its groups cite, with the whole snapshot named by path
+(``utils/validation_sections.py``). Like an inline plan it publishes nothing on
+its own: every section a group cites is in its prompt whole, and the rest is
+one read away. It is reported when something else publishes the round, or when
+a verdict came back ``insufficient-context``.
+
 This module is deliberately **stdlib-only and side-effect free**, because
 ``status`` (``utils/run_status.py``) renders the object and has to stay
 sub-second: it must not import ``utils/validation.py``, which pulls in the
@@ -38,6 +45,10 @@ MODE_INLINE = "inline"
 MODE_PATH = "path"
 MODE_TRUNCATED = "truncated"
 MODE_RANK = {MODE_INLINE: 0, MODE_PATH: 1, MODE_TRUNCATED: 2}
+
+#: The ``selection`` of a ``path`` source whose excerpt is the plan sections a
+#: batch's groups cite rather than the document's head.
+SELECTION_CITED = "cited"
 
 #: The document labels a source may carry, in the order they are reported.
 SOURCE_LABELS = ("plan", "tasks", "reviewed-code", "diff")
@@ -92,10 +103,15 @@ def _status_entry(record: Dict[str, Any]) -> Dict[str, Any]:
         "sha256": record.get("sha256"),
         "dropped_sections": list(record.get("dropped_sections") or []),
     }
-    for key in ("sections_total", "sections_shown", "reason", "dropped_files"):
+    for key in ("sections_total", "sections_shown", "reason", "dropped_files", "selection"):
         if record.get(key) is not None:
             entry[key] = record[key]
     return entry
+
+
+def is_cited(entry: Dict[str, Any]) -> bool:
+    """A ``path`` source (or status entry) that carries cited plan sections."""
+    return entry.get("mode") == MODE_PATH and entry.get("selection") == SELECTION_CITED
 
 
 def aggregate_sources(
@@ -103,10 +119,12 @@ def aggregate_sources(
 ) -> List[Dict[str, Any]]:
     """One status entry per document label, worst mode and smallest ``chars`` wins.
 
-    Batches of one round embed the same excerpt, so their records for one
-    document agree; a resumed round may mix, and then the entry takes the worst
-    mode (and that mode's own path/reason) and the smallest excerpt, so the
-    report can only understate what a validator saw.
+    Batches of one round may differ (a cited plan block in one, the whole
+    plan in another; a resumed round may mix rounds), and then the entry takes
+    the worst mode (and that mode's own path/reason) and the smallest excerpt,
+    so the report can only understate what a validator saw. An entry keeps
+    ``selection: cited`` only while every ``path`` record of its label is cited:
+    one head-cut excerpt makes it an ordinary ``path`` entry.
     """
     by_label: Dict[str, Dict[str, Any]] = {}
     for record in records:
@@ -124,6 +142,19 @@ def aggregate_sources(
             by_label[label] = current
         if chars:
             current["chars"] = min(chars)
+        if entry["mode"] == current["mode"] == MODE_PATH and not is_cited(entry):
+            current.pop("selection", None)
+        if entry["mode"] == current["mode"] == MODE_TRUNCATED:
+            # Batches that each dropped their own files: every dropped file is
+            # named, and a per-batch count that disagrees is not reported.
+            dropped = list(current.get("dropped_files") or [])
+            dropped += [f for f in entry.get("dropped_files") or [] if f not in dropped]
+            if dropped:
+                current["dropped_files"] = dropped
+            counts = ("sections_total", "sections_shown")
+            if any(current.get(key) != entry.get(key) for key in counts):
+                for key in counts:
+                    current.pop(key, None)
     order = {label: i for i, label in enumerate(SOURCE_LABELS)}
     return [
         by_label[label]
@@ -141,10 +172,16 @@ def build_validation_context(
     """The published object, or ``None`` when every source is ``inline``.
 
     ``None`` is the invalidation rule: a round whose documents all fit inline
-    publishes nothing, and the writer removes any earlier round's key.
+    publishes nothing, and the writer removes any earlier round's key. A round
+    whose only non-inline sources are cited plan blocks publishes nothing
+    either, unless a verdict answered ``insufficient-context``.
     """
     entries = aggregate_sources(sources)
     if not entries or all(e["mode"] == MODE_INLINE for e in entries):
+        return None
+    if not insufficient and all(
+        e["mode"] == MODE_INLINE or is_cited(e) for e in entries
+    ):
         return None
     return {
         "phase": phase,
@@ -215,6 +252,12 @@ def source_phrase(entry: Dict[str, Any]) -> str:
     mode = entry.get("mode")
     chars = entry.get("chars")
     excerpt = f"{chars}-char excerpt" if isinstance(chars, int) else "excerpt"
+    if is_cited(entry):
+        smallest = f" (smallest {chars} chars)" if isinstance(chars, int) else ""
+        return (
+            f"{label}: cited sections inline{smallest} + full snapshot by path "
+            f"({entry.get('path')})"
+        )
     if mode == MODE_PATH:
         return f"{label}: {excerpt} inline + full snapshot by path ({entry.get('path')})"
     if mode == MODE_TRUNCATED:
@@ -284,9 +327,11 @@ __all__ = [
     "MODE_TRUNCATED",
     "MODE_RANK",
     "RECORD_CUT_REASON",
+    "SELECTION_CITED",
     "SOURCE_LABELS",
     "aggregate_sources",
     "build_validation_context",
+    "is_cited",
     "mode_rank",
     "noun",
     "pick_worst",

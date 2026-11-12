@@ -21,7 +21,7 @@ claude plugin install varg@varg
 | Needs | nothing paid: runs locally |
 | Uses | FFmpeg, Python, HyperFrames, Remotion, Whisper |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.1) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v1.0.2) |
 
 ## Ask your agent
 

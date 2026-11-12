@@ -109,9 +109,9 @@
     "commander": "^15.0.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^5.5.0",
-    "minimatch": "^11.0.1",
+    "minimatch": "^11.0.4",
     "openai": "^7.34.0",
-    "ora": "^9.4.1",
+    "ora": "^10.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -133,7 +133,7 @@
     "recharts": "^3.10.1",
     "textlint": "^15.8.0",
     "textlint-rule-preset-ja-technical-writing": "^12.0.2",
-    "textlint-rule-prh": "^6.1.0"
+    "textlint-rule-prh": "^6.1.1"
   },
   "overrides": {
     "serialize-javascript": "^7.1.3",

@@ -1,69 +1,60 @@
 ---
 name: phone-a-friend
-description: "Get an independent second opinion on a plan or code change from the other CLI, Claude Code or Codex."
+description: "Use when the user wants a second opinion on a plan or code change from the other CLI, Claude Code or Codex."
 argument-hint: "[plan path | review scope]"
 user-invocable: true
 disable-model-invocation: true
-effort: xhigh
+effort: high
 ---
 
 # Phone a friend
 
 Get a second opinion from the other model family before sharing the first reviewer's conclusions.
-Use one rebuttal round to resolve findings with evidence. Escalate unresolved material disagreements; never run a third round.
+Use one rebuttal round to resolve findings with evidence. Escalate material disagreements that remain; never run a third round.
 
 ## Scope and partner
 
-Plan mode reviews the given plan path, or the active task plan.
-Review mode reviews the requested scope, or current branch changes.
-Ask when the mode is ambiguous.
+Plan mode reviews the given plan path, else the active task plan. Review mode reviews the requested scope, else the current branch changes. Ambiguous → ask.
 
-If `PHONE_A_FRIEND=1` is set, refuse because this session is already the partner.
+If `PHONE_A_FRIEND=1` is set, refuse: this session already is the partner.
 
-Detect the host and call the other CLI without interactive permission prompts:
+Detect the host and call the other family, without permission prompts (the partner runs unattended):
 
-- From Claude Code: `PHONE_A_FRIEND=1 codex exec -c model_reasoning_effort="xhigh" --sandbox read-only --cd <repo> --json --output-last-message <file> "<packet>"`. Resume with the same environment, reasoning, sandbox, and repository flags before `resume <session-id> "<rebuttal>"`.
-- From Codex: `PHONE_A_FRIEND=1 claude -p --permission-mode plan --effort xhigh --output-format json "<packet>"`. Resume with the same environment, permission mode, effort, and `--resume <session-id>` flags.
+- From Claude Code: `PHONE_A_FRIEND=1 codex exec -c model_reasoning_effort="xhigh" --sandbox read-only --cd <repo> --json --output-last-message <file> "<packet>"`, then the rebuttal with the same env guard and flags before the subcommand: `PHONE_A_FRIEND=1 codex exec -c model_reasoning_effort="xhigh" --sandbox read-only --cd <repo> resume <session-id> "<rebuttal>"` (session id from the `thread.started` JSON event; `resume` itself accepts no sandbox flag). `exec` never prompts; the read-only sandbox blocks writes instead of asking. Codex uses the model configured in `~/.codex/config.toml`; add `-m <model>` only when the user names one.
+- From Codex: `PHONE_A_FRIEND=1 claude -p --model opus --effort xhigh --dangerously-skip-permissions --output-format json "<packet>"` (the `opus` alias selects the latest Opus; the result JSON carries the `session_id`; plain text output does not), then the same flags with `--resume <session-id>` for the rebuttal.
 
-Use the configured high-capability model and highest supported reasoning effort.
-The partner must run unattended and read-only. Never use Claude's bypass permission mode.
-If the partner CLI is missing or fails, report it and stop. A same-family review is not a second opinion.
+The partner keeps its own MCP servers: the same read access to code, docs, and data as the host. If the partner CLI is missing or errors, report it and stop — a same-family review is not a second opinion.
 
 ## Neutral packet
 
-Send the user's requirements verbatim, the plan or diff, referenced paths, and applicable project rules.
-Do not include the host's conclusions or suspected defects.
-Keep packets, verdicts, and event logs in a temporary directory outside the reviewed repository.
+Send: the user's requirements verbatim; the artifact (plan text or diff); paths of referenced files and applicable conventions. Send the artifact and requirements without the host's conclusions, so the reviewer can make an independent assessment. Keep every working file (packet, verdicts, event logs) outside the reviewed repository, in a temp directory: a reviewer that finds another reviewer's verdict on disk is no longer independent.
 
-Tell the partner:
+State these rules to the partner:
 
-- Report material findings only. Zero findings is valid.
-- Each finding needs a location, falsifiable claim, evidence, impact, falsifier, likelihood, and confidence.
-- Missing context must be named, not guessed.
-- Stay read-only. Do not commit, merge, push, write files, modify databases, or call mutating production endpoints.
-- In plan mode, give a rewrite mandate for a contested section instead of an accept or reject label.
+- Material findings only; zero findings is a valid outcome; most important first.
+- Every finding: location · falsifiable claim · evidence · impact · falsifier ("what would change my mind") · likelihood and confidence as two separate fields. No location or no evidence → not a finding. Reasoning is not evidence.
+- Strictly read-only: no commit, merge, or push; no file writes; no writes to any database; no calls to endpoints that write or change state on any production service. Reads are fine everywhere — code, docs, services, logs, and databases alike.
+- Missing context: say what is missing; do not guess.
+- Plan mode only: a contested section gets a rewrite mandate (redo this, because…), not accept/reject.
 
-## Review mode
+## Review mode: two independent reviewers
 
-Also dispatch the clean-context `development-skills:staff-reviewer`.
-Reuse its verdict when the same session already reviewed the same diff.
-The reviewers must not see each other's conclusions.
-Merge findings by location and claim as `cross-validated`, `external-only`, or `host-only`.
+Also dispatch the clean-context `development-skills:staff-reviewer` (reuse its verdict if this session already produced one for the same diff). The reviews must not see each other. Merge by location and claim: `cross-validated` / `external-only` / `host-only`.
 
-## Rebuttal
+## One rebuttal round
 
-Answer each finding once as the author: accept, counter with new evidence, or mark uncertain.
-Resume the partner session for a final `confirmed`, `withdrawn`, or `uncertain` verdict.
-A changed verdict without new evidence remains unsupported.
+Answer each finding once, as the author: accept (update the plan or fix list) · counter with new evidence · uncertain. The partner closes each point on session resume: confirmed / withdrawn / uncertain. A changed verdict without new evidence remains unsupported; record that evidence gap.
 
-## Close and record
+## Close and escalate
 
-Derive severity from the [review categories](../../shared/review-categories.md), impact, and reversibility.
-Do not accept a model's severity label without evidence.
+Severity follows the [review categories](../../shared/review-categories.md), derived from impact and reversibility — never taken from a model's own label. A "critical" without location and evidence is a red flag, not a verdict. Accepted findings follow the normal loop's authority; withdrawn ones leave the report but stay in the record with the dissent verbatim.
 
-Escalate to the user when a material point remains disputed, a choice is costly to reverse, or the disagreement concerns the required outcome.
-Include both positions, their evidence, and each option's cost.
+Escalate to the user through the development loop's platform input behavior every question the protocol could not settle — no more, no fewer — each carrying both positions, the evidence each side holds, and the cost of each choice:
 
-Report findings, source tags, resolutions, dissent, and escalated decisions in chat.
-Record the same result in the active chronicle.
-Without one, write a dedicated report under the project's existing documentation convention only when the user authorized repository writes.
+- still disputed or uncertain at material severity after the rebuttal;
+- costly to reverse (migration, published contract, auth, data deletion) — even when the models agree;
+- the disagreement is about what the work should achieve, not how.
+
+## Record
+
+Report the full outcome in chat: findings table (location, claim, source tag, resolution), kept dissent, escalated decisions. Record the same in the active task chronicle. With no active chronicle, still report everything in chat and write it to a dedicated file in the project's `docs/` (its chronicle convention if present, else `docs/phone-a-friend__YYYY-MM-DD__<slug>.md`).

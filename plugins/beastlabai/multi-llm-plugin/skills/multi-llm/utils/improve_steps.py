@@ -81,6 +81,11 @@ from .cli_common import (
 )
 from .stream_bootstrap import bootstrap_streams
 from .text_clip import plain_line
+from . import next_phase
+from . import commit_range as range_mod
+from . import host_capabilities
+from .commit_paths import CommitReviewError, repo_root_of
+from .output_handler import output_dir_path
 
 #: The composites this util plans, in table order: every review-then-apply
 #: composite row (``improve_workflow.COMPOSITE_ROWS``), so a composite added to
@@ -349,7 +354,6 @@ def _rerun(
     through ``improve_workflow.continuation_args``, the executor stop's own
     spelling. The ``rerun_argv`` stays the flags after it.
     """
-    from . import next_phase
 
     word, rest = iw.continuation_args(mode, plan_path, args, plan_arg=args.plan)
     positional, flags = rest[0], tuple(rest[1:])
@@ -489,9 +493,6 @@ def pin_commit_range(
                 f"no {flag}: the range's refs are read from the commit brief's "
                 "state.json (util commit-brief recorded them)."
             )
-    from . import commit_range as range_mod
-    from .commit_review import CommitReviewError, repo_root_of
-    from .output_handler import output_dir_path
 
     shown = iw._display_path(args.plan)
     try:
@@ -547,8 +548,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     mode = args.mode
     if getattr(args, "interactive", False):
         return unattended_mod.fail_closed(iw.interactive_refusal(mode))
-
-    from . import host_capabilities
 
     host_id = host_capabilities.resolve_host_id(explicit=args.host)
     try:
