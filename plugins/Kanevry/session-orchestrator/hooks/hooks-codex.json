@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🎯 Session Orchestrator v5.17.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
-            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"console.log('🎯 Session Orchestrator v5.17.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]')\"",
+            "command": "echo '🎯 Session Orchestrator v5.18.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"console.log('🎯 Session Orchestrator v5.18.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]')\"",
             "async": false
           },
           {
@@ -65,6 +65,23 @@
             "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/enforce-commands.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" enforce-commands.mjs",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/codex-apply-patch-guard.mjs\"",
+            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" codex-apply-patch-guard.mjs",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" --fail-closed \"${PLUGIN_ROOT}/hooks/codex-apply-patch-guard.mjs\"",
+            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" codex-apply-patch-guard.mjs",
+            "timeout": 5
           }
         ]
       }
@@ -116,6 +133,19 @@
             "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-stop.mjs\"",
             "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" on-stop.mjs",
             "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "SO_PLATFORM=codex CODEX_PLUGIN_ROOT=\"${PLUGIN_ROOT}\" sh \"${PLUGIN_ROOT}/hooks/run-node.sh\" \"${PLUGIN_ROOT}/hooks/on-session-end.mjs\"",
+            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"require(require('path').join(require('path').isAbsolute(process.env.PLUGIN_ROOT||'')?process.env.PLUGIN_ROOT:process.exit(1),'hooks','codex-win.cjs'))\" on-session-end.mjs",
+            "timeout": 3
           }
         ]
       }

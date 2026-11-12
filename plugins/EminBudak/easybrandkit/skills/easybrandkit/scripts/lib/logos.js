@@ -9,16 +9,20 @@
 // mark is kept when it sits in the page header (the bar at the top) or the
 // page footer (the block that ends the page), inside a link to the home page,
 // or is named after the brand; customer, partner and payment strips are
-// skipped. Everything is read from one DOM snapshot: no extra request, no
-// page JavaScript, until the marks are cut out one by one. Once cut, a mark
-// in the page body that sits on a picture is dropped (an event's lockup over
-// a photo), and a mark the page draws as SVG is saved as a vector too.
+// skipped. Everything is read from one DOM snapshot, on a thread of its own
+// (see findLogos): no extra request, no page JavaScript, until the marks are
+// cut out one by one. Once cut, a mark in the page body that sits on a picture
+// is dropped (an event's lockup over a photo), and a mark the page draws as
+// SVG is saved as a vector too.
 
 const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
-const { capture, metrics } = require("./page");
-const { sleep } = require("./time");
+const { Worker } = require("worker_threads");
+const { inOwnWorld, pageFailed } = require("./chrome");
+const { capture, metrics, nearest } = require("./page");
+const { sleep, outOfTime, timeLeft, LONGEST_TIMER } = require("./time");
+const { plainText, noEndSlashes } = require("./text");
 
 const LOGO_MAX = 6;
 const LOGO_MARGIN = 12;
@@ -28,7 +32,30 @@ const THIRD_PARTY = /partner|client|customer|reference|sponsor|testimonial|marqu
 const HEADER_TOKEN = /^(site-|page-|main-|global-)?(header|navbar|nav-bar|topbar|top-bar|masthead)([_-].*)?$/i;
 const FOOTER_TOKEN = /^(site-|page-|main-|global-)?footer([_-].*)?$/i;
 const MARK_TOKEN = /^([a-z0-9]+[_-]+)*(logo|brand)([_-]+[a-z0-9]+)*$/i;
-const hasToken = (hint, pattern) => hint.split(/\s+/).some((token) => pattern.test(token));
+// No class or id this long names a logo, and a site can write one to keep
+// these patterns busy for minutes, or give an element more classes than any
+// real one has.
+const hasToken = (hint, pattern) => hint.split(/\s+/, 200).some((token) => token.length <= 100 && pattern.test(token));
+// No class, label or role says more than fits in this many characters. An
+// address does not end there, so src, href and content are read whole.
+const LONG_VALUE = 2_048;
+const WHOLE_VALUES = new Set(["src", "href", "content"]);
+// JSON-LD read from a page, far more than a real page has.
+const LD_BLOCKS = 1_000;
+const LD_CHARS = 15_000_000;
+const LOGO_WORD = /logo|brand/i;
+// What is worked out from a value, once per value. A snapshot holds each
+// string once, so one line of a page's script can give one very long value
+// to every element, and working it out for each of them could use up the
+// run's time.
+const once = (work) => {
+  const known = new Map();
+  return (value) => {
+    if (!known.has(value)) known.set(value, work(value));
+    return known.get(value);
+  };
+};
+const matches = (pattern) => once((text) => pattern.test(text));
 const BRAND_STOPWORDS = new Set(["home", "the", "and", "www", "site", "app", "official", "web"]);
 const IMAGE_META = new Set([
   "og:image", "og:image:url", "og:image:secure_url", "og:logo",
@@ -94,8 +121,11 @@ function cssColorToHex(color) {
 }
 
 // An app store listing or a social profile, as one canonical URL; share and
-// intent links and bare home pages are not the brand's own pages.
+// intent links and bare home pages are not the brand's own pages, and neither
+// is a link no one would write, which a site can make long to keep the
+// patterns here busy.
 function brandLink(raw, base) {
+  if (String(raw || "").length > 2_000) return null;
   let url;
   try {
     url = new URL(String(raw || "").trim(), base);
@@ -114,7 +144,7 @@ function brandLink(raw, base) {
   if (host === "play.google.com" && url.pathname.startsWith("/store/apps/details") && pkg) {
     return { type: "googleplay", url: `https://play.google.com/store/apps/details?id=${pkg}` };
   }
-  const page = url.pathname.replace(/\/+$/, "");
+  const page = noEndSlashes(url.pathname);
   if (!page || /\/(sharer|share|intent|sharearticle|dialog)(\/|\.|$)|\/pin\/create/i.test(page)) return null;
   for (const [pattern, type] of SOCIAL_HOSTS) {
     if (pattern.test(host)) return { type, url: `https://${host}${page}` };
@@ -122,12 +152,44 @@ function brandLink(raw, base) {
   return null;
 }
 
-// alsoNamed: more names the brand goes by, such as the app a store listing
-// named when its maker's domain says something else (Things on culturedcode.com).
+// The marks, the look and the links of the page as it stands, read from one
+// DOM snapshot on a thread of its own, for as long as the run still has. It
+// takes a moment on a real page, but how long it takes is up to what the page
+// holds, and on the main thread a page built for it would keep Ctrl-C, a kill
+// and the run's own time limit from working. alsoNamed: more names the brand
+// goes by, such as the app a store listing named when its maker's domain says
+// something else (Things on culturedcode.com).
 async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
   const snap = await cdp.send("DOMSnapshot.captureSnapshot", {
     computedStyles: ["visibility", "opacity", "background-color", "overflow-x", "overflow-y", "color", "font-family"],
   });
+  return new Promise((resolve, reject) => {
+    let worker;
+    const done = (settle, value) => {
+      clearTimeout(limit);
+      if (worker) worker.terminate();
+      settle(value);
+    };
+    const limit = setTimeout(() => done(reject, pageFailed(`The run's time ran out while the kit read ${pageUrl}, so no kit was made. Try again, or give it more time with --timeout.`, "took too long to read", true)), Math.max(1_000, Math.min(LONGEST_TIMER, timeLeft())));
+    // Not by what the error says, which can hold words of the page's.
+    const failed = (err) => {
+      const large = err && (err.code === "ERR_WORKER_OUT_OF_MEMORY" || err.name === "DataCloneError");
+      done(reject, pageFailed(`${pageUrl} ${large ? "is too large to read" : "could not be read"}, so no kit was made.`, large ? "is too large to read" : "ended the kit's read with an error"));
+    };
+    try {
+      worker = new Worker(path.join(__dirname, "logos-thread.js"), { workerData: { snap, pageUrl, pageWidth, pageHeight, alsoNamed } });
+    } catch (err) {
+      failed(err);
+      return;
+    }
+    worker.once("message", (found) => done(resolve, found));
+    worker.once("error", failed);
+    worker.once("exit", failed);
+  });
+}
+
+// What a snapshot holds, on findLogos's thread: it only reads what it is given.
+function readSnapshot({ snap, pageUrl, pageWidth, pageHeight, alsoNamed }) {
   const doc = (snap.documents || [])[0];
   const empty = { marks: [], icons: [], images: [], manifest: "", links: [], siteName: "", title: "", description: "", challenge: "", brand: { colors: [], fonts: {} }, wordTargets: [] };
   if (!doc || !doc.nodes || !doc.layout) return empty;
@@ -136,17 +198,38 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
   const nodes = doc.nodes;
   const names = (nodes.nodeName || []).map(str);
   const parents = nodes.parentIndex || [];
+  const attrName = once((index) => str(index).toLowerCase());
+  const shortValue = once((index) => str(index).slice(0, LONG_VALUE));
   const attrCache = new Map();
   const attrs = (i) => {
     if (!attrCache.has(i)) {
       const out = {};
       const list = (nodes.attributes || [])[i] || [];
-      for (let k = 0; k + 1 < list.length; k += 2) out[str(list[k]).toLowerCase()] = str(list[k + 1]);
+      for (let k = 0; k + 1 < list.length; k += 2) {
+        const name = attrName(list[k]);
+        out[name] = WHOLE_VALUES.has(name) ? str(list[k + 1]) : shortValue(list[k + 1]);
+      }
       attrCache.set(i, out);
     }
     return attrCache.get(i);
   };
+  const roleOf = (i) => (attrs(i).role || "").toLowerCase();
+  // Whether an element's class or id says something: asked of each by itself,
+  // since none of these looks for anything with a space in it.
+  const hintSays = (work) => {
+    const answer = once(work);
+    return (a) => Boolean((a.class && answer(a.class)) || (a.id && answer(a.id)));
+  };
+  const namedMark = hintSays((value) => hasToken(value, MARK_TOKEN));
+  const namedHeader = hintSays((value) => hasToken(value, HEADER_TOKEN));
+  const namedFooter = hintSays((value) => hasToken(value, FOOTER_TOKEN));
+  const namedThirdParty = hintSays((value) => THIRD_PARTY.test(value));
   const base = str(doc.baseURL) || str(doc.documentURL) || pageUrl;
+  const absolute = once((raw) => absoluteUrl(raw, base));
+  const pathIn = once(pathOf);
+  const fileIn = once((urlPath) => urlPath.split("/").pop());
+  const thirdPartyPath = matches(THIRD_PARTY);
+  const saysLogo = matches(LOGO_WORD);
   const layoutIndex = new Map();
   doc.layout.nodeIndex.forEach((nodeIndex, li) => layoutIndex.set(nodeIndex, li));
   const boxOf = (i) => {
@@ -166,14 +249,14 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
   } catch {
     // An origin-less page has no home link either.
   }
-  const isHomeHref = (raw) => {
+  const isHomeHref = once((raw) => {
     try {
       const href = new URL(raw || "", base);
       return href.origin === pageOrigin && !href.search && /^\/([a-z]{2}(-[a-z]{2})?\/?)?(index\.html?)?$/i.test(href.pathname);
     } catch {
       return false;
     }
-  };
+  });
 
   // The head and the links: icons, social preview images, the manifest, the
   // site name, and app store and social media pages. Meta tags and JSON-LD
@@ -187,33 +270,44 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
   let challengeScript = false;
   let description = "";
   let ogDescription = "";
+  const imageUrls = new Set();
+  const linkUrls = new Set();
   const addImage = (property, raw) => {
-    const url = absoluteUrl(raw, base);
-    if (url && !images.some((image) => image.url === url)) images.push({ property, url });
+    const url = absolute(raw);
+    if (!url || imageUrls.has(url)) return;
+    imageUrls.add(url);
+    images.push({ property, url });
   };
+  const linkOf = once((raw) => brandLink(raw, base));
   const addLink = (raw, from) => {
-    const link = brandLink(raw, base);
-    if (link && !links.some((known) => known.url === link.url)) links.push({ ...link, from });
+    const link = linkOf(raw);
+    if (!link || linkUrls.has(link.url)) return;
+    linkUrls.add(link.url);
+    links.push({ ...link, from });
   };
   const ldJson = [];
+  const isChallengeSrc = matches(CHALLENGE_SRC);
+  const shortText = once((text) => plainText(text, 200));
+  const longText = once((text) => plainText(text, 2_000));
+  const titleText = once((text) => plainText(text));
   names.forEach((name, i) => {
     const a = attrs(i);
     if (name === "LINK") {
       const rel = (a.rel || "").toLowerCase();
-      const href = absoluteUrl(a.href, base);
+      const href = absolute(a.href);
       if (!href) return;
       if (/(^|\s)(icon|apple-touch-icon(-precomposed)?|mask-icon)(\s|$)/.test(rel)) {
-        icons.push({ rel, href, sizes: a.sizes || "" });
+        icons.push({ rel: plainText(rel, 100), href, sizes: plainText(a.sizes, 100) });
       }
       if (/(^|\s)manifest(\s|$)/.test(rel)) manifest = href;
     } else if (name === "META") {
       const key = (a.property || a.name || a.itemprop || "").toLowerCase();
       const content = a.content || "";
-      if (key === "og:site_name") siteName = content;
-      if (key === "description" && !description) description = content.replace(/\s+/g, " ").trim();
-      if (key === "og:description" && !ogDescription) ogDescription = content.replace(/\s+/g, " ").trim();
+      if (key === "og:site_name") siteName = shortText(content);
+      if (key === "description" && !description) description = longText(content);
+      if (key === "og:description" && !ogDescription) ogDescription = longText(content);
       if (IMAGE_META.has(key)) addImage(key, content);
-      const appId = (content.match(/app-id=([\w.]+)/) || [])[1] || content.trim();
+      const appId = content.length > 300 ? "" : (content.match(/app-id=([\w.]+)/) || [])[1] || content.trim();
       if ((key === "apple-itunes-app" || key === "al:ios:app_store_id" || key === "twitter:app:id:iphone") && /^\d{5,}$/.test(appId)) {
         addLink(`https://apps.apple.com/app/id${appId}`, "meta");
       }
@@ -223,8 +317,8 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     } else if (name === "#text" && parents[i] >= 0 && names[parents[i]] === "SCRIPT") {
       if (/ld\+json/i.test(attrs(parents[i]).type || "")) ldJson.push(str((nodes.nodeValue || [])[i]));
     } else if (name === "#text" && parents[i] >= 0 && names[parents[i]] === "TITLE" && !title) {
-      title = str((nodes.nodeValue || [])[i]).trim();
-    } else if ((name === "SCRIPT" || name === "IFRAME") && CHALLENGE_SRC.test(a.src || "")) {
+      title = titleText(str((nodes.nodeValue || [])[i]));
+    } else if ((name === "SCRIPT" || name === "IFRAME") && isChallengeSrc(a.src || "")) {
       challengeScript = true;
     }
   });
@@ -237,26 +331,24 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     for (const same of [].concat(value.sameAs || [])) addLink(same, "ld+json");
     for (const key of ["@graph", "publisher", "brand", "organization", "author"]) walkLd(value[key]);
   };
-  for (const text of ldJson) {
+  // The same block on many elements says what it says once.
+  let ldRead = 0;
+  for (const text of [...new Set(ldJson)].slice(0, LD_BLOCKS)) {
+    ldRead += text.length;
+    if (ldRead > LD_CHARS) break;
     try {
       walkLd(JSON.parse(text));
     } catch {
       // Broken JSON-LD carries nothing usable.
     }
   }
+  const linkPlace = nearest(parents, (p) => (names[p] === "FOOTER" ? "footer" : names[p] === "HEADER" || names[p] === "NAV" ? "header" : ""));
   names.forEach((name, i) => {
     if (name !== "A") return;
-    let from = "page";
-    for (let p = parents[i]; p >= 0; p = parents[p]) {
-      if (names[p] === "FOOTER") from = "footer";
-      else if (names[p] === "HEADER" || names[p] === "NAV") from = "header";
-      else continue;
-      break;
-    }
-    addLink(attrs(i).href, from);
+    addLink(attrs(i).href, linkPlace(parents[i]) || "page");
   });
   if (icons.length === 0) {
-    const fallback = absoluteUrl("/favicon.ico", base);
+    const fallback = absolute("/favicon.ico");
     if (fallback) icons.push({ rel: "default", href: fallback, sizes: "" });
   }
 
@@ -270,23 +362,25 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     if (!isMarkName(name)) return;
     for (let p = parents[i]; p >= 0 && !wrapsImage.has(p); p = parents[p]) wrapsImage.add(p);
   });
-  const insideSvg = (i) => {
-    for (let p = parents[i]; p >= 0; p = parents[p]) if (names[p] === "svg") return true;
-    return false;
-  };
+  const svgAbove = nearest(parents, (p) => names[p] === "svg");
+  const insideSvg = (i) => svgAbove(parents[i]);
   const inside = ([x, y, w, h], [bx, by, bw, bh], share) => {
     const cut = Math.max(0, Math.min(x + w, bx + bw) - Math.max(x, bx)) * Math.max(0, Math.min(y + h, by + bh) - Math.max(y, by));
     return cut >= share * w * h;
   };
 
+  const backgroundOf = nearest(parents, (p) => cssColorToHex(styleOf(p, 2)));
+  const namesBrand = once((text) => {
+    const lower = text.toLowerCase();
+    return brand.some((token) => lower.includes(token));
+  });
   const candidates = [];
   names.forEach((name, i) => {
     const own = attrs(i);
-    const hint = `${own.class || ""} ${own.id || ""}`;
     let kind = "";
     if (name === "IMG") kind = "img";
     else if (name === "svg" && !insideSvg(i)) kind = "svg";
-    else if (!isMarkName(name) && !wrapsImage.has(i) && hasToken(hint, MARK_TOKEN)) kind = "css";
+    else if (!isMarkName(name) && !wrapsImage.has(i) && namedMark(own)) kind = "css";
     if (!kind) return;
     const box = boxOf(i);
     if (!box) return;
@@ -298,11 +392,12 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     if (x < 0 || y < 0 || x + w > pageWidth + 1 || y + h > pageHeight + 1) return;
     if (styleOf(i, 0) === "hidden") return;
 
-    const src = kind === "img" ? currentSrc.get(i) || absoluteUrl(own.src, base) : "";
+    const src = kind === "img" ? currentSrc.get(i) || absolute(own.src) : "";
+    const srcPath = pathIn(src);
     let where = "page";
     let homeLink = kind === "css" && name === "A" && isHomeHref(own.href);
-    let linkLabel = "";
-    let thirdParty = THIRD_PARTY.test(`${hint} ${pathOf(src)}`);
+    let linkLabels = null;
+    let thirdParty = namedThirdParty(own) || thirdPartyPath(srcPath);
     for (let p = i, depth = 0; p >= 0 && depth < 60; p = parents[p], depth++) {
       if (p !== i) {
         const parentBox = boxOf(p);
@@ -312,22 +407,21 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
         const clips = names[p] !== "HTML" && names[p] !== "BODY" && [styleOf(p, 3), styleOf(p, 4)].some((v) => v && v !== "visible");
         if (clips && parentBox && !inside(box, parentBox, 0.8)) return;
         const a = attrs(p);
-        const parentHint = `${a.class || ""} ${a.id || ""}`;
-        const role = (a.role || "").toLowerCase();
+        const role = roleOf(p);
         // The page header is a bar at the top, the page footer the block that
         // ends the page: a <header> around a hero or an article is neither.
         if (where === "page" && parentBox) {
           const [, by, , bh] = parentBox;
-          const headerLike = names[p] === "HEADER" || names[p] === "NAV" || role === "banner" || role === "navigation" || hasToken(parentHint, HEADER_TOKEN);
-          const footerLike = names[p] === "FOOTER" || role === "contentinfo" || hasToken(parentHint, FOOTER_TOKEN);
+          const headerLike = names[p] === "HEADER" || names[p] === "NAV" || role === "banner" || role === "navigation" || namedHeader(a);
+          const footerLike = names[p] === "FOOTER" || role === "contentinfo" || namedFooter(a);
           if (headerLike && by <= 120 && bh <= 400) where = "header";
           else if (footerLike && by + bh >= pageHeight * 0.9 - 50) where = "footer";
         }
-        if (names[p] === "A" && !linkLabel) {
-          linkLabel = `${a["aria-label"] || ""} ${a.title || ""} `;
+        if (names[p] === "A" && !linkLabels) {
+          linkLabels = [a["aria-label"] || "", a.title || ""];
           homeLink = homeLink || isHomeHref(a.href);
         }
-        if (depth < 8 && THIRD_PARTY.test(parentHint)) thirdParty = true;
+        if (depth < 8 && namedThirdParty(a)) thirdParty = true;
       }
     }
     if (thirdParty) return;
@@ -336,11 +430,11 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     // and in the file's name; class names often carry a site-wide prefix.
     // Not in the folders above the file: a product page under /things/
     // keeps every picture there, the press logos too, and Apple's logo came
-    // back as a Things logo.
-    const labels = `${own.alt || ""} ${own.title || ""} ${own["aria-label"] || ""}`;
-    const named = `${labels} ${pathOf(src).split("/").pop()} ${linkLabel}`.toLowerCase();
-    const brandHit = brand.some((token) => named.includes(token));
-    const logoHit = /logo|brand/i.test(`${labels} ${hint} ${pathOf(src)}`);
+    // back as a Things logo. Asked of each text by itself, since neither looks
+    // for anything with a space in it.
+    const labels = [own.alt || "", own.title || "", own["aria-label"] || ""];
+    const brandHit = [...labels, ...(linkLabels || [])].some(namesBrand) || namesBrand(fileIn(srcPath));
+    const logoHit = [...labels, own.class || "", own.id || ""].some(saysLogo) || saysLogo(srcPath);
     const keep =
       where === "header" ? homeLink || brandHit || logoHit
       : where === "footer" ? homeLink || brandHit
@@ -349,9 +443,7 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     // The colour it sits on as CSS has it: the first element up from it with
     // a background, white when none has one. The cut's own pixels have the
     // last word (captureLogos): CSS says white under a logo on a hero photo.
-    let background = "";
-    for (let p = i; p >= 0 && !background; p = parents[p]) background = cssColorToHex(styleOf(p, 2));
-    candidates.push({ kind, where, x, y, w, h, src, alt: own.alt || "", background: background || "#ffffff", backendNodeId: (nodes.backendNodeId || [])[i] });
+    candidates.push({ kind, where, x, y, w, h, src, alt: plainText(own.alt), background: backgroundOf(i) || "#ffffff", backendNodeId: (nodes.backendNodeId || [])[i] });
   });
 
   // Header marks first, then the footer, then the page, each top to bottom.
@@ -362,10 +454,11 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
   candidates.sort((a, b) => rank[a.where] - rank[b.where] || a.y - b.y || a.x - b.x);
   const seen = new Set();
   const marks = [];
+  const fileKey = once((src) => fileIn(pathIn(src)).replace(/\.[a-z0-9_-]{6,12}(?=\.[a-z0-9]+$)/i, ""));
   for (const c of candidates) {
     const key =
       c.kind === "img" && c.src
-        ? pathOf(c.src).split("/").pop().replace(/\.[a-z0-9_-]{6,12}(?=\.[a-z0-9]+$)/i, "")
+        ? fileKey(c.src)
         : `${c.kind}:${c.where}:${Math.round(c.w)}x${Math.round(c.h)}`;
     if (seen.has(key)) continue;
     if (marks.some((m) => m.where === c.where && inside([c.x, c.y, c.w, c.h], [m.x - 1, m.y - 1, m.w + 2, m.h + 2], 1))) continue;
@@ -384,8 +477,8 @@ async function findLogos(cdp, pageUrl, pageWidth, pageHeight, alsoNamed = "") {
     title,
     description: description || ogDescription,
     challenge,
-    brand: brandLook(names, parents, attrs, boxOf, styleOf, pageWidth, pageHeight),
-    wordTargets: wordTargets(names, parents, attrs, boxOf, styleOf, nodes.backendNodeId || [], pageWidth, pageHeight),
+    brand: brandLook(names, parents, roleOf, boxOf, styleOf, pageWidth, pageHeight),
+    wordTargets: wordTargets(names, parents, roleOf, boxOf, styleOf, nodes.backendNodeId || [], pageWidth, pageHeight),
   };
 }
 
@@ -413,14 +506,14 @@ function isBrandButton(name, role, background, w, h) {
   return (name === "BUTTON" || name === "A" || role === "button") && Boolean(background) && colourful(background) && w >= 40 && w <= 600 && h >= 24 && h <= 120;
 }
 
-function brandLook(names, parents, attrs, boxOf, styleOf, pageWidth, pageHeight) {
+function brandLook(names, parents, roleOf, boxOf, styleOf, pageWidth, pageHeight) {
   const tally = new Map();
   const add = (role, hex, weight = 1) => {
     if (!hex) return;
     if (!tally.has(role)) tally.set(role, new Map());
     tally.get(role).set(hex, (tally.get(role).get(hex) || 0) + weight);
   };
-  const family = (css) => String(css || "").split(",")[0].replace(/["']/g, "").trim();
+  const family = once((css) => plainText(String(css || "").split(",")[0].replace(/["']/g, ""), 200));
   const fonts = {};
   let header = "";
   let footer = "";
@@ -429,8 +522,7 @@ function brandLook(names, parents, attrs, boxOf, styleOf, pageWidth, pageHeight)
     if (name === "#text" || !box || !(box[2] > 0 && box[3] > 0)) return;
     if (styleOf(i, 0) === "hidden" || parseFloat(styleOf(i, 1)) === 0) return;
     const [, y, w, h] = box;
-    const a = attrs(i);
-    const role = (a.role || "").toLowerCase();
+    const role = roleOf(i);
     const background = solidHex(styleOf(i, 2));
     if (name === "H1" || name === "H2") {
       add("heading", solidHex(styleOf(i, 5)));
@@ -471,21 +563,16 @@ function brandLook(names, parents, attrs, boxOf, styleOf, pageWidth, pageHeight)
 // snapshot picks the elements; their text is read as the page renders it
 // (innerText), because a snapshot's text pieces lose the line breaks and the
 // spaces between them.
-function wordTargets(names, parents, attrs, boxOf, styleOf, backendIds, pageWidth, pageHeight) {
-  const within = (i, test) => {
-    for (let p = parents[i]; p >= 0; p = parents[p]) if (test(names[p], (attrs(p).role || "").toLowerCase())) return true;
-    return false;
+function wordTargets(names, parents, roleOf, boxOf, styleOf, backendIds, pageWidth, pageHeight) {
+  const within = (test) => {
+    const above = nearest(parents, (p) => test(names[p], roleOf(p)));
+    return (i) => above(parents[i]);
   };
-  const inFooter = (i) => within(i, (name, role) => name === "FOOTER" || role === "contentinfo");
-  const inChrome = (i) => within(i, (name, role) => name === "FOOTER" || name === "NAV" || role === "contentinfo" || role === "navigation");
+  const inFooter = within((name, role) => name === "FOOTER" || role === "contentinfo");
+  const inChrome = within((name, role) => name === "FOOTER" || name === "NAV" || role === "contentinfo" || role === "navigation");
   // A filled button: its own solid background, unlike what it sits on.
-  const ground = (i) => {
-    for (let p = parents[i]; p >= 0; p = parents[p]) {
-      const hex = solidHex(styleOf(p, 2));
-      if (hex) return hex;
-    }
-    return "#ffffff";
-  };
+  const groundAbove = nearest(parents, (p) => solidHex(styleOf(p, 2)));
+  const ground = (i) => groundAbove(parents[i]) || "#ffffff";
   const visible = (i) => {
     const box = boxOf(i);
     if (!box || !(box[2] > 0 && box[3] > 0)) return false;
@@ -503,7 +590,7 @@ function wordTargets(names, parents, attrs, boxOf, styleOf, backendIds, pageWidt
       if (headings.length < 30 && visible(i) && !inChrome(i)) headings.push({ kind: "heading", tag: name.toLowerCase(), backendNodeId: backendIds[i] });
       return;
     }
-    const role = (attrs(i).role || "").toLowerCase();
+    const role = roleOf(i);
     if (name !== "BUTTON" && name !== "A" && role !== "button") return;
     const box = boxOf(i);
     const fill = solidHex(styleOf(i, 2));
@@ -523,17 +610,45 @@ function sayOnce(text) {
 
 const INNER_TEXT = `function () { return String(this.innerText || this.textContent || ""); }`;
 
+// How long a page's words are read for once the run's time is up: a tab
+// that answers gives all of them in a moment.
+const WORDS_GRACE = 5_000;
+
+// The page's headings and button labels, read while the tab answers, also
+// once the run's time is up, for a few seconds more then. A call the tab
+// does not answer ends it, since every other call would wait as long: sixty
+// of them would be a minute past the run's limit. Each call waits only what
+// is left of that time, a second at least, and none starts once it is up,
+// so the read ends a second past it at most. unread says why some were not
+// read, for the kit's notes: "time" when the time ran out, "tab" when the
+// tab stopped answering, "" when all were read.
 async function readWords(cdp, targets) {
   const headings = [];
   const ctas = [];
+  const until = Date.now() + Math.max(WORDS_GRACE, timeLeft());
+  const waitLeft = () => Math.max(1_000, Math.min(30_000, until - Date.now()));
+  let unread = "";
   for (const target of targets) {
+    if (headings.length >= 12 && ctas.length >= 6) break;
+    if (Date.now() >= until) {
+      unread = "time";
+      break;
+    }
     let text = "";
     try {
-      const { object } = await cdp.send("DOM.resolveNode", { backendNodeId: target.backendNodeId });
+      const { object } = await cdp.send("DOM.resolveNode", { backendNodeId: target.backendNodeId }, waitLeft());
       if (!object || !object.objectId) continue;
-      const { result } = await cdp.send("Runtime.callFunctionOn", { objectId: object.objectId, functionDeclaration: INNER_TEXT, returnByValue: true });
-      text = sayOnce(String((result && result.value) || "").replace(/\s+/g, " ").trim()).slice(0, 200);
-    } catch {
+      if (Date.now() >= until) {
+        unread = "time";
+        break;
+      }
+      const { result } = await cdp.send("Runtime.callFunctionOn", { objectId: object.objectId, functionDeclaration: INNER_TEXT, returnByValue: true }, waitLeft());
+      text = sayOnce(plainText((result && result.value) || "", 2_000)).slice(0, 200);
+    } catch (err) {
+      if (err.timedOut || err.closed) {
+        unread = outOfTime() ? "time" : "tab";
+        break;
+      }
       // A node the page has replaced since the snapshot: its words are skipped.
       continue;
     }
@@ -543,7 +658,7 @@ async function readWords(cdp, targets) {
     if (target.kind === "heading" && headings.length < 12 && !headings.some((h) => h.text === text)) headings.push({ tag: target.tag, text });
     if (target.kind === "cta" && ctas.length < 6 && !ctas.some((c) => c.toLowerCase() === text.toLowerCase())) ctas.push(text);
   }
-  return { headings, ctas };
+  return { headings, ctas, unread };
 }
 
 // The box where the mark is actually painted. Layout bounds ignore CSS
@@ -714,14 +829,16 @@ async function bringIntoView(cdp, mark) {
   return (await metrics(cdp)).scrollY;
 }
 
-// The logo as a vector file, run in the page. With no text, `this` is an
-// inline <svg>: it is copied with the page's styles written onto every part
-// as plain attributes (a class in the site's stylesheet, currentColor and
-// CSS variables resolved to the colors they came to), without the parts the
-// page hides, and with the symbols and gradients it uses from elsewhere in
-// the page. With text, the text is the SVG file an <img> showed, kept as it
-// is. Either way scripts, event handlers and embedded HTML are dropped and
-// links are made absolute.
+// The logo as a vector file, run in a JavaScript world of the kit's own (see
+// inOwnWorld), since a page can change the builtins of its own world and so
+// switch off what is dropped here. With no text, `this` is an inline <svg>:
+// it is copied with the page's styles written onto every part as plain
+// attributes (a class in the site's stylesheet, currentColor and CSS
+// variables resolved to the colors they came to), without the parts the page
+// hides, and with the symbols and gradients it uses from elsewhere in the
+// page. With text, the text is the SVG file an <img> showed, kept as it is.
+// Either way scripts, event handlers and embedded HTML are dropped and links
+// are made absolute.
 const SVG_FILE = `function (text, base) {
   var NS = "http://www.w3.org/2000/svg";
   var NOT_DRAWN = /^(defs|symbol|clippath|mask|pattern|marker|lineargradient|radialgradient|filter)$/;
@@ -825,8 +942,10 @@ const SVG_FILE = `function (text, base) {
     [].slice.call(el.attributes).forEach(function (at) {
       if (/^on/i.test(at.name)) { el.removeAttribute(at.name); return; }
       if (!/(^|:)href$/.test(at.name) || at.value.charAt(0) === "#") return;
-      if (/^\\s*(javascript|vbscript):/i.test(at.value)) { el.removeAttribute(at.name); return; }
-      try { at.value = new URL(at.value, base).href; } catch (e) {}
+      var href = at.value;
+      try { href = new URL(at.value, base).href; } catch (e) {}
+      if (/^\\s*(javascript|vbscript):/i.test(href)) { el.removeAttribute(at.name); return; }
+      at.value = href;
     });
   });
   return new XMLSerializer().serializeToString(root);
@@ -848,6 +967,23 @@ async function svgSource(cdp, src) {
   }
 }
 
+// An SVG file's comments, CDATA sections and tags, each tag with its name and
+// its attributes: a value in quotes can hold a ">".
+const SVG_PART = /<!--[\s\S]*?(?:-->|$)|<!\[CDATA\[[\s\S]*?(?:\]\]>|$)|<([^\s/>"'!?][^\s/>"']*)((?:[^>"']+|"[^"]*"|'[^']*')*)/g;
+
+// Whether an SVG file still holds a script element or an event handler. What
+// comes back from the page is still the page's, so the file is read here too,
+// where nothing of the page's can change the answer. Only tags count: a
+// logo's title or a picture embedded in it can hold the same letters.
+function holdsCode(svg) {
+  for (const [, name, attrs] of svg.matchAll(SVG_PART)) {
+    if (!name) continue;
+    if (name.slice(name.lastIndexOf(":") + 1).toLowerCase() === "script") return true;
+    if (/(^|[\s/])on[a-z]+\s*=/i.test(attrs.replace(/"[^"]*"|'[^']*'/g, " "))) return true;
+  }
+  return false;
+}
+
 // Writes the mark's vector as file in dir when the page draws it as SVG (an
 // inline <svg>, or an <img> of an SVG file). The file name, or "".
 const SVG_LIMIT = 2_000_000;
@@ -856,7 +992,7 @@ async function saveVector(cdp, mark, dir, file) {
   try {
     const text = mark.kind === "img" ? await svgSource(cdp, mark.src) : null;
     if (text === "" || (text && text.length > SVG_LIMIT)) return "";
-    const { object } = await cdp.send("DOM.resolveNode", { backendNodeId: mark.backendNodeId });
+    const { object } = await inOwnWorld(cdp, (executionContextId) => cdp.send("DOM.resolveNode", { backendNodeId: mark.backendNodeId, executionContextId }));
     if (!object || !object.objectId) return "";
     const { result } = await cdp.send("Runtime.callFunctionOn", {
       objectId: object.objectId,
@@ -865,10 +1001,13 @@ async function saveVector(cdp, mark, dir, file) {
       returnByValue: true,
     });
     const svg = String((result && result.value) || "");
-    if (!svg.startsWith("<svg") || svg.length > SVG_LIMIT) return "";
+    if (!svg.startsWith("<svg") || svg.length > SVG_LIMIT || holdsCode(svg)) return "";
     fs.writeFileSync(path.join(dir, file), svg + "\n");
     return file;
-  } catch {
+  } catch (err) {
+    // A file that cannot be written fails the run: what it has of the file
+    // would otherwise go into the kit.
+    if (err.syscall) throw err;
     return "";
   }
 }
@@ -1049,4 +1188,4 @@ function groundOf(png, band, sides = { top: true, right: true, bottom: true, lef
   return { hex: "#" + middle.map((v) => v.toString(16).padStart(2, "0")).join(""), solid: near >= samples.length * 0.9 };
 }
 
-module.exports = { findLogos, captureLogos, readWords, brandLink, brandTokens, tagPng, logoInk, groundOf, CHALLENGE_TITLE };
+module.exports = { findLogos, readSnapshot, captureLogos, saveVector, readWords, brandLink, brandTokens, tagPng, logoInk, groundOf, CHALLENGE_TITLE };

@@ -4,7 +4,7 @@
 
 <br><br>
 
-[![Skills: 66](https://img.shields.io/badge/skills-66-c8a96e?labelColor=080808)](#the-skills)
+[![Skills: 67](https://img.shields.io/badge/skills-67-c8a96e?labelColor=080808)](#the-skills)
 [![Licenses: MIT + BSD](https://img.shields.io/badge/licenses-MIT_%2B_BSD-c8a96e?labelColor=080808)](NOTICE.md)
 [![Claude Code](https://img.shields.io/badge/Claude_Code-plugin-c8a96e?labelColor=080808)](#install-in-30-seconds)
 [![Codex](https://img.shields.io/badge/Codex-plugin-c8a96e?labelColor=080808)](#install-in-30-seconds)
@@ -66,7 +66,7 @@ These are **public, broadly reusable, open-source skill folders**, installable f
 /plugin install suede-skills@suede
 ```
 
-`suede-skills` installs every skill. Want less? Three focused subsets: `/plugin install suede-marketing@suede` (40 marketing and growth skills), `/plugin install suede-agent-workflows@suede` (Suede Thought Graph shipping, orchestration, workflows, evals), and `/plugin install suede-code@suede` (review, grade, ship-gate).
+`suede-skills` installs every skill. Want less? Three focused subsets: `/plugin install suede-marketing@suede` (41 marketing and growth skills), `/plugin install suede-agent-workflows@suede` (Suede Thought Graph shipping, orchestration, workflows, evals), and `/plugin install suede-code@suede` (review, grade, ship-gate).
 
 **Codex** — add the Codex-native marketplace, install the complete plugin:
 
@@ -244,7 +244,7 @@ Rights and release-prep tooling for working musicians and creators — see the [
 
 ### Marketing & growth
 
-Thirty-eight skills covering paid acquisition and outbound, monetization, lifecycle and
+Thirty-nine skills covering paid acquisition and outbound, monetization, lifecycle and
 retention, and the measurement and operations layer — `suede-ads`, `suede-ad-creative`,
 `suede-cold-email`, `suede-influencer-outreach`, `suede-prospecting`, `suede-public-relations`, `suede-directory-submissions`,
 `suede-pricing`, `suede-offers`, `suede-paywalls`, `suede-onboarding`,
@@ -254,7 +254,7 @@ retention, and the measurement and operations layer — `suede-ads`, `suede-ad-c
 `suede-sales-enablement`, `suede-programmatic-seo`, `suede-content-strategy`,
 `suede-marketing-plan`, `suede-marketing-council`, `suede-social`,
 `suede-aso`, `suede-video`, `suede-image`, `suede-product-marketing`, `suede-competitors`,
-`suede-competitor-profiling`, `suede-customer-research`,
+`suede-competitor-profiling`, `suede-reverse-engineer-anyone`, `suede-customer-research`,
 `suede-ai-seo`, `suede-attribution`.
 
 The content-production lane adds one more workflow:

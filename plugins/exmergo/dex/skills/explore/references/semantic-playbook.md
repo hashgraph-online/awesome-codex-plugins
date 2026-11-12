@@ -218,6 +218,30 @@ statically with no Cube server. `list` reads the same shape as anywhere else:
   pre-aggregation means Cube would answer from a rollup table; query members it
   does not cover.
 
+## When the layer is Databricks Metric Views
+
+`vendor: databricks` means the layer is Metric View YAML files in the repository,
+read statically with no workspace connection. `list` reads the same shape as
+anywhere else:
+
+- **A view is named after its file.** `views/orders.yaml` is the view `orders`,
+  whatever it is deployed as in Unity Catalog. Tokens are `view.field` and
+  `view.measure`.
+- **A joined field has no `column`.** `customer.name` sits on the joined table,
+  named in `vendor_params.join`; that table is the one to profile. The view's own
+  `relation` is its `source`.
+- **There are no entities and no time grains.** Joins and `rely` keys reach
+  `explore map`, `relationships` and `profile` through `--use-project`. A field is
+  `time` only where its `format` says date. A time bucket is the field's own SQL.
+- **Read `vendor_params` before trusting a metric.** A window or `partition`
+  measure is listed as `derived` with its spec there, and is not modelled. The
+  view's `filter` is on every metric's `filter`.
+- **`query` and `values` refuse until #964.** Use `explore profile` and
+  `explore query` on the relations the catalog names.
+- **A `rely` key is a claim Databricks never checks.** A wrong one returns wrong
+  numbers silently, so `explore profile --use-project` and `maintain grain`
+  measure it; a duplicate there is a finding to report.
+
 ## When the layer is SLayer models
 
 `vendor: slayer` means the layer is SLayer model files in the repository. `list`,

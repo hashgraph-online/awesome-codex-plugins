@@ -165,6 +165,50 @@ after their column from declared aggregations, population and units in
 `declarations`, which annotate a cube the payload or the layer defines, rewriting
 only that cube's entry. See [declarations.md](declarations.md#cube-semanticvendor-cube).
 
+## Databricks Metric Views: `semantic databricks define|update|plan`
+
+Under `semantic.vendor: databricks`, the configured Metric View YAML files are the
+semantic layer. Author them with
+`semantic databricks define|update|plan <intent> --edits-file <path|->`. The
+wrapper installs the `[metric-views]` extra (the dialect engine) for it. Dex
+never deploys a view: `CREATE VIEW ... WITH METRICS` is the author's step, outside
+Dex, and no authoring command opens a workspace connection.
+
+- Each edit is one **whole Metric View YAML body** (what `CREATE VIEW ... WITH
+  METRICS LANGUAGE YAML` holds between its `$$` delimiters), keyed exactly as
+  `semantic.databricks.files` lists it and written byte-for-byte. A file is one
+  view, named after its stem.
+- Only the listed files are writable. A path off the list, a `.sql` file, another
+  suffix and a stem another file already names are refused by name. To add a
+  view, propose `dex config set semantic.databricks.files '[..., <path>]'` first
+  (the user confirms the diff).
+- The whole set is validated by Dex's port of the Metric View YAML 1.1 rules.
+  Writing is stricter than reading: an unknown key (`rely` included) and a view
+  writing both `fields` and `dimensions` refuse the plan, because Databricks
+  refuses the first on `CREATE VIEW` and silently drops `fields` for the second.
+  Every refusal names `file: element: [rule]`; fix that element and re-plan.
+- Never write the YAML with a YAML 1.1 library (PyYAML's `safe_dump` of a parsed
+  view): it turns a join's `on:` into `true:`, which is refused naming `on:`.
+  Write the text, or read and write with YAML 1.2.
+- The envelope classifies each view as `defined`, `updated` or `unchanged`
+  (reformatting is `unchanged`). `define` refuses an existing view, `update` a new
+  one. A file changed after planning makes `transform apply` refuse the plan;
+  remake it with `semantic databricks plan`.
+
+**A declared mart derives its Metric View.** Under `vendor: databricks`,
+`transform plan` on a declared mart proposes `<dir>/<mart>.yaml` beside the
+configured files: the mart as `source`, every non-measure role as a field (a date
+or timestamp column with `format: {type: date|date_time}`), declared aggregations
+as measures `<column>_<agg>`, each foreign key a `many_to_one` join with
+`rely.at_most_one_match` only where the parent declares that column as its grain,
+and the description plus the population sentence as the view's `comment`. It is
+stored as a second plan when the path is already in `semantic.databricks.files`.
+A Metric View has no metadata key, so the NULL rule, additivity, assumptions and
+grain are named under `not_carried` rather than written. `semantic databricks
+define|update|plan` also take `declarations`, which annotate the view they name,
+splicing only what changes. See
+[declarations.md](declarations.md#databricks-metric-views-semanticvendor-databricks).
+
 ## SLayer models: `semantic slayer define|update|plan`
 
 Under `semantic.vendor: slayer`, the configured SLayer model files are the

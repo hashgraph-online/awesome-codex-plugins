@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.139.0 # x-release-please-version
+version: 0.141.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -23,6 +23,12 @@ complete context before reading or sending:
 amq_context="$(amq env --me "<handle>" --export)" && eval "$amq_context" &&
   amq drain --include-body
 ```
+
+In a Claude Code session that `coop exec` did not start (the desktop app has
+no `AM_ME`), run `amq coop join --me "<handle>"` once. Later bare `amq`
+commands in that session use the handle, and its output says whether a hook
+wakes the session for new mail. A session after `/clear` has no handle: join
+again.
 
 For a named session, add `--session <name>` to `amq env`. Treat the evaluated
 context as one terminal bound to one session. Use `--session` or `--project` for

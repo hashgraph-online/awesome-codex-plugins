@@ -10,7 +10,7 @@ metadata:
 
 ## Compatibility
 
-Works from supplied URLs, exports, or source text; live sourcing needs an authorized browser or research connector. No enrichment service is bundled.
+Works from supplied URLs, exports, or source text; live sourcing needs an authorized browser or research connector. The bundled `scripts/collect.mjs` (Node 22+, no API keys) pulls free public account signals; no paid enrichment service is bundled.
 
 For a concrete input, expected handoff, and failure check, read
 [the worked handoff](references/worked-handoff.md).
@@ -125,6 +125,21 @@ the "Gap Plays" section of [references/saas-prospecting.md](references/saas-pros
 
 Score every candidate against the ICP checklist. Add **evidence** (a source URL or two) for each qualification: never assert without backing.
 
+**Free account signals first.** Before spending enrichment credits, run the
+bundled collector per account ([references/collector.md](references/collector.md)):
+
+1. `dns <domain>`: email senders and verified tools (technographics).
+2. `jobs <board-slug>`: open roles by function and marketing channel, a strong buying trigger.
+3. Shortlist only: `stack <domain>` (pixels and tools with first-seen month),
+   `subdomains <domain>` (new launches), `adoption --npm/--pypi/--github`
+   (developer-tool accounts), and `ads` (ad-library links: are they spending on paid?).
+
+Each value is a dated public observation and one source toward confidence: stamp
+it with its command, source, and pull date. When output says `blocked by <host>`,
+record the signal as not collected. A missing pixel or board is not
+disqualification evidence by itself. The collector studies companies only; never
+use it to gather personal data.
+
 **Confidence levels** (used across all branches):
 - **High**: confirmed by at least two independent sources or official business page
 - **Medium**: one credible source plus consistent search evidence
@@ -219,6 +234,7 @@ freshness, export rights, and cost before using one. Full breakdown in
 | **Hunter or Snov** | Email pattern discovery and verification | Verification status and lawful basis |
 | **Truelist** | Email deliverability validation before outreach | Result meanings and current API limits |
 | **LinkedIn Sales Navigator** | Decision-maker mapping (manual, no scraping) | Platform terms; no bulk extraction |
+| **Bundled `collect.mjs`** (free) | DNS tools, stack history, hiring, launches, ad links | Pull date; homepage-only stack; [collector gaps](references/collector.md) |
 | **BuiltWith / Wappalyzer** | Tech stack qualification (SaaS branch) | Detection accuracy and staleness |
 | **Crunchbase** | Funding signals (SaaS branch) | Record recency and license tier |
 | **GitHub** | Stargazers / forks, public developer-intent signals | API terms, rate limits, company mapping |
@@ -285,6 +301,7 @@ score,business,category,area,distance_km,website_status,website_url,social_urls,
 - [ ] Confidence levels honest: "High" requires 2 independent sources, not just two of your own searches
 - [ ] No leads sourced from prohibited scraping (LinkedIn at scale, Google Maps bulk extract, etc.)
 - [ ] Source URL + date captured for every contact (GDPR / CAN-SPAM lineage)
+- [ ] Every collector value carries its source and pull date; blocked signals read `not collected`
 - [ ] Final count matches user's request, or you've explained why it's smaller (quality bar)
 
 Any unchecked box means the sheet is not deliverable. Name the failing box and what

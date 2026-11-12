@@ -97,9 +97,18 @@ See the cost-controls reference for the shared budget mechanism.
   `aggregate_changed` (`count(*)` to `count(col)`, a changed function or
   `DISTINCT`), `null_handling_changed` (a `coalesce`, `ifnull` or `nullif` added
   or removed) and `expression_changed`, compared by output name in the final
-  select and in every CTE both versions share; table qualifiers and formatting
-  are ignored. A population change, a removed column and a changed type,
-  aggregate or NULL treatment get a `status`: `declared` where an assumption's
+  select and in every CTE both versions share; table aliases and formatting
+  are ignored. Casts, aggregates and NULL treatment are compared after
+  following a column through the top-level CTEs it reads. An aggregate that
+  moved into a CTE is an `expression_changed` when its rows are produced alike
+  (same filters, grouping, row DISTINCT and joins, each column read as the
+  table it comes from, the same tables, no outer join, LIMIT, sample, window
+  or QUALIFY on the way); any other move, and a column that cannot be
+  followed, is compared as written (#1253), except that an output whose text
+  is unchanged but reads a differently named CTE is compared through it, so
+  a calculation changed there is still reported. A population change, a removed
+  column and a changed type, aggregate or NULL treatment get a `status`:
+  `declared` where an assumption's
   `column` names the output column or a column the predicate reads (the
   assumption is copied, with a note when its evidence is `default`), else
   `undeclared` and a warning. An added column and a rewritten formula are listed

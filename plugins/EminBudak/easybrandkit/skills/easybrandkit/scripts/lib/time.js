@@ -13,6 +13,14 @@ function timeLeft() {
   return deadline - Date.now();
 }
 
+// Whether the run has used up its own time, so that more of it can help: one
+// call's own limit does not change with --timeout.
+const outOfTime = () => timeLeft() < 2_000;
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-module.exports = { setTimeLimit, timeLeft, sleep };
+// A timer longer than this goes off at once, and a program that calls makeKit
+// can give it any time limit.
+const LONGEST_TIMER = 2 ** 31 - 1;
+
+module.exports = { setTimeLimit, timeLeft, outOfTime, sleep, LONGEST_TIMER };

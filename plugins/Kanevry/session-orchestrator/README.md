@@ -7,22 +7,36 @@
 
 **Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session.**
 
-A free, MIT-licensed workflow plugin for people running Claude Code, Codex CLI, Cursor IDE or Pi on a git repository. It runs on your machine and writes plain text into your repository: no account, no server.
-
-**[Website](https://session-orchestrator.com)** ([Deutsch](https://session-orchestrator.com/de)) · **[Commands](https://session-orchestrator.com/commands)** · **[User guide](docs/USER-GUIDE.md)** · [Changelog](CHANGELOG.md)
-
-> **Beta:** 15 free seats in the agenticbuilders Pass for Session Orchestrator users. You learn to get real work done with Claude Code and agents. In return you tell me for 14 days what helped. Want a seat? [agenticbuilders.at/so](https://agenticbuilders.at/so#beta)
-
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
-[![Version](https://img.shields.io/badge/version-5.17.0-blue.svg)](CHANGELOG.md)
+[![npm](https://img.shields.io/npm/v/session-orchestrator)](https://www.npmjs.com/package/session-orchestrator)
+[![Version](https://img.shields.io/badge/version-5.18.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 
 <br clear="left">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/docs/img/lifecycle-dark.svg">
+  <img src="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/docs/img/lifecycle-light.svg" width="720" alt="Flow: /bootstrap once per repo, then /session proposes a scope; once you agree, /go runs waves of agents with tests and typecheck after each, the full check runs test, typecheck and lint, and /close commits and files the rest as issues; the next session resumes from there.">
+</picture>
+
+## Who it is for
+
+- People who run Claude Code, Codex CLI, Cursor IDE or Pi on a git repository and want an agreed plan before the agents start.
+- People who want a check after each round of changes and a written handover to the next session.
+- People who want it free (MIT) and local: it writes plain text into your repository, with no account and no server of its own. By default it only asks npm for updates, and you can switch that off.
+
+## What you need
+
+- Node.js 24 or later.
+- A git repository.
+- One of Claude Code, Codex CLI (0.160 or later), Cursor IDE or Pi. Claude Code has no declared minimum version.
+- Optional: `glab` for GitLab or `gh` for GitHub, only if you want issues and merge requests filed there.
+- Nothing else to install or sign up for.
+
 ## Install
 
-You need Node.js 24 or later and a git repository. In Claude Code:
+In Claude Code:
 
 ```text
 /plugin marketplace add Kanevry/session-orchestrator
@@ -31,16 +45,15 @@ You need Node.js 24 or later and a git repository. In Claude Code:
 
 Codex CLI, Cursor IDE, Pi, upgrade and uninstall: [docs/install.md](docs/install.md).
 
+**[Website](https://session-orchestrator.com)** ([Deutsch](https://session-orchestrator.com/de)) · **[Commands](https://session-orchestrator.com/commands)** · **[User guide](docs/USER-GUIDE.md)** · [Changelog](CHANGELOG.md)
+
+> **Beta:** 15 free seats in the agenticbuilders Pass for Session Orchestrator users. You learn to get real work done with Claude Code and agents. In return you tell me for 14 days what helped. Want a seat? [agenticbuilders.at/so](https://agenticbuilders.at/so#beta)
+
 ## How it works
 
 - **`/session`** reads your repository, your open issues and the last session, proposes what to work on, and waits for your correction. Nothing changes in your code until you agree.
 - **`/go`** runs the agreed work in waves: rounds of parallel agents, each with its own list of files. Your tests and typecheck run after each wave; failures become fix tasks for the next one.
-- **`/close`** runs the full test, typecheck and lint gate, checks every planned item against what happened, commits, and files the rest as GitLab or GitHub issues.
-
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/docs/img/lifecycle-dark.svg">
-  <img src="https://raw.githubusercontent.com/Kanevry/session-orchestrator/main/docs/img/lifecycle-light.svg" width="720" alt="Flow: /bootstrap once per repo, then /session proposes a scope; once you agree, /go runs waves of agents with tests and typecheck after each, the full gate runs test, typecheck and lint, and /close commits and files the rest as issues; the next session resumes from there.">
-</picture>
+- **`/close`** runs the full check (test, typecheck and lint), checks every planned item against what happened, commits, and files the rest as GitLab or GitHub issues.
 
 | Without it | With it |
 |---|---|
@@ -51,8 +64,8 @@ Codex CLI, Cursor IDE, Pi, upgrade and uninstall: [docs/install.md](docs/install
 
 ## First session
 
-1. **Run `/bootstrap --fast --no-interview` once in your project.** It adds a short config block to your instruction file (`CLAUDE.md` or `AGENTS.md`).
-2. **Set the three gate commands** in that block to what your project uses, for example `test-command: npm test`, `typecheck-command: npm run typecheck`, `lint-command: npm run lint`. Every other key is optional ([reference](docs/session-config-reference.md)).
+1. **Run `/bootstrap --fast --no-interview` once in your project.** It adds a short Session Config block to your instruction file (`CLAUDE.md` or `AGENTS.md`).
+2. **Set the three check commands** in that block to what your project uses, for example `test-command: npm test`, `typecheck-command: npm run typecheck`, `lint-command: npm run lint`. Every other key is optional ([reference](docs/session-config-reference.md)).
 3. **Run `/session feature`** and describe the task. Correct the proposed scope, then run **`/go`** and, when the work is done, **`/close`**.
 
 On Codex and in headless Claude Code (`claude -p`) some command names differ: [Codex](docs/codex-setup.md#usage) · [headless](docs/install.md#headless-claude-code-claude--p-two-commands-need-the-namespaced-form).
@@ -77,7 +90,7 @@ All 31 commands, by situation: [session-orchestrator.com/commands](https://sessi
 
 ## Add-on: lead-session-orchestrator
 
-Running three or four sessions side by side? [lead-session-orchestrator](https://session-orchestrator.com/lead) adds one lead session above them that decides which one goes next and puts their questions into one queue for you. It is a separate npm package; details and caveats: [docs/install.md](docs/install.md#add-on-lead-session-orchestrator).
+Running three or four sessions side by side? [lead-session-orchestrator](https://session-orchestrator.com/lead) adds one lead session above them that measures and sets the order and puts their questions into one queue for you. It is a separate npm package; details and caveats: [docs/install.md](docs/install.md#add-on-lead-session-orchestrator).
 
 ---
 

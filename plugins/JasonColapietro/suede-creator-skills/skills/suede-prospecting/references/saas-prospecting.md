@@ -47,6 +47,12 @@ Combine 2+ sources for cross-verification.
 
 ### Tier 2: technographic / growth signals
 
+- **Bundled collector (free, start here)**: `collect.mjs dns` for email senders
+  and verified tools, `collect.mjs stack` for pixels and marketing tools with the
+  month each first appeared, `collect.mjs subdomains` for new launches, and
+  `collect.mjs adoption` for developer-tool accounts. Commands, batch use, and
+  gaps are in `collector.md`. Reach for a paid lookup when a signal is blocked or
+  outside its coverage.
 - **BuiltWith**: tech stack lookups, find sites using specific tools
 - **Wappalyzer**: free browser extension + API; lighter tech stack signal
 - **Crunchbase**: funding rounds, headcount, founders
@@ -56,7 +62,13 @@ Combine 2+ sources for cross-verification.
 
 ### Tier 3: buying signals
 
-- **Job boards** (LinkedIn Jobs, Indeed, AngelList): role openings as signals
+- **Job boards** (LinkedIn Jobs, Indeed, AngelList): role openings as signals.
+  For companies on public Greenhouse, Lever, or Ashby boards, `collect.mjs jobs`
+  lists open roles by function and the marketing channels each post names, with
+  posted dates (see `collector.md`)
+- **Ad libraries**: `collect.mjs ads` prints Meta, Google, LinkedIn, and TikTok
+  library links for the account; record the library, filter, and date with what
+  you find
 - **RB2B or HubSpot Breeze Intelligence**: visitor identification (warm anonymous traffic)
 - **GitHub stars/forks of competitor or adjacent repos**: a possible
   developer-level intent signal when the current GitHub API and account access
@@ -97,9 +109,9 @@ the B2B branch as well.
 | Signal | Gap to verify | How to check it from outside | Fits an offer like |
 |--------|---------------|------------------------------|--------------------|
 | Recent funding or a new marketing leader | The site hasn't changed in a long time, or doesn't match the new story | Wayback Machine snapshots, the copyright year, positioning that doesn't match the funding announcement | Website, CRO, positioning |
-| Hiring several SDRs or BDRs | The outbound stack doesn't match the plan | Tools named in the job post, sending-domain DNS (SPF, DKIM, DMARC), the tech stack | Email infrastructure, enrichment, deliverability |
+| Hiring several SDRs or BDRs | The outbound stack doesn't match the plan | Tools named in the job post, sending-domain DNS (SPF, DKIM, DMARC; `collect.mjs dns`), the tech stack | Email infrastructure, enrichment, deliverability |
 | Hiring for repetitive work (data entry, reporting, lead research, CRM admin) | The job post describes tasks that can be automated | The responsibilities list in the post itself | Automation, RevOps, AI agents |
-| Running paid ads | No visible ad or analytics tags | Page source, the browser network tab, or a tag-checker extension (Meta Pixel Helper, Google Tag Assistant) | Tracking and attribution setup |
+| Running paid ads | No visible ad or analytics tags | Page source, the browser network tab, or a tag-checker extension (Meta Pixel Helper, Google Tag Assistant). `collect.mjs stack` misses tags loaded through a tag manager, so confirm an absence by hand | Tracking and attribution setup |
 | Running paid ads | Paid traffic lands on the homepage | The destination link on each ad in the Meta Ad Library or LinkedIn Ad Library | Landing pages, CRO |
 | Running the same ads for months | Creative fatigue | Start dates in the Meta Ad Library; the Google Ads Transparency Center for search and YouTube | Ad creative |
 | Many locations | Missing or thin location pages | Store-locator count vs. pages found with `site:domain.com/locations`; Google Business Profiles per location | Local SEO |

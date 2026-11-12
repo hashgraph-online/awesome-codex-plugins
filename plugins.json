@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-11",
-  "total": 396,
+  "last_updated": "2026-11-12",
+  "total": 399,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1769,7 +1769,7 @@
       "description": "Cut token usage 60-90% with caching, compression, and smart file tools — diff-only re-reads, paths-only search, out-of-context stashing, and a per-tool savings report for Codex and Claude Code.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/ooples/token-optimizer-mcp/HEAD/integrations/codex/plugin/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/ooples/token-optimizer-mcp/HEAD/src/integrations/codex/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "Tool Advisor",
@@ -2081,6 +2081,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/aient-ai/aient-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Amazon 249-Byte Search Terms Optimizer",
+      "url": "https://github.com/kuaai/amazon-search-terms-bytes-counter",
+      "owner": "kuaai",
+      "repo": "amazon-search-terms-bytes-counter",
+      "description": "Optimize Amazon Seller Central backend search terms within 249 UTF-8 bytes, sanitize listing HTML, and format Rufus AI copy.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kuaai/amazon-search-terms-bytes-counter/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Anime Reaction GIF",
@@ -3614,6 +3624,16 @@
       "install_url": "https://raw.githubusercontent.com/hitSlop/shots/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Shopify AI SEO & Liquid",
+      "url": "https://github.com/kuaai/shopify-liquid-ai-seo",
+      "owner": "kuaai",
+      "repo": "shopify-liquid-ai-seo",
+      "description": "Audit Shopify robots.txt for AI search crawlers, generate Product Schema JSON-LD, and build shoppable blog product cards.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kuaai/shopify-liquid-ai-seo/HEAD/.codex-plugin/plugin.json"
+    },
+    {
       "name": "Silicon Valley Atlas",
       "url": "https://github.com/phnx-labs/svatlas-mcp",
       "owner": "phnx-labs",
@@ -3622,6 +3642,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/phnx-labs/svatlas-mcp/HEAD/plugin.json"
+    },
+    {
+      "name": "Sofya",
+      "url": "https://github.com/sofya-co/sofya-mcp",
+      "owner": "sofya-co",
+      "repo": "sofya-mcp",
+      "description": "Web search with page content, URL and document reading (PDF, Office) as markdown, single-fact extraction and cited research reports through Sofya's hosted MCP server with browser sign-in, plus search and research skills.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/sofya-co/sofya-mcp/HEAD/plugin.json"
     },
     {
       "name": "SolidPing",
@@ -3662,6 +3692,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/droplinked/storyflo-codex-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "StupidMirror",
+      "url": "https://github.com/LiuTianjie/StupidMirror",
+      "owner": "LiuTianjie",
+      "repo": "StupidMirror",
+      "description": "Free for one device: the StupidMirror Mac app and its local MCP server let Codex see and operate iPhones, Android phones, iOS Simulators and Android emulators, with taps, swipes, typing, screenshots with OCR, the UI tree, app installs and screen recording.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/LiuTianjie/StupidMirror/HEAD/plugins/stupidmirror/plugin.json"
     },
     {
       "name": "SwapWallet",
@@ -3782,16 +3822,6 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/HuaHuiJian/tokenchronicle-marketplace/HEAD/plugins/tokenchronicle/.codex-plugin/plugin.json"
-    },
-    {
-      "name": "TokRepo Search",
-      "url": "https://github.com/henu-wang/tokrepo-codex-plugin",
-      "owner": "henu-wang",
-      "repo": "tokrepo-codex-plugin",
-      "description": "Search and install AI assets from TokRepo with a bundled skill and MCP server for Codex.",
-      "category": "Tools & Integrations",
-      "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/henu-wang/tokrepo-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Treza",

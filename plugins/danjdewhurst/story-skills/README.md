@@ -230,6 +230,7 @@ These are the commands writers use most:
 | `story export [path] --out dist/manuscript.md` | Combine front matter, chapters, and back matter into one manuscript |
 | `story build [path] --format epub` | Build an EPUB with the cover, publishing metadata, and accessibility metadata |
 | `story build [path] --format html` | Build a review copy whose paragraphs carry anchors such as `ch03-p12` |
+| `story apply edited.docx --ref sent-to-editor-1` | Write an editor's returned Word file back into the chapters' prose, keeping your own edits since you sent it |
 
 Other build formats are `markdown`, `docx`, `shunn`, `print` (a paged HTML interior for Paged.js, WeasyPrint, or Prince, or a PDF with `--pdf`), `narration`, `codex`, `metadata`, `fountain`, `twee`, and `ink`. The [CLI reference](docs/cli-reference.md) lists every command and option.
 

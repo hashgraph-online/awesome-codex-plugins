@@ -16,7 +16,6 @@
     "codex-plugin"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Agent Deck",
     "shortDescription": "Decks of tools, keys, and self-improving playbooks.",

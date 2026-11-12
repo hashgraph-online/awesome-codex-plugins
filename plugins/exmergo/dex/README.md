@@ -162,35 +162,10 @@ type contradicts their content, and two designed PII false positives. See the
 
 ## How it works
 
-```mermaid
-%%{init: {"theme": "base", "flowchart": {"curve": "basis", "nodeSpacing": 40, "rankSpacing": 56, "padding": 14}, "themeVariables": {"lineColor": "#51a2ff", "edgeLabelBackground": "#020618", "textColor": "#51a2ff", "fontSize": "14px"}, "themeCSS": ".edgeLabel p { padding: 6px 12px; margin: 0; border-radius: 6px; background: #020618; } .labelBkg { background: none !important; }"}}%%
-flowchart TB
-  agent["<b>Your coding agent</b><br/>Claude Code, Codex, any skills host"]
-  skills["<b>Dex skills</b><br/>explore · transform · maintain"]
-  engine["<b>exmergo-dex-core</b><br/>engine + guardrails"]
-  db[("<b>Your data</b><br/>database, warehouse,<br/>or SQL endpoint")]
-  repo["<b>Your repository</b><br/>dbt project +<br/>semantic layer"]
-  cache["<b>.dex/</b><br/>cache + snapshot"]
-
-  agent -->|"runs a command"| skills
-  skills --> engine
-  engine -->|"SELECT-only, cost-capped<br/>dbt builds on dev only"| db
-  engine -->|"plans as<br/>reviewable diffs"| repo
-  engine -->|"one sanitized<br/>JSON envelope"| agent
-  engine <--> cache
-
-  linkStyle default stroke:#51a2ff,stroke-width:1.5px,color:#51a2ff
-
-  classDef host fill:#020618,stroke:#51a2ff,stroke-width:1.5px,color:#ffffff
-  classDef core fill:#2563eb,stroke:#51a2ff,stroke-width:2px,color:#ffffff
-  classDef yours fill:#020618,stroke:#22d3ee,stroke-width:1.5px,color:#ffffff
-  classDef state fill:#020618,stroke:#22d3ee,stroke-width:1.5px,stroke-dasharray:5 4,color:#cad5e2
-
-  class agent,skills host
-  class engine core
-  class db,repo yours
-  class cache state
-```
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/how-it-works-dark.png" />
+  <img width="760" height="630" alt="How it works: your coding agent runs a Dex skill, which calls the exmergo-dex-core engine; the engine queries your data (SELECT-only, cost-capped, dbt builds on dev only), writes plans as reviewable diffs to your repository, keeps its cache in .dex/, and returns one sanitized JSON envelope to the agent" src="assets/readme/how-it-works-light.png" />
+</picture>
 
 The skills connect your agent to the `exmergo-dex-core` engine, which holds the
 logic and guardrails behind a [small command contract](https://docs.exmergo.com/dex/reference/command-contract).
@@ -205,7 +180,10 @@ personal data, read and query the semantic layer, and map relationships as a
 Mermaid ER diagram. Exploration is read-only and needs no dbt project.
 [Skill](skills/explore/SKILL.md) · [methodology](https://docs.exmergo.com/dex/concepts/methodology) · [commands](https://docs.exmergo.com/dex/cli/explore)
 
-<img width="522" height="343" alt="Explore" src="https://github.com/user-attachments/assets/7f16b370-66ed-4596-ae01-041cf3db3525" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/explore-dark.png" />
+  <img width="522" height="343" alt="Explore" src="assets/readme/explore-light.png" />
+</picture>
 
 ### Transform
 
@@ -215,7 +193,10 @@ native semantic layer without a dbt project. Review each stored plan before
 applying it, then build and verify on a dev target.
 [Skill](skills/transform/SKILL.md) · [what Dex writes](https://docs.exmergo.com/dex/concepts/dbt-project) · [commands](https://docs.exmergo.com/dex/cli/transform)
 
-<img width="504" height="271" alt="Transform" src="https://github.com/user-attachments/assets/fda40e48-b481-424c-adc7-d79c0ede346b" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/transform-dark.png" />
+  <img width="504" height="271" alt="Transform" src="assets/readme/transform-light.png" />
+</picture>
 
 ### Maintain
 
@@ -225,7 +206,10 @@ the proposed edits. `maintain verify` also checks a project as it stands, with n
 baseline needed.
 [Skill](skills/maintain/SKILL.md) · [commands](https://docs.exmergo.com/dex/cli/maintain)
 
-<img width="484" height="344" alt="Maintain" src="https://github.com/user-attachments/assets/ff714eaf-f0b2-46d6-8a4b-c69791740f18" />
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/readme/maintain-dark.png" />
+  <img width="484" height="344" alt="Maintain" src="assets/readme/maintain-light.png" />
+</picture>
 
 > [!TIP]
 > **Give every agent in your repository the same procedure.**

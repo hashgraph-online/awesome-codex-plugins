@@ -305,7 +305,7 @@ the source branch's latest commit. On Cloud, the source commit hash from the
 pull request is used.
 
 Exit codes in --wait mode: 0 = all passed, 1 = a build failed,
-8 = timed out with builds still pending.
+8 = timed out with builds still pending, 130 = interrupted.
 
 **Alias:** `builds`
 

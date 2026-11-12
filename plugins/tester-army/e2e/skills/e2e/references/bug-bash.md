@@ -220,21 +220,30 @@ verify one area after another.
 
    ```ts
    // tests/bugbash/cart-line-quantity.e2e.ts
-   import { test } from '@e2e-dev/web';
+   import { describe, test } from '@e2e-dev/web';
    import { credentials } from 'e2e';
 
-   test('a cart line counts its quantity', { tags: ['bugbash'] }, async ({ app, agent }) => {
-     const shopper = credentials.user('bb-cart');
-     await app.open('/');
-     await agent.act('sign in with the given credentials', {
-       params: { username: shopper.username, password: shopper.password },
+   describe('cart', { tags: ['bugbash'] }, () => {
+     test('a cart line totals its quantity times the unit price', async ({ app, agent }) => {
+       const shopper = credentials.user('bb-cart');
+       await app.open('/');
+       await agent.act('sign in with the given credentials', {
+         params: { username: shopper.username, password: shopper.password },
+       });
+       await agent.act('add "Dune" to the cart');
+       await agent.waitFor('you are signed in and the cart holds "Dune"');
+
+       await agent.act('set the quantity of "Dune" in the cart to 2');
+
+       await agent.assert('the cart line for "Dune" totals twice its unit price');
      });
-     await agent.assert('the app shows you are signed in');
-     await agent.act('add "Dune" to the cart');
-     await agent.act('set the quantity of "Dune" in the cart to 2');
-     await agent.assert('the cart line for "Dune" totals twice its unit price');
    });
    ```
+
+   Write it in the shape topic `writing-tests` describes: arrange, closed by
+   a wait for the starting state, then the one action that shows the defect,
+   then the assertions. The wait keeps a broken setup from passing as the
+   defect, and keeps the setup goals cached across the failing runs.
 3. Run your repros with the bug-bash config and an output directory of your
    own, `npx e2e run tests/bugbash/<slug>.e2e.ts --config
    e2e.bugbash.config.ts --output .e2e/bugbash/verify-<area>` (a run clears
@@ -244,7 +253,7 @@ verify one area after another.
    failed `act` whose message names the defect. A failed `act` carries the
    code the model chose, so only its message and screenshot tell the defect
    apart from a failure short of it. A blocked `act`, a timeout, a setup
-   error, or a failure that names something else means the repro is wrong:
+   error, a failed arrange wait, or a failure that names something else means the repro is wrong:
    sharpen the step and rerun. A passing test means the bug did not
    reproduce: reject the finding, say so, and move the test out of
    `tests/bugbash/` (to `.e2e/bugbash/extra-tests/`, or offer it as a

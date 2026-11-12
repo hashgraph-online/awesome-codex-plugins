@@ -7,7 +7,8 @@
     "node": ">=22"
   },
   "scripts": {
-    "validate": "node scripts/validate-skill-pack.mjs --strict && node scripts/validate-trigger-routing.mjs && node scripts/build-book-site.mjs --check && node scripts/build-book.mjs --check && node scripts/build-skill-cards.mjs --check && node scripts/build-skills-sh-json.mjs --check && node scripts/build-directory.mjs --check && node scripts/build-awesome-directory.mjs --check && node scripts/build-related-skills.mjs --check && node scripts/build-retired-skill-pages.mjs --check && node scripts/build-listings.mjs --check && node scripts/sync-first-party-public.mjs --check",
+    "validate": "node scripts/validate-skill-pack.mjs --strict && node scripts/sync-collectors.mjs --check && node scripts/validate-trigger-routing.mjs && node scripts/build-book-site.mjs --check && node scripts/build-book.mjs --check && node scripts/build-skill-cards.mjs --check && node scripts/build-skills-sh-json.mjs --check && node scripts/build-directory.mjs --check && node scripts/build-awesome-directory.mjs --check && node scripts/build-related-skills.mjs --check && node scripts/build-retired-skill-pages.mjs --check && node scripts/build-listings.mjs --check && node scripts/sync-first-party-public.mjs --check",
+    "sync:collectors": "node scripts/sync-collectors.mjs",
     "build:cards": "node scripts/build-skill-cards.mjs",
     "build:book": "node scripts/build-book.mjs && node scripts/build-book-pdf.mjs && node scripts/build-book-site.mjs",
     "build:shiplog": "node scripts/build-shiplog.mjs",
@@ -24,11 +25,12 @@
     "test:validator-runtime": "node --test tests/test_validator_runtime.mjs",
     "test:triggers": "node --test tests/test_trigger_routing.mjs tests/test_interface_quality.mjs",
     "test:hermes-tap": "node --test tests/test_hermes_tap.mjs",
+    "test:reverse-engineer": "node --test skills/suede-reverse-engineer-anyone/scripts/tests/test_timeline.mjs skills/suede-reverse-engineer-anyone/scripts/tests/test_collect.mjs tests/test_collector_copies.mjs",
     "test:ship-cost": "node --test tests/test_ship_workflow_cost.mjs tests/test_ship_copy_workflow_cost.mjs skills/suede-graph-flo-xr/workflows/tests/test_score_resilience.mjs skills/suede-graph-flo-xr/workflows/tests/test_plan_path_safety.mjs skills/suede-graph-flo-xr/workflows/tests/test_apply_patch_staging_safety.mjs skills/suede-graph-flo-xr/workflows/tests/test_gate_sandbox_staging_safety.mjs",
     "test:directory": "node --test tests/test_directory_badges.mjs tests/test_directory_discovery.mjs tests/test_featured_projects.mjs tests/test_directory_reports.mjs tests/test_directory_h1.mjs tests/test_directory_seo.mjs tests/test_directory_guides.mjs tests/test_sitemap_shallow.mjs tests/test_extra_caffeine_feature.mjs tests/test_directory_site.mjs tests/test_vercel_sites.mjs tests/test_first_party_scores.mjs",
     "test:directory:browser": "node tests/test_directory_browser.mjs",
     "test:python": "python3 -m unittest discover -s tests -p 'test_*.py' -v",
-    "test": "npm run validate && npm run test:number-words && npm run test:meta-keywords && npm run test:validator-runtime && npm run test:mcp && npm run test:triggers && npm run test:hermes-tap && npm run test:listings && npm run test:ship-cost && npm run test:contributions && npm run test:directory && npm run test:related && npm run test:awesome && npm run test:python && npm run test:seo-offline && node --test tests/test_first_party_branding.mjs",
+    "test": "npm run validate && npm run test:number-words && npm run test:meta-keywords && npm run test:validator-runtime && npm run test:mcp && npm run test:triggers && npm run test:hermes-tap && npm run test:listings && npm run test:ship-cost && npm run test:reverse-engineer && npm run test:contributions && npm run test:directory && npm run test:related && npm run test:awesome && npm run test:python && npm run test:seo-offline && node --test tests/test_first_party_branding.mjs",
     "audit:dependencies": "npm audit --package-lock-only --omit=dev --audit-level=high",
     "ci": "node --check mcp/suede-skills-mcp.mjs && node --check scripts/validate-skill-pack.mjs && npm run test && npm run test:indexnow && node scripts/build-mcp-package.mjs --check && node scripts/build-pypi-package.mjs --check",
     "build:pdf": "node scripts/build-book-pdf.mjs",

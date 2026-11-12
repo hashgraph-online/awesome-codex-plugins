@@ -12,7 +12,7 @@ Decide the job from the requested output, then confirm it with repository files.
 | Report | A saved report, audit, review, or plan with no code change | 조사만, 점검만, 리뷰만, 리포트만, 계획만, audit only, just the plan |
 | Resume | An earlier run continued | 이어서, 계속, 재개, resume, continue |
 
-A request that is a one-place edit with no plan (a typo, one string, one config value), a commit-only request, a PRD or wireframe package, a diagram or visual map of a structure, or a question is out of scope: do not route it.
+A request that is a one-place edit with no plan (a typo, one string, one config value), a commit-only request, a PRD or wireframe package, a diagram or visual map of a structure, or a question is out of scope: do not route it. A PRD package goes to `hyper-prd` and a diagram to `hyper-diagram`; both are separate skills that this package never uses as stages.
 
 ## 2. Stage Signals
 
@@ -80,7 +80,16 @@ When both delivery brackets are chosen, `hyper-git` runs first and `hyper-deploy
 - `hyper-deploy` is the last stage of a chain: it deploys the result the earlier stages produced, and no stage ever follows it. When the user also asks for commit, push, or merge delivery, `hyper-git` runs before `hyper-deploy`.
 - When the request also changes code, the code chain runs first and the `hyper-deploy` stage starts after the execution completion block, so it deploys the finished change rather than a half-built tree.
 - In a Report job the chain ends at the last requested stage. A Report job that asks for a plan ends at `hyper-plan` with `--plan-only`.
-- At most four stages run, and `hyper-deploy` counts as one of them. A chain that seems to need more is two jobs: run the first and report the second as the next step.
+- At most four distinct core stages run, counted this way:
+  - Each stage in the route line counts once, including a stage that is also the initial selection and including a stage added by the one allowed re-route (§6 of `rules/stage-handoff.md`).
+  - `hyper-deploy` counts as one of the four.
+  - A retry of a stage, a resumed run, and a stage that is re-entered after its own stop all count as the stage that already counted, not as a new one.
+  - `hyper-plan` and `hyper-debate` are one decision stage: a chain names one of them, never both, so the pair never spends two slots.
+  - `hyper-plan` continuing into `hyper-execute` counts as two stages, because the plan and the run are separate stages even though one session runs them.
+  - `hyper-execute` chosen alone for an existing plan counts as its own stage, with no plan stage before it.
+  - `hyper-git` never counts, and the companion skill below never counts either.
+  - `hyper-handoff` in resume mode takes no chain position and does not count; in write or check mode it is the tail and counts.
+  - A chain that seems to need a fifth counted stage is two jobs: run the first, and report the second as the next step.
 - `hyper-browsing` is a companion, not a stage: it takes no position in this order and does not count toward the four-stage cap. Attach it to the `hyper-research` stage when the research is web-sourced - the question depends on live web sources (search results, vendor, community, or news pages, market or trend data, external documentation, a named URL), signalled by words such as "인터넷 검색", "웹에서", "최신", "동향", "사례", "latest", or a URL. Do not attach it when the research is repository-only (source-code analysis, local files and history), or when no `hyper-research` stage is chosen.
 
 ## 4. Chain Recipes
@@ -210,7 +219,7 @@ Each `hyper-plan` row continues into `hyper-execute` unless the job is a Report 
 - A Google Tag Manager container (a `GTM-` ID, container tags, triggers, variables, or the dataLayer) goes to `hyper-google-tagmanager`; a direct Google tag (`gtag(` with a `G-` ID and no container), GA4 property settings, or GA4 report data goes to `hyper-google-analytics`. A `googletagmanager.com` file alone does not decide it: `gtm.js` with a `GTM-` ID is GTM, and `gtag/js` with a `G-` ID is the direct Google tag. Both stages run only when the request also asks for GA4 property work, and then `hyper-google-analytics` runs first.
 - Approval questions for publishing a container version, deleting container items, changing user permissions, or changing live consent behavior belong to the `hyper-google-tagmanager` stage. This orchestrator passes the container ID and site URL from the request unchanged and never approves on the user's behalf.
 - A tracking plan written as a document goes to `hyper-documentation`; an ad campaign or an analytics library installed without GTM is not a `hyper-google-tagmanager` job and routes by the existing rows.
-- A diagram, flowchart, ERD, or other visual map of a structure ("구조도 그려줘", "draw the sequence diagram") is not a `hyper` job, like a PRD package; an architecture review stays with `hyper-architecture` and does not add a drawing.
+- A diagram, flowchart, ERD, or other visual map of a structure ("구조도 그려줘", "draw the sequence diagram") is not a `hyper` job, like a PRD package: the drawing goes to `hyper-diagram` and the PRD to `hyper-prd`; an architecture review stays with `hyper-architecture` and does not add a drawing.
 - An MCP server that queries a database ("사내 DB 조회하는 MCP 서버") routes to `hyper-mcp`; add `hyper-database` only when the job also changes the schema, a migration, an index, or a database setting.
 - `hyper-architecture` and `hyper-database` both run only when the job restructures folders or modules and also changes the schema or queries; persistence-layer placement alone ("repository 레이어 정리") stays with `hyper-architecture`.
 - When `hyper-database` and another build tail (`hyper-mcp`, `hyper-decision`, `hyper-design`, or `hyper-frontend`) are both chosen, the job spans modules: run each of them in its report mode (review, audit, `design`, `brief-only`, or `verify`) and end the chain at `hyper-plan`.
@@ -266,7 +275,7 @@ A `hyper-research` stage with its companion is written `hyper-research(+hyper-br
 
 | Claim | Source |
 |---|---|
-| The twenty-seven stage skills, the companion skill, and the orchestrator role | user instruction, 2026-11-06 (orchestrator role); the stage set extended to fifteen with `hyper-deploy` by user instruction, 2026-11-07, to sixteen with `hyper-feedback` by user instruction, 2026-11-07, to seventeen with `hyper-decision` by user instruction, 2026-11-08, to eighteen with `hyper-google-analytics` by user instruction, 2026-11-08, to nineteen with `hyper-debug` by user instruction, 2026-11-09 (issue #22), to twenty with `hyper-loop` by user instruction, 2026-11-09 (issue #21), to twenty-one with `hyper-data` by user instruction, 2026-11-09 (issue #25), to twenty-two with `hyper-google-tagmanager` by user instruction, 2026-11-09 (hyper routing refresh), to twenty-three with `hyper-frontend` by user instruction, 2026-11-09 (issue #46), to twenty-four with `hyper-handoff` by user instruction, 2026-11-10, to twenty-five with `hyper-debate` by user instruction, 2026-11-10 (issue #26), to twenty-six with `hyper-review` by user instruction, 2026-11-10 (issue #23), and to the current twenty-seven with `hyper-cleanup` by user instruction, 2026-11-10 (issue #24); `hyper-browsing` attached to web-sourced research by user instruction, 2026-11-07 |
+| The stage skills, the companion skill, and the orchestrator role | user instruction, 2026-11-06 (orchestrator role); `hyper-deploy` added by user instruction, 2026-11-07; `hyper-feedback` added by user instruction, 2026-11-07; `hyper-decision` added by user instruction, 2026-11-08; `hyper-google-analytics` added by user instruction, 2026-11-08; `hyper-debug` added by user instruction, 2026-11-09 (issue #22); `hyper-loop` added by user instruction, 2026-11-09 (issue #21); `hyper-data` added by user instruction, 2026-11-09 (issue #25); `hyper-google-tagmanager` added by user instruction, 2026-11-09 (hyper routing refresh); `hyper-frontend` added by user instruction, 2026-11-09 (issue #46); `hyper-handoff` added by user instruction, 2026-11-10; `hyper-debate` added by user instruction, 2026-11-10 (issue #26); `hyper-review` added by user instruction, 2026-11-10 (issue #23); `hyper-cleanup` added by user instruction, 2026-11-10 (issue #24); `hyper-browsing` attached to web-sourced research by user instruction, 2026-11-07 |
 | Each stage's trigger, output, and exclusions, including `hyper-mass` excluding plan-file execution and `hyper-execute` requiring an existing plan | each stage skill's own `SKILL.md` in this repository, 2026-11-06 |
 | The delivery words, the plan-only and approval-hold words, and the plan-to-execute auto-continue | the plan skill's handoff rule in this repository, 2026-11-06 |
 | The stage order, the four-stage cap, the recipes, and the tie-breaks | this package's chosen design, not a validated optimum |

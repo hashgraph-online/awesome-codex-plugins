@@ -185,6 +185,8 @@ A job posting is a company's admission of a pain point.
 - "What about [competitor]?" → active evaluation
 - Timestamps with questions → confusion points in the workflow
 
+**Collector shortcut:** `collect.mjs youtube <channel-id>` lists a channel's ~15 latest uploads with dates and links, and `collect.mjs podcast <rss-url>` lists a show's episodes, to pick which comments and transcripts to mine. See `collector.md`.
+
 ---
 
 ## Twitter / X Research
@@ -242,6 +244,8 @@ One of the richest unfiltered sources for mobile/consumer products.
 - Emotional language: "I love how…", "I'm so frustrated that…"
 
 **Search tip:** Sort by "Most Recent" to get fresh signal, then "Most Critical" for pain themes.
+
+**Collector shortcut (iOS):** `collect.mjs reviews <app-id> --country <cc>` shows which months low-star reviews spiked and the words they share, so you know which reviews to read first. It returns counts and terms only; quotes still come from reading the reviews, with reviewers kept anonymous. See `collector.md`.
 
 ### Amazon Reviews (for physical products or software with Amazon presence)
 

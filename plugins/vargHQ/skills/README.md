@@ -349,7 +349,7 @@ Folders with a `SKILL.md`: instructions, scripts and references an AI agent load
 Not for the skills that plan, write, edit or render locally (listed under [How it works](#how-it-works)). Skills that generate images, video, voice or music use the varg API: sign in to the varg MCP with OAuth, or set `VARG_API_KEY`.
 
 ### How much does an AI video cost?
-Models are billed at provider price with no markup, 1 credit = $0.01. Figures measured in the skills: a still is a few cents (Nano Banana 2.1 about $0.05, GPT Image 2.6 about $0.03–0.07); a 5-second Seedance 2.5 clip is about $0.64 at 480p to $3.42 at 1080p; a 15-second Kling 4 take at 720p is about $2.36. Each skill page lists its own typical cost, and the agent calls `estimate_cost` before anything expensive.
+Models are billed at provider price with no markup, 1 credit = $0.01. Figures measured in the skills: a still is a few cents (Nano Banana 2.1 about $0.05, GPT Image 2.6 about $0.03–0.07); a 5-second Seedance 2.5 clip is about $0.64 at 480p to $3.42 at 1080p; a 15-second Kling 4 take at 720p is about $2.36. Each skill page lists its own typical cost, and the agent calls `estimate_cost` before anything expensive. A new varg account gets 50 free credits ($0.50, about ten stills) on its first sign-in, one grant per network, so the first results cost nothing.
 
 ### Which models does it use?
 Video: Seedance 2.5, Kling 4, Veo 3.1, Wan 3. Images: GPT Image 2.6, Nano Banana 2.1, Flux. Voice: ElevenLabs v4. Music: Lyria, Mureka, ElevenLabs Music. Plus lip sync, try-on, upscaling, transcription and FFmpeg. The full list: [varg.ai/models](https://varg.ai/models/llms.txt).

@@ -18,7 +18,7 @@ For when the user sells to non-SaaS B2B: services, agencies, manufacturers, mid-
 
 - **Trigger events**: new C-level hire, recent acquisition or divestiture, IPO/funding, opening a new location, recent rebrand, expansion announcement
 - **Vendor signals**: posting RFPs publicly, switching costs in last quarterly report, contract renewal windows
-- **Operational signals**: recent layoffs (cost pressure) or rapid hiring (capacity pressure)
+- **Operational signals**: recent layoffs (cost pressure) or rapid hiring (capacity pressure). `collect.mjs jobs` counts open roles by function on public Greenhouse, Lever, or Ashby boards, and `collect.mjs subdomains` dates new properties such as a country site (see `collector.md`)
 - **News mentions**: launching new initiative, entering new market, regulatory change forcing action
 - **PR / press**: anything that signals "this company is changing right now"
 

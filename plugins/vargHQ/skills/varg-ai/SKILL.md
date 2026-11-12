@@ -13,7 +13,7 @@ description: >-
 license: MIT
 metadata:
   author: vargHQ
-  version: "2.2.3"
+  version: "2.2.5"
   openclaw:
     requires:
       env:
@@ -76,7 +76,7 @@ Some agent shells don't keep variables between commands. If `$VARG_API_KEY` is e
 Ask once, with everything in a single message -- don't first ask whether they have a key, the steps are the same either way. Send them:
 
 > To generate with varg I need an API key:
-> 1. Open **https://varg.ai/dashboard/api** and sign in (or create an account).
+> 1. Open **https://varg.ai/dashboard/api** and sign in (or create an account: a new one gets 50 free credits on its first sign-in, about ten images).
 > 2. Generate an API key and copy it.
 > 3. Run this in your terminal and paste the key when prompted -- it stays out of this chat and your shell history:
 >    ```bash

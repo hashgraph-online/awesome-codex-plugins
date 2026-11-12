@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "stupidmirror": {
+      "type": "stdio",
+      "command": "bash",
+      "args": [
+        "${PLUGIN_ROOT}/scripts/start.sh"
+      ]
+    }
+  }
+}

@@ -163,7 +163,7 @@ or `E2E_USER_ADMIN_PASSWORD` first, or defer to fill time with
 | `reporters` | `['list']` | `list`, `json`, `junit`, `markdown`, or `{ name, onEvent?, onRunFinished? }` objects; `json` excludes `list`, `--reporter` keeps the objects. |
 | `cache` | `'read-write'` | `'read-write'`, `'read-only'`, `'off'`, or `{ mode, store, dir, strict }`; CI demotes only a defaulted mode to `'read-only'`. `strict` (`--strict-cache`) fails a step whose recording no longer replays (`REPLAY_STALE`) instead of handing it to the agent; retries replay too, and the run never writes the cache. |
 | `agents` | `{ default: built-in }` | Tests run with `default`, `e2e run --agent <name>` picks another, entries never inherit from `default`. Options: topic `agent`. |
-| `filters` | `[]` | Test filters `{ name, filter(tests, context) }`, unique names, applied in order with `--changed-since <ref>`. Use `filters: [decisionFilter({ model: gateway.decisionModel('typesafe-ai/jev') })]`, with `decisionFilter` from `@e2e-dev/decision` and `gateway` from `ai` (install `@e2e-dev/decision ai`), to run only the tests a pull request can affect. `filter` gets candidates `{ id, file, titlePath, tags, setupFile? }` and a context `{ projectRoot, changes: { base, root, files }, configFile, signal, log, redact }` with repository-relative `files`, and returns `{ exclude: { [id]: reason }, note? }`; every test it does not name runs. Read files, the environment, or the network inside `filter`, never at config load: workers load the config too. When filters run: topic `running`. |
+| `filters` | `[]` | Test filters `{ name, filter(tests, context) }`, unique names, applied in order with `--changed-since <ref>`. Use `filters: [decisionFilter({ model: gateway.decisionModel('typesafe-ai/jev') })]`, with `decisionFilter` from `@e2e-dev/decision` and `gateway` from `ai` (install `@e2e-dev/decision ai`), to run only the tests a pull request can affect. `filter` gets candidates `{ id, file, titlePath, tags, setupFile? }` and a context `{ projectRoot, changes: { base, root, files }, configFile, signal, log, redact }` with repository-relative `files`, and returns `{ exclude: { [id]: reason }, relevance?: { [id]: 0 to 1 }, note? }`; every test it does not name runs, and `relevance` (how likely each test is to fail) makes each target start the likeliest files first. Read files, the environment, or the network inside `filter`, never at config load: workers load the config too. When filters run: topic `running`. |
 | `credentials` | `{}` | Named `{ username, password }`; `password` is a 6+ code point string or a function returning it. |
 | `secrets` | `{}` | Named values the model never sees (API keys, tokens), same value rule. A separate namespace: a credential's password is `credentials.user(name).password` (named `<name>.password`), never `secrets.get()`, so a name may be both. |
 | `output` | `'.e2e'` | Results directory; `--output <dir>` for one run. Inside the project root, not the root, not a tests glob's directory, never the cache dir (`cache.dir` stays `.e2e/cache`). |
@@ -271,6 +271,12 @@ app: {
   ready is `APP_UNREACHABLE`; the run stops before its tests and leaves the
   last run's report and results as they were (`command.log` still gets this
   boot's output).
+- In `e2e run`, a command that exits after readiness fails the run with `APP_UNREACHABLE` if a dependent target has unfinished work.
+  This includes exit code 0 and termination by a signal.
+  The runner interrupts active tests and skips queued tests only for those targets.
+  Targets that have finished their work ignore the exit.
+  The error labels the command with the first target that declared it, which may have finished already, and reports the command's exit code or signal.
+  See the [command reference](https://e2e.tester.army/reference/config#command) for log excerpts and redaction limits.
 - The child gets only `PATH`, `HOME`, the temp-directory variables,
   `SystemRoot` and `COMSPEC` on Windows, and `command.env`. Pass the rest
   through `env`, or name host variables in `inheritEnv` (`['DATABASE_URL',
@@ -352,6 +358,11 @@ export default {
   'NO']` loads that dev server on every fresh launch, dev menu off;
   `app.command` (`npx expo start --port 8081`) with `readyUrl:
   'http://localhost:8081/status'` starts it.
+- Another language on iOS: `app.launchArguments: ['-AppleLanguages', '(fr)',
+  '-AppleLocale', 'fr_FR']`, one target per language; the app must ship
+  it. Android has no such argument: on a hosted device set `language` and
+  `locale` on `browserstack()` or `testmu()`, on a local one set the device's
+  language.
 - One worker per device. No `device`: every booted simulator or emulator of
   the platform, and every connected phone, is the pool, up to `workers`,
   minus devices another agent-device session holds (none booted: agent-device boots
@@ -368,8 +379,8 @@ export default {
   absent, is the account's cap (40 on a standard plan). `videoTouches: false`
   on the engine for video there.
 - `limrun()` from `@e2e-dev/limrun` leases one device per worker and installs
-  `app.appPath` before tests. Set `LIMRUN_API_KEY`; install `@limrun/api` and
-  matching `agent-device` peers. Android needs `adb` on `PATH` for its tunnel.
+  `app.appPath` before tests. Set `LIMRUN_API_KEY` and install `@limrun/api`.
+  Android needs `adb` on `PATH` for its tunnel.
   iOS keyboard actions such as `locator.press('Enter')` return
   `UNSUPPORTED_CAPABILITY`; tap an app button when available.
   Limrun's `limrun-inc/testerarmy-e2e-limrun` repository runs the same form
@@ -409,10 +420,19 @@ export default {
   for a foldable's hinge (iPhone Duo, Android foldable emulators), `locator`, more). Portable suites declare
   `requires: ['device']`.
 - `device.unstable_raw` gives the session name, device id and name, a
-  `selection` to spread into a call, and an
-  agent-device `client` bound to the test's session, for what `device`
+  `selection` to spread into a call, and a
+  raw driver `client` bound to the test's session, for what `device`
   lacks. Client calls are not steps: no report, trace, replay, or secret
   redaction. Unstable: may change or go away in any release.
+- A custom tool that needs capabilities e2e does not wrap yet gets the raw
+  driver session from `unstable_deviceSession(...engines)`
+  (`@e2e-dev/mobile/tools`). Its `client` is typed as
+  `DeviceSessionClient` from `@e2e-dev/mobile`. Do not build a client yourself: it would miss
+  the engine's daemon, lease, and session.
+  Its calls skip e2e's guards like `unstable_raw`: a snapshot or screenshot
+  a tool returns is not redacted or masked, even after a secret fill,
+  nothing waits for the screen to settle, and a tool that changes the
+  device needs `mutates: true`. Unstable like `unstable_raw`.
 - `setNetwork('offline')` and `setAirplaneMode(true)` are Android only: on
   iOS both are `UNSUPPORTED_CAPABILITY`, since a simulator shares the Mac's
   network, and `setNetwork('online')` / `setAirplaneMode(false)` do nothing.

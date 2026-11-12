@@ -8,6 +8,8 @@
 // the page it came from. Nothing is reworded or added: a claim the rules
 // cannot pin to a name, a label or a price is left out.
 
+const { noControls, noEndSlashes } = require("./text");
+
 const isNode = (n) => n !== null && typeof n === "object";
 const clip = (text, max) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
 
@@ -26,7 +28,7 @@ function pageOf({ role, url, readAt, model }) {
     for (const kid of node.kids || []) if (isNode(kid)) visit(kid, node, level + 1);
   };
   if (model && model.tree) visit(model.tree, null, 0);
-  return { role, url, readAt, model, parent, depth, all, texts: new Map() };
+  return { role, url, readAt, model, parent, depth, all, texts: new Map(), regions: new Map() };
 }
 
 // An element's text as a reader gets it: blocks on lines of their own, an
@@ -59,7 +61,14 @@ function linesOf(page, node) {
   }
   return lines;
 }
-const tidy = (text) => text.replace(/\s+/g, " ").replace(/(^|\s)(\S*\d\S*)(?:\s\2)+(?=\s|$)/g, "$1$2").trim();
+// With single spaces, and a word with a digit in it that a ticker draws twice
+// said once. Word by word, since a pattern for it takes minutes on a very
+// long word of digits, and this also runs on the thread that answers Ctrl-C.
+function tidy(text) {
+  const kept = [];
+  for (const word of text.split(/\s+/)) if (word && !(word === kept[kept.length - 1] && /\d/.test(word))) kept.push(word);
+  return kept.join(" ");
+}
 const lineOf = (page, node) => tidy(linesOf(page, node).join(" "));
 
 function* ancestors(page, node) {
@@ -67,9 +76,24 @@ function* ancestors(page, node) {
 }
 
 // "main" unless the element sits in the page's menu bar ("nav") or footer.
+// Worked out once per element: pickPages asks it of each link on the thread
+// that answers Ctrl-C, and a page can put them under elements nested very deep.
 function regionOf(page, node) {
-  for (let n = node; n; n = page.parent.get(n)) if (n.region) return n.region;
-  return "main";
+  const passed = [];
+  let region = "main";
+  for (let n = node; n; n = page.parent.get(n)) {
+    if (page.regions.has(n)) {
+      region = page.regions.get(n);
+      break;
+    }
+    passed.push(n);
+    if (n.region) {
+      region = n.region;
+      break;
+    }
+  }
+  for (const n of passed) page.regions.set(n, region);
+  return region;
 }
 
 const words = (cls) => String(cls || "").toLowerCase().split(/[\s_-]+/);
@@ -427,9 +451,9 @@ function childPath(href, base) {
   try {
     const url = new URL(href);
     const root = new URL(base);
-    const prefix = root.pathname.replace(/\/+$/, "");
+    const prefix = noEndSlashes(root.pathname);
     if (url.host !== root.host || !prefix) return "";
-    const rest = url.pathname.replace(/\/+$/, "");
+    const rest = noEndSlashes(url.pathname);
     return rest.startsWith(`${prefix}/`) && !rest.slice(prefix.length + 1).includes("/") ? rest.slice(prefix.length + 1) : "";
   } catch {
     return "";
@@ -446,7 +470,8 @@ function listedCards(page) {
     seen.add(node.href);
     const actions = actionLines(page, node);
     const lines = linesOf(page, node).filter((line) => !CTA.test(line) && !(actions.has(line) && line.length < 25));
-    cards.push({ name: logo, first: lines[0] || "", headline: lines.reduce((a, b) => (b.length > a.length ? b : a), ""), link: node.href, node });
+    // As the URL parser writes it: no line break or angle bracket is left.
+    cards.push({ name: logo, first: lines[0] || "", headline: lines.reduce((a, b) => (b.length > a.length ? b : a), ""), link: new URL(node.href).href, node });
   }
   return cards;
 }
@@ -621,7 +646,7 @@ function jsonLdObjects(model) {
 
 const typeOf = (value) => [].concat(value["@type"] || []).map(String);
 const plain = (value) =>
-  String(value === undefined || value === null ? "" : value)
+  noControls(value)
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&quot;/g, '"')
@@ -632,7 +657,7 @@ const plain = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 const nameOf = (value) => (isNode(value) ? plain(value.name) : plain(value));
-const excerpt = (object) => clip(JSON.stringify(object), 300);
+const excerpt = (object) => clip(noControls(JSON.stringify(object)), 300);
 
 function ldRatings(page) {
   return jsonLdObjects(page.model)

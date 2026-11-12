@@ -77,7 +77,7 @@ Per-client flags, resume, and trust behavior, and which path to use: [DELEGATION
 
 ## Install as an agent plugin
 
-The repo root is one plugin: one `skills/` folder (`agent-deck-session`, `agent-deck-playbooks`, `agent-deck-setup`, `agent-deck-run`) plus `.mcp.json`, described by a manifest per client. Prerequisites for delegation: agent-deck >= 2.1.0 and the daemon running (see Quick Start), and the client CLI you delegate to, installed and signed in. The `agent-deck-setup` skill checks these and tells you what is missing.
+The repo root is one plugin: one `skills/` folder (`agent-deck-session`, `agent-deck-playbooks`, `agent-deck-setup`, `agent-deck-run`), described by a manifest per client. The Codex and Claude manifests declare no MCP server (skills and guidance only); the Cursor manifest points at its own `.cursor-plugin/.mcp.json`. Prerequisites for delegation: agent-deck >= 2.1.0 and the daemon running (see Quick Start), and the client CLI you delegate to, installed and signed in. The `agent-deck-setup` skill checks these and tells you what is missing.
 
 | Client | Install | Manifest |
 | --- | --- | --- |
@@ -91,7 +91,7 @@ Skills are never copied by hand: the muse copies come from root `skills/` via `s
 ### Cursor: setup and a test task
 
 1. Install agent-deck and start it (Quick Start above): `npx @agent-deck/cli@latest install`, `agent-deck start --daemon`, then `agent-deck doctor`.
-2. Install the **agent-deck** plugin from the Cursor Marketplace (or, for local testing, copy this repo to `~/.cursor/plugins/local/agent-deck` and run **Developer: Reload Window**). The plugin adds the four skills and the `agent-deck` MCP server (`agent-deck mcp-launch`, from `.mcp.json`); it needs the `agent-deck` CLI on `PATH` and stores no secrets.
+2. Install the **agent-deck** plugin from the Cursor Marketplace (or, for local testing, copy this repo to `~/.cursor/plugins/local/agent-deck` and run **Developer: Reload Window**). The plugin adds the four skills and the `agent-deck` MCP server (`agent-deck mcp-launch`, from `.cursor-plugin/.mcp.json`); it needs the `agent-deck` CLI on `PATH` and stores no secrets.
 3. Create a deck in the dashboard (`agent-deck open`), then bind a project folder: `agent-deck use <deck> --client cursor`, and reload Cursor.
 4. **Test task:** open that folder and ask the agent: *"Use the agent-deck-setup skill to check my Agent Deck setup and tell me what is missing."* Expected: it runs read-only checks (`agent-deck --version`, `agent-deck status`, `agent-deck deck list`) and reports the result. Then try delegation: *"Use agent-deck-run to have a read-only claude session on deck <deck> list the files in this folder, and report its answer."* Expected: it calls `start_run` with `client: "claude"` and `tools: "readonly"`, polls `get_run` until the run is terminal, and reports the session's answer with the `runId`, `sessionId`, tool profile, and terminal state.
 

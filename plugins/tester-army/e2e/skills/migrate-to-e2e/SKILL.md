@@ -194,13 +194,33 @@ fixture (topic `writing-tests`). Record each in the progress file.
 
 Then each test, one at a time:
 
-- Keep its title, and open the file with a comment naming the source
+- Open the file with a comment naming the source
   (`// Ported from __e2e__/flows/login.yml`), so reports and reviewers map
   one to the other.
 - Translate literally first with the guide's tables, one awaited call per
   source step. Each source assertion maps to its own e2e assertion. A wait
   that fails on timeout (`waitForFunction`) becomes one more, so the e2e
   count is at least the inventory's.
+- Then, before the first run, arrange the translated lines in the shape the
+  e2e skill's `writing-tests` topic gives ("Structure"). Lines move, split
+  tests copy the steps they need, and closing waits are added; no source
+  step or assertion is dropped:
+  - One top-level `describe` per source file or feature, named after it.
+    Setup tests stay top-level.
+  - A source test that checks one behavior keeps its title. A source test
+    that checks several (a check, more steps, another check) splits into
+    one test per behavior, each titled with its outcome; the file comment
+    names the source test each came from. Each split test repeats the
+    steps before its behavior in its own arrange block, or reaches that
+    state through a `beforeEach`, a fixture, or the app's API.
+  - Each test runs arrange, act, assert: the steps that reach the starting
+    state, the steps of the one behavior, then its assertions, last.
+  - A source assertion that only guarded a precondition (the dashboard
+    showed before the real steps began) becomes the wait that closes the
+    arrange block (`locator.waitFor()`, `agent.waitFor`). It still counts
+    toward the assertion count, since it fails on timeout.
+  - Splitting adds tests, never removes a check: the e2e count across the
+    split tests is still at least the source's.
 - A test the source skips is ported in full and stays skipped, with the
   source's reason, so it can be turned back on in either suite. Its row
   says so; when the reason allows, run it unskipped once and note the
@@ -238,7 +258,9 @@ Then each test, one at a time:
 `agent.act` comes after the literal port passes, never instead of it, and
 only with a model configured. Propose it for a stretch the source kept
 patching: coordinate taps, picker spins, long tap sequences through a
-wizard. Pin the outcome right after with a locator assertion (topic `agent`).
+wizard. Keep the test's shape: an `agent.act` in the arrange block ends it
+with a wait for the state it reached, and one under test is checked by the
+locator assertions at the end (topic `agent`).
 
 ## 6. Prove each port
 

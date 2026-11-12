@@ -122,9 +122,14 @@ Resources: `e2e://guide` and `e2e://guide/<topic>` hold this skill.
 
 ## Workflow
 
-1. Before `open_session`, create `tests/<feature>.e2e.ts` (topic
-   `writing-tests`) with its imports, the `test(...)`, and the call that
-   opens the screen it covers, such as `app.open('/settings/members')`.
+1. Read topic `writing-tests` before you write or edit any test
+   (`e2e://guide/writing-tests`, or `npx e2e guide writing-tests`); the
+   server's instructions and every `open_session` result say so too. Then,
+   before `open_session`, create `tests/<feature>.e2e.ts` (its "Structure"
+   section) with its imports, the feature's `describe(...)`, a `test(...)`
+   titled with the one behavior it verifies, and the call that opens the
+   screen it covers, such as `app.open('/settings/members')`. A setup test
+   (`test.setup`) goes top-level instead, outside any `describe`.
    Then `open_session`, which opens the app, and go to that screen: on the
    web, `call {tool: "navigate", args: {url: "<the path app.open names>"}}`;
    on a device, the shortest path from the launch screen. Actions that only
@@ -151,8 +156,8 @@ Resources: `e2e://guide` and `e2e://guide/<topic>` hold this skill.
 
    With several `screen` steps on one screen, take their actions, then add
    the lines they printed in one edit.
-3. When the outcome shows, add its check before the next step: an
-   `agent.assert`, or an `expect` you ran first with
+3. When the outcome shows, add its check to the test's assert block, after
+   every step: an `agent.assert`, or an `expect` you ran first with
    `call {tool: "run_code", args: {code: "await expect(screen.getByRole('status')).toHaveText('Saved');"}}`.
    Build its locator from `observe`, or try it with
    `call {tool: "locate", args: {...}}`. One match: use the printed
@@ -181,20 +186,26 @@ Resources: `e2e://guide` and `e2e://guide/<topic>` hold this skill.
    `Test line:` or ran with `run_code` has run once on the live app, and the
    first run checks the rest. If you missed a line, `test_lines` returns
    every line printed or passed so far, in order, the act goals' paths
-   included. One walk, in order:
+   included, for the whole session rather than one test. A walk that goes
+   on to a second behavior goes on into a second test in the same
+   `describe`, with its own assert block: `navigate` back to the path its
+   `app.open` names first, so its lines run from the state the test starts
+   in. One walk, in order:
 
    ```text
-   write   tests/members.e2e.ts: imports, test(...), app.open('/settings/members')
+   write   tests/members.e2e.ts: imports, describe('members'), test('invites a member as an editor'), app.open('/settings/members')
    call    open_session, then navigate {url: "/settings/members"}   its line is the app.open already written
    edit    + await agent.act('invite {email} as an editor', { params: { email: 'ada@example.test' } });
    call    tap, type, select, tap                   the goal's path; its test lines stay out
    call    run_code {code: "await expect(screen.getByRole('status')).toContainText('Invite sent');"}   passed
-   edit    + that line
-   call    type {target: "n40", value: "ada"}       prints the test line below
-           Test line: await screen.getByRole("searchbox", "Search members").fill("ada");
+   edit    + that line, in the assert block
+   write   + test('finds a member by name'), app.open('/settings/members')
+   call    navigate {url: "/settings/members"}       the new test's fresh start
+   call    type {target: "n40", value: "grace"}     prints the test line below
+           Test line: await screen.getByRole("searchbox", "Search members").fill("grace");
    edit    + that line, as printed
    call    run_code {code: "await expect(screen.getByRole('listitem')).toHaveCount(1);"}   passed
-   edit    + that line
+   edit    + that line, in the assert block
    ```
 4. Run only that test:
    `run_tests {files: ["tests/<feature>.e2e.ts:<line>"]}`, or

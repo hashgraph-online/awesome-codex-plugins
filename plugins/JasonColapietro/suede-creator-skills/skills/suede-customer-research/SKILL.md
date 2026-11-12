@@ -12,7 +12,7 @@ Use this customer-research playbook to ground positioning, product, and copy in 
 
 ## Compatibility
 
-An agent able to read supplied research files and save evidence captures. New public-source research needs web access; existing-asset synthesis requires no paid research tool.
+An agent able to read supplied research files and save evidence captures. New public-source research needs web access; existing-asset synthesis requires no paid research tool. The bundled `scripts/collect.mjs` (Node 22+, no API keys) pulls free public review, video, podcast and job-board data; see [references/collector.md](references/collector.md).
 
 ## Before Starting
 
@@ -137,6 +137,16 @@ Choose sources based on your ICP type, then read `references/source-guides.md` f
 - Need raw language? → Reddit and YouTube comments
 - Need trigger events? → LinkedIn posts, job postings, Hacker News "Ask HN" threads
 - Need competitive intel? → Competitor 4-star reviews on G2; Product Hunt discussions; SparkToro competitor audience analysis
+
+### Collector Steps
+
+Run these before reading by hand, per [references/collector.md](references/collector.md), saving outputs into the run's dated raw folder and logging each in `captures.csv`:
+
+1. **App Store reviews**: `collect.mjs reviews <app-id> --country <cc>` gives monthly review volume, rating and 1 to 2 star counts plus complaint terms from low-star reviews. It never returns reviewer names or quotes: read the spiking months' reviews yourself, quote them through the capture table, and keep reviewers anonymous. Terms are leads, never "X of Y" counts.
+2. **Videos and podcasts**: `youtube <channel-id>` and `podcast <rss-url>` list recent uploads and episodes with dates and links. Pick the ones where the segment talks, then mine their comments, published transcripts or show notes with the Mode 1 extraction framework.
+3. **Hiring context (optional)**: `jobs <board-slug>` shows what the segment's companies staff for; label it inference about priorities.
+
+When a command prints `blocked by <host>`, fall back to the manual playbook in `references/source-guides.md` and note the block in the method notes.
 
 ### What to Extract from Each Source
 

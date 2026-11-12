@@ -80,9 +80,9 @@ reason on the alert. Everything else gets fixed.
 **Secrets.** The repository holds no secrets: trufflehog scans every pull
 request and push, GitHub secret scanning with push protection is on, and the
 opt-in pre-commit hook runs `scripts/check_no_secrets.sh` before a commit
-exists. Running that script in CI as well is
-[#653](https://github.com/lacs-project/sysknife/issues/653). The project's credentials
-are:
+exists. CI also runs that script over every tracked file through
+`tests/release/no-secrets.test.sh` in the `docs-and-hygiene` job. The project's
+credentials are:
 
 | Secret | Where it lives | Used by |
 |---|---|---|

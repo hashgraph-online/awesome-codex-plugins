@@ -81,14 +81,18 @@ export default {
 
 ```ts
 // tests/billing.e2e.ts
-import { test } from '@e2e-dev/web';
+import { describe, test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 
-test('a member upgrades to Pro', async ({ app, agent, screen, browser }) => {
-  await app.open('/settings/billing');
-  await agent.act('upgrade the workspace to the Pro plan');
-  await expect(screen.getByRole('status')).toContainText('Pro');
-  await expect(browser).toHaveURL('/settings/billing');
+describe('billing', () => {
+  test('a member upgrades to Pro', async ({ app, agent, screen, browser }) => {
+    await app.open('/settings/billing');
+
+    await agent.act('upgrade the workspace to the Pro plan');
+
+    await expect(screen.getByRole('status')).toContainText('Pro');
+    await expect(browser).toHaveURL('/settings/billing');
+  });
 });
 ```
 
@@ -106,13 +110,19 @@ test('a member upgrades to Pro', async ({ app, agent, screen, browser }) => {
    path's actions stay out of the test. A `screen` line is the `Test line:`
    its action printed, copied as is. When the outcome shows, run its
    `expect` with `run_code` and add it once it passes; a passing statement
-   also joins `test_lines`. The walk ends with the test written. Without a
+   also joins `test_lines`; checks go in the test's assert block at the end.
+   The walk ends with the test written. Without a
    server, learn the accessible names the app renders from the components or
    a `--headed` run.
-3. A step is an `agent.act` goal or `screen` lines. Drive the flow with
-   `agent.act`, one atomic goal per call, and pin each outcome right after
-   with `expect` or `agent.assert`. A test with three goals makes three
-   calls. Start the test on the screen it covers, since every rerun pays
+3. Shape the file before the steps (topic `writing-tests`, "Structure"):
+   one top-level `describe` per feature, and in it one test per behavior,
+   titled with the outcome it verifies. Each test runs arrange, act, assert,
+   in that order: reach the starting state, do the one thing under test,
+   then every `expect` or `agent.assert` at the end. A second outcome worth
+   checking is a second test, so a failing title says what broke.
+   A step is an `agent.act` goal or `screen` lines. Drive the flow with
+   `agent.act`, one atomic goal per call; three goals make three calls.
+   Start the test on the screen it covers, since every rerun pays
    for the steps before: in a browser a saved session instead of the
    sign-in form and `app.open` on that screen's path, on a device
    `device.openLink`, and data from the app's API (topic `writing-tests`).
@@ -181,7 +191,8 @@ lines you changed:
   call's own `{ timeout }` still wins. An `expect` already gives up after
   5 s by default (`assertionTimeout`).
 - Keep the replay cache on. A failed run keeps the recording of every goal
-  whose check passed, and the next run replays those with no model call.
+  a later check or wait confirmed (the wait closing the arrange block, topic
+  `writing-tests`), and the next run replays those with no model call.
   New, changed, and failed goals run live, and so does a replay the trace
   page shows as handed off. `agent.assert`, `agent.waitFor`, and
   `agent.extract` always call the model. Leave `--no-cache` off: it sends every goal to the model
@@ -237,14 +248,23 @@ lines you changed:
   `credentials.user(name).password` or `secrets.get(name)` (separate
   namespaces: `secrets.get` never returns a password), and hand the opaque
   `Secret` only to `fill()` or `agent.act` params.
+- Tests: one top-level `describe` per feature, one behavior per test,
+  arrange, act, assert with every assertion last (topic `writing-tests`).
+  Bad: one test that adds a todo, checks it, marks it done, and checks
+  again. Good: `'adds a todo to the list'` and `'marks a todo as done'`,
+  the second adding its todo in its arrange block.
 - Agent instructions: one goal per `act`, the wording on screen, real values
   in params. A goal is atomic: one outcome that one check confirms. Two
-  outcomes worth checking are two goals, so split them into two `act` calls
-  (topic `agent`). Bad: `'add a todo and mark it done'`. Good: `'add a
-  todo'`, check, then `'mark the todo as done'`, check. Judge meaning, not
-  phrasing: `toContain('Pro')`, not an exact sentence a model produced.
-- Check each agent goal's outcome. A passing `act` with a recorded check can
-  be cached and replayed without model calls (topic `agent`).
+  outcomes are two goals in two `act` calls (topic `agent`), never `'add a
+  todo and mark it done'`. Judge meaning, not phrasing: `toContain('Pro')`,
+  not an exact sentence a model produced.
+- End every test that runs an agent goal with a verifying check: a
+  locator matcher (`expect(locator)`), an engine matcher
+  (`expect(browser).toHaveURL`), or `agent.assert`. A passing one confirms
+  every `act` before it, so they can be cached and replayed without model
+  calls, and so do `locator.waitFor`, `browser.waitForURL`, and
+  `agent.waitFor`. Reads, `expect.poll`, and plain-value `expect` confirm
+  nothing (topic `agent`, "The replay cache").
 - Shape the agent for this app: `context` for vocabulary the screens use,
   `system` for how it works, tools for a test API, named personas under
   `agents`. When a step fails, tighten the goal first, then the context, then

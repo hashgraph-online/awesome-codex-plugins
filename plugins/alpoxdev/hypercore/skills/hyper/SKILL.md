@@ -34,7 +34,7 @@ Use a different language only when the user explicitly requests it or a machine-
 
 Use this skill when the requested output is a finished development result that needs one or more of the stage skills below in sequence, or when the user calls `hyper` by name.
 
-By user instruction, this package is an orchestrator: it names its twenty-seven stage skills and its one companion skill in the stage map below, in `rules/workflow-routing.md`, in `rules/stage-handoff.md`, in its Sources rows, and in its eval routes. That is the only cross-skill coupling it carries.
+By user instruction, this package is an orchestrator: it names its stage skills and its one companion skill in the stage map below, in `rules/workflow-routing.md`, in `rules/stage-handoff.md`, in its Sources rows, and in its eval routes. That is the only cross-skill coupling it carries.
 
 | Stage skill | What the stage produces |
 |---|---|
@@ -73,7 +73,7 @@ Do not use it when:
 - the user names one stage skill directly; that skill handles the request alone
 - the output is a one-place edit that needs no plan, such as a typo, a copy change, or a single config value
 - the output is only a commit, a push, a merge, or a pull request for changes that already exist
-- the output is a PRD, spec, or wireframe package, a diagram or visual map of a structure, or an answer to a question
+- the output is a PRD, spec, or wireframe package, a diagram or visual map of a structure, or an answer to a question; a PRD package belongs to `hyper-prd` and a diagram to `hyper-diagram`, which are separate skills this package does not route through
 
 </routing_rule>
 
@@ -306,7 +306,7 @@ Phase rules:
 
 | Claim | Source |
 |---|---|
-| The orchestrator role, the end-to-end run, and the user-directed exception that lets this package name its twenty-seven stage skills and its companion skill | user instruction, 2026-11-06 (orchestrator role); the stage set extended to fifteen with `hyper-deploy` by user instruction, 2026-11-07, to sixteen with `hyper-feedback` by user instruction, 2026-11-07, to seventeen with `hyper-decision` by user instruction, 2026-11-08, to eighteen with `hyper-google-analytics` by user instruction, 2026-11-08, to nineteen with `hyper-debug` by user instruction, 2026-11-09 (issue #22), to twenty with `hyper-loop` by user instruction, 2026-11-09 (issue #21), to twenty-one with `hyper-data` by user instruction, 2026-11-09 (issue #25), to twenty-two with `hyper-google-tagmanager` by user instruction, 2026-11-09 (hyper routing refresh), to twenty-three with `hyper-frontend` by user instruction, 2026-11-09 (issue #46), to twenty-four with `hyper-handoff` by user instruction, 2026-11-10, to twenty-five with `hyper-debate` by user instruction, 2026-11-10 (issue #26), to twenty-six with `hyper-review` by user instruction, 2026-11-10 (issue #23), and to the current twenty-seven with `hyper-cleanup` by user instruction, 2026-11-10 (issue #24); `hyper-browsing` attached to web-sourced research by user instruction, 2026-11-07 |
+| The orchestrator role, the end-to-end run, and the user-directed exception that lets this package name its stage skills and its companion skill | user instruction, 2026-11-06 (orchestrator role); `hyper-deploy` added by user instruction, 2026-11-07; `hyper-feedback` added by user instruction, 2026-11-07; `hyper-decision` added by user instruction, 2026-11-08; `hyper-google-analytics` added by user instruction, 2026-11-08; `hyper-debug` added by user instruction, 2026-11-09 (issue #22); `hyper-loop` added by user instruction, 2026-11-09 (issue #21); `hyper-data` added by user instruction, 2026-11-09 (issue #25); `hyper-google-tagmanager` added by user instruction, 2026-11-09 (hyper routing refresh); `hyper-frontend` added by user instruction, 2026-11-09 (issue #46); `hyper-handoff` added by user instruction, 2026-11-10; `hyper-debate` added by user instruction, 2026-11-10 (issue #26); `hyper-review` added by user instruction, 2026-11-10 (issue #23); `hyper-cleanup` added by user instruction, 2026-11-10 (issue #24); `hyper-browsing` attached to web-sourced research by user instruction, 2026-11-07 |
 | The output, artifact path, and boundary of each stage skill | each stage skill's own `SKILL.md` in this repository, 2026-11-06 |
 | The plan stage continues into execution by itself and passes the delivery flag through | the plan skill's handoff rule in this repository, 2026-11-06 |
 | A sequential chain hands state forward through saved artifacts, and a router picks a branch by code-like rules | `instructions/graph-engineering/references/graph-patterns.md` |

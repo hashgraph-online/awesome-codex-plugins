@@ -15,13 +15,20 @@ Treat setup as three separate layers: daemon health, host transport, then folder
    - Daemon down: `agent-deck start --daemon`.
    - `agent-deck doctor` prints any harness repair as `agent-deck setup --client <client>`; run it, then restart that host.
 3. If the daemon is healthy but MCP tools are unavailable, repair the host transport:
-   - **Codex:** verify the Agent Deck plugin is installed, enabled, and current. Its bundled
-     `.mcp.json` must run `agent-deck mcp-launch`; reload or start a new task after changing
-     the plugin. Run `agent-deck setup --client codex` to merge the Agent Deck bootstrap
+   - **Codex:** verify the Agent Deck plugin is installed, enabled, and current. Codex connects
+     over pure MCP (streamable HTTP): a global headerless fallback plus a per-folder entry
+     carrying the workspace header — no `agent-deck` executable lookup. Trust the folder,
+     approve the project agent-deck entry, run `agent-deck use <deck>` in the folder when its
+     assignment is missing or legacy, then reload or start a new task. Run `agent-deck setup
+     --client codex` to write the global fallback and merge the Agent Deck bootstrap
      guidance into `~/.codex/AGENTS.md` (or add `--scope project` for `./AGENTS.md`). This
      command preserves content outside Agent Deck's markers and does not install the plugin.
-   - **Cursor / Claude:** run `agent-deck setup --client cursor|claude --start`, then restart
-     that host.
+   - **Claude Code:** same pure-MCP connection as Codex (global fallback in `~/.claude.json`
+     plus project `.mcp.json` with the workspace header). Trust the folder, approve the
+     project entry, run `agent-deck use <deck>` when the assignment is missing or legacy,
+     then reload MCP. `agent-deck setup --client claude` writes the fallback.
+   - **Cursor:** run `agent-deck setup --client cursor --start`, then restart
+     that host. (Cursor still connects through the `agent-deck mcp-launch` launcher.)
 4. Check the folder assignment reported by `agent-deck status`. If it is missing or legacy,
    tell the user to run `agent-deck use <deck>` in that folder, then reload or retry MCP.
 5. For delegation (agents use the MCP `start_run` tool; the run executes on this host), the client CLI must also be installed and signed in on the host. Check `claude auth status`, `codex login status`, `cursor-agent status`, or `muse --version`; if missing, point the user to the official install docs ([Claude Code](https://docs.anthropic.com/en/docs/claude-code/setup), [Codex](https://developers.openai.com/codex/cli), [Cursor CLI](https://cursor.com/docs/cli/installation); muse per its distribution) and its sign-in (`claude`, `codex login`, `cursor-agent login`, `muse login`).

@@ -12,7 +12,7 @@
 | Report | 코드 변경 없는 저장 보고서, 감사, 리뷰, 계획 | 조사만, 점검만, 리뷰만, 리포트만, 계획만, audit only, just the plan |
 | Resume | 앞선 실행 이어가기 | 이어서, 계속, 재개, resume, continue |
 
-계획 없는 한 곳 수정(오타, 문자열 하나, 설정 값 하나), 커밋만 하는 요청, PRD나 와이어프레임 패키지, 구조를 그린 다이어그램, 질문은 범위 밖입니다. 라우팅하지 않습니다.
+계획 없는 한 곳 수정(오타, 문자열 하나, 설정 값 하나), 커밋만 하는 요청, PRD나 와이어프레임 패키지, 구조를 그린 다이어그램, 질문은 범위 밖입니다. 라우팅하지 않습니다. PRD 패키지는 `hyper-prd`, 다이어그램은 `hyper-diagram`이 맡고, 두 스킬은 이 패키지가 단계로 쓰지 않는 별도 스킬입니다.
 
 ## 2. 단계 신호
 
@@ -80,7 +80,16 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 - `hyper-deploy`는 체인의 마지막 단계입니다. 앞 단계가 만든 결과를 배포하며, 뒤에 `hyper-git`이 붙지 않습니다. 사용자가 커밋·푸시·병합 전달까지 요청했으면 `hyper-git`이 `hyper-deploy` 앞에 실행합니다.
 - 같은 요청이 코드까지 바꾸면 코드 체인을 먼저 실행하고, `hyper-deploy` 단계는 실행 완료 블록 뒤에 시작합니다. 아직 완성되지 않은 트리가 아니라 끝난 변경을 배포하기 위해서입니다.
 - Report 작업에서는 요청한 마지막 단계에서 체인이 끝납니다. 계획을 요청한 Report 작업은 `--plan-only`로 `hyper-plan`에서 끝납니다.
-- 최대 네 단계까지 실행하고 `hyper-deploy`도 그 안에 셉니다. 더 필요해 보이는 체인은 작업 두 개입니다. 첫 작업을 실행하고 두 번째는 다음 단계로 보고합니다.
+- 서로 다른 핵심 단계를 최대 네 개까지 실행하며 다음처럼 셉니다.
+  - 라우트 줄의 각 단계는 한 번씩 셉니다. 처음 선택한 단계도, 허용된 한 번의 재라우팅(`rules/stage-handoff.md` §6)으로 덧붙인 단계도 마찬가지입니다.
+  - `hyper-deploy`도 네 개 안에 셉니다.
+  - 단계의 재시도, 재개한 실행, 단계가 스스로 멈춘 뒤 다시 들어간 경우는 이미 센 그 단계로 셉니다. 새 단계가 아닙니다.
+  - `hyper-plan`과 `hyper-debate`는 결정 단계 하나입니다. 체인은 둘 중 하나만 지정하므로 두 칸을 함께 쓰지 않습니다.
+  - `hyper-plan`이 `hyper-execute`로 이어지는 경우는 두 단계로 셉니다. 한 세션에서 이어져도 계획과 실행은 다른 단계입니다.
+  - 기존 계획으로 `hyper-execute`만 고른 경우는 계획 단계 없이 그 자체로 한 단계입니다.
+  - `hyper-git`은 세지 않고, 아래 동반 스킬도 세지 않습니다.
+  - `hyper-handoff`는 이어받기 모드에서 자리를 차지하지 않고 세지도 않습니다. 쓰기 모드와 확인 모드에서는 꼬리 단계이므로 셉니다.
+  - 세는 단계가 다섯 개 필요해 보이는 체인은 작업 두 개입니다. 첫 작업을 실행하고 두 번째는 다음 단계로 보고합니다.
 - `hyper-browsing`은 단계가 아니라 동반 스킬입니다. 이 순서에서 자리를 차지하지 않고 네 단계 상한에도 세지 않습니다. 리서치가 웹 조사형일 때 `hyper-research` 단계에 붙입니다. 질문이 실시간 웹 출처(검색 결과, 벤더·커뮤니티·뉴스 페이지, 시장·동향 데이터, 외부 문서, 이름을 댄 URL)에 기대는 경우이며, "인터넷 검색", "웹에서", "최신", "동향", "사례", "latest" 같은 말이나 URL이 신호입니다. 리서치가 저장소만 다루거나(소스 코드 분석, 로컬 파일과 이력) `hyper-research` 단계를 고르지 않았으면 붙이지 않습니다.
 
 ## 4. 체인 레시피
@@ -210,7 +219,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 - Google Tag Manager 컨테이너(`GTM-` ID, 컨테이너의 태그·트리거·변수, dataLayer)는 `hyper-google-tagmanager`로 가고, 직접 단 Google 태그(컨테이너 없이 `G-` ID를 쓰는 `gtag(`), GA4 속성 설정, GA4 보고서 데이터는 `hyper-google-analytics`로 갑니다. `googletagmanager.com`이 든 파일만으로는 정하지 않습니다. `GTM-` ID를 쓰는 `gtm.js`는 GTM이고, `G-` ID를 쓰는 `gtag/js`는 직접 단 Google 태그입니다. 두 단계는 요청이 GA4 속성 작업까지 원할 때만 함께 실행하고, 그때는 `hyper-google-analytics`가 먼저입니다.
 - 컨테이너 버전 게시, 컨테이너 항목 삭제, 사용자 권한 변경, 라이브 동의 동작 변경에 대한 승인 질문은 `hyper-google-tagmanager` 단계가 맡습니다. 이 오케스트레이터는 요청에 있는 컨테이너 ID와 사이트 URL을 그대로 넘기고 사용자를 대신해 승인하지 않습니다.
 - 문서로 쓰는 추적 계획은 `hyper-documentation`으로 갑니다. 광고 캠페인이나 GTM 없이 설치하는 분석 라이브러리는 `hyper-google-tagmanager` 작업이 아니며 기존 행대로 라우팅합니다.
-- 다이어그램, 플로차트, ERD처럼 구조를 그린 그림("구조도 그려줘", "draw the sequence diagram")은 PRD 패키지처럼 `hyper` 작업이 아닙니다. 아키텍처 점검은 `hyper-architecture`에 남고 그림을 덧붙이지 않습니다.
+- 다이어그램, 플로차트, ERD처럼 구조를 그린 그림("구조도 그려줘", "draw the sequence diagram")은 PRD 패키지처럼 `hyper` 작업이 아닙니다. 그림은 `hyper-diagram`, PRD는 `hyper-prd`가 맡습니다. 아키텍처 점검은 `hyper-architecture`에 남고 그림을 덧붙이지 않습니다.
 - 데이터베이스를 조회하는 MCP 서버("사내 DB 조회하는 MCP 서버")는 `hyper-mcp`로 갑니다. 작업이 스키마, 마이그레이션, 인덱스, 데이터베이스 설정까지 바꿀 때만 `hyper-database`를 더합니다.
 - `hyper-architecture`와 `hyper-database`는 작업이 폴더나 모듈을 재구성하면서 스키마나 쿼리까지 바꿀 때만 함께 실행합니다. 영속 계층 배치만 다루는 일("repository 레이어 정리")은 `hyper-architecture`에 남깁니다.
 - `hyper-database`와 다른 구축 꼬리(`hyper-mcp`, `hyper-decision`, `hyper-design`, `hyper-frontend`)를 함께 골랐다면 작업이 여러 모듈에 걸친 것입니다. 각 단계를 보고서 모드(리뷰, 점검, `design`, `brief-only`, `verify`)로 실행하고 체인을 `hyper-plan`에서 끝냅니다.
@@ -266,7 +275,7 @@ hyper-research -> hyper-issue -> hyper-seo -> hyper-google-analytics -> hyper-go
 
 | Claim | Source |
 |---|---|
-| 스물일곱 단계 스킬, 동반 스킬, 오케스트레이터 역할 | user instruction, 2026-11-06(오케스트레이터 역할); `hyper-deploy`를 더해 열다섯 단계로 늘린 사용자 지시, 2026-11-07; `hyper-feedback`을 더해 열여섯 단계로 늘린 사용자 지시, 2026-11-07; `hyper-decision`을 더해 열일곱 단계로 늘린 사용자 지시, 2026-11-08; `hyper-google-analytics`를 더해 열여덟 단계로 늘린 사용자 지시, 2026-11-08; `hyper-debug`를 더해 열아홉 단계로 늘린 사용자 지시, 2026-11-09(이슈 #22); `hyper-loop`를 더해 스무 단계로 늘린 사용자 지시, 2026-11-09(이슈 #21); `hyper-data`를 더해 스물한 단계로 늘린 사용자 지시, 2026-11-09(이슈 #25); `hyper-google-tagmanager`를 더해 스물두 단계로 늘린 사용자 지시, 2026-11-09(hyper 라우팅 갱신); `hyper-frontend`를 더해 스물세 단계로 늘린 사용자 지시, 2026-11-09(이슈 #46); `hyper-handoff`를 더해 스물네 단계로 늘린 사용자 지시, 2026-11-10; `hyper-debate`를 더해 스물다섯 단계로 늘린 사용자 지시, 2026-11-10(이슈 #26); `hyper-review`를 더해 스물여섯 단계로 늘린 사용자 지시, 2026-11-10(이슈 #23); `hyper-cleanup`을 더해 현재의 스물일곱 단계로 늘린 사용자 지시, 2026-11-10(이슈 #24); 웹 조사형 리서치에 `hyper-browsing`을 붙인 사용자 지시, 2026-11-07 |
+| 단계 스킬, 동반 스킬, 오케스트레이터 역할 | user instruction, 2026-11-06(오케스트레이터 역할); `hyper-deploy`를 더한 사용자 지시, 2026-11-07; `hyper-feedback`을 더한 사용자 지시, 2026-11-07; `hyper-decision`을 더한 사용자 지시, 2026-11-08; `hyper-google-analytics`를 더한 사용자 지시, 2026-11-08; `hyper-debug`를 더한 사용자 지시, 2026-11-09(이슈 #22); `hyper-loop`를 더한 사용자 지시, 2026-11-09(이슈 #21); `hyper-data`를 더한 사용자 지시, 2026-11-09(이슈 #25); `hyper-google-tagmanager`를 더한 사용자 지시, 2026-11-09(hyper 라우팅 갱신); `hyper-frontend`를 더한 사용자 지시, 2026-11-09(이슈 #46); `hyper-handoff`를 더한 사용자 지시, 2026-11-10; `hyper-debate`를 더한 사용자 지시, 2026-11-10(이슈 #26); `hyper-review`를 더한 사용자 지시, 2026-11-10(이슈 #23); `hyper-cleanup`을 더한 사용자 지시, 2026-11-10(이슈 #24); 웹 조사형 리서치에 `hyper-browsing`을 붙인 사용자 지시, 2026-11-07 |
 | 각 단계의 트리거, 결과물, 제외 범위. `hyper-mass`가 계획 파일 실행을 제외하고 `hyper-execute`가 기존 계획을 요구한다는 점 포함 | 이 저장소의 각 단계 스킬 `SKILL.md`, 2026-11-06 |
 | 전달 단어, 계획만·승인 보류 단어, 계획에서 실행으로 자동 연결 | 이 저장소의 계획 스킬 handoff 규칙, 2026-11-06 |
 | 단계 순서, 네 단계 상한, 레시피, 동률 처리 | 이 패키지가 고른 설계이며 검증된 최적값이 아님 |

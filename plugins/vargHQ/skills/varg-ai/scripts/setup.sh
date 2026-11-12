@@ -183,14 +183,20 @@ else
   echo ""
 
   if [ "$HAS_BUN" -eq 0 ]; then
-    echo "  To unlock local render mode, install bun:"
-    dim "    curl -fsSL https://bun.sh/install | bash"
+    echo "  To unlock local render mode, install bun with your package manager:"
+    dim "    brew install oven-sh/bun/bun   # macOS, Linux (Homebrew)"
+    echo ""
+    dim "    npm install -g bun             # anywhere Node.js is installed"
+    echo ""
+    dim "    Other ways: https://bun.sh/docs/installation"
     echo ""
   fi
   if [ "$HAS_FFMPEG" -eq 0 ] || [ "$HAS_FFPROBE" -eq 0 ]; then
     echo "  To unlock local render mode, install ffmpeg (includes ffprobe):"
     dim "    brew install ffmpeg        # macOS"
+    echo ""
     dim "    apt install ffmpeg         # Ubuntu/Debian"
+    echo ""
     dim "    winget install ffmpeg      # Windows"
     echo ""
   fi

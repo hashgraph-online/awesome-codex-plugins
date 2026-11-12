@@ -3,6 +3,7 @@
 ## Contents
 
 - A complete file
+- Structure: one describe, arrange-act-assert, one behavior
 - Registration
 - Fixtures
 - Locators
@@ -24,12 +25,19 @@ describe('todos', { tags: ['todos'] }, () => {
     await app.open('/todos');
   });
 
-  test('adds and completes a todo', async ({ agent, screen, browser }) => {
+  test('adds a todo to the list', async ({ agent, screen }) => {
     await agent.act('add a todo named {title}', { params: { title: 'Write the release notes' } });
+
     await expect(screen.getByRole('listitem')).toHaveCount(1);
     await expect(screen.getByRole('status', 'Remaining')).toHaveText('1 remaining');
+  });
+
+  test('marks a todo as done', async ({ agent, screen, browser }) => {
+    await agent.act('add a todo named {title}', { params: { title: 'Write the release notes' } });
+    await screen.getByRole('checkbox', 'Write the release notes').waitFor();
 
     await agent.act('mark the todo as done');
+
     await expect(screen.getByRole('status', 'Remaining')).toHaveText('0 remaining');
     await expect(browser).toHaveURL('/todos');
   });
@@ -37,17 +45,64 @@ describe('todos', { tags: ['todos'] }, () => {
   test('ignores an empty submission', async ({ screen }) => {
     // An exact interaction: the empty submit is the point of the test.
     await screen.getByRole('button', 'Add').tap();
+
     await expect(screen.getByRole('listitem')).toHaveCount(0);
   });
 });
 ```
 
-The agent does the flow; `expect` pins what must be true after each goal,
-and that check lets the replay cache rerun the step later. `screen` actions
-are for exact interactions and values. Files match the config `tests` glob,
-default `tests/**/*.e2e.ts`. In a browser every test starts from a fresh
-context with no page open, so it calls `app.open()` first; on a device a test
-that skips `app.open()` starts where the previous test left the app.
+The agent does the flow; `expect` pins what must be true at the end, and
+that check lets the replay cache rerun every goal before it later. `screen`
+actions are for exact interactions and values. Files match the config
+`tests` glob, default `tests/**/*.e2e.ts`. In a browser every test starts
+from a fresh context with no page open, so it calls `app.open()` first; on a
+device a test that skips `app.open()` starts where the previous test left
+the app.
+
+## Structure: one describe, arrange-act-assert, one behavior
+
+Write every test in this shape. When a test fails, its title alone should
+say what broke, with no debugging needed, unless the arrange or act steps
+themselves failed or the app changed under them.
+
+- **One top-level `describe` per unit or feature.** Name it after the
+  feature (`describe('todos')`, `describe('checkout')`) and put every test
+  for it inside, with the hooks those tests share. A file holds one feature.
+  Nest a `describe` only to share a hook or an option (a `session`,
+  `agentContext`, `tags`) with some of its tests. Setup tests are the
+  exception: `test.setup` must be top-level, outside any `describe`.
+- **Arrange, act, assert, in that order**, with a blank line between the
+  three blocks:
+  - Arrange reaches the state the behavior starts from: `session`,
+    `app.open` on the screen's path, data from a fixture, and a shared
+    `beforeEach`. When the app offers no shorter way, an `agent.act` or
+    `screen` lines can arrange too, as in `marks a todo as done` above.
+    End such an arrange block with a wait for the state it reached
+    (`locator.waitFor()`, `agent.waitFor`). A setup goal that passed
+    without doing its job then fails there, not at the outcome check, and
+    the wait confirms the setup goals for the replay cache.
+  - Act does the one thing under test: one `agent.act` goal, or the
+    `screen` lines of one interaction. A wait for the state the action
+    triggers (`agent.waitFor`, `locator.waitFor`) closes the act block.
+  - Assert holds every `expect`, `expect.poll`, and `agent.assert`, and
+    nothing after them. No check sits between arrange and act steps. A
+    setup test's `session.save` is bookkeeping and comes after its check.
+- **One behavior per test.** A test verifies one outcome, and its title
+  names it: `'marks a todo as done'`, not `'todos work'` or `'adds and
+  completes a todo'`. An "and" in a title usually means two tests. Several
+  assertions are fine when they all check that one outcome (the count and
+  the remaining label after an add). A second behavior is a second test.
+  When it starts from the first one's result, its arrange block repeats the
+  first one's act (or seeds the result through the API) rather than
+  chaining both into one test.
+
+For the replay cache (topic `agent`), a passing locator or engine matcher,
+`locator.waitFor`, `agent.assert`, or `agent.waitFor` confirms every
+`agent.act` before it; `expect.poll` and a plain-value `expect` confirm
+nothing, so end with a locator check too. When the test fails, every goal
+after the last passing confirmation runs live again on the next run: the
+arrange block's closing wait keeps the setup goals cached while you fix the
+act or the assertions.
 
 ## Registration
 
@@ -232,6 +287,7 @@ field and types one character per `delay`, plain string only (a `Secret` is
 Coordinates are CSS pixels, for what the tree does not list: `tap({ position:
 { x, y } })` offsets from the node's top-left corner inside its border (with `modifiers` it is
 `INVALID_ARGUMENT`), `screen.tapAt({ x, y })` taps a viewport point,
+`screen.doubleTapAt({ x, y })` double-taps a viewport point,
 `screen.swipe({ from, to, duration? })` swipes along a path,
 `screen.swipe({ direction, momentum? })` swipes the viewport. Prefer a
 locator; a point moves with the layout.
@@ -355,15 +411,18 @@ test.setup('authenticate as admin', { sessions: ['admin'] }, async ({ app, scree
 
 ```ts
 // tests/dashboard.e2e.ts
-import { test, expect } from 'e2e';
+import { describe, test, expect } from 'e2e';
 
-test('the dashboard opens directly', { session: 'admin' }, async ({ app, screen }) => {
-  await app.open('/dashboard');
-  await expect(screen.getByRole('heading', 'Dashboard')).toBeVisible();
+describe('dashboard', { session: 'admin' }, () => {
+  test('opens directly when signed in', async ({ app, screen }) => {
+    await app.open('/dashboard');
+
+    await expect(screen.getByRole('heading', 'Dashboard')).toBeVisible();
+  });
 });
 ```
 
-- Setup tests are top-level; exactly one setup saves a given name and the
+- Setup tests are top-level, outside any `describe`; exactly one setup saves a given name and the
   body saves every declared name once (`SESSION_CONTRACT` otherwise). Names
   match `[A-Za-z0-9_.-]{1,128}`.
 - A session holds cookies, local storage, and IndexedDB for one run,
@@ -429,7 +488,7 @@ test as close to its screen as the app allows:
   `call`.
 
 ```ts
-import { test } from '@e2e-dev/web';
+import { describe, test } from '@e2e-dev/web';
 import { expect } from 'e2e';
 import { z } from 'zod';
 
@@ -445,11 +504,15 @@ const projectTest = test.extend<{ project: { id: string } }>({
   },
 });
 
-projectTest('renames a project', { session: 'admin' }, async ({ app, screen, project }) => {
-  await app.open(`/projects/${project.id}/settings`); // straight to the screen under test
-  await screen.getByLabel('Name').fill('Atlas');
-  await screen.getByRole('button', 'Save').tap();
-  await expect(screen.getByRole('status')).toHaveText('Saved');
+describe('project settings', { session: 'admin' }, () => {
+  projectTest('renames a project', async ({ app, screen, project }) => {
+    await app.open(`/projects/${project.id}/settings`); // straight to the screen under test
+
+    await screen.getByLabel('Name').fill('Atlas');
+    await screen.getByRole('button', 'Save').tap();
+
+    await expect(screen.getByRole('status')).toHaveText('Saved');
+  });
 });
 ```
 
@@ -459,7 +522,9 @@ in the app.
 
 Grow a test that spans several screens one screen at a time when you have
 not checked its steps live: write up to the next screen you have not seen
-pass, run it, then add the next. A passing locator step takes milliseconds,
+pass, end it with a temporary check of that screen, run it, then replace
+the check with the next part. The finished test keeps only its outcome
+checks, in the assert block. A passing locator step takes milliseconds,
 and an `agent.act` that a later check confirmed replays from the cache with
 no model call. The cache keeps those entries when a later line fails, so
 each run pays model calls only for its new part. That holds for a first

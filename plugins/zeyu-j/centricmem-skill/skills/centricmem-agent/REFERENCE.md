@@ -65,13 +65,13 @@ Decision **#0180**. Mechanism is fixed for every agent; content lives on each sh
 
 ## Reach
 
-MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index`.
+MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index` `cm_ops`.
 
 If they are missing: **Already added** a Bearer or finished OAuth login in this agent → new chat, do not strip Bearer (Typical Workflows). URL-only MCP → first connect this turn. Never paste the key in chat. Never copy JSON into chat. Do not curl card/search APIs. Do not CLI-write. Do not bootstrap. Do not send a loopback `/connect` or a bare `/connect` with no `device=`.
 
 **First connect, this same reply** sends https://centricmem.com/login?signup=1 **and** tries to send a `/connect?device=` URL **plus its 8-digit code**; never paste a key here. Plugin `mcp.json` is URL-only: it is **not** a completed connect. **This agent** (and each client you install into) mints that connect URL this turn when it can.
 
-**If minting that URL fails:** prefer the no-CLI path first. **Detail on demand.** Host-specific install, refresh, sandbox and failure detail is not shipped in this copy: read `cm_ops` with the MCP tools, or ask zeyu@poppyg.com. The rules and shapes below are what you need to connect and to stay safe; per-client install/connect commands (Cursor, Codex, Hermes, Pi, OpenClaw, DSH, ChatGPT Apps, OAuth callback mechanics) live in `cm_ops` → Client connect recipes.
+**If minting that URL fails:** prefer the no-CLI path first. **Detail on demand.** Host-specific install, refresh, sandbox and failure detail is not shipped in this copy: read `cm_ops` with the MCP tools, or ask zeyu@poppyg.com. `cm_ops` itself needs a working connection — first connect uses the rules in this file, not `cm_ops`. The rules and shapes below are what you need to connect and to stay safe; per-client install/connect commands (Cursor, Codex, Hermes, Pi, OpenClaw, DSH, ChatGPT Apps, OAuth callback mechanics) live in `cm_ops` → Client connect recipes.
 
 **Shell works, `centricmem` missing** (no Node / no CLI): do **not** run `doctor connect` — follow the POST `/connect/device` branch immediately below. **`centricmem` on PATH:** run `centricmem doctor connect` and tell them to email zeyu@poppyg.com with that output (which agent; never a key). Do not email on their behalf. **Then MCP OAuth** only if this agent will receive the login after they finish a browser prompt: add `https://mem.centricmem.com/mcp` **with no Bearer** (per-client add commands: `cm_ops` → Client connect recipes). **Do not skip `/connect?device=` because OAuth exists.** Do not send a Loopback `127.0.0.1` authorize link when this agent is not listening there. Do not curl OAuth or librarian HTTP. Do not download or open a settings file that contains a key, and do not ask them to send you that path. A URL-only `mcp.json` or Codex `config.toml` (url, no `Authorization`) may be copied or opened. After they finish the prompt, retry `cm_health`. Still failing, or a usage problem you cannot fix: they email zeyu@poppyg.com (never a key). Do not email on their behalf.
 
@@ -139,9 +139,11 @@ Paste-key fallback for any MCP host: add `headers.Authorization = "Bearer \${CEN
 
 Fingerprint idioms (confirm which key, never print it):
 
-- PowerShell: `"{0}... len={1} fp={2}" -f $v.Substring(0,4), $v.Length, ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($v))).Replace('-','')).Substring(0,8)`
-- bash: `printf "%s... len=%s fp=%s\n" "${v:0:4}" "${#v}" "$(printf %s "$v" | sha256sum | cut -c1-8)"`
-- node: `console.log(v.slice(0,4)+"... len="+v.length+" fp="+require("crypto").createHash("sha256").update(v).digest("hex").slice(0,8))`
+- PowerShell: `"{0}... len={1} fp={2}" -f $v.Substring(0,4), $v.Length, ([BitConverter]::ToString([Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($v))).Replace('-','')).Substring(0,12)`
+- bash: `printf "%s... len=%s fp=%s\n" "${v:0:4}" "${#v}" "$(printf %s "$v" | sha256sum | cut -c1-12)"`
+- node: `console.log(v.slice(0,4)+"... len="+v.length+" fp="+require("crypto").createHash("sha256").update(v).digest("hex").slice(0,12))`
+
+The `fp=` value is the first 12 hex of the credential's SHA-256 — the same fingerprint `cm_health` reports, so one number compares everywhere. On PowerShell never inline `"$env:NAME"` inside a command string handed to `powershell -c` / `pwsh -c` from another shell: the outer shell mangles the expansion. Read it inside PowerShell (`$v = $env:CENTRICMEM_API_KEY`) or keep the whole command single-quoted.
 
 **Blast radius and rotation.** Treat a printed credential as public and rotate it (Manager -> Connections). To size the spread first, scan the host's own history for the exact value and report file names and counts only, never the match:
 
@@ -182,7 +184,7 @@ Never ask `cm_show` for originals. Never paste download URLs into the chat.
 
 **List a shelf.** Omit `q` (and omit tags / type filters) **and** pass `shelf=` / `library=` → `cm_search` returns that shelf’s cards (`browse: true`, default cap **50**). Pass `limit=` to raise (max 500). Use this to judge empty vs populated, or inventory. Without `shelf=` / `library=`, omitting `q` is 400 — the error tells you to pass a shelf. Do not invent an empty-shelf conclusion from a failed no-`q` call.
 
-Useful query bits (in `q` / `tags` / `type`): `filter`, `tag`, `type:decision`, `#0016` / `id:0016`. Bare word `decision` is full-text, not a type filter. `all` does not leak other shelves. An extra key’s `all` is only the shelves on that key’s grants. Pass `shelf=` / `library=` / `cwd=` when the Bearer can open more than one shelf. Isolation: **one key = its grants**. The owner's agent Bearer is a **full-access** key (`*` = every shelf).
+Useful query bits (in `q` / `tags` / `type`): `filter`, `tag`, `type:decision`, `#0016` / `id:0016`. Bare word `decision` is full-text, not a type filter. `all` does not leak other shelves. An extra key’s `all` is only the shelves on that key’s grants. Pass `shelf=` / `library=` / `cwd=` when the Bearer can open more than one shelf. Isolation: **one key = its grants**. The owner's agent Bearer is a **full-access** key (`*` = every shelf). A scoped key (grants = named shelves, not `*`) reads and writes those shelves but cannot `cm_delete`, `cm_move`, `cm_rename`, or delete a shelf — destructive verbs need `*` or sign-in.
 
 **`heading=` on show.** Match is case-insensitive; exact `##` title wins, else the first `##` whose title **contains** the string. Duplicate / ambiguous headings → the **first** match in file order — pass a longer unique fragment if you need another. Wrong / missing heading → `Heading not found` (same as delete); it does **not** return the whole file.
 

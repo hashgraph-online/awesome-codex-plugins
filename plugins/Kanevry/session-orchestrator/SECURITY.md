@@ -91,7 +91,8 @@ out-of-repo path is denied.
 command against `blockedCommands[]` using word-boundary matching (so `rm` does not
 match `format`). When `blockedCommands` is empty or absent, a hardcoded fallback
 list applies (`rm -rf`, `git push --force` / `-f`, `git reset --hard`,
-`drop table`, `git checkout -- .`).
+`drop table`, `git checkout --`, which also covers per-file discard and the
+`git restore` forms).
 
 Both wave guards **fail closed**: any unhandled internal error emits a deny,
 never a silent allow. (The session-level destructive-command guard makes the

@@ -128,7 +128,7 @@ only.
 
 Use --wait to poll the triggered pipeline until it completes, with exponential
 backoff and jitter. Exit codes in --wait mode: 0 = pipeline succeeded,
-1 = pipeline completed unsuccessfully, 8 = timed out while still running.
+1 = pipeline completed unsuccessfully, 8 = timed out while still running, 130 = interrupted.
 
 ### Usage
 
@@ -194,7 +194,7 @@ pipeline UUID. This command is available for Bitbucket Cloud contexts only.
 
 Use --wait to poll until the pipeline completes, with exponential backoff and
 jitter. Exit codes in --wait mode: 0 = pipeline succeeded, 1 = pipeline
-completed unsuccessfully, 8 = timed out while still running.
+completed unsuccessfully, 8 = timed out while still running, 130 = interrupted.
 
 ### Usage
 

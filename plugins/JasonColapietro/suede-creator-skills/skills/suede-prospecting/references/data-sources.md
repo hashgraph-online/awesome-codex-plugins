@@ -17,7 +17,8 @@ manual, source-linked research worksheet or a user-supplied export.
 |------|--------------|-------|
 | **Build initial firmographic list (B2B / SaaS)** | Apollo, ZoomInfo, Clay | Apollo for breadth, ZoomInfo for enterprise + intent, Clay for custom workflows |
 | **Decision-maker mapping** | LinkedIn Sales Navigator (manual), Apollo, ZoomInfo | Compare current coverage on a representative sample. Never bulk scrape restricted sources. |
-| **Tech stack qualification (SaaS)** | BuiltWith, Wappalyzer | BuiltWith has wider coverage + paid plans for bulk; Wappalyzer is lighter + free for small use |
+| **Tech stack qualification (SaaS)** | Bundled `collect.mjs dns` and `stack`, BuiltWith, Wappalyzer | Start with the free collector (DNS-verified tools, homepage pixels with first-seen month; see `collector.md`). BuiltWith has wider coverage + paid plans for bulk; Wappalyzer is lighter + free for small use |
+| **Hiring and growth signals** | Bundled `collect.mjs jobs`, `subdomains`, `adoption` | Open roles by function and channel, new subdomains, developer adoption curves; dated public observations, no keys |
 | **Funding signals (SaaS)** | Crunchbase, Pitchbook | Crunchbase free tier sufficient for early signals; Pitchbook for deeper investor data |
 | **Email pattern discovery** | Hunter, Snov, Apollo | Pattern guessing: followed by verification |
 | **Email deliverability verification** | Any currently authorized validator | Read current result semantics; otherwise label addresses unverified and use a manual handoff |
@@ -25,7 +26,7 @@ manual, source-linked research worksheet or a user-supplied export.
 | **Intent data** | ZoomInfo Intent, 6sense, Bombora | Pre-warmed signals; mid-market+ pricing |
 | **Trigger event monitoring** | Google Alerts, Feedly, LinkedIn Sales Nav alerts | Free options are sufficient for most |
 | **Public posts and announcements** | X search (Grok, for example, searches X directly), LinkedIn posts (manual), news search | Grok via the xAI API; Exa MCP. Read the original post, not a summary |
-| **Ad activity (gap plays)** | Meta Ad Library, Google Ads Transparency Center, LinkedIn Ad Library | Meta Ad Library API covers political and EU ads only; check its current scope. Otherwise browser research |
+| **Ad activity (gap plays)** | Meta Ad Library, Google Ads Transparency Center, LinkedIn Ad Library (`collect.mjs ads` prints the search links) | Meta Ad Library API covers political and EU ads only; check its current scope. Otherwise browser research |
 | **Local business discovery** | Google Maps (manual), Yelp, Facebook Pages | Browser-assisted, not bulk-extracted |
 
 ---
@@ -193,7 +194,9 @@ authorized connector is discovered and its terms permit this use.
 - Lighter coverage than BuiltWith
 - Faster for one-off lookups
 
-Cross-reference both for high-confidence tech stack signals.
+Cross-reference both for high-confidence tech stack signals. The bundled
+`collect.mjs dns` and `stack` commands give a free first pass and a dated
+second source; see `collector.md` for what they miss.
 
 ---
 
@@ -297,6 +300,9 @@ When the user has no callable or paid tools, give them a manual checklist using:
 - **Crunchbase or another current source**: funding events, when access and
   terms are verified
 - **Wappalyzer browser extension**: tech stack at a glance
+- **Bundled `collect.mjs`**: DNS-verified tools, stack history, public job
+  boards, certificate-log subdomains, and ad-library links, free and keyless
+  (see `collector.md`)
 - **Authorized contact-data source**: verify current allowance, terms, and
   permitted use before each run
 - **Google Maps**: for Local SMB discovery
@@ -313,7 +319,9 @@ A typical full-stack prospecting workflow:
 
 1. **Define ICP** from product-marketing context (no tools needed)
 2. **Initial list** from Apollo or ZoomInfo (firmographic filter)
-3. **Enrich** with Clay (waterfall: tech stack, funding, trigger events)
+3. **Enrich**: run the free `collect.mjs` signals first (`dns`, `jobs`, then
+   `stack` and `subdomains` on the shortlist), then Clay or another licensed
+   tool for what the collector does not cover (waterfall: funding, trigger events)
 4. **Decision-maker mapping** in LinkedIn Sales Nav (manual)
 5. **Email pattern discovery** with Hunter or Apollo's built-in
 6. **Email status** from an authorized validator, or an explicit `unverified`

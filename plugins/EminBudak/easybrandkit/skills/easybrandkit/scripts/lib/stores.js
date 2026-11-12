@@ -14,6 +14,8 @@ const path = require("path");
 const net = require("net");
 const { promises: dns } = require("dns");
 const { timeLeft } = require("./time");
+const { noControls, plainText, noEndSlashes } = require("./text");
+const { ipv4Within } = require("./address");
 
 const MAX_BYTES = 15 * 1024 * 1024;
 const MAX_SCREENSHOTS = 5;
@@ -70,15 +72,20 @@ function classify(raw) {
     if (/^[A-Z]{2}$/.test(gl)) return { type: "googleplay", id: pkg, hl, gl, url: `https://play.google.com/store/apps/details?id=${pkg}&hl=${hl}&gl=${gl}` };
     return { type: "googleplay", id: pkg, hl, url: `https://play.google.com/store/apps/details?id=${pkg}&hl=${hl}` };
   }
+  const page = noEndSlashes(url.pathname);
   for (const [pattern, type] of PROFILE_HOSTS) {
-    const page = url.pathname.replace(/\/+$/, "");
     if (pattern.test(host) && page) return { type, url: `https://${host}${page}` };
   }
   return null;
 }
 
+// Whether an address is on the public internet. An IPv4 address in IPv6
+// form, mapped or reached through NAT64 as on a network with IPv6 only, is
+// as public as the IPv4 address it stands for.
 function isPublicAddress(address) {
   const family = net.isIP(address);
+  const v4 = ipv4Within(address);
+  if (v4) return isPublicAddress(v4);
   if (family === 4) {
     const [a, b, c] = address.split(".").map(Number);
     return !(
@@ -121,27 +128,35 @@ async function get(raw, { binary = false, accept = "*/*" } = {}) {
     const url = await checkFetchUrl(current);
     const left = timeLeft();
     if (left < 2_000) throw new Error("out of time");
-    const res = await fetch(url, {
-      redirect: "manual",
-      headers: { "user-agent": UA, accept, "accept-language": "en-US,en;q=0.8" },
-      signal: AbortSignal.timeout(Math.min(25_000, left - 1_000)),
-    });
-    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
-      current = new URL(res.headers.get("location"), url).href;
-      continue;
+    const wait = Math.min(25_000, left - 1_000);
+    try {
+      const res = await fetch(url, {
+        redirect: "manual",
+        headers: { "user-agent": UA, accept, "accept-language": "en-US,en;q=0.8" },
+        signal: AbortSignal.timeout(wait),
+      });
+      if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+        current = new URL(res.headers.get("location"), url).href;
+        continue;
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status} from ${url.hostname}`);
+      const declared = Number(res.headers.get("content-length") || 0);
+      if (declared > MAX_BYTES) throw new Error(`larger than 15 MB: ${url.hostname}`);
+      const chunks = [];
+      let size = 0;
+      for await (const chunk of res.body) {
+        size += chunk.length;
+        if (size > MAX_BYTES) throw new Error(`larger than 15 MB: ${url.hostname}`);
+        chunks.push(chunk);
+      }
+      const body = Buffer.concat(chunks);
+      return { body: binary ? body : body.toString("utf8"), type: res.headers.get("content-type") || "", url: url.href };
+    } catch (err) {
+      // Told by the server that did not answer, not in the words of Node's
+      // timer, which name nothing.
+      if (err.name === "TimeoutError") throw new Error(`${url.hostname} did not answer in ${Math.round(wait / 1_000)} s`);
+      throw err;
     }
-    if (!res.ok) throw new Error(`HTTP ${res.status} from ${url.hostname}`);
-    const declared = Number(res.headers.get("content-length") || 0);
-    if (declared > MAX_BYTES) throw new Error(`larger than 15 MB: ${url.hostname}`);
-    const chunks = [];
-    let size = 0;
-    for await (const chunk of res.body) {
-      size += chunk.length;
-      if (size > MAX_BYTES) throw new Error(`larger than 15 MB: ${url.hostname}`);
-      chunks.push(chunk);
-    }
-    const body = Buffer.concat(chunks);
-    return { body: binary ? body : body.toString("utf8"), type: res.headers.get("content-type") || "", url: url.href };
   }
   throw new Error(`too many redirects: ${raw}`);
 }
@@ -293,9 +308,12 @@ function profilePlan(html) {
 
 // One listing or profile, its pictures saved in dir as <type>-icon.png,
 // <type>-shot-01.png … <type>-profile.jpg. A source that cannot be read (a
-// login wall, a removed app) comes back with ok:false and the reason.
+// login wall, a removed app) comes back with ok:false and the reason. A
+// picture that cannot be written, as on a full disk, fails the run instead:
+// what it has of the file would otherwise go into the kit.
 async function readSource(link, dir) {
   const source = { type: link.type, url: link.url, ok: false, assets: [] };
+  let notWritten = null;
   try {
     let plan = null;
     if (link.type === "appstore") {
@@ -310,24 +328,33 @@ async function readSource(link, dir) {
     }
     if (!plan) throw new Error("the page has no listing or profile data (removed, private or behind a login)");
     const { images, ...facts } = plan;
-    Object.assign(source, facts);
+    Object.assign(source, facts, { name: plainText(facts.name, 200), by: plainText(facts.by, 200), category: plainText(facts.category, 100), description: noControls(facts.description) });
     let shot = 0;
     for (const image of images) {
+      let body;
+      let info;
       try {
-        const { body } = await get(image.url, { binary: true, accept: "image/png,image/jpeg,image/webp,*/*;q=0.5" });
-        const info = imageInfo(body);
-        if (!info) continue;
-        const suffix = image.kind === "screenshot" ? `shot-${String(++shot).padStart(2, "0")}` : image.kind;
-        const file = `${link.type}-${suffix}.${info.ext}`;
-        fs.writeFileSync(path.join(dir, file), body);
-        source.assets.push({ file, kind: image.kind, url: image.url, width: info.width, height: info.height, alpha: info.alpha });
+        ({ body } = await get(image.url, { binary: true, accept: "image/png,image/jpeg,image/webp,*/*;q=0.5" }));
+        info = imageInfo(body);
       } catch {
         // One image that will not come is skipped; the rest still count.
+        continue;
       }
+      if (!info) continue;
+      const suffix = image.kind === "screenshot" ? `shot-${String(++shot).padStart(2, "0")}` : image.kind;
+      const file = `${link.type}-${suffix}.${info.ext}`;
+      try {
+        fs.writeFileSync(path.join(dir, file), body);
+      } catch (err) {
+        notWritten = err;
+        throw err;
+      }
+      source.assets.push({ file, kind: image.kind, url: image.url, width: info.width, height: info.height, alpha: info.alpha });
     }
     source.ok = source.assets.length > 0 || Boolean(source.name);
     if (!source.ok) source.error = "no images could be downloaded";
   } catch (err) {
+    if (err === notWritten) throw err;
     source.error = err.message;
   }
   return source;

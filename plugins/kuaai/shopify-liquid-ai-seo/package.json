@@ -1,0 +1,20 @@
+{
+  "name": "shopify-liquid-ai-seo",
+  "version": "1.0.0",
+  "description": "Production-ready Cursor rules and Liquid guidelines for Shopify Online Store 2.0, Product Schema JSON-LD, and AI Shopping optimization.",
+  "keywords": [
+    "shopify",
+    "cursor-rules",
+    "liquid",
+    "seo",
+    "ecommerce",
+    "product-cards",
+    "chatgpt-shopping"
+  ],
+  "author": "ClickFrom.AI (https://www.clickfrom.ai)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kuaai/shopify-liquid-ai-seo.git"
+  }
+}

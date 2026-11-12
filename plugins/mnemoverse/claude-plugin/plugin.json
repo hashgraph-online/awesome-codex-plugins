@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "mnemoverse",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Persistent memory for AI agents, shared across tools. Connects the hosted Mnemoverse memory server over remote MCP with a one-time browser sign-in: recall relevant memories before acting, save durable decisions and corrections, keep shared rooms across accounts. Bundles the CC0 agent-memory-discipline skill so the agent actually uses the memory it has.",
   "author": {
     "name": "Mnemoverse",

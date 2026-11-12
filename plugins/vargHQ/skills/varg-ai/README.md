@@ -22,7 +22,7 @@ claude plugin install varg@varg
 | Typical cost | ~$2–5 per typical short video |
 | Uses | varg API, Seedance 2.5, Kling 4, Veo 3.1, Nano Banana 2.1, GPT Image 2.6, ElevenLabs v4, Lyria 3.5 |
 | Works in | Claude Code, Codex, Grok, Cursor, Gemini CLI, Copilot, OpenCode and other Agent Skills tools |
-| Agent instructions | [SKILL.md](./SKILL.md) (v2.2.3) |
+| Agent instructions | [SKILL.md](./SKILL.md) (v2.2.5) |
 
 ## Ask your agent
 

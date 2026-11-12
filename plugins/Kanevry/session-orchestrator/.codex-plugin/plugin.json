@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "5.17.0+codex.20261101111338",
+  "version": "5.18.0+codex.20261110221425",
   "description": "A repeatable Plan, Go, Close workflow for AI coding sessions: /session reads your repo and agrees the scope, /go runs the work in waves with a quality gate between each, /close verifies and commits. Runs on Claude Code, Codex CLI, Cursor and Pi.",
   "keywords": [
     "session",
@@ -17,16 +17,18 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Session Orchestrator",
-    "shortDescription": "Structured engineering sessions for Codex",
+    "shortDescription": "Plan, run and close sessions",
     "longDescription": "Adds reusable session workflows to Codex: project analysis, wave planning, guided execution, quality gates, persistence, and clean session close-out.",
     "developerName": "Bernhard Goetzendorfer",
-    "category": "Coding",
+    "category": "Developer Tools",
     "capabilities": [
       "Interactive",
       "Write"
     ],
     "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
     "websiteURL": "https://session-orchestrator.com",
+    "supportURL": "https://github.com/Kanevry/session-orchestrator/issues",
     "privacyPolicyURL": "https://gotzendorfer.at/en/session-orchestrator/privacy",
     "termsOfServiceURL": "https://gotzendorfer.at/en/session-orchestrator/terms",
     "defaultPrompt": [

@@ -5,9 +5,9 @@ description: Use at session start when Agent Deck MCP is configured or expected,
 
 # Agent Deck session opener
 
-This skill verifies an MCP connection; it does not create one. In Codex, the Agent Deck
-plugin's `.mcp.json` must already have launched `agent-deck mcp-launch`. The launcher reads
-the folder's v3 assignment and sends the deck/workspace headers before these tools exist.
+This skill verifies an MCP connection; it does not create one. In Codex and Claude Code the
+host connects over pure MCP (streamable HTTP): the per-folder entry carries the workspace
+header and the daemon resolves the folder's assignment before these tools exist.
 
 When Agent Deck MCP is configured for the current session, or `.agent-deck/use.json` indicates
 that it is expected, this opener is a hard gate. The file is only one optional signal; the
@@ -49,9 +49,11 @@ other read-only diagnostics needed to restore the connection are allowed.
 Give the operator recovery for the failed layer:
 
 - **Transport unavailable:** run `agent-deck status`. In Codex, verify the Agent Deck plugin
-  is installed, enabled, and current, then reload or start a new task so its `.mcp.json`
-  launches `agent-deck mcp-launch`. `agent-deck setup --client codex` installs or refreshes
-  the AGENTS.md guidance only; it does not install or repair the plugin transport.
+  is installed, enabled, and current; in Claude Code, check `claude mcp list`. Trust the
+  folder, approve the project agent-deck entry, run `agent-deck use <deck>` in the folder
+  when its assignment is missing or legacy, then reload or start a new task. `agent-deck
+  setup --client codex|claude` writes the global headerless fallback and refreshes the
+  AGENTS.md/CLAUDE.md guidance only; it does not install or repair the plugin.
 - **Assignment missing or legacy:** run `agent-deck use <deck>` in the IDE folder, then reload
   or retry the MCP connection.
 - **Unattended launch:** fix `x-agent-deck-deck-id` / the launch configuration.

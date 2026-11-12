@@ -120,6 +120,7 @@
         "suede-prospecting",
         "suede-public-relations",
         "suede-referrals",
+        "suede-reverse-engineer-anyone",
         "suede-revops",
         "suede-sales-enablement",
         "suede-sms",
@@ -224,11 +225,11 @@
       "key": "position",
       "label": "Strategy & rights",
       "summary": "Know the market you are in and own what you make.",
-      "count": 11,
+      "count": 12,
       "lanes": [
         {
           "label": "Strategy & research",
-          "count": 7
+          "count": 8
         },
         {
           "label": "Creator toolkit",
@@ -749,6 +750,15 @@
       "description": "Find missing files, malformed metadata, artwork and stem issues, split gaps, AI involvement, and delivery blockers in local music or media release folders. Use when asked to \"check this release folder\" or explain a delivery rejection. Writes scored Markdown and JSON reports; unknown facts remain unknown. NOT FOR: resolving rights or building a transfer package (use suede-rights-passport), sync one-sheets (use suede-sync-packaging), or rollout campaigns (use suede-campaign-in-a-box).",
       "useWhen": "Check a release folder before release, licensing, registry prep, royalty routing, agent commerce, or transfer-package handoff.",
       "displayName": "Suede AI Release Linter Skills"
+    },
+    {
+      "name": "suede-reverse-engineer-anyone",
+      "area": "marketing",
+      "specialty": "position",
+      "lane": "Strategy & research",
+      "description": "Use when asked \"how did X grow\", \"reverse engineer their marketing\", \"what made this artist blow up\", or \"map their funnel\". Suede AI reverse-engineers any company, creator, artist, founder brand, app, or launch from dated public evidence: a one-source growth curve, a log of every move, funnel and content patterns, hidden signals, the user's gap, and ranked plays routed to the Suede skill that runs each one. NOT FOR: a current-state competitor snapshot (use suede-competitor-profiling), publishing comparison pages (use suede-competitors), or why one post traveled (use suede-social).",
+      "useWhen": "The user wants to know how a company, creator, artist, founder brand, app, or launch grew, and which of its moves to copy.",
+      "displayName": "Suede AI Reverse Engineer Anyone Skills"
     },
     {
       "name": "suede-revops",

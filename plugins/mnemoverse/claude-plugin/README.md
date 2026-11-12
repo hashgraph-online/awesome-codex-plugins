@@ -15,7 +15,13 @@ One line, no directory and no review queue:
 /plugin install mnemoverse@mnemoverse
 ```
 
-The first command registers this repository as a plugin marketplace; the second installs the plugin from it. Updates arrive with `/plugin marketplace update mnemoverse`.
+The first command registers this repository as a plugin marketplace; the second installs the plugin from it. To update an installed copy, run this in your terminal:
+
+```sh
+claude plugin update mnemoverse@mnemoverse
+```
+
+This refreshes the marketplace and installs the newer plugin version. Start a new Claude Code session to load it. Inside Claude Code, `/plugin marketplace update mnemoverse` refreshes the marketplace catalog. These update instructions were checked against the [Claude Code plugin update reference](https://code.claude.com/docs/en/plugins/cli-reference#plugin-update) and [marketplace update reference](https://code.claude.com/docs/en/plugins/cli-reference#plugin-marketplace-update) on 2026-11-05.
 
 To try it from a local checkout of this repository instead:
 

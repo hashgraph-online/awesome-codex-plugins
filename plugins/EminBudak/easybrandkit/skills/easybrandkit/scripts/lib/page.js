@@ -21,6 +21,29 @@ async function metrics(cdp) {
   };
 }
 
+// What the nearest of an element and those above it says, by what own says
+// of each one (something truthy), asked once per element: a page can nest its
+// elements as deep as it likes, and a walk up from each of them would then
+// hold the one thread that answers Ctrl-C and the run's own time limit.
+function nearest(parents, own) {
+  const known = new Map();
+  return (start) => {
+    const passed = [];
+    let said;
+    for (let at = start; at >= 0; at = parents[at]) {
+      if (known.has(at)) {
+        said = known.get(at);
+        break;
+      }
+      passed.push(at);
+      said = own(at);
+      if (said) break;
+    }
+    for (const at of passed) known.set(at, said);
+    return said;
+  };
+}
+
 function wheel(cdp, x, y, deltaY) {
   return cdp.send("Input.dispatchMouseEvent", { type: "mouseWheel", x, y, deltaX: 0, deltaY });
 }
@@ -52,25 +75,31 @@ async function walk(cdp) {
 }
 
 // A single-page app can show a bare loading screen for a long time (25 s on
-// one site, in a fresh browser). Wait, up to 30 s, until the page is taller
-// than the screen or has a link or an image. True once the page shows
-// content; false when it is still a bare loader.
+// one site, in a fresh browser). The page is looked at once in any case, and
+// then, up to 30 s while the run has the time for it, until it is taller than
+// the screen or has a link or an image. Says "content" once the page shows
+// some, "loader" when it is still a bare loader after the whole wait, and
+// "no time" when the run had no time left to wait that long.
 async function waitForContent(cdp) {
-  for (let waited = 0; waited < 30_000 && timeLeft() > 50_000; waited += 1_000) {
+  for (let waited = 0; ; waited += 1_000) {
     const m = await metrics(cdp);
-    if (m.height > m.viewportHeight + 50) return true;
+    if (m.height > m.viewportHeight + 50) return "content";
     const snap = await cdp.send("DOMSnapshot.captureSnapshot", { computedStyles: [] });
     const names = (((snap.documents || [])[0] || {}).nodes || {}).nodeName || [];
-    if (names.some((i) => snap.strings[i] === "A" || snap.strings[i] === "IMG")) return true;
+    if (names.some((i) => snap.strings[i] === "A" || snap.strings[i] === "IMG")) return "content";
+    if (waited >= 30_000) return "loader";
+    if (timeLeft() <= 50_000) return "no time";
     await sleep(1_000);
   }
-  return false;
 }
 
 // Floating overlays sit over the content: a promo box, a chat bubble, a
 // cookie bar, a modal backdrop. Hide every position:fixed element except the
 // page's own chrome: a short bar on the top edge (navigation) and a tall,
-// narrow bar on the left or right edge (an app's sidebar).
+// narrow bar on the left or right edge (an app's sidebar). Each one takes two
+// calls to the browser, so no more are hidden than any page has, and none
+// once the run has nearly used up its time.
+const MANY_OVERLAYS = 500;
 function isPageChrome([x, y, width, height], viewportWidth, viewportHeight) {
   const topBar = y <= 20 && height <= viewportHeight * 0.3;
   const sideBar =
@@ -95,15 +124,15 @@ async function hideOverlays(cdp, viewportWidth, viewportHeight) {
   // it holds.
   const held = new Map();
   const parentOf = doc.nodes.parentIndex || [];
+  // One above the node index, so that the first node counts as something.
+  const fixedAbove = nearest(parentOf, (n) => (fixed.has(n) ? n + 1 : 0));
   doc.layout.nodeIndex.forEach((nodeIndex, i) => {
     const [x, y, w, h] = doc.layout.bounds[i] || [];
     if (!(w > 0 && h > 0)) return;
-    for (let n = parentOf[nodeIndex]; n >= 0; n = parentOf[n]) {
-      if (!fixed.has(n)) continue;
-      const [x0, y0, x1, y1] = held.get(n) || [x, y, x + w, y + h];
-      held.set(n, [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x + w), Math.max(y1, y + h)]);
-      break;
-    }
+    const n = (fixedAbove(parentOf[nodeIndex]) || 0) - 1;
+    if (n < 0) return;
+    const [x0, y0, x1, y1] = held.get(n) || [x, y, x + w, y + h];
+    held.set(n, [Math.min(x0, x), Math.min(y0, y), Math.max(x1, x + w), Math.max(y1, y + h)]);
   });
   for (const [nodeIndex, own] of fixed) {
     const box = held.get(nodeIndex);
@@ -115,10 +144,11 @@ async function hideOverlays(cdp, viewportWidth, viewportHeight) {
   if (backendIds.length === 0) return 0;
   await cdp.send("DOM.getDocument", { depth: 0 });
   const { nodeIds = [] } = await cdp.send("DOM.pushNodesByBackendIdsToFrontend", {
-    backendNodeIds: backendIds,
+    backendNodeIds: backendIds.slice(0, MANY_OVERLAYS),
   });
   let hidden = 0;
   for (const nodeId of nodeIds) {
+    if (timeLeft() < 5_000) break;
     if (!nodeId) continue;
     try {
       const { attributes = [] } = await cdp.send("DOM.getAttributes", { nodeId });
@@ -209,4 +239,4 @@ async function capture(cdp, x, y, width, height, scale = 1, beyondViewport = tru
   );
 }
 
-module.exports = { metrics, walk, waitForContent, isPageChrome, hideOverlays, resetPictureWait, capture };
+module.exports = { metrics, walk, waitForContent, nearest, isPageChrome, hideOverlays, resetPictureWait, capture };

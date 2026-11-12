@@ -100,6 +100,10 @@ typing into an open AskUserQuestion, plan, or permission dialog. Add
 `amq coop exec` prints `dialog guard: plain` or
 `dialog guard: proper (<harness>)` to show which one a seat gets.
 
+If you use only the Claude Code desktop app, `amq launch` has no terminal to
+start. Skip this step and follow
+[Claude Code desktop app](COOP.md#claude-code-desktop-app).
+
 Start both agents before sending the first message. Messages that arrive
 before a recipient's wake starts remain unread but do not trigger that new
 wake. The recipient can still get them with `amq drain --include-body`.

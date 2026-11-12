@@ -1,6 +1,6 @@
 {
   "name": "wtfm",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Your coding agent writes the user docs from your codebase, screenshots included.",
   "author": {
     "name": "SupportPages.io",

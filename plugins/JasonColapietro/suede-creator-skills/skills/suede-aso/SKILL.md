@@ -13,7 +13,7 @@ input, expected artifact, failure response and validation example.
 
 ## Compatibility
 
-Works with live listing URLs or a prelaunch feature brief; web access for current official store field rules, console exports for performance evidence. Store write access is unnecessary for an audit or metadata draft.
+Works with live listing URLs or a prelaunch feature brief; web access for current official store field rules, console exports for performance evidence. Store write access is unnecessary for an audit or metadata draft. The bundled `scripts/collect.mjs` (Node 22+, no API keys) pulls free public review trends, archived listing changes, and ad-library links; see [references/collector.md](references/collector.md).
 
 Analyze App Store and Google Play listings with the Suede ASO scoring system. Fetch
 live listing data, score metadata, visuals, and ratings, then produce a
@@ -97,6 +97,24 @@ of the listing page** to get visual data:
 **Promotional text (Apple):** This 170-char field appears above the description
 but is often indistinguishable from it in scraped HTML. If you cannot confirm
 its presence, note this and recommend the user check App Store Connect.
+
+### Review and change history
+
+Commands, output paths under `aso/evidence/`, and gaps are in
+[references/collector.md](references/collector.md).
+
+1. **App Store reviews:** `node scripts/collect.mjs reviews <app-id> --country <cc>`
+   gives monthly volume, average rating, and 1 to 2 star counts, plus complaint
+   terms from 1 to 2 star reviews (newest 500 reviews per country). Use it for
+   recency and trend; score the headline rating from the listing itself.
+2. **Google Play reviews:** the collector has no free public Play review source.
+   Use the reviews visible on the listing, a Play Console export, or an
+   authorized connector within its terms.
+3. **Listing changes:** `history <listing-url>` and `hero <marketing-domain>`
+   date the months a listing or site changed. Open the two captures before
+   calling it a title, subtitle, or screenshot change.
+4. When a run prints `blocked by <host>`, fall back to the manual method and
+   name it in the finding.
 
 ---
 
@@ -190,6 +208,7 @@ If the user provides competitor URLs or asks for comparison:
 2. Run the same scoring on each
 3. Build a comparison table highlighting where the user's app is weaker/stronger
 4. Identify keyword gaps: terms competitors rank for that the user's app doesn't target
+5. For each App Store competitor, run `reviews` (their complaint terms are positioning openings) and `history` on their listing URL; when they buy installs, `ads "<name>"` prints ad-library links to check and date
 
 If no competitors are specified, suggest the user provide 2-3 or offer to search
 for top apps in their category.

@@ -812,6 +812,33 @@ Included and proposed work as for SLayer, against `semantic.cube.files`: listed
 paths are stored as a plan of their own (`plan_id`; apply both), others are
 proposed with the `dex config set semantic.cube.files '[...]'` that adds them.
 
+### Databricks Metric Views (`semantic.vendor: databricks`)
+
+One file per mart, `<dir>/<mart>.yaml` (the one directory and suffix the
+configured files share, `metric_views/` and `.yaml` where they share none). A
+Metric View has **no metadata key**: Databricks refuses any key its
+specification does not list, so a fact with no native construct is named in
+`not_carried` rather than written.
+
+| Declaration | Metric View |
+| --- | --- |
+| the mart's relation | `source` (the siblings' `catalog.schema`, else the manifest relation, else the bare name as a limitation) |
+| any role but `measure` | a field, `expr: <column>`; a date or timestamp column (from the SQL, the cache or a `time` role) gets `format: {type: date, date_format: year_month_day}` or `{type: date_time, date_format: year_month_day, time_format: locale_hour_minute_second}` (Databricks refuses either without its formats), the only way a Metric View marks a field temporal |
+| `measure` with `aggregation` | a measure `<column>_<agg>`: `SUM`, `AVG` (`average`, `mean`), `MIN`, `MAX`, `MEDIAN`, `COUNT`, `COUNT(DISTINCT ...)`. Fields and measures share one namespace, so the suffix keeps the measure from shadowing its column |
+| `semi_additive` | no measure, named in `limitations`: a window measure (`semiadditive: last`) needs an ordering field and a range, which is the author's call |
+| `unit` | `currency:<code>` as `format: {type: currency, currency_code: <code>}`, `fraction` as `format: {type: percentage}` (Databricks displays it multiplied by 100); `percent` and any unit on a count are not carried |
+| `foreign_key` with `references` | a `many_to_one` join named after the parent, `on: source.<column> = <parent>.<parent column>`, on the parent's relation; `rely: {at_most_one_match: true}` only where the parent's own declaration states that column as its whole grain |
+| `description`, `population` | the view's `comment`, the population as its last sentence; never a `filter`. The catalog withholds that sentence, as every native catalog does |
+| a column's `description` | the member's `comment` |
+| `grain`, `null_rule`, `additivity`, `assumptions` | not carried: a view declares no key on its own source, and there is no metadata key |
+
+A view already on the mart's table is `skipped`; a file whose stem is the mart's
+name on another source is `failed`. Included and proposed work as for SLayer,
+against `semantic.databricks.files`. A join's `source` is the source of the view
+already on the parent's table where one is configured. A derived join is declared
+for exploration and `maintain grain`; a Metric View exposes only its fields, so
+add a field that reads it (`<parent>.<column>`) to query through it.
+
 ### Ossie (`semantic.vendor: ossie`)
 
 One dataset per mart, appended as a new list item to a configured document:
@@ -841,7 +868,7 @@ else the manifest relation, else the bare name as a limitation). A dataset alrea
 on the mart's table is `skipped`; one holding its name in the target document is
 `failed`.
 
-### Declarations on `semantic slayer`, `semantic cube` and `semantic ossie`
+### Declarations on `semantic slayer`, `semantic cube`, `semantic ossie` and `semantic databricks`
 
 `semantic slayer define|update|plan` take the same `declarations` key beside
 `edits`. There a declaration **annotates** a SLayer model the payload's edits or
@@ -865,6 +892,15 @@ metric `<field>_<agg>`, a `references` adds a relationship to the parent dataset
 field in the same document, and the rest lands in `ai_context` as above. Only that
 dataset's list item is rewritten, and a relationship is appended, so every other
 byte of the document is kept.
+`semantic databricks` does the same for a view (`model` is the file's stem): the
+description and population sentence become the root `comment`, a column's
+description and unit become its member's `comment` and `format`, a declared
+aggregation with no member adds a measure `<column>_<agg>`, and a `references`
+naming another configured view adds a join on that view's `source` (with no
+`rely`, since the native route reads no parent declaration). Only those parts are
+spliced, read and written as YAML 1.2, so every other byte, comment and `on:` key
+is kept; the grain, NULL rule, additivity and assumptions are named in
+`not_carried`.
 
 Per model, `status` is one of:
 

@@ -4,7 +4,7 @@ description: 'Use this skill when scaffolding the minimum repository structure r
 metadata:
   user-invocable: 'true'
   disable-model-invocation: 'true'
-  argument-hint: '[--upgrade <tier>]'
+  argument-hint: '[--fast|--standard|--deep] [--no-interview] [--upgrade <tier>]'
   tags: bootstrap, setup, scaffold, init
   model: sonnet
   model-preference: sonnet

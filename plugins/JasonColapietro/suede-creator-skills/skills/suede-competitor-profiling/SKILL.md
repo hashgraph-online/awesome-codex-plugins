@@ -12,7 +12,7 @@ Use this competitive-intelligence playbook to turn current public evidence into 
 
 ## Compatibility
 
-An agent with web access and local file writing for raw captures and profiles. Optional SEO providers are used only when already available; their absence leaves those measurements unknown.
+An agent with web access and local file writing for raw captures and profiles. Optional SEO providers are used only when already available; their absence leaves those measurements unknown. The bundled `scripts/collect.mjs` collector needs Node 22 or later and no API keys.
 
 ## Initial Assessment
 
@@ -37,6 +37,7 @@ competitor-profiles/
 │       └── <YYYY-MM-DD>/
 │           ├── scrapes/    # one .md file per captured page (homepage.md, pricing.md, ...)
 │           ├── seo/        # one .json or .csv file per authorized metric source
+│           ├── signals/    # collect.mjs CSVs (history, hero, stack, dns, jobs, ...)
 │           └── reviews/    # one .md or .json file per review source (g2.md, capterra.md, ...)
 ├── <competitor-slug>.md    # final synthesized profile
 └── _summary.md             # cross-competitor summary
@@ -94,11 +95,15 @@ authorized it, halt in four parts:
 If a current authorized connector exposes a site-map or crawl capability, use
 its documented schema to discover the site structure. For example, some
 Firecrawl connections expose a `firecrawl_map` operation, but that name is not
-guaranteed. Otherwise build the URL list through the manual fallback.
+guaranteed. Otherwise run the bundled collector, which reads robots.txt and
+sitemaps only:
 
 ```
-available map capability or manual navigation → verified competitor URLs
+node <skill-dir>/scripts/collect.mjs site <domain> --out competitor-profiles/raw/<competitor-slug>/<YYYY-MM-DD>/scrapes/urls.csv
 ```
+
+If it prints `blocked by <host>`, build the URL list through the manual
+fallback. Page capture in Step 2 stays a connector or manual step.
 
 From the map, identify and prioritize these page types:
 - Homepage
@@ -147,6 +152,18 @@ platform is actually connected and the user has authorized it.
 - TrustRadius profile
 
 Save each scraped review page to `competitor-profiles/raw/<competitor-slug>/<YYYY-MM-DD>/reviews/<source>.md`. Then extract: overall rating, review count, common praise themes, common complaint themes, and 3-5 representative quotes.
+
+#### Step 4: Collect market signals (deep profile)
+
+Run the collector commands in
+[references/collector.md](references/collector.md) into the run's `signals/`
+folder: `stack` (marketing tools and pixels, first month seen), `dns`,
+`subdomains`, `jobs` (hiring by function and channel), `reviews` (App Store
+monthly volume and rating, for app competitors), `adoption` (npm, PyPI,
+GitHub, for dev tools), and `ads` (ad-library links). Each output is a fact
+cited with its file and pull date; a pixel is an inference that a paid channel
+was possible, not proof ads ran. When a command prints `blocked by <host>`,
+use the manual method or mark the fields `not collected`.
 
 ---
 
@@ -233,7 +250,7 @@ ls -R competitor-profiles/raw/<competitor-slug>/<YYYY-MM-DD>/
 
 - Every field not marked `[unknown]` and not marked `not collected` traces to a
   saved file in that folder. A `[fact: ...]` field traces to the `scrapes/`,
-  `reviews/` or `seo/` file it was read from; an `[inference]` field traces to
+  `reviews/`, `seo/` or `signals/` file it was read from; an `[inference]` field traces to
   the scrape file it was inferred from, not to a separate artifact.
 - Any field that traces to nothing gets re-collected or re-marked `[unknown]`.
   It is never softened into confident prose: that is exactly what Boundaries
@@ -313,7 +330,9 @@ When profiling more than one competitor:
 
 Profiles are snapshots. When updating:
 
-- Check pricing pages first (most volatile)
+- Check pricing pages first (most volatile); `collect.mjs history <domain>/pricing`
+  lists the months the archived page changed and `hero` the headline and
+  positioning changes. Open the captures before calling a change a pricing move
 - Refresh SEO metrics only through the same available provider and matching
   market/device/database parameters, or mark them unavailable
 - Scan changelog for product changes
@@ -343,6 +362,7 @@ Only ask if not answered by context or input:
 ## Routing
 
 - Need a public comparison or alternative page -> use `suede-competitors`.
+- Need how a competitor grew over time and which moves to copy -> use `suede-reverse-engineer-anyone`.
 - Need a sales battle card -> use `suede-sales-enablement`.
 - Need review and forum synthesis -> use `suede-customer-research`.
 - Need pricing, ad, or content implications -> use `suede-pricing`, `suede-ads`, or `suede-content-strategy`.

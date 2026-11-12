@@ -95,12 +95,9 @@ context, so each persona records and replays its own steps.
 ## act: one goal
 
 ```ts
-import { credentials, expect } from 'e2e';
+import { credentials } from 'e2e';
 
 await agent.act('add a todo named "Buy milk"');
-await expect(screen.getByRole('listitem', 'Buy milk')).toBeVisible();
-await agent.act('mark the "Buy milk" todo as done');
-await expect(screen.getByRole('checkbox', 'Buy milk')).toBeChecked();
 await agent.act('invite {email} as an editor', { params: { email: 'ada@example.test' } });
 
 const member = credentials.user('member');
@@ -295,7 +292,7 @@ elsewhere on the current screen.
 - One goal per `act`; goal order is the test's, the path the model's.
 - Keep each goal atomic: one outcome that one check confirms. When two
   parts of an instruction each leave a state worth checking, they are two
-  goals: give each its own `act` and check. Steps toward a single outcome
+  goals, each its own `act`. Steps toward a single outcome
   are the path, not more goals: scrolling to a control, closing a banner,
   opening the menu that holds it, filling the fields of one form.
 - A split flow fails at the goal that broke. Each goal replays from its own
@@ -303,25 +300,38 @@ elsewhere on the current screen.
   timeout still caps them all.
 
 ```ts
-// BAD: three goals in one instruction, one recording, no check between them.
+// BAD: three goals in one instruction, one recording.
 await agent.act('open the Pro plan, set the seats to {seats}, and check out', { params: { seats: 3 } });
 
-// GOOD: three atomic goals, each pinned before the next.
-await agent.act('open the Pro plan');
-await expect(screen.getByRole('heading', 'Pro plan')).toBeVisible();
-await agent.act('set the seats to {seats}', { params: { seats: 3 } });
-await expect(screen.getByRole('status', 'Seats')).toHaveText('3 seats');
-await agent.act('check out');
-await expect(screen.getByText('Order confirmed')).toBeVisible();
+// GOOD: arrange with two atomic goals, act with the one under test, assert last.
+test('checks out the Pro plan', async ({ app, agent, screen }) => {
+  await app.open('/plans');
+  await agent.act('open the Pro plan');
+  await agent.act('set the seats to {seats}', { params: { seats: 3 } });
+  await agent.waitFor('the cart shows the Pro plan with 3 seats');
+
+  await agent.act('check out');
+
+  await expect(screen.getByText('Order confirmed')).toBeVisible();
+  await expect(screen.getByText('Pro plan, 3 seats')).toBeVisible();
+});
 ```
+
+Choosing the seats is its own behavior, so it gets its own test that ends
+after `set the seats` and asserts the seat count. Tests follow arrange, act,
+assert, one behavior each (topic `writing-tests`, "Structure").
 
 - Use the words on screen: `'open the Billing tab'`, not `'upgrade'`.
 - Values go in `params`, never expanded: `act('rename to {name}', { params })`.
 - Do not describe mechanics the runner handles: waiting, scrolling, retries.
-- Pin every `act` outcome right after it; that check lets the cache record:
+- End the test with a check of the outcome. A passing locator or engine
+  matcher, `agent.assert`, or wait confirms every `act` before it, which
+  lets the cache record them; close an arrange block of `act` goals with a
+  wait for its state, so a failure later in the test keeps them recorded:
 
 ```ts
 await agent.act('create a workspace named "Atlas" on the Pro plan');
+
 await expect(screen.getByRole('status')).toHaveText('Created "Atlas" on the Pro plan');
 ```
 

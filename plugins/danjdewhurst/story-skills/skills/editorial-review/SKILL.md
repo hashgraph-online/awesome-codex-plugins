@@ -169,15 +169,23 @@ Follow `references/editor-rounds.md`:
    the user's approval, commit the book's folder only and tag it:
    `git add -A -- . && git commit -m "…" -- . && git tag sent-to-editor-1`.
    When the status lists nothing, run only the tag; if the user declines
-   the commit, or it fails, never tag over the uncommitted tree. Then
-   build the file the editor wants: `story build . --format docx` (Word
-   with Track Changes) or `story build . --format shunn` for manuscript
-   format.
+   the commit, or it fails, never tag over the uncommitted tree; without
+   git, run `story snapshot sent-to-editor-1` and pass
+   `--snapshot sent-to-editor-1` to `story apply` instead of `--ref`. Then
+   build the Word file the editor wants: `story build . --format docx`
+   (Word with Track Changes) or `story build . --format docx --shunn` for
+   manuscript format. Only a Word build comes back through `story apply`;
+   `--format shunn` writes a markdown manuscript, which cannot.
 2. When edits come back, list them with `story notes <returned.docx>
    --path .`: each comment, reply, and tracked change on its current
-   paragraph label. The author accepts or rejects the changes in Word; the
-   agent transfers the accepted text into the chapter markdown, chapter
-   by chapter, never by a bulk script. Queries that change events go to
+   paragraph label. The author accepts or rejects the changes in Word.
+   Then preview the accepted text with
+   `story apply <returned.docx> --path . --ref sent-to-editor-1 --dry-run`,
+   show the author what it would change, and with approval run it without
+   `--dry-run`, checking that its SHA-256 and counts match the preview,
+   then the maintenance block (see Taking edits back in
+   `references/editor-rounds.md`). Never convert the whole DOCX back over
+   the project. Queries that change events go to
    `revision-continuity`; editorial letters go through `feedback-triage`.
 3. Show how deep the round went: `story compare . --ref sent-to-editor-1`.
 
