@@ -1,0 +1,4 @@
+# Local state and test fixtures that are not part of the plugin
+.bulkhead/
+node_modules/
+test/

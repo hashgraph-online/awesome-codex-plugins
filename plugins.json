@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-12",
-  "total": 399,
+  "total": 405,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -341,6 +341,16 @@
       "install_url": "https://raw.githubusercontent.com/hyhmrright/brooks-lint/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Bulkhead",
+      "url": "https://github.com/dooly6276/claude-bulkhead",
+      "owner": "dooly6276",
+      "repo": "claude-bulkhead",
+      "description": "Guards for machines that run many Codex and other agent sessions at once: a PreToolUse hook on Bash blocks name-based process kills, port collisions, destructive git commands on another session's worktree, whole-disk scans and long foreground sleeps, and holds heavy commands back when RAM runs low.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/dooly6276/claude-bulkhead/HEAD/plugin.json"
+    },
+    {
       "name": "Casefile",
       "url": "https://github.com/x4cc3/casefile",
       "owner": "x4cc3",
@@ -499,6 +509,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/songyb111-gachon/codex-auto-resume-windows/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex Design",
+      "url": "https://github.com/ummydev/codexdesign",
+      "owner": "ummydev",
+      "repo": "codexdesign",
+      "description": "A visual design canvas for Codex: compare UI images and live HTML screens side by side in the in-app browser, then refine them on the canvas or in conversation.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ummydev/codexdesign/HEAD/plugins/codexdesign/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex How To",
@@ -1080,6 +1100,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/epicsagas/llm-transpile/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Loom",
+      "url": "https://github.com/ClickHouse/loom",
+      "owner": "ClickHouse",
+      "repo": "loom",
+      "description": "Self-hosted shared long-term memory and code index (definitions, callers, change impact) for Codex, stored in ClickHouse, with lifecycle hooks that capture each session and MCP tools that save and recall decisions across sessions and teammates.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/ClickHouse/loom/HEAD/integrations/codex-plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "LVTD Skills",
@@ -2363,6 +2393,16 @@
       "install_url": "https://raw.githubusercontent.com/softdevfz/clickwise-api/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "CloudGPU",
+      "url": "https://github.com/mrhy7176/cloudgpu-mcp",
+      "owner": "mrhy7176",
+      "repo": "cloudgpu-mcp",
+      "description": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/mrhy7176/cloudgpu-mcp/HEAD/plugin.json"
+    },
+    {
       "name": "Codex Be Serious",
       "url": "https://github.com/lulucatdev/codex-be-serious",
       "owner": "lulucatdev",
@@ -2994,6 +3034,16 @@
       "install_url": "https://raw.githubusercontent.com/EminBudak/launch-film/HEAD/plugin.json"
     },
     {
+      "name": "Leeway",
+      "url": "https://github.com/supersethvos/leeway-codex",
+      "owner": "supersethvos",
+      "repo": "leeway-codex",
+      "description": "Connects Codex to a Leeway drive your team and its agents share, with skills to save without overwriting, find, undo from history, publish from a workspace and leave a hand-off note.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/supersethvos/leeway-codex/HEAD/plugins/leeway/plugin.json"
+    },
+    {
       "name": "LienDeadline",
       "url": "https://github.com/LienDeadline/skills",
       "owner": "LienDeadline",
@@ -3522,6 +3572,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jingjing2222/rust-reverse-engineering-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Scrape.ly",
+      "url": "https://github.com/scrapely-app/scrapely-mcp",
+      "owner": "scrapely-app",
+      "repo": "scrapely-mcp",
+      "description": "Find, run and read ready-made web scrapers for sites like Google Maps, Amazon and LinkedIn from Codex through the hosted Scrape.ly MCP server (OAuth) and the scrapely-scrape skill.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/scrapely-app/scrapely-mcp/HEAD/plugin.json"
     },
     {
       "name": "ScrapeGraph AI",

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "loom": {
+      "type": "http",
+      "url": "http://localhost:7777/mcp?toolset=core,coding,tracker,tasks",
+      "http_headers_helper": "node -e \"const f=require('fs'),p=require('path');if(process.versions.node.split('.')[0]<18)process.exit(1);const d=p.join(require('os').homedir(),'.codex','plugins','cache','loom','loom');const k=v=>v.split(/[.-]/).map(x=>x.padStart(9,'0')).join('.');const v=f.readdirSync(d).filter(x=>f.existsSync(p.join(d,x,'bin','loom-node'))).sort((a,b)=>k(a)<k(b)?-1:1).pop();import(require('url').pathToFileURL(p.join(d,v,'bin','loom-mcp-headers.mjs')).href)\" || { l=\"$(ls -d \"$HOME\"/.codex/plugins/cache/loom/loom/*/bin/loom-node 2>/dev/null | sort -V | tail -1)\"; sh \"$l\" \"${l%/*}/loom-mcp-headers.mjs\"; }"
+    }
+  }
+}

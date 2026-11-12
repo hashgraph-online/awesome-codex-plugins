@@ -1,0 +1,5 @@
+{
+  "mcpServers": {
+    "scrapely": { "type": "http", "url": "https://mcp.scrape.ly" }
+  }
+}

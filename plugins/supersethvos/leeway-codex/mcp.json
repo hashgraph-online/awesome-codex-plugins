@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "leeway": {
+      "type": "streamable-http",
+      "url": "https://leeway.to/mcp"
+    }
+  }
+}

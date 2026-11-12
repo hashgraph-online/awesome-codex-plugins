@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "cloudgpu",
+  "version": "0.12.1",
+  "description": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
+  "author": {
+    "name": "CloudGPU",
+    "email": "support@cloudgpu.app",
+    "url": "https://cloudgpu.app"
+  },
+  "homepage": "https://cloudgpu.app/docs/mcp",
+  "repository": "https://github.com/cloudgpu-app/cloudgpu-mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "gpu", "cloud-gpu", "ai-agent"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "CloudGPU",
+        "shortDescription": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
+        "longDescription": "Rent a per-minute GPU from your agent, run a job, download the results, and shut it down. The server reads CLOUDGPU_API_KEY from the environment.",
+        "developerName": "CloudGPU",
+        "category": "Tools & Integrations",
+        "capabilities": ["Read", "Write"],
+        "websiteURL": "https://cloudgpu.app/docs/mcp",
+        "privacyPolicyURL": "https://cloudgpu.app/privacy",
+        "termsOfServiceURL": "https://cloudgpu.app/terms",
+        "defaultPrompt": [
+          "Rent a GPU, run this job, download the results, and shut it down."
+        ],
+        "composerIcon": "./assets/icon.svg",
+        "logo": "./assets/icon.svg",
+        "screenshots": ["./assets/icon.svg"]
+      }
+    }
+  }
+}

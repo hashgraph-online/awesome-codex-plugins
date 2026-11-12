@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bulkhead",
+  "version": "0.3.7",
+  "description": "Guards for a machine where many coding agent sessions run at once: blocks name-based kills of another session's processes, port collisions, git commands that would move or delete another session's tree, whole-disk scans and long foreground sleeps, and holds heavy commands back when RAM runs low.",
+  "author": {
+    "name": "Myeongseok Kang",
+    "url": "https://github.com/dooly6276"
+  },
+  "homepage": "https://github.com/dooly6276/claude-bulkhead#readme",
+  "repository": "https://github.com/dooly6276/claude-bulkhead",
+  "license": "MIT",
+  "keywords": ["hooks", "guard", "processes", "ports", "memory", "worktrees", "git", "parallel", "agents", "copilot-cli"]
+}

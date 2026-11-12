@@ -1,0 +1,12 @@
+{
+  "name": "bulkhead",
+  "interface": { "displayName": "bulkhead" },
+  "plugins": [
+    {
+      "name": "bulkhead",
+      "source": { "source": "npm", "package": "claude-bulkhead" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Coding"
+    }
+  ]
+}

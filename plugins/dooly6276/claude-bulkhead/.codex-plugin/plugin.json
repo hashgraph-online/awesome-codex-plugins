@@ -1,0 +1,41 @@
+{
+  "name": "bulkhead",
+  "version": "0.3.7",
+  "description": "Guards for a machine where many coding agent sessions run at once: blocks name-based kills of another session's processes, port collisions, git commands that would move or delete another session's tree, whole-disk scans and long foreground sleeps, and holds heavy commands back when RAM runs low.",
+  "author": {
+    "name": "Myeongseok Kang",
+    "url": "https://github.com/dooly6276"
+  },
+  "homepage": "https://github.com/dooly6276/claude-bulkhead#readme",
+  "repository": "https://github.com/dooly6276/claude-bulkhead",
+  "license": "MIT",
+  "keywords": [
+    "hooks",
+    "guard",
+    "processes",
+    "ports",
+    "memory",
+    "worktrees",
+    "git",
+    "parallel",
+    "agents",
+    "copilot-cli"
+  ],
+  "hooks": "./codex/hooks.json",
+  "interface": {
+    "displayName": "bulkhead",
+    "shortDescription": "Guards for many parallel agent sessions on one machine",
+    "developerName": "Myeongseok Kang",
+    "category": "Coding",
+    "websiteURL": "https://github.com/dooly6276/claude-bulkhead",
+    "longDescription": "Guards for a machine where many coding agent sessions run at once. Before Codex runs a shell command, bulkhead blocks name-based kills of another session's processes, port collisions, git commands that would move or delete another session's tree, whole-disk scans and long foreground sleeps, and holds heavy commands back when RAM runs low.",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "privacyPolicyURL": "https://github.com/dooly6276/claude-bulkhead/blob/main/PRIVACY.md",
+    "composerIcon": "./.claude-plugin/icon.png",
+    "logo": "./.claude-plugin/icon.png"
+  },
+  "skills": "./skills/"
+}

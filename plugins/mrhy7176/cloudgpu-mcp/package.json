@@ -1,0 +1,57 @@
+{
+  "name": "cloudgpu-mcp",
+  "version": "0.13.1",
+  "mcpName": "io.github.cloudgpu-app/cloudgpu-mcp",
+  "description": "MCP server and command-line tool for cloudgpu.app: let Claude Code, Cursor, Cline, opencode, goose and other MCP clients (or you, from a terminal) rent a GPU with explicit billing quotes, run a job, fetch the results and shut it down, with spending limits the platform enforces.",
+  "type": "module",
+  "bin": {
+    "cloudgpu-mcp": "src/index.js",
+    "cloudgpu": "src/cli.js"
+  },
+  "main": "src/index.js",
+  "files": [
+    "src",
+    "rules",
+    "README.md",
+    "LICENSE",
+    "examples"
+  ],
+  "engines": {
+    "node": ">=18.3"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "gpu",
+    "cloud-gpu",
+    "gpu-rental",
+    "model-api",
+    "ai-agent",
+    "claude-code",
+    "cursor",
+    "cline",
+    "opencode",
+    "goose",
+    "fine-tuning",
+    "cloudgpu",
+    "cli"
+  ],
+  "homepage": "https://cloudgpu.app/docs/mcp",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cloudgpu-app/cloudgpu-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cloudgpu-app/cloudgpu-mcp/issues"
+  },
+  "license": "MIT",
+  "author": "CloudGPU <support@cloudgpu.app>",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "ssh2": "^1.17.0",
+    "zod": "^3.25.0"
+  }
+}

@@ -1,0 +1,6 @@
+interface:
+  display_name: 'UI Design Canvas'
+  short_description: 'Generate images into a persistent local canvas'
+  default_prompt: 'Use $ui-design-canvas to generate an image and show it on my Codex Design.'
+policy:
+  allow_implicit_invocation: true

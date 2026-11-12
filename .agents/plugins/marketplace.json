@@ -496,6 +496,21 @@
       "icon": "./plugins/hyhmrright/brooks-lint/assets/logo.svg"
     },
     {
+      "name": "bulkhead",
+      "displayName": "Bulkhead",
+      "source": {
+        "source": "local",
+        "path": "./plugins/dooly6276/claude-bulkhead"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Guards for machines that run many Codex and other agent sessions at once: a PreToolUse hook on Bash blocks name-based process kills, port collisions, destructive git commands on another session's worktree, whole-disk scans and long foreground sleeps, and holds heavy commands back when RAM runs low.",
+      "icon": "./plugins/dooly6276/claude-bulkhead/.claude-plugin/icon.png"
+    },
+    {
       "name": "casefile",
       "displayName": "Casefile",
       "source": {
@@ -733,6 +748,21 @@
       "category": "Development & Workflow",
       "description": "Unofficial Windows app and Codex plugin that waits out Codex usage limits, rate limits and temporary failures, then continues the exact interrupted conversation by itself, with a Dashboard and a tray icon.",
       "icon": "./plugins/songyb111-gachon/codex-auto-resume-windows/assets/icon.png"
+    },
+    {
+      "name": "codexdesign",
+      "displayName": "Codex Design",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ummydev/codexdesign"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A visual design canvas for Codex: compare UI images and live HTML screens side by side in the in-app browser, then refine them on the canvas or in conversation.",
+      "icon": "./plugins/ummydev/codexdesign/assets/composer-icon.png"
     },
     {
       "name": "codex-howto",
@@ -1593,6 +1623,21 @@
       "category": "Development & Workflow",
       "description": "Auto-compress .md, .html, and .txt files via PostToolUse hook, cutting context usage by up to 40% with zero workflow change.",
       "icon": "./plugins/epicsagas/llm-transpile/assets/icon.png"
+    },
+    {
+      "name": "loom",
+      "displayName": "Loom",
+      "source": {
+        "source": "local",
+        "path": "./plugins/ClickHouse/loom"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Self-hosted shared long-term memory and code index (definitions, callers, change impact) for Codex, stored in ClickHouse, with lifecycle hooks that capture each session and MCP tools that save and recall decisions across sessions and teammates.",
+      "icon": "./plugins/ClickHouse/loom/assets/icon.png"
     },
     {
       "name": "lvtd-skills",
@@ -3488,6 +3533,21 @@
       "icon": "./plugins/softdevfz/clickwise-api/assets/icon.png"
     },
     {
+      "name": "cloudgpu",
+      "displayName": "CloudGPU",
+      "source": {
+        "source": "local",
+        "path": "./plugins/mrhy7176/cloudgpu-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
+      "icon": "./plugins/mrhy7176/cloudgpu-mcp/assets/icon.svg"
+    },
+    {
       "name": "be-serious",
       "displayName": "Codex Be Serious",
       "source": {
@@ -4423,6 +4483,21 @@
       "icon": "./plugins/EminBudak/launch-film/assets/icon.svg"
     },
     {
+      "name": "leeway",
+      "displayName": "Leeway",
+      "source": {
+        "source": "local",
+        "path": "./plugins/supersethvos/leeway-codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Connects Codex to a Leeway drive your team and its agents share, with skills to save without overwriting, find, undo from history, publish from a workspace and leave a hand-off note.",
+      "icon": "./plugins/supersethvos/leeway-codex/assets/leeway-icon.png"
+    },
+    {
       "name": "liendeadline",
       "displayName": "LienDeadline",
       "source": {
@@ -5203,6 +5278,20 @@
       "category": "Tools & Integrations",
       "description": "Triage Rust ELF, Mach-O, and PE binaries, demangle symbols, recover likely crate namespaces, trace runtime and FFI paths, and optionally export pseudocode with headless Ghidra.",
       "icon": "./plugins/jingjing2222/rust-reverse-engineering-skill/assets/icon.svg"
+    },
+    {
+      "name": "scrapely",
+      "displayName": "Scrape.ly",
+      "source": {
+        "source": "local",
+        "path": "./plugins/scrapely-app/scrapely-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Find, run and read ready-made web scrapers for sites like Google Maps, Amazon and LinkedIn from Codex through the hosted Scrape.ly MCP server (OAuth) and the scrapely-scrape skill."
     },
     {
       "name": "just-scrape",

@@ -1,0 +1,47 @@
+{
+  "name": "loom",
+  "version": "1.2.20",
+  "minServerVersion": "1.0.0",
+  "description": "Shared long-term memory and code intelligence for Codex, self-hosted on ClickHouse. MCP tools to save and recall decisions, preferences and corrections across sessions and teammates; lifecycle hooks that capture each session with no model call; a code index that answers where-is, who-calls and blast-radius questions with line-accurate units instead of whole-file reads.",
+  "author": {
+    "name": "ClickHouse"
+  },
+  "homepage": "https://github.com/ClickHouse/loom",
+  "repository": "https://github.com/ClickHouse/loom",
+  "license": "Apache-2.0",
+  "keywords": [
+    "agent-memory",
+    "long-term-memory",
+    "memory",
+    "mcp",
+    "code-intelligence",
+    "code-search",
+    "knowledge-base",
+    "session-capture",
+    "clickhouse",
+    "self-hosted"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "ClickHouse Loom",
+    "shortDescription": "Shared long-term memory and code index for coding agents, on ClickHouse.",
+    "longDescription": "Loom gives Codex a memory that outlives the session and is shared with every other agent on the team: decisions, preferences and corrections are captured by lifecycle hooks with no model call, a budgeted primer is loaded at session start, and in a loom-indexed repository the code tools answer structure questions with line-accurate units instead of whole files.",
+    "developerName": "ClickHouse",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/ClickHouse/loom",
+    "defaultPrompt": [
+      "What did we decide about this repository last week?",
+      "Remember that I prefer squash merges on this repository.",
+      "Who calls this function, and what breaks if I change it?"
+    ],
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "brandColor": "#FAFF69",
+    "privacyPolicyURL": "https://github.com/ClickHouse/loom/blob/main/docs/features/integrations/claude-code.md#data-handling"
+  }
+}
