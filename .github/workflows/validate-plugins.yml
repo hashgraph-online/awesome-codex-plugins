@@ -24,31 +24,46 @@ on:
       - tests/test_generate_plugins_json.py
       - tests/test_portable_plugin_packages.py
 
-permissions:
-  contents: write
-  id-token: none
+permissions: {}
 
 concurrency:
   group: marketplace-artifacts-${{ github.event_name != 'pull_request' && 'main' || github.ref }}
   cancel-in-progress: false
 
 jobs:
-  sync:
+  validate:
     name: Sync marketplace artifacts with README
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           # Queued main jobs must include earlier merges and artifact commits.
           ref: ${{ github.event_name != 'pull_request' && 'main' || github.ref }}
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
           python-version: "3.12"
       - name: Test marketplace generator
         run: |
           python3 -m unittest discover -s tests -p 'test_generate_plugins_json.py' -v
           python3 -m unittest discover -s tests -p 'test_portable_plugin_packages.py' -v
+
+  sync:
+    name: Sync marketplace artifacts with README
+    needs: validate
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          token: ${{ github.token }}
+          # Queued main jobs must include earlier merges and artifact commits.
+          ref: main
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
       - name: Regenerate and commit if changed
         run: |
           python3 scripts/generate_plugins_json.py
