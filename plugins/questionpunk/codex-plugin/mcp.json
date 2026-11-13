@@ -1,9 +1,9 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
   "mcpServers": {
-    "questionpunk-cloud": {
+    "questionpunk-start": {
       "type": "streamable-http",
-      "url": "https://app.questionpunk.com/api/v1"
+      "url": "https://mcp.questionpunk.com/start"
     }
   }
 }

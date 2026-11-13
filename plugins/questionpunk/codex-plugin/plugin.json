@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "questionpunk",
-  "version": "1.1.0",
+  "version": "1.1.4",
   "description": "Create and review survey drafts, publish requested studies, and analyze authorized QuestionPunk results.",
   "author": {
     "name": "QuestionPunk",
@@ -9,15 +9,15 @@
     "url": "https://questionpunk.com"
   },
   "homepage": "https://mcp.questionpunk.com/docs",
+  "keywords": ["research", "surveys", "customer-feedback"],
   "repository": "https://github.com/questionpunk/codex-plugin",
   "license": "MIT",
-  "keywords": ["research", "surveys", "customer-feedback"],
   "extensions": {
     "com.openai": {
       "interface": {
         "displayName": "QuestionPunk",
         "shortDescription": "Create and review studies",
-        "longDescription": "Connect your QuestionPunk account to create saved survey drafts, refine questions, review studies, and analyze results you can access. Publication requires your explicit request.",
+        "longDescription": "Connect your QuestionPunk account to create saved survey drafts, refine questions, review studies, and analyze results you can access. Before you sign in, Codex can still draft a survey and give you a link that opens it in QuestionPunk. Publication requires your explicit request.",
         "developerName": "QuestionPunk",
         "category": "Productivity",
         "capabilities": ["Read", "Write"],

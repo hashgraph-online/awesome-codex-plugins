@@ -5,6 +5,8 @@ description: Review a QuestionPunk survey before launch for wording, answer choi
 
 # Review a QuestionPunk study
 
+If `user_get` is not available after searching deferred or not-yet-loaded tools, QuestionPunk isn't connected in this chat; the usual cause is that it is installed but not signed in. Say so and say how to connect: if a QuestionPunk `authenticate` tool is listed, call it and give the user the sign-in link it returns; otherwise use the connect card if the host shows one; in Claude, open Customize > Connectors, select questionpunk and click Connect; in Claude Code, run `/mcp`; in ChatGPT, open QuestionPunk under Plugins and connect your account; on another host, use its connector settings. Do not search a connector directory or use another vendor's tools. When the user replies, look for the tools again and carry on with the request without asking for it again. If they are still missing after the user says they connected, ask them to check that QuestionPunk is turned on for this chat, or to start a new chat and make the same request there.
+
 1. Establish the connected account with `user_get`. Resolve the target through `survey_list` and `survey_get`; use exact IDs, not a guessed title match. Host-added prefixes may differ from these base tool names.
 2. Read the current wording, question types, choices, required flags, language, screens, and available branching/settings. Record the current version. If details are absent, disclose which checks could not be made.
 3. Check leading and double-barreled wording, unclear timeframes, overlapping or missing options, scale direction, irrelevant required answers, unnecessary personal information, and completion length. Assess whether each question serves the research decision.
