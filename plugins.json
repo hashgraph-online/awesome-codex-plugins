@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-13",
-  "total": 406,
+  "total": 408,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -779,6 +779,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/MedAdemBHA/docflow/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "DocSpring Agent Playbook",
+      "url": "https://github.com/DocSpring/docspring-agent-playbook",
+      "owner": "DocSpring",
+      "repo": "docspring-agent-playbook",
+      "description": "DocSpring's engineering principles, AGENTS.md templates and six workflow skills (ticket kickoff, PR review, second-opinion review, fix CI, browser QA, session wrap-up) for Claude Code, Codex and other agents.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/DocSpring/docspring-agent-playbook/HEAD/plugin.json"
     },
     {
       "name": "done-gate",
@@ -2071,6 +2081,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/tashfeenahmed/AgentDomains-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgentDrives",
+      "url": "https://github.com/AgentDrives/agentdrives-mcp",
+      "owner": "AgentDrives",
+      "repo": "agentdrives-mcp",
+      "description": "Look up a SaaS tool, API or provider before your agent picks it: its agent level (0-5), where our agent stopped, and whether an agent can sign up, get a key and pay on its own. Read-only remote MCP server and skill, no key.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AgentDrives/agentdrives-mcp/HEAD/plugin.json"
     },
     {
       "name": "Agentgram",

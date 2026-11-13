@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "agentdrives",
+  "version": "1.1.0",
+  "description": "Look up a SaaS tool, API or provider before your agent picks it: its agent level (0-5), where our agent stopped, and whether an agent can sign up, get a key and pay on its own.",
+  "author": {
+    "name": "AgentDrives",
+    "email": "hello@agentdrives.com",
+    "url": "https://agentdrives.com"
+  },
+  "homepage": "https://agentdrives.com/docs/mcp",
+  "repository": "https://github.com/AgentDrives/agentdrives-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "ai-agents",
+    "agent-readiness",
+    "saas",
+    "api",
+    "directory",
+    "skills"
+  ]
+}

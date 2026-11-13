@@ -1,0 +1,23 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "docspring-agent-playbook",
+  "version": "1.0.1",
+  "description": "DocSpring's engineering principles, AGENTS.md templates and six workflow skills (ticket kickoff, PR review, second-opinion review, fix CI, browser QA, session wrap-up) for Claude Code, Codex and other agents.",
+  "author": {
+    "name": "DocSpring",
+    "url": "https://docspring.com"
+  },
+  "homepage": "https://github.com/DocSpring/docspring-agent-playbook",
+  "repository": "https://github.com/DocSpring/docspring-agent-playbook",
+  "license": "MIT",
+  "keywords": [
+    "agents-md",
+    "claude-code",
+    "codex",
+    "skills",
+    "code-review",
+    "ci",
+    "qa",
+    "engineering-practices"
+  ]
+}

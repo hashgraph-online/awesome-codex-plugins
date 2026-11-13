@@ -379,3 +379,13 @@ Ask your connected Agent: “Compare compatible GPUs for this task, include prep
 Can one GPU serve several Agent tasks? Yes: sequential approved `run_command` calls can use the same running rental, within its original budget, deadline and idle limit. Check `list_instances` / `get_status` first. Independent `run_job` calls and “rerun” each provision separately; they do not share an instance. Do not extend limits or keep an idle GPU merely because an hour was charged. Save outputs before stopping; Workspace is explicit persistence, not a disk snapshot.
 
 MCP clients must install or upgrade this package and restart their local MCP process. The account connection link authorizes a supported client; it cannot install tools into any arbitrary AI service.
+
+### Several tasks, one GPU allocation (0.15.0)
+
+`prepare_task_pipeline` prepares 1–8 reviewed commands to run sequentially as one Job. They share the GPU and filesystem; each step has a new shell, so shell variables and in-memory model processes do not persist between steps. A nonzero step exit stops subsequent steps. Dependencies and any required models must already be prepared; this is not application-quality or GPU-model acceptance.
+
+Preparation makes no API request or reservation. Review the returned command, obtain a compatible Job quote and explicit total GPU budget/deadline approval, then call `run_job` once. Retain that submission's idempotency key if its response is lost. The manifest fingerprint is informational, not a server-enforced approval or submission key. Independent Jobs still use independent allocations; this is not the durable batch coordinator.
+
+For an existing rental, the reviewed command can instead be passed to `run_command` in the approved working directory, within its original limits. Apply a Workspace separately when needed. The draft never stops or extends an existing rental. Whole-hour sources remain usable through the existing explicitly approved rental path; this release does not remove their current automatic-Job compatibility gate.
+
+With `persist_summary=true`, the Job draft explicitly collects only `pipeline-summary.json` through the existing output collector, using current storage quota/retention and `accept_storage_charges=false`. The summary contains step IDs, exit codes and state, not raw logs, commands or arbitrary task results. Result-file persistence must be configured and approved separately. The summary must not already exist; missing output collection or a conflicting file aborts before commands run.

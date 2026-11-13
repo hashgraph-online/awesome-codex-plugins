@@ -1150,6 +1150,21 @@
       "icon": "./plugins/MedAdemBHA/docflow/assets/icon.svg"
     },
     {
+      "name": "docspring-agent-playbook",
+      "displayName": "DocSpring Agent Playbook",
+      "source": {
+        "source": "local",
+        "path": "./plugins/DocSpring/docspring-agent-playbook"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "DocSpring's engineering principles, AGENTS.md templates and six workflow skills (ticket kickoff, PR review, second-opinion review, fix CI, browser QA, session wrap-up) for Claude Code, Codex and other agents.",
+      "icon": "./plugins/DocSpring/docspring-agent-playbook/assets/icon.png"
+    },
+    {
       "name": "done-gate",
       "displayName": "done-gate",
       "source": {
@@ -3056,6 +3071,21 @@
       },
       "category": "Tools & Integrations",
       "description": "Claim and manage free subdomains under makes.fyi or agentdomains.co for the sites and APIs AI agents build."
+    },
+    {
+      "name": "agentdrives",
+      "displayName": "AgentDrives",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AgentDrives/agentdrives-mcp"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Look up a SaaS tool, API or provider before your agent picks it: its agent level (0-5), where our agent stopped, and whether an agent can sign up, get a key and pay on its own. Read-only remote MCP server and skill, no key.",
+      "icon": "./plugins/AgentDrives/agentdrives-mcp/assets/logo.svg"
     },
     {
       "name": "agentgram",

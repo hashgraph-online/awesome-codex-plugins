@@ -1,0 +1,160 @@
+#!/usr/bin/env python3
+"""Watches the GitHub Actions workflow runs on one commit until they have all finished, then reports the result.
+
+Usage: wait_for_ci [--sha SHA] [--require WORKFLOW]... [--timeout SECONDS] [--interval SECONDS] [--settle SECONDS]
+                   [--no-run-grace SECONDS]
+
+It sees only the commit's GitHub Actions runs that `gh run list --commit` shows. It doesn't read branch protection,
+other providers' checks or commit statuses, so exit 0 means "every visible Actions run passed", not "every required
+check passed". Check those separately (fix-ci's SKILL.md says how).
+
+It lists the commit's runs again on every poll, so runs that start later (a workflow triggered when another one
+finishes) are seen too. It doesn't stop at the first failure: it decides only once no run is queued, in progress or
+waiting, every --require workflow has a run, and nothing new has appeared for --settle seconds. Each run's status is
+its latest attempt's, so a rerun replaces the failed attempt. Name every workflow that must run with --require: a
+workflow that starts late, after the settle period, is otherwise missed.
+
+Exit status:
+  0    every visible run finished as success, skipped or neutral, and every --require workflow ran and passed
+  1    at least one run failed, was cancelled, timed out or needs action (decided once every --require workflow ran)
+  2    gh or the GitHub API failed three polls in a row (not the same as "no runs yet")
+  3    no run at all registered for the commit within --no-run-grace seconds
+  124  --timeout passed before that: runs still pending (an approval shows as "waiting"), a --require workflow never
+       ran, or the settle period hadn't passed. The deadline never counts as success.
+
+Needs gh, signed in, run from inside the repository. GitHub Actions only: for another CI provider, write a watcher
+with the same exit statuses.
+"""
+import argparse
+import json
+import subprocess
+import sys
+import time
+
+GREEN = {'success', 'skipped', 'neutral'}
+LIST_FIELDS = 'databaseId,workflowName,status,conclusion,attempt,event,url'
+
+
+def log(message):
+    print(time.strftime('%H:%M:%S ') + message, flush=True)
+
+
+def list_runs(sha, seconds_left):
+    try:
+        result = subprocess.run(
+            ['gh', 'run', 'list', '--commit', sha, '--limit', '200', '--json', LIST_FIELDS],
+            capture_output=True, text=True, timeout=max(1, seconds_left))
+    except subprocess.TimeoutExpired as error:
+        raise RuntimeError('gh run list ran past the deadline') from error
+    if result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or f'gh exited with status {result.returncode}')
+    try:
+        runs = json.loads(result.stdout or '[]')
+    except json.JSONDecodeError as error:
+        raise RuntimeError(f'gh printed something that is not JSON: {error}') from error
+    if not isinstance(runs, list):
+        raise RuntimeError('gh returned an unexpected shape')
+    return runs
+
+
+def describe(run):
+    state = run.get('conclusion') or run.get('status')
+    return f"{run.get('workflowName')} #{run.get('databaseId')} attempt {run.get('attempt', 1)}: {state}"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--sha', help='commit to wait for (default: HEAD)')
+    parser.add_argument('--require', action='append', default=[], metavar='WORKFLOW',
+                        help='workflow name that must run and pass on this commit (repeatable)')
+    parser.add_argument('--timeout', type=int, default=1800)
+    parser.add_argument('--interval', type=int, default=15)
+    parser.add_argument('--settle', type=int, default=60,
+                        help='seconds with every run finished and no new run before deciding')
+    parser.add_argument('--no-run-grace', type=int, default=180,
+                        help='seconds to wait for the first run to register')
+    args = parser.parse_args()
+
+    sha = args.sha or subprocess.run(['git', 'rev-parse', 'HEAD'], check=True, capture_output=True,
+                                     text=True).stdout.strip()
+    start = time.monotonic()
+    deadline = start + args.timeout
+    api_failures = 0
+    last_change = start
+    last_key = None
+    runs = []
+    required = list(dict.fromkeys(args.require))
+    last_missing = None
+    log(f'Waiting for workflow runs on {sha}' + (f" (required: {', '.join(required)})" if required else ''))
+
+    def timed_out():
+        log(f'Timed out after {args.timeout}s without a result.')
+        for run in runs:
+            if run.get('status') != 'completed':
+                log('  still pending: ' + describe(run))
+        names = {r.get('workflowName') for r in runs}
+        for name in required:
+            if name not in names:
+                log(f'  required workflow never ran: {name}')
+        for run in runs:
+            if run.get('status') == 'completed' and run.get('conclusion') not in GREEN:
+                log(f"  failed: {describe(run)} {run.get('url', '')}")
+        if runs and all(r.get('status') == 'completed' for r in runs):
+            log('  every visible run had finished, but the settle period had not passed or a --require workflow\n'
+                '  never ran')
+        return 124
+
+    while True:
+        now = time.monotonic()
+        if now >= deadline:
+            return timed_out()
+        try:
+            runs = list_runs(sha, deadline - now)
+            api_failures = 0
+        except (RuntimeError, OSError) as error:
+            api_failures += 1
+            log(f'gh failed ({api_failures}/3): {error}')
+            if api_failures >= 3:
+                return 2
+            time.sleep(max(0, min(args.interval, deadline - time.monotonic())))
+            continue
+        now = time.monotonic()
+
+        key = sorted((r.get('databaseId'), r.get('attempt', 1), r.get('status'), r.get('conclusion')) for r in runs)
+        if key != last_key:
+            last_change = now
+            last_key = key
+            for run in sorted(runs, key=lambda r: str(r.get('workflowName'))):
+                log('  ' + describe(run))
+
+        if not runs:
+            if now - start >= args.no_run_grace:
+                log(f'No workflow run registered for {sha} after {args.no_run_grace}s')
+                return 3
+        else:
+            pending = [r for r in runs if r.get('status') != 'completed']
+            settled = not pending and now - last_change >= args.settle
+            if settled:
+                # Wait for every required workflow before deciding either way, so a failure is reported together with
+                # the results of required workflows that start later.
+                names = {r.get('workflowName') for r in runs}
+                missing = [name for name in required if name not in names]
+                failed = [r for r in runs if r.get('conclusion') not in GREEN]
+                if missing:
+                    if missing != last_missing:
+                        log(f"Waiting for required workflows that haven't run: {', '.join(missing)}")
+                        last_missing = missing
+                elif failed:
+                    log('Not green:')
+                    for run in failed:
+                        log(f"  {describe(run)} {run.get('url', '')}")
+                    return 1
+                else:
+                    log(f'All {len(runs)} visible runs passed')
+                    return 0
+
+        time.sleep(max(0, min(args.interval, deadline - time.monotonic())))
+
+
+if __name__ == '__main__':
+    sys.exit(main())

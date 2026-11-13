@@ -1,0 +1,349 @@
+#!/usr/bin/env bash
+# Runs an unattended second-opinion review with the Codex CLI. See ../SKILL.md.
+#
+# Usage:
+#   start_review --access sandboxed|full [--in-place] [--model NAME] [--effort LEVEL] [--config key=value]... <repo_worktree> <out_dir>
+#   start_review --resume <session-id> [options] <repo_worktree> <out_dir>
+#
+#   <out_dir>/prompt.md must exist, filled in from ../references/prompt-template.md. The launcher fills {{REPO}} itself
+#   with the path the reviewer works in, and sends the result as <out_dir>/prompt-sent.md.
+#   --access sandboxed   Codex's workspace-write sandbox with no approval prompts. The reviewer works in a separate
+#                        detached checkout of HEAD at <out_dir>/checkout, so it can't touch your worktree. The sandbox
+#                        lets it write in that checkout and <out_dir> (and the system temp folder), not elsewhere.
+#   --access full        no sandbox and no approval prompts: the same access as the user's shell. Also reviews a
+#                        separate checkout unless --in-place is given.
+#   --in-place           (full only) review <repo_worktree> itself, for tests that need its installed dependencies,
+#                        build output or databases.
+#   --model, --effort    passed as -m and -c model_reasoning_effort=...; omit to use the CLI's defaults.
+#   --config key=value   any other Codex config override, passed as -c (repeatable).
+#   --resume ID          recheck in the same session: reads <out_dir>/recheck-prompt.md, reuses the settings saved in
+#                        <out_dir>/settings.txt (options given here are added after them), moves the separate checkout
+#                        to <repo_worktree>'s new HEAD, and writes recheck-<n>-* files.
+#
+# Exit status: 0 when the reviewer finished, the reviewed checkout is unchanged and this run wrote findings.md with a
+# non-empty "## Coverage" section; the reviewer's own status when it failed; 3 when the reviewed checkout changed
+# (see "What the check compares" below and repo-check.txt); 4 when findings.md is missing, empty, has no non-empty
+# Coverage section, or wasn't written (or, on a resume, changed) by this run. An initial run moves an existing
+# findings.md aside to findings.previous.md first.
+#
+# What the check compares, before and after the run: HEAD, `git status --porcelain --ignored`, and every file and
+# symlink under the checkout outside .git (ignored files included) by type, mode, size, modification time, SHA-256 of
+# the contents and symlink target. It doesn't cover .git itself (refs, config, the shared object store), anything
+# outside the checkout, or empty directories.
+#
+# Credentials: set CODEX_HOME to a throwaway config home if the reviewer needs a different login. Never pass a key on
+# the command line.
+#
+# This adapter supports the Codex CLI only. For another CLI (claude -p, gemini, opencode run), write your own
+# run_reviewer and check its sandbox and flags.
+set -euo pipefail
+
+# Bash reads a script while it runs it, so everything lives in functions and the last line calls main: editing this
+# file during a long run can't break the run.
+
+usage() {
+  sed -n '3,38p' "$0" | sed 's/^# \{0,1\}//'
+}
+
+die() {
+  echo "start_review: $*" >&2
+  exit 1
+}
+
+# The adapter: run the reviewer in $workdir with the prompt on stdin, JSONL events to $events, the final message to
+# $final. Uses: workdir, out, model, effort, access, configs, resume, prompt_sent, events, final, stderr_log.
+run_reviewer() {
+  local -a args=()
+  [ -n "$model" ] && args+=(-m "$model")
+  [ -n "$effort" ] && args+=(-c "model_reasoning_effort=\"$effort\"")
+  if [ "$access" = full ]; then
+    args+=(--dangerously-bypass-approvals-and-sandbox)
+  else
+    # Set through -c so the same flags work for `exec resume`, which has no -s or --add-dir. Codex's workspace-write
+    # sandbox makes the working directory writable too, which is why the reviewer gets its own checkout.
+    args+=(-c 'sandbox_mode="workspace-write"' -c "sandbox_workspace_write.writable_roots=[\"$out\"]"
+      -c 'approval_policy="never"')
+  fi
+  local config
+  for config in ${configs[@]+"${configs[@]}"}; do
+    args+=(-c "$config")
+  done
+  args+=(--json -o "$final")
+
+  if [ -n "$resume" ]; then
+    # `exec resume` takes no -C, so run it from the checkout.
+    (cd "$workdir" && codex exec "${args[@]}" resume "$resume" - < "$prompt_sent" > "$events" 2> "$stderr_log")
+  else
+    codex exec "${args[@]}" -C "$workdir" - < "$prompt_sent" > "$events" 2> "$stderr_log"
+  fi
+}
+
+# Writes a snapshot of a checkout: HEAD, git's status including ignored files, and every file and symlink under it
+# (outside .git, ignored files included) with its mode, size, modification time and a SHA-256 of the contents or the
+# symlink's target. Comparing two snapshots catches commits, edits to files that were already modified, and new or
+# changed ignored files, even ones rewritten at the same size with the old timestamp. Large ignored folders
+# (node_modules, build output) make --in-place snapshots slower.
+snapshot() {
+  local dir="$1" dest="$2"
+  {
+    echo "HEAD $(git -C "$dir" rev-parse HEAD)"
+    echo "## git status --porcelain --ignored --untracked-files=all"
+    git -C "$dir" status --porcelain --ignored --untracked-files=all
+    echo "## files"
+    python3 -I - "$dir" << 'PY'
+import hashlib, os, sys
+
+root = sys.argv[1]
+for current, dirs, files in os.walk(root):
+    dirs[:] = sorted(d for d in dirs if not (current == root and d == '.git'))
+    # os.walk doesn't descend into symlinked folders; record them as links.
+    entries = sorted(files) + [d for d in dirs if os.path.islink(os.path.join(current, d))]
+    for name in sorted(entries):
+        if current == root and name == '.git':
+            continue
+        path = os.path.join(current, name)
+        rel = os.path.relpath(path, root)
+        st = os.lstat(path)
+        if os.path.islink(path):
+            digest = 'link:' + os.readlink(path)
+        elif not os.path.isfile(path):
+            digest = 'special'
+        else:
+            h = hashlib.sha256()
+            with open(path, 'rb') as f:
+                for block in iter(lambda: f.read(1 << 20), b''):
+                    h.update(block)
+            digest = h.hexdigest()
+        print(f'{rel}\t{st.st_mode:o}\t{st.st_size}\t{st.st_mtime_ns}\t{digest}')
+PY
+  } > "$dest"
+}
+
+# True when the file has a Coverage section with content. The section starts at a "Coverage" heading (any level), a
+# "- **Coverage**:" list label (the prompt template's format) or a "**Coverage**" / "Coverage:" label at the start of a
+# line. It ends at the next heading of the same or a higher level, the next sibling bold label (a "- **Label**:" item
+# at the same or a lower indent, or a "**Label**" line), whichever comes first. Content is text on the label's own
+# line or any non-blank line in the section; code fence markers alone don't count.
+has_coverage_section() {
+  python3 -I - "$1" << 'PY'
+import re, sys
+
+lines = open(sys.argv[1], encoding='utf-8', errors='replace').read().splitlines()
+heading = re.compile(r'^(#{1,6})\s+(.*)$')
+list_label = re.compile(r'^(\s*)[-*]\s+\*\*([^*]+)\*\*\s*:?\s*(.*)$')
+line_label = re.compile(r'^\*\*([^*]+)\*\*\s*:?\s*(.*)$')
+plain_label = re.compile(r'^Coverage\s*:\s*(.*)$', re.I)
+is_coverage = lambda text: re.match(r'^\W*coverage\b', text.strip(), re.I) is not None
+
+
+def has_content(start, ends):
+    fence = False
+    for line in lines[start:]:
+        marker = line.lstrip().startswith('```')
+        if not fence and not marker and ends(line):
+            return False
+        if marker:
+            fence = not fence
+            continue
+        if line.strip():
+            return True
+    return False
+
+
+fence = False
+for i, line in enumerate(lines):
+    if line.lstrip().startswith('```'):
+        fence = not fence
+        continue
+    if fence:
+        continue
+    h, li, ll, pl = heading.match(line), list_label.match(line), line_label.match(line), plain_label.match(line)
+    if h and is_coverage(h.group(2)):
+        level = len(h.group(1))
+        inline = re.sub(r'^\W*coverage\W*', '', h.group(2), flags=re.I)
+        ends = lambda l, level=level: (bool(heading.match(l)) and len(heading.match(l).group(1)) <= level) \
+            or bool(line_label.match(l))
+    elif li and is_coverage(li.group(2)):
+        indent = len(li.group(1))
+        inline = re.sub(r'^\W*coverage\W*', '', li.group(2), flags=re.I) + li.group(3)
+        ends = lambda l, indent=indent: bool(heading.match(l)) or bool(line_label.match(l)) \
+            or (bool(list_label.match(l)) and len(list_label.match(l).group(1)) <= indent)
+    elif (ll and is_coverage(ll.group(1))) or pl:
+        inline = (re.sub(r'^\W*coverage\W*', '', ll.group(1), flags=re.I) + ll.group(2)) if ll else pl.group(1)
+        ends = lambda l: bool(heading.match(l)) or bool(line_label.match(l)) or bool(list_label.match(l))
+    else:
+        continue
+    if inline.strip(' :*') or has_content(i + 1, ends):
+        sys.exit(0)
+sys.exit(1)
+PY
+}
+
+main() {
+  local model="" effort="" access="" resume="" in_place=""
+  local -a configs=() positional=() saved=()
+
+  parse_options() {
+    while [ $# -gt 0 ]; do
+      case "$1" in
+        --access) access="${2:?--access needs sandboxed or full}"; shift 2 ;;
+        --in-place) in_place=1; shift ;;
+        --model) model="${2:?--model needs a value}"; shift 2 ;;
+        --effort) effort="${2:?--effort needs a value}"; shift 2 ;;
+        --config) configs+=("${2:?--config needs key=value}"); shift 2 ;;
+        --resume) resume="${2:?--resume needs a session ID}"; shift 2 ;;
+        -h | --help) usage; exit 0 ;;
+        -*) die "unknown option $1 (see --help)" ;;
+        *) positional+=("$1"); shift ;;
+      esac
+    done
+  }
+
+  parse_options "$@"
+  [ "${#positional[@]}" -eq 2 ] || { usage >&2; exit 1; }
+  local repo="${positional[0]}" out="${positional[1]}"
+
+  [ -d "$out" ] || die "output folder doesn't exist: $out"
+  out="$(cd "$out" && pwd -P)"
+  git -C "$repo" rev-parse --git-dir > /dev/null 2>&1 || die "not a git worktree: $repo"
+  repo="$(git -C "$repo" rev-parse --show-toplevel)"
+  repo="$(cd "$repo" && pwd -P)"
+  case "$out/" in
+    "$repo"/*) die "the output folder is inside the worktree under review: $out" ;;
+  esac
+  command -v codex > /dev/null || die "codex isn't on PATH"
+  command -v python3 > /dev/null || die "python3 isn't on PATH (the repository check needs it)"
+
+  local prefix="" prompt
+  if [ -n "$resume" ]; then
+    # Reuse the first run's settings, then let options given now add to them.
+    [ -f "$out/settings.txt" ] || die "no settings.txt in $out to resume with"
+    local line
+    while IFS= read -r line; do saved+=("$line"); done < "$out/settings.txt"
+    local resume_id="$resume"
+    model="" effort="" access="" in_place=""
+    configs=()
+    positional=()
+    parse_options ${saved[@]+"${saved[@]}"}
+    parse_options "$@"
+    resume="$resume_id"
+    local n=1
+    while [ -e "$out/recheck-$n-events.jsonl" ]; do n=$((n + 1)); done
+    prefix="recheck-$n-"
+    [ -f "$out/recheck-prompt.md" ] || die "write $out/recheck-prompt.md first"
+    cp "$out/recheck-prompt.md" "$out/${prefix}prompt.md"
+    prompt="$out/${prefix}prompt.md"
+  else
+    prompt="$out/prompt.md"
+    [ -f "$prompt" ] || die "missing $prompt"
+    [ ! -e "$out/events.jsonl" ] || die "$out already holds a run; use a new folder, or --resume to recheck"
+  fi
+
+  case "$access" in
+    sandboxed | full) ;;
+    *) die "choose --access sandboxed or --access full (the user's choice; see SKILL.md)" ;;
+  esac
+  if [ -n "$in_place" ] && [ "$access" != full ]; then
+    die "--in-place needs --access full: the sandbox can write in the folder it reviews"
+  fi
+
+  # {{REPO}} is filled below; any other placeholder, even on the same line, means the prompt isn't finished.
+  if sed 's/{{REPO}}//g' "$prompt" | grep -q '{{[A-Za-z0-9_]*}}'; then
+    echo "start_review: unfilled placeholders in $prompt:" >&2
+    sed 's/{{REPO}}//g' "$prompt" | grep -o '{{[A-Za-z0-9_]*}}' | sort -u >&2
+    exit 1
+  fi
+
+  if [ -n "$(git -C "$repo" status --porcelain --untracked-files=no)" ]; then
+    echo "start_review: warning: $repo has uncommitted changes to tracked files; the review covers commits only" >&2
+  fi
+
+  # Where the reviewer works.
+  local workdir head
+  head="$(git -C "$repo" rev-parse HEAD)"
+  if [ -n "$in_place" ]; then
+    workdir="$repo"
+  else
+    workdir="$out/checkout"
+    if [ -e "$workdir" ]; then
+      [ -n "$resume" ] || die "$workdir already exists; use a new output folder"
+      # A resume moves the checkout to the branch's new HEAD. The previous run's check already compared it.
+      git -C "$workdir" checkout --quiet --detach "$head" || die "couldn't move $workdir to $head"
+    else
+      git -C "$repo" worktree add --quiet --detach "$workdir" "$head" || die "couldn't create a checkout at $workdir"
+    fi
+  fi
+
+  if [ -z "$resume" ]; then
+    # One option per line, so a resume can read them back exactly.
+    {
+      printf '%s\n' --access "$access"
+      [ -n "$in_place" ] && printf '%s\n' --in-place
+      [ -n "$model" ] && printf '%s\n' --model "$model"
+      [ -n "$effort" ] && printf '%s\n' --effort "$effort"
+      local config
+      for config in ${configs[@]+"${configs[@]}"}; do printf '%s\n' --config "$config"; done
+    } > "$out/settings.txt"
+  fi
+
+  local prompt_sent="$out/${prefix}prompt-sent.md"
+  python3 -I -c 'import sys; src, dest, repo = sys.argv[1:]; open(dest, "w").write(open(src).read().replace("{{REPO}}", repo))' \
+    "$prompt" "$prompt_sent" "$workdir"
+
+  local events="$out/${prefix}events.jsonl" final="$out/${prefix}final-message.md"
+  local stderr_log="$out/${prefix}stderr.log"
+
+  echo "$workdir" > "$out/${prefix}reviewed-path.txt"
+  snapshot "$workdir" "$out/${prefix}before-snapshot.txt"
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$out/${prefix}started-at.txt"
+  local findings_before=""
+  if [ -z "$resume" ] && [ -e "$out/findings.md" ]; then
+    # A report left from before this run must not count as this run's.
+    mv "$out/findings.md" "$out/findings.previous.md"
+    echo "start_review: moved the existing findings.md aside to findings.previous.md" >&2
+  fi
+  [ -f "$out/findings.md" ] && findings_before="$(cksum < "$out/findings.md")"
+  : > "$out/${prefix}run-started.marker"
+
+  local status
+  set +e
+  run_reviewer
+  status=$?
+  set -e
+
+  date -u +%Y-%m-%dT%H:%M:%SZ > "$out/${prefix}finished-at.txt"
+  echo "$status" > "$out/${prefix}exit-status.txt"
+
+  # The reviewer is told not to change the checkout; check that it didn't.
+  snapshot "$workdir" "$out/${prefix}after-snapshot.txt"
+  local result=0 check
+  if cmp -s "$out/${prefix}before-snapshot.txt" "$out/${prefix}after-snapshot.txt"; then
+    check="repository unchanged ($workdir)"
+  else
+    check="REPOSITORY CHANGED during the review ($workdir): diff ${prefix}before-snapshot.txt ${prefix}after-snapshot.txt"
+    result=3
+  fi
+  echo "$check" > "$out/${prefix}repo-check.txt"
+
+  local findings_check="findings.md written"
+  if [ ! -s "$out/findings.md" ] || ! grep -q '[^[:space:]]' "$out/findings.md"; then
+    findings_check="NO FINDINGS: findings.md is missing or empty"
+  elif ! has_coverage_section "$out/findings.md"; then
+    findings_check="INCOMPLETE FINDINGS: findings.md has no '## Coverage' heading with content under it"
+  elif [ -n "$resume" ] && [ "$(cksum < "$out/findings.md")" = "$findings_before" ]; then
+    findings_check="FINDINGS NOT UPDATED: the recheck didn't change findings.md"
+  elif [ ! "$out/findings.md" -nt "$out/${prefix}run-started.marker" ] \
+    && [ "$(cksum < "$out/findings.md")" = "$findings_before" ]; then
+    findings_check="FINDINGS NOT WRITTEN BY THIS RUN: findings.md predates the run"
+  fi
+  echo "$findings_check" > "$out/${prefix}findings-check.txt"
+  if [ "$findings_check" != "findings.md written" ] && [ "$result" -eq 0 ]; then
+    result=4
+  fi
+
+  [ "$status" -ne 0 ] && result="$status"
+  echo "reviewer exit status $status; $check; $findings_check; results in $out"
+  exit "$result"
+}
+
+main "$@"

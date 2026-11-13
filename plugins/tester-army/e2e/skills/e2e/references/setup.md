@@ -278,7 +278,7 @@ app: {
   The runner interrupts active tests and skips queued tests only for those targets.
   Targets that have finished their work ignore the exit.
   The error labels the command with the first target that declared it, which may have finished already, and reports the command's exit code or signal.
-  See the [command reference](https://e2e.tester.army/reference/config#command) for log excerpts and redaction limits.
+  See the [command reference](https://e2e.com/docs/reference/config#command) for log excerpts and redaction limits.
 - The child gets only `PATH`, `HOME`, the temp-directory variables,
   `SystemRoot` and `COMSPEC` on Windows, and `command.env`. Pass the rest
   through `env`, or name host variables in `inheritEnv` (`['DATABASE_URL',

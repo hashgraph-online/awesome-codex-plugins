@@ -1,0 +1,44 @@
+{
+  "name": "agentdrives",
+  "version": "1.1.0",
+  "description": "Look up a SaaS tool, API or provider before your agent picks it: its agent level (0-5), where our agent stopped, and whether an agent can sign up, get a key and pay on its own.",
+  "author": {
+    "name": "AgentDrives",
+    "email": "hello@agentdrives.com",
+    "url": "https://agentdrives.com"
+  },
+  "homepage": "https://agentdrives.com/docs/mcp",
+  "repository": "https://github.com/AgentDrives/agentdrives-mcp",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "ai-agents",
+    "agent-readiness",
+    "saas",
+    "api",
+    "directory",
+    "skills"
+  ],
+  "interface": {
+    "displayName": "AgentDrives",
+    "shortDescription": "Check if an agent can use a tool before picking it",
+    "longDescription": "Look up a SaaS tool, API or provider before your agent picks it. AgentDrives drives real products the way an agent would: it signs up, gets a key, does the work, tries to pay and leaves. Each product gets an agent level from L0 to L5, with where our agent stopped and whether an agent can sign up, get a key and pay on its own. Read-only, no key.",
+    "developerName": "AgentDrives",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://agentdrives.com",
+    "privacyPolicyURL": "https://agentdrives.com/legal/privacy",
+    "termsOfServiceURL": "https://agentdrives.com/legal/terms",
+    "defaultPrompt": [
+      "Which invoicing API can my agent sign up for and pay on its own?",
+      "Can an agent get an API key for Resend without a person?"
+    ],
+    "brandColor": "#FFD000",
+    "composerIcon": "./assets/logo.svg",
+    "logo": "./assets/logo.svg"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
+}

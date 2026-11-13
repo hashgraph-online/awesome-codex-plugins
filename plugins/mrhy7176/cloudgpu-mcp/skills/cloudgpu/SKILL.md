@@ -93,3 +93,7 @@ Sequential approved `run_command` calls may reuse a running rental within its or
 ## Connect with an approval link
 
 In a configured MCP client, call `connect_account`, show the owner its link, then `finish_connect` after approval. No password or API key is pasted in chat. The link grants scoped access; it does not automatically install an MCP server in arbitrary AI products.
+
+## Several steps on one allocation
+
+If installed, `prepare_task_pipeline` prepares up to eight reviewed sequential commands for one Job, or for `run_command` on an approved existing rental. It creates nothing. Commands share the filesystem and GPU but use separate shells; they do not share exported shell variables or a resident model process. Failure stops later steps. Python 3, bash and prepared dependencies are required. Review the returned command, obtain a compatible quote and explicit total budget/deadline approval, then submit one Job with a stable idempotency key. Preserve the original request on a lost response. The fingerprint is informational, not approval. Optional collection saves only pipeline-summary.json, never arbitrary results or logs; approve actual result persistence separately. Existing user instance limits and lifecycle remain unchanged.
