@@ -18,7 +18,7 @@ Below, `<projectPath>` means that directory.
 - **How to get projectId**: if the in-app browser has a canvas open, its URL looks like `http://127.0.0.1:<port>/?project=<projectId>`; that `project` value is the project the user is working on. Otherwise, reuse a projectId already mentioned in this conversation. If the user refers to an existing canvas by name, call `list_canvas_projects` and match it. If there is no current canvas at all, call `create_canvas` with a short descriptive name, then show it as described in _Show the canvas_.
 - **Current state**: `<projectPath>/canvas.json` holds every node as JSON. Read it to see what is on the canvas, but never write it: change nodes only through `add_node` and `edit_node`.
 - **Files**: node content lives in `<projectPath>/asset/`. Paths in node JSON are relative to `<projectPath>`, e.g. `asset/home.html`. If the sandbox blocks writing there, request permission for that directory.
-- **Plan limit**: the free plan allows one project. When `create_canvas` fails because of it, tell the user what the error says, including the pricing link, and offer to keep working in an existing canvas. If the user gives you a license key (it starts with `cdp_sub_`), activate it with `activate_pro`, then retry `create_canvas`.
+- **Plan limit**: if `create_canvas` fails with a plan limit error, tell the user what the error says, including the pricing link, and offer to keep working in an existing canvas. If the user gives you a license key (it starts with `cdp_sub_`) and the `activate_pro` tool is available, activate it, then retry `create_canvas`.
 
 ## Node JSON
 

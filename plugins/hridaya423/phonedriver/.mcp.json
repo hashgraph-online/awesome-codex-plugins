@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "phonedriver": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "phonedriver@0.1.2",
+        "mcp"
+      ]
+    }
+  }
+}

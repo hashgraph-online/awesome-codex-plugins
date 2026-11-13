@@ -12,7 +12,7 @@ The detail behind SKILL.md Steps 6–7 and the Failure Recovery section: what co
 
 ## Static gate
 
-`review_and_gate({"target": TARGET, "cwd": PROJECT_ROOT})` is supplemental static evidence. It returns `schemaVersion: 3`:
+`review_and_gate({"target": TARGET, "cwd": PROJECT_ROOT})` is supplemental static evidence. It returns `schemaVersion: 4`:
 
 - per-rule coverage: `RAN`, `UNSUPPORTED`, `UNRESOLVED` or `WAIVED`;
 - `staticStatus`: `PASS`, `FAIL` or `INCOMPLETE`, where `INCOMPLETE` means a required rule could not run on the scanned files (report it as a gap, never a pass);

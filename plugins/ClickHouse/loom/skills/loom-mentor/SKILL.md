@@ -12,7 +12,6 @@ description: >
   hint code. NOT for deciding the shape of one write (loom-memory), NOT for
   grep-vs-code.* in an indexed repo (loom-code), NOT for reworking a
   namespace that already holds the wrong shape (loom-optimize).
-allowed-tools: Bash, Read
 disable-model-invocation: true
 ---
 

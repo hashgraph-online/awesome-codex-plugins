@@ -1,20 +1,20 @@
 ---
 name: centricmem-agent
-description: "Organises and retrieves Markdown memory on the hosted CentricMem librarian (search, notes, decisions, transcripts). Use when starting a session, resuming after context compress / checkpoint / new chat, filing Non-Micro work, searching project memory, connecting an agent credential, or refreshing this Skill — and during coding, research, review, or troubleshooting sessions so durable findings land on the shelf. On session start, compare the loaded copy (see REFERENCE Skill refresh) against cm_health / ambient skill_latest and refresh if stale."
+description: "Organises and retrieves Markdown memory on the hosted CentricMem librarian (search, notes, decisions, transcripts). Use when coding, researching, reviewing, troubleshooting, or doing multi-step project work — at session start or resume (context compress / checkpoint / new chat), at each deliverable or phase close, filing Non-Micro work, searching project memory, connecting an agent credential, or refreshing this Skill. Skip it for pure Q&A chat that ships nothing. On session start, compare the loaded copy (see REFERENCE Skill refresh) against cm_health / ambient skill_latest and refresh if stale."
 requirements:
   mcps:
     - centricmem
 license: MIT
 compatibility: "Requires host MCP at https://mem.centricmem.com/mcp. Floors use the pre-1.0 0.21.x numbering; every 1.0.x satisfies them all. librarian >=0.21.50: a card is summary + key points (a keep stub is not a card); a folder is cm_keep card:false then cm_import items; archive zip is optional; share: shelf ids; cm_move takes whole paths (never lessons.md or #); cm_delete {file,shelf} a card, heading= for one ##; cm_rename {file,shelf,title}; omitting the cm_library id lists shelves; skipExisting and copy-aside FTS skip. >=0.21.51 Codex OAuth. >=0.21.55 applicant HTTPS callbacks. >=0.21.56 OAuth credential picker and the ChatGPT Approve hop. >=1.0.6 host-ops detail (cm_ops)."
 metadata:
-  version: "1.0.48"
+  version: "1.0.50"
   compatible_cli: ">=1.0.38"
   changelog_url: https://github.com/zeyu-j/centricmem-skill/blob/main/CHANGELOG.md
 ---
 
 # CentricMem Agent Skill
 
-**Names:** product/CLI = `centricmem`; GitHub install package = `centricmem-skill`; this Agent Skill folder = `centricmem-agent` (keep that folder name — it is not a second product).
+**Names:** product/CLI = `centricmem`; GitHub install package = `centricmem-skill`; this Agent Skill folder = `centricmem-agent` (keep that folder name — it is not a second product). Canonical copy: `github.com/zeyu-j/centricmem-skill` → `skills/centricmem-agent/` — copies under `~/.cursor`, `~/.agents`, `~/.codex`, plugin trees are synced installs; newest version wins and `centricmem doctor` lists every copy it finds (STALE marks older ones).
 Handover (when / loop). Schemas win. Branches: [REFERENCE.md](REFERENCE.md).
 **Library** → **Shelf** → **Card** (summary + key points). No Inbox / `unclassified`. One credential = grants. Never paste credentials in chat (REFERENCE **Bearer: where plaintext is OK vs not** — claim may write a private local MCP file; docs/plans use `${VAR}` or URL-only). Hooks and wrappers resolve the credential from process env → nearest `.env` up from cwd → `~/.centricmem/.env`; hook broken but MCP fine → `CENTRICMEM_TOKEN=` in `.env`, never in a prompt.
 **Style** of a card (voice, length, evidence density) is yours + this agent's — not a CentricMem house voice. Structure only: REFERENCE **Card contract**.
@@ -32,11 +32,12 @@ Handover (when / loop). Schemas win. Branches: [REFERENCE.md](REFERENCE.md).
 - Don't put secrets / credentials in cards, and never ask the human to paste a credential or transcript in chat
 - Never echo a credential value — fingerprint to confirm (`9352... len=64 fp=5E4ED29C`), never dump `mcp.json` / `config.toml` / `*.env` whole, never redact by length threshold. A credential in the transcript → say so that turn and rotate it. (REFERENCE **Never echo a credential**)
 - Don't stop after a title-only card — every card needs summary + key points
+- No `cm_*` tool in your tool list = the MCP is not attached to this session. Do not simulate ambient or a sweep — skip memory work, and tell the human once at wrap-up that CentricMem was unreachable (host needs the MCP registered, then restarted)
 - Don't confuse a dead session with a credential problem — transport failure → re-handshake path (§0); refusal (401/403) → rotation. Never call a credential unrotated from the store alone: compare card, env, and whether this host is on OAuth.
 
 ## When to Use
 
-Start or resume; search; file Non-Micro; connect / refresh Skill. Recipes: REFERENCE.
+Project work — session start or resume, and again at each deliverable/phase close (a light ambient, not a full restart); search; file Non-Micro; connect / refresh Skill. Pure Q&A chat that ships nothing: skip. Recipes: REFERENCE.
 **Daily:** §2 → work → §4 before yield. Connect: REFERENCE. Empty shelf once: REFERENCE Existing memory.
 
 ## 0. Reach
@@ -75,6 +76,7 @@ No wrap-up wait; Agent close does not run this; Don't log / Skill done → skip.
 | File now | File at wrap-up |
 |---|---|
 | Locked decision; method-changing lesson; finished chunk | Version-tied stats; unverified conclusions |
+| Shipped deliverable (design, artifact, doc, deploy) — tag it `deliverable`; durable user facts (hardware, accounts, preferences) | Session stats |
 
 Same `lessons.md` title → 409; rewrite = `cm_delete` then write (REFERENCE). Early wrong write costs more. Writes carry **`task=` / `outcome=`** when you have them — `outcome=friction` when the work hit a pit (lands in next session's `Warnings:` lane); `task=` defaults to the last session heading.
 

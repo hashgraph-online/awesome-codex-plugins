@@ -420,7 +420,7 @@ Instead of:
 Say:
 "5 of 8 users couldn't find the promo code field.
 Recommendation: Move promo code input above the order summary.
-Impact: Could recover ~15% of abandoned carts."
+Impact: [state the measured figure and its source; never an estimate presented as data]."
 ```
 
 ---

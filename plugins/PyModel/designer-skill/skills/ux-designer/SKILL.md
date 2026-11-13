@@ -5,7 +5,7 @@ description: "UX principles for planning or auditing an interface: accessibility
 
 # UX Designer Skill
 
-A UX depth library. Read the reference for the task before designing or reviewing; each number and pattern has one home there, so cite the reference rather than restating values from memory.
+A UX depth library. Read the reference for the task before designing or reviewing; cite the reference rather than restating values from memory. Where a number also appears in the designer-skill references (touch targets, contrast), designer-skill's `design-principles` is the owner and these files follow it.
 
 ## Lens
 

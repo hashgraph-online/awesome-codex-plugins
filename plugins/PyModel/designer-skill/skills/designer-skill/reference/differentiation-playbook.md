@@ -1,6 +1,6 @@
 # Differentiation Playbook
 
-Positive creativity guide. Use **before** the ban-list in `avoid-ai-slop.md`. Slop rules say what to refuse; this file says how to be distinctive, intentional, and clean.
+Positive creativity guide. Use alongside the advisory lens in `avoid-ai-slop.md`: that file names generic defaults to question; this one says how to be distinctive, intentional, and clean.
 
 The bar: a viewer asks **"how was this made?"** — not **"which AI made this?"**
 

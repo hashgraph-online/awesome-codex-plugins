@@ -372,7 +372,7 @@ const ROBOTS_HOPS = 5;
 // (given): one that leads to a page on this machine or a private network is
 // not asked for, and counts as a robots.txt that could not be read.
 async function readRobots(origin, given = origin) {
-  const headers = { "user-agent": `${AGENT}/${version} (+https://github.com/EminBudak/easybrandkit)` };
+  const headers = { "user-agent": `${AGENT}/${version} (+https://github.com/MakersMCP/easybrandkit)` };
   const signal = AbortSignal.timeout(Math.max(2_000, Math.min(10_000, timeLeft() - 30_000)));
   let url = `${origin}/robots.txt`;
   try {

@@ -48,13 +48,24 @@ Then run `/mcp auth treza` inside Gemini CLI. Gemini also loads the skill in `sk
 }
 ```
 
-**Claude Code.**
+**Claude Code.** This repo is a Claude Code plugin and marketplace. Installing it adds the Treza server and the skill. Inside Claude Code:
+
+```
+/plugin install treza --marketplace treza-labs/treza-plugin
+```
+
+Or from a shell:
+
+```bash
+claude plugin marketplace add treza-labs/treza-plugin
+claude plugin install treza@treza
+```
+
+Then run `/mcp`, pick `treza` and sign in. The skill runs as `/treza:treza-video-pipelines`, and Claude also picks it up on its own when you ask for a video. To add only the server, without the skill:
 
 ```bash
 claude mcp add --transport http --scope user treza https://www.trezalabs.com/api/mcp
 ```
-
-Then run `/mcp` inside Claude Code and sign in.
 
 **Cline.** Follow [`llms-install.md`](llms-install.md), or add the URL under MCP Servers, Remote Servers, with Streamable HTTP, then click Authenticate.
 
@@ -80,6 +91,7 @@ Then run `/mcp` inside Claude Code and sign in.
 |---|---|
 | `plugin.json` | Agent Plugins manifest |
 | `.cursor-plugin/plugin.json` | Cursor plugin manifest: the same server and skill, with the logo |
+| `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` | Claude Code plugin and the one-plugin marketplace it installs from |
 | `mcp.json` | Declares the remote Treza MCP server for plugin-aware clients |
 | `skills/treza-video-pipelines/` | A skill that teaches the agent the shortest path to a video, and to price a render before it starts |
 | `gemini-extension.json` | Gemini CLI extension manifest (the same remote server) |

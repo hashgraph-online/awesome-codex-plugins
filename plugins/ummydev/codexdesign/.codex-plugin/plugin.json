@@ -1,6 +1,6 @@
 {
   "name": "codexdesign",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "GPL-3.0-only",
   "description": "Generate images into a persistent React Flow canvas and open it in the Codex in-app browser.",
   "author": {

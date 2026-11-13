@@ -66,7 +66,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="Embed a raster logo in SVG")
     p.add_argument("input", type=Path, help="source image (.webp, .png, .jpg)")
     p.add_argument("-o", "--output", type=Path, help="output .svg (default: same stem as input)")
-    p.add_argument("-l", "--label", default="", help="aria-label (default: input stem)")
+    p.add_argument("-l", "--label", default="", help="aria-label (default: output stem)")
     p.add_argument("-f", "--force", action="store_true", help="overwrite an existing output file")
     args = p.parse_args()
     if not args.input.is_file():

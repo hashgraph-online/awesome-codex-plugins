@@ -150,7 +150,7 @@ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI',
 ```css
 /* Optimal line heights */
 body {
-  line-height: 1.5; /* 1.4-1.6 for body text */
+  line-height: 1.5; /* 1.5-1.7 for body text */
 }
 
 h1, h2, h3 {
@@ -164,7 +164,7 @@ h1, h2, h3 {
 
 ### Line Length
 
-Optimal reading: **50-75 characters per line**
+Optimal reading: **45-75 characters per line**
 
 ```css
 /* Constrain line length */
@@ -210,9 +210,9 @@ h1 {
   font-size: clamp(2rem, 5vw + 1rem, 4rem);
 }
 
-body {
-  font-size: clamp(1rem, 2.5vw, 1.25rem);
-}
+/* Keep body text at the user's size; scale headings fluidly instead */
+body { font-size: 1rem; }
+h1 { font-size: clamp(2rem, 1.5rem + 2.5vw, 3.5rem); }
 ```
 
 ---

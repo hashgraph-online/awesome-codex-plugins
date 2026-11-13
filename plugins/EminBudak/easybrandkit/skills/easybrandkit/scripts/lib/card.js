@@ -60,7 +60,7 @@ function cardHtml(kit, dir) {
       <div><div class="label">Fonts</div><div class="fonts">${fonts.length ? fonts.map(escape).join("<br>") : "Not found"}</div></div>
     </div>
   </div>
-  <div class="foot">github.com/EminBudak/easybrandkit</div>
+  <div class="foot">github.com/MakersMCP/easybrandkit</div>
   </div></body></html>`;
 }
 

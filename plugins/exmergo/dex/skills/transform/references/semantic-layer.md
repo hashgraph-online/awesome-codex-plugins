@@ -165,6 +165,52 @@ after their column from declared aggregations, population and units in
 `declarations`, which annotate a cube the payload or the layer defines, rewriting
 only that cube's entry. See [declarations.md](declarations.md#cube-semanticvendor-cube).
 
+## Snowflake Semantic Views: `semantic snowflake define|update|plan`
+
+Under `semantic.vendor: snowflake`, the configured Semantic View YAML files are
+the semantic layer. Author them with
+`semantic snowflake define|update|plan <intent> --edits-file <path|->`. The
+wrapper installs the `[semantic-views]` extra (the dialect engine) for it. Dex
+never deploys a view: checking it with
+`SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML('<database>.<schema>', $$ <file> $$, TRUE)`
+and creating it are the author's steps, outside Dex, and no authoring command
+opens a Snowflake connection.
+
+- Each edit is one **whole Semantic View YAML document** (what the procedure
+  takes), keyed exactly as `semantic.snowflake.files` lists it and written
+  byte-for-byte, keeping the file's mode. A view is named by its own `name`.
+- Only the listed files are writable. A path off the list, a `.sql` file (the
+  `CREATE SEMANTIC VIEW` DDL) and another suffix are refused by name, and so is a
+  delete. To add a view, propose `dex config set semantic.snowflake.files '[...,
+  <path>]'` first (the user confirms the diff).
+- The whole set is validated by Dex's port of Snowflake's rules, and every error
+  anywhere refuses the plan. Writing is stricter than reading: an unknown key,
+  `access_modifier` on a dimension (Snowflake keeps it private, hiding it from
+  every query) and `unresolved_member` refuse it. `unresolved_member` is a read
+  qualified with its own table that names no member (`SUM(orders.total_price)`
+  where `total_price` is not declared): declare the fact, or write the base
+  column unqualified. Every refusal names `file: element: [rule]`; fix that
+  element and re-plan.
+- The envelope classifies each logical table (`view.table`) and derived metric
+  (`view.metric`) as `defined`, `updated` or `unchanged` (reformatting is
+  `unchanged`); a change only to relationships or the view's own keys lists the
+  view itself as `updated`. `define` refuses an existing view and a removal,
+  `update` a new view. A file changed after planning makes `transform apply`
+  refuse the plan; remake it with `semantic snowflake plan`.
+
+**A declared mart derives its logical table.** Under `vendor: snowflake`,
+`transform plan` on a declared mart builds a logical table (the mart as
+`base_table`, the grain as `primary_key`, dimensions, time dimensions, facts and
+metrics from the roles and aggregations, a relationship per foreign key to a
+parent table keyed on that column) and splices it into the configured file that
+holds the tables its foreign keys reference, as a second plan beside the mart's.
+Where none does, it is a view of its own, `<dir>/<mart>.yaml`, proposed with the
+`dex config set` that adopts it. `base_table` needs the database and schema, so
+build or compile the project (or give a sibling model a logical table) before
+planning a mart. `semantic snowflake define|update|plan` also take
+`declarations`, which annotate the table they name, splicing only what changes.
+See [declarations.md](declarations.md#snowflake-semantic-views-semanticvendor-snowflake).
+
 ## Databricks Metric Views: `semantic databricks define|update|plan`
 
 Under `semantic.vendor: databricks`, the configured Metric View YAML files are the

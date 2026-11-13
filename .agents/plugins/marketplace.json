@@ -4958,6 +4958,21 @@
       "icon": "./plugins/papersflow-ai/papersflow-codex-plugin/assets/plugin-icon.png"
     },
     {
+      "name": "phonedriver",
+      "displayName": "phonedriver",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hridaya423/phonedriver"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Lets Codex see and operate Android phones, emulators, the iOS Simulator and iPhones through a local MCP server and its skill, and asks you before any tap that pays.",
+      "icon": "./plugins/hridaya423/phonedriver/assets/icon.png"
+    },
+    {
       "name": "placecall",
       "displayName": "PlaceCall",
       "source": {

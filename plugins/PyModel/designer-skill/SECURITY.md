@@ -2,9 +2,7 @@
 
 ## Supported Versions
 
-| Version | Supported |
-| ------- | --------- |
-| 0.x     | ✅        |
+Only the latest release of `@pymodel/designer-skill-mcp` on npm receives security fixes. Earlier versions are not patched; upgrade to the latest release.
 
 ## Reporting a Vulnerability
 

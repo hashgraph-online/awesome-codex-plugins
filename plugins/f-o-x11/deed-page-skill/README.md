@@ -5,7 +5,7 @@
 
 deed.page publishes a file or folder to a permanent `https://<slug>.deed.page/` URL in one call. No account, API key, email code, or claim link. This repo documents the hosted remote MCP server (`https://deed.page/mcp`, see [MCP server](#mcp-server)) and contains the deed.page agent skill, which does the same with one `curl` request.
 
-It works with Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot CLI, Grok Bot, Hermes Agent, and any agent that reads `SKILL.md` files ([agentskills.io](https://agentskills.io) format).
+It works with Claude Code, Codex, Cursor, Gemini CLI, GitHub Copilot CLI, Grok Build, Grok Bot, Hermes Agent, and any agent that reads `SKILL.md` files ([agentskills.io](https://agentskills.io) format).
 
 - Website: https://deed.page
 - Docs: https://deed.page/docs
@@ -58,7 +58,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 
 ### Tools
 
-27 tools:
+28 tools:
 
 | Tool | What it does |
 | --- | --- |
@@ -75,6 +75,7 @@ Keep the token secret. `rotate_token` replaces it and `revoke_token` revokes it.
 | `set_site_access` | Set or clear a site password. |
 | `set_listing` | List a site in the public gallery, or remove it. |
 | `site_analytics` | Cookieless view counts, top paths, referrers, and AI crawler counts for a site. 90 days per request on Free and Hobby; 365 days and CSV on Pro. |
+| `site_visits` | Owner-only human page views and daily unique visitors for a slug. 7 days on Free, 30 on Hobby, 90 on Pro. |
 | `add_domain` | Attach a custom domain and get the DNS records to create. |
 | `list_domains` | List custom domains. |
 | `domain_status` | Check and refresh a custom domain's verification and certificate status. |
@@ -98,12 +99,12 @@ Free plan: 25 sites, 25 MB per site, 60 publishes per hour. Free sites are publi
 
 ## Skill and plugins
 
-The skill is [`skills/deed-page/SKILL.md`](skills/deed-page/SKILL.md). Since 1.7.0 it also ships two optional scripts in [`skills/deed-page/scripts/`](skills/deed-page/scripts/): `publish.sh` publishes a file or a clean output folder and, above 4 MB, hands off to `publish-large.mjs` (Node 18+), which uploads through the manifest flow (`/v1/uploads`). Both skip sensitive and repo-metadata paths and refuse a project root that has no `dist`, `build`, `out`, `public`, or `_site` directory unless `--allow-root` is set. They are the same files served at https://deed.page/cli/. The repo is also a plugin that bundles the skill with the hosted deed.page MCP server, with manifests for each agent:
+The skill is [`skills/deed-page/SKILL.md`](skills/deed-page/SKILL.md). Since 1.7.0 it also ships two optional scripts in [`skills/deed-page/scripts/`](skills/deed-page/scripts/): `publish.sh` publishes a file or a clean output folder and, above 4 MB, hands off to `publish-large.mjs` (Node 18+), which uploads through the manifest flow (`/v1/uploads`). Both skip sensitive and repo-metadata paths and refuse a project root that has no `dist`, `build`, `out`, `public`, or `_site` directory unless `--allow-root` is set. The same scripts are also published at https://deed.page/cli/. This plugin always runs the bundled copies in [`skills/deed-page/scripts/`](skills/deed-page/scripts/). The repo is also a plugin that bundles the skill with the hosted deed.page MCP server, with manifests for each agent:
 
 | File | Format |
 | --- | --- |
 | [`plugin.json`](plugin.json), [`mcp.json`](mcp.json) | [Agent Plugins 1.0](https://agent-plugins.org) (Codex, Cursor, Copilot CLI, Kiro) |
-| [`.grok-plugin/plugin.json`](.grok-plugin/plugin.json) | Grok Bot |
+| [`.grok-plugin/plugin.json`](.grok-plugin/plugin.json) | Grok Build |
 | [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json) | Cursor |
 | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json), [`.agents/plugins/marketplace.json`](.agents/plugins/marketplace.json) | Codex |
 | [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json), [`.claude-plugin/marketplace.json`](.claude-plugin/marketplace.json), [`.mcp.json`](.mcp.json) | Claude Code |
@@ -179,9 +180,27 @@ copilot plugin marketplace add f-o-x11/deed-page-skill
 copilot plugin install deed-page@deed-page
 ```
 
-### Grok Bot
+### Grok Build
 
-The repo includes a Grok Bot plugin manifest in [`.grok-plugin/plugin.json`](.grok-plugin/plugin.json). Until it is in the Grok Bot plugin catalog, add the remote MCP server `https://deed.page/mcp`, or install the skill with `npx skills add f-o-x11/deed-page-skill`.
+Install this repo as a plugin. The repo root is the plugin. `--trust` turns on the bundled MCP server (`https://deed.page/mcp`); an untrusted plugin leaves that server inactive.
+
+```bash
+grok plugin install f-o-x11/deed-page-skill --trust
+```
+
+MCP only, without the skill:
+
+```bash
+grok mcp add --transport http deed-page https://deed.page/mcp
+```
+
+When publishing from Grok Build, attribute the upload with the bundled script:
+
+```bash
+sh skills/deed-page/scripts/publish.sh ./dist --ref grok-build --client "Grok Build"
+```
+
+The curl fallback in the skill uses `DEED_REF=grok-build` for the same `?ref=`. Grok Bot can use the same remote MCP server at `https://deed.page/mcp`. The manifest is [`.grok-plugin/plugin.json`](.grok-plugin/plugin.json).
 
 ### Any MCP client
 
@@ -227,13 +246,16 @@ curl -sS -T index.html "https://deed.page/v1/sites?slug=my-report-7f3a2c&ref=ski
 - Free sites are public. Do not publish secrets.
 - Static files only.
 
-`publish.sh` sends `?ref=skill-script` and the `curl` fallback sends `?ref=skill-gh`; both tell deed.page that a publish came from this skill. It does not change what is published. Pass `--ref` to the script, or set `DEED_REF` for the skill's `curl` command, to override it. You can also say where you found deed.page with the optional `X-Deed-Heard-From` header on the first publish (at most 200 characters).
+`publish.sh` sends `?ref=skill-script` and the `curl` fallback sends `?ref=skill-gh`; both tell deed.page that a publish came from this skill. It does not change what is published. Pass `--ref` to the script, or set `DEED_REF` for the skill's `curl` command, to override it. Grok Build uses `--ref grok-build --client "Grok Build"` and `DEED_REF=grok-build`. You can also say where you found deed.page with the optional `X-Deed-Heard-From` header on the first publish (at most 200 characters).
 
 ## Network endpoints and credentials
 
-- The skill calls only `https://deed.page/v1/sites` with `curl`. The MCP server is `https://deed.page/mcp`. Published sites live at `https://<slug>.deed.page/`.
-- No account or API key is needed. The first publish returns a site token once; the skill saves it to `~/.config/deed-page/token` (mode 600), loads it into `DEEDPAGE_TOKEN` before later publishes so every site stays under one owner, and sends it only to `https://deed.page`.
-- No install scripts or hooks. The only executable code is the two optional publish scripts in `skills/deed-page/scripts/`, which run only when the agent publishes. Above 4 MB, `publish-large.mjs` PUTs file bytes to the Vercel Blob upload URLs that deed.page returns. See [SECURITY.md](SECURITY.md).
+License: MIT. This plugin contacts only `https://deed.page` (and the storage URLs that API returns for a large upload).
+
+- Publish API: `https://deed.page/v1/sites`. Folders over 4 MB use `https://deed.page/v1/uploads`, then PUT file bytes to the Vercel Blob upload URLs in that response. The MCP server is `https://deed.page/mcp`. Published sites are served at `https://<slug>.deed.page/`.
+- No account, API key, or OAuth is required. The first publish mints an owner token (`deed_tok_...`) once. The skill stores it at `~/.config/deed-page/token` (file mode 600, directory mode 700), loads it into `DEEDPAGE_TOKEN` before later publishes so every site stays under one owner, and sends it only to `https://deed.page` as `Authorization: Bearer`.
+- `publish.sh` and `publish-large.mjs` skip `.env` and `.env.*`, `.git`, `.github`, `.ssh`, `node_modules`, keys, `credentials.json`, `secrets.*`, and other dotfiles (`.well-known` is kept). They refuse a project root that has no `dist`, `build`, `out`, `public`, or `_site` directory unless `--allow-root` is set.
+- No install scripts, postinstall, or hooks. The only executable code is those two scripts, which run only when the agent publishes, and they run the bundled `scripts/publish-large.mjs` rather than downloading one. See [SECURITY.md](SECURITY.md).
 
 ## Privacy and support
 

@@ -455,6 +455,26 @@ and the metadata Dex captured through its own connection. The wrapper installs t
 | `reconcile` | the schema findings' removals are cut out of the view files and stored as a `semantic databricks update` plan under `data.semantic_plan_id`, validated by the reader before it is stored: each removed field, measure and join (a nested join goes with its parent), and a contradicted `format` (the member stays). Every other byte is kept and `on:` stays text. Advisory, never written: a view or join whose `source` is gone, a `filter` reading a dropped column (the view's population), a query `source` reading one, a removal a `materialization` names, one that would leave no field and no measure, and a file already holding a key Databricks refuses |
 | `verify` | checks the dbt project only |
 
+## Snowflake Semantic View layers (`semantic.vendor: snowflake`)
+
+Every layer-neutral axis runs on a Semantic View layer, beside a dbt project or
+with none, without a Snowflake connection to read it. The wrapper installs the
+`[semantic-views]` extra for every `maintain` command where the vendor is
+`snowflake`.
+
+| Axis | On Semantic Views |
+|---|---|
+| `snapshot` | fingerprints each logical table (`view.table`, with its members' columns and its primary and unique keys), each table and view-level metric, and each key-equality relationship with its ordered pairs and arity (`many_to_one`, `one_to_one` or `many_to_many`); records `vendor: snowflake` and Dex's rule-set revision as `format_version`. The hash covers a canonical form, so a view read back from Snowflake (upper-case names, defaulted `access_modifier` and `data_type`) fingerprints as its file |
+| `schema` | unchanged: no vendor schema axis yet (#1293) |
+| `volume` | unchanged: it reads the warehouse, not the layer |
+| `grain` | measures each primary and unique key (`declared_grain_not_unique`) and each relationship's arity (`join_cardinality_exceeded`); an ASOF or range relationship states no arity and is named unchecked |
+| `semantic` | definition drift free as everywhere: a table, member, metric or relationship added, removed or changed |
+| `reconcile` | advisory, naming `semantic snowflake update` as the route (#1292); no edit is stored until the schema axis (#1293) |
+| `verify` | checks the dbt project only |
+
+A deployed semantic view is never inventoried: `SHOW VIEWS` does not list one,
+and a plain `SELECT` on one fails, so no profile or grain probe reaches it.
+
 ## SLayer layers (`semantic.vendor: slayer`)
 
 Every axis runs on a SLayer layer, and none opens a SLayer datasource or SLayer

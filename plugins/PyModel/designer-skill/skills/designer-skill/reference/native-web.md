@@ -23,7 +23,7 @@ Small platform mismatches make a web app feel foreign on a phone. Every fix belo
 ## Rules that outrank the table
 
 - **Never disable zoom** (`user-scalable=no`, `maximum-scale=1`): it breaks accessibility and modern mobile browsers ignore it anyway.
-- **Touch targets** follow the interaction-design reference (24 CSS px minimum per WCAG 2.2 AA; comfortable is larger) — thumb reach guidance lives in `ux/08-mobile-ux`.
+- **Touch targets** follow design-principles.md (24 CSS px minimum per WCAG 2.2 AA; 44pt/48dp on touch surfaces) — thumb reach guidance lives in `ux/08-mobile-ux`.
 - Prefer **media and feature queries** (`hover`, `pointer`, `display-mode`) over user-agent or device sniffing; capabilities, not devices, drive behavior.
 - `position: fixed` bars interact with keyboard and chrome resizing: verify the bar's behavior when the keyboard opens and the address bar collapses, not just at rest.
 - Installed-app feel is mostly *state* correctness (resume, back, offline, focus), not visual chrome; pair this reference with the state-coverage rules in SKILL.md Step 5.

@@ -6,7 +6,7 @@
 
 <p align="center">
   Edit video by talking to the <a href="https://trycassette.online">Cassette</a> agent from Claude Code, Codex, OpenCode or Hermes.<br />
-  <sub>A small MCP bridge on PyPI. The editing tools come from the Cassette MCP service, so they stay current without a plugin update.</sub>
+  <sub>A small MCP bridge, installed from PyPI. The editing tools come from the Cassette MCP service, so they stay current without a plugin update.</sub>
 </p>
 
 <p align="center">
@@ -22,9 +22,9 @@
   <img src="https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/main/assets/demo-claude-code.gif" width="100%" alt="One Claude Code session: import five 4K films and a song, ask for a 30-second teaser, revise it, export it" />
 </p>
 
-**One Claude Code session, typed as you see it.** Five 4K travel films (10½ minutes of footage) and a song go in, a
-four-sentence brief and a one-line revision go to the Cassette agent word for word, and a 30-second 1080p MP4 lands in
-`cassette-exports/`. Waits are fast-forwarded: in real time the import took 4½ minutes, the first cut 9½, the revision
+**One real Claude Code session, with every prompt shown as it was typed.** Five 4K travel films (10½ minutes of
+footage) and a song go in, a two-sentence brief and a one-line revision go to the Cassette agent word for word, and a
+30-second 1080p MP4 lands in `cassette-exports/`. Waits are fast-forwarded: in real time the import took 4½ minutes, the first cut 9½, the revision
 3½ and the export 1.
 
 > *Cut a 30-second teaser for Turkey from these five films, on the beat of Pamgaea.mp3. Open on a hot-air balloon
@@ -40,8 +40,10 @@ four-sentence brief and a one-line revision go to the Cassette agent word for wo
 
 ## Install in 30 seconds
 
-You need [uv](https://docs.astral.sh/uv/) (it fetches Python and the package on first start) and
-[ffmpeg](https://ffmpeg.org/download.html) to import video.
+You need [uv](https://docs.astral.sh/uv/) (it fetches Python and the package on first start) and, to import video
+into a cloud project, [ffmpeg](https://ffmpeg.org/download.html).
+
+**1. Add Oh My Cassette to your agent.**
 
 ```bash
 # Claude Code
@@ -60,30 +62,30 @@ codex plugin add oh-my-cassette@cassette-editor
 hermes mcp add cassette --command uvx --args oh-my-cassette==0.6.0
 ```
 
-OpenCode and any other MCP host: see [Install](#install) below. Run `uvx oh-my-cassette==0.6.0 login` and complete the
-email-code sign-in in your browser. Then restart your agent if it cannot refresh its tool list, and say:
+For OpenCode or any other MCP host, see [Install](#install) below.
+
+**2. Sign in**, whichever host you use:
+
+```bash
+uvx oh-my-cassette==0.6.0 login
+```
+
+Your browser asks for the code Cassette emails you. Then restart your agent if it cannot refresh its tool list, and say:
 
 > *Start a new Cassette project and import the clips in ./footage, then cut a 30-second travel video with a title at the start.*
 
-## Upgrading from 0.4
-
-0.5 is a rewrite. The 0.4 plugin carried its own editing runtime, music search and Hermes gateway; 0.5 is a thin bridge
-to the Cassette MCP service, and the tools your agent sees are the service's.
-
-- **Sign in again** with `uvx oh-my-cassette==0.6.0 login`. 0.4 passwords and tokens are not used.
-- **Tools are new.** Projects, editing turns, questions, plans, undo, media, analysis and export come from the service,
-  with their own descriptions; the 0.4 tool names (`cassette_run_job`, `cassette_ingest_media`, `cassette_match_bgm`, …)
-  are gone. Reinstall the plugin, or point your host config at `uvx oh-my-cassette==0.6.0`.
-- **Projects live in your Cassette account**, the same ones you open on the web or in Cassette for Mac, and the editor
-  link each answer carries opens the project you are working on. 0.4 sessions do not carry over.
-- **Hermes** is a plain MCP host now; remove the 0.4 gateway plugin.
-
 ## Projects and retention
 
-A project the bridge starts is a cloud project that Cassette deletes, with its media, after three idle days; every use
-pushes that back, and each answer says when it is due (`retention_expires_at`). Exported files are already on your
-machine in `cassette-exports/` and stay there. A project made in Cassette for Mac is kept, and the bridge can open, edit
-and export it while that Mac is online, but its media are imported in the app.
+A new project lives in the cloud unless you place it on one of your Macs; when your account has a Mac running Cassette
+for Mac, the service asks which you want.
+
+- **A cloud project** is deleted with its media after three idle days. Every use pushes that back, and each answer says
+  when it is due (`retention_expires_at`). Exported files are already on your machine in `cassette-exports/` and stay
+  there.
+- **A project held by Cassette for Mac** is kept. The bridge can open, edit, import into and export it while that Mac is
+  online. When the bridge runs on that Mac, the app reads each file where it is and nothing uploads; from any other
+  machine each file uploads unchanged, with its embedded metadata, and the cloud copy is deleted once the Mac has it.
+  [docs/privacy.md](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/docs/privacy.md) has the details.
 
 ## Overview
 
@@ -97,16 +99,17 @@ Claude Code / Codex / OpenCode / Hermes  ──stdio──▶  oh-my-cassette  �
 - **The tools are the service's.** Whatever it lists (projects, editing turns, questions, undo,
   export) is what your agent sees, with the service's own descriptions and workflow instructions.
   When Cassette changes, the tools change with it; the plugin does not need a release.
-- **The bridge adds only what needs your machine.** Local files named in a call are prepared and
-  uploaded first (only from the workspace, media types only): video is transcoded with ffmpeg into the
-  renditions the service declares, and audio or images it does not take as they are get converted.
-  Each file uploads while the next one is prepared, in parts, four transfers at a time; a file whose
+- **The bridge adds only what needs your machine.** Local files named in a call are sent first (only
+  from the workspace, media types only). For a cloud project they are prepared here: video is
+  transcoded with ffmpeg into the renditions the service declares, and audio or images the service
+  cannot take as they are get converted. For a project a Mac holds they go as they are (see
+  [Projects and retention](#projects-and-retention)). Each file uploads while the next one is prepared, in parts, four transfers at a time; a file whose
   upload was interrupted picks up its earlier import when you import it again.
   Exported files are downloaded into `cassette-exports/`. The workspace identity travels with each
   call so the service can remember a project per directory.
 - **Long work never times out the host.** Every call waits a bounded time; slow local preparation
   answers `preparing` and keeps going in the background, and the next identical call picks it up.
-- **It survives deploys.** It reconnects on its own, sends a call that names its request again when
+- **It survives deploys.** It reconnects on its own, retries a call that carries a request id when
   the connection drops or the service turns it away, resumes interrupted downloads, reports `bridge.*`
   errors with a `retryable` flag (and `retry_after_seconds` when the service said when), and, while
   the service is unreachable or refuses the token, lists a single `cassette_bridge_status` tool that
@@ -118,19 +121,20 @@ service against them.
 
 ## Requirements
 
-- An invited Cassette account and a Cassette MCP service that implements contract v1. Check it with `uvx oh-my-cassette==0.6.0 check --url <endpoint>`. While the
-  service is unreachable or refuses the token, only `cassette_bridge_status` is listed.
+- An invited Cassette account. While the service is unreachable or refuses your sign-in, the only tool
+  listed is `cassette_bridge_status`, which says why.
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.5 or newer. `uvx oh-my-cassette==0.6.0` resolves Python 3.11 or newer by itself.
-- [ffmpeg](https://ffmpeg.org/download.html) (with ffprobe) to import video: `brew install ffmpeg`,
-  `sudo apt install ffmpeg` or `winget install ffmpeg`. Video is transcoded on your machine before it
-  uploads. A build with `zscale` also tone-maps HDR footage properly.
+- [ffmpeg](https://ffmpeg.org/download.html) (with ffprobe) to import video into a cloud project:
+  `brew install ffmpeg`, `sudo apt install ffmpeg` or `winget install ffmpeg`. Video is transcoded on
+  your machine before it uploads, and a build with `zscale` also tone-maps HDR footage properly. A
+  project held by Cassette for Mac does not need it.
 
-Which formats a tool accepts, and how files are prepared before upload, is declared by the service
-(video, audio and image types at most).
+The service declares which file types each tool accepts and how they are prepared; the bridge sends
+only video, audio and images unless you set `CASSETTE_UPLOAD_ANY_TYPE`.
 
 ## Configuration
 
-Sign in once with `oh-my-cassette login`, using the Cassette account of your projects: the browser asks for the emailed code and your consent. One sign-in reaches every project of the account, whether it was made on the web or in Cassette for Mac. A project whose media lie on a Mac opens in the app on that Mac; reading its pictures or sound and exporting it need that Mac online, and its media are imported there. Login, status and logout use your operating-system keyring; no token needs to be copied. Environment variables below are optional overrides.
+Sign in once with `oh-my-cassette login`, using the Cassette account that holds your projects; the browser asks for the emailed code and your consent. One sign-in reaches every project of the account, whether it was made on the web or in Cassette for Mac. `login`, `status` and `logout` keep the credentials in your operating-system keyring, so no token needs to be copied. The environment variables below are optional overrides.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -146,6 +150,7 @@ Sign in once with `oh-my-cassette login`, using the Cassette account of your pro
 | `CASSETTE_TEMP_DIR` | the system temp directory | Where each upload makes its own private directory (`oh-my-cassette-job-*`) for prepared files until they are uploaded. |
 | `CASSETTE_CONNECT_TIMEOUT_SEC` | `10` | How long to wait for the service when connecting. |
 | `CASSETTE_MCP_HOST` | unset | The host name sent to the service when the host does not identify itself. |
+| `CASSETTE_AUTH_DIRECTORY` | `~/.config/oh-my-cassette` | Where the saved connection's settings are kept (the token itself stays in the keyring). |
 | `OH_MY_CASSETTE_LOG` | `WARNING` | Log level on stderr. |
 
 ## Install
@@ -219,7 +224,7 @@ you:    Import intro.mp4 and beach.mov, then make a 20-second cut with the title
 agent:  (calls the service's import tool with ["intro.mp4", "beach.mov"])
         bridge: transcodes both videos, uploads them, passes the service media references
         (calls the service's editing tool with your sentence, verbatim; progress streams while it runs)
-        "Done. Added a 20 s cut from both clips with the title at the start (v0→v3). Open it: <editor link>"
+        "Done. Added a 20 s cut from both clips with the title at the start. Open it: <editor link>"
 you:    Export it.
 agent:  (calls the service's export tool)
         bridge: downloads the MP4 to cassette-exports/kota-kinabalu.mp4
@@ -241,6 +246,19 @@ machine-readable output for the service's CI. The service must speak MCP 2026-07
 answers the handshake-era `initialize` fails the transport check, and the bridge refuses it with
 `bridge.protocol_unsupported`.
 
+## Upgrading from 0.4
+
+0.5 is a rewrite. The 0.4 plugin carried its own editing runtime, music search and Hermes gateway; 0.5 is a thin bridge
+to the Cassette MCP service, and the tools your agent sees are the service's.
+
+- **Sign in again** with `uvx oh-my-cassette==0.6.0 login`. 0.4 passwords and tokens are not used.
+- **Tools are new.** Projects, editing turns, questions, plans, undo, media, analysis and export come from the service,
+  with their own descriptions; the 0.4 tool names (`cassette_run_job`, `cassette_ingest_media`, `cassette_match_bgm`, …)
+  are gone. Reinstall the plugin, or point your host config at `uvx oh-my-cassette==0.6.0`.
+- **Projects live in your Cassette account**, the same ones you open on the web or in Cassette for Mac, and the editor
+  link each answer carries opens the project you are working on. 0.4 sessions do not carry over.
+- **Hermes** is a plain MCP host now; remove the 0.4 gateway plugin.
+
 ## Update
 
 Bump the pin in your host config (`oh-my-cassette==<new version>`) or reinstall the plugin; `uvx` fetches the new wheel on next start. Releases: [CHANGELOG.md](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/CHANGELOG.md).
@@ -250,7 +268,7 @@ Bump the pin in your host config (`oh-my-cassette==<new version>`) or reinstall 
 ```bash
 git clone https://github.com/Cassette-Editor/oh-my-cassette && cd oh-my-cassette
 uv sync --group dev
-uv run pytest -q                                   # reference service on loopback, no network; needs ffmpeg
+uv run pytest -q                                   # reference service on loopback, no network; ffmpeg tests skip without it
 uv run oh-my-cassette                              # the bridge itself (stdio)
 uv run oh-my-cassette check --url <endpoint>       # conformance check
 ```

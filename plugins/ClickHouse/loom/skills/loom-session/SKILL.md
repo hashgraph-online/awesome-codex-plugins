@@ -8,7 +8,6 @@ description: >
   picks (the brief with its compaction summary, or the whole recorded
   transcript), or saves one. Never load a brief the user did not ask for.
   NOT for durable facts (loom-memory) and NOT for code questions (loom-code).
-allowed-tools: Bash, Read
 disable-model-invocation: true
 ---
 

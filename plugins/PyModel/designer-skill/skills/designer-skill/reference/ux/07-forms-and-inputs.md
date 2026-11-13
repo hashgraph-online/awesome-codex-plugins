@@ -91,11 +91,9 @@ Every extra field costs completion. Ask only for what the task needs, and split 
   type="email"
   name="email"
   id="email"
-  required                    <!-- Validation -->
-  aria-required="true"        <!-- Accessibility -->
-  autocomplete="email"        <!-- Autofill hint -->
-  inputmode="email"          <!-- Keyboard hint -->
-  pattern="[^@]+@[^@]+\.[^@]+" <!-- Custom validation -->
+  required
+  autocomplete="email"
+  inputmode="email"
   placeholder="you@example.com"
 />
 ```
@@ -260,7 +258,7 @@ input.addEventListener('input', () => {
 
 ### Best Practices
 
-- Show step count (Step 2 of 4)
+- Show progress with named steps (Step 2 of 4: Shipping), not a bare count
 - Allow going back to previous steps
 - Save progress automatically
 - Validate each step before proceeding
@@ -291,9 +289,8 @@ input.addEventListener('input', () => {
     <!-- Strength indicator -->
   </div>
   <ul class="password-requirements">
-    <li>At least 8 characters</li>
-    <li>One uppercase letter</li>
-    <li>One number</li>
+    <li>At least 8 characters; long passphrases welcome</li>
+    <li>Not a commonly used or breached password</li>
   </ul>
 </div>
 ```
@@ -355,7 +352,7 @@ input.addEventListener('input', () => {
 <!-- Or custom for better UX -->
 <input
   type="text"
-  placeholder="MM/DD/YYYY"
+  placeholder="YYYY-MM-DD"
   inputmode="numeric"
 />
 
@@ -433,10 +430,9 @@ Avoid: Different topics side by side
 ### Button States
 
 ```html
-<button type="submit" disabled>
-  <!-- Before form is valid -->
-  Create Account
-</button>
+<!-- Keep submit enabled: a disabled button gives no reason and no path forward.
+     Validate on submit, move focus to the first error, and explain it. -->
+<button type="submit">Create Account</button>
 
 <button type="submit" class="loading">
   <span class="spinner" aria-hidden="true"></span>

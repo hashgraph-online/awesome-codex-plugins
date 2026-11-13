@@ -1,6 +1,6 @@
 # Visual Critique
 
-A dimensional critique instrument. Score a screen across seven dimensions, each rated **pass / minor issue / major issue**. Lead with the AI-slop verdict (from `avoid-ai-slop.md`). End with the highest-severity finding.
+A dimensional critique instrument. Score a screen across seven dimensions, each rated **pass / minor issue / major issue**. Lead with whether the screen reads as specific to this product or as a generic default (lens in `avoid-ai-slop.md`); a static pattern match never proves who or what made it. End with the highest-severity finding.
 
 ---
 
@@ -152,7 +152,7 @@ A dimensional critique instrument. Score a screen across seven dimensions, each 
 - Buttons, links, and controls visually distinct from static content through color, shape, underline, or elevation?
 - False affordances: elements that look interactive but aren't?
 - Missing affordances: elements that are interactive but look static?
-- Interactive area ≥ 44×44px on mobile?
+- Interactive area at least 24×24 CSS px (WCAG 2.2 AA), and 44×44 on touch surfaces?
 
 **State visibility:**
 - Default, hover, active, focus, disabled, and selected states visually distinct?
@@ -218,7 +218,7 @@ A dimensional critique instrument. Score a screen across seven dimensions, each 
 
 ## 7. Brand Consistency
 
-Requires project reference files: `PRODUCT.md` (personality, aesthetic direction) and `DESIGN.md` (visual system, tokens). If either is absent, skip this dimension — do not invent brand rules from scratch.
+Requires project reference files: `PRODUCT.md` (personality, aesthetic direction) and `DESIGN.md` (visual system, tokens). If either is absent, infer the identity from the existing implementation (tokens, components, neighboring screens) and say that you inferred it; do not invent brand rules from scratch.
 
 **Mood alignment:**
 - Visual language (imagery style, illustration, iconography, color feel) matches the brand personality keywords in `PRODUCT.md`?

@@ -189,7 +189,7 @@ weight files" approach. This is now the default recommendation for design system
 ```css
 @font-face {
   font-family: 'InterVar';
-  src: url('/fonts/Inter.var.woff2') format('woff2-variations');
+  src: url('/fonts/Inter.var.woff2') format('woff2');
   font-weight: 100 900;          /* full weight range in one file */
   font-display: swap;
 }
@@ -570,7 +570,7 @@ Efficiency:
 | Tool | Purpose |
 |------|---------|
 | Figma | Design and prototyping |
-| Figma Tokens | Token management |
+| Tokens Studio (formerly Figma Tokens) | Token management |
 | Storybook | Component development |
 
 ### Development

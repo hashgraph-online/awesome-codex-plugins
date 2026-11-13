@@ -417,9 +417,10 @@ fetches the engine's dependencies from PyPI or your configured index.
    names (`dex config get semantic` reads it): `semantic define|update|plan`
    (dbt), `semantic ossie define|update|plan` (native Ossie),
    `semantic slayer define|update|plan` (SLayer model files),
-   `semantic cube define|update|plan` (Cube YAML model files), or
+   `semantic cube define|update|plan` (Cube YAML model files),
    `semantic databricks define|update|plan` (Databricks Metric View YAML files,
-   never deployed). To propose a Metric View from an Ossie document, use
+   never deployed), or `semantic snowflake define|update|plan` (Snowflake
+   Semantic View YAML files, never deployed). To propose a Metric View from an Ossie document, use
    `semantic databricks --from-ossie <file>`; for the reverse,
    `semantic ossie --from-metric-view <file>`. Read
    `${CLAUDE_SKILL_DIR}/references/semantic-layer.md` first.
@@ -596,6 +597,14 @@ a field, flag, or macro you need is not described here.
   `CREATE VIEW` SQL), and never write it through a YAML 1.1 library, which turns
   a join's `on:` into `true:`. Dex never deploys the view: creating it in the
   workspace is the user's step. The wrapper installs `[metric-views]`.
+- For Snowflake Semantic Views, edit only the files listed in
+  `semantic.snowflake.files`, each a whole Semantic View YAML document (never the
+  `CREATE SEMANTIC VIEW` SQL). Qualify a read with a table name only for a member
+  that table declares (write a base column unqualified), and never put
+  `access_modifier` on a dimension: both refuse the plan. Dex never deploys the
+  view and never calls `SYSTEM$CREATE_SEMANTIC_VIEW_FROM_YAML`: checking it with
+  `verify_only` and creating it is the user's step. The wrapper installs
+  `[semantic-views]`.
 - SLayer declares no entities, no aggregation on a saved measure (the formula
   carries it, as in `amount:sum`), and no per-measure time dimension (only the
   model's `default_time_dimension`). Never write those into a SLayer model.

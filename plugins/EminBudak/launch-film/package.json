@@ -1,6 +1,6 @@
 {
   "name": "launch-film",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "A launch film from a website or an App Store page: its real logo, colors, fonts and screens, rendered locally with Chrome and ffmpeg.",
   "license": "MIT",
   "author": "Emin Budak",
@@ -33,10 +33,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EminBudak/launch-film.git"
+    "url": "git+https://github.com/MakersMCP/launch-film.git"
   },
-  "homepage": "https://github.com/EminBudak/launch-film#readme",
+  "homepage": "https://github.com/MakersMCP/launch-film#readme",
   "bugs": {
-    "url": "https://github.com/EminBudak/launch-film/issues"
+    "url": "https://github.com/MakersMCP/launch-film/issues"
   }
 }

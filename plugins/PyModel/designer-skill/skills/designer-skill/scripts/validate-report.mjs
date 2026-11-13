@@ -83,7 +83,9 @@ export function validateRunReport(report, plan, artifactRoot) {
         issues.push(`${label}: malformed evidence.`);
         continue;
       }
-      if (current && item.revision !== plan.outputRevision) issues.push(`${label}: stale evidence revision.`);
+      // Final-revision evidence is required; a baseline artifact (input revision) may accompany it for before/after.
+      const baseline = item.revision === plan.inputRevision && evidence.some(e => record(e) && e.revision === plan.outputRevision);
+      if (current && item.revision !== plan.outputRevision && !baseline) issues.push(`${label}: stale evidence revision.`);
       try {
         const bytes = readConfined(root, item.artifact);
         if (createHash('sha256').update(bytes).digest('hex') !== item.sha256) issues.push(`${label}: artifact hash mismatch.`);

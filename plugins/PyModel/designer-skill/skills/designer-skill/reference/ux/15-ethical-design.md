@@ -144,7 +144,7 @@ Adding extra items to the shopping cart without user consent.
 ## Regulatory Landscape
 
 ### FTC (United States)
-- **Click-to-Cancel Rule (2024)**: Must be as easy to cancel as to subscribe
+- **Click-to-Cancel (rule issued 2024; verify its current legal status before citing it as binding)**: cancelling should be as easy as subscribing
 - **Amazon settlement ($25M, 2023)**: Deceptive Prime enrollment/cancellation
 - **Fortnite/Epic ($245M, 2022)**: Dark patterns in children's purchases
 - Enforcement focus: subscriptions, negative option marketing, COPPA violations
@@ -280,7 +280,7 @@ Adding extra items to the shopping cart without user consent.
 
 ### FTC Click-to-Cancel Rule
 
-The cancellation process must be as simple as the sign-up process.
+Design principle, whatever the rule's current legal status: the cancellation process should be as simple as the sign-up process.
 
 ```
 Sign-up:     Product page → Click "Subscribe" → Enter payment → Done (3 steps)

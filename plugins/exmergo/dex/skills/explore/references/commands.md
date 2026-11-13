@@ -121,7 +121,7 @@ column named `window`, which DuckDB reserves and dbt must quote).
   Values-free mode withholds the rule and all population filter values. In full
   mode, any PII-flagged filter withholds the entire rule and that filter's values,
   at any confidence, named in `withheld_fields`.
-- A native semantic layer (Ossie, SLayer, Cube, Databricks Metric Views) answers `--use-project` the same
+- A native semantic layer (Ossie, SLayer, Cube, Databricks Metric Views, Snowflake Semantic Views) answers `--use-project` the same
   way, with no dbt project in the repository. Its `primary_key` is the declared
   grain at either arity, overriding a measured key; a `unique_keys` entry or a
   `unique` flag is measured and never reported as the grain. The rest comes from
@@ -572,6 +572,16 @@ it as `execution` (`dex` or `vendor`).
   gate). Joins and `rely.at_most_one_match` keys reach `--use-project`. `query`
   and `values` refuse by name until #964; profile the relations the catalog names
   instead.
+- `semantic.vendor: snowflake` reads the Snowflake Semantic View YAML files
+  named in `semantic.snowflake.files` statically (needs the `[semantic-views]`
+  extra; no Snowflake connection, nothing deployed), each validated by Dex's own
+  port of Snowflake's rules. Each file is one view, named by its `name`. `list`
+  and `--for-dimension` answer: every name carries its view, so a logical table
+  is `view.table`, a dimension or fact `view.table.member` (a fact is marked
+  `kind: fact`, `groupable: false`), and a metric `view.table.metric` (a
+  view-level one `view.metric`). Primary keys are entities; keys and
+  relationships reach `--use-project`. `query` and `values` refuse by name until
+  #1290; profile the relations the catalog names instead.
 - `semantic.vendor: slayer` reads the SLayer model files named in
   `semantic.slayer.models` (needs the `[slayer]` extra). `list` and
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,

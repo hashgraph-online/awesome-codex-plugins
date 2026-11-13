@@ -537,13 +537,18 @@ version, media, CMS, form submissions and settings, passwords; it is published
 if the original is (`publish.status: "building"` means a bigger site is still
 building and goes live by itself: tell your person it is still working), gets its own addresses, and custom domains stay with the
 original. `move_website` moves a site into another workspace your person
-admins, at once: everything comes along, it gets a **new** webly.site address
-there and the old one stops working, so confirm first and share the new
-`urls.primary`. `list_move_destinations` lists the workspaces your person
+admins, at once: everything comes along, including its webly.site address and
+custom domains, except form email alerts: their recipients are cleared, so set
+them again there (`set_form_notifications`). Its vanity address changes to the
+new workspace's and links to the old one stop working, so confirm first and
+share `urls.primary`. `list_move_destinations` lists the workspaces your person
 admins and whether the site fits (`reason`: `site_limit`, `storage_limit`,
 `plan_required`); ask which one. Both need a signed-in person (OAuth) to reach
-another workspace. For someone else's workspace, `start_website_transfer`
-returns a code their admin redeems with `accept_website_transfer`.
+another workspace. To give it to someone else, ask for their email and call
+`start_website_transfer { toEmail }`: they're emailed and it waits on their
+Transfers page, where they accept or decline it (or their agent:
+`list_incoming_transfers`, `accept_website_transfer { transferId }`,
+`decline_website_transfer`). There are no transfer codes.
 
 ### Custom domains
 

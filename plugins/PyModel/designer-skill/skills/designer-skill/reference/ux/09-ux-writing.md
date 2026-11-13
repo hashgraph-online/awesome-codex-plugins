@@ -236,7 +236,7 @@ Not:
 Good:
 "Email address"
 "Password"
-"First name"
+"Given name" (or one "Full name" field when the product serves many locales)
 
 Avoid:
 "Your email address"
@@ -269,7 +269,7 @@ Place below input or as tooltip:
 ```
 Specific and helpful:
 "Enter a valid email (e.g., name@company.com)"
-"Phone number must be 10 digits"
+"Enter a phone number with area code, like 555 010 0199" (validate per region, never a fixed digit count)
 "Passwords don't match"
 
 Not:
@@ -338,9 +338,10 @@ German: "Einstellungen"
 
 Avoid text in images (can't be translated)
 
-Don't embed variables mid-sentence:
-"You have 5 messages" (number placement varies by language)
-→ "Messages: 5"
+Don't concatenate sentence fragments around a variable:
+"You have " + count + " messages" (word order and plural forms vary by language)
+→ one message with a placeholder and plural rules: "{count, plural, one {# message} other {# messages}}"
+→ or a label/value pair where no sentence is needed: "Messages: 5"
 ```
 
 ### Cultural Sensitivity

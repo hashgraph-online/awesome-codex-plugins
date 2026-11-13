@@ -1,7 +1,7 @@
 {
   "name": "pronounce",
-  "version": "2.37.4",
-  "description": "Pronounce developer jargon out loud — 1972+ confidence-tagged entries (kubectl, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
+  "version": "2.38.0",
+  "description": "Pronounce developer jargon out loud — 1973+ confidence-tagged entries (kubectl, GIF, JSON, JWT, …). Ships the pronounce-word skill and the pronounce MCP server.",
   "author": {
     "name": "anzy-renlab-ai",
     "url": "https://github.com/anzy-renlab-ai"

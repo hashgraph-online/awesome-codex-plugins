@@ -839,6 +839,37 @@ already on the parent's table where one is configured. A derived join is declare
 for exploration and `maintain grain`; a Metric View exposes only its fields, so
 add a field that reads it (`<parent>.<column>`) to query through it.
 
+### Snowflake Semantic Views (`semantic.vendor: snowflake`)
+
+One logical table per mart, named after it. A Semantic View has **no free-form
+metadata key**, so a fact with no native construct is named in `not_carried`,
+never written into `custom_instructions` (Cortex Analyst's prompt).
+
+| Declaration | Semantic View |
+| --- | --- |
+| the mart's relation | `base_table: {database, schema, table}` (the siblings' `database.schema`, else the manifest relation). A bare name is refused by the reader, so a mart neither names is `failed`: build or compile the project first |
+| `grain` | `primary_key: {columns: [...]}`, a composite grain included |
+| `time` role | a `time_dimension`, `expr: <column>` |
+| any other role but `measure` | a `dimension`, `expr: <column>` |
+| `measure` | a `fact` of the same name, the row-level value |
+| `measure` with `aggregation` | also a table metric `<column>_<agg>` over the fact (`SUM(<mart>.<column>)`): `SUM`, `AVG` (`average`, `mean`), `MIN`, `MAX`, `MEDIAN`, `COUNT`, `COUNT(DISTINCT ...)`. Members share one namespace per table, so the suffix keeps it from shadowing the fact |
+| `semi_additive` | the metric's `non_additive_dimensions` on the table's first time dimension, `sort_direction: ascending` with `null_order: first`, so it reads the rows of the latest date only and is never summed across time (Snowflake reads the last value in the stated order: descending would read the earliest date, and NULLs last an undated row); with no time dimension, no metric and a reason |
+| `foreign_key` with `references` | a relationship `<mart>_to_<parent>` to the parent's logical table in the same view, only where that table declares the column as its `primary_key` or a `unique_keys` entry (Snowflake relates a table only to a key) |
+| `description`, `population` | the table's `description`, the population as its last sentence; never a filter. The catalog withholds that sentence |
+| a column's `description` | the member's (and its metric's) `description` |
+| `unit`, `null_rule`, `assumptions`, any other `additivity` | not carried |
+
+Relationships join the tables of one view, so where it goes follows the foreign
+keys: the configured file holding the tables they reference, or, with no foreign
+key and one configured file, that one. It is spliced in, so every other byte
+stays, and stored as a plan of its own (`plan_id`; apply both). Where the parents
+span files or none holds them, it is a view of its own, `<dir>/<mart>.yaml` (the
+directory and suffix the configured files share, `semantic_views/` and `.yaml`
+where they share none), included where that path is configured and `proposed`
+otherwise. A table already on the mart's relation is `skipped`; a table or view
+of the mart's name is `failed`. Declarations carry no label, so no `synonyms` are
+derived.
+
 ### Ossie (`semantic.vendor: ossie`)
 
 One dataset per mart, appended as a new list item to a configured document:
@@ -868,7 +899,7 @@ else the manifest relation, else the bare name as a limitation). A dataset alrea
 on the mart's table is `skipped`; one holding its name in the target document is
 `failed`.
 
-### Declarations on `semantic slayer`, `semantic cube`, `semantic ossie` and `semantic databricks`
+### Declarations on `semantic slayer`, `semantic cube`, `semantic ossie`, `semantic databricks` and `semantic snowflake`
 
 `semantic slayer define|update|plan` take the same `declarations` key beside
 `edits`. There a declaration **annotates** a SLayer model the payload's edits or
@@ -901,6 +932,18 @@ naming another configured view adds a join on that view's `source` (with no
 spliced, read and written as YAML 1.2, so every other byte, comment and `on:` key
 is kept; the grain, NULL rule, additivity and assumptions are named in
 `not_carried`.
+`semantic snowflake` does the same for a logical table (`model` is `view.table`,
+or a table name unique across the layer; one two views share is refused naming
+both): the description and population sentence become the table's
+`description`, a column's description its member's `description`, a declared
+aggregation with no metric adds a metric `<column>_<agg>` (over the member where
+one exists, else the base column; with `non_additive_dimensions` for a
+`semi_additive` one), and a `references` naming another logical table of the same
+view, keyed on that column, adds a relationship. Only those lines are rewritten,
+inside the table too, so every other byte and comment is kept. A grain other than
+the table's own `primary_key` is not rewritten, an aggregation an authored metric
+contradicts is named rather than rewritten, and units, NULL rules, assumptions and
+other additivity are named in `not_carried`.
 
 Per model, `status` is one of:
 

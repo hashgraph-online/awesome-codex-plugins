@@ -1,5 +1,7 @@
 # CentricMem Agent — how to use
 
+Canonical copy: `github.com/zeyu-j/centricmem-skill` → `skills/centricmem-agent/`. Other installs on this machine are synced duplicates — `centricmem doctor` lists them all with versions (STALE = older than the bundled copy).
+
 The session loop lives in [SKILL.md](SKILL.md) (When to Use, classify, sweep, Typical Workflows). This file is the branches. Host MCP tool schemas are the live contract — if a tool exists on the server but not in SKILL’s list, the schema wins. Agents talk to the hosted librarian **only through host MCP** at `https://mem.centricmem.com/mcp` (Bearer: a full-access credential, or an extra credential with shelf grants). This agent (and each client you install into) tries `/connect?device=` first. OAuth (add that URL with no Bearer and finish a browser prompt) only if minting that URL failed **and** this agent will receive the login. You do not curl librarian HTTP.
 
 ## Typical Workflows
@@ -63,13 +65,27 @@ Decision **#0180**. Mechanism is fixed for every agent; content lives on each sh
 
 **Unlinked cwd (Skill + CLI).** Hosted agents are guests: do **not** `centricmem link`. `cm_ambient` / `cm_doctor` may return `suggested_shelf` + `fix_hints` when the cwd basename equals a shelf id — treat `suggested_shelf` as the write target this session. Durable bind (full-access `*` credential): `cm_library {id, sourceDir}` with an absolute Windows or POSIX path; the librarian stores it without resolving a foreign OS path, so Linux hubs match Windows agent cwd. Hub operators may `centricmem link <path> [--to <id>]`. Doctor `fix_hints` are copy-paste; act on them the same turn as Non-Micro work.
 
+**Ambient lanes.** `cm_ambient` returns one `|` joined block. Lanes marked `[ops]` (`Curate:`, `health_deltas=`, `+N more conflicts`) are memory-maintenance prompts for the shelf owner — read them, but do not treat them as your task unless the human asked for grooming. Routing (`project=`, `suggested_shelf=`, `libraries=`), `Cued:`, `Warnings:`, and `Conflicts:` are for you. `compact=1` returns only routing + `Cued:` + `Warnings:` + `Conflicts:` — use it at deliverable/phase closes when the full Recent/Session block would repeat. `Conflicts:` beyond three collapses into an `[ops]` overflow token.
+
 ## Reach
 
 MCP tools must be present: `cm_health` `cm_ambient` `cm_doctor` `cm_search` `cm_show` `cm_note` `cm_log_decision` `cm_done` `cm_keep` `cm_library` `cm_copy` `cm_move` `cm_delete` `cm_rename` `cm_import` `cm_index` `cm_ops`.
 
-If they are missing: **Already added** a Bearer or finished OAuth login in this agent → new chat, do not strip Bearer (Typical Workflows). URL-only MCP → first connect this turn. Never paste the credential in chat. Never copy JSON into chat. Do not curl card/search APIs. Do not CLI-write. Do not bootstrap. Do not send a loopback `/connect` or a bare `/connect` with no `device=`.
+If they are missing: **Already added** a Bearer or finished OAuth login in this agent → new chat, do not strip Bearer (Typical Workflows). URL-only MCP → first connect this turn. **No `cm_*` tools at all** (MCP never attached — no credential, no registration, or a host that does not inject it): do not simulate `cm_ambient` or the sweep; skip memory for the session, say once at wrap-up that CentricMem was unreachable, and point the human at `centricmem doctor connect` (it lists which MCP files registered the server and reminds that config loads at host start). Never paste the credential in chat. Never copy JSON into chat. Do not curl card/search APIs. Do not CLI-write. Do not bootstrap. Do not send a loopback `/connect` or a bare `/connect` with no `device=`.
 
 **First connect, this same reply** sends https://centricmem.com/login?signup=1 **and** tries to send a `/connect?device=` URL **plus its 8-digit code**; never paste a credential here. Plugin `mcp.json` is URL-only: it is **not** a completed connect. **This agent** (and each client you install into) mints that connect URL this turn when it can.
+
+**By host — which rule below is yours:**
+
+| This agent | Jump to |
+| --- | --- |
+| Cursor, Codex, Hermes, WorkBuddy, Pi — desktop, shell works, CLI may exist | `centricmem` on PATH → mint below; no CLI → **Shell works, `centricmem` missing** |
+| OpenClaw, DSH — bundle/plugin install, no Agent Skills dir | **Shell works, `centricmem` missing**; per-client commands: `cm_ops` → Client connect recipes |
+| Manus, Grok Bot, Claude, Cursor Cloud — cloud/remote | **Remote / cloud / sandbox** table first (OAuth vs Bearer splits on who receives the login); Grok Bot may be **Shell blocked** |
+| CI / headless, shell exists but no browser lands here | Bearer row of the **Remote / cloud / sandbox** table |
+| Sandbox that can mint but cannot write MCP files (EPERM) | Sandbox row of the **Remote / cloud / sandbox** table |
+| Kiro CLI / Kiro IDE / Kiro Crew | **Kiro surfaces** |
+| Any other Agent Skills host | **Any other Agent Skills host** |
 
 **If minting that URL fails:** prefer the no-CLI path first. **Detail on demand.** Host-specific install, refresh, sandbox and failure detail is not shipped in this copy: read `cm_ops` with the MCP tools, or ask zeyu@poppyg.com. `cm_ops` itself needs a working connection — first connect uses the rules in this file, not `cm_ops`. The rules and shapes below are what you need to connect and to stay safe; per-client install/connect commands (Cursor, Codex, Hermes, Pi, OpenClaw, DSH, ChatGPT Apps, OAuth callback mechanics) live in `cm_ops` → Client connect recipes.
 

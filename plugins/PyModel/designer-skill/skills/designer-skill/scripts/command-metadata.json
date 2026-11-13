@@ -233,7 +233,11 @@
       "greyscale",
       "monochrome",
       "add color",
-      "color scheme"
+      "color scheme",
+      "contrast",
+      "dark mode",
+      "dark theme",
+      "light mode"
     ],
     "reads": [
       "design-principles",
@@ -259,7 +263,8 @@
     ],
     "reads": [
       "motion-and-interaction",
-      "fluid-input-principles"
+      "fluid-input-principles",
+      "motion-vocabulary"
     ]
   },
   "responsive": {
@@ -411,7 +416,6 @@
       "tokens",
       "extract",
       "reusable",
-      "design system",
       "componentize",
       "dedupe",
       "shared component"
@@ -628,7 +632,12 @@
       "impossible state",
       "model behavior",
       "define all states",
-      "every state"
+      "every state",
+      "empty state",
+      "loading state",
+      "error state",
+      "loading skeleton",
+      "skeleton"
     ],
     "reads": [
       "interaction-design",

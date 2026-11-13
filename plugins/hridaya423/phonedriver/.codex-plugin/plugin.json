@@ -1,0 +1,46 @@
+{
+  "name": "phonedriver",
+  "version": "0.1.2",
+  "description": "Lets an agent see and operate Android phones and iPhones: the screen as text, taps by element number, and a question to you before any tap that pays. Bundles the phonedriver MCP server and its skill.",
+  "author": {
+    "name": "Hridya Agrawal",
+    "url": "https://github.com/hridaya423"
+  },
+  "homepage": "https://phonedriver.dev",
+  "repository": "https://github.com/hridaya423/phonedriver",
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "phone",
+    "android",
+    "ios",
+    "iphone",
+    "emulator",
+    "simulator",
+    "mobile",
+    "mcp",
+    "ui-automation"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "phonedriver",
+    "shortDescription": "Let your agent use a phone",
+    "longDescription": "phonedriver lets an agent see and operate Android phones, Android emulators, the iOS Simulator and iPhones. The screen arrives as a short numbered text list, taps go by element number, and every action returns only the lines that changed. A tap that pays, orders, transfers or deletes an account is held until you approve it. The plugin starts the phonedriver MCP server on your computer with npx and adds the skill that teaches the agent how to use it. It sends no telemetry.",
+    "developerName": "Hridya Agrawal",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://phonedriver.dev",
+    "supportURL": "https://github.com/hridaya423/phonedriver/issues",
+    "defaultPrompt": [
+      "Open Settings on the phone and turn on dark mode.",
+      "Show me what is on the phone's screen."
+    ],
+    "brandColor": "#FF5C16",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "privacyPolicyURL": "https://phonedriver.dev/docs/no-telemetry"
+  }
+}

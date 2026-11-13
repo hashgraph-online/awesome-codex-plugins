@@ -330,8 +330,23 @@ _CUBE_VENDOR = "cube"
 _METRIC_VIEWS_COMMANDS = (("semantic", "databricks"),)
 _METRIC_VIEWS_VENDOR = "databricks"
 
+# Snowflake Semantic Views follow the same config read for the same commands,
+# for the same reason: `semantic-views` is the dialect engine and nothing
+# heavier. A Semantic View query is a `SEMANTIC_VIEW(...)` clause Snowflake runs,
+# so MetricFlow is never installed for one. (`snowflake` is also a connector
+# name; the connector's extra is resolved from `connector:`, never from this.)
+# `semantic snowflake` always takes it, as `semantic databricks` does: authoring
+# validates a view file with the same port of Snowflake's rules the reader runs.
+_SEMANTIC_VIEWS_COMMANDS = (("semantic", "snowflake"),)
+_SEMANTIC_VIEWS_VENDOR = "snowflake"
+
 # The vendors that render a metric query without MetricFlow.
-_RENDERS_WITHOUT_METRICFLOW = (_SLAYER_VENDOR, _CUBE_VENDOR, _METRIC_VIEWS_VENDOR)
+_RENDERS_WITHOUT_METRICFLOW = (
+    _SLAYER_VENDOR,
+    _CUBE_VENDOR,
+    _METRIC_VIEWS_VENDOR,
+    _SEMANTIC_VIEWS_VENDOR,
+)
 
 
 def _positionals(argv: list[str]) -> list[str]:
@@ -385,8 +400,9 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
     `_SLAYER_COMMANDS`). The same read keeps MetricFlow out of a SLayer `query` or
     `values`: SLayer renders those itself, so `semantic` would be installed for
     nothing. `cube` follows the same read for the same commands (see
-    `_CUBE_VENDOR`), and keeps MetricFlow out the same way, and so does
-    `metric-views` (see `_METRIC_VIEWS_VENDOR`).
+    `_CUBE_VENDOR`), and keeps MetricFlow out the same way, and so do
+    `metric-views` (see `_METRIC_VIEWS_VENDOR`) and `semantic-views` (see
+    `_SEMANTIC_VIEWS_VENDOR`).
     """
 
     positionals = _positionals(argv)
@@ -408,6 +424,10 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
         vendor == _METRIC_VIEWS_VENDOR and reads_layer
     ):
         extras.append("metric-views")
+    if command in _SEMANTIC_VIEWS_COMMANDS or (
+        vendor == _SEMANTIC_VIEWS_VENDOR and reads_layer
+    ):
+        extras.append("semantic-views")
     if command in _SEMANTIC_AUTHORING_COMMANDS:
         extras.append("semantic")
     if command != ("explore", "semantic"):

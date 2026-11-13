@@ -10,7 +10,7 @@ Data visualization and dashboard design are specialized UX disciplines critical 
 
 | Data Relationship | Recommended Chart | Avoid |
 |-------------------|------------------|-------|
-| **Part of whole** | Pie (≤6 slices), donut, stacked bar, treemap | Pie with >6 slices |
+| **Part of whole** | Pie (≤5 slices), donut, stacked bar, treemap | Pie with >5 slices |
 | **Comparison** | Bar (vertical/horizontal), grouped bar | 3D bars, radar (hard to read) |
 | **Trend over time** | Line, area, sparkline | Pie (no time axis) |
 | **Distribution** | Histogram, box plot, violin plot | Pie or bar |
@@ -157,7 +157,7 @@ Recommended categorical palette (colorblind-safe):
 - Add patterns, shapes, or labels as secondary encoding
 - Test with colorblind simulation tools
 - Provide alternative text descriptions for all charts
-- Use 3:1 minimum contrast between adjacent data colors
+- Data marks need 3:1 contrast against the chart background (WCAG 1.4.11). Categorical colors rarely reach 3:1 against each other (this palette does not), which is why a second encoding — direct labels, patterns, shapes or a 1px separator in the background color — is required, not optional
 
 ---
 
@@ -377,8 +377,9 @@ Partial data:
 - **Pattern fills**: Use patterns in addition to colors for categories
 
 ```html
-<figure role="img" aria-label="Revenue trend showing 12% growth from January to December 2025, with a peak of $52K in November">
-  <canvas id="revenue-chart"></canvas>
+<!-- role="img" goes on the chart itself; on the <figure> it would hide the data-table link from assistive technology -->
+<figure>
+  <canvas id="revenue-chart" role="img" aria-label="Revenue trend showing 12% growth from January to December 2025, with a peak of $52K in November"></canvas>
   <figcaption>
     Monthly revenue, Jan-Dec 2025.
     <a href="#revenue-data-table">View as data table</a>

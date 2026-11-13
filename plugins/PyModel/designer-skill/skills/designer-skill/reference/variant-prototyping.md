@@ -27,7 +27,7 @@ Mark prototype-only behavior visibly in the surface itself (a small banner or la
 
 ## The comparison step
 
-Give the reviewer one surface that switches between variants without losing their place — a query-param toggle, a segmented control, or consecutive routes keyed by variant name. Record, per variant, what a good outcome looks like before showing it (which metric or behavior answers the axis). Collect the decision in terms of the axis, not general preference: "variant B — selection banner — because bulk actions stayed visible with one-handed reach", then record the decision with the direction record when one exists (`commit_design_direction`, `mode` per its schema).
+Give the reviewer one surface that switches between variants without losing their place — a query-param toggle, a segmented control, or consecutive routes keyed by variant name. Record, per variant, what a good outcome looks like before showing it (which metric or behavior answers the axis). Collect the decision in terms of the axis, not general preference: "variant B — selection banner — because bulk actions stayed visible with one-handed reach", then record the decision with the direction record when one exists (`validate_design_direction`, `mode` per its schema).
 
 ## Promotion and cleanup
 

@@ -13,9 +13,13 @@ import { resolve4, resolveCname } from 'node:dns/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** Skill release. scripts/sync-plugin.sh stamps this into the plugin manifests; bump it to ship. */
-export const VERSION = '0.14.24';
+export const VERSION = '0.14.29';
 // Lets the API tell helper traffic from other REST clients in its product analytics.
-const UA = { 'User-Agent': `webly-helper/${VERSION}` };
+const UA = {
+  'User-Agent': `webly-helper/${VERSION}`,
+  // Only Webly's own release check sets this, to publish anonymously on its invite-only dev server.
+  ...(process.env.WEBLY_INVITE_BYPASS ? { 'X-Webly-Invite-Bypass': process.env.WEBLY_INVITE_BYPASS } : {}),
+};
 // The published plugin manifest is what `npx skills`, install.sh and /plugin install all read from.
 const LATEST_URL = process.env.WEBLY_VERSION_URL ?? 'https://raw.githubusercontent.com/Webly-AI/webly-plugin/main/plugins/webly/.claude-plugin/plugin.json';
 const CREDENTIAL_FILE = process.env.WEBLY_STATE_FILE || join(homedir(), '.webly', 'state.json');
@@ -138,7 +142,7 @@ export async function localCredential(api, file = CREDENTIAL_FILE) {
   const existing = await savedCredential(api, file);
   if (existing) return existing;
   await mkdir(dirname(file), { recursive: true, mode: 0o700 });
-  const response = await fetch(`${api}/public/v1/anonymous/credentials`, { method: 'POST', redirect: 'error' });
+  const response = await fetch(`${api}/public/v1/anonymous/credentials`, { method: 'POST', redirect: 'error', headers: UA });
   const result = await response.json();
   if (!response.ok) throw new Error(result.message || 'Credential issuance failed');
   if (!TOKEN.test(result.token)) throw new Error('Server returned an invalid credential');

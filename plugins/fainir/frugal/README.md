@@ -17,6 +17,7 @@
 </p>
 
 <p align="center">
+  <a href="#try-one-cost-check"><strong>Try it</strong></a> ·
   <a href="#install"><strong>Install</strong></a> ·
   <a href="#what-it-does">What it does</a> ·
   <a href="#measured">Measured</a> ·
@@ -46,6 +47,30 @@ You do not have to ask. That is the point: most overspending happens because nob
 # Codex, Cursor, Gemini CLI, Copilot, OpenCode and Claude Code, in one go
 curl -fsSL https://raw.githubusercontent.com/fainir/frugal/main/install.sh | bash -s -- --all
 ```
+
+## Try one cost check
+
+You can try this without installing frugal. Suppose you need Cloudflare R2 for one month. Paste the prompt into your agent or use a calculator and the [R2 pricing table](https://developers.cloudflare.com/r2/pricing/#r2-pricing). One GB-month is one GB stored for a month. Uploads are an example of Class A requests. Download requests are Class B. Infrequent Access also bills for the volume retrieved.
+
+```text
+Compare Cloudflare R2
+Standard and Infrequent
+Access for a 30-day month.
+
+8 GB-month stored
+1M Class A requests
+1M Class B requests
+8 GB retrieved
+
+Assume the full Standard
+free tier is available.
+Use the official rates.
+List the charges in USD.
+```
+
+With those assumptions, Standard is **$0**. The Infrequent Access tier has no free allowance, so the same month is **$10.06 before tax**, including $0.08 for storage, $9.00 for Class A operations, $0.90 for Class B operations and $0.08 for retrieval. That makes Standard the lower-cost choice for this example. Infrequent Access has a 30-day minimum charge per object. Check your account's available allowance and expected usage for your own decision. [Cloudflare R2 pricing, checked November 13, 2026](https://developers.cloudflare.com/r2/pricing/).
+
+Try the same comparison with one of your own tools. If it helped you choose or saved you money, [share a cost check result in a public GitHub issue](https://github.com/fainir/frugal/issues/new?title=Cost+check+result&body=Source%3A+README+cost+check%0A%0AExample+or+category%3A%0AOptions+compared%3A%0AChoice+and+monthly+cost+estimate%3A%0ADid+you+make+the+change%2C+and+what+did+you+actually+save%3F+%28optional%29%0A%0AShare+only+details+you+are+comfortable+making+public.) with the options, the choice and any actual savings you can confirm.
 
 ## The problem
 

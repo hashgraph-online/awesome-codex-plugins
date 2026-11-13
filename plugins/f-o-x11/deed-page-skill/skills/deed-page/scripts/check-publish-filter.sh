@@ -460,4 +460,45 @@ grep -q -- '--allow-root' "$TMP/node-help" || fail "publish-large.mjs --help mis
 grep -q -- '--dry-run' "$TMP/node-help" || fail "publish-large.mjs --help missing --dry-run"
 echo "ok help text"
 
+# Success JSON has more than one "url". The live site is the first one.
+HTML=$TMP/url-pick.html
+printf '<!doctype html><h1>hi</h1>\n' > "$HTML"
+cat > "$TMP/url-server.js" << 'EOF'
+const http = require("http");
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { "content-type": "application/json" });
+  res.end(
+    '{"ok":true,"url":"https://example.deed.page/","visit_analytics":{"url":"https://deed.page/analytics?slug=example"},"token":"deed_tok_testtokenvalue"}',
+  );
+});
+server.listen(0, "127.0.0.1", () => {
+  console.log(server.address().port);
+});
+EOF
+node "$TMP/url-server.js" >"$TMP/url-port" &
+URL_PID=$!
+i=0
+while [ ! -s "$TMP/url-port" ]; do
+  i=$((i + 1))
+  if [ "$i" -gt 50 ]; then
+    kill "$URL_PID" 2>/dev/null || true
+    fail "url mock server did not start"
+  fi
+  sleep 0.05
+done
+URL_PORT=$(tr -d ' \r\n' < "$TMP/url-port")
+sh "$PUBLISH" "$HTML" --slug url-pick --base-url "http://127.0.0.1:$URL_PORT" >"$TMP/url-out" 2>"$TMP/url-err" || fail "publish against url mock failed"
+kill "$URL_PID" 2>/dev/null || true
+wait "$URL_PID" 2>/dev/null || true
+URL_GOT=$(tr -d ' \r\n' < "$TMP/url-out")
+if [ "$URL_GOT" != "https://example.deed.page/" ]; then
+  echo "stdout: $URL_GOT" >&2
+  cat "$TMP/url-err" >&2
+  fail "publish.sh printed $URL_GOT, want the site url"
+fi
+if grep -q 'deed_tok_testtokenvalue' "$TMP/url-err"; then
+  fail "publish.sh printed the owner token"
+fi
+echo "ok first url field is the live site"
+
 echo "all checks passed"

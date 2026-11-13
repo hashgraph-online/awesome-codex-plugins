@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.log
+.env
+.env.*
+.DS_Store
+.git/
+.claude/autoharness/
+designer-skill-mcp/node_modules/
+designer-skill-mcp/dist/
+*.tgz

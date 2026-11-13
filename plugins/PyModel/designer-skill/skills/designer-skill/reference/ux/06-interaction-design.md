@@ -117,11 +117,9 @@ Modes:
 /* Focus */
 .input:focus { border-color: #0066cc; box-shadow: 0 0 0 3px rgba(0,102,204,0.2); }
 
-/* Valid */
-.input:valid { border-color: #28a745; }
-
-/* Invalid */
-.input:invalid { border-color: #dc3545; }
+/* Style validity only after the user has interacted, never on page load */
+.input:user-valid { border-color: #1e7e34; }
+.input:user-invalid { border-color: #c82333; }
 
 /* Disabled */
 .input:disabled { background: #f5f5f5; cursor: not-allowed; }
@@ -168,8 +166,9 @@ Modes:
 .ease-in-out { transition-timing-function: ease-in-out; }
 /* Smooth start and end - moving elements */
 
-/* Custom bezier curves */
-.bounce { transition-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55); }
+/* Custom bezier curves: a gentle overshoot-free ease-out for entering elements */
+.enter { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+/* Bounce and elastic curves read as dated; use them only for a deliberately playful identity */
 ```
 
 ### The 12 Principles of Animation (Disney)
@@ -362,14 +361,14 @@ What is the user doing?
 ### Accordion/Collapse
 
 ```css
+/* Animate grid rows, not max-height: no magic number, no content cut off */
 .accordion-content {
-  max-height: 0;
-  overflow: hidden;
-  transition: max-height 300ms ease-out;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms ease-out;
 }
-.accordion-content.open {
-  max-height: 500px; /* Use calculated height for best results */
-}
+.accordion-content.open { grid-template-rows: 1fr; }
+.accordion-content > * { overflow: hidden; }
 ```
 
 ---

@@ -10,7 +10,6 @@ description: >
   repos loom hasn't indexed (a code.search that abstains on everything is
   the tell), and NOT for your own uncommitted files (grep those; pass your
   diff to code.impact for blast radius).
-allowed-tools: Bash, Read
 disable-model-invocation: true
 ---
 

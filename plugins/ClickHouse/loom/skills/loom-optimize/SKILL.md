@@ -10,7 +10,6 @@ description: >
   with `memory.move` so every old key stays readable through a redirect.
   Retires nothing. NOT for deciding what to write in the first place
   (loom-memory) and NOT for client-side failures (loom-status).
-allowed-tools: Bash, Read
 disable-model-invocation: true
 ---
 

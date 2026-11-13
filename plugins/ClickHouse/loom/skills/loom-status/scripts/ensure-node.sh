@@ -1,11 +1,39 @@
 #!/bin/sh
 # LF line endings only (.gitattributes): sh reads a CR as part of a command.
-# Loom's coding-agent hooks run through bin/loom-node, which finds Node 18+
-# on PATH, under a version manager or in the usual install directories.
+# Claude Code's hooks run the `node` on its PATH; Codex's run through
+# bin/loom-node, which finds Node 18+ on PATH, under a version manager or in
+# the usual install directories.
 #   ensure-node.sh --check   report only: exit 0 when ready, 1 when missing
 #   ensure-node.sh           install Node when missing (root or sudo -n);
 #                            exit 2 names what blocks the install
+#   ensure-node.sh --path-node   internal: the `node` on PATH is Node 18+
 set -eu
+
+# path_node: the `node` on PATH is Node.js 18+; prints the line the launcher's
+# --check prints.
+path_node() {
+  n=$(command -v node 2>/dev/null) || return 1
+  v=$("$n" --version 2>/dev/null) || return 1
+  m=${v#v}
+  m=${m%%.*}
+  case $m in '' | *[!0-9]*) return 1 ;; esac
+  [ "$m" -ge 18 ] || return 1
+  # fnm's per-shell link goes away with the shell: name the directory it points at.
+  case $n in
+    */fnm_multishells/*)
+      if d=$(cd -P "${n%/*}" 2>/dev/null && pwd -P); then
+        n=$d/${n##*/}
+      fi
+      ;;
+  esac
+  printf 'Loom hook runtime ready: %s (%s)\n' "$n" "$v"
+}
+
+# Before any command runs: the Dock check's PATH may hold only Node's directory.
+if [ "${1:-}" = '--path-node' ]; then
+  path_node
+  exit
+fi
 
 LAUNCHER="$(dirname "$0")/../../../bin/loom-node"
 CLAUDE_SETTINGS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
@@ -32,8 +60,8 @@ download_setup() {
   curl -fsSL --connect-timeout 10 --max-time 120 "$1" -o "$SETUP_FILE"
 }
 
-# The launcher as Claude Code started from the Dock runs it: no shell
-# profile, only HOME, the system PATH and its settings.json `env`.
+# Claude Code's hooks run the `node` on its PATH. Started from the Dock it has
+# no shell profile, only HOME, the system PATH and its settings.json `env`.
 gui_check() {
   set -- HOME="$HOME" PATH=/usr/bin:/bin:/usr/sbin:/sbin
   settings=$(sh "$LAUNCHER" -e '
@@ -48,13 +76,16 @@ gui_check() {
   done <<SETTINGS
 $settings
 SETTINGS
-  env -i "$@" sh "$LAUNCHER" --check >/dev/null 2>&1
+  env -i "$@" /bin/sh "$0" --path-node >/dev/null 2>&1
 }
 
+# CLAUDE_PLUGIN_ROOT decides when a caller exports it. Claude Code's Bash tool
+# does not, so there the script's own path decides; on Windows that path may
+# use backslashes.
 claude_code() {
   [ -n "${CLAUDE_PLUGIN_ROOT:-}" ] && return 0
-  case $0 in */.claude/plugins/*) return 0 ;; esac
-  [ -n "${CLAUDE_CONFIG_DIR:-}" ] && case $0 in "$CLAUDE_CONFIG_DIR"/plugins/*) return 0 ;; esac
+  case $0 in */.claude/plugins/* | *'\.claude\plugins\'*) return 0 ;; esac
+  [ -n "${CLAUDE_CONFIG_DIR:-}" ] && case $0 in "$CLAUDE_CONFIG_DIR"/plugins/* | "$CLAUDE_CONFIG_DIR"'\plugins\'*) return 0 ;; esac
   return 1
 }
 
@@ -67,23 +98,48 @@ codex_helper_check() {
   env -i "$@" sh "$LAUNCHER" --check >/dev/null 2>&1
 }
 
+GUI_FIX='set PATH in the env block of '"$CLAUDE_SETTINGS"' to the whole search path with that Node'"'"'s directory first, such as "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin".'
+
 if [ "${1:-}" = '--check' ]; then
-  sh "$LAUNCHER" --check || exit 1
+  if claude_code; then
+    path_node || {
+      if n=$(command -v node 2>/dev/null); then
+        echo "loom: the first \`node\` on this PATH, $n ($("$n" --version 2>/dev/null || echo 'no version')), is not Node.js 18+; Claude Code's hooks run that one." >&2
+      else
+        echo 'loom: no `node` on this PATH; Claude Code'"'"'s hooks run the first one there.' >&2
+      fi
+      exit 1
+    }
+  else
+    sh "$LAUNCHER" --check || exit 1
+  fi
   # On Windows a GUI app gets the user's PATH, and Codex runs no launcher.
   case "$(uname -s)" in Darwin | Linux) ;; *) exit 0 ;; esac
   if claude_code; then
-    gui_check || echo 'Found only with this shell'"'"'s environment: Claude Code started from the Dock or a desktop launcher finds no Node. Set LOOM_NODE to the path above in the env block of '"$CLAUDE_SETTINGS."
+    # A Linux desktop session's PATH already holds /usr/local/bin and the
+    # like; only a macOS Dock launch has the bare system PATH.
+    [ "$(uname -s)" = Darwin ] || exit 0
+    gui_check || echo 'Found only with this shell'"'"'s environment: Claude Code started from the Dock or a desktop launcher finds no Node.js 18+ as `node`. Fix: '"$GUI_FIX"
   else
     codex_helper_check || echo 'The MCP header helper, which Codex runs without LOOM_NODE or a version manager'"'"'s variables, finds no Node. Put that Node'"'"'s directory on the PATH Codex starts with.'
   fi
   exit 0
 fi
 
-if sh "$LAUNCHER" --check 2>/dev/null; then
+# ready: the Node this client's hooks run is Node 18+.
+ready() {
+  if claude_code; then
+    path_node
+  else
+    sh "$LAUNCHER" --check 2>/dev/null
+  fi
+}
+
+if ready; then
   exit 0
 fi
 
-if [ -n "${LOOM_NODE:-}" ]; then
+if ! claude_code && [ -n "${LOOM_NODE:-}" ]; then
   echo "LOOM_NODE=$LOOM_NODE is not Node.js 18+, and it wins over any install; fix or unset it." >&2
   exit 2
 fi
@@ -111,7 +167,7 @@ case "$(uname -s)" in
     elif command -v apk >/dev/null 2>&1; then
       as_root apk add --no-cache nodejs
     else
-      echo 'Unsupported Linux package manager; install Node.js 18+, or set LOOM_NODE=/path/to/node.' >&2
+      echo 'Unsupported Linux package manager; install Node.js 18+ on PATH.' >&2
       exit 2
     fi
     ;;
@@ -123,10 +179,22 @@ case "$(uname -s)" in
     brew upgrade node || brew install node
     ;;
   *)
-    echo 'No installer for this OS; install Node.js 18+, or set LOOM_NODE=/path/to/node.' >&2
+    echo 'No installer for this OS; install Node.js 18+ on PATH.' >&2
     exit 2
     ;;
 esac
 
-sh "$LAUNCHER" --check
+# After an install: Claude Code needs it first on PATH; the launcher says
+# itself what it found.
+if claude_code; then
+  path_node || {
+    echo "Node.js was installed, but the first \`node\` on this PATH, $(command -v node || echo none) ($(node --version 2>/dev/null || echo 'no version')), is not Node.js 18+; put Node.js 18+ first on PATH." >&2
+    exit 2
+  }
+else
+  sh "$LAUNCHER" --check || exit 2
+fi
+if claude_code && [ "$(uname -s)" = Darwin ] && ! gui_check; then
+  echo 'Claude Code started from the Dock or a desktop launcher still finds no Node.js 18+ as `node`. Fix: '"$GUI_FIX"
+fi
 echo 'Restart the coding-agent session.'

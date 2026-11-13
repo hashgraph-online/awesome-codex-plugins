@@ -242,6 +242,29 @@ anywhere else:
   numbers silently, so `explore profile --use-project` and `maintain grain`
   measure it; a duplicate there is a finding to report.
 
+## When the layer is Snowflake Semantic Views
+
+`vendor: snowflake` means the layer is Semantic View YAML files in the
+repository, read statically with no Snowflake connection. `list` reads the same
+shape as anywhere else:
+
+- **Every name carries its view.** A logical table is `view.table`, a member
+  `view.table.member`, a view-level metric `view.metric`. The part after the
+  view is what Snowflake's `SEMANTIC_VIEW(...)` clause takes.
+- **A fact is a dimension row that never groups.** `vendor_params.kind: fact`,
+  `groupable: false`: Snowflake queries facts on their own, never beside a
+  metric, so no metric lists one as groupable.
+- **Entities are real.** A primary key is an entity, and relationships are joins
+  with their arity; they reach `explore map`, `relationships` and `profile`
+  through `--use-project`. There are no time grains.
+- **Read `vendor_params` and `notes` before trusting a metric.** Window metrics,
+  `NON ADDITIVE BY`, `using_relationships` and ASOF or range relationships are
+  carried, not modelled. A private metric or fact is marked `access: private`.
+- **`sample_values` never reach you.** Only their count does: Snowflake does not
+  mask them.
+- **`query` and `values` refuse until #1290.** Use `explore profile` and
+  `explore query` on the relations the catalog names.
+
 ## When the layer is SLayer models
 
 `vendor: slayer` means the layer is SLayer model files in the repository. `list`,

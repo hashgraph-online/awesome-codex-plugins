@@ -10,7 +10,6 @@ description: >
   NOT for "is this already reported?" / duplicate or bisect checks (call
   loom_search or loom_tracker_duplicate_check directly — nothing to read first)
   and NOT for filing loom defects (improve-loom-for-my-repo).
-allowed-tools: Bash, Read
 ---
 
 # loom-memory — write facts a future session can trust

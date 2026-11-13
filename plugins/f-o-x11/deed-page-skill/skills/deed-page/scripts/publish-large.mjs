@@ -6,8 +6,8 @@
  * blobs, then finalizes. Always PUT the raw bytes to upload.url with
  * upload.headers. Production returns a direct storage URL; the scoped client
  * token is already in those headers, so the bytes never pass through the
- * function. Do not import a Blob client SDK: people download this file on its
- * own (https://deed.page/cli/publish-large.mjs) and do not have one installed.
+ * function. Do not import a Blob client SDK. This file ships in the plugin as
+ * scripts/publish-large.mjs and has no package dependencies.
  * A single file over 100 MB is refused here instead of attempting multipart.
  *
  *   node publish-large.mjs ./dist --slug my-page-7k --base-url https://deed.page

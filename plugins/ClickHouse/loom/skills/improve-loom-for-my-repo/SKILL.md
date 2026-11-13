@@ -8,7 +8,6 @@ description: >
   and turns each gap into a reproducible finding the loom maintainers can
   act on. First sessions count most. NOT for filing bugs about repos loom
   doesn't index, and NOT for gaps this session did not actually hit.
-allowed-tools: Bash, Read
 disable-model-invocation: true
 ---
 

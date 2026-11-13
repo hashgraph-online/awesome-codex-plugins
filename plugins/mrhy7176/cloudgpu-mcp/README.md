@@ -1,6 +1,6 @@
 # CloudGPU MCP
 
-[CloudGPU](https://cloudgpu.app) MCP server: let an AI agent rent a GPU by the minute, run a job, bring the results back and shut the GPU down. The same API key and balance also cover CloudGPU's OpenAI-compatible model API, so an agent can call a hosted model without renting anything.
+[CloudGPU](https://cloudgpu.app) MCP server: let an AI agent compare GPU compute costs, approve source-specific billing, run a job, bring the results back and shut the GPU down. The same API key and balance also cover CloudGPU's OpenAI-compatible model API, so an agent can call a hosted model without renting anything.
 
 > "Fine-tune a 7B base model with LoRA on data/train.jsonl and put the adapter in ./outputs."
 
@@ -135,6 +135,7 @@ The same guidance is available as two [Agent Skills](https://agentskills.io):
 | `get_account` | Balance, and how many instances the account may run at once |
 | `list_gpus` | GPU models with VRAM, live price per GPU-hour and availability |
 | `list_templates` | Ready-made images: JupyterLab, Ollama, ComfyUI, LLaMA-Factory, … |
+| `compare_compute_costs` | Compare live total billed GPU cost for up to eight compatible candidates; no reservation or creation approval |
 | `estimate_cost` | Live quote for a GPU and a number of hours, plus your balance afterwards; returns a `quote_id` |
 | `create_instance` | Rents from an approved quote, with a budget, a time limit and an idle limit |
 | `get_status` / `list_instances` | Status, minutes run, cost so far, auto-shutdown limits |
@@ -254,7 +255,7 @@ cloudgpu down <id>               # destroys it and stops billing (asks first; --
 - Model API and prices: https://cloudgpu.app/api
 - API reference: https://cloudgpu.app/api/docs · OpenAPI: https://cloudgpu.app/openapi.json · For LLMs: https://cloudgpu.app/llms.txt
 
-CloudGPU here means cloudgpu.app. Prepaid balance, billed per minute; when the balance runs out, running instances are destroyed and their disks erased, so keep enough balance for the job and download results as you go.
+CloudGPU here means cloudgpu.app. Prepaid balance, source-specific minute or started-hour billing; when the balance runs out, running instances are destroyed and their disks erased, so keep enough balance for the job and download results as you go.
 
 ## Development
 
@@ -370,3 +371,11 @@ Upgrade your installed `cloudgpu-mcp` package and restart the MCP client to load
 ### Registry namespace update (0.13.1)
 
 The current MCP Registry listing is `io.github.cloudgpu-app/cloudgpu-mcp`, matching the repository organization. Older entries under `io.github.mrhy7176/cloudgpu-mcp` are historical. The npm package remains `cloudgpu-mcp`; existing stdio configurations and scoped API keys do not change. Upgrade the package and restart your MCP client.
+
+### Agent compute planning (0.14.0)
+
+Ask your connected Agent: “Compare compatible GPUs for this task, include preparation and download time, and show the minimum charge before creating anything.” `compare_compute_costs` checks live rental quotes and sorts by estimated billed GPU cost, including whole-hour minimums. It does not benchmark speed or prove Job/template support. A fresh `estimate_cost` and explicit billing approval are still required to rent.
+
+Can one GPU serve several Agent tasks? Yes: sequential approved `run_command` calls can use the same running rental, within its original budget, deadline and idle limit. Check `list_instances` / `get_status` first. Independent `run_job` calls and “rerun” each provision separately; they do not share an instance. Do not extend limits or keep an idle GPU merely because an hour was charged. Save outputs before stopping; Workspace is explicit persistence, not a disk snapshot.
+
+MCP clients must install or upgrade this package and restart their local MCP process. The account connection link authorizes a supported client; it cannot install tools into any arbitrary AI service.

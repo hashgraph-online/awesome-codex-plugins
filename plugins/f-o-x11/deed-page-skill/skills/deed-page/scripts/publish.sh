@@ -329,7 +329,7 @@ SPLIT_AT="${DEEDPAGE_SPLIT_BYTES:-4000000}"
 use_large() {
   LARGE=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)/publish-large.mjs
   if ! command -v node >/dev/null 2>&1 || [ ! -f "$LARGE" ]; then
-    echo "site is ${BYTES} bytes; over 4 MB needs Node 18+ and publish-large.mjs (curl -fsSLO https://deed.page/cli/publish-large.mjs)" >&2
+    echo "site is ${BYTES} bytes; over 4 MB needs Node 18+ and the bundled scripts/publish-large.mjs (it ships next to this script)" >&2
     exit 2
   fi
   set -- node "$LARGE" "$PUBLISH_PATH" --client "$CLIENT" --ref "$REF" --base-url "$BASE_URL"
@@ -419,7 +419,16 @@ if [ -n "$TOKEN" ]; then
   fi
 fi
 
-LIVE=$(printf '%s' "$RESP" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')
+# First "url" is the live site. Later objects (analytics, visits) also have one,
+# and a greedy match would print those instead.
+LIVE=$(
+  case $RESP in
+    *'"url":"'*)
+      _rest=${RESP#*'"url":"'}
+      printf '%s\n' "${_rest%%\"*}"
+      ;;
+  esac
+)
 if [ -z "$LIVE" ]; then
   # Plan-limit errors carry one sentence for the user and a checkout link a human opens.
   MSG=$(printf '%s' "$RESP" | sed -n 's/.*"user_message":"\([^"]*\)".*/\1/p')

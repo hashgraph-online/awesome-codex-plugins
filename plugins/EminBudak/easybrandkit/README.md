@@ -57,20 +57,20 @@ easybrandkit-linear.app/
 easybrandkit ships as an [Agent Skill](https://agentskills.io). Install it once and your agent runs it by itself when you ask for something for a product:
 
 ```bash
-npx skills add EminBudak/easybrandkit
+npx skills add MakersMCP/easybrandkit
 ```
 
 That covers Claude Code, Codex, Cursor and the other agents the [`skills`](https://github.com/vercel-labs/skills) CLI supports. In Claude Code you can add it as a plugin instead:
 
 ```
-/plugin marketplace add EminBudak/easybrandkit
+/plugin marketplace add MakersMCP/easybrandkit
 /plugin install easybrandkit@easybrandkit
 ```
 
 In GitHub Copilot CLI, install it from the repo:
 
 ```bash
-copilot plugin install EminBudak/easybrandkit
+copilot plugin install MakersMCP/easybrandkit
 ```
 
 Then ask as usual:

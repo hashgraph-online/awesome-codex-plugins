@@ -2,7 +2,7 @@
 
 Motion is part of the build, not a finishing sticker. Every animation must convey state, give feedback, or clarify hierarchy. Cut motion that exists only for decoration — animation fatigue is a real cost. Spend the budget on the moments that earn it.
 
-GPU/hardware-acceleration rules (animate only `transform`/`opacity`, `will-change` sparingly, 16ms/60fps budget, CSS variables trigger child recalc) live in **engineering-and-performance.md**. This file owns *what* to animate, *how fast*, *with which curve*, and *the interaction patterns*. Cross-ref it for the *why it's fast*.
+Performance rules (prefer `transform`/`opacity`, add `will-change` only after measurement) live in **engineering-and-performance.md**. This file owns *what* to animate, *how fast*, *with which curve*, and *the interaction patterns*. Cross-ref it for the *why it's fast*.
 
 ---
 
@@ -64,7 +64,7 @@ Use custom curves. Built-in CSS easings are too weak; they lack the punch that m
 
 **Keep `ease-in` for exits only.** On entrances and responses it starts slow, delaying the initial movement at the exact moment the user is watching most closely; on an exit, accelerating away reads as leaving. A dropdown with `ease-in` at 300ms *feels* slower than `ease-out` at the same 300ms.
 
-❌ **Banned — feel dated and tacky:**
+❌ **Avoid by default — they read as dated unless the approved identity is deliberately playful:**
 ```css
 /* bounce:   cubic-bezier(0.34, 1.56, 0.64, 1) */
 /* elastic:  cubic-bezier(0.68, -0.6, 0.32, 1.6) */
@@ -241,7 +241,7 @@ gsap.to(track, { x:-distance, ease:'none', scrollTrigger:{ trigger:wrap, start:'
 
 **Use Motion `layout`/`layoutId` only for visible state changes** (reordering lists, expanding modals, shared elements between routes) — wrapping static content "for safety" costs measurement work every frame. For `staggerChildren`, parent (variants) and children must share the same Client Component tree.
 
-**View Transitions API** (same-doc all browsers; cross-doc no Firefox) and **`@property`** (animate gradients/colors CSS can't normally interpolate) are the cinematic-morphing tools. See **overdrive** territory in the source skills; gate everything behind progressive enhancement.
+**View Transitions API** (same-doc all browsers; cross-doc no Firefox) and **`@property`** (animate gradients/colors CSS can't normally interpolate) are the cinematic-morphing tools. Gate everything behind progressive enhancement.
 
 **Overdrive verification — five tests before shipping any ambitious effect:**
 
@@ -314,6 +314,6 @@ In Motion, wrap with `useReducedMotion()` and degrade to static. Infinite loops,
 
 ## Eight interaction states & delight
 
-Design all eight states; hover and focus are different (keyboard users never see hover): **Default, Hover** (`@media (hover: hover) and (pointer: fine)`), **Focus** (`:focus-visible`, visible ring, never `outline:none` without replacement), **Active, Disabled, Loading, Error, Success**. Validate forms on blur, errors below fields. Prefer **Undo over confirmation dialogs** — the mechanics: remove from the UI immediately, show an undo toast, perform the actual delete only when the toast expires. Reserve confirmations for irreversible (account deletion), high-cost, or batch operations — and label confirm buttons with named actions ("Delete project" / "Keep project"), never Yes/No. Full focus/form/loading engineering lives in engineering-and-performance.md (Accessibility, Core Web Vitals & Loading).
+Design the states this control can actually reach (a static label has none); hover and focus are different (keyboard users never see hover): **Default, Hover** (`@media (hover: hover) and (pointer: fine)`), **Focus** (`:focus-visible`, visible ring, never `outline:none` without replacement), **Active, Disabled, Loading, Error, Success**. Validate forms on blur, errors below fields. Prefer **Undo over confirmation dialogs** — the mechanics: remove from the UI immediately, show an undo toast, perform the actual delete only when the toast expires. Reserve confirmations for irreversible (account deletion), high-cost, or batch operations — and label confirm buttons with named actions ("Delete project" / "Keep project"), never Yes/No. Full focus/form/loading engineering lives in engineering-and-performance.md.
 
 **Delight amplifies, never blocks:** keep delight moments **< 1 second**, skippable, never delaying core functionality; **vary responses** (not the same animation every time); gate sound behind system settings + a mute option, never on every interaction.

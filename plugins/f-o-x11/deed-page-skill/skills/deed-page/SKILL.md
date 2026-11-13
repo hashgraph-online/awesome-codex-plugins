@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires curl (and tar for folders) and network access to https://deed.page. Folders over 4 MB also need Node 18+.
 metadata:
   author: Avatar 8 LLC
-  version: "1.8.0"
+  version: "1.8.1"
   homepage: https://deed.page
 ---
 
@@ -57,7 +57,7 @@ SLUG="report-$(head -c4 /dev/urandom | od -An -tx1 | tr -d ' \n')"
 REF="${DEED_REF:-skill-gh}"
 ```
 
-`REF` goes in `?ref=` for attribution. It does not change the publish. Set the `X-Client` header to your agent's name, for example `Claude Code`, `Codex`, `Cursor`, `Gemini CLI`, `Grok Bot`, or `Hermes`.
+`REF` goes in `?ref=` for attribution. It does not change the publish. Set the `X-Client` header to your agent's name, for example `Claude Code`, `Codex`, `Cursor`, `Gemini CLI`, `Grok Build`, `Grok Bot`, or `Hermes`.
 
 ## 2. Publish
 
@@ -67,6 +67,12 @@ For a file or folder on disk, run the skill's `scripts/publish.sh` on the clean 
 
 ```sh
 sh scripts/publish.sh ./dist --slug "$SLUG" --client "<your agent name>" --ref "$REF"
+```
+
+Inside Grok Build, set `DEED_REF=grok-build` so the curl commands below send `?ref=grok-build`, and run the bundled script with the same attribution:
+
+```sh
+sh scripts/publish.sh ./dist --slug "$SLUG" --ref grok-build --client "Grok Build"
 ```
 
 The folder should contain `index.html`. One HTML file is stored as `index.html`. Add `--ttl SECONDS` or `--spa` when you need those options. `--dry-run` prints the file list and the skip summary and does not upload. Above about 4 MB the script runs `publish-large.mjs` (Node 18+), which uses the same rules. Pass `--allow-root` only after the user has agreed to publish a project root that has no `dist`, `build`, `out`, `public`, or `_site` directory.
