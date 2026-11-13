@@ -501,6 +501,7 @@ Third-party plugins built by the community. [PRs welcome](#contributing)!
 - [Ophis](https://github.com/ophis-fi/skills) - Onchain token swaps for Codex via the hosted Ophis MCP server, MEV-protected and gasless, built on CoW Protocol.
 - [Option Desk](https://github.com/Iman/agent-driven-options-desk-and-skills) - Skills and a local MCP server for option research on a supplied chain, with Greeks, dealer positioning, strategy payoffs, simulation and backtests.
 - [OrgX](https://github.com/useorgx/orgx-codex-plugin) - MCP access and initiative-aware skills for organizational workflows.
+- [OsmO Phone Calls](https://github.com/Mountainheads-Private-limited/osmo-ai-plugins) - Lets Codex place real phone calls to businesses and helplines through OsmO's hosted MCP server after you confirm each one, and read back the summary and transcript; 50 free credits for new users in the US, Canada, UK and Australia, paid after that; with free credits, OsmO calls businesses and toll-free numbers; calling your contacts and scheduling calls need an OsmO app plan.
 - [PANews Agent Toolkit](https://github.com/panewslab/skills) - Crypto and blockchain news discovery, authenticated creator publishing workflows, and page-to-Markdown reading.
 - [PapersFlow](https://github.com/papersflow-ai/papersflow-codex-plugin) - Paper discovery, citation verification, graph exploration, and DeepScan analysis.
 - [PDF Monster](https://github.com/jbaehova/pdf-monster) - Analyzes PDFs as extracted text, OCR text, rendered page images, and embedded figures for coding agents.
