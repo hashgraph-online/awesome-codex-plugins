@@ -32,7 +32,8 @@ A plan missing any of the seven is **incomplete** — do not present it or hand 
 - Routing:        <value | null>
 - SSR/CSR:        <ssr | csr | islands | null>
 - Existing CometChat: <yes (uikit <ver>) | no> · version_conflict: <none | detail>
-- Env file/prefix:    <.env / VITE_ | .env.local / NEXT_PUBLIC_ | … | n/a>
+- Env file/prefix:    <.env / VITE_ | .env.local / NEXT_PUBLIC_ | ... | n/a>
+- Docs channel:       <Docs MCP connected | not connected: web docs (user told before any code, with the step to connect it)>
 
 ### 2. What you want (intent → CometChat capabilities)
 - Archetype: <1:1/marketplace | support | community | full-messenger | embedded>
@@ -50,7 +51,7 @@ A plan missing any of the seven is **incomplete** — do not present it or hand 
 4. <wire the entry point into the existing app (routing/auth/state reuse)>
 5. <match the existing design system>   ← if styling detected
 6. <calls layer + permissions>          ← if modality includes calls
-7. <…scoped to the archetype; smallest correct set>
+7. <...scoped to the archetype; smallest correct set>
 
 ### 4. Files that will change (additive — nothing replaced)
 - <path/area 1>
@@ -59,14 +60,14 @@ A plan missing any of the seven is **incomplete** — do not present it or hand 
 (APPEND only — your existing code is not rewritten.)
 
 ### 5. Packages
-- <exact package@major> …   (the framework core owns the exact coordinates + pins)
+- <exact package@major> ...   (the framework core owns the exact coordinates + pins)
 
 ### 6. Credential + auth strategy
 - <Dev Auth-Key path — get moving now; do NOT ship the Auth Key to prod>
   OR
 - <Prod server-minted auth token wired to <detected auth>: your backend mints a
   per-user CometChat auth token; frontend logs in with it. Map <app user id> → CometChat UID.>
-(Credentials are fetched by the framework core at build time — it will OFFER to fetch the App ID/Region/Auth Key from the dashboard (loading the CometChat CLI on demand → `provision`) or let you paste them manually, then write the env itself; this section only states the dev-vs-prod strategy, not the fetch method.)
+(Credentials are fetched by the framework core at build time — it will OFFER to fetch the App ID/Region/Auth Key from the dashboard (through the CometChat MCP: `cometchat_list_apps` → `cometchat_get_app_credentials`) or let you paste them manually, then write the env itself; this section only states the dev-vs-prod strategy, not the fetch method.)
 
 ### 7. Approve or edit
 Edit any part of this plan (change the archetype, add calling, narrow scope, switch the
@@ -83,7 +84,7 @@ build-directive:
   scope: smallest 1:1 surface (message button → conversation ↔ message pane)
   credentials: dev-auth-key            # from plan §6
   touch: [src/features/chat/*, src/components/MessageSellerButton.tsx, .env]
-  also-skills: []                      # only what the plan named (calls / customization / patterns …)
+  also-skills: []                      # only what the plan named (calls / customization / patterns ...)
 ```
 The core then does credentials + build + verify. For a framework with no shipped core (React Native, Vue, Flutter, iOS, Android — NOT React or Angular, which both ship one), DO NOT emit a directive — state the not-yet-built posture and offer the plan as the hand-off spec.
 
@@ -97,6 +98,7 @@ The core then does credentials + build + verify. For a framework with no shipped
 - Package mgr: pnpm · Auth: NextAuth · Styling: Tailwind · State: Zustand
 - Routing: App Router · SSR/CSR: ssr · Existing CometChat: no · version_conflict: none
 - Env file/prefix: .env.local / NEXT_PUBLIC_
+- Docs channel: Docs MCP connected
 
 ### 2. What you want (intent → CometChat capabilities)
 - Archetype: 1:1/marketplace · Modality: chat · Scope: smallest 1:1 surface
@@ -111,9 +113,9 @@ The core then does credentials + build + verify. For a framework with no shipped
 5. Match the Tailwind design tokens (hand to customization).
 
 ### 4. Files that will change (additive)
-- src/app/(chat)/… (a client chat route)
+- src/app/(chat)/... (a client chat route)
 - src/components/MessageSellerButton.tsx
-- src/lib/cometchat/… (init/login helpers)
+- src/lib/cometchat/... (init/login helpers)
 - .env.local
 (APPEND only.)
 

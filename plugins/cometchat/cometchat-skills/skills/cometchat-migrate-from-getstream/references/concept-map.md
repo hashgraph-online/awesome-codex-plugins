@@ -49,8 +49,8 @@ The Dart port above is verbatim; port to Swift/Kotlin the same way: same steps, 
 | `connectUser(user, client.devToken(id))` | the Auth Key login | Dev only. Action item: move to tokens. |
 | `disconnectUser()` | logout | Also remove the listeners. |
 | User (`id`, `name`, `image`, custom fields) | User (`uid` = `toCometChatId(id)`, name, avatar, metadata) | Users must EXIST before login. The server endpoint creates them; the data script imports the rest. |
-| Member-based channel with 2 members (`!members-…`) | a **user** conversation (1:1) | Receiver = the other member's UID. |
-| Channel with an ID (`messaging:general`, `team:…`) | Group (`guid` = `toCometChatId(cid)`) | Private membership → `private`. Open/livestream → `public`. |
+| Member-based channel with 2 members (`!members-...`) | a **user** conversation (1:1) | Receiver = the other member's UID. |
+| Channel with an ID (`messaging:general`, `team:...`) | Group (`guid` = `toCometChatId(cid)`) | Private membership → `private`. Open/livestream → `public`. |
 | `queryChannels` / `ChannelList` filters + sort | the conversations list (UI Kit) or the conversations request builder (SDK) | Stream's filter DSL doesn't carry over. Keep the simple filters (type, membership); list the complex ones as a behavior change. |
 | `channel.watch()` / `channel.query({ messages })` | the message list (UI Kit) or the messages request builder (SDK) | |
 | Message (`text`, `attachments`, custom fields) | text message / media message / custom message + metadata | |
@@ -62,7 +62,7 @@ The Dart port above is verbatim; port to Swift/Kotlin the same way: same steps, 
 ## UI component map (UI SDK mode)
 | Stream UI (any platform) | CometChat UI Kit role | Where |
 |---|---|---|
-| `<Chat>` / `OverlayProvider` / `StreamChat(…)` wrapper | the kit's provider / init gate from the core | `-core` |
+| `<Chat>` / `OverlayProvider` / `StreamChat(...)` wrapper | the kit's provider / init gate from the core | `-core` |
 | `ChannelList` (`<ChannelList>`, `<stream-channel-list>`, `ChatChannelListVC`/`ChatChannelListView`, `ChannelListView`/`ChannelsScreen`, `StreamChannelListView`) | Conversations | `-components` |
 | `Channel` + `Window` + `ChannelHeader` + `MessageList` + `MessageInput` (and platform twins: `ChatChannelVC`, `MessagesScreen`, `MessageListView` + `MessageComposerView`, `StreamMessageListView` + `StreamMessageInput`) | message header + message list + message composer | `-core` / `-components` |
 | `Thread` / `ChatThreadVC` | the thread header + threaded message list | `-features` (`threaded-replies`) |

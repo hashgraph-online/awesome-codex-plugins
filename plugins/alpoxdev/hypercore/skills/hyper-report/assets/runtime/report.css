@@ -1,0 +1,430 @@
+/* hyper-report page geometry and print rules.
+ * Shared by every theme: themes only set tokens on :root.
+ */
+
+@page {
+  size: var(--page-size, A4);
+  margin: 0;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--font-size, 10.5pt);
+  line-height: var(--line-height, 1.62);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  counter-reset: page;
+}
+
+[data-report-pages] {
+  display: block;
+}
+
+.page {
+  position: relative;
+  box-sizing: border-box;
+  width: var(--page-width, 210mm);
+  height: var(--page-height, 297mm);
+  padding: var(--page-margin-top, 18mm) var(--page-margin-x, 17mm) 20mm;
+  background: var(--paper, #ffffff);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  break-after: page;
+  page-break-after: always;
+}
+
+.page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.page-flow {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  /* A box that clips its own overflow cannot be split by the print engine,
+   * so pagination happens in script and the engine never re-flows it. */
+  break-inside: avoid;
+}
+
+.page-flow > *:first-child {
+  margin-top: 0;
+}
+
+.page-foot {
+  position: absolute;
+  left: var(--page-margin-x, 17mm);
+  right: var(--page-margin-x, 17mm);
+  bottom: 9mm;
+  display: flex;
+  justify-content: space-between;
+  gap: 8mm;
+  font-size: 8pt;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  border-top: 0.4pt solid var(--rule);
+  padding-top: 2.4mm;
+}
+
+.page-foot-left {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.page-foot-right {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading, var(--font-body));
+  color: var(--ink);
+  line-height: 1.24;
+  margin: 0 0 0.42em;
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+h1 {
+  font-size: 1.78em;
+  letter-spacing: -0.012em;
+  margin-top: 1.15em;
+}
+
+h2 {
+  font-size: 1.3em;
+  margin-top: 1.5em;
+  padding-bottom: 0.22em;
+  border-bottom: 0.6pt solid var(--rule);
+}
+
+h3 {
+  font-size: 1.08em;
+  margin-top: 1.25em;
+}
+
+h4 {
+  font-size: 1em;
+  margin-top: 1.1em;
+  color: var(--muted-strong, var(--ink));
+}
+
+p {
+  margin: 0 0 0.72em;
+  orphans: 2;
+  widows: 2;
+}
+
+strong {
+  font-weight: 700;
+}
+
+em {
+  font-style: italic;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 0.4pt solid color-mix(in srgb, var(--accent) 42%, transparent);
+}
+
+ul,
+ol {
+  margin: 0 0 0.8em;
+  padding-left: 1.25em;
+}
+
+li {
+  margin: 0.16em 0;
+}
+
+li > ul,
+li > ol {
+  margin: 0.2em 0 0.2em;
+}
+
+blockquote {
+  margin: 0.9em 0;
+  padding: 0.5em 0 0.5em 0.9em;
+  border-left: 2.4pt solid var(--accent);
+  color: var(--muted-strong, var(--ink));
+  background: var(--surface, transparent);
+  break-inside: avoid;
+}
+
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+
+hr {
+  border: 0;
+  border-top: 0.6pt solid var(--rule);
+  margin: 1.4em 0;
+}
+
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+}
+
+code {
+  background: var(--code-bg);
+  border-radius: 2.5pt;
+  padding: 0.1em 0.32em;
+}
+
+pre {
+  background: var(--code-bg);
+  border: 0.5pt solid var(--rule);
+  border-radius: 2.5pt;
+  padding: 0.62em 0.8em;
+  margin: 0.8em 0;
+  overflow: hidden;
+  line-height: 1.44;
+  break-inside: avoid;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.85em 0 1em;
+  font-size: 0.94em;
+  font-variant-numeric: tabular-nums;
+  break-inside: avoid;
+}
+
+caption {
+  caption-side: top;
+  text-align: left;
+  font-size: 0.88em;
+  color: var(--muted);
+  padding-bottom: 0.3em;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.34em 0.52em;
+  border-bottom: 0.5pt solid var(--rule);
+  vertical-align: top;
+}
+
+thead th {
+  border-bottom: 1pt solid var(--rule-strong, var(--ink));
+  font-weight: 700;
+  font-size: 0.95em;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0.5pt solid var(--rule-strong, var(--ink));
+}
+
+td.num,
+th.num {
+  text-align: right;
+}
+
+figure {
+  margin: 0.9em 0;
+  break-inside: avoid;
+}
+
+figure img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+}
+
+figcaption {
+  margin-top: 0.42em;
+  font-size: 0.86em;
+  color: var(--muted);
+  text-align: center;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Cover and section openers ------------------------------------------------ */
+
+.cover {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 100%;
+  padding: 0;
+}
+
+.cover-rule {
+  width: 26mm;
+  height: 2.6pt;
+  background: var(--accent);
+  margin-bottom: 6mm;
+}
+
+.cover-eyebrow {
+  font-size: 0.8em;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 3mm;
+}
+
+.cover h1 {
+  font-size: 2.6em;
+  margin: 0 0 0.25em;
+  letter-spacing: -0.022em;
+  line-height: 1.14;
+}
+
+.cover-sub {
+  font-size: 1.12em;
+  color: var(--muted-strong, var(--muted));
+  max-width: 132mm;
+  margin: 0;
+}
+
+.cover-meta {
+  margin-top: auto;
+  padding-top: 12mm;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5mm 10mm;
+  font-size: 0.86em;
+  color: var(--muted);
+  border-top: 0.5pt solid var(--rule);
+  padding-bottom: 0;
+}
+
+.cover-meta b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* At-a-glance key figures: one row of large numbers, never a chart. */
+.kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3mm;
+  margin: 0.6em 0 1.1em;
+}
+
+.kpi {
+  flex: 1 1 0;
+  min-width: 32mm;
+  border: 0.5pt solid var(--rule);
+  border-top: 2.2pt solid var(--accent);
+  padding: 2.6mm 3mm;
+  background: var(--surface, transparent);
+}
+
+.kpi-value {
+  font-size: 1.55em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 0.8em;
+  color: var(--muted);
+  margin-top: 0.6mm;
+}
+
+.callout {
+  border: 0.5pt solid var(--rule);
+  border-left: 2.4pt solid var(--accent);
+  background: var(--surface, transparent);
+  padding: 2.6mm 3.4mm;
+  margin: 0.9em 0;
+  break-inside: avoid;
+}
+
+.callout > *:last-child {
+  margin-bottom: 0;
+}
+
+.callout-label {
+  font-size: 0.78em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4em;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc li {
+  display: flex;
+  align-items: baseline;
+  gap: 2mm;
+  padding: 0.24em 0;
+  border-bottom: 0.4pt dotted var(--rule);
+}
+
+.toc .toc-title {
+  flex: 1 1 auto;
+}
+
+.toc .toc-page {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sheet-split {
+  break-before: page;
+}
+
+@media print {
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  .page {
+    box-shadow: none;
+  }
+}
+
+@media screen {
+  body {
+    background: #f2f1ee;
+    padding: 10mm 0;
+  }
+
+  .page {
+    margin: 0 auto 10mm;
+    box-shadow: 0 0.5mm 2.4mm rgba(0, 0, 0, 0.14);
+  }
+}

@@ -2,7 +2,7 @@
 name: cometchat-angular-v5-calls
 description: "Add voice and video calling to an Angular CometChat app — install the calls SDK, mount the incoming-call listener at app root, call buttons in the message header, and call logs. Triggers: 'add voice calling', 'add video calls', 'enable calling', 'show call history', 'incoming call not ringing'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified) + @cometchat/calls-sdk-javascript ^5.0.3; Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified) + @cometchat/calls-sdk-javascript ^5.0.3; Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -30,7 +30,7 @@ Calling must also be enabled for the app in the dashboard. Code alone is not eno
 `core` inits with `initFromSettings`, and on that path the kit derives calling from the settings object:
 
 ```ts
-// verified in the shipped 5.1.0 bundle
+// verified in the shipped 5.1.0 and 5.2.2 bundles
 const callingEnabled = !!settings.uiKit?.['callsSDK'];
 if (callingEnabled) builder.setCallingEnabled(true);
 ```
@@ -130,6 +130,8 @@ The kit drives these once a call is accepted. Outputs, if you need to react:
 
 `<cometchat-ongoing-call>` takes `[sessionID]` and optionally `[callSettingsBuilder]` / `[isAudioOnly]`. Do not build your own call screen — WebRTC state, permissions and teardown are handled.
 
+**Huddle / docked call (Slack-style, not full screen):** `<cometchat-ongoing-call>` always covers the whole viewport (`:host` is `position: fixed`), wherever you mount it. For a docked or drop-in group call, follow `references/huddle.md` (BAKED — start / join override / dock via the Calls SDK / leave, verified vs 5.2.2).
+
 ## Call history
 > ⚠️ **`<cometchat-call-logs>` HARD-CRASHES if it mounts before the Calls SDK has loaded.**
 > Its `ngOnInit` synchronously runs `new CometChatUIKitCalls.CallLogRequestBuilder()`, but
@@ -157,7 +159,7 @@ constructor() {
 ```html
 <!-- Do NOT mount <cometchat-call-logs> unguarded — it NPEs on CometChatUIKitCalls being null. -->
 <cometchat-call-logs *ngIf="callsReady()" (itemClick)="openCall($event)"></cometchat-call-logs>
-<div *ngIf="!callsReady()">Loading call history…</div>
+<div *ngIf="!callsReady()">Loading call history...</div>
 ```
 > **STOPGAP** (remove once the kit component awaits `getCometChatCalls()` / null-guards
 > `CometChatUIKitCalls` itself — filed as a UIKit bug; the docs page also omits this prerequisite —

@@ -112,7 +112,7 @@ function App() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <NavigationContainer>{/* … */}</NavigationContainer>
+      <NavigationContainer>{/* ... */}</NavigationContainer>
       {callReceived && incomingCall.current ? (
         <CometChatIncomingCall
           call={incomingCall.current}
@@ -152,6 +152,8 @@ function App() {
 > still has **no dedicated props page** — only Incoming / Outgoing / Buttons / Logs get their own pages.
 > The fence above is a **STOPGAP built from the kit's own types** — replace it once a props page ships.
 > Flagged for the docs team; do not conclude the component is unavailable on RN.
+
+**Huddle / docked call (Slack-style, no full-screen call):** the kit's group call and Join open a full-screen `<Modal>`. For a docked audio room use `references/huddle.md` (start / join override / dock / indicator / leave, verified vs kit 5.5.1 + calls-sdk 5.0.6).
 
 ## Call logs: the list ships, the detail screens do not
 Kit v5 removed `CometChatCallLogDetails` / `History` / `Participants` / `Recordings`. For a custom detail

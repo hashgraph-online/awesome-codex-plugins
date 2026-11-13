@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-testing
 description: "Test a Flutter app that uses the CometChat UI Kit — what is worth testing versus what belongs to the kit, mocking the SDK boundary, widget tests around chat screens, and integration/CI setup. Triggers: 'test my cometchat integration', 'mock cometchat in flutter tests', 'widget test chat screen', 'cometchat test setup'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0); flutter_test / integration_test"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0); flutter_test / integration_test"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -67,7 +67,7 @@ In the test, pass a builder returning a plain `ListView` and assert that tapping
 
 ## Integration tests (`integration_test`)
 The only place a real end-to-end chat flow can be asserted, because it needs a real init/login.
-- Use a **dedicated test CometChat app** and seeded users (`cometchat-uid-1…`), never production data.
+- Use a **dedicated test CometChat app** and seeded users (`cometchat-uid-1...`), never production data.
 - Credentials come from the test flavour's settings asset, generated in CI — do not commit them.
 - Keep the suite small: sign in → open a conversation → send a message → assert it appears. Broad E2E over the kit's own surface is slow and re-tests CometChat.
 - Some things **cannot** be automated here and should be stated rather than faked: **push delivery** and **real calls** need physical devices.

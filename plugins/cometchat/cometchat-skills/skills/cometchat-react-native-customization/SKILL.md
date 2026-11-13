@@ -20,6 +20,10 @@ metadata:
 - "change the chat colors" · "brand the chat UI" · "dark mode" · "restyle the bubbles"
 - "custom message type" · "render my own bubble" · "add an option to the message menu"
 
+**Cloning a named app, or mixing kit components with your own UI?** Measure the target's colors, type, spacing and radii into ONE token source, theme the kit from it, and style every custom component from the same tokens so kit and custom parts look like one design; host a kit component in your own dialog/panel when only its placement differs. Flow: `cometchat-onboarding` → `references/clone-mode.md` (Design sync, build levels L0–L6).
+
+**Avatar + sender name on every message (own and others', 1:1 and group):** the kit default shows them only on others' messages in groups. Fix it yourself whenever the target shows them: `references/message-chrome.md` (`alignment="leftAligned"`, then per-message `LeadingView` / `HeaderView` via a decorator).
+
 ## Prerequisites & install
 None beyond `core`. Theming needs `CometChatThemeProvider` already in the chain (see `core`).
 
@@ -35,7 +39,7 @@ The provider takes a `theme` prop shaped `{ mode, light, dark }`. `mode` is `"li
 
 ```tsx
 // Fixed dark for the whole app.
-<CometChatThemeProvider theme={{ mode: "dark" }}>{/* … */}</CometChatThemeProvider>
+<CometChatThemeProvider theme={{ mode: "dark" }}>{/* ... */}</CometChatThemeProvider>
 ```
 
 ```tsx
@@ -48,7 +52,7 @@ The provider takes a `theme` prop shaped `{ mode, light, dark }`. `mode` is `"li
     dark: { color: { primary: "#F8935B" } },
   }}
 >
-  {/* … */}
+  {/* ... */}
 </CometChatThemeProvider>
 ```
 
@@ -71,7 +75,7 @@ The same style keys can be set globally through the theme instead, which is pref
 change should apply everywhere:
 
 ```tsx
-<CometChatThemeProvider theme={{ light: { conversationStyles: { /* … */ } } }}>
+<CometChatThemeProvider theme={{ light: { conversationStyles: { /* ... */ } } }}>
 ```
 
 Style-key names differ per component. Fetch them from that component's page

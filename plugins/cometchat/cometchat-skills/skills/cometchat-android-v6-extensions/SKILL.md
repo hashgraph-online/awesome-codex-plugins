@@ -2,7 +2,7 @@
 name: cometchat-android-v6-extensions
 description: "Turn on CometChat Dashboard extensions in an Android v6 app — stickers, polls, collaborative whiteboard and document, message translation, link preview, thumbnail generation, message shortcuts — and know exactly where each one appears in the UI once enabled (mostly zero client code). Triggers: 'enable stickers android', 'add polls to my android chat', 'message translation android cometchat', 'link previews not showing', 'what extensions does the android ui kit support'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"

@@ -10,7 +10,7 @@ Seventeen animated caption looks for talking heads, podcasts, ads, lyric and sho
 ```bash
 npx skills add vargHQ/skills --skill caption-styles                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills caption-styles --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -39,6 +39,8 @@ claude plugin install varg@varg
 - [How to make a faceless YouTube video with AI and Claude Code](../how-to/make-a-faceless-youtube-video/README.md)
 - [How to add captions to a video with AI: TikTok, Hormozi and karaoke styles](../how-to/add-captions-to-video/README.md)
 - [AI video translator for ads: dub, lip-sync and recaption in 8+ markets](../how-to/translate-and-dub-video-ads/README.md)
+- [How to make AI parody videos of movie scenes with Claude Code](../how-to/make-ai-parody-videos/README.md)
+- [How to make stickman videos with AI: viral survival reels drawn in code](../how-to/make-stickman-videos-with-ai/README.md)
 
 ## Works well with
 
@@ -55,4 +57,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/caption-styles) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/caption-styles) · [varg.ai](https://varg.ai)

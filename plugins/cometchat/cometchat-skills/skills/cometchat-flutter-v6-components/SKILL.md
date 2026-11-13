@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-components
 description: "The Flutter v6 UI Kit widget catalog — which drop-in widgets exist, which barrel each comes from, and how to compose or swap them (conversations, messages, users, groups, threads, calling, bubbles). Triggers: 'what cometchat widgets are there', 'customize the message list flutter', 'swap the message bubble flutter', 'add a users list in flutter'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0)"
 metadata:
   author: "CometChat"
   version: "1.0.0"

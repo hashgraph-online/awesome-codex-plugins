@@ -4,7 +4,7 @@
 `get_cometchat_implementation_bundle` when they are connected — they are the intended path and they
 serve production docs for you.
 
-**If the MCP tools are NOT connected:** add it (`claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp`, or reinstall/enable the plugin) and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (below).
+**If the MCP tools are NOT connected:** help the user add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (below).
 Either way the `<path>` catalog in this file is the source of truth for WHICH page — MCP-vs-fetch is only HOW.
 
 ## DOCS_BASE — the fetch FALLBACK entry point (⚠️ SWAP HERE to change environments)
@@ -30,7 +30,7 @@ Fetch:  {DOCS_BASE}/calls/flutter/overview.md
 | Path | Use it for |
 |---|---|
 | `/calls/flutter/overview` | the init→login→generateCallToken→joinSession sequence and the component model. **⚠️ its Android/iOS floors are BOTH too low — real: minSdk 26, iOS 13.0 (15.1 from 5.0.7)** |
-| `/calls/flutter/setup` | install (the live page now pins `cometchat_calls_sdk: ^5.0.7`; older cached copies said `^5.0.3` — both resolve 5.0.7), Android manifest permissions, iOS `Info.plist`, `CallAppSettingBuilder`, `isInitialized`. **⚠️ its `region` table still says only `us`/`eu` — `in` is also live** |
+| `/calls/flutter/setup` | install (the live page now pins `cometchat_calls_sdk: ^5.0.7`; older cached copies said `^5.0.3` — both resolve 5.0.9 today), Android manifest permissions, iOS `Info.plist`, `CallAppSettingBuilder`, `isInitialized`. **⚠️ its `region` table still says only `us`/`eu` — `in` is also live** |
 | `/calls/flutter/authentication` | **`login` / `loginWithAuthToken` / `logout` / `getLoggedInUser`** — the only page with these, and the error-code table |
 | `/calls/flutter/join-session` | **`generateCallToken` / `joinSession`** and the `Widget?` return. THE page for the Flutter fork |
 | `/calls/flutter/session-settings` | `SessionSettingsBuilder` — every setter and the whole `hide*Button` list |
@@ -70,8 +70,8 @@ signalling signatures. Those symbols (`CometChat.initiateCall` / `addCallListene
 Calls SDK only. Validate them against the chat SDK's own catalog, not this one.
 
 Three things the page's shape hides:
-- **`User` is declared by BOTH barrels.** `cometchat_calls_sdk` and `cometchat_sdk` each export a `User`, so a file importing both — which ringing forces — fails with `ambiguous_import` until one side hides it: `import 'package:cometchat_calls_sdk/cometchat_calls_sdk.dart' hide User;`.
-- **`CallListener` is a `mixin`, NOT a constructible class.** The page writes `CallListener(onIncomingCallReceived: …)`; a mixin has no constructor, so that does not compile. Use `class X with CallListener { @override … }` and pass an instance. Every method defaults to a no-op, so override only what you need. (Found building this skill's harness — **not** in docs#492.)
+- **`User` is declared by BOTH barrels.** `cometchat_calls_sdk` and `cometchat_sdk` each export a `User`, so a file importing both — which ringing forces — fails with `ambiguous_import` until one side is imported with a prefix: `import 'package:cometchat_calls_sdk/cometchat_calls_sdk.dart' as calls;` (then `calls.` before that SDK's names).
+- **`CallListener` is a `mixin`, NOT a constructible class.** The page writes `CallListener(onIncomingCallReceived: ...)`; a mixin has no constructor, so that does not compile. Use `class X with CallListener { @override ... }` and pass an instance. Every method defaults to a no-op, so override only what you need. (Found building this skill's harness — **not** in docs#492.)
 - **There is no `cancelCall`.** Cancelling your own outgoing call is `rejectCall(sessionId, CometChatCallStatus.cancelled)`; rejecting someone else's is the same method with `.rejected`.
 
 **Verifying ringing needs TWO live clients.** One device can prove the wiring compiles and that
@@ -106,14 +106,14 @@ CometChatCalls.initFromSettings(
 ## Callback shapes (VERIFIED against 5.0.7 — the SDK is INCONSISTENT, do not pattern-match)
 | API | `onSuccess` receives | Returns |
 |---|---|---|
-| `init(callAppSettings, …)` | `String` | `void` (not a Future) |
-| `initFromSettings(…)` | `String` | `Future<void>` |
-| `login(uid:, authKey:, …)` | **`User?`** (nullable) | `void` |
-| `loginWithAuthToken(authToken:, …)` | **`User?`** (nullable) | `void` |
-| `logout(…)` | `String` | `void` |
-| `generateCallToken(sessionId, …)` | `CallToken` | `void` |
-| `generateToken(sessionId, userAuthToken, …)` | `GenerateToken` — **⚠️ `@Deprecated`, two POSITIONAL args, and a DIFFERENT type from `generateCallToken`** | `void` |
-| `joinSession(sessionId:/callToken:, sessionSettings:, …)` | **`Widget?`** | `Future<void>` |
+| `init(callAppSettings, ...)` | `String` | `void` (not a Future) |
+| `initFromSettings(...)` | `String` | `Future<void>` |
+| `login(uid:, authKey:, ...)` | **`User?`** (nullable) | `void` |
+| `loginWithAuthToken(authToken:, ...)` | **`User?`** (nullable) | `void` |
+| `logout(...)` | `String` | `void` |
+| `generateCallToken(sessionId, ...)` | `CallToken` | `void` |
+| `generateToken(sessionId, userAuthToken, ...)` | `GenerateToken` — **⚠️ `@Deprecated`, two POSITIONAL args, and a DIFFERENT type from `generateCallToken`** | `void` |
+| `joinSession(sessionId:/callToken:, sessionSettings:, ...)` | **`Widget?`** | `Future<void>` |
 | `getLoggedInUser()` | — | **`Future<User?>`** (await it; no callbacks) |
 
 Every `onError` receives `CometChatCallsException`. `joinSession` takes **exactly one** of
@@ -161,9 +161,9 @@ All five are on `CallSession.getInstance()`, which is **`null` when no session i
 > listener exists at a time and it is cleared by assigning `null`. The events page shows the add/remove
 > pair; those methods do not exist.
 
-> **⚠️ All five types are `abstract class`es.** `SessionStatusListeners(onSessionJoined: …)`, the
+> **⚠️ All five types are `abstract class`es.** `SessionStatusListeners(onSessionJoined: ...)`, the
 > shape every page uses, does not compile — `flutter analyze` reports `instantiate_abstract_class`.
-> Write `class X extends SessionStatusListeners { @override … }` and pass an instance. Every method
+> Write `class X extends SessionStatusListeners { @override ... }` and pass an instance. Every method
 > already has a no-op body, so `extends` lets you override just what you need; `implements` obliges
 > you to write them all.
 
@@ -192,6 +192,16 @@ to carry right now.
 > **⚠️ Never infer that from a version string.** Before 5.0.7 shipped, the published package and
 > the monorepo BOTH read `version: 5.0.6` with different contents. Re-diff the trees; do not
 > compare versions.
+
+### 5.0.7 → 5.0.9 (5.0.9 published 2026-10-07; source-checked, not yet compiled)
+
+**No public API removed or renamed.** The only Dart signature change: `CometChatOngoingCallService.launch()`
+gained an optional `{bool? isVideo}` (additive). 5.0.9 fixes Android call listeners that only fired for
+the first call after app start (apps on `androidx.lifecycle` 2.8.0+): End did nothing on later calls.
+5.0.8's Android manifest drops `FOREGROUND_SERVICE_MEDIA_PLAYBACK`, `MANAGE_OWN_CALLS` and the
+Telecom `ConnectionService`, narrows the call service to `microphone|camera`, and makes local screen
+share opt-in (see the screen-share pitfall in `SKILL.md`). Floors unchanged: `minSdkVersion 26`,
+iOS 15.1, native `CometChatCallsSDK` 5.0.4. The monorepo was not re-diffed for these releases.
 
 ### 5.0.6 → 5.0.7 (published 2026-09-02)
 

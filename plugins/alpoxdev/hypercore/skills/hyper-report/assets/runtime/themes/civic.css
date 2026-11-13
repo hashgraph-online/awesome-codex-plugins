@@ -1,0 +1,55 @@
+/* Theme: civic. Sans-serif, cooler greys, blue accent, tighter leading.
+ * The default for business and public-sector reporting.
+ */
+
+:root {
+  --page-size: A4;
+  --page-width: 210mm;
+  --page-height: 297mm;
+  --page-margin-x: 17mm;
+  --page-margin-top: 18mm;
+
+  --paper: #ffffff;
+  --ink: #14181f;
+  --muted: #64707f;
+  --muted-strong: #39424e;
+  --rule: #d5dae1;
+  --rule-strong: #14181f;
+  --accent: #12507e;
+  --surface: #f2f6fa;
+  --code-bg: #eef2f6;
+
+  --font-body: "Apple SD Gothic Neo", "Noto Sans KR", -apple-system, sans-serif;
+  --font-heading: "Apple SD Gothic Neo", "Noto Sans KR", -apple-system, sans-serif;
+  --font-mono: "SF Mono", ui-monospace, "Menlo", monospace;
+  --font-size: 10.2pt;
+  --line-height: 1.6;
+}
+
+h1,
+h2 {
+  letter-spacing: -0.015em;
+}
+
+.cite {
+  font-size: 0.76em;
+  vertical-align: super;
+  color: var(--accent);
+}
+
+.toc-l1 .toc-title {
+  font-weight: 600;
+}
+
+.toc-l2 {
+  padding-left: 6mm;
+  font-size: 0.93em;
+}
+
+.toc-l2 .toc-title {
+  color: var(--muted-strong);
+}
+
+.kpi {
+  border-top-width: 2pt;
+}

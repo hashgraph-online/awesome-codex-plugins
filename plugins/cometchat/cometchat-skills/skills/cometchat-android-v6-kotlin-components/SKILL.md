@@ -2,14 +2,14 @@
 name: cometchat-android-v6-kotlin-components
 description: "The closed catalog of CometChat Android v6 UI Kit components for the Kotlin XML Views cohort — what exists, the XML tag and import for each, what each one is for, and how to swap custom UI into a component's slot instead of stacking on top. Triggers: 'which cometchat components are there android', 'is there a X component android', 'cometchat xml view tag', 'swap the message bubble android', 'custom row in conversations list'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views cohort) — 6.0.x, verified 6.0.5; com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 (XML Views cohort) — 6.1.x, verified 6.1.1; com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat android components v6 kotlin views xml catalog"
 ---
 
-> **Ground truth:** catalog `android-v6.json` (287 symbols, generated from the INSTALLED 6.0.5 source and cross-checked against the published AAR) + the live component pages. Verify every symbol against the catalog; fetch attributes from docs (`core` → `references/docs-map.md`); never trust memory.
+> **Ground truth:** catalog `android-v6.json` (293 symbols, generated from the 6.1.1 source and cross-checked against the published AARs) + the live component pages. Verify every symbol against the catalog; fetch attributes from docs (`core` → `references/docs-map.md`); never trust memory.
 >
 > ⚠️ **This is the Kotlin XML Views cohort.** The artifact is `chatuikit-kotlin-android`, the namespace is `com.cometchat.uikit.kotlin.presentation.*`, and components are XML tags configured with `setX(...)`. The Compose cohort (`chatuikit-compose-android`, composable params) is a **separate skill** — never mix them in one app.
 
@@ -21,7 +21,7 @@ metadata:
 "which components does the Android UI Kit have?", "is there a `<X>` component?", "what's the XML tag for the message list?", "I need a component for `<intent>`", "can I replace a list row / message bubble?".
 
 ## Prerequisites & install
-Same kit + init as `core`. One cohort per app: `implementation("com.cometchat:chatuikit-kotlin-android:6.0.5")`. Every component below is a `View` — put it in a layout, then configure it in `onCreate` (`findViewById` or view binding).
+Same kit + init as `core`. One cohort per app: `implementation("com.cometchat:chatuikit-kotlin-android:6.1.1")`. Every component below is a `View` — put it in a layout, then configure it in `onCreate` (`findViewById` or view binding).
 
 ## Component catalog (closed list — from `catalogs/android-v6.json`)
 Import/tag pattern: `com.cometchat.uikit.kotlin.presentation.<area>.ui.<Component>`. Not listed here ⇒ not in the catalog ⇒ **does not exist**.
@@ -80,7 +80,7 @@ Rule: put custom UI in the slot; never overlay your own view on a kit component,
 > contract as the Compose cohort's `auxiliaryView`/`trailingView` params.
 
 ## Group member permissions — the kit enforces them, don't re-implement
-`CometChatGroupMembers` gates its own long-press menu (verified vs 6.0.5). Rely on it:
+`CometChatGroupMembers` gates its own long-press menu (verified vs 6.0.5 and 6.1.1 `GroupMembersPermissionUtils`). Rely on it:
 
 | Logged-in user | Menu opens on | Cannot act on |
 |---|---|---|
@@ -89,7 +89,7 @@ Rule: put custom UI in the slot; never overlay your own view on a kit component,
 | **Moderator** | participants only | moderators, admins, owner |
 | **Participant** | nobody | everyone |
 
-A moderator also cannot assign the **admin** role (disabled in the scope sheet). Scope strings:
+Per item on 6.1.1: kick and ban follow the table (a moderator can kick, not ban); **change scope** is owner (anyone but self) and admin (moderators, participants) only. 6.0.x gave admins kick/ban but no scope change. Scope strings:
 `CometChatConstants.SCOPE_ADMIN` / `SCOPE_MODERATOR` / `SCOPE_PARTICIPANT`. Never hand-roll these
 checks or hide the component behind your own role logic — you will drift from the kit.
 
@@ -98,12 +98,12 @@ checks or hide the component behind your own role logic — you will drift from 
 `CometChat.transferGroupOwnership(GUID, UID, listener)`.
 
 ## Components that do NOT exist in v6 (never emit these)
-v6 ships **no combined shell**: `CometChatConversationsWithMessages`, `CometChatUsersWithMessages`, `CometChatGroupsWithMessages`, `CometChatUI` are v4-era names — you compose the screens yourself (`…-kotlin-placement`). `CometChatContacts` is not a v6 symbol.
+v6 ships **no combined shell**: `CometChatConversationsWithMessages`, `CometChatUsersWithMessages`, `CometChatGroupsWithMessages`, `CometChatUI` are v4-era names — you compose the screens yourself (`...-kotlin-placement`). `CometChatContacts` is not a v6 symbol.
 
-⚠️ **`CometChatMessageTemplate` is absent from the shipped 6.0.5 artifact** (verified against the published AAR; logged internally). The old v5 API — `setTemplates`, `setType`, `setCategory`, `setBubbleView`, `setMessageReceipt` — all fail to compile. The docs `message-template` page was corrected upstream (verified 2026-09-09): it is now "Message Bubble Factory" and teaches `BubbleFactory` + `setBubbleFactories`. **Use `BubbleFactory` + `setBubbleFactories`.** The compile gate rejects the old form.
+⚠️ **`CometChatMessageTemplate` is absent from the shipped 6.0.5 and 6.1.1 artifacts** (verified against the published AARs; logged internally). The old v5 API — `setTemplates`, `setType`, `setCategory`, `setBubbleView`, `setMessageReceipt` — all fail to compile. The docs `message-template` page was corrected upstream (verified 2026-09-09): it is now "Message Bubble Factory" and teaches `BubbleFactory` + `setBubbleFactories`. **Use `BubbleFactory` + `setBubbleFactories`.** The compile gate rejects the old form.
 
 ## Common pitfalls
-Mixing cohorts (Compose artifact in a Views app) · assuming a v4/v5 combined shell exists · emitting `CometChatMessageTemplate` from the docs page · `wrap_content` on a list · overlaying custom UI instead of using a slot · a custom header icon via `setAuxiliaryViewListener` (replaces the call-button host — use `setTrailingView`) · using the Compose namespace (`…uikit.compose.…`) in an XML tag · guessing attributes instead of fetching the component's `.md` twin.
+Mixing cohorts (Compose artifact in a Views app) · assuming a v4/v5 combined shell exists · emitting `CometChatMessageTemplate` from the docs page · `wrap_content` on a list · overlaying custom UI instead of using a slot · a custom header icon via `setAuxiliaryViewListener` (replaces the call-button host — use `setTrailingView`) · using the Compose namespace (`...uikit.compose....`) in an XML tag · guessing attributes instead of fetching the component's `.md` twin.
 
 ## Verify it works
 Every component you emitted is in the list above (Tier-1 catalog) and the app compiles against the pinned kit — `./gradlew :app:assembleDebug   # in YOUR app (native-fence.mjs is a pack-repo gate, not installed by the CLI)`. On device: the component renders at full size with its own loading/empty state, and any slotted custom view appears INSIDE the component. Unsure about an attribute → fetch the page's `.md` twin; never read kit source for signatures.

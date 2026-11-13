@@ -77,11 +77,13 @@ confirm.
 
 ## Link errors / missing symbols after adding the package
 
-**Cause:** `CometChatSDK` is not pinned to the exact version the binary kit was compiled
-against, or (on 5.1.19) `CometChatCallsSDK` is absent — the shipped interface hard-imports it,
-so even a chat-only app fails to compile without it.
+**Cause:** a hand-added `CometChatSDK` pin fights the kit's own rule (5.2.1+ declares
+`CometChatSDK` from 4.1.10), or the kit is older than 5.2.3: 5.1.19 to 5.1.22 fail to compile
+without `CometChatCallsSDK`, and 5.2.0 to 5.2.2 build but crash at launch with
+`Library not loaded: @rpath/CometChatCallsSDK.framework`.
 
-**Fix:** pin both exactly. See `anti-patterns.md` §5.
+**Fix:** depend on `CometChatUIKitSwift` alone, Up to Next Major from 5.2.3, and remove any exact
+`CometChatSDK` pin. See `anti-patterns.md` §5 and `install.md`.
 
 ## The group-members screen cannot be dismissed
 
@@ -89,12 +91,10 @@ so even a chat-only app fails to compile without it.
 — the kit's Cancel control does nothing, a wired `set(onBack:)` never fires, and edge-swipe back is
 inert.
 
-**Status: reported and NOT reproduced by us.** An acceptance pass measured it (Cancel
-`action=didTapBackButton` inert across 3 taps, `set(onBack:)` instrumented and never called); an
-attempt to reproduce it in the review harness did not get far enough to confirm or refute. So there
-is no verified fix here, and none is invented: we do not know whether the fault is the recipe or
-the kit.
+**Cause (found in the kit source):** through 5.1.22, `CometChatGroupMembers.didTapBackButton()`
+only called `self.dismiss(animated:)`, which does nothing on a PUSHED controller, and never called
+`onBack`. **Fixed in 5.2.x** (5.2.3 `CometChatGroupMembers.swift` `didTapBackButton`): it runs
+`onBack` when set, otherwise pops the navigation stack, and only dismisses when presented.
 
-**What to do:** treat "can the user leave this screen?" as a test you run, not a property you
-assume. If you hit it, give yourself a dismissal path you control — your own bar button, or
-presenting rather than pushing — and please report the exact flow so this can be pinned down.
+**What to do:** be on 5.2.3+ (see `install.md`). Still run "can the user leave this screen?" as a
+test, since the fix is source-verified, not yet device-run.

@@ -2,7 +2,7 @@
 
 **Doc channel — PREFER the MCP, FALL BACK to a fetch** (`RULES.md` §"Canonical doc channel"). When the
 CometChat docs MCP is connected, reach every page through it — `fetch_cometchat_doc_page("/calls/react-native/<page>")`
-for a known page, `search_cometchat_docs` for a conceptual question. When it is **not** connected, tell the user and help them add it — `claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp` (or reinstall/enable the plugin), then retry — and only if it still will not connect, fetch
+for a known page, `search_cometchat_docs` for a conceptual question. When it is **not** connected, tell the user and help them add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), then retry — and only if it still will not connect, fetch
 `DOCS_BASE` + the path + `.md` instead (below). **Never require the MCP** — an agent with no MCP must still
 be able to read every page here. Either way the `<path>` catalog below decides WHICH page; MCP-vs-fetch is
 only HOW.
@@ -34,7 +34,7 @@ DOCS_BASE = https://www.cometchat.com/docs
 | Authentication | `/calls/react-native/authentication` | `init` / `login` / `loginWithAuthToken` signatures and the auth-token story |
 | **Join session** | `/calls/react-native/join-session` | `generateToken(sessionId)`, `<CometChatCalls.Component callToken sessionSettings />` props, error codes |
 | Session settings | `/calls/react-native/session-settings` | the FULL `sessionSettings` field list (all `hide*` flags, `audioMode`, `idleTimeoutPeriodBeforePrompt`, `enableIOSPictureInPicture`) |
-| Actions | `/calls/react-native/actions` | exact params for `muteAudio`/`setLayout`/`switchCamera`/… |
+| Actions | `/calls/react-native/actions` | exact params for `muteAudio`/`setLayout`/`switchCamera`/... |
 | Events | `/calls/react-native/events` | the AUTHORITATIVE event-name list for `addEventListener` |
 | **Ringing (1:1)** | `/calls/react-native/ringing` | the Chat-SDK signaling half — see § 1:1 RINGING below |
 | Call layouts | `/calls/react-native/call-layouts` | `TILE` / `SIDEBAR` / `SPOTLIGHT` behaviour |

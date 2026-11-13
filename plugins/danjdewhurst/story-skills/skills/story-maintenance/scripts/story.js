@@ -871,6 +871,9 @@ var FINDING_CODES = {
   "death-status-mismatch": "error",
   "revival-status-mismatch": "error",
   "posthumous-appearance": "error",
+  "appears-before-birth": "error",
+  "born-after-death": "error",
+  "parent-born-after-child": "error",
   "deceased-in-cast": "warning",
   "progression-deceased-in-cast": "warning",
   "progression-death-conflict": "warning",
@@ -946,6 +949,7 @@ var FINDING_CODES = {
   "duplicate-book-number": "error",
   "canon-name-mismatch": "warning",
   "canon-pronunciation-mismatch": "warning",
+  "canon-born-mismatch": "warning",
   "canon-death-status": "error",
   "canon-posthumous-appearance": "error",
   "canon-posthumous-learning": "error",
@@ -1048,6 +1052,9 @@ var CONTINUITY_ERROR_CODES = [
   "death-status-mismatch",
   "revival-status-mismatch",
   "posthumous-appearance",
+  "appears-before-birth",
+  "born-after-death",
+  "parent-born-after-child",
   "promise-payoff-before-plant",
   "promise-payoff-missing",
   "promise-plant-missing",
@@ -1081,6 +1088,7 @@ function exemptionCodes() {
 }
 var CHAPTER_CODES = [
   "posthumous-appearance",
+  "appears-before-birth",
   "deceased-in-cast",
   "progression-deceased-in-cast",
   "progression-death-conflict",
@@ -1464,6 +1472,31 @@ function parseCalendarDate(value, calendar) {
     }
   }
   return { text: original, days };
+}
+function parseCalendarYear(value, calendar) {
+  const original = String(value).trim();
+  const match = /^(\d+)(?: (.+))?$/.exec(plainName(value));
+  if (!match) {
+    return { problem: "write a year alone as a number with an optional era, such as 301 AE" };
+  }
+  const year = Number(match[1]);
+  if (year < 1) {
+    return { problem: "years start at 1" };
+  }
+  const absolute = absoluteYear(year, match[2], calendar);
+  if (absolute.problem) {
+    return absolute;
+  }
+  const first = (absolute.year - 1) * calendar.yearDays;
+  const last = first + calendar.yearDays - 1;
+  if (!Number.isSafeInteger(first) || !Number.isSafeInteger(last)) {
+    return { problem: "the year is too far from year 1 to count its days" };
+  }
+  return { text: original, first, last };
+}
+function calendarYearDay(days, calendar) {
+  const index = Math.floor(days / calendar.yearDays);
+  return { year: index + 1, day: days - index * calendar.yearDays };
 }
 function absoluteYear(year, eraText, calendar) {
   if (calendar.eras.length === 0) {
@@ -2227,7 +2260,7 @@ function withoutLeadingFrontmatter(text) {
 // src/frontmatter-keys.js
 var FRONTMATTER_KEYS = {
   story: ["title", "schema-version", "series", "series-title", "book-number", "follows", "precedes", "genre", "sub-genre", "setting-era", "status", "themes", "pov", "tense", "premise", "counter-premise", "author", "surname", "short-title", "contact", "season-goal", "target-words", "target-characters", "count-unit", "language", "isbn", "publisher", "publication-date", "description", "keywords", "subjects", "copyright", "ifid", "cover-alt", "ai-disclosure", "chapter-label", "writing-mode", "chapter-numerals", "contents-label", "labels", "authors", "editor", "form", "draft-mode", "cover", "deadline", "daily-target-words", "daily-target-characters", "writing-days", "release-every", "release-start", "release-warn-days", "calendar", "distance-unit", "map-scale", "travel-modes", "revision-passes", "build-style", "cli-defaults", "severity", "queries"],
-  character: ["pronunciation", "id", "name", "role", "status", "died-in", "revived-in", "aliases", "relationships", "locations", "tags", "arc", "arc-type", "lie", "truth", "ghost-wound", "voice-words", "voice-avoid", "progressions"],
+  character: ["pronunciation", "id", "name", "role", "status", "born", "died-in", "revived-in", "aliases", "relationships", "locations", "tags", "arc", "arc-type", "lie", "truth", "ghost-wound", "voice-words", "voice-avoid", "progressions"],
   location: ["pronunciation", "id", "name", "type", "region", "population", "controlled-by", "notable-characters", "tags", "status", "setting", "routes", "coordinates", "distances", "progressions"],
   system: ["id", "name", "type", "prevalence", "pronunciation"],
   faction: ["pronunciation", "id", "name", "type", "status", "members", "locations", "tags", "progressions"],
@@ -8944,6 +8977,101 @@ function dropCountForms(labels, key) {
 import fs2 from "node:fs";
 import path2 from "node:path";
 
+// src/ages.js
+var DAY_MS = 86400000;
+function gregorianDays(year, month, day) {
+  const date = new Date(Date.UTC(2000, month - 1, day));
+  date.setUTCFullYear(year, month - 1, day);
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return;
+  }
+  return date.getTime() / DAY_MS;
+}
+function bornText(value) {
+  if (value === undefined || value === null) {
+    return "";
+  }
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : null;
+}
+function parseBorn(value, calendar = null) {
+  const text = bornText(value);
+  if (text === "") {
+    return null;
+  }
+  if (text === null) {
+    return { problem: "must be a date or a year, such as 1990-05-12 or 1990" };
+  }
+  if (calendar?.invalid) {
+    return null;
+  }
+  if (calendar) {
+    const day = parseCalendarDate(text, calendar);
+    if (!day.problem) {
+      return { text, first: day.days, last: day.days };
+    }
+    const year = parseCalendarYear(text, calendar);
+    if (!year.problem) {
+      return year;
+    }
+    return { problem: `is not a day or a year of the story calendar: ${day.problem}` };
+  }
+  const full = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (full) {
+    const days = gregorianDays(Number(full[1]), Number(full[2]), Number(full[3]));
+    return days === undefined ? { problem: `must be a real YYYY-MM-DD calendar day or a year, got ${text}` } : { text, first: days, last: days };
+  }
+  if (typeof value === "number" && Number.isInteger(value) && value >= 0 && value < 1000) {
+    return { problem: `must be a YYYY-MM-DD day or a YYYY year, got ${text}; quote a year before 1000, such as "${text.padStart(4, "0")}"` };
+  }
+  if (/^\d{4}$/.test(text)) {
+    const year = Number(text);
+    return { text, first: gregorianDays(year, 1, 1), last: gregorianDays(year, 12, 31) };
+  }
+  return { problem: `must be a YYYY-MM-DD day or a YYYY year, got ${text}` };
+}
+function bornProblem(value, calendar = null) {
+  return parseBorn(value, calendar)?.problem ?? "";
+}
+function readBorn(value, calendar = null) {
+  const born = parseBorn(value, calendar);
+  return born && !born.problem ? born : null;
+}
+function yearsBetween(born, at, calendar) {
+  if (calendar) {
+    const from = calendarYearDay(born, calendar);
+    const to = calendarYearDay(at, calendar);
+    return to.year - from.year - (to.day < from.day ? 1 : 0);
+  }
+  const from = new Date(born * DAY_MS);
+  const to = new Date(at * DAY_MS);
+  const before = to.getUTCMonth() < from.getUTCMonth() || to.getUTCMonth() === from.getUTCMonth() && to.getUTCDate() < from.getUTCDate();
+  return to.getUTCFullYear() - from.getUTCFullYear() - (before ? 1 : 0);
+}
+function ageOn(born, at, calendar = null) {
+  if (!born || at === undefined || at === null || !Number.isFinite(at)) {
+    return null;
+  }
+  if (at < born.first) {
+    return { min: null, max: null, unborn: true, maybeUnborn: false };
+  }
+  const max = yearsBetween(born.first, at, calendar);
+  const min = at < born.last ? 0 : yearsBetween(born.last, at, calendar);
+  return { min, max, unborn: false, maybeUnborn: at < born.last };
+}
+function formatAge(age) {
+  if (!age) {
+    return "";
+  }
+  if (age.unborn) {
+    return "not born yet";
+  }
+  const years = age.min === age.max ? String(age.max) : `${age.min} or ${age.max}`;
+  return age.maybeUnborn ? `${years}, or not born yet` : years;
+}
+function characterAgeOn(character, at, calendar = null) {
+  return ageOn(readBorn(character.born, calendar), at, calendar);
+}
+
 // src/progressions.js
 var PROGRESSION_KINDS = ["character", "location", "faction"];
 var RESERVED_FIELDS = new Set(["progressions", "id", "died-in", "revived-in"]);
@@ -9036,8 +9164,8 @@ function validateProgressions(data, label, rules, chronology, errors) {
       errors.push(err("missing-field", `${entryLabel} is missing field`, label));
     } else if (field !== kebabCase(field)) {
       errors.push(err("id-not-kebab", `${entryLabel} field ${field} must be kebab-case`, label));
-    } else if (RESERVED_FIELDS.has(field)) {
-      errors.push(err("progression-fixed-field", `${entryLabel} cannot change ${field}${field === "died-in" || field === "revived-in" ? "; set it on the character and story continuity reads it by chapter" : ""}`, label));
+    } else if (RESERVED_FIELDS.has(field) || rules.fixed?.has(field)) {
+      errors.push(err("progression-fixed-field", `${entryLabel} cannot change ${field}${field === "died-in" || field === "revived-in" ? "; set it on the character and story continuity reads it by chapter" : field === "born" ? "; a birth date stays the same, and story context works out the age at each chapter" : ""}`, label));
     } else if (rules.lists.has(field)) {
       errors.push(err("progression-list-field", `${entryLabel} cannot change ${field}, which is a list; a progression holds a single value`, label));
     } else {
@@ -9522,6 +9650,7 @@ function checkSharedCanon({ order, later }, errors, warnings) {
   for (const book of order) {
     const earlierBooks = order.filter((candidate) => reachable.get(candidate.key).has(book.key));
     checkCanonNames(book, earlierBooks, warnings);
+    checkCanonBirths(book, earlierBooks, warnings, reachable);
     checkCanonDeaths(book, earlierBooks, errors);
     checkDestroyedArtifacts(book, earlierBooks, errors, warnings);
     checkKnownFacts(book, earlierBooks, errors);
@@ -9553,6 +9682,31 @@ function checkCanonNames(book, earlierBooks, warnings) {
       const saidBefore = pronunciationText(match?.entity.pronunciation);
       if (said !== "" && saidBefore !== "" && said !== saidBefore) {
         warnings.push(warn("canon-pronunciation-mismatch", `${bookFile(book, entity.file)} pronunciation "${said}" differs from "${saidBefore}" in ${bookFile(match.book, match.entity.file)}`, bookFile(book, entity.file)));
+      }
+    }
+  }
+}
+function checkCanonBirths(book, earlierBooks, warnings, reachable) {
+  const calendarKey = (project) => JSON.stringify(project.calendar ? { months: project.calendar.months, eras: project.calendar.eras } : null);
+  const canon = new Map;
+  for (const earlier of earlierBooks) {
+    for (const character of earlier.project.characters) {
+      const born = readBorn(character.born, earlier.project.calendar);
+      if (born) {
+        canon.set(character.id, [...canon.get(character.id) ?? [], { book: earlier, character, born }]);
+      }
+    }
+  }
+  for (const character of book.project.characters) {
+    const born = readBorn(character.born, book.project.calendar);
+    if (!born) {
+      continue;
+    }
+    const entries = (canon.get(character.id) ?? []).filter((entry) => calendarKey(entry.book.project) === calendarKey(book.project));
+    const latest = entries.filter((entry) => !entries.some((other) => other !== entry && reachable.get(entry.book.key).has(other.book.key)));
+    for (const match of latest) {
+      if (born.last < match.born.first || born.first > match.born.last) {
+        warnings.push(warn("canon-born-mismatch", `${bookFile(book, character.file)} born ${born.text} differs from ${match.born.text} in ${bookFile(match.book, match.character.file)}`, bookFile(book, character.file)));
       }
     }
   }
@@ -13141,6 +13295,7 @@ var OPTIONS = [
   { name: "aliases", value: "<names>", repeatable: true, commas: true, aliasOf: "alias" },
   { name: "region", value: "<name>", help: ["Region for add location"] },
   { name: "population", value: "<name>", help: ["Population for add location"] },
+  { name: "born", value: "<date>", help: ["Birth date for add character: a day", "(YYYY-MM-DD, or in the story.md calendar) or a", "year alone"] },
   { name: "coordinates", value: "<x,y>", help: ["Place on the story's map for add location, two", "numbers such as 12,40"] },
   { name: "controlled-by", value: "<id>", help: ["Controlling faction for add location"] },
   { name: "prevalence", value: "<name>", help: ["Prevalence for add system"] },
@@ -14228,7 +14383,7 @@ function buildEntity(project, kind, name, options) {
   }
   switch (kind) {
     case "character":
-      return entityResult(project, kind, id, characterFile(name, options));
+      return entityResult(project, kind, id, characterFile(name, options, project.calendar));
     case "location":
       return entityResult(project, kind, id, locationFile(name, options));
     case "system":
@@ -14257,11 +14412,17 @@ function entityResult(project, kind, id, markdown) {
   const config = entityConfig(kind);
   return { id, markdown, file: path8.join(project.root, config.dir, `${id}.md`) };
 }
-function characterFile(name, options) {
+function characterFile(name, options, calendar = null) {
+  const bornError = bornProblem(options.born, calendar);
+  if (bornError) {
+    throw usageError(`born ${bornError}`);
+  }
+  const born = String(options.born ?? "").trim();
   return `${stringifyFrontmatter({
     name,
     role: options.role ?? "supporting",
     status: options.status ?? "alive",
+    ...born === "" ? {} : { born },
     aliases: [],
     relationships: [],
     locations: listOption(options, "locations", "location"),
@@ -15420,6 +15581,7 @@ function scanProject(root) {
       arc: String(data.arc ?? ""),
       diedIn: String(data["died-in"] ?? ""),
       revivedIn: String(data["revived-in"] ?? ""),
+      born: data.born,
       relationships: asArray(data.relationships),
       locations: asArray(data.locations),
       aliases: asArray(data.aliases),
@@ -16091,6 +16253,7 @@ function checkContinuity(project) {
     chronology: chapterChronology(project)
   };
   checkCharacterDeaths(project, context, errors, warnings);
+  checkBirths(project, context, errors);
   checkChapterCasts(project, warnings);
   checkSceneCasts(project, warnings);
   checkCutCharacters(project, warnings);
@@ -16160,6 +16323,76 @@ function checkCharacterDeaths(project, context, errors, warnings) {
     for (const scene of project.scenes) {
       if (window.deadIn(scene.chapter) && castIncludes(scene, character.id)) {
         errors.push(err("posthumous-appearance", `${relative2(project, scene.file)} lists ${character.id}, who died in ${character.diedIn}; move posthumous appearances to mentions`, relative2(project, scene.file), chapterOf(scene)));
+      }
+    }
+  }
+}
+function checkBirths(project, context, errors) {
+  const calendar = project.calendar;
+  const births = new Map;
+  for (const character of project.characters) {
+    const born = readBorn(character.born, calendar);
+    if (born) {
+      births.set(character.id, born);
+    }
+  }
+  if (births.size === 0) {
+    return;
+  }
+  const scenes = project.scenes.map((scene) => ({ scene, day: parseStoryDate(String(scene.date ?? ""), calendar) }));
+  const latest = new Map;
+  for (const chapter of project.chapters) {
+    const own = parseStoryDate(String(chapter.date ?? ""), calendar);
+    const told = scenes.filter(({ scene }) => idText(scene.chapter) === chapter.id && !scene.flashbackTo);
+    if (!own && told.some(({ day }) => !day)) {
+      continue;
+    }
+    const dates = [own, ...told.map(({ day }) => day)].filter(Boolean);
+    if (dates.length > 0) {
+      latest.set(chapter.id, dates.reduce((last, day) => day.days > last.days ? day : last));
+    }
+  }
+  const bornAfter = (born, day) => day < born.first;
+  for (const character of project.characters) {
+    const born = births.get(character.id);
+    if (!born) {
+      continue;
+    }
+    const label = relative2(project, character.file);
+    const death = latest.get(character.diedIn);
+    if (death && bornAfter(born, death.days)) {
+      errors.push(err("born-after-death", `${label} is born ${born.text}, after dying in ${character.diedIn} (${death.text}); fix born or the chapter's date`, label));
+    }
+    for (const chapter of project.chapters) {
+      const day = latest.get(chapter.id);
+      if (day && castIncludes(chapter, character.id) && bornAfter(born, day.days)) {
+        errors.push(err("appears-before-birth", `${relative2(project, chapter.file)} lists ${character.id}, who is born ${born.text}, in a chapter dated ${day.text}; move them to mentions or fix the dates`, relative2(project, chapter.file), chapter.id));
+      }
+    }
+    for (const { scene, day } of scenes) {
+      if (day && castIncludes(scene, character.id) && bornAfter(born, day.days)) {
+        errors.push(err("appears-before-birth", `${relative2(project, scene.file)} lists ${character.id}, who is born ${born.text}, in a scene dated ${day.text}; move them to mentions or fix the dates`, relative2(project, scene.file), chapterOf(scene)));
+      }
+    }
+  }
+  const reported = new Set;
+  for (const character of project.characters) {
+    for (const relationship of character.relationships) {
+      if (!relationship || typeof relationship !== "object" || Array.isArray(relationship)) {
+        continue;
+      }
+      const type = idText(relationship.type);
+      const other = idText(relationship.character);
+      const [parent, child] = type === "parent" ? [character.id, other] : type === "child" ? [other, character.id] : [];
+      if (parent === undefined || reported.has(`${parent}>${child}`) || !births.has(parent) || !births.has(child)) {
+        continue;
+      }
+      const parentBorn = births.get(parent);
+      const childBorn = births.get(child);
+      if (parentBorn.first >= childBorn.last) {
+        reported.add(`${parent}>${child}`);
+        const file = relative2(project, context.characters.get(parent).file);
+        errors.push(err("parent-born-after-child", `${file} is born ${parentBorn.text}, not before ${child}, their child, born ${childBorn.text}; fix born or the relationship`, file));
       }
     }
   }
@@ -17929,6 +18162,7 @@ ${body}`)));
   }
   sections.push({ id: "pov", title: "POV knowledge and state", items: povItems });
   const cards = [];
+  const day = parseStoryDate(String(target.scene?.date ?? ""), project.calendar)?.days ?? chronology.days.get(target.chapter.id);
   for (const id of cast) {
     const character = characters.get(id);
     if (!character) {
@@ -17937,7 +18171,7 @@ ${body}`)));
     const body = readBody(character.file);
     const state = characterStateAt(character, chronology, target.chapter.id);
     const changes = id === pov ? [] : changeLines(state.changes, target.chapter.id);
-    cards.push(item(`character:${id}`, `Card: ${character.name}`, relative(character.file), lines(`### ${character.name}${id === pov ? " (POV)" : ""}`, field("Id", id), field("Role", state.state.role ?? character.role), field("Status", state.status), field("Aliases", listOf(state.state.aliases)), field("Voice words", listOf(state.state["voice-words"])), field("Voice avoid", listOf(state.state["voice-avoid"])), ...changes, ...CARD_SECTIONS.map((heading) => subsection(heading, section(body, heading))))));
+    cards.push(item(`character:${id}`, `Card: ${character.name}`, relative(character.file), lines(`### ${character.name}${id === pov ? " (POV)" : ""}`, field("Id", id), field("Role", state.state.role ?? character.role), field("Status", state.status), field("Age", formatAge(characterAgeOn(character, day, project.calendar))), field("Aliases", listOf(state.state.aliases)), field("Voice words", listOf(state.state["voice-words"])), field("Voice avoid", listOf(state.state["voice-avoid"])), ...changes, ...CARD_SECTIONS.map((heading) => subsection(heading, section(body, heading))))));
   }
   sections.push({ id: "characters", title: "Characters on the page", items: cards });
   const places = [];
@@ -24354,6 +24588,7 @@ function sectionText(value) {
 // src/validate-entities.js
 var PROGRESSION_RULES = {
   character: {
+    fixed: new Set(["born"]),
     lists: new Set(["aliases", "relationships", "locations", "tags", "voice-words", "voice-avoid"]),
     enums: new Map([["role", CHARACTER_ROLES], ["status", CHARACTER_STATUSES]])
   },
@@ -24382,6 +24617,10 @@ function validateCharacters(project, errors, warnings) {
     requireScalar(data, "status", label, errors);
     validateEnum(data, "role", CHARACTER_ROLES, label, errors);
     validateEnum(data, "status", CHARACTER_STATUSES, label, errors);
+    const bornError = bornProblem(data.born, project.calendar);
+    if (bornError !== "") {
+      errors.push(err("invalid-date", `${label} born ${bornError}`, label));
+    }
     if (data["died-in"] !== undefined) {
       requireScalar(data, "died-in", label, errors);
     }
@@ -31385,6 +31624,12 @@ function entityStateAtChapter(root, kind, id, atChapterId, project = scanProject
   }
   return entityStateAt(entity.frontmatter, atChapterId, chapterChronology(project));
 }
+function characterAgeAtChapter(project, characterId, atChapterId, sceneDate = undefined) {
+  const character = project.characters.find((entry) => entry.id === characterId);
+  const day = parseStoryDate(String(sceneDate ?? ""), project.calendar)?.days ?? chapterChronology(project).days.get(atChapterId);
+  const age = character ? characterAgeOn(character, day, project.calendar) : null;
+  return age ? { ...age, text: formatAge(age) } : null;
+}
 function draftingContext(root, targetId, options = {}) {
   const budget = options.budget === undefined ? DEFAULT_CONTEXT_BUDGET : withFlags("budget", () => requirePositiveInteger(options.budget, "Budget"));
   const scenes = options.scenes === undefined ? DEFAULT_CONTEXT_SCENES : parseDecimalInteger(options.scenes);
@@ -33419,8 +33664,9 @@ function createLanguageServer({ send, exit, schedule = setTimeout, cancel = clea
       return null;
     }
     const { project } = reference;
-    const chapter = project.chapters.find((entry) => entry.file === context.file)?.id ?? (project.scenes.find((entry) => entry.file === context.file)?.chapter || null);
-    const value = reference.matches.map((entry) => describeEntity(entry, context.root, chapter, project)).join(`
+    const scene = project.scenes.find((entry) => entry.file === context.file);
+    const chapter = project.chapters.find((entry) => entry.file === context.file)?.id ?? (scene?.chapter || null);
+    const value = reference.matches.map((entry) => describeEntity(entry, context.root, chapter, project, scene?.date)).join(`
 
 ---
 
@@ -33769,9 +34015,9 @@ function referenceKinds(lines, line, character) {
 function fieldKinds(key) {
   return key !== null && Object.hasOwn(REFERENCE_FIELD_KINDS, key) ? REFERENCE_FIELD_KINDS[key] : undefined;
 }
-function describeEntity(entry, root, chapter, project) {
+function describeEntity(entry, root, chapter, project, sceneDate) {
   const lines = [`**${escapeMarkdown(entry.name)}** · ${entry.kind} · \`${portablePath(path38.relative(root, entry.file))}\``];
-  const atChapter = chapter !== null && PROGRESSION_KINDS.includes(entry.kind) ? stateAtChapter(entry, root, chapter, project) : null;
+  const atChapter = chapter !== null && PROGRESSION_KINDS.includes(entry.kind) ? stateAtChapter(entry, root, chapter, project, sceneDate) : null;
   const status = String((atChapter === null ? entry.entity.status : atChapter.status) ?? "");
   if (status !== "") {
     lines.push("", `Status: ${escapeMarkdown(status)}`);
@@ -33782,13 +34028,15 @@ function describeEntity(entry, root, chapter, project) {
   return lines.join(`
 `);
 }
-function stateAtChapter(entry, root, chapter, project) {
+function stateAtChapter(entry, root, chapter, project, sceneDate) {
   try {
     const knowledge = entry.kind === "character" ? knowledgeAtChapter(root, entry.id, chapter, project) : [];
     const { state, changes } = entityStateAtChapter(root, entry.kind, entry.id, chapter, project);
+    const age = entry.kind === "character" ? characterAgeAtChapter(project, entry.id, chapter, sceneDate) : null;
     return {
       status: state.status,
       lines: [
+        ...age === null ? [] : [`- Age: ${escapeMarkdown(age.text)}`],
         ...knowledge.map((item) => `- Knows: ${escapeMarkdown(item.knows)} (${formatKnowledgeMark(item.learnedIn, item.audience, { atChapterId: chapter })})`),
         ...changes.map((change) => `- ${escapeMarkdown(String(change.field))}: ${change.value === "" ? "(cleared)" : escapeMarkdown(String(change.value))} (from ${escapeMarkdown(String(change.from))})`)
       ]
@@ -37072,7 +37320,7 @@ function oneLine4(text) {
 // src/commands.js
 var STDIN_LABEL = "stdin";
 var ADD_KIND_OPTIONS = {
-  character: ["id", "role", "status", "location", "locations", "arc"],
+  character: ["id", "role", "status", "born", "location", "locations", "arc"],
   location: ["id", "type", "status", "region", "population", "controlled-by", "character", "characters", "coordinates"],
   system: ["id", "type", "prevalence"],
   faction: ["id", "type", "status", "member", "members", "character", "characters", "location", "locations"],
@@ -37319,9 +37567,9 @@ var COMMANDS = [
     name: "knowledge",
     usage: "knowledge <id>",
     summary: [
-      "List what a character knew at a chapter, marked",
-      "reader-knowledge or character-knowledge, and the",
-      "changes its progressions made by then; requires --at"
+      "List a character's age at a chapter, what they knew,",
+      "marked reader-knowledge or character-knowledge, and",
+      "the changes its progressions made by then; requires --at"
     ],
     project: "flag",
     args: 1,
@@ -37336,8 +37584,13 @@ var COMMANDS = [
       const project = scanProject(projectRoot);
       const entries = knowledgeAtChapter(projectRoot, characterId, atChapterId, project);
       const { state, changes } = entityStateAtChapter(projectRoot, "character", characterId, atChapterId, project);
+      const age = characterAgeAtChapter(project, characterId, atChapterId);
       if (wantsJson(parsed)) {
-        return writeJsonResult(io, { command: "knowledge", ok: true, data: { character: characterId, at: atChapterId, entries, state, changes } });
+        return writeJsonResult(io, { command: "knowledge", ok: true, data: { character: characterId, at: atChapterId, age, entries, state, changes } });
+      }
+      if (age !== null) {
+        io.stdout.write(`Age at ${atChapterId}: ${age.text}
+`);
       }
       if (entries.length === 0) {
         io.stdout.write(`No recorded knowledge for ${characterId} at ${atChapterId}

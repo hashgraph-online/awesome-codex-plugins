@@ -2,14 +2,14 @@
 name: cometchat-angular-v5-core
 description: "Add CometChat chat to an Angular app end-to-end — detect the project, get & verify dashboard credentials, init→login→render with standalone components, and the drop-in conversation UI. The core knowledge every other Angular v5 skill builds on. Triggers: 'add chat to my angular app', 'integrate cometchat angular', 'set up cometchat credentials angular', 'show conversations and messages angular'."
 license: "MIT"
-compatibility: "Node.js >=18; Angular 17-21 (NOT 22 — see Install); @cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); @cometchat/chat-sdk-javascript ^4"
+compatibility: "Node.js >=18; Angular 17-21 (NOT 22 — see Install); @cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); @cometchat/chat-sdk-javascript ^4"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat angular core chat integration uikit v5 setup credentials standalone"
 ---
 
-> **Ground truth:** `@cometchat/chat-uikit-angular@^5` + `@cometchat/chat-sdk-javascript@^4`, symbols verified across 5.1.0–5.2.0 / 4.1.13–4.2.0 (unchanged set; catalog `verifiedCompatibleRange`). This file is the THIN map loaded every run; deep detail lives in `references/*`, loaded ONLY when the task needs it.
+> **Ground truth:** `@cometchat/chat-uikit-angular@^5` + `@cometchat/chat-sdk-javascript@^4`, symbols verified across 5.1.0–5.2.2 / 4.1.13–4.2.1 (additive only: 5.2.0 added pin/save, pinned/saved messages and thread subscription, so a name new in 5.2.0 needs `^5.2.0`; kit 5.2.x needs chat SDK `^4.2.0`; catalog `verifiedCompatibleRange`). This file is the THIN map loaded every run; deep detail lives in `references/*`, loaded ONLY when the task needs it.
 
 ## Use this skill when
 Adding CometChat to an Angular app, or you need the setup every other Angular v5 skill assumes: install, credentials, init→login→render ordering, and the component map.
@@ -83,7 +83,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { CometChatUIKit } from '@cometchat/chat-uikit-angular';
 import { environment } from './environments/environment';
 // Angular 20+ scaffolds `src/app/app.ts` exporting `App`; 17-19 scaffold `app.component.ts`
-// exporting `AppComponent`. Use whichever YOUR app has (wrong one → "Could not resolve …").
+// exporting `AppComponent`. Use whichever YOUR app has (wrong one → "Could not resolve ...").
 import { App } from './app/app';                 // Angular 20+ (CLI 21 default)
 // import { AppComponent } from './app/app.component';   // Angular 17-19
 import { appConfig } from './app/app.config';
@@ -160,7 +160,7 @@ Exported **class** → template **selector**. Anything not here, look up via `re
 
 Non-component exports you will need: `CometChatUIKit` (init/login), `UIKitSettingsBuilder`, `ChatStateService` (active chat state), `CometChatUIKitConstants`, `CometChatLocalize`, `ThemeService`.
 
-> **Naming exception:** the AI-assistant exports carry **no** `Component` suffix — `CometChatAIAssistantChat`, not `…ChatComponent`.
+> **Naming exception:** the AI-assistant exports carry **no** `Component` suffix — `CometChatAIAssistantChat`, not `...ChatComponent`.
 
 ## Golden path — the production-ready CORE surface
 The default for an unscoped "add chat": ships conversations · messages. **This is deliberately the CORE surface, not the whole app** — a users / groups / calls **tab selector**, a details or thread side panel, threads, search, and calling are **grow targets**, correct to omit unless asked. Build them via `cometchat-angular-v5-placement` (`references/combined-app.md` / `references/core-surface.md`), not by improvising here.
@@ -295,6 +295,6 @@ Without this the developer cannot tell a deliberate default from an incomplete b
 
 **Then offer these THREE options as a SELECTABLE choice and WAIT for the pick — never auto-continue (`RULES.md` §19):**
 
-- **① Add another feature** → **check what is already wired FIRST, then suggest only the gap.** Read the code you just emitted, and **ASK** which dashboard-gated items are already on (per-app dashboard state can't be read reliably — never assume off). Suggest 3–4 from the grow-set in `features.angular-v5.json`: voice/video **calls** (`npm-package`) · **push** / **AI** smart replies · starter · summary (`dashboard-toggle`) · **polls · stickers · translation · pin · save** (`dashboard-extension`) · **threads · search · custom message types** (`code-prop`). **Never suggest an `auto` entry** — reactions, mentions, receipts, typing and media are core in v5 and already on; offer to customize instead. Then route to `-features` / `-calls` / `-push`.
-- **② Customize theming** → ask whether they have a preset/brand theme (brand colour, light/dark, match an existing design system) or want to talk it through, then wire it (→ `cometchat-angular-v5-customization`).
-- **③ Test it manually** → do NOTHING further — hand back so the user runs and checks it themselves. (`cometchat-angular-v5-testing` covers what to mock; `-production` covers hardening before ship.)
+- **(1) Add another feature** → **check what is already wired FIRST, then suggest only the gap.** Read the code you just emitted, and **ASK** which dashboard-gated items are already on (per-app dashboard state can't be read reliably — never assume off). Suggest 3–4 from the grow-set in `features.angular-v5.json`: voice/video **calls** (`npm-package`) · **push** / **AI** smart replies · starter · summary (`dashboard-toggle`) · **polls · stickers · translation · pin · save** (`dashboard-extension`) · **threads · search · custom message types** (`code-prop`). **Never suggest an `auto` entry** — reactions, mentions, receipts, typing and media are core in v5 and already on; offer to customize instead. Then route to `-features` / `-calls` / `-push`.
+- **(2) Customize theming** → ask whether they have a preset/brand theme (brand colour, light/dark, match an existing design system) or want to talk it through, then wire it (→ `cometchat-angular-v5-customization`).
+- **(3) Test it manually** → do NOTHING further — hand back so the user runs and checks it themselves. (`cometchat-angular-v5-testing` covers what to mock; `-production` covers hardening before ship.)

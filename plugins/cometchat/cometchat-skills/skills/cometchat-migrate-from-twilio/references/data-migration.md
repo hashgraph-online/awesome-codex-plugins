@@ -14,8 +14,8 @@ Use the `twilio` server SDK against the Conversations Service. **Check method na
 |---|---|---|
 | Users | `client.conversations.v1.users.list({limit})` | SDK auto-pages |
 | Conversations | `client.conversations.v1.services(SERVICE_SID).conversations.list({limit})` | SDK auto-pages |
-| Participants | `…conversations(sid).participants.list()` | per conversation |
-| Messages | `…conversations(sid).messages.list({order:'asc', limit})` | per conversation, oldest→newest |
+| Participants | `...conversations(sid).participants.list()` | per conversation |
+| Messages | `...conversations(sid).messages.list({order:'asc', limit})` | per conversation, oldest→newest |
 | Media | resolve each message's media SID → temporary content URL (Media Content Service) | per media |
 Back off on 429. Write each export to `export/*.jsonl` so a failed run resumes.
 
@@ -44,7 +44,7 @@ Base `https://${COMETCHAT_APP_ID}.api-${COMETCHAT_REGION}.cometchat.io/v3/data_i
 Batch **≤50 entities/request**, **≤60 requests/min** (throttle ~1/s, retry `ERR_TOO_MANY_REQUESTS`). Per-entity `success`; log failures to `import-errors.jsonl` and continue. Idempotent on re-run. Order: users → groups → members → messages, oldest first. Print counts (exported, imported, skipped, failed).
 
 ## README.md (emit it)
-1. Create a full-access REST API key in the CometChat dashboard.
+1. Create a full-access REST API key in the CometChat dashboard. If the CometChat MCP is connected and signed in, you can do it for the user instead — with their OK, `cometchat_create_api_key` (scope `fullAccess`, name e.g. `data-import`) — and write the returned key straight into the script's `.env`; never echo it.
 2. `cd scripts/cometchat-migration && npm install`; export the env vars.
 3. `node migrate.mjs --dry-run` (export + transform + counts, no import).
 4. `node migrate.mjs`.

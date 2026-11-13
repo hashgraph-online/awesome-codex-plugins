@@ -63,7 +63,7 @@ class ChatComponent {
   readonly pinOption = new CometChatActionsIcon({
     id: 'pin-toggle',
     title: 'Pin message',
-    iconURL: 'data:image/svg+xml;base64,…',   // supply your own — the kit ships no pin icon asset
+    iconURL: 'data:image/svg+xml;base64,...',   // supply your own — the kit ships no pin icon asset
     onClick: (id: number) => this.togglePin(id),
   });
 

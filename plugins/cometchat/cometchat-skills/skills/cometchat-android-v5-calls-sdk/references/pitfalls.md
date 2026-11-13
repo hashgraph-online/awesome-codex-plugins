@@ -17,7 +17,7 @@ Per-page notes are in `references/docs-map.md`. Confirmed drifts:
 - `unPinParticipant` → **`unpinParticipant`**
 - `pinParticipant(uid)` → **`(uid, pid)`**
 - `MediaEventsListener.onScreenShareStarted/Stopped` **do not exist** (screen-share events are on `ParticipantEventListener`)
-- background-handling's named-arg `joinSession(view=FrameLayout, context=…)` **does not exist**
+- background-handling's named-arg `joinSession(view=FrameLayout, context=...)` **does not exist**
 - `raiseHand`/`setLayout`/`startRecording` **no-ops** (see below).
 
 The docs now state minSdk 26 + document SoLoader (AUDIT-229).

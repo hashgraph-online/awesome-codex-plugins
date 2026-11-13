@@ -7,8 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '🎯 Session Orchestrator v5.18.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
-            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"console.log('🎯 Session Orchestrator v5.18.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]')\"",
+            "command": "echo '🎯 Session Orchestrator v5.19.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]'",
+            "commandWindows": "set NoDefaultCurrentDirectoryInExePath=1&& node -e \"console.log('🎯 Session Orchestrator v5.19.0 — /session [housekeeping|feature|deep] | /plan [new|feature|retro] | /discovery [scope] | /evolve [analyze|review|list]')\"",
             "async": false
           },
           {

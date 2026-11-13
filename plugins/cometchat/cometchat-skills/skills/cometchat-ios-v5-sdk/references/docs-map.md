@@ -4,7 +4,7 @@
 `get_cometchat_implementation_bundle` when they are connected — they are the intended path and they
 serve production docs for you.
 
-**If the MCP tools are NOT connected:** add it (`claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp`, or reinstall/enable the plugin) and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (below).
+**If the MCP tools are NOT connected:** help the user add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), and retry; only if it still will not connect, fall back to a plain fetch via `DOCS_BASE` (below).
 Either way the `<path>` catalog in this file is the source of truth for WHICH page — MCP-vs-fetch is only HOW.
 
 ## DOCS_BASE — the fetch FALLBACK entry point (⚠️ SWAP HERE to change environments)
@@ -134,7 +134,7 @@ nothing visibly happens and an emit that stops there ships a call that vanishes 
 - `PiPViewCoordinatorDelegate.exitPictureInPicture()` is a **notification that PiP already ended**
   (the coordinator restored the view before calling you) — not a request to end it. Do
   `disablePictureInPictureLayout()` there.
-- **System PiP** (over OTHER apps): **the SDK DOES ship this — do not tell the user it is absent.**
+- **System PiP** (over OTHER apps): **the SDK DOES ship this — never report it as absent.**
   5.0.4 implements the whole AVKit path internally (`AVPictureInPictureController`,
   `AVPictureInPictureControllerContentSource`, `AVPictureInPictureVideoCallViewController`,
   `AVPictureInPictureControllerDelegate`; `AVKit` is in the framework's load commands), gated behind
@@ -251,7 +251,7 @@ reads `UIApplication.delegate.window`. Xcode's default template since iOS 13 is 
 
 ```
 *** Terminating app due to uncaught exception 'NSInvalidArgumentException',
-    reason: '-[YourApp.AppDelegate window]: unrecognized selector sent to instance …'
+    reason: '-[YourApp.AppDelegate window]: unrecognized selector sent to instance ...'
 ```
 
 It fires on the first orientation/permission pass — in practice the instant the CAMERA permission is
@@ -293,26 +293,26 @@ the page.
 | `events`, `session-settings`, `recording` | `AudioModeType` | **`AudioMode`** (`.speaker`/`.earpiece`/`.bluetooth`/`.headphones`) |
 | `ringing` | `CometChat.CallStatus` | **`CometChat.callStatus`** (lowercase `c`) |
 | `ringing`, `session-settings`, `join-session`, `idle-timeout`, `migration-guide-v5` | `.setType(.video)` — Swift AND the ObjC `setType:` | **`.setSessionType(.video)`** — `SessionSettingsBuilder` has no `setType` in either language |
-| `setup` | SPM URL `…/cometchat-calls-sdk-ios` | **`https://github.com/cometchat/calls-sdk-ios`** (documented URL 404s) |
+| `setup` | SPM URL `.../cometchat-calls-sdk-ios` | **`https://github.com/cometchat/calls-sdk-ios`** (documented URL 404s) |
 | `setup` | Podfile `platform :ios, '16.0'` | package floor is **`.iOS("15.1")`** — 16.0 is the sample app's target |
 | `overview` | "Minimum iOS version: 16.0" | the SAME defect on the overview page — the package floor is **15.1** (`Package.swift`; the shipped slice targets ios15.1) |
 | `setup` | `region` documented as "`us` or `eu`" | **`in` is also valid** — `CometChatCalls.init` only guards `region.length > 0` (calls-core `CometChatCalls.swift:39`); the harness app itself runs in `in` |
 | `setup` | `.setAppId()` / `.setRegion()` | **`.set(appID:)` / `.set(region:)`** — `setAppId`/`setRegion`/`setHost` are `@available(deprecated)` in 5.0.4 |
-| `ringing` | `call.callInitiator?.name` (L121, and the ObjC variant L157) | **`(call.callInitiator as? User)?.name`** — `callInitiator` is `AppEntity?` (CometChatSDK 4.1.7 L950); `name` lives on `User : AppEntity` (L1864/1869). The documented line does not compile. |
+| `ringing` | `call.callInitiator?.name` (L121, and the ObjC variant L157) | **`(call.callInitiator as? User)?.name`** — `callInitiator` is `AppEntity?` (CometChatSDK 4.1.10 interface L1221); `name` lives on `User : AppEntity` (L2375/2383). The documented line does not compile. |
 | `session-settings`, `join-session`, `ringing`, `idle-timeout`, `migration-guide-v5` | `CallType` / `CallTypeVideo` as the session type | **`SessionType` / `SessionType.video`** — `CallType` has **zero** occurrences in the Calls SDK interface. It is a **Chat SDK** type (`CometChat.CallType`), correct ONLY on the ringing path |
 | `session-settings` | `SessionType.audio` for audio-only | **`.voice`** — `.audio` and `.audioVideo` are `@available(*, deprecated)` in 5.0.4 |
 | `setup`, `session-settings` | the **Objective-C** tabs | **Do not copy them.** Deprecated `setAppId:`/`setRegion:` (real: **`setWithAppID:`/`setWithRegion:`**, read from the framework binary) and too few opening brackets for the chain — they never compiled |
 | `ringing`, `voip-calling` | `CometChatCallType*`, `CometChatReceiverType*`, `CometChatCallStatus*` in ObjC | **No `CometChat` prefix** — the generated `CometChatSDK-Swift.h` emits `CallTypeVideo`, `ReceiverTypeUser`, `callStatusRejected`/`callStatusCancelled` |
-| `ringing` | `onIncomingCallCancelled(cancelledCall:error:)` | **`onIncomingCallCancelled(canceledCall:error:)`** — the METHOD name has two Ls, the ARGUMENT label has ONE (`canceledCall`). The docs' spelling COMPILES (every `CometChatCallDelegate` member is `@objc optional`, so a near-miss is just a new method) and then **silently never fires** — cancelled calls are never noticed. No gate catches this: G5 passes, and G6 never exercises the cancel path. Verified in the 4.1.7 interface; a review emit shipped exactly this dead handler. |
+| `ringing` | `onIncomingCallCancelled(cancelledCall:error:)` | **`onIncomingCallCancelled(canceledCall:error:)`** — the METHOD name has two Ls, the ARGUMENT label has ONE (`canceledCall`). The docs' spelling COMPILES (every `CometChatCallDelegate` member is `@objc optional`, so a near-miss is just a new method) and then **silently never fires** — cancelled calls are never noticed. No gate catches this: G5 passes, and G6 never exercises the cancel path. Verified in the 4.1.7 and 4.1.10 interfaces (4.1.10 L1663); a review emit shipped exactly this dead handler. |
 | `events` | `onScreenShareStarted()` / `onScreenShareStopped()` on `MediaEventsListener` — in the Swift sample AND the "Media Events" table | **Neither exists.** Zero occurrences in the 5.0.4 `.swiftinterface` **and** zero in the shipped binary. `MediaEventsListener`'s real members are `onRecordingStarted`/`Stopped` · `onStreamingStarted`/`Stopped` · `onAudioModeChanged` · `onAudioModesChanged` · `onCameraFacingChanged` · `onAudioMuted`/`onAudioUnMuted` · `onVideoPaused`/`onVideoResumed`. Because the protocol is `@objc optional` the phantom pair COMPILES and then silently never fires — the `canceledCall` failure mode again. There is no LOCAL screen-share event on iOS at all; only the peer events `onParticipantStartedScreenShare`/`onParticipantStoppedScreenShare` are real. **Still wrong on the corrected preview — not covered by PR #489.** |
-| `ringing` | (unstated) | **Chat-SDK enum casing is inconsistent** — `Call(receiverId:callType:receiverType:)` takes `CometChat.CallType` and `CometChat.ReceiverType` (Capitalised) while `rejectCall(status:)` takes `CometChat.callStatus` (lowercase). Verified in CometChatSDK 4.1.7 lines 958/1238/2479. |
+| `ringing` | (unstated) | **Chat-SDK enum casing is inconsistent** — `Call(receiverId:callType:receiverType:)` takes `CometChat.CallType` and `CometChat.ReceiverType` (Capitalised) while `rejectCall(status:)` takes `CometChat.callStatus` (lowercase). Verified in the CometChatSDK 4.1.10 interface (lines 1232/656/2286). |
 | `session-settings`, `events` | `CameraFacing.BACK` — the "CameraFacing Values" table on BOTH pages, and `.setInitialCameraFacing(.BACK)` in the session-settings sample | **`.REAR`** — `CameraFacing`'s only cases are **`.FRONT` / `.REAR`** (UPPERCASE, verified in the 5.0.4 `.swiftinterface`). **`.BACK` does not exist** and fails `swiftc` ("type 'CameraFacing' has no member 'BACK'"). `CameraFacing` is ALSO the ONE Calls-SDK enum with UPPERCASE cases — every other enum is lowercase (`AudioMode.speaker`, `LayoutType.tile`, `SessionType.video`), so writing `.front`/`.rear` by analogy ALSO fails to compile. Use `.FRONT` / `.REAR`. (This one is NOT in docs PR #489 — separate docs fix owed; owner: docs.) |
 
 Docs PR cometchat/docs#489 **merged 2026-09-08; re-verified below** against the live `/calls/ios/**` pages.
 Almost every row above is now CORRECT on the live pages — the live page matches the right-hand ("Reality")
 column: `AudioMode` (events/session-settings/recording), `CometChat.callStatus` (ringing), `.setSessionType`
 in place of `.setType` (ringing/session-settings/join-session/idle-timeout/migration-guide-v5),
-the SPM URL `…/calls-sdk-ios`, `region` now "`us`, `eu` or `in`", `.set(appID:)`/`.set(region:)` (and the
+the SPM URL `.../calls-sdk-ios`, `region` now "`us`, `eu` or `in`", `.set(appID:)`/`.set(region:)` (and the
 ObjC `setWithAppID:`/`setWithRegion:`), `(call.callInitiator as? User)?.name`, `SessionType`/`SessionType.video`
 for the session type, `SessionType.voice` for audio-only, the corrected ObjC tabs (no `CometChat`-prefixed
 enum constants — `ReceiverTypeUser`/`CallTypeVideo`/`callStatusRejected`/`callStatusCancelled`), the

@@ -7,7 +7,8 @@ call working; both are needed before shipping one.
 ## Backgrounding (FLUTTER-ONLY — `CometChatOngoingCallService`)
 Android kills a call the moment the app backgrounds unless a foreground service holds it:
 `CometChatOngoingCallService.launch()` from the **session-joined** callback (not `build()`), `.abort()`
-alongside `leaveSession()`. Both are **safe no-ops on iOS**, where CallKit owns that state — call them
+alongside `leaveSession()`. From 5.0.8, `launch(isVideo: false)` on an audio-only call makes the service
+declare only the `microphone` type (omitted, it reads the session's type and adds camera when granted). Both are **safe no-ops on iOS**, where CallKit owns that state — call them
 unconditionally, but say that rather than implying they do something on iOS. The manifest permissions
 on `/calls/flutter/background-handling` are **not optional**; without them the call drops on background
 and reads as a network fault. No iOS or web analogue exists.
@@ -22,6 +23,18 @@ two separate paths over the app's own push plugin:
 - On accept, **join the session — the call is already accepted server-side**; do not accept again.
 - **Prerequisites (state them, they are not code):** a push provider configured in the dashboard, and a **PHYSICAL DEVICE** — neither FCM call pushes nor APNs VoIP pushes reach an emulator or Simulator.
 Pages: `/calls/flutter/voip-calling`, `/notifications/flutter-push-notifications-android`, `/notifications/flutter-push-notifications-ios`.
+
+## Screen share on Android (opt-in from 5.0.8)
+From 5.0.8 the plugin strips WebRTC's `MediaProjectionService` and the `FOREGROUND_SERVICE_MEDIA_PROJECTION` permission from the merged manifest, so apps that never share do not have to justify screen recording on Google Play. The share button is then hidden at runtime. An app that shares its screen adds both back in its own `android/app/src/main/AndroidManifest.xml` (source: the plugin's own manifest, 5.0.9):
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+<!-- inside <application> -->
+<service
+    android:name="com.oney.WebRTCModule.MediaProjectionService"
+    android:exported="false"
+    android:foregroundServiceType="mediaProjection" />
+```
+5.0.8 also dropped `FOREGROUND_SERVICE_MEDIA_PLAYBACK` and `MANAGE_OWN_CALLS`; the call service now uses `microphone|camera` only. An app that declares any of these itself keeps them.
 
 ## iOS Simulator on Apple Silicon — `CometChatWebRTC` excludes arm64
 

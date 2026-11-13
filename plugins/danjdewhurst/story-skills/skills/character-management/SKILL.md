@@ -25,10 +25,11 @@ A story project must already exist (created via the story-init skill). Verify by
    - Motivations (external wants vs internal needs)
    - Voice and speech patterns (ask for example dialogue), plus `voice-words` (words and phrases they reach for) and `voice-avoid` (words they would never say)
    - Pronunciation, when the name is invented or easily misread (`pronunciation: "SEER-sha"`)
+   - Birth date, when age matters to the story: record `born` (a day such as `2001-09-14`, or a year alone such as `1968`, in the story calendar when `story.md` has one), never a fixed `age`. `story context` and `story knowledge` work out the age at each dated chapter, and `story continuity` reports a character in a cast dated before their birth and a parent born after their child
    - Character arc (starting state, turning points, ending state)
    - Key life events for the timeline
 5. Write the character file using the template in `references/character-template.md`
-6. Save to `characters/{name-kebab}.md`, or use `story add character '{Name}' --role '{role}'` when the CLI is available. Cyrillic and Greek names are transliterated (`Пётр` gives `characters/petr.md`). When the name is in a script with no transliteration table (`李明`), or the user wants a different spelling, choose the ASCII id yourself and pass it: `story add character '李明' --id li-ming --role supporting` keeps `name: 李明` in the file
+6. Save to `characters/{name-kebab}.md`, or use `story add character '{Name}' --role '{role}'` when the CLI is available (add `--born {date}` when you have one). Cyrillic and Greek names are transliterated (`Пётр` gives `characters/petr.md`). When the name is in a script with no transliteration table (`李明`), or the user wants a different spelling, choose the ASCII id yourself and pass it: `story add character '李明' --id li-ming --role supporting` keeps `name: 李明` in the file
 7. Leave the `characters/_index.md` table to the CLI: `story add` and `story reindex .` rebuild it from the character files, so never add a row by hand
 8. If relationships reference existing characters, update those character files too
 9. When CLI access is available, run the maintenance pass in the story root:

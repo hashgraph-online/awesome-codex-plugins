@@ -1,10 +1,7 @@
 {
   "name": "@cometchat/skills",
-  "version": "5.1.0",
-  "workspaces": [
-    "packages/*"
-  ],
-  "description": "CometChat AI-coding skills (v5) — add chat, voice/video calling and push through your AI coding agent (Claude Code, Cursor, Codex, Copilot, Windsurf and more). UI Kit skills for React v7, Angular v5, React Native v5, iOS v5, Android v6 and Flutter v6, plus headless Calls SDK skills: a thin /cometchat dispatcher, guided onboarding, and on-demand task skills (core, components, placement, customization, features, calls, push, migration). Every skill is checked against its pinned kit (symbol catalog + compile fence); per-family live-smoke status is in peers.yaml.",
+  "version": "5.2.0",
+  "description": "CometChat AI-coding skills (v5) \u2014 add chat, voice/video calling and push through your AI coding agent (Claude Code, Cursor, Codex, Copilot, Windsurf and more). UI Kit skills for React v7, Angular v5, React Native v5, iOS v5, Android v6 and Flutter v6, plus headless Calls SDK skills: a thin /cometchat dispatcher, guided onboarding, and on-demand task skills (core, components, placement, customization, features, calls, push, migration). Every skill is checked against its pinned kit (symbol catalog + compile fence); per-family live-smoke status is in peers.yaml.",
   "license": "MIT",
   "author": "CometChat",
   "private": false,
@@ -15,12 +12,14 @@
   "engines": {
     "node": ">=18"
   },
-  "//verify:fences": "Tier-2 fences (verify:fences:web-v7, verify:fences:angular-v5) are in verify:ci but deliberately NOT in default verify: each needs its pinned kit installed in test-suite/typecheck/<family> (git-ignored, not shipped, no postinstall) and hard-exits code 2 when absent — so promoting them into verify would break verify in a clean checkout. Setup: npm run verify:fences:<family>:setup. Rationale + owner CI-cost decision: test-suite/README.md (AUDIT-030).",
+  "//verify:fences": "Tier-2 fences (verify:fences:web-v7, verify:fences:angular-v5) are in verify:ci but deliberately NOT in default verify: each needs its pinned kit installed in test-suite/typecheck/<family> (git-ignored, not shipped, no postinstall) and hard-exits code 2 when absent \u2014 so promoting them into verify would break verify in a clean checkout. Setup: npm run verify:fences:<family>:setup. Rationale + owner CI-cost decision: test-suite/README.md (AUDIT-030).",
   "scripts": {
     "sync:plugin-version": "node scripts/sync-plugin-version.mjs",
     "version": "node scripts/sync-plugin-version.mjs && git add .claude-plugin/plugin.json .claude-plugin/marketplace.json plugin.json gemini-extension.json .codex-plugin/plugin.json .cursor-plugin/plugin.json",
     "verify:plugin-manifest": "node test-suite/scripts/verify-plugin-manifest.mjs",
+    "build:plugin-zip": "node scripts/build-plugin-zip.mjs",
     "lint:skills": "node test-suite/scripts/lint-skills.mjs",
+    "verify:scanner-safe": "node test-suite/scripts/verify-scanner-safe.mjs",
     "verify:catalog": "node test-suite/scripts/verify-catalog.mjs --family web-v7 && node test-suite/scripts/verify-catalog.mjs --family angular-v5",
     "verify:catalog:strict": "node test-suite/scripts/verify-catalog.mjs --family web-v7 --strict-drift && node test-suite/scripts/verify-catalog.mjs --family angular-v5 --strict-drift",
     "verify:fences:web-v7:setup": "npm --prefix test-suite/typecheck/web-v7 install --no-audit --no-fund",
@@ -30,14 +29,16 @@
     "verify:sync:rn-v5": "node .claude/skills/cometchat-skill-creator/tools/sync-check.mjs --catalog catalogs/rn-v5.json --catalog catalogs/rn-sdk-v4.json --catalog catalogs/rn-calls-v5.json --docs ${COMETCHAT_DOCS_DIR:-../docs}/ui-kit/react-native --oracle features.rn-v5.json --oracle contracts.rn-v5.json",
     "test:install": "node test-suite/scripts/test-install.mjs",
     "test:install:live": "node test-suite/scripts/test-install.mjs --live",
+    "test:mcp": "node test-suite/scripts/test-mcp-wiring.mjs",
+    "verify:latest": "node test-suite/scripts/verify-latest-versions.mjs",
     "verify:predicate": "node .claude/skills/cometchat-skill-reviewer/tools/predicate-all.mjs",
     "verify:fresh": "node .claude/skills/cometchat-skill-reviewer/tools/predicate-all.mjs --require-fresh",
     "verify:registry": "node test-suite/scripts/build-registry.mjs --family web-v7 --check && node test-suite/scripts/build-registry.mjs --family angular-v5 --check",
     "measure:tokens": "node test-suite/scripts/measure-tokens.mjs --all",
     "verify:tokens": "node test-suite/scripts/measure-tokens.mjs --all --tolerance 10",
-    "verify": "npm run lint:skills && npm run verify:catalog:selftest && npm run verify:family && npm run verify:detection && npm run verify:docs-base && npm run verify:fences:contract && npm run verify:oracle:angular-v5 && npm run verify:catalog && npm run verify:registry && npm run verify:tokens && npm run verify:predicate && npm run verify:catalog:flutter-v6 && npm run verify:registry:flutter-v6",
+    "verify": "npm run lint:skills && npm run verify:scanner-safe && npm run verify:catalog:selftest && npm run verify:family && npm run verify:detection && npm run verify:docs-base && npm run verify:fences:contract && npm run verify:oracle:angular-v5 && npm run verify:catalog && npm run verify:registry && npm run verify:tokens && npm run verify:predicate && npm run verify:catalog:flutter-v6 && npm run verify:registry:flutter-v6",
     "verify:catalog:sync": "node test-suite/scripts/verify-catalog-sync.mjs",
-    "verify:ci": "npm run lint:skills && npm run verify:catalog:selftest && npm run verify:catalog:sync && npm run verify:family && npm run verify:detection && npm run verify:docs-base:strict && npm run verify:fences:contract && npm run verify:oracle:angular-v5 && npm run verify:catalog:strict && npm run verify:registry && npm run verify:fences:web-v7 && npm run verify:fences:angular-v5 && npm run verify:templates:angular-v5 && npm run verify:goldenpath:angular-v5 && npm run verify:tokens && npm run verify:predicate && npm run verify:catalog:flutter-v6 && npm run verify:registry:flutter-v6 && npm run verify:plugin-manifest",
+    "verify:ci": "npm run lint:skills && npm run verify:scanner-safe && npm run verify:catalog:selftest && npm run verify:catalog:sync && npm run verify:family && npm run verify:detection && npm run verify:docs-base:strict && npm run verify:fences:contract && npm run verify:oracle:angular-v5 && npm run verify:catalog:strict && npm run verify:registry && npm run verify:fences:web-v7 && npm run verify:fences:angular-v5 && npm run verify:templates:angular-v5 && npm run verify:goldenpath:angular-v5 && npm run verify:tokens && npm run verify:predicate && npm run verify:catalog:flutter-v6 && npm run verify:registry:flutter-v6 && npm run verify:plugin-manifest",
     "catalog:refresh": "node test-suite/scripts/catalog-refresh.mjs",
     "catalog:check": "node test-suite/scripts/catalog-refresh.mjs --check",
     "registry:build": "node test-suite/scripts/build-registry.mjs",
@@ -166,7 +167,7 @@
     "contracts.angular-v5.json",
     "features.angular-v5.json"
   ],
-  "//verify:fences:flutter": "The Dart sibling (verify:fences:flutter-v6, engine typecheck-fences-dart.mjs) follows the same rule as the web gate: not in default verify or verify:ci, because both run on a Node-only job — it needs the Flutter SDK on PATH plus `flutter pub get` in test-suite/typecheck/flutter-v6, and hard-exits 2 when absent. It RUNS IN CI as its own job (verify.yml → fences-flutter-v6), which installs the toolchain first and runs the self-test before the gate. verify:fences:flutter-v6:selftest asserts the gate can still FAIL (fixtures in test-suite/fixtures/flutter-v6) — it is what caught the creation_with_non_type phantom-widget hole. catalog:check:flutter-v6 is likewise Flutter-only (the catalog is compiler-verified, not parsed) and runs in catalog-refresh.yml.",
+  "//verify:fences:flutter": "The Dart sibling (verify:fences:flutter-v6, engine typecheck-fences-dart.mjs) follows the same rule as the web gate: not in default verify or verify:ci, because both run on a Node-only job \u2014 it needs the Flutter SDK on PATH plus `flutter pub get` in test-suite/typecheck/flutter-v6, and hard-exits 2 when absent. It RUNS IN CI as its own job (verify.yml \u2192 fences-flutter-v6), which installs the toolchain first and runs the self-test before the gate. verify:fences:flutter-v6:selftest asserts the gate can still FAIL (fixtures in test-suite/fixtures/flutter-v6) \u2014 it is what caught the creation_with_non_type phantom-widget hole. catalog:check:flutter-v6 is likewise Flutter-only (the catalog is compiler-verified, not parsed) and runs in catalog-refresh.yml.",
   "//files": "test-suite/fixtures is deliberately NOT shipped: it is internal QA data (realistic app skeletons) consumed only by verify-detection.mjs in this repo's CI. The shipped `cometchat-skills verify` runs lint/catalog/fences/predicate, none of which read fixtures, and a consumer validates against their own project rather than ours.",
   "//publishConfig": "v5 ships to PUBLIC npm (@cometchat/skills@5.0.0). `access: public` scopes the publish public without a registry override; the public-repo publish-npm.yml sets the registry to registry.npmjs.org via setup-node and publishes with OIDC provenance. Do NOT re-add a `registry` here (a Cloudsmith/private registry override would divert the public publish and break OIDC/provenance).",
   "publishConfig": {

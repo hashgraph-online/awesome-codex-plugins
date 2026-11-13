@@ -14,14 +14,24 @@ user explicitly named Aegis or this skill, proceed normally.
 
 # Execute
 
-→ Direct grilling or plan/design pressure-test? → Enter `Grilling Mode` below. Soft challenge intent? → Use its one-line mode confirmation. Do not start normal design artifacts, document writing, task planning, or implementation during the interview.
-→ New feature, product behavior, UI/component design, architecture/contract change, or ambiguous medium/high-complexity work? → **Design first. No implementation until the needed design/spec is approved.**
-  1. Explore project context → read authority docs, check for existing patterns
-  2. Ask clarifying questions one at a time (prefer multiple choice)
-  3. Propose 2-3 approaches with trade-offs and your recommendation
-  4. Present design sections → get user approval after each
-  5. Write spec → self-review → user review → transition to writing-plans
-→ HARD GATE: For tasks that match this skill, do NOT write code, scaffold projects, or invoke implementation skills until design/spec approval is satisfied.
+Choose the route before reading references:
+
+1. Tiny wording edits, simple Q&A/status, local utility or mechanical changes
+   stay on the fast path. Bugs/diagnosis use `systematic-debugging`; PR, diff,
+   or current-code review uses `requesting-code-review`; explicit goal framing
+   uses `goal-framing`. File count alone does not decide design complexity.
+2. Direct interview requests use `Grilling Mode` below; soft challenge intent
+   requires its one-line mode confirmation. Ordinary evaluation is not grilling.
+3. Ambiguous or medium/high-complexity feature, product, UI, architecture or
+   contract design follows `Default Design Path`. Escalate depth from evidence:
+   contracts, owners, persistence, migration, security, consumers and blast radius.
+
+<HARD-GATE>
+Do NOT write code, scaffold projects, or invoke implementation skills until the
+needed design/spec approval is satisfied. Existing approval satisfies unchanged
+decisions; clarify only decision-changing gaps. Grilling never authorizes
+implementation or normal design artifacts while the interview is active.
+</HARD-GATE>
 
 ## Route Fixtures
 
@@ -39,97 +49,96 @@ not a user question.
 | 给我一个有目标的方案 | `goal-framing` when goal intent is explicit; otherwise normal brainstorming |
 | 把按钮文案从保存改成提交 | fast-path; no design ceremony |
 
-# Brainstorming Ideas Into Designs
-
-Help turn ideas into fully formed designs and specs through natural collaborative dialogue.
-
-Start by understanding the current project context and authority boundary, then ask questions one at a time to refine the idea. Once you understand what you're building, present the smallest design artifact that stabilizes the work and get the required approval.
-
-Define success as the user's usable result, including delivery and meaningful
-failure states. Separate real business/authorization constraints from current
-implementation limits; an unsupported action remains an unmet need. Balance
-this request with reliability across supported scenarios, without expanding
-its scope. Existing approval satisfies unchanged decisions; clarify only gaps
-that affect the design or authorization.
-
-<HARD-GATE>
-Do NOT invoke any implementation skill, write any code, scaffold any project, or take implementation action for work that matches this skill until you have presented the required design/spec and the user has approved it where this workflow requires approval.
-</HARD-GATE>
-
 ## Grilling Mode
-
-### Mode Precedence
-
-While Grilling Mode is active, it overrides the normal brainstorming execution
-flow. Suspend `Checklist`, `The Process`, the `Compact output contract`, and
-all documentation or design-transition requirements until the user exits the
-interview; retain the no-implementation hard gates.
 
 ### Grilling Entry Signals
 
-- **Direct:** The user asks to grill or interrogate an idea, plan, or design, or explicitly requests a pressure-test. Direct phrases include `grill me`, `grill this plan`, `审问我`, `盘问我`, and `拷问我`. Enter the mode immediately.
-- **Soft:** The user asks to challenge assumptions, find holes, red-team, or "别顺着我" about a draft idea, plan, or design. Ask only: `Grill or normal brainstorming?` Enter the mode only after confirmation.
-- **Not grilling:** A bare/literal phrase reference, or a PR, diff, or current-code review. Explain literal phrases normally; route implementation review to `requesting-code-review`.
+- **Direct:** `grill me`, `grill this plan`, `审问我`, `盘问我`, `拷问我`, or an
+  explicit request to interrogate/pressure-test a plan enters this mode.
+- **Soft:** challenge assumptions, find holes, red-team, or "别顺着我" without
+  explicit interview intent: ask only `Grill or normal brainstorming?` and
+  enter only after confirmation.
+- **Not grilling:** literal phrase explanations stay explanatory; PR, diff, or current-code review routes to `requesting-code-review`.
 
-### Opening Card
+Grilling Mode overrides the normal brainstorming execution flow. Suspend the
+Default Design Path, compact output contract, and documentation or planning
+requirements until the user exits the interview; retain the no-implementation
+gate. Only after entry, read `grilling-mode-reference.md` for interview pace,
+opening, questions and exit procedure. Do not read it for ordinary design,
+soft-intent confirmation, or literal phrase explanations.
+Stop the interview when the user says stop, defer, or that questions are
+sufficient. Its summary does not authorize planning or implementation; return
+to the normal design approval gate if the user asks to proceed.
 
-After the user enters the mode, emit the one-time opening card exactly as
-specified in `grilling-mode-reference.md`, then begin the interview.
+## Default Design Path
 
-### Pace
+Track the applicable steps in order; conditional steps do not create tasks or
+artifacts until their trigger is met. Keep one workflow, not separate checklist,
+process and after-design passes.
 
-- **Deep:** Ask exactly one decision question per turn when it is blocking or depends on the previous answer. State the recommended answer and the most relevant trade-off before waiting.
-- **Fast:** Only when the user explicitly asks for a fast or batched interview (for example, `fast`, `batch`, `快问`, or `一次问几个`), ask at most three independent decision questions. Give each question its recommendation and trade-off, then wait for the user's responses. Return to deep pace for dependent follow-ups.
+1. **Ground the request.** Inspect current files, relevant authority docs and
+   recent changes. Passively use active `CONTEXT.md`/`CONTEXT-MAP.md` terms;
+   compose `establishing-project-context` only for a real semantic conflict.
+   Decompose independent subsystems before designing them. Define the user's
+   usable result, delivery and meaningful failure states; an unsupported action
+   remains an unmet need, not a reason to silently narrow the requirement.
+2. **Clarify decision-changing gaps.** Follow the authority contract below.
+   Ask one question at a time, preferably with choices and a recommendation.
+   Reuse answers and approvals; do not ask the user for repository facts.
+3. **Frame scope and alternatives.** Maintain the working drafts below, propose
+   2-3 approaches with trade-offs and a recommendation, and say what is in,
+   deferred or owned elsewhere. Apply only evidence-triggered checks from the
+   conditional table before recommending the approach.
+4. **Present the design.** Scale sections to complexity: affected architecture,
+   components/data flow, failure/recovery, consumers, compatibility and testing.
+   Follow existing patterns; keep each unit cohesive and testable, and remove
+   unnecessary features. Obtain required approval for each applicable design
+   section before proceeding; return to clarification when evidence changes it.
+5. **Persist only when needed.** Apply the Doc Necessity Gate. For a written
+   Design Spec, load the self-review section, fix placeholders, contradictions,
+   ambiguity, scope and boundary defects, then obtain user review. A small Spec
+   Brief may use concise review unless project authority requires a formal gate.
+6. **Hand off only when ready.** Check Design Ready And Design Complete below;
+   preserve ADR signals for durable owner/contract/schema/dependency/compatibility/
+   runtime-boundary changes, including source refs, alternatives and baseline-sync
+   questions. Do not create accepted architecture memory from unexecuted ideas.
+   The terminal state is invoking `writing-plans`, not another implementation
+   skill. For a scope ending at discussion or options, deliver that result;
+   do not advance beyond the user's request.
 
-1. Explore the codebase and current authority docs for facts before asking. Do not ask the user for facts that can be found locally.
-2. The user owns the decision. Do not treat a recommendation, a tentative answer, or a shared-understanding checkpoint as final approval.
-3. Aside from the one-time opening card, keep the turn to the observation, recommendation, and the selected pace's questions. Do not emit a full design ceremony, write docs, create a plan, or implement while the interview is active.
-4. End when the user says to stop, defer, or that the questions are sufficient. Reconfirm in a structured `Challenge Result`. That summary does not grant completion authority.
+## Compact output contract
 
-```text
-Challenge Result
-- Survived assumptions
-- Rejected assumptions
-- New evidence needed
-- Design changes required
-- Residual risks
-- Return state: interview | design | approaches | writing-plans
-```
-5. If the user asks to proceed after the interview, return to the normal brainstorming design gate. A design/spec still needs the required approval before planning or implementation.
+Use natural, proportional prose, not a mandatory stack of named cards.
+`Aegis Visibility` briefly explains the task-specific value of design first.
+Keep these working drafts current as scope changes; they are in-session views
+unless the Doc Necessity Gate requires persistence:
 
-## Route Away / Doc Necessity Gate
+- `TaskIntentDraft`: outcome, goal, success evidence, stop condition, non-goals,
+  scope and risks;
+- `BaselineReadSetHint`: candidate authority refs and gaps;
+- `BaselineUsageDraft`: required, delivered-context (optional), acknowledged,
+  cited and missing refs, plus the advisory decision;
+- `ImpactStatementDraft`: affected layers, owners, invariants, compatibility
+  and non-goals.
 
-Do not force this workflow onto low-complexity work. A tiny
-wording edit, single-owner bug fix, simple config/status question, local
-utility change, or mechanical multi-file change can proceed through concise
-intent, baseline check, TDD/debugging, and verification without any new
-document. Run the Doc Necessity Gate before writing any spec, plan, ADR, or
-baseline artifact:
+Present the relevant intent, evidence, impact, options and decision needed at
+this stage. Conditional lenses below add only their applicable findings;
+mentioning a lens does not activate its template. Do not repeat satisfied checks
+or emit empty cards. Preserve decision-relevant meaning and evidence limits.
 
-1. Does an existing spec/plan/ADR/baseline already cover this change surface?
-   -> Update that owner document in place; never create a sibling document.
-2. Is the surface durable/irreversible (schema, public API, owner, dependency
-   direction, migration, compat-path retirement), cross-session/cross-person
-   handoff, approval-gated, or authority-required?
-   -> Yes: write the smallest artifact for that surface (see Documentation).
-   -> No: write no document; keep compact drafts in-session.
-3. Re-check at edit time and at closeout; escalate to the smallest stabilizing
-   spec if uncertainty or impact grows.
+## Doc Necessity Gate
 
-### Route Precedence
+Before writing any spec, plan, ADR or baseline artifact:
 
-1. Route-away cases leave this workflow first (`systematic-debugging`,
-   `requesting-code-review`, `goal-framing` when goal intent is explicit,
-   fast-path micro-tasks).
-2. `Grilling Mode` requires explicit challenge intent. Ordinary discussion,
-   evaluation, or the need to clarify understanding is not grilling.
-3. Otherwise run the normal brainstorming flow and escalate depth on evidence:
-   contracts, owners, persistence, migration, security, consumer count, or
-   blast radius. Escalate after evidence, not merely because the first
-   request sounds ambitious.
-4. File count alone is not a design signal: a mechanical multi-file change
-   can still be fast-path, and a one-file contract change can still be full
-   design.
+1. If an existing spec/plan/ADR/baseline owns this surface, update it in place;
+   never create a sibling owner.
+2. Write the smallest artifact only for a durable/irreversible surface (schema,
+   public API, owner, dependency, migration, compatibility retirement), cross-session/
+   cross-person handoff, or an approval/authority requirement. Otherwise keep
+   compact drafts in-session and write no document.
+3. Re-check at edit time and closeout; expand only if uncertainty or impact grows.
+   Workspace creation and spec persistence follow project authority. Read the
+   workspace/bootstrap reference only after selecting a durable artifact.
 
 ## Role And Authority Contract
 
@@ -164,119 +173,44 @@ between framed choices instead of researching. This classification clarifies whi
 are user-owned; it does not remove the approval points this workflow already
 defines.
 
-## Checklist
-
-You MUST create a task for each of these items and complete them in order:
-
-1. **Explore project context** — check files, docs, recent commits, authority
-   docs, and passively consume relevant active `CONTEXT.md` language without
-   loading active modeling
-2. **Choose the path and scope** — real design? diagnosis? route accordingly or decompose first
-3. **Ask clarifying questions** — one at a time, understand purpose/constraints/success criteria
-4. **Draft working artifacts** — `TaskIntentDraft`, `BaselineReadSetHint`, `BaselineUsageDraft`, `ImpactStatementDraft`
-5. **Run existence check when adding new surfaces** — only if an approach adds a new owner, skill, artifact, adapter, fallback, workflow step, or benchmark metric
-6. **Propose 2-3 approaches** — with trade-offs and your recommendation
-7. **Present design** — in sections scaled to complexity, get user approval where required
-8. **Write spec artifact** — only after the Doc Necessity Gate passes and no existing owner spec/plan covers the surface; if covered, update that document instead of creating a sibling
-9. **Spec self-review** — check for placeholders, contradictions, ambiguity, scope, boundary
-10. **User reviews written spec** — ask user to review before proceeding
-11. **Transition to implementation** — invoke writing-plans skill (terminal state)
-
-**The terminal state is invoking writing-plans.** Do NOT invoke any other implementation skill.
-
-## The Process
-
-**Understanding the idea:**
-- Check current project state first (files, docs, recent commits)
-- Read relevant authority docs before asking deep questions
-- Use existing canonical terms in questions, options, scenarios, and the spec.
-  If terminology crystallizes or conflicts, compose
-  `establishing-project-context`; do not leave the resolution only in the spec.
-- If the request is diagnosis/root-cause/follow-up to an approved plan → route to correct workflow
-- If the request spans multiple independent subsystems → flag and decompose first
-
-**Working artifacts:** keep the four drafts named by the compact output
-contract and refresh them when scope changes. `TaskIntentDraft` carries outcome,
-goal, success evidence, stop condition, non-goals, scope, and risks;
-`BaselineReadSetHint` carries candidate docs and authority gaps;
-`BaselineUsageDraft` carries required, delivered-context, acknowledged-before-plan,
-cited, and missing refs plus the advisory decision; `ImpactStatementDraft` carries
-affected layers, owners, invariants, compat, and non-goals.
-
-**Compact output contract:** `Aegis Visibility`, `TaskIntentDraft`, `BaselineReadSetHint`,
-`BaselineUsageDraft`, `Requirement Ready Check`, `ImpactStatementDraft`,
-`Existence Check`, `Product Risk Lens`, `Architecture Integrity Lens`,
-`Prior-Art & Reuse Lens`, `Baseline Role Alignment`, `Plan-Time Complexity
-Check`, `Options`, and `Decision Needed`. Use this compact shape before expanding into a full design
-structure.
-
-`Aegis Visibility` for this workflow names why design/spec clarification comes
-before implementation and what drift, overbuild, wrong-owner, or missing
-acceptance risk that restraint reduces. Keep it natural and task-specific; do
-not turn it into a fixed skill trace.
-
-
-**Exploring approaches:** Propose 2-3 approaches with trade-offs and
-recommendation. Make scope boundary explicit: what's in, what's deferred, what
-belongs elsewhere.
-
-Before approach selection, use `Existence Check` for any proposed new surface.
-Escalate to `first-principles-review` and its `Decision Hygiene Review` when
-the candidate direction still introduces a new owner, duplicate owner,
-fallback, adapter, compat-only carrier, delete-first question, unverified
-assumption, or "long-term stable" claim after the existence check. Do not make
-either check a universal design ceremony; return to this workflow once the
-decision surface is clean.
-
-When the central decision is internal retirement vs compat retention vs
-persistent-state confirmation, compose `anti-entropy-governance`. It classifies
-the deletion target, chooses `delete-first | compat-exception |
-confirmation-first`, and keeps destructive authority outside the design skill.
-
-Use the narrower `Architecture Integrity Lens` when the main risk is not broad
-strategy but architecture coherence: unclear canonical owner, responsibility
-overlap, caller-side fallback, stale path carrying real logic, or a possible
-higher-level owner / contract / source-of-truth simplification. The lens should
-answer invariant, canonical owner / contract, responsibility overlap,
-higher-level simplification, retirement / falsifier, and verdict before the
-approach is recommended.
-
-
-**Presenting the design:** Scale sections to complexity. Cover only the surfaces that matter: architecture, components, data flow, error handling, testing, compatibility boundary. Get approval for the design before implementation when behavior, contract, architecture, or user-facing flow is being decided.
-
-**ADR signals:** When the design/spec touches durable architecture surfaces
-(owner, public contract, artifact shape, dependency direction,
-source-of-truth, host compatibility, runtime-ready boundary, fallback,
-adapter, or retirement schedule), mark the ADR signal, source refs, real
-alternatives, and expected baseline-sync question for later completion. Do not
-create accepted architecture memory from unexecuted ideas.
-
-**Design for isolation:** Each unit = one clear purpose, well-defined interface, testable independently. Can someone understand it without reading internals? Can you change internals without breaking consumers?
-
-**Existing codebases:** Follow existing patterns. Include targeted improvements only when they serve the current goal. If the design touches contracts, compat, fallbacks, or duplicated owners → call it out directly.
-
 ## Conditional Detailed Guidance
 
-Load only the evidence-matched section, never either file whole, and never for
-route selection, first-turn clarification, route-away cases, or an active
-Grilling Mode interview.
+For design detail, read only the evidence-matched heading of
+`expanded-design-guidance.md`, never the whole file. Do not load design detail
+for route selection, first-turn clarification, route-away cases, or an active
+Grilling Mode interview. The main file owns routing, approval and handoff;
+references supply the selected procedure or template only.
 
-`expanded-design-guidance.md` owns these sections; read only the activated one:
+| Evidence trigger | Exact section to read / action |
+| --- | --- |
+| Repository evidence is insufficient and a bounded probe can change the approach | `## Design Probe` |
+| The software scenario class is known and its domain risks matter | `## Software Scenario Profiles`; use only the relevant profile |
+| Doc Necessity Gate selects a spec/workspace artifact | `## Documentation And Workspace Bootstrap`; a named baseline template only when initializing that exact file |
+| A written Design Spec is ready for review | `## Spec Self-Review` |
+| A baseline-dependent recommendation needs structured usage evidence | `### Baseline Usage Draft` under `## Design Artifact Templates` |
+| Requirements, scenarios or acceptance remain incomplete or disputed before a design recommendation | `### Requirement Ready Check`; stay at proposal/spec clarification until decision-changing gaps are resolved |
+| An approach introduces an owner, skill, artifact, adapter, fallback, compatibility path, workflow step or metric | `### Existence Check`; reuse the existing owner when sufficient |
+| Ambiguous product, feature, workflow or architecture choices | `### Product Risk Lens`; keep value, non-goals, trade-offs and the decision compact |
+| Choosing a medium/high-complexity implementation direction | `### Plan-Time Complexity Check And Complexity Budget`; inspect actual owners/file shape before choosing |
+| Novel mechanism, protocol, artifact or interaction; unresolved alternatives after internal reuse checks; domain outside repository evidence | `### Prior-Art And Reuse Lens` (Prior-Art & Reuse Lens); routine established patterns need no external research ceremony |
+| Both what to build and where it belongs are at issue | `### Baseline Role Alignment`; distinguish requirement truth from architecture truth |
 
-- `## Design Artifact Templates` — the template for the single artifact the
-  current evidence activates (`Baseline Usage Draft`, `Requirement Ready Check`,
-  `Existence Check`, `Product Risk Lens`, `Plan-Time Complexity Check`,
-  `Prior-Art And Reuse Lens`, `Baseline Role Alignment`);
-- `## Design Probe`;
-- `## Software Scenario Profiles` — only after the scenario class is known;
-- `## Documentation And Workspace Bootstrap` — only after the Doc Necessity Gate
-  selects a spec or workspace artifact;
-- `## Spec Self-Review` — only for a written Design Spec; and
-- a named baseline template — only when initializing that exact file.
+Before approach selection, unresolved new/duplicate owners, fallback, adapter,
+compat-only carrier, delete-first questions, unverified assumptions or a
+"long-term stable" claim after Existence Check escalate to
+`first-principles-review` and its `Decision Hygiene Review`; return here once
+that decision surface is clean. Do not make this a universal design ceremony.
+
+For narrower architecture coherence risks, use `Architecture Integrity Lens`:
+invariant, canonical owner/contract, responsibility overlap, higher-level
+simplification, retirement/falsifier and verdict. For internal retirement vs
+compatibility retention vs persistent-state confirmation, compose `anti-entropy-governance`;
+it chooses `delete-first | compat-exception | confirmation-first` without
+transferring destructive authority to this skill.
 
 For user-facing interface or interaction design, compose `ui-ux-governance` and
-carry scoped experience rules into the existing acceptance criteria. Routing,
-design approval, and handoff stay with this skill.
+carry scoped experience rules into existing acceptance criteria. Design approval
+and handoff remain here.
 
 ## Design Ready And Design Complete
 
@@ -307,33 +241,3 @@ The design can hand off when all applicable conditions hold:
 Design Complete is method readiness, not completion authority. Transition to
 writing-plans only after these conditions hold; do not carry unresolved
 decision-changing unknowns into the plan.
-
-## After the Design
-
-After approval, **Write the validated spec artifact when needed**. If the Doc
-Necessity Gate selects workspace or spec documentation, read the applicable
-sections of `expanded-design-guidance.md`; otherwise keep the accepted design
-in-session. When workspace support is selected, its helper remains outside the
-target project and is invoked as `<aegis-workspace-helper>`.
-
-**Aegis Project Workspace:** workspace creation and spec persistence remain
-conditional on the Doc Necessity Gate and project authority.
-
-For a Design Spec, complete its self-review and obtain explicit user review
-before planning. Apply requested changes and review again. A small Spec Brief
-that only pins medium-task acceptance may use concise review unless project
-authority requires a formal gate.
-
-**Implementation:**
-
-- Invoke the writing-plans skill to create a detailed implementation plan
-- Do NOT invoke any other skill. writing-plans is the next step.
-
-## Key Principles
-
-- **One question at a time** - Don't overwhelm with multiple questions
-- **Multiple choice preferred** - Easier to answer than open-ended when possible
-- **YAGNI ruthlessly** - Remove unnecessary features from all designs
-- **Explore alternatives** - Always propose 2-3 approaches before settling
-- **Incremental validation** - Present design, get approval before moving on
-- **Be flexible** - Go back and clarify when something doesn't make sense

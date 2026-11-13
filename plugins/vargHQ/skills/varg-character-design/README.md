@@ -10,7 +10,7 @@ How to make AI characters people remember, on varg: define the character (premis
 ```bash
 npx skills add vargHQ/skills --skill varg-character-design                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills varg-character-design --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -37,6 +37,7 @@ claude plugin install varg@varg
 - [How to keep a consistent character in AI video (same face in every shot)](../how-to/consistent-character-ai-video/README.md)
 - [AI sprite sheet generator for games: GPT Image 2.6 to Phaser and Godot](../how-to/make-game-sprite-sheets-with-ai/README.md)
 - [How to make an AI virtual try-on video from a flat-lay clothing photo](../how-to/ai-virtual-try-on-video/README.md)
+- [How to make AI parody videos of movie scenes with Claude Code](../how-to/make-ai-parody-videos/README.md)
 
 ## Works well with
 
@@ -53,4 +54,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/varg-character-design) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/varg-character-design) · [varg.ai](https://varg.ai)

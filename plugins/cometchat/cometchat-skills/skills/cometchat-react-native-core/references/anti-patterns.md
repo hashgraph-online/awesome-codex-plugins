@@ -18,7 +18,7 @@ The React UI Kit is a **different package with a different API**. These do not e
 
 | React | React Native |
 |---|---|
-| `new UIKitSettingsBuilder()…build()` | a plain `CometChatSettings` object |
+| `new UIKitSettingsBuilder()...build()` | a plain `CometChatSettings` object |
 | `CometChatUIKit.login(uid)` | `login({ uid })` — an **object** |
 | `onItemClick` · `onThreadRepliesClick` | `onItemPress` · `onThreadRepliesPress` |
 | `itemView` · `trailingView` (camelCase) | `ItemView` · `TrailingView` (**PascalCase**) |
@@ -63,7 +63,7 @@ drop-ins. Custom UI goes **in a view slot**, never as a sibling above the compon
 No client-side hiding works. Production mints an auth token server-side (`setup-credentials.md`).
 
 ## 10. Leaking listeners
-Every `add*Listener(id, …)` needs `remove*Listener(id)` on teardown. The **SDK** holds the
+Every `add*Listener(id, ...)` needs `remove*Listener(id)` on teardown. The **SDK** holds the
 listener, not React, so it survives unmount — the top cause of duplicate messages, and it worsens
 the longer the app runs.
 

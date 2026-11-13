@@ -2,7 +2,7 @@
 name: cometchat-ios-migration
 description: "Upgrade an existing CometChat iOS integration from UI Kit v4 to v5 — composite components removed, theming replaced, properties renamed. Triggers: 'upgrade cometchat ios to v5', 'migrate from v4 uikit ios', 'CometChatConversationsWithMessages not found'."
 license: "MIT"
-compatibility: "from CometChatUIKitSwift v4 → 5.1.22 · iOS 15.1+"
+compatibility: "from CometChatUIKitSwift v4 → 5.2.3+ · iOS 15.1+"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -26,7 +26,7 @@ Budget for this honestly: it is the bulk of the work, and it is a design change 
 - **Theming was replaced.** v4's theme objects give way to `CometChatTheme`'s static colours plus per-component style objects. Re-derive the brand from the theme rather than porting v4 style code — `cometchat-ios-customization`.
 - **Setter vs property split.** Several v4 setters are v5 properties: styles (`avatarStyle`, `badgeStyle`, `receiptStyle`, `statusIndicatorStyle`, `typingIndicatorStyle`), `onSearchClick`, `onSelectedItemProceed`, the call-button click handlers.
 - **Renames to expect:** `set(usersRequestBuilder:)` → `set(userRequestBuilder:)` · `set(subtitleView:)` → `set(subtitle:)` and `set(trailView:)` → `set(trailingView:)` **on Users/Groups only** (Conversations and GroupMembers keep the old spelling) · `set(sessionID:)` → `set(sessionId:)` · `set(callSettingBuilder:)` → `set(callSettingsBuilder:)` · `set(onDeclineClick:)` → `set(onCancelClick:)` · `set(parentMessage:)` → `set(parentMessageId:)` on the list and composer, though the thread header still takes `set(parentMessage:)`.
-- **Dependencies.** v5 is SPM-only (CocoaPods is winding down) and pins exactly: kit 5.1.22 / SDK 4.1.7 / Calls 5.0.3, all added by hand.
+- **Dependencies.** v5 is SPM-only (CocoaPods is winding down). Add `CometChatUIKitSwift` alone, Up to Next Major from 5.2.3: it resolves `CometChatSDK` (4.1.10+) itself, so remove any hand-added Chat SDK pin. Add `CometChatCallsSDK` (from 5.0.4) only if the app calls.
 
 ## Method
 Upgrade the dependency first and let the compiler enumerate the work — the errors are the migration checklist. Fix composites first (they cascade), then styling, then the renames. Do it **additively**: the host app's navigation, auth and design system stay theirs.

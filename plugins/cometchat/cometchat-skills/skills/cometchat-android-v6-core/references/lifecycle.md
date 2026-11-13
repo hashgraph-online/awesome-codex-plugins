@@ -1,6 +1,6 @@
 # lifecycle — init once, login guard, logout (Android v6)
 
-> Ground truth: installed `chatuikit-core-android` 6.0.5 `CometChatUIKit.kt` (`initFromSettings`/`login`/`loginWithAuthToken`/`logout`/`getLoggedInUser`/`isSDKInitialized`) + `ui-kit/android/getting-started-kotlin.md` / `getting-started-jetpack.md` (gate pattern), verified 2026-08-20.
+> Ground truth: installed `chatuikit-core-android` 6.0.5 `CometChatUIKit.kt` (re-checked on 6.1.1) (`initFromSettings`/`login`/`loginWithAuthToken`/`logout`/`getLoggedInUser`/`isSDKInitialized`) + `ui-kit/android/getting-started-kotlin.md` / `getting-started-jetpack.md` (gate pattern), verified 2026-08-20.
 
 ## Init once — via `initFromSettings`, and where it lives
 The canonical init is **`CometChatUIKit.initFromSettings(context, callback)`** — it reads the gitignored `app/src/main/assets/cometchat-settings.json` (`setup-credentials.md` §4), persists `integrationSource="ai-agent"` for telemetry attribution, and auto-inits the Calls SDK when `uiKit.enableCalling` is true. A classic `init(context, UIKitSettings, callback)` overload also exists on `CometChatUIKit`, but **do not use it as the default — it loses the telemetry attribution** (AUDIT-084); reach for it only when a user explicitly needs programmatic settings.
@@ -9,6 +9,8 @@ Init is async; **nothing CometChat renders until `onSuccess` fires** (docs Warni
 
 - **Gate Activity (RECOMMENDED — the docs getting-started pattern):** the launcher/splash Activity runs `initFromSettings → login` and only then navigates to (Views) / renders (Compose) the chat UI. Failures surface on the gate screen instead of a blank chat.
 - **Application.onCreate:** fine for init alone, but you still need a ready-gate before any `CometChat*` UI renders, and login usually depends on app auth state — so you end up building the gate anyway. Use it only when every screen needs CometChat from frame 1.
+
+**Main thread only (6.1.1+):** `init`/`initFromSettings`/`login`/`loginWithAuthToken`/`logout` throw `IllegalStateException` off the main thread (`requireMainThread`). Never call them from `Dispatchers.IO`.
 
 **Do NOT re-init per Activity/screen.** Init once per process. If a later entry point can't be sure init ran (deep link, notification tap, process death restoring a back stack), guard with `CometChatUIKit.isSDKInitialized()` — if false, route through the gate rather than sprinkling init calls through the app.
 
@@ -43,7 +45,7 @@ private fun loginUser() {
     })
 }
 ```
-- **Same UID re-login is safe:** the kit short-circuits and returns the cached user via `onSuccess` (verified in 6.0.5 source) — but the guard keeps intent obvious and skips a needless call.
+- **Same UID re-login is safe:** the kit short-circuits and returns the cached user via `onSuccess` (verified in 6.0.5 and 6.1.1 source) — but the guard keeps intent obvious and skips a needless call.
 - **Different UID while logged in:** call `CometChatUIKit.logout(...)` and only login in its `onSuccess` — logging in over an existing session errors.
 - The UID comes from the user / dashboard (`setup-credentials.md` §7) — never hardcoded in shipped code.
 

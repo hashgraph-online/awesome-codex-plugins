@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-events
 description: "React to CometChat activity in a Flutter app — SDK listeners (messages, calls, users, groups, connection) versus UI Kit events (CometChatMessageEvents, CometChatGroupEvents, CometChatUserEvents, CometChatConversationEvents), and the listener lifecycle that keeps them from leaking. Triggers: 'listen for new messages', 'react when a message is sent', 'cometchat listener flutter', 'unread badge count', 'onMessageReceived'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0); cometchat_sdk ^5.0.6"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0); cometchat_sdk ^5.0.8"
 metadata:
   author: "CometChat"
   version: "1.0.0"

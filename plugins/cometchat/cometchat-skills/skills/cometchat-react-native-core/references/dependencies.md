@@ -26,7 +26,7 @@ development build (`npx expo run:ios`) — **Expo Go cannot load custom native m
 target 'YourApp' do
   pod 'SPTPersistentCache', :modular_headers => true
   pod 'DVAssetLoaderDelegate', :modular_headers => true
-  # …
+  # ...
 end
 ```
 

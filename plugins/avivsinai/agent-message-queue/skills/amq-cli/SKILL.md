@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.142.2 # x-release-please-version
+version: 0.143.0 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -28,6 +28,11 @@ Use the first case that applies:
    When a later command says the session has no handle (a terminal session
    after `/clear`), join again. Do not use the `amq env` export here; a shell
    variable does not last between the shell calls of a Claude Code session.
+   A Codex chat with no `AM_ME` (`CODEX_THREAD_ID` is set) joins the same
+   way; its default handle is `codex`. When the output says the wait hook is
+   not installed, tell the user that `amq coop install-hooks --harness codex`
+   installs it, that they approve it in Codex, and that it takes effect in a
+   new chat.
 3. Any other shell: resolve and export the complete context before reading or
    sending:
 

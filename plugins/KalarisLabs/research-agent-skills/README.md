@@ -890,7 +890,7 @@ their notices are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 <div align="center">
 
-**Created by [Sayan Chowdhury](https://github.com/saynchowdhury) · [Kalaris Labs](https://github.com/KalarisLabs)**
+**Created & Maintained by [Sayan Chowdhury](https://kalarislabs.com/team/sayan-chowdhury) at [Kalaris Labs](https://kalarislabs.com)**
 
 If this saves you time, please ⭐ the repository so other researchers can find it.
 

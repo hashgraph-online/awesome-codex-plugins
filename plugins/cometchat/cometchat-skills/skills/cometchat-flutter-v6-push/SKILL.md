@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-push
 description: "Add push notifications to a Flutter app with CometChat — FCM on Android, FCM/APNs on iOS, registered through CometChatNotifications with the Dashboard provider as the sender. THIN + docs-first: the Firebase setup is FETCHED from CometChat's notifications docs; this skill bakes the SDK symbols and the token lifecycle. Triggers: 'add push notifications in flutter', 'FCM push flutter', 'notify me when the app is closed', 'cometchat push flutter'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x); cometchat_sdk ^5.0.6 (ships CometChatNotifications); firebase_messaging (FCM)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x); cometchat_sdk ^5.0.8 (ships CometChatNotifications); firebase_messaging (FCM)"
 metadata:
   author: "CometChat"
   version: "1.0.0"

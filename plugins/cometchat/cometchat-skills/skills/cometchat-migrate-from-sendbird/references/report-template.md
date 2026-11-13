@@ -14,7 +14,7 @@ Write this file at the repo root, filled from the ledger. Leave out an empty sec
 ## 2. Migrated
 | Sendbird feature | CometChat equivalent | Files |
 |---|---|---|
-| Group channels + channel list | Conversations + message pane (UI Kit) | src/chat/ChatPage.tsx, … |
+| Group channels + channel list | Conversations + message pane (UI Kit) | src/chat/ChatPage.tsx, ... |
 
 ## 3. Removed — not available in CometChat
 | Feature | What it did | Removed from | What users lose | Evidence (features.json · `UI Kit:` docs query → result · `SDK:` docs query → result) | Closest CometChat alternative |
@@ -24,7 +24,7 @@ Write this file at the repo root, filled from the ledger. Leave out an empty sec
 ### Dev/QA-only code removed (not user features)
 | Code | What it did | Removed from |
 |---|---|---|
-| <debug panel / event simulator / screenshot harness> | <…> | <paths> |
+| <debug panel / event simulator / screenshot harness> | <...> | <paths> |
 
 ## 4. Behavior changes (migrated, works differently)
 - Open channels are now public groups: members join once, and history persists.

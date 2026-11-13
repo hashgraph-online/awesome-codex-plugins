@@ -79,7 +79,7 @@ returns early when that UID is already signed in — **no host-side concurrent-l
 That is acceptable for development only. For production:
 1. Omit `credentials.authKey` from `cometchat-settings.json`.
 2. Mint a per-user **auth token** on your server (CometChat REST API, using the App's REST key).
-3. Sign in with `CometChatUIKit.loginWithAuthToken(authToken, onSuccess: …, onError: …)`.
+3. Sign in with `CometChatUIKit.loginWithAuthToken(authToken, onSuccess: ..., onError: ...)`.
 Say this out loud to the user when you wire the dev path — flag dev-only AS dev-only.
 
 ## Logout

@@ -19,7 +19,7 @@ screen where it failed.
 ## Setup
 
 The server ships with the project's `e2e` dependency. The e2e plugin for
-Claude Code, Codex, and Cursor registers it too, as `npx -y e2e mcp`; with
+Claude Code, Codex, and Cursor registers it too, as `npx -y e2e@<version> mcp`, pinned to the plugin's release (it runs that release even when the project has another e2e version); with
 the plugin installed there is nothing to add. Otherwise `e2e init` offers to register it for Claude Code,
 Cursor, and Codex. Reuse an existing registration; when adding one, use the project's
 config so it starts in the project it drives. Install dependencies and start

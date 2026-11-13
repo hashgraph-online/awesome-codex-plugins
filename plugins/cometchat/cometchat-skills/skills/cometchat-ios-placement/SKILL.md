@@ -2,7 +2,7 @@
 name: cometchat-ios-placement
 description: "Compose CometChat iOS screens into an app — navigation stack, tab bar, user/group pickers, group details, threads, and iPad. Use when the question is layout and navigation rather than a single component. Triggers: 'tab based chat ios', 'add a groups tab', 'open group details', 'thread screen ios', 'ipad split view cometchat'."
 license: "MIT"
-compatibility: "CometChatUIKitSwift 5.1.22 · iOS 15.1+"
+compatibility: "CometChatUIKitSwift 5.2.3+ (Up to Next Major) · iOS 15.1+"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -25,7 +25,7 @@ metadata:
 
 ```swift
 // Tab-based placement — wire each list's selection to the chat screen.
-// set(onItemClick:) is TWO-arg on the lists: (item, indexPath). A one-arg `{ user in … }` does
+// set(onItemClick:) is TWO-arg on the lists: (item, indexPath). A one-arg `{ user in ... }` does
 // NOT compile ("expects 2 arguments, but 1 was used") — take the indexPath and ignore it.
 let users = CometChatUsers()
 users.set(onItemClick: { user, _ in openChat(user: user, group: nil) })
@@ -35,7 +35,7 @@ groups.set(onItemClick: { group, _ in openChat(user: nil, group: group) })
 
 // Global search — presented from the conversations list's onSearchClick property.
 // CometChatSearch's result callbacks are assignable PROPERTIES, not setters — ASSIGN them
-// (`search.onConversationClicked = …`). There is no setter form; wrapping either callback in a
+// (`search.onConversationClicked = ...`). There is no setter form; wrapping either callback in a
 // `set(...)` call does not compile (it resolves to a different overload). onConversationClicked
 // is (Conversation, IndexPath); onMessageClicked is (BaseMessage).
 let conversations = CometChatConversations()

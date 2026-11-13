@@ -77,13 +77,13 @@ page is thin (**RN-G15**). A `T` row is correct but **not documented** — say s
 
 | Method | Signature | Notes | Src |
 |---|---|---|---|
-| `sendMessage` | `sendMessage(message: TextMessage \| MediaMessage \| CustomMessage \| InteractiveMessage \| any): Promise<…>` | the one you want in almost every case | D |
-| `sendMediaMessage` | `sendMediaMessage(message: Object): Promise<…>` | attachment count is server-capped; over it **rejects**, not truncates | T |
-| `sendCustomMessage` | `sendCustomMessage(message): Promise<…>` | app-defined JSON payloads | D |
-| `sendInteractiveMessage` | `sendInteractiveMessage(message): Promise<…>` | forms/schedulers | T |
+| `sendMessage` | `sendMessage(message: TextMessage \| MediaMessage \| CustomMessage \| InteractiveMessage \| any): Promise<...>` | the one you want in almost every case | D |
+| `sendMediaMessage` | `sendMediaMessage(message: Object): Promise<...>` | attachment count is server-capped; over it **rejects**, not truncates | T |
+| `sendCustomMessage` | `sendCustomMessage(message): Promise<...>` | app-defined JSON payloads | D |
+| `sendInteractiveMessage` | `sendInteractiveMessage(message): Promise<...>` | forms/schedulers | T |
 | `sendTransientMessage` | `sendTransientMessage(message): void` | ephemeral (live reactions); **not persisted, returns void** | T |
-| `sendDirectMessage` | `sendDirectMessage(message: Object): Promise<…>` | 1:1 variant — **coexists with `sendMessage`, neither marked deprecated.** Prefer `sendMessage`; the docs use it | T |
-| `sendGroupMessage` | `sendGroupMessage(message: any): Promise<…>` | group variant, same caveat | T |
+| `sendDirectMessage` | `sendDirectMessage(message: Object): Promise<...>` | 1:1 variant — **coexists with `sendMessage`, neither marked deprecated.** Prefer `sendMessage`; the docs use it | T |
+| `sendGroupMessage` | `sendGroupMessage(message: any): Promise<...>` | group variant, same caveat | T |
 
 ## Messaging — modify & moderate
 
@@ -92,8 +92,8 @@ page is thin (**RN-G15**). A `T` row is correct but **not documented** — say s
 | `editMessage` | `editMessage(message): Promise<BaseMessage>` | resolves the edited message | T |
 | `deleteMessage` | `deleteMessage(messageId): Promise<BaseMessage>` | soft delete — resolves a **tombstone**, the message does not vanish | T |
 | `getMessageDetails` | `getMessageDetails(messageId): Promise<BaseMessage>` | single message by id | T |
-| `flagMessage` | `flagMessage(messageId, reason): Promise<…>` | moderation report | T |
-| `getFlagReasons` | `getFlagReasons(): Promise<…>` | fetch the allowed reasons — **do not hardcode them** | T |
+| `flagMessage` | `flagMessage(messageId, reason): Promise<...>` | moderation report | T |
+| `getFlagReasons` | `getFlagReasons(): Promise<...>` | fetch the allowed reasons — **do not hardcode them** | T |
 | `addReaction` | `addReaction(messageId, reaction: string): Promise<BaseMessage>` | reactions are **core** in v5, no extension to enable | T |
 | `removeReaction` | `removeReaction(messageId, reaction: string): Promise<BaseMessage>` | | T |
 
@@ -103,16 +103,16 @@ page is thin (**RN-G15**). A `T` row is correct but **not documented** — say s
 |---|---|---|---|
 | `markAsRead` | `markAsRead(...args: any): any` | **untyped, returns `any`** — treat as fire-and-forget | T |
 | `markAsDelivered` | `markAsDelivered(...args): any` | usually automatic; call only for custom flows | T |
-| `markAsUnread` | `markAsUnread(message): Promise<…>` | | T |
-| `markConversationAsRead` | `markConversationAsRead(conversation): Promise<…>` | whole conversation at once | T |
+| `markAsUnread` | `markAsUnread(message): Promise<...>` | | T |
+| `markConversationAsRead` | `markConversationAsRead(conversation): Promise<...>` | whole conversation at once | T |
 | `getMessageReceipts` | `getMessageReceipts(messageId): Promise<Array<MessageReceipt>>` | per-recipient delivery/read state | T |
-| `markConversationAsDelivered` | `markConversationAsDelivered(conversation): Promise<…>` | conversation-level pair of `markConversationAsRead` | T |
-| `markMessageAsUnread` | `markMessageAsUnread(message): Promise<…>` | **coexists with `markAsUnread`**, neither deprecated — prefer `markAsUnread` | T |
+| `markConversationAsDelivered` | `markConversationAsDelivered(conversation): Promise<...>` | conversation-level pair of `markConversationAsRead` | T |
+| `markMessageAsUnread` | `markMessageAsUnread(message): Promise<...>` | **coexists with `markAsUnread`**, neither deprecated — prefer `markAsUnread` | T |
 | `getLastDeliveredMessageId` | `getLastDeliveredMessageId(...): any` | resume point for a receipt sync | T |
-| `markAsInteracted` | `markAsInteracted(messageId, interactionElementId): Promise<…>` | required for **interactive** messages, or engagement never registers | T |
+| `markAsInteracted` | `markAsInteracted(messageId, interactionElementId): Promise<...>` | required for **interactive** messages, or engagement never registers | T |
 | `startTyping` | `startTyping(typingNotification): void` | **void — do not `await`** | T |
 | `endTyping` | `endTyping(typingNotification): void` | must be called explicitly; no client-side auto-expiry | T |
-| `getUnreadMessageCount` | `getUnreadMessageCount(...): Promise<Object>` | **Family:** `…ForUser` · `…ForGroup` · `…ForAllUsers` · `…ForAllGroups` are scoped variants with the same shape — pick by scope; not listed individually | T |
+| `getUnreadMessageCount` | `getUnreadMessageCount(...): Promise<Object>` | **Family:** `...ForUser` · `...ForGroup` · `...ForAllUsers` · `...ForAllGroups` are scoped variants with the same shape — pick by scope; not listed individually | T |
 
 ## Users
 
@@ -170,8 +170,8 @@ page is thin (**RN-G15**). A `T` row is correct but **not documented** — say s
 |---|---|---|---|
 | `getConversation` | `getConversation(conversationWith, type): Promise<Conversation>` | | T |
 | `deleteConversation` | `deleteConversation(conversationWith, type): Promise<string>` | | T |
-| `muteConversations` | `muteConversations(...): Promise<…>` | | T |
-| `unmuteConversations` | `unmuteConversations(...): Promise<…>` | | T |
+| `muteConversations` | `muteConversations(...): Promise<...>` | | T |
+| `unmuteConversations` | `unmuteConversations(...): Promise<...>` | | T |
 | `tagConversation` | `tagConversation(...): Promise<Conversation>` | custom tags (pin, archive) | T |
 | `getMutedConversations` | `getMutedConversations(): Promise<Array<Conversation>>` | the read side of mute/unmute — without it the mute state is write-only | T |
 
@@ -199,8 +199,8 @@ page is thin (**RN-G15**). A `T` row is correct but **not documented** — say s
 |---|---|---|---|
 | `CometChatNotifications.registerPushToken` | `registerPushToken(pushToken: string, platform: PushPlatforms, providerId?: string): Promise<string>` | **the one the docs use.** Register **after** `login` resolves. Platform constant differs per OS — fetch it, do not guess | D |
 | `CometChatNotifications.unregisterPushToken` | `unregisterPushToken(): Promise<string>` | on logout — skip it and the next user of the device gets the previous user's pushes | D |
-| `markPushNotificationDelivered` | `markPushNotificationDelivered(...): Promise<…>` | delivery analytics; optional | T |
-| `markPushNotificationClicked` | `markPushNotificationClicked(...): Promise<…>` | click-through analytics; optional | T |
+| `markPushNotificationDelivered` | `markPushNotificationDelivered(...): Promise<...>` | delivery analytics; optional | T |
+| `markPushNotificationClicked` | `markPushNotificationClicked(...): Promise<...>` | click-through analytics; optional | T |
 | `registerTokenForPushNotification` | `registerTokenForPushNotification(token: string, settings?: {}): Promise<string>` | **an older, different signature that still exists and is NOT marked deprecated.** Two live ways to do one thing — prefer `registerPushToken`; flagged so the wrong one is not picked by accident | T |
 
 ## AI & feature gates
@@ -224,8 +224,8 @@ Named here so "absent" reads as *out of scope*, never as *forgotten*:
 
 | Excluded | Count | Why |
 |---|---|---|
-| calls (`initiateCall`, `acceptCall`, `endCall`, …) | 11 | different package; the `calls` skill owns them |
-| internals (`getApiKey`, `connect`, `isInitialized`, …) | 11 | a chat integration has no reason to call them |
+| calls (`initiateCall`, `acceptCall`, `endCall`, ...) | 11 | different package; the `calls` skill owns them |
+| internals (`getApiKey`, `connect`, `isInitialized`, ...) | 11 | a chat integration has no reason to call them |
 | unread-count scoped variants | 4 | same shape as `getUnreadMessageCount`; documented as a family |
 | preferences / push-preferences / timezone | 8 | niche; reach them via the ladder |
 | notification-feed item methods | 5 | narrow feature; `addNotificationFeedListener` is the entry point |

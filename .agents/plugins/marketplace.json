@@ -2409,6 +2409,21 @@
       "icon": "./plugins/sno-ai/sno-station-skills/.claude-plugin/icon.png"
     },
     {
+      "name": "ssh-ops",
+      "displayName": "SSH Ops",
+      "source": {
+        "source": "local",
+        "path": "./plugins/leehom0123/ssh-ops"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Operate Linux and Windows servers over SSH from Codex and the CLI using YAML configurations for commands, SFTP transfers, deployments, and background jobs on bash servers.",
+      "icon": "./plugins/leehom0123/ssh-ops/assets/icon.svg"
+    },
+    {
       "name": "spec-driven",
       "displayName": "Spec-Driven Development",
       "source": {
@@ -2850,6 +2865,20 @@
       "category": "Development & Workflow",
       "description": "Codex hooks that print one stretch or eye-break line and play a soft chime once the agent has kept you waiting for minutes, with zero model tokens and no telemetry (also Claude Code and Gemini CLI).",
       "icon": "./plugins/Eliasjunit/vibestretch/assets/icon.png"
+    },
+    {
+      "name": "vidbyte-memory",
+      "displayName": "vidbyte-memory",
+      "source": {
+        "source": "local",
+        "path": "./plugins/cerredz/vidbyte-memory"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Correction-driven memory for Codex: turns corrections into facts and pytest checks, stages all repository changes for commits and pushes to origin unless --no-push is used, and installs a Stop hook that keeps turns open until checks pass."
     },
     {
       "name": "villagesql",
@@ -4957,6 +4986,21 @@
       "category": "Tools & Integrations",
       "description": "MCP access and initiative-aware skills for organizational workflows.",
       "icon": "./plugins/useorgx/orgx-codex-plugin/assets/icon.png"
+    },
+    {
+      "name": "osmo",
+      "displayName": "OsmO Phone Calls",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Mountainheads-Private-limited/osmo-ai-plugins"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Lets Codex place real phone calls to businesses and helplines through OsmO's hosted MCP server after you confirm each one, and read back the summary and transcript; 50 free credits for new users in the US, Canada, UK and Australia, paid after that; with free credits, OsmO calls businesses and toll-free numbers; calling your contacts and scheduling calls need an OsmO app plan.",
+      "icon": "./plugins/Mountainheads-Private-limited/osmo-ai-plugins/assets/logo.png"
     },
     {
       "name": "panews",

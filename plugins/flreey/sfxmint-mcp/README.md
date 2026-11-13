@@ -79,7 +79,7 @@ It writes the audio plus a `sounds.json` manifest recording each file's source U
 | Tool | What it does |
 |---|---|
 | `get_role_sound` | Ask by event — `button-click`, `purchase-success`, `error`, `coin`, `notification`. Returns a file-checked candidate plus alternates; plain-English aliases work |
-| `get_sound_set` | Candidates grouped by event and style (18 sets: `ui-crisp`, `retro-game`, `checkout`, `platformer`, `ai-coding-tool`, …) |
+| `get_sound_set` | Candidates grouped by event and style (19 sets: `ui-crisp`, `retro-game`, `checkout`, `platformer`, `fantasy-rpg`, `ai-coding-tool`, …) |
 | `search_sounds` | Free-text retrieval with explicit duration, loop and format requirements; hard constraints can produce no candidates. When nothing fits, `user_message` is one line for the user saying which sound the library lacks |
 | `get_sound` | Full metadata for one sound (incl. a short description, measured acoustics, license) |
 

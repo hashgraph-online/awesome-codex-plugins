@@ -44,7 +44,7 @@ send → rules → pass → delivered
 If the app still uses the **legacy extensions** (Profanity Filter, Data Masking, Image Moderation), **disable them before enabling the new moderation rules.** Running both processes every message twice → performance issues and message delays. Treat this as a required migration step, not optional.
 
 ## Enablement note
-Moderation is a dashboard/plan capability — enable it on the app (and on the **production** app, not just dev). `npx @cometchat/skills-cli@3 features` can toggle app extensions/AI after `auth login`; the rule/list configuration itself is done in the dashboard or via the Moderation REST API.
+Moderation is a dashboard/plan capability — enable it on the app (and on the **production** app, not just dev). The CometChat MCP can turn extensions/AI on (`cometchat_set_feature`), list and toggle rules (`cometchat_list_moderation_rules`, `cometchat_set_moderation_rule`), create keyword lists (`cometchat_create_moderation_list`) and show flagged/blocked messages (`cometchat_list_flagged_messages`); detailed rule conditions are configured in the dashboard or via the Moderation REST API.
 
 ## Common pitfalls
 1. **Legacy extensions left on** alongside new rules — double-processing, delays. Disable the old ones first.

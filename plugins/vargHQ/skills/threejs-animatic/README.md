@@ -10,7 +10,7 @@ Build a three.js animatic ("animatronic", 3D previz, blockout) of a multi-shot v
 ```bash
 npx skills add vargHQ/skills --skill threejs-animatic                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills threejs-animatic --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -48,4 +48,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [varg.ai](https://varg.ai)

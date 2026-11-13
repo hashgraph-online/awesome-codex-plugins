@@ -1,6 +1,6 @@
 # Anti-patterns — what does NOT exist, and what compiles but is wrong
 
-> Catalog-verified against the shipped 5.1.22 `.swiftinterface`. If a symbol is not in
+> Catalog-verified against the shipped 5.2.3 `.swiftinterface`; the code blocks type-check against the 5.2.3 binaries. If a symbol is not in
 > `catalogs/ios-v5.json`, it does not exist in the installed kit — no matter where you saw it.
 
 ## 1. v4 composite components — they do not exist in v5
@@ -40,9 +40,10 @@ Unlike every other list component, five of its setters pass untyped values. Usin
 does not compile — cast first:
 
 ```swift
-callLogs.set(onItemClick: { callLog, _ in
+// CallLog is a CometChatCallsSDK type: this file needs `import CometChatCallsSDK`.
+callLogs.set(onItemClick: { callLog in            // ONE argument: (Any) -> Void
     guard let log = callLog as? CallLog else { return }
-    // …
+    // ...
 })
 ```
 
@@ -56,13 +57,14 @@ Mixing them (setting a parent message id on one component and a parent message o
 another) yields a view that renders but never sends. Set the parent ONE way, on the component
 the docs prescribe for that surface, and verify by actually sending a reply.
 
-## 5. Assuming the SDK ships with the kit's dependencies resolved
+## 5. Pinning the Chat SDK by hand (or pinning a kit older than 5.2.3)
 
-The kit is a prebuilt binary xcframework compiled against ONE `CometChatSDK` version, and SPM
-does **not** resolve that transitively. Pin the exact version. On 5.1.19 the shipped
-`.swiftinterface` also hard-imports `CometChatCallsSDK`, so the Calls SDK must resolve for ANY
-integration to compile — even a chat-only one that never places a call. 5.1.18 built without it,
-so treat this as a packaging regression to state plainly, not as a design requirement to teach.
+Older guidance pinned `CometChatSDK` (and the Calls SDK) at exact versions next to the kit,
+because the kit's `Package.swift` declared neither. Since 5.2.1 it declares `CometChatSDK`
+(`from: "4.1.10"`), so a hand-added exact pin below that floor makes package resolution fail,
+and one above it only fights the kit's own rule. Add `CometChatUIKitSwift` alone (Up to Next
+Major from 5.2.3) and let SPM resolve the Chat SDK. Do not stop at 5.2.0 to 5.2.2: those crash
+at launch without the Calls SDK; 5.2.3 links it optionally again, so chat-only apps leave it out.
 
 ## 6. Answering API from memory
 

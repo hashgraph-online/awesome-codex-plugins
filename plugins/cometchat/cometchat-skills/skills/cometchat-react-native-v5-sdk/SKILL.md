@@ -38,7 +38,7 @@ npm install @react-native-async-storage/async-storage@^2.1.2 react-native-backgr
   `INTERNET` · `CAMERA` · `RECORD_AUDIO` · `MODIFY_AUDIO_SETTINGS` · `ACCESS_NETWORK_STATE` · `BLUETOOTH` (add `android:maxSdkVersion="30"`) · `BLUETOOTH_CONNECT`.
   API 23+ **also requires a RUNTIME request** (`PermissionsAndroid.requestMultiple([CAMERA, RECORD_AUDIO])` or `react-native-permissions`) BEFORE starting a call. A manifest entry alone is not enough. **A call that must survive backgrounding needs the `FOREGROUND_SERVICE*` family + `WAKE_LOCK` + `POST_NOTIFICATIONS` as well — `references/ringing-voip.md` § Part 2b.**
 - **New Architecture** — works on old arch, New Architecture and bridgeless with **no extra setup**; leave `newArchEnabled` as the app needs it. The SDK ships as a legacy native module and runs through RN's interop layer, so behaviour is identical on both.
-- Credentials/env: App ID · Region · Auth Key (dev only). To fetch from the dashboard, load the CLI on demand — `npx @cometchat/skills-cli@3 auth login` → `provision use --app-id <id> --json` (`@3` pins the CLI major that matches the v5 skills). Mint **auth tokens server-side** for production; never ship the Auth Key. Rebuild the app after installing (`npx react-native run-ios` / `run-android`) — this is a native dependency, so Metro-only reload will not pick it up.
+- Credentials/env: App ID · Region · Auth Key (dev only). To fetch from the account, go through the CometChat MCP — `cometchat_whoami` (connected + signed in?), `cometchat_list_apps` (ask which EXISTING app), `cometchat_get_app_credentials`. Mint **auth tokens server-side** for production; never ship the Auth Key. Rebuild the app after installing (`npx react-native run-ios` / `run-android`) — this is a native dependency, so Metro-only reload will not pick it up.
 
 ## Init & login ordering (BAKED — invariant)
 `CometChatCalls.initFromSettings(...)` (once, **check the result**) → `CometChatCalls.login(uid, authKey)` **or** `loginWithAuthToken(token)` → then `generateToken` / render / listeners. Nothing renders or joins before init+login resolve.
@@ -66,7 +66,7 @@ npm install @react-native-async-storage/async-storage@^2.1.2 react-native-backgr
 
 ## Listener lifecycle (BAKED)
 `addEventListener` RETURNS an unsubscribe function AND accepts `{ signal }`. Prefer one `AbortController` per screen: pass `signal` to every listener and call `controller.abort()` in the effect cleanup — one teardown, no leaks. Register listeners BEFORE the Component mounts, and call `CometChatCalls.leaveSession()` on unmount. Never leak.
-> **`CometChatCalls` is a SINGLETON with ONE active session.** Mount exactly one `Component`. Every action (`leaveSession`, `muteAudio`, `setLayout`, …) takes **no session id** — it always targets the active session. To move to another call: `leaveSession()` → await `onSessionLeft` → `generateToken(next)` → re-render with the new token.
+> **`CometChatCalls` is a SINGLETON with ONE active session.** Mount exactly one `Component`. Every action (`leaveSession`, `muteAudio`, `setLayout`, ...) takes **no session id** — it always targets the active session. To move to another call: `leaveSession()` → await `onSessionLeft` → `generateToken(next)` → re-render with the new token.
 
 ## Least-code recipe (meet-style)
 ```tsx
@@ -91,7 +91,7 @@ function CallScreen({ sessionId }: { sessionId: string }) {
     const controller = new AbortController();
     const { signal } = controller;
     CometChatCalls.addEventListener("onSessionLeft", () => {/* pop the screen */}, { signal });
-    CometChatCalls.addEventListener("onParticipantJoined", (p) => {/* … */}, { signal });
+    CometChatCalls.addEventListener("onParticipantJoined", (p) => {/* ... */}, { signal });
     return () => { controller.abort(); CometChatCalls.leaveSession(); };   // 6. one teardown
   }, []);
 

@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <title>Lighthouse Rules: Day 1</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <script src="rig.js"></script>
+    <style>
+      :root {
+        --night: #070b14;
+        --ink: #f4f0e6;
+        --amber: #ffb703;
+        --red: #e5383b;
+        --cap-hi: #ffd23f;
+        --panel: rgba(8, 11, 18, 0.88);
+        --font-display: "Archivo Black", "Inter", sans-serif;
+        --font-text: "Inter", sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1080px; height: 1920px; overflow: hidden; background: var(--night); }
+      #root { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--night); font-family: var(--font-text); }
+      #stage { position: absolute; inset: 0; }
+      #world { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; display: block; }
+
+      /* opening title: frame 0 is the thumbnail */
+      #title-day { position: absolute; left: 0; right: 0; top: 330px; height: 470px; display: flex; justify-content: center; }
+      #title-day-inner { display: flex; flex-direction: column; align-items: center; width: 900px; }
+      #title-day-big { font-family: var(--font-display); font-size: 270px; line-height: 1; color: var(--ink); letter-spacing: 0.01em;
+        text-shadow: 0 10px 0 #000, 0 0 60px rgba(0, 0, 0, 0.7); }
+      #title-day-bar { width: 520px; height: 18px; background: var(--red); margin-top: 6px; }
+      #title-day-sub { margin-top: 22px; font-family: var(--font-display); font-size: 58px; color: var(--amber); letter-spacing: 0.08em; text-shadow: 0 5px 0 #000; }
+
+      /* HUD */
+      #hud { position: absolute; inset: 0; }
+      #hud-day { position: absolute; left: 108px; top: 196px; height: 84px; padding: 0 26px 0 22px; background: var(--panel);
+        border-left: 12px solid var(--red); border-radius: 6px; font-family: var(--font-display); font-size: 52px; line-height: 84px; color: var(--ink); letter-spacing: 0.03em; }
+      #hud-clock { position: absolute; right: 108px; top: 196px; width: 270px; height: 84px; background: var(--panel); border-radius: 6px;
+        border: 4px solid rgba(255, 255, 255, 0.16); overflow: hidden; }
+      .clock-state { position: absolute; left: 0; right: 0; top: 0; height: 76px; display: block; text-align: center; font-family: var(--font-display);
+        font-size: 44px; line-height: 76px; color: var(--ink); letter-spacing: 0.02em; }
+      .clock-state.late { color: #ff5d5f; }
+
+      /* rules */
+      #rules { position: absolute; inset: 0; }
+      #rules-inner { position: absolute; left: 108px; top: 300px; width: 864px; }
+      #rules-head { font-family: var(--font-display); font-size: 32px; letter-spacing: 0.16em; color: var(--amber); height: 44px; text-shadow: 0 3px 0 #000; }
+      .rule { display: flex; align-items: center; gap: 18px; height: 72px; margin-bottom: 10px; padding: 0 20px 0 12px; background: var(--panel);
+        border: 3px solid rgba(255, 255, 255, 0.14); border-radius: 14px; }
+      .rule .n { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 10px; background: var(--amber); color: #0b0f18; font-family: var(--font-display);
+        font-size: 32px; line-height: 48px; text-align: center; }
+      .rule .txt { font-family: var(--font-text); font-weight: 700; font-size: 34px; color: var(--ink); white-space: nowrap; }
+
+      /* captions */
+      #captions { position: absolute; left: 0; right: 0; top: 636px; height: 130px; overflow: visible; }
+      .cap { position: absolute; left: 0; right: 0; top: 0; padding: 0 80px; white-space: nowrap; text-align: center; font-family: var(--font-display); font-size: 74px;
+        line-height: 1.08; color: #fff; opacity: 0; text-shadow: 0 6px 0 #000, 4px 4px 0 #000, -4px 4px 0 #000, 4px -4px 0 #000, -4px -4px 0 #000, 0 0 22px rgba(0, 0, 0, 0.7); }
+      .cap .w { display: inline-block; margin: 0 0.1em; color: #fff; }
+
+      /* two-choice ending */
+      #choice { position: absolute; inset: 0; }
+      #choice-inner { position: absolute; left: 108px; top: 300px; width: 864px; }
+      .opt { display: flex; align-items: center; gap: 20px; height: 118px; margin-bottom: 22px; padding: 0 30px; border-radius: 18px;
+        font-family: var(--font-display); font-size: 54px; letter-spacing: 0.01em; box-shadow: 0 10px 0 rgba(0, 0, 0, 0.55); }
+      .opt .k { font-size: 64px; }
+      #opt1 { background: #d62828; color: #fff; }
+      #opt2 { background: var(--amber); color: #0b0f18; }
+      #follow { margin-top: 30px; height: 96px; text-align: center; font-family: var(--font-display); font-size: 64px; line-height: 96px; color: #fff;
+        letter-spacing: 0.04em; text-shadow: 0 6px 0 #000, 0 0 30px rgba(0, 0, 0, 0.8); }
+      #follow-inner { display: inline-block; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-composition-variables='[{"id":"day-label","type":"string","label":"Day label","default":"DAY 1"},{"id":"series-title","type":"string","label":"Series title","default":"LIGHTHOUSE RULES"}]' data-start="0" data-duration="24.3" data-width="1080" data-height="1920">
+      <!-- The whole set + the rig, drawn in code. One clock drives it (see renderScene). -->
+      <div id="stage" class="clip" data-start="0" data-duration="24.3" data-track-index="0" data-track-kind="graphics">
+        <svg id="world" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="g-wall" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#070b14" />
+              <stop offset="1" stop-color="#121b2c" />
+            </linearGradient>
+            <linearGradient id="g-sky" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#08142a" />
+              <stop offset="1" stop-color="#1d3354" />
+            </linearGradient>
+            <linearGradient id="g-sea" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#0d2140" />
+              <stop offset="1" stop-color="#050c1a" />
+            </linearGradient>
+            <linearGradient id="g-floor" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#1a2233" />
+              <stop offset="1" stop-color="#080b12" />
+            </linearGradient>
+            <radialGradient id="g-pool" cx="330" cy="1040" r="980" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#ffb14a" stop-opacity="0.55" />
+              <stop offset="0.45" stop-color="#c26a1a" stop-opacity="0.16" />
+              <stop offset="1" stop-color="#c26a1a" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="g-beam" cx="330" cy="1040" r="1700" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#fff1c2" stop-opacity="0.95" />
+              <stop offset="0.35" stop-color="#ffd27a" stop-opacity="0.35" />
+              <stop offset="1" stop-color="#ffd27a" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="g-flare" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stop-color="#fffbe8" stop-opacity="1" />
+              <stop offset="0.25" stop-color="#ffe29a" stop-opacity="0.7" />
+              <stop offset="1" stop-color="#ffb347" stop-opacity="0" />
+            </radialGradient>
+            <radialGradient id="g-moon" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stop-color="#e8e6d8" stop-opacity="0.5" />
+              <stop offset="1" stop-color="#e8e6d8" stop-opacity="0" />
+            </radialGradient>
+            <linearGradient id="g-spill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stop-color="#cfe2ff" stop-opacity="0.75" />
+              <stop offset="1" stop-color="#cfe2ff" stop-opacity="0" />
+            </linearGradient>
+            <radialGradient id="g-vig" cx="0.5" cy="0.46" r="0.75">
+              <stop offset="0.55" stop-color="#000" stop-opacity="0" />
+              <stop offset="1" stop-color="#000" stop-opacity="0.72" />
+            </radialGradient>
+            <clipPath id="clip-window"><circle cx="900" cy="790" r="266" /></clipPath>
+            <clipPath id="clip-peek"><circle cx="1545" cy="900" r="38" /></clipPath>
+          </defs>
+
+          <g id="cam">
+            <rect id="wall" x="-900" y="-700" width="3600" height="2130" fill="url(#g-wall)" />
+            <g id="wall-ribs"></g>
+            <rect id="pool" x="-900" y="-700" width="3600" height="2130" fill="url(#g-pool)" />
+
+            <!-- porthole on the night sea -->
+            <g id="window">
+              <g clip-path="url(#clip-window)">
+                <rect x="620" y="510" width="560" height="372" fill="url(#g-sky)" />
+                <g id="stars"></g>
+                <circle id="moon-glow" cx="1100" cy="800" r="95" fill="url(#g-moon)" />
+                <circle id="moon" cx="1100" cy="800" r="28" fill="#ebe7d6" />
+                <rect x="620" y="880" width="560" height="200" fill="url(#g-sea)" />
+                <g id="moon-path"></g>
+                <g id="waves"></g>
+                <g id="ships">
+                  <g id="ship1"><path d="M-30 0 L30 0 L22 9 L-22 9 Z" fill="#03060c" /><rect x="-10" y="-12" width="20" height="12" fill="#03060c" /><path d="M0 -12 L0 -38" stroke="#03060c" stroke-width="3" /><circle cx="0" cy="-40" r="3.5" fill="#ffe08a" /></g>
+                  <g id="ship2"><path d="M-30 0 L30 0 L22 9 L-22 9 Z" fill="#03060c" /><rect x="-10" y="-12" width="20" height="12" fill="#03060c" /><path d="M0 -12 L0 -38" stroke="#03060c" stroke-width="3" /><circle cx="0" cy="-40" r="3.5" fill="#ffe08a" /></g>
+                  <g id="ship3"><path d="M-30 0 L30 0 L22 9 L-22 9 Z" fill="#03060c" /><rect x="-10" y="-12" width="20" height="12" fill="#03060c" /><path d="M0 -12 L0 -38" stroke="#03060c" stroke-width="3" /><circle cx="0" cy="-40" r="3.5" fill="#ffe08a" /></g>
+                  <g id="ship4"><path d="M-34 0 L34 0 L25 10 L-25 10 Z" fill="#000" /><rect x="-12" y="-14" width="24" height="14" fill="#000" /><path d="M0 -14 L0 -46" stroke="#000" stroke-width="3.5" /><circle id="ship4-light" cx="0" cy="-48" r="5" fill="#ff3b3b" /></g>
+                </g>
+              </g>
+              <g id="ship-numbers" font-family="Archivo Black, Inter, sans-serif" font-size="46" text-anchor="middle">
+                <text id="sn1" x="800" y="826" fill="#fff" stroke="#000" stroke-width="6" paint-order="stroke">1</text>
+                <text id="sn2" x="890" y="826" fill="#fff" stroke="#000" stroke-width="6" paint-order="stroke">2</text>
+                <text id="sn3" x="985" y="826" fill="#fff" stroke="#000" stroke-width="6" paint-order="stroke">3</text>
+                <text id="sn4" x="1080" y="818" fill="#ff4545" stroke="#000" stroke-width="6" paint-order="stroke">4</text>
+              </g>
+              <circle cx="900" cy="790" r="280" fill="none" stroke="#243047" stroke-width="30" />
+              <circle cx="900" cy="790" r="296" fill="none" stroke="#0a0f19" stroke-width="6" />
+              <path d="M900 510 L900 690" stroke="#243047" stroke-width="14" />
+              <path d="M634 690 L1166 690" stroke="#243047" stroke-width="10" />
+              <g fill="#3a4866"><circle cx="900" cy="497" r="6" /><circle cx="1180" cy="790" r="6" /><circle cx="620" cy="790" r="6" /><circle cx="900" cy="1083" r="6" /></g>
+            </g>
+
+            <!-- the door -->
+            <g id="door">
+              <rect x="1416" y="746" width="258" height="676" fill="none" stroke="#0d0a08" stroke-width="16" />
+              <g id="door-panel">
+                <rect x="1430" y="760" width="230" height="660" rx="6" fill="#2a2019" />
+                <g stroke="#1a130e" stroke-width="5"><path d="M1487 768 L1487 1412" /><path d="M1545 768 L1545 860" /><path d="M1545 940 L1545 1412" /><path d="M1602 768 L1602 1412" /></g>
+                <path d="M1440 1010 L1650 1010 M1440 1250 L1650 1250" stroke="#3a2c21" stroke-width="12" />
+                <circle cx="1545" cy="900" r="44" fill="#08111f" stroke="#5c4630" stroke-width="9" />
+                <g id="peeker" clip-path="url(#clip-peek)" opacity="0">
+                  <g id="peeker-head">
+                    <circle cx="1545" cy="916" r="31" fill="#e6e2d6" />
+                    <ellipse cx="1531" cy="910" rx="3.6" ry="5.4" fill="#0b0f18" />
+                    <ellipse cx="1547" cy="910" rx="3.6" ry="5.4" fill="#0b0f18" />
+                  </g>
+                </g>
+                <circle cx="1630" cy="1110" r="11" fill="#b08a4a" />
+              </g>
+            </g>
+
+            <!-- floor -->
+            <rect id="floor" x="-900" y="1420" width="3600" height="1100" fill="url(#g-floor)" />
+            <g id="planks"></g>
+            <rect id="under-door" x="1436" y="1413" width="218" height="7" fill="#d8e8ff" opacity="0.25" />
+            <path id="spill" d="M1436 1420 L1654 1420 L1760 1600 L1340 1600 Z" fill="url(#g-spill)" opacity="0.18" />
+            <ellipse id="foot1" cx="1520" cy="1416" rx="20" ry="5" fill="#04060b" opacity="0" />
+            <ellipse id="foot2" cx="1580" cy="1416" rx="20" ry="5" fill="#04060b" opacity="0" />
+
+            <!-- the lamp -->
+            <g id="lamp">
+              <path d="M262 1160 L398 1160 L432 1420 L228 1420 Z" fill="#182133" stroke="#2b3750" stroke-width="6" />
+              <path d="M230 1300 L430 1300" stroke="#2b3750" stroke-width="6" />
+              <path d="M222 930 Q330 870 438 930 L438 950 L222 950 Z" fill="#1d2738" stroke="#3a4762" stroke-width="5" />
+              <rect x="226" y="1132" width="208" height="30" rx="6" fill="#1d2738" stroke="#3a4762" stroke-width="5" />
+              <g id="lens">
+                <circle cx="330" cy="1040" r="104" fill="#3a2a12" />
+                <circle id="lens-glow" cx="330" cy="1040" r="104" fill="#ffcf6b" opacity="0.55" />
+                <g fill="none" stroke="#7a5320" stroke-width="5" opacity="0.8"><circle cx="330" cy="1040" r="88" /><circle cx="330" cy="1040" r="68" /><circle cx="330" cy="1040" r="48" /></g>
+                <circle id="lens-core" cx="330" cy="1040" r="30" fill="#fff3cf" />
+              </g>
+              <g stroke="#3a4762" stroke-width="7"><path d="M262 950 L262 1132" /><path d="M398 950 L398 1132" /><path d="M330 950 L330 1132" opacity="0.5" /></g>
+            </g>
+
+            <g id="hero"></g>
+
+            <g id="dust"></g>
+            <g id="soundwaves" fill="none" stroke="#cfe2ff" stroke-width="7" stroke-linecap="round"></g>
+
+            <!-- light: two rotating beams + the lens flare, over everything in the room -->
+            <g id="beams" style="mix-blend-mode: screen">
+              <path id="beam0" fill="url(#g-beam)" />
+              <path id="beam1" fill="url(#g-beam)" />
+              <circle id="flare" cx="330" cy="1040" r="120" fill="url(#g-flare)" />
+            </g>
+          </g>
+          <rect id="room-dark" x="0" y="0" width="1080" height="1920" fill="#000" opacity="0" />
+          <rect id="vignette" x="0" y="0" width="1080" height="1920" fill="url(#g-vig)" />
+        </svg>
+      </div>
+
+      <div id="title-day" class="clip" data-start="0" data-duration="1.5" data-track-index="1" data-track-kind="graphics">
+        <div id="title-day-inner">
+          <div id="title-day-big" data-var-text="day-label">DAY 1</div>
+          <div id="title-day-bar"></div>
+          <div id="title-day-sub" data-var-text="series-title">LIGHTHOUSE RULES</div>
+        </div>
+      </div>
+
+      <div id="hud" class="clip" data-start="1.2" data-duration="23.1" data-track-index="2" data-track-kind="graphics">
+        <div id="hud-day">DAY 1</div>
+        <div id="hud-clock" data-layout-allow-overflow>
+          <span id="clock-a" class="clock-state">11:58 PM</span>
+          <span id="clock-b" class="clock-state">11:59 PM</span>
+          <span id="clock-c" class="clock-state late">12:00 AM</span>
+          <span id="clock-d" class="clock-state late">12:01 AM</span>
+        </div>
+      </div>
+
+      <div id="rules" class="clip" data-start="4.1" data-duration="16.35" data-track-index="3" data-track-kind="graphics">
+        <div id="rules-inner">
+          <div id="rules-head">THE KEEPER'S RULES</div>
+          <div id="rule1" class="rule"><span class="n">1</span><span class="txt">The light never stops turning.</span></div>
+          <div id="rule2" class="rule"><span class="n">2</span><span class="txt">Count the ships. One extra? Don't wave.</span></div>
+          <div id="rule3" class="rule"><span class="n">3</span><span class="txt">Never open the door after midnight.</span></div>
+        </div>
+      </div>
+
+      <div id="captions" class="clip" data-start="1.0" data-duration="19.4" data-track-index="4" data-track-kind="captions">
+<!--CAPTIONS:START-->
+        <div id="cap0" class="cap" style="font-size:74px"><span id="cap0w0" class="w">YOU'RE</span> <span id="cap0w1" class="w">THE</span> <span id="cap0w2" class="w">NEW</span></div>
+        <div id="cap1" class="cap" style="font-size:63px"><span id="cap1w0" class="w">LIGHTHOUSE</span> <span id="cap1w1" class="w">KEEPER.</span></div>
+        <div id="cap2" class="cap" style="font-size:74px"><span id="cap2w0" class="w">THE</span> <span id="cap2w1" class="w">LAST</span> <span id="cap2w2" class="w">KEEPER</span></div>
+        <div id="cap3" class="cap" style="font-size:67px"><span id="cap3w0" class="w">LEFT</span> <span id="cap3w1" class="w">THREE</span> <span id="cap3w2" class="w">RULES.</span></div>
+        <div id="cap4" class="cap" style="font-size:74px"><span id="cap4w0" class="w">RULE</span> <span id="cap4w1" class="w">ONE.</span></div>
+        <div id="cap5" class="cap" style="font-size:74px"><span id="cap5w0" class="w">THE</span> <span id="cap5w1" class="w">LIGHT</span> <span id="cap5w2" class="w">NEVER</span></div>
+        <div id="cap6" class="cap" style="font-size:74px"><span id="cap6w0" class="w">STOPS</span> <span id="cap6w1" class="w">TURNING.</span></div>
+        <div id="cap7" class="cap" style="font-size:74px"><span id="cap7w0" class="w">RULE</span> <span id="cap7w1" class="w">TWO.</span></div>
+        <div id="cap8" class="cap" style="font-size:71px"><span id="cap8w0" class="w">COUNT</span> <span id="cap8w1" class="w">THE</span> <span id="cap8w2" class="w">SHIPS.</span></div>
+        <div id="cap9" class="cap" style="font-size:74px"><span id="cap9w0" class="w">IF</span> <span id="cap9w1" class="w">THERE'S</span> <span id="cap9w2" class="w">ONE</span></div>
+        <div id="cap10" class="cap" style="font-size:74px"><span id="cap10w0" class="w">MORE</span> <span id="cap10w1" class="w">THAN</span></div>
+        <div id="cap11" class="cap" style="font-size:74px"><span id="cap11w0" class="w">YESTERDAY,</span></div>
+        <div id="cap12" class="cap" style="font-size:74px"><span id="cap12w0" class="w">DON'T</span> <span id="cap12w1" class="w">WAVE.</span></div>
+        <div id="cap13" class="cap" style="font-size:74px"><span id="cap13w0" class="w">RULE</span> <span id="cap13w1" class="w">THREE.</span></div>
+        <div id="cap14" class="cap" style="font-size:74px"><span id="cap14w0" class="w">NEVER</span> <span id="cap14w1" class="w">OPEN</span> <span id="cap14w2" class="w">THE</span></div>
+        <div id="cap15" class="cap" style="font-size:74px"><span id="cap15w0" class="w">DOOR</span> <span id="cap15w1" class="w">AFTER</span></div>
+        <div id="cap16" class="cap" style="font-size:74px"><span id="cap16w0" class="w">MIDNIGHT.</span></div>
+        <div id="cap17" class="cap" style="font-size:74px"><span id="cap17w0" class="w">IT'S</span> <span id="cap17w1" class="w">12:01.</span></div>
+        <div id="cap18" class="cap" style="font-size:74px"><span id="cap18w0" class="w">SOMEONE</span> <span id="cap18w1" class="w">KNOCKS.</span></div>
+        <div id="cap19" class="cap" style="font-size:74px"><span id="cap19w0" class="w">AND</span> <span id="cap19w1" class="w">THE</span> <span id="cap19w2" class="w">VOICE</span></div>
+        <div id="cap20" class="cap" style="font-size:74px"><span id="cap20w0" class="w">OUTSIDE</span> <span id="cap20w1" class="w">SOUNDS</span></div>
+        <div id="cap21" class="cap" style="font-size:74px"><span id="cap21w0" class="w">LIKE</span></div>
+        <div id="cap22" class="cap" style="font-size:74px"><span id="cap22w0" class="w">YOURS.</span></div>
+<!--CAPTIONS:END-->
+      </div>
+
+      <div id="choice" class="clip" data-start="20.1" data-duration="4.2" data-track-index="5" data-track-kind="graphics">
+        <div id="choice-inner">
+          <div id="opt1" class="opt"><span class="k">1:</span><span>OPEN THE DOOR</span></div>
+          <div id="opt2" class="opt"><span class="k">2:</span><span>KEEP THE LIGHT ON</span></div>
+          <div id="follow"><span id="follow-inner">FOLLOW FOR DAY 2</span></div>
+        </div>
+      </div>
+
+      <!-- sound: voice (ElevenLabs v3 via varg), procedural bed + effects (ffmpeg, no samples) -->
+      <audio id="vo" src="assets/audio/voice.wav" data-start="0.2" data-duration="22.15" data-track-index="10" data-volume="1"></audio>
+      <audio id="amb" src="assets/audio/ambient.wav" data-start="0" data-duration="24.3" data-track-index="11" data-volume="1"></audio>
+      <audio id="sfx-thud" src="assets/audio/thud.wav" data-start="0.2" data-duration="0.9" data-track-index="12" data-volume="0.55"></audio>
+      <audio id="sfx-buzz" src="assets/audio/buzz.wav" data-start="15.75" data-duration="0.9" data-track-index="13" data-volume="0.3"></audio>
+      <audio id="sfx-knock1" src="assets/audio/knock-182.wav" data-start="17.24" data-duration="0.35" data-track-index="14" data-volume="0.75"></audio>
+      <audio id="sfx-knock2" src="assets/audio/knock-171.wav" data-start="17.48" data-duration="0.35" data-track-index="15" data-volume="0.65"></audio>
+      <audio id="sfx-knock3" src="assets/audio/knock-196.wav" data-start="17.72" data-duration="0.35" data-track-index="16" data-volume="0.8"></audio>
+      <audio id="sfx-whoosh" src="assets/audio/whoosh.wav" data-start="19.4" data-duration="1.0" data-track-index="17" data-volume="0.4"></audio>
+      <audio id="sfx-thud2" src="assets/audio/thud-b.wav" data-start="20.2" data-duration="0.9" data-track-index="18" data-volume="0.45"></audio>
+    </div>
+
+    <script>
+      (function () {
+        const S = window.Stickman;
+        const DUR = 24.3;
+        const GROUND = 1420;
+        const LAMP = [330, 1040];
+        const KNOCKS = [17.26, 17.5, 17.74];
+        const svg = (tag, attrs, parent) => { const e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (const a in attrs) e.setAttribute(a, attrs[a]); parent.appendChild(e); return e; };
+        const $ = (id) => document.getElementById(id);
+        const sm = S.smooth, clamp = S.clamp, hash = S.hash;
+
+        // ---------- static decor (drawn once) ----------
+        for (let x = -880; x <= 2700; x += 150) svg("path", { d: `M${x} -700 L${x} 1420`, stroke: "#0e1626", "stroke-width": 10 }, $("wall-ribs"));
+        svg("path", { d: "M-900 360 L2700 360", stroke: "#0e1626", "stroke-width": 26 }, $("wall-ribs"));
+        for (let i = 0; i < 9; i++) { const y = 1420 + 12 + i * i * 9 + i * 26; svg("path", { d: `M-900 ${y} L2700 ${y}`, stroke: "#0b101b", "stroke-width": 4 + i }, $("planks")); }
+        const stars = [];
+        for (let i = 0; i < 26; i++) {
+          const x = 640 + 520 * (hash(i, 1) * 0.5 + 0.5), y = 520 + 330 * (hash(i, 2) * 0.5 + 0.5);
+          stars.push({ el: svg("circle", { cx: x.toFixed(1), cy: y.toFixed(1), r: (1.3 + 1.4 * (hash(i, 3) * 0.5 + 0.5)).toFixed(2), fill: "#dfe8ff" }, $("stars")), seed: i });
+        }
+        const waves = [0, 1, 2, 3].map((i) => svg("path", { fill: "none", stroke: i % 2 ? "#2f527d" : "#3d6699", "stroke-width": 3 + i, opacity: 0.75 - i * 0.12 }, $("waves")));
+        const moonPath = [0, 1, 2, 3, 4, 5].map((i) => svg("path", { stroke: "#e9e5d3", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.5 }, $("moon-path")));
+        const dust = [];
+        KNOCKS.forEach((k, ki) => { for (let i = 0; i < 5; i++) dust.push({ k, x: 1445 + 210 * (hash(ki * 7 + i, 4) * 0.5 + 0.5), r: 2.5 + 2.5 * (hash(ki * 7 + i, 5) * 0.5 + 0.5), v: 40 + 60 * (hash(ki * 7 + i, 6) * 0.5 + 0.5), el: svg("circle", { r: 3, fill: "#a99a86", opacity: 0 }, $("dust")) }); });
+        const arcs = [0, 1, 2].map(() => svg("path", { opacity: 0 }, $("soundwaves")));
+        const ships = [
+          { el: $("ship1"), n: $("sn1"), x: 800, at: 8.62, rise: 0.22, s: 0.9 },
+          { el: $("ship2"), n: $("sn2"), x: 890, at: 8.97, rise: 0.22, s: 0.95 },
+          { el: $("ship3"), n: $("sn3"), x: 985, at: 9.32, rise: 0.22, s: 0.9 },
+          { el: $("ship4"), n: $("sn4"), x: 1080, at: 10.22, rise: 0.55, s: 1.15 },
+        ];
+
+        // ---------- the rig: keyed joint angles ----------
+        const hero = S.create($("hero"), { scale: 1.45, ground: GROUND, blinks: [1.15, 2.95, 4.9, 7.6, 9.85, 12.3, 13.95, 15.3, 16.45, 19.25, 20.95, 22.2, 23.45, 24.1] });
+        const P = S.track(Object.assign({}, S.DEFAULT_POSE, { x: 380 }), S.LEAD);
+        P.move(-0.5, 3.1, { x: 770 }, "walk"); // already mid-stride on frame 0
+        P.move(0.9, 0.3, { lookX: 0.25, lookY: -0.1 });
+        P.move(1.9, 0.3, { lookX: 1, lookY: 0 });
+        P.move(2.45, 0.35, { lean: -3, aSh: 4, bSh: -4 }, "out");
+        P.move(2.85, 0.28, { lookX: -1, headTilt: -5, lookY: -0.2 }, "snap"); // look back over the shoulder
+        P.move(3.45, 0.3, { lookX: 0.5, lookY: -0.75, headTilt: -12 }); // look up
+        P.move(4.05, 0.22, { lookX: 0, lookY: 0, headTilt: 0, brow: 0.55, eyeOpen: 1.1, lean: 0 }, "snap"); // to camera on "three rules"
+        P.move(4.95, 0.16, { turn: -1 }); // turn to the lamp
+        P.move(5.0, 0.2, { lookX: 1, brow: 0.2, eyeOpen: 1 }, "out");
+        P.move(5.25, 1.25, { x: 610 }, "walk");
+        P.move(6.3, 0.35, { aSh: 96, aEl: 4, lookY: -0.35, headTilt: -8, bSh: -14 }, "back"); // point at the lamp
+        P.move(7.25, 0.3, { aSh: 10, aEl: 16, lookY: 0, headTilt: 0, bSh: -6 });
+        P.move(7.65, 0.16, { turn: 1 });
+        P.move(7.8, 0.85, { x: 735 }, "walk");
+        P.move(8.5, 0.35, { lookX: 0.8, lookY: -0.75, headTilt: -14 });
+        P.move(8.55, 0.3, { aSh: 128, aEl: 6 }, "back"); // count the ships
+        P.move(8.95, 0.1, { aSh: 120 }, "out"); P.move(9.05, 0.12, { aSh: 131 }, "out");
+        P.move(9.3, 0.1, { aSh: 121 }, "out"); P.move(9.4, 0.12, { aSh: 132 }, "out");
+        P.move(9.6, 0.35, { aSh: 20, aEl: 30 });
+        P.move(10.3, 0.14, { lookX: 0, lookY: 0, headTilt: 0, eyeOpen: 1.4, brow: 0.9, mouthOpen: 0.35, lean: -5 }, "snap"); // double take
+        P.move(10.75, 0.3, { lookX: 0.8, lookY: -0.7, headTilt: -12, mouthOpen: 0, eyeOpen: 1.15 });
+        P.move(10.95, 0.32, { aSh: 160, aEl: 30 }, "back"); // almost waves
+        P.move(11.05, 0.25, { wave: 1 });
+        P.move(11.5, 0.06, { wave: 0 }, "snap"); // "don't"
+        P.move(11.5, 0.08, { eyeOpen: 1.45, mouthOpen: 0.7, brow: 1 }, "snap");
+        P.move(11.72, 0.18, { aSh: 30, aEl: 95, bSh: 25, bEl: 80, lean: -7 }, "snap"); // yanks the arm back
+        P.move(12.05, 0.3, { mouthOpen: 0, eyeOpen: 1.15 });
+        P.move(12.3, 0.25, { lookX: 1, lookY: 0, headTilt: 0, lean: 2 });
+        P.move(12.55, 1.45, { x: 1090 }, "walk"); // to the door
+        P.move(12.55, 0.4, { aSh: 12, aEl: 22, bSh: -6, bEl: 18 });
+        P.move(14.05, 0.3, { lean: 0, brow: 0.6 });
+        P.move(14.5, 0.22, { lookX: 0.1, lookY: -1, headTilt: -10 }, "snap"); // midnight: eyes up at the clock
+        P.move(15.2, 0.3, { lookX: 1, lookY: 0, headTilt: 0 });
+        P.move(15.85, 0.2, { lookX: -1, eyeOpen: 1.3, lean: -4 }, "snap"); // the lamp flickers
+        P.move(16.55, 0.3, { lookX: 1, eyeOpen: 1.1, lean: 0 });
+        P.move(17.25, 0.02, { gait: 0 }, "linear");
+        P.move(17.27, 0.13, { y: -40, x: 1045, aSh: 138, aEl: 30, bSh: 122, bEl: 34, eyeOpen: 1.55, mouthOpen: 1, brow: 1, lean: -12, liftA: 30, liftB: 22 }, "snap"); // knock: jump back
+        P.move(17.42, 0.12, { y: 0, liftA: 0, liftB: 0, hipDrop: 34 }, "in"); // land, knees absorb
+        P.move(17.56, 0.4, { hipDrop: 80, lean: 26, aSh: 150, aEl: 128, bSh: 138, bEl: 122, headTilt: 14, tremble: 1, mouthOpen: 0.3, eyeOpen: 1.35 }, "out"); // crouch, cover the head
+        P.move(18.3, 0.35, { headTilt: -2, lookX: 1, lookY: -0.1 }); // peeks at the door
+        P.move(18.25, 0.45, { aSh: 48, aEl: 70 }); // near arm drops to the knees so the face shows
+        P.move(19.85, 0.1, { eyeOpen: 1.6, mouthOpen: 0.8, tremble: 1.6 }, "snap"); // the face in the window
+        P.move(20.2, 0.6, { hipDrop: 0, lean: 0, headTilt: 0, aSh: 10, aEl: 22, bSh: -8, bEl: 18, tremble: 0.35, mouthOpen: 0, eyeOpen: 1.2 });
+        P.move(20.85, 0.02, { gait: 1 }, "linear");
+        P.move(21.05, 0.25, { lookX: -1, headTilt: -3 }, "snap"); // looks back at the lamp
+        P.move(21.9, 0.28, { lookX: 0, lookY: 0, headTilt: 0, brow: 0.7, eyeOpen: 1.05, tremble: 0.15 }); // to camera: your call
+        P.move(22.9, 0.35, { aSh: 28, aEl: 78, bSh: 22, bEl: 74, lean: -2 }, "back"); // small shrug
+        P.move(23.6, 0.4, { aSh: 12, aEl: 24, bSh: -6, bEl: 18 });
+
+        // ---------- camera ----------
+        const CAM = S.track({ cx: 650, cy: 1060, cs: 1.16 });
+        CAM.move(0.2, 2.6, { cx: 880, cy: 990, cs: 1.0 });
+        CAM.move(3.9, 0.9, { cx: 820, cy: 1010, cs: 1.08 });
+        CAM.move(5.0, 1.3, { cx: 560, cy: 1010, cs: 1.04 }); // to the lamp
+        CAM.move(7.6, 0.9, { cx: 880, cy: 930, cs: 1.1 }); // to the porthole
+        CAM.move(10.25, 0.3, { cx: 950, cy: 850, cs: 1.24 }, "snap"); // punch on ship 4
+        CAM.move(11.0, 0.5, { cx: 860, cy: 940, cs: 1.12 });
+        CAM.move(12.35, 1.2, { cx: 1270, cy: 1000, cs: 1.0 }); // to the door
+        CAM.move(14.5, 0.6, { cy: 980, cs: 1.05 });
+        CAM.move(17.3, 0.5, { cx: 1300, cy: 1030, cs: 1.08 }, "out");
+        CAM.move(18.0, 2.0, { cx: 1360, cy: 1060, cs: 1.26 }); // creep toward the door
+        CAM.move(20.15, 0.9, { cx: 1060, cy: 1000, cs: 0.84 }); // pull out for the choice
+        CAM.move(21.2, 3.1, { cs: 0.9 }, "linear");
+
+        // lamp flicker at 12:01: same on/off table as the buzz sound (relative seconds)
+        const FLICK = 15.75;
+        function lampOn(t) {
+          const r = t - FLICK;
+          if (r < 0) return 1;
+          if (r < 0.06) return 0.1; if (r < 0.14) return 1; if (r < 0.3) return 0.05; if (r < 0.36) return 0.9; if (r < 0.52) return 0.08;
+          return 1;
+        }
+        const shakeAt = (t, f, decay) => KNOCKS.reduce((acc, k) => acc + (t > k ? Math.exp(-(t - k) * decay) * Math.sin((t - k) * 2 * Math.PI * f) : 0), 0);
+
+        function renderScene(t) {
+          // camera (+ knock shake)
+          const c = CAM.at(t);
+          const sh = shakeAt(t, 23, 14) * 7;
+          $("cam").setAttribute("transform", `translate(${(540 + sh).toFixed(2)} 960) scale(${c.cs.toFixed(4)}) translate(${(-c.cx).toFixed(2)} ${(-c.cy).toFixed(2)})`);
+
+          // lamp + two rotating beams
+          const on = lampOn(t);
+          const phi = (2 * Math.PI * t) / 3.4 + 0.6;
+          let face = 0;
+          for (let k = 0; k < 2; k++) {
+            const a = phi + k * Math.PI, ca = Math.cos(a), sa = Math.sin(a);
+            const E = [LAMP[0] + 1750 * ca, LAMP[1] - 340 - 40 * sa];
+            const dx = E[0] - LAMP[0], dy = E[1] - LAMP[1], len = Math.hypot(dx, dy) || 1;
+            const nx = -dy / len, ny = dx / len, w = 60 + 190 * Math.abs(sa);
+            const bright = (0.3 + 0.7 * Math.max(0, sa)) * on;
+            const el = $("beam" + k);
+            el.setAttribute("d", `M${LAMP[0] + nx * 14} ${LAMP[1] + ny * 14} L${(E[0] + nx * w).toFixed(1)} ${(E[1] + ny * w).toFixed(1)} L${(E[0] - nx * w).toFixed(1)} ${(E[1] - ny * w).toFixed(1)} L${LAMP[0] - nx * 14} ${LAMP[1] - ny * 14} Z`);
+            el.setAttribute("opacity", (0.5 * bright).toFixed(3));
+            face = Math.max(face, Math.pow(Math.max(0, sa), 6));
+          }
+          $("flare").setAttribute("r", (90 + 170 * face).toFixed(1));
+          $("flare").setAttribute("opacity", ((0.35 + 0.6 * face) * on).toFixed(3));
+          $("lens-glow").setAttribute("opacity", ((0.35 + 0.5 * face) * on).toFixed(3));
+          $("lens-core").setAttribute("opacity", (0.25 + 0.75 * on).toFixed(3));
+          $("pool").setAttribute("opacity", ((0.75 + 0.25 * face) * on).toFixed(3));
+          $("room-dark").setAttribute("opacity", ((1 - on) * 0.55 + sm(17.2, 18.2, t) * 0.12 - sm(20.1, 20.8, t) * 0.12).toFixed(3));
+
+          // sea, stars, moon
+          waves.forEach((w, i) => {
+            let d = "";
+            for (let x = 620; x <= 1180; x += 20) {
+              const y = 902 + i * 44 + (3 + i * 1.6) * Math.sin(x / (70 + i * 26) - t * (1.1 + i * 0.25) + i * 1.7);
+              d += (x === 620 ? "M" : "L") + x + " " + y.toFixed(1) + " ";
+            }
+            w.setAttribute("d", d);
+          });
+          stars.forEach((s) => s.el.setAttribute("opacity", (0.45 + 0.45 * Math.sin(t * (1.3 + (s.seed % 5) * 0.4) + s.seed * 2.1)).toFixed(3)));
+          moonPath.forEach((m, i) => {
+            const y = 898 + i * 22, x = 1100 + 10 * Math.sin(t * 1.7 + i * 1.3), hw = 26 - i * 3;
+            m.setAttribute("d", `M${(x - hw).toFixed(1)} ${y} L${(x + hw).toFixed(1)} ${y}`);
+            m.setAttribute("opacity", (0.25 + 0.25 * Math.sin(t * 3 + i)).toFixed(3));
+          });
+
+          // ships appear one by one on the count; the fourth one is new
+          ships.forEach((s, i) => {
+            const o = sm(s.at, s.at + s.rise, t);
+            const x = s.x + 5 * Math.sin(t * 0.5 + i * 1.9);
+            s.el.setAttribute("transform", `translate(${x.toFixed(1)} ${(880 + (1 - o) * 14).toFixed(1)}) scale(${s.s})`);
+            s.el.setAttribute("opacity", o.toFixed(3));
+            const no = sm(s.at, s.at + 0.14, t) * (1 - sm(12.1, 12.4, t));
+            const pop = 1 + 0.35 * S.bump(t, s.at + 0.1, 0.2);
+            s.n.setAttribute("opacity", no.toFixed(3));
+            s.n.setAttribute("transform", `translate(${s.x} 812) scale(${pop.toFixed(3)}) translate(${-s.x} -812)`);
+          });
+          $("ship4-light").setAttribute("opacity", (0.4 + 0.6 * (Math.sin(t * 7) > 0 ? 1 : 0.2)).toFixed(2));
+
+          // door: shakes on each knock, light under it, feet outside, a voice, a face
+          const ds = shakeAt(t, 19, 16);
+          $("door-panel").setAttribute("transform", `rotate(${(ds * 1.8).toFixed(3)} 1430 1090) translate(${(ds * 5).toFixed(2)} 0)`);
+          const outside = sm(17.9, 18.4, t);
+          $("under-door").setAttribute("opacity", (0.25 + 0.65 * outside).toFixed(3));
+          $("spill").setAttribute("opacity", (0.12 + 0.3 * outside).toFixed(3));
+          $("foot1").setAttribute("cx", (1515 + 16 * Math.sin(t * 1.4)).toFixed(1));
+          $("foot2").setAttribute("cx", (1580 + 16 * Math.sin(t * 1.4 + 0.9)).toFixed(1));
+          $("foot1").setAttribute("opacity", (0.9 * outside).toFixed(3));
+          $("foot2").setAttribute("opacity", (0.9 * outside).toFixed(3));
+          arcs.forEach((a, i) => {
+            const live = sm(18.3, 18.5, t) * (1 - sm(19.6, 19.9, t));
+            const u = ((t - 18.3) * 1.4 + i / 3) % 1;
+            const r = 40 + u * 150, cx = 1430, cy = 1130;
+            const a0 = (150 * Math.PI) / 180, a1 = (210 * Math.PI) / 180;
+            a.setAttribute("d", `M${(cx + r * Math.cos(a0)).toFixed(1)} ${(cy + r * Math.sin(a0)).toFixed(1)} A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${(cx + r * Math.cos(a1)).toFixed(1)} ${(cy + r * Math.sin(a1)).toFixed(1)}`);
+            a.setAttribute("opacity", (t > 18.3 ? live * (1 - u) * 0.85 : 0).toFixed(3));
+          });
+          $("peeker").setAttribute("opacity", sm(19.8, 19.98, t).toFixed(3));
+          $("peeker-head").setAttribute("transform", `translate(${(2 * Math.sin(t * 1.1)).toFixed(2)} ${(3 * Math.sin(t * 1.7) + (1 - sm(19.8, 20.1, t)) * 30).toFixed(2)})`);
+          dust.forEach((p) => {
+            const r = t - p.k;
+            if (r <= 0 || r > 1.0) { p.el.setAttribute("opacity", "0"); return; }
+            p.el.setAttribute("cx", (p.x + 8 * Math.sin(r * 6 + p.v)).toFixed(1));
+            p.el.setAttribute("cy", (756 + p.v * r + 650 * r * r).toFixed(1));
+            p.el.setAttribute("r", p.r.toFixed(1));
+            p.el.setAttribute("opacity", (0.85 * (1 - r)).toFixed(3));
+          });
+
+          // the stickman
+          S.draw(hero, P, t);
+        }
+
+        // ---------- one paused timeline ----------
+        const tl = gsap.timeline({ paused: true });
+        // The clock: GSAP writes `t` on every seek; the setter redraws the whole set and the rig for that time.
+        const clock = { _t: 0 };
+        Object.defineProperty(clock, "t", { get() { return this._t; }, set(v) { this._t = v; renderScene(v); } });
+        tl.fromTo(clock, { t: 0 }, { t: DUR, duration: DUR, ease: "none" }, 0);
+
+        // opening title: on screen at frame 0, punches on "Day", flies into the HUD
+        tl.fromTo("#title-day-inner", { scale: 1 }, { scale: 1.09, duration: 0.08, ease: "power2.out" }, 0.22);
+        tl.to("#title-day-inner", { scale: 1, duration: 0.25, ease: "power2.inOut" }, 0.3);
+        tl.to("#title-day-inner", { x: -330, y: -390, scale: 0.26, opacity: 0, duration: 0.32, ease: "power3.in" }, 1.08);
+        tl.fromTo("#hud-day", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.2, ease: "power3.out" }, 1.3);
+        tl.fromTo("#hud-clock", { opacity: 0, x: 24 }, { opacity: 1, x: 0, duration: 0.2, ease: "power3.out" }, 1.4);
+
+        // clock flips: 11:58 -> 11:59 -> 12:00 (midnight) -> 12:01
+        tl.set(["#clock-b", "#clock-c", "#clock-d"], { yPercent: 110 }, 0);
+        const flip = (from, to, at) => {
+          tl.to(from, { yPercent: -110, duration: 0.18, ease: "power2.in" }, at);
+          tl.fromTo(to, { yPercent: 110 }, { yPercent: 0, duration: 0.22, ease: "back.out(2)" }, at + 0.06);
+        };
+        flip("#clock-a", "#clock-b", 9.0);
+        flip("#clock-b", "#clock-c", 14.55);
+        tl.fromTo("#hud-clock", { borderColor: "rgba(255,255,255,0.16)" }, { borderColor: "#e5383b", duration: 0.15, immediateRender: false }, 14.6);
+        tl.fromTo("#hud-clock", { scale: 1 }, { scale: 1.12, duration: 0.1, yoyo: true, repeat: 1, ease: "power2.out", immediateRender: false }, 14.6);
+        flip("#clock-c", "#clock-d", 15.6);
+        tl.fromTo("#hud-clock", { scale: 1 }, { scale: 1.12, duration: 0.1, yoyo: true, repeat: 1, ease: "power2.out", immediateRender: false }, 15.66);
+
+        // rules, one at a time, on the word that says them
+        tl.fromTo("#rules-head", { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.25, ease: "power3.out" }, 4.12);
+        [["#rule1", 5.06], ["#rule2", 7.7], ["#rule3", 12.38]].forEach(([id, at], i, all) => {
+          tl.fromTo(id, { opacity: 0, x: -70, scale: 0.96 }, { opacity: 1, x: 0, scale: 1, duration: 0.3, ease: "back.out(1.7)" }, at);
+          tl.fromTo(id, { borderColor: "rgba(255,255,255,0.14)" }, { borderColor: "#ffb703", duration: 0.2 }, at + 0.05);
+          if (i > 0) tl.to(all[i - 1][0], { borderColor: "rgba(255,255,255,0.14)", opacity: 0.72, duration: 0.25 }, at);
+        });
+        tl.to("#rules-inner", { opacity: 0, y: -24, duration: 0.22, ease: "power2.in" }, 20.05);
+
+        // captions (built from the transcript by captions.mjs)
+        /*CAPTION_DATA:START*/
+        const CAPS = [{"id":"cap0","start":1.19,"end":1.79,"words":[{"id":"cap0w0","start":1.23,"end":1.49},{"id":"cap0w1","start":1.49,"end":1.63},{"id":"cap0w2","start":1.64,"end":1.79}]},{"id":"cap1","start":1.79,"end":2.7,"words":[{"id":"cap1w0","start":1.79,"end":2.27},{"id":"cap1w1","start":2.27,"end":2.68}]},{"id":"cap2","start":2.7,"end":3.75,"words":[{"id":"cap2w0","start":2.74,"end":2.93},{"id":"cap2w1","start":2.93,"end":3.26},{"id":"cap2w2","start":3.26,"end":3.75}]},{"id":"cap3","start":3.75,"end":5.06,"words":[{"id":"cap3w0","start":3.75,"end":4.08},{"id":"cap3w1","start":4.1,"end":4.51},{"id":"cap3w2","start":4.51,"end":5.06}]},{"id":"cap4","start":5.06,"end":5.88,"words":[{"id":"cap4w0","start":5.06,"end":5.2},{"id":"cap4w1","start":5.2,"end":5.88}]},{"id":"cap5","start":5.88,"end":6.66,"words":[{"id":"cap5w0","start":5.88,"end":6.03},{"id":"cap5w1","start":6.03,"end":6.27},{"id":"cap5w2","start":6.27,"end":6.66}]},{"id":"cap6","start":6.66,"end":7.66,"words":[{"id":"cap6w0","start":6.66,"end":7.04},{"id":"cap6w1","start":7.04,"end":7.64}]},{"id":"cap7","start":7.66,"end":8.45,"words":[{"id":"cap7w0","start":7.7,"end":7.91},{"id":"cap7w1","start":7.91,"end":8.26}]},{"id":"cap8","start":8.45,"end":9.37,"words":[{"id":"cap8w0","start":8.49,"end":8.64},{"id":"cap8w1","start":8.67,"end":8.84},{"id":"cap8w2","start":8.84,"end":9.37}]},{"id":"cap9","start":9.37,"end":10.18,"words":[{"id":"cap9w0","start":9.37,"end":9.5},{"id":"cap9w1","start":9.5,"end":9.96},{"id":"cap9w2","start":9.96,"end":10.18}]},{"id":"cap10","start":10.18,"end":10.7,"words":[{"id":"cap10w0","start":10.18,"end":10.43},{"id":"cap10w1","start":10.43,"end":10.7}]},{"id":"cap11","start":10.7,"end":11.48,"words":[{"id":"cap11w0","start":10.7,"end":11.34}]},{"id":"cap12","start":11.48,"end":12.34,"words":[{"id":"cap12w0","start":11.52,"end":11.76},{"id":"cap12w1","start":11.76,"end":12.25}]},{"id":"cap13","start":12.34,"end":13.13,"words":[{"id":"cap13w0","start":12.38,"end":12.59},{"id":"cap13w1","start":12.59,"end":13.13}]},{"id":"cap14","start":13.13,"end":13.94,"words":[{"id":"cap14w0","start":13.17,"end":13.47},{"id":"cap14w1","start":13.47,"end":13.73},{"id":"cap14w2","start":13.73,"end":13.94}]},{"id":"cap15","start":13.94,"end":14.55,"words":[{"id":"cap15w0","start":13.94,"end":14.21},{"id":"cap15w1","start":14.21,"end":14.55}]},{"id":"cap16","start":14.55,"end":15.33,"words":[{"id":"cap16w0","start":14.55,"end":15.24}]},{"id":"cap17","start":15.33,"end":16.63,"words":[{"id":"cap17w0","start":15.37,"end":15.62},{"id":"cap17w1","start":15.62,"end":16.63}]},{"id":"cap18","start":16.63,"end":17.94,"words":[{"id":"cap18w0","start":16.64,"end":17.24},{"id":"cap18w1","start":17.24,"end":17.94}]},{"id":"cap19","start":17.94,"end":18.6,"words":[{"id":"cap19w0","start":17.98,"end":18.12},{"id":"cap19w1","start":18.12,"end":18.3},{"id":"cap19w2","start":18.3,"end":18.6}]},{"id":"cap20","start":18.6,"end":19.41,"words":[{"id":"cap20w0","start":18.61,"end":19.04},{"id":"cap20w1","start":19.04,"end":19.41}]},{"id":"cap21","start":19.41,"end":19.81,"words":[{"id":"cap21w0","start":19.41,"end":19.6}]},{"id":"cap22","start":19.81,"end":20.2,"words":[{"id":"cap22w0","start":19.85,"end":20.2}]}];
+        /*CAPTION_DATA:END*/
+        CAPS.forEach((g) => {
+          const el = $(g.id);
+          tl.fromTo(el, { opacity: 0, y: 16, scale: 0.94 }, { opacity: 1, y: 0, scale: 1, duration: 0.12, ease: "power3.out" }, g.start);
+          g.words.forEach((w) => {
+            const we = $(w.id);
+            tl.fromTo(we, { color: "#ffffff", scale: 1 }, { color: "#ffd23f", scale: 1.06, duration: 0.06, ease: "power2.out" }, w.start);
+            tl.to(we, { color: "#ffffff", scale: 1, duration: 0.1, ease: "power2.inOut" }, Math.min(w.end, g.end - 0.1));
+          });
+          tl.to(el, { opacity: 0, duration: 0.1, ease: "power2.in" }, g.end - 0.1);
+          // hard kill with opacity only: under a clip host GSAP records the inherited visibility:hidden as the
+          // start value, so a visibility set would stay stuck on hidden after a backward seek
+          tl.set(el, { opacity: 0 }, g.end);
+        });
+
+        // the two-choice ending
+        tl.fromTo("#opt1", { opacity: 0, scale: 0.7, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.32, ease: "back.out(1.8)" }, 20.2);
+        tl.fromTo("#opt2", { opacity: 0, scale: 0.7, y: 30 }, { opacity: 1, scale: 1, y: 0, duration: 0.32, ease: "back.out(1.8)" }, 21.1);
+        tl.fromTo("#follow", { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.3, ease: "power3.out" }, 22.1);
+        tl.fromTo("#follow-inner", { scale: 1 }, { scale: 1.07, duration: 0.4, yoyo: true, repeat: 3, ease: "sine.inOut" }, 22.5);
+        tl.fromTo("#opt1", { rotation: 0 }, { rotation: -1.5, duration: 0.5, yoyo: true, repeat: 5, ease: "sine.inOut" }, 21.2);
+        tl.fromTo("#opt2", { rotation: 0 }, { rotation: 1.5, duration: 0.5, yoyo: true, repeat: 3, ease: "sine.inOut" }, 21.7);
+
+        window.__timelines["main"] = tl;
+        tl.seek(0);
+      })();
+    </script>
+  </body>
+</html>

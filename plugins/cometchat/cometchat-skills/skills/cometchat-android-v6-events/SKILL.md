@@ -2,7 +2,7 @@
 name: cometchat-android-v6-events
 description: "React to what the CometChat Android v6 UI Kit is doing — the CometChatEvents SharedFlow bus (message, call, conversation, group, user and UI events), how to collect it in Compose vs XML Views with correct lifecycle scoping, and when to use UI-Kit events versus Chat SDK listeners. Triggers: 'listen for message sent android cometchat', 'cometchat events android', 'know when a call is accepted', 'react when a group is created', 'sdk listener vs uikit event'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -56,7 +56,7 @@ lifecycleScope.launch {
 **Jetpack Compose** — collect in `LaunchedEffect`; cancelled when the composable leaves composition:
 ```kotlin
 LaunchedEffect(Unit) {
-    CometChatEvents.messageEvents.collect { event -> /* when (event) { … } */ }
+    CometChatEvents.messageEvents.collect { event -> /* when (event) { ... } */ }
 }
 ```
 > **No manual removal needed.** Unlike the old static-listener pattern, `SharedFlow` collection is scoped — do NOT invent an `addListener`/`removeListener` pair for `CometChatEvents`. Just don't collect outside a lifecycle-aware scope (a bare `GlobalScope.launch` IS a leak).
@@ -66,7 +66,7 @@ LaunchedEffect(Unit) {
 |---|---|---|
 | Source | UI Kit components (what the UI just did) | the CometChat server (what arrived) |
 | Direction | component → component | server → client |
-| Registration | `.collect {}` in a lifecycle scope | `add*Listener(ID, …)` + **`remove*Listener(ID)` on teardown** |
+| Registration | `.collect {}` in a lifecycle scope | `add*Listener(ID, ...)` + **`remove*Listener(ID)` on teardown** |
 | Use for | "the user sent/edited a message", "a call was accepted", panel/active-chat changes | incoming messages, presence, typing, connection status, incoming calls |
 **Both are needed for a full app.** If you're reacting to something the server pushed while your UI didn't do it, that's an SDK listener (→ `core/references/docs-map.md` SDK section, or `cometchat-android-v5-sdk`) — and SDK listeners DO require explicit removal in `onDestroy`/`onDispose`/`onCleared`.
 

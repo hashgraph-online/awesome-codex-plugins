@@ -2,7 +2,7 @@
 name: cometchat-android-v6-production
 description: "Ship a CometChat Android v6 app safely — server-minted auth tokens instead of the dev Auth Key, keeping credentials out of the APK, release-build and R8/ProGuard checks, user provisioning server-side, rate limits, and the Play Store publishing prerequisites. Triggers: 'is my cometchat android app production ready', 'auth token instead of auth key android', 'release build cometchat android', 'proguard cometchat', 'publish chat app play store'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -20,7 +20,7 @@ metadata:
 "are we production ready?", "switch from the Auth Key to auth tokens", "prepare the release build", "does CometChat need ProGuard rules?", "what are the rate limits?", "anything to do before Play Store submission?".
 
 ## Production golden path
-1. **Auth: server-minted tokens, never the Auth Key.** The dev flow (`login(uid, …)` backed by `credentials.authKey` in the settings file) is **development only** — the Auth Key can create/authenticate any user, so shipping it in an APK is a full compromise (APKs are trivially decompiled). Production: your backend creates the user and mints a per-user **auth token** via the CometChat REST API, your app fetches it over your own authenticated channel, then:
+1. **Auth: server-minted tokens, never the Auth Key.** The dev flow (`login(uid, ...)` backed by `credentials.authKey` in the settings file) is **development only** — the Auth Key can create/authenticate any user, so shipping it in an APK is a full compromise (APKs are trivially decompiled). Production: your backend creates the user and mints a per-user **auth token** via the CometChat REST API, your app fetches it over your own authenticated channel, then:
    ```kotlin
    CometChatUIKit.loginWithAuthToken(authToken, object : CometChat.CallbackListener<User>() {
        override fun onSuccess(user: User) { /* unlock the chat UI */ }

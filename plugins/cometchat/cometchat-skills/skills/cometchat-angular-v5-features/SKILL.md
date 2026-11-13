@@ -2,7 +2,7 @@
 name: cometchat-angular-v5-features
 description: "Enable or build any CometChat feature in an Angular app, and say which need zero client code. Covers: reactions · mentions · threaded replies · search · read receipts · typing indicators · presence · media & file attachments · voice notes · polls · stickers · GIFs · message translation · link preview · thumbnails · pin message · save / bookmark messages · reminders · message shortcuts · voice transcription · rich media preview · URL shortener · collaborative whiteboard & document · disappearing messages · support desk integrations · AI smart replies, conversation starter, summary and assistant · voice & video calling · push notifications · notification feed · moderation & reporting · campaigns · custom message types · text formatters & rich text · card messages. Triggers: 'add polls angular', 'enable reactions', 'let users save/bookmark messages', 'pin a message', 'add smart replies', 'turn on translation', 'add stickers or GIFs', 'send a custom message type', 'enable an extension angular'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"

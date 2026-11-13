@@ -43,7 +43,7 @@ So "it says nothing about CometChat" is not evidence the problem is elsewhere.
 No error is thrown. On bare RN also confirm `import 'react-native-gesture-handler'` is the **first
 line of `index.js`** — wrong ordering there often works in debug and crashes in release.
 
-### `NativeModule … null` / "cannot read property of null" on a chat screen
+### `NativeModule ... null` / "cannot read property of null" on a chat screen
 A native peer is missing or unlinked. Install the full peer list (`core`), then `pod install` (bare)
 or a fresh development build (Expo). **Metro reload does not pick up native changes — rebuild.**
 

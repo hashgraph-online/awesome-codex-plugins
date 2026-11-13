@@ -20,7 +20,7 @@ there, the same way Claude already does when you ask. `first-principles-review` 
 scripts that extract and check its report. Each skill also ships a self-test under `scripts/selftest/`.
 Nothing in this plugin sends data anywhere, calls a remote service, or installs packages.
 
-The full set of 38 skills, most of which work with Sno Station, is in the
+The full set of 39 skills, most of which work with Sno Station, is in the
 [`sno-station` plugin](https://github.com/sno-ai/sno-station-skills#install-as-a-plugin).
 
 Licensed under the Apache License, Version 2.0.

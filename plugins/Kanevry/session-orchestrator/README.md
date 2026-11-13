@@ -9,7 +9,7 @@
 
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/session-orchestrator)](https://www.npmjs.com/package/session-orchestrator)
-[![Version](https://img.shields.io/badge/version-5.18.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.19.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 

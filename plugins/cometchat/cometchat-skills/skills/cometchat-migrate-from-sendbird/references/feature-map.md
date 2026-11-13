@@ -10,7 +10,7 @@
 - `REMOVE` → UNSUPPORTED: remove it fully (SKILL step 6) and list it in the report.
 - `CHANGE` → keep the capability on the closest CometChat equivalent, and list the difference under "Behavior changes".
 
-**Enablement:** a feature whose `features.json` entry says `needs_dashboard`, or is an extension/AI feature, still migrates in code. Add "enable <feature> in the CometChat dashboard" to the action items. `@cometchat/skills-cli features enable` can do it after `auth login`.
+**Enablement:** a feature whose `features.json` entry says `needs_dashboard`, or is an extension/AI feature, still migrates in code. Add "enable <feature> in the CometChat dashboard" to the action items. The CometChat MCP can do it (`cometchat_set_feature`, check `confirmed`).
 
 **Rows are grouped by area.** Columns: Sendbird feature (signals) · CometChat id · Via · If absent.
 

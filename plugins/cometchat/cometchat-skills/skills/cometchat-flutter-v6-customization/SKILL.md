@@ -2,14 +2,14 @@
 name: cometchat-flutter-v6-customization
 description: "Theme and brand the Flutter v6 UI Kit — light/dark mode, the CometChatColorPalette / CometChatTypography / CometChatSpacing theme extensions, per-widget style objects, and view slots. Triggers: 'change chat colors flutter', 'dark mode chat flutter', 'match my brand flutter', 'customize cometchat theme flutter', 'override message bubble styles'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat flutter customization theming theme-extension styles v6"
 ---
 
-> **Ground truth:** theming is Flutter's own `ThemeExtension` mechanism — `CometChatColorPalette`, `CometChatTypography`, `CometChatSpacing`, all catalog-verified against 6.1.0. The exhaustive token list is FETCHED from the docs (`theme-introduction` · `color-resources` · `component-styling` · `message-bubble-styling` via `../cometchat-flutter-v6-core/references/docs-map.md`) — do NOT bake it.
+> **Ground truth:** theming is Flutter's own `ThemeExtension` mechanism — `CometChatColorPalette`, `CometChatTypography`, `CometChatSpacing`, all catalog-verified against 6.1.0 and still present in 6.2.0. The exhaustive token list is FETCHED from the docs (`theme-introduction` · `color-resources` · `component-styling` · `message-bubble-styling` via `../cometchat-flutter-v6-core/references/docs-map.md`) — do NOT bake it.
 
 ## Companion skills (read first)
 - `cometchat-flutter-v6-core` — install, credentials, `init→login→render`. This skill ASSUMES it.
@@ -17,6 +17,8 @@ metadata:
 
 ## Use this skill when
 Branding or theming: colors, fonts, light/dark, or per-widget style overrides.
+
+**Cloning a named app, or mixing kit components with your own UI?** Measure the target's colors, type, spacing and radii into ONE token source, theme the kit from it, and style every custom component from the same tokens so kit and custom parts look like one design; host a kit component in your own dialog/panel when only its placement differs. Flow: `cometchat-onboarding` → `references/clone-mode.md` (Design sync, build levels L0–L6).
 
 ## Prerequisites & install
 Covered by core. No new package.
@@ -83,7 +85,10 @@ Widget themedHeader(User user) => CometChatMessageHeader(
 - **Text formatters** — `CometChatMentionsFormatter` and custom `CometChatTextFormatter` subclasses (`customization-text-formatters`, `custom-text-formatter-guide`). A subclass must implement `init`, `getMessageInputTextStyle`, `handlePreMessageSend`, `onChange` and `onScrollToBottom` — the class is abstract.
 - **Message templates** — custom message types and bubbles (`message-template`, → `-components`).
 - **Sounds** — the class is **`SoundManager`**, UN-prefixed (there is no `CometChatSoundManager`), a singleton: `SoundManager().play(sound: Sound.incomingMessage, customSound: "assets/ping.mp3")` / `.stop()`. Compiler-verified vs 6.1.0. It is absent from the catalog only because that tracks `CometChat*` symbols — same as `User`/`Group`. Page: `sound-manager`.
-- **Localization** — via `CometChatLocalize`, the same localization class the other families use: register its delegate in `MaterialApp.localizationsDelegates` and read/override strings through it. Fetch the exact Flutter API from the live `localize` page (`references/docs-map.md` → Localization). **[STAGED — needs the UI Kit change]** `CometChatLocalize` requires a `cometchat_chat_uikit` version that exposes it; the pinned **6.1.0 does not** (it exposes `Translations`). Bump the pin + refresh `catalogs/flutter-v6.json` when that kit ships — until then Flutter localization emitted this way will not compile.
+- **Localization** — via **`Translations`** (Flutter has no `CometChatLocalize`, through 6.2.0): `MaterialApp(localizationsDelegates: Translations.localizationsDelegates, supportedLocales: Translations.supportedLocales, ...)`, read strings with `Translations.of(context)`, override a language by extending its class (e.g. `TranslationsEn`) with your own delegate. Verified vs 6.2.0 source (`shared_ui/l10n/translations.dart`). The live `localize` page's intro says `CometChatLocalize` but its code uses `Translations`; follow the code.
+
+### Avatar and sender name on every message (BAKED — verified vs 6.2.0)
+The kit shows them only on others' messages in groups. From 6.2.0 `alignment: ChatAlignment.leftAligned` puts every bubble on the left, but it adds no avatar or name. When the target shows them (Slack, Discord, Teams), set `leftAligned`, wrap the default templates' `contentView` with an avatar + name row and set `avatarVisibility: false`, without asking first. This covers own and others' messages in 1:1 and group chats. Code and limits: `references/message-chrome.md`.
 
 ## Common pitfalls (BAKED)
 - **Inventing a CometChat dark-mode switch.** Use `ThemeData` + `themeMode`; register the palette on both themes.

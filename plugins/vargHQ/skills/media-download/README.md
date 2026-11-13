@@ -10,7 +10,7 @@ Download videos, audio and images to local files from a link. Video and audio co
 ```bash
 npx skills add vargHQ/skills --skill media-download                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills media-download --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -32,6 +32,7 @@ claude plugin install varg@varg
 ## Guides that use it
 
 - [How to download videos from X, YouTube and TikTok with yt-dlp (no key)](../how-to/download-videos-from-x-youtube-tiktok/README.md)
+- [How to make AI parody videos of movie scenes with Claude Code](../how-to/make-ai-parody-videos/README.md)
 
 ## Works well with
 
@@ -39,8 +40,13 @@ claude plugin install varg@varg
 <tr>
 <td width="33%" valign="top"><a href="../find-references/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_c02ffe003ee2.webp" alt="A board of four cinematic references, a woman reading by a lamp, a warmly lit dinner, a modern house at dusk and a sunlit pool, then each reference in turn." width="100%"></a><br><a href="../find-references/README.md"><b>Reference finder</b></a><br><sub>A video request becomes query packs over 22 open sources and a board of three human-made candidates per job.</sub></td>
 <td width="33%" valign="top"><a href="../video-asset-sources/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_ca358f236497.webp" alt="Public-domain B-roll fetched by an agent from the NASA library: the Orion Nebula in infrared, Earth from the space station, green aurora over a treeline and Cassini passing Saturn." width="100%"></a><br><a href="../video-asset-sources/README.md"><b>Video asset sources</b></a><br><sub>A missing clip, track or sound becomes a file from a tested source, with its license checked and a credits line recorded.</sub></td>
-<td width="33%"></td>
+<td width="33%" valign="top"><a href="../ai-parody-video/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_350a40cd23d4.webp" alt="A mockumentary office sketch from one prompt: a wizard points a wand at a printer, a deadpan colleague holds a mug, then the wizard talks to the camera." width="100%"></a><br><a href="../ai-parody-video/README.md"><b>AI parody video</b></a><br><sub>A known scene, one wrong element and a payoff become a 10-45 second parody, with six measured formats and the rules for real people.</sub></td>
+</tr>
+<tr>
+<td width="33%" valign="top"><a href="../scene-recast-video/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_bdf35f76a7dd.webp" alt="An old wizard in a blue star robe does a goofy dance in a retro kitchen: an invented character recast into a stock dance clip, same moves, same room." width="100%"></a><br><a href="../scene-recast-video/README.md"><b>Scene recast</b></a><br><sub>A reference clip, photos of your cast and a replace-keep-never prompt become your version with the original motion, timing and camera.</sub></td>
+<td width="33%" valign="top"><a href="../multi-angle-monologue/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_a9b7dde96277.webp" alt="An old wizard in an open-plan office complains to the camera about the printer, cut from a front angle to a side close-up with the lips on the words." width="100%"></a><br><a href="../multi-angle-monologue/README.md"><b>Multi-angle monologue</b></a><br><sub>One still becomes four angles, one acted voice track is cut at the pauses, and each part is lip-synced to its own angle.</sub></td>
+<td width="33%" valign="top"><a href="../varg-character-design/README.md"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_6baed9973414.webp" alt="A grid of eight memorable AI characters, from a grandma in leopard print to a sheep accountant in glasses, then the grandma speeds toward the camera on a red scooter." width="100%"></a><br><a href="../varg-character-design/README.md"><b>AI character design</b></a><br><sub>A premise, written details and one outfit become a character card and sheet you reuse in later images and videos.</sub></td>
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/media-download) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/media-download) · [varg.ai](https://varg.ai)

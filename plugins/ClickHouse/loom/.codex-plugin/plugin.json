@@ -5,7 +5,7 @@
   "author": {
     "name": "ClickHouse"
   },
-  "homepage": "https://github.com/ClickHouse/loom",
+  "homepage": "https://clickhouse.github.io/loom/",
   "repository": "https://github.com/ClickHouse/loom",
   "license": "Apache-2.0",
   "keywords": [
@@ -32,7 +32,7 @@
       "Read",
       "Write"
     ],
-    "websiteURL": "https://github.com/ClickHouse/loom",
+    "websiteURL": "https://clickhouse.github.io/loom/features/integrations/codex/",
     "defaultPrompt": [
       "What did we decide about this repository last week?",
       "Remember that I prefer squash merges on this repository.",
@@ -41,6 +41,6 @@
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/icon.png",
     "brandColor": "#FAFF69",
-    "privacyPolicyURL": "https://github.com/ClickHouse/loom/blob/main/docs/features/integrations/claude-code.md#data-handling"
+    "privacyPolicyURL": "https://clickhouse.github.io/loom/features/integrations/claude-code/#data-handling"
   }
 }

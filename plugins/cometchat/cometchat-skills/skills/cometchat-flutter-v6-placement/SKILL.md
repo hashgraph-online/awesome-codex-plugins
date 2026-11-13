@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-placement
 description: "Where CometChat chat lives in a Flutter app and how to wire each shape — a tab-based app, a chat tab inside an existing app, a full-screen route, a modal / bottom-sheet chat, or an embedded panel. Triggers: 'add a chat tab', 'full screen chat page flutter', 'chat bottom sheet', 'embed chat in my screen', 'build a full chat app in flutter'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -115,7 +115,7 @@ void openChatSheet(BuildContext context, User user) {
 ```
 > `isScrollControlled: true` + an explicit height are both required; without them the sheet caps at ~half screen and the composer fights the keyboard.
 
-**E. Embedded panel (chat inside a bigger screen).** Give the region a fixed height or a sized flex cell — never let it sit inside an unbounded `SingleChildScrollView`/`Column`. If the host page scrolls, the chat needs its own `SizedBox(height: …)`.
+**E. Embedded panel (chat inside a bigger screen).** Give the region a fixed height or a sized flex cell — never let it sit inside an unbounded `SingleChildScrollView`/`Column`. If the host page scrolls, the chat needs its own `SizedBox(height: ...)`.
 
 ## Choosing
 | The ask | Placement |

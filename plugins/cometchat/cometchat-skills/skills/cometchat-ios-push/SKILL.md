@@ -2,7 +2,7 @@
 name: cometchat-ios-push
 description: "Add push notifications to an iOS CometChat app — APNs registration, token handoff, tap-to-open, badge counts and VoIP call pushes. Triggers: 'push notifications cometchat ios', 'apns cometchat', 'open chat from notification ios', 'voip push call ios'."
 license: "MIT"
-compatibility: "CometChatUIKitSwift 5.1.22 · CometChatSDK 4.1.7 · iOS 15.1+"
+compatibility: "CometChatUIKitSwift 5.2.3+ (resolves CometChatSDK 4.1.10+) · iOS 15.1+"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -22,7 +22,7 @@ Push is **not** a code-only feature. All of these are prerequisites and none are
 The current, canonical iOS path is the **`CometChatPushNotifications`** SDK (module `CometChatPushNotificationsSwift`), the same one `cometchat-ios-v5-sdk` documents. Do **not** hand-roll `UIKitSettings.set(deviceToken:)` / `set(voipToken:)`, `PKPushRegistryDelegate` or `CXProviderDelegate` — those setters exist but are the legacy path the sample app and current docs no longer use.
 
 1. Request authorisation and register for remote notifications (on a real device — **the simulator does not receive APNs**).
-2. After `CometChat.init`, call `CometChatPushNotifications.shared.initialize(config:)` and set its `.delegate`. In `didRegisterForRemoteNotificationsWithDeviceToken`, forward the APNs token with `CometChatPushNotifications.shared.registerDeviceToken(_:)`. **Ordering is not your problem** — the token can arrive before login; the SDK caches it and binds it to the user automatically once you initialize and the user logs in. (There is no need to gate `didRegister…` on login, and no `set(deviceToken:)` call.)
+2. After `CometChat.init`, call `CometChatPushNotifications.shared.initialize(config:)` and set its `.delegate`. In `didRegisterForRemoteNotificationsWithDeviceToken`, forward the APNs token with `CometChatPushNotifications.shared.registerDeviceToken(_:)`. **Ordering is not your problem** — the token can arrive before login; the SDK caches it and binds it to the user automatically once you initialize and the user logs in. (There is no need to gate `didRegister...` on login, and no `set(deviceToken:)` call.)
 3. Handle the tap: read the payload, resolve the conversation, and push your chat screen — the same screen core builds. A notification that opens the app to the wrong place is the push equivalent of a dead-end affordance.
 4. **Log out unregisters.** Leaving a stale token delivers a user's messages to a device someone else may now be using — treat it as a correctness and privacy requirement, not a nicety.
 

@@ -36,6 +36,7 @@ A promise or clue moves from `planned` to `planted` (with `planted: chapter-{NN}
 
 - **Bidirectional cross-links** - when referencing another entity, update both files
 - **Death tracking** - when a character dies on the page, set `status: deceased` and `died-in: chapter-{NN}` so `story continuity` can flag posthumous appearances
+- **Ages** - record a character's age as a `born` date (a day or a year alone), never as a fixed `age`, so `story context` gives the age at each dated chapter and `story continuity` flags appearances before the birth
 - **`mentions` vs `characters`** - chapter and scene frontmatter lists characters present in-scene under `characters`; characters who are only referenced, remembered, recorded, or seen in flashback go under `mentions`
 
 ## Maintenance

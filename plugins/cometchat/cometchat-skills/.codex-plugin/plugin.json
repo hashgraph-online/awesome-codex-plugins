@@ -1,7 +1,7 @@
 {
   "name": "cometchat-skills",
-  "version": "5.1.0",
-  "description": "CometChat AI-coding skills — add real-time chat, voice/video calling and push to your app via your AI coding agent, across React v7, Angular v5, React Native v5, Android v6 (Kotlin/Compose), iOS v5 (Swift/UIKit, SPM) and Flutter v6, plus headless Calls SDK skills. Ships the first-party CometChat Docs MCP so skills read always-current docs.",
+  "version": "5.2.0",
+  "description": "CometChat AI-coding skills — add real-time chat, voice/video calling and push to your app via your AI coding agent, across React v7, Angular v5, React Native v5, Android v6 (Kotlin/Compose), iOS v5 (Swift/UIKit, SPM) and Flutter v6, plus headless Calls SDK skills. Ships the CometChat MCP: always-current docs with no sign-in, and your CometChat account once you sign in.",
   "author": {
     "name": "CometChat",
     "email": "support@cometchat.com",
@@ -29,8 +29,8 @@
   ],
   "interface": {
     "displayName": "CometChat",
-    "shortDescription": "Add chat, voice/video calling and push to your app",
-    "longDescription": "Verified CometChat integration skills for React, Angular, React Native, iOS, Android and Flutter. The cometchat skill detects your project, asks a few setup questions, and writes chat and calling into the files you already have, reading current docs through the CometChat Docs MCP.",
+    "shortDescription": "Add chat & calls to your app",
+    "longDescription": "Verified CometChat integration skills for React, Angular, React Native, iOS, Android and Flutter. The cometchat skill detects your project, asks a few setup questions, and writes chat and calling into the files you already have, reading current docs (and, once you sign in, your credentials) through the CometChat MCP.",
     "developerName": "CometChat",
     "category": "Coding",
     "capabilities": [
@@ -40,6 +40,7 @@
     "websiteURL": "https://www.cometchat.com",
     "privacyPolicyURL": "https://www.cometchat.com/legal-privacy-policy",
     "termsOfServiceURL": "https://www.cometchat.com/legal-terms-of-service",
+    "supportURL": "https://help.cometchat.com/hc/en-us",
     "defaultPrompt": [
       "Use CometChat to add chat to my app.",
       "Use CometChat to add voice and video calling to my app."

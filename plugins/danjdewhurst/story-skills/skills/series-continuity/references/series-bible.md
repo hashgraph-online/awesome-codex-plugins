@@ -35,10 +35,13 @@ systems, factions, artifacts, glossary terms, facts). For each shared id,
 read that entity's file in each book where it appears, and the `Series
 Notes` of each book.
 
-What the checker cannot see, read for by hand across books: ages and
-dates, travel time, knowledge without a `fact` id, physical description,
-and tone. When a book's `Series Notes` gives an age or a time gap, check it
-against the other books' `plot/timeline.md`.
+The checker compares each shared character's `born` date between books
+that use the same story calendar (`canon-born-mismatch`), so ages agree
+where every book records `born` and dates its chapters. What it cannot
+see, read for by hand across books: an age stated only in prose, dates,
+travel time, knowledge without a `fact` id, physical description, and
+tone. When a book's `Series Notes` gives an age or a time gap, check it
+against the other books' `plot/timeline.md`, and record the age as `born`.
 
 ## Writing the Series Notes
 

@@ -2,14 +2,14 @@
 name: cometchat-ios-troubleshooting
 description: "Diagnose a broken CometChat iOS (Swift) integration — a screen that never populates, credentials read as the literal $(...), login that silently fails, empty lists, no messages, or a version/SDK mismatch. Triggers: 'cometchat ios not working', 'chat screen blank swift', 'cometchat login not working ios', 'credentials not read swift', 'conversations empty ios', 'cometchat swift errors'."
 license: "MIT"
-compatibility: "CometChatUIKitSwift 5.1.22 + CometChatSDK 4.1.7; Xcode 16+; iOS 15.1+; SPM only"
+compatibility: "CometChatUIKitSwift 5.2.3+ (resolves CometChatSDK 4.1.10+); Xcode 16+; iOS 15.1+; SPM only"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat ios swift troubleshooting debug diagnostics blank-screen spm"
 ---
 
-> **Ground truth:** `CometChatUIKitSwift` 5.1.22 + `CometChatSDK` 4.1.7 (symbols verified vs `catalogs/ios-v5.json`); signatures FETCHED via `cometchat-ios-core/references/docs-map.md`; the invariants below (init→login order, credentials flow, SPM-only) are `RULES.md` + `cometchat-ios-core`. This diagnostics catalog is cross-checked against the live `{DOCS_BASE}/ui-kit/ios/troubleshooting.md` page (base + paths in `cometchat-ios-core/references/docs-map.md`), and adds the host-side/runtime symptoms it doesn't cover.
+> **Ground truth:** `CometChatUIKitSwift` 5.2.3 + `CometChatSDK` 4.1.10 (symbols verified vs `catalogs/ios-v5.json`); signatures FETCHED via `cometchat-ios-core/references/docs-map.md`; the invariants below (init→login order, credentials flow, SPM-only) are `RULES.md` + `cometchat-ios-core`. This diagnostics catalog is cross-checked against the live `{DOCS_BASE}/ui-kit/ios/troubleshooting.md` page (base + paths in `cometchat-ios-core/references/docs-map.md`), and adds the host-side/runtime symptoms it doesn't cover.
 
 ## Companion skills (read first)
 - `cometchat-ios-core` — the correct init→login→render order, the `Secrets.xcconfig`→Info.plist→`Bundle.main` credential flow, and the SwiftUI launch hook the fixes below restore.
@@ -28,7 +28,7 @@ The two dominant causes of "the screen never populates":
 | Screen never populates, no error | `login` before `init` resolved | Chain them: call login only inside the init completion (`cometchat-ios-core` `references/swiftui.md`) |
 | Auth fails immediately | Wrong Region, or creds read as `$(...)` | Region must match the dashboard app; verify `Bundle.main` returns the value, not the literal `$(` |
 | Values are the literal `$(...)` | `xcconfig` not attached, or Info.plist key missing | Attach `Secrets.xcconfig` to the build configs AND declare each key in Info.plist (`references/setup-credentials.md` §2-§3) |
-| SPM won't resolve / kit crashes at runtime | `CometChatSDK` version drifted from the kit's exact pin | Pin CometChatUIKitSwift 5.1.22 + CometChatSDK 4.1.7 + CometChatCallsSDK 5.0.3 exactly (`cometchat-ios-core` Install) |
+| SPM won't resolve / app crashes at launch with `Library not loaded: @rpath/CometChatCallsSDK.framework` | a hand-added exact `CometChatSDK` pin fights the kit's own `from: "4.1.10"`, or the kit is 5.2.0 to 5.2.2 (launch crash without the Calls SDK) | Depend on `CometChatUIKitSwift` alone, Up to Next Major from 5.2.3; remove the Chat SDK pin (`cometchat-ios-core` Install) |
 | Build fails after adding a Podfile | Tried CocoaPods | SPM only — a Podfile is a detection signal, not an instruction; remove the pod integration |
 | Conversations empty | New app has no conversations, or wrong scope | Send a first message; check the request scope |
 | `login` "user not found" | UID does not exist in the app | Use a real UID (Dashboard → Users; fresh apps seed `cometchat-uid-1`) — never a guessed `superhero*` |

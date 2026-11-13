@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python \"${CLAUDE_PLUGIN_ROOT}/scripts/guard.py\"",
+            "timeout": 180
+          }
+        ]
+      }
+    ]
+  }
+}

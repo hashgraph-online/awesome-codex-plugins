@@ -10,7 +10,7 @@ Makes absurd AI characters and mascots people share, on varg: hybrids of a food 
 ```bash
 npx skills add vargHQ/skills --skill varg-character-absurd                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills varg-character-absurd --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -49,4 +49,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/varg-character-absurd) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/varg-character-absurd) · [varg.ai](https://varg.ai)

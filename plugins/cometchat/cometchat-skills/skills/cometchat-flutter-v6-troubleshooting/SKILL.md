@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-troubleshooting
 description: "Diagnose a broken CometChat Flutter integration — blank screens, unbounded-height crashes, lists that don't fill, login and Region failures, calls that never ring, push that never arrives, and v5 leftovers. Symptom → cause → fix. Triggers: 'cometchat not working flutter', 'blank chat screen', 'RenderFlex unbounded height', 'login failed cometchat', 'calls not ringing', 'push not arriving'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0); cometchat_sdk ^5.0.6"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0); cometchat_sdk ^5.0.8"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -33,14 +33,14 @@ None — diagnosis only.
 | Blank/white chat screen | A widget built before `login` resolved | Gate the first frame on init **and** login (`lifecycle.md`) |
 | `Unable to load asset: cometchat-settings.json` | Not at project root, or not registered | Add under `flutter: assets:`, re-run `flutter pub get` |
 | Crash on startup before any UI | `WidgetsFlutterBinding.ensureInitialized()` missing | Call it first in `main()` — `initFromSettings` reads an asset |
-| `RenderFlex … unbounded height` | A kit list in an unbounded parent | `Expanded`/`Flexible`, or a fixed height (`layout.md`) |
+| `RenderFlex ... unbounded height` | A kit list in an unbounded parent | `Expanded`/`Flexible`, or a fixed height (`layout.md`) |
 | List renders as a zero-height sliver | Same — content-driven parent | Same |
 | Composer hidden by the keyboard | `resizeToAvoidBottomInset: false`, or nested `Scaffold`s | Leave the default `true`; one `Scaffold` per screen |
 | Header under the notch | No `SafeArea` | Wrap the body |
 | Two app bars | Your `Scaffold` `AppBar` + the widget's own | `hideAppbar: true` on the list widget |
 | Login fails instantly | Wrong **Region**, or the UID doesn't exist | Match the Dashboard region exactly; use a real UID (Dashboard → Users) |
 | Works in debug, fails in release | Obfuscation, or the settings asset not bundled | Test the release build; verify the asset ships |
-| `Undefined name 'CometChatIncomingCall'` (any call widget) | Only the chat barrel imported | Also import `…/cometchat_calls_uikit.dart` (`-calls`) |
+| `Undefined name 'CometChatIncomingCall'` (any call widget) | Only the chat barrel imported | Also import `.../cometchat_calls_uikit.dart` (`-calls`) |
 | Call buttons never appear | Calls not enabled on BOTH sides | `uiKit.enableCalling: true` **and** `cometchat_calls_sdk` installed |
 | Call surface opens black | Camera/mic permission missing, or a simulator | Add usage strings/permissions; test on a real device |
 | Incoming call never shows (calling on) | No `navigatorKey` on the root `MaterialApp` — kit logs *"Incoming call overlay cannot be shown"* | `navigatorKey: CallNavigationContext.navigatorKey` (`-calls`) |

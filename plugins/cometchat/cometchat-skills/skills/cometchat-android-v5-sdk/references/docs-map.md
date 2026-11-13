@@ -7,13 +7,13 @@ use them instead of a raw web fetch:**
 - **Find the page** → `search_cometchat_docs(query, version?)` — replaces browsing the scoped `llms-*` index.
 - **Read the page** → `fetch_cometchat_doc_page(path)` — pass the SAME versioned `<path>` the tables below
   list (e.g. `/sdk/android/v5/<page>`); the MCP resolves the `.md` twin and returns raw Markdown. A full
-  `https://…/docs/<path>` URL also works. (The v5-vs-v4 URL trap below still applies to the path you pass.)
+  `https://.../docs/<path>` URL also works. (The v5-vs-v4 URL trap below still applies to the path you pass.)
 - **A whole feature/recipe** → `get_cometchat_implementation_bundle(...)` is **NON-AUTHORITATIVE** — curated STATIC recipes that can lag the live docs (verified stale vs v7: e.g. `CometChatConversationsWithMessages`, `css-variables.css`). Treat any bundle as a hint only: RECONCILE it against the `fetch_cometchat_doc_page` result + the pack's hardening; never emit bundle code verbatim.
 
 The MCP reads whatever docs environment it is pointed at (production by default; a preview when repointed),
 so it also carries the environment-swap concern below — no hardcoded host on the skill side.
 
-**If the MCP tools are NOT connected:** add it (`claude mcp add --transport http cometchat-docs https://mcp.cometchat.com/mcp`, or reinstall/enable the plugin) and retry; only if it still will not connect, fall back to a plain fetch via `SDK_DOCS_BASE` (defined next).
+**If the MCP tools are NOT connected:** help the user add the remote (HTTP) MCP server `cometchat`, url `https://mcp.cometchat.com/mcp` (Claude Code: `claude mcp add --transport http cometchat <url>`; Codex: `codex mcp add cometchat --url <url>`; Cursor: Settings → MCP; ChatGPT: connect the CometChat app), and retry; only if it still will not connect, fall back to a plain fetch via `SDK_DOCS_BASE` (defined next).
 Either way the `<path>` catalog in this file is the source of truth for WHICH page — MCP-vs-fetch is only HOW.
 
 ## SDK_DOCS_BASE — the fetch FALLBACK entry point (⚠️ SWAP HERE to change environments)
@@ -22,7 +22,7 @@ SDK_DOCS_BASE = https://www.cometchat.com/docs
 ```
 > **⚠️ URL TRAP — the Android SDK is VERSIONED.** v5 pages live at `/sdk/android/v5/<page>`.
 > The UNVERSIONED tree `/sdk/android/<page>` is **v4** — never fetch it for a v5 build.
-> (The UI Kit is the opposite: its latest, v6, lives at the unversioned `/ui-kit/android/…`.)
+> (The UI Kit is the opposite: its latest, v6, lives at the unversioned `/ui-kit/android/...`.)
 >
 > **Fetch rule:** build a URL as `SDK_DOCS_BASE` + the path shown, then append `.md`.
 > Never decompile the AAR and never answer an API from memory.

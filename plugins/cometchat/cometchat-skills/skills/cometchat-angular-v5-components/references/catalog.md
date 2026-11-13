@@ -88,7 +88,7 @@ Generated from the installed kit's component declarations. **This table covers C
 
 ## Non-component exports (the other half of the oracle)
 
-Verified against 5.1.0's public `export { … }` block. These have **no selector** — you `inject()` a service, call a static, or use a pipe in a template. Reaching for `.d.ts` to check whether one of these exists is the failure this section prevents.
+Verified against 5.1.0's public `export { ... }` block. These have **no selector** — you `inject()` a service, call a static, or use a pipe in a template. Reaching for `.d.ts` to check whether one of these exists is the failure this section prevents.
 
 | Kind | Exported from `@cometchat/chat-uikit-angular` |
 | --- | --- |
@@ -104,7 +104,7 @@ Verified against 5.1.0's public `export { … }` block. These have **no selector
 | **Calls / misc** | `CometChatUIKitCalls` · `CometChatNotifications` · `CometChatLogger` · `CometChatToastService` |
 | **Search filters** | `CometChatSearchFilter` · `CometChatSearchScope` |
 
-> **`export type { … }` — type-only, cannot be used as a value:** `CalendarObject`, `SearchConversationClickEvent`, `SearchMessageClickEvent`, `IMessages`, `MessageStatus`, `CometChatEmoji`, `BubblePart`, … Import them under `import type`; instantiating one is a compile error.
+> **`export type { ... }` — type-only, cannot be used as a value:** `CalendarObject`, `SearchConversationClickEvent`, `SearchMessageClickEvent`, `IMessages`, `MessageStatus`, `CometChatEmoji`, `BubblePart`, ... Import them under `import type`; instantiating one is a compile error.
 >
 > **SDK entities are NOT kit exports.** `CometChat`, `User`, `Group`, `TextMessage`, `MediaMessage`, `CustomMessage`, `BaseMessage`, `Conversation`, `GroupMember`, and every `*RequestBuilder` come from **`@cometchat/chat-sdk-javascript`** — importing them from the Angular package fails. (`CometChatSoundManager` is the inverse trap: it is *declared* in the kit's `.d.ts` and compiled into the bundle but is in **neither** export block, so it is not importable at all — AUDIT-152.)
 >

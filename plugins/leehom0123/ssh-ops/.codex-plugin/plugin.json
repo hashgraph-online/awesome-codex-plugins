@@ -1,0 +1,49 @@
+{
+  "name": "ssh-ops",
+  "description": "Operate Linux and Windows servers via SSH from Codex and the CLI using YAML configuration: run commands, deploy code, inspect logs, restart services, transfer files, and manage background jobs on bash servers. Connections are reused within each process.",
+  "version": "1.0.0",
+  "author": {
+    "name": "leehom0123",
+    "url": "https://github.com/leehom0123"
+  },
+  "homepage": "https://github.com/leehom0123/ssh-ops",
+  "repository": "https://github.com/leehom0123/ssh-ops",
+  "license": "MIT",
+  "tags": [
+    "ssh",
+    "devops",
+    "server-management",
+    "linux",
+    "remote"
+  ],
+  "keywords": [
+    "ssh",
+    "devops",
+    "server-management",
+    "linux",
+    "remote",
+    "mcp",
+    "cli",
+    "deployment"
+  ],
+  "category": "devops",
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "SSH Ops",
+    "shortDescription": "SSH server operations for agents and humans from one YAML config.",
+    "longDescription": "SSH Ops gives coding agents scriptable SSH operations on Linux and Windows servers. Server definitions and reusable command aliases live in YAML files; the same core runs as a CLI and as an MCP server with stdio or HTTP transports. It covers command execution, SFTP transfer, remote text editing, background jobs on bash servers, and byte-paged log reads. Connections are reused within each process. Host-key checks, optional command filters, path allow-lists, and sudo limitations are documented in SECURITY.md and docs/reference.md.",
+    "developerName": "leehom0123",
+    "category": "devops",
+    "capabilities": [
+      "remote-command-execution",
+      "file-transfer",
+      "log-inspection",
+      "background-jobs",
+      "service-deployment"
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg",
+    "websiteURL": "https://github.com/leehom0123/ssh-ops"
+  }
+}

@@ -2,14 +2,14 @@
 name: cometchat-angular-v5-production
 description: "Ship a CometChat Angular integration safely — server-minted auth tokens instead of the Auth Key, environment file replacement, key hygiene, build config and a pre-launch checklist. Triggers: 'is this production ready', 'auth token instead of auth key angular', 'secure my cometchat setup', 'production build config', 'going live checklist'."
 license: "MIT"
-compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.0 verified); Angular 17-21"
+compatibility: "@cometchat/chat-uikit-angular ^5 (5.1.0–5.2.2 verified); Angular 17-21"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat angular production v5 security auth-token hardening deployment"
 ---
 
-> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.0 verified). The auth-token API is FETCHED from `{DOCS_BASE}/ui-kit/angular/methods.md` and `/integration.md` (base + paths in `cometchat-angular-v5-core/references/docs-map.md`). **The Angular UI Kit docs have no dedicated production-hardening page** — the checklist below is the pack's own guidance, derived from the credential rules in `RULES.md` §4 and what the kit ships; it is labelled as such rather than presented as documented. Treat that as a tracked DOCS GAP.
+> **Ground truth:** `@cometchat/chat-uikit-angular@5` (5.1.0–5.2.2 verified). The auth-token API is FETCHED from `{DOCS_BASE}/ui-kit/angular/methods.md` and `/integration.md` (base + paths in `cometchat-angular-v5-core/references/docs-map.md`). **The Angular UI Kit docs have no dedicated production-hardening page** — the checklist below is the pack's own guidance, derived from the credential rules in `RULES.md` §4 and what the kit ships; it is labelled as such rather than presented as documented. Treat that as a tracked DOCS GAP.
 
 ## Companion skills (read first)
 - `cometchat-angular-v5-core` — `references/setup-credentials.md` covers the dev credential flow this replaces.

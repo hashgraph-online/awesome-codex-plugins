@@ -10,7 +10,7 @@ Make the sound of any video so it feels real: AI voices that don't sound fake (c
 ```bash
 npx skills add vargHQ/skills --skill video-sound                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills video-sound --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -38,6 +38,8 @@ claude plugin install varg@varg
 - [How to make an AI movie or short film with Claude Code, script to final cut](../how-to/make-an-ai-movie/README.md)
 - [How to add an AI voiceover that doesn't sound fake (plus music and SFX)](../how-to/add-ai-voiceover-to-video/README.md)
 - [How to make videos with Claude Fable 5.2: Blender films, game trailers, 3D explainers and Fable vs Opus](../how-to/make-videos-with-claude-fable-5-2/README.md)
+- [How to make AI parody videos of movie scenes with Claude Code](../how-to/make-ai-parody-videos/README.md)
+- [How to make stickman videos with AI: viral survival reels drawn in code](../how-to/make-stickman-videos-with-ai/README.md)
 
 ## Works well with
 
@@ -54,4 +56,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-sound) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/video-sound) · [varg.ai](https://varg.ai)

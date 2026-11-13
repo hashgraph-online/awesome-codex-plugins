@@ -11,7 +11,7 @@ metadata:
 
 > **Ground truth:** `@cometchat/chat-uikit-react-native@5` + catalog `rn-v5.json` (216 public symbols) +
 > `features.rn-v5.json`. Official docs: <https://www.cometchat.com/docs/ui-kit/react-native/overview> ·
-> scoped index `…/ui-kit/react-native/llms-react-native-v5.md`. Verify every symbol against the catalog;
+> scoped index `.../ui-kit/react-native/llms-react-native-v5.md`. Verify every symbol against the catalog;
 > fetch signatures from docs (`references/docs-map.md`); never trust memory.
 >
 > ⚠️ **React Native is NOT React.** Different package, different API, native views instead of DOM.
@@ -51,7 +51,7 @@ message throws on iOS*.
 ## Setup & credentials (essentials — full detail: `references/setup-credentials.md`)
 1. **Detect** the project: Expo (`app.json`/`app.config.js`) or bare RN (`metro.config.js`). Reuse an existing `.cometchat/config.json` or env if present — skip re-setup.
 2. **version_conflict — STOP** if `@cometchat/chat-uikit-react-native` is already in `package.json` at a non-v5 major; reconcile first, never mix majors (`RULES.md`).
-3. **Credentials — OFFER the dashboard fetch FIRST** (never silently "paste it yourself" — AUDIT-039). Offer both, defaulting to fetch: **(a) dashboard fetch (recommended)** — `npx @cometchat/skills-cli@3 auth login`, pick an EXISTING app (`provision list --json`; never auto-create), `provision use --app-id <id> --json` writes `.cometchat/config.json`; **(b) manual paste** from Dashboard → Credentials (dev-only Auth Key). **Then the SKILL writes the env (§4)** — the CLI stops at the fetch; env-writing and codegen are the SKILL's job. Full flow: `references/setup-credentials.md`.
+3. **Credentials — OFFER the dashboard fetch FIRST** (never silently "paste it yourself" — AUDIT-039). Offer both, defaulting to fetch: **(a) account fetch (recommended)** through the CometChat MCP — `cometchat_whoami`, pick an EXISTING app (`cometchat_list_apps`; never auto-create), `cometchat_get_app_credentials` returns the values; **(b) manual paste** from Dashboard → Credentials (dev-only Auth Key). **Then the SKILL writes the env (§4)** — the MCP only returns the values; env-writing and codegen are the SKILL's job. Full flow: `references/setup-credentials.md`.
 4. **Write env**: bare RN → `.env` (read via `react-native-config`); Expo → `.env` (read via `Constants.expoConfig.extra` or `process.env`). Gitignore it; never echo the Auth Key. Prod → server-minted auth token, not the Auth Key. **Nothing in a mobile bundle is secret** (IPA/APK are readable) — see `references/setup-credentials.md`.
 5. **Authorize** = `initFromSettings` then `login` both resolve; auth error is almost always the wrong Region.
 
@@ -151,7 +151,7 @@ React's `onItemClick` / `onThreadRepliesClick` do not exist here.
 
 > ⚠️ **On `CometChatGroupMembers`, `onError` takes NO argument** in kits up to **5.5.0** —
 > `onError?: () => void`, unlike every other list. Type the handler with a parameter there and it fails
-> with TS2322. Write `onError={() => …}` and show the failure with the `ErrorView` slot, which needs no
+> with TS2322. Write `onError={() => ...}` and show the failure with the `ErrorView` slot, which needs no
 > error object. Fixed in the kit (uikit-react-native#1452); once that ships, the parameter is available
 > and this note goes away.
 
@@ -330,6 +330,6 @@ a defect, and so is an opened surface with no way back — if you open search or
 
 ## Explain what you built (REQUIRED close)
 Tell the user briefly: **(1) what I wired** (3–5 bullets, NAME the files); **(2) decisions & why**, flagging dev-only AS dev-only (the **Auth Key** is dev-only → server-minted auth token for production; the `<uid>` you used; Expo vs bare RN path); **(3) what I did NOT touch** (additive — navigation/auth/styles intact). Then **offer these THREE options as a selectable choice and WAIT — do not auto-continue:**
-- **① Add another feature** — check what's already wired; ASK which Dashboard extensions are enabled; suggest 3–4 gaps (**calls · push · AI smart replies · polls · stickers · translation · notification feed**). Never suggest reactions or mentions — they are ON by default in v5. → `cometchat-react-native-features` / `cometchat-react-native-calls` / `cometchat-react-native-push`.
-- **② Customize theming** — ask for brand color / light-dark → `cometchat-react-native-customization`.
-- **③ Test it manually** — hand it back so they run it on a device.
+- **(1) Add another feature** — check what's already wired; ASK which Dashboard extensions are enabled; suggest 3–4 gaps (**calls · push · AI smart replies · polls · stickers · translation · notification feed**). Never suggest reactions or mentions — they are ON by default in v5. → `cometchat-react-native-features` / `cometchat-react-native-calls` / `cometchat-react-native-push`.
+- **(2) Customize theming** — ask for brand color / light-dark → `cometchat-react-native-customization`.
+- **(3) Test it manually** — hand it back so they run it on a device.

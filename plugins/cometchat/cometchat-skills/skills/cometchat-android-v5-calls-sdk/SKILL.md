@@ -2,7 +2,7 @@
 name: cometchat-android-v5-calls-sdk
 description: "Add voice & video calling to any Android app FROM SCRATCH with the headless CometChat Calls SDK v5 (`com.cometchat:calls-sdk-android:5.0.4`) — no UI Kit. Kotlin: initFromSettings→login→generateToken→joinSession into a RelativeLayout, lifecycle-bound listeners, meet-style session rooms AND 1:1 ringing (Chat SDK v5 signaling + Calls SDK media), call logs, layouts, audio modes, recording, PiP, background service. Triggers: 'add calling from scratch android', 'standalone video call kotlin', 'headless calls sdk android', 'build my own call UI android', 'meeting room join by session id android', 'one-on-one ringing call without uikit android'."
 license: "MIT"
-compatibility: "Android minSdk >=26 (TRUE transitive floor of calls-sdk-android 5.0.x — react-native-svg declares 26; docs now agree); compileSdk >=35 (androidx.core 1.15.0 fails checkDebugAarMetadata at 34; match your androidx); Kotlin >=1.9 / AGP >=8; JVM target 11; com.cometchat:calls-sdk-android ^5 (5.0.x, verified 5.0.4). 1:1 ringing also needs com.cometchat:chat-sdk-android ^5 (5.0.5) for signaling. Kotlin (XML Views or Compose host via AndroidView)."
+compatibility: "Android minSdk >=26 (TRUE transitive floor of calls-sdk-android 5.0.x — react-native-svg declares 26; docs now agree); compileSdk >=35 (androidx.core 1.15.0 fails checkDebugAarMetadata at 34; match your androidx); Kotlin >=1.9 / AGP >=8; JVM target 11; com.cometchat:calls-sdk-android ^5 (5.0.x, verified 5.0.4). 1:1 ringing also needs com.cometchat:chat-sdk-android ^5 (5.0.7) for signaling. Kotlin (XML Views or Compose host via AndroidView)."
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -13,7 +13,7 @@ metadata:
 
 ## Companion skills (read first)
 - **Standalone/headless entry** — owns its own artifact (the Calls SDK), no `-core` sibling.
-- **1:1 RINGING only** also drives the **Chat SDK** (`com.cometchat:chat-sdk-android:5.0.5`) for signaling — `references/ringing.md`; deeper Chat-SDK usage: `cometchat-android-v5-sdk`.
+- **1:1 RINGING only** also drives the **Chat SDK** (`com.cometchat:chat-sdk-android:5.0.7`) for signaling — `references/ringing.md`; deeper Chat-SDK usage: `cometchat-android-v5-sdk`.
 - **Prefer the UI Kit?** Chat + a prebuilt call UI ⇒ `cometchat-android-v6-core` + `cometchat-android-v6-calls`, not this skill.
 
 ## Use this skill when
@@ -25,15 +25,15 @@ metadata:
 maven("https://dl.cloudsmith.io/public/cometchat/cometchat/maven/")
 // app/build.gradle.kts
 implementation("com.cometchat:calls-sdk-android:5.0.4")    // meet-style needs ONLY this (+ the two RN lines below)
-implementation("com.cometchat:chat-sdk-android:5.0.5")     // + this for 1:1 RINGING (signaling)
+implementation("com.cometchat:chat-sdk-android:5.0.7")     // + this for 1:1 RINGING (signaling)
 implementation("com.facebook.react:react-android:0.77.2")  // the SDK's embedded RN runtime — see "SoLoader" below
 implementation("com.facebook.soloader:soloader:0.12.1")    // (versions = what calls-sdk-android 5.0.4 pulls)
 ```
 ```properties
-# gradle.properties — REQUIRED for the 1:1 RINGING path (chat-sdk-android 5.0.5 still pulls android.arch.lifecycle:extensions:1.1.1 → support-compat 26.1.0)
+# gradle.properties
 android.useAndroidX=true
-android.enableJetifier=true
-org.gradle.jvmargs=-Xmx4096m   # REQUIRED: Jetifier transforms the embedded react-android AAR — the AS-default -Xmx2048m OOMs (AUDIT-225)
+# android.enableJetifier=true  # ONLY if you pin chat-sdk-android <= 5.0.6 (pre-AndroidX transitive); 5.0.7 needs none
+org.gradle.jvmargs=-Xmx4096m   # REQUIRED: the AS-default -Xmx2048m OOMed the first build (AUDIT-225, Jetifier on); keep it
 ```
 ```xml
 <!-- AndroidManifest.xml, inside <application> — REQUIRED for background handling: the AAR declares NO <service> -->
@@ -44,9 +44,9 @@ org.gradle.jvmargs=-Xmx4096m   # REQUIRED: Jetifier transforms the embedded reac
 > Full error-text evidence for the four build gates below (minSdk, `<service>`, Jetifier, heap): **`references/build-truth.md`.**
 - **minSdk 26 — the manifest merge is the floor.** `calls-sdk-android:5.0.4` pulls `react-native-svg` at `minSdkVersion 26`; a 24/25 app fails `process*MainManifest`. Docs now agree (AUDIT-229) — raise `minSdk` first.
 - **The `<service>` above is REQUIRED.** The 5.0.4 AAR merges permissions only; without YOUR declaration `CometChatOngoingCallService.launch(activity)` fails **silently** (call dies on Home). Docs ship the `<service>` block (corrected upstream, verified 2026-09-09).
-- **Jetifier (ringing only).** Without `android.enableJetifier=true`, an AndroidX app + `chat-sdk-android` fails `checkDebugDuplicateClasses`. Meet-style needs none.
+- **Jetifier: not needed with chat-sdk 5.0.7.** It dropped the pre-AndroidX transitive; calls-sdk 5.0.4 + chat-sdk 5.0.7 build with `android.enableJetifier=false` (verified 2026-10-15). With chat-sdk 5.0.6 or older, ringing needs Jetifier or the app fails `checkDebugDuplicateClasses`. Meet-style never needs it.
 - **⚠️ Gradle heap `-Xmx4096m` (MANDATORY — the FIRST build OOMs, meet-style too, AUDIT-225).** The AS-default `-Xmx2048m` OOMs Jetifier transforming the embedded `react-android` AAR; the `gradle.properties` line above fixes it.
-- **⚠️ SoLoader (MANDATORY on 5.0.x; a REQUIRED skill step — the SDK doesn't self-init on the `joinSession` path).** The call surface is an embedded React Native 0.77; without the merged-mapping init `joinSession` **crashes the process** (`UnsatisfiedLinkError: … "libhermes_executor.so" not found`). Add ONCE, first in `Application.onCreate()` (hence the two RN artifacts on YOUR compile classpath):
+- **⚠️ SoLoader (MANDATORY on 5.0.x; a REQUIRED skill step — the SDK doesn't self-init on the `joinSession` path).** The call surface is an embedded React Native 0.77; without the merged-mapping init `joinSession` **crashes the process** (`UnsatisfiedLinkError: ... "libhermes_executor.so" not found`). Add ONCE, first in `Application.onCreate()` (hence the two RN artifacts on YOUR compile classpath):
   ```kotlin
   import com.cometchat.calls.core.CometChatCalls
   import com.facebook.react.soloader.OpenSourceMergedSoMapping
@@ -54,12 +54,12 @@ org.gradle.jvmargs=-Xmx4096m   # REQUIRED: Jetifier transforms the embedded reac
 
   SoLoader.init(this, OpenSourceMergedSoMapping)   // Application.onCreate(), BEFORE CometChatCalls.initFromSettings — idempotent
   ```
-- **Manifest:** the AAR merges the call permissions (INTERNET, CAMERA, RECORD_AUDIO, FOREGROUND_SERVICE_*, POST_NOTIFICATIONS, …) — but NOT the `<service>` above. Java 11 `compileOptions`.
+- **Manifest:** the AAR merges the call permissions (INTERNET, CAMERA, RECORD_AUDIO, FOREGROUND_SERVICE_*, POST_NOTIFICATIONS, ...) — but NOT the `<service>` above. Java 11 `compileOptions`.
 - **Runtime permissions are YOURS to request** (API 23+): `CAMERA` + `RECORD_AUDIO` (video) / `RECORD_AUDIO` (voice) **before** `joinSession`. Denied ⇒ tell the user; never join silently muted.
-- **Credentials:** App ID · Region · Auth Key (dev only) live in the **gitignored** `app/src/main/assets/cometchat-settings.json` (same file the chat core uses; shape → `references/docs-map.md` § DOCS-GAP). Fetch via the CLI — `npx @cometchat/skills-cli@3 auth login` → `provision use --app-id <id> --json` (`@3` pins the CLI major that matches the v5 skills) — or paste from Dashboard → Credentials. Mint **auth tokens server-side** for production; never ship the Auth Key.
+- **Credentials:** App ID · Region · Auth Key (dev only) live in the **gitignored** `app/src/main/assets/cometchat-settings.json` (same file the chat core uses; shape → `references/docs-map.md` § DOCS-GAP). Fetch through the CometChat MCP — `cometchat_whoami` (connected + signed in?), `cometchat_list_apps` (ask which EXISTING app), `cometchat_get_app_credentials` — or paste from Dashboard → Credentials. Mint **auth tokens server-side** for production; never ship the Auth Key.
 
 ## Init & login ordering (BAKED — invariant)
-`CometChatCalls.initFromSettings(context, listener)` resolves (`onSuccess`) → `CometChatCalls.login(uid, authKey, …)` (dev) **or** `login(authToken, …)` (prod) resolves → then `generateToken` / `joinSession` / listeners. Nothing joins before init+login resolve; before init every call fails with `ERROR_COMETCHAT_CALLS_SDK_INIT`.
+`CometChatCalls.initFromSettings(context, listener)` resolves (`onSuccess`) → `CometChatCalls.login(uid, authKey, ...)` (dev) **or** `login(authToken, ...)` (prod) resolves → then `generateToken` / `joinSession` / listeners. Nothing joins before init+login resolve; before init every call fails with `ERROR_COMETCHAT_CALLS_SDK_INIT`.
 - **DEFAULT to `initFromSettings`** — the ai-agent/telemetry-attributed path (`integrationSource="ai-agent"`, parallel to `CometChat.initFromSettings`; RULES §5, AUDIT-175). It reads `assets/cometchat-settings.json` (`appId`, `region`, optional `callsSDK` hosts). **Intentionally undocumented** (`@nodoc`); the documented `CometChatCalls.init(context, CallAppSettings.CallAppSettingBuilder(...).build(), listener)` is the FALLBACK only.
 - **`authKey`** is read back out of the same asset (`credentials.authKey`) — never a second copy. Skip `login` only when `getLoggedInUser()?.uid == uid` — a DIFFERENT uid ⇒ **logout → RE-INIT → login** (`references/user-switch.md`); `!= null` alone calls as the PREVIOUS user. Init ONCE, in `Application.onCreate()`.
 ```kotlin
@@ -70,7 +70,7 @@ import org.json.JSONObject
 
 // Call from Application.onCreate(); it re-enters itself after a user-switch logout.
 fun initThenLogin(uid: String) {
-    CometChatCalls.initFromSettings(this, object : CometChatCalls.CallbackListener<String>() {   // telemetry default; init(context, CallAppSettings, …) is the doc fallback
+    CometChatCalls.initFromSettings(this, object : CometChatCalls.CallbackListener<String>() {   // telemetry default; init(context, CallAppSettings, ...) is the doc fallback
         override fun onSuccess(result: String) {
             val current = CometChatCalls.getLoggedInUser()
             if (current?.uid == uid) return                                    // SAME user — already logged in
@@ -97,13 +97,13 @@ initThenLogin(uid)
 ```
 
 ## Two build modes (BAKED — the router picks one)
-- **Meet-style (session room)** — Calls SDK ONLY: `generateToken(sessionId)` → `joinSession(token, sessionSettings, relativeLayout, …)` (or the `joinSession(sessionId, …)` overload); everyone on the same `sessionId` shares the call. No ringing.
+- **Meet-style (session room)** — Calls SDK ONLY: `generateToken(sessionId)` → `joinSession(token, sessionSettings, relativeLayout, ...)` (or the `joinSession(sessionId, ...)` overload); everyone on the same `sessionId` shares the call. No ringing.
 - **1:1 ringing** — Chat SDK signals, Calls SDK carries media (§ 1:1 ringing below — FOREGROUND-only without VoIP push).
 
 ## SDK method map (BAKED closed list — from the catalog; signatures → FETCH from docs)
 - **Lifecycle (`CometChatCalls` statics):** `initFromSettings` · `init` · `isInitialized` · `login(uid, authKey, l)` / `login(authToken, l)` · `logout` · `getLoggedInUser` · `getUserAuthToken`
-- **Session:** `generateToken(sessionId, l)` → `GenerateToken.token` · `joinSession(token | sessionId, SessionSettings, RelativeLayout, l)` → `CallSession` (`startSession`/`CallSettingsBuilder` = **v4 path, do not use**) · builder `CometChatCalls.SessionSettingsBuilder()` (`setSessionType`/`setLayout`/`setAudioMode`/…, full list in the reference).
-- **Active call (`CallSession.getInstance()`):** `isSessionActive` · `leaveSession` · lifecycle-bound listeners (`addSessionStatusListener(owner, …)` + siblings) · `clearAllListeners`.
+- **Session:** `generateToken(sessionId, l)` → `GenerateToken.token` · `joinSession(token | sessionId, SessionSettings, RelativeLayout, l)` → `CallSession` (`startSession`/`CallSettingsBuilder` = **v4 path, do not use**) · builder `CometChatCalls.SessionSettingsBuilder()` (`setSessionType`/`setLayout`/`setAudioMode`/..., full list in the reference).
+- **Active call (`CallSession.getInstance()`):** `isSessionActive` · `leaveSession` · lifecycle-bound listeners (`addSessionStatusListener(owner, ...)` + siblings) · `clearAllListeners`.
 - **Also (full enumeration → `references/method-map.md`):** In-call actions (CUSTOM controls only) · Call logs (`CallLogRequest`) · Transcription & closed captions (v5.0.4+, plan-gated) · Background (`CometChatOngoingCallService`) · Constants/enums (`SessionType`/`LayoutType`/`AudioMode`/`CometChatCallsConstants.*`).
 > A **curated highlight, NOT the full surface** — the AUTHORITATIVE closed list is the **`android-calls-v5.json` catalog** (also transcription/streaming, `CometChatCallsEventsListener`, the v4-era `CallSettingsBuilder`). A symbol is real **iff it's in the catalog**; then fetch its page via `references/docs-map.md`. **Full method map: `references/method-map.md`.**
 

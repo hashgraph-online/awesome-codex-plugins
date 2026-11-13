@@ -1,0 +1,50 @@
+{
+  "name": "osmo",
+  "version": "1.1.0",
+  "description": "OsmO's AI makes real phone calls for you: call a business or helpline, then get the summary and transcript. Every call is confirmed by you first. Sign in with your phone number; no API key. 50 free credits for new users in the US, Canada, UK and Australia: with free credits, OsmO calls businesses and toll-free numbers; calling your contacts and scheduling calls need an OsmO app plan.",
+  "author": {
+    "name": "OsmO AI",
+    "email": "team@getosmo.app",
+    "url": "https://getosmo.app"
+  },
+  "homepage": "https://getosmo.app/for-my-ai",
+  "repository": "https://github.com/Mountainheads-Private-limited/osmo-ai-plugins",
+  "license": "MIT",
+  "keywords": [
+    "phone",
+    "phone-calls",
+    "calls",
+    "voice",
+    "telephony",
+    "booking",
+    "appointments",
+    "customer-service"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "OsmO Phone Calls",
+    "shortDescription": "Real phone calls made for you",
+    "longDescription": "OsmO's voice AI places real phone calls for you to a shop, clinic, restaurant, helpline or toll-free number. It asks what you need, gets through phone menus, and brings back the outcome, a summary and the transcript. Nothing is dialled until you confirm who will be called and what will be said. It connects to the hosted OsmO MCP server at api.getosmo.app; you sign in once in the browser with your phone number and a one-time code, with no API key. New users in the US, Canada, the UK and Australia get 50 free credits (an answered call uses 3; unanswered calls are free). With free credits, OsmO calls businesses and toll-free numbers; calling your contacts and scheduling calls need an OsmO app plan. With an OsmO app plan it can also tell you who called your OsmO number and change your call-screening rules. Not for emergency services, text messages or email.",
+    "developerName": "OsmO AI",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://getosmo.app/for-my-ai",
+    "defaultPrompt": [
+      "Call the pharmacy on Main Street and ask if they're open until 9 tonight.",
+      "Find the customer-care number for my airline and ask about my refund.",
+      "Ask the hardware store on Elm Street if they have a 10 mm socket set in stock."
+    ],
+    "composerIcon": "./assets/logo.png",
+    "logo": "./assets/logo.png"
+  },
+  "mcpServers": {
+    "osmo": {
+      "type": "http",
+      "url": "https://api.getosmo.app/mcp"
+    }
+  }
+}

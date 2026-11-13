@@ -37,14 +37,37 @@ What it **does** touch:
 - **Your VCS CLI** — spawns `glab` / `gh` using your existing authentication.
 - **Credentials via environment** — reads `GITLAB_TOKEN` (baseline fetch),
   `CLANK_EVENT_SECRET` (event-bus bearer token), and `NPM_TOKEN` from a gitignored
-  `.env.local` (publish flow only). It never persists them; `CLANK_EVENT_SECRET` is
-  transmitted as a bearer token when the event bus is configured. See
-  `.env.example` in the source repository.
-- **Outbound network, all opt-in and off by default** — event-bus webhook POSTs
+  `.env.local` (publish flow only). It does not keep them anywhere else, with one
+  exception: the publish flow writes `NPM_TOKEN` to a mode-`0600` file in a private
+  directory under the system temp directory for the duration of each npm call and
+  deletes it afterwards; if deletion fails it prints a warning to delete the file
+  and rotate the token. A hard process kill skips that cleanup.
+  `CLANK_EVENT_SECRET` is transmitted as a bearer token when the event bus is
+  configured. See `.env.example` in the source repository.
+- **Outbound network** — most paths are opt-in: event-bus webhook POSTs
   (only when `CLANK_EVENT_URL` *and* `CLANK_EVENT_SECRET` are set), GitLab API
-  baseline fetches (only with `GITLAB_TOKEN`), and anonymous usage telemetry
+  baseline fetches (only with `GITLAB_TOKEN`), anonymous usage telemetry
   (strictly opt-in, one-time consent, whitelist-projected — see
   [docs/telemetry.md](docs/telemetry.md)).
+  **On by default, two paths:** (1) the SessionStart update check, one GET to
+  the public npm registry, independent of telemetry consent. A successful result
+  is cached for 24 hours per repository; a failed request or cache write can
+  cause another request at the next session. Disable it with
+  `SO_DISABLE_UPDATE_CHECK`, `DO_NOT_TRACK` or
+  `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` (see
+  [docs/telemetry.md](docs/telemetry.md)). (2) The security-pulse background
+  refresher, started from SessionStart when its cache is due (6-hour TTL per
+  part; sooner when HEAD moved or a part failed, at most one start per
+  10 minutes). It fetches the Node release index and the CISA KEV feed, sends the
+  names and versions of the lockfile packages at HEAD (private packages
+  filtered out) to OSV, and, for GitHub remotes, queries open private
+  vulnerability reports through your `gh` login. `security-delta.mode` does not
+  gate it. It does not start when `DO_NOT_TRACK` or
+  `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` is set (set, non-empty, not `0`,
+  not `false`), the same two flags the update check honours. Its own switch is
+  `SO_SECURITY_PULSE_REFRESH=off`; `SO_DISABLE_STARTUP_PROBES=1` switches off
+  all startup probes. Release and site scripts the operator starts by
+  hand also make network requests.
 - **An optional self-hosted ingest server** — `server/ingest/` is a small HTTP
   service (with `Dockerfile`, rate limiting, SQLite persistence, retention) that an
   operator may deploy to *receive* telemetry. It is not run by the plugin and is not
@@ -53,7 +76,7 @@ What it **does** touch:
 What it does **not** do:
 - Execute user-provided code directly
 - Store or forward credentials to any third party
-- Send anything over the network without an explicit opt-in
+- Send telemetry or event-bus data without an explicit opt-in
 
 Security concerns are most likely to involve:
 - **Hook scripts** (`hooks/*.mjs`) — command injection via crafted file paths or tool input

@@ -2,7 +2,7 @@
 name: cometchat-android-v6-calls
 description: "Add voice and video calling to an Android v6 CometChat app — the Calls SDK dependency, the settings-file calling toggle, call buttons in the message header, a global incoming-call listener, outgoing/ongoing call UI, call logs, and the runtime permissions. Triggers: 'add calling to my android app', 'voice video call android cometchat', 'incoming call screen android', 'call logs android', 'why are the call buttons not showing'."
 license: "MIT"
-compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.0.x, verified 6.0.5); com.cometchat:calls-sdk-android ^5 (5.0.x); com.cometchat:chat-sdk-android ^5"
+compatibility: "Android minSdk >=28; compileSdk >=36; Kotlin >=2.1; AGP >=8.9.1; JVM target 11; com.cometchat:chatuikit-kotlin-android ^6 OR com.cometchat:chatuikit-compose-android ^6 (6.1.x, verified 6.1.1); com.cometchat:calls-sdk-android ^5 (5.0.x); com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -22,12 +22,14 @@ metadata:
 Add the Calls SDK **alongside** your cohort's UI Kit artifact (never instead of it):
 ```kotlin
 dependencies {
-    implementation("com.cometchat:chatuikit-compose-android:6.0.5")   // or chatuikit-kotlin-android for XML Views
+    implementation("com.cometchat:chatuikit-compose-android:6.1.1")   // or chatuikit-kotlin-android for XML Views
     implementation("com.cometchat:calls-sdk-android:5.0.4")
 }
 ```
-> ⚠️ **REQUIRED whenever `android.enableJetifier=true` (which `core` mandates for the Chat SDK's
-> pre-AndroidX transitive) — add a Jetifier ignore-list, or the build breaks the moment you add calling.**
+> ⚠️ **On 6.1.1 the simplest fix is no Jetifier at all** — chat-sdk 5.0.7 dropped the pre-AndroidX
+> transitive, and a clean app with kit 6.1.1 + calls-sdk 5.0.4 builds with `android.enableJetifier=false`
+> (verified 2026-10-15). **If the app keeps Jetifier on (6.0.x, or another legacy dependency), add a
+> Jetifier ignore-list, or the build can break the moment you add calling.**
 > `calls-sdk-android` 5.0.x bundles a React-Native stack (`react-android` / `hermes` / `react-native-webrtc`),
 > and Jetifier **cannot transform** `react-android-*.aar` — so with Jetifier on, the build dies at
 > `checkDebugAarMetadata` with `Execution failed for JetifyTransform: react-android-0.77.2-debug.aar`
@@ -36,19 +38,19 @@ dependencies {
 > ```properties
 > android.jetifier.ignorelist=react-android,hermes-android,react-native-webrtc
 > ```
-⚠️ **The artifact and the flag are a PAIR — setting either alone breaks the app.**
-> · flag `true`, artifact missing → **app crashes at launch** (`initFromSettings` → `initCometChatCalls` → `NoClassDefFoundError: CometChatCalls$SessionSettingsBuilder`)
-> · artifact present, flag `false` → calling components crash when used (`RuntimeException: Please call the CometChatCalls.init() method …`)
+⚠️ **The artifact and the flag are a PAIR — setting either alone leaves calling broken.**
+> · flag `true`, artifact missing → 6.0.x: **app crashes at launch** (`initFromSettings` → `initCometChatCalls` → `NoClassDefFoundError: CometChatCalls$SessionSettingsBuilder`). 6.1.1: no crash; init logs `enableCalling=true but the CometChat Calls SDK is not on the classpath` and calling stays off (ENG-39311, source-checked)
+> · artifact present, flag `false` → calling components crash when used (`RuntimeException: Please call the CometChatCalls.init() method ...`)
 >
 > ⚠️ **BOTH are required — the artifact alone is not enough.** `uiKit.enableCalling: true` in
 `assets/cometchat-settings.json` is what makes `initFromSettings` initialize `CometChatCalls`.
 Without it, `CometChatCallLogs` throws `RuntimeException: Please call the CometChatCalls.init()
-method …`; without the artifact it throws `NoClassDefFoundError`. Both compile fine — device-only
-failures (verified 2026-08-21).
+method ...`; without the artifact 6.0.x throws `NoClassDefFoundError` (6.1.1 skips Calls init and
+calling components do nothing). Both compile fine — device-only failures (verified 2026-08-21 on 6.0.x).
 
 **The kit auto-detects the Calls SDK** and activates calling. Also set `"uiKit": { "enableCalling": true }` in `app/src/main/assets/cometchat-settings.json` so `CometChatUIKit.initFromSettings(...)` initializes the Calls SDK through the telemetry-aware path (it auto-inits Calls when that flag is on). Dashboard: calling must be enabled for the app.
 
-**Header call buttons differ BY COHORT** (verified vs installed 6.0.5 source):
+**Header call buttons differ BY COHORT** (verified vs 6.0.5 source; unchanged in 6.1.1):
 - **Views**: automatic — `CometChatMessageHeader`'s voice/video button visibility defaults follow `CallsUtils.isCallingEnabled()`, so the buttons render with no extra code once calling is enabled.
 - **Compose**: NOT automatic — the `CometChatMessageHeader` composable defaults `hideVoiceCallButton = true` and `hideVideoCallButton = true`. Pass both explicitly:
   ```kotlin
@@ -63,7 +65,7 @@ failures (verified 2026-08-21).
 > ⚠️ **Enabling calling in an app with EXISTING sessions — force a fresh login.** `CometChatUIKit.login()`
 > short-circuits when the same uid is already logged in (persisted session): it returns `onSuccess`
 > WITHOUT calling `loginCometChatCalls`, so the Calls SDK never gets an auth token (verified vs 6.0.5
-> `CometChatUIKit.kt` login + on device 2026-08-25). Symptom: `CometChatCallLogs` shows a silent
+> `CometChatUIKit.kt` login + on device 2026-08-25; same short-circuit in 6.1.1 source). Symptom: `CometChatCallLogs` shows a silent
 > error state; logcat says `User auth token cannot be null`. When calling is FIRST enabled on an app
 > whose users already have a session, users must re-login — `CometChatUIKit.logout(...)` then
 > `CometChatUIKit.login(...)` (or force a fresh login path once, e.g. on a calling-feature version
@@ -91,7 +93,7 @@ class BaseApplication : Application() {
 Register the Application class in the manifest (`android:name=".BaseApplication"`). **Views**: instantiate `CometChatIncomingCall(context)`, set its `call`, set `fitsSystemWindows = true`, wire its error handler, and present it (dialog / full-screen overlay). **Compose**: hold the incoming `Call` in app-level state and render the incoming-call composable above your nav host — fetch the composable's params from `components/incoming-call.md`.
 4. **Permissions** — request `CAMERA` and `RECORD_AUDIO` at runtime before a call starts (video needs both; audio-only needs `RECORD_AUDIO`); declare them in the manifest. The kit ships `CometChatPermissionHandler` / `CometChatPermissionActivity` — prefer them over a hand-rolled flow.
 
-> ℹ️ **SoLoader / bundled React-Native native libs (know this before an ACTIVE call).** `calls-sdk-android`
+> Note: **SoLoader / bundled React-Native native libs (know this before an ACTIVE call).** `calls-sdk-android`
 > 5.0.x bundles a React-Native stack (`react-android` / `hermes` / `react-native-webrtc`), declared at
 > **`runtime` scope** in its POM — so they land on the runtime classpath and `initFromSettings` calls-init +
 > `CometChatCallLogs` work with **no extra deps** (verified on device: init succeeds, call logs render).
@@ -125,7 +127,7 @@ outgoingCall.call = pendingCall
 
 // CometChatCallActivity / CometChatOngoingCallActivity: the in-call surface, launched
 // automatically during a session. ⚠️ You do NOT declare these — BOTH are already declared in the
-// UI-Kit AAR manifest and merge in automatically (verified vs 6.0.x). The cohort-correct classes:
+// UI-Kit AAR manifest and merge in automatically (verified vs 6.0.x and the 6.1.1 AAR manifests). The cohort-correct classes:
 //   Compose: com.cometchat.uikit.compose.calls.CometChatCallActivity
 //            com.cometchat.uikit.compose.presentation.ongoingcall.ui.CometChatOngoingCallActivity
 //   Views:   com.cometchat.uikit.kotlin.calls.CometChatCallActivity
@@ -137,6 +139,9 @@ outgoingCall.call = pendingCall
 val callLogs = CometChatCallLogs(context)
 ```
 
+### Huddle / docked call — Android how-to (BAKED — verified vs 6.1.1 + calls-sdk 5.0.4)
+The pattern (start -> join -> dock -> indicator -> leave): `cometchat-onboarding/references/clone-mode.md` -> *Huddle / drop-in room pattern*. The Android code for both cohorts is in **`references/huddle.md`**: send the kit's own `meeting` message (session id = group GUID), replace the meeting bubble with a `BubbleFactory` so Join opens your dock, and join with `CometChatCalls.joinSession(sessionId, settings, yourRelativeLayout, ...)` instead of the kit's full-screen `CometChatOngoingCallActivity`. Compiled, not yet run on a device.
+
 ## Deeper calling features → fetch
 | Intent | Page (append `.md`) |
 |---|---|
@@ -144,10 +149,10 @@ val callLogs = CometChatCallLogs(context)
 | call buttons props | `/ui-kit/android/call-buttons` |
 | incoming / outgoing UI props | `/ui-kit/android/incoming-call` · `/ui-kit/android/outgoing-call` |
 | call logs + details recipe | `/ui-kit/android/call-logs` · `/ui-kit/android/guide-call-log-details` |
-| custom in-call UI, layouts, recording, screen share, audio modes | the `/calls/android/*` pages (`call-layouts`, `custom-control-panel`, `audio-modes`, `background-handling`, `idle-timeout`, `events`, …) |
+| custom in-call UI, layouts, recording, screen share, audio modes | the `/calls/android/*` pages (`call-layouts`, `custom-control-panel`, `audio-modes`, `background-handling`, `idle-timeout`, `events`, ...) |
 
 ## Common pitfalls
-Importing `com.cometchat.chat.models.Call` (it is **`com.cometchat.chat.core.Call`** — the wrong import compiles to an "Unresolved reference 'Call'" cascade) · manually declaring `CometChatCallActivity`/`CometChatOngoingCallActivity` in your manifest (they AUTO-MERGE from the UI-Kit AAR — a hand-written `<activity>` with the wrong/legacy `com.cometchat.chatuikit.calling.*` name breaks the launch) · Calls SDK missing (buttons never appear) · `enableCalling` not set in the settings file · Compose header without `hideVoiceCallButton = false` / `hideVideoCallButton = false` (buttons never appear — Compose defaults hide them) · Compose `auxiliaryView` used for a custom header icon (it replaces the call-button host — use `trailingView`) · calling enabled on an app with a persisted session without a re-login (Calls SDK tokenless — call logs silently error with "User auth token cannot be null") · no global call listener (incoming calls never ring) · listener registered per-Activity only (rings only on that screen) · registering in `Application` but forgetting `android:name` in the manifest · missing runtime CAMERA/RECORD_AUDIO permissions (call fails silently) · calling before `login` resolves · call UI not `fitsSystemWindows` / not full-bleed (controls under system bars) · leaking the listener (remove it if you register outside `Application`) · mixing a v4/v5 calls artifact with the v6 kit.
+Importing `com.cometchat.chat.models.Call` (it is **`com.cometchat.chat.core.Call`** — the wrong import compiles to an "Unresolved reference 'Call'" cascade) · manually declaring `CometChatCallActivity`/`CometChatOngoingCallActivity` in your manifest (they AUTO-MERGE from the UI-Kit AAR — a hand-written `<activity>` with the wrong/legacy `com.cometchat.chatuikit.calling.*` name breaks the launch) · Calls SDK missing (buttons never appear) · `enableCalling` not set in the settings file · Compose header without `hideVoiceCallButton = false` / `hideVideoCallButton = false` (buttons never appear — Compose defaults hide them) · Compose `auxiliaryView` used for a custom header icon (it replaces the call-button host — use `trailingView`) · calling enabled on an app with a persisted session without a re-login (Calls SDK tokenless — call logs silently error with "User auth token cannot be null") · no global call listener (incoming calls never ring) · listener registered per-Activity only (rings only on that screen) · registering in `Application` but forgetting `android:name` in the manifest · missing runtime CAMERA/RECORD_AUDIO permissions (call fails silently) · calling before `login` resolves · call UI not `fitsSystemWindows` / not full-bleed (controls under system bars) · leaking the listener (remove it if you register outside `Application`) · mixing a v4/v5 calls artifact with the v6 kit · a docked/mini call target left on the kit default (the group call button and the meeting bubble's Join both open the full-screen `CometChatOngoingCallActivity`; a Views `CometChatOngoingCall` mounted in your panel calls `activity.finish()` when the call ends) — dock it per `references/huddle.md`.
 
 ## Verify it works
 Compile against the pinned kit (`./gradlew :app:assembleDebug   # in YOUR app (npm run verify:fences:android-v6 is a pack-repo gate)`). On device (TWO devices/emulators + two users — calling can't be verified single-ended): call buttons render in the message header; tapping starts an outgoing call; the OTHER device rings with the incoming UI from **any** screen; accept → ongoing call with audio/video; decline/cancel dismisses cleanly on both sides; the call appears in `CometChatCallLogs` and as a call bubble in the chat. No ring ⇒ listener not registered globally (or app not logged in). Permission denial ⇒ handle it and tell the user, don't fail silently.

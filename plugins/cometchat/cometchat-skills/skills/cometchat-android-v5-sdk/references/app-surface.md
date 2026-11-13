@@ -57,7 +57,7 @@ Never block the UI waiting for a round-trip; never leave a failed item looking s
 
 ## 6. Realtime + listener lifecycle
 Register **one** listener per screen with a stable unique id and remove it on teardown:
-- Compose: `DisposableEffect(Unit) { add…; onDispose { remove… } }`
+- Compose: `DisposableEffect(Unit) { add...; onDispose { remove... } }`
 - Views/ViewModel: register in `onCreate`/`init`, remove in `onDestroy`/`onCleared`
 Cover: `addMessageListener` (incoming text/media), `addUserListener` (presence), `addGroupListener`
 (membership), `addConnectionListener` (offline/online banner). De-duplicate against optimistic items

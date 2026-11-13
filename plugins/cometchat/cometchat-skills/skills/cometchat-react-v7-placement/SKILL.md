@@ -2,7 +2,7 @@
 name: cometchat-react-v7-placement
 description: "Where CometChat chat goes in a React app shell and how to wire each layout — full-screen, sidebar/split, popup/widget, or embedded in an existing page. Triggers: 'add chat as a sidebar', 'full screen chat page', 'chat popup widget', 'embed chat in my dashboard'."
 license: "MIT"
-compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.1.x, verified 7.1.0)"
+compatibility: "React >=18; @cometchat/chat-uikit-react ^7 (7.2.x, verified 7.2.4)"
 metadata:
   author: "CometChat"
   version: "1.1.0"
@@ -103,4 +103,4 @@ const listColumn = searchOpen
 ## Verify it works
 Chat renders in the chosen layout inside a `CometChatErrorBoundary`, and on a narrow viewport it collapses to ONE pane at a time (list → message → back) — no squashed side-by-side panes on a phone. Default "add chat" ⇒ the Core-surface recipe (list ↔ message pane, sized, affordances wired-or-hidden); the whole combined app (tabs + side panel + incoming call) is the grow target for an explicit full-app ask.
 
-**Close (after it builds):** end with the shared 3-option selectable menu and WAIT for the pick — **① add another feature** (suggest a few not-yet-wired) · **② customize theming** · **③ test it manually** (stop; let the user check). Same contract as the `cometchat-react-v7-core` close (`RULES.md` §19).
+**Close (after it builds):** end with the shared 3-option selectable menu and WAIT for the pick — **(1) add another feature** (suggest a few not-yet-wired) · **(2) customize theming** · **(3) test it manually** (stop; let the user check). Same contract as the `cometchat-react-v7-core` close (`RULES.md` §19).

@@ -54,7 +54,7 @@ CometChat has two layers; an action must pass **both** or the API returns `ERR_P
 
 | Layer | Scope | Set via | Use it for |
 | --- | --- | --- | --- |
-| **Role (RBAC)** | whole app, one role per user | user create/update (`/rest-api/users`), roles (`/rest-api/roles`) | who may create groups, send messages, start calls, … |
+| **Role (RBAC)** | whole app, one role per user | user create/update (`/rest-api/users`), roles (`/rest-api/roles`) | who may create groups, send messages, start calls, ... |
 | **Scope (SBAC)** | inside one group | group membership (`/rest-api/group-members/change-scope`) | `admin` / `moderator` / `participant` within that group |
 
 - Define roles server-side via the REST **Roles** endpoint (`POST https://{APP_ID}.api-{REGION}.cometchat.io/v3/roles`; see the docs at `{DOCS_BASE}/rest-api/roles`) — each user gets exactly one; unspecified → `default`.

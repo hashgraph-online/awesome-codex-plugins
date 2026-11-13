@@ -2,14 +2,14 @@
 name: cometchat-flutter-v6-core
 description: "Add CometChat chat to a Flutter app end-to-end — detect the project, get & verify dashboard credentials, init→login→render, and the drop-in conversation UI. The core knowledge every other Flutter v6 skill builds on. Triggers: 'add chat to my flutter app', 'integrate cometchat flutter', 'set up cometchat credentials flutter', 'show conversations and messages in flutter'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; Dart >=3.10.8 <4.0.0; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0); cometchat_sdk ^5.0.6; cometchat_calls_sdk ^5.0.4 (calls only)"
+compatibility: "Flutter >=3.38.9; Dart >=3.10.8 <4.0.0; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0); cometchat_sdk ^5.0.8; cometchat_calls_sdk ^5.0.8 (calls only)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat flutter core chat integration uikit v6 setup credentials"
 ---
 
-> **Ground truth:** `cometchat_chat_uikit@6` (6.1.0) + `cometchat_sdk@^5.0.6`. Every `CometChat*` symbol here is in `catalogs/flutter-v6.json` — **compiler-verified** against the published package. Signatures marked **[verified]** were compiled because the docs were **wrong**, or (for `initFromSettings`) deliberately **silent** (`DOCS-BACKLOG.md` PART 4): trust this file for those, fetch the rest via `references/docs-map.md`. THIN map loaded every run; depth in `references/*`.
+> **Ground truth:** `cometchat_chat_uikit@6` (6.2.0) + `cometchat_sdk@^5.0.8`. Every `CometChat*` symbol here is in `catalogs/flutter-v6.json` — **compiler-verified** against 6.1.0 and source-checked present in 6.2.0. Signatures marked **[verified]** were compiled because the docs were **wrong**, or (for `initFromSettings`) deliberately **silent** (`DOCS-BACKLOG.md` PART 4): trust this file for those, fetch the rest via `references/docs-map.md`. THIN map loaded every run; depth in `references/*`.
 
 <!-- core is the companion the other flutter v6 skills read; it has no Companion block of its own. -->
 
@@ -20,14 +20,14 @@ metadata:
 ```bash
 flutter pub add cometchat_chat_uikit
 ```
-Pin the major in `pubspec.yaml` — `cometchat_chat_uikit: ^6.1.0` (a bare `any` can resolve across majors). The Chat SDK (`cometchat_sdk`) comes **transitively and is re-exported by the kit barrel** — do NOT add it separately unless you import SDK-only paths. Voice/video calling = a settings flag + native config (`cometchat_calls_sdk` is already a transitive kit dependency — see below) → `cometchat-flutter-v6-calls`.
+Pin the major in `pubspec.yaml` — `cometchat_chat_uikit: ^6.2.0` (a bare `any` can resolve across majors). The Chat SDK (`cometchat_sdk`) comes **transitively and is re-exported by the kit barrel** — do NOT add it separately unless you import SDK-only paths. Voice/video calling = a settings flag + native config (`cometchat_calls_sdk` is already a transitive kit dependency — see below) → `cometchat-flutter-v6-calls`.
 
-**Platform minimums** — Android `minSdk = 26` in `android/app/build.gradle.kts`; iOS `platform :ios, '15.1'` in `ios/Podfile`. **The `getting-started` page says 24 / 13.0 and both are too low** (DOCS-BACKLOG D7). The kit's own AAR allows 21, but transitive deps set the real floor and this one is not optional: `cometchat_chat_uikit` depends on **`cometchat_calls_sdk`** unconditionally — it sits in the main `dependencies:` block — and that package pins `minSdkVersion 26` / `platform :ios, '15.1'` (5.0.7). Gradle and CocoaPods take the maximum across the graph, so a lower value is a build error whether or not the app uses calling.
+**Platform minimums** — Android `minSdk = 26` in `android/app/build.gradle.kts`; iOS `platform :ios, '15.1'` in `ios/Podfile`. **The `getting-started` page says 24 / 13.0 and both are too low** (DOCS-BACKLOG D7). The kit's own AAR allows 21, but transitive deps set the real floor and this one is not optional: `cometchat_chat_uikit` depends on **`cometchat_calls_sdk`** unconditionally — it sits in the main `dependencies:` block — and that package pins `minSdkVersion 26` / `platform :ios, '15.1'` (5.0.7 through 5.0.9). Gradle and CocoaPods take the maximum across the graph, so a lower value is a build error whether or not the app uses calling.
 
 ## Setup & credentials (essentials — full detail: `references/setup-credentials.md`)
 1. **Detect** by READING the repo — `pubspec.yaml` + lockfile (deps and the kit major), `lib/main.dart`, state management, navigation, and how config is handled. Reuse an existing `.cometchat/config.json` or settings asset (skip re-setup). Signal table: `references/setup-credentials.md`.
 2. **version_conflict — STOP** if the project already has `cometchat_chat_uikit` v5 (or any non-v6 major); reconcile first, never mix majors (`RULES.md`). A v5 project that wants v6 → `cometchat-flutter-v6-migration`.
-3. **Credentials — OFFER the dashboard fetch FIRST; never default to "paste it yourself."** When App ID / Region / Auth Key are missing, offer **(a) fetch from your dashboard (recommended)** — load the CLI on demand, pick an **EXISTING** app (never auto-create) — or **(b) manual paste**. Then the SKILL writes `cometchat-settings.json` (§4) from those creds; the CLI is dashboard/API-only and never writes Dart (`RULES.md` §21). Never defer credentials to a "add them yourself" TODO. Exact commands + the app-picker flow: `references/setup-credentials.md`.
+3. **Credentials — OFFER the dashboard fetch FIRST; never default to "paste it yourself."** When App ID / Region / Auth Key are missing, offer **(a) fetch from your dashboard (recommended)** — through the CometChat MCP's account tools, pick an **EXISTING** app (never auto-create) — or **(b) manual paste**. Then the SKILL writes `cometchat-settings.json` (§4) from those creds; the CLI is dashboard/API-only and never writes Dart (`RULES.md` §21). Never defer credentials to a "add them yourself" TODO. Exact commands + the app-picker flow: `references/setup-credentials.md`.
 4. **Write the settings asset + register it** — commit only a placeholder (no real Auth Key) and do **not** gitignore it (a registered asset must exist or a fresh-clone `flutter build` fails — see the note in §Integration ordering); never echo the Auth Key. Prod → server-minted auth token, not the Auth Key.
 5. **Authorize** = `init` then `login` both hit `onSuccess`. An auth error is almost always the wrong **Region**.
 
@@ -37,7 +37,7 @@ Pin the major in `pubspec.yaml` — `cometchat_chat_uikit: ^6.1.0` (a bare `any`
 **Init via `initFromSettings` — the file-based, telemetry-attributed path (`RULES.md` §5).** It reads a `cometchat-settings.json` **asset** and persists `integrationSource="ai-agent"`. **Flutter's signature takes NO settings argument** (unlike web, which passes a settings object) — the file IS the input:
 
 ```dart
-// [verified vs 6.1.0] — INTENTIONALLY undocumented upstream (@nodoc, owner decision:
+// [verified vs 6.1.0, unchanged in 6.2.0] — INTENTIONALLY undocumented upstream (@nodoc, owner decision:
 // DOCS-BACKLOG F4 WONTFIX). Prefer it over the docs' UIKitSettingsBuilder + init()
 // path, which loses telemetry attribution. The shape below is the contract.
 import 'package:cometchat_chat_uikit/cometchat_chat_uikit.dart';
@@ -70,7 +70,7 @@ await CometChatUIKit.login(
   onError: (CometChatException e) => debugPrint('Login failed: ${e.message}'),
 );
 ```
-> **Which UID?** `login()` needs a user that ALREADY EXISTS — never invent one. ASK, or take one from Dashboard → **Users**; fresh apps seed `cometchat-uid-1…`. The only tentative suggestion is `cometchat-uid-1`, labelled "if this is a fresh app." **Prod → `CometChatUIKit.loginWithAuthToken(authToken, …)`** with a token minted server-side.
+> **Which UID?** `login()` needs a user that ALREADY EXISTS — never invent one. ASK, or take one from Dashboard → **Users**; fresh apps seed `cometchat-uid-1...`. The only tentative suggestion is `cometchat-uid-1`, labelled "if this is a fresh app." **Prod → `CometChatUIKit.loginWithAuthToken(authToken, ...)`** with a token minted server-side.
 > Init-once, hot-restart, and gating the first frame: `references/lifecycle.md`.
 
 ## Widget / API map (BAKED closed list — from the catalog)
@@ -94,10 +94,10 @@ Setup → init/login → **gate the first frame** on both resolving (show a load
 1. **Conversations screen** — `CometChatConversations` inside `Scaffold` + `SafeArea`. Wire `onItemTap` → `Navigator.push` the message screen for that conversation's `User`/`Group`. Wire the **global search** the documented way: `searchReadOnly: true` + `onSearchTap` → push a `CometChatSearch` screen, whose `onConversationClicked`/`onMessageClicked` navigate to the hit and whose `onBack` pops. (Or set `hideSearch: true` — but never leave the field dead.)
 2. **Message screen** — `CometChatMessageHeader` + `Expanded(child: CometChatMessageList(...))` + `CometChatMessageComposer`, all carrying the SAME `user:`/`group:`. `Expanded` is what makes the list fill the screen; the header/composer keep their intrinsic height. Leave `Scaffold.resizeToAvoidBottomInset` at its default `true` so the composer rides above the keyboard. The header's `showBackButton` defaults to `true` — wire `onBack` to `Navigator.pop`.
 3. **Thread screen (DEFAULT — include unless the user opts out)** — wire the list's `onThreadRepliesClick` to push a screen with `CometChatThreadedHeader(parentMessage:, loggedInUser:)` — both required, and it has **no `onBack`**, so the screen's own `AppBar` provides back — plus a `CometChatMessageList` + `CometChatMessageComposer` that each take `parentMessageId: parentMessage.id` **AND the same `user:`/`group:` as the parent chat**. **Passing `parentMessageId` without the user/group target makes thread replies silently never send.**
-4. **In-chat scoped search** — Flutter's `CometChatMessageHeader` has **no** search prop (unlike React). Put the action in the header's `auxiliaryButtonView`/`trailingView` slot — custom UI goes IN the slot, never stacked on top — and push `CometChatSearch(user: …/group: …)` so it searches only that chat.
+4. **In-chat scoped search** — Flutter's `CometChatMessageHeader` has **no** search prop (unlike React). Put the action in the header's `auxiliaryButtonView`/`trailingView` slot — custom UI goes IN the slot, never stacked on top — and push `CometChatSearch(user: .../group: ...)` so it searches only that chat.
 
 ```dart
-// [verified vs 6.1.0] the message screen — the shape the whole surface hangs off.
+// [verified vs 6.1.0, unchanged in 6.2.0] the message screen — the shape the whole surface hangs off.
 import 'package:cometchat_chat_uikit/cometchat_chat_uikit.dart';
 import 'package:flutter/material.dart';
 
@@ -197,8 +197,8 @@ Run the app: `init` then `login` both hit `onSuccess` → the conversations scre
 
 ## Explain what you built (REQUIRED close — `RULES.md` §19)
 Don't end on a silent code dump. Briefly: **(1) what I wired** (3–5 bullets, NAME the files); **(2) decisions & why**, flagging dev-only AS dev-only (Auth Key → server token for prod; the `<uid>`); **(3) what I did NOT touch** (additive — routing/state/theme intact). Then offer THREE options as a selectable choice and **WAIT** for the pick:
-- **① Add another feature** — first check what's already wired, and ASK which dashboard extensions are already on (you can't read per-app state). Suggest 3–4 that are neither (**calls · push · polls · stickers · translation · AI smart replies · moderation**). **Never suggest reactions, mentions, quoted reply or threads — they are ON by default in v6**; offer to customize them instead. → `-features` / `-calls`.
-- **② Customize theming** — ask for a brand/preset theme or talk through options → `-customization`.
-- **③ Test it manually** — do NOTHING further; hand it back.
+- **(1) Add another feature** — first check what's already wired, and ASK which dashboard extensions are already on (you can't read per-app state). Suggest 3–4 that are neither (**calls · push · polls · stickers · translation · AI smart replies · moderation**). **Never suggest reactions, mentions, quoted reply or threads — they are ON by default in v6**; offer to customize them instead. → `-features` / `-calls`.
+- **(2) Customize theming** — ask for a brand/preset theme or talk through options → `-customization`.
+- **(3) Test it manually** — do NOTHING further; hand it back.
 
 A capability not in this pack: say so honestly + link CometChat's docs.

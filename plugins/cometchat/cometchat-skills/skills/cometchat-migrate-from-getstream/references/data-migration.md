@@ -21,7 +21,7 @@ The script reads its secrets from env (`STREAM_API_KEY`, `STREAM_API_SECRET`, `C
 | Users | `client.queryUsers({ id: { $gt: lastId } }, { id: 1 }, { limit: 100 })` | keyset on `id` (offset paging is capped) |
 | Channels + members | `client.queryChannels({}, { created_at: 1 }, { limit: 30, offset, state: true, watch: false, member_limit: 100 })` | offset; `channel.queryMembers({}, {}, { limit: 100, offset })` for big channels |
 | Messages | `channel.query({ messages: { limit: 300, id_lt: oldestId } })` | walk backwards until empty |
-| Bulk alternative | `client.exportChannels([{ type, id }, …])` → poll `client.getExportChannelStatus(taskId)` → download `result.url` | better for very large histories |
+| Bulk alternative | `client.exportChannels([{ type, id }, ...])` → poll `client.getExportChannelStatus(taskId)` → download `result.url` | better for very large histories |
 
 Back off on HTTP 429. Write each export to `export/*.jsonl` so a failed run can resume.
 
@@ -67,7 +67,7 @@ Base `https://${COMETCHAT_APP_ID}.api-${COMETCHAT_REGION}.cometchat.io/v3/data_i
 Finish by printing counts: exported, imported, converted (system→text), skipped (deleted / beyond the 6-month retention window / empty), failed (with a pointer to the error file).
 
 ## README.md for the script (emit it)
-1. Create a **REST API key** (full access) in the CometChat dashboard.
+1. Create a **REST API key** (full access) in the CometChat dashboard. If the CometChat MCP is connected and signed in, you can do it for the user instead — with their OK, `cometchat_create_api_key` (scope `fullAccess`, name e.g. `data-import`) — and write the returned key straight into the script's `.env`; never echo it.
 2. `cd scripts/cometchat-migration && npm install`, then export the five env vars.
 3. Dry run: `node migrate.mjs --dry-run`. This exports and transforms, then prints counts without importing.
 4. Import: `node migrate.mjs`.

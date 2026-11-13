@@ -2,14 +2,14 @@
 name: cometchat-ios-production
 description: "Ship a CometChat iOS (Swift) integration safely — server-minted auth tokens instead of the Auth Key, keeping secrets out of the app binary, and a pre-launch checklist. Triggers: 'is my cometchat ios production ready', 'auth token instead of auth key swift', 'secure cometchat ios', 'going live checklist ios', 'harden cometchat swift before launch'."
 license: "MIT"
-compatibility: "CometChatUIKitSwift 5.1.22 + CometChatSDK 4.1.7 (exact); Xcode 16+; iOS 15.1+; SPM only"
+compatibility: "CometChatUIKitSwift 5.2.3+ (Up to Next Major; resolves CometChatSDK 4.1.10+); Xcode 16+; iOS 15.1+; SPM only"
 metadata:
   author: "CometChat"
   version: "1.0.0"
   tags: "cometchat ios swift production security auth-token hardening appstore"
 ---
 
-> **Ground truth:** `CometChatUIKitSwift` 5.1.22 + `CometChatSDK` 4.1.7 (symbols verified vs `catalogs/ios-v5.json`). The login/auth-token API is FETCHED via `cometchat-ios-core/references/docs-map.md`; the REST auth-token endpoint is `{DOCS_BASE}/rest-api/auth-tokens`. **The iOS UI Kit docs have no single production-hardening page** — this checklist is the pack's own guidance from `RULES.md` §4 + `cometchat-ios-core/references/setup-credentials.md`, labelled as such. Tracked DOCS GAP.
+> **Ground truth:** `CometChatUIKitSwift` 5.2.3 + `CometChatSDK` 4.1.10 (symbols verified vs `catalogs/ios-v5.json`). The login/auth-token API is FETCHED via `cometchat-ios-core/references/docs-map.md`; the REST auth-token endpoint is `{DOCS_BASE}/rest-api/auth-tokens`. **The iOS UI Kit docs have no single production-hardening page** — this checklist is the pack's own guidance from `RULES.md` §4 + `cometchat-ios-core/references/setup-credentials.md`, labelled as such. Tracked DOCS GAP.
 
 ## Companion skills (read first)
 - `cometchat-ios-core` — `references/setup-credentials.md` (the `Secrets.xcconfig` → Info.plist → `Bundle.main` flow) and `references/swiftui.md` (the init→login launch hook) this hardens.

@@ -17,6 +17,16 @@ It deterministically checks `died-in` ordering:
 - Chapters dated on both sides compare by story date, not number.
 - A character `status` progression to `deceased` with no `died-in` counts as the death for later casts and learning, and a status progression that contradicts `died-in` or `revived-in` warns.
 
+### Births
+
+When a character has `born` (a day or a year alone), it reports as errors that an exemption can dismiss:
+
+- A chapter or scene that lists the character as `pov` or in `characters` and is dated before the birth (`appears-before-birth`). A chapter counts from its latest date, its own or a non-flashback scene's; a chapter with no date of its own and an undated scene is not checked. Move the character to `mentions`, or fix the dates.
+- A birth after the date of the `died-in` chapter (`born-after-death`).
+- A parent, by a `parent` or `child` relationship, who is not born before their child (`parent-born-after-child`).
+
+A birth known only by its year is reported only when certain. Record ages as `born`, never as a fixed `age`; `story context` and `story knowledge` give the age at each dated chapter.
+
 ### Ledgers, casts, and state references
 
 It also checks promise/question chapter ordering, Chekhov gaps, POV/cast consistency, `status: cut` characters still listed in a chapter or scene `pov`/`characters`, an arc's `characters`, or a relationship (warnings), and `continuity/state.md` references.
@@ -257,6 +267,7 @@ Run `story series .` when `story.md` has `follows` or `precedes` links to other 
   - A later book's scene whose `state-changes` target an artifact `destroyed` in an earlier book
 - **Warnings**
   - A shared entity whose `name` (or glossary `term`) or `pronunciation` differs from the most recent earlier book
+  - A shared character whose `born` contradicts the most recent earlier book that gives one, when both books use the same story calendar (`canon-born-mismatch`). A year and a day in that year agree
   - Linked books that set different `series-title` values
   - An artifact that is `destroyed` in an earlier book but has a different status in a later one
   - Linked books that set no `series` id while the others share one (`Linked books <titles> set no series id; add series: <id>`); add the id to each named book

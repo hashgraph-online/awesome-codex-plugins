@@ -6,10 +6,10 @@ Only the latest published release is supported. Older releases are not.
 
 | Version | Supported |
 | --- | --- |
-| 0.12.1 | Yes |
+| Latest published npm release | Yes |
 | Older releases | No |
 
-0.12.1 is the latest version published to npm as `cloudgpu-mcp`.
+Check the current published version on [npm](https://www.npmjs.com/package/cloudgpu-mcp). A repository branch or package manifest is not proof of publication; feature availability also depends on the deployed backend capabilities.
 
 ## Reporting a vulnerability
 

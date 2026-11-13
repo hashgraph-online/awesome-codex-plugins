@@ -4,6 +4,17 @@
 From the CometChat dashboard: **App ID** · **Region** (`us` / `eu` / `in`) · **Auth Key**.
 They go into `CometChat.CometChatSettings` — see `lifecycle.md`.
 
+## Getting them: account fetch or manual
+**Fetch path (user opted in).**
+1. **Check the connection:** call `cometchat_whoami`.
+   - **No `cometchat_*` tools** → the `cometchat` server isn't added, or the host has only the docs tools. **Don't block: go straight to the manual path below** and offer once: *"Or connect your CometChat account and I'll fetch them: sign in to the `cometchat` MCP server (Claude Code: `/mcp` → Authenticate; Codex: `codex mcp login cometchat`; Cursor: Settings → MCP → Connect; ChatGPT: connect the CometChat app)."* Not added → add the `cometchat` server (per-agent commands: `references/docs-map.md`).
+   - **Needs sign-in** (`unauthorized`, or the agent says `cometchat` needs a sign-in) → not signed in yet, or it expired; the docs tools still work. Same as above: manual path plus the sign-in offer. Use whichever the user does first.
+   - **Connection or server error** (timeout, 404/5xx, "failed to connect"; not `unauthorized`) → the server is down. Retry at most once, don't ask for a sign-in, and switch to the manual path with a one-line note.
+2. **Pick the app:** reuse an App ID already in the project; otherwise `cometchat_list_apps` and ask which EXISTING app (offer the top few, never auto-create).
+3. **Fetch:** `cometchat_get_app_credentials` with that `app_id` → App ID, Region, Auth Key. Write them into the gitignored config yourself; never echo the Auth Key back.
+
+**Manual path** (user prefers, or the account tools aren't available): Dashboard → Your App → Credentials → App ID, Region, Auth Key (**dev only**). If neither path yields them, ask and wait; never proceed with placeholders.
+
 ## Nothing in a mobile bundle is secret
 This is the part web habits get wrong. A React Native bundle is **not** a server:
 
@@ -29,7 +40,7 @@ A production build should not carry `credentials.authKey` at all.
 
 ## Which UID to log in as
 Use a UID that **already exists** in your dashboard app. The CometChat sample apps seed
-`cometchat-uid-1` … `cometchat-uid-5`. **Never invent one** — login fails with a confusing error,
+`cometchat-uid-1` ... `cometchat-uid-5`. **Never invent one** — login fails with a confusing error,
 and it looks like a credential problem rather than a missing user.
 
 Creating users needs the Auth Key, so `CometChat.createUser` is a **backend** call made when your own

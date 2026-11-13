@@ -31,7 +31,7 @@ Two callers racing throws **"Please wait until the previous login request ends."
 `<CometChatConversations>` and `<cometchat-conversations-component>` are both wrong. Class `CometChatConversationsComponent`, selector `<cometchat-conversations>`, docs title "Conversations" — three different strings.
 
 ## 8. Guessing the bare class name
-`CometChatConversations` (no suffix) exists inside the package but is **not exported** — importing it fails to compile. 109 such internal-only names exist. Always use the exported `…Component` form. The AI-assistant exports are the sole exception and carry no suffix.
+`CometChatConversations` (no suffix) exists inside the package but is **not exported** — importing it fails to compile. 109 such internal-only names exist. Always use the exported `...Component` form. The AI-assistant exports are the sole exception and carry no suffix.
 
 ## 9. Putting credentials in `.env`
 Angular does not read `.env`. Values must be in `src/environments/environment.ts` and swapped via `fileReplacements`. A `.env` file is silently ignored, so config appears empty at runtime.

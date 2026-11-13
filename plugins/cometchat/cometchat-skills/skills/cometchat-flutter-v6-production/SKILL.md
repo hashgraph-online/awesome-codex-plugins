@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-production
 description: "Take a CometChat Flutter integration to production — server-minted auth tokens instead of the Auth Key, secret handling in a Flutter bundle, logout/session hygiene, release build config, and the pre-ship checklist. Triggers: 'production auth cometchat', 'auth token flutter', 'is the auth key safe', 'ship cometchat to production', 'release build cometchat'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0); cometchat_sdk ^5.0.6"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0); cometchat_sdk ^5.0.8"
 metadata:
   author: "CometChat"
   version: "1.0.0"

@@ -13,9 +13,9 @@ Search case-insensitively. Skip `node_modules/`, `Pods/`, `build/`, `.dart_tool/
 | Android | `com.sendbird.sdk:sendbird-chat`, `com.sendbird.sdk:uikit`, `com.sendbird.sdk:uikit-compose`, `com.sendbird.sdk:sendbird-calls`, the `repo.sendbird.com` Maven repo | `android-v6` (cohort from `android_variant`: Compose → `compose-*`, Views → `kotlin-*`) | `cometchat-android-v6-core` | `cometchat-android-v5-sdk` |
 | Flutter | `sendbird_uikit`, `sendbird_chat_sdk`, `sendbird_sdk` (v3) | `flutter-v6` | `cometchat-flutter-v6-core` | the Flutter core's SDK fallback (`cometchat_sdk`, re-exported by the kit) |
 | Calls only (no chat) | `sendbird-calls`, `@sendbird/calls-react-native`, `SendBirdCalls`, `com.sendbird.sdk:sendbird-calls` | the matching headless calls peer (`js-calls`, `react-native-calls`, `ios-calls`, `android-calls`, `flutter-calls`) | — | `cometchat-js-v5-sdk` / `cometchat-react-native-v5-sdk` / `cometchat-ios-v5-sdk` / `cometchat-android-v5-calls-sdk` / `cometchat-flutter-v5-sdk` |
-| Server (Node, Python, Go, Java, Ruby, PHP…) | HTTP to `api-<APP_ID>.sendbird.com/v3/…` with an `Api-Token` header; `sendbird-platform-sdk*` | — (REST, no UI Kit) | — | CometChat REST (`/rest-api/…`) |
+| Server (Node, Python, Go, Java, Ruby, PHP...) | HTTP to `api-<APP_ID>.sendbird.com/v3/...` with an `Api-Token` header; `sendbird-platform-sdk*` | — (REST, no UI Kit) | — | CometChat REST (`/rest-api/...`) |
 
-A platform that isn't in this table (Vue, Svelte, Unity, .NET MAUI, Unreal…) has no family in this pack → STOP (2): report only.
+A platform that isn't in this table (Vue, Svelte, Unity, .NET MAUI, Unreal...) has no family in this pack → STOP (2): report only.
 
 ### React Native is a native platform for the build, not a web one
 The migration is not done when Metro bundles: `cd ios && pod install` (the kit's Podfile needs the
@@ -83,4 +83,4 @@ RUN** both platforms. Three failures never appear in CI — only when a person u
 
 **Env / config**: `SENDBIRD_APP_ID`, `VITE_SENDBIRD_*`, `NEXT_PUBLIC_SENDBIRD_*`, `EXPO_PUBLIC_SENDBIRD_*`, `SENDBIRD_API_TOKEN`, `SendbirdAppId` in plists/`local.properties`/`--dart-define`, and CI secrets named `SENDBIRD_*`.
 
-**Tests / mocks**: `jest.mock('@sendbird/…')`, fake `SendbirdChat`, and fixtures containing channel URLs.
+**Tests / mocks**: `jest.mock('@sendbird/...')`, fake `SendbirdChat`, and fixtures containing channel URLs.

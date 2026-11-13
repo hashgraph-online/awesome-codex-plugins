@@ -144,6 +144,6 @@ If `design-os-svg-animation` saves you time, a star on GitHub helps other engine
   </a>
 </p>
 
-Built by [Jang Trịnh](https://github.com/jangtrinh), creative technologist and autonomous system architect.
+Built by [Jang Trịnh](https://github.com/jangtrinh), creative technologist and autonomous system architect. More projects, case studies and writing at [jang.work](https://www.jang.work/?utm_source=github&utm_medium=readme&utm_campaign=design-os-svg-animation).
 
 [GitHub](https://github.com/jangtrinh) · [LinkedIn](https://www.linkedin.com/in/jangtrinh/) · [Hub](https://jangtrinh.github.io/) · [YouTube](https://www.youtube.com/@designosbyjang) · [X](https://x.com/Jangtrinhvn)

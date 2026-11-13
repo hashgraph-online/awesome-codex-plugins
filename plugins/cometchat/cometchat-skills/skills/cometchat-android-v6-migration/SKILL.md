@@ -2,7 +2,7 @@
 name: cometchat-android-v6-migration
 description: "Upgrade an Android app from the CometChat v5 UI Kit (Java, XML Views) to v6 (Kotlin — XML Views or Jetpack Compose): artifact and package changes, the CometChatThreadedMessagesHeader rename, LiveData→StateFlow, events→CometChatEvents SharedFlow, style objects→theme attributes/style data classes, and minSdk 28. Triggers: 'upgrade cometchat android v5 to v6', 'migrate android ui kit to v6', 'v6 import paths android', 'cometchat android breaking changes'."
 license: "MIT"
-compatibility: "FROM com.cometchat:chat-uikit-android 5.x (Java/XML Views, minSdk 24 — note the DIFFERENT artifact id; chatuikit-kotlin-android has no 5.x) TO 6.0.x — com.cometchat:chatuikit-kotlin-android (XML Views) or com.cometchat:chatuikit-compose-android (Compose) + chatuikit-core-android; Kotlin >=1.9 / AGP >=8; JVM 11; minSdk 28; compileSdk >=36; com.cometchat:chat-sdk-android ^5"
+compatibility: "FROM com.cometchat:chat-uikit-android 5.x (Java/XML Views, minSdk 24 — note the DIFFERENT artifact id; chatuikit-kotlin-android has no 5.x) TO 6.1.x (verified 6.1.1) — com.cometchat:chatuikit-kotlin-android (XML Views) or com.cometchat:chatuikit-compose-android (Compose) + chatuikit-core-android; Kotlin >=2.1 / AGP >=8.9.1; JVM 11; minSdk 28; compileSdk >=36; com.cometchat:chat-sdk-android ^5"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -12,9 +12,10 @@ metadata:
 > **Ground truth:** the live page `/ui-kit/android/upgrading-from-v5` (the authoritative breaking-change map — every mapping below is quoted from it) + catalog `android-v6.json` (what exists AFTER the upgrade) + `COVERAGE.md` (the v5→v6 verdict table). Removed/renamed v5 names appear in PROSE only — never emit a v5 symbol in a code fence.
 
 
-> ⚠️ **Before you touch code:** a v5→v6 upgrade hits two build blockers the moment the new artifact
-> resolves. Set `android.useAndroidX=true` + `android.enableJetifier=true` in `gradle.properties`
-> (the Chat SDK still pulls a pre-AndroidX transitive → `Duplicate class android.support.v4.*`) and
+> ⚠️ **Before you touch code:** set `android.useAndroidX=true` in `gradle.properties`. Target 6.1.1:
+> its POMs carry the `annotations-java5` exclusion and its chat-sdk 5.0.7 is all-AndroidX, so neither
+> Jetifier nor the exclude is needed (verified on a clean app). Stopping at 6.0.x? Then also set
+> `android.enableJetifier=true` (pre-AndroidX transitive → `Duplicate class android.support.v4.*`) and
 > keep `configurations.all { exclude(group = "org.jetbrains", module = "annotations-java5") }`.
 > Floors also rise: **minSdk 28 · Kotlin 2.1 · AGP 8.9.1**.
 
@@ -54,7 +55,7 @@ Before touching code: confirm the current artifact + version, that the app build
 3. **Swap the dependency** to the 6.x artifact for the chosen cohort (+ the CometChat Maven repo, `core` §Install). Remove the v5 artifact — grep the build file for **`com.cometchat:chat-uikit-android`** (that is the v5 id) — entirely — a leftover v5 dependency is the duplicate-class/`version_conflict` failure.
 4. **Rewrite imports** (the bulk of the diff, mechanical):
    - `com.cometchat.chatuikit.shared.cometchatuikit.CometChatUIKit` → `com.cometchat.uikit.core.CometChatUIKit` (same for `UIKitSettings`).
-   - `com.cometchat.chatuikit.<area>.<Component>` → `com.cometchat.uikit.kotlin.presentation.<area>.ui.<Component>` (XML Views) or `…uikit.compose.presentation.<area>.ui.<Component>` (Compose).
+   - `com.cometchat.chatuikit.<area>.<Component>` → `com.cometchat.uikit.kotlin.presentation.<area>.ui.<Component>` (XML Views) or `...uikit.compose.presentation.<area>.ui.<Component>` (Compose).
    - Grep targets: `com.cometchat.chatuikit.` (any hit is v5) and `CometChatThreadedMessagesHeader` (the one rename).
 5. **Migrate init to v6** — the v6 default is `CometChatUIKit.initFromSettings(context, callback)` reading `app/src/main/assets/cometchat-settings.json`, then `login` in `onSuccess` (`core`). Move credentials out of source while you're here.
 6. **Events** — replace every `addListener`/`removeListener` pair with a `CometChatEvents.<domain>Events.collect { }` in `lifecycleScope` (Views) or `LaunchedEffect` (Compose). No manual removal (→ `cometchat-android-v6-events`).
@@ -77,7 +78,7 @@ import com.cometchat.uikit.kotlin.presentation.conversations.ui.CometChatConvers
 ```kotlin
 // V6 events — the old addListener/removeListener pair becomes a scoped collect
 lifecycleScope.launch {
-    CometChatEvents.messageEvents.collect { event -> /* when (event) { … } */ }
+    CometChatEvents.messageEvents.collect { event -> /* when (event) { ... } */ }
 }
 ```
 > The thread header is the one rename to grep for; everything else is a package move. Full per-component diffs (Conversations, Users, Groups, Message Header/List/Composer): the docs page's component sections.

@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-features
 description: "Enable a specific CometChat feature in a Flutter v6 app — polls, stickers, collaborative whiteboard/document, translation, link preview, AI smart replies, moderation, calls, push. Looks the feature up in the features oracle, then wires only what the kit does not already do. Triggers: 'add polls in flutter', 'enable stickers', 'turn on smart replies in flutter', 'enable message translation in flutter', 'add moderation', 'enable an extension in flutter'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -73,4 +73,4 @@ Future<void> post(CustomMessage msg) => CometChat.sendCustomMessage(
 ## Verify it works
 The feature actually works in the running app (a poll sends, a sticker appears, translation shows in the action sheet), and any Dashboard toggle it needs is ON. Renders empty ⇒ the toggle is off, not a code problem.
 
-**Close (after it builds):** end with the shared 3-option selectable menu and WAIT — **① add another feature · ② customize theming · ③ test it manually** (`RULES.md` §19).
+**Close (after it builds):** end with the shared 3-option selectable menu and WAIT — **(1) add another feature · (2) customize theming · (3) test it manually** (`RULES.md` §19).

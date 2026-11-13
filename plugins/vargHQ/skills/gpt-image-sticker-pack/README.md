@@ -10,7 +10,7 @@ Turn a photo or a character into an animated sticker pack with GPT Image 2.6 on 
 ```bash
 npx skills add vargHQ/skills --skill gpt-image-sticker-pack                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills gpt-image-sticker-pack --agent github-copilot --scope user
-# or all 78 skills as a Claude Code plugin:
+# or all 82 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -49,4 +49,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 78 skills](../README.md#all-78-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/gpt-image-sticker-pack) · [varg.ai](https://varg.ai)
+More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/gpt-image-sticker-pack) · [varg.ai](https://varg.ai)

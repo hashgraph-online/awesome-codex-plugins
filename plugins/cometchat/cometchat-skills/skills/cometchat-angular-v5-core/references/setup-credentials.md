@@ -3,40 +3,24 @@
 ## 1. Reuse before asking
 A prior `.cometchat/config.json`, or an `environment.ts` that already has a non-empty `appId` → reuse it. Skip re-provisioning and do not re-ask.
 
-## 2. Credentials — OFFER the dashboard fetch, don't default to manual paste
-When credentials are missing, present **both** paths and default to the fetch:
+## 2. Credentials — fetch through the CometChat MCP (offer it), or paste manually
+> **Account actions go through the CometChat MCP server** — the `cometchat` server at `https://mcp.cometchat.com/mcp`. One endpoint: its docs tools need no sign-in; its `cometchat_*` tools manage the user's CometChat account and ask them to sign in on first use. There is no CLI to install. The MCP knows nothing about Angular — detection and writing the config are this skill's job (§3 Angular's config shape, then §4 gitignore).
 
-> *"I can fetch your App ID / Region / Auth Key by logging into your CometChat dashboard (I'll load the CometChat CLI to do it), or you can paste them manually — which do you prefer?"*
+> **OFFER the fetch; don't default to manual paste.** When credentials are missing, present BOTH paths and default to the fetch: *"I can fetch your App ID / Region / Auth Key from your CometChat account through the CometChat MCP, or you can paste them — which do you prefer?"* Never silently skip to "paste them yourself", and never end the build with an "add credentials manually" TODO.
 
-**Never silently skip to "paste them yourself", and never end the build with a "to finish, add credentials manually" TODO.** Only load the CLI if the user picks the fetch; a manual paste never touches it.
+**Fetch path (user opted in).**
+1. **Check the connection:** call `cometchat_whoami`.
+   - **No `cometchat_*` tools** → the `cometchat` server isn't added, or the host has only the docs tools. **Don't block: go straight to the manual path below** and offer once: *"Or connect your CometChat account and I'll fetch them: sign in to the `cometchat` MCP server (Claude Code: `/mcp` → Authenticate; Codex: `codex mcp login cometchat`; Cursor: Settings → MCP → Connect; ChatGPT: connect the CometChat app)."* Not added → add the `cometchat` server (per-agent commands: `references/docs-map.md`).
+   - **Needs sign-in** (`unauthorized`, or the agent says `cometchat` needs a sign-in) → not signed in yet, or it expired; the docs tools still work. Same as above: manual path plus the sign-in offer. Use whichever the user does first.
+   - **Connection or server error** (timeout, 404/5xx, "failed to connect"; not `unauthorized`) → the server is down. Retry at most once, don't ask for a sign-in, and switch to the manual path with a one-line note.
+2. **Pick the app — REUSE first, ASK with CURATED options, never auto-create.** An existing `.cometchat/config.json` or an already-set `*_COMETCHAT_APP_ID` → reuse it and skip. Otherwise call `cometchat_list_apps`; **you curate the list — never dump it.** Offer at most 4 selectable options: the **top 3** most relevant apps (matching framework/product, then newest; name · region · App ID) + **"Show all N apps"**; the free-text answer = paste an App ID. No selectable prompts → a numbered list, then WAIT. **Never create an app unasked** — only on explicit request, with `cometchat_create_app` after confirming the name and region (it can't be changed later).
+3. **Fetch the credentials:** `cometchat_get_app_credentials` with the chosen `app_id` → `app_id`, `region`, `auth_key`, plus ready-made `env` lines (`vite`, `nextjs`, `cra`). Write them yourself (§3 Angular's config shape, then §4 gitignore). The Auth Key is a secret: write it, never echo it back to the user.
 
-### The CLI — dashboard/API client only, loaded on demand
-`@cometchat/skills-cli` does four things: `auth` (dashboard login), `provision` (fetch App ID/Region/Auth Key), `config`, and `features <list|enable|disable|ai-key>` (toggle dashboard extensions + AI) — §7 below uses that fourth one. It knows nothing about Angular, does **not** write env files, detect the project, or generate code — the SKILL owns all of that.
+**Manual path** (user prefers, or the MCP isn't available): Dashboard → Your App → Credentials → App ID, Region (`us`/`eu`/`in`), Auth Key (**dev only**). If neither path yields them, ASK and WAIT — never proceed with placeholders.
 
-Load it on demand from public npm (`@3` pins the CLI major that matches the v5 skills):
-```bash
-npx @cometchat/skills-cli@3 <cmd>
-```
-No auth needed.
+**Dashboard-gated features** (reactions, polls, translation, moderation filters, AI smart replies, ...): `cometchat_list_features` shows the app's extensions and AI features with their state; `cometchat_set_feature` turns one on or off — check `confirmed` in the result (false = CometChat accepted it but the app doesn't show it yet; tell the user to check the dashboard's Extensions page). AI features need an OpenAI key: only with a key the user gives you, `cometchat_set_openai_key`. Either way YOU still wire the client side (`cometchat-angular-v5-features`).
 
-### Fetch path (user opted in)
-Let each command finish — do not background or race them. `<cli>` = the full invocation above.
-
-1. **Check auth:** `<cli> auth status --json` → `logged-in` | `logged-out`.
-2. **Log in if needed:** `<cli> auth login` — opens the dashboard in a browser, polls, stores the bearer in the OS keychain. Surface terminal errors verbatim (`ACCESS_DENIED` / `EXPIRED` / `TIMEOUT` / `ABORTED`) and stop; do not retry silently.
-> **If the browser is NOT already signed in to the dashboard — tell the user this BEFORE running the command.** `auth login` opens a URL carrying a one-time device-session id and then polls for up to **15 minutes**. If the browser is signed out, the dashboard redirects to its login page, and after signing in it drops the user on the dashboard home — **not back at the authorization URL**. The session is never authorized, the CLI polls until `TIMEOUT`, and it looks like "login worked but the CLI still can't see my apps".
->
-> Say this up front: *"A browser window will open. If you're asked to sign in, sign in — then come back and open that same URL again (I'll print it). The CLI keeps waiting for up to 15 minutes."*
->
-> - **Do NOT kill the command** while the user signs in — it is still polling, and re-running it invalidates the previous session id.
-> - On `TIMEOUT` the CLI re-prints the URL. Opening it again while signed in completes immediately; that is the recovery, not a re-login.
-> - `ALREADY_AUTHENTICATED` means the session id was already consumed — run `auth status` before assuming failure; you may already be logged in.
-
-3. **Pick the app — reuse first, ask with CURATED options, never auto-create.** `<cli> provision list --json` returns the raw list; the SKILL decides how to present it. Rank by relevance (technology matching Angular, then most recent) and offer at most 4: the **top 3** (name · region · App ID) plus **"Show all N apps"**. The free-text/"Other" answer is the manual-paste path. Only list everything if they pick "show all". **Never dump 29 apps as the primary prompt.** Never create an app unprompted; zero apps → ask first.
-4. **Fetch:** `<cli> provision use --app-id "<id>" --json` returns `{ appId, region, authKey }` and writes a framework-neutral `.cometchat/config.json`. It writes no env file. Treat the Auth Key as a secret — never echo it back.
-
-### Manual path
-Dashboard → your app → **Credentials** → App ID, Region (`us` / `eu` / `in`), Auth Key (**dev only**). If neither path yields them, ASK and WAIT — never proceed with placeholders.
+**Other account tasks the MCP handles** (ask before any change): test users (`cometchat_create_users`, `cometchat_create_auth_token`), groups, a server-side REST API key for a token endpoint or data import (`cometchat_create_api_key`, scope `fullAccess` — server env only, never client code), webhooks, push setup (`cometchat_get_push_setup`), moderation, roles, team and usage (`cometchat_get_usage`). Tools that change existing data return `confirmation_required` with a summary instead of acting: show it to the user, and call again with `confirm: true` only after they agree. Some changes (API keys, login tokens, the OpenAI key, webhooks, app settings, team invites, deletes) return `approval_required` with a link: give it to the user; they approve that exact change in the browser and give you a code; call again with the same arguments plus `approval_code`. Never open or approve the link yourself.
 
 ## 3. Write the config — Angular's shape
 Angular resolves config at **build time** via file replacement. There is no `.env` and no bundler prefix.
@@ -121,7 +105,7 @@ Failing loudly here saves a long debug session: without it, init rejects and eve
 - **When no UID is known, do not guess — use create-if-missing.** `ensureDevUser()` in `lifecycle.md` calls `CometChatUIKit.createUser()` then logs in, which is valid on any app without probing. Dev only; production uses a server-minted token.
 
 ## 7. Dashboard-gated features
-Extensions and AI features are dashboard toggles. The CLI can flip them (`<cli> features list`, `<cli> features enable <id>`), or do it in the dashboard. Either way you still wire any client component — see `cometchat-angular-v5-features`.
+Extensions and AI features are dashboard toggles. Flip them with the CometChat MCP (`cometchat_list_features`, `cometchat_set_feature` — check `confirmed`), or in the dashboard. Either way you still wire any client component — see `cometchat-angular-v5-features`.
 
 ## 8. Production
 Mint a per-user **auth token** from your backend and call `loginWithAuthToken` — never ship the Auth Key to the browser. See `cometchat-angular-v5-production`.

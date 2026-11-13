@@ -2,7 +2,7 @@
 name: cometchat-ios-features
 description: "Turn on and wire individual CometChat features on iOS — threads, search, reactions, receipts, mentions, AI, moderation, extensions like polls and stickers. Use when the ask is one capability rather than the whole surface. Triggers: 'add reactions ios', 'enable polls cometchat', 'smart replies ios', 'add threads', 'turn on read receipts'."
 license: "MIT"
-compatibility: "CometChatUIKitSwift 5.1.22 · iOS 15.1+"
+compatibility: "CometChatUIKitSwift 5.2.3+ (Up to Next Major) · iOS 15.1+"
 metadata:
   author: "CometChat"
   version: "1.0.0"
@@ -27,7 +27,7 @@ metadata:
 **Never re-suggest something already on.** Reactions and mentions are core messaging in v5; offering them as "add a feature" is the AUDIT-077 mistake. The legacy moderation filters (profanity, data masking, image moderation) route to legacy docs — never offer them.
 
 ## Dashboard-gated features: enable, then verify — do not write code
-The Dashboard toggle is the whole job for extensions: *"Code required: None — extensions work out of the box."* Use the CLI to flip it (`skills-cli features enable <id>`), then confirm it appears. If it does not, that is a Dashboard/plan issue, not a code one — say so rather than hand-rolling a replacement.
+The Dashboard toggle is the whole job for extensions: *"Code required: None — extensions work out of the box."* Flip it with the CometChat MCP (`cometchat_set_feature`), then confirm it appears (the result's `confirmed`). If it does not, that is a Dashboard/plan issue, not a code one — say so rather than hand-rolling a replacement.
 
 ## Code-wired features: wire the round trip
 A feature that opens something must also close it. Threads: `set(onThreadRepliesClick:)` → thread screen (**header `set(parentMessage:)`; LIST `set(user:parentMessage:withParent:)` — parent in the SAME call as the target, or the thread shows the whole conversation; composer `set(user:)` + `set(parentMessageId:)`**). Search: set `conversations.hideSearch = false` FIRST — it is true by default, so wiring only `conversations.onSearchClick` (property) renders no search field at all → `CometChatSearch`, with `onConversationClicked` / `onMessageClicked` assigned or results dead-end.

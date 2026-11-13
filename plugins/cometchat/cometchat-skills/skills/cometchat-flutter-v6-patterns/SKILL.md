@@ -2,7 +2,7 @@
 name: cometchat-flutter-v6-patterns
 description: "Project wiring for the Flutter v6 UI Kit — navigation (Navigator / go_router / auto_route), state management (bloc / riverpod / provider / getx), config & secrets, platform setup, and web/desktop caveats. Triggers: 'cometchat with go_router', 'cometchat with riverpod', 'where do I put init in flutter', 'dart-define cometchat', 'cometchat flutter web'."
 license: "MIT"
-compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6 (6.1.x, verified 6.1.0)"
+compatibility: "Flutter >=3.38.9; cometchat_chat_uikit ^6.2.0 (6.2.x; catalog compiler-verified vs 6.1.0, source-checked vs 6.2.0)"
 metadata:
   author: "CometChat"
   version: "1.0.0"
