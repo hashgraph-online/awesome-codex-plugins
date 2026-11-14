@@ -662,6 +662,7 @@ The score is best used as a quick trust signal and triage summary (not the only 
 
 ## Related Projects
 
+- [agent-rail](https://github.com/Zenonix-Studio/agent-rail) - Codex CLI hooks (not a Codex plugin) that show each Codex job as a live progress rail of stage-tagged steps, subagents and token use in a terminal split, a macOS menu bar app or a local web viewer.
 - [AgentPlugins](https://agentplugins-2v1.pages.dev/) - Cross-ecosystem directory of DeepSeek Harness and Codex plugins, aggregated from GitHub topics and ranked by stars and freshness.
 - [AIGrowthRank](https://aigrowthrank.com/en/skills/) - Catalog of agent skills, Codex and Claude plugins and MCP servers for marketing and sales, with dated passive code reviews where public source is available.
 - [Astra Flash Orchestrator](https://github.com/ethanplusai/astra-flash-orchestrator) - Codex skill that keeps Astra on planning and review while DeepSeek V4.1 Flash handles implementation.
