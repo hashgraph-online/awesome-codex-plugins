@@ -9,10 +9,12 @@ version: 2
 updates:
   # Python deps (root pyproject.toml).
   #
-  # Dependabot edits pyproject.toml only. Builds install from
-  # requirements.lock with --require-hashes (Scorecard Pinned-Dependencies),
-  # so after every Dependabot merge the lock file MUST be regenerated.
-  # The regen command is documented at the top of requirements.lock.
+  # Dependabot edits pyproject.toml only. Images install from hash-pinned
+  # locks with --require-hashes (Scorecard Pinned-Dependencies) — the
+  # production image from requirements.lock (runtime closure), dev/CI from
+  # requirements-dev.lock (runtime + dev-only group) — so after every
+  # Dependabot merge BOTH lock files MUST be regenerated.
+  # The regen commands are documented at the top of each lock file.
   - package-ecosystem: pip
     directory: "/"
     schedule:

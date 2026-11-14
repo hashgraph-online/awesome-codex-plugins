@@ -37,7 +37,9 @@ them, and when they disagree with anything you remember, they win.
 - Video is transcoded on this machine with ffmpeg before it uploads, and audio or images Cassette
   does not take as they are get converted. Long footage can take minutes.
 - Exported files are downloaded into `cassette-exports/` in the workspace. Use the local path the
-  result gives you; never invent one.
+  result gives you; never invent one. When the result says a file is still downloading, the download
+  goes on in the background and the file appears where the result says: tell the user that, and do not
+  export again to get it.
 
 ## Long waits
 
@@ -83,7 +85,7 @@ keeps the original URL, which you can give the user.
 
 ## When only `cassette_bridge_status` is listed
 
-The service is offline, refused the token, or needs a newer plugin. Call `cassette_bridge_status`
+The service is offline, refused the sign-in, or needs a newer plugin. Call `cassette_bridge_status`
 once and tell the user what it reports (URL, `error_code` and reason). Do not poll it. When the
 service comes back, its tools appear by themselves; if this host does not refresh tool lists, ask
 the user to restart the MCP server.

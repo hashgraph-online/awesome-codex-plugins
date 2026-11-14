@@ -29,6 +29,20 @@ first. When the last episode is written, set `status: complete` in
 `story.md`: the cadence then stops at the last chapter, so the commands stop
 scheduling episodes past it and stop warning about them.
 
+## Posting an episode
+
+On a release day, run `story build . --format post --chapter <id-or-number>`
+for the episode that is due (`--from` and `--to` build a range). It writes
+`dist/posts/NN-<chapter-id>.html`, an HTML fragment to paste into the
+site's HTML view, and a `.txt` file with the same episode as plain text.
+The fragment keeps italics, bold, scene breaks, block quotes, and hard line
+breaks, and leaves out the chapter heading, because serial sites take the
+title in their own field. Put a note to readers in the chapter's
+`author-note` field: the post build prints it after the episode, under an
+author's-note label, and no other build or word count includes it. Write
+only the note that the author gives you; do not invent thanks, links, or
+schedules. The build does not upload anything: the author pastes the file.
+
 ## The season/volume goal
 
 Every season (or volume, or series-arc) needs one **overarching goal**: the
@@ -107,6 +121,8 @@ until the story is absurd. Instead, **vary the stake type** per arc:
 - [ ] One-sentence season goal, visible from installment one.
 - [ ] Release cadence recorded (`release-every`, `release-start`), and
       `story next .` shows no overdue episode.
+- [ ] Each released episode built with `story build . --format post`,
+      with any `author-note` the author asked for.
 - [ ] Every installment poses and answers its own dramatic question.
 - [ ] Every installment delivers at least one concrete reward.
 - [ ] Recaps are woven, not dumped; new readers can orient in one page.

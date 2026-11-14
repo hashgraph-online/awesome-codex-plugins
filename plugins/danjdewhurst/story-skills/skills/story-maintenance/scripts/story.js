@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
 // src/cli.js
-import path43 from "node:path";
+import path47 from "node:path";
 
 // src/commands.js
-import fs31 from "node:fs";
-import path42 from "node:path";
+import fs32 from "node:fs";
+import path46 from "node:path";
 
 // src/files.js
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { Buffer } from "node:buffer";
+import { Buffer as Buffer2 } from "node:buffer";
 
 // src/exit-codes.js
 var EXIT_CODES = Object.freeze({
@@ -87,7 +87,7 @@ function readFileAndStats(filePath, maxBytes = MAX_READ_BYTES) {
     if (open === undefined) {
       return { bytes: readAtMost(descriptor, filePath, stats.size, maxBytes), stats };
     }
-    const bytes = Buffer.from(open, "utf8");
+    const bytes = Buffer2.from(open, "utf8");
     if (bytes.length > maxBytes) {
       throw projectError(`${filePath}: Refusing to read oversized file: ${bytes.length} bytes exceeds the ${maxBytes} byte limit`);
     }
@@ -109,7 +109,7 @@ function withOpenDocuments(documents, run) {
 function readFilePrefix(filePath, length) {
   const { descriptor } = openRegularFile(filePath, Infinity);
   try {
-    const buffer = Buffer.allocUnsafe(length);
+    const buffer = Buffer2.allocUnsafe(length);
     let filled = 0;
     let read;
     do {
@@ -124,7 +124,7 @@ function readFilePrefix(filePath, length) {
 function forEachLine(filePath, maxLineBytes, visit) {
   const { descriptor } = openRegularFile(filePath, Infinity);
   try {
-    const chunk = Buffer.allocUnsafe(READ_CHUNK_BYTES);
+    const chunk = Buffer2.allocUnsafe(READ_CHUNK_BYTES);
     let parts = [];
     let size = 0;
     let number = 0;
@@ -142,13 +142,13 @@ function forEachLine(filePath, maxLineBytes, visit) {
         const piece = data.subarray(start, end);
         add(piece);
         number += 1;
-        visit(parts.length === 0 ? piece : Buffer.concat([...parts, piece]), number);
+        visit(parts.length === 0 ? piece : Buffer2.concat([...parts, piece]), number);
         parts = [];
         size = 0;
         start = end + 1;
       }
       add(data.subarray(start));
-      parts.push(Buffer.from(data.subarray(start)));
+      parts.push(Buffer2.from(data.subarray(start)));
     }
   } finally {
     fs.closeSync(descriptor);
@@ -185,13 +185,13 @@ function openRegularFile(filePath, maxBytes) {
 function readAtMost(descriptor, filePath, size, maxBytes) {
   const chunks = [];
   let total = 0;
-  let buffer = Buffer.allocUnsafe(Math.min(size, maxBytes) + 1);
+  let buffer = Buffer2.allocUnsafe(Math.min(size, maxBytes) + 1);
   let filled = 0;
   let read;
   do {
     if (filled === buffer.length) {
       chunks.push(buffer);
-      buffer = Buffer.allocUnsafe(READ_CHUNK_BYTES);
+      buffer = Buffer2.allocUnsafe(READ_CHUNK_BYTES);
       filled = 0;
     }
     read = fs.readSync(descriptor, buffer, filled, buffer.length - filled, null);
@@ -202,7 +202,7 @@ function readAtMost(descriptor, filePath, size, maxBytes) {
     }
   } while (read > 0);
   chunks.push(buffer.subarray(0, filled));
-  return chunks.length === 1 ? chunks[0] : Buffer.concat(chunks, total);
+  return chunks.length === 1 ? chunks[0] : Buffer2.concat(chunks, total);
 }
 function symlinkReadRefusal(filePath) {
   return projectError(`${filePath}: Refusing to read through symlink`);
@@ -240,7 +240,7 @@ function invalidUtf8Offset(buffer) {
     if (character === "�" && !(buffer[offset] === 239 && buffer[offset + 1] === 191 && buffer[offset + 2] === 189)) {
       break;
     }
-    offset += Buffer.byteLength(character, "utf8");
+    offset += Buffer2.byteLength(character, "utf8");
   }
   return Math.max(0, Math.min(offset, buffer.length - 1));
 }
@@ -549,7 +549,7 @@ function temporaryPath(target) {
   let name = "";
   let bytes = 0;
   for (const character of path.basename(target)) {
-    bytes += Buffer.byteLength(character, "utf8");
+    bytes += Buffer2.byteLength(character, "utf8");
     if (bytes > TEMPORARY_NAME_BYTES) {
       break;
     }
@@ -743,6 +743,14 @@ function err(code, message, file = null, chapter = null) {
 function warn(code, message, file = null, chapter = null) {
   return { code, message, file: portablePath(file), chapter };
 }
+var CUSTOM_CODE_PREFIX = "custom-";
+var CUSTOM_CODE = /^custom-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+function isCustomCode(code) {
+  return typeof code === "string" && CUSTOM_CODE.test(code);
+}
+function customFinding(id, message, file = null) {
+  return { code: `${CUSTOM_CODE_PREFIX}${id}`, message, file: portablePath(file), chapter: null };
+}
 var FINDING_CODES = {
   "unreadable-file": "error",
   "missing-required-path": "error",
@@ -758,7 +766,11 @@ var FINDING_CODES = {
   "unclosed-comment": "warning",
   "ambiguous-scene-break": "warning",
   "outline-without-chapter-text": "warning",
-  "unsupported-footnote": "warning",
+  "missing-footnote": "warning",
+  "unused-footnote": "warning",
+  "invalid-image": "warning",
+  "remote-image": "warning",
+  "image-left-out": "warning",
   "no-scene-records": "warning",
   "empty-chapter": "warning",
   "beat-too-long": "warning",
@@ -811,6 +823,9 @@ var FINDING_CODES = {
   "duplicate-query": "error",
   "invalid-query": "error",
   "query-unknown-key": "warning",
+  "duplicate-check": "error",
+  "invalid-check": "error",
+  "check-unknown-key": "warning",
   "exemption-pattern-too-short": "error",
   "exemption-unknown-code": "error",
   "exemption-code-not-dismissible": "error",
@@ -864,6 +879,19 @@ var FINDING_CODES = {
   "series-link-not-sibling": "error",
   "series-missing-backlink": "error",
   "series-link-other-series": "error",
+  "translation-of-backslash": "error",
+  "translation-of-absolute": "error",
+  "translation-of-self": "error",
+  "translation-of-unreadable": "error",
+  "translation-of-not-project": "error",
+  "translation-of-invalid": "error",
+  "collection-story-backslash": "error",
+  "collection-story-outside": "error",
+  "collection-story-self": "error",
+  "collection-story-duplicate": "error",
+  "collection-story-not-project": "error",
+  "collection-story-unreadable": "error",
+  "collection-too-many-stories": "error",
   "revived-without-death": "error",
   "died-in-missing-chapter": "error",
   "revived-in-missing-chapter": "error",
@@ -956,6 +984,10 @@ var FINDING_CODES = {
   "canon-destroyed-status": "warning",
   "canon-destroyed-artifact-used": "error",
   "canon-fact-relearned": "error",
+  "translation-missing": "error",
+  "translation-extra": "error",
+  "translation-paragraph-count": "warning",
+  "translation-source-changed": "warning",
   "prose-filter-words": "warning",
   "prose-adverbs": "warning",
   "prose-bookisms": "warning",
@@ -989,6 +1021,12 @@ var FINDING_CODES = {
   "name-shared-initial": "warning",
   "context-file-skipped": "warning",
   "release-undrafted": "warning",
+  "submission-tracker-no-table": "error",
+  "submission-tracker-too-large": "error",
+  "submission-invalid-status": "error",
+  "submission-invalid-date": "error",
+  "submission-overdue": "warning",
+  "submission-date-in-future": "warning",
   "story-missing-at-ref": "warning",
   "similarity-shared-passage": "warning",
   "similarity-no-reference-text": "warning",
@@ -1027,8 +1065,10 @@ var FINDING_CODES = {
   "apply-content-left-out": "warning",
   "apply-not-written": "warning",
   "apply-invisible-text": "warning",
+  "collect-hand-written-copy": "warning",
   "kept-story-options": "warning",
   "docx-content-left-out": "warning",
+  "import-content-left-out": "warning",
   "unsplit-chapter-lines": "warning",
   "unused-chapter-text": "warning",
   "usage-error": "error",
@@ -1039,7 +1079,10 @@ var FINDING_CODES = {
 function codesAt(level) {
   return Object.keys(FINDING_CODES).filter((code) => FINDING_CODES[code] === level);
 }
-var PROJECTLESS_CODES = ["kept-story-options", "docx-content-left-out", "unsplit-chapter-lines", "unused-chapter-text"];
+var RETIRED_CODES = {
+  "unsupported-footnote": "builds set footnotes"
+};
+var PROJECTLESS_CODES = ["kept-story-options", "docx-content-left-out", "import-content-left-out", "unsplit-chapter-lines", "unused-chapter-text"];
 function severityCodes() {
   return codesAt("warning").filter((code) => !PROJECTLESS_CODES.includes(code));
 }
@@ -2259,14 +2302,14 @@ function withoutLeadingFrontmatter(text) {
 
 // src/frontmatter-keys.js
 var FRONTMATTER_KEYS = {
-  story: ["title", "schema-version", "series", "series-title", "book-number", "follows", "precedes", "genre", "sub-genre", "setting-era", "status", "themes", "pov", "tense", "premise", "counter-premise", "author", "surname", "short-title", "contact", "season-goal", "target-words", "target-characters", "count-unit", "language", "isbn", "publisher", "publication-date", "description", "keywords", "subjects", "copyright", "ifid", "cover-alt", "ai-disclosure", "chapter-label", "writing-mode", "chapter-numerals", "contents-label", "labels", "authors", "editor", "form", "draft-mode", "cover", "deadline", "daily-target-words", "daily-target-characters", "writing-days", "release-every", "release-start", "release-warn-days", "calendar", "distance-unit", "map-scale", "travel-modes", "revision-passes", "build-style", "cli-defaults", "severity", "queries"],
+  story: ["title", "schema-version", "series", "series-title", "book-number", "follows", "precedes", "translation-of", "stories", "genre", "sub-genre", "setting-era", "status", "themes", "pov", "tense", "premise", "counter-premise", "author", "surname", "short-title", "contact", "season-goal", "target-words", "target-characters", "count-unit", "language", "isbn", "publisher", "publication-date", "description", "keywords", "subjects", "copyright", "ifid", "cover-alt", "ai-disclosure", "chapter-label", "writing-mode", "chapter-numerals", "contents-label", "labels", "authors", "editor", "form", "draft-mode", "cover", "deadline", "daily-target-words", "daily-target-characters", "writing-days", "release-every", "release-start", "release-warn-days", "calendar", "distance-unit", "map-scale", "travel-modes", "revision-passes", "build-style", "cli-defaults", "severity", "queries", "checks"],
   character: ["pronunciation", "id", "name", "role", "status", "born", "died-in", "revived-in", "aliases", "relationships", "locations", "tags", "arc", "arc-type", "lie", "truth", "ghost-wound", "voice-words", "voice-avoid", "progressions"],
   location: ["pronunciation", "id", "name", "type", "region", "population", "controlled-by", "notable-characters", "tags", "status", "setting", "routes", "coordinates", "distances", "progressions"],
   system: ["id", "name", "type", "prevalence", "pronunciation"],
   faction: ["pronunciation", "id", "name", "type", "status", "members", "locations", "tags", "progressions"],
   artifact: ["pronunciation", "id", "name", "type", "status", "owner", "location", "tags"],
   arc: ["id", "name", "type", "status", "characters", "themes", "acts", "mice-threads"],
-  chapter: ["id", "title", "number", "numbered", "author", "status", "pov", "word-count", "target-words", "character-count", "target-characters", "arcs-advanced", "characters", "mentions", "locations", "mode", "date", "time", "strand", "episode-question", "hook", "beat", "release-date", "time-skip", "choices"],
+  chapter: ["id", "title", "number", "numbered", "verse", "author", "status", "pov", "word-count", "target-words", "character-count", "target-characters", "arcs-advanced", "characters", "mentions", "locations", "mode", "date", "time", "strand", "episode-question", "hook", "beat", "release-date", "time-skip", "source-hash", "collected-from", "collected-hash", "author-note", "choices"],
   scene: ["id", "title", "chapter", "scene", "status", "pov", "location", "characters", "mentions", "arcs-advanced", "state-changes", "date", "time", "travel-hours", "travel-mode", "sequel", "outcome", "dilemma", "flashback-to", "setting"],
   question: ["id", "title", "status", "introduced", "resolved", "characters"],
   promise: ["id", "title", "status", "planted", "payoff", "arcs", "characters"],
@@ -2629,10 +2672,13 @@ var ar_default = {
     "all-rights-reserved": "جميع الحقوق محفوظة.",
     "published-by": "الناشر: {publisher}",
     "scene-break": "فاصل بين المشاهد",
+    footnotes: "الحواشي",
+    "author-note": "ملاحظة ختامية",
     "cover-alt": "غلاف كتاب {title}",
     "start-of-content": "بداية المحتوى",
     "accessibility-summary": "كتاب نصي فقط، فيه فهرس محتويات قابل للتنقل، وعنوان لكل فصل، وترتيب قراءة منطقي واحد.",
     "accessibility-summary-cover": "كتاب نصي مع صورة غلاف موصوفة، وفهرس محتويات قابل للتنقل، وعنوان لكل فصل، وترتيب قراءة منطقي واحد.",
+    "accessibility-summary-images": "كتاب نصي مع صور موصوفة، وفهرس محتويات قابل للتنقل، وعنوان لكل فصل، وترتيب قراءة منطقي واحد.",
     "review-title": "{title}: نسخة المراجعة",
     "review-intro": "نسخة المراجعة.",
     "review-intro-build": "نسخة المراجعة، الإصدار {build}.",
@@ -2837,10 +2883,13 @@ var de_default = {
     "all-rights-reserved": "Alle Rechte vorbehalten.",
     "published-by": "Erschienen bei {publisher}",
     "scene-break": "Szenenwechsel",
+    footnotes: "Anmerkungen",
+    "author-note": "Nachbemerkung",
     "cover-alt": "Cover von {title}",
     "start-of-content": "Beginn des Inhalts",
     "accessibility-summary": "Buch, das nur aus Text besteht, mit navigierbarem Inhaltsverzeichnis, einer Überschrift für jedes Kapitel und einer einzigen logischen Lesereihenfolge.",
     "accessibility-summary-cover": "Buch mit Text und beschriebenem Coverbild, navigierbarem Inhaltsverzeichnis, einer Überschrift für jedes Kapitel und einer einzigen logischen Lesereihenfolge.",
+    "accessibility-summary-images": "Buch mit Text und beschriebenen Bildern, navigierbarem Inhaltsverzeichnis, einer Überschrift für jedes Kapitel und einer einzigen logischen Lesereihenfolge.",
     "review-title": "{title}: Leseexemplar",
     "review-intro": "Leseexemplar.",
     "review-intro-build": "Leseexemplar, Fassung {build}.",
@@ -4240,10 +4289,13 @@ var en_default = {
     "all-rights-reserved": "All rights reserved.",
     "published-by": "Published by {publisher}",
     "scene-break": "Scene break",
+    footnotes: "Notes",
+    "author-note": "Author's note",
     "cover-alt": "Cover of {title}",
     "start-of-content": "Start of Content",
     "accessibility-summary": "Text-only book with a navigable table of contents, headings for each chapter, and a single logical reading order.",
     "accessibility-summary-cover": "Text book with a described cover image, a navigable table of contents, headings for each chapter, and a single logical reading order.",
+    "accessibility-summary-images": "Text book with described images, a navigable table of contents, headings for each chapter, and a single logical reading order.",
     "review-title": "{title}: review copy",
     "review-intro": "Review copy.",
     "review-intro-build": "Review copy, build {build}.",
@@ -4415,10 +4467,13 @@ var es_default = {
     "all-rights-reserved": "Todos los derechos reservados.",
     "published-by": "Publicado por {publisher}",
     "scene-break": "Cambio de escena",
+    footnotes: "Notas",
+    "author-note": "Nota de autor",
     "cover-alt": "Portada de {title}",
     "start-of-content": "Inicio del contenido",
     "accessibility-summary": "Libro solo de texto con un índice navegable, encabezados para cada capítulo y un único orden de lectura lógico.",
     "accessibility-summary-cover": "Libro con texto e imagen de portada descrita, con un índice navegable, encabezados para cada capítulo y un único orden de lectura lógico.",
+    "accessibility-summary-images": "Libro con texto e imágenes descritas, con un índice navegable, encabezados para cada capítulo y un único orden de lectura lógico.",
     "review-title": "{title}: copia de revisión",
     "review-intro": "Copia de revisión.",
     "review-intro-build": "Copia de revisión, versión {build}.",
@@ -5149,10 +5204,13 @@ var fa_default = {
     "all-rights-reserved": "همهٔ حقوق محفوظ است.",
     "published-by": "ناشر: {publisher}",
     "scene-break": "تغییر صحنه",
+    footnotes: "پانوشت‌ها",
+    "author-note": "یادداشت نویسنده",
     "cover-alt": "جلد کتاب {title}",
     "start-of-content": "آغاز محتوا",
     "accessibility-summary": "کتابی فقط متنی، با فهرست مطالب پیمایش‌پذیر، عنوانی برای هر فصل و یک ترتیب خواندن منطقی واحد.",
     "accessibility-summary-cover": "کتابی متنی با تصویر جلد توصیف‌شده، فهرست مطالب پیمایش‌پذیر، عنوانی برای هر فصل و یک ترتیب خواندن منطقی واحد.",
+    "accessibility-summary-images": "کتابی متنی با تصاویر توصیف‌شده، فهرست مطالب پیمایش‌پذیر، عنوانی برای هر فصل و یک ترتیب خواندن منطقی واحد.",
     "review-title": "{title}: نسخهٔ بازبینی",
     "review-intro": "نسخهٔ بازبینی.",
     "review-intro-build": "نسخهٔ بازبینی، ویرایش {build}.",
@@ -5306,10 +5364,13 @@ var fr_default = {
     "all-rights-reserved": "Tous droits réservés.",
     "published-by": "Publié par {publisher}",
     "scene-break": "Changement de scène",
+    footnotes: "Notes",
+    "author-note": "Note d’auteur",
     "cover-alt": "Couverture de {title}",
     "start-of-content": "Début du contenu",
     "accessibility-summary": "Livre entièrement textuel, avec une table des matières navigable, un titre pour chaque chapitre et un ordre de lecture logique unique.",
     "accessibility-summary-cover": "Livre textuel avec une image de couverture décrite, une table des matières navigable, un titre pour chaque chapitre et un ordre de lecture logique unique.",
+    "accessibility-summary-images": "Livre textuel avec des images décrites, une table des matières navigable, un titre pour chaque chapitre et un ordre de lecture logique unique.",
     "review-title": "{title} : exemplaire de relecture",
     "review-intro": "Exemplaire de relecture.",
     "review-intro-build": "Exemplaire de relecture, version {build}.",
@@ -6502,10 +6563,13 @@ var he_default = {
     "all-rights-reserved": "כל הזכויות שמורות.",
     "published-by": "בהוצאת {publisher}",
     "scene-break": "מעבר סצנה",
+    footnotes: "הערות",
+    "author-note": "אחרית דבר",
     "cover-alt": "כריכת הספר {title}",
     "start-of-content": "תחילת התוכן",
     "accessibility-summary": "ספר טקסט בלבד, עם תוכן עניינים ניתן לניווט, כותרת לכל פרק וסדר קריאה לוגי יחיד.",
     "accessibility-summary-cover": "ספר טקסט עם תמונת כריכה מתוארת, תוכן עניינים ניתן לניווט, כותרת לכל פרק וסדר קריאה לוגי יחיד.",
+    "accessibility-summary-images": "ספר טקסט עם תמונות מתוארות, תוכן עניינים ניתן לניווט, כותרת לכל פרק וסדר קריאה לוגי יחיד.",
     "review-title": "{title}: עותק לקריאה",
     "review-intro": "עותק לקריאה.",
     "review-intro-build": "עותק לקריאה, גרסה {build}.",
@@ -6649,10 +6713,13 @@ var hi_default = {
     "all-rights-reserved": "सर्वाधिकार सुरक्षित।",
     "published-by": "प्रकाशक: {publisher}",
     "scene-break": "दृश्य परिवर्तन",
+    footnotes: "टिप्पणियाँ",
+    "author-note": "लेखकीय टिप्पणी",
     "cover-alt": "{title} का आवरण",
     "start-of-content": "सामग्री का आरंभ",
     "accessibility-summary": "केवल पाठ वाली पुस्तक, जिसमें नेविगेट करने योग्य विषय-सूची, हर अध्याय का शीर्षक और एक ही तार्किक पठन क्रम है।",
     "accessibility-summary-cover": "पाठ वाली पुस्तक, जिसमें वर्णित आवरण चित्र, नेविगेट करने योग्य विषय-सूची, हर अध्याय का शीर्षक और एक ही तार्किक पठन क्रम है।",
+    "accessibility-summary-images": "पाठ वाली पुस्तक, जिसमें वर्णित चित्र, नेविगेट करने योग्य विषय-सूची, हर अध्याय का शीर्षक और एक ही तार्किक पठन क्रम है।",
     "review-title": "{title}: समीक्षा प्रति",
     "review-intro": "समीक्षा प्रति।",
     "review-intro-build": "समीक्षा प्रति, संस्करण {build}।",
@@ -6795,10 +6862,13 @@ var it_default = {
     "all-rights-reserved": "Tutti i diritti riservati.",
     "published-by": "Pubblicato da {publisher}",
     "scene-break": "Cambio di scena",
+    footnotes: "Note",
+    "author-note": "Nota d’autore",
     "cover-alt": "Copertina di {title}",
     "start-of-content": "Inizio del contenuto",
     "accessibility-summary": "Libro di solo testo con indice navigabile, un titolo per ogni capitolo e un unico ordine di lettura logico.",
     "accessibility-summary-cover": "Libro testuale con immagine di copertina descritta, indice navigabile, un titolo per ogni capitolo e un unico ordine di lettura logico.",
+    "accessibility-summary-images": "Libro testuale con immagini descritte, indice navigabile, un titolo per ogni capitolo e un unico ordine di lettura logico.",
     "review-title": "{title}: copia di revisione",
     "review-intro": "Copia di revisione.",
     "review-intro-build": "Copia di revisione, versione {build}.",
@@ -6952,10 +7022,13 @@ var ja_default = {
     "all-rights-reserved": "本書の無断転載・複製を禁じます。",
     "published-by": "発行所：{publisher}",
     "scene-break": "場面転換",
+    footnotes: "注",
+    "author-note": "あとがき",
     "cover-alt": "『{title}』の表紙",
     "start-of-content": "本文",
     "accessibility-summary": "テキストのみの書籍です。ナビゲーション可能な目次、各章の見出し、単一の論理的な読み順を備えています。",
     "accessibility-summary-cover": "説明付きの表紙画像があるテキストの書籍です。ナビゲーション可能な目次、各章の見出し、単一の論理的な読み順を備えています。",
+    "accessibility-summary-images": "説明付きの画像があるテキストの書籍です。ナビゲーション可能な目次、各章の見出し、単一の論理的な読み順を備えています。",
     "review-title": "{title}（レビュー用原稿）",
     "review-intro": "レビュー用の原稿です。",
     "review-intro-build": "レビュー用の原稿です（ビルド {build}）。",
@@ -7100,10 +7173,13 @@ var ko_default = {
     "all-rights-reserved": "이 책의 무단 전재와 복제를 금합니다.",
     "published-by": "펴낸곳: {publisher}",
     "scene-break": "장면 전환",
+    footnotes: "주",
+    "author-note": "작가의 말",
     "cover-alt": "『{title}』 표지",
     "start-of-content": "본문",
     "accessibility-summary": "텍스트로만 된 책으로, 탐색할 수 있는 차례, 장마다 제목, 하나의 논리적인 읽기 순서를 갖추고 있습니다.",
     "accessibility-summary-cover": "설명이 있는 표지 이미지가 포함된 텍스트 책으로, 탐색할 수 있는 차례, 장마다 제목, 하나의 논리적인 읽기 순서를 갖추고 있습니다.",
+    "accessibility-summary-images": "설명이 있는 이미지가 포함된 텍스트 책으로, 탐색할 수 있는 차례, 장마다 제목, 하나의 논리적인 읽기 순서를 갖추고 있습니다.",
     "review-title": "{title}: 검토용 원고",
     "review-intro": "검토용 원고입니다.",
     "review-intro-build": "검토용 원고입니다(빌드 {build}).",
@@ -7246,10 +7322,13 @@ var nl_default = {
     "all-rights-reserved": "Alle rechten voorbehouden.",
     "published-by": "Uitgegeven door {publisher}",
     "scene-break": "Scènewisseling",
+    footnotes: "Noten",
+    "author-note": "Noot van de auteur",
     "cover-alt": "Omslag van {title}",
     "start-of-content": "Begin van de inhoud",
     "accessibility-summary": "Boek met alleen tekst, met een navigeerbare inhoudsopgave, een kop voor elk hoofdstuk en één logische leesvolgorde.",
     "accessibility-summary-cover": "Boek met tekst en een beschreven omslagafbeelding, met een navigeerbare inhoudsopgave, een kop voor elk hoofdstuk en één logische leesvolgorde.",
+    "accessibility-summary-images": "Boek met tekst en beschreven afbeeldingen, met een navigeerbare inhoudsopgave, een kop voor elk hoofdstuk en één logische leesvolgorde.",
     "review-title": "{title}: leesexemplaar",
     "review-intro": "Leesexemplaar.",
     "review-intro-build": "Leesexemplaar, versie {build}.",
@@ -7392,10 +7471,13 @@ var pl_default = {
     "all-rights-reserved": "Wszelkie prawa zastrzeżone.",
     "published-by": "Wydawca: {publisher}",
     "scene-break": "Zmiana sceny",
+    footnotes: "Przypisy",
+    "author-note": "Notka autorska",
     "cover-alt": "Okładka książki „{title}”",
     "start-of-content": "Początek treści",
     "accessibility-summary": "Książka wyłącznie tekstowa z nawigowalnym spisem treści, nagłówkiem każdego rozdziału i jedną logiczną kolejnością czytania.",
     "accessibility-summary-cover": "Książka tekstowa z opisaną ilustracją na okładce, nawigowalnym spisem treści, nagłówkiem każdego rozdziału i jedną logiczną kolejnością czytania.",
+    "accessibility-summary-images": "Książka tekstowa z opisanymi ilustracjami, nawigowalnym spisem treści, nagłówkiem każdego rozdziału i jedną logiczną kolejnością czytania.",
     "review-title": "{title}: egzemplarz do recenzji",
     "review-intro": "Egzemplarz do recenzji.",
     "review-intro-build": "Egzemplarz do recenzji, wersja {build}.",
@@ -7574,10 +7656,13 @@ var pt_default = {
     "all-rights-reserved": "Todos os direitos reservados.",
     "published-by": "Publicado por {publisher}",
     "scene-break": "Mudança de cena",
+    footnotes: "Notas",
+    "author-note": "Nota de autor",
     "cover-alt": "Capa de {title}",
     "start-of-content": "Início do conteúdo",
     "accessibility-summary": "Livro só de texto, com índice navegável, um título para cada capítulo e uma única ordem de leitura lógica.",
     "accessibility-summary-cover": "Livro com texto e imagem de capa descrita, com índice navegável, um título para cada capítulo e uma única ordem de leitura lógica.",
+    "accessibility-summary-images": "Livro com texto e imagens descritas, com índice navegável, um título para cada capítulo e uma única ordem de leitura lógica.",
     "review-title": "{title}: cópia de revisão",
     "review-intro": "Cópia de revisão.",
     "review-intro-build": "Cópia de revisão, versão {build}.",
@@ -7720,10 +7805,13 @@ var ru_default = {
     "all-rights-reserved": "Все права защищены.",
     "published-by": "Издатель: {publisher}",
     "scene-break": "Смена сцены",
+    footnotes: "Примечания",
+    "author-note": "Авторское примечание",
     "cover-alt": "Обложка книги «{title}»",
     "start-of-content": "Начало текста",
     "accessibility-summary": "Книга, содержащая только текст, с навигационным оглавлением, заголовком у каждой главы и единым логическим порядком чтения.",
     "accessibility-summary-cover": "Текстовая книга с описанным изображением обложки, навигационным оглавлением, заголовком у каждой главы и единым логическим порядком чтения.",
+    "accessibility-summary-images": "Текстовая книга с описанными изображениями, навигационным оглавлением, заголовком у каждой главы и единым логическим порядком чтения.",
     "review-title": "{title}: экземпляр для рецензирования",
     "review-intro": "Экземпляр для рецензирования.",
     "review-intro-build": "Экземпляр для рецензирования, версия {build}.",
@@ -7871,10 +7959,13 @@ var sv_default = {
     "all-rights-reserved": "Alla rättigheter förbehållna.",
     "published-by": "Utgiven av {publisher}",
     "scene-break": "Scenbyte",
+    footnotes: "Noter",
+    "author-note": "Författarens kommentar",
     "cover-alt": "Omslag till {title}",
     "start-of-content": "Början av innehållet",
     "accessibility-summary": "Bok med enbart text, med navigerbar innehållsförteckning, en rubrik för varje kapitel och en enda logisk läsordning.",
     "accessibility-summary-cover": "Bok med text och en beskriven omslagsbild, med navigerbar innehållsförteckning, en rubrik för varje kapitel och en enda logisk läsordning.",
+    "accessibility-summary-images": "Bok med text och beskrivna bilder, med navigerbar innehållsförteckning, en rubrik för varje kapitel och en enda logisk läsordning.",
     "review-title": "{title}: läsexemplar",
     "review-intro": "Läsexemplar.",
     "review-intro-build": "Läsexemplar, version {build}.",
@@ -8025,10 +8116,13 @@ var tr_default = {
     "all-rights-reserved": "Tüm hakları saklıdır.",
     "published-by": "Yayıncı: {publisher}",
     "scene-break": "Sahne geçişi",
+    footnotes: "Notlar",
+    "author-note": "Yazarın notu",
     "cover-alt": "Kapak: {title}",
     "start-of-content": "İçeriğin başlangıcı",
     "accessibility-summary": "Gezinilebilir içindekiler tablosu, her bölüm için bir başlık ve tek bir mantıksal okuma sırası olan, yalnızca metinden oluşan kitap.",
     "accessibility-summary-cover": "Açıklamalı kapak görseli, gezinilebilir içindekiler tablosu, her bölüm için bir başlık ve tek bir mantıksal okuma sırası olan metin tabanlı kitap.",
+    "accessibility-summary-images": "Açıklamalı görseller, gezinilebilir içindekiler tablosu, her bölüm için bir başlık ve tek bir mantıksal okuma sırası olan metin tabanlı kitap.",
     "review-title": "{title}: okuma nüshası",
     "review-intro": "Okuma nüshası.",
     "review-intro-build": "Okuma nüshası, sürüm {build}.",
@@ -8171,10 +8265,13 @@ var uk_default = {
     "all-rights-reserved": "Усі права захищено.",
     "published-by": "Видавець: {publisher}",
     "scene-break": "Зміна сцени",
+    footnotes: "Примітки",
+    "author-note": "Авторська примітка",
     "cover-alt": "Обкладинка книжки «{title}»",
     "start-of-content": "Початок тексту",
     "accessibility-summary": "Книжка, що містить лише текст, із навігаційним змістом, заголовком кожного розділу та єдиним логічним порядком читання.",
     "accessibility-summary-cover": "Текстова книжка з описаним зображенням обкладинки, навігаційним змістом, заголовком кожного розділу та єдиним логічним порядком читання.",
+    "accessibility-summary-images": "Текстова книжка з описаними зображеннями, навігаційним змістом, заголовком кожного розділу та єдиним логічним порядком читання.",
     "review-title": "{title}: примірник для рецензування",
     "review-intro": "Примірник для рецензування.",
     "review-intro-build": "Примірник для рецензування, версія {build}.",
@@ -8329,10 +8426,13 @@ var zh_default = {
     "all-rights-reserved": "版权所有，侵权必究。",
     "published-by": "出版者：{publisher}",
     "scene-break": "场景转换",
+    footnotes: "注释",
+    "author-note": "作者的话",
     "cover-alt": "《{title}》封面",
     "start-of-content": "正文",
     "accessibility-summary": "纯文本图书，包含可导航的目录、每章的标题和单一的逻辑阅读顺序。",
     "accessibility-summary-cover": "文本图书，包含带描述的封面图片、可导航的目录、每章的标题和单一的逻辑阅读顺序。",
+    "accessibility-summary-images": "文本图书，包含带描述的图片、可导航的目录、每章的标题和单一的逻辑阅读顺序。",
     "review-title": "{title}（审阅本）",
     "review-intro": "审阅本。",
     "review-intro-build": "审阅本，版本 {build}。",
@@ -8471,10 +8571,13 @@ var labels = {
   "all-rights-reserved": "版權所有，翻印必究。",
   "published-by": "出版者：{publisher}",
   "scene-break": "場景轉換",
+  footnotes: "注釋",
+  "author-note": "作者的話",
   "cover-alt": "《{title}》封面",
   "start-of-content": "正文",
   "accessibility-summary": "純文字圖書，包含可導覽的目錄、每章的標題和單一的邏輯閱讀順序。",
   "accessibility-summary-cover": "文字圖書，包含附描述的封面圖片、可導覽的目錄、每章的標題和單一的邏輯閱讀順序。",
+  "accessibility-summary-images": "文字圖書，包含附描述的圖片、可導覽的目錄、每章的標題和單一的邏輯閱讀順序。",
   "review-title": "{title}（審閱本）",
   "review-intro": "審閱本。",
   "review-intro-build": "審閱本，版本 {build}。",
@@ -10667,8 +10770,20 @@ var URL_PLACEHOLDER = "";
 var COUNTED_WORD = new RegExp(`${URL_PLACEHOLDER}|${WORD_PATTERN.source}`, "gu");
 var EMPHASIS_UNDERSCORES = /(?<![\p{L}\p{M}\p{N}_])_+|(?<!_)_+(?![\p{L}\p{N}_])/gu;
 var URL_OR_EMAIL = /(?<![a-z0-9+.-])(?:[a-z][a-z0-9+.-]*:\/\/|www\.)[^\s<>()[\]`]*[^\s<>()[\]`.,;:!?'"\u2019\u201d*_~]|(?<![\p{L}\p{N}._%+-])[\p{L}\p{N}][\p{L}\p{N}._%+-]*@[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/giu;
-function plainLinks(text) {
-  return splitFences(String(text)).map((part) => part.fenced ? part.text : withoutLinks(part.text)).join("");
+function plainLinks(text, images = null, keep = () => true) {
+  return splitFences(String(text)).map((part) => part.fenced ? part.text : withoutLinks(part.text, images, keep)).join("");
+}
+function proseImages(text) {
+  const images = [];
+  plainLinks(text, images);
+  return images;
+}
+var IMAGE_START = "";
+var IMAGE_END = "";
+var IMAGE_TOKEN = /\uE002(\d+)\uE003/g;
+var IMAGE_AT = /\uE002(\d+)\uE003/y;
+function imageToken(index) {
+  return `${IMAGE_START}${index}${IMAGE_END}`;
 }
 var ESCAPABLE = /[!-/:-@[-`{-~]/;
 var BACKSLASH_ESCAPE = /\\([!-/:-@[-`{-~])/g;
@@ -10683,11 +10798,15 @@ function autolinkEnd(text, index) {
   }
   return index + match[0].length;
 }
-function withoutLinks(source) {
+function withoutLinks(source, images, keep) {
   let result = "";
   let position = 0;
-  for (const [start, end] of linkCuts(source)) {
+  for (const [start, end, image] of linkCuts(source)) {
     result += source.slice(position, start);
+    if (images !== null && image !== undefined && keep(image)) {
+      result += imageToken(images.length);
+      images.push(image);
+    }
     position = end;
   }
   return result + source.slice(position);
@@ -10720,16 +10839,19 @@ function linkCuts(source) {
       } else if (character === "]" && openers.length > 0) {
         const opener = openers.pop();
         let linkEnd = -1;
+        const destination = {};
         if ((opener.image || openers.length >= inactive) && source[index + 1] === "(") {
           groups ??= parenGroups(source, start, end);
-          linkEnd = inlineLinkEnd(source, index + 1, end, groups);
+          linkEnd = inlineLinkEnd(source, index + 1, end, groups, destination);
         }
         if (linkEnd === -1) {
           index += 1;
           continue;
         }
         if (opener.image) {
-          cuts.push([opener.start, linkEnd]);
+          const written = source.slice(destination.start, destination.end);
+          const target = (written.startsWith("<") ? written.slice(1, -1) : written).replace(BACKSLASH_ESCAPE, "$1");
+          cuts.push([opener.start, linkEnd, { alt: source.slice(opener.start + 2, index), destination: target }]);
         } else {
           cuts.push([opener.start, opener.start + 1], [index, linkEnd]);
           inactive = openers.length;
@@ -10743,9 +10865,9 @@ function linkCuts(source) {
   cuts.sort((left, right) => left[0] - right[0]);
   const removed = [];
   let position = 0;
-  for (const [start, end] of cuts) {
+  for (const [start, end, image] of cuts) {
     if (end > position) {
-      removed.push([Math.max(start, position), end]);
+      removed.push(image === undefined ? [Math.max(start, position), end] : [start, end, image]);
       position = end;
     }
   }
@@ -10805,7 +10927,7 @@ function parenGroups(source, start, end) {
   }
   return groups;
 }
-function inlineLinkEnd(source, open, limit, groups) {
+function inlineLinkEnd(source, open, limit, groups, destination = {}) {
   const escaped = (index) => source[index] === "\\" && ESCAPABLE.test(source[index + 1] ?? "");
   let index = skipLinkSpace(source, open + 1, limit);
   if (source[index] === "<") {
@@ -10837,6 +10959,8 @@ function inlineLinkEnd(source, open, limit, groups) {
     }
   }
   const destinationEnd = index;
+  destination.start = skipLinkSpace(source, open + 1, limit);
+  destination.end = destinationEnd;
   index = skipLinkSpace(source, index, limit);
   const quote = { '"': '"', "'": "'", "(": ")" }[source[index]];
   if (index > destinationEnd && quote !== undefined) {
@@ -10876,7 +11000,7 @@ function flattenHeadings(text) {
 }
 function splitWords(markdown) {
   const urls = [];
-  const normalized = countedText(plainLinks(String(markdown))).replace(/\uE000/g, " ").replace(URL_OR_EMAIL, (match) => {
+  const normalized = countedText(plainLinks(splitFootnotes(String(markdown)).text)).replace(/\uE000/g, " ").replace(URL_OR_EMAIL, (match) => {
     urls.push(match);
     return ` ${URL_PLACEHOLDER} `;
   }).replace(BACKSLASH_ESCAPE, "$1").replace(EMPHASIS_UNDERSCORES, " ").replace(/[#>*~|`]/g, " ").replace(/(?<!\p{N}):|:(?!\p{N})/gu, " ");
@@ -11057,35 +11181,232 @@ function setextSceneBreakLines(markdownBody) {
   }
   return found;
 }
-var FOOTNOTE_DEFINITION = /^ *\[\^[^\]\n]+\]:/;
-function footnoteLines(markdownBody) {
+var FOOTNOTE_DEFINITION = /^ *\[\^([^[\]\s]{1,999})\]:[ \t]*/;
+var FOOTNOTE_MARKER = /\[\^([^[\]\s]{1,999})\]/y;
+function footnoteLabel(label) {
+  return String(label).toLowerCase();
+}
+function footnoteBlocks(prose, masked = maskMarkup(prose)) {
+  const lines = String(prose).split(`
+`);
+  const maskedLines = String(masked).split(`
+`);
+  const blocks = [];
+  let html = null;
+  let paragraph = false;
+  let note = null;
+  for (const [index, line] of maskedLines.entries()) {
+    const marker = /^(?: {0,3}>[ \t]?)*/.exec(line)[0];
+    const content = expandTabs(line.slice(marker.length));
+    const text = () => expandTabs(lines[index].slice(Math.min(marker.length, lines[index].length))).trim();
+    if (html !== null) {
+      html = (html.end === null ? content.trim() === "" : html.end.test(content)) ? null : html;
+      continue;
+    }
+    if (content.trim() === "") {
+      paragraph = false;
+      if (note !== null) {
+        note.blank = true;
+      }
+      continue;
+    }
+    const indent = indentOf(content);
+    if (note !== null) {
+      const opens = marker !== "" && !note.quoted || indent <= 3 && (FOOTNOTE_DEFINITION.test(content) || breaksParagraph(content) || ATX_HEADING.test(content) || htmlBlock(content, true) !== null);
+      if (!note.blank && !opens) {
+        note.paragraphs.at(-1).push(text());
+        note.end = index + 1;
+        continue;
+      }
+      note = null;
+    }
+    if (indent > 3) {
+      continue;
+    }
+    const block = htmlBlock(content, paragraph);
+    if (block !== null) {
+      html = block.end !== null && block.end.test(content) ? null : block;
+      paragraph = false;
+      continue;
+    }
+    const definition = FOOTNOTE_DEFINITION.exec(content);
+    if (definition !== null) {
+      const original = expandTabs(lines[index].slice(Math.min(marker.length, lines[index].length)));
+      note = { label: definition[1], start: index, end: index + 1, paragraphs: [[original.slice(definition[0].length).trim()]], blank: false, quoted: marker !== "" };
+      blocks.push(note);
+      paragraph = false;
+      continue;
+    }
+    paragraph = true;
+  }
+  return blocks.map(({ label, start, end, paragraphs }) => ({ label, start, end, paragraphs: paragraphs.map((lines) => lines.filter((line) => line !== "")).filter((lines) => lines.length > 0) }));
+}
+function footnoteDefinitionLines(prose) {
+  const lines = new Set;
+  if (!String(prose).includes("[^")) {
+    return lines;
+  }
+  for (const block of footnoteBlocks(String(prose))) {
+    for (let index = block.start;index < block.end; index += 1) {
+      lines.add(index);
+    }
+  }
+  return lines;
+}
+function splitFootnotes(prose) {
+  const source = String(prose);
+  const notes = new Map;
+  if (!source.includes("[^")) {
+    return { text: source, notes };
+  }
+  const blocks = footnoteBlocks(source);
+  if (blocks.length === 0) {
+    return { text: source, notes };
+  }
+  const lines = source.split(`
+`);
+  for (const block of blocks) {
+    for (let index = block.start;index < block.end; index += 1) {
+      lines[index] = "";
+    }
+    const label = footnoteLabel(block.label);
+    if (!notes.has(label)) {
+      notes.set(label, { label: block.label, text: block.paragraphs.map((paragraph) => paragraph.join(`
+`)).join(`
+
+`) });
+    }
+  }
+  return { text: lines.join(`
+`), notes };
+}
+function footnoteMarkers(text) {
+  const source = String(text);
+  const found = [];
+  if (!source.includes("[^")) {
+    return found;
+  }
+  const closeSpan = codeSpanCloser(source);
+  for (let index = 0;index < source.length; ) {
+    const character = source[index];
+    if (character === "\\" && ESCAPABLE.test(source[index + 1] ?? "")) {
+      index += 2;
+    } else if (character === "`") {
+      let run = index;
+      while (source[run] === "`") {
+        run += 1;
+      }
+      const close = closeSpan(index, run - index);
+      index = close === -1 ? run : close;
+    } else if (character === "<" && autolinkEnd(source, index) !== -1) {
+      index = autolinkEnd(source, index);
+    } else if (character === "[" && source[index + 1] === "^") {
+      FOOTNOTE_MARKER.lastIndex = index;
+      const marker = FOOTNOTE_MARKER.exec(source);
+      if (marker === null) {
+        index += 1;
+      } else {
+        found.push({ label: marker[1], start: index, end: index + marker[0].length });
+        index += marker[0].length;
+      }
+    } else {
+      index += 1;
+    }
+  }
+  return found;
+}
+function withoutFootnotes(text) {
+  const { text: prose, notes } = splitFootnotes(text);
+  if (notes.size === 0) {
+    return prose;
+  }
+  return splitFences(prose).map((part) => {
+    if (part.fenced) {
+      return part.text;
+    }
+    let result = "";
+    let position = 0;
+    for (const marker of footnoteMarkers(part.text)) {
+      if (notes.has(footnoteLabel(marker.label))) {
+        result += part.text.slice(position, marker.start);
+        position = marker.end;
+      }
+    }
+    return result + part.text.slice(position);
+  }).join("");
+}
+function footnoteUses(markdownBody) {
   const body = String(markdownBody).replace(/\r\n?/g, `
 `);
   const masked = maskMarkup(body);
   const start = proseStart(body, masked);
   const first = masked.slice(0, start).split(`
 `).length - 1;
-  const found = [];
-  let html = null;
-  let paragraph = false;
-  for (const [index, line] of masked.slice(start).split(`
-`).entries()) {
-    const content = expandTabs(line.slice(/^(?: {0,3}>[ \t]?)*/.exec(line)[0].length));
-    if (html !== null) {
-      html = (html.end === null ? content.trim() === "" : html.end.test(content)) ? null : html;
-    } else if (content.trim() === "") {
-      paragraph = false;
-    } else if (indentOf(content) <= 3) {
-      const block = htmlBlock(content, paragraph);
-      const footnote = block === null && FOOTNOTE_DEFINITION.test(content);
-      if (block !== null) {
-        html = block.end !== null && block.end.test(content) ? null : block;
-      }
-      if (footnote) {
-        found.push(first + index);
-      }
-      paragraph = block === null && !footnote;
+  const prose = body.slice(start);
+  const maskedProse = masked.slice(start);
+  if (!prose.includes("[^")) {
+    return { definitions: [], markers: [] };
+  }
+  const blocks = footnoteBlocks(prose, maskedProse);
+  const definitions = blocks.map((block) => ({ label: block.label, line: first + block.start }));
+  const lines = maskedProse.split(`
+`);
+  for (const block of blocks) {
+    for (let index = block.start;index < block.end; index += 1) {
+      lines[index] = " ".repeat(lines[index].length);
     }
+  }
+  const unlinked = lines.join(`
+`);
+  const cuts = unlinked.includes("](") ? linkCuts(unlinked) : [];
+  const linkEdges = new Set(cuts.map(([cutStart]) => cutStart));
+  const images = cuts.filter((cut) => cut[2] !== undefined);
+  let nextImage = 0;
+  const inImage = (at) => {
+    while (nextImage < images.length && images[nextImage][1] <= at) {
+      nextImage += 1;
+    }
+    return nextImage < images.length && images[nextImage][0] <= at;
+  };
+  const searched = maskLinkTargets(unlinked).text;
+  const markers = [];
+  let line = first;
+  let position = 0;
+  for (const marker of footnoteMarkers(searched).filter(({ start, end }) => !linkEdges.has(start) && !linkEdges.has(end - 1) && !inImage(start))) {
+    for (;position < marker.start; position += 1) {
+      line += searched[position] === `
+` ? 1 : 0;
+    }
+    markers.push({ label: marker.label, line });
+  }
+  return { definitions, markers };
+}
+function imageLines(markdownBody) {
+  const body = String(markdownBody).replace(/\r\n?/g, `
+`);
+  const masked = maskMarkup(body);
+  const start = proseStart(body, masked);
+  const prose = masked.slice(start);
+  const first = masked.slice(0, start).split(`
+`).length - 1;
+  const found = [];
+  const noteLines = new Map;
+  for (const block of prose.includes("[^") ? footnoteBlocks(body.slice(start), prose) : []) {
+    for (let index = block.start;index < block.end; index += 1) {
+      noteLines.set(first + index, block.label);
+    }
+  }
+  let line = first;
+  let position = 0;
+  for (const [cutStart, , image] of prose.includes("](") ? linkCuts(prose) : []) {
+    if (image === undefined) {
+      continue;
+    }
+    for (;position < cutStart; position += 1) {
+      line += prose[position] === `
+` ? 1 : 0;
+    }
+    found.push(noteLines.has(line) ? { destination: image.destination, line, note: noteLines.get(line) } : { destination: image.destination, line });
   }
   return found;
 }
@@ -11152,7 +11473,7 @@ function wordCount(markdown) {
 }
 var graphemes2;
 function characterCount(markdown) {
-  const lines = plainLinks(String(markdown).replace(/\uE000/g, " ")).split(`
+  const lines = plainLinks(splitFootnotes(String(markdown).replace(/\uE000/g, " ")).text).split(`
 `);
   const text = countedText(lines.map((line) => isSceneBreak(line) ? "" : line).join(`
 `)).replace(BACKSLASH_ESCAPE, "$1").replace(/[#>*_~|`\s]+/gu, "");
@@ -13193,7 +13514,7 @@ var OPTIONS = [
   { name: "themes", value: "<a,b>", repeatable: true, commas: true, aliasOf: "theme", help: ["Comma-separated themes for init, import, or add arc"] },
   { name: "pov", value: "<style|id>", help: ["POV style for init or import; POV character id", "for add chapter/scene (also added to characters)"] },
   { name: "tense", value: "<tense>", help: ["Narrative tense for init or import"] },
-  { name: "form", value: "<form>", help: ["Story form for init (novel, novella, novelette,", "short-story, flash, serial, picture-book,", "chapter-book); sets a default target-words"] },
+  { name: "form", value: "<form>", help: ["Story form for init (novel, novella, novelette,", "short-story, flash, serial, picture-book,", "chapter-book, poetry-collection); sets a default", "target-words, except for serial and", "poetry-collection"] },
   { name: "synopsis", value: "<text>", help: ["Starter synopsis for init or import"] },
   { name: "language", value: "<tag>", help: ["Manuscript language for import, a BCP 47 tag", "such as fr; defaults to the existing story.md"] },
   { name: "bylines", help: ["For import, read each chapter's author from a", 'leading by-line ("by Ada Writer", taken out of', "the prose) or its file's frontmatter author"] },
@@ -13207,12 +13528,15 @@ var OPTIONS = [
       "Let init/import use an existing directory: add",
       "missing starter files, never overwrite existing",
       "ones; import also replaces every chapter-NN.md",
-      "file; snapshot replaces a same-named snapshot"
+      "file; snapshot replaces a same-named snapshot;",
+      "collect replaces collected chapters edited in",
+      "the collection"
     ]
   },
   { name: "write", help: ["Update chapter word-count frontmatter"] },
   { name: "log", help: ["Record today's word count in progress.md"] },
   { name: "weeks", value: "<n>", help: ["Weeks of writing history for progress (1 to 52,", "default 4)"] },
+  { name: "days", value: "<n>", help: ["Days without a reply (that many or more) that", "make submissions and next flag a submission for", "a follow-up (1 to 3650, default 90)"] },
   { name: "ref", value: "<git-ref>", help: ["Earlier draft as a git branch, tag, or commit", "for compare; the version sent to the editor for", "apply"] },
   { name: "against", value: "<path>", help: ["Earlier draft as another project folder for", "compare; text to check for similarity (a file,", "folder, or git ref)"] },
   { name: "snapshot", value: "<name>", help: ["Earlier draft as a snapshot saved by story", "snapshot, for compare or similarity; the version", "sent to the editor for apply"] },
@@ -13221,8 +13545,8 @@ var OPTIONS = [
   { name: "list", help: ["List the saved snapshots for snapshot"] },
   { name: "restore", value: "<name>", help: ["Put a snapshot back over the project for", "snapshot, after saving the project as it is;", "deletes markdown files the snapshot lacks"] },
   { name: "path", value: "<path>", help: ["Project root for every command except init,", "import, and lsp"] },
-  { name: "out", value: "<file>", help: ["Output path for export/build/synopsis/diagram", "(a folder for build --format codex)"] },
-  { name: "format", value: "<name>", help: ["Output format for build (markdown, epub, docx,", "shunn, html, print, narration, metadata,", "fountain, twee, ink, ics, codex) or grid", "(markdown, csv)"] },
+  { name: "out", value: "<file>", help: ["Output path for export/build/synopsis/diagram", "(a folder for build --format codex or post)"] },
+  { name: "format", value: "<name>", help: ["Output format for build (markdown, epub, docx,", "shunn, html, print, narration, metadata,", "fountain, twee, ink, ics, codex, post) or grid", "(markdown, csv)"] },
   { name: "trim", value: "<size>", help: ["Trim size for build --format print (5x8,", "5.25x8, 5.5x8.5, 6x9, a5; default 5.5x8.5)"] },
   { name: "paper", value: "<letter|a4>", help: ["Paper for build --format shunn --pdf and", "--format docx --shunn (letter, a4; default letter)"] },
   { name: "stamp", value: "<label>", help: ["Build label printed in build --format html (a", "date, commit, or review round)"] },
@@ -13233,8 +13557,8 @@ var OPTIONS = [
   { name: "pdf-engine", value: "<name|path>", help: ["PDF engine for build --pdf: prince, weasyprint,", "pagedjs-cli, chrome, or the path to one"] },
   { name: "spoilers", help: ["Include notes, statuses, deaths, knowledge,", "clues, and resolutions in build --format codex"] },
   { name: "include-pending", help: ["Keep matter pages whose permission is pending in", "export and build (left out by default)"] },
-  { name: "from", value: "<chapter>", help: ["First chapter (id or number) grid shows"] },
-  { name: "to", value: "<chapter>", help: ["Last chapter (id or number) grid shows"] },
+  { name: "from", value: "<chapter>", help: ["First chapter (id or number) grid shows or build", "--format post builds"] },
+  { name: "to", value: "<chapter>", help: ["Last chapter (id or number) grid shows or build", "--format post builds"] },
   { name: "where", value: "<filter>", repeatable: true, help: ["Filter for list: key=value (a list contains it),", "key!=value, key (set), or !key (unset);", "repeatable, and every filter must match"] },
   { name: "query", value: "<name>", help: ["Run a story.md query for list: its kind and", "filters, and any --where as well"] },
   { name: "at", value: "<chapter-id>", help: ["Chapter id for knowledge: what the character knew", "and how their progressions had changed them; for", "split, where to split: a scene break number, a", "heading, or a line of the text"] },
@@ -13243,6 +13567,7 @@ var OPTIONS = [
   { name: "init", help: ["Add the default revision passes for passes"] },
   { name: "start", value: "<pass>", help: ["Mark a revision pass in progress for passes"] },
   { name: "done", value: "<pass>", help: ["Mark a revision pass done for passes"] },
+  { name: "record", help: ["Record each source chapter's current source-hash", "in the translated chapter for translation"] },
   { name: "max-filter-words", value: "<n>", help: ["Warn above n filter words per 1,000 narration", "words for prose (default 10)"] },
   { name: "max-adverbs", value: "<n>", help: ["Warn above n -ly adverbs per 1,000 narration", "words for prose (default 12)"] },
   { name: "baseline", help: ["Compare prose with style-sheet.md samples of your", "own writing (on when samples are listed;", "--baseline=false turns it off)"] },
@@ -13254,17 +13579,17 @@ var OPTIONS = [
   { name: "strict", help: ["Fail check, or impact on the warnings a change", "adds, on warnings as well as errors"] },
   { name: "stdio", help: ["Talk to the editor over stdin and stdout for lsp", "(the default, accepted for editors that pass it)"] },
   { name: "json", help: ["Print one JSON result object (apiVersion,", "command, ok, data, diagnostics, writes) instead", "of text"] },
-  { name: "dry-run", help: ["List the files add, rename, remove, move, split,", "merge, reindex, migrate, wordcount --write,", "doctor --fix, snapshot, passes, progress --log,", "diagram or synopsis --out, export, build, init,", "or import would create, update, or delete, and", "change nothing; apply lists the edits it would make"] },
+  { name: "dry-run", help: ["List the files add, rename, remove, move, split,", "merge, reindex, migrate, wordcount --write,", "doctor --fix, snapshot, passes, progress --log,", "translation --record, diagram or synopsis --out,", "export, build, init, or import would create,", "update, or delete, and change nothing; apply", "lists the edits it would make"] },
   { name: "id", value: "<kebab-id>", help: ["Explicit id for add, rename, or snapshot, for a", "name with letters an id cannot spell"] },
   { name: "prose", help: ["For rename: also replace the entity's name and", "given name in drafted chapter prose (not its", "aliases)"] },
   { name: "number", value: "<n>", help: ["Chapter number for add chapter or move chapter"] },
-  { name: "chapter", value: "<id>", help: ["Chapter id for add scene or move scene"] },
+  { name: "chapter", value: "<id>", help: ["Chapter id for add scene or move scene; the", "one chapter translation --record writes; the one", "chapter (id or number) build --format post builds"] },
   { name: "scene", value: "<n>", help: ["Scene number for add scene or move scene"] },
   { name: "type", value: "<name>", help: ["Entity type for add"] },
   { name: "role", value: "<name>", help: ["Character role for add character"] },
   { name: "status", value: "<name>", help: ["Entity status for add"] },
   { name: "mode", value: "<name>", help: ["Mode for add chapter (e.g. discovered)"] },
-  { name: "date", value: "<date>", help: ["Story date (YYYY-MM-DD, or in the story.md", "calendar) for add chapter/scene; the session", "date for progress, and today for progress and", "next release dates (default today)"] },
+  { name: "date", value: "<date>", help: ["Story date (YYYY-MM-DD, or in the story.md", "calendar) for add chapter/scene; the session", "date for progress, and today for progress,", "next, and submissions (default today)"] },
   { name: "time", value: "<time>", help: ["Story time (HH:MM or dawn, morning, midday,", "afternoon, evening, night) for add chapter/scene"] },
   { name: "travel-hours", value: "<n>", help: ["Travel hours for add scene"] },
   { name: "travel-mode", value: "<name>", help: ["Travel mode for add scene, one of the story.md", "travel-modes (such as horse)"] },
@@ -13532,7 +13857,7 @@ function exemptionProblems(entry, label = "exemption") {
   }
   const narrowed = ["pattern", "file", "chapter"].some((key) => entry[key] !== undefined);
   if (entry.code !== undefined && codeProblem === null && !narrowed) {
-    const severity = FINDING_CODES[entry.code] === "warning" ? `, or set severity ${entry.code} to off in story.md` : "";
+    const severity = FINDING_CODES[entry.code] === "warning" ? `, or set severity ${entry.code} to off in story.md` : isCustomCode(entry.code) ? `, or, for a warning check, set severity ${entry.code} to off in story.md` : "";
     problems.push(err("exemption-too-broad", `${label} sets only code, which would dismiss every ${entry.code} finding: add file, chapter, or pattern to narrow it${severity}`, EXEMPTIONS_FILE));
   } else if (entry.code === undefined && entry.pattern === undefined && narrowed) {
     problems.push(err("exemption-too-broad", `${label} sets ${entry.file === undefined ? "chapter" : entry.chapter === undefined ? "file" : "file and chapter"} without code or pattern, which would dismiss every finding about it: add the finding's code`, EXEMPTIONS_FILE));
@@ -13548,6 +13873,12 @@ function isChapterId(value) {
 function codeError(code, label) {
   if (typeof code !== "string" || code.trim() === "") {
     return err("field-not-text", `${label} code must be a finding code, such as clock-backward`, EXEMPTIONS_FILE);
+  }
+  if (isCustomCode(code)) {
+    return null;
+  }
+  if (Object.hasOwn(RETIRED_CODES, code)) {
+    return null;
   }
   if (!Object.hasOwn(FINDING_CODES, code)) {
     return err("exemption-unknown-code", `${label} code ${code} is not a finding code${suggestion(code, Object.keys(FINDING_CODES))}`, EXEMPTIONS_FILE);
@@ -13619,9 +13950,482 @@ function dismissByExemptions(result, exemptions, { errors: withErrors, dismissab
   return { ...result, ok: withErrors ? errors.length === 0 : result.ok, errors, warnings, dismissed };
 }
 
+// src/custom-checks.js
+import path6 from "node:path";
+
+// src/list.js
+import path5 from "node:path";
+var LIST_KINDS = [
+  { kind: "chapters", singular: "chapter", collection: "chapters", schema: "chapter", title: "title" },
+  { kind: "scenes", singular: "scene", collection: "scenes", schema: "scene", title: "title" },
+  { kind: "characters", singular: "character", collection: "characters", schema: "character", title: "name" },
+  { kind: "locations", singular: "location", collection: "locations", schema: "location", title: "name" },
+  { kind: "systems", singular: "system", collection: "systems", schema: "system", title: "name" },
+  { kind: "factions", singular: "faction", collection: "factions", schema: "faction", title: "name" },
+  { kind: "artifacts", singular: "artifact", collection: "artifacts", schema: "artifact", title: "name" },
+  { kind: "arcs", singular: "arc", collection: "arcs", schema: "arc", title: "name" },
+  { kind: "questions", singular: "question", collection: "questions", schema: "question", title: "title" },
+  { kind: "promises", singular: "promise", collection: "promises", schema: "promise", title: "title" },
+  { kind: "clues", singular: "clue", collection: "clues", schema: "clue", title: "title" },
+  { kind: "terms", singular: "term", collection: "glossaryTerms", schema: "term", title: "term" },
+  { kind: "research", singular: "research", collection: "research", schema: "research", title: "title" },
+  { kind: "matter", singular: "matter", collection: "matter", schema: "matter", title: "title" }
+];
+var KIND_NAMES = LIST_KINDS.map((entry) => entry.kind);
+var QUERY_KINDS = new Set(LIST_KINDS.flatMap((entry) => [entry.kind, entry.singular]));
+var QUERY_KEYS = ["name", "kind", "where"];
+var KEBAB_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+var LINE_BREAK2 = /[\n\r\u2028\u2029]/;
+var UNSAFE_IN_MESSAGE = /[\u007f-\u009f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
+function listKind(name) {
+  if (typeof name !== "string" || name.trim() === "") {
+    throw usageError(`Usage: story list <kind> [--where <filter>]... or story list --query <name> [--where <filter>]... [--path <project>]; kinds: ${KIND_NAMES.join(", ")}`);
+  }
+  const text = name.trim().toLowerCase();
+  const entry = LIST_KINDS.find((candidate) => candidate.kind === text || candidate.singular === text);
+  if (!entry) {
+    throw usageError(`Unknown kind "${name}" for story list (kinds: ${KIND_NAMES.join(", ")})${suggestion(text, KIND_NAMES)}`);
+  }
+  return entry;
+}
+function parseWhere(text) {
+  const filter = readWhere(text);
+  if (filter.problem === "value") {
+    throw usageError(`--where ${filter.text} needs a value after ${filter.operator}; use --where ${filter.key} for a key that is set, or --where '!${filter.key}' for one that is not`, "where");
+  }
+  if (filter.problem === "shape") {
+    throw usageError(`Cannot read --where ${filter.text}: expected key=value, key!=value, key, or !key`, "where");
+  }
+  return filter;
+}
+function readWhere(text) {
+  const filter = String(text).trim();
+  const at = filter.search(/[=!]/);
+  if (at > 0 && (filter[at] === "=" || filter[at + 1] === "=")) {
+    const operator = filter[at] === "=" ? "=" : "!=";
+    const key = filter.slice(0, at).trimEnd();
+    const value = filter.slice(at + operator.length).trimStart();
+    if (value === "") {
+      return { problem: "value", text: filter, key, operator };
+    }
+    if (!LINE_BREAK2.test(value)) {
+      return { key, op: operator === "=" ? "eq" : "ne", value };
+    }
+  }
+  const absent = filter.startsWith("!");
+  const key = absent ? filter.slice(1) : filter;
+  if (key !== "" && !/[=!\s]/.test(key)) {
+    return { key, op: absent ? "absent" : "present", value: null };
+  }
+  return { problem: "shape", text: filter };
+}
+function buildList(project, kindName, whereValues = [], queryName = undefined) {
+  const query = queryName === undefined ? null : savedQuery(project, queryName);
+  const entry = query === null ? listKind(kindName) : queryKind(query.item, kindName);
+  const saved = (query?.item.where ?? []).map(parseWhere);
+  const given = [whereValues].flat().filter((value) => value !== undefined && value !== true).map(parseWhere);
+  const filters = [...saved, ...given];
+  const entities = project[entry.collection];
+  const queryField = query === null ? null : String(queryName).trim();
+  const warnings = query?.warnings ?? [];
+  if ((project.fileErrors ?? []).length > 0) {
+    return { kind: entry.kind, query: queryField, where: filters, total: entities.length, items: [], warnings };
+  }
+  const known = knownKeys(project, entry);
+  for (const filter of given) {
+    if (!known.has(filter.key)) {
+      throw usageError(`Unknown key "${filter.key}" for ${entry.kind}: no ${entry.singular} file sets it and the schema does not define it${keyHint(filter.key, [...known])}`, "where");
+    }
+  }
+  const keys = [...new Set(filters.map((filter) => filter.key))];
+  const items = entities.filter((entity) => filters.every((filter) => matches(entity.frontmatter ?? {}, filter))).map((entity) => ({
+    id: entity.id,
+    file: path5.relative(project.root, entity.file).split(path5.sep).join("/"),
+    title: String(entity[entry.title]),
+    fields: Object.fromEntries(keys.map((key) => [key, ownField(entity.frontmatter ?? {}, key) ?? null]))
+  }));
+  return { kind: entry.kind, query: queryField, where: filters, total: entities.length, items, warnings };
+}
+function knownKeys(project, entry) {
+  const known = new Set(FRONTMATTER_KEYS[entry.schema]);
+  for (const entity of project[entry.collection]) {
+    for (const key of Object.keys(entity.frontmatter ?? {})) {
+      known.add(key);
+    }
+  }
+  return known;
+}
+function keyHint(key, candidates) {
+  const near = nearMissKeys(key, candidates);
+  return near.length > 0 ? `; did you mean ${near.map((candidate) => `"${candidate}"`).join(" or ")}?` : "";
+}
+function quoted(value) {
+  return JSON.stringify(value).replace(UNSAFE_IN_MESSAGE, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
+}
+function shownName(name) {
+  return typeof name === "string" && KEBAB_NAME.test(name) ? name : quoted(name);
+}
+function nameText(name) {
+  return typeof name === "number" || typeof name === "boolean" ? String(name) : name;
+}
+function savedQuery(project, name) {
+  const wanted = String(name).trim();
+  if (wanted === "") {
+    throw usageError("--query needs the name of a story.md query");
+  }
+  if (project.story.unreadable) {
+    throw projectError(`story.md cannot be parsed; fix it before running story list --query ${quoted(wanted)}`);
+  }
+  const raw = project.story.data.queries;
+  if (raw !== undefined && !Array.isArray(raw)) {
+    throw projectError(`story.md frontmatter field queries must be a list; fix it before running story list --query ${quoted(wanted)}`);
+  }
+  const entries = (raw ?? []).map((item, index) => ({ item, index })).filter(({ item }) => isMapping(item));
+  const named = entries.filter(({ item }) => nameText(item.name) === wanted);
+  if (named.length === 0) {
+    const names = [...new Set(entries.map(({ item }) => nameText(item.name)).filter((candidate) => typeof candidate === "string" && candidate !== ""))];
+    throw usageError(names.length === 0 ? `Unknown query ${quoted(wanted)}: story.md has no queries` : `Unknown query ${quoted(wanted)} (story.md queries: ${names.map(shownName).join(", ")})${suggestion(wanted, names)}`);
+  }
+  if (named.length > 1) {
+    throw projectError(`Fix story.md query ${shownName(wanted)} before running it: story.md lists query ${shownName(wanted)} more than once`);
+  }
+  const { item, index } = named[0];
+  const problems = queryProblems(project, item, index, (entry) => knownKeys(project, entry));
+  if (problems.errors.length > 0) {
+    throw projectError(`Fix story.md query ${shownName(wanted)} before running it: ${problems.errors.map((finding) => finding.message).join("; ")}`);
+  }
+  return { item, warnings: problems.warnings };
+}
+function queryKind(query, kindName) {
+  const entry = listKind(query.kind);
+  if (kindName !== undefined && listKind(kindName) !== entry) {
+    throw usageError(`Query ${query.name} lists ${entry.kind}, not ${listKind(kindName).kind}: drop the kind, or give ${entry.kind}`);
+  }
+  return entry;
+}
+function queryFindings(project) {
+  const errors = [];
+  const warnings = [];
+  const raw = project.story.data.queries;
+  if (raw === undefined) {
+    return { errors, warnings };
+  }
+  if (!Array.isArray(raw)) {
+    errors.push(err("field-not-list", "story.md frontmatter field queries must be a list", "story.md"));
+    return { errors, warnings };
+  }
+  const knownFor = knownKeysOnce(project);
+  const seen = new Set;
+  raw.forEach((item, index) => {
+    if (!isMapping(item)) {
+      errors.push(err("field-invalid-items", "story.md frontmatter field queries must contain mappings, such as - name: mara-drafts", "story.md"));
+      return;
+    }
+    const problems = queryProblems(project, item, index, knownFor);
+    errors.push(...problems.errors);
+    warnings.push(...problems.warnings);
+    if (typeof item.name === "string" && seen.has(item.name)) {
+      errors.push(err("duplicate-query", `story.md lists query ${shownName(item.name)} more than once`, "story.md"));
+    }
+    seen.add(item.name);
+  });
+  return { errors, warnings };
+}
+function queryProblems(project, item, index, knownFor) {
+  const errors = [];
+  const warnings = [];
+  const label = typeof item.name === "string" && KEBAB_NAME.test(item.name) ? `story.md query ${item.name}` : `story.md queries[${index}]`;
+  const extra = Object.keys(item).filter((key) => !QUERY_KEYS.includes(key));
+  if (extra.length > 0) {
+    errors.push(err("invalid-query", `${label} has ${extra.join(", ")}: a query takes only name, kind, and where`, "story.md"));
+  }
+  if (item.name === undefined) {
+    errors.push(err("missing-field", `${label} is missing name`, "story.md"));
+  } else if (typeof item.name === "number" || typeof item.name === "boolean") {
+    errors.push(err("field-not-text", `${label} name ${String(item.name)} is not text: quote it, such as name: "${String(item.name)}"`, "story.md"));
+  } else if (typeof item.name !== "string" || !KEBAB_NAME.test(item.name)) {
+    errors.push(err("id-not-kebab", `${label} name ${quoted(item.name)} must be kebab-case, such as mara-drafts`, "story.md"));
+  }
+  const spec = readFilterSpec(project, item, label, knownFor);
+  for (const problem of spec.problems) {
+    if (problem.type === "unknown-key") {
+      warnings.push(warn("query-unknown-key", problem.message, "story.md"));
+    } else {
+      errors.push(problem.type === "missing" ? err("missing-field", problem.message, "story.md") : err("invalid-query", problem.message, "story.md"));
+    }
+  }
+  return { errors, warnings };
+}
+function readFilterSpec(project, item, label, knownFor) {
+  const problems = [];
+  const filters = [];
+  let entry = null;
+  if (item.kind === undefined) {
+    problems.push({ type: "missing", message: `${label} is missing kind` });
+  } else if (QUERY_KINDS.has(item.kind)) {
+    entry = listKind(item.kind);
+  } else {
+    const near = typeof item.kind === "string" ? suggestion(item.kind, KIND_NAMES) : "";
+    problems.push({ type: "invalid", message: `${label} kind ${quoted(item.kind)} is not a kind story list takes (${KIND_NAMES.join(", ")}, or the singular)${near}` });
+  }
+  if (item.where === undefined) {
+    problems.push({ type: "missing", message: `${label} is missing where` });
+    return { entry, filters, problems };
+  }
+  if (Array.isArray(item.where) && item.where.length === 0) {
+    problems.push({ type: "invalid", message: `${label} where needs at least one filter, such as where: [status=draft]` });
+    return { entry, filters, problems };
+  }
+  if (!Array.isArray(item.where) || !item.where.every((filter) => typeof filter === "string")) {
+    problems.push({ type: "invalid", message: `${label} where must be a list of filters, such as where: [status=draft, pov=mara-quill]` });
+    return { entry, filters, problems };
+  }
+  for (const text of item.where) {
+    const filter = readWhere(text);
+    if (filter.problem === "value") {
+      problems.push({ type: "invalid", message: `${label} where filter ${quoted(filter.text)} needs a value after ${filter.operator}; write ${quoted(filter.key)} for a key that is set, or ${quoted(`!${filter.key}`)} for one that is not` });
+    } else if (filter.problem === "shape") {
+      problems.push({ type: "invalid", message: `${label} cannot read where filter ${quoted(filter.text)}: expected key=value, key!=value, key, or "!key"` });
+    } else {
+      filters.push(filter);
+    }
+  }
+  if (entry !== null && (project.fileErrors ?? []).length === 0) {
+    const known = knownFor(entry);
+    for (const filter of filters.filter((candidate) => !known.has(candidate.key))) {
+      problems.push({ type: "unknown-key", message: `${label} filters on ${quoted(filter.key)}, which no ${entry.singular} file sets and the schema does not define, so it matches as unset${keyHint(filter.key, FRONTMATTER_KEYS[entry.schema])}` });
+    }
+  }
+  return { entry, filters, problems };
+}
+function knownKeysOnce(project) {
+  const keysByKind = new Map;
+  return (entry) => {
+    if (!keysByKind.has(entry)) {
+      keysByKind.set(entry, knownKeys(project, entry));
+    }
+    return keysByKind.get(entry);
+  };
+}
+function queryFiltersNaming(queries, isReferenceKey, id) {
+  if (!Array.isArray(queries)) {
+    return [];
+  }
+  const found = [];
+  queries.forEach((item, index) => {
+    if (!isMapping(item) || !Array.isArray(item.where)) {
+      return;
+    }
+    const positions = [];
+    item.where.forEach((text, position) => {
+      const filter = typeof text === "string" ? readWhere(text) : {};
+      if (filter.value === id && isReferenceKey(filter.key)) {
+        positions.push(position);
+      }
+    });
+    if (positions.length > 0) {
+      found.push({ index, item, positions });
+    }
+  });
+  return found;
+}
+function retargetFilter(text, newId) {
+  const end = text.trimEnd().length;
+  return `${text.slice(0, end - readWhere(text).value.length)}${newId}${text.slice(end)}`;
+}
+function shownFilter(text) {
+  const filter = readWhere(text);
+  return `${filter.key}${filter.op === "eq" ? "=" : "!="}${filter.value}`;
+}
+function shownQuery({ item, index }) {
+  return typeof item.name === "string" && KEBAB_NAME.test(item.name) ? item.name : `queries[${index}]`;
+}
+function shownCheck({ item, index }) {
+  return typeof item.id === "string" && KEBAB_NAME.test(item.id) ? item.id : `checks[${index}]`;
+}
+function isMapping(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+function ownField(frontmatter, key) {
+  return Object.hasOwn(frontmatter, key) ? frontmatter[key] : undefined;
+}
+function matchesAll(frontmatter, filters) {
+  return filters.every((filter) => matches(frontmatter ?? {}, filter));
+}
+function matches(frontmatter, filter) {
+  const value = ownField(frontmatter, filter.key);
+  switch (filter.op) {
+    case "present":
+      return isSet(value);
+    case "absent":
+      return !isSet(value);
+    case "eq":
+      return contains(value, filter.value);
+    default:
+      return !contains(value, filter.value);
+  }
+}
+function isSet(value) {
+  return value !== undefined && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0);
+}
+function contains(value, wanted) {
+  return (Array.isArray(value) ? value : [value]).some((item) => isScalar(item) && oneLine(item) === wanted);
+}
+function isScalar(value) {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
+}
+function formatList(report) {
+  if (report.items.length === 0) {
+    return "";
+  }
+  const rows = report.items.map((item) => ({ ...item, title: oneLine(item.title) }));
+  const idWidth = Math.max(...rows.map((item) => item.id.length));
+  const titleWidth = Math.max(...rows.map((item) => item.title.length));
+  return rows.map((item) => {
+    const fields = Object.entries(item.fields).filter(([, value]) => isSet(value)).map(([key, value]) => `${key}=${formatValue(value)}`);
+    return [item.id.padEnd(idWidth), item.title.padEnd(titleWidth), item.file, ...fields].join("  ").trimEnd();
+  }).join(`
+`) + `
+`;
+}
+function formatValue(value) {
+  const text = (item) => isScalar(item) ? String(item) : JSON.stringify(item);
+  return oneLine(Array.isArray(value) ? value.map(text).join(",") : text(value));
+}
+
+// src/custom-checks.js
+var CHECK_KEYS = ["id", "kind", "where", "level", "message"];
+var CHECK_LEVELS = ["error", "warning"];
+var MAX_CHECK_MESSAGE = 200;
+var MAX_CHECK_ID = 64;
+function checkLabel(item, index) {
+  return typeof item.id === "string" && KEBAB_NAME.test(item.id) && item.id.length <= MAX_CHECK_ID ? `story.md check ${item.id}` : `story.md checks[${index}]`;
+}
+function checkDefinitionFindings(project) {
+  const errors = [];
+  const warnings = [];
+  const raw = project.story.data.checks;
+  if (raw === undefined) {
+    return { errors, warnings };
+  }
+  if (!Array.isArray(raw)) {
+    errors.push(err("field-not-list", "story.md frontmatter field checks must be a list", "story.md"));
+    return { errors, warnings };
+  }
+  const knownFor = knownKeysOnce(project);
+  const seen = new Set;
+  raw.forEach((item, index) => {
+    if (!isMapping(item)) {
+      errors.push(err("field-invalid-items", "story.md frontmatter field checks must contain mappings, such as - id: chapter-needs-hook", "story.md"));
+      return;
+    }
+    const problems = checkProblems(project, item, index, knownFor);
+    errors.push(...problems.errors);
+    warnings.push(...problems.warnings);
+    if (typeof item.id === "string" && seen.has(item.id)) {
+      errors.push(err("duplicate-check", `story.md lists check ${KEBAB_NAME.test(item.id) ? item.id : quoted(item.id)} more than once`, "story.md"));
+    }
+    seen.add(item.id);
+  });
+  return { errors, warnings };
+}
+function checkProblems(project, item, index, knownFor) {
+  const errors = [];
+  const warnings = [];
+  const label = checkLabel(item, index);
+  const extra = Object.keys(item).filter((key) => !CHECK_KEYS.includes(key));
+  if (extra.length > 0) {
+    errors.push(err("invalid-check", `${label} has ${extra.join(", ")}: a check takes only id, kind, where, level, and message`, "story.md"));
+  }
+  if (item.id === undefined) {
+    errors.push(err("missing-field", `${label} is missing id`, "story.md"));
+  } else if (typeof item.id === "number" || typeof item.id === "boolean") {
+    errors.push(err("field-not-text", `${label} id ${String(item.id)} is not text: quote it, such as id: "${String(item.id)}"`, "story.md"));
+  } else if (typeof item.id !== "string" || !KEBAB_NAME.test(item.id)) {
+    errors.push(err("id-not-kebab", `${label} id ${quoted(item.id)} must be kebab-case, such as chapter-needs-hook`, "story.md"));
+  } else if (item.id.length > MAX_CHECK_ID) {
+    errors.push(err("invalid-check", `${label} id is longer than ${MAX_CHECK_ID} characters: keep it to a short name, such as chapter-needs-hook`, "story.md"));
+  }
+  const spec = readFilterSpec(project, item, label, knownFor);
+  for (const problem of spec.problems) {
+    if (problem.type === "unknown-key") {
+      warnings.push(warn("check-unknown-key", problem.message, "story.md"));
+    } else {
+      errors.push(problem.type === "missing" ? err("missing-field", problem.message, "story.md") : err("invalid-check", problem.message, "story.md"));
+    }
+  }
+  if (item.level === undefined) {
+    errors.push(err("missing-field", `${label} is missing level`, "story.md"));
+  } else if (!CHECK_LEVELS.includes(item.level)) {
+    errors.push(err("invalid-check", `${label} level ${quoted(item.level)} must be error or warning`, "story.md"));
+  }
+  if (item.message === undefined) {
+    errors.push(err("missing-field", `${label} is missing message`, "story.md"));
+  } else if (typeof item.message !== "string" || item.message.trim() === "") {
+    errors.push(err("invalid-check", `${label} message must be text, such as message: has no hook`, "story.md"));
+  } else if (item.message.trim().length > MAX_CHECK_MESSAGE) {
+    errors.push(err("invalid-check", `${label} message is longer than ${MAX_CHECK_MESSAGE} characters: keep it to a short phrase, such as has no hook`, "story.md"));
+  }
+  return { errors, warnings, spec };
+}
+function usableChecks(project) {
+  const raw = project.story.data?.checks;
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const knownFor = knownKeysOnce(project);
+  const checks = [];
+  const seen = new Set;
+  raw.forEach((item, index) => {
+    if (!isMapping(item)) {
+      return;
+    }
+    if (seen.has(item.id)) {
+      return;
+    }
+    seen.add(item.id);
+    const problems = checkProblems(project, item, index, knownFor);
+    if (problems.errors.length > 0) {
+      return;
+    }
+    checks.push({ id: item.id, entry: problems.spec.entry, filters: problems.spec.filters, level: item.level, message: oneLine(item.message.trim()) });
+  });
+  return checks;
+}
+function customCheckFindings(project) {
+  const errors = [];
+  const warnings = [];
+  for (const check of usableChecks(project)) {
+    for (const entity of project[check.entry.collection] ?? []) {
+      if (!matchesAll(entity.frontmatter, check.filters)) {
+        continue;
+      }
+      const file = path6.relative(project.root, entity.file).split(path6.sep).join("/");
+      const finding = customFinding(check.id, `${file} ${check.message}`, file);
+      (check.level === "error" ? errors : warnings).push(finding);
+    }
+  }
+  return { errors, warnings };
+}
+function definedCheckLevels(data) {
+  const levels = new Map;
+  if (!Array.isArray(data?.checks)) {
+    return levels;
+  }
+  for (const item of data.checks) {
+    if (isMapping(item) && typeof item.id === "string" && KEBAB_NAME.test(item.id) && !levels.has(item.id)) {
+      levels.set(item.id, item.level);
+    }
+  }
+  return levels;
+}
+function customCodeId(code) {
+  return code.slice(CUSTOM_CODE_PREFIX.length);
+}
+
 // src/scan.js
 import fs5 from "node:fs";
-import path11 from "node:path";
+import path14 from "node:path";
 
 // src/geography.js
 var DEFAULT_DISTANCE_UNIT = "units";
@@ -13795,8 +14599,17 @@ var STORY_FORMS = new Map([
   ["novel", { min: 40000, max: 200000, target: 80000 }],
   ["serial", { min: null, max: null, target: null }],
   ["picture-book", { min: 1, max: 1000, target: 500 }],
-  ["chapter-book", { min: 4000, max: 15000, target: 1e4 }]
+  ["chapter-book", { min: 4000, max: 15000, target: 1e4 }],
+  ["poetry-collection", { min: null, max: null, target: null }]
 ]);
+var VERSE_FORM = "poetry-collection";
+function isVerseChapter(storyData, chapterData) {
+  const own = chapterData?.verse;
+  if (typeof own === "boolean") {
+    return own;
+  }
+  return storyData?.form === VERSE_FORM;
+}
 var COUNT_UNITS = new Map([
   ["words", { name: "words", noun: "word", title: "Words", countField: "word-count", targetField: "target-words", dailyTargetField: "daily-target-words" }],
   ["characters", { name: "characters", noun: "character", title: "Characters", countField: "character-count", targetField: "target-characters", dailyTargetField: "daily-target-characters" }]
@@ -14090,16 +14903,16 @@ var SOURCE_DIRECTORIES = ["characters", "chapters", "scenes", "worldbuilding", "
 
 // src/scan-ids.js
 import crypto2 from "node:crypto";
-import path5 from "node:path";
+import path7 from "node:path";
 function deriveStoryId(title, root) {
   return asciiStoryId(title, root) || substituteStoryId(title, root).id;
 }
 function asciiStoryId(title, root) {
-  return kebabCase(String(title ?? ""), { transliterate: false }) || kebabCase(path5.basename(root), { transliterate: false });
+  return kebabCase(String(title ?? ""), { transliterate: false }) || kebabCase(path7.basename(root), { transliterate: false });
 }
 function substituteStoryId(title, root) {
   const text = String(title ?? "").trim();
-  const hash = crypto2.createHash("sha256").update((text || path5.basename(root)).normalize("NFC")).digest("hex").slice(0, 8);
+  const hash = crypto2.createHash("sha256").update((text || path7.basename(root)).normalize("NFC")).digest("hex").slice(0, 8);
   return { id: `story-${hash}`, from: text === "" ? "the folder name" : "the title" };
 }
 function substituteStoryIdWarnings(project) {
@@ -14200,14 +15013,14 @@ function fileStem(storyId) {
 
 // src/scan-files.js
 import fs3 from "node:fs";
-import path6 from "node:path";
+import path8 from "node:path";
 var SKIPPED_SCAN_DIRECTORIES = new Set(["dist", "node_modules"]);
 function markdownFiles(root, { maxFiles = MAX_SCAN_FILES } = {}, depth = 0, collected = null) {
   const files = collected ?? [];
   for (const entry of fs3.readdirSync(root, { withFileTypes: true })) {
-    const fullPath = path6.join(root, entry.name);
+    const fullPath = path8.join(root, entry.name);
     if (entry.isDirectory() && !SKIPPED_SCAN_DIRECTORIES.has(entry.name) && !entry.name.startsWith(".")) {
-      if (depth < MAX_SCAN_DEPTH && !fs3.existsSync(path6.join(fullPath, "story.md"))) {
+      if (depth < MAX_SCAN_DEPTH && !fs3.existsSync(path8.join(fullPath, "story.md"))) {
         markdownFiles(fullPath, { maxFiles }, depth + 1, files);
       }
     } else if (entry.isFile() && entry.name.endsWith(".md") && !entry.name.startsWith(".")) {
@@ -14226,24 +15039,24 @@ var MAX_SCAN_FILE_BYTES = 5 * 1024 * 1024;
 var MAX_SCAN_FILES = 5000;
 var MAX_SCAN_DEPTH = 10;
 function parentProjectHint(projectRoot) {
-  let current = path6.dirname(projectRoot);
-  while (!fs3.existsSync(path6.join(current, "story.md"))) {
-    if (path6.dirname(current) === current) {
+  let current = path8.dirname(projectRoot);
+  while (!fs3.existsSync(path8.join(current, "story.md"))) {
+    if (path8.dirname(current) === current) {
       return "";
     }
-    current = path6.dirname(current);
+    current = path8.dirname(current);
   }
-  const relative = path6.relative(process.cwd(), current) || ".";
+  const relative = path8.relative(process.cwd(), current) || ".";
   const shown = relative.length < current.length ? relative : current;
   return ` (the project root looks like ${shown}; pass that path instead)`;
 }
 function requireStoryFile(projectRoot) {
-  const storyPath = path6.join(projectRoot, "story.md");
+  const storyPath = path8.join(projectRoot, "story.md");
   if (!fs3.existsSync(storyPath)) {
     if (fs3.statSync(projectRoot, { throwIfNoEntry: false })?.isFile()) {
       throw projectError(`${projectRoot} is a file; pass the folder that contains it`);
     }
-    const hint = path6.basename(projectRoot).startsWith("-") ? `; ${path6.basename(projectRoot)} is not an option (run story help)` : parentProjectHint(projectRoot);
+    const hint = path8.basename(projectRoot).startsWith("-") ? `; ${path8.basename(projectRoot)} is not an option (run story help)` : parentProjectHint(projectRoot);
     throw projectError(`${projectRoot} is not a story project: missing story.md${hint}`);
   }
   return storyPath;
@@ -14270,7 +15083,7 @@ function relativePathError(error, filePath, root) {
   if (reason) {
     return projectError(`${relativePath}: Cannot read: ${reason}`);
   }
-  return projectError(error.message.split(filePath).join(relativePath).split(path6.resolve(root, filePath)).join(relativePath));
+  return projectError(error.message.split(filePath).join(relativePath).split(path8.resolve(root, filePath)).join(relativePath));
 }
 function fileErrorMessage(rawLabel, error) {
   const label = portablePath(rawLabel);
@@ -14295,14 +15108,2369 @@ function relative(project, file) {
 }
 
 // src/scan-fields.js
-import path7 from "node:path";
-function chapterLength(unit, data, markdown) {
+import path11 from "node:path";
+
+// src/packaging.js
+import { Buffer as Buffer5 } from "node:buffer";
+
+// src/deflate.js
+import { Buffer as Buffer3 } from "node:buffer";
+var WINDOW_SIZE = 32768;
+var WINDOW_MASK = WINDOW_SIZE - 1;
+var MIN_MATCH = 3;
+var MAX_MATCH = 258;
+var MAX_CHAIN = 256;
+var NICE_MATCH = 128;
+var GOOD_MATCH = 32;
+var TRIES_PER_BYTE = 16;
+var FAR_MATCH = 4096;
+var HASH_BITS = 15;
+var HASH_MASK = (1 << HASH_BITS) - 1;
+var BLOCK_SYMBOLS = 16384;
+var END_OF_BLOCK = 256;
+var MAX_CODE_BITS = 15;
+var MAX_CODE_LENGTH_BITS = 7;
+var LENGTH_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
+var LENGTH_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
+var DISTANCE_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
+var DISTANCE_EXTRA = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
+var CODE_LENGTH_ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
+var CODE_LENGTH_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7];
+function codeTable(bases, size) {
+  const table = new Uint8Array(size);
+  let code = 0;
+  for (let value = bases[0];value < size; value += 1) {
+    if (code + 1 < bases.length && bases[code + 1] <= value) {
+      code += 1;
+    }
+    table[value] = code;
+  }
+  return table;
+}
+var LENGTH_CODE = codeTable(LENGTH_BASE, MAX_MATCH + 1);
+var DISTANCE_CODE = codeTable(DISTANCE_BASE, WINDOW_SIZE + 1);
+var FIXED_LITERAL_LENGTHS = Array.from({ length: 288 }, (_, symbol) => symbol < 144 ? 8 : symbol < 256 ? 9 : symbol < 280 ? 7 : 8);
+var FIXED_DISTANCE_LENGTHS = new Array(30).fill(5);
+var FIXED_LITERAL_CODES = canonicalCodes(FIXED_LITERAL_LENGTHS);
+var FIXED_DISTANCE_CODES = canonicalCodes(FIXED_DISTANCE_LENGTHS);
+function deflateRaw(data, { blockSymbols = BLOCK_SYMBOLS, codeBits = MAX_CODE_BITS, codeLengthBits = MAX_CODE_LENGTH_BITS, stats = {} } = {}) {
+  const length = data.length;
+  const writer = bitWriter(length);
+  const limits = { codeBits, codeLengthBits };
+  stats.blocks = [];
+  const head = new Int32Array(HASH_MASK + 1).fill(-1);
+  const prev = new Int32Array(WINDOW_SIZE);
+  const block = {
+    values: new Uint16Array(blockSymbols),
+    distances: new Uint16Array(blockSymbols),
+    count: 0,
+    literals: new Array(286).fill(0),
+    distanceCodes: new Array(30).fill(0)
+  };
+  let foundDistance = 0;
+  let tries = 0;
+  const hashAt = (position) => (data[position] << 10 ^ data[position + 1] << 5 ^ data[position + 2]) & HASH_MASK;
+  const insert = (position) => {
+    if (position + MIN_MATCH <= length) {
+      const hash = hashAt(position);
+      prev[position & WINDOW_MASK] = head[hash];
+      head[hash] = position;
+    }
+  };
+  const longestMatch = (position, chain) => {
+    if (position + MIN_MATCH > length) {
+      return 0;
+    }
+    const limit = Math.min(MAX_MATCH, length - position);
+    const enough = Math.min(NICE_MATCH, limit);
+    let best = 0;
+    let candidate = head[hashAt(position)];
+    for (let left = Math.min(chain, TRIES_PER_BYTE * position + MAX_CHAIN - tries);left > 0 && candidate >= 0 && position - candidate <= WINDOW_SIZE; left -= 1) {
+      tries += 1;
+      if (data[candidate + best] === data[position + best]) {
+        let run = 0;
+        while (run < limit && data[candidate + run] === data[position + run]) {
+          run += 1;
+        }
+        if (run > best) {
+          best = run;
+          foundDistance = position - candidate;
+          if (best >= enough) {
+            break;
+          }
+        }
+      }
+      candidate = prev[candidate & WINDOW_MASK];
+    }
+    return best < MIN_MATCH || best === MIN_MATCH && foundDistance > FAR_MATCH ? 0 : best;
+  };
+  const emit = (value, distance, symbol) => {
+    if (block.count === blockSymbols) {
+      stats.blocks.push(writeBlock(writer, block, false, limits));
+    }
+    block.values[block.count] = value;
+    block.distances[block.count] = distance;
+    block.count += 1;
+    block.literals[symbol] += 1;
+    if (distance > 0) {
+      block.distanceCodes[DISTANCE_CODE[distance]] += 1;
+    }
+  };
+  const emitLiteral = (byte) => emit(byte, 0, byte);
+  const emitMatch = (matchLength, distance) => emit(matchLength, distance, 257 + LENGTH_CODE[matchLength]);
+  let position = 0;
+  let matchLength = longestMatch(0, MAX_CHAIN);
+  let matchDistance = foundDistance;
+  while (position < length) {
+    insert(position);
+    if (matchLength > 0 && matchLength < NICE_MATCH) {
+      const nextLength = longestMatch(position + 1, matchLength >= GOOD_MATCH ? MAX_CHAIN >> 2 : MAX_CHAIN);
+      if (nextLength > matchLength) {
+        emitLiteral(data[position]);
+        position += 1;
+        matchLength = nextLength;
+        matchDistance = foundDistance;
+        continue;
+      }
+    }
+    if (matchLength > 0) {
+      emitMatch(matchLength, matchDistance);
+      for (let step = 1;step < matchLength; step += 1) {
+        insert(position + step);
+      }
+      position += matchLength;
+    } else {
+      emitLiteral(data[position]);
+      position += 1;
+    }
+    matchLength = longestMatch(position, MAX_CHAIN);
+    matchDistance = foundDistance;
+  }
+  stats.blocks.push(writeBlock(writer, block, true, limits));
+  stats.tries = tries;
+  return writer.finish();
+}
+function bitWriter(size) {
+  let bytes = new Uint8Array(Math.max(64, size >> 1));
+  let used = 0;
+  let pending = 0;
+  let pendingBits = 0;
+  const push = (byte) => {
+    if (used === bytes.length) {
+      const grown = new Uint8Array(bytes.length * 2);
+      grown.set(bytes);
+      bytes = grown;
+    }
+    bytes[used] = byte;
+    used += 1;
+  };
+  return {
+    write(value, bits) {
+      pending |= value << pendingBits;
+      pendingBits += bits;
+      while (pendingBits >= 8) {
+        push(pending & 255);
+        pending >>>= 8;
+        pendingBits -= 8;
+      }
+    },
+    finish() {
+      if (pendingBits > 0) {
+        push(pending);
+      }
+      return Buffer3.from(bytes.buffer, 0, used);
+    }
+  };
+}
+function writeBlock(writer, block, final, limits) {
+  block.literals[END_OF_BLOCK] = 1;
+  const literalLengths = huffmanLengths(block.literals, limits.codeBits);
+  const distanceLengths = huffmanLengths(block.distanceCodes, limits.codeBits);
+  const header = dynamicHeader(literalLengths, distanceLengths, limits.codeLengthBits);
+  const dynamicBits = header.bits + codedBits(block.literals, literalLengths) + codedBits(block.distanceCodes, distanceLengths);
+  const fixedBits = codedBits(block.literals, FIXED_LITERAL_LENGTHS) + codedBits(block.distanceCodes, FIXED_DISTANCE_LENGTHS);
+  const type = fixedBits <= dynamicBits ? "fixed" : "dynamic";
+  writer.write(final ? 1 : 0, 1);
+  if (type === "fixed") {
+    writer.write(1, 2);
+    writeSymbols(writer, block, FIXED_LITERAL_CODES, FIXED_LITERAL_LENGTHS, FIXED_DISTANCE_CODES, FIXED_DISTANCE_LENGTHS);
+  } else {
+    writer.write(2, 2);
+    header.write(writer);
+    writeSymbols(writer, block, canonicalCodes(literalLengths), literalLengths, canonicalCodes(distanceLengths), distanceLengths);
+  }
+  block.count = 0;
+  block.literals.fill(0);
+  block.distanceCodes.fill(0);
+  return type;
+}
+function writeSymbols(writer, block, literalCodes, literalLengths, distanceCodes, distanceLengths) {
+  for (let index = 0;index < block.count; index += 1) {
+    const value = block.values[index];
+    const distance = block.distances[index];
+    if (distance === 0) {
+      writer.write(literalCodes[value], literalLengths[value]);
+      continue;
+    }
+    const lengthCode = LENGTH_CODE[value];
+    writer.write(literalCodes[257 + lengthCode], literalLengths[257 + lengthCode]);
+    writer.write(value - LENGTH_BASE[lengthCode], LENGTH_EXTRA[lengthCode]);
+    const distanceCode = DISTANCE_CODE[distance];
+    writer.write(distanceCodes[distanceCode], distanceLengths[distanceCode]);
+    writer.write(distance - DISTANCE_BASE[distanceCode], DISTANCE_EXTRA[distanceCode]);
+  }
+  writer.write(literalCodes[END_OF_BLOCK], literalLengths[END_OF_BLOCK]);
+}
+function codedBits(frequencies, lengths) {
+  let bits = 0;
+  for (let symbol = 0;symbol < frequencies.length; symbol += 1) {
+    bits += frequencies[symbol] * lengths[symbol];
+  }
+  return bits;
+}
+function dynamicHeader(literalLengths, distanceLengths, codeLengthBits) {
+  const literalCount = lastUsed(literalLengths) + 1;
+  const distanceCount = lastUsed(distanceLengths) + 1;
+  const items = runLengths([...literalLengths.slice(0, literalCount), ...distanceLengths.slice(0, distanceCount)]);
+  const frequencies = new Array(19).fill(0);
+  for (const [symbol] of items) {
+    frequencies[symbol] += 1;
+  }
+  const lengths = huffmanLengths(frequencies, codeLengthBits);
+  const codes = canonicalCodes(lengths);
+  let orderCount = CODE_LENGTH_ORDER.length;
+  while (orderCount > 4 && lengths[CODE_LENGTH_ORDER[orderCount - 1]] === 0) {
+    orderCount -= 1;
+  }
+  let bits = 5 + 5 + 4 + 3 * orderCount;
+  for (const [symbol] of items) {
+    bits += lengths[symbol] + CODE_LENGTH_EXTRA[symbol];
+  }
+  return {
+    bits,
+    write(writer) {
+      writer.write(literalCount - 257, 5);
+      writer.write(distanceCount - 1, 5);
+      writer.write(orderCount - 4, 4);
+      for (let index = 0;index < orderCount; index += 1) {
+        writer.write(lengths[CODE_LENGTH_ORDER[index]], 3);
+      }
+      for (const [symbol, extra] of items) {
+        writer.write(codes[symbol], lengths[symbol]);
+        writer.write(extra, CODE_LENGTH_EXTRA[symbol]);
+      }
+    }
+  };
+}
+function lastUsed(lengths) {
+  let index = lengths.length - 1;
+  while (lengths[index] === 0) {
+    index -= 1;
+  }
+  return index;
+}
+function runLengths(lengths) {
+  const items = [];
+  for (let index = 0;index < lengths.length; ) {
+    const value = lengths[index];
+    let run = 1;
+    while (index + run < lengths.length && lengths[index + run] === value) {
+      run += 1;
+    }
+    index += run;
+    if (value === 0) {
+      for (;run >= 11; run -= Math.min(run, 138)) {
+        items.push([18, Math.min(run, 138) - 11]);
+      }
+      if (run >= 3) {
+        items.push([17, run - 3]);
+        run = 0;
+      }
+    } else {
+      items.push([value, 0]);
+      run -= 1;
+      for (;run >= 3; run -= Math.min(run, 6)) {
+        items.push([16, Math.min(run, 6) - 3]);
+      }
+    }
+    for (;run > 0; run -= 1) {
+      items.push([value, 0]);
+    }
+  }
+  return items;
+}
+function huffmanLengths(frequencies, limit) {
+  let weights = Array.from(frequencies);
+  let used = weights.filter((weight) => weight > 0).length;
+  for (let symbol = 0;used < 2; symbol += 1) {
+    if (weights[symbol] === 0) {
+      weights[symbol] = 1;
+      used += 1;
+    }
+  }
+  let lengths = treeDepths(weights);
+  while (Math.max(...lengths) > limit) {
+    weights = weights.map((weight) => weight + 1 >> 1);
+    lengths = treeDepths(weights);
+  }
+  return lengths;
+}
+function treeDepths(weights) {
+  const leaves = [];
+  for (let symbol = 0;symbol < weights.length; symbol += 1) {
+    if (weights[symbol] > 0) {
+      leaves.push(symbol);
+    }
+  }
+  leaves.sort((a, b) => weights[a] - weights[b] || a - b);
+  const nodeWeights = leaves.map((symbol) => weights[symbol]);
+  const parents = [];
+  let leaf = 0;
+  let inner = leaves.length;
+  const lightest = () => leaf < leaves.length && (inner === nodeWeights.length || nodeWeights[leaf] <= nodeWeights[inner]) ? leaf++ : inner++;
+  while (nodeWeights.length < 2 * leaves.length - 1) {
+    const first = lightest();
+    const second = lightest();
+    parents[first] = nodeWeights.length;
+    parents[second] = nodeWeights.length;
+    nodeWeights.push(nodeWeights[first] + nodeWeights[second]);
+  }
+  const depths = new Array(nodeWeights.length).fill(0);
+  for (let node = nodeWeights.length - 2;node >= 0; node -= 1) {
+    depths[node] = depths[parents[node]] + 1;
+  }
+  const lengths = new Array(weights.length).fill(0);
+  leaves.forEach((symbol, index) => {
+    lengths[symbol] = depths[index];
+  });
+  return lengths;
+}
+function canonicalCodes(lengths) {
+  const counts = new Array(MAX_CODE_BITS + 1).fill(0);
+  for (const length of lengths) {
+    counts[length] += 1;
+  }
+  counts[0] = 0;
+  const next = [0];
+  for (let bits = 1;bits <= MAX_CODE_BITS; bits += 1) {
+    next[bits] = next[bits - 1] + counts[bits - 1] << 1;
+  }
+  return lengths.map((length) => {
+    if (length === 0) {
+      return 0;
+    }
+    let code = next[length];
+    next[length] += 1;
+    let reversed = 0;
+    for (let bit = 0;bit < length; bit += 1) {
+      reversed = reversed << 1 | code & 1;
+      code >>= 1;
+    }
+    return reversed;
+  });
+}
+
+// src/scan-cover.js
+import fs4 from "node:fs";
+import path9 from "node:path";
+import { Buffer as Buffer4 } from "node:buffer";
+var COVER_MEDIA_TYPES = {
+  ".gif": "image/gif",
+  ".jpeg": "image/jpeg",
+  ".jpg": "image/jpeg",
+  ".png": "image/png",
+  ".webp": "image/webp"
+};
+var MAX_COVER_BYTES = 50 * 1024 * 1024;
+function assertFileSizeWithinLimit(filePath, limit = MAX_SCAN_FILE_BYTES) {
+  const size = fs4.statSync(filePath).size;
+  if (size > limit) {
+    throw projectError("Refusing to read oversized file " + filePath + ": " + size + " bytes exceeds the " + limit + " byte limit");
+  }
+}
+function coverIsReady(project) {
+  if (project.story.data.cover === undefined) {
+    return false;
+  }
+  try {
+    coverImage(project);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function coverImage(project) {
+  const cover = String(project.story.data.cover).trim();
+  if (PATH_CONTROL_CHARACTERS.test(cover)) {
+    throw controlCharacterError("cover", cover);
+  }
+  return checkedImage(project, cover, path9.resolve(project.root, cover), `story.md cover ${cover}`);
+}
+function proseImage(project, file, destination) {
+  const written = String(destination);
+  const shown = `${file} image ${JSON.stringify(written).slice(1, -1)}`;
+  let target = written.replace(/[?#][\s\S]*$/, "");
+  try {
+    target = decodeURIComponent(target);
+  } catch {}
+  if (PATH_CONTROL_CHARACTERS.test(target)) {
+    throw projectError(`${shown} must not contain control characters`);
+  }
+  if (target.trim() === "") {
+    throw projectError(`${shown} names no file`);
+  }
+  if (/^[a-z][a-z0-9+.-]*:/i.test(target)) {
+    throw projectError(`${shown} must be a file inside the project, not a URL`);
+  }
+  const filePath = target.startsWith("/") || target.startsWith("\\") ? path9.resolve(project.root, `.${target}`) : path9.resolve(project.root, path9.dirname(file), target);
+  return checkedImage(project, target, filePath, shown);
+}
+function remoteImage(destination) {
+  return /^(?:https?:)?\/\//i.test(String(destination).trim());
+}
+function checkedImage(project, written, filePath, shown) {
+  const mediaType = COVER_MEDIA_TYPES[path9.extname(written).toLowerCase()];
+  if (mediaType === undefined) {
+    throw projectError(`${shown} must be a ${Object.keys(COVER_MEDIA_TYPES).join(", ")} image`);
+  }
+  if (!isPathInside(project.root, filePath)) {
+    throw projectError(`${shown} must be inside the project`);
+  }
+  const named = (check) => {
+    try {
+      return check();
+    } catch (error) {
+      if (shown.startsWith("story.md cover ")) {
+        throw error;
+      }
+      const reason = FILE_ERROR_REASONS[error.code];
+      const message = reason ? `Cannot read: ${reason}` : String(error.message).split(filePath).join(written).split(project.root).join(".").replace(`${written}: `, "");
+      throw projectError(`${shown}: ${message}`);
+    }
+  };
+  const stats = named(() => lstatIfExists(filePath));
+  if (!stats) {
+    throw projectError(`${shown} does not exist`);
+  }
+  named(() => assertSafeProjectPath(filePath, project.root));
+  if (!stats.isFile()) {
+    throw projectError(`${shown} is not a file`);
+  }
+  named(() => assertFileSizeWithinLimit(filePath, MAX_COVER_BYTES));
+  let held;
+  try {
+    held = coverFormat(filePath);
+  } catch (error) {
+    const reason = FILE_ERROR_REASONS[error.code];
+    throw projectError(`${shown}: ${reason ? `Cannot read: ${reason}` : String(error.message).replace(`${filePath}: `, "")}`);
+  }
+  if (held !== mediaType) {
+    throw projectError(held === null ? `${shown} does not hold a ${IMAGE_FORMAT_NAMES[mediaType]} image: its first bytes are not the ${IMAGE_FORMAT_NAMES[mediaType]} signature` : `${shown} holds a ${IMAGE_FORMAT_NAMES[held]} image, not a ${IMAGE_FORMAT_NAMES[mediaType]} one: rename it to end in ${Object.keys(COVER_MEDIA_TYPES).filter((extension) => COVER_MEDIA_TYPES[extension] === held).join(" or ")}`);
+  }
+  return { filePath, mediaType, extension: mediaType === "image/jpeg" ? "jpg" : path9.extname(written).slice(1).toLowerCase(), maxBytes: MAX_COVER_BYTES, size: stats.size, root: project.root, shown };
+}
+function proseImageBytes(image) {
+  let bytes;
+  try {
+    assertSafeProjectPath(image.filePath, image.root);
+    bytes = readFileBytes(image.filePath, image.maxBytes);
+  } catch (error) {
+    const reason = FILE_ERROR_REASONS[error.code];
+    throw projectError(`${image.shown} changed while the build read it: ${reason ? `Cannot read: ${reason}` : String(error.message).split(image.filePath).join("the image").split(image.root).join(".")}`);
+  }
+  if (formatOfBytes(bytes) !== image.mediaType) {
+    throw projectError(`${image.shown} changed while the build read it: build again`);
+  }
+  return bytes;
+}
+var IMAGE_FORMAT_NAMES = { "image/gif": "GIF", "image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WebP" };
+var IMAGE_SIGNATURE_BYTES = 12;
+function coverFormat(filePath) {
+  return formatOfBytes(readFilePrefix(filePath, IMAGE_SIGNATURE_BYTES));
+}
+function formatOfBytes(bytes) {
+  const head = Buffer4.from(bytes).subarray(0, IMAGE_SIGNATURE_BYTES);
+  const ascii = (start, end) => head.subarray(start, end).toString("latin1");
+  if (head.subarray(0, 8).equals(Buffer4.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    return "image/png";
+  }
+  if (head.subarray(0, 3).equals(Buffer4.from([255, 216, 255]))) {
+    return "image/jpeg";
+  }
+  if (ascii(0, 6) === "GIF87a" || ascii(0, 6) === "GIF89a") {
+    return "image/gif";
+  }
+  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") {
+    return "image/webp";
+  }
+  return null;
+}
+function imageSize(bytes, mediaType) {
+  const data = Buffer4.from(bytes);
+  const size = (width, height) => width > 0 && height > 0 ? { width, height } : null;
+  if (mediaType === "image/png") {
+    return data.length >= 24 && data.toString("latin1", 12, 16) === "IHDR" ? size(data.readUInt32BE(16), data.readUInt32BE(20)) : null;
+  }
+  if (mediaType === "image/gif") {
+    return data.length >= 10 ? size(data.readUInt16LE(6), data.readUInt16LE(8)) : null;
+  }
+  if (mediaType === "image/webp") {
+    return webpSize(data, size);
+  }
+  if (mediaType === "image/jpeg") {
+    return jpegSize(data, size);
+  }
+  return null;
+}
+function webpSize(data, size) {
+  if (data.length < 30) {
+    return null;
+  }
+  const chunk = data.toString("latin1", 12, 16);
+  if (chunk === "VP8 ") {
+    return size(data.readUInt16LE(26) & 16383, data.readUInt16LE(28) & 16383);
+  }
+  if (chunk === "VP8L") {
+    const bits = data.readUInt32LE(21);
+    return size((bits & 16383) + 1, (bits >>> 14 & 16383) + 1);
+  }
+  if (chunk === "VP8X") {
+    return size(data.readUIntLE(24, 3) + 1, data.readUIntLE(27, 3) + 1);
+  }
+  return null;
+}
+var JPEG_FRAMES = new Set([192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207]);
+function jpegSize(data, size) {
+  let index = 2;
+  while (index + 4 <= data.length) {
+    if (data[index] !== 255) {
+      return null;
+    }
+    const marker = data[index + 1];
+    if (marker === 255) {
+      index += 1;
+      continue;
+    }
+    if (marker === 216 || marker === 1 || marker >= 208 && marker <= 215) {
+      index += 2;
+      continue;
+    }
+    if (marker === 217 || marker === 218) {
+      return null;
+    }
+    const length = data.readUInt16BE(index + 2);
+    if (JPEG_FRAMES.has(marker)) {
+      return index + 9 <= data.length ? size(data.readUInt16BE(index + 7), data.readUInt16BE(index + 5)) : null;
+    }
+    index += 2 + length;
+  }
+  return null;
+}
+
+// src/build-style.js
+import path10 from "node:path";
+var BUILD_STYLE_PRESETS = ["classic", "modern", "elegant"];
+var HEADING_STYLES = ["centered", "small-caps", "left"];
+var PARAGRAPH_STYLES = ["indented", "block"];
+var BUILD_STYLE_KEYS = ["preset", "body-font", "heading-font", "heading-style", "scene-break", "drop-caps", "paragraphs", "css"];
+var NAME = `[^,"'\\\\/<>;{}()\\u0000-\\u001f\\u007f]`;
+var SOLID = `[^\\s,"'\\\\/<>;{}()\\u0000-\\u001f\\u007f]`;
+var FAMILY = `${NAME}*${SOLID}${NAME}*`;
+var ITEM = `\\s*(?:"${FAMILY}"|'${FAMILY}'|${FAMILY})\\s*`;
+var FONT_PATTERN = new RegExp(`^${ITEM}(?:,${ITEM})*$`, "u");
+var SCENE_BREAK_PATTERN = /^[^\u0000-\u001f\u007f]*[^\s\u0000-\u001f\u007f][^\u0000-\u001f\u007f]*$/u;
+var GENERIC_FAMILIES = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded", "math", "emoji", "fangsong"]);
+var SANS_STACK = `"Avenir Next", "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", sans-serif`;
+var OLD_STYLE_STACK = `Palatino, "Palatino Linotype", "Book Antiqua", "Iowan Old Style", Georgia, serif`;
+var PRESETS = {
+  classic: {},
+  modern: { headingFont: SANS_STACK, headingStyle: "left", sceneBreak: "• • •", dropCaps: false, paragraphs: "block" },
+  elegant: { bodyFont: OLD_STYLE_STACK, headingStyle: "small-caps", sceneBreak: "❦", dropCaps: true, paragraphs: "indented" }
+};
+var isEntry4 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+function styleFields(data) {
+  const value = data["build-style"];
+  return Array.isArray(value) ? Object.assign({}, ...value.filter(isEntry4)) : {};
+}
+function fontList(value) {
+  return String(value).split(",").map((item) => {
+    const name = item.trim().replace(/^(["'])(.*)\1$/u, "$2").trim();
+    return GENERIC_FAMILIES.has(name.toLowerCase()) ? name.toLowerCase() : `"${name}"`;
+  }).join(", ");
+}
+function buildStyle(data) {
+  const fields = styleFields(data);
+  const preset = PRESETS[fields.preset] ?? PRESETS.classic;
+  const pick = (key, presetKey) => fields[key] !== undefined ? fields[key] : preset[presetKey] ?? null;
+  const style = {
+    preset: typeof fields.preset === "string" ? fields.preset : "classic",
+    bodyFont: fields["body-font"] === undefined ? null : fontList(fields["body-font"]),
+    presetBodyFont: preset.bodyFont ?? null,
+    headingFont: fields["heading-font"] === undefined ? null : fontList(fields["heading-font"]),
+    presetHeadingFont: preset.headingFont ?? null,
+    headingStyle: pick("heading-style", "headingStyle"),
+    sceneBreak: fields["scene-break"] === undefined ? preset.sceneBreak ?? null : String(fields["scene-break"]).trim(),
+    dropCaps: pick("drop-caps", "dropCaps"),
+    paragraphs: pick("paragraphs", "paragraphs"),
+    css: typeof fields.css === "string" ? fields.css.trim() : null
+  };
+  style.styled = ["bodyFont", "presetBodyFont", "headingFont", "presetHeadingFont", "headingStyle", "sceneBreak", "dropCaps", "paragraphs"].some((key) => style[key] !== null);
+  return style;
+}
+var CLASSIC_STYLE = Object.freeze(buildStyle({}));
+function styleFonts(style, type) {
+  const latin = type.fonts.latin;
+  const own = (list) => list === null ? null : latin ? list : `${list}, ${type.fonts.body}`;
+  const body = own(style.bodyFont) ?? (latin ? style.presetBodyFont : null) ?? type.fonts.body;
+  const heading = own(style.headingFont) ?? (latin ? style.presetHeadingFont : null);
+  return { body, heading, heads: heading ?? (body === type.fonts.body ? type.fonts.heads : body) };
+}
+function styleSheetFile(root, value) {
+  const css = String(value).trim();
+  if (PATH_CONTROL_CHARACTERS.test(css)) {
+    throw controlCharacterError("build-style css", css);
+  }
+  if (!/\.css$/i.test(css) || /[\\/]\.css$/i.test(css) || css.toLowerCase() === ".css") {
+    throw projectError(`story.md build-style css ${css} must be a .css file`);
+  }
+  const filePath = path10.resolve(root, css);
+  if (!isPathInside(root, filePath)) {
+    throw projectError(`story.md build-style css ${css} must be inside the project`);
+  }
+  if (!lstatIfExists(filePath)) {
+    throw projectError(`story.md build-style css ${css} does not exist`);
+  }
+  let text;
+  try {
+    assertSafeProjectPath(filePath, root);
+    text = readTextFile(filePath);
+  } catch (error) {
+    throw projectError(`story.md build-style css ${css}: ${String(error.message).replace(`${filePath}: `, "")}`);
+  }
+  if (/<\/style/i.test(text)) {
+    throw projectError(`story.md build-style css ${css} must not contain </style`);
+  }
+  text = text.replace(/^﻿/, "").replace(/\r\n?/g, `
+`);
+  return { filePath, text: text === "" || text.endsWith(`
+`) ? text : `${text}
+` };
+}
+function validateBuildStyle(data, errors, root = null) {
+  const value = data["build-style"];
+  if (value === undefined) {
+    return;
+  }
+  const fail = (message) => errors.push(err("invalid-build-style", `story.md build-style ${message}`, "story.md"));
+  if (!Array.isArray(value) || !value.every(isEntry4)) {
+    fail("must be a list of key: value entries, such as - preset: modern (see docs/manuscripts.md#build-styles)");
+    return;
+  }
+  const seen = new Set;
+  for (const entry of value) {
+    for (const [key, setting] of Object.entries(entry)) {
+      if (!BUILD_STYLE_KEYS.includes(key)) {
+        fail(`key ${key} is not a style setting; use ${BUILD_STYLE_KEYS.join(", ")}`);
+        continue;
+      }
+      if (seen.has(key)) {
+        fail(`sets ${key} more than once`);
+        continue;
+      }
+      seen.add(key);
+      const problem = settingProblem(key, setting);
+      if (problem !== "") {
+        fail(problem);
+      } else if (key === "css" && root !== null) {
+        try {
+          styleSheetFile(root, setting);
+        } catch (error) {
+          errors.push(err("invalid-build-style", error.message, "story.md"));
+        }
+      }
+    }
+  }
+}
+function settingProblem(key, value) {
+  const choice = (choices) => typeof value === "string" && choices.includes(value) ? "" : `${key} must be one of ${choices.join(", ")}`;
+  switch (key) {
+    case "preset":
+      return choice(BUILD_STYLE_PRESETS);
+    case "heading-style":
+      return choice(HEADING_STYLES);
+    case "paragraphs":
+      return choice(PARAGRAPH_STYLES);
+    case "body-font":
+    case "heading-font":
+      return typeof value === "string" && FONT_PATTERN.test(value) ? "" : `${key} must be a comma-separated list of font names, such as Iowan Old Style, Georgia, serif`;
+    case "scene-break":
+      return typeof value === "string" && SCENE_BREAK_PATTERN.test(value) ? "" : `${key} must be one line of text, such as "* * *" or "~"`;
+    case "drop-caps":
+      return typeof value === "boolean" ? "" : `${key} must be true or false`;
+    default:
+      return typeof value === "string" && value.trim() !== "" ? "" : `${key} must be the path to a .css file in the project`;
+  }
+}
+
+// src/html.js
+var TRIM_SIZES = new Map([
+  ["5x8", { width: "5in", height: "8in", wordsPerPage: 230, charactersPerPage: 480 }],
+  ["5.25x8", { width: "5.25in", height: "8in", wordsPerPage: 250, charactersPerPage: 520 }],
+  ["5.5x8.5", { width: "5.5in", height: "8.5in", wordsPerPage: 275, charactersPerPage: 580 }],
+  ["6x9", { width: "6in", height: "9in", wordsPerPage: 300, charactersPerPage: 640 }],
+  ["a5", { width: "148mm", height: "210mm", wordsPerPage: 270, charactersPerPage: 560 }]
+]);
+var DEFAULT_TRIM = "5.5x8.5";
+function labelledParagraphs(part) {
+  let count = 0;
+  return part.paragraphs.map((paragraph) => {
+    if (paragraph === null) {
+      return null;
+    }
+    if (paragraph.figure) {
+      return { figure: true, label: null, paragraph };
+    }
+    count += 1;
+    return { label: `${part.key}-p${count}`, paragraph };
+  });
+}
+function paragraphLabels(book) {
+  return book.parts.flatMap((part) => labelledParagraphs(part).filter((entry) => entry !== null && !entry.figure).map((entry) => ({ label: entry.label, key: part.key, text: entry.paragraph.text })));
+}
+function openingWords(text, count = 6) {
+  const source = String(text);
+  const words = wordSpans(source, /(?<!\S)\S*[\p{L}\p{N}]\S*/gu);
+  const opening = words.length > count ? source.slice(0, words[count].start) : source;
+  const collapsed = opening.split(/\s+/).filter((word) => word !== "").join(" ");
+  return words.length > count ? `${collapsed}…` : collapsed;
+}
+function noteHref(noteUrl, label, stamp, text) {
+  const params = [["title", `[${label}] `], ["anchor", label]];
+  if (stamp !== "") {
+    params.push(["build", stamp]);
+  }
+  params.push(["quote", openingWords(text)]);
+  const query = params.map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join("&");
+  const hash = noteUrl.indexOf("#");
+  const base = hash === -1 ? noteUrl : noteUrl.slice(0, hash);
+  const fragment = hash === -1 ? "" : noteUrl.slice(hash);
+  return `${base}${base.includes("?") ? "&" : "?"}${query}${fragment}`;
+}
+function indentsFirstLines(format, style = CLASSIC_STYLE) {
+  return format === "print" ? style.paragraphs !== "block" : style.paragraphs === "indented";
+}
+function reviewHtml(book, { stamp = "", noteUrl = "", style = CLASSIC_STYLE } = {}) {
+  const labels = book.labels;
+  const label = (key, values) => fillLabel(labels, key, values);
+  const contents = label("contents");
+  const type = typesetting(book.language, book.writingMode);
+  const rtl = type.rtl;
+  const fonts = styleFonts(style, type);
+  const toc = [];
+  const sections = [];
+  for (const part of book.parts) {
+    const sectionId = part.kind === "chapter" ? part.key : `matter-${part.key}`;
+    toc.push(`<li><a href="#${sectionId}">${escapeHtml(part.title)}</a></li>`);
+    const body = [];
+    for (const entry of labelledParagraphs(part)) {
+      if (entry === null) {
+        body.push({ quote: false, markup: `<hr class="scene-break" aria-label="${escapeHtml(label("scene-break"))}">` });
+        continue;
+      }
+      if (entry.figure) {
+        body.push({ quote: entry.paragraph.quote, markup: `<figure>${entry.paragraph.html}</figure>` });
+        continue;
+      }
+      const { label: anchor, paragraph } = entry;
+      const note = noteUrl === "" ? "" : `<a class="note-link" href="${escapeHtml(noteHref(noteUrl, anchor, stamp, paragraph.text))}" title="${escapeHtml(label("note-title", { label: anchor }))}" target="_blank" rel="noopener">${escapeHtml(label("note"))}</a>`;
+      body.push({ quote: paragraph.quote, markup: `<p id="${anchor}"><a class="anchor" href="#${anchor}" title="${escapeHtml(label("anchor-title", { label: anchor }))}">${anchor}</a>${note}${paragraph.html}</p>` });
+    }
+    const heading = part.heading ? `<h2>${escapeHtml(part.title)}</h2>` : `<h2 class="visually-hidden">${escapeHtml(part.title)}</h2>`;
+    const partByline = (part.byline ?? "") === "" ? "" : `<p class="byline">${escapeHtml(part.byline)}</p>
+`;
+    sections.push(`<section id="${sectionId}" class="${part.kind}">${heading}
+${partByline}${withBlockquotes(body).join(`
+`)}${footnotesHtml(part, labels, "h3")}
+</section>`);
+  }
+  const byline = bookCredits(book).map((line) => `<p class="byline">${escapeHtml(line)}</p>`).join(`
+`);
+  const sentence = (key, values) => fillLabel(labels, key, values, escapeHtml);
+  const code = (text) => `<code>${escapeHtml(text)}</code>`;
+  const intro = joinSentences([
+    stamp === "" ? sentence("review-intro") : sentence("review-intro-build", { build: code(stamp) }),
+    sentence("review-labels", { label: code("ch03-p12") }),
+    sentence(stamp === "" ? "review-quote" : "review-quote-build"),
+    noteUrl === "" ? "" : sentence("review-note-link")
+  ]);
+  return `<!DOCTYPE html>
+${htmlRoot(book.language)}
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(label("review-title", { title: book.title }))}</title>
+<style>
+:root { --bg: #fdfcf8; --fg: #1d1b16; --muted: #6b665c; --rule: #ddd6c8; --accent: #7c3aed; }
+@media (prefers-color-scheme: dark) { :root { --bg: #16150f; --fg: #ece8dd; --muted: #a39e92; --rule: #3a372f; --accent: #b794f4; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 1.1rem/1.65 ${fonts.body}; }
+main { max-width: 38rem; margin: 0 auto; padding: 2rem 1rem 6rem; }
+header h1 { font-size: 2rem; line-height: 1.2; margin: 2rem 0 0.25rem; }
+.byline, .note { color: var(--muted); margin: 0 0 1rem; }
+.note { font: 0.9rem/1.5 system-ui, sans-serif; border-left: 3px solid var(--accent); padding-left: 0.75rem; }
+nav ol { padding-left: 1.25rem; }
+nav a, .anchor { color: var(--accent); }
+section { border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1rem; }
+h2 { font-size: 1.4rem; margin: 1rem 0 1.5rem; }
+p { position: relative; margin: 0 0 1rem; }
+.anchor { position: absolute; left: -5.5rem; width: 5rem; text-align: right; font: 0.7rem/2.2 system-ui, sans-serif; text-decoration: none; opacity: 0.35; }
+p:hover .anchor, p:target .anchor, .anchor:focus { opacity: 1; }
+p:target { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+blockquote { margin: 0 0 1rem; margin-inline-start: 1.5rem; }
+.scene-break { border: 0; text-align: center; margin: 2rem 0; }
+.scene-break::after { content: "${cssString(style.sceneBreak ?? "* * *")}"; color: var(--muted); }
+.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+${book.images ? IMAGE_RULES : ""}${book.notes ? REVIEW_NOTE_RULES : ""}@media (max-width: 52rem) { .anchor { position: static; display: block; width: auto; text-align: left; line-height: 1.4; opacity: 0.6; } }
+${noteUrl === "" ? "" : `.note-link { position: absolute; left: -5.5rem; top: 1.5rem; width: 5rem; text-align: right; font: 0.7rem/1.4 system-ui, sans-serif; color: var(--accent); text-decoration: none; opacity: 0.35; }
+p:hover .note-link, p:target .note-link, .note-link:focus { opacity: 1; }
+@media (max-width: 52rem) { .note-link { position: static; display: block; width: fit-content; margin-top: -1.4em; margin-inline-start: auto; opacity: 0.6; } }
+`}${rtl ? `[dir="rtl"] .note { border-left: 0; padding-left: 0; border-right: 3px solid var(--accent); padding-right: 0.75rem; }
+[dir="rtl"] nav ol { padding-left: 0; padding-right: 1.25rem; }
+[dir="rtl"] .anchor { left: auto; right: -5.5rem; text-align: left; }
+@media (max-width: 52rem) { [dir="rtl"] .anchor { text-align: right; } }
+${noteUrl === "" ? "" : `[dir="rtl"] .note-link { left: auto; right: -5.5rem; text-align: left; }
+`}` : ""}${type.vertical ? REVIEW_VERTICAL : ""}${reviewStyleRules(style, type, fonts, hasBylines(book))}</style>
+${extraStyle(style)}</head>
+<body>
+<main>
+<header>
+<h1>${escapeHtml(book.title)}</h1>
+${byline}
+<p class="note">${intro}</p>
+</header>
+<nav aria-label="${escapeHtml(contents)}"><h2>${escapeHtml(contents)}</h2><ol>
+${toc.join(`
+`)}
+</ol></nav>
+${sections.join(`
+`)}
+</main>
+</body>
+</html>
+`;
+}
+var IMAGE_RULES = `figure { margin: 1rem 0; text-align: center; }
+img { max-width: 100%; height: auto; }
+`;
+function footnotesHtml(part, labels, tag) {
+  if (part.notes === undefined) {
+    return "";
+  }
+  const notes = part.notes.map((note) => {
+    const paragraphs = (note.html.length === 0 ? [""] : note.html).map((html, index) => `<p>${index === 0 ? `<a href="#${note.backlink}" role="doc-backlink">${note.number}.</a> ` : ""}${html}</p>`);
+    return `<div class="footnote" id="${note.id}" role="doc-footnote">${paragraphs.join("")}</div>`;
+  });
+  return `
+<aside class="footnotes"><${tag}>${escapeHtml(fillLabel(labels, "footnotes"))}</${tag}>
+${notes.join(`
+`)}
+</aside>`;
+}
+var REVIEW_NOTE_RULES = `.footnotes { margin-top: 2rem; padding-top: 0.5rem; border-top: 1px solid var(--rule); font-size: 0.9rem; }
+.footnotes h3 { font-size: 1rem; margin: 0 0 0.75rem; }
+.noteref a, .footnote a { color: var(--accent); text-decoration: none; }
+`;
+var PRINT_NOTE_RULES = `.footnotes { margin-top: 1.5em; font-size: 9pt; }
+.footnotes h2 { font-size: 9pt; font-weight: normal; text-align: center; margin: 0 0 0.5em; }
+.footnotes p { text-indent: 0; text-align: start; margin: 0 0 0.3em; }
+.noteref a, .footnote a { color: inherit; text-decoration: none; }
+`;
+var REVIEW_VERTICAL = `html { writing-mode: vertical-rl; }
+main { max-width: none; max-height: 38rem; margin: auto 0; padding: 1rem 2rem 1rem 6rem; }
+header h1 { margin: 0; margin-block: 2rem 0.25rem; }
+.byline, .note, p { margin: 0; margin-block-end: 1rem; }
+.note { border-left: 0; padding-left: 0; border-top: 3px solid var(--accent); padding-top: 0.75rem; }
+nav ol { padding-left: 0; padding-top: 1.25rem; }
+section { border-top: 0; margin-top: 0; padding-top: 0; border-right: 1px solid var(--rule); margin-right: 3rem; padding-right: 1rem; }
+h2 { margin: 0; margin-block: 1rem 1.5rem; }
+.anchor, .note-link { position: static; display: block; width: auto; margin: 0; text-align: start; opacity: 0.6; }
+blockquote { margin: 0; margin-inline-start: 1.5rem; margin-block-end: 1rem; }
+.scene-break { margin: 0 2rem; }
+`;
+var PRINT_VERTICAL = `html { writing-mode: vertical-rl; }
+h1 { margin: 1in 0 0 0.5in; }
+blockquote { margin: 1.5em 0.8em; }
+p.scene-break { margin: 0 0.8em; }
+`;
+function reviewStyleRules(style, type, fonts, bylines = false) {
+  const opening = bylines ? ["section > h2 + p:not(.byline)", "section > h2 + p.byline + p"] : ["section > h2 + p"];
+  const rules = [];
+  if (fonts.heading !== null) {
+    rules.push(`header h1, section > h2 { font-family: ${fonts.heading}; }`);
+  }
+  if (bylines && style.paragraphs === "indented") {
+    rules.push("section > p.byline { text-indent: 0; margin-block-end: 1rem; }");
+  }
+  const heading = headingRule(style.headingStyle, type);
+  if (heading !== "") {
+    rules.push(`section > h2 { ${heading} }`);
+  }
+  if (style.paragraphs === "indented") {
+    rules.push("section p { margin-block-end: 0; text-indent: 1.5em; }", `${opening.join(", ")}, .scene-break + p, blockquote p, section.front p, section.back p { text-indent: 0; }`, "section.front p, section.back p { margin-block-end: 1rem; }");
+  }
+  if (style.dropCaps === true && type.cased && !type.vertical) {
+    rules.push(`@media (min-width: 52.01rem) { ${opening.map((selector) => `section.chapter > ${selector.replace(/^section > /, "")}::first-letter`).join(", ")} { ${DROP_CAP_RULE} } }`);
+  }
+  return rules.length === 0 ? "" : `${rules.join(`
+`)}
+`;
+}
+function headingRule(headingStyle, type) {
+  if (headingStyle === "centered") {
+    return "text-align: center; font-weight: normal;";
+  }
+  if (headingStyle === "small-caps") {
+    return `text-align: center; font-weight: normal;${type.cased ? " font-variant: small-caps; letter-spacing: 0.08em;" : ""}`;
+  }
+  if (headingStyle === "left") {
+    return `text-align: ${type.rtl ? "right" : "left"}; font-weight: bold;`;
+  }
+  return "";
+}
+var DROP_CAP_RULE = "float: left; font-size: 3.2em; line-height: 0.8; margin: 0.08em 0.08em 0 0;";
+function extraStyle(style) {
+  return style.cssText ? `<style>
+${style.cssText}</style>
+` : "";
+}
+function printStyleRules(style, type, fonts, bylines = false) {
+  const rules = [];
+  if (fonts.heading !== null) {
+    rules.push(`h1 { font-family: ${fonts.heading}; }`);
+  }
+  const heading = headingRule(style.headingStyle, type);
+  if (heading !== "") {
+    rules.push(`section.chapter > h1, section.front > h1, section.back > h1 { ${heading} }`);
+  }
+  if (style.paragraphs === "block") {
+    rules.push(`p { text-indent: 0; ${type.vertical ? "margin-left" : "margin-bottom"}: 0.7em; }`);
+  }
+  if (style.dropCaps === true && type.cased && !type.vertical) {
+    rules.push(`${bylines ? "section.chapter > h1 + p.first::first-letter, section.chapter > h1 + p.byline + p.first::first-letter" : "section.chapter > h1 + p.first::first-letter"} { ${DROP_CAP_RULE} }`);
+  }
+  return rules.length === 0 ? "" : `${rules.join(`
+`)}
+`;
+}
+function printHtml(book, trimName = DEFAULT_TRIM, style = CLASSIC_STYLE) {
+  const trim = TRIM_SIZES.get(trimName);
+  if (!trim) {
+    throw usageError(`Unsupported trim size: ${trimName}. Supported sizes: ${[...TRIM_SIZES.keys()].join(", ")}`, "trim");
+  }
+  const pages = estimateBookPages(book, trimName);
+  const inside = insideMargin(pages);
+  const author = leadNames(bookMeta(book));
+  const credits = bookCredits(book);
+  const bylines = hasBylines(book);
+  const type = typesetting(book.language, book.writingMode);
+  const fonts = styleFonts(style, type);
+  const rtl = type.rtl;
+  const recto = rtl || type.vertical ? "left" : "right";
+  const verso = rtl || type.vertical ? "right" : "left";
+  const heads = `${type.cased ? "italic " : ""}9pt ${fonts.heads}`;
+  const sceneBreak = style.sceneBreak === null ? "*&#8195;*&#8195;*" : escapeHtml(style.sceneBreak);
+  const toc = [];
+  const sections = [];
+  for (const part of book.parts) {
+    const paragraphs = [];
+    let first = true;
+    for (const paragraph of part.paragraphs) {
+      if (paragraph === null) {
+        paragraphs.push({ quote: false, markup: `<p class="scene-break" aria-label="${escapeHtml(fillLabel(book.labels, "scene-break"))}">${sceneBreak}</p>` });
+        first = true;
+        continue;
+      }
+      if (paragraph.figure) {
+        paragraphs.push({ quote: paragraph.quote, markup: `<figure>${paragraph.html}</figure>` });
+        continue;
+      }
+      paragraphs.push({ quote: paragraph.quote, markup: first ? `<p class="first">${paragraph.html}</p>` : `<p>${paragraph.html}</p>` });
+      first = false;
+    }
+    if (part.kind === "chapter") {
+      toc.push(`<li><a href="#${part.key}">${escapeHtml(part.title)}</a></li>`);
+    }
+    const heading = part.heading ? `<h1>${escapeHtml(part.title)}</h1>${(part.byline ?? "") === "" ? "" : `
+<p class="byline">${escapeHtml(part.byline)}</p>`}` : part.placement === "back" ? `<div class="running-head" aria-hidden="true"></div>` : "";
+    sections.push(`<section id="${part.key}" class="${part.kind}">${heading}
+${withBlockquotes(paragraphs).join(`
+`)}${footnotesHtml(part, book.labels, "h2")}
+</section>`);
+  }
+  const copyrightIndex = book.parts.findIndex((part) => part.copyright && part.placement === "front");
+  const beforeToc = copyrightIndex === -1 ? [] : [sections[copyrightIndex]];
+  const afterToc = sections.filter((_, index) => index !== copyrightIndex);
+  const tocPageNumbers = rtl ? `.toc li { position: relative; padding-left: 2.5em; }
+.toc a::after { content: target-counter(attr(href), page); position: absolute; left: 0; bottom: 0; }` : `.toc a::after { content: " " target-counter(attr(href), page); float: ${type.vertical ? "none" : "right"}; }`;
+  return `<!DOCTYPE html>
+${htmlRoot(book.language)}
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(book.title)}</title>
+<!-- Print interior for ${trimName} trim (${trim.width} x ${trim.height}), about ${pages} pages.
+     Render to PDF with a CSS paged-media engine, for example:
+       npx pagedjs-cli book.print.html -o book.pdf
+       weasyprint book.print.html book.pdf
+       prince book.print.html -o book.pdf
+${type.vertical ? `     Vertical text needs an engine that sets it, such as Vivliostyle or Prince.
+` : ""}     Check the printer's current specs for margins, bleed, and fonts before upload. -->
+<style>
+@page { size: ${trim.width} ${trim.height}; margin: 0.75in 0.5in 0.75in ${inside}; }
+@page :left { margin-left: 0.5in; margin-right: ${inside}; }
+@page :${verso} {
+  @top-center { content: "${cssString(author || book.title)}"; font: ${heads}; } }
+@page :${recto} {
+  @top-center { content: string(chapter-title, first-except); font: ${heads}; } }
+@page chapter { @bottom-center { content: counter(page); font: 9pt ${fonts.heads}; } }
+@page :blank { @top-center { content: none; } @bottom-center { content: none; } }
+@page front { @top-center { content: none; } @bottom-center { content: none; } }
+html { font: 11pt/1.4 ${fonts.body}; }
+body { margin: 0; hyphens: auto; }
+.title-page, .toc, section.front { page: front; break-before: ${recto}; }
+section.front.copyright-page { break-before: page; font-size: 9pt; }
+.title-page { text-align: center; padding-top: 30%; }
+.title-page h1 { font-size: 26pt; font-weight: normal; margin: 0 0 1em; }
+.title-page .author { font-size: 14pt${type.cased ? "; font-variant: small-caps; letter-spacing: 0.05em" : ""}; }
+.toc h1 { font-size: 14pt; font-weight: normal; text-align: center${type.cased ? "; font-variant: small-caps" : ""}; }
+.toc ol { list-style: none; padding: 0; }
+.toc a { color: inherit; text-decoration: none; }
+${tocPageNumbers}
+section.chapter, section.back { page: chapter; break-before: ${recto}; }
+section.chapter > h1, section.back > h1, section.back > .running-head { string-set: chapter-title content(text); }
+.running-head { height: 0; margin: 0; }
+h1 { font-size: 16pt; font-weight: normal; text-align: center; margin: 1.5in 0 0.5in; break-after: avoid; }
+p { margin: 0; text-indent: 1.5em; text-align: justify; widows: 2; orphans: 2; }
+p.first, p.scene-break + p { text-indent: 0; }
+${bylines ? `p.byline { text-align: center; text-indent: 0; margin: -0.3in 0 0.4in;${type.cased ? " font-style: italic;" : ""} break-after: avoid; }
+` : ""}${type.cased && style.dropCaps === null ? `/* A raised initial: floated drop caps render inconsistently across engines. */
+${bylines ? "section.chapter > h1 + p.first::first-letter, section.chapter > h1 + p.byline + p.first::first-letter" : "section.chapter > h1 + p.first::first-letter"} { font-size: 2.4em; line-height: 1; }
+` : ""}p.scene-break { text-align: center; text-indent: 0; margin: 0.8em 0; break-after: avoid; }
+${book.images ? `figure { margin: 0.8em 0; text-align: center; break-inside: avoid; }
+img { max-width: 100%; height: auto; }
+` : ""}${book.notes ? PRINT_NOTE_RULES : ""}blockquote { margin: 0.8em 1.5em; }
+blockquote p { text-indent: 0; text-align: start; }
+section.front p, section.back p { text-indent: 0; margin-bottom: 0.6em; text-align: ${rtl ? "right" : "left"}; }
+section.front:not(.copyright-page) p { text-align: center; }
+@media screen { body { max-width: ${trim.width}; margin: 2rem auto; padding: 0 1rem; } section { margin-top: 3rem; } }
+${type.vertical ? `${PRINT_VERTICAL}@media screen { body { max-width: none; max-height: ${trim.height}; margin: auto 2rem; padding: 1rem 0; } section { margin-top: 0; margin-right: 3rem; } }
+` : ""}${printStyleRules(style, type, fonts, bylines)}</style>
+${extraStyle(style)}</head>
+<body>
+<section class="title-page"><h1>${escapeHtml(book.title)}</h1>${credits.map((line) => `<p class="author">${escapeHtml(line)}</p>`).join("")}</section>
+${beforeToc.join(`
+`)}
+<nav class="toc"><h1>${escapeHtml(fillLabel(book.labels, "contents"))}</h1><ol>
+${toc.join(`
+`)}
+</ol></nav>
+${afterToc.join(`
+`)}
+</body>
+</html>
+`;
+}
+function bookMeta(book) {
+  return { authors: book.authors ?? [], editors: book.editors ?? [], labels: book.labels };
+}
+function bookCredits(book) {
+  return creditLines(bookMeta(book));
+}
+function hasBylines(book) {
+  return book.parts.some((part) => (part.byline ?? "") !== "");
+}
+function joinSentences(sentences) {
+  return sentences.filter((sentence) => sentence !== "").reduce((text, sentence) => text === "" || /[。！？]$/u.test(text) ? `${text}${sentence}` : `${text} ${sentence}`, "");
+}
+function htmlRoot(language) {
+  const dir = typesetting(language).rtl ? ` dir="rtl"` : "";
+  return `<html lang="${escapeHtml(language)}"${dir}>`;
+}
+var OPENING_SINK_PAGES = 0.3;
+var CONTENTS_ENTRIES_PER_PAGE = 25;
+function estimateBookPages(book, trimName = DEFAULT_TRIM) {
+  const trim = TRIM_SIZES.get(trimName) ?? TRIM_SIZES.get(DEFAULT_TRIM);
+  const [perPage, length] = book.unit === "characters" ? [trim.charactersPerPage, (part) => part.characters] : [trim.wordsPerPage, (part) => part.words];
+  const chapters = book.parts.filter((part) => part.kind === "chapter").length;
+  let pages = 2 + Math.max(1, Math.ceil(chapters / CONTENTS_ENTRIES_PER_PAGE)) + 0.5;
+  for (const part of book.parts.filter((entry) => !(entry.copyright && entry.placement === "front"))) {
+    const sink = part.heading ? OPENING_SINK_PAGES : 0;
+    pages += Math.max(1, Math.ceil((length(part) ?? 0) / perPage + sink)) + 0.5;
+  }
+  return Math.ceil(pages);
+}
+function insideMargin(pages) {
+  if (pages <= 150) {
+    return "0.625in";
+  }
+  if (pages <= 300) {
+    return "0.75in";
+  }
+  if (pages <= 500) {
+    return "0.875in";
+  }
+  return "1in";
+}
+function withBlockquotes(items) {
+  const out = [];
+  let open = false;
+  for (const item of items) {
+    if (item.quote && !open) {
+      out.push("<blockquote>");
+    } else if (!item.quote && open) {
+      out.push("</blockquote>");
+    }
+    open = item.quote;
+    out.push(item.markup);
+  }
+  if (open) {
+    out.push("</blockquote>");
+  }
+  return out;
+}
+function escapeHtml(value) {
+  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function cssString(value) {
+  return String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/</g, "\\3C ").replace(/>/g, "\\3E ").replace(/&/g, "\\26 ").replace(/[\r\n\f]+/g, " ").replace(/[\u0000-\u001f\u007f]/g, (char) => `\\${char.charCodeAt(0).toString(16).toUpperCase()} `);
+}
+
+// src/packaging.js
+function buildTimestamp() {
+  const raw = process.env.SOURCE_DATE_EPOCH;
+  if (raw !== undefined && raw !== "") {
+    const date = /^\d+$/.test(raw.trim()) ? new Date(Number(raw.trim()) * 1000) : null;
+    if (date !== null && !Number.isNaN(date.getTime()) && date.getUTCFullYear() <= 9999) {
+      return date.toISOString().replace(/\.\d{3}Z$/, "Z");
+    }
+  }
+  return "2000-01-01T00:00:00Z";
+}
+function writeEpub(outFile, storyId, manuscript, writeOptions = {}) {
+  const meta = manuscript.meta ?? publishingMeta({});
+  const lang = xmlEscape(meta.language);
+  const type = typesetting(meta.language, meta.writingMode);
+  const rtl = type.rtl;
+  const root = `xml:lang="${lang}" lang="${lang}"${rtl ? ` dir="rtl"` : ""}`;
+  const style = manuscript.style ?? CLASSIC_STYLE;
+  const bylines = manuscript.chapters.some((chapter) => (chapter.byline ?? "") !== "");
+  const placesImages = [...manuscript.front, ...manuscript.chapters, ...manuscript.back].some((entry) => [...entry.images?.values() ?? []].some((image) => image !== null));
+  const stylesheet = `${epubStylesheet(type, style, bylines)}${placesImages ? EPUB_IMAGE_RULES : ""}`;
+  const extra = style.cssText ?? "";
+  const head = [
+    stylesheet === "" ? "" : `<link rel="stylesheet" type="text/css" href="style.css"/>`,
+    extra === "" ? "" : `<link rel="stylesheet" type="text/css" href="extra.css"/>`
+  ].join("");
+  const figures = new Map;
+  let described = true;
+  const figure = (image) => {
+    if (!figures.has(image.filePath)) {
+      const number = figures.size + 1;
+      figures.set(image.filePath, { id: `figure-${number}`, href: `images/figure-${number}.${image.extension}`, image });
+    }
+    return figures.get(image.filePath).href;
+  };
+  const markup = {
+    styled: style.styled,
+    sceneBreak: style.sceneBreak ?? "* * *",
+    ownIndent: style.paragraphs === "indented",
+    image: (image) => {
+      described &&= image.alt !== "";
+      return `<img src="${figure(image)}" alt="${xmlEscape(image.alt)}"/>`;
+    }
+  };
+  const documents = [];
+  const pushMatter = (placement) => (entry) => documents.push({
+    id: `${placement}-${entry.id}`,
+    label: entry.title,
+    content: matterXhtml(entry, placement, root, head, markup)
+  });
+  manuscript.front.forEach(pushMatter("front"));
+  for (const chapter of manuscript.chapters) {
+    documents.push({
+      id: `chapter-${String(chapter.number).padStart(2, "0")}`,
+      label: chapter.heading,
+      content: chapterXhtml(chapter, root, head, markup),
+      bodymatter: true
+    });
+  }
+  manuscript.back.forEach(pushMatter("back"));
+  const coverEntries = [];
+  const coverItems = [];
+  const coverMeta = [];
+  const coverSpine = [];
+  if (manuscript.cover) {
+    const href = `images/cover.${manuscript.cover.extension}`;
+    const alt = meta.coverAlt === "" ? fillLabel(meta.labels, "cover-alt", { title: manuscript.title }) : meta.coverAlt;
+    coverEntries.push({ name: `OEBPS/${href}`, content: readFileBytes(manuscript.cover.filePath, manuscript.cover.maxBytes), stored: true }, { name: "OEBPS/cover.xhtml", content: `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" ${root}><head><title>${xmlEscape(manuscript.title)}</title>${head}</head><body epub:type="cover"><img src="${href}" alt="${xmlEscape(alt)}"/></body></html>` });
+    coverItems.push(`<item id="cover-image" href="${href}" media-type="${manuscript.cover.mediaType}" properties="cover-image"/>`, `<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`);
+    coverMeta.push(`<meta name="cover" content="cover-image"/>`);
+    coverSpine.push(`<itemref idref="cover"/>`);
+  }
+  const creator = epubCreators(meta, manuscript.chapters);
+  const identifier = meta.isbn === "" ? xmlEscape(storyId) : `urn:isbn:${meta.isbn}`;
+  const optional = [
+    meta.publisher === "" ? "" : `<dc:publisher>${xmlEscape(meta.publisher)}</dc:publisher>`,
+    meta.publicationDate === "" ? "" : `<dc:date>${xmlEscape(meta.publicationDate)}</dc:date>`,
+    meta.description === "" ? "" : `<dc:description>${xmlEscape(meta.description)}</dc:description>`,
+    ...meta.subjects.map((subject) => `<dc:subject>${xmlEscape(subject)}</dc:subject>`),
+    meta.copyright === "" ? "" : `<dc:rights>${xmlEscape(meta.copyright)}</dc:rights>`
+  ].join("");
+  const figureEntries = [...figures.values()].map((entry) => ({ name: `OEBPS/${entry.href}`, content: proseImageBytes(entry.image), stored: true }));
+  const figureItems = [...figures.values()].map((entry) => `<item id="${entry.id}" href="${entry.href}" media-type="${entry.image.mediaType}"/>`);
+  const accessibility = epubAccessibilityMeta(Boolean(manuscript.cover), meta.labels, figures.size > 0, described);
+  const items = [...figureItems, ...documents.map((doc) => `<item id="${doc.id}" href="${doc.id}.xhtml" media-type="application/xhtml+xml"/>`)];
+  const spine = documents.map((doc) => `<itemref idref="${doc.id}"/>`);
+  const modified = buildTimestamp();
+  writeZip(outFile, [
+    { name: "mimetype", content: "application/epub+zip", stored: true },
+    { name: "META-INF/container.xml", content: `<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>` },
+    { name: "OEBPS/content.opf", content: `<?xml version="1.0" encoding="UTF-8"?><package version="3.0" unique-identifier="book-id" xmlns="http://www.idpf.org/2007/opf"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="book-id">${identifier}</dc:identifier><dc:title>${xmlEscape(manuscript.title)}</dc:title>${creator}<dc:language>${lang}</dc:language>${optional}<meta property="dcterms:modified">${modified}</meta>${accessibility}${coverMeta.join("")}${type.vertical ? `<meta name="primary-writing-mode" content="vertical-rl"/>` : ""}</metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>${stylesheet === "" ? "" : `<item id="style" href="style.css" media-type="text/css"/>`}${extra === "" ? "" : `<item id="extra-style" href="extra.css" media-type="text/css"/>`}${coverItems.join("")}${items.join("")}</manifest><spine${rtl || type.vertical ? ` page-progression-direction="rtl"` : ""}>${coverSpine.join("")}${spine.join("")}</spine></package>` },
+    { name: "OEBPS/nav.xhtml", content: navXhtml(manuscript.title, documents, root, meta.labels, head) },
+    ...stylesheet === "" ? [] : [{ name: "OEBPS/style.css", content: stylesheet }],
+    ...extra === "" ? [] : [{ name: "OEBPS/extra.css", content: extra }],
+    ...coverEntries,
+    ...figureEntries,
+    ...documents.map((doc) => ({ name: `OEBPS/${doc.id}.xhtml`, content: doc.content }))
+  ], writeOptions);
+}
+function epubCreators(meta, chapters) {
+  const storyAuthors = new Set(chapters.flatMap((chapter) => chapter.authors ?? []));
+  const credited = new Set([...meta.authors, ...meta.editors]);
+  const contributors = [...storyAuthors].filter((name) => !credited.has(name));
+  if (meta.editors.length === 0 && contributors.length === 0) {
+    return meta.authors.map((name) => `<dc:creator>${xmlEscape(name)}</dc:creator>`).join("");
+  }
+  const entry = (element, id, name, roles) => `<dc:${element} id="${id}">${xmlEscape(name)}</dc:${element}>${roles.map((role) => `<meta refines="#${id}" property="role" scheme="marc:relators">${role}</meta>`).join("")}`;
+  const authors = new Set(meta.authors);
+  return [
+    ...meta.authors.map((name, index) => entry("creator", `author-${index + 1}`, name, ["aut"])),
+    ...meta.editors.map((name, index) => entry("creator", `editor-${index + 1}`, name, storyAuthors.has(name) && !authors.has(name) ? ["edt", "aut"] : ["edt"])),
+    ...contributors.map((name, index) => entry("contributor", `contributor-${index + 1}`, name, ["aut"]))
+  ].join("");
+}
+function epubStylesheet(type, style = CLASSIC_STYLE, bylines = false) {
+  const rules = [];
+  if (type.vertical) {
+    rules.push("html { -epub-writing-mode: vertical-rl; -webkit-writing-mode: vertical-rl; writing-mode: vertical-rl; }");
+  }
+  const fonts = styleFonts(style, type);
+  if (!type.fonts.latin || fonts.body !== type.fonts.body) {
+    rules.push(`body { font-family: ${fonts.body}; }`);
+  }
+  if (!style.styled) {
+    return rules.length === 0 ? "" : `${rules.join(`
+`)}
+`;
+  }
+  const opening = bylines ? ["h1 + p:not(.byline)", "h1 + p.byline + p"] : ["h1 + p"];
+  if (fonts.heading !== null) {
+    rules.push(`h1 { font-family: ${fonts.heading}; }`);
+  }
+  const heading = headingRule(style.headingStyle, type);
+  if (heading !== "") {
+    rules.push(`h1 { ${heading} }`);
+  }
+  const after = type.vertical ? "0 0 0 0.8em" : "0 0 0.8em";
+  if (style.paragraphs === "indented") {
+    rules.push("p { margin: 0; text-indent: 1.5em; }", `${opening.join(", ")}, p.scene-break + p, blockquote p, body.matter p { text-indent: 0; }`, `body.matter p { margin: ${after}; }`);
+  } else if (style.paragraphs === "block") {
+    rules.push(`p { margin: ${after}; text-indent: 0; }`);
+  }
+  rules.push("p.scene-break { text-align: center; text-indent: 0; margin: 1em 0; }");
+  if (bylines) {
+    rules.push(`p.byline { text-align: center; text-indent: 0; margin: ${after}; }`);
+  }
+  if (style.dropCaps === true && type.cased && !type.vertical) {
+    rules.push(`${opening.map((selector) => `body.chapter > ${selector}::first-letter`).join(", ")} { ${DROP_CAP_RULE} }`);
+  }
+  return `${rules.join(`
+`)}
+`;
+}
+function navXhtml(title, documents, root, labels, head = "") {
+  const links = documents.map((doc) => `<li><a href="${doc.id}.xhtml">${xmlEscape(doc.label)}</a></li>`);
+  const start = documents.find((doc) => doc.bodymatter);
+  const landmarks = start ? `<nav epub:type="landmarks" hidden="hidden"><ol><li><a epub:type="bodymatter" href="${start.id}.xhtml">${xmlEscape(fillLabel(labels, "start-of-content"))}</a></li></ol></nav>` : "";
+  return `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" ${root}><head><title>${xmlEscape(title)}</title>${head}</head><body><nav epub:type="toc" id="toc"><h1>${xmlEscape(fillLabel(labels, "contents"))}</h1><ol>${links.join("")}</ol></nav>${landmarks}</body></html>`;
+}
+function epubAccessibilityMeta(hasCover, labels, hasImages = false, described = true) {
+  const visual = hasCover || hasImages;
+  const alternative = hasCover && !hasImages || hasImages && described;
+  const features = ["tableOfContents", "readingOrder", "structuralNavigation", ...alternative ? ["alternativeText"] : []];
+  const summary = xmlEscape(fillLabel(labels, hasImages && described ? "accessibility-summary-images" : hasCover ? "accessibility-summary-cover" : "accessibility-summary"));
+  return [
+    `<meta property="schema:accessMode">textual</meta>`,
+    ...visual ? [`<meta property="schema:accessMode">visual</meta>`] : [],
+    `<meta property="schema:accessModeSufficient">textual</meta>`,
+    ...features.map((feature) => `<meta property="schema:accessibilityFeature">${feature}</meta>`),
+    `<meta property="schema:accessibilityHazard">none</meta>`,
+    `<meta property="schema:accessibilitySummary">${summary}</meta>`
+  ].join("");
+}
+function xhtmlParagraphs(body, markup, images = null, verse = false) {
+  const sceneBreak = markup.styled ? `<p class="scene-break">${xmlEscape(markup.sceneBreak)}</p>` : "<p>* * *</p>";
+  const { paragraphs, notes } = bookBody(body, { ownIndent: markup.ownIndent, images, verse });
+  const media = {
+    image: markup.image,
+    note: (note) => `<a epub:type="noteref" role="doc-noteref" id="${xhtmlNoteRef(note.number, note.reference)}" href="#note-${note.number}"><sup>${note.number}</sup></a>`
+  };
+  const content = withBlockquotes(paragraphs.filter(shownParagraph).map((paragraph) => {
+    const inline = paragraph.sceneBreak ? "" : paragraph.runs.map((run) => runMarkup(run, xmlEscape, "<br/>", media)).join("");
+    return {
+      quote: Boolean(paragraph.quote),
+      markup: paragraph.sceneBreak ? sceneBreak : paragraph.figure ? `<figure>${inline}</figure>` : `<p>${inline}</p>`
+    };
+  })).join("");
+  const asides = notes.map((note) => {
+    const texts = note.paragraphs.length === 0 ? [[]] : note.paragraphs;
+    const noteParagraphs = texts.map((runs, index) => `<p>${index === 0 ? `<a role="doc-backlink" href="#${xhtmlNoteRef(note.number, 1)}">${note.number}.</a> ` : ""}${runs.map((run) => runMarkup(run, xmlEscape, "<br/>")).join("")}</p>`);
+    return `<aside epub:type="footnote" role="doc-footnote" id="note-${note.number}">${noteParagraphs.join("")}</aside>`;
+  });
+  return content + asides.join("");
+}
+var EPUB_IMAGE_RULES = `figure { margin: 1em 0; text-align: center; }
+img { max-width: 100%; height: auto; }
+`;
+function xhtmlNoteRef(number, reference) {
+  return reference === 1 ? `noteref-${number}` : `noteref-${number}-${reference}`;
+}
+function shownParagraph(paragraph) {
+  return !paragraph.figure || paragraph.runs.length > 0;
+}
+function xhtmlDocument(title, root, head, bodyType, content, bodyClass = "") {
+  const classes = bodyClass === "" ? "" : ` class="${bodyClass}"`;
+  return `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" ${root}><head><title>${xmlEscape(title)}</title>${head}</head><body epub:type="${bodyType}"${classes}>${content}</body></html>`;
+}
+function chapterXhtml(chapter, root, head, markup) {
+  const heading = chapter.heading;
+  const title = String(chapter.title ?? "").trim() || heading;
+  const byline = (chapter.byline ?? "") === "" ? "" : `<p class="byline"><em>${xmlEscape(chapter.byline)}</em></p>`;
+  return xhtmlDocument(title, root, head, "bodymatter chapter", `<h1>${xmlEscape(heading)}</h1>${byline}${xhtmlParagraphs(chapter.body, markup, chapter.images, chapter.verse)}`, markup.styled ? "chapter" : "");
+}
+function matterXhtml(entry, placement, root, head, markup) {
+  const heading = entry.heading ? `<h1>${xmlEscape(entry.title)}</h1>` : "";
+  const bodyType = entry.copyright ? `${placement}matter copyright-page` : `${placement}matter`;
+  return xhtmlDocument(entry.title, root, head, bodyType, `${heading}${xhtmlParagraphs(entry.body, markup, entry.images)}`, markup.styled ? "matter" : "");
+}
+function htmlBook(manuscript, ownIndent = false) {
+  const characters = (body) => manuscript.unit === "characters" ? { characters: characterCount(body) } : {};
+  const sources = new Map;
+  const image = (entry) => {
+    if (!sources.has(entry.filePath)) {
+      sources.set(entry.filePath, `data:${entry.mediaType};base64,${Buffer5.from(proseImageBytes(entry)).toString("base64")}`);
+    }
+    return `<img src="${sources.get(entry.filePath)}" alt="${escapeHtml(entry.alt)}">`;
+  };
+  const content = (key, body, images, verse = false) => {
+    const parsed = bookBody(body, { ownIndent, images: images ?? null, verse });
+    const ref = (number, reference) => `${key}-fnref${number}${reference === 1 ? "" : `-${reference}`}`;
+    const media = {
+      image,
+      note: (note) => `<sup class="noteref"><a href="#${key}-fn${note.number}" id="${ref(note.number, note.reference)}" role="doc-noteref">${note.number}</a></sup>`
+    };
+    const paragraphs = parsed.paragraphs.filter(shownParagraph).map((paragraph) => {
+      if (paragraph.sceneBreak) {
+        return null;
+      }
+      const { runs } = paragraph;
+      return {
+        html: runs.map((run) => runMarkup(run, escapeHtml, "<br>", media)).join(""),
+        text: runs.map((run) => run.text).join("").split(LINE_BREAK3).join(" ").replace(/\s+/g, " ").trim(),
+        quote: paragraph.quote,
+        ...paragraph.figure ? { figure: true } : {}
+      };
+    });
+    const notes = parsed.notes.map((note) => ({
+      number: note.number,
+      id: `${key}-fn${note.number}`,
+      backlink: ref(note.number, 1),
+      html: note.paragraphs.map((runs) => runs.map((run) => runMarkup(run, escapeHtml, "<br>")).join(""))
+    }));
+    return { paragraphs, ...notes.length > 0 ? { notes } : {} };
+  };
+  const matter = (placement) => (entry) => ({
+    key: `${placement}-${entry.id}`,
+    kind: entry.copyright ? `${placement} copyright-page` : placement,
+    copyright: Boolean(entry.copyright),
+    placement,
+    title: entry.title,
+    heading: entry.heading,
+    words: wordCount(entry.body),
+    ...characters(entry.body),
+    ...content(`${placement}-${entry.id}`, entry.body, entry.images)
+  });
+  const parts = [
+    ...manuscript.front.map(matter("front")),
+    ...manuscript.chapters.map((chapter) => ({
+      key: chapter.key,
+      kind: "chapter",
+      placement: "body",
+      title: chapter.heading,
+      heading: true,
+      byline: chapter.byline ?? "",
+      words: wordCount(chapter.body),
+      ...characters(chapter.body),
+      ...content(chapter.key, chapter.body, chapter.images, chapter.verse)
+    })),
+    ...manuscript.back.map(matter("back"))
+  ];
+  return {
+    title: manuscript.title,
+    ...manuscript.unit === "characters" ? { unit: "characters" } : {},
+    authors: manuscript.meta.authors,
+    editors: manuscript.meta.editors ?? [],
+    language: manuscript.meta.language,
+    writingMode: manuscript.meta.writingMode,
+    labels: manuscript.meta.labels,
+    words: manuscript.chapters.reduce((sum, chapter) => sum + wordCount(chapter.body), 0),
+    ...sources.size > 0 ? { images: true } : {},
+    ...parts.some((part) => part.notes !== undefined) ? { notes: true } : {},
+    parts
+  };
+}
+function postBody(body, { key, verse = false } = {}) {
+  const ref = (number, reference) => `${key}-fnref${number}${reference === 1 ? "" : `-${reference}`}`;
+  const media = { note: (note) => `<sup><a href="#${key}-fn${note.number}" id="${ref(note.number, note.reference)}">${note.number}</a></sup>` };
+  const lines = (runs) => runs.map((run) => run.note === undefined ? run.text : `[${run.note.number}]`).join("").split(LINE_BREAK3).join(`
+`);
+  const html = (runs) => runs.map((run) => runMarkup(run, escapeHtml, "<br>", media)).join("");
+  const parsed = bookBody(body, { verse });
+  const paragraphs = parsed.paragraphs.filter((paragraph) => !paragraph.figure || paragraph.runs.length > 0).map((paragraph) => paragraph.sceneBreak ? null : { html: html(paragraph.runs), lines: lines(paragraph.runs), quote: paragraph.quote });
+  const notes = parsed.notes.map((note) => ({
+    number: note.number,
+    id: `${key}-fn${note.number}`,
+    backlink: ref(note.number, 1),
+    html: note.paragraphs.map(html),
+    lines: note.paragraphs.map(lines)
+  }));
+  return { paragraphs, notes };
+}
+function writeDocx(outFile, manuscript, writeOptions = {}) {
+  writeZip(outFile, docxEntries(manuscript), writeOptions);
+}
+function docxEntries(manuscript, trace = null) {
+  const meta = manuscript.meta ?? publishingMeta({});
+  const script = docxScript(meta);
+  const note = (entry) => trace?.push(entry);
+  const credits = creditLines(meta);
+  const bodyParts = [paragraphXml(script, manuscript.title, "Title"), ...credits.map((line) => paragraphXml(script, line, "Credit"))];
+  note(traceEntry("title", null));
+  credits.forEach(() => note(traceEntry("credit", null)));
+  const pushSection = (heading, body, byline, part, images, verse = false) => {
+    if (heading !== null) {
+      bodyParts.push(paragraphXml(script, heading, "Heading1"));
+      note(traceEntry("heading", part));
+    }
+    if (byline !== "") {
+      bodyParts.push(paragraphXml(script, byline, "Byline"));
+      note(traceEntry("byline", part));
+    }
+    let index = 0;
+    const { paragraphs, notes } = bookBody(body, { ownIndent: true, images, verse });
+    const sectionMedia = { drawing: media.drawing, footnote: (reference) => media.footnote(notes[reference.number - 1]) };
+    paragraphs.filter(shownParagraph).forEach((paragraph) => {
+      if (paragraph.figure) {
+        bodyParts.push(paragraphXml(script, "", "Figure", paragraph.runs, sectionMedia));
+        note(traceEntry("figure", part, index - 1));
+        return;
+      }
+      bodyParts.push(paragraph.sceneBreak ? paragraphXml(script, "* * *", "SceneBreak") : paragraphXml(script, "", paragraph.quote ? "Quote" : "", paragraph.runs, sectionMedia));
+      note(traceEntry(paragraph.sceneBreak ? "scene-break" : "paragraph", part, index));
+      index += 1;
+    });
+  };
+  const media = docxMedia(script);
+  const pushMatter = (placement) => (entry) => pushSection(entry.heading ? entry.title : null, entry.body, "", { placement, id: entry.id }, entry.images ?? null);
+  manuscript.front.forEach(pushMatter("front"));
+  manuscript.chapters.forEach((chapter, chapterIndex) => {
+    pushSection(chapter.heading, chapter.body, chapter.byline ?? "", { placement: "body", chapter: chapterIndex }, chapter.images ?? null, chapter.verse);
+  });
+  manuscript.back.forEach(pushMatter("back"));
+  return docxPackageEntries(script, bodyParts.join(""), "", [], media);
+}
+function docxMedia(script) {
+  const images = new Map;
+  const footnotes = [];
+  let drawings = 0;
+  return {
+    images: () => [...images.values()],
+    footnotes: () => footnotes,
+    footnote(note) {
+      const id = footnotes.length + 1;
+      const mark = `<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>${script.rtl}</w:rPr><w:footnoteRef/></w:r><w:r>${script.rtl === "" ? "" : `<w:rPr>${script.rtl}</w:rPr>`}<w:t xml:space="preserve"> </w:t></w:r>`;
+      const paragraphs = (note.paragraphs.length === 0 ? [[]] : note.paragraphs).map((runs, index) => paragraphXml(script, "", "FootnoteText", runs, null, index === 0 ? mark : ""));
+      footnotes.push(`<w:footnote w:id="${id}">${paragraphs.join("")}</w:footnote>`);
+      return id;
+    },
+    drawing(image) {
+      if (!images.has(image.filePath)) {
+        const number = images.size + 1;
+        const content = proseImageBytes(image);
+        images.set(image.filePath, {
+          relationship: `rIdImage${number}`,
+          name: `image${number}.${image.extension}`,
+          extension: image.extension,
+          mediaType: image.mediaType,
+          content,
+          size: imageSize(content, image.mediaType)
+        });
+      }
+      drawings += 1;
+      return docxDrawingXml(images.get(image.filePath), image.alt, drawings);
+    }
+  };
+}
+var EMU_PER_PIXEL = 9525;
+var MAX_IMAGE_EMU = { width: 6 * 914400, height: 8 * 914400 };
+function docxDrawingXml(entry, alt, id) {
+  const natural = entry.size === null ? { width: 4 * 914400, height: 3 * 914400 } : { width: entry.size.width * EMU_PER_PIXEL, height: entry.size.height * EMU_PER_PIXEL };
+  const scale = Math.min(1, MAX_IMAGE_EMU.width / natural.width, MAX_IMAGE_EMU.height / natural.height);
+  const cx = Math.max(1, Math.round(natural.width * scale));
+  const cy = Math.max(1, Math.round(natural.height * scale));
+  const description = xmlEscape(alt);
+  return `<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Picture ${id}" descr="${description}"/><wp:cNvGraphicFramePr><a:graphicFrameLocks xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" noChangeAspect="1"/></wp:cNvGraphicFramePr><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="${entry.name}" descr="${description}"/><pic:cNvPicPr><a:picLocks noChangeAspect="1"/></pic:cNvPicPr></pic:nvPicPr><pic:blipFill><a:blip r:embed="${entry.relationship}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
+}
+function traceEntry(kind, part, index = null) {
+  return { kind, part, index };
+}
+function docxScript(meta) {
+  const language = meta?.language ?? "en";
+  const type = typesetting(language, meta?.writingMode);
+  const { eastAsia, cs, eastAsian, complex } = type.docx;
+  const written = writtenTag(language);
+  const tag = xmlEscape(written);
+  const font = (name) => `"${name ?? "Times New Roman"}"`;
+  return {
+    lang: written === "en" || written === "und" ? "" : `<w:lang w:val="${tag}"${eastAsian ? ` w:eastAsia="${tag}"` : ""}${complex ? ` w:bidi="${tag}"` : ""}/>`,
+    bidi: type.rtl ? "<w:bidi/>" : "",
+    rtl: type.rtl ? "<w:rtl/>" : "",
+    bold: complex ? "<w:b/><w:bCs/>" : "<w:b/>",
+    italic: complex ? "<w:i/><w:iCs/>" : "<w:i/>",
+    sizeCs: complex,
+    fonts: `<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia=${font(eastAsia)} w:cs=${font(cs)}${eastAsian ? ` w:hint="eastAsia"` : ""}/>`,
+    direction: type.vertical ? `<w:textDirection w:val="tbRl"/>` : type.rtl ? "<w:bidi/>" : ""
+  };
+}
+function docxSection(script, page = "", headers = []) {
+  const references = headers.map((header, index) => `<w:headerReference w:type="${header.type}" r:id="${docxHeaderId(index)}"/>`).join("");
+  const titlePage = headers.some((header) => header.type === "first") ? "<w:titlePg/>" : "";
+  const content = `${references}${page}${titlePage}${script.direction}`;
+  return content === "" ? "<w:sectPr/>" : `<w:sectPr>${content}</w:sectPr>`;
+}
+function docxHeaderId(index) {
+  return `rId${index + 2}`;
+}
+var SHUNN_PAPERS = new Map([
+  ["letter", { css: "letter", width: 12240, height: 15840 }],
+  ["a4", { css: "A4", width: 11906, height: 16838 }]
+]);
+var DEFAULT_PAPER = "letter";
+function shunnPaper(name) {
+  const paper = SHUNN_PAPERS.get(name ?? DEFAULT_PAPER);
+  if (paper === undefined) {
+    throw new Error(`Unsupported paper: ${name}`);
+  }
+  return paper;
+}
+function docxPackageEntries(script, body, page = "", headers = [], media = null) {
+  const headerName = (index) => `header${index + 1}.xml`;
+  const headerTypes = headers.map((header, index) => `<Override PartName="/word/${headerName(index)}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`).join("");
+  const headerRelationships = headers.map((header, index) => `<Relationship Id="${docxHeaderId(index)}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="${headerName(index)}"/>`).join("");
+  const images = media?.images() ?? [];
+  const footnotes = media?.footnotes() ?? [];
+  const footnoteEntries = footnotes.length === 0 ? [] : [{
+    name: "word/footnotes.xml",
+    content: `<?xml version="1.0" encoding="UTF-8"?><w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:footnote w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></w:footnote><w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>${footnotes.join("")}</w:footnotes>`
+  }];
+  const footnoteType = footnotes.length === 0 ? "" : `<Override PartName="/word/footnotes.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"/>`;
+  const footnoteRelationship = footnotes.length === 0 ? "" : `<Relationship Id="rIdFootnotes" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes" Target="footnotes.xml"/>`;
+  const imageTypes = [...new Map(images.map((image) => [image.extension, image.mediaType]))].map(([extension, type]) => `<Default Extension="${extension}" ContentType="${type}"/>`).join("");
+  const imageRelationships = images.map((image) => `<Relationship Id="${image.relationship}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${image.name}"/>`).join("");
+  const relationshipsNamespace = headers.length === 0 && images.length === 0 ? "" : ` xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
+  const drawingNamespace = images.length === 0 ? "" : ` xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"`;
+  return [
+    { name: "[Content_Types].xml", content: `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/>${imageTypes}<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>${headerTypes}${footnoteType}</Types>` },
+    { name: "_rels/.rels", content: `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` },
+    { name: "word/_rels/document.xml.rels", content: `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${headerRelationships}${imageRelationships}${footnoteRelationship}</Relationships>` },
+    { name: "word/styles.xml", content: docxStyles(script, { figure: images.length > 0, footnotes: footnotes.length > 0 }) },
+    ...headers.map((header, index) => ({ name: `word/${headerName(index)}`, content: `<?xml version="1.0" encoding="UTF-8"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${header.content}</w:hdr>` })),
+    ...images.map((image) => ({ name: `word/media/${image.name}`, content: image.content, stored: true })),
+    ...footnoteEntries,
+    { name: "word/document.xml", content: `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"${relationshipsNamespace}${drawingNamespace}><w:body>${body}${docxSection(script, page, headers)}</w:body></w:document>` }
+  ];
+}
+function docxStyles(script, { figure = false, footnotes = false } = {}) {
+  return `<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` + `<w:docDefaults><w:rPrDefault><w:rPr>${script.fonts}<w:sz w:val="24"/><w:szCs w:val="24"/>${script.lang}</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="360" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>` + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:firstLine="720"/></w:pPr></w:style>` + `<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr><w:rPr>${script.bold}<w:sz w:val="56"/>${script.sizeCs ? `<w:szCs w:val="56"/>` : ""}</w:rPr></w:style>` + `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Credit"><w:name w:val="Credit"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:spacing w:after="240"/><w:ind w:firstLine="0"/><w:contextualSpacing/><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="28"/>${script.sizeCs ? `<w:szCs w:val="28"/>` : ""}</w:rPr></w:style>` + `<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="480" w:after="240"/><w:ind w:firstLine="0"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr>${script.bold}<w:sz w:val="32"/>${script.sizeCs ? `<w:szCs w:val="32"/>` : ""}</w:rPr></w:style>` + `<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="120" w:after="120"/><w:ind w:left="720" w:right="720" w:firstLine="0"/></w:pPr></w:style>` + `<w:style w:type="paragraph" w:customStyle="1" w:styleId="SceneBreak"><w:name w:val="Scene Break"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:spacing w:before="240" w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr></w:style>` + `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Byline"><w:name w:val="Byline"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr><w:rPr>${script.italic}</w:rPr></w:style>` + (figure ? `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Figure"><w:name w:val="Figure"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:spacing w:before="240" w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr></w:style>` : "") + (footnotes ? `<w:style w:type="paragraph" w:styleId="FootnoteText"><w:name w:val="footnote text"/><w:basedOn w:val="Normal"/><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:ind w:firstLine="0"/></w:pPr><w:rPr><w:sz w:val="20"/>${script.sizeCs ? `<w:szCs w:val="20"/>` : ""}</w:rPr></w:style><w:style w:type="character" w:styleId="FootnoteReference"><w:name w:val="footnote reference"/><w:rPr><w:vertAlign w:val="superscript"/></w:rPr></w:style>` : "") + `</w:styles>`;
+}
+var SHUNN_FONT = `<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>`;
+var SHUNN_SIZE = `<w:sz w:val="24"/>`;
+var SHUNN_PARAGRAPH_SPACING = `<w:spacing w:line="480" w:lineRule="auto"/>`;
+function shunnRunProperties(script, { strong = false, em = false, superscript = false } = {}) {
+  return `<w:rPr>${SHUNN_FONT}${strong ? script.bold : ""}${em ? script.italic : ""}${SHUNN_SIZE}${superscript ? `<w:vertAlign w:val="superscript"/>` : ""}${script.rtl}</w:rPr>`;
+}
+function shunnRunsXml(script, runs) {
+  return runs.map((run) => run.note === undefined ? shunnRunXml(script, run.text, run) : shunnRunXml(script, String(run.note.number), { ...run, superscript: true })).join("");
+}
+function shunnNotes(notes, labels) {
+  return {
+    heading: fillLabel(labels, "footnotes"),
+    notes: notes.map((note) => (note.paragraphs.length === 0 ? [[]] : note.paragraphs).map((runs, index) => index === 0 ? [{ text: `${note.number}. `, strong: false, em: false }, ...runs] : runs))
+  };
+}
+function shunnRunXml(script, text, decoration) {
+  return `<w:r>${shunnRunProperties(script, decoration)}${docxTextXml(text)}</w:r>`;
+}
+function shunnHeadParts(meta) {
+  const name = meta.surname ? oneLine2(meta.surname) : headFit(headSurname(meta.lead ?? meta.author ?? "", meta.pack?.familyNameFirst), HEAD_NAME_COLUMNS, meta.labels);
+  const title = meta.shortTitle ? oneLine2(meta.shortTitle) : headFit(headTitle(meta.title), HEAD_TITLE_COLUMNS, meta.labels);
+  return [name, title].filter((part) => part !== "");
+}
+var HEAD_NAME_COLUMNS = 20;
+var HEAD_TITLE_COLUMNS = 30;
+function oneLine2(text) {
+  return String(text).replace(/[ \u0000-\u001f\u007f-\u009f\u2028\u2029\ue001]+/g, " ").replace(/^ | $/g, "");
+}
+var NAME_SUFFIX = /^(?:jr|jnr|sr|snr|ii|iii|iv|phd|ph\.d|md|m\.d|esq)\.?$/i;
+function headSurname(name, familyFirst = false) {
+  const words = (oneLine2(name).split(",").find((part) => part.trim() !== "") ?? "").split(" ").filter((word) => word !== "");
+  if (familyFirst) {
+    return words[0] ?? "";
+  }
+  while (words.length > 1 && NAME_SUFFIX.test(words[words.length - 1])) {
+    words.pop();
+  }
+  return words[words.length - 1] ?? "";
+}
+function headTitle(title) {
+  const text = oneLine2(title);
+  const main = text.split(/:\s|\uff1a|\u2014/u)[0].replace(/\s+$/u, "");
+  return main === "" ? text : main;
+}
+var WIDE_CHARACTER = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6\u{20000}-\u{3fffd}]/u;
+function headColumns(char) {
+  return /\p{M}/u.test(char) ? 0 : WIDE_CHARACTER.test(char) ? 2 : 1;
+}
+function headFit(text, limit, labels) {
+  let kept = "";
+  let width = 0;
+  for (const char of text) {
+    width += headColumns(char);
+    if (width > limit) {
+      const cut = /[ -]/.test(char) ? kept.length : Math.max(kept.lastIndexOf(" "), kept.lastIndexOf("-"));
+      return withoutDangling(cut > 0 ? kept.slice(0, cut) : kept, labels);
+    }
+    kept += char;
+  }
+  return text;
+}
+function withoutDangling(text, labels) {
+  const joiners = new Set(["and", String(labels?.and ?? "").replace(/\{[ab]\}/g, "").trim().toLowerCase()]);
+  const dangling = /[\s,;:/&\u2013\u2014\u3001\uff0c-]+$/u;
+  let rest = text.replace(dangling, "");
+  let space = rest.lastIndexOf(" ");
+  while (space > 0 && joiners.has(rest.slice(space + 1).toLowerCase())) {
+    rest = rest.slice(0, space).replace(dangling, "");
+    space = rest.lastIndexOf(" ");
+  }
+  return rest;
+}
+function shunnHeaders(script, meta) {
+  const paragraph = (runs) => `<w:p><w:pPr>${script.bidi}<w:spacing w:line="240" w:lineRule="auto"/><w:ind w:firstLine="0"/><w:jc w:val="right"/></w:pPr>${runs}</w:p>`;
+  const text = shunnHeadParts(meta).map((part) => `${part} / `).join("");
+  const field = [`<w:fldChar w:fldCharType="begin"/>`, `<w:instrText xml:space="preserve"> PAGE </w:instrText>`, `<w:fldChar w:fldCharType="separate"/>`, `<w:fldChar w:fldCharType="end"/>`].map((content) => `<w:r>${shunnRunProperties(script)}${content}</w:r>`).join("");
+  return [
+    { type: "default", content: paragraph(`${shunnRunXml(script, text)}${field}`) },
+    { type: "first", content: paragraph("") }
+  ];
+}
+function shunnParagraphXml(script, runXml, centered, quote = false) {
+  const layout = centered ? `<w:ind w:firstLine="0"/><w:jc w:val="center"/>` : quote ? `<w:ind w:left="720" w:right="720" w:firstLine="0"/>` : `<w:ind w:firstLine="720"/>`;
+  return `<w:p><w:pPr>${script.bidi}${SHUNN_PARAGRAPH_SPACING}${layout}</w:pPr>${runXml}</w:p>`;
+}
+function shunnChapterHeadingXml(script, text) {
+  return `<w:p><w:pPr>${script.bidi}${SHUNN_PARAGRAPH_SPACING}<w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr><w:r>${script.rtl === "" ? "" : `<w:rPr>${script.rtl}</w:rPr>`}<w:br w:type="page"/></w:r>${shunnRunXml(script, text, { strong: true })}</w:p>`;
+}
+function shunnRounded(count) {
+  const step = count < 1000 ? 1 : count < 40000 ? 100 : 1000;
+  return Math.round(count / step) * step;
+}
+function shunnLength(meta) {
+  const pack = meta.pack ?? languagePack();
+  const characters = meta.characters !== undefined;
+  const count = shunnRounded(characters ? meta.characters : meta.words);
+  const key = pluralLabelKey(meta.labels, characters ? "approximate-characters" : "approximate-words", count, pack);
+  return fillLabel(meta.labels, key, { [characters ? "characters" : "words"]: formatNumber2(count, pack) });
+}
+function shunnByline(meta) {
+  const lines = [];
+  if (meta.author) {
+    const by = fillLabel(meta.labels, "by");
+    lines.push(...by === "" ? [meta.author] : [by, meta.author]);
+  }
+  if (meta.editors) {
+    lines.push(meta.editors);
+  }
+  return lines;
+}
+function shunnChapterByline(chapter, meta) {
+  return meta.shortForm || meta.anonymous ? "" : chapter.byline ?? "";
+}
+function shunnTitlePageXml(script, meta) {
+  const line = (text, decoration) => shunnParagraphXml(script, shunnRunXml(script, text, decoration), true);
+  const lines = [line(meta.title, { strong: true })];
+  lines.push(...shunnByline(meta).map((text) => line(text)));
+  lines.push(line(shunnLength(meta)));
+  for (const contactLine of meta.contact) {
+    lines.push(line(String(contactLine)));
+  }
+  return lines;
+}
+function writeShunnDocx(outFile, manuscript, meta, writeOptions = {}, paperName = DEFAULT_PAPER) {
+  writeZip(outFile, shunnDocxEntries(manuscript, meta, paperName), writeOptions);
+}
+function shunnDocxEntries(manuscript, meta, paperName = DEFAULT_PAPER, trace = null) {
+  const script = docxScript(manuscript.meta);
+  const note = (entry) => trace?.push(entry);
+  const paragraphs = [...shunnTitlePageXml(script, meta)];
+  paragraphs.forEach(() => note(traceEntry("title-page", null)));
+  const sceneBreak = meta.shortForm ? "#" : "* * *";
+  const hash = shunnParagraphXml(script, shunnRunXml(script, "#"), true);
+  if (meta.shortForm) {
+    paragraphs.push(shunnParagraphXml(script, "", true));
+    note(traceEntry("blank", null));
+  }
+  let sections = 0;
+  manuscript.chapters.forEach((chapter, chapterIndex) => {
+    const part = { placement: "body", chapter: chapterIndex };
+    const { paragraphs: body, notes } = bookBody(chapter.body, { ownIndent: true, verse: chapter.verse });
+    if (!meta.shortForm) {
+      paragraphs.push(shunnChapterHeadingXml(script, chapter.heading));
+      note(traceEntry("heading", part));
+      const byline = shunnChapterByline(chapter, meta);
+      if (byline !== "") {
+        paragraphs.push(shunnParagraphXml(script, shunnRunXml(script, byline), true));
+        note(traceEntry("byline", part));
+      }
+    } else if (body.length === 0) {
+      return;
+    } else if (sections++ > 0) {
+      paragraphs.push(hash);
+      note(traceEntry("separator", null));
+    }
+    body.forEach((paragraph, index) => {
+      paragraphs.push(paragraph.sceneBreak ? shunnParagraphXml(script, shunnRunXml(script, sceneBreak), true) : shunnParagraphXml(script, shunnRunsXml(script, paragraph.runs), false, paragraph.quote));
+      note(traceEntry(paragraph.sceneBreak ? "scene-break" : "paragraph", part, index));
+    });
+    if (notes.length > 0) {
+      const set = shunnNotes(notes, manuscript.meta?.labels);
+      paragraphs.push(shunnParagraphXml(script, shunnRunXml(script, set.heading), true));
+      note(traceEntry("notes", part, body.length - 1));
+      for (const noteParagraph of set.notes.flat()) {
+        paragraphs.push(shunnParagraphXml(script, shunnRunsXml(script, noteParagraph), false));
+        note(traceEntry("note", part, body.length - 1));
+      }
+    }
+  });
+  const paper = shunnPaper(paperName);
+  const page = `<w:pgSz w:w="${paper.width}" w:h="${paper.height}"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>`;
+  return docxPackageEntries(script, paragraphs.join(""), page, shunnHeaders(script, meta));
+}
+function writeShunnMarkdown(outFile, manuscript, meta, writeOptions = {}) {
+  const lines = [meta.title];
+  lines.push(...shunnByline(meta), "", shunnLength(meta), "");
+  for (const contactLine of meta.contact) {
+    lines.push(String(contactLine));
+  }
+  const sceneBreak = meta.shortForm ? "#" : "* * *";
+  if (meta.shortForm) {
+    lines.push("");
+  }
+  let sections = 0;
+  for (const chapter of manuscript.chapters) {
+    const { text, notes: definitions } = splitFootnotes(chapter.body);
+    const body = markdownParagraphs(text, true, chapter.verse);
+    const numbers = new Map;
+    const numbered = (paragraph) => {
+      if (paragraph.code || definitions.size === 0) {
+        return paragraph.text;
+      }
+      let result = "";
+      let position = 0;
+      for (const marker of footnoteMarkers(paragraph.text)) {
+        const label = footnoteLabel(marker.label);
+        if (definitions.has(label)) {
+          if (!numbers.has(label)) {
+            numbers.set(label, numbers.size + 1);
+          }
+          result += `${paragraph.text.slice(position, marker.start)}[${numbers.get(label)}]`;
+          position = marker.end;
+        }
+      }
+      return result + paragraph.text.slice(position);
+    };
+    if (!meta.shortForm) {
+      lines.push("\f", `# ${chapter.heading}`, "");
+      const byline = shunnChapterByline(chapter, meta);
+      if (byline !== "") {
+        lines.push(byline, "");
+      }
+    } else if (body.length === 0) {
+      continue;
+    } else if (sections++ > 0) {
+      lines.push("#", "");
+    }
+    for (const paragraph of body) {
+      if (paragraph.sceneBreak) {
+        lines.push(sceneBreak, "");
+        continue;
+      }
+      const prefix = paragraph.quote ? "> " : "";
+      lines.push(`${prefix}${numbered(paragraph).split(LINE_BREAK3).join(`\\
+${prefix}`)}`, "");
+    }
+    if (numbers.size > 0) {
+      lines.push(fillLabel(manuscript.meta?.labels, "footnotes"), "");
+      for (const [label, number] of numbers) {
+        const noteBody = markdownParagraphs(definitions.get(label).text).filter((paragraph) => !paragraph.sceneBreak);
+        const texts = noteBody.length === 0 ? [""] : noteBody.map((paragraph) => paragraph.text.split(LINE_BREAK3).join("\\\n   "));
+        lines.push(texts.map((noteText, index) => `${index === 0 ? `${number}. ` : "   "}${noteText}`).join(`
+
+`), "");
+      }
+    }
+  }
+  writeFile(outFile, `${lines.join(`
+`).trimEnd()}
+`, writeOptions);
+}
+function shunnHtml(manuscript, meta, paperName = DEFAULT_PAPER) {
+  const paper = shunnPaper(paperName);
+  const language = manuscript.meta?.language ?? "en";
+  const type = typesetting(language, "horizontal");
+  const fonts = `"Courier New", Courier, ${type.fonts.latin ? "monospace" : type.fonts.body}`;
+  const head = shunnHeadParts(meta).map((part) => `"${cssString(part)} / "`).join(" ");
+  const headBox = type.rtl ? "@top-left" : "@top-right";
+  const sceneBreak = meta.shortForm ? "#" : "* * *";
+  const media = { note: (note) => `<sup>${note.number}</sup>` };
+  const inline = (runs) => runs.map((run) => runMarkup(run, escapeHtml, "<br>", media)).join("");
+  const paragraphMarkup = (paragraph) => ({
+    quote: Boolean(paragraph.quote),
+    markup: paragraph.sceneBreak ? `<p class="break">${escapeHtml(sceneBreak)}</p>` : `<p>${inline(paragraph.runs)}</p>`
+  });
+  const notesMarkup = (notes) => {
+    if (notes.length === 0) {
+      return "";
+    }
+    const set = shunnNotes(notes, manuscript.meta?.labels);
+    return `
+<p class="break">${escapeHtml(set.heading)}</p>
+${set.notes.flat().map((runs) => `<p>${inline(runs)}</p>`).join(`
+`)}`;
+  };
+  const body = [];
+  let sections = 0;
+  for (const chapter of manuscript.chapters) {
+    const { paragraphs, notes } = bookBody(chapter.body, { ownIndent: true, verse: chapter.verse });
+    if (!meta.shortForm) {
+      const byline = shunnChapterByline(chapter, meta);
+      body.push(`<section class="chapter"><h2>${escapeHtml(chapter.heading)}</h2>
+${byline === "" ? "" : `<p class="byline">${escapeHtml(byline)}</p>
+`}${withBlockquotes(paragraphs.map(paragraphMarkup)).join(`
+`)}${notesMarkup(notes)}
+</section>`);
+      continue;
+    }
+    if (paragraphs.length === 0) {
+      continue;
+    }
+    if (sections++ > 0) {
+      body.push(`<p class="break">#</p>`);
+    }
+    body.push(`${withBlockquotes(paragraphs.map(paragraphMarkup)).join(`
+`)}${notesMarkup(notes)}`);
+  }
+  const dir = type.rtl ? ` dir="rtl"` : "";
+  return `<!DOCTYPE html>
+<html lang="${escapeHtml(language)}"${dir}>
+<head>
+<meta charset="utf-8">
+<title>${escapeHtml(meta.title)}</title>
+<style>
+@page { size: ${paper.css}; margin: 1in;
+  ${headBox} { content: ${head === "" ? "" : `${head} `}counter(page); font: 12pt ${fonts}; } }
+@page :first { ${headBox} { content: none; } }
+html { font: 12pt/2 ${fonts}; }
+body { margin: 0; }
+p { margin: 0; text-indent: 0.5in; text-align: start; widows: 2; orphans: 2; }
+.title-page { line-height: 1.2; }
+.title-page p { text-indent: 0; }
+.title-page .length { float: ${type.rtl ? "left" : "right"}; }
+.title-block { clear: both; text-align: center; margin-top: ${meta.shortForm ? "2.5in" : "3in"}; }
+.title-block h1, .chapter h2 { font: inherit; font-weight: bold; margin: 0; }
+.title-block p { text-indent: 0; text-align: center; }
+.short-form { margin-top: 2em; }
+.chapter { break-before: page; }
+.chapter h2 { text-align: center; margin: 2.25in 0 1em; break-after: avoid; }
+p.break, p.byline { text-align: center; text-indent: 0; }
+blockquote { margin: 0 0.5in; }
+blockquote p { text-indent: 0; }
+</style>
+</head>
+<body>
+<header class="title-page">
+<p class="length">${escapeHtml(shunnLength(meta))}</p>
+${meta.contact.map((line) => `<p>${escapeHtml(String(line))}</p>`).join(`
+`)}
+</header>
+<div class="title-block"><h1>${escapeHtml(meta.title)}</h1>
+${shunnByline(meta).map((line) => `<p>${escapeHtml(line)}</p>`).join(`
+`)}
+</div>
+${meta.shortForm ? `<div class="short-form">
+${body.join(`
+`)}
+</div>` : body.join(`
+`)}
+</body>
+</html>
+`;
+}
+function docxTextXml(text) {
+  return String(text).split(LINE_BREAK3).map((part) => `<w:t xml:space="preserve">${xmlEscape(part)}</w:t>`).join("<w:br/>");
+}
+function paragraphXml(script, text, style = "", runs = [{ text }], media = null, lead = "") {
+  const properties = `${style ? `<w:pStyle w:val="${style}"/>` : ""}${script.bidi}`;
+  const styleXml = properties === "" ? "" : `<w:pPr>${properties}</w:pPr>`;
+  const runXml = runs.map((run) => {
+    if (run.image !== undefined) {
+      return media === null ? "" : `<w:r>${script.rtl === "" ? "" : `<w:rPr>${script.rtl}</w:rPr>`}${media.drawing(run.image)}</w:r>`;
+    }
+    if (run.note !== undefined) {
+      return media === null ? "" : `<w:r><w:rPr><w:rStyle w:val="FootnoteReference"/>${script.rtl}</w:rPr><w:footnoteReference w:id="${media.footnote(run.note)}"/></w:r>`;
+    }
+    const decoration = `${run.strong ? script.bold : ""}${run.em ? script.italic : ""}${script.rtl}`;
+    const runStyle = decoration === "" ? "" : `<w:rPr>${decoration}</w:rPr>`;
+    return `<w:r>${runStyle}${docxTextXml(run.text)}</w:r>`;
+  });
+  return `<w:p>${styleXml}${lead}${runXml.join("")}</w:p>`;
+}
+function inlineRuns(text, code = false, images = [], notes = null) {
+  if (code) {
+    return [{ text, strong: false, em: false }];
+  }
+  const nodes = [];
+  const closeSpan = codeSpanCloser(text);
+  let buffer = "";
+  const flushBuffer = () => {
+    if (buffer !== "") {
+      nodes.push({ text: buffer });
+      buffer = "";
+    }
+  };
+  const isSpace = (char) => char === undefined || char === LINE_BREAK3 || /\s/u.test(char);
+  const isPunct = (char) => char !== undefined && /[\p{P}\p{S}]/u.test(char);
+  for (let index = 0;index < text.length; ) {
+    const char = text[index];
+    if (char === "\\" && /[!-/:-@[-`{-~]/.test(text[index + 1] ?? "")) {
+      buffer += text[index + 1];
+      index += 2;
+      continue;
+    }
+    if (char === "`") {
+      let run = 0;
+      while (text[index + run] === "`") {
+        run += 1;
+      }
+      const end = closeSpan(index, run);
+      if (end === -1) {
+        buffer += "`".repeat(run);
+        index += run;
+      } else {
+        const code = text.slice(index + run, end - run).replace(IMAGE_TOKEN, "");
+        buffer += code.startsWith(" ") && code.endsWith(" ") && /[^ ]/.test(code) ? code.slice(1, -1) : code;
+        index = end;
+      }
+      continue;
+    }
+    if (char === "[" && text[index + 1] === "^" && notes !== null && notes.size > 0) {
+      FOOTNOTE_MARKER.lastIndex = index;
+      const marker = FOOTNOTE_MARKER.exec(text);
+      if (marker !== null && notes.has(footnoteLabel(marker[1]))) {
+        flushBuffer();
+        nodes.push({ note: footnoteLabel(marker[1]) });
+        index += marker[0].length;
+        continue;
+      }
+    }
+    if (char === IMAGE_START) {
+      IMAGE_AT.lastIndex = index;
+      const image = IMAGE_AT.exec(text);
+      flushBuffer();
+      nodes.push({ image: images[Number(image[1])] });
+      index += image[0].length;
+      continue;
+    }
+    const reference = char === "&" ? characterReference(text, index) : null;
+    if (reference !== null) {
+      buffer += reference.value;
+      index += reference.length;
+      continue;
+    }
+    const autolink = char === "<" ? autolinkEnd(text, index) : -1;
+    if (autolink !== -1) {
+      buffer += text.slice(index + 1, autolink - 1);
+      index = autolink;
+      continue;
+    }
+    if (char !== "*" && char !== "_") {
+      buffer += char;
+      index += 1;
+      continue;
+    }
+    let end = index;
+    while (text[end] === char) {
+      end += 1;
+    }
+    flushBuffer();
+    const before = text[index - 1];
+    const after = text[end];
+    const left = !isSpace(after) && (!isPunct(after) || isSpace(before) || isPunct(before));
+    const right = !isSpace(before) && (!isPunct(before) || isSpace(after) || isPunct(after));
+    nodes.push({
+      delimiter: char,
+      count: end - index,
+      original: end - index,
+      open: char === "*" ? left : left && (!right || isPunct(before)),
+      close: char === "*" ? right : right && (!left || isPunct(after)),
+      strong: 0,
+      em: 0
+    });
+    index = end;
+  }
+  if (buffer !== "") {
+    nodes.push({ text: buffer });
+  }
+  const stack = [];
+  const bottom = new Map;
+  const depth = { strong: new Array(nodes.length + 1).fill(0), em: new Array(nodes.length + 1).fill(0) };
+  for (const [closeIndex, closer] of nodes.entries()) {
+    if (!closer.delimiter) {
+      continue;
+    }
+    const key = `${closer.delimiter}${closer.open ? 1 : 0}${closer.original % 3}`;
+    while (closer.close && closer.count > 0) {
+      const floor = bottom.get(key) ?? 0;
+      let position = stack.length - 1;
+      while (position >= floor && !canPairEmphasis(nodes[stack[position]], closer)) {
+        position -= 1;
+      }
+      if (position < floor) {
+        bottom.set(key, stack.length);
+        break;
+      }
+      const openIndex = stack[position];
+      const opener = nodes[openIndex];
+      const used = opener.count >= 2 && closer.count >= 2 ? 2 : 1;
+      opener.count -= used;
+      closer.count -= used;
+      const marks = depth[used === 2 ? "strong" : "em"];
+      marks[openIndex + 1] += 1;
+      marks[closeIndex] -= 1;
+      stack.length = opener.count > 0 ? position + 1 : position;
+      for (const [other, value] of bottom) {
+        if (value > stack.length) {
+          bottom.set(other, stack.length);
+        }
+      }
+    }
+    if (closer.open && closer.count > 0) {
+      stack.push(closeIndex);
+    }
+  }
+  let strongDepth = 0;
+  let emDepth = 0;
+  for (const [index, node] of nodes.entries()) {
+    strongDepth += depth.strong[index];
+    emDepth += depth.em[index];
+    node.strong = strongDepth;
+    node.em = emDepth;
+  }
+  const runs = [];
+  for (const node of nodes) {
+    const strong = (node.strong ?? 0) > 0;
+    const em = (node.em ?? 0) > 0;
+    if (node.image !== undefined) {
+      runs.push({ text: "", strong, em, image: node.image });
+      continue;
+    }
+    if (node.note !== undefined) {
+      runs.push({ text: "", strong, em, note: node.note });
+      continue;
+    }
+    const value = node.delimiter ? node.delimiter.repeat(node.count) : node.text;
+    if (value === "") {
+      continue;
+    }
+    const previous = runs[runs.length - 1];
+    if (previous && previous.image === undefined && previous.note === undefined && previous.strong === strong && previous.em === em) {
+      previous.text += value;
+    } else {
+      runs.push({ text: value, strong, em });
+    }
+  }
+  return runs;
+}
+function canPairEmphasis(opener, closer) {
+  const both = opener.close || closer.open;
+  const ruleOfThree = both && (opener.original + closer.original) % 3 === 0 && !(opener.original % 3 === 0 && closer.original % 3 === 0);
+  return opener.delimiter === closer.delimiter && !ruleOfThree;
+}
+function inlineHtml(text) {
+  return inlineRuns(String(text)).map((run) => runMarkup(run, escapeHtml, "<br>")).join("");
+}
+function runMarkup(run, escape, lineBreak, media = {}) {
+  if (run.image !== undefined) {
+    return media.image === undefined ? "" : media.image(run.image);
+  }
+  if (run.note !== undefined) {
+    return media.note === undefined ? "" : media.note(run.note);
+  }
+  let markup = escape(run.text).split(LINE_BREAK3).join(lineBreak);
+  if (run.em) {
+    markup = `<em>${markup}</em>`;
+  }
+  if (run.strong) {
+    markup = `<strong>${markup}</strong>`;
+  }
+  return markup;
+}
+var LINE_BREAK3 = "";
+function markdownParagraphs(markdown, ownIndent = false, verse = false, media = null) {
+  const paragraphs = [];
+  let lines = [];
+  let quote = false;
+  const flush = () => {
+    if (lines.length === 0) {
+      return;
+    }
+    const texts = lines.map(({ line }, index) => trimSourceSpace(index < lines.length - 1 && /\\$/.test(line) ? line.slice(0, -1) : line));
+    const joined = texts.map((text, index) => {
+      if (index === texts.length - 1) {
+        return text;
+      }
+      if (verse && !lines[index].code || lines[index].line.endsWith("\\") || lines[index].line.endsWith("  ")) {
+        return `${text}${LINE_BREAK3}`;
+      }
+      return `${text}${lines[index].heading || lines[index + 1].heading ? " " : softBreak(text, texts[index + 1])}`;
+    }).join("");
+    const parts = collapseSourceSpace(joined).split(LINE_BREAK3).map(trimSourceSpace);
+    const kept = parts.slice(parts.findIndex((part) => part.trim() !== "")).join(LINE_BREAK3);
+    const text = ownIndent ? kept.replace(/^\s+/, "") : kept;
+    const { code } = lines[0];
+    lines = [];
+    paragraphs.push(!code && !text.includes(LINE_BREAK3) && isSceneBreakLine(text) ? { sceneBreak: true } : { text, quote, code });
+  };
+  const source = splitFences(markdown.replace(/\r\n?/g, `
+`).replace(/[\uE002\uE003]/g, "�")).flatMap((part) => (part.fenced ? withoutFenceMarkers(part.text) : plainLinks(part.text, media?.images ?? null, media?.keep)).split(`
+`).map((line) => ({ line, code: part.fenced })));
+  for (const { line: sourceLine, code } of source) {
+    const heading = isHeadingLine(sourceLine);
+    const rawLine = flattenHeadings(sourceLine);
+    const marker = /^(?:[ \t]*>[ \t]?)+/.exec(rawLine);
+    const line = marker ? rawLine.slice(marker[0].length) : rawLine;
+    if (line.trim() === "") {
+      flush();
+      continue;
+    }
+    if (!code && breaksParagraph(line)) {
+      flush();
+      paragraphs.push({ sceneBreak: true });
+      continue;
+    }
+    if (!code && line.includes(IMAGE_START) && line.replace(IMAGE_TOKEN, "").trim() === "") {
+      flush();
+      paragraphs.push({ figure: true, text: line.trim(), quote: Boolean(marker), code: false });
+      continue;
+    }
+    if (lines.length > 0 && marker && !quote) {
+      flush();
+    }
+    if (lines.length === 0) {
+      quote = Boolean(marker);
+    }
+    lines.push({ line, heading, code });
+  }
+  flush();
+  return paragraphs;
+}
+function verseLineCount(prose) {
+  return markdownParagraphs(splitFootnotes(String(prose).replace(/\r\n?/g, `
+`)).text, false, true).filter((paragraph) => !paragraph.sceneBreak).reduce((sum, paragraph) => sum + paragraph.text.split(LINE_BREAK3).filter((line) => line.trim() !== "").length, 0);
+}
+function wordParagraphs(body, verse = false, defined = null) {
+  return bookBody(body, { ownIndent: true, defined, verse }).paragraphs.map((paragraph) => paragraph.sceneBreak ? { sceneBreak: true } : { quote: paragraph.quote, code: paragraph.code, runs: textRuns(paragraph.runs) });
+}
+function textRuns(runs) {
+  const joined = [];
+  for (const run of runs.filter((entry) => entry.note === undefined)) {
+    const previous = joined.at(-1);
+    if (previous !== undefined && previous.strong === run.strong && previous.em === run.em) {
+      joined[joined.length - 1] = { ...previous, text: previous.text + run.text };
+    } else {
+      joined.push(run);
+    }
+  }
+  return joined;
+}
+function bookBody(body, { ownIndent = false, images: imageOf = null, defined = null, verse = false } = {}) {
+  const images = [];
+  const media = imageOf === null ? null : { images, keep: (image) => (imageOf.get(image.destination) ?? null) !== null };
+  const { text, notes: definitions } = splitFootnotes(body);
+  const known = defined === null ? definitions : {
+    size: definitions.size + defined.size,
+    has: (label) => definitions.has(label) || defined.has(label),
+    get: (label) => definitions.get(label) ?? defined.get(label)
+  };
+  const notes = [];
+  const numbers = new Map;
+  const paragraphs = markdownParagraphs(text, ownIndent, verse, media).map((paragraph) => {
+    if (paragraph.sceneBreak) {
+      return { sceneBreak: true };
+    }
+    const runs = inlineRuns(paragraph.text, paragraph.code, images, known).map((run) => {
+      if (run.image !== undefined) {
+        return { ...run, image: { ...imageOf.get(run.image.destination), alt: imageAlt(run.image.alt) } };
+      }
+      if (run.note === undefined) {
+        return run;
+      }
+      if (!numbers.has(run.note)) {
+        const definition = known.get(run.note);
+        numbers.set(run.note, notes.length);
+        notes.push({ number: notes.length + 1, label: definition.label, references: 0, paragraphs: noteParagraphs(definition.text) });
+      }
+      const note = notes[numbers.get(run.note)];
+      note.references += 1;
+      return { ...run, note: { number: note.number, reference: note.references } };
+    }).filter((run) => !paragraph.figure || run.image !== undefined);
+    return { quote: Boolean(paragraph.quote), code: Boolean(paragraph.code), figure: Boolean(paragraph.figure), runs };
+  });
+  return { paragraphs, notes: notes.map(({ number, label, paragraphs: noteText }) => ({ number, label, paragraphs: noteText })) };
+}
+function noteParagraphs(text) {
+  return markdownParagraphs(text).filter((paragraph) => !paragraph.sceneBreak).map((paragraph) => inlineRuns(paragraph.text, paragraph.code));
+}
+function imageAlt(alt) {
+  return inlineRuns(plainLinks(alt)).map((run) => run.text).join("").split(LINE_BREAK3).join(" ").replace(/\s+/g, " ").trim();
+}
+var ZIP_DOS_DATE = 0 << 9 | 1 << 5 | 1;
+var ZIP_UTF8_NAME_FLAG = 2048;
+var ZIP_STORED = 0;
+var ZIP_DEFLATED = 8;
+var ZIP_MAX_BYTES = 4294967295;
+function writeZip(outFile, entries, writeOptions = {}, maxBytes = ZIP_MAX_BYTES) {
+  const localParts = [];
+  const centralParts = [];
+  let offset = 0;
+  for (const entry of entries) {
+    const name = Buffer5.from(entry.name, "utf8");
+    const content = Buffer5.isBuffer(entry.content) ? entry.content : Buffer5.from(entry.content, "utf8");
+    if (offset + content.length > maxBytes) {
+      throw projectError(`Cannot write the build: its archive would pass 4 GiB, more than a ZIP without ZIP64 can hold; use fewer or smaller images`);
+    }
+    const crc = crc32(content);
+    const deflated = entry.stored ? null : deflateRaw(content);
+    const compressed = deflated !== null && deflated.length < content.length;
+    const body = compressed ? deflated : content;
+    const method = compressed ? ZIP_DEFLATED : ZIP_STORED;
+    const localHeader = Buffer5.alloc(30);
+    localHeader.writeUInt32LE(67324752, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(ZIP_UTF8_NAME_FLAG, 6);
+    localHeader.writeUInt16LE(method, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(ZIP_DOS_DATE, 12);
+    localHeader.writeUInt32LE(crc, 14);
+    localHeader.writeUInt32LE(body.length, 18);
+    localHeader.writeUInt32LE(content.length, 22);
+    localHeader.writeUInt16LE(name.length, 26);
+    localHeader.writeUInt16LE(0, 28);
+    localParts.push(localHeader, name, body);
+    const centralHeader = Buffer5.alloc(46);
+    centralHeader.writeUInt32LE(33639248, 0);
+    centralHeader.writeUInt16LE(20, 4);
+    centralHeader.writeUInt16LE(20, 6);
+    centralHeader.writeUInt16LE(ZIP_UTF8_NAME_FLAG, 8);
+    centralHeader.writeUInt16LE(method, 10);
+    centralHeader.writeUInt16LE(0, 12);
+    centralHeader.writeUInt16LE(ZIP_DOS_DATE, 14);
+    centralHeader.writeUInt32LE(crc, 16);
+    centralHeader.writeUInt32LE(body.length, 20);
+    centralHeader.writeUInt32LE(content.length, 24);
+    centralHeader.writeUInt16LE(name.length, 28);
+    centralHeader.writeUInt16LE(0, 30);
+    centralHeader.writeUInt16LE(0, 32);
+    centralHeader.writeUInt16LE(0, 34);
+    centralHeader.writeUInt16LE(0, 36);
+    centralHeader.writeUInt32LE(0, 38);
+    centralHeader.writeUInt32LE(offset, 42);
+    centralParts.push(centralHeader, name);
+    offset += localHeader.length + name.length + body.length;
+  }
+  let centralSize = 0;
+  for (const part of centralParts) {
+    centralSize += part.length;
+  }
+  const end = Buffer5.alloc(22);
+  end.writeUInt32LE(101010256, 0);
+  end.writeUInt16LE(0, 4);
+  end.writeUInt16LE(0, 6);
+  end.writeUInt16LE(entries.length, 8);
+  end.writeUInt16LE(entries.length, 10);
+  end.writeUInt32LE(centralSize, 12);
+  end.writeUInt32LE(offset, 16);
+  end.writeUInt16LE(0, 20);
+  writeFile(outFile, Buffer5.concat(localParts.concat(centralParts, end)), writeOptions);
+}
+function crc32(buffer) {
+  let crc = 4294967295;
+  for (const byte of buffer) {
+    crc = CRC_TABLE[(crc ^ byte) & 255] ^ crc >>> 8;
+  }
+  return (crc ^ 4294967295) >>> 0;
+}
+var CRC_TABLE = [];
+for (let index = 0;index < 256; index += 1) {
+  let value = index;
+  for (let bit = 0;bit < 8; bit += 1) {
+    value = value & 1 ? 3988292384 ^ value >>> 1 : value >>> 1;
+  }
+  CRC_TABLE.push(value >>> 0);
+}
+var XML_INVALID_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+function xmlEscape(value) {
+  return String(value).replace(XML_INVALID_CHARACTERS, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// src/scan-fields.js
+function chapterLength(unit, data, markdown, verse = false) {
   const prose = chapterProse(markdown.body);
   const words = wordCount(prose);
   const declared = data[unit.countField];
   const target = data[unit.targetField];
   return {
     wordCount: words,
+    lineCount: verse ? verseLineCount(prose) : null,
     count: unit.name === "characters" ? characterCount(prose) : words,
     declaredCount: declared === undefined ? 0 : Number.isInteger(declared) ? declared : null,
     countMissing: declared === undefined,
@@ -14343,20 +17511,20 @@ function chapterNumber(value, file) {
   return value !== undefined && isPositiveIntegerValue(value) ? Number(value) : chapterNumberFromFile(file);
 }
 function chapterNumberFromFile(file) {
-  const match = CHAPTER_FILENAME_PATTERN.exec(path7.basename(file));
+  const match = CHAPTER_FILENAME_PATTERN.exec(path11.basename(file));
   return match ? Number.parseInt(match[1], 10) : 0;
 }
 function sceneNumberFromFile(file) {
-  const match = SCENE_FILENAME_PATTERN.exec(path7.basename(file));
+  const match = SCENE_FILENAME_PATTERN.exec(path11.basename(file));
   return match ? Number.parseInt(match[2], 10) : 0;
 }
 function sceneChapterFromFile(file) {
-  const match = SCENE_FILENAME_PATTERN.exec(path7.basename(file));
+  const match = SCENE_FILENAME_PATTERN.exec(path11.basename(file));
   return match ? match[1] : "";
 }
 
 // src/scan-entity-files.js
-import path8 from "node:path";
+import path12 from "node:path";
 function buildEntity(project, kind, name, options) {
   const requestedId = requestedEntityId(kind, options.id);
   if (kind === "chapter") {
@@ -14410,7 +17578,7 @@ function buildEntity(project, kind, name, options) {
 }
 function entityResult(project, kind, id, markdown) {
   const config = entityConfig(kind);
-  return { id, markdown, file: path8.join(project.root, config.dir, `${id}.md`) };
+  return { id, markdown, file: path12.join(project.root, config.dir, `${id}.md`) };
 }
 function characterFile(name, options, calendar = null) {
   const bornError = bornProblem(options.born, calendar);
@@ -14986,88 +18154,6 @@ function extractMarkdownLinkTargets(body) {
   }
   return targets;
 }
-// src/scan-cover.js
-import fs4 from "node:fs";
-import path9 from "node:path";
-import { Buffer as Buffer2 } from "node:buffer";
-var COVER_MEDIA_TYPES = {
-  ".gif": "image/gif",
-  ".jpeg": "image/jpeg",
-  ".jpg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp"
-};
-var MAX_COVER_BYTES = 50 * 1024 * 1024;
-function assertFileSizeWithinLimit(filePath, limit = MAX_SCAN_FILE_BYTES) {
-  const size = fs4.statSync(filePath).size;
-  if (size > limit) {
-    throw projectError("Refusing to read oversized file " + filePath + ": " + size + " bytes exceeds the " + limit + " byte limit");
-  }
-}
-function coverIsReady(project) {
-  if (project.story.data.cover === undefined) {
-    return false;
-  }
-  try {
-    coverImage(project);
-    return true;
-  } catch {
-    return false;
-  }
-}
-function coverImage(project) {
-  const cover = String(project.story.data.cover).trim();
-  if (PATH_CONTROL_CHARACTERS.test(cover)) {
-    throw controlCharacterError("cover", cover);
-  }
-  const mediaType = COVER_MEDIA_TYPES[path9.extname(cover).toLowerCase()];
-  if (mediaType === undefined) {
-    throw projectError(`story.md cover ${cover} must be a ${Object.keys(COVER_MEDIA_TYPES).join(", ")} image`);
-  }
-  const filePath = path9.resolve(project.root, cover);
-  if (!isPathInside(project.root, filePath)) {
-    throw projectError(`story.md cover ${cover} must be inside the project`);
-  }
-  const stats = lstatIfExists(filePath);
-  if (!stats) {
-    throw projectError(`story.md cover ${cover} does not exist`);
-  }
-  assertSafeProjectPath(filePath, project.root);
-  if (!stats.isFile()) {
-    throw projectError(`story.md cover ${cover} is not a file`);
-  }
-  assertFileSizeWithinLimit(filePath, MAX_COVER_BYTES);
-  let held;
-  try {
-    held = coverFormat(filePath);
-  } catch (error) {
-    const reason = FILE_ERROR_REASONS[error.code];
-    throw projectError(`story.md cover ${cover}: ${reason ? `Cannot read: ${reason}` : String(error.message).replace(`${filePath}: `, "")}`);
-  }
-  if (held !== mediaType) {
-    throw projectError(held === null ? `story.md cover ${cover} does not hold a ${IMAGE_FORMAT_NAMES[mediaType]} image: its first bytes are not the ${IMAGE_FORMAT_NAMES[mediaType]} signature` : `story.md cover ${cover} holds a ${IMAGE_FORMAT_NAMES[held]} image, not a ${IMAGE_FORMAT_NAMES[mediaType]} one: rename it to end in ${Object.keys(COVER_MEDIA_TYPES).filter((extension) => COVER_MEDIA_TYPES[extension] === held).join(" or ")}`);
-  }
-  return { filePath, mediaType, extension: mediaType === "image/jpeg" ? "jpg" : path9.extname(cover).slice(1).toLowerCase(), maxBytes: MAX_COVER_BYTES };
-}
-var IMAGE_FORMAT_NAMES = { "image/gif": "GIF", "image/jpeg": "JPEG", "image/png": "PNG", "image/webp": "WebP" };
-var IMAGE_SIGNATURE_BYTES = 12;
-function coverFormat(filePath) {
-  const head = readFilePrefix(filePath, IMAGE_SIGNATURE_BYTES);
-  const ascii = (start, end) => head.subarray(start, end).toString("latin1");
-  if (head.subarray(0, 8).equals(Buffer2.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
-    return "image/png";
-  }
-  if (head.subarray(0, 3).equals(Buffer2.from([255, 216, 255]))) {
-    return "image/jpeg";
-  }
-  if (ascii(0, 6) === "GIF87a" || ascii(0, 6) === "GIF89a") {
-    return "image/gif";
-  }
-  if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") {
-    return "image/webp";
-  }
-  return null;
-}
 // src/twee.js
 import crypto3 from "node:crypto";
 var TWEE_LINK_UNSAFE = /[[\]|\r\n]|->|<-|<$/;
@@ -15187,7 +18273,7 @@ function branchGraph(project) {
   return { branching, passages, problems, missing, warnings };
 }
 // src/scan-registries.js
-import path10 from "node:path";
+import path13 from "node:path";
 function storyBible(options) {
   const data = {
     title: options.title,
@@ -15328,7 +18414,7 @@ ${themeTracking || `| Theme | Arcs | Chapters |
 `;
 }
 function chapterIndex(storyId, chapters, unit = COUNT_UNITS.get("words")) {
-  const rows = chapters.length === 0 ? ["| *No chapters yet* | | | | | |"] : chapters.map((chapter) => `| ${cell2(chapter.number)} | ${cell2(chapter.title)} | ${cell2(chapter.pov)} | ${cell2(chapter.status)} | ${cell2(chapter.count)} | [${chapter.id}](${path10.basename(chapter.file)}) |`);
+  const rows = chapters.length === 0 ? ["| *No chapters yet* | | | | | |"] : chapters.map((chapter) => `| ${cell2(chapter.number)} | ${cell2(chapter.title)} | ${cell2(chapter.pov)} | ${cell2(chapter.status)} | ${cell2(chapter.count)} | [${chapter.id}](${path13.basename(chapter.file)}) |`);
   const total = chapters.reduce((sum, chapter) => sum + chapter.count, 0);
   const heading = `${unit.noun[0].toUpperCase()}${unit.noun.slice(1)} Count`;
   return `${stringifyFrontmatter({ type: "chapter-registry", story: storyId })}# Chapters
@@ -15526,7 +18612,7 @@ function existingStyleData(root) {
   }
 }
 function existingStoryData(root) {
-  if (!lstatIfExists(path11.join(root, "story.md"))) {
+  if (!lstatIfExists(path14.join(root, "story.md"))) {
     return null;
   }
   try {
@@ -15535,8 +18621,16 @@ function existingStoryData(root) {
     return {};
   }
 }
+function fileImages(markdown) {
+  return imageLines(markdown.body).map((image) => ({ ...image, line: fileLines(markdown, [image.line])[0] }));
+}
+function fileFootnotes(markdown) {
+  const { definitions, markers } = footnoteUses(markdown.body);
+  const withLine = ({ label, line }) => ({ label, line: fileLines(markdown, [line])[0] });
+  return { definitions: definitions.map(withLine), markers: markers.map(withLine) };
+}
 function scanProject(root) {
-  const projectRoot = path11.resolve(root);
+  const projectRoot = path14.resolve(root);
   const scanErrors = [];
   const storyPath = requireStoryFile(projectRoot);
   let story;
@@ -15544,12 +18638,12 @@ function scanProject(root) {
     story = readMarkdown(storyPath, projectRoot);
   } catch (error) {
     scanErrors.push(err("unreadable-file", fileErrorMessage("story.md", error), "story.md"));
-    story = { data: { title: path11.basename(projectRoot) }, body: "", rawMarkdown: "", unreadable: true };
+    story = { data: { title: path14.basename(projectRoot) }, body: "", rawMarkdown: "", unreadable: true };
   }
   const storyId = deriveStoryId(story.data.title, projectRoot);
   const titleText = typeof story.data.title === "string" || typeof story.data.title === "number" ? String(story.data.title).trim() : "";
   let continuity = null;
-  const continuityPath = path11.join(projectRoot, "continuity", "state.md");
+  const continuityPath = path14.join(projectRoot, "continuity", "state.md");
   if (fs5.existsSync(continuityPath)) {
     try {
       continuity = readMarkdown(continuityPath, projectRoot);
@@ -15565,7 +18659,7 @@ function scanProject(root) {
     root: projectRoot,
     story,
     storyId,
-    title: titleText || path11.basename(projectRoot),
+    title: titleText || path14.basename(projectRoot),
     language,
     pack,
     unit,
@@ -15654,12 +18748,14 @@ function scanProject(root) {
       declaredWordCount: data["word-count"] === undefined ? 0 : Number.isInteger(data["word-count"]) ? data["word-count"] : null,
       wordCountMissing: data["word-count"] === undefined,
       targetWords: Number.isInteger(data["target-words"]) && data["target-words"] > 0 ? data["target-words"] : 0,
-      ...chapterLength(unit, data, markdown),
+      verse: isVerseChapter(story.data, data),
+      ...chapterLength(unit, data, markdown, isVerseChapter(story.data, data)),
       unclosedComment: hasUnclosedComment(chapterProse(markdown.body)),
       outlineRunsOn: outlineRunsIntoProse(markdown.body),
       todoMarkers: countTodoMarkers(chapterProse(markdown.body)),
       setextBreaks: fileLines(markdown, setextSceneBreakLines(markdown.body)),
-      footnotes: fileLines(markdown, footnoteLines(markdown.body)),
+      footnotes: fileFootnotes(markdown),
+      images: fileImages(markdown),
       date: String(data.date ?? ""),
       time: String(data.time ?? ""),
       releaseDate: data["release-date"],
@@ -15756,7 +18852,9 @@ function scanProject(root) {
         heading: data.heading !== false,
         permission: typeof data.permission === "string" ? data.permission : "",
         empty,
-        todoMarkers: empty ? 0 : countTodoMarkers(prose) + countTodoMarkers(title)
+        todoMarkers: empty ? 0 : countTodoMarkers(prose) + countTodoMarkers(title),
+        images: empty ? [] : fileImages(markdown),
+        footnotes: empty ? { definitions: [], markers: [] } : fileFootnotes(markdown)
       };
     }, scanErrors).sort((left, right) => left.order - right.order || left.id.localeCompare(right.id, "en")),
     exemptions: readExemptions(projectRoot, scanErrors),
@@ -15794,7 +18892,7 @@ ${errors.map((error) => `- ${error.message}`).join(`
   }
 }
 function readEntityFiles(root, relativeDir, mapEntity, scanErrors) {
-  const directory = path11.join(root, relativeDir);
+  const directory = path14.join(root, relativeDir);
   if (!fs5.existsSync(directory)) {
     return [];
   }
@@ -15805,11 +18903,11 @@ function readEntityFiles(root, relativeDir, mapEntity, scanErrors) {
     throw projectError("Too many files in " + relativeDir + ": " + files.length + " exceeds the " + MAX_SCAN_FILES + " file limit");
   }
   for (const file of files) {
-    const fullPath = path11.join(directory, file);
-    const label = path11.posix.join(relativeDir, file);
+    const fullPath = path14.join(directory, file);
+    const label = path14.posix.join(relativeDir, file);
     try {
       const markdown = readMarkdown(fullPath, root);
-      const entity = mapEntity(path11.basename(file, ".md"), fullPath, markdown.data, markdown);
+      const entity = mapEntity(path14.basename(file, ".md"), fullPath, markdown.data, markdown);
       Object.defineProperty(entity, "frontmatter", { value: markdown.data, enumerable: false });
       entities.push(entity);
     } catch (error) {
@@ -15819,7 +18917,7 @@ function readEntityFiles(root, relativeDir, mapEntity, scanErrors) {
   return entities;
 }
 function readExemptions(root, scanErrors) {
-  const exemptionsPath = path11.join(root, "continuity", "exemptions.md");
+  const exemptionsPath = path14.join(root, "continuity", "exemptions.md");
   if (!lstatIfExists(exemptionsPath)) {
     return [];
   }
@@ -15839,7 +18937,7 @@ function readExemptions(root, scanErrors) {
   return parseExemptions(data.exemptions);
 }
 function readOptionalRootFile(root, name, scanErrors) {
-  const filePath = path11.join(root, name);
+  const filePath = path14.join(root, name);
   if (!lstatIfExists(filePath)) {
     return null;
   }
@@ -15852,7 +18950,7 @@ function readOptionalRootFile(root, name, scanErrors) {
   }
 }
 function readStyleSheet(root, scanErrors) {
-  const filePath = path11.join(root, STYLE_SHEET_FILE);
+  const filePath = path14.join(root, STYLE_SHEET_FILE);
   if (!lstatIfExists(filePath)) {
     return null;
   }
@@ -16268,12 +19366,15 @@ function checkContinuity(project) {
   checkStateAgainstStory(project, context, warnings);
   checkPropCustody(project, context, errors);
   checkClock(project, errors, warnings);
+  const custom = customCheckFindings(project);
+  errors.push(...custom.errors);
+  warnings.push(...custom.warnings);
   return withExemptions(project, { ok: errors.length === 0, errors, warnings });
 }
 function withExemptions(project, result) {
   return dismissByExemptions({ ...result, dismissed: [] }, project.exemptions ?? [], {
     errors: true,
-    dismissable: (finding) => CONTINUITY_ERROR_CODES.includes(finding.code)
+    dismissable: (finding) => CONTINUITY_ERROR_CODES.includes(finding.code) || isCustomCode(finding.code)
   });
 }
 function checkCharacterDeaths(project, context, errors, warnings) {
@@ -16447,7 +19548,7 @@ function checkProgressionDeath(character, label, chronology, warnings) {
   }
 }
 function checkChapterCasts(project, warnings) {
-  for (const chapter of project.chapters) {
+  for (const chapter of project.chapters.filter((entry) => !entry.verse)) {
     if (chapter.pov && !chapter.characters.includes(chapter.pov) && !chapter.mentions.includes(chapter.pov)) {
       warnings.push(warn("pov-not-in-cast", `${relative2(project, chapter.file)} POV character ${chapter.pov} is not listed in characters`, relative2(project, chapter.file), chapter.id));
     }
@@ -16461,7 +19562,7 @@ function checkSceneCasts(project, warnings) {
   const chapters = new Map(project.chapters.map((chapter) => [chapter.id, chapter]));
   for (const scene of project.scenes) {
     const label = relative2(project, scene.file);
-    if (scene.pov && !scene.characters.includes(scene.pov) && !scene.mentions.includes(scene.pov)) {
+    if (scene.pov && chapters.get(scene.chapter)?.verse !== true && !scene.characters.includes(scene.pov) && !scene.mentions.includes(scene.pov)) {
       warnings.push(warn("pov-not-in-cast", `${label} POV character ${scene.pov} is not listed in characters`, label, chapterOf(scene)));
     }
     const chapter = chapters.get(scene.chapter);
@@ -18001,7 +21102,7 @@ function entityStateAtTarget(frontmatter, chronology, chapterId) {
     return Number(/^chapter-(\d+)$/.exec(id)?.[1]) <= targetNumber;
   };
   const data = frontmatter ?? {};
-  const progressions = asList(data.progressions).filter((entry) => isMapping(entry) && readBy(entry.from));
+  const progressions = asList(data.progressions).filter((entry) => isMapping2(entry) && readBy(entry.from));
   return entityStateAt({ ...data, progressions }, chapterId, chronology);
 }
 function characterStateAt(character, chronology, chapterId) {
@@ -18089,7 +21190,7 @@ function buildContext(project, targetId, readBody, options = {}) {
   essentials.push(item("story", "story.md essentials", "story.md", storyText));
   if (project.styleSheet) {
     const data = project.styleSheet.data;
-    const preferred = (Array.isArray(data.preferred) ? data.preferred : []).filter((entry) => isMapping(entry) && typeof entry.use === "string" && typeof entry.avoid === "string").map((entry) => `${entry.use} (not ${entry.avoid})`);
+    const preferred = (Array.isArray(data.preferred) ? data.preferred : []).filter((entry) => isMapping2(entry) && typeof entry.use === "string" && typeof entry.avoid === "string").map((entry) => `${entry.use} (not ${entry.avoid})`);
     const body = styleRules(project.styleSheet.body);
     essentials.push(item("style-sheet", "Style sheet", relative(project.styleSheet.file), lines("### Style sheet", field("Dialect", data.dialect), field("Preferred", preferred), field("Watch words", Array.isArray(data["watch-words"]) ? data["watch-words"] : []), body === "" ? null : `
 ${body}`)));
@@ -18099,7 +21200,7 @@ ${body}`)));
   if (pov !== "") {
     const known = { reader: [], character: [] };
     for (const entry of project.continuity ? asList(project.continuity.data["knowledge-state"]) : []) {
-      if (!isMapping(entry) || idText(entry.character) !== pov || String(entry.knows ?? "").trim() === "") {
+      if (!isMapping2(entry) || idText(entry.character) !== pov || String(entry.knows ?? "").trim() === "") {
         continue;
       }
       const learnedIn = idText(entry["learned-in"]);
@@ -18132,7 +21233,7 @@ ${body}`)));
     const byPath = Boolean(chronology.branching && current);
     const readBefore = byPath ? chronology.readAfter(target.chapter.id, current.id) : Number.isInteger(currentChapter) && currentChapter < targetNumber;
     const sibling = byPath && !readBefore && current.id !== target.chapter.id && !chronology.readAfter(current.id, target.chapter.id);
-    const stateEntries = project.continuity ? asList(project.continuity.data["character-state"]).filter((entry) => isMapping(entry) && idText(entry.character) === pov) : [];
+    const stateEntries = project.continuity ? asList(project.continuity.data["character-state"]).filter((entry) => isMapping2(entry) && idText(entry.character) === pov) : [];
     if (stateEntries.length > 0 && readBefore) {
       state.push(...stateEntries.map((entry) => `- As of chapter ${currentChapter}: ${describeMapping(entry, ["character"])}`));
       stateSources.add(statePath);
@@ -18142,7 +21243,7 @@ ${body}`)));
     }
     for (const scene of earlierScenes(project, target, upToTarget)) {
       for (const change of scene.stateChanges) {
-        if (isMapping(change) && (idText(change.character) === pov || idText(change.owner) === pov)) {
+        if (isMapping2(change) && (idText(change.character) === pov || idText(change.owner) === pov)) {
           state.push(`- ${scene.chapter} scene ${scene.scene}: ${describeMapping(change, ["character"])}`);
           stateSources.add(relative(scene.file));
         }
@@ -18254,7 +21355,7 @@ function sceneRecordsFact(scene, characterId, entry) {
   return false;
 }
 function recordsKnowledge(change, characterId) {
-  return isMapping(change) && idText(change.character) === characterId && change.knowledge !== undefined;
+  return isMapping2(change) && idText(change.character) === characterId && change.knowledge !== undefined;
 }
 function sameFact(fact, change) {
   if (fact === "") {
@@ -18277,7 +21378,7 @@ function earlierScenes(project, target, upToTarget) {
 function asList(value) {
   return Array.isArray(value) ? value : [];
 }
-function isMapping(value) {
+function isMapping2(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
 function describeMapping(entry, skip) {
@@ -18321,6 +21422,7 @@ var DRAFTED_STATUSES = new Set(["draft", "revised", "final", "complete"]);
 var EASY_WIN_RUN = 3;
 var NO_SEQUEL_RUN = 4;
 var RESOLUTION_RUN = 3;
+var RUN_BREAK = Object.freeze({ runBreak: true });
 function buildPacing(project) {
   const characterBook = project.unit?.name === "characters";
   const inUnit = (row) => characterBook ? row.characterCount : row.words;
@@ -18331,13 +21433,19 @@ function buildPacing(project) {
   const rows = [];
   const units = [];
   for (const chapter of chapters) {
+    const verse = chapter.verse === true;
     const scenes = project.scenes.filter((scene) => scene.chapter === chapter.id).sort((left, right) => left.scene - right.scene || left.id.localeCompare(right.id, "en"));
     const outcomes = { yes: 0, no: 0, "yes-but": 0, "no-and": 0 };
     for (const scene of scenes) {
       if (!scene.sequel && SCENE_OUTCOMES.has(scene.outcome)) {
         outcomes[scene.outcome] += 1;
       }
-      units.push(scene);
+      if (!verse) {
+        units.push(scene);
+      }
+    }
+    if (verse) {
+      units.push(RUN_BREAK);
     }
     rows.push({
       id: chapter.id,
@@ -18348,17 +21456,25 @@ function buildPacing(project) {
       sequels: scenes.filter((scene) => scene.sequel).length,
       outcomes,
       hook: chapter.hook,
-      status: chapter.status
+      status: chapter.status,
+      verse
     });
-    if (chapter.hook === "" && DRAFTED_STATUSES.has(chapter.status)) {
+    if (!verse && chapter.hook === "" && DRAFTED_STATUSES.has(chapter.status)) {
       warnings.push(warn("pacing-no-hook", `${chapter.id} has no hook: record how the chapter ending pulls the reader on`, files.get(chapter.id)));
     }
   }
   let easyWins = [];
   let withoutSequel = [];
   for (const unit of units) {
+    if (unit === RUN_BREAK) {
+      flushRun(easyWins, EASY_WIN_RUN, warnings, easyWinsWarning);
+      flushRun(withoutSequel, NO_SEQUEL_RUN, warnings, noSequelWarning);
+      easyWins = [];
+      withoutSequel = [];
+      continue;
+    }
     if (unit.sequel) {
-      flushRun(withoutSequel, NO_SEQUEL_RUN, warnings, (run) => warn("pacing-no-sequel", `${run.length} scene units in a row with no sequel (${span(run)}): give the POV character room to react and decide`));
+      flushRun(withoutSequel, NO_SEQUEL_RUN, warnings, noSequelWarning);
       withoutSequel = [];
       continue;
     }
@@ -18366,23 +21482,23 @@ function buildPacing(project) {
     if (unit.outcome === "yes") {
       easyWins.push(unit);
     } else {
-      flushRun(easyWins, EASY_WIN_RUN, warnings, (run) => warn("pacing-easy-wins", `${run.length} scenes in a row end in an outright yes (${span(run)}): raise the cost with yes-but or no-and`));
+      flushRun(easyWins, EASY_WIN_RUN, warnings, easyWinsWarning);
       easyWins = [];
     }
   }
-  flushRun(easyWins, EASY_WIN_RUN, warnings, (run) => warn("pacing-easy-wins", `${run.length} scenes in a row end in an outright yes (${span(run)}): raise the cost with yes-but or no-and`));
-  flushRun(withoutSequel, NO_SEQUEL_RUN, warnings, (run) => warn("pacing-no-sequel", `${run.length} scene units in a row with no sequel (${span(run)}): give the POV character room to react and decide`));
+  flushRun(easyWins, EASY_WIN_RUN, warnings, easyWinsWarning);
+  flushRun(withoutSequel, NO_SEQUEL_RUN, warnings, noSequelWarning);
   let resolutions = [];
   for (const row of rows) {
-    if (row.hook === "resolution") {
+    if (!row.verse && row.hook === "resolution") {
       resolutions.push(row);
     } else {
-      flushRun(resolutions, RESOLUTION_RUN, warnings, (run) => warn("pacing-resolution-run", `${run.length} chapters in a row end on resolution (${span(run)}): readers can put the book down`));
+      flushRun(resolutions, RESOLUTION_RUN, warnings, resolutionRunWarning);
       resolutions = [];
     }
   }
-  flushRun(resolutions, RESOLUTION_RUN, warnings, (run) => warn("pacing-resolution-run", `${run.length} chapters in a row end on resolution (${span(run)}): readers can put the book down`));
-  const written = rows.filter((row) => inUnit(row) > 0);
+  flushRun(resolutions, RESOLUTION_RUN, warnings, resolutionRunWarning);
+  const written = rows.filter((row) => !row.verse && inUnit(row) > 0);
   const median = medianOf(written.map(inUnit));
   if (written.length >= 3) {
     for (const row of written) {
@@ -18393,22 +21509,27 @@ function buildPacing(project) {
       }
     }
   }
-  const recorded = units.filter((unit) => !unit.sequel && SCENE_OUTCOMES.has(unit.outcome));
+  const scenes = units.filter((unit) => unit !== RUN_BREAK);
+  const recorded = scenes.filter((unit) => !unit.sequel && SCENE_OUTCOMES.has(unit.outcome));
   return {
     unit: characterBook ? "characters" : "words",
     rows,
-    medianWords: characterBook ? formatMedian(medianOf(rows.filter((row) => row.words > 0).map((row) => row.words))) : formatMedian(median),
+    medianWords: characterBook ? formatMedian(medianOf(rows.filter((row) => !row.verse && row.words > 0).map((row) => row.words))) : formatMedian(median),
     medianCharacterCount: characterBook ? formatMedian(median) : null,
     totals: {
-      scenes: units.filter((unit) => !unit.sequel).length,
-      sequels: units.filter((unit) => unit.sequel).length,
+      scenes: scenes.filter((unit) => !unit.sequel).length,
+      sequels: scenes.filter((unit) => unit.sequel).length,
       outcomesRecorded: recorded.length,
       setbacks: recorded.filter((unit) => unit.outcome !== "yes").length,
-      hooks: rows.filter((row) => row.hook !== "").length
+      hooks: rows.filter((row) => !row.verse && row.hook !== "").length,
+      verseChapters: rows.filter((row) => row.verse).length
     },
     warnings
   };
 }
+var easyWinsWarning = (run) => warn("pacing-easy-wins", `${run.length} scenes in a row end in an outright yes (${span(run)}): raise the cost with yes-but or no-and`);
+var noSequelWarning = (run) => warn("pacing-no-sequel", `${run.length} scene units in a row with no sequel (${span(run)}): give the POV character room to react and decide`);
+var resolutionRunWarning = (run) => warn("pacing-resolution-run", `${run.length} chapters in a row end on resolution (${span(run)}): readers can put the book down`);
 function flushRun(run, minimum, warnings, message) {
   if (run.length >= minimum) {
     warnings.push(message(run));
@@ -18434,10 +21555,11 @@ function formatPacing(pacing) {
   const { totals } = pacing;
   const characterBook = pacing.unit === "characters";
   const setbackShare = totals.outcomesRecorded === 0 ? "no outcomes recorded" : `${Math.round(totals.setbacks * 100 / totals.outcomesRecorded)}% of recorded outcomes are setbacks or complications`;
+  const verse = totals.verseChapters ?? 0;
   const lines = [
-    `Pacing: ${plural(totals.scenes, "scene")}, ${plural(totals.sequels, "sequel")}, ${totals.hooks} of ${plural(pacing.rows.length, "chapter")} with hooks`,
+    `Pacing: ${plural(totals.scenes, "scene")}, ${plural(totals.sequels, "sequel")}, ${totals.hooks} of ${plural(pacing.rows.length - verse, verse > 0 ? "prose chapter" : "chapter")} with hooks${verse > 0 ? ` (${plural(verse, "verse chapter")} left out)` : ""}`,
     `Outcomes: ${setbackShare}`,
-    characterBook ? `Median chapter: ${pacing.medianCharacterCount} characters` : `Median chapter: ${pacing.medianWords} words`,
+    verse > 0 && verse === pacing.rows.length ? "Median chapter: none (no prose chapters)" : characterBook ? `Median chapter: ${pacing.medianCharacterCount} characters` : `Median chapter: ${pacing.medianWords} words`,
     ""
   ];
   if (pacing.rows.length === 0) {
@@ -18457,7 +21579,7 @@ function formatPacing(pacing) {
   const cellText = (column, text) => column.left ? text.padEnd(column.width) : text.padStart(column.width);
   lines.push(`${columns.map((column) => column.title.padEnd(column.width)).join("  ")}  Hook`);
   for (const row of pacing.rows) {
-    lines.push(`${columns.map((column) => cellText(column, column.value(row))).join("  ")}  ${row.hook || "-"}`);
+    lines.push(`${columns.map((column) => cellText(column, column.value(row))).join("  ")}  ${row.verse ? "(verse)" : row.hook || "-"}`);
   }
   return `${lines.join(`
 `)}
@@ -18564,863 +21686,6 @@ function formatCsv(table) {
 function csvCell(value) {
   const text = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
   return /[",;\t\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-// src/list.js
-import path12 from "node:path";
-var LIST_KINDS = [
-  { kind: "chapters", singular: "chapter", collection: "chapters", schema: "chapter", title: "title" },
-  { kind: "scenes", singular: "scene", collection: "scenes", schema: "scene", title: "title" },
-  { kind: "characters", singular: "character", collection: "characters", schema: "character", title: "name" },
-  { kind: "locations", singular: "location", collection: "locations", schema: "location", title: "name" },
-  { kind: "systems", singular: "system", collection: "systems", schema: "system", title: "name" },
-  { kind: "factions", singular: "faction", collection: "factions", schema: "faction", title: "name" },
-  { kind: "artifacts", singular: "artifact", collection: "artifacts", schema: "artifact", title: "name" },
-  { kind: "arcs", singular: "arc", collection: "arcs", schema: "arc", title: "name" },
-  { kind: "questions", singular: "question", collection: "questions", schema: "question", title: "title" },
-  { kind: "promises", singular: "promise", collection: "promises", schema: "promise", title: "title" },
-  { kind: "clues", singular: "clue", collection: "clues", schema: "clue", title: "title" },
-  { kind: "terms", singular: "term", collection: "glossaryTerms", schema: "term", title: "term" },
-  { kind: "research", singular: "research", collection: "research", schema: "research", title: "title" },
-  { kind: "matter", singular: "matter", collection: "matter", schema: "matter", title: "title" }
-];
-var KIND_NAMES = LIST_KINDS.map((entry) => entry.kind);
-var QUERY_KINDS = new Set(LIST_KINDS.flatMap((entry) => [entry.kind, entry.singular]));
-var QUERY_KEYS = ["name", "kind", "where"];
-var KEBAB_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-var LINE_BREAK2 = /[\n\r\u2028\u2029]/;
-var UNSAFE_IN_MESSAGE = /[\u007f-\u009f\u061c\u200e\u200f\u2028\u2029\u202a-\u202e\u2066-\u2069]/gu;
-function listKind(name) {
-  if (typeof name !== "string" || name.trim() === "") {
-    throw usageError(`Usage: story list <kind> [--where <filter>]... or story list --query <name> [--where <filter>]... [--path <project>]; kinds: ${KIND_NAMES.join(", ")}`);
-  }
-  const text = name.trim().toLowerCase();
-  const entry = LIST_KINDS.find((candidate) => candidate.kind === text || candidate.singular === text);
-  if (!entry) {
-    throw usageError(`Unknown kind "${name}" for story list (kinds: ${KIND_NAMES.join(", ")})${suggestion(text, KIND_NAMES)}`);
-  }
-  return entry;
-}
-function parseWhere(text) {
-  const filter = readWhere(text);
-  if (filter.problem === "value") {
-    throw usageError(`--where ${filter.text} needs a value after ${filter.operator}; use --where ${filter.key} for a key that is set, or --where '!${filter.key}' for one that is not`, "where");
-  }
-  if (filter.problem === "shape") {
-    throw usageError(`Cannot read --where ${filter.text}: expected key=value, key!=value, key, or !key`, "where");
-  }
-  return filter;
-}
-function readWhere(text) {
-  const filter = String(text).trim();
-  const at = filter.search(/[=!]/);
-  if (at > 0 && (filter[at] === "=" || filter[at + 1] === "=")) {
-    const operator = filter[at] === "=" ? "=" : "!=";
-    const key = filter.slice(0, at).trimEnd();
-    const value = filter.slice(at + operator.length).trimStart();
-    if (value === "") {
-      return { problem: "value", text: filter, key, operator };
-    }
-    if (!LINE_BREAK2.test(value)) {
-      return { key, op: operator === "=" ? "eq" : "ne", value };
-    }
-  }
-  const absent = filter.startsWith("!");
-  const key = absent ? filter.slice(1) : filter;
-  if (key !== "" && !/[=!\s]/.test(key)) {
-    return { key, op: absent ? "absent" : "present", value: null };
-  }
-  return { problem: "shape", text: filter };
-}
-function buildList(project, kindName, whereValues = [], queryName = undefined) {
-  const query = queryName === undefined ? null : savedQuery(project, queryName);
-  const entry = query === null ? listKind(kindName) : queryKind(query.item, kindName);
-  const saved = (query?.item.where ?? []).map(parseWhere);
-  const given = [whereValues].flat().filter((value) => value !== undefined && value !== true).map(parseWhere);
-  const filters = [...saved, ...given];
-  const entities = project[entry.collection];
-  const queryField = query === null ? null : String(queryName).trim();
-  const warnings = query?.warnings ?? [];
-  if ((project.fileErrors ?? []).length > 0) {
-    return { kind: entry.kind, query: queryField, where: filters, total: entities.length, items: [], warnings };
-  }
-  const known = knownKeys(project, entry);
-  for (const filter of given) {
-    if (!known.has(filter.key)) {
-      throw usageError(`Unknown key "${filter.key}" for ${entry.kind}: no ${entry.singular} file sets it and the schema does not define it${keyHint(filter.key, [...known])}`, "where");
-    }
-  }
-  const keys = [...new Set(filters.map((filter) => filter.key))];
-  const items = entities.filter((entity) => filters.every((filter) => matches(entity.frontmatter ?? {}, filter))).map((entity) => ({
-    id: entity.id,
-    file: path12.relative(project.root, entity.file).split(path12.sep).join("/"),
-    title: String(entity[entry.title]),
-    fields: Object.fromEntries(keys.map((key) => [key, ownField(entity.frontmatter ?? {}, key) ?? null]))
-  }));
-  return { kind: entry.kind, query: queryField, where: filters, total: entities.length, items, warnings };
-}
-function knownKeys(project, entry) {
-  const known = new Set(FRONTMATTER_KEYS[entry.schema]);
-  for (const entity of project[entry.collection]) {
-    for (const key of Object.keys(entity.frontmatter ?? {})) {
-      known.add(key);
-    }
-  }
-  return known;
-}
-function keyHint(key, candidates) {
-  const near = nearMissKeys(key, candidates);
-  return near.length > 0 ? `; did you mean ${near.map((candidate) => `"${candidate}"`).join(" or ")}?` : "";
-}
-function quoted(value) {
-  return JSON.stringify(value).replace(UNSAFE_IN_MESSAGE, (character) => `\\u${character.charCodeAt(0).toString(16).padStart(4, "0")}`);
-}
-function shownName(name) {
-  return typeof name === "string" && KEBAB_NAME.test(name) ? name : quoted(name);
-}
-function nameText(name) {
-  return typeof name === "number" || typeof name === "boolean" ? String(name) : name;
-}
-function savedQuery(project, name) {
-  const wanted = String(name).trim();
-  if (wanted === "") {
-    throw usageError("--query needs the name of a story.md query");
-  }
-  if (project.story.unreadable) {
-    throw projectError(`story.md cannot be parsed; fix it before running story list --query ${quoted(wanted)}`);
-  }
-  const raw = project.story.data.queries;
-  if (raw !== undefined && !Array.isArray(raw)) {
-    throw projectError(`story.md frontmatter field queries must be a list; fix it before running story list --query ${quoted(wanted)}`);
-  }
-  const entries = (raw ?? []).map((item, index) => ({ item, index })).filter(({ item }) => isMapping2(item));
-  const named = entries.filter(({ item }) => nameText(item.name) === wanted);
-  if (named.length === 0) {
-    const names = [...new Set(entries.map(({ item }) => nameText(item.name)).filter((candidate) => typeof candidate === "string" && candidate !== ""))];
-    throw usageError(names.length === 0 ? `Unknown query ${quoted(wanted)}: story.md has no queries` : `Unknown query ${quoted(wanted)} (story.md queries: ${names.map(shownName).join(", ")})${suggestion(wanted, names)}`);
-  }
-  if (named.length > 1) {
-    throw projectError(`Fix story.md query ${shownName(wanted)} before running it: story.md lists query ${shownName(wanted)} more than once`);
-  }
-  const { item, index } = named[0];
-  const problems = queryProblems(project, item, index, (entry) => knownKeys(project, entry));
-  if (problems.errors.length > 0) {
-    throw projectError(`Fix story.md query ${shownName(wanted)} before running it: ${problems.errors.map((finding) => finding.message).join("; ")}`);
-  }
-  return { item, warnings: problems.warnings };
-}
-function queryKind(query, kindName) {
-  const entry = listKind(query.kind);
-  if (kindName !== undefined && listKind(kindName) !== entry) {
-    throw usageError(`Query ${query.name} lists ${entry.kind}, not ${listKind(kindName).kind}: drop the kind, or give ${entry.kind}`);
-  }
-  return entry;
-}
-function queryFindings(project) {
-  const errors = [];
-  const warnings = [];
-  const raw = project.story.data.queries;
-  if (raw === undefined) {
-    return { errors, warnings };
-  }
-  if (!Array.isArray(raw)) {
-    errors.push(err("field-not-list", "story.md frontmatter field queries must be a list", "story.md"));
-    return { errors, warnings };
-  }
-  const keysByKind = new Map;
-  const knownFor = (entry) => {
-    if (!keysByKind.has(entry)) {
-      keysByKind.set(entry, knownKeys(project, entry));
-    }
-    return keysByKind.get(entry);
-  };
-  const seen = new Set;
-  raw.forEach((item, index) => {
-    if (!isMapping2(item)) {
-      errors.push(err("field-invalid-items", "story.md frontmatter field queries must contain mappings, such as - name: mara-drafts", "story.md"));
-      return;
-    }
-    const problems = queryProblems(project, item, index, knownFor);
-    errors.push(...problems.errors);
-    warnings.push(...problems.warnings);
-    if (typeof item.name === "string" && seen.has(item.name)) {
-      errors.push(err("duplicate-query", `story.md lists query ${shownName(item.name)} more than once`, "story.md"));
-    }
-    seen.add(item.name);
-  });
-  return { errors, warnings };
-}
-function queryProblems(project, item, index, knownFor) {
-  const errors = [];
-  const warnings = [];
-  const label = typeof item.name === "string" && KEBAB_NAME.test(item.name) ? `story.md query ${item.name}` : `story.md queries[${index}]`;
-  const extra = Object.keys(item).filter((key) => !QUERY_KEYS.includes(key));
-  if (extra.length > 0) {
-    errors.push(err("invalid-query", `${label} has ${extra.join(", ")}: a query takes only name, kind, and where`, "story.md"));
-  }
-  if (item.name === undefined) {
-    errors.push(err("missing-field", `${label} is missing name`, "story.md"));
-  } else if (typeof item.name === "number" || typeof item.name === "boolean") {
-    errors.push(err("field-not-text", `${label} name ${String(item.name)} is not text: quote it, such as name: "${String(item.name)}"`, "story.md"));
-  } else if (typeof item.name !== "string" || !KEBAB_NAME.test(item.name)) {
-    errors.push(err("id-not-kebab", `${label} name ${quoted(item.name)} must be kebab-case, such as mara-drafts`, "story.md"));
-  }
-  let entry = null;
-  if (item.kind === undefined) {
-    errors.push(err("missing-field", `${label} is missing kind`, "story.md"));
-  } else if (QUERY_KINDS.has(item.kind)) {
-    entry = listKind(item.kind);
-  } else {
-    const near = typeof item.kind === "string" ? suggestion(item.kind, KIND_NAMES) : "";
-    errors.push(err("invalid-query", `${label} kind ${quoted(item.kind)} is not a kind story list takes (${KIND_NAMES.join(", ")}, or the singular)${near}`, "story.md"));
-  }
-  if (item.where === undefined) {
-    errors.push(err("missing-field", `${label} is missing where`, "story.md"));
-    return { errors, warnings };
-  }
-  if (Array.isArray(item.where) && item.where.length === 0) {
-    errors.push(err("invalid-query", `${label} where needs at least one filter, such as where: [status=draft]`, "story.md"));
-    return { errors, warnings };
-  }
-  if (!Array.isArray(item.where) || !item.where.every((filter) => typeof filter === "string")) {
-    errors.push(err("invalid-query", `${label} where must be a list of filters, such as where: [status=draft, pov=mara-quill]`, "story.md"));
-    return { errors, warnings };
-  }
-  const filters = [];
-  for (const text of item.where) {
-    const filter = readWhere(text);
-    if (filter.problem === "value") {
-      errors.push(err("invalid-query", `${label} where filter ${quoted(filter.text)} needs a value after ${filter.operator}; write ${quoted(filter.key)} for a key that is set, or ${quoted(`!${filter.key}`)} for one that is not`, "story.md"));
-    } else if (filter.problem === "shape") {
-      errors.push(err("invalid-query", `${label} cannot read where filter ${quoted(filter.text)}: expected key=value, key!=value, key, or "!key"`, "story.md"));
-    } else {
-      filters.push(filter);
-    }
-  }
-  if (entry !== null && (project.fileErrors ?? []).length === 0) {
-    const known = knownFor(entry);
-    for (const filter of filters.filter((candidate) => !known.has(candidate.key))) {
-      warnings.push(warn("query-unknown-key", `${label} filters on ${quoted(filter.key)}, which no ${entry.singular} file sets and the schema does not define, so it matches as unset${keyHint(filter.key, FRONTMATTER_KEYS[entry.schema])}`, "story.md"));
-    }
-  }
-  return { errors, warnings };
-}
-function queryFiltersNaming(queries, isReferenceKey, id) {
-  if (!Array.isArray(queries)) {
-    return [];
-  }
-  const found = [];
-  queries.forEach((item, index) => {
-    if (!isMapping2(item) || !Array.isArray(item.where)) {
-      return;
-    }
-    const positions = [];
-    item.where.forEach((text, position) => {
-      const filter = typeof text === "string" ? readWhere(text) : {};
-      if (filter.value === id && isReferenceKey(filter.key)) {
-        positions.push(position);
-      }
-    });
-    if (positions.length > 0) {
-      found.push({ index, item, positions });
-    }
-  });
-  return found;
-}
-function retargetFilter(text, newId) {
-  const end = text.trimEnd().length;
-  return `${text.slice(0, end - readWhere(text).value.length)}${newId}${text.slice(end)}`;
-}
-function shownFilter(text) {
-  const filter = readWhere(text);
-  return `${filter.key}${filter.op === "eq" ? "=" : "!="}${filter.value}`;
-}
-function shownQuery({ item, index }) {
-  return typeof item.name === "string" && KEBAB_NAME.test(item.name) ? item.name : `queries[${index}]`;
-}
-function isMapping2(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-function ownField(frontmatter, key) {
-  return Object.hasOwn(frontmatter, key) ? frontmatter[key] : undefined;
-}
-function matches(frontmatter, filter) {
-  const value = ownField(frontmatter, filter.key);
-  switch (filter.op) {
-    case "present":
-      return isSet(value);
-    case "absent":
-      return !isSet(value);
-    case "eq":
-      return contains(value, filter.value);
-    default:
-      return !contains(value, filter.value);
-  }
-}
-function isSet(value) {
-  return value !== undefined && value !== null && value !== "" && !(Array.isArray(value) && value.length === 0);
-}
-function contains(value, wanted) {
-  return (Array.isArray(value) ? value : [value]).some((item) => isScalar(item) && oneLine(item) === wanted);
-}
-function isScalar(value) {
-  return typeof value === "string" || typeof value === "number" || typeof value === "boolean";
-}
-function formatList(report) {
-  if (report.items.length === 0) {
-    return "";
-  }
-  const rows = report.items.map((item) => ({ ...item, title: oneLine(item.title) }));
-  const idWidth = Math.max(...rows.map((item) => item.id.length));
-  const titleWidth = Math.max(...rows.map((item) => item.title.length));
-  return rows.map((item) => {
-    const fields = Object.entries(item.fields).filter(([, value]) => isSet(value)).map(([key, value]) => `${key}=${formatValue(value)}`);
-    return [item.id.padEnd(idWidth), item.title.padEnd(titleWidth), item.file, ...fields].join("  ").trimEnd();
-  }).join(`
-`) + `
-`;
-}
-function formatValue(value) {
-  const text = (item) => isScalar(item) ? String(item) : JSON.stringify(item);
-  return oneLine(Array.isArray(value) ? value.map(text).join(",") : text(value));
-}
-
-// src/build-style.js
-import path13 from "node:path";
-var BUILD_STYLE_PRESETS = ["classic", "modern", "elegant"];
-var HEADING_STYLES = ["centered", "small-caps", "left"];
-var PARAGRAPH_STYLES = ["indented", "block"];
-var BUILD_STYLE_KEYS = ["preset", "body-font", "heading-font", "heading-style", "scene-break", "drop-caps", "paragraphs", "css"];
-var NAME = `[^,"'\\\\/<>;{}()\\u0000-\\u001f\\u007f]`;
-var SOLID = `[^\\s,"'\\\\/<>;{}()\\u0000-\\u001f\\u007f]`;
-var FAMILY = `${NAME}*${SOLID}${NAME}*`;
-var ITEM = `\\s*(?:"${FAMILY}"|'${FAMILY}'|${FAMILY})\\s*`;
-var FONT_PATTERN = new RegExp(`^${ITEM}(?:,${ITEM})*$`, "u");
-var SCENE_BREAK_PATTERN = /^[^\u0000-\u001f\u007f]*[^\s\u0000-\u001f\u007f][^\u0000-\u001f\u007f]*$/u;
-var GENERIC_FAMILIES = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif", "ui-sans-serif", "ui-monospace", "ui-rounded", "math", "emoji", "fangsong"]);
-var SANS_STACK = `"Avenir Next", "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", sans-serif`;
-var OLD_STYLE_STACK = `Palatino, "Palatino Linotype", "Book Antiqua", "Iowan Old Style", Georgia, serif`;
-var PRESETS = {
-  classic: {},
-  modern: { headingFont: SANS_STACK, headingStyle: "left", sceneBreak: "• • •", dropCaps: false, paragraphs: "block" },
-  elegant: { bodyFont: OLD_STYLE_STACK, headingStyle: "small-caps", sceneBreak: "❦", dropCaps: true, paragraphs: "indented" }
-};
-var isEntry4 = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
-function styleFields(data) {
-  const value = data["build-style"];
-  return Array.isArray(value) ? Object.assign({}, ...value.filter(isEntry4)) : {};
-}
-function fontList(value) {
-  return String(value).split(",").map((item) => {
-    const name = item.trim().replace(/^(["'])(.*)\1$/u, "$2").trim();
-    return GENERIC_FAMILIES.has(name.toLowerCase()) ? name.toLowerCase() : `"${name}"`;
-  }).join(", ");
-}
-function buildStyle(data) {
-  const fields = styleFields(data);
-  const preset = PRESETS[fields.preset] ?? PRESETS.classic;
-  const pick = (key, presetKey) => fields[key] !== undefined ? fields[key] : preset[presetKey] ?? null;
-  const style = {
-    preset: typeof fields.preset === "string" ? fields.preset : "classic",
-    bodyFont: fields["body-font"] === undefined ? null : fontList(fields["body-font"]),
-    presetBodyFont: preset.bodyFont ?? null,
-    headingFont: fields["heading-font"] === undefined ? null : fontList(fields["heading-font"]),
-    presetHeadingFont: preset.headingFont ?? null,
-    headingStyle: pick("heading-style", "headingStyle"),
-    sceneBreak: fields["scene-break"] === undefined ? preset.sceneBreak ?? null : String(fields["scene-break"]).trim(),
-    dropCaps: pick("drop-caps", "dropCaps"),
-    paragraphs: pick("paragraphs", "paragraphs"),
-    css: typeof fields.css === "string" ? fields.css.trim() : null
-  };
-  style.styled = ["bodyFont", "presetBodyFont", "headingFont", "presetHeadingFont", "headingStyle", "sceneBreak", "dropCaps", "paragraphs"].some((key) => style[key] !== null);
-  return style;
-}
-var CLASSIC_STYLE = Object.freeze(buildStyle({}));
-function styleFonts(style, type) {
-  const latin = type.fonts.latin;
-  const own = (list) => list === null ? null : latin ? list : `${list}, ${type.fonts.body}`;
-  const body = own(style.bodyFont) ?? (latin ? style.presetBodyFont : null) ?? type.fonts.body;
-  const heading = own(style.headingFont) ?? (latin ? style.presetHeadingFont : null);
-  return { body, heading, heads: heading ?? (body === type.fonts.body ? type.fonts.heads : body) };
-}
-function styleSheetFile(root, value) {
-  const css = String(value).trim();
-  if (PATH_CONTROL_CHARACTERS.test(css)) {
-    throw controlCharacterError("build-style css", css);
-  }
-  if (!/\.css$/i.test(css) || /[\\/]\.css$/i.test(css) || css.toLowerCase() === ".css") {
-    throw projectError(`story.md build-style css ${css} must be a .css file`);
-  }
-  const filePath = path13.resolve(root, css);
-  if (!isPathInside(root, filePath)) {
-    throw projectError(`story.md build-style css ${css} must be inside the project`);
-  }
-  if (!lstatIfExists(filePath)) {
-    throw projectError(`story.md build-style css ${css} does not exist`);
-  }
-  let text;
-  try {
-    assertSafeProjectPath(filePath, root);
-    text = readTextFile(filePath);
-  } catch (error) {
-    throw projectError(`story.md build-style css ${css}: ${String(error.message).replace(`${filePath}: `, "")}`);
-  }
-  if (/<\/style/i.test(text)) {
-    throw projectError(`story.md build-style css ${css} must not contain </style`);
-  }
-  text = text.replace(/^﻿/, "").replace(/\r\n?/g, `
-`);
-  return { filePath, text: text === "" || text.endsWith(`
-`) ? text : `${text}
-` };
-}
-function validateBuildStyle(data, errors, root = null) {
-  const value = data["build-style"];
-  if (value === undefined) {
-    return;
-  }
-  const fail = (message) => errors.push(err("invalid-build-style", `story.md build-style ${message}`, "story.md"));
-  if (!Array.isArray(value) || !value.every(isEntry4)) {
-    fail("must be a list of key: value entries, such as - preset: modern (see docs/manuscripts.md#build-styles)");
-    return;
-  }
-  const seen = new Set;
-  for (const entry of value) {
-    for (const [key, setting] of Object.entries(entry)) {
-      if (!BUILD_STYLE_KEYS.includes(key)) {
-        fail(`key ${key} is not a style setting; use ${BUILD_STYLE_KEYS.join(", ")}`);
-        continue;
-      }
-      if (seen.has(key)) {
-        fail(`sets ${key} more than once`);
-        continue;
-      }
-      seen.add(key);
-      const problem = settingProblem(key, setting);
-      if (problem !== "") {
-        fail(problem);
-      } else if (key === "css" && root !== null) {
-        try {
-          styleSheetFile(root, setting);
-        } catch (error) {
-          errors.push(err("invalid-build-style", error.message, "story.md"));
-        }
-      }
-    }
-  }
-}
-function settingProblem(key, value) {
-  const choice = (choices) => typeof value === "string" && choices.includes(value) ? "" : `${key} must be one of ${choices.join(", ")}`;
-  switch (key) {
-    case "preset":
-      return choice(BUILD_STYLE_PRESETS);
-    case "heading-style":
-      return choice(HEADING_STYLES);
-    case "paragraphs":
-      return choice(PARAGRAPH_STYLES);
-    case "body-font":
-    case "heading-font":
-      return typeof value === "string" && FONT_PATTERN.test(value) ? "" : `${key} must be a comma-separated list of font names, such as Iowan Old Style, Georgia, serif`;
-    case "scene-break":
-      return typeof value === "string" && SCENE_BREAK_PATTERN.test(value) ? "" : `${key} must be one line of text, such as "* * *" or "~"`;
-    case "drop-caps":
-      return typeof value === "boolean" ? "" : `${key} must be true or false`;
-    default:
-      return typeof value === "string" && value.trim() !== "" ? "" : `${key} must be the path to a .css file in the project`;
-  }
-}
-
-// src/html.js
-var TRIM_SIZES = new Map([
-  ["5x8", { width: "5in", height: "8in", wordsPerPage: 230, charactersPerPage: 480 }],
-  ["5.25x8", { width: "5.25in", height: "8in", wordsPerPage: 250, charactersPerPage: 520 }],
-  ["5.5x8.5", { width: "5.5in", height: "8.5in", wordsPerPage: 275, charactersPerPage: 580 }],
-  ["6x9", { width: "6in", height: "9in", wordsPerPage: 300, charactersPerPage: 640 }],
-  ["a5", { width: "148mm", height: "210mm", wordsPerPage: 270, charactersPerPage: 560 }]
-]);
-var DEFAULT_TRIM = "5.5x8.5";
-function labelledParagraphs(part) {
-  let count = 0;
-  return part.paragraphs.map((paragraph) => {
-    if (paragraph === null) {
-      return null;
-    }
-    count += 1;
-    return { label: `${part.key}-p${count}`, paragraph };
-  });
-}
-function paragraphLabels(book) {
-  return book.parts.flatMap((part) => labelledParagraphs(part).filter((entry) => entry !== null).map((entry) => ({ label: entry.label, key: part.key, text: entry.paragraph.text })));
-}
-function openingWords(text, count = 6) {
-  const source = String(text);
-  const words = wordSpans(source, /(?<!\S)\S*[\p{L}\p{N}]\S*/gu);
-  const opening = words.length > count ? source.slice(0, words[count].start) : source;
-  const collapsed = opening.split(/\s+/).filter((word) => word !== "").join(" ");
-  return words.length > count ? `${collapsed}…` : collapsed;
-}
-function noteHref(noteUrl, label, stamp, text) {
-  const params = [["title", `[${label}] `], ["anchor", label]];
-  if (stamp !== "") {
-    params.push(["build", stamp]);
-  }
-  params.push(["quote", openingWords(text)]);
-  const query = params.map(([name, value]) => `${name}=${encodeURIComponent(value)}`).join("&");
-  const hash = noteUrl.indexOf("#");
-  const base = hash === -1 ? noteUrl : noteUrl.slice(0, hash);
-  const fragment = hash === -1 ? "" : noteUrl.slice(hash);
-  return `${base}${base.includes("?") ? "&" : "?"}${query}${fragment}`;
-}
-function indentsFirstLines(format, style = CLASSIC_STYLE) {
-  return format === "print" ? style.paragraphs !== "block" : style.paragraphs === "indented";
-}
-function reviewHtml(book, { stamp = "", noteUrl = "", style = CLASSIC_STYLE } = {}) {
-  const labels = book.labels;
-  const label = (key, values) => fillLabel(labels, key, values);
-  const contents = label("contents");
-  const type = typesetting(book.language, book.writingMode);
-  const rtl = type.rtl;
-  const fonts = styleFonts(style, type);
-  const toc = [];
-  const sections = [];
-  for (const part of book.parts) {
-    const sectionId = part.kind === "chapter" ? part.key : `matter-${part.key}`;
-    toc.push(`<li><a href="#${sectionId}">${escapeHtml(part.title)}</a></li>`);
-    const body = [];
-    for (const entry of labelledParagraphs(part)) {
-      if (entry === null) {
-        body.push({ quote: false, markup: `<hr class="scene-break" aria-label="${escapeHtml(label("scene-break"))}">` });
-        continue;
-      }
-      const { label: anchor, paragraph } = entry;
-      const note = noteUrl === "" ? "" : `<a class="note-link" href="${escapeHtml(noteHref(noteUrl, anchor, stamp, paragraph.text))}" title="${escapeHtml(label("note-title", { label: anchor }))}" target="_blank" rel="noopener">${escapeHtml(label("note"))}</a>`;
-      body.push({ quote: paragraph.quote, markup: `<p id="${anchor}"><a class="anchor" href="#${anchor}" title="${escapeHtml(label("anchor-title", { label: anchor }))}">${anchor}</a>${note}${paragraph.html}</p>` });
-    }
-    const heading = part.heading ? `<h2>${escapeHtml(part.title)}</h2>` : `<h2 class="visually-hidden">${escapeHtml(part.title)}</h2>`;
-    const partByline = (part.byline ?? "") === "" ? "" : `<p class="byline">${escapeHtml(part.byline)}</p>
-`;
-    sections.push(`<section id="${sectionId}" class="${part.kind}">${heading}
-${partByline}${withBlockquotes(body).join(`
-`)}
-</section>`);
-  }
-  const byline = bookCredits(book).map((line) => `<p class="byline">${escapeHtml(line)}</p>`).join(`
-`);
-  const sentence = (key, values) => fillLabel(labels, key, values, escapeHtml);
-  const code = (text) => `<code>${escapeHtml(text)}</code>`;
-  const intro = joinSentences([
-    stamp === "" ? sentence("review-intro") : sentence("review-intro-build", { build: code(stamp) }),
-    sentence("review-labels", { label: code("ch03-p12") }),
-    sentence(stamp === "" ? "review-quote" : "review-quote-build"),
-    noteUrl === "" ? "" : sentence("review-note-link")
-  ]);
-  return `<!DOCTYPE html>
-${htmlRoot(book.language)}
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${escapeHtml(label("review-title", { title: book.title }))}</title>
-<style>
-:root { --bg: #fdfcf8; --fg: #1d1b16; --muted: #6b665c; --rule: #ddd6c8; --accent: #7c3aed; }
-@media (prefers-color-scheme: dark) { :root { --bg: #16150f; --fg: #ece8dd; --muted: #a39e92; --rule: #3a372f; --accent: #b794f4; } }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 1.1rem/1.65 ${fonts.body}; }
-main { max-width: 38rem; margin: 0 auto; padding: 2rem 1rem 6rem; }
-header h1 { font-size: 2rem; line-height: 1.2; margin: 2rem 0 0.25rem; }
-.byline, .note { color: var(--muted); margin: 0 0 1rem; }
-.note { font: 0.9rem/1.5 system-ui, sans-serif; border-left: 3px solid var(--accent); padding-left: 0.75rem; }
-nav ol { padding-left: 1.25rem; }
-nav a, .anchor { color: var(--accent); }
-section { border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1rem; }
-h2 { font-size: 1.4rem; margin: 1rem 0 1.5rem; }
-p { position: relative; margin: 0 0 1rem; }
-.anchor { position: absolute; left: -5.5rem; width: 5rem; text-align: right; font: 0.7rem/2.2 system-ui, sans-serif; text-decoration: none; opacity: 0.35; }
-p:hover .anchor, p:target .anchor, .anchor:focus { opacity: 1; }
-p:target { background: color-mix(in srgb, var(--accent) 12%, transparent); }
-blockquote { margin: 0 0 1rem; margin-inline-start: 1.5rem; }
-.scene-break { border: 0; text-align: center; margin: 2rem 0; }
-.scene-break::after { content: "${cssString(style.sceneBreak ?? "* * *")}"; color: var(--muted); }
-.visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-@media (max-width: 52rem) { .anchor { position: static; display: block; width: auto; text-align: left; line-height: 1.4; opacity: 0.6; } }
-${noteUrl === "" ? "" : `.note-link { position: absolute; left: -5.5rem; top: 1.5rem; width: 5rem; text-align: right; font: 0.7rem/1.4 system-ui, sans-serif; color: var(--accent); text-decoration: none; opacity: 0.35; }
-p:hover .note-link, p:target .note-link, .note-link:focus { opacity: 1; }
-@media (max-width: 52rem) { .note-link { position: static; display: block; width: fit-content; margin-top: -1.4em; margin-inline-start: auto; opacity: 0.6; } }
-`}${rtl ? `[dir="rtl"] .note { border-left: 0; padding-left: 0; border-right: 3px solid var(--accent); padding-right: 0.75rem; }
-[dir="rtl"] nav ol { padding-left: 0; padding-right: 1.25rem; }
-[dir="rtl"] .anchor { left: auto; right: -5.5rem; text-align: left; }
-@media (max-width: 52rem) { [dir="rtl"] .anchor { text-align: right; } }
-${noteUrl === "" ? "" : `[dir="rtl"] .note-link { left: auto; right: -5.5rem; text-align: left; }
-`}` : ""}${type.vertical ? REVIEW_VERTICAL : ""}${reviewStyleRules(style, type, fonts, hasBylines(book))}</style>
-${extraStyle(style)}</head>
-<body>
-<main>
-<header>
-<h1>${escapeHtml(book.title)}</h1>
-${byline}
-<p class="note">${intro}</p>
-</header>
-<nav aria-label="${escapeHtml(contents)}"><h2>${escapeHtml(contents)}</h2><ol>
-${toc.join(`
-`)}
-</ol></nav>
-${sections.join(`
-`)}
-</main>
-</body>
-</html>
-`;
-}
-var REVIEW_VERTICAL = `html { writing-mode: vertical-rl; }
-main { max-width: none; max-height: 38rem; margin: auto 0; padding: 1rem 2rem 1rem 6rem; }
-header h1 { margin: 0; margin-block: 2rem 0.25rem; }
-.byline, .note, p { margin: 0; margin-block-end: 1rem; }
-.note { border-left: 0; padding-left: 0; border-top: 3px solid var(--accent); padding-top: 0.75rem; }
-nav ol { padding-left: 0; padding-top: 1.25rem; }
-section { border-top: 0; margin-top: 0; padding-top: 0; border-right: 1px solid var(--rule); margin-right: 3rem; padding-right: 1rem; }
-h2 { margin: 0; margin-block: 1rem 1.5rem; }
-.anchor, .note-link { position: static; display: block; width: auto; margin: 0; text-align: start; opacity: 0.6; }
-blockquote { margin: 0; margin-inline-start: 1.5rem; margin-block-end: 1rem; }
-.scene-break { margin: 0 2rem; }
-`;
-var PRINT_VERTICAL = `html { writing-mode: vertical-rl; }
-h1 { margin: 1in 0 0 0.5in; }
-blockquote { margin: 1.5em 0.8em; }
-p.scene-break { margin: 0 0.8em; }
-`;
-function reviewStyleRules(style, type, fonts, bylines = false) {
-  const opening = bylines ? ["section > h2 + p:not(.byline)", "section > h2 + p.byline + p"] : ["section > h2 + p"];
-  const rules = [];
-  if (fonts.heading !== null) {
-    rules.push(`header h1, section > h2 { font-family: ${fonts.heading}; }`);
-  }
-  if (bylines && style.paragraphs === "indented") {
-    rules.push("section > p.byline { text-indent: 0; margin-block-end: 1rem; }");
-  }
-  const heading = headingRule(style.headingStyle, type);
-  if (heading !== "") {
-    rules.push(`section > h2 { ${heading} }`);
-  }
-  if (style.paragraphs === "indented") {
-    rules.push("section p { margin-block-end: 0; text-indent: 1.5em; }", `${opening.join(", ")}, .scene-break + p, blockquote p, section.front p, section.back p { text-indent: 0; }`, "section.front p, section.back p { margin-block-end: 1rem; }");
-  }
-  if (style.dropCaps === true && type.cased && !type.vertical) {
-    rules.push(`@media (min-width: 52.01rem) { ${opening.map((selector) => `section.chapter > ${selector.replace(/^section > /, "")}::first-letter`).join(", ")} { ${DROP_CAP_RULE} } }`);
-  }
-  return rules.length === 0 ? "" : `${rules.join(`
-`)}
-`;
-}
-function headingRule(headingStyle, type) {
-  if (headingStyle === "centered") {
-    return "text-align: center; font-weight: normal;";
-  }
-  if (headingStyle === "small-caps") {
-    return `text-align: center; font-weight: normal;${type.cased ? " font-variant: small-caps; letter-spacing: 0.08em;" : ""}`;
-  }
-  if (headingStyle === "left") {
-    return `text-align: ${type.rtl ? "right" : "left"}; font-weight: bold;`;
-  }
-  return "";
-}
-var DROP_CAP_RULE = "float: left; font-size: 3.2em; line-height: 0.8; margin: 0.08em 0.08em 0 0;";
-function extraStyle(style) {
-  return style.cssText ? `<style>
-${style.cssText}</style>
-` : "";
-}
-function printStyleRules(style, type, fonts, bylines = false) {
-  const rules = [];
-  if (fonts.heading !== null) {
-    rules.push(`h1 { font-family: ${fonts.heading}; }`);
-  }
-  const heading = headingRule(style.headingStyle, type);
-  if (heading !== "") {
-    rules.push(`section.chapter > h1, section.front > h1, section.back > h1 { ${heading} }`);
-  }
-  if (style.paragraphs === "block") {
-    rules.push(`p { text-indent: 0; ${type.vertical ? "margin-left" : "margin-bottom"}: 0.7em; }`);
-  }
-  if (style.dropCaps === true && type.cased && !type.vertical) {
-    rules.push(`${bylines ? "section.chapter > h1 + p.first::first-letter, section.chapter > h1 + p.byline + p.first::first-letter" : "section.chapter > h1 + p.first::first-letter"} { ${DROP_CAP_RULE} }`);
-  }
-  return rules.length === 0 ? "" : `${rules.join(`
-`)}
-`;
-}
-function printHtml(book, trimName = DEFAULT_TRIM, style = CLASSIC_STYLE) {
-  const trim = TRIM_SIZES.get(trimName);
-  if (!trim) {
-    throw usageError(`Unsupported trim size: ${trimName}. Supported sizes: ${[...TRIM_SIZES.keys()].join(", ")}`, "trim");
-  }
-  const pages = estimateBookPages(book, trimName);
-  const inside = insideMargin(pages);
-  const author = leadNames(bookMeta(book));
-  const credits = bookCredits(book);
-  const bylines = hasBylines(book);
-  const type = typesetting(book.language, book.writingMode);
-  const fonts = styleFonts(style, type);
-  const rtl = type.rtl;
-  const recto = rtl || type.vertical ? "left" : "right";
-  const verso = rtl || type.vertical ? "right" : "left";
-  const heads = `${type.cased ? "italic " : ""}9pt ${fonts.heads}`;
-  const sceneBreak = style.sceneBreak === null ? "*&#8195;*&#8195;*" : escapeHtml(style.sceneBreak);
-  const toc = [];
-  const sections = [];
-  for (const part of book.parts) {
-    const paragraphs = [];
-    let first = true;
-    for (const paragraph of part.paragraphs) {
-      if (paragraph === null) {
-        paragraphs.push({ quote: false, markup: `<p class="scene-break" aria-label="${escapeHtml(fillLabel(book.labels, "scene-break"))}">${sceneBreak}</p>` });
-        first = true;
-        continue;
-      }
-      paragraphs.push({ quote: paragraph.quote, markup: first ? `<p class="first">${paragraph.html}</p>` : `<p>${paragraph.html}</p>` });
-      first = false;
-    }
-    if (part.kind === "chapter") {
-      toc.push(`<li><a href="#${part.key}">${escapeHtml(part.title)}</a></li>`);
-    }
-    const heading = part.heading ? `<h1>${escapeHtml(part.title)}</h1>${(part.byline ?? "") === "" ? "" : `
-<p class="byline">${escapeHtml(part.byline)}</p>`}` : part.placement === "back" ? `<div class="running-head" aria-hidden="true"></div>` : "";
-    sections.push(`<section id="${part.key}" class="${part.kind}">${heading}
-${withBlockquotes(paragraphs).join(`
-`)}
-</section>`);
-  }
-  const copyrightIndex = book.parts.findIndex((part) => part.copyright && part.placement === "front");
-  const beforeToc = copyrightIndex === -1 ? [] : [sections[copyrightIndex]];
-  const afterToc = sections.filter((_, index) => index !== copyrightIndex);
-  const tocPageNumbers = rtl ? `.toc li { position: relative; padding-left: 2.5em; }
-.toc a::after { content: target-counter(attr(href), page); position: absolute; left: 0; bottom: 0; }` : `.toc a::after { content: " " target-counter(attr(href), page); float: ${type.vertical ? "none" : "right"}; }`;
-  return `<!DOCTYPE html>
-${htmlRoot(book.language)}
-<head>
-<meta charset="utf-8">
-<title>${escapeHtml(book.title)}</title>
-<!-- Print interior for ${trimName} trim (${trim.width} x ${trim.height}), about ${pages} pages.
-     Render to PDF with a CSS paged-media engine, for example:
-       npx pagedjs-cli book.print.html -o book.pdf
-       weasyprint book.print.html book.pdf
-       prince book.print.html -o book.pdf
-${type.vertical ? `     Vertical text needs an engine that sets it, such as Vivliostyle or Prince.
-` : ""}     Check the printer's current specs for margins, bleed, and fonts before upload. -->
-<style>
-@page { size: ${trim.width} ${trim.height}; margin: 0.75in 0.5in 0.75in ${inside}; }
-@page :left { margin-left: 0.5in; margin-right: ${inside}; }
-@page :${verso} {
-  @top-center { content: "${cssString(author || book.title)}"; font: ${heads}; } }
-@page :${recto} {
-  @top-center { content: string(chapter-title, first-except); font: ${heads}; } }
-@page chapter { @bottom-center { content: counter(page); font: 9pt ${fonts.heads}; } }
-@page :blank { @top-center { content: none; } @bottom-center { content: none; } }
-@page front { @top-center { content: none; } @bottom-center { content: none; } }
-html { font: 11pt/1.4 ${fonts.body}; }
-body { margin: 0; hyphens: auto; }
-.title-page, .toc, section.front { page: front; break-before: ${recto}; }
-section.front.copyright-page { break-before: page; font-size: 9pt; }
-.title-page { text-align: center; padding-top: 30%; }
-.title-page h1 { font-size: 26pt; font-weight: normal; margin: 0 0 1em; }
-.title-page .author { font-size: 14pt${type.cased ? "; font-variant: small-caps; letter-spacing: 0.05em" : ""}; }
-.toc h1 { font-size: 14pt; font-weight: normal; text-align: center${type.cased ? "; font-variant: small-caps" : ""}; }
-.toc ol { list-style: none; padding: 0; }
-.toc a { color: inherit; text-decoration: none; }
-${tocPageNumbers}
-section.chapter, section.back { page: chapter; break-before: ${recto}; }
-section.chapter > h1, section.back > h1, section.back > .running-head { string-set: chapter-title content(text); }
-.running-head { height: 0; margin: 0; }
-h1 { font-size: 16pt; font-weight: normal; text-align: center; margin: 1.5in 0 0.5in; break-after: avoid; }
-p { margin: 0; text-indent: 1.5em; text-align: justify; widows: 2; orphans: 2; }
-p.first, p.scene-break + p { text-indent: 0; }
-${bylines ? `p.byline { text-align: center; text-indent: 0; margin: -0.3in 0 0.4in;${type.cased ? " font-style: italic;" : ""} break-after: avoid; }
-` : ""}${type.cased && style.dropCaps === null ? `/* A raised initial: floated drop caps render inconsistently across engines. */
-${bylines ? "section.chapter > h1 + p.first::first-letter, section.chapter > h1 + p.byline + p.first::first-letter" : "section.chapter > h1 + p.first::first-letter"} { font-size: 2.4em; line-height: 1; }
-` : ""}p.scene-break { text-align: center; text-indent: 0; margin: 0.8em 0; break-after: avoid; }
-blockquote { margin: 0.8em 1.5em; }
-blockquote p { text-indent: 0; text-align: start; }
-section.front p, section.back p { text-indent: 0; margin-bottom: 0.6em; text-align: ${rtl ? "right" : "left"}; }
-section.front:not(.copyright-page) p { text-align: center; }
-@media screen { body { max-width: ${trim.width}; margin: 2rem auto; padding: 0 1rem; } section { margin-top: 3rem; } }
-${type.vertical ? `${PRINT_VERTICAL}@media screen { body { max-width: none; max-height: ${trim.height}; margin: auto 2rem; padding: 1rem 0; } section { margin-top: 0; margin-right: 3rem; } }
-` : ""}${printStyleRules(style, type, fonts, bylines)}</style>
-${extraStyle(style)}</head>
-<body>
-<section class="title-page"><h1>${escapeHtml(book.title)}</h1>${credits.map((line) => `<p class="author">${escapeHtml(line)}</p>`).join("")}</section>
-${beforeToc.join(`
-`)}
-<nav class="toc"><h1>${escapeHtml(fillLabel(book.labels, "contents"))}</h1><ol>
-${toc.join(`
-`)}
-</ol></nav>
-${afterToc.join(`
-`)}
-</body>
-</html>
-`;
-}
-function bookMeta(book) {
-  return { authors: book.authors ?? [], editors: book.editors ?? [], labels: book.labels };
-}
-function bookCredits(book) {
-  return creditLines(bookMeta(book));
-}
-function hasBylines(book) {
-  return book.parts.some((part) => (part.byline ?? "") !== "");
-}
-function joinSentences(sentences) {
-  return sentences.filter((sentence) => sentence !== "").reduce((text, sentence) => text === "" || /[。！？]$/u.test(text) ? `${text}${sentence}` : `${text} ${sentence}`, "");
-}
-function htmlRoot(language) {
-  const dir = typesetting(language).rtl ? ` dir="rtl"` : "";
-  return `<html lang="${escapeHtml(language)}"${dir}>`;
-}
-var OPENING_SINK_PAGES = 0.3;
-var CONTENTS_ENTRIES_PER_PAGE = 25;
-function estimateBookPages(book, trimName = DEFAULT_TRIM) {
-  const trim = TRIM_SIZES.get(trimName) ?? TRIM_SIZES.get(DEFAULT_TRIM);
-  const [perPage, length] = book.unit === "characters" ? [trim.charactersPerPage, (part) => part.characters] : [trim.wordsPerPage, (part) => part.words];
-  const chapters = book.parts.filter((part) => part.kind === "chapter").length;
-  let pages = 2 + Math.max(1, Math.ceil(chapters / CONTENTS_ENTRIES_PER_PAGE)) + 0.5;
-  for (const part of book.parts.filter((entry) => !(entry.copyright && entry.placement === "front"))) {
-    const sink = part.heading ? OPENING_SINK_PAGES : 0;
-    pages += Math.max(1, Math.ceil((length(part) ?? 0) / perPage + sink)) + 0.5;
-  }
-  return Math.ceil(pages);
-}
-function insideMargin(pages) {
-  if (pages <= 150) {
-    return "0.625in";
-  }
-  if (pages <= 300) {
-    return "0.75in";
-  }
-  if (pages <= 500) {
-    return "0.875in";
-  }
-  return "1in";
-}
-function withBlockquotes(items) {
-  const out = [];
-  let open = false;
-  for (const item of items) {
-    if (item.quote && !open) {
-      out.push("<blockquote>");
-    } else if (!item.quote && open) {
-      out.push("</blockquote>");
-    }
-    open = item.quote;
-    out.push(item.markup);
-  }
-  if (open) {
-    out.push("</blockquote>");
-  }
-  return out;
-}
-function escapeHtml(value) {
-  return String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-function cssString(value) {
-  return String(value).replace(/\\/g, "\\\\").replace(/"/g, "\\\"").replace(/</g, "\\3C ").replace(/>/g, "\\3E ").replace(/&/g, "\\26 ").replace(/[\r\n\f]+/g, " ").replace(/[\u0000-\u001f\u007f]/g, (char) => `\\${char.charCodeAt(0).toString(16).toUpperCase()} `);
 }
 
 // src/release-schedule.js
@@ -19656,7 +21921,7 @@ function cleanSessions(value) {
   }
   return sessions.sort((left, right) => left.date.localeCompare(right.date, "en"));
 }
-function computeProgress({ unit = "words", words, characters = null, target, deadline, today, chapters, sessions, dailyTarget = null, writingDays: scheduled = null, weeks = HISTORY_WEEKS }) {
+function computeProgress({ unit = "words", words, characters = null, lines = null, verseChapters = 0, target, deadline, today, chapters, sessions, dailyTarget = null, writingDays: scheduled = null, weeks = HISTORY_WEEKS }) {
   const characterBook = unit === "characters";
   const inUnit = (entry) => characterBook ? entry.characters ?? null : entry.words;
   const length = characterBook ? characters : words;
@@ -19666,6 +21931,8 @@ function computeProgress({ unit = "words", words, characters = null, target, dea
     unit,
     words,
     characterCount: characterBook ? characters : null,
+    lines,
+    verseChapters,
     target: target ?? null,
     percent: target ? length * 100 / target : null,
     remaining: target ? Math.max(0, target - length) : null,
@@ -19787,6 +22054,9 @@ function formatProgress(progress) {
   } else {
     lines.push(`Progress: ${formatNumber3(count(progress))} of ${formatNumber3(progress.target)} ${noun}s (${formatPercent(progress.percent, 1)}%)`);
     lines.push(`Remaining: ${plural2(progress.remaining, noun, formatNumber3)}`);
+  }
+  if (progress.lines !== null && progress.lines !== undefined) {
+    lines.push(`Lines: ${formatNumber3(progress.lines)} in ${plural2(progress.verseChapters, "verse chapter", formatNumber3)}`);
   }
   if (progress.deadline) {
     const { date, daysLeft, perDay } = progress.deadline;
@@ -20130,13 +22400,13 @@ function formatNumber4(value) {
 }
 
 // src/config.js
-import path15 from "node:path";
+import path17 from "node:path";
 
 // src/pdf.js
 import fs6 from "node:fs";
 import os from "node:os";
-import path14 from "node:path";
-import { Buffer as Buffer3 } from "node:buffer";
+import path15 from "node:path";
+import { Buffer as Buffer6 } from "node:buffer";
 import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 var PDF_ENGINES = [
@@ -20171,7 +22441,7 @@ var PDF_ENGINES = [
       "--disable-gpu",
       "--no-first-run",
       "--no-pdf-header-footer",
-      `--user-data-dir=${path14.join(work, "profile")}`,
+      `--user-data-dir=${path15.join(work, "profile")}`,
       `--print-to-pdf=${output}`,
       pathToFileURL(input).href
     ]
@@ -20194,8 +22464,8 @@ function browserLocations(env, platform) {
   if (platform === "win32") {
     const roots = [env.ProgramFiles, env["ProgramFiles(x86)"], env.LOCALAPPDATA].filter(Boolean);
     return roots.flatMap((root) => [
-      path14.join(root, "Google", "Chrome", "Application", "chrome.exe"),
-      path14.join(root, "Microsoft", "Edge", "Application", "msedge.exe")
+      path15.join(root, "Google", "Chrome", "Application", "chrome.exe"),
+      path15.join(root, "Microsoft", "Edge", "Application", "msedge.exe")
     ]);
   }
   return [];
@@ -20226,7 +22496,7 @@ function findCommand(name, env = process.env, platform = process.platform) {
   const names = platform === "win32" ? [...extensions.some((ext) => name.toUpperCase().endsWith(ext.toUpperCase())) ? [name] : [], ...extensions.map((ext) => `${name}${ext}`)] : [name];
   for (const dir of dirs) {
     for (const candidate of names) {
-      const file = path14.resolve(dir, candidate);
+      const file = path15.resolve(dir, candidate);
       if (isExecutableFile(file, platform)) {
         return file;
       }
@@ -20247,7 +22517,7 @@ function locateEngine(engine, env, platform) {
   return null;
 }
 function engineForExecutable(file) {
-  const base = path14.basename(file).toLowerCase().replace(/\.(?:exe|cmd|bat|com)$/, "");
+  const base = path15.basename(file).toLowerCase().replace(/\.(?:exe|cmd|bat|com)$/, "");
   if (base.startsWith("prince")) {
     return "prince";
   }
@@ -20294,7 +22564,7 @@ function resolvePdfEngine(choice, { env = process.env, platform = process.platfo
     throw usageError(`Unknown PDF engine: ${value}. Name one of ${ENGINE_NAMES.join(", ")}, or the path to its executable, whose file name says which it is`);
   }
   const isPath = value.includes("/") || platform === "win32" && value.includes("\\");
-  const file = isPath ? path14.resolve(cwd, value) : findCommand(value, env, platform);
+  const file = isPath ? path15.resolve(cwd, value) : findCommand(value, env, platform);
   if (file === null || !isExecutableFile(file, platform)) {
     throw refusedError(`PDF engine ${value} was not found${isPath ? " or is not an executable file" : " on PATH"}`);
   }
@@ -20315,14 +22585,14 @@ function windowsScriptCommand(file, args, env) {
 }
 function renderPdf(html, engine, { env = process.env, platform = process.platform, timeout = ENGINE_TIMEOUT_MS } = {}) {
   const spec = PDF_ENGINES.find((entry) => entry.name === engine.name);
-  const work = fs6.mkdtempSync(path14.join(os.tmpdir(), "story-pdf-"));
+  const work = fs6.mkdtempSync(path15.join(os.tmpdir(), "story-pdf-"));
   try {
-    const input = path14.join(work, "book.html");
-    const output = path14.join(work, "book.pdf");
+    const input = path15.join(work, "book.html");
+    const output = path15.join(work, "book.pdf");
     fs6.writeFileSync(input, html, "utf8");
     const args = spec.args(input, output, work);
     const run = platform === "win32" && /\.(?:cmd|bat)$/i.test(engine.file) ? windowsScriptCommand(engine.file, args, env) : { command: engine.file, args, options: {} };
-    const logFile = path14.join(work, "engine.log");
+    const logFile = path15.join(work, "engine.log");
     const log = fs6.openSync(logFile, "w");
     let result;
     try {
@@ -20348,7 +22618,7 @@ ${detail}`}`;
       throw refusedError(withDetail(`PDF engine ${engine.name} (${engine.file}) ${reason}`));
     }
     const pdf = fs6.existsSync(output) ? fs6.readFileSync(output) : null;
-    if (result.status !== 0 || pdf === null || !pdf.subarray(0, 5).equals(Buffer3.from("%PDF-"))) {
+    if (result.status !== 0 || pdf === null || !pdf.subarray(0, 5).equals(Buffer6.from("%PDF-"))) {
       const outcome = result.status !== 0 ? `exited with ${result.status === null ? `signal ${result.signal}` : `code ${result.status}`}` : pdf === null ? "wrote no PDF" : "wrote a file that is not a PDF";
       throw refusedError(withDetail(`PDF engine ${engine.name} (${engine.file}) ${outcome}`));
     }
@@ -20377,1264 +22647,6 @@ function lastLines(text, count = 10) {
   const cause = lines.slice(0, -count).find((line) => /\b(?:FATAL|ERROR|Error)\b/.test(line));
   return (cause === undefined ? tail : [cause, "...", ...tail]).join(`
 `);
-}
-
-// src/packaging.js
-import { Buffer as Buffer5 } from "node:buffer";
-
-// src/deflate.js
-import { Buffer as Buffer4 } from "node:buffer";
-var WINDOW_SIZE = 32768;
-var WINDOW_MASK = WINDOW_SIZE - 1;
-var MIN_MATCH = 3;
-var MAX_MATCH = 258;
-var MAX_CHAIN = 256;
-var NICE_MATCH = 128;
-var GOOD_MATCH = 32;
-var TRIES_PER_BYTE = 16;
-var FAR_MATCH = 4096;
-var HASH_BITS = 15;
-var HASH_MASK = (1 << HASH_BITS) - 1;
-var BLOCK_SYMBOLS = 16384;
-var END_OF_BLOCK = 256;
-var MAX_CODE_BITS = 15;
-var MAX_CODE_LENGTH_BITS = 7;
-var LENGTH_BASE = [3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258];
-var LENGTH_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0];
-var DISTANCE_BASE = [1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577];
-var DISTANCE_EXTRA = [0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13];
-var CODE_LENGTH_ORDER = [16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15];
-var CODE_LENGTH_EXTRA = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 7];
-function codeTable(bases, size) {
-  const table = new Uint8Array(size);
-  let code = 0;
-  for (let value = bases[0];value < size; value += 1) {
-    if (code + 1 < bases.length && bases[code + 1] <= value) {
-      code += 1;
-    }
-    table[value] = code;
-  }
-  return table;
-}
-var LENGTH_CODE = codeTable(LENGTH_BASE, MAX_MATCH + 1);
-var DISTANCE_CODE = codeTable(DISTANCE_BASE, WINDOW_SIZE + 1);
-var FIXED_LITERAL_LENGTHS = Array.from({ length: 288 }, (_, symbol) => symbol < 144 ? 8 : symbol < 256 ? 9 : symbol < 280 ? 7 : 8);
-var FIXED_DISTANCE_LENGTHS = new Array(30).fill(5);
-var FIXED_LITERAL_CODES = canonicalCodes(FIXED_LITERAL_LENGTHS);
-var FIXED_DISTANCE_CODES = canonicalCodes(FIXED_DISTANCE_LENGTHS);
-function deflateRaw(data, { blockSymbols = BLOCK_SYMBOLS, codeBits = MAX_CODE_BITS, codeLengthBits = MAX_CODE_LENGTH_BITS, stats = {} } = {}) {
-  const length = data.length;
-  const writer = bitWriter(length);
-  const limits = { codeBits, codeLengthBits };
-  stats.blocks = [];
-  const head = new Int32Array(HASH_MASK + 1).fill(-1);
-  const prev = new Int32Array(WINDOW_SIZE);
-  const block = {
-    values: new Uint16Array(blockSymbols),
-    distances: new Uint16Array(blockSymbols),
-    count: 0,
-    literals: new Array(286).fill(0),
-    distanceCodes: new Array(30).fill(0)
-  };
-  let foundDistance = 0;
-  let tries = 0;
-  const hashAt = (position) => (data[position] << 10 ^ data[position + 1] << 5 ^ data[position + 2]) & HASH_MASK;
-  const insert = (position) => {
-    if (position + MIN_MATCH <= length) {
-      const hash = hashAt(position);
-      prev[position & WINDOW_MASK] = head[hash];
-      head[hash] = position;
-    }
-  };
-  const longestMatch = (position, chain) => {
-    if (position + MIN_MATCH > length) {
-      return 0;
-    }
-    const limit = Math.min(MAX_MATCH, length - position);
-    const enough = Math.min(NICE_MATCH, limit);
-    let best = 0;
-    let candidate = head[hashAt(position)];
-    for (let left = Math.min(chain, TRIES_PER_BYTE * position + MAX_CHAIN - tries);left > 0 && candidate >= 0 && position - candidate <= WINDOW_SIZE; left -= 1) {
-      tries += 1;
-      if (data[candidate + best] === data[position + best]) {
-        let run = 0;
-        while (run < limit && data[candidate + run] === data[position + run]) {
-          run += 1;
-        }
-        if (run > best) {
-          best = run;
-          foundDistance = position - candidate;
-          if (best >= enough) {
-            break;
-          }
-        }
-      }
-      candidate = prev[candidate & WINDOW_MASK];
-    }
-    return best < MIN_MATCH || best === MIN_MATCH && foundDistance > FAR_MATCH ? 0 : best;
-  };
-  const emit = (value, distance, symbol) => {
-    if (block.count === blockSymbols) {
-      stats.blocks.push(writeBlock(writer, block, false, limits));
-    }
-    block.values[block.count] = value;
-    block.distances[block.count] = distance;
-    block.count += 1;
-    block.literals[symbol] += 1;
-    if (distance > 0) {
-      block.distanceCodes[DISTANCE_CODE[distance]] += 1;
-    }
-  };
-  const emitLiteral = (byte) => emit(byte, 0, byte);
-  const emitMatch = (matchLength, distance) => emit(matchLength, distance, 257 + LENGTH_CODE[matchLength]);
-  let position = 0;
-  let matchLength = longestMatch(0, MAX_CHAIN);
-  let matchDistance = foundDistance;
-  while (position < length) {
-    insert(position);
-    if (matchLength > 0 && matchLength < NICE_MATCH) {
-      const nextLength = longestMatch(position + 1, matchLength >= GOOD_MATCH ? MAX_CHAIN >> 2 : MAX_CHAIN);
-      if (nextLength > matchLength) {
-        emitLiteral(data[position]);
-        position += 1;
-        matchLength = nextLength;
-        matchDistance = foundDistance;
-        continue;
-      }
-    }
-    if (matchLength > 0) {
-      emitMatch(matchLength, matchDistance);
-      for (let step = 1;step < matchLength; step += 1) {
-        insert(position + step);
-      }
-      position += matchLength;
-    } else {
-      emitLiteral(data[position]);
-      position += 1;
-    }
-    matchLength = longestMatch(position, MAX_CHAIN);
-    matchDistance = foundDistance;
-  }
-  stats.blocks.push(writeBlock(writer, block, true, limits));
-  stats.tries = tries;
-  return writer.finish();
-}
-function bitWriter(size) {
-  let bytes = new Uint8Array(Math.max(64, size >> 1));
-  let used = 0;
-  let pending = 0;
-  let pendingBits = 0;
-  const push = (byte) => {
-    if (used === bytes.length) {
-      const grown = new Uint8Array(bytes.length * 2);
-      grown.set(bytes);
-      bytes = grown;
-    }
-    bytes[used] = byte;
-    used += 1;
-  };
-  return {
-    write(value, bits) {
-      pending |= value << pendingBits;
-      pendingBits += bits;
-      while (pendingBits >= 8) {
-        push(pending & 255);
-        pending >>>= 8;
-        pendingBits -= 8;
-      }
-    },
-    finish() {
-      if (pendingBits > 0) {
-        push(pending);
-      }
-      return Buffer4.from(bytes.buffer, 0, used);
-    }
-  };
-}
-function writeBlock(writer, block, final, limits) {
-  block.literals[END_OF_BLOCK] = 1;
-  const literalLengths = huffmanLengths(block.literals, limits.codeBits);
-  const distanceLengths = huffmanLengths(block.distanceCodes, limits.codeBits);
-  const header = dynamicHeader(literalLengths, distanceLengths, limits.codeLengthBits);
-  const dynamicBits = header.bits + codedBits(block.literals, literalLengths) + codedBits(block.distanceCodes, distanceLengths);
-  const fixedBits = codedBits(block.literals, FIXED_LITERAL_LENGTHS) + codedBits(block.distanceCodes, FIXED_DISTANCE_LENGTHS);
-  const type = fixedBits <= dynamicBits ? "fixed" : "dynamic";
-  writer.write(final ? 1 : 0, 1);
-  if (type === "fixed") {
-    writer.write(1, 2);
-    writeSymbols(writer, block, FIXED_LITERAL_CODES, FIXED_LITERAL_LENGTHS, FIXED_DISTANCE_CODES, FIXED_DISTANCE_LENGTHS);
-  } else {
-    writer.write(2, 2);
-    header.write(writer);
-    writeSymbols(writer, block, canonicalCodes(literalLengths), literalLengths, canonicalCodes(distanceLengths), distanceLengths);
-  }
-  block.count = 0;
-  block.literals.fill(0);
-  block.distanceCodes.fill(0);
-  return type;
-}
-function writeSymbols(writer, block, literalCodes, literalLengths, distanceCodes, distanceLengths) {
-  for (let index = 0;index < block.count; index += 1) {
-    const value = block.values[index];
-    const distance = block.distances[index];
-    if (distance === 0) {
-      writer.write(literalCodes[value], literalLengths[value]);
-      continue;
-    }
-    const lengthCode = LENGTH_CODE[value];
-    writer.write(literalCodes[257 + lengthCode], literalLengths[257 + lengthCode]);
-    writer.write(value - LENGTH_BASE[lengthCode], LENGTH_EXTRA[lengthCode]);
-    const distanceCode = DISTANCE_CODE[distance];
-    writer.write(distanceCodes[distanceCode], distanceLengths[distanceCode]);
-    writer.write(distance - DISTANCE_BASE[distanceCode], DISTANCE_EXTRA[distanceCode]);
-  }
-  writer.write(literalCodes[END_OF_BLOCK], literalLengths[END_OF_BLOCK]);
-}
-function codedBits(frequencies, lengths) {
-  let bits = 0;
-  for (let symbol = 0;symbol < frequencies.length; symbol += 1) {
-    bits += frequencies[symbol] * lengths[symbol];
-  }
-  return bits;
-}
-function dynamicHeader(literalLengths, distanceLengths, codeLengthBits) {
-  const literalCount = lastUsed(literalLengths) + 1;
-  const distanceCount = lastUsed(distanceLengths) + 1;
-  const items = runLengths([...literalLengths.slice(0, literalCount), ...distanceLengths.slice(0, distanceCount)]);
-  const frequencies = new Array(19).fill(0);
-  for (const [symbol] of items) {
-    frequencies[symbol] += 1;
-  }
-  const lengths = huffmanLengths(frequencies, codeLengthBits);
-  const codes = canonicalCodes(lengths);
-  let orderCount = CODE_LENGTH_ORDER.length;
-  while (orderCount > 4 && lengths[CODE_LENGTH_ORDER[orderCount - 1]] === 0) {
-    orderCount -= 1;
-  }
-  let bits = 5 + 5 + 4 + 3 * orderCount;
-  for (const [symbol] of items) {
-    bits += lengths[symbol] + CODE_LENGTH_EXTRA[symbol];
-  }
-  return {
-    bits,
-    write(writer) {
-      writer.write(literalCount - 257, 5);
-      writer.write(distanceCount - 1, 5);
-      writer.write(orderCount - 4, 4);
-      for (let index = 0;index < orderCount; index += 1) {
-        writer.write(lengths[CODE_LENGTH_ORDER[index]], 3);
-      }
-      for (const [symbol, extra] of items) {
-        writer.write(codes[symbol], lengths[symbol]);
-        writer.write(extra, CODE_LENGTH_EXTRA[symbol]);
-      }
-    }
-  };
-}
-function lastUsed(lengths) {
-  let index = lengths.length - 1;
-  while (lengths[index] === 0) {
-    index -= 1;
-  }
-  return index;
-}
-function runLengths(lengths) {
-  const items = [];
-  for (let index = 0;index < lengths.length; ) {
-    const value = lengths[index];
-    let run = 1;
-    while (index + run < lengths.length && lengths[index + run] === value) {
-      run += 1;
-    }
-    index += run;
-    if (value === 0) {
-      for (;run >= 11; run -= Math.min(run, 138)) {
-        items.push([18, Math.min(run, 138) - 11]);
-      }
-      if (run >= 3) {
-        items.push([17, run - 3]);
-        run = 0;
-      }
-    } else {
-      items.push([value, 0]);
-      run -= 1;
-      for (;run >= 3; run -= Math.min(run, 6)) {
-        items.push([16, Math.min(run, 6) - 3]);
-      }
-    }
-    for (;run > 0; run -= 1) {
-      items.push([value, 0]);
-    }
-  }
-  return items;
-}
-function huffmanLengths(frequencies, limit) {
-  let weights = Array.from(frequencies);
-  let used = weights.filter((weight) => weight > 0).length;
-  for (let symbol = 0;used < 2; symbol += 1) {
-    if (weights[symbol] === 0) {
-      weights[symbol] = 1;
-      used += 1;
-    }
-  }
-  let lengths = treeDepths(weights);
-  while (Math.max(...lengths) > limit) {
-    weights = weights.map((weight) => weight + 1 >> 1);
-    lengths = treeDepths(weights);
-  }
-  return lengths;
-}
-function treeDepths(weights) {
-  const leaves = [];
-  for (let symbol = 0;symbol < weights.length; symbol += 1) {
-    if (weights[symbol] > 0) {
-      leaves.push(symbol);
-    }
-  }
-  leaves.sort((a, b) => weights[a] - weights[b] || a - b);
-  const nodeWeights = leaves.map((symbol) => weights[symbol]);
-  const parents = [];
-  let leaf = 0;
-  let inner = leaves.length;
-  const lightest = () => leaf < leaves.length && (inner === nodeWeights.length || nodeWeights[leaf] <= nodeWeights[inner]) ? leaf++ : inner++;
-  while (nodeWeights.length < 2 * leaves.length - 1) {
-    const first = lightest();
-    const second = lightest();
-    parents[first] = nodeWeights.length;
-    parents[second] = nodeWeights.length;
-    nodeWeights.push(nodeWeights[first] + nodeWeights[second]);
-  }
-  const depths = new Array(nodeWeights.length).fill(0);
-  for (let node = nodeWeights.length - 2;node >= 0; node -= 1) {
-    depths[node] = depths[parents[node]] + 1;
-  }
-  const lengths = new Array(weights.length).fill(0);
-  leaves.forEach((symbol, index) => {
-    lengths[symbol] = depths[index];
-  });
-  return lengths;
-}
-function canonicalCodes(lengths) {
-  const counts = new Array(MAX_CODE_BITS + 1).fill(0);
-  for (const length of lengths) {
-    counts[length] += 1;
-  }
-  counts[0] = 0;
-  const next = [0];
-  for (let bits = 1;bits <= MAX_CODE_BITS; bits += 1) {
-    next[bits] = next[bits - 1] + counts[bits - 1] << 1;
-  }
-  return lengths.map((length) => {
-    if (length === 0) {
-      return 0;
-    }
-    let code = next[length];
-    next[length] += 1;
-    let reversed = 0;
-    for (let bit = 0;bit < length; bit += 1) {
-      reversed = reversed << 1 | code & 1;
-      code >>= 1;
-    }
-    return reversed;
-  });
-}
-
-// src/packaging.js
-function buildTimestamp() {
-  const raw = process.env.SOURCE_DATE_EPOCH;
-  if (raw !== undefined && raw !== "") {
-    const date = /^\d+$/.test(raw.trim()) ? new Date(Number(raw.trim()) * 1000) : null;
-    if (date !== null && !Number.isNaN(date.getTime()) && date.getUTCFullYear() <= 9999) {
-      return date.toISOString().replace(/\.\d{3}Z$/, "Z");
-    }
-  }
-  return "2000-01-01T00:00:00Z";
-}
-function writeEpub(outFile, storyId, manuscript, writeOptions = {}) {
-  const meta = manuscript.meta ?? publishingMeta({});
-  const lang = xmlEscape(meta.language);
-  const type = typesetting(meta.language, meta.writingMode);
-  const rtl = type.rtl;
-  const root = `xml:lang="${lang}" lang="${lang}"${rtl ? ` dir="rtl"` : ""}`;
-  const style = manuscript.style ?? CLASSIC_STYLE;
-  const bylines = manuscript.chapters.some((chapter) => (chapter.byline ?? "") !== "");
-  const stylesheet = epubStylesheet(type, style, bylines);
-  const extra = style.cssText ?? "";
-  const head = [
-    stylesheet === "" ? "" : `<link rel="stylesheet" type="text/css" href="style.css"/>`,
-    extra === "" ? "" : `<link rel="stylesheet" type="text/css" href="extra.css"/>`
-  ].join("");
-  const markup = { styled: style.styled, sceneBreak: style.sceneBreak ?? "* * *", ownIndent: style.paragraphs === "indented" };
-  const documents = [];
-  const pushMatter = (placement) => (entry) => documents.push({
-    id: `${placement}-${entry.id}`,
-    label: entry.title,
-    content: matterXhtml(entry, placement, root, head, markup)
-  });
-  manuscript.front.forEach(pushMatter("front"));
-  for (const chapter of manuscript.chapters) {
-    documents.push({
-      id: `chapter-${String(chapter.number).padStart(2, "0")}`,
-      label: chapter.heading,
-      content: chapterXhtml(chapter, root, head, markup),
-      bodymatter: true
-    });
-  }
-  manuscript.back.forEach(pushMatter("back"));
-  const coverEntries = [];
-  const coverItems = [];
-  const coverMeta = [];
-  const coverSpine = [];
-  if (manuscript.cover) {
-    const href = `images/cover.${manuscript.cover.extension}`;
-    const alt = meta.coverAlt === "" ? fillLabel(meta.labels, "cover-alt", { title: manuscript.title }) : meta.coverAlt;
-    coverEntries.push({ name: `OEBPS/${href}`, content: readFileBytes(manuscript.cover.filePath, manuscript.cover.maxBytes), stored: true }, { name: "OEBPS/cover.xhtml", content: `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" ${root}><head><title>${xmlEscape(manuscript.title)}</title>${head}</head><body epub:type="cover"><img src="${href}" alt="${xmlEscape(alt)}"/></body></html>` });
-    coverItems.push(`<item id="cover-image" href="${href}" media-type="${manuscript.cover.mediaType}" properties="cover-image"/>`, `<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`);
-    coverMeta.push(`<meta name="cover" content="cover-image"/>`);
-    coverSpine.push(`<itemref idref="cover"/>`);
-  }
-  const creator = epubCreators(meta, manuscript.chapters);
-  const identifier = meta.isbn === "" ? xmlEscape(storyId) : `urn:isbn:${meta.isbn}`;
-  const optional = [
-    meta.publisher === "" ? "" : `<dc:publisher>${xmlEscape(meta.publisher)}</dc:publisher>`,
-    meta.publicationDate === "" ? "" : `<dc:date>${xmlEscape(meta.publicationDate)}</dc:date>`,
-    meta.description === "" ? "" : `<dc:description>${xmlEscape(meta.description)}</dc:description>`,
-    ...meta.subjects.map((subject) => `<dc:subject>${xmlEscape(subject)}</dc:subject>`),
-    meta.copyright === "" ? "" : `<dc:rights>${xmlEscape(meta.copyright)}</dc:rights>`
-  ].join("");
-  const accessibility = epubAccessibilityMeta(Boolean(manuscript.cover), meta.labels);
-  const items = documents.map((doc) => `<item id="${doc.id}" href="${doc.id}.xhtml" media-type="application/xhtml+xml"/>`);
-  const spine = documents.map((doc) => `<itemref idref="${doc.id}"/>`);
-  const modified = buildTimestamp();
-  writeZip(outFile, [
-    { name: "mimetype", content: "application/epub+zip", stored: true },
-    { name: "META-INF/container.xml", content: `<?xml version="1.0" encoding="UTF-8"?><container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/></rootfiles></container>` },
-    { name: "OEBPS/content.opf", content: `<?xml version="1.0" encoding="UTF-8"?><package version="3.0" unique-identifier="book-id" xmlns="http://www.idpf.org/2007/opf"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:identifier id="book-id">${identifier}</dc:identifier><dc:title>${xmlEscape(manuscript.title)}</dc:title>${creator}<dc:language>${lang}</dc:language>${optional}<meta property="dcterms:modified">${modified}</meta>${accessibility}${coverMeta.join("")}${type.vertical ? `<meta name="primary-writing-mode" content="vertical-rl"/>` : ""}</metadata><manifest><item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>${stylesheet === "" ? "" : `<item id="style" href="style.css" media-type="text/css"/>`}${extra === "" ? "" : `<item id="extra-style" href="extra.css" media-type="text/css"/>`}${coverItems.join("")}${items.join("")}</manifest><spine${rtl || type.vertical ? ` page-progression-direction="rtl"` : ""}>${coverSpine.join("")}${spine.join("")}</spine></package>` },
-    { name: "OEBPS/nav.xhtml", content: navXhtml(manuscript.title, documents, root, meta.labels, head) },
-    ...stylesheet === "" ? [] : [{ name: "OEBPS/style.css", content: stylesheet }],
-    ...extra === "" ? [] : [{ name: "OEBPS/extra.css", content: extra }],
-    ...coverEntries,
-    ...documents.map((doc) => ({ name: `OEBPS/${doc.id}.xhtml`, content: doc.content }))
-  ], writeOptions);
-}
-function epubCreators(meta, chapters) {
-  const storyAuthors = new Set(chapters.flatMap((chapter) => chapter.authors ?? []));
-  const credited = new Set([...meta.authors, ...meta.editors]);
-  const contributors = [...storyAuthors].filter((name) => !credited.has(name));
-  if (meta.editors.length === 0 && contributors.length === 0) {
-    return meta.authors.map((name) => `<dc:creator>${xmlEscape(name)}</dc:creator>`).join("");
-  }
-  const entry = (element, id, name, roles) => `<dc:${element} id="${id}">${xmlEscape(name)}</dc:${element}>${roles.map((role) => `<meta refines="#${id}" property="role" scheme="marc:relators">${role}</meta>`).join("")}`;
-  const authors = new Set(meta.authors);
-  return [
-    ...meta.authors.map((name, index) => entry("creator", `author-${index + 1}`, name, ["aut"])),
-    ...meta.editors.map((name, index) => entry("creator", `editor-${index + 1}`, name, storyAuthors.has(name) && !authors.has(name) ? ["edt", "aut"] : ["edt"])),
-    ...contributors.map((name, index) => entry("contributor", `contributor-${index + 1}`, name, ["aut"]))
-  ].join("");
-}
-function epubStylesheet(type, style = CLASSIC_STYLE, bylines = false) {
-  const rules = [];
-  if (type.vertical) {
-    rules.push("html { -epub-writing-mode: vertical-rl; -webkit-writing-mode: vertical-rl; writing-mode: vertical-rl; }");
-  }
-  const fonts = styleFonts(style, type);
-  if (!type.fonts.latin || fonts.body !== type.fonts.body) {
-    rules.push(`body { font-family: ${fonts.body}; }`);
-  }
-  if (!style.styled) {
-    return rules.length === 0 ? "" : `${rules.join(`
-`)}
-`;
-  }
-  const opening = bylines ? ["h1 + p:not(.byline)", "h1 + p.byline + p"] : ["h1 + p"];
-  if (fonts.heading !== null) {
-    rules.push(`h1 { font-family: ${fonts.heading}; }`);
-  }
-  const heading = headingRule(style.headingStyle, type);
-  if (heading !== "") {
-    rules.push(`h1 { ${heading} }`);
-  }
-  const after = type.vertical ? "0 0 0 0.8em" : "0 0 0.8em";
-  if (style.paragraphs === "indented") {
-    rules.push("p { margin: 0; text-indent: 1.5em; }", `${opening.join(", ")}, p.scene-break + p, blockquote p, body.matter p { text-indent: 0; }`, `body.matter p { margin: ${after}; }`);
-  } else if (style.paragraphs === "block") {
-    rules.push(`p { margin: ${after}; text-indent: 0; }`);
-  }
-  rules.push("p.scene-break { text-align: center; text-indent: 0; margin: 1em 0; }");
-  if (bylines) {
-    rules.push(`p.byline { text-align: center; text-indent: 0; margin: ${after}; }`);
-  }
-  if (style.dropCaps === true && type.cased && !type.vertical) {
-    rules.push(`${opening.map((selector) => `body.chapter > ${selector}::first-letter`).join(", ")} { ${DROP_CAP_RULE} }`);
-  }
-  return `${rules.join(`
-`)}
-`;
-}
-function navXhtml(title, documents, root, labels, head = "") {
-  const links = documents.map((doc) => `<li><a href="${doc.id}.xhtml">${xmlEscape(doc.label)}</a></li>`);
-  const start = documents.find((doc) => doc.bodymatter);
-  const landmarks = start ? `<nav epub:type="landmarks" hidden="hidden"><ol><li><a epub:type="bodymatter" href="${start.id}.xhtml">${xmlEscape(fillLabel(labels, "start-of-content"))}</a></li></ol></nav>` : "";
-  return `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" ${root}><head><title>${xmlEscape(title)}</title>${head}</head><body><nav epub:type="toc" id="toc"><h1>${xmlEscape(fillLabel(labels, "contents"))}</h1><ol>${links.join("")}</ol></nav>${landmarks}</body></html>`;
-}
-function epubAccessibilityMeta(hasCover, labels) {
-  const features = ["tableOfContents", "readingOrder", "structuralNavigation", ...hasCover ? ["alternativeText"] : []];
-  const summary = xmlEscape(fillLabel(labels, hasCover ? "accessibility-summary-cover" : "accessibility-summary"));
-  return [
-    `<meta property="schema:accessMode">textual</meta>`,
-    ...hasCover ? [`<meta property="schema:accessMode">visual</meta>`] : [],
-    `<meta property="schema:accessModeSufficient">textual</meta>`,
-    ...features.map((feature) => `<meta property="schema:accessibilityFeature">${feature}</meta>`),
-    `<meta property="schema:accessibilityHazard">none</meta>`,
-    `<meta property="schema:accessibilitySummary">${summary}</meta>`
-  ].join("");
-}
-function xhtmlParagraphs(body, markup) {
-  const sceneBreak = markup.styled ? `<p class="scene-break">${xmlEscape(markup.sceneBreak)}</p>` : "<p>* * *</p>";
-  return withBlockquotes(markdownParagraphs(body, markup.ownIndent).map((paragraph) => ({
-    quote: Boolean(paragraph.quote),
-    markup: paragraph.sceneBreak ? sceneBreak : `<p>${inlineRuns(paragraph.text, paragraph.code).map((run) => runMarkup(run, xmlEscape, "<br/>")).join("")}</p>`
-  }))).join("");
-}
-function xhtmlDocument(title, root, head, bodyType, content, bodyClass = "") {
-  const classes = bodyClass === "" ? "" : ` class="${bodyClass}"`;
-  return `<?xml version="1.0" encoding="UTF-8"?><html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" ${root}><head><title>${xmlEscape(title)}</title>${head}</head><body epub:type="${bodyType}"${classes}>${content}</body></html>`;
-}
-function chapterXhtml(chapter, root, head, markup) {
-  const heading = chapter.heading;
-  const title = String(chapter.title ?? "").trim() || heading;
-  const byline = (chapter.byline ?? "") === "" ? "" : `<p class="byline"><em>${xmlEscape(chapter.byline)}</em></p>`;
-  return xhtmlDocument(title, root, head, "bodymatter chapter", `<h1>${xmlEscape(heading)}</h1>${byline}${xhtmlParagraphs(chapter.body, markup)}`, markup.styled ? "chapter" : "");
-}
-function matterXhtml(entry, placement, root, head, markup) {
-  const heading = entry.heading ? `<h1>${xmlEscape(entry.title)}</h1>` : "";
-  const bodyType = entry.copyright ? `${placement}matter copyright-page` : `${placement}matter`;
-  return xhtmlDocument(entry.title, root, head, bodyType, `${heading}${xhtmlParagraphs(entry.body, markup)}`, markup.styled ? "matter" : "");
-}
-function htmlBook(manuscript, ownIndent = false) {
-  const characters = (body) => manuscript.unit === "characters" ? { characters: characterCount(body) } : {};
-  const paragraphs = (body) => markdownParagraphs(body, ownIndent).map((paragraph) => {
-    if (paragraph.sceneBreak) {
-      return null;
-    }
-    const runs = inlineRuns(paragraph.text, paragraph.code);
-    return {
-      html: runs.map((run) => runMarkup(run, escapeHtml, "<br>")).join(""),
-      text: runs.map((run) => run.text).join("").split(LINE_BREAK3).join(" ").replace(/\s+/g, " ").trim(),
-      quote: paragraph.quote
-    };
-  });
-  const matter = (placement) => (entry) => ({
-    key: `${placement}-${entry.id}`,
-    kind: entry.copyright ? `${placement} copyright-page` : placement,
-    copyright: Boolean(entry.copyright),
-    placement,
-    title: entry.title,
-    heading: entry.heading,
-    words: wordCount(entry.body),
-    ...characters(entry.body),
-    paragraphs: paragraphs(entry.body)
-  });
-  const parts = [
-    ...manuscript.front.map(matter("front")),
-    ...manuscript.chapters.map((chapter) => ({
-      key: chapter.key,
-      kind: "chapter",
-      placement: "body",
-      title: chapter.heading,
-      heading: true,
-      byline: chapter.byline ?? "",
-      words: wordCount(chapter.body),
-      ...characters(chapter.body),
-      paragraphs: paragraphs(chapter.body)
-    })),
-    ...manuscript.back.map(matter("back"))
-  ];
-  return {
-    title: manuscript.title,
-    ...manuscript.unit === "characters" ? { unit: "characters" } : {},
-    authors: manuscript.meta.authors,
-    editors: manuscript.meta.editors ?? [],
-    language: manuscript.meta.language,
-    writingMode: manuscript.meta.writingMode,
-    labels: manuscript.meta.labels,
-    words: manuscript.chapters.reduce((sum, chapter) => sum + wordCount(chapter.body), 0),
-    parts
-  };
-}
-function writeDocx(outFile, manuscript, writeOptions = {}) {
-  writeZip(outFile, docxEntries(manuscript), writeOptions);
-}
-function docxEntries(manuscript, trace = null) {
-  const meta = manuscript.meta ?? publishingMeta({});
-  const script = docxScript(meta);
-  const note = (entry) => trace?.push(entry);
-  const credits = creditLines(meta);
-  const bodyParts = [paragraphXml(script, manuscript.title, "Title"), ...credits.map((line) => paragraphXml(script, line, "Credit"))];
-  note(traceEntry("title", null));
-  credits.forEach(() => note(traceEntry("credit", null)));
-  const pushSection = (heading, body, byline, part) => {
-    if (heading !== null) {
-      bodyParts.push(paragraphXml(script, heading, "Heading1"));
-      note(traceEntry("heading", part));
-    }
-    if (byline !== "") {
-      bodyParts.push(paragraphXml(script, byline, "Byline"));
-      note(traceEntry("byline", part));
-    }
-    markdownParagraphs(body, true).forEach((paragraph, index) => {
-      bodyParts.push(paragraph.sceneBreak ? paragraphXml(script, "* * *", "SceneBreak") : paragraphXml(script, paragraph.text, paragraph.quote ? "Quote" : "", inlineRuns(paragraph.text, paragraph.code)));
-      note(traceEntry(paragraph.sceneBreak ? "scene-break" : "paragraph", part, index));
-    });
-  };
-  const pushMatter = (placement) => (entry) => pushSection(entry.heading ? entry.title : null, entry.body, "", { placement, id: entry.id });
-  manuscript.front.forEach(pushMatter("front"));
-  manuscript.chapters.forEach((chapter, index) => {
-    pushSection(chapter.heading, chapter.body, chapter.byline ?? "", { placement: "body", chapter: index });
-  });
-  manuscript.back.forEach(pushMatter("back"));
-  return docxPackageEntries(script, bodyParts.join(""));
-}
-function traceEntry(kind, part, index = null) {
-  return { kind, part, index };
-}
-function docxScript(meta) {
-  const language = meta?.language ?? "en";
-  const type = typesetting(language, meta?.writingMode);
-  const { eastAsia, cs, eastAsian, complex } = type.docx;
-  const written = writtenTag(language);
-  const tag = xmlEscape(written);
-  const font = (name) => `"${name ?? "Times New Roman"}"`;
-  return {
-    lang: written === "en" || written === "und" ? "" : `<w:lang w:val="${tag}"${eastAsian ? ` w:eastAsia="${tag}"` : ""}${complex ? ` w:bidi="${tag}"` : ""}/>`,
-    bidi: type.rtl ? "<w:bidi/>" : "",
-    rtl: type.rtl ? "<w:rtl/>" : "",
-    bold: complex ? "<w:b/><w:bCs/>" : "<w:b/>",
-    italic: complex ? "<w:i/><w:iCs/>" : "<w:i/>",
-    sizeCs: complex,
-    fonts: `<w:rFonts w:ascii="Times New Roman" w:hAnsi="Times New Roman" w:eastAsia=${font(eastAsia)} w:cs=${font(cs)}${eastAsian ? ` w:hint="eastAsia"` : ""}/>`,
-    direction: type.vertical ? `<w:textDirection w:val="tbRl"/>` : type.rtl ? "<w:bidi/>" : ""
-  };
-}
-function docxSection(script, page = "", headers = []) {
-  const references = headers.map((header, index) => `<w:headerReference w:type="${header.type}" r:id="${docxHeaderId(index)}"/>`).join("");
-  const titlePage = headers.some((header) => header.type === "first") ? "<w:titlePg/>" : "";
-  const content = `${references}${page}${titlePage}${script.direction}`;
-  return content === "" ? "<w:sectPr/>" : `<w:sectPr>${content}</w:sectPr>`;
-}
-function docxHeaderId(index) {
-  return `rId${index + 2}`;
-}
-var SHUNN_PAPERS = new Map([
-  ["letter", { css: "letter", width: 12240, height: 15840 }],
-  ["a4", { css: "A4", width: 11906, height: 16838 }]
-]);
-var DEFAULT_PAPER = "letter";
-function shunnPaper(name) {
-  const paper = SHUNN_PAPERS.get(name ?? DEFAULT_PAPER);
-  if (paper === undefined) {
-    throw new Error(`Unsupported paper: ${name}`);
-  }
-  return paper;
-}
-function docxPackageEntries(script, body, page = "", headers = []) {
-  const headerName = (index) => `header${index + 1}.xml`;
-  const headerTypes = headers.map((header, index) => `<Override PartName="/word/${headerName(index)}" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"/>`).join("");
-  const headerRelationships = headers.map((header, index) => `<Relationship Id="${docxHeaderId(index)}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/header" Target="${headerName(index)}"/>`).join("");
-  const relationshipsNamespace = headers.length === 0 ? "" : ` xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"`;
-  return [
-    { name: "[Content_Types].xml", content: `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>${headerTypes}</Types>` },
-    { name: "_rels/.rels", content: `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>` },
-    { name: "word/_rels/document.xml.rels", content: `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${headerRelationships}</Relationships>` },
-    { name: "word/styles.xml", content: docxStyles(script) },
-    ...headers.map((header, index) => ({ name: `word/${headerName(index)}`, content: `<?xml version="1.0" encoding="UTF-8"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${header.content}</w:hdr>` })),
-    { name: "word/document.xml", content: `<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"${relationshipsNamespace}><w:body>${body}${docxSection(script, page, headers)}</w:body></w:document>` }
-  ];
-}
-function docxStyles(script) {
-  return `<?xml version="1.0" encoding="UTF-8"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` + `<w:docDefaults><w:rPrDefault><w:rPr>${script.fonts}<w:sz w:val="24"/><w:szCs w:val="24"/>${script.lang}</w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="0" w:line="360" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>` + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/><w:pPr><w:ind w:firstLine="720"/></w:pPr></w:style>` + `<w:style w:type="paragraph" w:styleId="Title"><w:name w:val="Title"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr><w:rPr>${script.bold}<w:sz w:val="56"/>${script.sizeCs ? `<w:szCs w:val="56"/>` : ""}</w:rPr></w:style>` + `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Credit"><w:name w:val="Credit"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:spacing w:after="240"/><w:ind w:firstLine="0"/><w:contextualSpacing/><w:jc w:val="center"/></w:pPr><w:rPr><w:sz w:val="28"/>${script.sizeCs ? `<w:szCs w:val="28"/>` : ""}</w:rPr></w:style>` + `<w:style w:type="paragraph" w:styleId="Heading1"><w:name w:val="heading 1"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:keepNext/><w:spacing w:before="480" w:after="240"/><w:ind w:firstLine="0"/><w:outlineLvl w:val="0"/></w:pPr><w:rPr>${script.bold}<w:sz w:val="32"/>${script.sizeCs ? `<w:szCs w:val="32"/>` : ""}</w:rPr></w:style>` + `<w:style w:type="paragraph" w:styleId="Quote"><w:name w:val="Quote"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:qFormat/><w:pPr><w:spacing w:before="120" w:after="120"/><w:ind w:left="720" w:right="720" w:firstLine="0"/></w:pPr></w:style>` + `<w:style w:type="paragraph" w:customStyle="1" w:styleId="SceneBreak"><w:name w:val="Scene Break"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:spacing w:before="240" w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr></w:style>` + `<w:style w:type="paragraph" w:customStyle="1" w:styleId="Byline"><w:name w:val="Byline"/><w:basedOn w:val="Normal"/><w:next w:val="Normal"/><w:pPr><w:keepNext/><w:spacing w:after="240"/><w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr><w:rPr>${script.italic}</w:rPr></w:style>` + `</w:styles>`;
-}
-var SHUNN_FONT = `<w:rFonts w:ascii="Courier New" w:hAnsi="Courier New"/>`;
-var SHUNN_SIZE = `<w:sz w:val="24"/>`;
-var SHUNN_PARAGRAPH_SPACING = `<w:spacing w:line="480" w:lineRule="auto"/>`;
-function shunnRunProperties(script, { strong = false, em = false } = {}) {
-  return `<w:rPr>${SHUNN_FONT}${strong ? script.bold : ""}${em ? script.italic : ""}${SHUNN_SIZE}${script.rtl}</w:rPr>`;
-}
-function shunnRunXml(script, text, decoration) {
-  return `<w:r>${shunnRunProperties(script, decoration)}${docxTextXml(text)}</w:r>`;
-}
-function shunnHeadParts(meta) {
-  const name = meta.surname ? oneLine2(meta.surname) : headFit(headSurname(meta.lead ?? meta.author ?? "", meta.pack?.familyNameFirst), HEAD_NAME_COLUMNS, meta.labels);
-  const title = meta.shortTitle ? oneLine2(meta.shortTitle) : headFit(headTitle(meta.title), HEAD_TITLE_COLUMNS, meta.labels);
-  return [name, title].filter((part) => part !== "");
-}
-var HEAD_NAME_COLUMNS = 20;
-var HEAD_TITLE_COLUMNS = 30;
-function oneLine2(text) {
-  return String(text).replace(/[ \u0000-\u001f\u007f-\u009f\u2028\u2029\ue001]+/g, " ").replace(/^ | $/g, "");
-}
-var NAME_SUFFIX = /^(?:jr|jnr|sr|snr|ii|iii|iv|phd|ph\.d|md|m\.d|esq)\.?$/i;
-function headSurname(name, familyFirst = false) {
-  const words = (oneLine2(name).split(",").find((part) => part.trim() !== "") ?? "").split(" ").filter((word) => word !== "");
-  if (familyFirst) {
-    return words[0] ?? "";
-  }
-  while (words.length > 1 && NAME_SUFFIX.test(words[words.length - 1])) {
-    words.pop();
-  }
-  return words[words.length - 1] ?? "";
-}
-function headTitle(title) {
-  const text = oneLine2(title);
-  const main = text.split(/:\s|\uff1a|\u2014/u)[0].replace(/\s+$/u, "");
-  return main === "" ? text : main;
-}
-var WIDE_CHARACTER = /[\u1100-\u115f\u2e80-\u303e\u3041-\u33ff\u3400-\u4dbf\u4e00-\u9fff\ua000-\ua4cf\uac00-\ud7a3\uf900-\ufaff\ufe30-\ufe4f\uff00-\uff60\uffe0-\uffe6\u{20000}-\u{3fffd}]/u;
-function headColumns(char) {
-  return /\p{M}/u.test(char) ? 0 : WIDE_CHARACTER.test(char) ? 2 : 1;
-}
-function headFit(text, limit, labels) {
-  let kept = "";
-  let width = 0;
-  for (const char of text) {
-    width += headColumns(char);
-    if (width > limit) {
-      const cut = /[ -]/.test(char) ? kept.length : Math.max(kept.lastIndexOf(" "), kept.lastIndexOf("-"));
-      return withoutDangling(cut > 0 ? kept.slice(0, cut) : kept, labels);
-    }
-    kept += char;
-  }
-  return text;
-}
-function withoutDangling(text, labels) {
-  const joiners = new Set(["and", String(labels?.and ?? "").replace(/\{[ab]\}/g, "").trim().toLowerCase()]);
-  const dangling = /[\s,;:/&\u2013\u2014\u3001\uff0c-]+$/u;
-  let rest = text.replace(dangling, "");
-  let space = rest.lastIndexOf(" ");
-  while (space > 0 && joiners.has(rest.slice(space + 1).toLowerCase())) {
-    rest = rest.slice(0, space).replace(dangling, "");
-    space = rest.lastIndexOf(" ");
-  }
-  return rest;
-}
-function shunnHeaders(script, meta) {
-  const paragraph = (runs) => `<w:p><w:pPr>${script.bidi}<w:spacing w:line="240" w:lineRule="auto"/><w:ind w:firstLine="0"/><w:jc w:val="right"/></w:pPr>${runs}</w:p>`;
-  const text = shunnHeadParts(meta).map((part) => `${part} / `).join("");
-  const field = [`<w:fldChar w:fldCharType="begin"/>`, `<w:instrText xml:space="preserve"> PAGE </w:instrText>`, `<w:fldChar w:fldCharType="separate"/>`, `<w:fldChar w:fldCharType="end"/>`].map((content) => `<w:r>${shunnRunProperties(script)}${content}</w:r>`).join("");
-  return [
-    { type: "default", content: paragraph(`${shunnRunXml(script, text)}${field}`) },
-    { type: "first", content: paragraph("") }
-  ];
-}
-function shunnParagraphXml(script, runXml, centered, quote = false) {
-  const layout = centered ? `<w:ind w:firstLine="0"/><w:jc w:val="center"/>` : quote ? `<w:ind w:left="720" w:right="720" w:firstLine="0"/>` : `<w:ind w:firstLine="720"/>`;
-  return `<w:p><w:pPr>${script.bidi}${SHUNN_PARAGRAPH_SPACING}${layout}</w:pPr>${runXml}</w:p>`;
-}
-function shunnChapterHeadingXml(script, text) {
-  return `<w:p><w:pPr>${script.bidi}${SHUNN_PARAGRAPH_SPACING}<w:ind w:firstLine="0"/><w:jc w:val="center"/></w:pPr><w:r>${script.rtl === "" ? "" : `<w:rPr>${script.rtl}</w:rPr>`}<w:br w:type="page"/></w:r>${shunnRunXml(script, text, { strong: true })}</w:p>`;
-}
-function shunnRounded(count) {
-  const step = count < 1000 ? 1 : count < 40000 ? 100 : 1000;
-  return Math.round(count / step) * step;
-}
-function shunnLength(meta) {
-  const pack = meta.pack ?? languagePack();
-  const characters = meta.characters !== undefined;
-  const count = shunnRounded(characters ? meta.characters : meta.words);
-  const key = pluralLabelKey(meta.labels, characters ? "approximate-characters" : "approximate-words", count, pack);
-  return fillLabel(meta.labels, key, { [characters ? "characters" : "words"]: formatNumber2(count, pack) });
-}
-function shunnByline(meta) {
-  const lines = [];
-  if (meta.author) {
-    const by = fillLabel(meta.labels, "by");
-    lines.push(...by === "" ? [meta.author] : [by, meta.author]);
-  }
-  if (meta.editors) {
-    lines.push(meta.editors);
-  }
-  return lines;
-}
-function shunnChapterByline(chapter, meta) {
-  return meta.shortForm || meta.anonymous ? "" : chapter.byline ?? "";
-}
-function shunnTitlePageXml(script, meta) {
-  const line = (text, decoration) => shunnParagraphXml(script, shunnRunXml(script, text, decoration), true);
-  const lines = [line(meta.title, { strong: true })];
-  lines.push(...shunnByline(meta).map((text) => line(text)));
-  lines.push(line(shunnLength(meta)));
-  for (const contactLine of meta.contact) {
-    lines.push(line(String(contactLine)));
-  }
-  return lines;
-}
-function writeShunnDocx(outFile, manuscript, meta, writeOptions = {}, paperName = DEFAULT_PAPER) {
-  writeZip(outFile, shunnDocxEntries(manuscript, meta, paperName), writeOptions);
-}
-function shunnDocxEntries(manuscript, meta, paperName = DEFAULT_PAPER, trace = null) {
-  const script = docxScript(manuscript.meta);
-  const note = (entry) => trace?.push(entry);
-  const paragraphs = [...shunnTitlePageXml(script, meta)];
-  paragraphs.forEach(() => note(traceEntry("title-page", null)));
-  const sceneBreak = meta.shortForm ? "#" : "* * *";
-  const hash = shunnParagraphXml(script, shunnRunXml(script, "#"), true);
-  if (meta.shortForm) {
-    paragraphs.push(shunnParagraphXml(script, "", true));
-    note(traceEntry("blank", null));
-  }
-  let sections = 0;
-  manuscript.chapters.forEach((chapter, chapterIndex) => {
-    const part = { placement: "body", chapter: chapterIndex };
-    const body = markdownParagraphs(chapter.body, true);
-    if (!meta.shortForm) {
-      paragraphs.push(shunnChapterHeadingXml(script, chapter.heading));
-      note(traceEntry("heading", part));
-      const byline = shunnChapterByline(chapter, meta);
-      if (byline !== "") {
-        paragraphs.push(shunnParagraphXml(script, shunnRunXml(script, byline), true));
-        note(traceEntry("byline", part));
-      }
-    } else if (body.length === 0) {
-      return;
-    } else if (sections++ > 0) {
-      paragraphs.push(hash);
-      note(traceEntry("separator", null));
-    }
-    body.forEach((paragraph, index) => {
-      paragraphs.push(paragraph.sceneBreak ? shunnParagraphXml(script, shunnRunXml(script, sceneBreak), true) : shunnParagraphXml(script, inlineRuns(paragraph.text, paragraph.code).map((run) => shunnRunXml(script, run.text, run)).join(""), false, paragraph.quote));
-      note(traceEntry(paragraph.sceneBreak ? "scene-break" : "paragraph", part, index));
-    });
-  });
-  const paper = shunnPaper(paperName);
-  const page = `<w:pgSz w:w="${paper.width}" w:h="${paper.height}"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/>`;
-  return docxPackageEntries(script, paragraphs.join(""), page, shunnHeaders(script, meta));
-}
-function writeShunnMarkdown(outFile, manuscript, meta, writeOptions = {}) {
-  const lines = [meta.title];
-  lines.push(...shunnByline(meta), "", shunnLength(meta), "");
-  for (const contactLine of meta.contact) {
-    lines.push(String(contactLine));
-  }
-  const sceneBreak = meta.shortForm ? "#" : "* * *";
-  if (meta.shortForm) {
-    lines.push("");
-  }
-  let sections = 0;
-  for (const chapter of manuscript.chapters) {
-    const body = markdownParagraphs(chapter.body, true);
-    if (!meta.shortForm) {
-      lines.push("\f", `# ${chapter.heading}`, "");
-      const byline = shunnChapterByline(chapter, meta);
-      if (byline !== "") {
-        lines.push(byline, "");
-      }
-    } else if (body.length === 0) {
-      continue;
-    } else if (sections++ > 0) {
-      lines.push("#", "");
-    }
-    for (const paragraph of body) {
-      if (paragraph.sceneBreak) {
-        lines.push(sceneBreak, "");
-        continue;
-      }
-      const prefix = paragraph.quote ? "> " : "";
-      lines.push(`${prefix}${paragraph.text.split(LINE_BREAK3).join(`\\
-${prefix}`)}`, "");
-    }
-  }
-  writeFile(outFile, `${lines.join(`
-`).trimEnd()}
-`, writeOptions);
-}
-function shunnHtml(manuscript, meta, paperName = DEFAULT_PAPER) {
-  const paper = shunnPaper(paperName);
-  const language = manuscript.meta?.language ?? "en";
-  const type = typesetting(language, "horizontal");
-  const fonts = `"Courier New", Courier, ${type.fonts.latin ? "monospace" : type.fonts.body}`;
-  const head = shunnHeadParts(meta).map((part) => `"${cssString(part)} / "`).join(" ");
-  const headBox = type.rtl ? "@top-left" : "@top-right";
-  const sceneBreak = meta.shortForm ? "#" : "* * *";
-  const paragraphMarkup = (paragraph) => ({
-    quote: Boolean(paragraph.quote),
-    markup: paragraph.sceneBreak ? `<p class="break">${escapeHtml(sceneBreak)}</p>` : `<p>${inlineRuns(paragraph.text, paragraph.code).map((run) => runMarkup(run, escapeHtml, "<br>")).join("")}</p>`
-  });
-  const body = [];
-  let sections = 0;
-  for (const chapter of manuscript.chapters) {
-    const paragraphs = markdownParagraphs(chapter.body, true);
-    if (!meta.shortForm) {
-      const byline = shunnChapterByline(chapter, meta);
-      body.push(`<section class="chapter"><h2>${escapeHtml(chapter.heading)}</h2>
-${byline === "" ? "" : `<p class="byline">${escapeHtml(byline)}</p>
-`}${withBlockquotes(paragraphs.map(paragraphMarkup)).join(`
-`)}
-</section>`);
-      continue;
-    }
-    if (paragraphs.length === 0) {
-      continue;
-    }
-    if (sections++ > 0) {
-      body.push(`<p class="break">#</p>`);
-    }
-    body.push(withBlockquotes(paragraphs.map(paragraphMarkup)).join(`
-`));
-  }
-  const dir = type.rtl ? ` dir="rtl"` : "";
-  return `<!DOCTYPE html>
-<html lang="${escapeHtml(language)}"${dir}>
-<head>
-<meta charset="utf-8">
-<title>${escapeHtml(meta.title)}</title>
-<style>
-@page { size: ${paper.css}; margin: 1in;
-  ${headBox} { content: ${head === "" ? "" : `${head} `}counter(page); font: 12pt ${fonts}; } }
-@page :first { ${headBox} { content: none; } }
-html { font: 12pt/2 ${fonts}; }
-body { margin: 0; }
-p { margin: 0; text-indent: 0.5in; text-align: start; widows: 2; orphans: 2; }
-.title-page { line-height: 1.2; }
-.title-page p { text-indent: 0; }
-.title-page .length { float: ${type.rtl ? "left" : "right"}; }
-.title-block { clear: both; text-align: center; margin-top: ${meta.shortForm ? "2.5in" : "3in"}; }
-.title-block h1, .chapter h2 { font: inherit; font-weight: bold; margin: 0; }
-.title-block p { text-indent: 0; text-align: center; }
-.short-form { margin-top: 2em; }
-.chapter { break-before: page; }
-.chapter h2 { text-align: center; margin: 2.25in 0 1em; break-after: avoid; }
-p.break, p.byline { text-align: center; text-indent: 0; }
-blockquote { margin: 0 0.5in; }
-blockquote p { text-indent: 0; }
-</style>
-</head>
-<body>
-<header class="title-page">
-<p class="length">${escapeHtml(shunnLength(meta))}</p>
-${meta.contact.map((line) => `<p>${escapeHtml(String(line))}</p>`).join(`
-`)}
-</header>
-<div class="title-block"><h1>${escapeHtml(meta.title)}</h1>
-${shunnByline(meta).map((line) => `<p>${escapeHtml(line)}</p>`).join(`
-`)}
-</div>
-${meta.shortForm ? `<div class="short-form">
-${body.join(`
-`)}
-</div>` : body.join(`
-`)}
-</body>
-</html>
-`;
-}
-function docxTextXml(text) {
-  return String(text).split(LINE_BREAK3).map((part) => `<w:t xml:space="preserve">${xmlEscape(part)}</w:t>`).join("<w:br/>");
-}
-function paragraphXml(script, text, style = "", runs = [{ text }]) {
-  const properties = `${style ? `<w:pStyle w:val="${style}"/>` : ""}${script.bidi}`;
-  const styleXml = properties === "" ? "" : `<w:pPr>${properties}</w:pPr>`;
-  const runXml = runs.map((run) => {
-    const decoration = `${run.strong ? script.bold : ""}${run.em ? script.italic : ""}${script.rtl}`;
-    const runStyle = decoration === "" ? "" : `<w:rPr>${decoration}</w:rPr>`;
-    return `<w:r>${runStyle}${docxTextXml(run.text)}</w:r>`;
-  });
-  return `<w:p>${styleXml}${runXml.join("")}</w:p>`;
-}
-function inlineRuns(text, code = false) {
-  if (code) {
-    return [{ text, strong: false, em: false }];
-  }
-  const nodes = [];
-  const closeSpan = codeSpanCloser(text);
-  let buffer = "";
-  const isSpace = (char) => char === undefined || char === LINE_BREAK3 || /\s/u.test(char);
-  const isPunct = (char) => char !== undefined && /[\p{P}\p{S}]/u.test(char);
-  for (let index = 0;index < text.length; ) {
-    const char = text[index];
-    if (char === "\\" && /[!-/:-@[-`{-~]/.test(text[index + 1] ?? "")) {
-      buffer += text[index + 1];
-      index += 2;
-      continue;
-    }
-    if (char === "`") {
-      let run = 0;
-      while (text[index + run] === "`") {
-        run += 1;
-      }
-      const end = closeSpan(index, run);
-      if (end === -1) {
-        buffer += "`".repeat(run);
-        index += run;
-      } else {
-        const code = text.slice(index + run, end - run);
-        buffer += code.startsWith(" ") && code.endsWith(" ") && /[^ ]/.test(code) ? code.slice(1, -1) : code;
-        index = end;
-      }
-      continue;
-    }
-    const reference = char === "&" ? characterReference(text, index) : null;
-    if (reference !== null) {
-      buffer += reference.value;
-      index += reference.length;
-      continue;
-    }
-    const autolink = char === "<" ? autolinkEnd(text, index) : -1;
-    if (autolink !== -1) {
-      buffer += text.slice(index + 1, autolink - 1);
-      index = autolink;
-      continue;
-    }
-    if (char !== "*" && char !== "_") {
-      buffer += char;
-      index += 1;
-      continue;
-    }
-    let end = index;
-    while (text[end] === char) {
-      end += 1;
-    }
-    if (buffer !== "") {
-      nodes.push({ text: buffer });
-      buffer = "";
-    }
-    const before = text[index - 1];
-    const after = text[end];
-    const left = !isSpace(after) && (!isPunct(after) || isSpace(before) || isPunct(before));
-    const right = !isSpace(before) && (!isPunct(before) || isSpace(after) || isPunct(after));
-    nodes.push({
-      delimiter: char,
-      count: end - index,
-      original: end - index,
-      open: char === "*" ? left : left && (!right || isPunct(before)),
-      close: char === "*" ? right : right && (!left || isPunct(after)),
-      strong: 0,
-      em: 0
-    });
-    index = end;
-  }
-  if (buffer !== "") {
-    nodes.push({ text: buffer });
-  }
-  const stack = [];
-  const bottom = new Map;
-  const depth = { strong: new Array(nodes.length + 1).fill(0), em: new Array(nodes.length + 1).fill(0) };
-  for (const [closeIndex, closer] of nodes.entries()) {
-    if (!closer.delimiter) {
-      continue;
-    }
-    const key = `${closer.delimiter}${closer.open ? 1 : 0}${closer.original % 3}`;
-    while (closer.close && closer.count > 0) {
-      const floor = bottom.get(key) ?? 0;
-      let position = stack.length - 1;
-      while (position >= floor && !canPairEmphasis(nodes[stack[position]], closer)) {
-        position -= 1;
-      }
-      if (position < floor) {
-        bottom.set(key, stack.length);
-        break;
-      }
-      const openIndex = stack[position];
-      const opener = nodes[openIndex];
-      const used = opener.count >= 2 && closer.count >= 2 ? 2 : 1;
-      opener.count -= used;
-      closer.count -= used;
-      const marks = depth[used === 2 ? "strong" : "em"];
-      marks[openIndex + 1] += 1;
-      marks[closeIndex] -= 1;
-      stack.length = opener.count > 0 ? position + 1 : position;
-      for (const [other, value] of bottom) {
-        if (value > stack.length) {
-          bottom.set(other, stack.length);
-        }
-      }
-    }
-    if (closer.open && closer.count > 0) {
-      stack.push(closeIndex);
-    }
-  }
-  let strongDepth = 0;
-  let emDepth = 0;
-  for (const [index, node] of nodes.entries()) {
-    strongDepth += depth.strong[index];
-    emDepth += depth.em[index];
-    node.strong = strongDepth;
-    node.em = emDepth;
-  }
-  const runs = [];
-  for (const node of nodes) {
-    const value = node.delimiter ? node.delimiter.repeat(node.count) : node.text;
-    if (value === "") {
-      continue;
-    }
-    const strong = (node.strong ?? 0) > 0;
-    const em = (node.em ?? 0) > 0;
-    const previous = runs[runs.length - 1];
-    if (previous && previous.strong === strong && previous.em === em) {
-      previous.text += value;
-    } else {
-      runs.push({ text: value, strong, em });
-    }
-  }
-  return runs;
-}
-function canPairEmphasis(opener, closer) {
-  const both = opener.close || closer.open;
-  const ruleOfThree = both && (opener.original + closer.original) % 3 === 0 && !(opener.original % 3 === 0 && closer.original % 3 === 0);
-  return opener.delimiter === closer.delimiter && !ruleOfThree;
-}
-function inlineHtml(text) {
-  return inlineRuns(String(text)).map((run) => runMarkup(run, escapeHtml, "<br>")).join("");
-}
-function runMarkup(run, escape, lineBreak) {
-  let markup = escape(run.text).split(LINE_BREAK3).join(lineBreak);
-  if (run.em) {
-    markup = `<em>${markup}</em>`;
-  }
-  if (run.strong) {
-    markup = `<strong>${markup}</strong>`;
-  }
-  return markup;
-}
-var LINE_BREAK3 = "";
-function markdownParagraphs(markdown, ownIndent = false) {
-  const paragraphs = [];
-  let lines = [];
-  let quote = false;
-  const flush = () => {
-    if (lines.length === 0) {
-      return;
-    }
-    const texts = lines.map(({ line }, index) => trimSourceSpace(index < lines.length - 1 && /\\$/.test(line) ? line.slice(0, -1) : line));
-    const joined = texts.map((text, index) => {
-      if (index === texts.length - 1) {
-        return text;
-      }
-      if (lines[index].line.endsWith("\\") || lines[index].line.endsWith("  ")) {
-        return `${text}${LINE_BREAK3}`;
-      }
-      return `${text}${lines[index].heading || lines[index + 1].heading ? " " : softBreak(text, texts[index + 1])}`;
-    }).join("");
-    const parts = collapseSourceSpace(joined).split(LINE_BREAK3).map(trimSourceSpace);
-    const kept = parts.slice(parts.findIndex((part) => part.trim() !== "")).join(LINE_BREAK3);
-    const text = ownIndent ? kept.replace(/^\s+/, "") : kept;
-    const { code } = lines[0];
-    lines = [];
-    paragraphs.push(!code && !text.includes(LINE_BREAK3) && isSceneBreakLine(text) ? { sceneBreak: true } : { text, quote, code });
-  };
-  const source = splitFences(markdown.replace(/\r\n?/g, `
-`)).flatMap((part) => (part.fenced ? withoutFenceMarkers(part.text) : plainLinks(part.text)).split(`
-`).map((line) => ({ line, code: part.fenced })));
-  for (const { line: sourceLine, code } of source) {
-    const heading = isHeadingLine(sourceLine);
-    const rawLine = flattenHeadings(sourceLine);
-    const marker = /^(?:[ \t]*>[ \t]?)+/.exec(rawLine);
-    const line = marker ? rawLine.slice(marker[0].length) : rawLine;
-    if (line.trim() === "") {
-      flush();
-      continue;
-    }
-    if (!code && breaksParagraph(line)) {
-      flush();
-      paragraphs.push({ sceneBreak: true });
-      continue;
-    }
-    if (lines.length > 0 && marker && !quote) {
-      flush();
-    }
-    if (lines.length === 0) {
-      quote = Boolean(marker);
-    }
-    lines.push({ line, heading, code });
-  }
-  flush();
-  return paragraphs;
-}
-function wordParagraphs(body) {
-  return markdownParagraphs(body, true).map((paragraph) => paragraph.sceneBreak ? { sceneBreak: true } : { quote: Boolean(paragraph.quote), code: Boolean(paragraph.code), runs: inlineRuns(paragraph.text, paragraph.code) });
-}
-var ZIP_DOS_DATE = 0 << 9 | 1 << 5 | 1;
-var ZIP_UTF8_NAME_FLAG = 2048;
-var ZIP_STORED = 0;
-var ZIP_DEFLATED = 8;
-function writeZip(outFile, entries, writeOptions = {}) {
-  const localParts = [];
-  const centralParts = [];
-  let offset = 0;
-  for (const entry of entries) {
-    const name = Buffer5.from(entry.name, "utf8");
-    const content = Buffer5.isBuffer(entry.content) ? entry.content : Buffer5.from(entry.content, "utf8");
-    const crc = crc32(content);
-    const deflated = entry.stored ? null : deflateRaw(content);
-    const compressed = deflated !== null && deflated.length < content.length;
-    const body = compressed ? deflated : content;
-    const method = compressed ? ZIP_DEFLATED : ZIP_STORED;
-    const localHeader = Buffer5.alloc(30);
-    localHeader.writeUInt32LE(67324752, 0);
-    localHeader.writeUInt16LE(20, 4);
-    localHeader.writeUInt16LE(ZIP_UTF8_NAME_FLAG, 6);
-    localHeader.writeUInt16LE(method, 8);
-    localHeader.writeUInt16LE(0, 10);
-    localHeader.writeUInt16LE(ZIP_DOS_DATE, 12);
-    localHeader.writeUInt32LE(crc, 14);
-    localHeader.writeUInt32LE(body.length, 18);
-    localHeader.writeUInt32LE(content.length, 22);
-    localHeader.writeUInt16LE(name.length, 26);
-    localHeader.writeUInt16LE(0, 28);
-    localParts.push(localHeader, name, body);
-    const centralHeader = Buffer5.alloc(46);
-    centralHeader.writeUInt32LE(33639248, 0);
-    centralHeader.writeUInt16LE(20, 4);
-    centralHeader.writeUInt16LE(20, 6);
-    centralHeader.writeUInt16LE(ZIP_UTF8_NAME_FLAG, 8);
-    centralHeader.writeUInt16LE(method, 10);
-    centralHeader.writeUInt16LE(0, 12);
-    centralHeader.writeUInt16LE(ZIP_DOS_DATE, 14);
-    centralHeader.writeUInt32LE(crc, 16);
-    centralHeader.writeUInt32LE(body.length, 20);
-    centralHeader.writeUInt32LE(content.length, 24);
-    centralHeader.writeUInt16LE(name.length, 28);
-    centralHeader.writeUInt16LE(0, 30);
-    centralHeader.writeUInt16LE(0, 32);
-    centralHeader.writeUInt16LE(0, 34);
-    centralHeader.writeUInt16LE(0, 36);
-    centralHeader.writeUInt32LE(0, 38);
-    centralHeader.writeUInt32LE(offset, 42);
-    centralParts.push(centralHeader, name);
-    offset += localHeader.length + name.length + body.length;
-  }
-  let centralSize = 0;
-  for (const part of centralParts) {
-    centralSize += part.length;
-  }
-  const end = Buffer5.alloc(22);
-  end.writeUInt32LE(101010256, 0);
-  end.writeUInt16LE(0, 4);
-  end.writeUInt16LE(0, 6);
-  end.writeUInt16LE(entries.length, 8);
-  end.writeUInt16LE(entries.length, 10);
-  end.writeUInt32LE(centralSize, 12);
-  end.writeUInt32LE(offset, 16);
-  end.writeUInt16LE(0, 20);
-  writeFile(outFile, Buffer5.concat(localParts.concat(centralParts, end)), writeOptions);
-}
-function crc32(buffer) {
-  let crc = 4294967295;
-  for (const byte of buffer) {
-    crc = CRC_TABLE[(crc ^ byte) & 255] ^ crc >>> 8;
-  }
-  return (crc ^ 4294967295) >>> 0;
-}
-var CRC_TABLE = [];
-for (let index = 0;index < 256; index += 1) {
-  let value = index;
-  for (let bit = 0;bit < 8; bit += 1) {
-    value = value & 1 ? 3988292384 ^ value >>> 1 : value >>> 1;
-  }
-  CRC_TABLE.push(value >>> 0);
-}
-var XML_INVALID_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
-function xmlEscape(value) {
-  return String(value).replace(XML_INVALID_CHARACTERS, "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 // src/similarity.js
@@ -21841,11 +22853,287 @@ function formatSimilarity(report) {
 `;
 }
 
+// src/submissions.js
+import path16 from "node:path";
+var SUBMISSION_TRACKER = "submission/tracker.md";
+var SUBMISSION_STATUSES = ["queried", "submitted", "held", "requested-partial", "requested-full", "offer", "declined", "no-response", "withdrawn"];
+var SHORT_FICTION_STATUSES = new Set(["submitted", "held"]);
+var BOOK_STATUSES = SUBMISSION_STATUSES.filter((status) => !SHORT_FICTION_STATUSES.has(status));
+var SHORT_FICTION_HEADERS = ["market", "type", "rights offered"];
+var WAITING_STATUSES = new Set(["queried", "submitted", "held", "requested-partial", "requested-full"]);
+var DEFAULT_FOLLOW_UP_DAYS = 90;
+var MAX_TRACKER_ROWS = 1e4;
+var OVERDUE_FINDING = Symbol("overdue finding");
+var MAX_FOLLOW_UP_DAYS = 3650;
+function followUpDays(options = {}) {
+  const raw = options.days;
+  if (raw === undefined) {
+    return DEFAULT_FOLLOW_UP_DAYS;
+  }
+  const text = String(raw).trim();
+  if (!/^\d+$/.test(text) || Number(text) < 1 || Number(text) > MAX_FOLLOW_UP_DAYS) {
+    throw usageError(`--days must be a whole number 1 to ${MAX_FOLLOW_UP_DAYS}, such as ${DEFAULT_FOLLOW_UP_DAYS}`, "days");
+  }
+  return Number(text);
+}
+var COLUMNS = new Map([
+  ["story", "story"],
+  ["date sent", "dateSent"],
+  ["materials", "materials"],
+  ["type", "type"],
+  ["rights offered", "rights"],
+  ["status", "status"],
+  ["response date", "responseDate"],
+  ["notes", "notes"]
+]);
+var DELIMITER_ROW = /^\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?$/;
+function tableCells(line) {
+  return line.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "").split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
+}
+var MARKS = new Set(["*", "_", "`"]);
+function plainCell(cell) {
+  let text = cell.trim();
+  while (text.length >= 2 && MARKS.has(text[0]) && text.at(-1) === text[0]) {
+    const mark = text[0];
+    let run = 0;
+    while (run < text.length && text[run] === mark) {
+      run += 1;
+    }
+    const inner = text.slice(run, text.length - run);
+    if (run * 2 > text.length || text.slice(text.length - run) !== mark.repeat(run) || inner.includes(mark)) {
+      break;
+    }
+    text = inner.trim();
+  }
+  return text;
+}
+function headerName(cell) {
+  return plainCell(cell).toLowerCase().replace(/\s+/g, " ");
+}
+function hasCellBreak(line) {
+  return /(?<!\\)\|/.test(line);
+}
+function trackerTables(lines, start) {
+  const fenced = fencedLineIndexes(lines);
+  const tables = [];
+  let total = 0;
+  for (let index = start;index < lines.length - 1; index += 1) {
+    if (fenced.has(index) || !hasCellBreak(lines[index]) || !DELIMITER_ROW.test(lines[index + 1].trim())) {
+      continue;
+    }
+    const headers = tableCells(lines[index]).map(headerName);
+    const tracker = headers.includes("status") && headers.includes("date sent");
+    const rows = [];
+    let next = index + 2;
+    for (;next < lines.length && !fenced.has(next) && lines[next].trim() !== "" && hasCellBreak(lines[next]); next += 1) {
+      if (!tracker) {
+        continue;
+      }
+      total += 1;
+      if (total > MAX_TRACKER_ROWS) {
+        return { tables, tooLarge: true };
+      }
+      rows.push({ line: next + 1, cells: tableCells(lines[next]) });
+    }
+    if (tracker) {
+      tables.push({ headers, rows });
+    }
+    index = next - 1;
+  }
+  return { tables, tooLarge: false };
+}
+function placeholderRow(cells) {
+  return plainCell(cells[0] ?? "").toLowerCase() === "no submissions yet" && cells.slice(1).every((cell) => cell === "");
+}
+function trackerRow(headers, { line, cells }) {
+  const row = { line, name: "" };
+  for (const field of COLUMNS.values()) {
+    row[field] = null;
+  }
+  let named = false;
+  for (const [index, header] of headers.entries()) {
+    const field = COLUMNS.get(header);
+    const cell = plainCell(cells[index] ?? "");
+    if (field !== undefined) {
+      row[field] = cell;
+    } else if (!named) {
+      row.name = cell;
+      named = true;
+    }
+  }
+  return row;
+}
+function rowLabel(row) {
+  const name = row.name;
+  return `${SUBMISSION_TRACKER} line ${row.line}${name === "" ? "" : ` (${name})`}`;
+}
+function trackerLines(text) {
+  if (!/^---[ \t]*\r?\n/.test(text)) {
+    return { start: 0, lines: text.split(/\r?\n/) };
+  }
+  let body;
+  try {
+    body = parseFrontmatter(text, SUBMISSION_TRACKER).body;
+  } catch (error) {
+    throw projectError(`${SUBMISSION_TRACKER} cannot be parsed: ${error.message}`);
+  }
+  const head = text.slice(0, text.length - body.length);
+  return { start: head.split(/\r?\n/).length - 1, lines: text.split(/\r?\n/) };
+}
+function readTracker(root) {
+  const folder = path16.join(root, "submission");
+  if (lstatIfExists(folder) === null) {
+    return null;
+  }
+  assertSafeProjectDirectory(folder, root);
+  const file = path16.join(root, SUBMISSION_TRACKER);
+  if (lstatIfExists(file) === null) {
+    return null;
+  }
+  return readTextFile(file);
+}
+function submissionsReport(root, { today, days = DEFAULT_FOLLOW_UP_DAYS }) {
+  requireStoryFile(root);
+  const text = readTracker(root);
+  const counts = Object.fromEntries(SUBMISSION_STATUSES.map((status) => [status, 0]));
+  const result = { root, file: SUBMISSION_TRACKER, found: text !== null, today, days, rows: [], counts, waiting: 0, overdue: 0, ok: true, errors: [], warnings: [] };
+  if (text === null) {
+    return result;
+  }
+  const { start, lines } = trackerLines(text);
+  const { tables, tooLarge } = trackerTables(lines, start);
+  if (tooLarge) {
+    result.errors.push(err("submission-tracker-too-large", `${SUBMISSION_TRACKER} has more than ${MAX_TRACKER_ROWS} tracker rows: split it, or move old rows to another file`, SUBMISSION_TRACKER));
+    result.ok = false;
+    return result;
+  }
+  if (tables.length === 0) {
+    result.errors.push(err("submission-tracker-no-table", `${SUBMISSION_TRACKER} has no tracker table: add one with a Status and a Date Sent column, as the submission skill's tracker template has`, SUBMISSION_TRACKER));
+  }
+  const todayDays = parseClockDate(today).days;
+  for (const table of tables) {
+    for (const cells of table.rows) {
+      if (placeholderRow(cells.cells)) {
+        continue;
+      }
+      result.rows.push(checkRow(trackerRow(table.headers, cells), shortFiction(table.headers), todayDays, days, result));
+    }
+  }
+  result.waiting = result.rows.filter((row) => row.waitingSince !== null).length;
+  result.overdue = result.rows.filter((row) => row.overdue).length;
+  result.ok = result.errors.length === 0;
+  return result;
+}
+function shortFiction(headers) {
+  return SHORT_FICTION_HEADERS.some((header) => headers.includes(header));
+}
+function checkRow(row, isShortFiction, todayDays, days, result) {
+  const label = rowLabel(row);
+  const status = (row.status ?? "").toLowerCase();
+  row.status = status;
+  const allowed = isShortFiction ? SUBMISSION_STATUSES : BOOK_STATUSES;
+  let valid = false;
+  if (status === "") {
+    result.errors.push(err("submission-invalid-status", `${label}: Status is empty; use one of ${allowed.join(", ")}`, SUBMISSION_TRACKER));
+  } else if (!isShortFiction && SHORT_FICTION_STATUSES.has(status)) {
+    result.errors.push(err("submission-invalid-status", `${label}: Status "${status}" is for short fiction, in a table with a Market, Type, or Rights Offered column; a book's tracker uses one of ${allowed.join(", ")}`, SUBMISSION_TRACKER));
+  } else if (!allowed.includes(status)) {
+    result.errors.push(err("submission-invalid-status", `${label}: Status "${status}" is not a tracker status; use one of ${allowed.join(", ")}`, SUBMISSION_TRACKER));
+  } else {
+    result.counts[status] += 1;
+    valid = true;
+  }
+  const sent = rowDate(row, "dateSent", "Date Sent", label, result, { required: true });
+  const response = rowDate(row, "responseDate", "Response Date", label, result, { required: false });
+  for (const [date, column] of [[sent, "Date Sent"], [response, "Response Date"]]) {
+    if (date !== undefined && date.days > todayDays) {
+      result.warnings.push(warn("submission-date-in-future", `${label}: ${column} ${date.text} is after today, ${formatDay(todayDays)}: check the year`, SUBMISSION_TRACKER));
+    }
+  }
+  const since = [sent, response].filter((date) => date !== undefined).sort((left, right) => right.days - left.days)[0];
+  row.waitingSince = null;
+  row.waitingDays = null;
+  row.overdue = false;
+  if (valid && WAITING_STATUSES.has(status) && since !== undefined) {
+    row.waitingSince = since.text;
+    row.waitingDays = todayDays - since.days;
+    row.overdue = row.waitingDays >= days;
+    if (row.overdue) {
+      const finding = warn("submission-overdue", `${label}: ${status}, waiting ${plural(row.waitingDays, "day")} for a reply since ${since.text} (${days} or more is due a follow-up): follow up, or record the reply`, SUBMISSION_TRACKER);
+      row[OVERDUE_FINDING] = finding;
+      result.warnings.push(finding);
+    }
+  }
+  return row;
+}
+function formatDay(days) {
+  return new Date(days * 86400000).toISOString().slice(0, 10);
+}
+function rowDate(row, field, column, label, result, { required }) {
+  if (row[field] === null) {
+    return;
+  }
+  const text = row[field];
+  if (text === "") {
+    if (required) {
+      result.errors.push(err("submission-invalid-date", `${label}: ${column} is empty; write the date as YYYY-MM-DD`, SUBMISSION_TRACKER));
+    }
+    return;
+  }
+  const date = parseClockDate(text);
+  if (date === undefined) {
+    result.errors.push(err("submission-invalid-date", `${label}: ${column} "${text}" must be a real YYYY-MM-DD calendar day`, SUBMISSION_TRACKER));
+  }
+  return date;
+}
+function recountOverdue(report) {
+  const active = new Set([...report.errors, ...report.warnings]);
+  const rows = report.rows.map((row) => ({ ...row, overdue: row.overdue && active.has(row[OVERDUE_FINDING]) }));
+  return { ...report, rows, overdue: rows.filter((row) => row.overdue).length };
+}
+function trackerForNext(root, options) {
+  try {
+    return submissionsReport(root, options);
+  } catch {
+    return null;
+  }
+}
+function formatSubmissions(report) {
+  if (!report.found) {
+    return `No submission tracker: ${SUBMISSION_TRACKER} does not exist yet. The submission skill creates it when the first submission goes out.
+`;
+  }
+  const lines = [`# Submissions: ${SUBMISSION_TRACKER}`, "", `Today: ${report.today}; follow up after ${plural(report.days, "day")} or more without a reply`, ""];
+  if (report.rows.length === 0 && report.errors.length === 0) {
+    lines.push("No submissions recorded yet.");
+  }
+  for (const row of report.rows) {
+    lines.push(`- ${formatRow(row)}`);
+  }
+  const counted = SUBMISSION_STATUSES.filter((status) => report.counts[status] > 0).map((status) => `${status} ${report.counts[status]}`);
+  lines.push("", `Counts: ${counted.length === 0 ? "none" : counted.join(", ")} (${plural(report.rows.length, "submission")})`, `Waiting for a reply: ${report.waiting}; due a follow-up: ${report.overdue}`);
+  return `${lines.join(`
+`)}
+`;
+}
+function formatRow(row) {
+  const name = outputText(row.name) || "(no name)";
+  const story = row.story ? ` [${outputText(row.story)}]` : "";
+  const status = row.status === "" ? "(no status)" : outputText(row.status);
+  const sent = row.dateSent ? ` sent ${outputText(row.dateSent)}` : "";
+  const response = row.responseDate ? `, reply ${outputText(row.responseDate)}` : "";
+  let waiting = "";
+  if (row.waitingDays !== null && row.waitingDays >= 0) {
+    waiting = `; waiting ${plural(row.waitingDays, "day")}${row.overdue ? ": follow up" : ""}`;
+  }
+  return `${name}${story}: ${status}${sent ? `,${sent}` : ""}${response}${waiting}`;
+}
+
 // src/config.js
 var SEVERITY_LEVELS = ["error", "warning", "off"];
 var TARGETED_COMMANDS = new Set(["knowledge", "add", "rename", "move", "remove", "split", "merge", "impact"]);
-var TARGETED_FLAGS = { passes: ["start", "done"], progress: ["date"], next: ["date"] };
-var ONE_RUN_FLAGS = { snapshot: ["force", "list", "id", "restore"], export: ["include-pending"], build: ["include-pending", "anonymous"], list: ["query"] };
+var TARGETED_FLAGS = { passes: ["start", "done"], progress: ["date"], next: ["date"], submissions: ["date"], translation: ["chapter"], build: ["chapter", "from", "to"] };
+var ONE_RUN_FLAGS = { snapshot: ["force", "list", "id", "restore"], export: ["include-pending"], build: ["include-pending", "anonymous"], list: ["query"], translation: ["record"] };
 var LINKED_FLAGS = {
   build: [["format", "shunn", "trim", "stamp", "note-url", "pdf"]],
   compare: [["ref", "against", "snapshot"]],
@@ -21855,7 +23143,7 @@ var EMPTY_CONFIG = Object.freeze({ defaults: {}, severity: {}, exemptions: [], e
 function readCliConfig(root) {
   let data;
   try {
-    data = parseFrontmatter(readTextFile(path15.join(root, "story.md"))).data;
+    data = parseFrontmatter(readTextFile(path17.join(root, "story.md"))).data;
   } catch {
     return EMPTY_CONFIG;
   }
@@ -21867,7 +23155,7 @@ function validateCliConfig(data, errors) {
 function parseCliConfig(data) {
   const errors = [];
   const defaults = parseDefaults(data["cli-defaults"], errors);
-  const severity = parseSeverity(data.severity, errors);
+  const severity = parseSeverity(data.severity, errors, definedCheckLevels(data));
   return { defaults, severity, errors };
 }
 function parseDefaults(raw, errors) {
@@ -21897,7 +23185,7 @@ function parseDefaults(raw, errors) {
       continue;
     }
     defaults[name] = parseCommandDefaults(command, item, label, errors);
-    const thresholds = { prose: proseThresholds, similarity: similarityOptions, progress: historyWeeks }[name];
+    const thresholds = { prose: proseThresholds, similarity: similarityOptions, progress: historyWeeks, submissions: followUpDays, next: followUpDays }[name];
     if (thresholds !== undefined) {
       try {
         thresholds(defaults[name]);
@@ -21910,7 +23198,7 @@ function parseDefaults(raw, errors) {
 }
 function isOutsidePath(value) {
   const text = String(value).trim();
-  return path15.isAbsolute(text) || path15.win32.isAbsolute(text) || /^[A-Za-z]:/.test(text) || path15.posix.normalize(text.replace(/\\/g, "/")).split("/")[0] === ".." || /\p{Cc}/u.test(text);
+  return path17.isAbsolute(text) || path17.win32.isAbsolute(text) || /^[A-Za-z]:/.test(text) || path17.posix.normalize(text.replace(/\\/g, "/")).split("/")[0] === ".." || /\p{Cc}/u.test(text);
 }
 function parseCommandDefaults(command, item, label, errors) {
   const accepted = command.options ?? [];
@@ -21952,9 +23240,19 @@ function parseCommandDefaults(command, item, label, errors) {
   }
   return values;
 }
-function parseSeverity(raw, errors) {
+var MAX_GUESSES = 5;
+var MAX_GUESSED_CODE = 64;
+function parseSeverity(raw, errors, checks) {
   const severity = {};
   const codes = severityCodes();
+  let guesses = 0;
+  const guess = (code, candidates) => {
+    if (code.length > MAX_GUESSED_CODE || guesses >= MAX_GUESSES) {
+      return "";
+    }
+    guesses += 1;
+    return suggestion(code, candidates.filter((candidate) => candidate.length <= MAX_GUESSED_CODE));
+  };
   for (const [index, item] of listItems(raw, "severity", errors)) {
     const label = `story.md severity[${index}]`;
     const extra = Object.keys(item).filter((key) => key !== "warning" && key !== "level");
@@ -21970,12 +23268,26 @@ function parseSeverity(raw, errors) {
       errors.push(`${label} names ${code}, which is an error: severity changes only warnings`);
       continue;
     }
-    if (PROJECTLESS_CODES.includes(code)) {
+    if (isCustomCode(code)) {
+      const id = customCodeId(code);
+      if (!checks.has(id)) {
+        const defined = [...checks.keys()].map((check) => `custom-${check}`);
+        errors.push(`${label} names ${code}, but story.md checks has no check ${id}${guess(code, defined.slice(0, 100))}`);
+        continue;
+      }
+      if (checks.get(id) === "error") {
+        errors.push(`${label} names ${code}, whose check reports an error: severity changes only warnings, so set the check's level instead`);
+        continue;
+      }
+    } else if (PROJECTLESS_CODES.includes(code)) {
       errors.push(`${label} names ${code}, which story init or story import reports before there is a story.md to read: severity cannot change it`);
       continue;
     }
-    if (!codes.includes(code)) {
-      errors.push(`${label} names unknown warning ${code}${suggestion(code, codes)}`);
+    if (Object.hasOwn(RETIRED_CODES, code)) {
+      continue;
+    }
+    if (!codes.includes(code) && !isCustomCode(code)) {
+      errors.push(`${label} names unknown warning ${code}${guess(code, codes)}`);
       continue;
     }
     if (!SEVERITY_LEVELS.includes(item.level)) {
@@ -22053,61 +23365,86 @@ function applySeverity(result, overrides = NO_OVERRIDES) {
   return { ...exempted, ok: exempted.ok && !promoted, errors, warnings, dismissed };
 }
 
-// src/import.js
-import { Buffer as Buffer10 } from "node:buffer";
-import fs26 from "node:fs";
-import path37 from "node:path";
+// src/collect.js
+import fs27 from "node:fs";
+import path41 from "node:path";
 
-// src/docx.js
+// src/import.js
+import { Buffer as Buffer11 } from "node:buffer";
+import fs26 from "node:fs";
+import path40 from "node:path";
+
+// src/archive.js
 import zlib from "node:zlib";
-var MAX_DOCX_PART_BYTES = 32 * 1024 * 1024;
+var MAX_PART_BYTES = 32 * 1024 * 1024;
 var MAX_ZIP_ENTRIES = 1e4;
-var MAX_STYLE_DEPTH = 64;
 var EOCD_SIGNATURE = 101010256;
 var CENTRAL_SIGNATURE = 33639248;
 var LOCAL_SIGNATURE = 67324752;
 var ZIP64_MARK = 4294967295;
-var DOCUMENT_PART = "word/document.xml";
-var STYLES_PART = "word/styles.xml";
+var WORD = Object.freeze({
+  extension: ".docx",
+  kind: "a Word document",
+  again: "save it again from Word",
+  unlock: "remove the password in Word and save it again"
+});
 
-class DocxError extends Error {
+class ArchiveError extends Error {
   constructor(message) {
     super(message);
-    this.name = "DocxError";
+    this.name = "ArchiveError";
   }
 }
 var ESCAPED_CONTROLS = { "\n": "\\n", "\r": "\\r", "\t": "\\t" };
 function printable(text) {
   return String(text).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (character) => ESCAPED_CONTROLS[character] ?? "?");
 }
-function docxMarkdown(bytes, { chapterLine = () => null } = {}) {
-  const entries = zipEntries(bytes);
-  const document = entries.get(DOCUMENT_PART);
-  if (document === undefined) {
-    throw new DocxError(`it has no ${DOCUMENT_PART}, so it is not a Word document`);
+var SHOWN_LENGTH = 200;
+function shown2(text) {
+  const value = String(text);
+  if (value.length <= SHOWN_LENGTH) {
+    return printable(value);
   }
-  const styles = entries.has(STYLES_PART) ? readStyles(xmlText(bytes, entries.get(STYLES_PART))) : { paragraph: () => EMPTY_STYLE, character: () => EMPTY_STYLE };
-  return documentMarkdown(xmlText(bytes, document), styles, chapterLine);
+  const cut = /[\ud800-\udbff]/.test(value[SHOWN_LENGTH - 1]) ? SHOWN_LENGTH - 1 : SHOWN_LENGTH;
+  return printable(`${value.slice(0, cut)}…`);
 }
-function zipEntries(bytes) {
-  const end = findEndOfCentralDirectory(bytes);
+function partReader(bytes, format, limit) {
+  let left = limit;
+  const over = () => new ArchiveError(`its parts come to more than the ${limit} byte limit unpacked`);
+  return {
+    reserve(entries) {
+      if (entries.reduce((total, entry) => total + entry.size, 0) > left) {
+        throw over();
+      }
+    },
+    read(entry, options) {
+      if (entry.size > left) {
+        throw over();
+      }
+      left -= entry.size;
+      return xmlText(bytes, entry, format, options);
+    }
+  };
+}
+function zipEntries(bytes, format = WORD) {
+  const end = findEndOfCentralDirectory(bytes, format);
   const count = bytes.readUInt16LE(end + 10);
   const size = bytes.readUInt32LE(end + 12);
   const offset = bytes.readUInt32LE(end + 16);
   if (count === 65535 || size === ZIP64_MARK || offset === ZIP64_MARK) {
-    throw new DocxError("it is a ZIP64 archive, which story does not read; save it again from Word");
+    throw new ArchiveError(`it is a ZIP64 archive, which story does not read; ${format.again}`);
   }
   if (count > MAX_ZIP_ENTRIES) {
-    throw new DocxError(`it has ${count} zip entries, over the ${MAX_ZIP_ENTRIES} entry limit`);
+    throw new ArchiveError(`it has ${count} zip entries, over the ${MAX_ZIP_ENTRIES} entry limit`);
   }
   if (offset + size > end) {
-    throw new DocxError("its zip directory is damaged");
+    throw new ArchiveError("its zip directory is damaged");
   }
   const entries = new Map;
   let position = offset;
   for (let index = 0;index < count; index += 1) {
     if (position + 46 > end || bytes.readUInt32LE(position) !== CENTRAL_SIGNATURE) {
-      throw new DocxError("its zip directory is damaged");
+      throw new ArchiveError("its zip directory is damaged");
     }
     const flags = bytes.readUInt16LE(position + 8);
     const nameLength = bytes.readUInt16LE(position + 28);
@@ -22115,9 +23452,9 @@ function zipEntries(bytes) {
     const commentLength = bytes.readUInt16LE(position + 32);
     const name = bytes.toString("utf8", position + 46, position + 46 + nameLength);
     if (entries.has(name)) {
-      throw new DocxError(`it has two zip entries named ${printable(name)}`);
+      throw new ArchiveError(`it has two zip entries named ${printable(name)}`);
     }
-    entries.set(name, {
+    const entry = {
       name,
       encrypted: (flags & 1) === 1,
       method: bytes.readUInt16LE(position + 10),
@@ -22125,101 +23462,145 @@ function zipEntries(bytes) {
       compressedSize: bytes.readUInt32LE(position + 20),
       size: bytes.readUInt32LE(position + 24),
       localOffset: bytes.readUInt32LE(position + 42)
-    });
+    };
+    if (entry.size === ZIP64_MARK || entry.compressedSize === ZIP64_MARK) {
+      throw new ArchiveError(`it is a ZIP64 archive, which story does not read; ${format.again}`);
+    }
+    entries.set(name, entry);
     position += 46 + nameLength + extraLength + commentLength;
   }
   return entries;
 }
-function findEndOfCentralDirectory(bytes) {
+function findEndOfCentralDirectory(bytes, format) {
   const lowest = Math.max(0, bytes.length - 22 - 65535);
   for (let position = bytes.length - 22;position >= lowest; position -= 1) {
     if (bytes.readUInt32LE(position) === EOCD_SIGNATURE) {
       return position;
     }
   }
-  throw new DocxError("it is not a readable zip file, so it is not a .docx; save it again from Word, or export it to markdown");
+  throw new ArchiveError(`it is not a readable zip file, so it is not a ${format.extension}; ${format.again}, or export it to markdown`);
 }
-function xmlText(bytes, entry) {
+function xmlText(bytes, entry, format = WORD, { doctype = false } = {}) {
   if (entry.encrypted) {
-    throw new DocxError("it is password-protected; remove the password in Word and save it again");
+    throw new ArchiveError(`it is password-protected; ${format.unlock}`);
   }
-  if (entry.size === ZIP64_MARK || entry.compressedSize === ZIP64_MARK) {
-    throw new DocxError("it is a ZIP64 archive, which story does not read; save it again from Word");
-  }
-  if (entry.size > MAX_DOCX_PART_BYTES) {
-    throw new DocxError(`${entry.name} is ${entry.size} bytes, over the ${MAX_DOCX_PART_BYTES} byte limit`);
+  if (entry.size > MAX_PART_BYTES) {
+    throw new ArchiveError(`${printable(entry.name)} is ${entry.size} bytes, over the ${MAX_PART_BYTES} byte limit`);
   }
   const local = entry.localOffset;
   if (local + 30 > bytes.length || bytes.readUInt32LE(local) !== LOCAL_SIGNATURE) {
-    throw new DocxError(`its zip entry ${entry.name} is damaged`);
+    throw new ArchiveError(`its zip entry ${printable(entry.name)} is damaged`);
   }
   const start = local + 30 + bytes.readUInt16LE(local + 26) + bytes.readUInt16LE(local + 28);
   const data = bytes.subarray(start, start + entry.compressedSize);
   if (data.length !== entry.compressedSize) {
-    throw new DocxError(`its zip entry ${entry.name} is cut short`);
+    throw new ArchiveError(`its zip entry ${printable(entry.name)} is cut short`);
   }
   let content;
   if (entry.method === 0) {
     content = data;
   } else if (entry.method === 8) {
     try {
-      content = zlib.inflateRawSync(data, { maxOutputLength: MAX_DOCX_PART_BYTES });
+      content = zlib.inflateRawSync(data, { maxOutputLength: MAX_PART_BYTES });
     } catch {
-      throw new DocxError(`its zip entry ${entry.name} cannot be inflated, or inflates past the ${MAX_DOCX_PART_BYTES} byte limit`);
+      throw new ArchiveError(`its zip entry ${printable(entry.name)} cannot be inflated, or inflates past the ${MAX_PART_BYTES} byte limit`);
     }
   } else {
-    throw new DocxError(`its zip entry ${entry.name} uses compression method ${entry.method}, which story does not read`);
+    throw new ArchiveError(`its zip entry ${printable(entry.name)} uses compression method ${entry.method}, which story does not read`);
   }
   if (content.length !== entry.size || crc32(content) !== entry.crc) {
-    throw new DocxError(`its zip entry ${entry.name} is damaged`);
+    throw new ArchiveError(`its zip entry ${printable(entry.name)} is damaged`);
   }
   let text;
   try {
     text = UTF82.decode(content);
   } catch {
-    throw new DocxError(`${entry.name} is not valid UTF-8 text`);
+    throw new ArchiveError(`${printable(entry.name)} is not valid UTF-8 text`);
   }
   if (text.charCodeAt(0) === 65279) {
     text = text.slice(1);
   }
-  if (/<!DOCTYPE/i.test(text)) {
-    throw new DocxError(`${entry.name} has a document type declaration, which a Word document never has`);
+  if (doctype) {
+    const declaration = prologDoctype(text);
+    if (declaration !== null && declaration.subset) {
+      throw new ArchiveError(`${printable(entry.name)} has a document type declaration with declarations of its own, which story does not read`);
+    }
+    if (declaration !== null) {
+      text = text.slice(0, declaration.start) + text.slice(declaration.end);
+    }
+  } else if (/<!DOCTYPE/i.test(text)) {
+    throw new ArchiveError(`${printable(entry.name)} has a document type declaration, which ${format.kind} never has`);
   }
   return text;
+}
+function prologDoctype(text) {
+  let position = 0;
+  for (;; ) {
+    while (position < text.length && ` 	\r
+`.includes(text[position])) {
+      position += 1;
+    }
+    const skip = [["<?", "?>"], ["<!--", "-->"]].find(([start]) => text.startsWith(start, position));
+    if (skip !== undefined) {
+      const close = text.indexOf(skip[1], position + skip[0].length);
+      if (close === -1) {
+        return null;
+      }
+      position = close + skip[1].length;
+      continue;
+    }
+    if (text.slice(position, position + 9).toUpperCase() !== "<!DOCTYPE") {
+      return null;
+    }
+    let quote = null;
+    for (let index = position + 9;index < text.length; index += 1) {
+      const character = text[index];
+      if (quote !== null) {
+        quote = character === quote ? null : quote;
+      } else if (character === '"' || character === "'") {
+        quote = character;
+      } else if (character === "[") {
+        return { start: position, end: index, subset: true };
+      } else if (character === ">") {
+        return { start: position, end: index + 1, subset: false };
+      }
+    }
+    return null;
+  }
 }
 var UTF82 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
 var TAG = /<(\/?)([A-Za-z_][\w.:-]*)((?:\s+[^\s=/>]+\s*=\s*(?:"[^"]*"|'[^']*'))*)\s*(\/?)>/y;
 var ATTRIBUTE2 = /([^\s=/>]+)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
-function* xmlTokens(text) {
+function* xmlTokens(text, entities = XML_ENTITIES) {
   const open = [];
-  for (const token of rawTokens(text)) {
+  for (const token of rawTokens(text, entities)) {
     if (token.type === "start") {
       open.push(token.name);
     } else if (token.type === "end" && open.pop() !== token.name) {
-      throw new DocxError("its XML is damaged");
+      throw new ArchiveError("its XML is damaged");
     }
     yield token;
   }
   if (open.length > 0) {
-    throw new DocxError("its XML is damaged");
+    throw new ArchiveError("its XML is damaged");
   }
 }
-function* rawTokens(text) {
+function* rawTokens(text, entities) {
   let position = 0;
   while (position < text.length) {
     const open = text.indexOf("<", position);
     if (open === -1) {
-      yield { type: "text", text: decodeEntities(text.slice(position)) };
+      yield { type: "text", text: decodeEntities(text.slice(position), entities) };
       return;
     }
     if (open > position) {
-      yield { type: "text", text: decodeEntities(text.slice(position, open)) };
+      yield { type: "text", text: decodeEntities(text.slice(position, open), entities) };
     }
     const skip = [["<!--", "-->"], ["<?", "?>"], ["<![CDATA[", "]]>"]].find(([start]) => text.startsWith(start, open));
     if (skip !== undefined) {
       const close = text.indexOf(skip[1], open + skip[0].length);
       if (close === -1) {
-        throw new DocxError("its XML is damaged");
+        throw new ArchiveError("its XML is damaged");
       }
       if (skip[0] === "<![CDATA[") {
         yield { type: "text", text: text.slice(open + 9, close) };
@@ -22230,28 +23611,206 @@ function* rawTokens(text) {
     TAG.lastIndex = open;
     const match = TAG.exec(text);
     if (match === null) {
-      throw new DocxError("its XML is damaged");
+      throw new ArchiveError("its XML is damaged");
     }
     const attributes = {};
     for (const attribute of match[3].matchAll(ATTRIBUTE2)) {
-      attributes[attribute[1]] = decodeEntities(attribute[2] ?? attribute[3]);
+      attributes[attribute[1]] = decodeEntities(attribute[2] ?? attribute[3], entities);
     }
     yield { type: match[1] ? "end" : match[4] ? "empty" : "start", name: match[2], attributes };
     position = TAG.lastIndex;
   }
 }
-var ENTITIES = new Map([["lt", "<"], ["gt", ">"], ["amp", "&"], ["quot", '"'], ["apos", "'"]]);
-function decodeEntities(text) {
-  return text.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z]+);/gi, (whole, name) => {
+var XML_ENTITIES = new Map([["lt", "<"], ["gt", ">"], ["amp", "&"], ["quot", '"'], ["apos", "'"]]);
+var LATIN_1 = "nbsp iexcl cent pound curren yen brvbar sect uml copy ordf laquo not shy reg macr deg plusmn sup2 sup3 acute micro para middot cedil sup1 ordm raquo frac14 frac12 frac34 iquest Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde Ograve Oacute Ocirc Otilde Ouml times Oslash Ugrave Uacute Ucirc Uuml Yacute THORN szlig agrave aacute acirc atilde auml aring aelig ccedil egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde ograve oacute ocirc otilde ouml divide oslash ugrave uacute ucirc uuml yacute thorn yuml";
+var HTML_SYMBOLS = [
+  "Alpha:913 Beta:914 Gamma:915 Delta:916 Epsilon:917 Zeta:918 Eta:919 Theta:920 Iota:921 Kappa:922 Lambda:923 Mu:924 Nu:925 Xi:926 Omicron:927 Pi:928 Rho:929 Sigma:931 Tau:932 Upsilon:933 Phi:934 Chi:935 Psi:936 Omega:937",
+  "alpha:945 beta:946 gamma:947 delta:948 epsilon:949 zeta:950 eta:951 theta:952 iota:953 kappa:954 lambda:955 mu:956 nu:957 xi:958 omicron:959 pi:960 rho:961 sigmaf:962 sigma:963 tau:964 upsilon:965 phi:966 chi:967 psi:968 omega:969 thetasym:977 upsih:978 piv:982",
+  "oline:8254 frasl:8260 weierp:8472 image:8465 real:8476 alefsym:8501",
+  "larr:8592 uarr:8593 rarr:8594 darr:8595 harr:8596 crarr:8629 lArr:8656 uArr:8657 rArr:8658 dArr:8659 hArr:8660",
+  "forall:8704 part:8706 exist:8707 empty:8709 nabla:8711 isin:8712 notin:8713 ni:8715 prod:8719 sum:8721 minus:8722 lowast:8727 radic:8730 prop:8733 infin:8734 ang:8736 and:8743 or:8744 cap:8745 cup:8746 int:8747 there4:8756 sim:8764 cong:8773 asymp:8776 ne:8800 equiv:8801 le:8804 ge:8805 sub:8834 sup:8835 nsub:8836 sube:8838 supe:8839 oplus:8853 otimes:8855 perp:8869 sdot:8901",
+  "lceil:8968 rceil:8969 lfloor:8970 rfloor:8971 lang:9001 rang:9002 loz:9674 spades:9824 clubs:9827 hearts:9829 diams:9830"
+].join(" ");
+var HTML_ENTITIES = new Map([
+  ...XML_ENTITIES,
+  ...LATIN_1.split(" ").map((name, index) => [name, String.fromCharCode(160 + index)]),
+  ...Object.entries({
+    OElig: "Œ",
+    oelig: "œ",
+    Scaron: "Š",
+    scaron: "š",
+    Yuml: "Ÿ",
+    fnof: "ƒ",
+    circ: "ˆ",
+    tilde: "˜",
+    ensp: " ",
+    emsp: " ",
+    thinsp: " ",
+    zwnj: "‌",
+    zwj: "‍",
+    lrm: "‎",
+    rlm: "‏",
+    ndash: "–",
+    mdash: "—",
+    lsquo: "‘",
+    rsquo: "’",
+    sbquo: "‚",
+    ldquo: "“",
+    rdquo: "”",
+    bdquo: "„",
+    dagger: "†",
+    Dagger: "‡",
+    bull: "•",
+    hellip: "…",
+    permil: "‰",
+    prime: "′",
+    Prime: "″",
+    lsaquo: "‹",
+    rsaquo: "›",
+    euro: "€",
+    trade: "™"
+  }),
+  ...HTML_SYMBOLS.split(" ").map((pair) => {
+    const [name, code] = pair.split(":");
+    return [name, String.fromCodePoint(Number(code))];
+  })
+]);
+function decodeEntities(text, entities) {
+  return text.replace(/&(#x[0-9a-f]+|#[0-9]+|[a-z][a-z0-9]*);/gi, (whole, name) => {
     if (name[0] === "#") {
       const code = name[1] === "x" || name[1] === "X" ? Number.parseInt(name.slice(2), 16) : Number.parseInt(name.slice(1), 10);
       return code <= 1114111 ? String.fromCodePoint(code) : whole;
     }
-    return ENTITIES.get(name) ?? whole;
+    return entities.get(name) ?? whole;
   });
 }
+
+// src/rich-text.js
 function proseText(text) {
-  return text.replace(/[\r\n]/g, " ").replace(/[\u0000-\u0008\u000b-\u001f\u007f]/g, "");
+  return text.replace(/[\r\n]/g, " ").replace(/[\u0000-\u0008\u000b-\u001f\u007f\uE010\uE011]/g, "");
+}
+var LINE_BREAK4 = "";
+var PARAGRAPH_BREAK = "";
+function paragraphMarkdown(runs, { quote = false, verse = false } = {}) {
+  return blockMarkdown(runs.map((run) => ({ text: run.text.replace(/\u00ad/g, ""), italic: run.italic === true, bold: run.bold === true })), 0, quote, () => null, verse);
+}
+var HARD_BREAK = LINE_BREAK4;
+function paragraphBlocks(runs, level, quote, chapterLine, { preformatted = false } = {}) {
+  const pieces = [[]];
+  for (const run of runs) {
+    const parts = run.text.replace(/\u00ad/g, "").split(PARAGRAPH_BREAK);
+    parts.forEach((part, index) => {
+      if (index > 0) {
+        pieces.push([]);
+      }
+      pieces.at(-1).push({ ...run, text: part });
+    });
+  }
+  return pieces.map((piece) => blockMarkdown(piece, level, quote && level === 0, chapterLine, false, preformatted)).filter((block) => block !== "");
+}
+function blockBytes(block) {
+  return Buffer.byteLength(block, "utf8") + 2;
+}
+function checkMarkdownSize(size, maxBytes) {
+  if (size > maxBytes + 1) {
+    throw new ArchiveError(`its text comes to more than the ${maxBytes} byte limit as markdown; split it into several documents and import the folder`);
+  }
+}
+function markdownBlocks(maxBytes = Infinity) {
+  const blocks = [];
+  let size = 0;
+  return {
+    push(block) {
+      checkMarkdownSize(size + blockBytes(block), maxBytes);
+      size += blockBytes(block);
+      blocks.push(block);
+    },
+    size() {
+      return size;
+    },
+    text() {
+      const text = blocks.join(`
+
+`);
+      return text === "" ? "" : `${text}
+`;
+    }
+  };
+}
+function blockMarkdown(runs, level, quote, chapterLine, verse = false, preformatted = false) {
+  const plain = runs.map((run) => run.text).join("").replace(/[\t ]+/g, " ").trim();
+  const lines = plain.split(LINE_BREAK4).map((line) => line.trim()).filter((line) => line !== "");
+  if (lines.length === 0) {
+    return "";
+  }
+  if (level === 0 && /^([*_~-])( ?\1){2,}$/.test(plain)) {
+    return plain;
+  }
+  if (level === 0 && plain === "#") {
+    return "***";
+  }
+  if (level === 0) {
+    const heading = lines.length === 1 && chapterLine(lines[0]) !== null ? lines[0] : lines.length === 2 && chapterLine(lines[0])?.bare === true ? `${lines[0]}: ${lines[1]}` : null;
+    if (heading !== null) {
+      return `# ${escapeInline(heading)}`;
+    }
+  }
+  if (level > 0) {
+    return `${"#".repeat(level)} ${escapeInline(lines.join(" ").replace(/[ \t]+/g, " "))}`;
+  }
+  const trim = preformatted ? (line) => line.trimEnd() : (line) => line.trim();
+  const kept = inlineMarkdown(runs).split(LINE_BREAK4).map(trim).filter((line, index, all) => line !== "" || index > 0 && index < all.length - 1);
+  const plainBreaks = verse && !kept.some((line) => line === "" || isSceneBreakLine(line));
+  const text = kept.join(plainBreaks ? `
+` : "\\\n");
+  const block = escapeBlockStart(text);
+  return quote ? block.split(`
+`).map((line) => `> ${line}`).join(`
+`) : block;
+}
+function inlineMarkdown(runs) {
+  const merged = [];
+  for (const run of runs) {
+    const last = merged.at(-1);
+    if (last !== undefined && last.italic === run.italic && last.bold === run.bold) {
+      last.text += run.text;
+    } else {
+      merged.push({ ...run });
+    }
+  }
+  return merged.map((run) => {
+    const text = run.text.replace(/[\t ]+/g, " ");
+    const marker = (run.bold ? "**" : "") + (run.italic ? "*" : "");
+    const lead = text.match(/^\s*/)[0];
+    const trail = lead.length === text.length ? "" : text.match(/\s*$/)[0];
+    const body = text.slice(lead.length, text.length - trail.length).replaceAll(` ${LINE_BREAK4}`, LINE_BREAK4).replaceAll(`${LINE_BREAK4} `, LINE_BREAK4);
+    if (marker === "" || body.replaceAll(LINE_BREAK4, "") === "") {
+      return escapeInline(text);
+    }
+    const marked = escapeInline(body).split(LINE_BREAK4).map((line) => line === "" ? line : `${marker}${line}${[...marker].reverse().join("")}`).join(LINE_BREAK4);
+    return `${lead}${marked}${trail}`;
+  }).join("");
+}
+function escapeInline(text) {
+  return text.replace(/[\\`*_[\]<]/g, "\\$&").replace(/\\<!/g, "\\<\\!");
+}
+function escapeBlockStart(text) {
+  return text.split(`
+`).map((line) => line.replace(/^(#{1,6})(?=\s|$)/, "\\$1").replace(/^>/, "\\>").replace(/^([-+])(?=\s)/, "\\$1").replace(/^(\d+)([.)])(?=\s)/, "$1\\$2").replace(/^(=+|-+)$/, (marks) => `\\${marks}`)).join(`
+`);
+}
+// src/docx.js
+var MAX_STYLE_DEPTH = 64;
+var DOCUMENT_PART = "word/document.xml";
+var STYLES_PART = "word/styles.xml";
+function docxMarkdown(bytes, { chapterLine = () => null } = {}) {
+  const entries = zipEntries(bytes, WORD);
+  const document = entries.get(DOCUMENT_PART);
+  if (document === undefined) {
+    throw new ArchiveError(`it has no ${DOCUMENT_PART}, so it is not a Word document`);
+  }
+  const styles = entries.has(STYLES_PART) ? readStyles(xmlText(bytes, entries.get(STYLES_PART))) : { paragraph: () => EMPTY_STYLE, character: () => EMPTY_STYLE };
+  return documentMarkdown(xmlText(bytes, document), styles, chapterLine);
 }
 function isOn(attributes) {
   const value = attributes["w:val"];
@@ -22476,7 +24035,7 @@ function documentMarkdown(xml, styles, chapterLine) {
         if (paragraph.markDeleted) {
           joined = paragraph.runs;
         } else {
-          for (const block of paragraphBlocks(paragraph, styles, chapterLine)) {
+          for (const block of wordParagraphBlocks(paragraph, styles, chapterLine)) {
             blocks.push(block);
           }
         }
@@ -22546,7 +24105,7 @@ function documentMarkdown(xml, styles, chapterLine) {
     }
   }
   if (joined !== null) {
-    for (const block of paragraphBlocks({ style: null, outline: null, runs: joined }, styles, chapterLine)) {
+    for (const block of wordParagraphBlocks({ style: null, outline: null, runs: joined }, styles, chapterLine)) {
       blocks.push(block);
     }
   }
@@ -22559,96 +24118,768 @@ function documentMarkdown(xml, styles, chapterLine) {
     notes: [...notes].map((code) => ({ code, message: NOTE_MESSAGES[code] }))
   };
 }
-var LINE_BREAK4 = "";
-var PARAGRAPH_BREAK = "";
-function paragraphMarkdown(runs, { quote = false } = {}) {
-  return blockMarkdown(runs.map((run) => ({ text: run.text.replace(/\u00ad/g, ""), italic: run.italic === true, bold: run.bold === true })), 0, quote, () => null);
-}
-var HARD_BREAK = LINE_BREAK4;
-function paragraphBlocks(paragraph, styles, chapterLine) {
+function wordParagraphBlocks(paragraph, styles, chapterLine) {
   const style = styles.paragraph(paragraph.style);
   const level = Number.isInteger(paragraph.outline) && paragraph.outline >= 0 && paragraph.outline <= 9 ? outlineLevel(paragraph.outline) : style.level;
-  const quote = level === 0 && style.quote;
   const runs = paragraph.runs.map((run) => ({
-    text: run.text.replace(/­/g, ""),
+    text: run.text,
     italic: level === 0 && (run.italic ?? styles.character(run.style).italic ?? style.italic) === true,
     bold: level === 0 && (run.bold ?? styles.character(run.style).bold ?? style.bold) === true
   }));
-  const pieces = [[]];
-  for (const run of runs) {
-    const parts = run.text.split(PARAGRAPH_BREAK);
-    parts.forEach((part, index) => {
-      if (index > 0) {
-        pieces.push([]);
+  return paragraphBlocks(runs, level, style.quote, chapterLine);
+}
+
+// src/epub.js
+var EPUB = Object.freeze({
+  extension: ".epub",
+  kind: "an EPUB",
+  again: "export it again from the program that made it",
+  unlock: "export a copy without a password from the program that made it"
+});
+var CONTAINER_PART = "META-INF/container.xml";
+var ENCRYPTION_PART = "META-INF/encryption.xml";
+var XHTML = "application/xhtml+xml";
+var MAX_EPUB_TEXT_BYTES = 64 * 1024 * 1024;
+var NOTE_MESSAGES2 = {
+  images: "it has images, which the import leaves out",
+  footnotes: "it has footnotes or endnotes, which the import leaves out",
+  tables: "it has tables, whose cells the import reads as plain paragraphs",
+  ruby: "it has ruby (furigana) readings, which the import leaves out, keeping the base text",
+  lists: "it has lists, whose bullets and numbers the import leaves out",
+  contents: "it has a table of contents in its reading order, which the import leaves out",
+  "non-linear": 'it has documents outside its reading order (linear="no"), which the import leaves out',
+  "other-documents": "its reading order has documents that are not XHTML, which the import leaves out"
+};
+function epubMarkdown(bytes, { chapterLine = () => null, partHeading = () => false, maxTextBytes = Infinity } = {}) {
+  const entries = zipEntries(bytes, EPUB);
+  const parts = partReader(bytes, EPUB, MAX_EPUB_TEXT_BYTES);
+  const read = (entry) => parts.read(entry, { doctype: true });
+  const container = entries.get(CONTAINER_PART);
+  if (container === undefined) {
+    throw new ArchiveError(`it has no ${CONTAINER_PART}, so it is not an EPUB`);
+  }
+  const packagePath = rootfilePath(read(container));
+  const packageEntry = entries.get(packagePath);
+  if (packageEntry === undefined) {
+    throw new ArchiveError(`its ${CONTAINER_PART} names the package ${shown2(packagePath)}, which is not in the file`);
+  }
+  const encrypted = entries.has(ENCRYPTION_PART) ? encryptedPaths(read(entries.get(ENCRYPTION_PART))) : new Set;
+  const refuseLocked = (part) => {
+    if (encrypted.has(part)) {
+      throw new ArchiveError(`it is locked with DRM (${ENCRYPTION_PART} encrypts ${shown2(part)}), which story cannot read; import the manuscript the book was made from instead`);
+    }
+  };
+  refuseLocked(packagePath);
+  const notes = new Set;
+  const spine = spineParts(read(packageEntry), packagePath, entries, notes);
+  parts.reserve(spine.map((part) => entries.get(part)));
+  const blocks = markdownBlocks(maxTextBytes);
+  const documents = new Set(spine);
+  for (const part of spine) {
+    refuseLocked(part);
+    const xml = read(entries.get(part));
+    const folder = part.slice(0, part.lastIndexOf("/") + 1);
+    const leadsToDocument = (href) => documents.has(archivePath(folder, href));
+    const waiting = [];
+    const own = new Set;
+    let paragraphs = 0;
+    let linked = 0;
+    let keptBytes = 0;
+    let linkedBytes = 0;
+    try {
+      xhtmlParagraphs2(xml, own, leadsToDocument, (paragraph) => {
+        const text = paragraph.runs.filter((run) => run.text.trim() !== "");
+        const allLinks = text.length > 0 && text.every((run) => run.link);
+        if (paragraph.level === 0 || allLinks) {
+          paragraphs += 1;
+          linked += allLinks ? 1 : 0;
+        }
+        const found = paragraphBlocks(paragraph.runs, paragraph.level, paragraph.quote, chapterLine, { preformatted: paragraph.runs.every((run) => run.pre) });
+        const bytes = found.reduce((total, block) => total + blockBytes(block), 0);
+        keptBytes += allLinks ? 0 : bytes;
+        linkedBytes += allLinks ? bytes : 0;
+        checkMarkdownSize(Math.max(blocks.size() + keptBytes, linkedBytes), maxTextBytes);
+        const part = paragraph.level > 0 && partHeading(paragraph.runs.map((run) => run.text).join("").replace(/\s+/g, " ").trim());
+        waiting.push({ found, part });
+      });
+    } catch (error) {
+      if (error instanceof ArchiveError && error.message === "its XML is damaged") {
+        throw new ArchiveError(`its XML is damaged in ${shown2(part)}`);
       }
-      pieces.at(-1).push({ ...run, text: part });
+      throw error;
+    }
+    const contents = linked >= 2 && linked === paragraphs;
+    for (const { found, part } of waiting) {
+      if (!contents || part) {
+        found.forEach((block) => blocks.push(block));
+      }
+    }
+    for (const code of contents ? ["contents"] : own) {
+      notes.add(code);
+    }
+  }
+  return {
+    text: blocks.text(),
+    notes: [...notes].map((code) => ({ code, message: NOTE_MESSAGES2[code] }))
+  };
+}
+function localName(name) {
+  return name.slice(name.lastIndexOf(":") + 1);
+}
+function rootfilePath(xml) {
+  for (const token of xmlTokens(xml, HTML_ENTITIES)) {
+    if (token.type === "end" || token.type === "text" || localName(token.name) !== "rootfile") {
+      continue;
+    }
+    const mediaType = token.attributes["media-type"];
+    if (mediaType !== undefined && mediaType !== "application/oebps-package+xml") {
+      continue;
+    }
+    const fullPath = token.attributes["full-path"] ?? "";
+    const resolved = archivePath("", fullPath);
+    if (resolved === null) {
+      throw new ArchiveError(`its ${CONTAINER_PART} names the package ${shown2(fullPath)}, which is not a path inside the file`);
+    }
+    return resolved;
+  }
+  throw new ArchiveError(`its ${CONTAINER_PART} names no package document, so it is not an EPUB`);
+}
+function archivePath(base, href) {
+  const bare = href.replace(/[?#][^]*$/, "");
+  let decoded;
+  try {
+    decoded = decodeURIComponent(bare);
+  } catch {
+    decoded = bare;
+  }
+  if (decoded === "" || /^[a-z][a-z0-9+.-]*:/i.test(decoded) || decoded.startsWith("/") || decoded.includes("\\")) {
+    return null;
+  }
+  const parts = [];
+  for (const segment of `${base}${decoded}`.split("/")) {
+    if (segment === "" || segment === ".") {
+      continue;
+    }
+    if (segment === "..") {
+      if (parts.length === 0) {
+        return null;
+      }
+      parts.pop();
+      continue;
+    }
+    parts.push(segment);
+  }
+  return parts.length === 0 ? null : parts.join("/");
+}
+function encryptedPaths(xml) {
+  const paths = new Set;
+  for (const token of xmlTokens(xml, HTML_ENTITIES)) {
+    if ((token.type === "start" || token.type === "empty") && localName(token.name) === "CipherReference") {
+      const resolved = archivePath("", token.attributes.URI ?? "");
+      if (resolved !== null) {
+        paths.add(resolved);
+      }
+    }
+  }
+  return paths;
+}
+function spineParts(xml, packagePath, entries, notes) {
+  const base = packagePath.includes("/") ? packagePath.slice(0, packagePath.lastIndexOf("/") + 1) : "";
+  const items = new Map;
+  const spine = [];
+  const contents = new Set;
+  let section = null;
+  for (const token of xmlTokens(xml, HTML_ENTITIES)) {
+    if (token.type === "text") {
+      continue;
+    }
+    const name = localName(token.name);
+    if (name === "manifest" || name === "spine" || name === "guide") {
+      section = token.type === "start" ? name : token.type === "end" ? null : section;
+      continue;
+    }
+    if (token.type === "end") {
+      continue;
+    }
+    const { attributes } = token;
+    if (section === "manifest" && name === "item" && attributes.id !== undefined && !items.has(attributes.id)) {
+      items.set(attributes.id, { href: attributes.href ?? "", mediaType: (attributes["media-type"] ?? "").trim().toLowerCase(), properties: (attributes.properties ?? "").split(/\s+/) });
+    } else if (section === "spine" && name === "itemref") {
+      spine.push({ idref: attributes.idref ?? "", linear: (attributes.linear ?? "yes").trim() !== "no" });
+    } else if (section === "guide" && name === "reference" && (attributes.type ?? "").trim().toLowerCase() === "toc" && !(attributes.href ?? "").includes("#")) {
+      const part = archivePath(base, attributes.href ?? "");
+      if (part !== null) {
+        contents.add(part);
+      }
+    }
+  }
+  if (spine.length === 0) {
+    throw new ArchiveError("its package has no spine, so it has no reading order to import");
+  }
+  const parts = [];
+  const seen = new Set;
+  for (const { idref, linear } of spine) {
+    const item = items.get(idref);
+    if (item === undefined) {
+      throw new ArchiveError(`its spine names the item ${shown2(idref)}, which its manifest does not list`);
+    }
+    if (item.properties.includes("nav")) {
+      continue;
+    }
+    if (!linear) {
+      notes.add("non-linear");
+      continue;
+    }
+    if (item.mediaType !== XHTML) {
+      notes.add(item.mediaType.startsWith("image/") ? "images" : "other-documents");
+      continue;
+    }
+    const part = archivePath(base, item.href);
+    if (part === null) {
+      throw new ArchiveError(`its manifest lists ${shown2(item.href)}, which is not a path inside the file`);
+    }
+    if (!entries.has(part)) {
+      throw new ArchiveError(`its manifest lists ${shown2(part)}, which is not in the file`);
+    }
+    if (contents.has(part)) {
+      notes.add("contents");
+    } else if (!seen.has(part)) {
+      seen.add(part);
+      parts.push(part);
+    }
+  }
+  return parts;
+}
+var SKIPPED2 = new Map([
+  ["head", null],
+  ["script", null],
+  ["style", null],
+  ["template", null],
+  ["noscript", null],
+  ["nav", null],
+  ["del", null],
+  ["rp", null],
+  ["rt", "ruby"],
+  ["svg", "images"],
+  ["object", "images"],
+  ["iframe", "images"],
+  ["video", "images"],
+  ["audio", "images"],
+  ["canvas", "images"],
+  ["picture", "images"]
+]);
+var BLOCKS = new Set([
+  "address",
+  "article",
+  "aside",
+  "blockquote",
+  "body",
+  "caption",
+  "center",
+  "dd",
+  "details",
+  "div",
+  "dl",
+  "dt",
+  "figcaption",
+  "figure",
+  "footer",
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "header",
+  "hgroup",
+  "li",
+  "main",
+  "ol",
+  "p",
+  "pre",
+  "section",
+  "summary",
+  "table",
+  "tbody",
+  "td",
+  "tfoot",
+  "th",
+  "thead",
+  "tr",
+  "ul"
+]);
+var ITALIC = new Set(["em", "i", "cite", "dfn"]);
+var BOLD = new Set(["strong", "b"]);
+var NOTE_TYPES = /(?:^|\s)(?:doc-)?(?:footnotes?|endnotes?|rearnotes?)(?:\s|$)/;
+var NOTE_REFERENCE = /(?:^|\s)(?:doc-)?noteref(?:\s|$)/;
+var NAVIGATION_TYPES = /(?:^|\s)(?:doc-)?(?:toc|landmarks|page-list|pagebreak)(?:\s|$)/;
+function skippedFor(name, attributes) {
+  if (SKIPPED2.has(name)) {
+    return SKIPPED2.get(name);
+  }
+  const types = `${attributes["epub:type"] ?? ""} ${attributes.role ?? ""}`;
+  if (NOTE_TYPES.test(types) || name === "a" && NOTE_REFERENCE.test(types)) {
+    return "footnotes";
+  }
+  if (NAVIGATION_TYPES.test(types) || attributes.hidden !== undefined || /(?:^|;)\s*(?:display\s*:\s*none|visibility\s*:\s*hidden)\s*(?:!\s*important\s*)?(?:;|$)/i.test(attributes.style ?? "")) {
+    return null;
+  }
+  return;
+}
+function styleEmphasis(style) {
+  const fontStyle = /(?:^|;)\s*font-style\s*:\s*([a-z]+)/i.exec(style)?.[1].toLowerCase();
+  const fontWeight = /(?:^|;)\s*font-weight\s*:\s*([a-z0-9]+)/i.exec(style)?.[1].toLowerCase();
+  return {
+    italic: fontStyle === undefined ? null : fontStyle === "italic" || fontStyle === "oblique",
+    bold: fontWeight === undefined ? null : fontWeight === "bold" || fontWeight === "bolder" || /^\d+$/.test(fontWeight) && Number(fontWeight) >= 600
+  };
+}
+function preformattedSpaces(text, startsLine) {
+  const spaced = text.replace(/\t/g, "    ");
+  const indented = startsLine ? spaced.replace(/^ +/, (spaces) => " ".repeat(spaces.length)) : spaced;
+  return indented.replace(/ {2,}/g, (spaces) => ` ${" ".repeat(spaces.length - 1)}`);
+}
+function xhtmlParagraphs2(xml, notes, leadsToDocument, emit) {
+  const frames = [{ italic: false, bold: false, level: 0, quote: false, pre: false, body: false, link: false }];
+  let paragraph = null;
+  let skipping = 0;
+  const flush = () => {
+    if (paragraph !== null && paragraph.runs.some((run) => run.text.trim() !== "")) {
+      emit(paragraph);
+    }
+    paragraph = null;
+  };
+  const add = (text) => {
+    const frame = frames.at(-1);
+    if (!frame.body) {
+      return;
+    }
+    if (paragraph === null) {
+      paragraph = { runs: [], level: frame.level, quote: frame.quote };
+    }
+    paragraph.runs.push({ text, italic: frame.level === 0 && frame.italic, bold: frame.level === 0 && frame.bold, link: frame.link, pre: frame.pre });
+  };
+  for (const token of xmlTokens(xml, HTML_ENTITIES)) {
+    if (skipping > 0) {
+      if (token.type === "start") {
+        skipping += 1;
+      } else if (token.type === "end") {
+        skipping -= 1;
+      } else if (token.type === "empty" && (localName(token.name) === "img" || localName(token.name) === "image")) {
+        notes.add("images");
+      }
+      continue;
+    }
+    if (token.type === "text") {
+      const frame = frames.at(-1);
+      const startsLine = paragraph === null || paragraph.runs.at(-1).text.endsWith(LINE_BREAK4);
+      add(frame.pre ? token.text.split(/\r\n?|\n/).map((line, index) => preformattedSpaces(proseText(line), index > 0 || startsLine)).join(LINE_BREAK4) : proseText(token.text.replace(/\t/g, " ")));
+      continue;
+    }
+    const name = localName(token.name).toLowerCase();
+    if (token.type === "end") {
+      if (BLOCKS.has(name)) {
+        flush();
+      }
+      frames.pop();
+      continue;
+    }
+    const { attributes } = token;
+    const skipped = skippedFor(name, attributes);
+    if (skipped !== undefined) {
+      if (BLOCKS.has(name) || name === "nav") {
+        flush();
+      }
+      if (skipped !== null) {
+        notes.add(skipped);
+      }
+      if (token.type === "start") {
+        skipping = 1;
+      }
+      continue;
+    }
+    if (name === "img" || name === "image") {
+      notes.add("images");
+    }
+    if (name === "table") {
+      notes.add("tables");
+    }
+    if (name === "ol" || name === "ul") {
+      notes.add("lists");
+    }
+    if (BLOCKS.has(name) || name === "hr") {
+      flush();
+    }
+    if (name === "br") {
+      add(LINE_BREAK4);
+    }
+    const sceneBreak = name === "hr" || name === "p" && /(?:^|\s)scene-break(?:\s|$)/.test(attributes.class ?? "");
+    if (sceneBreak && frames.at(-1).body) {
+      emit({ runs: [{ text: "* * *", italic: false, bold: false, link: false }], level: 0, quote: false });
+    }
+    if (token.type === "empty") {
+      continue;
+    }
+    const parent = frames.at(-1);
+    const emphasis = styleEmphasis(attributes.style ?? "");
+    const heading = /^h([1-6])$/.exec(name);
+    frames.push({
+      italic: emphasis.italic ?? (ITALIC.has(name) || parent.italic),
+      bold: emphasis.bold ?? (BOLD.has(name) || parent.bold),
+      level: heading === null ? parent.level : Number(heading[1]),
+      quote: parent.quote || name === "blockquote",
+      pre: parent.pre || name === "pre",
+      body: parent.body || name === "body",
+      link: parent.link || name === "a" && leadsToDocument(attributes.href ?? "")
     });
-  }
-  return pieces.map((piece) => blockMarkdown(piece, level, quote, chapterLine)).filter((block) => block !== "");
-}
-function blockMarkdown(runs, level, quote, chapterLine) {
-  const plain = runs.map((run) => run.text).join("").replace(/[\t ]+/g, " ").trim();
-  const lines = plain.split(LINE_BREAK4).map((line) => line.trim()).filter((line) => line !== "");
-  if (lines.length === 0) {
-    return "";
-  }
-  if (level === 0 && /^([*_~-])( ?\1){2,}$/.test(plain)) {
-    return plain;
-  }
-  if (level === 0 && plain === "#") {
-    return "***";
-  }
-  if (level === 0) {
-    const heading = lines.length === 1 && chapterLine(lines[0]) !== null ? lines[0] : lines.length === 2 && chapterLine(lines[0])?.bare === true ? `${lines[0]}: ${lines[1]}` : null;
-    if (heading !== null) {
-      return `# ${escapeInline(heading)}`;
+    if (sceneBreak) {
+      skipping = 1;
+      frames.pop();
     }
   }
-  if (level > 0) {
-    return `${"#".repeat(level)} ${escapeInline(lines.join(" ").replace(/[ \t]+/g, " "))}`;
-  }
-  const text = inlineMarkdown(runs).split(LINE_BREAK4).map((line) => line.trim()).filter((line, index, all) => line !== "" || index > 0 && index < all.length - 1).join("\\\n");
-  const block = escapeBlockStart(text);
-  return quote ? block.split(`
-`).map((line) => `> ${line}`).join(`
-`) : block;
+  flush();
 }
-function inlineMarkdown(runs) {
-  const merged = [];
-  for (const run of runs) {
-    const last = merged.at(-1);
-    if (last !== undefined && last.italic === run.italic && last.bold === run.bold) {
-      last.text += run.text;
-    } else {
-      merged.push({ ...run });
+
+// src/odt.js
+var ODT = Object.freeze({
+  extension: ".odt",
+  kind: "an OpenDocument text",
+  again: "save it again from your word processor",
+  unlock: "remove the password in your word processor and save it again"
+});
+var CONTENT_PART = "content.xml";
+var STYLES_PART2 = "styles.xml";
+var MANIFEST_PART = "META-INF/manifest.xml";
+var MIMETYPE_PART = "mimetype";
+var TEXT_MIMETYPE = /^application\/vnd\.oasis\.opendocument\.text(?:-template|-master)?$/;
+var MAX_ODT_TEXT_BYTES = 64 * 1024 * 1024;
+var MAX_MIMETYPE_BYTES = 256;
+var MAX_STYLE_DEPTH2 = 64;
+var NOTE_MESSAGES3 = {
+  "tracked-changes": "it has tracked changes; the import keeps the text as if every change were accepted",
+  comments: "it has comments, which the import leaves out",
+  footnotes: "it has footnotes or endnotes, which the import leaves out",
+  images: "it has images or drawings, which the import leaves out",
+  "text-boxes": "it has text boxes, whose text the import leaves out",
+  tables: "it has tables, whose cells the import reads as plain paragraphs",
+  numbering: "it has lists or numbered headings, whose bullets and numbers the import leaves out, so a chapter number made that way is lost",
+  ruby: "it has ruby (furigana) readings, which the import leaves out, keeping the base text"
+};
+function odtMarkdown(bytes, { chapterLine = () => null, maxTextBytes = Infinity } = {}) {
+  const entries = zipEntries(bytes, ODT);
+  const parts = partReader(bytes, ODT, MAX_ODT_TEXT_BYTES);
+  if (entries.has(MANIFEST_PART) && hasEncryptedParts(parts.read(entries.get(MANIFEST_PART), { doctype: true }))) {
+    throw new ArchiveError(`it is password-protected; ${ODT.unlock}`);
+  }
+  const mimetype = entries.get(MIMETYPE_PART);
+  if (mimetype !== undefined) {
+    const value = mimetype.size > MAX_MIMETYPE_BYTES ? null : parts.read(mimetype).trim();
+    if (value === null || !TEXT_MIMETYPE.test(value)) {
+      throw new ArchiveError(`its media type is ${value === null ? `${mimetype.size} bytes long` : shown2(value)}, so it is not an OpenDocument text`);
     }
   }
-  return merged.map((run) => {
-    const text = run.text.replace(/[\t ]+/g, " ");
-    const marker = (run.bold ? "**" : "") + (run.italic ? "*" : "");
-    const lead = text.match(/^\s*/)[0];
-    const trail = lead.length === text.length ? "" : text.match(/\s*$/)[0];
-    const body = text.slice(lead.length, text.length - trail.length).replaceAll(` ${LINE_BREAK4}`, LINE_BREAK4).replaceAll(`${LINE_BREAK4} `, LINE_BREAK4);
-    if (marker === "" || body.replaceAll(LINE_BREAK4, "") === "") {
-      return escapeInline(text);
+  const content = entries.get(CONTENT_PART);
+  if (content === undefined) {
+    throw new ArchiveError(`it has no ${CONTENT_PART}, so it is not an OpenDocument text`);
+  }
+  const stylesEntry = entries.get(STYLES_PART2);
+  parts.reserve(stylesEntry === undefined ? [content] : [content, stylesEntry]);
+  const contentXml = parts.read(content);
+  const styles = readStyles2([...stylesEntry === undefined ? [] : [parts.read(stylesEntry)], contentXml]);
+  return documentMarkdown2(contentXml, styles, chapterLine, maxTextBytes);
+}
+function hasEncryptedParts(xml) {
+  for (const token of xmlTokens(xml)) {
+    if (token.type !== "end" && token.name === "manifest:encryption-data") {
+      return true;
     }
-    const marked = escapeInline(body).split(LINE_BREAK4).map((line) => line === "" ? line : `${marker}${line}${[...marker].reverse().join("")}`).join(LINE_BREAK4);
-    return `${lead}${marked}${trail}`;
-  }).join("");
+  }
+  return false;
 }
-function escapeInline(text) {
-  return text.replace(/[\\`*_[\]<]/g, "\\$&").replace(/\\<!/g, "\\<\\!");
+var EMPTY_STYLE2 = { level: 0, quote: false, italic: null, bold: null, hidden: null };
+function outlineAttribute(value) {
+  if (value === undefined) {
+    return null;
+  }
+  const level = Number.parseInt(value, 10);
+  return Number.isInteger(level) && level >= 1 ? level : 0;
 }
-function escapeBlockStart(text) {
-  return text.split(`
-`).map((line) => line.replace(/^(#{1,6})(?=\s|$)/, "\\$1").replace(/^>/, "\\>").replace(/^([-+])(?=\s)/, "\\$1").replace(/^(\d+)([.)])(?=\s)/, "$1\\$2").replace(/^(=+|-+)$/, (marks) => `\\${marks}`)).join(`
-`);
+function readStyles2(parts) {
+  const styles = new Map;
+  const numbered = new Set;
+  for (const xml of parts) {
+    let style = null;
+    let outlineStyle = false;
+    for (const token of xmlTokens(xml)) {
+      if (token.type === "text") {
+        continue;
+      }
+      if (token.name === "text:outline-style") {
+        outlineStyle = token.type === "start";
+        continue;
+      }
+      if (outlineStyle && token.type !== "end" && token.name === "text:outline-level-style" && (token.attributes["style:num-format"] ?? "") !== "") {
+        numbered.add(Number.parseInt(token.attributes["text:level"] ?? "", 10));
+        continue;
+      }
+      if (token.name === "style:style") {
+        if (token.type === "end") {
+          style = null;
+          continue;
+        }
+        const { attributes } = token;
+        const family = attributes["style:family"];
+        style = family === "paragraph" || family === "text" ? {
+          name: attributes["style:display-name"] ?? attributes["style:name"] ?? "",
+          outline: outlineAttribute(attributes["style:default-outline-level"]),
+          parent: attributes["style:parent-style-name"] ?? null,
+          italic: null,
+          bold: null,
+          hidden: null
+        } : null;
+        if (style !== null && attributes["style:name"] !== undefined) {
+          styles.set(`${family}:${attributes["style:name"]}`, style);
+        }
+        if (token.type === "empty") {
+          style = null;
+        }
+        continue;
+      }
+      if (style !== null && token.type !== "end" && token.name === "style:text-properties") {
+        const { attributes } = token;
+        const fontStyle = attributes["fo:font-style"];
+        const fontWeight = attributes["fo:font-weight"];
+        if (fontStyle !== undefined) {
+          style.italic = fontStyle === "italic" || fontStyle === "oblique";
+        }
+        if (fontWeight !== undefined) {
+          style.bold = fontWeight === "bold" || /^\d+$/.test(fontWeight) && Number(fontWeight) >= 600;
+        }
+        if (attributes["text:display"] !== undefined) {
+          style.hidden = attributes["text:display"] === "none";
+        }
+      }
+    }
+  }
+  const resolved = new Map;
+  const resolve = (family, name, depth) => {
+    const key = `${family}:${name}`;
+    if (resolved.has(key)) {
+      return resolved.get(key);
+    }
+    const style = styles.get(key);
+    if (style === undefined || depth > MAX_STYLE_DEPTH2) {
+      return EMPTY_STYLE2;
+    }
+    resolved.set(key, EMPTY_STYLE2);
+    const base = style.parent === null ? EMPTY_STYLE2 : resolve(family, style.parent, depth + 1);
+    const label = style.name.replace(/_20_/g, " ").trim().toLowerCase();
+    const heading = label.match(/^heading (\d+)$/);
+    let level = base.level;
+    if (label === "title") {
+      level = 1;
+    } else if (heading !== null) {
+      level = Math.min(Number(heading[1]), 6);
+    } else if (style.outline !== null) {
+      level = Math.min(style.outline, 6);
+    }
+    const result = {
+      level,
+      quote: base.quote || /^(?:quotations|quote|intense quote|block text|block quote|blockquote)$/.test(label),
+      italic: style.italic ?? base.italic,
+      bold: style.bold ?? base.bold,
+      hidden: style.hidden ?? base.hidden
+    };
+    resolved.set(key, result);
+    return result;
+  };
+  return {
+    paragraph: (name) => name === null ? EMPTY_STYLE2 : resolve("paragraph", name, 0),
+    text: (name) => name === null ? EMPTY_STYLE2 : resolve("text", name, 0),
+    numbered
+  };
+}
+var SKIPPED3 = new Map([
+  ["text:tracked-changes", "tracked-changes"],
+  ["text:note", "footnotes"],
+  ["office:annotation", "comments"],
+  ["draw:frame", "images"],
+  ["draw:a", "images"],
+  ["draw:g", "images"],
+  ["draw:custom-shape", "images"],
+  ["draw:rect", "images"],
+  ["draw:ellipse", "images"],
+  ["draw:line", "images"],
+  ["draw:polygon", "images"],
+  ["draw:path", "images"],
+  ["draw:image", "images"],
+  ["draw:text-box", "text-boxes"],
+  ["text:ruby-text", "ruby"],
+  ["text:number", "numbering"],
+  ["text:table-of-content", null],
+  ["text:alphabetical-index", null],
+  ["text:illustration-index", null],
+  ["text:table-index", null],
+  ["text:object-index", null],
+  ["text:user-index", null],
+  ["text:bibliography", null],
+  ["text:hidden-text", null],
+  ["text:sequence-decls", null],
+  ["text:variable-decls", null],
+  ["text:user-field-decls", null],
+  ["office:forms", null]
+]);
+function documentMarkdown2(xml, styles, chapterLine, maxTextBytes) {
+  const notes = new Set;
+  const blocks = markdownBlocks(maxTextBytes);
+  let inText = false;
+  let skipping = null;
+  let paragraph = null;
+  let nested = 0;
+  const spans = [];
+  const finish = () => {
+    const style = styles.paragraph(paragraph.style);
+    const level = paragraph.heading === null ? style.level : paragraph.heading;
+    if (paragraph.hidden) {
+      paragraph = null;
+      return;
+    }
+    if (paragraph.outline !== null && styles.numbered.has(paragraph.outline)) {
+      notes.add("numbering");
+    }
+    const runs = paragraph.runs.filter((run) => (run.hidden ?? style.hidden) !== true).map((run) => ({
+      text: run.text,
+      italic: level === 0 && (run.italic ?? style.italic) === true,
+      bold: level === 0 && (run.bold ?? style.bold) === true
+    }));
+    for (const block of paragraphBlocks(runs, level, style.quote, chapterLine)) {
+      blocks.push(block);
+    }
+    paragraph = null;
+  };
+  const add = (text) => {
+    const span = spans.at(-1) ?? EMPTY_STYLE2;
+    paragraph.runs.push({ text, italic: span.italic, bold: span.bold, hidden: span.hidden });
+  };
+  for (const token of xmlTokens(xml)) {
+    const { type, name, attributes } = token;
+    if (skipping !== null) {
+      if (name === "draw:text-box") {
+        notes.add("text-boxes");
+      }
+      if (type === "start") {
+        skipping += 1;
+      } else if (type === "end") {
+        skipping -= 1;
+        if (skipping === 0) {
+          skipping = null;
+        }
+      }
+      continue;
+    }
+    if (name === "office:text") {
+      inText = type === "start";
+      continue;
+    }
+    if (!inText) {
+      continue;
+    }
+    if (type === "text") {
+      if (paragraph !== null) {
+        add(proseText(token.text.replace(/[\t\r\n]/g, " ")));
+      }
+      continue;
+    }
+    if (type !== "end" && SKIPPED3.has(name)) {
+      const note = SKIPPED3.get(name);
+      if (note !== null) {
+        notes.add(note);
+      }
+      if (type === "start") {
+        skipping = 1;
+      }
+      continue;
+    }
+    if (type !== "end" && name === "text:section" && (attributes["text:display"] === "none" || attributes["text:display"] === "condition" && attributes["text:is-hidden"] === "true")) {
+      if (type === "start") {
+        skipping = 1;
+      }
+      continue;
+    }
+    if (name === "text:change" || name === "text:change-start") {
+      notes.add("tracked-changes");
+      continue;
+    }
+    if (name === "text:list" && type === "start") {
+      notes.add("numbering");
+      continue;
+    }
+    if (name === "table:table" && type === "start") {
+      notes.add("tables");
+      continue;
+    }
+    if (name === "text:p" || name === "text:h") {
+      if (type === "end") {
+        if (nested > 0) {
+          nested -= 1;
+        } else if (paragraph !== null) {
+          finish();
+        }
+        continue;
+      }
+      if (paragraph !== null) {
+        nested += type === "start" ? 1 : 0;
+        continue;
+      }
+      const outline = Number.parseInt(attributes["text:outline-level"] ?? "", 10);
+      paragraph = {
+        style: attributes["text:style-name"] ?? null,
+        heading: name === "text:h" ? Number.isInteger(outline) && outline >= 1 ? Math.min(outline, 6) : 1 : null,
+        outline: name === "text:h" && attributes["text:is-list-header"] !== "true" ? Number.isInteger(outline) && outline >= 1 ? outline : 1 : null,
+        hidden: false,
+        runs: []
+      };
+      if (type === "empty") {
+        finish();
+      }
+      continue;
+    }
+    if (paragraph === null) {
+      continue;
+    }
+    if (name === "text:span") {
+      if (type === "start") {
+        const own = styles.text(attributes["text:style-name"] ?? null);
+        const outer = spans.at(-1) ?? EMPTY_STYLE2;
+        spans.push({ italic: own.italic ?? outer.italic, bold: own.bold ?? outer.bold, hidden: own.hidden ?? outer.hidden });
+      } else if (type === "end") {
+        spans.pop();
+      }
+      continue;
+    }
+    if (type === "end") {
+      continue;
+    }
+    if (name === "text:s") {
+      add(" ");
+    } else if (name === "text:tab") {
+      add("\t");
+    } else if (name === "text:line-break") {
+      add(LINE_BREAK4);
+    } else if (name === "text:hidden-paragraph" && attributes["text:is-hidden"] === "true") {
+      paragraph.hidden = true;
+    }
+  }
+  return {
+    text: blocks.text(),
+    notes: [...notes].map((code) => ({ code, message: NOTE_MESSAGES3[code] }))
+  };
 }
 
 // src/lock.js
 import fs7 from "node:fs";
 import os2 from "node:os";
-import path16 from "node:path";
+import path18 from "node:path";
 var LOCK_FILE = ".story.lock";
 var DEFAULT_WAIT_MS = 1e4;
 var POLL_MS = 50;
@@ -22658,7 +24889,7 @@ var TAKEOVER_FILE = ".story-takeover.tmp";
 var TAKEOVER_STALE_MS = 2000;
 var held = new Map;
 function withProjectLock(root, run, options = {}) {
-  const projectRoot = path16.resolve(root);
+  const projectRoot = path18.resolve(root);
   const key = realPath(projectRoot);
   if (held.has(key)) {
     held.set(key, held.get(key) + 1);
@@ -22668,8 +24899,8 @@ function withProjectLock(root, run, options = {}) {
       held.set(key, held.get(key) - 1);
     }
   }
-  const lockPath = path16.join(projectRoot, LOCK_FILE);
-  const lockable = options.folder ? isDirectory(projectRoot) : fs7.existsSync(path16.join(projectRoot, "story.md"));
+  const lockPath = path18.join(projectRoot, LOCK_FILE);
+  const lockable = options.folder ? isDirectory(projectRoot) : fs7.existsSync(path18.join(projectRoot, "story.md"));
   if (!lockable || isPlanning()) {
     return run();
   }
@@ -22689,8 +24920,8 @@ function withProjectLock(root, run, options = {}) {
   }
 }
 function lockedByAnother(root) {
-  const projectRoot = path16.resolve(root);
-  return !held.has(realPath(projectRoot)) && readOwner(path16.join(projectRoot, LOCK_FILE))?.alive === true;
+  const projectRoot = path18.resolve(root);
+  return !held.has(realPath(projectRoot)) && readOwner(path18.join(projectRoot, LOCK_FILE))?.alive === true;
 }
 function acquire(lockPath) {
   const deadline = Date.now() + lockWaitMs();
@@ -22720,11 +24951,11 @@ function acquire(lockPath) {
   return created;
 }
 function withProjectLocks(locks, run) {
-  const order = (lock) => realPath(path16.resolve(lock.root));
+  const order = (lock) => realPath(path18.resolve(lock.root));
   return [...locks].sort((left, right) => order(left) < order(right) ? -1 : order(left) > order(right) ? 1 : 0).reduceRight((inner, lock) => () => withProjectLock(lock.root, inner, lock), run)();
 }
 function removeStale(lockPath, staleText) {
-  const guard = path16.join(path16.dirname(lockPath), TAKEOVER_FILE);
+  const guard = path18.join(path18.dirname(lockPath), TAKEOVER_FILE);
   let created = tryCreate(guard);
   if (created === null && Date.now() - modifiedAt(guard) > TAKEOVER_STALE_MS) {
     fs7.rmSync(guard, { force: true });
@@ -22804,9 +25035,9 @@ function sameHostAlive(pid, recorded, written, modified) {
 var IDENTITY_PATTERN = /^[0-9a-f-]+ pid:\[\d+\] \d+$/;
 function processIdentity(proc = "/proc") {
   try {
-    const started = startTimeField(readTextFile(path16.join(proc, "self", "stat")));
-    const boot = readTextFile(path16.join(proc, "sys", "kernel", "random", "boot_id")).trim();
-    const identity = `${boot} ${fs7.readlinkSync(path16.join(proc, "self", "ns", "pid"))} ${started}`;
+    const started = startTimeField(readTextFile(path18.join(proc, "self", "stat")));
+    const boot = readTextFile(path18.join(proc, "sys", "kernel", "random", "boot_id")).trim();
+    const identity = `${boot} ${fs7.readlinkSync(path18.join(proc, "self", "ns", "pid"))} ${started}`;
     return IDENTITY_PATTERN.test(identity) ? identity : null;
   } catch {
     return null;
@@ -22814,7 +25045,7 @@ function processIdentity(proc = "/proc") {
 }
 function processStartTime(pid, proc = "/proc") {
   try {
-    return startTimeField(readTextFile(path16.join(proc, String(pid), "stat"))) ?? null;
+    return startTimeField(readTextFile(path18.join(proc, String(pid), "stat"))) ?? null;
   } catch {
     return null;
   }
@@ -22866,814 +25097,18 @@ function realPath(target) {
 }
 
 // src/preview.js
-import { Buffer as Buffer6 } from "node:buffer";
-import fs8 from "node:fs";
+import { Buffer as Buffer8 } from "node:buffer";
+import fs13 from "node:fs";
 import os3 from "node:os";
-import path17 from "node:path";
-function previewChanges(root, run) {
-  const projectRoot = path17.resolve(root);
-  requireStoryFile(projectRoot);
-  return inScratch(projectRoot, run, (copyRoot, mirror, atRoot, scratch) => {
-    fs8.mkdirSync(path17.dirname(copyRoot), { recursive: true });
-    copyProject(projectRoot, copyRoot, { realSource: realPath2(projectRoot), copyRoot, cover: coverOf(projectRoot) });
-    if (!atRoot) {
-      copyLinkedBooks(projectRoot, mirror, scratch);
-    }
-  });
-}
-function previewNewProject(root, run) {
-  const target = path17.resolve(root);
-  if (target === path17.parse(target).root) {
-    throw usageError(`--dry-run cannot preview a project made at ${target}`);
-  }
-  return inScratch(target, run, (copyRoot, mirror) => {
-    const stats = lstatIfExists(target);
-    const ancestor = stats ? path17.dirname(target) : nearestExistingAncestor(target).ancestor;
-    const isFolder = fs8.statSync(ancestor, { throwIfNoEntry: false })?.isDirectory() === true;
-    fs8.mkdirSync(isFolder ? mirror(ancestor) : path17.dirname(mirror(ancestor)), { recursive: true });
-    if (!isFolder) {
-      fs8.symlinkSync(path17.join(path17.dirname(mirror(ancestor)), ".story-dry-run-link"), mirror(ancestor));
-    }
-    for (let folder = path17.dirname(target);; folder = path17.dirname(folder)) {
-      const story = path17.join(folder, "story.md");
-      if (lstatIfExists(story)?.isFile()) {
-        fs8.mkdirSync(mirror(folder), { recursive: true });
-        copyRegularFile(story, mirror(story));
-      }
-      if (path17.dirname(folder) === folder) {
-        break;
-      }
-    }
-    if (stats?.isSymbolicLink()) {
-      fs8.symlinkSync(path17.join(path17.dirname(copyRoot), ".story-dry-run-link"), copyRoot);
-    } else if (stats?.isDirectory()) {
-      copyProject(target, copyRoot, { realSource: realPath2(target), copyRoot, cover: coverOf(target) });
-    } else if (stats) {
-      copyRegularFile(target, copyRoot);
-    }
-    if (isFolder) {
-      fs8.chmodSync(mirror(ancestor), copyMode(ancestor, true));
-    }
-  });
-}
-function inScratch(target, run, prepare) {
-  const scratch = fs8.realpathSync(fs8.mkdtempSync(path17.join(os3.tmpdir(), "story-dry-run-")));
-  const fsRoot = path17.parse(target).root;
-  const atRoot = target === fsRoot;
-  const mirror = (file) => {
-    const drive = path17.parse(file).root;
-    return path17.join(scratch, drive.replace(/[:\\/]/g, ""), file.slice(drive.length));
-  };
-  const copyRoot = atRoot ? path17.join(scratch, "project") : mirror(target);
-  const [from, to] = atRoot ? [copyRoot, target] : [mirror(fsRoot), fsRoot.replace(/[\\/]+$/, "")];
-  try {
-    prepare(copyRoot, mirror, atRoot, scratch);
-    if (!atRoot) {
-      const realOf = (file) => isPathInside(from, file) ? to + file.slice(from.length) : null;
-      copyLinkTargets(copyRoot, scratch, mirror, realOf);
-    }
-    const { result, changes } = recordChanges(copyRoot, () => run(copyRoot));
-    return { result: mapPaths(result, from, to), changes };
-  } catch (error) {
-    throw toProjectError(error, from, to);
-  } finally {
-    removeScratch(scratch);
-  }
-}
-function copyLinkedBooks(projectRoot, mirror, scratch) {
-  const parent = path17.dirname(projectRoot);
-  const realParent = realPath2(parent);
-  const home = (real) => isPathInside(realParent, real) ? path17.join(parent, path17.relative(realParent, real)) : real;
-  const alias = (link, book) => {
-    const copy = mirror(link);
-    if (link === book || lstatIfExists(copy) !== null) {
-      return;
-    }
-    if (!isPathInside(scratch, realPath2(nearestExistingAncestor(path17.dirname(copy)).ancestor))) {
-      return;
-    }
-    fs8.mkdirSync(path17.dirname(copy), { recursive: true });
-    fs8.symlinkSync(mirror(book), copy);
-  };
-  const projectReal = realPath2(projectRoot);
-  const copies = new Map([[projectReal, projectRoot]]);
-  alias(home(projectReal), projectRoot);
-  const queued = new Set([projectReal]);
-  const queue = [projectRoot];
-  while (queue.length > 0) {
-    const book = queue.shift();
-    let data;
-    try {
-      data = readBookFrontmatter(book);
-    } catch {
-      continue;
-    }
-    for (const link of ["follows", "precedes"].flatMap((field) => seriesLinks(book, data ?? {}, field))) {
-      const real = realPath2(link);
-      if (!copies.has(real)) {
-        const target = mirror(home(real));
-        if (copies.size > MAX_SERIES_BOOKS || !fs8.existsSync(path17.join(real, "story.md")) || fs8.existsSync(target)) {
-          continue;
-        }
-        fs8.mkdirSync(path17.dirname(target), { recursive: true });
-        copyProject(real, target, { realSource: real, copyRoot: target });
-        copies.set(real, home(real));
-      }
-      alias(link, copies.get(real));
-      if (path17.dirname(link) === parent && !queued.has(real)) {
-        queued.add(real);
-        queue.push(link);
-      }
-    }
-  }
-}
-var MAX_LINK_HOPS = 40;
-function copyLinkTargets(copyRoot, scratch, mirror, realOf) {
-  if (!lstatIfExists(copyRoot)?.isDirectory()) {
-    return;
-  }
-  const context = { copyRoot, scratch, mirror, realOf };
-  for (const file of linkSources(copyRoot)) {
-    let body;
-    try {
-      body = readTextFile(file);
-    } catch {
-      continue;
-    }
-    for (const target of extractMarkdownLinkTargets(body)) {
-      if (path17.isAbsolute(target) || !path17.basename(target).endsWith(".md")) {
-        continue;
-      }
-      try {
-        stageLinkTarget(path17.resolve(path17.dirname(file), target), context, 0);
-      } catch {}
-    }
-  }
-}
-function linkSources(copyRoot) {
-  const files = [path17.join(copyRoot, "plot", "timeline.md")];
-  for (const folder of [path17.join("plot", "arcs"), MATTER_DIR]) {
-    let entries = [];
-    try {
-      entries = fs8.readdirSync(path17.join(copyRoot, folder), { withFileTypes: true });
-    } catch {
-      continue;
-    }
-    files.push(...entries.filter((entry) => entry.name.endsWith(".md")).slice(0, MAX_SCAN_FILES).map((entry) => path17.join(copyRoot, folder, entry.name)));
-  }
-  return files;
-}
-function stageLinkTarget(file, context, hops) {
-  const { copyRoot, scratch } = context;
-  if (!isPathInside(scratch, file) || file === scratch) {
-    return null;
-  }
-  const parts = path17.relative(scratch, file).split(path17.sep);
-  let current = scratch;
-  for (const [index, part] of parts.entries()) {
-    const next = path17.join(current, part);
-    let stats = lstatIfExists(next);
-    if (!stats) {
-      if (isPathInside(copyRoot, next) || !makeStandIn(next, context, index === parts.length - 1)) {
-        return null;
-      }
-      stats = fs8.lstatSync(next);
-    }
-    if (stats.isSymbolicLink()) {
-      if (hops >= MAX_LINK_HOPS) {
-        return null;
-      }
-      current = stageLinkTarget(path17.resolve(path17.dirname(next), fs8.readlinkSync(next)), context, hops + 1);
-      if (current === null) {
-        return null;
-      }
-    } else {
-      current = next;
-    }
-  }
-  return current;
-}
-function makeStandIn(copy, { mirror, realOf }, last) {
-  const real = realOf(copy);
-  const stats = real === null ? null : lstatIfExists(real);
-  if (!stats || !(stats.isSymbolicLink() || stats.isDirectory() || last && stats.isFile())) {
-    return false;
-  }
-  withWritable(path17.dirname(copy), () => {
-    if (stats.isSymbolicLink()) {
-      const text = fs8.readlinkSync(real);
-      fs8.symlinkSync(path17.isAbsolute(text) ? mirror(text) : text, copy, isFolder(real) ? "dir" : "file");
-    } else if (stats.isDirectory()) {
-      fs8.mkdirSync(copy);
-      if (lstatIfExists(path17.join(real, "story.md"))) {
-        fs8.writeFileSync(path17.join(copy, "story.md"), "");
-      }
-    } else {
-      fs8.writeFileSync(copy, "");
-    }
-  });
-  return true;
-}
-function isFolder(target) {
-  try {
-    return fs8.statSync(target).isDirectory();
-  } catch {
-    return false;
-  }
-}
-function withWritable(folder, make) {
-  const mode = fs8.statSync(folder).mode & 4095;
-  if ((mode & 192) === 192) {
-    make();
-    return;
-  }
-  fs8.chmodSync(folder, mode | 192);
-  try {
-    make();
-  } finally {
-    fs8.chmodSync(folder, mode);
-  }
-}
-function copyProject(source, target, roots, depth = 0) {
-  fs8.mkdirSync(target);
-  for (const entry of fs8.readdirSync(source, { withFileTypes: true })) {
-    const from = path17.join(source, entry.name);
-    const to = path17.join(target, entry.name);
-    if (entry.isDirectory()) {
-      if (!entry.name.startsWith(".") && !SKIPPED_SCAN_DIRECTORIES.has(entry.name) && depth < MAX_SCAN_DEPTH && !fs8.existsSync(path17.join(from, "story.md"))) {
-        copyProject(from, to, roots, depth + 1);
-      }
-    } else if (entry.isSymbolicLink()) {
-      fs8.symlinkSync(linkTarget(fs8.readlinkSync(from), roots), to, isFolder(from) ? "dir" : "file");
-    } else if (entry.isFile() && entry.name !== LOCK_FILE && entry.name !== TAKEOVER_FILE) {
-      copyRegularFile(from, to, Boolean(roots.cover) && realPath2(from).toLowerCase() === roots.cover);
-    }
-  }
-  fs8.chmodSync(target, copyMode(source, true));
-}
-function mirrorFolderNames(source, copy) {
-  if (lstatIfExists(source)?.isDirectory() !== true || lstatIfExists(copy) !== null) {
-    return;
-  }
-  fs8.mkdirSync(copy);
-  for (const entry of fs8.readdirSync(source, { withFileTypes: true })) {
-    if (entry.isDirectory()) {
-      fs8.mkdirSync(path17.join(copy, entry.name));
-    } else {
-      fs8.writeFileSync(path17.join(copy, entry.name), "", { flag: "wx" });
-    }
-  }
-  fs8.chmodSync(copy, copyMode(source, true));
-}
-function copyRegularFile(from, to, keepHead = false) {
-  if (path17.basename(from) === UNDO_LOG && lockedByAnother(path17.dirname(from))) {
-    return;
-  }
-  const { size } = fs8.statSync(from);
-  const readable = allowed(from, fs8.constants.R_OK);
-  if (path17.basename(from) === UNDO_LOG && readable) {
-    copyUndoLog(from, to);
-  } else if ((from.endsWith(".md") || [".gitignore", RENAME_MARKER].includes(path17.basename(from))) && size <= MAX_READ_BYTES && readable) {
-    fs8.writeFileSync(to, readFileBytes(from));
-  } else {
-    fs8.writeFileSync(to, keepHead && readable ? readFilePrefix(from, IMAGE_SIGNATURE_BYTES) : "");
-    fs8.truncateSync(to, size);
-  }
-  fs8.chmodSync(to, copyMode(from, false));
-}
-function copyUndoLog(from, to) {
-  fs8.writeFileSync(to, "");
-  try {
-    forEachLine(from, MAX_UNDO_LINE_BYTES, (line) => fs8.appendFileSync(to, Buffer6.concat([line, LINE_FEED])));
-  } catch {
-    fs8.appendFileSync(to, LINE_FEED);
-  }
-}
-var LINE_FEED = Buffer6.from(`
-`);
-function coverOf(root) {
-  const cover = existingStoryData(root)?.cover;
-  const text = typeof cover === "string" ? cover.trim() : "";
-  return text === "" || PATH_CONTROL_CHARACTERS.test(text) ? null : realPath2(path17.resolve(root, text)).toLowerCase();
-}
-function copyMode(source, directory) {
-  let mode = fs8.statSync(source).mode & 4095;
-  const access = [[fs8.constants.R_OK, 292, 256], [fs8.constants.W_OK, 146, 128]];
-  if (directory) {
-    access.push([fs8.constants.X_OK, 73, 64]);
-  }
-  for (const [check, all, owner] of access) {
-    mode = allowed(source, check) ? mode | owner : mode & ~all;
-  }
-  return mode;
-}
-function allowed(file, check) {
-  try {
-    fs8.accessSync(file, check);
-    return true;
-  } catch {
-    return false;
-  }
-}
-function linkTarget(target, { realSource, copyRoot }) {
-  if (!path17.isAbsolute(target)) {
-    return target;
-  }
-  const real = realPath2(target);
-  return isPathInside(realSource, real) ? path17.join(copyRoot, path17.relative(realSource, real)) : target;
-}
-function removeScratch(scratch) {
-  try {
-    fs8.rmSync(scratch, { recursive: true, force: true });
-  } catch {
-    makeWritable(scratch);
-    fs8.rmSync(scratch, { recursive: true, force: true });
-  }
-}
-function makeWritable(directory) {
-  try {
-    fs8.chmodSync(directory, 448);
-    for (const entry of fs8.readdirSync(directory, { withFileTypes: true })) {
-      if (entry.isDirectory()) {
-        makeWritable(path17.join(directory, entry.name));
-      }
-    }
-  } catch {}
-}
-function mapPaths(value, from, to) {
-  if (typeof value === "string") {
-    return value.split(from).join(to);
-  }
-  if (Array.isArray(value)) {
-    return value.map((item) => mapPaths(item, from, to));
-  }
-  if (value && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, mapPaths(item, from, to)]));
-  }
-  return value;
-}
-function toProjectError(error, from, to) {
-  if (!error || typeof error !== "object") {
-    return error;
-  }
-  for (const key of ["message", "hint", "path"]) {
-    if (typeof error[key] === "string") {
-      error[key] = mapPaths(error[key], from, to);
-    }
-  }
-  return error;
-}
-function realPath2(target) {
-  try {
-    return fs8.realpathSync(target);
-  } catch {
-    return target;
-  }
-}
+import path27 from "node:path";
 
-// src/snapshots.js
-import fs22 from "node:fs";
-import path34 from "node:path";
-
-// src/mutate-references.js
-import fs9 from "node:fs";
-import path18 from "node:path";
-function kindsSharingFields(kind) {
-  const shared = new Map;
-  for (const [field, kinds] of Object.entries(REFERENCE_FIELD_KINDS)) {
-    if (!kinds.includes(kind)) {
-      continue;
-    }
-    for (const other of kinds) {
-      if (other !== kind) {
-        shared.set(other, (shared.get(other) ?? []).concat(field));
-      }
-    }
-  }
-  return shared;
-}
-function assertUnambiguousId(root, kind, id) {
-  for (const [other, fields] of kindsSharingFields(kind)) {
-    if (fs9.existsSync(path18.join(root, entityConfig(other).dir, `${id}.md`))) {
-      throw usageError(`${id} is already a ${other} id, and ${fields.join(" and ")} references could not tell the ${kind} from the ${other}. Choose another name, or pass --id`);
-    }
-  }
-}
-function ambiguousReferenceWarnings(root, kind, id, excludedFile, newId = null) {
-  const warnings = [];
-  const probe = `${id}-ambiguous-probe`;
-  for (const [other, fields] of kindsSharingFields(kind)) {
-    if (!fs9.existsSync(path18.join(root, entityConfig(other).dir, `${id}.md`))) {
-      continue;
-    }
-    const found = new Map;
-    for (const field of fields) {
-      const context = { ...entityReferenceContext(root, kind, id), isReferenceKey: (key) => key === field };
-      const plan = planReferenceRewrites(root, context, new Map([[excludedFile, null]]), (value) => idText(value) === id ? probe : value, (body) => body);
-      for (const file of plan.keys()) {
-        const shown = projectPath(root, file);
-        found.set(shown, (found.get(shown) ?? []).concat(field));
-      }
-    }
-    if (found.size === 0) {
-      continue;
-    }
-    const files = [...found.keys()].sort();
-    const listed = files.map((file) => `${file} (${found.get(file).join(", ")})`).join(", ");
-    const action = newId === null ? `remove left them alone, so they now name the ${other}: delete any that meant the ${kind}` : `rename left them alone, so they now name the ${other}: change any that meant the ${kind} to ${newId}`;
-    warnings.push(warn("ambiguous-references", `references to ${id} in ${listed} could mean the ${kind} or ${other} ${id}, and ${action}`, files.length === 1 ? files[0] : null));
-  }
-  return warnings;
-}
-var EXEMPTION_TEXT_KEYS = ["pattern", "file", "chapter"];
-function exemptionEntries(root) {
-  const filePath = path18.join(root, EXEMPTIONS_FILE);
-  try {
-    const entries = readMarkdown(filePath, root).data.exemptions;
-    return Array.isArray(entries) ? entries.map((entry, index) => ({ entry, index })).filter(({ entry }) => entry && typeof entry === "object" && !Array.isArray(entry)) : [];
-  } catch {
-    return [];
-  }
-}
-function followExemptionEntry(entry, kind, oldId, newId) {
-  const renamed = { ...entry };
-  if (typeof entry.pattern === "string") {
-    renamed.pattern = renameIdText(entry.pattern, oldId, newId);
-  }
-  const file = typeof entry.file === "string" ? exemptionFile(entry.file) : null;
-  const dir = entityConfig(kind).dir.replace(/\\/g, "/");
-  const ownScene = kind === "chapter" && file !== null && new RegExp(`^scenes/${escapeRegExp(oldId)}-scene-\\d+\\.md$`).test(file);
-  if (file !== null && (file === `${dir}/${oldId}.md` || ownScene)) {
-    renamed.file = renameIdText(file, oldId, newId);
-  }
-  const sceneChapter = (id) => /^(.+)-scene-\d+$/.exec(id)?.[1];
-  if (kind === "scene" && renamed.file !== entry.file && entry.chapter === sceneChapter(oldId) && sceneChapter(newId) !== undefined) {
-    renamed.chapter = sceneChapter(newId);
-  }
-  return renamed;
-}
-function followExemptionPatterns(root, plan, kind, oldId, newId) {
-  const filePath = path18.join(root, EXEMPTIONS_FILE);
-  if (!plan.has(filePath) && !lstatIfExists(filePath)) {
-    return;
-  }
-  const text = plan.get(filePath) ?? readTextFile(filePath);
-  const data = parseFrontmatter(text, filePath).data;
-  if (!Array.isArray(data.exemptions)) {
-    return;
-  }
-  let changed = false;
-  const exemptions = data.exemptions.map((entry) => {
-    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-      return entry;
-    }
-    const renamed = followExemptionEntry(entry, kind, oldId, newId);
-    changed ||= EXEMPTION_TEXT_KEYS.some((key) => renamed[key] !== entry[key]);
-    return renamed;
-  });
-  if (changed) {
-    if (!plan.has(filePath)) {
-      plan.originals?.set(filePath, text);
-    }
-    plan.set(filePath, replaceFrontmatter(text, { ...data, exemptions }));
-  }
-}
-function followQueryFilters(root, plan, kind, oldId, newId) {
-  const filePath = path18.join(root, "story.md");
-  const text = plan.get(filePath) ?? readTextFile(filePath);
-  const data = parseFrontmatter(text, filePath).data;
-  const found = queryFiltersNaming(data.queries, entityReferenceContext(root, kind, oldId).isReferenceKey, oldId);
-  if (found.length === 0) {
-    return;
-  }
-  const queries = [...data.queries];
-  for (const { index, item, positions } of found) {
-    queries[index] = { ...item, where: item.where.map((filter, position) => positions.includes(position) ? retargetFilter(filter, newId) : filter) };
-  }
-  if (!plan.has(filePath)) {
-    plan.originals?.set(filePath, text);
-  }
-  plan.set(filePath, replaceFrontmatter(text, { ...data, queries }));
-}
-function adoptedReferenceFiles(root, kind, id, excludedFile, rename = renameIdText, narrow = (context) => context) {
-  const context = narrow(entityReferenceContext(root, kind, id));
-  const probe = `${id}-adopted-probe`;
-  const numbered = kind === "chapter" || kind === "scene";
-  const plan = planReferenceRewrites(root, context, new Map(excludedFile === null ? [] : [[excludedFile, null]]), idRenamer(id, probe), (body, file) => {
-    const relinked = renameLinkTargets(root, file, body, context, probe);
-    return numbered ? renameIdTokens(root, file, relinked, id, probe, rename) : relinked;
-  });
-  return [...plan.keys()].map((file) => projectPath(root, file)).sort();
-}
-function adoptedReferenceWarnings(root, kind, id, excludedFile, action) {
-  const files = adoptedReferenceFiles(root, kind, id, excludedFile);
-  if (files.length === 0) {
-    return [];
-  }
-  return [warn("adopted-references", `${id} was already referenced before this ${action}, and those references now point at the ${action === "rename" ? "renamed" : "moved"} ${kind}: ${files.join(", ")}. Check them`)];
-}
-function abandonedThreadFiles(project, chapterId) {
-  return [...project.promises, ...project.clues, ...project.questions].filter((entry) => entry.status === "abandoned" && [entry.planted, entry.payoff, entry.introduced].includes(chapterId)).map((entry) => projectPath(project.root, entry.file)).sort();
-}
-function abandonedThreadWarnings(project, chapterId) {
-  const files = abandonedThreadFiles(project, chapterId);
-  if (files.length === 0) {
-    return [];
-  }
-  return [warn("adopted-references", `${chapterId} was already named by abandoned threads, and those references now point at the new chapter: ${files.join(", ")}. Clear them if the cut threads do not belong there`)];
-}
-function idRenamer(oldId, newId) {
-  return (value) => value === oldId ? newId : value;
-}
-var ID_TOKEN_REGISTRIES = new Set(["plot/timeline.md", "plot/_index.md"]);
-function renameIdTokens(root, file, body, oldId, newId, rename = renameIdText) {
-  const relativePath = projectPath(root, file);
-  if (!ID_TOKEN_REGISTRIES.has(relativePath) && path18.posix.dirname(relativePath) !== "plot/arcs") {
-    return body;
-  }
-  return mapOutsideLinks(body, (text) => rename(text, oldId, newId));
-}
-function renameChapterIdText(text, oldId, newId) {
-  return text.replace(new RegExp(`(?<![\\w-])${escapeRegExp(oldId)}(?![\\w-])`, "g"), newId);
-}
-function renameIdText(text, oldId, newId) {
-  return text.replace(new RegExp(`(?<![\\w-])${escapeRegExp(oldId)}-scene-(\\d+)(?![\\w-])`, "g"), `${newId}-scene-$1`).replace(new RegExp(`(?<![\\w-])${escapeRegExp(oldId)}(?![\\w-])`, "g"), newId);
-}
-var REFERENCE_FIELD_KINDS = {
-  arc: ["arc"],
-  arcs: ["arc"],
-  "arcs-advanced": ["arc"],
-  artifact: ["artifact"],
-  chapter: ["chapter"],
-  character: ["character"],
-  characters: ["character"],
-  "controlled-by": MULTI_KIND_REFERENCE_FIELDS["controlled-by"],
-  "died-in": ["chapter"],
-  "revived-in": ["chapter"],
-  introduced: ["chapter"],
-  "learned-in": ["chapter"],
-  "used-in": ["chapter"],
-  location: ["location"],
-  locations: ["location"],
-  members: ["character"],
-  mentions: MULTI_KIND_REFERENCE_FIELDS.mentions,
-  "notable-characters": ["character"],
-  owner: MULTI_KIND_REFERENCE_FIELDS.owner,
-  payoff: ["chapter"],
-  planted: ["chapter"],
-  pov: ["character"],
-  resolved: ["chapter"],
-  since: ["chapter"],
-  target: ["artifact"]
-};
-var ENTRY_IDENTITY_FIELDS = {
-  relationships: "character",
-  "character-state": "character",
-  "knowledge-state": "character",
-  "object-state": "artifact",
-  progressions: "from",
-  routes: "to",
-  distances: "to",
-  choices: "to"
-};
-var NESTED_TO_KINDS = { routes: "location", distances: "location", choices: "chapter" };
-function entityReferenceContext(root, kind, id) {
-  const otherExists = new Map;
-  const existsAs = (other) => {
-    if (!otherExists.has(other)) {
-      otherExists.set(other, fs9.existsSync(path18.join(root, entityConfig(other).dir, `${id}.md`)));
-    }
-    return otherExists.get(other);
-  };
-  return {
-    id,
-    kind,
-    entityFile: path18.resolve(root, entityConfig(kind).dir, `${id}.md`),
-    isReferenceKey: (key, listKey = null) => {
-      if (key === "to") {
-        return listKey !== null && Object.hasOwn(NESTED_TO_KINDS, listKey) && NESTED_TO_KINDS[listKey] === kind;
-      }
-      const kinds = Object.hasOwn(REFERENCE_FIELD_KINDS, key) ? REFERENCE_FIELD_KINDS[key] : [];
-      return kinds.includes(kind) && !kinds.some((other) => other !== kind && existsAs(other));
-    }
-  };
-}
-function resolveLinkTarget(root, file, target) {
-  const cleaned = String(target).trim().split(/\s+/)[0].replace(/^<|>$/g, "").split("#")[0].split("?")[0];
-  if (cleaned === "" || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(cleaned)) {
-    return null;
-  }
-  let decoded = cleaned;
-  try {
-    decoded = decodeURIComponent(cleaned);
-  } catch {
-    decoded = cleaned;
-  }
-  return decoded.startsWith("/") ? path18.resolve(root, `.${decoded}`) : path18.resolve(path18.dirname(file), decoded);
-}
-function renameLinkTargets(root, file, body, context, newId) {
-  const retarget = (target) => target.replace(new RegExp(`(^|/|<)${escapeRegExp(context.id)}\\.md(?=$|[#?>\\s])`), `$1${newId}.md`);
-  return body.replace(/\[([^\]\n]*)\]\(([^)\n]*)\)/g, (match, text, target) => {
-    if (resolveLinkTarget(root, file, target) !== context.entityFile) {
-      return match;
-    }
-    const nextText = text === context.id ? newId : text;
-    return `[${nextText}](${retarget(target)})`;
-  }).replace(LINK_DEFINITION_PATTERN, (match, open, label, target) => {
-    if (resolveLinkTarget(root, file, target) !== context.entityFile) {
-      return match;
-    }
-    return `${match.slice(0, match.length - target.length)}${retarget(target)}`;
-  });
-}
-function replaceEntityReferences(root, kind, oldId, newId, overrides) {
-  const context = entityReferenceContext(root, kind, oldId);
-  return planReferenceRewrites(root, context, overrides, (value) => idText(value) === oldId ? newId : value, (body, file) => renameLinkTargets(root, file, body, context, newId));
-}
-function removeEntityReferences(root, kind, id, overrides) {
-  const context = entityReferenceContext(root, kind, id);
-  return planReferenceRewrites(root, context, overrides, (value) => idText(value) === id ? null : value, (body) => body);
-}
-function planReferenceRewrites(root, context, overrides, transform, transformBody) {
-  const plan = new Map;
-  plan.originals = new Map;
-  const storyFile = path18.join(root, "story.md");
-  let otherFiles = 0;
-  for (const file of markdownFiles(root, { maxFiles: Infinity })) {
-    const override = overrides?.has(file) ? overrides.get(file) : undefined;
-    if (override === null) {
-      continue;
-    }
-    const sourceFile = isProjectSourceFile(root, file);
-    let text = override;
-    if (text === undefined) {
-      assertSafeProjectPath(file, root);
-      if (!sourceFile) {
-        otherFiles += 1;
-        if (otherFiles > MAX_SCAN_FILES || fs9.lstatSync(file).size > MAX_SCAN_FILE_BYTES) {
-          continue;
-        }
-      }
-      text = readTextFile(file);
-      plan.originals.set(file, text);
-    }
-    const match = FRONTMATTER_PATTERN.exec(text);
-    if (!match && sourceFile) {
-      throw projectError(`${projectPath(root, file)} is missing YAML frontmatter${registryHint(root, file)}; nothing was changed`);
-    }
-    let header = "";
-    let body = text;
-    if (match) {
-      header = match[0];
-      body = text.slice(match[0].length);
-      if (file !== storyFile) {
-        let data = null;
-        try {
-          data = parseFrontmatter(text, file).data;
-        } catch (error) {
-          if (sourceFile) {
-            throw projectError(`${projectPath(root, file)}: ${error.message}${registryHint(root, file)}; nothing was changed`);
-          }
-        }
-        if (data !== null) {
-          let nextData = transformReferences(data, transform, context);
-          if (context.kind === "chapter") {
-            nextData = reconcileChapterStatuses(data, nextData);
-          }
-          if (JSON.stringify(nextData) !== JSON.stringify(data)) {
-            header = replaceFrontmatter(header, nextData);
-          }
-        }
-      }
-    }
-    const next = `${header}${transformBody(body, file)}`;
-    if (next !== text || override !== undefined) {
-      plan.set(file, next);
-    }
-  }
-  return plan;
-}
-var FRONTMATTER_FILES = new Set([
-  "plot/timeline.md",
-  "continuity/state.md",
-  "continuity/exemptions.md"
-]);
-var REGISTRY_FILES = new Set([
-  ...INDEX_SCHEMAS.map(([relativePath]) => relativePath),
-  path18.posix.join(MATTER_DIR, "_index.md"),
-  path18.posix.join(RESEARCH_DIR, "_index.md")
-]);
-function registryHint(root, file) {
-  return REGISTRY_FILES.has(projectPath(root, file)) ? REGISTRY_HINT : "";
-}
-function isProjectSourceFile(root, file) {
-  const relativePath = projectPath(root, file);
-  return SOURCE_ROOT_FILES.has(relativePath) || FRONTMATTER_FILES.has(relativePath) || REGISTRY_FILES.has(relativePath) || ENTITY_SCAN_DIRS.includes(path18.posix.dirname(relativePath));
-}
-function reconcileChapterStatuses(before, after) {
-  const next = { ...after };
-  if (before.planted && !next.planted && (next.status === "planted" || next.status === "paid-off")) {
-    next.status = "planned";
-  }
-  if (before.payoff && !next.payoff && next.status === "paid-off") {
-    next.status = "planted";
-  }
-  if (before.resolved && !next.resolved && (next.status === "answered" || next.status === "resolved")) {
-    next.status = "open";
-  }
-  return next;
-}
-function transformReferences(data, transform, context, identityKey = null, listKey = null) {
-  const next = {};
-  const set = (key, value) => Object.defineProperty(next, key, { value, enumerable: true, configurable: true, writable: true });
-  const progression = identityKey === "from";
-  const isReference = (key) => (progression && key === "value" ? typeof data.field === "string" && context.isReferenceKey(data.field) : context.isReferenceKey(key, listKey)) || key === "from" && progression && context.kind === "chapter";
-  for (const [key, value] of Object.entries(data)) {
-    if (Array.isArray(value)) {
-      const items = [];
-      const childIdentity = Object.hasOwn(ENTRY_IDENTITY_FIELDS, key) ? ENTRY_IDENTITY_FIELDS[key] : null;
-      for (const item of value) {
-        if (item && typeof item === "object" && !Array.isArray(item)) {
-          const mapped = transformReferences(item, transform, context, childIdentity, key);
-          if (mapped !== null) {
-            items.push(mapped);
-          }
-        } else if (isReference(key)) {
-          const mapped = transform(item);
-          if (mapped !== null) {
-            items.push(mapped);
-          }
-        } else {
-          items.push(item);
-        }
-      }
-      set(key, items);
-      continue;
-    }
-    if (isReference(key)) {
-      const mapped = transform(value);
-      if (mapped === null) {
-        if (identityKey !== null && key === identityKey) {
-          return null;
-        }
-        set(key, "");
-        continue;
-      }
-      set(key, mapped);
-      continue;
-    }
-    set(key, value);
-  }
-  return next;
-}
-function applyEntityBacklinks(root, kind, id, data) {
-  if (kind === "location") {
-    for (const characterId of asArray(data["notable-characters"])) {
-      if (isKebabId(characterId)) {
-        addFrontmatterListValue(root, `characters/${characterId}.md`, "locations", id);
-      }
-    }
-  }
-  if (kind === "scene" && isKebabId(data.chapter)) {
-    const chapterFile = `chapters/${data.chapter}.md`;
-    const exists = (dir, id) => fs9.existsSync(path18.join(root, dir, `${id}.md`));
-    if (isKebabId(data.location) && exists("worldbuilding/locations", data.location)) {
-      addFrontmatterListValue(root, chapterFile, "locations", data.location);
-    }
-    const chapterPath = path18.join(root, chapterFile);
-    const mentions = fs9.existsSync(chapterPath) ? asArray(readMarkdown(chapterPath, root).data.mentions) : [];
-    for (const characterId of asArray(data.characters)) {
-      if (isKebabId(characterId) && exists("characters", characterId) && !mentions.includes(characterId)) {
-        addFrontmatterListValue(root, chapterFile, "characters", characterId);
-      }
-    }
-  }
-  if (kind === "character") {
-    for (const locationId of asArray(data.locations)) {
-      if (isKebabId(locationId)) {
-        addFrontmatterListValue(root, path18.join("worldbuilding", "locations", `${locationId}.md`), "notable-characters", id);
-      }
-    }
-  }
-}
-function addFrontmatterListValue(root, relativePath, field, value) {
-  const filePath = path18.join(root, relativePath);
-  if (!fs9.existsSync(filePath) || !value) {
-    return;
-  }
-  assertSafeProjectPath(filePath, root);
-  const markdown = readMarkdown(filePath, root);
-  const list = asArray(markdown.data[field]);
-  if (!list.includes(value)) {
-    writeFile(filePath, replaceFrontmatter(markdown.rawMarkdown, {
-      ...markdown.data,
-      [field]: list.concat(value)
-    }), { root, unchangedFrom: markdown.rawMarkdown });
-  }
-}
-// src/mutate-maintenance.js
-import fs15 from "node:fs";
+// src/translation.js
+import crypto4 from "node:crypto";
 import path26 from "node:path";
+
+// src/mutate-writes.js
+import fs12 from "node:fs";
+import path25 from "node:path";
 
 // src/passes.js
 var PASS_STATUSES = new Set(["pending", "in-progress", "done"]);
@@ -23798,7 +25233,7 @@ function formatPasses(passes, command = "story passes") {
 }
 
 // src/validate.js
-import fs13 from "node:fs";
+import fs11 from "node:fs";
 import path24 from "node:path";
 
 // src/undo.js
@@ -23946,7 +25381,7 @@ var TEXT_FIELDS = {
   factions: ["pronunciation", "name"],
   artifacts: ["pronunciation", "name", "owner", "location"],
   arcs: ["name"],
-  chapters: ["title", "pov", "mode", "date", "time", "episode-question", "release-date", "time-skip", "strand", "beat"],
+  chapters: ["title", "pov", "mode", "date", "time", "episode-question", "release-date", "time-skip", "strand", "beat", "collected-from", "collected-hash", "source-hash", "author-note"],
   scenes: ["title", "chapter", "pov", "location", "date", "time", "dilemma", "flashback-to"],
   questions: ["title", "introduced", "resolved"],
   promises: ["title", "planted", "payoff"],
@@ -23955,7 +25390,7 @@ var TEXT_FIELDS = {
   research: ["title"],
   matter: ["title", "rights-holder", "credit"]
 };
-var STORY_TEXT_FIELDS = ["title", "series", "series-title", "genre", "sub-genre", "setting-era", "pov", "premise", "counter-premise", "author", "surname", "short-title", "season-goal", "language", "publisher", "publication-date", "description", "copyright", "cover-alt", "ai-disclosure", "draft-mode", "cover", "deadline", "release-start"];
+var STORY_TEXT_FIELDS = ["title", "series", "series-title", "genre", "sub-genre", "setting-era", "pov", "premise", "counter-premise", "author", "surname", "short-title", "season-goal", "language", "publisher", "publication-date", "description", "copyright", "cover-alt", "ai-disclosure", "draft-mode", "cover", "deadline", "release-start", "translation-of"];
 function validateTextFields(project, errors) {
   const check = (label, data, fields) => {
     for (const field of fields) {
@@ -24114,7 +25549,7 @@ function requireFields(data, fields, label, errors) {
 }
 
 // src/validate-files.js
-import fs10 from "node:fs";
+import fs8 from "node:fs";
 import path20 from "node:path";
 function sampleProblem(project, sample) {
   const target = path20.resolve(project.root, sample);
@@ -24126,7 +25561,7 @@ function sampleProblem(project, sample) {
   const chapters = path20.join(self, "chapters");
   const folder = (file) => {
     try {
-      return fs10.statSync(file).isDirectory();
+      return fs8.statSync(file).isDirectory();
     } catch {
       return false;
     }
@@ -24154,7 +25589,7 @@ function samplePath(file) {
 }
 function resolvedSample(file) {
   try {
-    return fs10.realpathSync.native(file);
+    return fs8.realpathSync.native(file);
   } catch {
     return null;
   }
@@ -24191,14 +25626,14 @@ function readEntityData(file, root, label, errors, warnings, kind) {
 }
 function entityFileNames(root, relativeDir) {
   const directory = path20.join(root, relativeDir);
-  if (!fs10.existsSync(directory)) {
+  if (!fs8.existsSync(directory)) {
     return [];
   }
-  return fs10.readdirSync(directory).filter((name) => name.endsWith(".md") && !name.startsWith(".") && name !== "_index.md").sort().map((name) => path20.posix.join(relativeDir, name));
+  return fs8.readdirSync(directory).filter((name) => name.endsWith(".md") && !name.startsWith(".") && name !== "_index.md").sort().map((name) => path20.posix.join(relativeDir, name));
 }
 function collectStrayFileWarnings(project, warnings) {
   const root = project.root;
-  const topEntries = fs10.readdirSync(root, { withFileTypes: true });
+  const topEntries = fs8.readdirSync(root, { withFileTypes: true });
   const strayTop = [];
   for (const entry of topEntries) {
     if (entry.isFile() && entry.name.endsWith(".md") && !entry.name.startsWith(".") && entry.name !== "story.md" && entry.name !== STYLE_SHEET_FILE && entry.name !== PROGRESS_FILE) {
@@ -24212,7 +25647,7 @@ function collectStrayFileWarnings(project, warnings) {
   const nested = [];
   for (const relativeDir of ENTITY_SCAN_DIRS) {
     const directory = path20.join(root, relativeDir);
-    if (!fs10.existsSync(directory)) {
+    if (!fs8.existsSync(directory)) {
       continue;
     }
     for (const file of markdownFiles(directory)) {
@@ -24231,7 +25666,7 @@ function collectStrayFileWarnings(project, warnings) {
     if (!lstatIfExists(directory)?.isDirectory()) {
       continue;
     }
-    const linked = fs10.readdirSync(directory, { withFileTypes: true }).filter((entry) => entry.isSymbolicLink() && entry.name.endsWith(".md") && !entry.name.startsWith(".") && entry.name !== "_index.md").map((entry) => path20.posix.join(relativeDir, entry.name)).sort();
+    const linked = fs8.readdirSync(directory, { withFileTypes: true }).filter((entry) => entry.isSymbolicLink() && entry.name.endsWith(".md") && !entry.name.startsWith(".") && entry.name !== "_index.md").map((entry) => path20.posix.join(relativeDir, entry.name)).sort();
     for (const linkPath of linked) {
       warnings.push(warn("symlinked-file", `${linkPath} is a symlink and is ignored: replace it with the file itself`, linkPath));
     }
@@ -24249,7 +25684,7 @@ function collectStrayFileWarnings(project, warnings) {
 }
 function temporaryFiles(root, depth = 0, relativeDir = "") {
   const found = [];
-  for (const entry of fs10.readdirSync(path20.join(root, relativeDir), { withFileTypes: true })) {
+  for (const entry of fs8.readdirSync(path20.join(root, relativeDir), { withFileTypes: true })) {
     const relativePath = path20.join(relativeDir, entry.name);
     if (TEMPORARY_FILE_PATTERN.test(entry.name) || /^\.story-\d+\.tmp$/.test(entry.name)) {
       found.push([relativePath, entryKind(entry)]);
@@ -24272,7 +25707,7 @@ function entryKind(entry) {
 }
 function validateOptionalRegistry(project, directory, expectedType, errors) {
   const indexPath = path20.join(project.root, directory, "_index.md");
-  if (fs10.existsSync(indexPath)) {
+  if (fs8.existsSync(indexPath)) {
     const label = path20.posix.join(directory, "_index.md");
     const data = readRegistryValidationData(indexPath, project.root, label, errors);
     if (data && data.type !== expectedType) {
@@ -24294,7 +25729,7 @@ function validatePortablePaths(project, warnings) {
     return;
   }
   const data = project.story.data;
-  for (const field of ["follows", "precedes", "cover"]) {
+  for (const field of ["follows", "precedes", "cover", "translation-of"]) {
     const values = Array.isArray(data[field]) ? data[field] : [data[field]];
     for (const value of values.filter((item) => typeof item === "string" && item.includes("\\"))) {
       warnings.push(warn("backslash-path", `story.md ${field} ${value} uses a backslash; write ${portableSlashes(value)} so the path works on every system`, "story.md"));
@@ -24380,6 +25815,64 @@ function validateDailyTarget(data, errors) {
     errors.push(err("unsupported-value", `story.md frontmatter field writing-days must be a list of weekdays (${WEEKDAYS.join(", ")}, or full names), got ${Array.isArray(days) ? `[${days.join(", ")}]` : days}`, "story.md"));
   }
 }
+function validateProseImages(project, file, images, warnings) {
+  const uses = new Map;
+  for (const image of images.filter((entry) => entry.note !== undefined)) {
+    warnings.push(warn("image-left-out", `${file} image ${image.destination} (line ${image.line}) is in footnote [^${image.note}], which builds set as text only, so it is left out`, file));
+  }
+  for (const image of images.filter((entry) => entry.note === undefined)) {
+    if (!uses.has(image.destination)) {
+      uses.set(image.destination, []);
+    }
+    uses.get(image.destination).push(image);
+  }
+  for (const [destination, entries] of uses) {
+    const at = `${entries.length === 1 ? "line" : "lines"} ${listedLines(entries)}`;
+    if (remoteImage(destination)) {
+      warnings.push(warn("remote-image", `${file} image ${destination} (${at}) is a web address, which builds do not fetch, so it is left out: save the image in the project and name its path`, file));
+      continue;
+    }
+    try {
+      proseImage(project, file, destination);
+    } catch (error) {
+      warnings.push(warn("invalid-image", `${error.message} (${at}), so builds leave it out`, file));
+    }
+  }
+}
+function listedLines(entries) {
+  const shown = entries.slice(0, 10).map((entry) => entry.line).join(", ");
+  return entries.length > 10 ? `${shown}, and ${entries.length - 10} more` : shown;
+}
+function validateFootnotes(file, footnotes, warnings) {
+  const lines = (entries) => `${entries.length === 1 ? "line" : "lines"} ${listedLines(entries)}`;
+  const byLabel = (entries) => {
+    const groups = new Map;
+    for (const entry of entries) {
+      const label = footnoteLabel(entry.label);
+      if (!groups.has(label)) {
+        groups.set(label, []);
+      }
+      groups.get(label).push(entry);
+    }
+    return groups;
+  };
+  const definitions = byLabel(footnotes.definitions);
+  const markers = byLabel(footnotes.markers);
+  for (const [label, entries] of markers) {
+    if (!definitions.has(label)) {
+      const marker = `[^${entries[0].label}]`;
+      warnings.push(warn("missing-footnote", `${file} has footnote marker ${marker} (${lines(entries)}) with no ${marker}: note, so builds print the marker as written: add the note or remove the marker`, file));
+    }
+  }
+  for (const [label, entries] of definitions) {
+    const marker = `[^${entries[0].label}]`;
+    if (!markers.has(label)) {
+      warnings.push(warn("unused-footnote", `${file} defines footnote ${marker} (${lines(entries)}), which no ${marker} marker in the prose references, so builds leave it out`, file));
+    } else if (entries.length > 1) {
+      warnings.push(warn("unused-footnote", `${file} defines footnote ${marker} again (${lines(entries.slice(1))}), and builds use only the first definition, on line ${entries[0].line}`, file));
+    }
+  }
+}
 function validateCover(project, errors) {
   const cover = project.story.data.cover;
   if (cover === undefined) {
@@ -24397,7 +25890,7 @@ function validateCover(project, errors) {
 }
 
 // src/validate-logs.js
-import fs11 from "node:fs";
+import fs9 from "node:fs";
 import path21 from "node:path";
 function sessionsWithoutCharacters(project) {
   if (project.unit.name !== "characters" || project.progressLog === null) {
@@ -24412,7 +25905,7 @@ function sessionsWithoutCharacters(project) {
 }
 function validateExemptions(project, errors, warnings) {
   const exemptionsPath = path21.join(project.root, EXEMPTIONS_FILE);
-  if (!fs11.existsSync(exemptionsPath)) {
+  if (!fs9.existsSync(exemptionsPath)) {
     return;
   }
   const label = EXEMPTIONS_FILE;
@@ -24433,6 +25926,7 @@ function validateExemptions(project, errors, warnings) {
     return;
   }
   const chapters = new Set(project.chapters.map((chapter) => chapter.id));
+  const checks = definedCheckLevels(project.story.data);
   for (const [index, entry] of entries.entries()) {
     const entryLabel = `${label} exemptions[${index}]`;
     errors.push(...exemptionProblems(entry, entryLabel));
@@ -24442,6 +25936,9 @@ function validateExemptions(project, errors, warnings) {
     const file = typeof entry.file === "string" ? exemptionFile(entry.file) : null;
     if (file !== null && !lstatIfExists(path21.join(project.root, file))?.isFile()) {
       warnings.push(warn("stale-exemption", `${entryLabel} file ${entry.file} is not a file in the project, so the entry matches nothing`, label));
+    }
+    if (isCustomCode(entry.code) && !project.story.unreadable && !checks.has(customCodeId(entry.code))) {
+      errors.push(err("exemption-unknown-code", `${entryLabel} code ${entry.code} names no check in story.md checks`, label));
     }
     if (isChapterId(entry.chapter) && !chapters.has(entry.chapter)) {
       warnings.push(warn("stale-exemption", `${entryLabel} chapter ${entry.chapter} is not a chapter in chapters/, so the entry matches nothing`, label));
@@ -24506,7 +26003,8 @@ var FORM_NOUNS = {
   novel: "novel",
   serial: "serial",
   "picture-book": "picture book",
-  "chapter-book": "book"
+  "chapter-book": "book",
+  "poetry-collection": "poetry collection"
 };
 function fountainScript(input) {
   const pack = input.pack ?? languagePack();
@@ -24847,6 +26345,12 @@ function validateChapters(project, errors, warnings) {
     if (data["time-skip"] !== undefined) {
       requireScalar(data, "time-skip", label, errors);
     }
+    for (const field of ["collected-from", "collected-hash"]) {
+      requireScalar(data, field, label, errors);
+    }
+    if (data["author-note"] !== undefined) {
+      requireScalar(data, "author-note", label, errors);
+    }
     validateReleaseDate(data["release-date"], `${label} release-date`, label, errors);
     validateEnum(data, "hook", CHAPTER_HOOKS, label, errors);
     if (data.beat !== undefined) {
@@ -24861,6 +26365,9 @@ function validateChapters(project, errors, warnings) {
       warnings.push(warn("todo-placeholder", `${label} author is still a [TODO] placeholder; builds leave it out`, label));
     }
     errors.push(...chapterChoices(chapter, label).problems);
+    if (data.verse !== undefined && typeof data.verse !== "boolean") {
+      errors.push(err("field-not-boolean", `${label} verse must be true or false`, label));
+    }
     if (data.numbered !== undefined && typeof data.numbered !== "boolean") {
       errors.push(err("field-not-boolean", `${label} numbered must be true or false`, label));
     } else if (data.numbered === false && (typeof data.title !== "string" || data.title.trim() === "")) {
@@ -25208,6 +26715,8 @@ function validateMatter(project, errors, warnings) {
     if (matter.todoMarkers > 0) {
       warnings.push(warn("matter-todo-markers", `${label} has ${plural(matter.todoMarkers, "[TODO marker")}, which export and build print: ask the author to supply the text`, label));
     }
+    validateProseImages(project, label, matter.images, warnings);
+    validateFootnotes(label, matter.footnotes, warnings);
     const data = readEntityData(matter.file, project.root, label, errors, warnings, "matter");
     if (!data) {
       continue;
@@ -25240,7 +26749,7 @@ function validateMatter(project, errors, warnings) {
   }
 }
 // src/validate-links.js
-import fs12 from "node:fs";
+import fs10 from "node:fs";
 import path23 from "node:path";
 var RELATIONSHIP_INVERSES = new Map([
   ["parent", ["child"]],
@@ -25530,6 +27039,8 @@ function validateLinksOf(project) {
   validateTimelineAndArcBodyRefs(project, chapters, errors, hasScheduledChapter);
   validateMatterBodyLinks(project, errors);
   validateSeriesLinks(project.root, project.story.data, errors);
+  validateTranslationLink(project.root, project.story.data, errors);
+  errors.push(...collectionStories(project.root, project.story.data).errors);
   return { ok: errors.length === 0, errors, warnings };
 }
 function validateTimelineAndArcBodyRefs(project, chapters, errors, hasScheduledChapter) {
@@ -25548,7 +27059,7 @@ function validateTimelineAndArcBodyRefs(project, chapters, errors, hasScheduledC
     }
   };
   const timelinePath = path23.join(project.root, "plot", "timeline.md");
-  if (fs12.existsSync(timelinePath)) {
+  if (fs10.existsSync(timelinePath)) {
     try {
       const raw = readTextFile(timelinePath);
       const body = parseFrontmatter(raw, timelinePath).body ?? raw;
@@ -25624,17 +27135,17 @@ function checkBodyLinkTarget(project, label, target, errors) {
   const resolved = path23.resolve(path23.dirname(path23.join(project.root, label)), pathOnly);
   if (!isPathInside(path23.resolve(project.root), resolved)) {
     const linkedBook = ["follows", "precedes"].flatMap((field) => seriesLinks(project.root, project.story.data, field)).find((bookRoot) => isPathInside(bookRoot, resolved));
-    if (linkedBook && fs12.existsSync(resolved) && fs12.statSync(resolved).isFile() && isPathInside(canonicalPath(linkedBook), canonicalPath(resolved))) {
+    if (linkedBook && fs10.existsSync(resolved) && fs10.statSync(resolved).isFile() && isPathInside(canonicalPath(linkedBook), canonicalPath(resolved))) {
       return;
     }
-    errors.push(linkedBook || !fs12.existsSync(resolved) ? err("broken-link", `${label} links to missing file ${cleaned}`, label) : err("link-outside-project", `${label} links to ${cleaned} which resolves outside the project`, label));
+    errors.push(linkedBook || !fs10.existsSync(resolved) ? err("broken-link", `${label} links to missing file ${cleaned}`, label) : err("link-outside-project", `${label} links to ${cleaned} which resolves outside the project`, label));
     return;
   }
-  if (!fs12.existsSync(resolved) || !fs12.statSync(resolved).isFile()) {
+  if (!fs10.existsSync(resolved) || !fs10.statSync(resolved).isFile()) {
     errors.push(err("broken-link", `${label} links to missing file ${cleaned}`, label));
     return;
   }
-  if (!isPathInside(fs12.realpathSync(project.root), fs12.realpathSync(resolved))) {
+  if (!isPathInside(fs10.realpathSync(project.root), fs10.realpathSync(resolved))) {
     errors.push(err("link-outside-project", `${label} links to ${cleaned} which resolves outside the project`, label));
     return;
   }
@@ -25706,7 +27217,7 @@ function validateProjectOf(project) {
   const warnings = [];
   const projectRoot = project.root;
   for (const requiredPath of REQUIRED_PATHS) {
-    if (!fs13.existsSync(path24.join(projectRoot, requiredPath))) {
+    if (!fs11.existsSync(path24.join(projectRoot, requiredPath))) {
       errors.push(err("missing-required-path", `Missing required path: ${requiredPath} (story migrate adds missing registries)`));
     }
   }
@@ -25765,8 +27276,8 @@ function validateProjectOf(project) {
     ["continuity/promises/_index.md", linksFor(project.promises)],
     ["continuity/clues/_index.md", linksFor(project.clues)],
     ["glossary/_index.md", linksFor(project.glossaryTerms, "terms/")],
-    ...fs13.existsSync(path24.join(projectRoot, MATTER_DIR, "_index.md")) ? [[path24.posix.join(MATTER_DIR, "_index.md"), linksFor(project.matter)]] : [],
-    ...fs13.existsSync(path24.join(projectRoot, RESEARCH_DIR, "_index.md")) ? [[path24.posix.join(RESEARCH_DIR, "_index.md"), linksFor(project.research)]] : []
+    ...fs11.existsSync(path24.join(projectRoot, MATTER_DIR, "_index.md")) ? [[path24.posix.join(MATTER_DIR, "_index.md"), linksFor(project.matter)]] : [],
+    ...fs11.existsSync(path24.join(projectRoot, RESEARCH_DIR, "_index.md")) ? [[path24.posix.join(RESEARCH_DIR, "_index.md"), linksFor(project.research)]] : []
   ];
   for (const [indexPath, links] of indexChecks) {
     let markdown;
@@ -25795,6 +27306,10 @@ function validateProjectOf(project) {
     if (chapter.unclosedComment) {
       warnings.push(warn("unclosed-comment", `${file} opens an HTML comment (<!--) that never closes, so the text after it shows in builds and word counts`, file));
     }
+    const authorNote = chapter.frontmatter?.["author-note"];
+    if (typeof authorNote === "string" && hasUnclosedComment(authorNote)) {
+      warnings.push(warn("unclosed-comment", `${file} author-note opens an HTML comment (<!--) that never closes, so the text after it shows in build --format post`, file));
+    }
     if (chapter.outlineRunsOn) {
       warnings.push(warn("outline-without-chapter-text", `${file} has an ## Outline with no ## Chapter Text heading and no --- line below it, so builds read the prose as starting after the outline's last list item: put ## Chapter Text above the prose`, file));
     }
@@ -25802,11 +27317,9 @@ function validateProjectOf(project) {
       const one = chapter.setextBreaks.length === 1;
       warnings.push(warn("ambiguous-scene-break", `${file} has ${one ? "a --- scene break" : `${chapter.setextBreaks.length} --- scene breaks`} right under a line of text (${one ? "line" : "lines"} ${chapter.setextBreaks.join(", ")}): builds print ${one ? "a scene break" : "scene breaks"}, but markdown viewers read ${one ? "it as a heading underline" : "them as heading underlines"}, so put a blank line above ${one ? "it" : "each"}`, file));
     }
-    if (chapter.footnotes.length > 0) {
-      const one = chapter.footnotes.length === 1;
-      warnings.push(warn("unsupported-footnote", `${file} has ${one ? "a footnote" : `${chapter.footnotes.length} footnotes`} (${one ? "line" : "lines"} ${chapter.footnotes.join(", ")}): builds print footnote markers ([^1]) and notes as written, where markdown viewers show footnotes, so work ${one ? "the note" : "each note"} into the prose or a back-matter page`, file));
-    }
-    if (!project.scenes.some((scene) => scene.chapter === chapter.id)) {
+    validateProseImages(project, file, chapter.images, warnings);
+    validateFootnotes(file, chapter.footnotes, warnings);
+    if (!chapter.verse && !project.scenes.some((scene) => scene.chapter === chapter.id)) {
       warnings.push(warn("no-scene-records", `${file} has no machine-readable scene records`, file));
     }
   }
@@ -25839,6 +27352,7 @@ function validateStoryFrontmatter(project, errors, warnings) {
   }
   validateStringArray(data, "follows", "story.md", errors);
   validateStringArray(data, "precedes", "story.md", errors);
+  validateStringArray(data, "stories", "story.md", errors);
   if (data["season-goal"] !== undefined) {
     requireScalar(data, "season-goal", "story.md", errors);
   }
@@ -25871,6 +27385,9 @@ function validateStoryFrontmatter(project, errors, warnings) {
   const queries = queryFindings(project);
   errors.push(...queries.errors);
   warnings.push(...queries.warnings);
+  const checks = checkDefinitionFindings(project);
+  errors.push(...checks.errors);
+  warnings.push(...checks.warnings);
   validateDeadline(data, errors);
   validateDailyTarget(data, errors);
   validateReleaseCadence(data, errors);
@@ -25892,7 +27409,7 @@ function validateStoryFrontmatter(project, errors, warnings) {
 function validateIndexFrontmatter(project, errors) {
   for (const [relativePath, expectedType] of INDEX_SCHEMAS) {
     const label = relativePath;
-    if (!fs13.existsSync(path24.join(project.root, relativePath))) {
+    if (!fs11.existsSync(path24.join(project.root, relativePath))) {
       continue;
     }
     const data = readRegistryValidationData(path24.join(project.root, relativePath), project.root, label, errors);
@@ -26102,6 +27619,12 @@ function projectActions(root, options = {}) {
   const schedule = projectRelease(project, today);
   const releaseFindings = applySeverity({ ok: true, errors: [], warnings: schedule?.warnings ?? [] }, options.overrides);
   const releaseActions = [...releaseFindings.errors, ...releaseFindings.warnings].map((finding) => action("P1", "Draft the scheduled episode", `${finding.message}: ${finding.file === "story.md" ? "add it with story add chapter" : "draft it under ## Chapter Text"}, then run story wordcount ${shellWord(options.displayPath ?? ".")} --write.`));
+  const days = options.days ?? DEFAULT_FOLLOW_UP_DAYS;
+  const followUps = submissionFollowUps(project.root, { today, days, overrides: options.overrides });
+  if (followUps > 0) {
+    const list = `story submissions ${shellWord(options.displayPath ?? ".")} --days ${days}${options.date === undefined ? "" : ` --date ${shellWord(today)}`}`;
+    releaseActions.push(action("P2", "Follow up on submissions", `${plural(followUps, "submission")} in ${SUBMISSION_TRACKER} ${followUps === 1 ? "has" : "have"} waited ${plural(days, "day")} or more for a reply: run ${list} to list ${followUps === 1 ? "it" : "them"}.`));
+  }
   return {
     root: project.root,
     title: project.title,
@@ -26113,6 +27636,13 @@ function projectActions(root, options = {}) {
     links,
     continuity
   };
+}
+function submissionFollowUps(root, { today, days, overrides }) {
+  const tracker = trackerForNext(root, { today, days });
+  if (tracker === null) {
+    return 0;
+  }
+  return recountOverdue(applySeverity(tracker, overrides)).overdue;
 }
 function formatActionReport(report) {
   const lines = [
@@ -26185,7 +27715,7 @@ function buildProjectActions(project, validation, links, continuity, displayPath
         hasScene = true;
       }
     }
-    if (!hasScene && !scenesOverridden.has(file)) {
+    if (!hasScene && !chapter.verse && !scenesOverridden.has(file)) {
       chaptersWithoutScenes.push(chapter);
     }
     if (Number.isInteger(chapter.number) && chapter.number > 0) {
@@ -26288,14 +27818,15 @@ function formatCheck(result) {
 }
 
 // src/mutate-writes.js
-import fs14 from "node:fs";
-import path25 from "node:path";
-function withUndo(root, words, run) {
+function withUndo(root, words, run, { beforeLog = () => {
+  return;
+} } = {}) {
   const command = undoCommand(words);
   assertNoInterruptedChange(root, command);
   const undone = undoInterruptedChange(root);
   try {
-    const result = withUndoLog(root, command, run);
+    const prepared = beforeLog();
+    const result = withUndoLog(root, command, () => run(prepared));
     return undone === null ? result : { ...result, undone };
   } catch (error) {
     if (undone !== null) {
@@ -26315,7 +27846,7 @@ function commitMoves(root, plan, moves, beforeDelete = () => {}, alsoChanged = [
   const originals = moves.map((move) => plan.originals?.get(move.oldFile) ?? readTextFile(move.oldFile));
   const contents = moves.map((move, index) => plan.get(move.oldFile) ?? originals[index]);
   const interrupted = interruptedMove(plan, moves);
-  const present = moves.map((move) => fs14.existsSync(move.newFile));
+  const present = moves.map((move) => fs12.existsSync(move.newFile));
   moves.forEach((move, index) => {
     if (present[index] && !interrupted) {
       throw refusedError(`${projectPath(root, move.newFile)} already exists; nothing was changed`);
@@ -26351,10 +27882,10 @@ function interruptedMove(plan, moves) {
   if ([...plan.keys()].some((file) => !moving.has(file))) {
     return false;
   }
-  return moves.every((move) => !fs14.existsSync(move.newFile) || readTextFile(move.newFile) === (plan.get(move.oldFile) ?? readTextFile(move.oldFile)));
+  return moves.every((move) => !fs12.existsSync(move.newFile) || readTextFile(move.newFile) === (plan.get(move.oldFile) ?? readTextFile(move.oldFile)));
 }
 function ensureDirectory(directory, changed, root) {
-  if (!fs14.existsSync(directory)) {
+  if (!fs12.existsSync(directory)) {
     assertLexicallyInsideRoot(directory, root);
     assertExistingAncestorInsideRoot(directory, root);
     makeDirectories(directory);
@@ -26365,7 +27896,7 @@ function ensureDirectory(directory, changed, root) {
   assertSafeProjectDirectory(directory, root);
 }
 function ensureFile(filePath, contents, changed, root) {
-  if (!fs14.existsSync(filePath)) {
+  if (!fs12.existsSync(filePath)) {
     writeFile(filePath, contents, { root, unchangedFrom: null });
     changed.push(filePath);
     return;
@@ -26387,7 +27918,7 @@ function assertWritable(root, changed, created = []) {
   const problems = new Map;
   const check = (target, label) => {
     try {
-      fs14.accessSync(target, fs14.constants.W_OK);
+      fs12.accessSync(target, fs12.constants.W_OK);
     } catch (error) {
       if (!problems.has(label)) {
         problems.set(label, UNWRITABLE_REASONS[error.code] ?? error.code ?? error.message);
@@ -26397,12 +27928,12 @@ function assertWritable(root, changed, created = []) {
   const folder = (file) => {
     const directory = path25.dirname(file);
     const shown = projectPath(root, directory);
-    if (fs14.existsSync(directory)) {
+    if (fs12.existsSync(directory)) {
       check(directory, shown === "" ? "the project folder" : `${shown}/`);
     }
   };
   for (const file of changed) {
-    if (fs14.existsSync(file)) {
+    if (fs12.existsSync(file)) {
       check(file, projectPath(root, file));
     }
     folder(file);
@@ -26438,12 +27969,1123 @@ function writeChanged(filePath, contents, original, changed, root) {
   }
 }
 
+// src/translation.js
+var TRANSLATION_FIELD = "translation-of";
+var SOURCE_HASH_FIELD = "source-hash";
+var SOURCE_HASH_LENGTH = 12;
+var ONLY_MISSING = new Set(["matter"]);
+var COMPARED_KINDS = [
+  ["chapters", "chapter"],
+  ["scenes", "scene"],
+  ["characters", "character"],
+  ["locations", "location"],
+  ["systems", "system"],
+  ["factions", "faction"],
+  ["artifacts", "artifact"],
+  ["arcs", "arc"],
+  ["questions", "question"],
+  ["promises", "promise"],
+  ["clues", "clue"],
+  ["glossaryTerms", "term"],
+  ["matter", "matter"]
+];
+function translationOf(data) {
+  const value = data?.[TRANSLATION_FIELD];
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+function translationLabel(value) {
+  return path26.posix.normalize(portablePath(value)).replace(/(.)\/$/, "$1");
+}
+function linkProblem(root, value) {
+  const label = `story.md ${TRANSLATION_FIELD} ${value}`;
+  if (PATH_CONTROL_CHARACTERS.test(value)) {
+    return err("translation-of-invalid", `${label.replace(new RegExp(PATH_CONTROL_CHARACTERS.source, "gu"), "?")} has a control character or a mark that reorders text; write a plain path such as ../book-en`, "story.md");
+  }
+  if (path26.posix.isAbsolute(value) || path26.win32.isAbsolute(value) || /^[A-Za-z]:/.test(value)) {
+    return err("translation-of-absolute", `${label} is an absolute path; write the path from this project's folder, such as ../book-en`, "story.md");
+  }
+  if (value.includes("\\")) {
+    return err("translation-of-backslash", `${label} uses a backslash; write ${value.replace(/\\/g, "/")} so the link works on every system`, "story.md");
+  }
+  const real = canonicalPath(root);
+  let depth = real.slice(path26.parse(real).root.length).split(path26.sep).filter(Boolean).length;
+  for (const segment of value.split("/")) {
+    depth += segment === ".." ? -1 : segment === "" || segment === "." ? 0 : 1;
+    if (depth < 0) {
+      return err("translation-of-invalid", `${label} climbs above the file system root; write the path from this project's folder, such as ../book-en`, "story.md");
+    }
+  }
+  return null;
+}
+function translationSourceToCopy(root, data) {
+  const value = translationOf(data);
+  if (value === undefined || linkProblem(root, value) !== null) {
+    return;
+  }
+  return { real: path26.resolve(canonicalPath(root), value), typed: path26.resolve(root, value) };
+}
+function assertTranslationLink(root) {
+  let data;
+  try {
+    data = readBookFrontmatter(root);
+  } catch {
+    return;
+  }
+  const errors = [];
+  if (data && translationOf(data) !== undefined) {
+    validateTranslationLink(root, data, errors);
+  }
+  if (errors.length > 0) {
+    throw projectError(`Cannot record source hashes: ${errors.map((error) => error.message).join("; ")}`);
+  }
+}
+function validateTranslationLink(root, data, errors) {
+  const value = translationOf(data);
+  if (value === undefined) {
+    return null;
+  }
+  const label = `story.md ${TRANSLATION_FIELD} ${value}`;
+  const problem = linkProblem(root, value);
+  if (problem !== null) {
+    errors.push(problem);
+    return null;
+  }
+  const real = canonicalPath(root);
+  const target = path26.resolve(real, value);
+  if (target === real || canonicalPath(target) === real) {
+    errors.push(err("translation-of-self", `${label} points at this project`, "story.md"));
+    return null;
+  }
+  if (isInside(canonicalPath(target), real)) {
+    errors.push(err("translation-of-invalid", `${label} is a folder that holds this project; keep the translation outside its source, such as beside it`, "story.md"));
+    return null;
+  }
+  let source;
+  try {
+    source = readBookFrontmatter(target);
+  } catch (error) {
+    errors.push(err("translation-of-unreadable", `${label}: ${error.message}`, "story.md"));
+    return null;
+  }
+  if (!source) {
+    errors.push(err("translation-of-not-project", `${label} is not a story project: missing story.md`, "story.md"));
+    return null;
+  }
+  return target;
+}
+function isInside(outer, inner) {
+  const relative = path26.relative(outer, inner);
+  return relative !== "" && !path26.isAbsolute(relative) && !relative.split(path26.sep).includes("..");
+}
+function sourceHash(title, paragraphs) {
+  const text = nfc([String(title ?? ""), ...paragraphs].join(`
+
+`));
+  return crypto4.createHash("sha256").update(text, "utf8").digest("hex").slice(0, SOURCE_HASH_LENGTH);
+}
+function buildTranslation(root, scan, options = {}) {
+  const { record = false, chapter } = options;
+  const project = scan(root);
+  const errors = [...project.fileErrors];
+  const warnings = [];
+  const empty = (source = null) => ({
+    root,
+    title: project.title,
+    language: project.language,
+    source,
+    sourceTitle: null,
+    sourceLanguage: null,
+    chapters: [],
+    missing: [],
+    extra: [],
+    recorded: [],
+    ok: false,
+    errors,
+    warnings
+  });
+  if (project.story.unreadable) {
+    if (record) {
+      assertProjectParses(project, "record source hashes");
+    }
+    return empty();
+  }
+  const value = translationOf(project.story.data);
+  if (value === undefined) {
+    throw projectError(`story.md sets no ${TRANSLATION_FIELD}; add ${TRANSLATION_FIELD}: <path to the source project>, such as ../book-en, to compare this translation with its source`);
+  }
+  const label = translationLabel(value);
+  const linkErrors = [];
+  const sourceRoot = validateTranslationLink(root, project.story.data, linkErrors);
+  errors.push(...linkErrors);
+  if (sourceRoot === null) {
+    if (record) {
+      throw projectError(`Cannot record source hashes: ${linkErrors.map((error) => error.message).join("; ")}`);
+    }
+    return empty(label);
+  }
+  let source;
+  try {
+    source = scan(sourceRoot);
+  } catch (error) {
+    errors.push(err("translation-of-unreadable", `story.md ${TRANSLATION_FIELD} ${value}: ${error.message}`, "story.md"));
+    if (record) {
+      throw projectError(`Cannot record source hashes: ${error.message}`);
+    }
+    return empty(label);
+  }
+  const sourceFile = (file) => path26.posix.join(label, projectPath(source.root, file));
+  const ownFile = (file) => projectPath(project.root, file);
+  for (const scanError of source.fileErrors) {
+    errors.push({ ...scanError, message: `${label}: ${scanError.message}`, file: path26.posix.join(label, scanError.file) });
+  }
+  if (record) {
+    assertProjectParses(project, "record source hashes");
+    assertProjectParses({ fileErrors: source.fileErrors.map((error) => ({ ...error, message: `${label}: ${error.message}` })) }, "record source hashes");
+  }
+  const missing = [];
+  const extra = [];
+  const broken = (scanned) => new Set(scanned.fileErrors.map((error) => error.file));
+  const ownBroken = broken(project);
+  const sourceBroken = broken(source);
+  for (const [key, kind] of COMPARED_KINDS) {
+    const ownIds = new Map(project[key].map((entity) => [entity.id, entity]));
+    const sourceIds = new Map(source[key].map((entity) => [entity.id, entity]));
+    for (const [id, entity] of sourceIds) {
+      if (!ownIds.has(id) && !ownBroken.has(projectPath(source.root, entity.file))) {
+        const file = sourceFile(entity.file);
+        missing.push({ kind, id, file });
+        errors.push(err("translation-missing", `${kind} ${id} is in the source (${file}) but not in the translation; copy it across and translate it`, file));
+      }
+    }
+    for (const [id, entity] of ownIds) {
+      if (!sourceIds.has(id) && !ONLY_MISSING.has(kind) && !sourceBroken.has(projectPath(project.root, entity.file))) {
+        const file = ownFile(entity.file);
+        extra.push({ kind, id, file });
+        errors.push(err("translation-extra", `${file} has ${kind} ${id}, which the source ${label} does not; give it the source's id, or add it to the source first`, file));
+      }
+    }
+  }
+  const sourceChapters = new Map(source.chapters.map((entry) => [entry.id, entry]));
+  const paired = project.chapters.filter((entry) => sourceChapters.has(entry.id));
+  if (chapter !== undefined && !paired.some((entry) => entry.id === chapter)) {
+    throw usageError(`Chapter ${chapter} is not in both the translation and its source ${label}; --chapter takes a chapter id that both have`, "chapter");
+  }
+  const chapters = paired.map((own) => {
+    const original = sourceChapters.get(own.id);
+    const markdown = readMarkdown(own.file, project.root);
+    const ownParagraphs = proseParagraphs2(chapterProse(markdown.body));
+    const sourceParagraphs = proseParagraphs2(chapterProse(readMarkdown(original.file, source.root).body));
+    const recorded = recordedHash(markdown.data);
+    return {
+      own,
+      markdown,
+      entry: {
+        id: own.id,
+        file: ownFile(own.file),
+        sourceFile: sourceFile(original.file),
+        paragraphs: ownParagraphs.length,
+        sourceParagraphs: sourceParagraphs.length,
+        sourceHash: sourceHash(original.title, sourceParagraphs),
+        recordedHash: recorded
+      }
+    };
+  });
+  const recorded = [];
+  if (record) {
+    const targets = chapters.filter(({ entry }) => (chapter === undefined || entry.id === chapter) && entry.recordedHash !== entry.sourceHash);
+    assertWritable(project.root, targets.map(({ own }) => own.file));
+    for (const { own, markdown, entry } of targets) {
+      writeFile(own.file, replaceFrontmatter(markdown.rawMarkdown, {
+        ...parseFrontmatter(markdown.rawMarkdown, own.file).data,
+        [SOURCE_HASH_FIELD]: entry.sourceHash
+      }), { root: project.root, unchangedFrom: markdown.rawMarkdown });
+      entry.recordedHash = entry.sourceHash;
+      recorded.push(entry.id);
+    }
+  }
+  for (const { entry } of chapters) {
+    if (entry.paragraphs > 0 && entry.paragraphs !== entry.sourceParagraphs) {
+      warnings.push(warn("translation-paragraph-count", `${entry.file} has ${entry.paragraphs} ${entry.paragraphs === 1 ? "paragraph" : "paragraphs"}; the source ${entry.sourceFile} has ${entry.sourceParagraphs}`, entry.file));
+    }
+    entry.sourceChanged = entry.recordedHash === null ? null : entry.recordedHash !== entry.sourceHash;
+    if (entry.sourceChanged) {
+      warnings.push(warn("translation-source-changed", `${entry.sourceFile} changed since ${entry.file} was translated (${SOURCE_HASH_FIELD} ${entry.recordedHash}, now ${entry.sourceHash}); carry the change across, then run story translation --record --chapter ${entry.id}`, entry.file));
+    }
+  }
+  return {
+    root,
+    title: project.title,
+    language: project.language,
+    source: label,
+    sourceTitle: source.title,
+    sourceLanguage: source.language,
+    chapters: chapters.map(({ entry }) => entry),
+    missing,
+    extra,
+    recorded,
+    ok: errors.length === 0,
+    errors,
+    warnings
+  };
+}
+function recordedHash(data) {
+  const value = data?.[SOURCE_HASH_FIELD];
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : null;
+}
+function formatTranslationReport(report, { dryRun = false } = {}) {
+  const lines = [
+    `# Translation: ${outputText(report.title)} (${outputText(report.language)})`,
+    "",
+    `Source: ${outputText(report.source ?? "unknown")}${report.sourceTitle === null ? "" : ` - ${outputText(report.sourceTitle)} (${outputText(report.sourceLanguage)})`}`
+  ];
+  if (report.recorded.length > 0) {
+    lines.push(`${dryRun ? "Would record" : "Recorded"} ${SOURCE_HASH_FIELD} in ${report.recorded.length} ${report.recorded.length === 1 ? "chapter" : "chapters"}: ${report.recorded.join(", ")}`);
+  }
+  lines.push("", "Chapters:");
+  if (report.chapters.length === 0) {
+    lines.push("- None in both projects");
+  }
+  for (const entry of report.chapters) {
+    const state = entry.sourceChanged === null ? `no ${SOURCE_HASH_FIELD}` : entry.sourceChanged ? "source changed" : "source unchanged";
+    lines.push(`- ${entry.id}: ${entry.paragraphs} ${entry.paragraphs === 1 ? "paragraph" : "paragraphs"} (source ${entry.sourceParagraphs}), ${state}`);
+  }
+  lines.push("", "Only in the source:");
+  lines.push(...listed(report.missing));
+  lines.push("", "Only in the translation:");
+  lines.push(...listed(report.extra));
+  return `${lines.join(`
+`)}
+
+`;
+}
+function listed(entries) {
+  return entries.length === 0 ? ["- None"] : entries.map((entry) => `- ${entry.kind} ${entry.id} (${entry.file})`);
+}
+
+// src/preview.js
+function previewChanges(root, run) {
+  const projectRoot = path27.resolve(root);
+  requireStoryFile(projectRoot);
+  return inScratch(projectRoot, run, (copyRoot, mirror, atRoot, scratch) => {
+    fs13.mkdirSync(path27.dirname(copyRoot), { recursive: true });
+    copyProject(projectRoot, copyRoot, { realSource: realPath2(projectRoot), copyRoot, cover: coverOf(projectRoot) });
+    if (!atRoot) {
+      copyLinkedBooks(projectRoot, mirror, scratch);
+    }
+  });
+}
+function previewNewProject(root, run) {
+  const target = path27.resolve(root);
+  if (target === path27.parse(target).root) {
+    throw usageError(`--dry-run cannot preview a project made at ${target}`);
+  }
+  return inScratch(target, run, (copyRoot, mirror) => {
+    const stats = lstatIfExists(target);
+    const ancestor = stats ? path27.dirname(target) : nearestExistingAncestor(target).ancestor;
+    const isFolder = fs13.statSync(ancestor, { throwIfNoEntry: false })?.isDirectory() === true;
+    fs13.mkdirSync(isFolder ? mirror(ancestor) : path27.dirname(mirror(ancestor)), { recursive: true });
+    if (!isFolder) {
+      fs13.symlinkSync(path27.join(path27.dirname(mirror(ancestor)), ".story-dry-run-link"), mirror(ancestor));
+    }
+    for (let folder = path27.dirname(target);; folder = path27.dirname(folder)) {
+      const story = path27.join(folder, "story.md");
+      if (lstatIfExists(story)?.isFile()) {
+        fs13.mkdirSync(mirror(folder), { recursive: true });
+        copyRegularFile(story, mirror(story));
+      }
+      if (path27.dirname(folder) === folder) {
+        break;
+      }
+    }
+    if (stats?.isSymbolicLink()) {
+      fs13.symlinkSync(path27.join(path27.dirname(copyRoot), ".story-dry-run-link"), copyRoot);
+    } else if (stats?.isDirectory()) {
+      copyProject(target, copyRoot, { realSource: realPath2(target), copyRoot, cover: coverOf(target) });
+    } else if (stats) {
+      copyRegularFile(target, copyRoot);
+    }
+    if (isFolder) {
+      fs13.chmodSync(mirror(ancestor), copyMode(ancestor, true));
+    }
+  });
+}
+function inScratch(target, run, prepare) {
+  const scratch = fs13.realpathSync(fs13.mkdtempSync(path27.join(os3.tmpdir(), "story-dry-run-")));
+  const fsRoot = path27.parse(target).root;
+  const atRoot = target === fsRoot;
+  const mirror = (file) => {
+    const drive = path27.parse(file).root;
+    return path27.join(scratch, drive.replace(/[:\\/]/g, ""), file.slice(drive.length));
+  };
+  const copyRoot = atRoot ? path27.join(scratch, "project") : mirror(target);
+  const [from, to] = atRoot ? [copyRoot, target] : [mirror(fsRoot), fsRoot.replace(/[\\/]+$/, "")];
+  try {
+    prepare(copyRoot, mirror, atRoot, scratch);
+    if (!atRoot) {
+      const realOf = (file) => isPathInside(from, file) ? to + file.slice(from.length) : null;
+      copyLinkTargets(copyRoot, scratch, mirror, realOf);
+    }
+    const { result, changes } = recordChanges(copyRoot, () => run(copyRoot));
+    return { result: mapPaths(result, from, to), changes };
+  } catch (error) {
+    throw toProjectError(error, from, to);
+  } finally {
+    removeScratch(scratch);
+  }
+}
+function copyLinkedBooks(projectRoot, mirror, scratch) {
+  const parent = path27.dirname(projectRoot);
+  const realParent = realPath2(parent);
+  const home = (real) => isPathInside(realParent, real) ? path27.join(parent, path27.relative(realParent, real)) : real;
+  const alias = (link, book) => {
+    const copy = mirror(link);
+    if (link === book || lstatIfExists(copy) !== null) {
+      return;
+    }
+    if (!isPathInside(scratch, realPath2(nearestExistingAncestor(path27.dirname(copy)).ancestor))) {
+      return;
+    }
+    fs13.mkdirSync(path27.dirname(copy), { recursive: true });
+    fs13.symlinkSync(mirror(book), copy);
+  };
+  const projectReal = realPath2(projectRoot);
+  const copies = new Map([[projectReal, projectRoot]]);
+  alias(home(projectReal), projectRoot);
+  const queued = new Set([projectReal]);
+  const queue = [projectRoot];
+  while (queue.length > 0) {
+    const book = queue.shift();
+    let data;
+    try {
+      data = readBookFrontmatter(book);
+    } catch {
+      continue;
+    }
+    const source = translationSourceToCopy(book, data);
+    const links = ["follows", "precedes"].flatMap((field) => seriesLinks(book, data ?? {}, field)).concat(source === undefined ? [] : [source.real]);
+    for (const link of links) {
+      const real = realPath2(link);
+      if (!copies.has(real)) {
+        const target = mirror(home(real));
+        if (copies.size > MAX_SERIES_BOOKS || !fs13.existsSync(path27.join(real, "story.md")) || fs13.existsSync(target)) {
+          continue;
+        }
+        fs13.mkdirSync(path27.dirname(target), { recursive: true });
+        copyProject(real, target, { realSource: real, copyRoot: target });
+        copies.set(real, home(real));
+      }
+      alias(link, copies.get(real));
+      if (link === source?.real && copies.has(real)) {
+        alias(source.typed, copies.get(real));
+      }
+      if (path27.dirname(link) === parent && !queued.has(real)) {
+        queued.add(real);
+        queue.push(link);
+      }
+    }
+  }
+}
+var MAX_LINK_HOPS = 40;
+function copyLinkTargets(copyRoot, scratch, mirror, realOf) {
+  if (!lstatIfExists(copyRoot)?.isDirectory()) {
+    return;
+  }
+  const context = { copyRoot, scratch, mirror, realOf };
+  for (const file of linkSources(copyRoot)) {
+    let body;
+    try {
+      body = readTextFile(file);
+    } catch {
+      continue;
+    }
+    for (const target of extractMarkdownLinkTargets(body)) {
+      if (path27.isAbsolute(target) || !path27.basename(target).endsWith(".md")) {
+        continue;
+      }
+      try {
+        stageLinkTarget(path27.resolve(path27.dirname(file), target), context, 0);
+      } catch {}
+    }
+  }
+}
+function linkSources(copyRoot) {
+  const files = [path27.join(copyRoot, "plot", "timeline.md")];
+  for (const folder of [path27.join("plot", "arcs"), MATTER_DIR]) {
+    let entries = [];
+    try {
+      entries = fs13.readdirSync(path27.join(copyRoot, folder), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    files.push(...entries.filter((entry) => entry.name.endsWith(".md")).slice(0, MAX_SCAN_FILES).map((entry) => path27.join(copyRoot, folder, entry.name)));
+  }
+  return files;
+}
+function stageLinkTarget(file, context, hops) {
+  const { copyRoot, scratch } = context;
+  if (!isPathInside(scratch, file) || file === scratch) {
+    return null;
+  }
+  const parts = path27.relative(scratch, file).split(path27.sep);
+  let current = scratch;
+  for (const [index, part] of parts.entries()) {
+    const next = path27.join(current, part);
+    let stats = lstatIfExists(next);
+    if (!stats) {
+      if (isPathInside(copyRoot, next) || !makeStandIn(next, context, index === parts.length - 1)) {
+        return null;
+      }
+      stats = fs13.lstatSync(next);
+    }
+    if (stats.isSymbolicLink()) {
+      if (hops >= MAX_LINK_HOPS) {
+        return null;
+      }
+      current = stageLinkTarget(path27.resolve(path27.dirname(next), fs13.readlinkSync(next)), context, hops + 1);
+      if (current === null) {
+        return null;
+      }
+    } else {
+      current = next;
+    }
+  }
+  return current;
+}
+function makeStandIn(copy, { mirror, realOf }, last) {
+  const real = realOf(copy);
+  const stats = real === null ? null : lstatIfExists(real);
+  if (!stats || !(stats.isSymbolicLink() || stats.isDirectory() || last && stats.isFile())) {
+    return false;
+  }
+  withWritable(path27.dirname(copy), () => {
+    if (stats.isSymbolicLink()) {
+      const text = fs13.readlinkSync(real);
+      fs13.symlinkSync(path27.isAbsolute(text) ? mirror(text) : text, copy, isFolder(real) ? "dir" : "file");
+    } else if (stats.isDirectory()) {
+      fs13.mkdirSync(copy);
+      if (lstatIfExists(path27.join(real, "story.md"))) {
+        fs13.writeFileSync(path27.join(copy, "story.md"), "");
+      }
+    } else {
+      fs13.writeFileSync(copy, "");
+    }
+  });
+  return true;
+}
+function isFolder(target) {
+  try {
+    return fs13.statSync(target).isDirectory();
+  } catch {
+    return false;
+  }
+}
+function withWritable(folder, make) {
+  const mode = fs13.statSync(folder).mode & 4095;
+  if ((mode & 192) === 192) {
+    make();
+    return;
+  }
+  fs13.chmodSync(folder, mode | 192);
+  try {
+    make();
+  } finally {
+    fs13.chmodSync(folder, mode);
+  }
+}
+function copyProject(source, target, roots, depth = 0) {
+  fs13.mkdirSync(target);
+  for (const entry of fs13.readdirSync(source, { withFileTypes: true })) {
+    const from = path27.join(source, entry.name);
+    const to = path27.join(target, entry.name);
+    if (entry.isDirectory()) {
+      if (!entry.name.startsWith(".") && !SKIPPED_SCAN_DIRECTORIES.has(entry.name) && depth < MAX_SCAN_DEPTH && !fs13.existsSync(path27.join(from, "story.md"))) {
+        copyProject(from, to, roots, depth + 1);
+      }
+    } else if (entry.isSymbolicLink()) {
+      fs13.symlinkSync(linkTarget(fs13.readlinkSync(from), roots), to, isFolder(from) ? "dir" : "file");
+    } else if (entry.isFile() && entry.name !== LOCK_FILE && entry.name !== TAKEOVER_FILE) {
+      copyRegularFile(from, to, IMAGE_EXTENSIONS.test(entry.name) || Boolean(roots.cover) && realPath2(from).toLowerCase() === roots.cover);
+    }
+  }
+  fs13.chmodSync(target, copyMode(source, true));
+}
+function mirrorFolderNames(source, copy) {
+  if (lstatIfExists(source)?.isDirectory() !== true || lstatIfExists(copy) !== null) {
+    return;
+  }
+  fs13.mkdirSync(copy);
+  for (const entry of fs13.readdirSync(source, { withFileTypes: true })) {
+    if (entry.isDirectory()) {
+      fs13.mkdirSync(path27.join(copy, entry.name));
+    } else {
+      fs13.writeFileSync(path27.join(copy, entry.name), "", { flag: "wx" });
+    }
+  }
+  fs13.chmodSync(copy, copyMode(source, true));
+}
+function copyRegularFile(from, to, keepHead = false) {
+  if (path27.basename(from) === UNDO_LOG && lockedByAnother(path27.dirname(from))) {
+    return;
+  }
+  const { size } = fs13.statSync(from);
+  const readable = allowed(from, fs13.constants.R_OK);
+  if (path27.basename(from) === UNDO_LOG && readable) {
+    copyUndoLog(from, to);
+  } else if ((from.endsWith(".md") || [".gitignore", RENAME_MARKER].includes(path27.basename(from))) && size <= MAX_READ_BYTES && readable) {
+    fs13.writeFileSync(to, readFileBytes(from));
+  } else {
+    fs13.writeFileSync(to, keepHead && readable ? readFilePrefix(from, IMAGE_SIGNATURE_BYTES) : "");
+    fs13.truncateSync(to, size);
+  }
+  fs13.chmodSync(to, copyMode(from, false));
+}
+function copyUndoLog(from, to) {
+  fs13.writeFileSync(to, "");
+  try {
+    forEachLine(from, MAX_UNDO_LINE_BYTES, (line) => fs13.appendFileSync(to, Buffer8.concat([line, LINE_FEED])));
+  } catch {
+    fs13.appendFileSync(to, LINE_FEED);
+  }
+}
+var LINE_FEED = Buffer8.from(`
+`);
+var IMAGE_EXTENSIONS = /\.(?:gif|jpe?g|png|webp)$/i;
+function coverOf(root) {
+  const cover = existingStoryData(root)?.cover;
+  const text = typeof cover === "string" ? cover.trim() : "";
+  return text === "" || PATH_CONTROL_CHARACTERS.test(text) ? null : realPath2(path27.resolve(root, text)).toLowerCase();
+}
+function copyMode(source, directory) {
+  let mode = fs13.statSync(source).mode & 4095;
+  const access = [[fs13.constants.R_OK, 292, 256], [fs13.constants.W_OK, 146, 128]];
+  if (directory) {
+    access.push([fs13.constants.X_OK, 73, 64]);
+  }
+  for (const [check, all, owner] of access) {
+    mode = allowed(source, check) ? mode | owner : mode & ~all;
+  }
+  return mode;
+}
+function allowed(file, check) {
+  try {
+    fs13.accessSync(file, check);
+    return true;
+  } catch {
+    return false;
+  }
+}
+function linkTarget(target, { realSource, copyRoot }) {
+  if (!path27.isAbsolute(target)) {
+    return target;
+  }
+  const real = realPath2(target);
+  return isPathInside(realSource, real) ? path27.join(copyRoot, path27.relative(realSource, real)) : target;
+}
+function removeScratch(scratch) {
+  try {
+    fs13.rmSync(scratch, { recursive: true, force: true });
+  } catch {
+    makeWritable(scratch);
+    fs13.rmSync(scratch, { recursive: true, force: true });
+  }
+}
+function makeWritable(directory) {
+  try {
+    fs13.chmodSync(directory, 448);
+    for (const entry of fs13.readdirSync(directory, { withFileTypes: true })) {
+      if (entry.isDirectory()) {
+        makeWritable(path27.join(directory, entry.name));
+      }
+    }
+  } catch {}
+}
+function mapPaths(value, from, to) {
+  if (typeof value === "string") {
+    return value.split(from).join(to);
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => mapPaths(item, from, to));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, mapPaths(item, from, to)]));
+  }
+  return value;
+}
+function toProjectError(error, from, to) {
+  if (!error || typeof error !== "object") {
+    return error;
+  }
+  for (const key of ["message", "hint", "path"]) {
+    if (typeof error[key] === "string") {
+      error[key] = mapPaths(error[key], from, to);
+    }
+  }
+  return error;
+}
+function realPath2(target) {
+  try {
+    return fs13.realpathSync(target);
+  } catch {
+    return target;
+  }
+}
+
+// src/snapshots.js
+import fs22 from "node:fs";
+import path37 from "node:path";
+
+// src/mutate-references.js
+import fs14 from "node:fs";
+import path28 from "node:path";
+function kindsSharingFields(kind) {
+  const shared = new Map;
+  for (const [field, kinds] of Object.entries(REFERENCE_FIELD_KINDS)) {
+    if (!kinds.includes(kind)) {
+      continue;
+    }
+    for (const other of kinds) {
+      if (other !== kind) {
+        shared.set(other, (shared.get(other) ?? []).concat(field));
+      }
+    }
+  }
+  return shared;
+}
+function assertUnambiguousId(root, kind, id) {
+  for (const [other, fields] of kindsSharingFields(kind)) {
+    if (fs14.existsSync(path28.join(root, entityConfig(other).dir, `${id}.md`))) {
+      throw usageError(`${id} is already a ${other} id, and ${fields.join(" and ")} references could not tell the ${kind} from the ${other}. Choose another name, or pass --id`);
+    }
+  }
+}
+function ambiguousReferenceWarnings(root, kind, id, excludedFile, newId = null) {
+  const warnings = [];
+  const probe = `${id}-ambiguous-probe`;
+  for (const [other, fields] of kindsSharingFields(kind)) {
+    if (!fs14.existsSync(path28.join(root, entityConfig(other).dir, `${id}.md`))) {
+      continue;
+    }
+    const found = new Map;
+    for (const field of fields) {
+      const context = { ...entityReferenceContext(root, kind, id), isReferenceKey: (key) => key === field };
+      const plan = planReferenceRewrites(root, context, new Map([[excludedFile, null]]), (value) => idText(value) === id ? probe : value, (body) => body);
+      for (const file of plan.keys()) {
+        const shown = projectPath(root, file);
+        found.set(shown, (found.get(shown) ?? []).concat(field));
+      }
+    }
+    if (found.size === 0) {
+      continue;
+    }
+    const files = [...found.keys()].sort();
+    const listed = files.map((file) => `${file} (${found.get(file).join(", ")})`).join(", ");
+    const action = newId === null ? `remove left them alone, so they now name the ${other}: delete any that meant the ${kind}` : `rename left them alone, so they now name the ${other}: change any that meant the ${kind} to ${newId}`;
+    warnings.push(warn("ambiguous-references", `references to ${id} in ${listed} could mean the ${kind} or ${other} ${id}, and ${action}`, files.length === 1 ? files[0] : null));
+  }
+  return warnings;
+}
+var EXEMPTION_TEXT_KEYS = ["pattern", "file", "chapter"];
+function exemptionEntries(root) {
+  const filePath = path28.join(root, EXEMPTIONS_FILE);
+  try {
+    const entries = readMarkdown(filePath, root).data.exemptions;
+    return Array.isArray(entries) ? entries.map((entry, index) => ({ entry, index })).filter(({ entry }) => entry && typeof entry === "object" && !Array.isArray(entry)) : [];
+  } catch {
+    return [];
+  }
+}
+function followExemptionEntry(entry, kind, oldId, newId) {
+  const renamed = { ...entry };
+  if (typeof entry.pattern === "string") {
+    renamed.pattern = renameIdText(entry.pattern, oldId, newId);
+  }
+  const file = typeof entry.file === "string" ? exemptionFile(entry.file) : null;
+  const dir = entityConfig(kind).dir.replace(/\\/g, "/");
+  const ownScene = kind === "chapter" && file !== null && new RegExp(`^scenes/${escapeRegExp(oldId)}-scene-\\d+\\.md$`).test(file);
+  if (file !== null && (file === `${dir}/${oldId}.md` || ownScene)) {
+    renamed.file = renameIdText(file, oldId, newId);
+  }
+  const sceneChapter = (id) => /^(.+)-scene-\d+$/.exec(id)?.[1];
+  if (kind === "scene" && renamed.file !== entry.file && entry.chapter === sceneChapter(oldId) && sceneChapter(newId) !== undefined) {
+    renamed.chapter = sceneChapter(newId);
+  }
+  return renamed;
+}
+function followExemptionPatterns(root, plan, kind, oldId, newId) {
+  const filePath = path28.join(root, EXEMPTIONS_FILE);
+  if (!plan.has(filePath) && !lstatIfExists(filePath)) {
+    return;
+  }
+  const text = plan.get(filePath) ?? readTextFile(filePath);
+  const data = parseFrontmatter(text, filePath).data;
+  if (!Array.isArray(data.exemptions)) {
+    return;
+  }
+  let changed = false;
+  const exemptions = data.exemptions.map((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return entry;
+    }
+    const renamed = followExemptionEntry(entry, kind, oldId, newId);
+    changed ||= EXEMPTION_TEXT_KEYS.some((key) => renamed[key] !== entry[key]);
+    return renamed;
+  });
+  if (changed) {
+    if (!plan.has(filePath)) {
+      plan.originals?.set(filePath, text);
+    }
+    plan.set(filePath, replaceFrontmatter(text, { ...data, exemptions }));
+  }
+}
+function followQueryFilters(root, plan, kind, oldId, newId) {
+  const filePath = path28.join(root, "story.md");
+  const text = plan.get(filePath) ?? readTextFile(filePath);
+  const data = parseFrontmatter(text, filePath).data;
+  const isReferenceKey = entityReferenceContext(root, kind, oldId).isReferenceKey;
+  const changed = {};
+  for (const field of ["queries", "checks"]) {
+    const found = queryFiltersNaming(data[field], isReferenceKey, oldId);
+    if (found.length === 0) {
+      continue;
+    }
+    const entries = [...data[field]];
+    for (const { index, item, positions } of found) {
+      entries[index] = { ...item, where: item.where.map((filter, position) => positions.includes(position) ? retargetFilter(filter, newId) : filter) };
+    }
+    changed[field] = entries;
+  }
+  if (Object.keys(changed).length === 0) {
+    return;
+  }
+  if (!plan.has(filePath)) {
+    plan.originals?.set(filePath, text);
+  }
+  plan.set(filePath, replaceFrontmatter(text, { ...data, ...changed }));
+}
+function adoptedReferenceFiles(root, kind, id, excludedFile, rename = renameIdText, narrow = (context) => context) {
+  const context = narrow(entityReferenceContext(root, kind, id));
+  const probe = `${id}-adopted-probe`;
+  const numbered = kind === "chapter" || kind === "scene";
+  const plan = planReferenceRewrites(root, context, new Map(excludedFile === null ? [] : [[excludedFile, null]]), idRenamer(id, probe), (body, file) => {
+    const relinked = renameLinkTargets(root, file, body, context, probe);
+    return numbered ? renameIdTokens(root, file, relinked, id, probe, rename) : relinked;
+  });
+  return [...plan.keys()].map((file) => projectPath(root, file)).sort();
+}
+function adoptedReferenceWarnings(root, kind, id, excludedFile, action) {
+  const files = adoptedReferenceFiles(root, kind, id, excludedFile);
+  if (files.length === 0) {
+    return [];
+  }
+  return [warn("adopted-references", `${id} was already referenced before this ${action}, and those references now point at the ${action === "rename" ? "renamed" : "moved"} ${kind}: ${files.join(", ")}. Check them`)];
+}
+function abandonedThreadFiles(project, chapterId) {
+  return [...project.promises, ...project.clues, ...project.questions].filter((entry) => entry.status === "abandoned" && [entry.planted, entry.payoff, entry.introduced].includes(chapterId)).map((entry) => projectPath(project.root, entry.file)).sort();
+}
+function abandonedThreadWarnings(project, chapterId) {
+  const files = abandonedThreadFiles(project, chapterId);
+  if (files.length === 0) {
+    return [];
+  }
+  return [warn("adopted-references", `${chapterId} was already named by abandoned threads, and those references now point at the new chapter: ${files.join(", ")}. Clear them if the cut threads do not belong there`)];
+}
+function idRenamer(oldId, newId) {
+  return (value) => value === oldId ? newId : value;
+}
+var ID_TOKEN_REGISTRIES = new Set(["plot/timeline.md", "plot/_index.md"]);
+function renameIdTokens(root, file, body, oldId, newId, rename = renameIdText) {
+  const relativePath = projectPath(root, file);
+  if (!ID_TOKEN_REGISTRIES.has(relativePath) && path28.posix.dirname(relativePath) !== "plot/arcs") {
+    return body;
+  }
+  return mapOutsideLinks(body, (text) => rename(text, oldId, newId));
+}
+function renameChapterIdText(text, oldId, newId) {
+  return text.replace(new RegExp(`(?<![\\w-])${escapeRegExp(oldId)}(?![\\w-])`, "g"), newId);
+}
+function renameIdText(text, oldId, newId) {
+  return text.replace(new RegExp(`(?<![\\w-])${escapeRegExp(oldId)}-scene-(\\d+)(?![\\w-])`, "g"), `${newId}-scene-$1`).replace(new RegExp(`(?<![\\w-])${escapeRegExp(oldId)}(?![\\w-])`, "g"), newId);
+}
+var REFERENCE_FIELD_KINDS = {
+  arc: ["arc"],
+  arcs: ["arc"],
+  "arcs-advanced": ["arc"],
+  artifact: ["artifact"],
+  chapter: ["chapter"],
+  character: ["character"],
+  characters: ["character"],
+  "controlled-by": MULTI_KIND_REFERENCE_FIELDS["controlled-by"],
+  "died-in": ["chapter"],
+  "revived-in": ["chapter"],
+  introduced: ["chapter"],
+  "learned-in": ["chapter"],
+  "used-in": ["chapter"],
+  location: ["location"],
+  locations: ["location"],
+  members: ["character"],
+  mentions: MULTI_KIND_REFERENCE_FIELDS.mentions,
+  "notable-characters": ["character"],
+  owner: MULTI_KIND_REFERENCE_FIELDS.owner,
+  payoff: ["chapter"],
+  planted: ["chapter"],
+  pov: ["character"],
+  resolved: ["chapter"],
+  since: ["chapter"],
+  target: ["artifact"]
+};
+var ENTRY_IDENTITY_FIELDS = {
+  relationships: "character",
+  "character-state": "character",
+  "knowledge-state": "character",
+  "object-state": "artifact",
+  progressions: "from",
+  routes: "to",
+  distances: "to",
+  choices: "to"
+};
+var NESTED_TO_KINDS = { routes: "location", distances: "location", choices: "chapter" };
+function entityReferenceContext(root, kind, id) {
+  const otherExists = new Map;
+  const existsAs = (other) => {
+    if (!otherExists.has(other)) {
+      otherExists.set(other, fs14.existsSync(path28.join(root, entityConfig(other).dir, `${id}.md`)));
+    }
+    return otherExists.get(other);
+  };
+  return {
+    id,
+    kind,
+    entityFile: path28.resolve(root, entityConfig(kind).dir, `${id}.md`),
+    isReferenceKey: (key, listKey = null) => {
+      if (key === "to") {
+        return listKey !== null && Object.hasOwn(NESTED_TO_KINDS, listKey) && NESTED_TO_KINDS[listKey] === kind;
+      }
+      const kinds = Object.hasOwn(REFERENCE_FIELD_KINDS, key) ? REFERENCE_FIELD_KINDS[key] : [];
+      return kinds.includes(kind) && !kinds.some((other) => other !== kind && existsAs(other));
+    }
+  };
+}
+function resolveLinkTarget(root, file, target) {
+  const cleaned = String(target).trim().split(/\s+/)[0].replace(/^<|>$/g, "").split("#")[0].split("?")[0];
+  if (cleaned === "" || /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(cleaned)) {
+    return null;
+  }
+  let decoded = cleaned;
+  try {
+    decoded = decodeURIComponent(cleaned);
+  } catch {
+    decoded = cleaned;
+  }
+  return decoded.startsWith("/") ? path28.resolve(root, `.${decoded}`) : path28.resolve(path28.dirname(file), decoded);
+}
+function renameLinkTargets(root, file, body, context, newId) {
+  const retarget = (target) => target.replace(new RegExp(`(^|/|<)${escapeRegExp(context.id)}\\.md(?=$|[#?>\\s])`), `$1${newId}.md`);
+  return body.replace(/\[([^\]\n]*)\]\(([^)\n]*)\)/g, (match, text, target) => {
+    if (resolveLinkTarget(root, file, target) !== context.entityFile) {
+      return match;
+    }
+    const nextText = text === context.id ? newId : text;
+    return `[${nextText}](${retarget(target)})`;
+  }).replace(LINK_DEFINITION_PATTERN, (match, open, label, target) => {
+    if (resolveLinkTarget(root, file, target) !== context.entityFile) {
+      return match;
+    }
+    return `${match.slice(0, match.length - target.length)}${retarget(target)}`;
+  });
+}
+function replaceEntityReferences(root, kind, oldId, newId, overrides) {
+  const context = entityReferenceContext(root, kind, oldId);
+  return planReferenceRewrites(root, context, overrides, (value) => idText(value) === oldId ? newId : value, (body, file) => renameLinkTargets(root, file, body, context, newId));
+}
+function removeEntityReferences(root, kind, id, overrides) {
+  const context = entityReferenceContext(root, kind, id);
+  return planReferenceRewrites(root, context, overrides, (value) => idText(value) === id ? null : value, (body) => body);
+}
+function planReferenceRewrites(root, context, overrides, transform, transformBody) {
+  const plan = new Map;
+  plan.originals = new Map;
+  const storyFile = path28.join(root, "story.md");
+  let otherFiles = 0;
+  for (const file of markdownFiles(root, { maxFiles: Infinity })) {
+    const override = overrides?.has(file) ? overrides.get(file) : undefined;
+    if (override === null) {
+      continue;
+    }
+    const sourceFile = isProjectSourceFile(root, file);
+    let text = override;
+    if (text === undefined) {
+      assertSafeProjectPath(file, root);
+      if (!sourceFile) {
+        otherFiles += 1;
+        if (otherFiles > MAX_SCAN_FILES || fs14.lstatSync(file).size > MAX_SCAN_FILE_BYTES) {
+          continue;
+        }
+      }
+      text = readTextFile(file);
+      plan.originals.set(file, text);
+    }
+    const match = FRONTMATTER_PATTERN.exec(text);
+    if (!match && sourceFile) {
+      throw projectError(`${projectPath(root, file)} is missing YAML frontmatter${registryHint(root, file)}; nothing was changed`);
+    }
+    let header = "";
+    let body = text;
+    if (match) {
+      header = match[0];
+      body = text.slice(match[0].length);
+      if (file !== storyFile) {
+        let data = null;
+        try {
+          data = parseFrontmatter(text, file).data;
+        } catch (error) {
+          if (sourceFile) {
+            throw projectError(`${projectPath(root, file)}: ${error.message}${registryHint(root, file)}; nothing was changed`);
+          }
+        }
+        if (data !== null) {
+          let nextData = transformReferences(data, transform, context);
+          if (context.kind === "chapter") {
+            nextData = reconcileChapterStatuses(data, nextData);
+          }
+          if (JSON.stringify(nextData) !== JSON.stringify(data)) {
+            header = replaceFrontmatter(header, nextData);
+          }
+        }
+      }
+    }
+    const next = `${header}${transformBody(body, file)}`;
+    if (next !== text || override !== undefined) {
+      plan.set(file, next);
+    }
+  }
+  return plan;
+}
+var FRONTMATTER_FILES = new Set([
+  "plot/timeline.md",
+  "continuity/state.md",
+  "continuity/exemptions.md"
+]);
+var REGISTRY_FILES = new Set([
+  ...INDEX_SCHEMAS.map(([relativePath]) => relativePath),
+  path28.posix.join(MATTER_DIR, "_index.md"),
+  path28.posix.join(RESEARCH_DIR, "_index.md")
+]);
+function registryHint(root, file) {
+  return REGISTRY_FILES.has(projectPath(root, file)) ? REGISTRY_HINT : "";
+}
+function isProjectSourceFile(root, file) {
+  const relativePath = projectPath(root, file);
+  return SOURCE_ROOT_FILES.has(relativePath) || FRONTMATTER_FILES.has(relativePath) || REGISTRY_FILES.has(relativePath) || ENTITY_SCAN_DIRS.includes(path28.posix.dirname(relativePath));
+}
+function reconcileChapterStatuses(before, after) {
+  const next = { ...after };
+  if (before.planted && !next.planted && (next.status === "planted" || next.status === "paid-off")) {
+    next.status = "planned";
+  }
+  if (before.payoff && !next.payoff && next.status === "paid-off") {
+    next.status = "planted";
+  }
+  if (before.resolved && !next.resolved && (next.status === "answered" || next.status === "resolved")) {
+    next.status = "open";
+  }
+  return next;
+}
+function transformReferences(data, transform, context, identityKey = null, listKey = null) {
+  const next = {};
+  const set = (key, value) => Object.defineProperty(next, key, { value, enumerable: true, configurable: true, writable: true });
+  const progression = identityKey === "from";
+  const isReference = (key) => (progression && key === "value" ? typeof data.field === "string" && context.isReferenceKey(data.field) : context.isReferenceKey(key, listKey)) || key === "from" && progression && context.kind === "chapter";
+  for (const [key, value] of Object.entries(data)) {
+    if (Array.isArray(value)) {
+      const items = [];
+      const childIdentity = Object.hasOwn(ENTRY_IDENTITY_FIELDS, key) ? ENTRY_IDENTITY_FIELDS[key] : null;
+      for (const item of value) {
+        if (item && typeof item === "object" && !Array.isArray(item)) {
+          const mapped = transformReferences(item, transform, context, childIdentity, key);
+          if (mapped !== null) {
+            items.push(mapped);
+          }
+        } else if (isReference(key)) {
+          const mapped = transform(item);
+          if (mapped !== null) {
+            items.push(mapped);
+          }
+        } else {
+          items.push(item);
+        }
+      }
+      set(key, items);
+      continue;
+    }
+    if (isReference(key)) {
+      const mapped = transform(value);
+      if (mapped === null) {
+        if (identityKey !== null && key === identityKey) {
+          return null;
+        }
+        set(key, "");
+        continue;
+      }
+      set(key, mapped);
+      continue;
+    }
+    set(key, value);
+  }
+  return next;
+}
+function applyEntityBacklinks(root, kind, id, data) {
+  if (kind === "location") {
+    for (const characterId of asArray(data["notable-characters"])) {
+      if (isKebabId(characterId)) {
+        addFrontmatterListValue(root, `characters/${characterId}.md`, "locations", id);
+      }
+    }
+  }
+  if (kind === "scene" && isKebabId(data.chapter)) {
+    const chapterFile = `chapters/${data.chapter}.md`;
+    const exists = (dir, id) => fs14.existsSync(path28.join(root, dir, `${id}.md`));
+    if (isKebabId(data.location) && exists("worldbuilding/locations", data.location)) {
+      addFrontmatterListValue(root, chapterFile, "locations", data.location);
+    }
+    const chapterPath = path28.join(root, chapterFile);
+    const mentions = fs14.existsSync(chapterPath) ? asArray(readMarkdown(chapterPath, root).data.mentions) : [];
+    for (const characterId of asArray(data.characters)) {
+      if (isKebabId(characterId) && exists("characters", characterId) && !mentions.includes(characterId)) {
+        addFrontmatterListValue(root, chapterFile, "characters", characterId);
+      }
+    }
+  }
+  if (kind === "character") {
+    for (const locationId of asArray(data.locations)) {
+      if (isKebabId(locationId)) {
+        addFrontmatterListValue(root, path28.join("worldbuilding", "locations", `${locationId}.md`), "notable-characters", id);
+      }
+    }
+  }
+}
+function addFrontmatterListValue(root, relativePath, field, value) {
+  const filePath = path28.join(root, relativePath);
+  if (!fs14.existsSync(filePath) || !value) {
+    return;
+  }
+  assertSafeProjectPath(filePath, root);
+  const markdown = readMarkdown(filePath, root);
+  const list = asArray(markdown.data[field]);
+  if (!list.includes(value)) {
+    writeFile(filePath, replaceFrontmatter(markdown.rawMarkdown, {
+      ...markdown.data,
+      [field]: list.concat(value)
+    }), { root, unchangedFrom: markdown.rawMarkdown });
+  }
+}
 // src/mutate-maintenance.js
+import fs15 from "node:fs";
+import path29 from "node:path";
 function reindexProject(root) {
   const project = scanProject(root);
   assertProjectParses(project, "reindex");
   const changed = [];
-  const at = (...parts) => path26.join(project.root, ...parts);
+  const at = (...parts) => path29.join(project.root, ...parts);
   const existingPlot = readRegistrySource(at("plot", "_index.md"), project.root);
   let plotStructure = "three-act";
   if (fs15.existsSync(at("plot", "_index.md"))) {
@@ -26604,9 +29246,9 @@ function withoutRegistryTables(part, headers) {
 function tableHeader(body) {
   const lines = body.split(`
 `);
-  return lines.length > 1 && isDelimiterRow(lines[1]) ? tableCells(lines[0]) : null;
+  return lines.length > 1 && isDelimiterRow(lines[1]) ? tableCells2(lines[0]) : null;
 }
-function tableCells(line) {
+function tableCells2(line) {
   return line.trim().replace(/^\||\|$/g, "").split("|").map((cell) => cell.trim().toLowerCase());
 }
 function isDelimiterRow(line) {
@@ -26617,7 +29259,7 @@ function registryTableLines(lines, masked, headers) {
   const marker = (index) => /^(?:<{7}|={7}|>{7}|\|{7})(?:[ \t]|$)/.test(masked[index]);
   const piped = (index) => !blank(index) && !marker(index) && masked[index].includes("|");
   const starts = (index) => piped(index) && index + 1 < lines.length && isDelimiterRow(masked[index + 1]);
-  const registry = (index) => starts(index) && headers.some((header) => sameHeader(tableCells(masked[index]), header));
+  const registry = (index) => starts(index) && headers.some((header) => sameHeader(tableCells2(masked[index]), header));
   const runEnd = (index) => {
     let end = index + 1;
     while (end < lines.length && piped(end)) {
@@ -26739,7 +29381,8 @@ function computeWordCounts(root, options = {}) {
       title: chapter.title,
       file: projectPath(project.root, chapter.file),
       wordCount: chapter.wordCount,
-      ...characters ? { characterCount: chapter.count } : {}
+      ...characters ? { characterCount: chapter.count } : {},
+      ...chapter.verse ? { lineCount: chapter.lineCount } : {}
     });
     if (options.write && needsCount(chapter)) {
       const markdown = readMarkdown(chapter.file, project.root);
@@ -26754,14 +29397,16 @@ function computeWordCounts(root, options = {}) {
   if (options.write) {
     reindexProject(project.root);
   }
+  const verse = chapters.filter((chapter) => chapter.lineCount !== undefined);
   return {
     ...characters ? { unit: "characters" } : {},
     chapters,
-    total: chapters.reduce((sum, chapter) => sum + (characters ? chapter.characterCount : chapter.wordCount), 0)
+    total: chapters.reduce((sum, chapter) => sum + (characters ? chapter.characterCount : chapter.wordCount), 0),
+    ...verse.length > 0 ? { lines: verse.reduce((sum, chapter) => sum + chapter.lineCount, 0) } : {}
   };
 }
 function migrateProject(root) {
-  const projectRoot = path26.resolve(root);
+  const projectRoot = path29.resolve(root);
   const storyPath = requireStoryFile(projectRoot);
   assertProjectParses(scanProject(projectRoot), "migrate");
   const story = readMarkdown(storyPath, projectRoot);
@@ -26773,15 +29418,15 @@ function migrateProject(root) {
   const upgrading = story.data["schema-version"] !== STORY_SCHEMA_VERSION;
   const changed = [];
   for (const directory of upgrading ? PROJECT_DIRECTORIES : []) {
-    ensureDirectory(path26.join(projectRoot, directory), changed, projectRoot);
+    ensureDirectory(path29.join(projectRoot, directory), changed, projectRoot);
   }
-  ensureFile(path26.join(projectRoot, "plot", "timeline.md"), timeline(storyId), changed, projectRoot);
-  ensureFile(path26.join(projectRoot, "scenes", "_index.md"), sceneIndex(storyId, []), changed, projectRoot);
-  ensureFile(path26.join(projectRoot, "continuity", "state.md"), continuityState(storyId), changed, projectRoot);
-  ensureFile(path26.join(projectRoot, "continuity", "questions", "_index.md"), questionIndex(storyId, []), changed, projectRoot);
-  ensureFile(path26.join(projectRoot, "continuity", "promises", "_index.md"), promiseIndex(storyId, []), changed, projectRoot);
-  ensureFile(path26.join(projectRoot, "continuity", "clues", "_index.md"), clueIndex(storyId, []), changed, projectRoot);
-  ensureFile(path26.join(projectRoot, "glossary", "_index.md"), glossaryIndex(storyId, []), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "plot", "timeline.md"), timeline(storyId), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "scenes", "_index.md"), sceneIndex(storyId, []), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "continuity", "state.md"), continuityState(storyId), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "continuity", "questions", "_index.md"), questionIndex(storyId, []), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "continuity", "promises", "_index.md"), promiseIndex(storyId, []), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "continuity", "clues", "_index.md"), clueIndex(storyId, []), changed, projectRoot);
+  ensureFile(path29.join(projectRoot, "glossary", "_index.md"), glossaryIndex(storyId, []), changed, projectRoot);
   if (upgrading) {
     writeFile(storyPath, replaceFrontmatter(story.rawMarkdown, {
       ...story.data,
@@ -26849,7 +29494,7 @@ function runRepair(root, repair, repairs) {
 function assertRepairable(root) {
   const project = scanProject(root);
   assertProjectParses(project, "fix");
-  const plotPath = path26.join(project.root, "plot", "_index.md");
+  const plotPath = path29.join(project.root, "plot", "_index.md");
   if (fs15.existsSync(plotPath)) {
     const label = "plot/_index.md";
     const source = readRegistrySource(plotPath, project.root);
@@ -26870,11 +29515,11 @@ function projectErrorMessage(error) {
 }
 // src/mutate-init.js
 import fs16 from "node:fs";
-import path27 from "node:path";
+import path30 from "node:path";
 function newProjectRoot({ title, cwd = process.cwd(), dir }) {
   const text = String(title ?? "").trim();
   const titleId = kebabCase(text, { transliterate: false }) || kebabCase(text);
-  return !titleId && dir === undefined ? null : path27.resolve(cwd, dir ?? titleId);
+  return !titleId && dir === undefined ? null : path30.resolve(cwd, dir ?? titleId);
 }
 function createStoryProject(options) {
   const title = String(options.title ?? "").trim();
@@ -26890,7 +29535,7 @@ function createStoryProject(options) {
   if (options.language !== undefined && !isLanguageTag(options.language)) {
     throw usageError(`--language ${options.language} must be a BCP 47 tag such as en, en-GB, or fr`);
   }
-  const locks = ["follows", "precedes"].flatMap((field) => asArray(options[field]).filter((value) => typeof value === "string" && value.trim() !== "")).map((value) => ({ root: path27.resolve(cwd, value) }));
+  const locks = ["follows", "precedes"].flatMap((field) => asArray(options[field]).filter((value) => typeof value === "string" && value.trim() !== "")).map((value) => ({ root: path30.resolve(cwd, value) }));
   if (options.force && lstatIfExists(root)?.isDirectory()) {
     locks.push({ root, folder: true });
   }
@@ -26900,9 +29545,9 @@ function fillStoryProject(root, title, cwd, options) {
   const existingStory = existingStoryData(root);
   const storyId = asciiStoryId(existingStory ? existingStory.title : title, root);
   assertPortableId(storyId, "story");
-  assertPortableFolderName(path27.basename(root));
+  assertPortableFolderName(path30.basename(root));
   if (!storyId) {
-    throw usageError('Cannot derive a story id from title "' + title + '" or folder "' + path27.basename(root) + '": use an ASCII folder name with --dir');
+    throw usageError('Cannot derive a story id from title "' + title + '" or folder "' + path30.basename(root) + '": use an ASCII folder name with --dir');
   }
   if (lstatIfExists(root)?.isSymbolicLink()) {
     throw refusedError(`Refusing to use symlinked project directory: ${root}`);
@@ -26938,7 +29583,7 @@ function fillStoryProject(root, title, cwd, options) {
     assertNoInterruptedChange(root, options.command ?? "story init --force");
   }
   options.beforeWrite?.(root, existingStory !== null);
-  const directories = PROJECT_DIRECTORIES.map((directory) => path27.join(root, directory));
+  const directories = PROJECT_DIRECTORIES.map((directory) => path30.join(root, directory));
   if (lstatIfExists(root) !== null) {
     directories.forEach((directory) => assertExistingAncestorInsideRoot(directory, root));
   }
@@ -26946,15 +29591,16 @@ function fillStoryProject(root, title, cwd, options) {
   const storyInherited = { ...inheritedStoryFields(inherited), ...options.language === undefined ? {} : { language: options.language.trim() } };
   const pack = languagePack(projectLanguage(storyInherited));
   const unit = countUnit(storyInherited, pack);
-  const storyWritten = writeStarterFile(path27.join(root, "story.md"), storyBible({
+  const poetryDefault = options.form === VERSE_FORM && options.genre === undefined;
+  const storyWritten = writeStarterFile(path30.join(root, "story.md"), storyBible({
     title,
     storyId,
     series: series.series,
     bookNumber: series.bookNumber,
     follows: series.follows,
     precedes: series.precedes,
-    genre: options.genre ?? inherited.genre ?? "fiction",
-    subGenre: options.subGenre ?? inherited["sub-genre"] ?? "general",
+    genre: options.genre ?? (poetryDefault ? "poetry" : inherited.genre ?? "fiction"),
+    subGenre: options.subGenre ?? (poetryDefault ? "general" : inherited["sub-genre"] ?? "general"),
     settingEra: options.settingEra ?? "unspecified",
     themes,
     pov: options.pov ?? inherited.pov ?? "third-person-limited",
@@ -26965,18 +29611,18 @@ function fillStoryProject(root, title, cwd, options) {
     inherited: storyInherited,
     synopsis: options.synopsis ?? options.defaultSynopsis ?? "Add a 2-3 sentence synopsis here."
   }), { root });
-  writeStarterFile(path27.join(root, "characters", "_index.md"), characterIndex(storyId, [], "", ""), { root });
-  writeStarterFile(path27.join(root, "worldbuilding", "_index.md"), worldIndex(storyId, [], [], [], [], ""), { root });
-  writeStarterFile(path27.join(root, "plot", "_index.md"), plotIndex(storyId, "three-act", [], "", ""), { root });
-  writeStarterFile(path27.join(root, "plot", "timeline.md"), timeline(storyId), { root });
-  writeStarterFile(path27.join(root, "chapters", "_index.md"), chapterIndex(storyId, [], unit), { root });
-  writeStarterFile(path27.join(root, "scenes", "_index.md"), sceneIndex(storyId, []), { root });
-  writeStarterFile(path27.join(root, "continuity", "state.md"), continuityState(storyId), { root });
-  writeStarterFile(path27.join(root, "continuity", "questions", "_index.md"), questionIndex(storyId, []), { root });
-  writeStarterFile(path27.join(root, "continuity", "promises", "_index.md"), promiseIndex(storyId, []), { root });
-  writeStarterFile(path27.join(root, "continuity", "clues", "_index.md"), clueIndex(storyId, []), { root });
-  writeStarterFile(path27.join(root, "glossary", "_index.md"), glossaryIndex(storyId, []), { root });
-  writeStarterFile(path27.join(root, STYLE_SHEET_FILE), styleSheet(), { root });
+  writeStarterFile(path30.join(root, "characters", "_index.md"), characterIndex(storyId, [], "", ""), { root });
+  writeStarterFile(path30.join(root, "worldbuilding", "_index.md"), worldIndex(storyId, [], [], [], [], ""), { root });
+  writeStarterFile(path30.join(root, "plot", "_index.md"), plotIndex(storyId, "three-act", [], "", ""), { root });
+  writeStarterFile(path30.join(root, "plot", "timeline.md"), timeline(storyId), { root });
+  writeStarterFile(path30.join(root, "chapters", "_index.md"), chapterIndex(storyId, [], unit), { root });
+  writeStarterFile(path30.join(root, "scenes", "_index.md"), sceneIndex(storyId, []), { root });
+  writeStarterFile(path30.join(root, "continuity", "state.md"), continuityState(storyId), { root });
+  writeStarterFile(path30.join(root, "continuity", "questions", "_index.md"), questionIndex(storyId, []), { root });
+  writeStarterFile(path30.join(root, "continuity", "promises", "_index.md"), promiseIndex(storyId, []), { root });
+  writeStarterFile(path30.join(root, "continuity", "clues", "_index.md"), clueIndex(storyId, []), { root });
+  writeStarterFile(path30.join(root, "glossary", "_index.md"), glossaryIndex(storyId, []), { root });
+  writeStarterFile(path30.join(root, STYLE_SHEET_FILE), styleSheet(), { root });
   const gitignore = writeStarterGitignore(root);
   const linkedBooks = [];
   const existingLinks = storyWritten ? null : existingSeriesLinks(root);
@@ -26984,7 +29630,7 @@ function fillStoryProject(root, title, cwd, options) {
     if (existingLinks && !linksInclude(existingLinks[book.field], book.root)) {
       continue;
     }
-    const storyPath = path27.join(book.root, "story.md");
+    const storyPath = path30.join(book.root, "story.md");
     try {
       writeFile(storyPath, updated, { root: book.root, unchangedFrom: original });
     } catch (error) {
@@ -27021,7 +29667,7 @@ Thumbs.db
 *~
 `;
 function writeStarterGitignore(root) {
-  const filePath = path27.join(root, ".gitignore");
+  const filePath = path30.join(root, ".gitignore");
   const existing = lstatIfExists(filePath);
   if (!existing) {
     writeFile(filePath, STARTER_GITIGNORE, { root, unchangedFrom: null });
@@ -27110,7 +29756,7 @@ function resolveSeriesOptions(root, cwd, options) {
   const rootKey = canonicalPath(root);
   for (const [field, inverse] of [["follows", "precedes"], ["precedes", "follows"]]) {
     for (const value of asArray(options[field]).filter((item) => typeof item === "string" && item.trim() !== "")) {
-      const bookRoot = path27.resolve(cwd, value);
+      const bookRoot = path30.resolve(cwd, value);
       const key = canonicalPath(bookRoot);
       if (bookRoot === root || key === rootKey) {
         throw usageError(`--${field} ${value} points at the new story itself`);
@@ -27126,7 +29772,7 @@ function resolveSeriesOptions(root, cwd, options) {
       try {
         data = readBookFrontmatter(bookRoot);
       } catch (error) {
-        throw projectError(`--${field} ${value}: ${path27.posix.join(portablePath(value), "story.md")}: ${error.message}`);
+        throw projectError(`--${field} ${value}: ${path30.posix.join(portablePath(value), "story.md")}: ${error.message}`);
       }
       if (!data) {
         throw projectError(`--${field} ${value} is not a story project: missing story.md`);
@@ -27185,7 +29831,7 @@ function seriesBookNumbers(linked, requireComplete = false) {
 function planSeriesBacklinks(root, series) {
   const planned = [];
   for (const book of series.linked) {
-    const storyPath = path27.join(book.root, "story.md");
+    const storyPath = path30.join(book.root, "story.md");
     const original = readTextFile(storyPath);
     const updated = withSeriesBacklink(book.root, book.inverse, root, series.series, original);
     if (updated === null) {
@@ -27215,10 +29861,10 @@ function existingSeriesLinks(root) {
   return { follows: seriesLinks(root, data, "follows"), precedes: seriesLinks(root, data, "precedes") };
 }
 function enclosingStoryProject(root) {
-  let current = path27.dirname(path27.resolve(root));
+  let current = path30.dirname(path30.resolve(root));
   let previous = null;
   while (current !== previous) {
-    const storyPath = path27.join(current, "story.md");
+    const storyPath = path30.join(current, "story.md");
     let isProject = false;
     try {
       isProject = fs16.statSync(storyPath).isFile() && /^﻿?---\r?\n/.test(readTextFile(storyPath).slice(0, 8));
@@ -27229,13 +29875,13 @@ function enclosingStoryProject(root) {
       return current;
     }
     previous = current;
-    current = path27.dirname(current);
+    current = path30.dirname(current);
   }
   return null;
 }
 // src/mutate-add.js
 import fs17 from "node:fs";
-import path28 from "node:path";
+import path31 from "node:path";
 var ENTITY_ENUM_OPTIONS = {
   character: [["role", CHARACTER_ROLES], ["status", CHARACTER_STATUSES]],
   faction: [["type", FACTION_TYPES], ["status", FACTION_STATUSES]],
@@ -27433,7 +30079,7 @@ function missingReferenceWarnings(root, kind, data) {
     }
     for (const item of asArray(value)) {
       const id = typeof item === "string" ? item.trim() : "";
-      if (!isKebabId(id) || kinds.some((other) => fs17.existsSync(path28.join(root, entityConfig(other).dir, `${id}.md`)))) {
+      if (!isKebabId(id) || kinds.some((other) => fs17.existsSync(path31.join(root, entityConfig(other).dir, `${id}.md`)))) {
         continue;
       }
       const backlink = BACKLINKED_FIELDS[kind]?.includes(key) ? ", so no backlink was written" : "";
@@ -27444,17 +30090,17 @@ function missingReferenceWarnings(root, kind, data) {
 }
 function registryLists(root, kind, file) {
   const dir = entityConfig(kind).dir;
-  const registry = [dir, path28.posix.dirname(dir)].map((entry) => path28.posix.join(entry, "_index.md")).find((entry) => REGISTRY_FILES.has(entry));
-  const registryPath = registry && path28.join(root, registry);
+  const registry = [dir, path31.posix.dirname(dir)].map((entry) => path31.posix.join(entry, "_index.md")).find((entry) => REGISTRY_FILES.has(entry));
+  const registryPath = registry && path31.join(root, registry);
   if (!registryPath || !fs17.existsSync(registryPath)) {
     return false;
   }
-  const link = projectPath(path28.dirname(registryPath), file);
+  const link = projectPath(path31.dirname(registryPath), file);
   return safeRead(registryPath, root).includes(`](${link})`);
 }
 // src/mutate-rename.js
 import fs18 from "node:fs";
-import path29 from "node:path";
+import path32 from "node:path";
 function renameEntity(root, options) {
   return withUndo(root, ["rename", options.kind, options.id, options.name, ...flag("id", options.newId), ...options.prose ? ["--prose"] : []], () => renameNow(root, options));
 }
@@ -27470,7 +30116,7 @@ function renameNow(root, options) {
   requireSingleLineName(name, kind);
   const requestedId = requestedEntityId(kind, options.newId);
   const config = entityConfig(kind);
-  const oldFile = path29.join(project.root, config.dir, `${oldId}.md`);
+  const oldFile = path32.join(project.root, config.dir, `${oldId}.md`);
   requireKebabId(oldId, `${kind} id`);
   assertSafeProjectPath(oldFile, project.root);
   const newId = kind === "chapter" || kind === "scene" ? oldId : requestedId ?? kebabCase(name);
@@ -27478,14 +30124,14 @@ function renameNow(root, options) {
     throw usageError(undeducibleIdMessage(kind, name));
   }
   assertPortableId(newId, kind);
-  const newFile = path29.join(project.root, config.dir, `${newId}.md`);
+  const newFile = path32.join(project.root, config.dir, `${newId}.md`);
   assertSafeProjectPath(newFile, project.root);
   if (!fs18.existsSync(oldFile)) {
     const marker = renameMarker(project.root);
     if (marker?.kind === kind && marker.id === oldId && marker.newId === newId && marker.name === name && fs18.existsSync(newFile) && replaceEntityReferences(project.root, kind, oldId, newId, new Map).size === 0) {
       const reindexed = reindexProject(project.root);
       const warnings = ambiguousReferenceWarnings(project.root, kind, oldId, newFile, newId);
-      removeFile(path29.join(project.root, RENAME_MARKER), { force: true });
+      removeFile(path32.join(project.root, RENAME_MARKER), { force: true });
       return { kind, oldId, id: newId, file: newFile, changed: [newFile].concat(reindexed.changed), resumed: true, warnings };
     }
     throw usageError(`${kind} ${oldId} does not exist`);
@@ -27531,7 +30177,7 @@ function renameNow(root, options) {
     }
     warnings = warnings.concat(ambiguousReferenceWarnings(project.root, kind, oldId, oldFile, newId));
     assertWritable(project.root, [...plan.keys(), oldFile], interrupted ? [] : [newFile]);
-    writeFile(path29.join(project.root, RENAME_MARKER), `${JSON.stringify({ kind, id: oldId, newId, name })}
+    writeFile(path32.join(project.root, RENAME_MARKER), `${JSON.stringify({ kind, id: oldId, newId, name })}
 `, { root: project.root });
     commitWrites(() => {
       writeReferencePlan(project.root, plan);
@@ -27546,7 +30192,7 @@ function renameNow(root, options) {
   }
   const reindexed = reindexProject(project.root);
   if (newFile !== oldFile) {
-    removeFile(path29.join(project.root, RENAME_MARKER), { force: true });
+    removeFile(path32.join(project.root, RENAME_MARKER), { force: true });
   }
   const result = { kind, oldId, id: newId, file: newFile, changed: [newFile].concat(reindexed.changed), warnings };
   if (prose) {
@@ -27556,7 +30202,7 @@ function renameNow(root, options) {
   return result;
 }
 function renameMarker(root) {
-  const file = path29.join(root, RENAME_MARKER);
+  const file = path32.join(root, RENAME_MARKER);
   if (!fs18.existsSync(file)) {
     return null;
   }
@@ -27617,7 +30263,7 @@ function removeNow(root, options) {
     throw usageError("remove requires an entity id");
   }
   const config = entityConfig(kind);
-  const file = path29.join(project.root, config.dir, `${id}.md`);
+  const file = path32.join(project.root, config.dir, `${id}.md`);
   requireKebabId(id, `${kind} id`);
   assertSafeProjectPath(file, project.root);
   const alreadyGone = !fs18.existsSync(file);
@@ -27647,13 +30293,13 @@ function removeNow(root, options) {
     removeFile(file, { force: true, root: project.root, unchangedFrom: original });
   });
   const reindexed = reindexProject(project.root);
-  const warnings = leftoverReferenceWarnings(project.root, kind, id, project.story.data.queries);
+  const warnings = leftoverReferenceWarnings(project.root, kind, id, project.story.data.queries, project.story.data.checks);
   if (choosers.length > 0) {
     warnings.push(warn("choices-dropped", branchGraph(scanProject(project.root)).branching || !wasBranching ? `${choosers.join(", ")} had choices leading to ${id}, which remove dropped; a chapter left with no choices is an ending, so check where ${choosers.length === 1 ? "it leads" : "they lead"} now` : `${choosers.join(", ")} had the last choices in the book, leading to ${id}, which remove dropped; with no choices left the book is linear again and each chapter continues to the next, so add choices back to keep it branching`, choosers.length === 1 ? choosers[0] : null));
   }
   return { kind, id, file, alreadyGone, changed: [file].concat(reindexed.changed), warnings };
 }
-function leftoverReferenceWarnings(root, kind, id, queries) {
+function leftoverReferenceWarnings(root, kind, id, queries, checks) {
   const warnings = [];
   const context = entityReferenceContext(root, kind, id);
   const probe = `${id}-leftover-probe`;
@@ -27679,6 +30325,11 @@ function leftoverReferenceWarnings(root, kind, id, queries) {
     const listed = named.map((entry) => `${shownQuery(entry)} (${entry.positions.map((position) => shownFilter(entry.item.where[position])).join(", ")})`).join(", ");
     warnings.push(warn("stale-query", `story.md ${named.length === 1 ? "query" : "queries"} ${listed} still ${named.length === 1 ? "filters" : "filter"} on ${kind} ${id}, which remove does not change: update or delete ${named.length === 1 ? "that filter" : "those filters"}`, "story.md"));
   }
+  const checked = queryFiltersNaming(checks, context.isReferenceKey, id);
+  if (checked.length > 0) {
+    const listed = checked.map((entry) => `${shownCheck(entry)} (${entry.positions.map((position) => shownFilter(entry.item.where[position])).join(", ")})`).join(", ");
+    warnings.push(warn("stale-query", `story.md ${checked.length === 1 ? "check" : "checks"} ${listed} still ${checked.length === 1 ? "filters" : "filter"} on ${kind} ${id}, which remove does not change: update or delete ${checked.length === 1 ? "that filter" : "those filters"}`, "story.md"));
+  }
   if (stale.length > 0) {
     const values = stale.flatMap(({ keys }) => keys);
     warnings.push(warn("stale-exemption", `continuity/exemptions.md has ${stale.length === 1 ? "an entry" : `${stale.length} entries`} naming ${id} (${stale.map(({ index }) => `exemptions[${index}]`).join(", ")}), which ${stale.length === 1 ? "no longer matches" : "no longer match"} anything: ${values.join(", ")}. Delete or update ${stale.length === 1 ? "it" : "them"}`, EXEMPTIONS_FILE));
@@ -27688,7 +30339,7 @@ function leftoverReferenceWarnings(root, kind, id, queries) {
 var BEFORE_STORY_FIELDS = ["died-in", "since", "learned-in"];
 // src/mutate-move.js
 import fs19 from "node:fs";
-import path30 from "node:path";
+import path33 from "node:path";
 function moveEntity(root, options) {
   return withUndo(root, ["move", options.kind, options.id, ...flag("number", options.number), ...flag("chapter", options.chapter), ...flag("scene", options.scene)], () => {
     const project = scanProject(root);
@@ -27740,7 +30391,7 @@ function moveChapter(project, oldId, options, action = "move") {
   }
   const number = requirePositiveInteger(options.number, "chapter number");
   const newId = `chapter-${String(number).padStart(2, "0")}`;
-  const newFile = path30.join(project.root, "chapters", `${newId}.md`);
+  const newFile = path33.join(project.root, "chapters", `${newId}.md`);
   if (newId === oldId) {
     throw usageError(`${oldId} is already chapter ${number}`);
   }
@@ -27750,13 +30401,13 @@ function moveChapter(project, oldId, options, action = "move") {
   const scenes = project.scenes.filter((scene) => scene.chapter === oldId);
   const sceneMoves = scenes.map((scene) => ({
     oldFile: scene.file,
-    newFile: path30.join(project.root, "scenes", `${newId}-scene-${String(scene.scene).padStart(2, "0")}.md`)
+    newFile: path33.join(project.root, "scenes", `${newId}-scene-${String(scene.scene).padStart(2, "0")}.md`)
   }));
   const context = entityReferenceContext(project.root, "chapter", oldId);
   const sceneContexts = scenes.map((scene) => ({ context: entityReferenceContext(project.root, "scene", scene.id), newId: `${newId}-scene-${String(scene.scene).padStart(2, "0")}` }));
   const plan = planReferenceRewrites(project.root, context, new Map([[chapter.file, renumbered]]), idRenamer(oldId, newId), (body, file) => renameIdTokens(project.root, file, sceneContexts.reduce((text, entry) => renameLinkTargets(project.root, file, text, entry.context, entry.newId), renameLinkTargets(project.root, file, body, context, newId)), oldId, newId));
   plan.originals.set(chapter.file, markdown.rawMarkdown);
-  const statePath = path30.join(project.root, "continuity", "state.md");
+  const statePath = path33.join(project.root, "continuity", "state.md");
   if (fs19.existsSync(statePath)) {
     const stateText = plan.get(statePath) ?? readTextFile(statePath);
     const stateData = parseFrontmatter(stateText, statePath).data;
@@ -27794,7 +30445,7 @@ function renumberedHeading(body, number) {
 function reorderProgressions(project, plan, chronology) {
   const dirs = PROGRESSION_KINDS.map((kind) => entityConfig(kind).dir);
   for (const [file, text] of plan) {
-    if (!dirs.includes(projectPath(project.root, path30.dirname(file)))) {
+    if (!dirs.includes(projectPath(project.root, path33.dirname(file)))) {
       continue;
     }
     const data = parseFrontmatter(text, file).data;
@@ -27828,7 +30479,7 @@ function moveScene(project, oldId, options, action = "move") {
     const plan = planReferenceRewrites(project.root, context, new Map([[scene.file, moved]]), idRenamer(oldId, newId), (body, file) => renameIdTokens(project.root, file, renameLinkTargets(project.root, file, body, context, newId), oldId, newId));
     plan.originals.set(scene.file, markdown.rawMarkdown);
     followExemptionPatterns(project.root, plan, "scene", oldId, newId);
-    return { number, newId, plan, moves: [{ oldFile: scene.file, newFile: path30.join(project.root, "scenes", `${newId}.md`) }] };
+    return { number, newId, plan, moves: [{ oldFile: scene.file, newFile: path33.join(project.root, "scenes", `${newId}.md`) }] };
   };
   let target;
   if (options.scene === undefined) {
@@ -27844,13 +30495,13 @@ function moveScene(project, oldId, options, action = "move") {
     throw refusedError(`${newId} already exists: move it first`);
   }
   const warnings = project.scenes.some((entry) => entry.id === newId) ? [] : adoptedReferenceWarnings(project.root, "scene", newId, scene.file, action);
-  commitMoves(project.root, plan, moves, () => applyEntityBacklinks(project.root, "scene", newId, readMarkdown(newFile, project.root).data), [path30.join(project.root, "chapters", `${chapterId}.md`)]);
+  commitMoves(project.root, plan, moves, () => applyEntityBacklinks(project.root, "scene", newId, readMarkdown(newFile, project.root).data), [path33.join(project.root, "chapters", `${chapterId}.md`)]);
   const reindexed = reindexProject(project.root);
   return { kind: "scene", oldId, id: newId, file: newFile, moved: 1, changed: [newFile].concat(reindexed.changed), warnings };
 }
 // src/mutate-restructure.js
 import fs20 from "node:fs";
-import path31 from "node:path";
+import path34 from "node:path";
 var RESTRUCTURE_HINT = "Some files were already changed: fix the problem and run the same command again, which puts them back and starts over, or run story doctor --fix to put them back";
 function restructureWrites(root, write) {
   const { result: error, changes } = recordChanges(root, () => {
@@ -28010,7 +30661,7 @@ function assertRestructurable(project, { chapters, scenes, changed, created, cha
   if (occupied) {
     throw refusedError(`${relative(project, occupied)} already exists and is not a chapter this command renumbers: fix it first (story validate reports it)`);
   }
-  const ids = new Set([...chapters, ...chapterTargets.map((file) => path31.basename(file, ".md"))]);
+  const ids = new Set([...chapters, ...chapterTargets.map((file) => path34.basename(file, ".md"))]);
   for (const scene of project.scenes) {
     const named = /^(.+)-scene-\d+$/.exec(scene.id)?.[1];
     const expected = `${scene.chapter}-scene-${String(scene.scene).padStart(2, "0")}`;
@@ -28018,11 +30669,11 @@ function assertRestructurable(project, { chapters, scenes, changed, created, cha
       throw refusedError(`${relative(project, scene.file)} is scene ${scene.scene} of ${scene.chapter} by its frontmatter but not by its file name, so renumbering could collide with it: rename it to scenes/${expected}.md, or fix its chapter and scene fields, first`);
     }
   }
-  const fixed = [path31.join("continuity", "state.md"), EXEMPTIONS_FILE, ...REGISTRY_FILES].map((file) => path31.join(root, file));
+  const fixed = [path34.join("continuity", "state.md"), EXEMPTIONS_FILE, ...REGISTRY_FILES].map((file) => path34.join(root, file));
   assertWritable(root, [...changed, ...rewrittenFiles(root, "chapter", chapters), ...rewrittenFiles(root, "scene", scenes), ...fixed], created);
 }
 function setCurrentChapter(root, from, to, plan = null) {
-  const statePath = path31.join(root, "continuity", "state.md");
+  const statePath = path34.join(root, "continuity", "state.md");
   if (!fs20.existsSync(statePath)) {
     return;
   }
@@ -28042,7 +30693,7 @@ function setCurrentChapter(root, from, to, plan = null) {
   }
 }
 // src/mutate-split.js
-import path32 from "node:path";
+import path35 from "node:path";
 function refuseSplitAdoption(project, chapter, run) {
   const last = run.at(-1);
   const number = (last ?? chapter).number + 1;
@@ -28125,7 +30776,7 @@ function chapterReferenceFiles(root, chapterId, excluded) {
   const plan = planReferenceRewrites(root, context, new Map(excluded.map((file) => [file, null])), idRenamer(chapterId, probe), (body, file) => renameIdTokens(root, file, renameLinkTargets(root, file, body, context, probe), chapterId, probe, renameChapterIdText));
   return [...plan.keys()].map((file) => projectPath(root, file)).filter((file) => !REGISTRY_FILES.has(file)).sort();
 }
-var SPLIT_COPIED_FIELDS = ["numbered", "author", "pov", "locations", "characters", "mentions", "status", "mode", "date", "time", "strand"];
+var SPLIT_COPIED_FIELDS = ["numbered", "verse", "author", "pov", "locations", "characters", "mentions", "status", "mode", "date", "time", "strand"];
 function splitChapter(root, options) {
   return withUndo(root, ["split", options.id, ...flag("at", options.at), ...flag("title", options.title)], () => splitNow(root, options));
 }
@@ -28152,7 +30803,7 @@ function splitNow(root, options) {
   const point = splitPoint(original.body, marker, chapter.id, headerLines);
   const number = chapter.number + 1;
   const newId = canonicalChapterId(number);
-  const newFile = path32.join(project.root, "chapters", `${newId}.md`);
+  const newFile = path35.join(project.root, "chapters", `${newId}.md`);
   const run = followingRun(project, number);
   const added = project.chapters.some((entry) => chapterChoices(entry, "").choices.length > 0) ? { file: relative(project, chapter.file), index: 0, text: CONTINUE_CHOICE, to: newId } : null;
   const scenes = project.scenes.filter((scene) => scene.chapter === chapter.id).sort((left, right) => left.scene - right.scene);
@@ -28173,12 +30824,12 @@ function splitNow(root, options) {
     warnings.push(warn("split-references", `${referencing.join(", ")} still ${referencing.length === 1 ? "names" : "name"} ${chapter.id}, which now holds only the text before the split: check whether ${referencing.length === 1 ? "it" : "any of them"} should name ${newId} instead`, referencing.length === 1 ? referencing[0] : null));
   }
   const runIds = new Set(run.map((entry) => entry.id));
-  const chapterTargets = [newFile, ...run.map((entry) => path32.join(project.root, "chapters", `${canonicalChapterId(entry.number + 1)}.md`))];
+  const chapterTargets = [newFile, ...run.map((entry) => path35.join(project.root, "chapters", `${canonicalChapterId(entry.number + 1)}.md`))];
   assertRestructurable(project, {
     chapters: [chapter.id, ...runIds],
     scenes: [...moving, ...project.scenes.filter((scene) => runIds.has(scene.chapter))].map((scene) => scene.id),
     changed: [chapter.file, ...chapterRunFiles(project, run), ...moving.map((scene) => scene.file)],
-    created: [...chapterTargets, ...moving.map((scene, index) => path32.join(project.root, "scenes", `${newId}-scene-${String(index + 1).padStart(2, "0")}.md`))],
+    created: [...chapterTargets, ...moving.map((scene, index) => path35.join(project.root, "scenes", `${newId}-scene-${String(index + 1).padStart(2, "0")}.md`))],
     chapterTargets
   });
   refuseSplitAdoption(project, chapter, run);
@@ -28237,7 +30888,7 @@ ${secondProse}`;
 }
 // src/mutate-merge.js
 import fs21 from "node:fs";
-import path33 from "node:path";
+import path36 from "node:path";
 function mergeChapters(root, options) {
   return withUndo(root, ["merge", options.id, options.next], () => mergeNow(root, options));
 }
@@ -28262,7 +30913,7 @@ function mergeNow(root, options) {
   const choices = refuseUnsafeBranching(project, "merge", [first, second], second);
   const scenes = project.scenes.filter((scene) => scene.chapter === second.id).sort((left, right) => left.scene - right.scene);
   const firstScene = nextSceneNumber(project, first.id);
-  const sceneFiles = scenes.map((scene, index) => path33.join(project.root, "scenes", `${first.id}-scene-${String(firstScene + index).padStart(2, "0")}.md`));
+  const sceneFiles = scenes.map((scene, index) => path36.join(project.root, "scenes", `${first.id}-scene-${String(firstScene + index).padStart(2, "0")}.md`));
   const taken = sceneFiles.find((file) => fs21.existsSync(file));
   if (taken) {
     throw refusedError(`${relative(project, taken)} already exists; nothing was changed`);
@@ -28274,7 +30925,7 @@ function mergeNow(root, options) {
     scenes: [...scenes, ...project.scenes.filter((scene) => runIds.has(scene.chapter))].map((scene) => scene.id),
     changed: [first.file, second.file, ...scenes.map((scene) => scene.file), ...chapterRunFiles(project, run)],
     created: sceneFiles,
-    chapterTargets: run.map((entry) => path33.join(project.root, "chapters", `${canonicalChapterId(entry.number - 1)}.md`))
+    chapterTargets: run.map((entry) => path36.join(project.root, "chapters", `${canonicalChapterId(entry.number - 1)}.md`))
   });
   const warnings = [];
   restructureWrites(project.root, () => {
@@ -28284,7 +30935,7 @@ function mergeNow(root, options) {
     const current = scanProject(project.root);
     const kept = readMarkdown(first.file, project.root);
     const gone = readMarkdown(second.file, project.root);
-    const merged = mergedChapter(kept, gone, current.unit, first.id, second.id);
+    const merged = mergedChapter(kept, gone, current, first.id, second.id);
     warnings.push(...merged.warnings);
     const context = entityReferenceContext(project.root, "chapter", second.id);
     const plan = planReferenceRewrites(project.root, context, new Map([[first.file, merged.text], [second.file, null]]), idRenamer(second.id, first.id), (body, file) => renameIdTokens(project.root, file, renameLinkTargets(project.root, file, body, context, first.id), second.id, first.id));
@@ -28328,7 +30979,7 @@ function mergeProgressions(root, plan, chapterId) {
   const dirs = PROGRESSION_KINDS.map((kind) => entityConfig(kind).dir);
   const warnings = [];
   for (const [file, text] of plan) {
-    if (text === null || !dirs.includes(projectPath(root, path33.dirname(file)))) {
+    if (text === null || !dirs.includes(projectPath(root, path36.dirname(file)))) {
       continue;
     }
     const data = parseFrontmatter(text, file).data;
@@ -28361,7 +31012,7 @@ var BLANK_VALUES = [undefined, null, ""];
 function isBlankValue(value) {
   return BLANK_VALUES.includes(value) || Array.isArray(value) && value.length === 0;
 }
-var MERGE_DERIVED_FIELDS = new Set(["title", "number", "word-count", "character-count", "hook", "numbered"]);
+var MERGE_DERIVED_FIELDS = new Set(["title", "number", "word-count", "character-count", "hook", "numbered", "verse"]);
 var MERGE_SUMMED_FIELDS = new Set(["target-words", "target-characters"]);
 function mergedChapterData(firstData, secondData) {
   const data = { ...firstData };
@@ -28548,7 +31199,8 @@ function sceneBreakLine(body) {
   const paragraph = proseParagraphs3(body).find((entry) => entry.sceneBreak);
   return paragraph ? body.slice(paragraph.start, paragraph.end).trim() : null;
 }
-function mergedChapter(first, second, unit, firstId, secondId) {
+function mergedChapter(first, second, project, firstId, secondId) {
+  const { unit } = project;
   const body = withLineEndings(mergedChapterBody(first.body, second.body, first.data.number, second.data.number), first.rawMarkdown);
   const { data, conflicts, droppedHook } = mergedChapterData(first.data, second.data);
   const label = `chapters/${firstId}.md`;
@@ -28562,6 +31214,10 @@ function mergedChapter(first, second, unit, firstId, secondId) {
   const numbered = (data) => data.numbered !== false;
   if (numbered(first.data) !== numbered(second.data)) {
     warnings.push(warn("merge-conflicts", numbered(first.data) ? `${secondId} is unnumbered (numbered: false) but ${firstId} is not: the merged ${firstId} stays numbered. Set numbered: false on it if it should not be` : `${firstId} is unnumbered (numbered: false) but ${secondId} is not: the merged ${firstId} stays unnumbered. Remove numbered: false from it if it should be numbered`, label));
+  }
+  const verse = (data) => isVerseChapter(project.story.data, data);
+  if (verse(first.data) !== verse(second.data)) {
+    warnings.push(warn("merge-conflicts", verse(first.data) ? `${secondId} is prose but ${firstId} is verse: the merged ${firstId} stays verse, so every line break of ${secondId}'s text is kept. Set verse: false on it if it should be prose` : `${secondId} is verse but ${firstId} is prose: the merged ${firstId} stays prose, so ${secondId}'s lines join. Set verse: true on it if it should be verse`, label));
   }
   return { text: replaceFrontmatter(first.rawMarkdown, { ...data, ...chapterLengthFields(body, unit) }, body), warnings };
 }
@@ -28595,7 +31251,7 @@ function snapshotId(name, id) {
   return derived;
 }
 function nextSnapshotId(root, prefix) {
-  const folder = path34.join(path34.resolve(root), SNAPSHOTS_DIR);
+  const folder = path37.join(path37.resolve(root), SNAPSHOTS_DIR);
   const taken = new Set(lstatIfExists(folder)?.isDirectory() ? fs22.readdirSync(folder) : []);
   let next = 1;
   for (const name of taken) {
@@ -28616,26 +31272,26 @@ function snapshotProject(root, options = {}) {
     assertProjectParses(project, "take a snapshot");
   }
   const projectRoot = project.root;
-  const folder = path34.join(projectRoot, SNAPSHOTS_DIR);
+  const folder = path37.join(projectRoot, SNAPSHOTS_DIR);
   const madeFolder = lstatIfExists(folder) === null;
   if (!madeFolder) {
     assertSafeProjectDirectory(folder, projectRoot);
   }
-  const target = path34.join(folder, id);
+  const target = path37.join(folder, id);
   const existing = lstatIfExists(target);
   if (existing && !options.force) {
     throw refusedError(`Snapshot ${id} already exists in ${SNAPSHOTS_DIR}/${id}: choose another name, or add --force to replace it`);
   }
   assertWriteAllowed(target);
   const previous = existing ? snapshotFiles(target, projectRoot) : [];
-  const backup = existing ? path34.join(projectRoot, SNAPSHOTS_DIR, `.${id}.story-${process.pid}.backup`) : null;
+  const backup = existing ? path37.join(projectRoot, SNAPSHOTS_DIR, `.${id}.story-${process.pid}.backup`) : null;
   if (backup !== null) {
     fs22.rmSync(backup, { recursive: true, force: true });
     fs22.cpSync(target, backup, { recursive: true });
   }
   try {
     if (madeFolder) {
-      writeFile(path34.join(folder, SNAPSHOTS_GITIGNORE), SNAPSHOTS_GITIGNORE_TEXT, { root: projectRoot });
+      writeFile(path37.join(folder, SNAPSHOTS_GITIGNORE), SNAPSHOTS_GITIGNORE_TEXT, { root: projectRoot });
     }
     const manifest = writeSnapshot(project, target, id, options, previous);
     return { ...manifest, dir: `${SNAPSHOTS_DIR}/${id}`, replaced: existing !== null, warnings: [] };
@@ -28645,7 +31301,7 @@ function snapshotProject(root, options = {}) {
       fs22.renameSync(backup, target);
     }
     if (madeFolder) {
-      fs22.rmSync(path34.join(folder, SNAPSHOTS_GITIGNORE), { force: true });
+      fs22.rmSync(path37.join(folder, SNAPSHOTS_GITIGNORE), { force: true });
       try {
         fs22.rmdirSync(folder);
       } catch {}
@@ -28663,7 +31319,7 @@ function writeSnapshot(project, target, id, options, previous) {
   const files = markdownFiles(projectRoot);
   const written = new Set;
   for (const file of files) {
-    const copy = path34.join(target, path34.relative(projectRoot, file));
+    const copy = path37.join(target, path37.relative(projectRoot, file));
     writeFile(copy, readTextFile(file), { root: projectRoot, mode: fs22.statSync(file).mode & 511 | 384 });
     written.add(copy);
   }
@@ -28680,7 +31336,7 @@ function writeSnapshot(project, target, id, options, previous) {
     files: files.length,
     ...unparsed > 0 ? { unparsed } : {}
   };
-  const manifestPath = path34.join(target, SNAPSHOT_MANIFEST);
+  const manifestPath = path37.join(target, SNAPSHOT_MANIFEST);
   writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}
 `, { root: projectRoot });
   written.add(manifestPath);
@@ -28693,12 +31349,12 @@ function writeSnapshot(project, target, id, options, previous) {
   return manifest;
 }
 function snapshotFiles(directory, root) {
-  assertSafeProjectDirectory(path34.dirname(directory), root);
+  assertSafeProjectDirectory(path37.dirname(directory), root);
   assertSafeProjectDirectory(directory, root);
   const files = [];
   const walk = (folder) => {
     for (const entry of fs22.readdirSync(folder, { withFileTypes: true })) {
-      const full = path34.join(folder, entry.name);
+      const full = path37.join(folder, entry.name);
       if (entry.isDirectory()) {
         walk(full);
       } else {
@@ -28712,7 +31368,7 @@ function snapshotFiles(directory, root) {
 function removeEmptyFolders(folder) {
   for (const entry of fs22.readdirSync(folder, { withFileTypes: true })) {
     if (entry.isDirectory()) {
-      const full = path34.join(folder, entry.name);
+      const full = path37.join(folder, entry.name);
       removeEmptyFolders(full);
       if (fs22.readdirSync(full).length === 0) {
         fs22.rmdirSync(full);
@@ -28721,9 +31377,9 @@ function removeEmptyFolders(folder) {
   }
 }
 function listSnapshots(root) {
-  const projectRoot = path34.resolve(root);
+  const projectRoot = path37.resolve(root);
   requireStoryFile(projectRoot);
-  const folder = path34.join(projectRoot, SNAPSHOTS_DIR);
+  const folder = path37.join(projectRoot, SNAPSHOTS_DIR);
   const warnings = [];
   if (lstatIfExists(folder) === null) {
     return { ok: true, errors: [], warnings, snapshots: [] };
@@ -28732,7 +31388,7 @@ function listSnapshots(root) {
   const snapshots = fs22.readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isDirectory() && !entry.name.startsWith(".")).map((entry) => {
     const blank = { name: entry.name, id: entry.name, created: null, chapters: null, words: null };
     try {
-      const manifest = JSON.parse(readTextFile(path34.join(folder, entry.name, SNAPSHOT_MANIFEST)));
+      const manifest = JSON.parse(readTextFile(path37.join(folder, entry.name, SNAPSHOT_MANIFEST)));
       return {
         ...blank,
         ...typeof manifest.name === "string" ? { name: manifest.name } : {},
@@ -28756,7 +31412,7 @@ function bySnapshotAge(a, b) {
   return order(a.created ?? "", b.created ?? "") || order(a.id, b.id);
 }
 function existingSnapshot(root, value) {
-  const projectRoot = path34.resolve(root);
+  const projectRoot = path37.resolve(root);
   const text = String(value).trim();
   const { snapshots } = listSnapshots(projectRoot);
   let derived = null;
@@ -28768,12 +31424,12 @@ function existingSnapshot(root, value) {
     const list = snapshots.length === 0 ? "this project has none yet (story snapshot <name> takes one)" : `story snapshot --list shows them: ${snapshots.map((snapshot) => snapshot.id).join(", ")}`;
     throw usageError(`No snapshot named ${text}: ${list}`);
   }
-  const directory = path34.join(projectRoot, SNAPSHOTS_DIR, found.id);
+  const directory = path37.join(projectRoot, SNAPSHOTS_DIR, found.id);
   assertSafeProjectDirectory(directory, projectRoot);
   return { directory, id: found.id };
 }
 function restoreSnapshot(root, options = {}) {
-  const projectRoot = path34.resolve(root);
+  const projectRoot = path37.resolve(root);
   requireStoryFile(projectRoot);
   const { directory, id } = existingSnapshot(projectRoot, options.name);
   const manifest = listSnapshots(projectRoot).snapshots.find((snapshot) => snapshot.id === id);
@@ -28790,7 +31446,7 @@ function restoreSnapshot(root, options = {}) {
   }
   const safetyId = nextSafetyId(projectRoot, id);
   const safety = snapshotProject(projectRoot, { name: safetyId, id: safetyId, now: options.now, unparsed: true });
-  const at = (relative) => path34.join(projectRoot, ...relative.split("/"));
+  const at = (relative) => path37.join(projectRoot, ...relative.split("/"));
   const done = { created: [], updated: [], deleted: [], removedFolders: [] };
   const warnings = [];
   try {
@@ -28818,7 +31474,7 @@ ${state[0].toUpperCase()}${state.slice(1)}. Snapshot ${safetyId} holds the proje
   return { restored, safety: { id: safety.id, dir: safety.dir }, ...done, reindexed: parses, warnings };
 }
 function planRestore(root, name, { identity = fileIdentity } = {}) {
-  const projectRoot = path34.resolve(root);
+  const projectRoot = path37.resolve(root);
   const { id, saved } = restoreSources(projectRoot, name);
   const spell = projectSpelling(projectRoot, identity, id);
   const writes = [];
@@ -28829,7 +31485,7 @@ function planRestore(root, name, { identity = fileIdentity } = {}) {
       throw refusedError(`Cannot restore snapshot ${id}: its ${reached.get(spelled)} and ${relative} are one file in this project (${spelled}), whose folder does not tell the two spellings apart. Nothing was changed`);
     }
     reached.set(spelled, relative);
-    const target = path34.join(projectRoot, ...spelled.split("/"));
+    const target = path37.join(projectRoot, ...spelled.split("/"));
     const text = readTextFile(source);
     const existing = lstatIfExists(target);
     const current = existing?.isFile() ? currentText(target) : null;
@@ -28838,7 +31494,7 @@ function planRestore(root, name, { identity = fileIdentity } = {}) {
     }
     writes.push({ path: spelled, text, created: existing === null, original: current });
   }
-  const deletes = markdownFiles(projectRoot).map((file) => projectPath(projectRoot, file)).filter((file) => !reached.has(file)).map((file) => ({ path: file, original: readTextFile(path34.join(projectRoot, ...file.split("/"))) }));
+  const deletes = markdownFiles(projectRoot).map((file) => projectPath(projectRoot, file)).filter((file) => !reached.has(file)).map((file) => ({ path: file, original: readTextFile(path37.join(projectRoot, ...file.split("/"))) }));
   return { writes, deletes, folders: emptiedFolders(projectRoot, deletes.map((file) => file.path), writes, identity) };
 }
 function fileIdentity(file) {
@@ -28869,17 +31525,17 @@ function projectSpelling(projectRoot, identity, id) {
         break;
       }
       if (!names.includes(parts[index])) {
-        const found = identityOf(path34.join(folder, parts[index]));
+        const found = identityOf(path37.join(folder, parts[index]));
         if (found === null) {
           break;
         }
-        const same = names.filter((name) => identityOf(path34.join(folder, name)) === found);
+        const same = names.filter((name) => identityOf(path37.join(folder, name)) === found);
         if (same.length !== 1) {
           throw refusedError(`Cannot restore snapshot ${id}: the project finds ${relative} under another spelling, but cannot tell which of its files that is${same.length > 1 ? ` (${same.join(", ")})` : ""}. Nothing was changed`);
         }
         parts[index] = same[0];
       }
-      folder = path34.join(folder, parts[index]);
+      folder = path37.join(folder, parts[index]);
     }
     return parts.join("/");
   };
@@ -28890,7 +31546,7 @@ function foldersOf(relative) {
   return parts.map((_, depth) => parts.slice(0, depth + 1).join("/"));
 }
 function emptiedFolders(projectRoot, deletes, writes, identity) {
-  const at = (relative) => path34.join(projectRoot, ...relative.split("/"));
+  const at = (relative) => path37.join(projectRoot, ...relative.split("/"));
   const deleted = new Set(deletes);
   const receiving = new Set(writes.flatMap((write) => foldersOf(write.path)));
   const kept = new Set(PROJECT_FOLDERS.map((folder) => identity(at(folder))).filter((found) => found !== null));
@@ -28910,7 +31566,7 @@ function emptiedFolders(projectRoot, deletes, writes, identity) {
 function removeEmptiedFolders(projectRoot, folders, warnings) {
   const removed = [];
   for (const folder of folders) {
-    const full = path34.join(projectRoot, ...folder.split("/"));
+    const full = path37.join(projectRoot, ...folder.split("/"));
     try {
       assertSafeProjectDirectory(full, projectRoot);
       if (fs22.readdirSync(full).length === 0) {
@@ -28925,7 +31581,7 @@ function removeEmptiedFolders(projectRoot, folders, warnings) {
 }
 function restoreSources(projectRoot, name) {
   const { directory, id } = existingSnapshot(projectRoot, name);
-  if (lstatIfExists(path34.join(directory, "story.md"))?.isFile() !== true) {
+  if (lstatIfExists(path37.join(directory, "story.md"))?.isFile() !== true) {
     throw refusedError(`Cannot restore snapshot ${id}: ${SNAPSHOTS_DIR}/${id} has no story.md, so it is not a whole project. Nothing was changed`);
   }
   const saved = new Map(markdownFiles(directory).map((file) => [projectPath(directory, file), file]));
@@ -28936,12 +31592,12 @@ function restoreSources(projectRoot, name) {
         continue;
       }
       checked.add(folder);
-      const full = path34.join(projectRoot, ...folder.split("/"));
+      const full = path37.join(projectRoot, ...folder.split("/"));
       const stats = lstatIfExists(full);
       if (stats?.isSymbolicLink()) {
         throw refusedError(`Cannot restore snapshot ${id}: ${folder}/ is a symlink, and ${relative} would be written through it. Nothing was changed`);
       }
-      if (stats !== null && fs22.existsSync(path34.join(full, "story.md"))) {
+      if (stats !== null && fs22.existsSync(path37.join(full, "story.md"))) {
         throw refusedError(`Cannot restore snapshot ${id}: ${relative} would be written into ${folder}/, which is now a story project of its own. Nothing was changed`);
       }
     }
@@ -29012,7 +31668,7 @@ function unparsedNote(snapshot) {
 }
 
 // src/stdin.js
-import { Buffer as Buffer8 } from "node:buffer";
+import { Buffer as Buffer9 } from "node:buffer";
 import fs23 from "node:fs";
 import tty from "node:tty";
 var STDIN_ARG = "-";
@@ -29024,7 +31680,7 @@ function readStdin(command, { fd = 0, isatty = tty.isatty, readSync = fs23.readS
     throw usageError(`story ${command} - reads from stdin, but stdin is a terminal: pipe the text in, such as story ${command} - < draft.md`);
   }
   const chunks = [];
-  const buffer = Buffer8.alloc(CHUNK_BYTES);
+  const buffer = Buffer9.alloc(CHUNK_BYTES);
   let total = 0;
   for (;; ) {
     let read;
@@ -29050,12 +31706,12 @@ function readStdin(command, { fd = 0, isatty = tty.isatty, readSync = fs23.readS
     if (total > maxBytes) {
       throw usageError(`Refusing to read more than ${maxBytes} bytes from stdin`);
     }
-    chunks.push(Buffer8.from(buffer.subarray(0, read)));
+    chunks.push(Buffer9.from(buffer.subarray(0, read)));
   }
-  return Buffer8.concat(chunks);
+  return Buffer9.concat(chunks);
 }
 function stdinText(command, bytes) {
-  const zipAdvice = command === "import" ? "story import reads a Word document only from a .docx file, not from stdin: pass the file's path instead" : "Save or export it as markdown or plain text first";
+  const zipAdvice = command === "import" ? "story import reads a Word document, an OpenDocument text, or an EPUB only from a .docx, .odt, or .epub file, not from stdin: pass the file's path instead" : "Save or export it as markdown or plain text first";
   const text = decodeUtf82(bytes, "Cannot read stdin", "Pipe UTF-8 plain text or markdown instead", zipAdvice);
   if (text.trim() === "") {
     throw usageError(`story ${command} - read nothing from stdin: pipe the text in, such as story ${command} - < draft.md`);
@@ -29085,7 +31741,7 @@ function pause(ms) {
 import { execFileSync } from "node:child_process";
 import fs25 from "node:fs";
 import os4 from "node:os";
-import path36 from "node:path";
+import path39 from "node:path";
 
 // src/timeline.js
 function buildTimeline(project) {
@@ -29615,7 +32271,7 @@ function timelineText(text) {
 
 // src/build.js
 import fs24 from "node:fs";
-import path35 from "node:path";
+import path38 from "node:path";
 
 // src/chapter-numbers.js
 function printedChapterNumbers(project) {
@@ -30368,7 +33024,7 @@ ${body.filter((part) => part !== "").join(`
 var CODEX_GENERATOR = "story build --format codex";
 
 // src/ics.js
-import { Buffer as Buffer9 } from "node:buffer";
+import { Buffer as Buffer10 } from "node:buffer";
 var LAST_DAY2 = Date.UTC(9999, 11, 31) / 86400000;
 var ICS_LINE_OCTETS = 75;
 var BYDAY = { mon: "MO", tue: "TU", wed: "WE", thu: "TH", fri: "FR", sat: "SA", sun: "SU" };
@@ -30385,7 +33041,7 @@ function foldLine(line) {
   let current = "";
   let octets = 0;
   for (const char of line.match(/\\[^]|[^]/gu) ?? []) {
-    const size = Buffer9.byteLength(char, "utf8");
+    const size = Buffer10.byteLength(char, "utf8");
     if (octets + size > ICS_LINE_OCTETS) {
       parts.push(current);
       current = " ";
@@ -30485,6 +33141,73 @@ function icsCalendar({ title, events, stamp }) {
 `;
 }
 
+// src/posts.js
+var DEFAULT_TEXT_SCENE_BREAK = "* * *";
+var TEXT_RULE = "---";
+function postHtml(episode) {
+  const block = (markup) => ({ quote: false, markup });
+  const prose = (paragraphs) => paragraphs.map((paragraph) => paragraph === null ? block("<hr>") : { quote: paragraph.quote, markup: `<p>${paragraph.html}</p>` });
+  const label = (key) => block(`<p><strong>${escapeHtml(fillLabel(episode.labels, key))}</strong></p>`);
+  const { paragraphs, notes } = episodeBody(episode);
+  const blocks = [];
+  if (episode.byline !== "") {
+    blocks.push(block(`<p><em>${escapeHtml(episode.byline)}</em></p>`));
+  }
+  blocks.push(...prose(paragraphs));
+  if (notes.length > 0) {
+    blocks.push(block("<hr>"), label("footnotes"), ...notes.flatMap((note) => noteTexts(note.html).map((html, index) => block(index === 0 ? `<p id="${note.id}"><a href="#${note.backlink}">${note.number}.</a> ${html}</p>` : `<p>${html}</p>`))));
+  }
+  if (episode.authorNote !== "") {
+    blocks.push(block("<hr>"), label("author-note"), ...prose(postBody(episode.authorNote, { key: `${episode.key}-note` }).paragraphs));
+  }
+  return blocks.length === 0 ? "" : `${withBlockquotes(blocks).join(`
+`)}
+`;
+}
+function postText(episode, sceneBreak = DEFAULT_TEXT_SCENE_BREAK) {
+  const prose = (paragraphs) => paragraphs.map((paragraph) => {
+    if (paragraph === null) {
+      return sceneBreak;
+    }
+    return paragraph.quote ? paragraph.lines.split(`
+`).map((line) => `    ${line}`).join(`
+`) : paragraph.lines;
+  });
+  const { paragraphs, notes } = episodeBody(episode);
+  const blocks = [];
+  if (episode.byline !== "") {
+    blocks.push(episode.byline);
+  }
+  blocks.push(...prose(paragraphs));
+  if (notes.length > 0) {
+    blocks.push(TEXT_RULE, fillLabel(episode.labels, "footnotes"), ...notes.flatMap((note) => noteTexts(note.lines).map((text, index) => index === 0 ? `${note.number}. ${text}` : text)));
+  }
+  if (episode.authorNote !== "") {
+    blocks.push(TEXT_RULE, fillLabel(episode.labels, "author-note"), ...prose(postBody(episode.authorNote, { key: `${episode.key}-note` }).paragraphs));
+  }
+  return blocks.length === 0 ? "" : `${blocks.join(`
+
+`)}
+`;
+}
+function noteTexts(paragraphs) {
+  return paragraphs.length === 0 ? [""] : paragraphs;
+}
+function episodeBody(episode) {
+  const { paragraphs, notes } = postBody(episode.body, { key: episode.key, verse: episode.verse === true });
+  while ((notes.length > 0 || episode.authorNote !== "") && paragraphs.length > 0 && paragraphs[paragraphs.length - 1] === null) {
+    paragraphs.pop();
+  }
+  return { paragraphs, notes };
+}
+function authorNoteText(value) {
+  if (typeof value !== "string" && typeof value !== "number" && typeof value !== "boolean") {
+    return "";
+  }
+  return scanComments(String(value).replace(/\r\n?/g, `
+`)).text.trim();
+}
+
 // src/narration.js
 var NARRATION_WORDS_PER_MINUTE = 155;
 var NARRATION_CHARACTERS_PER_MINUTE = 300;
@@ -30581,8 +33304,8 @@ function pronunciationGuide(project) {
   return guide.sort((left, right) => compare(left.name, right.name) || left.kind.localeCompare(right.kind, "en"));
 }
 function narrationBody(body) {
-  const text = flattenHeadings(plainLinks(String(body).replace(/\r\n?/g, `
-`))).replace(/\\\n/g, `
+  const text = flattenHeadings(plainLinks(withoutFootnotes(String(body).replace(/\r\n?/g, `
+`)))).replace(/\\\n/g, `
 `).replace(/^[^\S\n]+$/gm, "");
   return separateSceneBreaks(text).split(/\n{2,}/).map(trimSourceSpace).filter((paragraph) => paragraph !== "").map((paragraph) => isSceneBreakLine(paragraph) ? "[pause]" : paragraph).join(`
 
@@ -30610,7 +33333,7 @@ function inkLine(line) {
   return /^[*+\-=]|^(?:INCLUDE|VAR|CONST|LIST|EXTERNAL|TODO)\b/.test(text) ? `\\${text}` : text;
 }
 var HARD_BREAK2 = /(?:(?<! ) {2,}|(?:^|[^\\])(?:\\\\)*\\)$/;
-function inkProse(body) {
+function inkProse(body, verse = false) {
   const out = [];
   for (const paragraph of separateSceneBreaks(body).split(/\r?\n[ \t]*(?:\r?\n[ \t]*)*\r?\n/)) {
     const lines = paragraph.split(/\r?\n/);
@@ -30618,8 +33341,8 @@ function inkProse(body) {
     let previous = null;
     lines.forEach((line, index) => {
       const last = index === lines.length - 1;
-      const broken = !last && HARD_BREAK2.test(line);
-      const text = (broken ? line.replace(/\\$/, "") : line).trim();
+      const broken = !last && (verse || HARD_BREAK2.test(line));
+      const text = (broken && HARD_BREAK2.test(line) ? line.replace(/\\$/, "") : line).trim();
       if (previous !== null) {
         pieces.push(isHeadingLine(previous.line) || isHeadingLine(line) ? " " : softBreak(previous.text, text));
       }
@@ -30647,7 +33370,7 @@ function inkSource(story) {
   story.passages.forEach((passage, position) => {
     lines.push(`=== ${inkKnotName(passage.name)} ===`);
     if (passage.body !== "") {
-      lines.push(...inkProse(passage.body));
+      lines.push(...inkProse(passage.body, passage.verse === true));
     }
     if (!story.branching) {
       const next = story.passages[position + 1];
@@ -30737,6 +33460,14 @@ function buildBook(root, options = {}) {
   if (options.spoilers && format !== "codex") {
     throw usageError("--spoilers applies only to --format codex", ["spoilers", "format"]);
   }
+  for (const [flag, value] of [["chapter", options.chapter], ["from", options.from], ["to", options.to]]) {
+    if (value !== undefined && format !== "post") {
+      throw usageError(`--${flag} applies only to --format post`, [flag, "format"]);
+    }
+  }
+  if (options.chapter !== undefined && (options.from !== undefined || options.to !== undefined)) {
+    throw usageError("--chapter builds one chapter: give it alone, or give a range with --from and --to", ["chapter", options.from === undefined ? "to" : "from"]);
+  }
   const printsMatter = !NO_MATTER_FORMATS.has(format) && !options.shunn;
   if (options.includePending && !printsMatter) {
     throw usageError(`--include-pending applies only to builds that print matter pages; --format ${format}${options.shunn ? " --shunn" : ""} prints none`, ["include-pending", "format", "shunn"]);
@@ -30748,6 +33479,9 @@ function buildBook(root, options = {}) {
   const project = scanProject(root);
   if (format === "codex") {
     return buildCodex(project, options.out, Boolean(options.spoilers));
+  }
+  if (format === "post") {
+    return buildPosts(project, options.out, { chapter: options.chapter, from: options.from, to: options.to });
   }
   const extension = options.pdf ? PDF_EXTENSIONS[format] : options.shunn ? SHUNN_DOCX_EXTENSION : BUILD_EXTENSIONS[format];
   const defaultOut = `dist/${fileStem(project.storyId)}.${extension}`;
@@ -30794,13 +33528,14 @@ function buildBook(root, options = {}) {
     }), output.writeOptions);
   } else if (format === "twee" || format === "ink") {
     const { branches, ifid } = interactiveStory(project, manuscript, format);
-    const passages = branches.passages.map((passage, position) => ({ name: passage.chapter.id, body: manuscript.chapters[position].body, links: passage.links }));
+    const passages = branches.passages.map((passage, position) => ({ name: passage.chapter.id, body: manuscript.chapters[position].body, links: passage.links, verse: manuscript.chapters[position].verse }));
     writeFile(output.outFile, format === "twee" ? tweeSource({ title: manuscript.title, ifid, start: passages[0].name, passages }) : inkSource({ title: manuscript.title, author: manuscript.author, ifid, branching: branches.branching, passages }), output.writeOptions);
     manuscript.warnings.push(...branches.warnings);
   } else if (format === "narration") {
     writeFile(output.outFile, narrationScript(manuscript, pronunciationGuide(project)), output.writeOptions);
     manuscript.warnings.push(...matterTodoWarnings(project, manuscript, { narration: true, titles: true }));
   } else if (format === "html" || format === "print") {
+    withImages(project, manuscript, PAGE_IMAGES);
     const style = projectBuildStyle(project);
     const book = htmlBook(manuscript, indentsFirstLines(format, style));
     const text = format === "html" ? reviewHtml(book, { stamp, noteUrl, style }) : printHtml(book, trim, style);
@@ -30809,12 +33544,14 @@ function buildBook(root, options = {}) {
   } else if (format === "shunn") {
     writeShunnMarkdown(output.outFile, manuscript, shunnMeta(project, options.anonymous), output.writeOptions);
   } else if (format === "epub") {
+    withImages(project, manuscript);
     const cover = project.story.data.cover === undefined ? null : coverImage(project);
     writeEpub(output.outFile, project.storyId, { ...manuscript, cover, style: projectBuildStyle(project) }, output.writeOptions);
     manuscript.warnings.push(...matterTodoWarnings(project, manuscript, { titles: true }));
   } else if (options.shunn) {
     writeShunnDocx(output.outFile, manuscript, shunnMeta(project, options.anonymous), output.writeOptions, paper);
   } else {
+    withImages(project, manuscript);
     writeDocx(output.outFile, manuscript, output.writeOptions);
     manuscript.warnings.push(...matterTodoWarnings(project, manuscript));
   }
@@ -30822,10 +33559,15 @@ function buildBook(root, options = {}) {
 }
 function wordBuild(project, { shunn = false } = {}) {
   const manuscript = manuscriptParts(project, "apply", { includePending: true, warnLeftOut: false });
+  if (!shunn) {
+    withImages(project, manuscript);
+  }
   const trace = [];
-  const entries = shunn ? shunnDocxEntries(manuscript, shunnMeta(project), DEFAULT_PAPER, trace) : docxEntries(manuscript, trace);
+  const meta = shunn ? shunnMeta(project) : null;
+  const entries = shunn ? shunnDocxEntries(manuscript, meta, DEFAULT_PAPER, trace) : docxEntries(manuscript, trace);
   const part = (name) => entries.find((entry) => entry.name === name).content;
-  return { document: part("word/document.xml"), styles: part("word/styles.xml"), trace, manuscript };
+  const footnotes = entries.find((entry) => entry.name === "word/footnotes.xml")?.content ?? null;
+  return { document: part("word/document.xml"), styles: part("word/styles.xml"), footnotes, trace, manuscript: shunn ? { ...manuscript, shunnMeta: meta } : manuscript };
 }
 function buildCalendar(project, output) {
   const data = project.story.data;
@@ -30880,6 +33622,9 @@ function buildPdf(project, format, { trim, paper, parts }, output, options) {
   const manuscript = manuscriptParts(project, "build", parts);
   assertMatterTitles(project, manuscript);
   const style = projectBuildStyle(project);
+  if (format === "print") {
+    withImages(project, manuscript, PAGE_IMAGES);
+  }
   const html = format === "print" ? printHtml(htmlBook(manuscript, indentsFirstLines(format, style)), trim, style) : shunnHtml(manuscript, shunnMeta(project, options.anonymous), paper);
   writeFile(output.outFile, isPlanning() ? "" : withFlags(engineFlag, () => renderPdf(html, engine)), output.writeOptions);
   const warnings = format === "print" ? [...manuscript.warnings, ...matterTodoWarnings(project, manuscript)] : manuscript.warnings;
@@ -30892,30 +33637,32 @@ function buildCodex(project, out, spoilers) {
     throw projectError(`Cannot build the codex: fix this file first (story validate reports it):
 - ${progressError.message}`);
   }
-  const output = resolveOutputDirectory(project, out, "dist/codex");
+  const output = resolveOutputDirectory(project, out, CODEX_FOLDER);
   const pages = codexPages(project, { spoilers });
   const written = new Set;
   for (const page of pages) {
-    const file = path35.join(output.directory, ...page.path.split("/"));
+    const file = path38.join(output.directory, ...page.path.split("/"));
     writeFile(file, page.html, output.writeOptions);
     written.add(file);
   }
   removeStaleCodexPages(output.directory, written);
   return { outFile: output.directory, chapters: project.chapters.length, format: "codex", pages: pages.length, warnings: [] };
 }
-function resolveOutputDirectory(project, out, defaultRelativePath) {
-  return withFlags("out", () => outputDirectory(project, out, defaultRelativePath));
+var CODEX_FOLDER = { format: "codex", noun: "the codex", folder: "dist/codex", isOwn: (directory) => isCodexFolder(directory) };
+var POST_FOLDER = { format: "post", noun: "the posts", folder: "dist/posts", isOwn: (directory) => isPostFolder(directory) };
+function resolveOutputDirectory(project, out, kind) {
+  return withFlags("out", () => outputDirectory(project, out, kind));
 }
-function outputDirectory(project, out, defaultRelativePath) {
-  const rawOut = out ?? defaultRelativePath;
+function outputDirectory(project, out, kind) {
+  const rawOut = out ?? kind.folder;
   if (String(rawOut).trim() === "") {
     throw usageError("--out needs a folder path");
   }
-  const directory = path35.resolve(project.root, rawOut);
-  const enforceRoot = !path35.isAbsolute(String(rawOut));
-  const toRoot = path35.relative(directory, project.root);
-  if (!toRoot.startsWith("..") && !path35.isAbsolute(toRoot)) {
-    throw refusedError(`Refusing to write the codex to ${rawOut}: it holds the project. Use a folder such as dist/codex instead`);
+  const directory = path38.resolve(project.root, rawOut);
+  const enforceRoot = !path38.isAbsolute(String(rawOut));
+  const toRoot = path38.relative(directory, project.root);
+  if (!toRoot.startsWith("..") && !path38.isAbsolute(toRoot)) {
+    throw refusedError(`Refusing to write ${kind.noun} to ${rawOut}: it holds the project. Use a folder such as ${kind.folder} instead`);
   }
   let stats;
   try {
@@ -30925,15 +33672,15 @@ function outputDirectory(project, out, defaultRelativePath) {
     throw withDefaultExitCode(error, EXIT_CODES.refused);
   }
   if (stats !== null && !stats.isDirectory()) {
-    throw usageError(`--out ${rawOut} is not a folder: give a folder for --format codex`);
+    throw usageError(`--out ${rawOut} is not a folder: give a folder for --format ${kind.format}`);
   }
-  if (stats !== null && fs24.readdirSync(directory).length > 0 && !isCodexFolder(directory)) {
-    throw refusedError(`Refusing to write the codex into ${projectPath(project.root, directory)}: it holds other files. Use a new or empty folder, such as dist/codex`);
+  if (stats !== null && fs24.readdirSync(directory).length > 0 && !kind.isOwn(directory)) {
+    throw refusedError(`Refusing to write ${kind.noun} into ${projectPath(project.root, directory)}: it holds other files. Use a new or empty folder, such as ${kind.folder}`);
   }
   return { directory, writeOptions: enforceRoot ? { root: project.root, flags: "out" } : { flags: "out" } };
 }
 function isCodexFolder(directory) {
-  return isCodexPage(path35.join(directory, "index.html"));
+  return isCodexPage(path38.join(directory, "index.html"));
 }
 var CODEX_HEAD_BYTES = 4096;
 function isCodexPage(file) {
@@ -30944,18 +33691,103 @@ function isCodexPage(file) {
   }
 }
 function removeStaleCodexPages(directory, written) {
-  const stalePages = (folder) => fs24.readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".html")).map((entry) => path35.join(folder, entry.name)).filter((file) => !written.has(file) && isCodexPage(file));
-  for (const folder of [directory, ...CODEX_KINDS.map((kind) => path35.join(directory, kind.dir))]) {
+  const stalePages = (folder) => fs24.readdirSync(folder, { withFileTypes: true }).filter((entry) => entry.isFile() && entry.name.endsWith(".html")).map((entry) => path38.join(folder, entry.name)).filter((file) => !written.has(file) && isCodexPage(file));
+  for (const folder of [directory, ...CODEX_KINDS.map((kind) => path38.join(directory, kind.dir))]) {
     if (lstatIfExists(folder)?.isDirectory() !== true) {
       continue;
     }
     const stale = stalePages(folder);
     stale.forEach((file) => removeFile(file));
-    const keptByWrite = isPlanning() && [...written].some((file) => path35.dirname(file) === folder);
+    const keptByWrite = isPlanning() && [...written].some((file) => path38.dirname(file) === folder);
     if (folder !== directory && !keptByWrite && fs24.readdirSync(folder).length === (isPlanning() ? stale.length : 0)) {
       removeDirectory(folder);
     }
   }
+}
+function buildPosts(project, out, selection) {
+  const { meta, chapters, warnings } = bookChapters(project);
+  const all = project.chapters;
+  const range = postRange(all, selection);
+  const width = Math.max(2, String(Math.max(...all.map((chapter) => chapter.number))).length);
+  const name = (chapter) => `${String(chapter.number).padStart(width, "0")}-${chapter.id}`;
+  const selected = all.slice(range.start, range.end + 1);
+  for (const chapter of selected) {
+    if (!isKebabId(chapter.id)) {
+      throw projectError(`${relative(project, chapter.file)}: chapter ids must be kebab-case to build posts, since they name the files`);
+    }
+  }
+  const sceneBreak = projectBuildStyle(project).sceneBreak || DEFAULT_TEXT_SCENE_BREAK;
+  const output = resolveOutputDirectory(project, out, POST_FOLDER);
+  const listed = lstatIfExists(output.directory)?.isDirectory() === true ? postManifest(output.directory) ?? [] : [];
+  const current = new Set(all.filter((chapter) => isKebabId(chapter.id)).flatMap((chapter) => [`${name(chapter)}.html`, `${name(chapter)}.txt`]));
+  const written = [];
+  const empty = [];
+  const leftOut = [];
+  const planned = selected.flatMap((chapter) => [`${name(chapter)}.html`, `${name(chapter)}.txt`]);
+  writePostManifest(output, [...new Set([...listed, ...planned])]);
+  for (const [offset, chapter] of selected.entries()) {
+    const book = chapters[range.start + offset];
+    const label = relative(project, chapter.file);
+    const episode = { key: chapter.id, byline: book.byline, body: book.body, verse: book.verse === true, authorNote: authorNoteText(chapter.frontmatter?.["author-note"]), labels: meta.labels };
+    for (const destination of new Set(proseImages(book.body).map((image) => image.destination))) {
+      leftOut.push(warn("image-left-out", `${label} image ${destination} is left out of the post: upload it through the serial site's own editor`, label));
+    }
+    if (wordCount(book.body) === 0) {
+      empty.push(warn("empty-chapter", `${label} has no prose yet and is built as an empty post`, label));
+    }
+    writeFile(path38.join(output.directory, `${name(chapter)}.html`), postHtml(episode), output.writeOptions);
+    writeFile(path38.join(output.directory, `${name(chapter)}.txt`), postText(episode, sceneBreak), output.writeOptions);
+    written.push(`${name(chapter)}.html`, `${name(chapter)}.txt`);
+  }
+  const isPost = (file) => lstatIfExists(path38.join(output.directory, file))?.isFile() === true;
+  const removed = [];
+  if (selected.length === all.length) {
+    for (const file of listed.filter((entry) => !current.has(entry) && isPost(entry))) {
+      removeFile(path38.join(output.directory, file));
+      removed.push(file);
+    }
+  }
+  writePostManifest(output, selected.length === all.length ? written : [...new Set([...listed.filter(isPost), ...written])]);
+  const others = warnings.filter((finding) => finding.code !== "empty-chapter");
+  return { outFile: output.directory, chapters: selected.length, format: "post", posts: selected.length, removed: removed.length, warnings: [...others, ...empty, ...leftOut] };
+}
+function postRange(chapters, { chapter, from, to }) {
+  if (chapter !== undefined) {
+    const index = chapterIndex2(chapters, chapter, "--chapter");
+    return { start: index, end: index };
+  }
+  const start = from === undefined ? 0 : chapterIndex2(chapters, from, "--from");
+  const end = to === undefined ? chapters.length - 1 : chapterIndex2(chapters, to, "--to");
+  if (start > end) {
+    throw usageError(`--from ${from ?? chapters[0].id} comes after --to ${to ?? chapters.at(-1).id}: give the earlier chapter first`, ["from", "to"]);
+  }
+  return { start, end };
+}
+var POST_FILE = /^\d+-[a-z0-9]+(?:-[a-z0-9]+)*\.(?:html|txt)$/;
+var POST_MANIFEST = ".story-posts.json";
+var POST_GENERATOR = "story build --format post";
+var POST_MANIFEST_BYTES = 1024 * 1024;
+function postManifest(directory) {
+  const file = path38.join(directory, POST_MANIFEST);
+  if (lstatIfExists(file)?.isFile() !== true) {
+    return null;
+  }
+  try {
+    const data = JSON.parse(readFilePrefix(file, POST_MANIFEST_BYTES).toString("utf8"));
+    if (data?.generator !== POST_GENERATOR || !Array.isArray(data.files)) {
+      return null;
+    }
+    return data.files.filter((name) => typeof name === "string" && POST_FILE.test(name));
+  } catch {
+    return null;
+  }
+}
+function writePostManifest(output, files) {
+  writeFile(path38.join(output.directory, POST_MANIFEST), `${JSON.stringify({ generator: POST_GENERATOR, files: [...files].sort() }, null, 2)}
+`, output.writeOptions);
+}
+function isPostFolder(directory) {
+  return postManifest(directory) !== null || fs24.readdirSync(directory).every((name) => name.startsWith("."));
 }
 function projectBuildStyle(project) {
   const errors = [];
@@ -31334,12 +34166,14 @@ function bookChapters(project, action = "build") {
     const authors = nameList(markdown.data.author);
     const entry = {
       number: chapter.number,
+      file: chapter.file,
       title,
       authors,
       byline: chapterByline(authors, meta.labels),
       numbered,
       displayNumber,
       heading: numbered ? chapterHeading(displayNumber, title, meta.labels, meta.chapterNumerals) : title,
+      verse: chapter.verse === true,
       body: trimBlankLines(chapterProse(markdown.body).replace(/\r\n?/g, `
 `))
     };
@@ -31349,6 +34183,55 @@ function bookChapters(project, action = "build") {
     }
   }
   return { meta, chapters, warnings };
+}
+var MAX_PAGE_IMAGE_BYTES = 360 * 1024 * 1024;
+var MAX_ARCHIVE_IMAGE_BYTES = 1024 * 1024 * 1024;
+var PAGE_IMAGES = { limit: MAX_PAGE_IMAGE_BYTES, perUse: true };
+function withImages(project, manuscript, { limit = MAX_ARCHIVE_IMAGE_BYTES, perUse = false } = {}) {
+  const placed = new Map;
+  let total = 0;
+  for (const entry of [...manuscript.front, ...manuscript.chapters, ...manuscript.back]) {
+    if (entry.file === undefined) {
+      continue;
+    }
+    const file = relative(project, entry.file);
+    const images = new Map;
+    const { text, notes } = splitFootnotes(entry.body);
+    for (const note of notes.values()) {
+      for (const { destination } of proseImages(note.text)) {
+        manuscript.warnings.push(warn("image-left-out", `${file} image ${destination} is in footnote [^${note.label}], which builds set as text only, so it is left out`, file));
+      }
+    }
+    const uses = new Map;
+    for (const { destination } of proseImages(text)) {
+      uses.set(destination, (uses.get(destination) ?? 0) + 1);
+    }
+    for (const [destination, count] of uses) {
+      if (remoteImage(destination)) {
+        images.set(destination, null);
+        manuscript.warnings.push(warn("image-left-out", `${file} image ${destination} is a web address, which builds do not fetch, so it is left out`, file));
+        continue;
+      }
+      let image;
+      try {
+        image = proseImage(project, file, destination);
+      } catch (error) {
+        images.set(destination, null);
+        manuscript.warnings.push(warn("image-left-out", `${error.message}, so it is left out`, file));
+        continue;
+      }
+      const cost = perUse ? image.size * count : placed.has(image.filePath) ? 0 : image.size;
+      if (total + cost > limit) {
+        images.set(destination, null);
+        manuscript.warnings.push(warn("image-left-out", `${file} image ${destination} would take this build's images past ${limit / 1024 / 1024} MiB, so it is left out`, file));
+        continue;
+      }
+      placed.set(image.filePath, image.size);
+      total += cost;
+      images.set(destination, image);
+    }
+    entry.images = images;
+  }
 }
 function manuscriptParts(project, action = "build", { includePending = false, warnLeftOut = true } = {}) {
   const { meta, chapters, warnings } = bookChapters(project, action);
@@ -31458,11 +34341,11 @@ function assertNotProjectSource(project, outFile) {
 }
 var PROTECTED_NAMES = [...SOURCE_ROOT_FILES, ...SOURCE_DIRECTORIES, ...HAND_EDITED_DIRECTORIES];
 function assertNotSourcePath(project, outFile, root, target) {
-  const relativePath = path35.relative(root, target);
-  if (relativePath === "" || relativePath.startsWith("..") || path35.isAbsolute(relativePath)) {
+  const relativePath = path38.relative(root, target);
+  if (relativePath === "" || relativePath.startsWith("..") || path38.isAbsolute(relativePath)) {
     return;
   }
-  const [top, ...rest] = relativePath.split(path35.sep).map(fileSystemName);
+  const [top, ...rest] = relativePath.split(path38.sep).map(fileSystemName);
   const first = PROTECTED_NAMES.find((name) => isShortNameOf(top, name)) ?? top;
   const lower = [first, ...rest].join("/");
   if (SOURCE_ROOT_FILES.has(lower) || SOURCE_DIRECTORIES.includes(first)) {
@@ -31474,7 +34357,7 @@ function assertNotSourcePath(project, outFile, root, target) {
 }
 function realPathThroughAncestors(target) {
   const { ancestor, missing } = nearestExistingAncestor(target, fs24.existsSync);
-  return path35.join(fs24.realpathSync.native(ancestor), ...missing);
+  return path38.join(fs24.realpathSync.native(ancestor), ...missing);
 }
 function referencedFiles(project) {
   const files = [];
@@ -31483,22 +34366,22 @@ function referencedFiles(project) {
     if (text === "" || PATH_CONTROL_CHARACTERS.test(text)) {
       return;
     }
-    const file = path35.resolve(project.root, text);
+    const file = path38.resolve(project.root, text);
     files.push({ names: lookedUpNames(file), label });
     let folder;
     try {
-      folder = realPathThroughAncestors(path35.dirname(file));
+      folder = realPathThroughAncestors(path38.dirname(file));
     } catch {
       return;
     }
-    files.push({ names: lookedUpNames(path35.join(folder, path35.basename(file))), label });
+    files.push({ names: lookedUpNames(path38.join(folder, path38.basename(file))), label });
   };
   add(project.story.data.cover, "cover");
   add(buildStyle(project.story.data).css, "build-style css");
   return files;
 }
 function lookedUpNames(file) {
-  return file.split(path35.sep).map(fileSystemName);
+  return file.split(path38.sep).map(fileSystemName);
 }
 function assertNotReferencedPath(project, outFile, target, referenced) {
   const names = lookedUpNames(target);
@@ -31515,8 +34398,8 @@ function outputPath(project, out, defaultRelativePath, enforceRoot) {
   if (String(rawOut).trim() === "") {
     throw usageError("--out needs a file path");
   }
-  const outFile = path35.resolve(project.root, rawOut);
-  const shouldEnforceRoot = enforceRoot ?? !path35.isAbsolute(String(rawOut));
+  const outFile = path38.resolve(project.root, rawOut);
+  const shouldEnforceRoot = enforceRoot ?? !path38.isAbsolute(String(rawOut));
   let stats;
   try {
     assertNotProjectSource(project, outFile);
@@ -31524,7 +34407,7 @@ function outputPath(project, out, defaultRelativePath, enforceRoot) {
   } catch (error) {
     throw withDefaultExitCode(error, EXIT_CODES.refused);
   }
-  const isDist = outFile === path35.join(project.root, "dist");
+  const isDist = outFile === path38.join(project.root, "dist");
   if (stats?.isDirectory() || /[\\/]$/.test(String(rawOut)) || isDist && !stats) {
     throw usageError(`--out ${rawOut} is a directory: give a file path`);
   }
@@ -31537,7 +34420,7 @@ function outputPath(project, out, defaultRelativePath, enforceRoot) {
     writeOptions: shouldEnforceRoot ? { root: project.root, flags: "out" } : { flags: "out" }
   };
 }
-var NO_MATTER_FORMATS = new Set(["shunn", "metadata", "fountain", "twee", "ink", "codex", "ics"]);
+var NO_MATTER_FORMATS = new Set(["shunn", "metadata", "fountain", "twee", "ink", "codex", "ics", "post"]);
 var BUILD_EXTENSIONS = {
   markdown: "md",
   epub: "epub",
@@ -31551,7 +34434,8 @@ var BUILD_EXTENSIONS = {
   twee: "twee",
   ink: "ink",
   ics: "ics",
-  codex: ""
+  codex: "",
+  post: ""
 };
 var SHUNN_DOCX_EXTENSION = "shunn.docx";
 var PDF_EXTENSIONS = { print: "pdf", shunn: "shunn.pdf" };
@@ -31644,9 +34528,14 @@ function draftingContext(root, targetId, options = {}) {
   return buildContext(project, targetId, (file) => readMarkdown(file, project.root).body, { budget, scenes });
 }
 function seriesReport(root) {
-  const projectRoot = path36.resolve(root);
+  const projectRoot = path39.resolve(root);
   requireStoryFile(projectRoot);
   return buildSeries(fs25.realpathSync(projectRoot), scanProject);
+}
+function translationReport(root, options = {}) {
+  const projectRoot = path39.resolve(root);
+  requireStoryFile(projectRoot);
+  return buildTranslation(projectRoot, scanProject, options);
 }
 function compareProject(root, options = {}) {
   const given = (value) => typeof value === "string" && value !== "";
@@ -31659,7 +34548,7 @@ function compareProject(root, options = {}) {
   assertProjectParses(project, "compare");
   const snapshot = given(options.snapshot) ? withFlags("snapshot", () => existingSnapshot(project.root, options.snapshot)) : null;
   const againstBase = options.againstFromProject ? project.root : options.cwd ?? process.cwd();
-  const other = hasRef ? null : snapshot !== null ? { root: snapshot.directory, label: `snapshot ${snapshot.id}`, flag: "snapshot" } : { root: path36.resolve(againstBase, options.against), flag: "against" };
+  const other = hasRef ? null : snapshot !== null ? { root: snapshot.directory, label: `snapshot ${snapshot.id}`, flag: "snapshot" } : { root: path39.resolve(againstBase, options.against), flag: "against" };
   const anchors = [].concat(options.anchors ?? []);
   if (anchors.length > 0) {
     return mapProjectLabels(project, anchors, { ...options, other });
@@ -31711,7 +34600,7 @@ function mapProjectLabels(project, anchors, options) {
   return { ok: true, errors: [], warnings: [], label, anchors: mapLabels(previous, current, labels) };
 }
 function labelsIn(root, label) {
-  if (!fs25.existsSync(path36.join(root, "story.md"))) {
+  if (!fs25.existsSync(path39.join(root, "story.md"))) {
     throw projectError(`No story project (story.md) in ${label}`);
   }
   const project = scanProject(root);
@@ -31731,14 +34620,14 @@ function withProjectAtGitRef(root, ref, read, flag = "compare --ref") {
   const { git } = gitAtRef(root, ref, flag);
   const blobs = markdownAtRef(git, ref, ".");
   const contents = catBlobs(root, blobs.map((entry) => entry.hash), ref, flag);
-  const dir = fs25.mkdtempSync(path36.join(os4.tmpdir(), "story-compare-"));
+  const dir = fs25.mkdtempSync(path39.join(os4.tmpdir(), "story-compare-"));
   try {
     blobs.forEach((entry, index) => {
-      const target = path36.join(dir, ...entry.name.split("/"));
+      const target = path39.join(dir, ...entry.name.split("/"));
       if (/[\\:]/.test(entry.name) || !isPathInside(dir, target)) {
         return;
       }
-      makeDirectories(path36.dirname(target));
+      makeDirectories(path39.dirname(target));
       fs25.writeFileSync(target, contents[index]);
     });
     return read(dir);
@@ -31829,10 +34718,10 @@ function chaptersAtGitRef(root, ref, warnings) {
   if (git(["ls-tree", "--name-only", ref, "--", "story.md"]).trim() === "") {
     warnings.push(warn("story-missing-at-ref", `story.md does not exist at git ref ${ref}: the project may not have existed then`, "story.md"));
   }
-  const chapters = markdownAtRef(git, ref, "chapters/").filter((entry) => path36.posix.dirname(entry.name) === "chapters").map((entry) => ({ ...entry, name: path36.posix.basename(entry.name) })).filter((entry) => CHAPTER_FILENAME_PATTERN.test(entry.name)).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+  const chapters = markdownAtRef(git, ref, "chapters/").filter((entry) => path39.posix.dirname(entry.name) === "chapters").map((entry) => ({ ...entry, name: path39.posix.basename(entry.name) })).filter((entry) => CHAPTER_FILENAME_PATTERN.test(entry.name)).sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
   const contents = catBlobs(root, chapters.map((entry) => entry.hash), ref, "compare --ref");
   return chapters.map(({ name }, index) => {
-    const id = path36.basename(name, ".md");
+    const id = path39.basename(name, ".md");
     const raw = contents[index].toString("utf8");
     try {
       return comparableChapter(id, parseFrontmatter(raw, name));
@@ -31859,7 +34748,7 @@ function similarityReport(root, options = {}) {
     const label = `snapshot ${snapshot.id}`;
     const self = canonicalPath(project.root);
     const references = withFlags("snapshot", () => {
-      if (lstatIfExists(path36.join(snapshot.directory, "story.md"))?.isFile() !== true) {
+      if (lstatIfExists(path39.join(snapshot.directory, "story.md"))?.isFile() !== true) {
         throw projectError(`Cannot check similarity with ${label}: .snapshots/${snapshot.id} has no story.md, so it is not a whole project`);
       }
       return referenceDocuments(canonicalPath(snapshot.directory), (file) => projectPath(self, file), self);
@@ -31869,7 +34758,7 @@ function similarityReport(root, options = {}) {
     return { ...report, warnings: [...warnings, ...report.warnings] };
   }
   const cwd = options.cwd ?? process.cwd();
-  const target = path36.resolve(options.againstFromProject ? project.root : cwd, against);
+  const target = path39.resolve(options.againstFromProject ? project.root : cwd, against);
   const warnings = [];
   const { references, label } = withFlags("against", () => againstReferences(project, against, target, cwd));
   const report = compareSimilarity(chapters, references, { minWords, label });
@@ -31894,7 +34783,7 @@ function againstReferences(project, against, target, cwd) {
     label = `git ref ${against}`;
     try {
       references = withProjectAtGitRef(project.root, against, (oldRoot) => {
-        if (!fs25.existsSync(path36.join(oldRoot, "story.md"))) {
+        if (!fs25.existsSync(path39.join(oldRoot, "story.md"))) {
           throw projectError(`No story project (story.md) at git ref ${against}`);
         }
         const old = scanProject(oldRoot);
@@ -31912,9 +34801,9 @@ function againstReferences(project, against, target, cwd) {
   return { references, label };
 }
 function displayPath(cwd, typed, real, file) {
-  const inside = path36.relative(real, file);
-  const shown = path36.relative(cwd, inside === "" ? typed : path36.join(typed, inside));
-  return shown.split(path36.sep).join("/") || path36.basename(file);
+  const inside = path39.relative(real, file);
+  const shown = path39.relative(cwd, inside === "" ? typed : path39.join(typed, inside));
+  return shown.split(path39.sep).join("/") || path39.basename(file);
 }
 function labelledChapters(project, fileName) {
   if (project.chapters.length === 0) {
@@ -31956,7 +34845,7 @@ function referenceDocuments(target, display, self) {
   return documents;
 }
 function referenceEntries(dir, self, depth = 0, collected = []) {
-  if (fs25.existsSync(path36.join(dir, "story.md"))) {
+  if (fs25.existsSync(path39.join(dir, "story.md"))) {
     if (canonicalPath(dir) !== self) {
       collected.push({ project: true, path: dir });
     }
@@ -31967,7 +34856,7 @@ function referenceEntries(dir, self, depth = 0, collected = []) {
     if (entry.name.startsWith(".") || SKIPPED_SCAN_DIRECTORIES.has(entry.name) || entry.name === "_index.md") {
       continue;
     }
-    const fullPath = path36.join(dir, entry.name);
+    const fullPath = path39.join(dir, entry.name);
     if (entry.isDirectory() && depth < MAX_SCAN_DEPTH) {
       referenceEntries(fullPath, self, depth + 1, collected);
     } else if (entry.isFile() && REFERENCE_TEXT_FILE.test(entry.name)) {
@@ -32008,7 +34897,7 @@ function projectProgress(root, options = {}) {
     if (logErrors.length > 0) {
       throw projectError(`Cannot log progress until ${PROGRESS_FILE} is fixed: ${logErrors.map((error) => error.message).join("; ")}`);
     }
-    const filePath = path36.join(project.root, PROGRESS_FILE);
+    const filePath = path39.join(project.root, PROGRESS_FILE);
     const existing = project.progressLog;
     const sessions = withSession(asArray(existing?.data.sessions), today, counts);
     const contents = existing === null ? progressLogFile(sessions, unit) : replaceFrontmatter(existing.rawMarkdown, { ...existing.data, sessions });
@@ -32040,6 +34929,7 @@ function projectProgress(root, options = {}) {
       unit: unit.name,
       words,
       characters: counts.characters ?? null,
+      ...verseLines(project),
       target: Number.isInteger(target) && target > 0 ? target : null,
       deadline: typeof data.deadline === "string" ? data.deadline : null,
       today,
@@ -32051,6 +34941,10 @@ function projectProgress(root, options = {}) {
     }),
     release: releaseData(release)
   };
+}
+function verseLines(project) {
+  const verse = project.chapters.filter((chapter) => chapter.verse);
+  return { lines: verse.length === 0 ? null : verse.reduce((sum, chapter) => sum + chapter.lineCount, 0), verseChapters: verse.length };
 }
 function progressLogFile(sessions, unit) {
   const counts = unit.name === "characters" ? "word and character counts" : "word count";
@@ -32098,7 +34992,7 @@ function diagramProject(root, options = {}) {
 }
 function projectPasses(root, change = {}) {
   const project = scanProject(root);
-  const storyPath = path36.join(project.root, "story.md");
+  const storyPath = path39.join(project.root, "story.md");
   const passes = readPasses(project.story.data);
   const wantsChange = Boolean(change.init) || change.start !== undefined || change.done !== undefined;
   if (!wantsChange) {
@@ -32241,7 +35135,7 @@ function proseBaseline(project, rules, options, warnings, sampled = new Set) {
   const read = new Set;
   for (const entry of listed) {
     const sample = entry.trim();
-    if (path36.isAbsolute(sample) || /^[A-Za-z]:/.test(sample)) {
+    if (path39.isAbsolute(sample) || /^[A-Za-z]:/.test(sample)) {
       warnings.push(warn("style-sample-missing", `${STYLE_SHEET_FILE} samples entry ${sample} must be a path relative to the project folder, such as ../book-one, so it is left out`, STYLE_SHEET_FILE));
       continue;
     }
@@ -32250,7 +35144,7 @@ function proseBaseline(project, rules, options, warnings, sampled = new Set) {
       warnings.push(problem);
       continue;
     }
-    const target = path36.resolve(project.root, sample);
+    const target = path39.resolve(project.root, sample);
     const real = canonicalPath(target);
     const key = samplePath(target);
     const chapter = own.has(key);
@@ -32377,17 +35271,24 @@ function unitNumeral(words) {
   return `(?:(?:${units})[-\\s]${words.hundred}(?:(?:[-\\s]${words.and})?[-\\s]${belowHundred})?|${belowHundred})|`;
 }
 var MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024;
-var MAX_IMPORT_DOCX_BYTES = 64 * 1024 * 1024;
+var MAX_IMPORT_ARCHIVE_BYTES = 64 * 1024 * 1024;
 var MAX_IMPORT_FILES = 500;
-var IMPORT_FILE = /\.(?:md|markdown|txt|docx)$/i;
-var DOCX_FILE = /\.docx$/i;
+var IMPORT_FILE = /\.(?:md|markdown|txt|docx|odt|epub)$/i;
+var ARCHIVE_READERS = new Map([
+  ["docx", { read: docxMarkdown, word: true }],
+  ["odt", { read: odtMarkdown, word: false }],
+  ["epub", { read: epubMarkdown, word: false }]
+]);
+function archiveReader(name) {
+  return ARCHIVE_READERS.get(/\.([a-z]+)$/i.exec(name)?.[1].toLowerCase()) ?? null;
+}
 function rejectSymlinkedSource(filePath) {
   if (fs26.lstatSync(filePath).isSymbolicLink()) {
     throw usageError("Refusing to import symlinked source: " + filePath);
   }
 }
 function importFileLimit(filePath) {
-  return DOCX_FILE.test(filePath) ? MAX_IMPORT_DOCX_BYTES : MAX_IMPORT_FILE_BYTES;
+  return archiveReader(filePath) === null ? MAX_IMPORT_FILE_BYTES : MAX_IMPORT_ARCHIVE_BYTES;
 }
 function assertImportFileSize(filePath) {
   const size = fs26.statSync(filePath).size;
@@ -32403,11 +35304,11 @@ function importManuscript(options) {
   }
   const cwd = options.cwd ?? process.cwd();
   const fromStdin = rawSource === STDIN_ARG;
-  const source = fromStdin ? null : path37.resolve(cwd, rawSource);
+  const source = fromStdin ? null : path40.resolve(cwd, rawSource);
   if (!fromStdin && !fs26.existsSync(source)) {
     throw usageError(`Import source not found: ${source}`);
   }
-  if (!fromStdin && fs26.statSync(source).isDirectory() && fs26.existsSync(path37.join(source, "story.md"))) {
+  if (!fromStdin && fs26.statSync(source).isDirectory() && fs26.existsSync(path40.join(source, "story.md"))) {
     throw usageError(`${rawSource} is already a story project (it has story.md); import reads manuscript files, so point it at the draft instead`);
   }
   if (options.language !== undefined && !isLanguageTag(options.language)) {
@@ -32439,7 +35340,7 @@ function importManuscript(options) {
       const title = chapter.title || `Chapter ${number}`;
       const name = `chapter-${String(number).padStart(2, "0")}.md`;
       const text = chapterMarkdown(title, number, counts, chapter.prose, chapter.unnumbered, chapter.authors);
-      const bytes = Buffer10.byteLength(text, "utf8");
+      const bytes = Buffer11.byteLength(text, "utf8");
       if (bytes > MAX_READ_BYTES) {
         throw usageError(`Cannot import: ${name} would be ${bytes} bytes, over the ${MAX_READ_BYTES} byte limit story reads. Split the manuscript with chapter headings first`);
       }
@@ -32457,7 +35358,7 @@ function importManuscript(options) {
       tense: options.tense,
       synopsis: options.synopsis,
       language: options.language,
-      defaultSynopsis: `Imported from ${fromStdin ? "stdin" : path37.basename(source)}. Replace with a 2-3 sentence synopsis.`,
+      defaultSynopsis: `Imported from ${fromStdin ? "stdin" : path40.basename(source)}. Replace with a 2-3 sentence synopsis.`,
       force: options.force,
       command: "story import --force",
       forceHint: "Use --force to import into it: --force saves the project as snapshot before-import-<n>, then deletes every chapters/chapter-NN.md and writes the imported chapters in their place, adds missing starter files, keeps story.md and the other files, and reindexes. story snapshot --restore before-import-<n> puts the old chapters back.",
@@ -32486,12 +35387,12 @@ function importManuscript(options) {
       if (snapshot === null && replaced.length > 0) {
         snapshot = snapshotBeforeImport(created.root, cwd, options.preview);
       }
-      const chaptersDir = path37.join(created.root, "chapters");
+      const chaptersDir = path40.join(created.root, "chapters");
       for (const name of replaced) {
-        removeFile(path37.join(chaptersDir, name), { root: created.root, unchangedFrom: currentText(path37.join(created.root, snapshot.dir, "chapters", name)) });
+        removeFile(path40.join(chaptersDir, name), { root: created.root, unchangedFrom: currentText(path40.join(created.root, snapshot.dir, "chapters", name)) });
       }
       for (const chapter of chapterFiles) {
-        writeFile(path37.join(chaptersDir, chapter.name), chapter.text, { root: created.root, unchangedFrom: null });
+        writeFile(path40.join(chaptersDir, chapter.name), chapter.text, { root: created.root, unchangedFrom: null });
       }
       reindexProject(created.root);
     } catch (error) {
@@ -32522,7 +35423,7 @@ function importManuscript(options) {
   return locked ? withProjectLock(target, run, { folder: true }) : run();
 }
 function replacedChapters(root) {
-  const folder = path37.join(root, "chapters");
+  const folder = path40.join(root, "chapters");
   const stats = lstatIfExists(folder);
   if (stats === null) {
     return [];
@@ -32544,7 +35445,7 @@ function snapshotBeforeImport(root, cwd, preview) {
   let id = "before-import-<n>";
   try {
     if (preview?.root) {
-      mirrorFolderNames(path37.join(preview.root, SNAPSHOTS_DIR), path37.join(root, SNAPSHOTS_DIR));
+      mirrorFolderNames(path40.join(preview.root, SNAPSHOTS_DIR), path40.join(root, SNAPSHOTS_DIR));
     }
     id = nextSnapshotId(root, "before-import-");
     const snapshot = snapshotProject(root, { name: id, id, unparsed: true });
@@ -32554,7 +35455,7 @@ function snapshotBeforeImport(root, cwd, preview) {
   }
 }
 function restoreCommand(cwd, root, id) {
-  const where = path37.relative(cwd, root).split(path37.sep).join("/");
+  const where = path40.relative(cwd, root).split(path40.sep).join("/");
   return `story snapshot --restore ${id}${where === "" ? "" : ` --path ${shellWord(where)}`}`;
 }
 function withHint(error, hint) {
@@ -32648,26 +35549,27 @@ function addCandidate(counts, name) {
   counts.set(name, (counts.get(name) ?? 0) + 1);
 }
 function readSourceText(filePath) {
-  return decodeUtf82(readFileBytes(filePath, MAX_IMPORT_FILE_BYTES), `Cannot import ${filePath}`, "Save it as UTF-8 plain text or markdown first", "story import reads a Word document only from a file whose name ends in .docx; save or export anything else as markdown or plain text first");
+  return decodeUtf82(readFileBytes(filePath, MAX_IMPORT_FILE_BYTES), `Cannot import ${filePath}`, "Save it as UTF-8 plain text or markdown first", "story import reads a Word document, an OpenDocument text, or an EPUB only from a file whose name ends in .docx, .odt, or .epub; save or export anything else as markdown or plain text first");
 }
 function readSourceDocument(name, filePath, rules) {
-  if (!DOCX_FILE.test(name)) {
+  const reader = archiveReader(name);
+  if (reader === null) {
     return { name, path: filePath, text: readSourceText(filePath) };
   }
-  const bytes = readFileBytes(filePath, MAX_IMPORT_DOCX_BYTES);
+  const bytes = readFileBytes(filePath, MAX_IMPORT_ARCHIVE_BYTES);
   let converted;
   try {
-    converted = docxMarkdown(bytes, { chapterLine: docxChapterLine(rules) });
+    converted = reader.read(bytes, { chapterLine: chapterLineReader(rules), partHeading: (text) => rules.partHeading.test(text), maxTextBytes: MAX_IMPORT_FILE_BYTES });
   } catch (error) {
-    throw error instanceof DocxError ? usageError(`Cannot import ${filePath}: ${error.message}`) : error;
+    throw error instanceof ArchiveError ? usageError(`Cannot import ${filePath}: ${error.message}`) : error;
   }
-  const size = Buffer10.byteLength(converted.text, "utf8");
+  const size = Buffer11.byteLength(converted.text, "utf8");
   if (size > MAX_IMPORT_FILE_BYTES) {
     throw usageError(`Cannot import ${filePath}: its text is ${size} bytes as markdown, over the ${MAX_IMPORT_FILE_BYTES} byte limit; split it into several documents and import the folder`);
   }
-  return { name, path: filePath, text: converted.text, notes: converted.notes };
+  return { name, path: filePath, text: converted.text, notes: converted.notes, word: reader.word };
 }
-function docxChapterLine(rules) {
+function chapterLineReader(rules) {
   return (text) => {
     if (text.length > PLAIN_LINE_MAX_LENGTH) {
       return null;
@@ -32690,11 +35592,11 @@ function readSourceDocuments(source, rules) {
   rejectSymlinkedSource(source);
   if (fs26.statSync(source).isFile()) {
     assertImportFileSize(source);
-    return [readSourceDocument(path37.basename(source), source, rules)];
+    return [readSourceDocument(path40.basename(source), source, rules)];
   }
   const names = [];
   for (const entry of fs26.readdirSync(source, { withFileTypes: true })) {
-    const fullPath = path37.join(source, entry.name);
+    const fullPath = path40.join(source, entry.name);
     if (fs26.lstatSync(fullPath).isSymbolicLink()) {
       let targetIsDocument = false;
       try {
@@ -32716,12 +35618,12 @@ function readSourceDocuments(source, rules) {
     throw usageError("Too many import files in " + source + ": " + names.length + " exceeds the " + MAX_IMPORT_FILES + " file limit");
   }
   const documents = names.map((name) => {
-    const fullPath = path37.join(source, name);
+    const fullPath = path40.join(source, name);
     assertImportFileSize(fullPath);
     return readSourceDocument(name, fullPath, rules);
   });
   if (documents.length === 0) {
-    throw usageError(`No markdown, text, or Word files found in ${source}`);
+    throw usageError(`No markdown, text, Word, OpenDocument, or EPUB files found in ${source}`);
   }
   return documents;
 }
@@ -32761,7 +35663,8 @@ function splitChapters(documents, warnings, rules, bylines) {
   const chapters = [];
   for (const document of documents) {
     for (const note of document.notes ?? []) {
-      warnings.push({ ...warn("docx-content-left-out", `${shownText2(document.name)}: ${note.message}`), source: document.path });
+      const message = `${shownText2(document.name)}: ${note.message}`;
+      warnings.push({ ...document.word ? warn("docx-content-left-out", message) : warn("import-content-left-out", message), source: document.path });
     }
     const source = document.text.replace(/\r\n?/g, `
 `);
@@ -33127,7 +36030,7 @@ function singleChapter(text, document) {
     };
   }
   return {
-    title: document.untitled ? "" : titleCaseSlug(path37.basename(document.name, path37.extname(document.name))),
+    title: document.untitled ? "" : titleCaseSlug(path40.basename(document.name, path40.extname(document.name))),
     prose: text.trim(),
     titleLine: true
   };
@@ -33151,7 +36054,10 @@ function stripTitleHeading(text, rules) {
   return text;
 }
 function chapterMarkdown(title, number, counts, prose, unnumbered = false, authors = []) {
-  return `${stringifyFrontmatter({
+  return importedChapterText(importedChapterData(title, number, counts, unnumbered, authors), prose);
+}
+function importedChapterData(title, number, counts, unnumbered = false, authors = []) {
+  return {
     title,
     number,
     ...unnumbered ? { numbered: false } : {},
@@ -33162,7 +36068,13 @@ function chapterMarkdown(title, number, counts, prose, unnumbered = false, autho
     "arcs-advanced": [],
     status: "draft",
     ...counts
-  })}# ${unnumbered ? title : chapterHeading(number, title)}
+  };
+}
+function importedChapterText(data, prose) {
+  return `${stringifyFrontmatter(data)}${importedChapterBody(data, prose)}`;
+}
+function importedChapterBody(data, prose) {
+  return `# ${data.numbered === false ? data.title : chapterHeading(data.number, data.title)}
 
 ## Chapter Text
 
@@ -33170,9 +36082,340 @@ ${prose}
 `;
 }
 
+// src/collect.js
+var MAX_COLLECTION_STORIES = 500;
+var CHAPTER_JOIN = `
+
+* * *
+
+`;
+function collectionStories(root, data) {
+  const errors = [];
+  const stories = [];
+  const raw = data?.stories;
+  if (!Array.isArray(raw)) {
+    return { stories, errors };
+  }
+  const entries = raw.filter((value) => typeof value === "string" && value.trim() !== "");
+  if (entries.length > MAX_COLLECTION_STORIES) {
+    errors.push(err("collection-too-many-stories", `story.md stories names ${entries.length} stories, over the ${MAX_COLLECTION_STORIES} story limit`, "story.md"));
+    return { stories, errors };
+  }
+  const collection = canonicalPath(root);
+  const parent = path41.dirname(collection);
+  const seen = new Map;
+  for (const value of entries) {
+    const entry = value.trim();
+    const label = `story.md stories ${outputText(entry)}`;
+    if (PATH_CONTROL_CHARACTERS.test(entry)) {
+      errors.push(err("collection-story-not-project", `${label} holds a control character, so it names no story project folder`, "story.md"));
+      continue;
+    }
+    if (entry.includes("\\")) {
+      errors.push(err("collection-story-backslash", `${label} uses a backslash; write ${entry.replace(/\\/g, "/")} so the path works on every system`, "story.md"));
+      continue;
+    }
+    if (path41.isAbsolute(entry) || path41.win32.isAbsolute(entry)) {
+      errors.push(err("collection-story-outside", `${label} is an absolute path; name the story project relative to this collection, such as ../${path41.basename(entry)}`, "story.md"));
+      continue;
+    }
+    const target = path41.resolve(root, entry);
+    const real = canonicalPath(target);
+    if (real === collection || isPathInside(collection, real)) {
+      errors.push(err("collection-story-self", `${label} is this collection or a folder inside it; a story is its own project beside the collection`, "story.md"));
+      continue;
+    }
+    if (path41.dirname(real) !== parent) {
+      errors.push(err("collection-story-outside", `${label} is not a sibling folder of this collection; keep each story project in the folder that holds the collection, such as ../low-tide`, "story.md"));
+      continue;
+    }
+    if (seen.has(real)) {
+      errors.push(err("collection-story-duplicate", `${label} names the same story project as ${outputText(seen.get(real))}; list each story once`, "story.md"));
+      continue;
+    }
+    seen.set(real, entry);
+    const storyFile = path41.join(target, "story.md");
+    let story = null;
+    try {
+      if (fs27.statSync(target, { throwIfNoEntry: false })?.isDirectory() === true && fs27.lstatSync(storyFile, { throwIfNoEntry: false })?.isFile() === true) {
+        story = parseFrontmatter(readTextFile(storyFile), storyFile).data;
+      }
+    } catch (error) {
+      errors.push(err("collection-story-unreadable", `${label}: ${outputText(error.message.replace(storyFile, "story.md"))}`, "story.md"));
+      continue;
+    }
+    if (story === null) {
+      errors.push(err("collection-story-not-project", `${label} is not a story project: missing story.md`, "story.md"));
+      continue;
+    }
+    stories.push({ path: entry, root: target, real, data: story });
+  }
+  return { stories, errors };
+}
+function collectStories(root, { sourceRoot = root, force = false, cwd = process.cwd() } = {}) {
+  return withUndo(root, ["collect", ...force ? ["--force"] : []], (plan) => writeCollection(plan), {
+    beforeLog() {
+      const plan = planCollection(root, sourceRoot, force, cwd);
+      if (plan.edited.length > 0) {
+        plan.snapshot = snapshotBeforeCollect(plan.project.root, sourceRoot, cwd);
+      }
+      return plan;
+    }
+  });
+}
+function planCollection(root, sourceRoot, force, cwd) {
+  const project = scanProject(root);
+  assertProjectParses(project, "collect");
+  const data = project.story.data;
+  if (data.stories === undefined) {
+    throw projectError("story.md has no stories list: add stories, the story project folders in reading order, such as stories: [../low-tide, ../salt]");
+  }
+  if (!Array.isArray(data.stories) || data.stories.some((value) => typeof value !== "string" || value.trim() === "")) {
+    throw projectError("story.md stories must be a list of story project folders, such as stories: [../low-tide, ../salt]");
+  }
+  const { stories, errors } = collectionStories(sourceRoot, data);
+  if (errors.length > 0) {
+    throw projectError(`Cannot collect: fix story.md stories first; nothing was changed:
+${errors.map((error) => `- ${error.message}`).join(`
+`)}`);
+  }
+  const unit = countUnit(data, languagePack(projectLanguage(data)));
+  const ownAuthors = publishingMeta(data).authors;
+  const chapters = [...project.chapters].sort(byNumber);
+  const collected = [];
+  const handWritten = [];
+  for (const chapter of chapters) {
+    const markdown = readMarkdown(chapter.file, project.root);
+    const from = markdown.data["collected-from"];
+    if (typeof from === "string" && from.trim() !== "") {
+      const real = PATH_CONTROL_CHARACTERS.test(from) ? null : canonicalPath(path41.resolve(sourceRoot, from.trim()));
+      collected.push({ chapter, markdown, real, from: from.trim(), intact: isIntact(markdown) });
+    } else {
+      handWritten.push({ chapter, markdown });
+    }
+  }
+  const taken = new Set(handWritten.map((entry) => entry.chapter.number));
+  let next = 1;
+  const claimed = new Set;
+  const planned = stories.map((story) => {
+    while (taken.has(next)) {
+      next += 1;
+    }
+    const number = next;
+    next += 1;
+    const content = storyContent(story, ownAuthors, cwd);
+    const previous = collected.find((entry) => entry.real === story.real && !claimed.has(entry));
+    if (previous) {
+      claimed.add(previous);
+    }
+    return { story, number, content, previous };
+  });
+  for (const entry of planned.filter((candidate) => candidate.previous === undefined)) {
+    const renamed = collected.find((candidate) => !claimed.has(candidate) && candidate.intact && candidate.markdown.data["collected-hash"] === entry.content.hash);
+    if (renamed) {
+      claimed.add(renamed);
+      entry.previous = renamed;
+    }
+  }
+  const leaving = collected.filter((entry) => !claimed.has(entry));
+  const edited = [...planned.map((entry) => entry.previous).filter(Boolean), ...leaving].filter((entry) => !entry.intact);
+  if (edited.length > 0 && !force) {
+    const files = edited.map((entry) => relative(project, entry.chapter.file));
+    throw refusedError(`Cannot collect: ${files.join(", ")} ${files.length === 1 ? "was" : "were"} changed in the collection since story collect wrote ${files.length === 1 ? "it" : "them"}, and collect would replace ${files.length === 1 ? "that edit" : "those edits"}; nothing was changed. Make the edit in the story project instead. story collect --force discards it, after saving the collection as snapshot before-collect-<n>`);
+  }
+  const chaptersDir = path41.join(project.root, "chapters");
+  const ownFiles = new Set(collected.map((entry) => entry.chapter.file));
+  const writes = planned.map((entry) => {
+    const file = path41.join(chaptersDir, `chapter-${String(entry.number).padStart(2, "0")}.md`);
+    if (!ownFiles.has(file) && lstatIfExists(file) !== null) {
+      throw refusedError(`Cannot collect: ${projectPath(project.root, file)} is in the way of story ${outputText(entry.story.path)}, and story collect did not write it; nothing was changed. Rename it, or give its chapter the number in its file name`);
+    }
+    return { ...entry, file, text: chapterText2(entry, unit), original: currentText(file) };
+  });
+  const written = new Set(writes.map((entry) => entry.file));
+  const removals = collected.filter((entry) => !written.has(entry.chapter.file));
+  assertNoChapterReferences(project, writes, leaving, ownFiles);
+  assertWritable(project.root, [...writes.map((entry) => entry.file), ...removals.map((entry) => entry.chapter.file)]);
+  return { project, writes, removals, leaving, handWritten, edited, snapshot: null };
+}
+function writeCollection({ project, writes, removals, leaving, handWritten, snapshot }) {
+  const changed = [];
+  for (const entry of writes) {
+    if (entry.original !== entry.text) {
+      writeFile(entry.file, entry.text, { root: project.root, unchangedFrom: entry.original });
+      changed.push(entry.file);
+    }
+  }
+  for (const entry of removals) {
+    removeFile(entry.chapter.file, { root: project.root, unchangedFrom: entry.markdown.rawMarkdown });
+    changed.push(entry.chapter.file);
+  }
+  const reindexed = changed.length === 0 ? { changed: [] } : reindexProject(project.root);
+  const chapterId = (file) => path41.basename(file, ".md");
+  return {
+    stories: writes.map((entry) => ({
+      path: entry.story.path,
+      title: entry.content.title,
+      chapter: chapterId(entry.file),
+      file: projectPath(project.root, entry.file),
+      status: entry.previous === undefined ? "added" : entry.previous.markdown.data["collected-hash"] === entry.content.hash ? "unchanged" : "changed",
+      from: entry.previous === undefined || entry.previous.chapter.file === entry.file ? null : entry.previous.chapter.id,
+      replacedEdit: entry.previous !== undefined && !entry.previous.intact
+    })),
+    removed: leaving.map((entry) => ({
+      path: entry.from,
+      chapter: entry.chapter.id,
+      file: relative(project, entry.chapter.file),
+      replacedEdit: !entry.intact
+    })),
+    snapshot,
+    changed: changed.concat(reindexed.changed),
+    warnings: handWrittenCopies(project, handWritten, writes)
+  };
+}
+function assertNoChapterReferences(project, writes, leaving, ownFiles) {
+  const moving = [
+    ...writes.filter((entry) => entry.previous !== undefined && entry.previous.chapter.file !== entry.file).map((entry) => ({ id: entry.previous.chapter.id, story: entry.story.path, to: path41.basename(entry.file, ".md") })),
+    ...leaving.map((entry) => ({ id: entry.chapter.id, story: entry.from, to: null }))
+  ];
+  if (moving.length === 0) {
+    return;
+  }
+  const regenerated = new Map([...ownFiles].map((file) => [file, null]));
+  const problems = [];
+  for (const { id, story, to } of moving) {
+    const files = [
+      ...project.scenes.filter((scene) => scene.chapter === id).map((scene) => scene.file),
+      ...removeEntityReferences(project.root, "chapter", id, regenerated).keys()
+    ];
+    const named = [...new Set(files.map((file) => relative(project, file)))].sort();
+    if (named.length > 0) {
+      problems.push(`${id} (story ${outputText(story)}) would ${to === null ? "be removed" : `move to ${to}`}, but ${named.join(", ")} ${named.length === 1 ? "names" : "name"} it`);
+    }
+  }
+  if (problems.length > 0) {
+    throw refusedError(`Cannot collect: story collect does not rewrite what names a collected chapter, so these would name the wrong story; nothing was changed:
+${problems.map((problem) => `- ${problem}`).join(`
+`)}
+Keep scenes, characters, and other records that name chapters in each story's own project, or point them at another chapter first`);
+  }
+}
+function snapshotBeforeCollect(root, sourceRoot, cwd) {
+  if (path41.resolve(root) !== path41.resolve(sourceRoot)) {
+    mirrorFolderNames(path41.join(sourceRoot, SNAPSHOTS_DIR), path41.join(root, SNAPSHOTS_DIR));
+  }
+  const id = nextSnapshotId(root, "before-collect-");
+  const snapshot = snapshotProject(root, { name: id, id, unparsed: true });
+  const where = path41.relative(cwd, sourceRoot).split(path41.sep).join("/");
+  return { id: snapshot.id, dir: snapshot.dir, restore: `story snapshot --restore ${snapshot.id}${where === "" ? "" : ` --path ${shellWord(where)}`}` };
+}
+function storyContent(story, ownAuthors, cwd) {
+  const project = scanProject(story.root);
+  const label = `story ${outputText(story.path)}`;
+  if (lockedByAnother(story.root)) {
+    throw refusedError(`Cannot collect: another story command is changing ${label}; nothing was changed. Run story collect again when it finishes`);
+  }
+  const interrupted = lstatIfExists(path41.join(story.root, UNDO_LOG))?.isFile() ? interruptedChange(story.root) : null;
+  if (interrupted !== null) {
+    const where = path41.relative(cwd, story.root).split(path41.sep).join("/") || ".";
+    throw refusedError(`Cannot collect: ${outputText(interrupted.command)} stopped part way in ${label}, so collect would read a change made only in part; nothing was changed. Run story doctor --fix --path ${shellWord(where)} to put it back, or run that command again there to finish it`);
+  }
+  try {
+    assertProjectParses(project, `collect ${label}`);
+  } catch (error) {
+    error.message = error.message.startsWith("Cannot collect") ? error.message : `${label}: ${error.message}`;
+    throw error;
+  }
+  const chapters = [...project.chapters].sort(byNumber);
+  if (chapters.length === 0) {
+    throw projectError(`Cannot collect: ${label} has no chapters yet; write the story, or take it out of story.md stories`);
+  }
+  const prose = chapters.map((chapter) => chapterProseText(readMarkdown(chapter.file, project.root).body)).filter((text) => text !== "").join(CHAPTER_JOIN);
+  const title = String(story.data.title ?? "").replace(/\s+/g, " ").trim() || path41.basename(story.root);
+  const storyAuthors = publishingMeta(story.data).authors.map((name) => name.replace(/\s+/g, " "));
+  const authors = sameNames(storyAuthors, ownAuthors) ? [] : storyAuthors;
+  return { title, authors, prose, hash: contentHash(JSON.stringify([title, authors, prose])) };
+}
+function byNumber(left, right) {
+  return left.number - right.number || (left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+}
+function chapterProseText(body) {
+  const text = body.replace(/\r\n?/g, `
+`);
+  return text.slice(proseStart(text)).trim();
+}
+function sameNames(left, right) {
+  return left.length === right.length && left.every((name) => right.includes(name));
+}
+function isIntact(markdown) {
+  const title = String(markdown.data.title ?? "").replace(/\s+/g, " ").trim();
+  const authors = nameList(markdown.data.author).map((name) => name.replace(/\s+/g, " "));
+  const prose = chapterProseText(markdown.body);
+  const body = markdown.body.replace(/\r\n?/g, `
+`).replace(/^\n+/, "");
+  return markdown.data["collected-hash"] === contentHash(JSON.stringify([title, authors, prose])) && [true, false].some((numbered) => body === importedChapterBody({ ...markdown.data, numbered }, prose));
+}
+function chapterText2({ story, number, content, previous }, unit) {
+  const words = wordCount(scanComments(content.prose).text);
+  const counts = unit.name === "characters" ? { "word-count": words, "character-count": characterCount(scanComments(content.prose).text) } : { "word-count": words };
+  const collectedFields = { "collected-from": story.path, "collected-hash": content.hash };
+  if (previous === undefined) {
+    return importedChapterText({ ...importedChapterData(content.title, number, counts, false, content.authors), ...collectedFields }, content.prose);
+  }
+  const data = { ...previous.markdown.data, title: content.title, number, ...counts, ...collectedFields };
+  if (content.authors.length === 0) {
+    delete data.author;
+  } else {
+    data.author = content.authors.length === 1 ? content.authors[0] : content.authors;
+  }
+  const body = `
+${importedChapterBody(data, content.prose)}`;
+  const crlf = /^---\r\n/.test(previous.markdown.rawMarkdown);
+  return replaceFrontmatter(previous.markdown.rawMarkdown, data, crlf ? body.replace(/\r?\n/g, `\r
+`) : body);
+}
+function handWrittenCopies(project, handWritten, writes) {
+  const titles = new Map(writes.map((entry) => [entry.content.title.toLowerCase(), entry]));
+  return handWritten.flatMap(({ chapter, markdown }) => {
+    const title = String(markdown.data.title ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+    const match = titles.get(title);
+    if (title === "" || match === undefined) {
+      return [];
+    }
+    const file = relative(project, chapter.file);
+    return [warn("collect-hand-written-copy", `${file} has the title of story ${match.story.path} but no collected-from, so story collect left it and wrote the story as ${path41.basename(match.file, ".md")}; delete ${file} if it is an old copy`, file)];
+  });
+}
+function formatCollect(result, dryRun) {
+  const lines = [];
+  if (!dryRun) {
+    lines.push(result.changed.length === 0 ? `Collected ${plural(result.stories.length, "story", "stories")}: no story changed since the last run` : `Collected ${plural(result.stories.length, "story", "stories")}:`);
+  }
+  for (const story of result.stories) {
+    const notes = [story.status];
+    if (story.from !== null) {
+      notes.push(`moved from ${story.from}`);
+    }
+    if (story.replacedEdit) {
+      notes.push("replaced the edit made in the collection");
+    }
+    lines.push(`- ${outputText(story.path)}: ${story.chapter} "${outputText(story.title)}" (${notes.join("; ")})`);
+  }
+  for (const entry of result.removed) {
+    const notes = [`was ${entry.chapter}`, ...entry.replacedEdit ? ["replaced the edit made in the collection"] : []];
+    lines.push(`- ${outputText(entry.path)}: ${dryRun ? "would be removed" : "removed"}, as it is no longer in story.md stories (${notes.join("; ")})`);
+  }
+  if (result.snapshot) {
+    lines.push(`${dryRun ? "Would save" : "Saved"} the collection as snapshot ${result.snapshot.id} before replacing the edits; ${result.snapshot.restore} puts it back`);
+  }
+  return lines.length === 0 ? "" : `${lines.join(`
+`)}
+`;
+}
+
 // src/language-server.js
-import fs27 from "node:fs";
-import path38 from "node:path";
+import fs28 from "node:fs";
+import path42 from "node:path";
 import { fileURLToPath, pathToFileURL as pathToFileURL2 } from "node:url";
 
 // src/lsp-text.js
@@ -33410,21 +36653,21 @@ function listItem2(lines, frontmatter, key, item) {
 }
 
 // src/lsp-transport.js
-import { Buffer as Buffer11 } from "node:buffer";
-var HEADER_END = Buffer11.from(`\r
+import { Buffer as Buffer12 } from "node:buffer";
+var HEADER_END = Buffer12.from(`\r
 \r
 `, "ascii");
 var CONTENT_LENGTH = /^content-length:[ \t]*(\d+)[ \t]*$/im;
 function encodeMessage(message) {
-  const body = Buffer11.from(JSON.stringify(message), "utf8");
-  return Buffer11.concat([Buffer11.from(`Content-Length: ${body.length}\r
+  const body = Buffer12.from(JSON.stringify(message), "utf8");
+  return Buffer12.concat([Buffer12.from(`Content-Length: ${body.length}\r
 \r
 `, "ascii"), body]);
 }
 function messageReader(onMessage, onProblem) {
-  let pending = Buffer11.alloc(0);
+  let pending = Buffer12.alloc(0);
   return (chunk) => {
-    pending = Buffer11.concat([pending, chunk]);
+    pending = Buffer12.concat([pending, chunk]);
     for (let headerEnd = pending.indexOf(HEADER_END);headerEnd !== -1; headerEnd = pending.indexOf(HEADER_END)) {
       const header = pending.subarray(0, headerEnd).toString("ascii");
       const length = CONTENT_LENGTH.exec(header);
@@ -33543,12 +36786,12 @@ function createLanguageServer({ send, exit, schedule = setTimeout, cancel = clea
       const result = underOpenDocuments(() => checkWithUnsaved(root));
       for (const [severity, findings] of [[SEVERITY.error, result.errors], [SEVERITY.warning, result.warnings]]) {
         for (const finding of findings) {
-          const file = path38.join(root, finding.file ?? "story.md");
+          const file = path42.join(root, finding.file ?? "story.md");
           add(file, { range: findingRange(textOf(file), finding), severity, code: finding.code, source: SOURCE, message: findingMessage(finding) });
         }
       }
     } catch (error) {
-      add(path38.join(root, "story.md"), { range: range(0, 0), severity: SEVERITY.error, source: SOURCE, message: error.message });
+      add(path42.join(root, "story.md"), { range: range(0, 0), severity: SEVERITY.error, source: SOURCE, message: error.message });
     }
     for (const uri of published.get(root) ?? []) {
       if (!found.has(uri)) {
@@ -33561,12 +36804,12 @@ function createLanguageServer({ send, exit, schedule = setTimeout, cancel = clea
     published.set(root, new Set(found.keys()));
   }
   function unsavedFiles(root) {
-    return [...documents.keys()].filter((file) => file.endsWith(".md") && !fs27.existsSync(file) && projectRootOf(file) === root);
+    return [...documents.keys()].filter((file) => file.endsWith(".md") && !fs28.existsSync(file) && projectRootOf(file) === root);
   }
   function writeUnsaved(root, copyRoot) {
     for (const file of unsavedFiles(root)) {
       try {
-        writeFile(path38.join(copyRoot, path38.relative(root, file)), documents.get(file).text, { root: copyRoot });
+        writeFile(path42.join(copyRoot, path42.relative(root, file)), documents.get(file).text, { root: copyRoot });
       } catch (error) {
         log(`Left out ${file}, which is not saved yet: ${error.message}`);
       }
@@ -33755,11 +36998,11 @@ function createLanguageServer({ send, exit, schedule = setTimeout, cancel = clea
       writeUnsaved(root, copyRoot);
       const recorded = recordChanges(copyRoot, () => run(copyRoot)).changes;
       const written = recorded.filter((change) => change.action === "create" || change.action === "update");
-      return { texts: Object.fromEntries(written.map((change) => [change.path, readTextFile(path38.join(copyRoot, change.path))])), changes: recorded };
+      return { texts: Object.fromEntries(written.map((change) => [change.path, readTextFile(path42.join(copyRoot, change.path))])), changes: recorded };
     }).result);
     const operations = [];
     for (const change of changes) {
-      const file = path38.join(root, change.path);
+      const file = path42.join(root, change.path);
       const uri = uriFor(file);
       const version = documents.get(file)?.version ?? null;
       if (change.action === "update") {
@@ -33857,7 +37100,7 @@ function createLanguageServer({ send, exit, schedule = setTimeout, cancel = clea
       checkDocumentProject(file, checkNow);
     },
     "workspace/didChangeWatchedFiles"({ changes }) {
-      for (const root of [...published.keys()].filter((root) => !fs27.existsSync(path38.join(root, "story.md")))) {
+      for (const root of [...published.keys()].filter((root) => !fs28.existsSync(path42.join(root, "story.md")))) {
         clearProject(root);
       }
       const roots = new Set(changes.map((change) => uriPath(change.uri)).filter((file) => file !== null).map(projectRootOf));
@@ -33873,7 +37116,7 @@ function createLanguageServer({ send, exit, schedule = setTimeout, cancel = clea
         if (folder === null) {
           continue;
         }
-        const roots = new Set([...folders.get(folder) ?? [], ...[...published.keys()].filter((root) => isInside(folder, root))]);
+        const roots = new Set([...folders.get(folder) ?? [], ...[...published.keys()].filter((root) => isInside2(folder, root))]);
         folders.delete(folder);
         const kept = new Set([...[...folders.values()].flat(), ...[...documents.keys()].map(projectRootOf)]);
         for (const root of roots) {
@@ -33938,17 +37181,17 @@ function uriPath(uri) {
   return /^[a-z]:/.test(file) ? `${file[0].toUpperCase()}${file.slice(1)}` : file;
 }
 function projectRootOf(file) {
-  for (let folder = path38.dirname(file);; folder = path38.dirname(folder)) {
-    if (fs27.existsSync(path38.join(folder, "story.md"))) {
+  for (let folder = path42.dirname(file);; folder = path42.dirname(folder)) {
+    if (fs28.existsSync(path42.join(folder, "story.md"))) {
       return folder;
     }
-    if (path38.dirname(folder) === folder) {
+    if (path42.dirname(folder) === folder) {
       return null;
     }
   }
 }
 function projectsIn(folder) {
-  const enclosing = projectRootOf(path38.join(folder, "story.md"));
+  const enclosing = projectRootOf(path42.join(folder, "story.md"));
   if (enclosing !== null) {
     return [enclosing];
   }
@@ -33959,7 +37202,7 @@ function projectsIn(folder) {
 function findProjects(folder, depth, found) {
   let entries;
   try {
-    entries = fs27.readdirSync(folder, { withFileTypes: true });
+    entries = fs28.readdirSync(folder, { withFileTypes: true });
   } catch {
     return;
   }
@@ -33968,8 +37211,8 @@ function findProjects(folder, depth, found) {
       return;
     }
     if (entry.isDirectory() && !entry.name.startsWith(".") && !SKIPPED_SCAN_DIRECTORIES.has(entry.name)) {
-      const child = path38.join(folder, entry.name);
-      if (fs27.existsSync(path38.join(child, "story.md"))) {
+      const child = path42.join(folder, entry.name);
+      if (fs28.existsSync(path42.join(child, "story.md"))) {
         found.push(child);
       } else if (depth < PROJECT_SEARCH_DEPTH) {
         findProjects(child, depth + 1, found);
@@ -33977,9 +37220,9 @@ function findProjects(folder, depth, found) {
     }
   }
 }
-function isInside(folder, file) {
-  const relative = path38.relative(folder, file);
-  return !relative.startsWith("..") && !path38.isAbsolute(relative);
+function isInside2(folder, file) {
+  const relative = path42.relative(folder, file);
+  return !relative.startsWith("..") && !path42.isAbsolute(relative);
 }
 function projectEntities(project) {
   const entities = new Map;
@@ -34016,7 +37259,7 @@ function fieldKinds(key) {
   return key !== null && Object.hasOwn(REFERENCE_FIELD_KINDS, key) ? REFERENCE_FIELD_KINDS[key] : undefined;
 }
 function describeEntity(entry, root, chapter, project, sceneDate) {
-  const lines = [`**${escapeMarkdown(entry.name)}** · ${entry.kind} · \`${portablePath(path38.relative(root, entry.file))}\``];
+  const lines = [`**${escapeMarkdown(entry.name)}** · ${entry.kind} · \`${portablePath(path42.relative(root, entry.file))}\``];
   const atChapter = chapter !== null && PROGRESSION_KINDS.includes(entry.kind) ? stateAtChapter(entry, root, chapter, project, sceneDate) : null;
   const status = String((atChapter === null ? entry.entity.status : atChapter.status) ?? "");
   if (status !== "") {
@@ -34217,8 +37460,8 @@ function markDeath(root, options) {
 }
 
 // src/workflows.js
-import fs28 from "node:fs";
-import path39 from "node:path";
+import fs29 from "node:fs";
+import path43 from "node:path";
 import { fileURLToPath as fileURLToPath2 } from "node:url";
 var ENV_LINE = /^\s*(STORY_VERSION|STORY_REF|STORY_PACKAGE)\s*:\s*["']?([^"'\s#]*)/;
 var VERSION_PATTERN = /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*)(?:\.(?:0|[1-9]\d*|\d*[A-Za-z-][0-9A-Za-z-]*))*))?(?:\+([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/;
@@ -34296,7 +37539,7 @@ function packageHint(holder, version) {
   if (holder.endsWith("/.bun/install/global")) {
     return `update it with bun add -g story-skills@${version}`;
   }
-  if (fs28.existsSync(path39.join(holder, "package.json"))) {
+  if (fs29.existsSync(path43.join(holder, "package.json"))) {
     return `update the story-skills dependency in ${holder}/package.json to ${version}`;
   }
   if (/\/(lib|npm|nodejs)$/i.test(holder)) {
@@ -34309,18 +37552,18 @@ function docsHint(version) {
 }
 function realPath3(file) {
   try {
-    return fs28.realpathSync(file);
+    return fs29.realpathSync(file);
   } catch {
     return file;
   }
 }
 function gitHead(root) {
   try {
-    let gitDir = path39.join(root, ".git");
-    if (fs28.statSync(gitDir).isFile()) {
-      gitDir = path39.resolve(root, /^gitdir:\s*(.+?)\s*$/m.exec(readTextFile(gitDir))[1]);
+    let gitDir = path43.join(root, ".git");
+    if (fs29.statSync(gitDir).isFile()) {
+      gitDir = path43.resolve(root, /^gitdir:\s*(.+?)\s*$/m.exec(readTextFile(gitDir))[1]);
     }
-    return readTextFile(path39.join(gitDir, "HEAD")).startsWith("ref:") ? "branch" : "detached";
+    return readTextFile(path43.join(gitDir, "HEAD")).startsWith("ref:") ? "branch" : "detached";
   } catch {
     return null;
   }
@@ -34378,23 +37621,23 @@ function workflowFiles(projectRoot) {
   }
   const files = [];
   for (const dir of dirs) {
-    const workflows = path39.join(dir, ".github", "workflows");
+    const workflows = path43.join(dir, ".github", "workflows");
     let names;
     try {
-      names = fs28.readdirSync(workflows);
+      names = fs29.readdirSync(workflows);
     } catch {
       continue;
     }
     for (const name of names.filter((entry) => /\.ya?ml$/.test(entry)).sort()) {
-      files.push(path39.join(workflows, name));
+      files.push(path43.join(workflows, name));
     }
   }
   return files;
 }
 function findGitRoot(start) {
-  let dir = path39.resolve(start);
-  while (!fs28.existsSync(path39.join(dir, ".git"))) {
-    const parent = path39.dirname(dir);
+  let dir = path43.resolve(start);
+  while (!fs29.existsSync(path43.join(dir, ".git"))) {
+    const parent = path43.dirname(dir);
     if (parent === dir) {
       return null;
     }
@@ -34452,8 +37695,8 @@ function action2(title, detail) {
 
 // src/notes.js
 import { createHash } from "node:crypto";
-import fs29 from "node:fs";
-import path40 from "node:path";
+import fs30 from "node:fs";
+import path44 from "node:path";
 var MAX_NOTES_FILE_BYTES = 64 * 1024 * 1024;
 var MAX_NOTES_PARAGRAPHS = 250000;
 var COMMENTS_PART = "word/comments.xml";
@@ -34461,7 +37704,7 @@ var COMMENTS_EXTENDED_PART = "word/commentsExtended.xml";
 var MAX_QUOTED_CHARACTERS = 300;
 var CONTEXT_WORDS = 6;
 var UNCHANGED_WORDS = 12;
-var SKIPPED2 = new Set(["w:rPrChange", "w:pPrChange", "w:sectPrChange", "w:tblPrChange", "mc:Fallback", "w:rt", "w:drawing", "w:pict", "w:object", "w:txbxContent"]);
+var SKIPPED4 = new Set(["w:rPrChange", "w:pPrChange", "w:sectPrChange", "w:tblPrChange", "mc:Fallback", "w:rt", "w:drawing", "w:pict", "w:object", "w:txbxContent"]);
 var CHANGE_ELEMENTS = new Map([
   ["w:ins", { kind: "insertion", state: "inserted" }],
   ["w:del", { kind: "deletion", state: "deleted" }],
@@ -34479,7 +37722,7 @@ function projectNotes(root, file, { cwd = process.cwd() } = {}) {
   return placeNotes(review, { labels: paragraphLabels(book), parts: book.parts }, shown);
 }
 function readReturnedFile(file, { cwd, command, root }) {
-  const filePath = path40.resolve(cwd, file);
+  const filePath = path44.resolve(cwd, file);
   if (!/\.docx$/i.test(filePath)) {
     throw usageError(`Cannot read ${printable(file)}: story ${command} reads a Word document, a file whose name ends in .docx`);
   }
@@ -34487,7 +37730,7 @@ function readReturnedFile(file, { cwd, command, root }) {
   assertProjectParses(project, command);
   let stats;
   try {
-    stats = fs29.statSync(filePath);
+    stats = fs30.statSync(filePath);
   } catch {
     throw usageError(`Word file not found: ${printable(file)}`);
   }
@@ -34504,10 +37747,10 @@ function readReturnedFile(file, { cwd, command, root }) {
     hash = createHash("sha256").update(bytes).digest("hex");
     review = readReview(bytes);
   } catch (error) {
-    throw error instanceof DocxError ? usageError(`Cannot read ${printable(file)}: ${error.message}`) : error;
+    throw error instanceof ArchiveError ? usageError(`Cannot read ${printable(file)}: ${error.message}`) : error;
   }
-  const relative = path40.relative(cwd, filePath);
-  const shown = printable(relative === "" || relative.startsWith("..") || path40.isAbsolute(relative) ? filePath : portablePath(relative));
+  const relative = path44.relative(cwd, filePath);
+  const shown = printable(relative === "" || relative.startsWith("..") || path44.isAbsolute(relative) ? filePath : portablePath(relative));
   return { review, shown, project, hash };
 }
 function readReview(bytes) {
@@ -34515,7 +37758,7 @@ function readReview(bytes) {
   const part = (name) => entries.has(name) ? xmlText(bytes, entries.get(name)) : null;
   const document = part(DOCUMENT_PART);
   if (document === null) {
-    throw new DocxError(`it has no ${DOCUMENT_PART}, so it is not a Word document`);
+    throw new ArchiveError(`it has no ${DOCUMENT_PART}, so it is not a Word document`);
   }
   const stylesXml = part(STYLES_PART);
   const styles = stylesXml === null ? null : readStyles(stylesXml);
@@ -34525,7 +37768,14 @@ function readReview(bytes) {
   if (extendedXml !== null) {
     threadComments(comments, extendedXml);
   }
-  return { ...documentParagraphs(document, styles, comments), comments, styles };
+  return { ...documentParagraphs(document, styles, comments), comments, styles, footnoteTexts: footnoteTexts(part("word/footnotes.xml")) };
+}
+function footnoteTexts(xml) {
+  if (xml === null || xml === undefined) {
+    return [];
+  }
+  const entities = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+  return [...String(xml).matchAll(/<w:footnote\b([^>]*)>([\s\S]*?)<\/w:footnote>/g)].filter((match) => !/\bw:type="(?:separator|continuationSeparator|continuationNotice)"/.test(match[1])).map((match) => [...match[2].matchAll(/<w:t(?:\s[^>]*)?>([^<]*)<\/w:t>/g)].map((text) => text[1]).join("").replace(/&(amp|lt|gt|quot|apos);/g, (whole, name) => entities[name]).replace(/\s+/g, " ").trim());
 }
 function documentReview(documentXml, stylesXml) {
   const styles = readStyles(stylesXml);
@@ -34563,7 +37813,7 @@ function readComments(xml, styles) {
       } else if (type === "end" && comment !== null) {
         if (comment.id !== undefined) {
           if (comments.has(comment.id)) {
-            throw new DocxError(`it has two comments with the id ${printable(comment.id)}, so it is damaged; save it again from Word`);
+            throw new ArchiveError(`it has two comments with the id ${printable(comment.id)}, so it is damaged; save it again from Word`);
           }
           const { paragraphs, ...rest } = comment;
           comments.set(comment.id, { ...rest, text: paragraphs.map(displayText).filter((line) => line !== "").join(`
@@ -34576,7 +37826,7 @@ function readComments(xml, styles) {
     if (comment === null) {
       continue;
     }
-    if (type === "start" && (SKIPPED2.has(name) || name === "w:del" || name === "w:moveFrom")) {
+    if (type === "start" && (SKIPPED4.has(name) || name === "w:del" || name === "w:moveFrom")) {
       skip = { name, depth: 1 };
       continue;
     }
@@ -34679,6 +37929,11 @@ function documentParagraphs(xml, styles, comments) {
   const open = new Map;
   const changes = [];
   const leftOut = new Set;
+  const leftOutCounts = new Map;
+  const leaveOut = (kind) => {
+    leftOut.add(kind);
+    leftOutCounts.set(kind, (leftOutCounts.get(kind) ?? 0) + 1);
+  };
   let tables = 0;
   let paragraph = null;
   let run = null;
@@ -34733,10 +37988,10 @@ function documentParagraphs(xml, styles, comments) {
       }
       continue;
     }
-    if (type === "start" && SKIPPED2.has(name)) {
+    if (type === "start" && SKIPPED4.has(name)) {
       const kind = LEFT_OUT.get(name);
       if (kind !== undefined) {
-        leftOut.add(kind);
+        leaveOut(kind);
       }
       skip = { name, depth: 1 };
       continue;
@@ -34747,7 +38002,7 @@ function documentParagraphs(xml, styles, comments) {
       continue;
     }
     if ((name === "w:footnoteReference" || name === "w:endnoteReference") && type !== "end") {
-      leftOut.add("footnotes");
+      leaveOut("footnotes");
       continue;
     }
     if (type === "text") {
@@ -34789,7 +38044,7 @@ function documentParagraphs(xml, styles, comments) {
     if (name === "w:p") {
       if (type !== "end") {
         if (paragraphs.length >= MAX_NOTES_PARAGRAPHS) {
-          throw new DocxError(`it has more than ${MAX_NOTES_PARAGRAPHS} paragraphs, far more than a book has`);
+          throw new ArchiveError(`it has more than ${MAX_NOTES_PARAGRAPHS} paragraphs, far more than a book has`);
         }
         paragraph = { segments: [], mark: "kept", changes: [], comments: pending, style: null, outline: null, hidden: false, table: tables > 0, pageBreak: false };
         pending = [];
@@ -34853,7 +38108,7 @@ function documentParagraphs(xml, styles, comments) {
       }
     }
   }
-  return { paragraphs, quoted, styled: paragraphs.some((entry) => entry.level > 0), leftOut };
+  return { paragraphs, quoted, styled: paragraphs.some((entry) => entry.level > 0), leftOut, leftOutCounts };
 }
 var LEFT_OUT = new Map([["w:drawing", "images"], ["w:pict", "images"], ["w:object", "images"], ["w:txbxContent", "text-boxes"]]);
 function skipped(skip, token) {
@@ -35203,8 +38458,8 @@ function count2(value, singular, plural = `${singular}s`) {
 }
 
 // src/apply.js
-import fs30 from "node:fs";
-import path41 from "node:path";
+import fs31 from "node:fs";
+import path45 from "node:path";
 var TRACKED_CHOICES = ["accept", "reject"];
 var PAIR_SHARE = 0.3;
 var CONTAINED_WORDS = 4;
@@ -35282,7 +38537,7 @@ function snapshotBeforeApply(root, cwd) {
   try {
     id = nextSnapshotId(root, "before-apply-");
     const snapshot = snapshotProject(root, { name: id, id, unparsed: true });
-    const where = path41.relative(cwd, root).split(path41.sep).join("/");
+    const where = path45.relative(cwd, root).split(path45.sep).join("/");
     return { id: snapshot.id, dir: snapshot.dir, restore: `story snapshot --restore ${snapshot.id}${where === "" ? "" : ` --path ${shellWord(where)}`}` };
   } catch (error) {
     error.hint = joinHint(error.hint, `story apply stopped before writing any chapter: it could not save the project as snapshot ${id} first`);
@@ -35315,7 +38570,7 @@ function planApply(root, file, { cwd = process.cwd(), tracked, ref, snapshot } =
   let base = null;
   if (hasRef || hasSnapshot) {
     base = withBaseProject(project, { ref, snapshot }, (baseRoot, label) => {
-      if (!fs30.existsSync(path41.join(baseRoot, "story.md"))) {
+      if (!fs31.existsSync(path45.join(baseRoot, "story.md"))) {
         throw projectError(`No story project (story.md) in ${label}`);
       }
       const baseProject = scanProject(baseRoot);
@@ -35342,7 +38597,7 @@ function readBuild(project, shunn) {
     }
   }
   const files = project.chapters.map((chapter) => relative(project, chapter.file));
-  return { items, chapters, manuscript: build.manuscript, project, files, ids: project.chapters.map((chapter) => chapter.id) };
+  return { items, chapters, manuscript: build.manuscript, project, files, ids: project.chapters.map((chapter) => chapter.id), leftOutCounts: review.leftOutCounts, footnoteTexts: footnoteTexts(build.footnotes) };
 }
 function itemsOf(review, view) {
   const dropped = view === "before" ? "inserted" : "deleted";
@@ -35660,7 +38915,19 @@ function applyPlan({ project, review, shown, hash, view, tracked, current, base 
   if (review.comments.size > 0) {
     warnings.push(warn("apply-content-left-out", `${shown} has ${count3(review.comments.size, "comment")}, which story apply does not write into the chapters; story notes lists them`));
   }
-  const leftOut = [...review.leftOut].sort().map((kind) => LEFT_OUT_NAMES[kind]);
+  const leftOut = [...review.leftOut].filter((kind) => (review.leftOutCounts?.get(kind) ?? 1) > (sent.leftOutCounts.get(kind) ?? 0)).sort().map((kind) => LEFT_OUT_NAMES[kind]);
+  const builtNotes = new Map;
+  for (const text of sent.footnoteTexts) {
+    builtNotes.set(text, (builtNotes.get(text) ?? 0) + 1);
+  }
+  const changedNotes = (review.footnoteTexts ?? []).filter((text) => {
+    const left = builtNotes.get(text) ?? 0;
+    builtNotes.set(text, left - 1);
+    return left <= 0;
+  });
+  if (!leftOut.includes(LEFT_OUT_NAMES.footnotes) && changedNotes.length > 0) {
+    warnings.push(warn("apply-content-left-out", `${shown} has ${count3(changedNotes.length, "footnote")} whose text is not in the ${base ? "version sent" : "project's footnotes (or the project changed them since sending; pass --ref or --snapshot to tell)"}, which story apply does not write: copy the changes into the footnote definitions by hand`));
+  }
   if (leftOut.length > 0) {
     warnings.push(warn("apply-content-left-out", `${shown} has ${joinList(leftOut)}, which story apply leaves out of the chapters, as story import does`));
   }
@@ -36843,7 +40110,7 @@ function attemptChapter(context, ops, manuscript) {
 }
 function readsAlone(source, text, key, manuscript) {
   return sameKeys2(readKeys(text.split(source.eol).join(`
-`), manuscript), [key]);
+`), manuscript, source.verse), [key]);
 }
 function itemLabels(items, key) {
   let number = 0;
@@ -36915,9 +40182,19 @@ function chapterSource(project, chapter, builtBody) {
     });
   }
   const read = (line) => flattenHeadings(line.shown).replace(/^(?:[ \t]*>[ \t]?)+/, "");
+  const noteLines = footnoteDefinitionLines(stripped);
+  const noteStarts = new Set;
+  for (let index = 0, start = 0;start <= stripped.length; index += 1) {
+    if (noteLines.has(index)) {
+      noteStarts.add(start);
+    }
+    const newline = stripped.indexOf(`
+`, start);
+    start = newline === -1 ? stripped.length + 1 : newline + 1;
+  }
   const groupsOfLines = [];
   for (const line of lines) {
-    if (read(line).trim() === "") {
+    if (noteStarts.has(line.start) || read(line).trim() === "") {
       groupsOfLines.push(null);
     } else if (!line.code && breaksParagraph(read(line))) {
       groupsOfLines.push([line], null);
@@ -36927,7 +40204,9 @@ function chapterSource(project, chapter, builtBody) {
       groupsOfLines.at(-1).push(line);
     }
   }
-  const expected = wordParagraphs(builtBody);
+  const verse = chapter.verse === true;
+  const expected = wordParagraphs(builtBody, verse);
+  const defined = splitFootnotes(builtBody).notes;
   const blocks = [];
   const itemBlock = [];
   const printed = [];
@@ -36940,7 +40219,7 @@ function chapterSource(project, chapter, builtBody) {
     const items = wordParagraphs(code ? `${fence}
 ${strippedText}
 ${fence}` : strippedText.replace(/\r\n?/g, `
-`));
+`), verse, defined);
     const start = proseOffset + offsets[first.start];
     const end = proseOffset + offsets[last.start + last.text.length - 1] + 1;
     const text = raw.slice(start, end);
@@ -36957,6 +40236,7 @@ ${fence}` : strippedText.replace(/\r\n?/g, `
   return {
     raw,
     path: chapter.file,
+    verse,
     proseOffset,
     mapped: sameKeys2(printed, expected),
     codes: expected.map((paragraph) => paragraph.code === true),
@@ -37090,7 +40370,7 @@ function paragraphText(source, doc, indent, quote) {
   if (doc.sceneBreak) {
     return source.sceneBreak;
   }
-  const text = paragraphMarkdown(doc.runs, { quote }).split(`
+  const text = paragraphMarkdown(doc.runs, { quote, verse: source.verse }).split(`
 `).map(escapeLineStart).join(source.eol);
   return quote ? text : `${indent}${text}`;
 }
@@ -37101,15 +40381,16 @@ function readsBack(text, source, planned, manuscript) {
   const { raw, proseOffset } = source;
   const body = () => parseFrontmatter(text, "chapter").body;
   return text.slice(0, proseOffset) === raw.slice(0, proseOffset) && text.length - body().length + proseStart(body()) === proseOffset && sameKeys2(printedKeys(trimBlankLines(chapterProse(body()).replace(/\r\n?/g, `
-`)), manuscript), planned);
+`)), manuscript, source.verse), planned);
 }
-function printedKeys(body, manuscript) {
-  const paragraphs = wordParagraphs(body);
-  return readKeys(body, manuscript).map((key, index) => plannedKey({ key, code: paragraphs[index]?.code === true, quote: paragraphs[index]?.quote === true }));
+function printedKeys(body, manuscript, verse = false) {
+  const paragraphs = wordParagraphs(body, verse);
+  return readKeys(body, manuscript, verse).map((key, index) => plannedKey({ key, code: paragraphs[index]?.code === true, quote: paragraphs[index]?.quote === true }));
 }
-function readKeys(body, manuscript) {
+function readKeys(body, manuscript, verse = false) {
   const trace = [];
-  const entries = docxEntries({ ...manuscript, front: [], back: [], chapters: [{ heading: "Chapter", body, byline: "" }] }, trace);
+  const book = { ...manuscript, front: [], back: [], chapters: [{ heading: "Chapter", body, byline: "", verse }] };
+  const entries = manuscript.shunnMeta ? shunnDocxEntries(book, manuscript.shunnMeta, DEFAULT_PAPER, trace) : docxEntries(book, trace);
   const part = (name) => entries.find((entry) => entry.name === name).content;
   return itemsOf(documentReview(part("word/document.xml"), part("word/styles.xml")), "after").filter((item, index) => trace[index].kind === "paragraph" || trace[index].kind === "scene-break").map((item) => item.key);
 }
@@ -37406,7 +40687,7 @@ var COMMANDS = [
         return 0;
       }
       for (const linkedBook of result.linkedBooks) {
-        io.stdout.write(`Updated series links in ${path42.join(linkedBook, "story.md")}
+        io.stdout.write(`Updated series links in ${path46.join(linkedBook, "story.md")}
 `);
       }
       return 0;
@@ -37415,7 +40696,7 @@ var COMMANDS = [
   {
     name: "import",
     usage: "import <source|->",
-    summary: ["Split an existing manuscript (markdown, text, or", ".docx) into a new story project; - reads the", "manuscript from stdin"],
+    summary: ["Split an existing manuscript (markdown, text,", ".docx, .odt, or .epub) into a new story project;", "- reads the manuscript from stdin"],
     project: "none",
     args: 1,
     options: ["title", "dir", "genre", "sub-genre", "setting-era", "theme", "themes", "pov", "tense", "synopsis", "language", "bylines", "force", ...WRITE_OPTIONS],
@@ -37476,6 +40757,27 @@ var COMMANDS = [
     }
   },
   {
+    name: "collect",
+    usage: "collect [path]",
+    summary: [
+      "Rewrite a collection's chapters from the story",
+      "projects its story.md stories list names, and",
+      "report which stories changed"
+    ],
+    project: "positional",
+    options: ["force", ...WRITE_OPTIONS],
+    writes: true,
+    recovers: true,
+    change({ parsed, root, cwd }) {
+      const sourceRoot = root();
+      const force = isTruthy(parsed.options.force);
+      return (projectRoot) => collectStories(projectRoot, { sourceRoot, force, cwd });
+    },
+    run(context) {
+      return runWrite(context, "collect", this.change(context), (result) => formatCollect(result, false), (result) => formatCollect(result, true));
+    }
+  },
+  {
     name: "validate",
     usage: "validate [path]",
     summary: ["Check project structure, frontmatter, and registries"],
@@ -37508,9 +40810,10 @@ var COMMANDS = [
       }
       return runWrite(context, "wordcount", (projectRoot) => computeWordCounts(projectRoot, { write }), (result) => {
         const characters = result.unit === "characters";
-        return result.chapters.map((chapter) => `${chapter.file}: ${characters ? chapter.characterCount : chapter.wordCount}
+        return result.chapters.map((chapter) => `${chapter.file}: ${characters ? chapter.characterCount : chapter.wordCount}${chapter.lineCount === undefined ? "" : ` (${plural(chapter.lineCount, "line")})`}
 `).join("") + `Total: ${result.total}${characters ? " characters" : ""}
-`;
+` + (result.lines === undefined ? "" : `Lines: ${result.lines}
+`);
       });
     }
   },
@@ -37532,7 +40835,8 @@ var COMMANDS = [
       "location routes, durable state, chapter numbering",
       "(chapter-numbering-start, chapter-numbering-gap), and",
       "open promises in a complete story",
-      "(complete-with-open-promise).",
+      "(complete-with-open-promise), plus the story.md",
+      "checks (custom-<id>).",
       "Findings matching continuity/exemptions.md are",
       "reported as dismissed"
     ],
@@ -37779,6 +41083,27 @@ var COMMANDS = [
     }
   },
   {
+    name: "submissions",
+    usage: "submissions [path]",
+    summary: [
+      "List submission/tracker.md rows, count each status,",
+      "check statuses and dates, and flag replies awaited",
+      "--days days or more (default 90); never writes"
+    ],
+    project: "positional",
+    options: ["date", "days", "json"],
+    run({ parsed, io, root, overrides }) {
+      const today = todayOption(parsed.options.date, "submissions");
+      const days = followUpDays(parsed.options);
+      const report = recountOverdue(applySeverity(submissionsReport(root(), { today, days }), overrides));
+      if (wantsJson(parsed)) {
+        return reportJson(io, "submissions", report);
+      }
+      io.stdout.write(formatSubmissions(report));
+      return reportResult(io, report, "Submissions checked", "Submissions check failed");
+    }
+  },
+  {
     name: "timeline",
     usage: "timeline [path]",
     summary: [
@@ -38016,6 +41341,51 @@ var COMMANDS = [
     }
   },
   {
+    name: "translation",
+    usage: "translation [path]",
+    summary: [
+      "Compare a translation with the source project its",
+      "story.md translation-of names: chapters, scenes,",
+      "and ids in one only, paragraph counts, and source",
+      "chapters changed since they were translated;",
+      "--record notes the source-hash of each chapter"
+    ],
+    project: "positional",
+    options: ["record", "chapter", ...WRITE_OPTIONS],
+    writes: (options) => isTruthy(options.record),
+    run({ parsed, io, root, overrides }) {
+      const record = isTruthy(parsed.options.record);
+      const dryRun = isTruthy(parsed.options["dry-run"]);
+      const { chapter } = parsed.options;
+      if (!record && dryRun) {
+        throw usageError("--dry-run previews translation --record: add --record", "dry-run");
+      }
+      if (!record && chapter !== undefined) {
+        throw usageError("--chapter picks the one chapter translation --record writes: add --record", "chapter");
+      }
+      const projectRoot = root();
+      if (record) {
+        assertTranslationLink(projectRoot);
+      }
+      const { result, changes } = record ? runOrPreview(dryRun, projectRoot, (target) => translationReport(target, { record, chapter })) : { result: translationReport(projectRoot), changes: [] };
+      const report = applySeverity(result, overrides);
+      if (wantsJson(parsed)) {
+        return writeJsonResult(io, {
+          command: "translation",
+          ok: report.ok,
+          data: { ...resultData(report), root: projectRoot, dryRun, changes },
+          diagnostics: diagnosticsFrom(report, "translation"),
+          writes: dryRun ? [] : writtenFiles(projectRoot, changes)
+        });
+      }
+      io.stdout.write(formatTranslationReport(report, { dryRun }));
+      if (dryRun) {
+        io.stdout.write(formatPreview("translation --record", changes));
+      }
+      return reportResult(io, report, "Translation is in step with its source", "Translation check failed");
+    }
+  },
+  {
     name: "passes",
     usage: "passes [path]",
     summary: [
@@ -38098,9 +41468,9 @@ var COMMANDS = [
       const force = isTruthy(parsed.options.force);
       const id = parsed.options.id;
       const projectRoot = root();
-      const existing = path42.join(projectRoot, SNAPSHOTS_DIR, snapshotId(name, id));
+      const existing = path46.join(projectRoot, SNAPSHOTS_DIR, snapshotId(name, id));
       const seed = (target) => {
-        const folder = path42.dirname(existing);
+        const folder = path46.dirname(existing);
         if (target === projectRoot || lstatIfExists(folder) === null) {
           return;
         }
@@ -38109,9 +41479,9 @@ var COMMANDS = [
           return;
         }
         assertSafeProjectDirectory(existing, projectRoot);
-        const copy = path42.join(target, path42.relative(projectRoot, existing));
-        assertExistingAncestorInsideRoot(path42.dirname(copy), target);
-        fs31.cpSync(existing, copy, { recursive: true });
+        const copy = path46.join(target, path46.relative(projectRoot, existing));
+        assertExistingAncestorInsideRoot(path46.dirname(copy), target);
+        fs32.cpSync(existing, copy, { recursive: true });
       };
       return runWrite(context, "snapshot", (target) => {
         seed(target);
@@ -38137,11 +41507,15 @@ var COMMANDS = [
   {
     name: "next",
     usage: "next [path]",
-    summary: ["Recommend the next writing and maintenance actions,", "and the next serial release (--date for today)"],
+    summary: [
+      "Recommend the next writing and maintenance actions,",
+      "the next serial release (--date for today), and",
+      "submissions due a follow-up (--days)"
+    ],
     project: "positional",
-    options: ["date", "json"],
+    options: ["date", "days", "json"],
     run({ parsed, io, root, overrides }) {
-      const { releaseFindings, ...report } = projectActions(root(), { displayPath: displayPath2(parsed), overrides, release: true, date: parsed.options.date });
+      const { releaseFindings, ...report } = projectActions(root(), { displayPath: displayPath2(parsed), overrides, release: true, date: parsed.options.date, days: followUpDays(parsed.options) });
       if (wantsJson(parsed)) {
         return reportProjectJson(io, "next", report, { diagnostics: diagnosticsFrom(releaseFindings, "next") });
       }
@@ -38406,12 +41780,13 @@ ${choiceChanges(result, false)}`, (result) => choiceChanges(result, true));
       "sheet), fountain (screenplay scene skeleton),",
       "twee (Twine story from chapter choices), ink",
       "(ink story from chapter choices), ics (calendar of",
-      "the deadline, release dates, and daily target), or",
+      "the deadline, release dates, and daily target),",
       "codex (story bible as linked HTML pages in",
-      "dist/codex/)"
+      "dist/codex/), or post (each chapter as a serial",
+      "episode to paste, HTML and text, in dist/posts/)"
     ],
     project: "positional",
-    options: ["out", "format", "shunn", "anonymous", "trim", "paper", "stamp", "note-url", "pdf", "pdf-engine", "spoilers", "include-pending", ...WRITE_OPTIONS],
+    options: ["out", "format", "shunn", "anonymous", "trim", "paper", "stamp", "note-url", "pdf", "pdf-engine", "spoilers", "include-pending", "chapter", "from", "to", ...WRITE_OPTIONS],
     run({ parsed, io, cwd, root, overrides, defaulted }) {
       const pdf = isTruthy(parsed.options.pdf);
       const dryRun = isTruthy(parsed.options["dry-run"]);
@@ -38431,7 +41806,10 @@ ${choiceChanges(result, false)}`, (result) => choiceChanges(result, true));
         pdfEngine: pdf || !defaulted.has("pdf-engine") ? parsed.options["pdf-engine"] : undefined,
         cwd,
         spoilers: isTruthy(parsed.options.spoilers),
-        includePending: isTruthy(parsed.options["include-pending"])
+        includePending: isTruthy(parsed.options["include-pending"]),
+        chapter: parsed.options.chapter,
+        from: parsed.options.from,
+        to: parsed.options.to
       }));
       const findings = checkedWarnings(result.warnings, overrides);
       if (wantsJson(parsed)) {
@@ -38444,6 +41822,7 @@ ${choiceChanges(result, false)}`, (result) => choiceChanges(result, true));
       }
       const as = result.pdf ? `${result.format} PDF (${result.engine})` : result.format;
       io.stdout.write(result.format === "codex" ? `Built a codex of ${result.pages} pages to ${result.outFile}
+` : result.format === "post" ? `Built ${plural(result.posts, "post")} (HTML and text) to ${result.outFile}${result.removed > 0 ? `, and removed ${plural(result.removed, "stale file")}` : ""}
 ` : result.format === "ics" ? `Built a calendar of ${plural(result.events, "event")} to ${result.outFile}
 ` : `Built ${result.chapters} chapters as ${as} to ${result.outFile}
 `);
@@ -38571,7 +41950,7 @@ ${[...own.errors.map((finding) => `  error: ${findingLine(finding)}
 function nameWords2(parsed, from, cwd, command) {
   const words = parsed.positionals.slice(from);
   for (const word of words) {
-    if (word === "." || word === ".." || /[\\/]/.test(word) && fs31.existsSync(path42.join(path42.resolve(cwd, word), "story.md"))) {
+    if (word === "." || word === ".." || /[\\/]/.test(word) && fs32.existsSync(path46.join(path46.resolve(cwd, word), "story.md"))) {
       throw usageError(`"${word}" looks like a project path: story ${command} takes the project as --path ${word}`);
     }
   }
@@ -38598,9 +41977,9 @@ function pipedText(io, command) {
 }
 function passageRoot(parsed, cwd, required) {
   if (parsed.options.path !== undefined) {
-    return path42.resolve(cwd, parsed.options.path);
+    return path46.resolve(cwd, parsed.options.path);
   }
-  return required || fs31.existsSync(path42.join(cwd, "story.md")) ? path42.resolve(cwd) : null;
+  return required || fs32.existsSync(path46.join(cwd, "story.md")) ? path46.resolve(cwd) : null;
 }
 function runRestore(context, name) {
   const { parsed } = context;
@@ -38619,22 +41998,22 @@ function runRestore(context, name) {
       return;
     }
     const plan = planRestore(projectRoot, restore);
-    const folder = path42.join(projectRoot, SNAPSHOTS_DIR);
+    const folder = path46.join(projectRoot, SNAPSHOTS_DIR);
     const { directory } = existingSnapshot(projectRoot, restore);
-    for (const entry of fs31.readdirSync(folder, { withFileTypes: true })) {
-      const copy = path42.join(target, SNAPSHOTS_DIR, entry.name);
+    for (const entry of fs32.readdirSync(folder, { withFileTypes: true })) {
+      const copy = path46.join(target, SNAPSHOTS_DIR, entry.name);
       if (entry.isDirectory()) {
-        fs31.mkdirSync(copy, { recursive: true });
-        const manifest = path42.join(folder, entry.name, SNAPSHOT_MANIFEST);
+        fs32.mkdirSync(copy, { recursive: true });
+        const manifest = path46.join(folder, entry.name, SNAPSHOT_MANIFEST);
         const text = currentText(manifest);
         if (text !== null) {
-          fs31.writeFileSync(path42.join(copy, SNAPSHOT_MANIFEST), text, "utf8");
+          fs32.writeFileSync(path46.join(copy, SNAPSHOT_MANIFEST), text, "utf8");
         }
       }
     }
-    const copy = path42.join(target, SNAPSHOTS_DIR, path42.basename(directory));
-    assertExistingAncestorInsideRoot(path42.dirname(copy), target);
-    fs31.cpSync(directory, copy, { recursive: true });
+    const copy = path46.join(target, SNAPSHOTS_DIR, path46.basename(directory));
+    assertExistingAncestorInsideRoot(path46.dirname(copy), target);
+    fs32.cpSync(directory, copy, { recursive: true });
     return plan;
   };
   return runWrite(context, "snapshot", (target) => restoreSnapshot(target, { name: restore, plan: seed(target) }), formatRestore, formatRestorePreview);
@@ -38681,7 +42060,7 @@ function previewImport(options) {
   const { cwd } = options;
   const source = String(options.source ?? "").trim();
   const target = newProjectRoot({ title: options.title, cwd, dir: options.dir });
-  const run = (dir) => importManuscript({ ...options, source: source === "" || source === STDIN_ARG ? source : path42.resolve(cwd, source), dir, preview: { root: target } });
+  const run = (dir) => importManuscript({ ...options, source: source === "" || source === STDIN_ARG ? source : path46.resolve(cwd, source), dir, preview: { root: target } });
   return target === null ? planChanges(cwd, () => run(options.dir)) : previewNewProject(target, run);
 }
 function reportImportNotes(io, result) {
@@ -38789,7 +42168,7 @@ function writeFilesJson(io, command, base, { ok = true, data, diagnostics, dryRu
   return writeJsonResult(io, { command, ok, data: { ...data, dryRun, changes }, diagnostics, writes: dryRun ? [] : writtenFiles(base, changes) });
 }
 function writtenFiles(projectRoot, changes) {
-  return changes.filter((change) => change.action === "create" || change.action === "update").map((change) => path42.resolve(projectRoot, change.path));
+  return changes.filter((change) => change.action === "create" || change.action === "update").map((change) => path46.resolve(projectRoot, change.path));
 }
 function formatPreview(command, changes) {
   const lines = changes.map((change) => `${change.action.padEnd(7)} ${change.path}
@@ -38800,7 +42179,7 @@ function formatPreview(command, changes) {
 }
 function writeResultData(projectRoot, result) {
   const { warnings, changed, root, ...data } = result;
-  return typeof data.file === "string" ? { ...data, file: path42.relative(projectRoot, data.file).split(path42.sep).join("/") } : data;
+  return typeof data.file === "string" ? { ...data, file: path46.relative(projectRoot, data.file).split(path46.sep).join("/") } : data;
 }
 function entityOptions(parsed) {
   const { json, "dry-run": dryRun, ...options } = parsed.options;
@@ -38859,6 +42238,7 @@ function buildData(result) {
     chapters: result.chapters,
     pages: result.pages ?? null,
     events: result.events ?? null,
+    posts: result.posts ?? null,
     pdf: result.pdf === true,
     engine: result.engine ?? null
   };
@@ -38955,7 +42335,7 @@ function printFindings(io, result) {
 }
 function findingLine(finding) {
   const message = outputText(finding.message);
-  return FINDING_CODES[finding.code] === "warning" ? `${message} [${finding.code}]` : message;
+  return FINDING_CODES[finding.code] === "warning" || isCustomCode(finding.code) ? `${message} [${finding.code}]` : message;
 }
 
 // src/cli.js
@@ -39099,7 +42479,7 @@ function writesProject(command, options) {
   return typeof command.writes === "function" ? command.writes(options) : command.writes === true;
 }
 function configRoot(cwd, parsed, root) {
-  return parsed.positionals[1] === "-" ? path43.resolve(cwd, lastOptionValue(parsed.options.path) ?? ".") : root();
+  return parsed.positionals[1] === "-" ? path47.resolve(cwd, lastOptionValue(parsed.options.path) ?? ".") : root();
 }
 function projectConfig(command, root) {
   const config = readCliConfig(root);
@@ -39164,8 +42544,8 @@ function describeError(error, cwd) {
   if (!reason || typeof error.path !== "string") {
     return `${error.message}${hint}`;
   }
-  const relativePath = path43.relative(cwd, error.path);
-  const shown = relativePath !== "" && !relativePath.startsWith("..") && !path43.isAbsolute(relativePath) ? portablePath(relativePath) : error.path;
+  const relativePath = path47.relative(cwd, error.path);
+  const shown = relativePath !== "" && !relativePath.startsWith("..") && !path47.isAbsolute(relativePath) ? portablePath(relativePath) : error.path;
   return `Cannot ${FILE_ERROR_ACTIONS[error.syscall] ?? "use"} ${shown}: ${reason}${hint}`;
 }
 function commandUsageError(command, parsed) {
@@ -39216,18 +42596,18 @@ function lastOptionValue(value) {
 function resolveRoot(cwd, parsed, name) {
   const flagPath = lastOptionValue(parsed.options.path);
   if (COMMANDS_BY_NAME.get(name)?.project !== "positional") {
-    return path43.resolve(cwd, flagPath ?? ".");
+    return path47.resolve(cwd, flagPath ?? ".");
   }
   const positionalPath = parsed.positionals[1];
   if (positionalPath !== undefined && flagPath !== undefined) {
-    const resolvedPositional = path43.resolve(cwd, positionalPath);
-    const resolvedFlag = path43.resolve(cwd, flagPath);
+    const resolvedPositional = path47.resolve(cwd, positionalPath);
+    const resolvedFlag = path47.resolve(cwd, flagPath);
     if (resolvedPositional !== resolvedFlag) {
       throw usageError(`Conflicting project paths: ${positionalPath} and --path ${flagPath}. Use either a positional path or --path, not both.`);
     }
     return resolvedFlag;
   }
-  return path43.resolve(cwd, flagPath ?? positionalPath ?? ".");
+  return path47.resolve(cwd, flagPath ?? positionalPath ?? ".");
 }
 
 // bin/story.js

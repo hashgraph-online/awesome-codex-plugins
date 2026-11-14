@@ -148,6 +148,35 @@ after the spread's text.
 Keep them short and rare. A manuscript full of art notes tells the
 publisher the author wants to direct the illustrator.
 
+## Placing The Finished Art
+
+Once the art exists (a self-published book, or a dummy to show), the
+builds can place it, so the book does not have to be laid out in another
+tool. Save each spread's image in the project, such as `art/spread-01.png`
+(`.png`, `.jpg`, `.jpeg`, `.gif`, or `.webp`, under 50 MiB, not a
+symlink), and put it on a line of its own in that spread's chapter, above
+or below the text, with alt text that says what the picture shows:
+
+```markdown
+![Bo and Nana Bracken at the door of the sett, looking up at the moon](../art/spread-01.png)
+
+Every night, before bed, Bo and Nana Bracken stood at the door of the sett
+and looked up.
+```
+
+The path is read from the chapter file, so a chapter in `chapters/` names
+`../art/`. The EPUB, DOCX, HTML, and print builds set the image as a
+figure; the Shunn builds and the narration script leave it out, and word
+counts ignore it, so the per-spread counts stay the text's. The alt text
+is for readers who cannot see the picture: describe the picture, not the
+text. A chapter book's spot illustrations work the same way. Art notes
+still stay in the plan: an image is art, a note about art is not.
+
+Then run `story check .`: a missing or wrong image is an `invalid-image`
+warning, and a web address (`https://...`) a `remote-image` warning,
+since builds never fetch one. Fix each before you build: a build leaves
+such an image out.
+
 ## Checks
 
 - [ ] Total words inside the form's range (1-1,000 for `picture-book`).
@@ -157,6 +186,8 @@ publisher the author wants to direct the illustrator.
       `story.md` has `status: complete`
 - [ ] Each spread has a scene record and a `hook`, and no art notes sit in
       chapter prose
+- [ ] Each placed image has alt text, and `story check .` reports no
+      `invalid-image` or `remote-image`
 - [ ] 14 spreads (or the printer's plan), each with a text and a picture
       moment
 - [ ] Every page turn earns the turn

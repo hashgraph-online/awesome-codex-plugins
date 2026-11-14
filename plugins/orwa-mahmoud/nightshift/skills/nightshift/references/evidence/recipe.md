@@ -1,6 +1,6 @@
-# Adding an evidence kind
+# Adding an evidence catalog entry
 
-An evidence kind is markdown, not code. It tells the agent how to capture one kind of evidence.
+An evidence catalog entry is markdown, not code. It tells the agent how to capture the evidence for one sort of change.
 It touches no hooks and changes no gate, which is why the catalog can grow without the product
 growing.
 
@@ -11,7 +11,7 @@ skills/nightshift/references/evidence/kinds/<key>.md
 ```
 
 The file name is the key. Nothing shared changes — not the index, not a test file someone else
-is also editing — so two contributors can add a kind the same week and never meet in a diff.
+is also editing — so two contributors can add an entry the same week and never meet in a diff.
 `ns catalog-index --catalog evidence` lists the directory, so a new file is offered the moment
 it lands.
 
@@ -20,9 +20,9 @@ in `tests/evidence-catalog.bats` glob the directory and already cover the new fi
 
 ## Shape
 
-The H1 is `# <Title> — <which items this kind fits>`. The body is five sections, in this order:
+The H1 is `# <Title> — <which items this entry fits>`. The body is five sections, in this order:
 
-1. **When it applies.** Which items take this kind.
+1. **When it applies.** Which items take this entry.
 2. **Evidence lines.** The `Evidence:` lines to suggest, with a concrete width, command, figure, or file name.
 3. **How to generate.** The steps, tools, and settings that produce each piece, and the file name it gets in the item's evidence folder, `receipts/<NN>-<slug>-<id>/`.
 4. **How to verify.** What to check when reviewing the evidence. For screenshots: the named widths, both themes, no overflow, and no placeholder text.
@@ -30,8 +30,8 @@ The H1 is `# <Title> — <which items this kind fits>`. The body is five section
 
 ## The evidence-check block
 
-Add one fenced `evidence-check` block, anywhere in the kind, when a file can be counted. With
-`check: block`, the gate then holds the tick until those files exist. A kind with nothing mechanical
+Add one fenced `evidence-check` block, anywhere in the entry, when a file can be counted. With
+`check: block`, the gate then holds the tick until those files exist. An entry with nothing mechanical
 to check, such as a refactor note, has no block, and that is valid: the gate holds only the files an
 item names, and `--check-draft` says so.
 
@@ -49,20 +49,20 @@ type: image
 
 An unknown key, a missing key, or any other `type:` is rejected. The block says a file is present. It does not say the work is right.
 
-## Owner kinds
+## Owner entries
 
-An owner adds a kind without a pull request: in this project's `.nightshift/catalogs/evidence/`,
+An owner adds an entry without a pull request: in this project's `.nightshift/catalogs/evidence/`,
 in the user folder for every project (`$XDG_CONFIG_HOME/nightshift/catalogs/evidence` on POSIX,
 `%APPDATA%\nightshift\catalogs\evidence` on Windows), or in a folder named by
 `catalogs.evidence.paths`. `ns catalog-new --catalog evidence --key <key>` starts one from the
 template in force, `catalogs.evidence.template` names the owner's own template, and
 `ns catalog-index --catalog evidence --check-draft FILE` checks what Nightshift reads from a draft.
 [Owner knobs](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/knobs.md#catalogs) lists the precedence.
-A project kind wins over a configured folder, which wins over a user kind, which wins over the
-shipped kind of the same key. Owner kinds stay on the machine. Purge removes the project folder
+A project entry wins over a configured folder, which wins over a user entry, which wins over the
+shipped entry of the same key. Owner entries stay on the machine. Purge removes the project folder
 with the rest of `.nightshift/` and does not touch the user folder. Reset and Archive leave both.
 Every catalog works the same way: [Add to a catalog](https://github.com/orwa-mahmoud/nightshift/blob/main/docs/add-to-a-catalog.md).
 
 ## Concrete lines
 
-A kind that names no concrete file, command, or figure is followed literally, and a model produces exactly the vague line it was given.
+An entry that names no concrete file, command, or figure is followed literally, and a model produces exactly the vague line it was given.

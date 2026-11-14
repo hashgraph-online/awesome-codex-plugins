@@ -12,6 +12,7 @@ Tools on the `fair-value-calculator` MCP server (https://www.fairvalue-calculato
 - What a stock is worth, cheap or expensive: `get_stock_verdict` (fair value per share with currency and range, distance to the price, verdict, quality score, uptrend, the three buy rules).
 - A rough look at many stocks: `get_stock_preview` (verdict, distance band and quality, without the exact number).
 - Several stocks side by side: `compare_stocks`.
+- A whole portfolio (list of holdings, e.g. from a broker connection) with a summary: `check_portfolio`.
 - Stocks that match criteria (minimum distance to fair value, minimum quality, sector, region, uptrend): `screen_stocks`.
 - The user's watchlist: `get_watchlist`. Changes: `add_to_watchlist`, `remove_from_watchlist`, `set_watchlist_alerts`. Stocks that would fit it: `suggest_watchlist_stocks`.
 

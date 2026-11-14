@@ -267,6 +267,14 @@ on the writing days, and the author imports it into Google Calendar, Apple
 Calendar, or Outlook. Launch dates that only `publishing/launch-plan.md`
 records, such as the ARC send-out, are not in it.
 
+For a serial that the author posts to a site such as Royal Road, Wattpad,
+or AO3, or sends as a newsletter, run `story build . --format post
+--chapter <id-or-number>` on each release day (`story next .` names the
+episode due). It writes an HTML fragment to paste and a plain-text copy to
+`dist/posts/`. An author's note to readers goes in the chapter's
+`author-note` field, which only the post build prints. Ask the author for
+the note's text. The build does not upload anything.
+
 ### 9. Rights and contracts
 
 1. Keep `publishing/rights.md` from the inventory in

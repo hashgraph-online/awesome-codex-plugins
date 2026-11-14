@@ -1,8 +1,8 @@
-# Title — which items this kind fits
+# Title — which items this entry fits
 
 ## When it applies
 
-Which items take this kind.
+Which items take this entry.
 
 ## Evidence lines
 

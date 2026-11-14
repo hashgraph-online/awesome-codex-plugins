@@ -4,6 +4,12 @@
 # requirements.lock with --generate-hashes, and the Docker image installs from
 # the lock with --require-hashes (Scorecard Pinned-Dependencies).
 #
+# Dev-only packages (test/debug) live in [project.optional-dependencies]
+# "dev" and resolve into requirements-dev.lock (`pip-compile --extra dev`).
+# The production image installs requirements.lock only; dev/CI images install
+# the dev lock instead (it contains the full closure). Regen BOTH locks
+# together so their shared pins agree (issue #1379).
+#
 # Why pyproject.toml over the older requirements.txt: osv-scanner v1.9.2 (the
 # version Scorecard pins) reads bare `pkg` lines as "version 0.0.0" and matches
 # every historical CVE, producing dozens of false positives. With proper version
@@ -70,6 +76,7 @@ dependencies = [
     # =========================================================================
     "httpx",  # Async HTTP client
     "aiohttp>=3.13.5",  # Closes 20 CVEs incl. CVSS 9.1
+    "websockets",  # Worker remote-control channel (src/worker/remote) + CLI workflows execute
 
     # =========================================================================
     # Data Processing
@@ -113,16 +120,6 @@ dependencies = [
     "psutil",  # Process monitoring for worker heartbeats
 
     # =========================================================================
-    # Testing
-    # =========================================================================
-    "pytest",
-    "pytest-asyncio",
-    "pytest-cov",
-    "pytest-env",
-    "pytest-timeout",  # Per-test timeout protection (catches infinite hangs)
-    "websockets",  # For E2E WebSocket tests
-
-    # =========================================================================
     # Object Storage (S3-compatible)
     # =========================================================================
     "awscrt==0.38.1",  # Official SigV4 signer/checksums for the narrow HTTPX S3 transport
@@ -134,8 +131,8 @@ dependencies = [
     # =========================================================================
     # Exact pins are intentional: the Harness API is still pre-1.0 and is the
     # execution boundary for every Bifrost agent surface.
-    "pydantic-ai-slim[openai,anthropic,google,retries]==2.66.0",
-    "pydantic-ai-harness==0.66.0",
+    "pydantic-ai-slim[openai,anthropic,google,retries]==2.67.0",
+    "pydantic-ai-harness==0.67.0",
     "pydantic-monty==1.5.0",  # Local language sandbox for Automatic CodeMode
 
     # =========================================================================
@@ -156,12 +153,13 @@ dependencies = [
     "textual",  # TUI framework used by bifrost CLI (file_select, progress, sync, watch)
 
     # =========================================================================
-    # Development
+    # Workspace validation and file matching (runtime — NOT dev-only)
     # =========================================================================
-    "debugpy",  # Remote debugging (VS Code attach)
-    "ruff",
-    "watchdog",  # File watching for hot reload (watchmedo command)
-    "pathspec",  # gitignore-style file matching (used by bifrost CLI watch handler tests)
+    # pathspec is imported by the API (solutions capture/workspace ignore
+    # specs) and by the shipped bifrost CLI (file filters), so it stays in
+    # the runtime closure. Kept here pending the textual/rich audit in #1381.
+    "ruff",  # Git sync preflight invokes the executable for Python lint warnings
+    "pathspec",
 
     # =========================================================================
     # Transitive deps with explicit version floors
@@ -173,4 +171,32 @@ dependencies = [
     "Mako>=1.3.11",  # transitive (alembic) — 1.3.9 has CVE-2025-XXXX
     "setuptools>=78.1.1",  # transitive (build) — multiple CVEs in older versions
     "tqdm>=4.66.3",  # transitive (anthropic, openai, etc.)
+]
+
+
+# Dev-only dependencies: test/debug loop. Pinned in
+# requirements-dev.lock (compiled with `pip-compile --extra dev`, which
+# resolves the runtime closure PLUS this group so shared pins agree).
+# Dev/CI images install requirements-dev.lock; the production image installs
+# requirements.lock (runtime closure) only, so these never ship to external
+# workers. Regen BOTH locks together; see the regen command in the
+# dependabot-lockfile-regen workflow. Issue #1379.
+[project.optional-dependencies]
+dev = [
+    # Testing (test-runner image + CI lint; pytest-env is currently
+    # declared-but-unconfigured, kept for the suite that expects it)
+    "pytest",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-env",
+    "pytest-timeout",  # Per-test timeout protection (catches infinite hangs)
+    # Debug / file-watching (dev-loop only:
+    # debugpy via `python -m debugpy` in debug compose, watchdog via
+    # `bifrost watch` / `solution dev` local commands and watchmedo in
+    # dev/debug compose). All shipped-image imports of watchdog are lazy, so
+    # the API/worker runtime and worker `bifrost <verb>` shell-outs work
+    # without it. The standalone CLI distribution (api/bifrost/pyproject.toml)
+    # still declares watchdog for laptop installs.
+    "debugpy",  # Remote debugging (VS Code attach)
+    "watchdog",  # File watching for hot reload (watchmedo command)
 ]

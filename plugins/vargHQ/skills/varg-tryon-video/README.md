@@ -10,7 +10,7 @@ Turns a flat-lay or product photo of clothing into a try-on video on varg: clean
 ```bash
 npx skills add vargHQ/skills --skill varg-tryon-video                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills varg-tryon-video --agent github-copilot --scope user
-# or all 82 skills as a Claude Code plugin:
+# or all 83 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -44,4 +44,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 82 skills](../README.md#all-82-skills) · [varg.ai](https://varg.ai)
+More: [all 83 skills](../README.md#all-83-skills) · [varg.ai](https://varg.ai)

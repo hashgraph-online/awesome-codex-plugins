@@ -112,9 +112,19 @@ every edition.
    `story links` and `story series` for the new edition. Do not use them
    to link the editions. A translated series links its own translated
    books the same way the source series does.
-4. Translate titles and prose in place, chapter by chapter, keeping every
+   Link the edition to its source with `translation-of` instead, a path
+   from the new folder with `/`: `translation-of: ../book-en`.
+4. Before any prose is translated, record the version of each source
+   chapter the translation starts from. This writes `source-hash` into
+   each translated chapter:
+
+   ```shell
+   story translation ../book-de --record
+   ```
+
+5. Translate titles and prose in place, chapter by chapter, keeping every
    file name and id.
-5. If AI or machine translation is used at any stage, record it in
+6. If AI or machine translation is used at any stage, record it in
    `ai-disclosure`; some retailers require disclosure of machine
    translation. Check their current policy.
 
@@ -126,13 +136,16 @@ After each batch of translated chapters:
 story reindex ../book-de
 story wordcount ../book-de --write
 story check ../book-de
-story compare ../book-de --against .
+story translation ../book-de --json
 ```
 
-`story compare` reports chapters added or removed between the editions;
-the word and paragraph changes are expected and can be ignored. Also check:
-
-- [ ] Every chapter and scene file exists in both editions
+`story translation` compares the structure of the two editions, never
+their meaning. It reports, in `missing` and `extra` and as errors, every
+chapter, scene, and entity id that one edition has and the other does
+not. As warnings it reports a chapter whose paragraph count differs from
+the source (`translation-paragraph-count`) and a source chapter revised
+since its `source-hash` was recorded (`translation-source-changed`).
+Word counts are expected to differ and are not compared. Also check:
 - [ ] Glossary terms rendered as the term base says (search the
       translated chapters for each term)
 - [ ] `language` set (and `labels` for any wording to change), and a
@@ -142,8 +155,17 @@ the word and paragraph changes are expected and can be ignored. Also check:
       a separate permission or an existing published translation)
 - [ ] Word count differences are plausible: many languages run longer
       than English, so page counts and the cover spine change
-- [ ] Revisions to the source after translation began are listed and
-      carried across by chapter id
+- [ ] No `translation-source-changed` warning is left: each revised
+      source chapter is carried across by chapter id
 
-When the source changes, list the changed chapter ids (`story compare .
---ref <tag>` in the source project) and hand them to the translator.
+When the source changes, `story translation` names each changed chapter.
+Hand those chapters to the translator. After the change is carried
+across, record the chapter again:
+
+```shell
+story translation ../book-de --record --chapter chapter-07
+```
+
+Record a chapter only after its change is in the translation; recording
+it earlier hides the change. `story compare . --ref <tag>` in the source
+project shows what changed in each chapter.

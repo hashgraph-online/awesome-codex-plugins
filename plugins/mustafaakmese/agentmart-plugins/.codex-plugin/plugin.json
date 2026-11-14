@@ -1,6 +1,6 @@
 {
   "name": "agentmart",
-  "version": "1.1.9",
+  "version": "1.1.10",
   "description": "Ready, hosted parts for coding agents: a public webhook inbox URL, memory shared across sessions and machines, wake-up calls and schedules that run after the session ends, uptime watch, a task queue, a form backend, and tested code kits (Stripe billing, Supabase auth). Its two skills make the agent check the shelf before building, which saves time, tokens and effort, and buy only with your human's yes. Searching is free.",
   "author": {
     "name": "Ciphyr Tech OÜ",

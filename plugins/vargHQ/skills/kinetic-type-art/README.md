@@ -10,7 +10,7 @@ Seventeen art-directed kinetic typography templates with exact presets: typeface
 ```bash
 npx skills add vargHQ/skills --skill kinetic-type-art                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills kinetic-type-art --agent github-copilot --scope user
-# or all 82 skills as a Claude Code plugin:
+# or all 83 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -52,4 +52,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/kinetic-type-art) · [varg.ai](https://varg.ai)
+More: [all 83 skills](../README.md#all-83-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/kinetic-type-art) · [varg.ai](https://varg.ai)

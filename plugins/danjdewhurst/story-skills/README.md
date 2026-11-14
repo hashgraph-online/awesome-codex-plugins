@@ -217,6 +217,7 @@ These are the commands writers use most:
 |---------|---------|
 | `story init "The Last Ember"` | Scaffold a story project |
 | `story import draft.md --title "The Lost Coast"` | Split an existing manuscript into a project and list its recurring names |
+| `story collect .` | Rewrite a short-story collection's chapters from the story projects its `stories` list names |
 | `story add character "Sera Voss"` | Create a file for a character, place, scene, promise, clue, or other entity |
 | `story rename character sera-voss "Sera Vale"` | Rename an entity and update its references in frontmatter and links |
 | `story check [path] --strict` | Run validation, link checks, and continuity in one scan; `--strict` also fails on warnings |
@@ -245,7 +246,7 @@ story import draft.md --title "The Lost Coast" --genre mystery
 story import brouillon.md --title "La Côte perdue" --language fr
 ```
 
-It reads markdown, plain text, or a Word `.docx`. It splits the manuscript on chapter headings, or imports a folder of chapter files, and builds the full project with word counts and registries. [Import, export, and builds](docs/manuscripts.md#import-an-existing-manuscript) covers the options, including `--force`.
+It reads markdown, plain text, a Word `.docx`, an OpenDocument `.odt`, or an `.epub`. It splits the manuscript on chapter headings, or imports a folder of chapter files, and builds the full project with word counts and registries. [Import, export, and builds](docs/manuscripts.md#import-an-existing-manuscript) covers the options, including `--force`.
 
 ## How it works
 
@@ -384,7 +385,12 @@ A short story in Japanese, set in vertical columns
 A short story in Arabic, built right to left
 
 </td>
-<td width="50%" valign="top"></td>
+<td width="50%" valign="top">
+
+**[tide-tables](examples/tide-tables/)**<br>
+A poetry collection that keeps every line break in its builds
+
+</td>
 </tr>
 </table>
 

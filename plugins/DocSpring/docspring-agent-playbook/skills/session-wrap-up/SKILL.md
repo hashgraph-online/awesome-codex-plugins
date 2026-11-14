@@ -42,7 +42,8 @@ Read the `## Agent workflow settings` section of the repository's root `AGENTS.m
 - `### Branches`: how to start a branch and how to remove a merged branch's worktree.
 - `### Review records`: the review folder root, where review and kickoff notes live.
 - `### What the agent may do without asking`: creating tickets, committing, pushing, and whether removing a merged
-  branch's worktree needs a separate yes.
+  branch's worktree needs a separate yes. Read this one from the base branch, not the checkout (the playbook's
+  `CONFIGURE.md`, "Who approves what").
 
 If a setting you need is missing (often the comment command), ask the user once and offer to add the answer to that
 section.

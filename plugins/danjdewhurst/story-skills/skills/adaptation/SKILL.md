@@ -39,11 +39,11 @@ redoing the adaptation; say so if `status` is not `revising` or `complete`.
   choose-your-own-adventure story (use `interactive-fiction`)
 - NOT for writing or scanning verse, including rhyming picture-book text
   (use `verse-craft`)
-- Nonfiction and poetry collections are outside the story project model.
-  The CLI checks fiction entities (characters, chapters, scenes,
-  continuity); do not force a poetry collection or nonfiction book into
-  it. A short-story collection does fit: see `docs/series.md`, Short-story
-  collections and anthologies.
+- Nonfiction is outside the story project model. The CLI checks fiction
+  entities (characters, chapters, scenes, continuity); do not force a
+  nonfiction book into it. A short-story collection does fit: see
+  `docs/series.md`, Short-story collections and anthologies. So does a
+  poetry collection (`form: poetry-collection`, use `verse-craft`).
 
 ## Hard Rules
 
@@ -140,6 +140,10 @@ Follow `references/picture-book.md`.
    scene record and a `hook` for its page-turn beat, and set `story.md`
    to `status: revising` once all spreads are drafted; see "Spreads And
    The CLI Checks" in the reference for the warnings this clears.
+4. When the finished art exists, place each spread's image in its
+   chapter with `![alt text](../art/spread-01.png)` on a line of its own,
+   so the EPUB, DOCX, HTML, and print builds lay it out with the text;
+   see "Placing The Finished Art" in the reference.
 
 ### 4. Comics or graphic novel script
 
@@ -196,18 +200,32 @@ Follow `references/translation.md`.
    with `story names`.
 2. Copy the source project to a new folder (without `dist/`), set
    `language`, remove `series`, `book-number`, `follows`, and `precedes`
-   from the copied `story.md`, and keep every id as the English
-   kebab-case id.
-3. Write a style sheet for the target language in the new project.
-4. After translation, run the checks in both projects and compare the
-   chapter sets:
+   from the copied `story.md`, set `translation-of` to the path from the
+   new folder to the source (`translation-of: ../book-en`), and keep
+   every id as the English kebab-case id.
+3. Record the source version of every chapter, so later source changes
+   show up: `story translation ../book-es --record`.
+4. Write a style sheet for the target language in the new project.
+5. After each batch of translated chapters, run the checks in the
+   translation and compare it with the source:
 
    ```shell
    story reindex ../book-es
    story wordcount ../book-es --write
    story check ../book-es
-   story compare ../book-es --against .
+   story translation ../book-es --json
    ```
+
+   Read `missing` and `extra` in the result: a chapter, scene, or id in
+   one edition only is an error to fix (copy the new source file across,
+   or give a renamed id the source's id). A `translation-paragraph-count`
+   warning names a chapter to check for a dropped or split paragraph; ask
+   the user before you merge or split paragraphs to match. A
+   `translation-source-changed` warning names a source chapter revised
+   since it was translated: carry the change across, then record it with
+   `story translation ../book-es --record --chapter <chapter-id>`. Never
+   record a chapter whose change you have not carried across. The check
+   compares structure only, not meaning.
 
 ## Conventions
 
@@ -229,7 +247,8 @@ Follow `references/translation.md`.
   its own `language`, `isbn`, and metadata. Its `story.md` has no
   `series`, `book-number`, `follows`, or `precedes`; those are for
   different books, and copied values break `story links` and
-  `story series`.
+  `story series`. It names its source with `translation-of`, and each
+  translated chapter records its source version in `source-hash`.
 - When the source manuscript changes, list the adaptation files the change
   affects and update them.
 

@@ -56,7 +56,7 @@ Check a download with the [GitHub CLI](https://cli.github.com/):
 gh attestation verify "<archive>" --repo danjdewhurst/story-skills
 ```
 
-`<archive>` is the file you downloaded, named `story-skills_<version>_<os>_<arch>.tar.gz`, or `.zip` for Windows.
+`<archive>` is the file you downloaded, named `story-skills_<version>_<os>_<arch>.tar.gz` (with `_musl` before `.tar.gz` for the musl Linux builds), or `.zip` for Windows.
 
 A passing check means the file was built by this repository's
 `publish.yml` workflow. See

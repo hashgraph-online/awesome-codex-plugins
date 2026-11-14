@@ -10,7 +10,7 @@ Prototype a video in code with an agent. Decides if a shot needs a 3D prototype 
 ```bash
 npx skills add vargHQ/skills --skill code-to-video-previz                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills code-to-video-previz --agent github-copilot --scope user
-# or all 82 skills as a Claude Code plugin:
+# or all 83 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -49,4 +49,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 82 skills](../README.md#all-82-skills) · [varg.ai](https://varg.ai)
+More: [all 83 skills](../README.md#all-83-skills) · [varg.ai](https://varg.ai)

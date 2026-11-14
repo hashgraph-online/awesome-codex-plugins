@@ -1118,9 +1118,9 @@ var EVIDENCE_KEYS = Object.freeze({
   claim_committed: ["claim_id", "launch_epoch", "launch_id", "token_digest", "worker_identity_digest"],
   result_committed: ["claim_id", "outcome", "result_commit_ref", "result_digest", "worker_identity_digest"],
   cleanup_pending: ["claim_id", "result_commit_ref", "worker_identity_digest"],
-  cleanup_verified: ["claim_id", "cleanup_digest", "evidence_source", "launch_receipt_digest", "operation_resources_complete", "process_tree_digest", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "worker_identity_digest", "worker_tree_complete", "workspace_touched"],
+  cleanup_verified: ["adapter_cleanup", "claim_id", "cleanup_digest", "evidence_source", "launch_receipt_digest", "operation_resources_complete", "process_tree_digest", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "worker_identity_digest", "worker_tree_complete", "workspace_touched"],
   cleanup_unverified: ["claim_id", "probe_state", "reason", "worker_identity_digest"],
-  cleanup_reverified: ["attempt", "claim_id", "cleanup_digest", "evidence_source", "generation", "launch_receipt_digest", "operation_id", "operation_resources_complete", "prior_cleanup_event_digest", "process_tree_digest", "resolved_recovery_event_digests", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "task_id", "worker_identity_digest", "worker_tree_complete", "workspace_touched"],
+  cleanup_reverified: ["adapter_cleanup", "attempt", "claim_id", "cleanup_digest", "evidence_source", "generation", "launch_receipt_digest", "operation_id", "operation_resources_complete", "prior_cleanup_event_digest", "process_tree_digest", "resolved_recovery_event_digests", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "task_id", "worker_identity_digest", "worker_tree_complete", "workspace_touched"],
   released: ["claim_id", "cleanup_digest", "result_commit_ref", "worker_identity_digest"],
   interaction_requested: ["claim_id", "request_digest", "request_id", "request_method", "worker_identity_digest"],
   interaction_reply_intent: ["answer_digest", "claim_id", "reply_id", "request_id", "worker_identity_digest"],
@@ -1129,7 +1129,7 @@ var EVIDENCE_KEYS = Object.freeze({
   interaction_reply_accepted: ["ack_digest", "answer_digest", "claim_id", "commit_digest", "reply_id", "request_id", "worker_identity_digest"]
 });
 var FUTURE_EVENT_TYPES = /* @__PURE__ */ new Set(["launch_intent", "launch_receipt", "launch_unknown", "claim_committed", "result_committed", "cleanup_pending", "cleanup_verified", "cleanup_unverified", "quarantined", "released", "launch_failed"]);
-var FUTURE_EVIDENCE_KEYS = /* @__PURE__ */ new Set(["cancel_verification_digest", "claim_id", "cleanup_digest", "evidence_digest", "evidence_source", "launch_epoch", "launch_id", "launch_receipt_digest", "operation_resources_complete", "outcome", "probe_state", "process_tree_digest", "reason", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "receipt_digest", "result_digest", "token_digest", "worker_identity_digest", "worker_tree_complete", "workspace_touched"]);
+var FUTURE_EVIDENCE_KEYS = /* @__PURE__ */ new Set(["adapter_cleanup", "cancel_verification_digest", "claim_id", "cleanup_digest", "evidence_digest", "evidence_source", "launch_epoch", "launch_id", "launch_receipt_digest", "operation_resources_complete", "outcome", "probe_state", "process_tree_digest", "reason", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "receipt_digest", "result_digest", "token_digest", "worker_identity_digest", "worker_tree_complete", "workspace_touched"]);
 var EVENT_PHASE = Object.freeze({
   capacity_policy_committed: "policy_change_committed",
   reserved: "reserved",
@@ -1158,12 +1158,17 @@ function validateEvidence(eventType, value) {
   } else if (eventType === "reserved") {
     const fields = Object.keys(value).sort().join("|");
     if (fields !== ["capacity_slot", "reservation_id"].join("|") && fields !== ["authorization_source", "capacity_slot", "execution_profile_id", "policy_digest", "policy_revision", "reservation_id"].join("|")) fail2("invalid_evidence");
-  } else if (keys && Object.keys(value).sort().join("|") !== keys.join("|")) fail2("invalid_evidence");
+  } else if (keys) {
+    const expectedKeys = ["cleanup_verified", "cleanup_reverified"].includes(eventType) && value.adapter_cleanup === void 0 ? keys.filter((key) => key !== "adapter_cleanup") : keys;
+    if (Object.keys(value).sort().join("|") !== expectedKeys.join("|")) fail2("invalid_evidence");
+  }
+  if (["cleanup_verified", "cleanup_reverified"].includes(eventType) && value.adapter_cleanup !== void 0 && !validVerifiedAdapterCleanupEvidence(value.adapter_cleanup)) fail2("invalid_adapter_cleanup_evidence");
   if (FUTURE_EVENT_TYPES.has(eventType)) {
     const ownKeys = Object.keys(value);
     if (!ownKeys.length || ownKeys.some((k) => !FUTURE_EVIDENCE_KEYS.has(k))) fail2("invalid_evidence");
     for (const [k, v] of Object.entries(value)) {
-      if (k.endsWith("_digest") || k === "token_digest") {
+      if (k === "adapter_cleanup") continue;
+      else if (k.endsWith("_digest") || k === "token_digest") {
         if (typeof v !== "string" || !/^[0-9a-f]{64}$/u.test(v)) fail2("invalid_evidence");
       } else if (k === "launch_epoch") {
         if (!Number.isInteger(v) || v < 1) fail2("invalid_evidence");
@@ -1336,9 +1341,24 @@ function validCleanupRequest(x) {
 function validCancellationFence(x) {
   return !!x && Object.getPrototypeOf(x) === Object.prototype && Object.keys(x).sort().join("|") === "attempt|claim_id|claim_worker_identity_digest|generation|operation_id|revision|task_id|worker_identity" && validId(x.operation_id) && validId(x.task_id) && Number.isSafeInteger(x.attempt) && x.attempt > 0 && Number.isSafeInteger(x.generation) && x.generation > 0 && Number.isSafeInteger(x.revision) && x.revision > 0 && validId(x.claim_id) && typeof x.claim_worker_identity_digest === "string" && /^[0-9a-f]{64}$/u.test(x.claim_worker_identity_digest);
 }
+function validAdapterCleanupEvidence(value) {
+  const scanStatuses = /* @__PURE__ */ new Set(["verified", "live", "incomplete", "not_applicable"]);
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== ["close", "contract", "treeScanStatus"].join("|")) return false;
+  const close = value.close;
+  if (!close || Object.getPrototypeOf(close) !== Object.prototype) return false;
+  const closeKeys = ["stage", "status", "treeScanStatus"];
+  if (close.errorCode !== void 0) closeKeys.push("errorCode");
+  if (close.errorName !== void 0) closeKeys.push("errorName");
+  return Object.keys(close).sort().join("|") === closeKeys.sort().join("|") && value.contract === "adapter-cleanup-v1" && ["direct_close", "not_started"].includes(close.stage) && ["resolved", "rejected"].includes(close.status) && scanStatuses.has(close.treeScanStatus) && scanStatuses.has(value.treeScanStatus) && (close.errorName === void 0 || /^[A-Za-z][A-Za-z0-9_.:-]{0,119}$/u.test(close.errorName)) && (close.errorCode === void 0 || /^[A-Za-z][A-Za-z0-9_.:-]{0,119}$/u.test(close.errorCode));
+}
+function validVerifiedAdapterCleanupEvidence(value) {
+  return validAdapterCleanupEvidence(value) && value.close.status === "resolved" && value.close.treeScanStatus === "verified" && value.treeScanStatus === "verified";
+}
 function normalizeCleanupEvidence(value, input) {
   const keys = ["attempt", "claim_id", "fixture", "generation", "launch_receipt_digest", "operation_id", "operation_resources_complete", "process_tree_digest", "resources_digest", "result_commit_ref", "root_process_id", "root_start_fingerprint", "source", "task_id", "worker_identity_digest", "worker_tree_complete", "workspace_touched"];
-  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== keys.join("|")) fail2("invalid_cleanup_evidence");
+  const expectedKeys = value?.adapter_cleanup === void 0 ? keys : [...keys, "adapter_cleanup"].sort();
+  if (!value || Object.getPrototypeOf(value) !== Object.prototype || Object.keys(value).sort().join("|") !== expectedKeys.join("|")) fail2("invalid_cleanup_evidence");
+  if (value.adapter_cleanup !== void 0 && !validVerifiedAdapterCleanupEvidence(value.adapter_cleanup)) fail2("invalid_adapter_cleanup_evidence");
   if (!["manager_os_cleanup_verification", "synthetic_fixture"].includes(value.source) || typeof value.fixture !== "boolean" || value.source === "synthetic_fixture" !== value.fixture || value.operation_id !== input.operation_id || value.task_id !== input.task_id || value.attempt !== input.attempt || value.generation !== input.generation || value.claim_id !== input.claim_id || value.worker_identity_digest !== input.claim_worker_identity_digest || !/^([0-9a-f]{64})$/u.test(value.launch_receipt_digest) || !/^([0-9a-f]{64})$/u.test(value.process_tree_digest) || !/^([0-9a-f]{64})$/u.test(value.resources_digest) || !validId(value.result_commit_ref) || !Number.isSafeInteger(value.root_process_id) || value.root_process_id < 1 || !validText2(value.root_start_fingerprint, 256) || value.worker_tree_complete !== true || value.operation_resources_complete !== true || value.workspace_touched !== false) fail2("invalid_cleanup_evidence");
   if (Buffer.byteLength(canonical3(value), "utf8") > 4096) fail2("cleanup_evidence_too_large");
   return value;
@@ -2827,6 +2847,283 @@ var IsolatedAdmissionStore = class _IsolatedAdmissionStore {
       return { duplicate: false, operation_id: operationId, task_id: input.task_id, attempt: nextAttempt, status: "queued", created_at: createdAt };
     });
   }
+  /**
+   * Atomically preserve a Result-less Attempt as interruption history, release
+   * its occupancy after externally verified Worker/Adapter cleanup, and queue
+   * exactly one continuation under the same Task ID.
+   */
+  interruptAndRequeue(input, { workspaceValidator, executionPermissionCheck } = {}) {
+    this.#assertWritable();
+    const keys = [
+      "adapter_cleanup",
+      "attempt",
+      "claim_id",
+      "claim_worker_identity_digest",
+      "continuation_operation_id",
+      "generation",
+      "interruption_evidence",
+      "operation_id",
+      "process_tree_digest",
+      "reason",
+      "resources_digest",
+      "revision",
+      "task_id"
+    ];
+    const interruptions = /* @__PURE__ */ new Set(["worker_exited_without_result", "worker_terminated_without_result"]);
+    if (!input || Object.getPrototypeOf(input) !== Object.prototype || Object.keys(input).some((key) => !keys.includes(key)) || !validId(input.operation_id) || !validId(input.task_id) || !Number.isSafeInteger(input.attempt) || input.attempt < 1 || !Number.isSafeInteger(input.generation) || input.generation < 1 || !Number.isSafeInteger(input.revision) || input.revision < 1 || !validId(input.claim_id) || typeof input.claim_worker_identity_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.claim_worker_identity_digest) || !validId(input.continuation_operation_id) || !interruptions.has(input.reason) || !input.interruption_evidence || Object.getPrototypeOf(input.interruption_evidence) !== Object.prototype || input.interruption_evidence.reason !== input.reason || !validVerifiedAdapterCleanupEvidence(input.adapter_cleanup) || typeof input.process_tree_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.process_tree_digest) || typeof input.resources_digest !== "string" || !/^[0-9a-f]{64}$/u.test(input.resources_digest)) fail2("invalid_interruption_request");
+    const interruptionJson = canonical3(input.interruption_evidence);
+    if (Buffer.byteLength(interruptionJson, "utf8") > 4096) fail2("invalid_interruption_evidence");
+    const interruptionDigest = digest(interruptionJson);
+    const nextAttemptNumber = input.attempt + 1;
+    const createdAt = (/* @__PURE__ */ new Date()).toISOString();
+    const result = {
+      task_id: input.task_id,
+      attempt: input.attempt,
+      status: "failed",
+      summary: `Worker execution was interrupted (${input.reason}); the previous Attempt is retained and a new Attempt is queued.`,
+      files_changed: [],
+      tests: [],
+      issues: [`interruption_evidence:${interruptionDigest}`],
+      needs_master_decision: false,
+      zcode_output: "",
+      exit_code: null,
+      session_id: null,
+      started_at: null,
+      finished_at: createdAt,
+      error_code: input.reason
+    };
+    const resultJson = canonicalTaskResult2(result, { task_id: input.task_id, attempt: input.attempt, result_status: "failed" });
+    const resultDigest = digest({ result_contract_version: RESULT_CONTRACT_VERSION, result_status: "failed", result });
+    const resultCommitRef = `result-${resultDigest}`;
+    const previousReleasedRevision = input.revision + 5;
+    const continuation = {
+      contract: "wp6b2b-continue-v1",
+      operation_id: input.continuation_operation_id,
+      task_id: input.task_id,
+      feedback: `Automatic recovery after ${input.reason}.`,
+      additional_requirements: [],
+      previous_attempt: input.attempt,
+      previous_operation_id: input.operation_id,
+      previous_generation: input.generation,
+      previous_revision: previousReleasedRevision,
+      previous_claim_id: input.claim_id,
+      previous_worker_identity_digest: input.claim_worker_identity_digest
+    };
+    const continuationJson = canonical3(continuation);
+    const continuationDigest = digest(continuationJson);
+    const priorOperation = this.readOperation(input.operation_id);
+    if (!priorOperation) fail2("operation_not_found");
+    if (priorOperation.task_id !== input.task_id || priorOperation.attempt !== input.attempt || priorOperation.generation !== input.generation || priorOperation.claim_id !== input.claim_id || priorOperation.claim_worker_identity_digest !== input.claim_worker_identity_digest) fail2("interruption_identity_mismatch");
+    const workspace = validateWorkspace(priorOperation.workspace_ref, workspaceValidator);
+    if (workspace !== priorOperation.workspace_ref) fail2("interruption_workspace_mismatch");
+    const task = this.readTask(input.task_id);
+    if (!task) fail2("task_not_found");
+    const permission = callDecision(executionPermissionCheck, workspace, {
+      operation_id: input.continuation_operation_id,
+      task_id: input.task_id,
+      attempt: nextAttemptNumber,
+      task
+    });
+    if (permission.state !== "allow") fail2(permission.state === "deny" ? "execution_permission_denied" : "execution_permission_unknown");
+    return this.#transaction(() => {
+      const existing = this.#db.prepare("SELECT * FROM attempts WHERE continuation_operation_id=?").get(input.continuation_operation_id);
+      if (existing) {
+        let stored;
+        try {
+          stored = JSON.parse(existing.continuation_json);
+        } catch {
+          fail2("continue_history_mismatch");
+        }
+        const prior = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
+        let priorResult;
+        try {
+          priorResult = prior?.result_json === null ? null : JSON.parse(prior?.result_json);
+        } catch {
+          fail2("interruption_requeue_conflict");
+        }
+        const issue = Array.isArray(priorResult?.issues) ? priorResult.issues.find((value) => typeof value === "string" && value.startsWith("interruption_evidence:")) : null;
+        const storedEvidenceDigest = issue?.slice("interruption_evidence:".length);
+        if (existing.task_id !== input.task_id || existing.attempt !== nextAttemptNumber || existing.continuation_digest !== digest(existing.continuation_json) || stored?.operation_id !== input.continuation_operation_id || stored?.previous_operation_id !== input.operation_id || stored?.previous_attempt !== input.attempt || stored?.previous_generation !== input.generation || stored?.previous_claim_id !== input.claim_id || stored?.previous_worker_identity_digest !== input.claim_worker_identity_digest || !prior || prior.phase !== "released" || prior.result_status !== "failed" || prior.result_digest === null || prior.result_json === null || priorResult?.error_code !== input.reason || typeof storedEvidenceDigest !== "string" || !/^[0-9a-f]{64}$/u.test(storedEvidenceDigest) || !this.#db.prepare("SELECT 1 FROM manager_operation_events WHERE operation_id=? AND event_type='observation_recorded' AND json_extract(evidence_json,'$.reason')=? AND json_extract(evidence_json,'$.evidence_digest')=?").get(input.operation_id, input.reason, storedEvidenceDigest) || stored?.previous_revision !== prior.revision) fail2("interruption_requeue_conflict");
+        const cleanupEvent = this.#db.prepare("SELECT evidence_json FROM manager_operation_events WHERE operation_id=? AND event_type='cleanup_verified'").get(input.operation_id);
+        let cleanupEvidence2;
+        try {
+          cleanupEvidence2 = JSON.parse(cleanupEvent?.evidence_json);
+        } catch {
+          fail2("interruption_requeue_conflict");
+        }
+        if (cleanupEvidence2?.claim_id !== input.claim_id || cleanupEvidence2?.worker_identity_digest !== input.claim_worker_identity_digest || !validVerifiedAdapterCleanupEvidence(cleanupEvidence2?.adapter_cleanup) || canonical3(cleanupEvidence2.adapter_cleanup) !== canonical3(input.adapter_cleanup) || typeof cleanupEvidence2?.cleanup_digest !== "string" || !/^[0-9a-f]{64}$/u.test(cleanupEvidence2.cleanup_digest))
+          fail2("interruption_requeue_conflict");
+        return {
+          duplicate: true,
+          operation_id: input.operation_id,
+          task_id: input.task_id,
+          previous_attempt: input.attempt,
+          attempt: existing.attempt,
+          next_operation_id: input.continuation_operation_id,
+          status: "queued",
+          created_at: existing.created_at,
+          result_digest: prior.result_digest,
+          cleanup_digest: cleanupEvidence2.cleanup_digest,
+          interruption_reason: input.reason,
+          evidence_digest: storedEvidenceDigest
+        };
+      }
+      const previous = this.#db.prepare("SELECT * FROM manager_operations WHERE operation_id=? AND operation_kind='attempt_lifecycle'").get(input.operation_id);
+      const taskRow = this.#db.prepare("SELECT task_id,status,current_attempt FROM tasks WHERE task_id=?").get(input.task_id);
+      const previousAttempt = this.#db.prepare("SELECT task_id,attempt,generation,status FROM attempts WHERE task_id=? AND attempt=?").get(input.task_id, input.attempt);
+      if (!previous || !taskRow || !previousAttempt || previous.task_id !== input.task_id || previous.attempt !== input.attempt || previous.generation !== input.generation || previous.revision !== input.revision || previous.claim_id !== input.claim_id || previous.claim_generation !== input.generation || previous.claim_worker_identity_digest !== input.claim_worker_identity_digest || previous.phase !== "running" || previous.result_digest !== null || previous.result_json !== null || previous.result_status !== null || previousAttempt.generation !== input.generation || previousAttempt.status !== "running" || taskRow.current_attempt !== input.attempt || taskRow.status !== "running") fail2("stale_interruption_cas");
+      this.#assertNoUnansweredInteraction(input.operation_id);
+      this.#assertNoCancellationIntent(input.operation_id);
+      let worker, launch;
+      try {
+        worker = JSON.parse(previous.claim_worker_identity_json);
+        launch = JSON.parse(previous.launch_identity_json);
+      } catch {
+        fail2("interruption_worker_identity_invalid");
+      }
+      fixtureWorkerIdentity(worker);
+      fixtureLaunchIdentity(launch);
+      if (worker.source !== "manager_verified_process_probe" || worker.fixture !== false || launch.source !== "manager_os_spawn_observation" || launch.fixture !== false || worker.platform !== "win32" || launch.platform !== "win32" || worker.fingerprint_precision !== "exact" || launch.fingerprint_precision !== "exact" || worker.process_id !== launch.process_id || worker.start_fingerprint !== launch.start_fingerprint || digest(canonical3(worker)) !== input.claim_worker_identity_digest) fail2("interruption_worker_identity_mismatch");
+      if (previous.launch_receipt_digest === null) fail2("interruption_launch_receipt_missing");
+      const cleanupEvidence = {
+        source: "manager_os_cleanup_verification",
+        fixture: false,
+        operation_id: input.operation_id,
+        task_id: input.task_id,
+        attempt: input.attempt,
+        generation: input.generation,
+        claim_id: input.claim_id,
+        worker_identity_digest: input.claim_worker_identity_digest,
+        launch_receipt_digest: previous.launch_receipt_digest,
+        result_commit_ref: resultCommitRef,
+        process_tree_digest: input.process_tree_digest,
+        resources_digest: input.resources_digest,
+        root_process_id: worker.process_id,
+        root_start_fingerprint: worker.start_fingerprint,
+        worker_tree_complete: true,
+        operation_resources_complete: true,
+        workspace_touched: false,
+        adapter_cleanup: input.adapter_cleanup
+      };
+      const normalized = normalizeCleanupEvidence(cleanupEvidence, {
+        operation_id: input.operation_id,
+        task_id: input.task_id,
+        attempt: input.attempt,
+        generation: input.generation,
+        claim_id: input.claim_id,
+        claim_worker_identity_digest: input.claim_worker_identity_digest
+      });
+      const cleanupDigest = digest({ cleanup_contract_version: 1, evidence: normalized });
+      const at = createdAt;
+      const observation = { reason: input.reason, evidence_digest: interruptionDigest };
+      let revision = input.revision;
+      let changed = this.#db.prepare("UPDATE manager_operations SET revision=revision+1 WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_digest IS NULL").run(input.operation_id, input.task_id, input.attempt, input.generation, revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
+      if (changed.changes !== 1) fail2("stale_interruption_cas");
+      this.#faultPoint("after_projection");
+      this.#event(input.operation_id, revision + 1, "observation_recorded", "running", "running", input.generation, observation, at);
+      revision += 1;
+      changed = this.#db.prepare("UPDATE manager_operations SET phase='result_committed',revision=revision+1,result_status='failed',result_generation=?,result_digest=?,result_json=?,result_commit_ref=? WHERE operation_id=? AND task_id=? AND attempt=? AND generation=? AND phase='running' AND revision=? AND claim_id=? AND claim_generation=? AND claim_worker_identity_digest=? AND result_digest IS NULL").run(input.generation, resultDigest, resultJson, resultCommitRef, input.operation_id, input.task_id, input.attempt, input.generation, revision, input.claim_id, input.generation, input.claim_worker_identity_digest);
+      if (changed.changes !== 1) fail2("stale_interruption_cas");
+      const attemptChanged = this.#db.prepare("UPDATE attempts SET status='failed' WHERE task_id=? AND attempt=? AND generation=? AND status='running'").run(input.task_id, input.attempt, input.generation);
+      const taskChanged = this.#db.prepare("UPDATE tasks SET status='failed' WHERE task_id=? AND current_attempt=? AND status='running'").run(input.task_id, input.attempt);
+      if (attemptChanged.changes !== 1 || taskChanged.changes !== 1) fail2("interruption_projection_cas");
+      this.#event(
+        input.operation_id,
+        revision + 1,
+        "result_committed",
+        "running",
+        "result_committed",
+        input.generation,
+        {
+          claim_id: input.claim_id,
+          outcome: "failed",
+          result_commit_ref: resultCommitRef,
+          result_digest: resultDigest,
+          worker_identity_digest: input.claim_worker_identity_digest
+        },
+        at
+      );
+      revision += 1;
+      changed = this.#db.prepare("UPDATE manager_operations SET phase='cleanup_pending',revision=revision+1 WHERE operation_id=? AND phase='result_committed' AND revision=? AND result_commit_ref=?").run(input.operation_id, revision, resultCommitRef);
+      if (changed.changes !== 1) fail2("stale_interruption_cas");
+      this.#event(
+        input.operation_id,
+        revision + 1,
+        "cleanup_pending",
+        "result_committed",
+        "cleanup_pending",
+        input.generation,
+        { claim_id: input.claim_id, result_commit_ref: resultCommitRef, worker_identity_digest: input.claim_worker_identity_digest },
+        at
+      );
+      revision += 1;
+      changed = this.#db.prepare("UPDATE manager_operations SET phase='cleanup_verified',revision=revision+1 WHERE operation_id=? AND phase='cleanup_pending' AND revision=? AND result_commit_ref=?").run(input.operation_id, revision, resultCommitRef);
+      if (changed.changes !== 1) fail2("stale_interruption_cas");
+      const cleanupEventEvidence = {
+        claim_id: input.claim_id,
+        cleanup_digest: cleanupDigest,
+        evidence_source: normalized.source,
+        launch_receipt_digest: normalized.launch_receipt_digest,
+        operation_resources_complete: true,
+        process_tree_digest: normalized.process_tree_digest,
+        resources_digest: normalized.resources_digest,
+        result_commit_ref: resultCommitRef,
+        root_process_id: normalized.root_process_id,
+        root_start_fingerprint: normalized.root_start_fingerprint,
+        worker_identity_digest: input.claim_worker_identity_digest,
+        worker_tree_complete: true,
+        workspace_touched: false,
+        adapter_cleanup: normalized.adapter_cleanup
+      };
+      this.#event(
+        input.operation_id,
+        revision + 1,
+        "cleanup_verified",
+        "cleanup_pending",
+        "cleanup_verified",
+        input.generation,
+        cleanupEventEvidence,
+        at
+      );
+      revision += 1;
+      changed = this.#db.prepare("UPDATE manager_operations SET phase='released',revision=revision+1 WHERE operation_id=? AND phase='cleanup_verified' AND revision=? AND result_commit_ref=?").run(input.operation_id, revision, resultCommitRef);
+      if (changed.changes !== 1) fail2("stale_interruption_cas");
+      this.#event(
+        input.operation_id,
+        revision + 1,
+        "released",
+        "cleanup_verified",
+        "released",
+        input.generation,
+        {
+          claim_id: input.claim_id,
+          cleanup_digest: cleanupDigest,
+          result_commit_ref: resultCommitRef,
+          worker_identity_digest: input.claim_worker_identity_digest
+        },
+        at
+      );
+      revision += 1;
+      const queued = this.#db.prepare("UPDATE tasks SET status='queued',current_attempt=? WHERE task_id=? AND current_attempt=? AND status='failed'").run(nextAttemptNumber, input.task_id, input.attempt);
+      if (queued.changes !== 1) fail2("interruption_requeue_cas");
+      const inserted = this.#db.prepare("INSERT INTO attempts(task_id,attempt,generation,status,created_at,continuation_operation_id,continuation_json,continuation_digest) VALUES(?,?,NULL,'queued',?,?,?,?)").run(input.task_id, nextAttemptNumber, createdAt, input.continuation_operation_id, continuationJson, continuationDigest);
+      if (inserted.changes !== 1) fail2("interruption_requeue_conflict");
+      return {
+        duplicate: false,
+        operation_id: input.operation_id,
+        task_id: input.task_id,
+        previous_attempt: input.attempt,
+        attempt: nextAttemptNumber,
+        next_operation_id: input.continuation_operation_id,
+        status: "queued",
+        created_at: createdAt,
+        result_digest: resultDigest,
+        cleanup_digest: cleanupDigest,
+        interruption_reason: input.reason,
+        evidence_digest: interruptionDigest
+      };
+    });
+  }
   provisionCapacity({ operation_id, capacity_limit, expected_generation = 0, maintenance }) {
     this.#assertWritable();
     if (!validId(operation_id) || !Number.isInteger(capacity_limit) || capacity_limit < 1 || capacity_limit > 8 || maintenance?.dispatch_blocked !== true || maintenance?.writers_drained !== true) fail2("invalid_maintenance_request");
@@ -4113,7 +4410,8 @@ var IsolatedAdmissionStore = class _IsolatedAdmissionStore {
           root_start_fingerprint: normalized.root_start_fingerprint,
           worker_identity_digest: input.claim_worker_identity_digest,
           worker_tree_complete: normalized.worker_tree_complete,
-          workspace_touched: normalized.workspace_touched
+          workspace_touched: normalized.workspace_touched,
+          ...normalized.adapter_cleanup !== void 0 ? { adapter_cleanup: normalized.adapter_cleanup } : {}
         };
         this.#event(input.operation_id, input.revision + 1, "cleanup_verified", "cleanup_pending", "cleanup_verified", input.generation, eventEvidence, at);
       } else {
@@ -4195,7 +4493,8 @@ var IsolatedAdmissionStore = class _IsolatedAdmissionStore {
         root_start_fingerprint: normalized.root_start_fingerprint,
         worker_identity_digest: o.claim_worker_identity_digest,
         worker_tree_complete: true,
-        workspace_touched: false
+        workspace_touched: false,
+        ...normalized.adapter_cleanup !== void 0 ? { adapter_cleanup: normalized.adapter_cleanup } : {}
       };
       const reverifiedEvidence = {
         ...baseEvidence,
@@ -4313,6 +4612,16 @@ var IsolatedAdmissionStore = class _IsolatedAdmissionStore {
     for (const row of rows) {
       const requestId = JSON.parse(row.evidence_json).request_id;
       if (row.event_type === "interaction_reply_intent") pending.add(requestId);
+      else pending.delete(requestId);
+    }
+    if (pending.size) fail2("interaction_reply_outcome_unknown");
+  }
+  #assertNoUnansweredInteraction(operationId) {
+    const rows = this.#db.prepare("SELECT event_type,evidence_json FROM manager_operation_events WHERE operation_id=? AND event_type IN ('interaction_requested','interaction_reply_accepted') ORDER BY sequence").all(operationId);
+    const pending = /* @__PURE__ */ new Set();
+    for (const row of rows) {
+      const requestId = JSON.parse(row.evidence_json).request_id;
+      if (row.event_type === "interaction_requested") pending.add(requestId);
       else pending.delete(requestId);
     }
     if (pending.size) fail2("interaction_reply_outcome_unknown");
@@ -4843,7 +5152,8 @@ var IsolatedAdmissionStore = class _IsolatedAdmissionStore {
                 operation_resources_complete: ve.operation_resources_complete,
                 workspace_touched: ve.workspace_touched,
                 source: ve.evidence_source,
-                fixture: ve.evidence_source === "synthetic_fixture"
+                fixture: ve.evidence_source === "synthetic_fixture",
+                ...ve.adapter_cleanup !== void 0 ? { adapter_cleanup: ve.adapter_cleanup } : {}
               };
               if (ve.cleanup_digest !== digest({ cleanup_contract_version: 1, evidence: normalized })) fail2("cleanup_digest_mismatch");
               if (reverified.length) {
@@ -5427,10 +5737,11 @@ var defaultAdminRecoveryDependencies = {
 };
 async function run(options, dependencies = defaultAdminRecoveryDependencies) {
   if (process.platform !== "win32") throw new AdminRecoveryBlockedError("windows_required");
-  const store = IsolatedAdmissionStore.open(options.dataRoot, {
+  let store = IsolatedAdmissionStore.openForRecovery(options.dataRoot, {
     databaseFileName: options.databaseFileName,
     managedDataDirectory: true
   });
+  if (!store) throw new AdminRecoveryBlockedError("database_unreadable");
   try {
     const operation = store.readOperation(options.operationId);
     if (!operation) throw new AdminRecoveryBlockedError("operation_not_found");
@@ -5532,6 +5843,11 @@ async function run(options, dependencies = defaultAdminRecoveryDependencies) {
         process_inventory_digest: processInventoryDigest
       };
     }
+    store.close();
+    store = IsolatedAdmissionStore.open(options.dataRoot, {
+      databaseFileName: options.databaseFileName,
+      managedDataDirectory: true
+    });
     const result = store.adminAbandonHeldOperation({
       operation_id: options.operationId,
       task_id: options.taskId,

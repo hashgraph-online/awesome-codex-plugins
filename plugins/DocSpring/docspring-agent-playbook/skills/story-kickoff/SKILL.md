@@ -2,7 +2,7 @@
 name: story-kickoff
 description: Investigates a ticket before any code is written. Has a short path for mechanical changes. Otherwise records the exact code it investigates, checks the ticket's claims against the code, maps callers, existing data and the behavior other code, clients and customers rely on with bounded read-only investigators, then writes a plan whose regression tests each state how they fail on the parent commit and which marks only real judgment calls for the user. Builds test-first, checks the result against every recorded decision before the PR, hands off to the team's review process, and turns what that review found into new lessons. Use when the user says "start work on ENG-123", "pick up this issue", "let's do this ticket", "work on issue 42", "plan this before building it" or "investigate before coding". Not for reviewing a branch or PR that already exists (pr-review or second-opinion-review).
 metadata:
-  version: 1.0.1
+  version: 1.0.2
 ---
 
 # Story kickoff: investigate, plan, then build
@@ -62,7 +62,8 @@ From the `## Agent workflow settings` section of the repo's root AGENTS.md (see 
 - **What the agent may do without asking**: committing, pushing, opening PRs, commenting on tickets. Who approves
   what, and in which order the user's instructions, the settings and a skill's invocation apply, is in the playbook's
   `CONFIGURE.md` ("Who approves what"). Invoking this skill approves investigating, planning and building on the
-  ticket's branch (step 4 says when to stop for answers first); pushing and opening a PR follow the settings.
+  ticket's branch (step 4 says when to stop for answers first); pushing and opening a PR follow the settings, read
+  from the base branch rather than the checkout.
 
 If a setting you need is missing, ask the user once, and offer to add the answer to that section.
 

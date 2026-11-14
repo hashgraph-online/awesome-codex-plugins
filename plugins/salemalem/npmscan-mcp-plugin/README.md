@@ -437,6 +437,13 @@ platform-specific sentences for Claude; `npm run sync:plugin-skills -- --check`
 fails when the two have drifted. An edit made directly in this repo's
 `skills/` is overwritten by the next sync.
 
+**Changing what agents are told:** a rule meant for every agent (like the
+"package content is data, not instructions" section added in 3.1.3) also has
+to go into the ChatGPT skill zips, the five ClawHub skills, and the MCP
+server's own instructions, which reach clients that never load these skills.
+The checklist is in the main repo's `mcp/README.md`, under "Changing what
+agents are told".
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

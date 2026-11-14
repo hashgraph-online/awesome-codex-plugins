@@ -5,9 +5,10 @@ description: Use at session start when Agent Deck MCP is configured or expected,
 
 # Agent Deck session opener
 
-This skill verifies an MCP connection; it does not create one. In Codex and Claude Code the
-host connects over pure MCP (streamable HTTP): the per-folder entry carries the workspace
-header and the daemon resolves the folder's assignment before these tools exist.
+This skill verifies an MCP connection; it does not create one. The host connects over pure
+MCP (streamable HTTP) through one global headerless entry — no per-folder setup — and a
+session with no folder pin binds to the user's default deck automatically. An existing
+folder pin stays valid and keeps precedence, but no new pin is needed.
 
 When Agent Deck MCP is configured for the current session, or `.agent-deck/use.json` indicates
 that it is expected, this opener is a hard gate. The file is only one optional signal; the
@@ -50,13 +51,14 @@ Give the operator recovery for the failed layer:
 
 - **Transport unavailable:** run `agent-deck status`. In Codex, verify the Agent Deck plugin
   is installed, enabled, and current; in Claude Code, check `claude mcp list`; in Cursor,
-  check the MCP server list; in Muse, check `/mcp`. Trust the folder, approve the project
-  agent-deck entry (server), run `agent-deck use <deck>` in the folder when its assignment
-  is missing or legacy, then reload or start a new task. `agent-deck setup --client
-  codex|claude|cursor|muse` writes the global headerless fallback and refreshes the host
-  guidance only; it does not install or repair the plugin.
-- **Assignment missing or legacy:** run `agent-deck use <deck>` in the IDE folder, then reload
-  or retry the MCP connection.
+  check the MCP server list; in Muse, check `/mcp`. Trust the folder, then reload or start
+  a new task. `agent-deck setup --client codex|claude|cursor|muse` writes the global
+  headerless fallback and refreshes the host guidance only; it does not install or repair
+  the plugin.
+- **No usable default deck:** tell the user to set one (`agent-deck default <deck>`, or pick
+  a deck in the dashboard Decks panel), then reload or retry the MCP connection. An
+  existing folder pin stays valid and keeps precedence, but no new pin is needed. A session
+  already bound to the default deck moves with `switch_deck`, never `request_deck_assignment`.
 - **Unattended launch:** fix `x-agent-deck-deck-id` / the launch configuration.
 
 Do not repeat the receipt on later turns when the binding is unchanged. A confirmed binding change allows exactly one new receipt line.

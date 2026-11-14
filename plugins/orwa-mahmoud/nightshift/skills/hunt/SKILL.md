@@ -196,7 +196,7 @@ of the resolved workspace and work target, the shift policy, why each entry serv
 objective, overlaps removed, rejected alternatives, and the stopping rule.
 This is the last look before anything is armed. Write nothing before approval.
 
-With the preview, ask the same one planning-menu question the plan room asks: "Before I write
+With the preview, ask one planning-depth question: "Before I write
 these, want any of: evidence lines, an edge-case pass, a pre-mortem, an ordering and risk check, or
 research? The default is none." Ask once per compose, never in run directly, and take one answer.
 For the options picked, read `$NIGHTSHIFT_PLUGIN_ROOT/skills/nightshift/references/plan/menu.md`

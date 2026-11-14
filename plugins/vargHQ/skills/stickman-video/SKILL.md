@@ -8,7 +8,7 @@ description: >-
   captions, procedural sound and a two-choice "FOLLOW FOR DAY 2" ending, rendered to a
   1080x1920 MP4 with HyperFrames. Ships the working rig (planted-foot walk, breathing idle, head
   turns, blinks, shock, crouch), script templates with word counts, the fixes for stiff
-  head-only stickman animation, and a 24 s example whose voice cost 4 credits. Use when someone
+  head-only stickman animation, and a 24 s example whose voice cost $0.04 (4 credits). Use when someone
   asks for a stickman video, stick figure animation, a faceless stickman channel, a survival
   choice story, POV stickman, or wants to "make videos like the viral stickman reels". For
   Google Flow or Veo clip prompts use kaomei/stickman-video-director instead.
@@ -21,7 +21,7 @@ compatibility: >-
 metadata:
   author: vargHQ
   version: "1.0.0"
-  varg.cost.typical: "4 credits ($0.04) for a 60-word ElevenLabs v3 voiceover; picture, sound and render free"
+  varg.cost.typical: "$0.04 (4 credits) for a 60-word ElevenLabs v3 voiceover; picture, sound and render free"
   varg.runtime.typical: "17 s to render 24 s of 1080x1920 at 30 fps on an Apple M1 Pro"
   varg.models: "eleven_v3 (voice, optional)"
   varg.outputs: "mp4 1080x1920 30 fps, contact sheet"
@@ -37,7 +37,7 @@ allowed-tools: Bash(bunx:*) Bash(npx:*) Bash(bun:*) Bash(ffmpeg:*) Bash(ffprobe:
 
 Stickman reels are a format wave on X, TikTok and Shorts in autumn 2026, and the pitch that travels is "100% code, $0 video generation" ([@finnardley](https://x.com/finnardley/status/2115786060231770351), 65,440 views). The complaints are just as consistent: limbs too long, a character that only moves its head, monotone animation ([a user replying to the stickman-video-director author](https://x.com/GazunH26262/status/2121123319143633304)). This skill fixes those with a real rig: bones of fixed length, poses as angles, legs solved by inverse kinematics, and several motion layers running at once.
 
-The example in `assets/example/` is a 24.3 s "Day 1: lighthouse rules" reel built with this skill: an original premise, a 60-word voice (4 credits), procedural sound, word-timed captions, three rules, a two-choice ending, rendered in 17 s.
+The example in `assets/example/` is a 24.3 s "Day 1: lighthouse rules" reel built with this skill: an original premise, a 60-word voice for $0.04 (4 credits), procedural sound, word-timed captions, three rules, a two-choice ending, rendered in 17 s.
 
 ## 1. Ask, then go
 
@@ -48,7 +48,7 @@ Ask once, in one message, with a default for each. Then write the script and sho
 | Format | survival choice (DAY N + rules + 1/2 ending), POV, contrast (fake vs real), history explainer, stick fight | survival choice |
 | Length | 15–25 s (one episode, Shorts/Reels), 45–60 s, longer = a series of episodes | 20–25 s |
 | Ratio | 9:16, 16:9 (YouTube long form), 1:1 | 9:16, 1080x1920, 30 fps |
-| Voice | AI narrator on varg (~4 credits per 60 words), their own recording, no voice (captions + sound only) | AI narrator, calm and tense |
+| Voice | AI narrator on varg at about $0.04 (4 credits) per 60 words, their own recording, no voice (captions + sound only) | AI narrator, calm and tense |
 | Style | night set with a white figure; paper white with a black figure; retro TV glow; one set drawn in code | night set |
 
 If they bring a premise, use it. If not, offer three one-line premises that are not copies of a known channel's episodes (see section 9).
@@ -127,7 +127,7 @@ Acting rules:
 
 ## 5. Sound and captions
 
-**Voice.** On varg: `check_balance`, then `search_voices` with an intent such as "calm, tense, low male English narrator for a dark survival short", then `estimate_cost`, then one `generate_speech`. The example used "Adam" (Deep English Story Voice, varg voice id `preset_610bdb815cd5`) on `eleven_v3`: 354 characters, 60 words, **4 credits ($0.04)**, one take. Download the file, then shorten the pauses: `bun tighten-pauses.mjs voice.mp3 assets/audio/voice.wav` (pauses over 0.25 s become 0.2 s; speech is never time-stretched).
+**Voice.** On varg: `check_balance`, then `search_voices` with an intent such as "calm, tense, low male English narrator for a dark survival short", then `estimate_cost`, then one `generate_speech`. The example used "Adam" (Deep English Story Voice, varg voice id `preset_610bdb815cd5`) on `eleven_v3`: 354 characters, 60 words, **$0.04 (4 credits)**, one take. Download the file, then shorten the pauses: `bun tighten-pauses.mjs voice.mp3 assets/audio/voice.wav` (pauses over 0.25 s become 0.2 s; speech is never time-stretched).
 
 **Word timings, free.** `bunx hyperframes transcribe assets/audio/voice.wav --model small.en --language en` runs whisper.cpp locally (2 s for 22 s of voice) and writes `assets/audio/transcript.json`. Read it: the example's ASR wrote "twelve-oh-one" as "1201". Do not pay for transcription.
 
@@ -172,16 +172,16 @@ The example is one `index.html` on purpose (one clock drives the rig and the set
 
 | Item | Measured |
 |---|---|
-| Voice, 60 words, ElevenLabs v3 on varg | 4 credits ($0.04), one take |
+| Voice, 60 words, ElevenLabs v3 on varg | $0.04 (4 credits), one take |
 | Word timings (local whisper.cpp) | free, 2 s |
 | Sound effects and ambience (ffmpeg) | free |
 | Render, 24.3 s at 1080x1920, 729 frames | free, 17.3 s on an Apple M1 Pro (hardware GPU, screenshot capture) |
-| Total for the example | 4 credits ($0.04) |
+| Total for the example | $0.04 (4 credits) |
 
 ## 9. Other routes
 
 - **kaomei/stickman-video-director** ([GitHub](https://github.com/kaomei/stickman-video-director), MIT, by [@CrazyKaomei](https://x.com/CrazyKaomei), about 5,900 stars in November 2026). Director mode writes a treatment, then one prompt per roughly 10-second clip for Google Flow (Gemini Omni Flash), Veo, Kling, Runway or Luma; you generate and edit the clips yourself. Autopilot renders a narrated, captioned MP4 locally (Node 20+, FFmpeg) after a 20-second sample is approved; the author recommends Codex. Eleven visual styles. Install by pasting the repo URL into your agent with "Install this Skill for me"; the installed skill is called `directing-stickman-videos`. Use it when the person wants generated clips or one of its styles.
-- **Generated 2.5D look on varg.** A character sheet and set stills with `gpt_image_2_6` (estimate on 2026-11-13: up to 6 credits per 9:16 image), approved first, then animate with `kling_v4` (estimate on the same day: up to 79 credits for a 5 s 9:16 clip, priced as text-to-video; price the image-to-video call itself before the batch; `kling_v4_flash` for drafts). Run `estimate_cost` before each batch. The honest caveat: video models drift on stick figures. Limbs multiply or thicken, heads detach, hair and clothes appear, and two shots rarely match. Keep shots to 5 s, reuse the same reference, judge every take, and keep anything that must stay jointed (a walk, a fight, a pose that carries the joke) in code. A hybrid works: generated background stills under the code figure.
+- **Generated 2.5D look on varg.** A character sheet and set stills with `gpt_image_2_6` (estimate on 2026-11-13: up to $0.06 (6 credits) per 9:16 image), approved first, then animate with `kling_v4` (estimate on the same day: up to $0.79 (79 credits) for a 5 s 9:16 clip, priced as text-to-video; price the image-to-video call itself before the batch; `kling_v4_flash` for drafts). Run `estimate_cost` before each batch. The honest caveat: video models drift on stick figures. Limbs multiply or thicken, heads detach, hair and clothes appear, and two shots rarely match. Keep shots to 5 s, reuse the same reference, judge every take, and keep anything that must stay jointed (a walk, a fight, a pose that carries the joke) in code. A hybrid works: generated background stills under the code figure.
 
 ## 10. What not to do
 
@@ -197,4 +197,4 @@ The example is one `index.html` on purpose (one clock drives the rig and the set
 - X research, collected 2026-11-13: the posts linked in section 2, the stickman-video-director launch and updates by [@CrazyKaomei](https://x.com/CrazyKaomei/status/2084217266703393186), and user questions under them ([limbs and monotone motion](https://x.com/GazunH26262/status/2121123319143633304), [two-bone IK arms and lip sync by loudness](https://x.com/tebet007/status/2116324211002401064)).
 - kaomei/stickman-video-director: `SKILL.md` (Director pacing of about 20–25 voice words per 10 s clip, a visual change every 2–3 s) and `references/autopilot.md` (no principal-picture inactivity over 2.5 s; camera moves or text entrances alone do not count as animation).
 - HyperFrames CLI 0.9.41 documentation (`hyperframes`, `hyperframes-core`, `hyperframes-cli` skills).
-- Measured on the example: voice job on varg (`eleven_v3`, 4 credits), whisper.cpp `small.en`, ffmpeg loudness, HyperFrames render log.
+- Measured on the example: voice job on varg on `eleven_v3` for $0.04 (4 credits), whisper.cpp `small.en`, ffmpeg loudness, HyperFrames render log.

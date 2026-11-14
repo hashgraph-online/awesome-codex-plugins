@@ -15,7 +15,7 @@ A story project must already exist (created via the story-init skill). Verify by
 
 ## Choosing a Story Structure
 
-1. Read `story.md` for genre, themes, and `form` (`novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, `chapter-book`). For `short-story` and `flash`, use `references/short-story-form.md` instead of a multi-act beat sheet
+1. Read `story.md` for genre, themes, and `form` (`novel`, `novella`, `novelette`, `short-story`, `flash`, `serial`, `picture-book`, `chapter-book`, `poetry-collection`). A poetry collection has no plot beats: use `verse-craft` for it. For `short-story` and `flash`, use `references/short-story-form.md` instead of a multi-act beat sheet
 2. Consult `references/structure-models.md` for available structures
 3. Recommend a structure based on genre (default to three-act if unclear). If the user wants to design the whole book top-down before drafting, or asks for the Snowflake Method, follow `references/snowflake.md` on top of the chosen structure
 4. Update `plot/_index.md` frontmatter `structure` field

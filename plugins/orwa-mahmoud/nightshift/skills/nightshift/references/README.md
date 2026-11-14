@@ -9,11 +9,11 @@ first. Nothing here is loaded because it might come up.
   catalog entries; `ns catalog-index` lists them without reading them.
 - `shift/` — read by the shift that is working: direct-mode decisions, the cited-research contract,
   and the state map.
-- `plan/` — read by Plan and Hunt only after the owner picks from the planning menu: each option's
+- `plan/` — read by Plan and Hunt only after the owner picks a planning option: each option's
   method, and the edge-case catalog.
 - `evidence/` — the evidence catalog. `evidence/catalog.md` is the entry page Plan and Hunt read
   after the owner says yes to evidence lines; `ns catalog-index --catalog evidence` lists the
-  kinds, including kinds the owner added, and only the kinds that fit the drafted items are read
+  entries, including entries the owner added, and only the entries that fit the drafted items are read
   in full. The baseline and checkpoint ledger records live here too, and the working shift writes
   those.
 - `receipts/` — one receipt kind per file. The file names are the index; open the one you are

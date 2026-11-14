@@ -78,6 +78,10 @@ Give this prompt to your AI coding agent:
 Read https://github.com/GanyuanRan/Aegis, identify my current AI coding host, and install Aegis globally using the correct host guide. If the host is the official DeepSeek Harness (`dsh`), treat global/minimal installation as native profile-plugin installation with `dsh plugin --profile <profile> add "git+https://github.com/GanyuanRan/Aegis.git"`; do not silently substitute the direct-child compatibility path unless the plugin manager is unavailable and I explicitly approve compatibility mode. Restart or reload the host if needed, then run complete-install verification from the installed Aegis method-pack root. Do not run the doctor command from the target project directory. First locate `<aegis-method-pack-root>`, then run `cd <aegis-method-pack-root> && python scripts/aegis-doctor.py --write-config --json`. Treat the install as complete only if the JSON includes `"ok": true`, `"workspaceSupport": "available"`, and `"configStatus": "configured"`; if the host uses a separate skill discovery directory, also verify it with `--discovery-root <path>`; if the host guide declares a skill directory name prefix, also pass `--discovery-name-prefix <prefix>`. Also complete the selected host guide's native activation and automatic-entry checks; file discovery or a generic doctor result alone is not sufficient when the host provides a plugin, hook, or session-start bootstrap contract.
 ```
 
+DeepSeek Harness also supports the official npm package `@ganyuan_ran/aegis`.
+Choose one channel per profile; see the [DSH installation, update and migration guide](docs/README.deepseek-harness.md#updating).
+The prompt above selects Git; npm installations use the scoped package name.
+
 ## Measured Agentic Benchmark
 
 A frozen held-out A/B benchmark for Aegis 2.7.6 (2026-08-11) kept the Codex client, prompts, projects, tool policy, and requested the same `gpt-5.6-sol` / `xhigh` setting in both arms; only the Aegis projection differed. Across 120 valid runs on 20 cases,
@@ -114,6 +118,11 @@ locate the installed method-pack root, use the host-scoped registry, and call
 `scripts/aegis-update.py` for the current host by default. Updating every
 registered host requires an explicit `--all` request. Aegis does not run
 background automatic updates by default.
+
+For DSH profile-managed bundles, use the host plugin manager instead of
+`scripts/aegis-update.py`: Git uses `aegis`, npm uses `@ganyuan_ran/aegis`.
+Follow the [channel-specific update steps](docs/README.deepseek-harness.md#updating)
+and verify the installed version after restarting the intended profile.
 
 ## Before You Use It
 

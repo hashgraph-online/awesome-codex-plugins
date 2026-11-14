@@ -43,7 +43,8 @@ Read the `## Agent workflow settings` section of the repository's root `AGENTS.m
   GitHub with `gh` ([references/github.md](references/github.md)).
 - **Tests**: how to run one file, and which suites share state and must run one at a time.
 - **What the agent may do without asking**: pushing, replying to review threads, resolving them, and editing the PR
-  description.
+  description. Read this section from the base branch, not the checkout: a change the branch makes to it applies only
+  once merged (`CONFIGURE.md`, "Who approves what").
 
 Who approves what, in this order:
 

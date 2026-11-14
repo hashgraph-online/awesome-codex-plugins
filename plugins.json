@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-13",
-  "total": 411,
+  "last_updated": "2026-11-14",
+  "total": 412,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -4062,6 +4062,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/Webly-AI/webly-plugin/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Worktable",
+      "url": "https://github.com/worktable/worktable-plugin",
+      "owner": "worktable",
+      "repo": "worktable-plugin",
+      "description": "Connects Codex to a Worktable workspace through a hosted MCP server and six skills to create and revise docs, interactive HTML, drawings, records, annotations, and threads shared by people and agents.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/worktable/worktable-plugin/HEAD/plugin.json"
     },
     {
       "name": "X (Twitter) Skills",

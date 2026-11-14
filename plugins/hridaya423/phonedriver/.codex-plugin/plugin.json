@@ -1,6 +1,6 @@
 {
   "name": "phonedriver",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Lets an agent see and operate Android phones and iPhones: the screen as text, taps by element number, and a question to you before any tap that pays. Bundles the phonedriver MCP server and its skill.",
   "author": {
     "name": "Hridya Agrawal",

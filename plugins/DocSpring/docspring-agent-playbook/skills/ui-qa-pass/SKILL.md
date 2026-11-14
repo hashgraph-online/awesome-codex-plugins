@@ -37,7 +37,8 @@ Read the `## Agent workflow settings` section of the repository's root `AGENTS.m
   go (the working folder, which stays on this machine). It may also name where reports are published (`QA reports are
   published to: ...`).
 - `### Tests`: how to run one test file, and which suites must run one at a time.
-- `### What the agent may do without asking`: whether you may commit, push and post PR comments.
+- `### What the agent may do without asking`: whether you may commit, push and post PR comments. Read this one from
+  the base branch, not the checkout (the playbook's `CONFIGURE.md`, "Who approves what").
 
 If a setting you need is missing, ask the user once and offer to add the answer to that section. For the report's
 destination, offer the options in `references/report-format.md`.
@@ -74,11 +75,15 @@ the report can say exactly what was tested. Give each area a letter and each fin
 
 Write one small script per screen or state in `QA_DIR/steps/`, so you can run the same step again for the "after"
 shot. Use the browser automation your harness or repo already has (Playwright, Puppeteer, a browser MCP server). If
-the repo has nothing, `scripts/run_step.mjs` in this skill is a short Playwright example to copy and adapt. After
-copying it to `scripts/qa/` in your repo:
+the repo has nothing, `scripts/run_step.mjs` in this skill is a short Playwright example to copy and adapt.
+
+Installing Playwright adds a dependency to the repository (and a `package.json`, if it has none) and downloads a
+Chromium build, so show the user the install command and ask before running it. Pin an exact version that has been out
+for a while; `npx playwright install` then fetches the browser build that version expects. After copying the runner
+to `scripts/qa/` in your repo:
 
 ```bash
-npm install --save-dev playwright && npx playwright install chromium   # once
+npm install --save-dev --save-exact playwright@1.64.1 && npx playwright install chromium   # once, after a yes
 export QA_BASE_URL=http://localhost:3000 QA_DIR=~/qa/myapp/my-branch-2026-01-15
 node scripts/qa/run_step.mjs "$QA_DIR/steps/settings.mjs"                 # the "before" shots
 QA_SUFFIX=R2 node scripts/qa/run_step.mjs "$QA_DIR/steps/settings.mjs"    # the "after" shots, as <name>-R2.png

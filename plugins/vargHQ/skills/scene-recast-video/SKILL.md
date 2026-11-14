@@ -35,7 +35,7 @@ Generation runs on varg: REST `https://api.varg.ai/v2` (the `varg-ai` skill) or 
 
 ## 1. Ask, then go
 
-- **The clip:** a link or a file, and which 5 to 30 seconds. Download with `media-download`.
+- **The clip:** a link or a file, and which 5 to 30 seconds. No clip yet: `find-movie-clips` (clip databases, download, the scene split into uncut takes). A link: `media-download`.
 - **The new cast:** one to four characters, each as a photo or a sheet (`varg-character-design`, `character-passport`). Who replaces whom, by position: "the man on the left in the black coat".
 - **What else changes:** props, the room, the era, the dialogue. Everything not named stays.
 - **Where it goes:** aspect ratio, and whether to post it stacked over the original (section 7).

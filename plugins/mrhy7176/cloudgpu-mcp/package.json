@@ -1,6 +1,6 @@
 {
   "name": "cloudgpu-mcp",
-  "version": "0.16.1",
+  "version": "0.16.3",
   "mcpName": "io.github.cloudgpu-app/cloudgpu-mcp",
   "description": "MCP server and command-line tool for cloudgpu.app: let Claude Code, Cursor, Cline, opencode, goose and other MCP clients (or you, from a terminal) rent a GPU with explicit billing quotes, run a job, fetch the results and shut it down, with spending limits the platform enforces.",
   "type": "module",

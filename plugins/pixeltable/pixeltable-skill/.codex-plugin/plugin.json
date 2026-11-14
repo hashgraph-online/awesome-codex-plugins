@@ -1,6 +1,6 @@
 {
   "name": "pixeltable",
-  "version": "2.14.0",
+  "version": "2.14.1",
   "description": "Multimodal RAG, video search, image similarity search, agent memory, and embeddings stored with your data. Declarative tables, computed columns, retrieval, agents, and HTTP.",
   "author": {
     "name": "Pixeltable",

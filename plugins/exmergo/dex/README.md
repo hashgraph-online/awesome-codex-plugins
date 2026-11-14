@@ -24,8 +24,9 @@ through [supported connectors](#connectors).
 [![data-eng-bench](https://img.shields.io/badge/data--eng--bench-57%25-33cf56)](benchmarks/data-eng-bench/README.md)
 [![ADE-bench](https://img.shields.io/badge/ADE--bench-80%25-33cf56)](benchmarks/ade_bench/README.md)
 [![CI](https://github.com/exmergo/dex/actions/workflows/ci.yml/badge.svg)](https://github.com/exmergo/dex/actions/workflows/ci.yml)
-
 [![Docs](https://img.shields.io/badge/docs-docs.exmergo.com%2Fdex-165dfc?logo=readthedocs&logoColor=white)](https://docs.exmergo.com/dex)
+
+[![Discord](https://img.shields.io/badge/Discord-Join%20the%20community-165dfc?logo=discord&logoColor=white)](https://trydex.ai/discord)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Exmergo-165dfc?logo=linkedin&logoColor=white)](https://www.linkedin.com/company/exmergo/)
 [![X](https://img.shields.io/badge/Follow-%40exmergo-165dfc?logo=x&logoColor=white)](https://x.com/exmergo)
 [![Star the repo!](https://img.shields.io/github/stars/exmergo/dex?style=flat&label=Star%20the%20repo!%20%E2%AD%90&labelColor=555&logo=github&logoColor=white&color=165dfc)](https://github.com/exmergo/dex)
@@ -373,8 +374,8 @@ and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/de
 
 > [!IMPORTANT]
 > **Dex sends nothing to Exmergo.** No telemetry, analytics, license check, or
-> update ping. See the [Dex privacy policy](https://www.exmergo.com/privacy/dex)
-> and the [Dex terms of service](https://www.exmergo.com/terms/dex).
+> update ping. See the [Dex privacy policy](https://trydex.ai/privacy)
+> and the [Dex terms of service](https://trydex.ai/terms).
 
 ### What to commit in `.dex/`
 
@@ -436,7 +437,7 @@ Dex Enterprise runs Dex as automated workflows in your own CI. It turns tickets 
 draft pull requests with `explore` and `transform`, and runs `maintain` on a schedule
 to turn drift into draft pull requests for your engineers to review. No Exmergo
 service sits in the request path, and everything in this repository stays
-Apache-2.0. [Learn more](https://www.exmergo.com/dex/enterprise).
+Apache-2.0. [Learn more](https://trydex.ai/enterprise).
 
 ## Community
 
@@ -452,7 +453,7 @@ Apache-2.0. [Learn more](https://www.exmergo.com/dex/enterprise).
 Join the agent-native data/analytics community!
 
 - 🌟 [Star Us on GitHub](https://github.com/exmergo/dex/)
-- 👾 [Join Our Discord Community](https://www.exmergo.com/discord)
+- 👾 [Join Our Discord Community](https://trydex.ai/discord)
 - 🔗 [Follow Us on LinkedIn](https://www.linkedin.com/company/exmergo/)
 - 🐦 [Follow Us on X](https://x.com/exmergo)
 - 🔨 [Follow Us on GitHub](https://github.com/exmergo/)

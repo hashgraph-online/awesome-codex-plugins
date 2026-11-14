@@ -32,6 +32,7 @@ story diagram timeline
 story diagram clues
 story diagram arcs
 story progress . --log
+story submissions . --days 60
 story compare . --ref draft-1
 story compare . --against ../book-draft-1
 story snapshot draft-1 --path .
@@ -45,10 +46,14 @@ story apply returned.docx --path . --ref sent-to-editor-1
 story similarity . --against ../book-one
 story similarity . --snapshot draft-1
 story series .
+story translation .
+story translation . --record --chapter chapter-03
 story init 'The Last Ember' --form novel
 story init 'Embers of the Vale' --follows ../the-last-ember
 story import draft.md --title 'Title'
 story import draft.docx --title 'Title'
+story collect . --dry-run
+story collect .
 story report .
 story report . --actionable
 story next .
@@ -91,6 +96,7 @@ story build . --format metadata
 story build . --format twee
 story build . --format ink
 story build . --format ics
+story build . --format post --chapter 3
 story knowledge sera-voss --at chapter-04
 story continuity . --json
 story context chapter-04 --budget 6000

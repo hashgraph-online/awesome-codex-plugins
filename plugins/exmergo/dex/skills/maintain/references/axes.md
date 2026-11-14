@@ -382,6 +382,50 @@ Needs no baseline. The classes of finding:
 A project that does not compile is reported first and suppresses everything
 else. `data.suppressed` names every class that did not run and why.
 
+## `maintain coverage [<selector>]`: where the tests are
+
+Needs no baseline and costs nothing: it reads a fresh `dbt parse` of a
+throwaway copy of the project and opens no connection. It reports, it never
+gates: `status` is `ok` whatever the coverage.
+
+- **Sections.** `models`, `sources`, `snapshots` and `seeds` hold the root
+  project's enabled resources. An ephemeral model is counted and marked
+  `ephemeral`: dbt inlines it into its own tests and the models that read it.
+  Package and disabled resources are in no denominator; `excluded` counts and
+  names them with the reason, and counts disabled tests and tests on an excluded
+  resource.
+- **Own tests.** `own_tests` counts `generic` (attached to the resource),
+  `singular` (a test file that reads it), `unit` (a unit test on that model) and
+  `freshness` (a source's declared check) apart, and `severity` splits its data
+  tests into `error` and `warn`. `tested` is true when any own test exists.
+- **Downstream.** `downstream_tests.count` is the data tests on the resources
+  that read this one, and `on` names those resources. They never count as its
+  own coverage. A unit test on a downstream model is not one: it reads fixtures.
+- **Incremental.** `incremental.incremental_branch_tests` names the unit tests
+  that override `is_incremental` to true. Empty means no test runs the next
+  incremental run, whatever the full build's tests say.
+- **Columns.** `documented` is what `schema.yml` documents, `asserted` the
+  documented columns a generic test is attached to, `unasserted` the gaps, and
+  `undocumented_tested` the tested columns `schema.yml` does not document, which
+  count nowhere. A column a singular test only reads is not asserted.
+- **Summary.** `data.summary` leads the payload. Every ratio is
+  `{numerator, denominator, of}`, and `of` names the denominator. Presence, unit
+  tests, downstream-only protection, incremental branches and asserted columns
+  are separate ratios; there is no blended coverage percentage.
+
+A generic test is named by the test it applies (`not_null`,
+`dbt_utils.unique_combination_of_columns`) and its column, never by its node
+name: dbt names an `accepted_values` test after the values it accepts.
+
+Lists are capped (25 resources per section with untested ones first, 12 tests
+and 12 column names per resource, 10 downstream names, 25 excluded resources),
+each cut counted in `data.elided` and named in `notes`; `--full` lifts them. The
+summary always counts everything. A project that does not parse is reported
+first and suppresses the inventory. Where dbt cannot parse at all (dbt or
+`profiles.yml` missing, a declared package not installed), the newest manifest
+on disk is read, `data.manifest.source` is `artifact` with its `generated_at`,
+and a warning says tests changed since then are not reflected.
+
 ## `maintain reconcile [<class>]`
 
 Proposes the dbt edits that bring the project back in sync, as reviewable diffs,
@@ -517,6 +561,7 @@ Two things look like drift and are not:
 | `grain`, semantic dimension cardinality | scans; billed handshake on a metered connector |
 | `verify` build status | free (artifacts on disk) |
 | `verify` row counts | free object metadata, except a view, which keeps no count: those are batched into one aggregate-only statement, priced, and returned in `data.offer` |
+| `coverage` | free everywhere: a `dbt parse` of a copy, no connection |
 | `verify` declared facts | one aggregate statement per declared relation, plus one window probe per relation with an `additive` column; priced into the same single `data.offer` |
 
 On DuckDB there is no gate, so `verify` measures every count and its findings

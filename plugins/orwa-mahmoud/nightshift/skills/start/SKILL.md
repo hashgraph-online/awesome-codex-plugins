@@ -32,7 +32,7 @@ works — which is what lets cron run it at 04:00 and lets the watchman revive i
 promotes nothing on its own: what is in the punch list is the shift, exactly as the owner left it.
 
 The one time it speaks is when the punch list is **empty**. Then there is no work to do silently,
-so it looks at staged drafts and pending Hunt orders and asks which to promote.
+so it looks at waiting plans, staged drafts and pending Hunt orders and asks which to promote.
 
 ```bash
 "$NIGHTSHIFT_PLUGIN_ROOT/runtime/ns" start-preflight --host claude
@@ -81,10 +81,18 @@ one building entry is inconsistent state: keep the earliest one active, mark the
 `candidate`, record the repair in `$NS/run/shift-log.md`, and continue.
 
 **Only when the punch list is empty, offer what is staged.** The `ok staged` verdict already counts
-`$NS/staging/work-orders.md` and `$NS/staging/drafting-table.md`. Read both (a file that is not there
-holds nothing), show what they hold in one short list,
-and ask which to work now. On the owner's choice, **cut it — move, never copy**: the item goes
-under `## Items` and is removed from the file it came from, so it never exists in two places. An
+the plans in `$NS/staging/plans/`, `$NS/staging/work-orders.md` and `$NS/staging/drafting-table.md`.
+Read them (a file that is not there holds nothing), show what they hold in one short list, plans
+first by name with their open items, and ask which to work now.
+
+**A plan is cut whole.** A plan file is a complete punch list: its contract, gates, plan notes and
+items. When the owner picks one, it replaces `$NS/punch-list.md` and is removed from
+`$NS/staging/plans/`: move the file over the punch list, never copy it. If the punch list still
+holds ticked items that Archive has not filed, run Archive first so they are filed with their
+shift; nothing in the old list is dropped. The plan's title line, `# Punch List — <name>`, names the
+shift, and Archive files it under that name.
+
+For a draft or an order, on the owner's choice, **cut it — move, never copy**: the item goes under `## Items` and is removed from the file it came from, so it never exists in two places. An
 imported draft (`Status: proposed` and a canonical `Source:` GitHub URL) is cut the same way in the
 skill — move the item under `## Items` and remove it from the drafting table. The import-issues
 helper is optional. Do not require Python. A flagged import stays refused unless the owner

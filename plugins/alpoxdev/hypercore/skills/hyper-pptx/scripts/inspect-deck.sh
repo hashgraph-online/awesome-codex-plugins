@@ -150,8 +150,20 @@ in_chart() { # <chart xml>
     }
     /<c:(barChart|lineChart|pieChart|doughnutChart|areaChart|scatterChart)>/ {
       tag = $0; sub(/^[ \t]*<c:/, "", tag); sub(/>.*$/, "", tag)
-      sub(/Chart$/, "", tag); chartType = tag
+      sub(/Chart$/, "", tag)
+      # A combo is two groups in one chartSpace. Reporting only the last group
+      # would tell the reader a bar-and-line chart is a line chart.
+      seenBar = seenBar || (tag == "bar")
+      seenLine = seenLine || (tag == "line")
+      seenOther = seenOther || (tag != "bar" && tag != "line")
+      if (chartType == "" || chartType == "column") chartType = tag
+      else if (chartType != tag) chartType = chartType "+" tag
     }
+    # A stacked group draws the same bars as a clustered one; only the grouping
+    # tells them apart, and a reader asking "is this stacked" needs the answer.
+    /<c:grouping val="stacked"|<c:grouping val="percentStacked"/ { stacked = 1 }
+    # barDir says which way the bars run: "bar" is horizontal, "col" vertical.
+    /<c:barDir val="col"/ { chartType = "column" }
     /<c:ser>/ { inSer = 1; sname = ""; vals = ""; nvals = 0; cats = ""; nc = 0; next }
     /<\/c:ser>/ {
       inSer = 0
@@ -188,6 +200,10 @@ in_chart() { # <chart xml>
       next
     }
     END {
+      if (seenBar && seenLine && !seenOther) chartType = "combo"
+      else if (stacked && chartType ~ /^(bar|area|column)$/) {
+        chartType = (chartType == "column") ? "stacked" : (chartType "Stacked")
+      }
       if (nser > 0 || chartType != "")
         printf "{\"type\":\"%s\",\"categories\":[%s],\"series\":[%s]}\n", chartType, cats, series
     }
@@ -229,9 +245,26 @@ in_main() {
   fonts=$(grep -oh 'typeface="[^"]*"' "$tmp/ppt/theme/"*.xml 2>/dev/null \
     | sed -e 's/typeface="//' -e 's/"$//' | grep -v '^+m' | grep -v '^$' | sort -u | jq -R . | jq -sc . )
 
+  # Slide order comes from presentation.xml, not from the file names. A
+  # lexicographic listing puts slide10.xml before slide2.xml, so a 17-slide deck
+  # would report its outline out of order and the reader would trust it.
+  local order slide_files='' rid tgt base
+  order=$(grep -o '<p:sldId [^>]*>' "$tmp/ppt/presentation.xml" 2>/dev/null \
+    | sed -e 's/.*r:id="//' -e 's/".*//')
+  for rid in $order; do
+    tgt=$(tr '<' '\n' < "$tmp/ppt/_rels/presentation.xml.rels" 2>/dev/null \
+      | grep "Id=\"$rid\"" | sed -e 's/.*Target="//' -e 's/".*//')
+    base=$(basename "${tgt:-}")
+    [ -n "$base" ] && [ -f "$tmp/ppt/slides/$base" ] && slide_files="$slide_files $base"
+  done
+  # A package without a readable relationship list still has the parts.
+  if [ -z "$slide_files" ]; then
+    slide_files=$(ls "$tmp/ppt/slides" 2>/dev/null | grep -E '^slide[0-9]+\.xml$' | sort -V)
+  fi
+
   local slides='[]' idx=0 f entry notes shapes problems slide_json
   problems='[]'
-  for f in $(ls "$tmp/ppt/slides" 2>/dev/null | grep -E '^slide[0-9]+\.xml$' | sort -t e -k3 -n); do
+  for f in $slide_files; do
     idx=$((idx + 1))
     [ -n "$only" ] && [ "$only" != "$idx" ] && continue
     local base=${f%.xml}

@@ -35,6 +35,8 @@ repository before you adopt it.
 
 The skills read your tracker, code host, CI and test commands from an `## Agent workflow settings` section in your
 root AGENTS.md ([`CONFIGURE.md`](CONFIGURE.md) has the block to copy); a skill that needs a missing setting asks once.
+What the agent may do without asking is read from your base branch, so a branch or pull request can't approve its own
+pushes or comments.
 They ship worked adapters for GitHub, GitHub Actions and the Codex CLI; for other tools, write and check your own
 adapter.
 
@@ -48,7 +50,8 @@ The skills run the tools your AGENTS.md settings name, and ship no services or t
   you or the settings approve it.
 - `second-opinion-review` runs your Codex CLI, which sends the review prompt, the diff and the files Codex reads to
   OpenAI under your Codex account.
-- `ui-qa-pass` drives a headless Chromium with Playwright against the app URL you give it.
+- `ui-qa-pass` drives a headless Chromium with Playwright against the app URL you give it. If your repository has
+  no browser automation, it shows you the command to install a pinned Playwright version and asks first.
 - `session-wrap-up` reads your agent's session transcript from your machine.
 
 Review notes, plans and screenshots are written to the folders your settings name.

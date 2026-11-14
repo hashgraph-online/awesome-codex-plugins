@@ -10,7 +10,7 @@ Eleven conversion overlays for short-form ads, UGC and creator videos, with pres
 ```bash
 npx skills add vargHQ/skills --skill social-overlays                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills social-overlays --agent github-copilot --scope user
-# or all 82 skills as a Claude Code plugin:
+# or all 83 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -51,4 +51,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/social-overlays) · [varg.ai](https://varg.ai)
+More: [all 83 skills](../README.md#all-83-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/social-overlays) · [varg.ai](https://varg.ai)

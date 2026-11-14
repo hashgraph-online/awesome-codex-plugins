@@ -8,6 +8,7 @@ Read this when a deck must open without a repair prompt, when an edit must not d
 - The six parts every slide needs
 - Why one blank layout and absolute geometry
 - What makes PowerPoint offer to repair a file
+- Where motion lives in a slide part
 - Run splitting, the reason a text edit misses
 - What this package deliberately does not do
 
@@ -59,8 +60,25 @@ EMU is 914400 per inch, so a 13.333 × 7.5 inch slide is 12192000 × 6858000. Po
 | missing image | `r:embed` id with no image relationship, or an undeclared image extension |
 | chart shows no data | chart part missing its cached categories and values |
 | notes pane empty | `notesSlide` part exists but the slide has no relationship to it |
+| repair prompt after a transition, then slides vanish | a `p:transition` child that is not an ECMA-376 effect element |
+| repair prompt after an animation | a duplicated `p:cTn id`, or a `p:spTgt spid` with no such shape |
+| picture shows the wrong crop | a `srcRect` whose fractions are outside 0 through 1 |
 
-`render-deck.sh` checks well-formedness of every XML part and every relationship target on disk, and exits 1 rather than delivering a package with a dangling reference. It cannot check the repair prompt itself, because PowerPoint is not available on this machine; that row is specification-based, not observed.
+`render-deck.sh` checks well-formedness of every XML part, every relationship target on disk, and the three motion rules described below, and exits 1 rather than delivering a package with a dangling reference. It cannot check the repair prompt itself, because PowerPoint is not available on this machine; that row is specification-based, not observed.
+
+## Where Motion Lives in a Slide Part
+
+`p:sld` ends with an optional `p:timing`, and before it an optional `p:transition`. In the written part that means, in order: `p:cSld` with the shape tree, `p:clrMapOvr`, `p:transition`, `p:timing`. The `transition` element sits outside `p:cSld`; a transition written inside the shape tree is ignored by PowerPoint and the slide shows a hard cut with no error.
+
+A slide with `n` animated targets has one timing tree whose `p:tnLst` holds one `p:par` per click group. Within a group, each target contributes a `p:par` with one `p:cTn` row, and the row's `p:childTnLst` holds the behaviours that do the work.
+
+Ids are unique per slide, not per deck: two slides can both use `id="1"`. Ids `1` through `3` are also used by the slide's own `p:cTn` root chain, so animation rows start at `4`. Each row reserves four ids and each click-group wrapper takes one, which is why the check for a repeated id runs per slide.
+
+A `p:spTgt` names a `p:cNvPr id`, the same number a shape carries in the shape tree. That id is assigned once in the layout pass, so the animation target and the shape it animates cannot drift apart; two passes computing the number separately is the bug that writes a target pointing at a shape that is not there.
+
+Picture parts follow the same pattern. The first `n` image relationships are `rId10` and up, one per picture, and each `p:pic` carries its own crop in `a:srcRect` rather than rewriting the file. The relationship id order is the order the pictures appear in the spec, so an edit that removes the first picture renumbers the rest.
+
+Full coverage of the schema and the effects is in `motion.md`.
 
 ## Run Splitting, the Reason a Text Edit Misses
 
@@ -78,8 +96,9 @@ Do not join runs to force a match: merging changes formatting and loses the reas
 
 - No template inheritance, no placeholder reuse, no theme switching of an existing deck.
 - No font embedding; a requested font must exist on the reader's machine.
-- No animation, transition, or SmartArt. Writing them is possible but unverifiable without PowerPoint, and delivering unverified XML is worse than omitting it.
-- No image generation. An `image` slide takes an existing file path.
+- No SmartArt. Transitions and element animations are written, but only from a closed list of names and effects whose XML was compared against the schema; playback is still unverified, and `motion.md` says so.
+- No motion paths, per-character builds, or slide-master animation.
+- No picture generation: a placeholder image in the examples is a flat geometric stand-in, not a photograph.
 - No `.pptx` rendering through a third-party engine; the preview is our own renderer, and it is checked against the file's structure, not the reverse.
 
 ## Sources

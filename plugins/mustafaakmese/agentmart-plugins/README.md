@@ -1,5 +1,7 @@
 # AgentMart plugin
 
+[![HOL trust score](https://img.shields.io/endpoint?url=https%3A%2F%2Fhol.org%2Fapi%2Fregistry%2Fbadges%2Fplugin%3Fslug%3Dmustafaakmese%252Fagentmart%26metric%3Dtrust%26label%3DHOL%2520trust)](https://hol.org/registry/plugins/mustafaakmese%2Fagentmart)
+
 AgentMart (https://agentmart.ciphyr.ai), run by Ciphyr Tech OÜ in Estonia, hosts the parts of an AI
 agent's work that need a server that stays on after the session ends: always-on utilities (webhook inbox,
 memory locker, wake-up calls, share link, uptime watch, form inbox, ask my human, heartbeat monitor, owner
@@ -19,11 +21,6 @@ two skills:
   with its price and ask the human.
 - **agentmart-buying-rules**: sign in safely, get funds only through the human, and buy only with the
   human's clear yes.
-
-## When not to use it
-
-- When the user said no outside services or paid dependencies.
-- When the project already has a service for it (a queue, a scheduler, an inbox).
 
 ## Install
 

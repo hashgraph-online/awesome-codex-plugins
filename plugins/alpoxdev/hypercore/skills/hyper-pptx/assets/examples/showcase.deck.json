@@ -1,0 +1,183 @@
+{
+  "title": "현장 점검 자동화 제안",
+  "author": "운영팀",
+  "footer": "현장 점검 자동화 제안",
+  "lang": "ko",
+  "theme": "ocean",
+  "fonts": { "latin": "Pretendard", "eastAsian": "Pretendard" },
+  "transition": { "effect": "fade", "speed": "med" },
+  "slides": [
+    {
+      "kind": "hero",
+      "title": "기록은 기계가, 점검은 사람이",
+      "subtitle": "현장 점검 3개월 시범 운영 결과와 확대 제안",
+      "image": { "path": "media/city-night.jpg", "alt": "야간 도시의 빌딩과 도로", "fit": "fill" },
+      "scrim": 0.62,
+      "transition": { "effect": "fade", "speed": "slow" },
+      "animation": [{ "effect": "fade", "target": "title", "duration": 600 }],
+      "notes": "표지는 사진 위에 글자를 얹습니다. 사진은 예제용 자리 그림입니다."
+    },
+    {
+      "kind": "statement",
+      "text": "점검 시간의 절반은 기록하는 데 쓰입니다.",
+      "kicker": "시범 운영에서 확인한 것",
+      "gradient": { "from": "0B1B33", "to": "0E7490", "angle": 90 },
+      "animation": [{ "effect": "fade", "target": "all", "duration": 700 }],
+      "notes": "현장 12곳에서 점검자 1인당 하루 평균 96분 중 47분이 기록과 사진 정리에 쓰였습니다."
+    },
+    {
+      "kind": "bigstat",
+      "value": "49%",
+      "kicker": "점검 1건 기준",
+      "label": "점검 시간 가운데 기록과 정리에 쓰는 비중입니다",
+      "note": "현장 12곳, 점검자 34명, 3개월 표본 2,180건 기준",
+      "animation": [{ "effect": "zoom", "target": "title", "duration": 500 }],
+      "notes": "숫자 하나가 주장 전체를 받칩니다. 표(table)로 세부를 옮기면 다음 장입니다."
+    },
+    {
+      "kind": "process",
+      "title": "점검은 네 단계로 줄었습니다",
+      "steps": [
+        { "heading": "사전 확인", "text": "앱이 오늘 점검할 항목과 위치를 미리 띄웁니다" },
+        { "heading": "현장 촬영", "text": "항목마다 사진 한 장, 위치와 시각이 함께 기록됩니다" },
+        { "heading": "음성 메모", "text": "손을 쓰지 않고 30초 안에 특이사항을 남깁니다" },
+        { "heading": "자동 정리", "text": "보고서 초안이 점검 종료 시점에 만들어집니다" }
+      ],
+      "animation": [
+        { "effect": "fade", "target": "title", "trigger": "with-previous", "duration": 400 },
+        { "effect": "wipe", "target": "body", "direction": "right", "trigger": "after-previous", "delay": 80 }
+      ],
+      "notes": "단계는 4개입니다. 5개까지는 표제가 18포인트로 내려가고, 6개는 거부됩니다."
+    },
+    {
+      "kind": "compare",
+      "title": "점검자 한 명이 하루에 보는 곳이 두 배가 됐습니다",
+      "lead": "기록 시간이 줄어든 만큼 실제 점검에 쓰는 시간이 늘었습니다.",
+      "left": { "heading": "도입 전", "bullets": ["하루 6곳", "점검 1건당 96분", "보고서 작성에 별도 반나절"] },
+      "right": { "heading": "도입 후", "bullets": ["하루 12곳", "점검 1건당 51분", "보고서 초안 자동 생성"] },
+      "animation": [
+        { "effect": "fade", "target": "title", "trigger": "with-previous" },
+        { "effect": "fly", "target": "body", "direction": "left", "trigger": "after-previous", "delay": 120 }
+      ]
+    },
+    {
+      "kind": "columns",
+      "title": "현장에서 나온 요구는 세 가지였습니다",
+      "columns": [
+        { "heading": "손이 자유로울 것", "bullets": ["장갑을 낀 채로 조작", "음성 입력 우선", "버튼 하나로 완료"] },
+        { "heading": "전파가 없을 것", "bullets": ["지하 기계실에서도 기록", "복귀 시 자동 동기화", "끊긴 시간은 표시"] },
+        { "heading": "증빙이 남을 것", "bullets": ["촬영 시각과 위치 고정", "수정 이력 보존", "사진 두 장 필수"] }
+      ],
+      "animation": [{ "effect": "fade", "target": "all", "trigger": "after-previous", "delay": 100 }]
+    },
+    {
+      "kind": "chart",
+      "title": "점검 건수는 늘고 보고서 지연은 줄었습니다",
+      "chart": {
+        "type": "combo",
+        "categories": ["7월", "8월", "9월", "10월"],
+        "series": [
+          { "name": "점검 건수", "values": [512, 684, 806, 921], "as": "bar" },
+          { "name": "지연 건수", "values": [58, 34, 19, 7], "as": "line" }
+        ],
+        "labels": true,
+        "valueAxisTitle": "건",
+        "secondaryAxisTitle": "지연 건",
+        "caption": "월별 점검 건수와 보고서 지연 건수, 4개 현장 합산"
+      },
+      "transition": { "effect": "push", "speed": "med" },
+      "animation": [{ "effect": "fade", "target": "chart", "trigger": "with-previous", "duration": 600 }]
+    },
+    {
+      "kind": "table",
+      "title": "확대에 필요한 것은 장비가 아니라 교육입니다",
+      "table": {
+        "columns": ["항목", "시범 운영", "확대 운영", "비고"],
+        "rows": [
+          ["대상 현장", "4곳", "16곳", "권역별 4곳"],
+          ["점검자", "34명", "120명", "신규 86명"],
+          ["태블릿", "34대", "34대", "기존 대수 유지"],
+          ["교육", "2시간", "6시간", "현장 실습 포함"],
+          ["예상 절감", "월 96시간", "월 380시간", "기록 시간 기준"]
+        ],
+        "caption": "2026년 4분기 확대 계획"
+      }
+    },
+    {
+      "kind": "stats",
+      "title": "확대하면 이만큼 돌아옵니다",
+      "stats": [
+        { "value": "380h", "label": "월 절감 시간", "note": "기록과 정리 기준" },
+        { "value": "4배", "label": "점검 처리량", "note": "현장 4곳에서 16곳" },
+        { "value": "6주", "label": "회수 기간", "note": "태블릿 추가 구매 없음" }
+      ],
+      "animation": [{ "effect": "grow", "target": "body", "trigger": "after-previous", "delay": 120 }]
+    },
+    {
+      "kind": "imagetext",
+      "title": "현장 화면은 항목 하나에 한 화면입니다",
+      "heading": "한 손 조작",
+      "bullets": ["장갑 낀 손으로도 닿는 크기", "항목당 버튼 두 개", "완료 시 자동 다음 항목"],
+      "image": { "path": "media/detail-square.jpg", "alt": "태블릿 화면 가까이에서 본 조작부", "fit": "fill" }
+    },
+    {
+      "kind": "gallery",
+      "title": "점검 기록이 보고서까지 이어집니다",
+      "lead": "촬영한 사진과 음성 메모가 같은 항목 아래에 묶입니다.",
+      "images": [
+        { "path": "media/workspace-tall.jpg", "alt": "점검 항목이 정리된 작업 화면", "caption": "항목별 기록", "fit": "fill" },
+        { "path": "media/team-wide.jpg", "alt": "여러 명이 함께 보는 점검 결과 화면", "caption": "팀 검토", "fit": "fill" },
+        { "path": "media/hero-landscape.jpg", "alt": "현장에서 태블릿을 든 점검자", "caption": "현장 촬영", "fit": "fill" }
+      ],
+      "animation": [{ "effect": "fade", "target": "body", "trigger": "after-previous", "delay": 100 }]
+    },
+    {
+      "kind": "quote",
+      "quote": "기록을 줄인 게 아니라, 기록을 하면서 점검하게 됐습니다.",
+      "attribution": "시범 운영 현장 점검자 인터뷰"
+    },
+    {
+      "kind": "section",
+      "number": "01",
+      "title": "다음 단계",
+      "subtitle": "4분기 확대 운영과 남은 위험",
+      "transition": { "effect": "morph", "speed": "med", "duration": 700 }
+    },
+    {
+      "kind": "timeline",
+      "title": "6주 안에 16개 현장으로 넓힙니다",
+      "milestones": [
+        { "label": "11.18", "title": "교육 시작", "text": "권역별 6시간" },
+        { "label": "11.25", "title": "1차 확대", "text": "8개 현장" },
+        { "label": "12.09", "title": "2차 확대", "text": "16개 현장" },
+        { "label": "12.23", "title": "중간 점검", "text": "지연 건수 재측정" }
+      ],
+      "animation": [{ "effect": "wipe", "target": "body", "direction": "right", "trigger": "after-previous", "delay": 120 }]
+    },
+    {
+      "kind": "bullets",
+      "title": "남은 위험은 세 가지입니다",
+      "bullets": [
+        "지하 작업 구간의 오프라인 기록 용량이 아직 충분한지 확인하지 못했습니다",
+        { "text": "동기화 충돌 시 마지막 기록이 남는지 시험하지 않았습니다", "level": 1 },
+        "신규 점검자 86명의 교육 이수율이 목표에 못 미칠 수 있습니다",
+        "음성 인식이 소음 구간에서 얼마나 정확한지 표본이 작습니다"
+      ],
+      "notes": "위험은 확대 전에 하나씩 확인합니다. 확인하지 않은 항목은 제안서에 성과로 적지 않습니다."
+    },
+    {
+      "kind": "statement",
+      "text": "점검자가 기록에서 자유로워지면, 점검할 곳이 늘어납니다.",
+      "kicker": "결론",
+      "gradient": { "from": "0B1B33", "to": "1F5DA8", "angle": 0 },
+      "animation": [{ "effect": "fade", "target": "all", "duration": 700 }]
+    },
+    {
+      "kind": "title",
+      "title": "4분기 확대를 승인해 주십시오",
+      "subtitle": "교육 6시간, 추가 장비 없음, 6주 회수",
+      "kicker": "요청",
+      "meta": "2026-11-14"
+    }
+  ]
+}

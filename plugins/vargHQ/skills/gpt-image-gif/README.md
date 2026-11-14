@@ -10,7 +10,7 @@ Turn a still, mascot, logo or a plain prompt into a looping animated GIF with GP
 ```bash
 npx skills add vargHQ/skills --skill gpt-image-gif                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills gpt-image-gif --agent github-copilot --scope user
-# or all 82 skills as a Claude Code plugin:
+# or all 83 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -51,4 +51,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/gpt-image-gif) · [varg.ai](https://varg.ai)
+More: [all 83 skills](../README.md#all-83-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/gpt-image-gif) · [varg.ai](https://varg.ai)

@@ -9,8 +9,8 @@
 // profile in $QA_DIR/browser-profile (so sign-ins survive between runs), at 1440x900, light theme, 2x pixels. It
 // prints the step's result as JSON, then the console errors and uncaught exceptions from every page the step used:
 // popups and new tabs, and pages in the fresh contexts `qa.newContext()` makes (for a signed-out visitor, say). Each
-// error is tagged with its context and URL. Pages opened any other way aren't watched. Needs
-// `npm install --save-dev playwright` and `npx playwright install chromium`.
+// error is tagged with its context and URL. Pages opened any other way aren't watched. Needs Playwright at an exact
+// version and its Chromium: `npm install --save-dev --save-exact playwright@1.64.1 && npx playwright install chromium`.
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'

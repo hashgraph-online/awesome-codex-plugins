@@ -54,7 +54,7 @@ line of meaning. Nothing is asked line by line.
 - **Receipts, handoff and archive** — the `receipts`, `handoff` and `archive` blocks, including
   each `templatePath`: the owner's own receipt, morning-page and archive templates.
 - **Retention** — `retention.runtimeLogDays`, `retention.archiveDays`.
-- **Catalogs** — for each of shifts, evidence kinds, gate stacks and edge-case packs: the owner's
+- **Catalogs** — for each of shifts, evidence entries, gate stacks and edge-case packs: the owner's
   entries and what each replaces, `catalogs.<catalog>.paths`, and the template in force
   (`ns catalog-index --catalog <catalog> --template`).
 - **Profiles** — the shipped examples in

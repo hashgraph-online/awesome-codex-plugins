@@ -10,7 +10,7 @@ Turn one selfie into a satirical "I MADE ME WOKE" profile set with GPT Image 2.6
 ```bash
 npx skills add vargHQ/skills --skill make-a-woke-profile-with-chatgpt                # Claude Code, Codex, Cursor, Grok, Gemini CLI, OpenCode…
 gh skill install vargHQ/skills make-a-woke-profile-with-chatgpt --agent github-copilot --scope user
-# or all 82 skills as a Claude Code plugin:
+# or all 83 skills as a Claude Code plugin:
 claude plugin marketplace add vargHQ/skills
 claude plugin install varg@varg
 ```
@@ -49,4 +49,4 @@ claude plugin install varg@varg
 </tr>
 </table>
 
-More: [all 82 skills](../README.md#all-82-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/make-a-woke-profile-with-chatgpt) · [varg.ai](https://varg.ai)
+More: [all 83 skills](../README.md#all-83-skills) · [this skill on varg how to](https://varg.ai/how-to/skills/make-a-woke-profile-with-chatgpt) · [varg.ai](https://varg.ai)
