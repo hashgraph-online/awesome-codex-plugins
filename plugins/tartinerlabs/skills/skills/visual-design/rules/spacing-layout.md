@@ -12,6 +12,8 @@ tags: spacing-scale, grid, alignment, screen-template, rhythm
 
 - **A 4 or 8 point scale** (4, 8, 12, 16, 24, 32, 48, 64). Every gap, padding, and margin uses one of its steps.
 - **Spacing shows grouping.** Related items sit closer together than unrelated ones. Space between groups should be noticeably bigger than space within them, at least about 1.5×.
+- **Padding is at least the gap inside.** A container's padding is never smaller than the gap between its children: the icon-to-label gap is smaller than the button's padding, and the gap between cards is about the cards' own padding.
+- **Start generous, then tighten.** Begin a step or two up the scale and reduce until the group holds together. Slightly loose still reads well; slightly cramped does not.
 - **Set spacing through gaps.** Use `gap`, stack spacing, or `Arrangement.spacedBy` rather than margins on individual children, so spacing stays consistent when items change.
 - **Few alignment edges.** Content shares the screen's leading margin. Avoid centring body content unless the screen is a single centred moment (welcome, success, empty state).
 - **One screen template per flow.** Onboarding steps, setup screens, and paywall pages share the same slots: progress at the top, headline, content, and the primary action at the bottom in the same position. Only the content changes between steps.

@@ -1,6 +1,6 @@
 {
   "name": "solidworks-gpt-plugin",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Knowledge-backed SolidWorks design workflows for Codex, with rule checks and consent-based session learning.",
   "author": {
     "name": "Erfouni",

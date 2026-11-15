@@ -517,3 +517,102 @@ def _is_executor_implement_view(view: Dict[str, Any]) -> bool:
         return False
     progress = view.get("progress") if isinstance(view.get("progress"), dict) else {}
     return isinstance(progress.get("write_subagents"), dict)
+
+
+def attach_cascades(plan_path: Path, views: Sequence[Dict[str, Any]]) -> None:
+    """Give each composite run's view its unfinished cascade, as ``view["cascade"]``.
+
+    A composite run (``improve-plan``, ``improve-code``: its record's
+    ``mode``, else its phase dir's ``phase``) whose cascade is unfinished
+    gets ``{cascade_id, state, stage, of, model, dir}``, read from the
+    pointer and the record (``next_phase.unfinished_cascade``), so a live or
+    stopped run shows the stage it is at or continues at
+    (``cascade: stage <k> of <n> (<model>)``) and ``status --json`` carries
+    it. A finished or abandoned cascade, or none, adds nothing, so every
+    other view keeps its keys. Advisory: a pointer or record that cannot be
+    read costs the key, not the poll (the composite's own run refuses it,
+    naming the file). See docs/development/workflows.md, "A cascade
+    (``--cascade``)".
+    """
+    # Imported here to keep the status modules light.
+    from . import next_phase
+
+    for view in views:
+        run = view.get("run") if isinstance(view.get("run"), dict) else {}
+        word = str(run.get("mode") or view.get("phase") or "")
+        if not word:
+            continue
+        try:
+            cascade = next_phase.unfinished_cascade(word, plan_path)
+        except Exception as exc:  # noqa: BLE001 - advisory: the run view is not
+            note_swallowed("status: cascade record", exc)
+            continue
+        if cascade is not None:
+            view["cascade"] = _cascade_keys(cascade)
+
+
+#: The keys of a cascade a status view carries (``improve_cascade.cascade_status``).
+_CASCADE_KEYS = ("cascade_id", "state", "stage", "of", "model", "dir")
+
+#: The pointer naming a composite's current cascade, in its run dir
+#: (``improve_cascade.POINTER_NAME``, which a test holds equal): looked for
+#: first, so a poll of a plan with no cascade never loads the cascade core.
+CASCADE_POINTER_NAME = "cascade-current.json"
+
+
+def _cascade_keys(cascade: Dict[str, Any]) -> Dict[str, Any]:
+    return {key: cascade[key] for key in _CASCADE_KEYS}
+
+
+def unfinished_cascades(plan_path: Path) -> List[Dict[str, Any]]:
+    """Every composite's unfinished cascade on *plan_path*, in the mode table's order.
+
+    Each is ``{"mode", "cascade_id", "state", "stage", "of", "model",
+    "dir"}``, read from the composite's pointer and record
+    (``next_phase.unfinished_cascade``), whether or not any run view
+    carries it: a cascade the native leg runs, or one an executor run left
+    in the foreground, has no composite run record, and while it is
+    unfinished the next step is its continuation, not the next workflow
+    phase. A composite with no pointer in its run dir is passed over
+    without loading the cascade core. Advisory: a pointer or record that
+    cannot be read costs that cascade, not the poll (the composite's own run
+    refuses it, naming the file). See docs/development/workflows.md, "A
+    cascade (``--cascade``)".
+    """
+    # Imported here to keep the status modules light.
+    from . import next_phase
+
+    found: List[Dict[str, Any]] = []
+    for mode in next_phase._skill_module("modes").MODES:
+        if not mode.is_composite or mode.runs_workflow:
+            continue
+        if not (phase_dir_path(plan_path, mode.phase) / CASCADE_POINTER_NAME).is_file():
+            continue
+        try:
+            cascade = next_phase.unfinished_cascade(mode.name, plan_path)
+        except Exception as exc:  # noqa: BLE001 - advisory: the poll is not
+            note_swallowed("status: cascade record", exc)
+            continue
+        if cascade is not None:
+            found.append({"mode": mode.name, **_cascade_keys(cascade)})
+    return found
+
+
+def cascades_without_a_view(
+    cascades: Sequence[Dict[str, Any]], views: Sequence[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    """The cascades of *cascades* (:func:`unfinished_cascades`) that no
+    listed composite run view carries (:func:`attach_cascades`), in order."""
+    # Imported here to keep the status modules light.
+    from . import next_phase
+
+    modes = next_phase._skill_module("modes")
+    carried = set()
+    for view in views:
+        if not isinstance(view.get("cascade"), dict):
+            continue
+        run = view.get("run") if isinstance(view.get("run"), dict) else {}
+        row = modes.resolve(str(run.get("mode") or view.get("phase") or ""))
+        if row is not None:
+            carried.add(row.name)
+    return [cascade for cascade in cascades if cascade.get("mode") not in carried]

@@ -1161,6 +1161,12 @@ def _build_group_data(
         "suggestions": suggestions,
     }
 
+    # A cascade stage's re-raise (the earlier-round entry its validator says
+    # the group repeats); absent everywhere else, so the data keeps its shape.
+    reraise = group.get("validation_reraise_of")
+    if reraise:
+        result["validationReraiseOf"] = reraise
+
     # Add stable hash fields when available (Phase 1 stamps)
     group_hash = group.get("group_hash")
     if group_hash is not None:

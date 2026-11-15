@@ -13,6 +13,8 @@ tags: focal-point, hierarchy, emphasis, text-levels, hero-number
 - **Decide the focal element before laying out the screen.** Ask what the user should see in the first second: today's balance, tonight's recipe, the photo being edited. Make that the largest thing on the screen.
 - **Three text levels**: primary (headline or hero number), secondary (body, row titles), and tertiary (captions, metadata). A fourth level usually means the screen is doing two jobs.
 - **Separate levels by size and weight first**, then by colour. Muted grey alone is a weak difference, and it disappears on low-quality screens and in bright light.
+- **To emphasise one thing, quieten what competes with it.** When the headline is already at full contrast, make the text around it smaller, lighter in weight, or more muted instead of making the headline louder.
+- **Untangle a wall of text by levelling it first.** Set everything in one quiet style, then promote items one at a time in the order the user needs them. What is never promoted stays tertiary.
 - **Supporting numbers follow the hero.** Put them in a quieter row underneath, not in a stack of equally sized stats above it.
 - **Two-line headlines** in showcase screens: a short, heavy headline with one muted subtitle line under it, not two paragraphs.
 - **On daily screens, the content is the hero.** The screen title can be the platform's large title; the first piece of content is the focal point.

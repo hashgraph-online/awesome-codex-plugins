@@ -100,7 +100,7 @@ bkt auth login [host] [flags]
 |---|---|---|
 | `--allow-http` |  | Allow http:// URLs for login even though credentials will be sent in plaintext |
 | `--allow-insecure-store` |  | Allow encrypted fallback secret storage when no OS keychain is available |
-| `--auth-method` |  | Authentication method: basic (username+token) or bearer (token-only) |
+| `--auth-method` |  | Authentication method: bearer (token-only; Data Center default) or basic (username+token; Cloud default) |
 | `--kind` |  | Bitbucket deployment kind (dc or cloud) |
 | `--token` |  | Authentication token (DC: PAT, Cloud: API token). WARNING: visible in process list and shell history; prefer the interactive prompt |
 | `--username` |  | Username (DC: PAT owner, Cloud: Atlassian email for API tokens) |

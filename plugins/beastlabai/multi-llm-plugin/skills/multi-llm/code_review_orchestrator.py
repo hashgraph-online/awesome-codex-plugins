@@ -82,6 +82,7 @@ from utils.output_handler import (
 from utils.detach import PhaseRun, record_output_files
 from utils.run_record import report_progress
 from utils.progress_tracker import FanoutProgress, PhaseProgress
+from utils import cascade_provenance as _cascade
 from utils import importance as _importance
 from utils import review_lane as _review_lane
 from utils import review_round as _review_round
@@ -107,6 +108,8 @@ from utils.review_orchestrator_base import (
     grouped_coverage_gap,
     maybe_detach,
     merge_validation_batches,
+    prior_rounds_block,
+    round_prior_rounds,
     record_high_priority_groups,
     record_validation_counts,
     reopen_phase_for_validation,
@@ -432,6 +435,21 @@ def code_round_steps() -> "_review_lane.RoundSteps":
     )
 
 
+def _force_retry(plan_path: Path, phase_dir: Path) -> str:
+    """review-code's printed ``--force`` retry of the round in *phase_dir*.
+
+    In its commit mode, with this invocation's replay flags; a cascade
+    stage's round names the stage's one model instead of any model selector
+    (``cascade_provenance.retry_flags``), so the retry run as printed stays
+    the stage's round rather than fanning out to the default list.
+    """
+    return commit_spelling.spell_retry_command(
+        "review-code", plan_path, "--force",
+        flags=_cascade.retry_flags(
+            phase_dir, cli_common.current_replay_flags(mode="review-code")),
+    )
+
+
 class CodeLane:
     """review-code's :class:`~utils.review_lane.ReviewLane`.
 
@@ -455,10 +473,13 @@ class CodeLane:
         self.phase_dir = phase_dir
         self.prefix = prefix
 
-    def retry_command(self, *flags: str) -> str:
+    def retry_command(self, *flags: str, stage_file: Optional[str] = None) -> str:
+        # A cascade stage's round names its one model (cascade_provenance.retry_flags).
         return commit_spelling.spell_retry_command(
             self.mode, self.plan_path, *flags,
-            flags=cli_common.current_replay_flags(mode=self.mode),
+            flags=_cascade.retry_flags(
+                self.phase_dir, cli_common.current_replay_flags(mode=self.mode),
+                stage_file=stage_file),
         )
 
     def round_follow_up(
@@ -582,6 +603,13 @@ Examples:
     # (`utils/detach.RunHandle`). Hidden: only a front door writes it, and
     # replay drops it.
     parser.add_argument('--commit-stage', dest='commit_stage', default=None,
+                        help=argparse.SUPPRESS)
+
+    # A cascade stage's frozen inputs (`--improve-code --cascade`): the
+    # manifest this review verifies and records as its round's `cascade`
+    # block (utils/cascade_provenance.py, utils/review_lane.open_round).
+    # Hidden: only the composite writes it, and replay drops it.
+    parser.add_argument('--cascade-stage-file', dest='cascade_stage_file', default=None,
                         help=argparse.SUPPRESS)
 
     parser.add_argument(
@@ -3384,6 +3412,7 @@ async def run_single_review(
     run_model_specs: Optional[List[str]] = None,
     pinned: Optional[PinnedRange] = None,
     scope_policy: Optional[str] = None,
+    prior_rounds: str = "",
 ) -> Tuple[bool, Optional[List[Dict]], Optional[str]]:
     """
     Run a single model code review using agent exploration with file-based output.
@@ -3423,6 +3452,11 @@ async def run_single_review(
             ``{diff_access}`` block names ``<base7>..<head7>`` ending at the
             head commit, the drifted files and the pinned-head read rule, and
             ``{scope_source}`` names the range. ``None`` renders today's text.
+        prior_rounds: A cascade stage's frozen reviewer ledger, read once per
+            round after the opening checkpoint
+            (``review_orchestrator_base.round_prior_rounds``), rendered into
+            ``{prior_rounds}`` after the scope block. ``""`` renders today's
+            text.
         diff_dir: Absolute path of the ``diff/`` beside it.
         scope_id: That set's scope id. At attempt start a ``<stem>.json``
             the scope ledger ties to another id is retired to
@@ -3466,6 +3500,7 @@ async def run_single_review(
         scope_source=scope_source, task_ids=task_ids, scope_file=scope_file,
         diff_dir=diff_dir, scope_id=scope_id, diff_coverage=diff_coverage,
         run_model_specs=run_model_specs, pinned=pinned, scope_policy=scope_policy,
+        prior_rounds=prior_rounds,
     )
     return (await _review_lane.run_slot(slot, start_time=start_time)).as_review()
 
@@ -3524,6 +3559,7 @@ class CodeSlot:
         run_model_specs: Optional[List[str]],
         pinned: Optional[PinnedRange],
         scope_policy: Optional[str],
+        prior_rounds: str = "",
     ) -> None:
         self.model_spec = model_spec
         self.plan_path = plan_path
@@ -3545,6 +3581,7 @@ class CodeSlot:
         self.run_model_specs = run_model_specs
         self.pinned = pinned
         self.scope_policy = scope_policy
+        self.prior_rounds = prior_rounds
 
         # Detect project root so CLI providers (e.g. Claude Code) run in the
         # correct working directory and can access project files.
@@ -3745,6 +3782,10 @@ class CodeSlot:
                 self.scope_policy,
                 _scope_round.guidance_phase("code-review", commit_review=commit_record is not None),
             ),
+            # A cascade stage's earlier rounds, after the scope block; "" (and
+            # today's bytes) outside a cascade. `commit_review.txt` names no
+            # such placeholder, so a commit review ignores the key.
+            "prior_rounds": prior_rounds_block(self.prior_rounds),
         }
         if commit_record is not None:
             # The commit template's own slots. The block's pointer names
@@ -4089,6 +4130,7 @@ async def run_all_reviews(
     diff_coverage: Optional[str] = None,
     pinned: Optional[PinnedRange] = None,
     scope_policy: Optional[str] = None,
+    prior_rounds: str = "",
 ) -> Dict[str, Tuple[bool, Optional[List[Dict]], Optional[str]]]:
     """
     Run code review across all models using agent exploration.
@@ -4123,6 +4165,8 @@ async def run_all_reviews(
         pinned: The two commits of a pinned review, forwarded to each
             :func:`run_single_review` (only when set, so a stand-in written for
             an unpinned run need not accept it).
+        prior_rounds: A cascade stage's reviewer ledger, forwarded the same
+            way and on the same condition (only when non-empty).
         served_models: Optional attribution collector, forwarded to each
             :func:`run_single_review` (see its docstring)
         usage: Optional per-slot usage collector, forwarded the same way
@@ -4162,6 +4206,7 @@ async def run_all_reviews(
     if tracker_out is not None:
         tracker_out.append(tracker)
     pinned_kwargs: Dict[str, Any] = {"pinned": pinned} if pinned is not None else {}
+    ledger_kwargs: Dict[str, Any] = {"prior_rounds": prior_rounds} if prior_rounds else {}
     # Only a non-default policy is handed down by keyword: the slot's own
     # default renders `expand`, so a default run calls it exactly as before.
     scope_kwargs: Dict[str, Any] = (
@@ -4234,6 +4279,7 @@ async def run_all_reviews(
                 run_model_specs=list(model_specs),
                 **pinned_kwargs,
                 **scope_kwargs,
+                **ledger_kwargs,
             )
         except Exception as exc:
             # An exception IS this slot's ending, recorded with its own text
@@ -4559,13 +4605,20 @@ def generate_review_report(
 
     # Each numbered issue's group scope entry: every member of a group shows
     # the group's one validated tag, as it shows the group's one verdict.
+    # A cascade stage's re-raise is the group's too, so it rides the same
+    # placement.
     issue_scope: Dict[int, Dict[str, Any]] = {}
+    issue_reraise: Dict[int, str] = {}
     if validated_groups:
         scope_placement = match_issues_to_suggestions(all_issues, validated_groups)
         for idx, issue in enumerate(all_issues, 1):
             location = scope_placement.get(idx)
             if location and 0 < location[0] <= len(group_scopes):
                 issue_scope[id(issue)] = group_scopes[location[0] - 1][1]
+            if location and 0 < location[0] <= len(validated_groups):
+                reraise = validated_groups[location[0] - 1].get("validation_reraise_of")
+                if reraise:
+                    issue_reraise[id(issue)] = reraise
 
     # Group by importance, read in either case; a value naming no level is
     # MEDIUM (`utils/importance.py`), so every counted issue lands in a section.
@@ -4598,6 +4651,7 @@ def generate_review_report(
                 group_model_count=issue_group_models.get(id(issue), 0),
                 introduced_by=issue_introduced.get(id(issue)),
                 group_scope=issue_scope.get(id(issue)),
+                reraise_of=issue_reraise.get(id(issue)),
             ))
     else:
         lines.append("_No high priority issues._")
@@ -4617,6 +4671,7 @@ def generate_review_report(
                 group_model_count=issue_group_models.get(id(issue), 0),
                 introduced_by=issue_introduced.get(id(issue)),
                 group_scope=issue_scope.get(id(issue)),
+                reraise_of=issue_reraise.get(id(issue)),
             ))
     else:
         lines.append("_No medium priority issues._")
@@ -4636,6 +4691,7 @@ def generate_review_report(
                 group_model_count=issue_group_models.get(id(issue), 0),
                 introduced_by=issue_introduced.get(id(issue)),
                 group_scope=issue_scope.get(id(issue)),
+                reraise_of=issue_reraise.get(id(issue)),
             ))
     else:
         lines.append("_No low priority issues._")
@@ -4763,6 +4819,7 @@ def _format_issue(
     group_model_count: int = 0,
     introduced_by: Optional[str] = None,
     group_scope: Optional[Dict[str, Any]] = None,
+    reraise_of: Optional[str] = None,
 ) -> List[str]:
     """Format a single issue for the report.
 
@@ -4793,6 +4850,10 @@ def _format_issue(
             is always shown. Both sit above the metadata line, so
             ``report_parser.parse_issue_descriptions`` reads the same
             description as before.
+        reraise_of: A cascade stage's re-raise on the issue's group (the
+            earlier-round entry its validator says it repeats), shown on the
+            metadata line as ``re-raises <id>``. ``None`` keeps the line as it
+            was.
     """
     # Both normalised on arrival (`normalize_issue_shapes`); a caller that
     # hands raw model output still gets a location, never an IndexError.
@@ -4809,8 +4870,13 @@ def _format_issue(
         "validation_failed": "? Validation Failed",
     }
     validation_str = validation_display.get(validation_status, "? Unknown") if validation_status else "? Unknown"
+    notes = []
     if siblings and validation_status:
-        validation_str += " (group verdict)"
+        notes.append("group verdict")
+    if reraise_of:
+        notes.append(f"re-raises {report_markdown.inline_text(reraise_of)}")
+    if notes:
+        validation_str += f" ({'; '.join(notes)})"
 
     # The header and the Skip box are one unit to `report_parser`: it reads the
     # checkbox off the line *immediately* after `### N.`. A title is model
@@ -5032,10 +5098,7 @@ async def reaggregate_from_existing_files(
     # file or validation.json of another round is refused before anything is
     # touched (utils/review_round.py, the check every orchestrator shares).
     claim = _review_round.continue_round(phase_dir)
-    _review_round.refuse_foreign_round(claim, commit_spelling.spell_retry_command(
-        "review-code", plan_path, "--force",
-        flags=cli_common.current_replay_flags(mode="review-code"),
-    ))
+    _review_round.refuse_foreign_round(claim, _force_retry(plan_path, phase_dir))
     lane = CodeLane(plan_path=plan_path, phase_dir=phase_dir, prefix=prefix)
     steps = lane.round_steps()
     # The result files a reaggregate reads, one rule for every review lane
@@ -5446,10 +5509,7 @@ def heal_unrecorded_completion(
               "not finished from a grouping that does not check out.")
         print("  Re-run with --force: it keeps each reusable model result "
               "([SKIP]), regroups and validates again:")
-        print("  " + commit_spelling.spell_retry_command(
-            "review-code", plan_path, "--force",
-            flags=cli_common.current_replay_flags(mode="review-code"),
-        ))
+        print("  " + _force_retry(plan_path, phase_dir))
         return EXIT_NEEDS_HUMAN
     groups: List[Dict[str, Any]] = sealed
     try:
@@ -5520,6 +5580,12 @@ async def _main(argv: Optional[List[str]], run: PhaseRun) -> int:
 
     args = parse_args(argv)
     plan_path, prefix, out_dir = _locate_plan(args)
+
+    # A cascade stage's hidden `--cascade-stage-file`: its manifest verified,
+    # and its round's block checked against the one on record, before
+    # anything is written, the phase dir included (utils/review_lane.py).
+    _review_lane.check_cascade_stage(
+        args, phase_dir=str(phase_dir_path(plan_path, 'code-review')))
 
     # Handle --reaggregate mode: skip model invocation, just re-process existing results
     if args.reaggregate:
@@ -5866,10 +5932,7 @@ def _reaggregate_preflight(
               "so its results judge an earlier state of the code; "
               "--reaggregate would only re-stamp them.")
         print("  Re-run the review instead: "
-              + commit_spelling.spell_retry_command(
-                  "review-code", plan_path, "--force",
-                  flags=cli_common.current_replay_flags(mode="review-code"),
-              ))
+              + _force_retry(plan_path, get_phase_dir(plan_path, 'code-review')))
         sys.exit(EXIT_NEEDS_HUMAN)
 
     # The round on record keeps its scope policy: a differing explicit
@@ -5883,10 +5946,7 @@ def _reaggregate_preflight(
     # (the worker checks again against the round it captures).
     _review_round.refuse_foreign_round(
         _review_round.continue_round(get_phase_dir(plan_path, 'code-review')),
-        commit_spelling.spell_retry_command(
-            "review-code", plan_path, "--force",
-            flags=cli_common.current_replay_flags(mode="review-code"),
-        ),
+        _force_retry(plan_path, get_phase_dir(plan_path, 'code-review')),
     )
     return reaggregate_pinned
 
@@ -6011,10 +6071,7 @@ def _guard_partial_completion(
                   "this, so they neither complete this phase nor resume it.")
             print("  Re-run with --force: it keeps each reusable model result "
                   "([SKIP]), regroups and validates again:")
-            print("  " + commit_spelling.spell_retry_command(
-                "review-code", plan_path, "--force",
-                flags=cli_common.current_replay_flags(mode="review-code"),
-            ))
+            print("  " + _force_retry(plan_path, phase_dir_check))
             sys.exit(EXIT_NEEDS_HUMAN)
         # The seal read once, with the validation.json bytes it hashed: the
         # heal takes its verdicts' grouping digest from those bytes, never
@@ -6559,6 +6616,11 @@ async def _run_reviews_and_save(
     # later `--reaggregate` would read them back into this run's report.
     retire_unselected_results(str(detach_phase_dir), model_specs)
 
+    # A cascade stage's reviewers see the earlier rounds' ledger, read once
+    # from the cascade block the opening checkpoint recorded; outside a
+    # cascade it is "" and nothing is handed down.
+    prior_rounds = round_prior_rounds(str(detach_phase_dir))
+
     # Run reviews - agents receive the resolved, ordered scope (labelled
     # with its source), the diff set, and the base ref
     results = await run_all_reviews(
@@ -6585,6 +6647,7 @@ async def _run_reviews_and_save(
             {"scope_policy": scope_round_policy.policy}
             if scope_round_policy.policy != _sp.DEFAULT_POLICY else {}
         ),
+        **({"prior_rounds": prior_rounds} if prior_rounds else {}),
     )
 
     # Get the phase directory for code review outputs

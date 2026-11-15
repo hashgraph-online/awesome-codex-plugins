@@ -1,0 +1,121 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "cascade_record.schema.json",
+  "title": "A --cascade's pointer and record ({plan}/<composite>/cascade-current.json, cascades/<stamp>-<id8>/record.json)",
+  "description": "utils/improve_cascade.py writes both files, atomically, and checks every read of them against this schema with utils/schema_validator.py (the draft-07 subset the plugin carries, so no runtime dependency). A file that fails is exit 3 naming the file, like an unreadable state.json. The pointer names the current cascade of one composite (improve-plan or improve-code); each cascade keeps its own directory, and starting a new one never renames or reuses a path: the new directory and its record are written first, an unfinished predecessor is marked `abandoned`, then the pointer is replaced. The two documents are told apart by their keys; the definitions `pointer` and `record` are what each read checks. The prose contract is docs/development/workflows.md, 'A cascade (`--cascade`)'.",
+  "oneOf": [
+    {"$ref": "#/definitions/pointer"},
+    {"$ref": "#/definitions/record"}
+  ],
+  "definitions": {
+    "token": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{16,64}$",
+      "description": "A random hex token: the cascade id, or a review round id."
+    },
+    "stamp": {
+      "type": ["string", "null"],
+      "description": "A local ISO timestamp, or null when the event has not happened."
+    },
+    "policy": {
+      "type": ["string", "null"],
+      "enum": ["expand", "preserve", null],
+      "description": "A --scope-policy value, or null for none (each round resolves its own)."
+    },
+    "pointer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "cascade_id", "dir"],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "cascade_id": {"$ref": "#/definitions/token"},
+        "dir": {
+          "type": "string",
+          "pattern": "^cascades/[0-9]{8}T[0-9]{6}-[0-9a-f]{8}$",
+          "description": "The cascade's directory, relative to the composite's run dir: cascades/<YYYYmmddTHHMMSS>-<first 8 characters of cascade_id>."
+        }
+      }
+    },
+    "counts": {
+      "type": ["object", "null"],
+      "additionalProperties": true,
+      "description": "A closed stage's counts, as utils/cascade_archive.py computes them from the stage's published artifacts (stage_counts); null until the stage is closed. The archive owns the definitions; the types are pinned here.",
+      "properties": {
+        "findings": {"type": "integer"},
+        "valid": {"type": "integer"},
+        "invalid": {"type": "integer"},
+        "needs_decision": {"type": "integer"},
+        "reraises": {"type": "integer"},
+        "applied": {"type": "integer"},
+        "no_op": {"type": "integer"},
+        "declined": {"type": "integer"},
+        "skipped_by_user": {"type": "integer"},
+        "held_back": {"type": "integer", "description": "Scope deferrals of the stage's review round (absent in counts recorded before the column)."},
+        "judge_approved": {"type": "integer"},
+        "judge_salvaged": {"type": "integer"},
+        "judge_skipped": {"type": "integer"},
+        "nothing_to_apply": {"type": "boolean"},
+        "time_s": {"type": ["number", "null"]},
+        "cost": {"type": ["string", "null"], "description": "null is 'not recorded', never zero."}
+      }
+    },
+    "stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["index", "model", "state", "bound_round", "scope_policy",
+                   "started_at", "finished_at", "skip_reason", "counts"],
+      "properties": {
+        "index": {"type": "integer", "minimum": 1, "description": "1-based; equals the stage's position in `stages`."},
+        "model": {"type": "string", "minLength": 1, "description": "The stage's one canonical provider:model spec."},
+        "state": {
+          "type": "string",
+          "enum": ["pending", "running", "done", "skipped"],
+          "description": "pending until the stage's inputs are frozen and it is handed out; running from then; done once closed out (archived); skipped for a middle stage whose review produced no result."
+        },
+        "bound_round": {
+          "anyOf": [{"$ref": "#/definitions/token"}, {"type": "null"}],
+          "description": "The review round id most recently seen carrying this stage's provenance block; binding only asks whether it is set."
+        },
+        "scope_policy": {"$ref": "#/definitions/policy", "description": "The policy the stage started under."},
+        "started_at": {"$ref": "#/definitions/stamp"},
+        "finished_at": {"$ref": "#/definitions/stamp"},
+        "skip_reason": {"type": ["string", "null"], "description": "Why a skipped stage was skipped: its model's failure reason."},
+        "counts": {"$ref": "#/definitions/counts"}
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "cascade_id", "mode", "state", "started_at",
+                   "scope_policy", "selectors", "stages", "finished_at"],
+      "properties": {
+        "schema_version": {"type": "integer", "const": 1},
+        "cascade_id": {"$ref": "#/definitions/token"},
+        "mode": {"type": "string", "enum": ["improve-plan", "improve-code"]},
+        "state": {"type": "string", "enum": ["running", "finished", "abandoned"]},
+        "started_at": {"type": "string"},
+        "scope_policy": {"$ref": "#/definitions/policy", "description": "The policy for stages not started yet: the typed --scope-policy at the start, or a later typed one."},
+        "selectors": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["files_file", "base_ref"],
+          "description": "improve-code's typed selectors, frozen at the start so a bare continuation reproduces them. Both null on improve-plan.",
+          "properties": {
+            "files_file": {
+              "type": ["string", "null"],
+              "enum": ["files.txt", null],
+              "description": "files.txt in the cascade's directory (one repository-relative path per line) when --files or --files-from <file> was typed; every stage's review gets --files-from with its absolute path."
+            },
+            "base_ref": {"type": ["string", "null"], "description": "--base-ref as typed; every review and apply gets it."}
+          }
+        },
+        "stages": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/definitions/stage"}
+        },
+        "finished_at": {"$ref": "#/definitions/stamp", "description": "When the cascade finished or was abandoned."}
+      }
+    }
+  }
+}

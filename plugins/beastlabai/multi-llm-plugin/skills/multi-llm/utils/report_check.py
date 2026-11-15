@@ -60,8 +60,10 @@ tasks listed. This checks the copy, and only the copy:
   stopped phase's own answer there, and makes no lookup), and the forced
   turn would hand the user a bare ``--apply-suggestions``, which re-emits
   every batch on this leg. So an ``[IMPROVE_RERUN]`` line printed by a call
-  that ran ``util improve-steps`` (:func:`planner_call_ids`: a plan or a core
-  quoting the line is not the run's planner) is a block too
+  that ran ``util improve-steps``, or under ``--cascade`` ``util
+  improve-cascade next``, which prints it again for every stage
+  (:func:`planner_call_ids`: a plan or a core quoting the line is not the
+  run's planner), is a block too
   (:attr:`Block.continuation`), and once it is the block held, a later block
   with no ready section, an inner phase's, does not replace it. A block with
   one does: every ``util next-command`` lookup prints a section and no phase
@@ -219,15 +221,17 @@ NEXT_STEP_MARKDOWN = "[NEXT_STEP_MARKDOWN]"
 NEXT_STEP_MARKDOWN_END = "[NEXT_STEP_MARKDOWN_END]"
 
 #: The composite's continuation, the last line ``util improve-steps`` prints
-#: (``improve_steps.RERUN_MARKER``). Read as a block only in a planner call's result
-#: (:func:`last_block`).
+#: (``improve_steps.RERUN_MARKER``), and ``util improve-cascade next`` for each
+#: stage. Read as a block only in a planner call's result (:func:`last_block`).
 IMPROVE_RERUN = "[IMPROVE_RERUN] "
 
-#: A Bash command that ran the planner: ``multi_llm.py util improve-steps``,
-#: either word quoted or not. A ``grep`` or a ``Read`` of a file quoting the
-#: line, and ``util instructions improve-plan`` printing the core, are not.
+#: A Bash command that ran a planner: ``multi_llm.py util improve-steps``, or
+#: a cascade's ``multi_llm.py util improve-cascade next`` (each stage's call
+#: prints the run's continuation again), either word quoted or not. A
+#: ``grep`` or a ``Read`` of a file quoting the line, and ``util instructions
+#: improve-plan`` printing the core, are not.
 _PLANNER_RE = re.compile(
-    r"multi_llm\.py[\"']?\s+[\"']?util[\"']?\s+[\"']?improve-steps\b")
+    r"multi_llm\.py[\"']?\s+[\"']?util[\"']?\s+[\"']?improve-(?:steps|cascade)\b")
 
 #: What the report says when the block is ``[WORKFLOW_COMPLETE]``.
 COMPLETE_SENTENCE = "Workflow complete."
@@ -579,7 +583,8 @@ def _continuation_reason(block: Block) -> str:
     return "\n\n".join([
         "multi-llm report check: this --improve-plan, --improve-code or "
         "--improve-commits run's "
-        f"next step is the {marker} command its `util improve-steps` call "
+        f"next step is the {marker} command its latest planner call (`util "
+        "improve-steps`, or a cascade's `util improve-cascade next`) "
         "printed, and your final message does not carry it exactly. No "
         "closing lookup came after it (a stopped run makes none), and the "
         "[NEXT_COMMAND] blocks its phases printed are each phase's own "
@@ -946,9 +951,10 @@ def subagent_call_ids(turn: Sequence[Dict[str, Any]]) -> Set[str]:
 
 
 def planner_call_ids(turn: Sequence[Dict[str, Any]]) -> Set[str]:
-    """The ids of the turn's Bash calls that ran ``util improve-steps``
-    (:data:`_PLANNER_RE`): the only results whose ``[IMPROVE_RERUN]`` line is
-    the run's continuation (Fable review 2026-10-09)."""
+    """The ids of the turn's Bash calls that ran ``util improve-steps`` or
+    ``util improve-cascade next`` (:data:`_PLANNER_RE`): the only results
+    whose ``[IMPROVE_RERUN]`` line is the run's continuation (Fable review
+    2026-10-09). The latest one printed is the one held."""
     found: Set[str] = set()
     for entry in turn:
         if entry.get("type") != "assistant":

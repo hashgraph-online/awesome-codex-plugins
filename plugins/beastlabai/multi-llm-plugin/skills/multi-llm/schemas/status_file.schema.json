@@ -31,6 +31,77 @@
       "pattern": "^[0-9a-f]{16,64}$",
       "description": "Review phases only: the review round, a random token a fan-out stamps right past its detach boundary, before it replaces any file of the previous round (utils/review_round.py). validation_tasks.json, validation.json (`metadata.round_id`) and report.md (its second line) record the round that wrote them; a file whose id differs is another round's, and the partial-completion guard and `util resume-state` never complete or resume the phase on it. A `--reaggregate` keeps it. Absent on a checkpoint written before round ids."
     },
+    "cascade": {
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "type": "integer"
+        },
+        "cascade_id": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "stage": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "of": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "model": {
+          "type": "string"
+        },
+        "manifest": {
+          "type": "string"
+        },
+        "manifest_sha256": {
+          "type": "string"
+        },
+        "files": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "cascade_id",
+        "mode",
+        "stage",
+        "of",
+        "model",
+        "manifest",
+        "manifest_sha256",
+        "files"
+      ],
+      "description": "review-plan and review-code only: the cascade stage this round belongs to (utils/cascade_provenance.py), recorded by the round's opening write (review_lane.open_round) from the manifest the hidden `--cascade-stage-file` names, after every hash it lists was verified: the cascade's id, mode, stage `stage` of `of`, its model, the manifest's absolute path and sha256, and `files` {input name: sha256}. A fan-out without the flag carries it over only when it keeps results (no `--rerun-all`) and requests exactly the stage's one model, which is what the review's own printed `--force` retry names for a cascade round (cascade_provenance.retry_flags; it never replays the flag); a `--rerun-all`, or any other model list, drops it. Every reader of a frozen input (the reviewer prompt, validation materialization, the judge prompt) verifies the file's hash against `files` before rendering it. Absent outside a cascade."
+    },
+    "cascade_stage": {
+      "type": ["object", "null"],
+      "properties": {
+        "index": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "of": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "model": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "index",
+        "of",
+        "model"
+      ],
+      "description": "improve-plan and improve-code run dirs only, on the executor leg (a detached worker's checkpoint): the cascade stage running now, stage `index` of `of` and its one model, written as each stage starts (utils/improve_workflow.py, `ImproveWorkflow.run_cascade`); `null` once the cascade is finished. A stopped run keeps the stage it stopped in. Absent outside a cascade, and in a foreground run, which has no run-dir checkpoint."
+    },
     "question": {
       "type": "string",
       "description": "ask only: the question text, read byte-for-byte as the slug-collision guard."

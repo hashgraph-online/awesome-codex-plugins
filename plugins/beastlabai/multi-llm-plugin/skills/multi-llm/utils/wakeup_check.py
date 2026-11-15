@@ -338,9 +338,11 @@ def deny_reason(tool: str, mode: str) -> str:
         "last reply, and when it fires the phase runs a second time. Keep "
         "waiting for the phase's subagents (or the dispatcher command you ran "
         "in the background) in this session: each one's completion "
-        "notification arrives on its own, and ending your turn while they run "
-        "is how you wait. When they are back, carry on with the phase's next "
-        "step."
+        "notification arrives on its own. Poll a detached launch with its "
+        "`status` call as the skill says; for a subagent running in the "
+        "background, end your turn once nothing else is left to do, and its "
+        "notification starts the next one. When they are back, carry on with "
+        "the phase's next step."
     )
 
 

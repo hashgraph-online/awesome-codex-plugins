@@ -11,13 +11,15 @@
 // the gap reported, instead of failing.
 // v0.3 — an image the model fetched with our tool (cam_view_image) is kept apart as a copy of the original: no id.
 // v0.8 — what the model noted about the images in record lines at the end of its replies (notes.ts), by image id.
+// 0.11.2 — and what it had noted by Codex's latest compaction, for the placeholders and the list of the images from
+// before it: they stay as they are until the next compaction, so the prompt cache reads past them.
 // Input: the sessions directory and a thread id. Output: ThreadIndex (in memory; files are parsed incrementally).
 
 import { closeSync, existsSync, openSync, readdirSync, readFileSync, readSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { zstdDecompressSync } from "node:zlib";
 import { findImages, type ImageRef } from "../protocols/openai-responses/images.ts";
-import { addNotes, type Notes } from "../../core/notes.ts";
+import { addNotes, copyNotes, type Notes } from "../../core/notes.ts";
 import { pixelHashOfData } from "../../core/pixels.ts";
 import type { FetchedCopy, IndexedImage as SessionImage, SessionIndex } from "../../core/session.ts";
 
@@ -25,7 +27,9 @@ type Json = Record<string, any>;
 // v0.11: the shape of the index and awaitingLine are the core's (core/session.ts); a Codex image also carries where it
 // sits in its item (ImageRef).
 export type IndexedImage = ImageRef & SessionImage;
-export type ThreadIndex = SessionIndex<IndexedImage>;
+// compaction (0.11.2): Codex's latest compaction: how many items of the history came before it, and the notes as they
+// stood then.
+export type ThreadIndex = SessionIndex<IndexedImage> & { compaction?: { before: number; notes: Map<string, Notes> } };
 export type Parsed = { offset: number; type: string; payload: Json; timestamp: string | null };
 type FileCache = { size: number; mtimeMs: number; parsedTo: number; records: Parsed[] };
 
@@ -186,11 +190,11 @@ export function buildIndex(threadId: string, history: Parsed[]): ThreadIndex {
   const notes = new Map<string, Notes>();
   let current: string | null = null;
   // v0.10: the latest compaction of Codex: how many items came before it, and the images of the history it kept.
-  let compaction: { before: number; kept: Set<string> } | null = null;
+  let compaction: { before: number; kept: Set<string>; notes: Map<string, Notes> } | null = null;
   const interrupted = new Set<number>();
   for (const record of history) {
     if (record.type === "compacted" && Array.isArray(record.payload.replacement_history)) {
-      compaction = { before: items.length, kept: new Set(findImages(record.payload.replacement_history).map((ref) => ref.key)) };
+      compaction = { before: items.length, kept: new Set(findImages(record.payload.replacement_history).map((ref) => ref.key)), notes: copyNotes(notes) };
     }
     if (record.type === "event_msg" && record.payload.type === "task_started" && record.payload.turn_id) {
       current = record.payload.turn_id;
@@ -233,7 +237,7 @@ export function buildIndex(threadId: string, history: Parsed[]): ThreadIndex {
     if (twin) entry.name = twin.name;
   }
   if (compaction) for (const entry of images) if (entry.item < compaction.before && !compaction.kept.has(entry.key)) entry.compacted = true;
-  return { threadId, images, byKey, turns: turnNumbers.size, turnNumbers, copies, notes, items, interrupted };
+  return { threadId, images, byKey, turns: turnNumbers.size, turnNumbers, copies, notes, items, interrupted, ...(compaction ? { compaction: { before: compaction.before, notes: compaction.notes } } : {}) };
 }
 
 // The first line alone (session_meta can be long), read in chunks without parsing the rest of the file.

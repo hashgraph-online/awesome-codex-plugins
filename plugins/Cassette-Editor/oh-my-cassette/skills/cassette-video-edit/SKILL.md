@@ -66,16 +66,18 @@ error code is Cassette's own: follow its message and the tool description.
 | `bridge.backend_unreachable` | A tool that names its request in an argument has already been sent again by the bridge while the call's wait lasted. If the message says the connection broke during the call, the work may still be running: call the same tool again with the same arguments to pick it up. If it says Cassette did not take the call, retry after `retry_after_seconds` when the error gives it. Otherwise call `cassette_bridge_status` once, tell the user the service is not reachable and at which URL, and retry only after it reports connected. |
 | `bridge.rate_limited` | Cassette is taking too many requests and did not run the call. Wait `retry_after_seconds` (from the error), then call the same tool again with the same arguments; do not retry sooner. |
 | `bridge.forbidden` | This account or grant cannot access Cassette. Ask the user to check that they signed in with the account of their projects. Do not repeatedly trigger login. |
-| `bridge.auth_unavailable` | Online authentication or secure credential storage is unavailable. Tell the user to restore the connection or unlock the system keyring, then retry. |
+| `bridge.auth_unavailable` | Online authentication or secure credential storage is unavailable. Tell the user to restore the connection, or relay the keyring steps the message gives for their system, then retry. |
 | `bridge.unauthorized` | The service refused the token. Tell the user to run `oh-my-cassette login`. The browser handles email verification and consent. Restart the MCP host only if it cannot refresh tools. Do not repeatedly trigger login. |
 | `bridge.upgrade_required` | Tell the user to update the oh-my-cassette version their MCP host runs (the message links the steps: bump the `oh-my-cassette==` pin, or update the plugin). Do not retry. |
 | `bridge.protocol_unsupported` | The service at that URL is too old for this plugin (it does not speak MCP 2026-07-28). Tell the user the Cassette service must be updated. Do not retry. |
 | `bridge.file_not_found` | Ask the user for the correct path. |
 | `bridge.file_outside_workspace` | Ask the user to copy the file into the workspace, or to add its directory to `CASSETTE_ALLOWED_ROOTS`. When the message says the host started the bridge in a folder too wide to read from (the whole disk or the home folder), ask them to set `CASSETTE_WORKSPACE` to the project folder. |
 | `bridge.file_type_rejected` | Tell the user which types this tool accepts (the message lists them). |
+| `bridge.file_empty` | The file has no content (0 bytes). Tell the user which file it is; do not retry it unchanged. |
 | `bridge.file_too_large` | Tell the user about the size limit (`CASSETTE_MAX_UPLOAD_MB`). |
 | `bridge.ffmpeg_unavailable` | Video needs ffmpeg on this machine. Relay the install hint from the message, or ask the user to set `CASSETTE_FFMPEG` and `CASSETTE_FFPROBE`. Do not retry until it is installed. |
 | `bridge.prepare_failed` | ffmpeg could not read or convert the file. Tell the user which file failed and what the message says; do not retry the same file unchanged. |
+| `bridge.private_address` | The storage host resolved to a private address on this machine's network, usually through a VPN, proxy or DNS setting. Relay the message; retry only after the user changes that setting. |
 | `bridge.upload_failed` | Retry once, then report it. |
 | `bridge.invalid_argument` | Fix the arguments: file parameters take a path or a list of paths. |
 | `bridge.contract_violation` | A Cassette service bug. Report it to the user as is; do not retry. |

@@ -69,6 +69,7 @@ from .status_commands import (
     Speller,
     _abort_command,
     _rerun_command,
+    _resume_command,
     _resume_lines,
     _stale_review_of,
     _view_speller,
@@ -143,9 +144,17 @@ def _workflow_trailer_lines(
     close_note: Optional[str] = None,
     suggested: bool = True,
     carried: Optional[Any] = None,
+    cascade: Optional[Mapping[str, Any]] = None,
 ) -> List[str]:
     """The workflow view's ``suggested next``/``notice`` lines, alone
     (without the ``suggested next`` line when *suggested* is false).
+
+    *cascade* is an unfinished cascade on record
+    (``status_views.unfinished_cascades``): while there is one, the
+    suggestion is its composite's continuation (:func:`cascade_suggestion`),
+    not ``suggested_next``, which reads every step of the composite done
+    between two stages. The payload itself is never changed, so
+    ``--view workflow`` keeps its bytes.
 
     Split out of ``render_workflow_text`` so the terminal ``--view run`` carry-
     over (F7, 2026-09-16, below) renders the identical text instead of a second
@@ -163,7 +172,9 @@ def _workflow_trailer_lines(
     } - {""}
     manual_said = bool(getattr(carried, "manual_tasks", None))
     lines: List[str] = []
-    if suggested and payload.get("suggested_next"):
+    if suggested and cascade is not None:
+        lines.append(f"{prefix}{cascade_suggestion(cascade)}")
+    elif suggested and payload.get("suggested_next"):
         # `suggested_next` already skips every optional phase in its way
         # (`check_workflow_prerequisites.get_workflow_status`'s own
         # `OPTIONAL_PHASES` walk), so the bare word reads as "nothing else is
@@ -308,6 +319,7 @@ def _workflow_trailer_lines(
 
 def render_workflow_text(
     payload: Dict[str, Any], *, close_note: Optional[str] = None,
+    cascade: Optional[Mapping[str, Any]] = None, suggested: bool = True,
 ) -> List[str]:
     lines = ["workflow (state.json) — which phases are done:"]
     width = max((len(p) for p in payload.get("phases", {})), default=0)
@@ -323,7 +335,8 @@ def render_workflow_text(
             extra.append(str(info["timestamp"]))
         suffix = f"  ({', '.join(extra)})" if extra else ""
         lines.append(f"  {phase.ljust(width)}  {info.get('status', '?')}{suffix}")
-    lines.extend(_workflow_trailer_lines(payload, close_note=close_note))
+    lines.extend(_workflow_trailer_lines(payload, close_note=close_note, cascade=cascade,
+                                         suggested=suggested))
     return lines
 
 
@@ -346,8 +359,9 @@ def render_run_text(
     lines = ["runs ({phase}/.status.json) — is a launched run still alive:"]
     if not views:
         if not state_block:
-            # A native implement read back from state.json follows instead
-            # (`render_state_implement_lines`).
+            # A native phase read back from state.json follows instead
+            # (`render_state_implement_lines`), or an unfinished cascade's
+            # entry (`cascade_record_lines`).
             lines.append(
                 f"  no run recorded for {scope or 'this ' + _document_word(plan_path)}")
         return lines
@@ -367,6 +381,10 @@ def render_run_text(
         # Three state fields, three lines, never collapsed.
         lines.append(f"      run.state:      {_run_state_text(view)}")
         lines.append(f"      phase state:    {view.get('state') or '(none)'}")
+        cascade = cascade_line(view)
+        if cascade:
+            # A composite run's unfinished cascade (`attach_cascades`).
+            lines.append(f"      {cascade}")
         if detach.cleanup_incomplete(run):
             cleanup = run["cleanup"]
             lines.append(
@@ -537,6 +555,52 @@ def render_run_text(
                 lines.append("      last log lines:")
                 lines.append(tail)
             lines.extend(_resume_lines(view, plan_path, resume_workflow, spell))
+    return lines
+
+
+def cascade_line(view: Mapping[str, Any]) -> Optional[str]:
+    """``cascade:        stage <k> of <n> (<model>)`` for a composite run's
+    unfinished cascade (``status_views.attach_cascades``), else ``None``.
+
+    One plain line: the record sits in the plan's output folder, which a
+    batch can write, and a newline in its model would forge a line."""
+    cascade = view.get("cascade")
+    if not isinstance(cascade, Mapping):
+        return None
+    # Imported here to keep the status modules light.
+    from .next_phase import cascade_stage_text
+
+    return f"cascade:        {plain_line(cascade_stage_text(cascade))}"
+
+
+def cascade_suggestion(cascade: Mapping[str, Any]) -> str:
+    """``suggested next: <composite>  (continues the unfinished cascade at
+    stage <k> of <n> (<model>))``, one plain line (the record is in a folder
+    a batch can write)."""
+    # Imported here to keep the status modules light.
+    from .next_phase import cascade_continuation_why
+
+    mode = plain_line(str(cascade.get("mode") or ""))
+    return f"suggested next: {mode}  ({plain_line(cascade_continuation_why(cascade))})"
+
+
+def cascade_record_lines(
+    cascades: Sequence[Mapping[str, Any]], *, plan_path: Path,
+    spell: Optional[Speller] = None,
+) -> List[str]:
+    """The run view's block for each unfinished cascade no composite run
+    view carries (``status_views.cascades_without_a_view``): a native leg's,
+    or one an executor run left in the foreground, which have no run record.
+    Its head, its :func:`cascade_line` and the composite's continuation
+    (``--cascade`` before ``--resume``), as a composite run view's
+    ``resume with:`` names it."""
+    lines: List[str] = []
+    for cascade in cascades:
+        mode = plain_line(str(cascade.get("mode") or ""))
+        lines.append(f"  {mode}  no run record")
+        lines.append(f"      {cascade_line({'cascade': cascade})}")
+        view = {"run": {"mode": mode}, "phase": mode, "phase_dir": mode}
+        lines.append(f"      resume with: {_resume_command(view, plan_path, spell)}")
     return lines
 
 

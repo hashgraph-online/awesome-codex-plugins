@@ -65,7 +65,8 @@ EXECUTOR_PROFILES: Tuple[str, ...] = ("agent-readonly", "agent-write")
 #: here, in ``utils/host_install.py``, in ``hosts/render_capabilities.py`` and in
 #: the executor. It is the schema's own ``definitions.host.required`` list, minus
 #: nothing: ``schemas/host_capabilities.schema.json`` requires every field except
-#: ``shim_max_lines``, ``headless_invocation`` and ``package``, each of which
+#: ``shim_max_lines``, ``min_host_version``, ``headless_invocation`` and
+#: ``package``, each of which
 #: governs a lint or a generated document rather than a dispatch. (``next_command``
 #: decides no dispatch either, but ``utils/next_phase.py`` reads it at run time to
 #: build output, so it is required like ``invocation``.) Restated here as a plain tuple
@@ -752,6 +753,13 @@ _ASK = {
 # its review step now resumes with `--force` over such a dir
 # (`improve_workflow.Records.leftover_results`), where it used to loop on the
 # guard (Fable's second pass, finding 1).
+#
+# 2026-11-07 (plugin-dev review, 7a): tightened in place from 810 words (814 once
+# F04's `ended in foreground without a final state` landed, which it keeps). `SKILL.md`
+# loads this sentence on every run and only the detaching modes use it. What left is
+# explanation an agent cannot act on; every requirement above still stands, and the
+# reasoning for each stays in these comments. It stays one physical line, in `SKILL.md`,
+# because neither `references/` nor `hosts/` would be Claude-only.
 NATIVE_LAUNCH_TIMEOUT_MS = 7_200_000
 
 _DETACH = {
@@ -768,53 +776,39 @@ _DETACH = {
         "mid-run (exit `143`, `next` `null`). "
         "Never pass `--detach` on this host. Then make one **non-waiting** "
         "`status <plan> <selector> --host <this host's id> --view run --exit-zero` "
-        "call — no "
-        "`--wait`, no `--timeout`, so it answers in well under a second — and "
-        "relay its `progress:` line and `models:` table once: the count is on the "
-        "one, and the other's rows are the only thing that says which CLI and "
-        "model each of them runs. The run writes that roster a few seconds after "
-        "launch, so repeat that one call once if no table printed yet, adding "
-        "`--wait --timeout 10` as the wait (never `sleep` before a call: a "
-        "call that does not start with `uv` loses its permission rule) — and a "
-        "table that *does* print can still be the previous run's, because the "
-        "phase dir is re-used and the write that claims it for this fan-out "
-        "drops the predecessor's `progress` only about 0.2 s in: a table under "
-        "a `progress:` step that is not `fanout` is the last run's, so "
-        "make that call again rather than relaying it. That step is the whole "
-        "test — a head line reading `finished in foreground (…)` rather than "
-        "`running` is what a re-used dir prints all run long once an earlier "
-        "`--detach` run left its own terminal `run` record in it, so the tense "
-        "names no run. Then poll "
-        "while it runs, one "
-        "foreground `status <plan> <selector> --host <this host's id> --view run "
-        "--wait --timeout <interval> --exit-zero` call per turn at a 120-300 s "
-        "interval, "
-        "relaying the rendered `progress:` line and, whenever one prints, the "
-        "`just finished:` line that names the model that turned terminal during "
-        "that wait — verbatim. Its absence claims nothing: that line is a "
-        "difference between two readings taken inside one wait, so a model that "
-        "finished in the gap between polls is already terminal when the next "
-        "poll takes its baseline — so every poll compares its `models:` table "
-        "with the previous poll's and names every newly terminal row that line "
-        "did not name, copying its spec and state word out "
-        "of the row — a copy, never a recount. Nothing else from the "
-        "view is relayed mid-run. Spell "
-        "`--host` out yourself — no launcher printed a command to copy it from, "
-        "and without it the wait is clamped under the tightest ceiling on "
-        "record — and give the call itself a timeout of at least the interval "
+        "call — no `--wait`, no `--timeout` — and relay its `progress:` line and "
+        "`models:` table once: the table's rows are the only thing that says "
+        "which CLI and model each of them runs. The run writes that roster a few "
+        "seconds after launch, so repeat that one call once if no table printed "
+        "yet, adding `--wait --timeout 10` as the wait (never `sleep` before a "
+        "call: a call that does not start with `uv` loses its permission rule) — "
+        "and a table that *does* print can still be the previous run's, because "
+        "the phase dir is re-used: a table under a `progress:` step that is not "
+        "`fanout` is the last run's, so make that call again rather than "
+        "relaying it. That step is the whole test, since a re-used dir can read "
+        "`finished in foreground (…)` rather than `running` all run long. Then "
+        "poll while it runs, one foreground `status <plan> <selector> --host "
+        "<this host's id> --view run --wait --timeout <interval> --exit-zero` "
+        "call per turn at a 120-300 s interval, relaying verbatim the rendered "
+        "`progress:` line and, whenever one prints, the `just finished:` line "
+        "that names the model that turned terminal during that wait. Its absence "
+        "claims nothing, because a model can finish between two polls: every "
+        "poll compares its `models:` table with the previous poll's and names "
+        "every newly terminal row that line did not name, copying its spec and "
+        "state word out of the row — a copy, never a recount. Nothing else from "
+        "the view is relayed mid-run. Spell `--host` out yourself, since without "
+        "it the wait is clamped under the tightest ceiling on record, and give "
+        "the call itself a timeout of at least the interval "
         f"plus {WAIT_CAP_MARGIN_S:.0f} s, in that parameter's own unit — "
         f"milliseconds here, so {int((300 + WAIT_CAP_MARGIN_S) * 1000)} for a "
         f"300 s interval, not {int(300 + WAIT_CAP_MARGIN_S)}, which is a third "
-        "of a second — because this host's default per-call "
-        "cap is shorter than the "
-        "interval and would otherwise kill every poll from the first. No exit "
-        "code from that poll ends the loop except `1`, the unreadable one: "
-        "nothing on this host names one invocation, so without `--exit-zero` "
-        "`2` is the steady state "
-        "and a `0` or a `3` belongs to an earlier run in the same dir and names "
-        "no verdict for this one: read the exit code as nothing, relay the "
-        "rendered line exactly as on a `2`, and keep polling. Both calls carry "
-        "`--exit-zero` so every answer that was read exits `0` and none shows "
+        "of a second — because this host's default per-call cap is shorter than "
+        "the interval. No exit code from that poll ends the loop except `1`, the "
+        "unreadable one: without `--exit-zero`, `2` is the steady state and a `0` "
+        "or a `3` belongs to an earlier run in the same dir "
+        "and names no verdict for this one, so relay the rendered line exactly "
+        "as on a `2` and keep polling. Both calls carry `--exit-zero` so every "
+        "answer that was read exits `0` and none shows "
         "as an error. The loop ends when "
         "the background mechanism reports "
         "the process exited; read the markers and output paths from "

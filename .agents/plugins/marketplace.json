@@ -953,7 +953,7 @@
         "authentication": "ON_INSTALL"
       },
       "category": "Development & Workflow",
-      "description": "Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.",
+      "description": "Keep image-heavy Codex and Claude Code chats small: earlier images go out as short placeholders instead of being sent again with every message, the model fetches the original back by its ID (also after compaction), and the prompt cache keeps working.",
       "icon": "./plugins/chipfighter/context-attachment-manager/assets/logo.png"
     },
     {
@@ -3144,7 +3144,7 @@
       },
       "category": "Tools & Integrations",
       "description": "Hosted webhook inbox, memory locker, wake-up calls, uptime and heartbeat watch and ask-my-human utilities for agents over remote MCP with OAuth sign-in, paid from a prepaid balance the human tops up.",
-      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/logo.png"
+      "icon": "./plugins/mustafaakmese/agentmart-plugins/assets/icon.png"
     },
     {
       "name": "ahel",

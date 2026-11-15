@@ -55,6 +55,10 @@ __all__ = [
     "build_consolidation_prompt",
     "build_salvage_prompt",
     "build_human_decision_judge_prompt",
+    "cascade_judge_section",
+    "prior_rounds_validator_section",
+    "CASCADE_JUDGE_RULE6_SENTENCE",
+    "PRIOR_ROUNDS_VALIDATOR_RULE",
     "build_task_generation_prompt",
     "build_schema_repair_prompt",
     "build_nothing_changed_resend_prompt",
@@ -150,6 +154,51 @@ Rules:
    proposed remedy against the scope baseline. They never change `status`;
    when the context cannot settle the scope, answer "unclear".
 '''
+
+#: The one field a cascade stage's reply contract adds to each result, after
+#: ``scope_reference``. Only a prompt that carries the earlier rounds' ledger
+#: names it, so with no ledger the contract is :data:`_VALIDATION_REPLY_CONTRACT`
+#: byte for byte (docs/development/workflows.md, the cascade's forward ledger).
+_RERAISE_ANCHOR = '"scope_reference": "<baseline section, or empty>"}'
+_RERAISE_FIELD = ', "reraise_of": "<R-id, or empty>"'
+_RERAISE_RULE_LINE = (
+    '6. `reraise_of` is the id of the "Rejected or held back" entry the group\n'
+    '   repeats (for example "R1-3"), or empty when it repeats none.\n'
+)
+
+#: :data:`_VALIDATION_REPLY_CONTRACT` with the ``reraise_of`` field and its rule.
+_VALIDATION_REPLY_CONTRACT_WITH_RERAISE = _VALIDATION_REPLY_CONTRACT.replace(
+    _RERAISE_ANCHOR, _RERAISE_ANCHOR[:-1] + _RERAISE_FIELD + "}", 1,
+) + _RERAISE_RULE_LINE
+
+#: The rule a cascade stage's validator gets beside the earlier rounds' ledger.
+#: A repeat of a rejected entry stays judged on its merits, but the burden is
+#: on it to answer the recorded reason; a challenge to an earlier round's edit
+#: is ordinary work, because those edits are another model's, not the author's.
+PRIOR_ROUNDS_VALIDATOR_RULE = '''A group that repeats an entry under "Rejected or held back": judge it on its
+merits, but classify it "invalid" unless it gives a reason the recorded
+rejection does not answer. Put the entry's id in "reraise_of" either way.
+A group that challenges an entry under "Changed by earlier rounds" is an
+ordinary finding.'''
+
+
+def prior_rounds_validator_section(ledger: str) -> str:
+    """The validator prompt's earlier-rounds section for a cascade stage's *ledger*; ``""`` without one.
+
+    *ledger* is the stage's frozen validator ledger (``ledger-validator.md``):
+    the two lists inline, its overflow line a count with no path, since a
+    validation task's inputs travel inline or bound by hash, never as a bare
+    file pointer (docs/development/delegation.md#materialized-task-contract).
+    """
+    text = (ledger or "").strip()
+    if not text:
+        return ""
+    return (
+        "## Earlier review rounds\n\n"
+        "This work has already been through automated review rounds by other "
+        "models.\nWhat those rounds rejected, held back or changed is listed "
+        f"below.\n\n{text}\n\n{PRIOR_ROUNDS_VALIDATOR_RULE}"
+    )
 
 
 #: Appended to every plan validation (context label "Plan content"). The plan
@@ -567,6 +616,7 @@ def build_validation_prompt(
     extra_instructions: str = "",
     context_sources: Optional[List[ContextSource]] = None,
     scope_guidance: str = "",
+    prior_rounds: str = "",
 ) -> str:
     """Render the prompt for one validation or revalidation batch.
 
@@ -616,6 +666,12 @@ def build_validation_prompt(
             fills in only when ``extra_instructions`` is empty) or a phase's
             own guidance; placed after them and before the reply contract.
             Empty adds nothing, as before.
+        prior_rounds: A cascade stage's frozen validator ledger
+            (``ledger-validator.md``), inline only. Non-empty, it is rendered
+            after ``scope_guidance`` under ``## Earlier review rounds`` with
+            :data:`PRIOR_ROUNDS_VALIDATOR_RULE`, and the reply contract gains
+            the optional ``reraise_of`` field. Empty (no cascade, or a
+            cascade's first stage) leaves the prompt byte-identical.
 
     Returns:
         The complete prompt text.
@@ -647,6 +703,13 @@ def build_validation_prompt(
     guidance = f"\n{extra_instructions.strip()}\n" if extra_instructions.strip() else ""
     if scope_guidance.strip():
         guidance += f"\n{scope_guidance.strip()}\n"
+    ledger_section = prior_rounds_validator_section(prior_rounds)
+    if ledger_section:
+        guidance += f"\n{ledger_section}\n"
+    contract = (
+        _VALIDATION_REPLY_CONTRACT_WITH_RERAISE if ledger_section
+        else _VALIDATION_REPLY_CONTRACT
+    )
     by_path = [
         dict(source) for source in (context_sources or [])
         if isinstance(source, dict) and source.get("mode") == "path"
@@ -668,7 +731,7 @@ def build_validation_prompt(
 
 {_task_section(count, by_path, inline_blocks)}
 {guidance}
-{_VALIDATION_REPLY_CONTRACT}'''
+{contract}'''
 
 
 # ===========================================================================
@@ -902,7 +965,48 @@ Apply the criteria above to each **distinct claim inside the suggestion**, not j
 A salvaged item is applied like an approval, except the **rewritten** description is what gets applied — never the original.'''
 
 
-def build_human_decision_judge_prompt(items: Sequence[Dict[str, Any]]) -> str:
+#: The sentence a cascade stage's judge gets in place of an edit to rule 6:
+#: each stage reviews with one model, so an item's ``models`` array always has
+#: one entry and says nothing about agreement.
+CASCADE_JUDGE_RULE6_SENTENCE = (
+    "In this run each item comes from one model's round, so rule 6 "
+    "(model consensus) does not apply."
+)
+
+#: The re-raise rule beside the judge's list of earlier rejections, the
+#: judge's form of :data:`PRIOR_ROUNDS_VALIDATOR_RULE`.
+CASCADE_JUDGE_RERAISE_RULE = '''An item that repeats an entry below: judge it on its merits, but skip it unless
+it gives a reason the recorded rejection does not answer, and name the entry's
+id in your reason either way.'''
+
+
+def cascade_judge_section(rejected: Optional[str]) -> str:
+    """The judge prompt's cascade-only section; ``""`` outside a cascade (*rejected* ``None``).
+
+    A cascade stage always gets :data:`CASCADE_JUDGE_RULE6_SENTENCE`. When the
+    stage's frozen judge ledger (``ledger-judge.md``, the earlier rounds'
+    rejected or held-back entries) is non-empty, the list follows inline with
+    :data:`CASCADE_JUDGE_RERAISE_RULE`. :data:`HUMAN_DECISION_JUDGE_RULES` is
+    never edited, so the reference section rendered from it stays the same.
+    """
+    if rejected is None:
+        return ""
+    parts = ["### Earlier review rounds", CASCADE_JUDGE_RULE6_SENTENCE]
+    text = rejected.strip()
+    if text:
+        parts += [
+            "Earlier rounds of this run rejected or held back the entries "
+            "below.\n" + CASCADE_JUDGE_RERAISE_RULE,
+            text,
+        ]
+    return "\n\n".join(parts) + "\n"
+
+
+def build_human_decision_judge_prompt(
+    items: Sequence[Dict[str, Any]],
+    *,
+    cascade_rejected: Optional[str] = None,
+) -> str:
     """Render the prompt for one human-decision judging task.
 
     Args:
@@ -912,6 +1016,10 @@ def build_human_decision_judge_prompt(items: Sequence[Dict[str, Any]]) -> str:
             report — plus ``file``/``line_range`` when the item is about a
             concrete code change (apply-code-fixes; see
             ``human_decisions.judge_item_from_group``).
+        cascade_rejected: ``None`` outside a cascade, which keeps the prompt
+            byte for byte. In a cascade stage, the stage's frozen judge
+            ledger (``""`` at the first stage): the
+            :func:`cascade_judge_section` is rendered after the rules.
 
     Returns:
         The complete prompt text, with the judging rules inlined verbatim.
@@ -954,6 +1062,11 @@ def build_human_decision_judge_prompt(items: Sequence[Dict[str, Any]]) -> str:
         if any("file" in entry for entry in embedded)
         else ""
     )
+    # Starts with its own blank line, so "" leaves the rules' blank line
+    # before `## Reply` the only one.
+    cascade_section = cascade_judge_section(cascade_rejected)
+    if cascade_section:
+        cascade_section = f"\n{cascade_section}"
 
     return f'''You are deciding what to do with {count} review {noun} that automated validation
 could not settle. For each one, choose Approve, Salvage or Skip.
@@ -963,7 +1076,7 @@ could not settle. For each one, choose Approve, Salvage or Skip.
 {_json_block(embedded)}
 {file_note}
 {HUMAN_DECISION_JUDGE_RULES}
-
+{cascade_section}
 ## Reply
 
 Print ONE JSON object and nothing else — no prose, no markdown fences, no

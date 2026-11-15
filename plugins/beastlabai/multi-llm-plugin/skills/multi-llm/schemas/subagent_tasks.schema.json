@@ -102,6 +102,18 @@
         "items_sha256": {
           "type": "string",
           "description": "Content hash of the judged item set — human_decision_judge only."
+        },
+        "prior_rounds_sha256": {
+          "type": "string",
+          "description": "SHA-256 of the cascade stage's frozen validator ledger (ledger-validator.md) that every batch prompt embeds inline — validation/revalidation of a cascade stage whose ledger is not empty only; equal to that file's sha256 in the stage's manifest. Absent everywhere else."
+        },
+        "cascade_stage": {
+          "type": "string",
+          "description": "<cascade_id>:<stage> of the cascade stage whose items these judge tasks decide — human_decision_judge of a cascade stage only. A verdict file beside a task file that does not name the current stage (or its judge_ledger_sha256) is moved aside before any verdict is read. Absent everywhere else."
+        },
+        "judge_ledger_sha256": {
+          "type": "string",
+          "description": "SHA-256 of the cascade stage's frozen judge ledger (ledger-judge.md) the prompts embed — human_decision_judge of a cascade stage only, beside cascade_stage. Absent everywhere else."
         }
       }
     },

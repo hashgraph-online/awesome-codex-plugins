@@ -16,6 +16,7 @@
   <a href="https://glama.ai/mcp/connectors/app.getosmo/phone-calls"><img alt="OsmO Phone Calls on Glama" src="https://glama.ai/mcp/connectors/app.getosmo/phone-calls/badges/score.svg"></a>
   <a href="https://chatgpt.com/plugins/plugin_asdk_app_6ad0ed3277688191b90bd9dafe5d6cd9"><img alt="ChatGPT plugin directory" src="https://img.shields.io/badge/ChatGPT-plugin_directory-10a37f"></a>
   <a href="https://clawhub.ai/getosmo/osmo-phone-calls"><img alt="ClawHub: getosmo/osmo-phone-calls" src="https://img.shields.io/badge/ClawHub-osmo--phone--calls-orange"></a>
+  <a href="https://aiagentslisting.com/mcp/osmo-ai-plugins"><img alt="Osmo Ai Plugins on AI Agents Listing" src="https://aiagentslisting.com/osmo-ai-plugins/badge.svg?claim=2bc13b0547d015ab02a54ca36da2271b"></a>
   <a href="LICENSE"><img alt="License: MIT (client files)" src="https://img.shields.io/github/license/Mountainheads-Private-limited/osmo-ai-plugins"></a>
 </p>
 

@@ -57,7 +57,7 @@ Report what an implementer needs to be told. Skip anything an implementer would 
 
 {working_limits}
 
-{scope_policy_guidance}
+{scope_policy_guidance}{prior_rounds}
 
 ## Output Format
 Return ONLY a valid JSON array with no additional text. Each element must have exactly these fields:

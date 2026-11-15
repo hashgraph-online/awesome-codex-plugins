@@ -227,6 +227,13 @@ Examples:
              'result files (default: resume — skip models that already have results).'
     )
 
+    # A cascade stage's frozen inputs (`--improve-plan --cascade`): the
+    # manifest this review verifies and records as its round's `cascade`
+    # block (utils/cascade_provenance.py, utils/review_lane.open_round).
+    # Hidden: only the composite writes it, and replay drops it.
+    parser.add_argument('--cascade-stage-file', dest='cascade_stage_file', default=None,
+                        help=argparse.SUPPRESS)
+
     parser.add_argument(
         '--report-style',
         choices=['pr', 'flat'],

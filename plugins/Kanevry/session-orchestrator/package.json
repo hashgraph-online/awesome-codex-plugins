@@ -1,6 +1,6 @@
 {
   "name": "session-orchestrator",
-  "version": "5.19.0",
+  "version": "5.20.0",
   "description": "Your coding agents get an agreed plan, a check after each round of changes and a handover to the next session. For Claude Code, Codex CLI, Cursor and Pi.",
   "type": "module",
   "homepage": "https://session-orchestrator.com",
@@ -74,6 +74,7 @@
     "typecheck": "node scripts/typecheck.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "site:serve": "node scripts/site-serve.mjs",
     "share:hw-learnings": "node scripts/export-hw-learnings.mjs",
     "vault-watcher": "node scripts/vault-integration-watcher.mjs",
     "prepare": "husky"

@@ -37,7 +37,8 @@ import json
 import os
 import sys
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from datetime import datetime
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 from .judge_vocab import (
     JUDGE_AUTO_DECIDE,
@@ -46,7 +47,9 @@ from .judge_vocab import (
     JUDGE_SKIPPED,
     canonical_value,
 )
+from . import cascade_provenance as _cascade
 from . import importance as _importance
+from .held_folder import rename_in_plan_dir
 from .schema_validator import (
     schema_version_supplied,
     validate_human_decision_verdicts,
@@ -78,6 +81,11 @@ __all__ = [
     "group_id_of",
     "verdict_output_name",
     "build_judge_tasks",
+    "CascadeJudge",
+    "cascade_judge",
+    "cascade_judge_ledger",
+    "retire_foreign_verdicts",
+    "verdict_files",
     "write_judge_tasks",
     "read_verdict_files",
     "ingest_verdicts",
@@ -243,6 +251,8 @@ def build_judge_tasks(
     tasks_file: Optional[str] = None,
     prompt_budget: Optional[PromptBudget] = None,
     trust_note: Optional[str] = None,
+    cascade_rejected: Optional[str] = None,
+    cascade_inputs: Optional[Mapping[str, str]] = None,
 ) -> Dict[str, Any]:
     """Materialize one judging task per in-scope item.
 
@@ -267,6 +277,16 @@ def build_judge_tasks(
             are built from commits and files read at ``head``, all data under
             review; plans/review-commits.md §2.6). ``None`` keeps every
             prompt byte for byte what it was.
+        cascade_rejected: ``None`` outside a cascade, which keeps every
+            prompt byte for byte. In a cascade stage, the stage's frozen
+            judge ledger (:func:`cascade_judge_ledger`; ``""`` at the first
+            stage), rendered by
+            ``subagent_prompts.build_human_decision_judge_prompt``.
+        cascade_inputs: ``None`` outside a cascade, which adds no key. In a
+            cascade stage, :meth:`CascadeJudge.inputs`: the stage and its
+            judge ledger's digest, recorded in ``inputs`` so the verdicts
+            written for these tasks are known as this stage's
+            (:func:`retire_foreign_verdicts`).
 
     Returns:
         The task-file document (not yet written).
@@ -277,12 +297,18 @@ def build_judge_tasks(
         tasks_file=tasks_file,
         items=[item.get("group_id", "") for item in items],
     )
+    if cascade_inputs:
+        inputs.update(cascade_inputs)
     budget = prompt_budget or PromptBudget(None)
 
     tasks: List[Dict[str, Any]] = []
     for index, item in enumerate(items):
         group_id = item.get("group_id", "")
-        prompt = build_human_decision_judge_prompt([item])
+        prompt = build_human_decision_judge_prompt(
+            [item],
+            **({"cascade_rejected": cascade_rejected}
+               if cascade_rejected is not None else {}),
+        )
         if trust_note:
             prompt = f"{prompt.rstrip()}\n\n{trust_note}\n"
         if not budget.fits(prompt):
@@ -317,6 +343,124 @@ def build_judge_tasks(
             "group_ids": [item.get("group_id", "") for item in items],
         },
     )
+
+
+#: The judge task file's ``inputs`` keys a cascade stage's judging is bound
+#: by: the stage (``<cascade_id>:<stage>``) and the sha256 of the frozen judge
+#: ledger its prompts embed. Absent outside a cascade.
+CASCADE_STAGE_INPUT_KEY = "cascade_stage"
+JUDGE_LEDGER_INPUT_KEY = "judge_ledger_sha256"
+
+
+@dataclass(frozen=True)
+class CascadeJudge:
+    """A cascade stage's judging: its frozen judge ledger and what binds its verdicts.
+
+    *ledger* is the stage's ``ledger-judge.md`` (hash verified; ``""`` at the
+    first stage); *stage* is ``<cascade_id>:<stage>``; *ledger_sha256* the
+    ledger's digest. :meth:`inputs` is what the judge task file records.
+    """
+
+    ledger: str
+    stage: str
+    ledger_sha256: str
+
+    def inputs(self) -> Dict[str, str]:
+        return {CASCADE_STAGE_INPUT_KEY: self.stage, JUDGE_LEDGER_INPUT_KEY: self.ledger_sha256}
+
+    def binds(self, document: Any) -> bool:
+        """Whether the judge task file *document* was written for this stage and ledger."""
+        inputs = document.get("inputs") if isinstance(document, dict) else None
+        return isinstance(inputs, dict) and all(
+            inputs.get(key) == value for key, value in self.inputs().items())
+
+
+def cascade_judge(review_dir: str) -> Optional[CascadeJudge]:
+    """The judging of the cascade stage whose review round *review_dir* holds.
+
+    ``None`` when the round's ``.status.json`` holds no ``cascade`` block (not
+    a cascade stage: the judge prompt and task file keep today's bytes).
+    Read-only. Raises ``cascade_provenance.CascadeProvenanceError`` for a
+    block or ledger that cannot be trusted; the caller stops at exit 3
+    (docs/development/review-results.md#round-identity).
+    """
+    block = _cascade.read_block(review_dir)
+    if block is None:
+        return None
+    text = _cascade.ledger_text(block, _cascade.JUDGE_LEDGER)
+    return CascadeJudge(
+        ledger=text,
+        stage=f"{block['cascade_id']}:{block['stage']}",
+        ledger_sha256=_cascade.sha256_bytes(text.encode("utf-8")),
+    )
+
+
+def cascade_judge_ledger(review_dir: str) -> Optional[str]:
+    """The judge ledger of the cascade stage whose review round *review_dir* holds.
+
+    ``None`` when the round's ``.status.json`` holds no ``cascade`` block (not
+    a cascade stage: the judge prompt keeps today's bytes); otherwise the
+    stage's frozen ``ledger-judge.md`` with its hash verified, ``""`` at the
+    first stage (:func:`cascade_judge`). Read-only. Raises
+    ``cascade_provenance.CascadeProvenanceError`` for a block or file that
+    cannot be trusted; the caller stops at exit 3
+    (docs/development/review-results.md#round-identity).
+    """
+    judge = cascade_judge(review_dir)
+    return None if judge is None else judge.ledger
+
+
+def verdict_files(phase_dir: str) -> List[str]:
+    """Every verdict file in *phase_dir*, sorted (:data:`VERDICT_FILE_PATTERN`)."""
+    return sorted(glob.glob(os.path.join(phase_dir, VERDICT_FILE_PATTERN)))
+
+
+def _retired_verdict_name(name: str, stamp: str) -> str:
+    """``retired_<name>.other-stage.<stamp>.json``: the ``retired_`` prefix takes
+    it out of :data:`VERDICT_FILE_PATTERN` and every result-name pattern."""
+    stem = name[: -len(".json")] if name.endswith(".json") else name
+    return f"retired_{stem}.other-stage.{stamp}.json"
+
+
+def retire_foreign_verdicts(phase_dir: str, judge: CascadeJudge) -> List[str]:
+    """Move aside every verdict file that is not this cascade stage's; the new paths.
+
+    Verdict files are keyed by group id, and group ids are content hashes,
+    so a later stage that repeats an earlier stage's finding word for word
+    finds the earlier stage's verdict at its own verdict file's name: read
+    as it is, it decided the item without the later stage's judge ledger
+    (the rejections since), and the executor took the file for a judge task
+    already done. A verdict is this stage's only when the judge task file
+    beside it (``human_decision_tasks.json``) records this stage and ledger
+    (:meth:`CascadeJudge.binds`): the tasks are materialized after this
+    retirement, so every verdict written for them is newer than it. With
+    any other task file, or none, every verdict file present is another
+    stage's, or another run's outside the cascade, and is renamed
+    (:func:`_retired_verdict_name`, never deleted) through its folder held
+    below the plan's directory. ``OSError`` when one cannot be moved; the
+    caller stops, since reading it would reuse it.
+    """
+    found = verdict_files(phase_dir)
+    if not found:
+        return []
+    try:
+        with open(os.path.join(phase_dir, JUDGE_TASKS_FILENAME), "r",
+                  encoding="utf-8") as handle:
+            document = json.load(handle)
+    except (OSError, ValueError):
+        document = None
+    if judge.binds(document):
+        return []
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    retired: List[str] = []
+    for path in found:
+        name = _retired_verdict_name(os.path.basename(path), stamp)
+        suffix = 2
+        while os.path.lexists(os.path.join(phase_dir, name)):
+            name = _retired_verdict_name(os.path.basename(path), f"{stamp}-{suffix}")
+            suffix += 1
+        retired.append(str(rename_in_plan_dir(path, name)))
+    return retired
 
 
 def write_judge_tasks(document: Dict[str, Any], phase_dir: str) -> str:
@@ -386,7 +530,7 @@ def _read_verdict_files(
     """:func:`read_verdict_files`, each file read once, with the sha256 of the
     bytes parsed (``None`` for a file that could not be read)."""
     results: List[Tuple[str, Any, List[str], Optional[str]]] = []
-    for path in sorted(glob.glob(os.path.join(phase_dir, VERDICT_FILE_PATTERN))):
+    for path in verdict_files(phase_dir):
         try:
             with open(path, "rb") as handle:
                 raw = handle.read()

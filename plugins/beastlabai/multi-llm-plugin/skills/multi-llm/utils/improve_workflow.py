@@ -40,6 +40,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import json
 import os
 import sys
@@ -61,12 +62,16 @@ from .cli_common import (
     EXIT_ERROR,
     EXIT_NEEDS_HUMAN,
     EXIT_NOTHING_TO_DO,
+    EXIT_OK,
     LEGACY_AGENT_DECIDE_FLAGS,
+    active_result,
     add_notice,
     add_scope_policy_argument,
     build_parent_parser,
     dispatcher_prefix,
     dispatcher_command,
+    record_error,
+    record_next,
 )
 from .output_handler import (
     PHASE_DIRECTORIES,
@@ -199,6 +204,18 @@ def pins_commit_range(mode: str) -> bool:
     (``commit_spelling.step_word`` keys on the same positional).
     """
     return tuple(_row(mode).positionals) == (mode_table.POS_REVS,)
+
+
+def takes_cascade(mode: str) -> bool:
+    """Whether *mode*'s parser takes ``--cascade``: every composite but a pinned-range one.
+
+    A cascade applies one stage's fixes before the next stage reviews; on a
+    composite whose range a commit front door pins (:func:`pins_commit_range`,
+    improve-commits) a fix commit moves the range's head, so a later stage
+    would review another range. Its parsers refuse the flag as unknown
+    (docs/development/workflows.md#improve-plan-and-improve-code).
+    """
+    return not pins_commit_range(mode)
 
 
 def _step_word(mode: str, word: str) -> str:
@@ -777,6 +794,10 @@ def step_flags(
     file a ``[SKIP]``); and, with no
     scope flag typed, the recorded ``review_scope_files`` when it resumes an
     unfinished review. A stale code review gets no force: it forces itself.
+    A cascade stage's namespace (``args.cascade_stage_file`` set, by
+    ``improve_cascade.derive_stage_args``) adds ``--cascade-stage-file
+    <manifest>`` last, on every review of the stage: the hidden flag that
+    binds the round to the stage (``utils/cascade_provenance.py``).
 
     consolidation: ``--consolidate --yes``.
 
@@ -808,7 +829,7 @@ def step_flags(
         if fresh_round:
             flags += ["--force", "--rerun-all"]
         if review != _SCOPED_REVIEW:
-            return flags
+            return flags + _cascade_stage_flags(args)
         if not fresh_round and (
             scope_changed(mode, args, records)
             or (records.leftover_validation and not records.review_on_record)
@@ -832,7 +853,7 @@ def step_flags(
             flags += ["--base-ref", args.base_ref]
         if getattr(args, "head_ref", None):
             flags += ["--head-ref", args.head_ref]
-        return flags
+        return flags + _cascade_stage_flags(args)
     if step == apply:
         flags = ["--yes", AGENT_DECIDE_FLAG, "--no-confirm"] + policy
         passed_over = not review_runs(mode, args, records)
@@ -845,6 +866,22 @@ def step_flags(
                 flags += ["--base-ref", records.recorded_base_ref]
         return flags
     raise ValueError(f"no step_flags for step {step!r} of {mode}")
+
+
+def _cascade_stage_flags(args: argparse.Namespace) -> List[str]:
+    """``--cascade-stage-file <manifest>`` for a cascade stage's review, else nothing.
+
+    Only a stage namespace carries ``cascade_stage_file`` (an absolute path:
+    the dispatcher moves the cwd to the repository root), so every flags line
+    outside a cascade is unchanged.
+    """
+    manifest = getattr(args, "cascade_stage_file", None)
+    if not manifest:
+        return []
+    # Imported here: `status` reads this module and never plans a cascade stage.
+    from .cascade_provenance import HIDDEN_FLAG
+
+    return [HIDDEN_FLAG, str(manifest)]
 
 
 def cross_cutting_flags(args: argparse.Namespace, *, include_host: bool = True) -> List[str]:
@@ -892,6 +929,11 @@ def continuation_flags(mode: str, args: argparse.Namespace) -> List[str]:
     positional, which :func:`continuation_args` spells as the pinned range.
     ``--focus`` and ``--context-plan`` never reach this parser: the brief
     inherits them.
+
+    While a cascade is unfinished the callers pass the user's own namespace
+    with ``cascade`` true, and ``--cascade`` goes right before ``--resume``:
+    the command continues the cascade at its current stage. Never a stage's
+    derived ``--models`` or the frozen selectors, which the record keeps.
     """
     flags: List[str] = []
     if getattr(args, "models", None):
@@ -909,6 +951,8 @@ def continuation_flags(mode: str, args: argparse.Namespace) -> List[str]:
             flags += ["--files-from", files_from]
         if getattr(args, "base_ref", None) and not pins_commit_range(mode):
             flags += ["--base-ref", args.base_ref]
+    if getattr(args, "cascade", False):
+        flags.append("--cascade")
     flags.append("--resume")
     return flags
 
@@ -977,20 +1021,27 @@ class ContinuationError(ValueError):
     """A run record's ``replay_flags`` that the composite's parser rejects."""
 
 
-def recorded_continuation(mode: str, replay_flags: Optional[Sequence[str]]) -> List[str]:
+def recorded_continuation(
+    mode: str, replay_flags: Optional[Sequence[str]], *, cascade: bool = False,
+) -> List[str]:
     """:func:`continuation_flags` of a run record's ``replay_flags``.
 
     Parsed with the composite's own parser, so the continuation of a detached
     run is the row-14 command its worker printed. ``--resume`` alone when there
     is no record (a foreground run writes none). Raises
     :class:`ContinuationError` when the recorded flags do not parse, and prints
-    nothing.
+    nothing. With *cascade* (an unfinished cascade on record, which the
+    readers ask ``improve_cascade.cascade_status`` about) the namespace gets
+    ``cascade`` true, so the command carries ``--cascade`` as the run's own
+    continuation does, whether or not the recorded flags held it.
     """
-    if not replay_flags:
-        return ["--resume"]
-    args = build_parser(mode, raising=True).parse_args(
-        ["--plan-file", "-", *[str(flag) for flag in replay_flags]]
+    args = (
+        build_parser(mode, raising=True).parse_args(
+            ["--plan-file", "-", *[str(flag) for flag in replay_flags]])
+        if replay_flags else argparse.Namespace()
     )
+    if cascade:
+        args.cascade = True
     return continuation_flags(mode, args)
 
 
@@ -1088,7 +1139,9 @@ def plan_steps(mode: str, args: argparse.Namespace, records: Records) -> List[St
     disk when step 1 is passed over, and reads ``after-review`` when it runs,
     because the files it would read are the previous round's until the review
     rewrites them. Under ``[ALREADY_COMPLETE]`` (every step passed over) there
-    is no ``1b``.
+    is no ``1b``. A cascade stage's namespace (``cascade_stage_file`` set)
+    plans ``1b`` as ``skip (cascade)``: the per-round table is the cascade's
+    summary, and the pass can still be run by hand on the live review.
     """
     row = _row(mode)
     review, apply = row.sequence
@@ -1098,6 +1151,9 @@ def plan_steps(mode: str, args: argparse.Namespace, records: Records) -> List[St
         flags = tuple(step_flags(mode, word, args, records))
         if word == CONSOLIDATE:
             if finished:
+                continue
+            if getattr(args, "cascade_stage_file", None):
+                plans.append(StepPlan(index, word, SKIP, "cascade", False, flags))
                 continue
             if review_runs(mode, args, records):
                 plans.append(StepPlan(index, word, AFTER_REVIEW,
@@ -1517,7 +1573,9 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
     ``--commit-stage``: only its front door passes them, with ``--plan-file``
     and ``--base-ref``. On improve-code ``--head-ref`` stays argparse's usage
     error. ``--focus`` and ``--context-plan`` are the front door's and never
-    reach this parser. Its help names the steps as the commit modes.
+    reach this parser. Its help names the steps as the commit modes. Every
+    other composite takes ``--cascade`` (:func:`takes_cascade`); on the pinned
+    one it stays argparse's usage error.
     """
     row = _row(mode)
     review, apply = row.sequence
@@ -1612,6 +1670,15 @@ def build_parser(mode: str, *, raising: bool = False) -> argparse.ArgumentParser
         help=f"Start a new review round: {review} again with every model "
              f"(--force --rerun-all), then {apply} of its findings.",
     )
+    if takes_cascade(row.name):
+        parser.add_argument(
+            "--cascade",
+            action="store_true",
+            help=f"One round per model, in the resolved model order (put the "
+                 f"cheapest first): {review} with that model alone, then {apply}, "
+                 f"before the next model reviews the result. Re-running continues "
+                 f"the cascade; --force --cascade starts a new one.",
+        )
     if scoped:
         parser.add_argument(
             "--files",
@@ -1689,6 +1756,85 @@ class _Finished:
 FINISHED = _Finished()
 
 
+@dataclass(frozen=True)
+class CascadeFinished:
+    """:func:`preflight`'s answer when a finished cascade's command is typed again.
+
+    The caller prints :attr:`line` (``[ALREADY_COMPLETE] cascade finished at
+    <time> (<n> stages); --force --cascade starts a new one``) on stdout,
+    records it as the result's notice, and exits :attr:`code` (2) before any
+    detach boundary, writing nothing, exactly as for :data:`FINISHED`.
+    """
+
+    line: str
+    code: int = EXIT_NOTHING_TO_DO
+
+
+def safety_checks(
+    mode: str,
+    plan_path: Union[str, Path],
+    records: Callable[[], Records],
+    *,
+    skip_own_run_dir: bool,
+) -> Optional[int]:
+    """The checks that come before any completion answer, cascade or not; ``None`` to go on.
+
+    A live owner first (exit 3): a live run's records are still moving, so no
+    answer read from them stands. Then *records* (a ``state.json`` that cannot
+    be read is exit 3, a scope that cannot be read exit 1). Each refusal
+    prints its own line and writes nothing.
+    """
+    owner = live_owner(mode, plan_path, skip_own_run_dir=skip_own_run_dir)
+    if owner is not None:
+        return unattended_mod.fail_closed(live_owner_refusal(mode, owner))
+    try:
+        records()
+    except StateReadError as exc:
+        return unattended_mod.fail_closed(state_read_error_line(mode, exc))
+    except ValueError as exc:
+        if not is_scope_files_error(exc):
+            raise
+        print(scope_error_line(exc), file=sys.stderr)
+        return EXIT_ERROR
+    return None
+
+
+def completion(
+    mode: str,
+    plan_path: Union[str, Path],
+    args: argparse.Namespace,
+    records: Callable[[], Records],
+) -> Union[None, int, _Finished, CascadeFinished]:
+    """Whether there is anything to do: ``None`` (go on), or the answer that ends the run.
+
+    Without a cascade it is :func:`nothing_to_do` → :data:`FINISHED`. When a
+    cascade decides the run (``--cascade`` typed, or an unfinished cascade on
+    record: ``improve_cascade.applies``), ``improve_cascade.peek`` answers
+    instead: a finished cascade's command typed again is
+    :class:`CascadeFinished`; stages to run, or a close-out owed, go on,
+    though the plain rules would read the files between two stages as
+    finished; a refusal (``[CASCADE_CONFLICT]``, ``--files-from -``, a
+    record that cannot be read) is printed and its exit code returned. A
+    ``peek`` that finds no cascade run (``--force`` alone over an unfinished
+    one) falls back to the plain rules. Read-only either way
+    (docs/development/workflows.md#improve-plan-and-improve-code).
+    """
+    if takes_cascade(mode):
+        # Imported here: the cascade module imports this one (a load-time cycle).
+        from . import improve_cascade
+
+        try:
+            if improve_cascade.applies(plan_path, mode, args):
+                peeked = improve_cascade.peek(plan_path, mode, args)
+                if peeked.kind == "complete":
+                    return CascadeFinished(peeked.lines[0])
+                if peeked.kind == "work":
+                    return None
+        except improve_cascade.CascadeRefusal as exc:
+            return improve_cascade.refusal_exit(exc)
+    return FINISHED if nothing_to_do(mode, args, records()) else None
+
+
 def preflight(
     mode: str,
     plan_path: Union[str, Path],
@@ -1697,37 +1843,86 @@ def preflight(
     *,
     skip_own_run_dir: bool,
     detached: bool,
-) -> Union[None, int, _Finished]:
+) -> Union[None, int, _Finished, CascadeFinished]:
     """The checks before any step, in the order both legs make them.
 
-    A live owner first (exit 3): a live run's records are still moving, so no
-    answer read from them stands. Then *records* (a ``state.json`` that cannot
-    be read is exit 3, a scope that cannot be read exit 1) and nothing to do
-    (:data:`FINISHED`). Then ``--files-from -`` for a review that runs and
-    cannot read the caller's stdin (exit 1). ``None`` to go on.
+    :func:`safety_checks` first (a live owner, then *records*), then
+    :func:`completion` (:data:`FINISHED`, or under a cascade
+    :class:`CascadeFinished` or a refusal's exit code), then ``--files-from
+    -`` for a review that runs and cannot read the caller's stdin (exit 1).
+    ``None`` to go on. Without a cascade the answers and their order are
+    the ones the composites always gave.
 
     The entry point asks it before its detach boundary and before it builds
     the workflow; a detached worker's :meth:`ImproveWorkflow.run` asks it again
-    as the backstop. Each refusal prints its own line and writes nothing.
+    as the backstop, and ``util improve-steps`` asks it too. Each refusal
+    prints its own line and writes nothing; a :class:`CascadeFinished` is the
+    caller's to print.
     """
-    owner = live_owner(mode, plan_path, skip_own_run_dir=skip_own_run_dir)
-    if owner is not None:
-        return unattended_mod.fail_closed(live_owner_refusal(mode, owner))
-    try:
-        finished = nothing_to_do(mode, args, records())
-    except StateReadError as exc:
-        return unattended_mod.fail_closed(state_read_error_line(mode, exc))
-    except ValueError as exc:
-        if not is_scope_files_error(exc):
-            raise
-        print(scope_error_line(exc), file=sys.stderr)
-        return EXIT_ERROR
-    if finished:
-        return FINISHED
+    refused = safety_checks(mode, plan_path, records, skip_own_run_dir=skip_own_run_dir)
+    if refused is not None:
+        return refused
+    answer = completion(mode, plan_path, args, records)
+    if answer is not None:
+        return answer
     if files_from_stdin_refused(args, review_runs(mode, args, records()), detached):
         print(files_from_stdin_refusal(), file=sys.stderr)
         return EXIT_ERROR
     return None
+
+
+#: The top-level views a cascade dir holds beside its stage dirs
+#: (``cascade_archive.render_summary`` writes both at every close-out).
+_CASCADE_LEDGER_VIEW = "ledger.md"
+
+#: The progress record's ``current_phase`` and ``failed_phase`` when the
+#: cascade itself refused to go on between two stages (no phase failed).
+_CASCADE_PROGRESS = "cascade"
+
+
+@dataclass
+class _CascadeView:
+    """What the executor's report and continuation need of the cascade it runs.
+
+    *stage* and *model* are the last stage this process ran (``None`` when it
+    ran none: a finished cascade's command typed again, or a run that only
+    closed out a stage an earlier run finished); *finished* is set once the
+    cascade is recorded finished, after which no continuation carries
+    ``--cascade``.
+    """
+
+    cascade_id: str
+    cascade_dir: Path
+    of: int
+    summary_path: Path
+    stage: Optional[int] = None
+    model: Optional[str] = None
+    finished: bool = False
+
+    def table(self) -> List[str]:
+        """``summary.md`` as written, without its ``#`` heading; empty when
+        no close-out has written it yet. Never recounted here: the table is
+        the archive's (``cascade_archive.render_summary``)."""
+        try:
+            lines = self.summary_path.read_text(encoding="utf-8").splitlines()
+        except (OSError, UnicodeDecodeError):
+            return []
+        if lines and lines[0].startswith("# "):
+            lines = lines[1:]
+        while lines and not lines[0].strip():
+            lines = lines[1:]
+        while lines and not lines[-1].strip():
+            lines = lines[:-1]
+        return lines
+
+    def files(self) -> List[Path]:
+        """``summary.md``, the top-level ``ledger.md`` and the stage dirs, in that order."""
+        # Imported here: the ledger module is the writer's, and a report reads one name of it.
+        from .cascade_ledger import stage_dir
+
+        return [self.summary_path, self.cascade_dir / _CASCADE_LEDGER_VIEW] + [
+            stage_dir(self.cascade_dir, index) for index in range(1, self.of + 1)
+        ]
 
 
 class ImproveWorkflow(fwo.FullWorkflow):
@@ -1740,6 +1935,12 @@ class ImproveWorkflow(fwo.FullWorkflow):
     :class:`Records` once per process, at the first question, and answers every
     later one from that read; *records* hands it a read the entry point already
     made, and *checked* says that read already passed :func:`preflight`.
+
+    Under ``--cascade`` (:meth:`run_cascade`) the same steps run once per
+    stage, each planned from the stage's derived namespace
+    (:attr:`args_for_stage`, ``improve_cascade.derive_stage_args``) and a
+    fresh :class:`Records` read; every read of the invocation's flags that
+    decides a step goes through :meth:`planning_args`.
     """
 
     def __init__(
@@ -1761,20 +1962,36 @@ class ImproveWorkflow(fwo.FullWorkflow):
         self._records: Optional[Records] = records
         self._checked = checked
         self._announced = False
+        #: The running cascade stage's namespace, or ``None`` outside a
+        #: cascade stage (:meth:`planning_args`).
+        self.args_for_stage: Optional[argparse.Namespace] = None
+        #: The cascade this run drives or reports, once one is known.
+        self._cascade: Optional[_CascadeView] = None
+        #: ``[CASCADE_STAGE_SKIPPED]`` lines this run printed, for the result
+        #: line's notice at the end (each stage starts its notice over).
+        self._cascade_notices: List[str] = []
+        #: The result line's artifacts before the first stage, which each
+        #: stage starts from again.
+        self._artifacts_before: List[str] = []
 
     # -- what both legs plan from -----------------------------------------
+    def planning_args(self) -> argparse.Namespace:
+        """The namespace every step decision reads: the running cascade
+        stage's (:attr:`args_for_stage`), else the invocation's own."""
+        return self.args_for_stage if self.args_for_stage is not None else self.args
+
     @property
     def records(self) -> Records:
         if self._records is None:
-            self._records = read_records(self.row.name, self.plan_path, self.args)
+            self._records = read_records(self.row.name, self.plan_path, self.planning_args())
         return self._records
 
     def review_runs(self) -> bool:
-        return review_runs(self.row.name, self.args, self.records)
+        return review_runs(self.row.name, self.planning_args(), self.records)
 
     def _resolve_scope_policy(self) -> Optional[Tuple[str, str]]:
         """:func:`scope_policy_choice` on the records both legs plan from."""
-        return scope_policy_choice(self.args, self.records)
+        return scope_policy_choice(self.planning_args(), self.records)
 
     # -- the hooks -----------------------------------------------------------
     def steps(self) -> List[fwo.Step]:
@@ -1799,22 +2016,34 @@ class ImproveWorkflow(fwo.FullWorkflow):
         return steps
 
     def step_argv(self, step: str) -> List[str]:
-        return step_flags(self.row.name, step, self.args, self.records) + (
-            cross_cutting_flags(self.args)
+        args = self.planning_args()
+        return step_flags(self.row.name, step, args, self.records) + (
+            cross_cutting_flags(args)
         )
 
     def skip_reason(self, step: fwo.Step) -> Optional[str]:
         word = dict(zip(self.row.sequence_phases, self.row.sequence)).get(step.phase)
         if word is None:
             return None
-        return skip_reason(self.row.name, word, self.args, self.records)
+        return skip_reason(self.row.name, word, self.planning_args(), self.records)
 
     def nothing_to_do(self) -> bool:
-        return nothing_to_do(self.row.name, self.args, self.records)
+        return nothing_to_do(self.row.name, self.planning_args(), self.records)
+
+    def _continuation_args(self) -> argparse.Namespace:
+        """The namespace the row-14 command is spelled from: the user's own,
+        with ``cascade`` set while this run's cascade is unfinished, so the
+        command continues it. Never a stage's namespace: no stage ``--models``,
+        no frozen selector, and (as always) no ``--force``."""
+        if self._cascade is None or self._cascade.finished:
+            return self.args
+        args = copy.copy(self.args)
+        args.cascade = True
+        return args
 
     def resume_flags(self) -> List[str]:
         """:func:`continuation_flags`: never a flag the front door synthesised."""
-        return continuation_flags(self.row.name, self.args)
+        return continuation_flags(self.row.name, self._continuation_args())
 
     def resume_command(self) -> str:
         """The row-14 command in the composite's own spelling (:func:`continuation_command`).
@@ -1825,7 +2054,7 @@ class ImproveWorkflow(fwo.FullWorkflow):
         brief's ``commit_range`` (``--improve-commits <base12>..<head12>
         --resume``), never the brief path the front door handed this run.
         """
-        return continuation_command(self.row.name, self.plan_path, self.args)
+        return continuation_command(self.row.name, self.plan_path, self._continuation_args())
 
     def _phase_failed(self, step: fwo.Step, detail: str, code: Optional[int]) -> int:
         """``full``'s row-14 stop, then :func:`continuation_stdin_note` for a stop in the review.
@@ -1857,6 +2086,18 @@ class ImproveWorkflow(fwo.FullWorkflow):
         """
         code = self.run_mode("apply-code-fixes", self.step_argv("apply-code-fixes"))
         return self._verify("apply-code-fixes", code)
+
+    def step_consolidate(self) -> Tuple[str, str, Optional[int]]:
+        """``full``'s consolidation step, passed over in a cascade stage.
+
+        A cascade stage's namespace (``cascade_stage_file`` set) skips the
+        pass, as :func:`plan_steps` plans step 1b ``skip (cascade)``: the
+        per-round table is the cascade's summary, and the pass can still be
+        run by hand on the live review. Every other run is ``full``'s step.
+        """
+        if getattr(self.planning_args(), "cascade_stage_file", None):
+            return fwo.SKIPPED, "cascade", None
+        return super().step_consolidate()
 
     # -- the step lock ---------------------------------------------------------
     def _step_lock_payload(self, mode_word: str) -> Dict[str, Any]:
@@ -1934,7 +2175,7 @@ class ImproveWorkflow(fwo.FullWorkflow):
         if self._announced:
             return
         self._announced = True
-        for line in scope_notices(self.row.name, self.args, self.records):
+        for line in scope_notices(self.row.name, self.planning_args(), self.records):
             print(line)
 
     def already_complete(self) -> int:
@@ -1946,6 +2187,26 @@ class ImproveWorkflow(fwo.FullWorkflow):
         self.print_report()
         return EXIT_NOTHING_TO_DO
 
+    def cascade_finished(self, answer: CascadeFinished) -> int:
+        """A finished cascade's command typed again: its line, the summary
+        with the cascade's table, exit 2; nothing launched, nothing written."""
+        # Imported here: the cascade module imports this one (a load-time cycle).
+        from . import improve_cascade
+
+        try:
+            current = improve_cascade.load_current(self.plan_path, self.row.name)
+        except improve_cascade.CascadeRefusal:
+            current = None
+        if current is not None:
+            self._cascade = _CascadeView(
+                cascade_id=current.cascade_id, cascade_dir=current.cascade_dir,
+                of=current.of, summary_path=current.summary_path, finished=True,
+            )
+        print(answer.line)
+        add_notice(answer.line)
+        self.print_report()
+        return answer.code
+
     def run(self) -> int:
         """The backstops, then ``full``'s loop over this composite's steps.
 
@@ -1953,7 +2214,9 @@ class ImproveWorkflow(fwo.FullWorkflow):
         must claim its run dir first), and the state can have moved since the
         invoker made them: a standalone apply finished, or a newer implement
         left the code review stale. So it asks them here, skipping the run dir
-        it holds.
+        it holds. When a cascade decides the run (``--cascade`` typed, or an
+        unfinished one on record) the steps run once per stage
+        (:meth:`run_cascade`).
         """
         if not self._checked:
             worker = bool(getattr(self.args, "internal_worker", False))
@@ -1963,19 +2226,239 @@ class ImproveWorkflow(fwo.FullWorkflow):
             )
             if outcome is FINISHED:
                 return self.already_complete()
+            if isinstance(outcome, CascadeFinished):
+                return self.cascade_finished(outcome)
             if outcome is not None:
                 return outcome
             self._checked = True
+        if takes_cascade(self.row.name):
+            # Imported here: the cascade module imports this one (a load-time cycle).
+            from . import improve_cascade
+
+            try:
+                cascade = improve_cascade.applies(self.plan_path, self.row.name, self.args)
+            except improve_cascade.CascadeRefusal as exc:
+                return improve_cascade.refusal_exit(exc)
+            if cascade:
+                return self.run_cascade()
         self.announce()
         return super().run()
 
+    # -- the cascade --------------------------------------------------------------
+    def run_cascade(self) -> int:
+        """One pass of the composite's steps per cascade stage, then one report.
+
+        ``improve_cascade.advance`` is asked first with the user's flags (it
+        may start, continue or abandon a cascade), then after each stage,
+        bound to the cascade's id and to the stage it ran (``after_stage``:
+        a stage still open is ``StageNotFinished``, never the same stage
+        handed out again, so the loop cannot run one stage over and over),
+        to close the stage out and hand back the next; a refusal there stops
+        with the cascade's continuation (:meth:`_cascade_refused`). Each
+        stage plans from its own namespace and records
+        (:meth:`_begin_stage`) and runs :meth:`run_steps`; a step that fails
+        is reported once, at row 14 with a continuation carrying
+        ``--cascade`` (:meth:`_cascade_stopped`), except a middle stage's
+        review that produced no result, which the next ``advance`` records
+        skipped (:meth:`_skips_zero_result_stage`). ``--force`` without
+        ``--cascade`` over an unfinished cascade abandons it there
+        (``NotACascade``) and runs today's single round. The contract:
+        docs/development/workflows.md, "A cascade (``--cascade``)".
+        """
+        # Imported here: the cascade module imports this one (a load-time cycle).
+        from . import improve_cascade
+
+        mode = self.row.name
+        try:
+            plan = improve_cascade.advance(self.plan_path, mode, self.args, initial=True)
+        except improve_cascade.CascadeRefusal as exc:
+            return improve_cascade.refusal_exit(exc)
+        if isinstance(plan, improve_cascade.NotACascade):
+            for line in plan.notices:
+                print(line)
+            self.announce()
+            return super().run()
+        if isinstance(plan, improve_cascade.Complete):
+            finished = [line for line in plan.notices
+                        if line.startswith(improve_cascade.ALREADY_COMPLETE_MARKER)]
+            if finished:
+                # Finished between the check before the boundary and here.
+                return self.cascade_finished(CascadeFinished(finished[0]))
+        self._cascade = _CascadeView(cascade_id=plan.cascade_id, cascade_dir=plan.cascade_dir,
+                                     of=plan.of, summary_path=plan.summary_path)
+        ctx = active_result()
+        self._artifacts_before = list(ctx.artifacts) if ctx is not None else []
+        while isinstance(plan, improve_cascade.StagePlan):
+            self._print_cascade_notices(plan.notices)
+            self._begin_stage(plan)
+            failed = self.run_steps()
+            if failed is not None:
+                step, detail, code = failed
+                if not self._skips_zero_result_stage(plan, step):
+                    return self._cascade_stopped(step, detail, code)
+            try:
+                plan = improve_cascade.advance(self.plan_path, mode, self.args, initial=False,
+                                               cascade_id=plan.cascade_id,
+                                               after_stage=plan.stage)
+            except improve_cascade.CascadeRefusal as exc:
+                return self._cascade_refused(exc)
+        self._print_cascade_notices(plan.notices)
+        return self._cascade_complete()
+
+    def _print_cascade_notices(self, notices: Sequence[str]) -> None:
+        """Print ``advance``'s lines; a skipped stage's also joins the result's notice."""
+        # Imported here: the cascade module imports this one (a load-time cycle).
+        from .improve_cascade import SKIPPED_MARKER
+
+        for line in notices:
+            print(line)
+            if line.startswith(SKIPPED_MARKER):
+                self._cascade_notices.append(line)
+
+    def _begin_stage(self, plan: Any) -> None:
+        """Plan the stage from its own namespace, with nothing carried from the last.
+
+        The stage's namespace answers every step decision
+        (:meth:`planning_args`); :class:`Records` and the scope-policy choice
+        are read again for it; the per-review fields of the result line
+        (consolidation, high-priority groups, validation context and counts,
+        notice, artifacts) start over, so the line ends on the last stage's;
+        the steps' reports are stamped with the stage (:attr:`report_stage`).
+        Artifacts recorded before the first stage are kept.
+        A run dir with a checkpoint (a detached worker's) records the stage as
+        ``cascade_stage`` for ``status``.
+        """
+        assert self._cascade is not None
+        self.args_for_stage = plan.stage_args
+        self.report_stage = plan.stage
+        self._records = None
+        self._scope_choice = None
+        self._scope_resolved = False
+        self._announced = False
+        self._cascade.stage, self._cascade.model = plan.stage, plan.model
+        ctx = active_result()
+        if ctx is not None:
+            ctx.consolidation_recommended = None
+            ctx.high_priority_groups = None
+            ctx.validation_context = None
+            ctx.validation_counts = None
+            ctx.notice = None
+            ctx.artifacts = list(self._artifacts_before)
+        self._record_cascade_stage({"index": plan.stage, "of": plan.of, "model": plan.model})
+        self._record_scope_policy()
+        self.announce()
+
+    def _record_cascade_stage(self, stage: Optional[Dict[str, Any]]) -> None:
+        """``cascade_stage`` in the run dir's checkpoint, when one exists; ``None`` clears it."""
+        directory = str(self.run_dir)
+        if os.path.isfile(status_file.status_path(directory)):
+            status_file.update_status(directory, {"cascade_stage": stage})
+
+    def _skips_zero_result_stage(self, plan: Any, step: fwo.Step) -> bool:
+        """Whether *step*'s failure is a middle stage's review that produced no result.
+
+        Then the stage is not a stop: the next ``advance`` records it skipped
+        and goes on, so the needs-human mark and the error line the review's
+        exit 3 left are taken back (``unattended.clear_needs_human``). The
+        last stage's, and every other failure, is a stop.
+        """
+        # Imported here: the cascade module imports this one (a load-time cycle).
+        from . import improve_cascade
+
+        if step.phase != self.row.sequence_phases[0] or plan.stage >= plan.of:
+            return False
+        try:
+            if not improve_cascade.zero_result_stage(self.plan_path, self.row.name):
+                return False
+        except improve_cascade.CascadeRefusal:
+            return False
+        unattended_mod.clear_needs_human()
+        self._clear_error()
+        self._clear_next()
+        return True
+
+    def _add_cascade_notices(self) -> None:
+        for line in self._cascade_notices:
+            add_notice(line)
+
+    def _cascade_stopped(self, step: fwo.Step, detail: str, code: Optional[int]) -> int:
+        """Row 14, once, for a stage that stopped: the report, then the stop,
+        whose command continues the cascade (:meth:`_continuation_args`)."""
+        self._add_cascade_notices()
+        self.print_report()
+        return self._phase_failed(step, detail, code)
+
+    def _cascade_refused(self, exc: Any) -> int:
+        """``advance`` refused to go on after a stage ran: the report, its message, the way on.
+
+        Reached only from the call after a stage (``advance``'s first call
+        of the run refuses through ``refusal_exit`` alone: nothing ran, so
+        there is nothing to continue). An archive it cannot trust, a live
+        lock at close-out, close-outs that kept racing, a pointer that names
+        another cascade, or a stage still open (``StageNotFinished``) stops
+        the run as row 14 does: the progress record names the failure, and
+        the result line's ``next`` is the cascade's continuation
+        (:meth:`resume_command`, with ``--cascade``), never a follow-up a
+        phase printed before the refusal. The contract:
+        docs/development/workflows.md, "A cascade (``--cascade``)".
+        """
+        # Imported here: the cascade module imports this one (a load-time cycle).
+        from . import improve_cascade
+
+        self._add_cascade_notices()
+        self.print_report()
+        record_error(exc.message.splitlines()[0] if exc.message else None)
+        self._record_progress(current=_CASCADE_PROGRESS, failed=_CASCADE_PROGRESS)
+        resume = self.resume_command()
+        code = improve_cascade.refusal_exit(exc)
+        print("\n".join([
+            "       Once that is dealt with, continue the cascade:",
+            f"         {resume}",
+        ]), file=sys.stderr)
+        record_next(resume)
+        return code
+
+    def _cascade_complete(self) -> int:
+        """Every stage is closed: the one report, exit 0, nothing owed."""
+        assert self._cascade is not None
+        self._cascade.finished = True
+        self._record_progress(current="complete")
+        self._close_scope_policy()
+        self._record_cascade_stage(None)
+        self._add_cascade_notices()
+        self.print_report()
+        record_next(None)
+        return EXIT_OK
+
     # -- the report --------------------------------------------------------------
+    def report_head(self) -> List[str]:
+        """Under a cascade: ``### Cascade`` with ``summary.md``'s table as
+        written, then a heading for the last stage whose steps follow."""
+        if self._cascade is None:
+            return []
+        table = self._cascade.table() or [
+            f"No stage is closed yet; the per-round table is written to "
+            f"{self._cascade.summary_path} at the first close-out."
+        ]
+        lines = ["### Cascade", "", *table, ""]
+        if self._cascade.stage is not None:
+            lines += [f"### Stage {self._cascade.stage} of {self._cascade.of}: "
+                      f"{self._cascade.model}", ""]
+        return lines
+
+    def listed_reports(self) -> List[fwo.StepReport]:
+        """The last cascade stage's steps under a cascade; else every step."""
+        if self._cascade is None or self._cascade.stage is None:
+            return list(self.reports)
+        return [report for report in self.reports if report.stage == self._cascade.stage]
+
     def report_artifacts(self) -> List[str]:
         """The review's report, the apply's summary, and what the apply wrote.
 
         Only the files that exist. improve-plan's write target is the plan;
         improve-code's are the files the apply's own batches changed
-        (:meth:`_applied_paths`).
+        (:meth:`_applied_paths`). Under a cascade, then its ``summary.md``,
+        its top-level ``ledger.md`` and its stage dirs.
         """
         review_dir, apply_dir = (
             self.plan_dir / PHASE_DIRECTORIES.get(phase, phase)
@@ -1989,6 +2472,8 @@ class ImproveWorkflow(fwo.FullWorkflow):
             candidates += self._applied_paths(apply_dir)
         else:
             candidates.append(self.plan_path)
+        if self._cascade is not None:
+            candidates += self._cascade.files()
         seen: List[str] = []
         for path in candidates:
             if path.exists() and str(path) not in seen:
@@ -2065,7 +2550,8 @@ def entry_point(mode: str, argv: Optional[Sequence[str]] = None) -> int:
     type); the plan exists; then, before the detach boundary, a live owner
     (exit 3), nothing to do (exit 2 with ``[ALREADY_COMPLETE]``, so a tool
     route's ``--detach`` re-run launches no worker whose only act is to exit
-    2), a ``state.json`` that cannot be read (exit 3), a scope that cannot be
+    2; a finished cascade's command typed again is the same exit 2, with the
+    cascade's table), a ``state.json`` that cannot be read (exit 3), a scope that cannot be
     read or ``--files-from -`` for a detached review (exit 1); then
     ``maybe_detach`` on the composite's run dir, as ``full`` does; then
     :meth:`ImproveWorkflow.run`. A worker skips the pre-boundary checks: it
@@ -2107,6 +2593,8 @@ def entry_point(mode: str, argv: Optional[Sequence[str]] = None) -> int:
         )
         if outcome is FINISHED:
             return ImproveWorkflow(args, mode, records=records()).already_complete()
+        if isinstance(outcome, CascadeFinished):
+            return ImproveWorkflow(args, mode).cascade_finished(outcome)
         if outcome is not None:
             return outcome
         checked = True

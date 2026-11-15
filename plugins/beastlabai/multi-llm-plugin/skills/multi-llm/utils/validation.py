@@ -47,7 +47,9 @@ from .subagent_tasks import (
     split_indices,
     tasks_of,
 )
+from . import cascade_provenance as _cascade
 from . import status_file
+from . import unattended as _unattended
 from . import cli_common as _cli
 from . import process_control
 from .validation_context import build_validation_context, validation_context_notice
@@ -154,6 +156,119 @@ HOST_VIEWS_LOCK_FILENAME = ".views.lock"
 #: with exit 3. A holder keeps it for one materialization and its task-file
 #: write, one repair and its commit, or one read-and-publish.
 HOST_VIEWS_LOCK_TIMEOUT_S = 60.0
+
+
+#: A cascade stage's validation fields (docs/development/workflows.md, the
+#: cascade's forward ledger). The validator names the earlier-round entry a
+#: group repeats in ``reraise_of``; the merge keeps it on the verdict
+#: (``validation.json``) and on the group as ``validation_reraise_of``, which
+#: the reports render as ``re-raises <id>``. The task file records the sha256
+#: of the inline ledger its prompts embed under ``inputs.prior_rounds_sha256``.
+RERAISE_FIELD = "reraise_of"
+RERAISE_GROUP_FIELD = "validation_reraise_of"
+PRIOR_ROUNDS_INPUT_KEY = "prior_rounds_sha256"
+#: The longest ``reraise_of`` kept: an id is a few characters, and a value
+#: that is not one is kept as text, clipped here so it stays one report line.
+RERAISE_MAX_CHARS = 200
+
+
+def normalize_reraise(value: Any) -> Optional[str]:
+    """A verdict's ``reraise_of`` as the text the merge keeps; ``None`` for no re-raise.
+
+    An id is kept as its stripped text. A value that is not a clean id (an
+    unknown id, a list, a number) is kept as text too and still counts as a
+    re-raise, because the validator said the group repeats something; only an
+    absent, null or blank value means it repeats nothing. Line breaks fold to
+    spaces and the text is clipped to :data:`RERAISE_MAX_CHARS`.
+    """
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, (list, tuple)):
+        text = ", ".join(
+            part for part in (normalize_reraise(item) for item in value) if part
+        )
+    elif isinstance(value, str):
+        text = value
+    elif isinstance(value, (int, float)):
+        text = str(value)
+    else:
+        text = json.dumps(value, ensure_ascii=False, sort_keys=True, default=str)
+    text = " ".join(text.split())
+    if not text:
+        return None
+    return text if len(text) <= RERAISE_MAX_CHARS else text[:RERAISE_MAX_CHARS - 1] + "…"
+
+
+def _expects_reraise(task_document: Any) -> bool:
+    """Whether a validation task file's prompts carried a cascade ledger (and so asked for ``reraise_of``)."""
+    inputs = task_document.get("inputs") if isinstance(task_document, dict) else None
+    return isinstance(inputs, dict) and bool(inputs.get(PRIOR_ROUNDS_INPUT_KEY))
+
+
+def validator_prior_rounds(review_dir: str) -> str:
+    """The validator ledger of the cascade stage whose review round *review_dir* holds; ``""`` outside one.
+
+    Read from the round's ``.status.json`` ``cascade`` block, the frozen
+    ``ledger-validator.md``'s hash verified first. It travels inline in every
+    batch prompt, never as a file pointer
+    (docs/development/delegation.md#materialized-task-contract). A block or
+    file that cannot be trusted stops the call at exit 3 before any task file
+    is written (docs/development/review-results.md#round-identity).
+    """
+
+    try:
+        return _cascade.ledger_text(
+            _cascade.read_block(review_dir), _cascade.VALIDATOR_LEDGER,
+        )
+    except _cascade.CascadeProvenanceError as exc:
+        sys.exit(_unattended.fail_closed(_cascade.error_line(exc)))
+
+
+def prior_rounds_digest(review_dir: str) -> Optional[str]:
+    """The ``inputs.prior_rounds_sha256`` a validation round of *review_dir*'s
+    round records: the sha256 of its validator ledger
+    (:func:`validator_prior_rounds`), ``None`` outside a cascade or at its
+    first stage, where the ledger is empty and the task file records none."""
+    prior_rounds = validator_prior_rounds(review_dir)
+    if not prior_rounds.strip():
+        return None
+    return hashlib.sha256(prior_rounds.encode("utf-8")).hexdigest()
+
+
+def recorded_prior_rounds(task_document: Any) -> Optional[str]:
+    """The ``inputs.prior_rounds_sha256`` a task document records, or ``None``."""
+    inputs = task_document.get("inputs") if isinstance(task_document, dict) else None
+    value = inputs.get(PRIOR_ROUNDS_INPUT_KEY) if isinstance(inputs, dict) else None
+    return value if isinstance(value, str) and value else None
+
+
+def prior_rounds_moved(task_document: Any, review_dir: str) -> Optional[str]:
+    """Why the verdicts of *task_document*'s round must not be reused, or ``None``.
+
+    Their prompts embedded the earlier rounds' ledger the task file records
+    (``inputs.prior_rounds_sha256``); verdicts reached on another ledger than
+    the one *review_dir*'s round holds now (:func:`prior_rounds_digest`) are
+    not this round's. That happens when a cascade stage's findings repeat
+    an earlier stage's word for word: group ids are content hashes, so the
+    grouping and every batch's group ids are the same, and only the ledger
+    tells the rounds apart. ``None`` when both record the same hash, or both
+    none (outside a cascade: today's behaviour). Raises ``SystemExit`` (exit
+    3) for a block or ledger file on record that cannot be trusted, as
+    :func:`validator_prior_rounds` does.
+    """
+    recorded = recorded_prior_rounds(task_document)
+    current = prior_rounds_digest(review_dir)
+    if recorded == current:
+        return None
+
+    def said(digest: Optional[str]) -> str:
+        return f"earlier-rounds ledger {digest[:12]}" if digest else "no earlier-rounds ledger"
+
+    return (
+        f"its validation round's prompts carried {said(recorded)} and this round's "
+        f"carry {said(current)}; verdicts reached on another cascade stage's ledger "
+        "are not reused"
+    )
 
 
 def excerpt_context(context: str, limit: int = VALIDATION_CONTEXT_LIMIT) -> str:
@@ -1422,6 +1537,10 @@ def apply_validation_to_groups(
             group_dict["validation_error_type"] = validation.get("error_type")
         if "recoverable" in validation:
             group_dict["validation_recoverable"] = validation.get("recoverable")
+        # A cascade stage's re-raise, kept only where the merge kept one.
+        reraise = normalize_reraise(validation.get(RERAISE_FIELD))
+        if reraise:
+            group_dict[RERAISE_GROUP_FIELD] = reraise
 
         updated_groups.append(group_dict)
 
@@ -1518,7 +1637,12 @@ def validation_source_decision(
        Content, never mtime: a ``cp -p`` restore keeps an old mtime and a
        ``git checkout`` sets every mtime to now, and neither says anything
        about which verdicts the file holds.
-    3. **Legacy fallback only.** A file with no ``batch_sha256`` (written before
+    3. **Earlier rounds' ledger.** A cascade stage's verdicts are reached on
+       the ledger their round's prompts embedded: the task file's
+       ``inputs.prior_rounds_sha256`` must be the one this round's would
+       record (:func:`prior_rounds_moved`). Checked only beside a task file;
+       both absent is today's behaviour.
+    4. **Legacy fallback only.** A file with no ``batch_sha256`` (written before
        the binding existed, or by a writer that merges no batches of this round)
        keeps the old
        mtime test: it is honoured only if no ``validation_batch_*.json`` beside
@@ -1647,6 +1771,9 @@ def validation_source_decision(
             return (
                 f"Re-merging {total} batch files: {', '.join(problems + foreign)}"
             ), ""
+        moved = _prior_rounds_reason(validation_path, tasks_path, task_document)
+        if moved:
+            return moved, ""
         # 7.1d / task 2.10: a bound, up-to-date file is still not reusable when
         # it predates the context contract and its round's prompts carry the
         # contract-1 cut of an over-limit document.
@@ -1670,6 +1797,9 @@ def validation_source_decision(
     legacy = _legacy_contract_reason(metadata, validation_path.parent, task_document)
     if legacy:
         return legacy, ""
+    moved = _prior_rounds_reason(validation_path, tasks_path, task_document)
+    if moved:
+        return moved, ""
     try:
         validation_mtime = validation_path.stat().st_mtime
     except OSError as exc:
@@ -1692,6 +1822,24 @@ def validation_source_decision(
         ), ""
     parts = [p for p in (grouping_note, "legacy: no batch_sha256, mtime test") if p]
     return None, ", ".join(parts)
+
+
+def _prior_rounds_reason(validation_path: Path, tasks_path: Optional[Path],
+                         task_document: Any) -> Optional[str]:
+    """:func:`prior_rounds_moved` for the task file beside *validation_path*
+    (*task_document* when the caller read it), worded for the decision;
+    ``None`` with no task file to compare."""
+    if task_document is UNREAD:
+        path = tasks_path or validation_path.parent / "validation_tasks.json"
+        try:
+            with open(path, "r", encoding="utf-8") as handle:
+                task_document = json.load(handle)
+        except (OSError, ValueError):
+            task_document = None
+    if not isinstance(task_document, dict):
+        return None
+    moved = prior_rounds_moved(task_document, str(validation_path.parent))
+    return f"{validation_path.name}: {moved}" if moved else None
 
 
 def _legacy_contract_reason(
@@ -1834,7 +1982,8 @@ def save_validation_results(
     round's ``selected_remedy``, the host stamps (``scope_baseline_id``,
     ``scope_proposal_digest``, ``scope_source``, ``scope_missing``) and a
     ``scope_policy_decision`` — and a record that carries none is written
-    exactly as before.
+    exactly as before. A cascade stage's ``reraise_of`` is kept the same way
+    (:func:`normalize_reraise`); a record without one gains no key.
     """
     if not model:
         model = _derive_model_from_results(validation_results) or "unknown"
@@ -1883,6 +2032,9 @@ def save_validation_results(
         for key in _scope_round.RECORD_SCOPE_KEYS:
             if key in v:
                 group_entry[key] = v[key]
+        reraise = normalize_reraise(v.get(RERAISE_FIELD))
+        if reraise:
+            group_entry[RERAISE_FIELD] = reraise
         saved_groups.append(group_entry)
 
     validation_data = {
@@ -2590,6 +2742,18 @@ def materialize_validation_round(round_: ValidationRound) -> Dict[str, Any]:
         })
         return empty
 
+    # A cascade stage's earlier rounds, inline in every batch prompt (never a
+    # file pointer), and bound by hash with the round's other inputs: the
+    # task file records the sha256 of the frozen ledger its prompts embed.
+    # Outside a cascade, or at its first stage, this is "" and neither the
+    # prompts nor the inputs change. Read only when there is something to
+    # validate, since a call that renders no ledger does not check it.
+    prior_rounds = validator_prior_rounds(output_dir)
+    if prior_rounds.strip():
+        inputs[PRIOR_ROUNDS_INPUT_KEY] = hashlib.sha256(
+            prior_rounds.encode("utf-8")).hexdigest()
+    # (`prior_rounds_digest` is this same hash, for the reuse checks.)
+
     # Create batches
     validation_batches = batch_validation_groups(
         groups=groups,
@@ -2739,6 +2903,7 @@ def materialize_validation_round(round_: ValidationRound) -> Dict[str, Any]:
             extra_instructions=batch_extra,
             context_sources=prompt_sources,
             scope_guidance=scope_text,
+            prior_rounds=prior_rounds,
         )
         if not budget.fits(prompt):
             first, second = split_indices(indices)
@@ -3245,9 +3410,19 @@ def merge_batched_validation_results(
     scope_meta = _scope_round.task_scope(batch_metadata)
     host_groups = _scope_round.groups_by_hash(groups)
     stamp_source = "revalidation" if batch_metadata.get("kind") == "revalidation" else "validation"
+    # `reraise_of` is kept only from a round whose prompts asked for it (a
+    # cascade stage's, whose task file records the ledger it embedded), and
+    # normalized to text; any other round's records keep their shape.
+    expects_reraise = _expects_reraise(batch_metadata)
     for position, record in enumerate(merged_results):
         if not isinstance(record, dict):
             continue
+        if RERAISE_FIELD in record:
+            reraise = normalize_reraise(record.get(RERAISE_FIELD)) if expects_reraise else None
+            record = {k: v for k, v in record.items() if k != RERAISE_FIELD}
+            if reraise:
+                record[RERAISE_FIELD] = reraise
+            merged_results[position] = record
         index = record.get("group_index", position)
         joined = hash_joined.get(index) if isinstance(index, int) else None
         group = host_groups.get(joined) if joined and record.get("group_id") == joined else None

@@ -11,10 +11,11 @@ tags: type-scale, fonts, display, tabular-numbers, leading, casing
 ### When Building
 
 - **A scale, not ad-hoc sizes.** Use the platform's scale (Apple text styles, Material type roles) or a modular scale on the web. Every text element uses one of its steps.
+- **Weight and colour before another size.** Try the base size first and separate levels with weight and a muted tone. Add a size step only when those are not enough.
 - **Two or three type roles at most**: display (headlines, hero numbers), text (body, labels), and numeric or mono if the product shows timecodes, codes, or prices. A second font is optional.
 - **The system font is a valid display face.** A heavier weight (Heavy or Black) or a different width (Expanded, Condensed) gives it character without shipping a font. Add a custom display face only when the direction calls for it (Editorial serif, a brand face).
 - **Display sizes get tight leading** (about 1.0–1.15) and slightly tighter tracking where the font does not do this itself. Body text gets about 1.4–1.6 and a line length of 45–75 characters. Leave tracking alone on Apple text styles, which adjust it per size.
-- **Tabular figures** for anything in a column or changing over time: prices, balances, countdowns, timecodes, frame numbers. Proportional digits make values jitter and columns misalign.
+- **Tabular figures** for anything in a column or changing over time: prices, balances, countdowns, timecodes, frame numbers. Proportional digits make values jitter and columns misalign. Right-align numeric columns so digits line up by place value.
 - **Sentence case** for headlines and buttons. All caps only for short labels or a deliberate expanded-display style, with added tracking.
 - **One accented word** in a showcase headline at most. Never colour the whole line.
 - **Keep text scalable.** Use the platform's scaling text styles or relative units so Dynamic Type and browser zoom still work.

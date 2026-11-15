@@ -5,6 +5,8 @@ description: "Catches up after a break by listing what was added to long-term Mn
 
 # Catch up on what changed
 
+The listing reads the user's Mnemoverse account on the hosted service at mnemoverse.com and returns memories stored there, not files on this machine.
+
 ## Check first
 
 Look for the tool `memory_list_recent`. If it is missing, memory is not connected: say so in one sentence and use the bundled `setup` skill if it is installed, otherwise https://mnemoverse.com/docs/api/install-by-host.

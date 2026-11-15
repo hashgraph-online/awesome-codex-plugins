@@ -59,7 +59,7 @@ codex plugin add oh-my-cassette@cassette-editor
 
 ```bash
 # Hermes
-hermes mcp add cassette --command uvx --args oh-my-cassette==0.7.0
+hermes mcp add cassette --command uvx --args oh-my-cassette==0.7.3
 ```
 
 For OpenCode or any other MCP host, see [Install](#install) below.
@@ -67,7 +67,7 @@ For OpenCode or any other MCP host, see [Install](#install) below.
 **2. Sign in**, whichever host you use:
 
 ```bash
-uvx oh-my-cassette==0.7.0 login
+uvx oh-my-cassette==0.7.3 login
 ```
 
 Your browser asks for the code Cassette emails you. Then restart your agent if it cannot refresh its tool list, and say:
@@ -125,7 +125,7 @@ service against them.
 
 - An invited Cassette account. While the service is unreachable or refuses your sign-in, the only tool
   listed is `cassette_bridge_status`, which says why.
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.5 or newer. `uvx oh-my-cassette==0.7.0` resolves Python 3.11 or newer by itself.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) 0.5 or newer. `uvx oh-my-cassette==0.7.3` resolves Python 3.11 or newer by itself.
 - [ffmpeg](https://ffmpeg.org/download.html) (with ffprobe) to import video into a cloud project:
   `brew install ffmpeg`, `sudo apt install ffmpeg` or `winget install ffmpeg`. Video is transcoded on
   your machine before it uploads, and a build with `zscale` also tone-maps HDR footage properly. A
@@ -160,9 +160,9 @@ Sign in once with `oh-my-cassette login`, using the Cassette account that holds 
 An account can pay for its Cassette agent turns with its own OpenAI key instead of Cassette's. Save it once, after `login`:
 
 ```bash
-uvx oh-my-cassette==0.7.0 key set      # prompts for the key (sk-…) without echoing it
-uvx oh-my-cassette==0.7.0 key status   # shows whether one is saved, and its fingerprint
-uvx oh-my-cassette==0.7.0 key remove
+uvx oh-my-cassette==0.7.3 key set      # prompts for the key (sk-…) without echoing it
+uvx oh-my-cassette==0.7.3 key status   # shows whether one is saved, and its fingerprint
+uvx oh-my-cassette==0.7.3 key remove
 ```
 
 The key stays in your operating-system keyring (service `oh-my-cassette.provider-key`), kept for the account you signed in with, and is never written to a file. The bridge sends it in the `x-cassette-provider-key` header on its requests to the Cassette MCP service only; the service hands it to Cassette, which holds it in memory while your turns need it and switches the account to its own key. `key remove` first has Cassette let go of the key it holds at once, then forgets it here; the account stays on its own key, so its turns wait for one until you set a key again. Switch back to Cassette's key in Cassette settings. A turn that waits for a key Cassette does not hold answers `needs_credential`; save the key and continue the turn. With `CASSETTE_AUTH_TOKEN` set, no key is sent. `status` shows the fingerprint Cassette shows: the first 8 hex digits of the key's SHA-256 and its last four characters.
@@ -171,12 +171,12 @@ The key stays in your operating-system keyring (service `oh-my-cassette.provider
 
 ### Claude Code
 
-Plugin (recommended): the two commands at the top. The plugin uses the connection saved by `oh-my-cassette login` and starts `uvx oh-my-cassette==0.7.0` with a 10-minute tool timeout.
+Plugin (recommended): the two commands at the top. The plugin uses the connection saved by `oh-my-cassette login` and starts `uvx oh-my-cassette==0.7.3` with a 10-minute tool timeout.
 
 Project scope without the plugin: copy [`.mcp.json`](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/.mcp.json) into your project, or run:
 
 ```bash
-claude mcp add --transport stdio cassette -- uvx oh-my-cassette==0.7.0
+claude mcp add --transport stdio cassette -- uvx oh-my-cassette==0.7.3
 ```
 
 The skill lives in [`skills/cassette-video-edit/SKILL.md`](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/skills/cassette-video-edit/SKILL.md) and ships with the plugin.
@@ -186,7 +186,7 @@ The skill lives in [`skills/cassette-video-edit/SKILL.md`](https://github.com/Ca
 Plugin: the two commands at the top ([`.codex-plugin/plugin.json`](https://github.com/Cassette-Editor/oh-my-cassette/blob/main/.codex-plugin/plugin.json) declares the server inline with `tool_timeout_sec: 600` and passes the `CASSETTE_*` variables through from your shell). Or add the server directly:
 
 ```bash
-codex mcp add cassette -- uvx oh-my-cassette==0.7.0
+codex mcp add cassette -- uvx oh-my-cassette==0.7.3
 ```
 
 ### OpenCode
@@ -198,7 +198,7 @@ Add to `opencode.json` (project or `~/.config/opencode/opencode.json`):
   "mcp": {
     "cassette": {
       "type": "local",
-      "command": ["uvx", "oh-my-cassette==0.7.0"],
+      "command": ["uvx", "oh-my-cassette==0.7.3"],
       "timeout": 600000
     }
   }
@@ -209,7 +209,7 @@ Then copy the skill so OpenCode loads it:
 
 ```bash
 mkdir -p ~/.config/opencode/skills/cassette-video-edit
-curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.7.0/skills/cassette-video-edit/SKILL.md \
+curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.7.3/skills/cassette-video-edit/SKILL.md \
   -o ~/.config/opencode/skills/cassette-video-edit/SKILL.md
 ```
 
@@ -218,10 +218,10 @@ OpenCode has no MCP elicitation, which is fine: the editing agent's questions co
 ### Hermes
 
 ```bash
-hermes mcp add cassette --command uvx --args oh-my-cassette==0.7.0
+hermes mcp add cassette --command uvx --args oh-my-cassette==0.7.3
 
 mkdir -p ~/.hermes/skills/cassette-video-edit
-curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.7.0/skills/cassette-video-edit/SKILL.md \
+curl -fsSL https://raw.githubusercontent.com/Cassette-Editor/oh-my-cassette/v0.7.3/skills/cassette-video-edit/SKILL.md \
   -o ~/.hermes/skills/cassette-video-edit/SKILL.md
 ```
 
@@ -229,7 +229,7 @@ Set `mcp_servers.cassette.timeout: 600` in `~/.hermes/config.yaml` so a call's b
 
 ### Any other MCP host
 
-Command `uvx`, args `["oh-my-cassette==0.7.0"]`, stdio transport, a tool timeout of 10 minutes, and the environment variables above. No uv? `pipx run oh-my-cassette==0.7.0` works too.
+Command `uvx`, args `["oh-my-cassette==0.7.3"]`, stdio transport, a tool timeout of 10 minutes, and the environment variables above. No uv? `pipx run oh-my-cassette==0.7.3` works too.
 
 ## How a turn looks
 
@@ -249,7 +249,7 @@ The editor link comes from the service: open it in a browser to watch the run li
 ## Check a service
 
 ```bash
-uvx oh-my-cassette==0.7.0 check --url http://127.0.0.1:8790/mcp --upload \
+uvx oh-my-cassette==0.7.3 check --url http://127.0.0.1:8790/mcp --upload \
   --arguments '{"project_id": "<a test project>"}'
 ```
 
@@ -265,10 +265,10 @@ answers the handshake-era `initialize` fails the transport check, and the bridge
 0.5 is a rewrite. The 0.4 plugin carried its own editing runtime, music search and Hermes gateway; 0.5 is a thin bridge
 to the Cassette MCP service, and the tools your agent sees are the service's.
 
-- **Sign in again** with `uvx oh-my-cassette==0.7.0 login`. 0.4 passwords and tokens are not used.
+- **Sign in again** with `uvx oh-my-cassette==0.7.3 login`. 0.4 passwords and tokens are not used.
 - **Tools are new.** Projects, editing turns, questions, plans, undo, media, analysis and export come from the service,
   with their own descriptions; the 0.4 tool names (`cassette_run_job`, `cassette_ingest_media`, `cassette_match_bgm`, …)
-  are gone. Reinstall the plugin, or point your host config at `uvx oh-my-cassette==0.7.0`.
+  are gone. Reinstall the plugin, or point your host config at `uvx oh-my-cassette==0.7.3`.
 - **Projects live in your Cassette account**, the same ones you open on the web or in Cassette for Mac, and the editor
   link each answer carries opens the project you are working on. 0.4 sessions do not carry over.
 - **Hermes** is a plain MCP host now; remove the 0.4 gateway plugin.

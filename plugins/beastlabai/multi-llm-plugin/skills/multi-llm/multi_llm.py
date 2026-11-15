@@ -173,6 +173,10 @@ UTIL_COMMANDS: Dict[str, Tuple[Optional[str], str, str]] = {
                       "Plan an --improve-plan/--improve-code/--improve-commits "
                       "run: each step's decision and flags (read-only; the "
                       "native leg's planner)."),
+    "improve-cascade": ("utils.improve_cascade_next", "main",
+                        "Advance a native --cascade run: close out the stage "
+                        "just run and print the next stage's steps (`next`; "
+                        "the cascade's one writer on that leg)."),
     "commit-brief": ("utils.commit_front_door", "commit_brief_main",
                      "Resolve a commit range, print its commit block and write "
                      "or reuse its commit brief (a commit mode's preparation, "
@@ -330,6 +334,17 @@ def render_util_help() -> str:
         "that continues the run; exit 2 with [ALREADY_COMPLETE] when nothing is left",
         "to do. --json prints the same facts as one object. Read-only, like",
         "next-command. An --improve-commits run names the commit brief as its plan.",
+        "A --cascade run prints no steps: [IMPROVE_CASCADE_NEXT] names the",
+        "`util improve-cascade next` call to make instead.",
+        "",
+        "`util improve-cascade next <plan> --mode improve-plan|improve-code [flags...]",
+        "[--cascade-id <id> --after-stage <k>]` is a --cascade run's planner and",
+        "recorder on the native leg: it closes out the stage just run, then prints the",
+        "next stage's steps as improve-steps prints them, [IMPROVE_CASCADE_CONTINUE]",
+        "<the call to make once they are done> and [IMPROVE_RERUN]; exit 2 with the",
+        "stage count and table ([CASCADE_COMPLETE]) once every stage is closed, exit 3",
+        "when the stage a continue call follows is still open. It writes the cascade's",
+        "record, archive and ledger.",
         "",
         "`util commit-brief [<range>] [--focus \"<text>\"] [--context-plan <path>]",
         "[flags...]` takes the tokens a commit mode was typed with, range words",
@@ -770,11 +785,14 @@ def _run_util(rest: Sequence[str], ctx: ResultContext) -> int:
 
 #: A mode's options whose value is an existing file the command reads (a plan
 #: positional is ``--plan-file`` by now, and so is a commit brief's path; a
-#: commit mode's ``--context-plan`` is a plan read as context, and the hidden
-#: ``--commit-stage`` the staged header a detached worker applies).
+#: commit mode's ``--context-plan`` is a plan read as context, the hidden
+#: ``--commit-stage`` the staged header a detached worker applies, and
+#: review-plan's and review-code's hidden ``--cascade-stage-file`` a cascade
+#: stage's inputs manifest, which a cascade always names absolute; one typed
+#: relative is read from the cwd the move settles on, like the plan).
 _MODE_INPUT_PATH_OPTIONS: Tuple[str, ...] = (
     "--plan-file", "--question-file", "--tasks-file", "--files-from",
-    "--context-plan", "--commit-stage",
+    "--context-plan", "--commit-stage", "--cascade-stage-file",
 )
 
 #: A mode's options whose value is a path the command creates, so it need not
@@ -788,7 +806,8 @@ _MODE_OUTPUT_PATH_OPTIONS: Tuple[str, ...] = ("--out-dir", "--output")
 #: in the repository (``--output-file`` is the orchestrator output
 #: ``util decisions`` reads, and ``--output-dir`` the plan folder
 #: ``prior-changes`` reads and appends to; ``--files-from`` is the scope list
-#: ``improve-steps`` reads, as the mode route reads review-code's;
+#: ``improve-steps`` and ``improve-cascade next`` read, as the mode route reads
+#: review-code's;
 #: ``--context-plan`` is the plan ``commit-brief`` reads as context).
 _UTIL_INPUT_PATH_OPTIONS: Tuple[str, ...] = (
     "--plan-file", "--state-file", "--phase-dir", "--output-dir", "--tasks-file",
@@ -806,14 +825,18 @@ _UTIL_PATH_POSITIONAL: Dict[str, Tuple[str, ...]] = {
     "improve-steps": ("--mode", "--host", "--models", "--files", "--files-from",
                       "--base-ref", "--head-ref", "--max-detached",
                       "--internal-run-id", "--scope-policy"),
+    "improve-cascade": ("--mode", "--host", "--models", "--files", "--files-from",
+                        "--base-ref", "--max-detached", "--internal-run-id",
+                        "--scope-policy", "--cascade-id", "--after-stage"),
     "check-tasks": (),
     "backup": (),
     "resume-state": (),
 }
 
 #: The ``util`` commands whose path positional comes after this many other
-#: positionals: ``resume-state <mode> <plan>`` names the plan second.
-_UTIL_PATH_POSITIONAL_INDEX: Dict[str, int] = {"resume-state": 1}
+#: positionals: ``resume-state <mode> <plan>`` and ``improve-cascade next
+#: <plan>`` name the plan second.
+_UTIL_PATH_POSITIONAL_INDEX: Dict[str, int] = {"resume-state": 1, "improve-cascade": 1}
 
 #: Of those options, the ones that take one or more values (``nargs="+"``):
 #: argparse hands such an option every token up to the next option, so none
@@ -821,6 +844,7 @@ _UTIL_PATH_POSITIONAL_INDEX: Dict[str, int] = {"resume-state": 1}
 #: improve-plan <plan>`` names the plan last, not ``m2``).
 _UTIL_VARIADIC_OPTIONS: Dict[str, Tuple[str, ...]] = {
     "improve-steps": ("--models",),
+    "improve-cascade": ("--models",),
 }
 
 #: The cwd :func:`_run_from_repository_root` moved away from, which ``main``

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "host_capabilities.schema.json",
   "title": "Host capability data (D5b)",
-  "description": "The verb->mechanism map the host-neutral instruction core defers to. Every field is required except a small, closed set of optional keys (`shim_max_lines`, `headless_invocation`, `package`), and they share one admission rule: an optional key may govern a lint or a generated document, and may never affect a dispatch decision. A defaulted *capability* is exactly the silent guess this schema exists to remove, which is why the rule is about the class of key rather than about a count. There is no 'omit it and inherit'. `next_command` is required although it decides no dispatch: Python reads it at run time to build output (the next-phase command a finished phase prints), and a host with no template would silently print no command, so it fails the optional-key admission rule and is required like `invocation`. Consumed by multi_llm.py, install-host, hosts/render_capabilities.py, utils/next_phase.py and the tests; never by an agent.",
+  "description": "The verb->mechanism map the host-neutral instruction core defers to. Every field is required except a small, closed set of optional keys (`shim_max_lines`, `min_host_version`, `headless_invocation`, `package`), and they share one admission rule: an optional key may govern a lint or a generated document, and may never affect a dispatch decision. A defaulted *capability* is exactly the silent guess this schema exists to remove, which is why the rule is about the class of key rather than about a count. There is no 'omit it and inherit'. `next_command` is required although it decides no dispatch: Python reads it at run time to build output (the next-phase command a finished phase prints), and a host with no template would silently print no command, so it fails the optional-key admission rule and is required like `invocation`. Consumed by multi_llm.py, install-host, hosts/render_capabilities.py, utils/next_phase.py and the tests; never by an agent.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -126,6 +126,11 @@
           "type": "integer",
           "minimum": 40,
           "maximum": 400
+        },
+        "min_host_version": {
+          "description": "Optional. The lowest build of a host with no package route that this skill was RUN on with its host mechanisms working, recorded with the measurement beside the key. No consumer branches on it and nothing enforces it, which is what makes it optional. A host with a package route states its floor as `package.min_host_version`, and a provider adapter's own floor is a separate fact.",
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
         },
         "headless_invocation": {
           "description": "Optional. The exact headless command line for this host when it differs from the obvious one \u2014 a measured fact, not a convention. Present only where getting it wrong fails confusingly rather than loudly (OpenCode's yargs swallows an argument list that starts with a flag and prints its own help instead of running). Absent means the host's documented headless form needs no correction. Governs generated documentation only, never a dispatch decision.",
@@ -648,6 +653,9 @@
               "$ref": "#/definitions/provenance_value"
             },
             "shim_max_lines": {
+              "$ref": "#/definitions/provenance_value"
+            },
+            "min_host_version": {
               "$ref": "#/definitions/provenance_value"
             },
             "headless_invocation": {

@@ -96,9 +96,9 @@ uv run {UV_RUN_FLAGS} --project "{SKILL_DIR}" -- python "{SKILL_DIR}/multi_llm.p
 
 `<mode>` is the phase's mode word (`review-plan`, `apply-suggestions`,
 `review-tasks`, `apply-task-suggestions`, `implement`, `review-code`,
-`apply-code-fixes`). Reading `instructions/<mode>.md` out of the skill directory
-is the documented fallback, not the primary path: the served text is
-pre-substituted and the file on disk is not.
+`apply-code-fixes`). Never read `instructions/<mode>.md` out of the skill directory
+in its place: the served text is pre-substituted and the file on disk is not, and
+whatever stopped this command stops the phase's own dispatcher commands too.
 
 **A typed `--scope-policy` goes to every phase.** When the user typed
 `--scope-policy <value>`, add it, as typed, to every phase command you run below

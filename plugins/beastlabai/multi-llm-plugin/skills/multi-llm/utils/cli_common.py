@@ -1470,12 +1470,25 @@ def drop_implied_judge_flag(mode: str, tokens: Iterable[str]) -> List[str]:
 #: header and ``commit_range``, which the worker applies once and deletes, so it is
 #: dropped the same way. Both take one
 #: value.
+#:
+#: So is review-plan's and review-code's hidden ``--cascade-stage-file
+#: <manifest>``: a cascade stage's frozen inputs, which only the composite's
+#: step writes. A printed retry runs without it and keeps the stage's
+#: provenance anyway: the review carries the round's recorded ``cascade``
+#: block over only to a fan-out that resumes the stage's round with exactly
+#: its one model (``review_lane.open_round``), and these replay flags may name
+#: no model at all (a review the composite ran in its own process replays
+#: none), so the review's ``--force`` retries name the stage's model through
+#: ``cascade_provenance.retry_flags``. Replayed, the hidden flag would make
+#: every later command built from those flags, a hand-started ``--rerun-all``
+#: included, claim that stage.
 _REPLAY_DROP_POSITIONAL: Dict[str, Tuple[Tuple[str, ...], bool]] = {
     "plan_file": (("--plan-file",), True),
     "question": (("--question",), True),
     "question_file": (("--question-file",), True),
     "revs": (("--revs",), True),
     "commit_stage": (("--commit-stage",), True),
+    "cascade_stage_file": (("--cascade-stage-file",), True),
 }
 
 
@@ -1627,7 +1640,8 @@ def replay_flags(mode: str, argv: Sequence[str]) -> List[str]:
       :meth:`ResultContext.set_next` drop the whole command;
     * the positional-derived flags, which every replay re-emits from its own
       arguments (``--plan-file``, ``--question``, ``--question-file``, the
-      commit modes' ``--revs``), and the hidden ``--commit-stage``;
+      commit modes' ``--revs``), the hidden ``--commit-stage`` and the hidden
+      ``--cascade-stage-file``;
     * the dispatcher's own injections for this mode (``modes.injected_flags``
       and every alias's ``alias_flags``), which the replay's mode word
       re-derives;
@@ -1872,7 +1886,7 @@ def parse_result_line(text: str) -> Optional[Dict[str, Any]]:
 #: parser argparse will really use: a name missing here just keeps the old
 #: over-reporting, which leaves a guard closed rather than open.
 _EXACT_OPTIONS: FrozenSet[str] = frozenset({
-    "--all", "--approve-all", "--consolidate", "--dry-run", "--files", "--force",
+    "--all", "--approve-all", "--cascade", "--consolidate", "--dry-run", "--files", "--force",
     "--host", "--mode", "--output", "--phase", "--project", "--question",
     "--reaggregate", "--revalidate", "--skip", "--summary", "--task",
 })

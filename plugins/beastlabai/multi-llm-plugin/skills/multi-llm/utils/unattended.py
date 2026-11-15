@@ -148,9 +148,15 @@ ROWS: Tuple[Row, ...] = (
                "improve-commits"),
         dispositions=(AUTO_SELECT, FAIL_CLOSED),
         flags=("--force", "--reaggregate", "--rerun-all"),
+        # Under --cascade each stage's review has one model, so zero results is
+        # likelier: the cascade records a stage before the last skipped
+        # ([CASCADE_STAGE_SKIPPED] and an [AUTO_RESOLVED] line under this site)
+        # and runs the next; the last stage's stays exit 3. Both composite cores
+        # state it in their row tables, and section 2C runs it on the native leg.
         enforced_in=("utils/review_orchestrator_base.py", "ask_orchestrator.py",
                      "code_review_orchestrator.py",
-                     "instructions/review-plan.md"),
+                     "instructions/review-plan.md", "utils/improve_cascade.py",
+                     "instructions/improve-plan.md", "instructions/improve-code.md"),
     ),
     Row(
         number=4,
@@ -1056,6 +1062,23 @@ def mark_needs_human(mode: Optional[str] = None) -> None:
     ctx.state = "needs-human"
     if mode:
         ctx.mode = mode
+
+
+def clear_needs_human() -> None:
+    """Undo :func:`mark_needs_human` for this invocation: the result line's
+    state follows its exit code again.
+
+    Only a composite's cascade calls it, after a middle stage's review
+    produced no result (row 3's exit 3, through :func:`fail_closed`): that
+    stage is recorded skipped and the run goes on to the next stage, so the
+    stop the review marked is no longer the run's. Any other state (``partial``,
+    say) is left as it is. A no-op under direct invocation, as
+    :func:`mark_needs_human` is. The contract:
+    docs/development/workflows.md, "A cascade (``--cascade``)".
+    """
+    ctx = active_result()
+    if ctx is not None and ctx.state == "needs-human":
+        ctx.state = None
 
 
 def fail_closed(

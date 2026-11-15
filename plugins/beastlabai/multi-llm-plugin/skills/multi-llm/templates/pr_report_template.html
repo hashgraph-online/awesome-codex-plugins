@@ -4330,6 +4330,8 @@
       var vs = group.validationStatus || group.validation_status || '';
       var validationReason = group.validationReason || group.validation_reason || '';
       var validationConfidence = group.validationConfidence || group.validation_confidence || 0;
+      // A cascade stage's re-raise of an earlier round's entry; '' elsewhere.
+      var reraiseNote = group.validationReraiseOf ? ' (re-raises ' + escapeHtml(group.validationReraiseOf) + ')' : '';
       var isConsensus = models.length >= 3;
       var isGroupSkipped = !!selections.skipped_groups[groupHashKey];
       var maxImp = (group.maxImportance || 'low').toLowerCase();
@@ -4489,7 +4491,7 @@
         html += '<details class="inline-validation-section">';
         html += '<summary>';
         html += '<span class="badge ' + getValidationBadgeClass(vs) + '">' + escapeHtml(vs) + '</span>';
-        html += ' Validation';
+        html += ' Validation' + reraiseNote;
         if (confidencePercent > 0) {
           html += ' <span class="confidence-bar"><span class="confidence-fill ' + confidenceClass + '" style="width: ' + confidencePercent + '%"></span></span>';
           html += ' (' + confidencePercent + '%)';
@@ -4621,6 +4623,8 @@
         var validationReason = group.validationReason || group.validation_reason || '';
         var validationConfidence = group.validationConfidence || group.validation_confidence || 0;
         var confidencePercent = Math.round(validationConfidence * 100);
+        // A cascade stage's re-raise of an earlier round's entry; '' elsewhere.
+        var reraiseNote = group.validationReraiseOf ? ' (re-raises ' + escapeHtml(group.validationReraiseOf) + ')' : '';
         var suggestions = group.suggestions || [];
         var models = group.models || [];
         var theme = group.theme || (suggestions.length > 0 ? suggestions[0].title : 'Untitled Group');
@@ -4703,7 +4707,7 @@
           html += '<details class="flat-validation-section">' +
             '<summary>' +
             '<span class="badge ' + getValidationBadgeClass(validationStatus) + '">' + escapeHtml(validationStatus) + '</span>' +
-            ' Validation' +
+            ' Validation' + reraiseNote +
             ' <span class="confidence-bar"><span class="confidence-fill ' + confidenceClass + '" style="width: ' + confidencePercent + '%"></span></span>' +
             ' (' + confidencePercent + '%)' +
             '</summary>' +

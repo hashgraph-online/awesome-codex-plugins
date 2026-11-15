@@ -61,6 +61,21 @@ hosts:
     # (docs/development/hosts.md, "The read step comes in three forms"); the printed
     # form keeps its head banner for the hosts and fallbacks that still use it.
     shim_max_lines: 120
+    # The plugin-host baseline: the lowest build this skill was RUN on with all of
+    # its host mechanisms working. A record, not a gate: nothing reads it to decide
+    # anything, and the reviewer adapter's floor in utils/providers/claude_code.py
+    # protects a different thing (the CLI's JSON result envelope).
+    #
+    # Measured 2026-11-07 on a throwaway HOME, `claude -p --permission-mode default
+    # --plugin-dir <frozen tree>`, `openai/gpt-6-luna` through OpenRouter. A build
+    # passes if the skill loads, `Agent` creates a subagent and `SendMessage` resumes
+    # it. 2.1.319, 2.1.300, 2.1.280, 2.1.250 and 2.1.200 pass; 2.1.319 defers
+    # `SendMessage` behind `ToolSearch`. 2.1.150 and 2.1.100 load the skill and create
+    # a subagent but expose no `SendMessage`, so a batch cannot be resumed there.
+    # Versions between 2.1.150 and 2.1.200 were not tried. Every run was headless, so
+    # no interactive prompt was observed, and none reported a permission denial on
+    # `Agent` or `SendMessage`.
+    min_host_version: "2.1.200"
     installable: false
     install_paths:
       project: [".claude/skills/multi-llm"]
@@ -103,10 +118,13 @@ hosts:
     ask: structured
     detach: native
     native_tool:
-      subagents: Task
+      # `Agent` is the tool's current name, and `Task` is its compatibility alias in
+      # settings and agent definitions, so SKILL.md's `allowed-tools` keeps `Task`.
+      # The spelling is not a permission fix: subagent launches need no permission.
+      subagents: Agent
       ask: AskUserQuestion
       detach: run_in_background
-    # No session rung: this host dispatches subagents natively through `Task`
+    # No session rung: this host dispatches subagents natively through `Agent`
     # and picks their model from `subagent_tiers`, so there is nothing for a
     # session model to be substituted into — and nothing on the skill's side of
     # the boundary reads the session's selected model in the first place.
@@ -160,6 +178,7 @@ hosts:
     provenance:
       shim: documented
       shim_max_lines: verified      # counted on the file in the repo
+      min_host_version: verified    # the runs in the comment beside the key
       installable: verified
       install_paths: documented
       reload: documented
@@ -512,8 +531,8 @@ hosts:
     package:
       registry: npm
       name: opencode-multi-llm
-      version: "0.1.8"
-      public_version: "0.1.4"
+      version: "0.1.9"
+      public_version: "0.1.8"
       config_key: plugin
       provides: [command, tool]
       min_host_version: "1.19.5"   # the one supported opencode release (the
@@ -724,6 +743,10 @@ hosts:
       # All nine registry criteria passed, including offline operation and
       # a 0.1.3 -> 0.1.4 upgrade executing the newly installed payload
       # (records/20261101T061412Z-opencode-release-network-check.json).
+      # RECHECKED 2026-11-12 for opencode-v0.1.8 on OpenCode 1.19.5.
+      # All nine registry criteria passed, including offline operation and
+      # a 0.1.4 -> 0.1.8 upgrade executing the newly installed payload
+      # (records/20261112T160945Z-opencode-release-network-check.json).
       package: verified
       invocation: verified
       # PROMOTED BY T10 (plans/next-phase-command.md), opencode 1.18.33,

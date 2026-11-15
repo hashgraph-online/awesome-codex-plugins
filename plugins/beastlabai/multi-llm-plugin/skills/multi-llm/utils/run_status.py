@@ -167,6 +167,7 @@ class _WaitTimeoutRefused(Exception):
 #: this module's own code reaches each one through its owner at every call.
 _MOVED: Dict[str, Tuple[str, ...]] = {
     "status_views": (
+        "CASCADE_POINTER_NAME",
         "CHECKPOINT_TERMINAL_STATES",
         "CHECKPOINT_TERMINAL_STEPS",
         "ENDED_IN_FOREGROUND",
@@ -174,9 +175,11 @@ _MOVED: Dict[str, Tuple[str, ...]] = {
         "GENERIC_NEEDS_HUMAN_ERROR",
         "STOPPED_IN_FOREGROUND",
         "STOPPED_STEP",
+        "_CASCADE_KEYS",
         "_IMPLEMENT_PHASE",
         "_a_dispatch_failed",
         "_ask_dirs",
+        "_cascade_keys",
         "_checkpoint_in_flight",
         "_dedupe_run_ids",
         "_died",
@@ -193,9 +196,12 @@ _MOVED: Dict[str, Tuple[str, ...]] = {
         "_stopped_for_the_user",
         "_view_dir_name",
         "_workflow_payload",
+        "attach_cascades",
+        "cascades_without_a_view",
         "discover_phase_dirs",
         "exit_code_for",
         "ignored_phase_dirs",
+        "unfinished_cascades",
     ),
     "status_commands": (
         "NO_RESUME_BEFORE_DISPATCH",
@@ -316,6 +322,9 @@ _MOVED: Dict[str, Tuple[str, ...]] = {
         "_workflow_trailer_lines",
         "_write_result_notice",
         "_write_result_notice_parts",
+        "cascade_line",
+        "cascade_record_lines",
+        "cascade_suggestion",
         "manual_close_note",
         "render_run_text",
         "render_workflow_text",
@@ -739,6 +748,9 @@ class StatusFacts:
     terminal: bool
     #: Every listed run is terminal or has no run record: nothing is writing.
     settled: bool
+    #: Every composite's unfinished cascade on record
+    #: (``status_views.unfinished_cascades``), carried by a run view or not.
+    cascades: List[Dict[str, Any]] = field(default_factory=list)
 
 
 @dataclass
@@ -821,8 +833,9 @@ def _gather(
 ) -> StatusFacts:
     """Read the views (:func:`_collect`) and what discovery skipped, then
     ``--wait`` on them, then set aside the executor runs a native leg went on
-    from (never under ``--run-id`` / ``--question``, which name a run) and
-    tally implement's tasks beside an executor implement run. Raises
+    from (never under ``--run-id`` / ``--question``, which name a run), give
+    a composite run its unfinished cascade (``status_views.attach_cascades``)
+    and tally implement's tasks beside an executor implement run. Raises
     :class:`_WaitTimeoutRefused` for a ``--wait`` with no honest deadline."""
     views = _collect(plan_path, args)
     discovery = _discovery_report(plan_path, args)
@@ -840,6 +853,12 @@ def _gather(
         except Exception as exc:  # noqa: BLE001 - advisory: the run view is not
             note_swallowed("status: superseded runs", exc)
             superseded = {}
+
+    # A composite run's unfinished cascade, after any wait (advisory), and
+    # every one on record, which a native leg's cascade (no run record) and
+    # the suggested next step read.
+    status_views.attach_cascades(plan_path, views)
+    cascades = status_views.unfinished_cascades(plan_path)
 
     implement_tally = None
     if any(status_views._is_executor_implement_view(view) for view in views):
@@ -859,6 +878,7 @@ def _gather(
             view["verdict"] in detach.TERMINAL_VERDICTS
             or view["verdict"] == detach.VERDICT_NO_RUN
             for view in views),
+        cascades=cascades,
     )
 
 
@@ -896,7 +916,8 @@ def _record_pinned_run(
 ) -> Optional[str]:
     """Record the pinned run's own ``mode`` (its record's, else its phase
     dir) and ``phase`` (a composite's from its worker's line), its progress
-    map whole, its rendered progress lines (implement's whole tally beside an
+    map whole, its rendered progress lines (a composite's unfinished cascade
+    stage first, implement's whole tally beside an
     executor implement), and its stop line as ``error``: ``run.error`` of a
     failed run unless it is the close-out's generic word. Each is recorded
     before the next is read. Returns the stop line, or ``None``."""
@@ -909,6 +930,10 @@ def _record_pinned_run(
     record_mode_phase(mode, phase)
     record_progress(watched.get("progress"))
     lines = status_text._progress_lines(watched)
+    cascade = status_text.cascade_line(watched)
+    if cascade:
+        # What the run is over comes first: a composite's cascade stage.
+        lines.insert(0, plain_line(cascade))
     if (implement_tally is not None
             and status_views._is_executor_implement_view(watched)):
         lines.append(
@@ -959,7 +984,8 @@ def _terminal_trailer(facts: StatusFacts, answer: StatusAnswer) -> None:
     close_note = _close_note(facts, workflow)
     trailer = status_text._workflow_trailer_lines(
         workflow, prefix="", close_note=close_note,
-        suggested=answer.exit_code == EXIT_OK,
+        suggested=answer.exit_code == EXIT_OK and _suggests(facts),
+        cascade=_suggested_cascade(facts),
     )
     # Imported here to keep run_status light.
     from .next_phase import gate_resume_closes_the_manual_tasks
@@ -1028,6 +1054,45 @@ def _next_step(facts: StatusFacts, answer: StatusAnswer) -> None:
         ]
 
 
+def _suggested_cascade(facts: StatusFacts) -> Optional[Dict[str, Any]]:
+    """The unfinished cascade the suggested next step continues (the first
+    on record; under ``--phase``, only the composite it names), or ``None``:
+    then the workflow's own suggestion stands, where :func:`_suggests` lets
+    one print."""
+    cascades = facts.cascades
+    phase = _resolve_phase(facts.args.phase)
+    if phase is not None:
+        cascades = [cascade for cascade in cascades if cascade.get("mode") == phase]
+    return cascades[0] if cascades else None
+
+
+def _suggests(facts: StatusFacts) -> bool:
+    """Whether the workflow section prints a ``suggested next`` line at all.
+
+    Not under a ``--phase`` naming another phase while a cascade is
+    unfinished: the cascade's continuation is not that phase's to suggest,
+    and the workflow's own ``suggested_next`` reads every step of the
+    composite done between two stages. Without a cascade it always does,
+    so that output keeps its bytes.
+    """
+    return not facts.cascades or _suggested_cascade(facts) is not None
+
+
+def _cascades_shown(facts: StatusFacts) -> List[Dict[str, Any]]:
+    """The unfinished cascades no listed composite run view carries, for the
+    run view's text and ``--json``'s ``cascades``: never under ``--run-id``
+    or ``--question`` (they name a run), and under ``--phase`` only the
+    composite it names."""
+    args = facts.args
+    if args.run_id or args.question:
+        return []
+    phase = _resolve_phase(args.phase)
+    shown = status_views.cascades_without_a_view(facts.cascades, facts.views)
+    if phase is not None:
+        shown = [cascade for cascade in shown if cascade.get("mode") == phase]
+    return shown
+
+
 def _render(facts: StatusFacts, answer: StatusAnswer) -> None:
     """Print the answer: the ``--json`` document or the text, then the next
     step's block (stderr under ``--json``, whose document gains no key)."""
@@ -1060,6 +1125,9 @@ def _render_json(facts: StatusFacts, answer: StatusAnswer) -> Dict[str, Any]:
         payload["copied_runs"] = list(facts.discovery["copies"])
     if answer.commit_fixes is not None:
         payload["commit_fixes"] = answer.commit_fixes[1]
+    cascades = _cascades_shown(facts)
+    if cascades:
+        payload["cascades"] = cascades
     return payload
 
 
@@ -1071,18 +1139,24 @@ def _render_text(facts: StatusFacts, answer: StatusAnswer) -> List[str]:
     lines: List[str] = []
     if args.view == VIEW_ALL and workflow is not None:
         lines += status_text.render_workflow_text(
-            workflow, close_note=_close_note(facts, workflow))
+            workflow, close_note=_close_note(facts, workflow),
+            cascade=_suggested_cascade(facts), suggested=_suggests(facts))
         lines.append("")
     spell = status_commands.user_speller(
         _reader_host(args), _plan_spelling(args, views, plan_path),
         plan_path=plan_path)
+    cascades = _cascades_shown(facts)
     lines += status_text.render_run_text(
         views, plan_path=plan_path, workflow=workflow,
         scope=_scope_label(args), resume_workflow=answer.terminal_workflow,
         implement_tally=facts.implement_tally,
-        state_block=answer.implement_tasks is not None or bool(answer.apply_tasks),
+        # A block of its own follows (a native phase's state, an unfinished
+        # cascade's entry): no "no run recorded" line above it.
+        state_block=(answer.implement_tasks is not None or bool(answer.apply_tasks)
+                     or bool(cascades)),
         spell=spell,
     )
+    lines += status_text.cascade_record_lines(cascades, plan_path=plan_path, spell=spell)
     native: List[Tuple[str, List[str]]] = [
         (entry["phase"], status_native.render_state_apply_lines(
             entry, resume=status_native.native_resume_command(entry["phase"], plan_path, spell)))

@@ -233,6 +233,44 @@ import subprocess
 import sys
 
 root, checkpoint = sys.argv[1:]
+# Path checkout honors sparse and skip-worktree exclusions. It cannot promise
+# the complete checkpoint tree while any tracked path is excluded.
+sparse = subprocess.run([
+    'git', '-C', root, 'config', '--bool', 'core.sparseCheckout',
+], capture_output=True, check=False)
+if sparse.returncode not in (0, 1):
+    sys.exit('Rollback cannot verify a complete working tree. Check the sparse-checkout configuration before retrying.')
+index_entries = subprocess.check_output([
+    'git', '-C', root, 'ls-files', '-v', '-z',
+]).split(b'\0')
+if sparse.stdout.strip() == b'true' or any(
+    entry[:1].upper() == b'S' and entry[2:] != b'.octo/LESSONS.md'
+    for entry in index_entries
+):
+    sys.exit('Rollback requires a complete working tree. Disable sparse checkout and clear skip-worktree exclusions before retrying; no project files were restored.')
+# Excluding the lessons file does not protect an ancestor symlink from checkout.
+lessons_directory = os.path.join(root, '.octo')
+if os.path.lexists(lessons_directory) and (
+    os.path.islink(lessons_directory) or not os.path.isdir(lessons_directory)
+):
+    sys.exit('Rollback would replace the protected lessons directory. Preserve lessons and use a real .octo directory before retrying.')
+if os.path.islink(os.path.join(lessons_directory, 'LESSONS.md')):
+    sys.exit('Rollback cannot preserve a symlinked protected lessons file. Preserve its backing content and use a regular LESSONS.md before retrying.')
+# A gitlink checkout does not restore the nested repository's working tree.
+# Refuse changed submodules before ordinary files or the index can be restored.
+submodule_trees = []
+for revision in (checkpoint, 'HEAD'):
+    submodules = {}
+    for entry in subprocess.check_output([
+        'git', '-C', root, 'ls-tree', '-r', '-z', revision, '--',
+    ]).split(b'\0'):
+        if entry:
+            metadata, path = entry.split(b'\t', 1)
+            if metadata.startswith(b'160000 ') and path != b'.octo/LESSONS.md':
+                submodules[path] = metadata
+    submodule_trees.append(submodules)
+if submodule_trees[0] != submodule_trees[1]:
+    sys.exit('Rollback requires manual submodule restoration. No project files were restored; preserve nested repository work before retrying.')
 lessons_tracked = bool(subprocess.check_output([
     'git', '-C', root, 'ls-files', '-z', '--', '.octo/LESSONS.md',
 ]))
@@ -268,9 +306,16 @@ fi
 **Important:** This runs `git checkout --no-overlay <tag> -- . ':(exclude).octo/LESSONS.md'` from the repository root, which:
 - Restores tracked files to checkpoint state, including additions and deletions
 - Preserves current `.octo/LESSONS.md` in both the index and working tree
+- Requires a complete working tree without sparse or skip-worktree exclusions outside the protected lessons file
+- Stops when `.octo` is a symlink or file, or `LESSONS.md` is a symlink, before restoring files
 - Does NOT move HEAD or change branch
 - Preserves current commit history
 - Allows immediate commit of the restored state
+
+If the checkpoint adds, removes, moves or changes a submodule, restoration stops
+before modifying project files or the index. A gitlink alone cannot restore a
+nested working tree. Report the manual submodule work required and retain the
+safety checkpoint; do not claim that rollback completed.
 
 ### Step 7: Update STATE.md (If Exists)
 

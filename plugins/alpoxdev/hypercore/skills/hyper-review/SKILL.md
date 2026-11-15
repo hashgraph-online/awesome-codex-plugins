@@ -1,7 +1,7 @@
 ---
 name: hyper-review
 description: "Use this skill when a change that already exists needs a verdict - review only a diff, a branch, a pull request, or the working tree, with an independent reviewer, a hands-on QA matrix, and a test-quality and code-smell gate, or review and fix the confirmed blockers when the user explicitly asks for repairs. It binds the verdict to the reviewed content, saves `.hyper/review/[slug].md`, and edits no source file unless the user asked to fix. Do not use it for a change that does not exist yet, a design or look review, a deployment failure, a runtime failure to diagnose, or a one-line wording edit."
-compatibility: Needs file read and search over the reviewed tree, git, and a shell for the project's own build, test, and run commands. The independent reviewer lane needs a subagent capability; without it the leader applies the rubric itself and records `review: self`. Rendered or remote surfaces need the browser, credentials, or hardware they use, and a row that cannot be exercised is reported as unproven with the exact blocker. No bundled script.
+compatibility: "Needs file read and search over the reviewed tree, git, and a shell for the project's own build, test, and run commands. The independent reviewer lane needs a subagent capability; without it the leader applies the rubric itself and records `review: self`. Rendered or remote surfaces need the browser, credentials, or hardware they use, and a row that cannot be exercised is reported as unproven with the exact blocker. No bundled script."
 ---
 
 @rules/context-and-identity.md

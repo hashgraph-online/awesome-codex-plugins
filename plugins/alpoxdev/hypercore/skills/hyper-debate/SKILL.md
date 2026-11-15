@@ -1,7 +1,7 @@
 ---
 name: hyper-debate
 description: "Use this skill when the user explicitly asks for adversarial multi-perspective planning before a decision-complete plan, with words such as '여러 관점으로 따져보고 계획', '찬반으로 붙여서 계획', 'adversarial planning', 'devil's advocate plan', 'red team this plan', or 'debate it then plan'. Five fixed perspectives argue through three rounds and the surviving findings become the plan. It writes per-run receipts under `.hyper/debate/`, asks for one approval of the insight bundle, then writes the plan under `.hyper/plans/`. Do not use it for an ordinary 'plan this feature' request, a review of finished code, a research report, a PRD, or an immediate edit."
-compatibility: Needs file read and search for grounding, write access for `.hyper/debate/` and `.hyper/plans/`, and a shell for read-only inspection. Parallel subagents are optional: with them each perspective runs as its own child; without them the five perspectives run sequentially in one context and the run reports the debate as reduced. No bundled script and no network access.
+compatibility: "Needs file read and search for grounding, write access for `.hyper/debate/` and `.hyper/plans/`, and a shell for read-only inspection. Parallel subagents are optional: with them each perspective runs as its own child; without them the five perspectives run sequentially in one context and the run reports the debate as reduced. No bundled script and no network access."
 ---
 
 @rules/rounds.md

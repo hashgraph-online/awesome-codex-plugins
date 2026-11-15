@@ -39,6 +39,7 @@ from . import detach as _detach
 from . import run_record as _run_record
 from .atomic_io import read_back_text
 from .clock import parse_iso
+from . import cascade_provenance as _cascade
 from . import status_file as _status_file
 from . import validation_context as _validation_context
 from . import cli_common
@@ -62,6 +63,7 @@ from .output_handler import (
     get_phase_dir,
     consolidation_is_current,
     output_dir_path,
+    phase_dir_path,
     PHASE_DIRECTORIES,
 )
 from . import unattended as _unattended
@@ -189,6 +191,7 @@ from .validation import (
     publish_from_task_document,
     verify_context_sources,
     merge_batched_validation_results,
+    prior_rounds_moved,
     resolved_reaggregate_command,
 )
 from .subagent_tasks import (
@@ -861,6 +864,59 @@ def with_reviewer_guidance(
         return context
 
     return factory
+
+
+def prior_rounds_block(ledger: str) -> str:
+    """The reviewer prompt's ``{prior_rounds}`` value for a cascade stage's *ledger*.
+
+    The placeholder shares a line with ``{scope_policy_guidance}``, so an empty
+    ledger (no cascade, or a cascade's first stage) renders ``""`` and the
+    prompt keeps today's bytes. A non-empty one opens with its own blank line
+    after the scope block, and its trailing whitespace is dropped so the
+    template's blank line before ``## Output Format`` stays the only one.
+    """
+    text = (ledger or "").strip()
+    return f"\n\n{text}" if text else ""
+
+
+def with_prior_rounds(
+    prompt_context_factory: Callable[[str], Dict[str, Any]],
+    block_text: str,
+) -> Callable[[str], Dict[str, Any]]:
+    """The factory, with the round's ``{prior_rounds}`` block added.
+
+    *block_text* is the stage's frozen reviewer ledger
+    (:func:`round_prior_rounds`), or ``""`` outside a cascade. Every factory
+    this wraps gets the key, since a template that names the placeholder
+    fails a slot whose context lacks it; a template that does not name it
+    (review-tasks) ignores it. Added only where the orchestrator's own factory
+    left the key out, as :func:`with_reviewer_guidance` does.
+    """
+    block = prior_rounds_block(block_text)
+
+    def factory(model_spec: str) -> Dict[str, Any]:
+        context = dict(prompt_context_factory(model_spec))
+        context.setdefault("prior_rounds", block)
+        return context
+
+    return factory
+
+
+def round_prior_rounds(phase_dir: str) -> str:
+    """The reviewer ledger of the cascade stage whose round *phase_dir* holds; ``""`` outside one.
+
+    Read from the round's ``.status.json`` ``cascade`` block after the opening
+    checkpoint has written it, with the frozen file's hash verified before a
+    byte of it reaches a prompt. A block or file that cannot be trusted stops
+    the run at exit 3 before any model is called (fail closed;
+    docs/development/review-results.md#round-identity).
+    """
+    try:
+        return _cascade.ledger_text(
+            _cascade.read_block(phase_dir), _cascade.REVIEWER_LEDGER,
+        )
+    except _cascade.CascadeProvenanceError as exc:
+        sys.exit(_unattended.fail_closed(_cascade.error_line(exc)))
 
 
 def scope_decisions_for(
@@ -1997,8 +2053,15 @@ def retire_validation_for_regroup(
     ``--reaggregate`` was meant (adversarial review, 2026-10-02). The
     executor's own ``_result_names_foreign_groups`` still re-dispatches any
     stale batch the equal-set case leaves behind. The comparison is on the
-    grouping alone: a plan edited between the rounds moves the task file's
-    ``inputs.plan_sha256``, which is the task file's refusal to make.
+    grouping, plus one input the group ids cannot show: a cascade stage's
+    earlier-rounds ledger (``validation.prior_rounds_moved``). A later stage
+    whose findings repeat an earlier stage's word for word regroups to the
+    same hashes, but its validators must judge them against its own ledger,
+    so a task file beside the batches that recorded another ledger (or none,
+    where this round has one) retires the whole round; outside a cascade
+    both record none and nothing changes. A plan edited between the rounds
+    moves the task file's ``inputs.plan_sha256``, which is the task file's
+    refusal to make.
     """
     current = frozenset(
         str(group.get("group_hash"))
@@ -2007,8 +2070,17 @@ def retire_validation_for_regroup(
     )
     previous = _recorded_group_hashes(os.path.join(phase_dir, "grouped.json"))
     if previous is not None and previous == current and len(current) == len(grouped):
-        target = retire_stale_validation(phase_dir, reason=reason)
-        return [target] if target else []
+        try:
+            with open(os.path.join(phase_dir, "validation_tasks.json"), "r",
+                      encoding="utf-8") as handle:
+                task_document = json.load(handle)
+        except (OSError, ValueError):
+            task_document = None
+        moved = prior_rounds_moved(task_document, phase_dir)
+        if moved is None:
+            target = retire_stale_validation(phase_dir, reason=reason)
+            return [target] if target else []
+        reason = f"{reason}; {moved}"
     return retire_stale_validation_round(phase_dir, reason=reason)
 
 
@@ -3601,7 +3673,8 @@ def exit_when_every_reviewer_failed(
         phase_dir=str(phase_dir),
         retry_command=cli_common.retry_command(
             mode, plan_path, "--force",
-            flags=cli_common.current_replay_flags(stored_flags, mode=mode),
+            flags=_cascade.retry_flags(
+                phase_dir, cli_common.current_replay_flags(stored_flags, mode=mode)),
         ),
     ))
 
@@ -7149,6 +7222,11 @@ def format_group(
         "validation_failed": "? Validation Failed",
     }
     validation_str = validation_display.get(validation_status, "? Unknown") if validation_status else "? Unknown"
+    # A cascade stage's validator named the earlier-round entry this group
+    # repeats; absent everywhere else, so the line keeps its bytes.
+    reraise = group.get("validation_reraise_of")
+    if reraise:
+        validation_str += f" (re-raises {_rm.inline_text(reraise)})"
 
     highest_importance = compute_max_importance(suggestions) or "LOW"
 
@@ -7474,7 +7552,8 @@ async def reaggregate_from_existing_files(
     claim = _review_round.continue_round(phase_dir)
     _review_round.refuse_foreign_round(claim, cli_common.retry_command(
         reaggregate_mode, plan_path, "--force",
-        flags=cli_common.current_replay_flags(mode=reaggregate_mode),
+        flags=_cascade.retry_flags(
+            phase_dir, cli_common.current_replay_flags(mode=reaggregate_mode)),
     ))
 
     # The result files a reaggregate reads, one rule for every review lane;
@@ -7789,10 +7868,13 @@ class BaseReviewLane:
         default_factory=dict, compare=False, repr=False,
     )
 
-    def retry_command(self, *flags: str) -> str:
+    def retry_command(self, *flags: str, stage_file: Optional[str] = None) -> str:
+        # A cascade stage's round names its one model (cascade_provenance.retry_flags).
         return cli_common.retry_command(
             self.mode, self.plan_path, *flags,
-            flags=cli_common.current_replay_flags(mode=self.mode),
+            flags=_cascade.retry_flags(
+                self.phase_dir, cli_common.current_replay_flags(mode=self.mode),
+                stage_file=stage_file),
         )
 
     def round_follow_up(
@@ -7931,6 +8013,13 @@ async def _review_orchestration(
     else:
         out_dir = os.path.join(base_dir, prefix)
 
+    # A cascade stage's hidden `--cascade-stage-file` (review-plan only): its
+    # manifest verified, and its round's block checked against the one on
+    # record, before anything is written, the phase dir included
+    # (utils/review_lane.py).
+    _review_lane.check_cascade_stage(
+        args, phase_dir=str(phase_dir_path(Path(plan_path), phase_name)))
+
     phase_dir = str(get_phase_dir(Path(plan_path), phase_name))
 
     # One writer per phase dir: this run holds its lock from here until it
@@ -7968,7 +8057,8 @@ async def _review_orchestration(
             _review_round.continue_round(phase_dir),
             cli_common.retry_command(
                 reaggregate_word, plan_path, "--force",
-                flags=cli_common.current_replay_flags(mode=reaggregate_word),
+                flags=_cascade.retry_flags(
+                    phase_dir, cli_common.current_replay_flags(mode=reaggregate_word)),
             ),
         )
 
@@ -8252,6 +8342,13 @@ async def _review_orchestration(
     # A model whose spec changed since the last run has no slot here to retire
     # its old files; a re-aggregate would read them back.
     retire_unselected_results(phase_dir, model_specs)
+
+    # A cascade stage's reviewers see the earlier rounds' ledger, read from
+    # the cascade block the opening checkpoint recorded; outside a cascade the
+    # block is "" and the prompt keeps today's bytes.
+    reviewer_context_factory = with_prior_rounds(
+        reviewer_context_factory, round_prior_rounds(phase_dir),
+    )
 
     # Run all models
     results = await run_all_models(

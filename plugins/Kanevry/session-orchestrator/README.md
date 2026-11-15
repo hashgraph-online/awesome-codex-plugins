@@ -9,7 +9,7 @@
 
 [![Tests](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/Kanevry/session-orchestrator/actions/workflows/test.yml)
 [![npm](https://img.shields.io/npm/v/session-orchestrator)](https://www.npmjs.com/package/session-orchestrator)
-[![Version](https://img.shields.io/badge/version-5.19.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-5.20.0-blue.svg)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Website](https://img.shields.io/badge/website-session--orchestrator.com-blue)](https://session-orchestrator.com)
 
@@ -79,10 +79,11 @@ On Codex and in headless Claude Code (`claude -p`) some command names differ: [C
 | A feature that is clear | `/session feature`, then `/go`, then `/close` | The agreed change, checked, committed, leftovers as issues |
 | A big or unclear change | `/session deep` | It looks first, then builds |
 | Tidy up | `/session housekeeping` | A short maintenance pass |
+| Issues an agent could not start from | `/backlog` | A check of your GitLab issues (labels, readiness, size, dependencies) and fixes you approve |
 | Look back on a phase | `/plan retro` | What worked, what to change |
 | The same mistakes keep coming back | `/evolve`, then `/reconcile` | Lessons you approve become rules |
 
-All 31 commands, by situation: [session-orchestrator.com/commands](https://session-orchestrator.com/commands)
+All 32 commands, by situation: [session-orchestrator.com/commands](https://session-orchestrator.com/commands)
 
 ## It learns, with your yes
 

@@ -28,6 +28,8 @@ dependencies = [
     # =========================================================================
     # Web Framework
     # =========================================================================
+    # Upstream CPython 3.16 build fix: python-cffi/cffi#287 (not yet released).
+    "cffi @ https://codeload.github.com/python-cffi/cffi/tar.gz/1285f4647de0d96dba770725af033255760035b9",
     "fastapi",
     "uvicorn[standard]",
     "python-multipart>=0.0.26",  # Form data handling (CVE fixes through 0.0.26)
@@ -43,7 +45,7 @@ dependencies = [
     # =========================================================================
     # Message Queue (RabbitMQ)
     # =========================================================================
-    "aio-pika>=9.6,<11",  # Recovers work an earlier release left in RabbitMQ (src/services/legacy_broker_drain.py)
+    "aio-pika==9.6.2",  # Legacy broker recovery; aiormq 7 uses asyncio APIs removed in Python 3.16.
 
     # =========================================================================
     # Cache & Sessions (Redis)
@@ -186,7 +188,8 @@ dev = [
     # Testing (test-runner image + CI lint; pytest-env is currently
     # declared-but-unconfigured, kept for the suite that expects it)
     "pytest",
-    "pytest-asyncio",
+    # Upstream Python 3.16 policy removal fix: pytest-dev/pytest-asyncio#1593.
+    "pytest-asyncio @ https://codeload.github.com/pytest-dev/pytest-asyncio/tar.gz/47bbcba3cce21f2a77826d9ca56147b99004166b",
     "pytest-cov",
     "pytest-env",
     "pytest-timeout",  # Per-test timeout protection (catches infinite hangs)

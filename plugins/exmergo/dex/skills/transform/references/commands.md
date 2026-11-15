@@ -125,7 +125,10 @@ See the cost-controls reference for the shared budget mechanism.
   redriven`, #1228), judged against the applied model or, for a model only an
   earlier unapplied plan wrote, that plan (the entry's `against` says which). It
   is `declared` only by an assumption at `request` or `contract` tier; any
-  other leaves it `undeclared` with a `note`.
+  other leaves it `undeclared` with a `note`. `downstream` (#1231) names, per
+  rewritten model, the unedited models below it in the `ref()` graph (`count`
+  and up to 10 `models`): what the plan can move without editing, which a
+  `--verify --for-plan` build measures under `data.completion.impact`.
   Advisory: nothing here refuses a plan.
 - `data.identifier_conversions` (#861): each conversion the plan adds to an
   identifier column, on a new model or an edited one. A conversion is a `cast`, a
@@ -315,6 +318,33 @@ upstream models), or
 plan was compared and static attribution established nothing, and any model whose
 last comparison was `different` or `not_checked`, so a refactor that went in
 unverified says so in the envelope rather than in nobody's memory.
+
+Apply records each model file it replaces or deletes, as it read just before
+the write, on the stored plan as `baseline_sources`, outside the digest: the
+pre-plan SQL a `--verify --for-plan` build re-executes to measure what the plan
+did to the models below its edits (#1231).
+
+A stored plan whose `change_scope` holds an `undeclared` population change (an
+added or changed predicate, join, driving relation, `DISTINCT` or `GROUP BY`, or
+a re-drive, with no assumption naming its `column`) is refused with `reason:
+request`, nothing written, and each change under
+`data.undeclared_population_changes` as `{model, kind, column, reason}` (#1230).
+A general filter changes aggregates; whether a roster or lookup also loses
+those rows is a decision to record, never a side effect. Settle it one of two
+ways:
+
+- Record an assumption naming the `column` it governs (a re-driven model needs
+  one at `request` or `contract` tier), plan again, and apply the new plan. Or
+  undo the change.
+- Where the request settles it, re-run with `--accept-population-change
+  "<reason>"`. The reason, the time and the changes it covers are recorded on
+  the plan as `population_acceptance` (outside its digest), returned under
+  `data.population_acceptance`, and a `--for-plan` build lists each change as
+  `accepted`. A blank reason is refused, and an acceptance with nothing to
+  accept is a warning that records nothing.
+
+A plan document carries no change scope, so `--plan-file` refuses the flag and
+applies without the gate.
 
 ## `transform references <name> [more...] [--kind <k>] [--full] [--usage]`
 
@@ -541,7 +571,10 @@ Runs `dbt build` against a dev target, with a cost preflight first.
 - `data.outcome` says what the run established: `empty_selection`, `unrelated`,
   `partial`, `skipped`, `indeterminate` (nothing failed, but a node reported a
   status dex does not recognize, such as `partial success`), `stale`, `failed`,
-  or `validated`. `data.evidence.generated` lists only the relations this run's
+  `built_unverified` (every deliverable built, and part of the change is still
+  open: see `unverified` below, #1230) or `validated`. `data.evidence.outcome`
+  keeps what the dbt evidence alone establishes, so it reads `validated` where
+  `data.outcome` reads `built_unverified`. `data.evidence.generated` lists only the relations this run's
   successful nodes produced. `--for-plan <id>` adds `coverage`; an empty one is
   refused rather than read as absent.
 - `data.completion` is the first key of `data`: a bounded summary of all of the
@@ -554,21 +587,25 @@ of a few hundred models they push everything else past the point where a
 truncated read stops. `data.completion` comes first and is held to 4096 bytes
 serialized (`COMPLETION_BUDGET_BYTES`), so the answer survives `head -c 4096`.
 It is derived from the evidence, the verification sweep and the manifest, and it
-changes no status: `success` is still dbt's exit and `outcome` is unchanged. The
+changes no status: `success` is still dbt's exit. Its `outcome` is the evidence's,
+except that `validated` becomes `built_unverified` where `unverified` names
+something still open. The
 failed-build envelope carries it too, and Python callers get the same typed
 `BuildCompletion` on `BuildResult.completion`.
 
 | Field | What it says |
 |---|---|
 | `outcome` | `data.outcome`, repeated so the block stands alone |
+| `unverified` | why a build that validated is `built_unverified` (#1230): per model, `comparison_not_run` (a rewrite applied with no `transform compare` verdict while its baseline was ready, as apply read it; a comparison of another rewrite excuses it only when that one held), `comparison_contradicted` (a recorded `different` or `unexpected` verdict), `undeclared_population_change` (with its `detail`, the change-scope kind, unless apply accepted it), `introduced_high_finding` (with the finding code), `unattributed_high_finding` (a high finding on a model the plan edited that no baseline places before the plan) or `downstream_population_changed` (an unedited model below the plan's edits whose rows or keys moved with nothing recording that population, with `detail` its rows before and after, #1231). Absent when nothing is open. It is not done: settle each one and build again |
 | `process` | dbt's own `success`, `returncode` and `node_counts` by status. A process result, not a check |
 | `change` | the `plan_id` and `source` (`for_plan`, `for_plan_file`) the build was asked to validate, and the `selector` (cut at 200 characters; the whole one is in `data.evidence.selection`) |
 | `deliverables` | `coverage`: `known`, `unknown` (no plan named, so nothing says what the build was for) or `undetermined` (the plan's edits name no buildable node). Then `required`, and `built`, `failed`, `skipped`, `missing` and `stale` as `{count, names, elided}`. `blocked` names each required deliverable that did not build and the node that `cause`d it, walked back through skipped parents, a failing data test on a parent included. A skipped or failed deliverable is never counted as built: whatever relation it has in dev predates this run, and `note` says so |
 | `blockers` | the failed nodes, with the ones that stopped a deliverable first, and dbt's message cut to 160 characters (the whole message is in `data.evidence.nodes`). `next` is the one command that repairs it: `repair: dex transform repair <node>` for a package model the project can override, `repair: transform plan on <path>` for the project's own (#1229) |
 | `assurance` | over the required deliverables, or over every built model with no plan: `asserted` (a passing data test reads it, or a verification record judged it `satisfied`), `failed_checks` (a data test on it failed or warned, or a record was `contradicted`; `checks` lists each failure with its `kind`, `data_test` with the test's `name` or the record list such as `join_coverage` with its `finding` and `join`, so a join measured against a default threshold is not read as a failed test, #1162) and `build_only` (it built and nothing checked its rows; a unit test reads fixtures, so it does not count) |
-| `verification` | `ran` (and `reason` when it did not), `finding_count` including the ones past the 50-finding cap (`findings_dropped`), `by_severity`, the `top` five as `{code, identifier, severity}`, the `suppressed` class names, and `offered` when the sweep's scan was offered rather than run |
+| `verification` | `ran` (and `reason` when it did not), on a `--for-plan` build `introduced` (the first five findings the plan introduced, ahead of everything else) and `by_attribution` (every finding counted as `introduced`, `unattributed` or `existing`), `finding_count` including the ones past the 50-finding cap (`findings_dropped`), `by_severity`, the `top` five as `{code, identifier, severity}` (with `attribution` on a `--for-plan` build, introduced first), the `suppressed` class names, and `offered` when the sweep's scan was offered rather than run |
+| `impact` | with `--verify` and a plan named, what the plan did to the models it rewrote and the unedited models below them (#1231): `ran` (and `reason_code` when nothing could be measured), `measured`, `changed` and `unchecked` counts, `top`, the changed models largest first (`model`, `role`, `rows` as `before -> after`, `keys_removed`, `keys_added`, `columns_changed` on a mart, `upstream`, `finding`, `settled`), and `unchecked_reasons` counted by code. The records are under `data.verification.impact` |
 | `obligations` | the declared contracts the sweep held the build to (`join_coverage`, `parent_population`, `temporal_contracts`, `population_delta`, and the column contract's unchecked models), counted `by_status`, with the `contradicted` ones named with their `finding`, the `unchecked` ones with their `reason_code`, and a drafted population that asks which rows belong under `needs_decision` (#1228), and the models that declare no columns under `no_declared_columns`. `checked: false` when the sweep did not run. An empty `by_status` from a sweep that ran means nothing declared a contract it could hold the build to, which is not the same as every contract holding |
-| `obligations.identifier_conversions`, `obligations.change_scope` | the plan's identifier conversions and change-scope entries that are not settled, on the required models (#861, #1115) |
+| `obligations.identifier_conversions`, `obligations.change_scope` | the plan's identifier conversions and change-scope entries that are not settled, on the required models (#861, #1115). A population change `transform apply --accept-population-change` accepted is listed as `accepted` (#1230) |
 | `obligations.incremental_replay` | each required incremental model the plan edited: `satisfied` when a unit test overriding `is_incremental` to true passed in this build, `contradicted` (`incremental_test_failed`) when one failed, otherwise `unchecked` with `full_refresh_only` (the build only full-refreshed it, which never runs the next incremental run) or `no_incremental_test`. Absent when the plan edits no incremental model (#1130) |
 | `obligations.comparison` | with `--for-plan`, each required model the plan rewrote, held to its recorded `transform compare` verdict: `equivalent` or `as_expected` is `satisfied`, `different` or `unexpected` is `contradicted`, and no verdict is `unchecked` with `not_compared` (or `compared_elsewhere` where another rewrite in the plan was compared), as is a `not_checked` verdict with its own code. A `--for-plan-file` build carries none, since verdicts are recorded on the stored plan (#1157) |
 | `obligations.repair` | with `--for-plan` on a plan `transform repair` drafted, per override: one `repair: satisfied` entry when every check holds, otherwise each open one of `repair_built`, `repair_tests`, `repair_cold_deps`, `repair_row_count` and `repair_conversion`, `contradicted` (with its `finding`) or `unchecked` (with its `reason_code`) (#1229) |
@@ -704,6 +741,66 @@ test over the smaller result.
 - `ran` is always present. When it ran, `findings` is ranked as `maintain verify`
   ranks it, `scope` names the models covered, and `suppressed` names each class
   that could not run and why.
+- With `--for-plan` or `--for-plan-file`, every finding carries `attribution`
+  and `attribution_basis` (#1230), and `findings` lists the `introduced` ones
+  first, then `unattributed`, then `existing`, each class in its own ranking, so
+  the 50-finding cap cuts inherited findings before new ones.
+  `data.verification.introduced` names the introduced ones, and
+  `data.verification.attribution` says what they were judged against:
+
+  | `attribution_basis` | Means |
+  |---|---|
+  | `new_model` (`introduced`) | the plan created the model, so it has no history to inherit |
+  | `baseline` (`introduced`) | the last `--verify` build before the plan was applied swept the model with that check running, and did not report it |
+  | `baseline` (`existing`) | that build reported the same finding |
+  | `lineage` (`existing`) | no edit in the plan reaches the node in the manifest's lineage |
+  | `baseline_suppressed` (`unattributed`) | the baseline swept the model with that check suppressed |
+  | `no_baseline` (`unattributed`) | no baseline swept the model |
+
+  The baseline is the latest `--verify` build of the same target recorded
+  before the plan's `applied_at` (its `created_at` while unapplied), kept as one fingerprint per finding (axis,
+  code, model, column, join; never a count or a value) in
+  `dex_verify_history.json` beside the build artifacts, ten builds deep. A check the baseline left `unchecked` on one model (a join it could not probe, a column contract it could not read) is recorded too, so a finding from it on that model is `baseline_suppressed`, not `introduced`. A
+  `--for-plan-file` build has no apply time, so it attributes by lineage and new
+  models only. `attribution.baseline_reason` says why there was no baseline;
+  build with `--verify` before applying the next plan to give it one.
+  `attribution.lineage` is `unbounded` where an edit (a macro, the project
+  config, packages, a semantic YAML, a delete) can reach any model.
+- With a plan named, `data.verification.impact` measures what the plan did to
+  the models it rewrote and to every unedited model below them (#1231), the
+  repair at staging that moves a mart nobody edited. Nothing before the plan
+  survives a build, so the baseline is re-executed: each side compiles in a
+  throwaway copy, the baseline with the edited files as they read before the
+  plan (`baseline_sources`, recorded by `transform apply`, else the git `HEAD`
+  blob whose hash the plan recorded; `baseline` says which), the proposal as
+  the tree stands. The edited models, every model on the path, and the measured
+  model are made ephemeral in both, so both statements read only relations the
+  plan does not change, and nothing is written. Per model, nearest first and at
+  most 25:
+
+  | Field | What it says |
+  |---|---|
+  | `role`, `upstream` | `edited` or `descendant`, and the edited models that reach a descendant |
+  | `key`, `key_source` | the declared grain (`declaration`), else a `unique` or `unique_combination_of_columns` test (`unique_test`), else an outer `GROUP BY` or `SELECT DISTINCT` of plain columns (`drafted`); none means rows only. Keys are compared as text, so a key whose type the plan changed still matches |
+  | `rows` | `baseline`, `proposed`, `delta` |
+  | `keys` | distinct keys per side, `kept`, `removed`, `added`, and keys held more than once per side |
+  | `columns` | on a mart (`transform.marts_paths`) whose key is unique on both sides: per column, the kept keys it `changed` on, and the columns `added`, `removed` or `type_changed`; names and counts only |
+  | `change`, `population`, `size` | whether anything moved, whether rows or keys did (`moved` or `kept`), and the ordering weight (largest first) |
+  | `finding`, `settled_by` | `downstream_population_changed` on a descendant whose rows or keys moved (high when it lost keys or rows, medium when it only gained; it names the edit upstream and is attributed `introduced`, `measured`), unless the model's declaration records the population as an assumption naming a key `column` at `request` or `contract` tier |
+
+  A model not measured is `status: unchecked` with a `reason_code`:
+  `not_inlinable` (a snapshot, Python or package model on the way, or a
+  `sql_header`), `cap`, `cost` (its own estimate is above a quarter of the
+  command ceiling, or the phase did not fit the budget and is offered),
+  `baseline_not_compilable`, `proposed_not_compilable`,
+  `nondeterministic_expression`, `statement_failed` (the class name only),
+  `not_priced`. Nothing is measured, with `ran: false` and a plan-wide
+  `reason_code`, for a plan that edits a macro, the project config or packages
+  (`global_edit`), a seed or snapshot (`inputs_unsynchronized`), no existing
+  model (`no_rewritten_model`), one whose pre-plan SQL is neither recorded nor at
+  git `HEAD` (`no_baseline_source`), or a build that failed (`build_failed`).
+  On a billed connector the statements are priced with the build as
+  `(downstream impact)`. `data.completion.impact` is the bounded summary.
 - Findings never enter `errors` and never change the status; a pointer line in
   `warnings` names the count.
 - A failed build still reports which node failed and which were skipped because

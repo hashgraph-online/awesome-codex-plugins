@@ -14,7 +14,8 @@ tags: buttons, cta, selection, primary-action, button-system
 - **One shape for the system**: pill or rounded rectangle, from the radius scale. Keep the height constant across a flow. Make phone primaries full-width or close to it, at the bottom within thumb reach.
 - **Ink or accent for the primary.** An ink (near-black) primary works in any direction and never collides with category colours. Use the accent when it is reserved for actions. A small accent element inside an ink button (an arrow, an icon) carries the brand without using an accent fill.
 - **Selection uses the same logic.** Show selected chips, tabs, and segments with ink or the accent, not with a category colour, and add a second cue (weight, check mark, fill).
-- **Pressed, disabled, and loading states** are part of the system. Disabled stays legible and does not look like a secondary style.
+- **Horizontal padding about two to three times the vertical.** A line of text is visually busier at its ends than above and below, so equal padding makes a button look bloated.
+- **Pressed, disabled, and loading states** are part of the system. Disabled stays legible and does not look like a secondary style. On pointer platforms, everything clickable also has a hover state, table rows included.
 - **Destructive actions** use the status red, separated from the primary, and are never the default.
 - **Use platform buttons where the platform expects them**: system alerts, toolbars, and navigation bars keep native styling.
 

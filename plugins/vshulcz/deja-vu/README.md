@@ -5,7 +5,7 @@
   </picture>
 </p>
 
-<p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 43 coding agents.</b><br>
+<p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 46 coding agents.</b><br>
 Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 36 more agents already save every session to disk.<br>
 <b>deja-vu</b> (<code>deja</code>) indexes all of it locally in one Go binary — zero LLM calls, 0.7 ms in-process lookup, ~4% index footprint.</p>
 
@@ -29,14 +29,14 @@ npx @vshulcz/deja-vu install --auto                # 1-step cross-platform insta
 curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | sh && deja install --auto
 ```
 
-<p align="center"><sub>Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Audit local stores &amp; retention risk without installing: <code>npx @vshulcz/deja-vu audit</code></sub></p>
+<p align="center"><sub>Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Try without installing: <code>npx @vshulcz/deja-vu stats --no-index --card</code> or <code>npx @vshulcz/deja-vu audit</code></sub></p>
 
 ```sh
-$ deja "jwt refresh token"             # lexical + structural search across all 43 agent stores
+$ deja "jwt refresh token"             # lexical + structural search across all 46 agent stores
 $ deja handoff --to codex              # continue the active session's goal & state in another agent
 $ deja restore internal/auth/jwt.go    # recover code an agent overwrote before git commit
 $ deja blame internal/auth/jwt.go:42   # trace which agent session wrote or replaced a line
-$ deja audit                           # check retention risk, purged chats & index health across all 43 stores
+$ deja audit                           # check retention risk, purged chats & index health across all 46 stores
 ```
 
 <table align="center">
@@ -65,7 +65,7 @@ Prefer a browser? `deja view` exports the store — sessions, the recall audit t
 
 ## Highlights
 
-- **Starts full on day one.** Months of existing transcripts across all [forty-three agents](#supported-harnesses) are searchable immediately — fix a bug in Codex and Claude Code, Cursor or OpenCode recalls it.
+- **Starts full on day one.** Months of existing transcripts across all [forty-six agents](#supported-harnesses) are searchable immediately — fix a bug in Codex and Claude Code, Cursor or OpenCode recalls it.
 - **Survives `/compact` and context resets.** Over 43 measured compactions, summaries kept 77% of decisions and 0.2% of commands; deja hands back the exact commands, errors, and decisions ([how](docs/compaction.md)).
 - **Cross-agent handoff (`deja handoff`).** Hit a rate limit or get stuck in Claude Code? Hand the active session's goal, decisions, touched files, and open work straight into Codex, Cursor, or OpenCode.
 - **Undo overwritten code (`deja restore` & `deja blame`).** Indexes opened files, commands with exit codes, and exact `Edit` spans so `deja restore <path>` recovers code an agent clobbered even before `git commit` (`deja blame <file>:<line>`).
@@ -76,7 +76,7 @@ Prefer a browser? `deja view` exports the store — sessions, the recall audit t
 
 ### Your own work, wrapped
 
-`deja stats --card` draws your yearly agent activity in the terminal or writes an SVG for your GitHub profile ([convert to PNG in browser](https://vshulcz.github.io/deja-vu/card/)).
+`deja stats --card` draws your yearly agent activity in the terminal or writes an SVG for your GitHub profile ([convert to PNG in browser](https://vshulcz.github.io/deja-vu/card/)). Before installing, run `npx @vshulcz/deja-vu stats --no-index --card` to scan local stores without writing an index.
 
 <p align="center"><img src="https://raw.githubusercontent.com/vshulcz/deja-vu/main/docs/assets/stats-card-demo.svg" width="600" alt="deja stats card: a year of agent sessions as a heatmap, the agents they came from, and the longest one"></p>
 
@@ -241,7 +241,7 @@ as usual. `deja search <query>` skips the suggestion.
 | `deja sync export/import/ssh` | Move memory between machines. Watermarked, append-only, idempotent. |
 | `deja repo candidates`, `deja repo add <id>` | Move memory between people: write the decisions and dropped approaches you pick into the repository's `.deja/memory.jsonl`, redacted, for review and commit. Whoever clones it gets them in recall. |
 | `deja view` | Your whole memory as one local HTML file ([live demo](https://vshulcz.github.io/deja-vu/view/)). No server, and the file never leaves the machine. |
-| `deja stats` | Your agent work, wrapped. `--card` draws it in the terminal, `--card <file>.svg` writes one for a profile, `--html` a browsable timeline. |
+| `deja stats` | Your agent work, wrapped. `--no-index` scans local stores before installing, `--card` draws it in the terminal or SVG, `--html` writes a browsable timeline. |
 | `deja secrets [--scrub]` | Which sessions' source transcripts carry credentials, and what kind. Never prints a value. `--scrub` rewrites the ones it can, original kept beside the file. |
 | `deja rules [sync]` | Keep your standing rules in `~/.config/deja/rules.md`; `sync` copies them as a marked block into every installed agent's global rules file. |
 | `deja rules candidates [--json] [--limit n] [--since 90d] [--project name] [--repo]` | The turns where you corrected an agent, across every tool (or scoped to `--repo` / `--project`), numbered with their session. Ask your agent to suggest rules and it groups them; nothing is written until you pick. |
@@ -290,7 +290,7 @@ whether or not the tool is called.
 ## Supported harnesses
 
 <!-- matrix:start -->
-aider &middot; Amp &middot; Antigravity &middot; Claude Code &middot; Cline &middot; Codex CLI &middot; Copilot CLI &middot; VS Code Copilot Chat &middot; Cursor &middot; DeepSeek Harness &middot; Gemini CLI &middot; Goose &middot; Grok Build &middot; Hermes &middot; Kimi Code &middot; omp (Oh My Pi) &middot; OpenClaw &middot; opencode &middot; Continue &middot; Crush &middot; pi &middot; prime-agent (PrimeIntellect) &middot; Qwen Code &middot; Cherry Studio &middot; Senpi &middot; gajae-code &middot; Kimchi Coding &middot; Command Code &middot; ZCode &middot; Kiro &middot; Kilo Code &middot; Roo Code &middot; Zed &middot; Devin CLI &middot; CodeWhale &middot; Junie &middot; JetBrains AI Assistant &middot; Windsurf / Devin Desktop &middot; CodeBuddy Code &middot; Reasonix &middot; TRAE CLI &middot; Muse Code &middot; MiniMax Code.
+aider &middot; Amp &middot; Antigravity &middot; Claude Code &middot; Cline &middot; Codex CLI &middot; Copilot CLI &middot; VS Code Copilot Chat &middot; Cursor &middot; DeepSeek Harness &middot; Gemini CLI &middot; Goose &middot; Grok Build &middot; Hermes &middot; Kimi Code &middot; omp (Oh My Pi) &middot; OpenClaw &middot; opencode &middot; Continue &middot; Crush &middot; pi &middot; prime-agent (PrimeIntellect) &middot; Qwen Code &middot; Cherry Studio &middot; Senpi &middot; gajae-code &middot; Kimchi Coding &middot; Command Code &middot; ZCode &middot; Kiro &middot; Kilo Code &middot; Roo Code &middot; Zed &middot; Devin CLI &middot; CodeWhale &middot; Junie &middot; JetBrains AI Assistant &middot; Windsurf / Devin Desktop &middot; CodeBuddy Code &middot; Reasonix &middot; TRAE CLI &middot; Muse Code &middot; MiniMax Code &middot; MiMo-Code &middot; Omnigent &middot; Orca.
 
 <details>
 <summary>What each one supports</summary>
@@ -340,6 +340,9 @@ aider &middot; Amp &middot; Antigravity &middot; Claude Code &middot; Cline &mid
 | TRAE CLI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | none |
 | Muse Code | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | none |
 | MiniMax Code | ✅ | ✅ | ✅ | ✕ | ✅ | ✅ | the MiniMax Code CLI (`mcode`) for `deja resume` and `deja handoff --to mcode --exec`; `sqlite3` for the session's workspace |
+| MiMo-Code | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | sqlite3 |
+| Omnigent | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | sqlite3 |
+| Orca | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | sqlite3 |
 
 ✅ works &middot; — possible, not built yet &middot; ✕ the harness has no such mechanism &middot; ⚠ waiting on the harness itself &middot; ? not investigated
 
@@ -539,7 +542,7 @@ and a search for a word most sessions hold takes about a second.
 | Capability | `deja-vu` | `claude-mem` | `MemPalace` |
 | --- | --- | --- | --- |
 | History before install ([day zero](https://vshulcz.github.io/deja-vu/guide/day-zero.html)) | Yes — indexes existing transcripts (`36/100` hit@1) | No — records from install onward (`0/100`) | Claude Code, Codex, Cursor (`16/100`) |
-| Agents shared | 43 harnesses | 9 (hooks) | 3 (CLI) |
+| Agents shared | 46 harnesses | 9 (hooks) | 3 (CLI) |
 | LongMemEval-S R@5 | **97.2%** (88.9% hit@1) | — | 96.6% |
 | Runtime & dependencies | 1 Go binary | Bun worker + SQLite + Chroma | Python + 300 MB embedding model |
 | LLM calls / account required | None | Observer LLM calls | None |

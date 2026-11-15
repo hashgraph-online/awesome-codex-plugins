@@ -1,8 +1,9 @@
 # Security
 
-This repository holds manifests, two skills (Markdown) and a logo. It runs no code on your machine: no
-hooks, no scripts, no binaries. The one server it names is `https://agentmart.ciphyr.ai/mcp`, reached over
-HTTPS with OAuth sign-in.
+This repository holds manifests, two skills (Markdown), a logo and a screenshot, and a GitHub Actions
+workflow that scans these files on GitHub. It runs no code on your machine: no hooks, no scripts, no
+binaries. The one server it names is `https://agentmart.ciphyr.ai/mcp`, reached over HTTPS with OAuth
+sign-in.
 
 ## Reporting a problem
 

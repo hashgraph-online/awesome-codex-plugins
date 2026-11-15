@@ -44,6 +44,8 @@ Hick's law and progressive disclosure push hardest on the consumer side; in expe
 - Show comparisons and change ("+12% vs last week") rather than raw numbers alone — a number without context forces the user to remember the previous one (`rules/cognitive-load.md`)
 - Long operations (exports, imports, bulk edits): progress, the ability to leave the page, and a notification when done (`rules/system-status.md`)
 
+Dashboards and admin panels have their own guide — load `references/dashboards.md`.
+
 ## Landing Pages
 
 Landing, marketing, and launch pages have their own guide — load `references/landing-pages.md`.

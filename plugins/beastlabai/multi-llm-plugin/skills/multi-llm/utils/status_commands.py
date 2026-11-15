@@ -269,10 +269,11 @@ def _resume_command(
     A review-then-apply composite (``improve-plan``, ``improve-code``) takes
     its tokens from its own continuation instead (:func:`_composite_resume_tokens`): the
     selectors its launcher
-    typed, never ``--force``, then ``--resume``. A run launched with ``--force``
+    typed, never ``--force``, then ``--resume``, with ``--cascade`` before it
+    while a cascade is unfinished. A run launched with ``--force``
     is then not told to start another round, and the line names the command
     ``util next-command --blocked <composite>`` names when no inner phase has a
-    resume of its own.
+    resume of its own, or a cascade is unfinished.
     """
     run = view["run"]
     mode = str(run.get("mode") or view.get("phase") or "review-plan")
@@ -280,7 +281,8 @@ def _resume_command(
     row = cli_common._modes().resolve(mode)
     if row is not None and row.is_composite and not row.runs_workflow:
         flags: List[str] = []
-        verbs = _composite_resume_tokens(row.name, run.get("replay_flags"))
+        verbs = _composite_resume_tokens(
+            row.name, run.get("replay_flags"), plan_path=plan_path)
     else:
         flags = cli_common.current_replay_flags(run.get("replay_flags"), mode=mode)
         if mode == "ask" and view.get("question"):
@@ -300,12 +302,20 @@ def _resume_command(
     return _retry_command(mode, plan_path, *positionals[1:], *verbs, flags=flags)
 
 
-def _composite_resume_tokens(mode: str, replay_flags: Any) -> List[str]:
+def _composite_resume_tokens(
+    mode: str, replay_flags: Any, *, plan_path: Optional[Path] = None,
+) -> List[str]:
     """A composite run's ``resume with:`` tokens after the plan.
 
     ``improve_workflow.recorded_continuation`` of the run record's own
     ``replay_flags``, the list ``util next-command --blocked`` reads, so the
-    two name one command. A list that is not a list reads as no record
+    two name one command. With *plan_path*, an unfinished cascade of the
+    composite on record (``next_phase.unfinished_cascade``, asked first, as
+    ``--blocked`` asks it) adds ``--cascade`` before ``--resume``: between
+    two stages the inner phases read finished, and only the composite's
+    continuation goes on with the cascade. A record that cannot be read costs
+    the ``--cascade`` (advisory: the composite's own run refuses it, naming
+    the file). A list that is not a list reads as no record
     (``--resume`` alone). Flags the composite's parser rejects (a record from
     an older parser, or one a batch rewrote) cost one stderr line and fall
     back to ``--resume`` alone: replayed as recorded they would not parse
@@ -320,11 +330,17 @@ def _composite_resume_tokens(mode: str, replay_flags: Any) -> List[str]:
     the first three, and the brief inherits the rest.
     """
     # Imported here to keep run_status, which loads this module, light.
-    from . import improve_workflow
+    from . import improve_workflow, next_phase
 
+    cascade = False
+    if plan_path is not None:
+        try:
+            cascade = next_phase.unfinished_cascade(mode, plan_path) is not None
+        except Exception as exc:  # noqa: BLE001 - advisory: the line still stands
+            note_swallowed("status: cascade record", exc)
     recorded = replay_flags if isinstance(replay_flags, list) else None
     try:
-        tokens = improve_workflow.recorded_continuation(mode, recorded)
+        tokens = improve_workflow.recorded_continuation(mode, recorded, cascade=cascade)
         row = cli_common._modes().resolve(mode)
         if row is not None and cli_common._modes().POS_REVS in tuple(row.positionals):
             # Imported here to keep run_status, which loads this module, light.

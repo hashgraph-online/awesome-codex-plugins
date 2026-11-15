@@ -1141,12 +1141,13 @@ def phase_from_selector(word: str) -> Optional[str]:
 # A literal because it describes flags, not modes; the mode list itself is
 # rendered so a new row cannot be forgotten here. The commit modes take an
 # optional range where the others take a plan (`POS_REVS`), and add two flags
-# of their own.
+# of their own; the two plan-and-code composites take `--cascade`.
 ARGUMENT_HINT_TRAILER = (
     f' <plan_path>|{POS_REVS} (<range>: --*-commits only) '
     '["<question>" (required for --ask)] '
     "[--models provider:model ...] [--interactive] [--quick] [--yes] [--force] "
     "[--scope-policy expand|preserve] "
+    "[--cascade (--improve-plan/--improve-code only)] "
     '[--focus "<text>"|--context-plan PATH (--*-commits only)] '
     "[--dir PATH|--gitignore|--template-only (--init only)]"
 )

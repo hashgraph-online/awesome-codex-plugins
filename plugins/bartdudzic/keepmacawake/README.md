@@ -5,9 +5,9 @@ This plugin teaches an AI agent to use Keep Mac Awake, a macOS app that keeps a 
 It has two parts:
 
 - **A skill** (`skills/keep-mac-awake/SKILL.md`, in the Agent Skills format): when to start and stop a session, what to ask you first, and what to do when the command refuses.
-- **A session-start hook** (`hooks/session-start.sh`): when an agent session begins, it runs `keepmacawake status --json` once and adds a few sentences of its own to the agent's context, built from a few fields of the reply (whether a session runs, its time left, the trial, a newer version), so the agent knows the app is there without being reminded. It never passes on the app's text or the Mac ID. It is read only: it makes no network connection and never starts, stops or changes anything.
+- **A session-start hook** (`hooks/session-start.sh`): when an agent session begins, it runs `keepmacawake status --json` once and adds a few sentences of its own to the agent's context, built from a few fields of the reply (whether a session runs, its time left, the trial, a newer version, and whether Run on battery turned itself on), so the agent knows the app is there without being reminded. It never passes on the app's text or the Mac ID. It is read only: it makes no network connection and never starts, stops or changes anything.
 
-The agent starts timed sessions on its own and tells you in one line. It always asks before a session without a time limit, battery use, installing the app and buying.
+The agent starts timed sessions on its own and tells you in one line. It always asks before a session without a time limit, a change to the battery settings, installing the app and buying. On a MacBook on battery where Run on battery turned itself on (at 20%, unless you set it yourself), it also asks before a session that may run on battery down to that level; when you set Run on battery yourself, it starts the session and says it may run on battery. Before an overnight run with the lid closed it may offer to turn on Mute sound when lid closes, so the agents' notifications stay quiet, and turns it on only if you agree.
 
 ## What it runs
 
@@ -76,7 +76,7 @@ The plugin itself sends nothing anywhere; of the commands it runs, only `keepmac
 
 - `keepmacawake: command not found`: the app is not installed, or its command is missing from `/usr/local/bin`. Install the app from <https://keepmacawake.com>.
 - Exit code 6: the app's background service is off. Open Keep Mac Awake from Applications, or run `keepmacawake app launch`.
-- A session refused on battery: plug in AC power, or allow battery use in the menu bar panel.
+- A session refused on battery: Run on battery is off or the charge is at the threshold; plug in AC power, or turn on Run on battery in the menu bar panel or with `keepmacawake config set --battery allowed`.
 - To stop using the plugin, disable or uninstall it in your agent (for Claude Code: `claude plugin uninstall keep-mac-awake`). To remove the app, open the uninstall package from the app's release.
 
 ## Support

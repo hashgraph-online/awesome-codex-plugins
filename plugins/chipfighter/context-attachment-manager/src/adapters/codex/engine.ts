@@ -3,7 +3,7 @@
 // over HTTP), and the rewrite of a Responses request body with the task's index and selection.
 // P2: requests of threads with unchecked images are rewritten. v0.3: automatic selection. v0.7: subagents and side
 // chats. v0.8: feature lines. v0.10: images put back after a compaction. 2026-10-22: Codex logged in with an API key
-// goes to api.openai.com/v1.
+// goes to api.openai.com/v1. 0.11.2: a placeholder keeps the notes it first went out with.
 // Input: request headers and bodies, the thread's rollout and selection. Output: the body to send and a report.
 
 import type { IncomingHttpHeaders } from "node:http";
@@ -16,8 +16,9 @@ import { selectionDir } from "../../core/selection.ts";
 import { findImages, type ImageRef } from "../protocols/openai-responses/images.ts";
 import { addCodexCompacted, rewriteItems } from "../protocols/openai-responses/rewrite.ts";
 import { codexHome } from "./codexconfig.ts";
+import { notesBy, type Notes } from "../../core/notes.ts";
 import { autoChoice, earlierCopies } from "../../core/session.ts";
-import { imageData, loadThreadIndex, pixelHashOf, sideChatOrigin, writesNotes, type ThreadIndex } from "./thread-index.ts";
+import { imageData, loadThreadIndex, pixelHashOf, sideChatOrigin, writesNotes, type IndexedImage, type ThreadIndex } from "./thread-index.ts";
 
 type Json = Record<string, any>;
 export const UPSTREAM_HOST = "chatgpt.com";
@@ -64,6 +65,16 @@ export function currentTurnOf(index: ThreadIndex, turnId: string | null): number
   return index.turnNumbers.get(turnId) ?? index.turns + 1;
 }
 
+// 0.11.2: what a placeholder shows of an image's notes: the ratings noted by its own turn, or, for an image from
+// before Codex's latest compaction, everything noted by then (the replies that held it are gone from the request). A
+// rating noted later is in the model's own reply; added to a placeholder that went out before, it changed the request
+// from that image on, and Codex's backend reads its prompt cache only up to the first difference (measured
+// 2026-11-14). The index and the panel keep every rating.
+export function shownNotes(index: ThreadIndex, image: IndexedImage): Notes | undefined {
+  if (index.compaction && image.item < index.compaction.before) return index.compaction.notes.get(image.id);
+  return notesBy(index.notes.get(image.id), image.turn);
+}
+
 // P2: replace the thread's unchecked images with placeholders. Whenever the body cannot be handled safely it is
 // forwarded unchanged and the reason is logged; the report never contains conversation content.
 // v0.3: with automatic selection on, the images of earlier turns that are not pinned instead; in either mode, copies
@@ -95,7 +106,7 @@ export function rewriteBody(original: Buffer, encoding: string | undefined, thre
   const describe = (ref: ImageRef): Described | undefined => {
     const known = index.byKey.get(ref.key);
     // v0.8: with what the model noted about it, for its placeholder.
-    const notes = known ? index.notes.get(known.id) : undefined;
+    const notes = known ? shownNotes(index, known) : undefined;
     if (known) return { ...known, ...(notes ? { notes } : {}), ...(awaiting.has(known.key) ? { awaiting: true } : {}) };
     const stored = selection.unchecked[ref.key];
     return stored ? { id: stored.id, name: ref.name, label: ref.label, kind: ref.kind, turn: null, width: ref.width, height: ref.height } : undefined;

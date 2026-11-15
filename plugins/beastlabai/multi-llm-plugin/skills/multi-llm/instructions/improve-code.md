@@ -8,7 +8,7 @@ says only which steps to run, with which flags, and how to report them.
 ## Usage
 
 ```bash
-/multi-llm:multi-llm --improve-code <plan_path> [--quick | --models provider:model ...] [--files <path> (repeatable) | --files-from <file>] [--base-ref REF] [--scope-policy expand|preserve] [--force] [--resume]
+/multi-llm:multi-llm --improve-code <plan_path> [--quick | --models provider:model ...] [--files <path> (repeatable) | --files-from <file>] [--base-ref REF] [--scope-policy expand|preserve] [--cascade] [--force] [--resume]
 ```
 
 `--files` takes one path per flag, as review-code's does: repeat it for each file
@@ -34,6 +34,13 @@ or the index. The review's scope is review-code's own: the typed
 `--files`/`--files-from`, else the files implement recorded, else the git diff it
 announces with `[SCOPE_FALLBACK]`.
 
+**`--cascade`** runs the two steps once per model, in the order of the review's model
+list (`--models` as typed, else `--quick`, else the configured defaults; put the
+cheapest first): each model alone reviews the code as the stages before it left
+it, and its validated findings are applied before the next model reviews. Each stage's
+review sees what earlier stages applied, rejected or held back. Section 1 then prints
+no step block, and section 2C runs the stages.
+
 ## What a run writes, unattended
 
 - **Source files, anywhere in the repository.** Each fix batch edits the files its
@@ -48,6 +55,12 @@ announces with `[SCOPE_FALLBACK]`.
 - **The apply's files** in `{plan}/apply-fixes/`: `summary.md`,
   `orchestrator_output.json`, `write_tasks.json`; the decision badges on
   `{plan}/code-review/report.html`; and the records in `{plan}/state.json`.
+- **Under `--cascade`, one directory per cascade** in
+  `{plan}/improve-code/cascades/`, which `{plan}/improve-code/cascade-current.json`
+  names: `record.json`, `summary.md` (the per-round table), `ledger.md` (what each
+  stage applied, rejected or held back), and one `stage-<k>/` per stage, holding the
+  inputs frozen at its start and its review and apply files copied when it closed. The
+  phase dirs above hold the last stage's round.
 - **Nobody is asked.** A judge agent decides every `needs-human-decision` item, and
   `summary.md` names the judge and each decision it made.
 
@@ -60,10 +73,10 @@ and no question is ever rendered.
 | --- | --- | --- |
 | D6 row 1, uv missing | before step 1 | the prerequisite below: print `hosts/uv-missing.txt`, stop with exit 3 |
 | D6 row 2, model selection | step 1 | `--yes` with the flags line's `--models` or `--quick`, else `defaults.models`; nothing asked, and exit 3 from the review when nothing resolves |
-| D6 row 3, partial fan-out results | step 1 | the review core's `--yes` path: resume the missing models once, then `[PARTIAL_RESULTS: …]` and exit 0; zero results is exit 3 |
+| D6 row 3, partial fan-out results | step 1 | the review core's `--yes` path: resume the missing models once, then `[PARTIAL_RESULTS: …]` and exit 0; zero results is exit 3. Under `--cascade` each stage's review has one model: a stage before the last with no result is recorded skipped (`[CASCADE_STAGE_SKIPPED]`, then `[AUTO_RESOLVED]`) and the next stage runs (section 2C, item 4); the last stage's is exit 3, and the re-run starts that stage over |
 | D6 row 10, `needs-human-decision` items | step 2 | `--agent-decide`: the judge agent decides every item, nobody is asked |
 | D6 row 11, no-selection confirmation | step 2 | `--no-confirm`: every valid fix is applied without asking |
-| D6 row 14, a step fails | section 3 | stop, report the stop, give `[IMPROVE_RERUN]` as the way to continue; never ask whether to go on |
+| D6 row 14, a step fails | section 3 | stop, report the stop, give `[IMPROVE_RERUN]` as the way to continue (it carries `--cascade` while a cascade is unfinished); never ask whether to go on |
 | D6 row 15, an empty or unrecognized decision flag (`--models ""`) | step 1 | `util improve-steps` exits 3 before any step runs |
 | D6 row 16, scope policy | steps 1 and 2 | never asked: the flags lines carry the typed `--scope-policy` (or the one a stopped run of this mode recorded); with none, each step resolves its own (a new review `expand`, the apply its review's), and one nobody typed is recorded as `[AUTO_RESOLVED] scope-policy: …` |
 
@@ -114,16 +127,22 @@ stands. Keep the whole block: sections 2, 3 and 4 read it.
 
 Read its exit code here; section 3's rule covers only the phase steps:
 
-- `0`: go on to section 2, which runs the printed steps in order: 1, then 2.
-- `2` with `[ALREADY_COMPLETE] …`: both steps are done for this review. Run no phase
-  and go to section 4. This is a finished run, not a failure.
-- `3` (the `--interactive` refusal, row 15, a live run owning a phase dir, or a
-  `state.json` it cannot read) or `1` (a scope it cannot read, or `--files-from -`
-  for a review it would run, which no phase launched from here can read): stop before
-  any phase runs. Report the error line whole: for `--interactive` it names the two
-  phases to run instead, for a live run its `status` and abort commands, for
-  `state.json` the file to repair, for a scope the path to fix. There is no
-  `[IMPROVE_RERUN]` to give, because nothing ran.
+- `0`: go on to section 2, which runs the printed steps in order: 1, then 2. When
+  it printed `[IMPROVE_CASCADE_NEXT] <command>` and no step (a cascade: `--cascade`
+  typed, or a cascade on record that has not finished; or `--force` over such a
+  cascade), go to section 2C instead.
+- `2` with `[ALREADY_COMPLETE] …`: both steps are done for this review, or (`cascade
+  finished at …`) the cascade this command started has finished. Run no phase and go
+  to section 4. This is a finished run, not a failure.
+- `3` (the `--interactive` refusal, row 15, a live run owning a phase dir, a
+  `state.json` or cascade record it cannot read, or `[CASCADE_CONFLICT]`) or `1` (a
+  scope it cannot read, or `--files-from -` for a review it would run, or under
+  `--cascade`, which no phase launched from here can read): stop before any phase runs.
+  Report the error line whole: for `--interactive` it names the two phases to run
+  instead, for a live run its `status` and abort commands, for `state.json` or a
+  cascade record the file to repair, for a scope the path to fix, for
+  `[CASCADE_CONFLICT]` the flag, both values and the two ways out. There is no
+  `[IMPROVE_RERUN]` to give: none has been printed (section 3), because nothing ran.
 
 ### 2. Run each `run` step, in order
 
@@ -180,6 +199,58 @@ that produced nothing, with its reason; any `[RESULT_FILE_MISNAMED]` or
 `[RESULT_SET_ASIDE]` line, as printed; and apply-code-fixes' `[TESTS_NOT_RUN]` line,
 whose text after the tag `apply-code-fixes.md` step 7 asks for word for word.
 
+### 2C. A cascade
+
+Section 1 printed `[IMPROVE_CASCADE_NEXT] <command>`, then `[IMPROVE_RERUN] <command>`,
+and no step. The command after `[IMPROVE_CASCADE_NEXT]` is the cascade's planner: each
+call records where the cascade stands, closes the stage just run, and prints the next
+stage's steps 1 and 2, for example:
+
+```text
+  [IMPROVE_CASCADE] stage 2 of 3: <the stage's model>
+  [IMPROVE_STEP] 1 review-code run (new round, --force)
+  [IMPROVE_STEP_FRESH] 1
+  [IMPROVE_STEP_FLAGS] 1 --yes --models <the stage's model> --force --rerun-all --cascade-stage-file <path>
+  [IMPROVE_STEP] 2 apply-code-fixes run (review not applied yet)
+  [IMPROVE_STEP_FLAGS] 2 --yes --agent-decide --no-confirm
+  [IMPROVE_CASCADE_CONTINUE] <the command that closes this stage and prints the next>
+  [IMPROVE_RERUN] <the command that continues this run, in your host's spelling>
+```
+
+(indented here; lines such as `[IMPROVE_CASCADE] new cascade …`,
+`[CASCADE_STAGE_SKIPPED] …`, `[AUTO_RESOLVED] …` or `NOTE: …` can come before the
+stage line). Run the cascade like this:
+
+1. Run the command after `[IMPROVE_CASCADE_NEXT]` once, exactly as printed. Exits `0`
+   and `2` read as section 1's, plus `2` with `[CASCADE_COMPLETE] …`: every stage is
+   done, go to item 5. Exit `3` or `1` is a refusal before any phase runs: report the
+   error line whole as section 1 says, but section 1's hand-off has already printed an
+   `[IMPROVE_RERUN]`, the latest one printed, so end the report with it (section 3).
+   When what it printed has no `[IMPROVE_CASCADE_CONTINUE]` line (`--force` without
+   `--cascade`: its `NOTE:` line says the cascade was left), the block is a plain one:
+   run it as sections 2 and 3 say, as one round, then go to section 4.
+2. On exit `0`, run the stage's steps exactly as section 2 says. Sections 2 and 3 apply
+   unchanged: the flags lines verbatim (step 1's carries the stage's one model and
+   `--cascade-stage-file <path>`, which ties the review round to the stage), inner
+   `[NEXT_COMMAND]` blocks ignored, and the stop rules.
+3. When the stage's last step is done (section 3), run the command after the latest
+   `[IMPROVE_CASCADE_CONTINUE]`, never the `[IMPROVE_CASCADE_NEXT]` command again: that
+   one carries the flags the user typed, and with `--force` it would start the cascade
+   over. Each call closes the stage it follows and prints the next stage's block
+   (item 2), never that stage's again, until one exits `2` with
+   `[CASCADE_COMPLETE] <n> stages; table: <path>`. A call that exits `3` (the stage it
+   follows did not finish, the last stage's review produced no result, a
+   `[CASCADE_CONFLICT]`, an archive it cannot trust) or `1` is a stop: report it as
+   section 3 says.
+4. One exception to section 3's stop: when a stage's review step exits `3`, run the
+   latest `[IMPROVE_CASCADE_CONTINUE]` command once before reporting a stop. If it
+   prints `[CASCADE_STAGE_SKIPPED] …` (the stage's one model produced no result, and a
+   stage before the last is skipped), go on with the block it printed (item 2).
+   Otherwise it exits `3`: report the stop as section 3 says, the review's error line
+   and then the call's. Never run that command a second time for the same stop.
+5. Then go to section 4. Never end your turn between stages, or between a stage's last
+   step and its `[IMPROVE_CASCADE_CONTINUE]` call.
+
 ### 3. When a step is done, and when the run stops
 
 A step is done when the last call of its phase's own mode exits `0` or `2`: the
@@ -198,9 +269,13 @@ rules (row 14):
   `--apply-code-fixes <plan> --resume --human-task apply-fix-batch-3=skip` in your
   host's spelling. `[IMPROVE_RERUN]` holds only the flags the user typed, never an
   answer, so it is the follow-up once that phase is recorded;
-- end the report with the `[IMPROVE_RERUN]` command section 1 printed, as the way to
-  continue once those are dealt with: everything after the marker, alone in its own
-  fenced code block, copied character for character, as a `[NEXT_COMMAND]` command is.
+- end the report with the latest `[IMPROVE_RERUN]` command printed (by section 1's
+  `util improve-steps`, or under a cascade by a `util improve-cascade next` call of
+  section 2C, which prints one with each stage's block and with a stop at its stage;
+  a call that printed none, a refusal, leaves the one before it the latest), as the
+  way to continue once those are dealt with: everything after the marker, alone in
+  its own fenced code block, copied character for character, as a `[NEXT_COMMAND]`
+  command is.
   It is this run's one next step. The `[NEXT_COMMAND]` blocks the phases printed are
   not (section 2): never give review-code's `--apply-code-fixes <plan>` in its place,
   which is the review's standalone next step, not the way on from a stopped apply;
@@ -252,6 +327,18 @@ the records of earlier runs, so neither the file's batches nor every record is t
   above says.
 - An output file that does not exist is listed with `(not written)` after it.
 
+**Under a cascade** (section 2C ran) the report opens with a `### Cascade` section,
+before Step 1: the table in the cascade's `summary.md`, copied as written. Never recount
+it: each row was counted from that stage's archived files when the stage closed. The
+cascade dir is `{plan}/improve-code/` joined with the `dir` that
+`{plan}/improve-code/cascade-current.json` names, and `[CASCADE_COMPLETE]` names its
+`summary.md`. A stopped cascade's table holds the stages closed so far; with none closed
+yet there is no `summary.md`, so say that no stage has closed. The Step sections then
+report the last stage that ran, read from the files above as for any run (the phase
+dirs hold that stage's round), each heading naming the stage, for example `### Step 1:
+Review Code (stage 3 of 3, <model>) — ran`. Output Files adds the cascade's
+`summary.md` and `ledger.md` and its `stage-<k>/` dirs.
+
 ```markdown
 ## Improve Code Summary
 
@@ -259,6 +346,10 @@ the records of earlier runs, so neither the file's batches nor every record is t
 
 [ALREADY_COMPLETE] … (only when section 1 printed it: the line, whole)
 [IMPROVE_SCOPE_CHANGED] … or NOTE: … (only when section 1 printed one: the line, whole)
+
+### Cascade — <n> stages (only when section 2C ran)
+<the table in summary.md, copied as written>
+- Table: <the summary.md path> (`[CASCADE_COMPLETE]`'s, when printed)
 
 ### Step 1: Review Code — ran | skipped (<why>)
 - Models: <completed> of <requested>; failed: <model> (<reason>), …
@@ -278,6 +369,7 @@ the records of earlier runs, so neither the file's batches nor every record is t
 - {plan}/code-review/report.html
 - {plan}/apply-fixes/summary.md
 - each file `tracked_files` in {plan}/state.json names
+- <the cascade dir>/summary.md, <the cascade dir>/ledger.md and its stage-1/ … stage-<n>/ dirs (only when section 2C ran)
 
 ### State
 - State file: {plan}/state.json

@@ -1,6 +1,6 @@
 {
   "name": "claude-bulkhead",
-  "version": "0.4.0",
+  "version": "0.5.1",
   "description": "Claude Code hooks for a machine shared by many sessions and subagents",
   "keywords": [
     "claude-code",
@@ -19,7 +19,17 @@
     "codex",
     "opencode-plugin",
     "copilot-cli",
-    "cursor"
+    "cursor",
+    "pi-package",
+    "pi-extension",
+    "pi-coding-agent",
+    "gemini-cli",
+    "qwen-code",
+    "kimi-code",
+    "grok",
+    "antigravity",
+    "factory-droid",
+    "amp"
   ],
   "license": "MIT",
   "author": "Myeongseok Kang",
@@ -41,6 +51,11 @@
     "./opencode": "./opencode/plugin.mjs",
     "./package.json": "./package.json",
     "./*": "./*"
+  },
+  "pi": {
+    "extensions": [
+      "./pi/extension.js"
+    ]
   },
   "bin": {
     "claude-bulkhead": "bin/bulkhead",
@@ -65,6 +80,7 @@
     "src",
     "hooks",
     "opencode",
+    "pi",
     ".codex-plugin",
     "codex",
     "README.md",

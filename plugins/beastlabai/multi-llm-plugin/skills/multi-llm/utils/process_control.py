@@ -489,12 +489,25 @@ class PhaseLock:
         self._until_exit = False
 
     # -- acquisition ----------------------------------------------------
-    def acquire(self, payload: Optional[Dict[str, Any]] = None) -> None:
-        """Take the lock, recording *payload* in the file. Raises on conflict."""
+    def acquire(self, payload: Optional[Dict[str, Any]] = None, *,
+                dir_fd: Optional[int] = None) -> None:
+        """Take the lock, recording *payload* in the file. Raises on conflict.
+
+        *dir_fd* (POSIX): the lock file's folder, which the caller reached
+        without following a link and holds open. The file is then opened by
+        its name relative to that descriptor, never through a link at the
+        name, so a folder swapped for a link after the caller checked it
+        cannot put the lock file outside it (a cascade close-out locks the
+        live phase dirs it archives this way).
+        """
         flags = os.O_CREAT | os.O_RDWR
         if hasattr(os, "O_BINARY"):  # pragma: no cover - Windows
             flags |= os.O_BINARY
-        fd = os.open(self.path, flags, 0o644)
+        if dir_fd is None:
+            fd = os.open(self.path, flags, 0o644)
+        else:
+            fd = os.open(os.path.basename(self.path), flags | getattr(os, "O_NOFOLLOW", 0),
+                         0o644, dir_fd=dir_fd)
         try:
             # PEP 446 already opens it non-inheritable; said here because the
             # rule is load-bearing (see the class docstring).

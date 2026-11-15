@@ -13,7 +13,10 @@ The contract, briefly:
   (or the payload a caller already computed with it). It adds no status logic
   of its own: which phases are completed, skipped, pending or ``in_progress``
   is that payload's answer, never a second table's, and the walk over them is
-  ``utils/phase_walk``'s, the rule ``suggested_next`` is picked by.
+  ``utils/phase_walk``'s, the rule ``suggested_next`` is picked by. A
+  composite's unfinished ``--cascade`` is read the same way, through
+  ``improve_cascade.cascade_status`` (:func:`unfinished_cascade`), and
+  answered with the composite's own continuation.
 * It never reads the environment. The route is resolved by the caller, once,
   with :func:`resolve_route` (``utils/routes``, the only code that reads a
   route signal) and handed in.
@@ -645,7 +648,10 @@ def next_phase_commands(
         (``complete`` when none is left), with the open optional phases in
         between as ``optional_before``. A composite that is not the whole
         workflow (``improve-plan``, ``improve-code``) answers as the phase it
-        ends on, ``Mode.last_phase``, gate included. ``full``, and both modes ``None``, answer from
+        ends on, ``Mode.last_phase``, gate included, unless a cascade of it
+        is unfinished (:func:`unfinished_cascade`): then its own
+        continuation, ``--cascade`` included (:func:`_composite_continuation`),
+        with the stage it goes on at as its why. ``full``, and both modes ``None``, answer from
         ``suggested_next`` instead (the fallback).
     """
     modes = _skill_module("modes")
@@ -654,6 +660,7 @@ def next_phase_commands(
     word = finished_mode if finished_mode is not None else after_mode
     gated = finished_mode is not None
     start: Optional[str] = None
+    composite = None
     if word is not None:
         mode = modes.resolve(word)
         if mode is None:
@@ -665,6 +672,7 @@ def next_phase_commands(
             # word-to-phase mapping stays in modes.py (`improve-code` ends on
             # `apply-code-fixes`, whose phase word is the same).
             start = mode.last_phase
+            composite = mode
         elif mode.is_workflow_phase and mode.phase:
             start = mode.phase
         else:
@@ -757,6 +765,22 @@ def next_phase_commands(
                 why=_optional_why(modes, phase, phases.get(phase) or {}),
             ))
         return tuple(steps)
+
+    if composite is not None:
+        source = plan_arg if plan_path is None else plan_path
+        cascade = unfinished_cascade(composite.name, source)
+        if cascade is not None:
+            # An unfinished cascade, gate or no gate: between two stages
+            # every step is on record and the walk below would name the
+            # next workflow phase. The composite's own continuation goes on.
+            return command_answer(NextPhase(
+                phase=composite.phase,
+                command=phase_command(
+                    plan_arg, host_id, route, composite.name,
+                    *_composite_continuation(composite.name, source),
+                    plan_path=plan_path),
+                why=cascade_continuation_why(cascade),
+            ))
 
     if start is None and gate_resume_suggested(workflow):
         # Implement finished with code
@@ -1482,10 +1506,55 @@ def _composite_of(mode_word: str):
     return mode
 
 
+def unfinished_cascade(
+    mode_word: str, plan_path: Union[str, Path],
+) -> Optional[Dict[str, Any]]:
+    """The unfinished ``--cascade`` of composite *mode_word* on *plan_path*, or ``None``.
+
+    ``improve_cascade.cascade_status`` (``{cascade_id, state, stage, of,
+    model, dir}``, read from the pointer and the record, writing nothing)
+    when its ``state`` is ``running``; ``None`` for a mode that is no
+    composite, a composite that takes no ``--cascade`` (improve-commits), no
+    pointer, or a cascade finished or abandoned. Between two stages every
+    step of the composite is on record, so the plain rules
+    (``improve_workflow.skip_reason``) would read "everything complete";
+    every reader that answers for a composite asks this first and, while
+    this returns a cascade, names the composite's own continuation with
+    ``--cascade``.
+    Raises ``improve_cascade.CascadeRecordError`` for a pointer or record it
+    cannot read (docs/development/workflows.md, "A cascade (``--cascade``)").
+    """
+    mode = _composite_of(mode_word)
+    if mode is None:
+        return None
+    # Imported here to keep next_phase light.
+    from . import improve_cascade
+
+    status = improve_cascade.cascade_status(
+        Path(os.path.abspath(str(plan_path))), mode.name)
+    if status is None or status.get("state") != improve_cascade.RUNNING:
+        return None
+    return status
+
+
+def cascade_stage_text(cascade: Mapping[str, Any]) -> str:
+    """``stage <k> of <n> (<model>)``: where an unfinished cascade continues."""
+    return f"stage {cascade.get('stage')} of {cascade.get('of')} ({cascade.get('model')})"
+
+
+def cascade_continuation_why(cascade: Mapping[str, Any]) -> str:
+    """The why above a command that continues an unfinished cascade."""
+    return f"continues the unfinished cascade at {cascade_stage_text(cascade)}"
+
+
 def _blocked_step(mode_word: str, plan_path: Union[str, Path]) -> str:
     """The mode word ``--blocked <mode_word>`` answers for.
 
-    *mode_word* itself, unless it names a composite. For a composite, the first
+    *mode_word* itself, unless it names a composite. For a composite with an
+    unfinished cascade on record (:func:`unfinished_cascade`, asked first),
+    the composite's own word: only its continuation goes on with the cascade,
+    and between two stages the plain rules below would pass over every step.
+    Otherwise the first
     word of its ``sequence`` that ``improve_workflow.skip_reason`` runs, on the
     ``records`` ``read_records`` builds with no flag typed: the step a bare
     re-run would run first, so a stop inside the composite (review completed,
@@ -1493,11 +1562,14 @@ def _blocked_step(mode_word: str, plan_path: Union[str, Path]) -> str:
     predicate, not a second one; staleness and an apply older than its review
     enter only through it. Raises :class:`AlreadyComplete` when it passes over
     every step, and ``improve_workflow.StateReadError`` for a ``state.json`` it
-    cannot read (a failed lookup).
+    cannot read (a failed lookup), as ``improve_cascade.CascadeRecordError``
+    is for a cascade record.
     """
     mode = _composite_of(mode_word)
     if mode is None:
         return mode_word
+    if unfinished_cascade(mode.name, plan_path) is not None:
+        return mode.name
     # Imported here to keep next_phase light.
     from . import improve_workflow
 
@@ -1516,7 +1588,10 @@ def _composite_continuation(mode_word: str, plan_path: Union[str, Path]) -> List
     composite's ``run`` record holds in its run dir (``{plan}/improve-plan/``):
     the row-14 command its ``_phase_failed`` printed, the user's selectors and
     never ``--force``, plus ``--resume``. ``--resume`` alone with no record (a
-    foreground run writes none) or a record whose list is not a list. Raises
+    foreground run writes none) or a record whose list is not a list. While
+    an unfinished cascade is on record (:func:`unfinished_cascade`, asked
+    first) ``--cascade`` goes before ``--resume``, as in the run's own
+    ``[IMPROVE_RERUN]``. Raises
     ``improve_workflow.ContinuationError`` for flags the composite's parser
     rejects, and ``ValueError`` for a token one printed line cannot carry: the
     folder is writable by every jailed batch, and both are a failed lookup.
@@ -1528,10 +1603,11 @@ def _composite_continuation(mode_word: str, plan_path: Union[str, Path]) -> List
 
     mode = _skill_module("modes").resolve(mode_word)
     source = Path(os.path.abspath(str(plan_path)))
+    cascade = unfinished_cascade(mode.name, source) is not None
     run = read_run(str(phase_dir_path(source, mode.phase)))
     recorded = run.get("replay_flags") if isinstance(run, dict) else None
     flags = improve_workflow.recorded_continuation(
-        mode.name, recorded if isinstance(recorded, list) else None)
+        mode.name, recorded if isinstance(recorded, list) else None, cascade=cascade)
     if any(not token or not token.isprintable() for token in flags):
         raise ValueError(
             f"{mode.name}'s run record holds a flag one printed command cannot carry")
@@ -1566,7 +1642,10 @@ def emit_resume(
     (:func:`_blocked_step`), with that phase's own resume, answers, why and
     section when it has a resume; else the composite's own continuation
     (:func:`_composite_continuation`), the composite's word, in the host's
-    spelling. Every step on record prints the ``[ALREADY_COMPLETE]`` line on
+    spelling. An unfinished cascade answers that continuation, ``--cascade``
+    included, whatever its stage has on record, with the stage it goes on
+    at as its why (:func:`cascade_continuation_why`). Every step on record
+    with no unfinished cascade prints the ``[ALREADY_COMPLETE]`` line on
     *stream* and raises :class:`AlreadyComplete`, with no ``user_resume``.
     ``user_resume.mode`` names the mode its command runs, which the tool
     routes build their option calls from.
@@ -1581,12 +1660,18 @@ def emit_resume(
     err = sys.stderr if stderr is None else stderr
     out = sys.stdout if stream is None else stream
     continuation: Optional[List[str]] = None
+    cascade: Optional[Dict[str, Any]] = None
     try:
         source = plan_arg if plan_path is None else plan_path
         if not _state_file(os.path.abspath(str(source))).is_file():
             return None
         asked = fronted_mode_word(mode_word)
         mode_word = _blocked_step(asked, source)
+        composite = _composite_of(asked)
+        if composite is not None and mode_word == composite.name:
+            # `_blocked_step` names the composite itself only for an
+            # unfinished cascade, which no inner step's resume goes on with.
+            cascade = unfinished_cascade(composite.name, source)
         route = resolve_route(host_id, stderr=err, recorded=recorded_route)
         # Read once here only for a phase whose resume reads it (an implement's resume
         # also carries a manual task's answer);
@@ -1600,16 +1685,17 @@ def emit_resume(
             if resumed is not None and resumed.phase in PHASE_BY_WRITE_KIND.values()
             else None
         )
-        command = resume_command(
+        command = None if cascade is not None else resume_command(
             plan_arg, host_id, route, mode_word, plan_path=plan_path,
             workflow=workflow,
         )
-        if command is None and mode_word != asked:
+        if command is None and composite is not None:
             # The inner step has no resume of its own (a review that stopped,
             # nothing recorded yet, an apply with no progress for this
-            # review): the composite's own continuation, in its word.
+            # review), or a cascade is unfinished: the composite's own
+            # continuation, in its word.
             continuation = _composite_continuation(asked, source)
-            mode_word = _composite_of(asked).name
+            mode_word = composite.name
             command = phase_command(
                 plan_arg, host_id, route, mode_word, *continuation, plan_path=plan_path)
         if command is None:
@@ -1639,20 +1725,24 @@ def emit_resume(
     shown_mode = commit_mode_word(mode.name, view) if mode is not None else mode_word
     if continuation is not None:
         # The composite's own continuation: no stop of its own on record, so
-        # no answers, why or stop lines; the flags are the command's own, so
-        # a tool route's first option is this very command.
+        # no answers or stop lines, and a why only for a cascade (the stage
+        # it goes on at); the flags are the command's own, so a tool route's
+        # first option is this very command.
         if view is not None:
             # Imported here to keep next_phase light.
             from .commit_spelling import strip_fronted_flags
 
             continuation = strip_fronted_flags(continuation)
+        cascade_why = cascade_continuation_why(cascade) if cascade is not None else None
         resume = {
             "phase": mode.phase,
             "mode": shown_mode,
             "command": command,
             "flags": list(continuation),
-            "markdown": render_resume_markdown(shown_mode, command, None, []),
         }
+        if cascade_why:
+            resume["why"] = cascade_why
+        resume["markdown"] = render_resume_markdown(shown_mode, command, cascade_why, [])
         cli_common.record_user_resume(resume)
         return command
     phases = (workflow or {}).get("phases") or {}
@@ -1976,7 +2066,8 @@ def main(argv: Optional[List[str]] = None) -> int:
              "(any mode word or alias; `full` reads suggested_next; "
              + "; ".join(f"`{m.name}` starts after {m.sequence[-1]}"
                          for m in composites)
-             + ")",
+             + "; a composite whose cascade is unfinished answers with its "
+             "own continuation with --cascade)",
     )
     parser.add_argument(
         "--blocked", metavar="MODE", default=None, dest="blocked",
@@ -1986,7 +2077,9 @@ def main(argv: Optional[List[str]] = None) -> int:
              "(`[RESUME_COMMAND]`, and "
              "MULTI_LLM_RESULT.user_resume). The tool routes ask this after an "
              "exit 3. Prints nothing for a mode that has none. "
-             f"For {composite_words}: the step a plain re-run would run first, "
+             f"For {composite_words}: the composite's own continuation with "
+             "--cascade while a cascade is unfinished; else the step a plain "
+             "re-run would run first, "
              "with that phase's own resume when it has one, else the "
              "composite's own continuation; when every step is on record, the "
              "[ALREADY_COMPLETE] line and exit 2. Excludes --after.",

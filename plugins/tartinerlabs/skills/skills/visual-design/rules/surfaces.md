@@ -11,7 +11,9 @@ tags: cards, radius, shadow, elevation, blur, components
 ### When Building
 
 - **A radius scale** of three or four steps (for example 8, 12, 20, plus full pill). Nested corners stay concentric: inner radius = outer radius − padding.
+- **Elevation follows importance.** Raise what is interactive or selected with a lighter surface step, and push secondary blocks back with a step closer to the canvas. This works in every direction and needs no shadow. Where the lightness step already separates two surfaces, drop the border between them.
 - **One shadow style**, soft and low-contrast, in one or two strengths. In dark mode, show elevation with lighter surfaces instead of shadows.
+- **Shadow recipes depend on the direction** (`SKILL.md` step 3). Product showcase can build its shadow in two parts, a faint light highlight on the top edge and a soft dark shadow below, as if lit from above, and step up to the stronger shadow on hover. It can also sink a track, well, or input with the reverse: dark inside the top edge, light inside the bottom. Restrained keeps to lightness steps with at most one faint shadow. Character-led and Editorial stay flat.
 - **Cards by role.** A card is for a self-contained object the user can act on (an item, a plan, a tile). Lists, settings, and plain text sit on the background or in the platform's grouped list.
 - **No card inside a card.** For nested grouping, use spacing, a divider, or a tinted inset area.
 - **A small component set**: one card style, one list row, one sheet, one chip. Variants come from content, not from new shapes.
@@ -24,6 +26,8 @@ tags: cards, radius, shadow, elevation, blur, components
 - Cards nested inside cards
 - More than four radius values, or inner corners larger than outer ones
 - Several shadow styles on one screen, or harsh dark shadows
+- Raised or shadowed elements that are neither interactive, selected, nor the most important block
+- Edge highlights, inset wells, or gradients in a direction that is meant to be flat
 - Blur on static elements, or text that becomes unreadable over blur
 - Near-identical components that differ by a few points
 

@@ -5,6 +5,8 @@ description: "Saves a durable decision, preference, correction or lesson to long
 
 # Save to memory
 
+A saved memory goes to the user's Mnemoverse account on the hosted service at mnemoverse.com, not to a file on this machine, and other tools connected to that account can recall it.
+
 ## Check first
 
 Look for the tools `memory_write` and `memory_stats`. If they are missing, memory is not connected: say so in one sentence and use the bundled `setup` skill if it is installed, otherwise https://mnemoverse.com/docs/api/install-by-host. Do not pretend the fact was saved.

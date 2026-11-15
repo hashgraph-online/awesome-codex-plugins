@@ -98,6 +98,8 @@ from .validation import (
 from .human_decisions import (
     apply_verdicts_to_work_set,
     build_judge_tasks,
+    cascade_judge,
+    CascadeJudge,
     group_id_of,
     ingest_verdicts,
     judge_labels,
@@ -106,12 +108,15 @@ from .human_decisions import (
     JUDGE_SKIPPED_STATUS,
     judge_item_from_group,
     record_verdicts,
+    retire_foreign_verdicts,
+    verdict_files,
     write_judge_tasks,
 )
 from .apply_report import ApplyPhaseReport, applied_to_label
 from . import scope_apply as _scope
 from . import scope_policy as _sp
 from . import unattended as _unattended
+from . import cascade_provenance as _cascade
 from .unattended import AGENT_DECIDE_FLAG, LEGACY_AGENT_DECIDE_FLAGS
 from . import detach as _detach
 from . import host_capabilities as _hosts
@@ -2606,10 +2611,25 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         approved, never silently dropped. Under ``--yes`` those groups are
         skipped with a warning by the caller's normal unattended handling;
         interactively they fall back to the normal ask.
+
+        In a cascade stage (its review round carries a ``cascade`` block) the
+        stage's judge ledger is read, and its hash checked, before any
+        verdict file is (a ledger that fails stops at exit 3, whatever
+        verdicts lie on disk), and every verdict file the judge task file
+        does not bind to this stage and ledger is moved aside first
+        (``human_decisions.retire_foreign_verdicts``): a group id repeated
+        from an earlier stage is judged again, against this stage's
+        rejections. Outside a cascade nothing here changes.
         """
         scope = self.human_decision_scope()
         phase_dir = self.human_decision_phase_dir()
         expected_ids = [group_id_of(g) for g in scope]
+
+        cascade: Optional[CascadeJudge] = None
+        if scope or verdict_files(phase_dir):
+            cascade = self._cascade_judge()
+        if cascade is not None:
+            self._retire_foreign_verdicts(phase_dir, cascade)
 
         ingest, remaining = self._ingest_judge_verdicts(scope, phase_dir, expected_ids)
         if not remaining:
@@ -2639,6 +2659,12 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         trust_note: Optional[str] = None
         if self._pinned is not None:
             trust_note = DATA_UNDER_REVIEW
+        # A cascade stage's judge gets the earlier rounds' rejections and the
+        # rule-6 sentence, read from its review round's cascade block before
+        # any verdict was (above, outside the guard below, which must not
+        # swallow a ledger that fails its hash: that stops the run at exit 3).
+        # Its tasks record the stage and the ledger's digest, which is what
+        # makes the verdicts written for them this stage's.
         try:
             document = build_judge_tasks(
                 items=items,
@@ -2646,6 +2672,8 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
                 plan_file=str(self.plan_path),
                 tasks_file=tasks_file,
                 **({"trust_note": trust_note} if trust_note else {}),
+                **({"cascade_rejected": cascade.ledger, "cascade_inputs": cascade.inputs()}
+                   if cascade is not None else {}),
             )
             tasks_path = write_judge_tasks(document, phase_dir)
         except Exception as exc:  # noqa: BLE001 - must not fail the apply run
@@ -2676,6 +2704,52 @@ class ApplyOrchestratorBase(Generic[TItem, TBatch]):
         )
         if remaining and getattr(self.args, "yes", False):
             self._skip_unjudged(remaining)
+
+    def _cascade_judge(self) -> Optional[CascadeJudge]:
+        """The judging of the cascade stage this apply's review round belongs to.
+
+        ``None`` when the review round's ``.status.json`` holds no ``cascade``
+        block, so the judge prompt and task file keep today's bytes; else the
+        stage's frozen ``ledger-judge.md`` (``""`` at the first stage) and the
+        stage and digest its verdicts are bound by
+        (``human_decisions.cascade_judge``). Read-only: the apply changes
+        nothing about the block. A block or ledger that cannot be trusted
+        stops the run at exit 3 before any verdict is read or judging task
+        written (docs/development/review-results.md#round-identity).
+        """
+        review_dir = os.path.join(self.out_dir, self.review_subdir)
+        try:
+            return cascade_judge(review_dir)
+        except _cascade.CascadeProvenanceError as exc:
+            sys.exit(_unattended.fail_closed(_cascade.error_line(exc)))
+
+    def _cascade_judge_ledger(self) -> Optional[str]:
+        """:meth:`_cascade_judge`'s ledger alone (``None`` outside a cascade)."""
+        judge = ApplyOrchestratorBase._cascade_judge(self)
+        return None if judge is None else judge.ledger
+
+    def _retire_foreign_verdicts(self, phase_dir: str, cascade: CascadeJudge) -> None:
+        """Move aside the verdict files that are not this cascade stage's, before any is read.
+
+        A verdict file that cannot be moved stops the run at exit 3: read, it
+        would decide its group without this stage's judge ledger.
+        """
+        try:
+            retired = retire_foreign_verdicts(phase_dir, cascade)
+        except OSError as exc:
+            sys.exit(_unattended.fail_closed(
+                "ERROR: could not move aside a judge verdict file of another cascade "
+                f"stage in {phase_dir} ({exc}); nothing was judged or applied. A "
+                "verdict decides its group only in the stage it was judged for: move "
+                "the human_decision_batch_*.json files out of the folder, then run "
+                "the command again."))
+        if retired:
+            print(
+                f"Note: moved aside {len(retired)} judge verdict file(s) from another "
+                "cascade stage or run; this stage judges its items again: "
+                + ", ".join(os.path.basename(path) for path in retired),
+                file=sys.stderr,
+            )
 
     def _host_id(self) -> Optional[str]:
         """The declared host (``--host``, else ``$MULTI_LLM_HOST``), never guessed."""

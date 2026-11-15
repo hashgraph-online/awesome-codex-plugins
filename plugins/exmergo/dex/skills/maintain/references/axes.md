@@ -378,6 +378,31 @@ Needs no baseline. The classes of finding:
   did not run: nothing declares it, the relation is empty, the column is all
   NULL or aggregated away, too few observations to call, or the scan is
   offered.
+- **Declared foreign keys, on a project format with no dbt artifacts**
+  (#1197). dbt runs a `relationships` test itself and build status reads its
+  result, so on dbt this does not run. Any other project format (one named
+  under `project.format`) has each declared foreign key measured against its
+  parent with the join contract's coverage probe, priced in the same single
+  offer, and one record per key under `data.foreign_key_coverage`:
+  - `model`, `column`, `to_model`, `to_column` and `source`, as the format
+    declared the key, so two keys to the same parent stay apart.
+  - `relation` and `to_relation`: where the format places each side, through
+    `model_relations` (a source parent through `source_relations`). A model the
+    format places nowhere is never looked up by name, since a same-named table
+    elsewhere is not the relation it declared.
+  - `measured` and `coverage` as on a join, with `null_keys: excluded`: a NULL
+    child value is not constrained, as in dbt, and is counted apart.
+  - `status`: `satisfied`, `contradicted` (with the finding), `not_applicable`
+    (`empty_input`, `all_keys_null`) or `unchecked` with a `reason_code`:
+    `no_declared_relation`, `relation_not_found`, `metadata_unreadable`,
+    `column_not_found`, `probe_refused` or `scan_offered`. None of these is
+    clean.
+
+  `foreign_key_orphans` (high): any non-NULL child value the parent lacks
+  (`threshold_source: contract`, threshold 0), stated as row and distinct-value
+  counts. `data.suppressed` names `foreign_key_contract` when no key ran: the
+  format declares none (in scope), declares nothing readable, or the warehouse
+  is unreachable.
 
 A project that does not compile is reported first and suppresses everything
 else. `data.suppressed` names every class that did not run and why.

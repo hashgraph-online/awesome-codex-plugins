@@ -202,6 +202,9 @@ _PATH_FLAGS: Tuple[str, ...] = (
     # A commit front door's launch stage (plans/review-commits.md §2.1): the
     # worker applies it after its lock, from wherever it runs.
     "--commit-stage",
+    # A cascade stage's inputs manifest, which the worker's review verifies
+    # and records (utils/cascade_provenance.py).
+    "--cascade-stage-file",
 )
 
 #: Nested-session variables that must not leak into a detached run.

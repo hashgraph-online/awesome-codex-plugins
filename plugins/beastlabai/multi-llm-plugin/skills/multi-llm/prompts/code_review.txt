@@ -42,7 +42,7 @@ Look for:
 
 {working_limits}
 
-{scope_policy_guidance}
+{scope_policy_guidance}{prior_rounds}
 
 ## Output Format
 Return ONLY a valid JSON array with no additional text. Each issue must have this structure:

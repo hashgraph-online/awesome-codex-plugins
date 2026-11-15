@@ -87,7 +87,7 @@
     "@types/node": "^26.4.0",
     "@types/pg": "8.23.1",
     "@types/ws": "8.18.2",
-    "openai": "7.51.0",
+    "openai": "7.55.0",
     "pg": "8.23.1",
     "typescript": "^5.6.3",
     "@vitest/coverage-v8": "4.1.11",

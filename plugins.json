@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-14",
+  "last_updated": "2026-11-15",
   "total": 412,
   "categories": [
     "Development & Workflow",
@@ -645,7 +645,7 @@
       "url": "https://github.com/chipfighter/context-attachment-manager",
       "owner": "chipfighter",
       "repo": "context-attachment-manager",
-      "description": "Manage image history in Codex desktop and Claude Desktop Code with on-demand image retrieval, pinned references, and search by description or feedback.",
+      "description": "Keep image-heavy Codex and Claude Code chats small: earlier images go out as short placeholders instead of being sent again with every message, the model fetches the original back by its ID (also after compaction), and the prompt cache keeps working.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/chipfighter/context-attachment-manager/HEAD/plugin/.codex-plugin/plugin.json"

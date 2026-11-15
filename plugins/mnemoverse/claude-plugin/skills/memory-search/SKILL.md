@@ -5,6 +5,8 @@ description: "Searches long-term Mnemoverse memory before answering, so earlier 
 
 # Search memory before answering
 
+A search sends the query to the user's Mnemoverse account on the hosted service at mnemoverse.com and returns memories stored there, not files on this machine.
+
 ## Check first
 
 Look for the tools `memory_read` and `memory_feedback`. If they are missing, memory is not connected: say so in one sentence and use the bundled `setup` skill if it is installed, otherwise https://mnemoverse.com/docs/api/install-by-host. Do not guess what memory would have said.

@@ -28,7 +28,7 @@ Read the manifest as prose and load **only** the matching guides:
 | **Apple (iPhone, iPad, Mac, Vision Pro, Watch, TV)** | `*.xcodeproj`, `Package.swift` with an app target | `references/apple.md`, plus `references/mobile.md` for iPhone and iPad |
 | **Android (Compose)** | `build.gradle(.kts)` with Compose | `references/mobile.md` + `references/android.md` |
 
-React Native/Expo: add `references/apple.md` or `references/android.md` only when the change behaves differently per OS (back navigation, sheets, pickers, haptics, system dialogs). Expo web output also loads `references/web.md`. For a landing, marketing, or launch page, also load `references/landing-pages.md`. A monorepo with several apps loads the guide for the app being touched. For another UI stack (Flutter, Kotlin Multiplatform), use `references/cross-platform.md` and the closest native guide.
+React Native/Expo: add `references/apple.md` or `references/android.md` only when the change behaves differently per OS (back navigation, sheets, pickers, haptics, system dialogs). Expo web output also loads `references/web.md`. For a landing, marketing, or launch page, also load `references/landing-pages.md`. For a dashboard, admin panel, or analytics view, also load `references/dashboards.md`. A monorepo with several apps loads the guide for the app being touched. For another UI stack (Flutter, Kotlin Multiplatform), use `references/cross-platform.md` and the closest native guide.
 
 ## 3. Rules
 
@@ -79,7 +79,7 @@ Then build with the rules as constraints.
 
 1. Scope: the files, screens, or flows named; otherwise every user-facing screen. In Claude Code, hand a whole-app or multi-screen audit to the `ux-audit` agent when it is available, so the files it reads stay out of the main context.
 2. Map each screen's job and primary action from its code before judging it.
-3. Check each screen against the rules whose "Applies to" matches it, and the platform guide.
+3. Check each screen against the rules whose "Applies to" matches it, the platform guide, and the page-type guide when the screen has one (landing page, dashboard).
 4. Report, grouped by impact (CRITICAL first):
 
 ```

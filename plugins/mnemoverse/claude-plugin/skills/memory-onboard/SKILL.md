@@ -5,6 +5,8 @@ description: "Seeds long-term Mnemoverse memory with a project's durable convent
 
 # Onboard a project into memory
 
+The facts written here go to the user's Mnemoverse account on the hosted service at mnemoverse.com, not to a file in the project, and other tools connected to that account can recall them.
+
 ## Check first
 
 Look for the tools `memory_stats`, `memory_read`, `memory_list_recent` and `memory_write`. If they are missing, memory is not connected: say so in one sentence and use the bundled `setup` skill if it is installed, otherwise https://mnemoverse.com/docs/api/install-by-host.

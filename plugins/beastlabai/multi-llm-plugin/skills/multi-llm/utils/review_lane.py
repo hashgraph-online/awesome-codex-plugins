@@ -8,7 +8,9 @@ the other (docs/development/review-results.md, "The shared review lane"):
 
 * :class:`ReviewLane`, the hooks a lane supplies where the lanes differ;
 * :func:`select_review_models` and :func:`open_round`, a fan-out's model
-  selection and the opening checkpoint of its round;
+  selection and the opening checkpoint of its round, and
+  :func:`check_cascade_stage`, the pre-flight of a cascade stage's hidden
+  ``--cascade-stage-file`` (review-plan and review-code);
 * :class:`SlotResult`, one model slot's outcome, the shape :func:`run_slot`
   returns and both fan-outs close over;
 * :func:`close_fanout`, what follows a fan-out up to grouping: each slot's
@@ -50,6 +52,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Mapping, Optional, Protocol, Sequence, Tuple
 
 from . import cli_common
+from . import cascade_provenance as _cascade_provenance
 from .atomic_io import read_back_text
 from . import detach as _detach
 from . import held_folder as _held_folder
@@ -105,7 +108,10 @@ class ReviewLane(Protocol):
       run's.
     * ``retry_command(*flags)``: the follow-up command a refusal or a failed
       run names, in the lane's spelling (review-code spells a commit review's
-      command in its commit mode).
+      command in its commit mode); a cascade stage's round (on record, or
+      named by *stage_file*, the run's hidden flag) names the stage's one
+      model (``cascade_provenance.retry_flags``), so the retry keeps the
+      round's ``cascade`` block.
     * ``save_slot(slot)``: write one slot's ``{model}.json`` (or the salvage
       request of a losing slot); ``False`` when the slot is a failure.
     * ``adopt_salvaged(model_spec, path)``: the repaired ``{model}.json`` an
@@ -135,7 +141,7 @@ class ReviewLane(Protocol):
     orchestrator_script: str
     reuse_checks_inputs: bool
 
-    def retry_command(self, *flags: str) -> str: ...
+    def retry_command(self, *flags: str, stage_file: Optional[str] = None) -> str: ...
 
     def round_follow_up(
         self, document: Mapping[str, Any], *, typed: bool = False,
@@ -508,6 +514,79 @@ def select_review_models(args: Any, *, mode: str, anchor: str) -> Tuple[List[str
     return model_specs, unattended
 
 
+def _cascade_stage_path(args: Any) -> Optional[str]:
+    """The manifest the hidden ``--cascade-stage-file`` names, or ``None``.
+
+    Only review-plan's and review-code's parsers declare the flag; every other
+    lane's namespace (review-tasks) has no such attribute and reads as none.
+    """
+    value = getattr(args, _cascade_provenance.FLAG_DEST, None)
+    return str(value) if value else None
+
+
+def _round_cascade_block(
+    phase_dir: str, given: Optional[Dict[str, Any]], *, rerun_all: bool,
+    models: Sequence[str],
+) -> Optional[Dict[str, Any]]:
+    """The ``cascade`` block a fan-out's round records, from the one on record.
+
+    ``cascade_provenance.next_block``'s three rules: the flag's block is
+    recorded (refused over a different stage's when the fan-out keeps
+    results); without the flag, a fan-out that resumes the stage's round
+    (no ``--rerun-all``, and *models*, the specs it requested, exactly the
+    block's one model) carries the recorded block over, and any other drops
+    it. The block on record is read, and its shape checked, only when it can
+    matter: a ``--rerun-all`` keeps none of the round on record. Raises
+    ``CascadeProvenanceError`` for a malformed block or a conflict.
+    """
+    previous = None if rerun_all else _cascade_provenance.read_block(phase_dir)
+    return _cascade_provenance.next_block(
+        previous, given, rerun_all=rerun_all, models=models,
+        where=_status_file.status_path(phase_dir),
+    )
+
+
+def check_cascade_stage(args: Any, *, phase_dir: str) -> None:
+    """Refuse a cascade stage's review whose provenance cannot hold, before it writes.
+
+    A review given the hidden ``--cascade-stage-file <manifest>`` (the
+    composite's step under ``--cascade`` writes it, always absolute; one typed
+    relative is read from the cwd) verifies every hash the manifest lists, and
+    checks that its round could record the block (:func:`_round_cascade_block`:
+    no other stage's results kept). Either failure stops the run at exit 3,
+    ``needs-human``, before the phase lock, ``state.json`` or the checkpoint
+    is touched. :func:`open_round` does both again under the checkpoint mutex
+    and records the block; this pre-flight runs first so a refused stage
+    leaves nothing behind (and a ``--detach`` launcher refuses in the
+    foreground). A ``--reaggregate`` given the flag gets the same checks and
+    records nothing: it continues the round on record, block and all.
+    Nothing happens without the flag.
+
+    The handoff itself is checked too (``cascade_provenance.check_current``):
+    the composite's ``cascade-current.json`` must name the manifest's
+    cascade, that cascade must be running, and its stage must not be closed.
+    A command printed for a cascade superseded since (``--force --cascade``,
+    or a second planner that started its own) or abandoned, or for a stage
+    already closed out, would otherwise send a paid review no cascade binds.
+    """
+    path = _cascade_stage_path(args)
+    if path is None:
+        return
+    try:
+        given = _cascade_provenance.block_from_manifest(path)
+        _cascade_provenance.check_current(given, phase_dir)
+        # The models are not selected yet; with the flag given they do not
+        # decide anything (only the carry-over without it reads them).
+        _round_cascade_block(
+            phase_dir, given,
+            rerun_all=bool(getattr(args, "rerun_all", False))
+            and not bool(getattr(args, "reaggregate", False)),
+            models=(),
+        )
+    except _cascade_provenance.CascadeProvenanceError as exc:
+        sys.exit(_unattended.fail_closed(_cascade_provenance.error_line(exc)))
+
+
 @dataclass(frozen=True)
 class RoundOpening:
     """What the previous attempt of the phase recorded, read by
@@ -563,9 +642,36 @@ def open_round(
     the run stops there at exit 3, ``needs-human``, before anything is
     written or dispatched (docs/development/review-results.md, "Withheld slot
     answers").
+
+    A cascade stage's ``cascade`` block (``cascade_provenance.STATUS_KEY``)
+    is carried the same way, read under the same lock: the block the hidden
+    ``--cascade-stage-file`` names is verified again and recorded; without
+    the flag, a fan-out that resumes the stage's round (no ``--rerun-all``,
+    and *model_specs* exactly the block's one model: a ``--force`` resume of
+    the missing model, however the review words its retry) carries the
+    recorded block over, so a printed retry, which never replays the flag,
+    stays the stage's round; any other fan-out without it (``--rerun-all``,
+    other models, a second model beside the stage's) records none, since a
+    round started by hand is not the cascade's
+    (:func:`_round_cascade_block`). A changed input, a malformed block on
+    record or another stage's block under a results-keeping fan-out stops
+    the run at exit 3, ``needs-human``, before the write
+    (:func:`check_cascade_stage` refused the same earlier, before anything
+    was written). Every later write on the review path merges
+    (``update_status``), and a ``--reaggregate`` writes no opening, so the
+    block stays with its round.
     """
     prior_usage = steps.recorded_usage(phase_dir) or {}
     prior_served = steps.recorded_served_models(phase_dir) or {}
+    rerun_all = bool(getattr(args, "rerun_all", False))
+    stage_path = _cascade_stage_path(args)
+    given: Optional[Dict[str, Any]] = None
+    if stage_path is not None:
+        try:
+            given = _cascade_provenance.block_from_manifest(stage_path)
+        except _cascade_provenance.CascadeProvenanceError as exc:
+            sys.exit(_unattended.fail_closed(_cascade_provenance.error_line(exc)))
+    refusal: Optional[_cascade_provenance.CascadeProvenanceError] = None
     withheld: Optional[Dict[str, Dict[str, Any]]] = None
     with claim.opening():
         try:
@@ -578,18 +684,27 @@ def open_round(
             rejected = withheld[_result_files.REJECTED_MODELS_KEY]
             unchecked = withheld[_result_files.UNCHECKED_MODELS_KEY]
             recovery = withheld.get(_result_files.RECOVERED_KEY)
-            steps.write_status(phase_dir, {
-                "phase": phase_name,
-                "state": "models_running",
-                "started_at": datetime.now().isoformat(),
-                "models_requested": list(model_specs),
-                "error": None,
-                _review_round.ROUND_KEY: claim.round_id,
-                "progress": None,
-                **({_result_files.REJECTED_MODELS_KEY: rejected} if rejected else {}),
-                **({_result_files.UNCHECKED_MODELS_KEY: unchecked} if unchecked else {}),
-                **({_result_files.RECOVERED_KEY: recovery} if recovery is not None else {}),
-            })
+            try:
+                cascade = _round_cascade_block(
+                    phase_dir, given, rerun_all=rerun_all, models=model_specs)
+            except _cascade_provenance.CascadeProvenanceError as exc:
+                refusal = exc
+            else:
+                steps.write_status(phase_dir, {
+                    "phase": phase_name,
+                    "state": "models_running",
+                    "started_at": datetime.now().isoformat(),
+                    "models_requested": list(model_specs),
+                    "error": None,
+                    _review_round.ROUND_KEY: claim.round_id,
+                    "progress": None,
+                    **({_result_files.REJECTED_MODELS_KEY: rejected} if rejected else {}),
+                    **({_result_files.UNCHECKED_MODELS_KEY: unchecked} if unchecked else {}),
+                    **({_result_files.RECOVERED_KEY: recovery} if recovery is not None else {}),
+                    **({_cascade_provenance.STATUS_KEY: cascade} if cascade is not None else {}),
+                })
+    if refusal is not None:
+        sys.exit(_unattended.fail_closed(_cascade_provenance.error_line(refusal)))
     if withheld is None:
         sys.exit(_unattended.fail_closed(
             f"ERROR: {_status_file.status_path(phase_dir)} could not be read "
@@ -1458,7 +1573,8 @@ async def close_fanout(
             completed=completed_models,
             failed=list(failed_models),
             phase_dir=phase_dir,
-            retry_command=lane.retry_command("--force"),
+            retry_command=lane.retry_command(
+                "--force", stage_file=_cascade_stage_path(args)),
         ))
     _unattended.report_partial_results(
         completed=completed_models,

@@ -64,7 +64,7 @@ the standards tables means less grounding for a dimension, never permission to
 invent one.
 
 Set `KB_HOST` from `SW_KB_HOST`; default to
-`https://sw-plugin.ideep.org`. Use `curl` through the shell for every runtime
+`https://sw-plugin.erfouni.ir`. Use `curl` through the shell for every runtime
 request. Quote the complete URL. Do not use browser or web-fetch tools for this
 KB.
 

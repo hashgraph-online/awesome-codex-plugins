@@ -18,7 +18,8 @@ Two things, below every writer that needs them (layer L0: the stdlib,
   ``output_handler.output_dir_path``, or when a command handed the state file
   alone takes its lock: ``state_file.locked``) and the writes, renames and removals made
   through a folder held below one (:func:`write_in_plan_dir`,
-  :func:`rename_in_plan_dir`, :func:`remove_in_plan_dir`): ``state.json``,
+  :func:`rename_in_plan_dir`, :func:`remove_in_plan_dir`, and
+  :func:`utime_in_plan_dir` for the times a cascade's archive copies keep): ``state.json``,
   ``.status.json`` (and its archive when it is found damaged), the prompt
   sidecars and host views, the executor's JSON records (its results, its
   reports, the write scheduler's report) and the generate-tasks restore's
@@ -421,6 +422,36 @@ def rename_in_plan_dir(path: PathLike, name: str) -> Path:
 
     _in_held_folder(root, target, _MOVED, rename, resolve_root=False)
     return renamed
+
+
+#: Whether a file's times can be set relative to its folder held, without
+#: following a link at its name (``utimensat``: Linux, macOS).
+_UTIME_HELD = bool(
+    _WRITES_HELD and os.utime in os.supports_dir_fd
+    and os.utime in os.supports_follow_symlinks
+)
+
+
+def utime_in_plan_dir(path: PathLike, ns: Tuple[int, int]) -> None:
+    """Set the access and modification times (*ns*, ``os.utime``'s) of the
+    file *path*, below the plan's directory, as :func:`write_in_plan_dir`
+    writes one: relative to its folder held there, which must still be the
+    one at its path, and never through a link at its name. Windows sets them
+    by the checked path. *path* below no anchored plan directory is set by
+    its path."""
+    root = plan_dir_of(path)
+    if root is None:
+        os.utime(path, ns=ns)
+        return
+    target = _checked(path, root, what="write")
+    if not _UTIME_HELD:
+        os.utime(target, ns=ns)
+        return
+
+    def touch(fd: int) -> None:
+        os.utime(target.name, ns=ns, dir_fd=fd, follow_symlinks=False)
+
+    _in_held_folder(root, target, _WRITTEN, touch, resolve_root=False)
 
 
 def remove_in_plan_dir(path: PathLike) -> None:

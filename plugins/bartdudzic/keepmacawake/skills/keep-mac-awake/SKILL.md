@@ -14,7 +14,7 @@ This works only when your commands run on the user's Mac itself, as in Claude Co
 The user installed this so that you take care of it:
 
 - Start a timed session yourself before qualifying work, and tell the user in one line, for example: "Keep Mac Awake is on for 3 hours, so you can close the lid."
-- Always ask first before a session without a time limit, allowing battery use, installing the app, buying, or the first session ever (`access.trial_started` is false), which starts the 3-day trial.
+- Always ask first before a session without a time limit, a session that may run on battery when Run on battery turned itself on (`config.battery` is `allowed` and `config.battery_chosen` is false), changing the battery settings, installing the app, buying, or the first session ever (`access.trial_started` is false), which starts the 3-day trial.
 - Start a session only for a task the user asked for, never just to test. If they ask to keep the Mac awake without naming a task or a length, ask how long.
 - Never pay, never handle payment details, and never ask for a password in chat.
 
@@ -24,14 +24,16 @@ The user installed this so that you take care of it:
    - Not found at either path: the app is not installed. See "Install".
    - Exit code 6: read `error.code`. With `not_installed`, see "Install". With `service_unavailable` or `connection_lost`, the app is installed but its background service did not answer. When your commands run in a sandbox (Codex, and Cursor or Claude Code with sandboxing on), the sandbox blocks the connection: run the same command again outside the sandbox, with the user's approval if your tool asks for it. Otherwise ask the user to open Keep Mac Awake. Never offer to install it in this case.
    - `session.live` is true: a session already runs. Do not start another. If its `remaining_seconds` is shorter than the task, tell the user.
-2. Before the lid closes, start a session a little longer than you expect the task to take, in whole hours (1 to 168; during the trial at most `access.max_hours`, which is 8):
+2. Check battery use. On a MacBook on battery whose user never set Run on battery, the app turns it on by itself, and that default is not the user's consent. When `config.battery_available` is true, `config.battery` is `allowed` and `config.battery_chosen` is false, ask before you start, with the level from `config.min_battery_percent`: "Your Mac's Run on battery turned itself on: a session would run on battery down to 20% when unplugged. Start it, or plug in first?" Start only after a yes, and say in the same line that it may run on battery down to that level. Ask once in a conversation; a yes covers its later sessions. If they would rather not use the battery, do not start one: they can turn Run on battery off in the menu bar panel, after which sessions need AC power and you start them as usual. If they want you to stop asking, `keepmacawake config set --battery allowed` records Run on battery as their own choice; run it only when they ask for that. When `config.battery_chosen` is true (the user set it themselves) or missing (Keep Mac Awake 1.0.10 or earlier, where `allowed` was always their choice), start without this question.
+3. Before the lid closes, start a session a little longer than you expect the task to take, in whole hours (1 to 168; during the trial at most `access.max_hours`, which is 8):
 
    ```sh
    keepmacawake start --hours 3 --json
    ```
 
    It returns once the system service has confirmed the session (`"confirmed":true`) or refused it.
-3. Tell the user. If the lid will be closed, remind them to keep the Mac ventilated: never in a bag or on a soft surface.
+4. Tell the user. If the lid will be closed, remind them to keep the Mac ventilated: never in a bag or on a soft surface. When `session.min_battery_percent` is a number, the session runs on battery when the Mac is unplugged and ends at that level: say so in the same line, for example "Keep Mac Awake is on for 3 hours, on battery down to 20% if you unplug."
+5. If the lid will stay closed overnight and `config.mute_on_lid_close` is `off`, you may offer once: "Keep Mac Awake can also mute the Mac while the lid is closed, so notifications stay quiet tonight. Turn that on?" Only if they agree, run `keepmacawake config set --mute-on-lid-close on --json`. It applies at once, also to the running session, mutes nothing while an external display is on, gives the sound back when the lid opens, and stays on for later sessions until the user turns it off. Skip this when `config.battery_available` is false (a desktop Mac has no lid and accepts only `off`).
 
 ## While it runs and after
 
@@ -46,7 +48,7 @@ Exit code 4 means the user has to act. Read `error.code`:
 
 - `purchase_required` with `error.reason` `trial_session_limit`: trial sessions last at most `access.max_hours` hours (8). If that covers the task, run `keepmacawake start --hours 8 --json` and say so. Only if the task needs longer, tell the user that trial sessions last at most 8 hours and longer ones need the full version.
 - `purchase_required` with `error.reason` `trial_ended`: no new session can start. Tell the user once in the conversation, in your own words, that the trial has ended and the full version is a one-time purchase for this Mac; the purchase page shows the price. If they want to buy, run `keepmacawake buy`: it opens the purchase page in their browser, and after they pay the app unlocks by itself (check with `keepmacawake status --json`). If they already bought it, run `keepmacawake restore`. If they decline, carry on with the task and remind them the Mac sleeps when the lid closes. Do not bring the offer up again in that conversation.
-- `refused` on battery with AC-only settings: ask the user to plug in. Only with their agreement allow battery use: `keepmacawake config set --battery allowed --min-battery 30`, which applies to the next session. When `config.battery_available` is false (a Mac without a built-in battery), there is no battery option: sessions need AC power, so never change the battery settings there.
+- `refused` on battery means Run on battery is off (the user turned it off, or the app was installed before version 1.0.11 and kept its setting) or the charge is at or below the threshold: ask the user to plug in. The refusal's message names the command that changes it. Only with their agreement allow battery use: `keepmacawake config set --battery allowed --min-battery 30`, which applies to the next session. When `config.battery_available` is false (a Mac without a built-in battery), there is no battery option: sessions need AC power, so never change the battery settings there.
 - `refused` after `keepmacawake restore`: no purchase was found for this Mac. Tell the user; a purchase made on another Mac moves only by writing to hi@keepmacawake.com.
 - `run_as_user`: run it without `sudo`.
 

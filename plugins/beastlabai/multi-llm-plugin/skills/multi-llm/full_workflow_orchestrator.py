@@ -121,13 +121,20 @@ IMPLEMENT_PHASE = "implement"
 
 @dataclass
 class StepReport:
-    """What one step did, for the final report."""
+    """What one step did, for the final report.
+
+    *stage* is the cascade stage the step ran in (a composite's ``--cascade``
+    runs the same steps once per stage), else ``None``: `full` and a plain
+    composite run each step once, and their records are keyed as they always
+    were.
+    """
 
     label: str
     phase: str
     outcome: str
     detail: str = ""
     exit_code: Optional[int] = None
+    stage: Optional[int] = None
 
 
 @dataclass
@@ -260,6 +267,9 @@ class FullWorkflow:
         #: ``--scope-policy`` resolved once per run (:meth:`scope_policy_choice`).
         self._scope_choice: Optional[Tuple[str, str]] = None
         self._scope_resolved = False
+        #: The cascade stage the steps that run now belong to
+        #: (:attr:`StepReport.stage`); ``None`` outside a composite's cascade.
+        self.report_stage: Optional[int] = None
 
     # -- state ----------------------------------------------------------
     @property
@@ -300,10 +310,18 @@ class FullWorkflow:
         record.update({
             "current_phase": current,
             "failed_phase": failed,
-            "steps": {r.phase or r.label: r.outcome for r in self.reports},
+            "steps": {self._progress_key(r): r.outcome for r in self.reports},
         })
         state.set(self.STATE_KEY, record)
         state.save()
+
+    @staticmethod
+    def _progress_key(report: StepReport) -> str:
+        """The progress record's key for *report*: its phase (its label for an
+        advisory step), prefixed ``stage-<k>/`` for a cascade stage's step, so
+        one stage's outcome never overwrites another's."""
+        key = report.phase or report.label
+        return key if report.stage is None else f"stage-{report.stage}/{key}"
 
     # -- in-process dispatch -------------------------------------------
     def run_mode(self, mode_word: str, extra: Sequence[str]) -> int:
@@ -1052,15 +1070,33 @@ class FullWorkflow:
         record_next(pending or resume)
         return EXIT_NEEDS_HUMAN
 
-    def run(self) -> int:
-        self._record_scope_policy()
+    def planning_args(self) -> argparse.Namespace:
+        """The namespace :meth:`run_steps`' skip gate reads ``--force`` from.
+
+        The invocation's own. A composite running a cascade stage answers with
+        the stage's derived namespace (``ImproveWorkflow.planning_args``), so
+        the user's ``--force`` never passes a stage's steps over or forces a
+        stage that resumes.
+        """
+        return self.args
+
+    def run_steps(self) -> Optional[Tuple[Step, str, Optional[int]]]:
+        """The step loop, once: ``(step, detail, exit code)`` of the step that
+        failed, or ``None`` when every step ran or was passed over.
+
+        It returns *before* any failure is reported (no report, no row-14
+        stop, no ``failed_phase``), so a caller that runs it more than once (a
+        composite's cascade, one pass per stage) decides first whether the
+        failure stops the run; :meth:`run` reports it at once.
+        """
         for step in self.steps():
-            if step.skippable and not self.args.force:
+            if step.skippable and not self.planning_args().force:
                 reason = self.skip_reason(step)
                 if reason:
                     print(f"\n=== {step.label}: already {reason}, skipping ===")
                     self.reports.append(
-                        StepReport(step.label, step.phase, ALREADY, reason)
+                        StepReport(step.label, step.phase, ALREADY, reason,
+                                   stage=self.report_stage)
                     )
                     continue
             print(f"\n=== {step.label} ===")
@@ -1072,13 +1108,22 @@ class FullWorkflow:
             finally:
                 self._close_step_result(step, mark)
             self.reports.append(
-                StepReport(step.label, step.phase, outcome, detail, code)
+                StepReport(step.label, step.phase, outcome, detail, code,
+                           stage=self.report_stage)
             )
             if outcome == FAILED:
-                self.print_report()
-                return self._phase_failed(step, detail, code)
+                return step, detail, code
             if outcome == SKIPPED and detail:
                 print(f"[SKIPPED] {step.label}: {detail}")
+        return None
+
+    def run(self) -> int:
+        self._record_scope_policy()
+        failed = self.run_steps()
+        if failed is not None:
+            step, detail, code = failed
+            self.print_report()
+            return self._phase_failed(step, detail, code)
         self._record_progress(current="complete")
         self._close_scope_policy()
         self.print_report()
@@ -1094,7 +1139,9 @@ class FullWorkflow:
         # owner of the word.
         print(f"**{self._document_title()}**: {self.plan_path}")
         print("")
-        for report in self.reports:
+        for line in self.report_head():
+            print(line)
+        for report in self.listed_reports():
             suffix = f" — {report.detail}" if report.detail else ""
             print(f"- {report.label}: {report.outcome}{suffix}")
         artifacts = self.report_artifacts()
@@ -1106,6 +1153,17 @@ class FullWorkflow:
         self._record_step_results()
         print("")
         self._print_metrics()
+
+    def report_head(self) -> List[str]:
+        """Lines :meth:`print_report` prints between the plan line and the
+        steps: none for `full`; a composite's cascade puts its per-round table
+        there."""
+        return []
+
+    def listed_reports(self) -> List[StepReport]:
+        """The steps :meth:`print_report` lists: every one that ran here. A
+        composite's cascade lists its last stage's."""
+        return list(self.reports)
 
     def _record_step_results(self) -> None:
         """Each step's result and the result line's artifacts, in this run dir.

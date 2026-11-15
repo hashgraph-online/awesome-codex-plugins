@@ -104,6 +104,24 @@
         },
         "commit_fixes": {
           "$ref": "result_line.schema.json#/definitions/commit_fixes"
+        },
+        "cascades": {
+          "type": "array",
+          "description": "Each composite's unfinished --cascade that no listed composite run view carries as its cascade key (a native-leg cascade, or one an executor run left in the foreground, has no composite run record), read from the pointer and the record (utils/status_views.unfinished_cascades). Present only when there is one; never under --run-id or --question; under --phase only the composite it names.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["mode", "cascade_id", "state", "stage", "of", "model", "dir"],
+            "properties": {
+              "mode": { "enum": ["improve-plan", "improve-code"], "description": "The composite whose cascade it is." },
+              "cascade_id": { "type": "string" },
+              "state": { "enum": ["running"] },
+              "stage": { "type": "integer", "minimum": 1, "description": "The first stage not closed, 1-based." },
+              "of": { "type": "integer", "minimum": 1, "description": "The number of stages." },
+              "model": { "type": "string", "description": "That stage's one provider:model spec." },
+              "dir": { "type": "string", "description": "The cascade's directory (absolute)." }
+            }
+          }
         }
       }
     },
@@ -172,6 +190,20 @@
             },
             { "type": "null" }
           ]
+        },
+        "cascade": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cascade_id", "state", "stage", "of", "model", "dir"],
+          "description": "A composite run's (improve-plan, improve-code) unfinished --cascade, read from the pointer and the record (utils/status_views.attach_cascades over utils/improve_cascade.cascade_status): the stage under way or the one a continuation goes on at. Absent outside an unfinished cascade, and on every other view.",
+          "properties": {
+            "cascade_id": { "type": "string" },
+            "state": { "enum": ["running"] },
+            "stage": { "type": "integer", "minimum": 1, "description": "The first stage not closed, 1-based." },
+            "of": { "type": "integer", "minimum": 1, "description": "The number of stages." },
+            "model": { "type": "string", "description": "That stage's one provider:model spec." },
+            "dir": { "type": "string", "description": "The cascade's directory (absolute): record.json, summary.md and the stage dirs." }
+          }
         },
         "run": {
           "anyOf": [

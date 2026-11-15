@@ -323,7 +323,7 @@ For each batch (index N, starting at 1) returned by the orchestrator, you MUST:
 
 **CRITICAL**: Process batches ONE AT A TIME. Never spawn multiple subagents simultaneously.
 
-**The last subagent returning is not the end of the phase.** Every step below this loop still owes work — the human-decision items, the summary report, and whatever record this mode ends with. Do not end your turn between the last batch and that final step, and do not announce the work as done before it: on a host that runs one headless turn the announcement *is* the end of the run, and a phase whose bytes landed but whose record never did is indistinguishable afterwards from one that never ran. The loop itself takes the same rule — stay in the turn until the batch you dispatched has returned and been verified.
+**The last subagent returning is not the end of the phase.** Every step below this loop still owes work — the human-decision items, the summary report, and whatever record this mode ends with. Do not end your turn between the last batch and that final step, and do not announce the work as done before it: on a host that runs one headless turn the announcement *is* the end of the run, and a phase whose bytes landed but whose record never did is indistinguishable afterwards from one that never ran. The loop itself takes the same rule — stay in the turn until the batch you dispatched has returned and been verified — with one exception: where your host's skill text says a reply comes back only in a later turn, as a subagent resumed in the background does there, end the turn once nothing else is left to do, and carry on from here when that reply arrives.
 
 **After the loop completes**, mark the phase finish:
 ```bash

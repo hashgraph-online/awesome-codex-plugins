@@ -6,7 +6,7 @@
 
 The agent checks live prices and quotes you, rents the GPU once you say yes, uploads your code and data, starts training in the background, watches the logs, downloads the adapter and destroys the instance. You get the files and the final cost.
 
-It is a local (stdio) MCP server. It works with any MCP client that can start one: Claude Code, Cursor, Cline, opencode, goose, VS Code, Windsurf and others.
+It is a local (stdio) MCP server. It works with any MCP client that can start one: Codex, Claude Code, Cursor, Cline, opencode, goose, VS Code, Windsurf and others. Remote Streamable HTTP with OAuth is also available at `https://cloudgpu.app/mcp`; see [remote MCP setup](https://cloudgpu.app/docs/mcp).
 
 ## Install
 
@@ -99,6 +99,26 @@ extensions:
 3. Optional but recommended: copy [`rules/cloudgpu.md`](rules/cloudgpu.md) into your project as `AGENTS.md`, `.cursor/rules/cloudgpu.md` or `.clinerules/cloudgpu.md`. It tells the agent to quote before renting, download before shutting down, and never leave a GPU running. The server also exposes the same text as the resource `cloudgpu://rules`.
 
 To check the install, ask your agent: "List the GPUs available, then estimate the cost for a 24 GB GPU for one hour. Do not create anything." You should see `list_gpus` and `estimate_cost` calls and a quote, and nothing is rented.
+
+## Codex MCP
+
+Add the local stdio server without putting a key in your command history:
+
+```bash
+codex mcp add cloudgpu -- npx -y cloudgpu-mcp
+codex mcp list
+```
+
+In Codex, ask CloudGPU to call `connect_account`, open the returned link yourself, sign in, review the limits and approve, then ask it to call `finish_connect`. If needed, use `request_top_up` for an owner payment link and `wait_for_funds` to check the resulting balance. Never paste credentials into the conversation. Account connection does not approve paid compute; review a fresh quote and its billing terms before each allocation.
+
+For a Codex client that supports remote MCP and OAuth, use this instead of the local entry:
+
+```bash
+codex mcp add cloudgpu --url https://cloudgpu.app/mcp
+codex mcp login cloudgpu
+```
+
+The remote and local transports expose different tool sets; consult the [current MCP documentation](https://cloudgpu.app/docs/mcp). Start with a read-only capability or GPU-price check and explicitly ask it not to create resources. This is direct MCP configuration, separate from the optional Codex plugin below.
 
 ## Agent Skill
 
