@@ -1,0 +1,70 @@
+<!-- Onboarding stepper (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"p":step the bot last saw 0..3,"t":[4 titles],"b":[4 bodies],"o":[[[value,label]...] for steps 1-3],
+              "v":[chosen value or "" for steps 1-3],"d":0|1 completed,"dn":completion text,"r":N}
+  Step strings come from state (localized by the bot) to save bytes. Back/Next are local; choices send
+  "set:<l|n|z>:<value>" (absolute), the last step sends "finish". -->
+<style>
+/*@kit tokens.css*/
+.dt { display: flex; gap: 6px; justify-content: center; margin: 2px 0 8px }
+.dt i { width: 8px; height: 8px; border-radius: 4px; background: rgba(128,128,128,.4); transition: width .2s }
+.dt .on { width: 20px; background: var(--k-btn) }
+.dt .dn { background: var(--k-ok) }
+.cs { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 }
+.bd { margin-top: 4px }
+.sm { margin-top: 8px }
+.nv { margin-top: 10px }
+.nv button { min-height: 36px }
+</style>
+<div class="k">
+  <div class="dt" id="dt"></div>
+  <div class="tt" id="ti"></div>
+  <div class="bd" id="bd"></div>
+  <div class="cs" id="cs"></div>
+  <div class="sf sm" id="sm"></div>
+  <div class="rw nv" id="nv"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { bk: "Back", nx: "Next", fn: "Finish", fd: "Setup complete", none: "No setup yet. The bot will start it." } });/*@end*/
+/*@lang ru*/K.add({ ru: { bk: "Назад", nx: "Далее", fn: "Готово", fd: "Настройка завершена", none: "Настройки пока нет. Бот её начнёт." } });/*@end*/
+/*@lang uk*/K.add({ uk: { bk: "Назад", nx: "Далі", fn: "Готово", fd: "Налаштування завершено", none: "Налаштування поки немає. Бот його розпочне." } });/*@end*/
+var cur = null;
+function draw() {
+  var s = K.S.chatData, $ = K.$, dis = K.busy || !K.can(), i, c = $("cs"), d = $("dt"), nv = $("nv"), b;
+  c.innerHTML = d.innerHTML = nv.innerHTML = "";
+  $("sm").hidden = 1;
+  if (!s) { $("ti").textContent = K.t("none"); $("bd").textContent = ""; return; }
+  if (cur == null || s.d) cur = s.d ? 3 : s.p;
+  for (i = 0; i < 4; i++) d.appendChild(K.h("i", i == cur && !s.d ? "on" : i < cur || s.d ? "dn" : ""));
+  $("ti").textContent = s.t[cur];
+  $("bd").textContent = s.d ? s.dn : s.b[cur];
+  if (cur == 3) {
+    $("sm").hidden = 0;
+    $("sm").textContent = s.o.map(function (o, j) {
+      return (o.filter(function (x) { return x[0] == s.v[j]; })[0] || ["", "–"])[1];
+    }).join(" · ");
+  } else s.o[cur].forEach(function (o) {
+    b = K.h("button", "ch" + (s.v[cur] == o[0] ? " on" : ""), o[1]);
+    b.disabled = dis;
+    b.onclick = function () { K.ask("set:" + "lnz"[cur] + ":" + o[0]); };
+    c.appendChild(b);
+  });
+  if (s.d) return;
+  b = K.h("button", "ch", K.t("bk"));
+  b.disabled = !cur;
+  b.onclick = function () { cur--; draw(); };
+  nv.appendChild(b);
+  if (cur < 3) {
+    b = K.h("button", "gr", K.t("nx"));
+    b.onclick = function () { cur++; draw(); };
+  } else {
+    b = K.h("button", "gr", K.t("fn"));
+    b.disabled = dis || s.v.indexOf("") >= 0;
+    b.onclick = function () { K.ask("finish", { done: K.t("fd") }); };
+  }
+  nv.appendChild(b);
+}
+K.start(draw);
+</script>

@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要部署到 Render 时
@@ -37,6 +38,7 @@ dependencies:
 ## 部署方式
 
 Render 支持两种部署方式：
+
 1. **render.yaml 蓝图（推荐）**：基础设施即代码，一键创建所有服务和数据库
 2. **Dashboard 手动创建**：通过 Web 界面逐个创建服务
 
@@ -300,6 +302,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `RENDER_API_KEY`：Render API Key（Account Settings → API Keys）
 - `RENDER_SERVICE_ID`：服务 ID（Dashboard 服务页面 URL 中 `srv-xxx`）
 

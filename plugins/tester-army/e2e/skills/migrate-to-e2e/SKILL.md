@@ -27,8 +27,10 @@ Two references do most of the work. Read them; do not restate them.
   reference files.
 - The migration guide for the source runner, and the engine page it ports
   to. The guide maps the runner's config, commands, and API to e2e, and
-  says what e2e does not have yet (marked "Not yet", "No equivalent", or
-  `missing`) with today's workaround. Both ship in the installed package under
+  lists what e2e does not have yet under "What e2e doesn't have yet"
+  (Planned, Not yet, or Not planned), with today's workaround where there
+  is one. Both
+  ship in the installed package under
   `node_modules/e2e/docs/` with the same paths as `.mdx` files.
 
 Detect the source runner, then read both docs in its row in full, before
@@ -178,8 +180,8 @@ When they leave it to you, suggest in this order:
 1. Tests whose shared helpers are already ported.
 2. Tests that break often in the old runner: retries, flaky history in CI,
    comments explaining a workaround for the runner. They gain the most.
-3. Tests that need a capability the guide marks "Not yet", "No
-   equivalent", or `missing`, last.
+3. Tests that need a capability the guide lists under "What e2e doesn't
+   have yet", last.
 
 Write the slice into the progress file's `Next` section before starting, so an
 interrupted session leaves a trail.
@@ -244,8 +246,8 @@ Then each test, one at a time:
   coordinate tap, a retry loop around a picker) is a workaround for the old
   runner. Try the plain step first; keep a workaround only when e2e needs it
   too, with its own comment saying why.
-- Where the guide marks a step "Not yet", "No equivalent", or `missing`,
-  use its workaround. When there is none, the test stays in the old
+- Where the guide lists a step under "What e2e doesn't have yet", use its
+  workaround. When there is none, the test stays in the old
   runner: mark it `stays` with the reason and offer to send
   `npx e2e feedback --type feature -m "<the gap>"` once: preview it with
   `--dry-run` and send it only when the user agrees (the e2e skill,
@@ -347,7 +349,8 @@ Defect check: on
 
 ## Gaps
 
-- `addMedia` has no e2e equivalent (guide: Not yet); feedback sent.
+- `addMedia` has no e2e equivalent (guide: Planned). iOS: the test adds the
+  photo with `xcrun simctl addmedia`. Android: unchecked, stays in Maestro.
 
 ## Next
 

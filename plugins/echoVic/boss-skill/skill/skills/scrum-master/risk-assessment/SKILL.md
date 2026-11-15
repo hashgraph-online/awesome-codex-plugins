@@ -9,6 +9,7 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
+
 - 需要评估项目风险时
 - 需要制定应对策略时
   metadata:

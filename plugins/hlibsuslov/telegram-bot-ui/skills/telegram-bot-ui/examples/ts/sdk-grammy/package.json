@@ -1,0 +1,9 @@
+{
+  "name": "tgkit-grammy-adapter",
+  "private": true,
+  "type": "module",
+  "description": "grammY 1.46.0 (Bot API 10.3) adapter for Bot API 10.4 widget updates and methods.",
+  "engines": { "node": ">=22.18" },
+  "scripts": { "test": "node --test adapter.test.ts" },
+  "dependencies": { "grammy": "1.46.0" }
+}

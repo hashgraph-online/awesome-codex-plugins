@@ -1,0 +1,8 @@
+{
+  "name": "tgkit-ts-examples",
+  "private": true,
+  "type": "module",
+  "description": "Bot API 10.3/10.4 recipes in TypeScript. Node >= 22.18 (type stripping), no dependencies.",
+  "engines": { "node": ">=22.18" },
+  "scripts": { "test": "node --test test/*.test.ts" }
+}

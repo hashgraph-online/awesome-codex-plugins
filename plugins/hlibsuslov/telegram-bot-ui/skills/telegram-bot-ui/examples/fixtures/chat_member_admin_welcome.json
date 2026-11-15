@@ -1,0 +1,47 @@
+{
+  "update_id": 900047,
+  "my_chat_member": {
+    "chat": {
+      "id": -1001234567890,
+      "type": "supergroup",
+      "title": "Team Orders"
+    },
+    "from": {
+      "id": 555555555,
+      "is_bot": false,
+      "first_name": "Owner"
+    },
+    "date": 1762900500,
+    "old_chat_member": {
+      "status": "member",
+      "user": {
+        "id": 999000111,
+        "is_bot": true,
+        "first_name": "OrdersBot",
+        "username": "orders_demo_bot"
+      }
+    },
+    "new_chat_member": {
+      "status": "administrator",
+      "user": {
+        "id": 999000111,
+        "is_bot": true,
+        "first_name": "OrdersBot",
+        "username": "orders_demo_bot"
+      },
+      "can_be_edited": false,
+      "is_anonymous": false,
+      "can_manage_chat": true,
+      "can_delete_messages": false,
+      "can_manage_video_chats": false,
+      "can_restrict_members": false,
+      "can_promote_members": false,
+      "can_change_info": false,
+      "can_invite_users": true,
+      "can_post_stories": false,
+      "can_edit_stories": false,
+      "can_delete_stories": false,
+      "can_send_welcome_messages": true
+    }
+  }
+}

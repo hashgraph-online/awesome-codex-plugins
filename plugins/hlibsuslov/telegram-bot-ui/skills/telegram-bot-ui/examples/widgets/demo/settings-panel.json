@@ -1,0 +1,19 @@
+{
+ "widget": "settings-panel",
+ "title": "Settings panel",
+ "summary": "Switches, a digest-time segmented control and language chips with optimistic updates, absolute requests and rollback on failure.",
+ "caption": "Settings · price alerts on · daily digest off · sound on",
+ "send": {"allow_queries": true},
+ "fallback": {"inline_keyboard": [
+  [{"text": "Price alerts: on", "callback_data": "set:alerts:0"}, {"text": "Daily digest: off", "callback_data": "set:digest:1"}],
+  [{"text": "Sound: on", "callback_data": "set:sound:0"}, {"text": "Quiet hours: off", "callback_data": "set:quiet:1"}]
+ ]},
+ "states": {
+  "default": {"chatData": {"n": ["Price alerts", "Daily digest", "Sound", "Quiet hours 23-08"], "f": 5, "dg": 0, "dl": ["Morning", "Noon", "Evening"], "lg": "en", "ll": [["en", "English"], ["ru", "Русский"], ["uk", "Українська"]], "r": 0}},
+  "all-off": {"chatData": {"n": ["Price alerts", "Daily digest", "Sound", "Quiet hours 23-08"], "f": 0, "dg": 0, "dl": ["Morning", "Noon", "Evening"], "lg": "en", "ll": [["en", "English"], ["ru", "Русский"], ["uk", "Українська"]], "r": 0}},
+  "digest-evening": {"chatData": {"n": ["Price alerts", "Daily digest", "Sound", "Quiet hours 23-08"], "f": 11, "dg": 2, "dl": ["Morning", "Noon", "Evening"], "lg": "uk", "ll": [["en", "English"], ["ru", "Русский"], ["uk", "Українська"]], "r": 0}},
+  "empty": {"chatData": null}
+ },
+ "queries": ["tg:1:1", "tg:0:0", "tg:3:1", "dt:2", "lg:ru", "tg:9:1", "lg:xx"],
+ "fresh": []
+}

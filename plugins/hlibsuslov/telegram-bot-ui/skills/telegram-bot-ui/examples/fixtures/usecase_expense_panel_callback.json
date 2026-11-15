@@ -1,0 +1,17 @@
+{
+  "update_id": 920701,
+  "callback_query": {
+    "id": "4382000000000000071",
+    "from": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+    "message": {
+      "message_id": 0,
+      "ephemeral_message_id": 5,
+      "date": 1763330100,
+      "chat": {"id": -1001234567890, "type": "supergroup", "title": "Trip to Lviv"},
+      "receiver_user": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+      "text": "New expense\nAmount: ₴1200\nSplit: equally among 4"
+    },
+    "chat_instance": "-5550001",
+    "data": "ex:save:1"
+  }
+}

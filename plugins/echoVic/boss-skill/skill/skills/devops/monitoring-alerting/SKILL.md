@@ -9,6 +9,7 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
+
 - 需要配置监控时
 - 需要设置告警时
   metadata:

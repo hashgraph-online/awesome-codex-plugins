@@ -1,0 +1,24 @@
+{
+  "update_id": 100000241,
+  "widget_query": {
+    "id": "8123456789012350041",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "chat": {
+      "id": 222222222,
+      "type": "private",
+      "first_name": "Bogdan"
+    },
+    "message_id": 4242,
+    "chat_instance": "901234567890123456",
+    "type": {
+      "type": "data"
+    },
+    "data": "v:1",
+    "widget_id": "7770011223344550001"
+  }
+}

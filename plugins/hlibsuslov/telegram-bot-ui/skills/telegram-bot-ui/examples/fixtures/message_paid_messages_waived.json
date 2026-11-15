@@ -1,0 +1,19 @@
+{
+  "update_id": 900041,
+  "business_message": {
+    "business_connection_id": "BCxyz",
+    "message_id": 701,
+    "date": 1762900401,
+    "chat": {
+      "id": 333333333,
+      "type": "private",
+      "first_name": "Carol"
+    },
+    "from": {
+      "id": 333333333,
+      "is_bot": false,
+      "first_name": "Carol"
+    },
+    "paid_messages_waived": {}
+  }
+}

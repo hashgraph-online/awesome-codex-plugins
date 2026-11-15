@@ -9,6 +9,7 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
+
 - 架构设计完成后
 - 需要设计数据模型时
 - 需要定义API接口时
@@ -22,6 +23,7 @@ triggers:
 ## 适用场景
 
 在系统架构确定后，需要设计：
+
 - 数据库表结构和关系
 - 数据字典和约束
 - API接口规范
@@ -34,6 +36,7 @@ triggers:
 从PRD中识别核心实体（名词）：
 
 **示例**：
+
 - 用户系统：User（用户）、Role（角色）、Permission（权限）
 - 博客系统：User（用户）、Post（文章）、Comment（评论）、Tag（标签）
 - 电商系统：User（用户）、Product（商品）、Order（订单）、OrderItem（订单项）
@@ -49,6 +52,7 @@ triggers:
 | **多对多 (M:N)** | 多个A对应多个B | Post - Tag     |
 
 **关系表示**：
+
 - `||--o{`: 一对多
 - `||--||`: 一对一
 - `}o--o{`: 多对多
@@ -116,6 +120,7 @@ erDiagram
 | updatedAt    | TIMESTAMP             | NOT NULL         | NOW()              | 更新时间           |
 
 **索引**：
+
 - `idx_user_email`: email（唯一索引，用于登录查询）
 - `idx_user_role`: role（用于角色筛选）
 
@@ -133,6 +138,7 @@ erDiagram
 | updatedAt   | TIMESTAMP                              | NOT NULL     | NOW()              | 更新时间                |
 
 **索引**：
+
 - `idx_post_author`: authorId（用于查询用户的文章）
 - `idx_post_status`: status（用于筛选状态）
 - `idx_post_published`: publishedAt（用于按发布时间排序）
@@ -152,6 +158,7 @@ erDiagram
 | **JSON**     | 灵活数据   | JSONB           | JSON                     | Object   |
 
 **推荐**：
+
 - **主键**：使用 UUID 而非自增ID（避免暴露数据量、分布式友好）
 - **时间戳**：使用 TIMESTAMP WITH TIME ZONE（时区友好）
 - **枚举**：使用 ENUM 而非字符串（类型安全、节省空间）
@@ -200,10 +207,12 @@ erDiagram
 | 删除     | DELETE | `/api/v1/users/:id` | 删除资源             |
 
 **嵌套资源**：
+
 - `GET /api/v1/users/:userId/posts` - 获取用户的文章
 - `POST /api/v1/posts/:postId/comments` - 为文章创建评论
 
 **查询参数**：
+
 - 分页：`?page=1&limit=20`
 - 筛选：`?status=published&author=123`
 - 排序：`?sort=-createdAt`（-表示降序）
@@ -214,6 +223,7 @@ erDiagram
 #### 成功响应
 
 **单个资源**：
+
 ```json
 {
   "success": true,
@@ -226,6 +236,7 @@ erDiagram
 ```
 
 **资源列表**：
+
 ```json
 {
   "success": true,
@@ -258,6 +269,7 @@ erDiagram
 ```
 
 **错误码**：
+
 - `VALIDATION_ERROR`: 验证错误（400）
 - `UNAUTHORIZED`: 未认证（401）
 - `FORBIDDEN`: 无权限（403）
@@ -270,11 +282,13 @@ erDiagram
 #### 认证方案
 
 **JWT (推荐)**：
+
 ```
 Authorization: Bearer <token>
 ```
 
 **请求头**：
+
 ```
 POST /api/v1/auth/login
 Content-Type: application/json
@@ -286,6 +300,7 @@ Content-Type: application/json
 ```
 
 **响应**：
+
 ```json
 {
   "success": true,
@@ -303,6 +318,7 @@ Content-Type: application/json
 #### 授权模型
 
 **RBAC (基于角色)**：
+
 ```typescript
 enum Role {
   USER = 'user',

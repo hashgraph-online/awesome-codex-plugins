@@ -1,0 +1,86 @@
+{
+ "widget": "quiz",
+ "title": "Quiz",
+ "summary": "Five-question quiz: progress bar, four answers, correct/wrong reveal with a one-line explanation, final score and Play again.",
+ "caption": "Quiz \u00b7 Question 2 of 5 \u00b7 Score 1",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "A",
+     "callback_data": "quiz:a:1:0"
+    },
+    {
+     "text": "B",
+     "callback_data": "quiz:a:1:1"
+    }
+   ],
+   [
+    {
+     "text": "C",
+     "callback_data": "quiz:a:1:2"
+    },
+    {
+     "text": "D",
+     "callback_data": "quiz:a:1:3"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "q": 1,
+    "n": 5,
+    "t": "What is the capital of Australia?",
+    "o": [
+     "Sydney",
+     "Melbourne",
+     "Canberra",
+     "Perth"
+    ],
+    "sel": -1,
+    "sc": 1,
+    "r": 0
+   }
+  },
+  "answered": {
+   "chatData": {
+    "q": 1,
+    "n": 5,
+    "t": "What is the capital of Australia?",
+    "o": [
+     "Sydney",
+     "Melbourne",
+     "Canberra",
+     "Perth"
+    ],
+    "sel": 0,
+    "sc": 1,
+    "r": 0,
+    "ok": 2,
+    "ex": "Canberra was built as a compromise between Sydney and Melbourne."
+   }
+  },
+  "finished": {
+   "chatData": {
+    "fin": 1,
+    "n": 5,
+    "sc": 4,
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "a:1:2@0",
+  "next@0",
+  "restart",
+  "a:1:9@0",
+  "a:0:1@0",
+  "bogus"
+ ],
+ "fresh": []
+}

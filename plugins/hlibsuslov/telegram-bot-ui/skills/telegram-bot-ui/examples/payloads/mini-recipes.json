@@ -1,0 +1,188 @@
+{
+  "scenario": "mini-recipes",
+  "status": "production (destructive calls dry-run)",
+  "context": "mixed",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Welcome! Pin your lunch preferences with /prefs.",
+        "ephemeral_message_parameters": {
+          "receiver_user_id": 222222222
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Welcome from Foodies of Kyiv!",
+        "ephemeral_message_parameters": {
+          "receiver_user_id": 222222222
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "business_connection_id": "BCxyz",
+        "chat_id": 444444444,
+        "text": "Happy birthday, Dan!",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 14
+          }
+        ]
+      }
+    },
+    {
+      "method": "getUniqueGift",
+      "params": {
+        "name": "PlushPepe-17"
+      }
+    },
+    {
+      "method": "getUniqueGift",
+      "params": {
+        "name": "NoSuchGift-1"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Create your shop's assistant bot:",
+        "reply_markup": {
+          "keyboard": [
+            [
+              {
+                "text": "Create bot",
+                "request_managed_bot": {
+                  "request_id": 1,
+                  "suggested_name": "Pizza Agent",
+                  "suggested_username": "pizzaplace_ai"
+                }
+              }
+            ]
+          ],
+          "resize_keyboard": true,
+          "one_time_keyboard": true
+        }
+      }
+    },
+    {
+      "method": "verifyChat",
+      "params": {
+        "chat_id": -1001234567890,
+        "custom_description": "Official partner — see terms",
+        "custom_description_entities": [
+          {
+            "type": "text_link",
+            "offset": 23,
+            "length": 5,
+            "url": "https://example.com/partner-terms"
+          }
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Copy the address:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Copy TON address",
+                "copy_text": {
+                  "text": "UQAsampleMerchant00000000000000000000000000000005"
+                }
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageMedia",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 111111111,
+        "ephemeral_message_id": 5,
+        "media": {
+          "type": "photo",
+          "media": "attach://receipt",
+          "caption": "Your receipt"
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageCaption",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 111111111,
+        "ephemeral_message_id": 5,
+        "caption": "Your receipt (updated)",
+        "show_caption_above_media": true
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 111111111,
+        "ephemeral_message_id": 5,
+        "rich_message": {
+          "markdown": "**Paid** — $9.50"
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "4382000000000000001"
+        },
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 3,
+              "text": "Your order"
+            },
+            {
+              "type": "table",
+              "is_compact": true,
+              "cells": [
+                [
+                  {
+                    "text": "Margherita",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "$9.50",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000001"
+      }
+    }
+  ]
+}

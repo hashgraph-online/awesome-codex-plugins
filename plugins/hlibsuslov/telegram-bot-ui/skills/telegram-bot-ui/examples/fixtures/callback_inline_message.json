@@ -1,0 +1,15 @@
+{
+  "update_id": 900014,
+  "callback_query": {
+    "id": "4382000000000000005",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "inline_message_id": "AQAAAKx2nwABCDEF",
+    "chat_instance": "-7770002",
+    "data": "card:mine"
+  }
+}

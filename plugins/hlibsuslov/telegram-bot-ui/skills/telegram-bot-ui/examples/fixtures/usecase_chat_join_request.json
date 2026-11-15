@@ -1,0 +1,17 @@
+{
+  "update_id": 970001,
+  "chat_join_request": {
+    "chat": {"id": -1001234567890, "type": "supergroup", "title": "Kyiv Foodies Club"},
+    "from": {"id": 222222222, "is_bot": false, "first_name": "Богдан", "language_code": "uk"},
+    "user_chat_id": 222222222,
+    "date": 1763300000,
+    "bio": "Cooks on weekends",
+    "invite_link": {
+      "invite_link": "https://t.me/+DemoInviteLink0001",
+      "creator": {"id": 333333333, "is_bot": false, "first_name": "Олена"},
+      "creates_join_request": true,
+      "is_primary": false,
+      "is_revoked": false
+    }
+  }
+}

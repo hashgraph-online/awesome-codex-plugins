@@ -1,0 +1,703 @@
+{
+  "scenario": "r20-shop",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Coffee beans</b>\nFresh roast, shipped in 2 days. Pick a coffee:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Ethiopia Yirgacheffe · ⭐ 250",
+                "callback_data": "sh:1:item:eth"
+              }
+            ],
+            [
+              {
+                "text": "Colombia Huila · ⭐ 220",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Kenya Nyeri AA · ⭐ 300",
+                "callback_data": "sh:1:item:ken"
+              }
+            ],
+            [
+              {
+                "text": "Cart (0)",
+                "callback_data": "sh:1:cart"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq1",
+        "text": "Sold out. We'll restock on Monday.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Ethiopia Yirgacheffe</b>\nJasmine, bergamot, light roast.\n\nPrice: ⭐ 250 · €9.20\nIn your cart: 0",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−",
+                "disabled": {}
+              },
+              {
+                "text": "0",
+                "disabled": {}
+              },
+              {
+                "text": "+",
+                "callback_data": "sh:2:qty:eth:1"
+              }
+            ],
+            [
+              {
+                "text": "Add to cart",
+                "callback_data": "sh:2:qty:eth:1",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:2:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3",
+        "text": "Added to cart"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Ethiopia Yirgacheffe</b>\nJasmine, bergamot, light roast.\n\nPrice: ⭐ 250 · €9.20\nIn your cart: 1",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−",
+                "callback_data": "sh:3:qty:eth:-1"
+              },
+              {
+                "text": "1",
+                "disabled": {}
+              },
+              {
+                "text": "+",
+                "callback_data": "sh:3:qty:eth:1"
+              }
+            ],
+            [
+              {
+                "text": "Cart (1)",
+                "callback_data": "sh:3:cart",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:3:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4",
+        "text": "This screen has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Ethiopia Yirgacheffe</b>\nJasmine, bergamot, light roast.\n\nPrice: ⭐ 250 · €9.20\nIn your cart: 2",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−",
+                "callback_data": "sh:4:qty:eth:-1"
+              },
+              {
+                "text": "2",
+                "disabled": {}
+              },
+              {
+                "text": "+",
+                "callback_data": "sh:4:qty:eth:1"
+              }
+            ],
+            [
+              {
+                "text": "Cart (2)",
+                "callback_data": "sh:4:cart",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:4:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq5"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Your cart</b>\n• Ethiopia Yirgacheffe × 2\n\nTotal: ⭐ 500 · €18.40",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Checkout",
+                "callback_data": "sh:5:checkout",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Empty the cart",
+                "callback_data": "sh:5:clear",
+                "style": "danger"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:5:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq6"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Checkout</b> · order SH-1001\nTotal: ⭐ 500 · €18.40\nChoose how to pay:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Pay ⭐ 500",
+                "callback_data": "sh:6:inv:SH-1001:xtr",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Pay by card · €18.40",
+                "callback_data": "sh:6:inv:SH-1001:card"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:6:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7"
+      }
+    },
+    {
+      "method": "sendInvoice",
+      "params": {
+        "chat_id": 111111111,
+        "title": "Order SH-1001",
+        "description": "2 bag(s) of coffee, shipped in 2 days",
+        "payload": "o:SH-1001",
+        "provider_token": "",
+        "currency": "XTR",
+        "prices": [
+          {
+            "label": "Order SH-1001",
+            "amount": 500
+          }
+        ]
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Your cart</b>\n• Ethiopia Yirgacheffe × 2\n\nTotal: ⭐ 500 · €18.40",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Checkout",
+                "callback_data": "sh:7:checkout",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Empty the cart",
+                "callback_data": "sh:7:clear",
+                "style": "danger"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:7:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq9"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Checkout</b> · order SH-1001\nTotal: ⭐ 500 · €18.40\nChoose how to pay:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Pay ⭐ 500",
+                "callback_data": "sh:8:inv:SH-1001:xtr",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Pay by card · €18.40",
+                "callback_data": "sh:8:inv:SH-1001:card"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sh:8:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq10"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq11",
+        "text": "Your invoice is below ↓"
+      }
+    },
+    {
+      "method": "answerPreCheckoutQuery",
+      "params": {
+        "pre_checkout_query_id": "4382000000000920001",
+        "ok": true
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Paid · order SH-1001"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Coffee",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Qty",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "Ethiopia Yirgacheffe",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "2",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": {
+                      "type": "bold",
+                      "text": "Total"
+                    },
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "⭐ 500",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true
+            },
+            {
+              "type": "paragraph",
+              "text": "We'll message you when it ships."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Кава в зернах</b>\nСвіже обсмаження, відправка за 2 дні. Оберіть каву:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Ефіопія Іргачеффе · ⭐ 250",
+                "callback_data": "sh:1:item:eth"
+              }
+            ],
+            [
+              {
+                "text": "Колумбія Уїла · ⭐ 220",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Кенія Ньєрі AA · ⭐ 300",
+                "callback_data": "sh:1:item:ken"
+              }
+            ],
+            [
+              {
+                "text": "Кошик (0)",
+                "callback_data": "sh:1:cart"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1004,
+        "text": "<b>Кенія Ньєрі AA</b>\nЧорна смородина, яскрава кислотність.\n\nЦіна: ⭐ 300 · €11.00\nУ кошику: 0",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−",
+                "disabled": {}
+              },
+              {
+                "text": "0",
+                "disabled": {}
+              },
+              {
+                "text": "+",
+                "callback_data": "sh:2:qty:ken:1"
+              }
+            ],
+            [
+              {
+                "text": "Додати в кошик",
+                "callback_data": "sh:2:qty:ken:1",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "sh:2:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq12"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq13",
+        "text": "Додано в кошик"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1004,
+        "text": "<b>Кенія Ньєрі AA</b>\nЧорна смородина, яскрава кислотність.\n\nЦіна: ⭐ 300 · €11.00\nУ кошику: 1",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−",
+                "callback_data": "sh:3:qty:ken:-1"
+              },
+              {
+                "text": "1",
+                "disabled": {}
+              },
+              {
+                "text": "+",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Кошик (1)",
+                "callback_data": "sh:3:cart",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "sh:3:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1004,
+        "text": "<b>Ваш кошик</b>\n• Кенія Ньєрі AA × 1\n\nРазом: ⭐ 300 · €11.00",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Оформити",
+                "callback_data": "sh:4:checkout",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Очистити кошик",
+                "callback_data": "sh:4:clear",
+                "style": "danger"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "sh:4:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq14"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1004,
+        "text": "<b>Оформлення</b> · замовлення SH-1002\nРазом: ⭐ 300 · €11.00\nОберіть спосіб оплати:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Сплатити ⭐ 300",
+                "callback_data": "sh:5:inv:SH-1002:xtr",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Карткою · €11.00",
+                "callback_data": "sh:5:inv:SH-1002:card"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "sh:5:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq15"
+      }
+    },
+    {
+      "method": "sendInvoice",
+      "params": {
+        "chat_id": 333333333,
+        "title": "Замовлення SH-1002",
+        "description": "Кава: 1 уп., відправка за 2 дні",
+        "payload": "o:SH-1002",
+        "provider_token": "PROVIDER_TOKEN_FROM_ENV",
+        "currency": "EUR",
+        "prices": [
+          {
+            "label": "Кенія Ньєрі AA × 1",
+            "amount": 1100
+          }
+        ],
+        "need_name": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq16"
+      }
+    },
+    {
+      "method": "answerPreCheckoutQuery",
+      "params": {
+        "pre_checkout_query_id": "4382000000000920003",
+        "ok": false,
+        "error_message": "На жаль, Кенія Ньєрі AA щойно закінчилась. Приберіть її з кошика й спробуйте ще раз."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cqx",
+        "text": "Це меню іншої людини. Відкрийте своє через /start.",
+        "show_alert": true
+      }
+    }
+  ]
+}

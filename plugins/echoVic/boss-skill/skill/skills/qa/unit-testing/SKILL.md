@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要编写或审查单元测试时
@@ -660,6 +661,7 @@ go test -run TestMutate -v
 ```
 
 **变异算子**：
+
 - `a + b` → `a - b`
 - `a > b` → `a >= b`
 - `&&` → `||`

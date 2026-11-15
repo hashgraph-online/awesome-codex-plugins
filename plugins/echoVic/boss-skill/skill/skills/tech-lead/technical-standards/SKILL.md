@@ -8,6 +8,7 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要定义技术规范时

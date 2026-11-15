@@ -393,37 +393,46 @@ evaluator, `claude plugin eval`: one realistic request per skill, graded against
 four or five criteria taken from the practice the skill teaches. For Test, one
 criterion is that a regression test is shown failing without the fix.
 
-On Claude Opus 5.5, measured 2026-10-22 and 2026-10-23 over five rounds; the
-3.10 column is the stored 2026-10-05 result:
+On Claude Opus 5.5, measured 2026-11-11 on version 3.12.0, three runs per
+request. "By name" is the same request with the skill named, so its rules are
+in play whether or not the agent would have loaded it:
 
-| | No plugin | AgentOps 3.10 | AgentOps 3.11 |
+| | No plugin | AgentOps 3.12, request as typed | AgentOps 3.12, skill named |
 |---|---:|---:|---:|
-| Practice criteria met on 29 requests | 265 of 387 (68%) | 363 of 387 (94%) | 704 of 774 (91%) |
-| Matching skill loaded on its own request | | 62 of 75 runs | 104 of 150 runs |
+| Practice criteria met on 42 requests | 372 of 573 (65%) | 511 of 573 (89%) | 551 of 573 (96%) |
+| On the 20 requests where the unaided agent meets 70% or less | 122 of 282 (43%) | 233 of 282 (83%) | 266 of 282 (94%) |
+| Matching skill loaded on its own request | | 65 of 114 runs | |
 
-Sixteen of the 32 skills measured then moved their case by 0.15 or more. Claude
-Exec, Skill Builder, Plan and Craft Goal gained the most among skills still
-shipped. Version 3.12 has 28 skills, and 24 of them changed in an audit that
-has not been re-measured. Seven cases had no room
-to move: the agent met every criterion with no plugin.
+Twenty-three of the 28 skills moved their cases by more than 0.15 when named.
+Architecture, Claude Exec, Memory, Craft Goal and Plan gained the most. On the
+other 22 requests the unaided agent already met more than 70% of the criteria.
+
+The same run found one regression in 3.12.0: a rewritten description stopped
+Orchestrate from loading, and Agy Native loaded less often with it. Version
+3.12.1 replaces that line with one from a measured trial; Orchestrate then
+loaded on 22 of 30 runs against 6 of 30. No other skill fell more than 0.15
+below its 3.11 score under the same judge on one of those 20 requests,
+except Implement when named, which a same-day re-run did not reproduce.
 
 Read the limits before you quote these numbers:
 
-- One request per skill, six runs with 3.11, three with 3.10 and three
-  without, one model. A difference under 0.15 is noise.
+- One to four requests per skill, three runs per arm, one model. A difference
+  under 0.15 is noise.
 - The criteria come from each skill's own rules. A pass shows the rule landed on
   that request. It says nothing about the outcome of a real task, and an earlier
   [coding pilot](PRODUCT.md#evidence-and-claim-limits) found no end-to-end
   difference.
-- Loading is the weak point. 3.11 loads its skills less often than 3.10 did,
-  and in that run Implement and Research never loaded on their own. Four tested
-  causes do not explain it. A [later trial](docs/evals/2026-10-31-description-trial-opus-5-5.md)
-  rewrote two descriptions, after which Triage loaded on 13 of 13 runs and
-  Implement on 7 of 13. Name the skill when you want its rules applied: RPI, Postmortem,
-  Interview and Craft Goal loaded on 22 of 24 requests that named them.
+- Loading is the weak point. Doc, Navigate, Research, Review, Security and
+  Validate did not load on their unnamed routing request, and one skill's
+  description can change whether another loads. A
+  [trial](docs/evals/2026-10-31-description-trial-opus-5-5.md) rewrote two
+  descriptions, after which Triage loaded on 13 of 13 runs and Implement on 7
+  of 13. Name the skill when you want its rules applied.
 
-The [full report](docs/evals/2026-10-22-plugin-eval-opus-5-5.md) has every case,
-each round's rule and result, and what was rerun. The cases live in
+The [full report](docs/evals/2026-11-11-recheck-opus-5-5.md) has every case, the
+rules fixed before the runs and what was rerun. The
+[2026-10-22 report](docs/evals/2026-10-22-plugin-eval-opus-5-5.md) is the record
+for 3.11. The cases live in
 [`evals/plugin-eval/`](evals/plugin-eval/README.md): run them against your own
 changes, or copy the layout to test your own skills.
 
@@ -482,10 +491,16 @@ With Go installed: `go install github.com/boshu2/agentops/cli/cmd/ao@latest`.
 <a id="upgrading-to-38"></a>
 <a id="upgrading-to-37"></a>
 
+Version 3.12.1 changes one line: Orchestrate's description, which in 3.12.0
+kept Orchestrate and Agy Native from loading. Read the
+[3.12.1 release notes](docs/releases/2026-11-11-v3.12.1-notes.md); from 3.12.0
+there is nothing to do beyond updating and starting a new session.
+
 Version 3.12 removes four skill names. [`orchestrate`](skills/orchestrate/SKILL.md)
 now does what `agent-native` did, [`research`](skills/research/SKILL.md) carries
 `reality-check` and the adoption rules from `reverse-engineer`, and `using-gc`
-is gone. The other 28 skills keep their names; 24 of them changed in an audit that is not measured yet.
+is gone. The other 28 skills keep their names; 24 of them changed in an audit that was
+[measured afterward](docs/evals/2026-11-11-recheck-opus-5-5.md).
 Read the [3.12 release notes](docs/releases/2026-11-10-v3.12.0-notes.md). Use the
 [plugin update instructions](docs/install-day2-ops.md#install-and-update-runtime-plugins)
 or, for npx installs, `npx skills@latest update` ([update notes](docs/install-day2-ops.md#update)).

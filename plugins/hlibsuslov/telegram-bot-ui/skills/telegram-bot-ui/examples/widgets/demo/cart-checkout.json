@@ -1,0 +1,222 @@
+{
+ "widget": "cart-checkout",
+ "title": "Cart and checkout",
+ "summary": "Cart lines with quantity steppers, promo, subtotal, discount, delivery, total, delivery chips and Checkout.",
+ "caption": "Cart · 4 items · EUR 46.74 with delivery",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Checkout",
+     "callback_data": "cart:checkout"
+    }
+   ],
+   [
+    {
+     "text": "Edit cart",
+     "callback_data": "cart:edit"
+    },
+    {
+     "text": "Delivery",
+     "callback_data": "cart:delivery"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "it": [
+     [
+      "Ethiopia Guji beans",
+      "250 g",
+      1,
+      1490
+     ],
+     [
+      "Paper filters",
+      "V60, 100 pcs",
+      2,
+      390
+     ],
+     [
+      "Ceramic dripper",
+      "White",
+      1,
+      2490
+     ]
+    ],
+    "cur": "EUR",
+    "pc": [
+     "SPRING10",
+     10
+    ],
+    "dl": 0,
+    "dm": [
+     [
+      "Courier",
+      390
+     ],
+     [
+      "Pickup",
+      0
+     ],
+     [
+      "Express",
+      790
+     ]
+    ],
+    "ph": 0,
+    "r": 0
+   }
+  },
+  "many": {
+   "chatData": {
+    "it": [
+     [
+      "Ethiopia Guji beans",
+      "250 g",
+      1,
+      1490
+     ],
+     [
+      "Paper filters",
+      "V60, 100 pcs",
+      2,
+      390
+     ],
+     [
+      "Ceramic dripper",
+      "White",
+      1,
+      2490
+     ],
+     [
+      "Gooseneck kettle",
+      "0.9 L",
+      1,
+      5900
+     ],
+     [
+      "Travel mug",
+      "Sand, 350 ml",
+      1,
+      1990
+     ],
+     [
+      "Digital scale",
+      "0.1 g",
+      1,
+      2900
+     ]
+    ],
+    "cur": "EUR",
+    "pc": [
+     "SPRING10",
+     10
+    ],
+    "dl": 1,
+    "dm": [
+     [
+      "Courier",
+      390
+     ],
+     [
+      "Pickup",
+      0
+     ],
+     [
+      "Express",
+      790
+     ]
+    ],
+    "ph": 0,
+    "r": 0
+   }
+  },
+  "awaiting": {
+   "chatData": {
+    "it": [
+     [
+      "Ethiopia Guji beans",
+      "250 g",
+      1,
+      1490
+     ],
+     [
+      "Paper filters",
+      "V60, 100 pcs",
+      2,
+      390
+     ],
+     [
+      "Ceramic dripper",
+      "White",
+      1,
+      2490
+     ]
+    ],
+    "cur": "EUR",
+    "pc": [
+     "SPRING10",
+     10
+    ],
+    "dl": 0,
+    "dm": [
+     [
+      "Courier",
+      390
+     ],
+     [
+      "Pickup",
+      0
+     ],
+     [
+      "Express",
+      790
+     ]
+    ],
+    "ph": 1,
+    "r": 0
+   }
+  },
+  "empty": {
+   "chatData": {
+    "it": [],
+    "cur": "EUR",
+    "dl": 0,
+    "dm": [
+     [
+      "Courier",
+      390
+     ],
+     [
+      "Pickup",
+      0
+     ],
+     [
+      "Express",
+      790
+     ]
+    ],
+    "ph": 0,
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "q:0:+1@0",
+  "q:1:-1@0",
+  "q:0:-1@0",
+  "dl:1",
+  "dl:2",
+  "checkout",
+  "q:9:+1@0",
+  "dl:7",
+  "q:0:+2@0"
+ ],
+ "fresh": []
+}

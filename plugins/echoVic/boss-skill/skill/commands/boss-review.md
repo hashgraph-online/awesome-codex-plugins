@@ -10,6 +10,7 @@ allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep
 `/boss:review` 是专家小队的**技术评审入口**。以 Tech Lead 身份对架构或代码做技术评审，评审通过后产出实施计划 `plan.md`。
 
 **产物**：
+
 - `tech-review.md` — 技术评审报告（方案可行性、风险、改进建议）
 - `plan.md` — 实施计划（模块划分、里程碑、技术方案细节、任务拆解指引）
 

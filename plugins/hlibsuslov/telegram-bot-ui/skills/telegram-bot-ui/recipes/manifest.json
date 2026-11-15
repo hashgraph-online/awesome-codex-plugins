@@ -1,0 +1,1835 @@
+{
+  "verified": "2026-11-12",
+  "bot_api": "10.4",
+  "recipes": [
+    {
+      "id": "R01",
+      "title": "AI assistant with a rich streamed answer and Stop",
+      "doc": "recipes/01-ai-assistant.md",
+      "registry": [
+        "10.3-G01",
+        "10.3-G02"
+      ],
+      "symbols": [
+        "MessageGenerationStopped",
+        "can_stop",
+        "keep_on_stop",
+        "sendMessageDraft",
+        "sendRichMessageDraft",
+        "stopped_message_generation"
+      ],
+      "versions": [
+        "10.3"
+      ],
+      "contexts": "Bot API ≥ 10.3 (drafts 9.3+, rich drafts 10.1+). Production. Private chats (with or without topics). `allowed_updates` must include `stopped_message_generation`. SDK must route it (aiogram 3.31 / grammY 1.46: yes).",
+      "payload": "examples/payloads/r01-ai-stop-keep-marked.json",
+      "fixture": "examples/fixtures/stopped_message_generation.json",
+      "python": "examples/python/recipes/r01_ai_assistant.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "The bot thinks for 20 s and you can't stop it. Make it stream like ChatGPT and let me stop it."
+      ]
+    },
+    {
+      "id": "R02",
+      "title": "Interactive document: compact table, expandable quote, attached file, buttons, quoting",
+      "doc": "recipes/02-interactive-document.md",
+      "registry": [
+        "10.4-Q01",
+        "10.4-Q02",
+        "10.4-X02",
+        "10.3-R01",
+        "10.3-R02",
+        "10.3-R03",
+        "10.3-R04",
+        "10.3-R05",
+        "10.3-R06",
+        "10.3-R07"
+      ],
+      "symbols": [
+        "InputRichBlockButtons",
+        "InputRichBlockDocument",
+        "InputRichBlockExpandableBlockQuotation",
+        "InputRichBlockTable",
+        "ReplyParameters",
+        "RichBlockButtons",
+        "RichBlockDocument",
+        "RichBlockExpandableBlockQuotation",
+        "RichBlockTable",
+        "RichMessageButton",
+        "RichTextButton",
+        "RichTextTonAddress",
+        "TextQuote",
+        "expandable_blockquote",
+        "is_compact",
+        "quote_rich_texts",
+        "rich_texts",
+        "tg-button-row",
+        "tg-document",
+        "tg://document",
+        "ton_address"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 (quotes ≥ 10.4). Production, any chat where the bot may send rich messages (media rights for the document). Ephemeral/inline limits: see validator contexts.",
+      "payload": "examples/payloads/r02-interactive-document.json",
+      "fixture": "examples/fixtures/message_quote_rich.json",
+      "python": "examples/python/recipes/r02_interactive_document.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "Send the policy as a proper document: a status table, the long auditor note folded, the PDF attached, an Approve button — and when someone quotes a line, answer that line."
+      ]
+    },
+    {
+      "id": "R03",
+      "title": "Multi-step form: keyboard plus reply field, disabled Submit, Back, no duplicates",
+      "doc": "recipes/03-multi-step-form.md",
+      "registry": [
+        "10.3-K01",
+        "10.3-K02"
+      ],
+      "symbols": [
+        "DisabledButton",
+        "InlineKeyboardMarkup",
+        "ReplyKeyboardMarkup",
+        "disabled",
+        "force_reply"
+      ],
+      "versions": [
+        "10.3"
+      ],
+      "contexts": "Bot API ≥ 10.3. Production. Private chats and groups (in groups privacy mode still delivers replies to the bot's messages). Not in channels.",
+      "payload": "examples/payloads/r03-multi-step-form.json",
+      "fixture": "tests/fixtures/keyboards/edit_changes_force_reply.json",
+      "python": "examples/python/recipes/r03_multi_step_form.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "Our order form: pick a size or type it, then a phone, then a time. People double-tap Submit and we get two orders."
+      ]
+    },
+    {
+      "id": "R04",
+      "title": "Shared card and personal panels in a group",
+      "doc": "recipes/04-shared-card-personal-panel.md",
+      "registry": [
+        "10.4-E01",
+        "10.4-E02",
+        "10.3-E01",
+        "10.3-E03"
+      ],
+      "symbols": [
+        "EphemeralMessageParameters",
+        "callback_query_id",
+        "chat_id",
+        "ephemeral_message_parameters",
+        "receiver_user_id",
+        "replace_callback_query_message",
+        "sendLivePhoto",
+        "sendRichMessage"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 (10.4 short form). Production. Groups/supergroups (any chat except channel DM chats for the 10.4 form). Within 15 s of the tap. `answerCallbackQuery` still required.",
+      "payload": "examples/payloads/r04-shared-card-personal-panel.json",
+      "fixture": "examples/fixtures/callback_card_user_a.json",
+      "python": "examples/python/recipes/r04_shared_card_personal_panel.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "In our team chat everyone taps ‘My order’ on the lunch card and the bot posts everyone's order publicly. Make it private per person."
+      ]
+    },
+    {
+      "id": "R05",
+      "title": "Interactive widget in a private chat (production)",
+      "doc": "recipes/05-private-widget.md",
+      "registry": [
+        "10.4-W01",
+        "10.4-W02",
+        "10.4-W04",
+        "10.4-W07",
+        "10.4-W08"
+      ],
+      "symbols": [
+        "ExternalReplyInfo",
+        "Widget",
+        "WidgetQuery",
+        "answerWidgetQuery",
+        "editMessageWidgetData",
+        "sendWidget",
+        "widget",
+        "widget_query"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4. **Production: private chats only.** `allow_queries: true`. `allowed_updates` must include `widget_query`. SDKs on 2026-11-12 need an adapter (aiogram/grammY).",
+      "payload": "examples/payloads/r05-private-widget.json",
+      "fixture": "examples/fixtures/widget_query_ship.json",
+      "python": "examples/python/recipes/r05_private_widget.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "Instead of re-sending the order every time someone changes delivery, show one card that updates."
+      ]
+    },
+    {
+      "id": "R06",
+      "title": "Shared widget: one poll in many chats, revisions, coalesced updates",
+      "doc": "recipes/06-shared-widget.md",
+      "registry": [
+        "10.4-W03",
+        "10.4-W05",
+        "10.4-W09",
+        "10.4-W10",
+        "10.4-W11"
+      ],
+      "symbols": [
+        "InputSharedWidgetMessageContent",
+        "InputWidgetMessageContent",
+        "SharedWidgetQuery",
+        "cache_time",
+        "copyMessage",
+        "copyMessages",
+        "editSharedWidgetData",
+        "sendSharedWidget",
+        "shared_widget_query"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4. Production: private chats (create once with `is_shared`, re-send by `widget_id`). **Test server only:** forwards (`shared_widget_query`), inline (`InputWidgetMessageContent` / `InputSharedWidgetMessageContent`), groups (`can_send_other_messages`).",
+      "payload": "examples/payloads/r06-shared-widget.json",
+      "fixture": "examples/fixtures/shared_widget_query_vote.json",
+      "python": "examples/python/recipes/r06_shared_widget.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "Run a lunch poll that everyone sees live, wherever it's shown."
+      ]
+    },
+    {
+      "id": "R07",
+      "title": "Wallet interaction from a widget (pay, sign, confirm)",
+      "doc": "recipes/07-wallet.md",
+      "registry": [
+        "10.4-W06",
+        "10.4-T01",
+        "10.4-T02",
+        "10.4-X03"
+      ],
+      "symbols": [
+        "ChatFullInfo",
+        "MessageEntity",
+        "TonNft",
+        "TonNftAttribute",
+        "TonWalletCard",
+        "TonWalletCardSticker",
+        "TonWalletTransfer",
+        "WidgetQueryType",
+        "WidgetQueryTypeData",
+        "WidgetQueryTypeSentTransaction",
+        "WidgetQueryTypeSignData",
+        "WidgetQueryWallet",
+        "msg_hash",
+        "sent_transaction",
+        "sign_data",
+        "ton_address",
+        "ton_wallet_card",
+        "ton_wallet_transfer",
+        "wallet_card"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4. Production: private chats; the user must have the wallet in their app (otherwise `TelegramWidget.wallet` is null). Your own TON indexer/node for confirmation and an ed25519 verifier for signatures.",
+      "payload": "examples/payloads/r07-wallet.json",
+      "fixture": "examples/fixtures/widget_query_sent_transaction.json",
+      "python": "examples/python/recipes/r07_wallet.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "Let users pay 1.25 TON for order 42 right in the chat and show when it's actually paid."
+      ]
+    },
+    {
+      "id": "R08",
+      "title": "Bot with several conversation topics",
+      "doc": "recipes/08-multi-topic-bot.md",
+      "registry": [
+        "10.4-X07"
+      ],
+      "symbols": [
+        "message_thread_id",
+        "t.me"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4 for links (Stop: 10.3). Production. Private chats with the bot's topic mode; the link works only for that user.",
+      "payload": "examples/payloads/r08-multi-topic-bot.json",
+      "fixture": "examples/fixtures/stopped_message_generation_topic.json",
+      "python": "examples/python/recipes/r08_multi_topic_bot.py",
+      "typescript": "examples/ts/recipes.ts",
+      "tasks": [
+        "Users open several topics with our assistant. Answers mix up and Stop stops the wrong one."
+      ]
+    },
+    {
+      "id": "R09",
+      "title": "Monitoring bot upgraded to 10.3/10.4 (btc-tracker case study)",
+      "doc": "recipes/09-tracker-bot.md",
+      "registry": [],
+      "symbols": [
+        "sendWidget",
+        "editMessageWidgetData",
+        "editMessageCaption",
+        "sendSharedWidget",
+        "editSharedWidgetData",
+        "cache_time",
+        "is_compact",
+        "disabled",
+        "force_reply",
+        "icon_custom_emoji_id",
+        "tg-emoji",
+        "copy_text"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "private chat (widgets: production); text fallback anywhere",
+      "payload": "examples/payloads/r09-tracker-bot.json",
+      "fixture": "examples/case-studies/btc-tracker/icon-map.json",
+      "python": "examples/python/recipes/r09_tracker_bot.py",
+      "typescript": null,
+      "tasks": [
+        "one updating card per transaction instead of many messages",
+        "live price ticker",
+        "consistent premium icons",
+        "upgrade an existing tracker bot to the latest Bot API"
+      ]
+    },
+    {
+      "id": "R20",
+      "title": "Shop: catalog → product → cart → checkout with Telegram Stars or a provider invoice",
+      "doc": "recipes/20-shop.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "LabeledPrice",
+        "need_name",
+        "answerPreCheckoutQuery",
+        "error_message",
+        "is_compact",
+        "allowed_updates",
+        "pre_checkout_query",
+        "message",
+        "disabled",
+        "currency",
+        "total_amount",
+        "successful_payment",
+        "telegram_payment_charge_id"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for disabled buttons and compact tables (everything else is older)",
+      "payload": "examples/payloads/r20-shop.json",
+      "fixture": "examples/fixtures/usecase_pre_checkout_stars.json",
+      "python": "examples/python/recipes/r20_shop.py",
+      "typescript": "examples/ts/usecases/shop.ts",
+      "tasks": [
+        "We sell coffee beans. Make a shop bot: browse, add to cart, pay with Stars or by card, and stop people paying twice or for something that just sold out."
+      ]
+    },
+    {
+      "id": "R21",
+      "title": "Support desk: a private chat for the customer, one forum topic per ticket for the team",
+      "doc": "recipes/21-support-desk.md",
+      "registry": [],
+      "symbols": [
+        "force_reply",
+        "style",
+        "createForumTopic",
+        "editForumTopic",
+        "closeForumTopic",
+        "reopenForumTopic",
+        "can_manage_topics",
+        "name",
+        "allowed_updates",
+        "message",
+        "callback_query",
+        "editMessageText",
+        "callback_data",
+        "copyMessage"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for inline `force_reply` and disabled buttons (topics and styles are older)",
+      "payload": "examples/payloads/r21-support-desk.json",
+      "fixture": "examples/fixtures/usecase_support_operator_reply.json",
+      "python": "examples/python/recipes/r21_support_desk.py",
+      "typescript": null,
+      "tasks": [
+        "Customers write to our bot. I want every problem in its own thread for the team, with a status I can see in the list, replies that reach the customer, notes the customer never sees, and a 1–5 rating when we close it."
+      ]
+    },
+    {
+      "id": "R22",
+      "title": "Appointment booking: service → day → time → confirm, with reminders, reschedule and cancel",
+      "doc": "recipes/22-booking.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "callback_data",
+        "allowed_updates",
+        "message",
+        "callback_query",
+        "answerCallbackQuery"
+      ],
+      "versions": [
+        "9.4",
+        "9.5",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for disabled buttons (`<tg-time>` needs 9.5+, everything else is older)",
+      "payload": "examples/payloads/r22-booking.json",
+      "fixture": "examples/fixtures/usecase_booking_deeplink.json",
+      "python": "examples/python/recipes/r22_booking.py",
+      "typescript": null,
+      "tasks": [
+        "A salon takes bookings by phone. Let people book in the bot: pick a service, a day this week, a free time, and get reminded. Two people must never get the same slot, and cancelling must not be one careless tap."
+      ]
+    },
+    {
+      "id": "R23",
+      "title": "Onboarding and first run: deep links, language, permissions, empty states, returning users",
+      "doc": "recipes/23-onboarding.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "setMyDescription",
+        "setMyShortDescription",
+        "setMyCommands",
+        "language_code",
+        "is_ephemeral",
+        "request_contact",
+        "one_time_keyboard",
+        "input_field_placeholder",
+        "ReplyKeyboardRemove"
+      ],
+      "versions": [
+        "9.4",
+        "10.2",
+        "10.4"
+      ],
+      "contexts": "Any Bot API version with `style` (≥ 9.4) for the styled buttons; everything else is older",
+      "payload": "examples/payloads/r23-onboarding.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r23_onboarding.py",
+      "typescript": "examples/ts/usecases/onboarding.ts",
+      "tasks": [
+        "New users open the bot from ads, referral links and product links, see a wall of text and leave. Returning users get the same welcome again."
+      ]
+    },
+    {
+      "id": "R24",
+      "title": "Settings and preferences: toggles, back stack, destructive actions with confirm and undo",
+      "doc": "recipes/24-settings.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "callback_data"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for disabled buttons (fallback: a plain label without an action is not possible — use a callback that answers “already selected”)",
+      "payload": "examples/payloads/r24-settings.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r24_settings.py",
+      "typescript": "examples/ts/usecases/settings.ts",
+      "tasks": [
+        "Our settings are five separate commands. People can't find notifications, Back throws them to the start, and someone deleted their account with one accidental tap."
+      ]
+    },
+    {
+      "id": "R25",
+      "title": "Subscription: paywall, one 7-day trial, a Stars subscription, cancel and expiry",
+      "doc": "recipes/25-subscription-paywall.md",
+      "registry": [],
+      "symbols": [
+        "createInvoiceLink",
+        "subscription_period",
+        "editUserStarSubscription",
+        "successful_payment",
+        "style",
+        "LabeledPrice",
+        "is_recurring",
+        "is_first_recurring",
+        "subscription_expiration_date",
+        "allowed_updates",
+        "pre_checkout_query",
+        "message",
+        "callback_query",
+        "telegram_payment_charge_id"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for the disabled button (subscriptions and `<tg-time>` are older)",
+      "payload": "examples/payloads/r25-subscription.json",
+      "fixture": "examples/fixtures/usecase_subscription_pre_checkout.json",
+      "python": "examples/python/recipes/r25_subscription.py",
+      "typescript": null,
+      "tasks": [
+        "Part of the bot is for subscribers: ⭐ 150 a month, with a free 7-day trial. People must be able to cancel inside the bot, we must remind them before it ends, and nobody gets two trials or two charges."
+      ]
+    },
+    {
+      "id": "R26",
+      "title": "Learning bot: course map → lesson → quiz → result → streak → daily reminder",
+      "doc": "recipes/26-learning-bot.md",
+      "registry": [],
+      "symbols": [
+        "disabled",
+        "style",
+        "heading",
+        "buttons",
+        "has_checkbox",
+        "is_checked",
+        "reply_markup",
+        "sendPoll",
+        "correct_option_ids",
+        "explanation",
+        "User",
+        "language_code",
+        "time_zone_name",
+        "BusinessOpeningHours"
+      ],
+      "versions": [
+        "9.4",
+        "10.2",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 (button rows, expandable quotation, `disabled`); rich list items need 10.2",
+      "payload": "examples/payloads/r26-learning.json",
+      "fixture": "examples/fixtures/usecase_learning_start.json",
+      "python": "examples/python/recipes/r26_learning.py",
+      "typescript": null,
+      "tasks": [
+        "I teach Git basics in a bot. Show a course map, a short lesson with an example, a three-question quiz, a score, and a daily streak. Remind people to study, but not if they already did today."
+      ]
+    },
+    {
+      "id": "R27",
+      "title": "Assistant as a product: modes, streamed answer with Stop, feedback, regenerate, history, files",
+      "doc": "recipes/27-ai-assistant-product.md",
+      "registry": [],
+      "symbols": [
+        "disabled",
+        "style",
+        "sendRichMessageDraft",
+        "can_stop",
+        "keep_on_stop",
+        "sendRichMessage",
+        "reply_markup",
+        "force_reply",
+        "allowed_updates",
+        "stopped_message_generation",
+        "getFile",
+        "file_size",
+        "callback_data",
+        "sendMessageDraft"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 (drafts with Stop, `force_reply`, `disabled`)",
+      "payload": "examples/payloads/r27-ai-assistant-product.json",
+      "fixture": "examples/fixtures/stopped_message_generation.json",
+      "python": "examples/python/recipes/r27_ai_assistant_product.py",
+      "typescript": null,
+      "tasks": [
+        "Make an assistant bot with three modes, a live answer I can stop, thumbs up or down on the result, a way to regenerate, a short history, and the ability to send a PDF."
+      ]
+    },
+    {
+      "id": "R28",
+      "title": "Group utility: expense split on one shared card with personal panels",
+      "doc": "recipes/28-group-expense-split.md",
+      "registry": [],
+      "symbols": [
+        "callback_query_id",
+        "receiver_user_id",
+        "editEphemeralMessageText",
+        "disabled",
+        "style",
+        "chat_id",
+        "answerCallbackQuery",
+        "deleteEphemeralMessage",
+        "allowed_updates",
+        "callback_query",
+        "message",
+        "web_app",
+        "login_url",
+        "ephemeral_message_id"
+      ],
+      "versions": [
+        "9.4",
+        "10.2",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4 for the callback-only ephemeral form (10.3 form needs the presser's id and `chat_id`); ephemeral messages in groups and supergroups, not in chann",
+      "payload": "examples/payloads/r28-group-expense-split.json",
+      "fixture": "examples/fixtures/usecase_expense_panel_callback.json",
+      "python": "examples/python/recipes/r28_group_expense_split.py",
+      "typescript": null,
+      "tasks": [
+        "We travel to Lviv as four people and keep losing track of who paid. A card in the group chat, and everyone's own balance only for them."
+      ]
+    },
+    {
+      "id": "R29",
+      "title": "Community bot: join requests with rules, welcome, roles as visible tags",
+      "doc": "recipes/29-community.md",
+      "registry": [],
+      "symbols": [
+        "chat_join_request",
+        "user_chat_id",
+        "can_send_welcome_messages",
+        "community_chat_joined",
+        "setChatMemberTag",
+        "has_checkbox",
+        "heading",
+        "disabled",
+        "approveChatJoinRequest",
+        "can_invite_users",
+        "ChatMemberAdministrator",
+        "my_chat_member",
+        "can_manage_tags",
+        "sender_tag"
+      ],
+      "versions": [
+        "9.5",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for the welcome right and `community_chat_joined` (tags: 9.5)",
+      "payload": "examples/payloads/r29-community.json",
+      "fixture": "examples/fixtures/usecase_chat_join_request.json",
+      "python": "examples/python/recipes/r29_community.py",
+      "typescript": null,
+      "tasks": [
+        "Our food club is a private supergroup. People ask to join through a link; I want them to read the rules first, accept or decline, and be let in automatically. New members should get a friendly welcome, and admins should be able to give someone a visible role like Mentor."
+      ]
+    },
+    {
+      "id": "R30",
+      "title": "News autoposter from a feed item",
+      "doc": "recipes/30-news-autoposter.md",
+      "registry": [],
+      "symbols": [
+        "link_preview_options",
+        "url",
+        "prefer_large_media",
+        "parse_mode",
+        "can_post_messages",
+        "sendMessage",
+        "copyMessage"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Any Bot API with `link_preview_options` (7.0+)",
+      "payload": "examples/payloads/r30-news-autoposter.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r30_news_autoposter.py",
+      "typescript": "examples/ts/publishing/publish.ts",
+      "tasks": [
+        "Post every new item from our city news feed to the channel — and never twice."
+      ]
+    },
+    {
+      "id": "R31",
+      "title": "Long read as one Rich Message",
+      "doc": "recipes/31-long-read-rich-post.md",
+      "registry": [],
+      "symbols": [
+        "is_compact",
+        "document",
+        "InputRichBlockButtons",
+        "sendRichMessage",
+        "link_preview_options",
+        "rich_message",
+        "web_app",
+        "file_id"
+      ],
+      "versions": [
+        "10.1",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3",
+      "payload": "examples/payloads/r31-long-read-rich-post.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r31_long_read_rich_post.py",
+      "typescript": null,
+      "tasks": [
+        "Our quarterly report is 5,000 characters with a table. Today it is 3 messages and a screenshot of a spreadsheet."
+      ]
+    },
+    {
+      "id": "R32",
+      "title": "Media album post (and paid media)",
+      "doc": "recipes/32-media-album-post.md",
+      "registry": [],
+      "symbols": [
+        "sendMediaGroup",
+        "reply_markup",
+        "show_caption_above_media",
+        "has_spoiler",
+        "sendPaidMedia",
+        "can_post_messages",
+        "star_count",
+        "payload",
+        "sendMessage",
+        "copyMessage",
+        "file_id"
+      ],
+      "versions": [
+        "10.0",
+        "10.4"
+      ],
+      "contexts": "Production",
+      "payload": "examples/payloads/r32-media-album-post.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r32_media_album_post.py",
+      "typescript": null,
+      "tasks": [
+        "Post three photos of the winter market with a caption and a ‘Map’ button; and a paid backstage set for supporters."
+      ]
+    },
+    {
+      "id": "R33",
+      "title": "Poll and quiz posts in a channel",
+      "doc": "recipes/33-poll-quiz-post.md",
+      "registry": [],
+      "symbols": [
+        "members_only",
+        "country_codes",
+        "correct_option_ids",
+        "description",
+        "close_date",
+        "open_period",
+        "sendPoll",
+        "stopPoll",
+        "poll",
+        "allow_adding_options"
+      ],
+      "versions": [
+        "10.0",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.0 for the channel-only fields",
+      "payload": "examples/payloads/r33-poll-quiz-post.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r33_poll_quiz_post.py",
+      "typescript": null,
+      "tasks": [
+        "Run a quiz about the report, only for our subscribers from Ukraine and Poland; and a survey that closes in three days."
+      ]
+    },
+    {
+      "id": "R34",
+      "title": "Daily digest edited in place and pinned",
+      "doc": "recipes/34-pinned-daily-digest.md",
+      "registry": [],
+      "symbols": [
+        "is_compact",
+        "can_edit_messages",
+        "can_post_messages",
+        "editMessageText",
+        "disable_notification"
+      ],
+      "versions": [
+        "10.1",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3",
+      "payload": "examples/payloads/r34-pinned-daily-digest.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r34_pinned_daily_digest.py",
+      "typescript": null,
+      "tasks": [
+        "Keep one pinned ‘Today in the city’ post and update it during the day instead of posting ten times."
+      ]
+    },
+    {
+      "id": "R35",
+      "title": "Editorial approval before publishing",
+      "doc": "recipes/35-editorial-approval.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "force_reply",
+        "callback_data",
+        "from"
+      ],
+      "versions": [
+        "9.4",
+        "10.4"
+      ],
+      "contexts": "Production",
+      "payload": "examples/payloads/r35-editorial-approval.json",
+      "fixture": "examples/fixtures/r35_editor_updates.json",
+      "python": "examples/python/recipes/r35_editorial_approval.py",
+      "typescript": null,
+      "tasks": [
+        "The bot drafts posts, but an editor must approve each one, fix the text if needed, or reject it."
+      ]
+    },
+    {
+      "id": "R36",
+      "title": "Cross-posting to several channels and languages",
+      "doc": "recipes/36-cross-post-variants.md",
+      "registry": [],
+      "symbols": [
+        "copyMessage",
+        "reply_markup",
+        "forwardMessage",
+        "correct_option_ids",
+        "copyMessages"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Production",
+      "payload": "examples/payloads/r36-cross-post-variants.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r36_cross_post_variants.py",
+      "typescript": null,
+      "tasks": [
+        "Publish the bike-lane story in our English, Russian and Ukrainian channels, and in a partner channel as is."
+      ]
+    },
+    {
+      "id": "R37",
+      "title": "Broadcast mailing with throttling and per-recipient outcomes",
+      "doc": "recipes/37-broadcast-mailing.md",
+      "registry": [],
+      "symbols": [
+        "retry_after",
+        "allow_paid_broadcast"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Any Bot API",
+      "payload": "examples/payloads/r37-broadcast-mailing.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r37_broadcast_mailing.py",
+      "typescript": null,
+      "tasks": [
+        "Send the event alert to all 40,000 subscribers of the bot without getting banned, and don't message people twice if the job restarts."
+      ]
+    },
+    {
+      "id": "R38",
+      "title": "Comment threads and channel direct messages",
+      "doc": "recipes/38-comments-and-direct-messages.md",
+      "registry": [],
+      "symbols": [
+        "is_automatic_forward",
+        "forward_origin",
+        "is_direct_messages",
+        "direct_messages_topic_id",
+        "suggested_post_info",
+        "approveSuggestedPost",
+        "declineSuggestedPost",
+        "can_delete_messages",
+        "can_post_messages",
+        "can_manage_direct_messages",
+        "deleteMessage",
+        "send_date",
+        "message_thread_id"
+      ],
+      "versions": [
+        "9.2",
+        "10.4"
+      ],
+      "contexts": "Production",
+      "payload": "examples/payloads/r38-comments-and-direct-messages.json",
+      "fixture": "examples/fixtures/r38_channel_audience_updates.json",
+      "python": "examples/python/recipes/r38_comments_and_direct_messages.py",
+      "typescript": null,
+      "tasks": [
+        "Open every post's comments with a short rules note, remove spam, acknowledge questions; answer messages to the channel and handle suggested posts."
+      ]
+    },
+    {
+      "id": "R39",
+      "title": "Correcting a published post: edit or delete-and-repost",
+      "doc": "recipes/39-correct-published-post.md",
+      "registry": [],
+      "symbols": [
+        "editMessageText",
+        "editMessageCaption",
+        "editMessageMedia",
+        "can_post_messages",
+        "can_edit_messages",
+        "stopPoll"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Production",
+      "payload": "examples/payloads/r39-correct-published-post.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r39_correct_published_post.py",
+      "typescript": null,
+      "tasks": [
+        "We posted the wrong time. Fix it — and next time we also need to add a map photo to a post."
+      ]
+    },
+    {
+      "id": "R40",
+      "title": "Deploy approval gate",
+      "doc": "recipes/40-deploy-approval-gate.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "answerCallbackQuery",
+        "disabled",
+        "allowed_updates",
+        "callback_query"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for `disabled` (older: remove the keyboard instead)",
+      "payload": "examples/payloads/r40-deploy-approval-gate.json",
+      "fixture": "examples/fixtures/agent_approve_tap.json",
+      "python": "examples/python/recipes/r40_deploy_approval_gate.py",
+      "typescript": "examples/ts/agent-bridge/agent-bridge.ts",
+      "tasks": [
+        "The agent must not deploy to production until I say so — from my phone."
+      ]
+    },
+    {
+      "id": "R41",
+      "title": "Long build/test run with live status and a final report",
+      "doc": "recipes/41-build-live-status.md",
+      "registry": [],
+      "symbols": [
+        "is_compact"
+      ],
+      "versions": [
+        "10.1",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.1 for rich messages (fallback: plain text)",
+      "payload": "examples/payloads/r41-build-live-status.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r41_build_live_status.py",
+      "typescript": null,
+      "tasks": [
+        "My CI agent sends 200 messages per run."
+      ]
+    },
+    {
+      "id": "R42",
+      "title": "Nightly job digest",
+      "doc": "recipes/42-nightly-digest.md",
+      "registry": [],
+      "symbols": [
+        "disable_notification"
+      ],
+      "versions": [
+        "10.1",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.1 (rich), plain-text fallback on 404/unsupported",
+      "payload": "examples/payloads/r42-nightly-digest.json",
+      "fixture": "examples/fixtures/agent_report.json",
+      "python": "examples/python/recipes/r42_nightly_digest.py",
+      "typescript": null,
+      "tasks": [
+        "Tell me every morning how the night jobs went, but don't wake me when everything is green."
+      ]
+    },
+    {
+      "id": "R43",
+      "title": "Ask the operator and continue",
+      "doc": "recipes/43-ask-and-continue.md",
+      "registry": [],
+      "symbols": [
+        "force_reply"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 (older: ForceReply only, or buttons only)",
+      "payload": "examples/payloads/r43-ask-and-continue.json",
+      "fixture": "examples/fixtures/agent_operator_reply.json",
+      "python": "examples/python/recipes/r43_ask_and_continue.py",
+      "typescript": null,
+      "tasks": [
+        "When the agent is unsure, it should ask me and keep going if I don't answer."
+      ]
+    },
+    {
+      "id": "R44",
+      "title": "Streamed research answer with Stop",
+      "doc": "recipes/44-streamed-research-stop.md",
+      "registry": [],
+      "symbols": [
+        "can_stop",
+        "keep_on_stop",
+        "allowed_updates",
+        "stopped_message_generation"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3",
+      "payload": "examples/payloads/r44-streamed-research-stop.json",
+      "fixture": "examples/fixtures/agent_stop_generation.json",
+      "python": "examples/python/recipes/r44_streamed_research_stop.py",
+      "typescript": null,
+      "tasks": [
+        "The research agent writes for two minutes and I can't stop it."
+      ]
+    },
+    {
+      "id": "R45",
+      "title": "Multi-job dashboard with private-chat topics",
+      "doc": "recipes/45-multi-job-dashboard-topics.md",
+      "registry": [],
+      "symbols": [
+        "createForumTopic",
+        "message_thread_id",
+        "chat_data"
+      ],
+      "versions": [
+        "9.4",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4 for widgets and topic links (private-chat topics since 9.4)",
+      "payload": "examples/payloads/r45-multi-job-dashboard-topics.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r45_multi_job_dashboard_topics.py",
+      "typescript": null,
+      "tasks": [
+        "Three agent jobs run in parallel and their messages are a mess."
+      ]
+    },
+    {
+      "id": "R46",
+      "title": "The agent in a team group: personal replies",
+      "doc": "recipes/46-team-group-personal-replies.md",
+      "registry": [],
+      "symbols": [],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4 for the short form (10.3 form also works)",
+      "payload": "examples/payloads/r46-team-group-personal-replies.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r46_team_group_personal_replies.py",
+      "typescript": null,
+      "tasks": [
+        "Put the CI agent in our team chat, but don't dump everyone's failures and logs there."
+      ]
+    },
+    {
+      "id": "R47",
+      "title": "Incident alert with acknowledge and escalate",
+      "doc": "recipes/47-incident-alert.md",
+      "registry": [],
+      "symbols": [],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 (disabled buttons)",
+      "payload": "examples/payloads/r47-incident-alert.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r47_incident_alert.py",
+      "typescript": null,
+      "tasks": [
+        "Page me when checkout breaks; if I don't react in 5 minutes, page the backup."
+      ]
+    },
+    {
+      "id": "R48",
+      "title": "Coding-agent hooks call the bridge",
+      "doc": "recipes/48-coding-agent-hooks.md",
+      "registry": [],
+      "symbols": [],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Claude Code hooks (`Notification`, `Stop`, `PermissionRequest`; command hooks, default timeout 600 s)",
+      "payload": "examples/payloads/r48-coding-agent-hooks.json",
+      "fixture": "examples/fixtures/agent_approve_tap.json",
+      "python": "examples/python/recipes/r48_coding_agent_hooks.py",
+      "typescript": null,
+      "tasks": [
+        "Tell me on Telegram when Claude Code or Codex needs me, and let me approve risky commands from my phone."
+      ]
+    },
+    {
+      "id": "R49",
+      "title": "Intake and security drill",
+      "doc": "recipes/49-intake-security-drill.md",
+      "registry": [],
+      "symbols": [
+        "allowed_updates",
+        "stopped_message_generation",
+        "my_chat_member",
+        "secret_token"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Any Bot API version; long polling (no webhook set) or a webhook with `secret_token`",
+      "payload": "examples/payloads/r49-intake-security-drill.json",
+      "fixture": "examples/fixtures/agent_stranger_message.json",
+      "python": "examples/python/recipes/r49_intake_security_drill.py",
+      "typescript": null,
+      "tasks": [
+        "Make sure nobody else can steer my agent through its bot."
+      ]
+    },
+    {
+      "id": "R50",
+      "title": "Monitoring dashboard widget (private chat, production)",
+      "doc": "recipes/50-monitoring-dashboard-widget.md",
+      "registry": [],
+      "symbols": [
+        "editMessageWidgetData",
+        "allowed_updates",
+        "widget_query"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4",
+      "payload": "examples/payloads/r50-monitoring-dashboard.json",
+      "fixture": "examples/fixtures/widget_query_dashboard_period.json",
+      "python": "examples/python/recipes/r50_monitoring_dashboard.py",
+      "typescript": null,
+      "tasks": [
+        "Our on-call bot sends a wall of text every time something changes. I want one health card per service that stays current."
+      ]
+    },
+    {
+      "id": "R51",
+      "title": "Booking widget: day strip, time slots, confirm (private chat, production)",
+      "doc": "recipes/51-booking-widget.md",
+      "registry": [],
+      "symbols": [
+        "allowed_updates",
+        "widget_query",
+        "editMessageCaption"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4; production: private chats only; `allow_queries: true`; `allowed_updates` includes `widget_query`",
+      "payload": "examples/payloads/r51-booking.json",
+      "fixture": "examples/fixtures/widget_query_slot_pick.json",
+      "python": "examples/python/recipes/r51_booking.py",
+      "typescript": null,
+      "tasks": [
+        "Clients book haircuts by typing dates back and forth. Give them a picker in the chat."
+      ]
+    },
+    {
+      "id": "R52",
+      "title": "Shop: product card → cart → receipt (private chat, production)",
+      "doc": "recipes/52-shop-card-to-checkout.md",
+      "registry": [],
+      "symbols": [],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4; production: private chats only; `allow_queries: true`",
+      "payload": "examples/payloads/r52-shop-to-checkout.json",
+      "fixture": "examples/fixtures/widget_query_cart_add.json",
+      "python": "examples/python/recipes/r52_shop_to_checkout.py",
+      "typescript": null,
+      "tasks": [
+        "Our shop bot lists products as text. Make a real product card, a cart and a receipt."
+      ]
+    },
+    {
+      "id": "R53",
+      "title": "Quiz with a shared leaderboard (private chats + one shared widget, production)",
+      "doc": "recipes/53-shared-quiz-leaderboard.md",
+      "registry": [],
+      "symbols": [
+        "sendSharedWidget",
+        "is_shared",
+        "allow_queries",
+        "widget_id",
+        "editSharedWidgetData",
+        "cache_time",
+        "chat_data"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4",
+      "payload": "examples/payloads/r53-shared-quiz-leaderboard.json",
+      "fixture": "examples/fixtures/widget_query_quiz_answer.json",
+      "python": "examples/python/recipes/r53_shared_quiz_leaderboard.py",
+      "typescript": null,
+      "tasks": [
+        "Run a weekly quiz in the bot with a leaderboard everyone sees."
+      ]
+    },
+    {
+      "id": "R54",
+      "title": "Long job progress in one card (private chat, production)",
+      "doc": "recipes/54-job-progress-widget.md",
+      "registry": [],
+      "symbols": [
+        "editMessageWidgetData",
+        "sendChatAction"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4; production: private chats only; `allow_queries: true`",
+      "payload": "examples/payloads/r54-job-progress.json",
+      "fixture": "examples/fixtures/widget_query_job_cancel.json",
+      "python": "examples/python/recipes/r54_job_progress.py",
+      "typescript": null,
+      "tasks": [
+        "Exports take minutes and users keep asking ‘is it working?’."
+      ]
+    },
+    {
+      "id": "R55",
+      "title": "Design a new widget from a user's description (describe → widget workflow)",
+      "doc": "recipes/55-design-a-widget.md",
+      "registry": [],
+      "symbols": [
+        "sendWidget"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4; production: private chats only; the user's language from `from.language_code`",
+      "payload": "examples/payloads/r55-design-a-widget.json",
+      "fixture": "examples/fixtures/widget_query_sync.json",
+      "python": "examples/python/recipes/r55_design_a_widget.py",
+      "typescript": null,
+      "tasks": [
+        "Let me set a price alert for TON right in the chat, with a slider, in Russian."
+      ]
+    },
+    {
+      "id": "R56",
+      "title": "API data browser: a widget as the front end of a REST backend (private chat, production)",
+      "doc": "recipes/56-api-data-browser.md",
+      "registry": [],
+      "symbols": [],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.4; production: private chats only; `allow_queries: true`",
+      "payload": "examples/payloads/r56-api-data-browser.json",
+      "fixture": "examples/fixtures/widget_query_api_open.json",
+      "python": "examples/python/recipes/r56_api_data_browser.py",
+      "typescript": null,
+      "tasks": [
+        "Show our support tickets from the helpdesk API in Telegram: list, open one, assign it or close it."
+      ]
+    },
+    {
+      "id": "R60",
+      "title": "Inline mode: share a place card into any chat, then let the chat vote on it",
+      "doc": "recipes/60-inline-mode.md",
+      "registry": [],
+      "symbols": [
+        "chosen_inline_result",
+        "editMessageText",
+        "inline_message_id",
+        "style",
+        "language_code",
+        "next_offset",
+        "button",
+        "start_parameter",
+        "answerCallbackQuery",
+        "allowed_updates",
+        "inline_query",
+        "callback_query",
+        "message",
+        "is_personal"
+      ],
+      "versions": [
+        "9.4",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 9.4 for `style` (everything else is older)",
+      "payload": "examples/payloads/r60-inline-mode.json",
+      "fixture": "examples/fixtures/usecase_inline_query_empty.json",
+      "python": "examples/python/recipes/r60_inline_mode.py",
+      "typescript": "examples/ts/usecases/inline.ts",
+      "tasks": [
+        "Friends keep asking where to get coffee. Let me type `@placecards_bot coffee` in any chat, pick a place, and let everyone in the chat tap ‘I'm in’."
+      ]
+    },
+    {
+      "id": "R61",
+      "title": "Business-account bot: auto-replies and quick replies on behalf of a bakery",
+      "doc": "recipes/61-business-account.md",
+      "registry": [],
+      "symbols": [
+        "business_connection",
+        "business_message",
+        "business_connection_id",
+        "readBusinessMessage",
+        "can_reply",
+        "can_read_messages",
+        "ReplyKeyboardMarkup",
+        "web_app",
+        "url",
+        "user_chat_id",
+        "allowed_updates",
+        "edited_business_message",
+        "deleted_business_messages",
+        "callback_query"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "The **owner** uses Telegram Business; the bot has Secretary Mode enabled in @BotFather and the owner adds it in Settings → Business → Chatbots, choosing which r",
+      "payload": "examples/payloads/r61-business-account.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r61_business_account.py",
+      "typescript": null,
+      "tasks": [
+        "I run a bakery and answer the same questions all day — opening hours, the menu. Connect the bot to my Telegram Business account so it answers customers for me, and let me add a personal line in one tap."
+      ]
+    },
+    {
+      "id": "R62",
+      "title": "Monitoring and alerts bot: uptime and price watches, mute, quiet hours, daily digest",
+      "doc": "recipes/62-monitoring-alerts.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "disable_notification",
+        "force_reply",
+        "is_compact",
+        "callback_data"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for force_reply keyboards, disabled buttons and compact tables",
+      "payload": "examples/payloads/r62-monitoring-alerts.json",
+      "fixture": "examples/fixtures/usecase_monitor_events.json",
+      "python": "examples/python/recipes/r62_monitoring_alerts.py",
+      "typescript": null,
+      "tasks": [
+        "Tell me when my API gets slow or down, and when BTC drops under my level. Don't wake me at night for small things, and don't send me the same alert ten times."
+      ]
+    },
+    {
+      "id": "R63",
+      "title": "Search and long lists: a job board with filters, paging, detail and compare",
+      "doc": "recipes/63-search-and-long-lists.md",
+      "registry": [],
+      "symbols": [
+        "style",
+        "force_reply",
+        "is_compact",
+        "InputRichBlockButtons",
+        "callback_data",
+        "results"
+      ],
+      "versions": [
+        "9.4",
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for force_reply keyboards, disabled buttons, compact tables",
+      "payload": "examples/payloads/r63-search-lists.json",
+      "fixture": "examples/fixtures/usecase_search_jobs.json",
+      "python": "examples/python/recipes/r63_search_lists.py",
+      "typescript": null,
+      "tasks": [
+        "Our job board has hundreds of vacancies. Let people search by typing, narrow by Remote / Junior / Senior, page through results, open one, and come back to the same place."
+      ]
+    },
+    {
+      "id": "R64",
+      "title": "Delivery tracker: one status card per order, edited in place",
+      "doc": "recipes/64-delivery-tracker.md",
+      "registry": [],
+      "symbols": [
+        "editMessageText",
+        "force_reply",
+        "allowed_updates",
+        "message",
+        "callback_query",
+        "sendMessage",
+        "message_id",
+        "callback_data",
+        "answerCallbackQuery"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "Bot API ≥ 10.3 for the disabled button and inline `force_reply` (`<tg-time>` and edits are older)",
+      "payload": "examples/payloads/r64-delivery-tracker.json",
+      "fixture": "examples/fixtures/usecase_delivery_courier_events.json",
+      "python": "examples/python/recipes/r64_delivery_tracker.py",
+      "typescript": null,
+      "tasks": [
+        "After a customer orders, show where the parcel is. One message that updates, not ten notifications — but ring the phone when the courier is on the way and when it arrives. Let them change the address until we ship."
+      ]
+    },
+    {
+      "id": "R70",
+      "title": "Restyle an existing bot from Unicode emoji to one premium pack",
+      "doc": "recipes/70-restyle-to-premium.md",
+      "registry": [],
+      "symbols": [
+        "icon_custom_emoji_id",
+        "getStickerSet",
+        "getCustomEmojiStickers"
+      ],
+      "versions": [
+        "9.4",
+        "10.4"
+      ],
+      "contexts": "Fragment usernames, or owner Premium for private/group/supergroup messages sent directly by the bot (API)",
+      "payload": "examples/payloads/r70-restyle-to-premium.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r70_restyle_to_premium.py",
+      "typescript": null,
+      "tasks": [
+        "Make our bot look premium — same screens, nicer icons."
+      ]
+    },
+    {
+      "id": "R71",
+      "title": "Icons for a new bot from zero (no ids yet, capture path)",
+      "doc": "recipes/71-icons-from-zero.md",
+      "registry": [],
+      "symbols": [
+        "getCustomEmojiStickers",
+        "custom_emoji_id"
+      ],
+      "versions": [
+        "9.4",
+        "10.4"
+      ],
+      "contexts": "The owner needs Premium to send custom emoji; the bot needs an eligibility route to use them",
+      "payload": "examples/payloads/r71-icons-from-zero.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r71_icons_from_zero.py",
+      "typescript": null,
+      "tasks": [
+        "New bot; we want premium icons but have no ids."
+      ]
+    },
+    {
+      "id": "R72",
+      "title": "Channel post series with premium accents and fallback",
+      "doc": "recipes/72-channel-post-series.md",
+      "registry": [],
+      "symbols": [
+        "RichTextCustomEmoji",
+        "alternative_text"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "contexts": "API: the owner-Premium route covers only private, group and supergroup chats, so **a channel needs Fragment usernames**",
+      "payload": "examples/payloads/r72-channel-post-series.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r72_channel_post_series.py",
+      "typescript": null,
+      "tasks": [
+        "Our channel posts should look as polished as the bot."
+      ]
+    },
+    {
+      "id": "R73",
+      "title": "Mixed eligibility: icons in private chats, Unicode in the channel",
+      "doc": "recipes/73-mixed-eligibility.md",
+      "registry": [],
+      "symbols": [
+        "business_connection_id"
+      ],
+      "versions": [
+        "9.4",
+        "10.4"
+      ],
+      "contexts": "Owner Premium, no Fragment usernames",
+      "payload": "examples/payloads/r73-mixed-eligibility.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r73_mixed_eligibility.py",
+      "typescript": null,
+      "tasks": [
+        "Same order update goes to customers, a group, our news channel and business replies."
+      ]
+    },
+    {
+      "id": "R74",
+      "title": "Recover after the owner's Premium lapses",
+      "doc": "recipes/74-premium-lapse.md",
+      "registry": [],
+      "symbols": [],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "Telegram does not document the exact error text; detection is a 400 on a request that carried custom emoji whose description matches `CUSTOM_EMOJI_ERROR_HINTS`.",
+      "payload": "examples/payloads/r74-premium-lapse.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r74_premium_lapse.py",
+      "typescript": null,
+      "tasks": [
+        "Messages started failing after the owner's Premium expired."
+      ]
+    },
+    {
+      "id": "R75",
+      "title": "Migrate from one pack to another without touching handlers",
+      "doc": "recipes/75-migrate-pack.md",
+      "registry": [],
+      "symbols": [
+        "getCustomEmojiStickers"
+      ],
+      "versions": [
+        "10.4"
+      ],
+      "contexts": "The new family covers every slot in use, its ids verify with `getCustomEmojiStickers`, and `audit_icons.py` passes (one family, static).",
+      "payload": "examples/payloads/r75-migrate-pack.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r75_migrate_pack.py",
+      "typescript": null,
+      "tasks": [
+        "Switch our icons to the new solid set."
+      ]
+    },
+    {
+      "id": "R80",
+      "title": "Lead intake with review and contact consent",
+      "doc": "recipes/80-lead-intake.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r80-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "бот заявки в CRM с согласием",
+        "Collect sales leads with a review screen"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R80",
+      "check": "tests/test_journey_library.py::test_lead_consent_snapshot_and_owner"
+    },
+    {
+      "id": "R81",
+      "title": "Event registration, waitlist and staff check-in",
+      "doc": "recipes/81-event-waitlist.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r81-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "регистрация на мероприятие с листом ожидания",
+        "An event bot with capacity and check-in"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R81",
+      "check": "tests/test_journey_library.py::test_event_capacity_promotion_and_checkin"
+    },
+    {
+      "id": "R82",
+      "title": "Personal reminders with rescheduling and cancellation",
+      "doc": "recipes/82-personal-reminders.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r82-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "личные напоминания отложить отменить",
+        "Reschedule a reminder without duplicate delivery"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R82",
+      "check": "tests/test_journey_library.py::test_reminder_timezone_cancel_and_lease"
+    },
+    {
+      "id": "R83",
+      "title": "File processing with cancellation and late-result protection",
+      "doc": "recipes/83-file-processing.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r83-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "PDF конвертация с отменой",
+        "File processing bot with worker cancellation"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R83",
+      "check": "tests/test_journey_library.py::test_file_job_late_completion_and_failure"
+    },
+    {
+      "id": "R84",
+      "title": "Moderation report review with scoped staff decisions",
+      "doc": "recipes/84-moderation-review.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r84-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "модерация жалобы очередь проверки",
+        "Moderators review reported messages"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R84",
+      "check": "tests/test_journey_library.py::test_moderation_scope_and_revision"
+    },
+    {
+      "id": "R85",
+      "title": "Identified feedback with required answers and withdrawal",
+      "doc": "recipes/85-feedback-survey.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r85-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "опрос отзывы с удалением ответа",
+        "Feedback survey with optional comment and withdrawal"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R85",
+      "check": "tests/test_journey_library.py::test_survey_optional_comment_and_withdrawal"
+    },
+    {
+      "id": "R86",
+      "title": "Custom loyalty points with replay-safe earning and redemption",
+      "doc": "recipes/86-loyalty-points.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r86-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "бонусная программа баллы за заказ",
+        "Loyalty points without duplicate credits"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R86",
+      "check": "tests/test_journey_library.py::test_loyalty_replay_conflict_and_balance"
+    },
+    {
+      "id": "R87",
+      "title": "Service queue with private tickets and staff advancement",
+      "doc": "recipes/87-service-queue.md",
+      "registry": [],
+      "symbols": [
+        "sendMessage",
+        "editMessageText",
+        "answerCallbackQuery"
+      ],
+      "versions": [],
+      "contexts": "Private chat callback UI; domain models offline only; backend integration not implemented.",
+      "payload": "examples/payloads/r87-journey.json",
+      "fixture": null,
+      "python": "examples/python/recipes/r80_87_product_journeys.py",
+      "typescript": null,
+      "tasks": [
+        "электронная очередь талон",
+        "Service queue with staff call-next"
+      ],
+      "evidence": "offline-model",
+      "command": "python examples/python/recipes/r80_87_product_journeys.py --scenario R87",
+      "check": "tests/test_journey_library.py::test_queue_identity_and_staff_advancement"
+    },
+    {
+      "id": "MINI",
+      "title": "Specialized modules",
+      "doc": "recipes/mini-recipes.md",
+      "registry": [
+        "10.4-W12",
+        "10.4-T03",
+        "10.4-S01",
+        "10.4-S02",
+        "10.4-S03",
+        "10.4-G01",
+        "10.4-G02",
+        "10.4-X01",
+        "10.4-X04",
+        "10.4-X05",
+        "10.4-X06",
+        "10.3-E02",
+        "10.3-E04",
+        "10.3-E05",
+        "10.3-E06",
+        "10.3-E07",
+        "10.3-E08",
+        "10.3-G03",
+        "10.3-G04"
+      ],
+      "symbols": [
+        "AreaPosition",
+        "ChatAdministratorRights",
+        "ChatMemberAdministrator",
+        "ChatMemberRestricted",
+        "ChatPermissions",
+        "ChatShareTheme",
+        "ChatShareThemeBackdrop",
+        "ChatShareThemeBackdrops",
+        "ChatShareThemeEmoji",
+        "ChatShareThemeUniqueGift",
+        "CommunityChatJoined",
+        "EmojiType",
+        "EmojiTypeCustomEmoji",
+        "EmojiTypeEmoji",
+        "KeyboardButtonRequestManagedBot",
+        "PaidMessagesWaived",
+        "StoryAreaPosition",
+        "UniqueGiftInfo",
+        "bank_card_number",
+        "can_convert_gifts_to_stars",
+        "can_send_other_messages",
+        "can_send_welcome_messages",
+        "community_chat_joined",
+        "custom_description_entities",
+        "custom_description_parse_mode",
+        "deleteBusinessAccountGift",
+        "editEphemeralMessageCaption",
+        "editEphemeralMessageMedia",
+        "editEphemeralMessageText",
+        "getChatShareThemeBackdrops",
+        "getUniqueGift",
+        "is_private",
+        "paid_messages_waived",
+        "promoteChatMember",
+        "rich_message",
+        "sendRichMessage",
+        "share_theme",
+        "show_caption_above_media",
+        "suggested_username",
+        "verifyChat",
+        "verifyUser"
+      ],
+      "versions": [
+        "10.3",
+        "10.4"
+      ],
+      "payload": "examples/payloads/mini-recipes.json",
+      "python": "examples/python/recipes/mini_recipes.py",
+      "typescript": null,
+      "tasks": [
+        "welcome newcomers privately",
+        "community join",
+        "gift note",
+        "look up a unique gift",
+        "delete business gifts",
+        "share theme",
+        "managed bot username",
+        "verification description",
+        "paid messages waived",
+        "mask card numbers",
+        "AreaPosition rename",
+        "ephemeral media edit"
+      ]
+    }
+  ]
+}

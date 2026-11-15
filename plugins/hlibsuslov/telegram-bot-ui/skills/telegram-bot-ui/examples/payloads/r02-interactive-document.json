@@ -1,0 +1,352 @@
+{
+  "scenario": "r02-interactive-document",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Key rotation policy v3"
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Rotate the ",
+                {
+                  "type": "bold",
+                  "text": "signing key"
+                },
+                " every 90 days."
+              ]
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Key",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Owner",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Days left",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "signing",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Platform",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "12",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "webhook",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Bots team",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "48",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "backup",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "SRE",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "85",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Status on 12 Nov 2026"
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "Auditor note: rotation must be logged with the operator's id, the old key fingerprint, the new key fingerprint and the time. Logs are kept for one year.",
+              "credit": "Audit 2026-10"
+            },
+            {
+              "type": "document",
+              "document": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoFileId"
+              },
+              "caption": {
+                "text": "Full procedure (PDF)"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Questions? ",
+                {
+                  "type": "button",
+                  "button": {
+                    "text": "Ask the owner",
+                    "url": "https://t.me/orders_demo_bot?start=ask_rotation",
+                    "style": "primary"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Approve",
+                  "callback_data": "doc:approve:v3",
+                  "style": "success"
+                },
+                {
+                  "text": "Copy checklist id",
+                  "copy_text": {
+                    "text": "ROT-2026-v3"
+                  }
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "markdown": "## Attachments\n\n![](tg://document?id=spec \"Full procedure (PDF)\")",
+          "media": [
+            {
+              "id": "spec",
+              "media": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoFileId"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Because a leaked key stops working within 90 days.",
+        "reply_parameters": {
+          "message_id": 600,
+          "quote_rich_texts": [
+            {
+              "type": "bold",
+              "text": "signing key"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-approve",
+        "text": "Approved"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Key rotation policy v3"
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Rotate the ",
+                {
+                  "type": "bold",
+                  "text": "signing key"
+                },
+                " every 90 days."
+              ]
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Key",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Owner",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Days left",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "signing",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Platform",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "12",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "webhook",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Bots team",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "48",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "backup",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "SRE",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "85",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true,
+              "caption": "Status on 12 Nov 2026"
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "Auditor note: rotation must be logged with the operator's id, the old key fingerprint, the new key fingerprint and the time. Logs are kept for one year.",
+              "credit": "Audit 2026-10"
+            },
+            {
+              "type": "document",
+              "document": {
+                "type": "document",
+                "media": "BQACAgIAAxkBAAIBdemoFileId"
+              },
+              "caption": {
+                "text": "Full procedure (PDF)"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": [
+                "Questions? ",
+                {
+                  "type": "button",
+                  "button": {
+                    "text": "Ask the owner",
+                    "url": "https://t.me/orders_demo_bot?start=ask_rotation",
+                    "style": "primary"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "Approved",
+                  "disabled": {}
+                },
+                {
+                  "text": "Copy checklist id",
+                  "copy_text": {
+                    "text": "ROT-2026-v3"
+                  }
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

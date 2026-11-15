@@ -1,0 +1,99 @@
+{
+  "scenario": "r50-monitoring-dashboard",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (checked 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<style>:root{--k-tx:var(--tg-theme-text-color,#000);--k-hint:var(--tg-theme-hint-color,#707579);--k-btn:var(--tg-theme-button-color,#2481cc);--k-btx:var(--tg-theme-button-text-color,#fff);--k-sec:var(--tg-theme-secondary-bg-color,#f1f1f4);--k-bad:var(--tg-theme-destructive-text-color,#e53935);--k-ok:light-dark(#2e8b3e,#5ec46e);--k-warn:light-dark(#a86400,#f0a73a);--k-r:10px;color-scheme:light dark}body{margin:0;padding:0}.k{padding:10px 12px max(10px,env(safe-area-inset-bottom),var(--tg-content-safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}.hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.tt{font-weight:600;font-size:1.07em;margin:0}.mt{color:var(--k-hint);font-size:.87em}.rw{display:flex;align-items:center;gap:8px}.el{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sf{background:var(--k-sec);border-radius:var(--k-r);padding:8px 10px}.ch{background:var(--k-sec);color:var(--k-tx);border:0;border-radius:999px;padding:6px 12px;min-height:34px;font:inherit;font-size:.93em}.ch.on{background:var(--k-btn);color:var(--k-btx)}.st{min-height:1.35em;margin-top:6px;color:var(--k-hint);font-size:.87em}.st.e{color:var(--k-bad)}.st.ok{color:var(--k-ok)}.up{color:var(--k-ok)}.dn{color:var(--k-bad)}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.pl{font-size:.8em;padding:2px 8px;border-radius:999px;background:var(--k-sec);white-space:nowrap}.pl::before{content:\"\";display:inline-block;width:7px;height:7px;border-radius:50%;margin:0 5px 1px 0;background:currentColor}.s0{color:var(--k-ok)}.s1{color:var(--k-warn)}.s2{color:var(--k-bad)}.pp{margin:8px 0}.pp .ch{flex:1}.kp{display:grid;grid-template-columns:1fr 1fr;gap:6px}.kp b{display:block;font-size:min(1.33em,7.4vw);font-weight:600;line-height:1.2}.kp small{font-size:.8em;margin-left:4px}.cv{margin-top:6px;color:var(--k-btn)}.cv .mt{display:flex;justify-content:space-between;margin-bottom:2px}.ic2{color:var(--k-bad);margin-top:6px;font-size:.87em}[dir=rtl] .kp small{margin:0 4px 0 0}[dir=rtl] .pl::before{margin:0 0 1px 5px}</style> <div class=\"k\"><div class=\"hd\"><span class=\"tt el\" id=\"ti\"></span><span class=\"pl\" id=\"pl\"></span></div><div class=\"rw pp\" id=\"pp\"></div><div class=\"kp\" id=\"kp\"></div><div class=\"sf cv\"><div class=\"mt\"><span id=\"ll\"></span><span id=\"lr\"></span></div><div id=\"sp\"></div></div><div class=\"sf cv\"><div class=\"mt\"><span id=\"el\"></span><span id=\"er\"></span></div><div id=\"eb\"></div></div><div class=\"ic2\" id=\"in\"></div><div class=\"hd st\" id=\"ft\"><span id=\"up\"></span><button class=\"ch\" id=\"rf\"></button></div><div class=\"st\" id=\"st\"></div></div> <script>var W=window.TelegramWidget||null;var K={lang:String(navigator.language||\"en\").slice(0,2),S:{},R:{},I:{},busy:0,t:function(k){var d=K.I[K.lang]||K.I[Object.keys(K.I)[0]]||{};return k in d?d[k]:k;},add:function(o){for(var l in o)K.I[l]=Object.assign(K.I[l]||{},o[l]);},$:function(i){return document.getElementById(i);},h:function(tag,cls,txt){var e=document.createElement(tag);e.className=cls||\"\";if(txt!=null)e.textContent=txt;return e;},take:function(f,s){if(!s||typeof s!=\"object\"||(f in K.R&&+s.r<K.R[f]))return 0;K.R[f]=+s.r||0;K.S[f]=s;return 1;},load:function(f){try{K.take(f,JSON.parse(W[f]));}catch(e){}},can:function(){return!!(W&&W.viewer&&!W.isPreview);},st:function(txt,kind){var n=K.$(\"st\");if(n){n.textContent=txt||\"\";n.className=\"st \" +(kind||\"\");}},ask:function(data,o){o=o||{};if(!K.can()||K.busy)return 0;K.busy=1;K.st(K.t(\"wait\"));K.draw();W.request(data).then(function(a){var r={};try{r=JSON.parse(a.result)||{};}catch(e){}\nK.busy=0;K.take(o.f||\"chatData\",r.s);var ok=r.ok&&!r.err;K.st(r.msg||(ok?o.done:K.t(r.err||\"INVALID_ANSWER\")),ok?\"ok\":\"e\");try{W.HapticFeedback.notificationOccurred(ok?\"success\":\"error\");}catch(e){}\nif(o.then)o.then(r);K.draw();},function(e){K.busy=0;K.st(K.t(e.code||\"FAILED\"),\"e\");if(o.fail)o.fail(e);K.draw();});return 1;},sync:function(data,f){if(W&&W.chatType==\"private\"&&K.can()&&!W.isForward&&!K.busy)\nW.request(data).then(function(a){try{if(K.take(f||\"chatData\",JSON.parse(a.result).s))K.draw();}catch(e){}},function(){});},nf:function(n,o){try{return new Intl.NumberFormat(K.lang,o).format(n);}catch(e){return \"\" + n;}},money:function(minor,cur){return K.nf(minor / 100,{style:\"currency\",currency:cur});},time:function(sec,o){try{return new Intl.DateTimeFormat(K.lang,o||{hour:\"2-digit\",minute:\"2-digit\"}).format(sec*1000);}catch(e){return \"\";}},start:function(draw,o){o=o||{};K.draw=draw;var d=document.documentElement;if(!d.dir)d.dir=/^(ar|he|fa|ur)/.test(K.lang)?\"rtl\":\"ltr\";if(W){K.load(\"chatData\");K.load(\"publicData\");W.onEvent(\"chatDataChanged\",function(){K.load(\"chatData\");draw();});W.onEvent(\"publicDataChanged\",function(){K.load(\"publicData\");draw();});W.onEvent(\"themeChanged\",draw);if(o.watch)W.watchPublicData();if(o.sync)W.onEvent(\"activated\",function(){K.sync(o.sync,o.f);});}\ndraw();if(o.sync)K.sync(o.sync,o.f);if(W)W.ready();}};</script> <script>K.add({en:{wait:\"Sending…\",NOT_ALLOWED:\"Open the bot for this\",BUSY:\"One moment…\",RATE_LIMITED:\"Too fast, wait a bit\",TIMEOUT:\"No answer. Nothing changed\",FAILED:\"Couldn't reach the bot\",INVALID_ANSWER:\"Unexpected answer\",stale:\"Changed meanwhile, check again\",not_allowed:\"Only the owner can do this\",failed:\"Not saved, try again\",busy:\"Busy, try again\",bad_request:\"Not available\"}});</script> <script>K.scale=function(v,h,pad){var lo=Math.min.apply(null,v),hi=Math.max.apply(null,v),span=hi - lo||1;return function(x){return(h - pad -(x - lo)/ span*(h - 2*pad)).toFixed(1);};};K.spark=function(v,w,h){if(!v||v.length<2)return \"\";var y=K.scale(v,h,3),dx=w /(v.length - 1),p=\"\";for(var i=0;i<v.length;i++)p +=(i?\"L\":\"M\")+(i*dx).toFixed(1)+ \" \" + y(v[i]);return '<svg viewBox=\"0 0 ' + w + \" \" + h + '\" width=\"100%\" height=\"' + h + '\" preserveAspectRatio=\"none\" aria-hidden=\"true\">' +\n'<path d=\"' + p + \"L\" + w + \" \" + h + \"L0 \" + h + 'Z\" fill=\"currentColor\" fill-opacity=\".12\"/>' +\n'<path d=\"' + p + '\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" vector-effect=\"non-scaling-stroke\"/>' +\n'<circle cx=\"' + w + '\" cy=\"' + y(v[v.length - 1])+ '\" r=\"3\" fill=\"currentColor\"/></svg>';};K.bars=function(v,w,h,hi){var max=Math.max.apply(null,v.concat([1])),bw=w / v.length,s=\"\";for(var i=0;i<v.length;i++){var bh=Math.max(1,v[i]/ max*(h - 2));s +='<rect x=\"' +(i*bw + 1).toFixed(1)+ '\" y=\"' +(h - bh).toFixed(1)+ '\" width=\"' +(bw - 2).toFixed(1)+\n'\" height=\"' + bh.toFixed(1)+ '\" rx=\"1.5\" fill=\"' +(hi!=null&&v[i]>=hi?\"var(--k-bad)\":\"currentColor\")+ '\"/>';}\nreturn '<svg viewBox=\"0 0 ' + w + \" \" + h + '\" width=\"100%\" height=\"' + h + '\" preserveAspectRatio=\"none\" aria-hidden=\"true\">' + s + \"</svg>\";};K.add({en:{s0:\"Operational\",s1:\"Degraded\",s2:\"Outage\",lat:\"p95 latency\",err:\"Errors\",upd:\"Updated\",old:\"Data may be stale\",ref:\"Refresh\",none:\"No data yet. The bot will fill this in.\"}});function draw(){var s=K.S.chatData,$=K.$;$(\"rf\").textContent=K.t(\"ref\");$(\"rf\").disabled=K.busy||!K.can();$(\"rf\").onclick=function(){K.ask(\"sync\");};if(!s){$(\"ti\").textContent=K.t(\"none\");return;}\n$(\"ti\").textContent=s.svc;var pl=$(\"pl\");pl.textContent=K.t(\"s\" + s.st);pl.className=\"pl s\" + s.st;var pp=$(\"pp\");pp.innerHTML=\"\";[\"1h\",\"24h\",\"7d\"].forEach(function(p){var b=K.h(\"button\",\"ch\" +(s.p==p?\" on\":\"\"),p);b.disabled=K.busy||!K.can();b.onclick=function(){if(s.p!=p)K.ask(\"p:\" + p);};pp.appendChild(b);});var kp=$(\"kp\");kp.innerHTML=\"\";(s.kpi||[]).forEach(function(k){var c=K.h(\"div\",\"sf\"),d=k[3],good=d==0?\"\":(d>0)==!!k[4]?\"up\":\"dn\";c.appendChild(K.h(\"span\",\"mt\",k[0]));var b=K.h(\"b\",\"\",k[1]+ k[2]);if(d)b.appendChild(K.h(\"small\",good,(d>0?\"▲\":\"▼\")+ Math.abs(d)));c.appendChild(b);kp.appendChild(c);});var lat=s.lat||[],err=s.err||[];$(\"ll\").textContent=K.t(\"lat\");$(\"lr\").textContent=lat.length?Math.min.apply(null,lat)+ \"–\" + Math.max.apply(null,lat)+ \" ms\":\"\";$(\"sp\").innerHTML=K.spark(lat,280,44);$(\"el\").textContent=K.t(\"err\");$(\"er\").textContent=err.reduce(function(a,b){return a + b;},0);$(\"eb\").innerHTML=K.bars(err,280,30,s.thr);$(\"in\").textContent=s.inc||\"\";var old=Date.now()/ 1000 - s.at>600;$(\"up\").textContent=old?K.t(\"old\"):K.t(\"upd\")+ \" \" + K.time(s.at);$(\"up\").className=old?\"s1\":\"\";}\nK.start(draw,{sync:\"sync\"});</script>\n",
+        "caption": "api-prod · Operational · p95 182 ms · errors 0.31%",
+        "chat_data": "{\"svc\":\"api-prod\",\"st\":0,\"p\":\"24h\",\"at\":1794736680,\"kpi\":[[\"Uptime\",\"99.95\",\"%\",0.02,1],[\"p95\",\"182\",\" ms\",-12,0],[\"Errors\",\"0.31\",\"%\",0.08,0],[\"RPS\",\"1.2k\",\"\",5,1]],\"lat\":[171,168,175,180,176,182,190,201,188,179,183,177,174,170,169,181,195,214,205,192,186,184,180,182],\"err\":[2,1,3,2,2,4,3,9,14,6,3,2,2,1,2,3,5,12,7,4,3,2,2,3],\"thr\":10,\"inc\":\"\",\"r\":0}",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "24h report",
+                "callback_data": "mon:rep:24h"
+              },
+              {
+                "text": "7d report",
+                "callback_data": "mon:rep:7d"
+              }
+            ],
+            [
+              {
+                "text": "Incidents",
+                "callback_data": "mon:inc"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012345680",
+        "data": "{\"ok\":true,\"s\":{\"svc\":\"api-prod\",\"st\":0,\"p\":\"24h\",\"at\":1794736680,\"kpi\":[[\"Uptime\",\"99.95\",\"%\",0.02,1],[\"p95\",\"182\",\" ms\",-12,0],[\"Errors\",\"0.31\",\"%\",0.08,0],[\"RPS\",\"1.2k\",\"\",5,1]],\"lat\":[171,168,175,180,176,182,190,201,188,179,183,177,174,170,169,181,195,214,205,192,186,184,180,182],\"err\":[2,1,3,2,2,4,3,9,14,6,3,2,2,1,2,3,5,12,7,4,3,2,2,3],\"thr\":10,\"inc\":\"\",\"r\":0},\"r\":0}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"svc\":\"api-prod\",\"st\":1,\"p\":\"24h\",\"at\":1794736680,\"kpi\":[[\"Uptime\",\"99.2\",\"%\",-0.7,1],[\"p95\",\"640\",\" ms\",420,0],[\"Errors\",\"4.8\",\"%\",4.4,0],[\"RPS\",\"980\",\"\",-18,1]],\"lat\":[171,168,175,180,176,182,190,201,188,179,183,177,174,170,169,181,195,214,205,192,186,184,180,182],\"err\":[2,1,3,2,2,4,3,9,14,6,3,2,2,1,2,3,5,12,7,4,3,2,2,3],\"thr\":10,\"inc\":\"Elevated 5xx on /pay since 09:42\",\"r\":1}"
+      }
+    },
+    {
+      "method": "editMessageCaption",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "caption": "api-prod · Degraded · p95 640 ms · errors 4.8%"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"svc\":\"api-prod\",\"st\":1,\"p\":\"7d\",\"at\":1794736800,\"kpi\":[[\"Uptime\",\"99.2\",\"%\",-0.7,1],[\"p95\",\"640\",\" ms\",420,0],[\"Errors\",\"4.8\",\"%\",4.4,0],[\"RPS\",\"980\",\"\",-18,1]],\"lat\":[172,209,201,193,185,177,214,206,198,190,182,174,211,203],\"err\":[3,5,7,9,2,4,6,8,1,3,5,7,9,2],\"thr\":10,\"inc\":\"Elevated 5xx on /pay since 09:42\",\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012350001",
+        "data": "{\"ok\":true,\"s\":{\"svc\":\"api-prod\",\"st\":1,\"p\":\"7d\",\"at\":1794736800,\"kpi\":[[\"Uptime\",\"99.2\",\"%\",-0.7,1],[\"p95\",\"640\",\" ms\",420,0],[\"Errors\",\"4.8\",\"%\",4.4,0],[\"RPS\",\"980\",\"\",-18,1]],\"lat\":[172,209,201,193,185,177,214,206,198,190,182,174,211,203],\"err\":[3,5,7,9,2,4,6,8,1,3,5,7,9,2],\"thr\":10,\"inc\":\"Elevated 5xx on /pay since 09:42\",\"r\":2},\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012350002",
+        "data": "{\"ok\":false,\"err\":\"not_allowed\"}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"svc\":\"api-prod\",\"st\":1,\"p\":\"1h\",\"at\":1794736800,\"kpi\":[[\"Uptime\",\"99.2\",\"%\",-0.7,1],[\"p95\",\"640\",\" ms\",420,0],[\"Errors\",\"4.8\",\"%\",4.4,0],[\"RPS\",\"980\",\"\",-18,1]],\"lat\":[172,209,201,193,185,177,214,206,198,190,182,174],\"err\":[3,5,7,9,2,4,6,8,1,3,5,7],\"thr\":10,\"inc\":\"Elevated 5xx on /pay since 09:42\",\"r\":3}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012350003",
+        "data": "{\"ok\":false,\"err\":\"busy\",\"r\":2}"
+      }
+    }
+  ]
+}

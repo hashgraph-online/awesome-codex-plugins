@@ -1,0 +1,224 @@
+[
+  {
+    "update_id": 900401,
+    "message": {
+      "message_id": 9001,
+      "date": 1763200100,
+      "chat": {
+        "id": -1001500000101,
+        "type": "supergroup",
+        "title": "City News — comments"
+      },
+      "sender_chat": {
+        "id": -1001500000001,
+        "type": "channel",
+        "title": "City News",
+        "username": "demo_city_news"
+      },
+      "is_automatic_forward": true,
+      "forward_origin": {
+        "type": "channel",
+        "date": 1763200099,
+        "chat": {
+          "id": -1001500000001,
+          "type": "channel",
+          "title": "City News",
+          "username": "demo_city_news"
+        },
+        "message_id": 5101
+      },
+      "text": "Tram line 4 reopens\n\nNight trams run until 01:00."
+    }
+  },
+  {
+    "update_id": 900402,
+    "message": {
+      "message_id": 9002,
+      "date": 1763200200,
+      "chat": {
+        "id": -1001500000101,
+        "type": "supergroup",
+        "title": "City News — comments"
+      },
+      "from": {
+        "id": 444444444,
+        "is_bot": false,
+        "first_name": "Taras",
+        "language_code": "uk"
+      },
+      "message_thread_id": 9001,
+      "reply_to_message": {
+        "message_id": 9001,
+        "date": 1763200100,
+        "chat": {
+          "id": -1001500000101,
+          "type": "supergroup",
+          "title": "City News — comments"
+        },
+        "sender_chat": {
+          "id": -1001500000001,
+          "type": "channel",
+          "title": "City News",
+          "username": "demo_city_news"
+        },
+        "is_automatic_forward": true,
+        "forward_origin": {
+          "type": "channel",
+          "date": 1763200099,
+          "chat": {
+            "id": -1001500000001,
+            "type": "channel",
+            "title": "City News",
+            "username": "demo_city_news"
+          },
+          "message_id": 5101
+        },
+        "text": "Tram line 4 reopens\n\nNight trams run until 01:00."
+      },
+      "text": "Чи буде нічний трамвай у неділю?"
+    }
+  },
+  {
+    "update_id": 900403,
+    "message": {
+      "message_id": 9003,
+      "date": 1763200210,
+      "chat": {
+        "id": -1001500000101,
+        "type": "supergroup",
+        "title": "City News — comments"
+      },
+      "from": {
+        "id": 555555555,
+        "is_bot": false,
+        "first_name": "SpamBot3000"
+      },
+      "message_thread_id": 9001,
+      "reply_to_message": {
+        "message_id": 9001,
+        "date": 1763200100,
+        "chat": {
+          "id": -1001500000101,
+          "type": "supergroup",
+          "title": "City News — comments"
+        },
+        "sender_chat": {
+          "id": -1001500000001,
+          "type": "channel",
+          "title": "City News",
+          "username": "demo_city_news"
+        },
+        "is_automatic_forward": true,
+        "forward_origin": {
+          "type": "channel",
+          "date": 1763200099,
+          "chat": {
+            "id": -1001500000001,
+            "type": "channel",
+            "title": "City News",
+            "username": "demo_city_news"
+          },
+          "message_id": 5101
+        },
+        "text": "Tram line 4 reopens\n\nNight trams run until 01:00."
+      },
+      "text": "FREE crypto airdrop!!! join t.me/+abcdef now"
+    }
+  },
+  {
+    "update_id": 900404,
+    "message": {
+      "message_id": 3001,
+      "date": 1763200300,
+      "chat": {
+        "id": -1001500000201,
+        "type": "supergroup",
+        "title": "City News",
+        "is_direct_messages": true
+      },
+      "from": {
+        "id": 666666666,
+        "is_bot": false,
+        "first_name": "Mia",
+        "language_code": "en"
+      },
+      "direct_messages_topic": {
+        "topic_id": 77,
+        "user": {
+          "id": 666666666,
+          "is_bot": false,
+          "first_name": "Mia",
+          "language_code": "en"
+        }
+      },
+      "text": "Hi! Is the market open on Sunday too?"
+    }
+  },
+  {
+    "update_id": 900405,
+    "message": {
+      "message_id": 3002,
+      "date": 1763200400,
+      "chat": {
+        "id": -1001500000201,
+        "type": "supergroup",
+        "title": "City News",
+        "is_direct_messages": true
+      },
+      "from": {
+        "id": 666666666,
+        "is_bot": false,
+        "first_name": "Mia",
+        "language_code": "en"
+      },
+      "direct_messages_topic": {
+        "topic_id": 77,
+        "user": {
+          "id": 666666666,
+          "is_bot": false,
+          "first_name": "Mia",
+          "language_code": "en"
+        }
+      },
+      "suggested_post_info": {
+        "state": "pending",
+        "send_date": 1763290000
+      },
+      "text": "Lost cat near Riverside park, grey, answers to Pixel. Call +380 00 000 0000."
+    }
+  },
+  {
+    "update_id": 900406,
+    "message": {
+      "message_id": 3003,
+      "date": 1763200500,
+      "chat": {
+        "id": -1001500000201,
+        "type": "supergroup",
+        "title": "City News",
+        "is_direct_messages": true
+      },
+      "from": {
+        "id": 555555555,
+        "is_bot": false,
+        "first_name": "SpamBot3000"
+      },
+      "direct_messages_topic": {
+        "topic_id": 78,
+        "user": {
+          "id": 555555555,
+          "is_bot": false,
+          "first_name": "SpamBot3000"
+        }
+      },
+      "suggested_post_info": {
+        "state": "pending",
+        "price": {
+          "currency": "XTR",
+          "amount": 100
+        }
+      },
+      "text": "Buy followers cheap, best prices!!!"
+    }
+  }
+]

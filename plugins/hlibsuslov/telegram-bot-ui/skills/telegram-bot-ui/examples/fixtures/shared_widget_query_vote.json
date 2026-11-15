@@ -1,0 +1,18 @@
+{
+  "_test_server_only": true,
+  "update_id": 100000011,
+  "shared_widget_query": {
+    "id": "8123456789012340101",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "widget_id": "7770011223344556677",
+    "type": {
+      "type": "data"
+    },
+    "data": "vote:0"
+  }
+}

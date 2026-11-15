@@ -1,0 +1,49 @@
+{
+  "update_id": 900030,
+  "message": {
+    "message_id": 610,
+    "date": 1762900300,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "text": "Why is this step needed?",
+    "reply_to_message": {
+      "message_id": 600,
+      "date": 1762900290,
+      "chat": {
+        "id": 111111111,
+        "type": "private",
+        "first_name": "Alice"
+      },
+      "from": {
+        "id": 999000111,
+        "is_bot": true,
+        "first_name": "OrdersBot",
+        "username": "orders_demo_bot"
+      }
+    },
+    "quote": {
+      "text": "",
+      "rich_texts": [
+        [
+          "Rotate the ",
+          {
+            "type": "bold",
+            "text": "signing key"
+          },
+          " every 90 days."
+        ]
+      ],
+      "position": 42,
+      "is_manual": true
+    }
+  }
+}

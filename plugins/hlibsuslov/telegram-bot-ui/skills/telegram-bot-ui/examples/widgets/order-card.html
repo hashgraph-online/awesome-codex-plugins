@@ -1,0 +1,59 @@
+<!-- Order card widget (private chat). Profile 1. No network, no inputs.
+     State: chat_data = {"o":"1042","items":[...],"opt":"std","st":"draft"|"confirmed","r":N}
+     Requests (1-64 bytes): "ship:<std|fast>", "confirm", "sync" -->
+<style>
+body{margin:0;padding:0;font:inherit}
+.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}
+h3{margin:0 0 4px}
+.m{color:var(--tg-theme-hint-color);font-size:.9em}
+ul{margin:6px 0;padding-left:1.2em}
+.t{display:flex;justify-content:space-between;font-weight:600;margin:6px 0}
+.o{display:flex;gap:8px;margin:8px 0}
+.o button{flex:1}
+.o button.on{background:var(--tg-theme-button-color);color:var(--tg-theme-button-text-color)}
+.s{min-height:1.3em;color:var(--tg-theme-hint-color);font-size:.9em}
+.s.e{color:var(--tg-theme-destructive-text-color)}
+.f{padding-right:max(12px,var(--tg-content-safe-area-corner-right));padding-left:max(12px,var(--tg-content-safe-area-corner-left))}
+.code{user-select:text;-webkit-user-select:text;font-family:monospace}
+</style>
+<div class="c">
+<h3 id="h"></h3>
+<div class="m" id="sub"></div>
+<ul id="items"></ul>
+<div class="o" id="opts"></div>
+<div class="t"><span id="tl"></span><span id="tot"></span></div>
+<button id="go" style="width:100%"></button>
+<div class="s f" id="st" aria-live="polite"></div>
+</div>
+<script>
+var W=window.TelegramWidget,L={en:{order:"Order",ship:"Delivery",std:"Standard",fast:"Express",total:"Total",confirm:"Confirm order",done:"Confirmed",wait:"Sending…",snap:"As of",err:{NOT_ALLOWED:"Open the bot to change this order.",BUSY:"One moment…",RATE_LIMITED:"Too fast — try again in a few seconds.",TIMEOUT:"The bot didn't answer. Your order is unchanged.",FAILED:"Couldn't reach the bot.",INVALID_ANSWER:"Unexpected answer. Try again."}},ru:{order:"Заказ",ship:"Доставка",std:"Обычная",fast:"Экспресс",total:"Итого",confirm:"Подтвердить заказ",done:"Подтверждён",wait:"Отправляю…",snap:"На момент",err:{NOT_ALLOWED:"Откройте бота, чтобы изменить заказ.",BUSY:"Секунду…",RATE_LIMITED:"Слишком быстро — повторите через пару секунд.",TIMEOUT:"Бот не ответил. Заказ не изменён.",FAILED:"Не удалось связаться с ботом.",INVALID_ANSWER:"Неожиданный ответ. Повторите."}}};
+var T=L[(navigator.language||"en").slice(0,2)]||L.en,S=null,R=-1,busy=false;
+function $(i){return document.getElementById(i)}
+function parse(){try{var s=JSON.parse(W?W.chatData:null)}catch(e){s=null}if(s&&typeof s.r==="number"&&s.r>=R){S=s;R=s.r}}
+function money(c){return (c/100).toFixed(2)}
+function status(t,e){var n=$("st");n.textContent=t||"";n.className="s f"+(e?" e":"")}
+function render(){
+ if(!S){$("h").textContent=T.order;status("");return}
+ $("h").textContent=T.order+" #"+S.o;
+ $("sub").textContent=W&&W.isForward?T.snap+" "+(S.at||""):"";
+ var ul=$("items");ul.innerHTML="";var sum=0;
+ S.items.forEach(function(it){var li=document.createElement("li");li.textContent=it.q+" × "+it.n;ul.appendChild(li);sum+=it.q*it.p});
+ var ship=S.opt==="fast"?500:0;sum+=ship;
+ var o=$("opts");o.innerHTML="";
+ ["std","fast"].forEach(function(k){var b=document.createElement("button");b.textContent=T[k];b.className=S.opt===k?"on":"";b.disabled=S.st!=="draft"||busy;b.onclick=function(){ask("ship:"+k)};o.appendChild(b)});
+ $("tl").textContent=T.total;$("tot").textContent="$"+money(sum);
+ var g=$("go");g.textContent=S.st==="draft"?T.confirm:T.done;g.disabled=S.st!=="draft"||busy;g.onclick=function(){ask("confirm")};
+}
+function ask(data){
+ if(!W||busy)return;busy=true;status(T.wait);render();
+ W.request(data).then(function(a){busy=false;var r=null;try{r=JSON.parse(a.result)}catch(e){}
+  if(r&&r.ok){if(r.s&&r.r>R){S=r.s;R=r.r}status("");if(data==="confirm")W.HapticFeedback.notificationOccurred("success")}
+  else status((r&&r.msg)||T.err.FAILED,true);render()},
+ function(e){busy=false;status(T.err[e.code]||T.err.FAILED,true);render()});
+}
+if(W){W.onEvent("chatDataChanged",function(){parse();render()});W.onEvent("themeChanged",render)}
+parse();render();
+// Background refresh is allowed only for the original in the private chat.
+if(W&&W.chatType==="private"&&!W.isForward&&!W.isPreview){W.request("sync").then(function(a){try{var r=JSON.parse(a.result)}catch(e){r=null}if(r&&r.s&&r.r>R){S=r.s;R=r.r;render()}},function(){})}
+if(W)W.ready();
+</script>

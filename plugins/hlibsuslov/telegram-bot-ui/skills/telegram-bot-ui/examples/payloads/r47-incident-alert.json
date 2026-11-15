@@ -1,0 +1,103 @@
+{
+  "scenario": "r47-incident-alert",
+  "status": "production",
+  "context": "private (two on-call chats)",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "🔴 INC-311 · checkout error rate 18% (threshold 2%) since 03:12 UTC\nRunbook: restart payment-gateway pods",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Acknowledge",
+                "callback_data": "aq:081da789:n6d6976b:0"
+              }
+            ],
+            [
+              {
+                "text": "Escalate",
+                "callback_data": "aq:081da789:n6d6976b:1"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "🔴 INC-311 · checkout error rate 18% (threshold 2%) since 03:12 UTC\nRunbook: restart payment-gateway pods\n\nNo answer — I stopped here.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "No answer — I stopped here.",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 444444444,
+        "text": "🔴 INC-311 · checkout error rate 18% (threshold 2%) since 03:12 UTC\nRunbook: restart payment-gateway pods",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Acknowledge",
+                "callback_data": "aq:e771e195:nf32bef4:0"
+              }
+            ],
+            [
+              {
+                "text": "Escalate",
+                "callback_data": "aq:e771e195:nf32bef4:1"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "43820000000990012",
+        "text": "Got it",
+        "show_alert": false
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 444444444,
+        "message_id": 1002,
+        "text": "🔴 INC-311 · checkout error rate 18% (threshold 2%) since 03:12 UTC\nRunbook: restart payment-gateway pods\n\nAnswer received: Acknowledge",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Answer received: Acknowledge",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

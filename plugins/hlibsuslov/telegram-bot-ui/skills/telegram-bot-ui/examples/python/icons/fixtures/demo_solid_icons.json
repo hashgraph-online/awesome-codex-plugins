@@ -1,0 +1,243 @@
+{
+ "_note": "SYNTHETIC offline fixture shaped like a getStickerSet result. Ids start with 0 on purpose: they are NOT real custom_emoji_id values and scripts/audit_icons.py rejects them unless --allow-fixture-ids. Never ship them.",
+ "ok": true,
+ "result": {
+  "name": "demo_solid_icons",
+  "title": "Demo Solid Icons (fixture)",
+  "sticker_type": "custom_emoji",
+  "stickers": [
+   {
+    "emoji": "🏠",
+    "custom_emoji_id": "0300000000000001",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "⬅️",
+    "custom_emoji_id": "0300000000000002",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "➡️",
+    "custom_emoji_id": "0300000000000003",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "✖️",
+    "custom_emoji_id": "0300000000000004",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "🔄",
+    "custom_emoji_id": "0300000000000005",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "➕",
+    "custom_emoji_id": "0300000000000006",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "✏️",
+    "custom_emoji_id": "0300000000000007",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "🗑",
+    "custom_emoji_id": "0300000000000008",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "💾",
+    "custom_emoji_id": "0300000000000009",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "📋",
+    "custom_emoji_id": "0300000000000010",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "🔍",
+    "custom_emoji_id": "0300000000000011",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "⚙️",
+    "custom_emoji_id": "0300000000000012",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "👤",
+    "custom_emoji_id": "0300000000000013",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "🌐",
+    "custom_emoji_id": "0300000000000014",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "🔔",
+    "custom_emoji_id": "0300000000000015",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "✅",
+    "custom_emoji_id": "0300000000000016",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "⏳",
+    "custom_emoji_id": "0300000000000017",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "❌",
+    "custom_emoji_id": "0300000000000018",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "⚠️",
+    "custom_emoji_id": "0300000000000019",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "🛒",
+    "custom_emoji_id": "0300000000000020",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "📦",
+    "custom_emoji_id": "0300000000000021",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "💳",
+    "custom_emoji_id": "0300000000000022",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "👛",
+    "custom_emoji_id": "0300000000000023",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "💼",
+    "custom_emoji_id": "0300000000000024",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "📊",
+    "custom_emoji_id": "0300000000000025",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "💬",
+    "custom_emoji_id": "0300000000000026",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "❓",
+    "custom_emoji_id": "0300000000000027",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "📣",
+    "custom_emoji_id": "0300000000000028",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   },
+   {
+    "emoji": "👉",
+    "custom_emoji_id": "0300000000000029",
+    "type": "custom_emoji",
+    "is_animated": false,
+    "is_video": false,
+    "set_name": "demo_solid_icons"
+   }
+  ]
+ }
+}

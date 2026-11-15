@@ -1,0 +1,78 @@
+{
+  "scenario": "r70-restyle-to-premium",
+  "status": "production (fixture ids)",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000001\">🏠</tg-emoji> Main menu</b>\nWallets: <b>3</b> · Alerts: <b>on</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Wallets",
+                "callback_data": "wallets",
+                "icon_custom_emoji_id": "0100000000000029"
+              },
+              {
+                "text": "Search",
+                "callback_data": "search",
+                "icon_custom_emoji_id": "0100000000000012"
+              }
+            ],
+            [
+              {
+                "text": "Notifications",
+                "callback_data": "notif",
+                "icon_custom_emoji_id": "0100000000000016"
+              },
+              {
+                "text": "Settings",
+                "callback_data": "settings",
+                "icon_custom_emoji_id": "0100000000000013"
+              }
+            ],
+            [
+              {
+                "text": "Help",
+                "callback_data": "help",
+                "icon_custom_emoji_id": "0100000000000038"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000013\">⚙️</tg-emoji> Settings</b>\nLanguage: <b>English</b>\n<code>user id 42 ✅</code>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Language",
+                "callback_data": "lang",
+                "icon_custom_emoji_id": "0100000000000015"
+              }
+            ],
+            [
+              {
+                "text": "Back",
+                "callback_data": "home",
+                "icon_custom_emoji_id": "0100000000000002"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

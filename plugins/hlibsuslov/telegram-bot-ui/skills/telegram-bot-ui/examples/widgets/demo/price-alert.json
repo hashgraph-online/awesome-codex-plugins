@@ -1,0 +1,67 @@
+{
+ "widget": "price-alert",
+ "title": "Price alert",
+ "summary": "Price alert editor: above/below chips, a div slider with pointer capture and 0.05 snapping, minus/plus buttons, once/every mode, distance from the current price.",
+ "caption": "TON/USD 5.47 \u00b7 alert above 5.90 active",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Above 5.90",
+     "callback_data": "pa:set:above:5.90:once"
+    },
+    {
+     "text": "Below 5.00",
+     "callback_data": "pa:set:below:5.00:once"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "a": "TON/USD",
+    "px": 547,
+    "st": "none",
+    "r": 0
+   }
+  },
+  "saved": {
+   "chatData": {
+    "a": "TON/USD",
+    "px": 547,
+    "st": "active",
+    "r": 0,
+    "dir": "above",
+    "th": 590,
+    "mode": "once"
+   }
+  },
+  "triggered": {
+   "chatData": {
+    "a": "TON/USD",
+    "px": 593,
+    "st": "triggered",
+    "r": 0,
+    "dir": "above",
+    "th": 590,
+    "mode": "once",
+    "at": 1794736200
+   }
+  }
+ },
+ "queries": [
+  "set:above:5.90:once",
+  "set:below:5.00:every",
+  "set:above:5.00:once",
+  "set:above:5.92:once",
+  "set:up:5.90:once",
+  "set:above:abc:once"
+ ],
+ "fresh": [
+  "at"
+ ]
+}

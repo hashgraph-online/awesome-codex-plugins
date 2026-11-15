@@ -1,0 +1,610 @@
+{
+  "scenario": "r29-community",
+  "status": "production",
+  "context": "supergroup",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 222222222,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Правила: Kyiv Foodies Club"
+            },
+            {
+              "type": "paragraph",
+              "text": "Прочитайте правила та прийміть їх, щоб приєднатися."
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Будьте добрими й пишіть по темі."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Без реклами та спаму."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Діліться лише тим, чим можна ділитися."
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "На відповідь у вас 5 хвилин."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Приймаю",
+                "callback_data": "cm:ok:cryl7kya",
+                "style": "success"
+              },
+              {
+                "text": "Відхилити",
+                "callback_data": "cm:no:cryl7kya"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "approveChatJoinRequest",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 222222222
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1001,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Готово. Заявку схвалено. Ласкаво просимо!"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Прийнято",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq1"
+      }
+    },
+    {
+      "method": "getChatMember",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 999000111
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Вітаємо, Богдан! Правила закріплено. Привітайтесь.",
+        "parse_mode": "HTML",
+        "ephemeral_message_parameters": {
+          "receiver_user_id": 222222222
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2",
+        "text": "Ви вже погодились: заявку схвалено."
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Rules of Kyiv Foodies Club"
+            },
+            {
+              "type": "paragraph",
+              "text": "Please read the rules and accept them to join."
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Be kind and stay on topic."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "No ads, no spam."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Share only what you may share."
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "You have 5 minutes to answer."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "I accept",
+                "callback_data": "cm:ok:cryl7kya",
+                "style": "success"
+              },
+              {
+                "text": "Decline",
+                "callback_data": "cm:no:cryl7kya"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "declineChatJoinRequest",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 111111111
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1003,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Time ran out, so the request was declined. Apply again when you're ready."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Expired",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3",
+        "text": "This request is no longer open. Apply again via the invite link.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 666666666,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Rules of Kyiv Foodies Club"
+            },
+            {
+              "type": "paragraph",
+              "text": "Please read the rules and accept them to join."
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Be kind and stay on topic."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "No ads, no spam."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Share only what you may share."
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "You have 5 minutes to answer."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "I accept",
+                "callback_data": "cm:ok:cryl7kya",
+                "style": "success"
+              },
+              {
+                "text": "Decline",
+                "callback_data": "cm:no:cryl7kya"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "declineChatJoinRequest",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 666666666
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 666666666,
+        "message_id": 1004,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Request declined. You can apply again any time."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Declined",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "getChatMember",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 333333333
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Оберіть роль для Богдан.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Ментор",
+                "callback_data": "cm:role:1:mentor"
+              },
+              {
+                "text": "Гід",
+                "callback_data": "cm:role:1:guide"
+              },
+              {
+                "text": "Перекладач",
+                "callback_data": "cm:role:1:translator"
+              }
+            ],
+            [
+              {
+                "text": "Зняти роль",
+                "callback_data": "cm:role:1:clear"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "getChatMember",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 222222222
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq5",
+        "text": "Призначати ролі можуть лише адміністратори.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "getChatMember",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 333333333
+      }
+    },
+    {
+      "method": "setChatMemberTag",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 222222222,
+        "tag": "Ментор"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1005,
+        "text": "Богдан тепер: Ментор.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Ментор",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq6"
+      }
+    },
+    {
+      "method": "getChatMember",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 333333333
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7",
+        "text": "Цю роль уже встановлено."
+      }
+    },
+    {
+      "method": "setChatMemberTag",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 222222222,
+        "tag": "Ментор"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Вітаємо, Bogdan! Раді бачити вас зі спільноти Foodies of Kyiv.",
+        "parse_mode": "HTML",
+        "ephemeral_message_parameters": {
+          "receiver_user_id": 222222222
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 444444444,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Rules of Kyiv Foodies Club"
+            },
+            {
+              "type": "paragraph",
+              "text": "Please read the rules and accept them to join."
+            },
+            {
+              "type": "list",
+              "items": [
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Be kind and stay on topic."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "No ads, no spam."
+                    }
+                  ],
+                  "has_checkbox": true
+                },
+                {
+                  "blocks": [
+                    {
+                      "type": "paragraph",
+                      "text": "Share only what you may share."
+                    }
+                  ],
+                  "has_checkbox": true
+                }
+              ]
+            },
+            {
+              "type": "paragraph",
+              "text": "You have 5 minutes to answer."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "I accept",
+                "callback_data": "cm:ok:cryl7kya",
+                "style": "success"
+              },
+              {
+                "text": "Decline",
+                "callback_data": "cm:no:cryl7kya"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "approveChatJoinRequest",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 444444444
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 444444444,
+        "message_id": 1007,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Done. Your request is approved. Welcome!"
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Accepted",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8"
+      }
+    },
+    {
+      "method": "getChatMember",
+      "params": {
+        "chat_id": -1001234567890,
+        "user_id": 333333333
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Мені потрібне право «Керувати тегами», щоб призначати ролі.",
+        "parse_mode": "HTML"
+      }
+    }
+  ]
+}

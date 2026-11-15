@@ -1,0 +1,123 @@
+{
+  "scenario": "r36-cross-post-variants",
+  "status": "production",
+  "context": "several channels",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "New bike lanes on 12 streets\n\nWork starts on 1 December and ends before spring.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 28
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "See the map",
+                "url": "https://example.com/bike?lang=en"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000002,
+        "text": "Новые велодорожки на 12 улицах\n\nРаботы начнутся 1 декабря и закончатся до весны.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 30
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Открыть карту",
+                "url": "https://example.com/bike?lang=ru"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000003,
+        "text": "Нові велодоріжки на 12 вулицях\n\nРоботи почнуться 1 грудня й завершаться до весни.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 30
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відкрити мапу",
+                "url": "https://example.com/bike?lang=uk"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000003,
+        "text": "Нові велодоріжки на 12 вулицях\n\nРоботи почнуться 1 грудня й завершаться до весни.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 30
+          }
+        ],
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відкрити мапу",
+                "url": "https://example.com/bike?lang=uk"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "copyMessage",
+      "params": {
+        "chat_id": -1001500000009,
+        "from_chat_id": -1001500000001,
+        "message_id": 7001,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Subscribe to City News",
+                "url": "https://t.me/demo_city_news"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

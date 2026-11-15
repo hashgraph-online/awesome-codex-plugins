@@ -1,5 +1,5 @@
 # /// script
-# requires-python = ">=3.11"
+# requires-python = ">=3.11,<3.15"
 # dependencies = []
 # ///
 """Thin PEP 723 wrapper that drives dex-core via the command contract.
@@ -36,6 +36,17 @@ it uv discovers whatever Python project the caller happens to be standing in, bu
 it, writes a `.venv/` and a `uv.lock` into their repo, and puts their dependencies on
 the engine's import path: dex would be leaving unreviewed artifacts in a repo it was
 asked only to read, and running against a closure it did not pin.
+
+The interpreter is uv's choice too, bounded to Python 3.11 to 3.14, the versions dex
+is tested on: by the `requires-python` above for this wrapper, and by
+SUPPORTED_PYTHON for the engine's own environment, which is a second uv invocation
+that would otherwise pick the newest Python installed. The ceiling is what lets a
+machine whose newest Python is 3.15 still run the skills: uv picks an installed 3.14
+or older, or downloads one, rather than building the warehouse clients from source
+on an interpreter they ship no wheels for (#1134). It sits here and not on the engine's
+own `requires-python`, because there it would make pip on 3.15 fall back to an older
+dex release rather than refuse. Raise it when the dependency stack ships wheels for
+the next Python; the `python-next` canary says when.
 
 `--warm` materializes that environment and exits without running a command, so the
 install can be paid once out of band instead of on the first caller's clock (see
@@ -470,15 +481,29 @@ def _extras(argv: list[str]) -> list[str]:
     ]
 
 
+# The Pythons dex supports: the `requires-python` at the top of this file, which a
+# test holds equal to this. That header governs only this stdlib wrapper; the
+# engine runs in the environment _uv_run asks uv for, which picks its own
+# interpreter, so without the range there uv would build the engine on the newest
+# Python installed, 3.15 included, and fail on dependencies that ship no wheels
+# for it (#1134).
+SUPPORTED_PYTHON = ">=3.11,<3.15"
+
+
 def _uv_run(engine_spec: list[str], tail: list[str]) -> list[str]:
     """The single uv invocation this wrapper makes.
 
     `--no-project` is a correctness flag before it is a fast one: see the module
     docstring for what uv does to the caller's repo without it. The latency follows
     from the same thing, because installing the caller's project is far more work
-    than resolving the engine."""
+    than resolving the engine.
 
-    return ["uv", "run", "--no-project", *engine_spec, *tail]
+    `--python` bounds the engine's interpreter to SUPPORTED_PYTHON, unless the
+    caller set `UV_PYTHON`: an explicit interpreter is theirs to choose, and the
+    flag would silently override it."""
+
+    python = [] if os.environ.get("UV_PYTHON") else ["--python", SUPPORTED_PYTHON]
+    return ["uv", "run", "--no-project", *python, *engine_spec, *tail]
 
 
 def _child_env() -> dict[str, str]:

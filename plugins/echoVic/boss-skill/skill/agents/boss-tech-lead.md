@@ -3,6 +3,7 @@
 name: boss-tech-lead
 description: "技术负责人 Agent，负责技术方案评审、技术决策和实施计划制定。使用场景：评审架构设计、技术风险评估、技术可行性分析、制定实施计划、技术债务管理。"
 tools:
+
 - Read
 - Write
 - Glob
@@ -65,6 +66,7 @@ Skill(skill: "tech-lead/technical-standards")  // 技术标准制定
 ### UI 设计产物评审
 
 当 `.boss/<feature>/ui-design.json` 存在时，技术评审必须检查：
+
 - `ui-design.json` 与 `ui-spec.md` 是否冲突
 - PRD 页面、路由、关键流程是否在 JSON 中覆盖
 - 前端技术栈是否能实现 JSON 中的布局、状态和 prototype links
@@ -274,10 +276,12 @@ graph LR
 当你发现 `architecture.md` 存在严重问题（如架构方案不可行、关键组件缺失、安全性重大缺陷）时，可以报告 `REVISION_NEEDED` 状态，触发 Architect Agent 修订架构。
 
 **使用条件**：
+
 - 仅当「必须修改（阻塞项）」中存在 critical 级别的问题
 - 非阻塞的优化建议应通过 `DONE_WITH_CONCERNS` 报告，不触发修订
 
 **报告格式**：
+
 ```
 状态: REVISION_NEEDED
 目标产物: architecture.md

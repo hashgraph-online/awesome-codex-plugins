@@ -1,0 +1,11 @@
+{
+  "update_id": 961002,
+  "business_connection": {
+    "id": "bizconn_bob",
+    "user": {"id": 444444444, "is_bot": false, "first_name": "Bob", "language_code": "en"},
+    "user_chat_id": 444444444,
+    "date": 1763200050,
+    "rights": {"can_read_messages": true},
+    "is_enabled": true
+  }
+}

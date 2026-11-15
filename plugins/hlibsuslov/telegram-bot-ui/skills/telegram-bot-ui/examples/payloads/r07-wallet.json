@@ -1,0 +1,70 @@
+{
+  "scenario": "r07-wallet",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<!-- Pay-with-wallet widget (private chat). chat_data = {\"o\":\"42\",\"amt\":\"1.25 TON\",\"st\":\"new|awaiting|paid|mismatch|expired\",\"r\":N}\n     Flow: tap -> request(\"pay:42\",{wallet:true}) -> bot answers a TON Connect transaction\n     -> wallet.sendTransaction(tx,\"paid:42\") -> bot verifies on chain and answers the state. -->\n<style>\nbody{margin:0;padding:0}.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}\n.a{font-size:1.4em;font-weight:700;margin:4px 0}.s{min-height:1.3em;color:var(--tg-theme-hint-color)}\n.e{color:var(--tg-theme-destructive-text-color)}button{width:100%;margin-top:8px}\n</style>\n<div class=\"c\"><div id=\"t\"></div><div class=\"a\" id=\"a\"></div><button id=\"b\"></button><div class=\"s\" id=\"s\"></div></div>\n<script>\nvar W=window.TelegramWidget,S=null,R=-1,busy=false,unsure=false;\nvar TXT={new:\"Pay with Wallet\",awaiting:\"Waiting for the network…\",paid:\"Paid ✓\",mismatch:\"Payment didn't match — contact support\",expired:\"Expired — ask the bot for a new invoice\",check:\"Checking the order…\"};\nvar ERR={REJECTED:\"Payment cancelled in the wallet.\",BAD_REQUEST:\"The wallet refused this payment.\",TIMEOUT:\"No answer yet. Don't pay again — checking the order…\",NOT_ALLOWED:\"Open the bot to pay.\",RATE_LIMITED:\"Too fast — try again.\",BUSY:\"One moment…\",FAILED:\"Couldn't reach the bot.\"};\nfunction $(i){return document.getElementById(i)}\nfunction adopt(s){if(s&&s.r>R){S=s;R=s.r;unsure=false;return true}return false}\nfunction load(){var s=null;try{s=JSON.parse(W?W.chatData:null)}catch(e){}adopt(s)}\nfunction say(t,e){$(\"s\").textContent=t||\"\";$(\"s\").className=\"s\"+(e?\" e\":\"\")}\nfunction draw(){if(!S)return;$(\"t\").textContent=\"Order #\"+S.o;$(\"a\").textContent=S.amt;\n var b=$(\"b\"),can=S.st===\"new\"&&W&&W.wallet&&!busy&&!unsure;\n b.textContent=unsure?TXT.check:(W&&!W.wallet&&S.st===\"new\"?\"Wallet unavailable here\":TXT[S.st]||S.st);b.disabled=!can;b.onclick=pay}\nfunction take(a){var r=null;try{r=JSON.parse(a.result)}catch(e){}if(r)adopt(r.s);return r}\nfunction sync(){W.request(\"sync\").then(function(a){var r=take(a);if(r&&r.s){unsure=false;say(\"\")}draw()},function(){setTimeout(sync,5000)})}\nfunction pay(){busy=true;say(\"Preparing…\");draw();\n W.request(\"pay:\"+S.o,{wallet:true}).then(function(a){var r=take(a);if(!r||!r.ok||!r.tx)throw{code:r&&r.s?\"STATE\":\"FAILED\"};\n  return W.wallet.sendTransaction(r.tx,\"paid:\"+S.o)})\n .then(function(a){busy=false;take(a);say(\"\");draw()},\n  function(e){busy=false;if(e.code===\"STATE\"){say(\"\");draw();return}\n   // After TIMEOUT the payment may have gone out: lock Pay until the bot reports the order state.\n   if(e.code===\"TIMEOUT\"){unsure=true;say(ERR.TIMEOUT);draw();if(W.chatType===\"private\")setTimeout(sync,5000);return}\n   say(ERR[e.code]||ERR.FAILED,true);draw()})}\nif(W){W.onEvent(\"chatDataChanged\",function(){load();draw()})}\nload();draw();if(W)W.ready();\n</script>\n",
+        "caption": "Order #42 · 1.25 TON",
+        "allow_queries": true,
+        "chat_data": "{\"o\":\"42\",\"amt\":\"1.25 TON\",\"st\":\"new\",\"r\":0}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340001",
+        "data": "{\"ok\":true,\"tx\":{\"valid_until\":1762900300,\"messages\":[{\"address\":\"UQAsampleMerchant00000000000000000000000000000005\",\"amount\":\"1250000000\"}]},\"card\":\"Wallet UQAs\\u20260003: 5.25 TON, 1 NFT sticker(s)\"}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"o\":\"42\",\"amt\":\"1.25 TON\",\"st\":\"awaiting\",\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340002",
+        "data": "{\"ok\":true,\"state\":\"awaiting\",\"s\":{\"o\":\"42\",\"amt\":\"1.25 TON\",\"st\":\"awaiting\",\"r\":1}}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"o\":\"42\",\"amt\":\"1.25 TON\",\"st\":\"paid\",\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340003",
+        "data": "{\"ok\":true,\"address\":\"UQAs\\u20260004\"}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340001",
+        "data": "{\"ok\":false,\"err\":\"already_paid\",\"s\":{\"o\":\"42\",\"amt\":\"1.25 TON\",\"st\":\"paid\",\"r\":2}}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340003",
+        "data": "{\"ok\":false,\"err\":\"no_challenge\"}"
+      }
+    }
+  ]
+}

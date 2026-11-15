@@ -8,6 +8,10 @@
 
 import dns from "node:dns/promises";
 import net from "node:net";
+import http from "node:http";
+import https from "node:https";
+import { Readable } from "node:stream";
+import { createGunzip, createInflate, createBrotliDecompress } from "node:zlib";
 
 export const AUDIT_USER_AGENT = "SuedeSkillsMCP/1.0 (+https://skills.suedeai.ai)";
 const MAX_PAGE_BYTES = 2 * 1024 * 1024;
@@ -58,24 +62,36 @@ function isPrivateAddress(address) {
       (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 198 && (b === 18 || b === 19)) || a >= 224
     );
   }
-  const lower = address.toLowerCase();
+  if (!net.isIPv6(address)) return true;
+  // URL parsing canonicalizes expanded forms and converts dotted IPv4 tails
+  // to hex. Judge mapped addresses as IPv4 rather than treating "7f00:1" as
+  // an unrelated IPv6 address and allowing a connection to loopback.
+  const lower = new URL(`http://[${address}]/`).hostname.slice(1, -1);
   if (lower === "::1" || lower === "::") return true;
-  if (lower.startsWith("::ffff:")) return isPrivateAddress(lower.slice(7));
-  return lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80") || lower.startsWith("ff");
+  const mapped = lower.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+  if (mapped) {
+    const high = parseInt(mapped[1], 16);
+    const low = parseInt(mapped[2], 16);
+    return isPrivateAddress(`${high >> 8}.${high & 255}.${low >> 8}.${low & 255}`);
+  }
+  const first = parseInt(lower.split(":")[0] || "0", 16);
+  return (first & 0xfe00) === 0xfc00 || (first & 0xffc0) === 0xfe80 ||
+    (first & 0xff00) === 0xff00;
+
 }
 
 async function assertPublicHost(hostname, allowPrivate) {
-  if (allowPrivate) return;
   const host = hostname.replace(/^\[|\]$/g, "");
-  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal")) {
+  if (!allowPrivate && (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local") || host.endsWith(".internal"))) {
     throw auditError(`Refusing to audit a local host: ${hostname}`);
   }
-  const addresses = net.isIP(host) ? [{ address: host }] : await dns.lookup(host, { all: true }).catch(() => {
+  const addresses = net.isIP(host) ? [{ address: host, family: net.isIP(host) }] : await dns.lookup(host, { all: true }).catch(() => {
     throw auditError(`Could not resolve ${hostname}`);
   });
-  if (addresses.some(({ address }) => isPrivateAddress(address))) {
+  if (!addresses.length || (!allowPrivate && addresses.some(({ address }) => isPrivateAddress(address)))) {
     throw auditError(`Refusing to audit ${hostname}: it resolves to a private or reserved address`);
   }
+  return addresses;
 }
 
 function auditError(message) {
@@ -105,45 +121,114 @@ async function readCapped(response, maxBytes) {
   return { text: Buffer.concat(chunks).toString("utf8"), truncated, bytes: Math.min(size, maxBytes) };
 }
 
-// Follow redirects by hand so every hop is checked against the private-host
-// guard, and so the redirect chain can be reported.
+// Bound DNS resolution as well as connection, headers and response body.
+function withAbort(promise, signal) {
+  signal.throwIfAborted();
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
+}
+
+// The original URL stays intact for HTTP Host, TLS SNI and certificate checks.
+// Only the socket lookup is replaced, and it can return only the addresses we
+// already validated. No global agent or pooled socket can re-resolve the host.
+function requestPinned(url, addresses, signal) {
+  return new Promise((resolve, reject) => {
+    const transport = url.protocol === "https:" ? https : http;
+    const request = transport.request(url, {
+      method: "GET",
+      agent: false,
+      signal,
+      headers: {
+        "user-agent": AUDIT_USER_AGENT,
+        accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5",
+        "accept-encoding": "identity"
+      },
+      lookup: (_hostname, options, callback) => {
+        const matching = addresses.filter((entry) => !options.family || entry.family === options.family);
+        if (!matching.length) return callback(auditError("No validated address for the requested family"));
+        if (options.all) return callback(null, matching);
+        callback(null, matching[0].address, matching[0].family);
+      }
+    }, (incoming) => {
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(incoming.headers)) {
+        if (Array.isArray(value)) value.forEach((item) => headers.append(name, item));
+        else if (value !== undefined) headers.set(name, value);
+      }
+      const status = incoming.statusCode || 500;
+      if (status < 200 || status > 599) {
+        incoming.destroy();
+        reject(auditError("Unsupported audit HTTP response status"));
+        return;
+      }
+      if ([204, 205, 304].includes(status)) {
+        incoming.resume();
+        resolve(new Response(null, { status, headers }));
+        return;
+      }
+      let body = incoming;
+      const encoding = headers.get("content-encoding")?.trim().toLowerCase();
+      if (encoding && encoding !== "identity") {
+        const decompress = { gzip: createGunzip, deflate: createInflate, br: createBrotliDecompress }[encoding];
+        if (!decompress) {
+          incoming.destroy();
+          reject(auditError("Unsupported audit response encoding"));
+          return;
+        }
+        body = decompress();
+        incoming.on("error", (error) => body.destroy(error));
+        body.on("close", () => incoming.destroy());
+        incoming.pipe(body);
+      }
+      // readCapped limits decoded bytes too, including compressed responses.
+      resolve(new Response(Readable.toWeb(body), { status, headers }));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
+// Every redirect gets fresh validation and a fresh pinned connection. One
+// deadline covers all hops, DNS answers and body reads, without a minimum-time
+// extension that an attacker could reset with repeated redirects.
 export async function fetchChecked(startUrl, { allowPrivate = false, timeoutMs = DEFAULT_TIMEOUT_MS, maxBytes = MAX_PAGE_BYTES } = {}) {
   const chain = [];
   let current = new URL(startUrl);
   const started = Date.now();
-  for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
-    if (!["http:", "https:"].includes(current.protocol)) throw auditError(`Unsupported URL scheme: ${current.protocol}`);
-    await assertPublicHost(current.hostname, allowPrivate);
-    const remaining = Math.max(1000, timeoutMs - (Date.now() - started));
-    let response;
-    try {
-      response = await fetch(current, {
-        redirect: "manual",
-        headers: { "user-agent": AUDIT_USER_AGENT, accept: "text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.5" },
-        signal: AbortSignal.timeout(remaining)
-      });
-    } catch (error) {
-      const reason = error?.name === "TimeoutError" ? `timed out after ${timeoutMs} ms` : error?.cause?.code || error?.message || "network error";
-      throw auditError(`Could not fetch ${current.href}: ${reason}`);
+  const signal = AbortSignal.timeout(timeoutMs);
+  try {
+    for (let hop = 0; hop <= MAX_REDIRECTS; hop += 1) {
+      signal.throwIfAborted();
+      if (!["http:", "https:"].includes(current.protocol)) throw auditError(`Unsupported URL scheme: ${current.protocol}`);
+      if (current.username || current.password) throw auditError("URL credentials are not allowed");
+      const addresses = await withAbort(assertPublicHost(current.hostname, allowPrivate), signal);
+      const response = await requestPinned(current, addresses, signal);
+      if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
+        chain.push({ url: current.href, status: response.status });
+        await response.body?.cancel().catch(() => {});
+        current = new URL(response.headers.get("location"), current);
+        continue;
+      }
+      const body = await readCapped(response, maxBytes);
+      return {
+        url: current.href,
+        status: response.status,
+        headers: response.headers,
+        contentType: response.headers.get("content-type") || "",
+        ...body,
+        redirects: chain,
+        elapsedMs: Date.now() - started
+      };
     }
-    if (response.status >= 300 && response.status < 400 && response.headers.get("location")) {
-      chain.push({ url: current.href, status: response.status });
-      await response.body?.cancel().catch(() => {});
-      current = new URL(response.headers.get("location"), current);
-      continue;
-    }
-    const body = await readCapped(response, maxBytes);
-    return {
-      url: current.href,
-      status: response.status,
-      headers: response.headers,
-      contentType: response.headers.get("content-type") || "",
-      ...body,
-      redirects: chain,
-      elapsedMs: Date.now() - started
-    };
+    throw auditError(`Too many redirects (more than ${MAX_REDIRECTS}) starting at ${startUrl}`);
+  } catch (error) {
+    if (error?.auditFailure) throw error;
+    const reason = signal.aborted ? `timed out after ${timeoutMs} ms` : error?.cause?.code || error?.message || "network error";
+    throw auditError(`Could not fetch ${current.href}: ${reason}`);
   }
-  throw auditError(`Too many redirects (more than ${MAX_REDIRECTS}) starting at ${startUrl}`);
 }
 
 // ---------------------------------------------------------------------------

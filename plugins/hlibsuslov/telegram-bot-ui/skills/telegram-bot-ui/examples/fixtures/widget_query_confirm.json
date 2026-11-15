@@ -1,0 +1,23 @@
+{
+  "update_id": 100000002,
+  "widget_query": {
+    "id": "8123456789012345679",
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "message_id": 4242,
+    "chat_instance": "901234567890123456",
+    "type": {
+      "type": "data"
+    },
+    "data": "confirm"
+  }
+}

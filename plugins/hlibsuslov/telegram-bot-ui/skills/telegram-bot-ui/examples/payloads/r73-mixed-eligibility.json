@@ -1,0 +1,156 @@
+{
+  "scenario": "r73-mixed-eligibility",
+  "status": "production (fixture ids)",
+  "context": "private, group, supergroup, channel, business, inline",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000025\">📦</tg-emoji> Order #1042</b>\n<tg-emoji emoji-id=\"0100000000000025\">📦</tg-emoji> Out for delivery · arrives today",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Received",
+                "callback_data": "rcv:1042",
+                "icon_custom_emoji_id": "0100000000000018"
+              },
+              {
+                "text": "Help",
+                "callback_data": "help",
+                "icon_custom_emoji_id": "0100000000000038"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -100200300,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000025\">📦</tg-emoji> Order #1042</b>\n<tg-emoji emoji-id=\"0100000000000025\">📦</tg-emoji> Out for delivery · arrives today",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Received",
+                "callback_data": "rcv:1042",
+                "icon_custom_emoji_id": "0100000000000018"
+              },
+              {
+                "text": "Help",
+                "callback_data": "help",
+                "icon_custom_emoji_id": "0100000000000038"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000025\">📦</tg-emoji> Order #1042</b>\n<tg-emoji emoji-id=\"0100000000000025\">📦</tg-emoji> Out for delivery · arrives today",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Received",
+                "callback_data": "rcv:1042",
+                "icon_custom_emoji_id": "0100000000000018"
+              },
+              {
+                "text": "Help",
+                "callback_data": "help",
+                "icon_custom_emoji_id": "0100000000000038"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": "@example_shop_news",
+        "parse_mode": "HTML",
+        "text": "<b>📦 Order #1042</b>\n🚚 Out for delivery · arrives today",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Received",
+                "callback_data": "rcv:1042"
+              },
+              {
+                "text": "❓ Help",
+                "callback_data": "help"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "parse_mode": "HTML",
+        "text": "<b>📦 Order #1042</b>\n🚚 Out for delivery · arrives today",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✅ Received",
+                "callback_data": "rcv:1042"
+              },
+              {
+                "text": "❓ Help",
+                "callback_data": "help"
+              }
+            ]
+          ]
+        },
+        "business_connection_id": "bc-example"
+      }
+    },
+    {
+      "method": "answerInlineQuery",
+      "params": {
+        "inline_query_id": "q1",
+        "results": [
+          {
+            "type": "article",
+            "id": "1",
+            "title": "Order #1042",
+            "input_message_content": {
+              "message_text": "📦 Order #1042"
+            },
+            "reply_markup": {
+              "inline_keyboard": [
+                [
+                  {
+                    "text": "✅ Received",
+                    "callback_data": "rcv:1042"
+                  },
+                  {
+                    "text": "❓ Help",
+                    "callback_data": "help"
+                  }
+                ]
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要验证模块间协作时
@@ -446,6 +447,7 @@ beforeEach(async () => {
 ## 7. 检查清单
 
 后端集成测试：
+
 - [ ] 使用真实数据库（Testcontainers 或测试 DB）
 - [ ] 不 mock Repository/数据访问层
 - [ ] 每个测试独立（数据隔离）
@@ -454,6 +456,7 @@ beforeEach(async () => {
 - [ ] 验证跨模块调用链完整
 
 前端集成测试：
+
 - [ ] 使用 MSW mock API，不 mock 内部组件
 - [ ] 验证组件 + 状态管理 + API 调用链
 - [ ] 覆盖成功和失败场景

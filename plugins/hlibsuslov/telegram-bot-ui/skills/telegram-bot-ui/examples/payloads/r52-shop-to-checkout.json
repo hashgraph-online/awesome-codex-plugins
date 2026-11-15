@@ -1,0 +1,169 @@
+{
+  "scenario": "r52-shop-to-checkout",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (checked 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<style>:root{--k-tx:var(--tg-theme-text-color,#000);--k-hint:var(--tg-theme-hint-color,#707579);--k-btn:var(--tg-theme-button-color,#2481cc);--k-btx:var(--tg-theme-button-text-color,#fff);--k-sec:var(--tg-theme-secondary-bg-color,#f1f1f4);--k-bad:var(--tg-theme-destructive-text-color,#e53935);--k-sep:var(--tg-theme-section-separator-color,#e0e0e0);--k-bg:var(--tg-theme-bg-color,#fff);--k-ok:light-dark(#2e8b3e,#5ec46e);--k-warn:light-dark(#a86400,#f0a73a);--k-r:10px;color-scheme:light dark}body{margin:0;padding:0}.k{padding:10px 12px max(10px,env(safe-area-inset-bottom),var(--tg-content-safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}.hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.tt{font-weight:600;font-size:1.07em;margin:0}.mt{color:var(--k-hint);font-size:.87em}.el{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sf{background:var(--k-sec);border-radius:var(--k-r);padding:8px 10px}.ch{background:var(--k-sec);color:var(--k-tx);border:0;border-radius:999px;padding:6px 12px;min-height:34px;font:inherit;font-size:.93em}.ch.on{background:var(--k-btn);color:var(--k-btx)}.st{min-height:1.35em;margin-top:6px;color:var(--k-hint);font-size:.87em}.st.e{color:var(--k-bad)}.st.ok{color:var(--k-ok)}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.im{height:92px;display:flex;justify-content:center;align-items:center}.im svg{height:100%;width:100%;max-width:200px}.i1{fill:currentColor}.i2{fill:var(--k-tx)}.i3{fill:var(--k-bg)}.i4{fill:var(--k-sep)}.fw{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.tk{color:var(--k-hint);text-decoration:line-through}.qt{display:flex;align-items:center;margin-top:8px;gap:8px}.qt .ch{min-width:34px;padding:6px 0;text-align:center}.qt b{min-width:1.4em;text-align:center;font-weight:600}.qt button:last-child{flex:1;min-height:36px}.lo{color:var(--k-warn)}.no{color:var(--k-bad)}.in{color:var(--k-ok)}</style> <div class=\"k\"><div class=\"sf im\" id=\"im\"></div><div class=\"hd\" style=\"margin-top:8px\"><span class=\"tt el\" id=\"ti\"></span><span class=\"tt\" id=\"pr\"></span></div><div class=\"mt\" id=\"rt\"></div><div class=\"fw\" id=\"cc\"></div><div class=\"fw\" id=\"zz\"></div><div class=\"mt\" id=\"sk\" style=\"margin-top:6px\"></div><div class=\"qt\" id=\"qt\"></div><div class=\"st\" id=\"st\"></div></div> <script>var W=window.TelegramWidget||null;var K={lang:String(navigator.language||\"en\").slice(0,2),S:{},R:{},I:{},busy:0,t:function(k){var d=K.I[K.lang]||K.I[Object.keys(K.I)[0]]||{};return k in d?d[k]:k;},add:function(o){for(var l in o)K.I[l]=Object.assign(K.I[l]||{},o[l]);},$:function(i){return document.getElementById(i);},h:function(tag,cls,txt){var e=document.createElement(tag);e.className=cls||\"\";if(txt!=null)e.textContent=txt;return e;},take:function(f,s){if(!s||typeof s!=\"object\"||(f in K.R&&+s.r<K.R[f]))return 0;K.R[f]=+s.r||0;K.S[f]=s;return 1;},load:function(f){try{K.take(f,JSON.parse(W[f]));}catch(e){}},can:function(){return!!(W&&W.viewer&&!W.isPreview);},st:function(txt,kind){var n=K.$(\"st\");if(n){n.textContent=txt||\"\";n.className=\"st \" +(kind||\"\");}},ask:function(data,o){o=o||{};if(!K.can()||K.busy)return 0;K.busy=1;K.st(K.t(\"wait\"));K.draw();W.request(data).then(function(a){var r={};try{r=JSON.parse(a.result)||{};}catch(e){}\nK.busy=0;K.take(o.f||\"chatData\",r.s);var ok=r.ok&&!r.err;K.st(r.msg||(ok?o.done:K.t(r.err||\"INVALID_ANSWER\")),ok?\"ok\":\"e\");try{W.HapticFeedback.notificationOccurred(ok?\"success\":\"error\");}catch(e){}\nif(o.then)o.then(r);K.draw();},function(e){K.busy=0;K.st(K.t(e.code||\"FAILED\"),\"e\");if(o.fail)o.fail(e);K.draw();});return 1;},sync:function(data,f){if(W&&W.chatType==\"private\"&&K.can()&&!W.isForward&&!K.busy)\nW.request(data).then(function(a){try{if(K.take(f||\"chatData\",JSON.parse(a.result).s))K.draw();}catch(e){}},function(){});},nf:function(n,o){try{return new Intl.NumberFormat(K.lang,o).format(n);}catch(e){return \"\" + n;}},money:function(minor,cur){return K.nf(minor / 100,{style:\"currency\",currency:cur});},time:function(sec,o){try{return new Intl.DateTimeFormat(K.lang,o||{hour:\"2-digit\",minute:\"2-digit\"}).format(sec*1000);}catch(e){return \"\";}},start:function(draw,o){o=o||{};K.draw=draw;var d=document.documentElement;if(!d.dir)d.dir=/^(ar|he|fa|ur)/.test(K.lang)?\"rtl\":\"ltr\";if(W){K.load(\"chatData\");K.load(\"publicData\");W.onEvent(\"chatDataChanged\",function(){K.load(\"chatData\");draw();});W.onEvent(\"publicDataChanged\",function(){K.load(\"publicData\");draw();});W.onEvent(\"themeChanged\",draw);if(o.watch)W.watchPublicData();if(o.sync)W.onEvent(\"activated\",function(){K.sync(o.sync,o.f);});}\ndraw();if(o.sync)K.sync(o.sync,o.f);if(W)W.ready();}};</script> <script>K.add({en:{wait:\"Sending…\",NOT_ALLOWED:\"Open the bot for this\",BUSY:\"One moment…\",RATE_LIMITED:\"Too fast, wait a bit\",TIMEOUT:\"No answer. Nothing changed\",FAILED:\"Couldn't reach the bot\",INVALID_ANSWER:\"Unexpected answer\",stale:\"Changed meanwhile, check again\",not_allowed:\"Only the owner can do this\",failed:\"Not saved, try again\",busy:\"Busy, try again\",bad_request:\"Not available\"}});</script> <script>K.add({en:{rv:\"reviews\",add:\"Add to cart\",sold:\"Sold out\",left:\"Only # left\",ins:\"In stock\",ct:\"In cart\",done:\"Added to cart\",none:\"No product yet. The bot will fill this in.\"}});var ci=-1,zi=0,q=1,TINT=[\"var(--k-ok)\",\"var(--k-warn)\",\"var(--k-tx)\"];function draw(){var s=K.S.chatData,$=K.$,dis=K.busy||!K.can(),i;[\"cc\",\"zz\",\"qt\",\"im\"].forEach(function(x){$(x).innerHTML=\"\";});if(!s){$(\"ti\").textContent=K.t(\"none\");$(\"pr\").textContent=$(\"rt\").textContent=$(\"sk\").textContent=\"\";return;}\nvar nz=s.z.length,at=function(c,z){return s.k[c*nz + z];};var any=function(c){return s.z.some(function(_,z){return at(c,z)>0;});};if(ci<0||ci>=s.c.length){ci=Math.max(0,s.c.findIndex(function(_,c){return any(c);}));zi=0;}\nif(at(ci,zi)<1)zi=Math.max(0,s.z.findIndex(function(_,z){return at(ci,z)>0;}));var st=at(ci,zi);q=Math.max(1,Math.min(q,st,9));$(\"im\").style.color=TINT[ci%3];$(\"im\").innerHTML='<svg viewBox=\"0 0 120 100\" aria-hidden=\"true\"><ellipse class=\"i4\" cx=\"60\" cy=\"92\" rx=\"24\" ry=\"4\"/><rect class=\"i1\" x=\"44\" y=\"22\" width=\"32\" height=\"70\" rx=\"10\"/><rect class=\"i3\" x=\"44\" y=\"50\" width=\"32\" height=\"7\"/><rect class=\"i2\" x=\"50\" y=\"8\" width=\"20\" height=\"14\" rx=\"4\"/><rect class=\"i3\" x=\"51\" y=\"30\" width=\"4\" height=\"14\" rx=\"2\"/></svg>';$(\"ti\").textContent=s.n;$(\"pr\").textContent=K.money(s.pr,s.cur);$(\"rt\").textContent=\"★ \" + K.nf(s.rt / 10,{minimumFractionDigits:1})+ \" · \" + K.nf(s.rv)+ \" \" + K.t(\"rv\");s.c.forEach(function(n,c){var b=K.h(\"button\",\"ch\" +(c==ci?\" on\":any(c)?\"\":\" tk\"),n);b.disabled=dis||!any(c);b.onclick=function(){ci=c;draw();};$(\"cc\").appendChild(b);});s.z.forEach(function(n,z){var b=K.h(\"button\",\"ch\" +(z==zi?\" on\":at(ci,z)>0?\"\":\" tk\"),n);b.disabled=dis||at(ci,z)<1;b.onclick=function(){zi=z;draw();};$(\"zz\").appendChild(b);});var sk=$(\"sk\");sk.className=\"mt \" +(st<1?\"no\":st<6?\"lo\":\"in\");sk.textContent=st<1?K.t(\"sold\"):st<6?K.t(\"left\").replace(\"#\",st):K.t(\"ins\");if(s.ct)sk.textContent=K.t(\"ct\")+ \": \" + s.ct + \" · \" + sk.textContent;[[\"−\",-1],[\"+\",1]].forEach(function(a,j){if(j)$(\"qt\").appendChild(K.h(\"b\",\"\",q));var b=K.h(\"button\",\"ch\",a[0]);b.disabled=dis||st<1||q + a[1]<1||q + a[1]>Math.min(st,9);b.onclick=function(){q +=a[1];draw();};$(\"qt\").appendChild(b);});var ad=K.h(\"button\",\"\",st<1?K.t(\"sold\"):K.t(\"add\"));ad.disabled=dis||st<1;ad.onclick=function(){K.ask(\"add:\" +(ci*nz + zi)+ \":\" + q,{done:K.t(\"done\")});};$(\"qt\").appendChild(ad);}\nK.start(draw);</script>\n",
+        "caption": "Steel bottle · EUR 24.90 · 4.6 stars · in stock",
+        "chat_data": "{\"n\":\"Steel bottle\",\"rt\":46,\"rv\":128,\"pr\":2490,\"cur\":\"EUR\",\"c\":[\"Moss\",\"Sand\",\"Ink\"],\"z\":[\"500 ml\",\"750 ml\",\"1 L\"],\"k\":[8,3,0,5,0,2,12,9,4],\"ct\":0,\"r\":0}",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Add to cart",
+                "callback_data": "shop:add:bottle"
+              },
+              {
+                "text": "Choose options",
+                "callback_data": "shop:opts:bottle"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"n\":\"Steel bottle\",\"rt\":46,\"rv\":128,\"pr\":2490,\"cur\":\"EUR\",\"c\":[\"Moss\",\"Sand\",\"Ink\"],\"z\":[\"500 ml\",\"750 ml\",\"1 L\"],\"k\":[8,1,0,5,0,2,12,9,4],\"ct\":2,\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012352001",
+        "data": "{\"ok\":true,\"msg\":\"Added to cart\",\"s\":{\"n\":\"Steel bottle\",\"rt\":46,\"rv\":128,\"pr\":2490,\"cur\":\"EUR\",\"c\":[\"Moss\",\"Sand\",\"Ink\"],\"z\":[\"500 ml\",\"750 ml\",\"1 L\"],\"k\":[8,1,0,5,0,2,12,9,4],\"ct\":2,\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012352002",
+        "data": "{\"ok\":true,\"err\":\"stock\",\"msg\":\"Only 1 left\",\"s\":{\"n\":\"Steel bottle\",\"rt\":46,\"rv\":128,\"pr\":2490,\"cur\":\"EUR\",\"c\":[\"Moss\",\"Sand\",\"Ink\"],\"z\":[\"500 ml\",\"750 ml\",\"1 L\"],\"k\":[8,1,0,5,0,2,12,9,4],\"ct\":2,\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<style>:root{--k-tx:var(--tg-theme-text-color,#000);--k-hint:var(--tg-theme-hint-color,#707579);--k-btn:var(--tg-theme-button-color,#2481cc);--k-btx:var(--tg-theme-button-text-color,#fff);--k-sec:var(--tg-theme-secondary-bg-color,#f1f1f4);--k-bad:var(--tg-theme-destructive-text-color,#e53935);--k-sep:var(--tg-theme-section-separator-color,#e0e0e0);--k-ok:light-dark(#2e8b3e,#5ec46e);--k-warn:light-dark(#a86400,#f0a73a);color-scheme:light dark}body{margin:0;padding:0}.k{padding:10px 12px max(10px,env(safe-area-inset-bottom),var(--tg-content-safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}.hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.tt{font-weight:600;font-size:1.07em;margin:0}.mt{color:var(--k-hint);font-size:.87em}.rw{display:flex;align-items:center;gap:8px}.gr{flex:1;min-width:0}.el{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ls>* + *{border-top:1px solid var(--k-sep)}.ch{background:var(--k-sec);color:var(--k-tx);border:0;border-radius:999px;padding:6px 12px;min-height:34px;font:inherit;font-size:.93em}.ch.on{background:var(--k-btn);color:var(--k-btx)}.st{min-height:1.35em;margin-top:6px;color:var(--k-hint);font-size:.87em}.st.e{color:var(--k-bad)}.st.ok{color:var(--k-ok)}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.pl{font-size:.8em;padding:2px 8px;border-radius:999px;background:var(--k-sec);white-space:nowrap;color:var(--k-warn)}.ln{padding:4px 0;min-height:34px}.ln .rw{justify-content:space-between}.qs{display:flex;align-items:center;gap:2px}.qs .ch{min-width:34px;padding:4px 0;text-align:center}.qs b{min-width:1.4em;text-align:center;font-weight:600}.pm{margin-top:6px;color:var(--k-ok);font-size:.87em}.tt2{display:flex;justify-content:space-between;margin-top:2px}.tt2.tot{font-weight:600;font-size:1.07em;border-top:1px solid var(--k-sep);padding-top:4px;margin-top:4px}.tl{margin-top:8px}.dv{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.cb{margin-top:8px;width:100%;min-height:36px}.em{padding:12px 0}</style> <div class=\"k\"><div class=\"hd\"><span class=\"tt el\" id=\"ti\"></span><span class=\"pl\" id=\"pl\"></span></div><div class=\"ls\" id=\"ls\"></div><div class=\"mt\" id=\"mo\"></div><div class=\"pm\" id=\"pm\"></div><div class=\"tl\" id=\"tl\"></div><div class=\"dv\" id=\"dv\"></div><button class=\"cb\" id=\"co\"></button><div class=\"st\" id=\"st\"></div></div> <script>var W=window.TelegramWidget||null;var K={lang:String(navigator.language||\"en\").slice(0,2),S:{},R:{},I:{},busy:0,t:function(k){var d=K.I[K.lang]||K.I[Object.keys(K.I)[0]]||{};return k in d?d[k]:k;},add:function(o){for(var l in o)K.I[l]=Object.assign(K.I[l]||{},o[l]);},$:function(i){return document.getElementById(i);},h:function(tag,cls,txt){var e=document.createElement(tag);e.className=cls||\"\";if(txt!=null)e.textContent=txt;return e;},take:function(f,s){if(!s||typeof s!=\"object\"||(f in K.R&&+s.r<K.R[f]))return 0;K.R[f]=+s.r||0;K.S[f]=s;return 1;},load:function(f){try{K.take(f,JSON.parse(W[f]));}catch(e){}},can:function(){return!!(W&&W.viewer&&!W.isPreview);},st:function(txt,kind){var n=K.$(\"st\");if(n){n.textContent=txt||\"\";n.className=\"st \" +(kind||\"\");}},ask:function(data,o){o=o||{};if(!K.can()||K.busy)return 0;K.busy=1;K.st(K.t(\"wait\"));K.draw();W.request(data).then(function(a){var r={};try{r=JSON.parse(a.result)||{};}catch(e){}\nK.busy=0;K.take(o.f||\"chatData\",r.s);var ok=r.ok&&!r.err;K.st(r.msg||(ok?o.done:K.t(r.err||\"INVALID_ANSWER\")),ok?\"ok\":\"e\");try{W.HapticFeedback.notificationOccurred(ok?\"success\":\"error\");}catch(e){}\nif(o.then)o.then(r);K.draw();},function(e){K.busy=0;K.st(K.t(e.code||\"FAILED\"),\"e\");if(o.fail)o.fail(e);K.draw();});return 1;},sync:function(data,f){if(W&&W.chatType==\"private\"&&K.can()&&!W.isForward&&!K.busy)\nW.request(data).then(function(a){try{if(K.take(f||\"chatData\",JSON.parse(a.result).s))K.draw();}catch(e){}},function(){});},nf:function(n,o){try{return new Intl.NumberFormat(K.lang,o).format(n);}catch(e){return \"\" + n;}},money:function(minor,cur){return K.nf(minor / 100,{style:\"currency\",currency:cur});},time:function(sec,o){try{return new Intl.DateTimeFormat(K.lang,o||{hour:\"2-digit\",minute:\"2-digit\"}).format(sec*1000);}catch(e){return \"\";}},start:function(draw,o){o=o||{};K.draw=draw;var d=document.documentElement;if(!d.dir)d.dir=/^(ar|he|fa|ur)/.test(K.lang)?\"rtl\":\"ltr\";if(W){K.load(\"chatData\");K.load(\"publicData\");W.onEvent(\"chatDataChanged\",function(){K.load(\"chatData\");draw();});W.onEvent(\"publicDataChanged\",function(){K.load(\"publicData\");draw();});W.onEvent(\"themeChanged\",draw);if(o.watch)W.watchPublicData();if(o.sync)W.onEvent(\"activated\",function(){K.sync(o.sync,o.f);});}\ndraw();if(o.sync)K.sync(o.sync,o.f);if(W)W.ready();}};</script> <script>K.add({en:{wait:\"Sending…\",NOT_ALLOWED:\"Open the bot for this\",BUSY:\"One moment…\",RATE_LIMITED:\"Too fast, wait a bit\",TIMEOUT:\"No answer. Nothing changed\",FAILED:\"Couldn't reach the bot\",INVALID_ANSWER:\"Unexpected answer\",stale:\"Changed meanwhile, check again\",not_allowed:\"Only the owner can do this\",failed:\"Not saved, try again\",busy:\"Busy, try again\",bad_request:\"Not available\"}});</script> <script>K.add({en:{cart:\"Cart\",sub:\"Subtotal\",dis:\"Discount\",del:\"Delivery\",tot:\"Total\",free:\"Free\",more:\"more\",co:\"Checkout\",wait2:\"Awaiting payment\",promo:\"Promo\",empty:\"Your cart is empty.\",none:\"No cart yet. The bot will fill this in.\"}});function draw(){var s=K.S.chatData,$=K.$,dis=K.busy||!K.can();[\"ls\",\"tl\",\"dv\"].forEach(function(x){$(x).innerHTML=\"\";});$(\"pl\").textContent=$(\"mo\").textContent=$(\"pm\").textContent=\"\";$(\"co\").hidden=1;if(!s){$(\"ti\").textContent=K.t(\"none\");return;}\n$(\"ti\").textContent=K.t(\"cart\");var it=s.it||[],m=function(v){return K.money(v,s.cur);},ph=s.ph==1;if(!it.length){$(\"ls\").appendChild(K.h(\"div\",\"mt em\",K.t(\"empty\")));return;}\nvar sub=0;it.forEach(function(x){sub +=x[2]*x[3];});it.slice(0,4).forEach(function(x,i){var l=K.h(\"div\",\"ln\"),a=K.h(\"div\",\"rw\"),b=K.h(\"div\",\"rw\");a.appendChild(K.h(\"span\",\"gr el\",x[0]));a.appendChild(K.h(\"span\",\"\",m(x[2]*x[3])));b.appendChild(K.h(\"span\",\"mt gr el\",x[1]));var qs=K.h(\"div\",\"qs\");[-1,1].forEach(function(d,j){if(j)qs.appendChild(K.h(\"b\",\"\",x[2]));var c=K.h(\"button\",\"ch\",d<0?\"−\":\"+\");c.disabled=dis||ph||x[2]+ d>9;c.onclick=function(){K.ask(\"q:\" + i + \":\" +(d<0?\"-1\":\"+1\")+ \"@\" + K.R.chatData);};qs.appendChild(c);});b.appendChild(qs);l.appendChild(a);l.appendChild(b);$(\"ls\").appendChild(l);});if(it.length>4)$(\"mo\").textContent=\"+\" +(it.length - 4)+ \" \" + K.t(\"more\");var pc=s.pc,off=pc?Math.floor(sub*pc[1]/ 100):0,dl=(s.dm||[])[s.dl]||[\"\",0];if(pc)$(\"pm\").textContent=K.t(\"promo\")+ \" \" + pc[0]+ \" −\" + pc[1]+ \"%\";[[K.t(\"sub\"),m(sub)],off?[K.t(\"dis\"),\"−\" + m(off)]:0,[K.t(\"del\"),dl[1]?m(dl[1]):K.t(\"free\")],[K.t(\"tot\"),m(sub - off + dl[1])]].forEach(function(r,i,a){if(!r)return;var d=K.h(\"div\",\"tt2\" +(i==a.length - 1?\" tot\":\"\"));d.appendChild(K.h(\"span\",\"\",r[0]));d.appendChild(K.h(\"span\",\"\",r[1]));$(\"tl\").appendChild(d);});(s.dm||[]).forEach(function(o,i){var c=K.h(\"button\",\"ch\" +(i==s.dl?\" on\":\"\"),o[0]+(o[1]?\" · \" + m(o[1]):\"\"));c.disabled=dis||ph;c.onclick=function(){if(i!=s.dl)K.ask(\"dl:\" + i);};$(\"dv\").appendChild(c);});$(\"co\").hidden=0;$(\"co\").textContent=ph?K.t(\"wait2\"):K.t(\"co\")+ \" · \" + m(sub - off + dl[1]);$(\"co\").disabled=dis||ph;$(\"co\").onclick=function(){K.ask(\"checkout\");};if(ph)$(\"pl\").textContent=K.t(\"wait2\");}\nK.start(draw);</script>\n",
+        "caption": "Cart · 4 items · EUR 46.74 with delivery",
+        "chat_data": "{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",2,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":0,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":0,\"r\":0}",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Checkout",
+                "callback_data": "cart:checkout"
+              }
+            ],
+            [
+              {
+                "text": "Edit cart",
+                "callback_data": "cart:edit"
+              },
+              {
+                "text": "Delivery",
+                "callback_data": "cart:delivery"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "chat_data": "{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":0,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":0,\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012352003",
+        "data": "{\"ok\":true,\"s\":{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":0,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":0,\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012352004",
+        "data": "{\"ok\":true,\"err\":\"stale\",\"s\":{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":0,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":0,\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "chat_data": "{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":2,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":0,\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012352005",
+        "data": "{\"ok\":true,\"s\":{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":2,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":0,\"r\":2},\"r\":2}"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "chat_data": "{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":2,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":1,\"r\":3}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012352006",
+        "data": "{\"ok\":true,\"msg\":\"Pay 54.25 EUR to place the order\",\"s\":{\"it\":[[\"Ethiopia Guji beans\",\"250 g\",1,1490],[\"Paper filters\",\"V60, 100 pcs\",3,390],[\"Ceramic dripper\",\"White\",1,2490]],\"cur\":\"EUR\",\"pc\":[\"SPRING10\",10],\"dl\":2,\"dm\":[[\"Courier\",390],[\"Pickup\",0],[\"Express\",790]],\"ph\":1,\"r\":3},\"r\":3}"
+      }
+    },
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<style>:root{--k-tx:var(--tg-theme-text-color,#000);--k-hint:var(--tg-theme-hint-color,#707579);--k-sec:var(--tg-theme-secondary-bg-color,#f1f1f4);--k-bad:var(--tg-theme-destructive-text-color,#e53935);--k-sep:var(--tg-theme-section-separator-color,#e0e0e0);--k-ok:light-dark(#2e8b3e,#5ec46e);--k-warn:light-dark(#a86400,#f0a73a);--k-r:10px;color-scheme:light dark}body{margin:0;padding:0}.k{padding:10px 12px max(10px,env(safe-area-inset-bottom),var(--tg-content-safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}.hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.tt{font-weight:600;font-size:1.07em;margin:0}.mt{color:var(--k-hint);font-size:.87em}.rw{display:flex;align-items:center;gap:8px}.gr{flex:1;min-width:0}.el{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ch{background:var(--k-sec);color:var(--k-tx);border:0;border-radius:999px;padding:6px 12px;min-height:34px;font:inherit;font-size:.93em}.st{min-height:1.35em;margin-top:6px;color:var(--k-hint);font-size:.87em}.st.e{color:var(--k-bad)}.st.ok{color:var(--k-ok)}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.pl{font-size:.8em;font-weight:600;padding:1px 8px;border:2px solid currentColor;border-radius:6px;white-space:nowrap}.s0{color:var(--k-ok)}.s1{color:var(--k-hint)}.s2{color:var(--k-warn)}.nr{margin:6px 0}.nr .ch{padding:4px 10px}.tb{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 10px;padding:8px 0;margin:6px 0;border-top:1px solid var(--k-sep);border-bottom:1px solid var(--k-sep)}.tb>:nth-child(3n+2){color:var(--k-hint)}.tb>:nth-child(3n){text-align:end}.tx{display:flex;justify-content:space-between}.to{font-weight:600;font-size:1.13em;margin-top:2px}.ac{margin-top:8px}.ac button{width:100%;min-height:36px}.ac .ch{margin-top:6px;border-radius:var(--k-r)}</style> <div class=\"k\"><div class=\"hd\"><span class=\"tt el\" id=\"ti\"></span><span class=\"pl\" id=\"pl\"></span></div><div class=\"rw nr\"><button class=\"ch\" id=\"no\"></button><span class=\"mt gr el\" id=\"dt\"></span></div><div class=\"tb\" id=\"tb\"></div><div class=\"tx mt\" id=\"tx\"></div><div class=\"tx to\" id=\"to\"></div><div class=\"ac\" id=\"ac\"></div><div class=\"st\" id=\"st\"></div></div> <script>var W=window.TelegramWidget||null;var K={lang:String(navigator.language||\"en\").slice(0,2),S:{},R:{},I:{},busy:0,t:function(k){var d=K.I[K.lang]||K.I[Object.keys(K.I)[0]]||{};return k in d?d[k]:k;},add:function(o){for(var l in o)K.I[l]=Object.assign(K.I[l]||{},o[l]);},$:function(i){return document.getElementById(i);},h:function(tag,cls,txt){var e=document.createElement(tag);e.className=cls||\"\";if(txt!=null)e.textContent=txt;return e;},take:function(f,s){if(!s||typeof s!=\"object\"||(f in K.R&&+s.r<K.R[f]))return 0;K.R[f]=+s.r||0;K.S[f]=s;return 1;},load:function(f){try{K.take(f,JSON.parse(W[f]));}catch(e){}},can:function(){return!!(W&&W.viewer&&!W.isPreview);},st:function(txt,kind){var n=K.$(\"st\");if(n){n.textContent=txt||\"\";n.className=\"st \" +(kind||\"\");}},ask:function(data,o){o=o||{};if(!K.can()||K.busy)return 0;K.busy=1;K.st(K.t(\"wait\"));K.draw();W.request(data).then(function(a){var r={};try{r=JSON.parse(a.result)||{};}catch(e){}\nK.busy=0;K.take(o.f||\"chatData\",r.s);var ok=r.ok&&!r.err;K.st(r.msg||(ok?o.done:K.t(r.err||\"INVALID_ANSWER\")),ok?\"ok\":\"e\");try{W.HapticFeedback.notificationOccurred(ok?\"success\":\"error\");}catch(e){}\nif(o.then)o.then(r);K.draw();},function(e){K.busy=0;K.st(K.t(e.code||\"FAILED\"),\"e\");if(o.fail)o.fail(e);K.draw();});return 1;},sync:function(data,f){if(W&&W.chatType==\"private\"&&K.can()&&!W.isForward&&!K.busy)\nW.request(data).then(function(a){try{if(K.take(f||\"chatData\",JSON.parse(a.result).s))K.draw();}catch(e){}},function(){});},nf:function(n,o){try{return new Intl.NumberFormat(K.lang,o).format(n);}catch(e){return \"\" + n;}},money:function(minor,cur){return K.nf(minor / 100,{style:\"currency\",currency:cur});},time:function(sec,o){try{return new Intl.DateTimeFormat(K.lang,o||{hour:\"2-digit\",minute:\"2-digit\"}).format(sec*1000);}catch(e){return \"\";}},start:function(draw,o){o=o||{};K.draw=draw;var d=document.documentElement;if(!d.dir)d.dir=/^(ar|he|fa|ur)/.test(K.lang)?\"rtl\":\"ltr\";if(W){K.load(\"chatData\");K.load(\"publicData\");W.onEvent(\"chatDataChanged\",function(){K.load(\"chatData\");draw();});W.onEvent(\"publicDataChanged\",function(){K.load(\"publicData\");draw();});W.onEvent(\"themeChanged\",draw);if(o.watch)W.watchPublicData();if(o.sync)W.onEvent(\"activated\",function(){K.sync(o.sync,o.f);});}\ndraw();if(o.sync)K.sync(o.sync,o.f);if(W)W.ready();}};</script> <script>K.add({en:{wait:\"Sending…\",NOT_ALLOWED:\"Open the bot for this\",BUSY:\"One moment…\",RATE_LIMITED:\"Too fast, wait a bit\",TIMEOUT:\"No answer. Nothing changed\",FAILED:\"Couldn't reach the bot\",INVALID_ANSWER:\"Unexpected answer\",stale:\"Changed meanwhile, check again\",not_allowed:\"Only the owner can do this\",failed:\"Not saved, try again\",busy:\"Busy, try again\",bad_request:\"Not available\"}});</script> <script>K.add({en:{p0:\"PAID\",p1:\"REFUNDED\",p2:\"PENDING\",tot:\"Total\",copy:\"Copied\",pdf:\"Download PDF\",ref:\"Refund request\",rq:\"Refund requested\",none:\"No receipt yet. The bot will fill this in.\"}});function draw(){var s=K.S.chatData,$=K.$,dis=K.busy||!K.can();[\"tb\",\"ac\",\"tx\",\"to\"].forEach(function(x){$(x).innerHTML=\"\";});$(\"no\").hidden=1;if(!s){$(\"ti\").textContent=K.t(\"none\");$(\"pl\").textContent=$(\"dt\").textContent=\"\";return;}\nvar m=function(v){return K.money(v,s.cur);},no=$(\"no\"),p=s.ps|0;$(\"ti\").textContent=s.m;$(\"pl\").textContent=K.t(\"p\" + p);$(\"pl\").className=\"pl s\" + p;no.hidden=0;no.textContent=s.no;no.onclick=function(){if(K.can()&&W.copyText){W.copyText(s.no);K.st(K.t(\"copy\"),\"ok\");}};$(\"dt\").textContent=K.time(s.at,{dateStyle:\"medium\",timeStyle:\"short\"});s.it.forEach(function(x){$(\"tb\").appendChild(K.h(\"span\",\"el\",x[0]));$(\"tb\").appendChild(K.h(\"span\",\"\",\"×\" + x[1]));$(\"tb\").appendChild(K.h(\"span\",\"\",m(x[2])));});$(\"tx\").appendChild(K.h(\"span\",\"\",s.tl));$(\"tx\").appendChild(K.h(\"span\",\"\",m(s.tx)));$(\"to\").appendChild(K.h(\"span\",\"\",K.t(\"tot\")));$(\"to\").appendChild(K.h(\"span\",\"\",m(s.to)));var ac=$(\"ac\"),pdf=K.h(\"button\",\"\",K.t(\"pdf\"));pdf.disabled=!K.can();pdf.onclick=function(){try{if(W&&W.openLink)W.openLink(\"https://example.com/r/\" + s.no.replace(/\\D/g,\"\"));}catch(e){}};ac.appendChild(pdf);if(p==0){if(s.rq)ac.appendChild(K.h(\"div\",\"mt\",K.t(\"rq\")));else{var rf=K.h(\"button\",\"ch\",K.t(\"ref\"));rf.style.width=\"100%\";rf.disabled=dis;rf.onclick=function(){K.ask(\"refund\");};ac.appendChild(rf);}}}\nK.start(draw);</script>\n",
+        "caption": "Receipt INV-20481 · Brewline Coffee · EUR 26.40 · paid",
+        "chat_data": "{\"m\":\"Brewline Coffee\",\"no\":\"INV-20481\",\"at\":1794731400,\"it\":[[\"Flat white\",2,760],[\"Almond croissant\",1,390],[\"Ethiopia beans 250 g\",1,1490]],\"cur\":\"EUR\",\"tl\":\"VAT 20%\",\"tx\":440,\"to\":2640,\"ps\":0,\"r\":0}",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Download PDF",
+                "url": "https://example.com/r/20481"
+              }
+            ],
+            [
+              {
+                "text": "Copy number",
+                "copy_text": {
+                  "text": "INV-20481"
+                }
+              },
+              {
+                "text": "Refund request",
+                "callback_data": "rcpt:refund:20481"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

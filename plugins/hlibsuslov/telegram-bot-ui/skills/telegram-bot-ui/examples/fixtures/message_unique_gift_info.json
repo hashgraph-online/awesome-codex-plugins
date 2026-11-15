@@ -1,0 +1,73 @@
+{
+  "update_id": 900042,
+  "business_message": {
+    "business_connection_id": "BCxyz",
+    "message_id": 702,
+    "date": 1762900402,
+    "chat": {
+      "id": 444444444,
+      "type": "private",
+      "first_name": "Dan"
+    },
+    "from": {
+      "id": 444444444,
+      "is_bot": false,
+      "first_name": "Dan"
+    },
+    "unique_gift": {
+      "gift": {
+        "gift_id": "5000",
+        "base_name": "Plush Pepe",
+        "name": "PlushPepe-17",
+        "number": 17,
+        "model": {
+          "name": "Classic",
+          "sticker": {
+            "file_id": "CAACAgIAAxkDemo",
+            "file_unique_id": "AgADdemo",
+            "type": "regular",
+            "width": 512,
+            "height": 512,
+            "is_animated": true,
+            "is_video": false
+          },
+          "rarity_per_mille": 20
+        },
+        "symbol": {
+          "name": "Star",
+          "sticker": {
+            "file_id": "CAACAgIAAxkDemo",
+            "file_unique_id": "AgADdemo",
+            "type": "regular",
+            "width": 512,
+            "height": 512,
+            "is_animated": true,
+            "is_video": false
+          },
+          "rarity_per_mille": 50
+        },
+        "backdrop": {
+          "name": "Midnight",
+          "colors": {
+            "center_color": 1185346,
+            "edge_color": 592137,
+            "symbol_color": 7239423,
+            "text_color": 16777215
+          },
+          "rarity_per_mille": 30
+        }
+      },
+      "origin": "transfer",
+      "text": "Happy birthday, Dan!",
+      "entities": [
+        {
+          "type": "bold",
+          "offset": 0,
+          "length": 14
+        }
+      ],
+      "is_private": true,
+      "owned_gift_id": "OG-777"
+    }
+  }
+}

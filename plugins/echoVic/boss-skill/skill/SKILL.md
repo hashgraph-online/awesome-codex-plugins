@@ -7,6 +7,7 @@ description: |
 Triggers（完整流程）: 'boss mode', '/boss', '全自动开发', '从需求到部署', '帮我做一个', 'build this', '全流程', '自动化开发', '一键开发'
 
 Triggers（单环节切入，自动续跑后续）:
+
 - /boss:pm — 从需求分析开始
 - /boss:architect — 从架构设计开始
 - /boss:ui — 从 UI 设计开始
@@ -17,6 +18,7 @@ Triggers（单环节切入，自动续跑后续）:
 - /boss:ship — 只做部署
 
 Does NOT trigger:
+
 - 单文件修改或简单 bug 修复（直接编辑即可）
 - 纯代码阅读或解释（使用 read 工具）
 - 极小事（预计 <30 分钟人工可完成）
@@ -65,6 +67,7 @@ pm → architect → ui → review → tasks → dev → qa → ship
 ## 停调条件
 
 遇到以下任一情况，停止续跑：
+
 1. 用户明确说"停"、"先到这"、"只做这一步"
 2. 用户传入 `--stop-after <环节>`
 3. 当前环节产出失败且无法修复
@@ -126,6 +129,7 @@ pm → architect → ui → review → tasks → dev → qa → ship
 ## 输出格式
 
 最终回答包含：
+
 - feature 名称和 `.boss/<feature>/` 产物路径
 - 已完成的环节和产物路径
 - 停调原因（如未跑完）

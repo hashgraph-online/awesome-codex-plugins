@@ -1,0 +1,16 @@
+{
+  "update_id": 920002,
+  "message": {
+    "message_id": 1090,
+    "date": 1763200000,
+    "chat": {"id": 111111111, "type": "private", "first_name": "Alice"},
+    "from": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+    "successful_payment": {
+      "currency": "XTR",
+      "total_amount": 500,
+      "invoice_payload": "o:SH-1001",
+      "telegram_payment_charge_id": "stxDEMOcharge0001",
+      "provider_payment_charge_id": ""
+    }
+  }
+}

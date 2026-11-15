@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-15",
-  "total": 412,
+  "total": 414,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1802,6 +1802,16 @@
       "install_url": "https://raw.githubusercontent.com/Colin4k1024/tsp/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Telegram Bot UI",
+      "url": "https://github.com/hlibsuslov/telegram-bot-ui",
+      "owner": "hlibsuslov",
+      "repo": "telegram-bot-ui",
+      "description": "Design, build and audit Telegram bot interfaces (texts, keyboards, colored buttons, streaming AI replies, Rich Messages, channel posts) with a skill updated for every Bot API release.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hlibsuslov/telegram-bot-ui/HEAD/plugin.json"
+    },
+    {
       "name": "TMCRA Local Memory",
       "url": "https://github.com/reshuibuduo/tmcra-plugin-codex",
       "owner": "reshuibuduo",
@@ -2882,6 +2892,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/fxmacrodata/claude-plugin-fxmacrodata/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "GetYouTubeTranscript",
+      "url": "https://github.com/tubeagentkit/youtube-mcp",
+      "owner": "tubeagentkit",
+      "repo": "youtube-mcp",
+      "description": "YouTube transcripts in any caption language, YouTube search, channel uploads and playlist videos through a hosted MCP server, plus a skill that writes REST API code for transcripts; 100 free credits on sign-up, paid after that.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/tubeagentkit/youtube-mcp/HEAD/plugin.json"
     },
     {
       "name": "GH Project",

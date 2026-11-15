@@ -1,0 +1,62 @@
+{
+  "scenario": "r55-design-a-widget",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (checked 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<style>:root{--k-tx:var(--tg-theme-text-color,#000);--k-hint:var(--tg-theme-hint-color,#707579);--k-btn:var(--tg-theme-button-color,#2481cc);--k-btx:var(--tg-theme-button-text-color,#fff);--k-sec:var(--tg-theme-secondary-bg-color,#f1f1f4);--k-bad:var(--tg-theme-destructive-text-color,#e53935);--k-bg:var(--tg-theme-bg-color,#fff);--k-ok:light-dark(#2e8b3e,#5ec46e);--k-warn:light-dark(#a86400,#f0a73a);color-scheme:light dark}body{margin:0;padding:0}.k{padding:10px 12px max(10px,env(safe-area-inset-bottom),var(--tg-content-safe-area-inset-bottom,0px));font-variant-numeric:tabular-nums}.hd{display:flex;align-items:baseline;justify-content:space-between;gap:8px}.tt{font-weight:600;font-size:1.07em;margin:0}.mt{color:var(--k-hint);font-size:.87em}.rw{display:flex;align-items:center;gap:8px}.gr{flex:1;min-width:0}.el{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.wd{width:100%;margin-top:8px}.ch{background:var(--k-sec);color:var(--k-tx);border:0;border-radius:999px;padding:6px 12px;min-height:34px;font:inherit;font-size:.93em}.ch.on{background:var(--k-btn);color:var(--k-btx)}.st{min-height:1.35em;margin-top:6px;color:var(--k-hint);font-size:.87em}.st.e{color:var(--k-bad)}.st.ok{color:var(--k-ok)}@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}.px{font-size:min(1.9em,10vw);font-weight:600;line-height:1.2}.dr{margin:8px 0}.dr .ch{flex:1}.sw{padding:0 12px;margin-top:6px}.tr{position:relative;height:32px;touch-action:pan-y;cursor:pointer}.ln{position:absolute;top:13px;left:0;right:0;height:6px;border-radius:3px;background:var(--k-sec);overflow:hidden}.ln i{display:block;height:100%;background:var(--k-btn)}.th{position:absolute;left:0}[dir=rtl] .th{left:auto;right:0}.th{top:4px;width:24px;height:24px;margin-left:-12px;border-radius:50%;background:var(--k-btn);box-sizing:border-box;border:3px solid var(--k-bg)}[dir=rtl] .th{margin:0 -12px 0 0}.vl .gr{text-align:center}.vl b{font-size:1.33em;font-weight:600}.vl .ch{min-width:44px}.bn{margin-top:8px}.bn{color:var(--k-ok)}.bn.t{color:var(--k-warn)}.hn{color:var(--k-bad);font-size:.87em}</style> <div class=\"k\"><div class=\"hd\"><span class=\"tt el\" id=\"as\"></span></div><div class=\"px\" id=\"px\"></div><div class=\"bn\" id=\"bn\"></div><div class=\"rw dr\" id=\"dr\"></div><div class=\"sw\"><div class=\"tr\" id=\"tr\"><div class=\"ln\"><i id=\"fl\"></i></div><div class=\"th\" id=\"th\"></div></div></div><div class=\"rw vl\" style=\"margin:6px 0\"><button class=\"ch\" id=\"mi\">−</button><div class=\"gr\"><b id=\"vl\"></b><div class=\"mt\" id=\"ds\"></div></div><button class=\"ch\" id=\"pl\">+</button></div><div class=\"rw dr\" id=\"md\"></div><div class=\"hn\" id=\"hn\"></div><button class=\"wd\" id=\"sv\"></button><div class=\"st\" id=\"st\"></div></div> <script>var W=window.TelegramWidget||null;var K={lang:String(navigator.language||\"en\").slice(0,2),S:{},R:{},I:{},busy:0,t:function(k){var d=K.I[K.lang]||K.I[Object.keys(K.I)[0]]||{};return k in d?d[k]:k;},add:function(o){for(var l in o)K.I[l]=Object.assign(K.I[l]||{},o[l]);},$:function(i){return document.getElementById(i);},h:function(tag,cls,txt){var e=document.createElement(tag);e.className=cls||\"\";if(txt!=null)e.textContent=txt;return e;},take:function(f,s){if(!s||typeof s!=\"object\"||(f in K.R&&+s.r<K.R[f]))return 0;K.R[f]=+s.r||0;K.S[f]=s;return 1;},load:function(f){try{K.take(f,JSON.parse(W[f]));}catch(e){}},can:function(){return!!(W&&W.viewer&&!W.isPreview);},st:function(txt,kind){var n=K.$(\"st\");if(n){n.textContent=txt||\"\";n.className=\"st \" +(kind||\"\");}},ask:function(data,o){o=o||{};if(!K.can()||K.busy)return 0;K.busy=1;K.st(K.t(\"wait\"));K.draw();W.request(data).then(function(a){var r={};try{r=JSON.parse(a.result)||{};}catch(e){}\nK.busy=0;K.take(o.f||\"chatData\",r.s);var ok=r.ok&&!r.err;K.st(r.msg||(ok?o.done:K.t(r.err||\"INVALID_ANSWER\")),ok?\"ok\":\"e\");try{W.HapticFeedback.notificationOccurred(ok?\"success\":\"error\");}catch(e){}\nif(o.then)o.then(r);K.draw();},function(e){K.busy=0;K.st(K.t(e.code||\"FAILED\"),\"e\");if(o.fail)o.fail(e);K.draw();});return 1;},sync:function(data,f){if(W&&W.chatType==\"private\"&&K.can()&&!W.isForward&&!K.busy)\nW.request(data).then(function(a){try{if(K.take(f||\"chatData\",JSON.parse(a.result).s))K.draw();}catch(e){}},function(){});},nf:function(n,o){try{return new Intl.NumberFormat(K.lang,o).format(n);}catch(e){return \"\" + n;}},money:function(minor,cur){return K.nf(minor / 100,{style:\"currency\",currency:cur});},time:function(sec,o){try{return new Intl.DateTimeFormat(K.lang,o||{hour:\"2-digit\",minute:\"2-digit\"}).format(sec*1000);}catch(e){return \"\";}},start:function(draw,o){o=o||{};K.draw=draw;var d=document.documentElement;if(!d.dir)d.dir=/^(ar|he|fa|ur)/.test(K.lang)?\"rtl\":\"ltr\";if(W){K.load(\"chatData\");K.load(\"publicData\");W.onEvent(\"chatDataChanged\",function(){K.load(\"chatData\");draw();});W.onEvent(\"publicDataChanged\",function(){K.load(\"publicData\");draw();});W.onEvent(\"themeChanged\",draw);if(o.watch)W.watchPublicData();if(o.sync)W.onEvent(\"activated\",function(){K.sync(o.sync,o.f);});}\ndraw();if(o.sync)K.sync(o.sync,o.f);if(W)W.ready();}};</script> <script>K.add({ru:{wait:\"Отправляю…\",NOT_ALLOWED:\"Откройте бота\",BUSY:\"Секунду…\",RATE_LIMITED:\"Слишком часто, подождите\",TIMEOUT:\"Нет ответа. Ничего не изменилось\",FAILED:\"Бот недоступен\",INVALID_ANSWER:\"Странный ответ\",stale:\"Уже изменилось, проверьте\",not_allowed:\"Только для владельца\",failed:\"Не сохранилось\",busy:\"Занято, повторите\",bad_request:\"Недоступно\"}});</script> <script>K.add({ru:{above:\"Выше\",below:\"Ниже\",once:\"Один раз\",every:\"Каждый раз\",save:\"Сохранить\",upd:\"Обновить\",saved:\"Сохранено\",act:\"Активно\",trg:\"Сработало\",bad:\"Не с той стороны от цены\",none:\"Данных пока нет.\"}});var L={r:-1,dir:\"above\",th:0,mode:\"once\"},drag=0;function fmt(c){return K.nf(c / 100,{minimumFractionDigits:2,maximumFractionDigits:2});}\nfunction range(s){return[Math.floor(s.px*.7 / 5)*5,Math.ceil(s.px*1.3 / 5)*5];}\nfunction valid(s){return L.dir==\"above\"?L.th>s.px:L.th<s.px;}\nfunction put(el,f){var rtl=document.documentElement.dir==\"rtl\";el.style[rtl?\"right\":\"left\"]=(f*100)+ \"%\";}\nfunction upd(){var s=K.S.chatData,$=K.$;if(!s)return;var r=range(s),span=r[1]- r[0],f=(L.th - r[0])/ span;put($(\"th\"),f);$(\"fl\").style.width=(f*100)+ \"%\";$(\"vl\").textContent=fmt(L.th);var d=(L.th - s.px)/ s.px*100;$(\"ds\").textContent=(d>0?\"+\":\"\")+ d.toFixed(1)+ \"%\";var ok=valid(s);$(\"hn\").textContent=ok?\"\":K.t(\"bad\");$(\"sv\").disabled=!ok||K.busy||!K.can();}\nfunction setTh(c,s){var r=range(s);L.th=Math.max(r[0],Math.min(r[1],Math.round(c / 5)*5));upd();}\nfunction draw(){var s=K.S.chatData,$=K.$;if(!s){$(\"as\").textContent=K.t(\"none\");return;}\nif(L.r!=K.R.chatData){L.r=K.R.chatData;L.dir=s.dir||\"above\";L.mode=s.mode||\"once\";L.th=s.th||s.px +(L.dir==\"above\"?25:-25);}\n$(\"as\").textContent=s.a;$(\"px\").textContent=fmt(s.px);var bn=$(\"bn\");bn.className=\"bn\" +(s.st==\"triggered\"?\" t\":\"\");bn.textContent=s.st==\"triggered\"?K.t(\"trg\")+ \" \" + K.time(s.at)+ \": \" + K.t(s.dir)+ \" \" + fmt(s.th):s.st==\"active\"?K.t(\"act\")+ \": \" + K.t(s.dir)+ \" \" + fmt(s.th)+ \" · \" + K.t(s.mode):\"\";[[\"dr\",\"dir\",[\"above\",\"below\"]],[\"md\",\"mode\",[\"once\",\"every\"]]].forEach(function(g){var box=$(g[0]);box.innerHTML=\"\";g[2].forEach(function(v){var b=K.h(\"button\",\"ch\" +(L[g[1]]==v?\" on\":\"\"),K.t(v));b.onclick=function(){L[g[1]]=v;if(g[1]==\"dir\"&&!valid(s))L.th=s.px +(v==\"above\"?25:-25);draw();};box.appendChild(b);});});$(\"sv\").textContent=K.t(s.st==\"active\"?\"upd\":\"save\");upd();}\n(function(){var tr=K.$(\"tr\");function at(e){var s=K.S.chatData,b=tr.getBoundingClientRect(),r=range(s);var f=Math.max(0,Math.min(1,(e.clientX - b.left)/ b.width));if(document.documentElement.dir==\"rtl\")f=1 - f;setTh(r[0]+ f*(r[1]- r[0]),s);}\ntr.addEventListener(\"pointerdown\",function(e){if(!K.S.chatData)return;drag=1;try{tr.setPointerCapture(e.pointerId);}catch(x){}\nat(e);});tr.addEventListener(\"pointermove\",function(e){if(drag)at(e);});[\"pointerup\",\"pointercancel\"].forEach(function(n){tr.addEventListener(n,function(){drag=0;});});K.$(\"mi\").onclick=function(){if(K.S.chatData)setTh(L.th - 5,K.S.chatData);};K.$(\"pl\").onclick=function(){if(K.S.chatData)setTh(L.th + 5,K.S.chatData);};K.$(\"sv\").onclick=function(){K.ask(\"set:\" + L.dir + \":\" +(L.th / 100).toFixed(2)+ \":\" + L.mode,{done:K.t(\"saved\")});};})();K.start(draw);</script>",
+        "caption": "TON/USD 5.47 · alert above 5.90 active",
+        "chat_data": "{\"a\":\"TON/USD\",\"px\":547,\"st\":\"none\",\"r\":0}",
+        "allow_queries": true,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Above 5.90",
+                "callback_data": "pa:set:above:5.90:once"
+              },
+              {
+                "text": "Below 5.00",
+                "callback_data": "pa:set:below:5.00:once"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "chat_data": "{\"a\":\"TON/USD\",\"px\":547,\"st\":\"active\",\"dir\":\"above\",\"th\":590,\"mode\":\"once\",\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012355000",
+        "data": "{\"ok\":true,\"s\":{\"a\":\"TON/USD\",\"px\":547,\"st\":\"active\",\"dir\":\"above\",\"th\":590,\"mode\":\"once\",\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012355001",
+        "data": "{\"ok\":true,\"s\":{\"a\":\"TON/USD\",\"px\":547,\"st\":\"active\",\"dir\":\"above\",\"th\":590,\"mode\":\"once\",\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012355002",
+        "data": "{\"ok\":true,\"err\":\"bad_request\",\"s\":{\"a\":\"TON/USD\",\"px\":547,\"st\":\"active\",\"dir\":\"above\",\"th\":590,\"mode\":\"once\",\"r\":1},\"r\":1}"
+      }
+    }
+  ]
+}

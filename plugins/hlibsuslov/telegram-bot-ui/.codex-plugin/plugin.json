@@ -1,0 +1,40 @@
+{
+  "name": "telegram-bot-ui",
+  "version": "2.1.0",
+  "description": "Design, build, review and operate Telegram bots with the newest Bot API: bot screens and keyboards, streaming AI replies, HTML widgets, premium emoji, product flows, channel publishing, agent-operated bots and Bot API lookups. Bundles the telegram-bot-ui skill and five subagents.",
+  "author": {
+    "name": "hlibsuslov"
+  },
+  "homepage": "https://github.com/hlibsuslov/telegram-bot-ui",
+  "repository": "https://github.com/hlibsuslov/telegram-bot-ui",
+  "license": "MIT",
+  "keywords": [
+    "telegram",
+    "telegram-bot",
+    "bot-api",
+    "ui",
+    "ux",
+    "widgets",
+    "channels",
+    "agent-skills"
+  ],
+  "interface": {
+    "displayName": "Telegram Bot UI",
+    "shortDescription": "UI/UX for Telegram bots, updated for every Bot API release",
+    "longDescription": "Design, build and operate Telegram bots with the newest Bot API: screens, keyboards, streaming AI replies with Stop, private panels in groups, Rich Messages, HTML widgets and TON wallet flows, premium emoji packs, whole product flows, channel publishing with approval, agent-operated bots and offline Bot API lookups. Preserves callback_data, deep links, handlers and translations.",
+    "developerName": "hlibsuslov",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/hlibsuslov/telegram-bot-ui",
+    "defaultPrompt": [
+      "Use $telegram-bot-ui to audit this Telegram bot's screens and propose fixes."
+    ],
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.png"
+  },
+  "skills": "./skills/"
+}

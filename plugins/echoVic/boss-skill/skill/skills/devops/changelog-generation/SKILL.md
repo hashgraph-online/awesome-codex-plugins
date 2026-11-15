@@ -8,6 +8,7 @@ type: workflow
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - devops/deployment-process
   triggers:
 - 部署成功完成后
@@ -23,6 +24,7 @@ dependencies:
 ## 适用场景
 
 在部署成功完成后自动生成或追加 CHANGELOG，记录本次发布的所有变更。适用于：
+
 - 部署完成后的发布记录
 - 版本发布前的变更汇总
 - 对外发布说明的自动生成
@@ -68,6 +70,7 @@ dependencies:
 | `BREAKING CHANGE` | **⚠️ Breaking Changes** | 破坏性变更（始终置顶） |
 
 对于非 Conventional Commits 格式的提交：
+
 - 根据关键词推断分类（add/new → Added, fix/bug → Fixed, update/change → Changed）
 - 无法分类的归入 **Changed**
 
@@ -110,10 +113,12 @@ dependencies:
 ### 步骤 4：输出写入
 
 **两种输出模式：**
+
 1. **产物模式**（默认）：写入 `.boss/<feature>/changelog.md`
 2. **追加模式**：如项目根目录已有 `CHANGELOG.md`，将新版本内容追加到文件顶部（在 `# Changelog` 标题之后）
 
 **追加逻辑：**
+
 ```
 读取现有 CHANGELOG.md
 → 找到第一个 ## [version] 行
@@ -122,6 +127,7 @@ dependencies:
 ```
 
 如果项目无 `CHANGELOG.md`，则创建包含标准头部的新文件：
+
 ```markdown
 # Changelog
 

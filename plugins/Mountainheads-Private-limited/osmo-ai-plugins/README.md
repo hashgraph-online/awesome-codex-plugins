@@ -2,13 +2,14 @@
   <img src="assets/logo.png" alt="OsmO logo" width="96" height="96">
 </p>
 
-<h1 align="center">OsmO Phone Calls</h1>
+<h1 align="center">OsmO Phone Calls &amp; AI Receptionist</h1>
 
 <p align="center">
   <b>Let your AI make real phone calls for you.</b><br>
   Ask ChatGPT, Claude, Cursor, Codex, Gemini CLI, Grok or any MCP client to call a shop, clinic,
   restaurant or helpline. OsmO's voice AI makes the call and brings back
-  the answer, a summary and the transcript.
+  the answer, a summary and the transcript. It is also your <b>AI phone receptionist</b>: it answers
+  calls to your number, screens spam and takes messages and bookings.
 </p>
 
 <p align="center">
@@ -17,6 +18,9 @@
   <a href="https://chatgpt.com/plugins/plugin_asdk_app_6ad0ed3277688191b90bd9dafe5d6cd9"><img alt="ChatGPT plugin directory" src="https://img.shields.io/badge/ChatGPT-plugin_directory-10a37f"></a>
   <a href="https://clawhub.ai/getosmo/osmo-phone-calls"><img alt="ClawHub: getosmo/osmo-phone-calls" src="https://img.shields.io/badge/ClawHub-osmo--phone--calls-orange"></a>
   <a href="https://aiagentslisting.com/mcp/osmo-ai-plugins"><img alt="Osmo Ai Plugins on AI Agents Listing" src="https://aiagentslisting.com/osmo-ai-plugins/badge.svg?claim=2bc13b0547d015ab02a54ca36da2271b"></a>
+  <a href="https://clawhub.ai/getosmo/osmo-ai-receptionist"><img alt="ClawHub: getosmo/osmo-ai-receptionist" src="https://img.shields.io/badge/ClawHub-osmo--ai--receptionist-orange"></a>
+  <a href="https://mcp.so/servers/osmo-phone-calls"><img alt="OsmO on mcp.so" src="https://img.shields.io/badge/mcp.so-verified-2563eb"></a>
+  <a href="https://cursor.directory/plugins/osmo-ai-phone-calls-ai-receptionist"><img alt="OsmO on cursor.directory" src="https://img.shields.io/badge/cursor.directory-plugin-000000"></a>
   <a href="LICENSE"><img alt="License: MIT (client files)" src="https://img.shields.io/github/license/Mountainheads-Private-limited/osmo-ai-plugins"></a>
 </p>
 
@@ -93,6 +97,7 @@ The "Guide" column links to OsmO's own step-by-step page for that app.
 | **VS Code** (GitHub Copilot) | Click **Install in VS Code** above, or run **MCP: Add Server** and choose HTTP, or add the JSON [below](#vs-code) | [guide](https://getosmo.app/ai-calls/copilot-phone-calls-setup) |
 | **Codex** (CLI, IDE) | `codex mcp add osmo --url https://api.getosmo.app/mcp`, then `codex mcp login osmo`. Or the plugin, [below](#codex-plugin) | [guide](https://getosmo.app/ai-calls/codex-phone-calls-setup) |
 | **Gemini CLI** | `gemini extensions install https://github.com/Mountainheads-Private-limited/osmo-ai-plugins`, then `/mcp auth osmo` | [guide](https://getosmo.app/ai-calls/gemini-phone-calls-setup) |
+| **Antigravity** | Install the plugin from this repo (`.antigravity-plugin/`, [`mcp_config.json`](mcp_config.json)), then **Customizations › Installed › Authenticate** under MCP Servers | — |
 | **Grok** (grok.com) | grok.com/connectors → New Connector → Custom → URL `https://api.getosmo.app/mcp` | [guide](https://getosmo.app/ai-calls/grok-phone-calls-setup) |
 | **Grok Build** | `grok mcp add --transport http osmo https://api.getosmo.app/mcp` | [guide](https://getosmo.app/ai-calls/grok-build-phone-calls-setup) |
 | **Perplexity** (Pro, Max, Enterprise) | Plugins → Add custom → Add MCP connector → Remote → URL `https://api.getosmo.app/mcp` | [guide](https://getosmo.app/ai-calls/perplexity-phone-calls-setup) |
@@ -302,10 +307,12 @@ service; its code is not in this repo.
 | Path | For |
 |---|---|
 | [`skills/osmo-phone-calls/SKILL.md`](skills/osmo-phone-calls/SKILL.md) | Agent Skill. Tells the AI to confirm before calling, report only what the call result says, and never ask for codes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-phone-calls). |
+| [`skills/osmo-ai-receptionist/SKILL.md`](skills/osmo-ai-receptionist/SKILL.md) | Agent Skill for the AI receptionist side: who called, greeting, caller rules, bookings. Changes are shown first and applied on a yes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-ai-receptionist). |
 | [`.claude-plugin/`](.claude-plugin) | Claude Code plugin + marketplace (MCP server + skill) |
 | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin (MCP server + skill) |
 | [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json), [`mcp.json`](mcp.json) | Cursor plugin and MCP config |
 | [`gemini-extension.json`](gemini-extension.json), [`GEMINI.md`](GEMINI.md) | Gemini CLI extension |
+| [`.antigravity-plugin/plugin.json`](.antigravity-plugin/plugin.json), [`mcp_config.json`](mcp_config.json) | Antigravity plugin |
 | [`llms-install.md`](llms-install.md) | Install steps written for AI agents (Cline and others) |
 | [`server.json`](server.json) | Official MCP Registry metadata (`app.getosmo/phone-calls`) |
 

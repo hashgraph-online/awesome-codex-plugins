@@ -40,6 +40,7 @@ and the task board.
 ## Why Boss
 
 Prompt-only orchestration can sound organized, but it usually cannot prove that the plan was followed, tests were run, or gates passed. Boss is built around evidence and hard contracts:
+
 - **Hard quality contracts**: every role has a non-negotiable requirements table (e.g. PRD must have Given-When-Then scenarios; architecture must compare at least two options; QA must record verified or honestly-unverified evidence). Failed contracts block the next stage unless you explicitly override.
 - **Artifact-driven**: every stage writes a real file under `.boss/<feature>/`. Progress is judged by artifacts on disk, not by what the agent claims.
 - **Continuation chain**: start at any stage (`/boss:pm`, `/boss:dev`, ...) and Boss auto-runs every downstream stage until `ship` or until you stop it. No manual hand-offs.
@@ -181,6 +182,7 @@ User request
 ## Quality Contract
 
 Boss has two layers of quality control:
+
 - **Hard requirements per role**: each agent's prompt defines a non-negotiable requirements table. The agent self-checks before handing off; a failed contract blocks the next stage.
 - **Quality gates**: real commands whose verdicts are recorded in the stage artifact.
 
@@ -244,6 +246,7 @@ See [test/evals/README.md](./test/evals/README.md).
 ## Development
 
 Requirements:
+
 - Node.js >= 22.18
 
 Setup:

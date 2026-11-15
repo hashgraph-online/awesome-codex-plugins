@@ -451,6 +451,51 @@ first and suppresses the inventory. Where dbt cannot parse at all (dbt or
 on disk is read, `data.manifest.source` is `artifact` with its `generated_at`,
 and a warning says tests changed since then are not reflected.
 
+### Three more answers, each on its own
+
+Presence, last-run status, mutation strength and declaration coverage are
+separate questions. Report each with its own denominator; never fold them into
+one coverage number.
+
+- **Last run.** Each test carries `last_run`: `pass`, `fail`, `warn`, `error`,
+  `skipped`, or `not_run` when the latest run did not include it. `not_run` is
+  never a pass. `data.last_run` names the one run read (the newest
+  `run_results.json` a `dbt build`, `test` or `run` wrote, from Dex's artifact
+  directory or the project's target path) with its `generated_at` and
+  `age_seconds`. Quote the age with the status: a status describes that run, not
+  the project now. With no run results every test is `not_run` and a note says
+  so; results from an invocation no dbt log names are not attributed. A source's
+  freshness check reports no `last_run`: `dbt source freshness` writes its own
+  artifact.
+- **Strength.** A model carries `strength`, the score its last
+  `transform test --mutate` recorded. `fresh` means the model's SQL as written and its own tests
+  are what the run measured, and every downstream test it ran still reads the
+  same. `stale` lists what `changed` (`model_sql`, `own_tests`,
+  `downstream_tests`); its score is shown with its age and is not current.
+  `missing` has no record, and `untestable` has no test, own or downstream, so
+  `--mutate` would refuse it. `score` (the model's own tests) and
+  `score_with_downstream` stay apart, and `complete: false` marks a run the
+  budget stopped. `summary.models.strength` counts each status and bands the
+  fresh scores; there is no project mutation score. A score counts only the
+  defects Dex plants. The digest reads the SQL as written: a change in a macro
+  the model calls, a parent's SQL, or a materialization set in
+  `dbt_project.yml` does not stale it. Refresh one with
+  `dex transform test --mutate <model>`.
+- **Declarations.** `data.declarations.facts` holds one record per declared fact
+  on the selected models: `fact` (`grain`, `key`, `foreign_key`, `references`,
+  `null_rule`, `population_filter`, `population_parent`, `population_rule`,
+  `unit`, `additivity`, `history`), `column`, and `checked_by`: `dbt_test` (the
+  generic `tests` that assert it run on every `dbt build`), `dex_verify` (the
+  `verify` finding codes that can judge it on `maintain verify` or
+  `transform build --verify`; that verify *can* judge it, not that it ran), `both`, `none`,
+  or `prose` for a population stated only as a rule, which nothing can run.
+  Unchecked facts come first. `summary.facts.checked` leaves prose out of its
+  denominator, and `models_undeclared` counts models with no declaration apart
+  rather than as zero coverage. A `references` counts as `dex_verify` only where
+  the model reads the referenced model, since verify judges it through a join
+  the model's SQL writes. Declarations a native semantic layer carries are not
+  read yet.
+
 ## `maintain reconcile [<class>]`
 
 Proposes the dbt edits that bring the project back in sync, as reviewable diffs,

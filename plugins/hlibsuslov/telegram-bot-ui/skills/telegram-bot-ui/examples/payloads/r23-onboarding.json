@@ -1,0 +1,456 @@
+{
+  "scenario": "r23-onboarding",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "setMyCommands",
+      "params": {
+        "commands": [
+          {
+            "command": "start",
+            "description": "Open the shop"
+          },
+          {
+            "command": "orders",
+            "description": "My orders"
+          },
+          {
+            "command": "settings",
+            "description": "Language and notifications"
+          }
+        ]
+      }
+    },
+    {
+      "method": "setMyDescription",
+      "params": {
+        "description": "Fresh coffee beans, roasted on Mondays. Order in two taps, pay with Stars or card."
+      }
+    },
+    {
+      "method": "setMyShortDescription",
+      "params": {
+        "short_description": "Coffee beans, roasted weekly. Order in two taps."
+      }
+    },
+    {
+      "method": "setMyCommands",
+      "params": {
+        "commands": [
+          {
+            "command": "start",
+            "description": "Відкрити магазин"
+          },
+          {
+            "command": "orders",
+            "description": "Мої замовлення"
+          },
+          {
+            "command": "settings",
+            "description": "Мова і сповіщення"
+          }
+        ],
+        "language_code": "uk"
+      }
+    },
+    {
+      "method": "setMyDescription",
+      "params": {
+        "description": "Свіжа кава в зернах, обсмажуємо щопонеділка. Замовлення у два дотики, оплата зірками або карткою.",
+        "language_code": "uk"
+      }
+    },
+    {
+      "method": "setMyShortDescription",
+      "params": {
+        "short_description": "Кава в зернах, свіже обсмаження щотижня.",
+        "language_code": "uk"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Привіт, Богдан!</b> Якою мовою спілкуватися?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "English",
+                "callback_data": "ob:1:lang:en"
+              }
+            ],
+            [
+              {
+                "text": "✓ Українська",
+                "callback_data": "ob:1:lang:uk",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1001,
+        "text": "<b>Крок 2 з 3 · Сповіщення</b>\nПовідомлю, коли замовлення відправлено. Нічого більше, без реклами.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Сповіщати",
+                "callback_data": "ob:2:notify:1",
+                "style": "primary"
+              },
+              {
+                "text": "Не зараз",
+                "callback_data": "ob:2:notify:0"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q1"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "parse_mode": "HTML",
+        "text": "<b>Крок 3 з 3 · Телефон (необовʼязково)</b>\nНа цей номер зателефонує курʼєр. Можна пропустити.",
+        "reply_markup": {
+          "keyboard": [
+            [
+              {
+                "text": "Поділитися номером",
+                "request_contact": true
+              }
+            ],
+            [
+              {
+                "text": "Пропустити"
+              }
+            ]
+          ],
+          "one_time_keyboard": true,
+          "resize_keyboard": true,
+          "input_field_placeholder": "Натисніть «Поділитися номером» або «Пропустити»"
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q2"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "Це чужий контакт. Поділіться своїм номером або натисніть «Пропустити»."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "Збережено. Курʼєр зателефонує на +380501234567.",
+        "reply_markup": {
+          "remove_keyboard": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Готово, Богдан</b>\nЗамовлень ще немає. Почніть з каталогу — свіже обсмаження щопонеділка.\n\nAlice запросив(-ла) вас: перша доставка безкоштовна.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відкрити каталог",
+                "callback_data": "ob:3:noop:catalog",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Мої замовлення",
+                "callback_data": "ob:3:noop:orders"
+              },
+              {
+                "text": "Налаштування",
+                "callback_data": "ob:3:noop:settings"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "qs",
+        "text": "Цей крок уже пройдено."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Готово, Богдан</b>\nЗамовлень ще немає. Почніть з каталогу — свіже обсмаження щопонеділка.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відкрити каталог",
+                "callback_data": "ob:4:noop:catalog",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Мої замовлення",
+                "callback_data": "ob:4:noop:orders"
+              },
+              {
+                "text": "Налаштування",
+                "callback_data": "ob:4:noop:settings"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Hi, Alice!</b> Which language should I use?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ English",
+                "callback_data": "ob:1:lang:en",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Українська",
+                "callback_data": "ob:1:lang:uk"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1007,
+        "text": "<b>Step 2 of 3 · Updates</b>\nI can tell you when your order ships. Nothing else, no ads.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Notify me",
+                "callback_data": "ob:2:notify:1",
+                "style": "primary"
+              },
+              {
+                "text": "Not now",
+                "callback_data": "ob:2:notify:0"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q8"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Step 3 of 3 · Phone (optional)</b>\nThe courier calls this number. You can skip it.",
+        "reply_markup": {
+          "keyboard": [
+            [
+              {
+                "text": "Share my phone",
+                "request_contact": true
+              }
+            ],
+            [
+              {
+                "text": "Skip"
+              }
+            ]
+          ],
+          "one_time_keyboard": true,
+          "resize_keyboard": true,
+          "input_field_placeholder": "Tap “Share my phone” or “Skip”"
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q9"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Okay, no phone.",
+        "reply_markup": {
+          "remove_keyboard": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>All set, Alice</b>\nYou have no orders yet. Start with the catalog — fresh roast every Monday.\n\n<b>Ethiopia Yirgacheffe</b> from your link is waiting in the cart.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open the catalog",
+                "callback_data": "ob:3:noop:catalog",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "My orders",
+                "callback_data": "ob:3:noop:orders"
+              },
+              {
+                "text": "Settings",
+                "callback_data": "ob:3:noop:settings"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>All set, Alice</b>\nYou have no orders yet. Start with the catalog — fresh roast every Monday.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open the catalog",
+                "callback_data": "ob:4:noop:catalog",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "My orders",
+                "callback_data": "ob:4:noop:orders"
+              },
+              {
+                "text": "Settings",
+                "callback_data": "ob:4:noop:settings"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>All set, Alice</b>\nYou have no orders yet. Start with the catalog — fresh roast every Monday.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open the catalog",
+                "callback_data": "ob:5:noop:catalog",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "My orders",
+                "callback_data": "ob:5:noop:orders"
+              },
+              {
+                "text": "Settings",
+                "callback_data": "ob:5:noop:settings"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Welcome back, Alice</b>\nOrder SH-1001 is on its way.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open the catalog",
+                "callback_data": "ob:6:noop:catalog",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "My orders",
+                "callback_data": "ob:6:noop:orders"
+              },
+              {
+                "text": "Settings",
+                "callback_data": "ob:6:noop:settings"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "scenario": "r85-journey",
+  "status": "offline-model",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 101,
+        "text": "<b>Service feedback</b>\nRating: not selected. Comment is optional. State: draft.\nThis response is linked to your account, not anonymous.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Rate 5 / 5",
+                "callback_data": "r85:1:rate"
+              }
+            ],
+            [
+              {
+                "text": "Submit without comment",
+                "callback_data": "r85:1:submit"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "foreign-user",
+        "text": "Open your own menu with /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-0"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service feedback</b>\nRating: not selected. Comment is optional. State: draft.\nThis response is linked to your account, not anonymous.\nThe action could not be completed: answer the required question.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Rate 5 / 5",
+                "callback_data": "r85:2:rate"
+              }
+            ],
+            [
+              {
+                "text": "Submit without comment",
+                "callback_data": "r85:2:submit"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service feedback</b>\nRating: 5. Comment is optional. State: draft.\nThis response is linked to your account, not anonymous.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Rate 5 / 5",
+                "callback_data": "r85:3:rate"
+              }
+            ],
+            [
+              {
+                "text": "Submit without comment",
+                "callback_data": "r85:3:submit"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-2"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service feedback</b>\nRating: 5. Comment is optional. State: accepted locally.\nThis response is linked to your account, not anonymous.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Withdraw response",
+                "callback_data": "r85:4:withdraw"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-3"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Service feedback</b>\nRating: not selected. Comment is optional. State: withdrawn.\nThis response is linked to your account, not anonymous.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Show status",
+                "callback_data": "r85:5:status"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "old-screen",
+        "text": "This screen changed. Use the latest buttons."
+      }
+    }
+  ]
+}

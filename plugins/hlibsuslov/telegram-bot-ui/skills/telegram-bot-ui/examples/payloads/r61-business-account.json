@@ -1,0 +1,390 @@
+{
+  "scenario": "r61-business-account",
+  "status": "production",
+  "context": "business",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Підключено: Оксана</b>\nЩо я можу:\n• Відповідати за вас протягом 24 год після повідомлення клієнта\n\nЧого я не можу:\n• Позначати прочитаними: доступ вимкнено\n\nВідкрийте чат клієнта й натисніть <b>Керувати ботом</b>, щоб швидко відповісти."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 444444444,
+        "parse_mode": "HTML",
+        "text": "<b>Connected: Bob</b>\nWhat I can do:\n• Mark customer messages as read\n\nWhat I can't do:\n• Reply: access is off, so I work read-only\n\nOpen a customer chat and tap <b>Manage Bot</b> for quick replies."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "business_connection_id": "bizconn_oksana",
+        "chat_id": 222222222,
+        "text": "Вітаю, Іван! Ми працюємо з 8:00 до 19:00, з понеділка по суботу.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Меню",
+                "url": "https://bakery.example/menu"
+              },
+              {
+                "text": "Як нас знайти",
+                "url": "https://bakery.example/map"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Іван</b>\nОстаннє повідомлення: «Добрий день! Які у вас години роботи сьогодні?»\n\nАвтовідповіді: увімкнено\nВідповісти можна до <tg-time unix=\"1763286700\" format=\"wDT\">16 Nov 09:51 UTC</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Надіслати: до 19:00",
+                "callback_data": "bz:1:qr:hours",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Надіслати: меню дня",
+                "callback_data": "bz:1:qr:special"
+              }
+            ],
+            [
+              {
+                "text": "Написати свою",
+                "callback_data": "bz:1:own"
+              }
+            ],
+            [
+              {
+                "text": "Пауза автовідповідей",
+                "callback_data": "bz:1:auto"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "readBusinessMessage",
+      "params": {
+        "business_connection_id": "bizconn_bob",
+        "chat_id": 333333333,
+        "message_id": 5
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 444444444,
+        "text": "<b>Maria</b>\nLast message: «Do you have vegan buns?»\n\nRead-only mode: reply access is off.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Reply access is off",
+                "disabled": {}
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "business_connection_id": "bizconn_oksana",
+        "chat_id": 222222222,
+        "text": "Сьогодні працюємо до 19:00.",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq103",
+        "text": "Надіслано: Іван ✓"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>Іван</b>\nОстаннє повідомлення: «Добрий день! Які у вас години роботи сьогодні?»\n\nАвтовідповіді: увімкнено\nВідповісти можна до <tg-time unix=\"1763286700\" format=\"wDT\">16 Nov 09:51 UTC</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Надіслати: до 19:00",
+                "callback_data": "bz:2:qr:hours",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Надіслати: меню дня",
+                "callback_data": "bz:2:qr:special"
+              }
+            ],
+            [
+              {
+                "text": "Написати свою",
+                "callback_data": "bz:2:own"
+              }
+            ],
+            [
+              {
+                "text": "Пауза автовідповідей",
+                "callback_data": "bz:2:auto"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq104",
+        "text": "Панель змінилась. Користуйтеся останнім повідомленням."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Іван</b>\nОстаннє повідомлення: «Добрий день! Які у вас години роботи сьогодні?»\n\nАвтовідповіді: увімкнено\nВідповісти можна до <tg-time unix=\"1763286700\" format=\"wDT\">16 Nov 09:51 UTC</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Надіслати: до 19:00",
+                "callback_data": "bz:3:qr:hours",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Надіслати: меню дня",
+                "callback_data": "bz:3:qr:special"
+              }
+            ],
+            [
+              {
+                "text": "Написати свою",
+                "callback_data": "bz:3:own"
+              }
+            ],
+            [
+              {
+                "text": "Пауза автовідповідей",
+                "callback_data": "bz:3:auto"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq106",
+        "text": "Уже надіслано."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq107",
+        "text": "Ця панель належить власнику акаунта.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Дайте відповідь на це повідомлення текстом для <b>Іван</b>. Він піде з вашого акаунта.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "bz:4:panel"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq108"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Текст має містити 1-4096 символів. Дайте відповідь на повідомлення вище ще раз.",
+        "reply_parameters": {
+          "message_id": 1008
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "business_connection_id": "bizconn_oksana",
+        "chat_id": 222222222,
+        "text": "Ваш торт готовий &lt;o_O&gt;",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Іван</b>\nОстаннє повідомлення: «Добрий день! Які у вас години роботи сьогодні?»\n\nАвтовідповіді: увімкнено\nВідповісти можна до <tg-time unix=\"1763286700\" format=\"wDT\">16 Nov 09:51 UTC</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Надіслати: до 19:00",
+                "callback_data": "bz:5:qr:hours",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Надіслати: меню дня",
+                "callback_data": "bz:5:qr:special"
+              }
+            ],
+            [
+              {
+                "text": "Написати свою",
+                "callback_data": "bz:5:own"
+              }
+            ],
+            [
+              {
+                "text": "Пауза автовідповідей",
+                "callback_data": "bz:5:auto"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Цей чат я ще не бачив. Він з'явиться після першого повідомлення клієнта."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Іван</b>\nОстаннє повідомлення: «Добрий день! Які у вас години роботи сьогодні?»\n\nАвтовідповіді: увімкнено\nВідповісти можна до <tg-time unix=\"1763286700\" format=\"wDT\">16 Nov 09:51 UTC</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Надіслати: до 19:00",
+                "callback_data": "bz:6:qr:hours",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Надіслати: меню дня",
+                "callback_data": "bz:6:qr:special"
+              }
+            ],
+            [
+              {
+                "text": "Написати свою",
+                "callback_data": "bz:6:own"
+              }
+            ],
+            [
+              {
+                "text": "Пауза автовідповідей",
+                "callback_data": "bz:6:auto"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq113",
+        "text": "Вікно 24 год закрите: спершу має написати клієнт.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1013,
+        "text": "<b>Іван</b>\nОстаннє повідомлення: «Добрий день! Які у вас години роботи сьогодні?»\n\nАвтовідповіді: увімкнено\nВідповісти можна до <tg-time unix=\"1763286700\" format=\"wDT\">16 Nov 09:51 UTC</tg-time>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Вікно 24 год закрите",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Пауза автовідповідей",
+                "callback_data": "bz:7:auto"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Підключення вимкнено</b>\nЯ припинив відповіді для Оксана. Увімкніть мене в Налаштування → Бізнес → Чат-боти."
+      }
+    }
+  ]
+}

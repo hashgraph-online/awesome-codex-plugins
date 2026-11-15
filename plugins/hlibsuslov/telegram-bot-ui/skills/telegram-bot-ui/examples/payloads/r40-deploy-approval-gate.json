@@ -1,0 +1,108 @@
+{
+  "scenario": "r40-deploy-approval-gate",
+  "status": "production",
+  "context": "private (operator chat); group variant in code",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Deploy v1.4.0</b> — running · 0s\n✅ Checks\n⏳ Approval\n▫️ Migrate\n▫️ Release",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Approval needed</b>\nDeploy shop-api v1.4.0 → production\n3 migrations · 41 files changed · CI green\n\nExpires in 15 min. No answer = not approved.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve",
+                "callback_data": "ap:081da789:n6d6976b:a",
+                "style": "danger"
+              },
+              {
+                "text": "Reject",
+                "callback_data": "ap:081da789:n6d6976b:r"
+              }
+            ],
+            [
+              {
+                "text": "Details",
+                "callback_data": "ap:081da789:n6d6976b:d"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "43820000000950001",
+        "text": "0041_add_index (online), 0042_backfill_orders (~2 min), 0043_drop_legacy_col (irreversible)",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "43820000000950002",
+        "text": "Approved",
+        "show_alert": false
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "text": "<b>Approval needed</b>\nDeploy shop-api v1.4.0 → production\n3 migrations · 41 files changed · CI green\n\nExpires in 15 min. No answer = not approved.\n\nApproved by Alice",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approved by Alice",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "43820000000950003",
+        "text": "Already recorded",
+        "show_alert": false
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Deploy v1.4.0</b> — finished · 6s\n✅ Checks\n✅ Approval\n✅ Migrate\n✅ Release\n\nv1.4.0 is live",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Deploy v1.4.0: finished in 6s.",
+        "reply_parameters": {
+          "message_id": 1001
+        }
+      }
+    }
+  ]
+}

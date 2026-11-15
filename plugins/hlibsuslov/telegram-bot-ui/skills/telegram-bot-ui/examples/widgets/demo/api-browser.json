@@ -1,0 +1,209 @@
+{
+ "widget": "api-browser",
+ "title": "API data browser",
+ "summary": "A widget as the front end of a REST backend: filtered, paged list -> detail -> action, with cached data when the upstream is slow and a Mini App hand-off for what a widget cannot do.",
+ "caption": "Support tickets · 8 open · newest: Bulk import fails",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Open tickets",
+     "callback_data": "tk:list:open"
+    },
+    {
+     "text": "Mine",
+     "callback_data": "tk:list:mine"
+    }
+   ],
+   [
+    {
+     "text": "Open the app",
+     "url": "https://t.me/example_bot?startapp=tickets"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "ti": "Support tickets",
+    "v": "l",
+    "f": "open",
+    "pg": 1,
+    "np": 2,
+    "n": 8,
+    "it": [
+     [
+      4109,
+      "Bulk import fails",
+      "o",
+      "Olena P. · High"
+     ],
+     [
+      4108,
+      "2FA code never arrives",
+      "o",
+      "Aiko T. · Low"
+     ],
+     [
+      4106,
+      "Duplicate charge",
+      "p",
+      "Olena P. · High"
+     ],
+     [
+      4105,
+      "Cannot change e-mail",
+      "o",
+      "Aiko T. · Low"
+     ],
+     [
+      4104,
+      "Webhook returns 502",
+      "o",
+      "Marco R. · Normal"
+     ]
+    ],
+    "d": null,
+    "app": null,
+    "at": 1794736680,
+    "stale": 0,
+    "r": 0
+   }
+  },
+  "detail": {
+   "chatData": {
+    "ti": "Support tickets",
+    "v": "d",
+    "f": "open",
+    "pg": 1,
+    "np": 2,
+    "n": 8,
+    "it": [
+     [
+      4109,
+      "Bulk import fails",
+      "o",
+      "Olena P. · High"
+     ],
+     [
+      4108,
+      "2FA code never arrives",
+      "o",
+      "Aiko T. · Low"
+     ],
+     [
+      4106,
+      "Duplicate charge",
+      "p",
+      "Olena P. · High"
+     ],
+     [
+      4105,
+      "Cannot change e-mail",
+      "o",
+      "Aiko T. · Low"
+     ],
+     [
+      4104,
+      "Webhook returns 502",
+      "o",
+      "Marco R. · Normal"
+     ]
+    ],
+    "d": {
+     "id": 4104,
+     "t": "Webhook returns 502",
+     "st": "o",
+     "by": "Marco R.",
+     "pr": "Normal",
+     "up": 1794734400,
+     "tx": "Customer report #4104: webhook returns 502. Steps and logs attached."
+    },
+    "app": "t.me/example_bot?startapp=t_",
+    "at": 1794736680,
+    "stale": 0,
+    "r": 0
+   }
+  },
+  "stale": {
+   "chatData": {
+    "ti": "Support tickets",
+    "v": "l",
+    "f": "open",
+    "pg": 1,
+    "np": 2,
+    "n": 8,
+    "it": [
+     [
+      4109,
+      "Bulk import fails",
+      "o",
+      "Olena P. · High"
+     ],
+     [
+      4108,
+      "2FA code never arrives",
+      "o",
+      "Aiko T. · Low"
+     ],
+     [
+      4106,
+      "Duplicate charge",
+      "p",
+      "Olena P. · High"
+     ],
+     [
+      4105,
+      "Cannot change e-mail",
+      "o",
+      "Aiko T. · Low"
+     ],
+     [
+      4104,
+      "Webhook returns 502",
+      "o",
+      "Marco R. · Normal"
+     ]
+    ],
+    "d": null,
+    "app": null,
+    "at": 1794736200,
+    "stale": 1,
+    "r": 0
+   }
+  },
+  "empty": {
+   "chatData": {
+    "ti": "Support tickets",
+    "v": "l",
+    "f": "mine",
+    "pg": 1,
+    "np": 1,
+    "n": 0,
+    "it": [],
+    "d": null,
+    "app": null,
+    "at": 1794736680,
+    "stale": 0,
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "sync",
+  "f:mine",
+  "pg:2",
+  "o:4104",
+  "x:4104:assign",
+  "b",
+  "f:bogus",
+  "pg:99"
+ ],
+ "fresh": [
+  "at"
+ ]
+}

@@ -1,0 +1,380 @@
+{
+  "scenario": "r64-delivery-tracker",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Order O-5001</b>\n▰▱▱▱▱ 1/5 · placed\nExpected <tg-time unix=\"1795176000\" format=\"wDT\">20.11 12:00</tg-time>\nAddress: 12 Harbour St, Gdansk",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Change address",
+                "callback_data": "dt:1:addr:O-5001"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Замовлення O-5002</b>\n▰▱▱▱▱ 1/5 · оформлено\nОчікуємо <tg-time unix=\"1795089600\" format=\"wDT\">19.11 12:00</tg-time>\nАдреса: вул. Хрещатик 1, Київ",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Змінити адресу",
+                "callback_data": "dt:1:addr:O-5002"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Send the new delivery address as a reply to this message.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Keep address",
+                "callback_data": "dt:1:keep:O-5001"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Order O-5001</b>\n▰▱▱▱▱ 1/5 · placed\nExpected <tg-time unix=\"1795176000\" format=\"wDT\">20.11 12:00</tg-time>\nAddress: 5 Long Market, Gdansk",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Change address",
+                "callback_data": "dt:2:addr:O-5001"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Order O-5001</b>\n▰▰▱▱▱ 2/5 · packed\nExpected <tg-time unix=\"1795125600\" format=\"wDT\">19.11 22:00</tg-time>\nAddress: 5 Long Market, Gdansk",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Change address",
+                "callback_data": "dt:3:addr:O-5001"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Order O-5001</b>\n▰▰▰▱▱ 3/5 · shipped\nExpected <tg-time unix=\"1795060800\" format=\"wDT\">19.11 04:00</tg-time>\nAddress: 5 Long Market, Gdansk",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "url": "https://track.example.com/O-5001"
+              }
+            ],
+            [
+              {
+                "text": "Change address · shipped",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Order O-5001</b>\n▰▰▰▰▱ 4/5 · out for delivery\nExpected <tg-time unix=\"1795050000\" format=\"wDT\">19.11 01:00</tg-time>\nAddress: 5 Long Market, Gdansk",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "url": "https://track.example.com/O-5001"
+              }
+            ],
+            [
+              {
+                "text": "Contact courier",
+                "callback_data": "dt:5:courier:O-5001"
+              }
+            ],
+            [
+              {
+                "text": "Change address · shipped",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>O-5001 is out for delivery</b>\nCourier Taras, arriving <tg-time unix=\"1795050000\" format=\"t\">19.11 01:00</tg-time>."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2",
+        "text": "The parcel is already shipped, so the address can't change. The courier can still call you.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3",
+        "text": "Courier Taras: +10000000000",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Order O-5001</b>\n▰▰▰▰▰ 5/5 · delivered\nDelivered <tg-time unix=\"1795053600\" format=\"wDT\">19.11 02:00</tg-time>\nAddress: 5 Long Market, Gdansk\nHow was the delivery?",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "url": "https://track.example.com/O-5001"
+              }
+            ],
+            [
+              {
+                "text": "1",
+                "callback_data": "dt:6:rate:O-5001:1"
+              },
+              {
+                "text": "2",
+                "callback_data": "dt:6:rate:O-5001:2"
+              },
+              {
+                "text": "3",
+                "callback_data": "dt:6:rate:O-5001:3"
+              },
+              {
+                "text": "4",
+                "callback_data": "dt:6:rate:O-5001:4"
+              },
+              {
+                "text": "5",
+                "callback_data": "dt:6:rate:O-5001:5"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>O-5001 is delivered.</b> Enjoy!"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4",
+        "text": "Це замовлення іншої людини.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq5",
+        "text": "This card has changed. Use the latest one.",
+        "show_alert": false
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Order O-5001</b>\n▰▰▰▰▰ 5/5 · delivered\nDelivered <tg-time unix=\"1795053600\" format=\"wDT\">19.11 02:00</tg-time>\nAddress: 5 Long Market, Gdansk\nThanks, you rated it 5/5.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Track",
+                "url": "https://track.example.com/O-5001"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq6"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7",
+        "text": "You already rated this delivery.",
+        "show_alert": false
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1002,
+        "text": "<b>Замовлення O-5002</b>\n▰▰▱▱▱ 2/5 · зібрано\nОчікуємо <tg-time unix=\"1795089600\" format=\"wDT\">19.11 12:00</tg-time>\nАдреса: вул. Хрещатик 1, Київ",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Змінити адресу",
+                "callback_data": "dt:2:addr:O-5002"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Замовлення O-5002</b>\n▰▰▱▱▱ 2/5 · зібрано\nОчікуємо <tg-time unix=\"1795089600\" format=\"wDT\">19.11 12:00</tg-time>\nАдреса: вул. Хрещатик 1, Київ",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Змінити адресу",
+                "callback_data": "dt:2:addr:O-5002"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1006,
+        "text": "<b>Замовлення O-5002</b>\n▰▰▰▱▱ 3/5 · відправлено\nОчікуємо <tg-time unix=\"1795089600\" format=\"wDT\">19.11 12:00</tg-time>\nАдреса: вул. Хрещатик 1, Київ",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відстежити",
+                "url": "https://track.example.com/O-5002"
+              }
+            ],
+            [
+              {
+                "text": "Адреса · вже відправлено",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 333333333,
+        "message_id": 1006,
+        "text": "<b>Замовлення O-5002</b>\n▰▰▰▱▱ 3/5 · відправлено\nОчікуємо <tg-time unix=\"1795089600\" format=\"wDT\">19.11 12:00</tg-time>\nАдреса: вул. Хрещатик 1, Київ",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Відстежити",
+                "url": "https://track.example.com/O-5002"
+              }
+            ],
+            [
+              {
+                "text": "Адреса · вже відправлено",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8",
+        "text": "Посилку вже відправлено, тож адресу не змінити. Кур'єр може зателефонувати вам.",
+        "show_alert": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+<!-- BTC price ticker (shared widget, no requests: one public_data for every copy).
+     public_data = {"p":"97250.12","ch":"+1.84","at":1762900800,"r":N}; created once with is_shared,
+     re-sent with sendSharedWidget, refreshed with editSharedWidgetData (cache_time 10). -->
+<style>
+body{margin:0;padding:0}
+.c{padding:10px 12px max(10px,env(safe-area-inset-bottom));display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.n{color:var(--tg-theme-hint-color);font-size:.9em}
+.p{font-size:1.6em;font-weight:700;font-variant-numeric:tabular-nums}
+.ch{font-weight:600;font-variant-numeric:tabular-nums}
+.up{color:var(--tg-theme-accent-text-color)}
+.dn{color:var(--tg-theme-destructive-text-color)}
+.at{color:var(--tg-theme-hint-color);font-size:.8em}
+</style>
+<div class="c"><div><div class="n">BTC · USD</div><div class="p" id="p">—</div></div>
+<div style="text-align:right"><div class="ch" id="ch"></div><div class="at" id="at"></div></div></div>
+<script>
+var W=window.TelegramWidget,S=null,R=-1;
+function load(){var s=null;try{s=JSON.parse(W?W.publicData:null)}catch(e){}if(s&&s.r>R){S=s;R=s.r}}
+function draw(){
+ if(!S)return;var lang=navigator.language||"en";
+ document.getElementById("p").textContent="$"+Number(S.p).toLocaleString(lang,{maximumFractionDigits:2});
+ var ch=document.getElementById("ch"),v=Number(S.ch);ch.textContent=(v>0?"▲ +":v<0?"▼ ":"")+S.ch.replace("+","")+"%";
+ ch.className="ch "+(v>0?"up":v<0?"dn":"");
+ var d=new Date(S.at*1000);document.getElementById("at").textContent=(W&&W.isForward?"as of ":"")+d.toLocaleTimeString(lang,{hour:"2-digit",minute:"2-digit"});
+}
+if(W){W.onEvent("publicDataChanged",function(){load();draw()});W.watchPublicData()}
+load();draw();if(W)W.ready();
+</script>

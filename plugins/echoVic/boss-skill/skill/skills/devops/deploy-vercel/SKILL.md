@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要部署到 Vercel 时
@@ -71,6 +72,7 @@ vercel --yes --prod
 ```
 
 **首次部署输出示例**：
+
 ```
 Vercel CLI 37.0.0
 🔗  Linked to username/project (created .vercel)
@@ -146,6 +148,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `VERCEL_TOKEN`：Vercel Personal Access Token（Settings → Tokens）
 - `ORG_ID`：Vercel 团队/个人 ID
 - `PROJECT_ID`：Vercel 项目 ID

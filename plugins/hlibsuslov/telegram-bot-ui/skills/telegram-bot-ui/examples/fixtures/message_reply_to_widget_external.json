@@ -1,0 +1,36 @@
+{
+  "update_id": 900045,
+  "message": {
+    "message_id": 800,
+    "date": 1762900405,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 111111111,
+      "is_bot": false,
+      "first_name": "Alice",
+      "language_code": "en"
+    },
+    "text": "Can I change this?",
+    "external_reply": {
+      "origin": {
+        "type": "user",
+        "date": 1762900000,
+        "sender_user": {
+          "id": 999000111,
+          "is_bot": true,
+          "first_name": "OrdersBot",
+          "username": "orders_demo_bot"
+        }
+      },
+      "widget": {
+        "id": "7770011223344556677",
+        "html": "<div>…</div>",
+        "public_data": "{\"q\":\"Lunch?\",\"r\":3}"
+      }
+    }
+  }
+}

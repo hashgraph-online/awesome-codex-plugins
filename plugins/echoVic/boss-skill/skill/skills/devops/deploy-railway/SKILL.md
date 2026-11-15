@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要部署后端服务到 Railway 时
@@ -98,6 +99,7 @@ railway logs
 ```
 
 **部署输出示例**：
+
 ```
 ✔ Connected to project my-api
 ✔ Deploying...
@@ -227,6 +229,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `RAILWAY_TOKEN`：Railway API Token（Account Settings → API Tokens）
 
 ## 项目类型适配

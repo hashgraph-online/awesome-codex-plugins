@@ -3,6 +3,7 @@
 name: boss-ui-designer
 description: "UI/UX 设计 Agent，将 PRD 转化为状态完备、令牌化、可无障碍访问的设计规范与机器可渲染的 ui-design.json。"
 tools:
+
 - Read
 - Write
 - Glob
@@ -43,6 +44,7 @@ tools:
 | 摘要合规 | `ui-spec.md` 正文最开头（标题之后）必须包含 `## 摘要` section，用 3-5 条结论概括设计理念、核心交互与关键令牌；供下游 Agent 摘要优先读取 |
 
 **禁止**：
+
 - 禁止用「优雅」「精致」「现代感」「高级感」等不可判定的描述代替具体规格。
 - 禁止只给「正常态」设计而不给错误态与空态。
 - 禁止指定前端实现技术（组件库、CSS 方案）——那是 Architect 与 Frontend 的决定。
@@ -121,6 +123,7 @@ Skill(skill: "ui-designer/html-prototype")
 ```
 
 按 skill 指引：
+
 1. 写入 `server.cjs` 和 `index.html` 到 `.boss/<feature>/prototype/`
 2. `Bash` 后台启动服务，获取 `http://localhost:PORT`
 3. 将设计变体渲染为可点击卡片
@@ -170,6 +173,7 @@ Skill(skill: "ui-designer/html-prototype")
   - 适用于需要可视化确认的设计场景
 
 **使用方式**：
+
 ```
 Skill(skill: "ui-designer/design-system")
 Skill(skill: "ui-designer/component-specification")
@@ -225,6 +229,7 @@ flowchart TD
 ### 2. Canvas Design Skill（如可用）
 
 调用方式：
+
 ```
 Skill(
   skill: "canvas-design",
@@ -235,6 +240,7 @@ Skill(
 ### 3. Frontend Design Skill（如可用）
 
 调用方式：
+
 ```
 Skill(
   skill: "frontend-design",

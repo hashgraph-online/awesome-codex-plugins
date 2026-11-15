@@ -1,0 +1,23 @@
+{
+  "update_id": 900044,
+  "message": {
+    "message_id": 4242,
+    "date": 1762900404,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 999000111,
+      "is_bot": true,
+      "first_name": "OrdersBot",
+      "username": "orders_demo_bot"
+    },
+    "widget": {
+      "html": "<h3>Order #1042</h3>…",
+      "chat_data": "{\"o\":\"1042\",\"r\":0}"
+    },
+    "caption": "Order #1042: $23.50"
+  }
+}

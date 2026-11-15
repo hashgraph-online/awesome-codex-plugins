@@ -8,6 +8,7 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - ui-designer/design-system
   triggers:
 - 需要设计组件时
@@ -33,6 +34,7 @@ dependencies:
 ## 组件设计框架
 
 每个组件的规范必须回答以下 5 个问题：
+
 1. **解剖（Anatomy）**：组件由哪些部分组成？
 2. **变体（Variants）**：有哪些视觉变体？何时用哪种？
 3. **状态（States）**：所有交互状态是否完备？
@@ -335,6 +337,7 @@ Radio:
 **解剖**：[组件结构图]
 
 **变体**：
+
 | 变体 | 何时使用 | 何时不用 |
 | ---- | -------- | -------- |
 
@@ -343,6 +346,7 @@ Radio:
 **状态**：[状态表，覆盖 default/hover/focus/active/disabled/loading/error]
 
 **无障碍**：
+
 - 语义元素 / ARIA 角色
 - 键盘交互
 - 屏幕阅读器支持

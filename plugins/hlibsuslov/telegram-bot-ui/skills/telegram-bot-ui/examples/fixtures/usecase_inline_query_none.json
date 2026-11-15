@@ -1,0 +1,10 @@
+{
+  "update_id": 960004,
+  "inline_query": {
+    "id": "6000000000000960004",
+    "from": {"id": 222222222, "is_bot": false, "first_name": "Богдан", "language_code": "uk"},
+    "query": "zzz",
+    "offset": "",
+    "chat_type": "private"
+  }
+}

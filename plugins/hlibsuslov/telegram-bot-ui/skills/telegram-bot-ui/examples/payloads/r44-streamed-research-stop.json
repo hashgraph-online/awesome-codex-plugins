@@ -1,0 +1,163 @@
+{
+  "scenario": "r44-streamed-research-stop",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 40001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 40001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Searching the sources…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finding 1: Bot API 10.4 widgets are private-chat only in production. Finding 2: Bot API 10.4 widgets are private-chat only in production."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 40001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Searching the sources…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finding 1: Bot API 10.4 widgets are private-chat only in production. Finding 2: Bot API 10.4 widgets are private-chat only in production. Finding 3: Bot API 10.4 widgets are private-chat only in production. Finding 4: Bot API 10.4 widgets are private-chat only in production."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 40001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Searching the sources…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finding 1: Bot API 10.4 widgets are private-chat only in production. Finding 2: Bot API 10.4 widgets are private-chat only in production. Finding 3: Bot API 10.4 widgets are private-chat only in production. Finding 4: Bot API 10.4 widgets are private-chat only in production. Finding 5: Bot API 10.4 widgets are private-chat only in production. Finding 6: Bot API 10.4 widgets are private-chat only in production."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 40001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Searching the sources…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finding 1: Bot API 10.4 widgets are private-chat only in production. Finding 2: Bot API 10.4 widgets are private-chat only in production. Finding 3: Bot API 10.4 widgets are private-chat only in production. Finding 4: Bot API 10.4 widgets are private-chat only in production. Finding 5: Bot API 10.4 widgets are private-chat only in production. Finding 6: Bot API 10.4 widgets are private-chat only in production. Finding 7: Bot API 10.4 widgets are private-chat only in production. Finding 8: Bot API 10.4 widgets are private-chat only in production."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 40001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Searching the sources…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Finding 1: Bot API 10.4 widgets are private-chat only in production. Finding 2: Bot API 10.4 widgets are private-chat only in production. Finding 3: Bot API 10.4 widgets are private-chat only in production. Finding 4: Bot API 10.4 widgets are private-chat only in production. Finding 5: Bot API 10.4 widgets are private-chat only in production. Finding 6: Bot API 10.4 widgets are private-chat only in production. Finding 7: Bot API 10.4 widgets are private-chat only in production. Finding 8: Bot API 10.4 widgets are private-chat only in production. Finding 9: Bot API 10.4 widgets are private-chat only in production. Finding 10: Bot API 10.4 widgets are private-chat only in production."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Finding 1: Bot API 10.4 widgets are private-chat only in production. Finding 2: Bot API 10.4 widgets are private-chat only in production. Finding 3: Bot API 10.4 widgets are private-chat only in production. Finding 4: Bot API 10.4 widgets are private-chat only in production. Finding 5: Bot API 10.4 widgets are private-chat only in production. Finding 6: Bot API 10.4 widgets are private-chat only in production. Finding 7: Bot API 10.4 widgets are private-chat only in production. Finding 8: Bot API 10.4 widgets are private-chat only in production. Finding 9: Bot API 10.4 widgets are private-chat only in production. Finding 10: Bot API 10.4 widgets are private-chat only in production. Finding 11: Bot API 10.4 widgets are private-chat only in production."
+            },
+            {
+              "type": "footer",
+              "text": "Stopped by you — the answer is incomplete."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Continue",
+                "callback_data": "gen:continue:stream-40001"
+              },
+              {
+                "text": "Try again",
+                "callback_data": "gen:retry:stream-40001"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

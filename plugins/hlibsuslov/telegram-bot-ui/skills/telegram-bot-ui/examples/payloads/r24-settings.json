@@ -1,0 +1,649 @@
+{
+  "scenario": "r24-settings",
+  "status": "production",
+  "context": "private (+ a group entry point)",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "Настройки личные, поэтому открываются в нашем личном чате.",
+        "reply_parameters": {
+          "message_id": 9
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Открыть настройки",
+                "url": "https://t.me/coffee_demo_bot?start=settings"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Настройки</b>\nЯзык: Русский · Уведомления: 2/3",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Язык: Русский",
+                "callback_data": "st:1:go:lang"
+              }
+            ],
+            [
+              {
+                "text": "Уведомления",
+                "callback_data": "st:1:go:notif"
+              },
+              {
+                "text": "Приватность",
+                "callback_data": "st:1:go:privacy"
+              }
+            ],
+            [
+              {
+                "text": "Удалить мои данные",
+                "callback_data": "st:1:go:confirm_delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Уведомления</b>\nНажмите, чтобы включить или выключить.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Статус доставки",
+                "callback_data": "st:2:tog:shipping"
+              }
+            ],
+            [
+              {
+                "text": "✗ Акции и новости",
+                "callback_data": "st:2:tog:promos"
+              }
+            ],
+            [
+              {
+                "text": "✓ Дайджест недели",
+                "callback_data": "st:2:tog:digest"
+              }
+            ],
+            [
+              {
+                "text": "Тихие часы: с 22:00",
+                "callback_data": "st:2:go:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "st:2:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Уведомления</b>\nНажмите, чтобы включить или выключить.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Статус доставки",
+                "callback_data": "st:3:tog:shipping"
+              }
+            ],
+            [
+              {
+                "text": "✓ Акции и новости",
+                "callback_data": "st:3:tog:promos"
+              }
+            ],
+            [
+              {
+                "text": "✓ Дайджест недели",
+                "callback_data": "st:3:tog:digest"
+              }
+            ],
+            [
+              {
+                "text": "Тихие часы: с 22:00",
+                "callback_data": "st:3:go:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "st:3:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q2"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q3",
+        "text": "Экран изменился. Используйте последнее сообщение."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Тихие часы</b>\nБез звука с 22:00 до 08:00. С какого часа?",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "20:00",
+                "callback_data": "st:4:quiet:20"
+              },
+              {
+                "text": "21:00",
+                "callback_data": "st:4:quiet:21"
+              },
+              {
+                "text": "22:00",
+                "disabled": {}
+              },
+              {
+                "text": "23:00",
+                "callback_data": "st:4:quiet:23"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "st:4:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q4"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Уведомления</b>\nНажмите, чтобы включить или выключить.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Статус доставки",
+                "callback_data": "st:5:tog:shipping"
+              }
+            ],
+            [
+              {
+                "text": "✓ Акции и новости",
+                "callback_data": "st:5:tog:promos"
+              }
+            ],
+            [
+              {
+                "text": "✓ Дайджест недели",
+                "callback_data": "st:5:tog:digest"
+              }
+            ],
+            [
+              {
+                "text": "Тихие часы: с 23:00",
+                "callback_data": "st:5:go:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "st:5:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q5"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Настройки</b>\nЯзык: Русский · Уведомления: 3/3",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Язык: Русский",
+                "callback_data": "st:6:go:lang"
+              }
+            ],
+            [
+              {
+                "text": "Уведомления",
+                "callback_data": "st:6:go:notif"
+              },
+              {
+                "text": "Приватность",
+                "callback_data": "st:6:go:privacy"
+              }
+            ],
+            [
+              {
+                "text": "Удалить мои данные",
+                "callback_data": "st:6:go:confirm_delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q6"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Язык</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "English",
+                "callback_data": "st:7:lang:en"
+              }
+            ],
+            [
+              {
+                "text": "✓ Русский",
+                "callback_data": "st:7:lang:ru"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "st:7:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q7"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Settings</b>\nLanguage: English · Notifications: 3/3",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Language: English",
+                "callback_data": "st:8:go:lang"
+              }
+            ],
+            [
+              {
+                "text": "Notifications",
+                "callback_data": "st:8:go:notif"
+              },
+              {
+                "text": "Privacy",
+                "callback_data": "st:8:go:privacy"
+              }
+            ],
+            [
+              {
+                "text": "Delete my data",
+                "callback_data": "st:8:go:confirm_delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q8"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Delete all your data?</b>\nOrders, addresses and settings will be removed. Paid orders stay with the shop for accounting.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cancel",
+                "callback_data": "st:9:back"
+              }
+            ],
+            [
+              {
+                "text": "Delete everything",
+                "callback_data": "st:9:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q9"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Settings</b>\nLanguage: English · Notifications: 3/3",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Language: English",
+                "callback_data": "st:a:go:lang"
+              }
+            ],
+            [
+              {
+                "text": "Notifications",
+                "callback_data": "st:a:go:notif"
+              },
+              {
+                "text": "Privacy",
+                "callback_data": "st:a:go:privacy"
+              }
+            ],
+            [
+              {
+                "text": "Delete my data",
+                "callback_data": "st:a:go:confirm_delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q10"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Delete all your data?</b>\nOrders, addresses and settings will be removed. Paid orders stay with the shop for accounting.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cancel",
+                "callback_data": "st:b:back"
+              }
+            ],
+            [
+              {
+                "text": "Delete everything",
+                "callback_data": "st:b:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q11"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Deleting in 30 s</b>\nChanged your mind? Tap Undo.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Undo",
+                "callback_data": "st:c:undo",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q12"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q13",
+        "text": "Deletion cancelled. Nothing was removed."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Settings</b>\nLanguage: English · Notifications: 3/3",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Language: English",
+                "callback_data": "st:d:go:lang"
+              }
+            ],
+            [
+              {
+                "text": "Notifications",
+                "callback_data": "st:d:go:notif"
+              },
+              {
+                "text": "Privacy",
+                "callback_data": "st:d:go:privacy"
+              }
+            ],
+            [
+              {
+                "text": "Delete my data",
+                "callback_data": "st:d:go:confirm_delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Delete all your data?</b>\nOrders, addresses and settings will be removed. Paid orders stay with the shop for accounting.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cancel",
+                "callback_data": "st:e:back"
+              }
+            ],
+            [
+              {
+                "text": "Delete everything",
+                "callback_data": "st:e:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q14"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Deleting in 30 s</b>\nChanged your mind? Tap Undo.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Undo",
+                "callback_data": "st:f:undo",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q15"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>Your data was deleted.</b>\nSend /start to begin again.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Start again",
+                "url": "https://t.me/coffee_demo_bot?start=new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-late",
+        "text": "This screen has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q-alice",
+        "text": "These are someone else's settings.",
+        "show_alert": true
+      }
+    }
+  ]
+}

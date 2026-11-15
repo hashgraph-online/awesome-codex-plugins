@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要编写或执行 E2E 测试时
@@ -739,6 +740,7 @@ npx playwright show-trace e2e/test-results/specs-auth-login-spec-ts/trace.zip
 ```
 
 Trace Viewer 提供：
+
 - 时间线上的每一步操作
 - DOM 快照
 - 网络请求日志
@@ -841,6 +843,7 @@ npx playwright test
 ## 12. 检查清单
 
 Agent 编写 E2E 测试时，对照以下清单确认完整性：
+
 - [ ] `playwright.config.ts` 已配置（baseURL、webServer、projects）
 - [ ] Page Object Model 已建立（每个核心页面一个 POM）
 - [ ] 定位器使用语义化方法（`getByRole` > `getByTestId` > CSS）
@@ -855,6 +858,7 @@ Agent 编写 E2E 测试时，对照以下清单确认完整性：
 ## 输出要求
 
 使用本方法论后，Agent 应产出：
+
 1. **`playwright.config.ts`**：完整配置
 2. **`e2e/pages/*.page.ts`**：Page Object Model
 3. **`e2e/specs/**/*.spec.ts`**：测试用例（覆盖关键路径）

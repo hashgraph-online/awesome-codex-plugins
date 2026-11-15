@@ -35,6 +35,14 @@ unit tests that override `is_incremental` to true, and it has its own score. A
 branch survivor needs such a test, with a `this` fixture and an input row on the
 watermark; `transform test --scaffold` plans one.
 
+Each run that decided a mutant is recorded for the model in `.dex/`
+(`data.record` names where), with a digest of the model's SQL as written and of
+its tests. `dex maintain coverage` reads it back as the model's `strength`:
+`fresh` while neither changed, `stale` once one did. A run that decided nothing
+leaves the previous record in place. To see which models have a current score,
+which are stale and which were never measured, run `maintain coverage` rather
+than `--mutate` on every model.
+
 The score covers only the defects Dex plants, on one model. It is evidence about
 the suite, not proof that the model is right. Do not quote it as a quality
 metric, and do not compare it across models.

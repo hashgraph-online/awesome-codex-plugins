@@ -1,0 +1,162 @@
+{
+ "widget": "receipt",
+ "title": "Receipt",
+ "summary": "Invoice with items table, tax, total, status stamp, copy number, PDF link and a refund request.",
+ "caption": "Receipt INV-20481 · Brewline Coffee · EUR 26.40 · paid",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Download PDF",
+     "url": "https://example.com/r/20481"
+    }
+   ],
+   [
+    {
+     "text": "Copy number",
+     "copy_text": {
+      "text": "INV-20481"
+     }
+    },
+    {
+     "text": "Refund request",
+     "callback_data": "rcpt:refund:20481"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "m": "Brewline Coffee",
+    "no": "INV-20481",
+    "at": 1794731400,
+    "it": [
+     [
+      "Flat white",
+      2,
+      760
+     ],
+     [
+      "Almond croissant",
+      1,
+      390
+     ],
+     [
+      "Ethiopia beans 250 g",
+      1,
+      1490
+     ]
+    ],
+    "cur": "EUR",
+    "tl": "VAT 20%",
+    "tx": 440,
+    "to": 2640,
+    "ps": 0,
+    "r": 0
+   }
+  },
+  "refund-requested": {
+   "chatData": {
+    "m": "Brewline Coffee",
+    "no": "INV-20481",
+    "at": 1794731400,
+    "it": [
+     [
+      "Flat white",
+      2,
+      760
+     ],
+     [
+      "Almond croissant",
+      1,
+      390
+     ],
+     [
+      "Ethiopia beans 250 g",
+      1,
+      1490
+     ]
+    ],
+    "cur": "EUR",
+    "tl": "VAT 20%",
+    "tx": 440,
+    "to": 2640,
+    "ps": 0,
+    "rq": 1,
+    "r": 0
+   }
+  },
+  "refunded": {
+   "chatData": {
+    "m": "Brewline Coffee",
+    "no": "INV-20481",
+    "at": 1794731400,
+    "it": [
+     [
+      "Flat white",
+      2,
+      760
+     ],
+     [
+      "Almond croissant",
+      1,
+      390
+     ],
+     [
+      "Ethiopia beans 250 g",
+      1,
+      1490
+     ]
+    ],
+    "cur": "EUR",
+    "tl": "VAT 20%",
+    "tx": 440,
+    "to": 2640,
+    "ps": 1,
+    "r": 0
+   }
+  },
+  "pending": {
+   "chatData": {
+    "m": "Brewline Coffee",
+    "no": "INV-20481",
+    "at": 1794731400,
+    "it": [
+     [
+      "Flat white",
+      2,
+      760
+     ],
+     [
+      "Almond croissant",
+      1,
+      390
+     ],
+     [
+      "Ethiopia beans 250 g",
+      1,
+      1490
+     ]
+    ],
+    "cur": "EUR",
+    "tl": "VAT 20%",
+    "tx": 440,
+    "to": 2640,
+    "ps": 2,
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "refund",
+  "sync",
+  "refund:1"
+ ],
+ "fresh": [
+  "at"
+ ]
+}

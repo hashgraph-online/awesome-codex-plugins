@@ -7,6 +7,7 @@
 开发环节规划前必须探测项目事实；在 `tasks.md` 存在前将摘要注入 Tech Lead、Scrum Master、Frontend、Backend、QA 上下文，Scrum Master 必须把摘要写入 `.boss/<feature>/tasks.md`。
 
 必须检查：
+
 - Git：默认分支、当前分支、是否存在未提交变更。
 - CI：`.github/workflows/`、`.gitlab-ci.yml`、`.circleci/config.yml`、`vercel.json`、`netlify.toml`，以及 CI 实际执行的 lint/test/build 命令。
 - 包管理与测试脚本：package manager、install 命令、test/build/lint/typecheck 脚本，确认 `npm test` 或等价命令是否包含 integration/E2E。
@@ -20,6 +21,7 @@
 ## Evidence Wave
 
 每个开发任务至少有一个 Evidence Wave；高 Blast Radius 功能必须拆成多个更小 Evidence Wave。每个 Wave 必须包含：
+
 - 红测
 - 绿门禁
 - Contract Matrix
@@ -31,6 +33,7 @@
 ## 任务写集冲突检测
 
 仅开发任务派发前执行：
+
 - 从 `tasks.md` 解析每个 Task 的“文件输出列表 / 写集”表，提取计划创建、修改、删除的文件路径、写集风险和 owner。
 - 构建任务冲突图：任意两个任务写同一文件、中央索引、依赖清单、锁文件、全局配置、`i18n.ts`、`store.ts` 等共享文件时，视为写集重叠。
 - 根据显式依赖边和冲突图生成并行安全组；同一并行安全组内任务写集必须互斥，写集重叠的任务不得并行。
@@ -41,6 +44,7 @@
 ## 风险等级感知确认
 
 仅开发任务派发前执行：
+
 - 从 `tasks.md` 摘要读取 `Blast Radius` 与 `风险确认触发项`；若缺失，暂停并回派 Scrum Master 补齐，不得派发开发 Agent。
 - 命中任一强制确认 trigger 时，在 `auto` / `interactive` 模式下必须向用户展示即将写入的文件数量、核心模块、依赖变更、安装命令和不可逆操作，并等待确认。
 - 强制确认 trigger 包括：计划写入文件数达到项目阈值（默认 ≥ 10 个；项目可在 `tech-review.md` 降低阈值）、修改 `package.json`/锁文件/构建或部署配置、需要运行依赖安装命令、修改认证/支付/数据模型/迁移/权限/全局状态等核心模块、删除文件或执行不可逆操作。
@@ -50,6 +54,7 @@
 ## Wave 边界校验
 
 同一 Wave 的并行 Agent 全部返回 `DONE` / `DONE_WITH_CONCERNS` 后，Boss 必须按项目技术栈选择适用校验，不能只信子代理自报：
+
 - 运行适用的类型检查、编译检查、测试套件、lint/格式检查。
 - 检查依赖清单、锁文件、构建配置等关键工程文件的 diff 摘要；不限于 Node.js，其他生态使用等价文件。
 - 若项目没有可运行的自动化校验，记录原因，并至少执行文件 diff 与产物一致性检查。

@@ -3,7 +3,9 @@
   "description": "Agent skills for building apps on smart glasses from every major brand: Even Realities G2, Meta Ray-Ban Display, Rokid, Vuzix Z100, audio-only glasses like Ray-Ban Meta, and USB-C display glasses. Pick a target, get text onto the display, handle input and audio, test without hardware, and check what you can publish today.",
   "version": "1.0.1",
   "author": {
-    "name": "Hinty"
+    "name": "Hinty",
+    "email": "support@hinty.eu",
+    "url": "https://github.com/hinty-eu"
   },
   "homepage": "https://github.com/hinty-eu/smart-glasses-skills",
   "repository": "https://github.com/hinty-eu/smart-glasses-skills",
@@ -28,11 +30,24 @@
   "interface": {
     "displayName": "Smart Glasses Skills",
     "shortDescription": "Build apps for smart glasses from any brand.",
+    "longDescription": "Teaches your coding agent to build apps for smart glasses from every major brand: Even Realities G2, Meta Ray-Ban Display, Rokid Glasses, Vuzix Z100, audio-only glasses such as Ray-Ban Meta, USB-C display glasses such as XREAL and VITURE, and standalone Android glasses, with pointers for Android XR, MentraOS, Brilliant Labs and Snap Spectacles. The agent learns which glasses to target and what can ship this month, how to get text onto each display (vendor SDK, a web app on the glasses, an external display, a phone notification or a voice in the ear), how to handle taps, rings and touchpads, how to route audio, how to test without owning the glasses, and what each store accepts today. Every vendor fact has a source and a date, and every file says how it was verified. Nothing has been tested on real glasses yet.",
     "developerName": "Hinty",
     "category": "Developer Tools",
     "capabilities": [
       "Skills"
     ],
-    "composerIcon": "./.claude-plugin/icon.png"
+    "websiteURL": "https://github.com/hinty-eu/smart-glasses-skills",
+    "privacyPolicyURL": "https://github.com/hinty-eu/smart-glasses-skills/blob/main/PRIVACY.md",
+    "termsOfServiceURL": "https://github.com/hinty-eu/smart-glasses-skills#license",
+    "defaultPrompt": [
+      "Which smart glasses should my app target?",
+      "Show live captions on Even Realities G2",
+      "Test my glasses app without the hardware"
+    ],
+    "composerIcon": "./.claude-plugin/icon.png",
+    "logo": "./.claude-plugin/icon.png",
+    "screenshots": [
+      "./assets/live-captions.png"
+    ]
   }
 }

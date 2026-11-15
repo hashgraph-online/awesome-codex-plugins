@@ -1,0 +1,100 @@
+{
+  "scenario": "r75-migrate-pack",
+  "status": "production (fixture ids)",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000001\">🏠</tg-emoji> Shop</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cart",
+                "callback_data": "cart",
+                "icon_custom_emoji_id": "0100000000000024",
+                "style": "primary"
+              },
+              {
+                "text": "Search",
+                "callback_data": "search",
+                "icon_custom_emoji_id": "0100000000000012"
+              }
+            ],
+            [
+              {
+                "text": "Settings",
+                "callback_data": "settings",
+                "icon_custom_emoji_id": "0100000000000013"
+              }
+            ],
+            [
+              {
+                "text": "Back",
+                "callback_data": "back",
+                "icon_custom_emoji_id": "0100000000000002"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "getCustomEmojiStickers",
+      "params": {
+        "custom_emoji_ids": [
+          "0300000000000001",
+          "0300000000000020",
+          "0300000000000011",
+          "0300000000000012",
+          "0300000000000016",
+          "0300000000000002"
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0300000000000001\">🏠</tg-emoji> Shop</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Cart",
+                "callback_data": "cart",
+                "icon_custom_emoji_id": "0300000000000020",
+                "style": "primary"
+              },
+              {
+                "text": "Search",
+                "callback_data": "search",
+                "icon_custom_emoji_id": "0300000000000011"
+              }
+            ],
+            [
+              {
+                "text": "Settings",
+                "callback_data": "settings",
+                "icon_custom_emoji_id": "0300000000000012"
+              }
+            ],
+            [
+              {
+                "text": "Back",
+                "callback_data": "back",
+                "icon_custom_emoji_id": "0300000000000002"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

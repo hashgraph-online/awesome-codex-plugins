@@ -1,0 +1,999 @@
+{
+  "scenario": "r27-ai-assistant-product",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Assistant</b>\nChoose what I do with your next message.\nMode: <b>Chat</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Chat",
+                "disabled": {}
+              },
+              {
+                "text": "Translate",
+                "callback_data": "as:1:mode:translate"
+              },
+              {
+                "text": "Summarize",
+                "callback_data": "as:1:mode:summarize"
+              }
+            ],
+            [
+              {
+                "text": "History",
+                "callback_data": "as:1:history"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Assistant</b>\nChoose what I do with your next message.\nMode: <b>Translate</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Chat",
+                "callback_data": "as:2:mode:chat"
+              },
+              {
+                "text": "✓ Translate",
+                "disabled": {}
+              },
+              {
+                "text": "Summarize",
+                "callback_data": "as:2:mode:summarize"
+              }
+            ],
+            [
+              {
+                "text": "History",
+                "callback_data": "as:2:history"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3",
+        "text": "This screen has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Assistant</b>\nChoose what I do with your next message.\nMode: <b>Chat</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Chat",
+                "disabled": {}
+              },
+              {
+                "text": "Translate",
+                "callback_data": "as:3:mode:translate"
+              },
+              {
+                "text": "Summarize",
+                "callback_data": "as:3:mode:summarize"
+              }
+            ],
+            [
+              {
+                "text": "History",
+                "callback_data": "as:3:history"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Got <b>report.pdf</b> (2.0 MB). Ask your question about it.",
+        "parse_mode": "HTML",
+        "reply_parameters": {
+          "message_id": 205
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48120,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48120,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Reading your question…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48120,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Reading your question…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "I'm still writing the previous answer. Wait for it, or press Stop under the draft.",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48120,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48120,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first. can_stop adds a Stop button under the draft."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48120,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first. can_stop adds a Stop button under the draft."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop keeps the partial text visible after Stop."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Short answer first. can_stop adds a Stop button under the draft."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop keeps the partial text visible after Stop."
+            },
+            {
+              "type": "footer",
+              "text": "Chat · Answers can be inaccurate. Check important facts."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍",
+                "callback_data": "ai:1:up"
+              },
+              {
+                "text": "👎",
+                "callback_data": "ai:1:dn"
+              }
+            ],
+            [
+              {
+                "text": "↻ Regenerate",
+                "callback_data": "ai:1:re"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍 ✓",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "↻ Regenerate",
+                "callback_data": "ai:1:re"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7",
+        "text": "Thanks for the feedback."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8",
+        "text": "You already rated this answer."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq9",
+        "text": "Этот ответ принадлежит другому человеку.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48127,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48127,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Reading your question…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48127,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Reading your question…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Short answer first."
+            },
+            {
+              "type": "footer",
+              "text": "Stopped by you — the answer is incomplete."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "↻ Regenerate",
+                "callback_data": "ai:2:re"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48128,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1005,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Replaced by a newer answer",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq11"
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48128,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Reading your question…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48128,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Reading your question…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48128,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48128,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first. can_stop adds a Stop button under the draft."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "draft_id": 48128,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Writing the answer…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Short answer first. can_stop adds a Stop button under the draft."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop keeps the partial text visible after Stop."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Short answer first. can_stop adds a Stop button under the draft."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop keeps the partial text visible after Stop."
+            },
+            {
+              "type": "footer",
+              "text": "Chat · Answers can be inaccurate. Check important facts."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍",
+                "callback_data": "ai:3:up"
+              },
+              {
+                "text": "👎",
+                "callback_data": "ai:3:dn"
+              }
+            ],
+            [
+              {
+                "text": "↻ Regenerate",
+                "callback_data": "ai:3:re"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq12",
+        "text": "This screen has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "editMessageReplyMarkup",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1006,
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👎 ✓",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "↻ Regenerate",
+                "callback_data": "ai:3:re"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "What was wrong with the answer? Tap a reason or reply with your own words.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Incorrect",
+                "callback_data": "ai:3:rs:0"
+              },
+              {
+                "text": "Too long",
+                "callback_data": "ai:3:rs:1"
+              },
+              {
+                "text": "Off topic",
+                "callback_data": "ai:3:rs:2"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq13",
+        "text": "Thanks for the feedback."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Noted, thank you.",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq15",
+        "text": "You already rated this answer."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>History</b> · page 1 of 3\n1. Explain Stop in drafts · Chat\n2. What does can_stop do? · Chat",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "←",
+                "disabled": {}
+              },
+              {
+                "text": "1/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "as:4:page:1"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "as:4:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq16"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>History</b> · page 2 of 3\n3. What is a deep link? · Chat\n4. Summarize this changelog · Summarize",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "←",
+                "callback_data": "as:5:page:0"
+              },
+              {
+                "text": "2/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "as:5:page:2"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "as:5:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq17"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Ассистент</b>\nВыберите, что делать с вашим следующим сообщением.\nРежим: <b>Чат</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Чат",
+                "disabled": {}
+              },
+              {
+                "text": "Перевод",
+                "callback_data": "as:1:mode:translate"
+              },
+              {
+                "text": "Пересказ",
+                "callback_data": "as:1:mode:summarize"
+              }
+            ],
+            [
+              {
+                "text": "История",
+                "callback_data": "as:1:history"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>report.pdf</b> слишком большой: 30.0 MB. Лимит: 10.0 MB.",
+        "parse_mode": "HTML",
+        "reply_parameters": {
+          "message_id": 205
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "Файлы типа application/zip не поддерживаются. Пришлите PDF или текстовый файл.",
+        "parse_mode": "HTML",
+        "reply_parameters": {
+          "message_id": 206
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 222222222,
+        "draft_id": 48129,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Начинаю…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 222222222,
+        "draft_id": 48129,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Читаю ваш вопрос…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 222222222,
+        "draft_id": 48129,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Читаю ваш вопрос…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Сначала коротко."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 222222222,
+        "draft_id": 48129,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Пишу ответ…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Сначала коротко."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 222222222,
+        "draft_id": 48129,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Пишу ответ…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Сначала коротко. can_stop добавляет кнопку «Стоп» под черновиком."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 222222222,
+        "draft_id": 48129,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Пишу ответ…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Сначала коротко. can_stop добавляет кнопку «Стоп» под черновиком."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop оставляет частичный текст после остановки."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 222222222,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Сначала коротко. can_stop добавляет кнопку «Стоп» под черновиком."
+            },
+            {
+              "type": "paragraph",
+              "text": "keep_on_stop оставляет частичный текст после остановки."
+            },
+            {
+              "type": "footer",
+              "text": "Чат · Ответ может быть неточным. Проверяйте важные факты."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "👍",
+                "callback_data": "ai:4:up"
+              },
+              {
+                "text": "👎",
+                "callback_data": "ai:4:dn"
+              }
+            ],
+            [
+              {
+                "text": "↻ Заново",
+                "callback_data": "ai:4:re"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

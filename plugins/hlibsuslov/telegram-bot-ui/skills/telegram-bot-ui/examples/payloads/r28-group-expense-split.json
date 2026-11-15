@@ -1,0 +1,1020 @@
+{
+  "scenario": "r28-group-expense-split",
+  "status": "production",
+  "context": "supergroup",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001234567890,
+        "text": "<b>Trip to Lviv</b> · 4 учасн. · разом ₴0\nВитрат: 0",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Додати витрату",
+                "callback_data": "ex:add",
+                "style": "primary"
+              },
+              {
+                "text": "Мій баланс",
+                "callback_data": "ex:bal"
+              }
+            ],
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq1"
+        },
+        "text": "<b>New expense</b>\nAmount: ₴1200\nSplit: equally among 4",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:1:-100"
+              },
+              {
+                "text": "₴1200",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:1:100"
+              }
+            ],
+            [
+              {
+                "text": "Equal split",
+                "callback_data": "ex:eq:1"
+              }
+            ],
+            [
+              {
+                "text": "✓ Богдан",
+                "callback_data": "ex:tog:1:222222222"
+              },
+              {
+                "text": "✓ Олена",
+                "callback_data": "ex:tog:1:333333333"
+              },
+              {
+                "text": "✓ Dana",
+                "callback_data": "ex:tog:1:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Add ₴1200",
+                "callback_data": "ex:save:1",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1001,
+        "text": "<b>Trip to Lviv</b> · 4 учасн. · разом ₴1200\nВитрат: 1",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Додати витрату",
+                "callback_data": "ex:add",
+                "style": "primary"
+              },
+              {
+                "text": "Мій баланс",
+                "callback_data": "ex:bal"
+              }
+            ],
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 111111111,
+        "ephemeral_message_id": 5,
+        "text": "Added ₴1200. Split: equally among 4.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000071"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000000099",
+        "text": "Already added."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq2"
+        },
+        "text": "<b>Нова витрата</b>\nСума: ₴1200\nПоділ: порівну на 4",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:2:-100"
+              },
+              {
+                "text": "₴1200",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:2:100"
+              }
+            ],
+            [
+              {
+                "text": "Порівну",
+                "callback_data": "ex:eq:2"
+              }
+            ],
+            [
+              {
+                "text": "✓ Alice",
+                "callback_data": "ex:tog:2:111111111"
+              },
+              {
+                "text": "✓ Олена",
+                "callback_data": "ex:tog:2:333333333"
+              },
+              {
+                "text": "✓ Dana",
+                "callback_data": "ex:tog:2:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Додати ₴1200",
+                "callback_data": "ex:save:2",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq2"
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 1003,
+        "text": "<b>Нова витрата</b>\nСума: ₴800\nПоділ: порівну на 4",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:2:-100"
+              },
+              {
+                "text": "₴800",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:2:100"
+              }
+            ],
+            [
+              {
+                "text": "Порівну",
+                "callback_data": "ex:eq:2"
+              }
+            ],
+            [
+              {
+                "text": "✓ Alice",
+                "callback_data": "ex:tog:2:111111111"
+              },
+              {
+                "text": "✓ Олена",
+                "callback_data": "ex:tog:2:333333333"
+              },
+              {
+                "text": "✓ Dana",
+                "callback_data": "ex:tog:2:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Додати ₴800",
+                "callback_data": "ex:save:2",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq3"
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 1003,
+        "text": "<b>Нова витрата</b>\nСума: ₴800\nПоділ: ви та Олена, Dana",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:2:-100"
+              },
+              {
+                "text": "₴800",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:2:100"
+              }
+            ],
+            [
+              {
+                "text": "Порівну",
+                "callback_data": "ex:eq:2"
+              }
+            ],
+            [
+              {
+                "text": "Alice",
+                "callback_data": "ex:tog:2:111111111"
+              },
+              {
+                "text": "✓ Олена",
+                "callback_data": "ex:tog:2:333333333"
+              },
+              {
+                "text": "✓ Dana",
+                "callback_data": "ex:tog:2:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Додати ₴800",
+                "callback_data": "ex:save:2",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq4"
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 1003,
+        "text": "<b>Нова витрата</b>\nСума: ₴800\nПоділ: ви та Олена",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:2:-100"
+              },
+              {
+                "text": "₴800",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:2:100"
+              }
+            ],
+            [
+              {
+                "text": "Порівну",
+                "callback_data": "ex:eq:2"
+              }
+            ],
+            [
+              {
+                "text": "Alice",
+                "callback_data": "ex:tog:2:111111111"
+              },
+              {
+                "text": "✓ Олена",
+                "callback_data": "ex:tog:2:333333333"
+              },
+              {
+                "text": "Dana",
+                "callback_data": "ex:tog:2:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Додати ₴800",
+                "callback_data": "ex:save:2",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq5"
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 1003,
+        "text": "<b>Нова витрата</b>\nСума: ₴800\nПоділ: ви та ",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:2:-100"
+              },
+              {
+                "text": "₴800",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:2:100"
+              }
+            ],
+            [
+              {
+                "text": "Порівну",
+                "callback_data": "ex:eq:2"
+              }
+            ],
+            [
+              {
+                "text": "Alice",
+                "callback_data": "ex:tog:2:111111111"
+              },
+              {
+                "text": "Олена",
+                "callback_data": "ex:tog:2:333333333"
+              },
+              {
+                "text": "Dana",
+                "callback_data": "ex:tog:2:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Додати ₴800",
+                "callback_data": "ex:save:2",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq6"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq7",
+        "text": "Оберіть хоча б ще одну людину для поділу.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 1003,
+        "text": "<b>Нова витрата</b>\nСума: ₴800\nПоділ: ви та Олена",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "−100",
+                "callback_data": "ex:amt:2:-100"
+              },
+              {
+                "text": "₴800",
+                "disabled": {}
+              },
+              {
+                "text": "+100",
+                "callback_data": "ex:amt:2:100"
+              }
+            ],
+            [
+              {
+                "text": "Порівну",
+                "callback_data": "ex:eq:2"
+              }
+            ],
+            [
+              {
+                "text": "Alice",
+                "callback_data": "ex:tog:2:111111111"
+              },
+              {
+                "text": "✓ Олена",
+                "callback_data": "ex:tog:2:333333333"
+              },
+              {
+                "text": "Dana",
+                "callback_data": "ex:tog:2:444444444"
+              }
+            ],
+            [
+              {
+                "text": "Додати ₴800",
+                "callback_data": "ex:save:2",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq8"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq9",
+        "text": "This panel belongs to someone else.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1001,
+        "text": "<b>Trip to Lviv</b> · 4 учасн. · разом ₴2000\nВитрат: 2",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Додати витрату",
+                "callback_data": "ex:add",
+                "style": "primary"
+              },
+              {
+                "text": "Мій баланс",
+                "callback_data": "ex:bal"
+              }
+            ],
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 222222222,
+        "ephemeral_message_id": 1003,
+        "text": "Додано ₴800. Поділ: ви та Олена.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Закрити",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq10"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq11"
+        },
+        "text": "<b>Ваш баланс</b>\nВи заплатили: ₴800\nВаша частка: ₴700\nВам винні ₴100.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              },
+              {
+                "text": "Закрити",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq11",
+        "text": "Ваш баланс\nВи заплатили: ₴800\nВаша частка: ₴700\nВам винні ₴100.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq-long"
+        },
+        "text": "<b>Розрахунок</b>\nОлена платить вам ₴700 — ще не сплачено\nОлена платить вам ₴700 — ще не сплачено\nОлена платить вам ₴700 — ще не сплачено\nОлена платить вам ₴700 — ще не сплачено\nОлена платить вам ₴700 — ще не сплачено\nОлена платить вам ₴700 — ще не сплачено",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Закрити",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq-long",
+        "url": "https://t.me/trip_split_bot?start=bal_cryl7kya"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq12"
+        },
+        "text": "<b>Your balance</b>\nPaid by you: ₴1200\nYour share: ₴300\nYou are owed ₴900.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Settle up",
+                "callback_data": "ex:set"
+              },
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq12"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq13"
+        },
+        "text": "<b>Settle up</b>\nYou pay Alice ₴200 — not paid yet\nYou pay Богдан ₴100 — not paid yet",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "I paid Alice",
+                "callback_data": "ex:paid:t2"
+              }
+            ],
+            [
+              {
+                "text": "I paid Богдан",
+                "callback_data": "ex:paid:t3"
+              }
+            ],
+            [
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq13"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq14",
+        "text": "Триває розрахунок. Завершіть його перед новими витратами.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1001,
+        "text": "<b>Trip to Lviv</b> · 4 учасн. · разом ₴2000\nВитрат: 2\nРозрахунок: підтверджено 0 із 3",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Додати витрату",
+                "callback_data": "ex:add",
+                "style": "primary"
+              },
+              {
+                "text": "Мій баланс",
+                "callback_data": "ex:bal"
+              }
+            ],
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq15",
+        "text": "Marked as paid. Alice will confirm."
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 444444444,
+        "ephemeral_message_id": 1005,
+        "text": "<b>Settle up</b>\nYou pay Alice ₴200 — marked as paid\nYou pay Богдан ₴100 — not paid yet",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "I paid Богдан",
+                "callback_data": "ex:paid:t3"
+              }
+            ],
+            [
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq16",
+        "text": "This panel has changed. Open it again from the card."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq17",
+        "text": "Only Alice can confirm this payment.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq18"
+        },
+        "text": "<b>Розрахунок</b>\nDana платить вам ₴100 — ще не сплачено",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Закрити",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq18"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq19",
+        "text": "Підтвердити платіж може лише Alice.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq20"
+        },
+        "text": "<b>Settle up</b>\nОлена pays you ₴700 — not paid yet\nDana pays you ₴200 — marked as paid",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Confirm Dana",
+                "callback_data": "ex:ok:t2",
+                "style": "success"
+              }
+            ],
+            [
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq20"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1001,
+        "text": "<b>Trip to Lviv</b> · 4 учасн. · разом ₴2000\nВитрат: 2\nРозрахунок: підтверджено 1 із 3",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Додати витрату",
+                "callback_data": "ex:add",
+                "style": "primary"
+              },
+              {
+                "text": "Мій баланс",
+                "callback_data": "ex:bal"
+              }
+            ],
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq21",
+        "text": "Confirmed."
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 111111111,
+        "ephemeral_message_id": 1007,
+        "text": "<b>Settle up</b>\nОлена pays you ₴700 — not paid yet\nDana pays you ₴200 — confirmed",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "ephemeral_message_parameters": {
+          "callback_query_id": "cq22"
+        },
+        "text": "Join <b>Trip to Lviv</b> first to see balances and add expenses.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Join",
+                "callback_data": "ex:join",
+                "style": "primary"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq22"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "message_id": 1001,
+        "text": "<b>Trip to Lviv</b> · 5 учасн. · разом ₴2000\nВитрат: 2\nРозрахунок: підтверджено 1 із 3",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Додати витрату",
+                "callback_data": "ex:add",
+                "style": "primary"
+              },
+              {
+                "text": "Мій баланс",
+                "callback_data": "ex:bal"
+              }
+            ],
+            [
+              {
+                "text": "Розрахуватись",
+                "callback_data": "ex:set"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editEphemeralMessageText",
+      "params": {
+        "chat_id": -1001234567890,
+        "receiver_user_id": 666666666,
+        "ephemeral_message_id": 1008,
+        "text": "You joined <b>Trip to Lviv</b>.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Close",
+                "callback_data": "ex:close"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "cq23"
+      }
+    }
+  ]
+}

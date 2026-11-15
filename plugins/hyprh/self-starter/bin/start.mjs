@@ -14,6 +14,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+const PACKAGE = "self-starter";
 const REPOSITORY = "github:hyprh/self-starter";
 
 function fail(message) {
@@ -30,24 +31,39 @@ const { version } = JSON.parse(readFileSync(manifest, "utf8"));
 const home = resolve(process.env.SELF_STARTER_HOME || join(homedir(), ".self-starter"));
 const runtime = join(home, "runtime", version);
 const cli = join(runtime, "node_modules", "self-starter", "dist", "src", "cli", "main.js");
-const source = process.env.SELF_STARTER_RUNTIME || `${REPOSITORY}#v${version}`;
+const explicitSource = process.env.SELF_STARTER_RUNTIME;
+const sources = explicitSource ? [explicitSource] : [`${PACKAGE}@${version}`, `${REPOSITORY}#v${version}`];
+const source = sources[0];
 
 /** Installs the runtime beside its final folder and moves it into place, so that no start ever sees half of one. */
 function install() {
   const staging = `${runtime}.${process.pid}.partial`;
-  mkdirSync(staging, { recursive: true });
+  mkdirSync(dirname(runtime), { recursive: true });
   // What an install that was stopped left behind.
   for (const name of readdirSync(dirname(runtime))) {
     const path = join(dirname(runtime), name);
     if (name.endsWith(".partial") && path !== staging && Date.now() - statSync(path).mtimeMs > 15 * 60_000) rmSync(path, { recursive: true, force: true });
   }
-  // npm 12 blocks Git and remote tarball sources by default. Permit only the
-  // runtime selected here, not Git/URL dependencies brought in by that runtime.
-  // These command-local options are also accepted by npm 10 and 11.
-  const npm = spawnSync("npm", ["install", "--prefix", staging, "--no-audit", "--no-fund", "--loglevel=error", source, "--allow-git=root", "--allow-remote=root"], { stdio: ["ignore", 2, 2] });
-  if (npm.status !== 0) {
+  // Prefer the prebuilt npm package; fall back to the release tag if the registry
+  // copy is unreachable or not published yet. npm 12 blocks Git and remote tarball
+  // sources by default, so permit only the selected Git/tarball runtime source.
+  let failure = "";
+  for (const candidate of sources) {
     rmSync(staging, { recursive: true, force: true });
-    fail(`could not install ${source}: ${npm.error ? npm.error.message : `npm exited with code ${npm.status}`}`);
+    mkdirSync(staging, { recursive: true });
+    const allowGit = Boolean(explicitSource) || candidate.startsWith("github:");
+    const args = ["install", "--prefix", staging, "--no-audit", "--no-fund", "--loglevel=error", candidate];
+    if (allowGit) args.push("--allow-git=root", "--allow-remote=root");
+    const npm = spawnSync("npm", args, { stdio: ["ignore", 2, 2] });
+    if (npm.status === 0) {
+      failure = "";
+      break;
+    }
+    failure = `could not install ${candidate}: ${npm.error ? npm.error.message : `npm exited with code ${npm.status}`}`;
+  }
+  if (failure) {
+    rmSync(staging, { recursive: true, force: true });
+    fail(failure);
   }
   try {
     renameSync(staging, runtime);

@@ -1,0 +1,333 @@
+{
+  "scenario": "r09-tracker-bot",
+  "status": "production (widgets in private chats)",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"5258389041006518073\">💼</tg-emoji> BTC Tracker</b>\n\nTrack your Bitcoin addresses and public keys.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "My wallets",
+                "callback_data": "menu_wallets",
+                "icon_custom_emoji_id": "5258389041006518073",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Settings",
+                "callback_data": "menu_settings",
+                "icon_custom_emoji_id": "5258096772776991776"
+              },
+              {
+                "text": "Notifications",
+                "callback_data": "menu_notify",
+                "icon_custom_emoji_id": "5260535596941582167"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<!-- Transaction confirmation card (static widget, private chat, no requests needed:\n     the bot pushes chat_data on every confirmation; edits are silent).\n     chat_data = {\"d\":\"in|out\",\"w\":\"Main\",\"amt\":\"0.0125\",\"usd\":\"812.40\",\"conf\":1,\"target\":3,\"tx\":\"<txid>\",\"url\":\"https://mempool.space/tx/<txid>\",\"r\":N} -->\n<style>\nbody{margin:0;padding:0}\n.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}\n.h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}\n.t{font-weight:600}\n.w{color:var(--tg-theme-hint-color);font-size:.9em}\n.a{font-size:1.5em;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums}\n.u{color:var(--tg-theme-hint-color);font-size:.9em}\n.p{display:flex;gap:6px;margin:10px 0 6px}\n.p i{flex:1;height:6px;border-radius:3px;background:var(--tg-theme-secondary-bg-color);transition:background .3s}\n.p i.on{background:var(--tg-theme-button-color)}\n.done .p i.on{background:var(--tg-theme-accent-text-color)}\n.s{font-size:.9em}\n.r{display:flex;gap:8px;margin-top:8px;padding-right:max(0px,var(--tg-content-safe-area-corner-right));padding-left:max(0px,var(--tg-content-safe-area-corner-left))}\n.r button{flex:1}\n@media (prefers-reduced-motion:reduce){.p i{transition:none}}\n</style>\n<div class=\"c\" id=\"c\"><div class=\"h\"><span class=\"t\" id=\"t\"></span><span class=\"w\" id=\"w\"></span></div>\n<div class=\"a\" id=\"a\"></div><div class=\"u\" id=\"u\"></div><div class=\"p\" id=\"p\"></div><div class=\"s\" id=\"s\"></div>\n<div class=\"r\"><button id=\"cp\"></button><button id=\"ex\"></button></div></div>\n<script>\nvar W=window.TelegramWidget,S=null,R=-1;\nvar L={en:{in:\"Incoming\",out:\"Outgoing\",wait:\"Waiting for the first confirmation\",conf:\"Confirmation {n} of {t}\",done:\"Confirmed\",copy:\"Copy TXID\",open:\"Explorer\",as:\"As of\"},\nuk:{in:\"Вхідна\",out:\"Вихідна\",wait:\"Очікує першого підтвердження\",conf:\"Підтвердження {n} з {t}\",done:\"Підтверджено\",copy:\"Копіювати TXID\",open:\"Оглядач\",as:\"Станом на\"},\nru:{in:\"Входящая\",out:\"Исходящая\",wait:\"Ожидает первого подтверждения\",conf:\"Подтверждение {n} из {t}\",done:\"Подтверждено\",copy:\"Копировать TXID\",open:\"Обозреватель\",as:\"На момент\"}};\nvar T=L[(navigator.language||\"en\").slice(0,2)]||L.en;\nfunction $(i){return document.getElementById(i)}\nfunction load(){var s=null;try{s=JSON.parse(W?W.chatData:null)}catch(e){}if(s&&s.r>R){S=s;R=s.r}}\nfunction draw(){\n if(!S)return;var done=S.conf>=S.target;\n $(\"c\").className=\"c\"+(done?\" done\":\"\");\n $(\"t\").textContent=(S.d===\"out\"?\"↗ \":\"↘ \")+T[S.d];$(\"w\").textContent=S.w;\n $(\"a\").textContent=(S.d===\"out\"?\"−\":\"+\")+S.amt+\" BTC\";$(\"u\").textContent=S.usd?\"≈ $\"+S.usd:\"\";\n var p=$(\"p\");p.innerHTML=\"\";for(var i=0;i<S.target;i++){var b=document.createElement(\"i\");if(i<S.conf)b.className=\"on\";p.appendChild(b)}\n $(\"s\").textContent=done?\"✓ \"+T.done:(S.conf?T.conf.replace(\"{n}\",S.conf).replace(\"{t}\",S.target):T.wait);\n $(\"cp\").textContent=T.copy;$(\"ex\").textContent=T.open;\n}\n$(\"cp\").onclick=function(){if(W&&S)W.copyText(S.tx)};\n$(\"ex\").onclick=function(){if(W&&S&&S.url)W.openLink(S.url)};\nif(W){W.onEvent(\"chatDataChanged\",function(){load();draw()});W.onEvent(\"themeChanged\",draw)}\nload();draw();if(W)W.ready();\n</script>\n",
+        "chat_data": "{\"d\":\"in\",\"w\":\"Main\",\"amt\":\"0.0125\",\"usd\":\"1215.63\",\"conf\":0,\"target\":3,\"url\":\"https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"tx\":\"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"r\":0}",
+        "caption": "Incoming 0.0125 BTC · Main · 0/3 confirmations",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Explorer",
+                "url": "https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+              },
+              {
+                "text": "Copy TXID",
+                "copy_text": {
+                  "text": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+                }
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "chat_data": "{\"d\":\"in\",\"w\":\"Main\",\"amt\":\"0.0125\",\"usd\":\"1215.63\",\"conf\":1,\"target\":3,\"url\":\"https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"tx\":\"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"r\":1}"
+      }
+    },
+    {
+      "method": "editMessageCaption",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "caption": "Incoming 0.0125 BTC · Main · 1/3 confirmations",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Explorer",
+                "url": "https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+              },
+              {
+                "text": "Copy TXID",
+                "copy_text": {
+                  "text": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+                }
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "chat_data": "{\"d\":\"in\",\"w\":\"Main\",\"amt\":\"0.0125\",\"usd\":\"1215.63\",\"conf\":2,\"target\":3,\"url\":\"https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"tx\":\"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"r\":2}"
+      }
+    },
+    {
+      "method": "editMessageCaption",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "caption": "Incoming 0.0125 BTC · Main · 2/3 confirmations",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Explorer",
+                "url": "https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+              },
+              {
+                "text": "Copy TXID",
+                "copy_text": {
+                  "text": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+                }
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "chat_data": "{\"d\":\"in\",\"w\":\"Main\",\"amt\":\"0.0125\",\"usd\":\"1215.63\",\"conf\":3,\"target\":3,\"url\":\"https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"tx\":\"4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b\",\"r\":3}"
+      }
+    },
+    {
+      "method": "editMessageCaption",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "caption": "Incoming 0.0125 BTC · Main · confirmed",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Explorer",
+                "url": "https://mempool.space/tx/4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+              },
+              {
+                "text": "Copy TXID",
+                "copy_text": {
+                  "text": "4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"
+                }
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "✅ Confirmed: 0.0125 BTC · Main",
+        "reply_parameters": {
+          "message_id": 1002
+        }
+      }
+    },
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<!-- BTC price ticker (shared widget, no requests: one public_data for every copy).\n     public_data = {\"p\":\"97250.12\",\"ch\":\"+1.84\",\"at\":1762900800,\"r\":N}; created once with is_shared,\n     re-sent with sendSharedWidget, refreshed with editSharedWidgetData (cache_time 10). -->\n<style>\nbody{margin:0;padding:0}\n.c{padding:10px 12px max(10px,env(safe-area-inset-bottom));display:flex;align-items:baseline;justify-content:space-between;gap:10px}\n.n{color:var(--tg-theme-hint-color);font-size:.9em}\n.p{font-size:1.6em;font-weight:700;font-variant-numeric:tabular-nums}\n.ch{font-weight:600;font-variant-numeric:tabular-nums}\n.up{color:var(--tg-theme-accent-text-color)}\n.dn{color:var(--tg-theme-destructive-text-color)}\n.at{color:var(--tg-theme-hint-color);font-size:.8em}\n</style>\n<div class=\"c\"><div><div class=\"n\">BTC · USD</div><div class=\"p\" id=\"p\">—</div></div>\n<div style=\"text-align:right\"><div class=\"ch\" id=\"ch\"></div><div class=\"at\" id=\"at\"></div></div></div>\n<script>\nvar W=window.TelegramWidget,S=null,R=-1;\nfunction load(){var s=null;try{s=JSON.parse(W?W.publicData:null)}catch(e){}if(s&&s.r>R){S=s;R=s.r}}\nfunction draw(){\n if(!S)return;var lang=navigator.language||\"en\";\n document.getElementById(\"p\").textContent=\"$\"+Number(S.p).toLocaleString(lang,{maximumFractionDigits:2});\n var ch=document.getElementById(\"ch\"),v=Number(S.ch);ch.textContent=(v>0?\"▲ +\":v<0?\"▼ \":\"\")+S.ch.replace(\"+\",\"\")+\"%\";\n ch.className=\"ch \"+(v>0?\"up\":v<0?\"dn\":\"\");\n var d=new Date(S.at*1000);document.getElementById(\"at\").textContent=(W&&W.isForward?\"as of \":\"\")+d.toLocaleTimeString(lang,{hour:\"2-digit\",minute:\"2-digit\"});\n}\nif(W){W.onEvent(\"publicDataChanged\",function(){load();draw()});W.watchPublicData()}\nload();draw();if(W)W.ready();\n</script>\n",
+        "public_data": "{\"p\":\"97250.12\",\"ch\":\"+1.84\",\"at\":1762900800,\"r\":0}",
+        "caption": "BTC price, live",
+        "is_shared": true
+      }
+    },
+    {
+      "method": "editSharedWidgetData",
+      "params": {
+        "widget_id": "777001004",
+        "public_data": "{\"p\":\"97301.50\",\"ch\":\"+1.90\",\"at\":1762900810,\"r\":1}",
+        "cache_time": 10
+      }
+    },
+    {
+      "method": "sendSharedWidget",
+      "params": {
+        "chat_id": 222222222,
+        "widget_id": "777001004",
+        "caption": "BTC price, live"
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 3,
+              "text": "Public key verification"
+            },
+            {
+              "type": "paragraph",
+              "text": "Compare at least the first two addresses with your wallet."
+            },
+            {
+              "type": "table",
+              "is_compact": true,
+              "is_bordered": true,
+              "cells": [
+                [
+                  {
+                    "text": "No.",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Address",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Path",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "1",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": {
+                      "type": "code",
+                      "text": "bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq"
+                    },
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "m/84'/0'/0'/0/0",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "2",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": {
+                      "type": "code",
+                      "text": "bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"
+                    },
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "m/84'/0'/0'/0/1",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "expandable_blockquote",
+              "text": "The bot only has a public key and cannot spend BTC. If the addresses differ, do not generate new ones."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"5429571366384842791\">🔍</tg-emoji> Analysis: Main</b>\n\nBalance: <b>0.0412 BTC</b> (≈ $4,006)\nReceived: <b>0.1500 BTC</b> · Sent: <b>0.1088 BTC</b>\nTransactions: <b>14</b>"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Step 1 of 2 · Address number</b>\n\nTaken numbers are greyed out. Tap a number or type another.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "No. 1",
+                "disabled": {}
+              },
+              {
+                "text": "No. 2",
+                "disabled": {}
+              },
+              {
+                "text": "No. 3",
+                "callback_data": "pos:3"
+              },
+              {
+                "text": "No. 4",
+                "callback_data": "pos:4"
+              }
+            ],
+            [
+              {
+                "text": "Cancel",
+                "callback_data": "pos:cancel"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    }
+  ]
+}

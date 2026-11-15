@@ -67,6 +67,11 @@ updates:
       slayer:
         patterns:
           - "motley-slayer"
+      # Ruff and towncrier are pinned once, in the [dev] extra, and every other
+      # caller (lint.yml, changelog.yml, the pre-commit hooks, prepare_release.sh)
+      # runs the locked version through scripts/uvx_locked.py. So this group's PR
+      # is complete as Dependabot opens it: nothing outside pyproject.toml and
+      # uv.lock restates a version for it to miss (#1137).
       dev-tools:
         patterns:
           - "ruff"

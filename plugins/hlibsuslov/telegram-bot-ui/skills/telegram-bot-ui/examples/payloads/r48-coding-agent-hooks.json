@@ -1,0 +1,65 @@
+{
+  "scenario": "r48-coding-agent-hooks",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Approval needed</b>\nBash in shop-api: npm run db:migrate -- --env=staging\nApply 2 migrations to staging\n\nExpires in 4 min. No answer = not approved.",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approve",
+                "callback_data": "ap:081da789:n6d6976b:a",
+                "style": "success"
+              },
+              {
+                "text": "Reject",
+                "callback_data": "ap:081da789:n6d6976b:r"
+              }
+            ],
+            [
+              {
+                "text": "Details",
+                "callback_data": "ap:081da789:n6d6976b:d"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "4382000000000001001",
+        "text": "Approved",
+        "show_alert": false
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>Approval needed</b>\nBash in shop-api: npm run db:migrate -- --env=staging\nApply 2 migrations to staging\n\nExpires in 4 min. No answer = not approved.\n\nApproved by Alice",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Approved by Alice",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

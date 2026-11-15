@@ -1093,6 +1093,10 @@ the model's own tests against each, and reports which defects nothing caught.
   Snowflake it needs `--check-equivalence` and joins the same single estimate;
   other connectors report `not_checked`, which carries a `reason`.
 - `score` is a ratio of two small integers over one model.
+- A run that decided a mutant is recorded per model in `.dex/` (scores, counts
+  and digests, never SQL or a row), named in `data.record`. `maintain coverage`
+  reads it as the model's `strength`, `fresh` or `stale` against the project as
+  it stands. A refused run, or one that decided nothing, records nothing.
 - A window frame bound moves one step wider. An interval bound also moves one
   unit narrower, and each window mutant carries `frame`: `last_included` and
   `first_excluded` are the offsets a boundary fixture needs rows at, in `unit`.

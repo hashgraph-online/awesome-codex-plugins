@@ -1,0 +1,1547 @@
+{
+  "scenario": "r63-search-lists",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Job search</b>\nType a role, a skill or a city, or pick a recent search.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:1:new",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "What are you looking for? Reply with a role, a skill or a city (up to 64 characters).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sr:2:home"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q1"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Please send 1-64 characters, for example: python.",
+        "reply_parameters": {
+          "message_id": 1002
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>«engineer»</b> · 12 jobs · page 1/3\n\n1. <b>Backend Engineer (Python)</b>\n    Berlin · Middle · remote\n2. <b>Senior Backend Engineer, Payments &amp; Billing</b>\n    Warsaw · Senior · remote\n3. <b>Frontend Engineer (React)</b>\n    Kyiv · Middle\n4. <b>Junior QA Engineer</b>\n    Lviv · Junior · remote\n5. <b>Data Engineer (Airflow, dbt)</b>\n    Berlin · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:3:open:j1"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:3:open:j2"
+              },
+              {
+                "text": "3",
+                "callback_data": "sr:3:open:j3"
+              },
+              {
+                "text": "4",
+                "callback_data": "sr:3:open:j4"
+              },
+              {
+                "text": "5",
+                "callback_data": "sr:3:open:j5"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "disabled": {}
+              },
+              {
+                "text": "1/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:3:page:1:1"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:3:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:3:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:3:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>«engineer»</b> · 12 jobs · page 2/3\n\n6. <b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Pla…</b>\n    Berlin · Senior · remote\n7. <b>DevOps Engineer</b>\n    Kraków · Middle · remote\n8. <b>Embedded Engineer</b>\n    Gdańsk · Senior\n9. <b>Junior Data Engineer</b>\n    Kyiv · Junior\n10. <b>Engineering Manager</b>\n    Warsaw · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "6",
+                "callback_data": "sr:4:open:j6"
+              },
+              {
+                "text": "7",
+                "callback_data": "sr:4:open:j7"
+              },
+              {
+                "text": "8",
+                "callback_data": "sr:4:open:j8"
+              },
+              {
+                "text": "9",
+                "callback_data": "sr:4:open:j9"
+              },
+              {
+                "text": "10",
+                "callback_data": "sr:4:open:j14"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "callback_data": "sr:4:page:0:1"
+              },
+              {
+                "text": "2/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:4:page:2:1"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:4:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:4:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:4:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q4"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>«engineer»</b> · 12 jobs · page 3/3\n\n11. <b>Security Engineer</b>\n    Berlin · Senior · remote\n12. <b>ML Engineer</b>\n    Kyiv · Senior · remote",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "11",
+                "callback_data": "sr:5:open:j15"
+              },
+              {
+                "text": "12",
+                "callback_data": "sr:5:open:j16"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "callback_data": "sr:5:page:1:1"
+              },
+              {
+                "text": "3/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:5:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:5:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:5:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q5"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>«engineer»</b> · 12 jobs · page 2/3\n\n6. <b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Pla…</b>\n    Berlin · Senior · remote\n7. <b>DevOps Engineer</b>\n    Kraków · Middle · remote\n8. <b>Embedded Engineer</b>\n    Gdańsk · Senior\n9. <b>Junior Data Engineer</b>\n    Kyiv · Junior\n10. <b>Engineering Manager</b>\n    Warsaw · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "6",
+                "callback_data": "sr:6:open:j6"
+              },
+              {
+                "text": "7",
+                "callback_data": "sr:6:open:j7"
+              },
+              {
+                "text": "8",
+                "callback_data": "sr:6:open:j8"
+              },
+              {
+                "text": "9",
+                "callback_data": "sr:6:open:j9"
+              },
+              {
+                "text": "10",
+                "callback_data": "sr:6:open:j14"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "callback_data": "sr:6:page:0:1"
+              },
+              {
+                "text": "2/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:6:page:2:1"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:6:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:6:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:6:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q6"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Platform — Berlin or Remote EU, Hybrid</b>\nWingtip\nBerlin · Senior · remote\nSalary: €8-10k\n\nRelevance, latency and a small team of four.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Open vacancy",
+                "url": "https://jobs.example/j6"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sr:7:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q7"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>«engineer»</b> · 12 jobs · page 2/3\n\n6. <b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Pla…</b>\n    Berlin · Senior · remote\n7. <b>DevOps Engineer</b>\n    Kraków · Middle · remote\n8. <b>Embedded Engineer</b>\n    Gdańsk · Senior\n9. <b>Junior Data Engineer</b>\n    Kyiv · Junior\n10. <b>Engineering Manager</b>\n    Warsaw · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "6",
+                "callback_data": "sr:8:open:j6"
+              },
+              {
+                "text": "7",
+                "callback_data": "sr:8:open:j7"
+              },
+              {
+                "text": "8",
+                "callback_data": "sr:8:open:j8"
+              },
+              {
+                "text": "9",
+                "callback_data": "sr:8:open:j9"
+              },
+              {
+                "text": "10",
+                "callback_data": "sr:8:open:j14"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "callback_data": "sr:8:page:0:1"
+              },
+              {
+                "text": "2/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:8:page:2:1"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:8:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:8:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:8:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q8"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>Filters</b>\nPick what to keep, then apply.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Remote",
+                "callback_data": "sr:9:toggle:remote"
+              }
+            ],
+            [
+              {
+                "text": "Junior",
+                "callback_data": "sr:9:toggle:junior"
+              }
+            ],
+            [
+              {
+                "text": "Senior",
+                "callback_data": "sr:9:toggle:senior"
+              }
+            ],
+            [
+              {
+                "text": "Apply · 12",
+                "callback_data": "sr:9:apply",
+                "style": "primary"
+              },
+              {
+                "text": "Reset",
+                "callback_data": "sr:9:reset"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q9"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>Filters</b>\nPick what to keep, then apply.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Remote",
+                "callback_data": "sr:a:toggle:remote"
+              }
+            ],
+            [
+              {
+                "text": "Junior",
+                "callback_data": "sr:a:toggle:junior"
+              }
+            ],
+            [
+              {
+                "text": "Senior",
+                "callback_data": "sr:a:toggle:senior"
+              }
+            ],
+            [
+              {
+                "text": "Apply · 7",
+                "callback_data": "sr:a:apply",
+                "style": "primary"
+              },
+              {
+                "text": "Reset",
+                "callback_data": "sr:a:reset"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q10"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>Filters</b>\nPick what to keep, then apply.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Remote",
+                "callback_data": "sr:b:toggle:remote"
+              }
+            ],
+            [
+              {
+                "text": "Junior",
+                "callback_data": "sr:b:toggle:junior"
+              }
+            ],
+            [
+              {
+                "text": "✓ Senior",
+                "callback_data": "sr:b:toggle:senior"
+              }
+            ],
+            [
+              {
+                "text": "Apply · 4",
+                "callback_data": "sr:b:apply",
+                "style": "primary"
+              },
+              {
+                "text": "Reset",
+                "callback_data": "sr:b:reset"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q11"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1004,
+        "text": "<b>«engineer»</b> · 4 jobs · page 1/1\nFilters: Remote, Senior\n\n1. <b>Senior Backend Engineer, Payments &amp; Billing</b>\n    Warsaw · Senior · remote\n2. <b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Pla…</b>\n    Berlin · Senior · remote\n3. <b>Security Engineer</b>\n    Berlin · Senior · remote\n4. <b>ML Engineer</b>\n    Kyiv · Senior · remote",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:c:open:j2"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:c:open:j6"
+              },
+              {
+                "text": "3",
+                "callback_data": "sr:c:open:j15"
+              },
+              {
+                "text": "4",
+                "callback_data": "sr:c:open:j16"
+              }
+            ],
+            [
+              {
+                "text": "Filters (2)",
+                "callback_data": "sr:c:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:c:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:c:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q12"
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Compare · page 1/1"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Job",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "City",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Level",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Salary",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "Senior Backend Engineer, Payments &…",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Warsaw",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Senior",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "€6-8k",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Staff Engineer, Search & Ranking <C…",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Berlin",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Senior",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "€8-10k",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "Security Engineer",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Berlin",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Senior",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "€6.5-8k",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ],
+                [
+                  {
+                    "text": "ML Engineer",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Kyiv",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "Senior",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "€6-8k",
+                    "align": "left",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true
+            },
+            {
+              "type": "buttons",
+              "buttons": [
+                {
+                  "text": "← List",
+                  "callback_data": "sr:d:back"
+                }
+              ],
+              "align": "left"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q13"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>«engineer»</b> · 4 jobs · page 1/1\nFilters: Remote, Senior\n\n1. <b>Senior Backend Engineer, Payments &amp; Billing</b>\n    Warsaw · Senior · remote\n2. <b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Pla…</b>\n    Berlin · Senior · remote\n3. <b>Security Engineer</b>\n    Berlin · Senior · remote\n4. <b>ML Engineer</b>\n    Kyiv · Senior · remote",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:e:open:j2"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:e:open:j6"
+              },
+              {
+                "text": "3",
+                "callback_data": "sr:e:open:j15"
+              },
+              {
+                "text": "4",
+                "callback_data": "sr:e:open:j16"
+              }
+            ],
+            [
+              {
+                "text": "Filters (2)",
+                "callback_data": "sr:e:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:e:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:e:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q14"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "What are you looking for? Reply with a role, a skill or a city (up to 64 characters).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sr:f:home"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q15"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>Nothing for «embedded»</b>\nNo job matches with these filters: Remote, Senior. Remove one to see more:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Remove filter: Remote",
+                "callback_data": "sr:g:unfilter:remote",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:g:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1008,
+        "text": "<b>«embedded»</b> · 1 jobs · page 1/1\nFilters: Senior\n\n1. <b>Embedded Engineer</b>\n    Gdańsk · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:h:open:j8"
+              }
+            ],
+            [
+              {
+                "text": "Filters (1)",
+                "callback_data": "sr:h:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:h:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:h:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q17"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1008,
+        "text": "<b>Filters</b>\nPick what to keep, then apply.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Remote",
+                "callback_data": "sr:i:toggle:remote"
+              }
+            ],
+            [
+              {
+                "text": "Junior",
+                "callback_data": "sr:i:toggle:junior"
+              }
+            ],
+            [
+              {
+                "text": "✓ Senior",
+                "callback_data": "sr:i:toggle:senior"
+              }
+            ],
+            [
+              {
+                "text": "Apply · 1",
+                "callback_data": "sr:i:apply",
+                "style": "primary"
+              },
+              {
+                "text": "Reset",
+                "callback_data": "sr:i:reset"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q18"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1008,
+        "text": "<b>Filters</b>\nPick what to keep, then apply.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Remote",
+                "callback_data": "sr:j:toggle:remote"
+              }
+            ],
+            [
+              {
+                "text": "Junior",
+                "callback_data": "sr:j:toggle:junior"
+              }
+            ],
+            [
+              {
+                "text": "Senior",
+                "callback_data": "sr:j:toggle:senior"
+              }
+            ],
+            [
+              {
+                "text": "Apply · 1",
+                "callback_data": "sr:j:apply",
+                "style": "primary"
+              },
+              {
+                "text": "Reset",
+                "callback_data": "sr:j:reset"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q19"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1008,
+        "text": "<b>«embedded»</b> · 1 jobs · page 1/1\n\n1. <b>Embedded Engineer</b>\n    Gdańsk · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:k:open:j8"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:k:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:k:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:k:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q20"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Пошук роботи</b>\nНапишіть посаду, навичку чи місто або оберіть недавній пошук.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Новий пошук",
+                "callback_data": "sr:1:new",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "Що шукаєте? Відповідьте посадою, навичкою чи містом (до 64 символів).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "sr:2:home"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q22"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>«інженер»</b> · вакансій: 2 · сторінка 1/1\n\n1. <b>Інженер даних (Python, Airflow)</b>\n    Київ · Middle · віддалено\n2. <b>Інженер з автоматизації тестування</b>\n    Львів · Junior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:3:open:j10"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:3:open:j11"
+              }
+            ],
+            [
+              {
+                "text": "Фільтри",
+                "callback_data": "sr:3:filters"
+              },
+              {
+                "text": "Порівняти",
+                "callback_data": "sr:3:compare"
+              }
+            ],
+            [
+              {
+                "text": "Новий пошук",
+                "callback_data": "sr:3:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 333333333,
+        "text": "<b>Пошук роботи</b>\nНапишіть посаду, навичку чи місто або оберіть недавній пошук.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "🕘 інженер",
+                "callback_data": "sr:4:recent:q3"
+              }
+            ],
+            [
+              {
+                "text": "Новий пошук",
+                "callback_data": "sr:4:new",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "qx",
+        "text": "Цей пошук належить комусь іншому. Надішліть /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q26",
+        "text": "This list has changed. Use the latest message."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "What are you looking for? Reply with a role, a skill or a city (up to 64 characters).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sr:l:home"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q27"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>«engineer»</b> · 12 jobs · page 1/3\n\n1. <b>Backend Engineer (Python)</b>\n    Berlin · Middle · remote\n2. <b>Senior Backend Engineer, Payments &amp; Billing</b>\n    Warsaw · Senior · remote\n3. <b>Frontend Engineer (React)</b>\n    Kyiv · Middle\n4. <b>Junior QA Engineer</b>\n    Lviv · Junior · remote\n5. <b>Data Engineer (Airflow, dbt)</b>\n    Berlin · Senior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:m:open:j1"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:m:open:j2"
+              },
+              {
+                "text": "3",
+                "callback_data": "sr:m:open:j3"
+              },
+              {
+                "text": "4",
+                "callback_data": "sr:m:open:j4"
+              },
+              {
+                "text": "5",
+                "callback_data": "sr:m:open:j5"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "disabled": {}
+              },
+              {
+                "text": "1/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:m:page:1:1"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:m:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:m:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:m:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q29",
+        "text": "This job is no longer available.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1014,
+        "text": "<b>«engineer»</b> · 12 jobs · page 1/3\n\n1. <b>Backend Engineer (Python)</b>\n    Berlin · Middle · remote\n2. <b>Senior Backend Engineer, Payments &amp; Billing</b>\n    Warsaw · Senior · remote\n3. <b>Junior QA Engineer</b>\n    Lviv · Junior · remote\n4. <b>Data Engineer (Airflow, dbt)</b>\n    Berlin · Senior\n5. <b>Staff Engineer, Search &amp; Ranking &lt;Core&gt; Pla…</b>\n    Berlin · Senior · remote",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:n:open:j1"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:n:open:j2"
+              },
+              {
+                "text": "3",
+                "callback_data": "sr:n:open:j4"
+              },
+              {
+                "text": "4",
+                "callback_data": "sr:n:open:j5"
+              },
+              {
+                "text": "5",
+                "callback_data": "sr:n:open:j6"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "disabled": {}
+              },
+              {
+                "text": "1/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:n:page:1:2"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:n:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:n:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:n:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q30",
+        "text": "The list was updated. Showing the latest results."
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1014,
+        "text": "<b>«engineer»</b> · 12 jobs · page 2/3\n\n6. <b>DevOps Engineer</b>\n    Kraków · Middle · remote\n7. <b>Embedded Engineer</b>\n    Gdańsk · Senior\n8. <b>Junior Data Engineer</b>\n    Kyiv · Junior\n9. <b>Engineering Manager</b>\n    Warsaw · Senior\n10. <b>Security Engineer</b>\n    Berlin · Senior · remote",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "6",
+                "callback_data": "sr:o:open:j7"
+              },
+              {
+                "text": "7",
+                "callback_data": "sr:o:open:j8"
+              },
+              {
+                "text": "8",
+                "callback_data": "sr:o:open:j9"
+              },
+              {
+                "text": "9",
+                "callback_data": "sr:o:open:j14"
+              },
+              {
+                "text": "10",
+                "callback_data": "sr:o:open:j15"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "callback_data": "sr:o:page:0:2"
+              },
+              {
+                "text": "2/3",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:o:page:2:2"
+              }
+            ],
+            [
+              {
+                "text": "Filters",
+                "callback_data": "sr:o:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:o:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:o:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "What are you looking for? Reply with a role, a skill or a city (up to 64 characters).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "sr:p:home"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q31"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>«support» · 231 jobs</b>\nToo many to browse. Narrow it down; the top 5 for now:\n\n1. <b>Support Specialist (night shift)</b>\n    Lviv · Junior · remote\n2. <b>Support specialist #0</b>\n    Berlin · Junior · remote\n3. <b>Support specialist #1</b>\n    Kyiv · Middle\n4. <b>Support specialist #2</b>\n    Lviv · Senior · remote\n5. <b>Support specialist #3</b>\n    Berlin · Junior",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Remote (116)",
+                "callback_data": "sr:q:facet:remote"
+              }
+            ],
+            [
+              {
+                "text": "Junior (78)",
+                "callback_data": "sr:q:facet:junior"
+              }
+            ],
+            [
+              {
+                "text": "Senior (76)",
+                "callback_data": "sr:q:facet:senior"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:q:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1016,
+        "text": "<b>«support»</b> · 116 jobs · page 1/24\nFilters: Remote\n\n1. <b>Support Specialist (night shift)</b>\n    Lviv · Junior · remote\n2. <b>Support specialist #0</b>\n    Berlin · Junior · remote\n3. <b>Support specialist #2</b>\n    Lviv · Senior · remote\n4. <b>Support specialist #4</b>\n    Kyiv · Middle · remote\n5. <b>Support specialist #6</b>\n    Berlin · Junior · remote",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "1",
+                "callback_data": "sr:r:open:j13"
+              },
+              {
+                "text": "2",
+                "callback_data": "sr:r:open:b0"
+              },
+              {
+                "text": "3",
+                "callback_data": "sr:r:open:b2"
+              },
+              {
+                "text": "4",
+                "callback_data": "sr:r:open:b4"
+              },
+              {
+                "text": "5",
+                "callback_data": "sr:r:open:b6"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "disabled": {}
+              },
+              {
+                "text": "1/24",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "sr:r:page:1:3"
+              }
+            ],
+            [
+              {
+                "text": "Filters (1)",
+                "callback_data": "sr:r:filters"
+              },
+              {
+                "text": "Compare",
+                "callback_data": "sr:r:compare"
+              }
+            ],
+            [
+              {
+                "text": "New search",
+                "callback_data": "sr:r:new"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q33"
+      }
+    }
+  ]
+}

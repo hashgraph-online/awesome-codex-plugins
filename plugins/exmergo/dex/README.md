@@ -366,7 +366,7 @@ and treat these scores as guide posts. ([evaluation](https://docs.exmergo.com/de
 
 ### What Dex sends where
 
-- **On install**, `uv` downloads the pinned engine (and a Python 3.11 to 3.14 if you have none) from PyPI or your configured index.
+- **On install**, `uv` downloads the pinned engine (and a Python 3.11 to 3.14 if you have none, or if your newest is a 3.15, which Dex does not support yet) from PyPI or your configured index.
 - **Your connected database, data warehouse, or SQL endpoint** gets SELECT-only SQL from Dex, plus the dbt builds you confirm on a dev target, with credentials from your existing credential chain.
 - **dbt Cloud** is contacted only if you enable the hosted semantic layer.
 - **dbt-core**, when Dex runs it, sends dbt Labs no usage statistics: Dex sets `DO_NOT_TRACK=1` for every dbt process it starts. `transform deps` downloads the packages your `packages.yml` declares.

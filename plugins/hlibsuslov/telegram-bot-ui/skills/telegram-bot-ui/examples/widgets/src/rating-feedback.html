@@ -1,0 +1,75 @@
+<!-- Rating feedback (private chat). Source: build with scripts/build_widget.py.
+  chat_data: {"o":"what is rated","h":"question","pos":[tags for 4-5 stars],"neg":[tags for 1-3 stars],
+              "v":stars sent,"m":tag bitmask sent,"k":0 open|1 thanks|2 rated earlier,"c":coupon code,"r":N}
+  Stars and tag chips are local; "Send feedback" sends "r:<stars>:<tagbitmask>" (absolute) once.
+  Free text is not possible in a widget: "Write a comment" opens the bot chat with a deep link. -->
+<style>
+/*@kit tokens.css*/
+.sr { display: flex; gap: 2px; margin: 6px 0 }
+.sr button { flex: 1; min-width: 0; min-height: 40px; padding: 0; border: 0; background: none; font-size: 1.6em; color: var(--k-hint) }
+.sr .on { color: var(--k-warn) }
+.cs { display: flex; flex-wrap: wrap; gap: 6px }
+.cd { margin-top: 8px }
+.cd b { flex: 1; min-width: 0; font-size: 1.1em; letter-spacing: .08em }
+.ac { display: grid; gap: 6px; margin-top: 8px }
+.ac button { min-height: 36px }
+</style>
+<div class="k">
+  <div class="tt el" id="ti"></div>
+  <div class="mt" id="hh"></div>
+  <div class="sr" id="sr"></div>
+  <div class="cs" id="tg"></div>
+  <div class="sf cd" id="cd"><div class="mt" id="cu"></div><div class="rw"><b id="cc"></b><button class="ch" id="cb"></button></div></div>
+  <div class="ac" id="ac"></div>
+  <div class="st" id="st"></div>
+</div>
+<!--@kit runtime.js-->
+<!--@kit i18n.js-->
+<script>
+/*@lang en*/K.add({ en: { sd: "Send feedback", cm: "Write a comment", cp: "Copy", cu: "Your coupon", th: "Thank you for the feedback!",
+        al: "You already rated this order", ok: "Thanks for the feedback", none: "Nothing to rate yet." } });/*@end*/
+/*@lang ru*/K.add({ ru: { sd: "Отправить отзыв", cm: "Написать комментарий", cp: "Копировать", cu: "Ваш купон", th: "Спасибо за отзыв!",
+        al: "Вы уже оценили этот заказ", ok: "Спасибо за отзыв", none: "Пока нечего оценивать." } });/*@end*/
+/*@lang uk*/K.add({ uk: { sd: "Надіслати відгук", cm: "Написати коментар", cp: "Копіювати", cu: "Ваш купон", th: "Дякуємо за відгук!",
+        al: "Ви вже оцінили це замовлення", ok: "Дякуємо за відгук", none: "Поки нічого оцінювати." } });/*@end*/
+var st = null, mk = 0;
+function draw() {
+  var s = K.S.chatData, $ = K.$, i, b, a = $("sr"), c = $("tg"), n = $("ac"), dn = s && s.k, v, m;
+  a.innerHTML = c.innerHTML = n.innerHTML = "";
+  $("cd").hidden = 1;
+  if (!s) { $("ti").textContent = K.t("none"); $("hh").textContent = ""; return; }
+  if (st == null) st = s.v;
+  v = dn ? s.v : st; m = dn ? s.m : mk;
+  $("ti").textContent = s.o;
+  $("hh").textContent = dn ? K.t(s.k > 1 ? "al" : "th") : s.h;
+  [1, 2, 3, 4, 5].forEach(function (i) {
+    b = K.h("button", i <= v ? "on" : "", "★");
+    b.setAttribute("aria-label", i + "/5");
+    b.disabled = !!dn;
+    b.onclick = function () { st = i; mk = 0; draw(); };
+    a.appendChild(b);
+  });
+  if (v) (v > 3 ? s.pos : s.neg).forEach(function (t, j) {
+    if (dn && !(m >> j & 1)) return;
+    b = K.h("button", "ch" + (m >> j & 1 ? " on" : ""), t);
+    b.disabled = !!dn;
+    b.onclick = function () { mk ^= 1 << j; draw(); };
+    c.appendChild(b);
+  });
+  if (!dn) {
+    b = K.h("button", "", K.t("sd"));
+    b.disabled = K.busy || !K.can() || !st;
+    b.onclick = function () { K.ask("r:" + st + ":" + mk, { done: K.t("ok") }); };
+    n.appendChild(b);
+  }
+  b = K.h("button", "ch", K.t("cm"));
+  b.onclick = function () { try { W.openTelegramLink("https://t.me/example_bot?start=comment"); } catch (e) {} };
+  n.appendChild(b);
+  if (dn && s.c) {
+    $("cd").hidden = 0;
+    $("cu").textContent = K.t("cu"); $("cc").textContent = s.c; $("cb").textContent = K.t("cp");
+    $("cb").onclick = function () { try { W.copyText(s.c); } catch (e) {} };
+  }
+}
+K.start(draw);
+</script>

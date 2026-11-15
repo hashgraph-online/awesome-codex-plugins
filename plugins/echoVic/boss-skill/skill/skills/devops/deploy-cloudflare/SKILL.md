@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要部署到 Cloudflare 时
@@ -59,6 +60,7 @@ npx wrangler pages deploy dist --project-name=my-app
 ```
 
 **首次部署输出示例**：
+
 ```
 ✨ Compiled Worker successfully
 🌍  Uploading... (20.4 MB)
@@ -237,6 +239,7 @@ jobs:
 ```
 
 **需要的 Secrets**：
+
 - `CLOUDFLARE_API_TOKEN`：Cloudflare API Token（My Profile → API Tokens → Create Token，选 "Edit Cloudflare Workers" 模板）
 - `CLOUDFLARE_ACCOUNT_ID`：账户 ID（Workers 页面右侧栏可获取）
 

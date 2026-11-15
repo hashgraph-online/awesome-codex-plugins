@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要执行测试时
@@ -190,6 +191,7 @@ pytest tests/ -v --json-report --json-report-file=test-results.json
 ```
 
 解析：
+
 ```json
 {
   "summary": {
@@ -209,6 +211,7 @@ go test ./... -json > test-results.json
 ```
 
 解析（每行一个 JSON）：
+
 ```bash
 # 统计通过/失败
 go test ./... -v 2>&1 | grep -E "^(=== RUN|--- (PASS|FAIL|SKIP))" | \

@@ -1,6 +1,6 @@
 ---
 name: maintain
-description: 'Use this to find out whether an existing dbt project or semantic layer (dbt, Ossie, SLayer or Cube) is correct against its warehouse, and if not, why. `maintain verify` checks the project as it stands; against a .dex/ snapshot, `maintain check` finds schema, volume, grain, and semantic drift and `maintain reconcile` proposes the fix. Reach for it whenever an existing project is suspected wrong, whether or not anything is known to have changed: "this model is wrong, work out why", "the numbers look too high", "some rows are missing", "this column is empty", "duplicates in my fact table", "the project is broken", "diagnose why this test fails", "a test fails and nobody changed the model", "the dashboard moved but the code did not", "did anything drift", "the row count dropped", "the metric definition changed". Read-only; fixes come back as reviewable diffs and never overwrite hand-written work. Writing the fix, or repairing a model you just edited, is transform''s; a data question with no project is explore''s.'
+description: 'Use this to find out whether an existing dbt project or semantic layer (dbt, Ossie, SLayer or Cube) is correct against its warehouse, and if not, why. `maintain verify` checks the project as it stands; against a .dex/ snapshot, `maintain check` finds schema, volume, grain, and semantic drift and `maintain reconcile` proposes the fix. Reach for it whenever an existing project is suspected wrong, whether or not anything is known to have changed: "this model is wrong, work out why", "the numbers look too high", "some rows are missing", "this column is empty", "duplicates in my fact table", "the project is broken", "diagnose why this test fails", "a test fails and nobody changed the model", "which models have no tests", "how good is our test coverage", "did anything drift", "the metric definition changed". Read-only; fixes come back as reviewable diffs and never overwrite hand-written work. Writing the fix, or repairing a model you just edited, is transform''s; a data question with no project is explore''s.'
 compatibility: 'Needs a local shell and uv. On first use, uv builds the exmergo-dex-core engine from the source bundled with the plugin, or installs it from PyPI at the version scripts/run.py pins when no source is bundled. Runs in Claude Code or another agent that loads Agent Skills and has a shell, not in claude.ai chat.'
 ---
 
@@ -434,6 +434,15 @@ fetches the engine's dependencies from PyPI or your configured index.
    comes back as a conflict, never an overwrite.
 5. **Re-baseline** once the result is known-good: `explore map`, then
    `maintain snapshot`.
+
+For a question about the tests rather than the data ("which models have no
+tests", "would our tests catch a bug", "did they pass"), run `maintain coverage`.
+It is free and needs no baseline. Report its answers apart, each with the
+denominator it states: which resources and columns have tests, each test's
+status in the last run (with that run's age), each model's recorded mutation
+score (`fresh` or `stale`, never quoted as current when stale), and what checks
+each declared fact. Never combine them into one coverage number. A model with no
+score is measured with `transform test --mutate <model>`.
 
 Per-axis fields and finding codes are in
 `${CLAUDE_SKILL_DIR}/references/axes.md`. Read it when a finding's code or field

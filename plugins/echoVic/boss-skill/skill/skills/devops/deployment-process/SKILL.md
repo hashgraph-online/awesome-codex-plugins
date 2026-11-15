@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要配置部署流程时
@@ -39,6 +40,7 @@ dependencies:
 | `Dockerfile`（无上述平台配置）    | Render 或 Fly.io | `devops/deploy-render` / `devops/deploy-flyio` |
 
 **检测命令**：
+
 ```bash
 ls vercel.json wrangler.toml render.yaml render.yml netlify.toml railway.json railway.toml fly.toml Dockerfile 2>/dev/null
 ```

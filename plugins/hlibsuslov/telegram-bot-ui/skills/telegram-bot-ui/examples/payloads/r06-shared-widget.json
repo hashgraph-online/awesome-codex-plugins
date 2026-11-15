@@ -1,0 +1,89 @@
+{
+  "scenario": "r06-shared-widget",
+  "status": "production + test-server parts",
+  "context": "private; forwards/inline on test server",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 555555555,
+        "html": "<!-- Shared poll widget. public_data = {\"q\":\"…\",\"opts\":[\"…\"],\"v\":[n…],\"closed\":false,\"r\":N}\n     Sent once with is_shared + allow_queries, re-sent with sendSharedWidget.\n     Request: \"vote:<i>\". The bot keys votes on (widget_id, from.id). -->\n<style>\nbody{margin:0;padding:0}\n.c{padding:10px 12px max(10px,env(safe-area-inset-bottom))}\n.q{font-weight:600;margin-bottom:6px}\nbutton.opt{display:block;width:100%;text-align:left;margin:4px 0;position:relative;overflow:hidden}\n.bar{position:absolute;left:0;top:0;bottom:0;background:var(--tg-theme-secondary-bg-color);transition:width .3s}\n.lbl{position:relative;display:flex;justify-content:space-between}\n.mine .lbl{font-weight:600}\n.s{color:var(--tg-theme-hint-color);font-size:.9em;min-height:1.3em}\n.e{color:var(--tg-theme-destructive-text-color)}\n@media (prefers-reduced-motion:reduce){.bar{transition:none}}\n</style>\n<div class=\"c\"><div class=\"q\" id=\"q\"></div><div id=\"o\"></div><div class=\"s\" id=\"s\"></div></div>\n<script>\nvar W=window.TelegramWidget,P=null,R=-1,mine=null,busy=false;\ntry{mine=localStorage.getItem(\"v\")}catch(e){}\nfunction load(){var p=null;try{p=JSON.parse(W?W.publicData:null)}catch(e){}if(p&&p.r>R){P=p;R=p.r}}\nfunction draw(){\n if(!P)return;document.getElementById(\"q\").textContent=P.q;\n var box=document.getElementById(\"o\");box.innerHTML=\"\";\n var total=P.v.reduce(function(a,b){return a+b},0)||1;\n var canAsk=!!(W&&W.viewer)&&!P.closed;\n P.opts.forEach(function(t,i){\n  var b=document.createElement(\"button\");b.className=\"opt\"+(String(i)===mine?\" mine\":\"\");b.disabled=!canAsk||busy;\n  b.innerHTML='<span class=\"bar\" style=\"width:'+Math.round(100*P.v[i]/total)+'%\"></span><span class=\"lbl\"><span></span><span>'+P.v[i]+'</span></span>';\n  b.querySelector(\".lbl span\").textContent=t;\n  b.onclick=function(){vote(i)};box.appendChild(b)});\n var s=document.getElementById(\"s\");s.className=\"s\";\n s.textContent=P.closed?\"Poll closed\":(!W||!W.viewer?\"Open the bot to vote\":\"\");\n}\nfunction vote(i){\n busy=true;draw();\n W.request(\"vote:\"+i).then(function(a){busy=false;var r=null;try{r=JSON.parse(a.result)}catch(e){}\n  if(r&&r.ok){mine=String(i);try{localStorage.setItem(\"v\",mine)}catch(e){}if(r.s&&r.r>R){P=r.s;R=r.r}}\n  draw()},function(e){busy=false;draw();var s=document.getElementById(\"s\");s.className=\"s e\";s.textContent={RATE_LIMITED:\"Too fast. Try again in a few seconds\",BUSY:\"One moment…\",TIMEOUT:\"The bot didn't answer. Vote not counted\",NOT_ALLOWED:\"Open the bot to vote\"}[e.code]||\"Vote not counted. Try again\"})}\nif(W){W.onEvent(\"publicDataChanged\",function(){load();draw()});W.watchPublicData()}\nload();draw();if(W)W.ready();\n</script>\n",
+        "public_data": "{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,0,0],\"closed\":false,\"r\":0}",
+        "caption": "Poll: Lunch on Friday?",
+        "is_shared": true,
+        "allow_queries": true
+      }
+    },
+    {
+      "method": "sendSharedWidget",
+      "params": {
+        "chat_id": 111111111,
+        "widget_id": "777001001",
+        "caption": "Poll: Lunch on Friday? Tap to vote.",
+        "chat_data": "{\"u\":111111111}"
+      }
+    },
+    {
+      "method": "sendSharedWidget",
+      "params": {
+        "chat_id": 222222222,
+        "widget_id": "777001001",
+        "caption": "Poll: Lunch on Friday? Tap to vote.",
+        "chat_data": "{\"u\":222222222}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340100",
+        "data": "{\"ok\":true,\"s\":{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,1,0],\"closed\":false,\"r\":1},\"r\":1}"
+      }
+    },
+    {
+      "method": "editSharedWidgetData",
+      "params": {
+        "widget_id": "777001001",
+        "public_data": "{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,1,0],\"closed\":false,\"r\":1}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340101",
+        "data": "{\"ok\":true,\"s\":{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[1,1,0],\"closed\":false,\"r\":2},\"r\":2}"
+      }
+    },
+    {
+      "method": "answerWidgetQuery",
+      "params": {
+        "widget_query_id": "8123456789012340102",
+        "data": "{\"ok\":true,\"s\":{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,2,0],\"closed\":false,\"r\":3},\"r\":3}"
+      }
+    },
+    {
+      "method": "editSharedWidgetData",
+      "params": {
+        "widget_id": "777001001",
+        "public_data": "{\"q\":\"Lunch on Friday?\",\"opts\":[\"Pizza\",\"Sushi\",\"Salad\"],\"v\":[0,2,0],\"closed\":false,\"r\":3}"
+      }
+    },
+    {
+      "method": "copyMessage",
+      "params": {
+        "chat_id": 333333333,
+        "from_chat_id": 555555555,
+        "message_id": 1001
+      }
+    },
+    {
+      "method": "sendSharedWidget",
+      "params": {
+        "chat_id": 333333333,
+        "widget_id": "777001001",
+        "caption": "Poll: Lunch on Friday?"
+      }
+    }
+  ]
+}

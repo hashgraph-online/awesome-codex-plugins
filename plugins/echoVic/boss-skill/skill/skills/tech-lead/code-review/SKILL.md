@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要审查代码时
@@ -34,6 +35,7 @@ dependencies:
 ### 阶段 1：理解变更（5 分钟）
 
 在逐行看代码之前，先回答：
+
 1. **这个 PR 解决什么问题？** — 看 PR 描述、关联 issue、PRD
 2. **变更范围多大？** — 看 diff stat，超过 400 行的 PR 要求拆分
 3. **涉及哪些模块？** — 看变更文件列表，识别影响面

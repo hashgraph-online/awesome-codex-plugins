@@ -1,0 +1,129 @@
+{
+  "scenario": "r82-journey",
+  "status": "offline-model",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 101,
+        "text": "<b>Reminder</b>\nDate: 15 Nov 2026. Time: not set. State: draft.\nConfirm your time zone before creating a real reminder.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Schedule for 10:00 UTC",
+                "callback_data": "r82:1:save"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "foreign-user",
+        "text": "Open your own menu with /start.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-0"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Reminder</b>\nDate: 15 Nov 2026. Time: 10:00 UTC. State: scheduled.\nConfirm your time zone before creating a real reminder.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Move to 11:00 UTC",
+                "callback_data": "r82:2:snooze"
+              }
+            ],
+            [
+              {
+                "text": "Cancel reminder",
+                "callback_data": "r82:2:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-1"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Reminder</b>\nDate: 15 Nov 2026. Time: 11:00 UTC. State: scheduled.\nConfirm your time zone before creating a real reminder.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Move to 11:00 UTC",
+                "callback_data": "r82:3:snooze"
+              }
+            ],
+            [
+              {
+                "text": "Cancel reminder",
+                "callback_data": "r82:3:cancel"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "tap-2"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 101,
+        "message_id": 1001,
+        "text": "<b>Reminder</b>\nDate: 15 Nov 2026. Time: not set. State: cancelled.\nConfirm your time zone before creating a real reminder.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Schedule for 10:00 UTC",
+                "callback_data": "r82:4:save"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "old-screen",
+        "text": "This screen changed. Use the latest buttons."
+      }
+    }
+  ]
+}

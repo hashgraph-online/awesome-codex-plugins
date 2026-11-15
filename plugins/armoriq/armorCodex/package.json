@@ -5,8 +5,8 @@
   "type": "module",
   "description": "ArmorIQ intent-based security enforcement for OpenAI Codex",
   "scripts": {
-    "test": "node --test ../../tests/*.test.mjs",
-    "check": "node --test ../../tests/*.test.mjs"
+    "test": "node --test --import ../../tests/setup/no-track.mjs ../../tests/*.test.mjs",
+    "check": "node --test --import ../../tests/setup/no-track.mjs ../../tests/*.test.mjs"
   },
   "engines": {
     "node": ">=20.0.0"

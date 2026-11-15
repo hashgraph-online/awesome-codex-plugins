@@ -1,0 +1,32 @@
+{
+  "update_id": 910007,
+  "my_chat_member": {
+    "chat": {
+      "id": -1009876543210,
+      "type": "supergroup",
+      "title": "Free crypto signals"
+    },
+    "from": {
+      "id": 444444444,
+      "is_bot": false,
+      "first_name": "Bob"
+    },
+    "date": 1762900200,
+    "old_chat_member": {
+      "user": {
+        "id": 999000222,
+        "is_bot": true,
+        "first_name": "Agent"
+      },
+      "status": "left"
+    },
+    "new_chat_member": {
+      "user": {
+        "id": 999000222,
+        "is_bot": true,
+        "first_name": "Agent"
+      },
+      "status": "member"
+    }
+  }
+}

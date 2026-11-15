@@ -1,0 +1,94 @@
+{
+  "scenario": "r71-icons-from-zero",
+  "status": "production (fixture ids)",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>🏠 Your lists</b>\nNo lists yet.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "➕ New list",
+                "callback_data": "add",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "🔍 Search",
+                "callback_data": "search"
+              },
+              {
+                "text": "⚙️ Settings",
+                "callback_data": "settings"
+              }
+            ],
+            [
+              {
+                "text": "❓ Help",
+                "callback_data": "help"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "getCustomEmojiStickers",
+      "params": {
+        "custom_emoji_ids": [
+          "0100000000000001",
+          "0100000000000006",
+          "0100000000000012",
+          "0100000000000013",
+          "0100000000000018"
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000001\">🏠</tg-emoji> Your lists</b>\nNo lists yet.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "New list",
+                "callback_data": "add",
+                "icon_custom_emoji_id": "0100000000000006",
+                "style": "primary"
+              }
+            ],
+            [
+              {
+                "text": "Search",
+                "callback_data": "search",
+                "icon_custom_emoji_id": "0100000000000012"
+              },
+              {
+                "text": "Settings",
+                "callback_data": "settings",
+                "icon_custom_emoji_id": "0100000000000013"
+              }
+            ],
+            [
+              {
+                "text": "Help",
+                "callback_data": "help"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

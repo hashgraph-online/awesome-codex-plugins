@@ -1,0 +1,79 @@
+{
+  "scenario": "r39-correct-published-post",
+  "status": "production",
+  "context": "channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Water outage on Monday\n\nStreets: Lime St. 1–20, Oak St. 3–9. From 09:00 to 15:00.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 22
+          }
+        ]
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_id": 1001,
+        "text": "Water outage on Monday\n\nStreets: Lime St. 1–20, Oak St. 3–9. From 09:00 to 13:00.",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 22
+          }
+        ]
+      }
+    },
+    {
+      "method": "deleteMessages",
+      "params": {
+        "chat_id": -1001500000001,
+        "message_ids": [
+          1001
+        ]
+      }
+    },
+    {
+      "method": "sendPhoto",
+      "params": {
+        "chat_id": -1001500000001,
+        "photo": "AgACAgIAAxkBAAIBdemoOutageMap",
+        "caption": "Water outage on Monday\n\nStreets: Lime St. 1–20, Oak St. 3–9. From 09:00 to 13:00.",
+        "caption_entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 22
+          }
+        ]
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Bridge St. closed on Tuesday."
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Correction: the closure is on Wednesday, not Tuesday.",
+        "reply_parameters": {
+          "message_id": 1003
+        }
+      }
+    }
+  ]
+}

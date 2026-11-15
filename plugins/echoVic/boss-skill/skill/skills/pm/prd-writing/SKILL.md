@@ -8,6 +8,7 @@ type: guideline
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - pm/requirement-penetration
   triggers:
 - 需求分析完成，准备输出PRD时
@@ -256,6 +257,7 @@ journey
 ## 质量检查清单
 
 在输出PRD前，检查以下项目：
+
 - [ ] 摘要部分是否清晰，能让读者快速理解核心内容
 - [ ] 需求穿透分析是否完整（显性、隐性、潜在、惊喜四层）
 - [ ] 每个功能需求是否有明确的验收标准

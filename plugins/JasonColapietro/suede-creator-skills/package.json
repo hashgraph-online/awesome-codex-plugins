@@ -1,6 +1,6 @@
 {
   "name": "suede-creator-skills",
-  "version": "0.19.3",
+  "version": "0.19.4",
   "private": true,
   "type": "module",
   "engines": {
@@ -19,7 +19,7 @@
     "build:directory": "node scripts/build-directory.mjs && node scripts/generate-sitemap.mjs && node scripts/build-awesome-directory.mjs",
     "build:mcp-package": "node scripts/build-mcp-package.mjs",
     "build:pypi": "node scripts/build-pypi-package.mjs && python3 -m build pypi/",
-    "test:mcp": "node --test tests/test_mcp_protocol.mjs",
+    "test:mcp": "node --test tests/test_mcp_protocol.mjs tests/test_page_audit_network.mjs",
     "test:contributions": "node --test tests/test_contribution_ledger.mjs",
     "test:listings": "node --test tests/test_listings.mjs",
     "test:validator-runtime": "node --test tests/test_validator_runtime.mjs",

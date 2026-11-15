@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
 - architect/tech-research
   triggers:
@@ -24,6 +25,7 @@ dependencies:
 ## 适用场景
 
 基于技术调研结论，设计完整的系统架构，包括：
+
 - 架构模式选择（单体/前后端分离/微服务）
 - 系统分层和模块划分
 - 目录结构设计
@@ -175,6 +177,7 @@ graph TB
 ### 4. 目录结构设计
 
 **重要原则**：
+
 1. **遵循框架惯例**：使用检测到的框架的标准目录结构
 2. **关注点分离**：业务逻辑、数据访问、API层清晰分离
 3. **测试并置**：测试文件与源码在同层或专用tests目录

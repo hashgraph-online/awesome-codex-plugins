@@ -8,6 +8,7 @@ type: methodology
 user-invocable: true
 agent-invocable: true
 dependencies:
+
 - pm/competitive-analysis
   triggers:
 - 用户请求战略评审或商业价值评估时
@@ -26,6 +27,7 @@ dependencies:
 当需要从 CEO/战略高度评估一个功能或项目的商业价值时使用。不同于技术评审关注实现质量，战略评审关注**做不做**和**为什么做**。
 
 典型场景：
+
 - 新功能立项前的价值论证
 - 资源有限时的优先级决策
 - 产品方向调整的论证
@@ -96,6 +98,7 @@ dependencies:
 ### 综合评分规则
 
 每个维度 1-5 分，加权计算综合分：
+
 - 市场契合度：权重 30%
 - ROI：权重 25%
 - 竞争优势：权重 20%
@@ -113,6 +116,7 @@ dependencies:
 ## 输出要求
 
 使用 `strategic-review.md.template` 模板输出到 `.boss/<feature>/strategic-review.md`，包含：
+
 1. **执行摘要**：商业价值评级(1-5)、推荐决策、关键洞察（1-2句）
 2. **五维分析详情**：每个维度的评分和关键判断依据
 3. **风险矩阵表**：风险项 × 影响程度 × 发生概率 × 缓解方案

@@ -1,0 +1,77 @@
+{
+  "scenario": "r30-news-autoposter",
+  "status": "production",
+  "context": "channel",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Tram line 4 <reopens> & runs until 01:00\n\nRepairs on Bridge Street are finished two weeks early. Night trams start on Friday.\n\nSource: City Transport Office",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 40
+          },
+          {
+            "type": "text_link",
+            "offset": 135,
+            "length": 21,
+            "url": "https://example.com/news/4821?utm=feed&ref=\"tg\""
+          }
+        ],
+        "link_preview_options": {
+          "url": "https://example.com/news/4821?utm=feed&ref=\"tg\"",
+          "prefer_large_media": true
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Read the full story",
+                "url": "https://example.com/news/4821?utm=feed&ref=\"tg\""
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": -1001500000001,
+        "text": "Трамвай №4 знову ходить — до 01:00\n\nРемонт на мосту завершили на два тижні раніше.\n\nSource: Міський транспорт",
+        "entities": [
+          {
+            "type": "bold",
+            "offset": 0,
+            "length": 34
+          },
+          {
+            "type": "text_link",
+            "offset": 92,
+            "length": 17,
+            "url": "https://example.com/uk/news/4822"
+          }
+        ],
+        "link_preview_options": {
+          "url": "https://example.com/uk/news/4822",
+          "prefer_large_media": true
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Read the full story",
+                "url": "https://example.com/uk/news/4822"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

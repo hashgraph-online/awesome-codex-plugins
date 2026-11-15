@@ -1,0 +1,96 @@
+{
+ "widget": "order-tracker",
+ "title": "Order tracker",
+ "summary": "Delivery order timeline: five steps with times, ETA, courier, call and help actions, background sync.",
+ "caption": "Order #4821 · On the way · arrives about 10:12",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Call courier",
+     "callback_data": "ord:call:4821"
+    },
+    {
+     "text": "Help",
+     "callback_data": "ord:help:4821"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "no": "#4821",
+    "s": 3,
+    "m": 0,
+    "t0": 1794735060,
+    "t1": 1794735240,
+    "t2": 1794736320,
+    "t3": 1794736500,
+    "eta": 1794737520,
+    "cr": "Marco R.",
+    "at": 1794736680,
+    "r": 0
+   }
+  },
+  "delivered": {
+   "chatData": {
+    "no": "#4821",
+    "s": 4,
+    "m": 0,
+    "t0": 1794735060,
+    "t1": 1794735240,
+    "t2": 1794736320,
+    "t3": 1794736500,
+    "t4": 1794737640,
+    "cr": "Marco R.",
+    "at": 1794736680,
+    "r": 0
+   }
+  },
+  "delayed": {
+   "chatData": {
+    "no": "#4821",
+    "s": 3,
+    "m": 1,
+    "t0": 1794735060,
+    "t1": 1794735240,
+    "t2": 1794736320,
+    "t3": 1794736500,
+    "eta": 1794738900,
+    "cr": "Marco R.",
+    "at": 1794736680,
+    "r": 0
+   }
+  },
+  "cancelled": {
+   "chatData": {
+    "no": "#4821",
+    "s": 1,
+    "m": 2,
+    "t0": 1794735060,
+    "t1": 1794735240,
+    "at": 1794736680,
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "sync",
+  "call",
+  "help",
+  "track"
+ ],
+ "fresh": [
+  "at",
+  "eta",
+  "t0",
+  "t1",
+  "t2",
+  "t3",
+  "t4"
+ ]
+}

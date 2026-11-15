@@ -1,0 +1,55 @@
+{
+  "title": "Nightly build digest — 15 Nov",
+  "summary": [
+    "3 of 4 jobs passed. The e2e suite failed on checkout (timeout)."
+  ],
+  "table": {
+    "header": [
+      "Job",
+      "Result",
+      "Duration",
+      "Tests"
+    ],
+    "rows": [
+      [
+        "unit",
+        "passed",
+        "2m 10s",
+        "812"
+      ],
+      [
+        "integration",
+        "passed",
+        "6m 02s",
+        "143"
+      ],
+      [
+        "e2e",
+        "failed",
+        "11m 40s",
+        "57/60"
+      ],
+      [
+        "lint",
+        "passed",
+        "38s",
+        "—"
+      ]
+    ],
+    "numeric_cols": [
+      3
+    ]
+  },
+  "items": [
+    {
+      "text": "Re-run e2e with the checkout fix",
+      "done": false
+    },
+    {
+      "text": "Rotate staging DB password=Sup3rS3cret!",
+      "done": true
+    }
+  ],
+  "log_tail": "FAIL checkout.spec.ts > pays with saved card\n  TimeoutError: waited 30000ms for #pay",
+  "log_language": "text"
+}

@@ -1,0 +1,156 @@
+{
+ "widget": "leaderboard",
+ "title": "Leaderboard with poll",
+ "summary": "Shared top-5 board with medals, player count and a one-vote-per-user poll that updates live for everyone.",
+ "caption": "Leaderboard \u00b7 Mila K. leads with 9,840 \u00b7 1,284 players",
+ "send": {
+  "allow_queries": true,
+  "is_shared": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Blitz",
+     "callback_data": "lb:v:0"
+    },
+    {
+     "text": "Marathon",
+     "callback_data": "lb:v:1"
+    },
+    {
+     "text": "Duels",
+     "callback_data": "lb:v:2"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "publicData": {
+    "ti": "Weekly leaderboard",
+    "top": [
+     [
+      "Mila K.",
+      9840
+     ],
+     [
+      "Jonas",
+      9215
+     ],
+     [
+      "Aiko T.",
+      8760
+     ],
+     [
+      "Dmytro",
+      8120
+     ],
+     [
+      "Sofia R.",
+      7595
+     ]
+    ],
+    "n": 1284,
+    "poll": {
+     "q": "Which mode next week?",
+     "o": [
+      [
+       "Blitz",
+       212
+      ],
+      [
+       "Marathon",
+       148
+      ],
+      [
+       "Duels",
+       97
+      ]
+     ]
+    },
+    "r": 0
+   }
+  },
+  "closed": {
+   "publicData": {
+    "ti": "Weekly leaderboard",
+    "top": [
+     [
+      "Mila K.",
+      9840
+     ],
+     [
+      "Jonas",
+      9215
+     ],
+     [
+      "Aiko T.",
+      8760
+     ],
+     [
+      "Dmytro",
+      8120
+     ],
+     [
+      "Sofia R.",
+      7595
+     ]
+    ],
+    "n": 1284,
+    "poll": {
+     "q": "Which mode next week?",
+     "o": [
+      [
+       "Blitz",
+       301
+      ],
+      [
+       "Marathon",
+       244
+      ],
+      [
+       "Duels",
+       190
+      ]
+     ],
+     "cl": 1
+    },
+    "r": 0
+   }
+  },
+  "empty": {
+   "publicData": {
+    "ti": "Weekly leaderboard",
+    "top": [],
+    "n": 0,
+    "poll": {
+     "q": "Which mode next week?",
+     "o": [
+      [
+       "Blitz",
+       0
+      ],
+      [
+       "Marathon",
+       0
+      ],
+      [
+       "Duels",
+       0
+      ]
+     ]
+    },
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "v:0",
+  "v:2",
+  "v:1",
+  "v:7",
+  "drop"
+ ],
+ "fresh": []
+}

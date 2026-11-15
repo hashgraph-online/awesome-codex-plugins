@@ -1,0 +1,34 @@
+{
+  "update_id": 900015,
+  "callback_query": {
+    "id": "4382000000000000006",
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "message": {
+      "message_id": 31,
+      "date": 1762900010,
+      "chat": {
+        "id": -1009876543210,
+        "type": "supergroup",
+        "title": "News DMs",
+        "is_direct_messages": true
+      },
+      "direct_messages_topic": {
+        "topic_id": 222222222,
+        "user": {
+          "id": 222222222,
+          "is_bot": false,
+          "first_name": "Bogdan",
+          "language_code": "uk"
+        }
+      },
+      "text": "Your question was received."
+    },
+    "chat_instance": "-5550009",
+    "data": "dm:status"
+  }
+}

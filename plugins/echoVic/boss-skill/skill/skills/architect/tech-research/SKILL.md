@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 开始架构设计前
@@ -23,6 +24,7 @@ dependencies:
 ## 适用场景
 
 在进行架构设计和技术选型前，必须先进行系统性的技术调研，了解：
+
 - 业界成熟的技术方案
 - 各方案的优缺点和适用场景
 - 开源项目的可复用性
@@ -42,11 +44,13 @@ dependencies:
 **需求概述**：[基于 PRD 的技术需求总结]
 
 **关键技术挑战**：
+
 - [挑战 1]：[具体描述]
 - [挑战 2]：[具体描述]
 - [挑战 3]：[具体描述]
 
 **调研目标**：
+
 - [ ] 前端框架选型
 - [ ] 后端框架选型
 - [ ] 数据库选型
@@ -59,6 +63,7 @@ dependencies:
 #### 搜索策略
 
 **通用搜索模式**：
+
 ```
 "{技术领域} + best practices + 2026"
 "{框架名} vs {框架名} comparison 2026"
@@ -69,6 +74,7 @@ dependencies:
 **具体示例**：
 
 **前端框架调研**：
+
 ```
 "React vs Vue vs Angular comparison 2026"
 "Next.js vs Remix vs Astro 2026"
@@ -76,6 +82,7 @@ dependencies:
 ```
 
 **后端框架调研**：
+
 ```
 "Node.js frameworks comparison 2026"
 "Express vs Fastify vs Hono benchmark"
@@ -83,6 +90,7 @@ dependencies:
 ```
 
 **数据库调研**：
+
 ```
 "PostgreSQL vs MySQL vs MongoDB 2026"
 "database for {use case} 2026"
@@ -90,6 +98,7 @@ dependencies:
 ```
 
 **ORM调研**：
+
 ```
 "Prisma vs TypeORM vs Drizzle comparison"
 "best ORM for {language} 2026"
@@ -108,17 +117,20 @@ dependencies:
 对于重要的技术方案，使用 `WebFetch` 深入分析官方文档和技术文章：
 
 **官方文档**：
+
 ```
 WebFetch("https://nextjs.org/docs", "总结 Next.js 的核心特性、适用场景和最新版本的主要变化")
 WebFetch("https://www.prisma.io/docs", "提取 Prisma 的核心功能、支持的数据库和性能特点")
 ```
 
 **技术对比文章**：
+
 ```
 WebFetch("[对比文章URL]", "提取各方案的优缺点对比、性能数据和推荐场景")
 ```
 
 **GitHub仓库**：
+
 ```
 WebFetch("https://github.com/{org}/{repo}", "提取 Star 数、最近更新时间、维护状态和主要贡献者")
 ```
@@ -176,6 +188,7 @@ WebFetch("https://github.com/{org}/{repo}", "提取 Star 数、最近更新时�
 | [项目名] | [功能描述] | [数量]  | [日期]   | 活跃/停滞 | 是/否    | [理由] |
 
 **评估标准**：
+
 - **Star 数> 1000**：说明有一定用户基础
 - **最近更新 < 6个月**：说明项目活跃
 - **Issue响应及时**：说明维护良好
@@ -195,6 +208,7 @@ WebFetch("https://github.com/{org}/{repo}", "提取 Star 数、最近更新时�
 | 部署   | [方案]   | [理由]   | [备选]   |
 
 **选择理由应包含**：
+
 - 为什么选择这个方案（优势）
 - 为什么不选其他方案（劣势）
 - 与项目需求的匹配度
@@ -212,6 +226,7 @@ WebFetch("https://github.com/{org}/{repo}", "提取 Star 数、最近更新时�
 **需求概述**：[基于 PRD 的技术需求总结]
 
 **关键技术挑战**：
+
 - [挑战 1]
 - [挑战 2]
 - [挑战 3]

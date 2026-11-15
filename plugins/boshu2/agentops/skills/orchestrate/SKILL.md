@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: 'Dispatch independent tasks to parallel workers without write collisions, decide what each does next, and recover dead ones. Use when: running or managing two or more agents.'
+description: 'Dispatch parallel workers without write collisions and decide what idle or finished ones do next. Use when: managing agents, or running or planning agents in parallel, even two.'
 practices: [team-topologies, evidence-based-engineering, design-by-contract]
 hexagonal_role: supporting
 consumes: [accepted-intent, native-work-state, candidate-evidence, explicit-role-packets]

@@ -1,0 +1,126 @@
+{
+ "widget": "slot-booking",
+ "title": "Slot booking",
+ "summary": "Appointment picker: seven-day strip, time-slot grid, confirm, booked summary with cancel, full week state.",
+ "caption": "Haircut and styling · 45 min · EUR 32.00 · pick a time",
+ "send": {
+  "allow_queries": true
+ },
+ "fallback": {
+  "inline_keyboard": [
+   [
+    {
+     "text": "Today",
+     "callback_data": "bk:day:0"
+    },
+    {
+     "text": "Tomorrow",
+     "callback_data": "bk:day:1"
+    }
+   ],
+   [
+    {
+     "text": "Pick a date",
+     "callback_data": "bk:dates"
+    }
+   ]
+  ]
+ },
+ "states": {
+  "default": {
+   "chatData": {
+    "svc": "Haircut and styling",
+    "dur": 45,
+    "pr": 3200,
+    "cur": "EUR",
+    "d0": 1794700800,
+    "m": [
+     "2d5ab",
+     "3ffff",
+     "0f3c0",
+     "3ff3f",
+     "1ffff",
+     "3fe00",
+     "3fffe"
+    ],
+    "sel": "",
+    "bk": "",
+    "r": 0
+   }
+  },
+  "selected": {
+   "chatData": {
+    "svc": "Haircut and styling",
+    "dur": 45,
+    "pr": 3200,
+    "cur": "EUR",
+    "d0": 1794700800,
+    "m": [
+     "2d5ab",
+     "3ffff",
+     "0f3c0",
+     "3ff3f",
+     "1ffff",
+     "3fe00",
+     "3fffe"
+    ],
+    "sel": "1:1030",
+    "bk": "",
+    "r": 0
+   }
+  },
+  "booked": {
+   "chatData": {
+    "svc": "Haircut and styling",
+    "dur": 45,
+    "pr": 3200,
+    "cur": "EUR",
+    "d0": 1794700800,
+    "m": [
+     "2d5ab",
+     "3fff7",
+     "0f3c0",
+     "3ff3f",
+     "1ffff",
+     "3fe00",
+     "3fffe"
+    ],
+    "sel": "",
+    "bk": "1:1030",
+    "r": 0
+   }
+  },
+  "full": {
+   "chatData": {
+    "svc": "Haircut and styling",
+    "dur": 45,
+    "pr": 3200,
+    "cur": "EUR",
+    "d0": 1794700800,
+    "m": [
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0",
+     "0"
+    ],
+    "sel": "",
+    "bk": "",
+    "r": 0
+   }
+  }
+ },
+ "queries": [
+  "pick:0:0900@0",
+  "pick:1:1030@0",
+  "pick:0:1000@0",
+  "book",
+  "cancel",
+  "pick:9:0900@0"
+ ],
+ "fresh": [
+  "d0"
+ ]
+}

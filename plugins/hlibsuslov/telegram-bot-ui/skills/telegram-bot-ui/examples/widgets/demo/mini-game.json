@@ -1,0 +1,17 @@
+{
+ "widget": "mini-game",
+ "title": "Mini game",
+ "summary": "Stop the beat: a marker sweeps a bar, tap to stop it near the target zone; five local rounds, one score request, best score on the device and at the bot.",
+ "caption": "Stop the beat · 5 rounds · your best 412 · rank #17",
+ "send": {"allow_queries": true},
+ "fallback": {"inline_keyboard": [
+  [{"text": "Play", "callback_data": "beat:play"}, {"text": "Top 10", "callback_data": "beat:top"}]
+ ]},
+ "states": {
+  "default": {"chatData": {"b": 0, "k": 0, "r": 0}},
+  "with-rank": {"chatData": {"b": 412, "k": 17, "n": 2380, "r": 0}},
+  "empty": {"chatData": null}
+ },
+ "queries": ["score:388", "score:455", "score:0", "score:501", "score:abc"],
+ "fresh": []
+}

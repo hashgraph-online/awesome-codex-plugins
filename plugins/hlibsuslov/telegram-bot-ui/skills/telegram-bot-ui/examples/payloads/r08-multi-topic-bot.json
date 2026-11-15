@@ -1,0 +1,155 @@
+{
+  "scenario": "r08-multi-topic-bot",
+  "status": "production",
+  "context": "private chat with topics",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-12)",
+  "steps": [
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 11,
+        "draft_id": 50000,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 12,
+        "draft_id": 50001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 11,
+        "draft_id": 50000,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Answer for topic 11."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessageDraft",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 12,
+        "draft_id": 50001,
+        "can_stop": true,
+        "keep_on_stop": true,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "thinking",
+              "text": "Starting…"
+            },
+            {
+              "type": "paragraph",
+              "text": "Answer for topic 12."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 12,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Answer for topic 12."
+            },
+            {
+              "type": "footer",
+              "text": "Stopped by you — the answer is incomplete."
+            }
+          ]
+        },
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Continue",
+                "callback_data": "gen:continue:t12"
+              },
+              {
+                "text": "Try again",
+                "callback_data": "gen:retry:t12"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 11,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "paragraph",
+              "text": "Answer for topic 11."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 11,
+        "text": "The other answer was stopped — open it to continue:",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Go to topic",
+                "url": "https://t.me/orders_demo_bot/12"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}

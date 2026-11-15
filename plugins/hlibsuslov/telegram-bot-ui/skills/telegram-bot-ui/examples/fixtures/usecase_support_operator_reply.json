@@ -1,0 +1,12 @@
+{
+  "update_id": 930001,
+  "message": {
+    "message_id": 7001,
+    "message_thread_id": 5001,
+    "is_topic_message": true,
+    "date": 1763200100,
+    "chat": {"id": -1001234567890, "type": "supergroup", "title": "Support desk", "is_forum": true},
+    "from": {"id": 333333333, "is_bot": false, "first_name": "Oleg", "language_code": "en"},
+    "text": "Hi Alice, I can see the double charge. I am refunding it now."
+  }
+}

@@ -1,0 +1,1423 @@
+{
+  "scenario": "r62-monitoring-alerts",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>No watches yet</b>\nAdd a site to monitor or a price level.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Add a watch",
+                "callback_data": "mo:1:add",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>Наблюдений пока нет</b>\nДобавьте сайт для проверки или уровень цены.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Добавить",
+                "callback_data": "mo:1:add",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>What should I watch?</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "api.example.com",
+                "callback_data": "mo:2:pick:api"
+              }
+            ],
+            [
+              {
+                "text": "shop.example.com",
+                "callback_data": "mo:2:pick:shop"
+              }
+            ],
+            [
+              {
+                "text": "BTC/USD",
+                "callback_data": "mo:2:pick:btc"
+              }
+            ],
+            [
+              {
+                "text": "ETH/USD",
+                "callback_data": "mo:2:pick:eth"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:2:list"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q2"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Alert when <b>api.example.com</b> answers slower than N ms. Reply with N (100-60000).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:3:back_from_ask"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q3"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "That is not a number from 100 to 60000. Reply with N, for example 800.",
+        "reply_parameters": {
+          "message_id": 1003
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>api.example.com</b>\nAlert at: slower than 800 ms\nMode: instant\nMuted: no\nQuiet hours 23:00-07:00: off",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: slower than 800 ms",
+                "callback_data": "mo:4:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "disabled": {}
+              },
+              {
+                "text": "Digest",
+                "callback_data": "mo:4:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:4:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:4:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:4:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: off",
+                "callback_data": "mo:4:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:4:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:4:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1005,
+        "text": "<b>What should I watch?</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ api.example.com",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "shop.example.com",
+                "callback_data": "mo:5:pick:shop"
+              }
+            ],
+            [
+              {
+                "text": "BTC/USD",
+                "callback_data": "mo:5:pick:btc"
+              }
+            ],
+            [
+              {
+                "text": "ETH/USD",
+                "callback_data": "mo:5:pick:eth"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:5:list"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q6"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Alert when <b>BTC/USD</b> falls to or below a price. Reply with the price in USD.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:6:back_from_ask"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q7"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>BTC/USD</b>\nAlert at: at or below $62000\nMode: instant\nMuted: no\nQuiet hours 23:00-07:00: off",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: at or below $62000",
+                "callback_data": "mo:7:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "disabled": {}
+              },
+              {
+                "text": "Digest",
+                "callback_data": "mo:7:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:7:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:7:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:7:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: off",
+                "callback_data": "mo:7:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:7:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:7:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1007,
+        "text": "<b>BTC/USD</b>\nAlert at: at or below $62000\nMode: daily digest at 09:00\nMuted: no\nQuiet hours 23:00-07:00: off",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: at or below $62000",
+                "callback_data": "mo:8:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "callback_data": "mo:8:mode:instant"
+              },
+              {
+                "text": "Digest",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:8:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:8:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:8:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: off",
+                "callback_data": "mo:8:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:8:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:8:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q9"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1007,
+        "text": "<b>What should I watch?</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ api.example.com",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "shop.example.com",
+                "callback_data": "mo:9:pick:shop"
+              }
+            ],
+            [
+              {
+                "text": "✓ BTC/USD",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "ETH/USD",
+                "callback_data": "mo:9:pick:eth"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:9:list"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q10"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Alert when <b>shop.example.com</b> answers slower than N ms. Reply with N (100-60000).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:a:back_from_ask"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q11"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>shop.example.com</b>\nAlert at: slower than 500 ms\nMode: instant\nMuted: no\nQuiet hours 23:00-07:00: off",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: slower than 500 ms",
+                "callback_data": "mo:b:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "disabled": {}
+              },
+              {
+                "text": "Digest",
+                "callback_data": "mo:b:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:b:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:b:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:b:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: off",
+                "callback_data": "mo:b:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:b:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:b:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1009,
+        "text": "<b>shop.example.com</b>\nAlert at: slower than 500 ms\nMode: instant\nMuted: no\nQuiet hours 23:00-07:00: on",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: slower than 500 ms",
+                "callback_data": "mo:c:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "disabled": {}
+              },
+              {
+                "text": "Digest",
+                "callback_data": "mo:c:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:c:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:c:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:c:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: on",
+                "callback_data": "mo:c:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:c:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:c:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q13"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1009,
+        "text": "<b>What should I watch?</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ api.example.com",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ shop.example.com",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "✓ BTC/USD",
+                "disabled": {}
+              }
+            ],
+            [
+              {
+                "text": "ETH/USD",
+                "callback_data": "mo:d:pick:eth"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:d:list"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q14"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Alert when <b>ETH/USD</b> falls to or below a price. Reply with the price in USD.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:e:back_from_ask"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q15"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>ETH/USD</b>\nAlert at: at or below $3000\nMode: instant\nMuted: no\nQuiet hours 23:00-07:00: off",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: at or below $3000",
+                "callback_data": "mo:f:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "disabled": {}
+              },
+              {
+                "text": "Digest",
+                "callback_data": "mo:f:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:f:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:f:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:f:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: off",
+                "callback_data": "mo:f:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:f:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:f:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1011,
+        "text": "<b>Your watches</b> · 4\nTap one to change it.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "api.example.com · slower than 800 ms",
+                "callback_data": "mo:g:watch:w1"
+              }
+            ],
+            [
+              {
+                "text": "BTC/USD · at or below $62000",
+                "callback_data": "mo:g:watch:w2"
+              }
+            ],
+            [
+              {
+                "text": "shop.example.com · slower than 500 ms",
+                "callback_data": "mo:g:watch:w3"
+              }
+            ],
+            [
+              {
+                "text": "←",
+                "disabled": {}
+              },
+              {
+                "text": "1/2",
+                "disabled": {}
+              },
+              {
+                "text": "→",
+                "callback_data": "mo:g:page:1"
+              }
+            ],
+            [
+              {
+                "text": "Add a watch",
+                "callback_data": "mo:g:add",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q17"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1011,
+        "text": "<b>ETH/USD</b>\nAlert at: at or below $3000\nMode: instant\nMuted: no\nQuiet hours 23:00-07:00: off",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Threshold: at or below $3000",
+                "callback_data": "mo:h:edit"
+              }
+            ],
+            [
+              {
+                "text": "Instant",
+                "disabled": {}
+              },
+              {
+                "text": "Digest",
+                "callback_data": "mo:h:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Mute 1 h",
+                "callback_data": "mo:h:mute:1h"
+              },
+              {
+                "text": "Mute 8 h",
+                "callback_data": "mo:h:mute:8h"
+              },
+              {
+                "text": "Until tomorrow",
+                "callback_data": "mo:h:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Quiet hours: off",
+                "callback_data": "mo:h:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Back",
+                "callback_data": "mo:h:list"
+              },
+              {
+                "text": "Delete watch",
+                "callback_data": "mo:h:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q18"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1011,
+        "text": "<b>Delete the watch for ETH/USD?</b>\nIts alerts stop right away.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Delete",
+                "callback_data": "mo:i:drop",
+                "style": "danger"
+              },
+              {
+                "text": "Cancel",
+                "callback_data": "mo:i:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q19"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1011,
+        "text": "<b>Your watches</b> · 3\nTap one to change it.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "api.example.com · slower than 800 ms",
+                "callback_data": "mo:j:watch:w1"
+              }
+            ],
+            [
+              {
+                "text": "BTC/USD · at or below $62000",
+                "callback_data": "mo:j:watch:w2"
+              }
+            ],
+            [
+              {
+                "text": "shop.example.com · slower than 500 ms",
+                "callback_data": "mo:j:watch:w3"
+              }
+            ],
+            [
+              {
+                "text": "Add a watch",
+                "callback_data": "mo:j:add",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q20"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1002,
+        "text": "<b>За чем следить?</b>",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "api.example.com",
+                "callback_data": "mo:2:pick:api"
+              }
+            ],
+            [
+              {
+                "text": "shop.example.com",
+                "callback_data": "mo:2:pick:shop"
+              }
+            ],
+            [
+              {
+                "text": "BTC/USD",
+                "callback_data": "mo:2:pick:btc"
+              }
+            ],
+            [
+              {
+                "text": "ETH/USD",
+                "callback_data": "mo:2:pick:eth"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "mo:2:list"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q21"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "Сообщу, если <b>api.example.com</b> отвечает дольше N мс. Ответьте числом N (100-60000).",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "mo:3:back_from_ask"
+              }
+            ]
+          ],
+          "force_reply": true
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q22"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>api.example.com</b>\nСигнал: дольше 500 мс\nРежим: сразу\nБез звука: нет\nТихие часы 23:00-07:00: выкл.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Порог: дольше 500 мс",
+                "callback_data": "mo:4:edit"
+              }
+            ],
+            [
+              {
+                "text": "Сразу",
+                "disabled": {}
+              },
+              {
+                "text": "Сводка",
+                "callback_data": "mo:4:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Тишина 1 ч",
+                "callback_data": "mo:4:mute:1h"
+              },
+              {
+                "text": "Тишина 8 ч",
+                "callback_data": "mo:4:mute:8h"
+              },
+              {
+                "text": "До завтра",
+                "callback_data": "mo:4:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Тихие часы: выкл.",
+                "callback_data": "mo:4:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "mo:4:list"
+              },
+              {
+                "text": "Удалить",
+                "callback_data": "mo:4:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>🔴 Critical · api.example.com</b>\nNo answer (limit 800 ms)",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Acknowledge",
+                "callback_data": "al:ack:a6",
+                "style": "primary"
+              },
+              {
+                "text": "Mute 1 h",
+                "callback_data": "al:m1:a6"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 222222222,
+        "text": "<b>🔴 Критично · api.example.com</b>\nНет ответа (порог 500 мс)",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Принять",
+                "callback_data": "al:ack:a7",
+                "style": "primary"
+              },
+              {
+                "text": "Тишина 1 ч",
+                "callback_data": "al:m1:a7"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>🔵 Info · shop.example.com</b>\nAnswering in 900 ms (limit 500 ms)",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Acknowledge",
+                "callback_data": "al:ack:a8"
+              },
+              {
+                "text": "Mute 1 h",
+                "callback_data": "al:m1:a8"
+              }
+            ]
+          ]
+        },
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1014,
+        "parse_mode": "HTML",
+        "text": "<b>🔴 Critical · api.example.com</b>\nNo answer (limit 800 ms)\n✓ Acknowledged by Alice",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "✓ Acknowledged",
+                "disabled": {}
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "al24",
+        "text": "Acknowledged"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "al25",
+        "text": "Already acknowledged."
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "al26",
+        "text": "Это сообщение другого человека.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "al27",
+        "text": "Muted until 10:53 UTC"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>Unmuted: shop.example.com</b>\n1 alert(s) were held back. Latest: Answering in 950 ms (limit 500 ms)"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1013,
+        "text": "<b>api.example.com</b>\nСигнал: дольше 500 мс\nРежим: сразу\nБез звука: нет\nТихие часы 23:00-07:00: выкл.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Порог: дольше 500 мс",
+                "callback_data": "mo:5:edit"
+              }
+            ],
+            [
+              {
+                "text": "Сразу",
+                "disabled": {}
+              },
+              {
+                "text": "Сводка",
+                "callback_data": "mo:5:mode:digest"
+              }
+            ],
+            [
+              {
+                "text": "Тишина 1 ч",
+                "callback_data": "mo:5:mute:1h"
+              },
+              {
+                "text": "Тишина 8 ч",
+                "callback_data": "mo:5:mute:8h"
+              },
+              {
+                "text": "До завтра",
+                "callback_data": "mo:5:mute:tomorrow"
+              }
+            ],
+            [
+              {
+                "text": "Тихие часы: выкл.",
+                "callback_data": "mo:5:quiet"
+              }
+            ],
+            [
+              {
+                "text": "← Назад",
+                "callback_data": "mo:5:list"
+              },
+              {
+                "text": "Удалить",
+                "callback_data": "mo:5:delete",
+                "style": "danger"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q28"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1013,
+        "text": "<b>Удалить наблюдение за api.example.com?</b>\nСигналы по нему сразу прекратятся.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Удалить",
+                "callback_data": "mo:6:drop",
+                "style": "danger"
+              },
+              {
+                "text": "Отмена",
+                "callback_data": "mo:6:back"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q29"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 222222222,
+        "message_id": 1013,
+        "text": "<b>Наблюдений пока нет</b>\nДобавьте сайт для проверки или уровень цены.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Добавить",
+                "callback_data": "mo:7:add",
+                "style": "primary"
+              }
+            ]
+          ]
+        },
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "q30"
+      }
+    },
+    {
+      "method": "answerCallbackQuery",
+      "params": {
+        "callback_query_id": "al31",
+        "text": "Это наблюдение удалено.",
+        "show_alert": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>🟠 Warning · shop.example.com</b>\nAnswering in 940 ms (limit 500 ms)",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Acknowledge",
+                "callback_data": "al:ack:a9"
+              },
+              {
+                "text": "Mute 1 h",
+                "callback_data": "al:m1:a9"
+              }
+            ]
+          ]
+        },
+        "disable_notification": true
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "<b>🔴 Critical · shop.example.com</b>\nAnswering in 2000 ms (limit 500 ms)",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Acknowledge",
+                "callback_data": "al:ack:a10",
+                "style": "primary"
+              },
+              {
+                "text": "Mute 1 h",
+                "callback_data": "al:m1:a10"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendRichMessage",
+      "params": {
+        "chat_id": 111111111,
+        "rich_message": {
+          "blocks": [
+            {
+              "type": "heading",
+              "size": 2,
+              "text": "Daily digest · 1 event(s)"
+            },
+            {
+              "type": "table",
+              "cells": [
+                [
+                  {
+                    "text": "Watch",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Events",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Worst",
+                    "align": "left",
+                    "valign": "middle",
+                    "is_header": true
+                  },
+                  {
+                    "text": "Last value",
+                    "align": "right",
+                    "valign": "middle",
+                    "is_header": true
+                  }
+                ],
+                [
+                  {
+                    "text": "BTC/USD",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "1",
+                    "align": "right",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "🟠 Warning",
+                    "align": "left",
+                    "valign": "middle"
+                  },
+                  {
+                    "text": "61000",
+                    "align": "right",
+                    "valign": "middle"
+                  }
+                ]
+              ],
+              "is_bordered": true,
+              "is_compact": true
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

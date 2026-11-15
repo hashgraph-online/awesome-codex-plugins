@@ -1,0 +1,990 @@
+{
+  "schema_version": 1,
+  "verified": "2026-11-15",
+  "scope": "40 product families across private chats, groups, channels, inline, Business and Mini Apps.",
+  "sources": {
+    "intro": {
+      "title": "Telegram: introduction to bots",
+      "url": "https://core.telegram.org/bots",
+      "supports": "Official examples of commerce, AI, tools, games and service integrations; not a ranking."
+    },
+    "features": {
+      "title": "Telegram Bot Features",
+      "url": "https://core.telegram.org/bots/features",
+      "supports": "Interaction surfaces: commands, keyboards, deep links, inline queries and bot setup."
+    },
+    "api": {
+      "title": "Telegram Bot API",
+      "url": "https://core.telegram.org/bots/api",
+      "supports": "Method, update and context contracts. Checked 2026-11-15: Bot API 10.4."
+    },
+    "stars": {
+      "title": "Payments for digital goods and services",
+      "url": "https://core.telegram.org/bots/payments-stars",
+      "supports": "Stars flow, payment confirmation and digital-goods constraints."
+    },
+    "miniapps": {
+      "title": "Telegram Mini Apps",
+      "url": "https://core.telegram.org/bots/webapps",
+      "supports": "Launch modes, validation of initData, richer web interfaces and device features."
+    },
+    "business": {
+      "title": "Introducing Telegram Business",
+      "url": "https://telegram.org/blog/telegram-business",
+      "supports": "Connected bots answering customers; business hours, quick replies and human workflows."
+    },
+    "affiliate": {
+      "title": "Affiliate Programs",
+      "url": "https://telegram.org/blog/affiliate-programs-ai-sticker-search",
+      "supports": "Native referral commissions for Stars purchases; distinct from a custom loyalty ledger."
+    }
+  },
+  "use_cases": [
+    {
+      "id": "shop",
+      "title": "Physical-goods shop and restaurant orders",
+      "intent": [
+        "catalog cart checkout магазин корзина заказ кафе"
+      ],
+      "recipes": [
+        "R20",
+        "R64",
+        "R52"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "message + optional Mini App",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Commerce combines reusable forms, payments and tracking.",
+      "gap": "Real inventory, fulfillment and provider integration.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "digital",
+      "title": "Digital goods and paid content",
+      "intent": [
+        "digital course download цифровой товар платный контент"
+      ],
+      "recipes": [
+        "R20",
+        "R25"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "invoice + receipt",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Correct entitlement handling is reusable across paid bots.",
+      "gap": "Persistent paid entitlement and refund reconciliation.",
+      "sources": [
+        "stars"
+      ]
+    },
+    {
+      "id": "subscription",
+      "title": "Membership and recurring subscription",
+      "intent": [
+        "membership subscription paywall подписка доступ клуб"
+      ],
+      "recipes": [
+        "R25",
+        "R29"
+      ],
+      "contexts": [
+        "private",
+        "group"
+      ],
+      "surface": "invoice + private account",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Payment and access must have separate lifecycles.",
+      "gap": "Join/leave entitlement synchronization and reconciliation.",
+      "sources": [
+        "stars",
+        "api"
+      ]
+    },
+    {
+      "id": "support",
+      "title": "Customer support and human handoff",
+      "intent": [
+        "helpdesk ticket support поддержка оператор тикеты"
+      ],
+      "recipes": [
+        "R21",
+        "R61"
+      ],
+      "contexts": [
+        "private",
+        "business"
+      ],
+      "surface": "private chat + operator forum",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Human handoff recurs in nearly every service bot.",
+      "gap": "CRM integration, operator assignment and service hours.",
+      "sources": [
+        "business",
+        "api"
+      ]
+    },
+    {
+      "id": "booking",
+      "title": "Appointments and reservations",
+      "intent": [
+        "appointment booking salon запись бронирование салон"
+      ],
+      "recipes": [
+        "R22",
+        "R51"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "buttons or calendar",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Slots, holds and confirmation are reusable building blocks.",
+      "gap": "Transactional slot allocation and external calendar sync.",
+      "sources": [
+        "intro",
+        "miniapps"
+      ]
+    },
+    {
+      "id": "onboarding",
+      "title": "Onboarding, referrals and settings",
+      "intent": [
+        "onboarding start language settings старт настройки язык"
+      ],
+      "recipes": [
+        "R23",
+        "R24"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "commands + forms",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Every product needs entry, recovery and preferences.",
+      "gap": "Project-specific consent and account linking.",
+      "sources": [
+        "features"
+      ]
+    },
+    {
+      "id": "learning",
+      "title": "Courses, quizzes and language practice",
+      "intent": [
+        "course lesson quiz study обучение курс урок язык"
+      ],
+      "recipes": [
+        "R26",
+        "R53"
+      ],
+      "contexts": [
+        "private",
+        "group"
+      ],
+      "surface": "lesson + quiz",
+      "coverage": "existing-example",
+      "priority": "P1",
+      "priority_reason": "Progress and feedback support repeated use.",
+      "gap": "Curriculum storage, accessible content and reminder rules.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "ai",
+      "title": "AI chat, research and generation",
+      "intent": [
+        "ai assistant research generation нейросеть ассистент генерация"
+      ],
+      "recipes": [
+        "R27",
+        "R01",
+        "R44"
+      ],
+      "contexts": [
+        "private",
+        "group"
+      ],
+      "surface": "stream + Stop",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Cancellation and single finalization recur across AI tools.",
+      "gap": "Model provider, quotas, retention and factual evaluation.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "search",
+      "title": "Search, directories and knowledge retrieval",
+      "intent": [
+        "search directory catalog knowledge поиск каталог база знаний"
+      ],
+      "recipes": [
+        "R63",
+        "R60"
+      ],
+      "contexts": [
+        "private",
+        "inline"
+      ],
+      "surface": "paged results + detail",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Many verticals are search with permissions.",
+      "gap": "Search backend and per-result authorization.",
+      "sources": [
+        "features"
+      ]
+    },
+    {
+      "id": "alerts",
+      "title": "Monitoring, prices and stock availability",
+      "intent": [
+        "monitoring alert price stock мониторинг уведомления цена наличие"
+      ],
+      "recipes": [
+        "R62",
+        "R50"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "alert + mute + digest",
+      "coverage": "existing-example",
+      "priority": "P1",
+      "priority_reason": "Thresholds and notification fatigue need explicit controls.",
+      "gap": "Trusted data source, staleness rules and durable scheduler.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "delivery",
+      "title": "Order, delivery and application tracking",
+      "intent": [
+        "delivery parcel status трекинг доставка статус посылка"
+      ],
+      "recipes": [
+        "R64",
+        "R05"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "one editable card",
+      "coverage": "existing-example",
+      "priority": "P1",
+      "priority_reason": "One object with changing status is widely reusable.",
+      "gap": "Webhook reconciliation and authenticated tracking IDs.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "expenses",
+      "title": "Shared expenses and personal balances",
+      "intent": [
+        "split expenses group balance расходы разделить счёт баланс"
+      ],
+      "recipes": [
+        "R28",
+        "R04"
+      ],
+      "contexts": [
+        "group",
+        "private"
+      ],
+      "surface": "shared summary + personal view",
+      "coverage": "existing-example",
+      "priority": "P1",
+      "priority_reason": "Shared and personal audiences must remain distinct.",
+      "gap": "Durable ledger and reconciliation; no real money moves.",
+      "sources": [
+        "api"
+      ]
+    },
+    {
+      "id": "community",
+      "title": "Communities, rules and join requests",
+      "intent": [
+        "community welcome rules join группа правила вступление"
+      ],
+      "recipes": [
+        "R29"
+      ],
+      "contexts": [
+        "group",
+        "private"
+      ],
+      "surface": "rules + join decision",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Member lifecycle is a foundation for group products.",
+      "gap": "Current admin rights and membership event reconciliation.",
+      "sources": [
+        "features",
+        "api"
+      ]
+    },
+    {
+      "id": "inline",
+      "title": "Inline sharing and collaborative cards",
+      "intent": [
+        "inline share card инлайн поделиться карточкой"
+      ],
+      "recipes": [
+        "R60"
+      ],
+      "contexts": [
+        "inline"
+      ],
+      "surface": "inline results + shared message",
+      "coverage": "existing-example",
+      "priority": "P1",
+      "priority_reason": "Sharing is a different audience and callback model.",
+      "gap": "Discovery setup and per-query cache policy.",
+      "sources": [
+        "features"
+      ]
+    },
+    {
+      "id": "business-assistant",
+      "title": "Business inbox assistant",
+      "intent": [
+        "business customer auto reply бизнес клиент автоответ"
+      ],
+      "recipes": [
+        "R61",
+        "R21"
+      ],
+      "contexts": [
+        "business",
+        "private"
+      ],
+      "surface": "business connection + human handoff",
+      "coverage": "existing-example",
+      "priority": "P1",
+      "priority_reason": "Business account permissions differ from normal bot chats.",
+      "gap": "Connection revocation and operator ownership policy.",
+      "sources": [
+        "business",
+        "api"
+      ]
+    },
+    {
+      "id": "publishing",
+      "title": "Channel publishing and editorial workflows",
+      "intent": [
+        "channel content publish канал публикация редакция"
+      ],
+      "recipes": [
+        "R30",
+        "R31",
+        "R32",
+        "R35",
+        "R39"
+      ],
+      "contexts": [
+        "channel",
+        "private"
+      ],
+      "surface": "preview + approval + post",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Unknown send outcomes must not create duplicate posts.",
+      "gap": "Production scheduling and editorial permission store.",
+      "sources": [
+        "features",
+        "api"
+      ]
+    },
+    {
+      "id": "digest",
+      "title": "News, RSS and subscription digests",
+      "intent": [
+        "rss digest news дайджест новости подписки"
+      ],
+      "recipes": [
+        "R30",
+        "R34",
+        "R37"
+      ],
+      "contexts": [
+        "channel",
+        "private"
+      ],
+      "surface": "digest + preferences",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Merge, dedupe and quiet delivery compose existing flows.",
+      "gap": "Feed connectors, attribution and user topic preferences.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "polls",
+      "title": "Polls, feedback and group decisions",
+      "intent": [
+        "poll vote decision голосование опрос решение"
+      ],
+      "recipes": [
+        "R33",
+        "R53",
+        "R85"
+      ],
+      "contexts": [
+        "group",
+        "channel",
+        "private"
+      ],
+      "surface": "poll or private form",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Native polls and identified forms have different privacy.",
+      "gap": "Anonymous aggregate reporting vs identified response storage.",
+      "sources": [
+        "api"
+      ]
+    },
+    {
+      "id": "agent-ops",
+      "title": "Agent control and developer operations",
+      "intent": [
+        "agent deploy build approve агент деплой сборка согласование"
+      ],
+      "recipes": [
+        "R40",
+        "R41",
+        "R43",
+        "R45",
+        "R48",
+        "R49"
+      ],
+      "contexts": [
+        "private",
+        "group"
+      ],
+      "surface": "status + bound approval",
+      "coverage": "existing-example",
+      "priority": "P0",
+      "priority_reason": "Operator isolation and approval bind consequential actions.",
+      "gap": "Real runner isolation, durable approvals and audit.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "incidents",
+      "title": "Incident response and on-call",
+      "intent": [
+        "incident oncall alert инцидент дежурный авария"
+      ],
+      "recipes": [
+        "R47",
+        "R62"
+      ],
+      "contexts": [
+        "private",
+        "group"
+      ],
+      "surface": "incident card + acknowledge",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Escalation should preserve one incident identity.",
+      "gap": "On-call provider, escalation and resolution sync.",
+      "sources": [
+        "intro"
+      ]
+    },
+    {
+      "id": "lead-intake",
+      "title": "Lead qualification and quote requests",
+      "intent": [
+        "lead crm quote заявки лиды расчёт консультация"
+      ],
+      "recipes": [
+        "R80",
+        "R03",
+        "R21"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "form + review + consent",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Intake is distinct from a purchase or support ticket.",
+      "gap": "CRM outbox, editable multi-step intake and contact validation.",
+      "sources": [
+        "business"
+      ]
+    },
+    {
+      "id": "events",
+      "title": "Event registration and waitlist",
+      "intent": [
+        "event registration waitlist мероприятие регистрация лист ожидания"
+      ],
+      "recipes": [
+        "R81",
+        "R22",
+        "R82"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "registration + private ticket",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Capacity, cancellation and FIFO promotion differ from slot booking.",
+      "gap": "Database capacity lock, ticket tokens and staff check-in UI.",
+      "sources": [
+        "features"
+      ]
+    },
+    {
+      "id": "reminders",
+      "title": "Personal reminders and recurring habits",
+      "intent": [
+        "reminder snooze habit todo напоминание отложить привычки задачи"
+      ],
+      "recipes": [
+        "R82",
+        "R24"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "schedule + cancel + snooze",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Time zones and leased jobs are failure-prone.",
+      "gap": "Timezone picker, DST resolution, recurrence and durable outbox.",
+      "sources": [
+        "intro"
+      ]
+    },
+    {
+      "id": "file-jobs",
+      "title": "PDF tools, transcription and media jobs",
+      "intent": [
+        "pdf file convert transcription ocr файл конвертация расшифровка"
+      ],
+      "recipes": [
+        "R83",
+        "R27",
+        "R54"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "upload + progress + cancel + result",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Late worker completion after cancel needs a firm boundary.",
+      "gap": "File retrieval, sandboxed processing, retention and result delivery.",
+      "sources": [
+        "intro",
+        "api"
+      ]
+    },
+    {
+      "id": "moderation",
+      "title": "Moderation reports and review queue",
+      "intent": [
+        "moderation spam report модерация спам жалоба"
+      ],
+      "recipes": [
+        "R84",
+        "R29"
+      ],
+      "contexts": [
+        "group",
+        "private"
+      ],
+      "surface": "report + staff review",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "A report is a request for review, not authority to punish.",
+      "gap": "Live rights checks, evidence retention, appeal and safe execution.",
+      "sources": [
+        "features",
+        "api"
+      ]
+    },
+    {
+      "id": "survey",
+      "title": "Feedback, NPS and intake surveys",
+      "intent": [
+        "survey feedback nps анкета отзыв оценка"
+      ],
+      "recipes": [
+        "R85",
+        "R03"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "questions + review + withdraw",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Incomplete answers and withdrawal need real state.",
+      "gap": "Question navigation, retention and aggregate reporting.",
+      "sources": [
+        "features",
+        "api"
+      ]
+    },
+    {
+      "id": "loyalty",
+      "title": "Custom loyalty and reward points",
+      "intent": [
+        "loyalty points rewards бонусы лояльность баллы"
+      ],
+      "recipes": [
+        "R86",
+        "R20"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "balance + reward preview",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Repeated settled-order events must not credit twice.",
+      "gap": "Trusted order events, refunds, reward fulfillment and transactional ledger.",
+      "sources": [
+        "intro"
+      ]
+    },
+    {
+      "id": "service-queue",
+      "title": "Electronic queue and service desk",
+      "intent": [
+        "queue ticket waiting очередь талон ожидание"
+      ],
+      "recipes": [
+        "R87",
+        "R21"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "ticket + position + call",
+      "coverage": "new-offline-model",
+      "priority": "P1",
+      "priority_reason": "Queue position differs from an appointment and ETA.",
+      "gap": "Shared persistence, staff UI, no-show policy and notifications.",
+      "sources": [
+        "intro"
+      ]
+    },
+    {
+      "id": "recruiting",
+      "title": "Recruiting and applicant tracking",
+      "intent": [
+        "hiring job resume recruiting вакансии резюме подбор"
+      ],
+      "recipes": [
+        "R80",
+        "R83",
+        "R64"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "search + application + status",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "Reuses intake, file processing and private status.",
+      "gap": "ATS integration, resume retention and reviewer permissions.",
+      "sources": [
+        "business"
+      ]
+    },
+    {
+      "id": "marketplace",
+      "title": "Classifieds, rental and service marketplace",
+      "intent": [
+        "marketplace rental classifieds объявления аренда маркетплейс"
+      ],
+      "recipes": [
+        "R63",
+        "R80",
+        "R84"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "search + detail + inquiry",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "Search and seller inquiry exist; marketplace trust does not.",
+      "gap": "Seller identity, disputes, listing moderation and inventory.",
+      "sources": [
+        "intro",
+        "miniapps"
+      ]
+    },
+    {
+      "id": "local-services",
+      "title": "Travel, weather and nearby services",
+      "intent": [
+        "weather transport nearby travel погода транспорт рядом путешествия"
+      ],
+      "recipes": [
+        "R63",
+        "R62"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "search + location + alerts",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "Combines search and subscriptions with external data.",
+      "gap": "Location consent, live feed licensing and stale-data display.",
+      "sources": [
+        "intro",
+        "miniapps"
+      ]
+    },
+    {
+      "id": "games",
+      "title": "Games, challenges and leaderboards",
+      "intent": [
+        "game challenge leaderboard игра челлендж рейтинг"
+      ],
+      "recipes": [
+        "R26",
+        "R53"
+      ],
+      "contexts": [
+        "private",
+        "group",
+        "mini-app"
+      ],
+      "surface": "quiz or Mini App",
+      "coverage": "planned",
+      "priority": "P2",
+      "priority_reason": "Quiz primitives do not implement a game economy.",
+      "gap": "Authoritative scoring, anti-cheat, game loop and accessibility.",
+      "sources": [
+        "intro",
+        "miniapps"
+      ]
+    },
+    {
+      "id": "wallet",
+      "title": "Wallet and transaction status",
+      "intent": [
+        "wallet ton crypto transaction кошелёк перевод транзакция"
+      ],
+      "recipes": [
+        "R07"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "wallet request + status",
+      "coverage": "existing-example",
+      "priority": "P2",
+      "priority_reason": "Sent notifications do not prove settlement.",
+      "gap": "Chain verification, reconciliation and audited custody boundaries.",
+      "sources": [
+        "api"
+      ]
+    },
+    {
+      "id": "mini-app",
+      "title": "Mini App companion and account surface",
+      "intent": [
+        "mini app dashboard portal мини приложение кабинет портал"
+      ],
+      "recipes": [
+        "R23",
+        "R52",
+        "R56"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "launch + bot notifications",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Chat and web surfaces should share one account state.",
+      "gap": "Validated initData, web UI and backend authorization.",
+      "sources": [
+        "miniapps"
+      ]
+    },
+    {
+      "id": "affiliate",
+      "title": "Referral and native affiliate programs",
+      "intent": [
+        "affiliate referral partner партнёрка реферал рекомендации"
+      ],
+      "recipes": [
+        "R23",
+        "R25",
+        "R86"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "referral link + status",
+      "coverage": "planned",
+      "priority": "P2",
+      "priority_reason": "Native commissions differ from a custom bonus ledger.",
+      "gap": "Native affiliate setup and refund-aware attribution; R86 is not that integration.",
+      "sources": [
+        "affiliate"
+      ]
+    },
+    {
+      "id": "employee",
+      "title": "Internal employee requests and approvals",
+      "intent": [
+        "employee hr leave expense сотрудник отпуск согласование"
+      ],
+      "recipes": [
+        "R80",
+        "R40",
+        "R43"
+      ],
+      "contexts": [
+        "private",
+        "group"
+      ],
+      "surface": "request + bound review",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "Combines intake and role-bound approval.",
+      "gap": "Employee identity, approver hierarchy and HR integration.",
+      "sources": [
+        "business"
+      ]
+    },
+    {
+      "id": "devices",
+      "title": "Device and home automation controls",
+      "intent": [
+        "iot device home automation умный дом устройство управление"
+      ],
+      "recipes": [
+        "R40",
+        "R47",
+        "R62"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "state + confirmation",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "A successful command does not prove device state.",
+      "gap": "Device identity, acknowledgments, stale state and scoped controls.",
+      "sources": [
+        "intro"
+      ]
+    },
+    {
+      "id": "social",
+      "title": "Matching, clubs and social discovery",
+      "intent": [
+        "matching social dating club знакомства клуб сообщества"
+      ],
+      "recipes": [
+        "R23",
+        "R63",
+        "R84"
+      ],
+      "contexts": [
+        "private",
+        "mini-app"
+      ],
+      "surface": "profile + discovery + report",
+      "coverage": "planned",
+      "priority": "P2",
+      "priority_reason": "Profiles and safety require more than shared cards.",
+      "gap": "Mutual consent, blocking, moderation and deletion flows.",
+      "sources": [
+        "intro"
+      ]
+    },
+    {
+      "id": "stickers",
+      "title": "Sticker, emoji and media creation tools",
+      "intent": [
+        "sticker emoji media creation стикер эмодзи пак медиа"
+      ],
+      "recipes": [
+        "R71",
+        "R75",
+        "R83"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "input + preview + pack",
+      "coverage": "composition",
+      "priority": "P2",
+      "priority_reason": "Pack styling differs from creating user media.",
+      "gap": "Media pipeline, ownership, pack management and moderation.",
+      "sources": [
+        "features",
+        "api"
+      ]
+    },
+    {
+      "id": "returns",
+      "title": "Returns, refunds and after-sales support",
+      "intent": [
+        "refund return warranty возврат гарантия поддержка"
+      ],
+      "recipes": [
+        "R20",
+        "R21",
+        "R64"
+      ],
+      "contexts": [
+        "private"
+      ],
+      "surface": "order + request + status",
+      "coverage": "composition",
+      "priority": "P1",
+      "priority_reason": "Post-purchase state must remain linked to the original order.",
+      "gap": "Refund reconciliation and provider-specific return workflow.",
+      "sources": [
+        "stars",
+        "business"
+      ]
+    }
+  ]
+}

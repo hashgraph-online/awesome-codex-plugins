@@ -1,0 +1,84 @@
+{
+  "scenario": "r45-multi-job-dashboard-topics",
+  "status": "production (widget: private chats only)",
+  "context": "private chat with topics",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "createForumTopic",
+      "params": {
+        "chat_id": 111111111,
+        "name": "build-142"
+      }
+    },
+    {
+      "method": "createForumTopic",
+      "params": {
+        "chat_id": 111111111,
+        "name": "migrate-7"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 7,
+        "text": "<b>build-142</b> — running · 0s\n⏳ Install\n▫️ Compile\n▫️ Test",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "message_thread_id": 9,
+        "text": "<b>migrate-7</b> — running · 0s\n⏳ Backup\n▫️ Migrate\n▫️ Verify",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "sendWidget",
+      "params": {
+        "chat_id": 111111111,
+        "html": "<!-- Job dashboard (private chat). chat_data = {\"r\":N,\"j\":[[name,state,stage],...]} -->\n<style>body{margin:0}.r{display:flex;justify-content:space-between;padding:6px 12px;gap:8px}\n.n{font-weight:600}.s{color:var(--tg-theme-hint-color);font-variant-numeric:tabular-nums}\n.failed .s{color:var(--tg-theme-destructive-text-color)}</style>\n<div id=\"list\"></div>\n<script>\nvar W=window.TelegramWidget,S={r:-1,j:[]};\nfunction load(){var s=null;try{s=JSON.parse(W?W.chatData:null)}catch(e){}if(s&&s.r>S.r)S=s}\nfunction draw(){var l=document.getElementById(\"list\");l.textContent=\"\";S.j.forEach(function(x){\n var d=document.createElement(\"div\");d.className=\"r \"+x[1];var n=document.createElement(\"span\");n.className=\"n\";\n n.textContent=x[0];var s=document.createElement(\"span\");s.className=\"s\";s.textContent=x[2]+\" · \"+x[1];\n d.appendChild(n);d.appendChild(s);l.appendChild(d)})}\nif(W){W.onEvent(\"chatDataChanged\",function(){load();draw()})}\nload();draw();if(W)W.ready();\n</script>",
+        "chat_data": "{\"r\":1,\"j\":[[\"build-142\",\"running\",\"Install\"],[\"migrate-7\",\"running\",\"Backup\"]]}",
+        "caption": "Jobs: build-142 running, migrate-7 running"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "<b>build-142</b> — running · 5s\n✅ Install\n⏳ Compile\n▫️ Test",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1003,
+        "chat_data": "{\"r\":2,\"j\":[[\"build-142\",\"running\",\"Compile\"],[\"migrate-7\",\"running\",\"Backup\"]]}"
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1002,
+        "text": "<b>migrate-7</b> — failed · 10s\n✅ Backup\n❌ Migrate\n▫️ Verify\n\nlock timeout on orders",
+        "parse_mode": "HTML"
+      }
+    },
+    {
+      "method": "editMessageWidgetData",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1003,
+        "chat_data": "{\"r\":3,\"j\":[[\"build-142\",\"running\",\"Test\"],[\"migrate-7\",\"failed\",\"Migrate\"]]}"
+      }
+    }
+  ]
+}

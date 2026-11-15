@@ -1,0 +1,70 @@
+{
+  "scenario": "r43-ask-and-continue",
+  "status": "production",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "The payments tests are flaky (3 of 20 runs fail on a timeout). How should I proceed with the refactor?\n\nNo answer in 15 min → I'll continue with: Skip them for now",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Skip them for now",
+                "callback_data": "aq:081da789:n6d6976b:0"
+              }
+            ],
+            [
+              {
+                "text": "Fix the flakiness first",
+                "callback_data": "aq:081da789:n6d6976b:1"
+              }
+            ],
+            [
+              {
+                "text": "Stop and wait for me",
+                "callback_data": "aq:081da789:n6d6976b:2"
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "text": "Reminder: I'm still waiting for your answer.",
+        "reply_parameters": {
+          "message_id": 1001
+        }
+      }
+    },
+    {
+      "method": "editMessageText",
+      "params": {
+        "chat_id": 111111111,
+        "message_id": 1001,
+        "text": "The payments tests are flaky (3 of 20 runs fail on a timeout). How should I proceed with the refactor?\n\nNo answer in 15 min → I'll continue with: Skip them for now\n\nNo answer — continued with: Skip them for now",
+        "parse_mode": "HTML",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "No answer — continued with: Skip them for now",
+                "disabled": {}
+              }
+            ]
+          ],
+          "force_reply": true
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "update_id": 920003,
+  "pre_checkout_query": {
+    "id": "4382000000000920003",
+    "from": {"id": 333333333, "is_bot": false, "first_name": "Олена", "language_code": "uk"},
+    "currency": "EUR",
+    "total_amount": 1100,
+    "invoice_payload": "o:SH-1002",
+    "order_info": {"name": "Olena K."}
+  }
+}

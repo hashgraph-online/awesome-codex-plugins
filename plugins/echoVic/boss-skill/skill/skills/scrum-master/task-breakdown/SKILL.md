@@ -9,6 +9,7 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
+
 - 需要拆解开发任务时
 - 需要估算工作量时
   metadata:
@@ -21,6 +22,7 @@ triggers:
 ## WBS（工作分解结构）
 
 将大任务拆解为小任务，遵循SMART原则：
+
 - **Specific**：具体明确
 - **Measurable**：可衡量
 - **Achievable**：可实现

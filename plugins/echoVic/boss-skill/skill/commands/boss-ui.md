@@ -37,6 +37,7 @@ allowed-tools: Task, Read, Write, Edit, Bash, Glob, Grep
 ## HTML 原型
 
 UI Designer 在设计前会询问用户是否需要可交互 HTML 原型：
+
 - 用户同意 → 生成 `.boss/<slug>/prototype/`，启动本地服务，用户在浏览器中查看并点击选择方案
 - 用户拒绝 → 直接用文字描述 + JSON 交付
 

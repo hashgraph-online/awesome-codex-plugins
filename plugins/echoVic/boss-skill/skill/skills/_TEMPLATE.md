@@ -9,6 +9,7 @@ user-invocable: false
 agent-invocable: true
 dependencies: []
 triggers:
+
 - {触发场景描述}
 
 ---

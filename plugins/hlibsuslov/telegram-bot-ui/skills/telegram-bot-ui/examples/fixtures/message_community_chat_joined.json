@@ -1,0 +1,24 @@
+{
+  "update_id": 900040,
+  "message": {
+    "message_id": 700,
+    "date": 1762900400,
+    "chat": {
+      "id": -1001234567890,
+      "type": "supergroup",
+      "title": "Team Orders"
+    },
+    "from": {
+      "id": 222222222,
+      "is_bot": false,
+      "first_name": "Bogdan",
+      "language_code": "uk"
+    },
+    "community_chat_joined": {
+      "community": {
+        "id": 4400000000123,
+        "name": "Foodies of Kyiv"
+      }
+    }
+  }
+}

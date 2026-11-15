@@ -21,7 +21,7 @@ from `packages/memtomem-plugin-assets/`; edit the sources there, not the files h
   extra to Hermes's environment to fix it.
 - Git on `PATH`, for the commit lookup under [Install](#install).
 - `uv` on `PATH`. The server is started with
-  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.10' memtomem-server`.
+  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.10' --with 'huggingface-hub>=1.20' memtomem-server`.
   Without `uv` the plugin still installs and enables, and the server fails at start with
   `missing executable 'uvx'`.
 - Python 3.12. uv uses a 3.12 it can find; if there is none, it downloads one (about 70 MiB)
@@ -51,6 +51,12 @@ hermes plugins install "https://github.com/memtomem/memtomem#packages/memtomem-h
 
 At a release commit, `mcp.json` pins that same memtomem version, so the server installs
 the release you picked. Hermes marks a direct Git install as a custom (unreviewed) source.
+
+This package's own version, in `plugin.json`, can change between memtomem releases, so a
+commit on `main` that no release tag points at can carry a newer package than the latest
+tag does. Such a commit installs the same way, with its 40-character SHA. Check first that
+the memtomem release its `mcp.json` pins is listed on PyPI: the server does not start
+until it is.
 
 Hermes records that commit as the plugin's pin. To move to a later release, look up its
 commit the same way and reinstall with `--force --ref <new-commit-sha>`. A `--force`
@@ -95,6 +101,18 @@ files directly. An entry of your own without that variable restores the search, 
 example below sets it. Before this package's 0.1.15, the nearest `.env` was read and its
 `MEMTOMEM_*` keys were applied.
 
+**A saved Hugging Face login is not used.** memtomem downloads a model or a tokenizer from
+Hugging Face when its configuration uses one hosted there, as ONNX embedding and the local
+reranker do. This package's server entry
+sets `HF_HUB_DISABLE_IMPLICIT_TOKEN=1` and holds `huggingface-hub` at 1.20 or later
+(`--with` in its launch line), so those downloads do not open the login that
+`hf auth login` saved (normally `~/.cache/huggingface/token`) and use neither it nor an
+`HF_TOKEN` variable. Hermes's plugin catalog rules say a plugin never reads another
+tool's login. The floor is part of it: `huggingface-hub` 1.19 and older read the saved
+login even with the variable set. For a gated or private model, add your own
+`mcp_servers.memtomem` entry (see "Scope" below) without that variable and with `HF_TOKEN`
+under `env:`. Before this package's 0.1.23, a saved login was sent with model downloads.
+
 ## Scope
 
 This package runs memtomem at **user scope**. The server starts in the plugin directory,
@@ -130,19 +148,23 @@ your own server entry to `config.yaml`:
 mcp_servers:
   memtomem:
     command: uvx
-    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.10", "memtomem-server"]
+    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.10", "--with", "huggingface-hub>=1.20", "memtomem-server"]
     env:
       MEMTOMEM_TOOL_MODE: core
       MEMTOMEM_EXTRA_TOOLS: mem_update_coverage
       ORT_DISABLE_TELEMETRY: "1"
       PYTHON_DOTENV_DISABLED: "1"
+      HF_HUB_DISABLE_IMPLICIT_TOKEN: "1"
       # copy any MEMTOMEM_* settings you rely on here
     cwd: /path/to/project
 ```
 
 Keep the quotes around `"1"`: Hermes accepts only string values under `env:` and does not
 start a server whose value is the number `1`. Without `PYTHON_DOTENV_DISABLED`, memtomem
-reads the nearest `.env` again (see "First run" above).
+reads the nearest `.env` again (see "First run" above). Without
+`HF_HUB_DISABLE_IMPLICIT_TOKEN`, model downloads use a saved Hugging Face login or
+`HF_TOKEN` again; without the `--with` floor, uv can resolve an older `huggingface-hub`,
+which reads the saved login even with the variable set.
 
 ## Files outside memtomem's own data
 
@@ -181,7 +203,8 @@ configuration nothing else leaves the machine on its own. One action reaches the
 on request: `mem_do(action="fetch", params={"url": ...})` downloads the page at the URL it
 is given and indexes it; the skills never call it. An existing memtomem configuration may
 enable its own network paths: model downloads from Hugging Face (ONNX embedding or local
-reranker), a remote embedding or LLM provider, Cohere reranking (sends the query and
+reranker; a saved Hugging Face login and `HF_TOKEN` are not used, see "First run"), a
+remote embedding or LLM provider, Cohere reranking (sends the query and
 candidate chunks), or search webhooks (send events including the query).
 
 ## License

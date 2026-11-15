@@ -8,6 +8,7 @@ type: methodology
 user-invocable: false
 agent-invocable: true
 dependencies:
+
 - shared/tech-stack-detection
   triggers:
 - 需要编写或执行 API 接口测试时
@@ -378,6 +379,7 @@ it('handles 10 concurrent user creations', async () => {
 ## 9. 测试报告要求
 
 每个 API 测试文件必须覆盖：
+
 - [ ] 正常流程（happy path）
 - [ ] 参数校验（必填、格式、长度、类型）
 - [ ] 认证（无 Token、无效 Token、过期 Token）

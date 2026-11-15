@@ -1,0 +1,2981 @@
+{
+ "_about": "Semantic slot vocabulary for custom emoji icon systems. Each slot is a MEANING. `unicode` lists acceptable Unicode equivalents in order of preference: the first one is the default fallback when no sticker resolves; when a sticker resolves, its own `emoji` field becomes the fallback (official recommendation). `label` is the text-only fallback (empty = the accent is simply dropped). `use` says where the slot belongs: button, title, inline (inside running text), status (reserved state marks), post_accent (channel posts / long texts). Matching ignores U+FE0F, so '⚙' and '⚙️' are the same key. Heuristic content of this skill, checked 2026-11-15.",
+ "version": 1,
+ "checked": "2026-11-15",
+ "groups": [
+  "navigation",
+  "actions",
+  "status",
+  "commerce",
+  "finance",
+  "media",
+  "communication",
+  "settings",
+  "time",
+  "people",
+  "analytics",
+  "ai",
+  "files",
+  "warnings",
+  "post"
+ ],
+ "slots": {
+  "home": {
+   "group": "navigation",
+   "unicode": [
+    "🏠",
+    "🏡"
+   ],
+   "label": "Home",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Root screen; one per bot."
+  },
+  "menu": {
+   "group": "navigation",
+   "unicode": [
+    "☰",
+    "📋"
+   ],
+   "label": "Menu",
+   "use": [
+    "button"
+   ],
+   "note": "Opens the main menu; prefer words on the menu button itself."
+  },
+  "back": {
+   "group": "navigation",
+   "unicode": [
+    "⬅️",
+    "◀️",
+    "←",
+    "🔙"
+   ],
+   "label": "Back",
+   "use": [
+    "button"
+   ],
+   "note": "Pick ONE arrow pair for the whole bot; often clearer as a word only."
+  },
+  "forward": {
+   "group": "navigation",
+   "unicode": [
+    "➡️",
+    "▶️",
+    "→"
+   ],
+   "label": "Next",
+   "use": [
+    "button"
+   ],
+   "note": "Pairs with back; same family and weight."
+  },
+  "up": {
+   "group": "navigation",
+   "unicode": [
+    "⬆️",
+    "🔼",
+    "↑"
+   ],
+   "label": "Up",
+   "use": [
+    "button"
+   ],
+   "note": "Scroll/parent level."
+  },
+  "down": {
+   "group": "navigation",
+   "unicode": [
+    "⬇️",
+    "🔽",
+    "↓"
+   ],
+   "label": "Down",
+   "use": [
+    "button"
+   ],
+   "note": "Scroll/child level."
+  },
+  "previous_page": {
+   "group": "navigation",
+   "unicode": [
+    "⏪",
+    "◀️"
+   ],
+   "label": "Previous page",
+   "use": [
+    "button"
+   ],
+   "note": "Pagination; keep the page number in words."
+  },
+  "next_page": {
+   "group": "navigation",
+   "unicode": [
+    "⏩",
+    "▶️"
+   ],
+   "label": "Next page",
+   "use": [
+    "button"
+   ],
+   "note": "Pagination; keep the page number in words."
+  },
+  "first_page": {
+   "group": "navigation",
+   "unicode": [
+    "⏮️",
+    "⏮"
+   ],
+   "label": "First page",
+   "use": [
+    "button"
+   ],
+   "note": "Long lists only."
+  },
+  "last_page": {
+   "group": "navigation",
+   "unicode": [
+    "⏭️",
+    "⏭"
+   ],
+   "label": "Last page",
+   "use": [
+    "button"
+   ],
+   "note": "Long lists only."
+  },
+  "close": {
+   "group": "navigation",
+   "unicode": [
+    "✖️",
+    "❌",
+    "✕"
+   ],
+   "label": "Close",
+   "use": [
+    "button"
+   ],
+   "note": "Dismiss a panel; not the same id as delete or error."
+  },
+  "expand": {
+   "group": "navigation",
+   "unicode": [
+    "🔽",
+    "➕"
+   ],
+   "label": "Show more",
+   "use": [
+    "button"
+   ],
+   "note": "Reveal details."
+  },
+  "collapse": {
+   "group": "navigation",
+   "unicode": [
+    "🔼",
+    "➖"
+   ],
+   "label": "Show less",
+   "use": [
+    "button"
+   ],
+   "note": "Hide details."
+  },
+  "open_link": {
+   "group": "navigation",
+   "unicode": [
+    "🔗",
+    "↗️"
+   ],
+   "label": "Open",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "External link button; the URL itself carries the action."
+  },
+  "external": {
+   "group": "navigation",
+   "unicode": [
+    "↗️",
+    "🌐"
+   ],
+   "label": "Open in browser",
+   "use": [
+    "button"
+   ],
+   "note": "Leaves Telegram; say where in the label."
+  },
+  "mini_app": {
+   "group": "navigation",
+   "unicode": [
+    "📱",
+    "🧩"
+   ],
+   "label": "Open app",
+   "use": [
+    "button"
+   ],
+   "note": "Mini App launch button."
+  },
+  "refresh": {
+   "group": "navigation",
+   "unicode": [
+    "🔄",
+    "🔃",
+    "↻"
+   ],
+   "label": "Refresh",
+   "use": [
+    "button"
+   ],
+   "note": "Re-fetch; not the same id as sync/convert."
+  },
+  "reload": {
+   "group": "navigation",
+   "unicode": [
+    "🔁",
+    "🔄"
+   ],
+   "label": "Reload",
+   "use": [
+    "button"
+   ],
+   "note": "Hard reload; use refresh unless both exist."
+  },
+  "swap": {
+   "group": "navigation",
+   "unicode": [
+    "🔀",
+    "⇄"
+   ],
+   "label": "Switch",
+   "use": [
+    "button"
+   ],
+   "note": "Switch account/view."
+  },
+  "pin": {
+   "group": "navigation",
+   "unicode": [
+    "📌",
+    "📍"
+   ],
+   "label": "Pin",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Pinned item marker."
+  },
+  "add": {
+   "group": "actions",
+   "unicode": [
+    "➕",
+    "✚"
+   ],
+   "label": "Add",
+   "use": [
+    "button"
+   ],
+   "note": "Create a new item."
+  },
+  "remove": {
+   "group": "actions",
+   "unicode": [
+    "➖"
+   ],
+   "label": "Remove",
+   "use": [
+    "button"
+   ],
+   "note": "Remove from a list without deleting data."
+  },
+  "edit": {
+   "group": "actions",
+   "unicode": [
+    "✏️",
+    "📝",
+    "🖊️"
+   ],
+   "label": "Edit",
+   "use": [
+    "button"
+   ],
+   "note": "Change an existing item."
+  },
+  "rename": {
+   "group": "actions",
+   "unicode": [
+    "✏️",
+    "📝"
+   ],
+   "label": "Rename",
+   "use": [
+    "button"
+   ],
+   "note": "Often shares the edit glyph; use different ids only if both appear."
+  },
+  "delete": {
+   "group": "actions",
+   "unicode": [
+    "🗑️",
+    "🗑"
+   ],
+   "label": "Delete",
+   "use": [
+    "button"
+   ],
+   "note": "Destructive; pair with style danger and a confirmation."
+  },
+  "save": {
+   "group": "actions",
+   "unicode": [
+    "💾",
+    "📥"
+   ],
+   "label": "Save",
+   "use": [
+    "button"
+   ],
+   "note": "Persist changes."
+  },
+  "copy": {
+   "group": "actions",
+   "unicode": [
+    "📋",
+    "⧉"
+   ],
+   "label": "Copy",
+   "use": [
+    "button"
+   ],
+   "note": "Use the copy_text button for one copyable value."
+  },
+  "share": {
+   "group": "actions",
+   "unicode": [
+    "📤",
+    "🔗",
+    "↗️"
+   ],
+   "label": "Share",
+   "use": [
+    "button"
+   ],
+   "note": "Share/forward the result."
+  },
+  "send": {
+   "group": "actions",
+   "unicode": [
+    "📨",
+    "✉️",
+    "➤"
+   ],
+   "label": "Send",
+   "use": [
+    "button"
+   ],
+   "note": "Send a message/form."
+  },
+  "search": {
+   "group": "actions",
+   "unicode": [
+    "🔍",
+    "🔎"
+   ],
+   "label": "Search",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Pick one magnifier; 🔍 and 🔎 are two symbols."
+  },
+  "filter": {
+   "group": "actions",
+   "unicode": [
+    "🧹",
+    "🔽"
+   ],
+   "label": "Filter",
+   "use": [
+    "button"
+   ],
+   "note": "Never the gear: ⚙ means settings."
+  },
+  "sort": {
+   "group": "actions",
+   "unicode": [
+    "↕️",
+    "🔃"
+   ],
+   "label": "Sort",
+   "use": [
+    "button"
+   ],
+   "note": "Sort order."
+  },
+  "download": {
+   "group": "actions",
+   "unicode": [
+    "⬇️",
+    "📥"
+   ],
+   "label": "Download",
+   "use": [
+    "button"
+   ],
+   "note": "Get a file."
+  },
+  "upload": {
+   "group": "actions",
+   "unicode": [
+    "⬆️",
+    "📤"
+   ],
+   "label": "Upload",
+   "use": [
+    "button"
+   ],
+   "note": "Send a file."
+  },
+  "attach": {
+   "group": "actions",
+   "unicode": [
+    "📎"
+   ],
+   "label": "Attach",
+   "use": [
+    "button"
+   ],
+   "note": "Attach a file to a form."
+  },
+  "scan": {
+   "group": "actions",
+   "unicode": [
+    "📷",
+    "🔳"
+   ],
+   "label": "Scan",
+   "use": [
+    "button"
+   ],
+   "note": "QR/camera scan."
+  },
+  "print": {
+   "group": "actions",
+   "unicode": [
+    "🖨️",
+    "🖨"
+   ],
+   "label": "Print",
+   "use": [
+    "button"
+   ],
+   "note": "Rare in bots."
+  },
+  "undo": {
+   "group": "actions",
+   "unicode": [
+    "↩️",
+    "↶"
+   ],
+   "label": "Undo",
+   "use": [
+    "button"
+   ],
+   "note": "Revert the last step."
+  },
+  "redo": {
+   "group": "actions",
+   "unicode": [
+    "↪️",
+    "↷"
+   ],
+   "label": "Redo",
+   "use": [
+    "button"
+   ],
+   "note": "Re-apply."
+  },
+  "play": {
+   "group": "actions",
+   "unicode": [
+    "▶️",
+    "⏵"
+   ],
+   "label": "Play",
+   "use": [
+    "button"
+   ],
+   "note": "Start playback/a process."
+  },
+  "pause": {
+   "group": "actions",
+   "unicode": [
+    "⏸️",
+    "⏸"
+   ],
+   "label": "Pause",
+   "use": [
+    "button"
+   ],
+   "note": "Pause playback/a process."
+  },
+  "stop": {
+   "group": "actions",
+   "unicode": [
+    "⏹️",
+    "⏹"
+   ],
+   "label": "Stop",
+   "use": [
+    "button"
+   ],
+   "note": "Stop a process or a stream."
+  },
+  "record": {
+   "group": "actions",
+   "unicode": [
+    "⏺️",
+    "🔴"
+   ],
+   "label": "Record",
+   "use": [
+    "button"
+   ],
+   "note": "Start recording."
+  },
+  "like": {
+   "group": "actions",
+   "unicode": [
+    "👍"
+   ],
+   "label": "Like",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Feedback; not the same as confirm."
+  },
+  "dislike": {
+   "group": "actions",
+   "unicode": [
+    "👎"
+   ],
+   "label": "Dislike",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Feedback."
+  },
+  "favorite": {
+   "group": "actions",
+   "unicode": [
+    "⭐",
+    "★",
+    "🌟"
+   ],
+   "label": "Favorite",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Saved/starred; reserve ⭐ if Stars prices are shown."
+  },
+  "bookmark": {
+   "group": "actions",
+   "unicode": [
+    "🔖"
+   ],
+   "label": "Bookmark",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Saved for later."
+  },
+  "lock": {
+   "group": "actions",
+   "unicode": [
+    "🔒"
+   ],
+   "label": "Lock",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Locked/private state."
+  },
+  "unlock": {
+   "group": "actions",
+   "unicode": [
+    "🔓"
+   ],
+   "label": "Unlock",
+   "use": [
+    "button"
+   ],
+   "note": "Unlock an item."
+  },
+  "archive": {
+   "group": "actions",
+   "unicode": [
+    "🗄️",
+    "📦"
+   ],
+   "label": "Archive",
+   "use": [
+    "button"
+   ],
+   "note": "Hide without deleting."
+  },
+  "restore": {
+   "group": "actions",
+   "unicode": [
+    "♻️",
+    "↩️"
+   ],
+   "label": "Restore",
+   "use": [
+    "button"
+   ],
+   "note": "Bring back from archive/trash."
+  },
+  "report": {
+   "group": "actions",
+   "unicode": [
+    "🚩"
+   ],
+   "label": "Report",
+   "use": [
+    "button"
+   ],
+   "note": "Flag content."
+  },
+  "block": {
+   "group": "actions",
+   "unicode": [
+    "🚫",
+    "⛔"
+   ],
+   "label": "Block",
+   "use": [
+    "button"
+   ],
+   "note": "Block a user/source."
+  },
+  "done": {
+   "group": "status",
+   "unicode": [
+    "✅",
+    "☑️",
+    "✔️"
+   ],
+   "label": "Done",
+   "use": [
+    "button",
+    "title",
+    "status"
+   ],
+   "note": "Reserved: completed/confirmed. Not a settings icon."
+  },
+  "confirm": {
+   "group": "status",
+   "unicode": [
+    "✅",
+    "✔️",
+    "☑️"
+   ],
+   "label": "Confirm",
+   "use": [
+    "button"
+   ],
+   "note": "Commit button; often shares done's glyph, use one id for both."
+  },
+  "success": {
+   "group": "status",
+   "unicode": [
+    "✅",
+    "🎉"
+   ],
+   "label": "Success",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Success screen title; keep animation for this one moment if any."
+  },
+  "pending": {
+   "group": "status",
+   "unicode": [
+    "⏳",
+    "⌛",
+    "🕒"
+   ],
+   "label": "In progress",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Reserved: waiting/processing."
+  },
+  "in_review": {
+   "group": "status",
+   "unicode": [
+    "👀",
+    "🔎"
+   ],
+   "label": "In review",
+   "use": [
+    "status"
+   ],
+   "note": "Waiting for a human."
+  },
+  "failed": {
+   "group": "status",
+   "unicode": [
+    "❌",
+    "⛔"
+   ],
+   "label": "Failed",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Reserved: failure."
+  },
+  "error": {
+   "group": "status",
+   "unicode": [
+    "❗",
+    "❌",
+    "⚠️"
+   ],
+   "label": "Error",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Error screen title; never decorative."
+  },
+  "warning": {
+   "group": "status",
+   "unicode": [
+    "⚠️",
+    "❗"
+   ],
+   "label": "Warning",
+   "use": [
+    "title",
+    "status",
+    "post_accent"
+   ],
+   "note": "Reserved: needs attention."
+  },
+  "info": {
+   "group": "status",
+   "unicode": [
+    "ℹ️",
+    "💬"
+   ],
+   "label": "Info",
+   "use": [
+    "title",
+    "inline",
+    "post_accent"
+   ],
+   "note": "Neutral note."
+  },
+  "tip": {
+   "group": "status",
+   "unicode": [
+    "💡"
+   ],
+   "label": "Tip",
+   "use": [
+    "title",
+    "inline",
+    "post_accent"
+   ],
+   "note": "Hint; one per screen."
+  },
+  "new": {
+   "group": "status",
+   "unicode": [
+    "🆕",
+    "✨"
+   ],
+   "label": "New",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Badge; avoid on every item."
+  },
+  "blocked_state": {
+   "group": "status",
+   "unicode": [
+    "🚫"
+   ],
+   "label": "Blocked",
+   "use": [
+    "status"
+   ],
+   "note": "State, not the block action."
+  },
+  "online": {
+   "group": "status",
+   "unicode": [
+    "🟢"
+   ],
+   "label": "Online",
+   "use": [
+    "status"
+   ],
+   "note": "Presence dot."
+  },
+  "offline": {
+   "group": "status",
+   "unicode": [
+    "⚪",
+    "⚫"
+   ],
+   "label": "Offline",
+   "use": [
+    "status"
+   ],
+   "note": "Presence dot."
+  },
+  "busy": {
+   "group": "status",
+   "unicode": [
+    "🔴"
+   ],
+   "label": "Busy",
+   "use": [
+    "status"
+   ],
+   "note": "Presence dot."
+  },
+  "active": {
+   "group": "status",
+   "unicode": [
+    "🟢",
+    "✅"
+   ],
+   "label": "Active",
+   "use": [
+    "status"
+   ],
+   "note": "Enabled item."
+  },
+  "inactive": {
+   "group": "status",
+   "unicode": [
+    "⚪"
+   ],
+   "label": "Inactive",
+   "use": [
+    "status"
+   ],
+   "note": "Disabled item."
+  },
+  "verified": {
+   "group": "status",
+   "unicode": [
+    "☑️",
+    "✔️"
+   ],
+   "label": "Verified",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Verification mark; never imitate Telegram's own badge."
+  },
+  "draft": {
+   "group": "status",
+   "unicode": [
+    "📝"
+   ],
+   "label": "Draft",
+   "use": [
+    "status"
+   ],
+   "note": "Unpublished."
+  },
+  "scheduled": {
+   "group": "status",
+   "unicode": [
+    "🗓️",
+    "⏰"
+   ],
+   "label": "Scheduled",
+   "use": [
+    "status"
+   ],
+   "note": "Planned for later."
+  },
+  "live": {
+   "group": "status",
+   "unicode": [
+    "🔴",
+    "📡"
+   ],
+   "label": "Live",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Live broadcast/stream."
+  },
+  "trending": {
+   "group": "status",
+   "unicode": [
+    "🔥",
+    "📈"
+   ],
+   "label": "Trending",
+   "use": [
+    "inline",
+    "post_accent"
+   ],
+   "note": "Popular; a common overuse."
+  },
+  "cart": {
+   "group": "commerce",
+   "unicode": [
+    "🛒"
+   ],
+   "label": "Cart",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Shopping cart."
+  },
+  "bag": {
+   "group": "commerce",
+   "unicode": [
+    "🛍️",
+    "👜"
+   ],
+   "label": "Shop",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Storefront entry."
+  },
+  "product": {
+   "group": "commerce",
+   "unicode": [
+    "📦"
+   ],
+   "label": "Product",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "A catalog item."
+  },
+  "catalog": {
+   "group": "commerce",
+   "unicode": [
+    "🗂️",
+    "📚"
+   ],
+   "label": "Catalog",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Product list."
+  },
+  "order": {
+   "group": "commerce",
+   "unicode": [
+    "🧾",
+    "📦"
+   ],
+   "label": "Order",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Order details."
+  },
+  "delivery": {
+   "group": "commerce",
+   "unicode": [
+    "🚚",
+    "📦"
+   ],
+   "label": "Delivery",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "Shipping state."
+  },
+  "price": {
+   "group": "commerce",
+   "unicode": [
+    "🏷️",
+    "💲"
+   ],
+   "label": "Price",
+   "use": [
+    "inline"
+   ],
+   "note": "Price tag."
+  },
+  "discount": {
+   "group": "commerce",
+   "unicode": [
+    "🏷️",
+    "💸"
+   ],
+   "label": "Discount",
+   "use": [
+    "inline",
+    "post_accent"
+   ],
+   "note": "Promo; not on every line."
+  },
+  "gift": {
+   "group": "commerce",
+   "unicode": [
+    "🎁"
+   ],
+   "label": "Gift",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Gifts/rewards."
+  },
+  "pay": {
+   "group": "commerce",
+   "unicode": [
+    "💳",
+    "💰"
+   ],
+   "label": "Pay",
+   "use": [
+    "button"
+   ],
+   "note": "Payment button; pay buttons must stay first in invoices."
+  },
+  "receipt": {
+   "group": "commerce",
+   "unicode": [
+    "🧾"
+   ],
+   "label": "Receipt",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Paid order."
+  },
+  "stars": {
+   "group": "commerce",
+   "unicode": [
+    "⭐",
+    "🌟"
+   ],
+   "label": "Stars",
+   "use": [
+    "inline"
+   ],
+   "note": "Telegram Stars amount; keep distinct from favorite."
+  },
+  "subscription": {
+   "group": "commerce",
+   "unicode": [
+    "🔁",
+    "💎"
+   ],
+   "label": "Subscription",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Recurring plan."
+  },
+  "premium": {
+   "group": "commerce",
+   "unicode": [
+    "💎",
+    "👑"
+   ],
+   "label": "Premium",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "Paid tier; distinct from Telegram Premium branding."
+  },
+  "store": {
+   "group": "commerce",
+   "unicode": [
+    "🏪",
+    "🏬"
+   ],
+   "label": "Store",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Physical store/location."
+  },
+  "refund": {
+   "group": "commerce",
+   "unicode": [
+    "↩️",
+    "💸"
+   ],
+   "label": "Refund",
+   "use": [
+    "button"
+   ],
+   "note": "Money back."
+  },
+  "wallet": {
+   "group": "finance",
+   "unicode": [
+    "👛",
+    "💼"
+   ],
+   "label": "Wallet",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "One wallet."
+  },
+  "wallets": {
+   "group": "finance",
+   "unicode": [
+    "💼",
+    "👛"
+   ],
+   "label": "Wallets",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Wallet list."
+  },
+  "balance": {
+   "group": "finance",
+   "unicode": [
+    "💰",
+    "💵"
+   ],
+   "label": "Balance",
+   "use": [
+    "title",
+    "inline"
+   ],
+   "note": "Account balance."
+  },
+  "money": {
+   "group": "finance",
+   "unicode": [
+    "💵",
+    "💰"
+   ],
+   "label": "Money",
+   "use": [
+    "inline"
+   ],
+   "note": "Generic amount."
+  },
+  "coin": {
+   "group": "finance",
+   "unicode": [
+    "🪙"
+   ],
+   "label": "Coin",
+   "use": [
+    "inline"
+   ],
+   "note": "Token/coin."
+  },
+  "bitcoin": {
+   "group": "finance",
+   "unicode": [
+    "₿"
+   ],
+   "label": "Bitcoin",
+   "use": [
+    "inline"
+   ],
+   "note": "BTC sign; Unicode fallback is a currency sign, not an emoji."
+  },
+  "ton": {
+   "group": "finance",
+   "unicode": [
+    "💎"
+   ],
+   "label": "TON",
+   "use": [
+    "inline"
+   ],
+   "note": "TON amounts; check brand rules."
+  },
+  "deposit": {
+   "group": "finance",
+   "unicode": [
+    "📥",
+    "⬇️"
+   ],
+   "label": "Deposit",
+   "use": [
+    "button"
+   ],
+   "note": "Incoming funds."
+  },
+  "withdraw": {
+   "group": "finance",
+   "unicode": [
+    "📤",
+    "⬆️"
+   ],
+   "label": "Withdraw",
+   "use": [
+    "button"
+   ],
+   "note": "Outgoing funds."
+  },
+  "incoming": {
+   "group": "finance",
+   "unicode": [
+    "📥",
+    "↘️"
+   ],
+   "label": "Incoming",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Received transaction."
+  },
+  "outgoing": {
+   "group": "finance",
+   "unicode": [
+    "📤",
+    "↗️"
+   ],
+   "label": "Outgoing",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Sent transaction."
+  },
+  "exchange": {
+   "group": "finance",
+   "unicode": [
+    "💱",
+    "🔄"
+   ],
+   "label": "Exchange",
+   "use": [
+    "button"
+   ],
+   "note": "Swap/convert currencies."
+  },
+  "transfer": {
+   "group": "finance",
+   "unicode": [
+    "🔁",
+    "➡️"
+   ],
+   "label": "Transfer",
+   "use": [
+    "button"
+   ],
+   "note": "Move funds."
+  },
+  "bank": {
+   "group": "finance",
+   "unicode": [
+    "🏦"
+   ],
+   "label": "Bank",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Bank account."
+  },
+  "card": {
+   "group": "finance",
+   "unicode": [
+    "💳"
+   ],
+   "label": "Card",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Payment card."
+  },
+  "chart_up": {
+   "group": "finance",
+   "unicode": [
+    "📈"
+   ],
+   "label": "Up",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Price rising."
+  },
+  "chart_down": {
+   "group": "finance",
+   "unicode": [
+    "📉"
+   ],
+   "label": "Down",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Price falling."
+  },
+  "invoice": {
+   "group": "finance",
+   "unicode": [
+    "🧾",
+    "📄"
+   ],
+   "label": "Invoice",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Bill."
+  },
+  "key": {
+   "group": "finance",
+   "unicode": [
+    "🔑",
+    "🗝️"
+   ],
+   "label": "Keys",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Keys/xpub/API keys."
+  },
+  "security": {
+   "group": "finance",
+   "unicode": [
+    "🛡️",
+    "🔐"
+   ],
+   "label": "Security",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Security settings."
+  },
+  "photo": {
+   "group": "media",
+   "unicode": [
+    "🖼️",
+    "📷"
+   ],
+   "label": "Photo",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Image."
+  },
+  "camera": {
+   "group": "media",
+   "unicode": [
+    "📷",
+    "📸"
+   ],
+   "label": "Camera",
+   "use": [
+    "button"
+   ],
+   "note": "Take a photo."
+  },
+  "video": {
+   "group": "media",
+   "unicode": [
+    "🎬",
+    "📹"
+   ],
+   "label": "Video",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Video."
+  },
+  "music": {
+   "group": "media",
+   "unicode": [
+    "🎵",
+    "🎶"
+   ],
+   "label": "Music",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Audio track."
+  },
+  "audio": {
+   "group": "media",
+   "unicode": [
+    "🔊",
+    "🎧"
+   ],
+   "label": "Audio",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Sound on."
+  },
+  "mute_sound": {
+   "group": "media",
+   "unicode": [
+    "🔇"
+   ],
+   "label": "Sound off",
+   "use": [
+    "button"
+   ],
+   "note": "Mute audio (not notifications)."
+  },
+  "microphone": {
+   "group": "media",
+   "unicode": [
+    "🎤",
+    "🎙️"
+   ],
+   "label": "Voice",
+   "use": [
+    "button"
+   ],
+   "note": "Voice input."
+  },
+  "gallery": {
+   "group": "media",
+   "unicode": [
+    "🖼️",
+    "🗂️"
+   ],
+   "label": "Gallery",
+   "use": [
+    "button"
+   ],
+   "note": "Media list."
+  },
+  "sticker": {
+   "group": "media",
+   "unicode": [
+    "🧩",
+    "🙂"
+   ],
+   "label": "Sticker",
+   "use": [
+    "button"
+   ],
+   "note": "Sticker picker."
+  },
+  "gif": {
+   "group": "media",
+   "unicode": [
+    "🎞️"
+   ],
+   "label": "GIF",
+   "use": [
+    "button"
+   ],
+   "note": "Animation."
+  },
+  "live_stream": {
+   "group": "media",
+   "unicode": [
+    "📡",
+    "🔴"
+   ],
+   "label": "Stream",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Broadcast."
+  },
+  "message": {
+   "group": "communication",
+   "unicode": [
+    "💬",
+    "✉️"
+   ],
+   "label": "Message",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "A message/chat."
+  },
+  "chat": {
+   "group": "communication",
+   "unicode": [
+    "💬",
+    "🗨️"
+   ],
+   "label": "Chat",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Conversation."
+  },
+  "reply": {
+   "group": "communication",
+   "unicode": [
+    "↩️",
+    "💬"
+   ],
+   "label": "Reply",
+   "use": [
+    "button"
+   ],
+   "note": "Reply action."
+  },
+  "mail": {
+   "group": "communication",
+   "unicode": [
+    "✉️",
+    "📧"
+   ],
+   "label": "Email",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Email address."
+  },
+  "phone": {
+   "group": "communication",
+   "unicode": [
+    "📞",
+    "☎️"
+   ],
+   "label": "Call",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Phone number."
+  },
+  "contact": {
+   "group": "communication",
+   "unicode": [
+    "👤",
+    "📇"
+   ],
+   "label": "Contact",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Contact card."
+  },
+  "notifications": {
+   "group": "communication",
+   "unicode": [
+    "🔔"
+   ],
+   "label": "Notifications",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Notification settings/list."
+  },
+  "mute": {
+   "group": "communication",
+   "unicode": [
+    "🔕"
+   ],
+   "label": "Mute",
+   "use": [
+    "button"
+   ],
+   "note": "Notifications off."
+  },
+  "announcement": {
+   "group": "communication",
+   "unicode": [
+    "📣",
+    "📢"
+   ],
+   "label": "Announcement",
+   "use": [
+    "title",
+    "post_accent"
+   ],
+   "note": "Channel announcement header."
+  },
+  "support": {
+   "group": "communication",
+   "unicode": [
+    "🛟",
+    "💁"
+   ],
+   "label": "Support",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Help desk."
+  },
+  "feedback": {
+   "group": "communication",
+   "unicode": [
+    "💬",
+    "📝"
+   ],
+   "label": "Feedback",
+   "use": [
+    "button"
+   ],
+   "note": "Leave feedback."
+  },
+  "invite": {
+   "group": "communication",
+   "unicode": [
+    "✉️",
+    "➕"
+   ],
+   "label": "Invite",
+   "use": [
+    "button"
+   ],
+   "note": "Invite people."
+  },
+  "comment": {
+   "group": "communication",
+   "unicode": [
+    "💬"
+   ],
+   "label": "Comments",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Discussion."
+  },
+  "settings": {
+   "group": "settings",
+   "unicode": [
+    "⚙️",
+    "⚙"
+   ],
+   "label": "Settings",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Bot settings; one gear meaning per bot."
+  },
+  "profile": {
+   "group": "settings",
+   "unicode": [
+    "👤",
+    "🙂"
+   ],
+   "label": "Profile",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "The user's profile."
+  },
+  "account": {
+   "group": "settings",
+   "unicode": [
+    "👤",
+    "🪪"
+   ],
+   "label": "Account",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Account details."
+  },
+  "language": {
+   "group": "settings",
+   "unicode": [
+    "🌐",
+    "🌍"
+   ],
+   "label": "Language",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Show language names, not flags."
+  },
+  "theme": {
+   "group": "settings",
+   "unicode": [
+    "🎨",
+    "🌓"
+   ],
+   "label": "Theme",
+   "use": [
+    "button"
+   ],
+   "note": "Appearance."
+  },
+  "privacy": {
+   "group": "settings",
+   "unicode": [
+    "🔒",
+    "🛡️"
+   ],
+   "label": "Privacy",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Privacy settings."
+  },
+  "toggle_on": {
+   "group": "settings",
+   "unicode": [
+    "🟢",
+    "✅"
+   ],
+   "label": "On",
+   "use": [
+    "status"
+   ],
+   "note": "State shown in words too."
+  },
+  "toggle_off": {
+   "group": "settings",
+   "unicode": [
+    "⚪",
+    "⭕"
+   ],
+   "label": "Off",
+   "use": [
+    "status"
+   ],
+   "note": "State shown in words too."
+  },
+  "permissions": {
+   "group": "settings",
+   "unicode": [
+    "🔐",
+    "🛡️"
+   ],
+   "label": "Permissions",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Rights/roles."
+  },
+  "integrations": {
+   "group": "settings",
+   "unicode": [
+    "🔌",
+    "🧩"
+   ],
+   "label": "Integrations",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Connected services."
+  },
+  "logout": {
+   "group": "settings",
+   "unicode": [
+    "🚪",
+    "↪️"
+   ],
+   "label": "Log out",
+   "use": [
+    "button"
+   ],
+   "note": "Sign out; not the same id as exit/close."
+  },
+  "login": {
+   "group": "settings",
+   "unicode": [
+    "🔑",
+    "🚪"
+   ],
+   "label": "Sign in",
+   "use": [
+    "button"
+   ],
+   "note": "Sign in."
+  },
+  "tools": {
+   "group": "settings",
+   "unicode": [
+    "🛠️",
+    "🔧"
+   ],
+   "label": "Tools",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Utilities."
+  },
+  "calendar": {
+   "group": "time",
+   "unicode": [
+    "📅",
+    "🗓️"
+   ],
+   "label": "Calendar",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "Date picker/schedule."
+  },
+  "clock": {
+   "group": "time",
+   "unicode": [
+    "🕒",
+    "⏰"
+   ],
+   "label": "Time",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Time of day."
+  },
+  "timer": {
+   "group": "time",
+   "unicode": [
+    "⏱️",
+    "⏲️"
+   ],
+   "label": "Timer",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Countdown."
+  },
+  "alarm": {
+   "group": "time",
+   "unicode": [
+    "⏰"
+   ],
+   "label": "Reminder",
+   "use": [
+    "button"
+   ],
+   "note": "Reminder."
+  },
+  "history": {
+   "group": "time",
+   "unicode": [
+    "🕘",
+    "📜"
+   ],
+   "label": "History",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Past items."
+  },
+  "deadline": {
+   "group": "time",
+   "unicode": [
+    "⌛",
+    "⏳"
+   ],
+   "label": "Deadline",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Due date."
+  },
+  "today": {
+   "group": "time",
+   "unicode": [
+    "📆"
+   ],
+   "label": "Today",
+   "use": [
+    "inline"
+   ],
+   "note": "Today filter."
+  },
+  "repeat": {
+   "group": "time",
+   "unicode": [
+    "🔁"
+   ],
+   "label": "Repeat",
+   "use": [
+    "button"
+   ],
+   "note": "Recurring."
+  },
+  "user": {
+   "group": "people",
+   "unicode": [
+    "👤"
+   ],
+   "label": "User",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "One person."
+  },
+  "users": {
+   "group": "people",
+   "unicode": [
+    "👥"
+   ],
+   "label": "Users",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Group of people/members."
+  },
+  "team": {
+   "group": "people",
+   "unicode": [
+    "👥",
+    "🤝"
+   ],
+   "label": "Team",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Team/workspace."
+  },
+  "admin": {
+   "group": "people",
+   "unicode": [
+    "🛡️",
+    "👑"
+   ],
+   "label": "Admin",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "Admin role."
+  },
+  "add_user": {
+   "group": "people",
+   "unicode": [
+    "➕",
+    "👤"
+   ],
+   "label": "Add member",
+   "use": [
+    "button"
+   ],
+   "note": "Invite/add member; combine words, not two icons."
+  },
+  "remove_user": {
+   "group": "people",
+   "unicode": [
+    "➖",
+    "👤"
+   ],
+   "label": "Remove member",
+   "use": [
+    "button"
+   ],
+   "note": "Remove member."
+  },
+  "group_chat": {
+   "group": "people",
+   "unicode": [
+    "👥",
+    "💬"
+   ],
+   "label": "Group",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "A group chat."
+  },
+  "channel": {
+   "group": "people",
+   "unicode": [
+    "📢",
+    "📣"
+   ],
+   "label": "Channel",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "A channel."
+  },
+  "bot": {
+   "group": "people",
+   "unicode": [
+    "🤖"
+   ],
+   "label": "Bot",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "A bot/automation."
+  },
+  "handshake": {
+   "group": "people",
+   "unicode": [
+    "🤝"
+   ],
+   "label": "Deal",
+   "use": [
+    "inline"
+   ],
+   "note": "Agreement/partner."
+  },
+  "crown": {
+   "group": "people",
+   "unicode": [
+    "👑"
+   ],
+   "label": "Owner",
+   "use": [
+    "inline"
+   ],
+   "note": "Owner role."
+  },
+  "stats": {
+   "group": "analytics",
+   "unicode": [
+    "📊"
+   ],
+   "label": "Statistics",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Charts/stats."
+  },
+  "chart": {
+   "group": "analytics",
+   "unicode": [
+    "📈",
+    "📊"
+   ],
+   "label": "Chart",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "A chart view."
+  },
+  "report_doc": {
+   "group": "analytics",
+   "unicode": [
+    "📑",
+    "📄"
+   ],
+   "label": "Report",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Generated report."
+  },
+  "dashboard": {
+   "group": "analytics",
+   "unicode": [
+    "📊",
+    "🧭"
+   ],
+   "label": "Dashboard",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Overview screen."
+  },
+  "target": {
+   "group": "analytics",
+   "unicode": [
+    "🎯"
+   ],
+   "label": "Goal",
+   "use": [
+    "title",
+    "inline"
+   ],
+   "note": "Target/goal."
+  },
+  "growth": {
+   "group": "analytics",
+   "unicode": [
+    "📈",
+    "🚀"
+   ],
+   "label": "Growth",
+   "use": [
+    "inline",
+    "post_accent"
+   ],
+   "note": "Growth metric."
+  },
+  "decline": {
+   "group": "analytics",
+   "unicode": [
+    "📉"
+   ],
+   "label": "Decline",
+   "use": [
+    "inline",
+    "status"
+   ],
+   "note": "Falling metric."
+  },
+  "leaderboard": {
+   "group": "analytics",
+   "unicode": [
+    "🏆",
+    "🥇"
+   ],
+   "label": "Leaderboard",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Ranking."
+  },
+  "trophy": {
+   "group": "analytics",
+   "unicode": [
+    "🏆"
+   ],
+   "label": "Achievement",
+   "use": [
+    "title",
+    "inline"
+   ],
+   "note": "Win/achievement."
+  },
+  "medal_1": {
+   "group": "analytics",
+   "unicode": [
+    "🥇"
+   ],
+   "label": "1st",
+   "use": [
+    "inline"
+   ],
+   "note": "Rank 1."
+  },
+  "medal_2": {
+   "group": "analytics",
+   "unicode": [
+    "🥈"
+   ],
+   "label": "2nd",
+   "use": [
+    "inline"
+   ],
+   "note": "Rank 2."
+  },
+  "medal_3": {
+   "group": "analytics",
+   "unicode": [
+    "🥉"
+   ],
+   "label": "3rd",
+   "use": [
+    "inline"
+   ],
+   "note": "Rank 3."
+  },
+  "ai": {
+   "group": "ai",
+   "unicode": [
+    "✨",
+    "🤖"
+   ],
+   "label": "AI",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "AI feature entry; ✨ is overused, pick one."
+  },
+  "magic": {
+   "group": "ai",
+   "unicode": [
+    "✨",
+    "🪄"
+   ],
+   "label": "Generate",
+   "use": [
+    "button"
+   ],
+   "note": "Generate/auto-fill."
+  },
+  "thinking": {
+   "group": "ai",
+   "unicode": [
+    "🤔",
+    "💭"
+   ],
+   "label": "Thinking",
+   "use": [
+    "status"
+   ],
+   "note": "Use the official AIActions set inside <tg-thinking>."
+  },
+  "brain": {
+   "group": "ai",
+   "unicode": [
+    "🧠"
+   ],
+   "label": "Model",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Model/knowledge."
+  },
+  "prompt": {
+   "group": "ai",
+   "unicode": [
+    "💬",
+    "⌨️"
+   ],
+   "label": "Prompt",
+   "use": [
+    "button"
+   ],
+   "note": "Write a prompt."
+  },
+  "regenerate": {
+   "group": "ai",
+   "unicode": [
+    "🔄",
+    "🔁"
+   ],
+   "label": "Regenerate",
+   "use": [
+    "button"
+   ],
+   "note": "Retry generation."
+  },
+  "summarize": {
+   "group": "ai",
+   "unicode": [
+    "📝",
+    "🧾"
+   ],
+   "label": "Summarize",
+   "use": [
+    "button"
+   ],
+   "note": "Summary action."
+  },
+  "translate": {
+   "group": "ai",
+   "unicode": [
+    "🌐",
+    "🔤"
+   ],
+   "label": "Translate",
+   "use": [
+    "button"
+   ],
+   "note": "Translate text."
+  },
+  "sparkle": {
+   "group": "ai",
+   "unicode": [
+    "✨"
+   ],
+   "label": "Highlight",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Accent; at most one per post."
+  },
+  "agent": {
+   "group": "ai",
+   "unicode": [
+    "🤖",
+    "🛠️"
+   ],
+   "label": "Agent",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Autonomous agent/tool run."
+  },
+  "file": {
+   "group": "files",
+   "unicode": [
+    "📄",
+    "📃"
+   ],
+   "label": "File",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "A document."
+  },
+  "folder": {
+   "group": "files",
+   "unicode": [
+    "📁",
+    "📂"
+   ],
+   "label": "Folder",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "A folder."
+  },
+  "document": {
+   "group": "files",
+   "unicode": [
+    "📄",
+    "📑"
+   ],
+   "label": "Document",
+   "use": [
+    "button",
+    "title",
+    "inline"
+   ],
+   "note": "Document view."
+  },
+  "pdf": {
+   "group": "files",
+   "unicode": [
+    "📕",
+    "📄"
+   ],
+   "label": "PDF",
+   "use": [
+    "inline"
+   ],
+   "note": "PDF file."
+  },
+  "spreadsheet": {
+   "group": "files",
+   "unicode": [
+    "📊",
+    "📗"
+   ],
+   "label": "Spreadsheet",
+   "use": [
+    "inline"
+   ],
+   "note": "Table file."
+  },
+  "image_file": {
+   "group": "files",
+   "unicode": [
+    "🖼️"
+   ],
+   "label": "Image",
+   "use": [
+    "inline"
+   ],
+   "note": "Image file."
+  },
+  "archive_file": {
+   "group": "files",
+   "unicode": [
+    "🗜️",
+    "📦"
+   ],
+   "label": "Archive",
+   "use": [
+    "inline"
+   ],
+   "note": "Zip/archive."
+  },
+  "code": {
+   "group": "files",
+   "unicode": [
+    "💻",
+    "⌨️"
+   ],
+   "label": "Code",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Source/developer item."
+  },
+  "link": {
+   "group": "files",
+   "unicode": [
+    "🔗"
+   ],
+   "label": "Link",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "A link."
+  },
+  "cloud": {
+   "group": "files",
+   "unicode": [
+    "☁️"
+   ],
+   "label": "Cloud",
+   "use": [
+    "button",
+    "inline"
+   ],
+   "note": "Cloud storage/sync."
+  },
+  "sync": {
+   "group": "files",
+   "unicode": [
+    "🔄",
+    "☁️"
+   ],
+   "label": "Sync",
+   "use": [
+    "button"
+   ],
+   "note": "Sync with a remote."
+  },
+  "database": {
+   "group": "files",
+   "unicode": [
+    "🗄️",
+    "💾"
+   ],
+   "label": "Database",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Data store."
+  },
+  "danger": {
+   "group": "warnings",
+   "unicode": [
+    "⛔",
+    "🛑"
+   ],
+   "label": "Danger",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Irreversible action ahead."
+  },
+  "stop_sign": {
+   "group": "warnings",
+   "unicode": [
+    "🛑"
+   ],
+   "label": "Stop",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Hard stop."
+  },
+  "forbidden": {
+   "group": "warnings",
+   "unicode": [
+    "🚫"
+   ],
+   "label": "Not allowed",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Permission denied."
+  },
+  "alert": {
+   "group": "warnings",
+   "unicode": [
+    "🚨"
+   ],
+   "label": "Alert",
+   "use": [
+    "title",
+    "status"
+   ],
+   "note": "Urgent alert; monitoring bots only."
+  },
+  "caution": {
+   "group": "warnings",
+   "unicode": [
+    "⚠️"
+   ],
+   "label": "Caution",
+   "use": [
+    "title",
+    "inline",
+    "post_accent"
+   ],
+   "note": "Softer warning; shares warning's glyph, use one id."
+  },
+  "bug": {
+   "group": "warnings",
+   "unicode": [
+    "🐞",
+    "🐛"
+   ],
+   "label": "Bug",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Bug report."
+  },
+  "maintenance": {
+   "group": "warnings",
+   "unicode": [
+    "🛠️",
+    "🚧"
+   ],
+   "label": "Maintenance",
+   "use": [
+    "title",
+    "post_accent"
+   ],
+   "note": "Service work notice."
+  },
+  "question": {
+   "group": "warnings",
+   "unicode": [
+    "❓",
+    "❔"
+   ],
+   "label": "Help",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Help/FAQ."
+  },
+  "help": {
+   "group": "warnings",
+   "unicode": [
+    "❓",
+    "🆘"
+   ],
+   "label": "Help",
+   "use": [
+    "button",
+    "title"
+   ],
+   "note": "Help screen; pick question or help, not both."
+  },
+  "headline": {
+   "group": "post",
+   "unicode": [
+    "📣",
+    "📰"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "One accent before a post headline."
+  },
+  "section": {
+   "group": "post",
+   "unicode": [
+    "▪️",
+    "◼️",
+    "🔹"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Section marker before a bold sub-heading."
+  },
+  "bullet": {
+   "group": "post",
+   "unicode": [
+    "•",
+    "▫️",
+    "🔸"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "List bullet; use for at most one list per post."
+  },
+  "bullet_alt": {
+   "group": "post",
+   "unicode": [
+    "◦",
+    "▪️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Second-level bullet."
+  },
+  "callout": {
+   "group": "post",
+   "unicode": [
+    "💡",
+    "📌"
+   ],
+   "label": "Note",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Callout box lead."
+  },
+  "quote_mark": {
+   "group": "post",
+   "unicode": [
+    "💬",
+    "❝"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Before a quotation."
+  },
+  "cta": {
+   "group": "post",
+   "unicode": [
+    "👉",
+    "➡️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Before the call to action line; one per post."
+  },
+  "divider": {
+   "group": "post",
+   "unicode": [
+    "〰️",
+    "➖"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Never a row of emoji; one glyph or none."
+  },
+  "check_item": {
+   "group": "post",
+   "unicode": [
+    "✅",
+    "✔️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent",
+    "status"
+   ],
+   "note": "Checklist line in a post."
+  },
+  "cross_item": {
+   "group": "post",
+   "unicode": [
+    "❌",
+    "✖️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent",
+    "status"
+   ],
+   "note": "'Don't' line in a post."
+  },
+  "number_1": {
+   "group": "post",
+   "unicode": [
+    "1️⃣"
+   ],
+   "label": "1",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Numbered step; numbers are clearer as plain digits."
+  },
+  "number_2": {
+   "group": "post",
+   "unicode": [
+    "2️⃣"
+   ],
+   "label": "2",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Numbered step."
+  },
+  "number_3": {
+   "group": "post",
+   "unicode": [
+    "3️⃣"
+   ],
+   "label": "3",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Numbered step."
+  },
+  "number_4": {
+   "group": "post",
+   "unicode": [
+    "4️⃣"
+   ],
+   "label": "4",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Numbered step."
+  },
+  "number_5": {
+   "group": "post",
+   "unicode": [
+    "5️⃣"
+   ],
+   "label": "5",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Numbered step."
+  },
+  "date_mark": {
+   "group": "post",
+   "unicode": [
+    "🗓️",
+    "📅"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Event date line."
+  },
+  "location": {
+   "group": "post",
+   "unicode": [
+    "📍"
+   ],
+   "label": "",
+   "use": [
+    "post_accent",
+    "inline"
+   ],
+   "note": "Place line."
+  },
+  "price_mark": {
+   "group": "post",
+   "unicode": [
+    "💰",
+    "🏷️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Price line in a promo post."
+  },
+  "hot": {
+   "group": "post",
+   "unicode": [
+    "🔥"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Hot/limited; a common overuse - at most once."
+  },
+  "celebrate": {
+   "group": "post",
+   "unicode": [
+    "🎉",
+    "🥳"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Celebration; one per post."
+  },
+  "update": {
+   "group": "post",
+   "unicode": [
+    "🆕",
+    "🔄"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Release/changelog headline."
+  },
+  "fix": {
+   "group": "post",
+   "unicode": [
+    "🛠️",
+    "🔧"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Changelog: fix line."
+  },
+  "feature": {
+   "group": "post",
+   "unicode": [
+    "✨",
+    "🆕"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Changelog: feature line."
+  },
+  "question_mark": {
+   "group": "post",
+   "unicode": [
+    "❓"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "FAQ entry lead."
+  },
+  "answer_mark": {
+   "group": "post",
+   "unicode": [
+    "💬",
+    "➡️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "FAQ answer lead."
+  },
+  "link_mark": {
+   "group": "post",
+   "unicode": [
+    "🔗"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Before a link line."
+  },
+  "poll_mark": {
+   "group": "post",
+   "unicode": [
+    "📊",
+    "🗳️"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Before a poll invitation."
+  },
+  "heart": {
+   "group": "post",
+   "unicode": [
+    "❤️",
+    "💙"
+   ],
+   "label": "",
+   "use": [
+    "post_accent",
+    "inline"
+   ],
+   "note": "Thanks/appreciation."
+  },
+  "eyes": {
+   "group": "post",
+   "unicode": [
+    "👀"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Teaser; at most once."
+  },
+  "rocket": {
+   "group": "post",
+   "unicode": [
+    "🚀"
+   ],
+   "label": "",
+   "use": [
+    "post_accent"
+   ],
+   "note": "Launch; at most once."
+  }
+ }
+}

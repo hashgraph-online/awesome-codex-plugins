@@ -1,0 +1,11 @@
+{
+  "update_id": 940001,
+  "message": {
+    "message_id": 301,
+    "date": 1763300000,
+    "chat": {"id": 111111111, "type": "private", "first_name": "Alice"},
+    "from": {"id": 111111111, "is_bot": false, "first_name": "Alice", "language_code": "en"},
+    "text": "/start svc_cut",
+    "entities": [{"type": "bot_command", "offset": 0, "length": 6}]
+  }
+}

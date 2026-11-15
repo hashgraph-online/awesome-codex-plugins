@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Telegram Bot UI</title>
+  <rect width="512" height="512" rx="112" fill="#101828"/>
+  <rect x="72" y="84" width="368" height="176" rx="36" fill="#FFFFFF"/>
+  <path d="M104 252 L90 290 L150 252 Z" fill="#FFFFFF"/>
+  <rect x="108" y="122" width="200" height="26" rx="13" fill="#101828"/>
+  <rect x="108" y="168" width="296" height="18" rx="9" fill="#98A2B3"/>
+  <rect x="108" y="204" width="232" height="18" rx="9" fill="#98A2B3"/>
+  <rect x="72" y="302" width="176" height="56" rx="18" fill="#3B82F6"/>
+  <rect x="264" y="302" width="176" height="56" rx="18" fill="#22C55E"/>
+  <rect x="72" y="374" width="368" height="56" rx="18" fill="#FFFFFF" fill-opacity="0.16"/>
+</svg>

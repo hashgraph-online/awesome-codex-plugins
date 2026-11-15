@@ -1,0 +1,56 @@
+{
+  "update_id": 900046,
+  "message": {
+    "message_id": 600,
+    "date": 1762900290,
+    "chat": {
+      "id": 111111111,
+      "type": "private",
+      "first_name": "Alice"
+    },
+    "from": {
+      "id": 999000111,
+      "is_bot": true,
+      "first_name": "OrdersBot",
+      "username": "orders_demo_bot"
+    },
+    "rich_message": {
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": [
+            "Send TON to ",
+            {
+              "type": "ton_address",
+              "text": "UQAs…0005",
+              "address": "UQAsampleMerchant00000000000000000000000000000005"
+            },
+            "."
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": [
+            "Rotate the ",
+            {
+              "type": "bold",
+              "text": "signing key"
+            },
+            " every 90 days."
+          ]
+        },
+        {
+          "type": "buttons",
+          "buttons": [
+            {
+              "text": "Approve",
+              "callback_data": "doc:approve",
+              "style": "success"
+            }
+          ],
+          "align": "left"
+        }
+      ]
+    }
+  }
+}

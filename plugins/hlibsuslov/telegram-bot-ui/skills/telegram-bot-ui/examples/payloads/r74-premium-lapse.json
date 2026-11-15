@@ -1,0 +1,83 @@
+{
+  "scenario": "r74-premium-lapse",
+  "status": "production (fixture ids; illustrative error text)",
+  "context": "private",
+  "evidence": "offline contract: captured from the recipe code via FakeTransport; not sent to Telegram; ids are synthetic fixture ids (leading 0), never real custom_emoji_id values",
+  "bot_api": "10.4 (verified 2026-11-15)",
+  "steps": [
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000016\">🔔</tg-emoji> Alert 1</b>\nPrice crossed your level.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Settings",
+                "callback_data": "s",
+                "icon_custom_emoji_id": "0100000000000013"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b><tg-emoji emoji-id=\"0100000000000016\">🔔</tg-emoji> Alert 2</b>\nPrice crossed your level.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "Settings",
+                "callback_data": "s",
+                "icon_custom_emoji_id": "0100000000000013"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>🔔 Alert 2</b>\nPrice crossed your level.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "⚙️ Settings",
+                "callback_data": "s"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "method": "sendMessage",
+      "params": {
+        "chat_id": 111111111,
+        "parse_mode": "HTML",
+        "text": "<b>🔔 Alert 3</b>\nPrice crossed your level.",
+        "reply_markup": {
+          "inline_keyboard": [
+            [
+              {
+                "text": "⚙️ Settings",
+                "callback_data": "s"
+              }
+            ]
+          ]
+        }
+      }
+    }
+  ]
+}
