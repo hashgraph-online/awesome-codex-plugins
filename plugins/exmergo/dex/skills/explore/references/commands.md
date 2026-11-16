@@ -591,6 +591,14 @@ it as `execution` (`dex` or `vendor`).
   a Snowflake predicate over dimensions and facts (`orders.status = 'F'`), and
   a query of facts alone takes `--group-by <fact>` and no metric.
   `list --deployed` reads the deployed views, with per-view `coverage`.
+  `semantic.deployment: snowflake_account` (#1357) reads the catalog from the
+  account alone (every view the allowlist holds, `source: account`, per-view
+  `coverage`, no file needed) and runs `query` and `values` over it with
+  nothing held to a file; every result carries `definition_source: account`
+  (on a query or values result) and a warning saying so. A configured file
+  describing a view is named in its `coverage` as `repository_file`, and
+  `--local` holds the view to it. `explore relationships` and `explore map`
+  with `--use-hosted-semantic-layer` fold the account's keys and joins in.
 - `semantic.vendor: slayer` reads the SLayer model files named in
   `semantic.slayer.models` (needs the `[slayer]` extra). `list` and
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,

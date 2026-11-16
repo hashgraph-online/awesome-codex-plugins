@@ -1,0 +1,12 @@
+{
+  "name": "glossy_plastic",
+  "description": "Light glossy plastic.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.9,
+    0.9,
+    0.9
+  ],
+  "metallic": 0.0,
+  "roughness": 0.2
+}

@@ -1,0 +1,2 @@
+# Only needed to run the test suite in tests/.
+pytest==9.2.0

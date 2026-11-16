@@ -89,7 +89,11 @@ configured, because without it every call would answer `auth_missing`.
   `price_native` but never ranked against rubles.
 ## DSH activation
 
-In DeepSeek Harness, the default profile exposes only `compare_prices` and
-`compare_sources` through the cheap compare mount. Per-marketplace tools,
-`marketplace_sources` and `marketplace_health` require `RU_MARKETPLACE_MCP_FULL=1`
-and a profile restart; do not call them in the default mode.
+In DeepSeek Harness the default profile mounts `compare-mcp`, which exposes
+exactly 4 tools: `compare_prices`, `compare_sources`, `compare_verify_offer`
+and `compare_browser_snapshot`.
+
+The middle `decision-mcp` profile adds `decision_inspect` (5 tools). This
+skill's own tools — `marketplace_sources` and `marketplace_health` — and every
+per-marketplace tool need `RU_MARKETPLACE_MCP_FULL=1` and a profile restart;
+do not call them in the default mode.

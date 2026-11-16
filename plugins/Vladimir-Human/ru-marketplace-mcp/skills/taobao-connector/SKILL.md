@@ -39,7 +39,10 @@ connector's canary at once.
 - The operator's Chrome must be running with CDP (`uvx ru-marketplace-mcp browser start` or `scripts/start_chrome_cdp.sh`; use `uvx ru-marketplace-mcp unblock taobao` to log in).
 ## DSH activation
 
-In DeepSeek Harness, the default profile exposes only `compare_prices` and
-`compare_sources` through the cheap compare mount. Per-marketplace tools and
-`marketplace_sources` require `RU_MARKETPLACE_MCP_FULL=1` and a profile restart;
-do not call them in the default mode.
+In DeepSeek Harness the default profile mounts `compare-mcp`, which exposes
+exactly 4 tools: `compare_prices`, `compare_sources`, `compare_verify_offer`
+and `compare_browser_snapshot`.
+
+The middle `decision-mcp` profile adds `decision_inspect` (5 tools). This
+connector's own tools and `marketplace_sources` need `RU_MARKETPLACE_MCP_FULL=1`
+and a profile restart; do not call them in the default mode.

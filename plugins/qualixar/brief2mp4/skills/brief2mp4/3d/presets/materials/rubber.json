@@ -1,0 +1,12 @@
+{
+  "name": "rubber",
+  "description": "Black rubber.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.04,
+    0.04,
+    0.045
+  ],
+  "metallic": 0.0,
+  "roughness": 0.9
+}

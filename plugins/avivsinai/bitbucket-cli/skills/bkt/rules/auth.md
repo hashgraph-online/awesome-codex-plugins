@@ -20,7 +20,7 @@ bkt auth <command> [flags]
 | Subcommand | Description | Key Flags |
 |---|---|---|
 | [doctor](#bkt-auth-doctor) | Diagnose authentication and keychain issues | — |
-| [login](#bkt-auth-login) | Authenticate against a Bitbucket Data Center or Cloud host | `--allow-http`, `--allow-insecure-store`, `--auth-method`, `--kind` |
+| [login](#bkt-auth-login) | Authenticate against a Bitbucket Data Center or Cloud host | `--alias`, `--allow-http`, `--allow-insecure-store`, `--auth-method` |
 | [logout](#bkt-auth-logout) | Remove stored credentials for a host | `--host` |
 | [status](#bkt-auth-status) | Show authentication status for configured hosts | — |
 
@@ -88,6 +88,14 @@ fallback. In non-interactive environments, provide --username and pipe the
 token on stdin with --with-token (--token also works, but the process list
 shows it).
 
+Credentials are stored per host, keyed by the server's host name. To use
+several accounts on one server, for example two Bitbucket Cloud accounts,
+log in again with --alias: the second account gets a host entry and keychain
+item of its own under that name, and a context selects it with
+`bkt context create <name> --host <alias>`.
+Alias names share the OS keychain namespace across config directories;
+use distinct aliases even when BKT_CONFIG_DIR differs.
+
 ### Usage
 
 ```
@@ -98,6 +106,7 @@ bkt auth login [host] [flags]
 
 | Flag | Short | Description |
 |---|---|---|
+| `--alias` |  | Store the credentials under this host name instead of the server's, to log in to one server with several accounts |
 | `--allow-http` |  | Allow http:// URLs for login even though credentials will be sent in plaintext |
 | `--allow-insecure-store` |  | Allow encrypted fallback secret storage when no OS keychain is available |
 | `--auth-method` |  | Authentication method: bearer (token-only; Data Center default) or basic (username+token; Cloud default) |
@@ -136,6 +145,10 @@ bkt auth login [host] [flags]
 
   # Non-interactive login with flags (CI pipelines)
   bkt auth login https://bitbucket.example.com --username admin --with-token < pat.txt
+
+  # A second Bitbucket Cloud account, used by its own context
+  bkt auth login https://bitbucket.org --kind cloud --web --alias team-b
+  bkt context create team-b --host team-b --workspace team-b-workspace
 ```
 
 ## bkt auth logout
@@ -224,4 +237,3 @@ bkt auth status [flags]
   # Get status as JSON
   bkt auth status --json
 ```
-

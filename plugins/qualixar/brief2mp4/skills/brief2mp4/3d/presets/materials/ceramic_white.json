@@ -1,0 +1,14 @@
+{
+  "name": "ceramic_white",
+  "description": "Glazed white ceramic.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.94,
+    0.93,
+    0.9
+  ],
+  "metallic": 0.0,
+  "roughness": 0.25,
+  "clearcoat": 0.6,
+  "clearcoatRoughness": 0.08
+}

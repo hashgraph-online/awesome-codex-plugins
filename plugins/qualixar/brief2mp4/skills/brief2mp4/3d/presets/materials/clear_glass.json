@@ -1,0 +1,14 @@
+{
+  "name": "clear_glass",
+  "description": "Clear glass (transmission).",
+  "colorSpace": "linear",
+  "baseColor": [
+    1.0,
+    1.0,
+    1.0
+  ],
+  "metallic": 0.0,
+  "roughness": 0.02,
+  "transmission": 1.0,
+  "ior": 1.5
+}

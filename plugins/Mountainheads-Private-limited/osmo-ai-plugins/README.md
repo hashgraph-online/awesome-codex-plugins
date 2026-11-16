@@ -217,7 +217,7 @@ mcp_servers:
 - Call listed businesses (shops, clinics, restaurants, helplines) and toll-free numbers, up to 5 in
   one go.
 - Find a business near you, or a company's customer-care number, in your own country.
-- Report the outcome, a summary and the transcript of every call it made.
+- Report the outcome, a summary and the transcript of every call it made, with a ▶ Play recording link.
 
 **With an OsmO app plan** ([iOS](https://apps.apple.com/us/app/osmo-ai-phone-assistant/id6761623744),
 [Android](https://play.google.com/store/apps/details?id=com.osmo.aicallassistant)):
@@ -225,8 +225,12 @@ mcp_servers:
 - Call your saved contacts and people who called you in the last 30 days, for example to pass a
   message.
 - Schedule a call for later, and list or cancel scheduled calls.
-- Tell you who called your OsmO number and what they wanted, and change your call-screening rules
-  and settings.
+- Tell you who called your OsmO number and what they wanted, with the transcript and recording.
+- Run your AI receptionist: pause the AI, choose who is put through live, edit VIP and block lists
+  and caller rules, switch the assistant or its language (English or Hindi), and read bookings,
+  Facts and calendar or Drive connection status. The greeting, assistant names and voice are
+  changed in the OsmO app.
+- Read your chats with OsmO in the app.
 
 **It can't or won't:**
 
@@ -288,12 +292,12 @@ directory review approved, so its tool text can differ slightly.
 | `find_customer_care` | A company's customer-care numbers in your country | no |
 | `find_contact` | People in your call history | no |
 | `search_contacts` | Your phone book (contacts synced by the OsmO app) | no |
-| `get_settings` / `update_settings` | Call settings: answering, alerts, VIP and block lists | update: yes, after you confirm |
-| `get_assistant` / `update_assistant` | Which assistant voice and language answers your calls | update: yes, after you confirm |
+| `get_settings` / `update_settings` | Receptionist settings: pause the AI, who is put through live, alerts, VIP and block lists | update: yes, after you confirm |
+| `get_assistant` / `update_assistant` | Which assistant answers your calls, and in which language (English or Hindi). The greeting, names and voice are changed in the OsmO app. | update: yes, after you confirm |
 | `list_rules` / `add_rule` / `update_rule` / `delete_rule` | Call-screening rules | add, update, delete: yes, after you confirm |
-| `get_facts` | What your assistant tells callers (website, documents) | no |
-| `get_connections` | Whether Google Calendar, Calendly and Google Drive are connected | no |
-| `list_bookings` | Bookings your call assistant took | no |
+| `get_facts` | What your assistant tells callers (website, documents); read-only | no |
+| `get_connections` | Whether Google Calendar, Calendly and Google Drive are connected (status only) | no |
+| `list_bookings` | Bookings your call assistant took or cancelled, upcoming or past | no |
 | `list_chats` / `get_chat` | Your chats with OsmO in the app | no |
 | `get_account_status` | Credits left (free-credit accounts), or plan, OsmO number and forwarding status (app accounts) | no |
 | `osmo_support` | Help answers: forwarding codes, plans, privacy | no |
@@ -307,7 +311,7 @@ service; its code is not in this repo.
 | Path | For |
 |---|---|
 | [`skills/osmo-phone-calls/SKILL.md`](skills/osmo-phone-calls/SKILL.md) | Agent Skill. Tells the AI to confirm before calling, report only what the call result says, and never ask for codes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-phone-calls). |
-| [`skills/osmo-ai-receptionist/SKILL.md`](skills/osmo-ai-receptionist/SKILL.md) | Agent Skill for the AI receptionist side: who called, greeting, caller rules, bookings. Changes are shown first and applied on a yes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-ai-receptionist). |
+| [`skills/osmo-ai-receptionist/SKILL.md`](skills/osmo-ai-receptionist/SKILL.md) | Agent Skill for the AI receptionist side: who called, pausing the AI, put-through, VIP and block lists, caller rules, assistant language, bookings, Facts. Changes are shown first and applied on a yes. Published on [ClawHub](https://clawhub.ai/getosmo/osmo-ai-receptionist). |
 | [`.claude-plugin/`](.claude-plugin) | Claude Code plugin + marketplace (MCP server + skill) |
 | [`.codex-plugin/plugin.json`](.codex-plugin/plugin.json) | Codex plugin (MCP server + skill) |
 | [`.cursor-plugin/plugin.json`](.cursor-plugin/plugin.json), [`mcp.json`](mcp.json) | Cursor plugin and MCP config |

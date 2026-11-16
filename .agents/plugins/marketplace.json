@@ -466,6 +466,21 @@
       "icon": "./plugins/echoVic/boss-skill/assets/boss-composer-icon.svg"
     },
     {
+      "name": "brief2mp4",
+      "displayName": "brief2mp4",
+      "source": {
+        "source": "local",
+        "path": "./plugins/qualixar/brief2mp4"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Turns a written video brief into a finished MP4 motion graphic with HyperFrames, Three.js or Blender, then measures the file and checks real frames against every line of the brief before delivering it with a report.",
+      "icon": "./plugins/qualixar/brief2mp4/assets/icon.png"
+    },
+    {
       "name": "bringyour-migration-auditor",
       "displayName": "Bring Your AI Migration Auditor",
       "source": {

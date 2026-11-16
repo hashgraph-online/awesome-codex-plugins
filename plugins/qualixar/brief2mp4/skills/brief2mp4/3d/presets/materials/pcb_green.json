@@ -1,0 +1,14 @@
+{
+  "name": "pcb_green",
+  "description": "Solder-mask green circuit board (dark, linear).",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.006,
+    0.045,
+    0.02
+  ],
+  "metallic": 0.0,
+  "roughness": 0.38,
+  "clearcoat": 0.5,
+  "clearcoatRoughness": 0.2
+}

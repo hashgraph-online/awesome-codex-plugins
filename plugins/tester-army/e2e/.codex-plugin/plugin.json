@@ -36,7 +36,7 @@
     ],
     "websiteURL": "https://e2e.com",
     "privacyPolicyURL": "https://e2e.com/privacy",
-    "termsOfServiceURL": "https://tester.army/terms",
+    "termsOfServiceURL": "https://github.com/e2e-inc/e2e/blob/main/LICENSE",
     "supportURL": "https://e2e.com/contact",
     "defaultPrompt": [
       "Add e2e tests for the sign-up flow",

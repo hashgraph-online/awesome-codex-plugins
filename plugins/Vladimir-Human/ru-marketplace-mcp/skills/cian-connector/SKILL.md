@@ -138,10 +138,13 @@ Confirmed against live payloads captured 2026-09-09 (fixtures in the package):
 
 ## DSH activation
 
-In DeepSeek Harness, the default profile exposes only `compare_prices` and
-`compare_sources` through the cheap compare mount. Per-marketplace tools and
-`marketplace_sources` require `RU_MARKETPLACE_MCP_FULL=1` and a profile restart;
-do not call them in the default mode. Cian is never part of the compare mount,
+In DeepSeek Harness the default profile mounts `compare-mcp`, which exposes
+exactly 4 tools: `compare_prices`, `compare_sources`, `compare_verify_offer`
+and `compare_browser_snapshot`.
+
+The middle `decision-mcp` profile adds `decision_inspect` (5 tools). This
+connector's own tools and `marketplace_sources` need `RU_MARKETPLACE_MCP_FULL=1`
+and a profile restart; do not call them in the default mode. Cian is never part of the compare mount,
 so it is only reachable in the full profile. In standard MCP clients (Claude,
 Cursor, Codex, Gemini CLI, OpenCode), Cian tools require mounting the unified
 `marketplace-mcp` server (`--profile full`, configured by default in `.mcp.json`

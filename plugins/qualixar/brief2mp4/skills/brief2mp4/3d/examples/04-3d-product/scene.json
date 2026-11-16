@@ -1,0 +1,14 @@
+{
+  "fps": 30,
+  "duration": 8,
+  "substeps": 6,
+  "gravity": [0, -3, 0],
+  "bodies": [
+    {"name": "floor", "shape": "box", "size": [3, 0.2, 3], "position": [0, -0.1, 0], "motion": "static", "friction": 1.0},
+    {"name": "shell", "shape": "hull", "glb": "build/shell.glb", "position": [0, 0.3, 0], "rotation": [0.0436, 0, 0.0436, 0.9981], "restitution": 0.05, "friction": 1.0, "linearDamping": 0.6, "angularDamping": 0.9},
+    {"name": "cell", "shape": "hull", "glb": "build/cell.glb", "position": [0, 1.35, 0], "rotation": [0, 0.0436, 0.0436, 0.9981], "restitution": 0.05, "friction": 1.0, "linearDamping": 0.6, "angularDamping": 0.9},
+    {"name": "board", "shape": "hull", "glb": "build/board.glb", "position": [0, 3.15, 0], "rotation": [0.0436, 0.0436, 0, 0.9981], "restitution": 0.05, "friction": 1.0, "linearDamping": 0.6, "angularDamping": 0.9},
+    {"name": "cover", "shape": "hull", "glb": "build/cover.glb", "position": [0, 5.7, 0], "rotation": [0, 0.0436, -0.0218, 0.9988], "restitution": 0.05, "friction": 1.0, "linearDamping": 0.6, "angularDamping": 0.9},
+    {"name": "lens", "shape": "hull", "glb": "build/lens.glb", "position": [0, 9.0, 0], "rotation": [0, 0.0436, 0, 0.999], "restitution": 0.05, "friction": 1.0, "linearDamping": 0.6, "angularDamping": 0.9}
+  ]
+}

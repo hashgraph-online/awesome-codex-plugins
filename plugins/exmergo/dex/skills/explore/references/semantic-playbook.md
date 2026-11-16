@@ -273,6 +273,17 @@ shape as anywhere else:
   the repository's file. Report it; redeploying is the maintainer's, never
   Dex's. `explore semantic list --deployed` shows what the account holds, and
   its `coverage` says per view whether the read was full.
+- **`deployment: snowflake_account` reads the account alone** (#1357): every
+  semantic view the source allowlist holds, with no file needed, and `query` and
+  `values` run the same way over it. Nothing is held to a file, so every result
+  warns that its definitions were read from the account and not checked (and
+  says `source: account` or `definition_source: account`): relay that, and treat
+  a deployed view as the definition, not a reviewed one. Names come back as
+  Snowflake spells them (`SALES.ORDERS.REVENUE`), and tokens match ignoring
+  case. A view a configured file describes is named on its `coverage`
+  (`repository_file`); `--local` holds it to that file. `coverage: refused` for
+  two copies of one name means two allowlisted schemas hold it: narrow with
+  `--scope`.
 
 ## When the layer is SLayer models
 

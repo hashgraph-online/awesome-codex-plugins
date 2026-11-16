@@ -182,7 +182,8 @@ label. `browser` (`Browser`): browser targets, import `test` from `@e2e-dev/web`
   port and no trailing slash (`${app.baseUrl}/api/users`); `undefined` when
   the target declares no `app.url`. `string` with `test` from `@e2e-dev/web`.
 - `open(path?)`: opens the target's `app.url`, a relative path, or an absolute
-  http(s) URL. On a device it takes no path and relaunches the pinned app.
+  http(s) URL. On a device it relaunches the pinned app, and a path opens as
+  a link in it only when the target declares `app.linkBase`.
 - `back()`: one history step back.
 - `restart()`: recreates the context keeping persisted state (a restored
   session included), then reopens the base URL.
@@ -516,9 +517,10 @@ describe('project settings', { session: 'admin' }, () => {
 });
 ```
 
-On a device there are no sessions and `app.open()` takes no path:
-`device.openLink('myapp://projects/42')` opens a route, or a sign-in link,
-in the app.
+On a device there are no sessions. `app.open()` takes a path only on a target
+with `app.linkBase` (`linkBase: 'myapp://'` makes `app.open('/projects/42')`
+open `myapp://projects/42`); otherwise `device.openLink('myapp://projects/42')`
+opens a route, or a sign-in link, in the app.
 
 Grow a test that spans several screens one screen at a time when you have
 not checked its steps live: write up to the next screen you have not seen

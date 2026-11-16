@@ -181,7 +181,41 @@ while IFS=$'\t' read -r added removed path; do
     exit 1
   fi
 done <<< "$AUDIT_NUMSTAT"
-AUDIT_DIFF=$(git -C "$AUDIT_REPO" diff --no-relative --ignore-submodules=none --submodule=short --no-ext-diff --no-textconv --no-color --binary "$AUDIT_BASE" "$AUDIT_HEAD" --) || exit 1
+# Inspect immutable changed blobs before shell substitution can discard NULs.
+# Attributes can force binary blobs to text, even with NULs outside patch context.
+AUDIT_DIFF=$(python3 -I - "$AUDIT_REPO" "$AUDIT_BASE" "$AUDIT_HEAD" <<'PY_AUDIT_DIFF'
+import re
+import subprocess
+import sys
+
+repo, base, head = sys.argv[1:]
+command = ['git', '-C', repo, 'diff', '--no-relative', '--no-renames',
+           '--ignore-submodules=none', '--submodule=short', '--no-ext-diff',
+           '--no-textconv', '--no-color']
+raw = subprocess.check_output(command + ['--raw', '--no-abbrev', '-z', base, head, '--'])
+blobs = set()
+for header in raw.split(b'\0')[::2]:
+    if not header:
+        continue
+    old_mode, new_mode, old_oid, new_oid, status = header.split()
+    if old_mode == b':160000' or new_mode == b'160000':
+        sys.exit('Audit incomplete: submodule source requires separate complete review before shipping.')
+    blobs.update(oid for oid in (old_oid, new_oid) if oid.strip(b'0'))
+for oid in sorted(blobs):
+    with subprocess.Popen(['git', '-C', repo, 'cat-file', 'blob', oid.decode('ascii')],
+                          stdout=subprocess.PIPE) as blob:
+        while chunk := blob.stdout.read(65536):
+            if b'\0' in chunk:
+                blob.kill()
+                sys.exit('Audit incomplete: binary content requires separate complete review before shipping.')
+        if blob.wait() != 0:
+            sys.exit('Audit incomplete: could not read a changed blob.')
+diff = subprocess.check_output(command + ['--binary', base, head, '--'])
+if re.search(rb'(?m)^GIT binary patch$', diff) or b'\0' in diff:
+    sys.exit('Audit incomplete: binary content requires separate complete review before shipping.')
+sys.stdout.buffer.write(diff)
+PY_AUDIT_DIFF
+) || exit 1
 if [[ -z "$AUDIT_DIFF" ]]; then
   echo "Audit incomplete: the confirmed delivery range has no changes." >&2
   exit 1
@@ -327,51 +361,61 @@ echo "Total lessons captured: $LESSON_COUNT"
 
 ### Phase 4: Archive Project State
 
-#### Step 1: Create Archive Directory
+#### Step 1: Create and verify a private archive
+
+Run this entire block in one shell. Reject linked state paths and nonregular
+files before reading them. A failed copy stops delivery. Retain the exact
+printed `ARCHIVE_DIR` and `ARCHIVE_TIMESTAMP` in the host context and restate
+them in every later shell that uses them. Never infer another run's archive.
 
 ```bash
-# Generate timestamp for archive
-ARCHIVE_TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-ARCHIVE_DIR=".octo/archive/${ARCHIVE_TIMESTAMP}"
+ARCHIVE_DIR=$(python3 -I - <<'PY_ARCHIVE'
+from contextlib import ExitStack
+from datetime import datetime, timezone
+import os, secrets, shutil, stat, sys
 
-# Create archive directory
-mkdir -p "$ARCHIVE_DIR"
+try:
+    with ExitStack() as stack:
+        flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+        state = os.open('.octo', flags)
+        stack.callback(os.close, state)
+        try:
+            os.mkdir('archive', 0o700, dir_fd=state)
+        except FileExistsError:
+            pass
+        archives = os.open('archive', flags, dir_fd=state)
+        stack.callback(os.close, archives)
+        name = datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S-') + secrets.token_hex(8)
+        os.mkdir(name, 0o700, dir_fd=archives)
+        destination = os.open(name, flags, dir_fd=archives)
+        stack.callback(os.close, destination)
+        for filename in ('STATE.md', 'PROJECT.md', 'ROADMAP.md', 'ISSUES.md'):
+            try:
+                source = os.open(filename, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=state)
+            except FileNotFoundError:
+                if filename == 'STATE.md':
+                    raise
+                continue
+            with os.fdopen(source, 'rb') as incoming:
+                metadata = os.fstat(incoming.fileno())
+                if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1:
+                    raise OSError('Archive input must be a regular, unlinked state file: ' + filename)
+                target = os.open(filename, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                                 0o600, dir_fd=destination)
+                with os.fdopen(target, 'wb') as outgoing:
+                    shutil.copyfileobj(incoming, outgoing)
+        print('.octo/archive/' + name)
+except OSError as error:
+    sys.exit(f'Archive incomplete; stop delivery and inspect the private archive: {error}')
+PY_ARCHIVE
+) || exit 1
+ARCHIVE_TIMESTAMP=${ARCHIVE_DIR##*/}
+printf 'ARCHIVE_DIR=%s\nARCHIVE_TIMESTAMP=%s\n' "$ARCHIVE_DIR" "$ARCHIVE_TIMESTAMP"
 ```
 
-#### Step 2: Copy State Files to Archive
-
-```bash
-# Archive STATE.md if exists
-if [[ -f ".octo/STATE.md" ]]; then
-    cp .octo/STATE.md "$ARCHIVE_DIR/"
-fi
-
-# Archive PROJECT.md if exists
-if [[ -f ".octo/PROJECT.md" ]]; then
-    cp .octo/PROJECT.md "$ARCHIVE_DIR/"
-fi
-
-# Archive ROADMAP.md if exists
-if [[ -f ".octo/ROADMAP.md" ]]; then
-    cp .octo/ROADMAP.md "$ARCHIVE_DIR/"
-fi
-
-# Archive ISSUES.md if exists
-if [[ -f ".octo/ISSUES.md" ]]; then
-    cp .octo/ISSUES.md "$ARCHIVE_DIR/"
-fi
-
-echo "Archived to: $ARCHIVE_DIR"
-```
-
-**IMPORTANT: NEVER archive LESSONS.md** - lessons are preserved across projects.
-
-#### Step 3: Verify Archive
-
-```bash
-# List archived files
-ls -la "$ARCHIVE_DIR"
-```
+Only a successful exit verifies the archive. Failed attempts may leave a private
+partial directory for inspection; never use it as a completed archive.
+`LESSONS.md` stays in place and is never archived.
 
 
 ### Phase 5: Create Delivery Summary

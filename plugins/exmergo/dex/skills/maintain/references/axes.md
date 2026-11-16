@@ -547,8 +547,15 @@ one coverage number.
   denominator, and `models_undeclared` counts models with no declaration apart
   rather than as zero coverage. A `references` counts as `dex_verify` only where
   the model reads the referenced model, since verify judges it through a join
-  the model's SQL writes. Declarations a native semantic layer carries are not
-  read yet.
+  the model's SQL writes. Every record names its `source`, `dbt` or the vendor.
+  A native semantic layer's keys and joins come from the fingerprint `maintain
+  grain` re-verifies: a key names `declared_grain_not_unique`, a join
+  `declared_join_orphans`, plus `join_cardinality_exceeded` where it is declared
+  `many_to_one` or `one_to_one`, and a `many_to_many` join neither. What its
+  `dex` metadata states reads `none`. A fact a dbt model and the layer both
+  declare on one relation, spelled alike (a quoted part keeps its case, so
+  `DB.SCHEMA.ORDERS` and `"DB"."SCHEMA"."ORDERS"` are two), is listed per source
+  with `also_declared_by` and counted once.
 
 ## `maintain reconcile [<class>]`
 

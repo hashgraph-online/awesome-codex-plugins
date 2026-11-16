@@ -1,0 +1,177 @@
+{
+  "schema": 1,
+  "checked": "2026-11-15",
+  "source": "https://github.com/storytold",
+  "license": "MIT OR Apache-2.0",
+  "signing": {
+    "key_asset": "release-signing-key.asc",
+    "fingerprint": "2B76741B414AAD6CD33E631213A005C0B9D7C3ED"
+  },
+  "apps": {
+    "film": {
+      "name": "filmcraft",
+      "version": "0.20.1",
+      "cli": "filmcraft-cli",
+      "tag": "v0.20.1",
+      "assets": {
+        "macos-universal": {
+          "file": "filmcraft-cli-0.20.1-macos-universal.zip",
+          "sha256": "1651d9defb54f853cbd69016428bb9f72a7bf26d56e4755b8e2a79535fd0ac82",
+          "bytes": 100056028
+        },
+        "windows-x64": {
+          "file": "filmcraft-0.20.1-windows-x64-portable.zip",
+          "sha256": "bfb00e2089df5f13e6f76aab117a4572a8d005d009c5818989688b140a502710",
+          "bytes": 113447048
+        },
+        "windows-arm64": {
+          "file": "filmcraft-0.20.1-windows-arm64-portable.zip",
+          "sha256": "4b20b604d3c2227d052b4b055c78b455ecd404988bdb63c6de1db4e82dfb3806",
+          "bytes": 109053960
+        },
+        "linux-x86_64": {
+          "file": "filmcraft-0.20.1-linux-x86_64.tar.gz",
+          "sha256": "3e4fea3cb8d473e68f189a0a8792ba46160fab507adab3ab8920073fd41f24fa",
+          "bytes": 112162847
+        },
+        "linux-aarch64": {
+          "file": "filmcraft-0.20.1-linux-aarch64.tar.gz",
+          "sha256": "cdce3d832620c7cf7150e6609fd98ad9702e7d4c57f827aab562e87d816ea13f",
+          "bytes": 108309163
+        }
+      }
+    },
+    "sound": {
+      "name": "soundcraft",
+      "version": "0.20.1",
+      "cli": "soundcraft-cli",
+      "tag": "v0.20.1",
+      "assets": {
+        "macos-universal": {
+          "file": "soundcraft-cli-0.20.1-macos-universal.zip",
+          "sha256": "866fcbfe32179e6652159385b4f676ba756e1cadb88fac3e9173e9643f763b51",
+          "bytes": 9011758
+        },
+        "windows-x64": {
+          "file": "soundcraft-0.20.1-windows-x64-portable.zip",
+          "sha256": "9769223e26f727866b249fc5176caa8b3791a98c7d89e901b78f5f48aff03b82",
+          "bytes": 19876437
+        },
+        "windows-arm64": {
+          "file": "soundcraft-0.20.1-windows-arm64-portable.zip",
+          "sha256": "8b339489417ef1237596501a2bf03cac9ea0708c8d873690983712963919d2bd",
+          "bytes": 18266338
+        },
+        "linux-x86_64": {
+          "file": "soundcraft-0.20.1-linux-x86_64.tar.gz",
+          "sha256": "caefcf85c4f1138717d592d31ce5be07f2fca616ec36d63fac6760cdefbe28a9",
+          "bytes": 21894484
+        },
+        "linux-aarch64": {
+          "file": "soundcraft-0.20.1-linux-aarch64.tar.gz",
+          "sha256": "93c6c6e5e37c0e57acea76201faacc777ed0f7b8fb8b86baaa71bb55cfd33dfd",
+          "bytes": 20185891
+        }
+      }
+    },
+    "effect": {
+      "name": "effectcraft",
+      "version": "0.24.1",
+      "cli": "effectcraft-cli",
+      "tag": "v0.24.1",
+      "assets": {
+        "macos-universal": {
+          "file": "effectcraft-cli-0.24.1-macos-universal.zip",
+          "sha256": "2781eda194372ad47f4c0c7df8b1d38501a3e90bb499282f57e9598a85958673",
+          "bytes": 77299801
+        },
+        "windows-x64": {
+          "file": "effectcraft-0.24.1-windows-x64-portable.zip",
+          "sha256": "707bb7480783904e153fd71fd43ffaaf806fbbaa7f803090c2d32f5d920bd996",
+          "bytes": 85071674
+        },
+        "windows-arm64": {
+          "file": "effectcraft-0.24.1-windows-arm64-portable.zip",
+          "sha256": "b4eadf1d19f55cf69aa6ec6076ad754b3ff6bf6210f32811cff40a573b068041",
+          "bytes": 78234941
+        },
+        "linux-x86_64": {
+          "file": "effectcraft-0.24.1-linux-x86_64.tar.gz",
+          "sha256": "5ce0393690144227fa9186e82308ad638a6ef6d9f976c996e6d03b5b51b65a7b",
+          "bytes": 81826579
+        },
+        "linux-aarch64": {
+          "file": "effectcraft-0.24.1-linux-aarch64.tar.gz",
+          "sha256": "ad10c445065681760de9353117c6e2c45167eabcccf0ed19bde2f5c5ac908695",
+          "bytes": 76125337
+        }
+      }
+    },
+    "photo": {
+      "name": "photocraft",
+      "version": "0.23.1",
+      "cli": "photocraft-cli",
+      "tag": "v0.23.1",
+      "assets": {
+        "macos-universal": {
+          "file": "photocraft-cli-0.23.1-macos-universal.zip",
+          "sha256": "a6ecdc6d4add02881642bda0a0b191b4974118651f2ec5641dc71b2c3ff4b752",
+          "bytes": 120474491
+        },
+        "windows-x64": {
+          "file": "photocraft-0.23.1-windows-x64-portable.zip",
+          "sha256": "6317e764ecfa804227c38079311bea489283ab383ef040c81ef2fd6d86bd60b1",
+          "bytes": 143135209
+        },
+        "windows-arm64": {
+          "file": "photocraft-0.23.1-windows-arm64-portable.zip",
+          "sha256": "f02f0e754072836355b4aa8c46496fb0acff18a5fc780084bb4a40a2d9e1ab76",
+          "bytes": 136391920
+        },
+        "linux-x86_64": {
+          "file": "photocraft-0.23.1-linux-x86_64.tar.gz",
+          "sha256": "4383aef67a07cc370ad250a6ed60015205d3e6c463faf3ff4b0f67b8178ccfc8",
+          "bytes": 139481224
+        },
+        "linux-aarch64": {
+          "file": "photocraft-0.23.1-linux-aarch64.tar.gz",
+          "sha256": "fcc81c38ae62c72fa9f4fd1ec3d18396493ba261662792d6995cc35905ce71d2",
+          "bytes": 133431133
+        }
+      }
+    },
+    "vector": {
+      "name": "vectorcraft",
+      "version": "0.24.1",
+      "cli": "vectorcraft-cli",
+      "tag": "v0.24.1",
+      "assets": {
+        "macos-universal": {
+          "file": "vectorcraft-cli-0.24.1-macos-universal.zip",
+          "sha256": "7f0c8261e5c831d9681e48272f9ba73bf8702dbf6ceb84f98177c7c007faddf2",
+          "bytes": 133990423
+        },
+        "windows-x64": {
+          "file": "vectorcraft-0.24.1-windows-x64-portable.zip",
+          "sha256": "589d1c9c7090a05a033462af04042ee0a9dd3a188d7440a9f965799d2d66161d",
+          "bytes": 162939900
+        },
+        "windows-arm64": {
+          "file": "vectorcraft-0.24.1-windows-arm64-portable.zip",
+          "sha256": "885df2b888c3d670c6b0a785813039f9d0426eea00ed750da7ec4cbb0bf8d612",
+          "bytes": 154458186
+        },
+        "linux-x86_64": {
+          "file": "vectorcraft-0.24.1-linux-x86_64.tar.gz",
+          "sha256": "a090514252fde145495ac6fc65d6ff1311d698998e57ba434d5d0896c3d1fbfa",
+          "bytes": 157661878
+        },
+        "linux-aarch64": {
+          "file": "vectorcraft-0.24.1-linux-aarch64.tar.gz",
+          "sha256": "4b9735489789d336c1ca4344689eb4a1d4a3f0b6e8db7f8c0659c24d10653455",
+          "bytes": 150492030
+        }
+      }
+    }
+  }
+}

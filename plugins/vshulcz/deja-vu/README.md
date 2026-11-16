@@ -6,7 +6,7 @@
 </p>
 
 <p align="center"><b>Shared local memory, session history search, cross-agent handoff, and code recovery across 48 coding agents.</b><br>
-Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 40 more agents already save every session to disk.<br>
+Claude Code, Codex, Cursor, OpenClaw, Gemini CLI, OpenCode, Hermes and 41 more agents already save every session to disk.<br>
 <b>deja-vu</b> (<code>deja</code>) indexes all of it locally in one Go binary — zero LLM calls, 0.7 ms in-process lookup, ~4% index footprint.</p>
 
 <p align="center">English | <a href="docs/readme/README.zh.md">简体中文</a> | <a href="docs/readme/README.zh-TW.md">繁體中文</a> | <a href="docs/readme/README.ja.md">日本語</a> | <a href="docs/readme/README.ko.md">한국어</a> | <a href="docs/readme/README.es.md">Español</a> | <a href="docs/readme/README.pt.md">Português</a> | <a href="docs/readme/README.fr.md">Français</a> | <a href="docs/readme/README.de.md">Deutsch</a> | <a href="docs/readme/README.ru.md">Русский</a> | <a href="docs/readme/README.tr.md">Türkçe</a> | <a href="docs/readme/README.hi.md">हिन्दी</a></p>
@@ -32,11 +32,11 @@ curl -fsSL https://raw.githubusercontent.com/vshulcz/deja-vu/main/install.sh | s
 <p align="center"><sub>Homebrew: <code>brew install deja-vu &amp;&amp; deja install --auto</code> &middot; Claude Code: <code>claude plugin marketplace add vshulcz/deja-vu &amp;&amp; claude plugin install deja-vu@deja-vu</code> &middot; Skills: <code>npx skills add vshulcz/deja-vu</code><br><a href="#install">Windows (Scoop / winget), Codex, OpenCode, OpenClaw and more</a> &middot; Try without installing: <code>npx @vshulcz/deja-vu stats --no-index --card</code> or <code>npx @vshulcz/deja-vu audit</code></sub></p>
 
 ```sh
-$ deja "jwt refresh token"             # lexical + structural search across all 47 agent stores
+$ deja "jwt refresh token"             # lexical + structural search across all 48 agent stores
 $ deja handoff --to codex              # continue the active session's goal & state in another agent
 $ deja restore internal/auth/jwt.go    # recover code an agent overwrote before git commit
 $ deja blame internal/auth/jwt.go:42   # trace which agent session wrote or replaced a line
-$ deja audit                           # check retention risk, purged chats & index health across all 47 stores
+$ deja audit                           # check retention risk, purged chats & index health across all 48 stores
 ```
 
 <table align="center">

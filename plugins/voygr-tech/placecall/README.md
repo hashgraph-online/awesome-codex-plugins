@@ -9,7 +9,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: gh-repo" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
-  -H "X-Client-Version: placecall-skill/6.6.1" \
+  -H "X-Client-Version: placecall-skill/6.6.2" \
   -d '{"target_phone":"+1XXXXXXXXXX","brief":"Call this restaurant and ask what time the kitchen closes tonight.","language":"en"}'
 ```
 
@@ -28,7 +28,8 @@ No number? Describe the place instead, for example "a romantic restaurant in
 Chicago, Saturday 8pm". PlaceCall finds candidates, explains its picks and
 writes the call brief.
 
-The bot reads only the `brief`. Put the full job in it: what to ask, who it's
+Apart from an optional list of `items`, the bot reads only the `brief`. Put
+the full job in it: what to ask, who it's
 for, names, dates, party size, callback number, the outcome you want and how
 to wrap up.
 
@@ -59,8 +60,7 @@ key on every route: switching off recording, changing the opening notice,
 canceling a call, and listing your calls.
 
 ### Claude Code (recommended)
-The plugin updates itself from this repo. Two commands install it, with no
-shell or git:
+Two commands install it, with no shell or git:
 ```
 /plugin marketplace add voygr-tech/placecall
 /plugin install placecall@placecall
@@ -75,9 +75,22 @@ repository. Then run `/mcp`, pick the `placecall` server and sign in. The
 skill answers to `/placecall:placecall`, and Claude uses it on its own when
 you ask to call someone.
 
-Installed the plugin before 6.1.0? Run `/plugin marketplace update placecall`
-and restart Claude Code. A key you already exported keeps working with its
-account and credits; without one, sign in with `/mcp`.
+Claude Code does not update a plugin from a third-party marketplace such as
+this one until you turn auto-update on for that marketplace. To update now,
+run this in your shell, then start a new Claude Code session:
+
+```sh
+claude plugin marketplace update placecall
+claude plugin update placecall@placecall
+```
+
+Inside a session, `/plugin` > **Marketplaces** > `placecall` > **Update
+marketplace** does the same, and **Enable auto-update** on that screen keeps
+the plugin current from then on. Update any install older than 6.6.0
+(2026-11-05): those copies wait for the `outcome_type` field, which the API
+stopped sending on 2026-11-12, so they never report a result. A key you
+already exported keeps working with its account and credits; without one,
+sign in with `/mcp`.
 
 ### Claude Code, without the plugin
 ```sh
@@ -86,8 +99,8 @@ git clone https://github.com/voygr-tech/placecall && cd placecall
 ```
 `install.sh` only copies `skills/placecall/SKILL.md` into your skills dir (no
 network, no other side effects); copying by hand works too. Skills load at
-startup, so start a new Claude Code session. A copy never updates itself; the
-plugin does.
+startup, so start a new Claude Code session. A copy never updates itself: to
+update it, run `install.sh` again from a fresh `git pull`.
 
 ### Cowork
 Use the Claude connector. Add it once as in [claude.ai chat](#claudeai-chat)
@@ -487,10 +500,12 @@ The skill is instructions your agent follows, through the MCP tools or
 - MCP server: the Claude Code, Codex and Cursor plugins and the Gemini CLI
   extension register `https://api.voygr.tech/mcp`. `suggest_places` sends your
   request and an optional location. `place_call` sends the number, brief,
-  language and, if set, how the agent may reach you mid-call.
+  language and, if set, how the agent may reach you mid-call, the client's
+  name and the items to find out.
   `get_call_result` sends a call id. `answer_question` sends a call id, a
   question id and your answer.
-- Calls: `POST /calls` sends the number, your brief and the language.
+- Calls: `POST /calls` sends the number, your brief, the language and any
+  optional fields you set, such as `items`.
   `GET /calls`, `GET /calls/{id}`, `GET /calls/{id}/events`,
   `POST /calls/{id}/answer`, `POST /calls/{id}/cancel` and
   `GET /calls/{id}/recording` follow and read it.

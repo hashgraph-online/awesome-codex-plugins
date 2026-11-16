@@ -1,0 +1,18 @@
+{
+  "name": "velvet",
+  "description": "Deep red velvet with sheen.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.08,
+    0.005,
+    0.02
+  ],
+  "metallic": 0.0,
+  "roughness": 0.8,
+  "sheen": 1.0,
+  "sheenColor": [
+    1.0,
+    0.6,
+    0.7
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "matte_plastic",
+  "description": "Near-black matte plastic.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.03,
+    0.03,
+    0.035
+  ],
+  "metallic": 0.0,
+  "roughness": 0.72
+}

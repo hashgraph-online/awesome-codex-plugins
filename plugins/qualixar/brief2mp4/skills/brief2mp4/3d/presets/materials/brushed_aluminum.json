@@ -1,0 +1,12 @@
+{
+  "name": "brushed_aluminum",
+  "description": "Satin aluminium, soft broad highlights.",
+  "colorSpace": "linear",
+  "baseColor": [
+    0.91,
+    0.92,
+    0.92
+  ],
+  "metallic": 1.0,
+  "roughness": 0.34
+}

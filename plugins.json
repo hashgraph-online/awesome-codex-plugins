@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-16",
-  "total": 418,
+  "total": 419,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -319,6 +319,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/echoVic/boss-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "brief2mp4",
+      "url": "https://github.com/qualixar/brief2mp4",
+      "owner": "qualixar",
+      "repo": "brief2mp4",
+      "description": "Turns a written video brief into a finished MP4 motion graphic with HyperFrames, Three.js or Blender, then measures the file and checks real frames against every line of the brief before delivering it with a report.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/qualixar/brief2mp4/HEAD/plugin/.codex-plugin/plugin.json"
     },
     {
       "name": "Bring Your AI Migration Auditor",

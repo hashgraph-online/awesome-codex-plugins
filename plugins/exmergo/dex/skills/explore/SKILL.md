@@ -485,7 +485,10 @@ fetches the engine's dependencies from PyPI or your configured index.
    facts never sit beside metrics or dimensions. A refusal naming a different
    expression means the deployed view no longer matches the repository's file:
    relay it, since Dex never deploys and a person redeploys or updates the file.
-   `list --deployed` reads the account's copy. On a Databricks Metric View layer
+   `list --deployed` reads the account's copy. Under `semantic.deployment:
+   snowflake_account` the account is the only definition: nothing is held to a
+   file, and every result warns so; relay that warning with the answer. On a
+   Databricks Metric View layer
    both refuse by name for now and name the physical route.
 
 Per-command fields, caps, and backend detail are in
