@@ -1,0 +1,36 @@
+{
+  "name": "ccx",
+  "version": "0.1.2",
+  "description": "ccx: continue the same task in Claude, Codex and Antigravity. Needs the ccx app on this Mac: github.com/aaronwong1999/ccx",
+  "author": {
+    "name": "Aaron Wong",
+    "url": "https://github.com/aaronwong1999"
+  },
+  "homepage": "https://github.com/aaronwong1999/ccx",
+  "repository": "https://github.com/aaronwong1999/ccx",
+  "license": "MIT",
+  "keywords": [
+    "claude code",
+    "session",
+    "context",
+    "handoff",
+    "sync"
+  ],
+  "skills": "./skills/",
+  "requires_local_executor": true,
+  "interface": {
+    "displayName": "ccx - claudecodex",
+    "shortDescription": "Claude ⇄ Codex ⇄ Antigravity",
+    "longDescription": "Continue a task from Claude or Antigravity in Codex, or hand it back, with synchronized progress. Everything runs through your local ccx app. Not affiliated with OpenAI, Anthropic or Google.",
+    "developerName": "Aaron Wong",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "websiteURL": "https://github.com/aaronwong1999/ccx",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png",
+    "defaultPrompt": [
+      "Continue the … session from Claude",
+      "Continue in Claude"
+    ]
+  }
+}

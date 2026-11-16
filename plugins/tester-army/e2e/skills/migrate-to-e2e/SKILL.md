@@ -1,13 +1,6 @@
 ---
 name: migrate-to-e2e
 description: Moves an existing Playwright, Cypress, Selenium, Appium, Detox, Maestro, or TesterArmy suite to e2e one slice at a time, with the old suite running beside the new one until each ported test is proven. Keeps a MIGRATION.md progress file so any later session resumes where the last stopped. Optionally plants a defect to show both suites catch it. Use for /migrate-to-e2e, "migrate our tests to e2e", "port these Maestro flows", "move our TesterArmy tests", or when a project has an e2e config and an older suite still running.
-metadata:
-  openclaw:
-    homepage: https://e2e.com/docs/migrate
-    requires:
-      bins:
-        - node
-        - npx
 ---
 
 # Migrate a suite to e2e

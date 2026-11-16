@@ -1,0 +1,21 @@
+{
+  "name": "lgpd-skills",
+  "version": "1.3.0",
+  "description": "LGPD Privacy Engineering Toolkit — AI-assisted privacy auditing, implementation and governance for software projects.",
+  "type": "module",
+  "main": ".opencode/plugins/lgpd-skills.js",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "validate:prisma": "node scripts/validate-prisma.mjs",
+    "test": "node --experimental-strip-types --test \"tests/*.test.ts\"",
+    "check": "npm run typecheck && npm run validate:prisma && npm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "prisma": "^6.6.0",
+    "typescript": "^5.8.2"
+  },
+  "overrides": {
+    "deepmerge-ts": "^8.0.0"
+  }
+}

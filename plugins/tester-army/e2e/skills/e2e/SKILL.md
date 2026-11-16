@@ -1,17 +1,6 @@
 ---
 name: e2e
 description: Writes, runs, and debugs end-to-end tests for web and mobile apps with e2e, the agentic test runner, which mixes agent.act goals with exact locator assertions on a Playwright browser or an iOS or Android device. Also drives a project's running app live over the e2e MCP server to look at a screen, check a UI change, take a screenshot or record a video, and try a locator; and runs bug bashes, parallel e2e explore runs with each bug proven by a repro test. Use when a project depends on e2e or has an e2e.config.ts, when asked for end-to-end, browser, mobile, or agentic UI tests, to check a change in the running app, to QA or bug bash an app or branch, or when an e2e run fails.
-metadata:
-  openclaw:
-    homepage: https://e2e.com
-    requires:
-      bins:
-        - node
-        - npx
-    envVars:
-      - name: AI_GATEWAY_API_KEY
-        required: false
-        description: Model key for agent steps when the project's e2e config uses the Vercel AI Gateway; other providers read their own key.
 ---
 
 # e2e: agentic end-to-end tests

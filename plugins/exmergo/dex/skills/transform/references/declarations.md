@@ -70,14 +70,19 @@ the models that read it.
 | Declared | Written as |
 |---|---|
 | `description` (model or column) | dbt's own `description` |
-| a single-column `grain` | `data_tests: [unique, not_null]` on that column |
+| a single-column `grain` | `unique` and `not_null` tests on that column |
 | `null_rule: never` | `not_null` on that column |
 | `foreign_key` with `references` | a `relationships` test (`arguments: {to, field}`) |
 | `grain`, `population`, `assumptions` | model `config.meta.dex` |
 | `role`, `null_rule`, `aggregation`, `additivity`, `unit`, `references` | column `config.meta.dex` |
 
-A test the column already lists is kept as written, under the key it already
-uses. Declaring again merges: a key the new declaration states replaces the old
+Every test Dex renders carries `config: {meta: {disable_test_samples: true}}`,
+as does a `not_null` or `unique` that `maintain reconcile` adds,
+so where the Elementary package's test materialization runs (0.20.0 and later)
+it keeps no sample of the test's failing rows, which are key values. Without
+Elementary the flag does nothing; remove it in review to keep samples on a
+test. A test the column already lists is kept as written, under the key it
+already uses, so it gains no flag. Declaring again merges: a key the new declaration states replaces the old
 one, and a key it leaves out is kept. `population` merges one level further, so
 adding a `parent` keeps the `rule` and `filters` declared earlier. Every byte outside the keys above, comments
 included, stays where it was.

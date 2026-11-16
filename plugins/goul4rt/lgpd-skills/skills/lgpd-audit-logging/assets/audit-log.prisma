@@ -1,0 +1,31 @@
+// Trilha de auditoria encadeada (hash chain) — controle técnico recomendado para
+// responsabilização (Art. 6º, X) e segurança (Art. 46).
+
+enum ActorType {
+  USER
+  ADMIN
+  SYSTEM
+  OPERATOR
+}
+
+model AuditLogEntry {
+  id          String    @id @default(cuid())
+  seq         BigInt    @unique @default(autoincrement()) // ordem estrita de encadeamento
+  actorId     String?   // null quando ação automática de sistema
+  actorType   ActorType
+  action      String    // ex.: "DSAR_FULFILLED", "CONSENT_REVOKED", "PII_EXPORT"
+  resource    String    // ex.: "User:usr_123"
+  subjectId   String?   // titular afetado (quando aplicável)
+  legalBasis  String?
+  purpose     String?
+  ipAddress   String?   @db.Inet
+  userAgent   String?
+  payloadHash String    // SHA-256 canônico de metadados redigidos (NUNCA PII em claro)
+  prevHash    String    // "GENESIS" no primeiro registro, ou selfHash do seq anterior
+  selfHash    String    // SHA-256(prevHash | timestampIso | actorType | actorId | action | resource | subjectId | payloadHash)
+  timestamp   DateTime  @default(now())
+
+  @@index([subjectId, timestamp(sort: Desc)])
+  @@index([actorId, timestamp(sort: Desc)])
+  @@index([action, timestamp(sort: Desc)])
+}

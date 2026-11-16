@@ -23,7 +23,8 @@ Android emulator, or phone.
 The [e2e-inc/e2e](https://github.com/e2e-inc/e2e) repository is a
 marketplace for Claude Code, Codex, and Cursor. All three marketplace files
 point to `plugins/e2e`, and installation copies this directory into the
-client's cache. Grok Build reads the Claude Code files.
+client's cache. Grok Build reads the Claude Code files, and GitHub Copilot
+CLI reads the Claude Code marketplace.
 
 Claude Code:
 
@@ -37,6 +38,13 @@ Codex:
 ```bash
 codex plugin marketplace add e2e-inc/e2e
 codex plugin add e2e@e2e
+```
+
+GitHub Copilot CLI:
+
+```bash
+copilot plugin marketplace add e2e-inc/e2e
+copilot plugin install e2e@e2e
 ```
 
 Cursor loads plugins from `~/.cursor/plugins/local/`. Copy this directory
@@ -77,8 +85,8 @@ model: an AI SDK provider key, or a ChatGPT subscription through
 
 ## MCP server
 
-The plugin registers the e2e MCP server from `.mcp.json` as
-`npx -y e2e@<version> mcp`, pinned to the e2e release the plugin version
+The plugin registers the e2e MCP server as `npx -y e2e@<version> mcp`
+(from `.mcp.json`, or `mcp.json` in GitHub Copilot), pinned to the e2e release the plugin version
 matches. Claude Code and Codex start it in the session's working directory,
 where the server finds the project's config; start the session from the
 project directory after installing dependencies. `npx` runs the project's
@@ -110,8 +118,13 @@ Edit skill Markdown in the monorepo's `skills/` directory, then run
 `pnpm plugins:check`, also part of `pnpm check` and CI, catches drift.
 
 The Codex manifest owns the plugin's metadata. The sync command generates
-the Claude and Cursor manifests from it and copies the root license. It also generates
-`.mcp.json`, pinned to the runner version. Skill UI metadata in
+the Claude and Cursor manifests from it, and the root `plugin.json` that
+GitHub Copilot reads (the [Agent Plugins](https://agent-plugins.org)
+format), and copies the root license. It also generates `.mcp.json` and
+Copilot's `mcp.json`, both pinned to the runner version; a root
+`plugin.json` cannot name MCP servers, so Copilot loses the server without
+`mcp.json`. The skill copies leave out `metadata.openclaw`, which ClawHub
+reads from `skills/`: the Agent Skills spec takes string metadata values only. Skill UI metadata in
 `skills/*/agents/openai.yaml` and the plugin's assets are maintained here.
 Keep every referenced file inside this plugin directory so cached installs
 work without the rest of the monorepo. The repo's development `.mcp.json`

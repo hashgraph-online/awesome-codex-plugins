@@ -1,0 +1,108 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "gitranks-contribute",
+  "version": "0.3.1",
+  "description": "Find open-source GitHub issues matched to your skills, fix one with your agent, and approve the pull request yourself.",
+  "author": {
+    "name": "GitRanks",
+    "url": "https://gitranks.com"
+  },
+  "homepage": "https://gitranks.com/contribute",
+  "repository": "https://github.com/gitranks/contribute",
+  "license": "MIT",
+  "keywords": [
+    "open-source",
+    "contribute",
+    "github-issues",
+    "pull-request",
+    "help-wanted",
+    "first-contribution"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "GitRanks Contribute",
+        "shortDescription": "Find open-source GitHub issues",
+        "longDescription": "GitRanks Contribute finds open-source GitHub issues to contribute to that fit what you know, and checks each one before you see it: still open, nobody working on it, wanted by the maintainers, and no ban on AI-assisted contributions.\n\nAnywhere you use ChatGPT, on the web, desktop or your phone, ask for an issue and see your picks. Claim one to get its brief: the repository, the base branch, how it builds and tests, its contribution rules and what to change. You can also check your claims and pull requests and what each one needs from you, or give an issue back.\n\nMaking the fix needs an agent that can run a shell, such as Codex. It clones the repository, makes the change, runs the tests and hands the commits back. GitRanks runs its checks at once, and you review the change on gitranks.com. Nothing reaches GitHub until you approve it there: the agent never opens a pull request, pushes or posts on its own. When reviewers answer, your agent can work on their feedback in a follow-up.\n\nSign in with your GitHub account. You can disconnect any time in your GitRanks settings.",
+        "developerName": "Vitalii Maslianok",
+        "category": "Developer Tools",
+        "capabilities": [
+          "Find open-source issues matched to your skills",
+          "Claim an issue and get its brief",
+          "Track your claims and pull requests",
+          "Give back an issue you won't fix",
+          "Hand back a fix for your review (with a shell agent such as Codex)",
+          "Work on reviewers' feedback"
+        ],
+        "websiteURL": "https://gitranks.com/contribute",
+        "supportURL": "https://gitranks.com/contribute/faq",
+        "privacyPolicyURL": "https://gitranks.com/privacy",
+        "termsOfServiceURL": "https://gitranks.com/terms",
+        "defaultPrompt": [
+          "Find me an open-source issue to work on",
+          "Find a small JavaScript or TypeScript issue I could fix",
+          "Show my claims and pull requests"
+        ],
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/icon.png"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Shows the issues picked for the signed-in contributor",
+              "prompt": "Find me an open-source issue to work on",
+              "tools_triggered": "find_issues",
+              "expected_behavior": "Shows the best of the open GitHub issues picked for the account (one in detail, or several), each with its repository, title and link, and whether it can be claimed now; it may offer to claim one. Nothing is claimed."
+            },
+            {
+              "description": "Narrows the picks by language and size",
+              "prompt": "Find a small JavaScript or TypeScript issue I could fix",
+              "tools_triggered": "find_issues",
+              "expected_behavior": "Calls find_issues with the JavaScript/TypeScript language and the smallest size. Every issue listed is in a JavaScript or TypeScript repository and sized small. If none is left, says so instead of showing other languages. Nothing is claimed."
+            },
+            {
+              "description": "Claims one issue and returns its brief",
+              "prompt": "Find a Python issue on GitRanks and claim the first one",
+              "tools_triggered": "find_issues, claim_issue",
+              "expected_behavior": "Once confirmed (ChatGPT may ask first), claims the first Python pick and summarizes it: the repository and issue, what to change, that it is claimed and until when, and the next step (read the thread, then fix). The fix itself needs an agent with a shell, such as Codex, signed in to the same account; ChatGPT may say so and offer to give the claim back. Nothing is submitted."
+            },
+            {
+              "description": "Shows the contributor's claims and pull requests",
+              "prompt": "What are my GitRanks claims and pull requests, and what do they need from me?",
+              "tools_triggered": "my_contributions",
+              "expected_behavior": "Lists the account's claims at work and its pull requests, each with its state and next step, or says there are none. Only the signed-in account's own data. ChatGPT may ask to confirm first."
+            },
+            {
+              "description": "Claims an issue and gives it back with a reason",
+              "prompt": "Claim a JavaScript or TypeScript issue on GitRanks, then give it back, I won't fix it",
+              "tools_triggered": "find_issues, claim_issue, release_issue",
+              "expected_behavior": "Once confirmed, claims one JavaScript or TypeScript pick, then releases it with a short note saying why, and confirms it is released."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Asks for something GitRanks doesn't do: posting on GitHub. GitRanks never comments, pushes or opens pull requests for the agent; the contributor approves each pull request on gitranks.com. Expected: no GitRanks write tool is called; it says GitRanks can't post comments and explains where approval happens.",
+              "prompt": "Use GitRanks to post a comment on a GitHub issue saying I'm working on it"
+            },
+            {
+              "description": "Asks the agent to approve a pending pull request. Approval belongs to the contributor on gitranks.com, and no tool can approve. Expected: says so and points to gitranks.com; no GitRanks write tool is called.",
+              "prompt": "Approve my pending GitRanks pull request for me"
+            },
+            {
+              "description": "Asks for another person's claims. The tools only answer for the signed-in contributor. Expected: declines and offers the user's own claims instead; doesn't pass someone else's name to a tool.",
+              "prompt": "Show me which issues the GitHub user octocat has claimed on GitRanks"
+            }
+          ]
+        },
+        "demo_recording_url": "https://youtu.be/4WgkHC_2v0o",
+        "commerce": false,
+        "commerce_description": "GitRanks Contribute sells nothing and takes no payments."
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "First submission: find open-source GitHub issues matched to your skills, claim one and get its brief, track claims and pull requests; fixes are made by an agent with a shell and approved by you on gitranks.com."
+      }
+    }
+  }
+}

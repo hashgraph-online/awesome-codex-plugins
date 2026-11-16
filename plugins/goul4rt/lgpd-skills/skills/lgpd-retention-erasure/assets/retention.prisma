@@ -1,0 +1,53 @@
+// Políticas de retenção, supressão pós-restore em backups imutáveis e outbox de
+// propagação a terceiros (LGPD Arts. 15, 16 e 18, VI e § 6º).
+
+enum PostRetentionAction {
+  HARD_DELETE
+  ANONYMIZE
+  CRYPTO_SHRED
+  BLOCK_UNTIL_LEGAL_EXPIRY
+}
+
+enum PropagationStatus {
+  PENDING
+  CONFIRMED
+  FAILED_RETRYING
+  NOT_APPLICABLE
+}
+
+model RetentionRule {
+  id                  String              @id @default(cuid())
+  entity              String              // ex.: "FiscalInvoice", "ApplicationAccessLog"
+  specificAttributes  Json                // lista explícita de campos alcançados (minimização)
+  purpose             String
+  legalBasis          String              // ex.: "ART_16_I_CTN_173_I", "ART_16_I_MCI_ART_15"
+  statutoryReference  String              // dispositivo normativo exato
+  retentionMonths     Int
+  countingStartEvent  String              // marco inicial (dies a quo), ex.: "NEXT_FISCAL_YEAR_JAN_1"
+  postAction          PostRetentionAction
+  active              Boolean             @default(true)
+  updatedAt           DateTime            @updatedAt
+}
+
+// Registro mínimo isolado (tombstone) para re-aplicar supressão caso um backup imutável
+// anterior à exclusão precise ser restaurado em incidente/DR (guarda apenas HMAC, sem PII).
+model ErasureSuppressionTombstone {
+  subjectHmac   String   @id // HMAC-SHA256(suppressionKey, subjectId)
+  erasedAt      DateTime @default(now())
+  scope         String   // "FULL_ERASURE" | "PARTIAL_NON_STATUTORY_FIELDS"
+}
+
+// Outbox transacional para propagação imediata a operadores/terceiros (Art. 18, § 6º LGPD).
+model OperatorPropagationOutbox {
+  id            String            @id @default(cuid())
+  subjectId     String
+  operatorSlug  String            // ex.: "mixpanel", "customer_io", "zendesk"
+  operation     String            // "ERASURE" | "CORRECTION" | "CONSENT_REVOCATION"
+  status        PropagationStatus @default(PENDING)
+  attempts      Int               @default(0)
+  lastError     String?
+  createdAt     DateTime          @default(now())
+  confirmedAt   DateTime?
+
+  @@index([status, createdAt])
+}

@@ -2,13 +2,6 @@
 name: create-verification-skill
 description: Generate a project-local verify-<app> skill on top of e2e, so any coding agent can launch the app, check it is worth driving, exercise a feature the way a user does, keep evidence, and bug bash it. Writes the skill, a feature map with one explore charter per feature, and proves it once. Use for /create-verification-skill, "make a verification skill for this repo", or when a project has no scripted way to prove UI behavior.
 disable-model-invocation: true
-metadata:
-  openclaw:
-    homepage: https://e2e.com
-    requires:
-      bins:
-        - node
-        - npx
 ---
 
 # Create a verification skill
@@ -23,7 +16,7 @@ mid-task, by an agent that has never seen the app.
 
 The e2e skill is the reference for everything e2e does. Read it first and
 link to it rather than restate it. It is the sibling
-[e2e skill](../e2e/SKILL.md), wherever this skill was installed from; when
+`e2e` skill, wherever this skill was installed from; when
 it is missing, `npx skills add e2e-inc/e2e` or `npx e2e init` installs
 it. `npx e2e guide <topic>` prints a reference from the project's installed
 package; prefer that version when the two differ. Topics

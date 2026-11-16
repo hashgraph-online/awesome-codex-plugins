@@ -422,6 +422,7 @@
 | GET | `/api/oauth/refresh_job_status` |
 | GET | `/api/organizations` |
 | POST | `/api/organizations` |
+| PATCH | `/api/organizations/tags` |
 | DELETE | `/api/organizations/{org_id}` |
 | GET | `/api/organizations/{org_id}` |
 | PATCH | `/api/organizations/{org_id}` |

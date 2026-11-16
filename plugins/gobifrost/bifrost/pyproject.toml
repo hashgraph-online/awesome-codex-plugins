@@ -45,7 +45,7 @@ dependencies = [
     # =========================================================================
     # Message Queue (RabbitMQ)
     # =========================================================================
-    "aio-pika==9.6.2",  # Legacy broker recovery; aiormq 7 uses asyncio APIs removed in Python 3.16.
+    "aio-pika==10.2.3",  # Legacy broker recovery.
 
     # =========================================================================
     # Cache & Sessions (Redis)

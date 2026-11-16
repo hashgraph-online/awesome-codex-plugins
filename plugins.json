@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-16",
-  "total": 419,
+  "total": 424,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -240,6 +240,16 @@
       "install_url": "https://raw.githubusercontent.com/armoriq/armorCodex/HEAD/plugins/armorcodex/.codex-plugin/plugin.json"
     },
     {
+      "name": "AsItIs",
+      "url": "https://github.com/Katta041/asitis-agent-tools",
+      "owner": "Katta041",
+      "repo": "asitis-agent-tools",
+      "description": "Read-only linter for AGENTS.md, CLAUDE.md and SKILL.md that shows what Codex loads at launch, what gets cut at the 32 KiB limit, and instructions hidden in comments or invisible characters.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Katta041/asitis-agent-tools/HEAD/plugins/asitis/.codex-plugin/plugin.json"
+    },
+    {
       "name": "assay",
       "url": "https://github.com/awss1i/assay",
       "owner": "awss1i",
@@ -369,6 +379,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/x4cc3/casefile/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "ccx",
+      "url": "https://github.com/AaronWong1999/ccx",
+      "owner": "AaronWong1999",
+      "repo": "ccx",
+      "description": "Syncs task context between Claude Code, Codex and Antigravity, so a Claude Code session or an Antigravity conversation can be imported into a Codex thread, kept in sync, or handed over.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AaronWong1999/ccx/HEAD/packaging/codex-directory/.codex-plugin/plugin.json"
     },
     {
       "name": "ChatGPT Agent",
@@ -828,7 +848,7 @@
       "description": "Write, run, and debug end-to-end tests for web and mobile apps with agent skills and an MCP server.",
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
-      "install_url": "https://raw.githubusercontent.com/tester-army/e2e/HEAD/plugins/e2e/.codex-plugin/plugin.json"
+      "install_url": "https://raw.githubusercontent.com/tester-army/e2e/HEAD/plugins/e2e/plugin.json"
     },
     {
       "name": "ejentum-mcp",
@@ -939,6 +959,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/SamurAIGPT/Generative-Media-Skills/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "GitRanks Contribute",
+      "url": "https://github.com/gitranks/contribute",
+      "owner": "gitranks",
+      "repo": "contribute",
+      "description": "Find open-source GitHub issues matched to your skills, fix one with your agent, and approve the pull request yourself.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/gitranks/contribute/HEAD/plugin.json"
     },
     {
       "name": "Goal Progress",
@@ -1110,6 +1140,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/jturntdev/krypton/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "lgpd-skills",
+      "url": "https://github.com/goul4rt/lgpd-skills",
+      "owner": "goul4rt",
+      "repo": "lgpd-skills",
+      "description": "Modular Agent Skills toolkit (Claude Code, Codex, Cursor, Gemini CLI, OpenCode) for LGPD & ECA Digital privacy engineering, automated compliance audits, LINDDUN threat modeling, consent ledgers, and DSAR endpoints.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/goul4rt/lgpd-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "LLM Transpile",
@@ -4002,6 +4042,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/HuaHuiJian/tokenchronicle-marketplace/HEAD/plugins/tokenchronicle/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "tossithere",
+      "url": "https://github.com/kush-daga/tossithere-plugin",
+      "owner": "kush-daga",
+      "repo": "tossithere-plugin",
+      "description": "Publish the HTML Codex makes as a private link people comment on element by element, then read the comments back and push fixes to the same link, through a hosted MCP server with OAuth sign-in. Website: https://tossithere.com",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/kush-daga/tossithere-plugin/HEAD/plugin.json"
     },
     {
       "name": "Treza",

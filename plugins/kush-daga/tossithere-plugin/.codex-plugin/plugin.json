@@ -1,0 +1,115 @@
+{
+  "name": "tossithere",
+  "version": "1.0.0",
+  "description": "Share HTML as a link people can comment on, element by element, and read every comment back with the exact markup it points at. Publish a report, plan, dashboard or prototype, get a link that opens on any screen, then fix what reviewers flagged and publish the next version to the same link.",
+  "author": {
+    "name": "tossithere",
+    "url": "https://tossithere.com"
+  },
+  "homepage": "https://tossithere.com",
+  "repository": "https://github.com/kush-daga/tossithere-plugin",
+  "license": "AGPL-3.0-only",
+  "keywords": [
+    "html",
+    "publishing",
+    "review",
+    "comments",
+    "sharing"
+  ],
+  "interface": {
+    "displayName": "tossithere",
+    "shortDescription": "Share HTML, get comments back",
+    "longDescription": "tossithere turns the HTML your agent makes into a page at a link that opens on any screen. Reviewers click any element or highlight any text to comment, with nothing to install. Your agent reads every open thread with the exact markup it points at, publishes the fix to the same link, and resolves what it fixed.\n\nUse it for reports, plans, briefings, dashboards, prototypes and decks. Pages are private to your workspace until you share them, and teams can publish straight into a shared workspace.",
+    "developerName": "tossithere",
+    "category": "Productivity",
+    "capabilities": [
+      "Publish HTML pages",
+      "Read page comments",
+      "Reply to and resolve comments",
+      "Share pages"
+    ],
+    "websiteURL": "https://tossithere.com",
+    "supportURL": "https://github.com/kush-daga/tossithere-plugin/issues",
+    "privacyPolicyURL": "https://tossithere.com/privacy",
+    "termsOfServiceURL": "https://tossithere.com/terms",
+    "defaultPrompt": [
+      "Make a one-page summary of this and share it as a link",
+      "Address the open comments on my last page",
+      "Turn these notes into a page my team can comment on"
+    ],
+    "brandColor": "#A4741A",
+    "brandColorDark": "#EBB749",
+    "composerIcon": "./assets/icon.svg",
+    "logo": "./assets/icon.svg"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "extensions": {
+    "com.openai": {
+      "onboardingSkill": "./skills/tossithere/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Publish a new page from HTML the assistant writes",
+              "prompt": "Make a one-page HTML summary of Q3 sales (revenue $1.4M, up 12%) and give me a link.",
+              "tools_triggered": [
+                "publish_page"
+              ],
+              "expected_behavior": "Calls publish_page with a complete HTML document and replies with the returned tossithere.com link once."
+            },
+            {
+              "description": "Read open feedback on a page",
+              "prompt": "What did people say on my page d_q3-sales-demo?",
+              "tools_triggered": [
+                "list_comments"
+              ],
+              "expected_behavior": "Calls list_comments with unresolved_only true and summarises each open thread with what it points at."
+            },
+            {
+              "description": "Fix feedback and publish a new version to the same link",
+              "prompt": "Address the open comments on d_q3-sales-demo.",
+              "tools_triggered": [
+                "list_comments",
+                "read_page",
+                "publish_page",
+                "resolve_comment"
+              ],
+              "expected_behavior": "Reads the comments and the current HTML, publishes a corrected version with the same id, then resolves only the threads it fixed."
+            },
+            {
+              "description": "Share a private page with reviewers",
+              "prompt": "Let anyone with the link comment on d_q3-sales-demo.",
+              "tools_triggered": [
+                "share_page"
+              ],
+              "expected_behavior": "Calls share_page with visibility public and allow comment, and confirms the link is now open for comments."
+            },
+            {
+              "description": "List recent pages",
+              "prompt": "Which tossithere pages have open comments?",
+              "tools_triggered": [
+                "list_pages"
+              ],
+              "expected_behavior": "Calls list_pages and lists the pages whose openComments count is above zero, with their links."
+            }
+          ],
+          "negative": [
+            {
+              "description": "A general question with nothing to publish",
+              "prompt": "What is the capital of France?"
+            },
+            {
+              "description": "A request to delete pages, which the tools cannot do",
+              "prompt": "Delete all my tossithere pages."
+            },
+            {
+              "description": "Plain text the user wants in the chat, not a page",
+              "prompt": "Just tell me in one sentence what HTML stands for."
+            }
+          ]
+        }
+      }
+    }
+  }
+}

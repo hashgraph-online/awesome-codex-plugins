@@ -153,6 +153,12 @@ eight prompts, one model, a model judge rather than people, and prices that chan
 /plugin install frugal@frugal
 ```
 
+**GitHub Copilot CLI** (from [Awesome Copilot](https://awesome-copilot.github.com/plugin/frugal/)):
+
+```bash
+copilot plugin install frugal@awesome-copilot
+```
+
 **Every agent on the machine** (Claude Code, Codex, Cursor, Gemini CLI, Copilot, OpenCode, Amp,
 Cline, Antigravity CLI):
 

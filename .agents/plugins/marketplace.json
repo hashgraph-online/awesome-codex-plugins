@@ -348,6 +348,21 @@
       "icon": "./plugins/armoriq/armorCodex/assets/armoriq-logo.png"
     },
     {
+      "name": "asitis",
+      "displayName": "AsItIs",
+      "source": {
+        "source": "local",
+        "path": "./plugins/Katta041/asitis-agent-tools"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Read-only linter for AGENTS.md, CLAUDE.md and SKILL.md that shows what Codex loads at launch, what gets cut at the 32 KiB limit, and instructions hidden in comments or invisible characters.",
+      "icon": "./plugins/Katta041/asitis-agent-tools/assets/icon.png"
+    },
+    {
       "name": "assay",
       "displayName": "assay",
       "source": {
@@ -539,6 +554,21 @@
       "category": "Development & Workflow",
       "description": "Persistent security case tracking for bug bounties, CTFs, and security audits.",
       "icon": "./plugins/x4cc3/casefile/assets/icon.svg"
+    },
+    {
+      "name": "ccx",
+      "displayName": "ccx",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AaronWong1999/ccx"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Syncs task context between Claude Code, Codex and Antigravity, so a Claude Code session or an Antigravity conversation can be imported into a Codex thread, kept in sync, or handed over.",
+      "icon": "./plugins/AaronWong1999/ccx/assets/icon.png"
     },
     {
       "name": "chatgpt-agent",
@@ -1387,6 +1417,21 @@
       "icon": "./plugins/SamurAIGPT/Generative-Media-Skills/assets/icon.svg"
     },
     {
+      "name": "gitranks-contribute",
+      "displayName": "GitRanks Contribute",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gitranks/contribute"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Find open-source GitHub issues matched to your skills, fix one with your agent, and approve the pull request yourself.",
+      "icon": "./plugins/gitranks/contribute/assets/icon.png"
+    },
+    {
       "name": "codex-goal-progress",
       "displayName": "Goal Progress",
       "source": {
@@ -1638,6 +1683,21 @@
       "category": "Development & Workflow",
       "description": "Goal-based planning and proof gate for Codex and Claude Code that turns requests into ownership, cutover, review-gate, and acceptance-evidence plans.",
       "icon": "./plugins/jturntdev/krypton/assets/icon.svg"
+    },
+    {
+      "name": "lgpd-skills",
+      "displayName": "lgpd-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/goul4rt/lgpd-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Modular Agent Skills toolkit (Claude Code, Codex, Cursor, Gemini CLI, OpenCode) for LGPD & ECA Digital privacy engineering, automated compliance audits, LINDDUN threat modeling, consent ledgers, and DSAR endpoints.",
+      "icon": "./plugins/goul4rt/lgpd-skills/assets/icon.png"
     },
     {
       "name": "llm-transpile",
@@ -5918,6 +5978,21 @@
       "category": "Tools & Integrations",
       "description": "Local-first Codex work journal that automatically archives sessions for private search, audit, usage analytics, and long-term memory continuity without recurring model-token cost.",
       "icon": "./plugins/HuaHuiJian/tokenchronicle-marketplace/assets/icon.png"
+    },
+    {
+      "name": "tossithere",
+      "displayName": "tossithere",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kush-daga/tossithere-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Publish the HTML Codex makes as a private link people comment on element by element, then read the comments back and push fixes to the same link, through a hosted MCP server with OAuth sign-in. Website: https://tossithere.com",
+      "icon": "./plugins/kush-daga/tossithere-plugin/assets/icon.svg"
     },
     {
       "name": "treza",

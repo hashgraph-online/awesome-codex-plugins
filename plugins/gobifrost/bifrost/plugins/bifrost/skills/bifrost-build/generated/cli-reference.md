@@ -1809,6 +1809,7 @@ Options:
   --name TEXT                   name  [required]
   --is-active / --no-is-active  is_active (tri-state; omit to leave
                                 unchanged).
+  --tags TEXT                   tags (repeat for multiple).
   --json                        Emit JSON instead of human-readable output.
   --help                        Show this message and exit.
 ```
@@ -1865,6 +1866,7 @@ Options:
   --name TEXT                   name
   --is-active / --no-is-active  is_active (tri-state; omit to leave
                                 unchanged).
+  --tags TEXT                   tags (repeat for multiple).
   --json                        Emit JSON instead of human-readable output.
   --help                        Show this message and exit.
 ```

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "asitis": {
+      "command": "npx",
+      "args": ["-y", "@asitis/mcp@0.4.3"]
+    }
+  }
+}

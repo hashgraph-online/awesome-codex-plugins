@@ -21,8 +21,6 @@
     "agentic-testing",
     "bug-bash"
   ],
-  "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "e2e",
     "shortDescription": "Agentic tests for web & mobile",
@@ -47,5 +45,7 @@
     "composerIcon": "./assets/icon.png",
     "logo": "./assets/logo.png",
     "logoDark": "./assets/logo-dark.png"
-  }
+  },
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json"
 }
