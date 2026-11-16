@@ -4,7 +4,7 @@ Registry rows: `10.4-W01`, `10.4-W02`, `10.4-W04`, `10.4-W07`, `10.4-W08` (`reci
 
 1. **Request and visible result.** “Instead of re-sending the order every time someone changes delivery, show one card that updates.” — An order card inside the message: items, Standard/Express toggle, total, Confirm. Taps update it in place (no “edited” mark); errors read “Too fast — try again”, “The bot didn't answer. Your order is unchanged.”; the caption “Order #1042 · $23.50” is what the chat list, notifications and old apps show; a “Change in chat” button is the plain alternative.
 2. **Why the new feature.** 10.4 widgets: interactive state inside one message, drawn natively in the chat's theme, without hosting a Mini App. Before: edit text + keyboard, or open a web app.
-3. **Requirements.** Bot API ≥ 10.4. **Production: private chats only.** `allow_queries: true`. `allowed_updates` must include `widget_query`. SDKs on 2026-11-12 need an adapter (aiogram/grammY).
+3. **Requirements.** Bot API ≥ 10.4. **Production: private chats only.** `allow_queries: true`. `allowed_updates` must include `widget_query`. aiogram ≥ 3.32.0 has the widget methods natively (2026-11-15); aiogram ≤ 3.31 and grammY 1.46 need an adapter.
 4. **Payload.** Full request sequence: `examples/payloads/r05-private-widget.json` (generated from the code); incoming fixture: `examples/fixtures/widget_query_ship.json`. Key part:
    ```json
    {"chat_id": 111111111, "html": "<style>…</style><div class=\"c\">…</div><script>…</script>",

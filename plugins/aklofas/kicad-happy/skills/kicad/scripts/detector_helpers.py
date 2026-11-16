@@ -10,6 +10,7 @@ from collections.abc import Iterable
 
 from kicad_core.classify import classify_ic_function
 from kicad_core.netnames import net_leaf
+from kicad_core.parts import LED_VF_BY_COLOR, LED_VF_DEFAULT, led_color
 from kicad_types import AnalysisContext
 
 
@@ -105,12 +106,16 @@ def match_family(comp: dict, families: dict[str, Iterable[str]]) -> str | None:
     """Return the family of a part's longest keyword, or None.
 
     Reads the first of ``mpn``, ``value``, ``lib_id`` that contains any keyword
-    (case-insensitive substring). A tie in length between two families is None.
+    (case-insensitive substring); of ``lib_id`` only the symbol name counts, since the
+    library nickname names a library, not the part. A tie in length between two
+    families is None.
     ``families`` holds one detector's own tables; never pool families across
     detectors, since a part can belong to one family in each.
     """
     for field in ("mpn", "value", "lib_id"):
         text = (comp.get(field) or "").lower()
+        if field == "lib_id":
+            text = text.split(":", 1)[-1]
         if not text:
             continue
         best: dict[str, int] = {}
@@ -355,10 +360,7 @@ def led_string(ctx: AnalysisContext, ref: str) -> tuple[list[str], str | None, s
     return list(reversed(up)) + [ref] + down, end1, end2
 
 
-def led_forward_voltage(comp: dict, table: dict[str, float], default: float = 2.0) -> float:
-    """Forward voltage of the first colour in *table* named by the LED's value or lib_id."""
-    combined = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
-    for color, vf in table.items():
-        if color in combined:
-            return vf
-    return default
+def led_forward_voltage(comp: dict) -> float:
+    """Nominal forward voltage for the LED's colour word, else LED_VF_DEFAULT."""
+    color = led_color(comp)
+    return LED_VF_BY_COLOR[color][0] if color else LED_VF_DEFAULT

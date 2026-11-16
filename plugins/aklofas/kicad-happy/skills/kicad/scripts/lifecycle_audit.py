@@ -29,6 +29,7 @@ import sys
 from pathlib import Path
 
 from analysis_cache import reviewed_overlay
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.project import extraction_project_dir
 from kicad_core.cli import add_only_deterministic_arg, add_output_arg
 from lifecycle_engine import _TEMP_PRESETS, audit_bom
@@ -87,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"input {input_path}: {what}; {expected}")
     try:
         with open(input_path, encoding="utf-8") as f:
-            analysis = json.load(f)
+            analysis = json_load(f)
     except ValueError as e:
         parser.error(f"input {input_path}: not JSON ({e}); {expected}")
     except OSError as e:
@@ -138,8 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         if out_path:
             print(f"Audit written to {out_path}", file=sys.stderr)
     elif output_path:
-        with open(output_path, "w", encoding="utf-8", newline="\n") as f:
-            f.write(output_json)
+        atomic_write_text(output_path, output_json, follow_symlinks=False)
         print(f"Audit written to {output_path}", file=sys.stderr)
     else:
         print(output_json)

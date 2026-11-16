@@ -28,7 +28,7 @@ Automated EMC risk analysis for KiCad PCB designs. Identifies the most common ca
 |-------|---------|
 | `kicad` | Schematic/PCB analysis — produces the analyzer JSON this skill consumes |
 | `kicad` (thermal) | Thermal hotspot analysis — MLCC derating and ferrite/inductor overheating findings can amplify EMC decoupling and filter issues (an over-stressed MLCC degrades; a hot ferrite drifts impedance). Worth cross-checking when EMC flags DC-001/DC-002 or EF-001/EF-002. |
-| `spice` | SPICE simulation — provides simulator backend for SPICE-enhanced PDN/filter checks |
+| `spice` | SPICE simulation — provides simulator backend for SPICE-enhanced PDN checks |
 
 **Handoff guidance:** Run the `kicad` skill's `analyze_schematic.py` and `analyze_pcb.py --schematic` first — this skill consumes their JSON output. Use `--full` on the PCB analyzer for best results (enables per-track coordinates for ground plane crossing, edge proximity, and return path checks). During a design review, run EMC analysis after the schematic/PCB analyzers, SPICE simulation, and thermal analysis, then incorporate EMC findings into the report.
 
@@ -37,7 +37,7 @@ Automated EMC risk analysis for KiCad PCB designs. Identifies the most common ca
 - **Python 3.10+** — stdlib only, no pip dependencies
 - **Schematic analyzer JSON** — from `analyze_schematic.py --output`
 - **PCB analyzer JSON** — from `analyze_pcb.py --full --schematic <sch> --output` (recommended with `--full`)
-- **SPICE simulator** *(optional)* — ngspice, LTspice, or Xyce for SPICE-enhanced PDN/filter checks. Auto-detected. Without one, analytical models run unchanged.
+- **SPICE simulator** *(optional)* — ngspice, LTspice, or Xyce for SPICE-enhanced PDN checks. Auto-detected. Without one, analytical models run unchanged.
 
 ## Workflow
 
@@ -68,7 +68,7 @@ python3 <skill-path>/scripts/analyze_emc.py \
 # One-off JSON (bypasses the cache)
 python3 <skill-path>/scripts/analyze_emc.py --schematic schematic.json --pcb pcb.json --output emc.json
 
-# SPICE-enhanced (improved PDN and filter accuracy)
+# SPICE-enhanced (improved PDN accuracy)
 python3 <skill-path>/scripts/analyze_emc.py --analysis-dir analysis/ --spice-enhanced
 
 # Select target standard
@@ -122,7 +122,7 @@ Read the JSON report and incorporate findings into the design review. Each findi
 | **PDN impedance** | PD-001 to PD-004 | Anti-resonance peaks, distributed rail impedance at IC load points, cross-rail coupling from downstream switching regulators |
 | **Return path** | RP-001 | Layer transition via without nearby ground stitching via |
 | **Crosstalk** | XT-001 | 3H spacing violation, aggressor-victim pairs |
-| **EMI filter** | EF-001, EF-002 | Filter cutoff too close to switching frequency (analytical or SPICE insertion loss) |
+| **EMI filter** | EF-001, EF-002 | Filter cutoff too close to switching frequency (analytical) |
 | **ESD path** | ES-001, ES-002 | TVS too far from connector, insufficient ground vias near TVS |
 | **Thermal-EMC** | TH-001, TH-002 | MLCC DC bias derating (SRF shift), ferrite near heat source |
 | **Shielding** | SH-001 | Connector aperture slot resonance near emission source |
@@ -180,7 +180,7 @@ Read the JSON report and incorporate findings into the design review. Each findi
 | **warning** | May cause issues depending on specifics | Review and assess |
 | **info** | Informational — frequencies, estimates, good practice | Useful for lab prep |
 
-`--severity` takes the older five-level names as the threshold: `critical` and `high` keep `error` findings, `medium` keeps `error` and `warning`, `low` and `all` keep everything.
+`--severity` takes `error`, `warning` or `info`, or the older five-level names: `critical` and `high` keep `error` findings, `medium` keeps `error` and `warning`, `low` and `all` keep everything.
 
 ### Risk Score
 

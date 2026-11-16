@@ -1,7 +1,6 @@
-<p align="center">
-  <img alt="" src="assets/icon.svg" width="96" height="96">
-</p>
-<h1 align="center">Telegram Bot UI</h1>
+<h1 align="center">
+  <img alt="" src="assets/icon.svg" width="44" height="44" align="top">&nbsp;Telegram Bot UI
+</h1>
 
 <a href="https://github.com/hlibsuslov/telegram-bot-ui">
   <picture>
@@ -37,7 +36,7 @@
 </p>
 
 <p align="center">
-  🌐 <b>English</b> · <a href="README.ru.md">Русский</a> · <a href="README.uk.md">Українська</a>
+  🌐 <b>English</b> · <a href="README.uk.md">Українська</a> · <a href="README.ru.md">Русский</a>
 </p>
 
 ---
@@ -148,6 +147,13 @@ You can also call it by name: `/telegram-bot-ui` (Claude Code), `$telegram-bot-u
 The skill is one folder whose entry point is [`SKILL.md`](skills/telegram-bot-ui/SKILL.md). Every path below is checked
 against that host's documentation in [`docs/hosts.md`](docs/hosts.md).
 
+**Two editions.** This repository is the full version: the skill plus validators, a publishing tool, widget kits and
+runnable examples. The Claude plugin directory accepts no scripts from unverified publishers, so it gets a
+documentation-only edition: the skill, references, recipes, subagents and the Bot API catalog split into one JSON file
+per method and type (branch [`claude-directory`](https://github.com/hlibsuslov/telegram-bot-ui/tree/claude-directory),
+built by `scripts/build_directory_edition.py`). It fits the Claude apps, where scripts can't run anyway. In Claude Code
+prefer the full version, and install only one of the two: they share the name `telegram-bot-ui`.
+
 <details open>
 <summary><b>Claude Code — plugin (skill + five subagents)</b></summary>
 
@@ -193,7 +199,7 @@ gh skill install hlibsuslov/telegram-bot-ui telegram-bot-ui --agent claude-code 
 
 `--agent` takes `claude-code`, `codex`, `cursor`, `gemini-cli`, `github-copilot`, `antigravity`,
 `cline`, `opencode` and dozens more (`gh skill install --help`); without `--scope user` the skill goes into
-the current repository. You get the latest tagged release; pin one with `--pin v2.1.0` and update with
+the current repository. You get the latest tagged release; pin one with `--pin v2.2.0` and update with
 `gh skill update`. Subagents are not included: use the Claude Code plugin or the installer below for them.
 
 </details>

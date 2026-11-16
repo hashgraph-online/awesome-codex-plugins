@@ -55,7 +55,7 @@ caller's own items.
 | `workflows.list` | `bifrost workflows list` | `bifrost_workflow_list` | `workflows.read` |
 | `workflows.validate` | `bifrost workflows validate` | `bifrost_workflow_validate` | `workflows.read` |
 | `workflows.register` | `bifrost workflows register` | `bifrost_workflow_register` | `workflows.readwrite`, `repository.read` |
-| `workflows.execute` | `bifrost workflows execute` | `bifrost_workflow_execute` | `workflows.execute` |
+| `workflows.execute` | `bifrost workflows execute` | `bifrost_workflow_execute` | `workflows.execute`, `code.execute` |
 | `workflows.parameters` | — | — | `workflows.execute` |
 | `workflows.get` | `bifrost workflows get` | `bifrost_workflow_get` | `workflows.read` |
 | `workflows.update` | `bifrost workflows update` | `bifrost_workflow_update` | `workflows.readwrite` |

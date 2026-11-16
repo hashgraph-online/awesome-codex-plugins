@@ -169,6 +169,12 @@ Widgets have **no accessibility semantics** in profile 1: `aria-*` is kept but d
   state, already localized; the HTML carries only chrome (buttons, statuses, error sentences).
 * Cyrillic is 2 bytes per letter in UTF-8 and compresses worse: budget ≈ 170 bytes more per
   language than English (measured on the gallery).
+* Budget escape for a **static** widget whose `public_data` is otherwise unused: move the chrome
+  strings there as a JSON array and index them (`T[3]`). Field report: 19 short Russian strings
+  cost ~410 compressed bytes in the HTML, enough room for a small image once moved (Heuristic).
+  Costs: `public_data` travels with forwards and is visible to anyone (fine for UI text, never
+  for data), the widget needs a fallback when it is `null`, and it is not available for shared
+  widgets, where `public_data` is the live shared state.
 
 ## 11. The caption and the fallback mirror the widget
 

@@ -309,7 +309,7 @@ The `delta_pct` field is only present for numeric comparisons where the base val
 
 ### Text Output
 
-The `--text` flag renders a summary header followed by per-section detail. Items are capped at `MAX_TEXT_ITEMS` (20) with a "... and N more changes" footer counting the listed items not printed. Per-section caps: 5 items for components/footprints/findings, 3 items for signal analysis detections per type. Routing, unrouted and statistics changes print as `base → head` lines; the findings block is labelled by source (`EMC Findings:`, `PCB Findings:`, `Thermal Findings:`). `--output` files are written as UTF-8.
+The `--text` flag renders a summary header followed by per-section detail. Items are capped at `MAX_TEXT_ITEMS` (20) with a "... and N more changes" footer counting the listed items not printed. Per-section caps: 5 items for components/footprints/findings, 3 items for signal analysis detections per type. Routing, unrouted and statistics changes print as `base → head` lines; the findings block is labelled by source (`EMC Findings:`, `PCB Findings:`, `Thermal Findings:`). `--output` files are written as UTF-8. When both runs hashed the same source file contents with the same config, a second line says the design files are unchanged and the changes come from the analyzer; JSON mode prints that sentence to stderr.
 
 Format:
 

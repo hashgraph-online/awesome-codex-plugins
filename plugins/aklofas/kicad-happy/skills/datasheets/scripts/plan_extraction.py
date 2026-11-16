@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -61,13 +60,7 @@ def _now_iso() -> str:
 
 
 def _load_existing_extraction(cache_dir: Path, mpn: str) -> dict | None:
-    p = cache_dir / f"{sanitize_mpn(mpn)}.json"
-    if not p.exists():
-        return None
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
-        return None
+    return read_json_object(cache_dir / f"{sanitize_mpn(mpn)}.json")
 
 
 def _is_cache_current(existing: dict, pdf_sha: str) -> bool:
@@ -95,14 +88,9 @@ def _drop_stale_results(cache_dir: Path, mpn: str, pdf_sha: str) -> None:
           file=sys.stderr)
 
 
-def _load_scout(cache_dir: Path, mpn: str) -> dict:
-    p = cache_dir / f"{sanitize_mpn(mpn)}.scout.json"
-    if not p.exists():
-        raise FileNotFoundError(
-            f"Cached scout not found at {p}. Run scout subagent and write its data here, "
-            f"or invoke without --use-cached-scout (live scout requires a dispatcher)."
-        )
-    return json.loads(p.read_text(encoding="utf-8"))
+def _load_scout(cache_dir: Path, mpn: str) -> dict | None:
+    """The saved scout, or None when it is missing or not a readable JSON object."""
+    return read_json_object(cache_dir / f"{sanitize_mpn(mpn)}.scout.json")
 
 
 def _build_plan(mpn: str, pdf_path: Path, pdf_sha: str, cache_dir: Path, scout: dict) -> dict:
@@ -200,6 +188,14 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     scout = _load_scout(args.cache_dir, args.mpn)
+    if scout is None:
+        print(
+            f"error: no readable cached scout at {args.cache_dir / (sanitize_mpn(args.mpn) + '.scout.json')}; "
+            "run the scout (references/dispatch-claude-code.md Step 1), save its output there, "
+            "then re-run with --use-cached-scout",
+            file=sys.stderr,
+        )
+        return 2
     scout_sha = scout.get("pdf_sha256")
     if scout_sha is None:
         print(f"warning: cached scout for {args.mpn} has no PDF SHA; re-scout if the PDF changed",
@@ -235,7 +231,9 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

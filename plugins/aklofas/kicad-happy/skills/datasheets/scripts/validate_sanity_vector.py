@@ -146,7 +146,11 @@ def main(argv: list[str] | None = None) -> int:
 
     import yaml
     vector = yaml.safe_load(args.vector_path.read_text(encoding="utf-8"))
-    extraction = json.loads(args.extraction_path.read_text(encoding="utf-8"))
+    try:
+        extraction = json.loads(args.extraction_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, RecursionError) as exc:
+        print(f"error: extraction file is not valid JSON: {exc}", file=sys.stderr)
+        return 1
     report = diff(vector, extraction)
     print(json.dumps(report, indent=2, default=str))
     return 0 if report["summary"]["failed"] == 0 else 1
@@ -154,7 +158,9 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

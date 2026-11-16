@@ -13,7 +13,7 @@ from envelopes.pcb import PCBEnvelope
 from schema_codec import emit_schema
 from inputs_builder import build_inputs, build_compat
 from capability_mode import get_capability_mode_ref
-from kicad_core.fileio import atomic_write_text
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.cli import (add_compact_arg, add_config_arg, add_only_deterministic_arg,
                             add_output_arg, add_schema_arg, add_stage_audience_args, add_text_arg,
                             utf8_text_stdout)
@@ -105,9 +105,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.schematic:
         try:
             with open(args.schematic, encoding="utf-8") as f:
-                schematic_data = json.load(f)
-        except (json.JSONDecodeError, OSError) as e:
+                schematic_data = json_load(f)
+        except (ValueError, OSError) as e:
             print(f"Warning: cannot load schematic analysis: {e}", file=sys.stderr)
+        if schematic_data is not None and not isinstance(schematic_data, dict):
+            print(f"Warning: cannot load schematic analysis: {args.schematic} "
+                  f"is not a JSON object", file=sys.stderr)
+            schematic_data = None
         if (schematic_data and 'signal_analysis' in schematic_data
                 and 'findings' not in schematic_data):
             print(f'Warning: {args.schematic} uses the pre-v1.3 '
@@ -150,16 +154,15 @@ def main(argv: list[str] | None = None) -> int:
     indent = None if args.compact else 2
     output = json.dumps(result, indent=indent, default=str)
 
-    if args.analysis_dir:
+    if args.output:
+        atomic_write_text(args.output, output, follow_symlinks=False)
+        print(f"Written to {args.output}", file=sys.stderr)
+    elif args.analysis_dir:
         from output_io import write_primary_run
         write_primary_run(args.analysis_dir, output, analyzer="pcb", source_path=args.pcb,
                           script_name="analyze_pcb.py", track_in_git=False,
                           diff_threshold=analysis_cfg.get("diff_threshold", "major"),
                           retention=int(analysis_cfg.get("retention", 0) or 0))
-
-    elif args.output:
-        atomic_write_text(args.output, output, follow_symlinks=False)
-        print(f"Written to {args.output}", file=sys.stderr)
     else:
         print(output)
     return 0

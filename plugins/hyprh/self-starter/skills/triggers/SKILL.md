@@ -25,7 +25,7 @@ Keep offers unobtrusive and consent-first:
 ## Creating a trigger
 
 1. **Clarify first**, in one short question if anything important is ambiguous: the exact condition (intraday price or close? which log line means done?), how quickly the user needs to know, whether to act once or every time, and what should happen when it fires: only a notification, or a task for Codex (which one?).
-2. **Check the ready-made recipes** with `trigger_recipes`. If one fits, use it: pass `recipe` to `trigger_draft` with only its parameters, and skip writing a probe.
+2. **Check the ready-made recipes** with `trigger_recipes` (such as `github-ci`, `log-watch`, `http-health`, `futu-news`, `ibkr-account`). If one fits, use it: pass `recipe` to `trigger_draft` with only its parameters, and skip writing a probe.
 3. **Otherwise, find where to look.** The probe runs on the user's machine with their permissions, so it can read files and logs, run the commands and CLIs the user has (`git`, `gh`, `docker`, the scripts of another skill), talk to local services, or call web APIs. Prefer output that is already structured: a JSON API, a command with `--json`. If an API key is needed, ask the user to store it in a terminal with `self-starter secret set NAME`. Never ask for a key in the chat, and never put one in the code or the params.
 4. **Write the probe and the definition** following the contract below.
 5. **Call `trigger_draft`.** It checks everything, saves the draft and runs the probe once. If the trial run fails or its result looks wrong, fix it and call `trigger_draft` again.

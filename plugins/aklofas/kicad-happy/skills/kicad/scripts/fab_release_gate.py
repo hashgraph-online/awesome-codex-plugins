@@ -22,6 +22,7 @@ import sys
 import time
 from typing import Any, Dict, List, Optional
 
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.cli import envelope_type_error
 from kicad_core.render import normalize_severity
 
@@ -57,14 +58,23 @@ def check_routing(pcb: Dict) -> List[Dict]:
     complete = conn.get("routing_complete", False)
 
     if complete or unrouted == 0:
-        return [_check("routing", "routing_completeness", "pass",
-                        f"All nets routed ({total}/{total})")]
+        if "connectivity_graph" in pcb:
+            msg = f"All nets routed ({total}/{total})"
+        else:
+            msg = (f"Every multi-pad net has copper ({total} nets); run "
+                   "analyze_pcb.py --full to check each pad is connected")
+        return [_check("routing", "routing_completeness", "pass", msg)]
 
     # The analyzer moves its unrouted entries into findings[] as RT-001.
     unrouted_list = sorted({n for f in pcb.get("findings", [])
                             if isinstance(f, dict) and f.get("rule_id") == "RT-001"
                             for n in (f.get("nets") or [])[:1]}
                            | {u.get("net_name", "?") for u in conn.get("unrouted", [])})
+    if not unrouted_list:
+        return [_check("routing", "routing_completeness", "warn",
+                        f"{unrouted} unrouted net(s) are counted without an RT-001 "
+                        "finding; does the board's DRC ignore unconnected items?",
+                        {"unrouted_count": unrouted, "unrouted_nets": []})]
     return [_check("routing", "routing_completeness", "fail",
                     f"{unrouted} unrouted net(s) out of {total}",
                     {"unrouted_count": unrouted, "unrouted_nets": unrouted_list})]
@@ -199,23 +209,33 @@ def check_consistency(sch: Dict, pcb: Dict) -> List[Dict]:
     pcb_fp = pcb_stats.get("footprint_count",
                             len(pcb.get("footprints", [])))
 
+    fps = pcb.get("footprints")
+    fps = [f for f in fps if isinstance(f, dict)] if isinstance(fps, list) else []
+    board_only = sum(1 for f in fps if f.get("board_only"))
+    pcb_dnp = sum(1 for f in fps if f.get("dnp") and not f.get("board_only"))
+    pcb_fp -= board_only + pcb_dnp
+    excluded = [f"{n} {what}" for n, what in ((board_only, "board-only"),
+                                              (pcb_dnp, "DNP")) if n]
+    pcb_label = (f"{pcb_fp} footprints" if not excluded else
+                 f"{pcb_fp} footprints; {' and '.join(excluded)} not counted")
+
     comp_diff = abs(sch_placeable - pcb_fp)
     pct_diff = (comp_diff / max(sch_placeable, 1)) * 100
 
     if comp_diff == 0:
         checks.append(_check("consistency", "component_count", "pass",
                               f"Schematic ({sch_placeable} placeable) matches "
-                              f"PCB ({pcb_fp} footprints)"))
+                              f"PCB ({pcb_label})"))
     elif comp_diff <= 3 or pct_diff <= 5:
         checks.append(_check("consistency", "component_count", "warn",
                               f"Small component count gap: schematic {sch_placeable} "
-                              f"vs PCB {pcb_fp} (diff {comp_diff})",
+                              f"vs PCB {pcb_label} (diff {comp_diff})",
                               {"schematic_placeable": sch_placeable,
                                "pcb_footprints": pcb_fp, "difference": comp_diff}))
     else:
         checks.append(_check("consistency", "component_count", "fail",
                               f"Component count mismatch: schematic {sch_placeable} "
-                              f"vs PCB {pcb_fp} (diff {comp_diff}, {pct_diff:.0f}%)",
+                              f"vs PCB {pcb_label} (diff {comp_diff}, {pct_diff:.0f}%)",
                               {"schematic_placeable": sch_placeable,
                                "pcb_footprints": pcb_fp, "difference": comp_diff}))
 
@@ -261,7 +281,9 @@ def _pcb_has_holes(pcb: Optional[Dict]) -> Optional[bool]:
     metrics = dfm.get("metrics") if isinstance(dfm, dict) else None
     vias, tht = stats.get("via_count"), stats.get("tht_count")
     if ((isinstance(vias, int) and vias > 0) or (isinstance(tht, int) and tht > 0)
-            or (isinstance(metrics, dict) and "min_drill_mm" in metrics)):
+            or (isinstance(metrics, dict)
+                and isinstance(metrics.get("min_drill_mm"), (int, float))
+                and not isinstance(metrics.get("min_drill_mm"), bool))):
         return True
     if isinstance(vias, int) and isinstance(tht, int) and isinstance(metrics, dict):
         return False
@@ -384,7 +406,7 @@ def check_thermal(thermal_data: Optional[Dict]) -> List[Dict]:
             return [_check("thermal", "thermal_risk", "skip",
                             f"Thermal not scored: {reason}")]
         return [_check("thermal", "thermal_risk", "pass",
-                        f"Thermal score {score}/100 — no critical/high findings")]
+                        f"Thermal score {score}/100 — no error/warning findings")]
 
 
 def check_emc(emc_data: Optional[Dict]) -> List[Dict]:
@@ -663,7 +685,7 @@ def main(argv=None) -> int:
                          f'{writer} writes (--output)')
         try:
             with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
+                data = json_load(f)
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
                          f'file {writer} writes (--output)')
@@ -694,8 +716,7 @@ def main(argv=None) -> int:
         print(format_text_report(result))
     elif args.output:
         indent = None if args.compact else 2
-        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(result, f, indent=indent)
+        atomic_write_text(args.output, json.dumps(result, indent=indent), follow_symlinks=False)
         overall = result["overall_status"]
         total = result["summary"]["total_checks"]
         print(f"Gate: {overall} — {total} checks → {args.output}",

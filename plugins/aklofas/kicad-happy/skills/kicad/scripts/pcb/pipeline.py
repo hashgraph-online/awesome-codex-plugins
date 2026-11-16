@@ -20,15 +20,16 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from kicad_core.sexp import get_value, parse_file
+from kicad_core.sexp import get_value, parse_file_checked
 from kicad_core.project import (load_kicad_pro, extract_pro_net_classes,
                                 extract_pro_design_rules, extract_pro_text_variables,
                                 load_kicad_dru_checked, load_lib_tables,
-                                find_project_settings_file, ignored_drc_checks)
+                                find_project_settings_file, ignored_drc_checks,
+                                parse_input_problem)
 from kicad_core.diagnostics import record
 from kicad_core.model import PcbReaderState
 from pcb import reader
-from pcb.geometry import ZoneFills, outline_loops
+from pcb.geometry import ZoneFills, outline_board_area, outline_loops
 from pcb.reader import (
     _extract_keepout_zones,
     extract_silkscreen,
@@ -125,6 +126,12 @@ def _infer_stackup(copper_layers: list[str], board_thickness_mm: float | None,
     thickness_nm = round((board_thickness_mm if board_thickness_mm is not None else 1.6) * 1e6)
     diel_nm = int((thickness_nm - 35000 * len(order) - 10000 * mask_layers)
                   / max(1, len(order) - 1))
+    if len(order) == 1:
+        # one copper layer: the substrate lies on its inner side
+        diel = {"name": "dielectric 1", "type": "core", "thickness": diel_nm / 1e6,
+                "epsilon_r": 4.5, "material": "FR4"}
+        cu = {"name": order[0], "type": "copper", "thickness": 0.035}
+        return [cu, diel] if order[0] == "F.Cu" else [diel, cu]
     stackup = []
     for i, name in enumerate(order):
         stackup.append({"name": name, "type": "copper", "thickness": 0.035})
@@ -161,13 +168,27 @@ class BoardData:
     state: PcbReaderState
     diagnostics: list = field(default_factory=list)
     graphics: list = field(default_factory=list)
+    board_area_mm2: float | None = None
+
+
+def _board_area(root: list, outline: dict) -> float | None:
+    """The outline's bounding-box area, or the summed area of the outer outlines when Edge.Cuts
+    holds several boards (a footprint drawing on Edge.Cuts keeps the bounding box: that part of
+    the outline is not read)."""
+    bbox = outline.get("bounding_box")
+    if not bbox:
+        return None
+    area = None
+    if not reader.has_footprint_edge_cuts(root):
+        area = outline_board_area(outline.get("edges") or [])
+    return area if area is not None else bbox["width"] * bbox["height"]
 
 
 def read_board(path: str, *, state: PcbReaderState | None = None) -> BoardData:
     """Phase 1: parse + extract + the KiCad-10 synthetic net map (via *state*)."""
     state = state if state is not None else PcbReaderState()
 
-    root = parse_file(path)
+    root, parse_problem = parse_file_checked(path)
     reader.canonicalize_copper_layers(root)
 
     # module attribute on purpose: the harness patches pcb.reader.<name> (ARCHITECTURE.md facade register)
@@ -177,6 +198,9 @@ def read_board(path: str, *, state: PcbReaderState | None = None) -> BoardData:
         setup["stackup_source"] = "inferred"
     net_names = reader.extract_nets(root)
     diagnostics: list = []
+    unread = parse_input_problem(path, root, parse_problem, "kicad_pcb")
+    if unread:
+        record(diagnostics, "pcb.pipeline.read_board", ValueError(unread[0]), unread[1])
     footprints = reader.extract_footprints(root, diagnostics)
     tracks = reader.extract_tracks(root)
     vias = reader.extract_vias(root)
@@ -214,7 +238,8 @@ def read_board(path: str, *, state: PcbReaderState | None = None) -> BoardData:
     return BoardData(path=path, root=root, layers=layers, setup=setup, net_names=net_names,
                      footprints=footprints, tracks=tracks, vias=vias, zones=zones,
                      zone_fills=zone_fills, outline=outline, state=state,
-                     diagnostics=diagnostics, graphics=graphics)
+                     diagnostics=diagnostics, graphics=graphics,
+                     board_area_mm2=_board_area(root, outline))
 
 
 @dataclass
@@ -300,7 +325,8 @@ def run_facts(board: BoardData, *, include_trace_segments: bool, return_path_rad
     connectivity = analyze_connectivity(footprints, tracks, vias, net_names, zones,
                                         graphics=board.graphics)
 
-    stats = compute_statistics(footprints, tracks, vias, zones, outline, connectivity, net_names, layers=layers)
+    stats = compute_statistics(footprints, tracks, vias, zones, outline, connectivity, net_names, layers=layers,
+                               board_area_mm2=board.board_area_mm2)
 
     version = get_value(root, "version") or "unknown"
     generator_version = get_value(root, "generator_version") or "unknown"
@@ -369,7 +395,12 @@ def run_facts(board: BoardData, *, include_trace_segments: bool, return_path_rad
             net_classes = pro_net_classes
         else:
             net_classes = extract_net_classes(root)
-        pro_rules = extract_pro_design_rules(pro)
+        # a KiCad 5 board keeps its own design settings and net classes (board.cpp SetProject):
+        # the project's are not reported as the rules in use
+        board_rules = has_legacy_design_settings(root)
+        if board_rules:
+            pro_net_classes = None
+        pro_rules = None if board_rules else extract_pro_design_rules(pro)
         pro_text_vars = extract_pro_text_variables(pro)
         # Name the file that was actually loaded above, not an
         # independent rescan.
@@ -383,6 +414,8 @@ def run_facts(board: BoardData, *, include_trace_segments: bool, return_path_rad
             project_settings['design_rules'] = pro_rules
         if pro_text_vars:
             project_settings['text_variables'] = pro_text_vars
+        if board_rules:
+            project_settings['_board_rules'] = True
     else:
         net_classes = extract_net_classes(root)
     board_minima = effective_board_minima(root, pro)
@@ -392,7 +425,8 @@ def run_facts(board: BoardData, *, include_trace_segments: bool, return_path_rad
         project_settings['_ignored_drc_checks'] = ignored
 
     # Custom design rules (.kicad_dru)
-    custom_rules, dru_error = load_kicad_dru_checked(str(path))
+    custom_rules, dru_error = load_kicad_dru_checked(
+        str(path), layer_names=[n for layer in layers for n in (layer.get('name'), layer.get('alias')) if n])
     if custom_rules:
         project_settings['custom_rules'] = custom_rules
     if dru_error:
@@ -500,7 +534,8 @@ def run_checks(board: BoardData, facts: PcbFacts, *, include_trace_segments: boo
     # Placement analysis (courtyard overlaps, edge clearance, density)
     ignored_checks = project_settings.get('_ignored_drc_checks', frozenset())
     placement = analyze_placement(footprints, outline,
-                                  check_overlaps='courtyards_overlap' not in ignored_checks)
+                                  check_overlaps='courtyards_overlap' not in ignored_checks,
+                                  board_area_mm2=board.board_area_mm2)
 
     # DFM (Design for Manufacturing) scoring
     design_rules = (project_settings.get('design_rules')
@@ -650,7 +685,8 @@ def finalize_for_cli(result: dict, config: dict, *, pcb_path: str, analysis_dir_
             }, indent=2), follow_symlinks=False)
             print(f"GP-001 debug: {len(gp001_debug_data)} samples written to {debug_path}",
                   file=sys.stderr)
-        except OSError as e:
+        except (OSError, SystemExit) as e:
+            # SystemExit: a held-open target on Windows; this file is best-effort
             print(f"GP-001 debug write failed: {e}", file=sys.stderr)
 
     # Attach project config summary to output for downstream consumers
@@ -678,8 +714,13 @@ def finalize_for_cli(result: dict, config: dict, *, pcb_path: str, analysis_dir_
         pcb_data_for_intent['net_names'] = net_names_dict
         bbox = result.get('board_outline', {}).get('bounding_box')
         if bbox:
-            pcb_data_for_intent['board_area_mm2'] = (
-                bbox.get('width', 0) * bbox.get('height', 0))
+            board_area = bbox.get('width', 0) * bbox.get('height', 0)
+            # a file with several boards: their summed area, not the box around them. The
+            # statistic is rounded to 0.1, so a single board keeps the unrounded box.
+            summed = (result.get('statistics') or {}).get('board_area_mm2')
+            if summed and summed != round(board_area, 1):
+                board_area = summed
+            pcb_data_for_intent['board_area_mm2'] = board_area
         intent = resolve_design_intent(config, pcb_data=pcb_data_for_intent)
         result['design_intent'] = intent
     except ImportError:

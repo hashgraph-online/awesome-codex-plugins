@@ -14,8 +14,9 @@ import tempfile
 from pathlib import Path
 
 from analysis_cache import (ensure_gitignore, MANIFEST_FILENAME, CANONICAL_OUTPUTS, _empty_manifest,
-                            create_run, get_current_run, hash_source_file, overwrite_current, prune_runs,
-                            outputs_landed, resolve_analysis_dir, save_manifest, should_create_new_run)
+                            create_run, get_current_run, hash_source_file, manifest_lock, overwrite_current,
+                            prune_runs, outputs_landed, resolve_analysis_dir, save_manifest,
+                            should_create_new_run)
 
 
 def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str, source_path: str,
@@ -43,17 +44,6 @@ def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str,
         except OSError:
             pass
 
-    # Ensure the target directory exists with manifest
-    os.makedirs(analysis_dir, exist_ok=True)
-    manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
-    if not os.path.isfile(manifest_path):
-        manifest = _empty_manifest()
-        manifest['project'] = pro_file
-        save_manifest(analysis_dir, manifest)
-    # Respect track_in_git config — skip .gitignore if user wants git tracking
-    if not track_in_git:
-        ensure_gitignore(analysis_dir)
-
     source_hashes = {}
     for path in (source_path, *extra_source_paths):
         h = hash_source_file(os.path.abspath(path))
@@ -64,22 +54,34 @@ def write_primary_run(analysis_dir_arg: str, output_text: str, *, analyzer: str,
         out_file = os.path.join(tmp_dir, CANONICAL_OUTPUTS.get(analyzer, f"{analyzer}.json"))
         Path(out_file).write_text(output_text, encoding='utf-8', newline="\n")
 
-        if should_create_new_run(analysis_dir, tmp_dir, diff_threshold):
-            if script_entry is None:
-                script_entry = f"{script_name} {os.path.basename(source_path)}"
-            run_id = create_run(
-                analysis_dir=analysis_dir,
-                outputs_dir=tmp_dir,
-                source_hashes=source_hashes,
-                scripts={analyzer: script_entry},
-            )
-            if retention > 0:
-                prune_runs(analysis_dir, retention)
-            if outputs_landed(os.path.join(analysis_dir, run_id), tmp_dir):
-                print(f"Analysis cached: {os.path.join(analysis_dir, run_id, os.path.basename(out_file))}", file=sys.stderr)
-        else:
-            if overwrite_current(analysis_dir, tmp_dir, source_hashes=source_hashes):
-                print(f"Analysis cache updated (current run)", file=sys.stderr)
+        # One lock from the first-run manifest through the decision and the write, so analyzers
+        # run in parallel into one analysis dir extend one run instead of overwriting each other.
+        with manifest_lock(analysis_dir):
+            manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
+            if not os.path.isfile(manifest_path):
+                manifest = _empty_manifest()
+                manifest['project'] = pro_file
+                save_manifest(analysis_dir, manifest)
+            # Respect track_in_git config — skip .gitignore if user wants git tracking
+            if not track_in_git:
+                ensure_gitignore(analysis_dir)
+
+            if should_create_new_run(analysis_dir, tmp_dir, diff_threshold):
+                if script_entry is None:
+                    script_entry = f"{script_name} {os.path.basename(source_path)}"
+                run_id = create_run(
+                    analysis_dir=analysis_dir,
+                    outputs_dir=tmp_dir,
+                    source_hashes=source_hashes,
+                    scripts={analyzer: script_entry},
+                )
+                if retention > 0:
+                    prune_runs(analysis_dir, retention)
+                if outputs_landed(os.path.join(analysis_dir, run_id), tmp_dir):
+                    print(f"Analysis cached: {os.path.join(analysis_dir, run_id, os.path.basename(out_file))}", file=sys.stderr)
+            else:
+                if overwrite_current(analysis_dir, tmp_dir, source_hashes=source_hashes):
+                    print(f"Analysis cache updated (current run)", file=sys.stderr)
 
 
 def write_derived_output(analysis_dir_arg: str, output_text: str, *, analyzer: str) -> str | None:
@@ -94,9 +96,10 @@ def write_derived_output(analysis_dir_arg: str, output_text: str, *, analyzer: s
     filename = CANONICAL_OUTPUTS.get(analyzer, f"{analyzer}.json")
     with tempfile.TemporaryDirectory() as tmp_dir:
         Path(os.path.join(tmp_dir, filename)).write_text(output_text, encoding='utf-8', newline="\n")
-        if not overwrite_current(analysis_dir, tmp_dir, source_hashes=None):
-            return None
-    current = get_current_run(analysis_dir)
+        with manifest_lock(analysis_dir):
+            if not overwrite_current(analysis_dir, tmp_dir, source_hashes=None):
+                return None
+            current = get_current_run(analysis_dir)
     if current:
         return os.path.join(current[0], filename)
     return os.path.join(analysis_dir, filename)

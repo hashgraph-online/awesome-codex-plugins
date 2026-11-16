@@ -104,14 +104,16 @@ Record findings in `analysis/deep_review.json` per
   `thermal`, `protection`, `required_externals`) — the diff and the
   summary group by it.
 - Datasheet quotes must be verbatim text from the cited page — the
-  gate greps the page via pdftotext; paraphrases quarantine. If the PDF is not
-  found, `pdftotext` is not installed, cannot run, or exits with an error
-  other than a missing page, the quote is not checked and the finding is
-  `partial`. A cited page below 1, or past the
-  last page of the PDF, quarantines the finding. Mid-quote
-  elision (`...` or `…`) is fine for trimming a long quote down to the
-  relevant clauses — each segment on either side must still appear on
-  the page, in order.
+  gate greps the page via pdftotext; paraphrases quarantine. The PDF is the
+  one `datasheets/manifest.json` names for the MPN (a download marked as the
+  wrong part is not used), else `<MPN>.pdf`, else the one `<MPN>_*.pdf` that
+  the manifest does not name for another part. If the PDF is not found,
+  `pdftotext` is not installed, cannot run, or exits with an error other
+  than a missing page, the quote is not checked and the finding is
+  `partial`. A cited page below 1, or past the last page of the PDF,
+  quarantines the finding. Mid-quote elision (`...` or `…`) is fine for
+  trimming a long quote down to the relevant clauses — each segment on
+  either side must still appear on the page, in order.
 - Page numbers are PDF page indexes (what pdftotext counts), not the
   printed page footer.
 - Computations cite the helper script path and paste its result line. The
@@ -124,13 +126,14 @@ Record findings in `analysis/deep_review.json` per
   PCB net name (case-insensitive).
 - A cited pin is `REF.PIN` by pin number or pin name (`U3.7`, `U3.VIN`,
   case-insensitive). It passes if that component has that pin in the run's
-  analyzer JSON; a floating pin counts. Names match exactly: when an
+  analyzer JSON; a floating pin counts. Names match case-insensitively, and
+  `RESET` matches a pin named `~{RESET}` (KiCad's active-low markup). When an
   alternate pin function is selected the analyzer lists the alternate's name,
   so cite such pins by number.
   A pin of a component whose pins the analyzer JSON does not list (a part
   listed without pins, a PCB-only footprint with a pad on no net), or a pin
-  name on a part listed by number only, is not checked and makes the
-  finding `partial`.
+  name on a part listed by number only or on a part some of whose pins carry
+  no name, is not checked and makes the finding `partial`.
 - The gate finds the run folder from `analysis/manifest.json` and the
   run id inside `--analysis-dir` (`--run` picks another), so a moved or
   copied analysis folder still gates; no absolute path is stored.

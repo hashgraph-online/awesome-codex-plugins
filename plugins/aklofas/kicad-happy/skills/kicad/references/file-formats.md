@@ -25,6 +25,8 @@ Modern KiCad schematic, board, symbol and footprint files use Lisp-like S-expres
 - **UUIDs**: stable object identifiers (KiCad 6+)
 - **Strings**: quoted if containing spaces/special chars
 
+The parser is `kicad_core/sexp.py` (`parse`, `parse_file`, `find_all`, `find_first`, `get_value`). The 2.x modules `sexp_parser` and `kicad_utils`, and the helpers once imported through `analyze_schematic` / `analyze_pcb`, were retired in 3.0; the v3.0.0 migration table in `CHANGELOG.md` lists each name's new home.
+
 ---
 
 ## Schematic (`.kicad_sch`)
@@ -380,3 +382,7 @@ JSON format. Key sections:
 - `net_settings.classes` - net class definitions (clearance, track width, via size per class)
 - `schematic.bom_settings` - BOM field configuration
 - `schematic.drawing` - default text/line sizes
+
+### kicad-cli DRC/ERC on a copied project
+
+Run `kicad-cli` DRC/ERC on the original project, or copy `fp-lib-table` and `sym-lib-table` (and the libraries they point to) along with it. On a copy without them every footprint and symbol raises library warnings that say nothing about the design: a copied `simple-project` gave 3 `lib_footprint_issues` in DRC and 5 `lib_symbol_issues` plus 3 `footprint_link_issues` in ERC (kicad-cli 10, JSON reports).

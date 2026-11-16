@@ -45,7 +45,10 @@ var K = {
     K.busy = 1;
     K.st(K.t("wait"));
     K.draw();
-    W.request(data).then(function (a) {
+    // request() throws TypeError synchronously for empty or > 64-byte data; the executor runs
+    // synchronously too (still inside the tap) and turns the throw into a rejection, so busy
+    // never stays set.
+    new Promise(function (r) { r(W.request(data)); }).then(function (a) {
       var r = {};
       try { r = JSON.parse(a.result) || {}; } catch (e) {}
       K.busy = 0;

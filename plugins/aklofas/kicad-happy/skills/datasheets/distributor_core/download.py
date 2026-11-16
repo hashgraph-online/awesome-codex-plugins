@@ -2,12 +2,13 @@
 manufacturer redirect normalisation (opt-in per provider), the Microchip alternative pattern.
 
 Every URL, and every redirect, must be http or https on a public address (see
-``url_problem``); a download stops at ``MAX_DOWNLOAD_BYTES`` or after
-``DOWNLOAD_TIMEOUT_S`` seconds."""
+``url_problem``), and each connection goes to the address that was checked; a download
+stops at ``MAX_DOWNLOAD_BYTES`` or after ``DOWNLOAD_TIMEOUT_S`` seconds."""
 
 import argparse
 import errno
 import http.client
+import io
 import ipaddress
 import math
 import os
@@ -119,8 +120,25 @@ class DownloadLimitExceeded(OSError):
 
 
 def _resolve(host: str) -> list[str]:
-    """The addresses ``host`` resolves to. The only DNS lookup in this module."""
-    return [info[4][0] for info in socket.getaddrinfo(host, None)]
+    """The addresses ``host`` resolves to, each once, in resolver order. The only DNS lookup
+    in this module."""
+    return list(dict.fromkeys(
+        info[4][0] for info in socket.getaddrinfo(host, None, type=socket.SOCK_STREAM)))
+
+
+_NAT64 = ipaddress.ip_network("64:ff9b::/96")
+
+
+def _embedded_ipv4(ip: ipaddress.IPv6Address) -> ipaddress.IPv4Address | None:
+    """The IPv4 address a NAT64, 6to4 or IPv4-compatible address reaches through a
+    translator; ``is_global`` judges only the IPv6 prefix of these."""
+    if ip in _NAT64:
+        return ipaddress.IPv4Address(int(ip) & 0xFFFFFFFF)
+    if ip.sixtofour is not None:
+        return ip.sixtofour
+    if int(ip) >> 32 == 0 and int(ip) > 1:
+        return ipaddress.IPv4Address(int(ip))
+    return None
 
 
 def _address_problem(text: str) -> str | None:
@@ -130,7 +148,12 @@ def _address_problem(text: str) -> str | None:
         return f"{text} is not an IP address"
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
         ip = ip.ipv4_mapped
-    if not ip.is_global or ip.is_multicast:
+    checked = [ip]
+    if isinstance(ip, ipaddress.IPv6Address):
+        embedded = _embedded_ipv4(ip)
+        if embedded is not None:
+            checked.append(embedded)
+    if any(not a.is_global or a.is_multicast for a in checked):
         return f"{text} is not a public address"
     return None
 
@@ -139,42 +162,48 @@ def url_problem(url: str, *, allow_private: bool) -> str | None:
     """``None`` when ``url`` may be downloaded, else a short reason. Only http and https
     with a host; every address the host resolves to must be public unless
     ``allow_private``."""
+    return _checked(url, allow_private)[0]
+
+
+def _checked(url: str, allow_private: bool) -> tuple[str | None, list[str]]:
+    """``url_problem`` and the addresses it checked (none when ``allow_private``)."""
     # Parsers disagree on where the host of such a URL ends (urlsplit and urllib3 split
     # ``http://a\\@b/`` differently), and a datasheet URL never needs credentials.
     if any(c == "\\" or c.isspace() or ord(c) < 32 or ord(c) == 127 for c in url):
-        return "a backslash, blank or control character in the URL"
+        return "a backslash, blank or control character in the URL", []
     try:
         parts = urllib.parse.urlsplit(url)
         host = parts.hostname
     except ValueError:
-        return "not a valid URL"
+        return "not a valid URL", []
     scheme = parts.scheme.lower()
     if scheme not in ("http", "https"):
-        return f"scheme {scheme or '(none)'} is not http or https"
+        return f"scheme {scheme or '(none)'} is not http or https", []
     if not host:
-        return "no host"
+        return "no host", []
     if "@" in parts.netloc:
-        return "credentials in the URL"
+        return "credentials in the URL", []
     if "%" in parts.netloc:
-        return "a percent-encoded host or port"
+        return "a percent-encoded host or port", []
     if not parts.netloc.isascii():
-        return "a non-ASCII host"
+        return "a non-ASCII host", []
     if allow_private:
-        return None
+        return None, []
     try:
         addresses = [str(ipaddress.ip_address(host))]
     except ValueError:
         try:
-            addresses = _resolve(host)
+            # Each pinned address is one connect attempt with the full socket timeout.
+            addresses = list(dict.fromkeys(_resolve(host)))
         except (OSError, UnicodeError) as exc:
-            return f"{host} does not resolve ({type(exc).__name__})"
+            return f"{host} does not resolve ({type(exc).__name__})", []
         if not addresses:
-            return f"{host} does not resolve"
+            return f"{host} does not resolve", []
     for address in addresses:
         problem = _address_problem(address)
         if problem:
-            return problem if address == host else f"{host}: {problem}"
-    return None
+            return (problem if address == host else f"{host}: {problem}"), []
+    return None, addresses
 
 
 def _allow_private_hosts() -> bool:
@@ -239,21 +268,47 @@ def _socket_timeout(deadline: float) -> float:
     return min(_SOCKET_TIMEOUT_S, remaining)
 
 
+def _pin(url: str, addresses: list[str]) -> None:
+    """Connect to ``url``'s host only at ``addresses``, the ones its check approved."""
+    host = urllib.parse.urlsplit(url).hostname
+    if host and addresses:
+        _call.pins[host] = addresses
+
+
 def _check_redirect(newurl: str) -> None:
-    problem = url_problem(newurl, allow_private=_allow_private_now())
+    problem, addresses = _checked(newurl, _allow_private_now())
     if problem:
         raise DownloadRefused(f"redirect to {newurl}: {problem}")
+    _pin(newurl, addresses)
 
 
-def _copy_bounded(chunks, f, deadline: float) -> int:
+def _pinned_create_connection(address, *args, **kwargs):
+    """``socket.create_connection`` to the checked addresses of a pinned host, so a DNS answer
+    that changes after the check is never used. A host without a pin (a proxy, or any host
+    when private hosts are allowed) connects as usual."""
+    host, port = address[:2]
+    pinned = getattr(_call, "pins", {}).get(str(host).lower())
+    if not pinned:
+        return socket.create_connection(address, *args, **kwargs)
+    error = None
+    for ip in pinned:
+        try:
+            return socket.create_connection((ip, port), *args, **kwargs)
+        except OSError as exc:
+            error = exc
+    raise error
+
+
+def _copy_bounded(chunks, f, deadline: float, limit: int | None = None) -> int:
     """Write ``chunks`` to ``f``; raise ``DownloadLimitExceeded`` past either limit."""
+    limit = MAX_DOWNLOAD_BYTES if limit is None else limit
     total = 0
     for chunk in chunks:
         if not chunk:
             continue
         total += len(chunk)
-        if total > MAX_DOWNLOAD_BYTES:
-            raise DownloadLimitExceeded(f"larger than {MAX_DOWNLOAD_BYTES:,} bytes")
+        if total > limit:
+            raise DownloadLimitExceeded(f"larger than {limit:,} bytes")
         if time.monotonic() > deadline:
             raise DownloadLimitExceeded(f"took longer than {DOWNLOAD_TIMEOUT_S:g} s")
         f.write(chunk)
@@ -374,9 +429,15 @@ def download_pdf(url: str, output_path: str, *, resolve_redirects: bool = True) 
     """Download a PDF from a URL, trying multiple methods.
 
     Strategy:
-    1. Try requests library (handles HTTP/2, all manufacturer sites)
-    2. Fall back to Python urllib (HTTP/1.1 only — some sites may timeout)
+    1. Try requests library (some manufacturer sites, such as analog.com, time out over
+       urllib but answer requests)
+    2. Fall back to Python urllib (some sites may timeout)
     3. Fall back to a headless browser (playwright) when installed
+
+    requests and urllib connect only to the addresses the check approved, except through a
+    proxy, which resolves the host itself. A ``requests`` older than 2.32.2 cannot be held
+    to those addresses and the browser resolves every host again, so while addresses are
+    checked (the default) neither is used; a note says so once per run.
 
     A URL the policy refuses (``url_problem``) is never fetched. A refused redirect or
     an exceeded limit ends the whole call: no other method is tried.
@@ -391,7 +452,7 @@ def download_pdf(url: str, output_path: str, *, resolve_redirects: bool = True) 
     """
     url = _encode_spaces(normalize_url(url, resolve_redirects=resolve_redirects))
     allow_private = _allow_private_hosts()
-    problem = url_problem(url, allow_private=allow_private)
+    problem, addresses = _checked(url, allow_private)
     if problem:
         print(f"Warning: download refused: {url}: {problem}", file=sys.stderr)
         return False
@@ -402,10 +463,10 @@ def download_pdf(url: str, output_path: str, *, resolve_redirects: bool = True) 
     os.close(fd)
 
     methods = []
-    if _requests is not None:
+    if _requests_usable(addresses):
         methods.append(("requests", _download_requests))
     methods.append(("urllib", _download_urllib))
-    if _sync_playwright is not None:
+    if _sync_playwright is not None and not addresses:
         methods.append(("playwright", _download_playwright))
 
     # A refusal or an exceeded limit ends the call as permanent: it drops a transport failure an
@@ -413,6 +474,8 @@ def download_pdf(url: str, output_path: str, *, resolve_redirects: bool = True) 
     prior_failure = getattr(_transport, "failure", None)
     _call.deadline = time.monotonic() + DOWNLOAD_TIMEOUT_S
     _call.allow_private = allow_private
+    _call.pins = {}
+    _pin(url, addresses)
     try:
         for name, fn in methods:
             try:
@@ -451,29 +514,98 @@ def download_pdf(url: str, output_path: str, *, resolve_redirects: bool = True) 
                     pass
             if os.path.exists(part_path):
                 os.truncate(part_path, 0)
+        if _sync_playwright is not None and addresses:
+            _note_once("playwright", "Note: the headless-browser fallback was not tried: the "
+                       "browser resolves each host itself, so it runs only when "
+                       "datasheets.allow_private_hosts is set in ~/.kicad-happy.json")
         return False
     finally:
         _call.deadline = None
         _call.allow_private = False
+        _call.pins = {}
         try:
             os.remove(part_path)
         except FileNotFoundError:
             pass
 
 
+_noted = set()
+
+
+def _note_once(key: str, text: str) -> None:
+    """Print ``text`` to stderr the first time ``key`` is noted in this process."""
+    if key in _noted:
+        return
+    _noted.add(key)
+    try:
+        print(text, file=sys.stderr)
+    except (OSError, UnicodeError, ValueError):
+        pass
+
+
+def _requests_usable(addresses: list[str]) -> bool:
+    """Whether ``requests`` may fetch a URL whose host was checked to ``addresses``: only when
+    it can be held to them, or nothing was checked (private hosts allowed)."""
+    if _requests is None:
+        return False
+    if _PinnedAdapter is not None or not addresses:
+        return True
+    _note_once("requests", f"Note: requests {getattr(_requests, '__version__', '?')} cannot be "
+               "held to the checked address (2.32.2 or newer can), so downloads use urllib")
+    return False
+
+
 # ---------------------------------------------------------------------------
 # Download methods
 # ---------------------------------------------------------------------------
+
+def _watched_session(on_connect, pins=None):
+    """A ``requests`` session whose connections hand their socket to ``on_connect`` once connected,
+    so a caller that gives up can shut the socket down; closing the session does not end a read
+    that is blocked on a server's headers. A session without a pool manager is returned as is."""
+    session = _requests.Session()
+    if pins and _PinnedAdapter is not None:
+        session.mount("http://", _PinnedAdapter(pins))
+        session.mount("https://", _PinnedAdapter(pins))
+    for scheme in ("http://", "https://"):
+        try:
+            manager = session.get_adapter(scheme).poolmanager
+            pools = dict(manager.pool_classes_by_scheme)
+        except AttributeError:
+            continue
+        key = scheme[:-3]
+
+        class Conn(pools[key].ConnectionCls):
+            def connect(self):
+                super().connect()
+                on_connect(self.sock)
+
+        class Pool(pools[key]):
+            ConnectionCls = Conn
+
+        pools[key] = Pool
+        # an instance attribute: the manager's default table is shared by every session
+        manager.pool_classes_by_scheme = pools
+    return session
+
 
 def _get_before_deadline(url: str, deadline: float, **kwargs):
     """A ``requests`` GET on a worker thread, so the deadline also holds while a server sends the
     status line and headers, before there is a response whose socket can be watched. At the
     deadline the call is abandoned; a response that still arrives is closed by the worker."""
-    box, lock = {}, threading.Lock()
+    box, lock, socks = {}, threading.Lock(), []
+    pins = dict(getattr(_call, "pins", {}))  # _call is per thread
+
+    def on_connect(sock):
+        with lock:
+            if box.get("abandoned"):
+                _shutdown(sock)
+            else:
+                socks.append(sock)
 
     def run():
         try:
-            with _requests.Session() as session:
+            with _watched_session(on_connect, pins) as session:
                 # Session.send reads a whole 3xx body even with allow_redirects=False;
                 # _download_requests follows each hop itself.
                 session.get_redirect_target = lambda resp: None
@@ -494,15 +626,19 @@ def _get_before_deadline(url: str, deadline: float, **kwargs):
     with lock:
         if not box:
             box["abandoned"] = True
+            for sock in socks:
+                _shutdown(sock)
             raise DownloadLimitExceeded(f"took longer than {DOWNLOAD_TIMEOUT_S:g} s")
     if "exc" in box:
         raise box["exc"]
     return box["resp"]
 
 
-def _download_requests(url: str, output_path: str) -> bool:
-    """Download using the requests library (handles HTTP/2, all manufacturers).
-    Redirects are followed here, each one checked against the policy."""
+def _download_requests(url: str, output_path: str, *, sink=None, headers=None,
+                       limit: int | None = None) -> bool:
+    """Download using the requests library.
+    Redirects are followed here, each one checked against the policy. ``sink`` (a binary file
+    object), ``headers`` and ``limit`` serve ``fetch_page_text``."""
     if _requests is None:
         return False
     deadline = _deadline()
@@ -511,7 +647,7 @@ def _download_requests(url: str, output_path: str) -> bool:
             resp = _get_before_deadline(
                 url,
                 deadline,
-                headers={"User-Agent": _USER_AGENT},
+                headers={"User-Agent": _USER_AGENT, **(headers or {})},
                 timeout=_socket_timeout(deadline),
                 allow_redirects=False,
                 stream=True,
@@ -524,12 +660,72 @@ def _download_requests(url: str, output_path: str) -> bool:
                     _check_redirect(url)
                     continue
                 resp.raise_for_status()
+                if sink is not None:
+                    return _copy_bounded(resp.iter_content(_CHUNK_BYTES), sink, deadline, limit) > 0
                 with open(output_path, "wb") as f:
                     total = _copy_bounded(resp.iter_content(_CHUNK_BYTES), f, deadline)
                 return total > 0
             finally:
                 resp.close()
     raise DownloadRedirectLimit(f"more than {_MAX_REDIRECTS} redirects")
+
+
+_PinnedAdapter = None
+# urllib3's connect error, as requests itself imports it (urllib3 is not imported here).
+# Without it or the pool-key hook (requests before 2.32.2), requests cannot be pinned and is
+# not used while addresses are checked.
+_ConnectTimeoutError = (getattr(_requests.adapters, "ConnectTimeoutError", None)
+                        if _requests is not None else None)
+if _ConnectTimeoutError is not None and hasattr(_requests.adapters.HTTPAdapter,
+                                                "build_connection_pool_key_attributes"):
+    from requests.exceptions import ConnectionError as _RequestsConnectionError
+    from requests.utils import select_proxy as _select_proxy
+
+    class _PinnedAdapter(_requests.adapters.HTTPAdapter):
+        """An adapter that connects a pinned host only to its checked addresses, each tried
+        in turn. The URL host stays the ``Host`` header, the TLS server name and the name
+        the certificate is checked against. A request through a proxy is not pinned."""
+
+        def __init__(self, pins):
+            super().__init__()
+            self._pins = pins
+            self._ip = None
+
+        def send(self, request, **kwargs):
+            addresses = None
+            if not _select_proxy(request.url, kwargs.get("proxies")):
+                addresses = self._pins.get(urllib.parse.urlsplit(request.url).hostname)
+            if not addresses:
+                return super().send(request, **kwargs)
+            error = None
+            for ip in addresses:
+                self._ip = ip
+                try:
+                    return super().send(request, **kwargs)
+                except _RequestsConnectionError as exc:
+                    reason = getattr(exc.args[0] if exc.args else None, "reason", None)
+                    if not isinstance(reason, _ConnectTimeoutError):
+                        raise
+                    error = exc
+                finally:
+                    self._ip = None
+            raise error
+
+        def add_headers(self, request, **kwargs):
+            if self._ip is not None:
+                request.headers["Host"] = urllib.parse.urlsplit(request.url).netloc
+
+        def get_connection_with_tls_context(self, request, verify, proxies=None, cert=None):
+            if self._ip is None:
+                return super().get_connection_with_tls_context(request, verify, proxies, cert)
+            host_params, pool_kwargs = self.build_connection_pool_key_attributes(
+                request, verify, cert)
+            host = host_params["host"]
+            host_params["host"] = self._ip
+            if host_params["scheme"] == "https":
+                pool_kwargs["server_hostname"] = host
+                pool_kwargs["assert_hostname"] = host
+            return self.poolmanager.connection_from_host(**host_params, pool_kwargs=pool_kwargs)
 
 
 class _CheckedRedirectHandler(urllib.request.HTTPRedirectHandler):
@@ -541,14 +737,25 @@ class _CheckedRedirectHandler(urllib.request.HTTPRedirectHandler):
 
 
 # No file:, ftp: or data: handler: only http(s), every redirect checked. The proxy handler
-# keeps http_proxy/https_proxy working; the policy still checks the target URL.
+# keeps http_proxy/https_proxy working; the policy still checks the target URL, but the
+# proxy resolves it, so the pin does not apply there.
 class _WatchedHTTPConnection(http.client.HTTPConnection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._create_connection = _pinned_create_connection
+
     def connect(self):
         super().connect()
         _watch_current(self.sock)
 
 
+# The pin changes only the address: http.client still sends the host name for SNI and
+# checks the certificate against it.
 class _WatchedHTTPSConnection(http.client.HTTPSConnection):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._create_connection = _pinned_create_connection
+
     def connect(self):
         super().connect()
         _watch_current(self.sock)
@@ -581,16 +788,53 @@ def _urllib_opener() -> urllib.request.OpenerDirector:
     return opener
 
 
-def _download_urllib(url: str, output_path: str) -> bool:
-    """Download using Python urllib (fallback, HTTP/1.1 only)."""
+def _download_urllib(url: str, output_path: str, *, sink=None, headers=None,
+                     limit: int | None = None) -> bool:
+    """Download using Python urllib (fallback, HTTP/1.1 only). ``sink``, ``headers`` and ``limit``
+    serve ``fetch_page_text``."""
     deadline = _deadline()
-    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})
+    req = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT, **(headers or {})})
     with _Watchdog(deadline) as watchdog:
         with _urllib_opener().open(req, timeout=_socket_timeout(deadline)) as resp:
             watchdog.watch(resp)
+            if sink is not None:
+                return _copy_bounded(iter(lambda: resp.read(_CHUNK_BYTES), b""), sink, deadline, limit) > 0
             with open(output_path, "wb") as f:
                 total = _copy_bounded(iter(lambda: resp.read(_CHUNK_BYTES), b""), f, deadline)
     return total > 0
+
+
+def fetch_page_text(url: str, *, max_bytes: int = 4 * 2**20, timeout_s: float = 30.0,
+                    headers: dict | None = None) -> str:
+    """The text of a web page, fetched under the same policy as ``download_pdf``: public addresses
+    only, every redirect checked, a size and a time limit. A refused URL or any failure gives
+    ``""``; a failed page read is not recorded as a transport failure."""
+    allow_private = _allow_private_hosts()
+    problem, addresses = _checked(url, allow_private)
+    if problem:
+        print(f"Warning: page fetch refused: {url}: {problem}", file=sys.stderr)
+        return ""
+    _call.deadline = time.monotonic() + timeout_s
+    _call.allow_private = allow_private
+    _call.pins = {}
+    _pin(url, addresses)
+    buf = io.BytesIO()
+    try:
+        for fn in ((_download_requests,) if _requests_usable(addresses) else ()) + (_download_urllib,):
+            buf.seek(0)
+            buf.truncate()
+            try:
+                if fn(url, "", sink=buf, headers=headers, limit=max_bytes):
+                    return buf.getvalue().decode("utf-8", errors="ignore")
+            except (DownloadRefused, DownloadLimitExceeded):
+                return ""
+            except Exception:
+                pass
+        return ""
+    finally:
+        _call.deadline = None
+        _call.allow_private = False
+        _call.pins = {}
 
 
 def _ms_left(deadline: float, cap_ms: float) -> float:
@@ -628,6 +872,11 @@ def _policy_route(allow_private: bool, deadline: float):
     return handle
 
 
+def _check_deadline(deadline: float) -> None:
+    if time.monotonic() >= deadline:
+        raise DownloadLimitExceeded(f"took longer than {DOWNLOAD_TIMEOUT_S:g} s")
+
+
 def _download_playwright(url: str, output_path: str) -> bool:
     """Download using Playwright headless browser.
 
@@ -635,18 +884,28 @@ def _download_playwright(url: str, output_path: str) -> bool:
     (Broadcom doc viewer, Espressif, etc.). Handles two patterns:
     1. Page triggers a file download (intercepted via expect_download)
     2. Page navigates directly to a PDF (read from response body)
+
+    ``page.route`` does not see service-worker requests or WebSockets, so service workers
+    are blocked and every WebSocket is closed.
     """
     with _sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
+        context = None
         try:
+            context = browser.new_context(service_workers="block")
+            page = context.new_page()
             deadline = _deadline()
+            if hasattr(page, "route_web_socket"):  # Playwright 1.48+
+                page.route_web_socket("**/*", lambda ws: ws.close())
             page.route("**/*", _policy_route(_allow_private_now(), deadline))
             # First try: expect a download event (some sites trigger JS downloads)
             try:
                 with page.expect_download(timeout=_ms_left(deadline, 15000)) as dl_info:
-                    page.goto(url, timeout=_ms_left(deadline, 15000),
-                              wait_until="domcontentloaded")
+                    try:
+                        page.goto(url, timeout=_ms_left(deadline, 15000),
+                                  wait_until="domcontentloaded")
+                    except Exception:
+                        pass  # a URL that starts a download aborts its own navigation
                 download = dl_info.value
                 download.save_as(output_path)
                 if os.path.exists(output_path) and os.path.getsize(output_path) > MAX_DOWNLOAD_BYTES:
@@ -657,8 +916,13 @@ def _download_playwright(url: str, output_path: str) -> bool:
                 pass
 
             # Second try: navigate and read the response body directly
+            _check_deadline(deadline)
             resp = page.goto(url, timeout=_ms_left(deadline, 20000), wait_until="domcontentloaded")
             if resp is None:
+                return False
+            _check_deadline(deadline)
+            length = resp.headers.get("content-length", "")
+            if length.isdigit() and int(length) > MAX_DOWNLOAD_BYTES:
                 return False
             body = resp.body()
             if body and len(body) <= MAX_DOWNLOAD_BYTES and body[:4] == b"%PDF":
@@ -667,7 +931,8 @@ def _download_playwright(url: str, output_path: str) -> bool:
                 return True
             return False
         finally:
-            page.close()
+            if context is not None:
+                context.close()
             browser.close()
 
 

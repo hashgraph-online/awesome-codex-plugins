@@ -42,10 +42,19 @@ def compressed_size(html: str) -> int:
 _RUNTIME_GAPS = [
     (r"\bfetch\s*\(|XMLHttpRequest|new\s+WebSocket|EventSource|sendBeacon",
      "network APIs throw NetworkDisabledError - widgets are offline; ask the bot via TelegramWidget.request()"),
-    (r"<\s*(input|select|textarea|option|fieldset)\b",
+    (r"<\s*(input|select|textarea|option|optgroup|fieldset|legend|datalist|output)\b",
      "form controls are removed - there is no keyboard input; use <button> or ask in the chat"),
-    (r"<\s*(iframe|video|audio|object|embed|dialog|progress|meter|template)\b",
+    (r"<\s*(iframe|video|audio|source|track|object|embed|dialog|progress|meter|template|slot|"
+     r"meta|base|portal|frame|frameset|fencedframe|math|ruby)\b",
      "element is outside widget profile 1 and is removed"),
+    (r"<\s*(center|font|big|tt|strike|nobr)\b",
+     "legacy presentational elements are outside profile 1; style with CSS"),
+    (r"<[a-zA-Z][^<>]*\s(contenteditable|draggable|tabindex|autofocus|accesskey|spellcheck|inputmode|"
+     r"enterkeyhint|autocapitalize|popover|align|valign|bgcolor|cellpadding|cellspacing|face|nowrap|"
+     r"border|color)(\s*=|[\s/>])",
+     "attribute outside profile 1 (editing, focus, popover or legacy presentational) is removed"),
+    (r"data:image/(avif|bmp|x-icon|vnd\.microsoft\.icon)",
+     "data: AVIF, BMP and ICO images are out; use PNG, JPEG, GIF or WebP"),
     (r"<\s*script[^>]*\bsrc\s*=|<\s*link\b|@import|@font-face",
      "external scripts, stylesheets and fonts are never loaded; inline everything"),
     (r"<\s*img[^>]*\bsrc\s*=\s*(?![\"']?data:)",
@@ -66,6 +75,16 @@ _RUNTIME_GAPS = [
      "no libraries are bundled or fetched (Chart.js, D3 by CDN do not run) - draw with SVG/canvas"),
     (r"requestFullscreen|navigator\.share|navigator\.vibrate|geolocation|new\s+Worker",
      "browser API not available in widgets"),
+    (r"\b(getImageData|putImageData|toDataURL|toBlob|createPattern|createConicGradient)\s*\(|"
+     r"globalCompositeOperation|\bshadow(Blur|Color|Offset[XY])\s*=",
+     "canvas pixel access, patterns, conic gradients, shadows and compositing are outside profile 1"),
+    (r"<\s*(clipPath|mask|pattern|marker|foreignObject|animate|animateTransform|animateMotion|image)\b",
+     "SVG element outside profile 1 (clipPath, mask, pattern, marker, foreignObject, SMIL, <image>)"),
+    (r"(?<![\w-])(margin|padding|inset|border)-(inline|block)(-(start|end))?\s*:|"
+     r"(?<![\w-])(column-count|columns)\s*:|display\s*:\s*(contents|flow-root)|"
+     r"background-clip\s*:\s*text|writing-mode\s*:",
+     "CSS layout outside profile 1 (logical properties, multi-column, display contents/flow-root, "
+     "background-clip:text, writing-mode)"),
 ]
 _SECRET_HINT = re.compile(r"(api[_-]?key|secret|password|bot\d{6,}:|bearer\s)", re.I)
 

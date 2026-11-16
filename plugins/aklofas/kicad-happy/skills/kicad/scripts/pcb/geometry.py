@@ -277,6 +277,65 @@ def point_in_outline(px: float, py: float, loops: list) -> bool:
     return _point_in_polys(px, py, loops)
 
 
+def _loops_intersect(loops: list) -> bool:
+    """True when two outline loops touch or cross, or one loop crosses itself (KiCad then
+    reports a malformed outline and gives no board area)."""
+    segs = []
+    for li, lp in enumerate(loops):
+        n = len(lp)
+        for k in range(n):
+            segs.append((li, k, n, lp[k], lp[(k + 1) % n]))
+    if not segs:
+        return False
+    xs = [p[0] for *_, a, b in segs for p in (a, b)]
+    ys = [p[1] for *_, a, b in segs for p in (a, b)]
+    cell = max(max(xs) - min(xs), max(ys) - min(ys), 1.0) / max(1.0, math.sqrt(len(segs)))
+    grid: dict[tuple[int, int], list[int]] = {}
+    for i, (*_, a, b) in enumerate(segs):
+        for gx in range(math.floor(min(a[0], b[0]) / cell), math.floor(max(a[0], b[0]) / cell) + 1):
+            for gy in range(math.floor(min(a[1], b[1]) / cell), math.floor(max(a[1], b[1]) / cell) + 1):
+                grid.setdefault((gx, gy), []).append(i)
+    tested: set = set()
+    for members in grid.values():
+        for x, i in enumerate(members):
+            li, ki, ni, a, b = segs[i]
+            for j in members[x + 1:]:
+                lj, kj, _, c, d = segs[j]
+                if li == lj and (abs(ki - kj) <= 1 or abs(ki - kj) == ni - 1):
+                    continue  # neighbours in one loop share a vertex
+                if (i, j) in tested:
+                    continue
+                tested.add((i, j))
+                if _segment_segment_distance(a[0], a[1], b[0], b[1],
+                                             c[0], c[1], d[0], d[1]) <= 1e-6:
+                    return True
+    return False
+
+
+def outline_board_area(edges: list[dict]) -> float | None:
+    """Summed area of the outer board outlines when Edge.Cuts holds several boards, as KiCad's
+    board statistics report it (a hole, slot or cutout inside a board is not subtracted).
+
+    None when the outline has a single outer loop, does not close, has a zero-length line, or has
+    loops that touch or cross (KiCad reports each as a malformed outline): the caller then uses
+    the bounding box.
+    """
+    if any(e.get("type") == "line" and e.get("start") == e.get("end") for e in edges or ()):
+        return None
+    loops = outline_loops(edges) if edges else None
+    if not loops or len(loops) < 2:
+        return None
+    outer = []
+    for i, loop in enumerate(loops):
+        others = [o for j, o in enumerate(loops) if j != i]
+        depth = sum(point_in_outline(loop[0][0], loop[0][1], [o]) for o in others)
+        if depth % 2 == 0:
+            outer.append(loop)
+    if len(outer) < 2 or _loops_intersect(loops):
+        return None
+    return sum(_shoelace_area_from_coords(lp) for lp in outer)
+
+
 def _shoelace_area_from_coords(coords: list[tuple[float, float]]) -> float:
     """Compute polygon area from coordinate list using shoelace formula."""
     n = len(coords)

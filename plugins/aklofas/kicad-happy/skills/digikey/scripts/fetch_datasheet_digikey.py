@@ -6,7 +6,8 @@ Handles manufacturer-specific quirks:
 - Protocol-relative URLs (//mm.digikey.com/...): adds https: prefix
 - Microchip: Redirects to login; uses alternative URL patterns as fallback
 - Various manufacturers that block bare urllib: uses requests library with
-  proper User-Agent (handles HTTP/2, redirects, and anti-bot checks)
+  proper User-Agent (some sites, such as analog.com, time out over urllib but
+  answer requests)
 
 Usage:
     python3 fetch_datasheet_digikey.py <url> [--output <path>]
@@ -17,7 +18,7 @@ environment variables.
 
 Dependencies:
     - requests (pip install requests) — preferred, handles all manufacturer sites
-    - Falls back to urllib if requests is not installed (some sites may fail)
+    - Falls back to urllib if requests is not installed or is older than 2.32.2 (some sites may fail)
 
 Exit codes:
     0 = success (PDF downloaded)

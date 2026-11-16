@@ -26,6 +26,57 @@ def _via_open_sides(via: dict, pad_layers: list | None) -> list[str]:
             if f"{side}.Cu" in reaches and layers & {f"{side}.Mask", "*.Mask", "F&B.Mask"}]
 
 
+def _copper_rank(layer: str) -> int | None:
+    """Stack position of a canonical copper layer name (F.Cu, In1.Cu ... In30.Cu, B.Cu)."""
+    if layer == "F.Cu":
+        return 0
+    if layer == "B.Cu":
+        return 99
+    if layer.startswith("In") and layer.endswith(".Cu") and layer[2:-3].isdigit():
+        return int(layer[2:-3])
+    return None
+
+
+def _via_span(via: dict) -> tuple[int, int] | None:
+    """(top, bottom) stack positions of the via; None when unknown (read as a through via)."""
+    span = [_copper_rank(l) for l in (via.get("layers") or [])[:2]]
+    if len(span) < 2 or None in span:
+        return None
+    return min(span), max(span)
+
+
+def _vias_reaching(vias: list[dict], layer: str) -> set[int]:
+    """ids of the vias whose copper reaches `layer`: their own span holds it, or they are
+    stacked at the same point on a chain of same-net vias that does."""
+    target = _copper_rank(layer)
+    stacks: dict[tuple, list[dict]] = {}
+    for v in vias:
+        stacks.setdefault((round(v["x"], 3), round(v["y"], 3), v.get("net")), []).append(v)
+    reach: set[int] = set()
+    for stack in stacks.values():
+        spans = {id(v): _via_span(v) for v in stack}
+        if target is None or any(sp is None for sp in spans.values()):
+            reach.update(spans)
+            continue
+        lo = hi = None
+        grown = True
+        joined: set[int] = set()
+        while grown:
+            grown = False
+            for v in stack:
+                top, bottom = spans[id(v)]
+                if id(v) in joined:
+                    continue
+                if (lo is None and top <= target <= bottom) or (
+                        lo is not None and top <= hi and bottom >= lo):
+                    joined.add(id(v))
+                    lo = top if lo is None else min(lo, top)
+                    hi = bottom if hi is None else max(hi, bottom)
+                    grown = True
+        reach.update(joined)
+    return reach
+
+
 def _mask_opening_size(pad: dict, w: float, h: float) -> tuple[float, float] | None:
     """Size of the pad's mask opening: a negative solder_mask_margin shrinks it on every
     side (KiCad's PAD::GetSolderMaskExpansion), and None when nothing is left open."""
@@ -407,22 +458,23 @@ def analyze_vias(vias: dict, footprints: list[dict],
         vx, vy = v["x"], v["y"]
         v_net = v.get("net", 0)
         v_layers = v.get("layers", ["F.Cu", "B.Cu"])
-        for pb in pad_boxes:
-            # Via must be on the same copper layer as the pad
-            if pb["layer"] not in v_layers:
-                continue
-            if _point_in_pad(vx, vy, pb["cx"], pb["cy"], pb["hw"] * 2, pb["hh"] * 2, pb["shape"], pb["angle"]):
-                same_net = v_net == pb["net"]
-                via_in_pad.append({
-                    "component": pb["ref"],
-                    "pad": pb["pad"],
-                    "via_x": round(vx, 3),
-                    "via_y": round(vy, 3),
-                    "via_drill": v.get("drill", 0),
-                    "same_net": same_net,
-                    "via_type": v["type"],
-                })
-                break  # Each via counted once
+        # Each via counted once. When several pads hold it (a rotated pin pad and the exposed
+        # pad's rectangle), take the pad on the via's net, then a numbered pad, then the smallest.
+        holders = [pb for pb in pad_boxes
+                   if pb["layer"] in v_layers
+                   and _point_in_pad(vx, vy, pb["cx"], pb["cy"], pb["hw"] * 2, pb["hh"] * 2,
+                                     pb["shape"], pb["angle"])]
+        if holders:
+            pb = min(holders, key=lambda b: (b["net"] != v_net, b["pad"] == "", b["hw"] * b["hh"]))
+            via_in_pad.append({
+                "component": pb["ref"],
+                "pad": pb["pad"],
+                "via_x": round(vx, 3),
+                "via_y": round(vy, 3),
+                "via_drill": v.get("drill", 0),
+                "same_net": v_net == pb["net"],
+                "via_type": v["type"],
+            })
 
     # --- Fanout pattern detection ---
     # BGA/QFN packages with many pads often have fanout vias —
@@ -561,7 +613,8 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
 
     For packages with exposed/thermal pads (large center pads), checks:
     - Tier 1: vias on the pad's net (any net when the pad has none) inside the
-      rotated 1.5x pad bounding box
+      rotated 1.5x pad bounding box whose copper reaches the pad's layer (their
+      own span, or a same-point stack of vias that does)
     - Tier 1b: footprint-embedded thru_hole pads on the pad's net
     - Tier 2: same-net vias outside the pad bbox but within an expanded
       search radius (max(w,h)*2.0 + 2.0 mm) whose copper continuity to
@@ -616,6 +669,7 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
     """
     # EQ-054: effective = Σ(drill/0.3)² (drill-weighted via count)
     all_vias = vias.get("vias", [])
+    reaching: dict[str, set[int]] = {}  # pad copper layer -> ids of the vias reaching it
     results: list[dict] = []
 
     for fp in footprints:
@@ -676,9 +730,15 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
 
             pad_shape = pad.get("shape", "rect")
             opening = _mask_opening_size(pad, w, h)
+            pad_copper = fp.get("layer", "F.Cu")
+            if pad_copper not in reaching:
+                reaching[pad_copper] = _vias_reaching(all_vias, pad_copper)
             for via in all_vias:
                 # A via of another net inside the pad is a short, not thermal copper.
                 if net_num > 0 and via.get("net", -1) != net_num:
+                    continue
+                # A blind or buried via whose stack stops short of the pad's copper is not under it.
+                if id(via) not in reaching[pad_copper]:
                     continue
                 vx, vy = via["x"], via["y"]
                 # Transform via position into pad-local coordinates
@@ -830,13 +890,14 @@ def analyze_thermal_pad_vias(footprints: list[dict], vias: dict,
                 raw_adequacy = "none"
 
             # When physical count meets threshold but drill weighting doesn't,
-            # use raw adequacy as primary — drill size is a secondary concern
-            # (many manufacturer reference designs use 0.2mm vias in thermal pads)
+            # the physical count lifts the grade to adequate — drill size is a secondary
+            # concern (many manufacturer reference designs use 0.2mm vias in thermal pads),
+            # but an effective count below the minimum is never "good"
             drill_penalized = (raw_adequacy in ("adequate", "good") and
                                adequacy in ("insufficient", "none") and
                                total_verified_via_count > 0)
             if drill_penalized:
-                adequacy = raw_adequacy
+                adequacy = "adequate"
 
             # Explain which tiers contributed to the adequacy classification
             # (always present, never None — consumers can rely on this field)

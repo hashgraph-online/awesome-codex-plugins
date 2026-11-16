@@ -23,10 +23,12 @@ Requires: ngspice (install: apt install ngspice / brew install ngspice)
 """
 
 import argparse
+import atexit
 import dataclasses
 import inspect
 import json
 import os
+import shutil
 import sys
 import tempfile
 import time
@@ -34,6 +36,7 @@ import time
 # Allow imports from same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import _core_path  # noqa: F401
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.cli import add_compact_arg, add_output_arg, add_text_arg, utf8_text_stdout
 from kicad_core.diagnostics import OnceSink, record
 
@@ -166,6 +169,8 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
     cleanup_workdir = False
     if workdir is None:
         workdir = tempfile.mkdtemp(prefix="spice_sim_")
+        # Removed at exit, not on return, so library callers can still read the benches
+        atexit.register(shutil.rmtree, workdir, True)
         cleanup_workdir = True
     else:
         if os.path.islink(workdir):
@@ -177,12 +182,12 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
 
     sim_diagnostics: list = []  # Monte Carlo trials add only records the nominal runs lack
 
-    # An analysis that names no source file caches its models under this run's folder,
-    # and so does a project whose spice/ or spice/models/ is a symlink, which would
-    # send cache writes to the link's target.
-    from spice_model_cache import project_dir_from_analysis
+    # An analysis that names no source file, or a relative one not found from the cwd,
+    # caches its models under this run's folder, and so does a project whose spice/ or
+    # spice/models/ is a symlink, which would send cache writes to the link's target.
+    from kicad_core.project import extraction_project_dir
     if model_options is None or model_options.cache_dir is None:
-        project_dir = project_dir_from_analysis(analysis_json)
+        project_dir = extraction_project_dir(analysis_json)
         linked = None
         if project_dir is not None:
             linked = next((p for p in (project_dir / "spice", project_dir / "spice" / "models")
@@ -257,6 +262,11 @@ def simulate_subcircuits(analysis_json, workdir=None, timeout=5, types=None,
             f.write(f"=== stdout ===\n{stdout}\n=== stderr ===\n{stderr}\n")
 
         if not success:
+            # the simulator's first error lines (bare deck name; an include error names the include as written)
+            err_lines = [line.strip() for line in (stderr or "").splitlines() if line.strip()]
+            reason = " ".join(err_lines[:3]) or "simulator exited with an error"
+            record(diagnostics, "simulate_subcircuits.run",
+                   RuntimeError(f"{os.path.basename(cir_file)}: {reason}"), "simulation skipped")
             return None, elapsed
 
         if simulator_backend and hasattr(simulator_backend, 'parse_results'):
@@ -614,9 +624,13 @@ def main(argv: list[str] | None = None) -> int:
     # Read analysis JSON
     try:
         with open(input_path, "r", encoding="utf-8") as f:
-            analysis = json.load(f)
+            analysis = json_load(f)
     except (json.JSONDecodeError, UnicodeDecodeError, OSError) as e:
         print(f"Error reading {input_path}: {e}", file=sys.stderr)
+        return 1
+    if not isinstance(analysis, dict):
+        print(f"Error reading {input_path}: top level is "
+              f"{type(analysis).__name__}, not an object", file=sys.stderr)
         return 1
 
     # Parse types filter
@@ -635,11 +649,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.parasitics:
         try:
             with open(args.parasitics, "r", encoding="utf-8") as f:
-                parasitics_data = json.load(f)
+                parasitics_data = json_load(f)
+            if not isinstance(parasitics_data, dict):
+                parasitics_data = None
+                raise ValueError("top level is not an object")
             n_nets = len(parasitics_data.get("nets", {}))
             print(f"Loaded parasitics for {n_nets} nets from {args.parasitics}",
                   file=sys.stderr)
-        except (json.JSONDecodeError, OSError) as e:
+        except (json.JSONDecodeError, OSError, ValueError) as e:
             print(f"Warning: could not load parasitics: {e}", file=sys.stderr)
 
     from kicad_core.project import load_user_config
@@ -681,7 +698,7 @@ def main(argv: list[str] | None = None) -> int:
     # Analysis cache integration — write spice.json into the current run folder
     # and update the manifest so downstream tools pick it up.
     # No project-config resolution in this CLI, so the analysis-cache knobs keep their defaults.
-    if args.analysis_dir:
+    if args.analysis_dir and not args.output:
         from output_io import write_primary_run
         write_primary_run(analysis_dir, json.dumps(report, indent=2), analyzer='spice', source_path=input_path,
                           script_name='simulate_subcircuits.py', script_entry='simulate_subcircuits.py',
@@ -703,11 +720,9 @@ def main(argv: list[str] | None = None) -> int:
         from output_filters import format_text
         print(format_text(report.get("findings", []), "designer"))
         if args.output:
-            with open(args.output, "w", encoding="utf-8", newline="\n") as f:
-                f.write(output_json)
+            atomic_write_text(args.output, output_json, follow_symlinks=False)
     elif args.output:
-        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
-            f.write(output_json)
+        atomic_write_text(args.output, output_json, follow_symlinks=False)
         # Print summary to stderr
         print(_summary_line(report), file=sys.stderr)
     elif not args.analysis_dir:

@@ -1,4 +1,4 @@
-"""Known-part knowledge tables: regulator Vref and switching frequencies (kicad_core). Sources and verification dates are in the table comments. Also holds typical MLCC ESL/ESR by package."""
+"""Known-part knowledge tables: regulator Vref and switching frequencies (kicad_core). Sources and verification dates are in the table comments. Also holds typical MLCC ESL/ESR by package and LED forward voltage by colour."""
 import re
 
 
@@ -16,6 +16,14 @@ LOAD_SWITCH_KEYWORDS = (
     "mic205", "mic209",
 )
 
+# "load switching" (a buck's light-load mode) does not name a load switch.
+_LOAD_SWITCH_WORDS = re.compile(r"\b(?:load|power|power distribution) switch(?:es)?\b", re.I)
+
+
+def names_load_switch(text: str) -> bool:
+    """True when *text* calls the part a load, power or power-distribution switch."""
+    return bool(_LOAD_SWITCH_WORDS.search(text or ""))
+
 
 # Regulator Vref lookup table — maps part number prefixes to their internal
 # reference voltage.  Used by the feedback divider Vout estimator instead of
@@ -26,7 +34,8 @@ LOAD_SWITCH_KEYWORDS = (
 _REGULATOR_VREF: dict[str, float] = {
     # TI switching regulators — verified against TI datasheets + DigiKey 2026-04-12
     "TPS6100": 0.5,                                               # TPS61000/01 FB = 0.5V
-    "TPS6102": 0.595,  "TPS6103": 0.595,                          # TPS61020/23/30 FB = 0.595V
+    "TPS6102": 0.595,                                             # TPS61023 VREF = 595 mV (SLVSF14B)
+    "TPS6103": 0.5,                                               # TPS61030 VFB = 500 mV (SLUS534G); TPS61031/32 are fixed 3.3/5 V
     "TPS5430": 1.221,  "TPS5450": 1.221,  "TPS5410": 1.221,     # TPS5430/50/10 Vref = 1.221V
     "TPS54160": 0.8,   "TPS54260": 0.8,   "TPS54360": 0.8,      # TPS541x0/542x0/543x0 FB = 0.8V
     "TPS54040": 0.8,   "TPS54060": 0.8,                          # TPS54040/60 Vref = 0.8V
@@ -77,6 +86,7 @@ _REGULATOR_VREF: dict[str, float] = {
     "LT860": 0.97,     "LT862": 0.97,                            # LT8640/8620 VFB = 0.970V
     "LT871": 1.213,                                               # LT8710 FBX = 1.213V
     "LTM46": 0.6,                                                 # LTM4600 VFB = 0.6V
+    "LTC3558": 0.8,                                               # LTC3558 VFB1/VFB2 = 800 mV (3558f)
     # Richtek
     "RT5": 0.6,         "RT6": 0.6,                              # family default (RT5785 VFB = 0.6V)
     "RT6150": 0.5,                                                # RT6150A/B VFB = 0.5V (DS6150A/B-06)
@@ -201,26 +211,40 @@ def lookup_regulator_vref(value: str, lib_id: str, mpn: str = "") -> tuple[float
 _PACKAGE_TOKEN = re.compile(
     r'[-_]?(?:SOT|SOD|SC|TO|DFN|QFN|SON|SOIC|SOP|MSOP|SSOP|TSSOP|HTSSOP|VSSOP|TSOT|'
     r'WSON|VSON|USON|UDFN|WDFN|XDFN|TDFN|VQFN|WQFN|LGA|BGA|DIP|PDIP|SIP|LQFP|TQFP|QFP|'
-    r'DPAK|D2PAK)[-_]?\d+(?:[-_]\d+)?')
+    r'DPAK|D2PAK)[-_]?\d+(?:[-_]\d+)?'
+    r'|[-_](?:MLP|WLCSP|POWERPAD|SO|LFCSP|TSOP|HSOP|ESOP|DSBGA|UQFN|QSOP|PQFN|DDPAK)[-_]?\d{1,3}(?!\d)(?:[-_]\d{1,3}(?!\d))?')
 # A two-digit suffix that is also a common supply voltage is read both ways in
 # KiCad's library (AP7361C-12E is 1.2 V, LM1085-12 is 12 V; AP1117-15 is 1.5 V,
 # LM3480-15 is 15 V; LM341T-05 is 5 V; NID30S48-24 is 24 V), so it gives no value.
 _AMBIGUOUS_SUFFIXES = frozenset({"05", "09", "10", "12", "15", "24", "48"})
+# Families whose data sheet gives the voltage of such a suffix (part-number prefix -> {suffix: V}).
+_FIXED_SUFFIX_FAMILIES: dict[str, dict[str, float]] = {
+    "LM2596": {"12": 12.0},                          # SNVS124E: 3.3-V, 5-V, 12-V and adjustable versions
+    "LM2576": {"12": 12.0, "15": 15.0},              # SNVS107G: 3.3-V, 5-V, 12-V, 15-V and adjustable
+    "LM2940": {"10": 10.0, "12": 12.0, "15": 15.0},  # SNVS769J ordering table: -5.0, -8.0, -9.0, -10, -12, -15
+    "TL780": {"05": 5.0, "12": 12.0, "15": 15.0},    # SLVS055M: TL780-05, -12, -15
+    "NCP1117": {"12": 12.0, "15": 1.5},              # onsemi NCP1117 ordering table: ST12T3G 12 V, ST15T3G 1.5 V
+    "XL1509": {"12": 12.0},                          # XLSEMI XL1509: 3.3 V, 5 V, 12 V and adjustable versions
+    "AP7361": {"10": 1.0, "12": 1.2, "15": 1.5},     # DS37274: AP7361C-10 1.0 V, -12 1.2 V, -15 1.5 V
+}
 
 
 def _lookup_vref(candidates: list[str]) -> tuple[float | None, str]:
     # LM78xx/LM79xx fixed-output convention: voltage digits embedded without
-    # separator. LM7805=5V, LM78L12=12V, LM78M05CT=5V, LM7805_TO220=5V.
+    # separator. LM7805=5V, LM78L12=12V, LM78M05CT=5V, LM7805_TO220=5V; the
+    # LM79xx parts are negative regulators (LM7905=-5V).
     # These families ONLY exist as fixed-output — no adjustable variant.
     for candidate in candidates:
-        m = re.match(r'LM7[89][A-Z]?(\d{2})', candidate)
+        m = re.match(r'LM7([89])[A-Z]?(\d{2})', candidate)
         if m:
-            v = int(m.group(1))
+            v = int(m.group(2))
             if v in (5, 6, 8, 9, 10, 12, 15, 18, 24):
-                return float(v), "fixed_suffix"
+                return (-float(v) if m.group(1) == "9" else float(v)), "fixed_suffix"
     # Check for fixed-output voltage suffix (e.g., AMS1117-3.3, TLV1117LV-33,
     # RT9013-18GV — patterns: -3.3, -33, -3V3, -1V8)
+    ambiguous = set()
     for candidate in candidates:
+        raw = candidate
         candidate = _PACKAGE_TOKEN.sub("", candidate)
         m = re.search(r'[-_](\d+)V(\d+)', candidate)
         if m:
@@ -231,7 +255,15 @@ def _lookup_vref(candidates: list[str]) -> tuple[float | None, str]:
             if 0.5 <= fixed_v <= 60:
                 return fixed_v, "fixed_suffix"
         m = re.search(r'[-_](\d{2})(?=[^0-9.]|$)', candidate)
-        if m and m.group(1) not in _AMBIGUOUS_SUFFIXES:
+        if m and m.group(1) in _AMBIGUOUS_SUFFIXES:
+            family = next((f for f in _FIXED_SUFFIX_FAMILIES if candidate.startswith(f)), None)
+            if family and m.group(1) in _FIXED_SUFFIX_FAMILIES[family]:
+                return _FIXED_SUFFIX_FAMILIES[family][m.group(1)], "fixed_suffix"
+            # A fixed part of unknown voltage has no adjustable Vref either; a
+            # suffix after a space is part of a description (LM317 (7-12V)).
+            if " " not in candidate[:m.start()]:
+                ambiguous.add(raw)
+        elif m:
             # A two-digit suffix is an implied decimal, as in KiCad's library:
             # AP1117-33 is 3.3 V, LDK130-08 is 0.8 V. No fixed part is below
             # 0.5 V, so LC78_03-05 (a 3.3 V module) gives no value.
@@ -239,6 +271,8 @@ def _lookup_vref(candidates: list[str]) -> tuple[float | None, str]:
             if fixed_v >= 0.5:
                 return fixed_v, "fixed_suffix"
     for candidate in candidates:
+        if candidate in ambiguous:
+            continue
         key = _longest_vref_key(candidate)
         if key is not None:
             return _REGULATOR_VREF[key], "lookup"
@@ -262,12 +296,38 @@ def part_number_core(part: str) -> str:
     return m.group(0) if m else ""
 
 
+# function words a designer writes in a Value field as a label ('LDO1', 'BUCK5V', 'U3V3')
+_LABEL_WORDS = ("LDO", "BUCK", "BOOST", "DCDC", "PSU", "SMPS", "U")
+
+
+def is_label_like_value(value: str) -> bool:
+    """True when a Value reads as a label rather than a part number: it holds a
+    space or '/' ('DCDC24V/5V NUM'), or its part-number core is a function word
+    plus digits ('LDO1', 'BUCK5V', 'U3V3'). 'TPS61023DRLR', 'LM338_TO220' -> False."""
+    v = (value or "").strip().upper()
+    if not v:
+        return False
+    if re.search(r"[\s/]", v):
+        return True
+    m = re.match(r"([A-Z]+)\d", part_number_core(v))
+    return bool(m) and m.group(1) in _LABEL_WORDS
+
+
+# A key that is itself a fixed-output part name (LD33 is a 3.3 V part) names no part's Vref.
+_FIXED_PART_KEYS = frozenset({"LD33"})
+
+
 def vref_key_covers_part(key: str, part: str) -> bool:
     """True when a _REGULATOR_VREF key names the whole part number of *part*
     (its value for that part), not a shorter family prefix: 'TPS61023' covers
-    TPS61023DRLR, 'TPS6102' does not cover TPS61025."""
+    TPS61023DRLR, 'TPS6102' does not cover TPS61025. A fixed-voltage code after
+    the key (NCP1117ST33T3G, LD1117AV33) names another part."""
     core = part_number_core(part)
-    return bool(core) and part.upper().startswith(key.upper()) and len(key) >= len(core)
+    if not (core and part.upper().startswith(key.upper()) and len(key) >= len(core)):
+        return False
+    if key.upper() in _FIXED_PART_KEYS:
+        return False
+    return not re.match(r"[A-Za-z]{1,2}\d{2}(?!\d)", part[len(key):])
 
 
 def regulator_vref_key(value: str, lib_id: str, mpn: str = "") -> tuple[str, str] | None:
@@ -309,7 +369,7 @@ _KNOWN_FREQS = {
     'TPS62140': 2.5e6,
     'TPS62133': 2.5e6,
     'TPS62150': 2.5e6,
-    'TPS62160': 2.25e6,    # TPS62160: 2.25MHz typ (differs from TPS62130/140/150 family at 2.5MHz)
+    'TPS6216': 2.25e6,     # TPS62160/61/62/63: 2.25MHz typ (differs from TPS62130/140/150 family at 2.5MHz)
     'TPS62203': 1.0e6,     # TPS62203/77: 1MHz
     'TPS62175': 1.0e6,
     'TPS62177': 1.0e6,
@@ -366,7 +426,7 @@ _KNOWN_FREQS = {
     'TPS63020': 2.4e6,     # TPS63020/070/etc: 2.4MHz
     'TPS63070': 2.4e6,
     'TPS63060': 2.4e6,
-    'TPS63000': 1.5e6,     # TPS63000: 1.5MHz max (differs from TPS63020/60/70 family at 2.4MHz)
+    'TPS6300': 1.5e6,      # TPS63000/01/02: 1.5MHz max (differs from TPS63020/60/70 family at 2.4MHz)
     'TPS63802': 2.1e6,     # TPS63802: 2.1MHz
     'TPS631000': 2.0e6,    # TPS631000/011: 2MHz
     'TPS631011': 2.0e6,
@@ -475,3 +535,33 @@ MLCC_ESR = {
     '1812': 0.02,
     '2220': 0.015,
 }
+
+
+# LED forward voltage by colour word in the value or lib_id: (nominal V, floor V).
+# Nominal is the datasheet typical at the rated current; floor is the lowest datasheet
+# minimum sampled, below which the LED does not light (None: no floor check).
+# Sources: Wurth 150060/150080, Kingbright APT2012, Lite-On LTST-C170/C190/C191/C193,
+# Vishay VLMO1300/VLMTG1500, Broadcom HSMW-C170, Cree CLV1A-FKB, SunLED XZM2, OSRAM LY P47F.
+# A bare "green" is two technologies (GaP/AlInGaP about 2.1 V, InGaN about 3.2 V): the
+# nominal is the InGaN part most current green LEDs are, the floor the GaP minimum.
+LED_VF_BY_COLOR: dict[str, tuple[float, float | None]] = {
+    "red": (2.0, 1.5), "orange": (2.0, 1.8), "yellow": (2.1, 2.0), "amber": (2.0, 1.8),
+    "green": (3.2, 2.1), "blue": (3.2, 2.5), "white": (3.2, 2.7), "uv": (3.5, 3.2),
+    "ir": (1.2, None),
+}
+LED_VF_DEFAULT = 2.0
+# "ir" where a word starts ("LED_IR", "IR204A", "XYC-IRA3212", "IRL81A"), not inside "wiring"
+# or "kira", nor "IRQ" (interrupt indicator) or "IRNAS" (vendor name); searched in the value
+# and the lib_id's symbol name, not its library nickname.
+_LED_IR_WORD = re.compile(r"(?<![a-z])ir(?!q|nas)")
+
+
+def led_color(comp: dict) -> str | None:
+    """First colour of LED_VF_BY_COLOR named by the LED's value or lib_id, or None."""
+    value, lib_id = comp.get("value", ""), comp.get("lib_id", "")
+    combined = (value + " " + lib_id).lower()
+    part_name = (value + " " + lib_id.rpartition(":")[2]).lower()
+    for color in LED_VF_BY_COLOR:
+        if (_LED_IR_WORD.search(part_name) if color == "ir" else color in combined):
+            return color
+    return None

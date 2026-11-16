@@ -15,7 +15,7 @@ Background: `references/case-study-btc-tracker.md`, `references/visual-language.
    `force_reply` on keyboards. Before: a message per confirmation, price lines repeated, errors
    explained only after a tap.
 3. **Requirements.** Widgets: Bot API ≥ 10.4, **production private chats only**, aiogram 3.31
-   needs the adapter's `SendWidget` method class (`examples/python/sdk_aiogram/adapter.py`); no
+   (3.32.0 adds them natively) needs the adapter's `SendWidget` method class (`examples/python/sdk_aiogram/adapter.py`); no
    `widget_query` needed (state is pushed). Custom emoji: owner Premium or Fragment usernames.
    Rich table: 10.3. Fallback path works everywhere.
 4. **Payload.** Full sequence: `examples/payloads/r09-tracker-bot.json`; icon data:

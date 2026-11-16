@@ -318,7 +318,7 @@ Requires ngspice, LTspice, or Xyce (auto-detected; PSpice is available only thro
 
 > "Check my differential pairs for skew-induced common-mode radiation"
 
-The **emc** skill predicts the most common causes of EMC test failures — ground plane voids, insufficient decoupling, unfiltered I/O cables, switching regulator harmonics, differential pair skew, and more. It operates on the schematic and PCB analyzer output using geometric rule checks and analytical emission formulas (Ott, Paul, Bogatin). With `--spice-enhanced` and a simulator, PDN impedance and EMI filter checks run an AC sweep of the same network (PDN findings stay heuristic) — otherwise analytical models are used.
+The **emc** skill predicts the most common causes of EMC test failures — ground plane voids, insufficient decoupling, unfiltered I/O cables, switching regulator harmonics, differential pair skew, and more. It operates on the schematic and PCB analyzer output using geometric rule checks and analytical emission formulas (Ott, Paul, Bogatin). With `--spice-enhanced` and a simulator, the PDN impedance check runs an AC sweep of the same network (PDN findings stay heuristic) — otherwise analytical models are used.
 
 ```
 EMC risk score: 68.5/100
@@ -424,7 +424,7 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 | element14 | `ELEMENT14_API_KEY`                          | [partner.element14.com](https://partner.element14.com/) |
 | LCSC      | *none*                                       | Free community API                                      |
 
-**Optional**: Python packages `requests` (better HTTP) and `playwright` (JS-heavy datasheet sites); the `pdftotext` executable (poppler-utils) for PDF text extraction.
+**Optional**: Python packages `requests` 2.32.2 or newer (some manufacturer sites, such as analog.com, time out over urllib but answer requests; an older `requests` is used only with `datasheets.allow_private_hosts`) and `playwright` (JS-heavy datasheet sites; used only with `datasheets.allow_private_hosts` in `~/.kicad-happy.json`, because the browser resolves each host itself); the `pdftotext` executable (poppler-utils) for PDF text extraction.
 
 ## ✅ KiCad version support
 
@@ -439,7 +439,9 @@ Or set up the [GitHub Action](github-action.md) and get automated analysis on ev
 
 ## 🎯 Release notes
 
-**Current release: v3.0.1 — audit fixes.** The fixes from an independent audit of v3.0.0: datasheet downloads limited to public addresses, no writes through symlinks, and SPICE netlists that cannot pick up simulator commands; net names chosen by KiCad's driver priority and tie-break, and pins, DNP, values and KiCad 10 variants read as KiCad reads them, and KiCad 5 pins and sheet connections corrected; fewer false signals (rails named like `VCC_EN`, parallel parts, lifecycle single-source); a new GP-001 check for high-speed traces whose reference plane changes; no-connect-type pins kept on nets of their own, supplies recognised by their pins, net ties joining rail and power-pin audits (#50) and switching hot loops measured from pads (#62); UTF-8 output and LF JSON and reports on Windows; and two contributed tools, a harmonic-limit screen (`analyze_harmonic_limits.py`, #63) and an explicit-only PSpice external-deck runner (`run_external_deck.py`, #64), both by janos-varga. Upgrading: findings move on most designs (net names on hierarchical schematics, rail findings, outer-layer `impedance_ohm`); `fab_release_gate.py` exits 1 on a FAIL verdict; SW-003 grades a hot loop only when `analyze_pcb.py --schematic` measured it from pads; `translate_bom_pnp.py pnp` needs `--units` when the position file states none.
+**Current release: v3.0.2 — signal over noise.** Fixes only. The analyzers read keep-out areas, `.kicad_dru` rules, bus member names and multi-board files the way KiCad does, and read power and ground net names more carefully; the false findings that came from misreading them go away: `V24.RX` or `EN_VCC` is a signal, not a rail; `COM` is ground only when a power symbol names it; KO-001 tests the keep-out's real outline and the footprint's courtyard (#70), which takes it from 2,271 to 145 findings on the regression corpus. Datasheet downloads connect only to the address the URL check approved (through a proxy, the proxy resolves the host). Upgrading: findings move on most designs (fewer rail findings on signals named like rails, new rail-source warnings on `V-` and `VMOT`, nets that cross a sheet through a bus renamed); a `datasheets/` folder with no PDF gets DS-001 or DS-002; the headless-browser datasheet fallback runs only with `datasheets.allow_private_hosts`; `design_intent.ipc_class` is no longer raised to 3 from an inferred market.
+
+**Previous: v3.0.1 — audit fixes.** The fixes from an independent audit of v3.0.0: datasheet downloads limited to public addresses, no writes through symlinks, and SPICE netlists that cannot pick up simulator commands; net names chosen by KiCad's driver priority and tie-break, and pins, DNP, values and KiCad 10 variants read as KiCad reads them, and KiCad 5 pins and sheet connections corrected; fewer false signals (rails named like `VCC_EN`, parallel parts, lifecycle single-source); a new GP-001 check for high-speed traces whose reference plane changes; no-connect-type pins kept on nets of their own, supplies recognised by their pins, net ties joining rail and power-pin audits (#50) and switching hot loops measured from pads (#62); UTF-8 output and LF JSON and reports on Windows; and two contributed tools, a harmonic-limit screen (`analyze_harmonic_limits.py`, #63) and an explicit-only PSpice external-deck runner (`run_external_deck.py`, #64), both by janos-varga. Upgrading: findings move on most designs (net names on hierarchical schematics, rail findings, outer-layer `impedance_ohm`); `fab_release_gate.py` exits 1 on a FAIL verdict; SW-003 grades a hot loop only when `analyze_pcb.py --schematic` measured it from pads; `translate_bom_pnp.py pnp` needs `--units` when the position file states none.
 
 **Previous: v3.0.0 — the v3 refactor.** Same analyzers, same CLIs, same rule IDs; the code behind them is now a stdlib-only core plus `schematic/`, `pcb/` and `distributor_core/` packages. Output changes are additive except: EMC findings drop their duplicate `title`, every envelope gains `diagnostics`, and the datasheet-verification / summary tools use `error`/`warning`/`info`. Scripts that imported `kicad_utils`, `sexp_parser` or the analyzer modules' helpers: see the migration table in the CHANGELOG.
 
@@ -461,17 +463,17 @@ Everything above was run against a [corpus of 5,800+ open-source KiCad projects]
 
 | Metric                       | Value                                         |
 | ---------------------------- | --------------------------------------------- |
-| Repos in corpus              | 5,857                                         |
+| Repos in corpus              | 5,858                                         |
 | Schematic files analyzed     | 36,463                                        |
-| PCB files analyzed           | 18,751                                        |
-| Gerber directories analyzed  | 5,512                                         |
+| PCB files analyzed           | 18,722                                        |
+| Gerber directories analyzed  | 5,505                                         |
 | EMC pre-compliance analyses  | 36,544                                        |
 | SPICE simulation runs        | 36,544                                        |
-| Components parsed            | 1,300,475                                     |
-| Nets traced                  | 2,047,212                                     |
-| Regression assertions        | 2,717,836 at 100.0% pass rate                 |
+| Components parsed            | 1,304,449                                     |
+| Nets traced                  | 1,882,743                                     |
+| Regression assertions        | 2,714,810 at 100.0% pass rate                 |
 | Bugfix regression guards     | 175 (100% pass — no fixed bugs have returned) |
-| Closed analyzer issues       | 543                                           |
+| Closed analyzer issues       | 758                                           |
 
 Three-layer regression testing catches drift at every level:
 

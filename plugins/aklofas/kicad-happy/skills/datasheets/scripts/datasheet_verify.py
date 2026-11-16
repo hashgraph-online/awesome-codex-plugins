@@ -11,14 +11,13 @@ pipeline (via sync_datasheets_digikey + Claude extraction).
 import os
 import re
 import sys
-from pathlib import Path
 
 # Allow imports from same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datasheet_types.cache_reader import MAX_CACHE_BYTES, read_json_object, safe_extract_dir  # noqa: E402
-from distributor_core.manifest import manifest_file_path  # noqa: E402
+from datasheet_types.cache_reader import MAX_CACHE_BYTES, safe_extract_dir  # noqa: E402
+from datasheet_extract_cache import find_extraction  # noqa: E402
 
 
 MAX_EXTRACTION_BYTES = MAX_CACHE_BYTES
@@ -32,6 +31,10 @@ def _load_extraction(extract_dir: str, mpn: str) -> dict:
     OSError. Quality is NOT a gate here — callers emit an `extraction_quality_low` info finding via
     `_quality_finding` instead.
 
+    Lookup order (shared with the feature helpers and the lifecycle audit):
+    a v1.4 file named after the part, then the extraction manifest, then any
+    file named after the part.
+
     Two cache shapes supported:
     - v1.4: extraction.quality_score on 0-100 scale.
     - v1.3 legacy: extraction_metadata.extraction_score (cache manager) or
@@ -40,47 +43,7 @@ def _load_extraction(extract_dir: str, mpn: str) -> dict:
     if not extract_dir or not mpn:
         return {}
 
-    # Preserve dots and hyphens — planner/merger write literal MPN-named
-    # files (`ABM8G-106-12.000MHZ-T.json`), so the legacy positional path
-    # MUST match what they wrote. Aligned with
-    # datasheet_types.cache_reader.sanitize_mpn and the flag-mode regex in
-    # _cli_v14 below.
-    sanitized = re.sub(r'[^A-Za-z0-9_.-]', '_', mpn.strip())
-
-    # Direct file lookup
-    path = os.path.join(extract_dir, f"{sanitized}.json")
-    if os.path.isfile(path):
-        return _read_extraction_file(path)
-
-    # Manifest-based lookup; try manifest.json, fall back to legacy
-    # index.json. The cache manager keys entries by a hashed file stem and
-    # records the requested MPN in `mpn`, so match either.
-    idx_path = os.path.join(extract_dir, "manifest.json")
-    if not os.path.isfile(idx_path):
-        idx_path = os.path.join(extract_dir, "index.json")
-    if os.path.isfile(idx_path):
-        try:
-            idx = read_json_object(idx_path) or {}
-            entries = idx.get("extractions", {})
-            for k, v in entries.items():
-                if not isinstance(v, dict):
-                    continue
-                if (k.upper() != sanitized.upper()
-                        and str(v.get("mpn") or "").strip().upper() != mpn.strip().upper()):
-                    continue
-                fpath = manifest_file_path(Path(extract_dir), v.get("file"))
-                if fpath is not None and fpath.is_file():
-                    return _read_extraction_file(str(fpath))
-        except (ValueError, OSError, AttributeError):
-            pass
-
-    return {}
-
-
-def _read_extraction_file(path: str) -> dict:
-    """Read one extraction file; {} when unreadable, undecodable, symlinked,
-    oversized or not an object."""
-    return read_json_object(path) or {}
+    return find_extraction(extract_dir, mpn)[0] or {}
 
 
 def _is_sectioned_format(extraction: dict) -> bool:
@@ -604,7 +567,7 @@ def _power_pin_roles(pin: dict) -> tuple:
 
 def _ic_ground_nets(pin_nets: dict, ext_pins: dict) -> set:
     """Nets on the IC's own ground pins (type ground, or function GND on a
-    pin typed power): a PGND2 or AVSS that the ground-name rules miss."""
+    pin typed power): a ground under a name the ground-name rules miss (Masse, Net-(U1-PGND))."""
     out = set()
     for pin_num, net_name in pin_nets.items():
         ep = ext_pins.get(pin_num) or {}
@@ -899,7 +862,9 @@ def _spec_max_voltage(sv_list):
 
 def _all_pin_numbers(pinout):
     nums = set()
-    for pin in pinout or []:
+    for pin in pinout if isinstance(pinout, list) else []:
+        if not isinstance(pin, dict):
+            continue
         for n in pin.get("numbers", []) or []:
             nums.add(str(n))
     return nums
@@ -929,14 +894,40 @@ def verify_v14_extraction(extraction: dict) -> list[dict]:
 
     # 1. power_domain references resolve to recommended_operating keys
     rec_keys = set(rec_op.keys())
+    if not isinstance(pinout, list):
+        issues.append({
+            "path": "base.pinout",
+            "severity": "error",
+            "description": "base.pinout is not a list",
+        })
+        pinout = []
+    unresolved: dict = {}  # domain label -> [(pin index, raw value)]
     for i, pin in enumerate(pinout):
-        pd = pin.get("power_domain")
-        if pd is not None and pd not in rec_keys:
+        if not isinstance(pin, dict):
             issues.append({
-                "path": f"base.pinout[{i}].power_domain",
-                "severity": "warning",
-                "description": f"power_domain {pd!r} does not resolve to a key in base.recommended_operating ({sorted(rec_keys)})",
+                "path": f"base.pinout[{i}]",
+                "severity": "error",
+                "description": "pin entry is not an object",
             })
+            continue
+        pd = pin.get("power_domain")
+        if pd is None:
+            continue
+        if not isinstance(pd, str):
+            pd = repr(pd)
+        if pd not in rec_keys:
+            unresolved.setdefault(pd, []).append(i)
+    for pd, idxs in unresolved.items():
+        desc = (f"power_domain {pd!r} does not resolve to a key in "
+                f"base.recommended_operating ({sorted(rec_keys)})")
+        if len(idxs) > 1:
+            others = ", ".join(f"base.pinout[{j}]" for j in idxs[1:])
+            desc += f"; {len(idxs)} pins affected, also {others}"
+        issues.append({
+            "path": f"base.pinout[{idxs[0]}].power_domain",
+            "severity": "warning",
+            "description": desc,
+        })
 
     # 2. min/max sanity within each SpecValue
     for block_name, block in (("recommended_operating", rec_op), ("absolute_max", abs_max)):
@@ -1084,8 +1075,8 @@ def _cli_v14(argv: list[str] | None = None) -> int:
         flag-based with --json → {"violations": [...], "count": N, "mpn": ..., "extract_dir": ...}
 
     Exit codes:
-        0  no issues
-        1  ≥1 issue
+        0  no issues, or warnings only
+        1  at least one error
         2  CLI / I/O error (missing file, bad JSON, missing required flags)
     """
     import argparse, json as _json, re as _re, sys as _sys
@@ -1158,7 +1149,7 @@ def _cli_v14(argv: list[str] | None = None) -> int:
         return 2
     try:
         extraction = _json.loads(path.read_text(encoding="utf-8"))
-    except _json.JSONDecodeError as exc:
+    except (_json.JSONDecodeError, RecursionError) as exc:
         print(f"error: extraction file is not valid JSON: {exc}", file=_sys.stderr)
         return 2
 
@@ -1184,12 +1175,14 @@ def _cli_v14(argv: list[str] | None = None) -> int:
             print(f"  [{i['severity']}] {i['path']}: {i['description']}")
     if args.emit_json or positional_mode:
         _sys.stdout.write("\n")
-    return 0 if not issues else 1
+    return 1 if any(i.get("severity") == "error" for i in issues) else 0
 
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(_cli_v14())

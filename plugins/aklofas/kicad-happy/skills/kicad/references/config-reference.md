@@ -143,7 +143,7 @@ Controls analysis script behavior and output.
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `output_dir` | string | `"analysis"` | Directory name (relative to the current directory) that receives the `capability_mode.json` sidecar when neither `--analysis-dir` nor `--output` is given; the analysis JSON itself then goes to stdout |
+| `output_dir` | string | `"analysis"` | Directory name (a relative path without `..`, resolved against the current directory) that receives the `capability_mode.json` sidecar when neither `--analysis-dir` nor `--output` is given; the analysis JSON itself then goes to stdout |
 | `retention` | integer | `0` | 0 = keep every run (default); N keeps the N newest unpinned runs |
 | `auto_diff` | boolean | `true` | Automatically diff against the previous run |
 | `track_in_git` | boolean | `false` | Include analysis output in git tracking |
@@ -160,7 +160,7 @@ Filter and annotate power rails in analysis output. All patterns use fnmatch glo
 | `flag` | array of strings | Net name patterns to highlight for extra scrutiny. Flagged rails appear in top-level `flagged_rails`. |
 | `voltage_overrides` | object | Manual voltage assignments: `{net_name: voltage_float}`, matched by full net name or the name after its sheet path (`+3V3` also sets `/<sheet>/+3V3`). Overrides auto-detected voltages from regulator outputs and power symbol name inference in every check (a regulator's own `estimated_vout` is kept). Findings that used an override carry `rail_voltage_source: "config"`; `power_rails` entries carry `source: "config"`. |
 
-`ignore` and `flag` must be arrays; `voltage_overrides` values must be numeric. Invalid entries are warned and skipped.
+`ignore` and `flag` must be arrays; `voltage_overrides` values must be finite numbers (not `true`/`false`). Invalid entries are warned and skipped.
 
 ```jsonc
 "analysis": {
@@ -213,8 +213,7 @@ Explicit design intent overrides. When absent, each field is **auto-detected** f
 2. PCB fab/user/comments layer text (looks for "IPC-6012 Class N", "IPC Class N", "IPC-6012EM/ES")
 3. PCB title block fields
 4. Schematic title block fields
-5. Inferred from `target_market` (medical/aerospace → Class 3)
-6. Default: Class 2
+5. Default: Class 2 (a medical or aerospace `target_market` adds a "Class 3 suggested" signal but does not set the class)
 
 ```jsonc
 "design_intent": {
@@ -239,7 +238,7 @@ Read only from `~/.kicad-happy.json`. A project or workspace `.kicad-happy.json`
 |-------|------|---------|-------------|
 | `allow_private_hosts` | bool | `false` | Let the datasheet sync and fetch scripts download from loopback, private, link-local and other non-public addresses. Only the JSON value `true` turns it on. |
 
-Without it, a datasheet download accepts only `http` and `https` URLs whose host resolves to public addresses, and every redirect is checked the same way. The browser fallback (playwright) runs only for URLs that pass this check.
+Without it, a datasheet download accepts only `http` and `https` URLs whose host resolves to public addresses, and every redirect is checked the same way. Each connection goes to the address the check approved, so a host cannot switch to a private address after the check; through a proxy, the proxy resolves the host. A `requests` older than 2.32.2 cannot be held to that address, so downloads use urllib instead. The browser fallback (playwright) resolves each host itself, so it runs only when this option is set; the run notes once when it was skipped.
 
 ```jsonc
 // ~/.kicad-happy.json
@@ -263,9 +262,9 @@ Read only from `~/.kicad-happy.json`. A project or workspace `.kicad-happy.json`
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `trust_project_models` | bool | `false` | Paste a project's cached part models (`spice/models/*.sub`) into the netlist verbatim. Only the JSON value `true` turns it on. |
+| `trust_project_models` | bool | `false` | Paste a project's cached part models (`spice/models/*.sub`) into the netlist verbatim, apart from a trailing `.end` line, which is dropped. Only the JSON value `true` turns it on. |
 
-Without it, `simulate_subcircuits.py` skips a cached model with a line that starts a simulator control block (`.control`, `.endc`), runs `shell` or `source`, or includes any file (`.include`, `.inc`, `.lib`). The part falls back to the next model source (distributor data, the built-in table, or the ideal model) and the report's `diagnostics` gets one `project model skipped` record. The skipped file and its manifest entry are left as they are; the fallback model is not cached over them.
+Without it, `simulate_subcircuits.py` uses a cached model only when its dot-cards are model-library cards (`.subckt`, `.ends`, `.model`, `.param`, `.func`, `.global`), plus a final `.end`, which is dropped. It skips a model with any other dot-card (a control block, an output, analysis or option card such as `.print`, `.tran` or `.option`, or an `.end` before the last line), a `shell` or `source` line, an include of any file (`.include`, `.inc`, `.lib`), or an XSPICE code model that reads a file (`file=`, `input_file=`, `state_file=`). The part falls back to the next model source (distributor data, the built-in table, or the ideal model) and the report's `diagnostics` gets one `project model skipped` record. The skipped file and its manifest entry are left as they are; the fallback model is not cached over them.
 
 ```jsonc
 // ~/.kicad-happy.json

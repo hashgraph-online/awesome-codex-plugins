@@ -53,22 +53,30 @@ def add_config_arg(parser) -> None:
 def utf8_stdio() -> None:
     """Re-encode stdout and stderr as UTF-8 when they are not, so a script piped under a
     legacy code page (Windows cp1252) neither fails on a help text's arrow or a report's
-    Ω nor hands a UTF-8 reader cp1252 bytes. Called first in each script's __main__
+    Ω nor hands a UTF-8 reader cp1252 bytes, and end lines with LF on every platform.
+    Called first in each script's __main__
     block; scripts that import nothing from the core do the same inline."""
     import sys
     for stream in (sys.stdout, sys.stderr):
         enc = (getattr(stream, "encoding", None) or "").lower().replace("-", "").replace("_", "")
-        if enc != "utf8" and hasattr(stream, "reconfigure"):
-            stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(stream, "reconfigure"):
+            kw = {"newline": "\n"}
+            if enc != "utf8":
+                kw.update(encoding="utf-8", errors="backslashreplace")
+            stream.reconfigure(**kw)
 
 
 def utf8_text_stdout() -> None:
     """For --text output: re-encode stdout as UTF-8 when it is not, so a redirect under a
-    legacy code page (Windows cp1252) never fails on the report's Ω, ≤ or ≥."""
+    legacy code page (Windows cp1252) never fails on the report's Ω, ≤ or ≥, and end lines
+    with LF on every platform."""
     import sys
     enc = (getattr(sys.stdout, "encoding", None) or "").lower().replace("-", "").replace("_", "")
-    if enc != "utf8" and hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stdout, "reconfigure"):
+        kw = {"newline": "\n"}
+        if enc != "utf8":
+            kw.update(encoding="utf-8", errors="replace")
+        sys.stdout.reconfigure(**kw)
 
 
 _JSON_TYPE_NAMES = {list: "array", str: "string", int: "number", float: "number", bool: "boolean"}

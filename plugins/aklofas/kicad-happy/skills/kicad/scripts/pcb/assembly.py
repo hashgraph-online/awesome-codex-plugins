@@ -7,9 +7,9 @@ import re
 from kicad_core.classify import is_touch_pad
 from kicad_core.hotloop import polygon_loop_area
 from kicad_core.netnames import IC_SIGNAL_PIN_TYPES, is_ground_name, is_power_net_name
-from pcb.geometry import (_outline_shape_points, _refined_overlap_mm2, courtyards_collide,
-                          outline_edge_distance, outline_loops, overlap_area_mm2,
-                          point_in_outline)
+from pcb.geometry import (_outline_shape_points, _refined_overlap_mm2, _signed_depth,
+                          courtyards_collide, outline_edge_distance, outline_loops,
+                          overlap_area_mm2, point_in_outline)
 
 
 # Whole-name match: VIN+/VINA/VBAT_OK/VREF/VCOUT and op-amp "+" pins are signals.
@@ -332,7 +332,8 @@ def _courtyard_sides(fp: dict) -> dict:
 
 
 def analyze_placement(footprints: list[dict], outline: dict, *,
-                      check_overlaps: bool = True) -> dict:
+                      check_overlaps: bool = True,
+                      board_area_mm2: float | None = None) -> dict:
     """Component placement analysis — courtyard overlaps and edge clearance.
 
     Reports:
@@ -342,7 +343,8 @@ def analyze_placement(footprints: list[dict], outline: dict, *,
     - Placement density per board side
 
     ``check_overlaps`` False skips the overlaps (the project ignores KiCad's
-    ``courtyards_overlap`` check).
+    ``courtyards_overlap`` check). ``board_area_mm2`` is the area the density is taken over (the
+    summed board area of a file with several boards); None uses the outline's bounding box.
     """
     # Courtyard overlap detection. One entry per footprint and courtyard layer: KiCad tests
     # F.CrtYd against F.CrtYd and B.CrtYd against B.CrtYd, whichever side each part is
@@ -529,8 +531,8 @@ def analyze_placement(footprints: list[dict], outline: dict, *,
     edge_close.sort(key=lambda e: e["edge_clearance_mm"])
 
     # Placement density
-    board_area = None
-    if bbox:
+    board_area = board_area_mm2
+    if board_area is None and bbox:
         board_area = bbox["width"] * bbox["height"]
 
     front_count = sum(1 for fp in footprints if fp["layer"] == "F.Cu")
@@ -971,9 +973,11 @@ def analyze_fiducials(footprints: list[dict]) -> dict:
                 or _has_pad_property(fp, "pad_prop_fiducial_glob")):
             fiducials_by_side[side].append(ref)
 
-        # Count SMD components per side
+        # Count SMD components per side. A touch electrode footprint is copper, not a placed
+        # part; only the footprint decides, since a connector valued "Touch" is still placed.
         pads = fp.get("pads", [])
-        if any(p.get("type") == "smd" for p in pads):
+        if any(p.get("type") == "smd" for p in pads) and not is_touch_pad(
+                "", "", fp.get("library", "")):
             smd_by_side[side] = smd_by_side.get(side, 0) + 1
 
     findings: list[dict] = []
@@ -1213,10 +1217,51 @@ def _area_copper_layers(layers: list[str]) -> bool:
     return any(layer.endswith(".Cu") for layer in layers)
 
 
+def _area_courtyard_layers(layers: list[str]) -> list[str]:
+    """Courtyard layers a rule area judges footprints on: F.CrtYd when it covers F.Cu, B.CrtYd
+    when it covers B.Cu (F&B.Cu and *.Cu cover both). KiCad reports no footprint under an
+    inner-layer-only or a non-copper area."""
+    front = any(layer in ("F.Cu", "F&B.Cu", "*.Cu") for layer in layers)
+    back = any(layer in ("B.Cu", "F&B.Cu", "*.Cu") for layer in layers)
+    return (["F.CrtYd"] if front else []) + (["B.CrtYd"] if back else [])
+
+
+def _courtyard_meets_area(fp: dict, crtyd_layers: list[str], bbox: list, polys: list) -> bool:
+    """True when the footprint's courtyard on one of ``crtyd_layers`` overlaps the area.
+    A footprint without a courtyard there, or with one that cannot be read, is not judged,
+    as in KiCad."""
+    kx1, ky1, kx2, ky2 = bbox[0], bbox[1], bbox[2], bbox[3]
+    sides = _courtyard_sides(fp)
+    for layer in crtyd_layers:
+        side = sides.get(layer)
+        if not side or not side.get("polys"):
+            continue
+        box = side["box"]
+        if box["min_x"] > kx2 or box["max_x"] < kx1 or box["min_y"] > ky2 or box["max_y"] < ky1:
+            continue
+        # shrinks both shapes by 0.005 mm; KiCad shrinks the area by only 0.0005 mm, a
+        # 0.0045 mm difference below anything measured
+        if courtyards_collide(polys, side["polys"]):
+            return True
+    return False
+
+
+# KiCad shrinks a rule area by its DRC epsilon before the keepout test, so touching is legal
+_AREA_EPSILON_MM = 0.0005
+
+
+def _via_meets_area(vx: float, vy: float, radius: float, polys: list) -> bool:
+    """True when a via's copper disc (radius = half its size) overlaps the area."""
+    return _signed_depth(vx, vy, polys) > _AREA_EPSILON_MM - radius
+
+
 def analyze_keepout_violations(footprints: list[dict], vias: dict,
                                 keepout_zones: list[dict]) -> list[dict]:
-    """KO-001: Check for components or through vias inside keepout zones (bbox check).
+    """KO-001: Check for components or through vias inside keepout zones.
 
+    As KiCad does, the test uses the area outline (cut-outs left out): a through via is inside
+    when its copper disc overlaps the area, a footprint when its courtyard on the side the
+    area covers does.
     A rule area's "vias" restriction prohibits through vias only (KiCad's DRC_DISALLOW_VIAS);
     a through via spans every copper layer, so it meets any area on a copper layer.
     """
@@ -1228,23 +1273,21 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
 
     for kz in keepout_zones:
         bbox = kz.get("bounding_box")
-        if not bbox or len(bbox) < 4:
+        polys = kz.get("_outline_polys")
+        if not bbox or len(bbox) < 4 or not polys:
             continue
         kx1, ky1, kx2, ky2 = bbox[0], bbox[1], bbox[2], bbox[3]
         restrictions = kz.get("restrictions", {})
         kz_name = kz.get("name", "unnamed")
+        kz_label = kz_name or "unnamed"
         kz_layers = kz.get("layers", [])
 
         # Check footprints
-        if _prohibits(restrictions, "footprints"):
+        crtyd_layers = _area_courtyard_layers(kz_layers)
+        if _prohibits(restrictions, "footprints") and crtyd_layers:
             for fp in footprints:
                 ref = fp.get("reference", "")
-                fx = fp.get("x", 0)
-                fy = fp.get("y", 0)
-                fp_layer = fp.get("layer", "")
-                if not any(l in kz_layers or l == "*" or "*.Cu" in kz_layers for l in [fp_layer]):
-                    continue
-                if kx1 <= fx <= kx2 and ky1 <= fy <= ky2:
+                if _courtyard_meets_area(fp, crtyd_layers, bbox, polys):
                     findings.append({
                         "component": ref,
                         "keepout_name": kz_name,
@@ -1256,7 +1299,7 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                         "confidence": "heuristic",
                         "evidence_source": "topology",
                         "summary": f"Keepout violation: {ref} inside keepout zone{' ' + kz_name if kz_name != 'unnamed' else ''}",
-                        "description": f"Component {ref} center is inside keepout zone {kz_name} (bbox check).",
+                        "description": f"Component {ref} courtyard overlaps keepout zone {kz_label}.",
                         "components": [ref],
                         "nets": [],
                         "pins": [],
@@ -1273,7 +1316,9 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                 vy = via.get("y")
                 if vx is None or vy is None:
                     continue
-                if kx1 <= vx <= kx2 and ky1 <= vy <= ky2:
+                radius = (via.get("size") or 0) / 2.0
+                if (kx1 - radius <= vx <= kx2 + radius and ky1 - radius <= vy <= ky2 + radius
+                        and _via_meets_area(vx, vy, radius, polys)):
                     findings.append({
                         "via_x": round(vx, 2),
                         "via_y": round(vy, 2),
@@ -1285,7 +1330,7 @@ def analyze_keepout_violations(footprints: list[dict], vias: dict,
                         "confidence": "heuristic",
                         "evidence_source": "topology",
                         "summary": f"Keepout violation: via at ({round(vx, 1)}, {round(vy, 1)}) inside keepout{' ' + kz_name if kz_name != 'unnamed' else ''}",
-                        "description": f"Via at ({round(vx, 2)}, {round(vy, 2)}) is inside keepout zone {kz_name} (bbox check).",
+                        "description": f"Via at ({round(vx, 2)}, {round(vy, 2)}) is inside keepout zone {kz_label}.",
                         "components": [],
                         "nets": [],
                         "pins": [],

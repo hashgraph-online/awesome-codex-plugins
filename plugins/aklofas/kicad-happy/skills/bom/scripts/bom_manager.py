@@ -39,7 +39,8 @@ from collections import Counter
 from pathlib import Path
 
 import _core_path  # noqa: F401
-from bom_fields import (FIELD_ALIASES, POPULATE_UNFITTED, _ALIAS_LOOKUP, _SLOT_NAME_RE, _SLOT_PN_RE, _SUPPLIER_NAME_MAP,
+from bom_fields import (DNP_FIELD_SET, DNP_VALUE_MARKERS, FIELD_ALIASES, POPULATE_UNFITTED, _ALIAS_LOOKUP,
+                        _SLOT_NAME_RE, _SLOT_PN_RE, _SUPPLIER_NAME_MAP,
                         _canonical_for, _first_nonblank_stripped, _pick_mpn_from_props, _slot_pn_number,
                         _symbol_slots)
 from kicad_core.diagnostics import record
@@ -47,7 +48,7 @@ from kicad_core.fields import (merge_unit_fields, MPN_FIELD_ALIASES, MPN_FIELD_A
                                MPN_FIELD_ALIASES_GENERIC, DIGIKEY_FIELD_ALIASES,
                                normalize_field_name)
 from kicad_core.instances import tilde_is_empty, variant_overrides
-from kicad_core.sexp import get_value, parse
+from kicad_core.sexp import get_value, parse, unescape_quoted
 from kicad_sexp import (atomic_write_text, find_matching_paren, direct_child, direct_value, find_sub_sheet_entries,
                         iter_placed_symbol_blocks, resolved_instance, sheet_variant, symbol_instances_of)
 
@@ -112,11 +113,11 @@ def extract_properties(symbol_block: str) -> dict[str, str]:
     """Extract all (property "name" "value" ...) from a symbol block."""
     props = {}
     for match in re.finditer(
-        r'\(property\s+"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"',
+        r'\(property\s+(?:private\s+)?"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"',
         symbol_block,
     ):
-        name = match.group(1)
-        value = match.group(2)
+        name = unescape_quoted(match.group(1))
+        value = unescape_quoted(match.group(2))
         props[name] = value
     return props
 
@@ -135,15 +136,15 @@ def is_dnp(symbol_block: str, props: dict[str, str]) -> bool:
         return True
     # Custom DNP fields
     for field in DNP_FIELDS:
-        val = props.get(field, "").strip().upper()
+        val = props.get(field, "").strip().lower()
         # POPULATE is a population flag, so "1" / "yes" / "true" mean fitted
         if field == "POPULATE":
-            if val.lower() in POPULATE_UNFITTED:
+            if val in POPULATE_UNFITTED:
                 return True
             continue
-        if val in ("YES", "TRUE", "1", "DNP"):
+        if val in DNP_FIELD_SET:
             return True
-    return False
+    return props.get("Value", "").strip().lower() in DNP_VALUE_MARKERS
 
 
 def classify_reference(ref: str) -> str:
@@ -202,6 +203,7 @@ def detect_convention(
     # Maps the value inside the Supplier field to canonical distributor names
     # Track KiCad "Supplier N" slot mappings: slot_number -> (name_field, pn_field, canonical)
     supplier_slots: dict[int, dict] = {}  # "supplier" here refers to KiCad field names
+    slot_names: dict[int, set] = {}  # slot -> every distinct name the symbols give it
 
     for sym in all_symbols:
         for name, value in sym["raw_properties"].items():
@@ -218,6 +220,7 @@ def detect_convention(
                 slot = int(sup_match.group(1))
                 dist_name = value.strip().lower()
                 canonical_sup = _SUPPLIER_NAME_MAP.get(dist_name)
+                slot_names.setdefault(slot, set()).add(canonical_sup or dist_name)
                 if canonical_sup and slot not in supplier_slots:
                     supplier_slots[slot] = {
                         "name_field": name,
@@ -282,6 +285,9 @@ def detect_convention(
         "preferred_distributor": preferred_distributor,
         "names_canonical": names_canonical,
         "suggested_fields": suggested,
+        # slots every naming symbol gives the same known distributor; internal, not reported
+        "slot_distributors": {slot: next(iter(names)) for slot, names in slot_names.items()
+                              if len(names) == 1 and next(iter(names)) in _SUPPLIER_NAME_MAP.values()},
     }
 
 
@@ -320,7 +326,7 @@ def generate_bom(symbols: list[dict], convention: dict,
                                   for u in units):
             props = merge_unit_fields((u.get("unit", 1), u["raw_properties"]) for u in units)
 
-        slots = _symbol_slots(props)
+        slots = _symbol_slots(props, convention.get("slot_distributors"))
 
         # Extract canonical field values using the project's actual field names
         def get_canonical(canonical_name: str) -> str:
@@ -1066,7 +1072,7 @@ def export_csv(report: dict, output_path: Path, extra_distributors: list[str] | 
     writer = csv.DictWriter(buf, fieldnames=csv_columns, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
-    atomic_write_text(output_path, buf.getvalue(), newline="")
+    atomic_write_text(output_path, buf.getvalue(), newline="", follow_symlinks=False)
 
     active_rows = [r for r in rows if r.get("DNP") != "yes"]
     return {

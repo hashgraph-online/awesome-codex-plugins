@@ -1,12 +1,12 @@
 """Schematic audits (annotation, labels, PWR_FLAG, footprint filters, sourcing, datasheet coverage, generic transistor symbols, grounds, bus topology, wire geometry, pin coverage, instance and hierarchical-label consistency)."""
 from __future__ import annotations
 
-import json
 import math
 import re
 from pathlib import (
     Path,
 )
+from kicad_core.fileio import json_loads
 from kicad_core.classify import NON_COMPONENT_TYPES
 from kicad_core.sexp import unescape_string
 from kicad_core.netnames import (
@@ -275,8 +275,7 @@ def audit_datasheet_coverage(components: list[dict],
     mpn_pct = (mpn_count / total * 100) if total else 0.0
 
     # Look for datasheets in conventional locations relative to the
-    # project directory. extracted/ holds structured extractions from the
-    # datasheet_extract_cache; its presence implies datasheets exist.
+    # project directory. Only PDF files count as datasheets.
     import os as _os
     pd = project_dir or "."
     # Widened search — walk up 1–2 parent dirs and match the case-
@@ -302,12 +301,19 @@ def audit_datasheet_coverage(components: list[dict],
         (c for c in candidates if _os.path.isdir(c)), None)
     ds_file_count = 0
     if ds_dir_found:
+        # Each PDF once: a symlinked copy, and the JSON beside the PDFs
+        # (extractions, the sync index), are not more datasheets.
+        _pdfs: set[str] = set()
         try:
             for _root, _dirs, _files in _os.walk(ds_dir_found):
-                ds_file_count += sum(1 for f in _files
-                                     if f.lower().endswith((".pdf", ".json")))
+                _dirs[:] = [d for d in _dirs if d != "extracted"]
+                for f in _files:
+                    _p = _os.path.join(_root, f)
+                    if f.lower().endswith(".pdf") and _os.path.isfile(_p):
+                        _pdfs.add(_os.path.realpath(_p))
         except OSError:
             pass
+        ds_file_count = len(_pdfs)
 
     # Build finding.
     if ds_dir_found and ds_file_count > 0:
@@ -693,7 +699,7 @@ def check_generic_transistor_symbols(components: list[dict],
             idx_path = ds_dir / "index.json"
         if idx_path.is_file():
             try:
-                ds_index = json.loads(idx_path.read_text(encoding="utf-8"))
+                ds_index = json_loads(idx_path.read_text(encoding="utf-8"))
             except (ValueError, OSError):
                 pass
 
@@ -830,7 +836,8 @@ def summarize_alternate_pins(lib_symbols: dict) -> list[dict]:
     return results
 
 
-def classify_ground_domains(nets: dict, components: list[dict]) -> dict:
+def classify_ground_domains(nets: dict, components: list[dict],
+                            power_rails: set[str] | None = None) -> dict:
     """Classify ground nets into domains: signal, analog, digital, earth, chassis, power.
 
     Multiple ground domains in a design need careful management — star grounding,
@@ -838,7 +845,7 @@ def classify_ground_domains(nets: dict, components: list[dict]) -> dict:
     """
     ground_nets = {}
     for net_name, net_info in nets.items():
-        if not _is_ground_name(net_name):
+        if not _is_ground_name(net_name, power_rails):
             continue
 
         nu = net_name.upper()
@@ -1029,8 +1036,8 @@ def check_simulation_readiness(components: list[dict], lib_symbols: dict) -> dic
         desc = (sym.get("description", "") + " " + sym.get("keywords", "")).lower()
         ctype = c["type"]
 
-        # Passives (R, C, L) have built-in SPICE models
-        if ctype in ("resistor", "capacitor", "inductor"):
+        # Passives (R, C, L) have built-in SPICE models; a net tie or a jumper needs no part model
+        if ctype in ("resistor", "capacitor", "inductor", "net_tie", "jumper"):
             has_model_hint.append(c["reference"])
         elif "spice" in desc or "simulation" in desc or "sim_" in desc:
             has_model_hint.append(c["reference"])
@@ -1095,6 +1102,23 @@ def audit_property_patterns(components: list[dict]) -> dict:
                 "issue": "value_looks_like_footprint",
                 "message": f"{ref}: value '{val}' looks like a footprint, not a component value",
             })
+
+    # A symbol holding more than one Value property (Eagle imports write a hidden empty copy).
+    # One entry per reference (a multi-unit symbol is placed once per unit).
+    seen_dup = set()
+    for c in real:
+        ref = c["reference"]
+        if "_dropped_values" not in c or ref in seen_dup:
+            continue
+        seen_dup.add(ref)
+        shown = f"'{c['value']}'" if c.get("value") else "no value"
+        ignored = ", ".join(f"'{t}'" for t in c["_dropped_values"])
+        issues.append({
+            "component": ref,
+            "issue": "duplicate_value_field",
+            "message": (f"{ref}: the symbol has more than one Value field; KiCad 10 reads the last "
+                        f"and shows {shown}, ignoring {ignored}"),
+        })
 
     # Check for MPN/value inconsistency within same BOM group
     # (same value + footprint should have same MPN)

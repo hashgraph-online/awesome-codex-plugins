@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import math
 import re
+from kicad_core.diagnostics import record
 from kicad_core.classify import is_active_low_enable, is_touch_pad
 from kicad_types import (
     AnalysisContext,
@@ -94,6 +95,8 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
         for p in net_info["pins"]:
             comp = comp_lookup.get(p["component"])
             if not comp or comp["type"] != "capacitor":
+                continue
+            if comp.get("dnp") or comp.get("on_board") is False:
                 continue
             # Use pre-computed parsed_values (has component_type context)
             cap_val = ctx.parsed_values.get(comp["reference"])
@@ -216,9 +219,14 @@ def analyze_pdn_impedance(ctx: AnalysisContext, signal_analysis: dict | None = N
             rail_result["anti_resonances"] = anti_resonances
             for ar in anti_resonances:
                 if ar["impedance_ohm"] > 1.0:
+                    # Below about 2 MHz the peak is the regulator's inductive output against the
+                    # bulk capacitance; a ceramic's self-resonance sits far above it.
+                    remedy = ("consider adding cap with SRF near this frequency" if ar["freq_hz"] >= 2e6
+                              else "add bulk capacitance or damping (ESR), or check the regulator's "
+                                   "output impedance at this frequency")
                     observations.append(
                         f"{rail_name}: anti-resonance at {ar['freq_formatted']} "
-                        f"({ar['impedance_ohm']:.3f} ohm) — consider adding cap with SRF near this frequency"
+                        f"({ar['impedance_ohm']:.3f} ohm) — {remedy}"
                     )
 
         # Check for frequency gaps: if all cap SRFs are below 100 MHz,
@@ -795,7 +803,13 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
             if extract_path is None or not extract_path.exists():
                 return None
         data = read_json_object(extract_path)
-        abs_max = data.get("absolute_maximum_ratings") if data is not None else None
+        if data is None:
+            record(getattr(ctx, "diagnostics", None),
+                   "schematic.system_analyses.analyze_voltage_derating",
+                   ValueError(f"{extract_path.name} is not a readable JSON object"),
+                   f"IC abs-max derating skipped for {mpn}")
+            return None
+        abs_max = data.get("absolute_maximum_ratings")
         return abs_max if isinstance(abs_max, dict) else None
 
     profile = _DERATING_PROFILES.get(derating_profile, _DERATING_PROFILES["commercial"])
@@ -818,9 +832,19 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
         if not pwr_net:
             continue
         v_rail = _get_rail_voltage(pwr_net)
+        # A cap between two rails of known voltage sees their difference
+        other_rail = n2 if pwr_net == n1 else n1
+        v_other = (_get_rail_voltage(other_rail)
+                   if v_rail is not None and not gnd_net and other_rail
+                   and other_rail != pwr_net and is_power_net(other_rail) else None)
+        if v_other is None:
+            other_rail = None
+        else:
+            v_rail = round(v_rail - v_other, 6)
         v_rail = abs(v_rail) if v_rail is not None else None  # stress is the magnitude
         if v_rail is None or v_rail <= 0:
             continue
+        where = f"across {pwr_net} and {other_rail}" if other_rail else f"on {pwr_net}"
         dielectric = _classify_cap_dielectric(comp)
         derating_factor = _CAP_DERATING.get(dielectric, 0.50)
         max_working_v = rated_v * derating_factor
@@ -835,8 +859,8 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 detector="analyze_voltage_derating", rule_id="VD-001",
                 category="component_derating",
                 summary=(f"{ref} ({comp['value']}) {'exceeds' if severity == 'critical' else 'has marginal'} "
-                         f"voltage derating on {pwr_net} ({v_rail:.1f}V on {rated_v:.0f}V {dielectric} cap)"),
-                description=(f"Applied {v_rail:.1f}V on {pwr_net}; {rated_v:.0f}V-rated {dielectric} capacitor. "
+                         f"voltage derating {where} ({v_rail:.1f}V on {rated_v:.0f}V {dielectric} cap)"),
+                description=(f"Applied {v_rail:.1f}V {where}; {rated_v:.0f}V-rated {dielectric} capacitor. "
                              f"Derating rule: {derating_rule}. Margin {round(margin_pct, 1)}%."),
                 severity="error" if severity == "critical" else "warning",
                 confidence="heuristic", evidence_source="topology",
@@ -847,7 +871,7 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
                 derating_rule=derating_rule, rail=pwr_net, rail_voltage=v_rail,
                 rated_voltage=rated_v, margin_pct=round(margin_pct, 1), dielectric=dielectric,
             schema_era="v3.0",
-                **ctx.rail_source_fields(pwr_net),
+                **ctx.rail_source_fields(pwr_net, other_rail),
             ))
         elif margin_pct > profile["over_designed_cap_margin"] * 100:
             suggested_v = v_rail * 2.5
@@ -859,25 +883,32 @@ def analyze_voltage_derating(ctx: AnalysisContext, signal_analysis: dict,
             findings.append(make_finding(
                 detector="analyze_voltage_derating", rule_id="VD-004",
                 category="component_derating",
-                summary=f"{ref} ({comp['value']}) is over-designed for {pwr_net} ({rated_v:.0f}V on {v_rail:.1f}V rail)",
-                description=f"{rated_v:.0f}V-rated capacitor on a {v_rail:.1f}V rail — margin {round(margin_pct, 1)}%.",
+                summary=(f"{ref} ({comp['value']}) is over-designed across {pwr_net} and {other_rail} "
+                         f"({rated_v:.0f}V on {v_rail:.1f}V)" if other_rail else
+                         f"{ref} ({comp['value']}) is over-designed for {pwr_net} ({rated_v:.0f}V on {v_rail:.1f}V rail)"),
+                description=(f"{rated_v:.0f}V-rated capacitor with {v_rail:.1f}V {where} — margin {round(margin_pct, 1)}%."
+                             if other_rail else
+                             f"{rated_v:.0f}V-rated capacitor on a {v_rail:.1f}V rail — margin {round(margin_pct, 1)}%."),
                 severity="info", confidence="heuristic", evidence_source="topology",
                 components=[ref], nets=[pwr_net],
                 recommendation=suggestion or "Consider a lower voltage rating to reduce cost/size.",
                 derating_rule="over_designed", rail=pwr_net, rail_voltage=v_rail,
                 rated_voltage=rated_v, margin_pct=round(margin_pct, 1),
             schema_era="v3.0",
-                **ctx.rail_source_fields(pwr_net),
+                **ctx.rail_source_fields(pwr_net, other_rail),
             ))
 
     # ---- IC absolute max voltage check ----
+    abs_max_by_mpn: dict = {}   # read once per part, so a bad file is reported once
     for comp in components:
         if comp["type"] != "ic":
             continue
         mpn = comp.get("mpn", "").strip()
         if not mpn or len(mpn) < 3:
             continue
-        abs_max = _read_ic_abs_max(mpn)
+        if mpn not in abs_max_by_mpn:
+            abs_max_by_mpn[mpn] = _read_ic_abs_max(mpn)
+        abs_max = abs_max_by_mpn[mpn]
         if not abs_max:
             continue
         ref = comp["reference"]
@@ -1576,10 +1607,14 @@ def analyze_power_budget(ctx: AnalysisContext,
             # LDO thermal dissipation: uses the rail's total estimated load
             # (ICs plus LEDs and other non-IC loads), so the dissipation
             # covers every load on the rail.
-            if reg.get("topology") == "LDO" and v_in_rail and v_out:
-                v_in = abs(ctx.rail_voltage_or(v_in_rail, _estimate_rail_voltage) or 0)
-                v_out = abs(v_out)  # a negative LDO drops |Vin| - |Vout|
-                if v_in and v_in > v_out:
+            v_ldo_out = ctx.config_rail_voltage(rail)
+            if v_ldo_out is None:
+                v_ldo_out = v_out
+            if reg.get("topology") == "LDO" and v_in_rail and v_ldo_out:
+                v_in_signed = ctx.rail_voltage_or(v_in_rail, _estimate_rail_voltage) or 0
+                v_in = abs(v_in_signed)
+                v_out = abs(v_ldo_out)  # a negative LDO drops |Vin| - |Vout|; both rails share a sign
+                if v_in and v_in_signed * v_ldo_out > 0 and v_in > v_out:
                     total_load_mA = rail_info["estimated_load_mA"]
                     v_drop = v_in - v_out
                     power_w = v_drop * (total_load_mA / 1000.0)
@@ -1731,13 +1766,17 @@ def analyze_power_sequencing(ctx: AnalysisContext,
                     ]
                     if pg_targets:
                         pg_entry["connected_to"] = pg_targets
-                        # Check if PG drives another regulator's EN
-                        for dep in dependencies:
-                            if dep.get("en_net") == net:
-                                dep["sequenced_after"] = ref
-                                dep["sequence_signal"] = "power_good"
                 pg_connections.append(pg_entry)
                 break
+
+    # Joined after the loop so the edge does not depend on which regulator is listed first
+    for pg_entry in pg_connections:
+        if not pg_entry.get("connected_to"):
+            continue
+        for dep in dependencies:
+            if dep.get("en_net") == pg_entry["pg_net"]:
+                dep["sequenced_after"] = pg_entry["regulator"]
+                dep["sequence_signal"] = "power_good"
 
     if not dependencies and not floating_en and not pg_connections:
         return {}
@@ -2800,7 +2839,7 @@ def analyze_inrush_current(ctx: AnalysisContext,
 
         v_cfg = ctx.config_rail_voltage(out_rail)
         v_out = (abs(v_cfg) if v_cfg is not None
-                 else reg.get("estimated_vout")
+                 else abs(reg.get("estimated_vout") or 0)
                  or abs(ctx.rail_by_net.get(out_rail) or _estimate_rail_voltage(out_rail) or 0))
         if not v_out or v_out <= 0:
             continue

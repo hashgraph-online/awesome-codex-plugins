@@ -98,9 +98,15 @@ def net_name_escape(text: str) -> str:
 
 def parse(text: str) -> list:
     """Parse S-expression text into nested Python lists."""
-    tokens = _tokenize(text)
-    result = _parse_tokens(tokens, 0)[0]
-    return result
+    return parse_checked(text)[0]
+
+
+def parse_checked(text: str) -> tuple:
+    """(tree, problem): *problem* is None, or why the tree is partial: the text ends inside
+    an open list (a truncated file, an unterminated string), or lists nest deeper than
+    _MAX_NESTING (the deeper lists are left out)."""
+    result, _pos, problem = _parse_tokens(_tokenize(text), 0)
+    return result, problem
 
 
 def parse_file(path: str) -> list:
@@ -109,12 +115,18 @@ def parse_file(path: str) -> list:
         return parse(f.read())
 
 
+def parse_file_checked(path: str) -> tuple:
+    """parse_checked for a file."""
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        return parse_checked(f.read())
+
+
 _C_ESCAPES = {"a": "\x07", "b": "\x08", "f": "\x0c", "n": "\n", "r": "\r",
               "t": "\t", "v": "\x0b", '"': '"', "\\": "\\"}
 _C_ESCAPE_RE = re.compile(r"\\(x[0-9A-Fa-f]{1,2}|[0-7]{1,3}|.)", re.S)
 
 
-def _unescape_c(raw: str) -> str:
+def unescape_quoted(raw: str) -> str:
     """Decode a quoted token's escapes as KiCad's lexer does (dsnlexer.cpp).
 
     \\x and octal escapes are raw bytes that the token then reads as UTF-8; an
@@ -193,7 +205,7 @@ def _tokenize(text: str) -> list:
                 else:
                     j += 1
             raw = text[i + 1 : j]
-            tok = _decoded(_unescape_c(raw))
+            tok = _decoded(unescape_quoted(raw))
             tokens.append(_Quoted(tok) if tok in _KEYWORD_LOOKALIKES else tok)
             i = j + 1
         else:
@@ -206,22 +218,46 @@ def _tokenize(text: str) -> list:
     return tokens
 
 
-def _parse_tokens(tokens: list, pos: int) -> tuple[Any, int]:
-    """Recursively parse tokens starting at pos. Returns (result, new_pos)."""
-    # Bounds check for truncated/malformed files with unbalanced parens
-    if pos >= len(tokens):
+# Far above any KiCad file (the corpus nests at most 37 deep) and below Python's recursion
+# limit, which the recursive tree walkers would otherwise hit.
+_MAX_NESTING = 200
+
+
+def _parse_tokens(tokens: list, pos: int) -> tuple[Any, int, str | None]:
+    """Parse the item at pos. Returns (result, new_pos, problem); see parse_checked."""
+    n = len(tokens)
+    # Bounds check for blank input
+    if pos >= n:
         raise ValueError("Unexpected end of input at position %d" % pos)
-    if tokens[pos] is _LPAREN:
-        lst = []
-        pos += 1
-        while pos < len(tokens) and tokens[pos] is not _RPAREN:
-            item, pos = _parse_tokens(tokens, pos)
-            lst.append(item)
-        return lst, pos + 1  # skip ')'
-    else:
-        tok = tokens[pos]
+    tok = tokens[pos]
+    if tok is not _LPAREN:
         # A stray ")" at top level comes back as the string, as for any other atom.
-        return (")" if tok is _RPAREN else tok), pos + 1
+        return (")" if tok is _RPAREN else tok), pos + 1, None
+    root: list = []
+    stack = [root]
+    skip = 0  # depth inside a list left out for nesting too deep
+    problem = None
+    pos += 1
+    while stack:
+        if pos >= n:
+            return root, pos, "the file ends inside an open list"
+        tok = tokens[pos]
+        pos += 1
+        if skip:
+            skip += 1 if tok is _LPAREN else -1 if tok is _RPAREN else 0
+        elif tok is _LPAREN:
+            if len(stack) >= _MAX_NESTING:
+                skip = 1
+                problem = f"lists nest deeper than {_MAX_NESTING} levels"
+                continue
+            child: list = []
+            stack[-1].append(child)
+            stack.append(child)
+        elif tok is _RPAREN:
+            stack.pop()
+        else:
+            stack[-1].append(tok)
+    return root, pos, problem
 
 
 def find_all(node: list, keyword: str) -> list[list]:

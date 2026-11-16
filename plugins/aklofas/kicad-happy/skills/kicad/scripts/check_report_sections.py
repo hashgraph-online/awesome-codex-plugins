@@ -24,11 +24,11 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import re
 import sys
 
+from kicad_core.fileio import json_load
 from kicad_core.diagnostics import record
 
 # Optional schematic keys -> required report section. Section is required only
@@ -107,7 +107,7 @@ def _load_envelopes(run_dir: str) -> dict:
         if os.path.isfile(path):
             try:
                 with open(path, encoding="utf-8") as f:
-                    env = json.load(f)
+                    env = json_load(f)
                 if not isinstance(env, dict):
                     raise ValueError(f"top level is {type(env).__name__}, not an object")
             except (ValueError, OSError) as exc:
@@ -147,17 +147,49 @@ def required_sections(envs: dict, analysis_dir: str | None = None) -> list[tuple
     return out
 
 
+# Aliases that count only when they are the whole header: as a substring they
+# would also match other sections ("Gerber Verification").
+_WHOLE_HEADER_ALIASES = {"verification"}
+
+
+def _alias_matches(alias: str, header: str) -> bool:
+    if not alias:
+        return False
+    if alias in _WHOLE_HEADER_ALIASES:
+        return header == alias
+    return alias in header
+
+
 def check_report(report_path: str, sections) -> list[str]:
-    """Return labels of required sections with no matching header in the report."""
-    text = open(report_path, encoding="utf-8").read()
+    """Return labels of required sections with no matching header in the report.
+
+    Each header satisfies at most one section (a maximum matching), so one
+    combined header cannot stand in for two required sections.
+    """
+    with open(report_path, encoding="utf-8") as f:
+        text = f.read()
     headers = [_normalize(m.group(1))
                for m in re.finditer(r"^#{1,6}\s+(.*)$", text, re.MULTILINE)]
-    missing = []
-    for label, aliases, _ in sections:
+    candidates = []
+    for _label, aliases, _ in sections:
         norm_aliases = [_normalize(a) for a in aliases]
-        if not any(na and na in h for h in headers for na in norm_aliases):
-            missing.append(label)
-    return missing
+        candidates.append([i for i, h in enumerate(headers)
+                           if any(_alias_matches(na, h) for na in norm_aliases)])
+
+    owner = {}  # header index -> section index
+
+    def assign(sec, seen):
+        for h in candidates[sec]:
+            if h in seen:
+                continue
+            seen.add(h)
+            if h not in owner or assign(owner[h], seen):
+                owner[h] = sec
+                return True
+        return False
+
+    matched = {sec for sec in range(len(sections)) if assign(sec, set())}
+    return [label for n, (label, _a, _r) in enumerate(sections) if n not in matched]
 
 
 def main() -> int:

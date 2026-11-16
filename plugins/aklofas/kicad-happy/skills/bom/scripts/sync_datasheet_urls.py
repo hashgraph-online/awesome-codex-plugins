@@ -39,8 +39,9 @@ sys.path.insert(0, str(Path(__file__).parent))
 from bom_fields import _canonical_for, _pick_mpn_from_props, _symbol_slots
 from distributor_core.manifest import load_index
 from edit_properties import apply_updates
-from kicad_sexp import (atomic_write_text, collect_schematic_files,
-                        iter_placed_symbol_blocks, kicad_lock_path)
+from kicad_core.sexp import unescape_quoted
+from kicad_sexp import (atomic_write_text, block_references, collect_schematic_files,
+                        iter_placed_symbol_blocks, kicad_lock_path, resolve_project)
 
 
 # ---------------------------------------------------------------------------
@@ -79,11 +80,7 @@ def urls_match(a: str, b: str) -> bool:
 # Schematic parsing (lightweight — only extracts Reference + Datasheet)
 # ---------------------------------------------------------------------------
 
-_PROP_RE = re.compile(r'\(property\s+"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"')
-
-
-def _unescape(s: str) -> str:
-    return re.sub(r'\\(.)', lambda m: {"n": "\n"}.get(m.group(1), m.group(1)), s)
+_PROP_RE = re.compile(r'\(property\s+(?:private\s+)?"((?:[^"\\]|\\.)*)"\s+"((?:[^"\\]|\\.)*)"')
 
 
 def extract_ref_datasheets(text: str) -> dict[str, str]:
@@ -91,7 +88,7 @@ def extract_ref_datasheets(text: str) -> dict[str, str]:
     return {ref: sym["datasheet"] for ref, sym in extract_symbols(text).items()}
 
 
-def extract_symbols(text: str) -> dict[str, dict]:
+def extract_symbols(text: str, project_name: str | None = None) -> dict[str, dict]:
     """Extract {reference: {"datasheet": url, "keys": [manifest keys]}} from placed symbols.
 
     Keys are the symbol's own part identities in match order: MPN values, then
@@ -101,10 +98,11 @@ def extract_symbols(text: str) -> dict[str, dict]:
     result = {}
 
     for _sym_start, _sym_end, block in iter_placed_symbol_blocks(text):
-        props = {_unescape(k): _unescape(v) for k, v in _PROP_RE.findall(block)}
+        props = {unescape_quoted(k): unescape_quoted(v) for k, v in _PROP_RE.findall(block)}
         ref = props.get("Reference")
         if ref is None or ref.startswith("#"):
             continue
+        ref = (block_references(block, project_name) or [ref])[0]
 
         keys: list[str] = []
 
@@ -222,9 +220,21 @@ def sync_datasheet_urls(
     files_modified = 0
 
     write_root = schematic_path.parent
+    root_project = resolve_project(schematic_path, schematic_path.read_text(encoding="utf-8"))[0]
+    if root_project is None and schematic_path.with_suffix(".kicad_pro").is_file():
+        root_project = schematic_path.stem    # a root sheet that places no symbol itself
     for sch_file in sch_files:
         text = sch_file.read_text(encoding="utf-8")
-        current = extract_symbols(text)
+        project, projects = resolve_project(sch_file, text)
+        if root_project in projects:
+            # a sheet of the root's project, even with another project's file beside it
+            project = root_project
+        if project is None and len(projects) > 1:
+            print(f"Warning: {sch_file.name} holds instances of several projects "
+                  f"({', '.join(projects)}) and none has a .kicad_pro above it; skipped. "
+                  f"Run this on the project's root schematic.", file=sys.stderr)
+            continue
+        current = extract_symbols(text, project)
         ref_url_map = {}
 
         updates = {}
@@ -278,7 +288,7 @@ def sync_datasheet_urls(
                 print(f"Warning: {sch_file} is outside {write_root}; not written",
                       file=sys.stderr)
                 continue
-            modified_text, change_log = apply_updates(text, updates)
+            modified_text, change_log = apply_updates(text, updates, project_name=project)
 
             # Backup if requested
             if backup:
@@ -418,7 +428,9 @@ def main():
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     main()

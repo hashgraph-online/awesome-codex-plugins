@@ -32,8 +32,10 @@ OPAMP_SPECS = {
     # TI — general purpose
     "LM358":    {"gbw_hz": 1e6,   "slew_vus": 0.3,  "vos_mv": 2.0,  "aol_db": 100, "rin_ohms": 2e6,   "supply_min": 3,   "supply_max": 32,  "rro": False, "rri": False, "swing_v": 1.5},
     "LM324":    {"gbw_hz": 1e6,   "slew_vus": 0.5,  "vos_mv": 2.0,  "aol_db": 100, "rin_ohms": 2e6,   "supply_min": 3,   "supply_max": 32,  "rro": False, "rri": False, "swing_v": 1.5},
-    "TL072":    {"gbw_hz": 3e6,   "slew_vus": 8,    "vos_mv": 3.0,  "aol_db": 106, "rin_ohms": 1e12,  "supply_min": 7,   "supply_max": 36,  "rro": False, "rri": False, "swing_v": 2.0},
-    "TL074":    {"gbw_hz": 3e6,   "slew_vus": 8,    "vos_mv": 3.0,  "aol_db": 106, "rin_ohms": 1e12,  "supply_min": 7,   "supply_max": 36,  "rro": False, "rri": False, "swing_v": 2.0},
+    # TL072/TL074 supply_min: TI SLOS080V Recommended Operating Conditions, VS 4.5 V min
+    # (10 V for the NS/PS packages and TL07xM)
+    "TL072":    {"gbw_hz": 3e6,   "slew_vus": 8,    "vos_mv": 3.0,  "aol_db": 106, "rin_ohms": 1e12,  "supply_min": 4.5, "supply_max": 36,  "rro": False, "rri": False, "swing_v": 2.0},
+    "TL074":    {"gbw_hz": 3e6,   "slew_vus": 8,    "vos_mv": 3.0,  "aol_db": 106, "rin_ohms": 1e12,  "supply_min": 4.5, "supply_max": 36,  "rro": False, "rri": False, "swing_v": 2.0},
     "TL082":    {"gbw_hz": 4e6,   "slew_vus": 13,   "vos_mv": 3.0,  "aol_db": 106, "rin_ohms": 1e12,  "supply_min": 7,   "supply_max": 36,  "rro": False, "rri": False, "swing_v": 2.0},
     "TL084":    {"gbw_hz": 4e6,   "slew_vus": 13,   "vos_mv": 3.0,  "aol_db": 106, "rin_ohms": 1e12,  "supply_min": 7,   "supply_max": 36,  "rro": False, "rri": False, "swing_v": 2.0},
     "NE5532":   {"gbw_hz": 10e6,  "slew_vus": 9,    "vos_mv": 0.5,  "aol_db": 100, "rin_ohms": 300e3, "supply_min": 8,   "supply_max": 44,  "rro": False, "rri": False, "swing_v": 2.0},

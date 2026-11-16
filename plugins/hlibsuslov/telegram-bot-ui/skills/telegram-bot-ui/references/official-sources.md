@@ -181,6 +181,7 @@ Sources read on 2026-11-12 (machine-readable `.md` versions of the pages):
 | Bot API changelog, 10.4 | https://core.telegram.org/bots/api-changelog#november-9-2026 | registry rows 10.4-* |
 | Bot API changelog, 10.3 | https://core.telegram.org/bots/api-changelog#august-24-2026 | registry rows 10.3-* |
 | Widgets guide | https://core.telegram.org/bots/widgets | `widgets.md`, `wallet-and-ton.md` |
+| widget-sandbox (Telegram's client sandbox, v0.6.5 on 2026-11-15; no license file, so link, don't copy) | https://github.com/TelegramMessenger/widget-sandbox — `docs/profile-v1.md` (generated from `packages/core/profile.json`), `docs/sdk-v1.md`, `docs/widget-runtime-profile.md` | the exact in/out profile behind `widget_lint` rules (e.g. `:disabled` becomes `[disabled]`, `eval` is in); the `sandbox-node.ts` harness for users who want a real-validator run |
 | Rich messages + Rich Message Limits | https://core.telegram.org/bots/api#rich-messages | limits, tags, `tg://document` |
 | EphemeralMessageParameters, Ephemeral Messages and Commands | https://core.telegram.org/bots/api#ephemeralmessageparameters | `ephemeral-and-personal.md` |
 | sendMessageDraft / sendRichMessageDraft / MessageGenerationStopped | https://core.telegram.org/bots/api#sendmessagedraft | `streaming-and-editing.md` |
@@ -221,7 +222,8 @@ Official Telegram open source / tooling for the newest API (checked 2026-11-12):
 - No official open-source example bot for 10.3/10.4 was found; SDK support is tracked in
   `sdk-compatibility.md`.
 
-SDK status verified 2026-11-12: aiogram 3.31.0 (Bot API 10.3), grammY 1.46.0 /
+SDK status verified 2026-11-12 (re-checked 2026-11-15: aiogram 3.32.0 and
+node-telegram-bot-api 2.4.0 implement 10.4): aiogram 3.31.0 (Bot API 10.3), grammY 1.46.0 /
 @grammyjs/types 5.0.0 (10.3), python-telegram-bot 22.8 (10.0 per its README).
 `sdk-compatibility.md#verified-sdk-status-2026-11-12`.
 

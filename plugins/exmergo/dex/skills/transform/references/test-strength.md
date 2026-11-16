@@ -41,7 +41,10 @@ its tests. `dex maintain coverage` reads it back as the model's `strength`:
 `fresh` while neither changed, `stale` once one did. A run that decided nothing
 leaves the previous record in place. To see which models have a current score,
 which are stale and which were never measured, run `maintain coverage` rather
-than `--mutate` on every model.
+than `--mutate` on every model; `maintain coverage --mutate` refreshes the stale
+and missing ones in one priced batch. A model refused because its SQL has
+nothing to plant a defect in is recorded too, and reads `untestable` until it
+changes.
 
 The score covers only the defects Dex plants, on one model. It is evidence about
 the suite, not proof that the model is right. Do not quote it as a quality

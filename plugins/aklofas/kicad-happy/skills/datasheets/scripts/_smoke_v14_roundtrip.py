@@ -213,9 +213,11 @@ def test_placement_sniff() -> int:
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     rc1 = main()
     rc2 = test_placement_sniff()
     sys.exit(rc1 | rc2)

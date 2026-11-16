@@ -33,11 +33,11 @@ description: >-
 | `spice` | SPICE simulation verification of detected subcircuits |
 | `emc` | EMC pre-compliance risk analysis — consumes schematic + PCB analyzer output |
 
-**Handoff guidance:** Use this skill to parse schematics/PCBs and extract structured data. Hand off to `bom` for BOM enrichment, pricing, and ordering. Hand off to `digikey`/`mouser`/`lcsc`/`element14` for part searches and datasheet fetching. Hand off to `jlcpcb`/`pcbway` for fabrication ordering and DFM rule validation. **Always run `spice`** for simulation verification during design reviews when any SPICE simulator is installed (check with `which ngspice ltspice xyce`). **Always run `emc`** for EMC pre-compliance risk analysis during design reviews when both schematic and PCB analysis are available. These are not optional — skipping them leaves value-computation errors and EMC risks undetected.
+**Handoff guidance:** Use this skill to parse schematics/PCBs and extract structured data. Hand off to `bom` for BOM enrichment, pricing, and ordering. Hand off to `digikey`/`mouser`/`lcsc`/`element14` for part searches and datasheet fetching. Hand off to `jlcpcb`/`pcbway` for fabrication ordering and DFM rule validation. During design reviews, run `spice` when a SPICE simulator is installed (check with `which ngspice ltspice xyce`) and `emc` when both schematic and PCB analysis are available. Report each result at its strength: a SPICE `pass` measured against a real criterion (expected cutoff, ratio, gain) is a check; an `info` bench, or one built on a generic part model, is a measurement, not verification; EMC findings with `confidence: heuristic` are pre-compliance screening, not a compliance result.
 
 **Before analysis:** When the user asks to analyze or review a KiCad project, check whether a `datasheets/` directory exists in the project. If not, and DigiKey API keys are available (`DIGIKEY_CLIENT_ID`), offer to sync datasheets first: "I can download datasheets for your components before analysis — this enables pin-level verification and decoupling validation against manufacturer specs. Want me to sync them?" If the user declines or no API keys are set, proceed without datasheets — the analysis works without them but datasheet verification findings won't be available.
 
-**If you see a `DS-001` finding in the analyzer output** (severity `error`, detector `audit_datasheet_coverage`), the review cannot make any verified claim. Stop and either (a) run the datasheet sync via `digikey` / `mouser` / `lcsc` / `element14` (whichever has credentials/stock), (b) populate MPNs on the BOM parts, or (c) state explicitly in the report that every pin-level, electrical, and regulator finding is *consistency only* — do not use the words "verified", "confirmed", or "per datasheet" anywhere. `DS-002` (datasheets missing but MPNs set) and `DS-003` (partial MPN coverage) are softer variants with the same implication for the parts they cite.
+**If you see a `DS-001` finding in the analyzer output** (severity `error`, detector `audit_datasheet_coverage`), no part on the BOM has datasheet evidence, so the review cannot make a datasheet-verified claim about any of them. Facts read from the KiCad files themselves (nets, pads, tracks, DRC/ERC results) can still be stated as raw-file verified. Stop and either (a) run the datasheet sync via `digikey` / `mouser` / `lcsc` / `element14` (whichever has credentials/stock), (b) populate MPNs on the BOM parts, or (c) state explicitly in the report that every pin-level, electrical, and regulator finding is *consistency only*, and do not use the words "verified", "confirmed", or "per datasheet" for those findings. `DS-002` (datasheets missing but MPNs set) and `DS-003` (partial MPN coverage) are softer variants with the same implication for the parts they cite.
 
 ## Design Review Contract
 
@@ -239,7 +239,7 @@ python3 <skill-path>/scripts/cross_analysis.py \
     --schematic schematic.json --pcb pcb.json --output cross_analysis.json
 ```
 
-Checks: CC-001 connector current capacity, EG-001 ESD protection gaps, DA-001 decoupling adequacy, XV-001..004 schematic/PCB sync (parts paired by schematic path; XV-003 footprint, XV-004 MPN). PCB JSON optional.
+Checks: CC-001 connector current capacity, EG-001 ESD protection gaps, DA-001 decoupling adequacy, XV-001..004 schematic/PCB sync (parts paired by schematic path; XV-003 footprint, XV-004 MPN, compared where both sides carry one). PCB JSON optional.
 
 Mechanical cross-verify (PCB vs schematic geometry): `python3 <skill-path>/scripts/cross_verify.py --help`.
 
@@ -302,8 +302,8 @@ The `findings` list is the single authoritative source for all findings. Use `fi
 
 All analyzers support `--text` (human-readable report), `--analysis-dir`
 (run-folder output, preferred) and `--output` (one JSON file). Pass only one
-JSON destination: given both, schematic and PCB write only the run folder,
-EMC writes both, and gerber, thermal and cross-analysis write only `--output`.
+JSON destination: given both, every analyzer writes only `--output` (the
+`capability_mode.json` sidecar still goes to `--analysis-dir`).
 
 ### Stage and Audience Filtering
 
@@ -357,7 +357,7 @@ The `analysis` section in `.kicad-happy.json` controls the shared analysis outpu
 
 | Field | Default | Description |
 |-------|---------|-------------|
-| `output_dir` | `"analysis"` | Analysis directory; relative paths resolve against the working directory |
+| `output_dir` | `"analysis"` | Analysis directory; a relative path without `..`, resolved against the working directory |
 | `retention` | `0` | Max unpinned runs to keep. `0` = keep all (default) |
 | `auto_diff` | `true` | Auto-include delta section in design reviews |
 | `track_in_git` | `false` | When false, JSONs gitignored but manifest tracked |
@@ -726,11 +726,11 @@ Detailed methodology and format documentation lives in reference files. Read the
 
 | Reference | Lines | When to Read |
 |-----------|-------|-------------|
-| `deep-review.md` | 192 | Deep Review pass: per-part-class comparison heuristics, pair checks, helper-script conventions, fan-out |
+| `deep-review.md` | 195 | Deep Review pass: per-part-class comparison heuristics, pair checks, helper-script conventions, fan-out |
 | `schematic-analysis.md` | 1167 | Deep schematic review: datasheet validation, design patterns, error taxonomy, tolerance stacking, GPIO audit, motor control, battery life, supply chain |
 | `pcb-layout-analysis.md` | 447 | Advanced PCB: impedance calculations, differential pairs, return paths, copper balance, edge clearance, copper-sensitive components (capacitive touch, antennas), custom analysis scripts |
 | `output-schema.md` | 347 | Full analyzer JSON schema with field names, types, and common extraction patterns |
-| `file-formats.md` | 382 | Manual file inspection: S-expression structure, field-by-field docs for all KiCad file types, version detection |
+| `file-formats.md` | 388 | Manual file inspection: S-expression structure, field-by-field docs for all KiCad file types, version detection |
 | `gerber-parsing.md` | 761 | Gerber/Excellon format details, X2 attributes, analysis techniques |
 | `pdf-schematic-extraction.md` | 315 | PDF schematic analysis: extraction workflow, notation conventions, KiCad translation |
 | `supplementary-data-sources.md` | 288 | Legacy KiCad 5 data recovery: netlist parsing, cache library, PCB cross-reference |

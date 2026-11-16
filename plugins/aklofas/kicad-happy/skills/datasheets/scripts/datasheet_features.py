@@ -21,7 +21,7 @@ from typing import Optional
 
 from datasheet_extract_cache import (
     resolve_extract_dir,
-    get_cached_extraction,
+    find_extraction,
     EXTRACTION_VERSION,
     MIN_SCORE,
 )
@@ -33,8 +33,8 @@ _TYPES_PARENT = str(Path(__file__).resolve().parent.parent)
 if _TYPES_PARENT not in sys.path:
     sys.path.insert(0, _TYPES_PARENT)
 
-from datasheet_types.cache_reader import cache_path_for, read_json_object  # noqa: E402
 from datasheet_types.extraction import DatasheetFacts  # noqa: E402
+from datasheet_types.trust_gating import FACTS_MIN_SCORE, finite_score  # noqa: E402
 
 
 _REGULATOR_TOPOLOGIES = ('boost', 'buck', 'ldo')
@@ -62,7 +62,8 @@ _PIN_NAME_TO_FUNCTION: dict[str, str] = {
 
 
 def _load(mpn, extract_dir=None, analysis_json=None, project_dir=None):
-    """Resolve extract dir and load the cached extraction for mpn.
+    """Resolve extract dir and load the cached v1.3 extraction for mpn (the
+    v1.4 file is read first, through cache_reader.lookup, by each helper).
 
     Returns the extraction dict on any cache hit (quality is described by
     `_quality_v13`, never gated here). Returns None on a
@@ -74,11 +75,7 @@ def _load(mpn, extract_dir=None, analysis_json=None, project_dir=None):
         )
         if extract_dir is None:
             return None
-    ext = get_cached_extraction(extract_dir, mpn)
-    if not ext:
-        # Direct-file fallback: allows test fixtures (and simple single-file drops)
-        # that write {mpn}.json directly without a manifest index.
-        ext = read_json_object(cache_path_for(mpn, extract_dir))
+    ext = find_extraction(extract_dir, mpn, v14_first=False)[0]
     return ext if ext is not None and _legacy_shape_ok(ext) else None
 
 
@@ -119,15 +116,15 @@ def _legacy_shape_ok(ext):
 def _quality_v13(ext):
     """Quality flag for a v1.3-format extraction. Describes — never gates."""
     meta = (ext or {}).get('extraction_metadata') or {}
-    score = meta.get('extraction_score')
+    score = finite_score(meta.get('extraction_score'))
     version = meta.get('extraction_version') or 0
     reasons = []
     if version < EXTRACTION_VERSION:
         reasons.append(f'stale_version ({version} < {EXTRACTION_VERSION})')
-    if not isinstance(score, (int, float)) or score < MIN_SCORE:
+    if score is None or score < MIN_SCORE:
         reasons.append(f'low_score ({score} < {MIN_SCORE})')
     return {
-        'score': score if isinstance(score, (int, float)) else None,
+        'score': score,
         'scale': '0-10',
         'trusted': not reasons,
         'reasons': reasons,
@@ -136,14 +133,14 @@ def _quality_v13(ext):
 
 def _quality_v14(facts):
     """Quality flag for a v1.4 DatasheetFacts. Describes — never gates."""
-    score = facts.quality
+    score = finite_score(facts.quality)
     reasons = []
-    if not isinstance(score, (int, float)) or score < 60:
-        reasons.append(f'low_score ({score} < 60)')
+    if score is None or score < FACTS_MIN_SCORE:
+        reasons.append(f'low_score ({score} < {FACTS_MIN_SCORE})')
     if getattr(facts, 'stale', False):
         reasons.append('stale_pdf')
     return {
-        'score': score if isinstance(score, (int, float)) else None,
+        'score': score,
         'scale': '0-100',
         'trusted': not reasons,
         'reasons': reasons,

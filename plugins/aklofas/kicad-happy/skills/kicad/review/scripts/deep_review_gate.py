@@ -72,14 +72,40 @@ def resolve_run_dir(analysis_dir, run_id=None):
     return analysis_dir
 
 
+def _strip_overbar(name):
+    """KiCad's active-low markup: ~{RESET} is RESET."""
+    return re.sub(r"~\{([^{}]*)\}", r"\1", name)
+
+
 class _PinIds(set):
-    """Pin numbers and names of one component; has_names is False when the
-    analyzer JSON lists numbers only."""
+    """Pin numbers and names of one component. has_names is False when the
+    analyzer JSON lists numbers only; names_complete is True only when every
+    pin with a number on record also has a name."""
     has_names = False
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self._named, self._unnamed = set(), set()
 
     def add_name(self, name):
         self.add(name)
+        stripped = _strip_overbar(name)
+        if stripped != name:
+            self.add(stripped)
         self.has_names = True
+
+    def add_pin(self, number, name):
+        number = str(number).upper()
+        self.add(number)
+        if str(name or "").strip():
+            self.add_name(str(name).strip().upper())
+            self._named.add(number)
+        else:
+            self._unnamed.add(number)
+
+    @property
+    def names_complete(self):
+        return self.has_names and not (self._unnamed - self._named)
 
 
 def load_anchor_sets(analysis_dir, run_id=None):
@@ -121,8 +147,8 @@ def load_anchor_sets(analysis_dir, run_id=None):
                 if isinstance(p, dict) and p.get("component"):
                     ids = pins.setdefault(str(p["component"]).upper(), _PinIds())
                     if p.get("pin_number"):
-                        ids.add(str(p["pin_number"]).upper())
-                    if str(p.get("pin_name") or "").strip():
+                        ids.add_pin(p["pin_number"], p.get("pin_name"))
+                    elif str(p.get("pin_name") or "").strip():
                         ids.add_name(str(p["pin_name"]).strip().upper())
     sch_pinned = {ref for ref, ids in pins.items() if ids}
     pcb = run_dir / "pcb.json"
@@ -135,9 +161,7 @@ def load_anchor_sets(analysis_dir, run_id=None):
                 pad_nets = fp.get("pad_nets") if isinstance(fp.get("pad_nets"), dict) else {}
                 ids = pins.setdefault(ref, _PinIds())
                 for num, entry in pad_nets.items():
-                    ids.add(str(num).upper())
-                    if isinstance(entry, dict) and entry.get("pin"):
-                        ids.add_name(str(entry["pin"]).strip().upper())
+                    ids.add_pin(num, entry.get("pin") if isinstance(entry, dict) else None)
                 # pad_nets omits a pad on no net, so a PCB-only part with one is unchecked
                 if ref not in sch_pinned and not (
                         isinstance(fp.get("pad_count"), int) and fp["pad_count"] <= len(pad_nets)):
@@ -221,27 +245,79 @@ def check_anchors(ev, comps, nets, pins):
             partial = True
         elif num.upper() not in pins[ref.upper()]:
             ids = pins[ref.upper()]
-            # with numbers only on record, a non-numeric citation may be a name
-            if ids.has_names or num.isdigit():
+            # a name may belong to a pin the analyzer JSON lists without one
+            if ids.names_complete or num.isdigit():
                 fails.append(f"pin {pin}: {ref} has no pin {num} in analyzer JSON")
             else:
                 partial = True
     return fails, partial
 
 
+def _datasheets_pkg():
+    pkg = str(Path(__file__).resolve().parents[3] / "datasheets")
+    if pkg not in sys.path:
+        sys.path.insert(0, pkg)
+
+
+def _manifest_pdf(d, mpn):
+    """(path, stop, others): the PDF datasheets/manifest.json (or legacy index.json) lists
+    for `mpn`; True when the entry marks the download as the wrong part, so no other file
+    may stand in for it; and the lower-cased file names the manifest lists for other parts."""
+    _datasheets_pkg()
+    from datasheet_types.cache_reader import read_json_object
+    from distributor_core.manifest import manifest_file_path
+    for name in ("manifest.json", "index.json"):
+        data = read_json_object(d / name)
+        if data is None:
+            continue
+        parts = data.get("parts")
+        if not isinstance(parts, dict):
+            return None, False, set()
+        want = mpn.strip().lower()
+        entry = parts.get(mpn)
+        if entry is None:
+            entry = next((v for k, v in parts.items()
+                          if isinstance(k, str) and k.strip().lower() == want), None)
+        others = {v["file"].lower() for k, v in parts.items()
+                  if isinstance(k, str) and k.strip().lower() != want
+                  and isinstance(v, dict) and isinstance(v.get("file"), str)}
+        if isinstance(entry, dict) and entry.get("status") == "ok":
+            if entry.get("verification") == "wrong":
+                return None, True, others
+            path = manifest_file_path(d, entry.get("file"))
+            if path is not None and path.is_file():
+                return path, False, others
+        return None, False, others
+    return None, False, set()
+
+
 def find_pdf(datasheets_dir, mpn):
+    """The datasheet PDF for `mpn`: the manifest's file, else `<MPN>.pdf`, else the one
+    `<MPN>_*.pdf` the datasheet sync writes that the manifest does not list for another
+    part (`LM317_NOPB_….pdf` is LM317/NOPB's, not LM317's)."""
     d = Path(datasheets_dir)
     if not d.is_dir():
         return None
+    listed, stop, others = _manifest_pdf(d, mpn)
+    if stop:
+        return None
+    if listed is not None:
+        return listed
     sanitized = re.sub(r"[^A-Za-z0-9_.-]", "_", mpn.strip())
     direct = d / f"{sanitized}.pdf"
     if direct.is_file():
         return direct
     lowered = sanitized.lower()
-    for p in sorted(d.glob("*.pdf")):
+    pdfs = sorted(d.glob("*.pdf"))
+    for p in pdfs:
         if p.stem.lower() == lowered:
             return p
-    return None
+    _datasheets_pkg()
+    from distributor_core.manifest import sanitize_filename
+    bases = {lowered + "_", sanitize_filename(mpn.strip()).lower() + "_"} - {"_"}
+    hits = {p for p in pdfs if any(p.stem.lower().startswith(b) for b in bases)
+            and p.name.lower() not in others}
+    return hits.pop() if len(hits) == 1 else None
 
 
 _DASH_RE = re.compile("[\u2212\u2013\u2010\u2011]")
@@ -263,6 +339,15 @@ _TOKEN_RE = re.compile(
 # a ± set apart from the number it precedes (a space or a wrapped line)
 _PLUSMINUS_GAP_RE = re.compile(r"±\s+(?=\.?[0-9])")
 _LEADING_POINT_RE = re.compile(r"(?<![^\s±-])\.(?=[0-9])")
+# An exponent the PDF text splits ("1e- 3", "1 e-3"). The digits before the e
+# must be a number of their own: "MAX3232E -40" is a part number and a value.
+# A single digit glued to a letter ("A1e-3", "IC1e-3") stays an exponent. A
+# token heuristic cannot separate every glued label from a part number; this
+# one calls two or more digits a part number.
+_EXP_BASE = r"(?:(?<![^\W_])[0-9]*\.?[0-9]+|(?<=[^\W\d_])[0-9](?![0-9]))"
+_EXP_GAP_RE = re.compile(rf"({_EXP_BASE})[ \t]*e[ \t]*-\s*(?=[0-9])")
+# a part-number token such as "max3232e-40" is not an exponent
+_PARTNO_EXP_RE = re.compile(r"([^\W\d_][^\W_]*[0-9]{2}e)-(?=[0-9])")
 
 
 def _norm_text(s):
@@ -272,14 +357,17 @@ def _norm_text(s):
     s = _DASH_RE.sub("-", s)
     s = _PLUSMINUS_RE.sub("±", s).replace("≤", "<=").replace("≥", ">=")
     s = _PLUSMINUS_GAP_RE.sub("±", s)
+    s = _EXP_GAP_RE.sub(r"\1e-", s)
     # ".5" is written "0.5" so both spellings compare equal
-    return _LEADING_POINT_RE.sub("0.", " ".join(_TOKEN_RE.findall(s)))
+    s = _LEADING_POINT_RE.sub("0.", " ".join(_TOKEN_RE.findall(s)))
+    return _PARTNO_EXP_RE.sub(r"\1 -", s)
 
 
 def _squash(s):
     # Two numbers side by side stay apart ("0.9 1.0" is not "0.91.0"), and
     # so does a ± set apart from a word ("± x" is not "±x").
-    return re.sub(r"(?<=[0-9]) (?=[-±0-9])|(?<=±) ", "|", _norm_text(s)).replace(" ", "")
+    return re.sub(r"(?<=[0-9]) (?=[-±0-9])|(?<=[0-9]e) (?=-)|(?<=±) ", "|",
+                  _norm_text(s)).replace(" ", "")
 
 
 # a whole run of dots is one marker, so a dot leader leaves no stray point
@@ -325,6 +413,7 @@ def _find_outside_numbers(t, q, pos):
         before = t[idx - 1] if idx else ""
         after = t[idx + len(q):idx + len(q) + 1]
         inside = ((q[0].isdigit() and before and (before.isdigit() or before in ".,-±"))
+                  or (q[0] == "-" and re.search(r"[0-9]e$", t[max(0, idx - 2):idx]))
                   or (q[0] == "." and before.isdigit())
                   or (q[-1].isdigit() and after and (after.isdigit() or after in ".,")))
         if not inside:
@@ -382,6 +471,9 @@ def _nearest_match(quote, text, window=80, stride=40):
     return best
 
 
+PDFTOTEXT_TIMEOUT_S = 30    # a PDF that stalls pdftotext leaves the quote unchecked
+
+
 def check_datasheet(cites, datasheets_dir):
     """Returns (failures, partial). Missing tool/PDF -> partial, not failure."""
     fails, partial = [], False
@@ -407,8 +499,8 @@ def check_datasheet(cites, datasheets_dir):
         cmd += [str(pdf), "-"]
         try:
             proc = subprocess.run(cmd, capture_output=True, encoding="utf-8",
-                                  errors="replace")
-        except OSError:
+                                  errors="replace", timeout=PDFTOTEXT_TIMEOUT_S)
+        except (OSError, subprocess.TimeoutExpired):
             partial = True
             continue
         # Past the last page poppler's pdftotext exits 99 ("Wrong page range given"); xpdf's
@@ -555,7 +647,9 @@ def main():
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

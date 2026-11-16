@@ -24,8 +24,10 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from finding_schema import make_finding, compute_trust_summary, assign_finding_ids, show_decoded_names
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.fields import merge_unit_fields
-from kicad_core.netnames import is_ground_name, is_pin_guarded_signal, is_power_net_name
+from kicad_core.netnames import (RAIL_SIGNAL_SUFFIXES, _VOLTAGE_SIGNAL_SUFFIXES, is_ground_name,
+                                 is_pin_guarded_signal, is_power_net_name, net_leaf)
 from kicad_core.netquery import build_net_id_map as _build_net_id_map
 from kicad_core.pairing import pair_by_path
 from envelopes.cross_analysis import CrossAnalysisEnvelope
@@ -43,21 +45,10 @@ ANALYZER_SOURCE = "cross"
 # ---------------------------------------------------------------------------
 
 def is_cross_analysis_ground_name(name: str) -> bool:
-    """Check if a net name is a ground net (the cross-analysis policy).
-
-    Removes every '/', '-' and '_' and then matches an exact set, so it
-    differs from kicad_core.netnames.is_ground_name: also accepts EARTH and
-    CHASSIS; has no GND-prefix/suffix or VSS-prefix patterns (SGND, GNDPWR,
-    GND_ISO, VSSA are not ground), no COM, no 0V<suffix> family, no
-    battery-negative names; a sheet path is concatenated, not stripped
-    ("/Power/GND" is not ground, "/GND" is). The GND_D / GND_A entries are
-    unreachable after stripping (they match as GNDD / GNDA).
-    """
+    """Ground net: the shared schematic rule (kicad_core.netnames.is_ground_name) plus EARTH and CHASSIS."""
     if not name:
         return False
-    n = name.upper().replace('/', '').replace('-', '').replace('_', '')
-    return n in ('GND', 'VSS', 'DGND', 'AGND', 'PGND', 'GNDD', 'GNDA',
-                 'GND_D', 'GND_A', 'EARTH', 'CHASSIS', '0V')
+    return is_ground_name(name) or net_leaf(name).upper() in ('EARTH', 'CHASSIS')
 
 
 def _is_power_net(name: str) -> bool:
@@ -66,6 +57,12 @@ def _is_power_net(name: str) -> bool:
     n = name.upper()
     if is_cross_analysis_ground_name(name):
         return True
+    # A signal about a rail (VBUS_DET, VIN_EN, +5V_SENSE, 5VEN) is not the rail.
+    if '_' in n and n.rsplit('_', 1)[-1] in RAIL_SIGNAL_SUFFIXES:
+        return False
+    m = re.match(r'^\+?\d+V\d*([A-Z]+)$', n)
+    if m and m.group(1) in _VOLTAGE_SIGNAL_SUFFIXES:
+        return False
     if n.startswith(('+', 'VCC', 'VDD', 'VBUS', 'VIN', 'VBAT', 'VSYS')):
         return True
     if re.match(r'^\+?\d+V\d*', n):
@@ -119,6 +116,53 @@ def _reg_iout(reg: dict) -> float:
     return (reg.get('estimated_iout_A')
             or (reg.get('power_dissipation') or {}).get('estimated_iout_A')
             or 0)
+
+
+def _reg_iin(reg: dict) -> float:
+    """Estimated input current of a regulator: its output current for a linear regulator,
+    Iout * |Vout| / (Vin * efficiency) for a switcher whose estimate carries them. Vout is
+    read from the output rail's name when the name carries a voltage."""
+    iout = _reg_iout(reg)
+    pd = reg.get('power_dissipation') or {}
+    vin, vout, eff = pd.get('vin_estimated_V'), pd.get('vout_V'), pd.get('efficiency_assumed')
+    vout = _parse_voltage_from_name(reg.get('output_rail', '')) or vout
+    if iout and all(isinstance(v, (int, float)) for v in (vin, vout, eff)) and vin > 0 and eff > 0:
+        return iout * abs(vout) / (vin * eff)
+    return iout
+
+
+def _path_min_width(pad_paths: dict, net_name: str, conn_ref: str, reg_refs: set) -> float | None:
+    """Narrowest track on the routed paths between a connector's pads and the pads of the
+    regulators it feeds on one net (pad_to_pad_distances, keyed "REF.pad-REF.pad");
+    None when no such path was measured."""
+    widths = []
+    for key, entry in pad_paths.items():
+        w = entry.get('min_width_mm')
+        if entry.get('net') != net_name or not isinstance(w, (int, float)) or w <= 0:
+            continue
+        if any((key.startswith(conn_ref + '.') and f'-{r}.' in key)
+               or (key.startswith(r + '.') and f'-{conn_ref}.' in key) for r in reg_refs):
+            widths.append(w)
+    return min(widths) if widths else None
+
+
+def _attached_min_width(segments: list, net_id_map: dict, net_name: str, fp: dict) -> float | None:
+    """Narrowest track of net_name with an end inside the footprint's courtyard (the track
+    leaving the connector); None without a courtyard or such a track."""
+    cy = fp.get('courtyard') or {}
+    if not all(isinstance(cy.get(k), (int, float)) for k in ('min_x', 'min_y', 'max_x', 'max_y')):
+        return None
+    widths = []
+    for seg in segments:
+        net_id = seg.get('net', 0)
+        if (net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)) != net_name:
+            continue
+        w = seg.get('width', 0) or 0
+        if w > 0 and any(cy['min_x'] <= x <= cy['max_x'] and cy['min_y'] <= y <= cy['max_y']
+                         for x, y in ((seg.get('x1'), seg.get('y1')), (seg.get('x2'), seg.get('y2')))
+                         if isinstance(x, (int, float)) and isinstance(y, (int, float))):
+            widths.append(w)
+    return min(widths) if widths else None
 
 
 def _min_trace_width_for_current(current_a: float) -> float:
@@ -227,18 +271,13 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
 
     footprints = pcb.get('footprints', [])
     fp_map = {fp.get('reference', ''): fp for fp in footprints}
+    pad_paths = pcb.get('pad_to_pad_distances') or {}
 
     segments = (pcb.get('tracks') or {}).get('segments') or []
+    if not segments:
+        _record(recorder, 'CC-001', False, 'no PCB track segments present', 0, findings)
+        return findings
     net_id_map = _build_net_id_map(pcb)
-
-    net_min_width: dict[str, float] = {}
-    for seg in segments:
-        net_id = seg.get('net', 0)
-        net_name = net_id_map.get(net_id, '') if isinstance(net_id, int) else str(net_id)
-        w = seg.get('width', 0) or 0
-        if net_name and w > 0:
-            if net_name not in net_min_width or w < net_min_width[net_name]:
-                net_min_width[net_name] = w
 
     components = schematic.get('components', [])
     connectors = [c for c in components if c.get('type') == 'connector']
@@ -257,14 +296,18 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
             voltage = _parse_voltage_from_name(net_name)
             if voltage is None:
                 continue
-            total_current = sum(
-                _reg_iout(reg)
-                for reg in regulators
-                if reg.get('input_rail') == net_name
-            )
+            fed = [reg for reg in regulators if reg.get('input_rail') == net_name]
+            total_current = sum(_reg_iin(reg) for reg in fed)
             if total_current <= 0:
                 continue
-            trace_w = net_min_width.get(net_name)
+            # The routed connector-to-regulator path when it was measured, else the
+            # track leaving the connector.
+            trace_w = _path_min_width(pad_paths, net_name, ref,
+                                      {reg.get('ref') for reg in fed if reg.get('ref')})
+            where = 'between the connector and those regulators'
+            if trace_w is None:
+                trace_w = _attached_min_width(segments, net_id_map, net_name, fp)
+                where = 'leaving the connector'
             if trace_w is None:
                 continue
             min_w = _min_trace_width_for_current(total_current)
@@ -272,11 +315,11 @@ def check_connector_current(schematic: dict, pcb: dict | None, recorder=None) ->
                 findings.append(make_finding(
                     detector='check_connector_current', rule_id='CC-001',
                     category='current_capacity',
-                    summary=f'Connector {ref}: trace on {net_name} too narrow for ~{total_current:.1f}A',
+                    summary=f'Connector {ref}: trace on {net_name} too narrow for ~{total_current:.1f}A (est.)',
                     description=(
-                        f'Power net {net_name} at connector {ref} carries '
-                        f'{total_current:.1f}A (estimated from the regulator output '
-                        f'capacitance) but narrowest trace is {trace_w:.2f}mm. '
+                        f'Power net {net_name} at connector {ref} carries an estimated '
+                        f'{total_current:.1f}A into the regulators it feeds (from their '
+                        f'output capacitance), but the narrowest trace {where} is {trace_w:.2f}mm. '
                         f'IPC-2152 recommends >= {min_w:.2f}mm (1oz Cu, 10C rise).'
                     ),
                     severity='warning', confidence='heuristic', evidence_source='topology',
@@ -317,8 +360,33 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
     components = schematic.get('components', [])
     connectors = [c for c in components if c.get('type') == 'connector']
     comp_type = {c.get('reference'): c.get('type') for c in components}
-    pin_signals = {n for n, info in (schematic.get('nets') or {}).items()
-                   if is_pin_guarded_signal(n, [(p.get('pin_type'), comp_type.get(p.get('component')) == 'ic')
+    all_nets = schematic.get('nets') or {}
+    # A clamp behind one series resistor, ferrite or inductor still protects the pin; the
+    # far side must be a clamped signal (a pull-up to a clamped rail protects nothing, and a
+    # fuse or a reverse-polarity diode is no ESD clamp).
+    clamped = {n for pd in protection if pd.get('type') in ('esd_ic', 'diode', 'varistor', 'surge_arrester')
+               for n in [pd.get('protected_net', '')] + list(pd.get('protected_nets') or []) if n}
+    # The pin's own net must reach no IC, or that IC sits in front of the clamp.
+    via_series: set[str] = set()
+    for c in components:
+        if (c.get('type') not in ('resistor', 'ferrite_bead', 'inductor')
+                or c.get('dnp') or c.get('on_board') is False):
+            continue
+        ends = {n for n in (c.get('pin_nets') or {}).values() if n}
+        if len(ends) != 2:
+            continue
+        a, b = sorted(ends)
+        for near, far in ((a, b), (b, a)):
+            if (far in clamped and not _is_power_net(far)
+                    and not is_ground_name(far) and not is_power_net_name(far)
+                    and not any(comp_type.get(p.get('component')) == 'ic'
+                                for p in (all_nets.get(near) or {}).get('pins', []))):
+                via_series.add(near)
+    rails = {n for n, info in all_nets.items()
+             if any(str(p.get('component', '')).startswith(('#PWR', '#FLG'))
+                    for p in info.get('pins', []))}
+    pin_signals = {n for n, info in all_nets.items()
+                   if n not in rails and is_pin_guarded_signal(n, [(p.get('pin_type'), comp_type.get(p.get('component')) == 'ic')
                                                 for p in info.get('pins', [])])}
 
     for conn in connectors:
@@ -333,7 +401,10 @@ def check_esd_coverage_gaps(schematic: dict, pcb: dict | None, recorder=None) ->
             if (not net or _is_power_net(net) or is_cross_analysis_ground_name(net)
                     or is_ground_name(net) or (is_power_net_name(net) and net not in pin_signals)):
                 continue
-            if net not in protected_nets:
+            nc_pins = (all_nets.get(net) or {}).get('pins') or []
+            if nc_pins and all(p.get('pin_type') == 'no_connect' for p in nc_pins):
+                continue  # an unused pin typed no-connect, alone on its net
+            if net not in protected_nets and net not in via_series:
                 unprotected_nets.append(net)
 
         # Deduplicate
@@ -399,7 +470,9 @@ def check_decoupling_adequacy(schematic: dict, pcb: dict | None, recorder=None) 
         _record(recorder, 'DA-001', False, 'no decoupling detector findings in schematic analysis', 0, findings)
         return findings
 
-    ics = [c for c in schematic.get('components', []) if c.get('type') == 'ic']
+    # A DNP or excluded-from-board IC is not fitted, so it needs no decoupling.
+    ics = [c for c in schematic.get('components', [])
+           if c.get('type') == 'ic' and not c.get('dnp') and c.get('on_board') is not False]
     by_ref = _units_by_ref(schematic)
     for rail in rails:
         rail_name = rail.get('rail', '')
@@ -653,21 +726,24 @@ def check_cross_validation(schematic: dict, pcb: dict | None, recorder=None) -> 
     return findings
 
 
-def check_mpn_parity(schematic: dict, pcb: dict | None, recorder=None) -> list[dict]:
+def check_mpn_parity(schematic: dict, pcb: dict | None, recorder=None, notes=None) -> list[dict]:
     """XV-004: a footprint's MPN differs from its symbol's (both non-blank; Update PCB
-    copies symbol fields to the footprint exactly)."""
+    copies symbol fields to the footprint exactly). With a *notes* list, a line counting the
+    pairs not compared is appended to it."""
     findings: list[dict] = []
     if not pcb:
         _record(recorder, 'XV-004', False, 'no PCB data provided', 0, findings)
         return findings
     pairs, _, _ = pair_by_path(schematic, pcb)
     compared = 0
+    skipped = 0
     reported = set()
     for ref, pcb_fp, fields in _pair_fields(schematic, pairs):
         sch_mpn = fields['mpn'].strip()
         pcb_mpn = pcb_fp.get('mpn')
         pcb_mpn = pcb_mpn.strip() if isinstance(pcb_mpn, str) else ''
         if not sch_mpn or not pcb_mpn:
+            skipped += 1
             continue
         compared += 1
         if sch_mpn == pcb_mpn or (ref, sch_mpn, pcb_mpn) in reported:
@@ -682,6 +758,8 @@ def check_mpn_parity(schematic: dict, pcb: dict | None, recorder=None) -> list[d
             recommendation='Update PCB from schematic so the footprint fields match the symbol.',
             impact='Assembly may source a different part than the schematic specifies',
             source=ANALYZER_SOURCE, schema_era="v3.0",))
+    if skipped and notes is not None:
+        notes.append(f'XV-004: {skipped} paired part(s) not compared (MPN blank on the schematic or the PCB)')
     _record(recorder, 'XV-004', True, None, compared, findings)
     return findings
 
@@ -818,9 +896,12 @@ def check_return_path_enhanced(schematic, pcb, recorder=None):
             continue
         for gap in graph.get('gaps', []):
             plane_gaps.append({**gap, 'net': net_name})
+    if not has_rpc_data:
+        _record(recorder, 'RP-002', False,
+                'no return-path coverage in PCB analysis (zone fills unavailable)', 0, findings)
+        return findings
     if not plane_gaps:
-        rpc = pcb.get('return_path_continuity', [])
-        for entry in rpc:
+        for entry in pcb['return_path_continuity']:
             coverage = entry.get('reference_plane_coverage_pct', 100)
             if coverage < 90:
                 net_name = entry.get('net', '')
@@ -838,10 +919,6 @@ def check_return_path_enhanced(schematic, pcb, recorder=None):
 
                         source=ANALYZER_SOURCE, schema_era="v3.0",))
         _record(recorder, 'RP-002', True, None, len(segments), findings)
-        return findings
-    if not has_rpc_data:
-        _record(recorder, 'RP-002', False,
-                'no return-path coverage in PCB analysis (zone fills unavailable)', 0, findings)
         return findings
     flagged = set()
     for seg in segments:
@@ -909,8 +986,9 @@ def check_trace_width_power(schematic, pcb, recorder=None):
         if output_rail and iout > 0:
             net_current[output_rail] = max(net_current.get(output_rail, 0), iout)
         input_rail = reg.get('input_rail', '')
-        if input_rail and iout > 0:
-            net_current[input_rail] = net_current.get(input_rail, 0) + iout
+        iin = _reg_iin(reg)
+        if input_rail and iin > 0:
+            net_current[input_rail] = net_current.get(input_rail, 0) + iin
     if not net_current:
         _record(recorder, 'TW-001', False, 'no power regulator current estimates in schematic analysis', 0, findings)
         return findings
@@ -931,7 +1009,7 @@ def check_trace_width_power(schematic, pcb, recorder=None):
             findings.append(make_finding(
                 detector='check_trace_width_power', rule_id='TW-001',
                 category='current_capacity',
-                summary=f'Power net {net_name}: trace {trace_w:.2f}mm too narrow for ~{current:.1f}A',
+                summary=f'Power net {net_name}: trace {trace_w:.2f}mm too narrow for ~{current:.1f}A (est.)',
                 description=f'Power net {net_name} carries ~{current:.1f}A (estimated from regulator output capacitance) but narrowest trace is {trace_w:.2f}mm. IPC-2152 recommends >= {min_w:.2f}mm.',
                 severity='warning', confidence='heuristic', evidence_source='topology',
                 nets=[net_name],
@@ -961,8 +1039,13 @@ def check_plane_splits(schematic, pcb, recorder=None):
     segments = (pcb.get('tracks') or {}).get('segments') or []
     net_id_map = _build_net_id_map(pcb)
     rpc_flagged = _flagged_return_path_entries(pcb, threshold_pct=95.0)
+    # A net without a copper zone has no plane to split: its islands are
+    # unrouted connections, not plane gaps.
+    zone_nets = {z.get('net_name') for z in pcb.get('zones') or []}
     for plane_net, graph in conn_graph.items():
         if not (is_cross_analysis_ground_name(plane_net) or _is_power_net(plane_net)):
+            continue
+        if plane_net not in zone_nets:
             continue
         if graph.get('islands', 1) <= 1:
             continue
@@ -1223,12 +1306,12 @@ def check_diff_pair_quality(schematic, pcb, recorder=None):
 # Main
 # ---------------------------------------------------------------------------
 
-def run_all_checks(schematic: dict, pcb: dict | None) -> tuple[list[dict], list[dict]]:
+def run_all_checks(schematic: dict, pcb: dict | None, notes=None) -> tuple[list[dict], list[dict]]:
     """Run every cross-domain check in a fixed order.
 
     Returns (findings, checks_run) — checks_run is the manifest
     recording whether each check executed, in call order (see
-    _CheckRecorder).
+    _CheckRecorder). A *notes* list collects the run's stderr notes.
     """
     findings: list[dict] = []
     recorder = _CheckRecorder()
@@ -1236,7 +1319,7 @@ def run_all_checks(schematic: dict, pcb: dict | None) -> tuple[list[dict], list[
     findings.extend(check_esd_coverage_gaps(schematic, pcb, recorder=recorder))
     findings.extend(check_decoupling_adequacy(schematic, pcb, recorder=recorder))
     findings.extend(check_cross_validation(schematic, pcb, recorder=recorder))
-    findings.extend(check_mpn_parity(schematic, pcb, recorder=recorder))
+    findings.extend(check_mpn_parity(schematic, pcb, recorder=recorder, notes=notes))
     # PCB intelligence checks
     findings.extend(check_critical_net_routing(schematic, pcb, recorder=recorder))
     findings.extend(check_return_path_enhanced(schematic, pcb, recorder=recorder))
@@ -1295,7 +1378,7 @@ def main(argv: list[str] | None = None) -> int:
                          f'{writer} writes (--output)')
         try:
             with open(path, 'r', encoding="utf-8") as f:
-                data = json.load(f)
+                data = json_load(f)
         except json.JSONDecodeError as e:
             parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
                          f'file {writer} writes (--output)')
@@ -1348,7 +1431,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     compat = build_compat()
 
-    findings, checks_run = run_all_checks(schematic, pcb)
+    notes: list[str] = []
+    findings, checks_run = run_all_checks(schematic, pcb, notes=notes)
+    for note in notes:
+        print(note, file=sys.stderr)
     show_decoded_names(findings)
     elapsed = time.time() - t0
 
@@ -1388,8 +1474,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if args.output:
-        with open(args.output, 'w', encoding="utf-8", newline="\n") as f:
-            json.dump(result, f, indent=2)
+        atomic_write_text(args.output, json.dumps(result, indent=2), follow_symlinks=False)
         print(f'Cross-analysis: {len(findings)} findings -> {args.output}', file=sys.stderr)
     elif args.analysis_dir:
         from output_io import write_derived_output

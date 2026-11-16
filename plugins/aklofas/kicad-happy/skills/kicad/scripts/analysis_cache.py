@@ -16,15 +16,18 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import secrets
 import shutil
 import stat
 import sys
 import tempfile
+import time
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from kicad_core.diagnostics import record
-from kicad_core.fileio import atomic_write_text
+from kicad_core.fileio import atomic_write_text, json_load, json_loads
 from finding_schema import strip_llm_overlays
 
 
@@ -60,9 +63,11 @@ _CANONICAL_NAMES = frozenset(CANONICAL_OUTPUTS.values())
 
 # Outputs built from other outputs of the run. One stays in a run only while every
 # output it was built from (inputs.upstream_artifacts) is unchanged; one without that
-# record counts as built from the run's schematic and pcb outputs.
-_DERIVED_OUTPUTS = ('thermal.json', 'emc.json', 'cross_analysis.json', 'spice.json')
+# record counts as built from the run's schematic and pcb outputs, or from those named in
+# _DERIVED_UPSTREAMS.
+_DERIVED_OUTPUTS = ('thermal.json', 'emc.json', 'cross_analysis.json', 'spice.json', 'lifecycle.json')
 _UPSTREAM_OUTPUTS = ('schematic.json', 'pcb.json')
+_DERIVED_UPSTREAMS = {'lifecycle.json': ('schematic.json',)}
 
 GITIGNORE_CONTENT = """\
 # Analysis output -- regenerable from source files
@@ -128,10 +133,10 @@ def reviewed_overlay(path: str) -> Optional[str]:
     try:
         if os.path.isfile(overlay):
             with open(overlay, encoding="utf-8") as f:
-                merged = json.load(f)
+                merged = json_load(f)
             try:
                 with open(path, encoding="utf-8") as f:
-                    raw = json.load(f)
+                    raw = json_load(f)
             except (ValueError, OSError):
                 print(f"Note: cannot read {path}; ignoring the reviewed copy {overlay}",
                       file=sys.stderr)
@@ -180,17 +185,54 @@ def resolve_analysis_dir(path: str) -> str:
 # Manifest I/O
 # ---------------------------------------------------------------------------
 
+# A manifest holds about a kilobyte per kept run; a larger file is not one this code wrote.
+MAX_MANIFEST_BYTES = 10 * 1024 * 1024
+
+
+def _read_manifest_bytes(manifest_path: str) -> Optional[bytes]:
+    """The bytes of manifest.json. None (after a diagnostic) when it is a link or not a regular
+    file: a link could point at any file, and a named pipe would block the reader. A file
+    larger than ``MAX_MANIFEST_BYTES`` raises ``ValueError`` and is handled as corrupt."""
+    flags = (os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+             | getattr(os, "O_NONBLOCK", 0))
+    try:
+        fd = os.open(manifest_path, flags)
+    except OSError:
+        if os.path.islink(manifest_path):
+            record(None, "analysis_cache.load_manifest",
+                   ValueError(f"{manifest_path} is not a regular file"), "manifest ignored")
+            return None
+        raise
+    with os.fdopen(fd, "rb") as f:
+        st = os.fstat(f.fileno())
+        if not stat.S_ISREG(st.st_mode) or (
+                not hasattr(os, "O_NOFOLLOW") and not os.path.samestat(st, os.lstat(manifest_path))):
+            record(None, "analysis_cache.load_manifest",
+                   ValueError(f"{manifest_path} is not a regular file"), "manifest ignored")
+            return None
+        raw = f.read(MAX_MANIFEST_BYTES + 1)
+        if len(raw) > MAX_MANIFEST_BYTES:
+            raise ValueError(f"{manifest_path} is larger than {MAX_MANIFEST_BYTES} bytes")
+        return raw
+
+
 def load_manifest(analysis_dir: str) -> Dict[str, Any]:
     """Read manifest.json from analysis directory.
 
-    Returns empty manifest structure if file is missing or corrupt.
+    Returns empty manifest structure if the file is missing, a link or not a regular file,
+    or corrupt (unparsable, nested too deeply, or not an object holding a ``runs`` object).
+    A run entry that is not an object is dropped with a diagnostic.
     """
     manifest_path = os.path.join(analysis_dir, MANIFEST_FILENAME)
-    if not os.path.isfile(manifest_path):
+    if not os.path.lexists(manifest_path):
         return _empty_manifest()
     try:
-        with open(manifest_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        raw = _read_manifest_bytes(manifest_path)
+        if raw is None:
+            return _empty_manifest()
+        manifest = json_loads(raw.decode('utf-8'))
+        if not isinstance(manifest, dict) or not isinstance(manifest.get('runs', {}), dict):
+            raise ValueError("manifest is not an object with a runs object")
     except (ValueError, OSError):
         # Corrupt manifest -- back up and return empty
         backup = manifest_path + '.bak'
@@ -205,6 +247,13 @@ def load_manifest(analysis_dir: str) -> Dict[str, Any]:
             print(f'Warning: corrupt manifest at {manifest_path}; '
                   f'no backup made ({backup} is not a regular file)', file=sys.stderr)
         return _empty_manifest()
+    runs = manifest.get('runs')
+    if runs:
+        for rid in [r for r, meta in runs.items() if not isinstance(meta, dict)]:
+            record(None, "analysis_cache.load_manifest",
+                   ValueError(f"manifest run {rid!r} is not an object"), "run entry ignored")
+            del runs[rid]
+    return manifest
 
 
 def save_manifest(analysis_dir: str, manifest: Dict[str, Any]) -> None:
@@ -216,10 +265,164 @@ def save_manifest(analysis_dir: str, manifest: Dict[str, Any]) -> None:
     try:
         st = os.lstat(manifest_path)
         owner_only = stat.S_ISREG(st.st_mode) and stat.S_IMODE(st.st_mode) == 0o600
+        if not stat.S_ISREG(st.st_mode) and not stat.S_ISLNK(st.st_mode) and not stat.S_ISDIR(st.st_mode):
+            # a named pipe or device would take the write and block on it
+            record(None, "analysis_cache.save_manifest",
+                   ValueError(f"{manifest_path} is not a regular file"), "replaced")
+            os.unlink(manifest_path)
     except OSError:
         owner_only = False
     atomic_write_text(manifest_path, json.dumps(manifest, indent=2) + '\n',
                       follow_symlinks=False, keep_mode=not owner_only)
+
+
+_LOCK_FILENAME = '.manifest.lock'
+_LOCK_POLL_S = 0.05
+_LOCK_STALE_S = 30.0
+_LOCK_RELEASE_S = 1.0
+_WINDOWS = os.name == 'nt'
+_O_BINARY = getattr(os, 'O_BINARY', 0)
+
+
+def _lock_busy(exc: OSError) -> bool:
+    """The error Windows gives for a lock file that another process has open or is deleting."""
+    return _WINDOWS and isinstance(exc, PermissionError)
+
+
+def _create_lock(path: str, token: bytes) -> bool:
+    """Create the lock file at *path* holding *token*; False when one is already there."""
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY | _O_BINARY)
+    except FileExistsError:
+        return False
+    except PermissionError as exc:
+        if _lock_busy(exc):
+            return False
+        raise
+    try:
+        try:
+            os.write(fd, token)
+        finally:
+            os.close(fd)
+    except OSError:
+        try:
+            os.unlink(path)
+        except OSError:
+            pass
+        raise
+    return True
+
+
+def _lock_identity(path: str) -> Optional[Tuple[int, int, bytes]]:
+    """(inode, mtime_ns, token) of the lock file at *path*, or None when there is none."""
+    try:
+        fd = os.open(path, os.O_RDONLY | _O_BINARY)
+    except FileNotFoundError:
+        return None
+    try:
+        st = os.fstat(fd)
+        data = os.read(fd, 64)
+    finally:
+        os.close(fd)
+    return st.st_ino, st.st_mtime_ns, data
+
+
+def _remove_lock(path: str, *, token: Optional[bytes] = None,
+                 ident: Optional[Tuple[int, int, bytes]] = None) -> bool:
+    """Unlink the lock file at *path* only while it holds *token* (or has identity *ident*)."""
+    deadline = time.monotonic() + _LOCK_RELEASE_S
+    while True:
+        try:
+            cur = _lock_identity(path)
+            if cur is None or (cur[2] != token if token is not None else cur != ident):
+                return False
+            os.unlink(path)
+            return True
+        except FileNotFoundError:
+            return False
+        except OSError as exc:
+            if _lock_busy(exc) and time.monotonic() < deadline:
+                time.sleep(_LOCK_POLL_S)
+                continue
+            return False
+
+
+def _unchanged_for_stale(path: str, seen: list) -> bool:
+    """Track the lock file at *path* in *seen* ([identity, first seen]); True once the same
+    file has stayed there for _LOCK_STALE_S."""
+    try:
+        ident = _lock_identity(path)
+    except OSError as exc:
+        if _lock_busy(exc):
+            return False
+        raise
+    now = time.monotonic()
+    if ident != seen[0]:
+        seen[0], seen[1] = ident, now
+        return False
+    return ident is not None and now - seen[1] >= _LOCK_STALE_S
+
+
+def _break_stale(path: str, breaker: str, ident: Tuple[int, int, bytes], token: bytes) -> bool:
+    """Replace the stale lock *ident* at *path* by this run's; True when this run now holds it.
+
+    Only the holder of the *breaker* file breaks a lock, and only while the lock file is still
+    *ident*, so two waiters never both break one lock or break the lock the other took."""
+    if not _create_lock(breaker, token):
+        return False
+    try:
+        if not _remove_lock(path, ident=ident):
+            return False
+        record(None, "analysis_cache.manifest_lock",
+               TimeoutError(f"stale lock {path} unchanged for over {_LOCK_STALE_S:g} s"),
+               "lock removed")
+        return _create_lock(path, token)
+    finally:
+        _remove_lock(breaker, token=token)
+
+
+@contextmanager
+def manifest_lock(analysis_dir: str):
+    """Hold analysis/.manifest.lock for one read-decide-write of the manifest.
+
+    The lock is a file created with O_EXCL that holds a random token and is closed at once,
+    so Windows can remove it. A lock file that stays the same (inode, mtime and token) for
+    _LOCK_STALE_S is taken as left by a crashed run: it is removed with a warning and taken
+    over. A waiter's own wait time does not count, so a chain of live holders is never broken.
+    Release removes the file only while it still holds this run's token. A lock that cannot
+    be taken in 4 x _LOCK_STALE_S, or a lock path that cannot be used, gives a warning and
+    the manifest is written without it. Not reentrant: create_run and overwrite_current do
+    not take it, their callers do.
+    """
+    os.makedirs(analysis_dir, exist_ok=True)
+    path = os.path.join(analysis_dir, _LOCK_FILENAME)
+    breaker = path + '.break'
+    token = secrets.token_hex(16).encode('ascii')
+    give_up = time.monotonic() + 4 * _LOCK_STALE_S
+    seen_lock, seen_breaker = [None, 0.0], [None, 0.0]
+    held = False
+    try:
+        while True:
+            if _create_lock(path, token):
+                held = True
+                break
+            if _unchanged_for_stale(path, seen_lock):
+                if _break_stale(path, breaker, seen_lock[0], token):
+                    held = True
+                    break
+                # a breaker file left by a run that crashed while breaking
+                if _unchanged_for_stale(breaker, seen_breaker):
+                    _remove_lock(breaker, ident=seen_breaker[0])
+            if time.monotonic() >= give_up:
+                raise TimeoutError(f"{path} not taken in {4 * _LOCK_STALE_S:g} s")
+            time.sleep(_LOCK_POLL_S)
+    except OSError as exc:
+        record(None, "analysis_cache.manifest_lock", exc, "manifest written without the lock")
+    try:
+        yield
+    finally:
+        if held:
+            _remove_lock(path, token=token)
 
 
 # ---------------------------------------------------------------------------
@@ -343,7 +546,7 @@ def _built_from(run_dir: str, filename: str) -> Dict[str, Optional[str]]:
     if not _is_symlink_or_irregular(path):
         try:
             with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = json_load(f)
         except (OSError, ValueError):
             data = None
     inputs = data.get('inputs') if isinstance(data, dict) else None
@@ -356,7 +559,7 @@ def _built_from(run_dir: str, filename: str) -> Dict[str, Optional[str]]:
                 sha = art.get('sha256') if isinstance(art, dict) else None
                 built[name] = sha if isinstance(sha, str) else None
         return built
-    return {name: None for name in _UPSTREAM_OUTPUTS
+    return {name: None for name in _DERIVED_UPSTREAMS.get(filename, _UPSTREAM_OUTPUTS)
             if os.path.lexists(os.path.join(run_dir, name))}
 
 
@@ -405,6 +608,21 @@ def _note_dropped(filename: str, upstream: str) -> None:
           f"re-run its analyzer", file=sys.stderr)
 
 
+def _new_run_dir(analysis_dir: str, base: str) -> str:
+    """Create a run folder that did not exist, named *base*, else *base*-2, *base*-3, ...;
+    return its name. A folder another run made between the name check and here is never
+    shared."""
+    os.makedirs(analysis_dir, exist_ok=True)
+    name, suffix = base, 1
+    while True:
+        try:
+            os.mkdir(os.path.join(analysis_dir, name))
+            return name
+        except FileExistsError:
+            suffix += 1
+            name = f'{base}-{suffix}'
+
+
 def create_run(analysis_dir: str,
                outputs_dir: str,
                source_hashes: Dict[str, str],
@@ -431,10 +649,11 @@ def create_run(analysis_dir: str,
     """
     manifest = load_manifest(analysis_dir)
     if run_id is None:
-        run_id = generate_run_folder_name(analysis_dir)
-
-    run_dir = os.path.join(analysis_dir, run_id)
-    os.makedirs(run_dir, exist_ok=True)
+        run_id = _new_run_dir(analysis_dir, generate_run_folder_name(analysis_dir))
+        run_dir = os.path.join(analysis_dir, run_id)
+    else:
+        run_dir = os.path.join(analysis_dir, run_id)
+        os.makedirs(run_dir, exist_ok=True)
 
     # Copy forward outputs from previous current run. Per-file staleness
     # check: a carried-forward output is stale only if *its* source files
@@ -689,7 +908,9 @@ def prune_runs(analysis_dir: str, retention: int = 5) -> List[str]:
         rid, _meta = unpinned.pop(0)  # oldest first
         # Delete folder
         run_dir = os.path.join(analysis_dir, rid)
-        if os.path.isdir(run_dir):
+        if os.path.islink(run_dir):
+            os.unlink(run_dir)
+        elif os.path.isdir(run_dir):
             shutil.rmtree(run_dir)
         # Remove from manifest
         del manifest['runs'][rid]
@@ -813,9 +1034,9 @@ def should_create_new_run(analysis_dir: str,
 
         try:
             with open(current_path, encoding="utf-8") as f:
-                base_data = json.load(f)
+                base_data = json_load(f)
             with open(new_path, encoding="utf-8") as f:
-                head_data = json.load(f)
+                head_data = json_load(f)
         except (ValueError, OSError):
             return True  # Can't compare -- treat as changed
 

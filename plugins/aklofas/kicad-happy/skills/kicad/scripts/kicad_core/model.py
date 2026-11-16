@@ -21,6 +21,7 @@ class _PinRequired(TypedDict):
 class Pin(_PinRequired, total=False):
     """A placed-symbol pin as ``compute_pin_positions`` emits it (``Component['pins']``)."""
     hidden: bool
+    base_name: str  # the library pin name when a placed alternate replaced it
 
 
 class NetPin(TypedDict):
@@ -83,8 +84,9 @@ class Component(_ComponentRequired, total=False):
     legacy ``.sch`` reader) always set; everything else is optional. ``pins`` is stripped and
     ``category``/``parsed_value``/``pin_nets`` are added by result assembly; ``_sheet`` and
     ``instance_path`` (the board footprint path of the placed unit) are set by multi-sheet
-    assembly; ``_unit_pins`` (a set) and ``_body_style`` (the placed De Morgan body,
-    default 1) are popped before output."""
+    assembly; ``_unit_pins`` (a set), ``_body_style`` (the placed De Morgan body,
+    default 1) and ``_dropped_values`` (earlier Value texts a later duplicate replaced, for
+    the property audit) are popped before output."""
     lib_name: str
     pins: list[Pin]
     keywords: str
@@ -101,6 +103,7 @@ class Component(_ComponentRequired, total=False):
     _sheet: int
     _power_scope: str
     _pin_source: str
+    _dropped_values: list[str]
 
 
 PinNetEntry = tuple[str, Net]
@@ -124,6 +127,8 @@ class SheetData:
     # sheet uuid -> {"fields": [(name, text)], "in_bom", "on_board", "dnp", "exclude_from_sim"}
     # for each (sheet ...) block; the sheet name and file fields are named SHEETNAME / SHEETFILE
     sheet_fields: dict = field(default_factory=dict)
+    # sheet files a (sheet ...) block names that do not exist, as resolved paths
+    missing_sheets: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

@@ -28,6 +28,7 @@ from emc_rules import (run_all_checks, filter_by_severity, generate_test_plan,
                        analyze_regulatory_coverage)
 from emc_formulas import STANDARDS, MARKET_STANDARDS
 from finding_schema import compute_trust_summary, show_decoded_names
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.render import summary_or_title
 from emc_envelope import EMCEnvelope
 from schema_codec import emit_schema
@@ -318,7 +319,8 @@ def main(argv: list[str] | None = None) -> int:
                         help='PCB analyzer JSON. Auto-resolved from --analysis-dir current run when omitted.')
     add_output_arg(parser, help='Output JSON file path')
     parser.add_argument('--severity', default='all',
-                        choices=['all', 'low', 'medium', 'high', 'critical'],
+                        choices=['all', 'low', 'medium', 'high', 'critical',
+                                 'info', 'warning', 'error'],
                         help='Minimum severity to report (default: all)')
     parser.add_argument('--standard', default='fcc-class-b',
                         choices=list(STANDARDS.keys()),
@@ -329,7 +331,7 @@ def main(argv: list[str] | None = None) -> int:
                         choices=list(MARKET_STANDARDS.keys()),
                         help='Target market — sets applicable standards (us, eu, automotive, medical, military)')
     parser.add_argument('--spice-enhanced', action='store_true',
-                        help='Use SPICE simulation for improved PDN/filter analysis (requires ngspice/LTspice/Xyce)')
+                        help='Use SPICE simulation for improved PDN and switching-harmonic analysis (requires ngspice/LTspice/Xyce)')
     add_config_arg(parser)
     parser.add_argument('--analysis-dir', default=None,
                         help='Write output into analysis cache directory '
@@ -375,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
                          f'{writer} writes (--output)')
         try:
             with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                data = json_load(f)
         except (json.JSONDecodeError, UnicodeDecodeError) as e:
             parser.error(f'{flag} {path}: not JSON ({e}); expected the JSON '
                          f'file {writer} writes (--output)')
@@ -612,8 +614,8 @@ def main(argv: list[str] | None = None) -> int:
     from finding_schema import assign_finding_ids
     assign_finding_ids(result.get('findings', []), 'emc')
 
-    # Analysis cache integration
-    if args.analysis_dir:
+    # Analysis cache integration (--output wins when both are given)
+    if args.analysis_dir and not args.output:
         # output_io lives in skills/kicad/scripts/ — already on sys.path
         from output_io import write_primary_run
         write_primary_run(args.analysis_dir, json.dumps(result, indent=2), analyzer='emc',
@@ -626,8 +628,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # Output
     if args.output:
-        with open(args.output, 'w', encoding="utf-8", newline="\n") as f:
-            json.dump(result, f, indent=2)
+        atomic_write_text(args.output, json.dumps(result, indent=2), follow_symlinks=False)
         print(f'EMC analysis complete: {len(findings)} findings '
               f'(score {risk_score}/100) → {args.output}', file=sys.stderr)
     elif args.text:

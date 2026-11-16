@@ -14,7 +14,7 @@ import _core_path  # noqa: F401
 from kicad_core.fileio import atomic_write_text  # noqa: F401  (bom scripts import it from here)
 from kicad_core.instances import (inline_instances, instance_variants, resolve_instance,
                                   variant_overrides)
-from kicad_core.sexp import parse
+from kicad_core.sexp import parse, unescape_quoted
 
 
 def kicad_lock_path(sch: Path) -> Path:
@@ -159,7 +159,7 @@ def find_sub_sheet_entries(text: str, base_dir: Path) -> list[SubSheet]:
         file_match = _SHEET_FILE.search(block)
         if not file_match:
             continue
-        filepath = base_dir / file_match.group(1)
+        filepath = base_dir / unescape_quoted(file_match.group(1))
         if not filepath.exists():
             continue
         at = _AT.match(direct_child(block, "at") or "")
@@ -186,6 +186,44 @@ def symbol_instances_of(symbol_block: str, tilde_empty: bool = True) -> list[dic
     if node is None:
         return []
     return inline_instances(["symbol", parse(node)], tilde_empty)
+
+
+def resolve_project(sch: Path, text: str) -> tuple[str | None, list[str]]:
+    """(project, projects named in the sheet's instances) for the sheet *sch* holding *text*.
+
+    The project is the nearest ancestor directory's .kicad_pro whose stem the instances
+    name (the walk stops at a directory holding .git); failing that, the only project the
+    instances name.  None when the sheet names several and none has a project file here: the
+    caller must not guess which one's references apply."""
+    names: list[str] = []
+    for _s, _e, block in iter_placed_symbol_blocks(text):
+        for entry in symbol_instances_of(block):
+            if entry["project"] and entry["project"] not in names:
+                names.append(entry["project"])
+    folder = sch.resolve().parent
+    while True:
+        for pro in sorted(folder.glob("*.kicad_pro")):
+            if pro.stem in names:
+                return pro.stem, names
+        if (folder / ".git").exists() or folder.parent == folder:
+            break
+        folder = folder.parent
+    return (names[0] if len(names) == 1 else None), names
+
+
+def block_references(symbol_block: str, project_name: str | None = None) -> list[str]:
+    """The references KiCad shows for a placed symbol: its instance references (file order,
+    deduplicated), else the Reference property when it has no instances.
+
+    A copied sheet keeps other projects' instance entries, so with *project_name* only that
+    project's entries count, unless it has none."""
+    entries = [i for i in symbol_instances_of(symbol_block) if i["reference"]]
+    mine = [i for i in entries if i["project"] == project_name]
+    refs = list(dict.fromkeys(i["reference"] for i in (mine or entries)))
+    if refs:
+        return refs
+    m = re.search(r'\(property\s+"Reference"\s+"((?:[^"\\]|\\.)*)"', symbol_block)
+    return [unescape_quoted(m.group(1))] if m else []
 
 
 def resolved_instance(symbol_block: str, sheet_path: str, *, project_name: str = "",

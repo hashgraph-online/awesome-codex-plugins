@@ -28,10 +28,13 @@ cache doesn't carry null placeholders for inactive categories.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from .base_block import BaseBlock
 from .regulator import Regulator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass

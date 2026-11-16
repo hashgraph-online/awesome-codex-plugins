@@ -1096,7 +1096,10 @@ the model's own tests against each, and reports which defects nothing caught.
 - A run that decided a mutant is recorded per model in `.dex/` (scores, counts
   and digests, never SQL or a row), named in `data.record`. `maintain coverage`
   reads it as the model's `strength`, `fresh` or `stale` against the project as
-  it stands. A refused run, or one that decided nothing, records nothing.
+  it stands. A run that decided nothing records nothing. A refusal because the
+  model has no SQL to plant a defect in is recorded without a score
+  (`refused: no_mutable_sql`), so coverage reads it `untestable` until the
+  model or its tests change; any other refusal records nothing.
 - A window frame bound moves one step wider. An interval bound also moves one
   unit narrower, and each window mutant carries `frame`: `last_included` and
   `first_excluded` are the offsets a boundary fixture needs rows at, in `unit`.

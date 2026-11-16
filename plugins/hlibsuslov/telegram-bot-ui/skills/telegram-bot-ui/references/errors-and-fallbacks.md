@@ -56,6 +56,13 @@ of degrading (e.g. a payment receipt must not silently become plain text).
 - **No silent fallback.** Log that a fallback happened and why (without dumping
   bot token or full personal text).
 - **No error suppression.** Swallowing exceptions hides real defects.
+- **Never show raw exception text to users.** An HTTP client error raised while downloading a
+  Telegram file carries the request URL, and that URL holds the bot token
+  (`https://api.telegram.org/file/bot<token>/…`): `f"Error: {e}"` in a reply, caption or widget
+  answer sends the token to the user. Map exceptions to your own sentences; if a reason must be
+  shown, replace URLs and the token first. `TimeoutError` has an empty `str()`: name it yourself.
+  Logs leak the same way: loguru's default `diagnose=True` prints local variables (those URLs)
+  in tracebacks, so use `diagnose=False` in production and never log full Bot API URLs.
 - On split sends, a failed part must not silently drop the remaining parts.
 - Retrying a **validation** error unchanged is pointless — change the payload
   (fix escaping/offsets/limits) or degrade the format.

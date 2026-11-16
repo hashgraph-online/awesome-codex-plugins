@@ -288,6 +288,83 @@ def get_cached_extraction(extract_dir, mpn):
     return read_json_object(json_file) if json_file else None
 
 
+def find_extraction(extract_dir, mpn, *, v14_first=True):
+    """Find the extraction for an MPN the way every reader does.
+
+    A v1.4 extraction (top-level ``base`` block) in ``<stem>.json``, the file
+    ``datasheet_types.cache_reader.lookup`` reads, comes first, so a cache
+    that also holds an older v1.3 entry for the part reads the newer one
+    (``v14_first=False`` skips this step: the feature helpers' v1.3 fallback,
+    which runs after ``lookup``, wants the v1.3 entry).
+    Then the extraction manifest: the first entry whose key is the
+    MPN's cache key, its file-name stem (with or without dots and hyphens)
+    or whose recorded ``mpn`` is this MPN, ignoring case, and whose file
+    exists. Then the files named after the part, ``<stem>.json``.
+    A file reached by a stem other than the MPN itself (several MPNs share
+    one stem) is used only when it records this MPN or none.
+
+    A manifest file that is unreadable or empty does not hide a readable file
+    named after the part. Returns ``(extraction, path)``: ``(None, path)`` when
+    only unreadable files were found, ``(None, None)`` when nothing was found.
+    """
+    if extract_dir is None or not mpn or not str(mpn).strip():
+        return None, None
+    extract_dir = Path(extract_dir)
+    plain = re.sub(r'[^A-Za-z0-9_.-]', '_', mpn.strip())
+    underscored = re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip())
+    names = [_sanitize_mpn(mpn), plain, underscored]
+    wanted = {n.upper() for n in names}
+
+    v14_path = extract_dir / f"{plain}.json"
+    if v14_first and v14_path.is_file():
+        ext = read_json_object(v14_path)
+        if ext is not None and isinstance(ext.get("base"), dict) \
+                and _records_mpn(ext, mpn, plain):
+            return ext, v14_path
+
+    bad = None
+    extractions = _load_index(extract_dir).get("extractions")
+    for key, entry in (extractions.items() if isinstance(extractions, dict) else ()):
+        if not isinstance(entry, dict):
+            continue
+        if str(key).upper() not in wanted \
+                and str(entry.get("mpn") or "").strip().upper() != mpn.strip().upper():
+            continue
+        path = manifest_file_path(extract_dir, entry.get("file"))
+        if path is not None and path.is_file():
+            ext = read_json_object(path)
+            if ext:
+                return ext, path
+            bad = bad or path
+
+    for name in dict.fromkeys(names[1:]):
+        path = extract_dir / f"{name}.json"
+        if path.is_file():
+            ext = read_json_object(path)
+            if ext is not None and not _records_mpn(ext, mpn, name):
+                continue
+            if ext is not None:
+                return ext, path
+            bad = bad or path
+    return None, bad
+
+
+def _records_mpn(ext, mpn, name):
+    """False when ``<name>.json`` belongs to another part: ``name`` is not the MPN
+    itself (BAV99-215, BAV99.215, BAV99/215 and BAV99 215 all reach ``BAV99_215``)
+    and the extraction records a different MPN (``source.mpn``, else ``mpn``;
+    case and blanks aside). A file that records no MPN is taken by its name."""
+    if name == mpn.strip():
+        return True
+    source = ext.get("source")
+    recorded = source.get("mpn") if isinstance(source, dict) else None
+    if not isinstance(recorded, str):
+        recorded = ext.get("mpn")
+    if not isinstance(recorded, str) or not recorded.strip():
+        return True
+    return "".join(recorded.split()).upper() == "".join(mpn.split()).upper()
+
+
 def cache_extraction(extract_dir, mpn, extraction, source_pdf=None):
     """Save an extraction to the cache.
 

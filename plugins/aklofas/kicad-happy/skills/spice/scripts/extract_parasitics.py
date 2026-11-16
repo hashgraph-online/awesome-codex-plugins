@@ -21,6 +21,7 @@ import math
 import sys
 
 import _core_path  # noqa: F401
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.cli import add_output_arg
 
 
@@ -156,6 +157,11 @@ def extract_parasitics(pcb_json, net_filter=None):
         if layer.get("type") == "copper" and layer.get("thickness"):
             copper_thickness = layer["thickness"]
             break
+    # a segment takes its own layer's thickness, else the first copper layer's
+    copper_by_layer = {}
+    for layer in stackup:
+        if layer.get("type") == "copper" and layer.get("thickness"):
+            copper_by_layer.setdefault(layer.get("name"), layer["thickness"])
     for layer in stackup:
         if layer.get("type") in ("core", "prepreg") and layer.get("epsilon_r"):
             dielectric_er = layer["epsilon_r"]
@@ -188,7 +194,8 @@ def extract_parasitics(pcb_json, net_filter=None):
         total_trace_r = 0.0
         segment_parasitics = []
         for seg in trace_segments:
-            r = trace_resistance(seg["length_mm"], seg["width_mm"], copper_thickness)
+            r = trace_resistance(seg["length_mm"], seg["width_mm"],
+                                 copper_by_layer.get(seg.get("layer"), copper_thickness))
             total_trace_r += r
             if r > 0:
                 segment_parasitics.append({
@@ -279,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         with open(args.input, encoding="utf-8") as f:
-            pcb_json = json.load(f)
+            pcb_json = json_load(f)
     except (json.JSONDecodeError, OSError) as e:
         print(f"Error reading {args.input}: {e}", file=sys.stderr)
         return 1
@@ -309,8 +316,7 @@ def main(argv: list[str] | None = None) -> int:
 
     output = json.dumps(result, indent=2)
     if args.output:
-        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
-            f.write(output)
+        atomic_write_text(args.output, output, follow_symlinks=False)
     else:
         print(output)
     return 0

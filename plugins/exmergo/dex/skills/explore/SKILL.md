@@ -478,6 +478,15 @@ fetches the engine's dependencies from PyPI or your configured index.
    `semantic.cube.url`: members are `cube.member`, a time grouping is
    `--group-by orders.ordered_at__month`, `--where` is Cube's JSON filter, and a
    stale-renderer refusal means the Cube server needs a restart, not a new query.
+   On a Snowflake Semantic View layer both run through Dex's own Snowflake
+   connector as a `SEMANTIC_VIEW()` clause: tokens are the catalog's
+   `view.table.member` (`view.metric` for a view-level metric), one view per
+   query, a time grouping is `--group-by sales.orders.order_date__month`, and
+   facts never sit beside metrics or dimensions. A refusal naming a different
+   expression means the deployed view no longer matches the repository's file:
+   relay it, since Dex never deploys and a person redeploys or updates the file.
+   `list --deployed` reads the account's copy. On a Databricks Metric View layer
+   both refuse by name for now and name the physical route.
 
 Per-command fields, caps, and backend detail are in
 `${CLAUDE_SKILL_DIR}/references/commands.md`. Read it when a field or flag you

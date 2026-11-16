@@ -9,7 +9,7 @@ pass/warn/fail/skip/info status for each simulation.
 import math
 
 import _core_path  # noqa: F401
-from kicad_core.parts import part_number_core, regulator_vref_key, vref_key_covers_part
+from kicad_core.parts import is_label_like_value, part_number_core, regulator_vref_key, vref_key_covers_part
 
 # Measurements taken with ngspice vp(), which returns radians. The other
 # backends' parsers pass their values through unconverted.
@@ -233,6 +233,9 @@ def evaluate_voltage_divider(det, sim_results):
     return result
 
 
+_DEAD_OUTPUT_DB = -300  # below any real stage gain: the bench output never moved
+
+
 def evaluate_opamp_circuit(det, sim_results):
     """Evaluate opamp circuit simulation results."""
     config = det.get("configuration", "unknown")
@@ -298,8 +301,11 @@ def evaluate_opamp_circuit(det, sim_results):
     if sim_bw is not None:
         result["simulated"]["bandwidth_hz"] = sim_bw
 
-    # Compare gain
-    if expected_gain_db is not None and gain_db is not None:
+    if gain_db is not None and gain_db < _DEAD_OUTPUT_DB:
+        result["status"] = "info"
+        result["note"] = "Output not driven in the bench; no gain measured"
+    elif expected_gain_db is not None and gain_db is not None:
+        # Compare gain
         gain_error = abs(gain_db - expected_gain_db)
         result["delta"]["gain_error_dB"] = round(gain_error, 2)
 
@@ -551,6 +557,9 @@ def evaluate_transistor_circuit(det, sim_results):
     }
 
     if ttype in ("mosfet", "jfet"):
+        # no current vector means the sweep never ran; a threshold printed then is not one
+        if i_on is None:
+            vth = None
         if vth is not None:
             result["simulated"]["vth_V"] = round(vth, 3)
         if i_on is not None:
@@ -571,11 +580,8 @@ def evaluate_transistor_circuit(det, sim_results):
             result["note"] = "FET turns on in the generic model; not compared against the part"
     else:
         # BJT
-        if is_pnp and (vbe_on is not None or i_on is not None):
-            # the PNP bench's sweep never biases the part on, so its numbers are not a measurement
-            result["status"] = "warn"
-            result["note"] = "not measured: the PNP bench does not reach a valid on-state"
-            return result
+        if i_on is None:
+            vbe_on = None
         if vbe_on is not None:
             result["simulated"]["vbe_on_V"] = round(vbe_on, 3)
         if i_on is not None:
@@ -588,9 +594,9 @@ def evaluate_transistor_circuit(det, sim_results):
 
         result["status"] = "info"
         result["note"] = "BJT turns on in the generic model; not compared against the part"
-        # VBE should be ~0.6-0.7V for silicon BJT
+        # |VBE| should be ~0.6-0.7V for silicon BJT (a PNP's VBE is negative)
         if vbe_on is not None:
-            if vbe_on < 0.4 or vbe_on > 0.9:
+            if abs(vbe_on) < 0.4 or abs(vbe_on) > 0.9:
                 result["status"] = "warn"
                 result["note"] = f"VBE(on)={vbe_on:.3f}V — outside typical 0.5-0.8V range"
 
@@ -825,7 +831,7 @@ def evaluate_regulator_feedback(det, sim_results):
     lib_part = (det.get("lib_id") or "").split(":")[-1].upper()
     # the key came from the symbol name while the value names a part of its own
     symbol_only = bool(vref_match and lib_part and vref_match[1] == lib_part and vref_match[1] != value
-                       and part_number_core(value)
+                       and part_number_core(value) and not is_label_like_value(value)
                        and part_number_core(value) != part_number_core(lib_part))
     if vref_source not in ("lookup", "datasheet") or not vref:
         why = "Vref is not from the part"

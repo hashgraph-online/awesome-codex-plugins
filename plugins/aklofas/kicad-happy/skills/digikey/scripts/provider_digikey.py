@@ -3,6 +3,7 @@
 import json
 import os
 import sys
+import threading
 import time
 import urllib.parse
 import urllib.request
@@ -51,7 +52,7 @@ def report_tail(out_dir, downloaded, already_present, failed):
               file=sys.stderr)
         print(f"        (VM-001, PS-001, PR-004, DP-002). The `datasheets` skill",
               file=sys.stderr)
-        print(f"        reads PDFs and writes {out_dir}/extracted/<MPN>.json.",
+        print(f"        reads PDFs and writes {out_dir}/extracted/<sanitized_mpn>.json.",
               file=sys.stderr)
 
 
@@ -171,11 +172,32 @@ def get_oauth_token() -> tuple[str, str] | None:
 
 _RATE_LIMIT_RETRIES = 3
 
+# The token a run replaced after DigiKey refused its first one, by client id. Later parts
+# of the run start from it instead of the expired token in the sync context.
+_fresh_tokens: dict[str, str] = {}
+_token_lock = threading.Lock()
+
+
+def _refresh_token(stale: str, client_id: str) -> str | None:
+    """Fetch a new token once per stale token, however many workers see the 401."""
+    with _token_lock:
+        current = _fresh_tokens.get(client_id)
+        if current and current != stale:
+            return current
+        auth = get_oauth_token()
+        if not auth:
+            return None
+        _fresh_tokens[client_id] = auth[0]
+        print("  DigiKey token expired; fetched a new one", file=sys.stderr)
+        return auth[0]
+
 
 def search_digikey_with_token(mpn: str, token: str, client_id: str, allow_family: bool = False,
-                              _retry: int = 0) -> dict | None:
+                              _retry: int = 0, *, _refreshed: bool = False) -> dict | None:
     """Search DigiKey API using a pre-fetched OAuth token. A rate limit (HTTP 429) is retried
-    ``_RATE_LIMIT_RETRIES`` times, 10 s apart, then recorded as a transport failure."""
+    ``_RATE_LIMIT_RETRIES`` times, 10 s apart, then recorded as a transport failure. An expired
+    token (HTTP 401) is replaced once and the search repeated."""
+    token = _fresh_tokens.get(client_id, token)
     try:
         search_body = json.dumps({"Keywords": mpn, "Limit": 3}).encode()
         req = urllib.request.Request(
@@ -193,10 +215,16 @@ def search_digikey_with_token(mpn: str, token: str, client_id: str, allow_family
         if e.code == 429 and _retry < _RATE_LIMIT_RETRIES:
             print(f"  Rate limited, waiting 10s...", file=sys.stderr)
             time.sleep(10)
-            return search_digikey_with_token(mpn, token, client_id, allow_family, _retry + 1)
+            return search_digikey_with_token(mpn, token, client_id, allow_family, _retry + 1,
+                                             _refreshed=_refreshed)
+        if e.code == 401 and not _refreshed:
+            new = _refresh_token(token, client_id)
+            if new:
+                return search_digikey_with_token(mpn, new, client_id, allow_family, _retry,
+                                                 _refreshed=True)
         note_transport_failure(e)
         if e.code == 401:
-            return None  # Token expired — caller should refresh
+            return None
         print(f"  Search failed for '{mpn}': HTTP {e.code}", file=sys.stderr)
         return None
     except Exception as e:

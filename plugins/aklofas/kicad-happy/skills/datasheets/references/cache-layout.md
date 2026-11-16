@@ -46,14 +46,15 @@ Examples:
 
 ### Source PDFs: `<part_or_family>.pdf`
 
-Lives at `datasheets/<filename>.pdf`. The per-MPN cache file's
-`source.local_path` stores the filename relative to `datasheets/`.
-`merge_results.py` records the `pdf_path` given to the planner; a leading
-`datasheets/` is tolerated when the PDF is resolved.
+Lives at `datasheets/<filename>.pdf`. `source.local_path` is stored
+relative to `datasheets/` when the PDF is inside it. An older or outside
+path is resolved by its file name in `datasheets/`; the sha256 check still
+decides staleness. A leading `datasheets/` is tolerated when the PDF is
+resolved.
 
 ### Manifest (`datasheets/manifest.json`)
 
-The distributor download manifest, written by the sync scripts: `{schematic, last_sync, parts}`, one entry per MPN downloaded. The extraction cache does not read it.
+The distributor download manifest, written by the sync scripts: `{schematic, last_sync, parts}`, one entry per MPN downloaded. The extraction cache does not read it; only `capability_mode.json`'s `datasheet_coverage_pct` does, as the part list.
 
 `schemas/manifest.schema.json` also defines a `pdfs` section (keyed by `sha256:<hex>`, values `{path, mpns[], source_url, is_family}`) for PDF SHA dedup. It is defined but not populated by the current scripts. The legacy v1.3 cache keeps its own index at `datasheets/extracted/manifest.json` (`{version, last_updated, extractions}`), written by `datasheet_extract_cache.py`; v1.4 extractions don't write to it.
 
@@ -113,7 +114,9 @@ these holds:
    match the sha256 of the PDF at `datasheets/<local_path>`. Detected by
    `lookup()`'s `CacheContext.stale_reason = "pdf_hash_mismatch"`.
 2. **PDF missing** — `source.local_path` is null, OR the referenced PDF
-   doesn't exist on disk. Detected by `lookup()`'s
+   doesn't exist inside `datasheets/` and no file of the same name sits
+   in `datasheets/` (that file, when present, goes through the sha256
+   check of rule 1). Detected by `lookup()`'s
    `CacheContext.stale_reason = "pdf_missing"`.
 
 The rest of the lifecycle is the caller's job:

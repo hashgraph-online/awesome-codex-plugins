@@ -248,14 +248,14 @@ python3 <skill-path>/scripts/fetch_datasheet_element14.py --search "GRM155R71C10
 ```
 
 The script:
-- **OS-agnostic** — uses `requests` → `urllib` → `playwright` fallback chain
+- **OS-agnostic** — uses `requests` → `urllib` → `playwright` fallback chain (`requests` 2.32.2 or newer; `playwright` only with `datasheets.allow_private_hosts`)
 - **Refuses another part** — a `--search` hit that is a different part is not downloaded (exit 2); a family match is accepted
 - **Validates PDF headers** — rejects HTML error pages
 - **Falls back to alternative manufacturer sources** when element14 URL fails
 - **Exit codes**: 0 = success, 1 = download failed, 2 = search/API error
 - **Dependencies**:
   - `pip install requests` (recommended; urllib fallback works fine for element14)
-  - `pip install playwright && playwright install chromium` (optional; rarely needed)
+  - `pip install playwright && playwright install chromium` (optional; rarely needed; used only with `datasheets.allow_private_hosts` set in `~/.kicad-happy.json`)
 
 ## Web Search Fallback
 

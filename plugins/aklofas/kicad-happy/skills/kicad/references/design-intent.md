@@ -119,5 +119,7 @@ Adjust report severity (info → SUGGESTION, medium → WARNING, high or critica
 
 When the auto-detected intent changes the review substantially (e.g., from hobby
 defaults to medical Class 3), confirm with the user before the first detailed
-analysis presentation. After confirmation, apply consistently for the rest of the
-session without re-asking.
+analysis presentation. An inferred medical or aerospace market only suggests Class 3
+in the detection signals; `ipc_class` stays at the detected or default class until
+`design_intent.ipc_class` is set. After confirmation, apply consistently for the rest
+of the session without re-asking.

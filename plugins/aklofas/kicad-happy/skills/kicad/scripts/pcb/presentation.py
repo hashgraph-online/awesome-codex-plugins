@@ -4,6 +4,7 @@ intermediates computed by pcb.pipeline.run_analyses into the analyzer output dic
 
 import math
 import re
+from typing import TYPE_CHECKING
 
 from kicad_core.diagnostics import record
 from kicad_core.netnames import is_ground_name, is_power_net_name
@@ -14,6 +15,9 @@ from pcb.assembly import (
     _compute_switching_loop_areas,
 )
 from finding_schema import compute_trust_summary, show_decoded_names, sort_findings
+
+if TYPE_CHECKING:
+    from pcb.pipeline import BoardData, PcbAnalyses
 
 
 def group_components(footprints: list[dict]) -> dict:
@@ -34,8 +38,13 @@ def group_components(footprints: list[dict]) -> dict:
 def compute_statistics(footprints: list[dict], tracks: dict, vias: dict,
                        zones: list[dict], outline: dict, connectivity: dict,
                        net_names: dict[int, str] | None = None,
-                       layers: list[dict] | None = None) -> dict:
-    """Compute summary statistics."""
+                       layers: list[dict] | None = None,
+                       board_area_mm2: float | None = None) -> dict:
+    """Compute summary statistics.
+
+    ``board_area_mm2``: the board area from read_board (summed over the outer outlines of a
+    file with several boards); None uses the outline's bounding box.
+    """
     # EQ-059: d = √(w²+h²) (board diagonal)
     # Resolve copper layer names from declarations
     if layers:
@@ -89,7 +98,9 @@ def compute_statistics(footprints: list[dict], tracks: dict, vias: dict,
         "total_track_length_mm": round(total_length, 2),
         "board_width_mm": outline["bounding_box"]["width"] if outline.get("bounding_box") else None,
         "board_height_mm": outline["bounding_box"]["height"] if outline.get("bounding_box") else None,
-        "board_area_mm2": round(outline["bounding_box"]["width"] * outline["bounding_box"]["height"], 1) if outline.get("bounding_box") else None,
+        "board_area_mm2": (round(board_area_mm2, 1) if board_area_mm2 is not None
+                           else round(outline["bounding_box"]["width"] * outline["bounding_box"]["height"], 1)
+                           if outline.get("bounding_box") else None),
         "net_count": sum(1 for v in (net_names or {}).values() if v),
         "routing_complete": connectivity.get("routing_complete", False),
         "unrouted_net_count": connectivity.get("unrouted_count", 0),
@@ -97,11 +108,14 @@ def compute_statistics(footprints: list[dict], tracks: dict, vias: dict,
 
 
 def _routing_from_graph(connectivity: dict, graph: dict, *,
-                        net_ids: dict[str, int] | None = None) -> dict:
+                        net_ids: dict[str, int] | None = None,
+                        unfilled_zone_nets: frozenset | None = None) -> dict:
     """A copy of *connectivity* whose unrouted nets are those with pads on more than one
     copper island of *graph*. A net without copper keeps its entry; pads the graph joins
     (overlapping copper, KiCad jumper pads) do not make a net unrouted. `routed_nets`
-    counts the multi-pad nets that are not unrouted."""
+    counts the multi-pad nets that are not unrouted. A net in *unfilled_zone_nets* owns a zone
+    saved without its fill, so the description says to refill zones before trusting the count."""
+    unfilled_zone_nets = unfilled_zone_nets or frozenset()
     kept = {u["net_name"]: u for u in connectivity.get("unrouted", [])}
     unrouted = [u for name, u in kept.items() if name not in graph]
     multi_pad = len(unrouted)
@@ -130,7 +144,9 @@ def _routing_from_graph(connectivity: dict, graph: dict, *,
             "confidence": "deterministic",
             "evidence_source": "topology",
             "summary": f"Incompletely routed net {net} ({islands} copper islands hold its {len(pads)} pads)",
-            "description": f"Net {net} has {len(pads)} pads on {islands} separate copper islands.",
+            "description": (f"Net {net} has {len(pads)} pads on {islands} separate copper islands."
+                            + (" Its zones are not filled in the saved file: refill zones before "
+                               "trusting this count." if net in unfilled_zone_nets else "")),
             "components": sorted({n.split(".", 1)[0] for n in names}),
             "nets": [net],
             "pins": [],
@@ -145,6 +161,28 @@ def _routing_from_graph(connectivity: dict, graph: dict, *,
     return out
 
 
+# KiCad 6 renamed these layers; a rule may name a layer by either form (LSET::Name, LayerName)
+_LEGACY_LAYER_NAMES = {"F.SilkS": "F.Silkscreen", "B.SilkS": "B.Silkscreen",
+                       "F.Adhes": "F.Adhesive", "B.Adhes": "B.Adhesive",
+                       "F.CrtYd": "F.Courtyard", "B.CrtYd": "B.Courtyard",
+                       "Dwgs.User": "User.Drawings", "Cmts.User": "User.Comments",
+                       "Eco1.User": "User.Eco1", "Eco2.User": "User.Eco2"}
+_STANDARD_LAYER_NAMES = {v: k for k, v in _LEGACY_LAYER_NAMES.items()}
+
+
+def _rule_layer_names(layers: list[dict] | None) -> list[str]:
+    """Every name a custom rule's (layer ...) can use for the board's layers: the file name,
+    the user name and the other KiCad name of a renamed layer."""
+    names: list[str] = []
+    for layer in layers or []:
+        name = layer.get("name")
+        for n in (name, layer.get("alias"), _LEGACY_LAYER_NAMES.get(name),
+                  _STANDARD_LAYER_NAMES.get(name)):
+            if n and n not in names:
+                names.append(n)
+    return names
+
+
 def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: bool,
                     include_trace_segments: bool, schematic_data: dict | None,
                     resolved_power_rails: set[str] | None,
@@ -152,10 +190,10 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
     """Phase 4: build the PCB analyzer result dict (stable output key order).
 
     Mutates nothing caller-owned except two late writes to the facts (it pops `unrouted`
-    out of `connectivity` and `_ignored_drc_checks` out of `project_settings`) and the
-    sections it pops back out of `result`; the late checks run in pcb.pipeline.run_checks
-    and only their result writes happen here. *board* is a pcb.pipeline.BoardData and
-    *analyses* a pcb.pipeline.PcbAnalyses.
+    out of `connectivity`, and `_ignored_drc_checks` and `_board_rules` out of
+    `project_settings`) and the sections it pops back out of `result`; the late checks run
+    in pcb.pipeline.run_checks and only their result writes happen here. *board* is a
+    pcb.pipeline.BoardData and *analyses* a pcb.pipeline.PcbAnalyses.
     """
     facts, checks = analyses.facts, analyses.checks
     diagnostics: list = list(board.diagnostics)
@@ -249,8 +287,9 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
             "size_distribution": vias["size_distribution"],
             **({"via_analysis": via_analysis} if via_analysis else {}),
         },
-        "zones": zones,
-        "keepout_zones": facts.keepout_zones,
+        "zones": [{k: v for k, v in z.items() if k != "_outline_polys"} for z in zones],
+        "keepout_zones": [{k: v for k, v in kz.items() if k != "_outline_polys"}
+                          for kz in facts.keepout_zones],
         "connectivity": connectivity,
         "net_lengths": net_lengths,
     }
@@ -320,6 +359,7 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
     if net_classes:
         result["net_classes"] = net_classes
     ignored_checks = (project_settings or {}).pop('_ignored_drc_checks', frozenset())
+    board_rules = (project_settings or {}).pop('_board_rules', False)
     if project_settings:
         result["project_settings"] = project_settings
 
@@ -327,8 +367,9 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
     # has minima, so the schema-required key always carries a result.
     design_compliance = analyze_design_rule_compliance(
         tracks, vias, project_settings or {}, footprints=footprints,
-        minima=facts.board_minima, board_layers=[l["name"] for l in layers or []],
-        ignored_checks=ignored_checks, microvia_minima=facts.microvia_minima)
+        minima=facts.board_minima, board_layers=_rule_layer_names(layers),
+        ignored_checks=ignored_checks, microvia_minima=facts.microvia_minima,
+        board_rules=board_rules)
     result["design_rule_compliance"] = design_compliance or {}
 
     # Manufacturing and assembly analysis
@@ -394,8 +435,12 @@ def assemble_result(board: "BoardData", analyses: "PcbAnalyses", *, proximity: b
                 f"connectivity graph unavailable: {type(e).__name__}: {err_str}")
             record(diagnostics, "pcb.presentation.assemble_result", e, "connectivity_graph omitted")
         if conn_graph is not None:
+            unfilled = frozenset(z.get("net_name") for z in zones
+                                 if z.get("net_name") and not z.get("is_keepout")
+                                 and not z.get("is_filled"))
             routing = _routing_from_graph(connectivity, conn_graph,
-                                          net_ids=result["net_name_to_id"])
+                                          net_ids=result["net_name_to_id"],
+                                          unfilled_zone_nets=unfilled)
             result["connectivity"] = routing
             result["statistics"] = {**stats, "routing_complete": routing["routing_complete"],
                                     "unrouted_net_count": routing["unrouted_count"]}

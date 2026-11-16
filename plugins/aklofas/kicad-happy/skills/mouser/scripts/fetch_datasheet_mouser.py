@@ -7,9 +7,9 @@ by trying multiple download methods and falling back to alternative
 manufacturer URL patterns.
 
 Download methods (tried in order):
-  - requests library (HTTP/2, redirects, anti-bot headers)
+  - requests library (redirects, anti-bot headers; some sites time out over urllib)
   - Python urllib (HTTP/1.1 fallback)
-  - Playwright headless browser (JS-rendered pages, last resort)
+  - Playwright headless browser (JS-rendered pages, last resort; only with datasheets.allow_private_hosts)
 
 After download, the PDF is verified by extracting text and checking
 for the MPN, manufacturer name, and description keywords.
@@ -28,8 +28,8 @@ Exit codes:
 
 Dependencies:
     - requests (pip install requests) — preferred, handles all manufacturer sites
-    - Falls back to urllib if requests is not installed (some sites may fail)
-    - playwright (optional) — for JS-rendered datasheet pages
+    - Falls back to urllib if requests is not installed or is older than 2.32.2 (some sites may fail)
+    - playwright (optional) — for JS-rendered datasheet pages, only with datasheets.allow_private_hosts
 """
 
 import argparse

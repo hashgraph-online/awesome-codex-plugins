@@ -130,6 +130,10 @@ def _extract_pdf_text(pdf_path: str, max_pages: int = 3) -> str:
     back to scanning raw PDF bytes for ASCII strings.
     """
     # Strategy 1: pdftotext (best quality, handles all encodings)
+    kicad_scripts = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "kicad", "scripts")
+    if kicad_scripts not in sys.path:
+        sys.path.insert(0, kicad_scripts)
     from kicad_core.executables import find_executable
     tool = find_executable("pdftotext")
     if tool:

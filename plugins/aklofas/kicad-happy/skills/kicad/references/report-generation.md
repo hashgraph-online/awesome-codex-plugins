@@ -200,7 +200,7 @@ was skipped or degraded (no datasheets), state the per-IC gaps here.
 ### Simulation Verification
 [**Include when ngspice is available.** Run `simulate_subcircuits.py` on the analyzer JSON output (from the `spice` skill). The output JSON has top-level key `simulation_results` (list). Each entry has `reference` (e.g. "R5/C3"), `components` (list), `subcircuit_type`, `status`, `expected` (dict of metric values like `cutoff_hz`), `simulated` (dict of measured values), and `delta` (dict of error percentages). Use `summary` for totals. Present results as a summary table grouped by status:]
 
-[Summary line: "ngspice verified N subcircuits in X.Xs. N pass, N warn, N fail, N skip, N info." `info` is a bench with nothing to compare against (e.g. an op-amp stage with no expected gain): report its measured values without a verdict.]
+[Summary line: "ngspice ran N subcircuit benches in X.Xs. N pass, N warn, N fail, N skip, N info." `info` is a bench with nothing to compare against (e.g. an op-amp stage with no expected gain): report its measured values without a verdict.]
 
 [**Pass** — one line each, grouped: "RC filter R5/C3 (fc=15.9kHz): confirmed, <0.3% error." Build this from `result['reference']`, `result['expected']['cutoff_hz']`, and `result['delta']`.]
 
@@ -416,7 +416,7 @@ This verification must happen at the PCB pad level, not just the schematic pin l
 [MPN coverage %, missing MPNs list, missing distributor part numbers. Do not recommend or prefer any specific distributor by name — keep sourcing observations neutral.]
 
 ### Component Lifecycle Status
-[**Include when `--lifecycle` flag was used on the schematic analyzer.** Report any NRND (not recommended for new designs), EOL (end of life), or obsolete components from the `lifecycle_audit` output. For each flagged part: MPN, current status, last-buy date if known, and suggested action (find alternate, stock up, redesign). If lifecycle audit was not run, note: "Lifecycle audit not performed — [reason: no API keys / no network / no MPNs]."]
+[**Include when the run has lifecycle results:** the schematic analyzer's `lifecycle_audit` section (`--lifecycle`) or a standalone `lifecycle_audit.py` envelope in the same run (`analyzer_type: "lifecycle"`, usually `lifecycle.json`). With either present, leave out the schematic's LC-007 "lifecycle audit not run" finding; it only says that run did not query distributors. Report any NRND (not recommended for new designs), EOL (end of life), or obsolete components from the `lifecycle_audit` output. For each flagged part: MPN, current status, last-buy date if known, and suggested action (find alternate, stock up, redesign). If neither is present, note: "Lifecycle audit not performed — [reason: no API keys / no network / no MPNs]."]
 
 ### BOM Optimization
 [Unique passive value counts per type, total unique footprints, single-use passive values, consolidation opportunities]

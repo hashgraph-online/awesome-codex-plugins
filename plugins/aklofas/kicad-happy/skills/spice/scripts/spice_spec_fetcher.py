@@ -20,6 +20,7 @@ import urllib.error
 import urllib.parse
 
 import _core_path  # noqa: F401
+from kicad_core.fileio import json_loads
 from kicad_core import token_cache
 from kicad_core.diagnostics import record
 from kicad_core.executables import find_executable
@@ -209,15 +210,15 @@ def fetch_specs_lcsc(mpn):
         url = f"https://jlcsearch.tscircuit.com/api/search?q={urllib.parse.quote(mpn)}&limit=5&full=true"
         req = urllib.request.Request(url, headers={"User-Agent": "kicad-happy-spice/1.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            data = json_loads(resp.read())
 
         for comp in data.get("components", []):
-            extra = comp.get("extra", {})
-            comp_mpn = extra.get("mpn", "")
+            extra = comp.get("extra") if isinstance(comp.get("extra"), dict) else {}
+            comp_mpn = comp.get("mfr") if isinstance(comp.get("mfr"), str) else extra.get("mpn", "")
             if not _is_requested(mpn, comp_mpn):
                 continue
 
-            attrs = extra.get("attributes", {})
+            attrs = comp.get("attributes") if isinstance(comp.get("attributes"), dict) else extra.get("attributes", {})
             if not attrs:
                 continue
 
@@ -271,7 +272,7 @@ def _get_digikey_token():
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            token_data = json.loads(resp.read())
+            token_data = json_loads(resp.read())
 
         access_token = token_data["access_token"]
         # Cache with 9-minute TTL (token valid for 10 min)
@@ -305,7 +306,7 @@ def fetch_specs_digikey(mpn):
             },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            data = json_loads(resp.read())
 
         for product in data.get("Products", []):
             prod_mpn = product.get("ManufacturerProductNumber", "")
@@ -359,7 +360,7 @@ def fetch_specs_element14(mpn):
         url = f"https://api.element14.com/catalog/products?{params}"
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            data = json_loads(resp.read())
 
         products = data.get("manufacturerPartNumberSearchReturn", {}).get("products", [])
         for product in products:
@@ -407,7 +408,7 @@ def fetch_specs_mouser(mpn):
             headers={"Content-Type": "application/json"},
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            data = json_loads(resp.read())
 
         for part in data.get("SearchResults", {}).get("Parts", []):
             if not _is_requested(mpn, part.get("ManufacturerPartNumber")):
@@ -583,42 +584,27 @@ def fetch_specs_from_extraction(mpn, project_dir):
     if not project_dir:
         return None
     from pathlib import Path
-    from datasheet_types.cache_reader import read_json_object, safe_extract_dir
-    from distributor_core.manifest import manifest_file_path
+    from datasheet_types.cache_reader import safe_extract_dir
+    from datasheet_types.trust_gating import finite_score
     extract_dir = safe_extract_dir(Path(project_dir) / "datasheets" / "extracted")
     if extract_dir is None:
         return None
-    index_path = extract_dir / "manifest.json"
-    if not index_path.exists():
-        index_path = extract_dir / "index.json"
-    if not index_path.exists():
+    from datasheet_extract_cache import find_extraction
+    # The v1.3 entry: spice_specs and the 0-10 score live there, not in a v1.4 file.
+    extraction = find_extraction(extract_dir, mpn, v14_first=False)[0]
+    if not isinstance(extraction, dict):
         return None
-    index = read_json_object(index_path)
-    if index is None:
-        return None
-    import re as _re
-    key = _re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip())
-    exts = index.get("extractions")
-    if not isinstance(exts, dict):
-        return None
-    entry = exts.get(key)
-    if not entry:
-        for k, v in exts.items():
-            if k.upper() == key.upper():
-                entry = v
-                break
-    if not entry:
-        return None
-    json_file = manifest_file_path(extract_dir, entry.get("file") if isinstance(entry, dict) else None)
-    if json_file is None or not json_file.exists():
-        return None
-    extraction = read_json_object(json_file)
-    if extraction is None:
-        return None
-    # Trust gate: skip low-quality extractions
-    meta = extraction.get("meta", {})
-    score = meta.get("extraction_score", 0) if isinstance(meta, dict) else None
-    if not isinstance(score, (int, float)) or isinstance(score, bool) or score < 6.0:
+    # Trust gate: skip low-quality extractions. The cache manager writes
+    # `extraction_metadata`; hand-made caches use `meta`.
+    score = None
+    for block in ("extraction_metadata", "meta"):
+        meta = extraction.get(block)
+        value = meta.get("extraction_score") if isinstance(meta, dict) else None
+        if isinstance(value, (int, float)):
+            score = value
+            break
+    score = finite_score(score)
+    if score is None or score < 6.0:
         return None
     specs = _read_spice_specs(extraction.get("spice_specs"))
     if not specs:

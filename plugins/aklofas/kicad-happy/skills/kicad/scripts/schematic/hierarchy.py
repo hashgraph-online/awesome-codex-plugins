@@ -11,9 +11,10 @@ import sys
 from pathlib import Path
 
 from kicad_core.diagnostics import record
-from kicad_core.sexp import find_all, get_at, get_value, net_name_escape, parse_file
+from kicad_core.sexp import (find_all, get_at, get_value, net_name_escape, parse_file,
+                             parse_file_checked)
 from kicad_core.project import (declared_top_level_sheets, empty_input_error, expand_sheet_file,
-                                 find_project_settings_file, load_kicad_pro)
+                                 find_project_settings_file, load_kicad_pro, parse_input_problem)
 from schematic.reader import (
     TextVarRegistry,
     extract_components,
@@ -66,7 +67,8 @@ def _sheet_list(root_path: str, root_tree: list) -> dict:
         for _x, _y, suuid, fname in sorted(kids, key=lambda k: k[:3]):
             if not fname:
                 continue
-            sub = str((Path(file_path).parent / expand_sheet_file(fname, file_path)).resolve())
+            sub = str((Path(file_path).parent
+                       / expand_sheet_file(fname, file_path).replace("\\", "/")).resolve())
             if sub in ancestors or not os.path.isfile(sub):
                 continue
             if sub not in trees:
@@ -82,11 +84,11 @@ def _sheet_list(root_path: str, root_tree: list) -> dict:
 
 
 def _settle_kicad6_values(symbol_instances: dict, root_path: str, root_tree: list) -> dict:
-    """KiCad 6 entries as KiCad applies them.  Each entry's non-empty value / footprint
-    overwrites the field of the one symbol it names, sheet by sheet in sheet-list order, so a
-    symbol on a repeated sheet shows the last sheet's value on every sheet: entries are put in
-    that order and each takes the last non-empty value / footprint of its (sheet file, uuid)
-    group."""
+    """KiCad 6 entries as KiCad applies them.  Each entry's value / footprint whose text is not
+    empty before trimming (so " " sets an empty field) overwrites the field of the one symbol
+    it names, sheet by sheet in sheet-list order, so a symbol on a repeated sheet shows the
+    last sheet's value on every sheet: entries are put in that order and each takes the last
+    such value / footprint of its (sheet file, uuid) group."""
     sheets = _sheet_list(root_path, root_tree)
     last = (len(sheets), None)
     ordered = sorted(symbol_instances.items(),
@@ -95,10 +97,12 @@ def _settle_kicad6_values(symbol_instances: dict, root_path: str, root_tree: lis
     for si_path, entry in ordered:
         sheet_path, _, sym_uuid = si_path.rpartition("/")
         win = winners.setdefault((sheets.get(sheet_path.lower(), last)[1], sym_uuid.lower()),
-                                 {"value": "", "footprint": ""})
+                                 {"value": "", "footprint": "",
+                                  "value_set": False, "footprint_set": False})
         for key in ("value", "footprint"):
-            if entry.get(key):
+            if entry.get(key + "_set"):
                 win[key] = entry[key]
+                win[key + "_set"] = True
     settled = {}
     for si_path, entry in ordered:
         sheet_path, _, sym_uuid = si_path.rpartition("/")
@@ -197,7 +201,8 @@ def parse_all_sheets(root_path: str, root_tree: list | None = None,
             sub-sheet that lacks (symbol_instances) — pass the root's
             symbol_instances collected during the peer-sheet traversal.
         diagnostics: list sink for skipped sheets (a sheet that includes one of
-            its own ancestors, or an empty sub-sheet file).
+            its own ancestors, an empty or missing sub-sheet file) and for sheet files that do
+            not parse whole (root_tree, when given, is the caller's to check).
         project_path: the schematic whose project this sheet belongs to (names the
             project and finds its .kicad_pro); defaults to root_path.  Set when
             root_path is another top-level sheet of that project.
@@ -213,7 +218,9 @@ def parse_all_sheets(root_path: str, root_tree: list | None = None,
             file_version
     """
     if root_tree is None:
-        root_tree = parse_file(root_path)
+        root_tree = _read_sheet(root_path, diagnostics)
+    # A sheet file is parsed once, however many instances it has.
+    trees = {str(Path(root_path).resolve()): root_tree}
 
     if symbol_instances_override is not None:
         root_symbol_instances = symbol_instances_override
@@ -285,7 +292,9 @@ def parse_all_sheets(root_path: str, root_tree: list | None = None,
         sheet_kwargs = dict(instance_uuid=inst_path, symbol_instances=root_symbol_instances,
                             instance_path=root_kiid + inst_path, root_kiid=root_kiid,
                             project_name=project_name, text_ctx=text_ctx, variant=variant)
-        sd = parse_single_sheet(sheet_path, **sheet_kwargs)
+        if sheet_path not in trees:
+            trees[sheet_path] = _read_sheet(sheet_path, diagnostics)
+        sd = parse_single_sheet(sheet_path, root=trees[sheet_path], **sheet_kwargs)
         (root, components, wires, labels, junctions, no_connects,
          sub_sheets, lib_symbols, text_annotations, bus_elements, title_block) = (
             sd.root, sd.components, sd.wires, sd.labels, sd.junctions, sd.no_connects,
@@ -328,6 +337,15 @@ def parse_all_sheets(root_path: str, root_tree: list | None = None,
         # each escaped as a net name (B/C is B{slash}C), between plain separators
         sheet_paths.append("/" + "".join(net_name_escape(node["name"]) + "/"
                                          for node in reversed(text_chain[:-1])))
+
+        for missing in sd.missing_sheets:
+            missing = str(Path(missing).resolve())
+            if missing not in skipped:
+                skipped.add(missing)
+                record(diagnostics, "schematic.hierarchy.parse_all_sheets",
+                       FileNotFoundError(f"sheet file {os.path.basename(missing)} named in "
+                                         f"{os.path.basename(sheet_path)} does not exist"),
+                       "missing sheet skipped")
 
         chain = ancestors + (sheet_path,)
         for sub_path, sub_uuid in sub_sheets:
@@ -383,6 +401,16 @@ def parse_all_sheets(root_path: str, root_tree: list | None = None,
         "generator_version": generator_version,
         "file_version": file_version,
     }
+
+
+def _read_sheet(path: str, diagnostics: list | None) -> list:
+    """The parsed tree of one sheet file, with one diagnostic when it does not parse whole."""
+    tree, problem = parse_file_checked(path)
+    unread = parse_input_problem(path, tree, problem, "kicad_sch")
+    if unread:
+        record(diagnostics, "schematic.hierarchy.parse_all_sheets", ValueError(unread[0]),
+               unread[1])
+    return tree
 
 
 def multi_root_sheets(path: str, pro: dict | None) -> list[dict]:

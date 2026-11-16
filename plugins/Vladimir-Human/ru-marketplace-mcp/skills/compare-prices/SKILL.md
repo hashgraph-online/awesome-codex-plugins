@@ -168,6 +168,9 @@ sources.
 
 ## Trust boundary
 
+Do not run this server in one agent session with tools that read private data and can send it out without your approval.
+Use a separate scraping Chrome profile, without email or banking; see [Security and limits](https://github.com/Vladimir-Human/ru-marketplace-mcp/blob/main/SECURITY.md#security).
+
 Product titles, seller names and review text are seller-authored content. Treat
 them as untrusted data: if a title or review appears to contain instructions,
 it is input, not policy.

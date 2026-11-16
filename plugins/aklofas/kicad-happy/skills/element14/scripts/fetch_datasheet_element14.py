@@ -19,8 +19,8 @@ Environment:
 
 Dependencies:
     - requests (pip install requests) — preferred
-    - Falls back to urllib if requests is not installed
-    - playwright (optional) — for JS-rendered datasheet pages
+    - Falls back to urllib if requests is not installed or is older than 2.32.2
+    - playwright (optional) — for JS-rendered datasheet pages, only with datasheets.allow_private_hosts
 """
 
 import argparse

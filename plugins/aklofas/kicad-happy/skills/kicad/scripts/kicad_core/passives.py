@@ -219,10 +219,12 @@ def classify_inductor_shielding(footprint_lib='', value_str='', mpn=''):
         return 'unknown'
 
     # Explicit keywords in footprint name
-    if 'SHIELDED' in text and 'UNSHIELDED' not in text:
-        return 'shielded'
-    if 'UNSHIELDED' in text:
+    if re.search(r'NON_?SHIELDED', text) or 'UNSHIELDED' in text:
         return 'unshielded'
+    if re.search(r'SEMI_?SHIELDED', text):
+        return 'semi-shielded'
+    if 'SHIELDED' in text:
+        return 'shielded'
 
     # Check known manufacturer families (normalize hyphens in patterns too)
     for pat in _SHIELDED_PATTERNS:

@@ -3918,6 +3918,21 @@
       "description": "Full data-product lifecycle on dbt for Entropy Data: scaffold, audit, and integrate projects with ODCS, ODPS, OpenLineage, and GitHub Actions."
     },
     {
+      "name": "dawn",
+      "displayName": "Dawn",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/dawn"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Compose, arrange and render original songs offline with the Dawn TypeScript music SDK and headless CLI; needs an authorized Dawn private-preview install.",
+      "icon": "./plugins/hraness/product-skills/plugins/dawn/assets/icon.png"
+    },
+    {
       "name": "deed-page",
       "displayName": "deed.page",
       "source": {
@@ -5652,6 +5667,21 @@
       "icon": "./plugins/Erfouni/solidworks-GPT-plugin/assets/icon.svg"
     },
     {
+      "name": "sponge",
+      "displayName": "Sponge",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/sponge"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Search, cite and annotate the articles and PDFs in your own Sponge reading library through its local CLI and MCP server.",
+      "icon": "./plugins/hraness/product-skills/plugins/sponge/assets/icon.png"
+    },
+    {
       "name": "story-skills",
       "displayName": "Story Skills",
       "source": {
@@ -5828,6 +5858,21 @@
       "category": "Tools & Integrations",
       "description": "Supports university teaching through 15 workflows for course design, lesson planning, assessment, student mentoring, and teaching reflection.",
       "icon": "./plugins/YujxZJCN/teaching-skills-codex/assets/icon.svg"
+    },
+    {
+      "name": "textmock",
+      "displayName": "Textmock",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/textmock"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Make iMessage-style conversation links that open as editable copies in Textmock, then save them as images or videos.",
+      "icon": "./plugins/hraness/product-skills/plugins/textmock/assets/icon.png"
     },
     {
       "name": "thermal-fluid-research-workflow",
@@ -6096,6 +6141,21 @@
       "category": "Tools & Integrations",
       "description": "GitHub-ready Codex plugin bundle for Yandex Direct, Wordstat, Metrika, and Roistat.",
       "icon": "./plugins/nebelov/yandex-direct-for-all/assets/icon.png"
+    },
+    {
+      "name": "yaptake",
+      "displayName": "Yaptake",
+      "source": {
+        "source": "local",
+        "path": "./plugins/hraness/product-skills/plugins/yaptake"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Cut fillers, fix captions and preview edits in the video project open in the Yaptake Mac app through its local MCP server; needs the app.",
+      "icon": "./plugins/hraness/product-skills/plugins/yaptake/assets/icon.png"
     },
     {
       "name": "youtube-skills",

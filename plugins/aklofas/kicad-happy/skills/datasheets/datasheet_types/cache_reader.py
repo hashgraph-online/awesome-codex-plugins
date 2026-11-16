@@ -201,24 +201,39 @@ def _resolve_pdf_path(cache_dir: Path, source_local_path: Optional[str]) -> Opti
 
     So the PDF lives at cache_dir.parent / source.local_path.
 
+    When that names no file inside datasheets/ (an older cache recorded an
+    absolute path, and the project has since been copied or moved), the
+    PDF is looked up by its file name in datasheets/. The caller's sha256
+    check still decides whether the extraction is current.
+
     Returns None when source_local_path is not a non-empty string
-    (datasheet wasn't sourced locally) or when the path resolves outside
-    cache_dir.parent — caller treats None as 'pdf_missing'.
+    (datasheet wasn't sourced locally) or when no candidate resolves
+    inside cache_dir.parent — caller treats None as 'pdf_missing'.
     """
     if not isinstance(source_local_path, str) or not source_local_path:
         return None
     # local_path is stored relative; if it starts with "datasheets/" already
     # (a v1.3 convention), treat it as relative to cache_dir.parent.parent.
     base = cache_dir.parent
+
+    def _contained(path: Path) -> bool:
+        try:
+            return path.resolve().is_relative_to(base.resolve())
+        except (OSError, RuntimeError, ValueError):
+            return False
+
     candidate = base / source_local_path
     if not candidate.is_file() and source_local_path.startswith("datasheets/"):
         candidate = base.parent / source_local_path
-    try:
-        if not candidate.resolve().is_relative_to(base.resolve()):
-            return None
-    except (OSError, RuntimeError, ValueError):
-        return None
-    return candidate
+    if candidate.is_file() and _contained(candidate):
+        return candidate
+    # Split on both separators: a cache written on Windows.
+    name = re.split(r"[\\/]", source_local_path)[-1]
+    if name not in ("", ".", ".."):
+        by_name = base / name
+        if by_name.is_file() and _contained(by_name):
+            return by_name
+    return candidate if _contained(candidate) else None
 
 
 # ---------------------------------------------------------------------------
@@ -245,7 +260,8 @@ def lookup(mpn: str, *, cache_dir: Path) -> Optional[DatasheetFacts]:
 
     A source.local_path that is not a string, or resolves outside the
     datasheets/ folder, or names something other than a regular file,
-    reads as STALE_PDF_MISSING.
+    reads as STALE_PDF_MISSING, unless a file of the same name sits in
+    datasheets/ (a copied or moved project); its sha256 then decides.
 
     Pure read: never writes, never extracts, never triggers an LLM call.
     On a cache miss the caller decides whether to run an extraction.

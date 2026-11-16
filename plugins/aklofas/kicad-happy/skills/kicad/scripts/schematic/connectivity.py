@@ -17,6 +17,24 @@ _MAX_DEPTH = 4
 _MARKUP = ("_", "^", "~")
 
 
+def _quote_step(name, i, in_quotes):
+    """(consumed, in_quotes, text) for the quote handling shared by the bus parsers, or None
+    when name[i] is outside quotes and not a quote: an unescaped ``"`` toggles quoting; inside
+    quotes ``\\x`` is ``x`` and everything else, spaces included, is literal."""
+    ch = name[i]
+    if ch == '"':
+        backslashes = 0
+        while i - backslashes > 0 and name[i - backslashes - 1] == "\\":
+            backslashes += 1
+        if backslashes % 2 == 0:
+            return 1, not in_quotes, ""
+    if in_quotes:
+        if ch == "\\" and i + 1 < len(name):
+            return 2, True, name[i + 1]
+        return 1, True, ch
+    return None
+
+
 def _parse_bus_vector(name):
     """(prefix, suffix, ascending indices) for a KiCad vector bus name, else None.
 
@@ -25,10 +43,16 @@ def _parse_bus_vector(name):
     in the prefix (``R_{C}[0..1]``), wrap the name (``~{BE[0..3]}``) or decorate
     the range (``D_{[1..2]}``).
     """
-    prefix, nest, wraps, i, n = "", 0, False, 0, len(name)
+    prefix, nest, wraps, i, n, quoted = "", 0, False, 0, len(name), False
     while True:
         if i >= n:
             return None
+        step = _quote_step(name, i, quoted)
+        if step:
+            used, quoted, text = step
+            prefix += text
+            i += used
+            continue
         ch = name[i]
         if ch == "{":
             if i > 0 and name[i - 1] in _MARKUP:
@@ -88,8 +112,14 @@ def _parse_bus_group(name):
     commas, keep their markup (``~{OE}``), and text after the closing brace is
     ignored.
     """
-    prefix, nest, i, n = "", 0, 0, len(name)
+    prefix, nest, i, n, quoted = "", 0, 0, len(name), False
     while i < n:
+        step = _quote_step(name, i, quoted)
+        if step:
+            used, quoted, text = step
+            prefix += text
+            i += used
+            continue
         ch = name[i]
         if ch == "{":
             if i > 0 and name[i - 1] in _MARKUP:
@@ -114,8 +144,14 @@ def _parse_bus_group(name):
     if nest != 0 or i + 1 >= n:
         return None
     i += 1
-    members, tok = [], ""
+    members, tok, quoted = [], "", False
     while i < n:
+        step = _quote_step(name, i, quoted)
+        if step:
+            used, quoted, text = step
+            tok += text
+            i += used
+            continue
         ch = name[i]
         if ch == "{":
             if name[i - 1] in _MARKUP:
@@ -188,7 +224,8 @@ def expand_bus_name(name, aliases=None, _depth=0):
         else:
             # A plain group member is escaped as a net name; the group prefix and a nested
             # vector's members stay decoded, so kicad-cli joins neither to an escaped tap label.
-            sub = expand_bus_name(tok, aliases, _depth + 1) or [net_name_escape(tok)]
+            sub = (expand_bus_name(tok.replace(" ", "\\ "), aliases, _depth + 1)
+                   or [net_name_escape(tok).replace(" ", "\\ ")])
         for member in sub:
             members.append(f"{prefix}.{member}" if prefix else member)
     return members or None
@@ -580,6 +617,12 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
     tie-break as KiCad does (see the driver loop).  Without it the sheet index
     stands in for the path.
     """
+    def is_root_sheet(sheet):
+        """A top-level sheet: "/" in sheet_paths (a multi-root project has several), else index 0."""
+        if sheet_paths and 0 <= sheet < len(sheet_paths):
+            return sheet_paths[sheet] == "/"
+        return sheet == 0
+
     # Collect all electrical points
     # Each point: (sheet, x, y, source_info)
     # The sheet index keeps each sheet's coordinate space separate so that
@@ -725,6 +768,7 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
     bus_aliases: dict = {}
     bus_label_idx: set[int] = set()
     bus_named_labels: list[tuple] = []  # (sheet, bare, x, y, role), local/global/hier
+    cluster_prio: dict[tuple, int] = {}  # (sheet, cluster) -> naming priority of its bus label
     if bus_active:
         bus_aliases = {a["name"]: a["members"]
                        for a in bus_elements.get("bus_aliases", [])}
@@ -797,7 +841,11 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             label_keys.setdefault((lbl_name, sheet), []).append(k)
         elif lbl["type"] == "hierarchical_label":
             # Cross-sheet by (namespaced) name — the pre-existing hier union.
-            label_keys.setdefault(lbl_name, []).append(k)
+            # A hierarchical label on a top-level sheet has no parent sheet pin and keeps its
+            # bare name; KiCad scopes it to that sheet, so it must not meet a global label
+            # or power net of that name elsewhere (it still joins on its own sheet).
+            if lbl.get("_is_sheet_pin") or not is_root_sheet(sheet):
+                label_keys.setdefault(lbl_name, []).append(k)
             # AND same-name LOCAL labels on this sheet: KiCad joins a real
             # hierarchical label to same-name local labels within its own sheet
             # (openmd's root V_{ANA}, where a hier V_{ANA} and a local V_{ANA}
@@ -938,6 +986,10 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
             expansion = expand_bus_name(bare, bus_aliases)
             if not expansion:
                 continue
+            if role in ("local", "global"):
+                pr = 0 if role == "global" else 2  # global_label / label naming priority
+                if pr < cluster_prio.get((s, cid), 9):
+                    cluster_prio[(s, cid)] = pr
             for member in expansion:
                 slot = bus_slot(s, cid, member)
                 lk = label_keys.get((member, s))
@@ -1144,9 +1196,20 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
         best = None
         net_labels_seen: set[tuple[str, str]] = set()
         net_labels: list[dict] = []
+        # A bus member names a net that has pins, and only from a sheet where no
+        # label or power symbol on the net sits: there the wire's own label drives it.
+        has_pins = any(i["source"] == "pin" for i in all_info)
+        label_sheets = {m[0] for m in members if m[0] != "bus" and any(
+            i["source"] in ("label", "power_symbol") for i in point_info.get(m, ()))}
         for m in members:
             m_sheet = m[0]
-            for info in point_info.get(m, []):
+            slot_info = ()
+            if (has_pins and m[0] == "bus" and (m[1], m[2]) in cluster_prio
+                    and m[1] not in label_sheets):
+                m_sheet = m[1]
+                slot_info = ({"source": "bus_member", "name": m[3],
+                              "prio": cluster_prio[(m[1], m[2])]},)
+            for info in (*point_info.get(m, ()), *slot_info):
                 src = info["source"]
                 if src == "power_symbol":
                     p = _NET_NAME_PRIORITY["power_symbol"]
@@ -1154,13 +1217,22 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
                     is_local = info.get("power_scope") == "local"
                     sheet_scoped = is_local
                     tie_name = cand_name
+                elif src == "bus_member":
+                    p = info["prio"]
+                    cand_name = info["name"]
+                    is_local = sheet_scoped = p == _NET_NAME_PRIORITY["label"]
+                    tie_name = cand_name
                 elif src == "label":
                     lbl_name = info.get("name") or ""
                     lbl_type = info.get("label_type") or "label"
                     p = _NET_NAME_PRIORITY.get(
                         "sheet_pin" if info.get("is_sheet_pin") else lbl_type, 2)
                     cand_name = lbl_name
-                    is_local = lbl_type in ("label", "directive_label")
+                    # a top-level sheet's own hierarchical label is local to that sheet
+                    is_local = (lbl_type in ("label", "directive_label")
+                                or (lbl_type == "hierarchical_label"
+                                    and not info.get("is_sheet_pin")
+                                    and is_root_sheet(m_sheet)))
                     sheet_scoped = lbl_type != "global_label"
                     tie_name = info.get("bare_name") or lbl_name
                     key_tuple = (lbl_name, lbl_type)
@@ -1199,7 +1271,6 @@ def build_net_map(components: list[dict], wires: list[dict], labels: list[dict],
 
         if net_name is None:
             # Only create unnamed nets if they have component pins
-            has_pins = any(i["source"] == "pin" for i in all_info)
             if not has_pins:
                 continue
             net_name = f"__unnamed_{net_id}"

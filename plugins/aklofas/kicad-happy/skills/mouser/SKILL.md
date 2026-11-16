@@ -241,7 +241,7 @@ The scripts try multiple sources in order:
 1. **Schematic URL** — uses the datasheet URL embedded in the KiCad symbol (sync only)
 2. **Mouser API search** — gets the `DataSheetUrl` from the API response
 3. **Alternative manufacturer sources** — tries known URL patterns for major manufacturers (TI, Microchip, etc.) when the Mouser URL is blocked
-4. **Headless browser fallback** — if `playwright` is installed, uses headless Chromium as a last resort
+4. **Headless browser fallback** — if `playwright` is installed and `datasheets.allow_private_hosts` is set in `~/.kicad-happy.json`, uses headless Chromium as a last resort (the browser resolves each host itself, so it is not started without the opt-in)
 
 When all methods fail, provide the `ProductDetailUrl` to the user so they can download from the Mouser product page in their browser.
 

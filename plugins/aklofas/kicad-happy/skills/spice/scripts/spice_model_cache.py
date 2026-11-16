@@ -25,8 +25,12 @@ The model resolution cascade (get_model_for_part):
 Offline mode skips tiers 2-4.
 """
 
+import atexit
 import json
 import os
+import re
+import shutil
+import stat
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -35,7 +39,7 @@ import _core_path  # noqa: F401
 from datasheet_types.cache_reader import read_json_object, read_regular_bytes
 from distributor_core.manifest import DEFAULT_FILE_MODE, manifest_file_path
 from kicad_core.diagnostics import record
-from kicad_core.project import extraction_project_dir, project_dir_from_analysis  # noqa: F401  (re-exported)
+from kicad_core.project import extraction_project_dir
 from spice_part_library import lookup_part_specs
 from spice_spec_fetcher import _read_spice_specs
 from spice_model_generator import (
@@ -56,12 +60,15 @@ def resolve_cache_dir(analysis_json, override_dir=None):
     Resolution, first match wins:
         1. override_dir, when given
         2. beside the first source file the analysis JSON names
-           ("file", or "inputs.source_files[0]")
-        3. one per-process temp directory, created on first use, so two
-           processes never share a manifest and no model leaks across projects
+           ("file", or "inputs.source_files[0]"); a relative path counts only
+           when that file exists from the current directory
+        3. one per-process temp directory, created on first use and removed
+           when the process exits, so two processes never share a manifest and
+           no model leaks across projects
 
     simulate_subcircuits passes its workdir as override_dir when the analysis
-    names no source file, so step 3 is reached only by other callers.
+    names no source file, or a relative one not found from the current
+    directory, so step 3 is reached only by other callers.
 
     Args:
         analysis_json: Parsed analyzer JSON dict ("file" / "inputs" optional)
@@ -74,12 +81,13 @@ def resolve_cache_dir(analysis_json, override_dir=None):
     if override_dir:
         return Path(override_dir) / "spice" / "models"
 
-    project_dir = project_dir_from_analysis(analysis_json)
+    project_dir = extraction_project_dir(analysis_json)
     if project_dir is not None:
         return project_dir / "spice" / "models"
 
     if _PROCESS_CACHE_DIR is None:
         _PROCESS_CACHE_DIR = Path(tempfile.mkdtemp(prefix="kicad-happy-spice-"))
+        atexit.register(shutil.rmtree, _PROCESS_CACHE_DIR, True)
     return _PROCESS_CACHE_DIR / "spice" / "models"
 
 
@@ -173,6 +181,11 @@ def _lookup_cached_model(cache_dir, mpn, diagnostics=None):
 _CONTROL_CARD_PREFIXES = (".control", ".endc")
 _INCLUDE_CARD_PREFIXES = (".inc", ".lib")
 _CONTROL_WORDS = ("shell", "source")
+# The cards a model library loaded by .include/.lib may hold; anything else (.print,
+# .option, .end, an analysis) would act on the whole netlist.
+_MODEL_LIBRARY_CARDS = frozenset({".subckt", ".ends", ".model", ".param", ".func", ".global"})
+# XSPICE code models such as filesource, d_source and d_state read the file they name
+_FILE_PARAMETER = re.compile(r"(?i)(?<!\w)(?:file|input_file|state_file)\s*=")
 
 
 def _logical_lines(text):
@@ -189,17 +202,38 @@ def _logical_lines(text):
 def model_text_problem(text):
     """Why a cached model is unsafe to paste into a netlist, or None.
 
-    Unsafe: a line that opens or closes a simulator control block, runs ``shell`` or
-    ``source``, or includes any file (``.inc``/``.include``/``.lib``). Included files
-    resolve from the simulation directory and are never scanned, so none is allowed.
+    Only model-library cards (``.subckt``, ``.ends``, ``.model``, ``.param``, ``.func``,
+    ``.global``), element lines and comments are safe. Unsafe: a line that includes any
+    file (``.inc``/``.include``/``.lib``; included files resolve from the simulation
+    directory and are never scanned), opens or closes a simulator control block, runs
+    ``shell`` or ``source``, is any other dot-card, or gives a code model a file to read.
+    A bare ``.end`` is allowed as the last line only; ``model_for_bench`` drops it.
     """
-    for line in _logical_lines(text):
+    lines = _logical_lines(text)
+    last = max((i for i, line in enumerate(lines) if line), default=-1)
+    for i, line in enumerate(lines):
         card = line.lower().split(None, 1)[0] if line else ""
+        if i == last and line.lower() == ".end":
+            continue
         if card.startswith(_INCLUDE_CARD_PREFIXES):
             return f"model includes a file: {line[:60]}"
         if card.startswith(_CONTROL_CARD_PREFIXES) or card in _CONTROL_WORDS:
             return f"model contains a simulator control command: {line[:60]}"
+        if card.startswith(".") and card not in _MODEL_LIBRARY_CARDS:
+            return f"model contains a simulator command card: {line[:60]}"
+        if card and not card.startswith("*") and _FILE_PARAMETER.search(line):
+            return f"model reads a file: {line[:60]}"
     return None
+
+
+def model_for_bench(text):
+    """``text`` without a trailing ``.end`` line, which would end the bench's netlist."""
+    lines = text.splitlines(keepends=True)
+    while lines and not lines[-1].strip():
+        lines.pop()
+    if lines and lines[-1].strip().lower() == ".end":
+        return "".join(lines[:-1])
+    return text
 
 
 def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
@@ -215,6 +249,15 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
     """
     cache_dir = Path(cache_dir)
     cache_dir.mkdir(parents=True, exist_ok=True)
+
+    # Rewriting a manifest that cannot be read would drop every entry it holds;
+    # an empty regular file or an empty JSON list has none to lose.
+    read_path = _cache_manifest_path(cache_dir)
+    index = read_json_object(read_path) if os.path.lexists(read_path) else {}
+    if index is None:
+        if not _holds_no_entries(read_path):
+            raise OSError(f"{read_path.name} is unreadable; model not cached")
+        index = {}
 
     key = sanitize_mpn(mpn)
     filename = f"{key}.sub"
@@ -236,9 +279,6 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
         raise
 
     # Update manifest (prefer existing file; always write to manifest.json)
-    read_path = _cache_manifest_path(cache_dir)
-    index = read_json_object(read_path) or {}
-
     import datetime
     index[key] = {
         "file": filename,
@@ -277,6 +317,23 @@ def cache_model(cache_dir, mpn, subckt, specs, source, component_type):
     _index_cache.pop(str(cache_dir), None)
 
 
+def _holds_no_entries(path):
+    """True for a regular file that is empty or holds the JSON value []."""
+    try:
+        st = os.lstat(path)
+    except OSError:
+        return False
+    if not stat.S_ISREG(st.st_mode):
+        return False
+    if st.st_size == 0:
+        return True
+    raw = read_regular_bytes(path)
+    try:
+        return raw is not None and json.loads(raw.decode("utf-8")) == []
+    except (ValueError, RecursionError):
+        return False
+
+
 def _serialize_specs(specs):
     """Make specs dict JSON-serializable (handle any non-standard types)."""
     result = {}
@@ -308,10 +365,11 @@ class ModelOptions:
 
     cache_dir: directory under which spice/models/ is read and written
                (default: beside the first source file the analysis JSON names,
-               "file" or "inputs.source_files[0]")
+               "file" or "inputs.source_files[0]", when that file can be found)
     offline:   never query distributor APIs or datasheets; cache + lookup table only
-    trust_project_models: paste cached models verbatim, even ones with simulator
-               control commands or includes outside the models folder
+    trust_project_models: paste cached models verbatim apart from a trailing `.end`, even
+               ones holding anything but model-library cards (.subckt/.ends/.model/.param/
+               .func/.global)
     """
     cache_dir: str | None = None
     offline: bool = False
@@ -369,7 +427,8 @@ def get_model_for_part(mpn, component_type=None, context=None, options=None, *, 
                 # The fallback model is used but never replaces the user's file
                 use_cache = False
         if cached_subckt and not problem:
-            return cached_subckt, f"cache:{mpn}", cached_specs
+            # trusting a project model skips the content check, not the .end strip
+            return model_for_bench(cached_subckt), f"cache:{mpn}", cached_specs
 
     # --- Tier 1: Distributor API parametric specs ---
     if not opts.offline:

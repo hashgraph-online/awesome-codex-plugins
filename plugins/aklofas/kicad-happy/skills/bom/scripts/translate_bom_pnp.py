@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
 import re
 import sys
@@ -25,7 +26,8 @@ from pathlib import Path
 _HERE = str(Path(__file__).resolve().parent)
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
-from bom_fields import POPULATE_UNFITTED  # noqa: E402
+from bom_fields import DNP_VALUE_MARKERS, POPULATE_UNFITTED, _canonical_for  # noqa: E402
+from kicad_core.fileio import atomic_write_text  # noqa: E402
 
 
 # --- Header field synonyms (loose-match dictionaries) -----------------------
@@ -45,7 +47,7 @@ PNP_ROT_FIELDS = ("rotation", "rot", "angle")
 
 # --- Markers that indicate a row should be skipped --------------------------
 
-DNP_MARKERS = ("no stuff", "dnp", "do not populate", "dni", "noload", "no load")
+DNP_MARKERS = tuple(sorted(DNP_VALUE_MARKERS))
 # A marker counts only as a whole token: part numbers such as OPT4003DNPRQ1 contain one.
 _DNP_MARKER_RE = re.compile(
     r"(?<![a-z0-9])(?:" + "|".join(re.escape(m) for m in DNP_MARKERS) + r")(?![a-z0-9])"
@@ -406,6 +408,7 @@ def translate_bom(input_path: str, output_path: str) -> dict:
     col_qty = _find_col(header, BOM_QTY_FIELDS)
     col_dnp = _exact_col(header, DNP_COL_FIELDS)
     col_pop = _exact_col(header, POP_COL_FIELDS)
+    col_lcsc = next((i for i, c in enumerate(header) if _canonical_for(c or "") == "lcsc"), None)
 
     if col_des is None or col_val is None:
         raise ValueError(
@@ -469,6 +472,7 @@ def translate_bom(input_path: str, output_path: str) -> dict:
             "designator": des,
             "value": val,
             "footprint": _cell(raw, col_foot),
+            "lcsc": "" if _cell(raw, col_lcsc) == "~" else _cell(raw, col_lcsc),
             "mpn": mpn,
             "manufacturer": mfg,
             "quantity": _cell(raw, col_qty),
@@ -477,37 +481,38 @@ def translate_bom(input_path: str, output_path: str) -> dict:
         }
         output_rows.append(current)
 
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf)
+    writer.writerow(
+        [
+            "Comment",
+            "Designator",
+            "Footprint",
+            "LCSC Part #",
+            "MPN",
+            "Manufacturer",
+            "Quantity",
+            "Notes",
+        ]
+    )
+    for r in output_rows:
+        notes = ""
+        if r["alt_mpns"]:
+            notes = "alt MPN: " + ", ".join(r["alt_mpns"])
         writer.writerow(
             [
-                "Comment",
-                "Designator",
-                "Footprint",
-                "LCSC Part #",
-                "MPN",
-                "Manufacturer",
-                "Quantity",
-                "Notes",
+                r["value"],
+                r["designator"],
+                r["footprint"],
+                r["lcsc"],
+                r["mpn"],
+                r["manufacturer"],
+                r["quantity"],
+                notes,
             ]
         )
-        for r in output_rows:
-            notes = ""
-            if r["alt_mpns"]:
-                notes = "alt MPN: " + ", ".join(r["alt_mpns"])
-            writer.writerow(
-                [
-                    r["value"],
-                    r["designator"],
-                    r["footprint"],
-                    "",  # LCSC Part # — user populates separately
-                    r["mpn"],
-                    r["manufacturer"],
-                    r["quantity"],
-                    notes,
-                ]
-            )
-            stats["rows_out"] += 1
+        stats["rows_out"] += 1
+    atomic_write_text(output_path, buf.getvalue(), newline="", follow_symlinks=False)
 
     return stats
 
@@ -687,10 +692,11 @@ def translate_pnp(
         stats["rows_out"] += 1
 
     # Written only after every row parsed, so a usage error leaves no file.
-    with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
-        writer.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
-        writer.writerows(out_rows)
+    buf = io.StringIO(newline="")
+    writer = csv.writer(buf)
+    writer.writerow(["Designator", "Mid X", "Mid Y", "Layer", "Rotation"])
+    writer.writerows(out_rows)
+    atomic_write_text(output_path, buf.getvalue(), newline="", follow_symlinks=False)
 
     return stats
 
@@ -845,7 +851,9 @@ def _self_test() -> int:
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

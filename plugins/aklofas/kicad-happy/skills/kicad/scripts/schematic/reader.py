@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 
 from kicad_core.sexp import (find_all, find_first, find_deep, get_value, get_property,
-                             get_properties, get_at, has_flag, is_keyword, net_name_escape,
+                             get_properties, _iter_properties, get_at, has_flag, is_keyword, net_name_escape,
                              parse_file, raw_text, unescape_string)
 from kicad_core.classify import classify_component, classify_connector, classify_ic_function
 from kicad_core.fields import DIGIKEY_FIELD_ALIASES, MANDATORY_STRIP, pick_field, pick_mpn
@@ -166,10 +166,10 @@ def extract_lib_symbols(root: list) -> dict:
             all_pins = [_parse_single_pin(pin) for pin in find_deep(sym, "pin") if len(pin) >= 3]
 
         # Get symbol properties
-        desc = mandatory_field(get_property(sym, "Description"), tilde_empty)
+        desc = mandatory_field(mandatory_property(sym, "Description"), tilde_empty)
         ki_keywords = _field(get_property(sym, "ki_keywords"), tilde_empty)
         ki_fp_filters = _field(get_property(sym, "ki_fp_filters"), tilde_empty)
-        lib_value = mandatory_field(get_property(sym, "Value"), tilde_empty)
+        lib_value = mandatory_field(mandatory_property(sym, "Value"), tilde_empty)
 
         # Check for (power) flag — marks this as a power symbol regardless of lib name
         # KiCad 8+ writes (power global) or (power local); pre-8.0 writes bare (power)
@@ -342,7 +342,9 @@ def compute_pin_positions(component: dict, lib_symbols: dict) -> list[Pin]:
         # KiCad's SetAlt: a placed alternate applies when it is not the base name and the
         # library pin defines it; the alternate's name and type replace the pin's.
         alt = (component.get("_pin_alternates") or {}).get(pin_num)
+        base_name = None
         if alt and "_alternates" in pin and alt != pin["_alt_base"] and alt in pin["_alternates"]:
+            base_name = pin_name
             pin_name, pin_type = alt, pin["_alternates"][alt] or pin_type
 
         for number in _expand_stacked(pin_num):
@@ -355,6 +357,8 @@ def compute_pin_positions(component: dict, lib_symbols: dict) -> list[Pin]:
             }
             if pin.get("hidden"):
                 entry["hidden"] = True
+            if base_name is not None:
+                entry["base_name"] = base_name
             pin_positions.append(entry)
 
     return pin_positions
@@ -363,7 +367,8 @@ def compute_pin_positions(component: dict, lib_symbols: dict) -> list[Pin]:
 def extract_symbol_instances(root: list) -> dict:
     """Extract (symbol_instances ...) from root schematic.
 
-    Returns a dict mapping path string -> {reference, unit, value, footprint}.
+    Returns a dict mapping path string -> {reference, unit, value, footprint, value_set,
+    footprint_set}.
     Path format: "/sheet_uuid/symbol_uuid" or "/sheet_uuid/child_uuid/symbol_uuid".
     """
     result = {}
@@ -388,6 +393,10 @@ def extract_symbol_instances(root: list) -> dict:
             "unit": unit,
             "value": mandatory_field(get_value(path_node, "value"), tilde_empty),
             "footprint": mandatory_field(get_value(path_node, "footprint"), tilde_empty),
+            # KiCad applies an instance value or footprint whose text is not empty before
+            # trimming, so (value " ") sets an empty value.
+            "value_set": _field(get_value(path_node, "value"), tilde_empty) != "",
+            "footprint_set": _field(get_value(path_node, "footprint"), tilde_empty) != "",
         }
     return result
 
@@ -407,6 +416,17 @@ _SHEET_NAME_FIELDS = {"sheetname": "SHEETNAME", "sheet name": "SHEETNAME",
 
 def _has_text_vars(text: str) -> bool:
     return "${" in text or "@{" in text
+
+
+def mandatory_property(node: list, name: str) -> str | None:
+    """A mandatory field's text as KiCad 10 reads it: the name matches in any case and a
+    later duplicate replaces an earlier one.  None when the field is absent."""
+    key = name.casefold()
+    text = None
+    for prop, value in _iter_properties(node):
+        if str(prop).casefold() == key:
+            text = str(value)
+    return text
 
 
 def _raw_fields(node: list) -> list[tuple[str, str]]:
@@ -731,9 +751,14 @@ def mandatory_field(text, tilde_empty: bool) -> str:
 def _symbol_fields(sym: list, value: str, footprint: str, tilde_empty: bool) -> list[tuple[str, str]]:
     """A placed symbol's fields in KiCad's order: the five mandatory fields (Value and
     Footprint as resolved from the instance), then the others as written."""
-    raw = [(name, mandatory_field(text, tilde_empty) if name in _MANDATORY_FIELDS
-            else _field(text, tilde_empty)) for name, text in _raw_fields(sym)]
-    given = dict(reversed(raw))
+    # Value, Footprint, Datasheet and Description match in any case, a later duplicate
+    # replacing an earlier one; Reference keeps its exact name and first entry.
+    mandatory = {m.casefold(): m for m in _MANDATORY_FIELDS if m != "Reference"}
+    raw = [(mandatory.get(name.casefold(), name), mandatory_field(text, tilde_empty)
+            if name.casefold() in mandatory or name == "Reference" else _field(text, tilde_empty))
+           for name, text in _raw_fields(sym)]
+    given = dict(raw)
+    given["Reference"] = next((text for name, text in raw if name == "Reference"), "")
     fields = [(name, value if name == "Value" else footprint if name == "Footprint"
                else given.get(name, "")) for name in _MANDATORY_FIELDS]
     seen = set(_MANDATORY_FIELDS)
@@ -756,9 +781,10 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
     kicad_core.instances.resolve_instance); candidates are the root's KiCad 6
     *symbol_instances* entries for the symbol (keyed without the root uuid, so *root_kiid* is
     prefixed) and its inline (instances).  The KiCad 6 entry for this exact path also sets the
-    symbol's value and footprint when non-empty; an inline instance's value / footprint sets
-    them whichever path carries it.  The caller passes *symbol_instances* only for roots older
-    than 20221002, already settled across repeated sheets (schematic.hierarchy).
+    symbol's value and footprint when their text is not empty before trimming; an inline
+    instance's value / footprint sets them whichever path carries it.  The caller passes
+    *symbol_instances* only for roots older than 20221002, already settled across repeated
+    sheets (schematic.hierarchy).
 
     Without *instance_path*, *instance_uuid* remaps references from the inline instance whose
     path contains it, falling back to *symbol_instances*.
@@ -813,7 +839,7 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
             body_style = 1
 
         ref = mandatory_field(get_property(sym, "Reference"), tilde_empty)
-        value = get_property(sym, "Value")
+        value = mandatory_property(sym, "Value")
         if tilde_empty and value == "~":
             value = ""
         # Eagle-imported schematics often have NO instance Value property.
@@ -824,9 +850,9 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
             value = sym_def_val.get("value", "") or ""
         else:
             value = (value or "").strip(MANDATORY_STRIP)
-        footprint = mandatory_field(get_property(sym, "Footprint"), tilde_empty)
-        datasheet = mandatory_field(get_property(sym, "Datasheet"), tilde_empty)
-        description = mandatory_field(get_property(sym, "Description"), tilde_empty)
+        footprint = mandatory_field(mandatory_property(sym, "Footprint"), tilde_empty)
+        datasheet = mandatory_field(mandatory_property(sym, "Datasheet"), tilde_empty)
+        description = mandatory_field(mandatory_property(sym, "Description"), tilde_empty)
         uuid_val = get_value(sym, "uuid") or ""
         overrides = {}
 
@@ -837,9 +863,9 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
                 candidates.append({"path": root_kiid + sheet_path, "project": "",
                                    "reference": entry["reference"], "unit": entry["unit"]})
                 if (root_kiid + sheet_path).rstrip("/").lower() == here:
-                    if entry["value"]:
+                    if entry["value_set"]:
                         value = entry["value"]
-                    if entry["footprint"]:
+                    if entry["footprint_set"]:
                         footprint = entry["footprint"]
             for entry in inline_instances(sym, tilde_empty):
                 candidates.append(entry)
@@ -901,9 +927,10 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
             footprint = var_fields.get("Footprint", footprint)
             datasheet = var_fields.get("Datasheet", datasheet)
             description = var_fields.get("Description", description)
-            # _props keys are lower-cased; a variant names its fields as the symbol does
-            var_props = {k.lower(): v for k, v in var_fields.items()}
-            _props = {k: var_props.get(k, v) for k, v in _props.items()}
+            # _props keys are lower-cased; KiCad matches a variant's field name exactly
+            exact = {n.lower(): n for n, _v in _iter_properties(sym)}
+            _props = {k: var_fields[exact[k]] if exact.get(k) in var_fields else v
+                      for k, v in _props.items()}
         in_bom = overrides.get("in_bom", get_value(sym, "in_bom") != "no")
         dnp_token = get_value(sym, "dnp")
         if "dnp" in overrides:
@@ -1006,6 +1033,15 @@ def extract_components(root: list, lib_symbols: dict, instance_uuid: str = "",
             is_ext, conn_layout = classify_connector(lib_id, value, pin_count)
             comp["is_external_connector"] = is_ext
             comp["connector_layout"] = conn_layout
+
+        # More than one Value property: KiCad 10 keeps the last; the earlier texts it drops
+        # are kept for the property audit.  An instance or variant value that replaced it
+        # (KiCad 6 symbol_instances) decides what KiCad shows, so the duplicates do not matter.
+        value_texts = [mandatory_field(str(text), tilde_empty) for name, text in _iter_properties(sym)
+                       if str(name).casefold() == "value"]
+        dropped = [t for t in value_texts[:-1] if t != value_texts[-1]]
+        if dropped and comp["value"] == value_texts[-1]:
+            comp["_dropped_values"] = dropped
 
         if sym_def.get("_jumper_groups") or sym_def.get("_dup_pin_jumpers"):
             comp["_jumper_groups"] = (sym_def.get("_jumper_groups", []),
@@ -1271,7 +1307,7 @@ def parse_single_sheet(path: str, instance_uuid: str = "",
                        symbol_instances: dict | None = None, *,
                        instance_path: str | None = None, root_kiid: str = "",
                        project_name: str = "", text_ctx: dict | None = None,
-                       variant: str | None = None) -> SheetData:
+                       variant: str | None = None, root: list | None = None) -> SheetData:
     """Parse a single .kicad_sch file and return raw extracted data.
 
     If instance_uuid is provided, remap component references from the
@@ -1282,12 +1318,14 @@ def parse_single_sheet(path: str, instance_uuid: str = "",
 
     instance_path / root_kiid / project_name / text_ctx / variant: see extract_components;
     this file's title block becomes the first sheet of text_ctx's chain.  A sub-sheet's
-    variant block is the one of its instance on *instance_path*.
+    variant block is the one of its instance on *instance_path*.  *root* is the file's
+    parsed tree when the caller has it.
 
     Returns: a SheetData (root, components, wires, labels, junctions, no_connects,
               sub_sheet_paths, lib_symbols, text_annotations, bus_elements, title_block)
     """
-    root = parse_file(path)
+    if root is None:
+        root = parse_file(path)
     lib_symbols = extract_lib_symbols(root)
     title_block = extract_title_block(root)
     if text_ctx is not None:
@@ -1313,6 +1351,7 @@ def parse_single_sheet(path: str, instance_uuid: str = "",
     # connecting the parent sheet's wires to the child sheet's matching
     # hierarchical_label via the label name union in build_net_map().
     sub_sheet_paths = []
+    missing_sheets = []
     sheet_fields = {}
     base_dir = Path(path).parent
     for sheet in sorted(find_all(root, "sheet"), key=_sheet_order_key):
@@ -1327,10 +1366,13 @@ def parse_single_sheet(path: str, instance_uuid: str = "",
         # KiCad 7+: (property "Sheet file" "filename.kicad_sch")
         sheet_file = sheet_property(sheet, "SHEETFILE")
         if sheet_file:
-            sub_path = base_dir / expand_sheet_file(sheet_file, path)
+            # KiCad reads a backslash in a sheet file name as a path separator
+            sub_path = base_dir / expand_sheet_file(sheet_file, path).replace("\\", "/")
             if sub_path.exists():
                 sheet_uuid = get_value(sheet, "uuid") or ""
                 sub_sheet_paths.append((str(sub_path), sheet_uuid))
+            else:
+                missing_sheets.append(str(sub_path))
 
         # Extract sheet pin stubs as hierarchical labels so parent-sheet wires
         # connecting to the sheet symbol get unioned with the child sheet's nets.
@@ -1354,7 +1396,7 @@ def parse_single_sheet(path: str, instance_uuid: str = "",
 
     return SheetData(root, components, wires, labels, junctions, no_connects,
                      sub_sheet_paths, lib_symbols, text_annotations, bus_elements, title_block,
-                     sheet_fields)
+                     sheet_fields, missing_sheets)
 
 
 def _sheet_order_key(sheet: list) -> tuple:

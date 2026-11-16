@@ -514,7 +514,7 @@ patterns = {
 }
 ```
 
-**KiCad version from filenames:** `_SilkS` suffix = KiCad 5, `_Silkscreen` suffix = KiCad 6+.
+**KiCad version:** the `_SilkS` and `_Silkscreen` suffixes are export defaults, not a version marker; read the software string.
 
 ### Protel Extension Mapping
 
@@ -639,7 +639,7 @@ When both gerber and PCB analysis outputs are available:
 
 ### Known Edge Cases
 
-- **KiCad 5 mask/paste uses regions**: D03 flash count may be 0 on mask/paste layers — count G36/G37 region pairs instead
+- **Mask/paste may use regions**: common in KiCad 5 files, rare in KiCad 6+. The D03 flash count may be 0 on mask/paste layers — count flashes plus G36/G37 region pairs on any version
 - **Large B.Mask file size**: Normal when back has ground plane — mask must define tenting pattern over entire zone fill
 - **Negative Y in drills**: KiCad writes drill Y negated (board Y 100 mm is `Y-100`, measured from the drill/place origin when that option is used) unless the file was exported with mirror-Y
 - **Non-KiCad gerbers**: May lack X2 attributes entirely; rely on filename patterns for layer identification

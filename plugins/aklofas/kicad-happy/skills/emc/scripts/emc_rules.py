@@ -21,7 +21,7 @@ from typing import List, Dict, Optional
 from emc_formulas import (
     lambda_over_20,
     knee_frequency, switching_harmonics_in_band, trapezoidal_corner_frequencies,
-    trapezoidal_harmonic_amplitude, dm_radiation_dbuv_m,
+    trapezoidal_harmonic_amplitude,
     cm_radiation_dbuv_m, get_emission_limit, board_cavity_resonances,
     estimate_esl, estimate_esr,
     interplane_capacitance_pf_per_cm2, propagation_delay_ps_per_mm,
@@ -39,7 +39,7 @@ from kicad_core.parts import (
 )
 from kicad_core.classify import classify_component
 from kicad_core.netnames import (is_ground_name, is_power_net_name, net_leaf,
-                                 _RAIL_SIGNAL_SUFFIXES)
+                                 RAIL_SIGNAL_SUFFIXES)
 from kicad_core.netquery import build_net_id_map
 from kicad_core.diagnostics import record
 from kicad_core.hotloop import triangle_loop_area
@@ -47,7 +47,7 @@ from kicad_core.project import existing_source_dir
 from kicad_core.render import normalize_severity
 from kicad_core.sexp import unescape_string
 from finding_schema import Det, get_findings
-from pcb.geometry import outline_loops, point_in_outline
+from pcb.geometry import outline_edge_distance, outline_loops, point_in_outline
 
 try:
     import _core_path  # noqa: F401
@@ -103,7 +103,7 @@ def _is_power_or_ground(name: str) -> bool:
     if is_ground_name(name) or is_emc_ground_name(name) or is_power_net_name(name):
         return True
     leaf = net_leaf(unescape_string(name)).upper()
-    if leaf.rsplit('_', 1)[-1] in _RAIL_SIGNAL_SUFFIXES:
+    if leaf.rsplit('_', 1)[-1] in RAIL_SIGNAL_SUFFIXES:
         return False
     return _is_power_or_ground_prefix(name)
 
@@ -111,9 +111,11 @@ def _is_power_or_ground(name: str) -> bool:
 def is_emc_ground_name(name: str) -> bool:
     """Check if a net name is specifically a ground net (the EMC rules' policy).
 
-    Differs from kicad_core.netnames.is_ground_name: also accepts EARTH and
-    VEE; does not accept COM, the 0V<suffix> family (0VA, 0V_A, +0V; only the
-    literal 0V), or battery-negative names (BATT-, VBAT_N, ...).
+    Differs from kicad_core.netnames.is_ground_name: also accepts EARTH, VEE
+    and a virtual ground ending in GND (VGND, HP_VGND); does not accept COM,
+    AVSS, DVSS, GROUND, a ground word inside a longer name (AGND_CODEC,
+    ESP_GND2), the 0V<suffix> family (0VA, 0V_A, +0V; only the literal 0V),
+    or battery-negative names (BATT-, VBAT_N, ...).
     """
     if not name:
         return False
@@ -309,10 +311,12 @@ def _suggest_pdn_cap(peak, cap_models, plane_cap_f, z_target, spice_backend,
     return suggestion
 
 
-def _connector_refs(footprints: list) -> list:
-    """Find footprints that are likely external connectors."""
+def _connector_refs(footprints: list, include_dnp: bool = False) -> list:
+    """Find fitted footprints (and DNP ones when asked) that are likely external connectors."""
     connectors = []
     for fp in footprints:
+        if fp.get('dnp') and not include_dnp:
+            continue  # not fitted: no cable attaches to it
         ref = fp.get('reference', '')
         raw_val = fp.get('value', '')
         val = (raw_val if isinstance(raw_val, str) else str(raw_val)).lower()
@@ -546,11 +550,11 @@ def _split_crossing_findings(pcb: Dict, touch: set) -> List[Dict]:
     Where the plane under a trace changes from one net to another (a split between,
     say, +3V3 and +5V), the return current has to cross the split through whatever
     couples the two nets, so the loop grows (Ott, EMC Engineering ch. 16). A crossing
-    with a capacitor joining the two plane nets within SPLIT_BRIDGE_CAP_MM of either
-    sample point bounding it is bridged and not reported. A capacitor is a part the
+    with a capacitor joining the two plane nets within SPLIT_BRIDGE_CAP_MM of the
+    crossing or of either sample point bounding it is bridged and not reported. A capacitor is a part the
     reference designator classifies as one, or a part on a capacitor footprint library
-    whose reference names no passive or active part (classified 'other', or
-    'connector', the classifier's fallback for an X reference); a ferrite, inductor or
+    whose reference names no passive or active part (classified 'other', or an X
+    reference, which the classifier types 'connector'); a J or P reference, ferrite, inductor or
     resistor on a capacitor footprint is not one. The high-speed test reads the net's own name, not its
     sheet path.
     """
@@ -560,7 +564,9 @@ def _split_crossing_findings(pcb: Dict, touch: set) -> List[Dict]:
         lib = fp.get('library') or ''
         kind = classify_component(fp.get('reference') or '', lib, fp.get('value') or '',
                                   footprint=fp.get('footprint') or '')
-        is_cap = kind == 'capacitor' or (kind in ('other', 'connector')
+        # the classifier types an X reference 'connector'; a J/P reference is one
+        x_ref = kind == 'connector' and (fp.get('reference') or '')[:1].upper() == 'X'
+        is_cap = kind == 'capacitor' or ((kind == 'other' or x_ref)
                                          and lib.lower().startswith('capacitor'))
         if (is_cap and not fp.get('dnp') and len(nets) == 2
                 and fp.get('x') is not None and fp.get('y') is not None):
@@ -569,8 +575,10 @@ def _split_crossing_findings(pcb: Dict, touch: set) -> List[Dict]:
     by_net: Dict[str, List[Dict]] = {}
     for ch in pcb.get('reference_plane_changes') or []:
         pair = {ch.get('net_a'), ch.get('net_b')}
-        points = ch.get('sample_points') or [[ch.get('x', 0), ch.get('y', 0)]]
-        if any(nets == pair and min(math.hypot(x - px, y - py) for px, py in points)
+        points = list(ch.get('sample_points') or [])
+        if ch.get('x') is not None and ch.get('y') is not None:
+            points.append([ch['x'], ch['y']])  # the crossing itself
+        if points and any(nets == pair and min(math.hypot(x - px, y - py) for px, py in points)
                <= SPLIT_BRIDGE_CAP_MM for nets, x, y in caps):
             continue
         by_net.setdefault(ch.get('net', ''), []).append(ch)
@@ -767,11 +775,16 @@ def check_missing_decoupling(pcb: Dict, schematic: Optional[Dict] = None) -> Lis
     # ESD/TVS arrays the schematic identified need no decoupling capacitor
     protection_refs = {pd.get('ref') for pd in get_findings(schematic or {}, Det.PROTECTION_DEVICES)
                        if pd.get('type') != 'fuse'}
+    # A U/IC reference on a part the schematic types as something other than an IC or
+    # oscillator (connector, test point, crystal, motor) has no supply pins to decouple
+    sch_types = {c.get('reference'): c.get('type') for c in (schematic or {}).get('components', [])}
 
     # All IC-like footprints
     for fp in footprints:
         ref = fp.get('reference', '')
         if not re.match(r'^(U|IC)\d', ref):
+            continue
+        if sch_types.get(ref) not in (None, 'ic', 'oscillator'):
             continue
         # Skip known non-ICs (ESD, TVS, etc.)
         raw_val = fp.get('value', '')
@@ -977,8 +990,13 @@ def check_connector_filtering(pcb: Dict, schematic: Optional[Dict] = None) -> Li
 
         # Also check schematic-detected protection
         if not has_nearby_filter and schematic:
-            conn_nets = {n for n in _connector_net_names(conn)
-                         if not (is_ground_name(n) or is_power_net_name(n))}
+            # The board and the schematic can name one net differently, and a protection
+            # device names the schematic's, so the connector's schematic pin nets count too.
+            sch_pin_nets = {n for c in schematic.get('components', [])
+                            if c.get('reference') == conn_ref
+                            for n in (c.get('pin_nets') or {}).values()}
+            conn_nets = {n for n in set(_connector_net_names(conn)) | sch_pin_nets
+                         if n and not _is_power_or_ground(n)}
             dnp = {c.get('reference') for c in schematic.get('components', []) if c.get('dnp')}
             if conn_nets:
                 for pd in get_findings(schematic, Det.PROTECTION_DEVICES):
@@ -1529,6 +1547,10 @@ def check_via_stitching(pcb: Dict, schematic: Optional[Dict] = None) -> List[Dic
     board_w = bbox.get('width', stats.get('board_width_mm', 50)) or 50
     board_h = bbox.get('height', stats.get('board_height_mm', 50)) or 50
     board_area = board_w * board_h  # mm²
+    # a file with several boards: the summed board area, not the box around them
+    summed = _safe_float(stats.get('board_area_mm2'))
+    if 0 < summed < round(board_area, 1):
+        board_area = summed
 
     if board_area <= 0:
         return findings
@@ -1604,22 +1626,36 @@ def _reference_plane_layers(pcb: Dict) -> set:
     KiCad gives a new inner layer the type 'signal' whatever it carries, so an inner
     layer with ground or power zone fill is judged by that fill: a plane when the fill of
     its ground and power nets together covers at least _PLANE_MIN_FILL_FRACTION of the
-    board area (_plane_fill_board_area). An outer layer, or an inner layer with no such
-    fill, is a plane when KiCad types it 'power' or 'mixed' (a 'jumper' layer carries
-    wire jumpers, not a plane).
+    board area (_plane_fill_board_area). On a layer KiCad types 'power' or 'mixed' that
+    has such fill, a pour on any other named net adds to it: an island of a split plane
+    can carry a name KiCad made from a pad. An outer layer, or an inner layer with no
+    ground or power fill, is a plane when KiCad types it 'power' or 'mixed' (a 'jumper'
+    layer carries wire jumpers, not a plane).
     """
     fill: Dict[str, float] = {}
+    island: Dict[str, float] = {}
+    power_typed = {l.get('name') for l in pcb.get('layers') or []
+                   if l.get('type') in ('power', 'mixed')}
     for zone in pcb.get('zones') or []:
         if not isinstance(zone, dict) or zone.get('is_keepout'):
             continue
         net = zone.get('net_name') or ''
-        if not _is_power_or_ground(net):
+        if not net:
             continue
+        is_rail = _is_power_or_ground(net)
         for layer in zone.get('layers') or []:
             area = _zone_layer_area_mm2(zone, layer)
-            if area > 0:
+            if area <= 0:
+                continue
+            if is_rail:
                 fill[layer] = fill.get(layer, 0.0) + area
+            elif layer in power_typed:
+                island[layer] = island.get(layer, 0.0) + area
+    # island fill stays out of the board area, which never drops below the largest fill
     board = _plane_fill_board_area(pcb, fill)
+    for layer, area in island.items():
+        if layer in fill:
+            fill[layer] += area
     planes = set()
     for layer in pcb.get('layers') or []:
         name = layer.get('name') or ''
@@ -2016,8 +2052,7 @@ def check_switching_node_area(pcb: Optional[Dict],
 
 
 def check_input_cap_loop_area(pcb: Optional[Dict],
-                              schematic: Optional[Dict],
-                              spice_backend=None) -> List[Dict]:
+                              schematic: Optional[Dict]) -> List[Dict]:
     """SW-003: Hot loop area for switching regulators.
 
     The hot loop (input cap → IC → inductor → back) should be as small
@@ -2029,9 +2064,6 @@ def check_input_cap_loop_area(pcb: Optional[Dict],
     centres of the input cap, IC and inductor (also what a record without
     method holds). The centres say little about the loop through the pads,
     so a large triangle is reported as an info estimate, not graded.
-
-    When SPICE is available, estimates radiated E-field from a graded loop's
-    area × switching current × frequency using dm_radiation_dbuv_m().
     """
     # EQ-088: A = polygon_area(cap, IC, inductor) (hot loop area estimation)
     findings = []
@@ -2119,37 +2151,10 @@ def check_input_cap_loop_area(pcb: Optional[Dict],
                 f'Recommended: <25mm² for low EMI.'
             )
 
-            # SPICE radiation estimate
-            spice_note = ''
-            if spice_backend and area_mm2 > 25:
-                reg_match = None
-                for reg in regulators:
-                    if reg.get('ref', reg.get('reference', '')) == ref:
-                        reg_match = reg
-                        break
-                if reg_match:
-                    sw_freq = (reg_match.get('switching_frequency_hz') or
-                               _estimate_switching_freq(val) or
-                               _default_switching_freq(reg_match.get('topology', '')))
-                    if sw_freq:
-                        area_m2 = area_mm2 * 1e-6
-                        pdiss = reg_match.get('power_dissipation', {})
-                        i_sw = pdiss.get('estimated_iout_A', 0.5)
-                        e_dbuv = dm_radiation_dbuv_m(sw_freq, area_m2, i_sw, 3.0,
-                                                      ground_plane=True)
-                        limit = get_emission_limit(sw_freq, 'fcc-class-b')
-                        if limit:
-                            margin = limit[0] - e_dbuv
-                            spice_note = (
-                                f' Estimated radiation at {sw_freq/1e6:.1f}MHz: '
-                                f'{e_dbuv:.0f} dBµV/m (limit: {limit[0]:.0f}, '
-                                f'margin: {margin:.0f}dB).'
-                            )
-
             findings.append(_make_finding(
                 'switching_emc', severity, 'SW-003',
                 title=f'Large hot loop for {ref}',
-                description=desc + spice_note,
+                description=desc,
                 components=[ref, inductor_ref, cap_ref],
                 recommendation=(
                     f'Place {cap_ref} with its pads next to the {ref} VIN and GND '
@@ -2630,6 +2635,11 @@ def _point_to_edges_min_distance(px: float, py: float,
             cx, cy = edge['center'][0], edge['center'][1]
             r = math.hypot(end[0] - cx, end[1] - cy)
             d = abs(math.hypot(px - cx, py - cy) - r)
+        elif etype in ('polygon', 'curve'):
+            # these carry their outline as points, not start and end
+            d = outline_edge_distance(px, py, [edge])
+            if d is None:
+                continue
         else:
             d = point_to_segment_distance(px, py, start[0], start[1],
                                           end[0], end[1])
@@ -3093,13 +3103,11 @@ def _input_lc_filter(schematic: Dict, input_rail: str, *, exclude=()) -> tuple:
 
 
 def check_emi_filter_effectiveness(pcb: Optional[Dict],
-                                   schematic: Optional[Dict],
-                                   spice_backend=None) -> List[Dict]:
+                                   schematic: Optional[Dict]) -> List[Dict]:
     """EF-001: Verify EMI input filter cutoff vs switching frequency.
 
     For each switching regulator, check if there's an LC filter on the
     input rail with cutoff well below the switching frequency.
-    When spice_backend is provided, simulates actual insertion loss.
 
     Ref: Paul, "Introduction to EMC", Ch. 9.
          Analog Devices, "Speed Up the Design of EMI Filters for SMPS".
@@ -3213,7 +3221,9 @@ def check_esd_protection_path(pcb: Dict,
 
     net_id_map = build_net_id_map(pcb)
     footprints = pcb.get('footprints', [])
-    connectors = _connector_refs(footprints)
+    # DNP connectors stay in the proximity search: a device placed for an
+    # unfitted connector must not be paired with a farther, fitted one.
+    connectors = _connector_refs(footprints, include_dnp=True)
     if not connectors:
         return findings
 
@@ -3241,6 +3251,7 @@ def check_esd_protection_path(pcb: Dict,
         # Check distance from nearest external connector
         min_conn_dist = float('inf')
         nearest_conn = ''
+        nearest_dnp = False
         for conn in connectors:
             cx = conn.get('x') or 0
             cy = conn.get('y') or 0
@@ -3248,12 +3259,13 @@ def check_esd_protection_path(pcb: Dict,
             if d < min_conn_dist:
                 min_conn_dist = d
                 nearest_conn = conn.get('reference', '')
+                nearest_dnp = bool(conn.get('dnp'))
 
         if min_conn_dist > 50:
             continue  # Not near any connector
 
         # ES-001: Check distance (trace length proxy)
-        if min_conn_dist > 15:
+        if min_conn_dist > 15 and not nearest_dnp:
             # Estimate trace inductance from distance
             est_inductance_nh = min_conn_dist * 0.7  # ~0.7 nH/mm for microstrip
             est_overshoot_v = est_inductance_nh * 1e-9 * 37.5e9  # V = L × dI/dt
@@ -3280,10 +3292,11 @@ def check_esd_protection_path(pcb: Dict,
                 schema_era="v3.0",
             ))
 
-        # ES-002: Check ground via count near TVS. A discrete TVS diode clamping to a
-        # supply rail has no ground return to count.
+        # ES-002: Check ground via count near TVS. A discrete TVS diode or a varistor
+        # clamping to a supply rail or another line has no ground return to count.
         clamp_net = pd.get('clamp_net')
-        if all_vias and not (ptype == 'diode' and clamp_net and not is_emc_ground_name(clamp_net)):
+        if all_vias and not (ptype in ('diode', 'varistor') and clamp_net
+                             and not is_emc_ground_name(clamp_net)):
             gnd_vias_near = 0
             for via in all_vias:
                 vx = via.get('x', 0)
@@ -4779,7 +4792,8 @@ def check_inductor_leakage(pcb: Dict, schematic: Dict) -> List[Dict]:
 def filter_by_severity(findings: List[Dict], threshold: str) -> List[Dict]:
     """Keep the findings at or above `threshold`.
 
-    The threshold may be 'all' or a legacy name (critical/high/medium/low).
+    The threshold may be 'all', error/warning/info, or a legacy name
+    (critical/high/medium/low).
     """
     if threshold.lower() == 'all':
         return findings
@@ -4803,7 +4817,7 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         standard: Target EMC standard.
         severity_threshold: Minimum severity to include.
         spice_backend: SimulatorBackend instance for SPICE-enhanced
-                       PDN/filter analysis (optional, None = analytical only).
+                       PDN and switching-harmonic analysis (optional, None = analytical only).
         pdn_transient_a: Transient current override (Amps) for PD-001,
                        typically from project.pdn_transient_current_a.
         diagnostics: Optional list sink for guarded SPICE-enhancement failures.
@@ -4849,7 +4863,7 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         all_findings.extend(check_switching_harmonics(schematic, standard))
         all_findings.extend(estimate_switching_emissions(schematic, standard, spice_backend,
                                                          diagnostics=diagnostics))
-        all_findings.extend(check_emi_filter_effectiveness(pcb, schematic, spice_backend))
+        all_findings.extend(check_emi_filter_effectiveness(pcb, schematic))
 
     # Checks requiring both schematic and PCB
     if schematic and pcb:
@@ -4863,7 +4877,7 @@ def run_all_checks(schematic: Optional[Dict], pcb: Optional[Dict],
         all_findings.extend(check_pdn_distributed(pcb, schematic, spice_backend))
         all_findings.extend(check_thermal_emc(pcb, schematic))
         all_findings.extend(check_switching_node_area(pcb, schematic, net_id_map))
-        all_findings.extend(check_input_cap_loop_area(pcb, schematic, spice_backend))
+        all_findings.extend(check_input_cap_loop_area(pcb, schematic))
         all_findings.extend(check_inductor_leakage(pcb, schematic))
 
     return filter_by_severity(all_findings, severity_threshold)

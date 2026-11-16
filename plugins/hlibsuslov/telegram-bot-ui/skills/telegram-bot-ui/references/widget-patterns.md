@@ -110,6 +110,8 @@ Never be optimistic about money, bookings, votes or anything another user compet
 | Rule | Status |
 |---|---|
 | `request(data)` with 1–64 bytes; on a tap it must be called **synchronously** in the handler — not after `await`, a timer or a promise. One tap unlocks one call, shared with `openLink`, `openTelegramLink`, `copyText`. | Guide |
+| Empty or > 64-byte `data` **throws `TypeError` synchronously** instead of rejecting. Route the throw to the same failure path, or a "busy" flag set before the call never resets and the widget stops asking (`K.ask` does this). A long Cyrillic argument is the usual way to hit it. | Guide |
+| Call it from `click` or `pointerup`, not `pointerdown` (`widget_lint` rule `tap-request`). | Guide |
 | One request in flight (`BUSY`); 5 per 5 s per user and bot (`RATE_LIMITED`). | Guide |
 | Background requests: only the original in the private chat, one when it appears, then ≤ 1 per 5 s while visible. Use them to refresh (`K.sync("sync")` on start and on `activated`). | Guide |
 | Show every outcome: "Sending…", the answer, and `NOT_ALLOWED`, `BUSY`, `RATE_LIMITED`, `TIMEOUT`, `FAILED`, `INVALID_ANSWER` (+ `REJECTED`, `BAD_REQUEST` for the wallet). | Guide |
@@ -180,6 +182,18 @@ A widget can be destroyed and re-created at any time; only its state and Web Sto
 * Product "photos": CSS gradients and SVG shapes; real photos belong in a photo message above
   the widget or in a Mini App.
 * Emoji are free (text) but render per platform; prefer SVG for UI glyphs.
+* When an image is the point of the widget (pick a frame, crop a face), make it on the bot and
+  shrink it in a loop until the whole HTML fits: WebP first, JPEG fallback, e.g. 176 px at
+  quality 45 down to 80 px at 20, stop at `zlib.compress(html, 9) <= 3800`; no fit → send the
+  widget without the image or fall back. Start from the media's own `thumbnail` (already in
+  display orientation, downloads at once even for a large video) so the widget appears before
+  the file download ends. Field report: a 2.5 KB template leaves room for a ~1–1.2 KB WebP,
+  blurry at 300 px but enough to see where a face is (Heuristic).
+* Canvas cut-outs (a dimmed overlay with a clear circle): do not rely on winding rules or on
+  `rect()` then `arc()` in one path, and never on an end angle past 2π — Telegram's renderer drew
+  a stray stripe from the rectangle corner that browsers hide. Dim the whole canvas, then
+  `save()`, `moveTo`, `arc(x, y, r, 0, Math.PI * 2)`, `clip()`, redraw the image, `restore()`
+  (field report; `widget_lint` rule `canvas-arc`). Check every canvas effect in a real client.
 
 ## 9. Wallet / TON actions (only what Telegram documents)
 
@@ -292,3 +306,42 @@ read-only view from its data alone, and the demo captions mirror the main fact. 
 allows channel widgets, expect to change: a send path for channels (refused today), a rights check
 for channel admins, channel posting limits, and how queries from anonymous channel readers arrive.
 Re-check the changelog and this table before building on it.
+
+## 14. Long jobs behind a widget: bot-side lifecycle
+
+Field lessons from a production widget bot (a video editor plus a live progress ring; collected
+in [aislam23/telegram-widgets-skill](https://github.com/aislam23/telegram-widgets-skill),
+2026). All **Heuristic** unless marked; the gallery's `job-progress` handler shows the state side.
+
+| Rule | Why it broke without it |
+|---|---|
+| **Register before you await.** Right after `sendWidget` returns, mark the widget busy and create any "waiting for a choice" record, before saving to Redis, deleting an old message or any other `await`. | A fast tap landed in the gap and started a second job on the same temp files. |
+| **One job per widget key.** Keep a busy set keyed by `chat_id:message_id` (or `widget_id`); answer "Already working" instead of starting another. | Double taps and redelivered updates duplicate work. |
+| **Errors are terminal.** One lock per widget around edits plus a `failed` flag; after the error state, later non-terminal edits are dropped. Put the full error text and buttons ("Try again", "Upgrade") in the caption with `editMessageCaption` + `reply_markup`. | A slow "Downloading…" edit landed after the error and left an endless spinner. |
+| **Do not hold a shared lock while waiting for a human.** Wait for the widget choice first, start the download in parallel during the wait, take the per-user queue lock only for the actual work. | A user who opened the editor and walked away blocked all their other jobs for 10 minutes. |
+| **Throttle pushes.** Push mode changes at once, percentages at most every 1–2 s; on a flood wait skip the frame, don't retry in a loop. `editMessageWidgetData` counts as a sent message (Guide). | Progress pushes ate the bot's message limits. |
+| **Persist the session** (owner, media `file_id`, options, last state) with a TTL of days, so "Redo" on an old widget works after a restart; a missing session gets a polite answer ("Send the file again"), not a `TIMEOUT`. | Restarts killed every button on old widgets. |
+| **Re-check plan limits when the job starts**, not when the widget was sent. | Plans expire while a job waits in a queue. |
+| **Fallback and kill switch.** If `sendWidget` fails (size, server error, feature off), send the previous text-and-keyboard flow; keep the widget path behind a flag (`WIDGETS_ENABLED`). Check the compressed size before sending and degrade (smaller image, no image) instead of failing. | A widget-only path has no way back when the send is refused. |
+| **Scrub every user-facing error** (`errors-and-fallbacks.md`, "Never show raw exception text"). | `str(e)` from a file download leaked the bot token into a caption. |
+
+## 15. Editor with autostart
+
+For a choice with a sensible default that some users want to adjust (crop centre, trim range,
+quality), the widget does not block on the user (Heuristic, field-tested):
+
+1. Send the editor with `a = now + 15` (autostart time) in the state and start the expensive
+   preparation (download) right away.
+2. The widget shows "Without a choice I'll use the centre in N s", computed from `S.a` (§7).
+3. The first touch (`pointerup` or `click`) sends `h` ("held"); the bot marks the session touched
+   and extends the wait (e.g. to 10 min). If `h` fails, reset the widget's "held" flag and show
+   no error: it is bookkeeping.
+4. "Make" sends the absolute choice (`g:<x>,<y>,<zoom>`). If `h` is still in flight the tap gets
+   `BUSY`: show "One moment…" and let the next tap send it.
+5. The bot waits until `a` (or the extended time) outside any lock (§14), then uses the choice or
+   the default, and switches the same widget to progress, then done — one template, modes in
+   `chat_data`, because the HTML can't change after sending (API).
+
+Phone-friendly controls for such editors: tap to place (vertical drags scroll the chat), a
+horizontal drag with `touch-action: pan-y`, zoom as three buttons, a time range as a horizontal
+track with the window dragged sideways, and `pointercancel` restoring the previous value (Guide).

@@ -580,8 +580,17 @@ it as `execution` (`dex` or `vendor`).
   is `view.table`, a dimension or fact `view.table.member` (a fact is marked
   `kind: fact`, `groupable: false`), and a metric `view.table.metric` (a
   view-level one `view.metric`). Primary keys are entities; keys and
-  relationships reach `--use-project`. `query` and `values` refuse by name until
-  #1290; profile the relations the catalog names instead.
+  relationships reach `--use-project`. `query` and `values` run governed on
+  the Snowflake connector only (#1290): Dex renders `SEMANTIC_VIEW(...)` over
+  the deployed view, after refusing by name facts beside metrics or dimensions,
+  private, window, LOD or `using_relationships` members, `variables`, an
+  unreachable dimension and a grain on a categorical one, after the PII gate,
+  and after holding the deployed view (read back with no warehouse) to
+  the repository's file, a difference refusing before the query runs. Tokens are the
+  catalog's, one view per query; a grain is `view.table.dim__month`, `--where`
+  a Snowflake predicate over dimensions and facts (`orders.status = 'F'`), and
+  a query of facts alone takes `--group-by <fact>` and no metric.
+  `list --deployed` reads the deployed views, with per-view `coverage`.
 - `semantic.vendor: slayer` reads the SLayer model files named in
   `semantic.slayer.models` (needs the `[slayer]` extra). `list` and
   `--for-dimension` answer: a metric is a saved measure named `model.measure`,

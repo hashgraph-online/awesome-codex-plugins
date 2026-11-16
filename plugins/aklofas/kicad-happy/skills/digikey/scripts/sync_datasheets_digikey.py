@@ -22,7 +22,7 @@ Requires DIGIKEY_CLIENT_ID and DIGIKEY_CLIENT_SECRET environment variables.
 
 Dependencies:
     - requests (pip install requests) — strongly recommended
-    - playwright (pip install playwright && playwright install chromium) — optional
+    - playwright (pip install playwright && playwright install chromium) — optional, only with datasheets.allow_private_hosts
 """
 
 import sys

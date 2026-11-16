@@ -68,7 +68,7 @@ def _parse_extra(component: dict) -> dict:
             parsed = json.loads(extra)
             component["extra"] = parsed
             return parsed if isinstance(parsed, dict) else {}
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError, RecursionError):
             return {}
     return extra if isinstance(extra, dict) else {}
 

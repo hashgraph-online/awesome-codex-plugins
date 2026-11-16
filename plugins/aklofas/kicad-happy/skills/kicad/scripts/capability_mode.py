@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Optional
 
 from run_id import generate_run_id
+from kicad_core.fileio import json_loads
 from kicad_core.diagnostics import record as record_diagnostic
 
 _SCHEMAS_DIR = Path(__file__).resolve().parent.parent.parent / "datasheets" / "schemas"
@@ -47,7 +48,7 @@ def _read_capability_mode(path: Path) -> Optional[dict]:
     """
     for _ in range(5):
         try:
-            return json.loads(path.read_text(encoding="utf-8"))
+            return json_loads(path.read_text(encoding="utf-8"))
         except (ValueError, FileNotFoundError, OSError):
             time.sleep(0.005)
     return None
@@ -88,8 +89,25 @@ def _detect_datasheet_status(cache_dir: Optional[Path] = None) -> str:
 
 
 def _compute_coverage_pct(cache_dir: Optional[Path] = None) -> int:
-    """Return integer coverage percentage. Stub: always 0."""
-    return 0
+    """Percentage of the parts in the distributor manifest (``datasheets/manifest.json``,
+    the schematic's parts as the last sync recorded them) that have an extraction in
+    ``cache_dir``. 0 when the manifest, its parts or the folder are missing."""
+    if cache_dir is None:
+        cache_dir = Path("datasheets/extracted")
+    ds_scripts = str(Path(__file__).resolve().parents[2] / "datasheets" / "scripts")
+    if ds_scripts not in sys.path:
+        sys.path.insert(0, ds_scripts)
+    try:
+        from datasheet_extract_cache import find_extraction
+        from datasheet_types.cache_reader import read_json_object
+    except ImportError:
+        return 0
+    manifest = read_json_object(Path(cache_dir).parent / "manifest.json")
+    parts = manifest.get("parts") if manifest else None
+    if not isinstance(parts, dict) or not parts:
+        return 0
+    have = sum(1 for mpn in parts if isinstance(find_extraction(cache_dir, mpn)[0], dict))
+    return round(100 * have / len(parts))
 
 
 def _read_schema_versions() -> dict:

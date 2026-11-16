@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "yaptake": {
+      "type": "stdio",
+      "command": "yaptake",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

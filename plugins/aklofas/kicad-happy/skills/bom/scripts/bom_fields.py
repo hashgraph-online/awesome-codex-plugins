@@ -11,6 +11,15 @@ from kicad_core.fields import (MPN_FIELD_ALIASES, MPN_FIELD_ALIASES_PRIMARY,
                                normalize_field_name)
 
 
+# A Value that is exactly one of these marks the part not fitted; BOM tools and the
+# pick-and-place translator share the list.
+DNP_VALUE_MARKERS = frozenset({"dnp", "dnf", "dni", "dnm", "nopop", "no pop", "nostuff",
+                               "no stuff", "do not place", "do not populate", "do not fit",
+                               "noload", "no load"})
+
+# Cell values of a DNP-named field (DNP, DNM, DONOTPLACE, ...) that mean not fitted.
+DNP_FIELD_SET = frozenset({"yes", "true", "1", "dnp", "y", "x", "*"})
+
 # Values of a population column (POPULATE, Populate, Fitted) that mean the part
 # is not fitted, compared lower-case against the whole stripped cell.
 POPULATE_UNFITTED = frozenset({"0", "no", "false", "n", "dnp", "dnf", "do not fit",
@@ -99,13 +108,19 @@ def _slot_pn_number(name: str):
     return int(m.group(1) or m.group(2)) if m else None
 
 
-def _symbol_slots(props: dict) -> dict[str, str]:
-    """Distributor -> part number from this symbol's own `Supplier N` fields (lowest slot wins)."""
+def _symbol_slots(props: dict, project_slots: dict[int, str] | None = None) -> dict[str, str]:
+    """Distributor -> part number from this symbol's own `Supplier N` fields (lowest slot wins).
+
+    A slot the symbol does not name takes the distributor the whole project names for it
+    (*project_slots*); a slot the symbol names with another or unknown name never does.
+    """
     names = {}
     for name, value in props.items():
         m = _SLOT_NAME_RE.match(name.strip())
         if m and str(value).strip():
             names[int(m.group(1))] = _SUPPLIER_NAME_MAP.get(str(value).strip().lower())
+    for slot, dist in (project_slots or {}).items():
+        names.setdefault(slot, dist)
     out: dict[str, str] = {}
     pns = sorted((_slot_pn_number(n), n) for n in props if _slot_pn_number(n) is not None)
     for slot, name in pns:

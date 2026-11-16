@@ -74,7 +74,7 @@ Generic numbered supplier slots where the supplier name is in one field and the 
 (property "Supplier 2 Part #" "81-GRM155R71C104KA8D" ...)
 ```
 
-Used by some projects and KiCad BOM export templates. The `bom_manager.py` script detects this pattern by reading the supplier name value and mapping it to a canonical distributor.
+Used by some projects and KiCad BOM export templates. The `bom_manager.py` script detects this pattern by reading the supplier name value and mapping it to a canonical distributor. A slot whose `Supplier N` name is missing on a symbol takes the distributor every other symbol names in that slot.
 
 Variants: `Vendor` / `Vendor Part Number`, `Source` / `Source Part Number`, `Distributor 1` / `Distributor 1 PN`.
 
@@ -335,6 +335,9 @@ Listed for reference; `bom_manager.py` does not read these fields.
 | `DNM` | Do Not Mount |
 | `POPULATE` | "0" / "no" / "false" / "DNP" = DNP, "1" / "yes" / "true" / empty = populate |
 | `Do Not Populate` | Verbose variant |
+| Value `DNP` / `DNF` / `NoPop` / `nostuff` / `Do Not Place` (the whole value) | Not fitted |
+
+A DNP-named field also accepts `Y`, `x` and `*` as DNP.
 
 ---
 

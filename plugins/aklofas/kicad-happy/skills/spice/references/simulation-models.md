@@ -24,8 +24,8 @@ Documentation of the SPICE models used across all phases — ideal models, per-p
 When the skill encounters an active component (opamp, LDO, comparator), it resolves the model through this cascade:
 
 1. **Project cache** — `<project>/spice/models/manifest.json` (legacy name: `index.json`) stores previously resolved models (instant, no network)
-2. **Distributor API parametric data** — queries LCSC (no auth), DigiKey, element14, Mouser for real electrical specs like GBW, slew rate, offset voltage. Structured JSON, no PDF parsing.
-3. **Legacy structured extraction** — a `spice_specs` record from `<project>/datasheets/extracted/` (score ≥ 6 of the 0-10 completeness score). It does not read v1.4 extractions, and in practice it finds nothing from the `datasheets` skill's cache. This tier and the PDF tier run only when the analysis names its project. See `skills/datasheets/references/extraction-schema.md` and `skills/datasheets/references/quality-scoring.md`.
+2. **Distributor API parametric data** — queries LCSC (no auth), DigiKey, element14, Mouser for real electrical specs like GBW, slew rate, offset voltage. Structured JSON, no PDF parsing. LCSC search results currently carry no parametric values, so that source rarely gives specs.
+3. **Legacy structured extraction** — a `spice_specs` record from `<project>/datasheets/extracted/` (score ≥ 6 of the 0-10 completeness score). It reads the `datasheets` skill's cache and older hand-made caches; v1.4 typed facts are not used. This tier and the PDF tier run only when the analysis names its project. See `skills/datasheets/references/extraction-schema.md` and `skills/datasheets/references/quality-scoring.md`.
 4. **Datasheet PDF regex extraction** — reads downloaded PDFs from `<project>/datasheets/`, extracts specs via text pattern matching. Requires `pdftotext`. Last-resort fallback.
 5. **Built-in lookup table** — `spice_part_library.py` has 103 op-amps, LDOs, comparators and references with datasheet-verified specs. Offline safety net.
 6. **Ideal model fallback** — generic model with fixed parameters (e.g., 10 MHz GBW for opamps)
@@ -355,7 +355,7 @@ The gain measurement frequency adapts to each circuit's expected bandwidth:
 f_measure = GBW / (100 × |gain|)
 ```
 
-Clamped to [1, 1000] Hz. This ensures the measurement is in the passband even for high-gain circuits with low-GBW parts, preventing false failures from measuring above the bandwidth.
+With a feedback capacitor across Rf, f_measure is also kept at or under 0.1 / (2π·Rf·Cf), a decade below the feedback pole, so the stage's resistive gain is measured. Clamped to [1, 1000] Hz. This ensures the measurement is in the passband even for high-gain circuits with low-GBW parts, preventing false failures from measuring above the bandwidth.
 
 ### Behavioral Model Gain Warnings
 

@@ -49,6 +49,8 @@ This skill owns:
       TPS61023DRLR.json     # structured extraction (this skill's output)
 ```
 
+An extraction file records its source PDF and extractor, not a `capability_mode`: that is a per-analysis-run record (`analysis/capability_mode.json`) written by the analyzers.
+
 ## Reference guides
 
 - `references/extraction-schema.md` — legacy v1.3 cache fields; the current v1.4 contracts are `schemas/extraction.schema.json`, `schemas/base.schema.json` and the category schemas, with extraction instructions under `prompts/`
@@ -71,7 +73,7 @@ This skill owns:
 
 ## Extraction workflow
 
-Run the scout first: dispatch `prompts/scout.md` for the MPN and PDF and save its schema-valid, unwrapped output, with the PDF's `"pdf_sha256": "sha256:<hex>"` added, as `<cache_dir>/<sanitized_mpn>.scout.json` (the MPN with every character outside `[A-Za-z0-9_.-]` replaced by `_`: `LM317/NOPB` → `LM317_NOPB`) (`references/dispatch-claude-code.md` Step 1). Then run `python3 <skill-path>/scripts/plan_extraction.py <mpn> <pdf_path> --use-cached-scout --cache-dir <cache_dir>` (`<skill-path>` is this skill's directory) to write the plan, dispatch its tasks, and run `merge_results.py <mpn> --cache-dir <cache_dir>` to validate and merge their results. Without `--use-cached-scout` it exits 2 (it cannot run the scout itself); with the flag and no saved scout it stops with a FileNotFoundError. `merge_results.py` and `validate_extraction_result.py` need the `jsonschema` package (`pip install jsonschema`); everything else here is stdlib-only. Full scout→plan→dispatch→merge procedure: [`references/extraction-pipeline.md`](references/extraction-pipeline.md).
+Run the scout first: dispatch `prompts/scout.md` for the MPN and PDF and save its schema-valid, unwrapped output, with the PDF's `"pdf_sha256": "sha256:<hex>"` added, as `<cache_dir>/<sanitized_mpn>.scout.json` (the MPN with every character outside `[A-Za-z0-9_.-]` replaced by `_`: `LM317/NOPB` → `LM317_NOPB`) (`references/dispatch-claude-code.md` Step 1). Then run `python3 <skill-path>/scripts/plan_extraction.py <mpn> <pdf_path> --use-cached-scout --cache-dir <cache_dir>` (`<skill-path>` is this skill's directory) to write the plan, dispatch its tasks, and run `merge_results.py <mpn> --cache-dir <cache_dir>` to validate and merge their results. Without `--use-cached-scout` it exits 2 (it cannot run the scout itself); with the flag and no saved scout it exits 2 and names the scout file to write. `merge_results.py` and `validate_extraction_result.py` need the `jsonschema` package (`pip install jsonschema`), and `validate_sanity_vector.py` (a QA helper) needs PyYAML; everything else here is stdlib-only. Full scout→plan→dispatch→merge procedure: [`references/extraction-pipeline.md`](references/extraction-pipeline.md).
 
 ## Consuming extractions (v1.4 typed API)
 

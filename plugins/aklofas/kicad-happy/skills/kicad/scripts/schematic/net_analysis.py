@@ -10,12 +10,15 @@ from kicad_core.coords import to_iu
 from detector_helpers import is_protection_part
 from kicad_core.sexp import unescape_string
 from schematic import erc_pins
+from validation_detectors import _PG_PIN_PATTERNS, _en_endpoint_compatible, _is_regulator_like
 from kicad_core.parts import (
     _OUTPUT_DRIVE_KEYWORDS,
 )
 from kicad_core.netnames import (
     parse_voltage_from_net_name as _parse_voltage_from_net_name,
+    is_ground_name,
     is_usb_data_net_name,
+    is_vss_name,
     net_leaf,
 )
 
@@ -409,7 +412,8 @@ def _classify_nets(ctx: AnalysisContext) -> dict:
         elif is_power_net(net_name):
             net_classes[net_name] = "power"
         else:
-            cls = _keyword_class(net_name)
+            # A sheet path names the sheet, not the net
+            cls = _keyword_class(net_leaf(net_name))
             if cls == "signal" and _is_ic_supply_input_net(net_info, ctx.comp_lookup, ctx.ref_pins):
                 cls = "power"
             net_classes[net_name] = cls
@@ -548,14 +552,36 @@ def _get_io_domains_for_refs(refs: set, power_domains: dict,
     return domains
 
 
-def _rails_voltage_compatible(rails_a: set, rails_b: set) -> bool:
+def _rails_voltage_compatible(rails_a: set, rails_b: set,
+                              voltage=_parse_voltage_from_net_name) -> bool:
     """Check if two sets of rails share a rail or voltage."""
     if rails_a & rails_b:
         return True
     # Parse voltages from net names and check overlap
-    va = {_parse_voltage_from_net_name(r) for r in rails_a} - {None}
-    vb = {_parse_voltage_from_net_name(r) for r in rails_b} - {None}
+    va = {voltage(r) for r in rails_a} - {None}
+    vb = {voltage(r) for r in rails_b} - {None}
     return bool(va & vb)
+
+
+def _en_tolerant_ref(ctx: AnalysisContext, ref: str, net_name: str, net_info: dict,
+                     power_domains: dict) -> bool:
+    """True when every pin of *ref* on the net is a regulator enable pin that the
+    voltage-level check (VM-001) accepts as a compatible endpoint, or a regulator
+    power-good pin (an open-drain output, whose level its pull-up sets)."""
+    pins = [p for p in net_info["pins"] if p["component"] == ref]
+    if not pins:
+        return False
+    refs = {p["component"] for p in net_info["pins"] if p["component"] in power_domains}
+    volts = [ctx.rail_voltage_or(r, _parse_voltage_from_net_name)
+             for r in _get_io_domains_for_refs(refs, power_domains, ctx.is_ground)]
+    volts = [v for v in volts if v is not None]
+    # No parsed rail: 0.0 keeps the datasheet-threshold test conservative.
+    v_min = min(volts) if volts else 0.0
+    pg_ok = _is_regulator_like(ctx, ref)
+    return all(_en_endpoint_compatible(ctx, {"ref": ref, "pin": p.get("pin_name", "")},
+                                       net_name, v_min)
+               or (pg_ok and (p.get("pin_name") or "").upper().strip() in _PG_PIN_PATTERNS)
+               for p in pins)
 
 
 def _detect_cross_domain_signals(ctx: AnalysisContext, power_domains: dict,
@@ -638,12 +664,16 @@ def _detect_cross_domain_signals(ctx: AnalysisContext, power_domains: dict,
                     # +3V3 and VCC_3V3 are both 3.3V).
                     functional_refs = non_esd_refs - level_translator_refs
                     ic_list = sorted(functional_refs) if functional_refs else sorted(non_esd_refs)
+                    ic_list = [r for r in ic_list
+                               if not _en_tolerant_ref(ctx, r, net_name, net_info, power_domains)]
                     needs_shifter = False
                     for i_idx in range(len(ic_list)):
                         for j_idx in range(i_idx + 1, len(ic_list)):
                             a_io = _get_io_domains_for_refs({ic_list[i_idx]}, power_domains, is_ground)
                             b_io = _get_io_domains_for_refs({ic_list[j_idx]}, power_domains, is_ground)
-                            if not _rails_voltage_compatible(a_io, b_io):
+                            if not _rails_voltage_compatible(
+                                    a_io, b_io,
+                                    lambda r: ctx.rail_voltage_or(r, _parse_voltage_from_net_name)):
                                 needs_shifter = True
                                 break
                         if needs_shifter:
@@ -1686,7 +1716,8 @@ def _estimate_rail_voltage(net_name: str) -> float | None:
     if not net_name:
         return None
     nu = net_leaf(net_name).upper()
-    if nu in ("GND", "VSS", "AGND", "DGND"):
+    # Only exact VSS gets 0 V by name: AVSS, VSSA and the like can be a negative supply.
+    if is_ground_name(net_name) and not (is_vss_name(net_name) and nu != "VSS"):
         return 0
     v = _parse_voltage_from_net_name(net_name)
     if v is not None:

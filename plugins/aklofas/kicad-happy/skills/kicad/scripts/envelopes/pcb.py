@@ -89,7 +89,9 @@ class PCBStatistics:
     board_height_mm: Optional[float] = field(default=None, metadata={
         "description": "Board outline height in mm; null if outline missing."})
     board_area_mm2: Optional[float] = field(default=None, metadata={
-        "description": "Board outline area in mm^2; null if outline missing."})
+        "description": "Board area in mm^2: the outline's bounding box, or the summed area of "
+                       "the outer outlines when Edge.Cuts holds several boards; null if outline "
+                       "missing."})
 
 
 @dataclass

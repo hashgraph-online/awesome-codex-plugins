@@ -18,6 +18,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+from kicad_core.fileio import json_loads
 from kicad_core import token_cache
 
 
@@ -184,6 +185,8 @@ _GENERIC_VALUE_RE = re.compile(
     r"|^[\d.]+\s*[pnuμm]?[Ff]$"
     r"|^[\d.]+\s*[pnuμm]?[Hh]$"
     r"|^[\d.]+%$"
+    r"|^[\d.]+\s*[kK]?V(?:DC|AC)?$"
+    r"|^(?:X[5-8][PRSTUV]|Y5V|Z5U|C0G|COG|NP0|NPO)$"
     r"|^DNP$|^NC$|^N/?A$",
     re.IGNORECASE,
 )
@@ -194,14 +197,22 @@ _SKIP_TYPES = {
 }
 
 
+_PN_LABEL = {"digikey": "DigiKey", "mouser": "Mouser"}
+
+
+def _verify_helpers():
+    ds_pkg = str(Path(__file__).resolve().parents[2] / "datasheets")
+    if ds_pkg not in sys.path:
+        sys.path.insert(0, ds_pkg)
+    from distributor_core.verify import other_part, same_part
+    return other_part, same_part
+
+
 def _requested_results(mpn: str, items, mpn_of) -> list:
     """The provider results whose MPN is the requested part number, literal matches
     (case and whitespace aside) first. A family member, sibling or ordering variant is
     not the part: its lifecycle status says nothing about this one."""
-    ds_pkg = str(Path(__file__).resolve().parents[2] / "datasheets")
-    if ds_pkg not in sys.path:
-        sys.path.insert(0, ds_pkg)
-    from distributor_core.verify import same_part
+    _, same_part = _verify_helpers()
     literal, normalised = [], []
     want = "".join(mpn.split()).upper()
     for item in items:
@@ -231,6 +242,50 @@ def _is_real_mpn(mpn: str) -> bool:
     return has_letter and has_digit
 
 
+def _mpn_alternatives(field: str) -> list[str]:
+    """The part numbers an MPN field lists as alternatives ("1012, 1012C",
+    "LM358 / LM2904"), or [field] when it names one part. A slash inside a part
+    number ("BAV99/215") is not a separator."""
+    pieces = []
+    for piece in re.split(r"\s*[,;]\s*|\s+/\s+", field):
+        piece = piece.strip()
+        if piece and piece not in pieces:
+            pieces.append(piece)
+    # A bare number ("1012") is a part number only when a sibling extends it ("1012C").
+    # A field with any other piece that is no part number is a list of values.
+    for piece in pieces:
+        if piece.isdigit() and len(piece) >= 3:
+            ok = any(a != piece and a.upper().startswith(piece.upper()) for a in pieces)
+        else:
+            ok = _is_real_mpn(piece)
+        if not ok:
+            return [field]
+    return pieces if len(pieces) >= 2 else [field]
+
+
+def _audit_mpn_field(field: str, alts: list[str], sources, project_dir, delay,
+                     part_numbers=None) -> dict:
+    """audit_component for an MPN field: one lookup per alternative, reporting the
+    worst status among those that resolved (an end-of-life alternative is not
+    hidden by an active one). Unknown only when none resolved."""
+    if len(alts) < 2:
+        # A distributor part number names one part, not a list of alternatives.
+        if not part_numbers:
+            return audit_component(field, sources, project_dir, delay)
+        return audit_component(field, sources, project_dir, delay,
+                               part_numbers=part_numbers)
+    chosen = None
+    for alt in alts:
+        data = audit_component(alt, sources, project_dir, delay)
+        if chosen is None:
+            chosen = data
+        elif data["status"] != "unknown" and (
+                chosen["status"] == "unknown"
+                or _worse_status(data["status"], chosen["status"]) != chosen["status"]):
+            chosen = data
+    return chosen
+
+
 # ---------------------------------------------------------------------------
 # DigiKey API (OAuth 2.0)
 # ---------------------------------------------------------------------------
@@ -257,7 +312,7 @@ def _get_digikey_token() -> tuple[str, str] | None:
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            token_data = json.loads(resp.read())
+            token_data = json_loads(resp.read())
         token = token_data["access_token"]
         token_cache.store_token("digikey_token", client_id, token, 540)
         return token, client_id
@@ -265,15 +320,13 @@ def _get_digikey_token() -> tuple[str, str] | None:
         return None
 
 
-def query_lifecycle_digikey(mpn: str) -> dict | None:
-    """Query DigiKey for lifecycle and temperature data."""
+def _digikey_search(keywords: str) -> dict | None:
     auth = _get_digikey_token()
     if not auth:
         return None
     token, client_id = auth
-
     try:
-        body = json.dumps({"Keywords": mpn, "Limit": 3}).encode()
+        body = json.dumps({"Keywords": keywords, "Limit": 3}).encode()
         req = urllib.request.Request(
             "https://api.digikey.com/products/v4/search/keyword",
             data=body,
@@ -284,84 +337,150 @@ def query_lifecycle_digikey(mpn: str) -> dict | None:
             },
         )
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            return json_loads(resp.read())
     except (urllib.error.URLError, OSError, json.JSONDecodeError):
         return None
 
+
+def _digikey_result(product: dict) -> dict:
+    result = {}
+
+    # Lifecycle status
+    status = product.get("ProductStatus", {})
+    if isinstance(status, dict):
+        result["status"] = status.get("Status")
+    elif isinstance(status, str):
+        result["status"] = status
+    result["discontinued"] = product.get("Discontinued", False)
+
+    # Operating temperature from parameters
+    for param in product.get("Parameters", []):
+        ptext = param.get("ParameterText", "").lower()
+        pval = param.get("ValueText", "")
+        if "operating temperature" in ptext and pval:
+            temp = _parse_temp_range(pval)
+            if temp:
+                result["temp_min_c"] = temp[0]
+                result["temp_max_c"] = temp[1]
+                result["temp_raw"] = pval
+            break
+
+    return result
+
+
+def query_lifecycle_digikey(mpn: str) -> dict | None:
+    """Query DigiKey for lifecycle and temperature data."""
+    data = _digikey_search(mpn)
+    if data is None:
+        return None
     for product in _requested_results(mpn, data.get("Products", []),
                                       lambda p: p.get("ManufacturerProductNumber")):
-
-        result = {}
-
-        # Lifecycle status
-        status = product.get("ProductStatus", {})
-        if isinstance(status, dict):
-            result["status"] = status.get("Status")
-        elif isinstance(status, str):
-            result["status"] = status
-        result["discontinued"] = product.get("Discontinued", False)
-
-        # Operating temperature from parameters
-        for param in product.get("Parameters", []):
-            ptext = param.get("ParameterText", "").lower()
-            pval = param.get("ValueText", "")
-            if "operating temperature" in ptext and pval:
-                temp = _parse_temp_range(pval)
-                if temp:
-                    result["temp_min_c"] = temp[0]
-                    result["temp_max_c"] = temp[1]
-                    result["temp_raw"] = pval
-                break
-
-        return result
+        return _digikey_result(product)
     return None
+
+
+def _pn_hit(label: str, pn: str, mpn: str, items, mpn_of, pns_of):
+    """The item of a part-number search that is this part, or None. A hit that carries
+    other part numbers, or another manufacturer part number, is a stale part number."""
+    other_part, same_part = _verify_helpers()
+    for item in items:
+        hit_mpn = mpn_of(item)
+        hit_mpn = hit_mpn if isinstance(hit_mpn, str) else ""
+        other = other_part(pn, hit_mpn, pns_of(item), by_pn=True, part_mpn=mpn)
+        if other:
+            print(f"  {label}: PN {pn} is {other}, not {mpn}; PN ignored", file=sys.stderr)
+            continue
+        if hit_mpn and not same_part(mpn, hit_mpn, allow_family=False,
+                                     ordering_suffixes=False):
+            print(f"  {label}: PN {pn} is {hit_mpn}, not {mpn}; PN ignored",
+                  file=sys.stderr)
+            continue
+        return item
+    return None
+
+
+def query_lifecycle_digikey_pn(pn: str, mpn: str) -> dict | None:
+    """Query DigiKey by its own part number; None unless the result is this part."""
+    data = _digikey_search(pn)
+    if data is None:
+        return None
+
+    def pns(p):
+        out = [p.get("DigiKeyProductNumber")]
+        out += [v.get("DigiKeyProductNumber") for v in p.get("ProductVariations") or []
+                if isinstance(v, dict)]
+        return [x for x in out if isinstance(x, str)]
+
+    product = _pn_hit("digikey", pn, mpn, data.get("Products", []),
+                      lambda p: p.get("ManufacturerProductNumber"), pns)
+    return _digikey_result(product) if product is not None else None
 
 
 # ---------------------------------------------------------------------------
 # Mouser API
 # ---------------------------------------------------------------------------
 
-def query_lifecycle_mouser(mpn: str) -> dict | None:
-    """Query Mouser for lifecycle and temperature data."""
+def _mouser_search(query: str) -> dict | None:
     api_key = os.environ.get("MOUSER_SEARCH_API_KEY") or os.environ.get("MOUSER_PART_API_KEY")
     if not api_key:
         return None
-
     try:
         body = json.dumps({
             "SearchByPartRequest": {
-                "mouserPartNumber": mpn,
+                "mouserPartNumber": query,
                 "partSearchOptions": "Exact",
             }
         }).encode()
         url = f"https://api.mouser.com/api/v1/search/partnumber?apiKey={api_key}"
         req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            return json_loads(resp.read())
     except (urllib.error.URLError, OSError, json.JSONDecodeError):
         return None
 
+
+def _mouser_result(part: dict) -> dict:
+    result = {}
+    result["status"] = part.get("LifecycleStatus")
+    result["discontinued"] = str(part.get("IsDiscontinued", "")).lower() == "true"
+    result["lead_time"] = part.get("LeadTime")
+    result["suggested_replacement"] = part.get("SuggestedReplacement")
+
+    for attr in part.get("ProductAttributes", []):
+        aname = attr.get("AttributeName", "").lower()
+        aval = attr.get("AttributeValue", "")
+        if "operating temperature" in aname and aval:
+            temp = _parse_temp_range(aval)
+            if temp:
+                result["temp_min_c"] = temp[0]
+                result["temp_max_c"] = temp[1]
+                result["temp_raw"] = aval
+            break
+
+    return result
+
+
+def query_lifecycle_mouser(mpn: str) -> dict | None:
+    """Query Mouser for lifecycle and temperature data."""
+    data = _mouser_search(mpn)
+    if data is None:
+        return None
     for part in _requested_results(mpn, data.get("SearchResults", {}).get("Parts", []),
                                    lambda p: p.get("ManufacturerPartNumber")):
-        result = {}
-        result["status"] = part.get("LifecycleStatus")
-        result["discontinued"] = str(part.get("IsDiscontinued", "")).lower() == "true"
-        result["lead_time"] = part.get("LeadTime")
-        result["suggested_replacement"] = part.get("SuggestedReplacement")
-
-        for attr in part.get("ProductAttributes", []):
-            aname = attr.get("AttributeName", "").lower()
-            aval = attr.get("AttributeValue", "")
-            if "operating temperature" in aname and aval:
-                temp = _parse_temp_range(aval)
-                if temp:
-                    result["temp_min_c"] = temp[0]
-                    result["temp_max_c"] = temp[1]
-                    result["temp_raw"] = aval
-                break
-
-        return result
+        return _mouser_result(part)
     return None
+
+
+def query_lifecycle_mouser_pn(pn: str, mpn: str) -> dict | None:
+    """Query Mouser by its own part number; None unless the result is this part."""
+    data = _mouser_search(pn)
+    if data is None:
+        return None
+    part = _pn_hit("mouser", pn, mpn, data.get("SearchResults", {}).get("Parts", []),
+                   lambda p: p.get("ManufacturerPartNumber"),
+                   lambda p: [p["MouserPartNumber"]]
+                   if isinstance(p.get("MouserPartNumber"), str) else [])
+    return _mouser_result(part) if part is not None else None
 
 
 # ---------------------------------------------------------------------------
@@ -374,7 +493,7 @@ def query_lifecycle_lcsc(mpn: str) -> dict | None:
         url = f"https://jlcsearch.tscircuit.com/api/search?q={urllib.parse.quote(mpn)}&limit=3&full=true"
         req = urllib.request.Request(url, headers={"User-Agent": "kicad-happy-lifecycle/1.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            data = json_loads(resp.read())
     except (urllib.error.URLError, OSError, json.JSONDecodeError):
         return None
 
@@ -422,7 +541,7 @@ def query_lifecycle_element14(mpn: str) -> dict | None:
         url = f"https://api.element14.com/catalog/products?{params}"
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read())
+            data = json_loads(resp.read())
     except (urllib.error.URLError, OSError, json.JSONDecodeError):
         return None
 
@@ -548,9 +667,9 @@ def _v1_operating_temperature(ext: dict, path) -> tuple | None:
 def read_extraction_temperature(mpn: str, project_dir: str) -> dict | None:
     """Operating temperature range from the project's datasheet extraction cache.
 
-    Looks the MPN up in <project_dir>/datasheets/extracted the way the
-    datasheet consumers do (manifest, then <mpn>.json), then under the older
-    underscore-only file name. A file that is not a readable JSON object is
+    Looks the MPN up in <project_dir>/datasheets/extracted with the shared
+    ``find_extraction`` (a v1.4 <mpn>.json first, then the manifest, then the
+    files named after the part). A file that is not a readable JSON object is
     skipped with one warning.
     """
     if not project_dir:
@@ -558,43 +677,23 @@ def read_extraction_temperature(mpn: str, project_dir: str) -> dict | None:
     ds_scripts = str(Path(__file__).resolve().parents[2] / "datasheets" / "scripts")
     if ds_scripts not in sys.path:
         sys.path.insert(0, ds_scripts)
-    from datasheet_extract_cache import get_cached_extraction
-    from datasheet_types.cache_reader import read_json_object, safe_extract_dir, sanitize_mpn
-    from distributor_core.manifest import manifest_file_path
+    from datasheet_extract_cache import _load_index, find_extraction
+    from datasheet_types.cache_reader import safe_extract_dir
 
     extract_dir = safe_extract_dir(Path(project_dir) / "datasheets" / "extracted")
     if extract_dir is None:
         return None
-    ext, path = get_cached_extraction(extract_dir, mpn), extract_dir
+    ext, path = find_extraction(extract_dir, mpn)
     if ext is None:
-        legacy = re.sub(r'[^A-Za-z0-9_]', '_', mpn.strip())
-        candidates = [f"{sanitize_mpn(mpn)}.json", f"{legacy}.json"]
-        for idx_name in ("manifest.json", "index.json"):
-            idx = read_json_object(extract_dir / idx_name)
-            if idx is not None:
-                entries = idx.get("extractions")
-                if entries is not None and not isinstance(entries, dict):
-                    print(f"Warning: {extract_dir / idx_name}: 'extractions' is not an object; "
-                          f"manifest ignored", file=sys.stderr)
-                for k, v in (entries.items() if isinstance(entries, dict) else ()):
-                    if str(k).upper() == legacy.upper() and isinstance(v, dict) \
-                            and isinstance(v.get("file"), str):
-                        candidates.append(v["file"])
-                        break
-                break
-        for name in dict.fromkeys(candidates):
-            p = manifest_file_path(extract_dir, name)
-            if p is None or not p.is_file():
-                continue
-            ext, path = read_json_object(p), p
-            if ext is None:
-                print(f"Warning: {p}: not a readable JSON object; extraction ignored",
-                      file=sys.stderr)
-                return None
-            break
-    if ext is None:
+        if path is not None:
+            print(f"Warning: {path}: not a readable JSON object; extraction ignored",
+                  file=sys.stderr)
+        else:
+            entries = _load_index(extract_dir).get("extractions")
+            if entries is not None and not isinstance(entries, dict):
+                print(f"Warning: {extract_dir}: manifest 'extractions' is not an object; "
+                      f"manifest ignored", file=sys.stderr)
         return None
-
     rng = _v2_operating_temperature(ext) or _v1_operating_temperature(ext, path)
     if rng is None:
         return None
@@ -606,8 +705,12 @@ def read_extraction_temperature(mpn: str, project_dir: str) -> dict | None:
 # ---------------------------------------------------------------------------
 
 def audit_component(mpn: str, sources: list[str], project_dir: str | None = None,
-                    delay: float = 1.0) -> dict:
-    """Query all available sources for one component's lifecycle + temperature."""
+                    delay: float = 1.0, *,
+                    part_numbers: dict[str, str] | None = None) -> dict:
+    """Query all available sources for one component's lifecycle + temperature.
+
+    ``part_numbers`` maps a source name to the part's own number there; DigiKey and
+    Mouser are asked by it first and fall back to the MPN search."""
     result = {"mpn": mpn, "sources": {}}
     # Worst-case status across sources (drives the default finding severity).
     best_status = "unknown"
@@ -631,6 +734,11 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
         "mouser": query_lifecycle_mouser,
     }
 
+    pn_fns = {
+        "digikey": query_lifecycle_digikey_pn,
+        "mouser": query_lifecycle_mouser_pn,
+    }
+
     attempted = []
     for source_name, fn in api_fns.items():
         if sources and source_name not in sources:
@@ -638,7 +746,16 @@ def audit_component(mpn: str, sources: list[str], project_dir: str | None = None
         attempted.append(source_name)
         try:
             time.sleep(delay)
-            data = fn(mpn)
+            data = None
+            pn = (part_numbers or {}).get(source_name)
+            pn_fn = pn_fns.get(source_name)
+            if pn and pn_fn:
+                data = pn_fn(pn, mpn)
+                if data:
+                    print(f"  {source_name}: matched by {_PN_LABEL[source_name]} PN {pn}",
+                          file=sys.stderr)
+            if not data:
+                data = fn(mpn)
             if data:
                 result["sources"][source_name] = data
                 normalized = _source_status(data)
@@ -699,7 +816,7 @@ def find_alternatives(mpn: str,
                 req = urllib.request.Request(url, data=body,
                                             headers={"Content-Type": "application/json"})
                 with urllib.request.urlopen(req, timeout=10) as resp:
-                    data = json.loads(resp.read())
+                    data = json_loads(resp.read())
                 for part in data.get("SearchResults", {}).get("Parts", []):
                     repl = part.get("SuggestedReplacement")
                     if repl and repl.upper() not in seen_mpns:
@@ -734,7 +851,7 @@ def find_alternatives(mpn: str,
                         },
                     )
                     with urllib.request.urlopen(req, timeout=10) as resp:
-                        data = json.loads(resp.read())
+                        data = json_loads(resp.read())
                     for product in data.get("Products", []):
                         prod_mpn = product.get("ManufacturerProductNumber", "")
                         if not prod_mpn or prod_mpn.upper() in seen_mpns:
@@ -764,7 +881,7 @@ def find_alternatives(mpn: str,
                 url = f"https://jlcsearch.tscircuit.com/api/search?q={urllib.parse.quote(base_mpn)}&limit=5&full=true"
                 req = urllib.request.Request(url, headers={"User-Agent": "kicad-happy-lifecycle/1.0"})
                 with urllib.request.urlopen(req, timeout=10) as resp:
-                    data = json.loads(resp.read())
+                    data = json_loads(resp.read())
                 for comp in data.get("components", []):
                     extra = comp.get("extra", {})
                     comp_mpn = extra.get("mpn", "")
@@ -802,6 +919,7 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
 
     # Extract unique MPNs
     mpn_map = {}  # mpn -> list of references
+    pn_map = {}  # mpn -> {source: that distributor's own part number}
     skipped = 0
     for entry in bom:
         if entry.get("dnp"):
@@ -813,6 +931,10 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
             skipped += 1
             continue
         mpn_map.setdefault(mpn, []).extend(entry.get("references", []))
+        for src in ("digikey", "mouser"):
+            pn = entry.get(src)
+            if isinstance(pn, str) and pn.strip():
+                pn_map.setdefault(mpn, {}).setdefault(src, pn.strip())
 
     # LCSC/jlcsearch exposes no lifecycle/obsolescence data — an
     # LCSC-only audit can only ever return 'unknown'. Flag the capability
@@ -831,7 +953,9 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
     total = len(mpn_map)
     for i, (mpn, refs) in enumerate(sorted(mpn_map.items())):
         print(f"[{i+1}/{total}] {mpn}", file=sys.stderr)
-        data = audit_component(mpn, sources or [], project_dir, delay)
+        alts = _mpn_alternatives(mpn)
+        data = _audit_mpn_field(mpn, alts, sources or [], project_dir, delay,
+                                  pn_map.get(mpn))
 
         # Lifecycle
         status = data.get("status", "unknown")
@@ -895,6 +1019,8 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                 finding['consensus_split'] = True
             finding['description'] = (finding.get('alert', f'Component {mpn} is {status}.')
                                       + split_note)
+            if len(alts) > 1:
+                finding['description'] += f" (checked as {', '.join(alts)})"
             finding['components'] = sorted(refs)
             finding['nets'] = []
             finding['pins'] = []
@@ -903,6 +1029,15 @@ def audit_bom(analysis_json: dict, project_dir: str | None = None,
                 else f"Verify current availability before committing to {mpn}; "
                      f"consider locking to the active distributor or finding an "
                      f"alternate.")
+            if status == 'unknown':
+                # No distributor answered for this part: nothing says it should go.
+                finding['description'] = (f"Lifecycle status of {mpn} could not be "
+                                          f"determined: no distributor matched it.")
+                if len(alts) > 1:
+                    finding['description'] += f" (checked as {', '.join(alts)})"
+                creds = '' if data.get('sources') else ' and the distributor credentials'
+                finding['recommendation'] = (f"No distributor returned {mpn}; check the "
+                                             f"part number{creds} before replacing it.")
             finding['report_context'] = {'section': 'Lifecycle', 'impact': 'Supply chain risk', 'standard_ref': ''}
         else:
             finding['detector'] = 'audit_bom'

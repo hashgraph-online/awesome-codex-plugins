@@ -54,6 +54,50 @@ def _annotate_pin_nets(all_components, nets):
         _comp.pop("_pin_alternates", None)
         _comp.pop("_unit_count", None)
         _comp.pop("_jumper_groups", None)
+        _comp.pop("_dropped_values", None)
+
+
+def _flatten_signal_findings(signal_analysis):
+    """Flatten the signal_analysis lists into one findings list, each record once.
+
+    Tags each list item without a detector as detect_<key>.
+    """
+    # detect_voltage_dividers' feedback-network path deliberately
+    # appends the SAME finding dict to both the `voltage_dividers` and
+    # `feedback_networks` signal_analysis lists — see the comment at that
+    # double emission in detect_voltage_dividers; it must
+    # stay, it feeds detect_rc_filters' exclusion set. Dedup here instead
+    # so the shared object doesn't also duplicate in the flattened
+    # findings[] output. id()-based dedup is safe for ANY detector (a
+    # dict appearing twice in the SAME analysis output is always the same
+    # aliasing quirk noted in finding_schema.py's assign_finding_ids). The
+    # (detector, components) key belt is scoped to detect_voltage_dividers
+    # only — other detectors (e.g. VM-001) legitimately emit multiple
+    # distinct findings for the same component pair on different nets, so
+    # a components-only key would wrongly collapse those. Order-preserving
+    # (first occurrence wins).
+    findings = []
+    _flatten_seen_ids = set()
+    _flatten_seen_vd_keys = set()
+    for _sa_key, _sa_value in signal_analysis.items():
+        if isinstance(_sa_value, list):
+            _det_name = f"detect_{_sa_key}"
+            for _item in _sa_value:
+                if isinstance(_item, dict) and "detector" not in _item:
+                    _item["detector"] = _det_name
+            for _item in _sa_value:
+                if isinstance(_item, dict):
+                    _iid = id(_item)
+                    if _iid in _flatten_seen_ids:
+                        continue
+                    _flatten_seen_ids.add(_iid)
+                    if _item.get("detector") == "detect_voltage_dividers":
+                        _vkey = (_item.get("detector"), tuple(_item.get("components") or []))
+                        if _vkey in _flatten_seen_vd_keys:
+                            continue
+                        _flatten_seen_vd_keys.add(_vkey)
+                findings.append(_item)
+    return findings
 
 
 def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
@@ -180,41 +224,7 @@ def assemble_result(ctx, parsed, nets, bom, analyses, *, path, sheets_parsed,
         _ps.pop("_drives", None)
 
     # Flatten signal_analysis: all list values become findings, dict values promote to top level
-    # detect_voltage_dividers' feedback-network path deliberately
-    # appends the SAME finding dict to both the `voltage_dividers` and
-    # `feedback_networks` signal_analysis lists — see the comment at that
-    # double emission in detect_voltage_dividers; it must
-    # stay, it feeds detect_rc_filters' exclusion set. Dedup here instead
-    # so the shared object doesn't also duplicate in the flattened
-    # findings[] output. id()-based dedup is safe for ANY detector (a
-    # dict appearing twice in the SAME analysis output is always the same
-    # aliasing quirk noted in finding_schema.py's assign_finding_ids). The
-    # (detector, components) key belt is scoped to detect_voltage_dividers
-    # only — other detectors (e.g. VM-001) legitimately emit multiple
-    # distinct findings for the same component pair on different nets, so
-    # a components-only key would wrongly collapse those. Order-preserving
-    # (first occurrence wins).
-    findings = []
-    _flatten_seen_ids = set()
-    _flatten_seen_vd_keys = set()
-    for _sa_key, _sa_value in signal_analysis.items():
-        if isinstance(_sa_value, list):
-            _det_name = f"detect_{_sa_key}"
-            for _item in _sa_value:
-                if isinstance(_item, dict) and "detector" not in _item:
-                    _item["detector"] = _det_name
-            for _item in _sa_value:
-                if isinstance(_item, dict):
-                    _iid = id(_item)
-                    if _iid in _flatten_seen_ids:
-                        continue
-                    _flatten_seen_ids.add(_iid)
-                    if _item.get("detector") == "detect_voltage_dividers":
-                        _vkey = (_item.get("detector"), tuple(_item.get("components") or []))
-                        if _vkey in _flatten_seen_vd_keys:
-                            continue
-                        _flatten_seen_vd_keys.add(_vkey)
-                findings.append(_item)
+    findings = _flatten_signal_findings(signal_analysis)
 
     # Datasheet-coverage audit findings (DS-001 / DS-002 / DS-003) surface
     # up front so reviewers can't miss the "this is a consistency-only
@@ -436,16 +446,10 @@ def assemble_legacy_result(*, nets, all_components, signal_analysis, real_compon
                     _det["detection_id"] = _compute_det_id(_det, _det_type)
 
     # Flatten signal_analysis: all list values become findings, dict values move to top level
-    findings = []
+    findings = _flatten_signal_findings(signal_analysis)
     top_level_dicts = {}
     for key, value in signal_analysis.items():
-        if isinstance(value, list):
-            _det_name = f"detect_{key}"
-            for _item in value:
-                if isinstance(_item, dict) and "detector" not in _item:
-                    _item["detector"] = _det_name
-            findings.extend(value)
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             # rail_voltages, net_classifications, etc. — promote to top level
             top_level_dicts[key] = value
 

@@ -14,7 +14,8 @@ from __future__ import annotations
 import re
 
 from kicad_types import AnalysisContext
-from kicad_core.netnames import is_usb_data_net_name, parse_voltage_from_net_name
+from kicad_core.netnames import is_usb_data_net_name, is_usb_signal_net_name, parse_voltage_from_net_name
+from kicad_core.parts import LOAD_SWITCH_KEYWORDS, names_load_switch
 
 try:
     import os as _os, sys as _sys
@@ -141,7 +142,7 @@ def _find_pulldowns_on_net(
 
 
 def _net_has_driver(ctx: AnalysisContext, net_name: str, exclude_ref: str) -> bool:
-    """Check if a net has at least one push-pull driver (non-OD/OC IC output)."""
+    """True when another IC sits on the net. Any IC counts, whatever its pin type: it may drive the line push-pull or hold it with a firmware-enabled internal pull-up, neither of which the schematic shows, so PU-001 does not ask for an external resistor."""
     if not net_name or net_name not in ctx.nets:
         return False
     for p in ctx.nets[net_name]['pins']:
@@ -166,7 +167,6 @@ _PULLUP_PIN_NAMES = (
     'INT', 'IRQ', 'ALERT', 'DRDY', 'BUSY', 'RDY',
     'INT1', 'INT2', 'IRQ1', 'IRQ2', 'ALERT1', 'ALERT2',
     'SDA', 'SCL', 'I2C_SDA', 'I2C_SCL',
-    'MISO',  # SPI open-drain mode
     'OD', 'OPEN_DRAIN',
     'PG', 'PGOOD', 'POWER_GOOD', 'nPG',
     'FAULT', 'nFAULT', 'FLAG', 'nFLAG',
@@ -523,12 +523,31 @@ def _closest_threshold(voltage: float) -> tuple:
 # (the pull-up, not the regulator's supply, sets the power-good level).
 _EN_PIN_PATTERNS = ('EN', 'ENABLE', 'CE', 'SHDN', 'NSHDN', 'ON', 'ON_OFF', 'RUN')
 _PG_PIN_PATTERNS = ('PG', 'PGOOD', 'PWRGD', 'NPG')
+# Load-switch families whose symbols often carry no description (Vishay SiP32xxx, TI TPS205x,
+# Diodes AP2280x / AP2261x / AP2265x / AP255x, Microchip MIC20xx, onsemi FPFxxxx).
+_LOAD_SWITCH_FAMILIES = ('sip32', 'tps205', 'ap2280', 'ap2261', 'ap2265', 'ap255', 'mic20', 'fpf')
+
+
+def _is_regulator_like(ctx: AnalysisContext, ref: str) -> bool:
+    """A regulator-family part by its value or MPN, or typed power_regulator. A load switch
+    counts too (by family or by its text): its enable is a logic input rated independently
+    of its VIN."""
+    comp = ctx.comp_lookup.get(ref, {})
+    val_mpn = ((comp.get('mpn') or '') + ' ' + (comp.get('value') or '')).upper()
+    if comp.get('type') == 'power_regulator' or any(pfx in val_mpn for pfx in (
+            'TPS6', 'TPS5', 'LM25', 'LM33', 'LM317', 'AP21', 'AMS11',
+            'MP23', 'MP15', 'XL40', 'RT8', 'SY8', 'MIC29', 'NCP',
+            'LDO', 'BOOST', 'BUCK', 'REG')):
+        return True
+    text = (val_mpn + ' ' + (comp.get('lib_id') or '')).lower()
+    return (any(k in text for k in LOAD_SWITCH_KEYWORDS + _LOAD_SWITCH_FAMILIES)
+            or names_load_switch(text + ' ' + (comp.get('description') or '')))
 
 
 def _en_endpoint_compatible(ctx: AnalysisContext, p: dict, net_name: str, v_min: float) -> bool:
     """True when pin *p* on *net_name* is a regulator enable input that tolerates a net
     whose lowest domain is *v_min*: by the datasheet EN threshold when one is extracted,
-    else by an EN- or power-good-named pin on a regulator-family part."""
+    else by an EN-named pin on a regulator-family part."""
     comp = ctx.comp_lookup.get(p['ref'], {})
     p_mpn = comp.get('mpn') or comp.get('value', '')
     ds_feat = get_regulator_features(p_mpn, project_dir=ctx.project_dir) if p_mpn else None
@@ -541,20 +560,10 @@ def _en_endpoint_compatible(ctx: AnalysisContext, p: dict, net_name: str, v_min:
                 if en_ih is not None:
                     return v_min >= 2 * en_ih
                 break
-    val_mpn = ((comp.get('mpn') or '') + ' ' + (comp.get('value') or '')).upper()
-    is_regulator_like = any(pfx in val_mpn for pfx in (
-        'TPS6', 'TPS5', 'LM25', 'LM33', 'LM317', 'AP21', 'AMS11',
-        'MP23', 'MP15', 'XL40', 'RT8', 'SY8', 'MIC29', 'NCP',
-        'LDO', 'BOOST', 'BUCK', 'REG',
-    ))
-    if is_regulator_like or comp.get('type') == 'power_regulator':
+    if _is_regulator_like(ctx, p['ref']):
         name = (p.get('pin') or '').upper().strip()
-        return name in _EN_PIN_PATTERNS or name in _PG_PIN_PATTERNS
+        return name in _EN_PIN_PATTERNS
     return False
-
-
-# USB_DTR, USB_DET: a USB_D marker followed by a letter that spells none of DP/DM/DN/DATA
-_USB_D_NOT_DATA = re.compile(r"USB_D[B-LOQ-Z]")
 
 
 # Data-pair prefixes seen on USB and Ethernet pairs (LsD+, TD+, RD+, UD+, U1D+, XUD+, DBGD+);
@@ -565,12 +574,55 @@ _DATA_PAIR_NAME = re.compile(r"(?:^|[^A-Z0-9])(?:LS|[TRQIDU]|U\d|XU|IU|UC|DBG)?D
 def _is_usb_dp_dm(net_name: str, nets) -> bool:
     name = net_name.upper()
     if is_usb_data_net_name(name):
-        return not _USB_D_NOT_DATA.search(name)
+        return not is_usb_signal_net_name(name)
     # A D+ / D- pair under another name (LsD+ / LsD-, TD+ / TD-) is differential data too;
     # a lone HOLD- or SPEED- is a logic signal.
     if _DATA_PAIR_NAME.search(name):
         return (net_name[:-1] + ("-" if net_name.endswith("+") else "+")) in nets
     return False
+
+
+# Charger status outputs are open-drain by convention (STAT, CHG, CHRG); a power-good pin
+# is when the part is a regulator.
+_OD_STATUS_NAMES = frozenset({'STAT', 'STAT1', 'STAT2', 'CHG', 'CHRG'})
+
+
+def _bare_pin_name(name: str) -> str:
+    """Upper-cased pin name without an active-low marker (~{PG}, nPG, NSTAT)."""
+    n = re.sub(r'^~\{(.*)\}$', r'\1', (name or '').upper().strip()).lstrip('~/')
+    if n.startswith('N') and (n[1:] in _OD_STATUS_NAMES or n[1:] in _PG_PIN_PATTERNS):
+        return n[1:]
+    return n
+
+
+def _is_open_drain_endpoint(ctx: AnalysisContext, p: dict) -> bool:
+    """An open-collector / open-drain output: by pin type, a charger status pin by name,
+    or a power-good pin on a regulator."""
+    if p.get('pin_type') == 'open_collector':
+        return True
+    if p.get('pin_type') == 'tri_state':
+        return False   # MCP73831 STAT drives high to its supply
+    name = _bare_pin_name(p.get('pin'))
+    if name in _OD_STATUS_NAMES:
+        return True
+    return name in _PG_PIN_PATTERNS and _is_regulator_like(ctx, p['ref'])
+
+
+def _pull_up_voltage(ctx: AnalysisContext, net_name: str) -> float | None:
+    """The highest rail a resistor on *net_name* ties it to, or None."""
+    best = None
+    for q in ctx.nets.get(net_name, {}).get('pins', []):
+        comp = ctx.comp_lookup.get(q['component'], {})
+        if comp.get('type') != 'resistor':
+            continue
+        n1, n2 = ctx.get_two_pin_nets(q['component'])
+        other = n2 if n1 == net_name else n1
+        if not other or other == net_name or not ctx.is_power_net(other) or ctx.is_ground(other):
+            continue
+        v = ctx.rail_voltage_or(other, parse_voltage_from_net_name)
+        if v is not None and v > 0 and (best is None or v > best):
+            best = v
+    return best
 
 
 def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | None = None) -> list[dict]:
@@ -617,12 +669,29 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
         for p in net_info.get('pins', []):
             ref = p['component']
             if ref in ic_voltages:
+                # A supply pin on a non-power net is a rail feeding a regulator or a
+                # regulator output (L7809 OUT -> L7805 IN), not a logic level.
+                if p.get('pin_type') in ('power_in', 'power_out'):
+                    continue
                 ic_pins_on_net.append({
                     'ref': ref, 'pin': p.get('pin_name', ''),
                     'pin_number': p['pin_number'], 'voltage': ic_voltages[ref],
+                    'pin_type': p.get('pin_type'),
                 })
+        # An open-drain output swings to its pull-up, not to its IC's supply; with no
+        # pull-up on the net it drives nothing high.
+        od = [q for q in ic_pins_on_net if _is_open_drain_endpoint(ctx, q)]
+        if od and len(ic_pins_on_net) >= 2:
+            v_pu = _pull_up_voltage(ctx, net_name)
+            for q in od:
+                if v_pu is None:
+                    ic_pins_on_net.remove(q)
+                else:
+                    q['voltage'] = v_pu
 
-        if len(ic_pins_on_net) < 2:
+        # One part's own pins are not a domain crossing (MC34063 switch collectors tied to
+        # its current-sense input).
+        if len({p['ref'] for p in ic_pins_on_net}) < 2:
             continue
 
         voltages = set(p['voltage'] for p in ic_pins_on_net)
@@ -639,10 +708,17 @@ def validate_voltage_levels(ctx: AnalysisContext, level_shifters: list[dict] | N
         if en_ok:
             ic_pins_on_net = [p for p in ic_pins_on_net if p not in en_ok]
             voltages = set(p['voltage'] for p in ic_pins_on_net)
-            if len(ic_pins_on_net) < 2 or len(voltages) <= 1:
+            if len({p['ref'] for p in ic_pins_on_net}) < 2 or len(voltages) <= 1:
                 continue
             v_max = max(voltages)
             v_min = min(voltages)
+
+        # An open-drain output only pulls the net low: it is never the input that a
+        # higher domain overdrives.
+        readers = [p['voltage'] for p in ic_pins_on_net if p not in od]
+        if not readers or min(readers) >= v_max:
+            continue
+        v_min = min(readers)
 
         low_thresh = _closest_threshold(v_min)
         if low_thresh is None:
@@ -1127,11 +1203,6 @@ def validate_power_sequencing(
 # LR-001: LED resistor sizing validation
 # ---------------------------------------------------------------------------
 
-_LED_VF_BY_COLOR = {
-    'red': 1.8, 'orange': 2.0, 'amber': 2.0, 'yellow': 2.1,
-    'green': 2.2, 'blue': 3.2, 'white': 3.2, 'uv': 3.3, 'ir': 1.2,
-}
-_LED_VF_DEFAULT = 2.0
 _LED_IF_MAX_DEFAULT_MA = 20
 _LED_IF_RECOMMENDED_MA = 10
 
@@ -1242,10 +1313,9 @@ def validate_led_resistors(ctx: AnalysisContext) -> list[dict]:
         if ds_vf is not None and ds_vf.typ is not None:
             vf = ds_vf.typ
         else:
-            vf = led_forward_voltage(led, _LED_VF_BY_COLOR, _LED_VF_DEFAULT)
+            vf = led_forward_voltage(led)
         # A string drops every LED's forward voltage.
-        vf += sum(led_forward_voltage(ctx.comp_lookup[r], _LED_VF_BY_COLOR, _LED_VF_DEFAULT)
-                  for r in string if r != ref)
+        vf += sum(led_forward_voltage(ctx.comp_lookup[r]) for r in string if r != ref)
         # Use datasheet If_max (max, else typ) if available; fall back to constant.
         if ds_if is not None and ds_if.max is not None:
             if_max_ma = ds_if.max * 1000  # SpecValue in amps → mA
@@ -1373,12 +1443,9 @@ def validate_crystal_load_caps(
 # FS-001: Feedback network stability pre-check
 # ---------------------------------------------------------------------------
 
+# Parts with a compensation pin (COMP) that takes an external network.
 _REQUIRES_COMPENSATION_KEYWORDS = (
-    'lm2596', 'lm2576',
-    'tps5430', 'tps5450', 'tps54', 'tps40',
-    'lm259', 'lm317', 'lm337', 'lm350',
-    'lt308', 'lt108',
-    'mc34', 'mc33',
+    'tps54', 'tps40',
     'uc384', 'uc282',
 )
 
@@ -1398,6 +1465,11 @@ _MIN_LOAD_ADJ_KEYWORDS = ('lm317', 'lm337', 'lm338', 'lm350', 'lm1117', 'ams1117
                           'lm1086', 'lt1083', 'lt1084', 'lt1085', 'lt1086', 'az1117', 'ap1117',
                           'ncp1117', 'spx1117', 'tlv1117', 'lm1084', 'lm1085', 'lt1117',
                           'lt317a', 'lm117', 'lm217', 'ld1085', 'ld1086')
+
+# Simple Switcher bucks whose datasheet R1 (FB to ground) range puts the divider below
+# _FB_IMPEDANCE_MIN: LM2596 240 ohm to 1.5 kohm, R1 about 1 kohm (SNVS124); LM2576 1 kohm
+# to 5 kohm (SNVS107).
+_LOW_DIVIDER_R1_RANGE = (('lm2596', 240, 1500), ('lm2576', 1000, 5000))
 
 _FB_IMPEDANCE_MIN = 1000
 _FB_IMPEDANCE_MAX = 1000000
@@ -1436,7 +1508,9 @@ def validate_feedback_stability(
 
         comp = ctx.comp_lookup.get(ref)
         min_load_adj = (fb_div.get('reference') == 'out_adj'
-                        or bool(comp and match_ic_keywords(comp, _MIN_LOAD_ADJ_KEYWORDS)))
+                        or bool(comp and match_ic_keywords(comp, _MIN_LOAD_ADJ_KEYWORDS))
+                        or bool(comp and any(match_ic_keywords(comp, (kw,)) and lo <= r_bottom <= hi
+                                             for kw, lo, hi in _LOW_DIVIDER_R1_RANGE)))
         if parallel_impedance < _FB_IMPEDANCE_MIN and not min_load_adj:
             findings.append(make_finding(
                 detector='validate_feedback_stability', rule_id='FS-001', category='power_integrity',
@@ -1467,7 +1541,10 @@ def validate_feedback_stability(
                 and not match_ic_keywords(comp, _INTERNALLY_COMPENSATED_KEYWORDS)):
             check_net = get_pin_net(ctx, ref, ('COMP', 'CC', 'RC'))
             if check_net:
-                caps_on_fb = [p['component'] for p in ctx.nets.get(check_net, {}).get('pins', [])
+                # The network may sit behind a bridged-by-default solder jumper.
+                comp_nets = [check_net] + _bridged_jumper_neighbor_nets(ctx, check_net)
+                caps_on_fb = [p['component'] for n in comp_nets
+                              for p in ctx.nets.get(n, {}).get('pins', [])
                               if ctx.comp_lookup.get(p['component'], {}).get('type') == 'capacitor']
                 if not caps_on_fb:
                     findings.append(make_finding(
@@ -1477,7 +1554,6 @@ def validate_feedback_stability(
                         severity='warning', confidence='heuristic', evidence_source='heuristic_rule',
                         components=[ref], nets=[check_net],
                         recommendation=f'Add a compensation network per {comp.get("value", "")} datasheet.',
-                        fix_params={'type': 'add_component', 'components': [{'type': 'capacitor', 'value': '10n', 'net_from': check_net, 'net_to': 'GND'}], 'basis': f'{comp.get("value", "")} requires external compensation'},
                         impact='Regulator may oscillate or have poor transient response',
                         provenance=make_provenance('fs_stability_check', 'heuristic'),
                         schema_era='v1.4',

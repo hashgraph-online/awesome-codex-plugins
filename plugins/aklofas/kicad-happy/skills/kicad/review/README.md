@@ -23,7 +23,6 @@ This directory hosts the Deep Review infrastructure:
 | `scripts/merge_annotations.py` | Validates + applies overlays to raw analyzer JSONs → `<--merged-dir>/<analyzer>.json` (run-based consumers read `analysis/merged/<run>/<analyzer>.json`) |
 | `scripts/validate_review.py` | Standalone CLI for review_annotations.json validation |
 | `scripts/deep_review_gate.py` | Evidence gate: validates deep_review.json, writes durable findings |
-| `scripts/run_phase4_exercise.py` | Orchestrates the end-to-end fixture exercise |
 | `fixtures/*.example.json` | Round-trip fixtures for schema contract tests |
 
 ## Invariants

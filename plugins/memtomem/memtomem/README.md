@@ -113,6 +113,62 @@ login even with the variable set. For a gated or private model, add your own
 `mcp_servers.memtomem` entry (see "Scope" below) without that variable and with `HF_TOKEN`
 under `env:`. Before this package's 0.1.23, a saved login was sent with model downloads.
 
+## Korean keyword search
+
+This package starts memtomem with the `onnx` extra only, not the `korean` one, so its
+server has no Kiwi morphological tokenizer. If your store is set to
+`search.tokenizer: kiwipiepy` (the `mm init` Korean-optimized preset sets it), this server
+falls back to `unicode61` and keeps indexing. One keyword index then holds two token
+forms, and a Korean query with a particle or an ending, such as `예산을` or `결정했다`,
+misses the notes that were indexed the other way. A bare stem such as `예산` still finds
+both, so a quick test can look fine. Ask Hermes for memtomem status: a
+`tokenizer_fallback` warning means this server is affected.
+
+The steps below are for a store that is already set to `kiwipiepy`: memtomem status shows
+`search.tokenizer:    kiwipiepy`. They do not switch a `unicode61` store, and the rebuild
+in step 2 is not saved to `config.json`, so on a `unicode61` store the servers go back to
+`unicode61` at their next start and mix the index again.
+
+Keep this package enabled for its skills and add your own server entry with the same name
+to `config.yaml`. Hermes uses your entry instead of this package's:
+
+```yaml
+mcp_servers:
+  memtomem:
+    command: uvx
+    args: ["--python", "3.12", "--from", "memtomem[onnx,korean]==0.7.10", "--with", "huggingface-hub>=1.20", "memtomem-server"]
+    env:
+      MEMTOMEM_TOOL_MODE: core
+      MEMTOMEM_EXTRA_TOOLS: mem_update_coverage
+      ORT_DISABLE_TELEMETRY: "1"
+      PYTHON_DOTENV_DISABLED: "1"
+      HF_HUB_DISABLE_IMPLICIT_TOKEN: "1"
+    cwd: /absolute/path/outside/your/projects
+```
+
+Without `cwd`, the server starts in Hermes's working directory, so a project registered
+there gets project scope (see "Scope" below). Point `cwd` at a directory outside your
+projects to keep the user scope this package runs at. The `env:` rules after the example
+in "Scope" below apply here too.
+
+Then repair the index, in this order:
+
+1. Give the `korean` extra to every memtomem process that opens this store, including the
+   ones you only search from: a search tokenizes the query the same way, and every server
+   and `mm web` re-indexes the files it sees change. That means this entry, your other
+   agents' memtomem plugins, which leave the `korean` extra out as well, and any `mm`
+   install you use with this store. Then restart the servers, Hermes included. Ask for
+   memtomem status: the `tokenizer_fallback` warning should be gone. It does not report
+   notes that were indexed during the fallback, which is why the next step is needed.
+2. Ask Hermes to rebuild the keyword index through the server, so that it is the store
+   and the tokenizer the server uses:
+   `mem_do(action="config", params={"key": "search.tokenizer", "value": "kiwipiepy"})`.
+   It rebuilds even when the value is already `kiwipiepy`, and its reply includes
+   `FTS index rebuilt with <tokenizer> (N chunks).` The tokenizer it names is the one
+   the rows were built with: a server without Kiwi reports `unicode61` there, plus a
+   warning that the rebuild fell back. That fallback still rewrites every note as
+   `unicode61`, so do this only once step 1 shows no warning.
+
 ## Scope
 
 This package runs memtomem at **user scope**. The server starts in the plugin directory,

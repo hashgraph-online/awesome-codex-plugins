@@ -24,9 +24,11 @@ from pathlib import Path
 from typing import Any
 
 from kicad_core.diagnostics import merge, record
-from kicad_core.sexp import parse_file
+from kicad_core.sexp import parse_file_checked
+from kicad_core.project import parse_input_problem
 from kicad_core.values import snap_to_mil_grid as _snap_mil
-from kicad_core.netnames import _clean_hierarchical_name, parse_voltage_from_net_name
+from kicad_core.netnames import (_clean_hierarchical_name, negative_split_rails,
+                                  parse_voltage_from_net_name)
 from kicad_core.netquery import (
     build_bridge_facts,
     build_ref_pins,
@@ -325,15 +327,19 @@ def build_rail_map(ctx: AnalysisContext, power_regulators: list[dict]) -> dict[s
     its output net (the last regulator on a net wins), then, for a regulator with
     no estimate, the voltage in the name of the sheet holding its output net (the
     regulator records it as ``_output_rail_voltage_provenance``), then
-    the voltage in the name of a power or ground net (a net that is a supply only by
-    its pins gets none from its name). The project config has the
+    the voltage in the name of a power or ground net (negative on the ``4V5_N`` half of a
+    split supply, ``negative_split_rails``) or of a regulator output (another
+    net that is a supply only by its pins gets none from its name, and a VSS net a regulator drives, ``vss_supply_rails``,
+    gets none from its name and no positive estimate). The project config has the
     last word: an ignored rail is dropped and an override is set on every net it names.
     """
     by_net: dict[str, float] = {}
     for reg in power_regulators:
         out_rail = reg.get("output_rail")
         v_out = reg.get("estimated_vout")
-        if out_rail and v_out is not None:
+        # A VSS-named supply sits below ground: a positive estimate (a part-number voltage
+        # without its sign) is not its voltage.
+        if out_rail and v_out is not None and not (out_rail in ctx.vss_supply_rails and v_out > 0):
             by_net[out_rail] = v_out
     # A switch node or an input is never an output, and an IC's internal regulator
     # output (a core-voltage pin) has nothing to do with its sheet's name.
@@ -343,14 +349,34 @@ def build_rail_map(ctx: AnalysisContext, power_regulators: list[dict]) -> dict[s
         if (out_rail and reg.get("estimated_vout") is None and out_rail not in not_outputs
                 and reg.get("topology") != "ic_with_internal_regulator"):
             v = _sheet_stem_voltage(out_rail)
-            if v is not None and out_rail not in by_net:
+            if (v is not None and out_rail not in by_net
+                    and not (out_rail in ctx.vss_supply_rails and v > 0)):
                 by_net[out_rail] = v
                 reg["_output_rail_voltage_provenance"] = {"source": "sheet name", "voltage": v}
+    # A regulator output is a rail whatever its name says (3V3_OFF). Its name voltage
+    # counts when the sign agrees with the regulator: an inverting one makes a negative rail.
+    inverting_out: dict[str, bool] = {}
+    for reg in power_regulators:
+        if reg.get("output_rail"):
+            inverting_out[reg["output_rail"]] = (inverting_out.get(reg["output_rail"], False)
+                                                 or bool(reg.get("inverting")))
+    split_negative = negative_split_rails(ctx.nets)
     for net_name in sorted(ctx.nets):
-        if net_name not in by_net and (ctx.is_power_net(net_name, by_pins=False) or ctx.is_ground(net_name)):
+        if net_name in by_net or net_name in ctx.vss_supply_rails:
+            continue
+        if ctx.is_power_net(net_name, by_pins=False) or ctx.is_ground(net_name):
             v = _estimate_rail_voltage(net_name)
-            if v is not None:
-                by_net[net_name] = v
+            if v is not None and net_name in split_negative:
+                v = -abs(v)
+        elif net_name in inverting_out and not re.search(r"\d,\d", net_name):
+            # The name parser takes only a dot as the decimal point: 3,3V would read 3.0.
+            v = parse_voltage_from_net_name(net_name)
+            if v is not None and (v < 0) != inverting_out[net_name]:
+                v = None
+        else:
+            v = None
+        if v is not None:
+            by_net[net_name] = v
     if ctx.rail_overrides or ctx.rail_ignore:
         for net_name in sorted(ctx.nets):
             if ctx.rail_ignored(net_name):
@@ -464,6 +490,9 @@ def run_domain_detectors(ctx: AnalysisContext, topo: dict) -> dict:
     power_regulators = topo["power_regulators"]
     protection_devices = topo["protection_devices"]
     transistor_circuits = topo["transistor_circuits"]
+
+    if not ctx.rail_by_net:
+        ctx.rail_by_net = build_rail_map(ctx, power_regulators)
 
     buzzer_speaker_circuits = detect_buzzer_speakers(ctx, transistor_circuits)
     key_matrices = detect_key_matrices(ctx)
@@ -641,12 +670,14 @@ def enrich_capacitor_records(results_dict, context):
     _enrich(results_dict)
 
 
-def apply_capacitor_derating(results_dict):
+def apply_capacitor_derating(results_dict, ctx: AnalysisContext | None = None):
     """Apply DC bias derating to capacitor entries where applied voltage is known.
 
-    Cross-references regulator output voltages with output_capacitors and
-    decoupling_analysis to compute effective_farads after DC bias derating.
-    Only adds derating fields when both package and applied voltage are known.
+    Cross-references regulator output voltages with output_capacitors,
+    decoupling_analysis and LC filters (on a regulator output) to compute
+    effective_farads after DC bias derating. Only adds derating fields when both
+    package and applied voltage are known. LC filter capacitors need *ctx*: they
+    are derated only when every capacitor of the entry returns to ground.
     """
     from kicad_core.passives import estimate_dc_bias_derating
 
@@ -719,14 +750,21 @@ def apply_capacitor_derating(results_dict):
             )
             rail_entry["total_effective_capacitance_uF"] = round(total_eff * 1e6, 3)
 
-    # Derate LC filter capacitors where rail voltage is known
-    for filt in results_dict.get("lc_filters", []):
-        rail = filt.get("rail", "")
-        v = rail_voltage.get(rail)
-        if v and "capacitor" in filt:
-            cap = filt["capacitor"]
-            if isinstance(cap, dict) and "farads" in cap:
-                _derate_cap(cap, v)
+    def _returns_to_ground(cap, node):
+        # A feedforward, sense or bootstrap cap on the node does not see the rail voltage
+        for ref in cap.get("parallel_caps") or cap.get("parallel_refs") or [cap.get("ref")]:
+            n1, n2 = ctx.get_two_pin_nets(ref)
+            if node not in (n1, n2) or not ctx.is_ground(n2 if n1 == node else n1):
+                return False
+        return True
+
+    # Derate LC filter capacitors on a regulator output where rail voltage is known
+    for filt in results_dict.get("lc_filters", []) if ctx is not None else ():
+        node = filt.get("shared_net", "")
+        v = rail_voltage.get(node)
+        cap = filt.get("capacitor")
+        if v and isinstance(cap, dict) and "farads" in cap and _returns_to_ground(cap, node):
+            _derate_cap(cap, v)
 
 
 def assemble_signal_results(ctx: AnalysisContext, topo: dict, domain: dict) -> dict:
@@ -842,7 +880,7 @@ def assemble_signal_results(ctx: AnalysisContext, topo: dict, domain: dict) -> d
 
     # Post-process: enrich capacitor entries with package size and estimated ESR
     enrich_capacitor_records(results, ctx)
-    apply_capacitor_derating(results)
+    apply_capacitor_derating(results, ctx)
 
     return results
 
@@ -1199,7 +1237,7 @@ def run_analyses(ctx: AnalysisContext, parsed: dict, path: str, nets: dict) -> S
     sourcing_gate_findings = audit_sourcing_gate(all_components)
     dnp_rate_findings = audit_dnp_rate(all_components)
     alternate_pins = summarize_alternate_pins(all_lib_symbols)
-    ground_domains = classify_ground_domains(nets, all_components)
+    ground_domains = classify_ground_domains(nets, all_components, power_rails=ctx.ground_name_rails)
     bus_topology = analyze_bus_topology(merged_bus, all_labels, nets)
     wire_geometry = analyze_wire_geometry(all_wires)
     sim_readiness = check_simulation_readiness(all_components, all_lib_symbols)
@@ -1310,7 +1348,7 @@ def analyze_schematic(path: str, project_root: str | None = None,
                                         power_rails_config=power_rails_config)
 
     # Parse root sheet and all sub-sheets recursively via parse_all_sheets().
-    root_tree = parse_file(path)
+    root_tree, parse_problem = parse_file_checked(path)
 
     is_sub = detect_sub_sheet(root_tree, file_path=path)
     hierarchy_warning = None
@@ -1359,6 +1397,10 @@ def analyze_schematic(path: str, project_root: str | None = None,
         )
 
     pipeline_diagnostics: list = []
+    unread = parse_input_problem(path, root_tree, parse_problem, "kicad_sch")
+    if unread:
+        record(pipeline_diagnostics, "schematic.pipeline.analyze_schematic",
+               ValueError(unread[0]), unread[1])
     parsed = parse_all_sheets(path, root_tree=root_tree, diagnostics=pipeline_diagnostics,
                               variant=variant)
 

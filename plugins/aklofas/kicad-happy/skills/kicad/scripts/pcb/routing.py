@@ -4,7 +4,8 @@ path, net lengths/impedance, ground domains, trace proximity, current capacity, 
 import heapq
 import math
 
-from kicad_core.netnames import is_ground_name, is_pin_guarded_signal, is_power_net_name, net_leaf
+from kicad_core.netnames import (is_ground_name, is_pin_guarded_signal, is_power_net_name,
+                                 is_virtual_ground_name, net_leaf)
 from pcb.geometry import CopperPresence, _arc_length_3pt
 
 
@@ -963,16 +964,13 @@ def analyze_ground_domains(footprints: list[dict], net_names: dict[int, str],
     which components connect to each. Components on multiple ground domains
     are flagged — these may be intentional (star ground) or errors.
     """
-    # COM also names an analog-switch or motor common: a ground domain only when the rail
-    # set names it. AGND_CODEC, PGND2 or ESP_GND2 are grounds too, but a net KiCad names
-    # after a pin (Net-(U1-GND), unconnected-(U1-GND-Pad3), a panel's Board_0-Net-(U1-GND))
-    # is not.
+    # Any name holding GND, VSS or GROUND is a domain too (ISOGND12, PVSS1, Board_0-GNDA),
+    # but not a virtual ground (VGND1, HP_VGND) or a net KiCad names after a pin
+    # (Net-(U1-GND), unconnected-(U1-GND-Pad3), a panel's Board_0-Net-(U1-GND)).
     def _is_ground(name: str) -> bool:
         leaf = net_leaf(name).upper()
-        if leaf == "COM":
-            return name in (power_rails or ())
         return is_ground_name(name, power_rails) or (
-            any(g in leaf for g in ("GND", "VSS", "GROUND"))
+            any(g in leaf for g in ("GND", "VSS", "GROUND")) and not is_virtual_ground_name(name)
             and "NET-(" not in leaf and "UNCONNECTED-(" not in leaf)
 
     ground_nets: dict[int, str] = {
@@ -1072,7 +1070,7 @@ def analyze_trace_proximity(tracks: dict, net_names: dict[int, str],
     for (_layer, _gx, _gy), nets in grid.items():
         signal = sorted(n for n in nets
                         if not ((net_names.get(n, "") not in pin_signals and is_power_net_name(net_names.get(n, ""), power_rails))
-                                or is_ground_name(net_names.get(n, ""))))
+                                or is_ground_name(net_names.get(n, ""), power_rails)))
         if len(signal) < 2:
             continue
         for i in range(len(signal)):

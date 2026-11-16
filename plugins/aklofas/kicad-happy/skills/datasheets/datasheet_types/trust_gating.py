@@ -40,6 +40,7 @@ No module-level state. Functions are pure. Thread-safe.
 """
 from __future__ import annotations
 
+import math
 from typing import Literal, Optional, TypeAlias
 
 from .spec_value import SpecValue
@@ -102,6 +103,29 @@ def best(
         if _CONFIDENCE_ORDER.get(s.evidence.confidence, -1) >= gate:
             return s
     return None
+
+
+FACTS_MIN_SCORE = 60
+
+
+def finite_score(value) -> Optional[float]:
+    """Return ``value`` when it is a usable quality score, else None.
+
+    A usable score is a finite int or float. A bool, NaN, an infinity, None or
+    any other type is no score, so callers compare only real numbers against
+    their threshold (``score is None or score < threshold`` means untrusted).
+    The scale (0-10 or 0-100) is the caller's.
+    """
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return value
+    return None
+
+
+def facts_trusted(facts) -> bool:
+    """True when a DatasheetFacts extraction is fit for detectors to use: quality
+    score at least FACTS_MIN_SCORE (0-100) and the source PDF unchanged."""
+    q = finite_score(facts.quality)
+    return q is not None and q >= FACTS_MIN_SCORE and not getattr(facts, "stale", False)
 
 
 def trusted(

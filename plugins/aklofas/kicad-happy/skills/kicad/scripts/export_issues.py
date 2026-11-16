@@ -27,6 +27,7 @@ import subprocess
 import sys
 
 from diff_engine import _canonical, _fid_stem, finding_key
+from kicad_core.fileio import json_loads
 from kicad_core.executables import find_executable
 
 # ---------------------------------------------------------------------------
@@ -49,17 +50,19 @@ _SEV_RANK: dict[str, int] = {
 # ---------------------------------------------------------------------------
 
 def _norm_severity(s: str) -> str:
-    """Normalize a severity string to one of: high / warning / info."""
+    """Normalize a severity string to one of: error / warning / info."""
     s = (s or "").lower().strip()
     if s in ("critical", "high", "error"):
-        return "high"
+        return "error"
     if s in ("warning", "medium", "warn"):
         return "warning"
     return "info"
 
 
-# One page of `gh issue list`; a full page may be truncated, which is refused.
+# First page size of `gh issue list`; a full page is retried with a larger
+# limit, up to LIST_CAP, beyond which the listing is refused as truncated.
 LIST_LIMIT = 1000
+LIST_CAP = 100_000
 
 _MARKER_RE = re.compile(
     r"^<!-- kicad-happy:finding_id=(.*?)(?: key=([0-9a-f]{16}))? -->$"
@@ -78,6 +81,37 @@ def _escape_html_comment(text: str) -> str:
 def _inert(text: str) -> str:
     """Escape comment delimiters and keep @mentions from notifying anyone."""
     return _escape_html_comment(text).replace("@", "@\u200b")
+
+
+def _md_inline(text: str) -> str:
+    """Escape the characters that open a link, emphasis, code span or raw HTML."""
+    for ch in ("\\", "`", "*", "[", "]"):
+        text = text.replace(ch, "\\" + ch)
+    return text.replace("<", "&lt;")
+
+
+def _md_cell(text: str) -> str:
+    """One table cell: inline escapes, pipes escaped, line breaks flattened."""
+    return (_md_inline(text).replace("|", "\\|")
+            .replace("\r", " ").replace("\n", " "))
+
+
+def _code(text: str) -> str:
+    """Text for a code span: backslashes print literally there, so drop the
+    backticks and line breaks that would end the span instead."""
+    return text.replace("`", "").replace("\r", " ").replace("\n", " ")
+
+
+def _paragraph(text: str) -> str:
+    """Inline escapes, with a line-leading heading, quote, rule or list
+    marker made literal. Line breaks stay."""
+    out = []
+    for line in _md_inline(text).splitlines():
+        body = line.lstrip()
+        if body[:1] in ("#", ">", "=", "-", "+"):
+            line = line[:len(line) - len(body)] + "\\" + body
+        out.append(line)
+    return "\n".join(out)
 
 
 def finding_marker(finding: dict) -> str:
@@ -237,9 +271,9 @@ def format_issue_body(finding: dict) -> str:
     esc = _inert
     rule_id = esc(str(finding.get("rule_id", "")))
     severity = _norm_severity(finding.get("severity", "info"))
-    confidence = esc(str(finding.get("confidence", "")))
-    evidence = esc(str(finding.get("evidence_source", "")))
-    category = esc(str(finding.get("category", "")))
+    confidence = _md_cell(esc(str(finding.get("confidence", ""))))
+    evidence = _md_cell(esc(str(finding.get("evidence_source", ""))))
+    category = _md_cell(esc(str(finding.get("category", ""))))
     detector = esc(str(finding.get("detector", "")))
 
     lines: list[str] = []
@@ -252,7 +286,7 @@ def format_issue_body(finding: dict) -> str:
     # --- Metadata table ---
     lines.append("| Field | Value |")
     lines.append("|-------|-------|")
-    lines.append(f"| **Rule** | `{rule_id}` |")
+    lines.append(f"| **Rule** | `{_code(rule_id)}` |")
     lines.append(f"| **Severity** | {severity} |")
     if confidence:
         lines.append(f"| **Confidence** | {confidence} |")
@@ -261,11 +295,11 @@ def format_issue_body(finding: dict) -> str:
     if category:
         lines.append(f"| **Category** | {category} |")
     if detector:
-        lines.append(f"| **Detector** | `{detector}` |")
+        lines.append(f"| **Detector** | `{_code(detector)}` |")
     lines.append("")
 
     # --- Summary ---
-    summary = esc((finding.get("summary") or "").strip())
+    summary = _paragraph(esc((finding.get("summary") or "").strip()))
     if summary:
         lines.append("## Summary")
         lines.append("")
@@ -273,7 +307,7 @@ def format_issue_body(finding: dict) -> str:
         lines.append("")
 
     # --- Description ---
-    description = esc((finding.get("description") or "").strip())
+    description = _paragraph(esc((finding.get("description") or "").strip()))
     if description:
         lines.append("## Description")
         lines.append("")
@@ -287,9 +321,9 @@ def format_issue_body(finding: dict) -> str:
         lines.append("")
         for comp in components:
             if isinstance(comp, dict):
-                ref = esc(str(comp.get("ref") or comp.get("reference") or comp.get("name") or ""))
-                val = esc(str(comp.get("value") or ""))
-                fp = esc(str(comp.get("footprint") or ""))
+                ref = _code(esc(str(comp.get("ref") or comp.get("reference") or comp.get("name") or "")))
+                val = _md_cell(esc(str(comp.get("value") or "")))
+                fp = _md_cell(esc(str(comp.get("footprint") or "")))
                 parts = [f"`{ref}`" if ref else ""]
                 if val:
                     parts.append(val)
@@ -297,7 +331,7 @@ def format_issue_body(finding: dict) -> str:
                     parts.append(f"({fp})")
                 lines.append(f"- {' '.join(p for p in parts if p)}")
             elif isinstance(comp, str):
-                lines.append(f"- `{esc(comp)}`")
+                lines.append(f"- `{_code(esc(comp))}`")
         lines.append("")
 
     # --- Nets ---
@@ -307,14 +341,14 @@ def format_issue_body(finding: dict) -> str:
         lines.append("")
         for net in nets:
             if isinstance(net, str):
-                lines.append(f"- `{esc(net)}`")
+                lines.append(f"- `{_code(esc(net))}`")
             elif isinstance(net, dict):
                 name = net.get("name") or net.get("net") or str(net)
-                lines.append(f"- `{esc(str(name))}`")
+                lines.append(f"- `{_code(esc(str(name)))}`")
         lines.append("")
 
     # --- Recommendation ---
-    recommendation = esc((finding.get("recommendation") or "").strip())
+    recommendation = _paragraph(esc((finding.get("recommendation") or "").strip()))
     if recommendation:
         lines.append("## Recommendation")
         lines.append("")
@@ -385,38 +419,43 @@ def check_gh_available() -> bool:
 def list_open_issues(repo: str) -> "list[dict]":
     """Return the open issues carrying the ``kicad-happy`` label.
 
-    Each item has ``number``, ``title`` and ``body``. Raises IssueListError
-    when the listing fails or fills the page, so nothing is exported against
-    an unknown or truncated state.
+    Each item has ``number``, ``title`` and ``body``. A full page is retried
+    with a ten times larger limit until it is no longer full. Raises
+    IssueListError when the listing fails or still fills the page at
+    LIST_CAP, so nothing is exported against an unknown or truncated state.
     """
-    try:
-        result = subprocess.run(
-            [
-                _gh(), "issue", "list",
-                f"--repo={repo}",
-                "--label=kicad-happy",
-                "--state=open",
-                f"--limit={LIST_LIMIT}",
-                "--json=number,title,body",
-            ],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            timeout=60,
-        )
-        data = None
-        if result.returncode == 0:
-            data = json.loads(result.stdout) if result.stdout.strip() else []
-    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
-        data = None
-    if not isinstance(data, list):
-        raise IssueListError(f"cannot list open issues in {repo!r}; nothing exported.")
-    if len(data) >= LIST_LIMIT:
-        raise IssueListError(
-            f"{repo!r} has at least {LIST_LIMIT} open kicad-happy issues; the listing "
-            "may be truncated, so nothing was exported."
-        )
-    return data
+    limit = LIST_LIMIT
+    while True:
+        try:
+            result = subprocess.run(
+                [
+                    _gh(), "issue", "list",
+                    f"--repo={repo}",
+                    "--label=kicad-happy",
+                    "--state=open",
+                    f"--limit={limit}",
+                    "--json=number,title,body",
+                ],
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                timeout=60,
+            )
+            data = None
+            if result.returncode == 0:
+                data = json_loads(result.stdout) if result.stdout.strip() else []
+        except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError):
+            data = None
+        if not isinstance(data, list):
+            raise IssueListError(f"cannot list open issues in {repo!r}; nothing exported.")
+        if len(data) < limit:
+            return data
+        if limit >= LIST_CAP:
+            raise IssueListError(
+                f"{repo!r} has at least {limit} open kicad-happy issues; the listing "
+                "may be truncated, so nothing was exported."
+            )
+        limit = min(limit * 10, LIST_CAP)
 
 
 class IssueIndex:
@@ -587,7 +626,7 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
     )
     ap.add_argument(
         "--severity",
-        help="Minimum severity filter (high/warning/info)",
+        help="Minimum severity filter (error/warning/info)",
     )
     ap.add_argument(
         "--rule-id",
@@ -623,7 +662,7 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
         if args.severity.lower() not in known:
             ap.error(
                 f"unknown --severity {args.severity!r} — "
-                "accepted: high/critical/error, warning/medium/warn, info/low"
+                "accepted: error/critical/high, warning/medium/warn, info/low"
             )
 
     rule_ids: "list[str] | None" = None
@@ -769,7 +808,9 @@ def main(argv: "list[str] | None" = None) -> int:  # noqa: C901 (intentionally l
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

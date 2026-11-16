@@ -3,7 +3,7 @@
   "$id": "https://kicad-happy.local/datasheets/schemas/extraction.schema.json",
   "title": "DatasheetExtraction",
   "x-schema-version": "1.0",
-  "description": "Top-level per-MPN extraction file. One file per part in datasheets/extracted/<MPN>.json. Composes base + zero-or-more category extensions.",
+  "description": "Top-level per-MPN extraction file. One file per part in datasheets/extracted/<sanitized_mpn>.json. Composes base + zero-or-more category extensions.",
   "type": "object",
   "required": ["schema_version", "source", "extraction", "base"],
   "additionalProperties": true,
@@ -77,7 +77,7 @@
         },
         "plan_ref": {
           "type": ["string", "null"],
-          "description": "Relative path to the orchestration plan JSON (datasheets/extracted/<MPN>.plan.json)."
+          "description": "Relative path to the orchestration plan JSON (datasheets/extracted/<sanitized_mpn>.plan.json)."
         }
       }
     },

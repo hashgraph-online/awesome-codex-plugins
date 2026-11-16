@@ -10,7 +10,7 @@ Zero external dependencies - stdlib only.
 from __future__ import annotations
 
 import re
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 _IPC_CLASS_PATTERNS = [
     re.compile(r'IPC.?6012.*Class\s*([123])', re.IGNORECASE),
@@ -90,7 +90,8 @@ def resolve_design_intent(config: Dict[str, Any],
     ipc_class = 2  # default
     ipc_source = 'auto'
 
-    if 'ipc_class' in explicit and explicit['ipc_class'] in VALID_IPC_CLASSES:
+    if (not isinstance(explicit.get('ipc_class'), bool)
+            and explicit.get('ipc_class') in VALID_IPC_CLASSES):
         ipc_class = explicit['ipc_class']
         ipc_source = 'config'
         signals.append(f'IPC class {ipc_class} from config')
@@ -280,19 +281,20 @@ def resolve_design_intent(config: Dict[str, Any],
 
     source['target_market'] = market_source
 
-    # --- IPC class fallback from market (if not detected from text) ---
+    # --- IPC class suggested by the market (if not detected from text) ---
+    # Only a suggestion: DFM judges the class the config, fab notes or title block name, and
+    # ipc_class reports that same class.
     if ipc_source == 'auto':
         if target_market in ('aerospace',):
-            ipc_class = 3
             confidence = max(0, confidence - 0.1)
             signals.append(
-                f'IPC Class 3 inferred from {target_market} market')
+                f'IPC Class 3 suggested by {target_market} market (not applied; '
+                f'set design_intent.ipc_class to use it)')
         elif target_market == 'medical':
-            ipc_class = 3
             confidence = max(0, confidence - 0.15)
             signals.append(
-                'IPC Class 3 inferred from medical market '
-                '(not all medical is Class 3)')
+                'IPC Class 3 suggested by medical market (not all medical is Class 3; '
+                'not applied; set design_intent.ipc_class to use it)')
 
     # --- Resolve remaining fields from config or defaults ---
     defaults = {

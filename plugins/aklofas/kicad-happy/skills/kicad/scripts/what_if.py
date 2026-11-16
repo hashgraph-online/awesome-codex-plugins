@@ -31,7 +31,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
 
 from kicad_core.values import parse_value
 from kicad_core.render import fmt_g4, fmt_signed, severity_bucket
-from kicad_core.fileio import atomic_write_text
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.cli import add_only_deterministic_arg, add_output_arg, add_text_arg, utf8_text_stdout
 from analysis_cache import reviewed_overlay
 from finding_schema import group_findings_by_detection_type, is_old_schema
@@ -56,6 +56,18 @@ class SweepSpec:
 # ---------------------------------------------------------------------------
 # Parse change specifications
 # ---------------------------------------------------------------------------
+
+_SI_PREFIXES = ((1e9, "G"), (1e6, "M"), (1e3, "k"), (1.0, ""), (1e-3, "m"),
+                (1e-6, "u"), (1e-9, "n"), (1e-12, "p"))
+
+
+def _sweep_label(v: float) -> str:
+    """Format a swept value with four significant figures and an SI prefix (12.92k, 3.162n)."""
+    for scale, prefix in _SI_PREFIXES:
+        if abs(v) >= scale * 0.9995:
+            return f"{v / scale:.4g}{prefix}"
+    return f"{v / 1e-12:.4g}p"
+
 
 def _parse_changes(change_args: list) -> tuple:
     """Parse REF=VALUE pairs, detecting sweep syntax.
@@ -120,7 +132,7 @@ def _parse_changes(change_args: list) -> tuple:
                 sys.exit(2)
             n = min(n, 50)
             values = [start * (stop / start) ** (i / (n - 1)) for i in range(n)]
-            strs = [start_str] + [f"{v:.4g}" for v in values[1:-1]] + [stop_str]
+            strs = [start_str] + [_sweep_label(v) for v in values[1:-1]] + [stop_str]
             sweep = SweepSpec(ref=ref, values=values, value_strs=strs, tolerance=tolerance)
 
         elif "," in val_str:
@@ -1465,7 +1477,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         with open(_resolve_input_path(args.input), encoding="utf-8") as f:
-            analysis = json.load(f)
+            analysis = json_load(f)
     except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
         print(f"Error reading {args.input}: {e}", file=sys.stderr)
         return 1
@@ -1487,7 +1499,7 @@ def main(argv: list[str] | None = None) -> int:
     if pcb_path:
         try:
             with open(pcb_path, encoding="utf-8") as f:
-                pcb_analysis = json.load(f)
+                pcb_analysis = json_load(f)
         except (json.JSONDecodeError, OSError, UnicodeDecodeError) as e:
             print(f"Warning: cannot load PCB analysis: {e}", file=sys.stderr)
     else:
@@ -1495,7 +1507,7 @@ def main(argv: list[str] | None = None) -> int:
         if auto_pcb:
             try:
                 with open(auto_pcb, encoding="utf-8") as f:
-                    pcb_analysis = json.load(f)
+                    pcb_analysis = json_load(f)
             except (json.JSONDecodeError, OSError, UnicodeDecodeError):
                 pass
 
@@ -1619,7 +1631,7 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
         if args.output:
             try:
-                atomic_write_text(args.output, json.dumps(analysis, indent=2))
+                atomic_write_text(args.output, json.dumps(analysis, indent=2), follow_symlinks=False)
             except OSError as e:
                 print(f"Error: cannot write {args.output}: {e}", file=sys.stderr)
                 return 1
@@ -1633,7 +1645,7 @@ def main(argv: list[str] | None = None) -> int:
         }
         if args.text:
             print(format_text(result))
-        else:
+        elif not args.output:
             json.dump(result, sys.stdout, indent=2)
             print()
         return 0
@@ -1714,7 +1726,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.output:
         patched_json = _patch_full_json(analysis, affected, patched_dets, changes_legacy)
         try:
-            atomic_write_text(args.output, json.dumps(patched_json, indent=2))
+            atomic_write_text(args.output, json.dumps(patched_json, indent=2), follow_symlinks=False)
         except OSError as e:
             print(f"Error: cannot write {args.output}: {e}", file=sys.stderr)
             return 1

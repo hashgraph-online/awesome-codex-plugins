@@ -145,17 +145,20 @@ it supports; it was **not** re-tested here unless the table above has a test.
 
 | SDK | Latest release (date) | Declared Bot API | 10.3 | 10.4 | Source |
 |---|---|---|---|---|---|
-| aiogram (Python) | 3.31.0 (2026-08-25) | 10.3 | yes | **no release yet** | GitHub release notes, PyPI |
+| aiogram (Python) | 3.32.0 (2026-11-15) | 10.4 | yes | **yes**: `bot.send_widget` … `edit_shared_widget_data`, `Update.widget_query` / `shared_widget_query`, router observers `widget_query` / `shared_widget_query` | PyPI wheel inspected 2026-11-15 (PR #2004); not routing-tested here — the pinned contract test is still 3.31.0 |
 | python-telegram-bot (Python) | 22.8 (2026-06-12) | 10.0 | no | no | README badge, PyPI |
 | pyTelegramBotAPI (Python) | 4.37.1 (2026-10-17); 4.37.0 notes "Bot API support bumped up to v.10.3" | 10.3 | yes (declared) | no | GitHub release notes, PyPI |
 | grammY (TypeScript) | 1.46.0 (2026-08-26) | 10.3 | yes | **no release yet** | GitHub release notes, npm |
 | Telegraf (TypeScript) | 4.16.3 (2024-02-29) | 7.1 | no | no | README, npm — unmaintained for new API versions |
+| node-telegram-bot-api (TypeScript) | 2.4.0 (2026-11-09) | 10.4 | not checked | yes (declared): `sendWidget`, `sendSharedWidget`, `answerWidgetQuery`, `editSharedWidgetData` in the published build | npm tarball inspected 2026-11-15; not tested here |
 | go-telegram/bot (Go) | 1.28.0 (2026-11-09) | 10.4 | yes (declared) | yes (declared) | README, GitHub release notes; not tested here |
 | tdlib/telegram-bot-api (server) | commit "Update version to 10.4." (2026-11-09) | 10.4 | yes | yes | GitHub commits |
 
 Consequences:
 
-- On every Python/TypeScript SDK above, 10.4 features (widgets, `widget_query`,
+- aiogram ≥ 3.32.0 and node-telegram-bot-api ≥ 2.4.0 ship the widget methods: use them
+  natively and still list `widget_query` / `shared_widget_query` in `allowed_updates` if you
+  pass that list by hand. On every other Python/TypeScript SDK above (and aiogram ≤ 3.31), 10.4 features (widgets, `widget_query`,
   `getUniqueGift`, chat share themes, TON wallet types, ephemeral callback replies
   without `receiver_user_id`) need the raw-call adapters
   (`examples/python/sdk_aiogram/adapter.py`, `examples/ts/sdk-grammy/adapter.ts`) and

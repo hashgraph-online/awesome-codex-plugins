@@ -203,14 +203,14 @@ python3 <skill-path>/scripts/fetch_datasheet_lcsc.py --search "C14663" --json
 ```
 
 The script:
-- **OS-agnostic** — uses `requests` → `urllib` → `playwright` fallback chain (no wget/curl)
+- **OS-agnostic** — uses `requests` → `urllib` → `playwright` fallback chain (no wget/curl; `requests` 2.32.2 or newer; `playwright` only with `datasheets.allow_private_hosts`)
 - **Refuses another part** — a `--search` hit that is a different part is not downloaded (exit 2); a family match is accepted
 - **Validates PDF headers** — rejects HTML error pages
 - **Falls back to alternative manufacturer sources** when LCSC URL fails
 - **Exit codes**: 0 = success, 1 = download failed, 2 = search/API error
 - **Dependencies**:
   - `pip install requests` (recommended; urllib fallback works fine for LCSC)
-  - `pip install playwright && playwright install chromium` (optional; rarely needed for LCSC)
+  - `pip install playwright && playwright install chromium` (optional; rarely needed for LCSC; used only with `datasheets.allow_private_hosts` set in `~/.kicad-happy.json`)
 
 ## LCSC Official API (Requires Approval)
 

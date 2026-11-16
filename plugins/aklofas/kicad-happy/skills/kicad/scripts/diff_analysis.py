@@ -23,7 +23,7 @@ import sys
 
 from analysis_cache import reviewed_overlay
 from finding_schema import group_findings_by_detection_type
-from kicad_core.fileio import atomic_write_text
+from kicad_core.fileio import atomic_write_text, json_load
 from kicad_core.render import fmt_g4, fmt_signed, summary_or_title
 from kicad_core.cli import add_only_deterministic_arg, add_output_arg, add_text_arg, utf8_text_stdout
 from diff_engine import (
@@ -40,7 +40,27 @@ from diff_engine import (
 MAX_TEXT_ITEMS = 20
 
 
-def format_text(output):
+ANALYZER_ONLY_NOTE = ("Design files are unchanged (same source hashes); "
+                      "these changes come from the analyzer, not the design.")
+
+
+def _same_design(base, head):
+    """True when both runs hashed byte-identical source files with the same config.
+
+    The hash keys are absolute paths and differ between checkouts, so only
+    the values are compared.
+    """
+    ins = [d.get("inputs") for d in (base, head)]
+    if not all(isinstance(i, dict) for i in ins):
+        return False
+    hashes = [i.get("source_hashes") for i in ins]
+    if not all(isinstance(h, dict) and h for h in hashes):
+        return False
+    return (sorted(map(str, hashes[0].values())) == sorted(map(str, hashes[1].values()))
+            and ins[0].get("config_hash") == ins[1].get("config_hash"))
+
+
+def format_text(output, same_design=False):
     """Format diff output as human-readable text."""
     lines = []
     atype = output.get("analyzer_type", "?")
@@ -57,6 +77,9 @@ def format_text(output):
     if not changed and not regressions:
         lines.append("  No changes detected.")
         return "\n".join(lines)
+
+    if same_design:
+        lines.append(f"  {ANALYZER_ONLY_NOTE}")
 
     s = summary
     lines.append(f"  +{s['added']} added, -{s['removed']} removed, ~{s['modified']} modified")
@@ -287,7 +310,7 @@ def _extract_trends(analysis_dir, output_type, n_runs):
             continue
         try:
             with open(path, encoding="utf-8") as f:
-                data = json.load(f)
+                data = json_load(f)
         except (ValueError, OSError):
             continue
 
@@ -465,7 +488,7 @@ def main(argv: list[str] | None = None) -> int:
                 p = Path(overlay)
         try:
             with open(p, encoding="utf-8") as f:
-                return json.load(f)
+                return json_load(f)
         except (json.JSONDecodeError, OSError) as e:
             print(f"Error reading {label} file {path}: {e}", file=sys.stderr)
             sys.exit(1)
@@ -555,13 +578,16 @@ def main(argv: list[str] | None = None) -> int:
         output["regressions"] = regressions
         output["summary"]["regressions"] = len(regressions)
 
+    same_design = _same_design(base, head)
     if args.text:
-        text = format_text(output)
+        text = format_text(output, same_design=same_design)
         if args.output:
             atomic_write_text(args.output, text, follow_symlinks=False)
         else:
             print(text)
     else:
+        if same_design and (output["has_changes"] or regressions):
+            print(ANALYZER_ONLY_NOTE, file=sys.stderr)
         output_json = json.dumps(output, indent=2)
         if args.output:
             atomic_write_text(args.output, output_json, follow_symlinks=False)

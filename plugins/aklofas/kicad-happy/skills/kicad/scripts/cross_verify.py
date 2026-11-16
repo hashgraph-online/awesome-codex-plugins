@@ -24,6 +24,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from kicad_core.fileio import atomic_write_text, json_load  # noqa: E402
 from kicad_core.pairing import pair_by_path  # noqa: E402
 
 
@@ -644,23 +645,21 @@ def main():
     args = parser.parse_args()
 
     with open(args.schematic, encoding="utf-8") as f:
-        sch = json.load(f)
+        sch = json_load(f)
     with open(args.pcb, encoding="utf-8") as f:
-        pcb = json.load(f)
+        pcb = json_load(f)
 
     thermal = None
     if args.thermal:
         with open(args.thermal, encoding="utf-8") as f:
-            thermal = json.load(f)
+            thermal = json_load(f)
 
     report = cross_verify(sch, pcb, thermal)
 
     output = json.dumps(report, indent=2)
     if args.output:
         os.makedirs(os.path.dirname(os.path.abspath(args.output)) or ".", exist_ok=True)
-        with open(args.output, "w", encoding="utf-8", newline="\n") as f:
-            f.write(output)
-            f.write("\n")
+        atomic_write_text(args.output, output + "\n", follow_symlinks=False)
         print(f"Written to {args.output}", file=sys.stderr)
     else:
         print(output)

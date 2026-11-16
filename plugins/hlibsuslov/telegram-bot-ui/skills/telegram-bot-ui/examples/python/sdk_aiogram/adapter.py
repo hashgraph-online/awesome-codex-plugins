@@ -1,5 +1,8 @@
 """aiogram 3.31.0 (Bot API 10.3) adapter for Bot API 10.4 widgets.
 
+aiogram 3.32.0 (2026-11-15) implements Bot API 10.4 itself (`bot.send_widget`,
+`router.widget_query`): use that and drop this adapter once you can upgrade.
+
 Verified locally on 2026-11-12 against aiogram 3.31.0 from PyPI:
 * `Update` keeps unknown keys (pydantic extra="allow"), so `widget_query` is in
   `update.model_extra` - but `update.event_type` raises UpdateTypeLookupError and

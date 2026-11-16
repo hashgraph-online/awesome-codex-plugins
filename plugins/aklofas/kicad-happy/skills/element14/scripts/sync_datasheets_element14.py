@@ -29,7 +29,7 @@ Environment:
 
 Dependencies:
     - requests (pip install requests) — strongly recommended
-    - playwright (pip install playwright && playwright install chromium) — optional
+    - playwright (pip install playwright && playwright install chromium) — optional, only with datasheets.allow_private_hosts
 """
 
 import sys

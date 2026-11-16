@@ -11,15 +11,12 @@
 .tr { position: relative; height: 32px; touch-action: pan-y; cursor: pointer }
 .ln { position: absolute; top: 13px; left: 0; right: 0; height: 6px; border-radius: 3px; background: var(--k-sec); overflow: hidden }
 .ln i { display: block; height: 100%; background: var(--k-btn) }
-.th { position: absolute; left: 0 }
-[dir=rtl] .th { left: auto; right: 0 }
-.th { top: 4px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: var(--k-btn); box-sizing: border-box; border: 3px solid var(--k-bg) }
-[dir=rtl] .th { margin: 0 -12px 0 0 }
+.th { position: absolute; left: 0; top: 4px; width: 24px; height: 24px; margin-left: -12px; border-radius: 50%; background: var(--k-btn); box-sizing: border-box; border: 3px solid var(--k-bg) }
+[dir=rtl] .th { left: auto; right: 0; margin: 0 -12px 0 0 }
 .vl .gr { text-align: center }
 .vl b { font-size: 1.33em; font-weight: 600 }
 .vl .ch { min-width: 44px }
-.bn { margin-top: 8px }
-.bn { color: var(--k-ok) } .bn.t { color: var(--k-warn) }
+.bn { margin-top: 8px; color: var(--k-ok) } .bn.t { color: var(--k-warn) }
 .hn { color: var(--k-bad); font-size: .87em }
 </style>
 <div class="k">
@@ -39,21 +36,21 @@
 <script>
 /*@lang en*/K.add({ en: { above: "Above", below: "Below", once: "Once", every: "Every time", save: "Save alert", upd: "Update", saved: "Saved", act: "Active", trg: "Triggered", bad: "Wrong side of the price", none: "No data yet. The bot will fill this in." } });/*@end*/
 /*@lang ru*/K.add({ ru: { above: "Выше", below: "Ниже", once: "Один раз", every: "Каждый раз", save: "Сохранить", upd: "Обновить", saved: "Сохранено", act: "Активно", trg: "Сработало", bad: "Не с той стороны от цены", none: "Данных пока нет." } });/*@end*/
-/*@lang uk*/K.add({ uk: { above: "Вище", below: "Нижче", once: "Один раз", every: "Щоразу", save: "Зберегти", upd: "Оновити", saved: "Збережено", act: "Активно", trg: "Спрацювало", bad: "Не з того боку від ціни", none: "Даних поки немає." } });/*@end*/
+/*@lang uk*/K.add({ uk: { above: "Вище", below: "Нижче", once: "Один раз", every: "Щоразу", save: "Зберегти", upd: "Оновити", saved: "Збережено", act: "Активно", trg: "Спрацювало", bad: "Не з того боку від ціни", none: "Даних ще немає." } });/*@end*/
 var L = { r: -1, dir: "above", th: 0, mode: "once" }, drag = 0;
 function fmt(c) { return K.nf(c / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 function range(s) { return [Math.floor(s.px * .7 / 5) * 5, Math.ceil(s.px * 1.3 / 5) * 5]; }
 function valid(s) { return L.dir == "above" ? L.th > s.px : L.th < s.px; }
 function put(el, f) {
   var rtl = document.documentElement.dir == "rtl";
-  el.style[rtl ? "right" : "left"] = (f * 100) + "%";
+  el.style[rtl ? "right" : "left"] = f * 100 + "%";
 }
 function upd() {
   var s = K.S.chatData, $ = K.$;
   if (!s) return;
   var r = range(s), span = r[1] - r[0], f = (L.th - r[0]) / span;
   put($("th"), f);
-  $("fl").style.width = (f * 100) + "%";
+  $("fl").style.width = f * 100 + "%";
   $("vl").textContent = fmt(L.th);
   var d = (L.th - s.px) / s.px * 100;
   $("ds").textContent = (d > 0 ? "+" : "") + d.toFixed(1) + "%";

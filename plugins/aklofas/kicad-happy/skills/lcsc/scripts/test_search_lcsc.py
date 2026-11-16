@@ -364,6 +364,47 @@ class TestMainCli(unittest.TestCase):
 
     @patch("search_lcsc.search_lcsc_direct")
     @patch("search_lcsc.search_jlcsearch")
+    def test_cli_in_stock_keeps_exact_code_row_whose_stock_comes_from_lcsc(self, mock_search, mock_direct):
+        row = dict(SEARCH_HIT)
+        del row["stock"]
+        mock_search.return_value = [row]
+        mock_direct.return_value = dict(json.loads(json.dumps(WMSC_DIRECT)), stock=1234)
+        code, output = self._run(["C318884", "--json", "--in-stock"])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["components"][0]["stock"], 1234)
+        self.assertEqual(mock_direct.call_count, 1)
+
+    @patch("search_lcsc.search_lcsc_direct")
+    @patch("search_lcsc.search_jlcsearch", return_value=[])
+    def test_cli_direct_outage_after_empty_jlcsearch_exits_2(self, mock_search, mock_direct):
+        def fail(code):
+            from distributor_core.download import note_transport_failure
+            note_transport_failure(ConnectionResetError("reset"))
+            return None
+        mock_direct.side_effect = fail
+        err = io.StringIO()
+        with patch("sys.stderr", err):
+            code, _ = self._run(["C318884", "--json"])
+        self.assertEqual(code, 2)
+        self.assertIn("LCSC", err.getvalue())
+
+    @patch("search_lcsc.search_lcsc_direct")
+    @patch("search_lcsc.search_jlcsearch", side_effect=OSError("down"))
+    def test_cli_double_failure_names_both_endpoints(self, mock_search, mock_direct):
+        def fail(code):
+            from distributor_core.download import note_transport_failure
+            note_transport_failure(ConnectionResetError("reset"))
+            return None
+        mock_direct.side_effect = fail
+        err = io.StringIO()
+        with patch("sys.stderr", err):
+            code, _ = self._run(["C318884", "--json"])
+        self.assertEqual(code, 2)
+        self.assertIn("jlcsearch", err.getvalue())
+        self.assertIn("LCSC", err.getvalue())
+
+    @patch("search_lcsc.search_lcsc_direct")
+    @patch("search_lcsc.search_jlcsearch")
     def test_cli_double_network_failure_exits_2(self, mock_search, mock_direct):
         mock_search.side_effect = OSError("down")
 
@@ -421,6 +462,23 @@ class TestMainCli(unittest.TestCase):
         mock_search.return_value = []
         code, _ = self._run(["nonexistent_part"])
         self.assertEqual(code, 1)
+
+    @patch("search_lcsc._ENRICH_DELAY_S", 0)
+    @patch("search_lcsc.search_lcsc_direct")
+    @patch("search_lcsc.search_jlcsearch")
+    def test_cli_keyword_details_in_stock_judges_lcsc_stock(self, mock_search, mock_direct):
+        row = dict(SEARCH_HIT)
+        del row["stock"]
+        mock_search.return_value = [row]
+        mock_direct.return_value = dict(json.loads(json.dumps(WMSC_DIRECT)), stock=1234)
+        code, output = self._run(["tactile", "--details", "--in-stock", "--json"])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(output)["components"][0]["stock"], 1234)
+        self.assertEqual(mock_direct.call_count, 1)
+        mock_direct.reset_mock()
+        code, _ = self._run(["tactile", "--in-stock", "--json"])
+        self.assertEqual(code, 1)
+        mock_direct.assert_not_called()
 
     @patch("search_lcsc.search_lcsc_direct")
     @patch("search_lcsc.search_jlcsearch")

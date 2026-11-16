@@ -8,16 +8,22 @@ construction.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from kicad_core.model import PinNetEntry
 from kicad_core.netquery import build_pin_to_net_map
 from kicad_core.netnames import (
-    configured_rail_voltage, is_ground_name, is_pin_guarded_signal, is_power_net_name, rail_matches,
+    configured_rail_voltage, is_ground_name, is_pin_guarded_signal, is_power_net_name, is_vss_name,
+    net_leaf, rail_matches,
 )
 from kicad_core.diagnostics import record
 from kicad_core.values import AmbiguousValueSeparator, ambiguous_separator, parse_value
+
+if TYPE_CHECKING:
+    from netlist_queries import NetlistQueries
 
 _AMBIGUOUS_RECORD_CAP = 20
 _AMBIGUOUS_EFFECT = "value not parsed; value-based checks skip the part"
@@ -58,6 +64,15 @@ def scan_power_rails(nets: dict[str, dict]) -> set[str]:
     return rails
 
 
+def power_symbol_com_nets(nets: dict[str, dict], comp_lookup: dict[str, dict]) -> set[str]:
+    """``COM`` nets a ``power_symbol``-typed part sits on, whatever its reference (an
+    imported symbol can keep ``#U$01``)."""
+    return {name for name, info in nets.items()
+            if net_leaf(name).upper() == "COM"
+            and any((comp_lookup.get(p["component"]) or {}).get("type") == "power_symbol"
+                    for p in info.get("pins", []))}
+
+
 def index_ref_pins(pin_net: dict) -> dict[str, dict[str, PinNetEntry]]:
     rp: dict[str, dict[str, PinNetEntry]] = {}
     for (comp_ref, pin_num), val in pin_net.items():
@@ -90,6 +105,9 @@ class AnalysisContext:
             successfully are included.  Built by ``build_analysis_context``.
         known_power_rails: Net names connected to power symbols (``#PWR``, ``#FLG``).
             Used by ``is_power_net()`` to distinguish power rails from signal nets.
+        ground_name_rails: The rail set ``is_ground()`` reads (it decides ``COM`` and
+            ``0``): ``known_power_rails`` plus every ``COM`` net a ``power_symbol``-typed
+            part names, whatever its reference. Built by ``build_analysis_context``.
         ref_pins: Per-component pin map.  ``{ref: {pin_number: (net_name, net_record)}}``.
             Derived from *pin_net* for quick per-component pin enumeration.
         no_connects: List of no-connect markers from the schematic.
@@ -128,6 +146,7 @@ class AnalysisContext:
     comp_lookup: dict[str, dict] = field(default_factory=dict)
     parsed_values: dict[str, float] = field(default_factory=dict)
     known_power_rails: set[str] = field(default_factory=set)
+    ground_name_rails: frozenset = field(default_factory=frozenset, repr=False)
     ref_pins: dict[str, dict[str, PinNetEntry]] = field(default_factory=dict)
     no_connects: list[dict] = field(default_factory=list)
     source: str = "unknown"
@@ -137,6 +156,7 @@ class AnalysisContext:
     diagnostics: list = field(default_factory=list, repr=False)
     pin_guarded_signals: frozenset = field(default_factory=frozenset, repr=False)
     topology_rails: frozenset = field(default_factory=frozenset, repr=False)
+    vss_supply_rails: frozenset = field(default_factory=frozenset, repr=False)
     rail_by_net: dict[str, float] = field(default_factory=dict, repr=False)
     rail_overrides: dict[str, float] = field(default_factory=dict, repr=False)
     rail_ignore: tuple[str, ...] = field(default=(), repr=False)
@@ -149,7 +169,7 @@ class AnalysisContext:
             or (by_pins and name in self.topology_rails))
 
     def is_ground(self, name: str | None) -> bool:
-        return is_ground_name(name, self.known_power_rails)
+        return is_ground_name(name, self.ground_name_rails)
 
     def rail_voltage(self, net: str | None) -> float | None:
         """Voltage of the exact net *net* (full hierarchical name) from the rail map.
@@ -208,6 +228,29 @@ def pin_guarded_signal_nets(nets: dict[str, dict], comp_lookup: dict[str, dict],
             for p in info.get("pins", [])]))
 
 
+def vss_supply_rail_nets(ctx: AnalysisContext) -> frozenset[str]:
+    """Ground-named VSS nets that a regulator output drives: a supply below ground, though
+    the parts on it still read it as their ground.
+
+    A power output pin not itself named ground or VSS sits on the net, and its part has a
+    pin on another, ground-named net (its own reference): a negative LDO's OUT on VSS, an
+    isolated converter's -Vout on VSSA."""
+    found = set()
+    for name, info in ctx.nets.items():
+        if not (is_vss_name(name) and ctx.is_ground(name)):
+            continue
+        for p in info.get("pins", []):
+            pin_name = p.get("pin_name") or ""
+            if (str(p.get("pin_type") or "").split("+")[0] != "power_out"
+                    or is_ground_name(pin_name) or is_vss_name(pin_name)):
+                continue
+            if any(n != name and ctx.is_ground(n) and not is_vss_name(n)
+                   for n, _ in ctx.ref_pins.get(p.get("component"), {}).values()):
+                found.add(name)
+                break
+    return frozenset(found)
+
+
 def build_analysis_context(components: list[dict], nets: dict[str, dict], lib_symbols: dict, *,
                            no_connects: list[dict] | None = None,
                            source: str = "unknown",
@@ -227,19 +270,23 @@ def build_analysis_context(components: list[dict], nets: dict[str, dict], lib_sy
     diagnostics: list = []
     comp_lookup, parsed_values = index_components(components, diagnostics)
     rails = scan_power_rails(nets) if known_power_rails is None else known_power_rails
+    ground_rails = frozenset(rails if known_power_rails is not None
+                             else rails | power_symbol_com_nets(nets, comp_lookup))
     ctx = AnalysisContext(
         components=components, nets=nets, lib_symbols=lib_symbols, pin_net=pin_net,
         comp_lookup=comp_lookup, parsed_values=parsed_values, known_power_rails=rails,
+        ground_name_rails=ground_rails,
         ref_pins=index_ref_pins(pin_net),
         no_connects=no_connects if no_connects is not None else [],
         source=source,
         cache_dir=cache_dir, project_dir=project_dir, diagnostics=diagnostics,
         pin_guarded_signals=pin_guarded_signal_nets(nets, comp_lookup, rails),
     )
+    ctx.vss_supply_rails = vss_supply_rail_nets(ctx)
     if power_rails_config:
         ctx.rail_overrides = {
             k: v for k, v in (power_rails_config.get("voltage_overrides") or {}).items()
-            if isinstance(v, (int, float)) and not isinstance(v, bool)}
+            if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)}
         ctx.rail_ignore = tuple(
             p for p in (power_rails_config.get("ignore") or ()) if isinstance(p, str))
     from schematic.net_analysis import topology_rail_nets  # local: net_analysis imports this module

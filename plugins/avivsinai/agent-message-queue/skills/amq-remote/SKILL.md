@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.147.0 # x-release-please-version
+version: 0.149.1 # x-release-please-version
 description: Let the owner reach this running agent from Buzz, on the phone or in Buzz Desktop. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -145,8 +145,9 @@ command's own message. Do not work around a refusal.
      cannot interrupt a Claude turn."
    - Claude with the hook installed: "Every approval dialog of this session
      shows in its Buzz channel with its options. ✅ or ❌, or a reply with the option
-     number, answers it. The first answer, in Buzz or in the terminal,
-     wins."
+     number, answers it. A question with one single-select question shows
+     its choices; reply with the number or your own text. The first answer,
+     in Buzz or in the terminal, wins."
    - Claude in a machine agent channel: "The channel also shows each turn this
      session finishes; type `mirror off` there, or run `/amq-remote mirror
      off`, to stop it."

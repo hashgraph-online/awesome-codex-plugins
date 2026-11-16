@@ -75,7 +75,7 @@ Checks that signal layer transitions (vias) have nearby ground stitching vias fo
 Identifies parallel trace pairs violating the 3H spacing rule (spacing ≥ 3× dielectric height). Uses `trace_proximity` data from `--proximity` mode. Classifies severity based on aggressor/victim roles (clock or high-speed net near an analog, ADC or sense net = error).
 
 ### Category 14: EMI Filter Verification (rules EF-xxx)
-Validates that input LC filters on switching regulators have cutoff frequencies sufficiently below the switching frequency (ratio ≥5). Uses SPICE insertion loss analysis when available for improved accuracy.
+Validates that input LC filters on switching regulators have cutoff frequencies sufficiently below the switching frequency (ratio ≥5).
 
 ### Category 15: ESD Protection Path (rules ES-xxx)
 Checks TVS/ESD device proximity to protected connectors and ground via density near TVS devices. Based on IEC 61000-4-2 ESD path inductance requirements.
@@ -113,7 +113,7 @@ confidence_weight: deterministic and datasheet-backed 1.0, heuristic 0.5
 - **warning:** May cause issues depending on specifics. Decoupling distance, clock on outer layer, via stitching gaps.
 - **info:** Informational or minor risk. Internal header filtering, signal layer spacing, interplane capacitance, cavity resonance frequencies, harmonic spectrum data, and the SU-001 note on two-layer boards.
 
-The analyzer output uses only these three names. `--severity` still takes the older five-level names as its threshold: `critical` and `high` keep error findings, `medium` keeps error and warning, `low` and `all` keep everything.
+The analyzer output uses only these three names. `--severity` takes `error`, `warning` or `info`, or the older five-level names: `critical` and `high` keep error findings, `medium` keeps error and warning, `low` and `all` keep everything.
 
 ## Limitations
 
@@ -131,11 +131,9 @@ The analyzer output uses only these three names. `--severity` still takes the ol
 
 ## SPICE-Enhanced Mode
 
-When `--spice-enhanced` is passed and a SPICE simulator is detected (via the `spice` skill's `detect_simulator()`), two checks use AC analysis for improved accuracy:
+When `--spice-enhanced` is passed and a SPICE simulator is detected (via the `spice` skill's `detect_simulator()`), the PDN check uses AC analysis for improved accuracy:
 
 - **PDN impedance (PD-001/PD-002):** Generates an AC sweep testbench with series R-L-C models for each decoupling cap and a 1A current source. Measures V(rail) = Z(f) across 1 kHz to 1 GHz. Sweeps the same RLC network the analytical model sums, with the same package-estimated ESR and ESL; PD-001/PD-002 stay `heuristic`. The SPICE path uses `SpiceTestbench` from `spice_templates.py` for portable rendering across ngspice/LTspice/Xyce.
-
-- **EMI filter (EF-001/EF-002):** Simulates actual insertion loss of the input LC filter including cap parasitics (ESR + ESL). Reports attenuation in dB at the switching frequency and 3rd harmonic.
 
 Implementation: `emc_spice.py` imports from the spice skill's `spice_simulator.py` and `spice_templates.py`. Falls back to analytical if import fails or simulation errors.
 

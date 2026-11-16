@@ -262,8 +262,17 @@ shape as anywhere else:
   carried, not modelled. A private metric or fact is marked `access: private`.
 - **`sample_values` never reach you.** Only their count does: Snowflake does not
   mask them.
-- **`query` and `values` refuse until #1290.** Use `explore profile` and
-  `explore query` on the relations the catalog names.
+- **`query` and `values` run against the deployed view, on Snowflake only.**
+  Use the catalog's tokens, one view per query
+  (`sales.orders.revenue --group-by sales.customers.segment`). Facts never go beside a metric or a
+  dimension: query them alone (`--group-by sales.orders.total_price`). A grain
+  is written on the time dimension (`sales.orders.order_date__month`); there is
+  no `--grain` alone. `--where` takes dimensions and facts, never a metric.
+- **A refusal naming a difference means the deployment is stale.** Dex reads
+  the deployed view back and refuses when what the query relies on differs from
+  the repository's file. Report it; redeploying is the maintainer's, never
+  Dex's. `explore semantic list --deployed` shows what the account holds, and
+  its `coverage` says per view whether the read was full.
 
 ## When the layer is SLayer models
 

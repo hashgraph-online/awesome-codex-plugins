@@ -20,6 +20,8 @@ _GENERIC_VALUE_RE = re.compile(
     r"|^[\d.]+\s*[pnuμm]?[Ff]$"               # 100pF, 10uF
     r"|^[\d.]+\s*[pnuμm]?[Hh]$"               # 10uH
     r"|^[\d.]+%$"                               # 1%
+    r"|^[\d.]+\s*[kK]?V(?:DC|AC)?$"             # 50V, 1kV
+    r"|^(?:X[5-8][PRSTUV]|Y5V|Z5U|C0G|COG|NP0|NPO)$"   # dielectric
     r"|^DNP$|^NC$|^N/?A$",
     re.IGNORECASE,
 )
@@ -54,7 +56,7 @@ def get_analyzer_output(input_path: Path) -> dict | None:
         try:
             with open(input_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-        except (OSError, ValueError) as e:
+        except (OSError, ValueError, RecursionError) as e:
             print(f"Error: cannot read {input_path}: {e}", file=sys.stderr)
             return None
         if not isinstance(data, dict):

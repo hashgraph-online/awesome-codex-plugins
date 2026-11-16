@@ -141,8 +141,16 @@ def extract_setup(root: list) -> dict:
     if stackup:
         stack_layers = []
         _NUMERIC_STACKUP_KEYS = {"thickness", "epsilon_r", "loss_tangent"}
+        seen_board_layers: set = set()
         for layer in find_all(stackup, "layer"):
             layer_info = {"name": layer[1] if len(layer) > 1 else ""}
+            # KiCad stops reading the stackup at the first board layer listed twice
+            # (dielectric names may repeat)
+            if get_value(layer, "type") not in ("core", "prepreg") and \
+                    not str(layer_info["name"]).startswith("dielectric"):
+                if layer_info["name"] in seen_board_layers:
+                    break
+                seen_board_layers.add(layer_info["name"])
             for item in layer[2:]:
                 if isinstance(item, list) and len(item) >= 2:
                     key, val = item[0], item[1]
@@ -341,6 +349,13 @@ def _file_version(root: list) -> int:
         return 20201115
 
 
+def _footprint_nodes(root: list) -> list[list]:
+    """Top-level (footprint ...) and KiCad 5 (module ...) nodes in file order; KiCad loads both
+    forms from one file."""
+    return [child for child in root if isinstance(child, list) and child
+            and child[0] in ("footprint", "module")]
+
+
 def extract_footprints(root: list, diagnostics: list | None = None) -> list[dict]:
     """Extract all placed footprints with pad details.
 
@@ -350,10 +365,14 @@ def extract_footprints(root: list, diagnostics: list | None = None) -> list[dict
     footprints = []
     file_version = _file_version(root)
 
-    # KiCad 6+: (footprint ...), KiCad 5: (module ...)
-    fp_nodes = find_all(root, "footprint") or find_all(root, "module")
+    fp_nodes = _footprint_nodes(root)
 
     for fp in fp_nodes:
+        # KiCad keeps the largest version it has parsed, footprint-level ones included.
+        try:
+            file_version = max(file_version, int(get_value(fp, "version")))
+        except (TypeError, ValueError):
+            pass
         fp_lib = fp[1] if len(fp) > 1 else ""
         at = get_at(fp)
         x, y, angle = at if at else (0, 0, 0)
@@ -495,10 +514,19 @@ def extract_footprints(root: list, diagnostics: list | None = None) -> list[dict
             if pad_type == "np_thru_hole":
                 pad_info.update(_npth_copper_props(pad, pad_drill))
 
-            # Fabrication property (fiducial, test point, ...); the last token wins
-            prop_node = find_first(pad, "property")
-            prop = prop_node[-1] if prop_node and len(prop_node) > 1 else None
-            if isinstance(prop, str) and prop in _PAD_PROPERTIES:
+            # Fabrication property (fiducial, test point, ...): KiCad reads every token of
+            # every property node; the last known one wins and `none` clears it.
+            prop = None
+            for pn in pad:
+                if isinstance(pn, list) and pn[:1] == ["property"]:
+                    for t in pn[1:]:
+                        if not isinstance(t, str):
+                            continue
+                        if t in _PAD_PROPERTIES:
+                            prop = t
+                        elif t == "none":
+                            prop = None
+            if prop:
                 pad_info["_property"] = prop
 
             if pad_net and len(pad_net) >= 3:
@@ -1404,6 +1432,15 @@ def extract_zones(root: list) -> tuple[list[dict], ZoneFills]:
         if keepout_restrictions:
             zone_info["is_keepout"] = True
             zone_info["keepout"] = keepout_restrictions
+            # KiCad reads the first (polygon) as the outline and every later one as a hole
+            outline_polys = []
+            for poly_node in find_all(zone, "polygon"):
+                pts = find_first(poly_node, "pts")
+                ring = _extract_polygon_coords(pts) if pts else []
+                if len(ring) >= 3:
+                    outline_polys.append(ring)
+            if outline_polys:
+                zone_info["_outline_polys"] = outline_polys
         if priority is not None:
             zone_info["priority"] = int(priority)
         if zone_name:
@@ -1453,6 +1490,8 @@ def _extract_keepout_zones(zones: list[dict],
             'net': z.get('net', 0),
             'net_name': z.get('net_name', ''),
         }
+        if z.get('_outline_polys'):
+            entry['_outline_polys'] = z['_outline_polys']
         # Find footprints near this keepout zone
         if bbox and len(bbox) == 4:
             margin = 5.0  # mm
@@ -1468,6 +1507,15 @@ def _extract_keepout_zones(zones: list[dict],
                 r for r in nearby if r)
         keepouts.append(entry)
     return keepouts
+
+
+def has_footprint_edge_cuts(root: list) -> bool:
+    """True when a footprint draws on Edge.Cuts (the board outline reads gr_* items only)."""
+    for fp in _footprint_nodes(root):
+        for item_type in ("fp_line", "fp_arc", "fp_circle", "fp_rect", "fp_poly", "fp_curve"):
+            if any(get_value(item, "layer") == "Edge.Cuts" for item in find_all(fp, item_type)):
+                return True
+    return False
 
 
 def extract_board_outline(root: list) -> dict:
@@ -1688,7 +1736,7 @@ def extract_silkscreen(root: list, footprints: list[dict]) -> dict:
 
     # ---- Per-footprint silkscreen text analysis ----
     # Parse raw footprint nodes for fp_text / property visibility on silk layers
-    fp_nodes = find_all(root, "footprint") or find_all(root, "module")
+    fp_nodes = _footprint_nodes(root)
 
     refs_visible = 0
     refs_hidden = 0
@@ -1794,7 +1842,11 @@ def extract_silkscreen(root: list, footprints: list[dict]) -> dict:
     has_revision = bool(tb_rev)
 
     if not has_revision:
-        rev_pattern = re.compile(r'\b(?:REV|VER|VERSION)\b|(?<!\w)[RV]\d', re.IGNORECASE)
+        # 'rev2', 'Ver1.0', 'board_v1.1': a digit right after the word or a dotted V-number;
+        # the lookbehind keeps rail text such as 3V3 / 5V0 out
+        rev_pattern = re.compile(r'\b(?:REV|VER|VERSION)\b|(?<!\w)[RV]\d'
+                                 r'|(?<![A-Z0-9])(?:REV|VER|VERSION)\s*[-_.]?\s*\d'
+                                 r'|(?<![A-Z0-9])V\d+\.\d', re.IGNORECASE)
         has_revision = any(rev_pattern.search(t) for t in all_silk_text)
 
     if not has_revision:

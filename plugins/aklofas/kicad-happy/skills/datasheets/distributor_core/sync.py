@@ -11,7 +11,8 @@ progress and errors go to stderr.
 
 A ``not_found`` or ``failed`` whose search or download failed in transport
 (``distributor_core.download`` records it) is stored as ``error`` so the next run retries it, and
-any result but ``ok`` keeps an ``ok`` entry whose file is still on disk. A failure names
+any result but ``ok`` keeps an ``ok`` entry whose file is still on disk, as does an ``ok``
+refresh that verifies as a different part and was saved under another name. A failure names
 the distributors that gave it (``failed_providers``); only those skip it on the next run.
 
 Imports ``distributor_core.inputs``/``manifest``/``download`` and the stdlib only; never a provider.
@@ -54,9 +55,17 @@ def _outage_entry(result: dict, previous: dict, out_dir: Path) -> tuple[dict, di
         said = result.get("error")
         result = {**result, "status": "error",
                   "error": f"{outage}; distributor said: {said}" if said else outage}
-    if result.get("status") == "ok":
-        return result, result
     prev_file = manifest_file_path(out_dir, previous.get("file", ""))
+    if result.get("status") == "ok":
+        if (result.get("verification") == "wrong" and previous.get("status") == "ok"
+                and previous.get("verification") != "wrong"
+                and prev_file is not None and prev_file.is_file()
+                and not _same_file(out_dir, result.get("file"), previous.get("file"))):
+            # With the same name the old file is already overwritten, so only this case can keep it
+            return previous, {**result, "status": "failed",
+                              "error": f"refreshed datasheet {result['file']} looks like a different "
+                                       f"part; kept {previous['file']}"}
+        return result, result
     if previous.get("status") == "ok" and prev_file is not None and prev_file.is_file():
         return previous, result
     return result, result
@@ -189,7 +198,7 @@ def _record(run, part, outcome) -> None:
     run.index.setdefault("parts", {})[part_key] = stored
     if stored is not result:
         run.kept_errors[part_key] = result["error"]
-        replaced = None
+        replaced = _replaced_file(run, part_key, outcome, stored) if outcome.get("status") == "ok" else None
     else:
         replaced = (_replaced_file(run, part_key, previous, stored)
                     if previous.get("status") == "ok" else None)

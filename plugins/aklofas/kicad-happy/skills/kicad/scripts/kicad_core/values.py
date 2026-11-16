@@ -33,6 +33,9 @@ _OHM_SIGNS = str.maketrans({c: "\u03a9" for c in "\u2126\U0001d6c0\U0001d6fa\U00
 _IMPEDANCE_SLASH = re.compile(
     r"\s*[0-9][0-9.,]*\s*(?:[RrZΩ]|[Oo][Hh][Mm][Ss]?)\s*/\s*[0-9][0-9.,]*\s*"
     r"(?:[mu]?A(?:[0-9]+)?|[kMG]?[Hh][Zz])(?![A-Za-z])")
+_LOW_OHM_RATED = re.compile(
+    r"\s*(?:0*[.,][0-9]+|0+)\s*(?:[RrΩ]|[Oo][Hh][Mm][Ss]?)\s*/\s*[0-9][0-9.,]*\s*[mu]?A(?![A-Za-z])")
+_IMPEDANCE_AT = re.compile(r"[0-9]\s*(?:[RrΩ]|[Oo][Hh][Mm][Ss]?)\s*@\s*[0-9][0-9.,]*\s*[kKMG]?[Hh][Zz]")
 _MANTISSA = re.compile(r"[+-]?[0-9][0-9.,]*|[+-]?[.,][0-9][0-9.,]*")
 
 
@@ -121,8 +124,12 @@ def _parse_value(value_str: str, component_type: str | None) -> float | None:
         return None
     value_str = value_str.translate(_MICRO_SIGNS).translate(_OHM_SIGNS)
     # A ferrite's impedance with its test frequency or rated current ("600R/200mA",
-    # "220Ω/100MHz") is not a resistance: None, like "120R@100MHz" below.
-    if _IMPEDANCE_SLASH.match(value_str):
+    # "220Ω/100MHz") is not a resistance: None, like "120R@100MHz" below. A link or shunt
+    # below 1 ohm with its current rating ("0R/2A", "0.1R/3A") keeps its value.
+    if _IMPEDANCE_SLASH.match(value_str) and not _LOW_OHM_RATED.match(value_str):
+        return None
+    # The split on spaces below would leave "600 Ohm @ 100MHz" as 600.
+    if _IMPEDANCE_AT.search(value_str):
         return None
 
     # Strip tolerance, voltage rating, package, and other suffixes

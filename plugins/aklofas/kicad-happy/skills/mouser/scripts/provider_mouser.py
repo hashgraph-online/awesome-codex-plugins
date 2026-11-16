@@ -12,8 +12,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import _core_path  # noqa: F401
-from distributor_core.download import (_USER_AGENT, _requests, download_pdf, note_transport_failure,
-                                       try_alternative_sources)
+from distributor_core.download import (_USER_AGENT, download_pdf, fetch_page_text,
+                                       note_transport_failure, try_alternative_sources)
 from distributor_core.inputs import mpn_from_value
 from distributor_core.verify import downloaded_entry, other_part, pick_requested
 from distributor_core.manifest import friendly_filename
@@ -124,27 +124,7 @@ def scrape_product_page(product_url: str) -> str:
         "Accept-Language": "en-US,en;q=0.9",
     }
 
-    html = ""
-
-    # Try requests first
-    if _requests is not None:
-        try:
-            resp = _requests.get(product_url, headers=headers, timeout=20,
-                                 allow_redirects=True)
-            if resp.status_code == 200:
-                html = resp.text
-        except Exception:
-            pass
-
-    # Fallback to urllib
-    if not html:
-        try:
-            req = urllib.request.Request(product_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=20) as resp:
-                html = resp.read().decode("utf-8", errors="ignore")
-        except Exception:
-            pass
-
+    html = fetch_page_text(product_url, headers=headers)
     if not html:
         return ""
 

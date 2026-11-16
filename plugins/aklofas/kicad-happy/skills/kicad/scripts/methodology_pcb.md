@@ -22,7 +22,7 @@ The analyzer handles both:
 - **KiCad 6+**: `(footprint ...)` blocks, `(property "Reference" "R1")` syntax
 - **KiCad 5**: `(module ...)` blocks, `(fp_text reference "R1")` syntax
 
-Detection is automatic — `find_all(root, "footprint") or find_all(root, "module")`.
+Detection is automatic: every top-level `(footprint ...)` and `(module ...)` block is read, in file order, so a file that mixes both forms (ergogen output) yields all of its parts.
 
 ---
 

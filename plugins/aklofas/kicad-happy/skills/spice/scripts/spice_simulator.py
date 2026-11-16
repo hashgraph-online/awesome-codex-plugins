@@ -27,6 +27,9 @@ import _core_path  # noqa: F401
 from kicad_core.executables import find_executable
 from spice_models import spice_echo
 
+# Signed decimal with an optional signed exponent (1.58e+04, -3.2E-05).
+_NUM = r'[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?'
+
 
 # ---------------------------------------------------------------------------
 # Base class
@@ -337,12 +340,12 @@ class LtspiceBackend(SimulatorBackend):
         for line in text.splitlines():
             line = line.strip()
             # Pattern: "name: ... = value" (end of line)
-            m = re.match(r'^(\w+):\s+.*?=\s*([-+]?[\d.eE]+)', line)
+            m = re.match(r'^(\w+):\s+.*?=\s*(' + _NUM + r')', line)
             if m:
                 results[m.group(1)] = float(m.group(2))
                 continue
             # Pattern: "  AT=value" (continuation line)
-            m = re.match(r'^\s+AT=([-+]?[\d.eE]+)', line)
+            m = re.match(r'^\s+AT=(' + _NUM + r')', line)
             if m:
                 # Associate with the previous measurement
                 pass  # Handled by the main pattern above
@@ -438,7 +441,7 @@ class XyceBackend(SimulatorBackend):
 
         for line in text.splitlines():
             line = line.strip()
-            m = re.match(r'^(\w+)\s*=\s*([-+]?[\d.eE]+)', line)
+            m = re.match(r'^(\w+)\s*=\s*(' + _NUM + r')', line)
             if m:
                 results[m.group(1)] = float(m.group(2))
 

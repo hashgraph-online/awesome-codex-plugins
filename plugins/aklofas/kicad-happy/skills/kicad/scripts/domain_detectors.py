@@ -16,7 +16,7 @@ from collections import Counter
 
 from kicad_types import AnalysisContext
 from kicad_core.classify import is_active_low_enable
-from kicad_core.parts import LOAD_SWITCH_KEYWORDS, lookup_regulator_vref
+from kicad_core.parts import LED_VF_BY_COLOR, LOAD_SWITCH_KEYWORDS, led_color, lookup_regulator_vref
 from kicad_core.values import format_frequency, parse_value
 from kicad_core.netnames import is_vss_name, parse_voltage_from_net_name
 from detector_helpers import (is_led_rail, led_forward_voltage, led_string, match_family,
@@ -264,9 +264,11 @@ def detect_key_matrices(ctx: AnalysisContext) -> list[dict]:
     return key_matrices
 
 
-# ISO anywhere, or a whole _B / _SEC token (3.3V_B, VCC_B2, 5V_SEC_OUT); V_BAT,
-# MIC_BIAS and VCCA_BR are not secondary-side rails.
-_ISOLATED_RAIL = re.compile(r'ISO|_(?:B|SEC)\d*(?=[_/]|$)')
+# ISO anywhere but in MISO (+5VISO, V_ISOOUT), or a whole _B / _SEC token (3.3V_B,
+# VCC_B2, 5V_SEC_OUT); V_BAT, MIC_BIAS and VCCA_BR are not secondary-side rails.
+_ISOLATED_RAIL = re.compile(r'(?<!M)ISO|_(?:B|SEC)\d*(?=[_/]|$)')
+# A _B rail alone (USB_B, bank B, channel B) does not show isolation; ISO and _SEC do.
+_ISOLATION_RAIL_EVIDENCE = re.compile(r'(?<!M)ISO|_SEC\d*(?=[_/]|$)')
 
 
 def _is_isolated_rail_name(net: str) -> bool:
@@ -325,7 +327,7 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
 
             has_iso_evidence = (
                 isolation_components
-                or isolated_power_rails
+                or any(_ISOLATION_RAIL_EVIDENCE.search(n.upper()) for n in isolated_power_rails)
                 or any("ISO" in d.upper() for d in ground_domains if d != "main")
             )
             if has_iso_evidence:
@@ -410,12 +412,16 @@ def detect_isolation_barriers(ctx: AnalysisContext) -> list[dict]:
     return isolation_barriers
 
 
-# Jacks with the 1:1 Ethernet transformers built in (HanRun HR911/HY911, Bel MagJack/SI-60/08B0,
-# Pulse J0011D/J1011F/JXD, Amphenol ARJP/ARJM, Wurth RJLBC, ... per the vendor datasheets).
+# Jacks with the 1:1 Ethernet transformers built in (HanRun HR911/HY911, Bel MagJack/SI-60/
+# SI-46/08B0, Pulse J0011D/J1011F/JXD, Amphenol ARJP/ARJM/RJMG, Abracon ARJC, Wurth RJLBC and
+# 7499010/7499111 LAN transformer jacks, Link-PP LPJ/LPJG, TM211, UDE J1B1, ... per the vendor
+# datasheets).
 _INTEGRATED_MAG_KEYWORDS = (
-    "magjack", "mag_jack", "hr911", "hr961", "hy911", "hfj11", "lpj0", "lpj1", "lpj4",
-    "arjp", "arjm", "rjlbc", "j0011d", "j1011f", "jxd0", "jxd1", "08b0", "rb1-1", "si-60",
-    "with_magnetics", "integrated_magnetics", "rj45_magnetic",
+    "magjack", "mag_jack", "hr911", "hr961", "hy911", "hfj11", "lpj0", "lpj1", "lpj4", "lpjg",
+    "arjp", "arjm", "arjc", "rjmg", "rjlbc", "7499010", "7499111", "tm211", "j1b1",
+    "j0011d", "j1011f", "jxd0", "jxd1", "08b0", "rb1-1", "si-60", "si-46",
+    "with_magnetics", "withmagnetics", "integrated_magnetics", "rj45_magnetic",
+    "rj45+mag", "rj45-mag", "rj45-transfo",
 )
 
 
@@ -451,9 +457,8 @@ def detect_ethernet_interfaces(ctx: AnalysisContext) -> list[dict]:
             seen_eth_refs.add(c["reference"])
         elif c["type"] == "connector":
             # Also detect by LAN reference prefix or integrated magnetics RJ45 part numbers
-            if (any(k in val_lib for k in ("rj45", "8p8c", "ethernet", "magjack",
-                                            "lpj4", "lpj0", "hr911", "hfj11",
-                                            "arjp", "rjlbc"))
+            if (any(k in val_lib for k in ("rj45", "8p8c", "ethernet"))
+                    or any(k in val_lib for k in _INTEGRATED_MAG_KEYWORDS)
                     or c["reference"].upper().startswith("LAN")):
                 eth_connectors.append(c)
                 seen_eth_refs.add(c["reference"])
@@ -873,7 +878,7 @@ def detect_lvds_interfaces(ctx: AnalysisContext) -> list[dict]:
     for comp in ctx.components:
         if comp["type"] != "ic":
             continue
-        val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
+        val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "") + " " + (comp.get("mpn") or "")).lower()
         if not any(k in val_lib for k in _lvds_keywords):
             continue
 
@@ -2452,6 +2457,12 @@ def _classify_connector_interface(comp: dict) -> tuple[str, str]:
     return "generic", "medium_risk"
 
 
+def _nc_pins_only(net_info: dict | None) -> bool:
+    """True when every pin on the net is typed no-connect (an unused connector pin)."""
+    pins = (net_info or {}).get("pins") or []
+    return bool(pins) and all(p.get("pin_type") == "no_connect" for p in pins)
+
+
 def audit_esd_protection(ctx: AnalysisContext,
                          protection_devices: list[dict]) -> list[dict]:
     """Audit ESD protection coverage on external connectors.
@@ -2490,6 +2501,8 @@ def audit_esd_protection(ctx: AnalysisContext,
             if not net_name:
                 continue
             if ctx.is_ground(net_name) or ctx.is_power_net(net_name):
+                continue
+            if _nc_pins_only(ctx.nets.get(net_name)):
                 continue
             if net_name not in signal_nets:
                 signal_nets.append(net_name)
@@ -3033,27 +3046,42 @@ _SPI_PIN_NAMES = {"SCLK", "SCK", "CLK", "MOSI", "SDI", "DIN", "MISO",
                   "SDO", "DOUT", "CS", "CSN", "SS", "NSS"}
 _I2C_PIN_NAMES = {"SDA", "SCL"}
 
-# ADC resolution inference from part number prefix
+# ADC resolution in bits by part-number stem, longest stem first. A stem stands for
+# every part that contains it, so a stem is listed only where that whole family shares
+# one resolution (manufacturer datasheets; MCP3301/02/04 13-bit, MCP3550/51/53 22-bit,
+# MAX1192 dual 8-bit, AD7705..AD7709 16-bit, ADS1262/63 32-bit). Families that split
+# without a resolution suffix (LTC23xx, LTC24xx, ADS126x) get no stem of their own.
 _ADC_RESOLUTION_MAP = {
-    "ads111": 16, "ads101": 12, "ads131": 24, "ads126": 24,
-    "ads861": 16, "ads868": 16,
-    "mcp320": 12, "mcp330": 10, "mcp340": 10, "mcp342": 18,
-    "mcp346": 16, "mcp356": 24, "mcp355": 24,
-    "max1161": 12, "max1163": 12, "max1194": 10, "max1198": 8,
-    "max1192": 10, "max1141": 14,
-    "ltc24": 24, "ltc23": 16,
-    "ad760": 16, "ad770": 14, "ad799": 8,
+    "ads111": 16, "ads101": 12, "ads131": 24, "ads868": 16,
+    "ads1260": 24, "ads1261": 24, "ads1262": 32, "ads1263": 32,
+    "mcp320": 12, "mcp3301": 13, "mcp3302": 13, "mcp3304": 13,
+    "mcp3421": 18, "mcp3422": 18, "mcp3423": 18, "mcp3424": 18,
+    "mcp3425": 16, "mcp3426": 16, "mcp3427": 16, "mcp3428": 16,
+    "mcp346": 16, "mcp356": 24, "mcp355": 22,
+    "max1161": 12, "max11632": 12, "max11633": 12, "max11634": 12, "max11635": 12,
+    "max11638": 8, "max11639": 8,
+    "max1198": 8, "max1192": 8,
+    "ltc2440": 24, "ltc2485": 24, "ltc2451": 16, "ltc2308": 12, "ltc2309": 12,
+    "ad7605": 16, "ad7606": 16, "ad7607": 14, "ad7608": 18, "ad7609": 18,
+    "ad7705": 16, "ad7706": 16, "ad7707": 16, "ad7708": 16, "ad7709": 16,
+    "ad7991": 12, "ad7995": 10, "ad7999": 8,
     "adc081": 8, "adc082": 8, "adc121": 12, "adc122": 12,
     "nau780": 24,
 }
+_ADC_RESOLUTION_STEMS = sorted(_ADC_RESOLUTION_MAP, key=len, reverse=True)
+# LTC23xx parts carry the resolution as a suffix (LTC2320-16, LTC2378-20, LTC2380-24).
+_LTC23_RESOLUTION_SUFFIX = re.compile(r"ltc23\d\d[a-z0-9.]*?-(1[2-8]|20|24)(?!\d)")
 
 
 def _infer_adc_resolution(value: str, lib_id: str) -> int | None:
-    """Infer ADC resolution in bits from part number."""
-    combined = (value + " " + lib_id).lower()
-    for prefix, bits in _ADC_RESOLUTION_MAP.items():
-        if prefix in combined:
-            return bits
+    """Infer ADC resolution in bits from part number, the value before the lib_id."""
+    for text in (value.lower(), lib_id.lower()):
+        m = _LTC23_RESOLUTION_SUFFIX.search(text)
+        if m:
+            return int(m.group(1))
+        for stem in _ADC_RESOLUTION_STEMS:
+            if stem in text:
+                return _ADC_RESOLUTION_MAP[stem]
     return None
 
 
@@ -4776,31 +4804,6 @@ def detect_rtc_circuits(ctx: AnalysisContext,
 # LED Lighting Audit
 # ---------------------------------------------------------------------------
 
-# Forward voltage estimates by LED color (for current calculation)
-_LED_VF = {
-    "red": 2.0, "orange": 2.0, "yellow": 2.0, "amber": 2.0,
-    "green": 3.2, "blue": 3.2, "white": 3.2, "uv": 3.5,
-}
-
-# Per-color Vf floor — the MINIMUM forward voltage below which an LED of
-# this color will not light at all. Used by LA-004 to flag LEDs on rails
-# that are below their color's floor.
-_LED_VF_FLOOR = {
-    "red": 1.85, "orange": 2.0, "yellow": 2.0, "amber": 2.0,
-    "green": 2.1, "blue": 3.0, "white": 3.0, "uv": 3.2,
-}
-
-
-def _detect_led_color(comp: dict) -> str | None:
-    """Return the lowercase color string for an LED, or None if no color
-    hint is present in value/lib_id."""
-    combined = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
-    for color in _LED_VF.keys():
-        if color in combined:
-            return color
-    return None
-
-
 def audit_led_circuits(ctx: AnalysisContext,
                        transistor_circuits: list[dict]) -> list[dict]:
     """Audit all LEDs for proper current limiting.
@@ -5027,7 +5030,7 @@ def audit_led_circuits(ctx: AnalysisContext,
             v_supply = ctx.rail_voltage_or(supply_net, parse_voltage_from_net_name)
             if v_supply:
                 v_supply = abs(v_supply)
-                vf = sum(led_forward_voltage(c, _LED_VF) for c in string_leds)
+                vf = sum(led_forward_voltage(c) for c in string_leds)
                 if v_supply > vf:
                     i_ma = (v_supply - vf) / series_resistor["ohms"] * 1000
                     entry["estimated_current_mA"] = round(i_ma, 1)
@@ -5045,8 +5048,8 @@ def audit_led_circuits(ctx: AnalysisContext,
         # color floor, the LED can't forward-bias at all.
         if supply_net:
             v_supply = ctx.rail_voltage_or(supply_net, parse_voltage_from_net_name)
-            color = _detect_led_color(comp)
-            floor = _LED_VF_FLOOR.get(color) if color else None
+            color = led_color(comp)
+            floor = LED_VF_BY_COLOR[color][1] if color else None
             if v_supply is not None and v_supply >= 0 and floor is not None and v_supply < floor:
                 results.append({
                     "ref": ref,
@@ -5493,6 +5496,20 @@ def build_power_sequencing_graph(ctx: AnalysisContext,
 # Connector Ground Pin Distribution Audit
 # ---------------------------------------------------------------------------
 
+def _ground_pin_on_wired_unnamed_net(ctx: AnalysisContext, ref: str, pin_num: str,
+                                     net: str) -> bool:
+    """A ground-named pin on an unnamed net that reaches another part is a ground pin
+    (ground wired in without a ground symbol or label); wired to nothing else, it is
+    left unconnected and does not count."""
+    if not net.startswith("__unnamed_"):
+        return False
+    pins = ctx.nets.get(net, {}).get("pins", [])
+    if not any(p["component"] != ref and not p["component"].startswith("#") for p in pins):
+        return False
+    return any(p["component"] == ref and p["pin_number"] == pin_num
+               and ctx.is_ground(p.get("pin_name")) for p in pins)
+
+
 def audit_connector_ground_distribution(ctx: AnalysisContext) -> list[dict]:
     """Check ground pin distribution on multi-pin connectors.
 
@@ -5519,7 +5536,7 @@ def audit_connector_ground_distribution(ctx: AnalysisContext) -> list[dict]:
                 net = net[0]  # handle (net_name, pin_info) tuples
             if not net:
                 continue
-            if ctx.is_ground(net):
+            if ctx.is_ground(net) or _ground_pin_on_wired_unnamed_net(ctx, ref, pin_num, net):
                 gnd_count += 1
             elif not ctx.is_power_net(net):
                 signal_count += 1
@@ -5604,18 +5621,35 @@ def suggest_certifications(ctx: AnalysisContext, signal_analysis: dict) -> list[
             "reason": "RF transceiver detected",
         })
 
-    # WiFi/BT modules
-    for comp in ctx.components:
-        val_lib = (comp.get("value", "") + " " + comp.get("lib_id", "")).lower()
-        if any(k in val_lib for k in ("esp32", "esp8266", "nrf52", "cc254",
-                                       "wl18", "cyw43", "ap621", "bcm43")):
-            if not any(s["standard"] == "FCC Part 15" for s in suggestions):
-                suggestions.append({
-                    "standard": "FCC Part 15",
-                    "region": "US",
-                    "reason": f"Wireless module detected: {comp['reference']}",
-                })
-            break
+    # WiFi/BT modules, by value or symbol name (the library nickname names a library).
+    # A rescue power symbol, connector or passive can carry the radio word in its symbol
+    # name: it marks the sheet but is never named as the module. A part whose value names
+    # the radio, or that WL-001 found, is named first; then WL-001's module; then a part
+    # matched by its symbol name alone (a KiCad 5 rescue name carries the board's name).
+    radio_words = ("esp32", "esp8266", "nrf52", "cc254", "wl18", "cyw43", "ap621", "bcm43",
+                   "esp-wroom", "esp-01", "esp-12", "esp-32", "wt32", "ttgo")
+
+    def _radio_word(text):
+        return any(k in text.lower() for k in radio_words)
+
+    matches = [c for c in ctx.components
+               if _radio_word(c.get("value", "") + " " + c.get("lib_id", "").split(":", 1)[-1])]
+    if matches and not any(s["standard"] == "FCC Part 15" for s in suggestions):
+        found = [w["reference"] for w in signal_analysis.get("wireless_modules", []) if w.get("reference")]
+        radios = [c for c in matches if not c["reference"].startswith("#")
+                  and c.get("type") not in ("connector", "power_symbol", "resistor", "capacitor",
+                                            "inductor", "jumper", "net_tie")]
+        radios.sort(key=lambda c: (not _radio_word(c.get("value", "")), c["reference"] not in found))
+        if radios and (_radio_word(radios[0].get("value", "")) or radios[0]["reference"] in found):
+            named = radios[0]["reference"]
+        else:
+            named = next(iter(found), None) or (radios[0]["reference"] if radios else None)
+        if named:
+            suggestions.append({
+                "standard": "FCC Part 15",
+                "region": "US",
+                "reason": f"Wireless module detected: {named}",
+            })
 
     # Battery/charger → safety standards
     battery_chargers = signal_analysis.get("battery_chargers", [])
@@ -5703,6 +5737,7 @@ def suggest_certifications(ctx: AnalysisContext, signal_analysis: dict) -> list[
 
 _WIFI_BLE_KEYWORDS = (
     'esp32', 'esp8266', 'esp32s', 'esp32c', 'esp32h',
+    'esp-wroom', 'esp-01', 'esp-12', 'esp-32', 'wt32', 'ttgo',
     'nrf52', 'nrf53', 'nrf91', 'nrf7002',
     'cc2640', 'cc2652', 'cc1352', 'cc3220',
     'cyw43', 'cyw20',
@@ -5733,7 +5768,7 @@ _CELLULAR_KEYWORDS = (
 _GPS_KEYWORDS = (
     'neo6m', 'neo7m', 'neo8m', 'neom8', 'neom9', 'zed',
     'l76', 'l86', 'l96',
-    'sam_m8q', 'sam_m10',
+    'sam_m8q', 'sam_m10', 'max-m8', 'max-m10',
     'gps', 'gnss',
     'pa1010', 'pa1616',
 )

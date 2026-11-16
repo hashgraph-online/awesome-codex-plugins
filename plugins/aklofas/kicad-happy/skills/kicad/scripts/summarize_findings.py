@@ -23,6 +23,7 @@ import os
 import sys
 from collections import defaultdict
 
+from kicad_core.fileio import json_load
 from kicad_core.cli import add_only_deterministic_arg
 from analysis_cache import get_run, reviewed_overlay
 from finding_schema import VALID_CONFIDENCES, VALID_EVIDENCE_SOURCES
@@ -43,7 +44,7 @@ def _resolve_run_dir(
             "run an analyzer with --analysis-dir first")
     try:
         with open(manifest_path, "r", encoding="utf-8") as f:
-            manifest = json.load(f)
+            manifest = json_load(f)
     except (OSError, ValueError) as e:
         raise SystemExit(f"error: cannot read {manifest_path!r}: {e}")
     if not isinstance(manifest, dict):

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-15",
-  "total": 414,
+  "last_updated": "2026-11-16",
+  "total": 418,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2654,6 +2654,16 @@
       "install_url": "https://raw.githubusercontent.com/entropy-data/dataproduct-builder-dbt/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Dawn",
+      "url": "https://github.com/hraness/product-skills",
+      "owner": "hraness",
+      "repo": "product-skills",
+      "description": "Compose, arrange and render original songs offline with the Dawn TypeScript music SDK and headless CLI; needs an authorized Dawn private-preview install.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/dawn/plugin.json"
+    },
+    {
       "name": "deed.page",
       "url": "https://github.com/f-o-x11/deed-page-skill",
       "owner": "f-o-x11",
@@ -3824,6 +3834,16 @@
       "install_url": "https://raw.githubusercontent.com/Erfouni/solidworks-GPT-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Sponge",
+      "url": "https://github.com/hraness/product-skills",
+      "owner": "hraness",
+      "repo": "product-skills",
+      "description": "Search, cite and annotate the articles and PDFs in your own Sponge reading library through its local CLI and MCP server.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/sponge/plugin.json"
+    },
+    {
       "name": "Story Skills",
       "url": "https://github.com/danjdewhurst/story-skills",
       "owner": "danjdewhurst",
@@ -3942,6 +3962,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/YujxZJCN/teaching-skills-codex/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Textmock",
+      "url": "https://github.com/hraness/product-skills",
+      "owner": "hraness",
+      "repo": "product-skills",
+      "description": "Make iMessage-style conversation links that open as editable copies in Textmock, then save them as images or videos.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/textmock/plugin.json"
     },
     {
       "name": "Thermal-Fluid Research Workflow",
@@ -4122,6 +4152,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/nebelov/yandex-direct-for-all/HEAD/plugins/yandex-direct-for-all/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Yaptake",
+      "url": "https://github.com/hraness/product-skills",
+      "owner": "hraness",
+      "repo": "product-skills",
+      "description": "Cut fillers, fix captions and preview edits in the video project open in the Yaptake Mac app through its local MCP server; needs the app.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/yaptake/plugin.json"
     },
     {
       "name": "YouTube Skills by TranscriptAPI",

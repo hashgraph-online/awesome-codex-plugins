@@ -29,6 +29,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))   # skills/kicad/scripts
 
 from finding_schema import strip_llm_overlays  # noqa: E402
+from kicad_core.fileio import json_loads  # noqa: E402
 
 SCHEMA_PATH = Path(__file__).resolve().parents[1] / "schemas" / "review_annotations.schema.json"
 
@@ -46,7 +47,7 @@ def _load_raw_envelopes(raw_dir: Path) -> dict:
     for fname in ANALYZER_FILES:
         path = raw_dir / fname
         if path.exists():
-            envelopes[path.stem] = json.loads(path.read_text(encoding="utf-8"))
+            envelopes[path.stem] = json_loads(path.read_text(encoding="utf-8"))
     return envelopes
 
 
@@ -93,7 +94,7 @@ def merge(raw_dir, review_path, merged_dir) -> dict:
     merged_dir = Path(merged_dir)
 
     envelopes = _load_raw_envelopes(raw_dir)
-    review = json.loads(review_path.read_text(encoding="utf-8"))
+    review = json_loads(review_path.read_text(encoding="utf-8"))
     _validate_review_schema(review)  # hard-fail if malformed
 
     invariant_violations = []
@@ -167,7 +168,9 @@ def main():
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

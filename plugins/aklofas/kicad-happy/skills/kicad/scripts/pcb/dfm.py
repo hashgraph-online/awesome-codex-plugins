@@ -305,62 +305,17 @@ IPC_CLASS_LIMITS = {
 }
 
 
-def _build_net_class_lookup(net_classes: list[dict] | None) -> dict[str, dict]:
-    # Build net name -> net class lookup for net-class-aware checks
-    _net_class_lookup: dict[str, dict] = {}  # net_name -> class constraints
-    if net_classes:
-        for nc in net_classes:
-            nc_name = nc.get('name', '')
-            if nc_name == 'Default':
-                continue
-            constraints = {
-                'name': nc_name,
-                'trace_width': nc.get('track_width'),
-                'clearance': nc.get('clearance'),
-                'diff_pair_width': nc.get('diff_pair_width'),
-                'diff_pair_gap': nc.get('diff_pair_gap'),
-            }
-            for net_name in nc.get('nets', []):
-                _net_class_lookup[net_name] = constraints
-    return _net_class_lookup
-
-
-def _measure_track_widths(tracks: dict, net_class_lookup: dict[str, dict]) -> dict:
-    _net_class_lookup = net_class_lookup
-    LIMITS_ADV = JLCPCB_LIMITS_ADVANCED
-    # --- Track width analysis (net-class-aware) ---
-    all_widths = []
-    narrowest_non_class = float('inf')  # narrowest trace NOT covered by net class
-    for seg in tracks.get("segments", []):
-        w = seg["width"]
-        all_widths.append(w)
-        seg_net_name = seg.get("net_name", "")
-        nc = _net_class_lookup.get(seg_net_name)
-        if nc and nc.get('trace_width') is not None:
-            if w < LIMITS_ADV["min_track_width"]:
-                narrowest_non_class = min(narrowest_non_class, w)
-        else:
-            narrowest_non_class = min(narrowest_non_class, w)
-
-    for arc in tracks.get("arcs", []):
-        w = arc["width"]
-        all_widths.append(w)
-        arc_net_name = arc.get("net_name", "")
-        nc = _net_class_lookup.get(arc_net_name)
-        if nc and nc.get('trace_width') is not None:
-            if w < LIMITS_ADV["min_track_width"]:
-                narrowest_non_class = min(narrowest_non_class, w)
-        else:
-            narrowest_non_class = min(narrowest_non_class, w)
+def _measure_track_widths(tracks: dict) -> dict:
+    all_widths = [seg["width"] for seg in tracks.get("segments", [])]
+    all_widths += [arc["width"] for arc in tracks.get("arcs", [])]
 
     min_width = None
     check_width = None
+    narrowest_non_class = float('inf')
     if all_widths:
         min_width = min(all_widths)
-
-        check_width = (narrowest_non_class
-                       if narrowest_non_class < float('inf')
-                       else min_width)
+        narrowest_non_class = min_width
+        check_width = min_width
     return {"all_widths": all_widths, "narrowest_non_class": narrowest_non_class,
             "min_width": min_width, "check_width": check_width}
 
@@ -846,7 +801,7 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
         vias: Extracted via data.
         board_outline: Board outline with bounding_box.
         design_rules: Optional design rules from setup extraction.
-        net_classes: Optional net class definitions for class-aware DFM checks.
+        net_classes: Unused (net-class values are routing defaults, not minima).
         design_intent: Optional resolved design intent (product_class, ipc_class,
             etc.) for intent-aware limit selection.
     """
@@ -856,16 +811,15 @@ def analyze_dfm(footprints: list[dict], tracks: dict, vias: dict,
 
     # Determine active IPC class
     ipc_class = 2  # default
-    if design_intent and design_intent.get('ipc_class') in (1, 2, 3):
+    if (design_intent and not isinstance(design_intent.get('ipc_class'), bool)
+            and design_intent.get('ipc_class') in (1, 2, 3)):
         ipc_class = design_intent['ipc_class']
     ipc_limits = IPC_CLASS_LIMITS[ipc_class]
-
-    _net_class_lookup = _build_net_class_lookup(net_classes)
 
     violations = []
     metrics: dict = {}
 
-    m_widths = _measure_track_widths(tracks, _net_class_lookup)
+    m_widths = _measure_track_widths(tracks)
     m_spacing = _measure_track_spacing(tracks)
     m_drills = _measure_drills(vias, footprints)
     m_rings = _measure_annular_rings(m_drills["all_vias"])
@@ -1042,6 +996,7 @@ def analyze_design_rule_compliance(
     board_layers: list[str] | None = None,
     ignored_checks: frozenset[str] = frozenset(),
     microvia_minima: dict[int, tuple[float, str]] | None = None,
+    board_rules: bool = False,
 ) -> dict | None:
     """Check layout against project-defined design rules.
 
@@ -1182,81 +1137,6 @@ def analyze_design_rule_compliance(
             entry['nets_matched'] = len(nets)
         net_class_summary.append(entry)
 
-    # --- Net class compliance validation ---
-    # Check that traces on nets in each class meet class constraints
-    net_class_violations = []
-    if net_classes:
-        # Build net name -> class lookup
-        nc_by_net: dict[str, dict] = {}
-        for nc in net_classes:
-            nc_name = nc.get('name', '')
-            if nc_name == 'Default':
-                continue
-            for net_name in nc.get('nets', []):
-                nc_by_net[net_name] = nc
-
-        # Check trace widths per net class
-        for seg in tracks.get('segments', []):
-            net_name = seg.get('net_name', '')
-            nc = nc_by_net.get(net_name)
-            if not nc:
-                continue
-            required_width = nc.get('track_width')
-            if required_width is None:
-                continue
-            actual_width = seg['width']
-            if actual_width < required_width - 0.001:
-                net_class_violations.append({
-                    'net_class': nc['name'],
-                    'parameter': 'trace_width',
-                    'net': net_name,
-                    'actual_mm': round(actual_width, 4),
-                    'class_minimum_mm': round(required_width, 4),
-                    'message': (f'Trace on {net_name} is '
-                                f'{actual_width:.3f}mm, net class '
-                                f'{nc["name"]} requires '
-                                f'{required_width:.3f}mm'),
-                })
-
-        # Check via sizes per net class
-        for v in vias.get('vias', []):
-            net_name = v.get('net_name', '')
-            nc = nc_by_net.get(net_name)
-            if not nc:
-                continue
-            required_dia = nc.get('via_diameter')
-            if required_dia is not None:
-                actual_dia = v.get('size', 0)
-                if actual_dia > 0 and actual_dia < required_dia - 0.001:
-                    net_class_violations.append({
-                        'net_class': nc['name'],
-                        'parameter': 'via_diameter',
-                        'net': net_name,
-                        'actual_mm': round(actual_dia, 4),
-                        'class_minimum_mm': round(required_dia, 4),
-                        'message': (f'Via on {net_name} is '
-                                    f'{actual_dia:.3f}mm, net class '
-                                    f'{nc["name"]} requires '
-                                    f'{required_dia:.3f}mm'),
-                    })
-
-    # Deduplicate: keep one violation per (net_class, parameter, net)
-    seen_nc_violations: set[tuple] = set()
-    unique_nc_violations = []
-    for v in net_class_violations:
-        key = (v['net_class'], v['parameter'], v['net'])
-        if key not in seen_nc_violations:
-            seen_nc_violations.add(key)
-            unique_nc_violations.append(v)
-            rules_checked += 1
-            violations.append({
-                'rule': f"net_class:{v['net_class']}:{v['parameter']}",
-                'source': 'net_class',
-                'required_mm': v['class_minimum_mm'],
-                'actual_mm': v['actual_mm'],
-                'message': v['message'],
-            })
-
     # --- Custom rules (.kicad_dru) ---
     # A conditional rule is not evaluated: it is listed as skipped, and an item is reported only
     # when it breaks every bound the rule might set (a conditional rule may relax a minimum or a
@@ -1302,14 +1182,13 @@ def analyze_design_rule_compliance(
         'compliant': len(violations) == 0,
         'rules_checked': rules_checked,
     }
-    if project_settings.get('source'):
+    if project_settings.get('source') and not board_rules:
+        # a KiCad 5 board judges by its own settings, not the project file's
         result['rules_source'] = project_settings['source']
     if violations:
         result['violations'] = violations
     if net_class_summary:
         result['net_class_summary'] = net_class_summary
-    if unique_nc_violations:
-        result['net_class_violations'] = unique_nc_violations
     if custom_rules:
         result['custom_rules_count'] = len(custom_rules)
     if conditional_rules_skipped:

@@ -6,6 +6,21 @@ import re
 NON_COMPONENT_TYPES = frozenset({"power_symbol", "power_flag", "flag", "test_point",
                                  "mounting_hole", "fiducial", "graphic"})
 
+_CONNECTOR_WORDS = re.compile(r"header|conn(?:ector)?(?:_|\b|s?-)|pin_?socket")
+
+
+def _v_prefix_jumper_or_connector(val: str, lib: str, fp: str) -> str | None:
+    """A V-prefixed part from a jumper or connector library ("V1" as Jumper_2_Bridged, a
+    Header_1x2 or a VGA socket) is that part, not a varistor. A varistor word always wins."""
+    if "varistor" in lib or "varistor" in val:
+        return None
+    if "jumper" in lib or "jumper" in val:
+        return "jumper"
+    if any(_CONNECTOR_WORDS.search(x) for x in (val, lib, fp)):
+        return "connector"
+    return None
+
+
 _TOUCH_MARKERS = ("touch", "capacitive", "captouch", "cap_touch")
 
 
@@ -45,6 +60,11 @@ def _led_lib_evidence(lib_low: str, val_low: str) -> bool:
     if not nick or nick.endswith(("-rescue", "_rescue")) or _NON_LED_DIODE_SYMBOL.search(sym):
         return False
     return bool(_LED_WORD.search(nick))
+
+
+_DEVICE_PASSIVE_SYMBOL = re.compile(
+    r'^device:(c|cp|c_small|cp_small|c_polarized|c_polarized_small|c_us|cp_us|'
+    r'r|r_small|r_us|l|l_small|l_us)$')
 
 
 def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False,
@@ -177,6 +197,9 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
             if ("r_pot" in lib_low or "pot" in lib_low or "potentiometer" in lib_low
                     or "potentiometer" in val_low):
                 return "resistor"
+            not_varistor = _v_prefix_jumper_or_connector(val_low, lib_low, fp_low)
+            if not_varistor:
+                return not_varistor
             if ("regulator" in lib_low or "regulator" in fp_low
                     or any(x in val_low for x in ("ams1117", "lm78", "lm317",
                                                    "ld1117", "lm1117", "ap1117"))):
@@ -372,6 +395,12 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
         result = type_map.get(prefix[0])
         if result:
             fp_lower = footprint.lower() if footprint else ""
+            # A stock Device R/C/L symbol outranks an R or L first letter (RF-C10 on
+            # Device:C is a capacitor). A C first letter stays: C-prefixed parts on a
+            # resistor symbol carry capacitor values.
+            device_passive = _DEVICE_PASSIVE_SYMBOL.match(lib_lower)
+            if device_passive and result in ("resistor", "inductor"):
+                return {"c": "capacitor", "r": "resistor", "l": "inductor"}[device_passive.group(1)[0]]
             if result == "transformer":
                 if "tvs" in lib_lower or "tvs" in val_lower:
                     return "diode"
@@ -400,12 +429,15 @@ def classify_component(ref: str, lib_id: str, value: str, is_power: bool = False
                 if "standoff" in lib_lower or "smtso" in val_lower:
                     return "mounting_hole"
             if result == "varistor":
+                if "pot" in lib_lower or "potentiometer" in lib_lower:
+                    return "resistor"
+                not_varistor = _v_prefix_jumper_or_connector(val_lower, lib_lower, fp_lower)
+                if not_varistor:
+                    return not_varistor
                 if ("regulator" in lib_lower or "regulator" in fp_lower
                         or any(x in val_lower for x in ("ams1117", "lm78", "lm317",
                                                          "ld1117", "lm1117", "ap1117"))):
                     return "ic"
-                if "pot" in lib_lower or "potentiometer" in lib_lower:
-                    return "resistor"
             if result == "ic":
                 if "bjt" in lib_lower or "transistor" in lib_lower:
                     return "transistor"
@@ -522,6 +554,18 @@ def classify_ic_function(lib_id: str, value: str, description: str = "") -> str:
     return "other_ic"
 
 
+def _row_layout(text: str) -> str | None:
+    """'single' or 'dual' when the text names a pin-row layout. Single is tested first:
+    the dual pattern also matches Conn_01xNN."""
+    if re.search(r'(?:conn_01x\d+|conn_1x\d+|_1x\d+|\d+x1_)', text) or \
+       re.search(r'pin_header.*1x\d+|pin_socket.*1x\d+', text):
+        return "single"
+    if re.search(r'(?:conn_\d+x\d+|_2x\d+|\d+x2_)', text) or \
+       re.search(r'pin_header.*2x\d+|pin_socket.*2x\d+', text):
+        return "dual"
+    return None
+
+
 def classify_connector(lib_id: str, value: str, pin_count: int = 0) -> tuple[bool, str]:
     """Classify a connector's external status and layout type.
 
@@ -544,14 +588,9 @@ def classify_connector(lib_id: str, value: str, pin_count: int = 0) -> tuple[boo
     elif any(k in combined for k in ("screw_terminal", "screw terminal", "phoenix",
                                       "pluggable_terminal", "terminal_block")):
         layout = "screw_terminal"
-    elif re.search(r'(?:conn_\d+x\d+|_2x\d+|\d+x2_)', combined) or \
-         re.search(r'pin_header.*2x\d+|pin_socket.*2x\d+', combined):
-        layout = "dual"
-    elif re.search(r'(?:conn_01x\d+|conn_1x\d+|_1x\d+|\d+x1_)', combined) or \
-         re.search(r'pin_header.*1x\d+|pin_socket.*1x\d+', combined):
-        layout = "single"
     else:
-        layout = "other"
+        # The symbol name outranks the value (a Conn_02x02 symbol valued Conn_01x02_Pin is dual).
+        layout = _row_layout(lib_id.lower()) or _row_layout(value.lower()) or "other"
 
     # External classification
     # Explicitly external connectors

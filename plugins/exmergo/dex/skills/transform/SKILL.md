@@ -454,8 +454,8 @@ fetches the engine's dependencies from PyPI or your configured index.
    `declarations` entry, and re-plan until `missing` holds only what you decided
    to leave open. For a declared mart, also read `data.semantic_proposal`: the
    semantic definition the declaration implies in the repository's own layer
-   (`vendor`: a MetricFlow model, or a SLayer, Cube or Metric View file stored as a
-   second plan whose id is `plan_id`), already planned (`mode: included`) or offered with
+   (`vendor`: a MetricFlow model, or a SLayer, Cube, Metric View or Semantic View
+   file stored as a second plan whose id is `plan_id`), already planned (`mode: included`) or offered with
    the commands that adopt it (`mode: proposed`), with every gap it could not
    fill named and every declared field it could not carry in `not_carried`. When the user
    wants models that already exist declared, run `transform declare <models>`

@@ -19,10 +19,12 @@ Zero external dependencies — stdlib only.
 from __future__ import annotations
 
 import json
+import math
 import os
+import re
 from fnmatch import fnmatch
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Any, Dict, List, Optional
 
 # standalone load by file path (harness spec_from_file_location, docs)
@@ -308,6 +310,8 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
                 del raw_bom['group_by']
 
     # Validate analysis.power_rails
+    if 'analysis' in cfg and not isinstance(cfg['analysis'], dict):
+        _wrong_type(cfg, 'analysis', 'analysis', 'an object')
     raw_analysis = cfg.get('analysis')
     if isinstance(raw_analysis, dict):
         raw_pr = raw_analysis.get('power_rails')
@@ -324,6 +328,13 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
                               f'{list_key} must be a list, ignoring',
                               file=sys.stderr)
                         del raw_pr[list_key]
+                    elif val is not None:
+                        kept = [v for v in val if isinstance(v, str)]
+                        if len(kept) != len(val):
+                            print(f'Warning: {path}: analysis.power_rails.'
+                                  f'{list_key}: non-string entries ignored',
+                                  file=sys.stderr)
+                            raw_pr[list_key] = kept
                 overrides = raw_pr.get('voltage_overrides')
                 if overrides is not None:
                     if not isinstance(overrides, dict):
@@ -333,10 +344,11 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
                         del raw_pr['voltage_overrides']
                     else:
                         bad = [k for k, v in overrides.items()
-                               if not isinstance(v, (int, float))]
+                               if isinstance(v, bool) or not isinstance(v, (int, float))
+                               or not math.isfinite(v)]
                         for k in bad:
                             print(f'Warning: {path}: analysis.power_rails.'
-                                  f'voltage_overrides.{k} must be numeric, '
+                                  f'voltage_overrides.{k} must be a finite number, '
                                   f'ignoring', file=sys.stderr)
                             del overrides[k]
 
@@ -357,6 +369,11 @@ def _load_and_validate(path: str) -> Optional[Dict[str, Any]]:
         if output_dir is not None and (not isinstance(output_dir, str) or not output_dir):
             print(f'Warning: {path}: analysis.output_dir must be a non-empty '
                   f'string, ignoring', file=sys.stderr)
+            del raw_analysis['output_dir']
+        elif output_dir is not None and (
+                PureWindowsPath(output_dir).anchor or '..' in re.split(r'[\\/]', output_dir)):
+            print(f'Warning: {path}: analysis.output_dir must be a relative path '
+                  f'without "..", ignoring', file=sys.stderr)
             del raw_analysis['output_dir']
 
     # Validate design_intent types (values outside the vocabularies already fall back to auto)

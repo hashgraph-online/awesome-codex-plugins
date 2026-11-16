@@ -1,10 +1,13 @@
 """KiCad project discovery and project-file readers (kicad_core): the project directory an analysis JSON names, .kicad_pro, .kicad_dru, lib tables, root-schematic resolution."""
-import json
 import os
 import re
+from collections.abc import Iterable
+from fnmatch import fnmatchcase
 from pathlib import Path
 
+from kicad_core.fileio import json_loads
 from kicad_core.textvars import expand_text_vars
+from kicad_core import sexp as _sexp
 from kicad_core.sexp import parse as _sexp_parse, parse_file as _sexp_parse_file, find_all, find_first, get_value
 
 
@@ -17,13 +20,6 @@ def _recorded_source_file(analysis_json):
         sources = inputs.get("source_files") if isinstance(inputs, dict) else None
         source_file = sources[0] if isinstance(sources, list) and sources else None
     return source_file if isinstance(source_file, str) and source_file else None
-
-
-def project_dir_from_analysis(analysis_json):
-    """Return the directory of the first source file the analysis JSON names
-    ("file", else inputs.source_files[0]), or None when it names none."""
-    source_file = _recorded_source_file(analysis_json)
-    return Path(source_file).parent if source_file else None
 
 
 def existing_source_dir(source_file):
@@ -39,8 +35,9 @@ def existing_source_dir(source_file):
 
 
 def extraction_project_dir(analysis_json):
-    """Project directory for datasheet-extraction reads: like
-    project_dir_from_analysis, but a relative source path must exist."""
+    """Project directory of the first source file the analysis JSON names
+    ("file", else inputs.source_files[0]), or None. Used by the datasheet
+    extraction and SPICE model caches; a relative source path must exist."""
     return existing_source_dir(_recorded_source_file(analysis_json))
 
 
@@ -121,9 +118,9 @@ def _strip_jsonc(text: str) -> str:
 
 def load_jsonc(path: str) -> dict:
     """Load a JSONC file, returning parsed dict."""
-    with open(path, 'r', encoding='utf-8') as f:
+    with open(path, 'r', encoding='utf-8-sig') as f:
         raw = f.read()
-    return json.loads(_strip_jsonc(raw))
+    return json_loads(_strip_jsonc(raw))
 
 
 def load_user_config() -> dict:
@@ -300,26 +297,13 @@ def expand_sheet_file(name: str, sch_path: str, pro: dict | None = None) -> str:
     return expand_text_vars(name, resolve)
 
 
-def _expanded_sheet_refs(sch_path: str, content: str) -> set[str]:
-    """Absolute paths of the sheet files *sch_path* names through project text variables."""
-    refs = set()
-    for m in _SHEETFILE_VAR.finditer(content):
-        expanded = expand_sheet_file(m.group(1), sch_path)
-        if "${" not in expanded:
-            refs.add(os.path.normcase(os.path.abspath(
-                os.path.join(os.path.dirname(os.path.abspath(sch_path)), expanded))))
-    return refs
-
-
-_SHEETFILE_VAR = re.compile(r'\(property\s+"Sheet ?file"\s+"([^"]*\$\{[^"]*)"', re.IGNORECASE)
-
-
 def is_referenced_as_child(file_path: str) -> bool:
     """Check if a .kicad_sch is referenced as a child sheet by a sibling.
 
-    Scans sibling .kicad_sch files in the same directory for Sheetfile
-    properties containing this file's basename.  Used by detect_sub_sheet()
-    to distinguish intermediate hierarchy nodes from the root.
+    Scans sibling .kicad_sch files in the same directory for a Sheetfile
+    property that names this file (whole path, project text variables expanded).
+    Used by detect_sub_sheet() to distinguish intermediate hierarchy nodes from
+    the root.
 
     Reads the full file because sheet blocks can appear after large
     lib_symbols sections (e.g. 680KB root with sheets at byte 681K).
@@ -327,6 +311,7 @@ def is_referenced_as_child(file_path: str) -> bool:
     abs_path = os.path.abspath(file_path)
     basename = os.path.basename(abs_path)
     parent_dir = os.path.dirname(abs_path)
+    wanted = os.path.normcase(abs_path)
 
     try:
         for fname in os.listdir(parent_dir):
@@ -336,7 +321,7 @@ def is_referenced_as_child(file_path: str) -> bool:
                     with open(sibling, 'r', encoding='utf-8',
                               errors='replace') as f:
                         content = f.read()
-                    if basename in content or os.path.normcase(abs_path) in _expanded_sheet_refs(sibling, content):
+                    if wanted in _sheet_file_refs(sibling, content):
                         return True
                 except OSError:
                     continue
@@ -345,33 +330,45 @@ def is_referenced_as_child(file_path: str) -> bool:
     return False
 
 
+_SHEETFILE_ANY = re.compile(r'\(property\s+"Sheet ?file"\s+"([^"]*)"', re.IGNORECASE)
+
+
+def _sheet_file_refs(sch_path: str, content: str) -> set[str]:
+    """Normalised absolute path of every sheet file *content* (the text of *sch_path*) names,
+    with project text variables expanded; a value that stays unresolved is dropped."""
+    base = os.path.dirname(os.path.abspath(sch_path))
+    refs = set()
+    for m in _SHEETFILE_ANY.finditer(content):
+        value = m.group(1)
+        if "${" in value:
+            value = expand_sheet_file(value, sch_path)
+            if "${" in value:
+                continue
+        refs.add(os.path.normcase(os.path.abspath(os.path.join(base, value.replace("\\", "/")))))
+    return refs
+
+
 def _root_references_target(root_sch: str, target: str) -> bool:
-    """Check if root_sch's sheet tree references target (by relative path).
-
-    Handles both same-directory and sub-directory layouts by computing the
-    relative path from the root's directory to the target.  Reads the full
-    file because sheet blocks can appear after large lib_symbols sections.
-    """
-    try:
-        root_dir = os.path.dirname(os.path.abspath(root_sch))
-        target_abs = os.path.abspath(target)
-        # Compute the relative path the root would use in Sheetfile property
-        rel_path = os.path.relpath(target_abs, root_dir)
-        # Also try just the basename (same-directory case)
-        basename = os.path.basename(target_abs)
-
-        with open(root_sch, 'r', encoding='utf-8', errors='replace') as f:
-            content = f.read()
-
-        # Check for relative path or basename in content
-        # KiCad uses forward slashes in Sheetfile even on Windows
-        for needle in (rel_path, rel_path.replace(os.sep, '/'), basename):
-            if needle in content:
-                return True
-        if os.path.normcase(target_abs) in _expanded_sheet_refs(root_sch, content):
+    """Check if the sheet tree under root_sch reaches target through whole sheet-file paths,
+    however many intermediate sheets lie between."""
+    wanted = os.path.normcase(os.path.abspath(target))
+    seen = set()
+    todo = [os.path.abspath(root_sch)]
+    while todo:
+        sch = todo.pop()
+        key = os.path.normcase(sch)
+        if key in seen:
+            continue
+        seen.add(key)
+        try:
+            with open(sch, 'r', encoding='utf-8', errors='replace') as f:
+                content = f.read()
+        except OSError:
+            continue
+        refs = _sheet_file_refs(sch, content)
+        if wanted in refs:
             return True
-    except OSError:
-        pass
+        todo.extend(r for r in refs if r not in seen)
     return False
 
 
@@ -434,8 +431,7 @@ def discover_root_schematic(target_path: str) -> str | None:
         try:
             with open(candidate, 'r', encoding='utf-8', errors='replace') as f:
                 content = f.read()
-            if (target_basename in content
-                    or os.path.normcase(target) in _expanded_sheet_refs(candidate, content)):
+            if os.path.normcase(target) in _sheet_file_refs(candidate, content):
                 return candidate
         except OSError:
             continue
@@ -567,6 +563,26 @@ def empty_input_error(path: str, expected: str) -> str | None:
                 return None
 
 
+# (effect when the file is not a KiCad file at all, effect when it parses only in part)
+_INPUT_EFFECTS = {'kicad_sch': ('file not read as a schematic', 'partial sheet analyzed'),
+                  'kicad_pcb': ('file not read as a board', 'partial board analyzed')}
+
+
+def parse_input_problem(path: str, tree, problem: str | None,
+                        expected: str) -> tuple[str, str] | None:
+    """(message, effect) when a parsed file is not a whole KiCad schematic or board: its
+    root is not (``expected`` ...), or the parser's *problem* (see sexp.parse_checked);
+    None when it is.  *expected* is 'kicad_sch' or 'kicad_pcb'."""
+    name = os.path.basename(path)
+    not_kicad, partial = _INPUT_EFFECTS[expected]
+    head = tree[0] if isinstance(tree, list) and tree else tree
+    if head != expected:
+        return f"{name} is not {_INPUT_KIND[expected]}: it starts with {str(head)[:40]!r}", not_kicad
+    if problem:
+        return f"{name}: {problem}", partial
+    return None
+
+
 def extract_pro_net_classes(pro: dict) -> list[dict]:
     """Extract net classes from .kicad_pro ``net_settings``.
 
@@ -669,7 +685,7 @@ def extract_pro_text_variables(pro: dict) -> dict:
 
 
 # A .kicad_dru length: a number with one of KiCad's length units (pcbexpr_evaluator.cpp). A bare
-# number is a "Missing units" error; arithmetic is an expression. Neither is read here.
+# number is a "Missing units" error; arithmetic is an expression (`_dru_eval`).
 _DRU_LENGTH = re.compile(r'\s*([-+]?(?:\d+\.?\d*|\.\d+))\s*(mm|mil|in)\s*')
 _DRU_UNIT_MM = {'mm': 1.0, 'mil': 0.0254, 'in': 25.4}
 
@@ -684,27 +700,171 @@ _DRU_SEVERITIES = frozenset(('ignore', 'warning', 'error', 'exclusion'))
 # Constraint types whose values take no unit (drc_rule_parser.cpp parseConstraint).
 _DRU_UNITLESS_CONSTRAINTS = frozenset(('via_count', 'min_resolved_spokes', 'track_angle',
                                        'via_dangling', 'bridged_mask'))
-_DRU_BARE_NUMBER = re.compile(r'\s*[-+]?(?:\d+\.?\d*|\.\d+)\s*')
+_DRU_EXPR_TOKEN = re.compile(r'\s*(?:(\d+\.?\d*|\.\d+)|([a-z]+)|([-+*/()]))')
+_DRU_OTHER_UNITS = frozenset(('deg', 'fs', 'ps'))
 
 
-def _dru_bare_length(constraint: list) -> bool:
-    """True when a length bound of *constraint* is a bare number (KiCad's "Missing units")."""
-    if (len(constraint) < 2 or not isinstance(constraint[1], str)
-            or constraint[1] in _DRU_UNITLESS_CONSTRAINTS):
-        return False
+def _dru_bound_text(node: list) -> str:
+    """The text of a bound as KiCad reads it: every token after the keyword, a nested list
+    in its parentheses (drc_rule_parser.cpp parseExpression)."""
+    return ' '.join('( ' + _dru_bound_text([None] + t) + ' )' if isinstance(t, list) else str(t)
+                    for t in node[1:])
+
+
+def _dru_eval(text: str) -> tuple[str, float | None]:
+    """A bound expression evaluated as KiCad's libeval does: ``('length', mm)``, ``('number', v)``,
+    ``('other', None)`` for a result this reader does not judge (angle or time units, a mixed or
+    squared dimension, division by zero, a character outside the expression grammar), or
+    ``('error', None)`` for text KiCad cannot parse."""
+    if re.search(r'[^0-9.+\-*/()a-z\s]', text):
+        return 'other', None
+    tokens = []
+    pos = 0
+    while pos < len(text):
+        m = _DRU_EXPR_TOKEN.match(text, pos)
+        if not m:
+            if text[pos:].strip():
+                return 'error', None
+            break
+        tokens.append(m.groups())
+        pos = m.end()
+    i = 0
+
+    def peek(kind):
+        return tokens[i][kind] if i < len(tokens) else None
+
+    def combine(op, a, b):
+        (ka, va), (kb, vb) = a, b
+        if 'other' in (ka, kb):
+            return 'other', None
+        if op in '+-':
+            return (ka, va + vb if op == '+' else va - vb) if ka == kb else ('other', None)
+        if op == '*':
+            return ('other', None) if ka == kb == 'length' else (
+                'length' if 'length' in (ka, kb) else 'number', va * vb)
+        if vb == 0 or kb == 'length':
+            return 'other', None
+        return ka, va / vb
+
+    def unary():
+        nonlocal i
+        op = peek(2)
+        if op in ('+', '-'):
+            i += 1
+            k, v = unary()
+            return (k, -v if op == '-' and v is not None else v)
+        if op == '(':
+            i += 1
+            r = expr()
+            if peek(2) != ')':
+                raise ValueError
+            i += 1
+            return r
+        num = peek(0)
+        if num is None:
+            raise ValueError
+        i += 1
+        unit = peek(1)
+        if unit is None:
+            return 'number', float(num)
+        i += 1
+        if unit in _DRU_UNIT_MM:
+            return 'length', float(num) * _DRU_UNIT_MM[unit]
+        if unit in _DRU_OTHER_UNITS:
+            return 'other', None
+        raise ValueError
+
+    def binary(sub, ops):
+        nonlocal i
+        r = sub()
+        while peek(2) in ops:
+            op = peek(2)
+            i += 1
+            r = combine(op, r, sub())
+        return r
+
+    def term():
+        return binary(unary, ('*', '/'))
+
+    def expr():
+        return binary(term, ('+', '-'))
+
+    try:
+        kind, value = expr()
+    except ValueError:
+        return 'error', None
+    if i != len(tokens):
+        return 'error', None
+    return kind, (round(value, 6) if value is not None else None)
+
+
+def _dru_bound_error(constraint: list) -> str | None:
+    """KiCad's message for an item of *constraint* it cannot read, or None: "Unrecognized
+    item." for a list that is not a bound, "Missing units." for a unitless length, "Syntax
+    error" for a length that is not an expression."""
     for bound in constraint[2:]:
-        if isinstance(bound, list) and bound[:1] in (['min'], ['max'], ['opt']):
-            text = ' '.join(str(t) for t in bound[1:] if not isinstance(t, list))
-            if _DRU_BARE_NUMBER.fullmatch(text):
-                return True
-    return False
+        if not isinstance(bound, list):
+            continue
+        if not bound or not isinstance(bound[0], str) or bound[0] not in _DRU_BOUND_ITEMS:
+            return "Unrecognized item."
+        if (len(bound) > 1 and bound[0] in ('min', 'max', 'opt')
+                and constraint[1] not in _DRU_UNITLESS_CONSTRAINTS):
+            text = _dru_bound_text(bound)
+            if parse_dru_length(text) is not None:
+                continue
+            kind = _dru_eval(text)[0]
+            if kind == 'number':
+                return "Missing units."
+            if kind == 'error':
+                return "Syntax error"
+    return None
 
 
-def _dru_parse_error(tree: list) -> str | None:
+# drc_rule_parser.cpp parseConstraint: the constraint types, plus the deprecated names it maps.
+_DRU_CONSTRAINT_TYPES = frozenset((
+    'assertion', 'clearance', 'creepage', 'hole_clearance', 'edge_clearance', 'hole_size',
+    'hole_to_hole', 'courtyard_clearance', 'silk_clearance', 'text_height', 'text_thickness',
+    'track_width', 'track_angle', 'track_segment_length', 'connection_width', 'annular_width',
+    'via_diameter', 'via_dangling', 'zone_connection', 'thermal_relief_gap',
+    'thermal_spoke_width', 'min_resolved_spokes', 'solder_mask_expansion', 'solder_mask_sliver',
+    'solder_paste_abs_margin', 'solder_paste_rel_margin', 'disallow', 'length', 'skew',
+    'via_count', 'diff_pair_gap', 'diff_pair_uncoupled', 'physical_clearance',
+    'physical_hole_clearance', 'bridged_mask',
+    'hole', 'mechanical_clearance', 'mechanical_hole_clearance'))
+# Deprecated constraint names KiCad still reads (drc_rule_parser.cpp parseConstraint).
+_DRU_CONSTRAINT_ALIASES = {'hole': 'hole_size', 'mechanical_clearance': 'physical_clearance',
+                           'mechanical_hole_clearance': 'physical_hole_clearance'}
+_DRU_RULE_ITEMS = frozenset(('constraint', 'condition', 'layer', 'severity'))
+_DRU_BOUND_ITEMS = frozenset(('min', 'max', 'opt', 'within_diff_pairs'))
+# Constraint types that take bare argument tokens instead of bounds.
+_DRU_ARGUMENT_CONSTRAINTS = frozenset(('disallow', 'zone_connection', 'assertion'))
+# The layer names a rule can match: LSET::Name over every layer id (lset.cpp) and the standard
+# names of LayerName (layer_id.cpp). The board's own names are added per file.
+_KICAD_LAYER_NAMES = frozenset((
+    'F.Cu', 'B.Cu', *(f'In{i}.Cu' for i in range(1, 63)),
+    'B.Adhes', 'F.Adhes', 'B.Paste', 'F.Paste', 'B.SilkS', 'F.SilkS', 'B.Mask', 'F.Mask',
+    'Dwgs.User', 'Cmts.User', 'Eco1.User', 'Eco2.User', 'Edge.Cuts', 'Margin',
+    'F.CrtYd', 'B.CrtYd', 'F.Fab', 'B.Fab', 'Rescue', *(f'User.{i}' for i in range(1, 46)),
+    'B.Adhesive', 'F.Adhesive', 'B.Silkscreen', 'F.Silkscreen', 'User.Drawings',
+    'User.Comments', 'User.Eco1', 'User.Eco2', 'F.Courtyard', 'B.Courtyard'))
+
+
+def _dru_layer_known(pattern: str, layer_names: frozenset[str]) -> bool:
+    """True when a rule's layer is ``outer``/``inner`` or a wildcard pattern matching a layer
+    name (wxString::Matches: ``*`` and ``?`` only, case-sensitive). A text variable is left to
+    KiCad's own expansion."""
+    if pattern in ('outer', 'inner') or '${' in pattern:
+        return True
+    pattern = pattern.replace('[', '[[]')
+    return any(fnmatchcase(name, pattern) for name in layer_names)
+
+
+def _dru_parse_error(tree: list, layer_names: frozenset[str] | None = None) -> str | None:
     """KiCad's message for a .kicad_dru it refuses to load, or None. A parse error drops every
     custom rule of the file (drc_rule_parser.cpp Parse, drc_engine.cpp InitEngine). Checked:
-    the leading version statement, the top-level forms, rule names, severity names, a
-    nested list where a constraint type or layer name belongs, and length bounds without a unit."""
+    the leading version statement, the top-level forms, rule names and items, severity names,
+    conditions, constraint types and items (once per rule), length bounds that are not a
+    length expression, and, given the board's *layer_names*, the rule's layer."""
     if any(not isinstance(f, list) for f in tree[1:]):
         return "Missing '('."
     forms = tree[1:]
@@ -717,21 +877,61 @@ def _dru_parse_error(tree: list) -> str | None:
         elif form[:1] == ['rule']:
             if len(form) < 2 or not isinstance(form[1], str):
                 return "Missing rule name."
+            constraint_types = set()
+            has_layer = False
             for item in form[2:]:
                 if not isinstance(item, list):
                     continue
-                if item[:1] == ['severity'] and (len(item) < 2 or not isinstance(item[1], str)
-                                                 or item[1] not in _DRU_SEVERITIES):
+                if not item or not isinstance(item[0], str) or item[0] not in _DRU_RULE_ITEMS:
+                    return "Unrecognized item."
+                if item[0] == 'severity' and (len(item) < 2 or not isinstance(item[1], str)
+                                              or item[1] not in _DRU_SEVERITIES):
                     return "Unrecognized severity."
-                if item[:1] == ['constraint'] and len(item) > 1 and not isinstance(item[1], str):
-                    return "Unrecognized constraint type."
-                if item[:1] == ['layer'] and len(item) > 1 and not isinstance(item[1], str):
-                    return "Unrecognized layer."
-                if item[:1] == ['constraint'] and _dru_bare_length(item):
-                    return "Missing units."
+                if item[0] == 'condition':
+                    if len(item) < 2:
+                        return "Missing condition expression."
+                    if isinstance(item[1], list):
+                        return "Unrecognized item."
+                    if len(item) > 2:
+                        return "Missing ')'."
+                if item[0] == 'constraint' and len(item) > 1:
+                    ctype = item[1]
+                    if not isinstance(ctype, str) or (ctype not in _DRU_CONSTRAINT_TYPES
+                                                      and '${' not in ctype):
+                        return "Unrecognized constraint type."
+                    if ctype in constraint_types:
+                        return f"Rule already has a '{ctype}' constraint."
+                    constraint_types.add(ctype)
+                    if ctype not in _DRU_ARGUMENT_CONSTRAINTS and (
+                            bound_error := _dru_bound_error(item)):
+                        return bound_error
+                if item[0] == 'layer':
+                    if has_layer:
+                        return "'layer' keyword already present."
+                    has_layer = True
+                if item[0] == 'layer' and len(item) > 1:
+                    if not isinstance(item[1], str) or (
+                            layer_names is not None
+                            and not _dru_layer_known(item[1], layer_names)):
+                        return "Unrecognized layer."
         else:
             return "Expected rule or version."
     return None
+
+
+def _dru_unbalanced(content: str) -> str | None:
+    """KiCad's message when the parentheses of *content* do not balance, or None. Counted over
+    the parser's own tokens, so a parenthesis in a quoted string or a comment line is not counted;
+    the parser itself closes an open list at the end and stops at a stray ')' without error."""
+    depth = 0
+    for tok in _sexp._tokenize(content):
+        if tok is _sexp._LPAREN:
+            depth += 1
+        elif tok is _sexp._RPAREN:
+            depth -= 1
+            if depth < 0:
+                return "Missing '('."
+    return "Missing ')'." if depth else None
 
 
 def load_kicad_dru(file_path: str) -> list[dict] | None:
@@ -739,7 +939,8 @@ def load_kicad_dru(file_path: str) -> list[dict] | None:
     return load_kicad_dru_checked(file_path)[0]
 
 
-def load_kicad_dru_checked(file_path: str) -> tuple[list[dict] | None, str | None]:
+def load_kicad_dru_checked(file_path: str, *, layer_names: Iterable[str] | None = None
+                           ) -> tuple[list[dict] | None, str | None]:
     """Load custom design rules from ``.kicad_dru`` adjacent to a KiCad file.
 
     Returns list of rule dicts::
@@ -749,10 +950,13 @@ def load_kicad_dru_checked(file_path: str) -> tuple[list[dict] | None, str | Non
          "condition": "A.Type == 'track'",
          "constraints": [{"type": "track_width", "min": 0.127}]}
 
-    Bounds are mm (`parse_dru_length`); a bound that is not a plain length stays its text.
+    Bounds are mm (`parse_dru_length`, or `_dru_eval` for an expression); a bound that does not
+    evaluate to a length stays its text.
     Conditions are kept as raw strings — not evaluated. ``severity`` is kept when set.
     Returns (None, None) if no ``.kicad_dru`` found. The second item is KiCad's parse error
     when KiCad would refuse the file (`_dru_parse_error`); the rules are still returned.
+    The rule layers are checked only when the board's *layer_names* (names and user names)
+    are given.
 
     Only the board reads rules, and KiCad takes the file named like the board,
     so discovery is exact-stem via `find_project_settings_file`.
@@ -789,14 +993,19 @@ def load_kicad_dru_checked(file_path: str) -> tuple[list[dict] | None, str | Non
         for c in find_all(r, 'constraint'):
             if len(c) < 2:
                 continue
-            ctype = c[1]
+            ctype = _DRU_CONSTRAINT_ALIASES.get(c[1], c[1]) if isinstance(c[1], str) else c[1]
             entry: dict = {'type': ctype}
             for key in ('min', 'max', 'opt'):
                 node = find_first(c, key)
                 if node is None or len(node) < 2:
                     continue
-                text = ' '.join(str(t) for t in node[1:] if not isinstance(t, list))
-                value = parse_dru_length(text)
+                text = _dru_bound_text(node)
+                # KiCad reads a comma between digits as the decimal point ('0,1mm')
+                number = re.sub(r'(?<=\d),(?=\d)', '.', text)
+                value = parse_dru_length(number)
+                if value is None and isinstance(ctype, str) and ctype not in _DRU_UNITLESS_CONSTRAINTS:
+                    kind, mm = _dru_eval(number)
+                    value = mm if kind == 'length' else None
                 entry[key] = value if value is not None else text
             constraints.append(entry)
 
@@ -814,7 +1023,9 @@ def load_kicad_dru_checked(file_path: str) -> tuple[list[dict] | None, str | Non
 
     if not rules:
         return None, None
-    return rules, _dru_parse_error(tree)
+    known_layers = (None if layer_names is None
+                    else _KICAD_LAYER_NAMES | frozenset(layer_names))
+    return rules, _dru_parse_error(tree, known_layers) or _dru_unbalanced(content)
 
 
 def load_lib_tables(file_path: str) -> dict:

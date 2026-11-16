@@ -34,6 +34,7 @@ from envelopes.gerber import GerberEnvelope  # noqa: E402
 from schema_codec import emit_schema  # noqa: E402
 from inputs_builder import build_inputs, build_compat  # noqa: E402
 from capability_mode import get_capability_mode_ref  # noqa: E402
+from kicad_core.fileio import atomic_write_text, json_loads  # noqa: E402
 from kicad_core.diagnostics import record as record_diagnostic  # noqa: E402
 from kicad_core.cli import (add_compact_arg, add_only_deterministic_arg, add_output_arg,  # noqa: E402
                             add_schema_arg, add_stage_audience_args, add_text_arg, utf8_text_stdout)
@@ -915,15 +916,55 @@ def identify_layer_type(filename: str, x2_attrs: dict, kicad_major: int | None =
 # Job file parser
 # ---------------------------------------------------------------------------
 
+def _parse_gerber_job(text: str) -> dict:
+    """A KiCad 5.0 job file: Gerber attributes, %TJ.B.* for the board and %TJ.L.* per file."""
+    result: dict = {}
+    for m in re.finditer(r"%(T[FJ]\.[^*%]*)\*%", text):
+        name, _, value = m.group(1).partition(",")
+        if name.startswith("TJ.L."):
+            # %TJ.L."<FileFunction>",<polarity>,<file>*%: the function holds commas
+            lm = re.fullmatch(r'"([^"]*)",([^,]*),(.*)', m.group(1)[len("TJ.L."):])
+            if lm:
+                result.setdefault("expected_files", []).append(
+                    {"path": lm.group(3), "function": lm.group(1), "polarity": lm.group(2)})
+        elif name == "TF.GenerationSoftware":
+            vendor, _, rest = value.partition(",")
+            app, _, version = rest.partition(",")
+            result["generator"] = f"{app} {version}".strip()
+            result["vendor"] = vendor
+        elif name == "TF.CreationDate":
+            result["creation_date"] = value
+        elif name == "TF.ProjectId":
+            result["project_name"] = value.split(",")[0]
+        elif name in ("TJ.B.Size.X", "TJ.B.Size.Y", "TJ.B.Overall.Thickness", "TJ.B.LayerNum"):
+            try:
+                number = float(value)
+            except ValueError:
+                continue
+            key = {"TJ.B.Size.X": "board_width_mm", "TJ.B.Size.Y": "board_height_mm",
+                   "TJ.B.Overall.Thickness": "board_thickness_mm",
+                   "TJ.B.LayerNum": "layer_count"}[name]
+            result[key] = int(number) if key == "layer_count" else number
+    return result
+
+
 def parse_job_file(path: str, diagnostics: list | None = None) -> dict | None:
-    """Parse a .gbrjob file and extract structured metadata.
+    """Parse a job file (.gbrjob JSON, or KiCad 5.0's Gerber-attribute -job.gbj) and extract
+    structured metadata.
 
     A job file that cannot be read, or is not a JSON object, gives None and
     one diagnostic.
     """
     try:
         with open(path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+            text = f.read()
+        if text.lstrip().startswith(("G04", "%")):
+            return _parse_gerber_job(text)
+        try:
+            data = json_loads(text)
+        except ValueError:
+            # KiCad 5.1 left a comma before a closing brace or bracket
+            data = json_loads(re.sub(r",(\s*[}\]])", r"\1", text))
         if not isinstance(data, dict):
             raise ValueError(f"job file holds a JSON {type(data).__name__}, not an object")
     except (ValueError, OSError) as e:
@@ -1089,6 +1130,22 @@ _INNER_COPPER = re.compile(r"In\d+\.Cu")
 # KiCad 9.0.0-9.0.4 job files list inner copper as Copper,L<layer id + 1>
 # (In1.Cu = L5, In2.Cu = L7); fixed by KiCad commit 9725ac2215 (9.0.5).
 _KICAD9_JOB_INNER_BUG = re.compile(r"Pcbnew 9\.0\.[0-4](?!\d)")
+# Nightlies (8.99, 9.99) built before that fix carry the same numbering; it shows as an inner
+# position at or past the bottom layer.
+_KICAD_NIGHTLY = re.compile(r"Pcbnew 9\.99|Pcbnew 8\.99")
+
+
+def _job_inner_numbering_bug(job_info: dict) -> bool:
+    """True when the job file lists inner copper with KiCad 9.0.0-9.0.4's layer id numbering."""
+    generator = job_info.get("generator", "")
+    if _KICAD9_JOB_INNER_BUG.match(generator):
+        return True
+    if not _KICAD_NIGHTLY.match(generator):
+        return False
+    count = job_info.get("layer_count") or 0
+    return count > 0 and any(int(m.group(1)) >= count
+                             for ef in job_info.get("expected_files", [])
+                             if (m := re.match(r"Copper,L(\d+),Inr", ef.get("function", ""))))
 
 
 def _implied_inner_absent(gerbers: list[dict], covered: set,
@@ -1132,7 +1189,7 @@ def check_completeness(gerbers: list[dict], drills: list[dict],
         # A listed file that is present names its own layer; the job's
         # FileFunction is only read for a listed file that is absent.
         by_name = {g.get("filename"): g.get("layer_type") for g in gerbers}
-        kicad9_inner_bug = bool(_KICAD9_JOB_INNER_BUG.match(job_info.get("generator", "")))
+        kicad9_inner_bug = _job_inner_numbering_bug(job_info)
         for ef in job_info["expected_files"]:
             lt = by_name.get(Path(ef["path"]).name)
             if not lt or lt == "unknown":
@@ -1260,7 +1317,7 @@ def compute_board_dimensions(gerbers: list[dict], job_info: dict | None) -> dict
 def build_component_analysis(gerbers: list[dict], drills: list[dict]) -> dict | None:
     """Merge component/net/pin data across all gerber layers.
 
-    Only produces output when X2 TO attributes are present (KiCad 6+).
+    Only produces output when X2 TO attributes are present (KiCad 5.1+, native `%TO` or the `G04 #@!` comment form).
     """
     all_refs = set()
     front_refs = set()
@@ -1655,7 +1712,30 @@ def _is_repo_or_fs_artifact(name: str) -> bool:
     """Version-control entries, macOS resource forks and Windows download
     markers match the ``*.g*`` glob but are never layers. Other dot-names stay:
     some CAM tools write ``.kicad_pcb-F_Cu.gtl``."""
-    return name.startswith((".git", "._")) or ":Zone.Identifier" in name
+    return name.lower().startswith((".git", "._")) or name.endswith(":Zone.Identifier")
+
+
+# A Gerber layer opens with a format or unit statement or a G04 comment (closed by '*'); a
+# G-code dwell is 'G04 P..' with no '*'.
+_GERBER_MARKER = re.compile(rb"%FS|%MO|G04[^\n]*\*")
+
+
+def _is_layer_name(name: str) -> bool:
+    """A Gerber layer extension: an unreadable file with one is a layer to report, while
+    another ``*.g*`` file (a gerbv project, a CAM log, G-code) is taken only when it reads as
+    Gerber."""
+    suffix = Path(name).suffix.lower()
+    return suffix in _GERBER_EXTENSIONS or bool(_INNER_COPPER_EXT.search(name))
+
+
+def _has_gerber_marker(path: Path) -> bool:
+    """True when the head of *path* reads as Gerber, or the file cannot be read (the parse
+    then records the error)."""
+    try:
+        with open(path, "rb") as f:
+            return bool(_GERBER_MARKER.search(f.read(8192)))
+    except OSError:
+        return True
 
 
 def analyze_gerbers(directory: str, full: bool = False, diagnostics: list | None = None) -> dict:
@@ -1669,7 +1749,8 @@ def analyze_gerbers(directory: str, full: bool = False, diagnostics: list | None
     # Find all gerber and drill files
     gerber_files = sorted(gerber_dir.glob("*.gbr")) + sorted(gerber_dir.glob("*.g*"))
     drill_files = sorted(gerber_dir.glob("*.drl"))
-    job_files = [f for f in sorted(gerber_dir.glob("*.gbrjob"))
+    # KiCad 5.0 wrote the job as a Gerber-style *-job.gbj
+    job_files = [f for f in sorted(gerber_dir.glob("*.gbrjob")) + sorted(gerber_dir.glob("*.gbj"))
                  if not _is_repo_or_fs_artifact(f.name)]
 
     # Also pick up uppercase extensions
@@ -1710,8 +1791,9 @@ def analyze_gerbers(directory: str, full: bool = False, diagnostics: list | None
 
     gerber_files = sorted(set(gerber_files))
     gerber_files = [f for f in gerber_files
-                    if f.suffix.lower() not in (".drl", ".gbrjob", ".zip", ".pos", ".txt")
-                    and not _is_repo_or_fs_artifact(f.name)]
+                    if f.suffix.lower() not in (".drl", ".gbrjob", ".gbj", ".zip", ".pos", ".txt")
+                    and not _is_repo_or_fs_artifact(f.name)
+                    and (f.is_dir() or _is_layer_name(f.name) or _has_gerber_marker(f))]
     drill_files = sorted(set(drill_files))
 
     # Scan zip archives before parsing (uses file lists for timestamp comparison)
@@ -2190,7 +2272,7 @@ def main(argv: list[str] | None = None) -> int:
         if out_path:
             print(f"Written to {out_path}", file=sys.stderr)
     elif output_path:
-        Path(output_path).write_text(output_json, encoding="utf-8", newline="\n")
+        atomic_write_text(output_path, output_json, follow_symlinks=False)
         print(f"Written to {output_path}", file=sys.stderr)
     elif args.text:
         from output_filters import format_text

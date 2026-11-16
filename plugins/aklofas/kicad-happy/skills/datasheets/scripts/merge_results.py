@@ -32,7 +32,7 @@ _SKILL_PARENT = str(Path(__file__).resolve().parents[1])
 if _SKILL_PARENT not in sys.path:
     sys.path.insert(0, _SKILL_PARENT)
 
-from datasheet_types.cache_reader import sanitize_mpn  # noqa: E402
+from datasheet_types.cache_reader import read_json_object, sanitize_mpn  # noqa: E402
 from distributor_core.manifest import write_json_atomic  # noqa: E402
 
 
@@ -83,15 +83,15 @@ def _read_result(cache: Path, mpn: str, task_id: str) -> "dict | None":
     p = cache / f"{sanitize_mpn(mpn)}.{task_id}.result.json"
     if not p.exists():
         return None
-    try:
-        return json.loads(p.read_text(encoding="utf-8"))
-    except json.JSONDecodeError as exc:
+    result = read_json_object(p)
+    if result is None:
         return {
             "task_id": task_id,
             "status": "failed",
-            "error": f"result file is not valid JSON: {exc}",
+            "error": "result file is not a readable JSON object",
             "data": None,
         }
+    return result
 
 
 def _classify(result: "dict | None", schema: dict,
@@ -145,7 +145,17 @@ def _splice_field(extraction: dict, task_id: str, role: str, data) -> None:
             cats.append(role)
 
 
-def _initial_extraction(plan: dict) -> dict:
+def _local_path(pdf_path: str, cache: Path) -> str:
+    """Return pdf_path relative to datasheets/ (the cache's parent) when the
+    PDF is inside it, so the extraction survives a copied or moved project;
+    otherwise pdf_path as given."""
+    try:
+        return Path(pdf_path).resolve().relative_to(cache.resolve().parent).as_posix()
+    except (OSError, RuntimeError, ValueError):
+        return pdf_path
+
+
+def _initial_extraction(plan: dict, cache: Path) -> dict:
     return {
         "schema_version": {"base": "1.0", "categories": {}},
         "source": {
@@ -154,7 +164,7 @@ def _initial_extraction(plan: dict) -> dict:
             "datasheet_revision": None,
             "datasheet_date": None,
             "source_url": None,
-            "local_path": plan["pdf_path"],
+            "local_path": _local_path(plan["pdf_path"], cache),
             "sha256": plan["pdf_sha256"],
             "page_count": None,
             "family_ref": None,
@@ -173,12 +183,8 @@ def _initial_extraction(plan: dict) -> dict:
 
 def _enrich_source_from_scout(extraction: dict, cache: Path, mpn: str) -> None:
     """Overlay scout metadata onto the source block. Silent on missing file."""
-    p = cache / f"{sanitize_mpn(mpn)}.scout.json"
-    if not p.exists():
-        return
-    try:
-        scout = json.loads(p.read_text(encoding="utf-8"))
-    except json.JSONDecodeError:
+    scout = read_json_object(cache / f"{sanitize_mpn(mpn)}.scout.json")
+    if scout is None:
         return
     md = scout.get("metadata", {}) or {}
     src = extraction["source"]
@@ -223,11 +229,14 @@ def merge(cache: Path, mpn: str, *, retry_failed: bool = False) -> int:
     if not plan_path.exists():
         print(f"error: plan not found at {plan_path}", file=sys.stderr)
         return 2
-    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    plan = read_json_object(plan_path)
+    if plan is None:
+        print(f"error: plan at {plan_path} is not a readable JSON object", file=sys.stderr)
+        return 2
     if plan["execution"]["started_at"] is None:
         plan["execution"]["started_at"] = _now_iso()
 
-    extraction = _initial_extraction(plan)
+    extraction = _initial_extraction(plan, cache)
     _enrich_source_from_scout(extraction, cache, mpn)
 
     failed_tasks: list[tuple[dict, str]] = []
@@ -339,7 +348,9 @@ def main(argv: "list[str] | None" = None) -> int:
 
 if __name__ == "__main__":
     for _stream in (sys.stdout, sys.stderr):  # UTF-8 on a cp1252 pipe (Windows)
-        if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8" \
-                and hasattr(_stream, "reconfigure"):
-            _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+        if hasattr(_stream, "reconfigure"):
+            _kw = {"newline": "\n"}
+            if (getattr(_stream, "encoding", "") or "").lower().replace("-", "") != "utf8":
+                _kw.update(encoding="utf-8", errors="backslashreplace")
+            _stream.reconfigure(**_kw)
     sys.exit(main())

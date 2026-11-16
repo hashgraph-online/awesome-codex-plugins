@@ -209,6 +209,8 @@ After union-find, connected groups are named by priority:
 
 Names of equal rank resolve to the shallower sheet, then the lower full name, as KiCad does.
 
+A net that reaches a sheet through a bus also takes the bus member's name there, at the rank of the bus's global or local label, when the net has pins and no label or power symbol of its own on that sheet.
+
 When multiple disconnected wire groups share the same name (e.g., two separate `GND` networks), their pins are merged into a single net entry. This matches KiCad's behavior where same-named labels create global connectivity.
 
 ### Output
@@ -326,20 +328,22 @@ A net is classified as a power rail by three methods:
 **Method 2 — Name heuristics** (`is_power_net_name()`): Checks the net name against common power naming conventions:
 
 - **Exact matches**: `VCC`, `VDD`, `AVCC`, `AVDD`, `DVCC`, `DVDD`, `VBUS`, `VIO`, `VMAIN`, `VPWR`, `VSYS`, `VBAT`, `VCORE`, `VIN`, `VOUT`, `VREG`
-- **Patterns**: Names starting with `+` (e.g., `+3V3`, `+5V`, `+12V`), `V` followed by digits (e.g., `V3V3`, `V1V8`)
+- **Patterns**: Names starting with `+` (e.g., `+3V3`, `+5V`, `+12V`), `V` followed by a voltage or a rail word (e.g., `V3V3`, `V1P8`, `V3.3`, `V12`, `V5REG`); `V24.RX`, `V1_CLK1`, `V2OUT` and a bare `V1` are signals
 - **Prefixes**: `VDD_*`, `VCC_*`, `VBAT_*`, `VSYS_*`, `VBUS_*`, etc.
 - **Negative, decimal and prefixed rails**: `-12V`, `-5V_F`, `-BATT`, `-VIN`, `3.3V`, `1.25V_REF`, `VEE`, `VPP`, `VM`, `VNEG`, `MCU3V3`, `D+5V`. A leading `-` before anything but a voltage or a supply name (`-RESET`) is an active-low signal; a control prefix (`PWM3V3`, `PG3V3`) or a signal word after a decimal level (`3.3V_SDA`) keeps the name a signal. `VPP` and `VM` also follow the pins: an IC pin on the net and no power pin (a PIC's ~MCLR/VPP, an op-amp node `Vm`) make it a signal unless a power symbol names it.
 - **Control suffixes win**: a name whose last `_` part is a control or status word (`VCC_EN`, `3V3_PG`, `VBUS_SENSE`, `PWR_ON`) is a signal about the rail, not the rail, unless the net is in the power-symbol or project power-rail set.
+- **Escaped slash**: the sheet path is split off at a real `/` only; a label joined with an escaped `{slash}` is a rail only when every part is one (`5V{slash}3V3` is, `SDIO_CMD{slash}3V3` is not). An enable or sense prefix keeps a `_VCC` / `_VDD` name a signal (`EN_VCC`, `EN_EXT_VDD`).
 
 **Method 3 — Rails recognised by their pins** (`topology_rail_nets()`): a named net that no name rule or power symbol makes a rail is still a power net to most schematic detectors when its pins make it a supply. Every IC pin on it is a supply input (`power_in` named like a supply), a supply-named passive pin, or a power output, and a capacitor on it goes to ground. Other passive pins are allowed only beside a pin KiCad types as power (a load-switch FET drawn as an IC). A resistor to ground (a divider midpoint), `REF` in the name, or a motor-driver output keeps the net a signal, as does a bridge-named `power_out` (`OUT1` beside an `OUT2` on another net) of a part that is not a power-management IC: it is not a supply by itself. This is how `CAN_VCC_PROTECTED` or `4.5V-28V IN` become rails. These rails are not listed in `statistics.power_rails`, and `rail_voltages` reads no voltage from their names (one comes only from a regulator that drives the net or from the project config), so a PCB run given `--schematic` does not see them.
 
-A net is considered a power net if **any** of the three methods matches, except where a check reads rails by name only (methods 1 and 2), for example current-sense detection (which sides of a shunt are supply or ground), solder-jumper detection, RS-001 (a net counts by name or by a `power_in` pin), LB-001 label aliases, the rail voltages read from net names (`rail_voltages`), the IC logic level VM-001 takes from the IC's rails, and the PP-001 rule that a name-recognised rail is always a DC rail, where a rail known only by its pins is a DC rail only if it has a source or is not AC-coupled.
+A net is considered a power net if **any** of the three methods matches, except where a check reads rails by name only (methods 1 and 2), for example current-sense detection (which sides of a shunt are supply or ground), solder-jumper detection, RS-001 (a net counts by name or by a `power_in` pin, and a reference node such as `VREF` or `2V5_REF` only when an IC takes its supply from it), LB-001 label aliases, the rail voltages read from net names (`rail_voltages`), the IC logic level VM-001 takes from the IC's rails, and the PP-001 rule that a name-recognised rail is always a DC rail, where a rail known only by its pins is a DC rail only if it has a source or is not AC-coupled.
 
 ### Ground Net Identification
 
 `is_ground_name()` checks:
-- **Exact matches**: `GND`, `VSS`, `AGND`, `DGND`, `PGND`, `GNDPWR`, `GNDA`, `GNDD`
-- **Patterns**: Starts or ends with `GND`, starts with `VSS`
+- **Exact matches**: `GND`, `VSS`, `AGND`, `DGND`, `PGND`, `GNDPWR`, `GNDA`, `GNDD`, `SGND`, `0V`, `AVSS`, `DVSS`, `GROUND` (any case)
+- **Patterns**: Starts or ends with `GND`, starts with `VSS`, a zero-volt name (`0VA`, `0V_A`; not `0V5` or `0V_10V`), a battery negative (`BATT-`, `VBAT_N`), or a ground word as one part of the name (`AGND_CODEC`, `PGND_3V3`, `HEATER_GND_1`; not a pin-named `Net-(U1-GND)`)
+- **Not ground**: `COM` unless a power symbol names it (a switch, relay or transformer common), and a virtual ground (`VGND`, `HP_VGND`, `Virtual_Ground`), which sits at mid-rail
 
 ---
 

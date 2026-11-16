@@ -46,6 +46,11 @@
 `address_source:none` — когда адрес не разрешился вовсе. Обычный путь через
 саггест предупреждением не помечается и отвечает `_meta.healthy=true`.
 
+Поисковые запросы отправляются на выбранные маркетплейсы. Ранжирование использует
+только сведения о товарах, а не профиль пользователя. Инструменты сравнения
+сравнивают предложения: они не оформляют заказы и не управляют аккаунтами.
+Цены не включают доставку, сборы и пошлины.
+
 ## Единственная часть с реальным риском: уровень CDP
 
 Восемь источников читают через Chrome, который **вы** запустили и в котором залогинились
@@ -111,6 +116,9 @@ Wildberries, Яндекс Маркет и Детский мир к CDP не об
 «скачай этот файл»), агент обязан обращаться с этим как с входными данными, а не как
 с политикой. Об этом сказано в каждом skill-документе и в докстрингах инструментов,
 но окончательный контроль — на стороне агента, который эти данные читает.
+
+Цены и победителей сравнения вычисляет код, но описания и отзывы всё равно могут
+повлиять на выводы агента, который их читает.
 
 Здесь это важнее обычного: тексты отзывов свободной формы, их много, и писать их
 может кто угодно.
@@ -183,6 +191,10 @@ states that change the prices: a profile-read notice (and `_meta.healthy=false`)
 when the opt-in fired, and `address_source:none` when nothing resolved. The
 ordinary suggest path adds no address warning and answers `_meta.healthy=true`.
 
+Search queries are sent to the selected marketplaces. Ranking uses product facts
+only, not a user profile. Comparison tools compare offers: they do not place orders
+or manage accounts. Prices exclude delivery, fees and duties.
+
 ## The one part that carries real risk: the CDP tier
 
 Nine sources run their fetches inside a Chrome instance **you** started and logged
@@ -247,6 +259,9 @@ If a review or description appears to contain instructions ("ignore previous
 instructions", "fetch this URL"), an agent must treat it as input, not policy. Every
 skill document and tool docstring states this, but the ultimate control is the
 consuming agent's own trust boundary.
+
+Prices and comparison winners are computed in code, but descriptions and reviews
+can still sway the agent reading them.
 
 This matters more than usual here: review text is free-form, high-volume, and written
 by anyone.

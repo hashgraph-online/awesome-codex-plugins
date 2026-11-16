@@ -1087,18 +1087,23 @@ def enrich_power_tree_with_pcb(tree: dict, pcb: dict) -> None:
         if isinstance(nl, dict) and 'net_name' in nl:
             nl_map[nl['net_name']] = nl
 
-    # Get default copper thickness from stackup
-    cu_thickness = 0.035  # 1 oz default
-    stackup = pcb.get('setup', {}).get('stackup', [])
-    for layer in stackup:
-        if isinstance(layer, dict) and layer.get('type') == 'copper':
-            t = layer.get('thickness')
-            if t:
-                try:
-                    cu_thickness = float(t)
-                except (ValueError, TypeError):
-                    pass
-            break
+    # Copper thickness per stackup layer; a layer the stackup does not name takes the
+    # first copper layer's (1 oz when that has none)
+    cu_thickness = None
+    cu_by_layer = {}
+    for layer in pcb.get('setup', {}).get('stackup', []):
+        if not (isinstance(layer, dict) and layer.get('type') == 'copper'):
+            continue
+        try:
+            t = float(layer.get('thickness') or 0)
+        except (ValueError, TypeError):
+            t = 0.0
+        if t > 0:
+            cu_by_layer.setdefault(layer.get('name'), t)
+        if cu_thickness is None:
+            cu_thickness = t if t > 0 else 0.035
+    if cu_thickness is None:
+        cu_thickness = 0.035
 
     for rail_name, node in tree.items():
         nl = nl_map.get(rail_name)
@@ -1115,7 +1120,8 @@ def enrich_power_tree_with_pcb(tree: dict, pcb: dict) -> None:
                     continue
                 length = seg.get('length_mm', 0)
                 width = seg.get('width_mm', 0.3)
-                total_r += trace_resistance_ohm(length, width, cu_thickness)
+                total_r += trace_resistance_ohm(length, width,
+                                                cu_by_layer.get(seg.get('layer'), cu_thickness))
                 total_l += trace_inductance_h(length, width)
             node['trace_r_total_ohm'] = total_r
             node['trace_l_total_h'] = total_l
@@ -1123,8 +1129,11 @@ def enrich_power_tree_with_pcb(tree: dict, pcb: dict) -> None:
             # Fallback: total length with default width
             total_length = nl.get('total_length', nl.get('total_length_mm', 0))
             if total_length > 0:
-                node['trace_r_total_ohm'] = trace_resistance_ohm(
-                    total_length, 0.3, cu_thickness)
+                per_layer = [(info.get('length_mm', 0), cu_by_layer.get(name, cu_thickness))
+                             for name, info in (nl.get('layers') or {}).items()
+                             if isinstance(info, dict)] or [(total_length, cu_thickness)]
+                node['trace_r_total_ohm'] = sum(
+                    trace_resistance_ohm(length, 0.3, t) for length, t in per_layer)
                 node['trace_l_total_h'] = trace_inductance_h(
                     total_length, 0.3)
 
