@@ -1,6 +1,6 @@
 ---
 name: amq-cli
-version: 0.152.0 # x-release-please-version
+version: 0.153.1 # x-release-please-version
 description: Coordinate coding agents through AMQ. Use for agent messages, inboxes, receipts, sessions, wake delivery, cross-project routing, managed launches, or AMQ diagnostics. Use amq-spec for collaborative design; do not use this for general message queues or single-agent work.
 metadata:
   short-description: Inter-agent messaging via AMQ CLI
@@ -143,7 +143,7 @@ messages without confirming an actual requested outcome and remaining gap.
 | Symphony or Kanban adapters | Read [integrations](references/integrations.md). |
 | Message schema and kinds | Read [message format](references/message-format.md). |
 | Multi-round background review | Read [review loop](references/review-loop.md). |
-| Buzz, ACP, or `amq-acp` | Companion `amq-acp` queues to `AMQ_ACP_TO`; pool workers must not drain. Chat must not pass `--root`, recipients, or argv, and `[Context]` is not routing. Read [amq-acp](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-acp/README.md). |
+| ACP or `amq-acp` | Companion `amq-acp` queues each prompt to `AMQ_ACP_TO` and holds the turn until that handle replies. The environment fixes the route: a prompt must not pass `--root`, recipients, or argv, and prompt text is not routing. Read [amq-acp](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-acp/README.md). |
 | Attach to a running harness session (`amq-remote up`, `submit`, `share`) | Read the [amq-remote reference](https://github.com/avivsinai/agent-message-queue/blob/main/cmd/amq-remote/README.md). |
 | Reach this session from Buzz (`/amq-remote`) | Use the `amq-remote` skill. |
 

@@ -31,7 +31,7 @@
     },
     {
       "id": "native-sol",
-      "name": "GPT-6.1 Sol / High",
+      "name": "GPT-6.2 Sol / High",
       "kind": "native_agent",
       "enabled": true,
       "description": "Use for complex implementation, cross-module repository analysis and independent review. Select when the work needs difficult integration or a fresh critical judgment beyond routine bounded inspection.",
@@ -43,7 +43,7 @@
       },
       "config": {
         "agent_type": "default",
-        "model": "gpt-6.1-sol",
+        "model": "gpt-6.2-sol",
         "reasoning_effort": "high",
         "role": "advisor",
         "fresh_context": true,
@@ -53,7 +53,7 @@
     },
     {
       "id": "native-astra",
-      "name": "GPT-6 Astra / Medium",
+      "name": "GPT-6.2 Astra / Medium",
       "kind": "native_agent",
       "enabled": true,
       "description": "Use only for difficult planning, novel causal diagnosis and unresolved design tradeoffs. Ordinary scanning, documentation, checklist audits and straightforward route decisions do not justify this model. Main conversation decisions belong to Main orchestration.",
@@ -65,7 +65,7 @@
       },
       "config": {
         "agent_type": "default",
-        "model": "gpt-6-astra",
+        "model": "gpt-6.2-astra",
         "reasoning_effort": "medium",
         "role": "advisor",
         "fresh_context": true,

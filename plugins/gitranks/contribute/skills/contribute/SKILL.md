@@ -48,6 +48,18 @@ account, which can pick up the claim; or offer to give it back with `release_iss
 Other tools:
 - `my_contributions` lists the user's claims and pull requests.
 - `start_follow_up` works on a reviewer's feedback on an open pull request.
+  On a follow-up, fix only the failing checks this pull request's change causes; leave the others alone and say in
+  `brief` which and why. Then pass `checks` to `submit_patch` or `release_issue`: one entry per failing check the
+  brief listed, `{ name, whose, why }`, with `name` exactly as the brief lists it and `whose` one of:
+  - `pr`: this change makes it fail;
+  - `not_pr`: it fails for a reason outside the change: on the base branch too, flaky, or it needs a credential or an
+    approval a fork does not get;
+  - `contributor`: only the user can clear it;
+  - `base`: it fails only on the merge with the base branch.
+
+  `why` is one sentence (for `contributor` and `base`, what the user does, in the imperative); an entry without `why`
+  is dropped. Leave out a check you did not look into. On `release_issue`, leave `forYou` (what only the user can do
+  next) null when a `why` already says all that is left for the user.
 - `report_readiness` saves how a repository builds and tests, for the next brief.
 
 ## GitRanks Learn (invite-only)

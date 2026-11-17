@@ -7,12 +7,15 @@ description: "Use when the task needs a phone, tablet, iPhone, iPad, Android dev
 
 phonedriver shows an Android or iOS device's screen as text and operates it. The MCP tools (`snapshot`, `tap`, `type`, ...) and the command line (`phonedriver <verb>`) return the same text. Each tool's description holds its details; this file holds the strategy across tools.
 
-## Settings and system actions: `shell` first
+## Settings and system actions: `setting` and `shell` first
 
-Run a setting, intent or key with `shell`: one call returns the exit code, the output and what changed on screen, with no screens to tap through.
+Change a setting, send an intent or press a key without tapping through screens.
 
-- Android: `cmd uimode night yes`, `settings put system screen_brightness 20`, `am start -a android.intent.action.VIEW -d <url>`, `input keyevent 3`, `dumpsys window | grep mCurrentFocus`.
-- iOS Simulator: `simctl ui appearance dark`, `simctl openurl <url>`, `simctl privacy grant photos <bundle id>`, `simctl location set <lat>,<lon>`.
+- `setting` first (Android 17 and later): two calls change any number of settings. `find "dark theme|media volume"` lists settings as `key  [accepted values]  purpose`, one search per `|`; `values {"<key>": "<value>", ...}` writes them and returns the values the device now reports. `key` alone reads one; `open` shows a settings screen by its `screen` key. A refusal carries the device's reason (`Preference not enabled`).
+- `shell` for everything else, and where `setting` answers unsupported (older Android, the Simulator). One call returns the exit code, the output and what changed on screen.
+- Android: `cmd uimode night yes`, `settings put system screen_brightness 20`, `am start -a android.intent.action.VIEW -d <url>`, `input keyevent 3`, `dumpsys window | grep mCurrentFocus`. Jank: `dumpsys gfxinfo <package> reset`, act, then `dumpsys gfxinfo <package>` with grep `Janky|percentile`.
+- Android emulator: `emu geo fix <lon> <lat>` (a location), `emu sms send <number> <text>`, `emu power capacity 15` go to its console.
+- iOS Simulator: `simctl ui appearance dark`, `simctl openurl <url>`, `simctl privacy grant photos <bundle id>`, `simctl location set <lat>,<lon>`, `simctl push <bundle id> <payload.json>` (a push notification).
 - A physical iPhone has no shell. A physical Android refuses wipes and removing apps phonedriver did not install; pass `force` only when the user asked for exactly that.
 
 ## App UI: the loop
@@ -20,6 +23,10 @@ Run a setting, intent or key with `shell`: one call returns the exit code, the o
 1. `snapshot` lists the screen as lines such as `@e4 button "Save"`.
 2. Act on a ref: `tap @e4`.
 3. Read the lines the action returns: what changed once the screen settled, or the whole new screen. Act from those lines; call `snapshot` when you need the whole screen again. `the screen before the last one is back` means the screen you were shown before the last one returned (a dialog closed, or you went back to a page you had just seen): its lines and refs hold again, apart from the changes listed.
+
+A reply with a `crashed:` line means the app stopped during that action; the line holds the exception, and `logs` prints the app's last log lines (Android). Report a crash you were not asked to cause.
+
+To read a web page (Android: Chrome, or a web view in a debug build), call `snapshot` with `page: true`: the page's whole text in one call, with no scrolling. Add `find` to keep only the lines with a word and the two lines after each. It reads; to act, use refs from a plain `snapshot`.
 
 Actions already wait for the screen; use `wait` when something loads later (`wait "Row 640"`, `wait gone:"Loading"`).
 
@@ -42,8 +49,13 @@ A permission sheet, an "isn't responding" box or another system dialog shows in 
 ## Finding things
 
 - `scroll down` reveals more of a list; `scroll down --until "Row 640"` reaches a known row. `swipe` is for other gestures: pulling a sheet, reordering with `to`, zooming with `pinch`.
-- A line ending in `under-keyboard` is hidden by the keyboard: `press hide-keyboard`, then tap.
-- `screenshot` (with `marks` to box each tappable element with its ref) covers what the snapshot lacks: a map, a drawing, a photo, a game. Look at the image before tapping a point on it.
+- A line ending in `under-keyboard`, and the lines under it, are behind the keyboard; `tap` hides the keyboard first.
+- `screenshot` (with `marks` to box each tappable element with its ref) covers what the snapshot lacks: a map, a drawing, a photo, a game. Look at the image before tapping a point on it. A reply for a screen with no element list at all brings its picture with it (MCP).
+- To see what an action changed on a screen you read by picture, without a second picture: `screenshot shot.png`, act, `compare shot.png` (MCP: `screenshot`, act, `screenshot` with `compare: true`). The reply is `same`, or the texts that changed with their points.
+- A task that worked and will be asked again: `save <file>` (MCP: `replay` with `save: true`) writes your steps, and `replay <file>` runs them in one call next time. When a replay stops at a step, do that step, then replay from the next one (`--from N`, MCP `from`).
+- A fingerprint prompt on an Android emulator: `press fingerprint` passes it once a fingerprint is enrolled (enroll in Settings with the same key), `press wrong-fingerprint` fails it. On an iOS Simulator the same keys answer Face ID; if the app says Face ID is not set up, press `fingerprint` once and ask again. On a phone, tell the user: it needs their finger or face.
+- `press landscape` and `press portrait` turn the screen (an app that supports only one way stays as it is; on Android auto-rotate goes off).
+- Asked for a video of what you do (Android, iOS Simulator): `record start`, the actions, then `record stop` (MCP: `screenshot` with `record: "start"`, then `"stop"`). The reply names the MP4 file and a list of your actions with their times.
 - `launch` reopens an app where it was left (Settings may open inside a sub-page); `launch --restart` (MCP `restart: true`) stops it first so it opens on its first screen.
 
 ## Typing
@@ -58,15 +70,15 @@ Unlocking the phone, a USB debugging prompt, a biometric prompt and a trust-this
 
 Each error has a hint that names the next step; follow it.
 
-- No device: `phonedriver doctor` says what is missing (adb, USB debugging, a dropped tunnel); with only the MCP tools, ask the user to run it. More than one device: pass `device` with an id from `devices`.
-- Another session holds the device: wait or use another device; the error says how long it has been idle.
+- No device: when the error says `can be started`, start one with `boot <name>` (MCP: `devices` with `boot`) and go on. Otherwise `phonedriver doctor` says what is missing (adb, USB debugging, a dropped tunnel); with only the MCP tools, ask the user to run it. More than one device: pass `device` with an id from `devices`.
+- Another session holds the device: wait or use another device; the error says how long it has been idle. On Android 13 and later you can also work beside it on a lane: pass `device` as that id with `+` and a short name of yours (`android:emulator-5554+b`). A lane is a hidden screen of its own that starts on a home screen; launch a different app than the other session uses, because an app runs in one place at a time.
 - `driven by another phonedriver daemon`: another program on that computer runs the device. Tell the user the pid the error names. Do not stop that program yourself.
 - Text not found: the error lists similar text; scroll or fix the spelling.
 - Not supported on this device: the error says why; use another approach.
 
 ## Safety
 
-- The user's own passwords, codes and payment details go in only when the user gave them for this task, with `secret`. Plain `type` into a password field or a one-time code field is refused (`is a password field`): pass the text with `secret`. A test value you make up for a sign-up form needs no asking.
+- The user's own passwords, codes and payment details go in only when the user gave them for this task, with `secret`. Plain `type` into a password field or a one-time code field is refused (`is a password field`): pass the text with `secret`, on a `type` call or on a `type` step of a `batch`. A test value you make up for a sign-up form needs no asking.
 - Confirming a purchase, payment or delete, and sending a message, post, email or call, need the user's word for this task, in the words the user approved.
 - A tap that spends money or cannot be undone is approved by the human, not by you. `Needs the human's approval` means nothing was tapped (the human may have asked to be asked about sends, deletes and installs too, so it can appear on a `Send` or `Delete` tap): ask the user, and call again with `autonomous: true` (CLI `--autonomous`) only if they say yes or their instructions grant full autonomy. `The human declined`: stop.
 - Change only the settings the task names.
@@ -75,4 +87,4 @@ Each error has a hint that names the next step; follow it.
 
 ## Verbs
 
-`devices`, `apps`, `snapshot`, `screenshot`, `tap`, `type`, `swipe`, `scroll`, `press`, `launch`, `wait`, `shell`, `batch`, `clipboard`. The command line also has `find`, `clear`, `open <url>`, `gesture` and `release`.
+`devices`, `apps`, `snapshot`, `screenshot`, `tap`, `type`, `swipe`, `scroll`, `press`, `launch`, `wait`, `shell`, `setting`, `logs`, `batch`, `clipboard`, `replay`. The command line also has `find`, `page`, `clear`, `open <url>`, `gesture`, `compare`, `boot` and `release`.

@@ -468,7 +468,7 @@ test('Strict capability rejects fan-out before creating any model session',async
 
 test('current generation succeeds in one planner round when the planner omits host-owned node fields', async t => {
   let proposal;
-  const f=await fixture(t,{fixtureProjection:false,turn:async settings=>({output:JSON.stringify(settings.model==='gpt-6.1-sol'?checklist(proposal):generatedProposal(proposal)),thread_id:'host-projection',turn_id:'turn',audit:{}})});
+  const f=await fixture(t,{fixtureProjection:false,turn:async settings=>({output:JSON.stringify(settings.model==='gpt-6.2-sol'?checklist(proposal):generatedProposal(proposal)),thread_id:'host-projection',turn_id:'turn',audit:{}})});
   const source=join(f.root,'host-projection-source');await mkdir(source);await writeFile(join(source,'SKILL.md'),'---\nname: host-projection\ndescription: Review\n---\nReview a result.');
   const {store}=await f.service.open();const pack=await importCoarseSkill(store,join(source,'SKILL.md'),{id:'host-projection-source'});
   const origin={confidence:1,source_span:{resource:'source/SKILL.md',start_line:5,end_line:5}};
@@ -501,7 +501,7 @@ test('current generation succeeds in one planner round when the planner omits ho
 
 test('host/compiler upgrades recheck an exact persisted proposal without another planner call', async t => {
   let proposal;
-  const f=await fixture(t,{turn:async settings=>({output:JSON.stringify(settings.model==='gpt-6.1-sol'?checklist(proposal):generatedProposal(proposal)),thread_id:'generation-recheck',turn_id:'turn',audit:{}})});
+  const f=await fixture(t,{turn:async settings=>({output:JSON.stringify(settings.model==='gpt-6.2-sol'?checklist(proposal):generatedProposal(proposal)),thread_id:'generation-recheck',turn_id:'turn',audit:{}})});
   const source=join(f.root,'recheck-source');await mkdir(source);await writeFile(join(source,'SKILL.md'),'---\nname: recheck\ndescription: Review\n---\nReview a result.');
   const {store}=await f.service.open();const pack=await importCoarseSkill(store,join(source,'SKILL.md'),{id:'recheck-source'});
   const origin={confidence:1,source_span:{resource:'source/SKILL.md',start_line:5,end_line:5}};
@@ -534,7 +534,7 @@ test('host/compiler upgrades recheck an exact persisted proposal without another
 test('review protocol defects stop without consuming a planner or reviewer retry', async t => {
   let proposal;
   const f=await fixture(t,{turn:async settings=>{
-    if(settings.model!=='gpt-6.1-sol') return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'review-recheck',turn_id:'planner',audit:{}};
+    if(settings.model!=='gpt-6.2-sol') return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'review-recheck',turn_id:'planner',audit:{}};
     const value=checklist(proposal);value.checks.find(row=>row.id==='portable_artifact').source_spans=[{resource:'source/SKILL.md',start_line:999,end_line:999}];
     return {output:JSON.stringify(value),thread_id:'review-recheck',turn_id:'reviewer',audit:{}};
   }});
@@ -552,7 +552,7 @@ test('review protocol defects stop without consuming a planner or reviewer retry
 test('model-authored Provider choices are structurally absent and Host routing proceeds without repair',async t=>{
   let proposal;let generated=0;
   const f=await fixture(t,{turn:async settings=>{
-    if(settings.model==='gpt-6.1-sol') return {output:JSON.stringify(checklist(proposal)),thread_id:'routing-repair',turn_id:'turn',audit:{}};
+    if(settings.model==='gpt-6.2-sol') return {output:JSON.stringify(checklist(proposal)),thread_id:'routing-repair',turn_id:'turn',audit:{}};
     const value=structuredClone(proposal);if(generated++===0)value.nodes[0].provider_choice='invented-provider';
     return {output:JSON.stringify(generatedProposal(value)),thread_id:'routing-repair',turn_id:'turn',audit:{}};
   }});
@@ -570,7 +570,7 @@ test('model-authored Provider choices are structurally absent and Host routing p
 test('an invalid review checklist stops without retrying either model',async t=>{
   let proposal;let generated=0;let reviews=0;
   const f=await fixture(t,{turn:async settings=>{
-    if(settings.model!=='gpt-6.1-sol'){generated++;return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'routing-repair',turn_id:'turn',audit:{}};}
+    if(settings.model!=='gpt-6.2-sol'){generated++;return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'routing-repair',turn_id:'turn',audit:{}};}
     const value=checklist(proposal);if(reviews++===0)value.checks[1].id='hard_rules';
     return {output:JSON.stringify(value),thread_id:'routing-repair',turn_id:'turn',audit:{}};
   }});
@@ -588,7 +588,7 @@ test('an invalid review checklist stops without retrying either model',async t=>
 test('a schema-invalid review stops after the failed session closes',async t=>{
   let proposal;let generated=0;let reviews=0;
   const f=await fixture(t,{turn:async settings=>{
-    if(settings.model!=='gpt-6.1-sol'){generated++;return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'routing-repair',turn_id:'turn',audit:{}};}
+    if(settings.model!=='gpt-6.2-sol'){generated++;return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'routing-repair',turn_id:'turn',audit:{}};}
     const value=checklist(proposal);if(reviews++===0)value.checks.pop();
     return {output:JSON.stringify(value),thread_id:'routing-repair',turn_id:'turn',audit:{}};
   }});
@@ -633,7 +633,7 @@ test('one-click generation exposes managed login without silently starting a mod
 });
 test('generation repairs review findings with pinned providers and preserves rejected attempts', async t => {
   let proposal, reviews=0,plannerCalls=0,repairContext=null; const prompts=[];
-  const f=await fixture(t,{turn:async(settings,session)=>{prompts.push(session.prompt);if(settings.model!=='gpt-6.1-sol' && plannerCalls>0){const resource=await settings.toolBroker.call('read_workflow_resource',{path:AUTHORING_REPAIR_RESOURCE},'repair-context');repairContext=JSON.parse(JSON.parse(resource.contentItems[0].text).text);}return {output:JSON.stringify(settings.model==='gpt-6.1-sol'?checklist(proposal,++reviews>1?'':'Clarify the review deliverable.'):(plannerCalls++?generatedRepair(proposal):generatedProposal(proposal))),thread_id:'repair',turn_id:'round',audit:{}};}});
+  const f=await fixture(t,{turn:async(settings,session)=>{prompts.push(session.prompt);if(settings.model!=='gpt-6.2-sol' && plannerCalls>0){const resource=await settings.toolBroker.call('read_workflow_resource',{path:AUTHORING_REPAIR_RESOURCE},'repair-context');repairContext=JSON.parse(JSON.parse(resource.contentItems[0].text).text);}return {output:JSON.stringify(settings.model==='gpt-6.2-sol'?checklist(proposal,++reviews>1?'':'Clarify the review deliverable.'):(plannerCalls++?generatedRepair(proposal):generatedProposal(proposal))),thread_id:'repair',turn_id:'round',audit:{}};}});
   const config=await f.service.config();config.providers.find(p=>p.id==='native-sol').requires_user_approval=true;await saveConfig(config,{configPath:f.configPath});
   const source=join(f.root,'repair-source');await mkdir(source);await writeFile(join(source,'SKILL.md'),'---\nname: repair\ndescription: Review\n---\nReview result.');
   const {store,runtime}=await f.service.open();const pack=await importCoarseSkill(store,join(source,'SKILL.md'),{id:'repair-source'});
@@ -654,7 +654,7 @@ test('generation repairs review findings with pinned providers and preserves rej
   assert.equal(saved.workflow.status,'draft');assert.notEqual(saved.revision_hash,pack.revision_hash);
   assert.match(saved.workflow.nodes.find(item=>item.id==='activity_001').prompt_template,/Clarify the review deliverable and its evidence\./);
   assert.equal(f.sessions.length,4);
-  const plannerSessions=f.sessions.filter(session=>session.settings.model!=='gpt-6.1-sol');
+  const plannerSessions=f.sessions.filter(session=>session.settings.model!=='gpt-6.2-sol');
   assert.equal(plannerSessions.length,2);
   assert.equal(plannerSessions[0].turnOptions.output_schema?.properties?.proposal?.properties?.contract?.const,SEMANTIC_BLUEPRINT_CONTRACT);
   assert.equal(plannerSessions[1].turnOptions.output_schema?.properties?.proposal?.properties?.contract?.const,SEMANTIC_REPAIR_CONTRACT);
@@ -666,7 +666,7 @@ test('targeted repairs accumulate from the newest planner artifact while the las
   const emptyGroups=()=>({source_dispositions:[],requirement_assignments:[],records:[],lists:[],enums:[],activities:[],approvals:[],sequences:[],parallels:[],choices:[]});
   const patch=(previous,marker,sourceSection)=>{const empty=emptyGroups();return {proposal:{contract:SEMANTIC_REPAIR_CONTRACT,purpose:'',upsert:{...structuredClone(empty),activities:[{...structuredClone(previous.activities[0]),instructions:`${previous.activities[0].instructions} ${marker}`,source_sections:[sourceSection]}]},remove:empty}};};
   const f=await fixture(t,{turn:async(settings)=>{
-    if(settings.model==='gpt-6.1-sol')return {output:JSON.stringify(checklist(proposal,++reviews===1?'First review requires a semantic clarification.':'')),thread_id:'cumulative-review',turn_id:`review-${reviews}`,audit:{}};
+    if(settings.model==='gpt-6.2-sol')return {output:JSON.stringify(checklist(proposal,++reviews===1?'First review requires a semantic clarification.':'')),thread_id:'cumulative-review',turn_id:`review-${reviews}`,audit:{}};
     if(plannerCalls++===0)return {output:JSON.stringify(generatedProposal(proposal)),thread_id:'cumulative-plan',turn_id:'plan-0',audit:{}};
     const resource=await settings.toolBroker.call('read_workflow_resource',{path:AUTHORING_REPAIR_RESOURCE},`cumulative-${plannerCalls}`);
     const context=JSON.parse(JSON.parse(resource.contentItems[0].text).text);repairContexts.push(context);
@@ -704,7 +704,7 @@ test('targeted repairs accumulate from the newest planner artifact while the las
 });
 test('authoring pre-review gate preserves semantic source identity across claim, dispatch and idempotent redispatch', async t => {
   let proposal,reviews=0;
-  const f=await fixture(t,{turn:async settings=>({output:JSON.stringify(settings.model==='gpt-6.1-sol'?checklist(proposal,++reviews===1?'Reviewer requests one semantic revision.':''):generatedProposal(proposal)),thread_id:'idempotent-review',turn_id:`turn-${reviews}`,audit:{}})});
+  const f=await fixture(t,{turn:async settings=>({output:JSON.stringify(settings.model==='gpt-6.2-sol'?checklist(proposal,++reviews===1?'Reviewer requests one semantic revision.':''):generatedProposal(proposal)),thread_id:'idempotent-review',turn_id:`turn-${reviews}`,audit:{}})});
   const source=join(f.root,'idempotent-review-source');await mkdir(source);await writeFile(join(source,'SKILL.md'),'---\nname: idempotent-review\ndescription: Review\n---\nReview result.');
   const {store,runtime}=await f.service.open();const pack=await importCoarseSkill(store,join(source,'SKILL.md'),{id:'idempotent-review-source'});
   const origin={confidence:1,source_span:{resource:'source/SKILL.md',start_line:5,end_line:5}};

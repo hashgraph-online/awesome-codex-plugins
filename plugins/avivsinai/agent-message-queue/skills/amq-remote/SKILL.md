@@ -1,6 +1,6 @@
 ---
 name: amq-remote
-version: 0.152.0 # x-release-please-version
+version: 0.153.1 # x-release-please-version
 description: Let the owner reach this running agent from the Buzz app, on the phone or a computer. Use when the user types /amq-remote (Claude Code) or $amq-remote (Codex), /amq-remote --native, /amq-remote off, or /amq-remote status, or asks to control this session from Buzz. Not for AMQ messaging between agents (use amq-cli).
 metadata:
   short-description: Reach this agent from Buzz
@@ -18,7 +18,7 @@ unless the owner turned it off: a pi session within about 35 s; on macOS, a
 Claude mailbox seat started directly by `amq coop exec claude` within about
 35 s; any other Claude session at its first approval dialog. A Codex session
 needs `$amq-remote` again. A different session never gets another
-session's channel. A session that already has its own Buzz agent keeps its DM.
+session's channel.
 
 In Codex the skill is invoked as `$amq-remote` (Codex does not register `/`
 commands for skills); the commands below are the same. Codex runs sandboxed:
@@ -27,7 +27,7 @@ user reruns it with approval — ask for that one approval, do not work around
 it.
 
 - **Default (AMQ mailbox).** Each message the owner writes in the channel
-  (or DM) arrives as an AMQ message from `buzz` in this agent's inbox. This
+  arrives as an AMQ message from `buzz` in this agent's inbox. This
   agent answers with `amq reply --id <id>`, and that reply is shown there. A reply with `--kind status` shows as progress;
   any other reply is the final answer. No Stop hook and no wake are needed.
   Noticing the message is this agent's own business (a wake, a built-in
@@ -58,48 +58,35 @@ command's own message. Do not work around a refusal.
      then run the attach again.
    - Any other failure: show its message and stop.
 3. **Tell the owner only what is still needed.** The JSON has `name`,
-   `label`, `agent`, `helper`, `machine`, `draft`, `reused`, `agent_name`
-   when the session has its own agent, `machine_name` when there is a
-   machine agent, and, when the machine agent serves the session, `channel`,
-   `channel_name`, and `channel_error` and `channel_retry` when the channel
-   is uncertain or failed, and `approval_reviewer` when a Codex thread runs
-   Codex's automatic approvals reviewer. A machine agent that runs inside
-   `amq-remote serve` adds `machine_host`
-   (`standalone`), `machine_refusal` while serve refuses it, and
-   `machine_line` while it does not serve. Attach already waited up to 15 s
-   for the channel.
+   `label`, `reused`, `machine` (`running`, `offline` or `missing`),
+   `machine_name` when there is a machine agent, `machine_refusal` while
+   `amq-remote serve` refuses it, `machine_line` while it does not serve,
+   `unproven` when the session is not proven live and has no channel,
+   `channel` and `channel_name`, `channel_error` and `channel_retry` when the
+   channel is uncertain, failed or suspended, and `approval_reviewer` when a
+   Codex thread runs Codex's automatic approvals reviewer. Attach already
+   waited up to 15 s for the channel.
    Say "Connected: <label>." and then exactly one of, the first that applies:
-   - `agent` is `running`: "DM **<agent_name>** in Buzz." Nothing else is
-     needed.
-   - `agent` is `idle`: "DM **<agent_name>** in Buzz; Buzz starts it on the
-     next message."
+   - `channel` is `suspended`: "This session's channel **<channel_name>** is
+     suspended: <channel_error>. Nothing is sent there until that changes in
+     Buzz; for a new channel run `amq-remote channel reset <name>`."
    - The JSON has `machine_line`: show it as it is (it says the machine agent
      runs inside amq-remote serve and is not running, with the next step).
    - `machine` is `running` and `channel` is `active`: "Open the
      **<channel_name>** channel in Buzz." Nothing else is needed.
-   - `machine_host` is `standalone`, `machine` is `running` and `channel` is
-     `creating`: "AMQ Remote is making the channel; it appears in Buzz within
-     a minute."
-   - `machine` is `running` and `channel` is `creating`: "Buzz is making the
-     channel; it appears within a minute."
-   - `machine` is not `missing` and the JSON has `unproven`: "The machine
-     agent makes a channel only for a session proven live, and this session
-     is not (<unproven>)."
-   - `machine` is `offline` or `idle` and `channel` is `uncertain` or
-     `failed`: "This machine's AMQ Remote agent is not running," then the
-     setup under `machine` is `missing` below.
+   - `machine` is `running` and `channel` is `creating`: "AMQ Remote is making
+     the channel; it appears in Buzz within a minute."
+   - `machine` is not `missing` and the JSON has `unproven`: "<machine_name>
+     makes a channel only for a session proven live, and this session is not
+     (<unproven>)."
    - `channel` is `uncertain`: "Buzz did not confirm the channel
      (<channel_error>). AMQ keeps looking for it and will not make a second
      one. If it never appears, run `amq-remote channel reset <name>`."
    - `channel` is `failed`: show `channel_error`, then "AMQ tries again in 10
      minutes" when `channel_retry` is true, else "Run
      `amq-remote channel reset <name>`."
-   - `channel` is `suspended`: "This session's channel is suspended
-     (<channel_error>). Undo it in Buzz, or run `amq-remote channel reset
-     <name>` for a new channel."
-   - `agent` is `offline` and `machine` is `missing`: use the setup below.
-   - `machine` is `missing`: this machine's one-time setup (no enrolled
-     machine key):
+   - Otherwise (`machine` is `missing`, no enrolled machine key): this
+     machine's one-time setup:
        1. Run `amq-remote machine request > request.txt`.
        2. The owner runs `amq-owner-sign --machine request.txt --out grant.json
           --relay <wss-url>` in their own terminal. Only the owner runs this
@@ -107,8 +94,6 @@ command's own message. Do not work around a refusal.
        3. Run `amq-remote machine enroll --grant grant.json`.
        4. Run `amq-remote service install`; it starts the agent now and at each login.
      Every later session then gets its channel by itself.
-   - `machine` is `offline` or `idle`: "This machine's AMQ Remote agent is
-     not running." Then the same one-time setup.
    If the JSON has `warning`, show it too. If it has `approval_reviewer`,
    say: "Buzz gets no Codex approvals: Codex's automatic reviewer answers
    them (approvals_reviewer = <approval_reviewer>)." It is the owner's
@@ -146,12 +131,10 @@ command's own message. Do not work around a refusal.
    Codex app-server (the `--native` Codex path below); a plain `codex` TUI
    session answers approvals in the terminal.
 5. Add one line for the carrier:
-   - Default: "Buzz messages arrive in this agent's AMQ inbox. Stop in Buzz
-     stops waiting; a delivered message may still be acted on."
+   - Default: "Buzz messages arrive in this agent's AMQ inbox."
    - Claude in mailbox mode: "In Buzz, a line starting with / is typed into
      the session like Remote Control; it waits while a dialog is open."
-   - `--native`: "A message sent while this session is busy waits. Buzz Stop
-     cannot interrupt a Claude turn."
+   - `--native`: "A message sent while this session is busy waits."
    - Claude with the hook installed: "Every approval dialog of this session
      shows in its Buzz channel with its options. ✅ or ❌, or a reply with the option
      number, answers it. A question with one single-select question shows
@@ -167,28 +150,26 @@ command's own message. Do not work around a refusal.
 Codex with `--native`: attach needs `CODEX_THREAD_ID` and a thread loaded in
 the Codex app-server daemon. A session started with plain `codex` is not in
 the daemon; start it with `codex app-server daemon start`, then
-`codex --remote unix://`. Run `amq-remote` and `amq-acp` outside Codex's
-sandbox (request escalation): the sandbox blocks the daemon socket.
+`codex --remote unix://`. Run `amq-remote` outside Codex's sandbox (request
+escalation): the sandbox blocks the daemon socket.
 
 ## Answering a Buzz message (default mailbox)
 
 A message from `buzz` with subject "Buzz DM" is the owner writing from Buzz,
-in this session's channel or its agent's DM.
+in this session's channel.
 Do the work, then answer with `amq reply --id <that message id>`. Use
 `--kind status` for an interim update. Keep the final answer short; it is
 read in a chat.
 
-An image the owner sent arrives as a line `[image: <absolute path>]`: open
-that file to see it. `[image not attached: <reason>]` means the image did not
-arrive; say so in the answer and ask the owner to send it again if it matters.
+An image the owner sent is not downloaded: the message has a line
+`[image not attached: <name>: <reason>]` for it. Say so in the answer, and ask
+the owner to describe the image if it matters.
 
 ## `/amq-remote off`
 
 Run `amq-remote detach --self` and show its output. The session keeps
 running. Its channel stops taking messages now, and the machine agent then
-archives it; a session with its own agent has that agent archive itself, and
-its DM answers "Not connected". When this session connects again, the same
-channel or agent comes back.
+archives it. When this session connects again, the same channel comes back.
 
 ## `/amq-remote mirror on|off|status`
 
@@ -201,10 +182,9 @@ Codex or pi session the machine agent serves has a mirror.
 ## `/amq-remote status`
 
 Run `amq-remote bindings` and show its output. It lists the machine agent
-and each connected session as `live` or `unknown` with its own agent
-(`running`, `idle`, `offline` or `missing`) and its channel, prunes the
-sessions proven ended, and names, once, old per-session agents the owner
-should delete in Buzz.
+(running in amq-remote serve, or not running with the next step) and each
+connected session as `live` or `unknown` with its name and its channel, and
+prunes the sessions proven ended.
 
 ## Status line
 

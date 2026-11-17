@@ -1,6 +1,6 @@
 {
   "name": "gitranks-contribute",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Find open-source GitHub issues matched to your skills, fix one with your agent, and approve the pull request yourself.",
   "author": {
     "name": "GitRanks",

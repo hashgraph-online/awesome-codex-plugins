@@ -1,0 +1,381 @@
+{
+  "description": "GENERATED from hooks.codex.json by scripts/codex_plugin_hooks.py; do not edit by hand. The hooks Codex CLI runs for a marketplace install, named by .codex-plugin/plugin.json. Same hooks as hooks.codex.json with the plugin root taken from CLAUDE_PLUGIN_ROOT, which Codex sets for plugin hooks. Codex runs none of them until the user trusts them in /hooks.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|edit|write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium preflight gate + secret scan"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/discovery-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium discovery gate (new source files in discovery-untouched projects)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scale-lock-gate.sh\"",
+            "timeout": 10,
+            "statusMessage": "Mycelium scale-lock gate (a new diamond opens only on what its parent established)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-state-gate.sh\"",
+            "timeout": 10,
+            "statusMessage": "Mycelium guard-state gate (the files that switch a gate off are the user's to write)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/brownfield-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium brownfield gate (one-shot: existing code, no discovery state)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scope-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium scope enforcement"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/framework-guard.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium framework-guard (dogfood-mode only)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/autonomous-evidence-guard.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium autonomous-evidence-guard (autonomous-mode only)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/absence-claim-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/key-shape-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/correction-attribution-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/lesson-triggers.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/framework-guard.sh\"",
+            "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/shell-safety-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/absence-claim-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/correction-attribution-guard.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium preflight gate + secret scan"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/discovery-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium discovery gate (new source files in discovery-untouched projects)"
+          },
+          {
+            "type": "command",
+            "timeout": 10,
+            "statusMessage": "Mycelium exposure gate (a deploy waits for a current exposure record)",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/exposure-gate.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/brownfield-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium brownfield gate (one-shot: existing code, no discovery state)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scope-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium scope enforcement"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/framework-guard.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium framework-guard (dogfood-mode only)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/autonomous-evidence-guard.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium autonomous-evidence-guard (autonomous-mode only)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-state-guard.sh\" pre",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-state-gate.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/lesson-triggers.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "WebSearch|WebFetch|mcp__brave-search__.*|mcp__fetch__fetch|web_search|fetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/read-before-research-guard.sh\"",
+            "timeout": 5,
+            "statusMessage": "Mycelium read-before-research check"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/lesson-triggers.sh\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__filesystem__(write_file|edit_file|move_file)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium preflight gate + secret scan"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/discovery-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium discovery gate (new source files in discovery-untouched projects)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scale-lock-gate.sh\"",
+            "timeout": 10,
+            "statusMessage": "Mycelium scale-lock gate (a new diamond opens only on what its parent established)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-state-gate.sh\"",
+            "timeout": 10,
+            "statusMessage": "Mycelium guard-state gate (the files that switch a gate off are the user's to write)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/brownfield-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium brownfield gate (one-shot: existing code, no discovery state)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/scope-gate.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium scope enforcement"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/framework-guard.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium framework-guard (dogfood-mode only)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/autonomous-evidence-guard.sh\"",
+            "timeout": 30,
+            "statusMessage": "Mycelium autonomous-evidence-guard (autonomous-mode only)"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit|edit|write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/post-write-nudge.sh\"",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/change-log.sh\"",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/diamond-state-audit.sh\"",
+            "timeout": 3
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/canvas-schema-check.sh\"",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/exposure-change.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__filesystem__(write_file|edit_file|move_file)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/exposure-change.sh\"",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read|read|Bash|shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/read-log.sh\"",
+            "timeout": 3
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/codex-postfailure-shim.sh\"",
+            "timeout": 10,
+            "statusMessage": "Reflexion: checking failure relevance (Codex shim)"
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-state-guard.sh\" post",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-check.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/next-action-check.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/ci-signal.sh\""
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/next-item-repeat.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/bash-state-guard.sh\" stop",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/contract-part.sh\" 1",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/contract-part.sh\" 2",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/contract-part.sh\" 3",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/contract-part.sh\" 4",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh\"",
+            "timeout": 60
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/ci-signal.sh\" --session-start"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/preflight.sh\"",
+            "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "MYCELIUM_RUNTIME=codex bash \"${CLAUDE_PLUGIN_ROOT}/hooks/discovery-trigger-guard.sh\""
+          }
+        ]
+      }
+    ]
+  }
+}

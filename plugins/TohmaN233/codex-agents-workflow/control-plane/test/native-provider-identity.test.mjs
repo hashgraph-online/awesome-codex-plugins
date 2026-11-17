@@ -58,13 +58,17 @@ test('persisted routing settings expose only canonical Provider IDs', async (t) 
 test('live default routing prose upgrades exactly while custom instructions and pinned route choices survive',async t=>{
   const directory=await mkdtemp(join(tmpdir(),'routing-description-refresh-'));
   t.after(()=>rm(directory,{recursive:true,force:true}));
-  const original={...legacyRules(),instructions:LEGACY_DEFAULT_ROUTING_INSTRUCTIONS};
-  await writeFile(join(directory,'skill2workflow-rules.json'),JSON.stringify(original),'utf8');
-  const loaded=await loadRoutingSettings(directory,[]);
-  assert.equal(loaded.instructions,DEFAULT_ROUTING_INSTRUCTIONS);
-  assert.deepEqual(loaded.routes,canonicalizeRoutingProviderIds(original).routes);
-  assert.deepEqual(loaded.generation,canonicalizeRoutingProviderIds(original).generation);
-  original.instructions='User policy: preserve my configured worker choice.';
+  const previousDefault=DEFAULT_ROUTING_INSTRUCTIONS.replace('GPT-6.2 Sol','GPT-6.1 Sol').replace('GPT-6.2 Astra','GPT-6 Astra');
+  const original=legacyRules();
+  for(const instructions of [LEGACY_DEFAULT_ROUTING_INSTRUCTIONS,previousDefault]){
+    original.instructions=instructions;
+    await writeFile(join(directory,'skill2workflow-rules.json'),JSON.stringify(original),'utf8');
+    const loaded=await loadRoutingSettings(directory,[]);
+    assert.equal(loaded.instructions,DEFAULT_ROUTING_INSTRUCTIONS);
+    assert.deepEqual(loaded.routes,canonicalizeRoutingProviderIds(original).routes);
+    assert.deepEqual(loaded.generation,canonicalizeRoutingProviderIds(original).generation);
+  }
+  original.instructions='User policy: use GPT-6.1 Sol for this route.';
   await writeFile(join(directory,'skill2workflow-rules.json'),JSON.stringify(original),'utf8');
   assert.equal((await loadRoutingSettings(directory,[])).instructions,original.instructions);
 });

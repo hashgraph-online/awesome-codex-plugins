@@ -76,14 +76,16 @@ under `context.orchestrator`; the shape and labels are in
 
 ## Verified Buzz event
 
-A prompt that `amq-acp` delivers from a Buzz DM can carry
+A message that the machine agent inside `amq-remote serve` delivers from the
+owner's Buzz channel message to a session's AMQ inbox carries
 `context.buzz.event`: the event's signed fields (`id`, `pubkey`,
 `created_at`, `kind`, `tags`, `content`, `sig`), re-encoded; verification
-uses the values. `amq-acp` writes the key only when it fetched the event by
-the id of the DM's triggering event, the id and signature verify, the id
-matches, the kind is 9 (a plaintext channel message), and the event has
-exactly one `h` tag, equal to the channel the prompt arrived on. Otherwise it
-writes no key and the message is unverified; there is no partial form.
+uses the values. The machine agent delivers a message only for an event that
+the relay sent it and that passes every check: the id and signature verify,
+the kind is 9 (a plaintext channel message), the event has exactly one `h`
+tag, equal to a channel the machine agent serves, and `pubkey` is the owner's
+key. An event that fails a check is dropped and delivers no message; there is
+no partial form.
 
 The key's presence is not provenance: any local sender can write header
 context (`amq send --context`, `amq reply --context`). A gate that acts on the

@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-17",
-  "total": 427,
+  "total": 428,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1300,6 +1300,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/beastlabai/multi-llm-plugin/HEAD/packaging/codex/multi-llm/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Mycelium",
+      "url": "https://github.com/haabe/mycelium",
+      "owner": "haabe",
+      "repo": "mycelium",
+      "description": "A plugin that keeps you and your AI coding agent focused on building the right thing, from first idea to market.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/haabe/mycelium/HEAD/plugins/mycelium/plugin.json"
     },
     {
       "name": "Nightshift",

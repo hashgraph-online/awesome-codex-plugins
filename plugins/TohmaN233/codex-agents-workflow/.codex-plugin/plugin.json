@@ -1,6 +1,6 @@
 {
   "name": "codex-agents-workflow",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "description": "A Codex MCP Extension workbench for reusable agent Workflows, Roles, Providers and recoverable Runs.",
   "author": {
     "name": "TohmaN233",

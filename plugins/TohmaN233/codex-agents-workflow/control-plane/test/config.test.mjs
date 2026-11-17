@@ -67,8 +67,8 @@ test('built-in native Providers contain one selectable entry per real model and 
     ['native-luna', 'native-sol', 'native-astra']);
   for (const [id, model, effort] of [
     ['native-luna', 'gpt-6-luna', 'max'],
-    ['native-sol', 'gpt-6.1-sol', 'high'],
-    ['native-astra', 'gpt-6-astra', 'medium'],
+    ['native-sol', 'gpt-6.2-sol', 'high'],
+    ['native-astra', 'gpt-6.2-astra', 'medium'],
   ]) assert.deepEqual([providers[id].config.model, providers[id].config.reasoning_effort], [model, effort]);
   for (const id of ['native-luna', 'native-sol', 'native-astra']) {
     assert.equal(providers[id].config.agent_type, 'default', id);
@@ -98,7 +98,7 @@ test('existing built-in native Providers migrate to truthful model-only identiti
   const migrated = await loadConfig({ configPath, defaultConfigPath: DEFAULT_CONFIG_PATH });
   for (const provider of migrated.providers.filter((provider) => expected.has(provider.id))) {
     assert.equal(provider.config.agent_type, expected.get(provider.id), provider.id);
-    assert.match(provider.name, /^GPT-6(?:\.1)? (Luna|Sol|Astra) \/ (Max|High|Medium)$/, provider.id);
+    assert.match(provider.name, /^GPT-6(?:\.2)? (Luna|Sol|Astra) \/ (Max|High|Medium)$/, provider.id);
   }
   const persisted = JSON.parse(await readFile(configPath, 'utf8'));
   for (const provider of persisted.providers.filter((provider) => expected.has(provider.id))) {
@@ -122,8 +122,11 @@ test('version-7 active config collapses retired purpose aliases into three model
     config.providers.unshift(retired);
   }
   config.version = 7;
-  sol.config.model = 'gpt-6-sol';
-  sol.name = 'GPT-6 Sol / High';
+  sol.config.model = 'gpt-6.1-sol';
+  sol.name = 'GPT-6.1 Sol / High';
+  const astra = config.providers.find(provider => provider.id === 'native-astra');
+  astra.config.model = 'gpt-6-astra';
+  astra.name = 'GPT-6 Astra / Medium';
   config.strict_executor = { main_model: 'gpt-6-sol', main_reasoning_effort: 'medium' };
   delete config.task_types;
   config.workflow_store = { schema_version: 1, relative_path: 'workflows-v7' };
@@ -139,9 +142,9 @@ test('version-7 active config collapses retired purpose aliases into three model
   const providers = Object.fromEntries(migrated.providers.map(provider => [provider.id, provider]));
   assert.deepEqual([providers['native-luna'].config.model, providers['native-luna'].config.reasoning_effort, providers['native-luna'].config.fresh_context],
     ['gpt-6-luna', 'max', true]);
-  assert.deepEqual([providers['native-sol'].config.model, providers['native-sol'].config.reasoning_effort], ['gpt-6.1-sol', 'high']);
-  assert.deepEqual([providers['native-astra'].config.model, providers['native-astra'].config.reasoning_effort], ['gpt-6-astra', 'medium']);
-  assert.equal(providers['native-sol'].name, 'GPT-6.1 Sol / High');
+  assert.deepEqual([providers['native-sol'].config.model, providers['native-sol'].config.reasoning_effort], ['gpt-6.2-sol', 'high']);
+  assert.deepEqual([providers['native-astra'].config.model, providers['native-astra'].config.reasoning_effort], ['gpt-6.2-astra', 'medium']);
+  assert.equal(providers['native-sol'].name, 'GPT-6.2 Sol / High');
   assert.equal(migrated.strict_executor.main_model, '');
   assert.equal(migrated.strict_executor.main_reasoning_effort, '');
   assert.deepEqual(JSON.parse(await readFile(configPath, 'utf8')), migrated);

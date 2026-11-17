@@ -1921,6 +1921,20 @@
       "icon": "./plugins/beastlabai/multi-llm-plugin/assets/icon.svg"
     },
     {
+      "name": "mycelium",
+      "displayName": "Mycelium",
+      "source": {
+        "source": "local",
+        "path": "./plugins/haabe/mycelium"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "A plugin that keeps you and your AI coding agent focused on building the right thing, from first idea to market."
+    },
+    {
       "name": "nightshift",
       "displayName": "Nightshift",
       "source": {

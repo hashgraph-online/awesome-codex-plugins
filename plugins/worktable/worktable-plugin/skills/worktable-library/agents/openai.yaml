@@ -1,0 +1,4 @@
+interface:
+  display_name: "Check the Library"
+  short_description: "Follow your team's approved skills"
+  default_prompt: "Use $worktable-library for this task."

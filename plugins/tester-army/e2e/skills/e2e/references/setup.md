@@ -215,7 +215,7 @@ start a script that brings them up and serves the app.
 
 | Option | Meaning |
 | --- | --- |
-| `browser` | `'chromium'` (default), `'firefox'`, `'webkit'`, or a `BrowserProvider` leasing hosted browsers over CDP ([`browserRun()`](https://e2e.com/docs/integrations/browser-run) from `@e2e-dev/browser-run`, `kernel()` from `@e2e-dev/kernel`, `smol()` from `@e2e-dev/smol`, `lightpanda()` from `@e2e-dev/lightpanda`, `moli()` from `@e2e-dev/moli`, `testmuBrowsers()` from `@e2e-dev/testmu/web`, `e2bBrowsers()` from `@e2e-dev/e2b/web`, or your own), which implies chromium and excludes `connect`. Scope `'worker'` (default): one browser per worker slot from `prepare` to `finish`; `'attempt'`: one per attempt, with `reconnectEndpoint`'s limits (`lightpanda()`, `moli()`, and `testmuBrowsers()` are worker scope only). |
+| `browser` | `'chromium'` (default), `'firefox'`, `'webkit'`, or a `BrowserProvider` leasing hosted browsers over CDP ([`browserRun()`](https://e2e.com/docs/integrations/browser-run) from `@e2e-dev/browser-run`, `kernel()` from `@e2e-dev/kernel`, `notte()` from `@e2e-dev/notte`, `smol()` from `@e2e-dev/smol`, `lightpanda()` from `@e2e-dev/lightpanda`, `moli()` from `@e2e-dev/moli`, `testmuBrowsers()` from `@e2e-dev/testmu/web`, `e2bBrowsers()` from `@e2e-dev/e2b/web`, or your own), which implies chromium and excludes `connect`. Scope `'worker'` (default): one browser per worker slot from `prepare` to `finish`; `'attempt'`: one per attempt, with `reconnectEndpoint`'s limits (`lightpanda()`, `moli()`, and `testmuBrowsers()` are worker scope only; `notte()` is attempt scope only). |
 | `viewport` | `{ width, height }`, default 1280x720; `null` follows the browser window (hosted live view, headed run). On a headed hosted browser (Kernel) use `null` and size the service's screen; a fixed size gives a smaller, unmaximized window. |
 | `connect` | `{ cdpEndpoint }` attaches to a remote Chromium over CDP; `cdpEndpoint` is required, and both it and `reconnectEndpoint` are resolvers `(signal) => url` or `(signal) => ({ endpoint, headers })` for authenticated CDP connections, not strings, else `INVALID_CONFIG` at load. With `reconnectEndpoint` it rides one persistent default context, needs a fresh browser from `cdpEndpoint` every attempt, and reconnects only to the original browser and page. |
 | `headers` | Sent to the app's origin only (scheme, host, and port of `app.url`; Vercel's `x-vercel-protection-bypass`, ngrok's `ngrok-skip-browser-warning`), `agent.act` included; `credentialOrigins: ['https://api.example.com']` adds exact origins for `headers` and `basicAuth`. A request keeps them through its redirects, to any origin. Disables the browser HTTP cache and service workers. |
@@ -394,6 +394,12 @@ export default {
   exactly, TestMu AI installs `app` (omit `app.appPath`), and it reads
   `LT_USERNAME` and `LT_ACCESS_KEY`. An attempt's video links TestMu AI's
   recording of the whole session.
+- `revyl({ app, device, osVersion })` from `@e2e-dev/revyl` leases Revyl
+  hosted iOS simulators and Android emulators; `device` and `osVersion` are
+  names from Revyl's catalog, Revyl installs `app` from an `https` URL (omit
+  `app.appPath`; a local path is refused), and it reads `REVYL_API_KEY`.
+  Revyl devices record no video, so `--video` fails with
+  `UNSUPPORTED_CAPABILITY`.
 - `browserstack({ device, osVersion, app })` from `@e2e-dev/browserstack`
   leases BrowserStack App Automate real devices; `device` and `osVersion`
   match its catalog exactly, BrowserStack installs `app` (a `bs://` id, an

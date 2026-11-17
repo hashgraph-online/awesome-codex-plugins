@@ -93,7 +93,9 @@ Run the CLI availability check and the `cli-gte 0.7.0` host-wiring version gate 
 
 ### 2. Initialize and probe the host
 
-Call `mcp__archcore__init_project()` exactly once (pre-gate infrastructure — idempotent, safe on an already-initialized project). It creates `.archcore/` and `settings.json` if missing. On `initialized: true` print *"Archcore initialized at `.archcore/`."*; on `already_initialized: true` print nothing.
+Call `mcp__archcore__init_project()` exactly once (pre-gate infrastructure — idempotent, safe on an already-initialized project). It creates `.archcore/` and `settings.json` if missing. On `initialized: true` print *"Archcore initialized at `.archcore/`."*; on `already_initialized: true` print nothing. The `project` field of the response names the project root; this run seeds and wires that root.
+
+WHEN `project` differs from the session's working directory, print one line: *"Archcore project: `<project>` — the nearest `.archcore/` above this folder. To create a separate project in this folder instead, say so."* IF the user asks for a separate project, THEN call `mcp__archcore__init_project(project=<the working directory>)` once and use its `project` field as the root.
 
 Then run the host and project-root probe per `lib/host-wiring.md` "Host and project root probe" — always, even when host wiring is disabled. It prints one token: `claude-code` | `cursor` | `codex-cli` | `__UNKNOWN__`. On `__UNKNOWN__`, or anything else than the three host tokens, ask one `AskUserQuestion` — "Which AI host is this session running in?" with options Claude Code / Cursor / Codex (CLI or desktop app) / GitHub Copilot CLI — and map the answer to the agent id (`claude-code` / `cursor` / `codex-cli` / `copilot`); there is no `codex-desktop` id. A GitHub Copilot CLI session always lands on `__UNKNOWN__`. Do not run `archcore init` yourself at this step; if the archcore MCP tools are unavailable in this session, the terminal command `archcore init --agent <host> --project "<root>"` is the user's recovery path.
 

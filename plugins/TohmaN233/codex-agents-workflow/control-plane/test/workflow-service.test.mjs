@@ -1388,14 +1388,14 @@ test('Role build is a direct agent profile while Workflow build keeps the shared
   const f=await fixture(t);await f.migrate();
   const catalog=await f.service.call('role_templates');
   assert(catalog.some(item=>item.id==='builtin-role-bounded-code-change'&&item.template_kind==='role'));
-  assert(catalog.some(item=>item.id==='builtin-role-judgment-heavy-change'&&item.model==='gpt-6.1-sol'&&item.reasoning_effort==='high'));
-  assert(catalog.some(item=>item.id==='builtin-role-hard-problem-solver'&&item.model==='gpt-6-astra'&&item.reasoning_effort==='medium'));
-  assert(catalog.some(item=>item.id==='builtin-role-brainstorm'&&item.model==='gpt-6-astra'&&item.reasoning_effort==='medium'));
+  assert(catalog.some(item=>item.id==='builtin-role-judgment-heavy-change'&&item.model==='gpt-6.2-sol'&&item.reasoning_effort==='high'));
+  assert(catalog.some(item=>item.id==='builtin-role-hard-problem-solver'&&item.model==='gpt-6.2-astra'&&item.reasoning_effort==='medium'));
+  assert(catalog.some(item=>item.id==='builtin-role-brainstorm'&&item.model==='gpt-6.2-astra'&&item.reasoning_effort==='medium'));
   const builtin=await f.service.call('role_template',{workflow_id:'builtin-role-bounded-code-change',task:'Change one parser function.',context:'Parser module',constraints:'Only parser.mjs',verification:'Run parser tests'});
   assert.match(builtin.instructions,/Change one parser function/);
   assert.equal(builtin.access,'bounded_write');
   const heavy=await f.service.call('role_template',{workflow_id:'builtin-role-judgment-heavy-change',task:'Change the parser interface.',context:'Several callers',constraints:'Only parser and callers',verification:'Run parser tests'});
-  assert.equal(heavy.model,'gpt-6.1-sol');assert.equal(heavy.reasoning_effort,'high');
+  assert.equal(heavy.model,'gpt-6.2-sol');assert.equal(heavy.reasoning_effort,'high');
   assert.match(heavy.instructions,/judgment-heavy but bounded implementation/);
   assert.equal((await f.service.call('runs')).length,0,'Role retrieval must not create a Workflow Run or append review');
   const editable=await f.service.call('customize_role',{workflow_id:'builtin-role-bounded-code-change'},{human:true});
@@ -1419,7 +1419,7 @@ test('Role build is a direct agent profile while Workflow build keeps the shared
   const customizedReady=await f.service.call('publish',{workflow_id:customized.id,expected_revision:customizedDraft.revision_hash,reviewed:true},{human:true});
   deduplicated=await f.service.call('role_templates');
   const effective=deduplicated.find(item=>item.id==='builtin-role-bounded-code-change');
-  assert.equal(deduplicated.filter(item=>item.id==='builtin-role-bounded-code-change').length,1);assert.equal(effective.model,'gpt-6.1-sol');assert.equal(effective.customized,true);
+  assert.equal(deduplicated.filter(item=>item.id==='builtin-role-bounded-code-change').length,1);assert.equal(effective.model,'gpt-6.2-sol');assert.equal(effective.customized,true);
   const customizedProfile=await f.service.call('role_template',{workflow_id:'builtin-role-bounded-code-change',revision_hash:effective.revision_hash,task:'Change one parser function.'});
   assert.equal(customizedProfile.id,'builtin-role-bounded-code-change');assert.equal(customizedProfile.source_workflow_id,customizedReady.workflow.id);assert.equal(customizedProfile.provider_id,'native-sol');
   assert.match(customizedProfile.instructions,/customized bounded role exactly once/);

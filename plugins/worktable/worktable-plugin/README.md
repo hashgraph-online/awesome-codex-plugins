@@ -13,9 +13,12 @@ your other connected agents can open it, edit it, and continue it later.
 ## What's included
 
 - One remote MCP connection to `https://app.worktable.cloud/api/mcp`.
-- Six skills: find and synthesize context, create or update Docs, create or
-  manage interactive HTML Docs, create or manage Records, review with
-  annotations, and collaborate in threads.
+- A Library skill, so your agent follows the skills your team approved in
+  Worktable's Library.
+- Six workflow skills: find and synthesize context, create or update Docs,
+  create or manage interactive HTML Docs, create or manage Records, review with
+  annotations, and collaborate in threads. Each reads its current guide from
+  Worktable, so it stays current in apps that keep their own copy.
 
 The plugin contains no hooks, background listeners, executables, or
 credentials, and its skills never run local commands. Thread checks happen only
@@ -78,6 +81,18 @@ Open **Plugins**, choose **Add custom**, then **Import plugin from GitHub**,
 and enter `https://github.com/worktable/worktable-plugin`. Connect Worktable
 and sign in when asked. Perplexity keeps its own copy: to get a newer version,
 remove the plugin and import it again.
+
+### Gemini app
+
+The Gemini app has no plugins, so connect Worktable and add its skill
+separately. To connect, open **Customize**, then **Connectors**, add a custom
+connector with `https://app.worktable.cloud/api/mcp`, sign in to Worktable,
+then choose **Save** and **Connect**.
+
+The Gemini app takes one skill folder and never updates it. Download
+[worktable.tar](https://docs.worktable.dev/downloads/skills/gemini/worktable.tar),
+unpack it, and upload the `worktable` folder. It holds the Library check and
+names each workflow guide.
 
 ### Kiro
 
