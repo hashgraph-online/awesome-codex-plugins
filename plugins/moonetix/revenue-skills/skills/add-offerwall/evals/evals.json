@@ -1,0 +1,61 @@
+{
+  "skill_name": "add-offerwall",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express app on PostgreSQL already has a ledger with a postEntry function. Add an offerwall: an Earn page with the wall in an iframe and the postback endpoint. The network signs tx:user:payout:status with HMAC-SHA256 and sends status 1 for a credit and 2 for a reversal. We pay users 60% at 1000 coins per dollar.",
+      "expected_output": "An Earn page whose wall link the server builds for the signed-in user, and a postback route that verifies the HMAC, credits each transaction once through postEntry at 60% of the payout at 1000 coins per dollar, and takes a credit back once on status 2, with tests that cover both.",
+      "assertions": [
+        "The wall URL is built in server code from the session's user id, and the endpoint or page ignores a user_id sent in the request.",
+        "The link secret and the postback secret are read from the environment with no fallback value, and neither appears in any file served to the browser.",
+        "The postback handler compares the HMAC in constant time before any database query, and has no parameter or flag that skips the check.",
+        "A migration creates a table keyed by network and transaction id that stores the account, the payout and the coins credited.",
+        "The credited amount is computed in server code from the signed payout, the configured rate and the share with integer arithmetic, and the ledger entry is posted only when the conversion insert created a row.",
+        "A reversal posts the stored coin amount as a negative entry to the stored account under its own kind, and a second reversal for the same transaction posts nothing.",
+        "The project's tests include the same postback sent twice and sent concurrently, a tampered payout, a reversal sent twice and a reversal for an unknown transaction, and they pass.",
+        "A function returns the withdrawable amount excluding offer earnings younger than the configured hold, and a test shows a fresh earning is not withdrawable."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Our PHP site on MySQL has postback.php. It checks an md5 of the parameters plus a secret, looks up the transaction id in a table and credits users.balance if it is not there. Users get double credits sometimes and reversals (status=2) do nothing. There is no ledger and I can't add one this week. Fix the postback.",
+      "expected_output": "A postback.php that credits each transaction once under a unique key on the transaction id, takes the stored credit back once on status 2, and keeps working without a ledger, with a migration and tests.",
+      "assertions": [
+        "The transactions table has a primary key or unique index on the network transaction id, added by a migration that handles existing duplicate rows.",
+        "The handler inserts the transaction and treats MySQL error 1062 as already processed, instead of selecting first and inserting afterwards.",
+        "The balance update and the insert run in one database transaction, and the balance is updated only when the insert succeeded.",
+        "The hash comparison uses hash_equals, and the secret has no default value in the code.",
+        "A status 2 postback subtracts the amount stored for that transaction from the account stored for it, only when the stored status changed from credited to reversed.",
+        "The handler answers with a 2xx status for a duplicate credit and for a duplicate reversal, and with a 5xx status when the database write fails.",
+        "The answer to the user states that a unique key on the transaction id is the minimum and that a ledger is the next step."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our React Native app has a Django backend with session tokens. Show the offerwall in the app. Right now the app builds the wall URL itself with a salt from its config file, and users can withdraw coins the moment they are credited. Fix both.",
+      "expected_output": "A Django endpoint that returns a signed wall link for the session user, a React Native screen that opens it with no salt left in the app, and a hold that keeps freshly credited coins out of withdrawals until it ends.",
+      "assertions": [
+        "The link salt is removed from the app's code and configuration, and a search of the mobile code finds no signing secret.",
+        "A Django view that requires authentication returns the wall URL for request.user, with a Cache-Control header of private, no-store, and does not read a user id from the request.",
+        "The app requests the URL from that view each time the wall is opened and does not compute a signature.",
+        "No client callback or event credits coins: the app reloads the balance from the backend after the wall closes.",
+        "The withdrawal view computes the withdrawable amount inside the same transaction that debits the balance, and refuses a request above it.",
+        "A test credits an offer and asserts that a withdrawal of those coins is refused before the hold has passed and accepted after it.",
+        "The hold length is read from one configuration value, and the answer states the default used and that it should be resized from the app's own reversal data."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Add an offerwall postback endpoint to our Laravel site. The network signs tx, user, payout and status with HMAC-SHA256 and retries until it gets a 200.",
+      "expected_output": "A postback route outside session and CSRF middleware that checks the HMAC with hash_equals first, credits each transaction id once through a unique key, reverses once by the stored amount, and answers 5xx when storing fails, with tests.",
+      "assertions": [
+        "The route is registered where no session, CSRF or login middleware runs, such as routes/api.php.",
+        "The signature is compared with hash_equals before any database query.",
+        "A request that repeats one of the signed parameters is refused.",
+        "The conversions table has a unique key on network and transaction id, and the ledger entry is posted only when the insert created a row, in the same transaction.",
+        "A reversal flips the stored conversion from credited to reversed with a conditional update and takes back the stored coins from the stored user.",
+        "A test sends the same signed postback twice in parallel and asserts one credit."
+      ]
+    }
+  ]
+}

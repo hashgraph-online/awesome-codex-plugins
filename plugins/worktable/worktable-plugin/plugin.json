@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "worktable",
-  "version": "0.1.8",
+  "version": "0.1.10",
   "description": "Build shared Docs, live HTML workspaces, structured Records, annotations, and durable agent threads in Worktable.",
   "author": {
     "name": "Reva Labs",

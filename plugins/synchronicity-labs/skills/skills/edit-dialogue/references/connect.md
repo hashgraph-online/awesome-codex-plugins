@@ -23,6 +23,17 @@ The server is `https://mcp.sync.so/mcp`. Users sign in with their sync. account 
 
 Most clients only load new MCP servers after a restart or reload. Say so, and tell the user to ask again once it's connected.
 
+## Sign up or sign in by emailed code
+
+When you can run shell commands and the user has no sync. account yet, or would rather not open a browser, connect them with a code sync. emails them. There is no password or key to copy.
+
+1. Ask the user which email address to use.
+2. Run `npx -y @sync.so/mcp-server@latest setup --email <address>`. sync. emails a six-digit code to that address. Add `--agent <name>` to name this agent in the email.
+3. Ask the user for the code, then run `npx -y @sync.so/mcp-server@latest setup --code <code>`. A new email address gets a new account on the free tier, and an existing account connects its personal organization. The command adds the sync. MCP server to Claude Code and Codex for every project and prints what to add in other agents.
+4. Tell the user to start a new session, which has the sync. tools, and to ask again there.
+
+This connects only the user's personal organization. For a team organization, and in Claude.ai, Claude Desktop, ChatGPT and other chat apps, use the hosted server and browser sign-in above. sync. emails the user each time an agent connects, with a link that disconnects it. If the command says emailed sign-in isn't available, use the hosted server.
+
 ## Use an API key instead
 
 For scripts, CI, or clients without remote MCP support:

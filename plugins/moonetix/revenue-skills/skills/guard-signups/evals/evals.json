@@ -1,0 +1,59 @@
+{
+  "skill_name": "guard-signups",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "This Express and PostgreSQL app gives 100 credits on sign-up. Users are collecting it repeatedly with jane.doe@gmail.com, janedoe+1@gmail.com and similar. Fix sign-up so one inbox means one account, without breaking existing users.",
+      "expected_output": "A normalized email column with a unique index, written at sign-up in the same statement, backfilled for existing users without merging or locking them out, with tests for dots and plus tags.",
+      "assertions": [
+        "The users table has a normalized email column with a unique index, and the sign-up handler writes it in the same statement as the typed address.",
+        "A test shows that jane.doe@gmail.com, janedoe+1@gmail.com and J.A.N.E.Doe@googlemail.com produce the same key.",
+        "A test shows that a plus tag at outlook.com and a dot at a custom domain are left in place.",
+        "Outgoing mail still uses the address as typed, not the normalized column.",
+        "The migration adds the column as nullable and the backfill does not delete or merge existing accounts.",
+        "A second sign-up with a dot variant of an existing Gmail address answers 4xx and creates no user row."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Add risk screening to our Django sign-up view. We give a welcome bonus. I want disposable emails refused, datacenter and Tor addresses and rapid repeat sign-ups handled sensibly, and I do not want to lock out students who share a campus network.",
+      "expected_output": "A sign-up screen that stores a score, a decision of allow, review or block and its reasons, refuses disposable emails, sends datacenter and Tor addresses and fast repeats to review, and does not block a shared campus network by address alone.",
+      "assertions": [
+        "Each sign-up attempt stores a row with a numeric score, one of the decisions allow, review or block, and a list of reasons that each carry a code and points.",
+        "A test asserts that the stored score equals the sum of the stored reasons' points.",
+        "A sign-up from an address in a fixture datacenter range creates the account and leaves the bonus in a held state with a zero balance.",
+        "A test creates at least 20 accounts with different emails from one public address and none of them is refused.",
+        "A disposable-domain sign-up answers 4xx, creates no user row, and the response contains a hint but no score and no list name.",
+        "The client address is taken from a forwarding header only when the socket peer is in a configured list of trusted proxies.",
+        "The disposable list and the address ranges are read from local files or tables; no HTTP request is made during the sign-up request."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Our Laravel app has a promo code endpoint. The same account can redeem SPRING250 over and over, and the 500 redemption cap is checked with a count query. Make it correct, and show me it holds under concurrent requests.",
+      "expected_output": "A redemption table with a unique key on code and user, a cap enforced by one conditional update, and a concurrency test or probe run that shows no more than one redemption per user and no more than 500 in total.",
+      "assertions": [
+        "A redemptions table has a unique or primary key on the pair of code and user.",
+        "The cap is enforced by a conditional UPDATE on a counter column (or an equivalent single atomic statement), not by a COUNT query followed by an insert.",
+        "The redemption insert, the cap update and the credit run inside one database transaction.",
+        "The credited amount is read from the promo code's stored row, not from the request.",
+        "Running the probe script in replay mode with 3 requests for one account shows one 2xx answer and a balance change equal to one redemption.",
+        "Running the probe script in race mode with 10 parallel requests for one fresh account shows a balance change equal to one redemption.",
+        "A test with a code capped at 2 and three different accounts ends with exactly 2 redemption rows."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our Django app has promo codes with a maximum number of uses, but popular codes get redeemed more times than allowed and some accounts redeem the same code twice. Fix it.",
+      "expected_output": "A redemption table with a unique code and user key, a conditional update of the code's counter in the same transaction, the amount taken from the code's row, and parallel tests.",
+      "assertions": [
+        "The redemption model has a unique constraint on the code and the user.",
+        "The redemption insert, the counter update and the credit run inside one transaction.atomic block.",
+        "The counter is taken with a filtered update such as filter(redeemed__lt=F('max_redemptions')).update(redeemed=F('redeemed') + 1), and the number of rows changed is checked.",
+        "When the counter update changes no row, the transaction rolls back and the redemption row does not remain.",
+        "The credited amount is read from the promo code row, not from the request.",
+        "A test redeems a code capped at N from N + 1 accounts in parallel and asserts N redemptions."
+      ]
+    }
+  ]
+}

@@ -14,7 +14,7 @@ Gets a new user from install to a first result in a couple of minutes. Setup its
 ## Steps
 
 1. **Check the connection.** If sync. tools such as `account_get-context` are available, call `account_get-context` and `account_get-usage`, then go to step 3.
-2. **Connect.** Follow [references/connect.md](references/connect.md) for this client: the hosted MCP server with sign-in for most people, or an API key for scripts and CI. If the client needs a restart to load the server, say so and stop there.
+2. **Connect.** Follow [references/connect.md](references/connect.md) for this client: the hosted MCP server with sign-in for most people, an emailed code when you can run commands and the user has no account or prefers not to open a browser, or an API key for scripts and CI. If the client needs a restart to load the server, say so and stop there.
 3. **Account.** Greet the user by organization name and say what's available: credits, the free allowance, or the plan's limits (`generationLimits.maxOutputDurationSeconds`, `generationLimits.concurrency`). Don't promote plans.
 4. **What it can do.** Offer these, one example prompt each:
    - **Lipsync a video:** "Lipsync ./interview.mp4 to ./new-take.wav"

@@ -1,6 +1,6 @@
 {
   "name": "seonix",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Connect your Seonix SEO project: Site Health and fix plan, Google Search Console, keywords, articles and SEO playbooks, with skills that fix a site in code and ship content through Seonix.",
   "author": {
     "name": "Seonix",
@@ -20,7 +20,7 @@
   "interface": {
     "displayName": "Seonix",
     "shortDescription": "SEO and AI-search visibility",
-    "longDescription": "Seonix grows organic and AI-search visibility for a website on autopilot: it crawls the site (Site Health), tracks every issue across scans, reads Google Search Console, researches keywords, scores drafts, and writes and publishes articles to WordPress, Shopify, Webflow, Ghost and Wix.\n\nThis plugin connects the agent to your Seonix project over MCP. The agent can read the Site Health report and the prioritised fix plan with page-level evidence, pull Search Console queries, pages and striking-distance opportunities, browse keyword clusters, the content calendar and published articles, score a draft with the same SEO checks Seonix uses, and follow eleven step-by-step SEO playbooks served by the server. With your confirmation it can also start a fresh scan, apply Seonix fixes on a connected WordPress site, roll a fix run back, and mark an issue as intentional.\n\nIntended for site owners, marketers and developers who already use Seonix. Requires a Seonix account with at least one project (your website) added at app.seonix.ai; the MCP server is enabled on the Seonix plans that include it. The plugin never changes your site directly: fixes are either applied in your own codebase by the agent, or by Seonix through its WordPress plugin after you say yes. Anything that came from the website or the web is marked as untrusted data in tool results.\n\nLimitations: works only with websites you have added to Seonix; Search Console tools return not_connected until Search Console is linked in Seonix; rate limit 600 tool calls per hour per connection; the plugin does not manage Seonix accounts or plans.",
+    "longDescription": "Seonix grows organic and AI-search visibility for a website on autopilot: it crawls the site (Site Health), tracks every issue across scans, reads Google Search Console, researches keywords, scores drafts, and writes and publishes articles to WordPress, Shopify, Webflow, Ghost and Wix.\n\nThis plugin connects the agent to your Seonix project over MCP. The agent can read the Site Health report and the prioritised fix plan with page-level evidence, pull Search Console queries, pages and striking-distance opportunities, browse keyword clusters, the content calendar and published articles, score a draft with the same SEO checks Seonix uses, and follow twelve step-by-step SEO playbooks served by the server. With your confirmation it can also start a fresh scan, apply Seonix fixes on a connected WordPress site, roll a fix run back, and mark an issue as intentional.\n\nIntended for site owners, marketers and developers who already use Seonix. Requires a Seonix account with at least one project (your website) added at app.seonix.ai; the MCP server is enabled on the Seonix plans that include it. The plugin never changes your site directly: fixes are either applied in your own codebase by the agent, or by Seonix through its WordPress plugin after you say yes. Anything that came from the website or the web is marked as untrusted data in tool results.\n\nLimitations: works only with websites you have added to Seonix; Search Console tools return not_connected until Search Console is linked in Seonix; rate limit 600 tool calls per hour per connection; the plugin does not manage Seonix accounts or plans.",
     "developerName": "Seonix",
     "category": "Productivity",
     "capabilities": [
@@ -29,7 +29,7 @@
       "Read Google Search Console queries, pages and opportunities",
       "Browse keyword candidates, clusters and the content calendar",
       "List and read articles, score a draft with Seonix SEO checks",
-      "Follow eleven SEO playbooks served by the server",
+      "Follow twelve SEO playbooks served by the server",
       "Start a Site Health scan (with confirmation)",
       "Apply or roll back Seonix fixes on WordPress (with confirmation)",
       "Mark an issue as intentional (with confirmation)"

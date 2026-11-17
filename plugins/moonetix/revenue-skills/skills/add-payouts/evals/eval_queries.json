@@ -1,0 +1,13 @@
+[
+  {"query": "Users of our rewards app should be able to cash out their coins to PayPal. Add a withdrawal flow with a 5 dollar minimum.", "should_trigger": true},
+  {"query": "Someone clicked Withdraw a few times fast and got paid three times for one balance. Fix our payout endpoint.", "should_trigger": true},
+  {"query": "Our payout call to the gift card provider sometimes times out. We refund the user, and then the card arrives anyway. How should this work?", "should_trigger": true},
+  {"query": "Add a 14 day hold before earnings can be withdrawn, and make sure promo bonus coins can never be cashed out.", "should_trigger": true},
+  {"query": "Sellers on our marketplace need weekly payouts of their sales balance, with an approval step for large amounts and a daily check against the provider's records.", "should_trigger": true},
+  {"query": "Our Laravel cash-out endpoint sometimes pays users twice when they double click the withdraw button.", "should_trigger": true},
+  {"query": "Add PayPal withdrawals to our Django rewards site with a minimum and a daily limit.", "should_trigger": true},
+  {"query": "A customer got a refund from the payment provider but kept the credits. Make refunds take the credits back.", "should_trigger": false},
+  {"query": "Add a ledger table so that every change to a user's balance is recorded and a repeated event cannot credit twice.", "should_trigger": false},
+  {"query": "Give the referrer a bonus when the friend they invited makes a first purchase.", "should_trigger": false},
+  {"query": "Generate a monthly PDF invoice for every customer.", "should_trigger": false}
+]

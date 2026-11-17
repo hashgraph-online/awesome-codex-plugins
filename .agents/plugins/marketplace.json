@@ -2292,6 +2292,21 @@
       "icon": "./plugins/KalarisLabs/research-agent-skills/assets/icon.svg"
     },
     {
+      "name": "revenue-skills",
+      "displayName": "Revenue Skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/moonetix/revenue-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Eleven Agent Skills for code that moves money: an audit of payment, credit and payout paths that backs each finding with file, line and a request proof or code trace, and builders for ledgers, payment webhooks, refunds, subscriptions, AI usage credits, payouts and referrals.",
+      "icon": "./plugins/moonetix/revenue-skills/assets/icon.svg"
+    },
+    {
       "name": "reviewable-html-workbench",
       "displayName": "Reviewable HTML Workbench",
       "source": {

@@ -2,8 +2,8 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
-  "last_updated": "2026-11-16",
-  "total": 424,
+  "last_updated": "2026-11-17",
+  "total": 425,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1550,6 +1550,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/KalarisLabs/research-agent-skills/HEAD/plugin.json"
+    },
+    {
+      "name": "Revenue Skills",
+      "url": "https://github.com/moonetix/revenue-skills",
+      "owner": "moonetix",
+      "repo": "revenue-skills",
+      "description": "Eleven Agent Skills for code that moves money: an audit of payment, credit and payout paths that backs each finding with file, line and a request proof or code trace, and builders for ledgers, payment webhooks, refunds, subscriptions, AI usage credits, payouts and referrals.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/moonetix/revenue-skills/HEAD/plugin.json"
     },
     {
       "name": "Reviewable HTML Workbench",

@@ -59,6 +59,12 @@ and truncated grids. `complete` describes which sources answered; it does not
 certify data quality, identical products, or a full catalog search. The same
 diagnostics appear in top-level `warnings` prefixed with the source.
 
+A long answer is cut to fit 40,000 characters: whole offers leave from the end of
+`offers` (unpriced first, then the dearest), `total_offers` keeps the full count,
+and an `info:offers_omitted` warning says how many were left out. `cheapest` and
+`cheapest_comparable` are unaffected; for the rest, ask fewer `sources` or a lower
+`per_source_limit`.
+
 Three fields decide whether the answer is trustworthy:
 
 **`complete`** — `true` only when every queried marketplace answered. When

@@ -29,10 +29,21 @@ self-hosted workspace, follow
 
 ## Install
 
+### Claude (web, desktop and Cowork)
+
+On a Pro, Max, Team or Enterprise plan, open **Plugins**, choose **Add**, then
+**Add marketplace**, and enter `worktable/worktable-plugin`. Add Worktable,
+then open the plugin's **Connectors** tab, connect Worktable and sign in. Claude
+updates it from this repository: choose **Check for updates**, or turn on
+**Sync automatically** once the Claude GitHub App has access. Skills need
+**Code execution** on in Claude's settings.
+
+Uploading the plugin as a file works too, but an uploaded copy never updates.
+
 ### Claude Code
 
 ```text
-claude plugin marketplace add worktable/worktable-dev
+claude plugin marketplace add worktable/worktable-plugin
 claude plugin install worktable@worktable
 ```
 
@@ -42,15 +53,31 @@ Worktable is not already connected.
 ### Codex
 
 ```text
-codex plugin marketplace add worktable/worktable-dev
-codex plugin add worktable@worktable
+codex plugin add worktable@openai-curated-remote
 ```
+
+### Antigravity
+
+Install Worktable from the plugins in the Antigravity app, or run:
+
+```text
+agy plugin install https://github.com/worktable/worktable-plugin
+```
+
+Then open `/plugin`, expand Worktable under **Installed**, and choose **Sign in**.
 
 ### Gemini CLI
 
 ```text
-gemini extensions install https://github.com/worktable/worktable-plugin
+gemini extensions install https://github.com/worktable/worktable-plugin --auto-update
 ```
+
+### Perplexity
+
+Open **Plugins**, choose **Add custom**, then **Import plugin from GitHub**,
+and enter `https://github.com/worktable/worktable-plugin`. Connect Worktable
+and sign in when asked. Perplexity keeps its own copy: to get a newer version,
+remove the plugin and import it again.
 
 ### Kiro
 

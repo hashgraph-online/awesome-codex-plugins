@@ -1,0 +1,50 @@
+{
+  "skill_name": "money-audit",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Run a full money audit of this project and write the report.",
+      "expected_output": "money-audit/money-map.md, money-audit/findings.json and money-audit/REPORT.md in the project, a findings file the bundled validator accepts, and a summary that lists the findings by money at risk and names the classes that are clear.",
+      "assertions": [
+        "money-audit/money-map.md lists every route, job and admin tool that credits, debits or pays out, each with its file and line.",
+        "scripts/validate-findings.mjs prints VALID for money-audit/findings.json with the project directory as --root.",
+        "Every finding with a probe proof names a request file or command that can be run again without a literal token or key.",
+        "No file of the audited project outside money-audit/ was modified.",
+        "No app process started for the audit is left running when it ends."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Look only at our payment webhook handler. Can an event be forged, or credit an order twice?",
+      "expected_output": "A short answer about that one handler: whether the signature is checked on every request, whether processed events are remembered under a unique key, each point with file and line.",
+      "assertions": [
+        "The answer quotes the line where the signature is verified, or states that no verification exists, with file and line.",
+        "The answer says what stops a second delivery of the same event, naming the unique key or the state check, or that nothing does.",
+        "No money-audit folder or other file is created, because this is a focused check."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "This repository is a ledger library with no server. Audit it for ways a balance could be overdrawn or a payout made twice.",
+      "expected_output": "A full audit in money-audit/ whose money map lists the public functions that move value, whose proofs are failing tests or small scripts rather than probes, and whose environment field says what could not be run.",
+      "assertions": [
+        "Each row of money-audit/money-map.md is a public function of the library, and the caller column says what the library expects from the integrating app.",
+        "No finding has a probe proof; each is a test, a script under money-audit/evidence/ or a code trace.",
+        "The environment field names the runtime and stores the proofs ran on and what could not be run.",
+        "A caller duty that the README documents and the shipped stores meet is recorded as a note, not a finding."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Check our Stripe and Google Play integrations only. Can anyone get coins without paying, or keep them after a refund?",
+      "expected_output": "A focused answer about the Stripe webhook and the Google Play notification endpoint, each point with file and line: how each request is authenticated, what the grant is computed from, what deduplicates, and which refund, dispute and voided purchase events are handled.",
+      "assertions": [
+        "The answer states whether the Stripe signature is verified over the raw body before parsing and quotes the line, or states that it is not.",
+        "The answer states whether the Google Play endpoint verifies the Pub/Sub OIDC token, including its audience and email, and whether the purchase is read from the Play Developer API before coins are granted.",
+        "The answer names the key that stops a second delivery for each provider, or says that none exists.",
+        "The answer lists which of charge.refunded, refund.created, charge.dispute.created and voidedPurchaseNotification have handlers, with file and line, and calls out the ones that are acknowledged and ignored.",
+        "No money-audit folder or other file is created, because this is a focused check."
+      ]
+    }
+  ]
+}

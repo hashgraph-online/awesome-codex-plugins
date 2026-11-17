@@ -1,7 +1,7 @@
 # Loom for Codex — ambient capture, memory primer, code shunt
 
 The Codex build of Loom's coding-agent plugin. It is the [Claude Code
-plugin](../claude-code-plugin/README.md) with different wiring: the same
+plugin](https://github.com/ClickHouse/loom/tree/main/integrations/claude-code-plugin) with different wiring: the same
 hook scripts and seven skills, byte for byte (kept in sync by
 `python scripts/codegen/agent_plugin_sync.py`, checked in CI), driven by Codex's
 lifecycle hooks instead of Claude Code's.
@@ -21,6 +21,29 @@ What you get once it is installed:
   or an `rg` over the tree is denied with the `code.*` op to call instead.
 - **Blast radius, file context, test gate, working memory, run ledger** — as
   in the Claude Code plugin; the README there documents every knob.
+
+## Data handling
+
+The hooks send prompts, tool inputs and outputs, file paths, repository identity,
+session summaries and outlines of uncommitted diffs to the configured Loom server.
+The server can keep conversation turns, extract memories from the session's last
+200 turns, and pass text to the providers its operator configures. Users whose
+grants allow them to read a stored row, and the server's operator, can read it.
+Client-side redaction of common credentials is best effort; MCP tool arguments
+and manually saved session briefs bypass it.
+
+The plugin runs Node.js, Git and grep locally, keeps credentials and state under
+`~/.loom/`, and writes temporary state that can contain prompt and reply text.
+The test gate chooses a Python interpreter without starting it. At session start
+the plugin tries to remove most temporary state untouched for a day; it can
+remain longer, especially when no new session starts. Queued writes and the
+shunt log have different retention rules. The `loom-status` skill can install Node.js after
+you agree, and `improve-loom-for-my-repo` searches public issues and asks before
+filing a report. The full
+[data-handling disclosure](https://clickhouse.github.io/loom/features/integrations/claude-code/#data-handling)
+lists what each hook sends, local commands, retention, outside services and off
+switches. Codex's capture differences are listed below; it does not run the
+duplicate-entry check of `~/.claude.json`.
 
 ## Install
 
@@ -42,7 +65,7 @@ and nothing else; otherwise `~/.loom/config.json`, then `~/.loom/token`. Org
 and namespace come from the token's own claims. Codex plugins have no install-time options, so the
 server URL is fixed in `.mcp.json` and `plugin-defaults.json`
 (`http://localhost:7777`); for another server, see
-[docs/features/integrations/codex.md](../../docs/features/integrations/codex.md) (a `[mcp_servers.loom]` override in
+[Codex setup](https://clickhouse.github.io/loom/features/integrations/codex/) (a `[mcp_servers.loom]` override in
 `~/.codex/config.toml`, or `loom install --client codex`).
 
 ## What differs from the Claude Code build
@@ -59,7 +82,7 @@ server URL is fixed in `.mcp.json` and `plugin-defaults.json`
 
 Everything else — the environment knobs, the safety model (fire-and-forget,
 hard-bounded, fail-open), the project scoping, the skills — is documented
-once, in the [Claude Code plugin README](../claude-code-plugin/README.md).
+once, in the [Claude Code plugin README](https://github.com/ClickHouse/loom/tree/main/integrations/claude-code-plugin).
 
 ## Skills
 

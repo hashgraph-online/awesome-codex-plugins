@@ -1,0 +1,43 @@
+{
+  "skill_name": "design-reward-economy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We're building a rewards site. Plan: 1000 coins per dollar, 60% to the user, 500 coin sign-up bonus, 20 coin daily bonus, $5 minimum cash-out by gift card where the provider charges us 3% plus $0.30. We expect $8,000 a month from the networks, 2,000 active users and 900 new users. Set up the economy and tell me if it works.",
+      "expected_output": "A JSON economy file with the stated numbers, the output of economy-check.mjs on it, and a plain answer on whether the margin holds and which rule, if any, the plan breaks.",
+      "assertions": [
+        "A JSON economy file exists in the project with coinsPerDollar 1000, userSharePct 60, both bonuses, minimumUsd 5, feePct 3 and feeFixedUsd 0.3, and each value has a note saying it is the owner's planning figure.",
+        "Running node scripts/economy-check.mjs on that file completes with exit code 0 or 1, never 2.",
+        "The answer reports the margin per dollar of revenue and the effective share including bonuses, with the figures the script printed.",
+        "The reversal rate, the hold and the target margin were asked from the user or entered as explicitly marked assumptions, not taken from an industry figure.",
+        "If the script reported a violation, the answer names the rule and proposes a concrete changed number, and the changed file passes the check.",
+        "The answer contains no statement about how much money users or the owner will make."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Here is our Postgres database with a ledger and an offer_conversions table that has created_at and reversed_at. We hold earnings for 7 days and keep losing money to late reversals. Size the hold properly; we want to catch 95% of them.",
+      "expected_output": "A query over offer_conversions that shows the share of reversals that arrive within each number of days, and a hold chosen from it that catches 95% of them, written into the configuration.",
+      "assertions": [
+        "A query was run that computes, from offer_conversions, the cumulative percentage of reversals arriving within several day counts, restricted to credits old enough to have completed their reversal window.",
+        "The economy file contains reversals.arrival with the measured points and targets.minReversalsInsideHoldPct set to 95.",
+        "The hold days written to the file and to the project's configuration are the same number, and the script's hold-misses-target rule does not fire for it.",
+        "The answer states what part of reversals the new hold catches and how the longer hold changes the days to reach the payout minimum or the payment gap, using the script's output.",
+        "The hold value in the code is read from one configuration location, and a search finds no remaining hardcoded 7 day hold."
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Marketing wants a 50% earning boost every weekend plus a 2,000 coin promo code for new users, on top of what config/economy.json already has. Add them if the economy still holds, and make sure nobody can change these numbers later without the check running.",
+      "expected_output": "Both bonuses added to config/economy.json only if the economy check still passes, and a CI step that runs the check on every change to the file.",
+      "assertions": [
+        "config/economy.json contains an earning_multiplier bonus with pct 50 and a coveragePct taken from the share of earnings credited on weekends in the project's data, or marked as an assumption, and the promo code as a per_new_user bonus of 2000 coins with a takeUpPct.",
+        "The script was run on the changed file, and either it exits with 0 or the answer names the violated rules and the amounts that would pass.",
+        "The promo bonus cannot reach the payout minimum together with the other bonuses: the bonus-only-payout rule does not fire, or the bonus is marked requiresEarning and the code credits it only after a real earning.",
+        "The project's test suite contains a test that runs the economy check on config/economy.json and fails when the check reports a violation.",
+        "The project's test suite contains a test that compares the bonus amounts and rate in the code's configuration with config/economy.json.",
+        "The boost is applied in the conversion function as basis points in integer arithmetic, and when two boosts are active only the larger applies."
+      ]
+    }
+  ]
+}

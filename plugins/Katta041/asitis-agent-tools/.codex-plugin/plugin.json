@@ -1,6 +1,6 @@
 {
   "name": "asitis",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "description": "Read-only linter for AGENTS.md, CLAUDE.md, SKILL.md and other agent steering files: what each agent loads, token budgets, hidden instructions.",
   "author": {
     "name": "AsItIs",

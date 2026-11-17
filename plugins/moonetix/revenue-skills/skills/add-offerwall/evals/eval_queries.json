@@ -1,0 +1,13 @@
+[
+  {"query": "Add an offerwall to our rewards site so users can earn coins by completing offers.", "should_trigger": true},
+  {"query": "We got approved by an offer network. They need a postback URL from us. Can you build the endpoint that credits the user?", "should_trigger": true},
+  {"query": "Users are getting credited twice for the same offer when the network retries the postback. Fix it.", "should_trigger": true},
+  {"query": "The network sent us chargebacks for 40 conversions but our users kept the points. How do we handle reversal postbacks?", "should_trigger": true},
+  {"query": "Our Discord bot should give members a private link to earn server coins from offers, and credit them when the callback arrives.", "should_trigger": true},
+  {"query": "Add an offerwall to our Django rewards site and a postback view that credits points.", "should_trigger": true},
+  {"query": "Our Express postback route credits a transaction twice when the network retries. Fix it.", "should_trigger": true},
+  {"query": "Verify the signature on our payment provider's webhook before marking the order as paid.", "should_trigger": false},
+  {"query": "How many coins per dollar should we pay, and what share of each offer should go to the user?", "should_trigger": false},
+  {"query": "Add rewarded video ads from an ad mediation SDK to our Unity game.", "should_trigger": false},
+  {"query": "Add Google AdSense banners to our blog pages.", "should_trigger": false}
+]

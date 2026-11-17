@@ -1,0 +1,64 @@
+{
+  "_note": "Placeholder numbers that show the format. Replace every value with the project's own figure, measured from its ledger or given by the owner.",
+  "currency": {
+    "name": "coins",
+    "coinsPerDollar": 1000,
+    "redeemCoinsPerDollar": 1000
+  },
+  "earning": {
+    "userSharePct": 55,
+    "smallestPayoutUsd": 0.2
+  },
+  "volume": {
+    "_note": "Per month. monthlyRevenueUsd is what the networks credited before reversals.",
+    "monthlyRevenueUsd": 20000,
+    "activeUsers": 2500,
+    "newUsers": 1500
+  },
+  "bonuses": [
+    { "name": "sign-up bonus", "type": "per_new_user", "coins": 250, "takeUpPct": 90, "requiresEarning": true },
+    { "name": "daily check-in", "type": "per_active_user_per_day", "coins": 5, "takeUpPct": 20 },
+    { "name": "7 day streak", "type": "per_active_user_per_month", "coins": 100, "takeUpPct": 8 },
+    { "name": "promo codes", "type": "fixed_per_month", "coins": 200000 },
+    { "name": "weekend boost", "type": "earning_multiplier", "pct": 10, "coveragePct": 25 },
+    { "name": "referral commission", "type": "referral", "pct": 10, "coveragePct": 15 }
+  ],
+  "payout": {
+    "minimumUsd": 5,
+    "feePct": 2,
+    "feeFixedUsd": 0.25,
+    "feePaidBy": "app",
+    "averagePayoutUsd": 12,
+    "redemptionPct": 90
+  },
+  "reversals": {
+    "_note": "arrival is cumulative: of all reversals, the percentage that had arrived within N days of the credit.",
+    "ratePct": 4,
+    "holdDays": 30,
+    "lateRecoveryPct": 20,
+    "arrival": [
+      { "days": 7, "pct": 45 },
+      { "days": 14, "pct": 70 },
+      { "days": 30, "pct": 92 },
+      { "days": 60, "pct": 99 },
+      { "days": 90, "pct": 100 }
+    ]
+  },
+  "costs": {
+    "otherPctOfRevenue": 3,
+    "fixedMonthlyUsd": 1500
+  },
+  "cash": {
+    "outstandingCoins": 14000000,
+    "reserveUsd": 12000,
+    "receivablesUsd": 18000,
+    "networkPaymentDelayDays": 45
+  },
+  "targets": {
+    "minMarginPct": 15,
+    "maxEffectiveSharePct": 75,
+    "maxBonusPctOfRevenue": 12,
+    "maxDaysToMinimumPayout": 45,
+    "minReversalsInsideHoldPct": 90
+  }
+}

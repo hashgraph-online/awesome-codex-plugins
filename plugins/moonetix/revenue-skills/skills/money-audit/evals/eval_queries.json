@@ -1,0 +1,15 @@
+[
+  {"query": "Audit this repo for ways users could get free credits before we launch next week.", "should_trigger": true},
+  {"query": "Can someone replay our Stripe webhook and get the order credited twice?", "should_trigger": true},
+  {"query": "We lost about $400 in gift card payouts last month and I can't tell how. Can you find the hole?", "should_trigger": true},
+  {"query": "Review the postback handler and the withdraw endpoint, I want to know if they can be cheated.", "should_trigger": true},
+  {"query": "Is my points system safe? People can earn, spend, transfer and cash out.", "should_trigger": true},
+  {"query": "I just added a promo code endpoint, check that it can't be farmed.", "should_trigger": true},
+  {"query": "Add a pricing page with three tiers and a monthly/yearly toggle.", "should_trigger": false},
+  {"query": "Run a general security scan for XSS and missing headers on the marketing site.", "should_trigger": false},
+  {"query": "Our Stripe checkout button does nothing when clicked, can you debug the frontend?", "should_trigger": false},
+  {"query": "Write unit tests for the date formatting helpers.", "should_trigger": false},
+  {"query": "Can someone forge our PayPal webhook? We download the certificate from the paypal-cert-url header.", "should_trigger": true},
+  {"query": "Review our App Store server notification handler for ways to get coins for free.", "should_trigger": true},
+  {"query": "Migrate our Stripe integration from the Charges API to PaymentIntents.", "should_trigger": false}
+]

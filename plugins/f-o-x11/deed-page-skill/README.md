@@ -167,6 +167,14 @@ Or inside Codex: `$skill-installer install https://github.com/f-o-x11/deed-page-
 
 ### Cursor
 
+As a Cursor plugin (skill + the `https://deed.page/mcp` server), until the Cursor Marketplace listing is live:
+
+```bash
+git clone https://github.com/f-o-x11/deed-page-skill ~/.cursor/plugins/local/deed-page
+```
+
+Then run **Developer: Reload Window** and check Customize for the `deed-page` skill and MCP server.
+
 As a plain skill:
 
 ```bash

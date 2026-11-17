@@ -1,0 +1,13 @@
+[
+  {"query": "People are farming our 500 coin sign-up bonus with Gmail dot and plus variants of the same address. Stop it.", "should_trigger": true},
+  {"query": "Add fake account protection to registration: disposable emails, VPS and Tor IPs, and rate limits per IP.", "should_trigger": true},
+  {"query": "Our 14 day free trial gets restarted by users who delete their account and sign up again. Fix that.", "should_trigger": true},
+  {"query": "Make promo codes redeemable once per account and enforce the total redemption cap properly.", "should_trigger": true},
+  {"query": "One person made 40 accounts to collect our referral reward. What should the sign-up flow check, and can you build it?", "should_trigger": true},
+  {"query": "Our Laravel promo codes are redeemed more times than their cap when many users apply them at once.", "should_trigger": true},
+  {"query": "People create new accounts with Gmail dot variants to get our sign-up bonus again. This is a Rails app.", "should_trigger": true},
+  {"query": "Audit our payment webhooks and wallet code for ways users could get free credits.", "should_trigger": false},
+  {"query": "Users can withdraw the same balance twice if they click the cash-out button fast enough.", "should_trigger": false},
+  {"query": "Add Google and GitHub login to the sign-up page.", "should_trigger": false},
+  {"query": "Add password strength rules to the sign-up form.", "should_trigger": false}
+]
