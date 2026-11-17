@@ -131,8 +131,20 @@ export function encodeBody(body: Buffer, encoding: string | undefined): Buffer {
 
 // Number tokens outside strings that JavaScript cannot represent exactly.
 export function hasUnsafeInteger(json: string): boolean {
-  for (const match of json.matchAll(/"(?:[^"\\]|\\.)*"|(?<![\d.eE+-])(-?\d+)(?![.\deE])/g)) {
-    if (match[1] && !Number.isSafeInteger(Number(match[1]))) return true;
+  const tokens = /"|(?<![\d.eE+-])(-?\d+)(?![.\deE])/g;
+  const stringDelimiters = /["\\]/g;
+  for (let token = tokens.exec(json); token; token = tokens.exec(json)) {
+    if (token[0] === '"') {
+      // Skip string contents without backtracking over long inline images.
+      stringDelimiters.lastIndex = tokens.lastIndex;
+      for (let delimiter = stringDelimiters.exec(json); delimiter; delimiter = stringDelimiters.exec(json)) {
+        if (delimiter[0] === '"') break;
+        stringDelimiters.lastIndex++;
+      }
+      tokens.lastIndex = stringDelimiters.lastIndex || json.length;
+    } else if (token[1] && !Number.isSafeInteger(Number(token[1]))) {
+      return true;
+    }
   }
   return false;
 }

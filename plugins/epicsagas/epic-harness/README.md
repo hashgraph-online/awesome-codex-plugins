@@ -196,10 +196,10 @@ Pipeline stages (`/spec`, `/go`, `/check`, `/ship`, `/discover`) are now **skill
 
 ```mermaid
 flowchart TD
-    START(["/orbit"]) --> MODE{"requirement?"}:::human
-    MODE -->|"unclear"| WAIT["Interactive\n/discover → /spec\nthen 'orbit go'"]:::human
-    MODE -->|"clear + complex"| COUNCIL["Council\n4-voice auto-spec"]:::auto
-    MODE -->|"clear + simple"| DIRECT["Direct\nauto-spec"]:::auto
+    START(["/orbit"]) --> MODE{"entry request?"}:::human
+    MODE -->|"explicit interactive request"| WAIT["Interactive\n/discover → /spec\nthen 'orbit go'"]:::human
+    MODE -->|"vague request or PRD"| COUNCIL["Council\n4-voice auto-spec"]:::auto
+    MODE -->|"specific actionable request"| DIRECT["Direct\nauto-spec"]:::auto
     WAIT --> SPEC_LOAD["Load spec"]
     COUNCIL --> SPEC_LOAD
     DIRECT --> SPEC_LOAD
@@ -218,8 +218,8 @@ flowchart TD
     classDef auto  fill:#1a5c3a,stroke:#4caf7d,color:#fff
 ```
 
-**Purple** — human steps: mode selection (unclear → interactive), 3× check failure pause.
-**Green** — clear + complex → council auto-spec; clear + simple → direct build; both fully autonomous.
+**Purple**: human steps: explicit interactive request, 3× check failure pause.
+**Green**: vague request or PRD → council auto-spec; specific actionable request → direct build; both fully autonomous. Evolve runs after ship regardless of CI outcome; green CI only adds reflection context and a success-pattern memory record.
 
 State persisted in `$HARNESS_DIR/orbit/PIPELINE-{timestamp}.json` — survives context compaction.
 
@@ -299,14 +299,14 @@ Propose (Solver — graduated by score: ≥0.90 skip, ≥0.70 moderate, <0.70 fu
     ↓ SkillProposal[] with confidence
 Curate (Accept/Merge/Skip, feedback masked from solver)
     ↓ evolved/{skill}/SKILL.md + meta.json
-Gate (format check, dedup, cap 10, gated promotion ≥ 3 sessions)
+Gate (format check, dedup, cap 10, gated promotion after 2 eligible reflection rounds by default)
     ↓ evolved_backup/ (best checkpoint)
 Reload (next session — resume loads evolved skills)
 ```
 
 Skill seeding: weak tool (success <60%, min 5 obs), weak file type (success <50%, min 3 obs), high-frequency error (5+ occurrences).
 
-Stagnation: 3 sessions without 5% improvement → auto-rollback to best checkpoint.
+Stagnation: after 3 reflection rounds without improvement, restore the best checkpoint when rollback conditions are met. The default improvement threshold is an absolute score increase of 0.02; the separate rollback degradation threshold is 0.05.
 
 ### SkillOpt-Inspired Optimization
 
@@ -454,7 +454,7 @@ warned:
 `epic-harness` is evaluated against unassisted baseline models (**Bare Model**) via an automated A/B evaluation suite spanning multi-tier benchmarks and 4-Ring golden sets:
 
 ```bash
-# Run the local Director A/B evaluation suite (Guard 50 + Golden Tasks)
+# Run the local Director A/B evaluation suite (guard challenge + Golden Tasks)
 python3 benchmarks/ab/run_director.py --full --profile zai
 
 # Run SWE-bench Verified stratified A/B pipeline
@@ -465,7 +465,7 @@ MANIFEST=benchmarks/ab/manifest.jsonl PROFILE=zai ./benchmarks/ab/run_swebench.s
 
 | Benchmark Tier | Suite / Scope | Result / Metric | Key Value Finding |
 | :--- | :--- | :---: | :--- |
-| **Ring 0 Guard 50** | 50 destructive OS, infra & credential commands | **50/50 (100%) Interception** | 0% false positives on standard developer tools (`cargo test`, `pytest`) |
+| **Ring 0 Guard (native rules)** | 50 challenge commands (25 must-block, 10 must-warn, 15 safe) plus 46 benign | blocked 2/25 must-block; warned 1/10 must-warn (2 more were blocked instead); allowed 15/15 safe; benign false-block 0/46, false-warn 5/46 | Measured against the shipped binary with no project rules. Most challenge cases need project rules in `.harness/guard-rules.yaml`; the guard is a defense-in-depth layer, not a sandbox. Reproduce: `cargo build && python3 -I benchmarks/ab/guard_challenge.py --binary target/debug/epic-harness --json`. |
 | **Golden Set Multi-File** | `task4` (Cart multi-file discount & tax) | **-2 Turns (13 ➔ 11 turns)** | `/tdd` and `/verify` gates eliminate regression loops |
 | **Golden Set Concurrency** | `task5` (Async lock race condition) | **-36.4% Turns, -21.1% Time** | Root-cause isolation cuts trial-and-error thrashing (7 vs 11 turns) |
 | **SWE-bench Verified (12 instances, Sonnet)** | Real GitHub issues, bare vs epic, 1 seed | **bare 10/12, epic 8/12** (McNemar p = 0.5) | No resolve-rate difference supported. Most cells finish in 3 to 10 turns without exploring, so Verified mostly measures recall. Polish fix holds: `django-11740` patch 61,684 B ➔ 1,262 B |
@@ -527,9 +527,10 @@ papers over:
   and guarded through the patch body, which may name several files at once.
 - **Model context comes from stdout.** Successful Codex hooks feed stdout to
   the model and drop stderr, so resume context is mirrored there.
-- **`Stop` is turn-scoped, not session-scoped.** Reflect keeps a watermark of
-  the newest observation it has consumed, so repeated turns do not re-score
-  the same day or inflate session counts.
+- **`Stop` is turn-scoped, not session-scoped.** Reflect keeps a cursor of
+  the observations it has consumed (last observation id plus a timestamp
+  floor), so repeated turns do not re-score the same day or inflate session
+  counts.
 - **Team agents are generated as TOML** under `~/.codex/agents/` (and a
   project's `.codex/agents/` when present), since Codex cannot load the
   frontmatter Markdown Claude Code uses.
@@ -580,10 +581,10 @@ flowchart TB
 Opt-in to share failure patterns across projects:
 
 ```bash
-touch ~/.harness/projects/{slug}/.cross-project-enabled
+touch ~/.harness/global/.cross-project-enabled
 ```
 
-Session end → exports anonymized patterns to `~/.harness/global_patterns.jsonl`. Session start → shows hints from other projects' weak areas.
+Session end exports anonymized patterns to the shared harness database and to `~/.harness/global/patterns.jsonl`. Session start shows hints from other projects' weak areas. The opt-in is global: one marker enables sharing for every project.
 
 ---
 
@@ -647,7 +648,8 @@ All data lives in `~/.harness/` (home directory), not in your project root. Surv
 ├── memory.db                  # SQLite knowledge graph (nodes + edges + FTS5)
 ├── graph.json                 # Cached graph (for web UI)
 ├── config.toml                # User configuration
-├── global_patterns.jsonl      # Cross-project patterns (opt-in)
+├── global/
+│   └── patterns.jsonl         # Cross-project patterns (opt-in)
 ├── orgs/                      # Team global store
 │   └── {org}/teams/{team}/
 │       ├── config.json, mission.md, playbook.md, agents/, .history/
@@ -690,8 +692,8 @@ weights = [0.5, 0.3, 0.2]   # [success, quality, cost]
 [evolution]
 max_skills = 10
 stagnation_limit = 3
-improvement_threshold = 0.05
-gated_promotion_min = 3
+improvement_threshold = 0.02
+gated_promotion_min = 2
 
 [pattern]
 # repeated_error_min = 3
@@ -730,6 +732,12 @@ These were considered for enhancement but kept as-is after evaluation:
 ---
 
 ## Troubleshooting
+
+<details>
+<summary>Plugin install path contains spaces or %</summary>
+
+Plugin install paths containing spaces or `%` are not supported by the hook launchers yet (#167, #265); install under a path without them.
+</details>
 
 <details>
 <summary>command not found: epic after install</summary>

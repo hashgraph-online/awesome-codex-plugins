@@ -13,7 +13,7 @@ import { resolve4, resolveCname } from 'node:dns/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 /** Skill release. scripts/sync-plugin.sh stamps this into the plugin manifests; bump it to ship. */
-export const VERSION = '0.14.29';
+export const VERSION = '0.15.1';
 // Lets the API tell helper traffic from other REST clients in its product analytics.
 const UA = {
   'User-Agent': `webly-helper/${VERSION}`,
@@ -52,7 +52,7 @@ const USAGE = `Usage: webly.mjs <command>
                               replace --anonymous discards that). Edits made to the site elsewhere since this
                               machine's last deploy are replaced and reported as "replaced". A project with a package.json
                               build script is built first and its output folder deployed.
-  deploy <dir|file> --ticket T [--message M [--body B]] [--to E] [--force]
+  deploy <dir|file> --ticket T [--message M [--body B]] [--branch NAME] [--to E] [--force]
                               Signed in: upload the folder to a static site with the ticket from the begin_deploy MCP tool
                               (5 minutes, one deploy). Makes a draft; publish_website after the person approves. --message
                               is the commit subject, what changed in one line ("Button reads Start here"); --body says what
@@ -61,7 +61,9 @@ const USAGE = `Usage: webly.mjs <command>
                               straight to storage, up to the plan's per-file limit and counted toward its storage. Refuses (would_revert) if it would undo changes made to the
                               site since this folder's last deploy, or (with no earlier deploy from here) would remove files the folder
                               lacks (would_remove); --force does it anyway, only with the person's OK. In a clone of the
-                              site's git mirror, files in .webly/media.json are kept and the base comes from git history
+                              site's git mirror, files in .webly/media.json are kept and the base comes from git history.
+                              --branch NAME deploys to that branch of the site (create_branch first; begin_deploy with
+                              the same branch) instead of main: its preview is the branch's url, and merge_branch puts it on main
   link <websiteId> [--as E]   Link the project in this folder to a site (entry E, default "default") in .webly/project.json
   replace <dir|file|payload.json> [--name N]  Swap the site for a new one with a new URL (first 24 hours only); relinks the folder
   upload <file|dir>... [--folder F] [--name N]   Share files without an account: one link per file plus a folder
@@ -539,7 +541,7 @@ function run(cmd, args, cwd) {
  * Deploy a folder to a signed-in static site with a ticket from begin_deploy: the bytes go straight
  * to Webly from here, never through a tool call, and no API key is involved. The result is a draft.
  */
-async function ticketDeploy(base, { command, argument, root, entryName, entry, ticket, force, message }) {
+async function ticketDeploy(base, { command, argument, root, entryName, entry, ticket, force, message, branch }) {
   if (command !== 'deploy') throw new Error(`--ticket works with deploy, not ${command}.`);
   const { websiteId } = ticketClaims(ticket);
   if (entry && entry.websiteId !== websiteId) {
@@ -549,8 +551,12 @@ async function ticketDeploy(base, { command, argument, root, entryName, entry, t
   const isDir = await stat(argument).then(i => i.isDirectory(), () => false);
   const target = isDir ? await buildIfProject(argument) : argument;
   // The base is only meaningful for deploys from this same project folder, or from a mirror clone's own history.
-  const last = await lastDeploy(websiteId);
-  const mirrored = isDir ? mirrorVersion(target, websiteId) : null;
+  // Each branch is its own line, so its last deploy is kept apart from main's.
+  const onBranch = branch && branch !== 'main' ? branch : undefined;
+  const deployKey = onBranch ? `${websiteId}@${onBranch}` : websiteId;
+  const last = await lastDeploy(deployKey);
+  // A clone's version is main's (the merge base with origin/main): never a branch deploy's base.
+  const mirrored = isDir && !onBranch ? mirrorVersion(target, websiteId) : null;
   const known = Math.max(last?.path === root ? last.version : 0, mirrored ?? 0) || undefined;
   const baseVersion = force ? undefined : known;
   const { headVersion } = ticketClaims(ticket);
@@ -558,7 +564,7 @@ async function ticketDeploy(base, { command, argument, root, entryName, entry, t
   if (mirrored && (known ?? 0) < headVersion) console.error(`Webly: this clone is at version ${known}, the site at ${headVersion}.${pull}`);
   // media.json sits at the clone's root even when the build output (dist/) is what gets deployed.
   const media = isDir ? await mirrorMedia(argument, target) : [];
-  const { form, count, large } = await ticketForm(target, { baseVersion, force: force || undefined, message: message || undefined });
+  const { form, count, large } = await ticketForm(target, { baseVersion, force: force || undefined, message: message || undefined, branch: onBranch });
   let deployTicket = ticket;
   const uploaded = [...media];
   if (large.length) {
@@ -588,11 +594,13 @@ async function ticketDeploy(base, { command, argument, root, entryName, entry, t
     if (d.reason === 'upload_missing' && listed) {
       throw new Error(`Not deployed: ${d.file} is listed in .webly/media.json, but the site doesn't store that file (removed since, or the clone is of another site). Put the file in the folder, or remove its entry from .webly/media.json.${pull}`);
     }
+    if (d.reason === 'ticket_branch_mismatch') throw new Error(`Not deployed: the ticket was issued for another branch than ${onBranch ? `"${onBranch}"` : 'main'}. Call begin_deploy with the same branch you pass to --branch (none for main) and deploy again.`);
+    if (d.reason === 'branch_not_found') throw new Error(`Not deployed: the site has no open branch named "${onBranch}". list_branches shows them; create_branch makes one (then a new ticket from begin_deploy).`);
     if (response.status === 401) throw new Error('Not deployed: the ticket is invalid or expired (they last 5 minutes and work once). Get a new one with begin_deploy and run this again straight away.');
     if (response.status === 409 && d.expectedHeadVersion !== undefined) throw new Error('Not deployed: the site changed after this ticket was issued. Get a new ticket with begin_deploy and deploy again.');
     throw new Error(`Not deployed: ${result.message || `request failed (${response.status})`}${d.reason ? ` [${d.reason}]` : ''}`);
   }
-  await recordDeploy(websiteId, result.headVersion, root);
+  await recordDeploy(deployKey, result.headVersion, root);
   try {
     const file = await writeProject(root, entryName, { websiteId, url: result.urls?.published ?? result.urls?.draft ?? undefined });
     if (!entry) console.error(`Webly: linked this folder to ${websiteId} in ${file}; commit it so every clone deploys to the same site.`);
@@ -601,7 +609,10 @@ async function ticketDeploy(base, { command, argument, root, entryName, entry, t
     websiteId, version: result.version, headVersion: result.headVersion, publishedVersion: result.publishedVersion, files: count + media.length, urls: result.urls,
     // Without a base the server can't tell an edit made elsewhere from this folder's own last deploy.
     ...(result.replaced && baseVersion !== undefined && { replaced: { ...result.replaced, note: `This draft replaced version ${result.replaced.fromVersion}, which was made somewhere else. Tell the person; earlier versions are kept, so it can be rolled back.` } }),
-    next: `This is a draft: show the person ${result.urls?.draft ?? 'the draft URL'} and call publish_website only after they approve it.`,
+    ...(onBranch && { branch: onBranch }),
+    next: onBranch
+      ? `This is on branch ${onBranch}: show the person its url (get_branch) and call merge_branch only after they approve it; merging is not publishing.`
+      : `This is a draft: show the person ${result.urls?.draft ?? 'the draft URL'} and call publish_website only after they approve it.`,
   };
 }
 
@@ -741,7 +752,7 @@ async function main() {
   const folderFlag = folderAt === -1 ? undefined : argv.splice(folderAt, 2)[1];
   const option = (flag) => { const at = argv.indexOf(flag); return at === -1 ? undefined : argv.splice(at, 2)[1]; };
   const toggle = (flag) => { const at = argv.indexOf(flag); if (at !== -1) argv.splice(at, 1); return at !== -1; };
-  const toFlag = option('--to'), asFlag = option('--as'), ticketFlag = option('--ticket'), messageFlag = option('--message'), bodyFlag = option('--body'), anonymousFlag = toggle('--anonymous'), forceFlag = toggle('--force');
+  const toFlag = option('--to'), asFlag = option('--as'), ticketFlag = option('--ticket'), messageFlag = option('--message'), bodyFlag = option('--body'), branchFlag = option('--branch'), anonymousFlag = toggle('--anonymous'), forceFlag = toggle('--force');
   const [command, argument, extra] = argv;
   const print = (value) => console.log(typeof value === 'string' ? value : JSON.stringify(value, null, 2));
   const readPending = async () => (await readFile(PENDING_FILE, 'utf8').catch(() => '')).trim() || null;
@@ -946,9 +957,10 @@ async function main() {
     const entryName = toFlag ?? 'default';
     const entry = (await readProject(root)).sites[entryName];
     if (bodyFlag && !messageFlag) throw new Error('--body needs --message (the subject line it goes under).');
+    if (branchFlag !== undefined && ticketFlag === undefined) throw new Error('--branch works with --ticket: branches are for sites in an account. Call begin_deploy with the branch, then deploy with --ticket and --branch.');
     if (ticketFlag !== undefined) {
       if (anonymousFlag) throw new Error('--ticket deploys to the signed-in site the ticket names; --anonymous makes a throwaway anonymous one. Pass one, not both.');
-      return print(await ticketDeploy(base, { command, argument, root, entryName, entry, ticket: ticketFlag, force: forceFlag, message: [messageFlag, bodyFlag].filter(Boolean).join('\n\n') }));
+      return print(await ticketDeploy(base, { command, argument, root, entryName, entry, ticket: ticketFlag, force: forceFlag, message: [messageFlag, bodyFlag].filter(Boolean).join('\n\n'), branch: branchFlag }));
     }
     const setup = await mcpSetup();
     const connected = setup.claudeCode.configured || setup.codex.configured;

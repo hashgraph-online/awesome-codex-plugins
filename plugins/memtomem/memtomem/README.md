@@ -21,7 +21,7 @@ from `packages/memtomem-plugin-assets/`; edit the sources there, not the files h
   extra to Hermes's environment to fix it.
 - Git on `PATH`, for the commit lookup under [Install](#install).
 - `uv` on `PATH`. The server is started with
-  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.10' --with 'huggingface-hub>=1.20' memtomem-server`.
+  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.11' --with 'huggingface-hub>=1.20' memtomem-server`.
   Without `uv` the plugin still installs and enables, and the server fails at start with
   `missing executable 'uvx'`.
 - Python 3.12. uv uses a 3.12 it can find; if there is none, it downloads one (about 70 MiB)
@@ -136,7 +136,7 @@ to `config.yaml`. Hermes uses your entry instead of this package's:
 mcp_servers:
   memtomem:
     command: uvx
-    args: ["--python", "3.12", "--from", "memtomem[onnx,korean]==0.7.10", "--with", "huggingface-hub>=1.20", "memtomem-server"]
+    args: ["--python", "3.12", "--from", "memtomem[onnx,korean]==0.7.11", "--with", "huggingface-hub>=1.20", "memtomem-server"]
     env:
       MEMTOMEM_TOOL_MODE: core
       MEMTOMEM_EXTRA_TOOLS: mem_update_coverage
@@ -204,7 +204,7 @@ your own server entry to `config.yaml`:
 mcp_servers:
   memtomem:
     command: uvx
-    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.10", "--with", "huggingface-hub>=1.20", "memtomem-server"]
+    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.11", "--with", "huggingface-hub>=1.20", "memtomem-server"]
     env:
       MEMTOMEM_TOOL_MODE: core
       MEMTOMEM_EXTRA_TOOLS: mem_update_coverage
@@ -231,7 +231,7 @@ runs as your user, and some of its `mem_do` actions read and write files whereve
   sub-agents, commands, hook settings and MCP server lists in step with a canonical copy
   under `.memtomem/`, in projects and in the agents' own configuration, for example
   `~/.claude.json`, `~/.claude/`, `~/.codex/`, `~/.gemini/` and `~/.kimi-code/`. In
-  memtomem 0.7.10, the version this package runs, only the two reads are `mem_do` actions:
+  memtomem 0.7.11, the version this package runs, only the two reads are `mem_do` actions:
   `context_detect` and `context_diff`. The writes (`context_init`, `context_generate`,
   `context_sync`, `context_pull`, `context_version`, `context_promote`,
   `context_memory_migrate`, `context_artifact_migrate` and `context_artifact_transfer`)

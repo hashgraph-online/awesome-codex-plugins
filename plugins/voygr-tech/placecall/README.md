@@ -9,7 +9,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: gh-repo" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
-  -H "X-Client-Version: placecall-skill/6.6.2" \
+  -H "X-Client-Version: placecall-skill/6.6.3" \
   -d '{"target_phone":"+1XXXXXXXXXX","brief":"Call this restaurant and ask what time the kitchen closes tonight.","language":"en"}'
 ```
 
@@ -66,7 +66,10 @@ Two commands install it, with no shell or git:
 /plugin install placecall@placecall
 ```
 For the Anthropic plugin directory, submit the `claude-directory` folder. It
-uses the same MCP server and browser sign-in, with an MCP-only skill. The root
+connects to `https://api.voygr.tech/claude/mcp`, where every call is prepared
+first (`prepare_call`) and placed only with the plan the user approved
+(`place_call` with its `plan_id`), with the same browser sign-in and an
+MCP-only skill. The root
 marketplace retains the API-key instructions for clients that need API-only
 options.
 

@@ -4,7 +4,7 @@ description: PlaceCall lets your agent call US businesses for reservations, inqu
 license: MIT
 compatibility: Uses the PlaceCall MCP tools when a plugin has connected them (browser sign-in, no key). Otherwise needs curl and outbound HTTPS to api.voygr.tech, the only host this skill contacts and the only place it sends PLACECALL_API_KEY. Places calls to US numbers only, except Indiana, Louisiana, Minnesota, Montana and Nebraska.
 metadata:
-  version: "6.6.2"
+  version: "6.6.3"
   author: voygr-tech
   openclaw:
     primaryEnv: PLACECALL_API_KEY
@@ -93,7 +93,7 @@ you need one of those, the agent can get you a key with an
 Everywhere else (OpenClaw, a copied skill, the Codex skill installer),
 installing the skill needs no key, but placing calls does. Keys are self-serve:
 
-1. Get a free key at https://api.voygr.tech/checkout?src=clawhub with your name
+1. Get a free key at https://api.voygr.tech/checkout?src=claude-plugin with your name
    and email. It arrives by email. No browser? The agent can sign you up with
    an [email code](#sign-up-by-email-code).
 2. Put it in this skill's `apiKey` slot in `~/.openclaw/openclaw.json`, or set
@@ -304,7 +304,7 @@ Following a call with the MCP tools:
   call (`claude-code`, `cursor`, `codex` or `gemini-cli`), or to nothing.
   Telemetry only, like `X-Client-Surface`.
 - Version marker: every `POST /calls` also carries
-  `-H "X-Client-Version: placecall-skill/6.6.2"`. Keep it exactly as written.
+  `-H "X-Client-Version: placecall-skill/6.6.3"`. Keep it exactly as written.
   It is telemetry only: it lets the service count calls from older installed
   copies of this skill before it removes a field.
 - Idempotency key: every `POST /calls` also carries `Idempotency-Key`. The
@@ -400,7 +400,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: claude-plugin" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
-  -H "X-Client-Version: placecall-skill/6.6.2" \
+  -H "X-Client-Version: placecall-skill/6.6.3" \
   -H "Idempotency-Key: 3f6c2a0e-0b8e-4c55-9a51-2d7d1f0b6c11" \
   -d '{
         "target_phone": "+15551234567",
@@ -717,7 +717,7 @@ curl -s -X POST https://api.voygr.tech/calls \
   -H "X-API-Key: $PLACECALL_API_KEY" -H "Content-Type: application/json" \
   -H "X-Client-Surface: claude-plugin" \
   -H "X-Client-Agent: ${CLAUDECODE:+claude-code}${CURSOR_AGENT:+cursor}${CODEX_SANDBOX:+codex}${GEMINI_CLI:+gemini-cli}" \
-  -H "X-Client-Version: placecall-skill/6.6.2" \
+  -H "X-Client-Version: placecall-skill/6.6.3" \
   -H "Idempotency-Key: 3f6c2a0e-0b8e-4c55-9a51-2d7d1f0b6c11" \
   -d '{
         "target_phone": "<card phone_e164>",

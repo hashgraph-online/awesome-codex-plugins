@@ -143,6 +143,10 @@ site**, step 2.
 Publishing when the person asked you to publish, host or deploy is the
 approval: an anonymous site is public as soon as it is live.
 
+Branches need a Webly account: don't try them on an anonymous site. If the
+person wants one, offer to keep the site (**Keep the site**: sign in, free, and
+claim it); branches work on every plan once it's claimed and activated.
+
 ## Linked folders
 
 The first deploy from a project writes `.webly/project.json` at the project's
@@ -507,20 +511,55 @@ sections, new elements and images, pages and brand colours, and component props 
 `409 merge_conflict` means you both changed the same lines — read the file
 again, re-apply your change keeping theirs, resend with the new version.
 `wait_for_changes` shows what others wrote since a version. Publish with
-`version` set to the one the person previewed. History is linear, so the
-versions between the last publish and that one go live with it (newer ones stay
+`version` set to the one the person previewed. Main's history is one line, so
+the versions on main between the last publish and that one go live with it (newer ones stay
 unpublished); the response's `alsoPublishes` lists the ones other people or
 agents wrote (who, app, message). Tell your person what of theirs went live.
 Publishing an older version puts nothing new live, and `alsoPublishes` is empty.
-To help someone choose a version: `list_changes` and `diff_source_file` (from the
-version before it) show what it changed, and `preview_version` gives a private link
+To help someone choose a version: `list_changes` and `diff_source_file` (from its
+`parentVersion`, in `list_versions`) show what it changed, and `preview_version` gives a private link
 to how it looked for an hour, changing nothing.
 
 Git: `get_git_access` gives a read-only clone of a signed-in site's source and
-history (one commit per version). Its token lasts one minute, so run its
+history (one commit per version; each open branch is its own ref, and
+`branch` gives that branch's clone and pull). Its token lasts 15 minutes, so run its
 `clone` (or `pull` inside the clone) straight away as
 `WEBLY_GIT_TOKEN=<token> <clone>`, never with the token in the URL. Check `headVersion` with `get_website`
 before asking again. Never `git push`; write through the tools.
+
+### Branches
+
+A branch is a named copy of the site beside `main` with its own preview at
+`https://{branch}--{subdomain}.webly.site`. Use one for a risky or large change
+the person wants to see before it reaches main, or when several agents work on
+one site at once (one branch each). `create_branch` (name: lowercase letters,
+digits, inner hyphens), then pass `branch: "<name>"` to every read and write
+(`put_source_file`, `str_replace`, `deploy_files`, `read_source_files`,
+`list_versions`…). A folder on disk: `begin_deploy` with `branch`, then
+`webly deploy <folder> --ticket <ticket> --branch <name>` (the same branch, or
+`ticket_branch_mismatch`). Give the person the
+branch's `url` to preview it.
+
+A site has up to Free 2, Hobby 8, Pro 20 open branches, plus main; merging or
+deleting one frees its slot. On `402 branch_limit`, merge or delete one, or give
+the owner `details.upgradeUrl`. Branches are for signed-in sites on every plan,
+Free included. A site made without an account (or held) is
+`402 branches_need_account`: claim it (sign in, free) and activate it, then
+create the branch.
+
+`merge_branch` writes one draft version on main and closes the branch. Merging
+is not publishing: send `publish: true` only when the person has said the merged
+result can go live; otherwise show them main's draft and `publish_website` that
+version when they approve. If a merge with `publish: true` answers
+`published: false` (the build isn't ready or failed), it's merged but not live
+yet: tell the person, and publish that version once it builds. Pass
+`expectedHeadVersion` (the branch head they saw; `409 branch_moved` means
+someone wrote to the branch since, so show them again). `diff_branch` shows what
+a merge brings. On `409 merge_conflict`: `update_branch` brings main's changes
+into the branch and keeps the branch's text in the files both changed, listing
+them in `conflicts`; fix those files on the branch, keeping what main changed,
+then merge again. `delete_branch` drops a branch without merging; ask
+first.
 
 ### Turn a static site into a React site (or back)
 

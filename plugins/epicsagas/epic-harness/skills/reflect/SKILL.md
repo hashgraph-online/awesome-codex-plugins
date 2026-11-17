@@ -71,7 +71,7 @@ Scoring:
 Metrics:
 - `evolution_stats.pattern_frequency` — recurring patterns?
 - `evolution_stats.stagnation_count` — stagnant sessions
-- `evolution_stats.trend_last10` — improving/stable/declining distribution
+- `metrics_summary.score_trend_delta` — score trend (positive means improving); `evolution_stats.trend_last10` is null (no stored source)
 - Evolved skills count vs timespan
 
 Scoring:

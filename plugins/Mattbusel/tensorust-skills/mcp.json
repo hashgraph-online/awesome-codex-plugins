@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "tensorust-ontology": {
+      "type": "streamable-http",
+      "url": "https://shop.tensorust.com/api/mcp"
+    }
+  }
+}

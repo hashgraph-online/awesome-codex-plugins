@@ -986,6 +986,13 @@ and the verdict becomes `as_expected` (`matches_expected_change`) or `unexpected
  "key": "unchanged"}
 ```
 
+A complete one, as `--expect-file` reads it:
+
+```json
+{"added": {"where": "region = 'emea'"}, "removed": "none",
+ "changed_columns": ["amount"], "key": "unchanged"}
+```
+
 - Every field is optional: `added` and `removed` default to `"none"`,
   `changed_columns` to none, and `key` to `"unchanged"` (`"any"` lets the key
   stop being unique). `{"expected_change": {...}}` is accepted too.

@@ -3,7 +3,7 @@
     "cassette": {
       "command": "uvx",
       "args": [
-        "oh-my-cassette==0.7.3"
+        "oh-my-cassette==0.7.4"
       ],
       "timeout": 600000
     }

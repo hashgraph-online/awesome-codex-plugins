@@ -1,7 +1,7 @@
 {
   "name": "cloudgpu",
-  "version": "0.12.1",
-  "description": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
+  "version": "0.16.4",
+  "description": "Compute infrastructure for AI agents: inspect supply, review billing, run jobs and save results.",
   "author": {
     "name": "CloudGPU",
     "email": "support@cloudgpu.app",
@@ -18,8 +18,8 @@
   ],
   "interface": {
     "displayName": "CloudGPU",
-    "shortDescription": "Rent a per-minute GPU from your agent, run a job, download results, shut it down.",
-    "longDescription": "Rent a per-minute GPU from your agent, run a job, download the results, and shut it down. The server reads CLOUDGPU_API_KEY from the environment.",
+    "shortDescription": "Inspect GPU supply, approve a budget, run a job and save results.",
+    "longDescription": "Discover capabilities and regional observations anonymously. Connect an owner-approved account to rent GPUs under fresh source-specific minute or started-hour billing, run jobs, save outputs and release resources. Regional observations do not authorize exact-region execution.",
     "developerName": "CloudGPU",
     "category": "Tools & Integrations",
     "capabilities": [

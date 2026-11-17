@@ -11,6 +11,12 @@ Usage:
     python slop_check.py paper.md --json > slop.json
     python slop_check.py intro.txt --max 10           # exit 1 if index > 10
     cat abstract.txt | python slop_check.py -
+    python slop_check.py draft.md --claims             # first: which paragraphs make no checkable claim?
+
+`--claims` is the content pre-pass: it lists paragraphs of 40+ words with no number, citation, figure/table
+reference, acronym or named method. Such a paragraph may say nothing, and rewording it only hides that, so
+decide what its claim and evidence are (or cut it) before touching phrasing. It is a heuristic flag for a
+human or agent to judge, never a verdict, and it never changes the exit code.
 
 Index bands: < 5 clean · 5-15 some slop · 15-30 heavy · > 30 severe.
 Exit codes: 0 at or under --max (default 15), 1 over, 2 bad input. Standard library only.
@@ -249,11 +255,54 @@ def analyse(text: str) -> dict:
             "findings": [asdict(f) for f in sorted(findings, key=lambda f: (f.line, -f.weight))]}
 
 
+EVIDENCE_SIGNALS: list[tuple[str, str]] = [
+    ("number", r"(?<![\w.])\d+(?:[.,]\d+)?\s?(?:%|x|\u00d7)?(?![\w])"),
+    ("citation", r"\\cite[tp]?\*?(?:\[[^\]]*\])*\{|\[\d+(?:[,\u2013-]\s?\d+)*\]"
+                 r"|\([A-Z][A-Za-z-]+(?: et al\.)?,? \d{4}[a-z]?\)|\bet al\."),
+    ("figure-or-table", r"\b(?:Fig(?:ure)?s?\.?|Tables?|Eqs?\.?|Equations?|Sections?|Appendix)\s*[A-Z]?\d+"
+                        r"|\\(?:ref|eqref|autoref)\{"),
+    ("acronym", r"\b[A-Z]{2,}[a-z0-9-]*\b"),
+    ("named-term", r"(?<=[a-z,;] )[A-Z][a-z]+(?:-[A-Za-z]+)*(?: [A-Z][a-z]+)*\b"),
+]
+MIN_PARAGRAPH_WORDS = 40
+
+
+def paragraph_audit(text: str) -> list[dict]:
+    """Flag long prose paragraphs that carry no number, citation, figure reference, acronym or named method."""
+    out: list[dict] = []
+    line_no, para, start = 0, [], 1
+    chunks: list[tuple[int, str]] = []
+    for line_no, raw in enumerate(text.splitlines(), 1):
+        if raw.strip():
+            if not para:
+                start = line_no
+            para.append(raw)
+        elif para:
+            chunks.append((start, "\n".join(para)))
+            para = []
+    if para:
+        chunks.append((start, "\n".join(para)))
+    for start, raw in chunks:
+        prose = " ".join(t for _, t in prose_lines(raw))
+        words = len(prose.split())
+        if words < MIN_PARAGRAPH_WORDS or raw.lstrip().startswith(("|", "\\begin", "```", "#")):
+            continue
+        signals = [name for name, pat in EVIDENCE_SIGNALS if re.search(pat, raw)]
+        if not signals:
+            first = prose.strip().split(". ")[0][:90]
+            note = ("no number, citation, figure/table reference, acronym or named method: what is the claim, "
+                    "and what is the evidence? State it, merge it into a paragraph that has one, or cut it.")
+            out.append({"line": start, "words": words, "starts": first, "note": note})
+    return out
+
+
 def main() -> int:
     """Run the command-line interface."""
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("path", help="file (.md .tex .txt .docx) or - for stdin")
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--claims", action="store_true",
+                    help="list paragraphs that make no checkable claim (run before rewording anything)")
     ap.add_argument("--max", type=float, default=15.0, help="exit 1 if the slop index exceeds this (default 15)")
     args = ap.parse_args()
     try:
@@ -261,6 +310,15 @@ def main() -> int:
     except (OSError, UnicodeDecodeError, KeyError, zipfile.BadZipFile) as exc:
         print(f"error: cannot read {args.path}: {exc}", file=sys.stderr)
         return 2
+    if args.claims:
+        empty = paragraph_audit(text)
+        if args.json:
+            print(json.dumps({"empty_paragraphs": empty}, indent=2, ensure_ascii=False))
+        else:
+            for e in empty:
+                print(f"line {e['line']:>4}  ({e['words']} words)  \"{e['starts']}...\"\n{'':>12}-> {e['note']}")
+            print(f"\n{len(empty)} paragraph(s) with no visible claim or evidence")
+        return 0
     result = analyse(text)
     if args.json:
         print(json.dumps(result, indent=2, ensure_ascii=False))

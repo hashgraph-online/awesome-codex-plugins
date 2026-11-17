@@ -153,7 +153,7 @@ The same guidance is available as two [Agent Skills](https://agentskills.io):
 | Tool | What it does |
 |---|---|
 | `get_account` | Balance, and how many instances the account may run at once |
-| `list_gpus` | GPU models with VRAM, live price per GPU-hour and availability |
+| `list_gpus` | GPU models, live starting rates, availability and detailed native configurations (GPU count, CPU, RAM, disks, region, interconnect and total hourly price) when available |
 | `list_templates` | Ready-made images: JupyterLab, Ollama, ComfyUI, LLaMA-Factory, … |
 | `compare_compute_costs` | Compare live total billed GPU cost for up to eight compatible candidates; no reservation or creation approval |
 | `estimate_cost` | Live quote for a GPU and a number of hours, plus your balance afterwards; returns a `quote_id` |
@@ -168,6 +168,8 @@ The same guidance is available as two [Agent Skills](https://agentskills.io):
 | `get_job` / `list_jobs` | Job status, exit code, cost, the last ~4 KB of output and the job's history |
 | `cancel_job` | Stops a job and destroys its GPU |
 | `get_agent_readiness` / `assess_task_fit` | Anonymous capability, billing, task suitability and evidence checks; no GPU is created |
+| `list_rental_regions` | Anonymous qualified continent catalog; use its enabled flag, then a continent-bound rental quote |
+| `list_regional_offers` | Anonymous native regional inventory observations and independent price evidence; explicit owner country, freshness, unknowns and overlapping capacity; planning only |
 | `request_top_up` / `wait_for_funds` | Human-only payment link and bounded polling for actual credit; no automatic charge or Job |
 | `quote_storage_budget` / `confirm_storage_budget` | Quote and explicitly approve an earmarked storage transfer; backend rollout and owner permissions apply |
 | `resume_artifact_upload` | Resume the same owned multipart reservation with the original local file and checksum |
@@ -176,6 +178,8 @@ The same guidance is available as two [Agent Skills](https://agentskills.io):
 The server also provides a `train_on_cloudgpu` prompt.
 
 ## Guardrails
+
+- **Bounded local MCP inputs.** A tool call may contain at most 10,000 combined array entries and object members, including nested values. Larger calls are rejected before tool-schema validation or API/SSH handlers. This includes inline ComfyUI workflows; simplify oversized workflows rather than splitting a paid operation or silently dropping fields. The stdio transport also retains its 10 MiB buffered-input limit. These are local MCP limits, not a claim about the remote service.
 
 - **A quote first.** `create_instance` only takes a `quote_id` from `estimate_cost` and `user_confirmed=true`.
 - **Server-side limits.** Every instance is created with `max_spend_usd`, `max_hours` and an idle limit (60 minutes by default). CloudGPU's servers check them and destroy the instance when one is hit, even if your client has disconnected or your laptop is asleep.
@@ -439,3 +443,37 @@ Use `prepare_job_batch` to review every command, fresh compute quote, deadline a
 REST equivalents: `POST /v1/job-batches` with `Idempotency-Key`, `total_budget_usd` and 1–32 `jobs`; `GET /v1/job-batches/{batch_id}`; `POST /v1/job-batches/{batch_id}/cancel`. The MCP reviewed manifest remains capped at eight children. Replaying the identical key/body returns the existing children. Existing `run_job_batch` retains its explicitly non-atomic client submission behavior for compatibility; the server tool never falls back to it.
 
 For whole-hour Jobs, call `estimate_cost` for the exact configuration and accept the minimum/billing period. Supply its `billing_quote_id` plus `billing_accepted=true` to `run_job` or each batch child, in addition to the compute `quote_id` and execution approval. Each allocation needs a separate current billing quote. The Job cap must cover the minimum; elapsed portions of a started hour are not voluntarily refunded. Billing quotes last five minutes: an expired queued Job fails without allocation and requires a new reviewed request. It is never silently renewed or routed under different billing terms. Recovery uses durable provider receipts and independent upstream presence checks; ambiguous intents remain `needs_attention`.
+
+### Regional facts before a compute decision
+
+`list_regional_offers` calls anonymous `GET /v1/public/compute-offers`. Give the
+human owner country explicitly as `user_country`; an Agent's hosting location
+is not its owner's location. Optional filters are `country_code`, `gpu_model`,
+`gpu_count`, `include_unavailable`, `limit` and the returned `after_id` cursor.
+Stock and source-price evidence have separate ages. Failed, stale, unsupported
+or missing observations do not prove zero stock. Counts are not reservations
+or proof that multiple cards can be allocated on one host. Capacity groups are
+known aliases only; do not sum them into an independent global total.
+
+Native regional observations do not authorize execution or change retail
+pricing. A published SKU reference is not an executable quote. For a hard
+continent constraint, use the separately advertised rental capability below.
+Country/datacenter constraints remain unsupported and must not be dropped. MCP also
+rejects unknown argument fields instead of silently stripping them. Tasks that
+do not require a location continue to use fresh standard quotes and their
+source-specific billing/approval rules. No native mounted-volume product is
+offered; Workspace still uses explicit file snapshots and restore.
+
+
+## Continent-constrained rentals
+
+Check anonymous `GET /v1/public/rental-regions` (MCP `list_rental_regions`) first. This staged capability is available only when its response says `enabled: true`. Select one of `asia`, `europe`, `north_america`, `oceania`, `south_america`, `africa`; country and datacenter selection are not supported. With no qualified supply, do not infer a region from the unfiltered legacy catalogue or the Agent's IP.
+
+For a rental, pass the same `continent` to `estimate_cost` / `POST /v1/gpu/billing-quote`, then obtain explicit approval and pass it with the exact `billing_quote_id` and `billing_accepted: true` to `POST /v1/gpu/instances`. The stdio client's `create_instance` carries the approved continent automatically. Changes or missing continent bindings require a new quote. Minimum billing periods are unchanged; there is no automatic cross-continent fallback.
+
+The generic `POST /v1/quotes`, Jobs and batches do not yet accept a hard continent constraint. Do not drop that constraint or substitute an unconstrained Job. Rental catalogue prices follow qualified source costs and current stock. The lowest available qualifying price is shown, while the accepted billing quote binds the price and billing terms. Native regional observations remain planning data, not reservations or proof of worldwide rentable coverage.
+### Detailed GPU configurations
+
+`list_gpus` preserves the REST `/v1/gpu/offers` configuration data. `usd_per_gpu_hour` is a starting per-card rate; each `configurations[].hourlyPrice` is the **whole instance** price for `gpuCount` cards. Each entry includes per-card VRAM, CPU/RAM, system/local disk, interconnect, continent, current availability, billing minimum/increment in seconds and observation time in Unix milliseconds where supplied. Missing fields mean unknown.
+
+`inventory_count_exact: false` means the source reports configuration availability, not a count of machines. Do not add overlapping 1/2/4/8-card alternatives or treat them as reserved stock. A catalog entry can be unavailable while retained for discovery. `estimate_cost` for the chosen card count remains required; GPU catalog membership does not imply Job or template compatibility.

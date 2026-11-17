@@ -268,3 +268,5 @@ Do not infer that a successful conversion is complete. MarkItDown intentionally 
 ## Related skills
 
 - `liteparse`: Local document and PDF parsing that returns spatial text with bounding boxes.
+- `paper-corpus-rag`: Build grounded question answering over your own collection of research papers, with answers that cite the exact paper, page and passage.
+- `fulltext-acquisition`: Get the full text of the papers you screened in and attach each file to the right record.

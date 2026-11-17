@@ -1,6 +1,6 @@
 # Seonix
 
-Give your AI agent your [Seonix](https://seonix.ai) SEO project: Site Health and the fix plan, Google Search Console, keywords, articles and twelve SEO playbooks — so the agent fixes the site in code, writes in your voice and ships content that shows up in Google, ChatGPT and Gemini.
+Give your AI agent your [Seonix](https://seonix.ai) SEO project: Site Health and the fix plan, Google Search Console, keywords, articles and twelve SEO playbooks — so the agent can read what Seonix found, propose changes for you to approve, and draft content in your voice.
 
 Seonix grows organic and AI-search visibility for a website on autopilot: it crawls the site, tracks every issue across scans, reads Search Console, researches keywords, scores drafts, and writes and publishes articles. This plugin connects the agent to that project through the hosted Seonix MCP server at `https://api.seonix.ai/mcp`. The server runs at Seonix; nothing runs locally.
 

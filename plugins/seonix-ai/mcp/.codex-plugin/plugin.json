@@ -1,7 +1,7 @@
 {
   "name": "seonix",
-  "version": "1.1.0",
-  "description": "Connect your Seonix SEO project: Site Health and fix plan, Google Search Console, keywords, articles and SEO playbooks, with skills that fix a site in code and ship content through Seonix.",
+  "version": "1.2.0",
+  "description": "Connect your Seonix SEO project: Site Health and fix plan, Google Search Console, keywords, articles and SEO playbooks, with skills that work through Site Health findings without breaking what already ranks, and draft content through Seonix.",
   "author": {
     "name": "Seonix",
     "email": "info@seonix.ai",

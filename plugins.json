@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-17",
-  "total": 425,
+  "total": 427,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -2323,6 +2323,17 @@
       "install_url": "https://raw.githubusercontent.com/bankbridge-money/bankbridge-plugin/HEAD/plugin.json"
     },
     {
+      "name": "Banking Access Index",
+      "url": "https://github.com/global-solo/banking-access-index-mcp/tree/codex",
+      "owner": "global-solo",
+      "repo": "banking-access-index-mcp",
+      "description": "Skill that looks up what 19 US business banking providers publish about US LLC owners who aren't US tax residents, across 8 countries, citing each provider's own page and the date it was read.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/global-solo/banking-access-index-mcp/codex/plugins/banking-access-index/plugin.json",
+      "source_ref": "codex"
+    },
+    {
       "name": "BestPrice",
       "url": "https://github.com/TheBestCo/bestprice-mcp",
       "owner": "TheBestCo",
@@ -4022,6 +4033,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/YujxZJCN/teaching-skills-codex/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Tensorust",
+      "url": "https://github.com/Mattbusel/tensorust-skills",
+      "owner": "Mattbusel",
+      "repo": "tensorust-skills",
+      "description": "Public-records skills plus a hosted MCP server: who owns a US company or home, vendor screening against DoD 1260H, Section 889, FCC Covered List, UFLPA and BIOSECURE, BDC loan marks, and dated LLM API prices.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/Mattbusel/tensorust-skills/HEAD/plugin.json"
     },
     {
       "name": "Textmock",

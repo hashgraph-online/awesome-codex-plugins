@@ -9,7 +9,7 @@
 **<!-- count -->280+<!-- /count --> open-source agent skills that take Claude Code, Codex, Cursor, Gemini CLI, Copilot or any Agent Skills harness from the research question to the accepted paper: literature, hypotheses, experimental design, analysis in AI, ML, biology, chemistry, medicine and physics, writing, citation checks and peer review.**
 
 [![skills.sh installs](https://img.shields.io/endpoint?url=https%3A%2F%2Fskills.sh%2Fapi%2Fbadge%2Fkalarislabs%2Fresearch-agent-skills&label=skills.sh%20installs&color=165d74)](https://skills.sh/kalarislabs/research-agent-skills)
-[![Skills](https://img.shields.io/badge/skills-281-165d74)](#skill-catalog)
+[![Skills](https://img.shields.io/badge/skills-283-165d74)](#skill-catalog)
 [![GitHub stars](https://img.shields.io/github/stars/KalarisLabs/research-agent-skills?style=flat&logo=github&label=stars&color=165d74)](https://github.com/KalarisLabs/research-agent-skills/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/KalarisLabs/research-agent-skills?color=165d74)](https://github.com/KalarisLabs/research-agent-skills/commits/main)
 [![License: MIT](https://img.shields.io/badge/license-MIT-165d74)](LICENSE)
@@ -300,7 +300,7 @@ drifts from its data. Methodology and caveats: [benchmarks/README.md](benchmarks
 </tr>
 <tr>
 <td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/routing-dark.svg" /><img src="PUBLIC/benchmarks/routing-light.svg" alt="Grouped bars: on 100 held-out prompts an LLM router picks the right skill hit@3 0.96 with 0.00 false triggers, versus 0.77 and 0.04 for keyword routing." width="100%" /></picture></td>
-<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/quality-dark.svg" /><img src="PUBLIC/benchmarks/quality-light.svg" alt="Histogram of static quality scores: all 281 skills score 80 or more, mean 95.2." width="100%" /></picture></td>
+<td width="50%"><picture><source media="(prefers-color-scheme: dark)" srcset="PUBLIC/benchmarks/quality-dark.svg" /><img src="PUBLIC/benchmarks/quality-light.svg" alt="Histogram of static quality scores: all 283 skills score 80 or more, mean 95.2." width="100%" /></picture></td>
 </tr>
 </table>
 
@@ -394,20 +394,22 @@ Grouped by category and generated from [`catalog/skills.json`](catalog/skills.js
 
 </details>
 
-<details><summary><b>literature-review</b> (18) · Literature search, systematic reviews, citation management and reference managers</summary>
+<details><summary><b>literature-review</b> (20) · Literature search, systematic reviews, citation management and reference managers</summary>
 
 | Skill | What it does |
 |---|---|
 | [`bgpt-paper-search`](skills/bgpt-paper-search/SKILL.md) | Search scientific papers and retrieve structured experimental data extracted from full-text studies via the BGPT MCP server. |
 | [`bibtex-hygiene`](skills/bibtex-hygiene/SKILL.md) | Clean, deduplicate and validate BibTeX/BibLaTeX bibliographies before submission. |
 | [`citation-management`](skills/citation-management/SKILL.md) | Searches OpenAlex, PubMed, and Google Scholar, extracts metadata from DOIs, PMIDs, PMCIDs, arXiv IDs, and URLs via CrossRef, PubMed, and arXiv, then formats, d… |
-| [`citation-verification`](skills/citation-verification/SKILL.md) | Verify that every reference in a manuscript really exists and matches its metadata, catching hallucinated, corrupted or mismatched citations before submission. |
+| [`citation-verification`](skills/citation-verification/SKILL.md) | Verify that every reference in a manuscript really exists and matches its metadata, catching hallucinated, corrupted, mismatched or retracted citations before… |
 | [`exa-search`](skills/exa-search/SKILL.md) | Web toolkit powered by Exa, tuned for scientific and technical content. |
 | [`firecrawl-research-index`](skills/firecrawl-research-index/SKILL.md) | Query Firecrawl Research Index paper endpoints for topic discovery, source metadata, question-matched passages, and citation-neighbor expansion. |
+| [`fulltext-acquisition`](skills/fulltext-acquisition/SKILL.md) | Get the full text of the papers you screened in and attach each file to the right record. |
 | [`liteparse`](skills/liteparse/SKILL.md) | Local document and PDF parsing that returns spatial text with bounding boxes. |
 | [`literature-review`](skills/literature-review/SKILL.md) | Runs systematic literature reviews by searching PubMed, arXiv, bioRxiv, and Semantic Scholar (plus web search via parallel-cli), screening studies, extracting… |
 | [`markitdown`](skills/markitdown/SKILL.md) | Converts documents to Markdown with Microsoft MarkItDown (Python API, markitdown CLI, markitdown-ocr plugin, markitdown-mcp server), covering PDF, Word, PowerP… |
 | [`open-notebook`](skills/open-notebook/SKILL.md) | Self-hosted, open-source alternative to Google NotebookLM for AI-powered research and document analysis. |
+| [`paper-card`](skills/paper-card/SKILL.md) | Write a structured, verified summary (card) of one research paper where every claim carries a page, a verbatim quote and the numbers it rests on, checked by sc… |
 | [`paper-lookup`](skills/paper-lookup/SKILL.md) | Search 18 scholarly APIs for papers, preprints, citations, open-access full text, repository records, and journal OA status, and return results with reproducib… |
 | [`paperclip`](skills/paperclip/SKILL.md) | Search and read full-text biomedical papers, FDA/PMDA/EMA regulatory documents, clinical trial registries, and UniProt/PDB/ChEMBL entries with the Paperclip CL… |
 | [`paperzilla`](skills/paperzilla/SKILL.md) | Chat with your agent about projects, recommendations, and canonical papers in Paperzilla. |
@@ -499,7 +501,7 @@ Grouped by category and generated from [`catalog/skills.json`](catalog/skills.js
 |---|---|
 | [`chroma`](skills/chroma/SKILL.md) | Open-source embedding database for AI applications. |
 | [`faiss`](skills/faiss/SKILL.md) | Facebook's library for efficient similarity search and clustering of dense vectors. |
-| [`paper-corpus-rag`](skills/paper-corpus-rag/SKILL.md) | Build grounded question answering and retrieval-augmented generation (RAG) over your own collection of research papers, with answers that cite the exact paper… |
+| [`paper-corpus-rag`](skills/paper-corpus-rag/SKILL.md) | Build grounded question answering over your own collection of research papers, with answers that cite the exact paper, page and passage. |
 | [`pinecone`](skills/pinecone/SKILL.md) | Guides use of Pinecone, a managed serverless vector database, through its Python client and the LangChain and LlamaIndex integrations. |
 | [`qdrant-vector-search`](skills/qdrant-vector-search/SKILL.md) | High-performance vector similarity search engine for RAG and semantic search. |
 | [`research-knowledge-graph`](skills/research-knowledge-graph/SKILL.md) | Turn a bibliography or literature corpus into a knowledge graph of papers, authors, venues, topics and citation links, then analyze it (citation clusters, key… |
@@ -874,7 +876,7 @@ If Research Agent Skills helped your work, please cite it ("Cite this repository
   author  = {Chowdhury, Sayan and {Kalaris Labs}},
   title   = {Research Agent Skills: AI agent skills for academic writing and scientific research},
   year    = {2026},
-  version = {1.1.1},
+  version = {1.2.0},
   url     = {https://github.com/KalarisLabs/research-agent-skills},
   license = {MIT}
 }

@@ -415,4 +415,3 @@ Three questions: Do you have a strongly supported finding? Can you explain WHY i
 ## Related skills
 
 - `autogpt-agents`: Autonomous AI agent platform for building and deploying continuous agents.
-- `research-skill-creator`: Create, improve and test agent skills for research workflows (paper writing, lab protocols, analysis pipelines, domain databases) that meet…

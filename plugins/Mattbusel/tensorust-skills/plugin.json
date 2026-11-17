@@ -1,0 +1,36 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "tensorust",
+  "version": "1.0.0",
+  "description": "Public-records data the model does not have, through the hosted Tensorust Ontology MCP server: who owns and controls a US company or home, vendor and purchase-line screening against DoD 1260H, Section 889, FCC Covered List, UFLPA and BIOSECURE, BDC private credit loan marks and lender disagreement from SEC filings, No Surprises Act IDR offer bands and arbitrator loss rates from the CMS public use file, and dated LLM API prices.",
+  "author": {
+    "name": "Matthew Busel",
+    "url": "https://github.com/Mattbusel"
+  },
+  "homepage": "https://github.com/Mattbusel/tensorust-skills",
+  "repository": "https://github.com/Mattbusel/tensorust-skills",
+  "license": "MIT",
+  "keywords": [
+    "mcp",
+    "public-records",
+    "kyb",
+    "vendor-screening",
+    "supply-chain-risk",
+    "beneficial-ownership",
+    "private-credit",
+    "bdc",
+    "no-surprises-act",
+    "idr",
+    "llm-pricing"
+  ],
+  "extensions": {
+    "com.github.awesome-copilot": {
+      "skills": [
+        "./skills/counterparty-screen/",
+        "./skills/bdc-mark-crosscheck/",
+        "./skills/idr-offer/",
+        "./skills/llm-api-cost/"
+      ]
+    }
+  }
+}

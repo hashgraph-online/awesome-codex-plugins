@@ -97,7 +97,15 @@ the project edits, migrations and dev builds described below.
    which rows may be `added` and `removed` (`"none"`, `"any"`, or
    `{"where": "<predicate over output columns>"}`, which may test a column
    with `IN (SELECT <column> FROM ref('<model>') WHERE ...)`), the
-   `changed_columns` a kept key may change, and that the key holds.
+   `changed_columns` a kept key may change, and `"key": "unchanged"` (or
+   `"any"` when the key may stop being unique). The same object can come from
+   a file with `--expect-file <f>`; a complete one:
+
+   ```json
+   {"added": {"where": "region = 'emea'"}, "removed": "none",
+    "changed_columns": ["amount"], "key": "unchanged"}
+   ```
+
    `as_expected` is the verdict to relay; `unexpected` is a defect, as
    `different` is: its `findings` and `unexpected_keys` name the rows the
    change reached beyond its statement.
@@ -582,7 +590,8 @@ a field, flag, or macro you need is not described here.
   survives. Use `--edits-file` to create, move between, or empty files.
 - `semantic define` refuses a name that exists and `update` one that does not;
   use `semantic plan` for a change that mixes both. A removal is
-  `"op": "delete"` on `update` or `plan`. If a surviving metric still reads what
+  `{"kind": "metric", "op": "delete", "name": "<metric>"}` (the name, and no
+  `content`) on `update` or `plan`. If a surviving metric still reads what
   you remove, add that reader's own delete or update to the same payload.
 - A project with no MetricFlow time spine cannot parse semantic models. Author
   one (a day-grain date model plus a `time_spine:` config) in the same or a

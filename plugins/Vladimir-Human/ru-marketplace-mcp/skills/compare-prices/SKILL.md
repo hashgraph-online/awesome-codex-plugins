@@ -75,10 +75,10 @@ this; say "cheapest among the marketplaces that responded" instead.
 limit), `timeout`, `error`, `not_installed`. A `blocked` Ozon does **not** mean the
 product is absent from Ozon — it means the request was refused.
 
-**`price_with_subscription_rub`** — Yandex Market's Plus-subscriber price, 25-30%
-below its everyday price. Ranking deliberately ignores it. Quote `price_rub` as
-the price; mention the subscriber price only as a footnote, and only if the
-operator has Plus.
+**`price_with_subscription_rub`** — Yandex Market's conditional price for paying
+with Yandex Pay (the page's «Пэй» price; earlier Yandex Plus). Ranking deliberately
+ignores it. Quote `price_rub` as the price; mention the conditional price only as a
+footnote.
 
 **`currency` and `price_native`** — every offer reports its currency (lowercase ISO,
 default `rub`) and the price in that currency as the marketplace shows it. For rouble

@@ -5,10 +5,16 @@ Input is a JSON file of counts (see --template). Output is Mermaid (for Markdown
 GitHub, Quarto, Obsidian) or Graphviz DOT (for `dot -Tsvg`/`-Tpdf`). Arithmetic is
 checked so the diagram cannot silently disagree with itself.
 
+Every database or register count must be backed by a `search_log` entry (exact query, date run,
+hit count), because PRISMA 2020 item 7 and PRISMA-S require the full search strategy. A count with no
+logged query, or whose logged hits do not sum to it, is refused (exit 1).
+
 Usage:
     python prisma_flow.py --template > counts.json    # fill in the numbers
     python prisma_flow.py counts.json                 # Mermaid to stdout
     python prisma_flow.py counts.json --format dot -o prisma.dot && dot -Tsvg prisma.dot -o prisma.svg
+    python prisma_flow.py counts.json --search-table search-strategy.md   # supplement table of every search
+    python prisma_flow.py counts.json --allow-unlogged                    # legacy counts without a search_log
 
 Exit codes: 0 ok, 1 inconsistent counts, 2 bad input. Standard library only.
 """
@@ -17,7 +23,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
+
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 TEMPLATE = {
     "identification": {
@@ -33,6 +42,12 @@ TEMPLATE = {
     "other_sources_excluded": {},
     "studies_included": 0,
     "reports_included": 0,
+    "search_log": [
+        {"source": "PubMed", "platform": "NLM", "query": "paste the exact string you ran", "date_run": "YYYY-MM-DD",
+         "hits": 0, "limits": "e.g. 2010-2025, English"},
+        {"source": "Embase", "platform": "Ovid", "query": "paste the exact string you ran", "date_run": "YYYY-MM-DD",
+         "hits": 0, "limits": ""},
+    ],
 }
 
 
@@ -70,6 +85,54 @@ def check(c: dict, n: dict) -> list[str]:
     if c.get("studies_included", 0) > c.get("reports_included", 0) and c.get("reports_included"):
         problems.append("more studies than reports included (each study needs at least one report)")
     return problems
+
+
+def _sources(c: dict) -> dict[str, int]:
+    """Return the non-zero database and register counts, keyed by source name."""
+    ident = c["identification"]
+    out: dict[str, int] = {}
+    for group in ("databases", "registers"):
+        for name, value in ident.get(group, {}).items():
+            if total(value):
+                out[name] = total(value)
+    return out
+
+
+def check_search_log(c: dict) -> list[str]:
+    """Require an exact query, a run date and matching hit counts for every database/register count."""
+    log = c.get("search_log") or []
+    problems = []
+    for i, e in enumerate(log, 1):
+        name = e.get("source") or f"entry {i}"
+        q = str(e.get("query", "")).strip()
+        if not q or q.lower().startswith("paste the exact"):
+            problems.append(f"search_log '{name}': missing exact query string")
+        if not DATE_RE.match(str(e.get("date_run", ""))):
+            problems.append(f"search_log '{name}': date_run must be YYYY-MM-DD, got {e.get('date_run')!r}")
+        if not isinstance(e.get("hits"), int) or e["hits"] < 0:
+            problems.append(f"search_log '{name}': hits must be a non-negative integer")
+    counted = _sources(c)
+    for name, n in counted.items():
+        mine = [e for e in log if str(e.get("source", "")).lower() == name.lower()]
+        if not mine:
+            problems.append(f"'{name}' reports n = {n} records but has no search_log entry (exact query, date, hits)")
+        elif all(isinstance(e.get("hits"), int) for e in mine) and sum(e["hits"] for e in mine) != n:
+            problems.append(f"'{name}': flow says n = {n} but search_log hits sum to {sum(e['hits'] for e in mine)}")
+    known = {k.lower() for k in counted}
+    for name in sorted({str(e.get("source", "")) for e in log if str(e.get("source", "")).lower() not in known}):
+        problems.append(f"search_log source '{name}' has no non-zero count in identification")
+    return problems
+
+
+def search_table(c: dict) -> str:
+    """Render the search log as a Markdown table for the supplement (PRISMA item 7 / PRISMA-S)."""
+    rows = ["| Source | Platform | Date run | Hits | Limits | Exact query |", "|---|---|---|---|---|---|"]
+    for e in c.get("search_log") or []:
+        q = str(e.get("query", "")).replace("|", "\\|").replace("\n", " ")
+        cells = [e.get("source", ""), e.get("platform", ""), e.get("date_run", ""), e.get("hits", ""),
+                 e.get("limits", "")]
+        rows.append("| " + " | ".join(str(c) for c in cells) + f" | `{q}` |")
+    return "\n".join(rows) + "\n"
 
 
 def breakdown(d: dict) -> str:
@@ -129,6 +192,9 @@ def main() -> int:
     ap.add_argument("--format", choices=["mermaid", "dot"], default="mermaid")
     ap.add_argument("-o", "--output")
     ap.add_argument("--template", action="store_true", help="print an input template")
+    ap.add_argument("--search-table", metavar="PATH", help="also write the search log as a Markdown table")
+    ap.add_argument("--allow-unlogged", action="store_true",
+                    help="skip the search_log requirement (legacy counts; reviews cannot pass PRISMA item 7 this way)")
     args = ap.parse_args()
     if args.template:
         print(json.dumps(TEMPLATE, indent=2))
@@ -143,6 +209,11 @@ def main() -> int:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     problems = check(c, n)
+    if not args.allow_unlogged:
+        problems += check_search_log(c)
+    if args.search_table:
+        with open(args.search_table, "w", encoding="utf-8") as fh:
+            fh.write(search_table(c))
     text = mermaid(c, n) if args.format == "mermaid" else dot(c, n)
     if args.output:
         with open(args.output, "w", encoding="utf-8") as fh:

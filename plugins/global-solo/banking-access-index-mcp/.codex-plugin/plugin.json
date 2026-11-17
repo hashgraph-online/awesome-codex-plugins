@@ -1,0 +1,53 @@
+{
+  "name": "banking-access-index",
+  "version": "0.2.0",
+  "description": "What 19 US business banking providers publish about applicants who are not US tax residents but own a US LLC, across 8 countries. Every cell carries its source URL and the date that URL was read. Absence from a prohibited list is never reported as acceptance.",
+  "author": {
+    "name": "Global Solo",
+    "url": "https://www.globalsolo.global"
+  },
+  "homepage": "https://www.globalsolo.global/data/banking-access-index",
+  "repository": "https://github.com/global-solo/banking-access-index-mcp",
+  "license": "MIT",
+  "keywords": [
+    "banking",
+    "fintech",
+    "dataset",
+    "non-resident",
+    "us-llc",
+    "cross-border",
+    "open-data"
+  ],
+  "interface": {
+    "displayName": "Banking Access Index",
+    "shortDescription": "Non-resident US bank access",
+    "longDescription": "Answers questions from the Global Solo Banking Access Index: what 19 US business banking providers, including Mercury, Relay, Wise Business and Payoneer, publish about applicants who are not US tax residents but own a US LLC, across India, China, the UK, Canada, Pakistan, Nigeria, Turkey and Brazil. Each answer gives the provider's status for a country, the source URL it came from, and the date that URL was read. It is for founders who are comparing where an account application is possible, and for the people who help them. Limits: the index records what providers publish, not how they decide individual applications. A provider or country outside the 19 by 8 grid was not assessed. A country missing from a provider's prohibited list is reported as no published restriction, never as acceptance. The data is public under CC BY 4.0 and is read from globalsolo.global. The plugin ranks no provider and gives no legal, tax or banking advice.",
+    "developerName": "Global Solo",
+    "category": "Productivity",
+    "capabilities": [
+      "Look up a provider's published stance for one country",
+      "List providers by their status for a country",
+      "Cite the source URL and access date behind each claim"
+    ],
+    "websiteURL": "https://www.globalsolo.global/data/banking-access-index",
+    "supportURL": "https://github.com/global-solo/banking-access-index-mcp/issues",
+    "privacyPolicyURL": "https://www.globalsolo.global/privacy",
+    "termsOfServiceURL": "https://www.globalsolo.global/terms",
+    "defaultPrompt": [
+      "Which US business banks publish a restriction for founders living in Pakistan?",
+      "Does Mercury accept a founder living in India, and where does it say so?",
+      "Which providers ask a non-US owner of a US LLC for an SSN or ITIN?"
+    ],
+    "brandColor": "#25C19B",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png"
+  },
+  "skills": "./skills/",
+  "extensions": {
+    "com.openai": {
+      "publication": {
+        "release_notes": "First release: one skill that reads the public Banking Access Index (CSV and JSON on globalsolo.global) and reports each provider's published status with its source URL and access date."
+      }
+    }
+  }
+}

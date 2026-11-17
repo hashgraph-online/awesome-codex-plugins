@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "research-agent-skills"
-version = "1.1.1"
+version = "1.2.0"
 description = "Install 280+ AI agent skills for academic writing, literature reviews, citation checking and scientific research across biology, chemistry, medicine, physics and ML."
 readme = "README.md"
 license = "MIT"

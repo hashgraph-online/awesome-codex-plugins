@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
-"""Verify that references exist and match their metadata (Crossref + OpenAlex).
+"""Verify that references exist and match their metadata (Crossref, DataCite, OpenAlex, arXiv).
 
 Catches hallucinated or corrupted citations: DOIs that do not resolve, DOIs that
-point to a different paper, wrong years/first authors, and titles with no match.
+point to a different paper, wrong years/first authors, titles with no match, and
+retracted papers (Crossref `updated-by` notices from Retraction Watch, OpenAlex `is_retracted`).
+Dataset and software DOIs registered with DataCite (Zenodo, figshare, arXiv) are resolved too.
 
 Usage:
     python verify_citations.py refs.bib                    # verify every entry
     python verify_citations.py refs.bib --keys a2020,b2021 # subset
     python verify_citations.py --doi 10.1038/nature14539   # one or more DOIs
     python verify_citations.py refs.bib --json report.json
+    python verify_citations.py refs.bib --annotate         # add "% UNVERIFIED" comments above bad entries
 
 Set CROSSREF_MAILTO=you@example.org to use Crossref's polite pool (faster, fewer 429s).
 Exit codes: 0 all verified, 1 problems found, 2 bad input. Standard library only.
@@ -48,7 +51,8 @@ def http_json(url: str, retries: int = 3) -> dict | None:
             if exc.code == 404:
                 return None
             if exc.code in (429, 500, 502, 503, 504) and attempt < retries - 1:
-                time.sleep(2 ** attempt * 2)
+                retry_after = exc.headers.get("Retry-After", "") if exc.headers else ""
+                time.sleep(min(int(retry_after), 30) if retry_after.isdigit() else 2 ** attempt * 2)
                 continue
             raise
         except urllib.error.URLError:
@@ -155,7 +159,8 @@ def crossref_search(title: str, author: str) -> list[dict]:
 
 def openalex_search(title: str) -> list[dict]:
     """Handle openalex search."""
-    q = urllib.parse.urlencode({"search": title, "per-page": 3, "select": "id,doi,title,publication_year,authorships"})
+    select = "id,doi,title,publication_year,authorships,is_retracted"
+    q = urllib.parse.urlencode({"search": title, "per-page": 3, "select": select})
     data = http_json(f"https://api.openalex.org/works?{q}")
     return (data or {}).get("results", [])
 
@@ -181,6 +186,32 @@ def arxiv_search(title: str, author: str) -> list[dict]:
     return out
 
 
+RETRACTION_TYPES = {"retraction", "withdrawal", "removal"}
+CONCERN_TYPES = {"expression_of_concern", "expression-of-concern"}
+
+
+def crossref_notices(rec: dict) -> list[dict]:
+    """Return editorial notices (retraction, correction, concern) attached to a Crossref work record."""
+    out = []
+    for n in rec.get("updated-by") or []:
+        kind = str(n.get("type", "")).lower().replace(" ", "_")
+        out.append({"type": kind, "doi": n.get("DOI", ""), "source": n.get("source", "")})
+    return out
+
+
+def datacite_record(doi: str) -> dict | None:
+    """Resolve a DataCite DOI (datasets, software, arXiv, Zenodo) and return normalised fields."""
+    data = http_json(f"https://api.datacite.org/dois/{urllib.parse.quote(doi, safe='/')}")
+    attrs = ((data or {}).get("data") or {}).get("attributes")
+    if not attrs:
+        return None
+    creators = attrs.get("creators") or [{}]
+    first = creators[0].get("familyName") or (creators[0].get("name") or "").split(",")[0]
+    return {"doi": doi, "title": (attrs.get("titles") or [{}])[0].get("title", ""),
+            "year": attrs.get("publicationYear"), "first_author": norm(first),
+            "venue": attrs.get("publisher") or "", "source": "datacite", "notices": []}
+
+
 def cr_fields(rec: dict) -> dict:
     """Handle cr fields."""
     authors = rec.get("author") or []
@@ -192,7 +223,8 @@ def cr_fields(rec: dict) -> dict:
             break
     return {"doi": rec.get("DOI", ""), "title": (rec.get("title") or [""])[0], "year": year,
             "first_author": norm(authors[0].get("family", "")) if authors else "",
-            "venue": (rec.get("container-title") or [""])[0]}
+            "venue": (rec.get("container-title") or [""])[0], "notices": crossref_notices(rec),
+            "source": "crossref"}
 
 
 def _oa_first_author(item: dict) -> str:
@@ -201,16 +233,42 @@ def _oa_first_author(item: dict) -> str:
     return norm(first.split(" ")[-1]) if first else ""
 
 
+def _oa_notice(is_retracted: object) -> list[dict]:
+    """Translate OpenAlex's is_retracted flag into a notice list."""
+    return [{"type": "retraction", "doi": "", "source": "openalex"}] if is_retracted else []
+
+
 def _lookup_doi(doi: str) -> dict | None:
-    """Resolve a DOI via Crossref then OpenAlex and return normalised fields, or None if unresolved."""
+    """Resolve a DOI via Crossref, then DataCite, then OpenAlex; return normalised fields or None."""
+    quoted = urllib.parse.quote(doi, safe="/")
     rec = crossref_record(doi)
     if rec is not None:
-        return cr_fields(rec)
-    oa = http_json(f"https://api.openalex.org/works/doi:{urllib.parse.quote(doi, safe='/')}")
+        got = cr_fields(rec)
+        if not got["notices"]:  # Crossref lists Retraction Watch notices; OpenAlex is an independent second signal
+            oa = http_json(f"https://api.openalex.org/works/doi:{quoted}?select=is_retracted")
+            got["notices"] = _oa_notice(oa and oa.get("is_retracted"))
+        return got
+    dc = datacite_record(doi)
+    if dc is not None:
+        return dc
+    oa = http_json(f"https://api.openalex.org/works/doi:{quoted}")
     if oa is None:
         return None
     return {"doi": doi, "title": oa.get("title") or "", "year": oa.get("publication_year"),
-            "first_author": _oa_first_author(oa)}
+            "first_author": _oa_first_author(oa), "source": "openalex", "notices": _oa_notice(oa.get("is_retracted"))}
+
+
+def _notice_problems(got: dict) -> tuple[list[str], bool]:
+    """Describe retraction/concern notices on a record; return (problems, is_retracted)."""
+    problems, retracted = [], False
+    for n in got.get("notices") or []:
+        where = f" (notice DOI {n['doi']}, source {n['source']})" if n.get("doi") else f" (source {n['source']})"
+        if n["type"] in RETRACTION_TYPES:
+            retracted = True
+            problems.append(f"RETRACTED: record carries a {n['type']} notice{where}; do not cite as support")
+        elif n["type"] in CONCERN_TYPES:
+            problems.append(f"expression of concern on this work{where}; review before citing")
+    return problems, retracted
 
 
 def _doi_problems(title: str, year: str, author: str, got: dict) -> list[str]:
@@ -234,20 +292,40 @@ def _check_by_doi(res: dict, title: str, doi: str, year: str, author: str) -> di
     got = _lookup_doi(doi)
     if got is None:
         res["status"] = "doi-not-found"
-        res["problems"].append(f"DOI {doi} does not resolve in Crossref or OpenAlex")
+        res["problems"].append(f"DOI {doi} does not resolve in Crossref, DataCite or OpenAlex")
         return res
     res["problems"].extend(_doi_problems(title, year, author, got))
-    res["status"] = "verified" if not res["problems"] else "mismatch"
+    notice_problems, retracted = _notice_problems(got)
+    res["problems"].extend(notice_problems)
+    if retracted:
+        res["status"] = "retracted"
+    elif notice_problems:
+        res["status"] = "uncertain"
+    else:
+        res["status"] = "verified" if not res["problems"] else "mismatch"
     return res
 
 
-def _title_candidates(title: str, author: str) -> list[dict]:
-    """Collect candidate records for a DOI-less entry from Crossref and OpenAlex title searches."""
-    candidates = [cr_fields(item) for item in crossref_search(title, author)]
-    for item in openalex_search(title):
-        candidates.append({"doi": (item.get("doi") or "").replace("https://doi.org/", ""), "title": item.get("title") or "",
-                           "year": item.get("publication_year"), "first_author": _oa_first_author(item)})
-    return candidates
+SOURCE_ERRORS = (urllib.error.URLError, TimeoutError, json.JSONDecodeError, ValueError)
+
+
+def _title_candidates(title: str, author: str) -> tuple[list[dict], list[str]]:
+    """Collect candidates for a DOI-less entry from Crossref and OpenAlex; also return the sources that failed."""
+    candidates: list[dict] = []
+    failed: list[str] = []
+    try:
+        candidates += [cr_fields(item) for item in crossref_search(title, author)]
+    except SOURCE_ERRORS:
+        failed.append("Crossref")
+    try:
+        for item in openalex_search(title):
+            doi = (item.get("doi") or "").replace("https://doi.org/", "")
+            candidates.append({"doi": doi, "title": item.get("title") or "",
+                               "year": item.get("publication_year"), "first_author": _oa_first_author(item),
+                               "notices": _oa_notice(item.get("is_retracted"))})
+    except SOURCE_ERRORS:
+        failed.append("OpenAlex")
+    return candidates, failed
 
 
 def _agrees(year: str, author: str, c: dict) -> tuple[bool, bool]:
@@ -257,11 +335,11 @@ def _agrees(year: str, author: str, c: dict) -> tuple[bool, bool]:
     return year_ok, author_ok
 
 
-def _find_best(title: str, year: str, author: str) -> dict | None:
-    """Pick the best candidate by title similarity plus year and first-author agreement."""
+def _find_best(title: str, year: str, author: str) -> tuple[dict | None, list[str]]:
+    """Pick the best candidate by title similarity plus year/first-author agreement; also return failed sources."""
     # Popular titles are reused (reprints, talks, homonymous papers), so rank candidates by
     # title similarity plus agreement on year and first author, not by title alone.
-    candidates = _title_candidates(title, author)
+    candidates, failed = _title_candidates(title, author)
 
     def score(c: dict) -> float:
         """Score a candidate by title similarity plus bonuses for year and author agreement."""
@@ -272,10 +350,12 @@ def _find_best(title: str, year: str, author: str) -> dict | None:
     if not best or similarity(title, best["title"]) < TITLE_OK or not all(_agrees(year, author, best)):
         try:
             candidates += arxiv_search(title, author)
-        except (urllib.error.URLError, TimeoutError, ValueError):
-            pass
+        except SOURCE_ERRORS:
+            failed.append("arXiv")
         best = max(candidates, key=score, default=None)
-    return best
+    if not candidates and len(failed) >= 3:
+        raise urllib.error.URLError("all search sources failed: " + ", ".join(failed))
+    return best, failed
 
 
 def _classify_title_match(res: dict, best: dict, title: str, year: str, author: str) -> dict:
@@ -283,7 +363,18 @@ def _classify_title_match(res: dict, best: dict, title: str, year: str, author: 
     year_ok, author_ok = _agrees(year, author, best)
     res["suggestion"] = best
     if year_ok and author_ok:
-        res["status"] = "found-add-doi" if best.get("doi") else "verified"
+        notices = best.get("notices") or []
+        if best.get("doi") and not notices and not best["doi"].startswith("10.48550/"):
+            # Title-search candidates skip the DOI lookup, so check for a retraction now. Best effort: a rate-limited
+            # or failed secondary lookup must not turn an otherwise matched entry into an error.
+            try:
+                notices = (_lookup_doi(best["doi"]) or {}).get("notices") or []
+            except (urllib.error.URLError, TimeoutError, json.JSONDecodeError):
+                res["problems"].append("retraction check skipped (lookup failed); re-run to confirm")
+        problems, retracted = _notice_problems({"notices": notices})
+        res["problems"].extend(problems)
+        res["status"] = "retracted" if retracted else "uncertain" if problems else (
+            "found-add-doi" if best.get("doi") else "verified")
         return res
     res["status"] = "uncertain"
     if not year_ok:
@@ -293,7 +384,8 @@ def _classify_title_match(res: dict, best: dict, title: str, year: str, author: 
     return res
 
 
-def _classify_match(res: dict, best: dict | None, title: str, year: str, author: str) -> dict:
+def _classify_match(res: dict, best: dict | None, title: str, year: str, author: str,
+                    failed: list[str] | None = None) -> dict:
     """Set status, suggestion and problems on the result from the best candidate found."""
     best_sim = similarity(title, best["title"]) if best else 0.0
     if best and best_sim >= TITLE_OK:
@@ -303,13 +395,19 @@ def _classify_match(res: dict, best: dict | None, title: str, year: str, author:
         res["suggestion"] = best
         res["problems"].append(f"closest match '{best['title']}' (similarity {best_sim:.2f}); confirm manually")
         return res
+    if failed:  # absence of evidence from a partial search is not evidence of fabrication
+        res["status"] = "uncertain"
+        down = ", ".join(failed)
+        res["problems"].append(f"no match found, but {down} could not be queried (rate limit or outage); re-run later")
+        return res
     res["status"] = "not-found"
-    res["problems"].append("no matching record in Crossref or OpenAlex (possible fabricated or grey-literature reference)")
+    res["problems"].append(
+        "no matching record in Crossref, OpenAlex or arXiv (possible fabricated or grey-literature reference)")
     return res
 
 
 def check_entry(e: dict) -> dict:
-    """Check one bib entry against Crossref, OpenAlex and arXiv and return a status report."""
+    """Check one bib entry against Crossref, DataCite, OpenAlex and arXiv and return a status report."""
     title, doi = e.get("title", ""), re.sub(r"^(https?://(dx\.)?doi\.org/|doi:)", "", e.get("doi", ""), flags=re.I)
     year = re.sub(r"\D", "", e.get("year", ""))[:4]
     author = first_surname(e.get("author", ""))
@@ -320,7 +418,33 @@ def check_entry(e: dict) -> dict:
         res["status"] = "unverifiable"
         res["problems"].append("no DOI and no title")
         return res
-    return _classify_match(res, _find_best(title, year, author), title, year, author)
+    best, failed = _find_best(title, year, author)
+    return _classify_match(res, best, title, year, author, failed)
+
+
+GOOD = ("verified", "found-add-doi")
+
+
+def annotate_bib(text: str, report: list[dict]) -> str:
+    """Return the .bib text with a `% UNVERIFIED (<status>): <problem>` comment above each entry needing attention.
+
+    Idempotent: an existing marker above an entry is replaced, and a marker above an entry that now verifies is
+    removed. Entry bodies are never modified.
+    """
+    for r in report:
+        key = r.get("key")
+        if not key:
+            continue
+        pat = re.compile(r"(?:^% UNVERIFIED[^\n]*\n)?^(@\w+\s*[{(]\s*" + re.escape(str(key)) + r"\s*,)", re.M)
+        m = pat.search(text)
+        if not m:
+            continue
+        marker = ""
+        if r.get("status") not in GOOD:
+            why = (r.get("problems") or ["no reason recorded"])[0].replace("\n", " ")
+            marker = f"% UNVERIFIED ({r.get('status')}): {why}\n"
+        text = text[:m.start()] + marker + m.group(1) + text[m.end():]
+    return text
 
 
 def main() -> int:
@@ -330,6 +454,8 @@ def main() -> int:
     ap.add_argument("--doi", nargs="+", default=[])
     ap.add_argument("--keys", help="comma-separated subset of citation keys")
     ap.add_argument("--json", metavar="PATH", help="write the full report as JSON")
+    ap.add_argument("--annotate", action="store_true",
+                    help="rewrite the .bib in place, adding '%% UNVERIFIED' comments above entries needing attention")
     ap.add_argument("--delay", type=float, default=0.2, help="seconds between API calls (default 0.2)")
     args = ap.parse_args()
     if not args.bib and not args.doi:
@@ -353,13 +479,22 @@ def main() -> int:
             r = {"key": e.get("_key"), "status": "error", "problems": [f"lookup failed: {exc}"], "suggestion": None}
         report.append(r)
         mark = {"verified": "OK  ", "found-add-doi": "DOI+", "mismatch": "FAIL", "doi-not-found": "FAIL",
-                "not-found": "FAIL", "uncertain": "??  ", "unverifiable": "??  ", "error": "ERR "}[r["status"]]
+                "not-found": "FAIL", "retracted": "RETR", "uncertain": "??  ", "unverifiable": "??  ",
+                "error": "ERR "}[r["status"]]
         print(f"{mark} {r['key']}: {r['status']}")
         for p in r["problems"]:
             print(f"       - {p}")
         if r.get("suggestion") and r["status"] == "found-add-doi":
             print(f"       + add doi = {{{r['suggestion']['doi']}}}")
         time.sleep(args.delay)
+    if args.annotate and args.bib:
+        with open(args.bib, encoding="utf-8", newline="") as fh:
+            original = fh.read()
+        annotated = annotate_bib(original, [r for r in report if r.get("key")])
+        if annotated != original:
+            with open(args.bib, "w", encoding="utf-8", newline="") as fh:
+                fh.write(annotated)
+            print(f"annotated {args.bib}")
     if args.json:
         with open(args.json, "w", encoding="utf-8") as fh:
             json.dump(report, fh, indent=2, ensure_ascii=False)

@@ -24,6 +24,20 @@ The author remains responsible for every claim.
 
 ## Workflow
 
+0. **Ask what each paragraph claims.** Before any rewording, list the paragraphs that make no checkable claim:
+
+   ```bash
+   python scripts/slop_check.py manuscript.md --claims
+   ```
+
+   It flags paragraphs of 40+ words with no number, citation, figure or table reference, acronym or named
+   method. For each one, answer "what is the claim, and what is the evidence?" in one sentence. If you can,
+   rewrite the paragraph around that sentence. If it only restates the field, cut it or merge it into a
+   paragraph that has a point. If the claim exists but the author has not supplied the evidence, ask for the
+   number or citation and leave a placeholder. Cleaning the phrasing of a paragraph with no claim just hides
+   the problem. The flag is a heuristic: some sound paragraphs (a definition, a transition) are legitimate, so
+   judge each one.
+
 1. **Measure.** Run the linter on the draft (or a section):
 
    ```bash
@@ -87,6 +101,10 @@ The author remains responsible for every claim.
 - Verify that each rewritten sentence says the same thing as the original, at the same strength.
 
 ## What the linter cannot judge
+
+The `--claims` pass finds paragraphs with *no* visible evidence; it cannot tell whether a paragraph that has a
+number or a citation is saying anything worth saying.
+
 
 Accuracy, novelty, whether a citation supports the sentence, or whether the argument is
 right. Pair this skill with `citation-verification`, `scientific-critical-thinking` and a
