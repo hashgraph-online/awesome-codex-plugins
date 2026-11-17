@@ -1,7 +1,7 @@
 ---
 name: osmo-ai-receptionist
-description: AI receptionist, AI phone receptionist and AI answering service for your phone number. Use when the user wants an AI phone receptionist or answering service that picks up their calls, screens spam, takes messages and booking requests, and tells them who called and why. Manage it from the AI app: see missed calls, summaries, transcripts and recordings, pause the AI, choose who is put through, edit VIP and block lists, add rules for specific callers (put through, take a message, block), switch the assistant or its language, and check bookings and Facts. Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan.
-version: 1.1.0
+description: AI receptionist, AI phone receptionist and AI answering service for your phone number. Use when the user wants an AI phone receptionist or answering service that picks up their calls, screens spam, takes messages and booking requests, and tells them who called and why. Manage it from the AI app: see missed calls, summaries, transcripts and recordings, pause the AI, choose who is put through, edit VIP and block lists, add rules for specific callers (put through, take a message, block), switch the assistant or its language, check bookings and Facts, and call callers back at a time in their own time zone. Works with the user's existing mobile number through call forwarding. Needs an OsmO app plan.
+version: 1.2.0
 metadata: {"openclaw":{"homepage":"https://getosmo.app","emoji":"☎️"}}
 ---
 
@@ -64,7 +64,8 @@ repeat it.
 2. **"Who called?" / "What did I miss?"**: `list_calls` with `callType: "inbound"` (newest first,
    10 per page), then open the ones that matter with `get_call` for the summary, transcript and a
    ▶ Play recording link. Lead with what each caller wanted and anything urgent. To call someone
-   back, use the `osmo-phone-calls` skill.
+   back, now or at a time in the user's own time zone, use the `osmo-phone-calls` skill (in apps
+   that show MCP Apps cards, such as Claude, the call then shows on a live OsmO call card).
 3. **Receptionist settings** (`get_settings` / `update_settings`): who may be put through live
    (`transferMode`: never, contacts or anyone), pausing the AI (`isAiAnsweringPaused`), live-call
    alerts, letting saved contacts skip the AI, Android device screening, and the VIP and block

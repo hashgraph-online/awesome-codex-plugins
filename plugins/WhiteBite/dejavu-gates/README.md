@@ -20,6 +20,8 @@
   <img src="https://github.com/WhiteBite/dejavu-gates/actions/workflows/ci.yml/badge.svg" alt="CI">
 </p>
 
+<p align="center"><img src="./assets/dejavu-gates-hero.png" width="100%" alt="dejavu-gates preview: failures that recur across sessions become gates that remind first and block on repeat"></p>
+
 ![dejavu-gates demo: the same failing deploy call is counted across sessions, promoted to a blocking gate, teaches the agent with CORRECTION and EVIDENCE, blocks a same-session repeat, then heals after three successes](assets/dejavu-gates.gif)
 
 Agents repeat the same mistakes because they forget between sessions — and markdown rules don't fix that. dejavu is a cross-session **memory prosthesis with teeth**: it mechanically detects recurring tool-call failures (bash, read, edit, write, glob, grep), promotes them into enforced gates, teaches the agent with a reminder, blocks a same-session repeat offense — and retires the gate when the command starts succeeding again. One engine, many hosts: OpenCode (plugin), Claude Code, Codex CLI, Gemini CLI, Cursor, Copilot CLI, Crush, Devin CLI, Kiro (hook-handler CLI), Cline (in-package plugin). TypeScript + Bun, ships as source, no build step.

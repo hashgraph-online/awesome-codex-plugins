@@ -1,0 +1,6 @@
+# Files Codex should leave out when it packages this plugin.
+# The plugin folder already holds only what the plugin ships, so this only guards against stray files.
+*.log
+*.map
+.DS_Store
+Thumbs.db

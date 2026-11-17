@@ -62,6 +62,12 @@ On Teams and Enterprise, local plugins need the admin setting Allow Local
 Plugin Imports, or an admin imports `e2e-inc/e2e` under Team Marketplaces
 in the Cursor dashboard.
 
+Devin reads `.devin-plugin/plugin.json`. In Devin, open **Customize →
+Plugins → Add plugin → From repository**, enter `e2e-inc/e2e` with the
+subdirectory `plugins/e2e`, then start a new session. With the Devin CLI,
+run `devin plugins install --local ./plugins/e2e` from a clone of this
+repository.
+
 Start a new session after installing. The plugin's version follows e2e
 releases. Update it with `claude plugin marketplace update e2e` followed by
 `claude plugin update e2e@e2e`, or in Codex with
@@ -118,9 +124,11 @@ Edit skill Markdown in the monorepo's `skills/` directory, then run
 `pnpm plugins:check`, also part of `pnpm check` and CI, catches drift.
 
 The Codex manifest owns the plugin's metadata. The sync command generates
-the Claude and Cursor manifests from it, and the root `plugin.json` that
+the Claude and Cursor manifests from it, the root `plugin.json` that
 GitHub Copilot reads (the [Agent Plugins](https://agent-plugins.org)
-format), and copies the root license. It also generates `.mcp.json` and
+format), and `.devin-plugin/plugin.json`, the card and MCP server Devin's
+[marketplace](https://github.com/CognitionAI/devin-marketplace) reads, and
+copies the root license. It also generates `.mcp.json` and
 Copilot's `mcp.json`, both pinned to the runner version; a root
 `plugin.json` cannot name MCP servers, so Copilot loses the server without
 `mcp.json`. The skill copies leave out `metadata.openclaw`, which ClawHub

@@ -1,6 +1,6 @@
 ---
 name: brief2mp4
-description: Turn a written brief into a finished, checked MP4 motion graphic. Use when asked to make an animation, motion graphic, 2D explainer, maths or algorithm animation, tutorial intro, animated story or skit, YouTube Short or Reel, data story, kinetic typography, lyric video, title sequence, logo sting, 3D scene, 3D product shot, physics drop, exploded view, product turntable or short explainer clip as a video file. Builds with HyperFrames (HTML + GSAP), Three.js, an optional 3D pack (CAD, materials, physics), Blender or an optional edit pack (timeline cuts, multitrack mixing, compositing), finishes with ffmpeg, then checks the video against the brief and fixes what fails before handing it over.
+description: Turn a written brief into a finished, checked MP4 motion graphic. Use when asked to make an animation, motion graphic, a video in a named art form or look (claymation, paper cut-out, stop-motion, anime or cel-shaded, watercolour, ink wash, shadow puppet, risograph, pixel art, voxel, low-poly, isometric, whiteboard, VHS or glitch, neon, blueprint), 2D explainer, maths or algorithm animation, tutorial intro, animated story or skit, YouTube Short or Reel, data story, kinetic typography, lyric video, title sequence, logo sting, 3D scene, 3D product shot, physics drop, exploded view, product turntable or short explainer clip as a video file. Builds with HyperFrames (HTML + GSAP), Three.js, an optional 3D pack (CAD, materials, physics), Blender or an optional edit pack (timeline cuts, multitrack mixing, compositing), finishes with ffmpeg, then checks the video against the brief and fixes what fails before handing it over.
 ---
 
 # brief2mp4
@@ -41,7 +41,7 @@ SPEC.md is the contract you will check against. It has six parts:
    | Audio | AAC, 48 kHz, stereo, -14 LUFS integrated, true peak at or below -1 dBTP. Silent only if the brief says silent (still include a silent track) |
 
 2. **Exact text.** Every word that appears on screen, copied character for character from the brief. Spelling, capitals and punctuation are part of the spec.
-3. **Look.** Palette as hex codes, one or two typefaces, background, the mood in five words or fewer.
+3. **Look.** Palette as hex codes, one or two typefaces, background, the mood in five words or fewer. If the brief names an art form or describes a look ("claymation", "like a paper cut-out", "anime", "hand-drawn"), name it here with its cadence: see **Art forms** below.
 4. **Beat sheet.** Time ranges (`0.0-2.0 s`), what is on screen, what moves, and where the one hero moment lands. Something must be visible by 0.3 s. The final message holds for the last 1.5-2.5 s.
 5. **Tool choice** (section 2) and one sentence on why.
 6. **Done when.** One checklist line per requirement in the brief, each one checkable by a command or by looking at a named frame: "`final.mp4` is 12.0 s", "at 9.5 s the words FINISH SOMETHING TODAY are fully on screen, nothing cut off".
@@ -64,6 +64,20 @@ If the brief names a kind of video (explainer, maths, tutorial intro, skit, Shor
 | Joining clips, adding sound, exact duration, loudness, encoding | ffmpeg (`scripts/finish.sh`) | `references/ffmpeg.md` |
 
 Mixing is normal: render a Blender shot to frames, then use it as a video layer under HyperFrames type, or join HyperFrames and Blender clips with ffmpeg. Every path ends with `scripts/finish.sh` and `scripts/check_delivery.sh`.
+
+### Art forms: when the brief asks for a look
+
+Thirty art forms have a recipe each: claymation, stop-motion, paper cut-out, felt, origami, shadow puppetry, collage, risograph, anime and cel shading, flat vector explainer, whiteboard and chalkboard, watercolour, ink wash, line art, rotoscope, motion comic, UPA mid-century, rubber-hose, linocut, isometric, low-poly, voxel, pixel art, 3D product render, kinetic typography, infographic, lyric video, VHS and glitch, blueprint, neon sign.
+
+```bash
+python3 <this skill's folder>/scripts/art_route.py BRIEF.md     # proposes one, with the reason, or says none fits
+```
+
+Read `references/art-forms.md` (the index and the three rules), then only the page for the form you chose in `references/art-forms/`. Each page gives the visual rules, the timing, how to build it in HyperFrames, canvas, SVG or Three.js, what assets it needs, the sound that fits, what makes it look wrong, and a tested demo from `art-forms/looks.js`. The router is a keyword scorer: a look the brief names always wins, and when it suggests none, do not force one.
+
+Three rules carry every look. The picture is a function of time (no clock, no `Math.random()`). Handmade looks hold their drawings: quantise time to 8 to 12 changes a second (`Math.floor(t * 12) / 12`, or GSAP `ease: "steps(12)"`) while the video stays at 24 or 30. Imperfection (line boil, paper jitter, flicker, misregistered ink) is seeded by the drawing number, so two renders match. Write the cadence into the beat sheet, and add a **Done when** line for the look: "at 4.0 s the frame shows flat paper layers with a shadow under each; the bird's wings change at most 12 times a second".
+
+An art form sets the look and the timing. The format (`references/formats.md`) still sets the beats and the tool table above still sets the route.
 
 ### The 3D pack (optional)
 
@@ -143,9 +157,11 @@ That message means: re-read the **original brief** (not your spec), go through i
 - `references/blender.md`: headless Blender, engines, light, camera, text, frames
 - `references/ffmpeg.md`: finishing, joining, overlays, sound, loudness, inspection
 - `references/formats.md`: beat sheets, routes and checks per format (explainer, maths, tutorial, story, Short, data, launch, logo, lyric, captions)
+- `references/art-forms.md` and `references/art-forms/<id>.md`: 30 art forms, each with visual rules, timing, a build recipe, assets, sound, pitfalls, sources and a tested demo (generated from `references/art-forms.json`)
+- `art-forms/looks.js`, `art-forms/gallery.html`: one deterministic demo per look, and a viewer
 - `references/pipelines.md`: architecture diagram, route per beat, recipes for mixed pipelines, methods
 - `references/ecosystem.md`: 45+ open-source motion, 3D and agent-skill repos, when to use each, how to connect them
 - `3d/README-3D.md`: the optional 3D pack (components, commands, shot JSON, brief-to-shot mapping, look rules)
 - `edit/README-EDIT.md`: the optional edit pack (ArtCraft editors: install, verification, recipes, command discovery, MCP)
-- `scripts/finish.sh`, `scripts/check_delivery.sh`, `scripts/contact_sheet.sh`, `scripts/sound_bed.sh`, `scripts/doctor.sh`, `scripts/detect_3d.sh`, `scripts/bounds.py`, `scripts/vendor_libs.sh`, `scripts/detect_edit.sh`
+- `scripts/finish.sh`, `scripts/check_delivery.sh`, `scripts/contact_sheet.sh`, `scripts/sound_bed.sh`, `scripts/doctor.sh`, `scripts/detect_3d.sh`, `scripts/bounds.py`, `scripts/vendor_libs.sh`, `scripts/detect_edit.sh`, `scripts/art_route.py` (brief to art form), `scripts/build_art_forms.py` (regenerates the art-form pages)
 - `templates/SPEC.md`, `templates/threejs/index.html`, `templates/blender/scene.py`

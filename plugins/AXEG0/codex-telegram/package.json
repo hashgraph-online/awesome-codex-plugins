@@ -1,0 +1,14 @@
+{
+  "name": "codex-telegram-runtime",
+  "version": "0.4.37",
+  "private": true,
+  "type": "module",
+  "description": "Zero-dependency runtime for Codex Telegram",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node test/support/run-tests.js test/*.test.js",
+    "check": "node --check ../../launcher.js && node --check scripts/runtime.js && node --check scripts/runtime-control.js && node --check src/runtime.js && node --check src/mcp-lifecycle.js && node --check scripts/bridge.js && node --check scripts/update.js && node --check scripts/git-askpass.js && node --check scripts/mcp.js && node --check scripts/access.js && node --check scripts/configure.js && node --check scripts/heartbeat.js && node --check scripts/restart.js && node --check scripts/status.js && node --check src/restart.js && node --check src/systemd.js && node --check src/core.js && node --check src/rich.js && node --check src/rich-parse.js && node --check src/rich-worker.js && node --check src/markdown-parser.js && node --check src/telegram.js && node --check src/transcription.js && node --check src/websocket.js && node --check src/session.js && node --check src/policy.js && node --check src/settings.js && node --check src/questions.js && node --check src/turn-activity.js && node --check src/alerts.js && node --check src/heartbeat.js && node --check src/reactions.js && node --check src/batching.js && node --check src/bot-files.js && node --check src/control.js && node --check scripts/tui.js && node --check src/tui.js && node --check scripts/setup.js && node --check src/bootstrap.js && node --check bin/codex-telegram && node --check src/local-setup.js && node --check src/telegram-guidance.js && node --check src/native-cli.js && node --check src/installation.js && node --check src/builds.js && node --check src/environment.js && node --check src/migration.js && node --check src/runtime-policy.js && node test/support/check-waits.js"
+  }
+}

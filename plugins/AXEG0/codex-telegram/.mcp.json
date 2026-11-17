@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "telegram": {
+      "command": "node",
+      "args": [
+        "--input-type=module",
+        "-e",
+        "import net from 'node:net';\nimport { existsSync, realpathSync } from 'node:fs';\nimport { homedir } from 'node:os';\nimport { isAbsolute, join, sep } from 'node:path';\nimport { pathToFileURL } from 'node:url';\nconst state = process.env.GELIOS_TELEGRAM_STATE_DIR || join(homedir(), '.local/state/gelios-codex-telegram');\nconst root = process.env.GELIOS_TELEGRAM_MCP_ROOT || await new Promise((resolve, reject) => {\n  let socket, retry, finished = false;\n  const finish = (error, root) => { if (finished) return; finished = true; clearTimeout(timer); clearTimeout(retry); socket?.destroy(); error ? reject(error) : resolve(root); };\n  const timer = setTimeout(() => finish(new Error('Telegram build selection timed out')), 10000);\n  const connect = () => {\n    socket = net.createConnection(process.env.GELIOS_TELEGRAM_CONTROL_SOCKET || join(state, 'control.sock'));\n    let accepted = false, buffer = '';\n    socket.setEncoding('utf8');\n    socket.on('error', error => {\n      if (!finished && !accepted && ['ENOENT', 'ECONNREFUSED'].includes(error.code)) retry = setTimeout(connect, 100);\n      else finish(error);\n    });\n    socket.on('close', () => { if (accepted) finish(new Error('Telegram build selection closed')); });\n    socket.on('connect', () => { accepted = true; socket.write(JSON.stringify({ action: 'status' }) + '\\n'); });\n    socket.on('data', chunk => {\n      buffer += chunk;\n      if (buffer.length > 1048576) { finish(new Error('Telegram build selection is too large')); return; }\n      if (!buffer.includes('\\n')) return;\n      try { const response = JSON.parse(buffer.split('\\n')[0]); if (!response.ok) throw new Error(response.error); finish(null, response.result.pluginRoot); }\n      catch (error) { finish(error); }\n    });\n  };\n  connect();\n});\nif (!root || !isAbsolute(root)) throw new Error('Start Codex with codex-telegram to select its durable Telegram build');\nconst selected = realpathSync(root), configuredCache = join(realpathSync(process.env.CODEX_HOME || join(homedir(), '.codex')), 'plugins/cache');\nconst cache = existsSync(configuredCache) ? realpathSync(configuredCache) : configuredCache;\nif (selected === cache || selected.startsWith(cache + sep)) throw new Error('Telegram MCP must run outside the Codex plugin cache');\nawait import(pathToFileURL(join(selected, 'scripts/mcp.js')).href);"
+      ],
+      "cwd": "/",
+      "env_vars": [
+        "GELIOS_TELEGRAM_CONTROL_SOCKET",
+        "GELIOS_TELEGRAM_STATE_DIR",
+        "GELIOS_TELEGRAM_MCP_ROOT",
+        "CODEX_HOME"
+      ],
+      "startup_timeout_sec": 10,
+      "tool_timeout_sec": 600,
+      "required": true,
+      "omit_tools_from": [
+        "deferred"
+      ]
+    }
+  }
+}

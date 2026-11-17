@@ -1,4 +1,4 @@
-# BulkTranscripts MCP server
+# BulkTranscripts: YouTube transcript MCP server for Claude, ChatGPT and Cursor
 
 YouTube transcripts for AI agents — one video, a whole channel, or a playlist —
 plus YouTube search and free new-upload tracking, through one hosted
@@ -34,8 +34,12 @@ Claude opens the Google sign-in; credits then follow your account.
 
 ### ChatGPT
 
-Settings → Apps & Connectors → Developer mode → **Create** → URL
-`https://bulktranscripts.co/mcp`, authentication **OAuth**.
+Install [BulkTranscripts from ChatGPT's plugin directory](https://chatgpt.com/plugins/plugin_asdk_app_6ab1b88874dc819191d1faa6e9134321)
+and sign in with Google. It works on free ChatGPT plans too.
+
+If your workspace blocks plugins, enable Developer mode under Settings → Connectors →
+Advanced, then **Create** a connector with the URL `https://bulktranscripts.co/mcp` and
+authentication **OAuth**.
 
 ### Gemini CLI
 

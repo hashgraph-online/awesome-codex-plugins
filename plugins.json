@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-17",
-  "total": 428,
+  "total": 430,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1672,6 +1672,16 @@
       "install_url": "https://raw.githubusercontent.com/jack-reson8/skill-skill/HEAD/plugins/skill-skill/.codex-plugin/plugin.json"
     },
     {
+      "name": "skill-check",
+      "url": "https://github.com/louis8408/skill-check",
+      "owner": "louis8408",
+      "repo": "skill-check",
+      "description": "Warns when a skill you use is out of date compared with its upstream source.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/louis8408/skill-check/HEAD/plugin/.codex-plugin/plugin.json"
+    },
+    {
       "name": "skill-sync-publisher",
       "url": "https://github.com/liuyewang/skill-sync-publisher",
       "owner": "liuyewang",
@@ -2602,6 +2612,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/BestLemoon/codex-seo/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Codex Telegram",
+      "url": "https://github.com/AXEG0/codex-telegram",
+      "owner": "AXEG0",
+      "repo": "codex-telegram",
+      "description": "One Codex conversation shared between your terminal and Telegram, with files, voice notes, reactions, answer buttons and group topics, that stays connected when the terminal closes.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AXEG0/codex-telegram/HEAD/plugins/gelios-codex-telegram/.codex-plugin/plugin.json"
     },
     {
       "name": "Codex Tools Bridge",

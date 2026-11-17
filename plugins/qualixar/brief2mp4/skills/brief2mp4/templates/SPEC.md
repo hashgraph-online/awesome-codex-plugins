@@ -18,6 +18,7 @@
 - Palette: background #......, ink #......, accent #......
 - Type: <face>, <weights>
 - Mood: <five words or fewer>
+- Art form, if the brief asks for a look: <name from references/art-forms.md>, <cadence: smooth, or N changes a second>
 
 ## Beat sheet
 | Time (s) | On screen | Motion |

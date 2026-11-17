@@ -1,0 +1,57 @@
+<!doctype html>
+<!--
+  brief2mp4 art forms: a viewer for looks.js.
+    gallery.html              every look, playing on a 3-second loop
+    gallery.html?look=riso    one look, large
+    gallery.html?look=riso&t=1.5   one look, held at 1.5 s (this is what the test uses: window.__draw(t))
+  The viewer owns the clock. The looks themselves never read one: each frame is draw(t).
+  three.js loads from a CDN here because this page is a viewer. In a project you render, vendor it
+  (scripts/vendor_libs.sh <project> --three) so the render never touches the network.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>brief2mp4 art forms</title>
+  <style>
+    body { margin: 0; background: #16130f; color: #f2ede4; font: 14px/1.4 system-ui, sans-serif; }
+    header { padding: 18px 22px; } header a { color: #ff5a1f; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; padding: 0 22px 30px; }
+    figure { margin: 0; } canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; background: #000; border-radius: 6px; }
+    figcaption { padding: 6px 2px; } figcaption a { color: inherit; }
+    .one { padding: 0 22px 30px; max-width: 1100px; }
+  </style>
+  <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js" } }</script>
+</head>
+<body>
+  <header><b>brief2mp4 art forms</b> · <span id="count"></span> looks, each a pure function of time · <a href="gallery.html">all</a></header>
+  <div id="root"></div>
+  <script type="module">
+    import { LOOKS, IDS } from './looks.js';
+    const W = 960, H = 540, DURATION = 3;
+    const q = new URLSearchParams(location.search), only = q.get('look'), hold = q.has('t') ? Number(q.get('t')) : null;
+    const ids = only ? [only] : IDS;
+    if (only && !LOOKS[only]) { document.getElementById('root').textContent = `No look called "${only}". Known: ${IDS.join(', ')}`; throw new Error('unknown look'); }
+    document.getElementById('count').textContent = IDS.length;
+    const root = document.getElementById('root'); root.className = only ? 'one' : 'grid';
+    let THREE = null; if (ids.some((id) => LOOKS[id].kind === '3d')) THREE = await import('three');
+    const drawers = {};
+    for (const id of ids) {
+      const look = LOOKS[id], fig = document.createElement('figure'), canvas = document.createElement('canvas');
+      canvas.width = W; canvas.height = H; canvas.id = `c-${id}`;
+      fig.append(canvas); const cap = document.createElement('figcaption'); cap.innerHTML = `<a href="?look=${id}">${id}</a>${look.fps ? ` · steps ${look.fps} times a second` : ' · smooth'}`; fig.append(cap); root.append(fig);
+      if (look.kind === '2d') { const g = canvas.getContext('2d'); drawers[id] = (t) => { g.save(); look.draw(g, t, W, H); g.restore(); }; }
+      else {
+        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: true }); renderer.setPixelRatio(1); renderer.setSize(W, H, false);
+        const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(35, W / H, 0.1, 100), state = look.setup(THREE, scene, camera, renderer);
+        drawers[id] = (t) => { look.draw(state, t); renderer.render(scene, camera); };
+      }
+    }
+    const drawAll = (t) => { for (const id of ids) drawers[id](t); };
+    window.__draw = drawAll; window.__ids = ids; window.__duration = DURATION;
+    if (hold !== null) drawAll(hold);
+    else { const t0 = performance.now(); const tick = (now) => { drawAll(((now - t0) / 1000) % DURATION); requestAnimationFrame(tick); }; requestAnimationFrame(tick); }
+    window.__ready = true;
+  </script>
+</body>
+</html>

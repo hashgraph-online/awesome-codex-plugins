@@ -218,13 +218,20 @@ mcp_servers:
   one go.
 - Find a business near you, or a company's customer-care number, in your own country.
 - Report the outcome, a summary and the transcript of every call it made, with a ▶ Play recording link.
+- In apps that show MCP Apps cards (such as Claude), show a live call card: confirm the call, follow
+  it from placed to in call to ended, read the summary, play the recording, and tap Call again or
+  Schedule. Up to 5 calls placed together show in one card, a row per person.
+- In Claude and ChatGPT, wait for a short call to finish so its result comes back in the same turn.
+- Offer to call again (now or later, with the same words) when a call did not get what you needed.
+- Guard against placing the same confirmed call twice when your AI app sends it again.
 
 **With an OsmO app plan** ([iOS](https://apps.apple.com/us/app/osmo-ai-phone-assistant/id6761623744),
 [Android](https://play.google.com/store/apps/details?id=com.osmo.aicallassistant)):
 
 - Call your saved contacts and people who called you in the last 30 days, for example to pass a
   message.
-- Schedule a call for later, and list or cancel scheduled calls.
+- Schedule a call for later in your own time zone (safe across daylight-saving changes), and list
+  scheduled calls in your local time or cancel them.
 - Tell you who called your OsmO number and what they wanted, with the transcript and recording.
 - Run your AI receptionist: pause the AI, choose who is put through live, edit VIP and block lists
   and caller rules, switch the assistant or its language (English or Hindi), and read bookings,
