@@ -15,9 +15,7 @@
 сравнение цен по всем товарным источникам одним вызовом.
 
 Только чтение. Ключи API, токены и регистрация не нужны — площадки с жёстким
-анти-ботом читаются через ваш собственный Chrome. Одно исключение по желанию:
-опциональный MPStats берёт платный токен (`MPSTATS_MP_AUTH`) — без него всё
-остальное работает как прежде.
+анти-ботом читаются через ваш собственный Chrome.
 
 <p align="center">
   <img src="docs/assets/demo-compare.svg" width="760"
@@ -69,7 +67,6 @@ uvx ru-marketplace-mcp setup
 | **AliExpress**    | 2            | ваш Chrome (x5sec)                                                       | Поиск и карточки, цены в рублях                            |
 | **Циан**          | 2            | ваш Chrome (WAF по IP)                                                     | Недвижимость: поиск по фильтрам (продажа, аренда, посуточно) и карточка объявления         |
 | **Сравнение**     | 4            | опрашивает всё перечисленное                                               | «Где дешевле?» одним вызовом                                                              |
-| **MPStats**       | 2            | платный аккаунт MPStats, cookie `mp_auth` (опционально)                    | Продажи/остатки/графики за 30 дней по SKU Ozon/WB, остатки по складам (FBS/FBO)           |
 
 Читается анонимно, без браузера: Wildberries, Яндекс Маркет и Детский мир.
 Карточки Lamoda сначала читаются по HTTP GraphQL; при отказе нужен ваш Chrome
@@ -82,24 +79,15 @@ uvx ru-marketplace-mcp setup
 коннекторы держат паузу между вызовами сами. Точное состояние из вашей сессии
 покажет `marketplace-mcp doctor`.
 
-MPStats стоит особняком: это единственный **платный** источник. Без
-`MPSTATS_MP_AUTH` объединённый `marketplace-mcp` вообще не монтирует его
-инструменты — они всё равно отвечали бы `auth_missing` — поэтому он опционален
-и подключается по желанию, на остальные тринадцать серверов он не влияет никак.
-Отдельный `mpstats-mcp` запускается и без токена и на вызовы отвечает
-`auth_missing`.
-У MPStats теперь есть свой MCP-сервер, `https://mcp.mpstats.io/mcp?token=<ваш токен MPStats>`:
-подключайте сначала его. Инструменты `mpstats_*` здесь устарели и уйдут в v2.11.0.
+Аналитика MPStats теперь на официальном MCP-сервере MPStats: `https://mcp.mpstats.io/mcp?token=<ваш токен MPStats>`; ru-marketplace-mcp 2.10.x — последняя версия с инструментами `mpstats_*`.
 
-Всего 39 инструментов в 14 серверах на общем рантайме `mcp-core`. Плюс объединённый
+Всего 37 инструментов в 13 серверах на общем рантайме `mcp-core`. Плюс объединённый
 `marketplace-mcp`, который монтирует всё разом — одна запись в конфиге клиента
-вместо четырнадцати. У него два своих инструмента: `marketplace_sources` (какие
+вместо тринадцати. У него два своих инструмента: `marketplace_sources` (какие
 коннекторы поднялись, а какие отвалились и почему) и `marketplace_health` (жив ли
-Chrome, какие хосты остывают, какую страницу открыть человеку). С токеном MPStats
-в нём 41 инструмент, без токена — 39: те же смонтированные источники минус два
-`mpstats_*`, плюс эти два.
+Chrome, какие хосты остывают, какую страницу открыть человеку). В нём 39 инструментов: 37 смонтированных плюс эти два.
 
-**Проверка 2.7.0:** 30 октября с одного адреса Wildberries при отказе API (HTTP 403) сам прочитал поиск через Chrome: 40 товаров, у всех цена. Код остальных источников с v2.6.0 не менялся; их проверял [прогон v2.6.0](docs/releases/RELEASE_NOTES_v2.6.0.md#статус-живой-проверки) того же дня (12 из 13 источников, MPStats без токена). [Подробности v2.7.0](docs/releases/RELEASE_NOTES_v2.7.0.md#что-проверено).
+**Проверка 2.7.0:** 30 октября с одного адреса Wildberries при отказе API (HTTP 403) сам прочитал поиск через Chrome: 40 товаров, у всех цена. Код остальных источников с v2.6.0 не менялся; их проверял [прогон v2.6.0](docs/releases/RELEASE_NOTES_v2.6.0.md#статус-живой-проверки) того же дня (12 из 13 источников). [Подробности v2.7.0](docs/releases/RELEASE_NOTES_v2.7.0.md#что-проверено).
 
 ## Подключение к MCP-клиенту
 
@@ -227,15 +215,15 @@ scraping-Chrome на экран — на Windows автозапуск конне
 
 Имена — канонические (`wildberries`, `ozon`, `yandex_market`, `detsky_mir`,
 `avito`, `taobao`, `megamarket`, `lamoda`, `dns`, `citilink`, `aliexpress`,
-`cian`, `compare`, `mpstats`); короткие псевдонимы `wb`, `ym`/`yandex`, `detmir`, `ali`
+`cian`, `compare`); короткие псевдонимы `wb`, `ym`/`yandex`, `detmir`, `ali`
 тоже принимаются. Неизвестное имя отклоняется при запуске с перечнем
 поддерживаемых источников, чтобы опечатка не превратилась в частичный сервер.
 Переменная не задана или пуста — монтируется всё, как раньше.
 Отключённые источники видно в `marketplace_sources`: они попадают в `skipped`
 с пометкой, что их сняли, а не что они не импортировались. `compare_prices`
 по умолчанию опрашивает только выбранные товарные источники с текстовым поиском:
-Детский мир не поддерживает такой поиск, Циан и MPStats в сравнении товаров не
-участвуют. Явный `sources` может сузить этот набор, но не включить отключённую
+Детский мир не поддерживает такой поиск, Циан в сравнении товаров не
+участвует. Явный `sources` может сузить этот набор, но не включить отключённую
 площадку: такой вызов возвращает `bad_request`, как и проверка её карточки.
 
 </details>
@@ -243,7 +231,7 @@ scraping-Chrome на экран — на Windows автозапуск конне
 <details>
 <summary><b>Claude Code</b></summary>
 
-Установка плагина (15 навыков + MCP) одной командой:
+Установка плагина (14 навыков + MCP) одной командой:
 
 ```text
 /plugin install ru-marketplace-mcp --marketplace Vladimir-Human/ru-marketplace-mcp
@@ -282,8 +270,7 @@ claude mcp add compare-prices -- uv run --directory /путь/к/ru-marketplace-
 
 Запустите `uv run --directory /путь/к/репозиторию <команда>`, где команда — одна из
 `wb-mcp`, `ozon-mcp`, `yandex-mcp`, `detmir-mcp`, `aliexpress-mcp`, `cian-mcp`, `compare-mcp`. Серверы говорят по
-JSON-RPC через stdin и stdout, диагностику пишут в stderr. Опциональный
-`mpstats-mcp` запускается так же, с `MPSTATS_MP_AUTH` в окружении.
+JSON-RPC через stdin и stdout, диагностику пишут в stderr.
 
 </details>
 
@@ -299,7 +286,7 @@ dsh plugin --profile web add ru-marketplace-mcp-dsh
 dsh plugin --profile web add github:Vladimir-Human/ru-marketplace-mcp#path:/dsh
 ```
 
-Сразу после установки появляются 15 навыков и **ни одного** MCP-инструмента: все три
+Сразу после установки появляются 14 навыков и **ни одного** MCP-инструмента: все три
 строки MCP выключены, пока не задана переменная `RU_MARKETPLACE_MCP_DIR` с путём к
 клону.
 <!-- tools-cost:start -->
@@ -342,11 +329,10 @@ dsh plugin --profile web add github:Vladimir-Human/ru-marketplace-mcp#path:/dsh
 - [AliExpress — `aliexpress_*`](docs/TOOLS.ru.md#aliexpress--aliexpress_)
 - [Циан — `cian_*`](docs/TOOLS.ru.md#циан--cian_)
 - [Сравнение цен — `compare_*`](docs/TOOLS.ru.md#сравнение-цен--compare_)
-- [MPStats — `mpstats_*`](docs/TOOLS.ru.md#mpstats--mpstats_)
 
 ## Навыки для агента
 
-У каждого коннектора — свой навык в `skills/`: пятнадцать штук, по одному
+У каждого коннектора — свой навык в `skills/`: четырнадцать штук, по одному
 на источник плюс общий `marketplace`. Навык это не пересказ README: он объясняет агенту, когда за этот
 источник вообще браться, чего у источника нет, и каким его ответам нельзя верить
 без второго взгляда.
@@ -366,7 +352,6 @@ dsh plugin --profile web add github:Vladimir-Human/ru-marketplace-mcp#path:/dsh
 | `skills/aliexpress-connector` | `aliexpress-mcp`  |
 | `skills/cian-connector`       | `cian-mcp`        |
 | `skills/compare-prices`       | `compare-mcp`     |
-| `skills/mpstats-connector`    | `mpstats-mcp`     |
 | `skills/marketplace`          | `marketplace-mcp` |
 
 `mcp-core` — общий рантайм под остальными серверами. Своего навыка у него нет.
@@ -406,7 +391,6 @@ dsh plugin --profile web add github:Vladimir-Human/ru-marketplace-mcp#path:/dsh
 | `DNS_` / `CITILINK_` | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`                                                                                                |
 | `CHROME_`            | `CDP_HOST`, `CDP_PORT`, `SCRAPING_PROFILE`, `BINARY`, `HEADLESS`, `STEALTH`                                                      |
 | `COMPARE_`           | `SOURCE_TIMEOUT`                                                                                                                 |
-| `MPSTATS_`           | `MP_AUTH` (единственный обязательный — без него инструменты отвечают `auth_missing`), `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`, `PROXY` |
 | `MCP_`               | `TRANSPORT` (`stdio` по умолчанию, либо `http`), `HTTP_HOST`, `HTTP_PORT`                                                        |
 
 `CHROME_CDP_HOST` указывает, куда дозвониться CDP-клиенту (по умолчанию
@@ -416,8 +400,8 @@ DNS, Ситилинк, AliExpress, Циан) в Docker без host networking. �
 [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 `*_CACHE_TTL=0` выключает кэш. `*_PROXY` перекрывает стандартные `HTTPS_PROXY` и
-`ALL_PROXY` — свой префикс есть у семи коннекторов: `WB_`, `YANDEX_`, `DETMIR_`,
-`OZON_`, `AVITO_`, `LAMODA_` и `MPSTATS_`. У Taobao своего нет намеренно: поиск там
+`ALL_PROXY` — свой префикс есть у шести коннекторов: `WB_`, `YANDEX_`, `DETMIR_`,
+`OZON_`, `AVITO_` и `LAMODA_`. У Taobao своего нет намеренно: поиск там
 подписан и ходит через собственный клиент. У Мегамаркета, DNS и Ситилинка тоже нет:
 их трафик идёт через ваш Chrome, а его egress — дело настроек браузера. Кэшируются
 только удачные ответы: запомнить сбой значило бы растянуть секундную помеху на весь
@@ -425,11 +409,6 @@ TTL.
 
 У Ozon прокси применяется к первому уровню. Второй идёт через ваш собственный Chrome,
 и его трафик — дело настроек этого браузера.
-
-**Секрет один, и тот опциональный.** Всем серверам, кроме MPStats, ничего не нужно:
-нечего настраивать, нечему утечь. У MPStats есть `MPSTATS_MP_AUTH` — JWT платного
-аккаунта, и потому его место только в env клиентской записи: в коде и коммитах его
-нет и быть не должно.
 
 ## Разработка
 
@@ -502,8 +481,7 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 обращаются к публичным эндпоинтам каталога, которые использует официальный
 веб-клиент: пока opt-in не включён, в приватные и административные разделы
 запросов нет — список адресов профиля Мегамаркета читается только при
-`MEGAMARKET_USE_PROFILE_ADDRESS=1`, а MPStats заходит в аккаунтную зону по
-вашему токену (`MPSTATS_MP_AUTH`). Уровень Ozon с браузером работает внутри
+`MEGAMARKET_USE_PROFILE_ADDRESS=1`. Уровень Ozon с браузером работает внутри
 сессии, которую вы открыли сами. Используйте на своё
 усмотрение, для личных исследований, в вежливом темпе запросов. Пауза между
 вызовами к площадкам с анти-ботом — это часть конструкции, а не случайное
@@ -523,7 +501,6 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 
 ## Спасибо
 
-- [@Xpos587](https://github.com/Xpos587) — коннектор MPStats, [PR #5](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/5).
 - [@avxone](https://github.com/avxone) — исправление Avito selfcheck, [PR #37](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/37).
 - [@Khalmatov](https://github.com/Khalmatov) — provenance отзывов Ozon, [PR #38](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/38).
 - [@fosteev](https://github.com/fosteev) — macOS CDP stealth и коннектор Циана, [PR #42](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/42), [PR #47](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/47).

@@ -1122,7 +1122,19 @@ the model's own tests against each, and reports which defects nothing caught.
   excluded (a unit test on a downstream model, a test that also reads a relation
   the mutant cannot reach) and why, and a `reason` when it was off.
 - `baseline.excluded` names tests already failing against the unmutated model;
-  every verdict is relative to the tests that passed.
+  every verdict is relative to the tests that passed. It also names the
+  Elementary monitoring tests kept out of every run, with status `not_run` and a
+  `reason_code` (`elementary_disabled` or `elementary_history`): with the
+  package installed, the copy strips its run hooks, disables its models where
+  nothing else refers to them (and otherwise has dbt run the tests under its own
+  test materialization, refusing where a project materialization still hands
+  them to Elementary's), and keeps these tests out, so the run writes nothing to
+  the dev target (#1307). A project's own test that wraps one of them is kept
+  out too. A model whose only tests are these is refused, since nothing would
+  measure it, and none of them counts as a test of an incremental model's full
+  build. A run where a package installed outside the project (an absolute
+  `packages-install-path`) declares a run hook is refused, since the copy
+  cannot strip it.
 - An incremental model's `{% if is_incremental() %}` branch is compiled a second
   time with the branch taken, and its own comparisons and filters are planted
   there (#1132). Only unit tests overriding `is_incremental` to true run against

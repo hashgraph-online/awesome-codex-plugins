@@ -698,6 +698,7 @@ that did not, with why. A declared field never disappears without a word.
 | --- | --- |
 | a single-column `grain` | the primary entity (`order_id` becomes entity `order`) |
 | a composite `grain`, or none | no primary entity, and none guessed: MetricFlow needs one for any dimension or measure, so the derivation is `failed` with the limitation named. Add `primary_entity:` and pass it to `semantic plan` yourself |
+| a column named for a time granularity (`year`, `month`, `day` and the rest, in any case) | nothing: MetricFlow reserves those names, so the derivation is `failed`, naming the column and the fix: rename the output column, or name the element `<model>_<column>` with `expr: <column>` (pointing `defaults.agg_time_dimension` and any `non_additive_dimension` at it when it is the default time dimension) and pass it to `semantic plan --definitions-file` |
 | `foreign_key` | a foreign entity. With `references`, it takes the entity name the referenced model's semantic model already gives that column, so the join resolves; otherwise the column's name less `_id`, with a note |
 | `dimension` | a categorical dimension |
 | `time` | a time dimension: `day` for a date, `day` for a timestamp (noted, since finer is the author's choice), the truncated grain where the SQL truncates (`date_trunc('month', ...)`), `day` with a note where the type cannot be read. A column whose type is known not to be temporal is left out. The first time column is `defaults.agg_time_dimension`, and a note names the others |

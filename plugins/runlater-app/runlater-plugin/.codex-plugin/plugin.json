@@ -1,0 +1,45 @@
+{
+  "name": "runlater",
+  "version": "1.1.0",
+  "description": "Schedule HTTP requests from Codex: call any URL once at an exact time or on a cron schedule, with retries and a log of every run, through the RunLater remote MCP server.",
+  "author": {
+    "name": "Great Work LLC",
+    "email": "hello@greatwork.company",
+    "url": "https://runlater.app"
+  },
+  "homepage": "https://runlater.app",
+  "repository": "https://github.com/runlater-app/runlater-plugin",
+  "license": "MIT",
+  "keywords": [
+    "cron",
+    "scheduler",
+    "webhooks",
+    "scheduled-jobs",
+    "http-requests",
+    "mcp"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "RunLater",
+    "shortDescription": "Schedule HTTP requests and webhooks from your agent",
+    "longDescription": "RunLater calls any public URL at an exact time or on a cron schedule in your timezone, retries failures with backoff and logs every response. Ask Codex to call a webhook every weekday at 9am, run a job now, pause a schedule or check why last night's run failed. Sign in once with OAuth, no key to paste. Plans start at $15 a month with a 14-day trial.",
+    "developerName": "Great Work LLC",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://runlater.app",
+    "privacyPolicyURL": "https://runlater.app/privacy",
+    "termsOfServiceURL": "https://runlater.app/terms",
+    "defaultPrompt": [
+      "Call this webhook every weekday at 9am Chicago time",
+      "List my schedules and show which ones are failing",
+      "Run the backup job now and show me the response"
+    ],
+    "brandColor": "#25262B",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/icon.png"
+  }
+}

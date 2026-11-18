@@ -65,6 +65,11 @@ Nenhuma ferramenta que analisa apenas um repositório de código pode "certifica
 
 Segue o padrão aberto **Agent Skills** ([agentskills.io](https://agentskills.io)) com suporte nativo a 5 agentes:
 
+### Qualquer agente (via [skills.sh](https://skills.sh/goul4rt/lgpd-skills))
+```bash
+npx skills add goul4rt/lgpd-skills
+```
+
 ### Claude Code
 ```text
 /plugin marketplace add goul4rt/lgpd-skills

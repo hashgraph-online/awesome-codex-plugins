@@ -273,16 +273,28 @@ Needs no baseline. The classes of finding:
     conversion fails on stay eligible and unmatched, and are counted apart as
     `measured.conversion_failed_rows` and `conversion_failed_keys`, so a failed
     cast reads differently from a missing parent.
-  - `effective_input` (#1085), on a join one of whose sides is read through a
-    filtering CTE or subquery: per side, the physical `relation`, the scopes it
-    was read `through` and the `filters` the probe applied to it. The measured
-    counts are over those rows, so a key present only in rows the filter drops
-    is not a match. Carried only when every filtering hop reads one relation,
-    its only reducing clause is a `WHERE`, and each conjunct is a row-by-row
-    condition over columns and literals (comparisons, `IN` over a literal list,
-    `BETWEEN`, `LIKE`, `IS`, boolean logic, `coalesce`, casts and
-    `lower`/`upper`/`trim`, as in `where coalesce(_fivetran_active, true)`)
-    that traces to the key's own physical relation.
+  - `effective_input` (#1085, #1324), on a join one of whose sides is read
+    through a filtering or grouped CTE or subquery: per side, the physical
+    `relation`, the scopes it was read `through` and the `filters` the probe
+    applied to it. The measured counts are over those rows, so a key present
+    only in rows the filter drops is not a match. Carried only when every
+    filtering hop reads one relation, its only reducing clause is a `WHERE`,
+    and each conjunct is a row-by-row condition over columns and literals
+    (comparisons, `IN` over a literal list, `BETWEEN`, `LIKE`, `IS`, boolean
+    logic, `coalesce`, casts and `lower`/`upper`/`trim`, as in
+    `where coalesce(_fivetran_active, true)`) that traces to the key's own
+    physical relation. A side grouped by *exactly* the join's key columns
+    (a direct `GROUP BY` over one input, with no `HAVING`, window, `LIMIT`,
+    set operation or grouping modifier (`ROLLUP`, `CUBE`, `GROUPING SETS`,
+    `GROUP BY ALL`), and optionally the supported `WHERE`) also carries
+    `grouped_by`, the key columns it groups by. That side is probed over its
+    groups, never the ungrouped relation underneath, and its own denominator
+    is `measured.group_rows`. Its aggregate outputs are attributed through the
+    model's final projections, so `null_rule: never` on a renamed output
+    (`o.total_amount as spend`) still makes the join required, and an
+    aggregate the model does not project is not treated as supplied. A grouping by anything else (an extra column, a
+    subset of a composite key, an expression, or a grouping inside another
+    grouping) stays `filtered_cte`.
   - `status`: `satisfied`, `contradicted` (with the finding), `not_applicable`
     (an empty input or all-NULL keys: no coverage, which is not full coverage)
     or `unchecked`, with a `reason_code`: `non_equality_join`,
@@ -291,8 +303,9 @@ Needs no baseline. The classes of finding:
     on Postgres, which has no cast that returns NULL, to a type other than
     `smallint`, `integer` or `bigint`: those are measured through a guarded cast), `key_and_filter_condition`, `ambiguous_using`, `unresolved_column`,
     `set_operation_cte` (a column read through a UNION CTE, which is not a
-    warehouse table), `filtered_cte` (a filtering scope of any other shape: a
-    `GROUP BY`, `DISTINCT`, `LIMIT`, `HAVING`, `QUALIFY`, a join beside the
+    warehouse table), `filtered_cte` (a reducing scope of any other shape: a
+    `GROUP BY` other than exactly the join's key columns, `DISTINCT`, `LIMIT`,
+    `HAVING`, `QUALIFY`, a join beside the
     filter, a subquery or clock function in it, or a filter on a computed or
     window column such as `rn = 1`, or a join that can drop rows of the
     relation the key is read from: an inner, bare, comma or CROSS join, a

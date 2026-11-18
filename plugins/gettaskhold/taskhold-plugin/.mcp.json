@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "taskhold": {
+      "type": "http",
+      "url": "https://taskhold.com/api/mcp"
+    }
+  }
+}

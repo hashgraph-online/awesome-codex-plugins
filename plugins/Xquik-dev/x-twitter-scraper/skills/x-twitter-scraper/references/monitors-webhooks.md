@@ -31,16 +31,30 @@ Content-Type: application/json
 {"query": "#rustlang", "eventTypes": ["tweet.new"]}
 ```
 
-The event types are `tweet.new`, `tweet.reply`, `tweet.retweet`, `tweet.quote`,
-`tweet.media`, `tweet.link`, `tweet.poll`, `tweet.mention`, `tweet.hashtag`,
-`tweet.longform`, and profile changes such as `profile.bio.changed`,
-`profile.name.changed`, and `profile.avatar.changed`.
+Account monitors take 30 event types in 6 groups. Keyword monitors take the
+first group only.
+
+- Posts. `tweet.new`, `tweet.reply`, `tweet.retweet`, `tweet.quote`,
+  `tweet.media`, `tweet.link`, `tweet.poll`, `tweet.mention`, `tweet.hashtag`,
+  and `tweet.longform`.
+- Profile changes. 11 types such as `profile.bio.changed`,
+  `profile.name.changed`, and `profile.avatar.changed`.
+- Activity. `tweet.deleted`, `broadcast.started`, and `space.started`.
+- Follows. `following.added` and `following.removed`.
+- Followers. `follower.added` and `follower.removed`.
+- Counts. `profile.followers.changed` and `profile.following.changed`.
 
 Only subscribed types are stored and delivered. `tweet.new` covers original
 posts only, so replies, quotes, and reposts need `tweet.reply`, `tweet.quote`,
-and `tweet.retweet`. An account monitor watches that account's own posts and
-profile. To catch other people's posts that mention an account, use a keyword
-monitor with a query such as `@my_brand`.
+and `tweet.retweet`. An account monitor watches that account's own posts,
+profile, follows, and followers. Follower events hold the other account's
+profile, or its ID when X shows none. A removal holds `reason` when the cause is
+known. Monitors name lost followers for accounts with up to 100,000 followers.
+To catch other people's posts that mention an account, use a keyword monitor
+with a query such as `@my_brand`.
+
+A post monitor, `POST /monitors/posts`, takes the 10 `post.*` types. They cover
+1 post's replies, quotes, metric changes, edit, and deletion.
 
 | Action | Account monitor | Keyword monitor |
 | --- | --- | --- |

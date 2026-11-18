@@ -1,8 +1,8 @@
 # SFXMint MCP Server
 
-Free CC0 sound effects — [describe a sound to find it](https://sfxmint.com), preview, and download MP3 (WAV comes with the download pack). **Free to try with no signup or API key, no attribution.** Agents can [ask by role](https://sfxmint.com/roles), [take one of 18 sets](https://sfxmint.com/sets), or search the library, and get permanent hotlinkable URLs. When nothing in the library fits, the agent tells the user which sound is missing; SFXMint no longer makes new sounds, and new ones join the library from what people search for.
+Free CC0 sound effects — [describe a sound to find it](https://sfxmint.com), preview, and download WAV or MP3. **Search with no signup or API key; no attribution.** Agents can [ask by role](https://sfxmint.com/roles), [take one of 26 sets](https://sfxmint.com/sets), or search the library, and get permanent hotlinkable URLs. When nothing in the library fits, the agent tells the user which sound is missing; SFXMint no longer makes new sounds, and new ones join the library from what people search for.
 
-Free use has a daily allowance: without a key, 20 lookups and tool calls and 5 different sound downloads a day per network (a second format or a retry of the same sound is not counted again); a free account's [API key](https://sfxmint.com/dashboard/keys) gives 100 calls and 20 downloads a day (300 a month); a [download pack](https://sfxmint.com/pricing) removes the limits and adds WAV for 30 days, and file URLs returned to its keyed requests carry a signed `g=` good for 48 hours. Past a limit the answer is `429 download_limit` or `call_limit` with a message to pass on to the user. Listening in a browser is never counted. Keep `page_url` in SOUNDS.md, never a URL with `g=`.
+Free use has a daily allowance: without a key, 20 lookups and tool calls a day per network and no downloads; a free account's [API key](https://sfxmint.com/dashboard/keys) (no card) gives 100 calls and 3 different sound downloads a day, the website and the API together (a second format or a retry of the same sound is not counted again). [Download credits](https://sfxmint.com/pricing), one a sound in every format and never expiring, go past the limits, and file URLs returned to their keyed requests carry a signed `g=` good for 48 hours. Past a limit the answer is `429 download_limit` or `call_limit` with a message to pass on to the user word for word; an agent never pays. Listening to an MP3 in a browser is never counted; a WAV fetched to listen is a download. Keep `page_url` in SOUNDS.md, never a URL with `g=`.
 
 - **Endpoint (Streamable HTTP):** `https://sfxmint.com/mcp`
 - **Docs:** https://sfxmint.com/api/docs
@@ -44,7 +44,7 @@ Cursor / generic `mcpServers` config:
 { "mcpServers": { "sfxmint": { "url": "https://sfxmint.com/mcp?ref=github-readme" } } }
 ```
 
-With a free account's API key (higher daily limits; a download pack lifts them for the key's account):
+With a free account's API key (needed to download files; download credits lift the limits for the key's account):
 
 ```bash
 claude mcp add --transport http sfxmint "https://sfxmint.com/mcp?ref=github-readme" --header "Authorization: Bearer $SFXMINT_API_KEY"
@@ -79,11 +79,13 @@ It writes the audio plus a `sounds.json` manifest recording each file's source U
 | Tool | What it does |
 |---|---|
 | `get_role_sound` | Ask by event — `button-click`, `purchase-success`, `error`, `coin`, `notification`. Returns a file-checked candidate plus alternates; plain-English aliases work |
-| `get_sound_set` | Candidates grouped by event and style (19 sets: `ui-crisp`, `retro-game`, `checkout`, `platformer`, `fantasy-rpg`, `ai-coding-tool`, …) |
+| `get_sound_set` | Candidates grouped by event and style (26 sets: `ui-crisp`, `retro-game`, `checkout`, `platformer`, `fantasy-rpg`, `ai-coding-tool`, …) |
 | `search_sounds` | Free-text retrieval with explicit duration, loop and format requirements; hard constraints can produce no candidates. When nothing fits, `user_message` is one line for the user saying which sound the library lacks |
-| `get_sound` | Full metadata for one sound (incl. a short description, measured acoustics, license) |
+| `get_sound` | Full metadata for one sound (incl. a short description, measured acoustics with a 16-point level envelope and low/mid/high energy, license) |
+| `create_listen_page` | For several events of one project: a page where the user plays about three candidates an event (MP3, never counted), keeps one each, adds a note and presses Done. Returns `listen_url` and a code good for 24 hours |
+| `get_picks` | The user's picks from a listening page, with notes, and which ones fit today's free downloads and which take credits; only the key that made the page reads them |
 
-When nothing fits, pass `user_message` on to the user and list the sound under a Missing heading in `SOUNDS.md`. The four library tools are all there is for new users: SFXMint no longer makes new sounds. An account that already has credits or a plan still sees `generate_sound` and `get_generation` with its API key. Game kits (projects of many sounds) closed on 2026-10-20; their tools answer `tool_retired`. `get_job` and `POST /api/v1/generate` stay retired.
+For a whole app or game, give the user the listening page first and download what they picked; if they say "you decide", download your picks directly. When nothing fits, pass `user_message` on to the user and list the sound under a Missing heading in `SOUNDS.md`. The library tools above are all there is for new users: SFXMint no longer makes new sounds. An account that already has credits or a plan still sees `generate_sound` and `get_generation` with its API key. Game kits (projects of many sounds) closed on 2026-10-20; their tools answer `tool_retired`. `get_job` and `POST /api/v1/generate` stay retired.
 
 ## Requirements, processing and acceptance
 
@@ -97,7 +99,7 @@ Use URLs returned by the live API, without inventing or rewriting them. See the 
 
 ## Rate limits & fair use
 
-- Without a key: 20 lookups and tool calls and 5 sound downloads a day per network; a free account's API key: 100 calls and 20 downloads a day
+- Without a key: 20 lookups and tool calls a day per network, no downloads; a free account's API key: 100 calls and 3 sound downloads a day, the website and the API together
 - Hotlinking is allowed and encouraged; files are served with long-lived immutable caching
 
 ## Contact

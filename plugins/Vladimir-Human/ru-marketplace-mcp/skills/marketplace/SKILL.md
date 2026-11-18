@@ -7,17 +7,15 @@ description: Use this skill when the operator wants the full marketplace mount, 
 
 One server mounting every installed connector as a namespaced toolset:
 `wb_*`, `ozon_*`, `yandex_*`, `detmir_*`, `avito_*`, `taobao_*`, `megamarket_*`,
-`lamoda_*`, `dns_*`, `citilink_*`, `aliexpress_*`, `cian_*`, `mpstats_*` plus
+`lamoda_*`, `dns_*`, `citilink_*`, `aliexpress_*`, `cian_*` plus
 `compare_prices` / `compare_sources` and its own `marketplace_sources` and
 `marketplace_health`. Tool names keep their prefixes, so habits and configs
 carry over — but the operator wires a single `marketplace` entry instead of
-fourteen. The server exposes 41 tools with `MPSTATS_MP_AUTH` set and 39 without
-it: the two `mpstats_*` tools are not mounted until the paid token is
-configured, because without it every call would answer `auth_missing`.
+thirteen. The server exposes 39 tools.
 
 ## When to use
 - "Where is X cheapest" — compare_prices fans out across all searchable sources
-- Client setup: one config entry, not fourteen
+- Client setup: one config entry, not thirteen
 - Health overview: the CLI's `doctor` runs every selfcheck at once
 - A source came back empty and you can't tell installed-but-quiet from never-loaded
   → `marketplace_sources`
@@ -33,8 +31,7 @@ configured, because without it every call would answer `auth_missing`.
   mounted. `needs_cdp` is the sorted subset of `mounted` whose reads can go
   through the operator's Chrome, so a dead browser is a reason to read
   `marketplace_health` before spending a call. `skipped` maps a source name to
-  the reason it is unavailable: an import error (usually a missing dependency), a
-  missing credential its tools need (MPStats without `MPSTATS_MP_AUTH`), or a
+  the reason it is unavailable: an import error (usually a missing dependency), or a
   `MARKETPLACE_SOURCES` deselection. Connectors are imported
   defensively, so a missing dep removes a marketplace instead of killing the server —
   but from the client an absent source looks identical to one that found nothing.

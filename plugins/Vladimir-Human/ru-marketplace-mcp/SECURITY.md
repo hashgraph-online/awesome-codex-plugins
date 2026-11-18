@@ -13,23 +13,14 @@
 
 ## Чего проект касается, а чего нет
 
-**Секрет в проекте один, и тот необязательный.** Двенадцать источников из
-тринадцати не требуют ни ключей API, ни токенов, ни паролей: все настройки у них
-эксплуатационные, то есть таймауты, задержки, регион и прокси. Исключение одно —
-коннектор MPStats. Ему нужен `MPSTATS_MP_AUTH`, JWT вашей платной сессии. Вы
-передаёте его через переменную окружения или `.env`; проект нигде его не хранит,
-не пишет в логи и вырезает из текста ошибок вместе с прочими секретами. Без этой
-переменной сервер MPStats поднимается и честно отвечает `auth_missing`, а
-остальные двенадцать работают как работали.
+Источники не требуют ни ключей API, ни токенов, ни паролей: все настройки у них
+эксплуатационные, то есть таймауты, задержки, регион и прокси.
 
 Весь доступ только на чтение. Двенадцать источников читают публичные
 эндпоинты каталога, которые дёргает официальный веб-клиент: пока opt-in не
-включён, ни в приватные, ни в административные разделы запросов нет. MPStats
-устроен иначе. Это приватный API браузерного плагина, доступный по вашей
-сессии, и потому единственное место, где проект обращается в аккаунтную зону
-без каких-либо условий. Что это означает для вашего аккаунта, описано в README.
+включён, ни в приватные, ни в административные разделы запросов нет.
 
-**Мегамаркет — второй вход в аккаунтную зону, только по явному opt-in.** По
+**Мегамаркет — вход в аккаунтную зону, только по явному opt-in.** По
 умолчанию его коннектор тоже читает лишь публичные эндпоинты: каталог,
 `url/parse` и публичный саггест адресов (`MEGAMARKET_ADDRESS`, Москва по
 умолчанию). Но он умеет прочитать и приватный `/profileService/address/list`
@@ -129,18 +120,8 @@ Wildberries, Яндекс Маркет и Детский мир к CDP не об
 двенадцати источникам проект обращается только по публичным эндпоинтам каталога,
 в намеренно вежливом темпе, для личных исследований.
 
-MPStats требует отдельной оговорки: там вы рискуете оплаченным аккаунтом, а не
-только доступом. Его оферта называет основанием для блокировки работу одного
-аккаунта с двух и более IP-адресов или браузеров одновременно (п. 5.1.3–5.1.4), а
-плагин в вашем браузере вместе с запущенным сервером это ровно оно. Вторым
-основанием идёт темп чаще одного запроса в пять секунд (п. 5.1.1), поэтому
-`MPSTATS_MIN_GAP` по умолчанию равен пяти секундам. Уменьшать его значит
-приближать блокировку, при которой оплата не возвращается (п. 5.2). У сервиса
-есть и официальный API: если аналитика нужна постоянно, он безопаснее.
-
 За своё использование, включая соблюдение местного законодательства и условий
-сервисов, отвечаете вы. Чтение приватных эндпоинтов (MPStats по умолчанию,
-профильные адреса Мегамаркета при явном opt-in) — ваша ответственность в той
+сервисов, отвечаете вы. Чтение приватных эндпоинтов (профильные адреса Мегамаркета при явном opt-in) — ваша ответственность в той
 же мере: это использование вашей сессии для чтения ваших же данных.
 
 ## Поддерживаемые версии
@@ -162,20 +143,14 @@ transport tier is involved.
 
 ## What this project does and does not touch
 
-**There are no credentials anywhere in this project, with one optional exception.**
+**There are no credentials anywhere in this project.**
 No API keys, no tokens, no passwords, no credential store, no `.env` requirement.
-Every setting is an operational knob (timeouts, rate gaps, region, proxy). The one
-exception is the optional MPStats connector's `MPSTATS_MP_AUTH`: a paid account JWT
-you supply yourself via env. It is never written into code or stored by the project
-— there is still nothing to leak.
+Every setting is an operational knob (timeouts, rate gaps, region, proxy).
 
 All access is read-only. Twelve sources read the public catalog endpoints the official
 web clients use, touching no authenticated or administrative area — unless you opt in.
-MPStats is the one place this project enters an account-gated zone by default: a
-private browser-plugin API reached with your own session. The README explains what
-that means for your account.
 
-**Megamarket is a second account-gated surface, and only on explicit opt-in.**
+**Megamarket is an account-gated surface, and only on explicit opt-in.**
 By default its connector also stays on public endpoints: catalog reads,
 `url/parse`, and the public address suggest driven by `MEGAMARKET_ADDRESS`
 (Moscow by default). It *can* read the private `/profileService/address/list`
@@ -272,16 +247,8 @@ Marketplace terms of service generally disallow unofficial parsing. This project
 queries only public catalog endpoints for twelve of its sources, at a deliberately
 polite rate, for personal research.
 
-MPStats needs its own warning, because there you risk a paid account rather than just
-access. Its offer makes grounds for blocking out of running one account from two or
-more IPs or browsers at once (clauses 5.1.3–5.1.4 — the plugin in your browser plus a
-running server is exactly that) and of a rate above one request per five seconds
-(clause 5.1.1). `MPSTATS_MIN_GAP` therefore defaults to five seconds; lowering it
-moves you toward a block, and a blocked account is not refunded (clause 5.2). The
-service also has an official API, which is the safer route for sustained use.
-
 You are responsible for your own use, including compliance with local law and the
-relevant terms. Reading private endpoints — MPStats by default, Megamarket's profile
+relevant terms. Reading private endpoints — Megamarket's profile
 address list when explicitly opted in — is your responsibility in the same measure:
 it is your session being used to read your own data.
 

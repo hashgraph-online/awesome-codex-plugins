@@ -1,0 +1,45 @@
+{
+  "name": "taskhold",
+  "version": "1.2.0",
+  "description": "A task list you share with Codex: Codex picks up the next task, splits it into steps, reports progress and asks you when it is blocked, through the Taskhold remote MCP server. You watch a live board of every agent's progress.",
+  "author": {
+    "name": "Great Work LLC",
+    "email": "hello@greatwork.company",
+    "url": "https://taskhold.com"
+  },
+  "homepage": "https://taskhold.com",
+  "repository": "https://github.com/gettaskhold/taskhold-plugin",
+  "license": "MIT",
+  "keywords": [
+    "tasks",
+    "todo",
+    "backlog",
+    "progress",
+    "coding agents",
+    "mcp",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Taskhold",
+    "shortDescription": "One task list for you and your coding agents, with live progress",
+    "longDescription": "Taskhold is a hosted task list you share with Codex, Claude Code, Cursor and other agents. Codex files the work you ask for, plans it into steps, reports progress and, when it needs a decision, blocks the task with one question that you answer from the live board, including on your phone. Sign in once with OAuth, no key to paste. $12 a month or $120 a year after a 7-day trial.",
+    "developerName": "Great Work LLC",
+    "category": "Productivity",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://taskhold.com",
+    "privacyPolicyURL": "https://taskhold.com/privacy",
+    "termsOfServiceURL": "https://taskhold.com/terms",
+    "defaultPrompt": [
+      "What's next on my Taskhold list?",
+      "Put this on the list as a task with steps, then start it",
+      "File this bug as a task for later"
+    ],
+    "composerIcon": "./.claude-plugin/icon.png",
+    "logo": "./.claude-plugin/icon.png"
+  }
+}

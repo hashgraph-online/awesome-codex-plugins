@@ -31,7 +31,6 @@ dependencies = [
     "lamoda-connector",
     "dns-connector",
     "citilink-connector",
-    "mpstats-connector",
     "aliexpress-connector",
     "cian-connector",
     "marketplace-connector",
@@ -59,7 +58,6 @@ megamarket-connector = { workspace = true }
 lamoda-connector = { workspace = true }
 dns-connector = { workspace = true }
 citilink-connector = { workspace = true }
-mpstats-connector = { workspace = true }
 aliexpress-connector = { workspace = true }
 cian-connector = { workspace = true }
 marketplace-connector = { workspace = true }
@@ -139,7 +137,6 @@ testpaths = [
     "packages/lamoda-connector/tests",
     "packages/dns-connector/tests",
     "packages/citilink-connector/tests",
-    "packages/mpstats-connector/tests",
     "packages/aliexpress-connector/tests",
     "packages/cian-connector/tests",
     "packages/marketplace-connector/tests",
@@ -150,11 +147,12 @@ markers = [
     "req(*ids): requirement or invariant IDs traced by scripts/grace_index.py",
     "live: hits real marketplace endpoints — requires network and a Russian-friendly IP (deselect with '-m \"not live\"')",
     "cdp: requires a running Chrome with remote debugging on port 9222",
+    "cdp_sim: isolated Chrome and loopback HTTPS fixtures only (also marked cdp, so the default offline run excludes it)",
 ]
 filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.coverage.run]
-# Measure the sixteen workspace packages' source, not their tests. This is what the
+# Measure the fifteen workspace packages' source, not their tests. This is what the
 # `--cov` invocation in the CI coverage job reports against; the enforcing
 # --cov-fail-under floor is passed on that job's command line, not baked in here,
 # so the rest of the test matrix runs exactly as before.
@@ -172,7 +170,6 @@ source = [
     "packages/lamoda-connector/src/lamoda_connector",
     "packages/dns-connector/src/dns_connector",
     "packages/citilink-connector/src/citilink_connector",
-    "packages/mpstats-connector/src/mpstats_connector",
     "packages/aliexpress-connector/src/aliexpress_connector",
     "packages/cian-connector/src/cian_connector",
     "packages/marketplace-connector/src/marketplace_connector",

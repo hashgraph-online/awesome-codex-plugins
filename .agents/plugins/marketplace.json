@@ -1730,21 +1730,6 @@
       "icon": "./plugins/ClickHouse/loom/assets/icon.png"
     },
     {
-      "name": "lvtd-skills",
-      "displayName": "LVTD Skills",
-      "source": {
-        "source": "local",
-        "path": "./plugins/LVTD-LLC/skills"
-      },
-      "policy": {
-        "installation": "AVAILABLE",
-        "authentication": "ON_INSTALL"
-      },
-      "category": "Development & Workflow",
-      "description": "Reusable Agent Skills for Codex, Claude Code, and compatible clients, covering Django, Rust, Cookiecutter, SEO, traction, product marketing, and nonfiction publishing workflows.",
-      "icon": "./plugins/LVTD-LLC/skills/assets/app-icon.png"
-    },
-    {
       "name": "macbox",
       "displayName": "macbox",
       "source": {
@@ -5546,6 +5531,21 @@
       "icon": "./plugins/talkstream/ru-text/assets/icon.png"
     },
     {
+      "name": "runlater",
+      "displayName": "RunLater",
+      "source": {
+        "source": "local",
+        "path": "./plugins/runlater-app/runlater-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill that let Codex schedule HTTP requests: once at an exact time or on a cron schedule, with retries and a log of every run; paid, plans from $15/month with a 14-day trial.",
+      "icon": "./plugins/runlater-app/runlater-plugin/assets/icon.png"
+    },
+    {
       "name": "rust-reverse-engineering",
       "displayName": "Rust Reverse Engineering",
       "source": {
@@ -5990,6 +5990,21 @@
       "category": "Tools & Integrations",
       "description": "OpenAI Codex plugin and local MCP server for turning task lists into realistic schedules with blocked dates, capacity overrides, overflow tracking, and markdown planning output.",
       "icon": "./plugins/6Delta9/task-scheduler-codex-plugin/assets/icon.png"
+    },
+    {
+      "name": "taskhold",
+      "displayName": "Taskhold",
+      "source": {
+        "source": "local",
+        "path": "./plugins/gettaskhold/taskhold-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Remote MCP server and skill that give Codex a task list you share: it picks up the next task, plans it in steps, reports live progress and blocks with a question when it needs you; paid, $12/month with a 7-day trial.",
+      "icon": "./plugins/gettaskhold/taskhold-plugin/.claude-plugin/icon.png"
     },
     {
       "name": "teaching-skills",
