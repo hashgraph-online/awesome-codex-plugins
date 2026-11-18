@@ -1,0 +1,11 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "runheed",
+  "version": "1.0.0",
+  "description": "Error tracking your coding agent can read. Search production errors, read stack traces with context, fix them and mark them resolved.",
+  "author": { "name": "Great Work LLC", "url": "https://runheed.com" },
+  "keywords": ["runheed", "production errors", "error tracking", "stack trace", "exception", "crash", "sentry alternative", "debug production"],
+  "homepage": "https://runheed.com",
+  "repository": "https://github.com/getrunheed/runheed-plugin",
+  "license": "MIT"
+}

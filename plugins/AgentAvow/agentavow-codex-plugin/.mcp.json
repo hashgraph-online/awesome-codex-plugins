@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agentavow": {
+      "type": "http",
+      "url": "https://agentavow.com/mcp?via=plugin"
+    }
+  }
+}

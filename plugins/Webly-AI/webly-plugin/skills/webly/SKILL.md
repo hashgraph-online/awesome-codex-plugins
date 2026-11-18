@@ -589,6 +589,29 @@ Transfers page, where they accept or decline it (or their agent:
 `list_incoming_transfers`, `accept_website_transfer { transferId }`,
 `decline_website_transfer`). There are no transfer codes.
 
+### Other apps (integrations)
+
+Signed-in workspaces can reach Gmail, Google Calendar, Notion, GitHub, Slack and
+1,000+ more apps through the same MCP connection (the tools are hidden where
+it isn't rolled out yet).
+
+1. `search_integration_tools` with the task in plain words ("send a Slack
+   message to #general saying the site is live", not "slack tools"). Follow
+   each result's `recommended_plan_steps` and `known_pitfalls`.
+2. `get_integration_tool_schemas` when you need a tool's inputs.
+3. `run_integration_tool`. It acts in the real app: ask your person before
+   anything that sends, posts, changes or deletes.
+
+Not connected yet: `connect_integration { toolkit }` and give your person the
+`url` to sign in. With an API key (an API key can't sign in to apps), ask your
+person to connect it on the dashboard's Integrations page instead. Never say it's connected until `get_integration` answers
+`status: "active"`. In a team, `shared: true` (for every member) is for owners
+and admins only. Free connects any 2 apps at a time and 100 runs a month
+(`connections` and `usage` in `list_integrations`). On `402
+integration_connection_limit` (a third app) or `integration_limit` (runs used
+up), tell your person and give them `details.upgradeUrl`. Never disconnect one
+of their apps to make room unless they ask.
+
 ### Custom domains
 
 Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,

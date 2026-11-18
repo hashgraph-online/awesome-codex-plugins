@@ -22,9 +22,9 @@ The default install registers the OpenCode plugin and the TUI quota-status plugi
 | Flag | When to use |
 | --- | --- |
 | _(none)_ / `--plugin-only` | User already manages `provider.openai` (default) |
-| `--modern` | Compact catalog: 12 base OAuth model families + variant presets |
-| `--full` | Compact bases plus 65 explicit selector IDs (e.g. `openai/gpt-5.5-medium`, `openai/gpt-6-astra-high`) |
-| `--legacy` | 65 explicit model IDs only, for OpenCode versions without variant support |
+| `--modern` | Compact catalog: 14 base OAuth model families + variant presets |
+| `--full` | Compact bases plus 77 explicit selector IDs (e.g. `openai/gpt-5.5-medium`, `openai/gpt-6.2-astra-high`) |
+| `--legacy` | 77 explicit model IDs only, for OpenCode versions without variant support |
 | `--v2` | Register for OpenCode V2 (`plugins` entry; plugin-only, includes quota UI) |
 
 `--v2` cannot combine with a catalog mode; it refuses an existing `opencode.jsonc` or V1 `plugin` entries. Other installer flags: `--dry-run`, `--no-cache-clear`, `--version`, `--help`.
@@ -69,7 +69,7 @@ All live in `~/.opencode/openai-codex-auth-config.json`; every boolean env overr
 
 | Knob | Default | Purpose |
 | --- | --- | --- |
-| `perProjectAccounts` | `true` | Per-project pools under `~/.opencode/projects/<key>/` |
+| `perProjectAccounts` | `false` | Global pool by default; opt in to per-project pools under `~/.opencode/projects/<key>/` |
 | `rotationStrategy` | `hybrid` | `sticky` / `round-robin` alternatives |
 | `maskEmail` | `false` | Render emails as `us***@example.com` |
 | `quotaNotifications.autoProtectCredits` | `true` | 30-min `/wham/usage` poll that blocks spent accounts pre-429 |

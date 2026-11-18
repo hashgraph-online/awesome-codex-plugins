@@ -140,6 +140,21 @@
       "icon": "./plugins/1139030773-cmd/agent-workflow-system/assets/composer-icon.svg"
     },
     {
+      "name": "agentavow-trust",
+      "displayName": "AgentAvow Trust",
+      "source": {
+        "source": "local",
+        "path": "./plugins/AgentAvow/agentavow-codex-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Checks your MCP servers at session start and stops a `codex mcp add` or package install that reads Do not connect, with the reason and a signed 0-100 trust score.",
+      "icon": "./plugins/AgentAvow/agentavow-codex-plugin/icon.png"
+    },
+    {
       "name": "agentic-readiness-assessment",
       "displayName": "Agentic Readiness Assessment",
       "source": {
@@ -584,6 +599,21 @@
       "category": "Development & Workflow",
       "description": "Use ChatGPT as a reviewer, advisor, editor, or implementer in Codex, with ZIP packets by default and an opt-in MCP bridge.",
       "icon": "./plugins/TohmaN233/chatgpt-review-agent-skill/assets/icon.svg"
+    },
+    {
+      "name": "chunsik-garage",
+      "displayName": "Chunsik's Garage",
+      "source": {
+        "source": "local",
+        "path": "./plugins/yeunlee1/chunsik-garage"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "AQ checkup that reads your local Claude Code, Codex, and Gemini CLI records and settings, scores how you set up and use them, and turns off unused Claude Code and Codex skills and MCP servers with your approval and undo.",
+      "icon": "./plugins/yeunlee1/chunsik-garage/skills/aq/assets/composer-icon.png"
     },
     {
       "name": "claude-code",
@@ -5545,6 +5575,21 @@
       "icon": "./plugins/talkstream/ru-text/assets/icon.png"
     },
     {
+      "name": "runheed",
+      "displayName": "Runheed",
+      "source": {
+        "source": "local",
+        "path": "./plugins/getrunheed/runheed-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Error tracking your coding agent can read: search production errors, read stack traces, fix and resolve them. Hosted MCP server, paid.",
+      "icon": "./plugins/getrunheed/runheed-plugin/assets/icon.png"
+    },
+    {
       "name": "runlater",
       "displayName": "RunLater",
       "source": {
@@ -5841,6 +5886,21 @@
       "category": "Tools & Integrations",
       "description": "Search, cite and annotate the articles and PDFs in your own Sponge reading library through its local CLI and MCP server.",
       "icon": "./plugins/hraness/product-skills/plugins/sponge/assets/icon.png"
+    },
+    {
+      "name": "stalkchain",
+      "displayName": "StalkChain",
+      "source": {
+        "source": "local",
+        "path": "./plugins/StalkC/stalkchain-plugin"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Tools & Integrations",
+      "description": "Research public crypto trader wallets, token holders, and on-chain trade flow through a hosted OAuth MCP with metered account credits and optional price alerts that require confirmation.",
+      "icon": "./plugins/StalkC/stalkchain-plugin/assets/icon.png"
     },
     {
       "name": "story-skills",

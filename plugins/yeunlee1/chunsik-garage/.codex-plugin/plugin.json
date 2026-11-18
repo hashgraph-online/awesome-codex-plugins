@@ -1,0 +1,35 @@
+{
+  "name": "chunsik-garage",
+  "version": "0.5.0",
+  "description": "AQ checkup for Claude Code and Codex: scores how well you set up and use your AI coding tools, computed on your own PC.",
+  "author": {
+    "name": "yeunlee1",
+    "url": "https://github.com/yeunlee1"
+  },
+  "homepage": "https://github.com/yeunlee1/chunsik-garage",
+  "repository": "https://github.com/yeunlee1/chunsik-garage",
+  "license": "MIT",
+  "keywords": [
+    "aq",
+    "checkup",
+    "claude-code",
+    "codex",
+    "ai-tools"
+  ],
+  "skills": "./skills/",
+  "hooks": {},
+  "interface": {
+    "displayName": "Chunsik's Garage",
+    "shortDescription": "AQ checkup for your AI coding tools",
+    "developerName": "yeunlee1",
+    "websiteURL": "https://github.com/yeunlee1/chunsik-garage",
+    "longDescription": "Runs a program on your PC that reads the local records and settings of Claude Code, Codex, and Gemini CLI, plus the ChatGPT and Claude.ai data exports you add. It scores how well you set up and use these tools on four criteria (setup, efficiency, fit, intensity) and opens a one-page report that shows how each item was measured. It can also turn off skills, plugins, and MCP servers you have not used for a while, only with your approval and with undo. The program makes no network requests. Limits: Gemini CLI records and web chat exports have fewer measures, and the tool was built and tested on Windows 11.",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "composerIcon": "./skills/aq/assets/composer-icon.png",
+    "logo": "./skills/aq/assets/logo.png"
+  }
+}

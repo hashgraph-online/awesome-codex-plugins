@@ -42,7 +42,7 @@ importers:
         version: 4.1.11(vitest@4.1.12)
       openai:
         specifier: 7.55.0
-        version: 7.55.0(undici@7.30.1)(ws@8.22.1)(zod@4.6.7)
+        version: 7.55.0(undici@7.30.1)(ws@8.22.2)(zod@4.6.7)
       pg:
         specifier: 8.23.1
         version: 8.23.1
@@ -155,8 +155,8 @@ importers:
         specifier: 1.0.3
         version: 1.0.3
       ws:
-        specifier: 8.22.1
-        version: 8.22.1
+        specifier: 8.22.2
+        version: 8.22.2
       xlsx:
         specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
         version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
@@ -2068,8 +2068,8 @@ packages:
       utf-8-validate:
         optional: true
 
-  ws@8.22.1:
-    resolution: {integrity: sha512-oyL6OPYme/CmiFvNuGzeoxCJ4nOrZE2O1FwM9MWM1AsGri6nLXB2pg+lNA8aLeXMSav0J6eIVS1j6vUPzUtK9g==}
+  ws@8.22.2:
+    resolution: {integrity: sha512-/rEZ2ejown2N5gxVTHUu9bVVC7ttu0/Tgzf5hbTOixR3Fs7mbbXgn2DbdbcKgJOmpQMtrIUWivtYuVMnp/W/yA==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -3136,10 +3136,10 @@ snapshots:
     dependencies:
       mimic-function: 5.0.1
 
-  openai@7.55.0(undici@7.30.1)(ws@8.22.1)(zod@4.6.7):
+  openai@7.55.0(undici@7.30.1)(ws@8.22.2)(zod@4.6.7):
     optionalDependencies:
       undici: 7.30.1
-      ws: 8.22.1
+      ws: 8.22.2
       zod: 4.6.7
 
   option@0.2.4: {}
@@ -3611,7 +3611,7 @@ snapshots:
 
   ws@8.21.0: {}
 
-  ws@8.22.1: {}
+  ws@8.22.2: {}
 
   xlsx@https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz: {}
 

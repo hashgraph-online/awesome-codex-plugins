@@ -15,9 +15,9 @@ Using the official Codex CLI rather than OpenCode? The sibling project [`codex-m
 
 ## What it does
 
-- **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.opencode`, with per-project pools under `projects/<project-key>/` on by default.
+- **Account pool** — OAuth login for multiple ChatGPT accounts, stored locally under `~/.opencode`, with a shared global pool by default; set `CODEX_AUTH_PER_PROJECT_ACCOUNTS=1` to opt into per-project pools under `projects/<project-key>/`.
 - **Rotation** — health-scored hybrid selection picks the best enabled account per request, with cooldowns, automatic token refresh, and failover on rate limits.
-- **Model catalog** — 12 base models covering 65 variants: GPT-6.1 Sol/Terra, GPT-6 Astra/Sol/Luna, the GPT-5.6 tiers, GPT-5.5, and more, routed through the stateless Codex contract (`store: false` + `reasoning.encrypted_content`).
+- **Model catalog** — 14 base models covering 77 variants: GPT-6.1 Sol/Terra, GPT-6 Astra/Sol/Luna, the GPT-5.6 tiers, GPT-5.5, and more, routed through the stateless Codex contract (`store: false` + `reasoning.encrypted_content`).
 - **Quota in the prompt** — the TUI prompt line shows remaining quota for the serving account, the whole pool, or banked reset credits, with rotating screens.
 - **`codex-*` tools** — 24 in-session tools for switching, labeling, tagging, limits, diagnostics, and repair.
 - **Standalone CLI** — the same package runs `status`, `list`, `limits`, `doctor`, and friends directly — no agent, no token cost.
@@ -40,9 +40,9 @@ With no flag, the installer only registers the plugin: it adds the plugin entry 
 | Flag | Effect |
 | --- | --- |
 | (none) / `--plugin-only` | Register the plugin entries only |
-| `--modern` | Also install the compact catalog: 12 base models with 65 variants |
-| `--full` | Also install the compact bases plus 65 explicit selector IDs (`openai/gpt-5.5-medium`) |
-| `--legacy` | Install the explicit-only catalog (65 entries) for older OpenCode |
+| `--modern` | Also install the compact catalog: 14 base models with 77 variants |
+| `--full` | Also install the compact bases plus 77 explicit selector IDs (`openai/gpt-5.5-medium`) |
+| `--legacy` | Install the explicit-only catalog (77 entries) for older OpenCode |
 | `--v2` | Register for OpenCode V2 instead (plugin only; see below) |
 | `--dry-run` | Show what would change without writing |
 | `--no-cache-clear` | Skip clearing the OpenCode plugin cache |
@@ -144,18 +144,20 @@ These accept `--json` and `--config-path <file>` (`install`/`update` reject `--c
 
 ## Rotation, in one paragraph
 
-Each request picks the healthiest enabled account (`rotationStrategy`, default `hybrid`): health scores drop on failures and rate limits, cooldowns keep a burned account out of the running, tokens refresh as needed, and failover walks the pool within a bounded retry budget. Logging into the same account again updates its entry rather than duplicating it. Pools are **per-project by default** — the plugin walks up from the working directory looking for a project marker (`.git`, `package.json`, `.opencode`, and friends), stopping at your home directory; without a marker it uses global storage. Set `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0` to force the global pool.
+Each request picks the healthiest enabled account (`rotationStrategy`, default `hybrid`): health scores drop on failures and rate limits, cooldowns keep a burned account out of the running, tokens refresh as needed, and failover walks the pool within a bounded retry budget. Logging into the same account again updates its entry rather than duplicating it. The shared global pool is the default. Set `CODEX_AUTH_PER_PROJECT_ACCOUNTS=1` to opt into per-project pools; the plugin then walks up from the working directory looking for a project marker (`.git`, `package.json`, `.opencode`, and friends), stopping at your home directory. Without that opt-in, it uses `~/.opencode/oc-codex-multi-auth-accounts.json`.
 
 Accounts whose plan quota is used up are left alone until it resets, even when they hold Codex credits. Set `spendCredits: true` to spend those credits once no account has plan quota left; a toast names the account and its remaining balance. See [Spending Codex credits](docs/configuration.md#spending-codex-credits).
 
 ## Models
 
-`--modern` and `--full` install **12 base models** covering **65 variants** (selectable via `--variant`); `--legacy` installs the 65 as explicit IDs.
+`--modern` and `--full` install **14 base models** covering **77 variants** (selectable via `--variant`); `--legacy` installs the 77 as explicit IDs.
 
 | Base | Notes |
 | --- | --- |
 | `gpt-6.1-sol` | newest workhorse; the OpenAI Codex catalog's default since 2026-09-29 |
 | `gpt-6.1-terra` | distinct model with low, medium, high, xhigh, max, and ultra efforts; default low |
+| `gpt-6.2-astra` | GPT-6.2 frontier model released 2026-11-17; low through max plus the client-side ultra tier |
+| `gpt-6.2-sol` | GPT-6.2 everyday-work model released 2026-11-17; low through max plus the client-side ultra tier |
 | `gpt-6-astra` | frontier; rolled out 2026-09-03 |
 | `gpt-6-sol` | workhorse coding model |
 | `gpt-6-luna` | fast, affordable |
@@ -195,7 +197,7 @@ Plugin settings are re-read per request — most edits need no restart. Boolean 
 
 | Setting | Effect |
 | --- | --- |
-| `CODEX_AUTH_PER_PROJECT_ACCOUNTS=0` | Force the global account pool |
+| `CODEX_AUTH_PER_PROJECT_ACCOUNTS=1` | Opt into per-project account pools |
 | `CODEX_KEYCHAIN=1` | Store accounts in the OS keychain |
 | `CODEX_AUTH_ROTATION_STRATEGY=hybrid\|sticky\|round-robin\|custom` | Account selection strategy |
 | `CODEX_AUTH_SPEND_CREDITS=1` | Spend Codex credits once no account has plan quota left |

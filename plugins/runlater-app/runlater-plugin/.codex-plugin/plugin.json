@@ -1,6 +1,6 @@
 {
   "name": "runlater",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Schedule HTTP requests from Codex: call any URL once at an exact time or on a cron schedule, with retries and a log of every run, through the RunLater remote MCP server.",
   "author": {
     "name": "Great Work LLC",

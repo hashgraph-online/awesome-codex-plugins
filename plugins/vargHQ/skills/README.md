@@ -11,7 +11,7 @@ Seedance 2.5, Kling 4, Veo 3.1, GPT Image 2.6 and ElevenLabs v4 on one key, or f
 
 <a href="#all-83-skills"><img src="https://s3.varg.ai/files/194b94d0-58ff-4e8b-91de-4f1959d04013/file_f73c9a6f3d94.webp" alt="A fast reel of varg skill results: a fisheye skateboarder in Lisbon, a wave of screens crashing on a night street, a singer in a red trench, a serum splash, god rays, a cat pilot, a bottle slam, a jet-powered supercar, floating earbuds, an elephant with an observatory, a Droste zoom, a dancer, a vegetable chopper and a liquid-metal V." width="100%"></a>
 
-[Use cases](#what-do-you-want-to-make) · [All 83 skills](#all-83-skills) · [Install](#install) · [How it works](#how-it-works) · [For AI agents](#for-ai-agents) · [FAQ](#faq)
+[Use cases](#what-do-you-want-to-make) · [All 83 skills](#all-83-skills) · [Install](#install) · [How it works](#how-it-works) · [For AI agents](#for-ai-agents) · [FAQ](#faq) · [Every video skill, from every publisher](https://varg.ai/how-to/skills)
 
 </div>
 

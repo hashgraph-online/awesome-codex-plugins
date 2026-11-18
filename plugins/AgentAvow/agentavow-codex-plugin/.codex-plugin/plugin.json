@@ -1,0 +1,45 @@
+{
+  "name": "agentavow-trust",
+  "version": "0.1.45",
+  "description": "Checks your MCP servers and packages with AgentAvow before Codex uses them. When a session starts it checks the servers in ~/.codex/config.toml and a trusted project's .codex/config.toml. When Codex runs codex mcp add, or installs a package by name with npm, pnpm, yarn, bun, pip, uv, pipx or poetry, it checks that exact version first: Do not connect stops the step and says why, Review before you connect is a one-line note, and Safe to connect stays silent. Every answer has its reason and a signed 0-100 trust score you can verify offline. Also bundles the AgentAvow connector and the scan-before-connect skill. The hooks run only while you trust them (/hooks). Fail-open. What leaves your machine: the server URL or package name being checked, and a random install ID used only to count active installs, also sent once a day with the plugin version and app type (turn it off with AGENTAVOW_ANON_ID=off).",
+  "author": {
+    "name": "AgentAvow",
+    "url": "https://agentavow.com"
+  },
+  "homepage": "https://agentavow.com/docs/codex",
+  "repository": "https://github.com/AgentAvow/agentavow-codex-plugin",
+  "license": "MIT",
+  "keywords": [
+    "security",
+    "trust",
+    "mcp",
+    "supply-chain",
+    "code-scanning",
+    "attestation"
+  ],
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json",
+  "commands": [
+    "./commands/"
+  ],
+  "scripts": "./scripts/",
+  "interface": {
+    "displayName": "AgentAvow Trust",
+    "shortDescription": "Is this tool safe to connect?",
+    "longDescription": "AgentAvow checks an MCP server or package before Codex adds or installs it, and answers in plain words: Safe to connect, Review before you connect, or Do not connect, with the reason. Underneath are a 0-100 trust score, backed by a signed attestation anyone can verify offline, and an adoption score. In the Codex CLI and desktop app the plugin's hooks check your servers at session start and stop a codex mcp add or package install that reads Do not connect. The bundled connector and skill answer when you ask about a tool. No account and no sign-in.",
+    "developerName": "AgentAvow",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Read"
+    ],
+    "websiteURL": "https://agentavow.com/docs/codex",
+    "privacyPolicyURL": "https://agentavow.com/legal/privacy",
+    "termsOfServiceURL": "https://agentavow.com/legal/terms",
+    "defaultPrompt": [
+      "Is the npm package chalk safe to install?"
+    ],
+    "composerIcon": "./icon.png",
+    "logo": "./icon.png"
+  }
+}

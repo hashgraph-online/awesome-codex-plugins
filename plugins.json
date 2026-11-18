@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-18",
-  "total": 432,
+  "total": 436,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -98,6 +98,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/1139030773-cmd/agent-workflow-system/HEAD/plugins/agent-workflow-system/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "AgentAvow Trust",
+      "url": "https://github.com/AgentAvow/agentavow-codex-plugin",
+      "owner": "AgentAvow",
+      "repo": "agentavow-codex-plugin",
+      "description": "Checks your MCP servers at session start and stops a `codex mcp add` or package install that reads Do not connect, with the reason and a signed 0-100 trust score.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/AgentAvow/agentavow-codex-plugin/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Agentic Readiness Assessment",
@@ -399,6 +409,17 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/TohmaN233/chatgpt-review-agent-skill/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "Chunsik's Garage",
+      "url": "https://github.com/yeunlee1/chunsik-garage/tree/main",
+      "owner": "yeunlee1",
+      "repo": "chunsik-garage",
+      "description": "AQ checkup that reads your local Claude Code, Codex, and Gemini CLI records and settings, scores how you set up and use them, and turns off unused Claude Code and Codex skills and MCP servers with your approval and undo.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/yeunlee1/chunsik-garage/main/.codex-plugin/plugin.json",
+      "source_ref": "main"
     },
     {
       "name": "Claude Code Codex Plugin",
@@ -3755,6 +3776,16 @@
       "install_url": "https://raw.githubusercontent.com/talkstream/ru-text/HEAD/.codex-plugin/plugin.json"
     },
     {
+      "name": "Runheed",
+      "url": "https://github.com/getrunheed/runheed-plugin",
+      "owner": "getrunheed",
+      "repo": "runheed-plugin",
+      "description": "Error tracking your coding agent can read: search production errors, read stack traces, fix and resolve them. Hosted MCP server, paid.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/getrunheed/runheed-plugin/HEAD/plugin.json"
+    },
+    {
       "name": "RunLater",
       "url": "https://github.com/runlater-app/runlater-plugin",
       "owner": "runlater-app",
@@ -3953,6 +3984,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/hraness/product-skills/HEAD/plugins/sponge/plugin.json"
+    },
+    {
+      "name": "StalkChain",
+      "url": "https://github.com/StalkC/stalkchain-plugin",
+      "owner": "StalkC",
+      "repo": "stalkchain-plugin",
+      "description": "Research public crypto trader wallets, token holders, and on-chain trade flow through a hosted OAuth MCP with metered account credits and optional price alerts that require confirmation.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/StalkC/stalkchain-plugin/HEAD/plugin.json"
     },
     {
       "name": "Story Skills",
