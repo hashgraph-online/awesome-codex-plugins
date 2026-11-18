@@ -12,6 +12,8 @@ All plugins submitted to **Awesome Codex Plugins** must pass the HOL AI Plugin S
 
 Catalog admission uses the normalized 0–100 score from the catalog-owned centralized scan. A score of **75/100 or higher** is scanner-clear even when the scanner action reports advisory findings or exits nonzero for a non-gating reason. Raw point totals in local scanner output are informational; use the centralized normalized score for eligibility. Separate catalog-format, source-availability, or repository-integrity defects can still block merge.
 
+The catalog scans both the source checkout and its generated installable bundle, using the same cloned source commit. Each scan must meet the 75/100 threshold. Portable Agent Plugins are checked through the converter-generated Codex compatibility manifest; the source checkout stays unchanged. A repository-only score does not replace this bundle check.
+
 ## Quick Start
 
 ### Install the Scanner

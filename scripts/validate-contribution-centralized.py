@@ -113,7 +113,7 @@ def scan_open_pull_requests(
                 catalog_failures.append(reason)
                 report_lines.append(f"  - `{entry.owner}/{entry.repo}`: **FAIL** - {reason}")
                 continue
-            contribution = {"owner": entry.owner, "repo": entry.repo}
+            contribution = {"owner": entry.owner, "repo": entry.repo, "name": entry.display_name}
             if entry.source_ref:
                 contribution["ref"] = entry.source_ref
             contributions.append(contribution)

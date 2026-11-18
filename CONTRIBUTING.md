@@ -88,6 +88,8 @@ python3 -m pip hash .hol-plugin-scanner-dist/*.whl
 
 Listing eligibility requires a normalized centralized score of **75/100** or higher. Finding severities are advisory; required catalog checks and substantive review issues must also be clear. Save the output to include in your PR description.
 
+Central admission checks scan both the source checkout and the bundle produced by the catalog converter from that same cloned commit. Both must meet the 75-point threshold. The bundle check includes the generated Codex compatibility manifest for portable Agent Plugins, so a source scan that skips a portable manifest cannot stand in for a bundle scan. The source repository is not modified, and scanner policy and finding severities are unchanged.
+
 ### Step 3: Verify your plugin repo has the required files
 
 Your plugin repo must contain:

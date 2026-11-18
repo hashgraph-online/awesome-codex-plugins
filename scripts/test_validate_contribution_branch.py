@@ -298,7 +298,7 @@ class BranchQualifiedContributionTests(unittest.TestCase):
             matrix = json.loads(matrix_path.read_text(encoding="utf-8"))
             self.assertEqual(
                 matrix,
-                [{"pr_number": 558, "owner": "SupportPages-io", "repo": "wtfm", "ref": "codex-plugin"}],
+                [{"pr_number": 558, "owner": "SupportPages-io", "repo": "wtfm", "name": "WTFM", "ref": "codex-plugin"}],
             )
             self.assertIn("centralized score scan", report_path.read_text(encoding="utf-8"))
 
@@ -315,8 +315,8 @@ class BranchQualifiedContributionTests(unittest.TestCase):
             self.assertEqual(
                 json.loads(matrix_path.read_text(encoding="utf-8")),
                 [
-                    {"owner": "SupportPages-io", "repo": "wtfm", "ref": "codex-plugin"},
-                    {"owner": "example", "repo": "default-plugin"},
+                    {"owner": "SupportPages-io", "repo": "wtfm", "name": "WTFM", "ref": "codex-plugin"},
+                    {"owner": "example", "repo": "default-plugin", "name": "WTFM"},
                 ],
             )
 
@@ -373,6 +373,7 @@ class BranchQualifiedContributionTests(unittest.TestCase):
                         "pr_number": 558,
                         "owner": "SupportPages-io",
                         "repo": "wtfm",
+                        "name": "WTFM",
                         "ref": "codex-plugin",
                     }
                 ],
