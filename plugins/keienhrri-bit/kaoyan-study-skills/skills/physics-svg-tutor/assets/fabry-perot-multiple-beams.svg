@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 370" role="img" aria-labelledby="title desc">
+  <title id="title">法布里—珀罗干涉仪的多次反射和透射光路</title>
+  <desc id="desc">两条平行的高反射镀膜面 G 和 G'，一束光斜入射后，第一次到右侧就透射出光束 1，经历两次内部反射后在右侧透出光束 2，再经历两次反射后透出光束 3。三束透射光互相平行。</desc>
+  <rect width="720" height="370" fill="#f8fafc"/>
+  <text x="24" y="35" font-family="Noto Sans CJK SC, sans-serif" font-size="22" fill="#1d2c41" font-weight="bold">图 2｜法布里—珀罗：相邻透射束相差一次往返</text>
+  <line x1="160" y1="60" x2="160" y2="322" stroke="#78a4c0" stroke-width="8"/>
+  <line x1="450" y1="60" x2="450" y2="322" stroke="#78a4c0" stroke-width="8"/>
+  <text x="150" y="52" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#416e89">G</text>
+  <text x="443" y="52" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#416e89">G′</text>
+  <text x="267" y="65" font-family="Noto Sans CJK SC, sans-serif" font-size="16" fill="#47546d">板间介质 n</text>
+  <line x1="160" y1="339" x2="450" y2="339" stroke="#617087" stroke-width="2"/>
+  <path d="M160 332 V346 M450 332 V346" stroke="#617087" stroke-width="2"/>
+  <text x="297" y="335" font-family="Noto Sans CJK SC, sans-serif" font-size="18" fill="#47546d">d</text>
+  <path d="M26 55 L160 78 L450 112" fill="none" stroke="#b8853c" stroke-width="4"/>
+  <text x="35" y="105" font-family="Noto Sans CJK SC, sans-serif" font-size="18" fill="#926a29">入射光</text>
+  <path d="M450 112 L160 145 L450 179 L160 212 L450 246" stroke="#bd634d" stroke-width="3.9" fill="none" stroke-linejoin="round"/>
+  <path d="M450 112 L655 136" stroke="#239475" stroke-width="4"/>
+  <path d="M450 179 L655 203" stroke="#239475" stroke-width="3.5"/>
+  <path d="M450 246 L655 270" stroke="#239475" stroke-width="3"/>
+  <text x="660" y="143" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#147f65">①</text>
+  <text x="660" y="210" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#147f65">②</text>
+  <text x="660" y="277" font-family="Noto Sans CJK SC, sans-serif" font-size="19" fill="#147f65">③</text>
+  <text x="468" y="100" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#147f65">0 次额外反射</text>
+  <text x="467" y="167" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#147f65">2 次额外反射</text>
+  <text x="466" y="232" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#147f65">4 次额外反射</text>
+  <text x="172" y="132" font-family="Noto Sans CJK SC, sans-serif" font-size="15" fill="#b4513d">← 第一次返回</text>
+  <text x="173" y="201" font-family="Noto Sans CJK SC, sans-serif" font-size="15" fill="#b4513d">← 第二次返回</text>
+  <text x="23" y="364" font-family="Noto Sans CJK SC, sans-serif" font-size="14" fill="#607184">实线为实际光路；各光束平行但出射点不同。相邻透射束多两次内部反射。</text>
+</svg>

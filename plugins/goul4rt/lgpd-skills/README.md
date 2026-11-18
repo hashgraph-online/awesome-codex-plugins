@@ -9,6 +9,8 @@
 [![LGPD](https://img.shields.io/badge/LGPD-Lei%2013.709%2F2018-blue)](https://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm)
 [![ECA Digital](https://img.shields.io/badge/ECA%20Digital-Lei%2015.211%2F2025-blue)](https://www.planalto.gov.br/ccivil_03/_ato2023-2026/2025/lei/l15211.htm)
 
+<p align="center"><a href="./assets/lgpd-skills-demo.mp4"><img src="./assets/lgpd-skills-demo.gif" alt="Demo: /lgpd-audit acha CPF no log e sem criptografia num app de exemplo, roda as etapas com checkpoint de revisão jurídica, gera os artefatos em .lgpd/ e corrige o código" width="720"></a></p>
+
 ---
 
 > **EN — Quick overview:** **LGPD Privacy Engineering Toolkit** — an Agent Skills bundle (works in Claude Code, Codex, Gemini CLI, Cursor, and OpenCode) for AI-assisted privacy auditing, technical control implementation, and living governance in software repositories. One orchestrator skill (`lgpd-audit`) coordinates 18 specialized sub-skills covering data mapping, legal basis (including Enunciado ANPD 1/2023), DPO/ATPP channels, ROPA, RIPD (with LINDDUN & AI threat modeling), event-sourced consent ledger, DSAR endpoints (standard vs. ATPP SLAs), emergency incident response (Res. 15/2024), field encryption, retention/erasure, vendor DPAs, international transfers (Res. 32/2026 EU/EEA adequacy & Res. 19/2024 SCCs), and ECA Digital (Lei 15.211/2025 + Decreto 12.880/2026). Includes automated normative/schema/code regression tests. MIT licensed.

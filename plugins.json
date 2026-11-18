@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-18",
-  "total": 431,
+  "total": 432,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -1110,6 +1110,16 @@
       "category": "Development & Workflow",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/JoxoAI/joxo/HEAD/plugins/joxo/plugin.json"
+    },
+    {
+      "name": "kaoyan-study-skills",
+      "url": "https://github.com/keienhrri-bit/kaoyan-study-skills",
+      "owner": "keienhrri-bit",
+      "repo": "kaoyan-study-skills",
+      "description": "Exam-prep plugin with nine skills: try-first tutoring, photo-to-report grading with rubric scoring and an independent regrade, checkpoint reviews and Markdown-to-PDF reports.",
+      "category": "Development & Workflow",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/keienhrri-bit/kaoyan-study-skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "Keep Mac Awake",

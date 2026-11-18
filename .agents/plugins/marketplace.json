@@ -1641,6 +1641,20 @@
       "icon": "./plugins/JoxoAI/joxo/assets/icon.png"
     },
     {
+      "name": "kaoyan-study-skills",
+      "displayName": "kaoyan-study-skills",
+      "source": {
+        "source": "local",
+        "path": "./plugins/keienhrri-bit/kaoyan-study-skills"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Development & Workflow",
+      "description": "Exam-prep plugin with nine skills: try-first tutoring, photo-to-report grading with rubric scoring and an independent regrade, checkpoint reviews and Markdown-to-PDF reports."
+    },
+    {
       "name": "keep-mac-awake",
       "displayName": "Keep Mac Awake",
       "source": {
