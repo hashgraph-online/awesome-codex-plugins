@@ -444,14 +444,17 @@ def sanitize_metadata_only_manifest(manifest: dict[str, object], plugin: dict[st
     return sanitized
 
 
-def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str, str]:
+def mirror_plugin_bundle(
+    plugin: dict[str, str], *, archive: zipfile.ZipFile | None = None,
+) -> tuple[dict[str, object], str, str]:
     owner_repo = f"{plugin['owner']}/{plugin['repo']}"
-    try:
-        archive = fetch_repo_archive(
-            plugin["owner"], plugin["repo"], plugin.get("source_ref")
-        )
-    except Exception as e:
-        raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
+    if archive is None:
+        try:
+            archive = fetch_repo_archive(
+                plugin["owner"], plugin["repo"], plugin.get("source_ref")
+            )
+        except Exception as e:
+            raise ValueError(f"Failed to fetch {owner_repo}: {e}") from e
     names = {name for name in archive.namelist() if not name.endswith("/")}
     try:
         plugin_root = resolve_plugin_root(archive, names, plugin)
