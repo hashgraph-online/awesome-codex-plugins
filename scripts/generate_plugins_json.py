@@ -512,23 +512,24 @@ def mirror_plugin_bundle(plugin: dict[str, str]) -> tuple[dict[str, object], str
                 "mcpServers": {"brewpage": {"type": "http", "url": "https://brewpage.app/mcp"}}
             }, indent=2) + "\n", encoding="utf-8")
 
-    # Nested bundles may inherit their license from an enclosing directory.
-    # Keep a bundle-specific license when present; otherwise retain the nearest
-    # ancestor's license verbatim alongside the mirrored files.
+    # Keep bundle documents; otherwise inherit each from the nearest ancestor.
     license_names = {f"{stem}{extension}" for stem in ("license", "licence", "copying")
                      for extension in ("", ".md", ".txt")}
-    license_files = [PurePosixPath(name) for name in names
-                     if PurePosixPath(name).name.lower() in license_names]
-    for ancestor in (plugin_root, *plugin_root.parents):
-        if ancestor == PurePosixPath("."):
-            break
-        inherited = sorted(path for path in license_files if path.parent == ancestor)
-        if inherited:
-            for source_path in inherited:
-                destination_path = destination_root / source_path.name
-                if not destination_path.exists():
-                    destination_path.write_bytes(archive.read(source_path.as_posix()))
-            break
+    for document_names in (license_names, {"security.md"}):
+        document_files = [PurePosixPath(name) for name in names
+                          if PurePosixPath(name).name.lower() in document_names
+                          and not archive.getinfo(name).is_dir()
+                          and not stat.S_ISLNK(archive.getinfo(name).external_attr >> 16)]
+        for ancestor in (plugin_root, *plugin_root.parents):
+            if ancestor == PurePosixPath("."):
+                break
+            inherited = sorted(path for path in document_files if path.parent == ancestor)
+            if inherited:
+                for source_path in inherited:
+                    destination_path = destination_root / source_path.name
+                    if not destination_path.exists():
+                        destination_path.write_bytes(archive.read(source_path.as_posix()))
+                break
 
     marketplace_path = f"./plugins/{plugin['owner']}/{plugin['repo']}"
     if use_subpath and plugin_root_relative:

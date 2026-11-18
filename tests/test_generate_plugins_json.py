@@ -262,7 +262,7 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
                 self.assertEqual((output / path).read_bytes(), content)
             self.assertFalse((output / "unrelated/data.txt").exists())
 
-    def test_nested_mirror_retains_nearest_license_without_overwriting_bundle_license(self):
+    def test_nested_mirror_retains_nearest_documents_without_overwriting_bundle_documents(self):
         cases = (
             ({"LICENSE": b"repository license\n"}, {"LICENSE": b"repository license\n"}),
             ({"LICENSE": b"repository license\n", "plugins/LICENSE.txt": b"plugin collection license\n"},
@@ -272,6 +272,13 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
             ({"LICENSE": b"repository license\n", "plugins/example/COPYING": b"bundle copying terms\n"},
              {"COPYING": b"bundle copying terms\n"}),
             ({"license.md": b"lowercase repository license\n"}, {"license.md": b"lowercase repository license\n"}),
+            ({"LICENSE": b"license\n", "SECURITY.md": b"root reporting policy\n"},
+             {"LICENSE": b"license\n", "SECURITY.md": b"root reporting policy\n"}),
+            ({"SECURITY.md": b"root policy\n", "plugins/SECURITY.md": b"collection policy\n"},
+             {"SECURITY.md": b"collection policy\n"}),
+            ({"SECURITY.md": b"root policy\n", "plugins/example/SECURITY.md": b"bundle policy\n"},
+             {"SECURITY.md": b"bundle policy\n"}),
+            ({"plugins/other/SECURITY.md": b"unrelated policy\n"}, {}),
             ({}, {}),
         )
         for files, expected in cases:
@@ -288,6 +295,22 @@ class GeneratedBundleCleanupTests(unittest.TestCase):
                     MODULE.mirror_plugin_bundle({"owner": "example", "repo": "example"})
                 output = Path(scratch) / "example/example"
                 self.assertEqual({path.name: path.read_bytes() for path in output.iterdir() if path.is_file()}, expected)
+
+    def test_nested_mirror_does_not_inherit_a_symlink_as_reporting_policy(self):
+        with tempfile.TemporaryDirectory() as scratch:
+            buffer = io.BytesIO()
+            with MODULE.zipfile.ZipFile(buffer, "w") as archive:
+                archive.writestr("archive/plugins/example/.codex-plugin/plugin.json",
+                                 json.dumps({"name": "example", "version": "1.0.0"}))
+                policy = MODULE.zipfile.ZipInfo("archive/SECURITY.md")
+                policy.create_system = 3
+                policy.external_attr = 0o120777 << 16
+                archive.writestr(policy, "elsewhere/policy.md")
+            with MODULE.zipfile.ZipFile(io.BytesIO(buffer.getvalue())) as archive, patch.object(
+                MODULE, "fetch_repo_archive", return_value=archive
+            ), patch.object(MODULE, "PLUGINS_ROOT", Path(scratch)):
+                MODULE.mirror_plugin_bundle({"owner": "example", "repo": "example"})
+            self.assertFalse((Path(scratch) / "example/example/SECURITY.md").exists())
 
     def test_root_skill_collection_keeps_skills_and_helpers_only(self):
         root = MODULE.PurePosixPath("archive")
