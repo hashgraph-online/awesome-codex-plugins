@@ -21,7 +21,7 @@ from `packages/memtomem-plugin-assets/`; edit the sources there, not the files h
   extra to Hermes's environment to fix it.
 - Git on `PATH`, for the commit lookup under [Install](#install).
 - `uv` on `PATH`. The server is started with
-  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.11' --with 'huggingface-hub>=1.20' memtomem-server`.
+  `uvx --python 3.12 --from 'memtomem[onnx]==0.7.12' --with 'huggingface-hub>=1.20' memtomem-server`.
   Without `uv` the plugin still installs and enables, and the server fails at start with
   `missing executable 'uvx'`.
 - Python 3.12. uv uses a 3.12 it can find; if there is none, it downloads one (about 70 MiB)
@@ -136,7 +136,7 @@ to `config.yaml`. Hermes uses your entry instead of this package's:
 mcp_servers:
   memtomem:
     command: uvx
-    args: ["--python", "3.12", "--from", "memtomem[onnx,korean]==0.7.11", "--with", "huggingface-hub>=1.20", "memtomem-server"]
+    args: ["--python", "3.12", "--from", "memtomem[onnx,korean]==0.7.12", "--with", "huggingface-hub>=1.20", "memtomem-server"]
     env:
       MEMTOMEM_TOOL_MODE: core
       MEMTOMEM_EXTRA_TOOLS: mem_update_coverage
@@ -173,7 +173,8 @@ Then repair the index, in this order:
 
 This package runs memtomem at **user scope**. The server starts in the plugin directory,
 so it starts with no project context: there is no per-project (`project_local`) memory,
-and paths given to indexing must be absolute. Notes are shared with your other agents
+and a relative path given to indexing resolves against the plugin directory, so give
+absolute paths. Notes are shared with your other agents
 through the user-scope store. The six skills are written for that scope, and the handoff
 workflow of the other memtomem plugins is not included, because it needs a project.
 
@@ -204,7 +205,7 @@ your own server entry to `config.yaml`:
 mcp_servers:
   memtomem:
     command: uvx
-    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.11", "--with", "huggingface-hub>=1.20", "memtomem-server"]
+    args: ["--python", "3.12", "--from", "memtomem[onnx]==0.7.12", "--with", "huggingface-hub>=1.20", "memtomem-server"]
     env:
       MEMTOMEM_TOOL_MODE: core
       MEMTOMEM_EXTRA_TOOLS: mem_update_coverage
@@ -231,7 +232,7 @@ runs as your user, and some of its `mem_do` actions read and write files whereve
   sub-agents, commands, hook settings and MCP server lists in step with a canonical copy
   under `.memtomem/`, in projects and in the agents' own configuration, for example
   `~/.claude.json`, `~/.claude/`, `~/.codex/`, `~/.gemini/` and `~/.kimi-code/`. In
-  memtomem 0.7.11, the version this package runs, only the two reads are `mem_do` actions:
+  memtomem 0.7.12, the version this package runs, only the two reads are `mem_do` actions:
   `context_detect` and `context_diff`. The writes (`context_init`, `context_generate`,
   `context_sync`, `context_pull`, `context_version`, `context_promote`,
   `context_memory_migrate`, `context_artifact_migrate` and `context_artifact_transfer`)
@@ -240,9 +241,16 @@ runs as your user, and some of its `mem_do` actions read and write files whereve
 - Actions that take a path from the caller, such as indexing, `ingest` (which imports other
   agents' instruction files and native memory) and import, read that path. Export takes a
   file name, not a path, and writes it to `~/.memtomem/exports/`.
+- `dedup_remove` takes two chunk ids, not paths. It re-reads both chunks' whole source
+  files, including a kept file that was indexed from outside the configured memory
+  directories, and when both still match what was indexed, removes the duplicate's lines from
+  its own file, which must be one memtomem manages, and re-indexes it.
 - While the server runs, a file watcher watches memtomem's configured index roots (its
   memory directories and registered project memory directories) and re-indexes files that
   change there, and an existing configuration can enable scheduled maintenance jobs.
+  With lifecycle policies enabled (`policy.enabled`), they run on a timer without a tool
+  call, and an `auto_consolidate` policy sends the chunks it summarizes to the configured
+  LLM provider when one is set.
 
 Those files can hold other tools' credentials, and hooks are commands those agents run.
 Some of these actions ask for confirmation through a parameter (`confirm_project_shared`)
@@ -255,12 +263,16 @@ model passes them to `mem_do`.
 
 Memory is stored locally in `~/.memtomem`. The server is downloaded from PyPI on first
 start, and uv downloads Python 3.12 then too if it cannot find one. With a fresh BM25-only
-configuration nothing else leaves the machine on its own. One action reaches the network
-on request: `mem_do(action="fetch", params={"url": ...})` downloads the page at the URL it
-is given and indexes it; the skills never call it. An existing memtomem configuration may
-enable its own network paths: model downloads from Hugging Face (ONNX embedding or local
+configuration nothing else leaves the machine on its own, and two calls reach the network
+on request there; the skills make neither: `mem_do(action="fetch", params={"url": ...})`
+downloads the page at the URL it is given and indexes it, and turning reranking on with
+`mem_do(action="config", params={"key": "rerank.enabled", "value": "true"})` loads the
+configured reranker at once, so the default local reranker downloads its model from Hugging
+Face then when it is not cached. An existing memtomem configuration may enable its own
+network paths: model downloads from Hugging Face (ONNX embedding or local
 reranker; a saved Hugging Face login and `HF_TOKEN` are not used, see "First run"), a
-remote embedding or LLM provider, Cohere reranking (sends the query and
+remote embedding or LLM provider (which `mem_do` actions such as `auto_tag` and
+`policy_run` then send chunk text to), Cohere reranking (sends the query and
 candidate chunks), or search webhooks (send events including the query).
 
 ## License

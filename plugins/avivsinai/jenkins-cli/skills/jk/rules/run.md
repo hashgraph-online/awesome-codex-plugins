@@ -253,7 +253,8 @@ jk run start <jobPath> [flags]
 | `--fuzzy` |  | Enable fuzzy matching for job names |
 | `--interval` |  | Polling interval when waiting |
 | `--non-interactive` |  | Disable interactive selection (fail on ambiguous matches) |
-| `--param` | `-p` | Build parameter key=value (use multiple -p flags for multiple params) |
+| `--param` | `-p` | Scalar build parameter NAME=VALUE (one flag per name) |
+| `--param-list` |  | Multi-value build parameter NAME=JSON_ARRAY (one flag per name) |
 | `--result` |  | Output only the final build result (requires --follow) |
 | `--timeout` |  | Maximum time to wait (0 = no timeout) |
 | `--wait` |  | Wait for build to complete (no log streaming) |
@@ -269,6 +270,12 @@ jk run start <jobPath> [flags]
 | `--quiet` | `-q` | Suppress non-essential output |
 | `--template` | `-t` | Format output using Go template (requires --json or --format=json) |
 | `--yaml` |  | Output in YAML format when supported |
+
+### Examples
+
+```bash
+jk run start team/app -p ENV=staging --param-list 'DOMAINS=["a","b","c"]'
+```
 
 ## jk run steps
 

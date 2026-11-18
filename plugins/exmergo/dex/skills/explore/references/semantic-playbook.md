@@ -236,11 +236,31 @@ anywhere else:
 - **Read `vendor_params` before trusting a metric.** A window or `partition`
   measure is listed as `derived` with its spec there, and is not modelled. The
   view's `filter` is on every metric's `filter`.
-- **`query` and `values` refuse until #964.** Use `explore profile` and
+- **`query` and `values` run on the Databricks connector only** (#1362). One
+  view per query; `query` needs at least one measure, while `values` reads a
+  field alone and takes `--metric` only to scope it. A window or `partition`
+  measure, a view declaring `parameters` or a `materialization`, and a measure in
+  `--where` are refused by name. On any other connector, use `explore profile` and
   `explore query` on the relations the catalog names.
+- **The answer is the reviewed file's, or none.** The deployed view is read back
+  and held to the file on everything the query relies on (#1363). A refusal for
+  a difference names the member and the field: relay it, and the fix is to
+  redeploy the reviewed file or bring the file in line and review it, never to
+  query around it. A view that cannot be read back is refused with its coverage
+  reason. `list --deployed` shows the deployed copy, with each view's coverage.
 - **A `rely` key is a claim Databricks never checks.** A wrong one returns wrong
   numbers silently, so `explore profile --use-project` and `maintain grain`
   measure it; a duplicate there is a finding to report.
+- **`deployment: databricks_workspace` reads Unity Catalog alone** (#1364): every
+  Metric View the source allowlist holds, with no file needed, and `query` and
+  `values` run the same way over it. Nothing is held to a file, so every result
+  warns that its definitions were read from Unity Catalog and not checked (and
+  says `source: account` or `definition_source: account`): relay that, and treat
+  a deployed view as the definition, not a reviewed one. A view is named by its
+  Unity Catalog name, not a file's stem. A view a configured file describes is
+  named on its `coverage` (`repository_file`); `--local` holds it to that file.
+  `coverage: refused` for two copies of one name means two allowlisted schemas
+  hold it: narrow with `--scope` (and the schema holding its source tables).
 
 ## When the layer is Snowflake Semantic Views
 

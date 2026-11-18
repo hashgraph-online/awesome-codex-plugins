@@ -76,7 +76,7 @@
           {
             "type": "command",
             "command": "node \"$(git rev-parse --show-toplevel)/plugins/armorcodex/scripts/bootstrap.mjs\" router",
-            "timeout": 30
+            "timeout": 3
           }
         ]
       }

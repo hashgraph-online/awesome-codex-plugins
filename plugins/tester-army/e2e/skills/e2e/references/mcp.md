@@ -49,6 +49,13 @@ Or declare it in the client's project config (`.mcp.json` for Claude Code,
 { "mcpServers": { "e2e": { "command": "npx", "args": ["e2e", "mcp"] } } }
 ```
 
+OpenCode takes another shape, in the project's `opencode.json`. Write the
+file; `opencode mcp add e2e -- <command>` writes the global config instead.
+
+```json
+{ "mcp": { "e2e": { "type": "local", "command": ["npx", "e2e", "mcp"] } } }
+```
+
 Sessions run on the project's config (`e2e.config.ts`, `.mts`, `.js`, or `.mjs`).
 In a directory without one, plain `open_session` fails with `CONFIG_NOT_FOUND`.
 To look at an app there anyway, name the engine package:

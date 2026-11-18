@@ -40,9 +40,11 @@ Field notes:
 - `kind`: optional; one of the kinds below.
 - `labels`: optional list of tags for filtering.
 - `context`: optional JSON object for structured metadata.
+- `reply_by`: optional RFC 3339 UTC time, to the second, by which the sender expects a reply; advisory; set by a send with `--follow-up`.
 
 Routing fields (set automatically by CLI — do not hand-craft):
 - `reply_to`: optional sender identity for routing replies (e.g., `claude@collab`). Set on cross-session and cross-project sends.
+A binary older than the release that added `reply_by` ignores it, and a bridge of that age that re-marshals a header on receipt drops it on that copy.
 - `reply_project`: optional sender project name for cross-project reply routing (e.g., `my-project`). Present only on cross-project messages.
 - `from_project`: optional sender project identity stamped on cross-project sends.
 

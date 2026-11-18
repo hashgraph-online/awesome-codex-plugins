@@ -50,21 +50,27 @@ thirteen. The server exposes 39 tools.
   — only a real call does.
 
 ## Operator CLI
-- `marketplace-mcp install [client]` — print the exact mcpServers JSON to paste, or
-  write it into the client's own config file with `--write` (the old file is kept as
-  `<file>.bak-<timestamp>`). From a source checkout it prints the real filesystem path
-  of that checkout, so there's no `/path/to/ru-marketplace-mcp` placeholder to
-  hand-edit; installed as a wheel, it prints the console-script paths on PATH
-  instead. The default block is one `marketplace` entry running the unified server;
-  `--per-source` prints one entry per source. `client` must be one of `claude`,
-  `claude-code`, `cursor` — an unknown name is rejected, not answered with a Claude
-  block.
+- `marketplace-mcp setup` — auto-detect installed clients (`claude`, `cursor`,
+  `claude-code`, `vscode`, `windsurf`, `antigravity`, `gemini`, `codex`), write
+  or print the `compare` profile by default, launch the scraping Chrome, run
+  `doctor`, and offer `unblock` (`--dry-run`, `--no-browser`, `--no-doctor`,
+  `--client <name>`, `--profile compare|decision|full`).
+- `marketplace-mcp install [client]` — print the exact client config snippet, or
+  write it into the client's own config file with `--write` (creating a
+  `<file>.bak-<timestamp>` backup first for JSON files). `client` must be one of
+  all 9 targets: `antigravity`, `claude`, `claude-code`, `codex`, `cursor`,
+  `dsh`, `gemini`, `vscode`, `windsurf` (an unknown name exits `2`). Note:
+  `vscode` uses `"servers"` with `"type": "stdio"`; `claude-code` and `codex`
+  print `claude mcp add` / `codex mcp add` to stdout (execute the printed line);
+  `dsh` prints `cordis.patch.yml` rows. Default profile is `compare`
+  (`compare-mcp`); pass `--profile decision` or `--profile full`, or
+  `--per-source` for per-connector entries.
 - `marketplace-mcp doctor [--status-file path]` — per-source health plus a CDP
   session probe, with an optional machine-readable JSON snapshot for monitoring. Exit
-  codes are meaningful for cron and CI: `0` everything healthy, `1` a parser drifted
-  (the alarm — someone has to look), `2` nothing drifted but at least one source
-  couldn't be judged (blocked, no CDP, wrong region). "Couldn't check anything" is a
-  `2`, never a `0`.
+  codes are meaningful for automation and CI: `0` everything healthy, `1` a parser
+  drifted (alarm — report issue), `2` nothing drifted but at least one source is
+  inconclusive (blocked, rate-limited, `budget_refused`, or missing CDP/login), `3`
+  status-file write failure, `4` checker exception or invalid CLI arguments (alarm).
 
 ## Gotchas
 - Recovery-aware clients should read `source_outcomes.requires_user_action`

@@ -496,8 +496,12 @@ fetches the engine's dependencies from PyPI or your configured index.
    `list --deployed` reads the account's copy. Under `semantic.deployment:
    snowflake_account` the account is the only definition: nothing is held to a
    file, and every result warns so; relay that warning with the answer. On a
-   Databricks Metric View layer
-   both refuse by name for now and name the physical route.
+   Databricks Metric View layer both run through Dex's own Databricks connector
+   as `SELECT ... MEASURE(...)` over the deployed view, held to the repository's
+   file first, with tokens `view.field` and `view.measure`, one view per query.
+   Under `semantic.deployment: databricks_workspace` Unity Catalog is the only
+   definition: nothing is held to a file, and every result warns so; relay that
+   warning with the answer.
 
 Per-command fields, caps, and backend detail are in
 `${CLAUDE_SKILL_DIR}/references/commands.md`. Read it when a field or flag you

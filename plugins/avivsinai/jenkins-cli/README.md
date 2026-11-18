@@ -142,6 +142,20 @@ have accepted the action before its reply was lost. Check the server state
 before submitting again. Read retries and one authentication/crumb refresh after
 a 401/403 response remain enabled.
 
+### Multiple selections in build parameters
+
+For an Extended Choice checkbox (`PT_CHECKBOX`) or multi-select
+(`PT_MULTI_SELECT`), pass the selected options as a JSON array of strings.
+
+```bash
+jk run start team/app/pipeline -p ENV=staging --param-list 'DOMAINS=["a","b","c"]'
+```
+
+Use each parameter name once. `-p` passes a single value and preserves literal
+commas, so `-p CONFIG=a,b` passes the string `a,b`. Parameter discovery with
+`jk run params <jobPath> --json` reports `"inputFlag": "--param-list"` when it
+identifies a supported parameter from job configuration.
+
 ### Source revisions in run output
 
 `run ls`, `run view`, and `search` prefer the job's `SCMRevisionAction`

@@ -5,10 +5,11 @@ description: Plan, write and check content for a website that is in Seonix - pic
 
 # Content with Seonix
 
-Seonix researches keywords and clusters, keeps a content calendar, scores
-drafts with the same checks the dashboard uses, and publishes articles to
-WordPress, Shopify, Webflow, Ghost and Wix (and to any site through its
-Custom API). The `write_article_for_brief` and `keyword_map_site` playbooks
+Seonix researches keywords and clusters, keeps a content calendar and scores
+drafts with the same checks the dashboard uses. Seonix itself (the dashboard
+and the autopilot) publishes articles to WordPress, Shopify, Webflow, Ghost
+and Wix, and to any site through its Custom API; the tools here read the
+calendar and articles and score drafts, they do not create or publish. The `write_article_for_brief` and `keyword_map_site` playbooks
 (`get_playbook`) are the long form.
 
 ## 1. Pick the topic

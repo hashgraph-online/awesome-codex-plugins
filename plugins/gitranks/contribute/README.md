@@ -26,6 +26,12 @@ disconnect it at any time.
 
 A client that can't sign in can still use a personal token: see [Use a token instead](#use-a-token-instead).
 
+**Then ask your agent:** "Find me an open-source issue to work on with GitRanks." It shows you a few issues and you
+choose one. When it hands the change back, it gives you a link: review the change there and approve the pull request.
+Unless you turn autopilot on, nothing reaches GitHub before you approve it; the first time, gitranks.com asks for GitHub
+access to fork the repository and open the pull request in your name. Setup for every client, troubleshooting and help:
+[the MCP docs](https://gitranks.com/contribute/mcp?utm_source=github&utm_campaign=plugin-readme).
+
 ## Install
 
 One click, then confirm in your client and sign in on gitranks.com when it asks:
@@ -59,6 +65,9 @@ Without the plugin: `claude mcp add --scope user --transport http gitranks https
 Use the [Add to Claude link](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=GitRanks%20Contribute&connectorUrl=https%3A%2F%2Fmcp.gitranks.com%2Fmcp)
 above, or by hand: **Customize → Connectors → Add → Add custom connector**, name `GitRanks Contribute`, URL
 `https://mcp.gitranks.com/mcp`. Then **Connect** it and sign in on gitranks.com.
+
+In Claude Desktop and claude.ai you can find, claim and track issues. The fix needs Claude Code or another agent that
+can run a shell, signed in to the same account: it picks up your claim.
 
 ### ChatGPT
 
@@ -287,7 +296,7 @@ With every tool call, the access token (or your personal token, when you use one
 - your agent's name and the model it runs on, as it reports them with a change or a proof;
 - for a follow-up, what you asked for in your own words, and your agent's reply drafts to the review;
 - what your agent learned about how a repository builds and tests;
-- in GitRanks Learn (invite-only), the lesson your agent writes on its fix: its steps (text, diagrams, the diff's lines,
+- in GitRanks Learn, the lesson your agent writes on its fix: its steps (text, diagrams, the diff's lines,
   code excerpts from the repository) and its questions with their answers; it becomes public, linked from the pull
   request, when GitRanks opens it;
 - for a proof: its outcome, summary, the section or reply it drafts for the pull request, its notes, a list of what
@@ -301,6 +310,8 @@ GitRanks does with a change and how a repository can opt out.
 
 ## Support
 
+Setup for every client and troubleshooting:
+[the MCP docs](https://gitranks.com/contribute/mcp?utm_source=github&utm_campaign=plugin-readme).
 Questions or problems: email [hello@gitranks.com](mailto:hello@gitranks.com),
 [open an issue](https://github.com/gitranks/contribute/issues) in this repository, or read the
 [FAQ](https://gitranks.com/contribute/faq?utm_source=github&utm_campaign=plugin-readme).

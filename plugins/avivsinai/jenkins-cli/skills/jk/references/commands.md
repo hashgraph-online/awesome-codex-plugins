@@ -241,6 +241,7 @@ jk run search --job-glob '*deploy*'      # Same as `jk search`
 
 ```bash
 jk run params team/app/pipeline          # Show job's parameter definitions
+jk run params team/app/pipeline --json   # Show inputFlag for known list parameters from config
 ```
 
 ### Start
@@ -248,6 +249,7 @@ jk run params team/app/pipeline          # Show job's parameter definitions
 ```bash
 jk run start team/app/pipeline           # Trigger a run
 jk run start team/app/pipeline -p BRANCH=main -p ENV=staging
+jk run start team/app/pipeline --param-list 'DOMAINS=["a","b","c"]'
 
 # Follow logs until completion
 jk run start team/app/pipeline --follow
@@ -269,7 +271,8 @@ jk run start team/app/pipeline --quiet
 ```
 
 Options:
-- `-p, --param key=value` — Build parameter (repeatable)
+- `-p, --param NAME=VALUE` — Scalar build parameter (one flag per name, including when combined with `--param-list`)
+- `--param-list 'NAME=["a","b"]'` — Extended Choice checkbox or multi-select parameter (one flag per name)
 - `--follow` — Follow logs until completion
 - `--follow-interval <duration>` — Poll interval for logs (default: 500ms)
 - `--fuzzy` — Enable fuzzy job name matching

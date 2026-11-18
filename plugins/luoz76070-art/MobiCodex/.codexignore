@@ -1,0 +1,4 @@
+# Not needed when Codex loads the plugin.
+.DS_Store
+*.log
+node_modules/

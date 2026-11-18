@@ -3,7 +3,7 @@
   "name": "awesome-codex-plugins",
   "version": "1.0.0",
   "last_updated": "2026-11-18",
-  "total": 436,
+  "total": 438,
   "categories": [
     "Development & Workflow",
     "Tools & Integrations"
@@ -3426,6 +3426,17 @@
       "install_url": "https://raw.githubusercontent.com/mobbin/skills/HEAD/plugin.json"
     },
     {
+      "name": "Mobile Codex",
+      "url": "https://github.com/luoz76070-art/MobiCodex/tree/codex-plugin",
+      "owner": "luoz76070-art",
+      "repo": "MobiCodex",
+      "description": "Manage a local gateway to pair your phone with existing Codex Desktop conversations.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/luoz76070-art/MobiCodex/codex-plugin/plugin.json",
+      "source_ref": "codex-plugin"
+    },
+    {
       "name": "MoltNode by Chord",
       "url": "https://github.com/tuantqse90/moltnode-mcp",
       "owner": "tuantqse90",
@@ -3484,6 +3495,16 @@
       "category": "Tools & Integrations",
       "source": "awesome-codex-plugins",
       "install_url": "https://raw.githubusercontent.com/ndycode/oc-chatgpt-multi-auth/HEAD/.codex-plugin/plugin.json"
+    },
+    {
+      "name": "okdata",
+      "url": "https://github.com/okdataapi/skills",
+      "owner": "okdataapi",
+      "repo": "skills",
+      "description": "Social media and e-commerce research through a hosted MCP server and skills: posts, comments, creators, trends, transcripts and product reviews on TikTok, YouTube, Instagram, X, Reddit, Amazon, Xiaohongshu (RedNote) and Douyin, paid per call.",
+      "category": "Tools & Integrations",
+      "source": "awesome-codex-plugins",
+      "install_url": "https://raw.githubusercontent.com/okdataapi/skills/HEAD/.codex-plugin/plugin.json"
     },
     {
       "name": "OpenProject Codex",

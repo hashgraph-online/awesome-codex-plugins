@@ -1,7 +1,7 @@
 {
   "name": "seonix",
-  "version": "1.2.0",
-  "description": "Connect your Seonix SEO project: Site Health and fix plan, Google Search Console, keywords, articles and SEO playbooks, with skills that work through Site Health findings without breaking what already ranks, and draft content through Seonix.",
+  "version": "1.3.0",
+  "description": "Check any page for SEO problems and connect your Seonix project: Site Health and fix plan, Google Search Console, keywords, articles and SEO playbooks, with skills that work through Site Health findings without breaking what already ranks, and draft content through Seonix.",
   "author": {
     "name": "Seonix",
     "email": "info@seonix.ai",
@@ -20,13 +20,14 @@
   "interface": {
     "displayName": "Seonix",
     "shortDescription": "SEO and AI-search visibility",
-    "longDescription": "Seonix grows organic and AI-search visibility for a website on autopilot: it crawls the site (Site Health), tracks every issue across scans, reads Google Search Console, researches keywords, scores drafts, and writes and publishes articles to WordPress, Shopify, Webflow, Ghost and Wix.\n\nThis plugin connects the agent to your Seonix project over MCP. The agent can read the Site Health report and the prioritised fix plan with page-level evidence, pull Search Console queries, pages and striking-distance opportunities, browse keyword clusters, the content calendar and published articles, score a draft with the same SEO checks Seonix uses, and follow twelve step-by-step SEO playbooks served by the server. With your confirmation it can also start a fresh scan, apply Seonix fixes on a connected WordPress site, roll a fix run back, and mark an issue as intentional.\n\nIntended for site owners, marketers and developers who already use Seonix. Requires a Seonix account with at least one project (your website) added at app.seonix.ai; the MCP server is enabled on the Seonix plans that include it. The plugin never changes your site directly: fixes are either applied in your own codebase by the agent, or by Seonix through its WordPress plugin after you say yes. Anything that came from the website or the web is marked as untrusted data in tool results.\n\nLimitations: works only with websites you have added to Seonix; Search Console tools return not_connected until Search Console is linked in Seonix; rate limit 600 tool calls per hour per connection; the plugin does not manage Seonix accounts or plans.",
+    "longDescription": "Seonix grows organic and AI-search visibility for a website: it crawls the site (Site Health), tracks every issue across scans, reads Google Search Console and researches keywords. Writing and publishing articles happens inside Seonix itself (its dashboard and autopilot), not through this plugin.\n\nCheck one page, no setup: ask the agent to check a page of your site or shop and give the URL. It returns up to three serious findings, each with where on the page, what was found and what to do, or says plainly that nothing serious was found. This works on every Seonix account, with no project and no Search Console needed.\n\nWith a Seonix project the agent can read the Site Health report, which starts with the one page to open first, and the prioritised fix plan with page-level evidence; pull Search Console queries and the striking-distance opportunities together with the page that ranks for each; browse keyword clusters, the content calendar and published articles; read an article and score a draft with the same SEO checks Seonix uses; and follow twelve step-by-step SEO playbooks served by the server. With your confirmation it can also start a fresh scan, apply Seonix fixes on a connected WordPress site, roll a fix run back, and mark an issue as intentional.\n\nIntended for site owners, marketers and developers. The project tools need a Seonix account with at least one project (your website) on a Seonix plan that includes the MCP server. The plugin never changes your site directly: fixes are either applied in your own codebase by the agent, or by Seonix through its WordPress plugin after you say yes. Anything that came from the website or the web is marked as untrusted data in tool results.\n\nLimitations: the plugin does not create or publish articles; a page check covers one page with on-page checks (no speed test, no search numbers) and is limited per day; Search Console tools return not_connected until Search Console is linked in Seonix; rate limit 600 tool calls per hour per connection; the plugin does not manage Seonix accounts or plans.",
     "developerName": "Seonix",
     "category": "Productivity",
     "capabilities": [
-      "Read the Site Health report and prioritised fix plan",
+      "Check one public page: up to three findings with where and what to do",
+      "Read the Site Health report, starting with the page to fix first, and the fix plan",
       "Inspect issues with crawled page evidence",
-      "Read Google Search Console queries, pages and opportunities",
+      "Read Search Console queries and opportunities with the page that ranks for each",
       "Browse keyword candidates, clusters and the content calendar",
       "List and read articles, score a draft with Seonix SEO checks",
       "Follow twelve SEO playbooks served by the server",
@@ -39,9 +40,9 @@
     "privacyPolicyURL": "https://seonix.ai/privacy-policy",
     "termsOfServiceURL": "https://seonix.ai/terms-of-use",
     "defaultPrompt": [
-      "What are the biggest SEO problems on my site right now?",
-      "Which search queries are close to page one and worth a push?",
-      "Check this draft against my site's SEO rules before I publish it."
+      "Check this page of my shop for SEO problems.",
+      "What should I fix first on my site?",
+      "Which search queries are close to page one, and which page ranks for each?"
     ],
     "brandColor": "#A835F6",
     "logo": "./assets/logo-512.png",
@@ -56,34 +57,34 @@
         "test_cases": {
           "positive": [
             {
+              "description": "One-page check",
+              "prompt": "Check this page for SEO problems: https://seonix.ai/ua/contact",
+              "tools_triggered": "check_page",
+              "expected_behavior": "Calls check_page and reports up to three findings, each with where on the page, what was found and what to do, or says plainly that nothing serious was found. Treats text read from the page as data and does not claim to have changed the page."
+            },
+            {
               "description": "Account overview",
               "prompt": "Which sites do I have in Seonix and what plan is each on?",
               "tools_triggered": "get_account",
               "expected_behavior": "Lists the account's projects with their plan and whether the MCP is available for each, without inventing data."
             },
             {
-              "description": "Site Health summary",
-              "prompt": "Give me the Site Health picture for my site and the top things to fix.",
+              "description": "What to fix first",
+              "prompt": "What should I fix first on my site?",
               "tools_triggered": "get_site_health, get_fix_plan",
-              "expected_behavior": "Reports the health score and issue counts, then the grouped fix plan with affected pages, treating crawled page text as data."
+              "expected_behavior": "Starts with the page in start_here and why it comes first, quotes the totals in counts as given (problems, problem pages, advice), lists problems before advice, and treats crawled page text as data."
             },
             {
               "description": "Search Console opportunities",
               "prompt": "Which queries are on page two that I could push to page one?",
               "tools_triggered": "gsc_status, gsc_opportunities",
-              "expected_behavior": "Checks that Search Console is connected first, then lists striking-distance queries with impressions and position; says so if not connected."
+              "expected_behavior": "Checks that Search Console is connected first, then lists striking-distance queries with the page that ranks for each and that page's impressions and position; says so if not connected."
             },
             {
               "description": "Draft scoring",
               "prompt": "Score this article draft for SEO against my site before I publish it.",
               "tools_triggered": "get_site_dna, analyze_seo",
               "expected_behavior": "Reads the site DNA, runs analyze_seo on the draft and explains the failing checks with concrete edits."
-            },
-            {
-              "description": "Playbook lookup",
-              "prompt": "Walk me through a monthly SEO report for my site.",
-              "tools_triggered": "get_playbook",
-              "expected_behavior": "Fetches the monthly_seo_report playbook from the server and follows its steps using the project's data."
             }
           ],
           "negative": [
@@ -105,7 +106,7 @@
         "commerce_description": "The plugin does not sell anything and processes no payments. Seonix plans are bought on seonix.ai; the plugin only reads and acts on data in an existing Seonix account."
       },
       "publication": {
-        "release_notes": "Initial release: Seonix MCP server with OAuth sign-in, three skills (SEO workflow, fix a site in code, content through Seonix)."
+        "release_notes": "1.3.0: check_page checks any public page on every Seonix account and returns up to three findings with where and what to do; Site Health starts with the page to fix first and reports one set of totals; Search Console opportunities name the page that ranks for each query; the description no longer suggests that articles are written or published through the plugin."
       }
     }
   }

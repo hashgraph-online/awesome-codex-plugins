@@ -1,235 +1,307 @@
-# ru-marketplace-mcp
+# ru-marketplace-mcp — MCP-серверы для маркетплейсов России и Китая
 
-**Русский** · [English](README.en.md)
+<!-- mcp-name: io.github.Vladimir-Human/ru-marketplace-mcp -->
+
+**Русский** · [English](README.en.md) · [Установка для ИИ-агентов](llms-install.md) · [llms.txt](llms.txt)
 
 [![CI](https://github.com/Vladimir-Human/ru-marketplace-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/Vladimir-Human/ru-marketplace-mcp/actions/workflows/ci.yml)
 [![PyPI](https://img.shields.io/pypi/v/ru-marketplace-mcp.svg)](https://pypi.org/project/ru-marketplace-mcp/)
+[![npm](https://img.shields.io/npm/v/ru-marketplace-mcp-dsh.svg?label=npm%20%28dsh%29)](https://www.npmjs.com/package/ru-marketplace-mcp-dsh)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)](https://www.python.org/downloads/)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![MCP](https://img.shields.io/badge/MCP-stdio%20%7C%20http-orange.svg)](https://modelcontextprotocol.io)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**MCP-серверы для российских и китайских маркетплейсов.** Цены, наличие,
-рейтинги, отзывы и реквизиты продавцов с Wildberries, Ozon, Яндекс Маркета,
-Детского мира, Авито, AliExpress, Taobao, Мегамаркета, Lamoda, DNS и Ситилинка.
-Плюс недвижимость с Циана и
-сравнение цен по всем товарным источникам одним вызовом.
+Живые цены, остатки, рейтинги, отзывы и реквизиты продавцов с 12 площадок РФ и
+Китая: **Wildberries**, **Ozon**, **Яндекс Маркет**, **Авито**, **AliExpress**,
+**Taobao**, **DNS**, **Ситилинк**, **Мегамаркет**, **Lamoda**, **Детский мир** и
+недвижимость с **Циана**.
 
-Только чтение. Ключи API, токены и регистрация не нужны — площадки с жёстким
-анти-ботом читаются через ваш собственный Chrome.
+`compare_prices` сравнивает цены по всем товарным площадкам одним вызовом,
+отсеивает флешки и чехлы по цене смартфона (`cheapest_comparable`) и не выдаёт
+скидку по WB Кошельку, Яндекс Пэй или купону за обычную цену. Только чтение, без
+ключей API и кабинета продавца: открытые площадки отвечают по HTTP, закрытые
+анти-ботом — через ваш отдельный Chrome (для Taobao и Мегамаркета в нём нужен
+обычный покупательский вход).
 
 <p align="center">
-  <img src="docs/assets/demo-compare.svg" width="760"
-       alt="compare_prices(&quot;кроссовки мужские&quot;): предложения Wildberries и Яндекс Маркета по цене, дешевле всего wildberries 712 ₽">
+  <img src="docs/assets/demo-compare.svg" width="560"
+       alt="compare_prices(&quot;iphone 16 128gb&quot;): флешка 1 531 ₽ и цена по WB Кошельку 56 833 ₽ не побеждают; лидер comparable — Apple iPhone 16 за 64 990 ₽ на AliExpress">
 </p>
 
-<sub>Пример вызова из раздела [«Сравнение цен»](docs/TOOLS.ru.md#сравнение-цен--compare_).</sub>
+<sub>Реальный разбор из раздела <a href="#настоящий-ответ">«Настоящий ответ»</a> (`c1-iphone16-128gb.json`).</sub>
 
 ## Быстрый старт
 
-### Безопасность и границы
-- Не подключайте его в одну сессию агента с инструментами, которые читают личные данные и могут без вашего подтверждения отправить их наружу.
-- Используйте отдельный профиль Chrome для парсинга, без почты и банка. [Подробности](SECURITY.md).
-
-Нужны **Python 3.12+** и [uv](https://docs.astral.sh/uv/).
-
-Без checkout пакет ставится с PyPI и сам подключается к найденному клиенту
-(`--dry-run` покажет план и ничего не запишет):
+Нужны **Python 3.12+** и [uv](https://docs.astral.sh/uv/). Клонировать репозиторий
+не нужно: одна команда скачает пакет с PyPI, найдёт установленные MCP-клиенты и
+настроит подключение (`--dry-run` только покажет план):
 
 ```bash
 uvx ru-marketplace-mcp setup
 ```
 
-Или в один клик: [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=marketplace&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22ru-marketplace-mcp%22%2C%22compare-mcp%22%5D%7D) [![Install in Cursor](https://img.shields.io/badge/Cursor-Install_MCP-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=marketplace&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJydS1tYXJrZXRwbGFjZS1tY3AiLCJjb21wYXJlLW1jcCJdfQ==)
+Или установка в один клик:
 
-Для установки клиента, выбора источников и проверки первого предложения —
-[пошаговый старт](docs/QUICKSTART.md). Node нужен только для тестов разработчика.
-Публикация на PyPI (для владельца): [DEPLOYMENT.md — PyPI](docs/DEPLOYMENT.md#pypi-maintainer).
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_MCP-0098FF?logo=visualstudiocode&logoColor=white)](https://vscode.dev/redirect/mcp/install?name=marketplace&config=%7B%22command%22%3A%22uvx%22%2C%22args%22%3A%5B%22--from%22%2C%22ru-marketplace-mcp%22%2C%22compare-mcp%22%5D%7D)
+[![Install in Cursor](https://img.shields.io/badge/Cursor-Install_MCP-000000?logo=cursor&logoColor=white)](https://cursor.com/en/install-mcp?name=marketplace&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyItLWZyb20iLCJydS1tYXJrZXRwbGFjZS1tY3AiLCJjb21wYXJlLW1jcCJdfQ==)
 
-[Первый успешный запрос](docs/QUICKSTART.md) · [Архитектура](docs/ARCHITECTURE.md) ·
-[Как добавить источник](docs/ADDING_A_SOURCE.md) · [Про анти-бот](docs/ANTI_BOT.md)
+Для **Claude Desktop** без терминала — бандл `ru-marketplace-mcp-compare-<версия>.mcpb` в [GitHub Releases](https://github.com/Vladimir-Human/ru-marketplace-mcp/releases) (проверено на Windows, на macOS не проверялось).
+
+### Какой профиль выбрать
+
+Описания подключённых инструментов уходят модели в каждом запросе, поэтому
+`setup` и `install` по умолчанию ставят компактный профиль `compare`:
+
+| Профиль | Объём | Когда выбирать |
+| --- | --- | --- |
+| **`compare`** *(по умолч.)*<br>`compare-mcp` | 4 · ≈1.7k | Сравнить цены по площадкам и проверить карточку лидера |
+| **`decision`**<br>`decision-mcp` | 5 · ≈2.0k | Всё из `compare` плюс осмотр шортлиста с отзывами |
+| **`full`**<br>`marketplace-mcp` | 39 · ≈13.1k | Прямой поиск, отзывы, продавцы, категории и Циан |
+| Одна площадка<br>`--per-source` | 2–8 · мин. | Нужен только один маркетплейс |
+
+> **Безопасность и границы:** не включайте эти серверы в одну сессию агента с инструментами, которые читают личные данные и могут отправить их наружу без вашего подтверждения, и держите отдельный профиль Chrome без почты и банка ([SECURITY.md](SECURITY.md)).
+
+[Первый успешный запрос](docs/QUICKSTART.md) · [Справочник инструментов](docs/TOOLS.md) ·
+[Архитектура](docs/ARCHITECTURE.md) · [Про анти-бот](docs/ANTI_BOT.md)
 
 ---
 
-## Что внутри
+## Поддерживаемые площадки (12 источников)
 
-| Сервер            | Инструментов | Что нужно, чтобы читалось                                                  | Что умеет                                                                                 |
-| ----------------- | ------------ | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| **Wildberries**   | 8            | анонимный HTTP                                                             | Поиск, карточки, отзывы, вопросы о товаре, реквизиты продавца, каталог и товары категории |
-| **Яндекс Маркет** | 2            | анонимный HTTP                                                             | Цены разных продавцов, разбивка оценок по звёздам, отзывы                                 |
-| **Детский мир**   | 3            | анонимный HTTP                                                             | Детские товары, наличие в офлайн-магазинах, категории                                     |
-| **Ozon**          | 3            | ваш Chrome; с домашнего IP часто и без него                                | Поиск, карточки, отзывы                                                                   |
-| **Авито**         | 3            | ваш Chrome + российский домашний IP и запросы вразрядку — иначе блок по IP | Поиск объявлений, карточки, репутация продавца                                            |
-| **Taobao**        | 2            | ваш Chrome с активным входом в Taobao                                      | Поиск и карточки, цены в юанях                                                            |
-| **Мегамаркет**    | 2            | ваш Chrome с активным входом — анонимной сессии API отдаёт пусто           | Поиск и карточки через мобильный API                                                      |
-| **Lamoda**        | 2            | карточки: HTTP GraphQL → Chrome при отказе; поиск — Chrome                            | Поиск, карточки с размерами                                                               |
-| **DNS**           | 2            | ваш Chrome (Qrator)                                                        | Поиск и карточки электроники                                                              |
-| **Ситилинк**      | 2            | ваш Chrome (Qrator)                                                        | Поиск и карточки электроники                                                              |
-| **AliExpress**    | 2            | ваш Chrome (x5sec)                                                       | Поиск и карточки, цены в рублях                            |
-| **Циан**          | 2            | ваш Chrome (WAF по IP)                                                     | Недвижимость: поиск по фильтрам (продажа, аренда, посуточно) и карточка объявления         |
-| **Сравнение**     | 4            | опрашивает всё перечисленное                                               | «Где дешевле?» одним вызовом                                                              |
+| Площадка | Доступ | Что умеет |
+| --- | --- | --- |
+| **Wildberries** (8) | HTTP (403 → Chrome) | Поиск, карты, отзывы, Q&A, seller ID, каталог |
+| **Яндекс Маркет** (2) | прямой HTTP | Цены и отзывы, оценки по звёздам |
+| **Детский мир** (3) | прямой HTTP | Детские товары, остатки, каталог |
+| **Ozon** (3) | Chrome / HTTP | Поиск, карты, отзывы |
+| **Авито** (3) | Chrome + паузы | Лоты, карты, рейтинг продавца |
+| **Taobao** (2) | Chrome + вход | Поиск, карты, цены в юанях |
+| **Мегамаркет** (2) | Chrome + вход | Поиск и карты через API |
+| **Lamoda** (2) | HTTP → Chrome | Поиск, карты, размеры |
+| **DNS** (2) | Chrome (Qrator) | Поиск и карты техники |
+| **Ситилинк** (2) | Chrome (Qrator) | Поиск и карты техники |
+| **AliExpress** (2) | Chrome (x5sec) | Поиск и карты в рублях |
+| **Циан** (2) | Chrome (WAF IP) | Жильё: продажа, аренда, сутки |
+| **Сравнение** (4) | по площадкам | «Где дешевле?», сверка, снимок |
 
-Читается анонимно, без браузера: Wildberries, Яндекс Маркет и Детский мир.
-Карточки Lamoda сначала читаются по HTTP GraphQL; при отказе нужен ваш Chrome
-(CDP) для запасного уровня. Остальным нужен ваш залогиненный Chrome (CDP). Taobao и
-Мегамаркет вдобавок требуют активного входа в саму площадку — без него Taobao
-упирается в стену логина, а Мегамаркет отдаёт пустой ответ. Авито ещё и блокирует
-по IP: с датацентрового адреса это глухой отказ, с российского домашнего — работает,
-если не частить запросами. Запросы к CDP-источникам идут вразрядку: очередь
-подряд без пауз роняет их (DNS и Taobao в проверке так и деградировали), поэтому
-коннекторы держат паузу между вызовами сами. Точное состояние из вашей сессии
-покажет `marketplace-mcp doctor`.
+Без браузера работают Wildberries, Яндекс Маркет и Детский мир (если API
+Wildberries отвечает 403, поиск и карточки сами перечитываются через ваш Chrome).
+Карточки Lamoda сначала идут по HTTP GraphQL и обращаются к Chrome (CDP) только
+при отказе. Остальным нужен ваш Chrome с CDP, а Taobao и Мегамаркету — ещё и вход
+в аккаунт площадки: без него Taobao упирается в страницу входа, а Мегамаркет
+возвращает пустую выдачу. Авито режет датацентровые адреса и отвечает с обычного
+(не облачного) подключения при спокойном темпе запросов. К браузерным источникам
+коннекторы ходят с паузой: очередь без передышки роняет сессию (так на проверках
+отваливались DNS и Taobao). Точное состояние из вашей среды покажет
+`marketplace-mcp doctor`.
 
-Аналитика MPStats теперь на официальном MCP-сервере MPStats: `https://mcp.mpstats.io/mcp?token=<ваш токен MPStats>`; ru-marketplace-mcp 2.10.x — последняя версия с инструментами `mpstats_*`.
+Аналитика MPStats переехала на официальный MCP-сервер MPStats (`https://mcp.mpstats.io/mcp?token=<ваш токен MPStats>`) и в текущий состав `ru-marketplace-mcp` не входит.
 
-Всего 37 инструментов в 13 серверах на общем рантайме `mcp-core`. Плюс объединённый
-`marketplace-mcp`, который монтирует всё разом — одна запись в конфиге клиента
-вместо тринадцати. У него два своих инструмента: `marketplace_sources` (какие
-коннекторы поднялись, а какие отвалились и почему) и `marketplace_health` (жив ли
-Chrome, какие хосты остывают, какую страницу открыть человеку). В нём 39 инструментов: 37 смонтированных плюс эти два.
+Всего 37 инструментов в 13 серверах на общем рантайме `mcp-core`, плюс
+промежуточный `decision-mcp` (5 инструментов) и объединённый `marketplace-mcp`,
+который монтирует всё под одной записью в конфиге клиента и добавляет два своих
+инструмента — `marketplace_sources` (какие коннекторы поднялись, а какие
+пропущены и почему) и `marketplace_health` (жив ли Chrome, какие хосты остывают,
+какую страницу открыть человеку) — итого 39 инструментов.
 
-**Проверка 2.7.0:** 30 октября с одного адреса Wildberries при отказе API (HTTP 403) сам прочитал поиск через Chrome: 40 товаров, у всех цена. Код остальных источников с v2.6.0 не менялся; их проверял [прогон v2.6.0](docs/releases/RELEASE_NOTES_v2.6.0.md#статус-живой-проверки) того же дня (12 из 13 источников). [Подробности v2.7.0](docs/releases/RELEASE_NOTES_v2.7.0.md#что-проверено).
+### Настоящий ответ
+
+`compare_prices(query="iphone 16 128gb")`. Ответы площадок записаны в Chrome на машине владельца 17 ноября 2026 года в 01:29 UTC (аудит, цикл 1, запись [c1-iphone16-128gb.json](packages/compare-connector/tests/benchmark/recordings/c1-iphone16-128gb.json)) и пропущены через код `2.11.0` (коммит `f39a786f`). Ниже оставлены ключевые поля и по одному предупреждению каждого типа; полный ответ ещё содержит `source_outcomes` и все 25 предложений в `offers`.
+
+```json
+{
+  "query": "iphone 16 128gb",
+  "sources_queried": [
+    "aliexpress", "citilink", "dns",
+    "taobao", "wildberries", "yandex_market"
+  ],
+  "sources_ok": [
+    "aliexpress", "dns", "taobao", "wildberries", "yandex_market"
+  ],
+  "complete": false,
+  "total_offers": 25,
+  "cheapest": {
+    "source": "aliexpress",
+    "product_id": "1005009110731940",
+    "title": "MOVESPEED флешка USB Type C 64/128/256/512 ГБ",
+    "price_rub": 1531.0,
+    "currency": "rub",
+    "rating": 4.8,
+    "url": "https://aliexpress.ru/item/1005009110731940.html"
+  },
+  "cheapest_comparable": {
+    "source": "aliexpress",
+    "product_id": "1005008110020734",
+    "title": "Смартфон Apple iPhone 16, 8/128ГБ",
+    "price_rub": 64990.0,
+    "currency": "rub",
+    "rating": 5.0,
+    "url": "https://aliexpress.ru/item/1005008110020734.html"
+  },
+  "price_spread_rub": 93459.0,
+  "warnings": [
+    "partial: 1 of 6 marketplaces did not answer (citilink) ...",
+    "conditional_price: wildberries/1415238452: 56833 RUB requires WB Wallet; not ranked",
+    "info:conditional_price_available: yandex_market/103530694148: 72825 RUB with Yandex Pay",
+    "price_outlier: the cheapest offer is 1531.0 ₽ against a median of 70299.0 ₽ across 17 offers ...",
+    "comparable_price: the raw cheapest listing is an accessory, a different condition, variant or model; cheapest_comparable is the safer like-for-like candidate",
+    "foreign_currency: 5 offer(s) are priced in cny, not roubles ... excluded from the ranking"
+  ],
+  "server_version": "2.11.0"
+}
+```
+
+<details>
+<summary>Полный список <code>warnings</code> из этой записи (15 строк)</summary>
+
+```json
+[
+  "partial: 1 of 6 marketplaces did not answer (citilink) — prices below cover only aliexpress, dns, taobao, wildberries, yandex_market",
+  "source_warning:aliexpress: 2 tile(s) advertise a coupon price; price_rub carries the regular price and the coupon value is not part of the response — treat 'cheapest' ranking with care",
+  "source_warning:wildberries: dom_fallback: WB API refused this address (HTTP 403); read through the scraping Chrome, in the WB region set in that browser rather than dest",
+  "source_warning:wildberries: wb_dom_search: price_rub is the WB Wallet price on search tiles (the regular card price is equal or a few % higher and shows only on the product page — verify leaders with wb_card)",
+  "conditional_price: wildberries/1415238452: 56833 RUB requires WB Wallet; not ranked",
+  "conditional_price: wildberries/580725150: 76922 RUB requires WB Wallet; not ranked",
+  "conditional_price: wildberries/580725161: 76922 RUB requires WB Wallet; not ranked",
+  "info:conditional_price_available: yandex_market/103572173063: 71800 RUB with Yandex Pay",
+  "info:conditional_price_available: yandex_market/103530694148: 72825 RUB with Yandex Pay",
+  "info:conditional_price_available: yandex_market/4775394349: 68107 RUB with Yandex Pay",
+  "info:conditional_price_available: yandex_market/5302780524: 66699 RUB with Yandex Pay",
+  "info:conditional_price_available: yandex_market/4775394347: 69323 RUB with Yandex Pay",
+  "price_outlier: the cheapest offer is 1531.0 ₽ against a median of 70299.0 ₽ across 17 offers — check it is the same product and configuration",
+  "comparable_price: the raw cheapest listing is an accessory, a different condition, variant or model; cheapest_comparable is the safer like-for-like candidate",
+  "foreign_currency: 5 offer(s) are priced in cny, not roubles — their price is in price_native and they are excluded from the ranking and from cheapest"
+]
+```
+
+</details>
+
+Самым дешёвым формально оказалась флешка: в её названии есть «128». Поэтому ответ отдельно называет `cheapest_comparable`, то есть сам телефон, и предупреждает о выбросе цены. Цена Wildberries, которая действует только с WB Кошельком, показана, но в сравнении не участвует. Ситилинк в этом вызове ответил отказом, и ответ говорит, что он неполный.
 
 ## Подключение к MCP-клиенту
 
-Каждый сервер — консольная команда, поэтому пути в конфиге не зашиваются.
+Самый короткий путь — `uvx ru-marketplace-mcp setup` (или `uv run marketplace-mcp setup`
+из клона репозитория): команда находит установленные клиенты (**Claude Desktop**,
+**Cursor**, **Claude Code**, **VS Code**, **Windsurf**, **Antigravity**,
+**Gemini CLI**, **Codex CLI**), прописывает профиль `compare`, запускает
+отдельный Chrome для парсинга, проверяет источники через `doctor` и предлагает
+`unblock`, если площадка просит вход или капчу (`--dry-run` только показывает
+шаги и файлы; `--no-browser` и `--no-doctor` пропускают браузер и сетевые вызовы).
 
-<details open>
-<summary><b>Claude Desktop</b> — <code>claude_desktop_config.json</code></summary>
-
-Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-Самый короткий путь — `marketplace-mcp setup`: команда находит Claude Desktop,
-Cursor и Claude Code, пишет им конфиг (по умолчанию профиль `compare`),
-запускает scraping-Chrome, прогоняет `doctor` и предлагает `unblock` для
-источника, закрытого браузером. `--dry-run` только печатает шаги и файлы.
+Настроить один конкретный клиент (поддерживаются все **9 целей**):
 
 ```console
-marketplace-mcp setup
+uvx ru-marketplace-mcp install <client> --write --profile compare
 ```
 
-Если клиент нетипичный или нужен один конкретный, тот же конфиг пишет
-`install --write`:
+| Клиент (`<client>`) | Что обновляет `--write` |
+| --- | --- |
+| **Claude Desktop**<br>`claude` | `mcpServers.marketplace` в конфиге Claude Desktop + `.bak`; есть и `.mcpb` в [Releases](https://github.com/Vladimir-Human/ru-marketplace-mcp/releases) |
+| **Cursor**<br>`cursor` | `mcpServers.marketplace` в `~/.cursor/mcp.json` + `.bak` |
+| **VS Code**<br>`vscode` | **`servers.marketplace`** (`"type": "stdio"`) в `Code/User/mcp.json` + `.bak` |
+| **Windsurf**<br>`windsurf` | `mcpServers.marketplace` в конфиге Windsurf + `.bak` |
+| **Antigravity**<br>`antigravity` | `mcpServers.marketplace` в конфиге Antigravity + `.bak` |
+| **Gemini CLI**<br>`gemini` | `mcpServers.marketplace` в `~/.gemini/settings.json` + `.bak` |
+| **Claude Code**<br>`claude-code` | Печатает `claude mcp add marketplace --scope user -- ...` |
+| **Codex CLI**<br>`codex` | Печатает `codex mcp add marketplace -- ...` |
+| **DeepSeek Harness**<br>`dsh` | Печатает `cordis.patch.yml` (плагин — в спойлере и [dsh/README.md](dsh/README.md)) |
 
-```console
-marketplace-mcp install claude --write
+<sub>Пути конфигов: **Claude Desktop** — `%APPDATA%\Claude\claude_desktop_config.json` (Win), `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS), `~/.config/Claude/claude_desktop_config.json` (Linux); **Windsurf** — `~/.codeium/windsurf/mcp_config.json`; **Antigravity** — `~/.gemini/config/mcp_config.json`. Перед записью создаётся копия `.bak-&lt;метка&gt;`.</sub>
+
+По умолчанию ставится профиль `compare` (`compare-mcp`). `--profile decision`
+переключает запись на `decision-mcp`, `--profile full` — на полный
+`marketplace-mcp` (при перезаписи существующей записи добавьте `--force`;
+`--write --dry-run` показывает дифф без записи; `--per-source` печатает или
+пишет отдельные серверы по площадкам и с `--profile` не сочетается). Неизвестное
+имя клиента команда отклоняет с кодом возврата `2`.
+
+Управление браузером и разблокировкой:
+- `marketplace-mcp browser start` — запустить отдельный Chrome для парсинга (по умолчанию окно видно, `--hidden` — за экраном);
+- `marketplace-mcp browser status` — доступен ли CDP, версия Chrome, вкладки и положение окна;
+- `marketplace-mcp browser show` — вывести окно на экран (на Windows автозапуск паркует его за экраном);
+- `marketplace-mcp unblock <source>` — открыть страницу входа или проверки в новой вкладке, подождать, пока вы пройдёте её сами, и перепроверить только этот источник (капчу за человека команды не решают).
+
+<details>
+<summary><b>Ручная настройка JSON и выбор площадок (<code>MARKETPLACE_SOURCES</code>)</b></summary>
+
+Для клиентов с `mcpServers` (Claude Desktop, Cursor, Windsurf, Antigravity, Gemini CLI, Cline, OpenCode) без клона репозитория:
+
+```json
+{
+  "mcpServers": {
+    "marketplace": {
+      "command": "uvx",
+      "args": ["--from", "ru-marketplace-mcp", "compare-mcp"]
+    }
+  }
+}
 ```
 
-Команда допишет запись `marketplace` в конфиг Claude Desktop
-(`%APPDATA%\Claude\claude_desktop_config.json` на Windows,
-`~/Library/Application Support/Claude/claude_desktop_config.json` на macOS,
-`~/.config/Claude/claude_desktop_config.json` на Linux). Путь к `uv` и к вашему
-checkout подставятся абсолютными (у десктопного клиента часто нет PATH
-терминала), чужие серверы и остальные настройки конфига останутся на месте,
-старый файл сохранится как `claude_desktop_config.json.bak-<метка>`. Остаётся
-перезапустить клиент. `--dry-run` показывает, что именно будет записано, и
-ничего не пишет; `--per-source` возвращает старую раскладку — по записи на
-источник — и с `--profile` не сочетается.
+Для **VS Code** (`Code/User/mcp.json` использует корневой ключ `"servers"` и `"type": "stdio"`):
 
-По умолчанию запись запускает `compare-mcp` — профиль `compare`: 4 инструмента
-сравнения цен, самый дешёвый в каждом запросе. `--profile decision` добавляет
-осмотр карточки из шортлиста (5 инструментов), `--profile full` берёт
-`marketplace-mcp` со всеми инструментами источников — в несколько раз дороже
-(замер по профилям — в [docs/TOOLS.md](docs/TOOLS.md)).
-Меняется только консольная команда записи, имя `marketplace` остаётся прежним.
-Подробнее о выборе режима — [dsh/README.md](dsh/README.md) и
-`docs/QUICKSTART.md`.
+```json
+{
+  "servers": {
+    "marketplace": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "ru-marketplace-mcp", "compare-mcp"]
+    }
+  }
+}
+```
 
-Если конфиг удобнее править руками, начните с одной записи:
+Из локального клона (пути с прямыми слешами `/` или двойными обратными `\\`):
 
-```jsonc
+```json
 {
   "mcpServers": {
     "marketplace": {
       "command": "uv",
-      "args": ["run", "--directory", "C:/путь/к/ru-marketplace-mcp", "compare-mcp"],
-    },
-  },
+      "args": ["run", "--directory", "C:/путь/к/ru-marketplace-mcp", "compare-mcp"]
+    }
+  }
 }
 ```
 
-Если нужны отдельные серверы, `marketplace-mcp install claude --per-source`
-напечатает готовый блок для вставки. Путь к вашему checkout там уже подставлен:
-заглушку `/path/to/ru-marketplace-mcp` править руками не придётся. При установке из
-wheel вместо путей печатаются консольные команды на PATH. Неизвестное имя клиента
-(допустимы `claude`, `claude-code`, `cursor`, `dsh`) команда отклоняет с пояснением и
-кодом возврата 2 — молча подставить блок для Claude она не может.
+Полный список из 15 консольных точек входа: `wb-mcp`, `ozon-mcp`, `yandex-mcp`,
+`detmir-mcp`, `avito-mcp`, `taobao-mcp`, `megamarket-mcp`, `lamoda-mcp`,
+`dns-mcp`, `citilink-mcp`, `aliexpress-mcp`, `cian-mcp`, `compare-mcp`,
+`decision-mcp`, `marketplace-mcp`. Все серверы общаются по JSON-RPC через stdin
+и stdout, а диагностику пишут в stderr.
 
-У браузерного уровня есть ещё команды: `marketplace-mcp browser start`
-(запустить scraping-Chrome; по умолчанию окно видно, `--hidden` — за экраном),
-`marketplace-mcp browser status` (достижим ли CDP-эндпоинт, какая версия Chrome,
-сколько вкладок и где окно) и `marketplace-mcp browser show` (окно
-scraping-Chrome на экран — на Windows автозапуск коннектора стартует за экраном,
-и без этого нельзя ни войти руками, ни пройти проверку сайта). Когда `doctor`
-показывает стену, `marketplace-mcp unblock <source>` откроет нужную страницу в
-новой вкладке, подождёт, пока вы пройдёте проверку или войдёте, и перепроверит
-только этот источник. Ни одна из этих команд не ходит в сайты сама и не решает
-проверку за человека.
+### Только нужные площадки в полном режиме: `MARKETPLACE_SOURCES`
 
-Минимальный
-вариант вручную:
+Объединённый `marketplace-mcp` монтирует все источники сразу. Переменная
+`MARKETPLACE_SOURCES` оставляет только перечисленные и экономит контекст:
 
-```jsonc
-{
-  "mcpServers": {
-    "wildberries": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:/путь/к/ru-marketplace-mcp", "wb-mcp"],
-    },
-    "ozon": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:/путь/к/ru-marketplace-mcp", "ozon-mcp"],
-    },
-    "compare-prices": {
-      "command": "uv",
-      "args": ["run", "--directory", "C:/путь/к/ru-marketplace-mcp", "compare-mcp"],
-    },
-  },
-}
-```
-
-Путь пишите с прямыми слешами `/` или двойными обратными `\\`. Полный список
-команд — `wb-mcp`, `ozon-mcp`, `yandex-mcp`, `detmir-mcp`, `avito-mcp`,
-`taobao-mcp`, `megamarket-mcp`, `lamoda-mcp`, `dns-mcp`, `citilink-mcp`,
-`compare-mcp`, `marketplace-mcp`.
-
-### Только нужные площадки: `MARKETPLACE_SOURCES`
-
-Объединённый сервер монтирует все источники, а описания их инструментов уходят
-в контекст **в каждом запросе**. Переменная `MARKETPLACE_SOURCES` оставляет
-только перечисленные:
-
-```jsonc
+```json
 {
   "mcpServers": {
     "marketplace": {
       "command": "uv",
       "args": ["run", "--directory", "C:/путь/к/ru-marketplace-mcp", "marketplace-mcp"],
       "env": {
-        "MARKETPLACE_SOURCES": "wildberries,ozon,yandex_market,avito,aliexpress,dns,compare",
-      },
-    },
-  },
+        "MARKETPLACE_SOURCES": "wildberries,ozon,yandex_market,avito,aliexpress,dns,compare"
+      }
+    }
+  }
 }
 ```
 
-Имена — канонические (`wildberries`, `ozon`, `yandex_market`, `detsky_mir`,
+Имена канонические (`wildberries`, `ozon`, `yandex_market`, `detsky_mir`,
 `avito`, `taobao`, `megamarket`, `lamoda`, `dns`, `citilink`, `aliexpress`,
 `cian`, `compare`); короткие псевдонимы `wb`, `ym`/`yandex`, `detmir`, `ali`
-тоже принимаются. Неизвестное имя отклоняется при запуске с перечнем
-поддерживаемых источников, чтобы опечатка не превратилась в частичный сервер.
-Переменная не задана или пуста — монтируется всё, как раньше.
-Отключённые источники видно в `marketplace_sources`: они попадают в `skipped`
-с пометкой, что их сняли, а не что они не импортировались. `compare_prices`
-по умолчанию опрашивает только выбранные товарные источники с текстовым поиском:
-Детский мир не поддерживает такой поиск, Циан в сравнении товаров не
-участвует. Явный `sources` может сузить этот набор, но не включить отключённую
-площадку: такой вызов возвращает `bad_request`, как и проверка её карточки.
+тоже принимаются. Опечатка в имени остановит старт сервера со списком допустимых
+площадок. Отключённые источники видны в `marketplace_sources` в поле `skipped`.
+`compare_prices` опрашивает только выбранные товарные источники с текстовым
+поиском (Детский мир и Циан туда не входят); явный `sources` для отключённой
+площадки вернёт `bad_request`.
 
 </details>
 
 <details>
-<summary><b>Claude Code</b></summary>
+<summary><b>Claude Code</b> — плагин с 14 навыками или <code>claude mcp add</code></summary>
 
 Установка плагина (14 навыков + MCP) одной командой:
 
@@ -237,40 +309,11 @@ scraping-Chrome на экран — на Windows автозапуск конне
 /plugin install ru-marketplace-mcp --marketplace Vladimir-Human/ru-marketplace-mcp
 ```
 
-Или подключение серверов вручную из локального клона:
+Или подключение компактного профиля `compare-mcp` через CLI:
 
 ```bash
-claude mcp add wildberries -- uv run --directory /путь/к/ru-marketplace-mcp wb-mcp
-claude mcp add yandex-market -- uv run --directory /путь/к/ru-marketplace-mcp yandex-mcp
-claude mcp add detsky-mir -- uv run --directory /путь/к/ru-marketplace-mcp detmir-mcp
-claude mcp add ozon -- uv run --directory /путь/к/ru-marketplace-mcp ozon-mcp
-claude mcp add compare-prices -- uv run --directory /путь/к/ru-marketplace-mcp compare-mcp
+claude mcp add marketplace --scope user -- uvx --from ru-marketplace-mcp compare-mcp
 ```
-
-</details>
-
-<details>
-<summary><b>Cursor</b> — <code>.cursor/mcp.json</code></summary>
-
-```jsonc
-{
-  "mcpServers": {
-    "compare-prices": {
-      "command": "uv",
-      "args": ["run", "--directory", "/путь/к/ru-marketplace-mcp", "compare-mcp"],
-    },
-  },
-}
-```
-
-</details>
-
-<details>
-<summary><b>Другой stdio-клиент</b></summary>
-
-Запустите `uv run --directory /путь/к/репозиторию <команда>`, где команда — одна из
-`wb-mcp`, `ozon-mcp`, `yandex-mcp`, `detmir-mcp`, `aliexpress-mcp`, `cian-mcp`, `compare-mcp`. Серверы говорят по
-JSON-RPC через stdin и stdout, диагностику пишут в stderr.
 
 </details>
 
@@ -299,12 +342,12 @@ dsh plugin --profile web add github:Vladimir-Human/ru-marketplace-mcp#path:/dsh
 
 </details>
 
-После подключения перезапустите клиент и прогоните `marketplace-mcp doctor`. Он
-запускает канарейку каждого коннектора: код `0` — все выбранные проверки здоровы,
-`1` — дрейф парсера, `2` — признанный блок или непроверенный источник, `3` — не
-удалось записать status-файл, `4` — сломалась самопроверка или вызов doctor
-(включая ошибку аргументов). Тревогу поднимают коды `1` и `4`, но не `2`.
-Отказ бюджета получает причину `budget_refused`, а не статус здоровой проверки.
+После подключения перезапустите клиент и проверьте доступность источников
+командой `marketplace-mcp doctor` (подробнее в [docs/QUICKSTART.md](docs/QUICKSTART.md)):
+код `0` — выбранные проверки здоровы, `1` — дрейф парсера, `2` — площадка
+закрыта анти-ботом, ждёт Chrome/входа или лимита бюджета (`budget_refused`), `3` —
+не записался `--status-file`, `4` — сбой самой проверки или неверные аргументы.
+Тревогу поднимают коды `1` и `4`, а при `2` следуйте подсказке `next:` в выводе.
 
 ## Инструменты
 
@@ -357,39 +400,40 @@ dsh plugin --profile web add github:Vladimir-Human/ru-marketplace-mcp#path:/dsh
 `mcp-core` — общий рантайм под остальными серверами. Своего навыка у него нет.
 
 Соответствие проверяется тестом
-(`packages/marketplace-connector/tests/test_skills_parity.py`): новый коннектор
+([test_skills_parity.py](packages/marketplace-connector/tests/test_skills_parity.py)): новый коннектор
 без навыка роняет прогон, как и навык, который называет несуществующий
 инструмент или забыл существующий. До этого теста навык DNS почти год советовал
 формат ссылки `/product/<24-hex>/` — тот самый шаблон, который чинили как баг.
 
-Скиллы едут в Docker-образ (`/app/skills/`), но **в колёсах их нет**: `skills/`
-лежит в корне репозитория. При установке release-wheel возьмите навыки
-из репозитория отдельно; пакета `ru-marketplace-mcp` с PyPI это тоже касается.
+Скиллы едут в Docker-образ (`/app/skills/`), но в колёсах их нет: `skills/`
+лежит в корне репозитория. При установке release-wheel или пакета
+`ru-marketplace-mcp` с PyPI возьмите навыки из репозитория отдельно.
 
 ## Настройка
 
 Все параметры задаются переменными окружения с префиксом коннектора. Все
 необязательные.
 
-Для проверок в браузере добавлен опциональный режим сохранения вкладки:
-`CHROME_CHALLENGE_HANDOFF_S=120`. После завершения проверки повтор того же
-запроса от того же клиента (в той же MCP-сессии или, по stdio, к тому же процессу
-сервера) продолжает чтение этой вкладки. Поддержка и ограничения
-описаны в [настройке Chrome](docs/CDP_SETUP.md#optional-challenge-handoff).
+При проверке в браузере `CHROME_CHALLENGE_HANDOFF_S=120` придерживает открытую
+вкладку: когда вы пройдёте проверку, повтор того же запроса от того же клиента
+(в той же MCP-сессии или к тому же stdio-процессу сервера) дочитает эту вкладку
+без новой навигации. Поддержка и ограничения описаны в
+[настройке Chrome](docs/CDP_SETUP.md#optional-challenge-handoff).
 
 | Префикс              | Основные параметры                                                                                                               |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| `WB_`                | `TIMEOUT`, `MIN_GAP`, `DEFAULT_DEST`, `NET_RETRIES`, `MAX_BODY_BYTES`, `CACHE_TTL`, `PROXY`                                      |
+| `WB_`                | `TIMEOUT`, `MIN_GAP`, `DEFAULT_DEST`, `NET_RETRIES`, `MAX_BODY_BYTES`, `CACHE_TTL`, `PROXY`, `TRANSPORT`, `DOM_FALLBACK`         |
 | `YANDEX_`            | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`, `PROXY`                                                                                       |
 | `DETMIR_`            | `REGION` (`RU-MOW`, `RU-SPE` и другие), `CACHE_TTL`, `PROXY`                                                                     |
-| `OZON_`              | `TIMEOUT`, `MIN_GAP`, `IMPERSONATE`, `CACHE_TTL`, `PROXY`                                                                        |
+| `OZON_`              | `TIMEOUT`, `MIN_GAP`, `IMPERSONATE`, `CACHE_TTL`, `PROXY`, `CHROME_COMPAT`                                                       |
 | `AVITO_`             | `TIMEOUT`, `MIN_GAP`, `IMPERSONATE`, `CACHE_TTL`, `PROXY`, `LOCATION_ID`                                                         |
-| `TAOBAO_`            | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`,                                                                                               |
+| `TAOBAO_`            | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`                                                                                                |
 | `ALI_`               | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`                                                                                                |
 | `MEGAMARKET_`        | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`, `USE_PROFILE_ADDRESS` (0/1, по умолчанию 0 — приватный список адресов профиля не читается; 1 = адрес по умолчанию из залогиненного профиля, цены «как видит оператор») |
 | `LAMODA_`            | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`, `PROXY`                                                                                       |
 | `DNS_` / `CITILINK_` | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`                                                                                                |
-| `CHROME_`            | `CDP_HOST`, `CDP_PORT`, `SCRAPING_PROFILE`, `BINARY`, `HEADLESS`, `STEALTH`                                                      |
+| `CIAN_`              | `TIMEOUT`, `MIN_GAP`, `CACHE_TTL`, `MAX_BODY_BYTES`, `REGION`                                                                    |
+| `CHROME_`            | `CDP_HOST`, `CDP_PORT`, `SCRAPING_PROFILE`, `BINARY`, `HEADLESS`, `STEALTH`, `NAV_TIMEOUT_MS`, `CHALLENGE_HANDOFF_S`             |
 | `COMPARE_`           | `SOURCE_TIMEOUT`                                                                                                                 |
 | `MCP_`               | `TRANSPORT` (`stdio` по умолчанию, либо `http`), `HTTP_HOST`, `HTTP_PORT`                                                        |
 
@@ -416,15 +460,16 @@ TTL.
 git clone https://github.com/Vladimir-Human/ru-marketplace-mcp.git
 cd ru-marketplace-mcp
 uv sync --all-packages
-uv run pytest -q -m "not live and not cdp"    # офлайн-тесты, сеть не нужна
-uv run pytest -q -m "not live"                # то, что гоняет CI
-uv run pytest -q -m "not live" --cov          # покрытие, порог 70% в CI
+uv run pytest -q -m "not live and not cdp"    # офлайн-тесты, сеть не нужна (то, что гоняет CI)
+uv run pytest -q -m "not live and not cdp" --cov --cov-fail-under=80  # покрытие, порог 80% в CI
 uv run ruff check . && uv run ruff format --check .
 uv run mypy                                   # что проверять — в [tool.mypy] files
 uv run mypy --platform win32                  # ловит ошибки, видимые только на Windows
 uv run python scripts/check_no_print.py       # запись в stdout ломает JSON-RPC
-uv run python scripts/check_versions.py       # одна версия во всех 93 местах
+uv run python scripts/check_versions.py       # единая версия во всех отслеживаемых файлах
 ```
+
+Публикация на PyPI (для владельца): [DEPLOYMENT.md — PyPI](docs/DEPLOYMENT.md#pypi-maintainer). Справочник по устройству добавления коннектора — [docs/ADDING_A_SOURCE.md](docs/ADDING_A_SOURCE.md).
 
 Проверка живого эндпоинта:
 
@@ -454,19 +499,17 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 и 3.13; ещё 3.14 (все три ОС) и 3.15 (Ubuntu, Windows) проверяются без блокировки слияния. Windows-специфичное управление процессами проверяется юнит-тестами на любой
 ОС через подмену платформы, так что эти ветки покрыты даже на Linux.
 
-Как добавить маркетплейс — [docs/ADDING_A_SOURCE.md](docs/ADDING_A_SOURCE.md).
-
 ## Надёжность
 
 Неофициальные эндпоинты ломаются. Архитектура это предполагает.
 
-- **Терпимые парсеры.** Привязка поля по нескольким именам и приведение типов
-  впитывают переименования и смену типа вместо падения.
-- **Никогда не выдумывать значение.** Отсутствующая цена — это `null`, не `0`. Ноль
+- Терпимые парсеры: привязка поля по нескольким именам и приведение типов
+  переживают переименования и смену типа вместо падения.
+- Никогда не выдумывать значение: отсутствующая цена — это `null`, не `0`. Ноль
   вывел бы мёртвый товар в самые дешёвые.
-- **Громкий отказ.** Когда формат перестаёт совпадать, инструмент бросает
+- Громкий отказ: когда формат перестаёт совпадать, инструмент бросает
   `parser_drift`, а не возвращает полуразобранные данные.
-- **Трёхзначные selfcheck-проверки.** `success`, `drift_detected` или
+- Трёхзначные selfcheck-проверки: `success`, `drift_detected` или
   `inconclusive`. Гео-блокировка помечается как `inconclusive`, потому что она
   ничего не говорит о состоянии парсеров.
 
@@ -479,9 +522,8 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 
 Условия маркетплейсов, как правило, запрещают неофициальный парсинг. Коннекторы
 обращаются к публичным эндпоинтам каталога, которые использует официальный
-веб-клиент: пока opt-in не включён, в приватные и административные разделы
-запросов нет — список адресов профиля Мегамаркета читается только при
-`MEGAMARKET_USE_PROFILE_ADDRESS=1`. Уровень Ozon с браузером работает внутри
+веб-клиент: пока явно не задан `MEGAMARKET_USE_PROFILE_ADDRESS=1`, в личные и
+закрытые разделы запросов нет. Уровень Ozon с браузером работает внутри
 сессии, которую вы открыли сами. Используйте на своё
 усмотрение, для личных исследований, в вежливом темпе запросов. Пауза между
 вызовами к площадкам с анти-ботом — это часть конструкции, а не случайное
@@ -505,7 +547,7 @@ CI прогоняет тесты на Ubuntu, Windows и macOS против Pyth
 - [@Khalmatov](https://github.com/Khalmatov) — provenance отзывов Ozon, [PR #38](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/38).
 - [@fosteev](https://github.com/fosteev) — macOS CDP stealth и коннектор Циана, [PR #42](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/42), [PR #47](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/47).
 - [@ilodezis](https://github.com/ilodezis) — выбор источников unified-сервера через `MARKETPLACE_SOURCES`, [PR #48](https://github.com/Vladimir-Human/ru-marketplace-mcp/pull/48).
-- [@HeckfyCU](https://github.com/HeckfyCU) — замеры навигации AliExpress на российском IP, [issue #190](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/190): по его замерам найден и исправлен предел ожидания страницы.
+- [@HeckfyCU](https://github.com/HeckfyCU) — замеры навигации AliExpress в [issue #190](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/190): по его замерам найден и исправлен предел ожидания страницы.
 - [@XaruStar](https://github.com/XaruStar) — разбор живого ответа Ozon `webListReviews` со строковым `itemId`, [issue #214](https://github.com/Vladimir-Human/ru-marketplace-mcp/issues/214): по нему исправлен учёт `own_reviews` и проверка `item_id` в `ozon_selfcheck`.
 
 ## Лицензия

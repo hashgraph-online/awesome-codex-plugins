@@ -1,12 +1,34 @@
 [project]
 name = "ru-marketplace-mcp"
-version = "2.10.0"
-description = "MCP servers for Russian marketplaces — Wildberries, Ozon and more"
+version = "2.11.1"
+description = "Read-only MCP servers and cross-marketplace price comparison for 12 Russian and Chinese platforms: Wildberries, Ozon, Yandex Market, Avito, AliExpress, Taobao, DNS, Citilink, Megamarket, Lamoda, Detsky Mir, and Cian real estate"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
 authors = [{ name = "Vladimir-Human", email = "39053957+Vladimir-Human@users.noreply.github.com" }]
-keywords = ["mcp", "model-context-protocol", "wildberries", "ozon", "marketplace", "russia", "ecommerce"]
+keywords = [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "wildberries",
+    "ozon",
+    "yandex-market",
+    "avito",
+    "aliexpress",
+    "taobao",
+    "dns",
+    "citilink",
+    "lamoda",
+    "megamarket",
+    "detsky-mir",
+    "cian",
+    "price-comparison",
+    "marketplace",
+    "russia",
+    "ecommerce",
+    "real-estate",
+    "agent-skills",
+]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",

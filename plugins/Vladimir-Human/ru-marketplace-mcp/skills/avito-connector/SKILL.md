@@ -6,7 +6,7 @@ description: Use this skill when the operator needs Avito classifieds data — s
 # Avito Connector
 
 Reads Avito via the internal `js/items` JSON API. Two tiers: impersonated HTTPS
-(curl_cffi) works from a residential Russian IP; from a datacenter the firewall
+(curl_cffi) works outside datacenter networks; from a datacenter the firewall
 answers 403 + captcha, so the fetch falls back to the operator's logged-in
 Chrome over CDP — same pattern as Ozon.
 
@@ -14,7 +14,7 @@ Chrome over CDP — same pattern as Ozon.
 - Search classifieds by text, with optional category/location filters
 - One listing's price, description, views
 - Seller reputation — Avito is classifieds: no per-item reviews, the seller's
-  rating and active-listing count ARE the review signal
+  rating and review count ARE the review signal
 
 ## Tools available
 - `avito_search(query, page, location_id, category_id, include_inactive)` —
@@ -31,7 +31,7 @@ Chrome over CDP — same pattern as Ozon.
   tenure, city and stations (street address only when every source says company), date, views.
   `photos=1..3` attaches listing photos of an active ad (costly in tokens; describe the item,
   not people, documents or plates in the photos); `photos_status` says why fewer arrived.
-- `avito_seller(seller_id_or_url)` — seller rating, review count, active listings
+- `avito_seller(seller_id_or_url)` — seller rating, review count, tenure and verification badges (`active_items` is `None`: Avito's public API ignores seller-id filters)
 
 **Not an MCP tool:** `avito_selfcheck()` is a tri-state drift canary. It is
 CLI-only — `marketplace-mcp doctor` runs every connector's canary at once.

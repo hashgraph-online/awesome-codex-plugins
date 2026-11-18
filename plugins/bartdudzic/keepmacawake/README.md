@@ -16,6 +16,7 @@ The agent starts timed sessions on its own and tells you in one line. It always 
 - The plugin never downloads or runs an installer or a script, never uses `sudo` and never pays.
 - It works where the agent's commands run on your Mac itself (Claude Code, Codex, Cursor, Copilot CLI). On anything else, such as a cloud container, the hook stays silent and the agent says the app is out of reach.
 - Codex runs commands in a sandbox that cannot reach the app's background service, and so do Cursor and Claude Code when sandboxing is on. The agent then asks to run `keepmacawake` outside the sandbox; approve it.
+- So the agent does not stop at an approval prompt for `keepmacawake`, allow the command: `Bash(keepmacawake *)` in Claude Code's `permissions.allow`, `prefix_rule(pattern = ["keepmacawake"], decision = "allow")` in a Codex rules file (it also runs the command outside the sandbox), or `--allow-tool='shell(keepmacawake:*)'` for GitHub Copilot CLI.
 
 ## Examples
 
@@ -66,7 +67,7 @@ Any agent that reads Agent Skills (the skill only, without the hook):
 npx skills add bartdudzic/keepmacawake -g
 ```
 
-The plugin needs the Keep Mac Awake app (any Mac with Apple silicon and macOS 26 or later): <https://keepmacawake.com>.
+The plugin needs the Keep Mac Awake app (any Mac with Apple silicon and macOS 26 or later): <https://keepmacawake.com>. Installed the app but waiting for a long job to start your first session? The agent can start it itself on its first long run (`keepmacawake start`): it asks you first, because the first session starts the free trial, and keeps it to 8 hours, the longest session during the trial.
 
 ## Privacy
 

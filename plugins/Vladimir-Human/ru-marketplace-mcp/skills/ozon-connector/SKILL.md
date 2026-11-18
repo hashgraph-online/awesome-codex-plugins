@@ -14,7 +14,7 @@ why tier 1 impersonates and tier 2 exists at all.
 ## Prerequisite
 Nothing to set up for tier 1. For the tier-2 fallback, Chrome is started on first use
 by `mcp_core.transport.chrome_cdp` if the CDP port is not already listening, into a
-dedicated `%LOCALAPPDATA%\Chrome-Scraping` profile. From a Russian residential IP
+dedicated `%LOCALAPPDATA%\Chrome-Scraping` profile. Outside datacenter networks
 tier 1 usually answers and Chrome is never touched.
 
 ## When to use

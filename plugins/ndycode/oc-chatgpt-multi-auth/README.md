@@ -238,7 +238,7 @@ Most issues resolve by signing in again or running `codex-doctor fix=true` insid
 
 ## Release notes
 
-- Current stable: [v6.32.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
+- Current stable: [v6.33.0](CHANGELOG.md) — `npx -y oc-codex-multi-auth@latest`
 - Full release archive: [CHANGELOG.md](CHANGELOG.md)
 
 ## Terms and license

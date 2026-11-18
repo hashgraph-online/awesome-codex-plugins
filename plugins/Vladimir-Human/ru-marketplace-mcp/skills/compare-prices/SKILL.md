@@ -32,9 +32,10 @@ rank its rows against rouble sources.
   Returns offers cheapest-first plus a per-source outcome report.
 - `compare_sources()` — which marketplaces this installation can query. Call it
   when a comparison comes back partial and you need to know why.
-- `compare_verify_offer(source, product_id_or_url, expected_price_rub=None, expected_identity=None)` — verify the winning offer
+- `compare_verify_offer(source, product_id_or_url, expected_price_rub=None, expected_identity=None, expected_variant_id=None)` — verify the winning offer
   through its native card tool without enabling the full unified marketplace
-  mount. Use the `source` and product id/url returned by `compare_prices`.
+  mount. Use the `source` and product id/url returned by `compare_prices` (pass
+  `variant_id` as `expected_variant_id` for Yandex Market SKUs).
   Pass the raw `price_rub` as `expected_price_rub` to get an explicit live
   `price_verification` delta; a mismatch means the search row may be stale or
   refer to a different seller offer under the same product id.
@@ -43,9 +44,10 @@ rank its rows against rouble sources.
   `exact`, `mismatch`, `likely`, or `unknown` and its reasons. Manufacturer
   fields absent from the native card remain unknown; titles and seller articles
   never supply MPN evidence. This check does not change the price ranking.
-- `decision_inspect(source, product_id_or_url)` — return a native shortlisted
-  card through the decision profile; use `compare_verify_offer` for an explicit
-  identity verdict.
+- `decision_inspect(source, product_id_or_url, include_reviews=False)` — return a
+  native shortlisted card (available in `decision-mcp` and `marketplace-mcp`,
+  not in `compare-mcp`); use `compare_verify_offer` for an explicit identity
+  verdict.
 - `compare_browser_snapshot(handoff_id)` — returns the current retained viewport
   as MCP image content plus metadata for a same-session, unexpired handle. It
   never solves, OCRs, or sends the image to another service. Skip it when the
@@ -137,11 +139,12 @@ from listings whose marketplace explicitly reports stock.
 **Titles differ across marketplaces.** Every marketplace names things its own way
 — a query for "кроссовки мужские" returns items titled "Кеды" on Yandex Market.
 Results are relevance-matched, not identity-matched: scan them rather than
-assuming row 1 and row 2 are the same model. For a true like-for-like comparison,
+assuming row 1 and row 2 are the same model. Find the product on one marketplace
+first, then search its exact model name. For a true like-for-like comparison,
 an agent with native vision may attach a browser screenshot as optional
 `visual_evidence` during card verification; preserve unknown fields and do not
-use a screenshot alone as MPN/GTIN proof. See `work/evals/visual-evidence-contract.md`.
-find the product on one marketplace first, then search its exact model name.
+use a screenshot alone as MPN/GTIN proof (see `work/evals/visual-evidence-contract.md`
+in the source repository).
 
 **Wildberries prices depend on stock.** A delisted WB item has no price at all;
 those offers appear at the end with `price_rub: null`. That is real data, not a
@@ -155,7 +158,7 @@ must not rank a null-priced offer as the cheapest.
 `wb_search`, and that endpoint was measured 2026-07-28 returning 60 571 for a
 product whose card — and whose page — said 60 275, about half a percent above the
 real figure. Where the two cheapest offers are within a percent of each other,
-confirm the WB one with `wb_card(nmId)` before declaring a winner.
+confirm the WB one with `wb_card(nm_ids=[...])` before declaring a winner.
 
 **Rate limits are common.** Wildberries search is 429-prone under repeated
 queries. Space comparisons out; do not retry in a tight loop.

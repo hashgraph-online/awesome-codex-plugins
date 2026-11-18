@@ -914,6 +914,17 @@ can be tied to the repaired state it read. It names one run: other inputs may
 come from earlier builds, so `cold: true` does not mean every input came from a
 cold build. It is recorded on the plan with the verdict.
 
+A verdict also carries `baseline_never_built` where an input changed after the
+compared model's last build (#1387): the baseline is then the current SQL on
+today's inputs, a state no build wrote, and the verdict is computed against it.
+It holds `model_built_at` (`null` when the latest run did not build the model)
+and the evidence: `rebuilt_after`, the untouched upstream models a later run
+rebuilt, and on DuckDB `row_count` (`last_build`, `baseline`), where the built
+relation's exact count differs from the baseline's, which also sees a source
+reloaded outside dbt. A `warnings` line says the same. It is absent otherwise,
+and never set for a view. The verdict itself is unchanged: read an `unexpected`
+or `different` beside it before calling it a defect of the change.
+
 - Read `data.status`, then `data.reason_code`. `equivalent` holds for
   `data.input_scope` at `data.compared_at`, on the dev relations as they stand. Say
   that when you report it. It is not a proof for future inputs.

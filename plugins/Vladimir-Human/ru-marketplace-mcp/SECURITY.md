@@ -44,12 +44,15 @@
 
 ## Единственная часть с реальным риском: уровень CDP
 
-Восемь источников читают через Chrome, который **вы** запустили и в котором залогинились
-сами, по DevTools Protocol. Taobao, Мегамаркет, DNS, Ситилинк и AliExpress — только так,
-анонимного уровня у них нет. Ozon и поиск Авито уходят в браузер лишь когда анонимный
-уровень получил отказ; карточки и продавцы Авито читаются только через браузер. Циан —
-тоже только через браузер. Lamoda берёт через браузер поиск, а карточку сначала
-просит анонимно по GraphQL и идёт в браузер, если получила отказ.
+Десять источников при настройках по умолчанию могут обращаться к Chrome, который **вы**
+запустили и в котором залогинились сами, по DevTools Protocol. Taobao, Мегамаркет, DNS,
+Ситилинк, AliExpress и Циан работают только так — анонимного уровня у них нет. Ozon и
+поиск Авито уходят в браузер лишь когда анонимный уровень получил отказ; карточки и
+продавцы Авито читаются только через браузер. Lamoda берёт через браузер поиск, а
+карточку сначала просит анонимно по GraphQL и идёт в браузер, если получила отказ.
+Wildberries (`wb_search` и `wb_card`) сначала запрашивает анонимный HTTP, а при ответе
+401/403/498 или странице проверки по умолчанию (`WB_DOM_FALLBACK=1`) перечитывает запрос
+через ваш Chrome по CDP; `WB_DOM_FALLBACK=0` полностью отключает запасной уровень CDP.
 
 **CDP даёт любому локальному процессу полный контроль над тем профилем, к которому он
 подключён**, включая все залогиненные в нём сессии. Это и есть угроза, которую нужно
@@ -67,8 +70,9 @@
 Отдельный профиль здесь работает как основной контроль. Логиньтесь там только в
 маркетплейсы. Подробности в [docs/CDP_SETUP.md](docs/CDP_SETUP.md).
 
-Wildberries, Яндекс Маркет и Детский мир к CDP не обращаются вообще. Если вам хватает
-их, уровень можно не включать — но тогда девять остальных источников читать нечем.
+Яндекс Маркет и Детский мир к CDP не обращаются вообще; Wildberries не касается CDP при
+`WB_DOM_FALLBACK=0` (или пока отвечает анонимный HTTP). Если вам хватает их, уровень можно
+не включать — но тогда девять остальных источников читать нечем.
 
 ## Прочие меры
 
@@ -172,12 +176,15 @@ or manage accounts. Prices exclude delivery, fees and duties.
 
 ## The one part that carries real risk: the CDP tier
 
-Nine sources run their fetches inside a Chrome instance **you** started and logged
-into, over the DevTools Protocol. Taobao, Megamarket, DNS, Citilink, AliExpress and Cian work no other
+Ten sources can run fetches inside a Chrome instance **you** started and logged
+into, over the DevTools Protocol, under default settings. Taobao, Megamarket, DNS, Citilink, AliExpress and Cian work no other
 way — they have no anonymous tier. Ozon and Avito search fall back to the browser only after
 the anonymous tier is refused; Avito cards and sellers always read the page there. Lamoda
 splits the difference: search goes through the browser, the product card tries anonymous
-GraphQL first and the browser only when that is refused.
+GraphQL first and the browser only when that is refused. Wildberries (`wb_search` and
+`wb_card`) tries anonymous HTTP first and, with `WB_DOM_FALLBACK=1` enabled by default,
+attaches to your Chrome over CDP when anonymous HTTP returns 401/403/498 or a challenge
+wall; set `WB_DOM_FALLBACK=0` to disable CDP fallback completely.
 
 **CDP grants any local process full control of the profile it is attached to**,
 including every session logged into that profile. That is the threat to understand
@@ -196,8 +203,9 @@ The dedicated profile is not a nicety, it is the primary control. Log into
 marketplaces there and nothing else. Full detail:
 [docs/CDP_SETUP.md](docs/CDP_SETUP.md).
 
-Wildberries, Yandex Market and Detsky Mir never touch CDP. If those three cover your
-needs, leave the tier off — but the other nine sources cannot be read without it.
+Yandex Market and Detsky Mir never touch CDP, and Wildberries stays completely off CDP
+when `WB_DOM_FALLBACK=0` (or whenever anonymous HTTP succeeds). If those cover your
+needs, leave the tier off — the other nine sources cannot be read without it.
 
 ## Other hardening in place
 

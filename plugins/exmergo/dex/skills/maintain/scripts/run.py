@@ -351,6 +351,15 @@ _METRIC_VIEWS_VENDOR = "databricks"
 _SEMANTIC_VIEWS_COMMANDS = (("semantic", "snowflake"),)
 _SEMANTIC_VIEWS_VENDOR = "snowflake"
 
+# Under the deployments whose catalog is the warehouse's own deployed views
+# (Snowflake's `snowflake_account`, Databricks' `databricks_workspace`, #1364),
+# `explore relationships|map --use-hosted-semantic-layer` reads the layer too,
+# through the vendor's reader, so it takes the vendor's extra as `--use-project`
+# does. Only for those two vendors: under any other the flag reads dbt Cloud,
+# which needs no reader here, and SLayer's extra is too heavy to take for it.
+_HOSTED_LAYER_FLAG = "--use-hosted-semantic-layer"
+_READ_FROM_THE_WAREHOUSE = (_METRIC_VIEWS_VENDOR, _SEMANTIC_VIEWS_VENDOR)
+
 # The vendors that render a metric query without MetricFlow.
 _RENDERS_WITHOUT_METRICFLOW = (
     _SLAYER_VENDOR,
@@ -426,6 +435,11 @@ def _feature_extras(argv: list[str], vendor: str | None = None) -> list[str]:
         group in _SLAYER_BACKED_GROUPS
         or command in _SLAYER_BACKED_COMMANDS
         or (group == "explore" and _SLAYER_BACKED_FLAG in argv)
+        or (
+            group == "explore"
+            and _HOSTED_LAYER_FLAG in argv
+            and vendor in _READ_FROM_THE_WAREHOUSE
+        )
     )
     if command in _SLAYER_COMMANDS or (vendor == _SLAYER_VENDOR and reads_layer):
         extras.append("slayer")

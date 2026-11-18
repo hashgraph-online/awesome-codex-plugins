@@ -121,7 +121,7 @@ describe('group', { tags: ['billing'] }, () => { /* tests and hooks */ });
 describe('checkout flow', { serial: true }, () => { /* ordered, shared app state */ });
 beforeEach(async ({ app }) => {});     // per attempt, with test fixtures
 afterEach(async ({ screen }) => {});   // runs after failures too, with its own cleanup budget
-beforeAll(async ({ platform }) => {}); // per suite realm, no app fixtures
+beforeAll(async ({ platform }) => {}); // per suite realm, worker fixtures only (device, app, screen on mobile)
 afterAll(async () => {});
 test.skip('later', async () => {});
 test.only('focus', async () => {});         // local only: CI fails with ONLY_IN_CI
@@ -134,6 +134,8 @@ test('gap on web', async ({ platform }) => { test.fail(platform === 'web', 'know
 test.setup('sign in', { sessions: ['admin'] }, async ({ app, screen, session }) => {}); // see Sign-in sessions
 const wsTest = test.extend<{ ws: Ws }>({ ws: async ({ browser }, use) => { await use(await seed()); await drop(); } });
 wsTest('uses the workspace', async ({ ws }) => {}); // code after use() is teardown, runs after failures too
+const dbTest = test.extend<{}, { db: Db }>({ db: [async ({}, use) => { await use(await startDb()); }, { scope: 'worker' }] });
+dbTest.beforeAll(async ({ db }) => { await db.seed(); }); // one db per worker, torn down when the worker ends
 ```
 
 A setup test cannot skip from its body (`INVALID_ARGUMENT`), and neither a
@@ -164,12 +166,42 @@ Hooks nest: outer `beforeEach` first, inner `afterEach` first. `beforeAll`
 reruns per retry and per serial group (each a fresh module realm) on the
 test timeout; `afterAll` runs on `config.cleanupTimeout`. A failing
 `beforeAll` is a `HOOK_FAILED` run error skipping every test in its scope.
+`beforeAll` and `afterAll` get worker fixtures only: `platform`, worker
+fixtures from `test.extend`, and on mobile `device`, `app`, and `screen`
+(a device keeps its state between tests). On web, `browser`, `app`, and
+`screen` are test fixtures, so UI setup goes in `beforeEach`. Naming a test
+fixture in a suite hook is a `COLLECTION_ERROR` naming it. On mobile a suite
+hook that names none of `device`, `app`, `screen` opens no device attempt; when no device
+attempt can open for the hooks or the run was interrupted, they still run and
+reading `device`, `app`, or `screen` throws the reason.
 
 ## Fixtures
 
-Built-in fixtures are lazy; destructure them. Your own `test.extend`
-fixtures set up for every test registered through that `test`, destructured
-or not, so a state-changing fixture belongs on its own `test`.
+Fixtures are set up on demand. A test body, a hook, and a fixture function
+name what they use by destructuring their first parameter
+(`async ({ app, screen }) => {}`); `async (fixtures) => {}`, `async (_, use)`,
+a rest property, and a bound function (`fn.bind()`) are `COLLECTION_ERROR`, and a fixture that needs nothing
+takes `({}, use)`. A test sets up the `test.extend` fixtures its body and its
+`beforeEach` and `afterEach` hooks name, and the ones those fixtures name
+(same `extend` call or an earlier one, any order; a cycle is
+`COLLECTION_ERROR`). A fixture nothing names does not run: one that exists
+for its side effect takes `[fn, { auto: true }]`, set up for every test, or
+`[fn, { scope: 'worker', auto: true }]`, once per worker. A name the target
+has no fixture for fails the run at collection with the file and line; a test
+skipped on that target (`platforms`, `requires`, `test.skipIf`) is not
+checked there. An `afterEach` that names a fixture whose setup failed is
+skipped. A fixture named like one the `test` already has, built-in ones
+included, extends it (`app: async ({ app }, use) => { await app.open('/x');
+await use(app); }`, no type argument): inside it the name is the previous
+value, everyone else gets what it passes to `use`, and it keeps that
+fixture's type, scope, and `auto` (`device` on mobile: once per worker,
+`beforeAll` gets it; a different `scope` or `auto` is `COLLECTION_ERROR`). A worker
+fixture (`[fn, { scope: 'worker' }]`, second type argument of `extend`) is
+set up once per worker and target by the first test or suite hook that names
+it, torn down when the worker ends, and sees worker fixtures only. Declare it in a module the test files import: a test
+file reloads after a failure and for each serial group and setup test, and a
+worker fixture it declares gets a new
+instance while the old one stays set up until the worker ends.
 
 `app` (`App`) and `screen` (`Screen`): always. `agent` (`Agent`): needs a
 configured model, else `MODEL_UNAVAILABLE` (topic `agent`). `platform`

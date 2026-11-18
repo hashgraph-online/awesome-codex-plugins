@@ -44,7 +44,12 @@
     "mcp",
     "mcp-server",
     "session-search",
-    "local-first"
+    "local-first",
+    "claude",
+    "code",
+    "session",
+    "history",
+    "search"
   ],
   "engines": {
     "node": ">=18"

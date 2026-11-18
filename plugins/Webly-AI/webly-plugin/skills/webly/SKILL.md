@@ -612,6 +612,17 @@ integration_connection_limit` (a third app) or `integration_limit` (runs used
 up), tell your person and give them `details.upgradeUrl`. Never disconnect one
 of their apps to make room unless they ask.
 
+Their own MCP servers (Hobby and Pro): when your person asks to add one and gives you its
+URL, `add_integration_mcp_server { name, url, auth? }`. The URL is the final
+HTTPS MCP endpoint, with no key or token in it. `auth` is `{ type: "none" }`,
+`{ type: "api_key" }` or `{ type: "oauth" }` (Dynamic Client Registration
+only). With a key or OAuth, give your person `connectUrl` to enter the key or
+sign in; never ask them to paste a key to you. It's ready once
+`list_integration_mcp_servers` says `active`. Its tools are named
+`{toolPrefix}_…`, and search and run like any app's.
+With an API key (no person signed in), `add_integration_mcp_server` isn't
+available: ask your person to add the server on the dashboard's Integrations page.
+
 ### Custom domains
 
 Needs a signed-in account (MCP) on Hobby (5 domains) or Pro (25). On Free,

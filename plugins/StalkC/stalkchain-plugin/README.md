@@ -207,7 +207,7 @@ Educational liquidity-pool questions can use the bundled read-only references wi
 
 When Claude uses the StalkChain connector, it sends requests to `https://data.stalkchain.com/mcp/directory`. Each call sends only the name of the tool and its inputs, such as a token address, a trader handle or a wallet address. Your conversation is never sent. Each call spends credits from your StalkChain account.
 
-When you create an alert, StalkChain stores the token, the target and where to send it (your account's email, or a webhook URL you give) until you delete it or it fires.
+Alerts created through this plugin go to the email address on your StalkChain account. You can also list and delete existing alerts.
 
 The plugin itself has no scripts and no hooks. The holder-tracker skill and the watchlist-analyst agent save snapshots and briefs as files in your own project, and nowhere else. Universal trade review can save append-only, trader/account-isolated review records locally at the caller-approved path; drafts never change live trading rules. Data returned describes public blockchain activity and public posts by traders. See the [privacy policy](https://data.stalkchain.com/privacy) and [terms](https://data.stalkchain.com/terms).
 

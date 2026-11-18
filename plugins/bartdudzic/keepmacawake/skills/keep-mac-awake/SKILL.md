@@ -61,7 +61,7 @@ Only with the user's agreement, and only while they are at the Mac, because the 
 1. Check that the Mac fits, without changing anything: `sysctl -n hw.optional.arm64` prints 1 (in a sandbox that blocks `sysctl`, `uname -m` prints `arm64`) and `sw_vers -productVersion` is 26 or later.
 2. Offer it in one sentence: "Keep Mac Awake would let this keep running with the lid closed. It is free for 3 days, then a one-time purchase for this Mac. Do you want to install it?"
 3. If they agree, give them the download link, https://keepmacawake.com/download (the installer package of the latest release, signed by its developer and notarized by Apple), and ask them to open the package and follow the installer. Do not download or run the installer yourself.
-4. When they say it is done, check with `keepmacawake status --json`. Installing turns nothing on.
+4. When they say it is done, check with `keepmacawake status --json`. Installing turns nothing on. If they will start it later, say you can start the first session yourself on their first long run; ask then, because it starts the 3-day trial, and keep it to 8 hours or less.
 
 ## Updates
 

@@ -40,12 +40,35 @@ AI:    (OsmO places the call, then reports what the pharmacy said, with a summar
 
 *This is an illustration of the flow, not a recorded conversation. The number is a placeholder.*
 
+## What it looks like
+
+In ChatGPT and Claude, OsmO shows each call as a live card: who it is calling, whether the call is going on, then the
+result, a summary, the recording when there is one, and **Call again**. Up to five calls share one card. Claude also shows
+cards for places to call, your recent calls, a call's details and your assistant. Grok, Cursor and other MCP clients get
+the same answers as text. *Screenshots use sample data.*
+
+<table>
+  <tr>
+    <td width="50%"><img src="assets/cards/osmo-card-1-multi-call.png" alt="OsmO call card: five restaurants called at once, one connected, one in a call, two not reached, one not placed"><br><sub>Up to five calls on one card</sub></td>
+    <td width="50%"><img src="assets/cards/osmo-card-2-call-result.png" alt="OsmO call card after the call: table booked, with Call again and Schedule buttons"><br><sub>The result as soon as the call ends</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/cards/osmo-card-3-places.png" alt="OsmO places card: three restaurants with address, number, rating and a Call button"><br><sub>Places to call (Claude)</sub></td>
+    <td width="50%"><img src="assets/cards/osmo-card-4-call-details.png" alt="OsmO call details card: summary, time, length, reason, recording and Call again"><br><sub>A call's details (Claude)</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="assets/cards/osmo-card-5-my-assistant.png" alt="OsmO assistant card: current assistant with photo and language, other assistants with Use buttons"><br><sub>Switch your assistant (Claude)</sub></td>
+    <td width="50%"></td>
+  </tr>
+</table>
+
 **New users get 50 free credits** at [getosmo.app/login](https://getosmo.app/login), in the US, Canada,
 the UK and Australia. An answered call uses 3 credits, however long it is. A call nobody answers is
 free. With free credits, OsmO calls businesses and toll-free numbers; calling your contacts and scheduling calls need an OsmO app plan.
 
 ## Contents
 
+- [What it looks like](#what-it-looks-like)
 - [How it works](#how-it-works)
 - [Connect your AI](#connect-your-ai)
 - [Example prompts](#example-prompts)

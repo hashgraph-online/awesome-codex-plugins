@@ -7,19 +7,25 @@ description: Work on the SEO of a website that is connected to Seonix through th
 
 Seonix runs SEO for a website: it crawls the site (Site Health), tracks every
 issue across scans, reads Google Search Console, researches keywords and
-clusters, scores drafts, and writes and publishes articles. The `seonix` MCP
-server exposes that project's data to you. This skill is the entry point; the
+clusters, and scores drafts. Articles are written and published inside Seonix
+(its dashboard and autopilot); no tool here creates or publishes one, so do
+not offer to. The `seonix` MCP server exposes the project's data to you. This skill is the entry point; the
 detailed step-by-step procedures live on the server as playbooks.
 
 ## Before anything
 
-1. Call `get_account`. It lists the projects, their plans and whether the MCP
-   is available for each. The MCP is part of every paid Seonix plan; on the
-   Free plan nothing works (`plan_required`, relay `upgrade_url`).
-2. If the account has several projects, ask the user which site they mean
+1. "Check this page" with a URL needs no project and works on every account:
+   call `check_page(url)` and report its findings in order (where on the
+   page, what was found, what to do), or that nothing serious was found.
+   On the Free plan it allows 3 checks a day (`daily_limit` after that).
+2. Call `get_account`. It lists the projects, their plans and what the
+   account can use (`access`: `full`, or `free` = `check_page` and the
+   account tools only; other tools answer `plan_required`, relay its
+   message).
+3. If the account has several projects, ask the user which site they mean
    and pass `project_id` (id or slug) to every project tool. When the server
    URL already names the project (`/mcp/p/{projectID}`), omit it.
-3. For the full procedure of any task, call `list_playbooks` then
+4. For the full procedure of any task, call `list_playbooks` then
    `get_playbook` (also exposed as MCP prompts). `seo_review` is the entry
    playbook: a complete audit-and-plan of the project. Others:
    `promote_site_playbook`, `work_through_page`, `work_through_all_pages`,

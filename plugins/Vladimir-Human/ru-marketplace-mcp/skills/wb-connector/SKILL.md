@@ -130,7 +130,7 @@ pool itself.
 **Mojibake is handled.** Names and text are auto-decoded (latin-1 → utf-8). If
 text still looks garbled, the upstream response itself is broken.
 
-**Basket CDN host depends on the nmId range.** Auto-routed across baskets 01..28,
+**Basket CDN host depends on the nmId range.** Auto-routed across baskets 01..65,
 with fallback mirrors.
 
 ## Sources of truth

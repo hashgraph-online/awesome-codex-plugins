@@ -163,7 +163,7 @@ or `E2E_USER_ADMIN_PASSWORD` first, or defer to fill time with
 | `cleanupTimeout` | `30000` | Each `afterEach` hook, fixture teardown, engine cleanup, ms. |
 | `retries` | `0`, `1` in CI | 0 to 10. |
 | `workers` | half the cores, `1` in CI | Parallel test files, capped by the `workers` the engine declares per target. |
-| `reporters` | `['list']` | `list`, `json`, `junit`, `markdown`, or `{ name, onEvent?, onRunFinished? }` objects; `json` excludes `list`, `--reporter` keeps the objects. |
+| `reporters` | `['list']` | `list`, `dot`, `json`, `junit`, `markdown`, or `{ name, onEvent?, onRunFinished? }` objects; `json` and `dot` each exclude `list`, `--reporter` keeps the objects. |
 | `cache` | `'read-write'` | `'read-write'`, `'read-only'`, `'off'`, or `{ mode, store, dir, strict }`; CI demotes only a defaulted mode to `'read-only'`. `strict` (`--strict-cache`) fails a step whose recording no longer replays (`REPLAY_STALE`) instead of handing it to the agent; retries replay too, and the run never writes the cache. |
 | `agents` | `{ default: built-in }` | Tests run with `default`, `e2e run --agent <name>` picks another, entries never inherit from `default`. Options: topic `agent`. |
 | `filters` | `[]` | Test filters `{ name, filter(tests, context) }`, unique names, applied in order with `--changed-since <ref>`. Use `filters: [decisionFilter({ model: gateway.decisionModel('typesafe-ai/jev') })]`, with `decisionFilter` from `@e2e-dev/decision` and `gateway` from `ai` (install `@e2e-dev/decision ai`), to run only the tests a pull request can affect. `filter` gets candidates `{ id, file, titlePath, tags, setupFile? }` and a context `{ projectRoot, changes: { base, root, files }, configFile, signal, log, redact }` with repository-relative `files`, and returns `{ exclude: { [id]: reason }, relevance?: { [id]: 0 to 1 }, note? }`; every test it does not name runs, and `relevance` (how likely each test is to fail) makes each target start the likeliest files first. Read files, the environment, or the network inside `filter`, never at config load: workers load the config too. When filters run: topic `running`. |
@@ -350,7 +350,7 @@ export default {
 - `app.bundleId`: bundle id, package name, or display name `app.open()`
   launches fresh (an attempt launches nothing itself; without it, the
   installed build). `app.appPath`: the `.app` or `.apk` under test; the
-  engine installs nothing, so a fixture every test takes calls
+  engine installs nothing, so a worker fixture with `auto: true` calls
   `device.installApp()` once per device (no path installs `app.appPath`).
   `app.launchArguments` and `app.permissions` ride every fresh launch:
   arguments reach the app process (iOS) or `am start` (Android), permissions
